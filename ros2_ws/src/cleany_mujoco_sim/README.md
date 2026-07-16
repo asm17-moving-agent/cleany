@@ -23,6 +23,13 @@ ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 - `joint_states` (`sensor_msgs/JointState`)
 - `odom` (`nav_msgs/Odometry`)
 - `scan` (`sensor_msgs/LaserScan`)
+- `image_raw` (`sensor_msgs/Image`, `rgb8`) when `camera_enabled` is true
+- `camera_info` (`sensor_msgs/CameraInfo`) - pinhole intrinsics derived from
+  the MuJoCo camera `fovy`, published alongside each image
+- `depth` (`sensor_msgs/Image`, `32FC1`, meters) when `depth_enabled` is true.
+  Depth is rendered from the RGB camera, so it is pixel-aligned with
+  `image_raw` and shares its frame and intrinsics (the RealSense SDK's
+  depth-aligned-to-color stream, not the raw depth sensor).
 - `tf` (`odom` -> `base_link`) when `publish_odom_tf` is true
 - `tf_static` (`base_link` -> `laser`) when laser scan publishing is enabled
 
@@ -45,6 +52,15 @@ base support needs a separate model and command adapter change.
 - `scan_rate_hz` - laser scan publish rate. Defaults to `5.5`.
 - `scan_samples` - number of rays per scan. `0` derives the sample count from
   `scan_sample_rate_hz`.
+- `camera_enabled` - render and publish camera topics. Defaults to `true`.
+- `camera_name` - MuJoCo camera to render. Defaults to `head_realsense_rgb`.
+- `camera_width` / `camera_height` - render resolution. Defaults to `640x480`.
+- `camera_rate_hz` - image publish rate. Defaults to `15.0`.
+- `image_topic` - RGB image topic. Defaults to `image_raw`.
+- `camera_info_topic` - intrinsics topic. Defaults to `camera_info`.
+- `depth_enabled` - also publish aligned depth (requires `camera_enabled`).
+  Defaults to `true`.
+- `depth_topic` - depth image topic. Defaults to `depth`.
 
 Additional node parameters supported by `MujocoSimNode`:
 
@@ -62,6 +78,8 @@ Additional node parameters supported by `MujocoSimNode`:
   `0`. Defaults to `8000.0`.
 - `scan_range_min` - minimum valid scan range. Defaults to `0.15`.
 - `scan_range_max` - maximum valid scan range. Defaults to `12.0`.
+- `camera_frame_id` - camera optical frame id. Defaults to
+  `head_camera_rgb_optical_frame`.
 
 ## Scope
 

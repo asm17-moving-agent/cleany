@@ -5,7 +5,7 @@ import pytest
 import rclpy
 from rclpy.parameter import Parameter
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Image, JointState, LaserScan
+from sensor_msgs.msg import CameraInfo, Image, JointState, LaserScan
 
 from cleany_mujoco_sim.sim_node import MujocoSimNode
 from cleany_mujoco_sim.state import joint_positions
@@ -95,6 +95,70 @@ def test_sim_node_publishes_camera_image(scene_path: Path):
         assert received[0].width == 64
         assert received[0].height == 48
         assert received[0].header.frame_id == 'head_camera_rgb_optical_frame'
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_publishes_depth_and_camera_info(scene_path: Path):
+    rclpy.init(args=[])
+    node = None
+    try:
+        try:
+            node = _make_node(
+                scene_path,
+                camera_enabled=True,
+                camera_width=64,
+                camera_height=48,
+                camera_rate_hz=100.0,
+            )
+        except Exception as exc:  # noqa: BLE001 - GL backend may be unavailable
+            pytest.skip(f'MuJoCo offscreen rendering unavailable: {exc}')
+
+        depth_received: list[Image] = []
+        info_received: list[CameraInfo] = []
+        node.create_subscription(Image, 'depth', depth_received.append, 10)
+        node.create_subscription(CameraInfo, 'camera_info', info_received.append, 10)
+
+        deadline = time.time() + 3.0
+        while (not depth_received or not info_received) and time.time() < deadline:
+            rclpy.spin_once(node, timeout_sec=0.1)
+
+        assert depth_received
+        assert depth_received[0].encoding == '32FC1'
+        assert depth_received[0].width == 64
+        assert depth_received[0].height == 48
+        assert depth_received[0].header.frame_id == 'head_camera_rgb_optical_frame'
+        assert info_received
+        assert info_received[0].width == 64
+        assert info_received[0].height == 48
+        assert info_received[0].k[0] > 0.0
+        assert info_received[0].header.frame_id == 'head_camera_rgb_optical_frame'
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_skips_depth_when_disabled(scene_path: Path):
+    rclpy.init(args=[])
+    node = None
+    try:
+        try:
+            node = _make_node(
+                scene_path,
+                camera_enabled=True,
+                camera_width=64,
+                camera_height=48,
+                camera_rate_hz=100.0,
+                depth_enabled=False,
+            )
+        except Exception as exc:  # noqa: BLE001 - GL backend may be unavailable
+            pytest.skip(f'MuJoCo offscreen rendering unavailable: {exc}')
+
+        assert node._depth_renderer is None
+        assert node._depth_pub is None
     finally:
         if node is not None:
             node.destroy_node()

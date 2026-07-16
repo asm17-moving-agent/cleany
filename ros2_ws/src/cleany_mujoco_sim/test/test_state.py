@@ -9,6 +9,8 @@ from sensor_msgs.msg import JointState
 from cleany_mujoco_sim.state import (
     actuated_joint_names,
     apply_joint_cmd,
+    camera_info_msg,
+    depth_image_msg,
     image_msg,
     joint_positions,
     joint_velocities,
@@ -120,6 +122,38 @@ def test_image_msg_encodes_rgb8_with_header():
     assert msg.header.frame_id == "head_camera_rgb_optical_frame"
     assert len(msg.data) == 4 * 6 * 3
     assert bytes(msg.data[0:3]) == bytes((255, 0, 0))
+
+
+def test_depth_image_msg_encodes_32fc1_with_header():
+    depth = np.zeros((4, 6), dtype=np.float32)
+    depth[0, 0] = 1.5
+
+    msg = depth_image_msg(depth, Time(), "head_camera_rgb_optical_frame")
+
+    assert msg.encoding == "32FC1"
+    assert msg.height == 4
+    assert msg.width == 6
+    assert msg.step == 6 * 4
+    assert msg.header.frame_id == "head_camera_rgb_optical_frame"
+    assert len(msg.data) == 4 * 6 * 4
+    assert np.frombuffer(bytes(msg.data[0:4]), dtype=np.float32)[0] == pytest.approx(1.5)
+
+
+def test_camera_info_msg_derives_pinhole_intrinsics_from_fovy():
+    msg = camera_info_msg(64, 48, 90.0, Time(), "head_camera_rgb_optical_frame")
+
+    focal = 24.0  # (48 / 2) / tan(45 deg)
+    assert msg.width == 64
+    assert msg.height == 48
+    assert msg.header.frame_id == "head_camera_rgb_optical_frame"
+    assert msg.distortion_model == "plumb_bob"
+    assert list(msg.d) == [0.0] * 5
+    assert msg.k[0] == pytest.approx(focal)  # fx
+    assert msg.k[4] == pytest.approx(focal)  # fy
+    assert msg.k[2] == pytest.approx(32.0)  # cx
+    assert msg.k[5] == pytest.approx(24.0)  # cy
+    assert msg.p[0] == pytest.approx(focal)
+    assert msg.p[5] == pytest.approx(focal)
 
 
 def test_scan_sample_count_derives_a1m8_default_samples():

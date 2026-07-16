@@ -6,12 +6,14 @@ import mujoco
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Image, JointState, LaserScan
+from sensor_msgs.msg import CameraInfo, Image, JointState, LaserScan
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 
 from cleany_mujoco_sim.scene_loader import default_scene_path, load_model
 from cleany_mujoco_sim.state import (
     apply_joint_cmd,
+    camera_info_msg,
+    depth_image_msg,
     image_msg,
     joint_state_msg,
     laser_scan_msg,
@@ -49,6 +51,9 @@ class MujocoSimNode(Node):
         self.declare_parameter('camera_rate_hz', 15.0)
         self.declare_parameter('camera_frame_id', 'head_camera_rgb_optical_frame')
         self.declare_parameter('image_topic', 'image_raw')
+        self.declare_parameter('camera_info_topic', 'camera_info')
+        self.declare_parameter('depth_enabled', True)
+        self.declare_parameter('depth_topic', 'depth')
 
         scene_path_value = self.get_parameter('scene_path').get_parameter_value().string_value
         scene_path = Path(scene_path_value) if scene_path_value else default_scene_path()
@@ -77,6 +82,11 @@ class MujocoSimNode(Node):
         self._camera_rate_hz = self.get_parameter('camera_rate_hz').get_parameter_value().double_value
         self._camera_frame_id = self.get_parameter('camera_frame_id').get_parameter_value().string_value
         image_topic = self.get_parameter('image_topic').get_parameter_value().string_value
+        camera_info_topic = (
+            self.get_parameter('camera_info_topic').get_parameter_value().string_value
+        )
+        self._depth_enabled = self.get_parameter('depth_enabled').get_parameter_value().bool_value
+        depth_topic = self.get_parameter('depth_topic').get_parameter_value().string_value
 
         if publish_rate_hz <= 0:
             raise ValueError('publish_rate_hz must be positive')
@@ -120,14 +130,29 @@ class MujocoSimNode(Node):
             self._sim_time_at_last_scan = -1.0 / self._scan_rate_hz
 
         self._renderer = None
+        self._depth_renderer = None
         self._image_pub = None
+        self._camera_info_pub = None
+        self._depth_pub = None
+        self._camera_fovy_deg = 0.0
         self._sim_time_at_last_frame = 0.0
         if self._camera_enabled:
             self._renderer = mujoco.Renderer(
                 self._model, self._camera_height, self._camera_width
             )
             self._image_pub = self.create_publisher(Image, image_topic, 10)
+            self._camera_info_pub = self.create_publisher(CameraInfo, camera_info_topic, 10)
+            self._camera_fovy_deg = float(self._model.cam_fovy[self._camera_id])
             self._sim_time_at_last_frame = -1.0 / self._camera_rate_hz
+            if self._depth_enabled:
+                # Depth is rendered from the RGB camera so the two images share
+                # pixels, frame and intrinsics -- mirroring the RealSense SDK's
+                # depth-aligned-to-color stream instead of the raw depth sensor.
+                self._depth_renderer = mujoco.Renderer(
+                    self._model, self._camera_height, self._camera_width
+                )
+                self._depth_renderer.enable_depth_rendering()
+                self._depth_pub = self.create_publisher(Image, depth_topic, 10)
 
         self._joint_state_pub = self.create_publisher(JointState, 'joint_states', 10)
         self._odom_pub = self.create_publisher(Odometry, 'odom', 10)
@@ -160,6 +185,8 @@ class MujocoSimNode(Node):
             self._viewer.close()
         if self._renderer is not None:
             self._renderer.close()
+        if self._depth_renderer is not None:
+            self._depth_renderer.close()
 
         super().destroy_node()
 
@@ -221,6 +248,21 @@ class MujocoSimNode(Node):
             self._image_pub.publish(
                 image_msg(pixels, stamp, self._camera_frame_id)
             )
+            self._camera_info_pub.publish(
+                camera_info_msg(
+                    self._camera_width,
+                    self._camera_height,
+                    self._camera_fovy_deg,
+                    stamp,
+                    self._camera_frame_id,
+                )
+            )
+            if self._depth_renderer is not None:
+                self._depth_renderer.update_scene(self._data, camera=self._camera_name)
+                depth = self._depth_renderer.render()
+                self._depth_pub.publish(
+                    depth_image_msg(depth, stamp, self._camera_frame_id)
+                )
             self._sim_time_at_last_frame = self._data.time
         if self._viewer is not None:
             self._viewer.sync()

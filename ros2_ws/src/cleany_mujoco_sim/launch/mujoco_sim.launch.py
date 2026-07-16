@@ -23,6 +23,9 @@ def generate_launch_description() -> LaunchDescription:
     camera_height_arg = DeclareLaunchArgument('camera_height', default_value='480')
     camera_rate_arg = DeclareLaunchArgument('camera_rate_hz', default_value='15.0')
     image_topic_arg = DeclareLaunchArgument('image_topic', default_value='image_raw')
+    camera_info_topic_arg = DeclareLaunchArgument('camera_info_topic', default_value='camera_info')
+    depth_enabled_arg = DeclareLaunchArgument('depth_enabled', default_value='true')
+    depth_topic_arg = DeclareLaunchArgument('depth_topic', default_value='depth')
 
     node = Node(
         package='cleany_mujoco_sim',
@@ -41,6 +44,9 @@ def generate_launch_description() -> LaunchDescription:
                 'camera_height': LaunchConfiguration('camera_height'),
                 'camera_rate_hz': LaunchConfiguration('camera_rate_hz'),
                 'image_topic': LaunchConfiguration('image_topic'),
+                'camera_info_topic': LaunchConfiguration('camera_info_topic'),
+                'depth_enabled': LaunchConfiguration('depth_enabled'),
+                'depth_topic': LaunchConfiguration('depth_topic'),
             }
         ],
         output='screen',
@@ -58,5 +64,8 @@ def generate_launch_description() -> LaunchDescription:
         camera_height_arg,
         camera_rate_arg,
         image_topic_arg,
+        camera_info_topic_arg,
+        depth_enabled_arg,
+        depth_topic_arg,
         node,
     ])

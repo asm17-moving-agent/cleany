@@ -8,7 +8,7 @@ import numpy as np
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.time import Time
-from sensor_msgs.msg import Image, JointState, LaserScan
+from sensor_msgs.msg import CameraInfo, Image, JointState, LaserScan
 
 _SCALAR_JOINT_TYPES = (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE)
 
@@ -67,6 +67,50 @@ def image_msg(pixels: np.ndarray, stamp: Time, frame_id: str) -> Image:
     msg.is_bigendian = 0
     msg.step = width * 3
     msg.data = pixels.tobytes()
+    return msg
+
+
+def depth_image_msg(depth: np.ndarray, stamp: Time, frame_id: str) -> Image:
+    """Convert a MuJoCo depth render (HxW float32, meters) into a sensor_msgs/Image.
+
+    Encoded as 32FC1 (meters), the REP 118 floating-point depth image format.
+    Built manually for the same reason as image_msg (no cv_bridge).
+    """
+    depth = np.ascontiguousarray(depth, dtype=np.float32)
+    height, width = depth.shape[:2]
+    msg = Image()
+    msg.header.stamp = stamp.to_msg()
+    msg.header.frame_id = frame_id
+    msg.height = height
+    msg.width = width
+    msg.encoding = "32FC1"
+    msg.is_bigendian = 0
+    msg.step = width * 4
+    msg.data = depth.tobytes()
+    return msg
+
+
+def camera_info_msg(
+    width: int, height: int, fovy_deg: float, stamp: Time, frame_id: str
+) -> CameraInfo:
+    """Pinhole intrinsics for a MuJoCo camera (no lens distortion in sim).
+
+    MuJoCo cameras are ideal pinholes defined by a vertical FOV; focal length
+    follows from the image height, and square pixels give fx == fy.
+    """
+    focal = (height / 2.0) / math.tan(math.radians(fovy_deg) / 2.0)
+    cx = width / 2.0
+    cy = height / 2.0
+    msg = CameraInfo()
+    msg.header.stamp = stamp.to_msg()
+    msg.header.frame_id = frame_id
+    msg.width = width
+    msg.height = height
+    msg.distortion_model = "plumb_bob"
+    msg.d = [0.0, 0.0, 0.0, 0.0, 0.0]
+    msg.k = [focal, 0.0, cx, 0.0, focal, cy, 0.0, 0.0, 1.0]
+    msg.r = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    msg.p = [focal, 0.0, cx, 0.0, 0.0, focal, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
     return msg
 
 
