@@ -16,6 +16,7 @@ ros2_ws/log/
 # Local artifacts
 *.log
 *.tmp
+MUJOCO_LOG.TXT
 
 # ML model weights (downloaded at runtime, not source)
 *.pt

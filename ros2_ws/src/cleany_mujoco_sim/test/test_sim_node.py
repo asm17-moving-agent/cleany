@@ -157,7 +157,6 @@ def test_sim_node_skips_depth_when_disabled(scene_path: Path):
         except Exception as exc:  # noqa: BLE001 - GL backend may be unavailable
             pytest.skip(f'MuJoCo offscreen rendering unavailable: {exc}')
 
-        assert node._depth_renderer is None
         assert node._depth_pub is None
     finally:
         if node is not None:

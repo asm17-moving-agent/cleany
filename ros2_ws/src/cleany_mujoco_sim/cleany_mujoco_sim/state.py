@@ -70,13 +70,22 @@ def image_msg(pixels: np.ndarray, stamp: Time, frame_id: str) -> Image:
     return msg
 
 
-def depth_image_msg(depth: np.ndarray, stamp: Time, frame_id: str) -> Image:
+def depth_image_msg(
+    depth: np.ndarray, stamp: Time, frame_id: str, max_valid_depth: float | None = None
+) -> Image:
     """Convert a MuJoCo depth render (HxW float32, meters) into a sensor_msgs/Image.
 
     Encoded as 32FC1 (meters), the REP 118 floating-point depth image format.
     Built manually for the same reason as image_msg (no cv_bridge).
+
+    MuJoCo writes the far clip distance (a finite value) for pixels that hit
+    no geometry; REP 118 wants +inf for "no return". `max_valid_depth`, when
+    given, converts every reading at or beyond it to +inf so consumers never
+    deproject the background as a real surface.
     """
-    depth = np.ascontiguousarray(depth, dtype=np.float32)
+    depth = np.ascontiguousarray(depth, dtype=np.float32).copy()
+    if max_valid_depth is not None:
+        depth[depth >= max_valid_depth] = np.inf
     height, width = depth.shape[:2]
     msg = Image()
     msg.header.stamp = stamp.to_msg()

@@ -29,7 +29,11 @@ ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 - `depth` (`sensor_msgs/Image`, `32FC1`, meters) when `depth_enabled` is true.
   Depth is rendered from the RGB camera, so it is pixel-aligned with
   `image_raw` and shares its frame and intrinsics (the RealSense SDK's
-  depth-aligned-to-color stream, not the raw depth sensor).
+  depth-aligned-to-color stream, not the raw depth sensor). Pixels that hit
+  no geometry are `+inf` (REP 118 "no return"), not the far clip distance.
+  Known limitation: on macOS the GL backend lacks `ARB_clip_control`, so
+  MuJoCo warns `depth accuracy will be limited` -- far-range readings have
+  coarser quantization there than on Linux/EGL.
 - `tf` (`odom` -> `base_link`) when `publish_odom_tf` is true
 - `tf_static` (`base_link` -> `laser`) when laser scan publishing is enabled
 

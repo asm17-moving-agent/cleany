@@ -130,11 +130,11 @@ class MujocoSimNode(Node):
             self._sim_time_at_last_scan = -1.0 / self._scan_rate_hz
 
         self._renderer = None
-        self._depth_renderer = None
         self._image_pub = None
         self._camera_info_pub = None
         self._depth_pub = None
-        self._camera_fovy_deg = 0.0
+        self._camera_info = None
+        self._depth_max_valid = 0.0
         self._sim_time_at_last_frame = 0.0
         if self._camera_enabled:
             self._renderer = mujoco.Renderer(
@@ -142,17 +142,26 @@ class MujocoSimNode(Node):
             )
             self._image_pub = self.create_publisher(Image, image_topic, 10)
             self._camera_info_pub = self.create_publisher(CameraInfo, camera_info_topic, 10)
-            self._camera_fovy_deg = float(self._model.cam_fovy[self._camera_id])
+            # Intrinsics are static; build the message once and restamp it.
+            self._camera_info = camera_info_msg(
+                self._camera_width,
+                self._camera_height,
+                float(self._model.cam_fovy[self._camera_id]),
+                self.get_clock().now(),
+                self._camera_frame_id,
+            )
             self._sim_time_at_last_frame = -1.0 / self._camera_rate_hz
             if self._depth_enabled:
-                # Depth is rendered from the RGB camera so the two images share
-                # pixels, frame and intrinsics -- mirroring the RealSense SDK's
+                # Depth is rendered from the RGB camera (by toggling depth mode
+                # on the same renderer) so the two images share pixels, frame
+                # and intrinsics -- mirroring the RealSense SDK's
                 # depth-aligned-to-color stream instead of the raw depth sensor.
-                self._depth_renderer = mujoco.Renderer(
-                    self._model, self._camera_height, self._camera_width
-                )
-                self._depth_renderer.enable_depth_rendering()
                 self._depth_pub = self.create_publisher(Image, depth_topic, 10)
+                # MuJoCo writes the far clip distance for no-hit pixels;
+                # readings at or beyond it are "no return", not real surfaces.
+                self._depth_max_valid = 0.99 * float(
+                    self._model.stat.extent * self._model.vis.map.zfar
+                )
 
         self._joint_state_pub = self.create_publisher(JointState, 'joint_states', 10)
         self._odom_pub = self.create_publisher(Odometry, 'odom', 10)
@@ -185,8 +194,6 @@ class MujocoSimNode(Node):
             self._viewer.close()
         if self._renderer is not None:
             self._renderer.close()
-        if self._depth_renderer is not None:
-            self._depth_renderer.close()
 
         super().destroy_node()
 
@@ -248,20 +255,16 @@ class MujocoSimNode(Node):
             self._image_pub.publish(
                 image_msg(pixels, stamp, self._camera_frame_id)
             )
-            self._camera_info_pub.publish(
-                camera_info_msg(
-                    self._camera_width,
-                    self._camera_height,
-                    self._camera_fovy_deg,
-                    stamp,
-                    self._camera_frame_id,
-                )
-            )
-            if self._depth_renderer is not None:
-                self._depth_renderer.update_scene(self._data, camera=self._camera_name)
-                depth = self._depth_renderer.render()
+            self._camera_info.header.stamp = stamp.to_msg()
+            self._camera_info_pub.publish(self._camera_info)
+            if self._depth_pub is not None:
+                self._renderer.enable_depth_rendering()
+                depth = self._renderer.render()
+                self._renderer.disable_depth_rendering()
                 self._depth_pub.publish(
-                    depth_image_msg(depth, stamp, self._camera_frame_id)
+                    depth_image_msg(
+                        depth, stamp, self._camera_frame_id, self._depth_max_valid
+                    )
                 )
             self._sim_time_at_last_frame = self._data.time
         if self._viewer is not None:

@@ -29,8 +29,11 @@ def draw_detections(image: np.ndarray, detections: Iterable[Detection]) -> np.nd
     canvas = np.ascontiguousarray(image, dtype=np.uint8).copy()
     for det in detections:
         if det.mask is not None and det.mask.shape == canvas.shape[:2]:
-            region = canvas[det.mask].astype(np.float32)
-            canvas[det.mask] = (
+            # Force bool: an int 0/1 mask would silently become (wrong) fancy
+            # indexing instead of a pixel selection.
+            mask = np.asarray(det.mask, dtype=bool)
+            region = canvas[mask].astype(np.float32)
+            canvas[mask] = (
                 (1.0 - _MASK_ALPHA) * region + _MASK_ALPHA * np.array(_BOX_COLOR)
             ).astype(np.uint8)
         p1 = (int(det.x1), int(det.y1))

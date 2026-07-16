@@ -139,6 +139,20 @@ def test_depth_image_msg_encodes_32fc1_with_header():
     assert np.frombuffer(bytes(msg.data[0:4]), dtype=np.float32)[0] == pytest.approx(1.5)
 
 
+def test_depth_image_msg_marks_readings_beyond_max_valid_as_inf():
+    depth = np.array([[1.0, 17.3], [0.5, 20.0]], dtype=np.float32)
+
+    msg = depth_image_msg(depth, Time(), "cam", max_valid_depth=17.0)
+
+    values = np.frombuffer(bytes(msg.data), dtype=np.float32).reshape(2, 2)
+    assert values[0, 0] == pytest.approx(1.0)
+    assert np.isinf(values[0, 1])
+    assert values[1, 0] == pytest.approx(0.5)
+    assert np.isinf(values[1, 1])
+    # input untouched
+    assert depth[0, 1] == pytest.approx(17.3)
+
+
 def test_camera_info_msg_derives_pinhole_intrinsics_from_fovy():
     msg = camera_info_msg(64, 48, 90.0, Time(), "head_camera_rgb_optical_frame")
 
