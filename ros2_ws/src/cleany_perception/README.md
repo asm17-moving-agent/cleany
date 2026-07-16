@@ -5,10 +5,15 @@
 Perception은 generic 후보(라벨·confidence·bbox)만 제공하고 행동을 판정하지 않는다.
 `collect`/`skip` 같은 의미 판단은 Planner 몫이다 (AGENTS.md §3).
 
-## 현재 범위: RGB 2D만
+## 현재 범위: RGB 2D 탐지 + 인스턴스 세그멘테이션
 
-- 지금은 **RGB 2D 탐지만** 한다. depth/3D pose는 이후 단계.
-- 이유: 실험/테스트 목적 + 개발용 노트북 성능 이슈. 우선 가볍게 2D로 검증한다.
+- **RGB 2D 탐지 + 인스턴스 마스크**까지 한다. depth 융합(3D 위치)은 이후 단계.
+- 기본 가중치는 `yolo11n-seg.pt`. plain detect 가중치(`yolo11n.pt`)를 지정하면
+  마스크 없이 bbox만 나온다 (코드 변경 불필요).
+- 마스크는 노드 내부 `Detection.mask`(원본 해상도 bool 배열)로만 유지하고
+  별도 토픽으로 publish하지 않는다. 이후 depth 융합이 같은 노드 안에서
+  마스크를 소비할 예정이라 메시지 전송이 필요 없기 때문 (YAGNI).
+  시각 확인은 `publish_annotated`의 마스크 오버레이로 한다.
 - 확장 대비로 `vision_msgs`의 `pose` 슬롯은 비워둔 채 남겨둔다 (메시지 교체 없이 depth 추가 가능).
 
 ## 구조 (core / node 분리)
@@ -17,10 +22,10 @@ ROS 무의존 core 로직과 얇은 ROS 노드를 분리해 core를 pytest로 �
 
 | 파일 | 역할 | ROS 의존 |
 |---|---|---|
-| `detector.py` | `parse_boxes()`(순수) + `YoloDetector`(ultralytics lazy import) | 없음 |
+| `detector.py` | `parse_boxes()`(순수, 마스크 포함) + `YoloDetector`(ultralytics lazy import) | 없음 |
 | `imaging.py` | `Image`↔ndarray (numpy 직접, cv_bridge 미사용) | 메시지 타입만 |
 | `detection_to_msg.py` | `Detection[]` → `vision_msgs/Detection2DArray` | 메시지 타입만 |
-| `annotate.py` | bbox+label 그리기 (선택 viz, cv2 lazy import) | 없음 |
+| `annotate.py` | bbox+label+마스크 오버레이 그리기 (선택 viz, cv2 lazy import) | 없음 |
 | `detection_node.py` | 배선: `/image_raw` → detect → `/detections` | rclpy |
 
 ## 토픽
@@ -37,7 +42,7 @@ ROS 무의존 core 로직과 얇은 ROS 노드를 분리해 core를 pytest로 �
 |---|---|---|
 | `image_topic` | `/image_raw` | 입력 이미지 토픽 |
 | `detections_topic` | `/detections` | 출력 탐지 토픽 |
-| `weights` | `yolo11n.pt` | 모델명(자동 다운로드) 또는 abs 경로 (`models/README.md`) |
+| `weights` | `yolo11n-seg.pt` | 모델명(자동 다운로드) 또는 abs 경로 (`models/README.md`). `-seg` 가중치면 인스턴스 마스크 포함 |
 | `conf` | `0.25` | confidence 임계값 |
 | `classes` | `[]` | COCO class-id 필터 (빈=전체) |
 | `device` | `''` | `''` auto / `cpu` / `cuda:0`·`0` / `mps` |

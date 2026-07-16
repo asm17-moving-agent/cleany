@@ -10,8 +10,11 @@ detection_node:
   ros__parameters:
     image_topic: /image_raw
     detections_topic: /detections
-    weights: yolo11n.pt          # model name -> auto-download to cwd; or an abs
-                                 # path (see models/README.md) to pin location
+    weights: yolo11n-seg.pt      # model name -> auto-download to cwd; or an abs
+                                 # path (see models/README.md) to pin location.
+                                 # -seg variants add instance masks; plain
+                                 # detect weights (yolo11n.pt) still work,
+                                 # detections just carry no mask.
     conf: 0.25                   # confidence threshold
     classes: []                  # COCO class-id filter; empty = all classes
     device: ''                   # '' auto, 'cpu', 'cuda:0'/'0', 'mps'

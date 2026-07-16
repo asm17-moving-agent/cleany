@@ -4,26 +4,35 @@ ROS-independent detection core so it can be unit tested without a running ROS
 graph (AGENTS.md section 4). It takes an image (ndarray) and returns detection
 candidates; it does not decide robot behaviour (that is the Planner's job).
 
-- `Detection`: a single detection candidate (label, score, pixel bbox).
-- `parse_boxes()`: pure conversion of raw box arrays into `Detection`s; unit
-  tested without ultralytics.
+- `Detection`: a single detection candidate (label, score, pixel bbox, and an
+  optional full-frame instance mask when a segmentation model is used).
+- `parse_boxes()`: pure conversion of raw box/mask arrays into `Detection`s;
+  unit tested without ultralytics.
 - `YoloDetector`: wraps an ultralytics YOLO model. `ultralytics` is imported
   lazily so this module (and `parse_boxes`) imports without it installed.
 
-Model choice (YOLO11n, pretrained COCO) is an experiment-branch decision and is
-not confirmed in the KB. Weights/conf/classes are configurable, never hardcoded
-as project truth (AGENTS.md section 4).
+Model choice (YOLO11 seg, pretrained COCO) is an experiment-branch decision and
+is not confirmed in the KB. Weights/conf/classes are configurable, never
+hardcoded as project truth (AGENTS.md section 4).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, Mapping, Sequence
+
+import numpy as np
 
 
 @dataclass(frozen=True)
 class Detection:
-    """One detection candidate. Bbox is pixel corners (x1,y1)-(x2,y2)."""
+    """One detection candidate. Bbox is pixel corners (x1,y1)-(x2,y2).
+
+    `mask` is a full-frame boolean instance mask (same HxW as the source
+    image) when the model provides segmentation, else None. It is excluded
+    from equality so Detection comparisons stay well-defined (ndarray `==`
+    is elementwise).
+    """
 
     label: str
     score: float
@@ -31,6 +40,7 @@ class Detection:
     y1: float
     x2: float
     y2: float
+    mask: np.ndarray | None = field(default=None, compare=False)
 
 
 def parse_boxes(
@@ -38,20 +48,31 @@ def parse_boxes(
     scores: Iterable[float],
     class_ids: Iterable[float],
     class_names: Mapping[int, str] | Sequence[str],
+    masks: Iterable[np.ndarray] | None = None,
 ) -> list[Detection]:
     """Turn raw model outputs into Detection candidates (pure).
 
     `class_names` maps class id -> label (ultralytics `model.names` is a dict).
     Unknown ids fall back to their stringified id rather than raising, so an
     unexpected class never crashes perception.
+
+    `masks`, when given, must align 1:1 with the boxes; each entry becomes the
+    Detection's boolean instance mask. None keeps every mask empty (detection-
+    only models).
     """
+    mask_list = list(masks) if masks is not None else None
     detections: list[Detection] = []
-    for (x1, y1, x2, y2), score, class_id in zip(boxes_xyxy, scores, class_ids):
+    for i, ((x1, y1, x2, y2), score, class_id) in enumerate(
+        zip(boxes_xyxy, scores, class_ids)
+    ):
         cid = int(class_id)
         try:
             label = class_names[cid]
         except (KeyError, IndexError):
             label = str(cid)
+        mask = None
+        if mask_list is not None and i < len(mask_list):
+            mask = np.asarray(mask_list[i], dtype=bool)
         detections.append(
             Detection(
                 label=str(label),
@@ -60,6 +81,7 @@ def parse_boxes(
                 y1=float(y1),
                 x2=float(x2),
                 y2=float(y2),
+                mask=mask,
             )
         )
     return detections
@@ -70,7 +92,7 @@ class YoloDetector:
 
     def __init__(
         self,
-        weights: str = 'yolo11n.pt',
+        weights: str = 'yolo11n-seg.pt',
         conf: float = 0.25,
         classes: Sequence[int] | None = None,
         device: str = '',
@@ -102,6 +124,11 @@ class YoloDetector:
             'conf': self._conf,
             'classes': self._classes,
             'verbose': False,
+            # Segmentation masks at the source image resolution instead of the
+            # model's padded input size, so masks align with bbox pixels and
+            # the depth image without extra rescaling. Ignored by detect-only
+            # models.
+            'retina_masks': True,
         }
         if self._device != '':
             predict_kwargs['device'] = self._device
@@ -114,4 +141,7 @@ class YoloDetector:
         xyxy = boxes.xyxy.cpu().numpy()
         scores = boxes.conf.cpu().numpy()
         class_ids = boxes.cls.cpu().numpy()
-        return parse_boxes(xyxy, scores, class_ids, self._model.names)
+        masks = None
+        if results[0].masks is not None:
+            masks = results[0].masks.data.cpu().numpy() > 0.5
+        return parse_boxes(xyxy, scores, class_ids, self._model.names, masks)

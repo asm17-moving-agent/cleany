@@ -1,8 +1,9 @@
 """Draw detection overlays for visual debugging.
 
 Optional visualization only: takes an RGB image and Detection candidates and
-returns a copy with boxes + labels drawn. Kept out of the detection core so it
-never affects the published Detection2DArray (AGENTS.md sections 3-4).
+returns a copy with boxes + labels (and, when present, semi-transparent
+instance masks) drawn. Kept out of the detection core so it never affects the
+published Detection2DArray (AGENTS.md sections 3-4).
 
 cv2 is imported lazily so importing this module (and the detection pipeline)
 never requires OpenCV unless annotation is actually turned on.
@@ -18,6 +19,7 @@ from cleany_perception.detector import Detection
 
 _BOX_COLOR = (0, 255, 0)  # green in RGB channel order
 _THICKNESS = 2
+_MASK_ALPHA = 0.4
 
 
 def draw_detections(image: np.ndarray, detections: Iterable[Detection]) -> np.ndarray:
@@ -26,6 +28,11 @@ def draw_detections(image: np.ndarray, detections: Iterable[Detection]) -> np.nd
 
     canvas = np.ascontiguousarray(image, dtype=np.uint8).copy()
     for det in detections:
+        if det.mask is not None and det.mask.shape == canvas.shape[:2]:
+            region = canvas[det.mask].astype(np.float32)
+            canvas[det.mask] = (
+                (1.0 - _MASK_ALPHA) * region + _MASK_ALPHA * np.array(_BOX_COLOR)
+            ).astype(np.uint8)
         p1 = (int(det.x1), int(det.y1))
         p2 = (int(det.x2), int(det.y2))
         cv2.rectangle(canvas, p1, p2, _BOX_COLOR, _THICKNESS)

@@ -45,7 +45,7 @@ class DetectionNode(Node):
 
         image_topic = self.declare_parameter('image_topic', '/image_raw').value
         detections_topic = self.declare_parameter('detections_topic', '/detections').value
-        weights = self.declare_parameter('weights', 'yolo11n.pt').value
+        weights = self.declare_parameter('weights', 'yolo11n-seg.pt').value
         conf = self.declare_parameter('conf', 0.25).value
         device = self.declare_parameter('device', '').value
         detection_rate_hz = self.declare_parameter('detection_rate_hz', 5.0).value
