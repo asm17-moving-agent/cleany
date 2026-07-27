@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <material name="cleany_white">
+    <color rgba="0.92 0.92 0.92 1.0"/>
+  </material>
+  <material name="cleany_motor">
+    <color rgba="0.1 0.1 0.1 1.0"/>
+  </material>
+  <material name="cleany_carbon">
+    <color rgba="0.015 0.018 0.02 1.0"/>
+  </material>
+</robot>

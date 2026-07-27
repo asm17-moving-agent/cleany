@@ -1,0 +1,159 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    The origin/axis values below are the canonical ROS representation of the
+    MuJoCo body-local joints in mjcf/cleany.xml.  side_sign is +1 on physical
+    +Y (left) and -1 on physical -Y (right).
+  -->
+  <xacro:macro name="cleany_arm" params="side side_sign base_y base_yaw">
+    <link name="${side}_shoulder_yaw_link">
+      <inertial>
+        <origin xyz="0 0 0"/>
+        <mass value="0.099"/>
+        <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+      </inertial>
+      <visual>
+        <geometry><mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl"/></geometry>
+        <material name="cleany_white"/>
+      </visual>
+      <collision>
+        <geometry><mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl.convex.stl"/></geometry>
+      </collision>
+    </link>
+    <joint name="${side}_shoulder_yaw_joint" type="revolute">
+      <parent link="base_link"/>
+      <child link="${side}_shoulder_yaw_link"/>
+      <origin xyz="0.09 ${base_y} 0.4115" rpy="1.57079632679 0 ${base_yaw}"/>
+      <!-- Positive shoulder yaw is counter-clockwise about base_link +Z. -->
+      <axis xyz="0 1 0"/>
+      <limit lower="-2.16" upper="2.16" effort="2.6477955" velocity="4.245"/>
+    </joint>
+
+    <link name="${side}_upper_arm_link">
+      <inertial>
+        <origin xyz="0.00011909447145 0.13366336448 0.00941424883693"/>
+        <mass value="0.1185"/>
+        <inertia ixx="0.000344882383932" ixy="0.0000000126253142805" ixz="-0.0000000018457009038"
+                 iyy="0.0000390640385918" iyz="-0.0000322497618493" izz="0.000341356582549"/>
+      </inertial>
+      <visual>
+        <origin xyz="-0.0001 0.0651 -0.012" rpy="1.57079632679 0 -1.57079632679"/>
+        <geometry><mesh filename="package://cleany_description/meshes/Upper_Arm_5cm_Sockets.stl"/></geometry>
+        <material name="cleany_white"/>
+      </visual>
+      <visual>
+        <origin xyz="-0.0001 0.0651 -0.012" rpy="1.57079632679 0 -1.57079632679"/>
+        <geometry><mesh filename="package://cleany_description/meshes/Upper_Arm_5cm_Carbon.stl"/></geometry>
+        <material name="cleany_carbon"/>
+      </visual>
+      <collision>
+        <origin xyz="-0.0001 0.0651 -0.012" rpy="1.57079632679 0 -1.57079632679"/>
+        <geometry><mesh filename="package://cleany_description/meshes/Upper_Arm_5cm.stl"/></geometry>
+      </collision>
+    </link>
+    <joint name="${side}_shoulder_pitch_joint" type="revolute">
+      <parent link="${side}_shoulder_yaw_link"/>
+      <child link="${side}_upper_arm_link"/>
+      <origin xyz="0 0.1025 0.0306" rpy="1.57079632679 0 0"/>
+      <axis xyz="-1 0 0"/>
+      <limit lower="-0.22" upper="3.37" effort="4.4129925" velocity="7.086"/>
+    </joint>
+
+    <link name="${side}_lower_arm_link">
+      <inertial>
+        <origin xyz="-0.000705377693495 0.003222361186 0.133834080359"/>
+        <mass value="0.093"/>
+        <inertia ixx="0.000317919847018" ixy="-0.000000245304506082" ixz="-0.00000442747241607"
+                 iyy="0.000326130407587" iyz="-0.000011286233547" izz="0.0000182344857592"/>
+      </inertial>
+      <visual>
+        <origin xyz="-0.0025 0.032 0.065" rpy="0 1.57079632679 0"/>
+        <geometry><mesh filename="package://cleany_description/meshes/Lower_Arm_5cm_Sockets.stl"/></geometry>
+        <material name="cleany_white"/>
+      </visual>
+      <visual>
+        <origin xyz="-0.0025 0.032 0.065" rpy="0 1.57079632679 0"/>
+        <geometry><mesh filename="package://cleany_description/meshes/Lower_Arm_5cm_Carbon.stl"/></geometry>
+        <material name="cleany_carbon"/>
+      </visual>
+      <collision>
+        <origin xyz="-0.0025 0.032 0.065" rpy="0 1.57079632679 0"/>
+        <geometry><mesh filename="package://cleany_description/meshes/Lower_Arm_5cm.stl"/></geometry>
+      </collision>
+    </link>
+    <joint name="${side}_elbow_pitch_joint" type="revolute">
+      <parent link="${side}_upper_arm_link"/>
+      <child link="${side}_lower_arm_link"/>
+      <origin xyz="0 0.16257 0.028" rpy="-1.57079632679 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-0.22" upper="3.14" effort="4.4129925" velocity="7.086"/>
+    </joint>
+
+    <link name="${side}_wrist_pitch_link">
+      <inertial>
+        <origin xyz="-0.000103312 -0.0386143 0.0281156"/>
+        <mass value="0.079"/>
+        <inertia ixx="0.0000368263" ixy="0.000000017893" ixz="-0.0000000528128"
+                 iyy="0.000025391" iyz="0.0000036412" izz="0.000021"/>
+      </inertial>
+      <visual>
+        <geometry><mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl"/></geometry>
+        <material name="cleany_white"/>
+      </visual>
+      <collision>
+        <geometry><mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl.convex.stl"/></geometry>
+      </collision>
+    </link>
+    <joint name="${side}_wrist_pitch_joint" type="revolute">
+      <parent link="${side}_lower_arm_link"/>
+      <child link="${side}_wrist_pitch_link"/>
+      <origin xyz="0 0.0052 0.1849" rpy="-1.57079632679 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-1.65806284946" upper="1.65806272933" effort="2.6477955" velocity="4.245"/>
+    </joint>
+
+    <link name="${side}_gripper_frame">
+      <inertial>
+        <origin xyz="0 0 0"/>
+        <mass value="0.06"/>
+        <inertia ixx="0.00004" ixy="0" ixz="0" iyy="0.00004" iyz="0" izz="0.00004"/>
+      </inertial>
+      <visual>
+        <geometry><mesh filename="package://cleany_description/meshes/Fixed_Jaw.stl"/></geometry>
+        <material name="cleany_white"/>
+      </visual>
+      <collision>
+        <geometry><mesh filename="package://cleany_description/meshes/Fixed_Jaw.stl.convex.stl"/></geometry>
+      </collision>
+    </link>
+    <joint name="${side}_wrist_roll_joint" type="revolute">
+      <parent link="${side}_wrist_pitch_link"/>
+      <child link="${side}_gripper_frame"/>
+      <origin xyz="0 -0.0601 0" rpy="0 1.57079632679 0"/>
+      <axis xyz="0 -1 0"/>
+      <limit lower="-2.743847297" upper="2.84120630938" effort="2.6477955" velocity="4.245"/>
+    </joint>
+
+    <link name="${side}_moving_jaw_link">
+      <inertial>
+        <origin xyz="0 0 0"/>
+        <mass value="0.02"/>
+        <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+      </inertial>
+      <visual>
+        <geometry><mesh filename="package://cleany_description/meshes/Moving_Jaw.stl"/></geometry>
+        <material name="cleany_white"/>
+      </visual>
+      <collision>
+        <geometry><mesh filename="package://cleany_description/meshes/Moving_Jaw.stl.convex.stl"/></geometry>
+      </collision>
+    </link>
+    <joint name="${side}_gripper_joint" type="revolute">
+      <parent link="${side}_gripper_frame"/>
+      <child link="${side}_moving_jaw_link"/>
+      <origin xyz="-0.0202 -0.0244 0" rpy="3.14159265359 0 3.33"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-0.374532977628" upper="1.74532919957" effort="2.6477955" velocity="4.245"/>
+    </joint>
+  </xacro:macro>
+</robot>

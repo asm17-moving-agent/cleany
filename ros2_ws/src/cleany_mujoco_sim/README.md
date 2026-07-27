@@ -1,6 +1,8 @@
 # cleany_mujoco_sim
 
-ROS 2 (ament_python) package wrapping the XLeRobot MuJoCo simulation.
+ROS 2 (ament_python) package wrapping the Cleany MuJoCo simulation. The
+authoritative robot MJCF and shared meshes live in `cleany_description`; this
+package owns only simulator scenes and the ROS bridge.
 
 ## Run
 
@@ -20,7 +22,8 @@ ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 
 `mujoco_sim_node` publishes:
 
-- `joint_states` (`sensor_msgs/JointState`)
+- `joint_states` (`sensor_msgs/JointState`) - actuator-backed robot joints only;
+  passive mecanum roller DOFs stay internal
 - `odom` (`nav_msgs/Odometry`)
 - `scan` (`sensor_msgs/LaserScan`)
 - `tf` (`odom` -> `base_link`) when `publish_odom_tf` is true
@@ -40,6 +43,11 @@ adapter is still required to convert chassis velocity commands into them.
 Each wheel uses an independent `PG42-4266-1270NE` output-shaft DC motor model.
 The actuator controls are terminal voltages named `rear_left_drive`,
 `rear_right_drive`, `front_left_drive`, and `front_right_drive`.
+`base_link +X` is front (the default head-camera heading), and equal positive
+voltage on all four inputs drives the robot toward `+X`.
+Wheel rotation is positive about `base_link +Y`. A positive yaw command is
+counter-clockwise about `+Z`, and odometry twist is expressed in its
+`base_link` child frame as required by `nav_msgs/Odometry`.
 
 - Nominal supply: `12 V`
 - Gearbox: `61:1`, with the published `72%` efficiency already included in the
@@ -59,7 +67,7 @@ mixing and closed-loop velocity control.
 
 Both arms use Feetech 12 V serial servos with the following assignment:
 
-- `Pitch_L`, `Elbow_L`, `Pitch_R`, and `Elbow_R`: `STS3250`
+- left/right shoulder pitch and elbow pitch joints: `STS3250`
 - Shoulder rotation, wrist pitch/roll, jaws, and head pan/tilt: `STS3215`
 
 The modeled output limits apply a 10% operating margin to the manufacturer
@@ -80,7 +88,9 @@ Current, thermal, and two-second overload shutdown behavior are not yet modeled.
 
 `mujoco_sim.launch.py`:
 
-- `scene_path` - MuJoCo scene XML. Defaults to `hardware/scene.xml`.
+- `scene_path` - MuJoCo scene XML or `.xml.in` template. Defaults to
+  `scenes/default.xml.in`, which includes
+  `cleany_description/mjcf/cleany.xml`.
 - `publish_rate_hz` - simulation publish/timer rate. Defaults to `60.0`.
 - `headless` - whether to hide the MuJoCo viewer. Defaults to `true`.
 - `scan_rate_hz` - laser scan publish rate. Defaults to `5.5`.
@@ -110,9 +120,11 @@ This package is still a simulation bridge, not the full robot interface.
 
 Implemented:
 
-- Load an XLeRobot MuJoCo scene.
-- Simulate four articulated 5-inch mecanum wheels with independent PG42 drive
-  motors.
+- Load the authoritative Cleany MJCF from `cleany_description` into a
+  simulator-owned scene.
+- Simulate four 5-inch mecanum drive wheels with independent PG42 motors and
+  internal passive roller contact dynamics, while exposing only the four
+  drive-wheel joints through ROS.
 - Step the simulator on a ROS timer.
 - Publish joint state, odometry, laser scan, and TF data.
 - Apply direct joint position commands for simulation tests.
