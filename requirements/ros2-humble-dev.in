@@ -1,0 +1,8 @@
+# Shared development stack for Ubuntu 22.04 / ROS 2 Humble containers.
+numpy==1.26.4
+setuptools==79.0.1
+opencv-python==4.11.0.86
+mujoco==3.2.6
+torch==2.7.1
+torchvision==0.22.1
+ultralytics==8.4.107

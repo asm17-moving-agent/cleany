@@ -1,0 +1,11 @@
+detection_node:
+  ros__parameters:
+    image_topic: /image_raw
+    detections_topic: /detections
+    weights: /models/yolo11n-seg.engine
+    conf: 0.25
+    classes: []
+    device: '0'
+    detection_rate_hz: 5.0
+    publish_annotated: false
+    annotated_topic: /detections_image

@@ -1,0 +1,14 @@
+.git
+.DS_Store
+.debug-journal.md
+docs/
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+*.engine
+*.engine.manifest
+*.onnx
+*.pt

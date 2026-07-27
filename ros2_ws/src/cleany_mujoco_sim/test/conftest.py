@@ -2,8 +2,6 @@ from pathlib import Path
 
 import pytest
 
-from cleany_mujoco_sim.scene_loader import load_model
-
 TINY_MJCF = """
 <mujoco>
   <worldbody>
@@ -34,4 +32,6 @@ def scene_path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def model_data(scene_path: Path):
+    from cleany_mujoco_sim.scene_loader import load_model
+
     return load_model(scene_path)

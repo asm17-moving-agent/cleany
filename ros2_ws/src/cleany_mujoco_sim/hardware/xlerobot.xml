@@ -193,13 +193,13 @@
                   </body>
 
                   <!-- Camera on first arm -->
-                  <body name="Right_Arm_Camera" pos="0 -0.022 0.05" euler="1.5708 -1.5708 0">
+                  <frame name="Right_Arm_Camera" pos="0 -0.022 0.05" euler="1.5708 -1.5708 0">
                     <geom type="mesh" mesh="XLeRobot_camera1" pos="-0.015 -0.026 0" material="white" class="visual"/>
                     <geom type="mesh" mesh="XLeRobot_camera2" pos="-0.015 -0.026 0" material="motor" class="visual"/>
                     <!-- Innomaker 1080P USB2.0 UVC wrist camera: advertised 130 deg diagonal FOV.
                          MuJoCo uses vertical FOV; 93 deg approximates 130 deg diagonal at 16:9. -->
                     <camera name="right_wrist_rgb" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 0.00690 -0.00322 0.99997" fovy="93"/>
-                  </body>
+                  </frame>
                 </body>
               </body>
             </body>
@@ -279,13 +279,13 @@
                   </body>
 
                   <!-- Camera on second arm -->
-                  <body name="Left_Arm_Camera" pos="0 -0.021 0.05" euler="1.5708 -1.5708 0">
+                  <frame name="Left_Arm_Camera" pos="0 -0.021 0.05" euler="1.5708 -1.5708 0">
                     <geom type="mesh" mesh="XLeRobot_camera1" pos="-0.015 -0.026 0" material="white" class="visual"/>
                     <geom type="mesh" mesh="XLeRobot_camera2" pos="-0.015 -0.026 0" material="motor" class="visual"/>
                     <!-- Innomaker 1080P USB2.0 UVC wrist camera: advertised 130 deg diagonal FOV.
                          MuJoCo uses vertical FOV; 93 deg approximates 130 deg diagonal at 16:9. -->
                     <camera name="left_wrist_rgb" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 0.00690 -0.00322 0.99997" fovy="93"/>
-                  </body>
+                  </frame>
                 </body>
               </body>
             </body>
@@ -408,4 +408,3 @@
     <position class="sts3215" name="head_tilt" joint="head_tilt_joint" ctrlrange="-0.76 1.45"/>
   </actuator>
 </mujoco>
-

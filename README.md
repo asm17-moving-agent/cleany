@@ -39,14 +39,17 @@ Execution Layer    →   로봇 제어 (Nav2 / MoveIt / LeRobot)
 
 FSM: `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS → RETURN_HOME → REPORT` (any state → `ERROR`)
 
-## 기술 스택
+## 현재 구현·배포 검증 기준
+
+아래 조합은 현재 구현과 배포 검증에 사용하는 baseline이다. 제품 하드웨어
+Decision 문서는 `docs/cleany-docs`에서 사람 검토 전까지 draft로 유지한다.
 
 | 구분 | 내용 |
 |---|---|
 | 로봇 | XLeRobot (모바일 매니퓰레이터) |
-| 컴퓨팅 | NVIDIA Jetson AGX Orin 64GB |
-| OS | Ubuntu 26.04 LTS (JetPack 7.2) |
-| 미들웨어 | ROS 2 |
+| 컴퓨팅 | NVIDIA Jetson Orin NX |
+| OS | Ubuntu 22.04 (JetPack 6.2.2 / Jetson Linux 36.5) |
+| 미들웨어 | ROS 2 Humble |
 | 시뮬레이션 | Isaac Sim, MuJoCo |
 | 언어 | C++ (ROS 2), Python (PyTorch, OpenCV, TensorRT) |
 | 센서 | Camera/RGB-D, 2D LiDAR, IMU |
@@ -82,28 +85,30 @@ FSM: `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS 
 
 추진 일정: 2026년 5월 ~ 11월
 
+Jetson Orin NX 배포와 TensorRT 변환 절차는
+[`docs/deployment/jetson-orin-nx.md`](docs/deployment/jetson-orin-nx.md)를 따른다.
+Windows, macOS, Linux 협업 지원 범위는
+[`docs/development/platform-support.md`](docs/development/platform-support.md)를
+따른다.
+
 ## 레포지토리 구조
 
 ```
 cleany/
 ├── ros2_ws/
 │   └── src/
-│       ├── cleany_interfaces/          # ROS 2 msg/srv/action 공통 정의
 │       ├── cleany_mission_manager/     # Mission Manager FSM / mission lifecycle
-│       ├── cleany_planner/             # Planner interface, RuleBasedPlanner, VLMPlanner adapter
 │       ├── cleany_perception/          # Vision/perception node, detection result publisher
-│       ├── cleany_skill_executor/      # navigate/pick/place/push skill 실행
-│       ├── cleany_robot_interface/     # Mock / Sim / Real 공통 로봇 인터페이스
-│       ├── cleany_logger/              # event log, failure code logging
-│       └── cleany_mujoco_sim/               # MuJoCo 시뮬레이션 (XLeRobot)
-├── configs/
-│   ├── mission/                        # mission, FSM, planner 설정
-│   └── robot/                          # robot, sensor, frame 설정
-├── tools/
-│   └── scripts/                        # 개발/운영 보조 스크립트
-└── tests/
-    └── integration/                    # end-to-end 통합 테스트
+│       └── cleany_mujoco_sim/          # MuJoCo 시뮬레이션 (XLeRobot)
+├── docker/jetson/                      # Orin NX 배포 이미지
+├── requirements/                       # 개발/Jetson dependency lock
+├── scripts/                            # 개발·ROS·Jetson 실행 wrapper
+└── docs/deployment/                    # 배포 절차
 ```
+
+`cleany_interfaces`, Planner, Skill Executor, Robot Interface 등은 아키텍처상
+예정된 패키지이며 실제 `package.xml`이 추가되기 전에는 build 대상으로
+간주하지 않는다.
 
 ## 초기 개발 범위
 

@@ -1,0 +1,14 @@
+# Jetson Orin NX deployment stack for the Cleany JetPack 6.2.2 host.
+#
+# The NVIDIA L4T base supplies CUDA, cuDNN, and TensorRT. The PyTorch wheels
+# below are the aarch64 wheels used by the pinned Ultralytics JetPack 6 recipe;
+# their GitHub asset digests are recorded in the URL fragments.
+numpy==1.26.4
+setuptools==79.0.1
+opencv-python==4.11.0.86
+onnx==1.17.0
+onnxslim==0.1.82
+packaging==26.0
+torch @ https://github.com/ultralytics/assets/releases/download/v0.0.0/torch-2.10.0-cp310-cp310-linux_aarch64.whl#sha256=37d7e156cfb4a646c4d7347597727db1529d184108f703324dfff1842cec094e
+torchvision @ https://github.com/ultralytics/assets/releases/download/v0.0.0/torchvision-0.25.0-cp310-cp310-linux_aarch64.whl#sha256=1b6357c5532db61e9bfe7ad69f73ba73e8214010de021da703d360d2cc16c3d7
+ultralytics==8.4.107

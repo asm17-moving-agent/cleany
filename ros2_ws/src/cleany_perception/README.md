@@ -85,22 +85,25 @@ launch가 서로 값을 덮어쓰지 않게 한다.
 
 ## Python 의존 설치 (중요 — ROS 공존 핀)
 
-ROS Humble은 numpy 1.x ABI로 빌드돼 있다. ultralytics를 그냥 설치하면 numpy 2.x / setuptools 83으로
-올려 **ROS가 깨진다**. 반드시 핀과 함께 설치한다:
+ROS Humble은 numpy 1.x ABI로 빌드돼 있다. ultralytics를 그냥 설치하면 numpy 2.x로
+올려 **ROS가 깨질 수 있다**. 개발 환경은 저장소의 단일 버전 세트를 사용한다:
 
 ```bash
-pip install -r ros2_ws/src/cleany_perception/requirements.txt
+python3 -m pip install --require-hashes -r requirements/ros2-humble-dev.txt
 ```
 
-- `numpy<2` — cv/image·mujoco ABI.
-- `setuptools<80` — colcon.
-- GPU는 호스트 GPU의 compute capability가 torch 빌드에서 지원돼야 한다. 미지원이면 `device:=cpu`
+- Dockerfile은 hash가 포함된 이 lock만 설치한다. rosdep wrapper는 `mujoco`와
+  `ultralytics` key를 건너뛰므로 lock을 덮어쓰지 않는다.
+- Jetson은 `requirements/jetson-jp622-arm64.txt`를 사용한다. 일반 PyPI
+  Torch로 JetPack용 aarch64 빌드를 덮어쓰면 안 된다.
+- 개발 PC GPU가 PyTorch 빌드에서 지원되지 않으면 `device:=cpu`
   또는 `CUDA_VISIBLE_DEVICES=""`.
 
 ## weights
 
-기본 `yolo11n.pt`는 **첫 실행 시 실행 cwd에 자동 다운로드**된다(git 미추적). 위치를 고정하려면
-`models/`에 받아두고 `weights`를 그 abs 경로로 지정한다. `models/README.md` 참고.
+개발 중에는 모델명만 지정하면 Ultralytics가 자동 다운로드할 수 있다. Jetson
+배포에서는 자동 다운로드를 허용하지 않으며 `models/`의 provenance와 SHA-256이
+일치하는 파일만 TensorRT로 변환한다. `models/README.md`를 따른다.
 
 ## 테스트
 

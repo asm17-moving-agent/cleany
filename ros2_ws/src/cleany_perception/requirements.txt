@@ -1,21 +1,3 @@
-# Python dependencies for cleany_perception, layered on top of ROS 2 Humble.
-#
-# Install AFTER sourcing ROS:
-#     pip install -r ros2_ws/src/cleany_perception/requirements.txt
-#
-# Why the pins (ROS Humble coexistence — do not drop them):
-# - ROS Humble's cv/image stack, matplotlib and mujoco are built against the
-#   numpy 1.x ABI. numpy 2.x breaks them ("_ARRAY_API not found",
-#   "numpy.core.multiarray failed to import").
-# - colcon-core requires setuptools < 80; a newer setuptools breaks
-#   `colcon build`.
-# Installing ultralytics unpinned pulls numpy 2.x + setuptools 83 and breaks
-# both, so keep these constraints in the same install.
-numpy<2
-setuptools<80
-ultralytics
-
-# GPU note (not pinned here — host-specific):
-# torch is pulled in by ultralytics. Whether it can use your GPU depends on the
-# GPU's compute capability vs the torch build. If the GPU is unsupported, force
-# CPU with the `device:=cpu` parameter or `CUDA_VISIBLE_DEVICES=""`.
+# Keep package-local install instructions compatible with the repository-wide
+# ROS 2 Humble development dependency set.
+-r ../../../requirements/ros2-humble-dev.txt

@@ -30,4 +30,14 @@ DOCKER_ARGS+=(
   bash -lc 'source /opt/ros/humble/setup.bash; if [[ -f /workspace/cleany/ros2_ws/install/setup.bash ]]; then source /workspace/cleany/ros2_ws/install/setup.bash; fi; exec rosdep "$@"' bash
 )
 
-exec docker "${DOCKER_ARGS[@]}" "$@"
+ROSDEP_ARGS=("$@")
+if [[ "${1:-}" == "install" ]]; then
+  ROSDEP_ARGS=(
+    install
+    --skip-keys
+    "mujoco ultralytics"
+    "${@:2}"
+  )
+fi
+
+exec docker "${DOCKER_ARGS[@]}" "${ROSDEP_ARGS[@]}"

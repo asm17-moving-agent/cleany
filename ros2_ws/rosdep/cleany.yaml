@@ -2,9 +2,14 @@ mujoco:
   ubuntu:
     pip:
       packages:
-        - mujoco
+        - mujoco==3.2.6
 ultralytics:
   ubuntu:
     pip:
       packages:
-        - ultralytics
+        - numpy==1.26.4
+        - setuptools==79.0.1
+        - opencv-python==4.11.0.86
+        - torch==2.7.1
+        - torchvision==0.22.1
+        - ultralytics==8.4.107

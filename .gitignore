@@ -1,4 +1,5 @@
 gdrive/
+.DS_Store
 
 # Python
 __pycache__/
@@ -20,4 +21,6 @@ MUJOCO_LOG.TXT
 
 # ML model weights (downloaded at runtime, not source)
 *.pt
-
+*.engine
+*.engine.manifest
+*.onnx

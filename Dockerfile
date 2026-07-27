@@ -25,7 +25,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 
 RUN npm install -g pyright
 
-RUN pip3 install --no-cache-dir mujoco
+COPY requirements/ros2-humble-dev.txt /tmp/ros2-humble-dev.txt
+RUN pip3 install --no-cache-dir --require-hashes -r /tmp/ros2-humble-dev.txt \
+    && rm /tmp/ros2-humble-dev.txt
 
 COPY ros2_ws/rosdep/cleany.yaml /etc/ros/rosdep/cleany.yaml
 RUN echo "yaml file:///etc/ros/rosdep/cleany.yaml" \
