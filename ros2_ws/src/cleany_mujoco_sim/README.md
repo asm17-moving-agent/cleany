@@ -2,6 +2,13 @@
 
 ROS 2 (ament_python) package wrapping the XLeRobot MuJoCo simulation.
 
+## Status and responsibility
+
+This is an implemented simulation bridge, not the full robot interface. It
+loads the MuJoCo scene, publishes simulation state, and accepts a direct joint
+position test hook. Production navigation, manipulation, and hardware adapters
+remain outside this package.
+
 ## Run
 
 Headless simulation:
@@ -14,6 +21,15 @@ Simulation with the MuJoCo viewer:
 
 ```bash
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
+```
+
+## Test
+
+From the repository root:
+
+```bash
+./scripts/pytest-ros src/cleany_mujoco_sim/test/test_scene_loader.py
+./scripts/ros2-build
 ```
 
 ## Topics
@@ -123,3 +139,14 @@ Not implemented yet:
 - A ROS mecanum command adapter and closed-loop wheel-speed controller.
 - Binding to `cleany_robot_interface`, `cleany_perception`, or the mission FSM.
 - Hardware-realistic controllers for the base or manipulators.
+
+## Related KB and documentation updates
+
+- [Robot Platform XLeRobot](../../../docs/cleany-docs/20_TECHNICAL/04%20-%20Robot%20Platform%20XLeRobot.md)
+- [Navigation and Mapping](../../../docs/cleany-docs/20_TECHNICAL/05%20-%20Navigation%20and%20Mapping.md)
+- [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
+
+Update this README with any changes to its published topics, launch parameters,
+simulation model assumptions, or test commands. Do not present simulated
+hardware parameters as confirmed physical-hardware specifications without the
+corresponding KB decision.
