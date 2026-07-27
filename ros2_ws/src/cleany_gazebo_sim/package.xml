@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>cleany_gazebo_sim</name>
+  <version>0.1.0</version>
+  <description>Gazebo Fortress backend for Cleany's mobile-base ROS contract.</description>
+  <maintainer email="team@example.com">Cleany Team</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>ament_index_python</depend>
+  <depend>geometry_msgs</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+  <depend>cleany_mujoco_sim</depend>
+  <depend>nav_msgs</depend>
+  <depend>rclpy</depend>
+  <depend>ros_gz_bridge</depend>
+  <depend>ros_gz_sim</depend>
+  <depend>rosgraph_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

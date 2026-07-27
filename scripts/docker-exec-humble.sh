@@ -25,7 +25,9 @@ if [[ -t 0 && -t 1 ]]; then
   DOCKER_ARGS+=(-it)
 fi
 DOCKER_ARGS+=(
+  --env IGN_PARTITION="${IGN_PARTITION:-cleany}"
   --env ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
+  --env ROS_HOME=/tmp/cleany-ros
   --workdir "${WORKDIR}"
   "${CONTAINER_NAME}"
   bash -lc 'source /opt/ros/humble/setup.bash; if [[ -f /workspace/cleany/ros2_ws/install/setup.bash ]]; then source /workspace/cleany/ros2_ws/install/setup.bash; fi; exec "$@"' bash

@@ -27,7 +27,7 @@ DOCKER_ARGS+=(
   --env ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
   --workdir "${WORKDIR}"
   "${CONTAINER_NAME}"
-  bash -lc 'source /opt/ros/humble/setup.bash; if [[ -f /workspace/cleany/ros2_ws/install/setup.bash ]]; then source /workspace/cleany/ros2_ws/install/setup.bash; fi; exec rosdep "$@"' bash
+  bash -lc 'source /opt/ros/humble/setup.bash; if [[ -f /workspace/cleany/ros2_ws/install/setup.bash ]]; then source /workspace/cleany/ros2_ws/install/setup.bash; fi; if [[ "${1:-}" == "install" ]]; then apt-get update; fi; exec rosdep "$@"' bash
 )
 
 exec docker "${DOCKER_ARGS[@]}" "$@"

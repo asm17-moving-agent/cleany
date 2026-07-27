@@ -1,0 +1,12 @@
+gazebo_command_guard:
+  ros__parameters:
+    max_linear_x: 0.3
+    max_linear_y: 0.3
+    max_angular_z: 0.8
+    cmd_vel_timeout_sec: 0.5
+    timeout_check_rate_hz: 20.0
+
+gazebo_odom_tf_publisher:
+  ros__parameters:
+    odom_frame_id: odom
+    base_frame_id: base_link

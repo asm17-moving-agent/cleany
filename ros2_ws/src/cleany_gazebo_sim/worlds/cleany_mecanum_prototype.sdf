@@ -1,0 +1,213 @@
+<?xml version="1.0" ?>
+<sdf version="1.7">
+  <world name="cleany_mecanum_world">
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="ignition-gazebo-physics-system" name="ignition::gazebo::systems::Physics"/>
+    <plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands"/>
+    <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster"/>
+    <!-- OGRE 1 avoids the OGRE2 texture-copy limitation on this WSLg stack. -->
+    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors"><render_engine>ogre</render_engine></plugin>
+
+    <light type="directional" name="sun">
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <surface><friction><ode><mu>5.0</mu><mu2>5.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+      This is a kinematic prototype, not a hardware-accurate XLeRobot model.
+      The RASKOG body visual and wheel layout originate in the current MuJoCo
+      XLeRobot model. The launch file adds cleany_mujoco_sim/hardware to the
+      Gazebo resource path so this world does not duplicate its STL assets.
+    -->
+    <model name="cleany_mecanum" xmlns:ignition="http://ignitionrobotics.org/schema">
+      <!-- Matches the MuJoCo chassis origin; wheel centers remain at z=0.0635. -->
+      <pose>0 0 0.38 0 0 0</pose>
+
+      <link name="base_link">
+        <inertial>
+          <mass>20.0</mass>
+          <inertia><ixx>0.30</ixx><iyy>0.30</iyy><izz>0.45</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><box><size>0.55 0.45 0.20</size></box></geometry>
+        </collision>
+        <visual name="raskog_body_visual">
+          <!-- MuJoCo: mesh=raskogbody, pos=-0.01668 0.502 0.515, euler=1.5708 0 0. -->
+          <pose>-0.01668 0.502 0.515 1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <uri>model://assets/raskogbody.stl</uri>
+              <scale>0.0009 0.001 0.0009</scale>
+            </mesh>
+          </geometry>
+          <material><diffuse>0.12 0.30 0.75 1</diffuse></material>
+        </visual>
+      </link>
+
+      <link name="rear_left_wheel">
+        <pose>-0.15 0.255 -0.3165 -1.5707 0 0</pose>
+        <inertial><mass>0.38</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
+        <visual name="visual"><geometry><cylinder><radius>0.0635</radius><length>0.051</length></cylinder></geometry></visual>
+      </link>
+      <link name="rear_right_wheel">
+        <pose>-0.15 -0.255 -0.3165 -1.5707 0 0</pose>
+        <inertial><mass>0.38</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
+        <visual name="visual"><geometry><cylinder><radius>0.0635</radius><length>0.051</length></cylinder></geometry></visual>
+      </link>
+      <link name="front_left_wheel">
+        <pose>0.15 0.255 -0.3165 -1.5707 0 0</pose>
+        <inertial><mass>0.38</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
+        <visual name="visual"><geometry><cylinder><radius>0.0635</radius><length>0.051</length></cylinder></geometry></visual>
+      </link>
+      <link name="front_right_wheel">
+        <pose>0.15 -0.255 -0.3165 -1.5707 0 0</pose>
+        <inertial><mass>0.38</mass><inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz></inertia></inertial>
+        <visual name="visual"><geometry><cylinder><radius>0.0635</radius><length>0.051</length></cylinder></geometry></visual>
+      </link>
+
+      <!-- The anisotropic sphere contacts mirror Fortress's bundled Mecanum
+           example. They are a lightweight traction approximation, not meshes
+           of individual rollers. -->
+      <joint name="left_wheel_joint" type="revolute"><parent>base_link</parent><child>rear_left_wheel</child><axis><xyz>0 0 1</xyz><limit><lower>-1.79769e+308</lower><upper>1.79769e+308</upper></limit></axis></joint>
+      <joint name="right_wheel_joint" type="revolute"><parent>base_link</parent><child>rear_right_wheel</child><axis><xyz>0 0 1</xyz><limit><lower>-1.79769e+308</lower><upper>1.79769e+308</upper></limit></axis></joint>
+      <joint name="front_left_wheel_joint" type="revolute"><parent>base_link</parent><child>front_left_wheel</child><axis><xyz>0 0 1</xyz><limit><lower>-1.79769e+308</lower><upper>1.79769e+308</upper></limit></axis></joint>
+      <joint name="front_right_wheel_joint" type="revolute"><parent>base_link</parent><child>front_right_wheel</child><axis><xyz>0 0 1</xyz><limit><lower>-1.79769e+308</lower><upper>1.79769e+308</upper></limit></axis></joint>
+
+      <!-- CLEANY_ARTICULATED_ROLLERS -->
+
+      <!--
+        MuJoCo top_base_link: the upper support that physically and visually
+        connects the dual-arm mounts to the RASKOG chassis.
+      -->
+      <link name="top_base_link">
+        <pose relative_to="top_base_mount">0 0 0 0 0 0</pose>
+        <inertial><mass>0.2542</mass><inertia><ixx>0.0045</ixx><iyy>0.005</iyy><izz>0.0045</izz></inertia></inertial>
+        <visual name="support_body"><pose>-0.44 -0.005 -0.6 0 0 0</pose><geometry><mesh><uri>model://assets/topbase1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
+        <visual name="support_motor"><pose>-0.298 0.006 -0.715 0 0 3.14</pose><geometry><mesh><uri>model://assets/topbase2.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
+      </link>
+      <joint name="top_base_mount" type="fixed"><pose relative_to="base_link">0 0 0.35 0 0 0</pose><parent>base_link</parent><child>top_base_link</child></joint>
+
+      <!-- MuJoCo camera inventory: one head RGBD unit plus two wrist RGB units. -->
+      <link name="head_pan_link">
+        <pose relative_to="head_pan_mount">0 0 0 0 0 0</pose>
+        <visual name="head_pan_body"><pose>-0.335 -0.005 -0.923 0 0 0</pose><geometry><mesh><uri>model://assets/tophead1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
+        <visual name="head_pan_motor"><pose>1.17 -0.009 0.262 3.14 -1.57 3.14</pose><geometry><mesh><uri>model://assets/tophead4.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
+      </link>
+      <link name="head_tilt_link">
+        <pose relative_to="head_tilt_mount">0 0 0 0 0 0</pose>
+        <visual name="head_tilt_body"><pose>0.16265 -0.006 -1.16815 0 0 0</pose><geometry><mesh><uri>model://assets/tophead5.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
+        <visual name="head_tilt_motor"><pose>0.16265 -0.006 -1.16815 0 0 0</pose><geometry><mesh><uri>model://assets/tophead6.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
+      </link>
+      <link name="head_camera_link">
+        <pose relative_to="head_camera_mount">0 0 0 0 0 0</pose>
+        <sensor name="head_realsense_rgb" type="camera"><topic>/model/cleany_mecanum/head_camera/rgb/image</topic><always_on>true</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>0.915</horizontal_fov><image><width>640</width><height>480</height><format>R8G8B8</format></image><clip><near>0.1</near><far>10.0</far></clip></camera></sensor>
+        <sensor name="head_realsense_depth" type="depth_camera"><topic>/model/cleany_mecanum/head_camera/depth/image</topic><always_on>true</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>0.857</horizontal_fov><image><width>640</width><height>480</height></image><clip><near>0.1</near><far>10.0</far></clip></camera></sensor>
+      </link>
+      <joint name="head_pan_mount" type="fixed"><pose relative_to="top_base_link">-0.103 0 0.323 0 0 0</pose><parent>top_base_link</parent><child>head_pan_link</child></joint>
+      <joint name="head_tilt_mount" type="fixed"><pose relative_to="head_pan_link">0.001 0.002 0.09815 0 0 3.14159265</pose><parent>head_pan_link</parent><child>head_tilt_link</child></joint>
+      <!-- The physical head camera link is level; its optical-frame rotation is internal to the sensor. -->
+      <joint name="head_camera_mount" type="fixed"><pose relative_to="head_tilt_link">0.025 0 0.03 0 0 0</pose><parent>head_tilt_link</parent><child>head_camera_link</child></joint>
+
+      <link name="left_wrist_camera_link">
+        <pose relative_to="left_wrist_camera_mount">0 0 0 0 0 0</pose>
+        <visual name="camera_body"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://assets/XLeRobot_camera1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
+        <visual name="camera_motor"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://assets/XLeRobot_camera2.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
+        <!-- Converted from MuJoCo right_wrist_rgb xyaxes: Gazebo cameras use +X as forward. -->
+        <sensor name="left_wrist_rgb" type="camera"><pose>-0.00833 0.01494 0.003872 0 0.007614 -0.436597</pose><topic>/model/cleany_mecanum/left_wrist_camera/rgb/image</topic><always_on>true</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>2.16</horizontal_fov><image><width>640</width><height>360</height><format>R8G8B8</format></image><clip><near>0.05</near><far>5.0</far></clip></camera></sensor>
+      </link>
+      <link name="right_wrist_camera_link">
+        <pose relative_to="right_wrist_camera_mount">0 0 0 0 0 0</pose>
+        <visual name="camera_body"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://assets/XLeRobot_camera1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
+        <visual name="camera_motor"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://assets/XLeRobot_camera2.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
+        <!-- Converted from MuJoCo left_wrist_rgb xyaxes: Gazebo cameras use +X as forward. -->
+        <sensor name="right_wrist_rgb" type="camera"><pose>-0.00833 0.01494 0.003872 0 0.007614 -0.436597</pose><topic>/model/cleany_mecanum/right_wrist_camera/rgb/image</topic><always_on>true</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>2.16</horizontal_fov><image><width>640</width><height>360</height><format>R8G8B8</format></image><clip><near>0.05</near><far>5.0</far></clip></camera></sensor>
+      </link>
+      <!-- MuJoCo euler uses a different convention; these are the equivalent SDF RPY mount poses. -->
+      <joint name="left_wrist_camera_mount" type="fixed"><pose relative_to="left_fixed_jaw">0 -0.022 0.05 1.5708 0 -1.5708</pose><parent>left_fixed_jaw</parent><child>left_wrist_camera_link</child></joint>
+      <joint name="right_wrist_camera_mount" type="fixed"><pose relative_to="right_fixed_jaw">0 -0.021 0.05 1.5708 0 -1.5708</pose><parent>right_fixed_jaw</parent><child>right_wrist_camera_link</child></joint>
+
+      <!--
+        The arm's mass, center of mass, and full inertia tensor are copied
+        from the MuJoCo XLeRobot model.  Convex collision meshes keep this
+        dynamic geometry separate from the render meshes.  Gravity remains
+        disabled until an arm actuator/controller is introduced.
+      -->
+      <link name="left_arm_base"><pose relative_to="left_arm_mount">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>0.0137179 -0.0000519711 0.0334843 0 0 0</pose><mass>0.147</mass><inertia><ixx>0.000114686</ixx><iyy>0.000136117</iyy><izz>0.000130364</izz><ixy>-0.000000459787</ixy><ixz>0.00000497151</ixz><iyz>0.0000000975275</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Base.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Base_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="base"><geometry><mesh><uri>model://assets/Base.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Base_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="left_rotation_pitch"><pose relative_to="left_rotation_l_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.0307604 -0.0000166727 -0.0252713 0 0 0</pose><mass>0.100006</mass><inertia><ixx>0.000083759</ixx><iyy>0.0000810403</iyy><izz>0.0000239783</izz><ixy>0.0000000755525</ixy><ixz>-0.00000116342</ixz><iyz>0.000000154663</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Rotation_Pitch.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Rotation_Pitch_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://assets/Rotation_Pitch.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Rotation_Pitch_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="left_upper_arm"><pose relative_to="left_pitch_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.0898471 -0.00838224 0.0184089 0 0 0</pose><mass>0.103</mass><inertia><ixx>0.0000408002</ixx><iyy>0.000147318</iyy><izz>0.000142487</izz><ixy>-0.0000197819</ixy><ixz>-0.0000000403016</ixz><iyz>0.00000000897326</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Upper_Arm.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Upper_Arm_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://assets/Upper_Arm.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Upper_Arm_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="left_lower_arm"><pose relative_to="left_elbow_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.0980701 0.00324376 0.0182831 0 0 0</pose><mass>0.104</mass><inertia><ixx>0.0000287438</ixx><iyy>0.000159844</iyy><izz>0.00014529</izz><ixy>0.00000741152</ixy><ixz>0.00000126409</ixz><iyz>-0.0000000490188</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Lower_Arm.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Lower_Arm_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://assets/Lower_Arm.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Lower_Arm_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="left_wrist_pitch"><pose relative_to="left_wrist_pitch_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.000103312 -0.0386143 0.0281156 0 0 0</pose><mass>0.079</mass><inertia><ixx>0.0000368263</ixx><iyy>0.000025391</iyy><izz>0.000021</izz><ixy>0.000000017893</ixy><ixz>-0.0000000528128</ixz><iyz>0.0000036412</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Wrist_Pitch_Roll.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Wrist_Pitch_Roll_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://assets/Wrist_Pitch_Roll.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Wrist_Pitch_Roll_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="left_fixed_jaw"><pose relative_to="left_wrist_roll_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>0.000213627 0.000245138 -0.025187 0 0 0</pose><mass>0.087</mass><inertia><ixx>0.0000275087</ixx><iyy>0.0000433657</iyy><izz>0.0000345059</izz><ixy>-0.000000335241</ixy><ixz>-0.0000057352</ixz><iyz>-0.0000000517847</iyz></inertia></inertial><collision name="finger_1_collision"><geometry><mesh><uri>model://assets/Fixed_Jaw_part1.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_2_collision"><geometry><mesh><uri>model://assets/Fixed_Jaw_part2.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><visual name="body"><geometry><mesh><uri>model://assets/Fixed_Jaw.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Fixed_Jaw_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="left_moving_jaw"><pose relative_to="left_jaw_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.00157495 -0.0300244 0.0192755 0 0 0</pose><mass>0.012</mass><inertia><ixx>0.00000661427</ixx><iyy>0.00000189032</iyy><izz>0.00000528738</izz><ixy>-0.000000319807</ixy><ixz>-0.00000000590717</ixz><iyz>-0.000000109945</iyz></inertia></inertial><collision name="finger_1_collision"><geometry><mesh><uri>model://assets/Moving_Jaw_part1.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_2_collision"><geometry><mesh><uri>model://assets/Moving_Jaw_part2.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_3_collision"><geometry><mesh><uri>model://assets/Moving_Jaw_part3.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><visual name="body"><geometry><mesh><uri>model://assets/Moving_Jaw.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual></link>
+
+      <joint name="left_arm_mount" type="fixed"><pose relative_to="base_link">-0.09 -0.11 0.395 0 0 0</pose><parent>base_link</parent><child>left_arm_base</child></joint>
+      <joint name="left_rotation_l_joint" type="revolute"><pose relative_to="left_arm_base">0 -0.0452 0.0165 1.5708 0 0</pose><parent>left_arm_base</parent><child>left_rotation_pitch</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.16</lower><upper>2.16</upper></limit></axis></joint>
+      <joint name="left_pitch_joint" type="revolute"><pose relative_to="left_rotation_pitch">0 0.1025 0.0306 1.5708 0 0</pose><parent>left_rotation_pitch</parent><child>left_upper_arm</child><axis><xyz>-1 0 0</xyz><limit><lower>-0.22</lower><upper>3.37</upper></limit></axis></joint>
+      <joint name="left_elbow_joint" type="revolute"><pose relative_to="left_upper_arm">0 0.11257 0.028 -1.5708 0 0</pose><parent>left_upper_arm</parent><child>left_lower_arm</child><axis><xyz>1 0 0</xyz><limit><lower>-0.22</lower><upper>3.14</upper></limit></axis></joint>
+      <joint name="left_wrist_pitch_joint" type="revolute"><pose relative_to="left_lower_arm">0 0.0052 0.1349 -1.5708 0 0</pose><parent>left_lower_arm</parent><child>left_wrist_pitch</child><axis><xyz>1 0 0</xyz><limit><lower>-1.658062849</lower><upper>1.658062729</upper></limit></axis></joint>
+      <joint name="left_wrist_roll_joint" type="revolute"><pose relative_to="left_wrist_pitch">0 -0.0601 0 0 1.5708 0</pose><parent>left_wrist_pitch</parent><child>left_fixed_jaw</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.743847297</lower><upper>2.841206309</upper></limit></axis></joint>
+      <joint name="left_jaw_joint" type="revolute"><pose relative_to="left_fixed_jaw">-0.0202 -0.0244 0 3.1416 0 3.33</pose><parent>left_fixed_jaw</parent><child>left_moving_jaw</child><axis><xyz>0 0 1</xyz><limit><lower>-0.374532978</lower><upper>1.745329200</upper></limit></axis></joint>
+
+      <link name="right_arm_base"><pose relative_to="right_arm_mount">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>0.0137179 -0.0000519711 0.0334843 0 0 0</pose><mass>0.147</mass><inertia><ixx>0.000114686</ixx><iyy>0.000136117</iyy><izz>0.000130364</izz><ixy>-0.000000459787</ixy><ixz>0.00000497151</ixz><iyz>0.0000000975275</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Base.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Base_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="base"><geometry><mesh><uri>model://assets/Base.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Base_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="right_rotation_pitch"><pose relative_to="right_rotation_r_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.0307604 -0.0000166727 -0.0252713 0 0 0</pose><mass>0.100006</mass><inertia><ixx>0.000083759</ixx><iyy>0.0000810403</iyy><izz>0.0000239783</izz><ixy>0.0000000755525</ixy><ixz>-0.00000116342</ixz><iyz>0.000000154663</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Rotation_Pitch.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Rotation_Pitch_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://assets/Rotation_Pitch.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Rotation_Pitch_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="right_upper_arm"><pose relative_to="right_pitch_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.0898471 -0.00838224 0.0184089 0 0 0</pose><mass>0.103</mass><inertia><ixx>0.0000408002</ixx><iyy>0.000147318</iyy><izz>0.000142487</izz><ixy>-0.0000197819</ixy><ixz>-0.0000000403016</ixz><iyz>0.00000000897326</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Upper_Arm.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Upper_Arm_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://assets/Upper_Arm.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Upper_Arm_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="right_lower_arm"><pose relative_to="right_elbow_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.0980701 0.00324376 0.0182831 0 0 0</pose><mass>0.104</mass><inertia><ixx>0.0000287438</ixx><iyy>0.000159844</iyy><izz>0.00014529</izz><ixy>0.00000741152</ixy><ixz>0.00000126409</ixz><iyz>-0.0000000490188</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Lower_Arm.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Lower_Arm_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://assets/Lower_Arm.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Lower_Arm_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="right_wrist_pitch"><pose relative_to="right_wrist_pitch_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.000103312 -0.0386143 0.0281156 0 0 0</pose><mass>0.079</mass><inertia><ixx>0.0000368263</ixx><iyy>0.000025391</iyy><izz>0.000021</izz><ixy>0.000000017893</ixy><ixz>-0.0000000528128</ixz><iyz>0.0000036412</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://assets/Wrist_Pitch_Roll.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://assets/Wrist_Pitch_Roll_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://assets/Wrist_Pitch_Roll.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Wrist_Pitch_Roll_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="right_fixed_jaw"><pose relative_to="right_wrist_roll_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>0.000213627 0.000245138 -0.025187 0 0 0</pose><mass>0.087</mass><inertia><ixx>0.0000275087</ixx><iyy>0.0000433657</iyy><izz>0.0000345059</izz><ixy>-0.000000335241</ixy><ixz>-0.0000057352</ixz><iyz>-0.0000000517847</iyz></inertia></inertial><collision name="finger_1_collision"><geometry><mesh><uri>model://assets/Fixed_Jaw_part1.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_2_collision"><geometry><mesh><uri>model://assets/Fixed_Jaw_part2.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><visual name="body"><geometry><mesh><uri>model://assets/Fixed_Jaw.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://assets/Fixed_Jaw_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
+      <link name="right_moving_jaw"><pose relative_to="right_jaw_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.00157495 -0.0300244 0.0192755 0 0 0</pose><mass>0.012</mass><inertia><ixx>0.00000661427</ixx><iyy>0.00000189032</iyy><izz>0.00000528738</izz><ixy>-0.000000319807</ixy><ixz>-0.00000000590717</ixz><iyz>-0.000000109945</iyz></inertia></inertial><collision name="finger_1_collision"><geometry><mesh><uri>model://assets/Moving_Jaw_part1.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_2_collision"><geometry><mesh><uri>model://assets/Moving_Jaw_part2.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_3_collision"><geometry><mesh><uri>model://assets/Moving_Jaw_part3.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><visual name="body"><geometry><mesh><uri>model://assets/Moving_Jaw.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual></link>
+
+      <joint name="right_arm_mount" type="fixed"><pose relative_to="base_link">-0.09 0.11 0.395 0 0 3.14159265</pose><parent>base_link</parent><child>right_arm_base</child></joint>
+      <joint name="right_rotation_r_joint" type="revolute"><pose relative_to="right_arm_base">0 -0.0452 0.0165 1.5708 0 0</pose><parent>right_arm_base</parent><child>right_rotation_pitch</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.16</lower><upper>2.16</upper></limit></axis></joint>
+      <joint name="right_pitch_joint" type="revolute"><pose relative_to="right_rotation_pitch">0 0.1025 0.0306 1.5708 0 0</pose><parent>right_rotation_pitch</parent><child>right_upper_arm</child><axis><xyz>-1 0 0</xyz><limit><lower>-0.22</lower><upper>3.37</upper></limit></axis></joint>
+      <joint name="right_elbow_joint" type="revolute"><pose relative_to="right_upper_arm">0 0.11257 0.028 -1.5708 0 0</pose><parent>right_upper_arm</parent><child>right_lower_arm</child><axis><xyz>1 0 0</xyz><limit><lower>-0.22</lower><upper>3.14</upper></limit></axis></joint>
+      <joint name="right_wrist_pitch_joint" type="revolute"><pose relative_to="right_lower_arm">0 0.0052 0.1349 -1.5708 0 0</pose><parent>right_lower_arm</parent><child>right_wrist_pitch</child><axis><xyz>1 0 0</xyz><limit><lower>-1.658062849</lower><upper>1.658062729</upper></limit></axis></joint>
+      <joint name="right_wrist_roll_joint" type="revolute"><pose relative_to="right_wrist_pitch">0 -0.0601 0 0 1.5708 0</pose><parent>right_wrist_pitch</parent><child>right_fixed_jaw</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.743847297</lower><upper>2.841206309</upper></limit></axis></joint>
+      <joint name="right_jaw_joint" type="revolute"><pose relative_to="right_fixed_jaw">-0.0202 -0.0244 0 3.1416 0 3.33</pose><parent>right_fixed_jaw</parent><child>right_moving_jaw</child><axis><xyz>0 0 1</xyz><limit><lower>-0.374532978</lower><upper>1.745329200</upper></limit></axis></joint>
+
+      <plugin filename="ignition-gazebo-mecanum-drive-system" name="ignition::gazebo::systems::MecanumDrive">
+        <front_left_joint>front_left_wheel_joint</front_left_joint>
+        <front_right_joint>front_right_wheel_joint</front_right_joint>
+        <back_left_joint>left_wheel_joint</back_left_joint>
+        <back_right_joint>right_wheel_joint</back_right_joint>
+        <wheel_separation>0.51</wheel_separation>
+        <wheelbase>0.30</wheelbase>
+        <wheel_radius>0.0635</wheel_radius>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <min_acceleration>-2.0</min_acceleration>
+        <max_acceleration>2.0</max_acceleration>
+      </plugin>
+      <!--
+        Publish simulator ground-truth independently of the drive plugin.  This
+        keeps the ROS odometry contract available even if the drive system
+        changes its internal odometry implementation between Gazebo releases.
+      -->
+      <plugin filename="ignition-gazebo-odometry-publisher-system" name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>odom</odom_frame>
+        <robot_base_frame>base_link</robot_base_frame>
+        <dimensions>2</dimensions>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <odom_topic>/model/cleany_mecanum/odometry</odom_topic>
+      </plugin>
+      <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher"/>
+    </model>
+  </world>
+</sdf>
