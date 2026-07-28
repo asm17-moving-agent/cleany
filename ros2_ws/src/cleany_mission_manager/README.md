@@ -26,8 +26,8 @@ retry 및 mission 정책은 향후 `configs/mission/` 또는 ROS parameter로 �
 repo root에서 실행합니다.
 
 ```bash
-./scripts/pytest-ros src/cleany_mission_manager/tests/test_mission_flow.py
-./scripts/ros2-build
+make test-mission
+make build
 ```
 
 ## 관련 KB와 갱신 규칙

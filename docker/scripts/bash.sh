@@ -2,4 +2,4 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "${SCRIPT_DIR}/docker-exec-humble.sh" ros2 "$@"
+exec "${SCRIPT_DIR}/exec.sh" bash "$@"

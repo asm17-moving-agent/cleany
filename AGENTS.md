@@ -6,6 +6,7 @@
 
 - 이 저장소는 끌리니(Cleany) 로봇 엣지 시스템 구현 레포다.
 - 핵심 구현은 `ros2_ws/`의 ROS 2 workspace에 둔다.
+- 기본 개발환경은 Ubuntu 22.04 VM의 native ROS 2 Humble이다. 신규 환경 구성은 `docs/DEVELOPMENT_SETUP.md`를 따른다.
 - `docs/cleany-docs/`는 기획/예비설계 KB submodule이다. 비어 있거나 누락되었으면 먼저 실행한다.
 
 ```bash
@@ -22,6 +23,7 @@ git submodule update --init --recursive docs/cleany-docs
 ### 구현 문서 갱신
 
 - 구현 사실, ROS 인터페이스, 설정, 실행 및 검증 방법은 해당 패키지의 `README.md`가 관리한다. 이 내용이 코드 변경으로 달라지면 README를 같은 변경에 포함한다.
+- 개발환경 설치와 system dependency 기준은 `docs/DEVELOPMENT_SETUP.md`, Docker 환경과 도구 사용법은 `docker/README.md`에서 관리한다.
 - KB에서 아직 검토 중인 전제는 코드나 구현 README에서 확정 사실처럼 표현하거나 하드코딩하지 않는다.
 
 ## 3. 코드 작성 규칙
@@ -37,8 +39,10 @@ git submodule update --init --recursive docs/cleany-docs
 
 - 코드를 바꿨으면 가장 작은 관련 테스트를 먼저 실행한다.
 - FSM/core logic 변경: 해당 패키지 pytest를 우선 실행한다.
-- ROS package manifest, launch, install data 변경: `./scripts/ros2-build` 또는 관련 패키지 build를 실행한다.
-- 여러 패키지 경계나 ROS interface를 바꿨으면 `./scripts/ros2-test`까지 고려한다.
+- ROS package manifest, launch, install data 변경: 관련 패키지 또는 workspace build를 실행한다.
+- 여러 패키지 경계나 ROS interface를 바꿨으면 전체 workspace test까지 고려한다.
+- 반복 빌드·테스트는 루트 Makefile을 사용하고, 세부 옵션이 필요하면 `ros2_ws/README.md`의 native 명령을 따른다.
+- Docker는 기본 검증 환경이 아니다. Docker 관련 변경이나 명시 요청이 있을 때만 `docker/README.md`를 따라 검증한다.
 - 공통 빌드·테스트·실행 명령은 `ros2_ws/README.md`, 패키지별 명령은 해당 패키지 `README.md`를 따른다.
 - 검증을 실행하지 못했으면 최종 응답에 이유와 대신 확인한 내용을 적는다.
 

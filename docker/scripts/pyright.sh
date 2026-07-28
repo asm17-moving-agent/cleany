@@ -2,11 +2,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONTAINER_NAME="${CLEANY_DOCKER_CONTAINER:-cleany-humble-dev}"
 
 if ! docker ps --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"; then
-  "${SCRIPT_DIR}/docker-up-humble.sh" >/dev/null
+  "${SCRIPT_DIR}/up.sh" >/dev/null
 fi
 
 exec docker exec \

@@ -8,5 +8,5 @@ if docker ps -a --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"; then
   docker rm -f "${CONTAINER_NAME}" >/dev/null
 fi
 
-"${SCRIPT_DIR}/docker-build-humble.sh"
-"${SCRIPT_DIR}/docker-up-humble.sh"
+"${SCRIPT_DIR}/build.sh"
+"${SCRIPT_DIR}/up.sh"

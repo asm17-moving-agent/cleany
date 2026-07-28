@@ -29,20 +29,19 @@ MVP에서는 운영자·대시보드의 요청을 받아 지정 구역으로 이
 
 | 확인하려는 내용 | 기준 위치 | 갱신 시점 |
 |---|---|---|
-| 제품 범위, 미해결 질문, 주요 결정 | [기획 KB](docs/cleany-docs/README.md) | 기획 또는 의사결정이 바뀔 때 |
-| 현재 확정·검토 상태 | [기획 KB 안내](docs/cleany-docs/00_START_HERE/00%20-%20README.md), [Planning Questions](docs/cleany-docs/10_PLANNING/99%20-%20Questions.md) | 회의·검토 결과가 생길 때 |
+| 제품 범위, 현재 상태, 미해결 질문, 주요 결정 | [기획 KB README](docs/cleany-docs/README.md) | 기획 또는 의사결정이 바뀔 때 |
+| Ubuntu·ROS·Python 개발환경 설치 | [개발환경 설치 가이드](docs/DEVELOPMENT_SETUP.md) | 지원 환경 또는 설치 절차가 바뀔 때 |
 | 패키지 책임, ROS 인터페이스, 설정, 실행·검증 방법 | 각 ROS 2 패키지의 `README.md` | 해당 코드 또는 인터페이스를 바꿀 때 |
 | 공통 개발 규칙과 문서 수정 규칙 | [AGENTS.md](AGENTS.md) | 작업 전 확인 |
 
 MVP 범위, 하드웨어·런타임 조합, 안전 기준, 대시보드 포함 여부처럼 아직 검토 중인
 항목은 이 README의 설명만으로 확정하지 않는다. 구현 또는 설계 변경 전에는 KB의
-현재 상태와 미해결 질문을 확인한다.
+README를 먼저 읽고, 그 안내에 따라 현재 상태와 미해결 질문을 확인한다.
 
 ## 후보 주요 기능
 
 아래 기능은 프로젝트가 지향하는 범위다. 실제 MVP에 포함되는 기능과 우선순위는
-[기획 KB 안내](docs/cleany-docs/00_START_HERE/00%20-%20README.md)와
-[Planning Questions](docs/cleany-docs/10_PLANNING/99%20-%20Questions.md)를 기준으로 확인한다.
+[기획 KB README](docs/cleany-docs/README.md)의 안내를 기준으로 확인한다.
 
 | 기능 | 설명 |
 |---|---|
@@ -96,6 +95,9 @@ FSM: `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS 
 
 ```
 cleany/
+├── Makefile                            # native 빌드·테스트 작업 진입점
+├── docker/                             # 선택적 Docker 환경과 실행 도구
+├── tools/                              # 개발 보조 도구
 ├── ros2_ws/
 │   └── src/
 │       ├── cleany_interfaces/          # ROS 2 msg/srv/action 공통 정의
@@ -105,11 +107,10 @@ cleany/
 │       ├── cleany_skill_executor/      # navigate/pick/place/push skill 실행
 │       ├── cleany_robot_interface/     # Mock / Sim / Real 공통 로봇 인터페이스
 │       ├── cleany_logger/              # event log, failure code logging
-│       └── cleany_mujoco_sim/               # MuJoCo 시뮬레이션 (XLeRobot)
+│       └── cleany_mujoco_sim/          # MuJoCo 시뮬레이션 (XLeRobot)
 ├── configs/
 │   ├── mission/                        # mission, FSM, planner 설정
 │   └── robot/                          # robot, sensor, frame 설정
-├── scripts/                             # 개발/운영 보조 스크립트
 └── tests/
     └── integration/                    # end-to-end 통합 테스트
 ```

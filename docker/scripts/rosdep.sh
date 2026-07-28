@@ -2,11 +2,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 CONTAINER_NAME="${CLEANY_DOCKER_CONTAINER:-cleany-humble-dev}"
 
 if ! docker ps --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"; then
-  "${SCRIPT_DIR}/docker-up-humble.sh" >/dev/null
+  "${SCRIPT_DIR}/up.sh" >/dev/null
 fi
 
 WORKDIR="${PWD}"
@@ -24,7 +24,9 @@ fi
 # cache files and invokes apt inside the dev container.
 DOCKER_ARGS+=(
   --user root
+  --env IGN_PARTITION="${IGN_PARTITION:-cleany}"
   --env ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
+  --env ROS_HOME=/tmp/cleany-ros
   --workdir "${WORKDIR}"
   "${CONTAINER_NAME}"
   bash -lc 'source /opt/ros/humble/setup.bash; if [[ -f /workspace/cleany/ros2_ws/install/setup.bash ]]; then source /workspace/cleany/ros2_ws/install/setup.bash; fi; if [[ "${1:-}" == "install" ]]; then apt-get update; fi; exec rosdep "$@"' bash

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 IMAGE_NAME="${CLEANY_DOCKER_IMAGE:-cleany:ros2-humble}"
 CONTAINER_NAME="${CLEANY_DOCKER_CONTAINER:-cleany-humble-dev}"
 
@@ -17,7 +17,7 @@ fi
 
 if ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
   echo "Docker image ${IMAGE_NAME} not found; building it now..." >&2
-  "${SCRIPT_DIR}/docker-build-humble.sh"
+  "${SCRIPT_DIR}/build.sh"
 fi
 
 if command -v xhost >/dev/null 2>&1 && [[ -n "${DISPLAY:-}" ]]; then
