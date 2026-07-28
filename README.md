@@ -75,7 +75,7 @@ FSM: `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS 
 | 컴퓨팅 | NVIDIA Jetson Orin NX 16GB |
 | OS | Ubuntu 22.04 기반 JetPack 6.2 |
 | 미들웨어 | ROS 2 Humble |
-| 시뮬레이션 | Isaac Sim, MuJoCo |
+| 시뮬레이션 | Isaac Sim, MuJoCo, Gazebo |
 | 언어 | C++ (ROS 2), Python (PyTorch, OpenCV, TensorRT) |
 | 센서 | Camera/RGB-D, 2D LiDAR, IMU |
 | AI | Object Detection, Agentic VLA, Rule Guard |
@@ -86,7 +86,7 @@ FSM: `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS 
 |---|---|
 | **EDG** | 로봇 엣지 시스템 — Vision, Mission Manager, Skill Executor |
 | **HW** | 하드웨어 플랫폼 — XLeRobot 조립, Jetson 셋업, 센서 |
-| **SIM** | 시뮬레이션·학습 — Isaac Sim, MuJoCo, RL/IL |
+| **SIM** | 시뮬레이션·학습 — Isaac Sim, MuJoCo, Gazebo, RL/IL |
 | **BE** | Mission Queue, 상태·결과 관리 |
 | **FE** | 운영자 요청, 진행 상태와 전후 결과 표시 |
 | **INF** | 공통·인프라 |
@@ -107,7 +107,8 @@ cleany/
 │       ├── cleany_skill_executor/      # navigate/pick/place/push skill 실행
 │       ├── cleany_robot_interface/     # Mock / Sim / Real 공통 로봇 인터페이스
 │       ├── cleany_logger/              # event log, failure code logging
-│       └── cleany_mujoco_sim/          # MuJoCo 시뮬레이션 (XLeRobot)
+│       ├── cleany_mujoco_sim/          # MuJoCo 시뮬레이션 (XLeRobot)
+│       └── cleany_gazebo_sim/          # Gazebo 시뮬레이션 (mobile base)
 ├── configs/
 │   ├── mission/                        # mission, FSM, planner 설정
 │   └── robot/                          # robot, sensor, frame 설정

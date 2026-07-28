@@ -24,9 +24,10 @@ fi
 # cache files and invokes apt inside the dev container.
 DOCKER_ARGS+=(
   --user root
+  --env HOME=/root
   --env IGN_PARTITION="${IGN_PARTITION:-cleany}"
   --env ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
-  --env ROS_HOME=/tmp/cleany-ros
+  --env ROS_HOME=/root/.ros
   --workdir "${WORKDIR}"
   "${CONTAINER_NAME}"
   bash -lc 'source /opt/ros/humble/setup.bash; if [[ -f /workspace/cleany/ros2_ws/install/setup.bash ]]; then source /workspace/cleany/ros2_ws/install/setup.bash; fi; if [[ "${1:-}" == "install" ]]; then apt-get update; fi; exec rosdep "$@"' bash

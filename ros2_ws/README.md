@@ -30,6 +30,7 @@ make test
 ```bash
 make test-mission
 make test-mujoco
+make test-gazebo
 ```
 
 MuJoCo 시뮬레이터를 headless 모드로 실행한다.
@@ -37,6 +38,8 @@ MuJoCo 시뮬레이터를 headless 모드로 실행한다.
 ```bash
 make sim
 ```
+
+Gazebo 시뮬레이터는 `make sim-gazebo`로 실행한다.
 
 지원하는 전체 작업은 `make help`로 확인한다.
 

@@ -4,7 +4,7 @@ REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
 
-.PHONY: help deps build test test-mission test-mujoco sim clean
+.PHONY: help deps build test test-mission test-mujoco test-gazebo sim sim-gazebo clean
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -13,7 +13,9 @@ help:
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
+	@echo "  make test-gazebo   Run Gazebo simulation pytest"
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
+	@echo "  make sim-gazebo    Build and run the headless Gazebo simulation"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 
 deps:
@@ -45,11 +47,23 @@ test-mujoco: build
 	source install/setup.bash && \
 	python3 -m pytest src/cleany_mujoco_sim/test/test_scene_loader.py
 
+test-gazebo: build
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source install/setup.bash && \
+	python3 -m pytest src/cleany_gazebo_sim/test/test_parameters.py
+
 sim: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
 	ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
+
+sim-gazebo: build
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source install/setup.bash && \
+	ros2 launch cleany_gazebo_sim gazebo_sim.launch.py headless:=true
 
 clean:
 	"$(REPO_ROOT)tools/ros2-clean"

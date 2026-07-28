@@ -130,6 +130,7 @@ make test
 ```bash
 make test-mission
 make test-mujoco
+make test-gazebo
 ```
 
 MuJoCo 시뮬레이션을 headless로 실행한다.
