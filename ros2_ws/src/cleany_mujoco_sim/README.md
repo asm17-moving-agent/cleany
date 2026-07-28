@@ -30,17 +30,17 @@ ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 
 - `~/joint_cmd` (`sensor_msgs/JointState`): joint position을 직접 설정합니다.
   controller가 아닌 단순한 시뮬레이션 시험용 인터페이스입니다.
+- `cmd_vel` (`geometry_msgs/msg/Twist`): mobile base의 차체 속도 명령을
+  수신합니다. 기본 namespace에서는 `/cmd_vel`로 노출됩니다.
 
-아직 `/cmd_vel` 기반의 mobile base 명령 인터페이스는 구현되지 않았습니다.
-MuJoCo 모델은 메카넘 휠 DC 모터 네 개의 독립적인 전압 입력을 노출하므로,
-차체 속도 명령을 모터 입력으로 변환하는 ROS 메카넘 명령 adapter가 필요합니다.
-향후 adapter는 공통
+`cmd_vel` 입력은 공통
 [`cleany_interfaces` mobile base 계약](../cleany_interfaces/docs/mobile_base.md)을
-따라야 합니다.
+따라 유효성 검사, 축별 속도 제한, command timeout 정지를 적용합니다. 검증된
+차체 속도는 메카넘 역기구학을 통해 네 바퀴의 목표 각속도로 변환합니다.
 
-1. `/cmd_vel`에서 `geometry_msgs/msg/Twist`를 받아 검증합니다.
-2. 지원하는 차체 속도를 네 바퀴의 목표 속도로 변환합니다.
-3. 폐루프 휠 속도 제어로 MuJoCo 모터 전압을 계산합니다.
+MuJoCo 모델은 메카넘 휠 DC 모터 네 개의 독립적인 전압 입력을 노출합니다.
+현재는 목표 휠 속도 계산까지만 구현되어 있으며, 다음 단계에서 폐루프 휠 속도
+제어로 MuJoCo 모터 전압을 계산해야 합니다.
 
 휠 목표 속도와 전압 controller는 backend 내부 세부사항이며 `/cmd_vel` 계약에
 추가되는 공개 ROS 토픽이 아닙니다. 향후 실제 로봇 backend는 동일한 휠 목표
@@ -95,6 +95,17 @@ Feetech는 PID를 설정할 수 있다고 명시하지만 고정된 factory gain
 - `headless`: MuJoCo viewer를 숨길지 여부. 기본값은 `true`
 - `scan_rate_hz`: laser scan 발행 주기. 기본값은 `5.5`
 - `scan_samples`: scan당 ray 개수. `0`이면 `scan_sample_rate_hz`에서 계산
+- `max_linear_x`: 전후 방향 최대 속도의 절댓값. 기본값은 `0.3 m/s`
+- `max_linear_y`: 좌우 방향 최대 속도의 절댓값. 기본값은 `0.3 m/s`
+- `max_angular_z`: yaw 최대 회전 속도의 절댓값. 기본값은 `0.8 rad/s`
+- `cmd_vel_timeout_sec`: 새 명령이 없을 때 정지하기까지의 시간. 기본값은
+  `0.5 s`
+- `timeout_check_rate_hz`: command timeout 확인 주기. 기본값은 `20.0`
+- `wheel_radius`: 메카넘 휠의 유효 반지름. 기본값은 `0.0635 m`
+- `wheelbase_length`: 앞뒤 휠 중심 사이 거리. 기본값은 `0.30 m`
+- `track_width`: 좌우 휠 중심 사이 거리. 기본값은 `0.51 m`
+- `max_wheel_speed`: 목표 휠 속도의 최대 절댓값. 기본값은
+  `10.815 rad/s`
 
 `MujocoSimNode`가 추가로 지원하는 parameter는 다음과 같습니다.
 
@@ -122,10 +133,28 @@ Feetech는 PID를 설정할 수 있다고 명시하지만 고정된 factory gain
 - ROS timer를 통한 시뮬레이터 step 진행
 - joint state, odometry, laser scan, TF data 발행
 - 시뮬레이션 시험을 위한 직접 joint position 명령 적용
+- `/cmd_vel` 유효성 검사, 속도 제한, command timeout 정지 목표 적용
+- 차체 속도를 네 바퀴 목표 각속도로 변환하는 메카넘 역기구학
+- 네 바퀴의 속도 비율을 유지하는 목표 휠 속도 제한
 
 아직 구현되지 않은 항목:
 
-- `/cmd_vel` 또는 Nav2 호환 base 명령 처리
-- ROS 메카넘 명령 adapter 및 폐루프 휠 속도 controller
+- 목표 휠 속도를 MuJoCo 모터 전압으로 변환하는 폐루프 속도 controller
 - `cleany_robot_interface`, `cleany_perception`, mission FSM 연결
 - mobile base 및 manipulator의 실제 하드웨어 특성을 반영한 controller
+
+현재 `/cmd_vel` subscriber는 다음 명령으로 확인할 수 있습니다.
+
+```bash
+ros2 node info /mujoco_sim
+```
+
+시험 명령은 별도 terminal에서 반복 발행합니다.
+
+```bash
+ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
+  '{linear: {x: 0.1, y: 0.05}, angular: {z: 0.1}}'
+```
+
+현재 단계에서는 명령 수신과 목표 휠 속도 계산까지만 구현되어 있어 위 명령으로
+시뮬레이션 로봇이 움직이지는 않습니다.

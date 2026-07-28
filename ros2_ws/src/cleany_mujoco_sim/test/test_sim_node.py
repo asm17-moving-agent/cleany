@@ -3,10 +3,13 @@ from pathlib import Path
 
 import pytest
 import rclpy
-from rclpy.parameter import Parameter
+from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from rclpy.parameter import Parameter
 from sensor_msgs.msg import JointState, LaserScan
 
+from cleany_mujoco_sim.base_command import ChassisCommand, stopped_command
+from cleany_mujoco_sim.mecanum_kinematics import stopped_wheel_speeds
 from cleany_mujoco_sim.sim_node import MujocoSimNode
 from cleany_mujoco_sim.state import joint_positions
 
@@ -96,6 +99,134 @@ def test_sim_node_applies_joint_cmd(scene_path: Path):
         rclpy.shutdown()
 
 
+def test_sim_node_accepts_and_bounds_supported_cmd_vel_axes(scene_path: Path):
+    rclpy.init(args=[])
+    commander = None
+    try:
+        node = _make_node(
+            scene_path,
+            max_linear_x=0.2,
+            max_linear_y=0.15,
+            max_angular_z=0.5,
+            cmd_vel_timeout_sec=1.0,
+            wheel_radius=0.1,
+            wheelbase_length=0.4,
+            track_width=0.2,
+            max_wheel_speed=10.0,
+        )
+        commander = rclpy.create_node('test_cmd_vel_commander')
+        cmd_pub = commander.create_publisher(
+            Twist, '/test_mujoco_sim/cmd_vel', 10
+        )
+
+        cmd = Twist()
+        cmd.linear.x = 0.4
+        cmd.linear.y = -0.1
+        cmd.linear.z = 1.0
+        cmd.angular.z = -0.8
+
+        expected = ChassisCommand(
+            linear_x=0.2,
+            linear_y=-0.1,
+            angular_z=-0.5,
+        )
+        deadline = time.time() + 2.0
+        while (
+            node._current_chassis_command != expected
+            and time.time() < deadline
+        ):
+            cmd_pub.publish(cmd)
+            rclpy.spin_once(node, timeout_sec=0.05)
+
+        assert node._current_chassis_command == expected
+        assert (
+            node._target_wheel_speeds.front_left,
+            node._target_wheel_speeds.front_right,
+            node._target_wheel_speeds.rear_left,
+            node._target_wheel_speeds.rear_right,
+        ) == pytest.approx((4.5, -0.5, 2.5, 1.5))
+        assert node._last_cmd_vel_time is not None
+    finally:
+        if commander is not None:
+            commander.destroy_node()
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_stops_on_non_finite_cmd_vel(scene_path: Path):
+    rclpy.init(args=[])
+    commander = None
+    try:
+        node = _make_node(scene_path, cmd_vel_timeout_sec=1.0)
+        commander = rclpy.create_node('test_invalid_cmd_vel_commander')
+        cmd_pub = commander.create_publisher(
+            Twist, '/test_mujoco_sim/cmd_vel', 10
+        )
+
+        valid_cmd = Twist()
+        valid_cmd.linear.x = 0.1
+        deadline = time.time() + 2.0
+        while (
+            node._current_chassis_command.linear_x != 0.1
+            and time.time() < deadline
+        ):
+            cmd_pub.publish(valid_cmd)
+            rclpy.spin_once(node, timeout_sec=0.05)
+        assert node._current_chassis_command.linear_x == pytest.approx(0.1)
+
+        invalid_cmd = Twist()
+        invalid_cmd.angular.x = float('nan')
+        deadline = time.time() + 2.0
+        while node._last_cmd_vel_time is not None and time.time() < deadline:
+            cmd_pub.publish(invalid_cmd)
+            rclpy.spin_once(node, timeout_sec=0.05)
+
+        assert node._current_chassis_command == stopped_command()
+        assert node._target_wheel_speeds == stopped_wheel_speeds()
+        assert node._last_cmd_vel_time is None
+    finally:
+        if commander is not None:
+            commander.destroy_node()
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_stops_after_cmd_vel_timeout(scene_path: Path):
+    rclpy.init(args=[])
+    commander = None
+    try:
+        node = _make_node(
+            scene_path,
+            cmd_vel_timeout_sec=0.05,
+            timeout_check_rate_hz=1000.0,
+        )
+        commander = rclpy.create_node('test_timeout_cmd_vel_commander')
+        cmd_pub = commander.create_publisher(
+            Twist, '/test_mujoco_sim/cmd_vel', 10
+        )
+
+        cmd = Twist()
+        cmd.linear.x = 0.1
+        deadline = time.time() + 2.0
+        while node._last_cmd_vel_time is None and time.time() < deadline:
+            cmd_pub.publish(cmd)
+            rclpy.spin_once(node, timeout_sec=0.01)
+        assert node._last_cmd_vel_time is not None
+
+        deadline = time.time() + 2.0
+        while node._last_cmd_vel_time is not None and time.time() < deadline:
+            rclpy.spin_once(node, timeout_sec=0.01)
+
+        assert node._current_chassis_command == stopped_command()
+        assert node._target_wheel_speeds == stopped_wheel_speeds()
+        assert node._last_cmd_vel_time is None
+    finally:
+        if commander is not None:
+            commander.destroy_node()
+        node.destroy_node()
+        rclpy.shutdown()
+
+
 def test_sim_node_rejects_non_positive_publish_rate(scene_path: Path):
     rclpy.init(args=[])
     try:
@@ -123,4 +254,31 @@ def test_sim_node_allows_zero_scan_rate_when_scan_disabled(scene_path: Path):
     finally:
         if node is not None:
             node.destroy_node()
+        rclpy.shutdown()
+
+
+@pytest.mark.parametrize(
+    ('parameter_name', 'value'),
+    [
+        ('max_linear_x', 0.0),
+        ('max_linear_y', -0.1),
+        ('max_angular_z', float('inf')),
+        ('cmd_vel_timeout_sec', float('nan')),
+        ('timeout_check_rate_hz', 0.0),
+        ('wheel_radius', 0.0),
+        ('wheelbase_length', -0.1),
+        ('track_width', float('nan')),
+        ('max_wheel_speed', float('inf')),
+    ],
+)
+def test_sim_node_rejects_invalid_command_parameters(
+    scene_path: Path,
+    parameter_name: str,
+    value: float,
+):
+    rclpy.init(args=[])
+    try:
+        with pytest.raises(ValueError):
+            _make_node(scene_path, **{parameter_name: value})
+    finally:
         rclpy.shutdown()
