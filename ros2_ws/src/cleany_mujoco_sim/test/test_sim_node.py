@@ -20,6 +20,7 @@ def _make_node(scene_path: Path, **overrides) -> MujocoSimNode:
         'publish_rate_hz': 1000.0,
         'headless': True,
         'scan_samples': 8,
+        'base_drive_enabled': False,
     }
     params.update(overrides)
     return MujocoSimNode(
@@ -153,6 +154,57 @@ def test_sim_node_accepts_and_bounds_supported_cmd_vel_axes(scene_path: Path):
         rclpy.shutdown()
 
 
+def test_sim_node_drives_xlerobot_from_cmd_vel():
+    rclpy.init(args=[])
+    commander = None
+    try:
+        scene_path = Path(__file__).parents[1] / 'hardware' / 'scene.xml'
+        node = _make_node(
+            scene_path,
+            publish_rate_hz=200.0,
+            scan_enabled=False,
+            base_drive_enabled=True,
+        )
+        commander = rclpy.create_node('test_drive_cmd_vel_commander')
+        cmd_pub = commander.create_publisher(
+            Twist, '/test_mujoco_sim/cmd_vel', 10
+        )
+
+        start_x = float(node._data.xpos[node._base_body_id, 0])
+        cmd = Twist()
+        cmd.linear.x = 0.1
+        deadline = time.time() + 3.0
+        while (
+            node._data.xpos[node._base_body_id, 0] - start_x <= 0.05
+            and time.time() < deadline
+        ):
+            cmd_pub.publish(cmd)
+            rclpy.spin_once(node, timeout_sec=0.01)
+
+        assert node._data.xpos[node._base_body_id, 0] - start_x > 0.05
+
+        deadline = time.time() + 3.0
+        while time.time() < deadline:
+            rclpy.spin_once(node, timeout_sec=0.01)
+            measured = node._mujoco_drive.measured_speeds(node._data)
+            peak_speed = max(
+                abs(measured.front_left),
+                abs(measured.front_right),
+                abs(measured.rear_left),
+                abs(measured.rear_right),
+            )
+            if node._last_cmd_vel_time is None and peak_speed < 0.1:
+                break
+
+        assert node._last_cmd_vel_time is None
+        assert peak_speed < 0.1
+    finally:
+        if commander is not None:
+            commander.destroy_node()
+        node.destroy_node()
+        rclpy.shutdown()
+
+
 def test_sim_node_stops_on_non_finite_cmd_vel(scene_path: Path):
     rclpy.init(args=[])
     commander = None
@@ -269,6 +321,11 @@ def test_sim_node_allows_zero_scan_rate_when_scan_disabled(scene_path: Path):
         ('wheelbase_length', -0.1),
         ('track_width', float('nan')),
         ('max_wheel_speed', float('inf')),
+        ('wheel_kp', -0.1),
+        ('wheel_ki', float('nan')),
+        ('wheel_kd', float('inf')),
+        ('motor_voltage_limit', 0.0),
+        ('motor_no_load_speed', -0.1),
     ],
 )
 def test_sim_node_rejects_invalid_command_parameters(

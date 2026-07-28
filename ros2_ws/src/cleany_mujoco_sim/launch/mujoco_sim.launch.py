@@ -62,6 +62,36 @@ def generate_launch_description() -> LaunchDescription:
         default_value='10.815',
         description='Maximum absolute target wheel speed in rad/s.',
     )
+    base_drive_enabled_arg = DeclareLaunchArgument(
+        'base_drive_enabled',
+        default_value='true',
+        description='Enable closed-loop MuJoCo wheel drive control.',
+    )
+    wheel_kp_arg = DeclareLaunchArgument(
+        'wheel_kp',
+        default_value='1.0',
+        description='Wheel velocity controller proportional gain.',
+    )
+    wheel_ki_arg = DeclareLaunchArgument(
+        'wheel_ki',
+        default_value='5.0',
+        description='Wheel velocity controller integral gain.',
+    )
+    wheel_kd_arg = DeclareLaunchArgument(
+        'wheel_kd',
+        default_value='0.0',
+        description='Wheel velocity controller derivative gain.',
+    )
+    motor_voltage_limit_arg = DeclareLaunchArgument(
+        'motor_voltage_limit',
+        default_value='10.8',
+        description='Maximum absolute drive-motor voltage.',
+    )
+    motor_no_load_speed_arg = DeclareLaunchArgument(
+        'motor_no_load_speed',
+        default_value='10.815',
+        description='Wheel no-load speed at the voltage limit in rad/s.',
+    )
 
     node = Node(
         package='cleany_mujoco_sim',
@@ -85,6 +115,14 @@ def generate_launch_description() -> LaunchDescription:
                 'wheelbase_length': LaunchConfiguration('wheelbase_length'),
                 'track_width': LaunchConfiguration('track_width'),
                 'max_wheel_speed': LaunchConfiguration('max_wheel_speed'),
+                'base_drive_enabled': LaunchConfiguration('base_drive_enabled'),
+                'wheel_kp': LaunchConfiguration('wheel_kp'),
+                'wheel_ki': LaunchConfiguration('wheel_ki'),
+                'wheel_kd': LaunchConfiguration('wheel_kd'),
+                'motor_voltage_limit': LaunchConfiguration('motor_voltage_limit'),
+                'motor_no_load_speed': LaunchConfiguration(
+                    'motor_no_load_speed'
+                ),
             }
         ],
         output='screen',
@@ -105,5 +143,11 @@ def generate_launch_description() -> LaunchDescription:
         wheelbase_length_arg,
         track_width_arg,
         max_wheel_speed_arg,
+        base_drive_enabled_arg,
+        wheel_kp_arg,
+        wheel_ki_arg,
+        wheel_kd_arg,
+        motor_voltage_limit_arg,
+        motor_no_load_speed_arg,
         node,
     ])

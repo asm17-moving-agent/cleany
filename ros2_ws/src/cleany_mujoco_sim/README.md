@@ -39,8 +39,8 @@ ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 차체 속도는 메카넘 역기구학을 통해 네 바퀴의 목표 각속도로 변환합니다.
 
 MuJoCo 모델은 메카넘 휠 DC 모터 네 개의 독립적인 전압 입력을 노출합니다.
-현재는 목표 휠 속도 계산까지만 구현되어 있으며, 다음 단계에서 폐루프 휠 속도
-제어로 MuJoCo 모터 전압을 계산해야 합니다.
+각 physics step에서 실제 joint 속도를 읽고, feed-forward와 anti-windup을 포함한
+휠별 PID controller로 `-10.8~10.8 V`의 모터 전압을 계산합니다.
 
 휠 목표 속도와 전압 controller는 backend 내부 세부사항이며 `/cmd_vel` 계약에
 추가되는 공개 ROS 토픽이 아닙니다. 향후 실제 로봇 backend는 동일한 휠 목표
@@ -106,6 +106,14 @@ Feetech는 PID를 설정할 수 있다고 명시하지만 고정된 factory gain
 - `track_width`: 좌우 휠 중심 사이 거리. 기본값은 `0.51 m`
 - `max_wheel_speed`: 목표 휠 속도의 최대 절댓값. 기본값은
   `10.815 rad/s`
+- `base_drive_enabled`: 폐루프 휠 구동 controller 활성화 여부. 기본값은
+  `true`
+- `wheel_kp`: 휠 속도 PID의 proportional gain. 기본값은 `1.0`
+- `wheel_ki`: 휠 속도 PID의 integral gain. 기본값은 `5.0`
+- `wheel_kd`: 휠 속도 PID의 derivative gain. 기본값은 `0.0`
+- `motor_voltage_limit`: 모터 전압의 최대 절댓값. 기본값은 `10.8 V`
+- `motor_no_load_speed`: 최대 전압에서의 무부하 휠 속도. 기본값은
+  `10.815 rad/s`
 
 `MujocoSimNode`가 추가로 지원하는 parameter는 다음과 같습니다.
 
@@ -136,12 +144,15 @@ Feetech는 PID를 설정할 수 있다고 명시하지만 고정된 factory gain
 - `/cmd_vel` 유효성 검사, 속도 제한, command timeout 정지 목표 적용
 - 차체 속도를 네 바퀴 목표 각속도로 변환하는 메카넘 역기구학
 - 네 바퀴의 속도 비율을 유지하는 목표 휠 속도 제한
+- physics timestep마다 실행되는 휠별 속도 PID와 전압 feed-forward
+- `-10.8~10.8 V` 전압 제한 및 integral windup 방지
+- 목표 휠 속도에 따른 MuJoCo DC motor actuator 제어
 
 아직 구현되지 않은 항목:
 
-- 목표 휠 속도를 MuJoCo 모터 전압으로 변환하는 폐루프 속도 controller
 - `cleany_robot_interface`, `cleany_perception`, mission FSM 연결
-- mobile base 및 manipulator의 실제 하드웨어 특성을 반영한 controller
+- 실제 encoder noise, 전류, 열, 과부하 차단 동작
+- manipulator의 실제 하드웨어 특성을 반영한 controller
 
 현재 `/cmd_vel` subscriber는 다음 명령으로 확인할 수 있습니다.
 
@@ -156,5 +167,9 @@ ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
   '{linear: {x: 0.1, y: 0.05}, angular: {z: 0.1}}'
 ```
 
-현재 단계에서는 명령 수신과 목표 휠 속도 계산까지만 구현되어 있어 위 명령으로
-시뮬레이션 로봇이 움직이지는 않습니다.
+위 명령을 발행하는 동안 시뮬레이션 로봇은 전진, 좌측 횡이동, 반시계 회전을
+동시에 수행합니다. 명령 발행이 중단되면 command timeout 후 정지합니다.
+
+기본 PID gain은 현재 MuJoCo DC motor 모델의 step response를 기준으로 설정한
+시뮬레이션 값입니다. 실제 ESP32 motor controller에는 그대로 사용하지 않고
+실물 encoder와 구동계를 기준으로 별도 튜닝해야 합니다.

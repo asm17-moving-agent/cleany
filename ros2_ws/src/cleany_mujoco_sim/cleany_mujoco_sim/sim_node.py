@@ -25,6 +25,7 @@ from cleany_mujoco_sim.mecanum_kinematics import (
     stopped_wheel_speeds,
     wheel_speeds_from_chassis,
 )
+from cleany_mujoco_sim.mujoco_drive import MujocoMecanumDrive
 from cleany_mujoco_sim.scene_loader import default_scene_path, load_model
 from cleany_mujoco_sim.state import (
     apply_joint_cmd,
@@ -35,6 +36,10 @@ from cleany_mujoco_sim.state import (
     static_site_transform_msg,
     steps_per_tick,
     transform_msg,
+)
+from cleany_mujoco_sim.wheel_speed_controller import (
+    PidGains,
+    VelocityControllerConfig,
 )
 
 
@@ -66,6 +71,12 @@ class MujocoSimNode(Node):
         self.declare_parameter('wheelbase_length', 0.30)
         self.declare_parameter('track_width', 0.51)
         self.declare_parameter('max_wheel_speed', 10.815)
+        self.declare_parameter('base_drive_enabled', True)
+        self.declare_parameter('wheel_kp', 1.0)
+        self.declare_parameter('wheel_ki', 5.0)
+        self.declare_parameter('wheel_kd', 0.0)
+        self.declare_parameter('motor_voltage_limit', 10.8)
+        self.declare_parameter('motor_no_load_speed', 10.815)
 
         scene_path_value = self.get_parameter('scene_path').get_parameter_value().string_value
         scene_path = Path(scene_path_value) if scene_path_value else default_scene_path()
@@ -106,6 +117,18 @@ class MujocoSimNode(Node):
         self._wheel_speed_limit = WheelSpeedLimit(
             max_abs=float(self.get_parameter('max_wheel_speed').value)
         )
+        self._base_drive_enabled = bool(
+            self.get_parameter('base_drive_enabled').value
+        )
+        self._velocity_controller_config = VelocityControllerConfig(
+            gains=PidGains(
+                kp=float(self.get_parameter('wheel_kp').value),
+                ki=float(self.get_parameter('wheel_ki').value),
+                kd=float(self.get_parameter('wheel_kd').value),
+            ),
+            voltage_limit=float(self.get_parameter('motor_voltage_limit').value),
+            no_load_speed=float(self.get_parameter('motor_no_load_speed').value),
+        )
 
         if publish_rate_hz <= 0:
             raise ValueError('publish_rate_hz must be positive')
@@ -133,6 +156,14 @@ class MujocoSimNode(Node):
         )
         if self._scan_enabled and self._lidar_site_id < 0:
             raise ValueError(f'MuJoCo site not found: {self._lidar_site_name}')
+        self._mujoco_drive = (
+            MujocoMecanumDrive(
+                self._model,
+                self._velocity_controller_config,
+            )
+            if self._base_drive_enabled
+            else None
+        )
 
         mujoco.mj_forward(self._model, self._data)
         self._steps_per_tick = steps_per_tick(self._model.opt.timestep, publish_rate_hz)
@@ -247,9 +278,17 @@ class MujocoSimNode(Node):
         self._current_chassis_command = stopped_command()
         self._target_wheel_speeds = stopped_wheel_speeds()
         self._last_cmd_vel_time = None
+        if self._mujoco_drive is not None:
+            self._mujoco_drive.reset()
 
     def _on_timer(self) -> None:
         for _ in range(self._steps_per_tick):
+            if self._mujoco_drive is not None:
+                self._mujoco_drive.apply_control(
+                    self._data,
+                    self._target_wheel_speeds,
+                    self._model.opt.timestep,
+                )
             mujoco.mj_step(self._model, self._data)
         stamp = self.get_clock().now()
         self._joint_state_pub.publish(joint_state_msg(self._model, self._data, stamp))
