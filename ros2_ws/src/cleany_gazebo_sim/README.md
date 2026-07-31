@@ -36,20 +36,22 @@ Ubuntu 22.04 / ROS 2 Humble에서 Gazebo Fortress와 ROS bridge가 필요합니�
 저장소 루트에서 rosdep으로 workspace 의존성을 설치합니다.
 
 ```bash
-./scripts/rosdep install --from-paths ros2_ws/src --ignore-src -r -y
+make deps
 ```
 
 ## Run
 
-ROS 환경을 source한 native terminal에서 실행합니다.
+저장소 루트에서 실행합니다.
 
 ```bash
-ros2 launch cleany_gazebo_sim gazebo_sim.launch.py headless:=true
+make sim-gazebo
 ```
 
 다른 terminal에서 명령을 보냅니다.
 
 ```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
 ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
   '{linear: {x: 0.1, y: 0.05}, angular: {z: 0.1}}'
 ```
@@ -60,7 +62,10 @@ GUI는 `headless:=false`로 켤 수 있지만 WSLg/OGRE renderer 호환성은 ho
 
 ## Validation
 
+저장소 루트에서 실행합니다.
+
 ```bash
-python3 -m pytest src/cleany_gazebo_sim/test/test_world_structure.py
-colcon build --packages-select cleany_gazebo_sim --symlink-install
+make test-gazebo
 ```
+
+세부 옵션이 필요하면 `ros2_ws/README.md`의 native 명령을 사용합니다.

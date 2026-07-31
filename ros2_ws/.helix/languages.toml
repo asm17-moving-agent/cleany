@@ -1,7 +1,8 @@
-[language-server.pyright-docker]
-command = "../scripts/pyright-docker"
+[language-server.pyright]
+command = "pyright-langserver"
+args = ["--stdio"]
 
 [[language]]
 name = "python"
-language-servers = ["pyright-docker"]
+language-servers = ["pyright"]
 roots = ["pyrightconfig.json", "package.xml", "setup.py", "setup.cfg", ".git"]
