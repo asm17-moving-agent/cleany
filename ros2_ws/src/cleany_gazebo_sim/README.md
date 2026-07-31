@@ -10,14 +10,25 @@ MuJoCo의 motor-voltage dynamics를 복제하지 않고, ROS 차체 속도 계�
 - `cmd_vel` 유효성 검사, 속도 제한, command timeout 정지
 - `/clock`, `/odom`, `/joint_states`, `odom -> base_link` TF bridge
 - MuJoCo의 head RGBD와 좌·우 wrist RGB camera image bridge
-- 현재 MuJoCo 모델의 논리적인 4-wheel 배치와 joint 이름을 따르는 prototype
+- `base_link +X`를 camera-forward 전면으로 사용하는 canonical 4-wheel/arm 배치
+- controller UI와 `joint_states`에는 4개의 drive wheel joint만 노출
 
-Gazebo world는 `cleany_mujoco_sim/hardware/assets/`를 resource path로 참조해 팀의
-XLeRobot/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
-joint pose, axis, limit과 mass/center-of-mass/full inertia tensor, convex collision
-mesh도 MuJoCo body tree에서 가져왔습니다. 다만 arm/gripper controller가 아직 없어
-arm link의 gravity는 비활성화한 상태입니다. camera, LiDAR, Nav2, MoveIt, Mission
-Manager integration은 아직 포함하지 않습니다.
+좌표와 회전은 ROS REP-103을 따릅니다. `base_link`는 `+X` 전방, `+Y` 좌측,
+`+Z` 상방인 오른손 좌표계이며 양의 yaw는 위에서 볼 때 반시계 방향입니다.
+wheel joint axis는 `base_link +Y`로 명시되어 양의 wheel 회전이 `+X` 전진을
+뜻합니다. camera image의 frame id는 REP-103 `_optical_frame`
+(`+X` right, `+Y` down, `+Z` forward) 이름을 사용합니다.
+
+각 wheel은 12개의 고정 capsule roller visual을 사용합니다. 실제 접촉은 Gazebo
+Fortress의 mecanum 예제와 같은 diagonal anisotropic friction sphere로 단순화해,
+48개의 passive roller joint를 GUI나 ROS interface에 노출하지 않습니다.
+
+Gazebo world는 `cleany_description/meshes/`를 resource path로 참조해 팀의
+Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
+joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
+collision mesh도 Cleany description에서 가져왔습니다. 다만 arm/gripper controller가 아직
+없어 arm link의 gravity는 비활성화한 상태입니다. camera, LiDAR, Nav2, MoveIt,
+Mission Manager integration은 아직 포함하지 않습니다.
 
 ## Dependencies
 

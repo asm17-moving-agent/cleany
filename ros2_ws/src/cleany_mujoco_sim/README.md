@@ -41,7 +41,8 @@ make build
 
 `mujoco_sim_node`가 발행하는 토픽:
 
-- `joint_states` (`sensor_msgs/JointState`)
+- `joint_states` (`sensor_msgs/JointState`) - actuator-backed robot joints only;
+  passive mecanum roller DOFs stay internal
 - `odom` (`nav_msgs/Odometry`)
 - `scan` (`sensor_msgs/LaserScan`)
 - `publish_odom_tf`가 `true`이면 `tf` (`odom` -> `base_link`)
@@ -58,9 +59,14 @@ ROS 메카넘 명령 어댑터가 추가로 필요하다.
 
 ## 베이스 구동 모델
 
-각 휠은 독립적인 `PG42-4266-1270NE` 출력축 DC 모터 모델을 사용한다. 액추에이터
-제어 입력은 `rear_left_drive`, `rear_right_drive`, `front_left_drive`,
-`front_right_drive`라는 단자 전압이다.
+Each wheel uses an independent `PG42-4266-1270NE` output-shaft DC motor model.
+The actuator controls are terminal voltages named `rear_left_drive`,
+`rear_right_drive`, `front_left_drive`, and `front_right_drive`.
+`base_link +X` is front (the default head-camera heading), and equal positive
+voltage on all four inputs drives the robot toward `+X`.
+Wheel rotation is positive about `base_link +Y`. A positive yaw command is
+counter-clockwise about `+Z`, and odometry twist is expressed in its
+`base_link` child frame as required by `nav_msgs/Odometry`.
 
 - 정격 공급 전압: `12 V`
 - 기어박스: `61:1`. 제조사가 공개한 출력 토크에는 `72%` 효율이 이미 반영되어 있다.
@@ -78,8 +84,8 @@ MJCF 액추에이터는 기어박스 출력축에서 직접 모델링하므로(`
 
 양팔은 다음과 같이 Feetech 12 V 시리얼 서보를 사용한다.
 
-- `Pitch_L`, `Elbow_L`, `Pitch_R`, `Elbow_R`: `STS3250`
-- 어깨 회전, 손목 pitch/roll, 그리퍼 및 머리 pan/tilt: `STS3215`
+- left/right shoulder pitch and elbow pitch joints: `STS3250`
+- Shoulder rotation, wrist pitch/roll, jaws, and head pan/tilt: `STS3215`
 
 모델의 출력 한계에는 제조사 사양 대비 10% 운용 마진을 적용한다.
 
@@ -98,11 +104,14 @@ MJCF 액추에이터는 기어박스 출력축에서 직접 모델링하므로(`
 
 `mujoco_sim.launch.py`:
 
-- `scene_path`: MuJoCo 장면 XML. 기본값은 `hardware/scene.xml`이다.
-- `publish_rate_hz`: 시뮬레이션 발행 및 타이머 주기. 기본값은 `60.0`이다.
-- `headless`: MuJoCo 뷰어를 숨길지 여부. 기본값은 `true`다.
-- `scan_rate_hz`: 레이저 스캔 발행 주기. 기본값은 `5.5`다.
-- `scan_samples`: 스캔당 광선 수. `0`이면 `scan_sample_rate_hz`로부터 계산한다.
+- `scene_path` - MuJoCo scene XML or `.xml.in` template. Defaults to
+  `scenes/default.xml.in`, which includes
+  `cleany_description/mjcf/cleany.xml`.
+- `publish_rate_hz` - simulation publish/timer rate. Defaults to `60.0`.
+- `headless` - whether to hide the MuJoCo viewer. Defaults to `true`.
+- `scan_rate_hz` - laser scan publish rate. Defaults to `5.5`.
+- `scan_samples` - number of rays per scan. `0` derives the sample count from
+  `scan_sample_rate_hz`.
 
 `MujocoSimNode`가 추가로 지원하는 노드 파라미터:
 
@@ -125,11 +134,14 @@ MJCF 액추에이터는 기어박스 출력축에서 직접 모델링하므로(`
 
 구현된 기능:
 
-- XLeRobot MuJoCo 장면 불러오기
-- 독립적인 PG42 구동 모터를 사용하는 5인치 메카넘 휠 네 개 시뮬레이션
-- ROS 타이머에 따른 시뮬레이터 진행
-- 관절 상태, 오도메트리, 레이저 스캔 및 TF 데이터 발행
-- 시뮬레이션 테스트를 위한 관절 위치 직접 명령 적용
+- Load the authoritative Cleany MJCF from `cleany_description` into a
+  simulator-owned scene.
+- Simulate four 5-inch mecanum drive wheels with independent PG42 motors and
+  internal passive roller contact dynamics, while exposing only the four
+  drive-wheel joints through ROS.
+- Step the simulator on a ROS timer.
+- Publish joint state, odometry, laser scan, and TF data.
+- Apply direct joint position commands for simulation tests.
 
 아직 구현되지 않은 기능:
 

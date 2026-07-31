@@ -7,16 +7,16 @@ from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-from cleany_gazebo_sim.world_generator import materialize_articulated_roller_world
+from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
 
 
 def generate_launch_description() -> LaunchDescription:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    mujoco_hardware = (
-        Path(get_package_share_directory('cleany_mujoco_sim')) / 'hardware'
+    description_share = Path(
+        get_package_share_directory('cleany_description')
     )
     world_template = package_share / 'worlds' / 'cleany_mecanum_prototype.sdf'
-    default_world = materialize_articulated_roller_world(world_template)
+    default_world = materialize_mecanum_wheel_world(world_template)
     base_config = package_share / 'config' / 'base.yaml'
     bridge_config = package_share / 'config' / 'bridge.yaml'
 
@@ -61,10 +61,10 @@ def generate_launch_description() -> LaunchDescription:
             world_arg,
             headless_arg,
             use_sim_time_arg,
-            # Reuse the MuJoCo package's source mesh directory instead of
+            # Reuse the authoritative description meshes instead of
             # committing duplicate, large STL assets to this package.
             AppendEnvironmentVariable(
-                'IGN_GAZEBO_RESOURCE_PATH', str(mujoco_hardware)
+                'IGN_GAZEBO_RESOURCE_PATH', str(description_share)
             ),
             server,
             gui,

@@ -1,0 +1,693 @@
+<mujoco model="xlerobot">
+  <!-- <option timestep="0.002" noslip_iterations="3">
+    <flag multiccd="enable"/>
+  </option> -->
+
+  <compiler angle="radian" meshdir="../meshes/"/>
+
+  <asset>
+    <material name="white" rgba="0.3 0.3 0.3 1" specular="0.1" shininess="0.1"/>
+    <material name="grey" rgba="0.5 0.5 0.5 1" specular="0.1" shininess="0.1"/>
+    <material name="blue" rgba="0.15 0.25 0.5 1" specular="0.1" shininess="0.1"/>
+    <material name="motor" rgba="0.1 0.1 0.1 1" specular="0.1" shininess="0.1"/>
+    <material name="carbon" rgba="0.015 0.018 0.02 1" specular="0.3" shininess="0.6"/>
+    <material name="wheel_plate" rgba="0.62 0.64 0.68 1" specular="0.35" shininess="0.45"/>
+    <material name="wheel_roller" rgba="0.06 0.06 0.07 1" specular="0.05" shininess="0.1"/>
+
+    <!-- Arm meshes -->
+    <mesh name="Base" file="Base.stl"/>
+    <mesh name="Base_Motor" file="Base_Motor.stl"/>
+    <mesh name="Rotation_Pitch" file="Rotation_Pitch.stl"/>
+    <mesh name="Rotation_Pitch_Motor" file="Rotation_Pitch_Motor.stl"/>
+    <mesh name="Upper_Arm" file="Upper_Arm_5cm.stl"/>
+    <mesh name="Upper_Arm_Sockets" file="Upper_Arm_5cm_Sockets.stl"/>
+    <mesh name="Upper_Arm_Carbon" file="Upper_Arm_5cm_Carbon.stl"/>
+    <mesh name="Upper_Arm_Motor" file="Upper_Arm_Motor.stl"/>
+    <mesh name="Lower_Arm" file="Lower_Arm_5cm.stl"/>
+    <mesh name="Lower_Arm_Sockets" file="Lower_Arm_5cm_Sockets.stl"/>
+    <mesh name="Lower_Arm_Carbon" file="Lower_Arm_5cm_Carbon.stl"/>
+    <mesh name="Lower_Arm_Motor" file="Lower_Arm_Motor.stl"/>
+    <mesh name="Wrist_Pitch_Roll" file="Wrist_Pitch_Roll.stl"/>
+    <mesh name="Wrist_Pitch_Roll_Motor" file="Wrist_Pitch_Roll_Motor.stl"/>
+    <mesh name="Fixed_Jaw" file="Fixed_Jaw.stl"/>
+    <mesh name="Fixed_Jaw_Motor" file="Fixed_Jaw_Motor.stl"/>
+    <mesh name="Fixed_Jaw_part1" file="Fixed_Jaw_part1.ply.convex.stl"/>
+    <mesh name="Fixed_Jaw_part2" file="Fixed_Jaw_part2.ply.convex.stl"/>
+    <mesh name="Moving_Jaw" file="Moving_Jaw.stl"/>
+    <mesh name="Moving_Jaw_part1" file="Moving_Jaw_part1.ply.convex.stl"/>
+    <mesh name="Moving_Jaw_part2" file="Moving_Jaw_part2.ply.convex.stl"/>
+    <mesh name="Moving_Jaw_part3" file="Moving_Jaw_part3.ply.convex.stl"/>
+    
+    <!-- Camera meshes -->
+    <mesh name="XLeRobot_camera1" file="XLeRobot_camera1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="XLeRobot_camera2" file="XLeRobot_camera2.stl" scale="0.001 0.001 0.001"/>
+    
+    <!-- Base and head meshes -->
+    <mesh name="raskogbody" file="raskogbody.stl" scale="0.0009 0.001 0.0009"/>
+    <mesh name="raskogwheel1" file="raskogwheel1.stl" scale="0.0009 0.001 0.0009"/>
+    <mesh name="raskogwheel2" file="raskogwheel2.stl" scale="0.0009 0.001 0.0009"/>
+    <mesh name="topbase1" file="topbase1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="topbase2" file="topbase2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="tophead1" file="tophead1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="tophead4" file="tophead4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="tophead5" file="tophead5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="tophead6" file="tophead6.stl" scale="0.001 0.001 0.001"/>
+  </asset>
+
+  <default>
+    <!-- Default: all geoms don't participate in collision -->
+    <geom contype="0" conaffinity="0" condim="1" solref="0.005 1"/>
+    <!-- 5-inch mecanum drive-wheel defaults. -->
+    <default class="wheel">
+      <!-- Drive-train losses are represented by the output-shaft DC motor curve. -->
+      <joint type="hinge" axis="0 0 1" damping="0"
+             actuatorfrcrange="-2.646 2.646"/>
+    </default>
+    <default class="pg42_drive">
+      <!--
+        PG42-4266-1270NE, 12 V, 61:1 gearbox, modeled at the gearbox output.
+
+        Manufacturer output values:
+          rated point: 2.94 N.m at 103 rpm (10.786135 rad/s)
+          no-load speed: 7000 / 61 rpm (12.017021 rad/s)
+
+        The equivalent 28.702929 N.m stall torque is extrapolated from those
+        two output-shaft points.  A 10 percent operating margin limits voltage
+        to 10.8 V and continuous output torque to 2.646 N.m.  The published
+        2.94 N.m already includes the 61:1 reduction and 72 percent gearbox
+        efficiency, so gear remains 1 and efficiency is not applied again.
+      -->
+      <dcmotor gear="1" ctrlrange="-10.8 10.8"
+               nominal="12 28.702929 12.017021"
+               saturation="2.646 0 0"/>
+    </default>
+    <default class="mecanum_roller">
+      <!--
+        Passive roller DOFs remain an internal physics detail. Group 3 keeps
+        them out of the normal joint controls and ROS publishes only joints
+        referenced by actuators.
+      -->
+      <joint type="hinge" axis="0 0 1" limited="false"
+             damping="0.00002" frictionloss="0.0001" armature="0.000001"
+             group="3"/>
+      <!--
+        contype/conaffinity lets rollers contact the floor and chassis but not
+        other rollers. friction = sliding, torsional, rolling coefficients.
+      -->
+      <geom type="capsule" size="0.008 0.015" mass="0.01"
+            material="wheel_roller" group="2" contype="2" conaffinity="1"
+            priority="1" condim="6" friction="1.2 0.002 0.0002"
+            solref="0.003 1" solimp="0.95 0.99 0.001"/>
+    </default>
+    <default class="caster">
+      <geom type="sphere" group="3" size="0.02" rgba="0.7 0.7 0.7 1" contype="1" conaffinity="1" condim="1" priority="1"/>
+    </default>
+    <!--
+      Feetech 12 V smart-servo output properties.
+
+      The actuator force and speed limits use 90 percent of the published
+      values for a 10 percent operating margin. Joint damping is calibrated so
+      saturated motion reaches the derated no-load speed after the existing
+      dry-friction term. Feetech documents the PID as configurable but does not
+      publish a fixed factory gain, so the existing SO101 position-loop gains
+      and unmeasured armature/friction values remain.
+    -->
+    <default class="sts3215">
+      <geom contype="0" conaffinity="0"/>
+      <!-- ST-3215-C018 derated: 2.6477955 N.m, 4.2453955 rad/s. -->
+      <joint damping="0.611437854" frictionloss="0.052" armature="0.028"
+             actuatorfrcrange="-2.6477955 2.6477955"/>
+      <position kp="998.22" kv="2.731" forcerange="-2.6477955 2.6477955"/>
+    </default>
+    <default class="sts3250">
+      <geom contype="0" conaffinity="0"/>
+      <!-- ST-3250-C001 derated: 4.4129925 N.m, 7.0862992 rad/s. -->
+      <joint damping="0.615411848" frictionloss="0.052" armature="0.028"
+             actuatorfrcrange="-4.4129925 4.4129925"/>
+      <position kp="998.22" kv="2.731" forcerange="-4.4129925 4.4129925"/>
+    </default>
+    <default class="visual">
+      <geom type="mesh" contype="0" conaffinity="0" density="0" group="2"/>
+    </default>
+    <default class="collision">
+      <geom contype="1" conaffinity="1" group="3" type="mesh"
+            condim="4" solref="0.002 1.0" solimp="0.95 0.99 0.001"/>
+    </default>
+  </default>
+
+  <worldbody>
+    <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1"/>
+    
+    <!-- Chassis with freejoint (similar to car) - not fixed to ground -->
+    <body name="chassis" pos="0 0 0.38" >
+      <freejoint/>
+      <site name="lidar_site" pos="0.18 0 0.08" size="0.02" rgba="0 1 0 0.5"/>
+      
+      <!-- Simplified base_link visual representation -->
+      <!-- <geom type="box" size="0.2 0.2 0.38" pos="0 0 0.35" rgba="0.2 0.2 0.6 0.3" class="visual"/>
+      <geom type="box" size="0.1575 0.2025 0.045" pos="0 0 0.73" rgba="0.6 0.5 0.1 0.5" class="visual"/> -->
+      <!-- Collision geoms for base_link (URDF positions are relative to base_link origin at z=0, chassis is at z=0.38, so subtract 0.38) -->
+      <geom type="box" size="0.19565 0.2295 0.05" pos="0 0 -0.3" class="collision" friction="1 0.005 0.0001" rgba="0.3 0.3 0.9 0.4"/>
+      <geom type="box" size="0.1575 0.2025 0.295" pos="0 0 0.015" class="collision" friction="1 0.005 0.0001" rgba="0.9 0.3 0.3 0.4"/>
+      <geom type="box" size="0.045 0.018 0.34" pos="0 0.216 0.06" class="collision" friction="1 0.005 0.0001" rgba="0.3 0.9 0.3 0.4"/>
+      <geom type="box" size="0.045 0.018 0.34" pos="0 -0.216 0.06" class="collision" friction="1 0.005 0.0001" rgba="0.9 0.9 0.3 0.4"/>
+      <geom type="box" size="0.12 0.008 0.05" pos="-0.04 -0.20 0.34" class="collision" friction="1 0.005 0.0001" rgba="0.9 0.3 0.3 0.5"/>
+      <geom type="box" size="0.12 0.008 0.05" pos="-0.04 0.20 0.34" class="collision" friction="1 0.005 0.0001" rgba="0.9 0.3 0.3 0.5"/>
+      <geom type="box" size="0.008 0.2 0.05" pos="-0.155 0.00 0.34" class="collision" friction="1 0.005 0.0001" rgba="0.9 0.3 0.3 0.5"/>
+      <geom type="box" size="0.008 0.2 0.05" pos="0.04 0.00 0.34" class="collision" friction="1 0.005 0.0001" rgba="0.9 0.3 0.3 0.5"/>
+      <!-- Base link inertial properties (mass set to 0, mass moved to wheels) -->
+      <inertial pos="0 0 -0.38" mass="10" diaginertia="0.001 0.001 0.001"/>
+      
+      <!-- Rotate the asymmetric platform mesh so camera-forward is base +X. -->
+      <body name="platform_visual" quat="0 0 0 1">
+        <geom type="mesh" mesh="raskogbody" pos="-0.01668 0.502 0.515" euler="1.5708 0 0" material="blue" class="visual"/>
+      </body>
+
+      <!--
+        Low-detail 5-inch mecanum wheels based on the published Nexus 14198 dimensions:
+        diameter 127 mm, width 51 mm, 12 rollers at 45 degrees.
+        https://www.nexusrobot.com/product/5-inch127mm-aluminum-mecanum-wheel-basic-right-14198r.html
+
+        Each wheel has 12 internal passive capsule rollers. Every roller spins
+        about its own 45-degree axis and provides a six-dimensional frictional
+        contact. These unnamed physics joints are not part of the public robot
+        joint contract. Diagonal wheel pairs use opposite roller handedness in
+        the standard X layout.
+      -->
+      <body name="rear_left_wheel" pos="-0.15 0.255 -0.3165" zaxis="0 1 0">
+        <joint name="rear_left_wheel_joint" class="wheel"/>
+        <inertial pos="0 0 0" mass="0.38" diaginertia="0.00032 0.00032 0.00048"/>
+        <geom type="cylinder" size="0.05 0.002" pos="0 0 -0.0235" material="wheel_plate" class="visual"/>
+        <geom type="cylinder" size="0.05 0.002" pos="0 0 0.0235" material="wheel_plate" class="visual"/>
+        <geom type="cylinder" size="0.024 0.0255" material="wheel_plate" class="visual"/>
+        <body name="rear_left_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_left_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+      </body>
+      <body name="rear_right_wheel" pos="-0.15 -0.255 -0.3165" zaxis="0 1 0">
+        <joint name="rear_right_wheel_joint" class="wheel"/>
+        <inertial pos="0 0 0" mass="0.38" diaginertia="0.00032 0.00032 0.00048"/>
+        <geom type="cylinder" size="0.05 0.002" pos="0 0 -0.0235" material="wheel_plate" class="visual"/>
+        <geom type="cylinder" size="0.05 0.002" pos="0 0 0.0235" material="wheel_plate" class="visual"/>
+        <geom type="cylinder" size="0.024 0.0255" material="wheel_plate" class="visual"/>
+        <body name="rear_right_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="rear_right_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+      </body>
+
+      <body name="front_left_wheel" pos="0.15 0.255 -0.3165" zaxis="0 1 0">
+        <joint name="front_left_wheel_joint" class="wheel"/>
+        <inertial pos="0 0 0" mass="0.38" diaginertia="0.00032 0.00032 0.00048"/>
+        <geom type="cylinder" size="0.05 0.002" pos="0 0 -0.0235" material="wheel_plate" class="visual"/>
+        <geom type="cylinder" size="0.05 0.002" pos="0 0 0.0235" material="wheel_plate" class="visual"/>
+        <geom type="cylinder" size="0.024 0.0255" material="wheel_plate" class="visual"/>
+        <body name="front_left_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_left_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+      </body>
+      <body name="front_right_wheel" pos="0.15 -0.255 -0.3165" zaxis="0 1 0">
+        <joint name="front_right_wheel_joint" class="wheel"/>
+        <inertial pos="0 0 0" mass="0.38" diaginertia="0.00032 0.00032 0.00048"/>
+        <geom type="cylinder" size="0.05 0.002" pos="0 0 -0.0235" material="wheel_plate" class="visual"/>
+        <geom type="cylinder" size="0.05 0.002" pos="0 0 0.0235" material="wheel_plate" class="visual"/>
+        <geom type="cylinder" size="0.024 0.0255" material="wheel_plate" class="visual"/>
+        <body name="front_right_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+        <body name="front_right_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 -0.707107">
+          <joint class="mecanum_roller"/>
+          <geom class="mecanum_roller"/>
+        </body>
+      </body>
+
+      <!--
+        The source assembly was authored toward -X. Rotate the camera and arm
+        structure into the REP-103 base_link +X forward direction. The wheels
+        remain in the base frame so positive voltage continues to drive +X.
+      -->
+      <body name="upper_structure" quat="0 0 0 1">
+      <!-- Left arm -->
+      <body name="Base" pos="-0.09 -0.11 0.395" euler="0 0 0">
+        <inertial pos="0.0137179 -5.19711e-05 0.0334843" mass="0.147" fullinertia="0.000114686 0.000136117 0.000130364 -4.59787e-07 4.97151e-06 9.75275e-08"/>
+        <!-- Visual meshes -->
+        <geom type="mesh" mesh="Base" material="white" class="visual"/>
+        <geom type="mesh" mesh="Base_Motor" material="motor" class="visual"/>
+        <!-- Collision meshes -->
+        <geom type="mesh" mesh="Base" class="collision"/>
+        <geom type="mesh" mesh="Base_Motor" class="collision"/>
+        
+        <body name="Rotation_Pitch" pos="0 -0.0452 0.0165" euler="1.5708 0 0">
+          <inertial pos="-0.0307604 -1.66727e-05 -0.0252713" mass="0.100006" fullinertia="8.3759e-05 8.10403e-05 2.39783e-05 7.55525e-08 -1.16342e-06 1.54663e-07"/>
+          <joint name="left_shoulder_yaw_joint" type="hinge" axis="0 1 0" range="-2.16 2.16" class="sts3215"/>
+          <!-- Visual meshes -->
+          <geom type="mesh" mesh="Rotation_Pitch" material="white" class="visual"/>
+          <geom type="mesh" mesh="Rotation_Pitch_Motor" material="motor" class="visual"/>
+          <!-- Collision meshes -->
+          <geom type="mesh" mesh="Rotation_Pitch" class="collision"/>
+          <geom type="mesh" mesh="Rotation_Pitch_Motor" class="collision"/>
+          
+          <body name="Upper_Arm" pos="0 0.1025 0.0306" euler="1.5708 0 0">
+            <!-- 44 g extended printed link plus its 74.5 g distal STS3250. -->
+            <inertial pos="0.00011909447145 0.13366336448 0.00941424883693" mass="0.1185" fullinertia="0.000344882383932 3.90640385918e-05 0.000341356582549 1.26253142805e-08 -1.8457009038e-09 -3.22497618493e-05"/>
+            <joint name="left_shoulder_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.37" class="sts3250"/>
+            <!-- Visual meshes -->
+            <geom type="mesh" mesh="Upper_Arm_Sockets" pos="-0.0001 0.0651 -0.012" quat="0.5 0.5 -0.5 -0.5" material="white" class="visual"/>
+            <geom type="mesh" mesh="Upper_Arm_Carbon" pos="-0.0001 0.0651 -0.012" quat="0.5 0.5 -0.5 -0.5" material="carbon" class="visual"/>
+            <geom type="mesh" mesh="Upper_Arm_Motor" pos="0 0.05 0" material="motor" class="visual"/>
+            <!-- Collision meshes -->
+            <geom type="mesh" mesh="Upper_Arm" pos="-0.0001 0.0651 -0.012" quat="0.5 0.5 -0.5 -0.5" class="collision"/>
+            <geom type="mesh" mesh="Upper_Arm_Motor" pos="0 0.05 0" class="collision"/>
+            
+            <body name="Lower_Arm" pos="0 0.16257 0.028" euler="-1.5708 0 0">
+              <!-- 38 g extended printed link plus its 55 g distal STS3215. -->
+              <inertial pos="-0.000705377693495 0.003222361186 0.133834080359" mass="0.093" fullinertia="0.000317919847018 0.000326130407587 1.82344857592e-05 -2.45304506082e-07 -4.42747241607e-06 -1.1286233547e-05"/>
+              <joint name="left_elbow_pitch_joint" type="hinge" axis="1 0 0" range="-0.22 3.14" class="sts3250"/>
+              <!-- Visual meshes -->
+              <geom type="mesh" mesh="Lower_Arm_Sockets" pos="-0.0025 0.032 0.065" quat="0.707106781187 0 0.707106781187 0" material="white" class="visual"/>
+              <geom type="mesh" mesh="Lower_Arm_Carbon" pos="-0.0025 0.032 0.065" quat="0.707106781187 0 0.707106781187 0" material="carbon" class="visual"/>
+              <geom type="mesh" mesh="Lower_Arm_Motor" pos="0 0 0.05" material="motor" class="visual"/>
+              <!-- Collision meshes -->
+              <geom type="mesh" mesh="Lower_Arm" pos="-0.0025 0.032 0.065" quat="0.707106781187 0 0.707106781187 0" class="collision"/>
+              <geom type="mesh" mesh="Lower_Arm_Motor" pos="0 0 0.05" class="collision"/>
+              
+              <body name="Wrist_Pitch_Roll" pos="0 0.0052 0.1849" euler="-1.5708 0 0">
+                <inertial pos="-0.000103312 -0.0386143 0.0281156" mass="0.079" fullinertia="3.68263e-05 2.5391e-05 2.1e-05 1.7893e-08 -5.28128e-08 3.6412e-06"/>
+                <joint name="left_wrist_pitch_joint" type="hinge" axis="1 0 0" range="-1.6580628494556928 1.6580627293335335" class="sts3215"/>
+                <!-- Visual meshes -->
+                <geom type="mesh" mesh="Wrist_Pitch_Roll" material="white" class="visual"/>
+                <geom type="mesh" mesh="Wrist_Pitch_Roll_Motor" material="motor" class="visual"/>
+                <!-- Collision meshes -->
+                <geom type="mesh" mesh="Wrist_Pitch_Roll" class="collision"/>
+                <geom type="mesh" mesh="Wrist_Pitch_Roll_Motor" class="collision"/>
+                
+                <body name="Fixed_Jaw" pos="0 -0.0601 0" euler="0 1.5708 0">
+                  <inertial pos="0.000213627 0.000245138 -0.025187" mass="0.087" fullinertia="2.75087e-05 4.33657e-05 3.45059e-05 -3.35241e-07 -5.7352e-06 -5.17847e-08"/>
+                  <joint name="left_wrist_roll_joint" type="hinge" axis="0 -1 0" range="-2.7438472969992493 2.841206309382605" class="sts3215"/>
+                  <!-- Visual meshes -->
+                  <geom type="mesh" mesh="Fixed_Jaw" material="white" class="visual"/>
+                  <geom type="mesh" mesh="Fixed_Jaw_Motor" material="motor" class="visual"/>
+                  <!-- Collision meshes with very high friction for gripping -->
+                  <geom type="mesh" mesh="Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  <geom type="mesh" mesh="Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+
+                  <body name="Moving_Jaw" pos="-0.0202 -0.0244 0" euler="3.1416 0 3.33">
+                    <inertial pos="-0.00157495 -0.0300244 0.0192755" mass="0.012" fullinertia="6.61427e-06 1.89032e-06 5.28738e-06 -3.19807e-07 -5.90717e-09 -1.09945e-07"/>
+                    <joint name="left_gripper_joint" type="hinge" axis="0 0 1" range="-0.37453297762778586 1.7453291995659765" class="sts3215"/>
+                    <!-- Visual mesh -->
+                    <geom type="mesh" mesh="Moving_Jaw" material="white" class="visual"/>
+                    <!-- Collision meshes with very high friction for gripping -->
+                    <geom type="mesh" mesh="Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom type="mesh" mesh="Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom type="mesh" mesh="Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  </body>
+
+                  <!-- Camera on left arm -->
+                  <body name="Left_Arm_Camera" pos="0 -0.022 0.05" euler="1.5708 -1.5708 0">
+                    <geom type="mesh" mesh="XLeRobot_camera1" pos="-0.015 -0.026 0" material="white" class="visual"/>
+                    <geom type="mesh" mesh="XLeRobot_camera2" pos="-0.015 -0.026 0" material="motor" class="visual"/>
+                    <!-- Innomaker 1080P USB2.0 UVC wrist camera: advertised 130 deg diagonal FOV.
+                         MuJoCo uses vertical FOV; 93 deg approximates 130 deg diagonal at 16:9. -->
+                    <camera name="left_wrist_rgb" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 0.00690 -0.00322 0.99997" fovy="93"/>
+                    <!-- REP-103 optical axes: +X right, +Y down, +Z forward. -->
+                    <site name="left_wrist_rgb_optical_frame" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 -0.00690 0.00322 -0.99997" size="0.005" rgba="1 0 0 0"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- Right arm -->
+      <body name="Base_2" pos="-0.09 0.11 0.395" euler="0 0 3.14159265">
+        <inertial pos="0.0137179 -5.19711e-05 0.0334843" mass="0.147" fullinertia="0.000114686 0.000136117 0.000130364 -4.59787e-07 4.97151e-06 9.75275e-08"/>
+        <!-- Visual meshes -->
+        <geom type="mesh" mesh="Base" material="white" class="visual"/>
+        <geom type="mesh" mesh="Base_Motor" material="motor" class="visual"/>
+        <!-- Collision meshes -->
+        <geom type="mesh" mesh="Base" class="collision"/>
+        <geom type="mesh" mesh="Base_Motor" class="collision"/>
+        
+        <body name="Rotation_Pitch_2" pos="0 -0.0452 0.0165" euler="1.5708 0 0">
+          <inertial pos="-0.0307604 -1.66727e-05 -0.0252713" mass="0.100006" fullinertia="8.3759e-05 8.10403e-05 2.39783e-05 7.55525e-08 -1.16342e-06 1.54663e-07"/>
+          <joint name="right_shoulder_yaw_joint" type="hinge" axis="0 1 0" range="-2.16 2.16" class="sts3215"/>
+          <!-- Visual meshes -->
+          <geom type="mesh" mesh="Rotation_Pitch" material="white" class="visual"/>
+          <geom type="mesh" mesh="Rotation_Pitch_Motor" material="motor" class="visual"/>
+          <!-- Collision meshes -->
+          <geom type="mesh" mesh="Rotation_Pitch" class="collision"/>
+          <geom type="mesh" mesh="Rotation_Pitch_Motor" class="collision"/>
+          
+          <body name="Upper_Arm_2" pos="0 0.1025 0.0306" euler="1.5708 0 0">
+            <!-- 44 g extended printed link plus its 74.5 g distal STS3250. -->
+            <inertial pos="0.00011909447145 0.13366336448 0.00941424883693" mass="0.1185" fullinertia="0.000344882383932 3.90640385918e-05 0.000341356582549 1.26253142805e-08 -1.8457009038e-09 -3.22497618493e-05"/>
+            <joint name="right_shoulder_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.37" class="sts3250"/>
+            <!-- Visual meshes -->
+            <geom type="mesh" mesh="Upper_Arm_Sockets" pos="-0.0001 0.0651 -0.012" quat="0.5 0.5 -0.5 -0.5" material="white" class="visual"/>
+            <geom type="mesh" mesh="Upper_Arm_Carbon" pos="-0.0001 0.0651 -0.012" quat="0.5 0.5 -0.5 -0.5" material="carbon" class="visual"/>
+            <geom type="mesh" mesh="Upper_Arm_Motor" pos="0 0.05 0" material="motor" class="visual"/>
+            <!-- Collision meshes -->
+            <geom type="mesh" mesh="Upper_Arm" pos="-0.0001 0.0651 -0.012" quat="0.5 0.5 -0.5 -0.5" class="collision"/>
+            <geom type="mesh" mesh="Upper_Arm_Motor" pos="0 0.05 0" class="collision"/>
+            
+            <body name="Lower_Arm_2" pos="0 0.16257 0.028" euler="-1.5708 0 0">
+              <!-- 38 g extended printed link plus its 55 g distal STS3215. -->
+              <inertial pos="-0.000705377693495 0.003222361186 0.133834080359" mass="0.093" fullinertia="0.000317919847018 0.000326130407587 1.82344857592e-05 -2.45304506082e-07 -4.42747241607e-06 -1.1286233547e-05"/>
+              <joint name="right_elbow_pitch_joint" type="hinge" axis="1 0 0" range="-0.22 3.14" class="sts3250"/>
+              <!-- Visual meshes -->
+              <geom type="mesh" mesh="Lower_Arm_Sockets" pos="-0.0025 0.032 0.065" quat="0.707106781187 0 0.707106781187 0" material="white" class="visual"/>
+              <geom type="mesh" mesh="Lower_Arm_Carbon" pos="-0.0025 0.032 0.065" quat="0.707106781187 0 0.707106781187 0" material="carbon" class="visual"/>
+              <geom type="mesh" mesh="Lower_Arm_Motor" pos="0 0 0.05" material="motor" class="visual"/>
+              <!-- Collision meshes -->
+              <geom type="mesh" mesh="Lower_Arm" pos="-0.0025 0.032 0.065" quat="0.707106781187 0 0.707106781187 0" class="collision"/>
+              <geom type="mesh" mesh="Lower_Arm_Motor" pos="0 0 0.05" class="collision"/>
+              
+              <body name="Wrist_Pitch_Roll_2" pos="0 0.0052 0.1849" euler="-1.5708 0 0">
+                <inertial pos="-0.000103312 -0.0386143 0.0281156" mass="0.079" fullinertia="3.68263e-05 2.5391e-05 2.1e-05 1.7893e-08 -5.28128e-08 3.6412e-06"/>
+                <joint name="right_wrist_pitch_joint" type="hinge" axis="1 0 0" range="-1.6580628494556928 1.6580627293335335" class="sts3215"/>
+                <!-- Visual meshes -->
+                <geom type="mesh" mesh="Wrist_Pitch_Roll" material="white" class="visual"/>
+                <geom type="mesh" mesh="Wrist_Pitch_Roll_Motor" material="motor" class="visual"/>
+                <!-- Collision meshes -->
+                <geom type="mesh" mesh="Wrist_Pitch_Roll" class="collision"/>
+                <geom type="mesh" mesh="Wrist_Pitch_Roll_Motor" class="collision"/>
+                
+                <body name="Fixed_Jaw_2" pos="0 -0.0601 0" euler="0 1.5708 0">
+                  <inertial pos="0.000213627 0.000245138 -0.025187" mass="0.087" fullinertia="2.75087e-05 4.33657e-05 3.45059e-05 -3.35241e-07 -5.7352e-06 -5.17847e-08"/>
+                  <joint name="right_wrist_roll_joint" type="hinge" axis="0 -1 0" range="-2.7438472969992493 2.841206309382605" class="sts3215"/>
+                  <!-- Visual meshes -->
+                  <geom type="mesh" mesh="Fixed_Jaw" material="white" class="visual"/>
+                  <geom type="mesh" mesh="Fixed_Jaw_Motor" material="motor" class="visual"/>
+                  <!-- Collision meshes with very high friction for gripping -->
+                  <geom type="mesh" mesh="Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  <geom type="mesh" mesh="Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+
+                  <body name="Moving_Jaw_2" pos="-0.0202 -0.0244 0" euler="3.1416 0 3.33">
+                    <inertial pos="-0.00157495 -0.0300244 0.0192755" mass="0.012" fullinertia="6.61427e-06 1.89032e-06 5.28738e-06 -3.19807e-07 -5.90717e-09 -1.09945e-07"/>
+                    <joint name="right_gripper_joint" type="hinge" axis="0 0 1" range="-0.37453297762778586 1.7453291995659765" class="sts3215"/>
+                    <!-- Visual mesh -->
+                    <geom type="mesh" mesh="Moving_Jaw" material="white" class="visual"/>
+                    <!-- Collision meshes with very high friction for gripping -->
+                    <geom type="mesh" mesh="Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom type="mesh" mesh="Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom type="mesh" mesh="Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  </body>
+
+                  <!-- Camera on right arm -->
+                  <body name="Right_Arm_Camera" pos="0 -0.021 0.05" euler="1.5708 -1.5708 0">
+                    <geom type="mesh" mesh="XLeRobot_camera1" pos="-0.015 -0.026 0" material="white" class="visual"/>
+                    <geom type="mesh" mesh="XLeRobot_camera2" pos="-0.015 -0.026 0" material="motor" class="visual"/>
+                    <!-- Innomaker 1080P USB2.0 UVC wrist camera: advertised 130 deg diagonal FOV.
+                         MuJoCo uses vertical FOV; 93 deg approximates 130 deg diagonal at 16:9. -->
+                    <camera name="right_wrist_rgb" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 0.00690 -0.00322 0.99997" fovy="93"/>
+                    <!-- REP-103 optical axes: +X right, +Y down, +Z forward. -->
+                    <site name="right_wrist_rgb_optical_frame" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 -0.00690 0.00322 -0.99997" size="0.005" rgba="1 0 0 0"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- Top base (URDF: top_base_joint origin is xyz="0 0 0.73" relative to base_link at z=0, chassis is at z=0.38, so pos should be 0.73-0.38=0.35) -->
+      <body name="top_base_link" pos="0 0 0.35">
+        <inertial pos="0 0 0" mass="0.2542" diaginertia="0.0045 0.005 0.0045"/>
+        <!-- Visual meshes -->
+        <geom type="mesh" mesh="topbase1" pos="-0.44 -0.005 -0.6" euler="0 0 0" material="white" class="visual"/>
+        <geom type="mesh" mesh="topbase2" pos="-0.298 0.006 -0.715" euler="0 0 3.14" material="motor" class="visual"/>
+        
+        <!-- Head -->
+        <body name="head_pan_link" pos="-0.103 0 0.323">
+          <inertial pos="0 0 0" mass="0.2556" diaginertia="0.0129 0.0095 0.0184"/>
+          <joint name="head_pan_joint" type="hinge" axis="0 0 1" range="-3.2 3.2" class="sts3215"/>
+          <!-- Visual meshes -->
+          <geom type="mesh" mesh="tophead1" pos="-0.335 -0.005 -0.923" material="white" class="visual"/>
+          <geom type="mesh" mesh="tophead4" pos="1.17 -0.009 0.262" euler="3.14 -1.57 3.14" material="motor" class="visual"/>
+          
+          <body name="head_tilt_link" pos="0.001 0.002 0.09815" euler="0 0 3.14159265">
+            <inertial pos="0 0 0" mass="0.02087" diaginertia="0.0061 0.0014 0.0061"/>
+            <joint name="head_tilt_joint" type="hinge" axis="0 1 0" range="-0.76 1.45" class="sts3215"/>
+            <!-- Visual meshes -->
+            <geom type="mesh" mesh="tophead5" pos="0.16265 -0.006 -1.16815" material="white" class="visual"/>
+            <geom type="mesh" mesh="tophead6" pos="0.16265 -0.006 -1.16815" material="motor" class="visual"/>
+            
+            <!-- Camera frames -->
+            <body name="head_camera_link" pos="0.025 0 0.03">
+              <body name="head_camera_rgb_frame" pos="0 0 0" xyaxes="0 -1 0 0 0 -1">
+                <site name="head_camera_rgb_optical_frame" type="box" size="0.01 0.01 0.01" rgba="1 0 0 0.3"/>
+                <!-- MuJoCo camera +X/right, +Y/up, -Z/forward inside the ROS optical frame. -->
+                <camera name="head_realsense_rgb" pos="0 0 0" quat="0 1 0 0" fovy="42"/>
+              </body>
+              <body name="head_camera_depth_frame" pos="0 0 0" xyaxes="0 -1 0 0 0 -1">
+                <site name="head_camera_depth_optical_frame" type="box" size="0.01 0.01 0.01" rgba="0 1 0 0.0"/>
+                <!-- MuJoCo camera +X/right, +Y/up, -Z/forward inside the ROS optical frame. -->
+                <camera name="head_realsense_depth" pos="0 0 0" quat="0 1 0 0" fovy="40"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <contact>
+    <!-- Exclude collisions between adjacent links (as specified in SRDF) -->
+    <!-- First arm adjacent collisions -->
+    <exclude body1="Base" body2="Rotation_Pitch"/>
+    <exclude body1="Rotation_Pitch" body2="Upper_Arm"/>
+    <exclude body1="Upper_Arm" body2="Lower_Arm"/>
+    <exclude body1="Lower_Arm" body2="Wrist_Pitch_Roll"/>
+    <exclude body1="Wrist_Pitch_Roll" body2="Fixed_Jaw"/>
+    <exclude body1="Moving_Jaw" body2="Fixed_Jaw"/>
+    <!-- First arm impossible collisions due to kinematic constraints -->
+    <exclude body1="Rotation_Pitch" body2="Lower_Arm"/>
+    <exclude body1="Rotation_Pitch" body2="Wrist_Pitch_Roll"/>
+    <exclude body1="Upper_Arm" body2="Wrist_Pitch_Roll"/>
+    <exclude body1="Upper_Arm" body2="Base"/>
+    <exclude body1="Moving_Jaw" body2="Wrist_Pitch_Roll"/>
+    
+    <!-- Second arm adjacent collisions -->
+    <exclude body1="Base_2" body2="Rotation_Pitch_2"/>
+    <exclude body1="Rotation_Pitch_2" body2="Upper_Arm_2"/>
+    <exclude body1="Upper_Arm_2" body2="Lower_Arm_2"/>
+    <exclude body1="Lower_Arm_2" body2="Wrist_Pitch_Roll_2"/>
+    <exclude body1="Wrist_Pitch_Roll_2" body2="Fixed_Jaw_2"/>
+    <exclude body1="Moving_Jaw_2" body2="Fixed_Jaw_2"/>
+    <!-- Second arm impossible collisions due to kinematic constraints -->
+    <exclude body1="Rotation_Pitch_2" body2="Lower_Arm_2"/>
+    <exclude body1="Rotation_Pitch_2" body2="Wrist_Pitch_Roll_2"/>
+    <exclude body1="Upper_Arm_2" body2="Wrist_Pitch_Roll_2"/>
+    <exclude body1="Upper_Arm_2" body2="Base_2"/>
+    <exclude body1="Moving_Jaw_2" body2="Wrist_Pitch_Roll_2"/>
+    
+    <!-- Disable collisions between the two arms -->
+    <exclude body1="Base" body2="Base_2"/>
+    <exclude body1="chassis" body2="Base_2"/>
+  </contact>
+
+  <actuator>
+    <!-- Independent gearbox-output voltage inputs for the four drive motors. -->
+    <dcmotor class="pg42_drive" name="rear_left_drive" joint="rear_left_wheel_joint"/>
+    <dcmotor class="pg42_drive" name="rear_right_drive" joint="rear_right_wheel_joint"/>
+    <dcmotor class="pg42_drive" name="front_left_drive" joint="front_left_wheel_joint"/>
+    <dcmotor class="pg42_drive" name="front_right_drive" joint="front_right_wheel_joint"/>
+
+    <!-- Right arm: STS3250 shoulder/elbow pitch, STS3215 elsewhere. -->
+    <position class="sts3215" name="right_shoulder_yaw_joint" joint="right_shoulder_yaw_joint" ctrlrange="-2.16 2.16"/>
+    <position class="sts3250" name="right_shoulder_pitch_joint" joint="right_shoulder_pitch_joint" ctrlrange="-0.22 3.37"/>
+    <position class="sts3250" name="right_elbow_pitch_joint" joint="right_elbow_pitch_joint" ctrlrange="-0.22 3.14"/>
+    <position class="sts3215" name="right_wrist_pitch_joint" joint="right_wrist_pitch_joint" ctrlrange="-1.65806 1.65806"/>
+    <position class="sts3215" name="right_wrist_roll_joint" joint="right_wrist_roll_joint" ctrlrange="-2.74385 2.84121"/>
+    <position class="sts3215" name="right_gripper_joint" joint="right_gripper_joint" ctrlrange="-0.37453 1.74533"/>
+
+    <!-- Left arm: STS3250 shoulder/elbow pitch, STS3215 elsewhere. -->
+    <position class="sts3215" name="left_shoulder_yaw_joint" joint="left_shoulder_yaw_joint" ctrlrange="-2.16 2.16"/>
+    <position class="sts3250" name="left_shoulder_pitch_joint" joint="left_shoulder_pitch_joint" ctrlrange="-0.22 3.37"/>
+    <position class="sts3250" name="left_elbow_pitch_joint" joint="left_elbow_pitch_joint" ctrlrange="-0.22 3.14"/>
+    <position class="sts3215" name="left_wrist_pitch_joint" joint="left_wrist_pitch_joint" ctrlrange="-1.65806 1.65806"/>
+    <position class="sts3215" name="left_wrist_roll_joint" joint="left_wrist_roll_joint" ctrlrange="-2.74385 2.84121"/>
+    <position class="sts3215" name="left_gripper_joint" joint="left_gripper_joint" ctrlrange="-0.37453 1.74533"/>
+
+    <!-- Head actuators (SO101 STS3215 parameters) -->
+    <position class="sts3215" name="head_pan" joint="head_pan_joint" ctrlrange="-3.2 3.2"/>
+    <position class="sts3215" name="head_tilt" joint="head_tilt_joint" ctrlrange="-0.76 1.45"/>
+  </actuator>
+</mujoco>
