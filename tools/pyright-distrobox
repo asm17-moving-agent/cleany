@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ROS2_WS="${REPO_ROOT}/ros2_ws"
+CONTAINER_NAME="${CLEANY_DISTROBOX_CONTAINER:-ros2-humble}"
+
+# Start the Distrobox if necessary. Its underlying Docker exec transport is used
+# below because distrobox-enter does not preserve piped stdin in this version.
+if ! docker ps --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"; then
+  distrobox enter --no-tty --name "${CONTAINER_NAME}" -- true >/dev/null
+fi
+
+# Pyright runs in Ubuntu with the ROS environment, while Helix communicates
+# with it over stdin/stdout from the Fedora host. The shared home directory
+# keeps workspace file URIs identical on both sides.
+exec docker exec \
+  -i \
+  --workdir "${ROS2_WS}" \
+  "${CONTAINER_NAME}" \
+  bash -lc '
+    set -e
+    source /opt/ros/humble/setup.bash
+    if [[ -f "$1/install/setup.bash" ]]; then
+      source "$1/install/setup.bash"
+    fi
+    exec pyright-langserver --stdio
+  ' bash "${ROS2_WS}"
