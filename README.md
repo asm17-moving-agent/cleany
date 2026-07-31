@@ -96,7 +96,6 @@ FSM: `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS 
 ```
 cleany/
 ├── Makefile                            # native 빌드·테스트 작업 진입점
-├── docker/                             # 선택적 Docker 환경과 실행 도구
 ├── tools/                              # 개발 보조 도구
 ├── ros2_ws/
 │   └── src/

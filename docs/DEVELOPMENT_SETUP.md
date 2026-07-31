@@ -13,7 +13,6 @@ ROS 2 개발환경을 준비하는 절차다. 팀은 VM 이미지를 배포하�
 | Python | Ubuntu 기본 Python 3.10.x |
 | Shell | Bash |
 | 기본 실행 방식 | VM의 native 환경 |
-| 선택 실행 방식 | Docker |
 
 ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원한다. Python
 가상환경으로 ROS의 system Python을 대체하지 않는다.
@@ -153,11 +152,6 @@ language server가 필요하면 Node.js 20 LTS와 npm을 준비한 뒤 Pyright�
 sudo npm install --global pyright
 pyright --version
 ```
-
-### Docker
-
-Docker는 팀의 기본 개발환경이 아니다. 격리된 재현이나 Docker 기반 테스트가 필요할
-때만 [Docker 개발환경](../docker/README.md)을 사용한다.
 
 ## 문제 해결
 

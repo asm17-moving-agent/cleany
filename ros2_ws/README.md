@@ -62,10 +62,7 @@ ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
 
 `source install/setup.bash`는 build 후 같은 terminal session에서 실행한다.
 
-## 선택 환경과 개발도구
-
-격리된 재현이나 Docker 테스트가 필요하면 [Docker 개발환경](../docker/README.md)을
-사용한다. Docker는 팀의 기본 개발환경이 아니다.
+## 선택 개발도구
 
 Helix 프로젝트 설정은 VM의 native `pyright-langserver`를 사용한다. Helix에서
 Pyright를 사용하려면 [개발환경 설치 가이드](../docs/DEVELOPMENT_SETUP.md)의 선택
