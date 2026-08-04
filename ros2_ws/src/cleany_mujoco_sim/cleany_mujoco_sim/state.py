@@ -15,7 +15,24 @@ _SCALAR_JOINT_TYPES = (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE)
 
 @lru_cache(maxsize=None)
 def actuated_joint_ids(model: mujoco.MjModel) -> list[int]:
-    return [i for i in range(model.njnt) if model.jnt_type[i] in _SCALAR_JOINT_TYPES]
+    joint_ids: list[int] = []
+    seen: set[int] = set()
+    for actuator_id in range(model.nu):
+        if (
+            model.actuator_trntype[actuator_id]
+            != mujoco.mjtTrn.mjTRN_JOINT
+        ):
+            continue
+        joint_id = int(model.actuator_trnid[actuator_id, 0])
+        if (
+            joint_id < 0
+            or joint_id in seen
+            or model.jnt_type[joint_id] not in _SCALAR_JOINT_TYPES
+        ):
+            continue
+        seen.add(joint_id)
+        joint_ids.append(joint_id)
+    return joint_ids
 
 
 @lru_cache(maxsize=None)
@@ -93,9 +110,14 @@ def odometry_msg(
     jnt_adr = model.body_jntadr[body_id]
     if model.body_jntnum[body_id] > 0 and model.jnt_type[jnt_adr] == mujoco.mjtJoint.mjJNT_FREE:
         dof_adr = model.jnt_dofadr[jnt_adr]
-        msg.twist.twist.linear.x = float(data.qvel[dof_adr])
-        msg.twist.twist.linear.y = float(data.qvel[dof_adr + 1])
-        msg.twist.twist.linear.z = float(data.qvel[dof_adr + 2])
+        # MuJoCo stores free-joint linear velocity in the world frame, while
+        # nav_msgs/Odometry requires twist in child_frame_id (base_link).
+        body_rotation = data.xmat[body_id].reshape(3, 3)
+        body_linear_velocity = body_rotation.T @ data.qvel[dof_adr:dof_adr + 3]
+        msg.twist.twist.linear.x = float(body_linear_velocity[0])
+        msg.twist.twist.linear.y = float(body_linear_velocity[1])
+        msg.twist.twist.linear.z = float(body_linear_velocity[2])
+        # MuJoCo free-joint angular velocity is already body-local.
         msg.twist.twist.angular.x = float(data.qvel[dof_adr + 3])
         msg.twist.twist.angular.y = float(data.qvel[dof_adr + 4])
         msg.twist.twist.angular.z = float(data.qvel[dof_adr + 5])

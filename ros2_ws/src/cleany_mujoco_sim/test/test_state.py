@@ -22,7 +22,7 @@ from cleany_mujoco_sim.state import (
 )
 
 
-def test_actuated_joint_names_skips_freejoint(model_data):
+def test_actuated_joint_names_only_includes_actuator_backed_joints(model_data):
     model, _ = model_data
     assert actuated_joint_names(model) == ["shoulder"]
 
@@ -81,6 +81,42 @@ def test_odometry_msg_uses_body_pose_and_frames(model_data):
     assert msg.header.frame_id == "odom"
     assert msg.child_frame_id == "base_link"
     assert msg.pose.pose.position.z == pytest.approx(0.0)
+
+
+def test_odometry_twist_is_expressed_in_base_link(model_data):
+    model, data = model_data
+    body_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, "chassis"
+    )
+    joint_id = model.body_jntadr[body_id]
+    qpos_address = model.jnt_qposadr[joint_id]
+    qvel_address = model.jnt_dofadr[joint_id]
+    half_yaw = math.pi / 4.0
+    data.qpos[qpos_address + 3:qpos_address + 7] = (
+        math.cos(half_yaw),
+        0.0,
+        0.0,
+        math.sin(half_yaw),
+    )
+    # MuJoCo free-joint linear velocity is world-frame: world +Y is
+    # base_link +X after a +90 degree yaw.
+    data.qvel[qvel_address:qvel_address + 3] = (0.0, 2.0, 0.0)
+    # Free-joint angular velocity is already body-local.
+    data.qvel[qvel_address + 3:qvel_address + 6] = (0.1, 0.2, 0.3)
+    mujoco.mj_forward(model, data)
+
+    msg = odometry_msg(model, data, body_id, Time(), "odom", "base_link")
+
+    assert (
+        msg.twist.twist.linear.x,
+        msg.twist.twist.linear.y,
+        msg.twist.twist.linear.z,
+    ) == pytest.approx((2.0, 0.0, 0.0), abs=1e-12)
+    assert (
+        msg.twist.twist.angular.x,
+        msg.twist.twist.angular.y,
+        msg.twist.twist.angular.z,
+    ) == pytest.approx((0.1, 0.2, 0.3))
 
 
 def test_transform_msg_uses_body_pose_and_frames(model_data):

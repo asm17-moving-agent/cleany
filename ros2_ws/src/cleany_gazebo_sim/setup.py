@@ -13,7 +13,10 @@ setup(
         ('share/ament_index/resource_index/packages', [f'resource/{package_name}']),
         (f'share/{package_name}', ['package.xml']),
         (f'share/{package_name}/launch', glob('launch/*.launch.py')),
-        (f'share/{package_name}/config', glob('config/*.yaml')),
+        (
+            f'share/{package_name}/config',
+            glob('config/*.yaml') + glob('config/*.rviz'),
+        ),
         (f'share/{package_name}/worlds', glob('worlds/*.sdf')),
     ],
     install_requires=['setuptools'],

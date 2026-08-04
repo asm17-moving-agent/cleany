@@ -5,6 +5,7 @@ import mujoco
 import pytest
 
 from cleany_mujoco_sim.scene_loader import load_model
+from cleany_mujoco_sim.state import actuated_joint_names
 
 
 def test_load_model_from_xml_path(scene_path: Path):
@@ -15,9 +16,28 @@ def test_load_model_from_xml_path(scene_path: Path):
     assert data.time > 0.0
 
 
-def test_xlerobot_scene_has_articulated_mecanum_rollers():
-    scene_path = Path(__file__).parents[1] / 'hardware' / 'scene.xml'
-    model, data = load_model(scene_path)
+def test_cleany_scene_uses_description_model(cleany_scene_path: Path):
+    model, _ = load_model(cleany_scene_path)
+
+    canonical_joint_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_JOINT,
+        'left_shoulder_yaw_joint',
+    )
+    legacy_joint_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_JOINT,
+        'Rotation_R',
+    )
+
+    assert canonical_joint_id >= 0
+    assert legacy_joint_id < 0
+
+
+def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
+    cleany_scene_path: Path,
+):
+    model, data = load_model(cleany_scene_path)
 
     wheel_prefixes = ('rear_left', 'rear_right', 'front_left', 'front_right')
     roller_count = 0
@@ -27,13 +47,20 @@ def test_xlerobot_scene_has_articulated_mecanum_rollers():
             body_id = mujoco.mj_name2id(
                 model, mujoco.mjtObj.mjOBJ_BODY, roller_name
             )
-            joint_id = mujoco.mj_name2id(
-                model, mujoco.mjtObj.mjOBJ_JOINT, f'{roller_name}_joint'
-            )
 
             assert body_id >= 0
-            assert joint_id >= 0
+            assert model.body_jntnum[body_id] == 1
+            joint_id = model.body_jntadr[body_id]
             assert model.jnt_type[joint_id] == mujoco.mjtJoint.mjJNT_HINGE
+            assert model.jnt_group[joint_id] == 3
+            assert (
+                mujoco.mj_id2name(
+                    model,
+                    mujoco.mjtObj.mjOBJ_JOINT,
+                    joint_id,
+                )
+                is None
+            )
             assert model.body_geomnum[body_id] == 1
 
             geom_id = model.body_geomadr[body_id]
@@ -43,10 +70,13 @@ def test_xlerobot_scene_has_articulated_mecanum_rollers():
             roller_count += 1
 
     assert roller_count == 48
+    public_joint_names = actuated_joint_names(model)
+    assert len(public_joint_names) == 18
+    assert not any('_roller_' in name for name in public_joint_names)
 
     drive_actuators = {
-        'rear_left_drive': 'left_wheel_joint',
-        'rear_right_drive': 'right_wheel_joint',
+        'rear_left_drive': 'rear_left_wheel_joint',
+        'rear_right_drive': 'rear_right_wheel_joint',
         'front_left_drive': 'front_left_wheel_joint',
         'front_right_drive': 'front_right_wheel_joint',
     }
@@ -73,7 +103,7 @@ def test_xlerobot_scene_has_articulated_mecanum_rollers():
         model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'rear_left_drive'
     )
     rear_left_joint_id = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_JOINT, 'left_wheel_joint'
+        model, mujoco.mjtObj.mjOBJ_JOINT, 'rear_left_wheel_joint'
     )
     rear_left_dof_id = model.jnt_dofadr[rear_left_joint_id]
 
@@ -111,23 +141,87 @@ def test_xlerobot_scene_has_articulated_mecanum_rollers():
     assert abs(data.xpos[chassis_id, 1]) > 0.01
 
 
-def test_xlerobot_arm_uses_feetech_servo_limits_and_speeds():
-    scene_path = Path(__file__).parents[1] / 'hardware' / 'scene.xml'
-    model, _ = load_model(scene_path)
+def test_positive_drive_voltage_moves_toward_camera_front(
+    cleany_scene_path: Path,
+):
+    model, data = load_model(cleany_scene_path)
+    chassis_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
+    )
+    camera_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_CAMERA, 'head_realsense_rgb'
+    )
+    mujoco.mj_forward(model, data)
+    initial_position = data.xpos[chassis_id].copy()
+    camera_forward = -data.cam_xmat[camera_id].reshape(3, 3)[:, 2].copy()
+
+    for actuator_name in (
+        'rear_left_drive',
+        'rear_right_drive',
+        'front_left_drive',
+        'front_right_drive',
+    ):
+        actuator_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
+        )
+        data.ctrl[actuator_id] = 10.0
+
+    for _ in range(500):
+        mujoco.mj_step(model, data)
+
+    displacement = data.xpos[chassis_id] - initial_position
+    assert displacement @ camera_forward > 0.1
+    assert displacement[0] > abs(displacement[1])
+
+
+def test_positive_yaw_voltage_pattern_turns_counter_clockwise(
+    cleany_scene_path: Path,
+):
+    model, data = load_model(cleany_scene_path)
+    yaw_voltage = {
+        'rear_left_drive': -2.0,
+        'front_left_drive': -2.0,
+        'rear_right_drive': 2.0,
+        'front_right_drive': 2.0,
+    }
+    for actuator_name, voltage in yaw_voltage.items():
+        actuator_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
+        )
+        data.ctrl[actuator_id] = voltage
+
+    for _ in range(500):
+        mujoco.mj_step(model, data)
+
+    chassis_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
+    )
+    w, x, y, z = data.xquat[chassis_id]
+    yaw = math.atan2(
+        2.0 * (w * z + x * y),
+        1.0 - 2.0 * (y * y + z * z),
+    )
+    assert yaw > 0.1
+
+
+def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
+    cleany_scene_path: Path,
+):
+    model, _ = load_model(cleany_scene_path)
 
     servo_specs = (
         (
             2.6477955,
             0.9 * (math.pi / 3.0) / 0.222,
             (
-                ('Rotation_L', 'Rotation_L'),
-                ('Wrist_Pitch_L', 'Wrist_Pitch_L'),
-                ('Wrist_Roll_L', 'Wrist_Roll_L'),
-                ('Jaw_L', 'Jaw_L'),
-                ('Rotation_R', 'Rotation_R'),
-                ('Wrist_Pitch_R', 'Wrist_Pitch_R'),
-                ('Wrist_Roll_R', 'Wrist_Roll_R'),
-                ('Jaw_R', 'Jaw_R'),
+                ('right_shoulder_yaw_joint', 'right_shoulder_yaw_joint'),
+                ('right_wrist_pitch_joint', 'right_wrist_pitch_joint'),
+                ('right_wrist_roll_joint', 'right_wrist_roll_joint'),
+                ('right_gripper_joint', 'right_gripper_joint'),
+                ('left_shoulder_yaw_joint', 'left_shoulder_yaw_joint'),
+                ('left_wrist_pitch_joint', 'left_wrist_pitch_joint'),
+                ('left_wrist_roll_joint', 'left_wrist_roll_joint'),
+                ('left_gripper_joint', 'left_gripper_joint'),
                 ('head_pan_joint', 'head_pan'),
                 ('head_tilt_joint', 'head_tilt'),
             ),
@@ -136,10 +230,10 @@ def test_xlerobot_arm_uses_feetech_servo_limits_and_speeds():
             4.4129925,
             0.9 * (math.pi / 3.0) / 0.133,
             (
-                ('Pitch_L', 'Pitch_L'),
-                ('Elbow_L', 'Elbow_L'),
-                ('Pitch_R', 'Pitch_R'),
-                ('Elbow_R', 'Elbow_R'),
+                ('right_shoulder_pitch_joint', 'right_shoulder_pitch_joint'),
+                ('right_elbow_pitch_joint', 'right_elbow_pitch_joint'),
+                ('left_shoulder_pitch_joint', 'left_shoulder_pitch_joint'),
+                ('left_elbow_pitch_joint', 'left_elbow_pitch_joint'),
             ),
         ),
     )

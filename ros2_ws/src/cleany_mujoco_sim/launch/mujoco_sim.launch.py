@@ -9,9 +9,13 @@ def generate_launch_description() -> LaunchDescription:
     scene_path_arg = DeclareLaunchArgument(
         'scene_path',
         default_value=PathJoinSubstitution(
-            [FindPackageShare('cleany_mujoco_sim'), 'hardware', 'scene.xml']
+            [
+                FindPackageShare('cleany_mujoco_sim'),
+                'scenes',
+                'default.xml.in',
+            ]
         ),
-        description='Path to a MuJoCo scene XML.',
+        description='Path to a MuJoCo scene XML or XML template.',
     )
     publish_rate_arg = DeclareLaunchArgument('publish_rate_hz', default_value='60.0')
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
