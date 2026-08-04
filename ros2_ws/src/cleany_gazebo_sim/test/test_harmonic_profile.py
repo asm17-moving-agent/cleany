@@ -41,8 +41,8 @@ def test_harmonic_world_preserves_fortress_robot_structure():
     fortress_joints = {joint.attrib['name'] for joint in fortress_model.findall('joint')}
     harmonic_joints = {joint.attrib['name'] for joint in harmonic_model.findall('joint')}
 
-    assert harmonic_links == fortress_links | {'lidar_link'}
-    assert harmonic_joints == fortress_joints | {'lidar_mount'}
+    assert harmonic_links == fortress_links
+    assert harmonic_joints == fortress_joints
     assert {
         uri.text for uri in fortress_model.findall('.//mesh/uri')
     } == {

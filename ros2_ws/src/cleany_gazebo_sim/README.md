@@ -10,6 +10,7 @@ MuJoCo의 motor-voltage dynamics를 복제하지 않고, ROS 차체 속도 계�
 - `cmd_vel` 유효성 검사, 속도 제한, command timeout 정지
 - `/clock`, `/odom`, `/joint_states`, `odom -> base_link` TF bridge
 - MuJoCo의 head RGBD와 좌·우 wrist RGB camera image bridge
+- RPLIDAR A1 후보 사양의 GPU LiDAR와 ROS `/scan` bridge
 - `base_link +X`를 camera-forward 전면으로 사용하는 canonical 4-wheel/arm 배치
 - controller UI와 `joint_states`에는 4개의 drive wheel joint만 노출
 
@@ -27,9 +28,9 @@ Gazebo world는 `cleany_description/meshes/`를 resource path로 참조해 팀�
 Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
 joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
 collision mesh도 Cleany description에서 가져왔습니다. 다만 arm/gripper controller가 아직
-없어 arm link의 gravity는 비활성화한 상태입니다. Fortress 기본 profile에는 네 개의
-camera image bridge가 포함되며 LiDAR는 포함되지 않습니다. Nav2, MoveIt, Mission
-Manager integration도 아직 포함하지 않습니다.
+없어 arm link의 gravity는 비활성화한 상태입니다. Fortress와 Harmonic 기본 profile은
+네 개의 camera image와 GPU LiDAR `/scan` bridge를 포함합니다. Nav2, MoveIt,
+Mission Manager integration은 아직 포함하지 않습니다.
 
 ## Dependencies
 
@@ -59,6 +60,42 @@ make test-gazebo
 모든 pytest가 통과해야 하며, 생성된 mecanum wheel world가 canonical description의
 link, joint, mesh 구조를 유지하는지도 함께 검사합니다.
 
+네 개 camera와 GPU LiDAR를 실제로 실행해 RTF와 sensor 수신 주기를 측정하는 테스트는
+일반 test suite와 분리된 opt-in test입니다. 먼저 해당 profile을 build한 뒤, 준비된
+환경 안에서 실행합니다.
+
+Fortress/Humble:
+
+```bash
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+source install/setup.bash
+python3 -m pytest -s \
+  src/cleany_gazebo_sim/test/test_runtime_sensor_performance.py \
+  --run-sim-runtime --sim-profile=fortress
+```
+
+Harmonic/Jazzy:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+cd ros2_ws
+source install-harmonic/setup.bash
+python3 -m pytest -s \
+  src/cleany_gazebo_sim/test/test_runtime_sensor_performance.py \
+  --run-sim-runtime --sim-profile=harmonic
+```
+
+기본값은 10초 warm-up과 30초 측정이며 `--warmup-sec`, `--measure-sec`,
+`--startup-timeout-sec`로 조절합니다. test는 `/clock`, camera 네 topic, `/scan`을 모두
+수신하고 simulation time이 전진하는지를 검사하며 RTF, wall Hz, simulation Hz를
+출력합니다. 원본 world를 변경하지 않고 명암 줄무늬가 있는 네 벽을 추가한 임시
+validation world를 생성하며, warm-up 중 저속 이동 후 camera 해상도·encoding·frame ID·timestamp,
+빈/단색 frame 여부와 frame 변화, LiDAR의 360개 range·유한 장애물 거리·선언 범위를
+검사합니다. 성능 기준도 실패 조건으로 사용할 때만 `--min-rtf`,
+`--min-camera-sim-hz`, `--min-lidar-sim-hz`를 지정합니다. 기본 `make test-gazebo`에는
+실제 simulator를 띄우는 이 test가 포함되지 않습니다.
+
 ## Run
 
 저장소 루트에서 실행합니다.
@@ -86,13 +123,14 @@ ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
 ros2 topic echo --once /clock
 ros2 topic echo --once /odom
 ros2 topic echo --once /joint_states
-ros2 topic list | grep -E '^/(clock|gazebo_cmd_vel|gazebo_odom|joint_states|odom|tf)$'
+ros2 topic echo --once /scan
+ros2 topic list | grep -E '^/(clock|gazebo_cmd_vel|gazebo_odom|joint_states|odom|scan|tf)$'
 ```
 
 재현 성공 기준은 다음과 같습니다.
 
 - simulator와 bridge process가 조기 종료하지 않는다.
-- `/clock`, `/odom`, `/joint_states`에서 message를 한 개 이상 수신한다.
+- `/clock`, `/odom`, `/joint_states`, `/scan`에서 message를 한 개 이상 수신한다.
 - `/cmd_vel`을 보내면 guard output `/gazebo_cmd_vel`이 발행되고 `/odom`이 변한다.
 - `Ctrl-C`로 launch process가 종료된다.
 
@@ -120,10 +158,9 @@ LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
 
 ## Runtime and build state
 
-APT/rosdep package는 명령을 실행한 VM 또는 container 안에 설치됩니다. 반면
-Distrobox처럼 host home을 공유하는 환경에서는 저장소와 colcon output이 host에서도
-보일 수 있습니다. 파일이 보인다는 사실만으로 현재 runtime에 ROS/Gazebo package가
-설치됐다고 판단하지 말고, 실행할 환경 안에서 다음 명령을 확인합니다.
+APT/rosdep package와 colcon output이 존재한다는 사실만으로 현재 runtime에
+ROS/Gazebo package가 설치됐다고 판단하지 말고, 실행할 환경 안에서 다음 명령을
+확인합니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -138,8 +175,8 @@ version에서 재사용하지 않습니다. 세부 native 명령은 `ros2_ws/REA
 ## Optional Harmonic compatibility profile
 
 팀의 재현성 기준은 위의 Ubuntu 22.04, ROS 2 Humble, Gazebo Fortress 조합입니다.
-Qualcomm ARM 개발 장비에서 렌더링 센서를 시험하기 위한 Jazzy/Harmonic 구성은
-별도 호환 프로필로 격리되어 있으며 팀 표준 환경을 대체하지 않습니다.
+별도 환경에서 Jazzy/Harmonic 구성이 필요할 때는 호환 프로필로 격리하며 팀 표준
+환경을 대체하지 않습니다.
 
 Harmonic용 파일은 다음처럼 명시적인 이름을 사용합니다.
 
@@ -156,10 +193,13 @@ ROS 2 Jazzy와 Gazebo Harmonic 환경 준비는
 make sim-gazebo
 ```
 
-이 명령은 Fortress와 빌드 결과를 공유하지 않도록 `build-harmonic/`,
-`install-harmonic/`, `log-harmonic/`을 사용합니다. headless 서버 센서는 OGRE2,
-GUI 실행 시 서버는 OGRE2, GUI는 OGRE1을 사용합니다. Harmonic world의 렌더링 센서는
-구독이 생기기 전까지 비활성화할 수 있도록 `always_on=false`로 정의되어 있습니다.
-기본 `bridge_harmonic.yaml`은 모든 센서 topic을 bridge하므로 launch와 함께 모든
-렌더링 센서가 활성화됩니다. LiDAR만 분리해서 확인할 때는
-`lidar_bridge_harmonic.yaml`을 사용할 수 있습니다.
+Jazzy와 Gazebo 8.x가 확인되면 Harmonic을 자동 선택하며, Fortress와 빌드 결과를
+공유하지 않도록 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 사용합니다.
+자동 판정이 불가능하면 `GAZEBO_PROFILE=harmonic make sim-gazebo`처럼 명시할 수
+있습니다. headless 서버 센서는 OGRE2, GUI 실행 시 서버는 OGRE2, GUI는 OGRE1을
+사용합니다. Harmonic world의 렌더링 센서는 구독이 생기기 전까지 비활성화할 수
+있도록 `always_on=false`로 정의되어 있습니다. 기본 `bridge_harmonic.yaml`은 모든
+센서 topic을 bridge하므로 launch와 함께 모든 렌더링 센서가 활성화됩니다. LiDAR만
+분리해서 확인할 때는
+Fortress의 `lidar_bridge.yaml` 또는 Harmonic의 `lidar_bridge_harmonic.yaml`을 사용할
+수 있습니다.
