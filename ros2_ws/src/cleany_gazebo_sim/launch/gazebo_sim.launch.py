@@ -25,12 +25,12 @@ def generate_launch_description() -> LaunchDescription:
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
 
     server = ExecuteProcess(
-        cmd=['ign', 'gazebo', '-r', '-s', LaunchConfiguration('world')],
+        cmd=['gz', 'sim', '-r', '-s', '--headless-rendering', LaunchConfiguration('world')],
         condition=IfCondition(LaunchConfiguration('headless')),
         output='screen',
     )
     gui = ExecuteProcess(
-        cmd=['ign', 'gazebo', '-r', LaunchConfiguration('world')],
+        cmd=['gz', 'sim', '-r', LaunchConfiguration('world')],
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',
     )
@@ -64,7 +64,7 @@ def generate_launch_description() -> LaunchDescription:
             # Reuse the MuJoCo package's source mesh directory instead of
             # committing duplicate, large STL assets to this package.
             AppendEnvironmentVariable(
-                'IGN_GAZEBO_RESOURCE_PATH', str(mujoco_hardware)
+                'GZ_SIM_RESOURCE_PATH', str(mujoco_hardware)
             ),
             server,
             gui,

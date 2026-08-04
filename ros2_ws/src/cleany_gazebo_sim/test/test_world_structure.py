@@ -57,7 +57,9 @@ def test_world_contains_mujoco_top_base_arm_support():
 def test_world_contains_three_mujoco_camera_modules():
     root = ElementTree.parse(WORLD_PATH).getroot()
     camera_names = {
-        sensor.attrib['name'] for sensor in root.findall(".//sensor")
+        sensor.attrib['name']
+        for sensor in root.findall(".//sensor")
+        if sensor.attrib['type'] in {'camera', 'depth_camera'}
     }
     assert camera_names == {
         'head_realsense_rgb',
@@ -116,6 +118,27 @@ def test_world_contains_three_mujoco_camera_modules():
         assert sensor.findtext('pose') == (
             '-0.00833 0.01494 0.003872 0 0.007614 -0.436597'
         )
+
+
+def test_world_contains_lower_front_rplidar_a1_candidate_mount():
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    model = root.find("./world/model[@name='cleany_mecanum']")
+    assert model is not None
+
+    lidar_link = model.find("link[@name='lidar_link']")
+    mount = model.find("joint[@name='lidar_mount']")
+    sensor = model.find("link[@name='lidar_link']/sensor[@name='rplidar_a1']")
+    assert lidar_link is not None
+    assert mount is not None
+    assert mount.findtext('parent') == 'base_link'
+    assert mount.findtext('pose') == '0.32 0 -0.18 0 0 0'
+    assert sensor is not None
+    assert sensor.attrib['type'] == 'gpu_lidar'
+    assert sensor.findtext('topic') == '/model/cleany_mecanum/lidar/scan'
+    assert sensor.findtext('update_rate') == '5.5'
+    assert sensor.findtext('lidar/scan/horizontal/samples') == '360'
+    assert sensor.findtext('lidar/range/min') == '0.15'
+    assert sensor.findtext('lidar/range/max') == '12.0'
 
 
 def test_arm_links_use_mujoco_inertia_and_convex_collision_meshes():

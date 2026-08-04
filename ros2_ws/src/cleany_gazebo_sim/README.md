@@ -1,6 +1,6 @@
 # cleany_gazebo_sim
 
-Gazebo Fortress 기반의 Cleany mobile-base simulation backend입니다. 이 패키지는
+Gazebo Harmonic 기반의 Cleany mobile-base simulation backend입니다. 이 패키지는
 MuJoCo의 motor-voltage dynamics를 복제하지 않고, ROS 차체 속도 계약의
 `cmd_vel -> odom / TF` 경계를 headless에서 검증하는 데 초점을 둡니다.
 
@@ -10,18 +10,20 @@ MuJoCo의 motor-voltage dynamics를 복제하지 않고, ROS 차체 속도 계�
 - `cmd_vel` 유효성 검사, 속도 제한, command timeout 정지
 - `/clock`, `/odom`, `/joint_states`, `odom -> base_link` TF bridge
 - MuJoCo의 head RGBD와 좌·우 wrist RGB camera image bridge
+- 하단 전방 후보 위치의 RPLIDAR A1M8-R6 2D LiDAR `/scan` bridge
 - 현재 MuJoCo 모델의 논리적인 4-wheel 배치와 joint 이름을 따르는 prototype
 
 Gazebo world는 `cleany_mujoco_sim/hardware/assets/`를 resource path로 참조해 팀의
 XLeRobot/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
 joint pose, axis, limit과 mass/center-of-mass/full inertia tensor, convex collision
 mesh도 MuJoCo body tree에서 가져왔습니다. 다만 arm/gripper controller가 아직 없어
-arm link의 gravity는 비활성화한 상태입니다. camera, LiDAR, Nav2, MoveIt, Mission
-Manager integration은 아직 포함하지 않습니다.
+arm link의 gravity는 비활성화한 상태입니다. LiDAR mount는 후보 위치를 비교하기 위한
+시뮬레이션 값이며, 실장착 위치가 확정된 것은 아닙니다. Nav2, MoveIt, Mission Manager
+integration은 아직 포함하지 않습니다.
 
 ## Dependencies
 
-Ubuntu 22.04 / ROS 2 Humble에서 Gazebo Fortress와 ROS bridge가 필요합니다.
+Ubuntu 24.04 / ROS 2 Jazzy에서 Gazebo Harmonic과 ROS bridge가 필요합니다.
 저장소 루트에서 rosdep으로 workspace 의존성을 설치합니다.
 
 ```bash
