@@ -152,8 +152,9 @@ make test-mujoco
 make test-gazebo
 ```
 
-Gazebo 재현성만 확인할 때는 환경 검사부터 실행한다. 이 검사는 Ubuntu 22.04,
-ROS 2 Humble, Python 3.10, Ignition Gazebo 6.x와 ROS bridge 설치 여부를 확인한다.
+Gazebo 재현성만 확인할 때는 환경 검사부터 실행한다. 활성 `ROS_DISTRO`와 Gazebo major
+version으로 Humble/Fortress 또는 Jazzy/Harmonic profile을 선택한 뒤, profile에 맞는
+Ubuntu, Python과 ROS bridge 설치 여부를 확인한다.
 
 ```bash
 make check-gazebo-env
@@ -170,7 +171,90 @@ make sim
 Make target과 내부 native 명령은 [ROS 2 workspace 안내](../ros2_ws/README.md)를
 참고한다.
 
-## 7. 선택 개발도구
+## 7. 선택: ROS 2 Jazzy / Gazebo Harmonic 호환 환경
+
+팀의 기준 환경은 위에서 설명한 Ubuntu 22.04 / ROS 2 Humble / Gazebo Fortress다.
+Jazzy/Harmonic 호환 profile이 필요하면 별도의 Ubuntu 24.04 환경을 사용한다. 이 환경은
+팀 표준을 대체하지 않으며 Fortress와 build output을 공유하지 않는다.
+
+현재 검증한 호환 환경은 다음과 같다.
+
+| 항목 | 검증값 |
+|---|---|
+| OS | Ubuntu 24.04 (Noble) |
+| ROS / Python | ROS 2 Jazzy / Python 3.12.x |
+| Gazebo | Harmonic (`gz sim` 8.x, 검증 버전 8.11.0) |
+
+### ROS와 Gazebo 설치
+
+Ubuntu 24.04 환경에서 이 문서의 1절과 2절을 실행해 locale과 ROS apt source를 준비한
+뒤 Jazzy와 Harmonic bridge를 설치한다.
+
+```bash
+sudo apt update
+sudo apt install -y \
+  ros-jazzy-desktop ros-dev-tools python3-pip git make \
+  ros-jazzy-ros-gz-sim ros-jazzy-ros-gz-bridge
+source /opt/ros/jazzy/setup.bash
+```
+
+rosdep을 초기화하고 Gazebo 관련 dependency를 설치한다.
+
+```bash
+sudo rosdep init
+rosdep update --rosdistro jazzy
+cd ros2_ws
+rosdep install --from-paths src/cleany_description src/cleany_gazebo_sim \
+  --ignore-src --skip-keys mujoco --rosdistro jazzy -r -y
+cd ..
+```
+
+이미 rosdep이 초기화되어 있다는 메시지가 나오면 `sudo rosdep init`은 다시 실행하지
+않는다.
+
+### 환경 확인과 실행
+
+다음 값이 맞는지 확인한다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+test "$(. /etc/os-release && echo "${VERSION_ID}")" = "24.04"
+test "${ROS_DISTRO}" = "jazzy"
+python3 --version
+gz sim --versions
+ros2 pkg prefix ros_gz_sim
+ros2 pkg prefix ros_gz_bridge
+```
+
+저장소 루트에서 공통 Gazebo 명령을 실행한다. 활성 `ROS_DISTRO=jazzy`와 Gazebo 8.x를
+확인하면 Harmonic profile을 자동으로 선택한다.
+
+```bash
+make check-gazebo-env
+make test-gazebo
+make sim-gazebo
+```
+
+ROS 환경을 source하지 않았고 여러 배포판이 설치돼 있어 자동 판정이 불가능하면
+`GAZEBO_PROFILE=harmonic make test-gazebo`처럼 profile을 명시한다. 활성
+`ROS_DISTRO`와 충돌하는 profile은 허용하지 않는다.
+
+`make sim-gazebo`는 GUI 없이 server를 실행한다. GUI까지 실행하려면 build 후
+다음 명령을 사용한다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py headless:=false
+```
+
+Harmonic profile은 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 사용한다.
+렌더링 sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용한다. camera, LiDAR와
+RViz 사용법은
+[`cleany_gazebo_sim` README](../ros2_ws/src/cleany_gazebo_sim/README.md)의 Harmonic
+절을 따른다.
+
+## 8. 선택 개발도구
 
 ### Helix와 Pyright
 

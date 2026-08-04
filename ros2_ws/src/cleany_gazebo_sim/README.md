@@ -67,8 +67,9 @@ link, joint, mesh 구조를 유지하는지도 함께 검사합니다.
 make sim-gazebo
 ```
 
-이 명령은 `make build-gazebo`를 먼저 실행한 뒤 Fortress 서버를 GUI 없이 시작합니다.
-종료할 때는 `Ctrl-C`를 누릅니다.
+이 명령은 활성 ROS와 Gazebo version을 검사하고 `make build-gazebo`를 먼저 실행한 뒤,
+선택된 Fortress 또는 Harmonic 서버를 GUI 없이 시작합니다. 종료할 때는 `Ctrl-C`를
+누릅니다.
 
 다른 terminal에서 명령을 보냅니다.
 
@@ -147,11 +148,12 @@ Harmonic용 파일은 다음처럼 명시적인 이름을 사용합니다.
 - `config/bridge_harmonic.yaml`
 - `config/lidar_bridge_harmonic.yaml`
 
-ROS 2 Jazzy와 Gazebo Harmonic이 준비된 Distrobox 안에서 저장소 루트의 다음 명령을
-실행합니다.
+ROS 2 Jazzy와 Gazebo Harmonic 환경 준비는
+[`개발환경 설치 가이드`](../../../docs/DEVELOPMENT_SETUP.md#7-선택-ros-2-jazzy--gazebo-harmonic-호환-환경)를
+따릅니다. 준비된 환경에서 저장소 루트의 공통 명령을 실행합니다.
 
 ```bash
-make sim-gazebo-harmonic
+make sim-gazebo
 ```
 
 이 명령은 Fortress와 빌드 결과를 공유하지 않도록 `build-harmonic/`,
