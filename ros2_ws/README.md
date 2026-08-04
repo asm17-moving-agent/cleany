@@ -41,6 +41,20 @@ make sim
 
 Gazebo 시뮬레이터는 `make sim-gazebo`로 실행한다.
 
+Gazebo만 새 환경에서 재현할 때는 아래 순서로 의존성, 기준 환경, 패키지 테스트,
+headless 실행을 확인한다.
+
+```bash
+make deps-gazebo
+make check-gazebo-env
+make test-gazebo
+make sim-gazebo
+```
+
+`make build-gazebo`와 `make test-gazebo`는 `cleany_gazebo_sim` 및 그 dependency까지만
+빌드한다. 성공 판정 topic과 GUI 실행법은
+[`cleany_gazebo_sim` README](src/cleany_gazebo_sim/README.md)를 따른다.
+
 지원하는 전체 작업은 `make help`로 확인한다.
 
 ## Native 표준 명령

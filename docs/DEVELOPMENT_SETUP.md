@@ -11,6 +11,7 @@ ROS 2 개발환경을 준비하는 절차다. 팀은 VM 이미지를 배포하�
 | OS | Ubuntu 22.04 LTS (Jammy) |
 | ROS | ROS 2 Humble Desktop |
 | Python | Ubuntu 기본 Python 3.10.x |
+| Gazebo | Fortress (Ignition Gazebo 6.x) |
 | Shell | Bash |
 | 기본 실행 방식 | VM의 native 환경 |
 
@@ -117,6 +118,25 @@ rosdep update
 make deps
 ```
 
+Gazebo 패키지만 재현할 때는 MuJoCo 등 다른 workspace 의존성을 제외하고 설치할 수
+있다.
+
+```bash
+make deps-gazebo
+```
+
+이 target은 `cleany_description`의 MuJoCo parity test에만 필요한 `mujoco` rosdep key를
+제외합니다. 전체 workspace test를 실행할 환경에서는 custom rosdep 규칙을 등록한 뒤
+`make deps`를 사용합니다.
+
+rosdep이 Gazebo 의존성을 해석하지 못할 때만 아래 APT 패키지를 직접 확인한다.
+일반 설치에서는 package manifest를 기준으로 하는 `make deps-gazebo`를 우선한다.
+
+```bash
+sudo apt update
+sudo apt install -y ros-humble-ros-gz-sim ros-humble-ros-gz-bridge
+```
+
 ## 6. 빌드와 테스트
 
 ```bash
@@ -130,6 +150,15 @@ make test
 make test-mission
 make test-mujoco
 make test-gazebo
+```
+
+Gazebo 재현성만 확인할 때는 환경 검사부터 실행한다. 이 검사는 Ubuntu 22.04,
+ROS 2 Humble, Python 3.10, Ignition Gazebo 6.x와 ROS bridge 설치 여부를 확인한다.
+
+```bash
+make check-gazebo-env
+make test-gazebo
+make sim-gazebo
 ```
 
 MuJoCo 시뮬레이션을 headless로 실행한다.
@@ -175,6 +204,24 @@ Make의 타깃 테스트는 이 과정을 자동으로 수행한다.
 
 VM의 3D acceleration과 display 설정을 확인한다. GUI가 필요하지 않은 검증은
 `make sim`의 headless 실행을 사용한다.
+
+### `make check-gazebo-env`가 실패하는 경우
+
+다음 명령으로 어떤 기준이 맞지 않는지 확인한다.
+
+```bash
+lsb_release -rs
+python3 --version
+source /opt/ros/humble/setup.bash
+echo "${ROS_DISTRO}"
+ign gazebo --versions
+ros2 pkg prefix ros_gz_sim
+ros2 pkg prefix ros_gz_bridge
+```
+
+기대값은 Ubuntu `22.04`, Python `3.10.x`, ROS `humble`, Ignition Gazebo major
+version `6`이다. 다른 ROS 배포판에서 생성된 `build/`, `install/`, `log/`를 복사하거나
+재사용하지 않는다.
 
 ## 참고 자료
 

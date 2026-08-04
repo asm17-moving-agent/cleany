@@ -27,17 +27,37 @@ Gazebo world는 `cleany_description/meshes/`를 resource path로 참조해 팀�
 Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
 joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
 collision mesh도 Cleany description에서 가져왔습니다. 다만 arm/gripper controller가 아직
-없어 arm link의 gravity는 비활성화한 상태입니다. camera, LiDAR, Nav2, MoveIt,
-Mission Manager integration은 아직 포함하지 않습니다.
+없어 arm link의 gravity는 비활성화한 상태입니다. Fortress 기본 profile에는 네 개의
+camera image bridge가 포함되며 LiDAR는 포함되지 않습니다. Nav2, MoveIt, Mission
+Manager integration도 아직 포함하지 않습니다.
 
 ## Dependencies
 
 Ubuntu 22.04 / ROS 2 Humble에서 Gazebo Fortress와 ROS bridge가 필요합니다.
-저장소 루트에서 rosdep으로 workspace 의존성을 설치합니다.
+새 machine의 ROS 설치와 rosdep 초기화는
+[`docs/DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 먼저 따릅니다.
+그다음 저장소 루트에서 Gazebo 관련 의존성만 설치하고 환경을 확인합니다.
 
 ```bash
-make deps
+make deps-gazebo
+make check-gazebo-env
 ```
+
+환경 검사는 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Ignition Gazebo 6.x,
+`ros_gz_sim`, `ros_gz_bridge`를 확인합니다. rosdep 문제를 진단할 때 사용할 APT
+fallback은 개발환경 설치 가이드에 정리되어 있습니다.
+
+## Build and validation
+
+다음 명령은 `cleany_description`과 `cleany_gazebo_sim`까지만 빌드하고 패키지의
+parameter, Fortress world structure, Harmonic profile isolation test를 실행합니다.
+
+```bash
+make test-gazebo
+```
+
+모든 pytest가 통과해야 하며, 생성된 mecanum wheel world가 canonical description의
+link, joint, mesh 구조를 유지하는지도 함께 검사합니다.
 
 ## Run
 
@@ -46,6 +66,9 @@ make deps
 ```bash
 make sim-gazebo
 ```
+
+이 명령은 `make build-gazebo`를 먼저 실행한 뒤 Fortress 서버를 GUI 없이 시작합니다.
+종료할 때는 `Ctrl-C`를 누릅니다.
 
 다른 terminal에서 명령을 보냅니다.
 
@@ -56,19 +79,60 @@ ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
   '{linear: {x: 0.1, y: 0.05}, angular: {z: 0.1}}'
 ```
 
-`/clock`, `/odom`, `/tf`와 guard output `/gazebo_cmd_vel`을 확인할 수 있습니다.
-GUI는 `headless:=false`로 켤 수 있지만 WSLg/OGRE renderer 호환성은 host 환경에
-따라 별도로 확인해야 합니다.
-
-## Validation
-
-저장소 루트에서 실행합니다.
+다른 terminal에서 다음 항목을 확인합니다.
 
 ```bash
-make test-gazebo
+ros2 topic echo --once /clock
+ros2 topic echo --once /odom
+ros2 topic echo --once /joint_states
+ros2 topic list | grep -E '^/(clock|gazebo_cmd_vel|gazebo_odom|joint_states|odom|tf)$'
 ```
 
-세부 옵션이 필요하면 `ros2_ws/README.md`의 native 명령을 사용합니다.
+재현 성공 기준은 다음과 같습니다.
+
+- simulator와 bridge process가 조기 종료하지 않는다.
+- `/clock`, `/odom`, `/joint_states`에서 message를 한 개 이상 수신한다.
+- `/cmd_vel`을 보내면 guard output `/gazebo_cmd_vel`이 발행되고 `/odom`이 변한다.
+- `Ctrl-C`로 launch process가 종료된다.
+
+GUI가 필요하면 build 후 직접 launch합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_sim.launch.py headless:=false
+```
+
+GUI와 camera sensor는 host의 OpenGL/OGRE 호환성에 영향을 받습니다. Fortress의
+server-only `-s`는 GUI만 끄며 rendering sensor가 있으면 server 내부에서 여전히
+rendering context를 생성합니다.
+
+headless 실행도 renderer 오류로 종료된다면 software rendering으로 같은 절차를
+진단할 수 있습니다.
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
+```
+
+이 설정은 GPU driver 문제를 분리하기 위한 저속 fallback이며 팀 표준 실행 설정은
+아닙니다.
+
+## Runtime and build state
+
+APT/rosdep package는 명령을 실행한 VM 또는 container 안에 설치됩니다. 반면
+Distrobox처럼 host home을 공유하는 환경에서는 저장소와 colcon output이 host에서도
+보일 수 있습니다. 파일이 보인다는 사실만으로 현재 runtime에 ROS/Gazebo package가
+설치됐다고 판단하지 말고, 실행할 환경 안에서 다음 명령을 확인합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+ros2 pkg prefix ros_gz_sim
+ros2 pkg prefix ros_gz_bridge
+```
+
+Humble/Python 3.10의 `build/`, `install/`, `log/`는 다른 ROS 배포판이나 Python
+version에서 재사용하지 않습니다. 세부 native 명령은 `ros2_ws/README.md`를
+참고합니다.
 
 ## Optional Harmonic compatibility profile
 
