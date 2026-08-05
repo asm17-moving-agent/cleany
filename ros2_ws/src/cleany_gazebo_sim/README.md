@@ -11,6 +11,7 @@ MuJoCo의 motor-voltage dynamics를 복제하지 않고, ROS 차체 속도 계�
 - `/clock`, `/odom`, `/joint_states`, `odom -> base_link` TF bridge
 - MuJoCo의 head RGBD와 좌·우 wrist RGB camera image bridge
 - RPLIDAR A1 후보 사양의 GPU LiDAR와 ROS `/scan` bridge
+- base-aligned simulation IMU와 ROS `/imu/data` bridge
 - `base_link +X`를 camera-forward 전면으로 사용하는 canonical 4-wheel/arm 배치
 - controller UI와 `joint_states`에는 4개의 drive wheel joint만 노출
 
@@ -29,8 +30,17 @@ Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gri
 joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
 collision mesh도 Cleany description에서 가져왔습니다. 다만 arm/gripper controller가 아직
 없어 arm link의 gravity는 비활성화한 상태입니다. Fortress와 Harmonic 기본 profile은
-네 개의 camera image와 GPU LiDAR `/scan` bridge를 포함합니다. Nav2, MoveIt,
+네 개의 camera image, GPU LiDAR `/scan`, IMU `/imu/data` bridge를 포함합니다. Nav2, MoveIt,
 Mission Manager integration은 아직 포함하지 않습니다.
+
+## Simulation IMU contract
+
+Gazebo는 `/model/cleany_mecanum/imu`를 발행하고 기본 bridge가 이를
+`sensor_msgs/msg/Imu` ROS topic `/imu/data`로 전달합니다. `header.frame_id`는
+`imu_link`이고 update rate는 50 Hz입니다. `imu_link`는 현재 `base_link`와 같은
+위치·방향으로 고정되어 있으며, SDF에 별도 stochastic noise 또는 bias 모델은
+설정하지 않았습니다. 이 값은 LiDAR·IMU·TF 시뮬레이션 검증을 위한 후보값이며
+실제 하드웨어 실장 위치와 noise 모델은 추후 하드웨어 검토에서 확정합니다.
 
 ## Dependencies
 

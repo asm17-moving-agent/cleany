@@ -28,6 +28,12 @@
   gz_type_name: "gz.msgs.LaserScan"
   direction: GZ_TO_ROS
 
+- ros_topic_name: "/imu/data"
+  gz_topic_name: "/model/cleany_mecanum/imu"
+  ros_type_name: "sensor_msgs/msg/Imu"
+  gz_type_name: "gz.msgs.IMU"
+  direction: GZ_TO_ROS
+
 - ros_topic_name: "/camera/head/color/image_raw"
   gz_topic_name: "/model/cleany_mecanum/head_camera/rgb/image"
   ros_type_name: "sensor_msgs/msg/Image"

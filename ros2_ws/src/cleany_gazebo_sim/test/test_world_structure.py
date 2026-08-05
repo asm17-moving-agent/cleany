@@ -260,6 +260,34 @@ def test_world_contains_gpu_lidar():
     assert sensor.findtext('lidar/range/max') == '12.0'
 
 
+def test_world_contains_base_imu():
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    world = root.find('./world')
+    model = root.find("./world/model[@name='cleany_mecanum']")
+    assert world is not None
+    assert model is not None
+
+    imu_system = world.find(
+        "plugin[@name='ignition::gazebo::systems::Imu']"
+    )
+    mount = model.find("joint[@name='imu_mount']")
+    sensor = model.find("link[@name='imu_link']/sensor[@name='base_imu']")
+    assert imu_system is not None
+    assert imu_system.attrib['filename'] == 'ignition-gazebo-imu-system'
+    assert mount is not None
+    assert mount.findtext('parent') == 'base_link'
+    assert mount.findtext('child') == 'imu_link'
+    assert mount.findtext('pose') == '0 0 0 0 0 0'
+    assert sensor is not None
+    assert sensor.attrib['type'] == 'imu'
+    assert sensor.findtext('topic') == '/model/cleany_mecanum/imu'
+    assert sensor.findtext('always_on') == 'true'
+    assert sensor.findtext('update_rate') == '50'
+    assert sensor.findtext('gz_frame_id') == 'imu_link'
+    assert sensor.find('imu') is not None
+    assert sensor.find('.//noise') is None
+
+
 def test_fortress_bridges_publish_gpu_lidar_scan():
     bridge = BRIDGE_PATH.read_text(encoding='utf-8')
     lidar_bridge = LIDAR_BRIDGE_PATH.read_text(encoding='utf-8')
@@ -268,6 +296,15 @@ def test_fortress_bridges_publish_gpu_lidar_scan():
         assert 'ros_topic_name: "/scan"' in config
         assert 'gz_topic_name: "/model/cleany_mecanum/lidar/scan"' in config
         assert 'ignition.msgs.LaserScan' in config
+
+
+def test_fortress_bridge_publishes_base_imu():
+    bridge = BRIDGE_PATH.read_text(encoding='utf-8')
+
+    assert 'ros_topic_name: "/imu/data"' in bridge
+    assert 'gz_topic_name: "/model/cleany_mecanum/imu"' in bridge
+    assert 'ros_type_name: "sensor_msgs/msg/Imu"' in bridge
+    assert 'gz_type_name: "ignition.msgs.IMU"' in bridge
 
 
 def test_arm_links_use_extended_description_geometry_and_inertia():
