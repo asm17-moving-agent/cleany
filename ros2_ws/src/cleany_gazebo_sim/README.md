@@ -143,8 +143,9 @@ ros2 launch cleany_gazebo_sim gazebo_sim.launch.py headless:=false
 ```
 
 GUI와 camera sensor는 host의 OpenGL/OGRE 호환성에 영향을 받습니다. Fortress의
-server-only `-s`는 GUI만 끄며 rendering sensor가 있으면 server 내부에서 여전히
-rendering context를 생성합니다.
+GPU LiDAR와 camera sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용합니다.
+Fortress의 server-only `-s`는 GUI만 끄며 rendering sensor가 있으면 server 내부에서
+여전히 rendering context를 생성합니다.
 
 headless 실행도 renderer 오류로 종료된다면 software rendering으로 같은 절차를
 진단할 수 있습니다.

@@ -25,12 +25,29 @@ def generate_launch_description() -> LaunchDescription:
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
 
     server = ExecuteProcess(
-        cmd=['ign', 'gazebo', '-r', '-s', LaunchConfiguration('world')],
+        cmd=[
+            'ign',
+            'gazebo',
+            '-r',
+            '-s',
+            '--render-engine-server',
+            'ogre2',
+            LaunchConfiguration('world'),
+        ],
         condition=IfCondition(LaunchConfiguration('headless')),
         output='screen',
     )
     gui = ExecuteProcess(
-        cmd=['ign', 'gazebo', '-r', LaunchConfiguration('world')],
+        cmd=[
+            'ign',
+            'gazebo',
+            '-r',
+            '--render-engine-server',
+            'ogre2',
+            '--render-engine-gui',
+            'ogre',
+            LaunchConfiguration('world'),
+        ],
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',
     )

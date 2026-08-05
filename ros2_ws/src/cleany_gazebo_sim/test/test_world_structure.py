@@ -7,6 +7,9 @@ WORLD_PATH = (
     Path(__file__).resolve().parents[1] / 'worlds' / 'cleany_mecanum_prototype.sdf'
 )
 BRIDGE_PATH = Path(__file__).resolve().parents[1] / 'config' / 'bridge.yaml'
+LAUNCH_PATH = (
+    Path(__file__).resolve().parents[1] / 'launch' / 'gazebo_sim.launch.py'
+)
 LIDAR_BRIDGE_PATH = (
     Path(__file__).resolve().parents[1] / 'config' / 'lidar_bridge.yaml'
 )
@@ -242,7 +245,12 @@ def test_world_contains_three_mujoco_camera_modules():
 
 def test_world_contains_gpu_lidar():
     root = ElementTree.parse(WORLD_PATH).getroot()
+    sensors = root.find(
+        "./world/plugin[@filename='ignition-gazebo-sensors-system']"
+    )
     model = root.find("./world/model[@name='cleany_mecanum']")
+    assert sensors is not None
+    assert sensors.findtext('render_engine') == 'ogre2'
     assert model is not None
 
     mount = model.find("joint[@name='lidar_mount']")
@@ -258,6 +266,15 @@ def test_world_contains_gpu_lidar():
     assert sensor.findtext('lidar/scan/horizontal/samples') == '360'
     assert sensor.findtext('lidar/range/min') == '0.15'
     assert sensor.findtext('lidar/range/max') == '12.0'
+
+
+def test_fortress_launch_separates_sensor_and_gui_renderers():
+    launch = LAUNCH_PATH.read_text(encoding='utf-8')
+
+    assert "'--render-engine-server'" in launch
+    assert "'--render-engine-gui'" in launch
+    assert "'ogre2'" in launch
+    assert "'ogre'" in launch
 
 
 def test_fortress_bridges_publish_gpu_lidar_scan():
