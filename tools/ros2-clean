@@ -6,7 +6,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ROS_WS="${REPO_ROOT}/ros2_ws"
 
 if [[ "${1:-}" != "--yes" && "${1:-}" != "-y" ]]; then
-  printf 'Remove %s/{build,install,log}? [y/N] ' "${ROS_WS}" >&2
+  printf 'Remove ROS 2 default and Harmonic build outputs under %s? [y/N] ' "${ROS_WS}" >&2
   read -r answer
   case "${answer}" in
     y|Y|yes|YES) ;;
@@ -14,4 +14,10 @@ if [[ "${1:-}" != "--yes" && "${1:-}" != "-y" ]]; then
   esac
 fi
 
-rm -rf "${ROS_WS}/build" "${ROS_WS}/install" "${ROS_WS}/log"
+rm -rf \
+  "${ROS_WS}/build" \
+  "${ROS_WS}/install" \
+  "${ROS_WS}/log" \
+  "${ROS_WS}/build-harmonic" \
+  "${ROS_WS}/install-harmonic" \
+  "${ROS_WS}/log-harmonic"

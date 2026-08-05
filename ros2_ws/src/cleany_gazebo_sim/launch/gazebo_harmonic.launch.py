@@ -12,13 +12,11 @@ from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
 
 def generate_launch_description() -> LaunchDescription:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    description_share = Path(
-        get_package_share_directory('cleany_description')
-    )
-    world_template = package_share / 'worlds' / 'cleany_mecanum_prototype.sdf'
+    description_share = Path(get_package_share_directory('cleany_description'))
+    world_template = package_share / 'worlds' / 'cleany_mecanum_harmonic.sdf'
     default_world = materialize_mecanum_wheel_world(world_template)
     base_config = package_share / 'config' / 'base.yaml'
-    bridge_config = package_share / 'config' / 'bridge.yaml'
+    bridge_config = package_share / 'config' / 'bridge_harmonic.yaml'
 
     world_arg = DeclareLaunchArgument('world', default_value=str(default_world))
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
@@ -26,10 +24,11 @@ def generate_launch_description() -> LaunchDescription:
 
     server = ExecuteProcess(
         cmd=[
-            'ign',
-            'gazebo',
+            'gz',
+            'sim',
             '-r',
             '-s',
+            '--headless-rendering',
             '--render-engine-server',
             'ogre2',
             LaunchConfiguration('world'),
@@ -39,8 +38,8 @@ def generate_launch_description() -> LaunchDescription:
     )
     gui = ExecuteProcess(
         cmd=[
-            'ign',
-            'gazebo',
+            'gz',
+            'sim',
             '-r',
             '--render-engine-server',
             'ogre2',
@@ -54,7 +53,7 @@ def generate_launch_description() -> LaunchDescription:
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        name='gazebo_parameter_bridge',
+        name='gazebo_harmonic_parameter_bridge',
         parameters=[{'config_file': str(bridge_config)}],
         output='screen',
     )
@@ -78,10 +77,8 @@ def generate_launch_description() -> LaunchDescription:
             world_arg,
             headless_arg,
             use_sim_time_arg,
-            # Reuse the authoritative description meshes instead of
-            # committing duplicate, large STL assets to this package.
             AppendEnvironmentVariable(
-                'IGN_GAZEBO_RESOURCE_PATH', str(description_share)
+                'GZ_SIM_RESOURCE_PATH', str(description_share)
             ),
             server,
             gui,

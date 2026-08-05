@@ -6,6 +6,13 @@ from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
 WORLD_PATH = (
     Path(__file__).resolve().parents[1] / 'worlds' / 'cleany_mecanum_prototype.sdf'
 )
+BRIDGE_PATH = Path(__file__).resolve().parents[1] / 'config' / 'bridge.yaml'
+LAUNCH_PATH = (
+    Path(__file__).resolve().parents[1] / 'launch' / 'gazebo_sim.launch.py'
+)
+LIDAR_BRIDGE_PATH = (
+    Path(__file__).resolve().parents[1] / 'config' / 'lidar_bridge.yaml'
+)
 DESCRIPTION_SHARE = Path(__file__).resolve().parents[2] / 'cleany_description'
 
 
@@ -162,7 +169,9 @@ def test_world_contains_mujoco_top_base_arm_support():
 def test_world_contains_three_mujoco_camera_modules():
     root = ElementTree.parse(WORLD_PATH).getroot()
     camera_names = {
-        sensor.attrib['name'] for sensor in root.findall(".//sensor")
+        sensor.attrib['name']
+        for sensor in root.findall(".//sensor")
+        if sensor.attrib['type'] in {'camera', 'depth_camera'}
     }
     assert camera_names == {
         'head_realsense_rgb',
@@ -232,6 +241,50 @@ def test_world_contains_three_mujoco_camera_modules():
         sensor = root.find(f".//sensor[@name='{sensor_name}']")
         assert sensor is not None
         assert sensor.findtext('gz_frame_id') == frame_id
+
+
+def test_world_contains_gpu_lidar():
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    sensors = root.find(
+        "./world/plugin[@filename='ignition-gazebo-sensors-system']"
+    )
+    model = root.find("./world/model[@name='cleany_mecanum']")
+    assert sensors is not None
+    assert sensors.findtext('render_engine') == 'ogre2'
+    assert model is not None
+
+    mount = model.find("joint[@name='lidar_mount']")
+    sensor = model.find("link[@name='lidar_link']/sensor[@name='rplidar_a1']")
+    assert mount is not None
+    assert mount.findtext('parent') == 'base_link'
+    assert mount.findtext('pose') == '0.32 0 -0.18 0 0 0'
+    assert sensor is not None
+    assert sensor.attrib['type'] == 'gpu_lidar'
+    assert sensor.findtext('topic') == '/model/cleany_mecanum/lidar/scan'
+    assert sensor.findtext('always_on') == 'true'
+    assert sensor.findtext('update_rate') == '5.5'
+    assert sensor.findtext('lidar/scan/horizontal/samples') == '360'
+    assert sensor.findtext('lidar/range/min') == '0.15'
+    assert sensor.findtext('lidar/range/max') == '12.0'
+
+
+def test_fortress_launch_separates_sensor_and_gui_renderers():
+    launch = LAUNCH_PATH.read_text(encoding='utf-8')
+
+    assert "'--render-engine-server'" in launch
+    assert "'--render-engine-gui'" in launch
+    assert "'ogre2'" in launch
+    assert "'ogre'" in launch
+
+
+def test_fortress_bridges_publish_gpu_lidar_scan():
+    bridge = BRIDGE_PATH.read_text(encoding='utf-8')
+    lidar_bridge = LIDAR_BRIDGE_PATH.read_text(encoding='utf-8')
+
+    for config in (bridge, lidar_bridge):
+        assert 'ros_topic_name: "/scan"' in config
+        assert 'gz_topic_name: "/model/cleany_mecanum/lidar/scan"' in config
+        assert 'ignition.msgs.LaserScan' in config
 
 
 def test_arm_links_use_extended_description_geometry_and_inertia():

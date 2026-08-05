@@ -41,6 +41,29 @@ make sim
 
 Gazebo 시뮬레이터는 `make sim-gazebo`로 실행한다.
 
+Gazebo만 새 환경에서 재현할 때는 아래 순서로 의존성, 기준 환경, 패키지 테스트,
+headless 실행을 확인한다.
+
+```bash
+make deps-gazebo
+make check-gazebo-env
+make test-gazebo
+make sim-gazebo
+```
+
+Gazebo Make target은 활성 `ROS_DISTRO`와 Gazebo major version을 함께 검사해
+Humble/Fortress 또는 Jazzy/Harmonic profile을 선택한다. `make build-gazebo`와
+`make test-gazebo`는 선택된 profile로 `cleany_gazebo_sim` 및 그 dependency까지만
+빌드한다. 성공 판정 topic과 GUI 실행법은
+[`cleany_gazebo_sim` README](src/cleany_gazebo_sim/README.md)를 따른다.
+
+ROS 2 Jazzy / Gazebo Harmonic 호환 환경은 팀 표준과 분리한다. 환경 준비는
+[개발환경 설치 가이드](../docs/DEVELOPMENT_SETUP.md#7-선택-ros-2-jazzy--gazebo-harmonic-호환-환경)를
+따른다. 두 profile 모두 `make test-gazebo`와 `make sim-gazebo`를 사용하며 Harmonic은
+자동으로 전용 output을 사용한다. 자동 판정이 불가능하면
+`GAZEBO_PROFILE=fortress|harmonic`으로 명시할 수 있다. 활성 `ROS_DISTRO`와 충돌하는
+override는 오류로 종료한다.
+
 지원하는 전체 작업은 `make help`로 확인한다.
 
 ## Native 표준 명령

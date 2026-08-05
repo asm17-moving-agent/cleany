@@ -67,5 +67,8 @@ jobs:
       - name: Install workspace dependencies
         run: make deps
 
+      - name: Verify Gazebo baseline
+        run: make check-gazebo-env
+
       - name: Build and test workspace
         run: make test
