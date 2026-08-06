@@ -51,21 +51,12 @@ publisher가 고정 `base_link -> lidar_link`와 `base_link -> imu_link`를
 구조 test에서 같은 값인지 검사합니다. 현재 sensor mount는 simulation 후보값이며
 hardware description의 확정 mount로 취급하지 않습니다.
 
-## Dependencies
+## Environment
 
-Ubuntu 22.04 / ROS 2 Humble에서 Gazebo Fortress와 ROS bridge가 필요합니다.
-새 machine의 ROS 설치와 rosdep 초기화는
-[`docs/DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 먼저 따릅니다.
-그다음 저장소 루트에서 Gazebo 관련 의존성만 설치하고 환경을 확인합니다.
-
-```bash
-make deps-gazebo
-make check-gazebo-env
-```
-
-환경 검사는 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Ignition Gazebo 6.x,
-`ros_gz_sim`, `ros_gz_bridge`를 확인합니다. rosdep 문제를 진단할 때 사용할 APT
-fallback은 개발환경 설치 가이드에 정리되어 있습니다.
+팀 표준인 Ubuntu 22.04 / ROS 2 Humble / Gazebo Fortress 환경과 선택적인
+Ubuntu 24.04 / ROS 2 Jazzy / Gazebo Harmonic 환경의 설치·의존성·renderer 진단은
+[`DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 따른다. 이 README는
+준비된 환경에서의 Gazebo backend 계약과 실행·검증만 다룬다.
 
 ## Build and validation
 
@@ -190,64 +181,13 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_gazebo_sim gazebo_sim.launch.py headless:=false
 ```
 
-GUI와 camera sensor는 host의 OpenGL/OGRE 호환성에 영향을 받습니다. Fortress의
-server-only `-s`는 GUI만 끄며 rendering sensor가 있으면 server 내부에서 여전히
-rendering context를 생성합니다.
+## Profiles
 
-headless 실행도 renderer 오류로 종료된다면 software rendering으로 같은 절차를
-진단할 수 있습니다.
+`make sim-gazebo`와 `make test-gazebo`는 활성 ROS 배포판과 Gazebo major version으로
+Fortress 또는 Harmonic profile을 선택한다. 팀 표준은 Fortress이며 Harmonic은 호환
+profile이다. 환경 준비와 자동 판정·output 분리 규칙은
+[`DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 따른다.
 
-```bash
-LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
-```
-
-이 설정은 GPU driver 문제를 분리하기 위한 저속 fallback이며 팀 표준 실행 설정은
-아닙니다.
-
-## Runtime and build state
-
-APT/rosdep package와 colcon output이 존재한다는 사실만으로 현재 runtime에
-ROS/Gazebo package가 설치됐다고 판단하지 말고, 실행할 환경 안에서 다음 명령을
-확인합니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-ros2 pkg prefix ros_gz_sim
-ros2 pkg prefix ros_gz_bridge
-```
-
-Humble/Python 3.10의 `build/`, `install/`, `log/`는 다른 ROS 배포판이나 Python
-version에서 재사용하지 않습니다. 세부 native 명령은 `ros2_ws/README.md`를
-참고합니다.
-
-## Optional Harmonic compatibility profile
-
-팀의 재현성 기준은 위의 Ubuntu 22.04, ROS 2 Humble, Gazebo Fortress 조합입니다.
-별도 환경에서 Jazzy/Harmonic 구성이 필요할 때는 호환 프로필로 격리하며 팀 표준
-환경을 대체하지 않습니다.
-
-Harmonic용 파일은 다음처럼 명시적인 이름을 사용합니다.
-
-- `launch/gazebo_harmonic.launch.py`
-- `worlds/cleany_mecanum_harmonic.sdf`
-- `config/bridge_harmonic.yaml`
-- `config/lidar_bridge_harmonic.yaml`
-
-ROS 2 Jazzy와 Gazebo Harmonic 환경 준비는
-[`개발환경 설치 가이드`](../../../docs/DEVELOPMENT_SETUP.md#7-선택-ros-2-jazzy--gazebo-harmonic-호환-환경)를
-따릅니다. 준비된 환경에서 저장소 루트의 공통 명령을 실행합니다.
-
-```bash
-make sim-gazebo
-```
-
-Jazzy와 Gazebo 8.x가 확인되면 Harmonic을 자동 선택하며, Fortress와 빌드 결과를
-공유하지 않도록 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 사용합니다.
-자동 판정이 불가능하면 `GAZEBO_PROFILE=harmonic make sim-gazebo`처럼 명시할 수
-있습니다. headless 서버 센서는 OGRE2, GUI 실행 시 서버는 OGRE2, GUI는 OGRE1을
-사용합니다. Harmonic world의 렌더링 센서는 구독이 생기기 전까지 비활성화할 수
-있도록 `always_on=false`로 정의되어 있습니다. 기본 `bridge_harmonic.yaml`은 모든
-센서 topic을 bridge하므로 launch와 함께 모든 렌더링 센서가 활성화됩니다. LiDAR만
-분리해서 확인할 때는
-Fortress의 `lidar_bridge.yaml` 또는 Harmonic의 `lidar_bridge_harmonic.yaml`을 사용할
-수 있습니다.
+Harmonic 서버는 OGRE2를 사용한다. GUI를 함께 실행할 때도 server는 OGRE2, GUI는
+OGRE1을 사용한다. Harmonic world의 rendering sensor는 구독 전까지 비활성화할 수
+있지만, 기본 bridge는 모든 sensor topic을 bridge한다.
