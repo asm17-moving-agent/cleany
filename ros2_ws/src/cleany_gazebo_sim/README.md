@@ -9,6 +9,7 @@ MuJoCo의 motor-voltage dynamics를 복제하지 않고, ROS 차체 속도 계�
 - Gazebo `MecanumDrive` system을 이용한 `linear.x`, `linear.y`, `angular.z` 이동
 - `cmd_vel` 유효성 검사, 속도 제한, command timeout 정지
 - `/clock`, `/odom`, `/joint_states`, `odom -> base_link` TF bridge
+- `base_link -> lidar_link / imu_link` static sensor TF
 - MuJoCo의 head RGBD와 좌·우 wrist RGB camera image bridge
 - RPLIDAR A1 후보 사양의 GPU LiDAR와 ROS `/scan` bridge
 - base-aligned simulation IMU와 ROS `/imu/data` bridge
@@ -41,6 +42,14 @@ Gazebo는 `/model/cleany_mecanum/imu`를 발행하고 기본 bridge가 이를
 위치·방향으로 고정되어 있으며, SDF에 별도 stochastic noise 또는 bias 모델은
 설정하지 않았습니다. 이 값은 LiDAR·IMU·TF 시뮬레이션 검증을 위한 후보값이며
 실제 하드웨어 실장 위치와 noise 모델은 추후 하드웨어 검토에서 확정합니다.
+
+## TF ownership
+
+Gazebo odometry adapter가 동적 `odom -> base_link`를 발행하고, Gazebo sensor TF
+publisher가 고정 `base_link -> lidar_link`와 `base_link -> imu_link`를
+`/tf_static`에 발행합니다. Gazebo SDF의 fixed joint와 ROS static TF parameter는
+구조 test에서 같은 값인지 검사합니다. 현재 sensor mount는 simulation 후보값이며
+hardware description의 확정 mount로 취급하지 않습니다.
 
 ## Dependencies
 
@@ -134,13 +143,17 @@ ros2 topic echo --once /clock
 ros2 topic echo --once /odom
 ros2 topic echo --once /joint_states
 ros2 topic echo --once /scan
-ros2 topic list | grep -E '^/(clock|gazebo_cmd_vel|gazebo_odom|joint_states|odom|scan|tf)$'
+ros2 topic echo --once /imu/data
+ros2 run tf2_ros tf2_echo odom lidar_link
+ros2 run tf2_ros tf2_echo odom imu_link
+ros2 topic list | grep -E '^/(clock|gazebo_cmd_vel|gazebo_odom|imu/data|joint_states|odom|scan|tf|tf_static)$'
 ```
 
 재현 성공 기준은 다음과 같습니다.
 
 - simulator와 bridge process가 조기 종료하지 않는다.
-- `/clock`, `/odom`, `/joint_states`, `/scan`에서 message를 한 개 이상 수신한다.
+- `/clock`, `/odom`, `/joint_states`, `/scan`, `/imu/data`에서 message를 수신한다.
+- `odom -> base_link -> lidar_link / imu_link` TF lookup이 성공한다.
 - `/cmd_vel`을 보내면 guard output `/gazebo_cmd_vel`이 발행되고 `/odom`이 변한다.
 - `Ctrl-C`로 launch process가 종료된다.
 

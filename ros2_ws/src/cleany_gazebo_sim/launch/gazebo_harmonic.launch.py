@@ -71,6 +71,16 @@ def generate_launch_description() -> LaunchDescription:
         parameters=[base_config, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
         output='screen',
     )
+    sensor_tf = Node(
+        package='cleany_gazebo_sim',
+        executable='gazebo_sensor_tf_publisher',
+        name='gazebo_sensor_tf_publisher',
+        parameters=[
+            base_config,
+            {'use_sim_time': LaunchConfiguration('use_sim_time')},
+        ],
+        output='screen',
+    )
 
     return LaunchDescription(
         [
@@ -85,5 +95,6 @@ def generate_launch_description() -> LaunchDescription:
             bridge,
             command_guard,
             odom_tf,
+            sensor_tf,
         ]
     )
