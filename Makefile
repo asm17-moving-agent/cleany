@@ -7,7 +7,8 @@ GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-gazebo-harmonic test test-mission test-mujoco test-gazebo \
-	test-gazebo-harmonic sim sim-gazebo sim-gazebo-harmonic clean
+	test-gazebo-harmonic test-gazebo-nav-runtime sim sim-gazebo \
+	sim-gazebo-harmonic clean
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -20,6 +21,7 @@ help:
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
+	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
 	@echo "  make test-gazebo-harmonic  Compatibility alias selecting Harmonic"
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
@@ -96,6 +98,15 @@ test-gazebo: build-gazebo
 
 test-gazebo-harmonic:
 	$(MAKE) GAZEBO_PROFILE=harmonic test-gazebo
+
+test-gazebo-nav-runtime: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 -m pytest -s \
+		src/cleany_gazebo_sim/test/test_runtime_navigation.py \
+		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}"
 
 sim: build
 	source "$(ROS_SETUP)" && \

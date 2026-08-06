@@ -115,6 +115,31 @@ validation world를 생성하며, warm-up 중 저속 이동 후 camera 해상도
 `--min-camera-sim-hz`, `--min-lidar-sim-hz`를 지정합니다. 기본 `make test-gazebo`에는
 실제 simulator를 띄우는 이 test가 포함되지 않습니다.
 
+LiDAR, IMU, odometry, TF만 검증하는 navigation runtime test는 저장소 루트에서
+다음 명령으로 실행합니다. 활성 ROS/Gazebo 환경을 감지해 Fortress 또는 Harmonic
+profile을 선택하고, 카메라 bridge는 시작하지 않습니다.
+
+```bash
+make test-gazebo-nav-runtime
+```
+
+이 test도 기본값으로 10초 warm-up 후 30초를 측정합니다. 임시 world에 네 개의
+벽을 추가하고 카메라 sensor를 끈 뒤 `/scan`, `/imu/data`, `/odom`, `/clock`을
+동시에 관찰합니다. 측정 초반에는 `cmd_vel`을 보내 LiDAR와 IMU가 장착된 로봇의
+odometry가 실제로 변하는지 확인합니다. 다음 조건을 모두 만족해야 통과합니다.
+
+- LiDAR의 frame, timestamp, 360개 range, 선언 범위와 장애물 거리 분포가 유효함
+- 거의 모든 LiDAR 광선이 `range_min`에 붙는 self-hit 상태가 아님
+- IMU의 frame, timestamp, quaternion, 중력 크기와 회전 명령 응답이 유효함
+- `base_link -> lidar_link`, `base_link -> imu_link` static TF와
+  `odom`까지 이어지는 TF chain이 유효함
+- 측정 중 simulation time과 모든 필수 topic이 진행됨
+
+실패 기준으로 성능 하한도 적용하려면 `--min-rtf`, `--min-lidar-sim-hz`,
+`--min-imu-sim-hz`를 pytest 직접 실행 시 지정할 수 있습니다. GPU LiDAR는
+headless 실행에서도 rendering sensor이므로, 선택한 Gazebo profile에서 동작하는
+OpenGL display 또는 headless rendering 환경이 필요합니다.
+
 ## Run
 
 저장소 루트에서 실행합니다.
