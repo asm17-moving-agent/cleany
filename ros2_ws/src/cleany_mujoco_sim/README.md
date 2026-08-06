@@ -28,6 +28,21 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 ```
 
+RGB-D pick-demo 장면은 EGL renderer, 아래로 `1.0 rad` 기울인 head, 비활성화된
+laser scan으로 별도 노드를 실행한다.
+
+```bash
+make build
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
+```
+
+장면의 상판은 `1.20 x 0.77 x 0.03 m`, 중심은
+`(0.635, -0.002, 0.710) m`, 상면은 world `Z=0.725 m`다. 평가 대상은 고정된
+파란 상자와 빨간 캔이다. 이 첫 장면은 perception과 위치 기반 IK를 반복 가능하게
+평가하기 위한 것으로 물체 동역학이나 실제 파지 동작을 검증하지 않는다.
+
 ## 테스트
 
 레포지토리 루트에서 실행한다.
@@ -52,6 +67,33 @@ make build
 
 - `~/joint_cmd` (`sensor_msgs/JointState`): 목표 관절 위치를 직접 설정한다.
   컨트롤러가 아닌 단순한 시뮬레이션 테스트용 인터페이스다.
+
+`rgbd_pick_demo.launch.py`의 `mujoco_rgbd_sim_node`가 추가로 발행하는 토픽:
+
+- `camera/color/image_raw` (`sensor_msgs/Image`): `640x480`, `rgb8`
+- `camera/color/camera_info` (`sensor_msgs/CameraInfo`)
+- `camera/depth/image_raw` (`sensor_msgs/Image`): color에 정렬된 `640x480`,
+  meter 단위 `32FC1`; far-plane과 유효하지 않은 pixel은 `NaN`
+- `camera/depth/camera_info` (`sensor_msgs/CameraInfo`)
+- `ground_truth/objects` (`cleany_interfaces/DetectedObject3DArray`):
+  `base_link` 기준 box/can OBB. 인식 입력이 아닌 정량 평가 전용이다.
+
+한 capture의 RGB, depth, 두 CameraInfo와 GT는 같은 timestamp를 사용한다. RGB와
+depth optical frame은 각각 `head_camera_rgb_optical_frame`과
+`head_camera_depth_optical_frame`이다. 두 stream은 같은 camera pose와 intrinsics로
+렌더링하므로 pixel 정렬되어 있다.
+
+실행 중 계약은 다음처럼 확인할 수 있다.
+
+```bash
+ros2 topic list
+ros2 topic info /camera/color/image_raw --verbose
+ros2 topic info /camera/depth/image_raw --verbose
+ros2 topic hz /camera/color/image_raw
+ros2 topic echo /camera/color/camera_info --once
+ros2 topic echo /camera/depth/image_raw --once --field encoding
+ros2 topic echo /ground_truth/objects --once
+```
 
 아직 `/cmd_vel` 기반 베이스 명령 인터페이스는 없다. MuJoCo 모델은 메카넘 휠 네 개에
 각각 독립적인 DC 모터 전압 입력을 제공한다. 차체 속도 명령을 각 입력으로 변환하려면
@@ -113,6 +155,12 @@ MJCF 액추에이터는 기어박스 출력축에서 직접 모델링하므로(`
 - `scan_samples` - number of rays per scan. `0` derives the sample count from
   `scan_sample_rate_hz`.
 
+`rgbd_pick_demo.launch.py`:
+
+- `headless`: MuJoCo viewer 표시 여부. 기본값은 `true`다.
+- `rgbd_rate_hz`: RGB, depth, CameraInfo와 GT 발행 주기. 기본값은 `5.0 Hz`다.
+- launch가 renderer backend를 `MUJOCO_GL=egl`로 설정한다.
+
 `MujocoSimNode`가 추가로 지원하는 노드 파라미터:
 
 - `base_body_name`: 로봇 베이스로 사용할 MuJoCo body. 기본값은 `chassis`다.
@@ -168,6 +216,8 @@ timer tick의 모든 물리 substep이 끝난 직후 한 번 `after_step(context
 - Step the simulator on a ROS timer.
 - Publish joint state, odometry, laser scan, and TF data.
 - Apply direct joint position commands for simulation tests.
+- Render synchronized color-aligned RGB-D frames for the fixed pick-demo scene.
+- Publish exact simulation object OBBs on an evaluation-only ground-truth topic.
 
 아직 구현되지 않은 기능:
 

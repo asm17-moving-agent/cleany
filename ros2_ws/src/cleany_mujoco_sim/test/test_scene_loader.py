@@ -264,3 +264,67 @@ def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
                 stall_torque - model.dof_frictionloss[dof_id]
             ) / model.dof_damping[dof_id]
             assert modeled_no_load_speed == pytest.approx(no_load_speed, rel=1e-6)
+
+
+def test_rgbd_pick_scene_has_fixed_table_and_targets(
+    rgbd_pick_scene_path: Path,
+):
+    model, data = load_model(rgbd_pick_scene_path)
+    mujoco.mj_forward(model, data)
+
+    assert model.vis.quality.offsamples == 1
+
+    table_geom_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_GEOM,
+        'pick_tabletop',
+    )
+    box_geom_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_GEOM,
+        'pick_box_geom',
+    )
+    can_geom_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_GEOM,
+        'pick_can_geom',
+    )
+
+    assert data.geom_xpos[table_geom_id] == pytest.approx(
+        (0.635, -0.002, 0.710)
+    )
+    assert model.geom_size[table_geom_id] == pytest.approx(
+        (0.385, 0.600, 0.015)
+    )
+    assert data.geom_xpos[table_geom_id, 2] + model.geom_size[
+        table_geom_id, 2
+    ] == pytest.approx(0.725)
+    assert data.geom_xpos[table_geom_id, 0] - model.geom_size[
+        table_geom_id, 0
+    ] == pytest.approx(0.250)
+    assert data.geom_xpos[table_geom_id, 1] - model.geom_size[
+        table_geom_id, 1
+    ] == pytest.approx(-0.602)
+
+    assert model.geom_type[box_geom_id] == mujoco.mjtGeom.mjGEOM_BOX
+    assert data.geom_xpos[box_geom_id] == pytest.approx(
+        (0.560, -0.160, 0.765)
+    )
+    assert model.geom_size[box_geom_id] == pytest.approx(
+        (0.050, 0.040, 0.040)
+    )
+
+    assert model.geom_type[can_geom_id] == mujoco.mjtGeom.mjGEOM_CYLINDER
+    assert data.geom_xpos[can_geom_id] == pytest.approx(
+        (0.540, 0.160, 0.775)
+    )
+    assert model.geom_size[can_geom_id, :2] == pytest.approx((0.035, 0.050))
+
+    for body_name in ('pick_table', 'pick_box', 'pick_can'):
+        body_id = mujoco.mj_name2id(
+            model,
+            mujoco.mjtObj.mjOBJ_BODY,
+            body_name,
+        )
+        assert body_id >= 0
+        assert model.body_jntnum[body_id] == 0

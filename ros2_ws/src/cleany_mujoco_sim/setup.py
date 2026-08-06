@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'mujoco_sim_node = cleany_mujoco_sim.sim_node:main',
+            'mujoco_rgbd_sim_node = cleany_mujoco_sim.rgbd_sim_node:main',
         ],
     },
 )
