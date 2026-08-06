@@ -4,10 +4,11 @@ XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한�
 
 ## 상태와 책임
 
-이 패키지는 두 개의 배타적인 MuJoCo 실행 경로를 제공한다. 기존
-`mujoco_sim_node`는 mobile-base와 센서 개발용 custom bridge이고,
+이 패키지는 세 개의 배타적인 MuJoCo 실행 경로를 제공한다. 기존
+`mujoco_sim_node`는 mobile-base와 sensor 개발용 custom bridge이고,
+`rgbd_pick_demo.launch.py`는 이 bridge를 확장한 RGB-D 평가 경로다.
 `handeye_backend.launch.py`는 좌·우 arm trajectory를 위한
-`mujoco_ros2_control` backend다. 한 프로세스에서 두 경로를 함께 실행하지 않는다.
+`mujoco_ros2_control` backend다. 한 프로세스에서 여러 경로를 함께 실행하지 않는다.
 운영 환경의 내비게이션 및 실제 하드웨어 adapter는 이 패키지의 범위에 포함하지
 않는다.
 
@@ -38,6 +39,21 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_mujoco_sim handeye_backend.launch.py \
   headless:=true sim_speed_factor:=1.0
 ```
+
+RGB-D pick-demo 장면은 EGL renderer, 아래로 `1.0 rad` 기울인 head, 비활성화된
+laser scan으로 별도 노드를 실행한다.
+
+```bash
+make build
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
+```
+
+장면의 상판은 `1.20 x 0.77 x 0.03 m`, 중심은
+`(0.635, -0.002, 0.710) m`, 상면은 world `Z=0.725 m`다. 평가 대상은 고정된
+파란 상자와 빨간 캔이다. 이 첫 장면은 perception과 위치 기반 IK를 반복 가능하게
+평가하기 위한 것으로 물체 동역학이나 실제 파지 동작을 검증하지 않는다.
 
 이 backend의 기본값은 `scenes/handeye.xml.in`이다. 전용 scene은 canonical MJCF를
 그대로 include하고 `chassis`를 world에 weld하며, 고정 table/stand와
@@ -157,6 +173,35 @@ Simulation camera GT는 manifest의 `evaluation_ground_truth.camera_transform`�
 `Fixed_Jaw` body에서 `left_wrist_rgb_optical_frame` site까지의 transform이며 solver
 입력이나 canonical TF/topic으로 publish되지 않는다.
 
+### RGB-D pick-demo backend
+
+`rgbd_pick_demo.launch.py`의 `mujoco_rgbd_sim_node`가 추가로 발행하는 토픽:
+
+- `camera/color/image_raw` (`sensor_msgs/Image`): `640x480`, `rgb8`
+- `camera/color/camera_info` (`sensor_msgs/CameraInfo`)
+- `camera/depth/image_raw` (`sensor_msgs/Image`): color에 정렬된 `640x480`,
+  meter 단위 `32FC1`; far-plane과 유효하지 않은 pixel은 `NaN`
+- `camera/depth/camera_info` (`sensor_msgs/CameraInfo`)
+- `ground_truth/objects` (`cleany_interfaces/DetectedObject3DArray`):
+  `base_link` 기준 box/can OBB. 인식 입력이 아닌 정량 평가 전용이다.
+
+한 capture의 RGB, depth, 두 CameraInfo와 GT는 같은 timestamp를 사용한다. RGB와
+depth optical frame은 각각 `head_camera_rgb_optical_frame`과
+`head_camera_depth_optical_frame`이다. 두 stream은 같은 camera pose와 intrinsics로
+렌더링하므로 pixel 정렬되어 있다.
+
+실행 중 계약은 다음처럼 확인할 수 있다.
+
+```bash
+ros2 topic list
+ros2 topic info /camera/color/image_raw --verbose
+ros2 topic info /camera/depth/image_raw --verbose
+ros2 topic hz /camera/color/image_raw
+ros2 topic echo /camera/color/camera_info --once
+ros2 topic echo /camera/depth/image_raw --once --field encoding
+ros2 topic echo /ground_truth/objects --once
+```
+
 ## 베이스 구동 모델
 
 각 휠은 독립적인 `PG42-4266-1270NE` output-shaft DC motor 모델을 사용한다.
@@ -206,10 +251,6 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 - `base_drive_enabled`, `wheel_kp`, `wheel_ki`, `wheel_kd`,
   `motor_voltage_limit`, `motor_no_load_speed`: 휠 drive controller 설정
 
-`MujocoSimNode`는 `base_body_name`, `lidar_site_name`, `odom_frame_id`,
-`base_frame_id`, `laser_frame_id`, `publish_odom_tf`, `scan_enabled`,
-`scan_sample_rate_hz`, `scan_range_min`, `scan_range_max`도 지원한다.
-
 `handeye_backend.launch.py`는 다음 launch argument를 제공한다.
 
 - `scene_path`: control용 MuJoCo scene XML 또는 `.xml.in` template. 기본값은
@@ -228,6 +269,14 @@ surface에만 적용한다. 보드 바깥 10 mm 흰 quiet zone도 render-only/no
 210×150 mm object point와 planning-scene collision 형상은 바꾸지 않는다. Canonical
 MJCF, `default.xml.in`, SVG/PDF source asset은 수정하지 않으며 temporary texture도
 source tree에 기록하지 않는다.
+
+`rgbd_pick_demo.launch.py`:
+
+- `headless`: MuJoCo viewer 표시 여부. 기본값은 `true`다.
+- `rgbd_rate_hz`: RGB, depth, CameraInfo와 GT 발행 주기. 기본값은 `5.0 Hz`다.
+- launch가 renderer backend를 `MUJOCO_GL=egl`로 설정한다.
+
+`MujocoSimNode`가 지원하는 추가 노드 파라미터:
 
 - `base_body_name`: 로봇 베이스로 사용할 MuJoCo body. 기본값은 `chassis`다.
 - `lidar_site_name`: 레이저 원점으로 사용할 MuJoCo site. 기본값은
@@ -282,6 +331,8 @@ timer tick의 모든 물리 substep이 끝난 직후 한 번 `after_step(context
   제공하는 배타적인 MuJoCo `ros2_control` backend
 - Humble release `MujocoCameras` 기반 left wrist RGB/CameraInfo와 public contract
   normalizer
+- 고정 pick-demo scene의 pixel-aligned RGB-D 동기 렌더링
+- 평가 전용 ground-truth topic의 simulation object OBB 발행
 
 아직 구현되지 않은 기능:
 
