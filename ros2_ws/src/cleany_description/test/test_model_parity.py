@@ -30,6 +30,14 @@ def _source_root() -> Path:
     return Path(__file__).parents[1]
 
 
+def _expanded_urdf() -> ET.Element:
+    return ET.fromstring(
+        subprocess.check_output(
+            ["xacro", str(_source_root() / "urdf" / "cleany.urdf.xacro")]
+        )
+    )
+
+
 def test_mjcf_uses_canonical_arm_joint_names_and_limits() -> None:
     root = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
     joints = {node.attrib["name"]: node for node in root.findall(".//joint") if "name" in node.attrib}
@@ -169,13 +177,39 @@ def test_mjcf_mounts_arms_at_canonical_sides() -> None:
     assert right_position[:2] == pytest.approx((0.09, -0.11), abs=1e-6)
 
 
+def test_nominal_grasp_tcp_offsets_match() -> None:
+    urdf = _expanded_urdf()
+    urdf_joints = {
+        node.attrib["name"]: node for node in urdf.findall("joint")
+    }
+    model = mujoco.MjModel.from_xml_path(
+        str(_source_root() / "mjcf" / "cleany.xml")
+    )
+
+    for side in ("left", "right"):
+        joint = urdf_joints[f"{side}_grasp_tcp_joint"]
+        origin = joint.find("origin")
+        parent = joint.find("parent")
+        child = joint.find("child")
+        assert origin is not None and parent is not None and child is not None
+        assert np.fromstring(origin.attrib["xyz"], sep=" ") == pytest.approx(
+            (0.0, -0.1, 0.0)
+        )
+        assert parent.attrib["link"] == f"{side}_gripper_frame"
+        assert child.attrib["link"] == f"{side}_grasp_tcp"
+
+        site_id = mujoco.mj_name2id(
+            model,
+            mujoco.mjtObj.mjOBJ_SITE,
+            f"{side}_grasp_tcp",
+        )
+        assert site_id >= 0
+        assert model.site_pos[site_id] == pytest.approx((0.0, -0.1, 0.0))
+
+
 def test_random_arm_fk_matches_mjcf() -> None:
     description = _source_root()
-    urdf = ET.fromstring(
-        subprocess.check_output(
-            ["xacro", str(description / "urdf" / "cleany.urdf.xacro")]
-        )
-    )
+    urdf = _expanded_urdf()
     urdf_joints = {node.attrib["name"]: node for node in urdf.findall("joint")}
     model = mujoco.MjModel.from_xml_path(str(description / "mjcf" / "cleany.xml"))
     data = mujoco.MjData(model)
@@ -214,6 +248,95 @@ def test_random_arm_fk_matches_mjcf() -> None:
             expected = _urdf_fk(urdf_joints, names, values)
             assert actual == pytest.approx(expected, abs=1e-5)
 
+            tcp_site_id = mujoco.mj_name2id(
+                model,
+                mujoco.mjtObj.mjOBJ_SITE,
+                f"{side}_grasp_tcp",
+            )
+            actual_tcp = np.eye(4)
+            actual_tcp[:3, :3] = (
+                base_rotation.T
+                @ data.site_xmat[tcp_site_id].reshape(3, 3)
+            )
+            actual_tcp[:3, 3] = base_rotation.T @ (
+                data.site_xpos[tcp_site_id] - data.xpos[base_id]
+            )
+            expected_tcp = _urdf_fk(
+                urdf_joints,
+                names + (f"{side}_grasp_tcp_joint",),
+                values,
+            )
+            assert actual_tcp == pytest.approx(expected_tcp, abs=1e-5)
+
+
+def test_random_head_camera_optical_fk_matches_mjcf() -> None:
+    description = _source_root()
+    urdf = _expanded_urdf()
+    urdf_joints = {
+        node.attrib["name"]: node for node in urdf.findall("joint")
+    }
+    model = mujoco.MjModel.from_xml_path(
+        str(description / "mjcf" / "cleany.xml")
+    )
+    data = mujoco.MjData(model)
+    random = np.random.default_rng(260806)
+    base_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_BODY,
+        "chassis",
+    )
+    moving_joint_names = ("head_pan_joint", "head_tilt_joint")
+    limits = {
+        "head_pan_joint": (-3.2, 3.2),
+        "head_tilt_joint": (-0.76, 1.45),
+    }
+    prefix = (
+        "top_base_joint",
+        "head_pan_joint",
+        "head_tilt_joint",
+        "head_camera_joint",
+    )
+
+    for _ in range(10):
+        values = {
+            name: float(random.uniform(*limits[name]))
+            for name in moving_joint_names
+        }
+        mujoco.mj_resetData(model, data)
+        for name, value in values.items():
+            joint_id = mujoco.mj_name2id(
+                model,
+                mujoco.mjtObj.mjOBJ_JOINT,
+                name,
+            )
+            data.qpos[model.jnt_qposadr[joint_id]] = value
+        mujoco.mj_forward(model, data)
+        base_rotation = data.xmat[base_id].reshape(3, 3)
+
+        for stream in ("rgb", "depth"):
+            site_id = mujoco.mj_name2id(
+                model,
+                mujoco.mjtObj.mjOBJ_SITE,
+                f"head_camera_{stream}_optical_frame",
+            )
+            actual = np.eye(4)
+            actual[:3, :3] = (
+                base_rotation.T @ data.site_xmat[site_id].reshape(3, 3)
+            )
+            actual[:3, 3] = base_rotation.T @ (
+                data.site_xpos[site_id] - data.xpos[base_id]
+            )
+            expected = _urdf_fk(
+                urdf_joints,
+                prefix
+                + (
+                    f"head_camera_{stream}_joint",
+                    f"head_camera_{stream}_optical_joint",
+                ),
+                values,
+            )
+            assert actual == pytest.approx(expected, abs=1e-5)
+
 
 def _urdf_fk(
     joints: dict[str, ET.Element],
@@ -224,18 +347,20 @@ def _urdf_fk(
     for name in names:
         joint = joints[name]
         origin = joint.find("origin")
-        axis = joint.find("axis")
-        assert origin is not None and axis is not None
+        assert origin is not None
         fixed = np.eye(4)
         fixed[:3, :3] = _rpy(
             np.fromstring(origin.attrib.get("rpy", "0 0 0"), sep=" ")
         )
         fixed[:3, 3] = np.fromstring(origin.attrib["xyz"], sep=" ")
         motion = np.eye(4)
-        motion[:3, :3] = _axis_angle(
-            np.fromstring(axis.attrib["xyz"], sep=" "),
-            values[name],
-        )
+        if joint.attrib["type"] != "fixed":
+            axis = joint.find("axis")
+            assert axis is not None
+            motion[:3, :3] = _axis_angle(
+                np.fromstring(axis.attrib["xyz"], sep=" "),
+                values[name],
+            )
         result = result @ fixed @ motion
     return result
 

@@ -465,6 +465,8 @@
                   <!-- Collision meshes with very high friction for gripping -->
                   <geom type="mesh" mesh="Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
                   <geom type="mesh" mesh="Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  <!-- Nominal jaw-tip midpoint used as the left arm IK target. -->
+                  <site name="left_grasp_tcp" pos="0 -0.100 0" size="0.005" rgba="0 0.8 1 0.4"/>
 
                   <body name="Moving_Jaw" pos="-0.0202 -0.0244 0" euler="3.1416 0 3.33">
                     <inertial pos="-0.00157495 -0.0300244 0.0192755" mass="0.012" fullinertia="6.61427e-06 1.89032e-06 5.28738e-06 -3.19807e-07 -5.90717e-09 -1.09945e-07"/>
@@ -557,6 +559,8 @@
                   <!-- Collision meshes with very high friction for gripping -->
                   <geom type="mesh" mesh="Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
                   <geom type="mesh" mesh="Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  <!-- Nominal jaw-tip midpoint used as the right arm IK target. -->
+                  <site name="right_grasp_tcp" pos="0 -0.100 0" size="0.005" rgba="0 0.8 1 0.4"/>
 
                   <body name="Moving_Jaw_2" pos="-0.0202 -0.0244 0" euler="3.1416 0 3.33">
                     <inertial pos="-0.00157495 -0.0300244 0.0192755" mass="0.012" fullinertia="6.61427e-06 1.89032e-06 5.28738e-06 -3.19807e-07 -5.90717e-09 -1.09945e-07"/>
@@ -610,15 +614,19 @@
             
             <!-- Camera frames -->
             <body name="head_camera_link" pos="0.025 0 0.03">
-              <body name="head_camera_rgb_frame" pos="0 0 0" xyaxes="0 -1 0 0 0 -1">
-                <site name="head_camera_rgb_optical_frame" type="box" size="0.01 0.01 0.01" rgba="1 0 0 0.3"/>
-                <!-- MuJoCo camera +X/right, +Y/up, -Z/forward inside the ROS optical frame. -->
-                <camera name="head_realsense_rgb" pos="0 0 0" quat="0 1 0 0" fovy="42"/>
+              <body name="head_camera_rgb_frame" pos="0 0 0">
+                <body name="head_camera_rgb_optical_frame" pos="0 0 0" xyaxes="0 -1 0 0 0 -1">
+                  <site name="head_camera_rgb_optical_frame" type="box" size="0.01 0.01 0.01" rgba="1 0 0 0.3"/>
+                  <!-- MuJoCo camera +X/right, +Y/up, -Z/forward inside the ROS optical frame. -->
+                  <camera name="head_realsense_rgb" pos="0 0 0" quat="0 1 0 0" fovy="42"/>
+                </body>
               </body>
-              <body name="head_camera_depth_frame" pos="0 0 0" xyaxes="0 -1 0 0 0 -1">
-                <site name="head_camera_depth_optical_frame" type="box" size="0.01 0.01 0.01" rgba="0 1 0 0.0"/>
-                <!-- MuJoCo camera +X/right, +Y/up, -Z/forward inside the ROS optical frame. -->
-                <camera name="head_realsense_depth" pos="0 0 0" quat="0 1 0 0" fovy="40"/>
+              <body name="head_camera_depth_frame" pos="0 0 0">
+                <body name="head_camera_depth_optical_frame" pos="0 0 0" xyaxes="0 -1 0 0 0 -1">
+                  <site name="head_camera_depth_optical_frame" type="box" size="0.01 0.01 0.01" rgba="0 1 0 0.0"/>
+                  <!-- MuJoCo camera +X/right, +Y/up, -Z/forward inside the ROS optical frame. -->
+                  <camera name="head_realsense_depth" pos="0 0 0" quat="0 1 0 0" fovy="40"/>
+                </body>
               </body>
             </body>
           </body>
