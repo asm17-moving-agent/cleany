@@ -229,6 +229,45 @@ surface에만 적용한다. 보드 바깥 10 mm 흰 quiet zone도 render-only/no
 MJCF, `default.xml.in`, SVG/PDF source asset은 수정하지 않으며 temporary texture도
 source tree에 기록하지 않는다.
 
+- `base_body_name`: 로봇 베이스로 사용할 MuJoCo body. 기본값은 `chassis`다.
+- `lidar_site_name`: 레이저 원점으로 사용할 MuJoCo site. 기본값은
+  `lidar_site`다.
+- `odom_frame_id`: 오도메트리 frame ID. 기본값은 `odom`이다.
+- `base_frame_id`: 베이스 frame ID. 기본값은 `base_link`다.
+- `laser_frame_id`: 레이저 frame ID. 기본값은 `laser`다.
+- `publish_odom_tf`: 동적 odom-to-base transform 발행 여부. 기본값은 `true`다.
+- `scan_enabled`: `scan`과 정적 레이저 transform 발행 여부. 기본값은 `true`다.
+- `scan_sample_rate_hz`: `scan_samples`가 `0`일 때 사용할 가상 광선 샘플링 주기.
+  기본값은 `8000.0`이다.
+- `scan_range_min`: 유효한 최소 스캔 거리. 기본값은 `0.15`다.
+- `scan_range_max`: 유효한 최대 스캔 거리. 기본값은 `12.0`이다.
+- `initial_joint_names`: 시작할 때 설정할 actuator-backed scalar joint 이름 배열.
+  기본값은 빈 배열이다.
+- `initial_joint_positions`: `initial_joint_names`와 같은 순서의 초기 위치(rad 또는
+  prismatic joint의 m) 배열. 기본값은 빈 배열이다. 두 배열이 비어 있으면 MJCF의
+  초기 상태를 그대로 사용한다. 값은 유한해야 하고 관절 제한 안에 있어야 한다.
+
+예를 들어 시작할 때 head를 아래로 기울이려면 node parameter YAML에 다음을 둔다.
+
+```yaml
+mujoco_sim:
+  ros__parameters:
+    initial_joint_names: [head_tilt_joint]
+    initial_joint_positions: [1.0]
+```
+
+## 시뮬레이션 확장 API
+
+같은 process의 sensor adapter는 `MujocoSimNode.simulation_context`에서
+`MujocoSimulationContext`를 받아 MuJoCo model과 최신 data를 조회할 수 있다. 두
+native handle은 렌더링 등 MuJoCo API 호출에 직접 사용할 수 있지만 adapter가 물리
+상태를 변경하지 않는 read-only 계약을 따른다.
+
+`MujocoSimNode.add_step_observer(observer)`에 `StepObserver` 구현을 등록하면 각 ROS
+timer tick의 모든 물리 substep이 끝난 직후 한 번 `after_step(context, stamp)`가
+호출된다. callback은 기존 ROS 상태 토픽 발행 전에 동기적으로 실행되며 예외를
+숨기지 않는다. observer는 callback을 짧게 유지해야 한다.
+
 ## 범위
 
 구현된 기능:
