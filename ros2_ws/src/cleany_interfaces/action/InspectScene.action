@@ -1,0 +1,29 @@
+# Empty query selects the perception node's configured default prompt.
+string query
+---
+uint8 ERROR_NONE=0
+uint8 ERROR_RGBD_TIMEOUT=1
+uint8 ERROR_DETECTOR_API=2
+uint8 ERROR_DETECTOR_RESPONSE=3
+uint8 ERROR_MASK=4
+uint8 ERROR_DEPTH=5
+uint8 ERROR_PLANE=6
+uint8 ERROR_TF=7
+uint8 ERROR_CANCELLED=8
+uint8 ERROR_INTERNAL=255
+
+bool success
+uint8 error_code
+string message
+DetectedObject3DArray objects
+---
+uint8 STAGE_WAITING_FOR_RGBD=0
+uint8 STAGE_DETECTING=1
+uint8 STAGE_SEGMENTING=2
+uint8 STAGE_RECONSTRUCTING=3
+uint8 STAGE_TRANSFORMING=4
+
+uint8 stage
+uint32 detections_2d
+uint32 objects_3d
+string message
