@@ -1,6 +1,4 @@
 import math
-from pathlib import Path
-
 import mujoco
 import pytest
 
@@ -23,9 +21,8 @@ def controller_config() -> VelocityControllerConfig:
 
 
 @pytest.fixture
-def xlerobot_model_data():
-    scene_path = Path(__file__).parents[1] / 'hardware' / 'scene.xml'
-    return load_model(scene_path)
+def xlerobot_model_data(cleany_scene_path):
+    return load_model(cleany_scene_path)
 
 
 def test_drive_maps_each_wheel_to_its_motor(

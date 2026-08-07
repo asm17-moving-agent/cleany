@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from cleany_mujoco_sim.scene_loader import load_model
+from cleany_mujoco_sim.scene_loader import load_model, materialize_scene
 
 TINY_MJCF = """
 <mujoco>
@@ -20,6 +20,9 @@ TINY_MJCF = """
       <geom type="box" size="0.05 0.5 0.5"/>
     </body>
   </worldbody>
+  <actuator>
+    <position name="shoulder_position" joint="shoulder"/>
+  </actuator>
 </mujoco>
 """
 
@@ -34,3 +37,11 @@ def scene_path(tmp_path: Path) -> Path:
 @pytest.fixture
 def model_data(scene_path: Path):
     return load_model(scene_path)
+
+
+@pytest.fixture(scope='session')
+def cleany_scene_path() -> Path:
+    template_path = (
+        Path(__file__).parents[1] / 'scenes' / 'default.xml.in'
+    )
+    return materialize_scene(template_path)

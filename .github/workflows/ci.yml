@@ -1,0 +1,74 @@
+name: Cleany CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cleany-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-unit:
+    name: build-and-unit
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      ROS_DOMAIN_ID: "42"
+      ROS_HOME: /tmp/cleany-ros
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Set up ROS 2 Humble
+        uses: ros-tooling/setup-ros@77bcad67a6cb15f6192d61464d99bbab658e4ca9 # 0.7.18
+        with:
+          required-ros-distributions: humble
+
+      - name: Verify native development environment
+        shell: bash
+        run: |
+          set -eo pipefail
+          test "$(lsb_release -rs)" = "22.04"
+          test "$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" = "3.10"
+          test -f /opt/ros/humble/setup.bash
+          source /opt/ros/humble/setup.bash
+          test "${ROS_DISTRO}" = "humble"
+          command -v git
+          command -v make
+          command -v pip3
+          command -v ros2
+          command -v colcon
+          command -v rosdep
+
+      - name: Register Cleany rosdep rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          rule_file="${GITHUB_WORKSPACE}/ros2_ws/rosdep/cleany.yaml"
+          test -f "${rule_file}"
+          echo "yaml file://${rule_file}" \
+            | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list >/dev/null
+          rosdep update --rosdistro humble
+
+      - name: Install workspace dependencies
+        run: make deps
+
+      - name: Verify Gazebo baseline
+        run: make check-gazebo-env
+
+      - name: Build and test workspace
+        run: make test

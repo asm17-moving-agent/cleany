@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ROS_WS="${REPO_ROOT}/ros2_ws"
+
+if [[ "${1:-}" != "--yes" && "${1:-}" != "-y" ]]; then
+  printf 'Remove ROS 2 default and Harmonic build outputs under %s? [y/N] ' "${ROS_WS}" >&2
+  read -r answer
+  case "${answer}" in
+    y|Y|yes|YES) ;;
+    *) echo "aborted" >&2; exit 1 ;;
+  esac
+fi
+
+rm -rf \
+  "${ROS_WS}/build" \
+  "${ROS_WS}/install" \
+  "${ROS_WS}/log" \
+  "${ROS_WS}/build-harmonic" \
+  "${ROS_WS}/install-harmonic" \
+  "${ROS_WS}/log-harmonic"

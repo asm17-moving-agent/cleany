@@ -154,13 +154,13 @@ def test_sim_node_accepts_and_bounds_supported_cmd_vel_axes(scene_path: Path):
         rclpy.shutdown()
 
 
-def test_sim_node_drives_xlerobot_from_cmd_vel():
+def test_sim_node_drives_xlerobot_from_cmd_vel(cleany_scene_path: Path):
     rclpy.init(args=[])
     commander = None
+    node = None
     try:
-        scene_path = Path(__file__).parents[1] / 'hardware' / 'scene.xml'
         node = _make_node(
-            scene_path,
+            cleany_scene_path,
             publish_rate_hz=200.0,
             scan_enabled=False,
             base_drive_enabled=True,
@@ -201,7 +201,8 @@ def test_sim_node_drives_xlerobot_from_cmd_vel():
     finally:
         if commander is not None:
             commander.destroy_node()
-        node.destroy_node()
+        if node is not None:
+            node.destroy_node()
         rclpy.shutdown()
 
 

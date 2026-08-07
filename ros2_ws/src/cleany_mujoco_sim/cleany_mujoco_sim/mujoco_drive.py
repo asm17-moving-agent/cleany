@@ -13,8 +13,8 @@ from cleany_mujoco_sim.wheel_speed_controller import (
 _WHEEL_BINDINGS = (
     ('front_left', 'front_left_wheel_joint', 'front_left_drive'),
     ('front_right', 'front_right_wheel_joint', 'front_right_drive'),
-    ('rear_left', 'left_wheel_joint', 'rear_left_drive'),
-    ('rear_right', 'right_wheel_joint', 'rear_right_drive'),
+    ('rear_left', 'rear_left_wheel_joint', 'rear_left_drive'),
+    ('rear_right', 'rear_right_wheel_joint', 'rear_right_drive'),
 )
 
 
