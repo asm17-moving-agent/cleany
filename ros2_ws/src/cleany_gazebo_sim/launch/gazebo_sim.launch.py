@@ -37,12 +37,29 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     server = ExecuteProcess(
-        cmd=['ign', 'gazebo', '-r', '-s', LaunchConfiguration('world')],
+        cmd=[
+            'ign',
+            'gazebo',
+            '-r',
+            '-s',
+            '--render-engine-server',
+            'ogre2',
+            LaunchConfiguration('world'),
+        ],
         condition=IfCondition(LaunchConfiguration('headless')),
         output='screen',
     )
     gui = ExecuteProcess(
-        cmd=['ign', 'gazebo', '-r', LaunchConfiguration('world')],
+        cmd=[
+            'ign',
+            'gazebo',
+            '-r',
+            '--render-engine-server',
+            'ogre2',
+            '--render-engine-gui',
+            'ogre',
+            LaunchConfiguration('world'),
+        ],
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',
     )

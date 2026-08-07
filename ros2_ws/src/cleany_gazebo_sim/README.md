@@ -183,6 +183,11 @@ ros2 launch cleany_gazebo_sim gazebo_sim.launch.py headless:=false
 
 ## Profiles
 
+GUI와 camera sensor는 host의 OpenGL/OGRE 호환성에 영향을 받습니다. Fortress의
+GPU LiDAR와 camera sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용합니다.
+Fortress의 server-only `-s`는 GUI만 끄며 rendering sensor가 있으면 server 내부에서
+여전히 rendering context를 생성합니다.
+
 `make sim-gazebo`와 `make test-gazebo`는 활성 ROS 배포판과 Gazebo major version으로
 Fortress 또는 Harmonic profile을 선택한다. 팀 표준은 Fortress이며 Harmonic은 호환
 profile이다. 환경 준비와 자동 판정·output 분리 규칙은
