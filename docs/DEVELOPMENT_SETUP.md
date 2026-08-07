@@ -18,6 +18,12 @@ ROS 2 개발환경을 준비하는 절차다. 팀은 VM 이미지를 배포하�
 ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원한다. Python
 가상환경으로 ROS의 system Python을 대체하지 않는다.
 
+GitHub Actions의 자동 검사는 설치 시간을 줄이기 위해 공식
+`ros:humble-ros-base-jammy` job container에서 실행하고, workspace에 필요한 추가
+의존성은 `package.xml`과 rosdep 규칙으로 설치한다. 이는 개발자의 native Humble
+Desktop 환경을 대체하지 않으며 GUI, 실제 센서와 actuator 검증도 포함하지 않는다.
+정확한 자동 검사 구성은 [CI workflow](../.github/workflows/ci.yml)를 따른다.
+
 설치 전 버전을 확인한다.
 
 ```bash
