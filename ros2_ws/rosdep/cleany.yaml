@@ -3,3 +3,8 @@ mujoco:
     pip:
       packages:
         - mujoco
+google-genai:
+  ubuntu:
+    pip:
+      packages:
+        - google-genai

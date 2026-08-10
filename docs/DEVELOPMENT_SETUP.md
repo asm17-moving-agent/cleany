@@ -129,6 +129,37 @@ make deps-gazebo
 제외합니다. 전체 workspace test를 실행할 환경에서는 custom rosdep 규칙을 등록한 뒤
 `make deps`를 사용합니다.
 
+### 선택: Gemini와 SAM2 perception runtime
+
+`make deps`는 `cleany_perception`의 Gemini adapter에 필요한 `google-genai`와 Pillow를
+설치한다. API key는 파일이나 ROS parameter에 저장하지 않고 실행 terminal의 환경변수로
+제공한다.
+
+```bash
+export GEMINI_API_KEY="<your-api-key>"
+```
+
+SAM2는 공식 저장소의 현재 구현과 별도 checkpoint가 필요하다. 공식 설치 과정은
+PyTorch와 torchvision을 업그레이드할 수 있으므로 Jetson에서는 먼저 JetPack/CUDA와
+호환되는 NVIDIA PyTorch 조합을 정한 뒤 설치한다. `make deps`는 PyTorch 또는 SAM2를
+자동 설치하지 않는다.
+
+```bash
+git clone https://github.com/facebookresearch/sam2.git <external-path>/sam2
+python3 -m pip install --user -e <external-path>/sam2
+```
+
+CUDA가 없는 Apple Silicon 기반 Ubuntu VM에서는 CUDA extension을 끄고 CPU device를
+사용한다. 예를 들어 VM 내부에 SAM2를 설치한 경우 다음과 같이 실행한다.
+
+```bash
+cd /home/ubuntu/third_party/sam2
+SAM2_BUILD_CUDA=0 python3 -m pip install --user --no-build-isolation -e .
+```
+
+checkpoint와 model config 경로는 `inspect_scene.launch.py` 인자로 전달한다. 모델
+weight와 API key는 이 저장소에 commit하지 않는다.
+
 rosdep이 Gazebo 의존성을 해석하지 못할 때만 아래 APT 패키지를 직접 확인한다.
 일반 설치에서는 package manifest를 기준으로 하는 `make deps-gazebo`를 우선한다.
 
