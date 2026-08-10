@@ -2,18 +2,16 @@
 
 ## 상태
 
-현재는 설계 경계를 드러내는 scaffold다. 아직 ROS 2 package manifest와 실제
-`msg`·`srv`·`action` 정의는 추가되지 않았으므로, 런타임 인터페이스로 사용하면 안 된다.
+Perception, Mission Manager, Skill Executor, Dashboard Bridge가 공유하는
+인터페이스를 이 패키지에 둔다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를 사용하는
+프로젝트 공통 topic 계약도 이곳에 기록한다.
 
-## 역할
+아직 ROS 2 package manifest와 실제 `msg`·`srv`·`action` 정의는 추가되지 않았으므로,
+이 디렉터리를 런타임 인터페이스 패키지로 사용하면 안 된다.
 
-Perception, Mission Manager, Skill Executor와 향후 외부 연동 계층이 공유할 ROS 2
-`msg`, `srv`, `action` 계약을 둔다.
+## Contracts
 
-## 제공 계약
-
-구체 메시지 타입과 호환성 정책은 구현과 함께 정의한다. 패키지 경계를 넘는 데이터는
-개별 구현체가 아니라 이 패키지의 명시적 인터페이스를 통해 전달하는 것을 목표로 한다.
+- [Mobile base](docs/mobile_base.md): `/cmd_vel` 차체 속도 명령
 
 ## 설정 및 검증
 
