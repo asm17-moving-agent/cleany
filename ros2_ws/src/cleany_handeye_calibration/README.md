@@ -5,8 +5,9 @@ Cleany's left wrist eye-in-hand calibration workflow.
 
 The current package contains immutable data models, frame-aware rigid
 transforms, the version-1 draft sample record, and planar ChArUco detection and
-PnP. It does not yet run hand-eye solvers, call MoveIt, collect camera data, or
-publish calibration TF.
+PnP. It also provides a failure-isolated OpenCV hand-eye solver and evaluation
+metrics. It does not yet call MoveIt, collect camera data, or publish
+calibration TF.
 
 ## Transform convention
 
@@ -71,6 +72,38 @@ The lower-RMSE candidate is rejected as `ambiguous_pnp` when both candidate
 RMSE values are at most `1e-12 px`, or when the best RMSE is above that value
 and `second / best < 1.05`. Ground truth is not an input to detection, PnP,
 refinement, or candidate selection.
+
+## Hand-eye solver and metrics
+
+The symbolic registry contains every method exposed by OpenCV's
+`calibrateHandEye`: Tsai, Park, Horaud, Andreff, and Daniilidis. Preflight
+fails if an expected constant is missing or a new `CALIB_HAND_EYE_*` constant
+appears without an explicit registry update. All five methods receive copied
+values from the same validated calibration samples; an exception or invalid
+transform from one method is recorded without stopping the other methods.
+The caller must also provide a positive finite `max_translation_norm_m` through
+`HandEyeTransformValidityPolicy`. This is an approved robot-specific physical
+camera-offset envelope rather than a hidden solver constant; a finite estimate
+outside it is recorded as an invalid result for that method.
+
+The OpenCV argument directions are intentionally explicit:
+
+```text
+R_gripper2base, t_gripper2base <- base_T_gripper
+R_target2cam, t_target2cam     <- camera_T_target
+R_cam2gripper, t_cam2gripper   -> gripper_T_camera
+```
+
+Only samples in the `calibration` split are accepted by the solver. The
+expected base, gripper, camera, and target frame names are checked before an
+OpenCV method is called, so an inverted transform cannot silently become a
+different hand-eye problem. Ground truth is not part of the solver API.
+
+The separate evaluator reports translation error in metres and rotation error
+in radians. Held-out consistency reconstructs `base_T_target` for every
+held-out sample and reports the median and 95th percentile of all pairwise
+translation and rotation disagreements. The deterministic synthetic fixture
+contains 20 calibration poses and 5 held-out poses with a known transform.
 
 ## Dependencies
 
