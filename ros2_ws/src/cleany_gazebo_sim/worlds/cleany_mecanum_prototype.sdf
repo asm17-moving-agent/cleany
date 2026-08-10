@@ -121,7 +121,7 @@
         </visual>
         <sensor name="rplidar_a1" type="gpu_lidar">
           <topic>/model/cleany_mecanum/lidar/scan</topic>
-          <always_on>true</always_on>
+          <always_on>false</always_on>
           <update_rate>5.5</update_rate>
           <visualize>false</visualize>
           <gz_frame_id>lidar_link</gz_frame_id>
@@ -175,8 +175,8 @@
       </link>
       <link name="head_camera_link">
         <pose relative_to="head_camera_mount">0 0 0 0 0 0</pose>
-        <sensor name="head_realsense_rgb" type="camera"><gz_frame_id>head_camera_rgb_optical_frame</gz_frame_id><topic>/model/cleany_mecanum/head_camera/rgb/image</topic><always_on>true</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>0.915</horizontal_fov><image><width>640</width><height>480</height><format>R8G8B8</format></image><clip><near>0.1</near><far>10.0</far></clip></camera></sensor>
-        <sensor name="head_realsense_depth" type="depth_camera"><gz_frame_id>head_camera_depth_optical_frame</gz_frame_id><topic>/model/cleany_mecanum/head_camera/depth/image</topic><always_on>true</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>0.857</horizontal_fov><image><width>640</width><height>480</height></image><clip><near>0.1</near><far>10.0</far></clip></camera></sensor>
+        <sensor name="head_realsense_rgb" type="camera"><gz_frame_id>head_camera_rgb_optical_frame</gz_frame_id><topic>/model/cleany_mecanum/head_camera/rgb/image</topic><always_on>false</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>0.915</horizontal_fov><image><width>640</width><height>480</height><format>R8G8B8</format></image><clip><near>0.1</near><far>10.0</far></clip></camera></sensor>
+        <sensor name="head_realsense_depth" type="depth_camera"><gz_frame_id>head_camera_depth_optical_frame</gz_frame_id><topic>/model/cleany_mecanum/head_camera/depth/image</topic><always_on>false</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>0.857</horizontal_fov><image><width>640</width><height>480</height></image><clip><near>0.1</near><far>10.0</far></clip></camera></sensor>
       </link>
       <joint name="head_pan_mount" type="fixed"><pose relative_to="top_base_link">-0.103 0 0.323 0 0 0</pose><parent>top_base_link</parent><child>head_pan_link</child></joint>
       <joint name="head_tilt_mount" type="fixed"><pose relative_to="head_pan_link">0.001 0.002 0.09815 0 0 3.14159265</pose><parent>head_pan_link</parent><child>head_tilt_link</child></joint>
@@ -188,14 +188,14 @@
         <visual name="camera_body"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://meshes/XLeRobot_camera1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
         <visual name="camera_motor"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://meshes/XLeRobot_camera2.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
         <!-- Converted from MuJoCo left_wrist_rgb xyaxes: Gazebo cameras use +X as forward. -->
-        <sensor name="left_wrist_rgb" type="camera"><gz_frame_id>left_wrist_rgb_optical_frame</gz_frame_id><pose>-0.00833 0.01494 0.003872 0 0.007614 -0.436597</pose><topic>/model/cleany_mecanum/left_wrist_camera/rgb/image</topic><always_on>true</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>2.16</horizontal_fov><image><width>640</width><height>360</height><format>R8G8B8</format></image><clip><near>0.05</near><far>5.0</far></clip></camera></sensor>
+        <sensor name="left_wrist_rgb" type="camera"><gz_frame_id>left_wrist_rgb_optical_frame</gz_frame_id><pose>-0.00833 0.01494 0.003872 0 0.007614 -0.436597</pose><topic>/model/cleany_mecanum/left_wrist_camera/rgb/image</topic><always_on>false</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>2.16</horizontal_fov><image><width>640</width><height>360</height><format>R8G8B8</format></image><clip><near>0.05</near><far>5.0</far></clip></camera></sensor>
       </link>
       <link name="right_wrist_camera_link">
         <pose relative_to="right_wrist_camera_mount">0 0 0 0 0 0</pose>
         <visual name="camera_body"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://meshes/XLeRobot_camera1.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual>
         <visual name="camera_motor"><pose>-0.015 -0.026 0 0 0 0</pose><geometry><mesh><uri>model://meshes/XLeRobot_camera2.stl</uri><scale>0.001 0.001 0.001</scale></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual>
         <!-- Converted from MuJoCo right_wrist_rgb xyaxes: Gazebo cameras use +X as forward. -->
-        <sensor name="right_wrist_rgb" type="camera"><gz_frame_id>right_wrist_rgb_optical_frame</gz_frame_id><pose>-0.00833 0.01494 0.003872 0 0.007614 -0.436597</pose><topic>/model/cleany_mecanum/right_wrist_camera/rgb/image</topic><always_on>true</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>2.16</horizontal_fov><image><width>640</width><height>360</height><format>R8G8B8</format></image><clip><near>0.05</near><far>5.0</far></clip></camera></sensor>
+        <sensor name="right_wrist_rgb" type="camera"><gz_frame_id>right_wrist_rgb_optical_frame</gz_frame_id><pose>-0.00833 0.01494 0.003872 0 0.007614 -0.436597</pose><topic>/model/cleany_mecanum/right_wrist_camera/rgb/image</topic><always_on>false</always_on><update_rate>15</update_rate><visualize>false</visualize><camera><horizontal_fov>2.16</horizontal_fov><image><width>640</width><height>360</height><format>R8G8B8</format></image><clip><near>0.05</near><far>5.0</far></clip></camera></sensor>
       </link>
       <!-- MuJoCo euler uses a different convention; these are the equivalent SDF RPY mount poses. -->
       <joint name="left_wrist_camera_mount" type="fixed"><pose relative_to="left_fixed_jaw">0 -0.022 0.05 1.5708 0 -1.5708</pose><parent>left_fixed_jaw</parent><child>left_wrist_camera_link</child></joint>

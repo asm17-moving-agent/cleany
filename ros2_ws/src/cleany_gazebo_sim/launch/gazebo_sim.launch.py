@@ -10,8 +10,11 @@ from launch.actions import (
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
 
+from cleany_gazebo_sim.sensor_profile_launch import (
+    declare_sensor_profile_argument,
+    sensor_profile_bridges,
+)
 from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
 
 
@@ -23,18 +26,15 @@ def generate_launch_description() -> LaunchDescription:
     world_template = package_share / 'worlds' / 'cleany_mecanum_prototype.sdf'
     default_world = materialize_mecanum_wheel_world(world_template)
     base_config = package_share / 'config' / 'base.yaml'
-    bridge_config = package_share / 'config' / 'bridge.yaml'
 
     world_arg = DeclareLaunchArgument(
         'world', default_value=str(default_world)
-    )
-    bridge_config_arg = DeclareLaunchArgument(
-        'bridge_config', default_value=str(bridge_config)
     )
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
     )
+    sensor_profile_arg = declare_sensor_profile_argument()
 
     server = ExecuteProcess(
         cmd=[
@@ -63,19 +63,7 @@ def generate_launch_description() -> LaunchDescription:
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',
     )
-    bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        name='gazebo_parameter_bridge',
-        parameters=[
-            {
-                'config_file': ParameterValue(
-                    LaunchConfiguration('bridge_config'), value_type=str
-                )
-            }
-        ],
-        output='screen',
-    )
+    bridges = sensor_profile_bridges(package_share, harmonic=False)
     command_guard = Node(
         package='cleany_gazebo_sim',
         executable='gazebo_command_guard',
@@ -110,9 +98,9 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             world_arg,
-            bridge_config_arg,
             headless_arg,
             use_sim_time_arg,
+            sensor_profile_arg,
             # Reuse the authoritative description meshes instead of
             # committing duplicate, large STL assets to this package.
             AppendEnvironmentVariable(
@@ -120,7 +108,7 @@ def generate_launch_description() -> LaunchDescription:
             ),
             server,
             gui,
-            bridge,
+            bridges,
             command_guard,
             odom_tf,
             sensor_tf,
