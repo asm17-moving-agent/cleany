@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import threading
 import time
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 from moveit_msgs.msg import PlanningSceneComponents
@@ -60,6 +60,7 @@ from cleany_handeye_calibration.single_pose_orchestrator import (
     TargetObservation,
 )
 from cleany_handeye_calibration.single_pose_runtime_config import (
+    ExpectedResolvedPoseEvidence,
     SinglePoseRuntimeConfig,
     load_single_pose_runtime_config,
 )
@@ -84,10 +85,27 @@ class SinglePoseRuntimeEffects:
         node: Node,
         config: SinglePoseRuntimeConfig,
         writer: DatasetWriter,
+        *,
+        expected_by_pose_id: Mapping[
+            str, ExpectedResolvedPoseEvidence
+        ] | None = None,
     ) -> None:
         self._node = node
         self._config = config
         self._writer = writer
+        expected_values = (
+            {config.request.pose_id: config.expected}
+            if expected_by_pose_id is None
+            else dict(expected_by_pose_id)
+        )
+        if not expected_values or any(
+            not isinstance(pose_id, str)
+            or not pose_id
+            or not isinstance(evidence, ExpectedResolvedPoseEvidence)
+            for pose_id, evidence in expected_values.items()
+        ):
+            raise ValueError('expected_by_pose_id is invalid')
+        self._expected_by_pose_id = expected_values
         self._state_condition = threading.Condition()
         feedback = config.feedback
         self._buffer = JointStateRingBuffer(
@@ -243,7 +261,13 @@ class SinglePoseRuntimeEffects:
         resolved_pose: JointPose,
         timeout_sec: float,
     ) -> ResolvedPoseValidation:
-        self._config.expected.validate_match(resolved_pose)
+        try:
+            expected = self._expected_by_pose_id[request.pose_id]
+        except KeyError as error:
+            raise ValueError(
+                f'no resolved-pose evidence for {request.pose_id}'
+            ) from error
+        expected.validate_match(resolved_pose)
         result = self._validity.validate(
             resolved_pose,
             current_state=self._current_state(),
@@ -256,7 +280,7 @@ class SinglePoseRuntimeEffects:
         return ResolvedPoseValidation(
             validated_goal=result.validated_goal,
             observed_collision_clearance_m=(
-                self._config.expected.observed_collision_clearance_m
+                expected.observed_collision_clearance_m
             ),
         )
 

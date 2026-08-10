@@ -10,8 +10,9 @@ evaluation metrics, bounded joint-feedback synchronization, a MoveIt
 feedback-FK adapter, position-only IK/state-validity/motion adapters, a pure
 feedback settle gate, exact wrist-camera acquisition, a recoverable dataset
 writer, an exact nine-stage single-pose orchestrator, and MoveIt/MuJoCo
-launches. It does not publish calibration TF; generated transforms remain
-review-only artifacts.
+launches. A deterministic pose generator and resumable 20-calibration plus
+5-held-out runner complete the collection workflow. It does not publish
+calibration TF; generated transforms remain review-only artifacts.
 
 ## Transform convention
 
@@ -296,6 +297,64 @@ feedback sag, uses a 0.100 m required margin, yields at least 16 corners in all
 four quadrants, and produces a non-ambiguous IPPE result. Ground truth is not
 published to TF and is not used by detection, PnP, or stored solver inputs.
 
+## Materialized pose sets and resumable runs
+
+`PoseGenerationConfig` samples target positions and complete five-joint IK
+seeds with a recorded `numpy.random.PCG64` seed and a hard generation-attempt
+cap. A caller-supplied `PoseCandidateEvaluator` must resolve position IK and
+return explicit FK, soft-limit, collision-distance, planning, visibility, and
+camera-front evidence. Rejected candidates are not backfilled after the cap.
+The selector minimizes maximum absolute rotation-axis parallelism first and
+maximizes regularized rotation-vector covariance log-determinant second. It
+then fixes exactly 20 calibration poses and 5 held-out poses; run time never
+generates a replacement pose.
+
+The installed `config/pose_generation.template.yaml` is deliberately not a
+runnable pose manifest. Unapproved workspace, soft-limit, collision,
+duplicate, diversity-tolerance, timeout, seed, and generator values remain
+`null`. A materialized YAML also records every target/seed, resolved joint
+vector, feedback-FK pose, validation evidence, selection objective, and source
+candidate ID. Preflight rejects the wrong arm or joint order, a split other
+than 20+5, duplicates, unsafe evidence, fewer than five pairwise non-parallel
+axes, or calibration rotation-covariance rank below three.
+
+```bash
+ros2 run cleany_handeye_calibration pose_manifest_preflight \
+  /absolute/path/to/materialized_poses.yaml
+```
+
+`MultiPoseRunOrchestrator` treats a row already committed in `samples.jsonl`
+as the resume authority and skips it without motion. Its durable
+`pose_run.jsonl` preserves split and attempt numbers, including a process that
+stopped after an attempt started. IK, planning, settle, image acquisition, and
+target detection permit the initial attempt plus exactly 3 retries. Limit,
+collision, controller, e-stop, hardware, and data-integrity failures abort
+immediately. Exhausting a retryable pose leaves a partial run and continues to
+the next fixed pose. `/handeye/cancel_run` requests cancellation between stage
+attempts and prevents the next pose from starting; controller timeout handling
+remains owned by the bounded motion adapter.
+
+The multi-pose runtime profile uses the single-pose JSON schema and must be
+anchored to the manifest's first pose. Its recorded pose-manifest SHA-256,
+random seed, safety values, right-arm park tolerance, and every adapter and
+orchestration timeout must match the YAML exactly. For the reviewed MuJoCo
+profile, keep the 0.010 rad plan/controller goal region and use the explicit
+0.015 rad post-execution feedback settle threshold documented above.
+
+An operator-observed calibration run opens the MuJoCo viewer by default:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
+  pose_manifest:=/absolute/path/to/materialized_poses.yaml \
+  runtime_config:=/absolute/path/to/materialized_runtime.json \
+  headless:=false
+```
+
+Automated tests explicitly pass `headless:=true`; actual calibration launch
+defaults remain viewer-visible.
+
 ## Motion-only MoveIt/MuJoCo integration
 
 `handeye_mujoco.launch.py` composes the `cleany_moveit_config` move group with
@@ -355,9 +414,10 @@ The mathematical, synchronization, configuration, and settle core does not
 import `rclpy`. The FK, IK, validity, and motion adapters use `rclpy`,
 `action_msgs`, `moveit_msgs`, and `sensor_msgs`, but their focused tests use fake
 clients, goal handles, and futures without a running ROS graph. The motion-only
-and single-pose launches depend on the MoveIt and MuJoCo ROS packages, while
-their runtime integration tests use the standard ROS action/message packages
-declared in the manifest.
+single-pose, and multi-pose launches depend on the MoveIt and MuJoCo ROS
+packages. The multi-pose node exposes its run-cancel request through
+`std_srvs/Trigger`; runtime integration tests use the standard ROS
+action/message packages declared in the manifest.
 
 ## Verification
 
@@ -375,6 +435,10 @@ python3 -m pytest \
 python3 -m pytest \
   test/test_single_pose_orchestrator.py \
   test/test_single_pose_runtime_config.py
+python3 -m pytest \
+  test/test_pose_diversity.py test/test_pose_manifest.py \
+  test/test_pose_generation.py test/test_run_recovery.py \
+  test/test_multi_pose_runtime.py
 python3 -m pytest test
 cd ../..
 colcon build --symlink-install --packages-select cleany_handeye_calibration

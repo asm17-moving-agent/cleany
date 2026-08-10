@@ -1,0 +1,54 @@
+schema_version: 1
+calibration_arm: left
+frame_id: base_link
+joint_names:
+  - left_shoulder_yaw_joint
+  - left_shoulder_pitch_joint
+  - left_elbow_pitch_joint
+  - left_wrist_pitch_joint
+  - left_wrist_roll_joint
+generator:
+  random_seed: null
+  random_engine: numpy.random.PCG64
+  candidate_pool_size: null
+  max_generation_attempts: null
+  log_det_epsilon: null
+  target_position_bounds_m:
+    x: null
+    y: null
+    z: null
+run_config:
+  max_retries: 3
+  stage_timeouts_sec:
+    ik_sec: null
+    state_validity_sec: null
+    plan_sec: null
+    execute_sec: null
+    cancel_sec: null
+    settle_sec: null
+    image_acquisition_sec: null
+    target_detection_sec: null
+    feedback_fk_sec: null
+    record_sample_sec: null
+  right_park_position_tolerance_rad: null
+  soft_joint_limits_rad:
+    left_shoulder_yaw_joint: null
+    left_shoulder_pitch_joint: null
+    left_elbow_pitch_joint: null
+    left_wrist_pitch_joint: null
+    left_wrist_roll_joint: null
+  collision_margin_m: null
+  target_position_tolerance_m: null
+  duplicate_target_position_tolerance_m: null
+  duplicate_ik_seed_tolerance_rad: null
+  duplicate_resolved_joint_tolerance_rad: null
+  axis_parallelism_tolerance: null
+  covariance_rank_tolerance: null
+selection:
+  strategy: multistart_greedy_one_swap_lexicographic_v1
+  reference_rotation_quaternion_xyzw: null
+  maximum_axis_parallelism: null
+  rotation_covariance_log_det: null
+  rotation_covariance_rank: null
+  nonparallel_axis_pose_ids: null
+poses: null
