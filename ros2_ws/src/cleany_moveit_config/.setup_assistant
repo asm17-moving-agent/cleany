@@ -1,0 +1,6 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: cleany_description
+    relative_path: urdf/cleany.urdf.xacro
+  srdf:
+    relative_path: config/cleany.srdf
