@@ -4,12 +4,13 @@ ROS-independent mathematical core and, in later commits, ROS adapters for
 Cleany's left wrist eye-in-hand calibration workflow.
 
 The current package contains immutable data models, frame-aware rigid
-transforms, the version-1 draft sample record, and planar ChArUco detection and
-PnP. It also provides a failure-isolated OpenCV hand-eye solver, evaluation
-metrics, bounded joint-feedback synchronization, a MoveIt feedback-FK adapter,
-position-only IK/state-validity/motion adapters, a pure feedback settle gate,
-and a motion-only MoveIt/MuJoCo launch. It does not yet collect camera data,
-orchestrate calibration poses, or publish calibration TF.
+transforms, the version-1 synchronized sample record, and planar ChArUco
+detection and PnP. It also provides a failure-isolated OpenCV hand-eye solver,
+evaluation metrics, bounded joint-feedback synchronization, a MoveIt
+feedback-FK adapter, position-only IK/state-validity/motion adapters, a pure
+feedback settle gate, exact wrist-camera acquisition, a recoverable dataset
+writer, and a motion-only MoveIt/MuJoCo launch. It does not yet orchestrate
+calibration poses or publish calibration TF.
 
 ## Transform convention
 
@@ -42,12 +43,16 @@ Rotation matrices are accepted only when all values are finite,
 - `IkResult`: mutually exclusive success or failure result
 - `TimedJointSample`: timestamped feedback positions and optional velocities
 - `CalibrationSample`: one `base_T_gripper` / `camera_T_target` pair and split
-- `CalibrationSampleRecord`: versioned draft of the synchronized dataset row
+- `CalibrationSampleRecord`: complete versioned synchronized dataset row
 
 Models copy mutable input into immutable tuples, reject duplicate joint names,
-length mismatches, invalid timestamps, and non-finite numeric values. The
-sample schema serializes to built-in dictionaries and lists so a later dataset
-writer can safely encode it as JSONL or YAML without carrying NumPy objects.
+length mismatches, invalid timestamps, and non-finite numeric values. A stored
+sample requires the canonical 12 dual-arm/gripper feedback joints, the five
+left-arm IK seed and result joints, exact image/CameraInfo stamps,
+interpolation provenance, FK and PnP transforms, and the ordered ChArUco
+correspondences used by PnP. The exact `K`, `D`, `R`, and `P` values and their
+canonical SHA-256 are kept in every row so later experiments can perturb image
+points and repeat PnP rather than perturbing a final transform.
 
 ## Planar ChArUco and PnP contract
 
@@ -187,6 +192,56 @@ applies the separate settle-stage wall-clock timeout, so paused simulation time
 cannot leave the workflow waiting forever and timeout never authorizes a
 sample.
 
+## Camera acquisition and dataset artifacts
+
+`RosExactCameraPairAdapter` copies ROS `Image` and `CameraInfo` messages into a
+ROS-independent bounded buffer. A pair is accepted only when both messages
+have the same nonzero ROS stamp and use
+`left_wrist_rgb_optical_frame`. The fixed runtime contract is RGB8 640 x 480,
+`step=1920`, `plumb_bob`, zero five-coefficient distortion, identity `R`, and:
+
+```text
+K = [227.751496, 0, 319.5,
+     0, 227.751496, 239.5,
+     0, 0, 1]
+```
+
+`P` carries the same focal lengths and principal point with zero translation.
+The focal length follows
+`fy = height / (2 * tan(vertical_fov / 2))` for the MuJoCo camera's vertical
+FOV of 93 degrees. Image dimensions, encoding, endianness, row step, payload
+length, `K`, `D`, `R`, and `P` are all checked. Acquisition returns the
+earliest compatible frame whose ROS stamp is strictly later than settle
+completion. Queue capacity is explicit, while the wait deadline uses a
+monotonic wall clock and therefore still expires if simulation time pauses.
+
+`DatasetWriter` writes to a caller-selected artifact root; the repository
+default layout is ignored by Git:
+
+```text
+artifacts/handeye/<run_id>/
+├── manifest.yaml
+├── samples.jsonl
+└── images/<sample_id>.png
+```
+
+The manifest is JSON-compatible YAML with its own hash. It records Git commit
+and dirty state; generated URDF, MJCF, and pose-manifest hashes; ROS, MoveIt,
+OpenCV, MuJoCo, `mujoco_ros2_control`, and vendor versions; the full camera and
+target contracts; board SVG/PDF hashes and size provenance; simulation,
+controller, image, and joint-state rates; every calibration parameter; and the
+random seed. Callers must supply these values explicitly.
+
+For each sample, the lossless PNG is fsynced and renamed first, then a journal
+record is fsynced, and finally a complete replacement `samples.jsonl` is
+fsynced and renamed. Reopening the writer replays a valid journal, removes an
+unreferenced image left before journal creation, and verifies row, image,
+camera, and manifest hashes. Thus a partial write cannot create a committed row
+with a missing image, and samples committed before an interruption remain
+readable. Run and sample identifiers reject traversal, dataset directories and
+images may not be symlinks, and the writer never edits URDF/Xacro or a source
+calibration profile.
+
 ## Motion-only MoveIt/MuJoCo integration
 
 `handeye_mujoco.launch.py` composes the `cleany_moveit_config` move group with
@@ -259,7 +314,9 @@ cd ros2_ws/src/cleany_handeye_calibration
 python3 -m pytest \
   test/test_joint_state_sync.py test/test_moveit_fk.py \
   test/test_motion_config.py test/test_ik_adapter.py \
-  test/test_motion_adapter.py test/test_settle_detector.py
+  test/test_motion_adapter.py test/test_settle_detector.py \
+  test/test_camera_acquisition.py test/test_ros_camera_adapter.py \
+  test/test_schema.py test/test_dataset_writer.py
 python3 -m pytest test
 cd ../..
 colcon build --symlink-install --packages-select cleany_handeye_calibration

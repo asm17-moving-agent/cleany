@@ -27,8 +27,8 @@ setup(
     maintainer='이정현',
     maintainer_email='sw292ljh@gmail.com',
     description=(
-        'Cleany hand-eye calibration core, feedback sync, and MoveIt '
-        'adapters.'
+        'Cleany hand-eye calibration math, synchronized capture, and '
+        'MoveIt adapters.'
     ),
     license='Apache-2.0',
     tests_require=['pytest'],

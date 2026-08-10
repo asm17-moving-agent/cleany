@@ -3,7 +3,7 @@
 <package format="3">
   <name>cleany_handeye_calibration</name>
   <version>0.1.0</version>
-  <description>Cleany hand-eye calibration core and MoveIt adapters.</description>
+  <description>Cleany synchronized hand-eye calibration workflow.</description>
   <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
   <license>Apache-2.0</license>
 
