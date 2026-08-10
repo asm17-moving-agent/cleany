@@ -20,11 +20,16 @@ jobs:
   build-and-unit:
     name: build-and-unit
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 15
+    container:
+      image: ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4
     env:
       DEBIAN_FRONTEND: noninteractive
       ROS_DOMAIN_ID: "42"
       ROS_HOME: /tmp/cleany-ros
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout repository
@@ -33,16 +38,17 @@ jobs:
           persist-credentials: false
           submodules: false
 
-      - name: Set up ROS 2 Humble
-        uses: ros-tooling/setup-ros@77bcad67a6cb15f6192d61464d99bbab658e4ca9 # 0.7.18
-        with:
-          required-ros-distributions: humble
+      - name: Install CI bootstrap dependencies
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends python3-pip
 
-      - name: Verify native development environment
-        shell: bash
+      - name: Verify CI environment
         run: |
           set -eo pipefail
-          test "$(lsb_release -rs)" = "22.04"
+          source /etc/os-release
+          test "${VERSION_ID}" = "22.04"
           test "$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" = "3.10"
           test -f /opt/ros/humble/setup.bash
           source /opt/ros/humble/setup.bash
@@ -55,13 +61,12 @@ jobs:
           command -v rosdep
 
       - name: Register Cleany rosdep rules
-        shell: bash
         run: |
           set -euo pipefail
           rule_file="${GITHUB_WORKSPACE}/ros2_ws/rosdep/cleany.yaml"
           test -f "${rule_file}"
           echo "yaml file://${rule_file}" \
-            | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list >/dev/null
+            > /etc/ros/rosdep/sources.list.d/10-cleany.list
           rosdep update --rosdistro humble
 
       - name: Install workspace dependencies
