@@ -83,17 +83,19 @@ ros2 action send_goal \
 성공 시 같은 snapshot을 다음 topic에도 발행한다.
 
 - `perception/objects`: `cleany_interfaces/DetectedObject3DArray`
-- `perception/debug_image`: mask와 bbox가 표시된 `sensor_msgs/Image` `rgb8`
+- `perception/debug_image`: rqt용 `BEST_EFFORT`, `VOLATILE` debug image
+- `perception/debug_image_latched`: 마지막 결과를 보관하는 `RELIABLE`,
+  `TRANSIENT_LOCAL` debug image
 
-debug image는 pipeline 전체가 성공했을 때 한 번 발행된다. 큰 one-shot image를 안정적으로
-전달하고 마지막 성공 결과를 보관하도록 `RELIABLE`, `TRANSIENT_LOCAL`, depth 1 QoS를
-사용한다. detector 또는 SAM2 단계에서 실패하면 이전 결과를 재발행하지 않는다. 이전
-결과까지 받아야 하는 구독자는 transient-local durability를 요청해야 한다. 기본 durability가
-volatile인 image viewer는 action 요청 전에 구독한다.
+debug image는 pipeline 전체가 성공했을 때 생성된다. rqt의 큰 best-effort sample 유실과
+subscriber discovery 지연을 흡수하기 위해 live topic에는 기본 0.25초 간격으로 총 5회 같은
+snapshot을 제한 재발행한다. 횟수와 간격은 `debug_republish_count`와
+`debug_republish_period_seconds`로 조정한다. latched topic은 마지막 성공 결과 한 장만
+보관한다. detector 또는 SAM2 단계에서 실패하면 이전 결과를 재발행하지 않는다.
 
 ```bash
 ros2 topic echo /perception/objects --once
-ros2 topic echo /perception/debug_image --once --field encoding \
+ros2 topic echo /perception/debug_image_latched --once --field encoding \
   --qos-reliability reliable --qos-durability transient_local
 ```
 

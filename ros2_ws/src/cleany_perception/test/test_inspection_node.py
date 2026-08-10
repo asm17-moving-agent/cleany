@@ -124,6 +124,8 @@ def _make_node(scene, events=None):
         Parameter('plane_distance_threshold_m', value=0.001),
         Parameter('plane_minimum_inliers', value=100),
         Parameter('plane_minimum_inlier_ratio', value=0.9),
+        Parameter('debug_republish_count', value=5),
+        Parameter('debug_republish_period_seconds', value=0.05),
     ]
     return InspectionNode(
         detector=_Detector(scene['detection'], events),
@@ -152,11 +154,18 @@ def test_inspection_action_publishes_objects_debug_and_feedback(
             '/perception/inspect_scene',
         )
         objects = []
+        live_debug_images = []
         client_node.create_subscription(
             DetectedObject3DArray,
             '/perception/objects',
             objects.append,
             10,
+        )
+        client_node.create_subscription(
+            Image,
+            '/perception/debug_image',
+            live_debug_images.append,
+            qos_profile_sensor_data,
         )
         color_publisher = client_node.create_publisher(
             Image,
@@ -223,15 +232,18 @@ def test_inspection_action_publishes_objects_debug_and_feedback(
         assert [item.label for item in result.objects.objects] == ['box']
         assert _wait_until(lambda: bool(objects))
         assert objects[0].snapshot_id == result.objects.snapshot_id
-        debug_images = []
+        latched_debug_images = []
         client_node.create_subscription(
             Image,
-            '/perception/debug_image',
-            debug_images.append,
+            '/perception/debug_image_latched',
+            latched_debug_images.append,
             _LATE_DEBUG_SUBSCRIBER_QOS,
         )
-        assert _wait_until(lambda: bool(debug_images))
-        assert debug_images[0].encoding == 'rgb8'
+        assert _wait_until(lambda: bool(latched_debug_images))
+        assert latched_debug_images[0].encoding == 'rgb8'
+
+        assert _wait_until(lambda: len(live_debug_images) >= 2)
+        assert live_debug_images[0].encoding == 'rgb8'
         assert _wait_until(lambda: len(feedback_stages) == 5)
         assert feedback_stages == [
             InspectScene.Feedback.STAGE_WAITING_FOR_RGBD,

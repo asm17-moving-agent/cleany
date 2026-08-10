@@ -3,6 +3,9 @@ perception_inspector:
     action_name: perception/inspect_scene
     objects_topic: perception/objects
     debug_image_topic: perception/debug_image
+    latched_debug_image_topic: perception/debug_image_latched
+    debug_republish_count: 5
+    debug_republish_period_seconds: 0.25
     color_image_topic: camera/color/image_raw
     color_info_topic: camera/color/camera_info
     depth_image_topic: camera/depth/image_raw
