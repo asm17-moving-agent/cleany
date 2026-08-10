@@ -3,14 +3,23 @@
 <package format="3">
   <name>cleany_handeye_calibration</name>
   <version>0.1.0</version>
-  <description>Frame-safe mathematical core for Cleany hand-eye calibration.</description>
+  <description>Cleany hand-eye calibration core and motion integration.</description>
   <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
   <license>Apache-2.0</license>
 
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>cleany_moveit_config</exec_depend>
+  <exec_depend>cleany_mujoco_sim</exec_depend>
+  <exec_depend>launch</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-opencv</exec_depend>
 
+  <test_depend>action_msgs</test_depend>
+  <test_depend>control_msgs</test_depend>
+  <test_depend>moveit_msgs</test_depend>
   <test_depend>python3-pytest</test_depend>
+  <test_depend>rclpy</test_depend>
+  <test_depend>sensor_msgs</test_depend>
 
   <export>
     <build_type>ament_python</build_type>
