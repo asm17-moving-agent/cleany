@@ -22,6 +22,11 @@ if(BUILD_TESTING)
     moveit_config_contract
     test/test_moveit_config.py
   )
+  ament_add_pytest_test(
+    mock_planning_runtime
+    test/test_mock_planning_runtime.py
+    TIMEOUT 240
+  )
 endif()
 
 ament_package()

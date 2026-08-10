@@ -214,3 +214,35 @@ def test_moveit_controllers_claim_disjoint_side_joints() -> None:
         assert f'{side}_gripper_joint' not in controller['joints']
         claimed.append(set(controller['joints']))
     assert claimed[0].isdisjoint(claimed[1])
+
+
+def test_mock_ros2_control_matches_moveit_controller_contract() -> None:
+    controllers = _load_yaml('mock_ros2_controllers.yaml')
+    manager = controllers['controller_manager']['ros__parameters']
+    assert manager['joint_state_broadcaster']['type'] == (
+        'joint_state_broadcaster/JointStateBroadcaster'
+    )
+
+    for side in SIDES:
+        name = f'{side}_arm_controller'
+        assert manager[name]['type'] == (
+            'joint_trajectory_controller/JointTrajectoryController'
+        )
+        parameters = controllers[name]['ros__parameters']
+        assert tuple(parameters['joints']) == _arm_joints(side)
+        assert parameters['command_interfaces'] == ['position']
+        assert parameters['state_interfaces'] == ['position', 'velocity']
+        assert parameters['allow_partial_joints_goal'] is False
+        assert parameters['allow_nonzero_velocity_at_trajectory_end'] is False
+
+    mock_root = ET.parse(CONFIG_ROOT / 'cleany_mock.urdf.xacro').getroot()
+    plugin = mock_root.find('.//hardware/plugin')
+    assert plugin is not None
+    assert plugin.text == 'mock_components/GenericSystem'
+    configured_mock_joints = {
+        element.attrib['joint_name']
+        for element in mock_root.iter()
+        if element.tag.endswith('cleany_mock_joint')
+        and 'joint_name' in element.attrib
+    }
+    assert configured_mock_joints == _all_modeled_joints()
