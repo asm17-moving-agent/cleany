@@ -17,8 +17,10 @@ def test_harmonic_world_uses_gz_sim_and_ogre2():
     names = {plugin.attrib['name'] for plugin in plugins}
 
     assert 'gz-sim-sensors-system' in filenames
+    assert 'gz-sim-imu-system' in filenames
     assert 'gz-sim-mecanum-drive-system' in filenames
     assert 'gz::sim::systems::Sensors' in names
+    assert 'gz::sim::systems::Imu' in names
     assert all(not filename.startswith('ignition-gazebo-') for filename in filenames)
 
     sensor_system = root.find(
@@ -87,6 +89,27 @@ def test_harmonic_world_contains_rplidar_candidate():
     assert sensor.findtext('lidar/range/max') == '12.0'
 
 
+def test_harmonic_world_contains_base_imu():
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    model = root.find("./world/model[@name='cleany_mecanum']")
+    assert model is not None
+
+    mount = model.find("joint[@name='imu_mount']")
+    sensor = model.find("link[@name='imu_link']/sensor[@name='base_imu']")
+    assert mount is not None
+    assert mount.findtext('parent') == 'base_link'
+    assert mount.findtext('child') == 'imu_link'
+    assert mount.findtext('pose') == '0 0 0 0 0 0'
+    assert sensor is not None
+    assert sensor.attrib['type'] == 'imu'
+    assert sensor.findtext('topic') == '/model/cleany_mecanum/imu'
+    assert sensor.findtext('always_on') == 'true'
+    assert sensor.findtext('update_rate') == '50'
+    assert sensor.findtext('gz_frame_id') == 'imu_link'
+    assert sensor.find('imu') is not None
+    assert sensor.find('.//noise') is None
+
+
 def test_harmonic_launch_and_bridges_are_version_isolated():
     launch = LAUNCH_PATH.read_text(encoding='utf-8')
     bridge = BRIDGE_PATH.read_text(encoding='utf-8')
@@ -100,3 +123,7 @@ def test_harmonic_launch_and_bridges_are_version_isolated():
     assert 'gz.msgs.' in bridge
     assert 'ignition.msgs.' not in bridge
     assert 'gz.msgs.LaserScan' in lidar_bridge
+    assert 'ros_topic_name: "/imu/data"' in bridge
+    assert 'gz_topic_name: "/model/cleany_mecanum/imu"' in bridge
+    assert 'ros_type_name: "sensor_msgs/msg/Imu"' in bridge
+    assert 'gz_type_name: "gz.msgs.IMU"' in bridge

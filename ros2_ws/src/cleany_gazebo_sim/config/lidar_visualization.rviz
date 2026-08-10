@@ -6,6 +6,9 @@ Panels:
 Visualization Manager:
   Class: ""
   Displays:
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
     - Class: rviz_default_plugins/LaserScan
       Enabled: true
       Name: RPLIDAR Scan
@@ -18,7 +21,7 @@ Visualization Manager:
         Value: /scan
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: lidar_link
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Views:

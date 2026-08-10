@@ -255,10 +255,9 @@ ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py headless:=false
 ```
 
 Harmonic profile은 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 사용한다.
-렌더링 sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용한다. camera, LiDAR와
-RViz 사용법은
-[`cleany_gazebo_sim` README](../ros2_ws/src/cleany_gazebo_sim/README.md)의 Harmonic
-절을 따른다.
+렌더링 sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용한다. Harmonic world의
+rendering sensor는 구독 전까지 비활성화할 수 있지만, 기본 bridge는 모든 sensor
+topic을 bridge한다.
 
 ## 8. 선택 개발도구
 
@@ -312,6 +311,27 @@ ros2 pkg prefix ros_gz_bridge
 기대값은 Ubuntu `22.04`, Python `3.10.x`, ROS `humble`, Ignition Gazebo major
 version `6`이다. 다른 ROS 배포판에서 생성된 `build/`, `install/`, `log/`를 복사하거나
 재사용하지 않는다.
+
+### Gazebo rendering sensor 또는 GUI가 시작하지 않는 경우
+
+Camera와 GPU LiDAR는 headless server에서도 rendering context를 필요로 한다.
+Fortress의 `ign gazebo -s`는 GUI만 끄며 rendering sensor를 CPU-only sensor로
+바꾸지 않는다. 먼저 실행 환경 안에서 display와 ROS/Gazebo package를 확인한다.
+
+```bash
+echo "${DISPLAY}"
+ros2 pkg prefix ros_gz_sim
+ros2 pkg prefix ros_gz_bridge
+```
+
+GPU driver 또는 OpenGL 문제를 구분해야 할 때만 software rendering으로 재현한다.
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
+```
+
+이 설정은 진단용 저속 fallback이며 표준 실행 설정이 아니다. Harmonic에서는
+headless server가 OGRE2, GUI가 OGRE1을 사용한다.
 
 ## 참고 자료
 
