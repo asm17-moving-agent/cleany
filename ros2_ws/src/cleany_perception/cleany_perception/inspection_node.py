@@ -79,7 +79,7 @@ _STAGE_CODES = {
 }
 
 
-_DEBUG_IMAGE_QOS = QoSProfile(
+_LATCHED_DEBUG_IMAGE_QOS = QoSProfile(
     history=HistoryPolicy.KEEP_LAST,
     depth=1,
     reliability=ReliabilityPolicy.RELIABLE,
@@ -104,6 +104,16 @@ class InspectionNode(Node):
         self._depth_16u_scale_m = float(
             self.get_parameter('depth_16u_scale_m').value
         )
+        self._debug_republish_count = int(
+            self.get_parameter('debug_republish_count').value
+        )
+        self._debug_republish_period_seconds = float(
+            self.get_parameter('debug_republish_period_seconds').value
+        )
+        if self._debug_republish_count < 1:
+            raise ValueError('Debug republish count must be at least one')
+        if self._debug_republish_period_seconds <= 0.0:
+            raise ValueError('Debug republish period must be positive')
         target_frame = str(self.get_parameter('target_frame').value)
         self._target_frame = target_frame
 
@@ -158,7 +168,19 @@ class InspectionNode(Node):
         self._debug_publisher = self.create_publisher(
             Image,
             str(self.get_parameter('debug_image_topic').value),
-            _DEBUG_IMAGE_QOS,
+            qos_profile_sensor_data,
+        )
+        self._latched_debug_publisher = self.create_publisher(
+            Image,
+            str(self.get_parameter('latched_debug_image_topic').value),
+            _LATCHED_DEBUG_IMAGE_QOS,
+        )
+        self._debug_lock = threading.Lock()
+        self._debug_message = None
+        self._debug_republishes_remaining = 0
+        self._debug_timer = self.create_timer(
+            self._debug_republish_period_seconds,
+            self._republish_debug_image,
         )
         self._busy_lock = threading.Lock()
         self._busy = False
@@ -180,6 +202,12 @@ class InspectionNode(Node):
         self.declare_parameter('action_name', 'perception/inspect_scene')
         self.declare_parameter('objects_topic', 'perception/objects')
         self.declare_parameter('debug_image_topic', 'perception/debug_image')
+        self.declare_parameter(
+            'latched_debug_image_topic',
+            'perception/debug_image_latched',
+        )
+        self.declare_parameter('debug_republish_count', 5)
+        self.declare_parameter('debug_republish_period_seconds', 0.25)
         self.declare_parameter('color_image_topic', 'camera/color/image_raw')
         self.declare_parameter('color_info_topic', 'camera/color/camera_info')
         self.declare_parameter('depth_image_topic', 'camera/depth/image_raw')
@@ -353,12 +381,12 @@ class InspectionNode(Node):
                 output.detections,
                 output.masks,
             )
-            self._debug_publisher.publish(
+            self._publish_debug_image(
                 debug_image_message(
                     debug_rgb,
                     snapshot.stamp_ns,
                     messages.color.header.frame_id,
-                )
+                ),
             )
             goal_handle.succeed()
             return result
@@ -380,6 +408,26 @@ class InspectionNode(Node):
         finally:
             with self._busy_lock:
                 self._busy = False
+
+    def _publish_debug_image(self, message: Image) -> None:
+        self._debug_publisher.publish(message)
+        self._latched_debug_publisher.publish(message)
+        with self._debug_lock:
+            self._debug_message = message
+            self._debug_republishes_remaining = (
+                self._debug_republish_count - 1
+            )
+
+    def _republish_debug_image(self) -> None:
+        with self._debug_lock:
+            if (
+                self._debug_message is None
+                or self._debug_republishes_remaining <= 0
+            ):
+                return
+            message = self._debug_message
+            self._debug_republishes_remaining -= 1
+        self._debug_publisher.publish(message)
 
     def _lookup_capture_transform(
         self,
