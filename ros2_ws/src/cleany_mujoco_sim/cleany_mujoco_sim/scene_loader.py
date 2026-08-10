@@ -14,7 +14,15 @@ from ament_index_python.packages import (
     get_package_share_directory,
 )
 
+from cleany_mujoco_sim.camera_contract import (
+    CAMERA_FOVY_DEG,
+    CAMERA_HEIGHT,
+    CAMERA_NAME,
+    CAMERA_WIDTH,
+)
+
 _SCENE_MODEL_TOKEN = '@CLEANY_MJCF_PATH@'
+_HANDEYE_CAMERA_CONTRACT_TOKEN = '@CLEANY_HANDEYE_CAMERA_CONTRACT@'
 _DESCRIPTION_MESHDIR = 'meshdir="../meshes/"'
 _MATERIALIZED_DIRECTORIES: list[Path] = []
 _CONTROL_INITIAL_KEYFRAME = 'handeye_ros2_control_home'
@@ -101,6 +109,15 @@ def _materialize_scene(
             f'Cleany mesh directory not found: {description_meshes}'
         )
 
+    scene_text = template_path.read_text(encoding='utf-8')
+    if _SCENE_MODEL_TOKEN not in scene_text:
+        raise ValueError(
+            f'MuJoCo scene template is missing {_SCENE_MODEL_TOKEN}'
+        )
+    apply_handeye_camera_contract = (
+        _HANDEYE_CAMERA_CONTRACT_TOKEN in scene_text
+    )
+
     materialized_dir = Path(
         tempfile.mkdtemp(prefix='cleany_mujoco_scene_')
     )
@@ -130,13 +147,10 @@ def _materialize_scene(
             f'meshdir="{absolute_meshdir}"',
             1,
         )
+    if apply_handeye_camera_contract:
+        materialized_model = _handeye_camera_model_text(materialized_model)
     model_path.write_text(materialized_model, encoding='utf-8')
 
-    scene_text = template_path.read_text(encoding='utf-8')
-    if _SCENE_MODEL_TOKEN not in scene_text:
-        raise ValueError(
-            f'MuJoCo scene template is missing {_SCENE_MODEL_TOKEN}'
-        )
     model_include_path = html.escape(str(model_path.resolve()), quote=True)
     scene_text = scene_text.replace(
         _SCENE_MODEL_TOKEN,
@@ -146,10 +160,51 @@ def _materialize_scene(
         raise ValueError(
             f'Unresolved MuJoCo scene token: {_SCENE_MODEL_TOKEN}'
         )
+    scene_text = scene_text.replace(
+        _HANDEYE_CAMERA_CONTRACT_TOKEN,
+        (
+            f'{CAMERA_NAME}:{CAMERA_WIDTH}x{CAMERA_HEIGHT}'
+            f'@fovy{CAMERA_FOVY_DEG:g}'
+        ),
+    )
 
     scene_path = materialized_dir / template_path.name.removesuffix('.in')
     scene_path.write_text(scene_text, encoding='utf-8')
     return scene_path
+
+
+def _handeye_camera_model_text(model_text: str) -> str:
+    """Patch only the temporary hand-eye include for the release renderer."""
+
+    root = ET.fromstring(model_text)
+    cameras = root.findall(f".//camera[@name='{CAMERA_NAME}']")
+    if len(cameras) != 1:
+        raise ValueError(
+            f'Cleany MJCF must define exactly one {CAMERA_NAME} camera'
+        )
+    camera = cameras[0]
+    try:
+        source_fovy = float(camera.attrib['fovy'])
+    except (KeyError, ValueError) as error:
+        raise ValueError(
+            f'{CAMERA_NAME} must declare a numeric fovy'
+        ) from error
+    if source_fovy != CAMERA_FOVY_DEG:
+        raise ValueError(
+            f'{CAMERA_NAME} fovy changed: expected {CAMERA_FOVY_DEG}, '
+            f'got {source_fovy}'
+        )
+    source_resolution = camera.attrib.get('resolution')
+    expected_resolution = f'{CAMERA_WIDTH} {CAMERA_HEIGHT}'
+    if source_resolution not in (None, expected_resolution):
+        raise ValueError(
+            f'{CAMERA_NAME} resolution changed: expected '
+            f'{expected_resolution}, got {source_resolution}'
+        )
+    camera.set('fovy', f'{CAMERA_FOVY_DEG:g}')
+    camera.set('resolution', expected_resolution)
+    ET.indent(root, space='  ')
+    return ET.tostring(root, encoding='unicode') + '\n'
 
 
 def _control_compatible_model_text(

@@ -40,6 +40,11 @@ optical frames are intentionally absent from the URDF; the active calibration
 profile owns those transforms. MuJoCo nevertheless carries matching optical
 sites, and Gazebo image messages use the corresponding frame names.
 
+`cleany_control.urdf.xacro` registers the `left_wrist_rgb` MJCF camera as a
+`ros2_control` sensor for the hand-eye MuJoCo backend. Its vendor topic names
+and 10 Hz render rate are consumed by Humble `mujoco_ros2_control` 0.0.3; the
+simulation package launch owns remapping and the public camera contract.
+
 Publish the description:
 
 ```bash

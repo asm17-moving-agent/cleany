@@ -12,6 +12,33 @@ scene:
     height: 480
     camera_name: left_wrist_rgb
     fovy_deg: 93.0
+    publish_rate_hz: 10.0
+    implementation:
+      ros_package: mujoco_ros2_control
+      release_version: 0.0.3
+      release_api: mujoco_ros2_control::MujocoCameras
+      camera_plugin_available: false
+      registration_source: ros2_control_hardware_info_sensor
+    model:
+      frame_id: left_wrist_rgb_optical_frame
+      distortion_model: plumb_bob
+      focal_length_formula: "fy=(height/2)/tan(fovy_deg*pi/360); fx=fy; cx=(width-1)/2; cy=(height-1)/2"
+      D: [0.0, 0.0, 0.0, 0.0, 0.0]
+      K: [227.751496, 0.0, 319.5, 0.0, 227.751496, 239.5, 0.0, 0.0, 1.0]
+      R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+      P: [227.751496, 0.0, 319.5, 0.0, 0.0, 227.751496, 239.5, 0.0, 0.0, 0.0, 1.0, 0.0]
+    topics:
+      vendor:
+        image: /left_wrist_rgb/color
+        camera_info: /left_wrist_rgb/camera_info
+        depth: /left_wrist_rgb/depth
+      internal:
+        image: /cleany/internal/mujoco/left_wrist_camera/image_raw
+        camera_info: /cleany/internal/mujoco/left_wrist_camera/camera_info
+        depth: /cleany/internal/mujoco/left_wrist_camera/depth
+      public:
+        image: /left_wrist_camera/image_raw
+        camera_info: /left_wrist_camera/camera_info
 
 target:
   type: charuco
@@ -95,3 +122,17 @@ planning_scene:
     - handeye_table
     - handeye_target_stand
     - charuco_target
+
+evaluation_ground_truth:
+  camera_transform:
+    semantics: left_gripper_T_left_wrist_rgb_optical
+    parent_frame: left_gripper_frame
+    child_frame: left_wrist_rgb_optical_frame
+    translation_m: [-0.0038719694021754573, -0.013670040655146537, 0.06494003059774991]
+    quaternion_xyzw: [0.5949693893311951, 0.5978595213511846, -0.37757544425913087, 0.3821154307027095]
+    source: compiled_mujoco_body_to_site_transform
+    mujoco_parent_body: Fixed_Jaw
+    mujoco_child_site: left_wrist_rgb_optical_frame
+    evaluation_only: true
+    allowed_for_solver_input: false
+    published_to_tf: false

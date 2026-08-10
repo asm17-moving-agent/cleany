@@ -34,6 +34,10 @@ setup(
                 'handeye_scene_preflight = '
                 'cleany_mujoco_sim.scene_manifest:main'
             ),
+            (
+                'camera_contract_adapter = '
+                'cleany_mujoco_sim.camera_contract_adapter:main'
+            ),
         ],
     },
 )
