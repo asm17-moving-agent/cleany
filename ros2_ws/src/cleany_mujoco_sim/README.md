@@ -39,6 +39,30 @@ ros2 launch cleany_mujoco_sim handeye_backend.launch.py \
   headless:=true sim_speed_factor:=1.0
 ```
 
+이 backend의 기본값은 `scenes/handeye.xml.in`이다. 전용 scene은 canonical MJCF를
+그대로 include하고 `chassis`를 world에 weld하며, 고정 table/stand와
+7×5 ChArUco target을 추가한다. 기존 `mujoco_sim.launch.py`와 custom simulator의
+기본 `scenes/default.xml.in` 경로는 그대로 유지된다.
+
+Scene 계약과 printable board provenance는
+`config/handeye_scene.yaml` (`cleany.handeye_scene/v1`)에 기록한다. Simulation은
+30 mm square/15 mm marker nominal 값을 사용한다. Physical profile의 실측값은 현재
+`not_measured`/`null`이며 임의 수치로 대체하지 않는다. 실제 인쇄물을 100% scale,
+page fitting 비활성화로 출력하고 실측 provenance를 채우기 전에는 physical
+preflight가 실패한다.
+
+```bash
+ros2 run cleany_mujoco_sim handeye_scene_preflight --profile simulation
+# 실측값 기록 전에는 의도적으로 exit 2
+ros2 run cleany_mujoco_sim handeye_scene_preflight --profile physical
+```
+
+Printable SVG/PDF는 OpenCV 4.5.4 `CharucoBoard`의 7×5,
+`DICT_5X5_100`, marker IDs 0–16 패턴을 같은 lossless vector run으로 표현한다.
+파일별 SHA-256과 210×150 mm media 크기는 manifest에 고정되어 있다. Target GT는
+OpenCV 4.5 object frame(인쇄면 좌하단 원점, +X 오른쪽, +Y 위, +Z 인쇄면 밖)의
+`base_T_target`이며 평가 전용이다. PnP 후보 선택이나 solver 입력에는 사용하지 않는다.
+
 전용 raw action/runtime 계약은 다음으로 검증한다.
 
 ```bash
@@ -161,7 +185,7 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 `handeye_backend.launch.py`는 다음 launch argument를 제공한다.
 
 - `scene_path`: control용 MuJoCo scene XML 또는 `.xml.in` template. 기본값은
-  `scenes/default.xml.in`
+  `scenes/handeye.xml.in`
 - `headless`: native viewer 비활성화 여부. 기본값 `true`
 - `sim_speed_factor`: wall time 대비 simulation speed. 기본값 `1.0`
 

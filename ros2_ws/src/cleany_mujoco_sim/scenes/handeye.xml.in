@@ -1,0 +1,713 @@
+<mujoco model="cleany_handeye_scene">
+  <include file="@CLEANY_MJCF_PATH@"/>
+
+  <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"
+          noslip_iterations="5">
+    <flag multiccd="enable"/>
+  </option>
+
+  <statistic center="0.35 0.1 0.48" extent="1.15"/>
+
+  <visual>
+    <headlight active="0"/>
+    <rgba haze="0.12 0.16 0.20 1"/>
+    <global azimuth="135" elevation="-22" offwidth="640" offheight="480"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" name="handeye_skybox" builtin="gradient"
+             rgb1="0.34 0.40 0.48" rgb2="0.08 0.10 0.14"
+             width="512" height="3072"/>
+    <texture type="2d" name="handeye_floor_texture" builtin="checker"
+             rgb1="0.18 0.18 0.18" rgb2="0.24 0.24 0.24"
+             width="256" height="256"/>
+    <material name="handeye_floor_material" texture="handeye_floor_texture"
+              texuniform="true" texrepeat="6 6" reflectance="0.05"/>
+    <material name="handeye_table_material" rgba="0.28 0.30 0.32 1"
+              specular="0.05" shininess="0.1"/>
+    <material name="handeye_stand_material" rgba="0.12 0.14 0.16 1"
+              specular="0.1" shininess="0.2"/>
+    <material name="charuco_white" rgba="1 1 1 1"
+              specular="0" shininess="0"/>
+    <material name="charuco_black" rgba="0.005 0.005 0.005 1"
+              specular="0" shininess="0"/>
+  </asset>
+
+  <worldbody>
+    <light name="handeye_key_light" pos="0.25 -0.35 1.65"
+           dir="0.2 0.25 -1" directional="true"
+           diffuse="0.78 0.78 0.78" specular="0.05 0.05 0.05"/>
+    <light name="handeye_fill_light" pos="0.80 0.65 1.15"
+           dir="-0.3 -0.25 -1" directional="true"
+           diffuse="0.35 0.35 0.35" specular="0 0 0"/>
+    <geom name="handeye_floor" type="plane" size="0 0 0.05"
+          material="handeye_floor_material" contype="1" conaffinity="1"/>
+
+    <!-- All fixture bodies omit joints and are therefore fixed to world. -->
+    <body name="handeye_table" pos="0.68 0.18 0.48">
+      <geom name="handeye_table_top" type="box" size="0.30 0.35 0.02"
+            material="handeye_table_material" contype="1" conaffinity="1"/>
+    </body>
+    <body name="handeye_target_stand">
+      <geom name="handeye_stand_base" type="box" pos="0.69 0.18 0.51"
+            size="0.10 0.15 0.01" material="handeye_stand_material"
+            contype="1" conaffinity="1"/>
+      <geom name="handeye_stand_post" type="box" pos="0.69 0.18 0.61"
+            size="0.025 0.025 0.09" material="handeye_stand_material"
+            contype="1" conaffinity="1"/>
+      <geom name="handeye_stand_crossbar" type="box" pos="0.69 0.18 0.70"
+            size="0.035 0.12 0.015" material="handeye_stand_material"
+            contype="1" conaffinity="1"/>
+    </body>
+
+    <!-- target frame: OpenCV 4.5 +X right, +Y up, +Z out of the printed face. -->
+    <body name="charuco_target" pos="0.65 0.285 0.705"
+          quat="0.5 0.5 -0.5 -0.5">
+      <site name="charuco_target_frame" type="sphere" size="0.002"
+            rgba="0 0.7 1 0.4"/>
+      <geom name="charuco_target_backing" type="box"
+            pos="0.105 0.075 -0.003" size="0.105 0.075 0.003"
+            material="charuco_white" contype="1" conaffinity="1"/>
+      <!-- Black surface runs vectorized from the printable OpenCV board. -->
+      <geom name="charuco_ink_000" type="box"
+            pos="0.015 0.135 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_001" type="box"
+            pos="0.075 0.135 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_002" type="box"
+            pos="0.135 0.135 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_003" type="box"
+            pos="0.195 0.135 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_004" type="box"
+            pos="0.045 0.141375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_005" type="box"
+            pos="0.105 0.141375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_006" type="box"
+            pos="0.165 0.141375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_007" type="box"
+            pos="0.038625 0.1392 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_008" type="box"
+            pos="0.0429 0.1392 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_009" type="box"
+            pos="0.04935 0.1392 0.0001" size="0.00315 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_010" type="box"
+            pos="0.1029 0.1392 0.0001" size="0.0054 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_011" type="box"
+            pos="0.11145 0.1392 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_012" type="box"
+            pos="0.158625 0.13815 0.0001" size="0.001125 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_013" type="box"
+            pos="0.165075 0.1392 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_014" type="box"
+            pos="0.1704 0.13815 0.0001" size="0.0021 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_015" type="box"
+            pos="0.039675 0.135975 0.0001" size="0.002175 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_016" type="box"
+            pos="0.045075 0.1371 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_017" type="box"
+            pos="0.05145 0.1371 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_018" type="box"
+            pos="0.098625 0.1371 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_019" type="box"
+            pos="0.108225 0.1371 0.0001" size="0.004275 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_020" type="box"
+            pos="0.04935 0.134925 0.0001" size="0.00315 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_021" type="box"
+            pos="0.1029 0.134925 0.0001" size="0.0054 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_022" type="box"
+            pos="0.11145 0.133875 0.0001" size="0.00105 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_023" type="box"
+            pos="0.16185 0.134925 0.0001" size="0.00435 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_024" type="box"
+            pos="0.17145 0.134925 0.0001" size="0.00105 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_025" type="box"
+            pos="0.038625 0.1317 0.0001" size="0.001125 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_026" type="box"
+            pos="0.0429 0.13275 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_027" type="box"
+            pos="0.04725 0.13275 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_028" type="box"
+            pos="0.05145 0.13275 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_029" type="box"
+            pos="0.098625 0.13275 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_030" type="box"
+            pos="0.1029 0.13275 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_031" type="box"
+            pos="0.158625 0.1317 0.0001" size="0.001125 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_032" type="box"
+            pos="0.1629 0.13275 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_033" type="box"
+            pos="0.1704 0.13275 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_034" type="box"
+            pos="0.04935 0.13065 0.0001" size="0.00315 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_035" type="box"
+            pos="0.100725 0.13065 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_036" type="box"
+            pos="0.1104 0.13065 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_037" type="box"
+            pos="0.16725 0.13065 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_038" type="box"
+            pos="0.17145 0.13065 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_039" type="box"
+            pos="0.045 0.12855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_040" type="box"
+            pos="0.105 0.12855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_041" type="box"
+            pos="0.165 0.12855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_042" type="box"
+            pos="0.045 0.105 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_043" type="box"
+            pos="0.105 0.105 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_044" type="box"
+            pos="0.165 0.105 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_045" type="box"
+            pos="0.015 0.111375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_046" type="box"
+            pos="0.075 0.111375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_047" type="box"
+            pos="0.135 0.111375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_048" type="box"
+            pos="0.195 0.111375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_049" type="box"
+            pos="0.008625 0.1092 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_050" type="box"
+            pos="0.017175 0.1092 0.0001" size="0.005325 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_051" type="box"
+            pos="0.068625 0.10815 0.0001" size="0.001125 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_052" type="box"
+            pos="0.075075 0.1092 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_053" type="box"
+            pos="0.0804 0.1092 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_054" type="box"
+            pos="0.128625 0.1092 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_055" type="box"
+            pos="0.13725 0.1092 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_056" type="box"
+            pos="0.14145 0.1092 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_057" type="box"
+            pos="0.189675 0.1092 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_058" type="box"
+            pos="0.19725 0.1092 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_059" type="box"
+            pos="0.20145 0.105975 0.0001" size="0.00105 0.004275 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_060" type="box"
+            pos="0.010725 0.105975 0.0001" size="0.003225 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_061" type="box"
+            pos="0.02145 0.103875 0.0001" size="0.00105 0.004275 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_062" type="box"
+            pos="0.07725 0.105975 0.0001" size="0.00105 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_063" type="box"
+            pos="0.08145 0.104925 0.0001" size="0.00105 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_064" type="box"
+            pos="0.129675 0.1071 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_065" type="box"
+            pos="0.138225 0.1071 0.0001" size="0.004275 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_066" type="box"
+            pos="0.190725 0.1071 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_067" type="box"
+            pos="0.01725 0.104925 0.0001" size="0.00105 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_068" type="box"
+            pos="0.069675 0.103875 0.0001" size="0.002175 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_069" type="box"
+            pos="0.13185 0.104925 0.0001" size="0.00435 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_070" type="box"
+            pos="0.1404 0.104925 0.0001" size="0.0021 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_071" type="box"
+            pos="0.188625 0.103875 0.0001" size="0.001125 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_072" type="box"
+            pos="0.1929 0.104925 0.0001" size="0.00105 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_073" type="box"
+            pos="0.19725 0.104925 0.0001" size="0.00105 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_074" type="box"
+            pos="0.009675 0.10275 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_075" type="box"
+            pos="0.076125 0.10275 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_076" type="box"
+            pos="0.1329 0.10275 0.0001" size="0.0054 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_077" type="box"
+            pos="0.14145 0.1017 0.0001" size="0.00105 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_078" type="box"
+            pos="0.008625 0.10065 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_079" type="box"
+            pos="0.0129 0.10065 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_080" type="box"
+            pos="0.070725 0.10065 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_081" type="box"
+            pos="0.07935 0.10065 0.0001" size="0.00315 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_082" type="box"
+            pos="0.129675 0.10065 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_083" type="box"
+            pos="0.13725 0.10065 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_084" type="box"
+            pos="0.189675 0.10065 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_085" type="box"
+            pos="0.19935 0.10065 0.0001" size="0.00315 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_086" type="box"
+            pos="0.015 0.09855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_087" type="box"
+            pos="0.075 0.09855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_088" type="box"
+            pos="0.135 0.09855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_089" type="box"
+            pos="0.195 0.09855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_090" type="box"
+            pos="0.015 0.075 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_091" type="box"
+            pos="0.075 0.075 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_092" type="box"
+            pos="0.135 0.075 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_093" type="box"
+            pos="0.195 0.075 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_094" type="box"
+            pos="0.045 0.081375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_095" type="box"
+            pos="0.105 0.081375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_096" type="box"
+            pos="0.165 0.081375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_097" type="box"
+            pos="0.039675 0.0792 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_098" type="box"
+            pos="0.0504 0.0792 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_099" type="box"
+            pos="0.098625 0.077025 0.0001" size="0.001125 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_100" type="box"
+            pos="0.107175 0.0792 0.0001" size="0.005325 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_101" type="box"
+            pos="0.158625 0.0792 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_102" type="box"
+            pos="0.164025 0.0792 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_103" type="box"
+            pos="0.17145 0.0792 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_104" type="box"
+            pos="0.040725 0.075975 0.0001" size="0.003225 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_105" type="box"
+            pos="0.04935 0.0771 0.0001" size="0.00315 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_106" type="box"
+            pos="0.105075 0.0771 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_107" type="box"
+            pos="0.1104 0.0771 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_108" type="box"
+            pos="0.16185 0.0771 0.0001" size="0.00435 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_109" type="box"
+            pos="0.1704 0.0771 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_110" type="box"
+            pos="0.04725 0.074925 0.0001" size="0.00105 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_111" type="box"
+            pos="0.05145 0.072825 0.0001" size="0.00105 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_112" type="box"
+            pos="0.108225 0.074925 0.0001" size="0.004275 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_113" type="box"
+            pos="0.159675 0.074925 0.0001" size="0.002175 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_114" type="box"
+            pos="0.17145 0.072825 0.0001" size="0.00105 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_115" type="box"
+            pos="0.04185 0.07275 0.0001" size="0.00435 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_116" type="box"
+            pos="0.099675 0.07275 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_117" type="box"
+            pos="0.106125 0.07275 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_118" type="box"
+            pos="0.11145 0.07275 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_119" type="box"
+            pos="0.158625 0.07275 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_120" type="box"
+            pos="0.16725 0.0717 0.0001" size="0.00105 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_121" type="box"
+            pos="0.039675 0.07065 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_122" type="box"
+            pos="0.045075 0.07065 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_123" type="box"
+            pos="0.098625 0.07065 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_124" type="box"
+            pos="0.104025 0.07065 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_125" type="box"
+            pos="0.1104 0.07065 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_126" type="box"
+            pos="0.160725 0.07065 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_127" type="box"
+            pos="0.045 0.06855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_128" type="box"
+            pos="0.105 0.06855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_129" type="box"
+            pos="0.165 0.06855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_130" type="box"
+            pos="0.045 0.045 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_131" type="box"
+            pos="0.105 0.045 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_132" type="box"
+            pos="0.165 0.045 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_133" type="box"
+            pos="0.015 0.051375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_134" type="box"
+            pos="0.075 0.051375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_135" type="box"
+            pos="0.135 0.051375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_136" type="box"
+            pos="0.195 0.051375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_137" type="box"
+            pos="0.008625 0.045975 0.0001" size="0.001125 0.004275 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_138" type="box"
+            pos="0.014025 0.0492 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_139" type="box"
+            pos="0.02145 0.047025 0.0001" size="0.00105 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_140" type="box"
+            pos="0.068625 0.0492 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_141" type="box"
+            pos="0.075075 0.0492 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_142" type="box"
+            pos="0.0804 0.0492 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_143" type="box"
+            pos="0.128625 0.0492 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_144" type="box"
+            pos="0.1404 0.0492 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_145" type="box"
+            pos="0.190725 0.0492 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_146" type="box"
+            pos="0.19725 0.0492 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_147" type="box"
+            pos="0.20145 0.0492 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_148" type="box"
+            pos="0.016125 0.0471 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_149" type="box"
+            pos="0.070725 0.0471 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_150" type="box"
+            pos="0.07725 0.0471 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_151" type="box"
+            pos="0.08145 0.0471 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_152" type="box"
+            pos="0.129675 0.045975 0.0001" size="0.002175 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_153" type="box"
+            pos="0.13935 0.0471 0.0001" size="0.00315 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_154" type="box"
+            pos="0.188625 0.045975 0.0001" size="0.001125 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_155" type="box"
+            pos="0.19935 0.045975 0.0001" size="0.00315 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_156" type="box"
+            pos="0.015075 0.044925 0.0001" size="0.001125 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_157" type="box"
+            pos="0.068625 0.043875 0.0001" size="0.001125 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_158" type="box"
+            pos="0.0729 0.043875 0.0001" size="0.00105 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_159" type="box"
+            pos="0.0804 0.043875 0.0001" size="0.0021 0.002175 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_160" type="box"
+            pos="0.135075 0.044925 0.0001" size="0.001125 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_161" type="box"
+            pos="0.1404 0.044925 0.0001" size="0.0021 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_162" type="box"
+            pos="0.017175 0.04275 0.0001" size="0.005325 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_163" type="box"
+            pos="0.128625 0.0417 0.0001" size="0.001125 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_164" type="box"
+            pos="0.138225 0.04275 0.0001" size="0.004275 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_165" type="box"
+            pos="0.189675 0.04275 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_166" type="box"
+            pos="0.195075 0.04275 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_167" type="box"
+            pos="0.20145 0.04275 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_168" type="box"
+            pos="0.01185 0.04065 0.0001" size="0.00435 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_169" type="box"
+            pos="0.02145 0.04065 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_170" type="box"
+            pos="0.075 0.0396 0.0001" size="0.0075 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_171" type="box"
+            pos="0.135075 0.04065 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_172" type="box"
+            pos="0.14145 0.04065 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_173" type="box"
+            pos="0.190725 0.04065 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_174" type="box"
+            pos="0.2004 0.04065 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_175" type="box"
+            pos="0.015 0.03855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_176" type="box"
+            pos="0.135 0.03855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_177" type="box"
+            pos="0.195 0.03855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_178" type="box"
+            pos="0.015 0.015 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_179" type="box"
+            pos="0.075 0.015 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_180" type="box"
+            pos="0.135 0.015 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_181" type="box"
+            pos="0.195 0.015 0.0001" size="0.015 0.015 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_182" type="box"
+            pos="0.045 0.021375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_183" type="box"
+            pos="0.105 0.021375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_184" type="box"
+            pos="0.165 0.021375 0.0001" size="0.0075 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_185" type="box"
+            pos="0.038625 0.017025 0.0001" size="0.001125 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_186" type="box"
+            pos="0.05145 0.015975 0.0001" size="0.00105 0.004275 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_187" type="box"
+            pos="0.100725 0.0192 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_188" type="box"
+            pos="0.10725 0.0192 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_189" type="box"
+            pos="0.11145 0.01815 0.0001" size="0.00105 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_190" type="box"
+            pos="0.159675 0.017025 0.0001" size="0.002175 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_191" type="box"
+            pos="0.166125 0.0192 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_192" type="box"
+            pos="0.17145 0.017025 0.0001" size="0.00105 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_193" type="box"
+            pos="0.046125 0.0171 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_194" type="box"
+            pos="0.10185 0.0171 0.0001" size="0.00435 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_195" type="box"
+            pos="0.098625 0.012825 0.0001" size="0.001125 0.003225 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_196" type="box"
+            pos="0.108225 0.014925 0.0001" size="0.004275 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_197" type="box"
+            pos="0.166125 0.014925 0.0001" size="0.002175 0.001125 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_198" type="box"
+            pos="0.040725 0.01275 0.0001" size="0.003225 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_199" type="box"
+            pos="0.04725 0.01275 0.0001" size="0.00105 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_200" type="box"
+            pos="0.105075 0.01275 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_201" type="box"
+            pos="0.11145 0.0117 0.0001" size="0.00105 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_202" type="box"
+            pos="0.158625 0.0117 0.0001" size="0.001125 0.0021 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_203" type="box"
+            pos="0.165075 0.01275 0.0001" size="0.001125 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_204" type="box"
+            pos="0.1704 0.01275 0.0001" size="0.0021 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_205" type="box"
+            pos="0.039675 0.01065 0.0001" size="0.002175 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_206" type="box"
+            pos="0.048225 0.01065 0.0001" size="0.004275 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_207" type="box"
+            pos="0.168225 0.01065 0.0001" size="0.004275 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_208" type="box"
+            pos="0.045 0.00855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_209" type="box"
+            pos="0.105 0.00855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+      <geom name="charuco_ink_210" type="box"
+            pos="0.165 0.00855 0.0001" size="0.0075 0.00105 0.0001"
+            material="charuco_black" contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+
+  <equality>
+    <!-- body2 omitted intentionally: MuJoCo welds chassis to world. -->
+    <weld name="handeye_chassis_world_weld" body1="chassis"
+          solref="0.002 1"/>
+  </equality>
+</mujoco>

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cleany.local/schemas/handeye_scene-v1.json",
+  "title": "Cleany hand-eye scene manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scene", "target", "planning_scene"],
+  "properties": {
+    "schema_version": {"const": "cleany.handeye_scene/v1"},
+    "scene": {
+      "type": "object",
+      "required": ["template", "fixed_base", "camera_rendering"]
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "type", "frame_id", "board", "printable_assets",
+        "ground_truth_pose", "mujoco_geometry"
+      ],
+      "properties": {
+        "type": {"const": "charuco"},
+        "board": {
+          "type": "object",
+          "required": [
+            "squares_x", "squares_y", "dictionary", "legacy_pattern",
+            "marker_ids", "simulation_nominal", "physical_measurement"
+          ],
+          "properties": {
+            "squares_x": {"const": 7},
+            "squares_y": {"const": 5},
+            "dictionary": {"const": "DICT_5X5_100"},
+            "legacy_pattern": {"const": false},
+            "simulation_nominal": {
+              "type": "object",
+              "required": [
+                "status", "square_length_m", "marker_length_m",
+                "board_width_m", "board_height_m",
+                "object_point_length_source"
+              ]
+            },
+            "physical_measurement": {
+              "type": "object",
+              "required": [
+                "status", "square_length_m", "marker_length_m",
+                "measured_at", "measured_by", "measurement_tool",
+                "evidence_ref", "object_point_length_source",
+                "required_for_physical_preflight"
+              ],
+              "properties": {
+                "status": {"enum": ["not_measured", "measured"]},
+                "square_length_m": {"type": ["number", "null"]},
+                "marker_length_m": {"type": ["number", "null"]}
+              }
+            }
+          }
+        }
+      }
+    },
+    "planning_scene": {
+      "type": "object",
+      "required": ["config_uri", "apply_service", "required_object_ids"]
+    }
+  }
+}

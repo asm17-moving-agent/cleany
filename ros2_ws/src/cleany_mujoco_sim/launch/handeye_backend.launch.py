@@ -100,7 +100,7 @@ def generate_launch_description() -> LaunchDescription:
                     [
                         FindPackageShare('cleany_mujoco_sim'),
                         'scenes',
-                        'default.xml.in',
+                        'handeye.xml.in',
                     ]
                 ),
                 description=(
