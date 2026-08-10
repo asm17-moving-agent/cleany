@@ -220,6 +220,15 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 Camera publish rate와 public model/topic은 launch override가 아니라
 `config/handeye_scene.yaml`의 preflight 계약으로 관리한다.
 
+ChArUco의 211개 vector ink box는 target geometry의 authoritative source로
+유지한다. 640×480 wrist render에서는 sub-pixel box edge가 ArUco bit를 손상시킬 수
+있으므로 `scene_loader`가 같은 box 좌표를 1400×1000 lossless grayscale PNG로
+deterministic rasterize하고, materialized temporary scene의 non-collision render
+surface에만 적용한다. 보드 바깥 10 mm 흰 quiet zone도 render-only/non-collision이며
+210×150 mm object point와 planning-scene collision 형상은 바꾸지 않는다. Canonical
+MJCF, `default.xml.in`, SVG/PDF source asset은 수정하지 않으며 temporary texture도
+source tree에 기록하지 않는다.
+
 ## 범위
 
 구현된 기능:

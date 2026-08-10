@@ -24,6 +24,7 @@ QUADRANTS = (
     'bottom_left',
     'bottom_right',
 )
+DETECTION_SCALE_FACTOR = 2.0
 
 
 class DetectionFailure(str, Enum):
@@ -284,6 +285,10 @@ class CharucoTargetDetector:
                 'installed OpenCV lacks DetectorParameters_create'
             )
         self._detector_parameters = cv2.aruco.DetectorParameters_create()
+        if hasattr(cv2.aruco, 'CORNER_REFINE_SUBPIX'):
+            self._detector_parameters.cornerRefinementMethod = (
+                cv2.aruco.CORNER_REFINE_SUBPIX
+            )
 
     @property
     def board(self):
@@ -301,9 +306,16 @@ class CharucoTargetDetector:
         else:
             return _invalid_detection(DetectionFailure.INVALID_IMAGE)
         grayscale = np.ascontiguousarray(grayscale)
+        detection_image = cv2.resize(
+            grayscale,
+            None,
+            fx=DETECTION_SCALE_FACTOR,
+            fy=DETECTION_SCALE_FACTOR,
+            interpolation=cv2.INTER_CUBIC,
+        )
 
         marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(
-            grayscale,
+            detection_image,
             self._dictionary,
             parameters=self._detector_parameters,
         )
@@ -315,7 +327,7 @@ class CharucoTargetDetector:
             cv2.aruco.interpolateCornersCharuco(
                 marker_corners,
                 marker_ids,
-                grayscale,
+                detection_image,
                 self._board,
             )
         )
@@ -330,6 +342,6 @@ class CharucoTargetDetector:
             )
         return analyze_charuco_corners(
             charuco_ids,
-            charuco_corners,
+            np.asarray(charuco_corners) / DETECTION_SCALE_FACTOR,
             spec=self.spec,
         )

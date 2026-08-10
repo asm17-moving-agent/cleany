@@ -32,14 +32,23 @@
               specular="0" shininess="0"/>
     <material name="charuco_black" rgba="0.005 0.005 0.005 1"
               specular="0" shininess="0"/>
+    <!-- Materialized from the exact vector ink geometry for reliable
+         640x480 ArUco decoding; the source vector geoms remain canonical. -->
+    <texture name="charuco_render_texture" type="2d"
+             file="@CLEANY_CHARUCO_TEXTURE_PATH@"/>
+    <material name="charuco_render_material"
+              texture="charuco_render_texture" texrepeat="1 1"
+              texuniform="false" specular="0" shininess="0"/>
   </asset>
 
   <worldbody>
     <light name="handeye_key_light" pos="0.25 -0.35 1.65"
            dir="0.2 0.25 -1" directional="true"
+           ambient="0.42 0.42 0.42"
            diffuse="0.78 0.78 0.78" specular="0.05 0.05 0.05"/>
     <light name="handeye_fill_light" pos="0.80 0.65 1.15"
            dir="-0.3 -0.25 -1" directional="true"
+           ambient="0.22 0.22 0.22"
            diffuse="0.35 0.35 0.35" specular="0 0 0"/>
     <geom name="handeye_floor" type="plane" size="0 0 0.05"
           material="handeye_floor_material" contype="1" conaffinity="1"/>
@@ -69,6 +78,16 @@
       <geom name="charuco_target_backing" type="box"
             pos="0.105 0.075 -0.003" size="0.105 0.075 0.003"
             material="charuco_white" contype="1" conaffinity="1"/>
+      <!-- Render-only 10 mm quiet zone around the specified 210x150 mm
+           target. It does not change the board object points or collision
+           geometry, but gives edge ArUco markers a stable white boundary. -->
+      <geom name="charuco_render_quiet_zone" type="box"
+            pos="0.105 0.075 0.00005" size="0.115 0.085 0.00005"
+            material="charuco_white" contype="0" conaffinity="0"/>
+      <geom name="charuco_render_surface" type="box"
+            pos="0.105 0.075 0.00035" size="0.105 0.075 0.0001"
+            material="charuco_render_material"
+            contype="0" conaffinity="0"/>
       <!-- Black surface runs vectorized from the printable OpenCV board. -->
       <geom name="charuco_ink_000" type="box"
             pos="0.015 0.135 0.0001" size="0.015 0.015 0.0001"

@@ -1,7 +1,7 @@
 # cleany_handeye_calibration
 
-ROS-independent mathematical core and, in later commits, ROS adapters for
-Cleany's left wrist eye-in-hand calibration workflow.
+ROS-independent mathematical core and ROS adapters for Cleany's left wrist
+eye-in-hand calibration workflow.
 
 The current package contains immutable data models, frame-aware rigid
 transforms, the version-1 synchronized sample record, and planar ChArUco
@@ -9,8 +9,9 @@ detection and PnP. It also provides a failure-isolated OpenCV hand-eye solver,
 evaluation metrics, bounded joint-feedback synchronization, a MoveIt
 feedback-FK adapter, position-only IK/state-validity/motion adapters, a pure
 feedback settle gate, exact wrist-camera acquisition, a recoverable dataset
-writer, and a motion-only MoveIt/MuJoCo launch. It does not yet orchestrate
-calibration poses or publish calibration TF.
+writer, an exact nine-stage single-pose orchestrator, and MoveIt/MuJoCo
+launches. It does not publish calibration TF; generated transforms remain
+review-only artifacts.
 
 ## Transform convention
 
@@ -66,6 +67,10 @@ Ubuntu 22.04 provides OpenCV 4.5.4, so the detector intentionally uses its
 legacy Python API: `CharucoBoard_create`, `DetectorParameters_create`,
 `detectMarkers`, `interpolateCornersCharuco`, and `board.chessboardCorners`.
 It does not use the newer `ArucoDetector` or `CharucoDetector` classes.
+For the 640 x 480 wrist stream it performs detection on a deterministic 2x
+cubic-upscaled grayscale image with subpixel marker refinement, then divides
+the detected ChArUco coordinates back into the original image pixel frame
+before PnP or recording. This does not relax the 16-corner/four-quadrant gate.
 
 PnP uses `solvePnPGeneric(..., flags=SOLVEPNP_IPPE)`, never the four-point
 `SOLVEPNP_IPPE_SQUARE` variant. Both candidates must contain finite values and
@@ -242,6 +247,55 @@ readable. Run and sample identifiers reject traversal, dataset directories and
 images may not be symlinks, and the writer never edits URDF/Xacro or a source
 calibration profile.
 
+## Single-pose orchestration
+
+`SinglePoseOrchestrator` executes exactly this no-retry sequence:
+
+```text
+RESOLVE_POSITION_IK -> VALIDATE_RESOLVED_POSE -> PLAN -> EXECUTE
+-> WAIT_SETTLED -> ACQUIRE_IMAGE -> DETECT_TARGET
+-> COMPUTE_FEEDBACK_FK -> RECORD_SAMPLE
+```
+
+Every stage has its own required positive monotonic timeout. A started and
+succeeded row is appended to `orchestration.jsonl`; an exception appends the
+exact failed stage and reason and prevents every later effect. The validation
+stage requires canonical left-arm soft limits, a required collision margin,
+precomputed clearance evidence tied to the expected resolved joint vector,
+and MoveIt state-validity success. There are deliberately no production
+defaults for the still-unapproved safety values.
+
+The installed `config/single_pose_request.template.json` keeps unresolved
+values as `null`. It is documentation and a materialization starting point,
+not a runnable profile: strict preflight rejects it until the artifact root,
+pose, hashes, versions, soft limits, clearance evidence, right-park tolerance,
+and all stage timeouts have been supplied. The artifact root must be absolute
+and should be outside the source tree.
+
+`single_pose_mujoco.launch.py` starts the fixed-base calibration scene, both
+controllers, MoveIt, the three required collision objects, and the
+orchestrator. The node waits for complete fresh 12-joint feedback and verifies
+that `handeye_table`, `handeye_target_stand`, and `charuco_target` are present
+before IK. It records the first exact Image/CameraInfo pair strictly after
+settle, interpolates feedback at that image stamp, obtains feedback FK, and
+atomically stores the row and PNG.
+
+Operator-observed calibration shows the MuJoCo viewer by default:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_handeye_calibration single_pose_mujoco.launch.py \
+  request_file:=/absolute/path/to/materialized_request.json \
+  headless:=false
+```
+
+Automated tests explicitly override `headless:=true`. Their temporary
+MuJoCo-only profile has at least 0.128 m target/arm clearance under simulated
+feedback sag, uses a 0.100 m required margin, yields at least 16 corners in all
+four quadrants, and produces a non-ambiguous IPPE result. Ground truth is not
+published to TF and is not used by detection, PnP, or stored solver inputs.
+
 ## Motion-only MoveIt/MuJoCo integration
 
 `handeye_mujoco.launch.py` composes the `cleany_moveit_config` move group with
@@ -283,7 +337,8 @@ colcon build --symlink-install --packages-up-to \
   cleany_handeye_calibration
 source install/setup.bash
 python3 -m pytest -q -s \
-  src/cleany_handeye_calibration/test/test_handeye_mujoco_runtime.py
+  src/cleany_handeye_calibration/test/test_handeye_mujoco_runtime.py \
+  src/cleany_handeye_calibration/test/test_single_pose_mujoco_runtime.py
 ```
 
 The test verifies separate per-arm plan and execute success, left-only
@@ -300,9 +355,9 @@ The mathematical, synchronization, configuration, and settle core does not
 import `rclpy`. The FK, IK, validity, and motion adapters use `rclpy`,
 `action_msgs`, `moveit_msgs`, and `sensor_msgs`, but their focused tests use fake
 clients, goal handles, and futures without a running ROS graph. The motion-only
-launch depends on the MoveIt and MuJoCo ROS packages, while its runtime
-integration test uses the standard ROS action/message packages declared in the
-manifest.
+and single-pose launches depend on the MoveIt and MuJoCo ROS packages, while
+their runtime integration tests use the standard ROS action/message packages
+declared in the manifest.
 
 ## Verification
 
@@ -317,6 +372,9 @@ python3 -m pytest \
   test/test_motion_adapter.py test/test_settle_detector.py \
   test/test_camera_acquisition.py test/test_ros_camera_adapter.py \
   test/test_schema.py test/test_dataset_writer.py
+python3 -m pytest \
+  test/test_single_pose_orchestrator.py \
+  test/test_single_pose_runtime_config.py
 python3 -m pytest test
 cd ../..
 colcon build --symlink-install --packages-select cleany_handeye_calibration

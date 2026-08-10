@@ -38,6 +38,26 @@ def test_humble_charuco_detector_recovers_all_inner_corners():
     assert result.corner_ids == tuple(range(INNER_CORNER_COUNT))
     assert len(result.object_points_m) == 24
     assert result.covered_quadrants == QUADRANTS
+    assert all(
+        0.0 <= x < image.shape[1] and 0.0 <= y < image.shape[0]
+        for x, y in result.image_points_px
+    )
+
+
+def test_detector_recovers_small_board_in_original_pixel_coordinates():
+    detector = CharucoTargetDetector()
+    image = detector.board.draw(
+        (210, 150),
+        marginSize=5,
+        borderBits=1,
+    )
+
+    result = detector.detect(image)
+
+    assert result.valid
+    assert len(result.corner_ids) == INNER_CORNER_COUNT
+    assert max(x for x, _ in result.image_points_px) < image.shape[1]
+    assert max(y for _, y in result.image_points_px) < image.shape[0]
 
 
 def test_charuco_object_points_match_7_by_5_board_geometry():

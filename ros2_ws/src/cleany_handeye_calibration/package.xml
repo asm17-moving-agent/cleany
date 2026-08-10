@@ -12,6 +12,7 @@
   <exec_depend>cleany_moveit_config</exec_depend>
   <exec_depend>cleany_mujoco_sim</exec_depend>
   <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-opencv</exec_depend>

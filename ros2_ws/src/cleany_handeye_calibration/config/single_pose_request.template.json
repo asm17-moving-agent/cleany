@@ -1,0 +1,98 @@
+{
+  "schema_version": "cleany.single_pose_runtime/v1",
+  "artifact_root": null,
+  "sample": {
+    "sample_id": "sample_001",
+    "pose_id": "calibration_001",
+    "split": "calibration",
+    "target_position_m": [],
+    "ik_seed_positions_rad": []
+  },
+  "safety_profile": {
+    "profile_id": "REVIEW_REQUIRED",
+    "soft_joint_limits_rad": {
+      "left_shoulder_yaw_joint": null,
+      "left_shoulder_pitch_joint": null,
+      "left_elbow_pitch_joint": null,
+      "left_wrist_pitch_joint": null,
+      "left_wrist_roll_joint": null
+    },
+    "collision_margin_m": null
+  },
+  "expected_resolved_evidence": {
+    "joint_positions_rad": [],
+    "match_tolerance_rad": null,
+    "collision_clearance_m": null
+  },
+  "motion": {
+    "current_state_max_age_sec": null,
+    "right_park_position_tolerance_rad": null,
+    "stage_timeouts_sec": {
+      "ik": null,
+      "state_validity": null,
+      "plan": null,
+      "execute": null,
+      "cancel": null,
+      "settle": null
+    },
+    "max_velocity_scaling_factor": 0.1,
+    "max_acceleration_scaling_factor": 0.1,
+    "controller_path_tolerance_rad": 0.05,
+    "controller_goal_tolerance_rad": 0.01,
+    "settle_position_tolerance_rad": null,
+    "settle_velocity_tolerance_rad_s": 0.01,
+    "settle_duration_sec": 1.0,
+    "planning_attempts": 1
+  },
+  "orchestration_timeouts_sec": {
+    "resolve_position_ik": null,
+    "validate_resolved_pose": null,
+    "plan": null,
+    "execute": null,
+    "wait_settled": null,
+    "acquire_image": null,
+    "detect_target": null,
+    "compute_feedback_fk": null,
+    "record_sample": null
+  },
+  "feedback_buffer": {
+    "capacity": 512,
+    "max_sample_distance_ns": 80000000,
+    "clock_reset_threshold_ns": 500000000,
+    "startup_state_timeout_sec": null,
+    "startup_planning_scene_timeout_sec": null
+  },
+  "dataset_manifest": {
+    "run_id": "REVIEW_REQUIRED",
+    "git": {
+      "commit": null,
+      "dirty": null
+    },
+    "source_hashes": {
+      "urdf_sha256": null,
+      "mjcf_sha256": null,
+      "pose_manifest_sha256": null
+    },
+    "software_versions": {
+      "ros_distro": "humble",
+      "moveit": null,
+      "opencv": null,
+      "mujoco": null,
+      "mujoco_ros2_control": null,
+      "vendor": {}
+    },
+    "target": {
+      "board_svg_sha256": null,
+      "board_pdf_sha256": null,
+      "size_provenance": null
+    },
+    "timing": {
+      "simulation_timestep_s": 0.002,
+      "controller_update_rate_hz": 50.0,
+      "image_rate_hz": 10.0,
+      "joint_state_rate_hz": 50.0
+    },
+    "calibration_parameters": {},
+    "random_seed": null
+  }
+}
