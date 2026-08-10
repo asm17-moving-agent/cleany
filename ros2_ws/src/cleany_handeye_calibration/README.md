@@ -4,8 +4,8 @@ ROS-independent mathematical core and, in later commits, ROS adapters for
 Cleany's left wrist eye-in-hand calibration workflow.
 
 The current package contains immutable data models, frame-aware rigid
-transforms, and the version-1 draft sample record. It does not yet detect the
-target, run PnP or hand-eye solvers, call MoveIt, collect camera data, or
+transforms, the version-1 draft sample record, and planar ChArUco detection and
+PnP. It does not yet run hand-eye solvers, call MoveIt, collect camera data, or
 publish calibration TF.
 
 ## Transform convention
@@ -45,6 +45,32 @@ Models copy mutable input into immutable tuples, reject duplicate joint names,
 length mismatches, invalid timestamps, and non-finite numeric values. The
 sample schema serializes to built-in dictionaries and lists so a later dataset
 writer can safely encode it as JSONL or YAML without carrying NumPy objects.
+
+## Planar ChArUco and PnP contract
+
+The fixed target has 7 x 5 squares, a 30 mm square length, a 15 mm marker
+length, and uses `DICT_5X5_100` with `legacy_pattern: false`. The resulting
+inner chessboard contains 24 corners. A detection is valid only when at least
+16 unique, in-range ChArUco corner IDs cover all four object-space board
+quadrants.
+
+Ubuntu 22.04 provides OpenCV 4.5.4, so the detector intentionally uses its
+legacy Python API: `CharucoBoard_create`, `DetectorParameters_create`,
+`detectMarkers`, `interpolateCornersCharuco`, and `board.chessboardCorners`.
+It does not use the newer `ArucoDetector` or `CharucoDetector` classes.
+
+PnP uses `solvePnPGeneric(..., flags=SOLVEPNP_IPPE)`, never the four-point
+`SOLVEPNP_IPPE_SQUARE` variant. Both candidates must contain finite values and
+place every target point at positive camera Z. Each valid raw candidate is
+refined independently with `solvePnPRefineVVS`; cheirality is checked again,
+and full-corner Euclidean reprojection RMSE is recomputed. Raw and refined
+candidate transforms, minimum depth, RMSE, and failure reason remain in the
+result for later artifact recording.
+
+The lower-RMSE candidate is rejected as `ambiguous_pnp` when both candidate
+RMSE values are at most `1e-12 px`, or when the best RMSE is above that value
+and `second / best < 1.05`. Ground truth is not an input to detection, PnP,
+refinement, or candidate selection.
 
 ## Dependencies
 
