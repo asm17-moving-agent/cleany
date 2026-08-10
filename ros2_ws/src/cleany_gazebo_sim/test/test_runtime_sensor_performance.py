@@ -33,6 +33,13 @@ CAMERA_TOPICS = (
     '/camera/right_wrist/color/image_raw',
 )
 LIDAR_TOPIC = '/scan'
+PROFILE_TOPICS = {
+    'lidar_nav': (LIDAR_TOPIC,),
+    'head_rgbd': CAMERA_TOPICS[:2],
+    'left_wrist': (CAMERA_TOPICS[2],),
+    'right_wrist': (CAMERA_TOPICS[3],),
+    'all_cameras': CAMERA_TOPICS,
+}
 CAMERA_EXPECTATIONS = {
     '/camera/head/color/image_raw': (
         640, 480, 'rgb8', 'head_camera_rgb_optical_frame'
@@ -92,7 +99,11 @@ class SensorMeasurements:
             self.message_counts[LIDAR_TOPIC] += 1
 
 
-def _launch_command(profile: str, world_path: Path) -> list[str]:
+def _launch_command(
+    profile: str,
+    sensor_profile: str,
+    world_path: Path,
+) -> list[str]:
     launch_file = (
         'gazebo_sim.launch.py'
         if profile == 'fortress'
@@ -104,6 +115,7 @@ def _launch_command(profile: str, world_path: Path) -> list[str]:
         'cleany_gazebo_sim',
         launch_file,
         'headless:=true',
+        f'sensor_profile:={sensor_profile}',
         f'world:={world_path}',
     ]
 
@@ -245,20 +257,20 @@ def _drive_for(
     publisher.publish(Twist())
 
 
-def _wait_for_all_topics(
+def _wait_for_topics(
     node: Node,
     measurements: SensorMeasurements,
+    expected_topics: set[str],
     timeout_sec: float,
     process: subprocess.Popen[bytes],
     log_path: Path,
 ) -> None:
-    expected_topics = set((*CAMERA_TOPICS, LIDAR_TOPIC))
     deadline = time.monotonic() + timeout_sec
     while time.monotonic() < deadline:
         _assert_launch_running(process, log_path)
         if (
             measurements.latest_sim_sec is not None
-            and measurements.seen_topics == expected_topics
+            and expected_topics <= measurements.seen_topics
         ):
             return
         rclpy.spin_once(node, timeout_sec=0.1)
@@ -276,9 +288,11 @@ def _wait_for_all_topics(
 
 def _camera_validation_errors(
     measurements: SensorMeasurements,
+    camera_topics: tuple[str, ...],
 ) -> list[str]:
     errors = []
-    for topic, expectation in CAMERA_EXPECTATIONS.items():
+    for topic in camera_topics:
+        expectation = CAMERA_EXPECTATIONS[topic]
         width, height, encoding, frame_id = expectation
         message = measurements.latest_images[topic]
         prefix = f'{topic}:'
@@ -402,30 +416,38 @@ def _assert_thresholds(
     options: RuntimeTestOptions,
     rtf: float,
     sim_hz: dict[str, float],
+    expected_topics: tuple[str, ...],
 ) -> None:
     if options.min_rtf is not None:
         assert rtf >= options.min_rtf, (
             f'RTF {rtf:.3f} is below minimum {options.min_rtf:.3f}'
         )
     if options.min_camera_sim_hz is not None:
-        for topic in CAMERA_TOPICS:
+        for topic in expected_topics:
+            if topic == LIDAR_TOPIC:
+                continue
             assert sim_hz[topic] >= options.min_camera_sim_hz, (
                 f'{topic} sim Hz {sim_hz[topic]:.3f} is below minimum '
                 f'{options.min_camera_sim_hz:.3f}'
             )
-    if options.min_lidar_sim_hz is not None:
+    if (
+        options.min_lidar_sim_hz is not None
+        and LIDAR_TOPIC in expected_topics
+    ):
         assert sim_hz[LIDAR_TOPIC] >= options.min_lidar_sim_hz, (
             f'{LIDAR_TOPIC} sim Hz {sim_hz[LIDAR_TOPIC]:.3f} is below minimum '
             f'{options.min_lidar_sim_hz:.3f}'
         )
 
 
-def test_all_rendering_sensors_and_rtf(
+def test_sensor_profile_and_rtf(
     runtime_test_options: RuntimeTestOptions,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     options = runtime_test_options
     _assert_profile_environment(options.profile)
+    expected_topics = PROFILE_TOPICS[options.sensor_profile]
+    expected_topic_set = set(expected_topics)
 
     monkeypatch.setenv('ROS_DOMAIN_ID', str(100 + os.getpid() % 100))
     partition = f'cleany_runtime_test_{uuid4().hex}'
@@ -466,16 +488,21 @@ def test_all_rendering_sensors_and_rtf(
         _write_validation_world(options.profile, world_path)
         with log_path.open('wb') as launch_log:
             process = subprocess.Popen(
-                _launch_command(options.profile, world_path),
+                _launch_command(
+                    options.profile,
+                    options.sensor_profile,
+                    world_path,
+                ),
                 env=launch_environment,
                 stdout=launch_log,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
             )
             try:
-                _wait_for_all_topics(
+                _wait_for_topics(
                     node,
                     measurements,
+                    expected_topic_set,
                     options.startup_timeout_sec,
                     process,
                     log_path,
@@ -514,36 +541,56 @@ def test_all_rendering_sensors_and_rtf(
                 assert sim_elapsed > 0.0, 'simulation time did not advance'
                 missing_during_measurement = [
                     topic
-                    for topic, count in measurements.message_counts.items()
-                    if count == 0
+                    for topic in expected_topics
+                    if measurements.message_counts[topic] == 0
                 ]
                 assert not missing_during_measurement, (
                     'no messages received during measurement for '
                     f'{missing_during_measurement}'
                 )
-                validation_errors = _camera_validation_errors(measurements)
-                lidar_errors, finite_lidar_ranges = _lidar_validation_errors(
-                    measurements
+                unexpected_topics = sorted(
+                    measurements.seen_topics - expected_topic_set
                 )
-                validation_errors.extend(lidar_errors)
+                assert not unexpected_topics, (
+                    f'disabled sensor topics received: {unexpected_topics}'
+                )
+                camera_topics = tuple(
+                    topic for topic in expected_topics if topic != LIDAR_TOPIC
+                )
+                validation_errors = _camera_validation_errors(
+                    measurements,
+                    camera_topics,
+                )
+                finite_lidar_ranges = 0
+                if LIDAR_TOPIC in expected_topic_set:
+                    lidar_errors, finite_lidar_ranges = _lidar_validation_errors(
+                        measurements
+                    )
+                    validation_errors.extend(lidar_errors)
+
+                lidar_summary = (
+                    f', finite_lidar_ranges={finite_lidar_ranges}/360'
+                    if LIDAR_TOPIC in expected_topic_set
+                    else ''
+                )
 
                 rtf = sim_elapsed / wall_elapsed
                 wall_hz = {
-                    topic: count / wall_elapsed
-                    for topic, count in measurements.message_counts.items()
+                    topic: measurements.message_counts[topic] / wall_elapsed
+                    for topic in expected_topics
                 }
                 sim_hz = {
-                    topic: count / sim_elapsed
-                    for topic, count in measurements.message_counts.items()
+                    topic: measurements.message_counts[topic] / sim_elapsed
+                    for topic in expected_topics
                 }
 
                 print(
                     f'\nGazebo runtime result: profile={options.profile}, '
+                    f'sensor_profile={options.sensor_profile}, '
                     f'wall={wall_elapsed:.3f}s, sim={sim_elapsed:.3f}s, '
-                    f'RTF={rtf:.3f}, '
-                    f'finite_lidar_ranges={finite_lidar_ranges}/360'
+                    f'RTF={rtf:.3f}{lidar_summary}'
                 )
-                for topic in (*CAMERA_TOPICS, LIDAR_TOPIC):
+                for topic in expected_topics:
                     print(
                         f'  {topic}: '
                         f'count={measurements.message_counts[topic]}, '
@@ -555,7 +602,7 @@ def test_all_rendering_sensors_and_rtf(
                     'sensor data validation failed:\n- '
                     + '\n- '.join(validation_errors)
                 )
-                _assert_thresholds(options, rtf, sim_hz)
+                _assert_thresholds(options, rtf, sim_hz, expected_topics)
             finally:
                 _stop_process_group(process)
                 node.destroy_node()

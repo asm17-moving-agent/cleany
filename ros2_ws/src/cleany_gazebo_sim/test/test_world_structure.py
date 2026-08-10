@@ -261,7 +261,7 @@ def test_world_contains_gpu_lidar():
     assert sensor is not None
     assert sensor.attrib['type'] == 'gpu_lidar'
     assert sensor.findtext('topic') == '/model/cleany_mecanum/lidar/scan'
-    assert sensor.findtext('always_on') == 'true'
+    assert sensor.findtext('always_on') == 'false'
     assert sensor.findtext('update_rate') == '5.5'
     assert sensor.findtext('lidar/scan/horizontal/samples') == '360'
     assert sensor.findtext('lidar/range/min') == '0.15'
@@ -294,6 +294,27 @@ def test_world_contains_base_imu():
     assert sensor.findtext('gz_frame_id') == 'imu_link'
     assert sensor.find('imu') is not None
     assert sensor.find('.//noise') is None
+
+
+def test_fortress_rendering_sensors_are_lazy():
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    rendering_sensors = [
+        sensor
+        for sensor in root.findall('.//sensor')
+        if sensor.attrib['type'] in {'camera', 'depth_camera', 'gpu_lidar'}
+    ]
+
+    assert {sensor.attrib['name'] for sensor in rendering_sensors} == {
+        'head_realsense_rgb',
+        'head_realsense_depth',
+        'left_wrist_rgb',
+        'right_wrist_rgb',
+        'rplidar_a1',
+    }
+    assert all(
+        sensor.findtext('always_on') == 'false'
+        for sensor in rendering_sensors
+    )
 
 
 def test_fortress_launch_separates_sensor_and_gui_renderers():

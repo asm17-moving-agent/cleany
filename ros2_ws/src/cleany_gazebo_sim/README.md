@@ -30,9 +30,11 @@ Gazebo world는 `cleany_description/meshes/`를 resource path로 참조해 팀�
 Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
 joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
 collision mesh도 Cleany description에서 가져왔습니다. 다만 arm/gripper controller가 아직
-없어 arm link의 gravity는 비활성화한 상태입니다. Fortress와 Harmonic 기본 profile은
-네 개의 camera image, GPU LiDAR `/scan`, IMU `/imu/data` bridge를 포함합니다. Nav2, MoveIt,
-Mission Manager integration은 아직 포함하지 않습니다.
+없어 arm link의 gravity는 비활성화한 상태입니다. Fortress와 Harmonic launch는
+공통 IMU `/imu/data` bridge와 필요한 rendering sensor bridge만 실행하는 sensor
+profile을 제공합니다. 기본값은 GPU LiDAR `/scan`만 추가로 활성화하는
+`lidar_nav`입니다. Nav2, MoveIt, Mission Manager integration은 아직 포함하지
+않습니다.
 
 ## Simulation IMU contract
 
@@ -70,9 +72,9 @@ make test-gazebo
 모든 pytest가 통과해야 하며, 생성된 mecanum wheel world가 canonical description의
 link, joint, mesh 구조를 유지하는지도 함께 검사합니다.
 
-네 개 camera와 GPU LiDAR를 실제로 실행해 RTF와 sensor 수신 주기를 측정하는 테스트는
-일반 test suite와 분리된 opt-in test입니다. 먼저 해당 profile을 build한 뒤, 준비된
-환경 안에서 실행합니다.
+선택한 sensor profile을 실제로 실행해 RTF와 sensor 수신 주기를 측정하는 테스트는
+일반 test suite와 분리된 opt-in test입니다. 먼저 해당 Gazebo profile을 build한 뒤,
+준비된 환경 안에서 실행합니다.
 
 Fortress/Humble:
 
@@ -82,7 +84,8 @@ cd ros2_ws
 source install/setup.bash
 python3 -m pytest -s \
   src/cleany_gazebo_sim/test/test_runtime_sensor_performance.py \
-  --run-sim-runtime --sim-profile=fortress
+  --run-sim-runtime --sim-profile=fortress \
+  --sensor-profile=all_cameras
 ```
 
 Harmonic/Jazzy:
@@ -93,18 +96,56 @@ cd ros2_ws
 source install-harmonic/setup.bash
 python3 -m pytest -s \
   src/cleany_gazebo_sim/test/test_runtime_sensor_performance.py \
-  --run-sim-runtime --sim-profile=harmonic
+  --run-sim-runtime --sim-profile=harmonic \
+  --sensor-profile=all_cameras
 ```
 
 기본값은 10초 warm-up과 30초 측정이며 `--warmup-sec`, `--measure-sec`,
-`--startup-timeout-sec`로 조절합니다. test는 `/clock`, camera 네 topic, `/scan`을 모두
-수신하고 simulation time이 전진하는지를 검사하며 RTF, wall Hz, simulation Hz를
-출력합니다. 원본 world를 변경하지 않고 명암 줄무늬가 있는 네 벽을 추가한 임시
-validation world를 생성하며, warm-up 중 저속 이동 후 camera 해상도·encoding·frame ID·timestamp,
-빈/단색 frame 여부와 frame 변화, LiDAR의 360개 range·유한 장애물 거리·선언 범위를
-검사합니다. 성능 기준도 실패 조건으로 사용할 때만 `--min-rtf`,
-`--min-camera-sim-hz`, `--min-lidar-sim-hz`를 지정합니다. 기본 `make test-gazebo`에는
-실제 simulator를 띄우는 이 test가 포함되지 않습니다.
+`--startup-timeout-sec`로 조절합니다. `--sensor-profile` 기본값은
+`all_cameras`이며 다른 launch profile도 동일하게 선택할 수 있습니다. test는
+`/clock`과 선택한 sensor topic을 수신하고 비활성 sensor topic에서는 message가 오지
+않는지 검사하며 RTF, wall Hz, simulation Hz를 출력합니다. 원본 world를 변경하지
+않고 명암 줄무늬가 있는 네 벽을 추가한 임시 validation world를 생성하며, warm-up 중
+저속 이동 후 선택한 camera의 해상도·encoding·frame ID·timestamp, 빈/단색 frame
+여부와 frame 변화를 검사합니다. `lidar_nav`에서는 LiDAR의 360개 range·유한 장애물
+거리·선언 범위를 검사합니다. 성능 기준도 실패 조건으로 사용할 때만 `--min-rtf`,
+`--min-camera-sim-hz`, `--min-lidar-sim-hz`를 지정합니다. 기본
+`make test-gazebo`에는 실제 simulator를 띄우는 이 test가 포함되지 않습니다.
+
+## Sensor profiles
+
+두 Gazebo launch는 `sensor_profile` argument로 rendering sensor 부하를 선택합니다.
+차체 명령, odometry, joint state, clock bridge는 모든 profile에서 실행됩니다.
+
+| Profile | `/scan` | Head RGB | Head depth | Left wrist | Right wrist |
+| --- | --- | --- | --- | --- | --- |
+| `lidar_nav` (기본값) | O | X | X | X | X |
+| `head_rgbd` | X | O | O | X | X |
+| `left_wrist` | X | X | X | O | X |
+| `right_wrist` | X | X | X | X | O |
+| `all_cameras` | X | O | O | O | O |
+
+`all_cameras`는 head color/depth와 좌·우 wrist color를 합친 네 image stream의
+부하 profile입니다. 선택되지 않은 rendering sensor는 bridge 구독자를 만들지 않으며,
+world의 `always_on=false` 설정과 함께 lazy 상태를 유지합니다.
+
+Fortress/Humble에서 profile을 직접 선택하는 예시는 다음과 같습니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_sim.launch.py \
+  headless:=true sensor_profile:=head_rgbd
+```
+
+Harmonic/Jazzy에서는 launch 파일과 install 경로를 호환 profile에 맞춥니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
+  headless:=true sensor_profile:=all_cameras
+```
 
 LiDAR, IMU, odometry, TF만 검증하는 navigation runtime test는 저장소 루트에서
 다음 명령으로 실행합니다. 활성 ROS/Gazebo 환경을 감지해 Fortress 또는 Harmonic
@@ -140,8 +181,8 @@ make sim-gazebo
 ```
 
 이 명령은 활성 ROS와 Gazebo version을 검사하고 `make build-gazebo`를 먼저 실행한 뒤,
-선택된 Fortress 또는 Harmonic 서버를 GUI 없이 시작합니다. 종료할 때는 `Ctrl-C`를
-누릅니다.
+선택된 Fortress 또는 Harmonic 서버를 `lidar_nav` sensor profile과 GUI 없는 상태로
+시작합니다. 종료할 때는 `Ctrl-C`를 누릅니다.
 
 다른 terminal에서 명령을 보냅니다.
 
@@ -195,4 +236,55 @@ profile이다. 환경 준비와 자동 판정·output 분리 규칙은
 
 Harmonic 서버는 OGRE2를 사용한다. GUI를 함께 실행할 때도 server는 OGRE2, GUI는
 OGRE1을 사용한다. Harmonic world의 rendering sensor는 구독 전까지 비활성화할 수
-있지만, 기본 bridge는 모든 sensor topic을 bridge한다.
+있으며, launch는 선택한 sensor profile에 해당하는 bridge만 실행한다.
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
+```
+
+이 설정은 GPU driver 문제를 분리하기 위한 저속 fallback이며 팀 표준 실행 설정은
+아닙니다.
+
+## Runtime and build state
+
+APT/rosdep package와 colcon output이 존재한다는 사실만으로 현재 runtime에
+ROS/Gazebo package가 설치됐다고 판단하지 말고, 실행할 환경 안에서 다음 명령을
+확인합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+ros2 pkg prefix ros_gz_sim
+ros2 pkg prefix ros_gz_bridge
+```
+
+Humble/Python 3.10의 `build/`, `install/`, `log/`는 다른 ROS 배포판이나 Python
+version에서 재사용하지 않습니다. 세부 native 명령은 `ros2_ws/README.md`를
+참고합니다.
+
+## Optional Harmonic compatibility profile
+
+팀의 재현성 기준은 위의 Ubuntu 22.04, ROS 2 Humble, Gazebo Fortress 조합입니다.
+별도 환경에서 Jazzy/Harmonic 구성이 필요할 때는 호환 프로필로 격리하며 팀 표준
+환경을 대체하지 않습니다.
+
+Harmonic용 파일은 다음처럼 명시적인 이름을 사용합니다.
+
+- `launch/gazebo_harmonic.launch.py`
+- `worlds/cleany_mecanum_harmonic.sdf`
+- `config/*_bridge_harmonic.yaml`
+
+ROS 2 Jazzy와 Gazebo Harmonic 환경 준비는
+[`개발환경 설치 가이드`](../../../docs/DEVELOPMENT_SETUP.md#7-선택-ros-2-jazzy--gazebo-harmonic-호환-환경)를
+따릅니다. 준비된 환경에서 저장소 루트의 공통 명령을 실행합니다.
+
+```bash
+make sim-gazebo
+```
+
+Jazzy와 Gazebo 8.x가 확인되면 Harmonic을 자동 선택하며, Fortress와 빌드 결과를
+공유하지 않도록 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 사용합니다.
+자동 판정이 불가능하면 `GAZEBO_PROFILE=harmonic make sim-gazebo`처럼 명시할 수
+있습니다. headless 서버 센서는 OGRE2, GUI 실행 시 서버는 OGRE2, GUI는 OGRE1을
+사용합니다. Harmonic world의 rendering sensor는 구독이 생기기 전까지 비활성화할
+수 있도록 `always_on=false`로 정의되어 있습니다. launch는 선택한 sensor profile에
+해당하는 `*_bridge_harmonic.yaml`만 실행합니다.

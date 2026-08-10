@@ -6,6 +6,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 WORLD_PATH = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf'
 FORTRESS_WORLD_PATH = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_prototype.sdf'
 BRIDGE_PATH = PACKAGE_ROOT / 'config' / 'bridge_harmonic.yaml'
+CORE_BRIDGE_PATH = PACKAGE_ROOT / 'config' / 'core_bridge_harmonic.yaml'
 LIDAR_BRIDGE_PATH = PACKAGE_ROOT / 'config' / 'lidar_bridge_harmonic.yaml'
 LAUNCH_PATH = PACKAGE_ROOT / 'launch' / 'gazebo_harmonic.launch.py'
 
@@ -113,15 +114,19 @@ def test_harmonic_world_contains_base_imu():
 def test_harmonic_launch_and_bridges_are_version_isolated():
     launch = LAUNCH_PATH.read_text(encoding='utf-8')
     bridge = BRIDGE_PATH.read_text(encoding='utf-8')
+    core_bridge = CORE_BRIDGE_PATH.read_text(encoding='utf-8')
     lidar_bridge = LIDAR_BRIDGE_PATH.read_text(encoding='utf-8')
 
     assert "'cleany_mecanum_harmonic.sdf'" in launch
-    assert "'bridge_harmonic.yaml'" in launch
+    assert 'sensor_profile_bridges' in launch
+    assert 'harmonic=True' in launch
     assert "'GZ_SIM_RESOURCE_PATH'" in launch
     assert "'--render-engine-server'" in launch
     assert "'--render-engine-gui'" in launch
     assert 'gz.msgs.' in bridge
     assert 'ignition.msgs.' not in bridge
+    assert 'gz.msgs.' in core_bridge
+    assert 'ignition.msgs.' not in core_bridge
     assert 'gz.msgs.LaserScan' in lidar_bridge
     assert 'ros_topic_name: "/imu/data"' in bridge
     assert 'gz_topic_name: "/model/cleany_mecanum/imu"' in bridge
