@@ -14,6 +14,7 @@ from cleany_handeye_calibration.solver import (
     HandEyeTransformValidityPolicy,
     InvalidHandEyeDataset,
     solve_all_hand_eye_methods,
+    solve_hand_eye_method,
 )
 from cleany_handeye_calibration.synthetic import (
     generate_synthetic_hand_eye_dataset,
@@ -259,3 +260,23 @@ def test_finite_translation_outside_physical_bound_is_isolated():
     assert not results[2].valid
     assert results[2].failure_reason is HandEyeFailure.INVALID_TRANSFORM
     assert all(result.valid for result in (*results[:1], *results[3:]))
+
+
+def test_selected_method_entry_point_runs_only_that_registered_method():
+    dataset = generate_synthetic_hand_eye_dataset()
+    calls = []
+
+    def recording_calibrate(*args, method):
+        calls.append(method)
+        return cv2.calibrateHandEye(*args, method=method)
+
+    result = solve_hand_eye_method(
+        dataset.calibration_samples,
+        HandEyeMethod.PARK,
+        validity_policy=VALIDITY_POLICY,
+        cv_module=_fake_cv_module(recording_calibrate),
+    )
+
+    assert result.valid
+    assert result.method is HandEyeMethod.PARK
+    assert calls == [cv2.CALIB_HAND_EYE_PARK]

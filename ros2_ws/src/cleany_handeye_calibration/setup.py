@@ -32,7 +32,7 @@ setup(
     maintainer_email='sw292ljh@gmail.com',
     description=(
         'Cleany hand-eye calibration math, synchronized capture, MoveIt '
-        'adapters, and staged orchestration.'
+        'adapters, staged orchestration, and offline evaluation.'
     ),
     license='Apache-2.0',
     tests_require=['pytest'],
@@ -44,6 +44,12 @@ setup(
             'cleany_handeye_calibration.multi_pose_runtime:main',
             'pose_manifest_preflight = '
             'cleany_handeye_calibration.pose_manifest_cli:main',
+            'generate_pose_manifest = '
+            'cleany_handeye_calibration.pose_generation_runtime:main',
+            'validate_handeye_dataset = '
+            'cleany_handeye_calibration.dataset_validation:main',
+            'evaluate_handeye = '
+            'cleany_handeye_calibration.evaluation_cli:main',
         ],
     },
 )

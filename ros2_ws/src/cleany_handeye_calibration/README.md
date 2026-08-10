@@ -187,9 +187,9 @@ does not count as confirmation.
 The controller baseline is a 0.05 rad path tolerance and 0.01 rad goal
 tolerance. The original 0.005 rad MuJoCo settle-position trial was below the
 measured gravity-loaded steady-state error; repeated runs reached 0.010403
-rad, so the explicit MuJoCo E2E profile uses 0.015 rad after review. The 0.01
-rad/s settle velocity and continuous 1.0 s interval are unchanged. These are
-simulation values, not approved real-robot tolerances. The pure
+rad, so the reviewed MuJoCo post-execution settle default is 0.015 rad. The
+0.01 rad/s settle velocity and continuous 1.0 s interval are unchanged. These
+are simulation values, not approved real-robot tolerances. The pure
 `JointSettleDetector` uses only feedback ROS stamps. Every left joint must meet
 both thresholds simultaneously; a threshold violation or ROS clock regression
 resets the interval. Successful PLAN/EXECUTE actions only arm this gate and
@@ -355,6 +355,70 @@ ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
 Automated tests explicitly pass `headless:=true`; actual calibration launch
 defaults remain viewer-visible.
 
+## Offline solver and timestamp evaluation
+
+`evaluate_handeye` consumes a completed 20 calibration + 5 held-out
+`samples.jsonl` together with its sibling `manifest.yaml`, a materialized
+URDF, an evaluation-only MuJoCo ground-truth artifact, and a separate
+continuous-motion observation log. It verifies the manifest's own hash and
+requires its URDF hash to match before reading solver inputs. It executes
+exactly 5 OpenCV methods x 3 noise conditions x 10 recorded seeds = 150 solver
+runs. The fixed conditions are ideal `(0 px, 0 deg)`, nominal
+`(0.5 px, 0.05 deg)`, and stress `(1.0 px, 0.10 deg)`.
+
+For a condition/seed, all five methods receive the same hashed PCG64 noise
+bundle. Pixel noise is applied to the recorded ordered ChArUco image points
+before IPPE PnP is rerun. Joint noise is applied only to the five left-arm
+feedback positions before the materialized URDF chain reruns FK. Neither the
+measured transforms nor ground truth are perturbed directly. Only the 20
+calibration rows enter `calibrateHandEye`; the 5 held-out rows are reserved for
+base-target consistency.
+
+The report includes valid-result rate, translation/rotation median and linear
+95th percentile, held-out consistency, runtime, every failure reason, and all
+150 rows. Methods below 0.95 valid rate are excluded. Selection uses the four
+accuracy metrics as a Pareto comparison, then held-out consistency; crossed
+results remain `review_required`. A selected transform is always the clean
+ideal result from the first recorded seed. Timestamp offsets are evaluated
+only for that one selected method, using a separate continuous joint-state and
+image-observation JSONL log. Static pose before/after stamps are not treated as
+a continuous-trajectory sensitivity dataset.
+
+The continuous JSONL uses two strict row kinds. `joint_state` carries a ROS
+`stamp_ns`, the canonical 12 names, positions, and optional velocities;
+`image_observation` carries a distinct calibration sample/pose ID, image
+stamp, and PnP-derived `camera_to_target`. The evaluator interpolates the
+joint series at `image_stamp_ns + offset_ns` and reruns URDF FK. This artifact
+is collected during continuous motion and is not synthesized from stationary
+sample brackets.
+
+`config/evaluation.template.yaml` intentionally leaves the robot-specific
+translation validity bound and timing settings unresolved. After review,
+materialize it and run:
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+cleany_mujoco_share="$(ros2 pkg prefix --share cleany_mujoco_sim)"
+ros2 run cleany_handeye_calibration evaluate_handeye \
+  --samples /absolute/run/samples.jsonl \
+  --continuous-log /absolute/run/continuous_trajectory.jsonl \
+  --urdf /absolute/run/cleany.urdf \
+  --ground-truth "${cleany_mujoco_share}/config/handeye_scene.yaml" \
+  --config /absolute/run/evaluation.yaml \
+  --output-directory /absolute/run/evaluation
+```
+
+The output directory contains `pnp_candidates.jsonl`, `solver_results.csv`,
+`timestamp_sensitivity.csv`, `metrics.yaml`, and `candidate_transform.yaml`.
+The PnP journal retains both raw/refined IPPE candidates, depth, RMSE, and
+failure details for every sample/noise bundle. Every result is marked
+`candidate_not_applied`;
+the command never edits URDF/Xacro or an official calibration profile, and
+promotion always requires human review. Ground truth is accepted only by this
+offline evaluator and remains absent from solver, detector, PnP, ROS TF, and
+collection interfaces.
+
 ## Motion-only MoveIt/MuJoCo integration
 
 `handeye_mujoco.launch.py` composes the `cleany_moveit_config` move group with
@@ -408,8 +472,9 @@ and process-group cleanup.
 ## Dependencies
 
 The transform conversion functions use the Ubuntu/ROS system installations of
-NumPy and OpenCV. On the target Ubuntu 22.04 / ROS 2 Humble environment these
-are provided through the `python3-numpy` and `python3-opencv` rosdep keys.
+NumPy, OpenCV, and PyYAML. On the target Ubuntu 22.04 / ROS 2 Humble
+environment these are provided through the `python3-numpy`, `python3-opencv`,
+and `python3-yaml` rosdep keys.
 The mathematical, synchronization, configuration, and settle core does not
 import `rclpy`. The FK, IK, validity, and motion adapters use `rclpy`,
 `action_msgs`, `moveit_msgs`, and `sensor_msgs`, but their focused tests use fake
@@ -439,6 +504,9 @@ python3 -m pytest \
   test/test_pose_diversity.py test/test_pose_manifest.py \
   test/test_pose_generation.py test/test_run_recovery.py \
   test/test_multi_pose_runtime.py
+python3 -m pytest \
+  test/test_offline_fk.py test/test_experiment_evaluation.py \
+  test/test_timestamp_sensitivity.py test/test_evaluation_artifacts.py
 python3 -m pytest test
 cd ../..
 colcon build --symlink-install --packages-select cleany_handeye_calibration
