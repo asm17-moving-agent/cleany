@@ -1,0 +1,38 @@
+perception_inspector:
+  ros__parameters:
+    action_name: perception/inspect_scene
+    objects_topic: perception/objects
+    debug_image_topic: perception/debug_image
+    color_image_topic: camera/color/image_raw
+    color_info_topic: camera/color/camera_info
+    depth_image_topic: camera/depth/image_raw
+    depth_info_topic: camera/depth/camera_info
+    target_frame: base_link
+    default_query: Detect the box and can on the table.
+    snapshot_timeout_seconds: 2.0
+    depth_16u_scale_m: 0.001
+
+    gemini_model: gemini-robotics-er-2-preview
+    gemini_api_key_environment: GEMINI_API_KEY
+    detector_timeout_seconds: 30.0
+
+    sam2_model_config: ''
+    sam2_checkpoint: ''
+    sam2_device: cuda
+    tf_timeout_seconds: 0.5
+    tf_cache_seconds: 60.0
+
+    minimum_detection_confidence: 0.25
+    maximum_detections: 10
+    minimum_depth_m: 0.1
+    maximum_depth_m: 3.0
+    support_margin_pixels: 40
+    support_sample_stride: 4
+    plane_ransac_iterations: 200
+    plane_distance_threshold_m: 0.006
+    plane_minimum_inliers: 100
+    plane_minimum_inlier_ratio: 0.35
+    maximum_plane_tilt_degrees: 20.0
+    minimum_object_points: 30
+    minimum_object_height_m: 0.005
+    minimum_obb_extent_m: 0.005
