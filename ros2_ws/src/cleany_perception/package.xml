@@ -3,7 +3,7 @@
 <package format="3">
   <name>cleany_perception</name>
   <version>0.1.0</version>
-  <description>One-shot RGB-D object inspection for Cleany.</description>
+  <description>Two-stage RGB-D selected-object inspection for Cleany.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>Apache-2.0</license>
 

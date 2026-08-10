@@ -24,7 +24,17 @@ def render_debug_image(
     rgb: RgbArray,
     detections: Sequence[Detection2D],
     masks: Sequence[ObjectMask],
+    object_ids: Sequence[int] | None = None,
 ) -> np.ndarray:
+    ids = (
+        tuple(range(1, len(detections) + 1))
+        if object_ids is None
+        else tuple(object_ids)
+    )
+    if len(ids) != len(detections) or any(item < 1 for item in ids):
+        raise ValueError(
+            'Debug object IDs must match detections and be positive'
+        )
     result = np.asarray(rgb, dtype=np.uint8).copy()
     for index, object_mask in enumerate(masks):
         color = np.asarray(_COLORS[index % len(_COLORS)], dtype=np.float32)
@@ -34,7 +44,7 @@ def render_debug_image(
 
     image = PilImage.fromarray(result, mode='RGB')
     draw = ImageDraw.Draw(image)
-    for index, detection in enumerate(detections):
+    for index, (object_id, detection) in enumerate(zip(ids, detections)):
         color = _COLORS[index % len(_COLORS)]
         box = detection.bbox
         draw.rectangle(
@@ -44,7 +54,7 @@ def render_debug_image(
         )
         draw.text(
             (box.x_min + 2, max(0.0, box.y_min - 12)),
-            f'{index + 1}: {detection.label} {detection.confidence:.2f}',
+            f'{object_id}: {detection.label} {detection.confidence:.2f}',
             fill=color,
         )
     return np.asarray(image, dtype=np.uint8)

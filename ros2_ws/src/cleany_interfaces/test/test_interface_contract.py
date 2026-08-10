@@ -1,5 +1,7 @@
 from cleany_interfaces.action import InspectScene, SelectReachableGrasp
 from cleany_interfaces.msg import (
+    DetectedObject2D,
+    DetectedObject2DArray,
     DetectedObject3D,
     DetectedObject3DArray,
     GraspCandidate,
@@ -15,6 +17,17 @@ def test_detected_object_3d_defaults() -> None:
     assert detected.confidence == 0.0
     assert detected.obb_pose.orientation.w == 1.0
     assert detected.obb_size.x == 0.0
+
+
+def test_detected_object_2d_defaults() -> None:
+    detected = DetectedObject2D()
+    detected_array = DetectedObject2DArray()
+
+    assert detected.object_id == 0
+    assert detected.label == ''
+    assert detected.x_min == 0.0
+    assert detected_array.snapshot_id == ''
+    assert detected_array.detections == []
 
 
 def test_detected_object_array_carries_snapshot_context() -> None:
@@ -41,6 +54,8 @@ def test_inspect_scene_contract_constants_and_payloads() -> None:
         'plane': result.ERROR_PLANE,
         'tf': result.ERROR_TF,
         'cancelled': result.ERROR_CANCELLED,
+        'snapshot_not_found': result.ERROR_SNAPSHOT_NOT_FOUND,
+        'invalid_selection': result.ERROR_INVALID_SELECTION,
         'internal': result.ERROR_INTERNAL,
     } == {
         'none': 0,
@@ -52,9 +67,14 @@ def test_inspect_scene_contract_constants_and_payloads() -> None:
         'plane': 6,
         'tf': 7,
         'cancelled': 8,
+        'snapshot_not_found': 9,
+        'invalid_selection': 10,
         'internal': 255,
     }
     assert isinstance(result.objects, DetectedObject3DArray)
+    assert isinstance(result.detections, DetectedObject2DArray)
+    assert goal.snapshot_id == ''
+    assert goal.selected_object_id == 0
     assert feedback.STAGE_WAITING_FOR_RGBD == 0
     assert feedback.STAGE_TRANSFORMING == 4
 

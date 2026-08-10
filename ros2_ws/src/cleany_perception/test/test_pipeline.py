@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from cleany_perception.core.models import (
+    BoundingBox2D,
     FailureKind,
     InspectionFailure,
     InspectionStage,
@@ -27,9 +28,11 @@ class _Segmenter:
     def __init__(self, mask) -> None:
         self.mask = mask
         self.calls = 0
+        self.received = []
 
     def segment(self, _rgb, detections):
         self.calls += 1
+        self.received.append(tuple(detections))
         return tuple(
             ObjectMask(detection=item, mask=self.mask, score=0.99)
             for item in detections
@@ -197,3 +200,111 @@ def test_pipeline_uses_transform_captured_before_inference(synthetic_scene):
 
     assert len(output.objects) == 1
     assert output.objects[0].label == 'box'
+
+
+def test_detect_only_does_not_run_segmentation_or_tf(synthetic_scene):
+    segmenter = _Segmenter(synthetic_scene['mask'])
+    transformer = _Transformer(synthetic_scene['transform'])
+    pipeline = _pipeline(
+        synthetic_scene,
+        segmenter=segmenter,
+        transformer=transformer,
+    )
+    stages = []
+
+    detections = pipeline.detect(
+        synthetic_scene['snapshot'],
+        'find box',
+        progress=lambda stage, _detections, _objects, _message: stages.append(
+            stage
+        ),
+    )
+
+    assert detections == (synthetic_scene['detection'],)
+    assert stages == [InspectionStage.DETECTING]
+    assert segmenter.calls == 0
+    assert transformer.calls == []
+
+
+def test_inspect_selected_segments_and_reconstructs_only_selected(
+    synthetic_scene,
+):
+    other = type(synthetic_scene['detection'])(
+        label='can',
+        confidence=0.99,
+        bbox=synthetic_scene['detection'].bbox,
+    )
+    segmenter = _Segmenter(synthetic_scene['mask'])
+    transformer = _FailingTransformer()
+    pipeline = _pipeline(
+        synthetic_scene,
+        segmenter=segmenter,
+        transformer=transformer,
+    )
+    stages = []
+
+    output = pipeline.inspect_selected(
+        synthetic_scene['snapshot'],
+        (other, synthetic_scene['detection']),
+        synthetic_scene['detection'],
+        synthetic_scene['transform'],
+        progress=lambda stage, _detections, _objects, _message: stages.append(
+            stage
+        ),
+    )
+
+    assert segmenter.received == [(synthetic_scene['detection'],)]
+    assert [item.label for item in output.objects] == ['box']
+    assert stages == [
+        InspectionStage.SEGMENTING,
+        InspectionStage.RECONSTRUCTING,
+        InspectionStage.TRANSFORMING,
+    ]
+
+
+def test_selected_inspection_excludes_every_detection_box_from_plane(
+    synthetic_scene,
+):
+    other = type(synthetic_scene['detection'])(
+        label='can',
+        confidence=0.99,
+        bbox=BoundingBox2D(
+            x_min=210.0,
+            y_min=100.0,
+            x_max=250.0,
+            y_max=140.0,
+        ),
+    )
+    selected = synthetic_scene['detection']
+    selected_mask = ObjectMask(
+        detection=selected,
+        mask=synthetic_scene['mask'],
+        score=0.99,
+    )
+    pipeline = _pipeline(synthetic_scene)
+
+    support = pipeline._support_selection(
+        synthetic_scene['snapshot'].depth_m.shape,
+        (selected, other),
+        (selected_mask,),
+        exclude_detection_boxes=True,
+    )
+
+    assert not support[100:140, 135:185].any()
+    assert not support[100:140, 210:250].any()
+    assert support[95:100, 135:185].all()
+
+
+def test_detect_only_returns_empty_without_downstream_work(synthetic_scene):
+    segmenter = _Segmenter(synthetic_scene['mask'])
+    transformer = _Transformer(synthetic_scene['transform'])
+    pipeline = _pipeline(
+        synthetic_scene,
+        detector=_Detector([]),
+        segmenter=segmenter,
+        transformer=transformer,
+    )
+
+    assert pipeline.detect(synthetic_scene['snapshot'], 'nothing') == ()
+    assert segmenter.calls == 0
+    assert transformer.calls == []
