@@ -5,6 +5,10 @@ package다. 구현 내부 model이나 provider별 응답을 wire contract로 노
 
 ## 객체 메시지
 
+`DetectedObject2D`는 Gemini detector가 반환한 RGB pixel bounding box와
+snapshot-local 번호를 표현한다. `DetectedObject2DArray`가 capture timestamp,
+RGB optical frame과 후속 선택 요청에 사용할 `snapshot_id`를 소유한다.
+
 `DetectedObject3D`는 하나의 oriented bounding box를 표현한다.
 
 - `object_id`: snapshot 안에서 1부터 부여하는 사용자 선택 번호
@@ -19,14 +23,21 @@ package다. 구현 내부 model이나 provider별 응답을 wire contract로 노
 
 ## Scene inspection action
 
-`InspectScene`은 동기화한 RGB-D snapshot에 detector, segmenter, 3D reconstruction과
-TF 변환을 한 번 수행하는 cancel 가능한 action이다. 빈 `query`는 node의 기본 prompt를
-사용한다. 결과가 정상적으로 비어 있는 경우에는 `success=true`, `ERROR_NONE`, 빈
-`objects`를 반환한다.
+`InspectScene`의 1차 단계는 동기화한 RGB-D snapshot에 detector를 한 번 수행하는
+cancel 가능한 action이다. 빈 `query`, 빈 `snapshot_id`, `selected_object_id=0`으로
+호출하면 번호가 부여된 `DetectedObject2DArray`를 반환한다. RGB-D, detections와 촬영
+시점 TF는 선택 단계를 위해 제한된 cache에 보관한다. 이 단계에서는 SAM2와 3D 복원을
+실행하지 않으며 `objects`는 비어 있다.
+
+2차 단계는 1차 결과의 `snapshot_id`와 `selected_object_id`를 함께 전달한다. cache의
+선택 detection 하나만 SAM2와 3D 복원에 사용하고, 같은 촬영 시점 TF로 base frame OBB를
+반환한다. 두 필드 중 하나만 전달하거나 범위를 벗어난 번호는
+`ERROR_INVALID_SELECTION`, 없거나 만료된 snapshot은 `ERROR_SNAPSHOT_NOT_FOUND`다.
 
 오류 코드는 RGB-D timeout, detector API, detector response/JSON, mask, depth,
-plane, TF, cancel, internal failure를 구분한다. feedback stage는 RGB-D 대기부터
-target-frame 변환까지의 현재 단계를 나타낸다.
+plane, TF, cancel, snapshot lookup, selection과 internal failure를 구분한다. 1차
+feedback은 RGB-D 대기와 detector 실행, 2차 feedback은 segmentation부터 target-frame
+변환까지 나타낸다.
 
 ## Grasp planning service
 
@@ -63,6 +74,8 @@ colcon test-result --verbose
 ```bash
 ros2 interface show cleany_interfaces/msg/DetectedObject3D
 ros2 interface show cleany_interfaces/msg/DetectedObject3DArray
+ros2 interface show cleany_interfaces/msg/DetectedObject2D
+ros2 interface show cleany_interfaces/msg/DetectedObject2DArray
 ros2 interface show cleany_interfaces/action/InspectScene
 ros2 interface show cleany_interfaces/srv/PlanGrasp
 ```

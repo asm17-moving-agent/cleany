@@ -28,7 +28,7 @@ setup(
     zip_safe=True,
     maintainer='Cleany Team',
     maintainer_email='team@example.com',
-    description='One-shot RGB-D object inspection for Cleany.',
+    description='Two-stage RGB-D selected-object inspection for Cleany.',
     license='Apache-2.0',
     extras_require={
         'test': ['pytest'],

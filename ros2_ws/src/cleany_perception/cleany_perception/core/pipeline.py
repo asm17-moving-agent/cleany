@@ -64,11 +64,12 @@ class InspectionPipeline:
             lambda _stage, _detected, _objects, _message: None
         )
         is_cancelled = cancelled or (lambda: False)
-        self._raise_if_cancelled(is_cancelled)
-
-        report(InspectionStage.DETECTING, 0, 0, 'Detecting objects')
-        detections = self._detect(snapshot, query)
-        self._raise_if_cancelled(is_cancelled)
+        detections = self.detect(
+            snapshot,
+            query,
+            progress=report,
+            cancelled=is_cancelled,
+        )
         if not detections:
             return InspectionOutput(
                 objects=(),
@@ -139,6 +140,95 @@ class InspectionPipeline:
         return InspectionOutput(
             objects=objects,
             detections=detections,
+            masks=masks,
+            target_frame=self._target_frame,
+            plane=plane,
+        )
+
+    def detect(
+        self,
+        snapshot: RgbdSnapshot,
+        query: str,
+        progress: ProgressCallback | None = None,
+        cancelled: CancelCallback | None = None,
+    ) -> tuple[Detection2D, ...]:
+        report = progress or (
+            lambda _stage, _detected, _objects, _message: None
+        )
+        is_cancelled = cancelled or (lambda: False)
+        self._raise_if_cancelled(is_cancelled)
+        report(InspectionStage.DETECTING, 0, 0, 'Detecting objects')
+        detections = self._detect(snapshot, query)
+        self._raise_if_cancelled(is_cancelled)
+        return detections
+
+    def inspect_selected(
+        self,
+        snapshot: RgbdSnapshot,
+        all_detections: Sequence[Detection2D],
+        selected_detection: Detection2D,
+        capture_transform: RigidTransform,
+        progress: ProgressCallback | None = None,
+        cancelled: CancelCallback | None = None,
+    ) -> InspectionOutput:
+        if selected_detection not in all_detections:
+            raise ValueError('Selected detection must belong to the snapshot')
+        report = progress or (
+            lambda _stage, _detected, _objects, _message: None
+        )
+        is_cancelled = cancelled or (lambda: False)
+        self._raise_if_cancelled(is_cancelled)
+        detection_count = len(all_detections)
+
+        report(
+            InspectionStage.SEGMENTING,
+            detection_count,
+            0,
+            f'Segmenting selected object: {selected_detection.label}',
+        )
+        masks = self._segment(snapshot, (selected_detection,))
+        self._raise_if_cancelled(is_cancelled)
+
+        report(
+            InspectionStage.RECONSTRUCTING,
+            detection_count,
+            0,
+            'Reconstructing selected 3D object',
+        )
+        plane, camera_boxes = self._reconstruct(
+            snapshot,
+            all_detections,
+            masks,
+            exclude_detection_boxes=True,
+        )
+        self._raise_if_cancelled(is_cancelled)
+
+        report(
+            InspectionStage.TRANSFORMING,
+            detection_count,
+            1,
+            f'Transforming selected object to {self._target_frame}',
+        )
+        normal_in_target = transform_plane_normal(
+            plane,
+            capture_transform,
+        )
+        cosine_limit = math.cos(
+            math.radians(self._config.maximum_plane_tilt_degrees)
+        )
+        if float(normal_in_target @ np.array((0.0, 0.0, 1.0))) < cosine_limit:
+            raise InspectionFailure(
+                FailureKind.PLANE,
+                'Support plane exceeds the configured base-frame tilt',
+            )
+        inspected = InspectedObject(
+            label=selected_detection.label,
+            confidence=selected_detection.confidence,
+            box=transform_box(camera_boxes[0], capture_transform),
+        )
+        return InspectionOutput(
+            objects=(inspected,),
+            detections=(selected_detection,),
             masks=masks,
             target_frame=self._target_frame,
             plane=plane,
@@ -231,11 +321,13 @@ class InspectionPipeline:
         snapshot: RgbdSnapshot,
         detections: Sequence[Detection2D],
         masks: Sequence[ObjectMask],
+        exclude_detection_boxes: bool = False,
     ):
         support_selection = self._support_selection(
             snapshot.depth_m.shape,
             detections,
             masks,
+            exclude_detection_boxes,
         )
         support_points = deproject_masked_depth(
             snapshot.depth_m,
@@ -294,6 +386,7 @@ class InspectionPipeline:
         shape: tuple[int, int],
         detections: Sequence[Detection2D],
         masks: Sequence[ObjectMask],
+        exclude_detection_boxes: bool = False,
     ) -> np.ndarray:
         height, width = shape
         selection = np.zeros(shape, dtype=np.bool_)
@@ -304,6 +397,13 @@ class InspectionPipeline:
             x_max = min(width, math.ceil(detection.bbox.x_max) + margin)
             y_max = min(height, math.ceil(detection.bbox.y_max) + margin)
             selection[y_min:y_max, x_min:x_max] = True
+        if exclude_detection_boxes:
+            for detection in detections:
+                x_min = max(0, math.floor(detection.bbox.x_min))
+                y_min = max(0, math.floor(detection.bbox.y_min))
+                x_max = min(width, math.ceil(detection.bbox.x_max))
+                y_max = min(height, math.ceil(detection.bbox.y_max))
+                selection[y_min:y_max, x_min:x_max] = False
         for object_mask in masks:
             selection &= ~object_mask.mask
         return selection

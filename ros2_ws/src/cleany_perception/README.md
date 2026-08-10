@@ -1,14 +1,15 @@
 # cleany_perception
 
-동기화된 RGB-D snapshot에서 Gemini bbox, SAM2 mask와 3D OBB를 계산하는 one-shot
-inspection package다. Perception은 객체와 위치 후보만 제공하며 수거·보관 등 최종 행동을
-결정하지 않는다.
+동기화된 RGB-D snapshot에서 Gemini 2D bbox를 한 번 검출하고, 사용자가 선택한 객체
+하나만 SAM2와 3D reconstruction으로 정밀 검사하는 package다. Perception은 객체와 위치
+후보만 제공하며 수거·보관 등 최종 행동을 결정하지 않는다.
 
 ## 처리 경계
 
 ```text
-aligned RGB-D → Gemini bbox → SAM2 mask → support plane
-→ optical-frame OBB → capture-time TF → base_link OBB
+aligned RGB-D → capture-time TF → Gemini bbox + 번호
+→ bounded snapshot cache → 사용자 선택
+→ selected bbox만 SAM2 → support plane → base_link 3D OBB
 ```
 
 순수 NumPy core는 ROS, Gemini, SAM2와 MuJoCo를 import하지 않는다. `DetectorPort`,
@@ -25,9 +26,9 @@ workspace dependency와 별도 SAM2 설치는 `docs/DEVELOPMENT_SETUP.md`를 따
 - SAM2 model config/checkpoint/device: launch argument 또는 parameter
 - API key, checkpoint와 model weight는 commit하지 않는다.
 
-SAM2와 checkpoint가 없어도 package build와 mock/core test는 실행된다. 실제 action에서
-dependency 또는 checkpoint가 없으면 `ERROR_MASK`를 반환한다. Gemini SDK 또는 API key가
-없으면 `ERROR_DETECTOR_API`를 반환한다.
+1차 detector-only action은 SAM2와 checkpoint를 로드하거나 호출하지 않는다. Gemini SDK
+또는 API key가 없으면 `ERROR_DETECTOR_API`를 반환한다. 2차 선택 요청에서 처음으로 SAM2를
+lazy load하며 dependency 또는 checkpoint 문제가 있으면 `ERROR_MASK`를 반환한다.
 
 기본 detector는 `gemini-robotics-er-2-preview`다. Robotics ER 계열은 공식
 Interactions API와 업로드된 RGB snapshot을 사용하고, 요청이 끝나면 원격 임시 파일을
@@ -35,6 +36,17 @@ Interactions API와 업로드된 RGB snapshot을 사용하고, 요청이 끝나�
 API는 제한이 설정된 API key가 필요할 수 있다.
 
 ## 실행
+
+1차 detector-only 단계만 확인할 때는 SAM2 인자가 필요 없다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+export GEMINI_API_KEY="<your-api-key>"
+ros2 launch cleany_perception inspect_scene.launch.py
+```
+
+2차 selected-object 단계까지 실행할 때는 SAM2를 함께 설정한다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -54,10 +66,9 @@ ros2 launch cleany_perception inspect_scene.launch.py \
 - `camera/depth/camera_info`
 
 네 메시지는 exact timestamp로 조립한다. RGB와 depth의 해상도와 intrinsics가 일치해야
-한다. 해당 timestamp의 `target_frame <- depth optical frame` TF는 snapshot 직후, Gemini와
-SAM2 추론 전에 확보하여 결과가 나올 때까지 보관한다. 따라서 추론 시간이 TF buffer
-수명을 초과해도 동일한 촬영 시점의 좌표 변환을 유지한다. `tf_cache_seconds`(기본 60초)는
-snapshot 도착 전의 scheduler 지연과 일시적인 부하를 흡수하는 안전 여유다.
+한다. 해당 timestamp의 `target_frame <- depth optical frame` TF는 snapshot 직후 Gemini
+전에 확보하고 RGB-D 및 detections와 함께 cache에 보관한다. 기본 cache는 최근 2개
+snapshot을 120초 동안 유지하며 parameter로 조정한다.
 
 ## ROS API
 
@@ -67,8 +78,9 @@ Action:
 perception/inspect_scene  cleany_interfaces/action/InspectScene
 ```
 
-빈 query는 `default_query` parameter를 사용한다. 동시에 하나의 goal만 실행하며 이후
-goal은 reject한다. detection이 없으면 빈 객체 배열로 성공한다.
+빈 query는 `default_query` parameter를 사용한다. 1차 요청은 `snapshot_id=''`,
+`selected_object_id=0`이며, 동시에 하나의 goal만 실행한다. detection이 없으면 빈 2D
+detection 배열로 성공한다. 2차 요청은 1차 결과의 두 값을 함께 전달한다.
 
 ```bash
 ros2 action list
@@ -76,25 +88,37 @@ ros2 action info /perception/inspect_scene
 ros2 action send_goal \
   /perception/inspect_scene \
   cleany_interfaces/action/InspectScene \
-  "{query: 'Detect the box and can on the table.'}" \
+  "{query: 'Detect the box and can on the table.', snapshot_id: '', selected_object_id: 0}" \
+  --feedback
+```
+
+2차 요청 예시:
+
+```bash
+ros2 action send_goal \
+  /perception/inspect_scene \
+  cleany_interfaces/action/InspectScene \
+  "{query: '', snapshot_id: 'rgbd-...', selected_object_id: 2}" \
   --feedback
 ```
 
 성공 시 같은 snapshot을 다음 topic에도 발행한다.
 
-- `perception/objects`: `cleany_interfaces/DetectedObject3DArray`
+- `perception/detections_2d`: 번호가 부여된 `DetectedObject2DArray`
+- `perception/objects`: 후속 선택 단계에서 사용할 `DetectedObject3DArray` topic
 - `perception/debug_image`: rqt용 `BEST_EFFORT`, `VOLATILE` debug image
 - `perception/debug_image_latched`: 마지막 결과를 보관하는 `RELIABLE`,
   `TRANSIENT_LOCAL` debug image
 
-debug image는 pipeline 전체가 성공했을 때 생성된다. rqt의 큰 best-effort sample 유실과
+debug image는 각 단계가 성공했을 때 생성된다. 1차 결과는 모든 bbox와 번호, 2차 결과는
+선택 bbox와 SAM2 mask를 표시한다. rqt의 큰 best-effort sample 유실과
 subscriber discovery 지연을 흡수하기 위해 live topic에는 기본 0.25초 간격으로 총 5회 같은
 snapshot을 제한 재발행한다. 횟수와 간격은 `debug_republish_count`와
 `debug_republish_period_seconds`로 조정한다. latched topic은 마지막 성공 결과 한 장만
 보관한다. detector 또는 SAM2 단계에서 실패하면 이전 결과를 재발행하지 않는다.
 
 ```bash
-ros2 topic echo /perception/objects --once
+ros2 topic echo /perception/detections_2d --once
 ros2 topic echo /perception/debug_image_latched --once --field encoding \
   --qos-reliability reliable --qos-durability transient_local
 ```
@@ -104,14 +128,16 @@ ros2 topic echo /perception/debug_image_latched --once --field encoding \
 - RGB-D timeout: `ERROR_RGBD_TIMEOUT`
 - Gemini API/auth/network/timeout: `ERROR_DETECTOR_API`
 - JSON/schema/bbox 오류: `ERROR_DETECTOR_RESPONSE`
+- 잘못된 selected-object 요청: `ERROR_INVALID_SELECTION`
+- 없거나 만료된 snapshot: `ERROR_SNAPSHOT_NOT_FOUND`
 - SAM2 dependency/checkpoint/mask 오류: `ERROR_MASK`
 - depth encoding, shape 또는 유효 point 부족: `ERROR_DEPTH`
 - support plane 실패 또는 base-frame tilt 초과: `ERROR_PLANE`
 - capture timestamp TF 실패: `ERROR_TF`
 - cancel: `ERROR_CANCELLED`
 
-일부 객체만 조용히 누락하지 않는다. 한 detection의 mask 또는 3D 복원이 실패하면 해당
-snapshot 전체를 실패 처리한다.
+1차 결과의 `snapshot_id`는 후속 선택 단계가 같은 RGB-D와 촬영 시점 TF를 사용하기 위한
+opaque key다. cache 크기와 TTL을 넘긴 snapshot은 후속 단계에서 사용할 수 없다.
 
 ## 검증
 

@@ -1,5 +1,11 @@
-# Empty query selects the perception node's configured default prompt.
+# Detector prompt used by phase 1. Empty selects the configured default.
+# Phase 2 uses the cached detections and ignores this field.
 string query
+
+# Both fields are empty/zero for detector-only phase 1. Phase 2 supplies the
+# snapshot ID returned by phase 1 and one of its object IDs.
+string snapshot_id
+uint32 selected_object_id
 ---
 uint8 ERROR_NONE=0
 uint8 ERROR_RGBD_TIMEOUT=1
@@ -10,11 +16,19 @@ uint8 ERROR_DEPTH=5
 uint8 ERROR_PLANE=6
 uint8 ERROR_TF=7
 uint8 ERROR_CANCELLED=8
+uint8 ERROR_SNAPSHOT_NOT_FOUND=9
+uint8 ERROR_INVALID_SELECTION=10
 uint8 ERROR_INTERNAL=255
 
 bool success
 uint8 error_code
 string message
+
+# All numbered phase-1 detections. Phase 2 repeats the cached array so clients
+# can correlate the selected ID without retaining a separate ROS message.
+DetectedObject2DArray detections
+
+# Empty in phase 1; contains only the selected object in phase 2.
 DetectedObject3DArray objects
 ---
 uint8 STAGE_WAITING_FOR_RGBD=0
@@ -24,6 +38,9 @@ uint8 STAGE_RECONSTRUCTING=3
 uint8 STAGE_TRANSFORMING=4
 
 uint8 stage
+
+# Counts known at this stage. detections_2d includes all phase-1 detections;
+# objects_3d is zero until the selected object has been reconstructed.
 uint32 detections_2d
 uint32 objects_3d
 string message

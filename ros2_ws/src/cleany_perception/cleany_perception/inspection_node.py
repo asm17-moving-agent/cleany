@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Sequence
 
 import rclpy
 from cleany_interfaces.action import InspectScene
-from cleany_interfaces.msg import DetectedObject3D, DetectedObject3DArray
+from cleany_interfaces.msg import (
+    DetectedObject2D,
+    DetectedObject2DArray,
+    DetectedObject3D,
+    DetectedObject3DArray,
+)
 from rclpy.action import (
     ActionServer,
     CancelResponse,
@@ -31,6 +37,7 @@ from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
 from cleany_perception.adapters.tf2_transform import Tf2TransformAdapter
 from cleany_perception.core.geometry import quaternion_xyzw_from_rotation
 from cleany_perception.core.models import (
+    Detection2D,
     FailureKind,
     InspectionFailure,
     InspectionOutput,
@@ -52,6 +59,10 @@ from cleany_perception.debug_image import (
 from cleany_perception.rgbd_snapshot import (
     RgbdSnapshotBuffer,
     snapshot_from_messages,
+)
+from cleany_perception.snapshot_cache import (
+    CachedDetectionSnapshot,
+    DetectionSnapshotCache,
 )
 
 
@@ -155,6 +166,14 @@ class InspectionNode(Node):
             target_frame=target_frame,
             config=self._pipeline_config(),
         )
+        self._snapshot_cache = DetectionSnapshotCache(
+            maximum_entries=int(
+                self.get_parameter('snapshot_cache_max_entries').value
+            ),
+            ttl_seconds=float(
+                self.get_parameter('snapshot_cache_ttl_seconds').value
+            ),
+        )
 
         self._snapshot_buffer = RgbdSnapshotBuffer()
         self._sensor_callback_group = MutuallyExclusiveCallbackGroup()
@@ -163,6 +182,11 @@ class InspectionNode(Node):
         self._objects_publisher = self.create_publisher(
             DetectedObject3DArray,
             str(self.get_parameter('objects_topic').value),
+            10,
+        )
+        self._detections_publisher = self.create_publisher(
+            DetectedObject2DArray,
+            str(self.get_parameter('detections_topic').value),
             10,
         )
         self._debug_publisher = self.create_publisher(
@@ -201,6 +225,7 @@ class InspectionNode(Node):
     def _declare_parameters(self) -> None:
         self.declare_parameter('action_name', 'perception/inspect_scene')
         self.declare_parameter('objects_topic', 'perception/objects')
+        self.declare_parameter('detections_topic', 'perception/detections_2d')
         self.declare_parameter('debug_image_topic', 'perception/debug_image')
         self.declare_parameter(
             'latched_debug_image_topic',
@@ -219,6 +244,8 @@ class InspectionNode(Node):
         )
         self.declare_parameter('snapshot_timeout_seconds', 2.0)
         self.declare_parameter('depth_16u_scale_m', 0.001)
+        self.declare_parameter('snapshot_cache_max_entries', 2)
+        self.declare_parameter('snapshot_cache_ttl_seconds', 120.0)
         self.declare_parameter(
             'gemini_model',
             'gemini-robotics-er-2-preview',
@@ -330,8 +357,22 @@ class InspectionNode(Node):
 
     def _execute(self, goal_handle) -> InspectScene.Result:
         result = InspectScene.Result()
+        result.detections = self._empty_detections()
         result.objects = self._empty_objects()
         try:
+            has_snapshot = bool(goal_handle.request.snapshot_id)
+            has_selection = goal_handle.request.selected_object_id != 0
+            if has_snapshot != has_selection:
+                result.success = False
+                result.error_code = InspectScene.Result.ERROR_INVALID_SELECTION
+                result.message = (
+                    'snapshot_id and selected_object_id must be supplied '
+                    'together'
+                )
+                goal_handle.abort()
+                return result
+            if has_snapshot:
+                return self._execute_selection(goal_handle, result)
             self._feedback(
                 goal_handle,
                 InspectionStage.WAITING_FOR_RGBD,
@@ -351,7 +392,7 @@ class InspectionNode(Node):
             )
             capture_transform = self._lookup_capture_transform(snapshot)
             query = goal_handle.request.query.strip() or self._default_query
-            output = self._pipeline.inspect(
+            detections = self._pipeline.detect(
                 snapshot,
                 query,
                 progress=lambda stage, detections, objects, message: (
@@ -364,22 +405,45 @@ class InspectionNode(Node):
                     )
                 ),
                 cancelled=lambda: goal_handle.is_cancel_requested,
-                capture_transform=capture_transform,
             )
-            objects_message = self._objects_message(
-                output,
+            self._feedback(
+                goal_handle,
+                InspectionStage.DETECTING,
+                len(detections),
+                0,
+                f'Detected {len(detections)} objects',
+            )
+            snapshot_id = self._snapshot_id(
                 snapshot.stamp_ns,
                 messages.sequence,
             )
+            self._snapshot_cache.put(
+                snapshot_id,
+                CachedDetectionSnapshot(
+                    snapshot=snapshot,
+                    detections=detections,
+                    capture_transform=capture_transform,
+                    color_frame=messages.color.header.frame_id,
+                ),
+            )
+            detections_message = self._detections_message(
+                detections,
+                snapshot.stamp_ns,
+                messages.color.header.frame_id,
+                snapshot_id,
+            )
             result.success = True
             result.error_code = InspectScene.Result.ERROR_NONE
-            result.message = f'Inspected {len(output.objects)} objects'
-            result.objects = objects_message
-            self._objects_publisher.publish(objects_message)
+            result.message = (
+                f'Detected {len(detections)} objects; select an object_id '
+                'for selected-object inspection'
+            )
+            result.detections = detections_message
+            self._detections_publisher.publish(detections_message)
             debug_rgb = render_debug_image(
                 snapshot.rgb,
-                output.detections,
-                output.masks,
+                detections,
+                (),
             )
             self._publish_debug_image(
                 debug_image_message(
@@ -408,6 +472,82 @@ class InspectionNode(Node):
         finally:
             with self._busy_lock:
                 self._busy = False
+
+    def _execute_selection(
+        self,
+        goal_handle,
+        result: InspectScene.Result,
+    ) -> InspectScene.Result:
+        snapshot_id = goal_handle.request.snapshot_id
+        cached = self._snapshot_cache.get(snapshot_id)
+        if cached is None:
+            result.success = False
+            result.error_code = InspectScene.Result.ERROR_SNAPSHOT_NOT_FOUND
+            result.message = f'Snapshot not found or expired: {snapshot_id}'
+            goal_handle.abort()
+            return result
+        selected_id = int(goal_handle.request.selected_object_id)
+        if selected_id < 1 or selected_id > len(cached.detections):
+            result.success = False
+            result.error_code = InspectScene.Result.ERROR_INVALID_SELECTION
+            result.message = (
+                f'Object ID {selected_id} is outside the snapshot range '
+                f'1..{len(cached.detections)}'
+            )
+            goal_handle.abort()
+            return result
+        selected = cached.detections[selected_id - 1]
+        output = self._pipeline.inspect_selected(
+            cached.snapshot,
+            cached.detections,
+            selected,
+            cached.capture_transform,
+            progress=lambda stage, detections, objects, message: (
+                self._feedback(
+                    goal_handle,
+                    stage,
+                    detections,
+                    objects,
+                    message,
+                )
+            ),
+            cancelled=lambda: goal_handle.is_cancel_requested,
+        )
+        detections_message = self._detections_message(
+            cached.detections,
+            cached.snapshot.stamp_ns,
+            cached.color_frame,
+            snapshot_id,
+        )
+        objects_message = self._objects_message(
+            output,
+            cached.snapshot.stamp_ns,
+            snapshot_id,
+            (selected_id,),
+        )
+        result.success = True
+        result.error_code = InspectScene.Result.ERROR_NONE
+        result.message = (
+            f'Inspected selected object {selected_id}: {selected.label}'
+        )
+        result.detections = detections_message
+        result.objects = objects_message
+        self._objects_publisher.publish(objects_message)
+        debug_rgb = render_debug_image(
+            cached.snapshot.rgb,
+            output.detections,
+            output.masks,
+            object_ids=(selected_id,),
+        )
+        self._publish_debug_image(
+            debug_image_message(
+                debug_rgb,
+                cached.snapshot.stamp_ns,
+                cached.color_frame,
+            )
+        )
+        goal_handle.succeed()
+        return result
 
     def _publish_debug_image(self, message: Image) -> None:
         self._debug_publisher.publish(message)
@@ -463,20 +603,54 @@ class InspectionNode(Node):
         goal_handle.publish_feedback(feedback)
 
     @staticmethod
+    def _empty_detections() -> DetectedObject2DArray:
+        return DetectedObject2DArray()
+
+    @staticmethod
     def _empty_objects() -> DetectedObject3DArray:
         return DetectedObject3DArray()
+
+    @staticmethod
+    def _snapshot_id(stamp_ns: int, sequence: int) -> str:
+        return f'rgbd-{stamp_ns:019d}-{sequence:06d}'
+
+    @staticmethod
+    def _detections_message(
+        detections: Sequence[Detection2D],
+        stamp_ns: int,
+        frame_id: str,
+        snapshot_id: str,
+    ) -> DetectedObject2DArray:
+        message = DetectedObject2DArray()
+        message.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
+        message.header.frame_id = frame_id
+        message.snapshot_id = snapshot_id
+        for object_id, detection in enumerate(detections, start=1):
+            detected = DetectedObject2D()
+            detected.object_id = object_id
+            detected.label = detection.label
+            detected.confidence = detection.confidence
+            detected.x_min = detection.bbox.x_min
+            detected.y_min = detection.bbox.y_min
+            detected.x_max = detection.bbox.x_max
+            detected.y_max = detection.bbox.y_max
+            message.detections.append(detected)
+        return message
 
     @staticmethod
     def _objects_message(
         output: InspectionOutput,
         stamp_ns: int,
-        sequence: int,
+        snapshot_id: str,
+        object_ids: Sequence[int],
     ) -> DetectedObject3DArray:
+        if len(object_ids) != len(output.objects):
+            raise ValueError('Object IDs must match inspected objects')
         message = DetectedObject3DArray()
         message.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
         message.header.frame_id = output.target_frame
-        message.snapshot_id = f'rgbd-{stamp_ns:019d}-{sequence:06d}'
-        for object_id, inspected in enumerate(output.objects, start=1):
+        message.snapshot_id = snapshot_id
+        for object_id, inspected in zip(object_ids, output.objects):
             detected = DetectedObject3D()
             detected.object_id = object_id
             detected.label = inspected.label
