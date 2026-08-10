@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 <robot name="cleany" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <!-- Reuse the canonical geometry; this file only adds a mock ros2_control system. -->
-  <xacro:include filename="$(find cleany_description)/urdf/cleany.urdf.xacro"/>
+  <xacro:include filename="$(find cleany_description)/urdf/materials.xacro"/>
+  <xacro:include filename="$(find cleany_description)/urdf/cleany_geometry.xacro"/>
+
+  <xacro:cleany_robot_geometry/>
 
   <xacro:macro name="cleany_mock_joint" params="joint_name">
     <joint name="${joint_name}">
