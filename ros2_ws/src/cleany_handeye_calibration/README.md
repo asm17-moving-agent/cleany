@@ -303,11 +303,32 @@ published to TF and is not used by detection, PnP, or stored solver inputs.
 seeds with a recorded `numpy.random.PCG64` seed and a hard generation-attempt
 cap. A caller-supplied `PoseCandidateEvaluator` must resolve position IK and
 return explicit FK, soft-limit, collision-distance, planning, visibility, and
-camera-front evidence. Rejected candidates are not backfilled after the cap.
+camera-front evidence. The MuJoCo profile also renders the exact 640 x 480
+wrist-camera image for every accepted seed and requires the production
+ChArUco detector and non-ambiguous IPPE PnP result. Rejected candidates are not
+backfilled after the cap.
 The selector minimizes maximum absolute rotation-axis parallelism first and
 maximizes regularized rotation-vector covariance log-determinant second. It
 then fixes exactly 20 calibration poses and 5 held-out poses; run time never
 generates a replacement pose.
+
+`config/pose_generation.mujoco.yaml` is the simulation-only materialized
+generation profile. It uses PCG64 seed `20260810`, a bounded random joint
+workspace prior, and a local random Cartesian target around each seed FK.
+Every resulting pose still passes MoveIt IK/state validity/plan-only, fixture
+clearance, analytical FOV, exact rendered detection, and PnP independently.
+Generate the analyzed pose set from the repository root:
+
+```bash
+make handeye-generate-mujoco
+```
+
+The preparation pass is headless and writes the default manifest, matching
+runtime config, and materialized URDF below
+`artifacts/handeye/profiles/mujoco_seed_20260810/`. It refuses to overwrite an
+existing profile directory. Override `HANDEYE_PROFILE_DIR`,
+`HANDEYE_ARTIFACT_ROOT`, and `HANDEYE_RUN_ID` together when generating another
+reviewed run.
 
 The installed `config/pose_generation.template.yaml` is deliberately not a
 runnable pose manifest. Unapproved workspace, soft-limit, collision,
@@ -354,6 +375,50 @@ ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
 
 Automated tests explicitly pass `headless:=true`; actual calibration launch
 defaults remain viewer-visible.
+
+From the repository root, the equivalent reviewed operator workflow is:
+
+```bash
+make test-handeye
+make handeye-mujoco
+```
+
+The target uses the generated default profile paths and explicitly launches
+with `headless:=false`, so the operator sees the MuJoCo viewer throughout
+motion and capture. It fails with a `make handeye-generate-mujoco` instruction
+when either artifact is absent. Alternate reviewed artifacts can still be
+selected with absolute `HANDEYE_POSE_MANIFEST` and
+`HANDEYE_RUNTIME_CONFIG` values.
+
+Committed `samples.jsonl` rows are the resume authority. Re-running the same
+command skips them without motion and continues missing poses, while the
+current `pose_run.jsonl` keeps the bounded retry counts. If an operator elects
+to start a new retry cycle after those counts are exhausted, first stop the
+launch and preserve both `pose_run.jsonl` and `pose_stages/` under a new
+`recovery_cycles/cycle_N/` directory. Never remove `samples.jsonl`, `images/`,
+or `manifest.yaml`; the next visible run will keep and skip those samples.
+
+## Stationary dataset validation
+
+After all 25 samples are committed, run the standalone stationary validation:
+
+```bash
+make handeye-validate-mujoco
+```
+
+This reopens `DatasetWriter` to replay any crash journal and verify every row,
+PNG, and hash; checks dataset/pose/runtime/URDF provenance; reproduces the
+saved ChArUco correspondences and clean IPPE PnP from every PNG; and executes
+the 5 methods x 3 noise conditions x 10 seeds solver experiment. The default
+simulation translation validity bound is an explicit, overridable
+`HANDEYE_MAX_TRANSLATION_NORM_M=1.0`.
+
+The atomic output is
+`artifacts/handeye/runs/mujoco_seed_20260810/dataset_validation.json`. A valid
+dataset and an automatically selected calibration are separate decisions:
+image/provenance validation can report `dataset_status: valid` while the
+solver selection remains `review_required` under the 0.95 valid-result-rate
+and Pareto rules. The report is validation-only and never applies a transform.
 
 ## Offline solver and timestamp evaluation
 
