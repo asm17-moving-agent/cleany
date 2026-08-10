@@ -8,6 +8,7 @@
   <license>Apache-2.0</license>
 
   <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
   <exec_depend>cleany_moveit_config</exec_depend>
   <exec_depend>cleany_mujoco_sim</exec_depend>
   <exec_depend>launch</exec_depend>
@@ -17,10 +18,10 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
 
-  <test_depend>action_msgs</test_depend>
   <test_depend>control_msgs</test_depend>
   <test_depend>geometry_msgs</test_depend>
   <test_depend>python3-pytest</test_depend>
+  <test_depend>trajectory_msgs</test_depend>
 
   <export>
     <build_type>ament_python</build_type>
