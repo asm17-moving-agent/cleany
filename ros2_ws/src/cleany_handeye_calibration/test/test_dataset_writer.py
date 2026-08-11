@@ -300,6 +300,43 @@ def test_writer_persists_lossless_image_and_complete_jsonl_row(tmp_path):
     assert len(mapping['target_detection']['image_points_px']) == 24
 
 
+def test_writer_archives_every_attempt_image_before_sample_commit(tmp_path):
+    manifest = _manifest()
+    writer = DatasetWriter(artifact_root=tmp_path, manifest=manifest)
+    _, pair = _record_and_pair(
+        'sample_001',
+        1_500,
+        color_rgb=(10, 20, 30),
+    )
+
+    first = writer.archive_attempt_image(
+        pose_id='calibration_001',
+        attempt=1,
+        pair=pair,
+    )
+    second = writer.archive_attempt_image(
+        pose_id='calibration_001',
+        attempt=2,
+        pair=pair,
+    )
+
+    assert (first.sequence, second.sequence) == (1, 2)
+    assert writer.read_samples() == ()
+    images = sorted(writer.attempt_images_directory.glob('*.png'))
+    metadata = sorted(writer.attempt_images_directory.glob('*.json'))
+    assert len(images) == len(metadata) == 2
+    decoded = cv2.imread(str(images[0]), cv2.IMREAD_COLOR)
+    np.testing.assert_array_equal(decoded[0, 0], (30, 20, 10))
+    first_metadata = json.loads(metadata[0].read_text(encoding='ascii'))
+    assert first_metadata['pose_id'] == 'calibration_001'
+    assert first_metadata['attempt'] == 1
+    assert first_metadata['image_stamp_ns'] == 1_500
+    assert first_metadata['png_sha256'] == sha256_file(images[0])
+
+    reopened = DatasetWriter(artifact_root=tmp_path, manifest=manifest)
+    assert len(tuple(reopened.attempt_images_directory.glob('*.png'))) == 2
+
+
 def test_writer_refuses_duplicate_sample_ids(tmp_path):
     writer = DatasetWriter(artifact_root=tmp_path, manifest=_manifest())
     record, pair = _record_and_pair(

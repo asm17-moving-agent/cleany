@@ -197,6 +197,7 @@ class SinglePoseRequest:
     ik_seed: JointPose
     timeouts: SinglePoseTimeouts
     safety_profile: SinglePoseSafetyProfile
+    attempt: int = 1
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -224,6 +225,12 @@ class SinglePoseRequest:
             raise ValueError(
                 'safety_profile must be SinglePoseSafetyProfile'
             )
+        if (
+            isinstance(self.attempt, bool)
+            or not isinstance(self.attempt, int)
+            or self.attempt <= 0
+        ):
+            raise ValueError('attempt must be a positive integer')
 
 
 @dataclass(frozen=True, slots=True)
@@ -300,6 +307,13 @@ class SinglePoseEffects(Protocol):
     def acquire_image(
         self, settled_stamp_ns: int, timeout_sec: float
     ) -> CameraFramePair: ...
+
+    def archive_image(
+        self,
+        request: SinglePoseRequest,
+        pair: CameraFramePair,
+        timeout_sec: float,
+    ) -> Any: ...
 
     def detect_target(
         self, pair: CameraFramePair, timeout_sec: float
@@ -510,7 +524,8 @@ class SinglePoseOrchestrator:
         pair = self._run_stage(
             SinglePoseStage.ACQUIRE_IMAGE,
             budget(SinglePoseStage.ACQUIRE_IMAGE),
-            lambda: self._effects.acquire_image(
+            lambda: self._acquire_and_archive(
+                request,
                 settled_stamp_ns,
                 budget(SinglePoseStage.ACQUIRE_IMAGE),
             ),
@@ -548,6 +563,21 @@ class SinglePoseOrchestrator:
             feedback_fk=feedback_fk,
             stored_sample=stored,
         )
+
+    def _acquire_and_archive(
+        self,
+        request: SinglePoseRequest,
+        settled_stamp_ns: int,
+        timeout_sec: float,
+    ) -> CameraFramePair:
+        pair = self._effects.acquire_image(
+            settled_stamp_ns,
+            timeout_sec,
+        )
+        if not isinstance(pair, CameraFramePair):
+            raise ValueError('image acquisition must return CameraFramePair')
+        self._effects.archive_image(request, pair, timeout_sec)
+        return pair
 
     def _validate_resolved(
         self,

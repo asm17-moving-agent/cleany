@@ -109,5 +109,7 @@ def test_multi_pose_launch_shows_viewer_by_default_and_node_is_installed():
     setup = (PACKAGE_ROOT / 'setup.py').read_text(encoding='utf-8')
 
     assert "'headless',\n                default_value='false'" in source
+    assert "'use_rviz',\n                default_value='true'" in source
+    assert "'use_rviz': use_rviz" in source
     assert "executable='multi_pose_calibration'" in source
     assert 'multi_pose_runtime:main' in setup

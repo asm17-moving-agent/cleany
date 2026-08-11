@@ -537,6 +537,17 @@ class StoredCalibrationSample:
     record_sha256: str
 
 
+@dataclass(frozen=True, slots=True)
+class ArchivedAttemptImage:
+    sequence: int
+    pose_id: str
+    attempt: int
+    image_stamp_ns: int
+    image_path: str
+    png_sha256: str
+    source_image_sha256: str
+
+
 class _DatasetLock:
     def __init__(self, path: Path, thread_lock: threading.RLock) -> None:
         self._path = path
@@ -581,6 +592,7 @@ class DatasetWriter:
         self._manifest = manifest
         self._run_dir = self._artifact_root / manifest.run_id
         self._images_dir = self._run_dir / 'images'
+        self._attempt_images_dir = self._run_dir / 'attempt_images'
         self._journal_dir = self._run_dir / '.journal'
         self._samples_path = self._run_dir / SAMPLES_FILE_NAME
         self._manifest_path = self._run_dir / DATASET_MANIFEST_NAME
@@ -593,9 +605,14 @@ class DatasetWriter:
         self._run_dir.mkdir(exist_ok=True)
         if self._run_dir.resolve() != self._run_dir:
             raise ValueError('run directory must stay within artifact_root')
-        if self._images_dir.is_symlink() or self._journal_dir.is_symlink():
+        if (
+            self._images_dir.is_symlink()
+            or self._attempt_images_dir.is_symlink()
+            or self._journal_dir.is_symlink()
+        ):
             raise ValueError('dataset subdirectories must not be symlinks')
         self._images_dir.mkdir(exist_ok=True)
+        self._attempt_images_dir.mkdir(exist_ok=True)
         self._journal_dir.mkdir(parents=True, exist_ok=True)
         self._lock = _DatasetLock(
             self._run_dir / '.writer.lock',
@@ -620,6 +637,10 @@ class DatasetWriter:
     @property
     def samples_path(self) -> Path:
         return self._samples_path
+
+    @property
+    def attempt_images_directory(self) -> Path:
+        return self._attempt_images_dir
 
     def _invoke_fault_hook(self, stage: str) -> None:
         if self._fault_hook is not None:
@@ -978,6 +999,90 @@ class DatasetWriter:
             self._fsync_directory(self._journal_dir)
         return stored
 
+    def archive_attempt_image(
+        self,
+        *,
+        pose_id: str,
+        attempt: int,
+        pair: CameraFramePair,
+    ) -> ArchivedAttemptImage:
+        """Durably preserve every acquired post-settle frame before PnP."""
+
+        pose = _text(pose_id, field_name='pose_id')
+        if not _RUN_ID_PATTERN.fullmatch(pose):
+            raise ValueError('pose_id contains unsafe filename characters')
+        if isinstance(attempt, bool) or not isinstance(attempt, int):
+            raise ValueError('attempt must be a positive integer')
+        if attempt <= 0:
+            raise ValueError('attempt must be a positive integer')
+        if not isinstance(pair, CameraFramePair):
+            raise ValueError('pair must be a CameraFramePair')
+        validation = validate_camera_pair(
+            pair.image,
+            pair.camera_info,
+            contract=self._manifest.camera,
+        )
+        if validation.pair is None:
+            assert validation.rejection is not None
+            raise ValueError(
+                'camera pair violates the attempt archive contract: '
+                f'{validation.rejection.reason.value}'
+            )
+
+        encoded = self._encode_rgb_png(pair)
+        png_sha = sha256_bytes(encoded)
+        source_sha = sha256_bytes(pair.image.data)
+        with self._lock:
+            sequence = 1
+            for path in self._attempt_images_dir.iterdir():
+                if path.is_symlink():
+                    raise DatasetCorruptionError(
+                        'attempt image artifacts must not be symlinks'
+                    )
+                prefix = path.name.split('_', 1)[0]
+                if prefix.isdigit():
+                    sequence = max(sequence, int(prefix) + 1)
+            basename = (
+                f'{sequence:06d}_{pose}_attempt_{attempt:02d}_'
+                f'stamp_{pair.stamp_ns}'
+            )
+            image_path = self._attempt_images_dir / f'{basename}.png'
+            metadata_path = self._attempt_images_dir / f'{basename}.json'
+            relative_image_path = image_path.relative_to(
+                self._run_dir
+            ).as_posix()
+            metadata = {
+                'schema_version': 1,
+                'sequence': sequence,
+                'pose_id': pose,
+                'attempt': attempt,
+                'image_stamp_ns': pair.stamp_ns,
+                'camera_frame_id': pair.image.frame_id,
+                'encoding': pair.image.encoding,
+                'width': pair.image.width,
+                'height': pair.image.height,
+                'camera_calibration_sha256': (
+                    camera_calibration_sha256(pair.camera_info)
+                ),
+                'image_path': relative_image_path,
+                'png_sha256': png_sha,
+                'source_image_sha256': source_sha,
+            }
+            self._atomic_write(image_path, encoded)
+            self._atomic_write(
+                metadata_path,
+                _pretty_json_bytes(metadata),
+            )
+        return ArchivedAttemptImage(
+            sequence=sequence,
+            pose_id=pose,
+            attempt=attempt,
+            image_stamp_ns=pair.stamp_ns,
+            image_path=relative_image_path,
+            png_sha256=png_sha,
+            source_image_sha256=source_sha,
+        )
+
     def read_samples(self) -> tuple[StoredCalibrationSample, ...]:
         """Verify and return every committed row in append order."""
 
@@ -995,6 +1100,7 @@ class DatasetWriter:
 __all__ = [
     'DATASET_MANIFEST_SCHEMA_VERSION',
     'CaptureTiming',
+    'ArchivedAttemptImage',
     'DatasetCorruptionError',
     'DatasetError',
     'DatasetManifestV1',

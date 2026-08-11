@@ -239,6 +239,7 @@ class RosPoseRunExecutor(PoseRunExecutor):
             ik_seed=pose.ik_seed,
             timeouts=_single_pose_timeouts(stage_timeouts),
             safety_profile=self._safety,
+            attempt=attempt,
         )
         stage_path = (
             self._writer.run_directory

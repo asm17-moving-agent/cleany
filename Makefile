@@ -12,6 +12,7 @@ HANDEYE_RUN_ID ?= mujoco_seed_20260810
 HANDEYE_RUN_DIR ?= $(HANDEYE_ARTIFACT_ROOT)/$(HANDEYE_RUN_ID)
 HANDEYE_VALIDATION_OUTPUT ?= $(HANDEYE_RUN_DIR)/dataset_validation.json
 HANDEYE_MAX_TRANSLATION_NORM_M ?= 1.0
+HANDEYE_DATASET_MODE ?= strict
 HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 	cleany_moveit_config cleany_handeye_calibration
 
@@ -191,7 +192,8 @@ handeye-mujoco: build-handeye
 	ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
 		pose_manifest:="$(HANDEYE_POSE_MANIFEST)" \
 		runtime_config:="$(HANDEYE_RUNTIME_CONFIG)" \
-		headless:=false
+		headless:=false \
+		use_rviz:=true
 
 handeye-validate-mujoco: build-handeye
 	@test -f "$(HANDEYE_RUN_DIR)/samples.jsonl" || \
@@ -213,6 +215,7 @@ handeye-validate-mujoco: build-handeye
 		--urdf "$(HANDEYE_PROFILE_DIR)/cleany_handeye.urdf" \
 		--ground-truth "$${sim_share}/config/handeye_scene.yaml" \
 		--max-translation-norm-m "$(HANDEYE_MAX_TRANSLATION_NORM_M)" \
+		--dataset-mode "$(HANDEYE_DATASET_MODE)" \
 		--output "$(HANDEYE_VALIDATION_OUTPUT)"
 
 clean:

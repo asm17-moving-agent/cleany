@@ -355,6 +355,14 @@ the next fixed pose. `/handeye/cancel_run` requests cancellation between stage
 attempts and prevents the next pose from starting; controller timeout handling
 remains owned by the bounded motion adapter.
 
+Every compatible wrist-camera frame acquired after the settle gate is archived
+before ChArUco detection under `attempt_images/`, including frames from failed
+detection/PnP attempts and later retries. Each PNG has an adjacent JSON file
+with pose ID, attempt number, ROS stamp, camera-calibration hash, raw-source
+hash, and encoded PNG hash. Successful samples are still committed separately
+under `images/` and `samples.jsonl`; corrupt committed rows are never hidden by
+the diagnostic attempt archive.
+
 The multi-pose runtime profile uses the single-pose JSON schema and must be
 anchored to the manifest's first pose. Its recorded pose-manifest SHA-256,
 random seed, safety values, right-arm park tolerance, and every adapter and
@@ -370,11 +378,15 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
   pose_manifest:=/absolute/path/to/materialized_poses.yaml \
   runtime_config:=/absolute/path/to/materialized_runtime.json \
-  headless:=false
+  headless:=false \
+  use_rviz:=true
 ```
 
 Automated tests explicitly pass `headless:=true`; actual calibration launch
-defaults remain viewer-visible.
+defaults keep both the MuJoCo viewer and MoveIt RViz visible. RViz is launched
+with `use_sim_time:=true`, so its current-state robot and planned trajectory
+share the controller's MuJoCo clock instead of lagging on wall time. Set
+`use_rviz:=false` only for non-interactive runs.
 
 From the repository root, the equivalent reviewed operator workflow is:
 
@@ -384,11 +396,11 @@ make handeye-mujoco
 ```
 
 The target uses the generated default profile paths and explicitly launches
-with `headless:=false`, so the operator sees the MuJoCo viewer throughout
-motion and capture. It fails with a `make handeye-generate-mujoco` instruction
-when either artifact is absent. Alternate reviewed artifacts can still be
-selected with absolute `HANDEYE_POSE_MANIFEST` and
-`HANDEYE_RUNTIME_CONFIG` values.
+with `headless:=false use_rviz:=true`, so the operator sees the MuJoCo viewer
+and clock-synchronized RViz throughout motion and capture. It fails with a
+`make handeye-generate-mujoco` instruction when either artifact is absent.
+Alternate reviewed artifacts can still be selected with absolute
+`HANDEYE_POSE_MANIFEST` and `HANDEYE_RUNTIME_CONFIG` values.
 
 Committed `samples.jsonl` rows are the resume authority. Re-running the same
 command skips them without motion and continues missing poses, while the
@@ -419,6 +431,28 @@ dataset and an automatically selected calibration are separate decisions:
 image/provenance validation can report `dataset_status: valid` while the
 solver selection remains `review_required` under the 0.95 valid-result-rate
 and Pareto rules. The report is validation-only and never applies a transform.
+
+Strict validation remains the default and requires the complete 20+5 set. To
+solve after excluding poses that exhausted runtime retries and therefore were
+never committed to `samples.jsonl`, explicitly select partial mode:
+
+```bash
+make handeye-validate-mujoco \
+  HANDEYE_DATASET_MODE=partial \
+  HANDEYE_PROFILE_DIR=/absolute/profile/directory \
+  HANDEYE_RUN_ID=the_matching_run_id
+```
+
+Partial mode accepts 5..20 calibration and 1..5 held-out committed rows,
+requires every row to remain a manifest subset, and reruns image/hash/PnP
+validation without silently dropping corrupt committed rows. It recomputes
+rotation covariance rank and the non-parallel-axis witness from the committed
+calibration feedback before executing the same 150 solver runs. The report is
+marked `dataset_status: valid_partial`, lists `omitted_manifest_poses`, and is
+always review-only. `solver_experiment.review_candidates` records all five
+ideal/seed-zero transforms and their calibration and held-out errors even when
+the automatic 0.95-rate selector returns `review_required`; no ad-hoc analysis
+script is needed to inspect the solved transforms.
 
 ## Offline solver and timestamp evaluation
 

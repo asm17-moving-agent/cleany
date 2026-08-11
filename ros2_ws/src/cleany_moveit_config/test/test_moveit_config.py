@@ -68,7 +68,9 @@ def _canonical_chain(side: str, tip_link: str) -> tuple[str, ...]:
     current = 'base_link'
     joints: list[str] = []
     while current != tip_link:
-        assert current in outgoing, f'chain stops before {tip_link} at {current}'
+        assert current in outgoing, (
+            f'chain stops before {tip_link} at {current}'
+        )
         joint_name, current = outgoing[current]
         joints.append(joint_name)
         assert len(joints) <= len(outgoing), 'cycle in canonical arm chain'
@@ -77,7 +79,9 @@ def _canonical_chain(side: str, tip_link: str) -> tuple[str, ...]:
 
 def test_srdf_has_two_five_joint_arm_chains() -> None:
     root = ET.parse(CONFIG_ROOT / 'cleany.srdf').getroot()
-    groups = {element.attrib['name']: element for element in root.findall('group')}
+    groups = {
+        element.attrib['name']: element for element in root.findall('group')
+    }
     assert set(groups) == {'left_arm', 'right_arm'}
 
     for side in SIDES:
@@ -246,3 +250,16 @@ def test_mock_ros2_control_matches_moveit_controller_contract() -> None:
         and 'joint_name' in element.attrib
     }
     assert configured_mock_joints == _all_modeled_joints()
+
+
+def test_optional_rviz_uses_the_moveit_model_and_selected_clock() -> None:
+    source = (PACKAGE_ROOT / 'launch' / 'move_group.launch.py').read_text(
+        encoding='utf-8'
+    )
+
+    assert "DeclareLaunchArgument('use_rviz', default_value='false')" in source
+    assert "condition=IfCondition(use_rviz)" in source
+    assert 'moveit_config.robot_description,' in source
+    assert 'moveit_config.robot_description_semantic,' in source
+    assert 'moveit_config.robot_description_kinematics,' in source
+    assert "'use_sim_time': ParameterValue(" in source

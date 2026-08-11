@@ -41,6 +41,11 @@ from cleany_handeye_calibration.pnp import (
     solve_planar_pnp,
 )
 from cleany_handeye_calibration.pose_manifest import load_pose_manifest
+from cleany_handeye_calibration.pose_diversity import (
+    evaluate_rotation_diversity,
+    require_rotation_diversity,
+    rotation_observations,
+)
 from cleany_handeye_calibration.schema import (
     CalibrationSampleRecord,
     transform_to_mapping,
@@ -54,9 +59,14 @@ from cleany_handeye_calibration.target_detector import (
     QUADRANTS,
 )
 from cleany_handeye_calibration.validation import transform_error_metrics
+from cleany_handeye_calibration.transforms import (
+    rotation_matrix_from_quaternion_xyzw,
+)
 
 
 REPORT_SCHEMA = 'cleany.handeye_dataset_validation/v1'
+STRICT_DATASET_MODE = 'strict'
+PARTIAL_DATASET_MODE = 'partial'
 PnpSolver = Callable[..., PnpResult]
 
 
@@ -268,6 +278,44 @@ def _method_summaries(result: SolverExperimentResult) -> list[dict]:
     ]
 
 
+def _review_candidates(result: SolverExperimentResult) -> list[dict]:
+    seed = result.config.random_seeds[0]
+    rows = tuple(
+        row
+        for row in result.rows
+        if row.condition.value == 'ideal' and row.random_seed == seed
+    )
+    if len(rows) != 5:
+        raise ValueError('solver experiment has no complete ideal review set')
+    return [
+        {
+            'method': row.method.value,
+            'condition': row.condition.value,
+            'random_seed': row.random_seed,
+            'valid': row.valid,
+            'failure_reason': row.failure_reason,
+            'gripper_T_camera': (
+                None
+                if row.gripper_T_camera is None
+                else transform_to_mapping(row.gripper_T_camera)
+            ),
+            'translation_error_m': row.translation_error_m,
+            'rotation_error_rad': row.rotation_error_rad,
+            'held_out_translation_median_m': (
+                row.held_out_translation_median_m
+            ),
+            'held_out_translation_p95_m': (
+                row.held_out_translation_p95_m
+            ),
+            'held_out_rotation_median_rad': (
+                row.held_out_rotation_median_rad
+            ),
+            'held_out_rotation_p95_rad': row.held_out_rotation_p95_rad,
+        }
+        for row in rows
+    ]
+
+
 def _report_mapping(
     *,
     input_hashes: dict[str, str],
@@ -276,12 +324,17 @@ def _report_mapping(
     calibration_count: int,
     held_out_count: int,
     pose_diversity: dict,
+    dataset_mode: str,
+    omitted_manifest_poses: Sequence[dict[str, str]],
 ) -> dict:
     selection = solver.selection
+    omitted = tuple(omitted_manifest_poses)
     body = {
         'schema_version': REPORT_SCHEMA,
         'artifact_status': 'validation_only_not_applied',
-        'dataset_status': 'valid',
+        'dataset_status': 'valid_partial' if omitted else 'valid',
+        'dataset_mode': dataset_mode,
+        'omitted_manifest_poses': list(omitted),
         'input_sha256': dict(sorted(input_hashes.items())),
         'stationary_samples': {
             'total': rendered.sample_count,
@@ -312,6 +365,7 @@ def _report_mapping(
             'required_valid_result_rate': VALID_RESULT_RATE_MIN,
             'pnp_ambiguity_ratio_minimum': AMBIGUITY_RATIO_MIN,
             'method_summaries': _method_summaries(solver),
+            'review_candidates': _review_candidates(solver),
             'selection': {
                 'status': selection.status.value,
                 'selected_method': (
@@ -341,6 +395,46 @@ def _report_mapping(
         raise ValueError('solver experiment did not produce exactly 150 rows')
     body['report_sha256'] = mapping_sha256(body)
     return body
+
+
+def _committed_pose_diversity(records, manifest) -> dict:
+    calibration = tuple(
+        record
+        for record in records
+        if record.sample.split.value == 'calibration'
+    )
+    reference = rotation_matrix_from_quaternion_xyzw(
+        manifest.selection.reference_rotation_quaternion_xyzw
+    )
+    observations = rotation_observations(
+        [record.sample.pose_id for record in calibration],
+        [
+            record.sample.base_T_gripper.rotation_matrix
+            for record in calibration
+        ],
+        reference_rotation_matrix=reference,
+    )
+    config = manifest.run_config.require_ready()
+    assert config.axis_parallelism_tolerance is not None
+    assert config.covariance_rank_tolerance is not None
+    diversity = evaluate_rotation_diversity(
+        observations,
+        log_det_epsilon=manifest.generator.log_det_epsilon,
+        axis_parallelism_tolerance=config.axis_parallelism_tolerance,
+        covariance_rank_tolerance=config.covariance_rank_tolerance,
+    )
+    require_rotation_diversity(diversity)
+    return {
+        'scope': 'committed_calibration_samples',
+        'maximum_axis_parallelism': diversity.maximum_axis_parallelism,
+        'rotation_covariance_log_det': (
+            diversity.rotation_covariance_log_det
+        ),
+        'rotation_covariance_rank': diversity.rotation_covariance_rank,
+        'nonparallel_axis_pose_ids': list(
+            diversity.nonparallel_axis_pose_ids
+        ),
+    }
 
 
 def _atomic_write_json(path: Path, value: dict) -> None:
@@ -386,7 +480,11 @@ def validate_dataset(
     ground_truth_path: str | Path,
     max_translation_norm_m: float,
     output_path: str | Path,
+    dataset_mode: str = STRICT_DATASET_MODE,
 ) -> Path:
+    if dataset_mode not in (STRICT_DATASET_MODE, PARTIAL_DATASET_MODE):
+        raise ValueError('dataset_mode must be strict or partial')
+    allow_partial = dataset_mode == PARTIAL_DATASET_MODE
     samples = Path(samples_path).expanduser().resolve(strict=True)
     pose_path = Path(pose_manifest_path).expanduser().resolve(strict=True)
     runtime_path = Path(runtime_config_path).expanduser().resolve(strict=True)
@@ -405,7 +503,7 @@ def validate_dataset(
             'samples path does not belong to the runtime dataset manifest'
         )
     stored = writer.read_samples()
-    records = load_sample_records(samples)
+    records = load_sample_records(samples, allow_partial=allow_partial)
     if tuple(item.record for item in stored) != records:
         raise ValueError('dataset writer and evaluation loader rows differ')
     expected_poses = {
@@ -415,7 +513,19 @@ def validate_dataset(
         (record.sample.pose_id, record.sample.split.value)
         for record in records
     }
-    if actual_poses != expected_poses:
+    if not actual_poses.issubset(expected_poses):
+        raise ValueError(
+            'dataset contains pose IDs or splits outside the pose manifest'
+        )
+    omitted_manifest_poses = tuple(
+        {
+            'pose_id': pose.pose_id,
+            'split': pose.split.value,
+        }
+        for pose in manifest.poses
+        if (pose.pose_id, pose.split.value) not in actual_poses
+    )
+    if omitted_manifest_poses and not allow_partial:
         raise ValueError(
             'dataset pose IDs or splits differ from the pose manifest'
         )
@@ -432,8 +542,8 @@ def validate_dataset(
             max_translation_norm_m=max_translation_norm_m,
         ),
         ground_truth=load_ground_truth(ground_truth),
+        allow_partial=allow_partial,
     )
-    diversity = manifest.selection.diversity
     report = _report_mapping(
         input_hashes={
             'samples_jsonl': sha256_file(samples),
@@ -453,18 +563,9 @@ def validate_dataset(
             record.sample.split.value == 'held_out'
             for record in records
         ),
-        pose_diversity={
-            'maximum_axis_parallelism': (
-                diversity.maximum_axis_parallelism
-            ),
-            'rotation_covariance_log_det': (
-                diversity.rotation_covariance_log_det
-            ),
-            'rotation_covariance_rank': diversity.rotation_covariance_rank,
-            'nonparallel_axis_pose_ids': list(
-                diversity.nonparallel_axis_pose_ids
-            ),
-        },
+        pose_diversity=_committed_pose_diversity(records, manifest),
+        dataset_mode=dataset_mode,
+        omitted_manifest_poses=omitted_manifest_poses,
     )
     _atomic_write_json(output, report)
     return output
@@ -473,8 +574,8 @@ def validate_dataset(
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            'Validate a complete stationary 20+5 dataset and write a '
-            'review-only JSON report.'
+            'Validate a stationary dataset and write a review-only JSON '
+            'report. Partial mode explicitly excludes uncommitted poses.'
         )
     )
     parser.add_argument('--samples', required=True)
@@ -484,6 +585,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument('--ground-truth', required=True)
     parser.add_argument('--max-translation-norm-m', required=True, type=float)
     parser.add_argument('--output', required=True)
+    parser.add_argument(
+        '--dataset-mode',
+        choices=(STRICT_DATASET_MODE, PARTIAL_DATASET_MODE),
+        default=STRICT_DATASET_MODE,
+    )
     return parser
 
 
@@ -498,6 +604,7 @@ def main(argv=None) -> None:
             ground_truth_path=values['ground_truth'],
             max_translation_norm_m=values['max_translation_norm_m'],
             output_path=values['output'],
+            dataset_mode=values['dataset_mode'],
         )
     except Exception as error:
         print(
@@ -514,7 +621,9 @@ if __name__ == '__main__':
 
 __all__ = [
     'REPORT_SCHEMA',
+    'PARTIAL_DATASET_MODE',
     'RenderedSampleValidation',
+    'STRICT_DATASET_MODE',
     'validate_dataset',
     'validate_rendered_samples',
 ]

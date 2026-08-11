@@ -14,11 +14,13 @@ from cleany_handeye_calibration.experiment_evaluation import (
     percentile_linear,
     run_solver_experiment,
     select_method,
+    validate_evaluation_records,
 )
 from cleany_handeye_calibration.dataset_writer import (
     mapping_sha256,
     sha256_bytes,
 )
+from cleany_handeye_calibration.dataset_validation import _review_candidates
 from cleany_handeye_calibration.pnp import PnpResult
 from cleany_handeye_calibration.solver import (
     HAND_EYE_METHOD_REGISTRY,
@@ -69,8 +71,7 @@ class RecordingPnp:
         return PnpResult(True, 'SOLVEPNP_IPPE', None, None, False, 0, pose, ())
 
 
-def deterministic_solver(samples, *, validity_policy):
-    assert len(samples) == 20
+def _deterministic_results(validity_policy):
     assert validity_policy.max_translation_norm_m == 1.0
     results = []
     for index, spec in enumerate(HAND_EYE_METHOD_REGISTRY):
@@ -92,6 +93,11 @@ def deterministic_solver(samples, *, validity_policy):
             )
         )
     return tuple(results)
+
+
+def deterministic_solver(samples, *, validity_policy):
+    assert len(samples) == 20
+    return _deterministic_results(validity_policy)
 
 
 def test_exact_150_rows_share_one_noise_bundle_across_all_five_methods():
@@ -130,6 +136,50 @@ def test_exact_150_rows_share_one_noise_bundle_across_all_five_methods():
     assert result.selection.candidate_condition is NoiseCondition.IDEAL
     assert result.selection.candidate_seed == 0
     assert result.selection.candidate_transform == GROUND_TRUTH
+    candidates = _review_candidates(result)
+    assert len(candidates) == 5
+    assert candidates[0]['method'] == 'tsai'
+    assert candidates[0]['gripper_T_camera']['parent_frame'] == (
+        'left_gripper_frame'
+    )
+
+
+def test_explicit_partial_mode_runs_19_plus_4_without_silent_row_drops():
+    records = tuple(
+        record
+        for record in evaluation_records()
+        if record.sample.pose_id not in ('calibration_006', 'held_out_001')
+    )
+
+    with pytest.raises(ValueError, match='exactly 20 calibration'):
+        validate_evaluation_records(records)
+
+    def solve_partial(samples, *, validity_policy):
+        assert len(samples) == 19
+        return _deterministic_results(validity_policy)
+
+    result = run_solver_experiment(
+        records,
+        RecordingFk(),
+        ExperimentConfig(tuple(range(10)), 1.0),
+        ground_truth=GROUND_TRUTH,
+        pnp_solver=RecordingPnp(),
+        solve_all=solve_partial,
+        allow_partial=True,
+    )
+
+    assert len(result.rows) == EXPECTED_SOLVER_RUN_COUNT
+    assert len(result.pnp_diagnostics) == 23 * 30
+
+
+def test_partial_mode_still_requires_solver_and_held_out_minimums():
+    records = evaluation_records()
+    too_few_calibration = records[:2] + records[20:21]
+    with pytest.raises(ValueError, match='5..20 calibration'):
+        validate_evaluation_records(
+            too_few_calibration,
+            allow_partial=True,
+        )
 
 
 def test_noise_is_applied_to_pixels_and_feedback_q_before_pnp_and_fk():

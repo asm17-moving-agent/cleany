@@ -45,6 +45,8 @@ from cleany_handeye_calibration.validation import (
 EXPERIMENT_SCHEMA_VERSION = 1
 EXPECTED_CALIBRATION_COUNT = 20
 EXPECTED_HELD_OUT_COUNT = 5
+MINIMUM_PARTIAL_CALIBRATION_COUNT = 5
+MINIMUM_PARTIAL_HELD_OUT_COUNT = 1
 EXPECTED_METHOD_COUNT = 5
 EXPECTED_SEED_COUNT = 10
 EXPECTED_SOLVER_RUN_COUNT = 150
@@ -230,8 +232,10 @@ AllMethodSolver = Callable[..., tuple[HandEyeResult, ...]]
 
 def load_sample_records(
     samples_jsonl: str | Path,
+    *,
+    allow_partial: bool = False,
 ) -> tuple[CalibrationSampleRecord, ...]:
-    """Load a complete 20+5 committed row set for offline evaluation."""
+    """Load committed rows, optionally accepting an explicit partial set."""
 
     path = Path(samples_jsonl).expanduser().resolve(strict=True)
     payload = path.read_bytes()
@@ -279,12 +283,14 @@ def load_sample_records(
                 f'invalid samples JSONL line {line_number}: '
                 f'missing {error.args[0]}'
             ) from error
-    validate_evaluation_records(records)
+    validate_evaluation_records(records, allow_partial=allow_partial)
     return tuple(records)
 
 
 def validate_evaluation_records(
     records: Sequence[CalibrationSampleRecord],
+    *,
+    allow_partial: bool = False,
 ) -> tuple[CalibrationSampleRecord, ...]:
     values = tuple(records)
     if any(not isinstance(item, CalibrationSampleRecord) for item in values):
@@ -295,7 +301,23 @@ def validate_evaluation_records(
     held_out = tuple(
         item for item in values if item.sample.split is SampleSplit.HELD_OUT
     )
-    if (
+    if not isinstance(allow_partial, bool):
+        raise ValueError('allow_partial must be a bool')
+    if allow_partial:
+        if (
+            not MINIMUM_PARTIAL_CALIBRATION_COUNT
+            <= len(calibration)
+            <= EXPECTED_CALIBRATION_COUNT
+            or not MINIMUM_PARTIAL_HELD_OUT_COUNT
+            <= len(held_out)
+            <= EXPECTED_HELD_OUT_COUNT
+            or len(values) != len(calibration) + len(held_out)
+        ):
+            raise ValueError(
+                'partial evaluation requires 5..20 calibration + '
+                '1..5 held_out rows'
+            )
+    elif (
         len(calibration) != EXPECTED_CALIBRATION_COUNT
         or len(held_out) != EXPECTED_HELD_OUT_COUNT
         or len(values)
@@ -356,10 +378,14 @@ def prepare_noise_dataset(
     fk_port: FeedbackFkPort,
     *,
     pnp_solver: PnpSolver = solve_planar_pnp,
+    allow_partial: bool = False,
 ) -> PreparedNoiseDataset:
     """Apply pixel/q noise, rerun PnP/FK, and never perturb transforms."""
 
-    values = validate_evaluation_records(records)
+    values = validate_evaluation_records(
+        records,
+        allow_partial=allow_partial,
+    )
     if condition not in NOISE_CONDITIONS:
         raise ValueError('condition must be one of the three fixed patterns')
     if isinstance(random_seed, bool) or not isinstance(random_seed, int):
@@ -825,10 +851,14 @@ def run_solver_experiment(
     ground_truth: RigidTransform,
     pnp_solver: PnpSolver = solve_planar_pnp,
     solve_all: AllMethodSolver = solve_all_hand_eye_methods,
+    allow_partial: bool = False,
 ) -> SolverExperimentResult:
     """Execute exactly 5 methods x 3 conditions x 10 seed bundles."""
 
-    values = validate_evaluation_records(records)
+    values = validate_evaluation_records(
+        records,
+        allow_partial=allow_partial,
+    )
     if not isinstance(config, ExperimentConfig):
         raise ValueError('config must be ExperimentConfig')
     if not isinstance(ground_truth, RigidTransform):
@@ -844,6 +874,7 @@ def run_solver_experiment(
                 random_seed,
                 fk_port,
                 pnp_solver=pnp_solver,
+                allow_partial=allow_partial,
             )
             pnp_diagnostics.extend(prepared.pnp_diagnostics)
             if not prepared.valid:
@@ -894,9 +925,7 @@ def run_solver_experiment(
         raise RuntimeError(
             f'experiment produced {len(rows)} rows, expected 150'
         )
-    if len(pnp_diagnostics) != 30 * (
-        EXPECTED_CALIBRATION_COUNT + EXPECTED_HELD_OUT_COUNT
-    ):
+    if len(pnp_diagnostics) != 30 * len(values):
         raise RuntimeError('experiment did not preserve all PnP diagnostics')
     summaries = summarize_methods(rows)
     selection = select_method(
@@ -916,6 +945,8 @@ def run_solver_experiment(
 __all__ = [
     'EXPERIMENT_SCHEMA_VERSION',
     'EXPECTED_SOLVER_RUN_COUNT',
+    'MINIMUM_PARTIAL_CALIBRATION_COUNT',
+    'MINIMUM_PARTIAL_HELD_OUT_COUNT',
     'ExperimentConfig',
     'MethodExperimentSummary',
     'MethodSelection',
