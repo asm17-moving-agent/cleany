@@ -17,8 +17,9 @@ EXPECTED_GROUP_TOPICS = {
         '/gazebo_odom',
         '/joint_states',
         '/clock',
+        '/imu/data',
     },
-    'lidar': {'/scan'},
+    'lidar': {'/scan', '/scan_12cm', '/scan_45cm', '/scan_70cm'},
     'head_rgbd': {
         '/camera/head/color/image_raw',
         '/camera/head/depth/image_raw',

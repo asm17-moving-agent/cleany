@@ -318,7 +318,7 @@ def test_world_contains_base_imu():
     assert sensor.find('.//noise') is None
 
 
-def test_fortress_rendering_sensors_are_lazy():
+def test_fortress_rendering_sensor_activation_matches_profiles():
     root = ElementTree.parse(WORLD_PATH).getroot()
     rendering_sensors = [
         sensor
@@ -332,11 +332,24 @@ def test_fortress_rendering_sensors_are_lazy():
         'left_wrist_rgb',
         'right_wrist_rgb',
         'rplidar_a1',
+        'rplidar_12cm',
+        'rplidar_45cm',
+        'rplidar_70cm',
     }
-    assert all(
-        sensor.findtext('always_on') == 'false'
+    sensor_states = {
+        sensor.attrib['name']: sensor.findtext('always_on')
         for sensor in rendering_sensors
-    )
+    }
+    assert sensor_states == {
+        'head_realsense_rgb': 'false',
+        'head_realsense_depth': 'false',
+        'left_wrist_rgb': 'false',
+        'right_wrist_rgb': 'false',
+        'rplidar_a1': 'false',
+        'rplidar_12cm': 'true',
+        'rplidar_45cm': 'true',
+        'rplidar_70cm': 'true',
+    }
 
 
 def test_fortress_launch_separates_sensor_and_gui_renderers():

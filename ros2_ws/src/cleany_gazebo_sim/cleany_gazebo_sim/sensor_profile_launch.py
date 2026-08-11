@@ -49,10 +49,23 @@ def _sensor_bridge_nodes(
     *,
     package_share: Path,
     harmonic: bool,
+    bridge_config: LaunchConfiguration,
 ) -> list[Node]:
     profile = LaunchConfiguration('sensor_profile').perform(context)
+    bridge_config_path = bridge_config.perform(context)
     config_suffix = '_harmonic' if harmonic else ''
     node_prefix = 'gazebo_harmonic' if harmonic else 'gazebo'
+
+    if bridge_config_path:
+        return [
+            Node(
+                package='ros_gz_bridge',
+                executable='parameter_bridge',
+                name=f'{node_prefix}_override_bridge',
+                parameters=[{'config_file': bridge_config_path}],
+                output='screen',
+            )
+        ]
 
     return [
         Node(
@@ -78,11 +91,13 @@ def sensor_profile_bridges(
     package_share: Path,
     *,
     harmonic: bool,
+    bridge_config: LaunchConfiguration,
 ) -> OpaqueFunction:
     return OpaqueFunction(
         function=_sensor_bridge_nodes,
         kwargs={
             'package_share': package_share,
             'harmonic': harmonic,
+            'bridge_config': bridge_config,
         },
     )

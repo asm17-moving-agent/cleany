@@ -120,9 +120,10 @@ python3 -m pytest -s \
 ## Sensor profiles
 
 두 Gazebo launch는 `sensor_profile` argument로 rendering sensor 부하를 선택합니다.
-차체 명령, odometry, joint state, clock bridge는 모든 profile에서 실행됩니다.
+차체 명령, odometry, joint state, clock, IMU bridge는 모든 profile에서 실행됩니다.
+`bridge_config`를 지정하면 sensor profile 대신 해당 단일 bridge 설정을 사용합니다.
 
-| Profile | `/scan` | Head RGB | Head depth | Left wrist | Right wrist |
+| Profile | LiDAR scans | Head RGB | Head depth | Left wrist | Right wrist |
 | --- | --- | --- | --- | --- | --- |
 | `lidar_nav` (기본값) | O | X | X | X | X |
 | `head_rgbd` | X | O | O | X | X |

@@ -28,6 +28,11 @@ def generate_launch_description() -> LaunchDescription:
     world_arg = DeclareLaunchArgument(
         'world', default_value=str(default_world)
     )
+    bridge_config_arg = DeclareLaunchArgument(
+        'bridge_config',
+        default_value='',
+        description='Optional bridge config overriding the sensor profile.',
+    )
     sensor_config_arg = DeclareLaunchArgument(
         'sensor_config', default_value=str(base_config)
     )
@@ -65,7 +70,11 @@ def generate_launch_description() -> LaunchDescription:
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',
     )
-    bridges = sensor_profile_bridges(package_share, harmonic=True)
+    bridges = sensor_profile_bridges(
+        package_share,
+        harmonic=True,
+        bridge_config=LaunchConfiguration('bridge_config'),
+    )
     command_guard = Node(
         package='cleany_gazebo_sim',
         executable='gazebo_command_guard',
@@ -100,6 +109,7 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             world_arg,
+            bridge_config_arg,
             sensor_config_arg,
             headless_arg,
             use_sim_time_arg,
