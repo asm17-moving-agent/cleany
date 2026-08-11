@@ -40,6 +40,10 @@ setup(
         'console_scripts': [
             'single_pose_calibration = '
             'cleany_handeye_calibration.single_pose_runtime:main',
+            'multi_pose_calibration = '
+            'cleany_handeye_calibration.multi_pose_runtime:main',
+            'pose_manifest_preflight = '
+            'cleany_handeye_calibration.pose_manifest_cli:main',
         ],
     },
 )
