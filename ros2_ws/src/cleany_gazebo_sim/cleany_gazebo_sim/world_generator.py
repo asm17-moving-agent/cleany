@@ -17,7 +17,7 @@ _ROLLER_RADIUS = 0.008
 _ROLLER_LENGTH = 0.03
 _ROLLER_CENTER_RADIUS = 0.0555
 _OFFICE_SPAWN_POSE = (5.49526, -8.97241, 0.38, 0.0, 0.0, 2.7409)
-_STUDY_CAFE_SPAWN_POSE = (0.0, -2.7, 0.38, 0.0, 0.0, 1.5708)
+_STUDY_CAFE_SPAWN_POSE = (-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708)
 _ROBOT_VISIBILITY_FLAGS = '0x02'
 _FUEL_VISUALS = {
     'adj_table': (
@@ -31,6 +31,10 @@ _FUEL_VISUALS = {
     'square_shelf': (
         'https://fuel.gazebosim.org/1.0/openrobotics/models/'
         'squareshelf/2/files/meshes/SquareShelf.obj'
+    ),
+    'office_chair_grey': (
+        'https://fuel.gazebosim.org/1.0/OpenRobotics/models/'
+        'OfficeChairGrey/1/files/meshes/OfficeChairGrey.obj'
     ),
 }
 _HARMONIC_SYSTEM_PLUGINS = {
@@ -174,6 +178,7 @@ def _add_box_model(
     pose: tuple[float, float, float, float, float, float],
     size: tuple[float, float, float],
     color: str,
+    roughness: float | None = None,
 ) -> None:
     model = ElementTree.SubElement(world, 'model', {'name': name})
     ElementTree.SubElement(model, 'static').text = 'true'
@@ -188,7 +193,19 @@ def _add_box_model(
         ElementTree.SubElement(box, 'size').text = ' '.join(map(str, size))
         if element_name == 'visual':
             material = ElementTree.SubElement(element, 'material')
+            if roughness is not None:
+                ElementTree.SubElement(material, 'ambient').text = color
             ElementTree.SubElement(material, 'diffuse').text = color
+            if roughness is not None:
+                ElementTree.SubElement(material, 'specular').text = (
+                    '0.03 0.03 0.03 1'
+                )
+                pbr = ElementTree.SubElement(material, 'pbr')
+                metal = ElementTree.SubElement(pbr, 'metal')
+                ElementTree.SubElement(metal, 'roughness').text = str(
+                    roughness
+                )
+                ElementTree.SubElement(metal, 'metalness').text = '0.0'
 
 
 def _add_fuel_furniture(
@@ -361,6 +378,273 @@ def _add_standard_table(
         )
 
 
+def _add_box_part(
+    link: ElementTree.Element,
+    name: str,
+    size: tuple[float, float, float],
+    pose: tuple[float, float, float, float, float, float],
+    color: str,
+) -> None:
+    """Add matching primitive collision and visual elements."""
+    pose_text = ' '.join(map(str, pose))
+    size_text = ' '.join(map(str, size))
+    for element_name in ('collision', 'visual'):
+        element = ElementTree.SubElement(
+            link, element_name, {'name': f'{name}_{element_name}'}
+        )
+        ElementTree.SubElement(element, 'pose').text = pose_text
+        geometry = ElementTree.SubElement(element, 'geometry')
+        box = ElementTree.SubElement(geometry, 'box')
+        ElementTree.SubElement(box, 'size').text = size_text
+        if element_name == 'visual':
+            material = ElementTree.SubElement(element, 'material')
+            ElementTree.SubElement(material, 'ambient').text = color
+            ElementTree.SubElement(material, 'diffuse').text = color
+
+
+def _add_cylinder_part(
+    link: ElementTree.Element,
+    name: str,
+    radius: float,
+    length: float,
+    pose: tuple[float, float, float, float, float, float],
+    color: str,
+) -> None:
+    """Add matching cylindrical collision and visual elements."""
+    pose_text = ' '.join(map(str, pose))
+    for element_name in ('collision', 'visual'):
+        element = ElementTree.SubElement(
+            link, element_name, {'name': f'{name}_{element_name}'}
+        )
+        ElementTree.SubElement(element, 'pose').text = pose_text
+        geometry = ElementTree.SubElement(element, 'geometry')
+        cylinder = ElementTree.SubElement(geometry, 'cylinder')
+        ElementTree.SubElement(cylinder, 'radius').text = str(radius)
+        ElementTree.SubElement(cylinder, 'length').text = str(length)
+        if element_name == 'visual':
+            material = ElementTree.SubElement(element, 'material')
+            ElementTree.SubElement(material, 'ambient').text = color
+            ElementTree.SubElement(material, 'diffuse').text = color
+
+
+def _add_demo_desk(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+    front_sign: float,
+) -> None:
+    """Add the 1.2 m white desk with two compact A-frame supports."""
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+    white = '0.92 0.93 0.94 1'
+
+    corner_radius = 0.06
+    tabletop_half_depth = 0.385
+    # Keep the partition-side corners square and round only the two corners
+    # on the chair-facing edge. The union of two boxes and two cylinders
+    # gives visual and collision geometry the same footprint.
+    _add_box_part(
+        link, 'tabletop_back', (1.2, 0.77 - corner_radius, 0.04),
+        (
+            0.0, -front_sign * corner_radius / 2.0, 0.70,
+            0.0, 0.0, 0.0,
+        ),
+        white,
+    )
+    _add_box_part(
+        link,
+        'tabletop_front_center',
+        (1.2 - 2.0 * corner_radius, corner_radius, 0.04),
+        (
+            0.0,
+            front_sign * (tabletop_half_depth - corner_radius / 2.0),
+            0.70,
+            0.0, 0.0, 0.0,
+        ),
+        white,
+    )
+    for side_name, x in (
+        ('left', -0.60 + corner_radius),
+        ('right', 0.60 - corner_radius),
+    ):
+        _add_cylinder_part(
+            link,
+            f'tabletop_front_{side_name}_corner',
+            corner_radius,
+            0.04,
+            (
+                x,
+                front_sign * (tabletop_half_depth - corner_radius),
+                0.70,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            white,
+        )
+    leg_bottom_z = 0.02
+    leg_top_z = 0.67
+    # Supports sit 8 cm inboard from every tabletop edge.
+    for support_name, x in (('left', -0.52), ('right', 0.52)):
+        for side_name, bottom_y in (
+            ('front', tabletop_half_depth - 0.08),
+            ('back', -tabletop_half_depth + 0.08),
+        ):
+            top_y = 0.035 if bottom_y > 0 else -0.035
+            delta_y = top_y - bottom_y
+            delta_z = leg_top_z - leg_bottom_z
+            leg_length = sqrt(delta_y ** 2 + delta_z ** 2)
+            roll = atan2(-delta_y, delta_z)
+            _add_box_part(
+                link,
+                f'{support_name}_{side_name}_leg',
+                (0.045, 0.045, leg_length),
+                (
+                    x,
+                    (bottom_y + top_y) / 2.0,
+                    (leg_bottom_z + leg_top_z) / 2.0,
+                    roll,
+                    0.0,
+                    0.0,
+                ),
+                white,
+            )
+    _add_box_part(
+        link, 'upper_crossbar', (0.82, 0.045, 0.045),
+        (0.0, 0.0, 0.62, 0.0, 0.0, 0.0), white
+    )
+
+
+def _add_rounded_partition(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+) -> None:
+    """Add a thin divider with four rounded corners in the X-Z plane."""
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+    color = '0.78 0.80 0.82 1'
+    width = 1.2
+    thickness = 0.025
+    height = 0.72
+    radius = 0.05
+
+    _add_box_part(
+        link, 'partition_center', (width - 2.0 * radius, thickness, height),
+        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), color
+    )
+    _add_box_part(
+        link, 'partition_middle', (width, thickness, height - 2.0 * radius),
+        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), color
+    )
+    for horizontal_name, x in (
+        ('left', -width / 2.0 + radius),
+        ('right', width / 2.0 - radius),
+    ):
+        for vertical_name, z in (
+            ('bottom', -height / 2.0 + radius),
+            ('top', height / 2.0 - radius),
+        ):
+            _add_cylinder_part(
+                link,
+                f'partition_{vertical_name}_{horizontal_name}_corner',
+                radius,
+                thickness,
+                (x, 0.0, z, pi / 2.0, 0.0, 0.0),
+                color,
+            )
+
+
+def _add_desk_monitor(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+    front_sign: float,
+) -> None:
+    """Add one black 27-inch 16:9 monitor facing its chair."""
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+    bezel_color = '0.025 0.025 0.03 1'
+    screen_color = '0.008 0.010 0.014 1'
+
+    _add_box_part(
+        link, 'monitor_panel', (0.62, 0.035, 0.36),
+        (0.0, 0.0, 1.00, 0.0, 0.0, 0.0), bezel_color
+    )
+    _add_box_part(
+        link, 'monitor_stem', (0.035, 0.035, 0.12),
+        (0.0, 0.0, 0.79, 0.0, 0.0, 0.0), bezel_color
+    )
+    _add_box_part(
+        link, 'monitor_base', (0.24, 0.16, 0.02),
+        (0.0, front_sign * 0.04, 0.73, 0.0, 0.0, 0.0),
+        bezel_color,
+    )
+
+    screen = ElementTree.SubElement(
+        link, 'visual', {'name': 'monitor_screen_visual'}
+    )
+    ElementTree.SubElement(screen, 'pose').text = (
+        f'0.0 {front_sign * 0.0185} 1.0 0.0 0.0 0.0'
+    )
+    geometry = ElementTree.SubElement(screen, 'geometry')
+    box = ElementTree.SubElement(geometry, 'box')
+    # 0.598 x 0.336 m is a 27-inch diagonal at 16:9.
+    ElementTree.SubElement(box, 'size').text = '0.598 0.002 0.336'
+    material = ElementTree.SubElement(screen, 'material')
+    ElementTree.SubElement(material, 'ambient').text = screen_color
+    ElementTree.SubElement(material, 'diffuse').text = screen_color
+
+
+def _add_office_chair(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+) -> None:
+    """Add a Fuel office-chair visual with lightweight collisions."""
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+
+    visual = ElementTree.SubElement(
+        link, 'visual', {'name': 'office_chair_visual'}
+    )
+    # Fuel's chair faces -Y. Rotate it so the model's +X is the front.
+    ElementTree.SubElement(visual, 'pose').text = (
+        '0 0 0 0 0 1.5707963267948966'
+    )
+    geometry = ElementTree.SubElement(visual, 'geometry')
+    mesh = ElementTree.SubElement(geometry, 'mesh')
+    ElementTree.SubElement(mesh, 'uri').text = _FUEL_VISUALS[
+        'office_chair_grey'
+    ]
+    ElementTree.SubElement(mesh, 'scale').text = '0.9 0.9 0.9'
+
+    _add_cylinder_collision(
+        link, 'caster_base_collision', 0.32, 0.06,
+        (0.0, 0.0, 0.05)
+    )
+    _add_cylinder_collision(
+        link, 'center_column_collision', 0.045, 0.34,
+        (-0.02, 0.0, 0.22)
+    )
+    _add_box_collision(
+        link, 'seat_collision', (0.52, 0.55, 0.08),
+        (-0.03, 0.0, 0.42)
+    )
+    _add_box_collision(
+        link, 'backrest_collision', (0.10, 0.48, 0.50),
+        (-0.35, 0.0, 0.73)
+    )
+
+
 def _chair_pose_toward(
     chair_xy: tuple[float, float],
     table_xy: tuple[float, float],
@@ -426,6 +710,18 @@ def materialize_study_cafe_world(
         raise ValueError('robot template must contain a world')
     world.set('name', 'cleany_study_cafe')
 
+    scene = world.find('scene')
+    if scene is None:
+        scene = ElementTree.SubElement(world, 'scene')
+    ambient = scene.find('ambient')
+    if ambient is None:
+        ambient = ElementTree.SubElement(scene, 'ambient')
+    ambient.text = '0.65 0.65 0.65 1'
+    background = scene.find('background')
+    if background is None:
+        background = ElementTree.SubElement(scene, 'background')
+    background.text = '0.82 0.83 0.84 1'
+
     robot = world.find("model[@name='cleany_mecanum']")
     if robot is None:
         raise ValueError('robot template is missing cleany_mecanum')
@@ -434,125 +730,96 @@ def materialize_study_cafe_world(
         raise ValueError('cleany_mecanum is missing its world pose')
     pose.text = ' '.join(map(str, _STUDY_CAFE_SPAWN_POSE))
 
+    # Eight desk columns form 3-2-3 blocks. The measured clear horizontal
+    # gaps are 1.33 m. The outer desk sides
+    # touch the east and west wall faces.
+    desk_x_positions = (
+        -5.53, -4.33, -3.13,
+        -0.60, 0.60,
+        3.13, 4.33, 5.53,
+    )
+    # Each pair of rows is back-to-back; chairs face their own desk from the
+    # outside. The seat front overlaps the tabletop edge by 23 cm.
+    row_pair_centers = (3.17, 0.0, -3.17)
+    room_half_width = 6.13
+    room_half_depth = 5.47
+    wall_thickness = 0.16
+
     ground = world.find("model[@name='ground_plane']")
     if ground is not None:
-        ElementTree.SubElement(ground, 'pose').text = '0 1.75 0 0 0 0'
+        ElementTree.SubElement(ground, 'pose').text = '0 0 0 0 0 0'
         for ground_size in ground.findall('link/*/geometry/plane/size'):
-            ground_size.text = '18 10.5'
+            ground_size.text = '12.42 11.10'
 
-    wall_color = '0.88 0.88 0.84 1'
+    wall_color = '0.97 0.97 0.96 1'
     _add_box_model(
-        world, 'wall_north', (0, 7, 1.25, 0, 0, 0),
-        (18, 0.16, 2.5), wall_color
+        world, 'wall_north',
+        (0, room_half_depth + wall_thickness / 2.0, 1.25, 0, 0, 0),
+        (12.42, wall_thickness, 2.5), wall_color, roughness=0.92
     )
     _add_box_model(
-        world, 'wall_south', (0, -3.5, 1.25, 0, 0, 0),
-        (18, 0.16, 2.5), wall_color
+        world, 'wall_south',
+        (0, -room_half_depth - wall_thickness / 2.0, 1.25, 0, 0, 0),
+        (12.42, wall_thickness, 2.5), wall_color, roughness=0.92
     )
     _add_box_model(
-        world, 'wall_east', (9, 1.75, 1.25, 0, 0, 0),
-        (0.16, 10.5, 2.5), wall_color
+        world, 'wall_east',
+        (room_half_width + wall_thickness / 2.0, 0, 1.25, 0, 0, 0),
+        (wall_thickness, 10.94, 2.5), wall_color, roughness=0.92
     )
     _add_box_model(
-        world, 'wall_west', (-9, 1.75, 1.25, 0, 0, 0),
-        (0.16, 10.5, 2.5), wall_color
+        world, 'wall_west',
+        (-room_half_width - wall_thickness / 2.0, 0, 1.25, 0, 0, 0),
+        (wall_thickness, 10.94, 2.5), wall_color, roughness=0.92
     )
 
-    standard_table_poses = [
-        (-6.0, -1.0, 0, 0, 0, 0),
-        (-3.8, -1.0, 0, 0, 0, 0),
-        (-6.0, 4.7, 0, 0, 0, 0),
-        (-3.8, 4.7, 0, 0, 0, 0),
-        (-1.5, 5.8, 0, 0, 0, 0),
-        (1.5, 5.8, 0, 0, 0, 0),
-    ]
-    for index, table_pose in enumerate(standard_table_poses, start=1):
-        _add_standard_table(
-            world, f'standard_table_{index:02d}', table_pose
-        )
+    partition_index = 1
+    for pair_center in row_pair_centers:
+        for desk_x in desk_x_positions:
+            # The divider starts 30 cm above the floor and reaches 30 cm
+            # above the 72 cm tabletop: z=0.30..1.02 m.
+            _add_rounded_partition(
+                world,
+                f'desk_partition_{partition_index:02d}',
+                (desk_x, pair_center, 0.66, 0.0, 0.0, 0.0),
+            )
+            partition_index += 1
 
-    shared_table_poses = [
-        (-1.7, 1.4, 0, 0, 0, 0),
-        (0.0, 1.4, 0, 0, 0, 0),
-        (1.7, 1.4, 0, 0, 0, 0),
-        (5.6, -0.9, 0, 0, 0, 1.5708),
-        (5.6, 3.3, 0, 0, 0, 1.5708),
-    ]
-    adj_table_z_scale = 0.72 / 0.802432
-    for index, table_pose in enumerate(shared_table_poses, start=1):
-        _add_fuel_furniture(
-            world, f'adj_table_{index:02d}', 'adj_table', table_pose,
-            (1.6, 0.82, 0.72), 0.36,
-            visual_scale=(1.0, 1.0, adj_table_z_scale),
-        )
-
-    chair_assignments: list[
-        tuple[tuple[float, float], tuple[float, float]]
-    ] = []
-    for table_x, table_y in (
-        (-6.0, -1.0), (-3.8, -1.0), (-6.0, 4.7), (-3.8, 4.7)
-    ):
-        chair_assignments.extend(
-            [
-                ((table_x, table_y - 0.78), (table_x, table_y)),
-                ((table_x, table_y + 0.78), (table_x, table_y)),
-            ]
-        )
-    for table_x in (-1.7, 0.0, 1.7):
-        chair_assignments.extend(
-            [
-                ((table_x, 0.58), (table_x, 1.4)),
-                ((table_x, 2.22), (table_x, 1.4)),
-            ]
-        )
-    for table_y in (-0.9, 3.3):
-        chair_assignments.extend(
-            [
-                ((4.82, table_y - 0.42), (5.6, table_y)),
-                ((4.82, table_y + 0.42), (5.6, table_y)),
-                ((6.38, table_y - 0.42), (5.6, table_y)),
-                ((6.38, table_y + 0.42), (5.6, table_y)),
-            ]
-        )
-    for table_x in (-1.5, 1.5):
-        chair_assignments.extend(
-            [
-                ((table_x - 0.38, 4.98), (table_x, 5.8)),
-                ((table_x + 0.38, 4.98), (table_x, 5.8)),
-            ]
-        )
-    chair_poses = [
-        _chair_pose_toward(chair_xy, table_xy)
-        for chair_xy, table_xy in chair_assignments
-    ]
-    for index, chair_pose in enumerate(chair_poses, start=1):
-        _add_fuel_furniture(
-            world, f'wooden_chair_{index:02d}', 'wooden_chair',
-            chair_pose, (0.42, 0.42, 0.80), 0.40
-        )
-
-    shelf_poses = [
-        (-7.8, 6.55, 0, 0, 0, 0),
-        (-6.7, 6.55, 0, 0, 0, 0),
-        (6.7, 6.55, 0, 0, 0, 0),
-        (7.8, 6.55, 0, 0, 0, 0),
-        (-7.8, 1.7, 0, 0, 0, 1.5708),
-        (7.8, 1.7, 0, 0, 0, 1.5708),
-    ]
-    for index, shelf_pose in enumerate(shelf_poses, start=1):
-        _add_fuel_furniture(
-            world, f'square_shelf_{index:02d}', 'square_shelf',
-            shelf_pose, (0.78, 0.40, 0.78), 0.39
-        )
-
-    for index, planter_xy in enumerate(
-        [
-            (-8.1, -2.8), (8.1, -2.8), (-8.1, 5.5),
-            (8.1, 5.5), (-2.7, 3.6), (3.0, 4.6),
-        ],
-        start=1,
-    ):
-        _add_planter(world, f'planter_{index:02d}', planter_xy)
+    desk_index = 1
+    for pair_center in row_pair_centers:
+        for row_offset, chair_offset in (
+            ((0.385, 0.385), (-0.385, -0.385))
+        ):
+            desk_y = pair_center + row_offset
+            front_sign = 1.0 if chair_offset > 0 else -1.0
+            for desk_x in desk_x_positions:
+                desk_name = f'demo_desk_{desk_index:02d}'
+                monitor_name = f'desk_monitor_{desk_index:02d}'
+                chair_name = f'office_chair_{desk_index:02d}'
+                _add_demo_desk(
+                    world, desk_name,
+                    (desk_x, desk_y, 0.0, 0.0, 0.0, 0.0),
+                    front_sign=front_sign,
+                )
+                _add_desk_monitor(
+                    world,
+                    monitor_name,
+                    (
+                        desk_x,
+                        desk_y - front_sign * 0.285,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                    ),
+                    front_sign=front_sign,
+                )
+                chair_xy = (desk_x, desk_y + chair_offset)
+                _add_office_chair(
+                    world, chair_name,
+                    _chair_pose_toward(chair_xy, (desk_x, desk_y)),
+                )
+                desk_index += 1
 
     target = target_path or (
         Path(gettempdir()) / 'cleany_study_cafe.sdf'
