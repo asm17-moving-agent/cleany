@@ -33,8 +33,8 @@ collision mesh도 Cleany description에서 가져왔습니다. 다만 arm/grippe
 없어 arm link의 gravity는 비활성화한 상태입니다. Fortress와 Harmonic launch는
 공통 IMU `/imu/data` bridge와 필요한 rendering sensor bridge만 실행하는 sensor
 profile을 제공합니다. 기본값은 GPU LiDAR `/scan`만 추가로 활성화하는
-`lidar_nav`입니다. Nav2, MoveIt, Mission Manager integration은 아직 포함하지
-않습니다.
+`lidar_nav`입니다. 2D mapping용 `slam_toolbox` profile은 제공하지만 Nav2 navigation,
+MoveIt, Mission Manager integration은 아직 포함하지 않습니다.
 
 ## Simulation IMU contract
 
@@ -52,6 +52,11 @@ publisher가 고정 `base_link -> lidar_link`와 `base_link -> imu_link`를
 `/tf_static`에 발행합니다. Gazebo SDF의 fixed joint와 ROS static TF parameter는
 구조 test에서 같은 값인지 검사합니다. 현재 sensor mount는 simulation 후보값이며
 hardware description의 확정 mount로 취급하지 않습니다.
+
+`MecanumDrive` odometry는 `/gazebo_odom`을 거쳐 ROS `/odom`과
+`odom -> base_link`를 소유합니다. 별도 `OdometryPublisher`의 simulator ground truth는
+`/ground_truth/odom`으로만 bridge하며 TF를 발행하지 않습니다. 두 source를 같은
+odometry topic에 섞지 않아 RViz와 SLAM의 기준 frame이 교대로 점프하지 않게 합니다.
 
 ## Environment
 
@@ -171,6 +176,161 @@ odometry가 실제로 변하는지 확인합니다. 다음 조건을 모두 만�
 `--min-imu-sim-hz`를 pytest 직접 실행 시 지정할 수 있습니다. GPU LiDAR는
 headless 실행에서도 rendering sensor이므로, 선택한 Gazebo profile에서 동작하는
 OpenGL display 또는 headless rendering 환경이 필요합니다.
+
+## Husarion Office experiment world
+
+SLAM 실험용 실내 환경으로 Apache-2.0의 `husarion_gz_worlds`를 source dependency로
+사용합니다. `gazebo_office.launch.py`는 원본 office의 세 ROSBOT demo model을 제거하고
+그중 첫 번째 시작 위치에 Cleany를 삽입합니다. 원본 world와 model은 별도 submodule로
+유지해 upstream 출처와 변경 경계를 보존합니다.
+
+이 프로젝트의 로컬 office 실험 profile은 Ubuntu 24.04 / ROS 2 Jazzy / Gazebo
+Harmonic입니다. submodule을 받은 뒤 다음과 같이 실행합니다.
+Office launch는 host monitor 설정을 변경하지 않고 Gazebo Qt GUI에만 1.0 배율을
+적용합니다.
+
+```bash
+git submodule update --init --recursive
+make sim-gazebo-office
+```
+
+office 실행은 SLAM에 필요한 navigation bridge만 올리므로 camera topic은 제외하고
+`/scan`, `/imu/data`, `/odom`, TF와 `/clock`을 제공합니다. 다른 terminal에서 기존
+`/cmd_vel` 계약으로 우선 주행을 확인할 수 있습니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
+  '{linear: {x: 0.1}, angular: {z: 0.1}}'
+```
+
+office의 일부 가구 mesh는 Gazebo Fuel URL을 참조하므로 최초 실행에는 network가
+필요할 수 있습니다. 고정 경로와 rosbag 기반 비교를 시작하기 전에 필요한 resource를
+고정해 동일한 world revision을 사용합니다.
+
+## Spacious study cafe evaluation world
+
+`gazebo_study_cafe.launch.py`는 Husarion Office보다 넓고 가벼운 초기 평가용 공간을
+제공합니다. 내부 크기는 18×10.5 m이며 로봇은 가구가 없는 남쪽 시작 구역의
+`(x=0, y=-2.7, yaw=1.5708)`에 배치됩니다. 중앙 공용석과 좌우 개별석 사이에는
+1.5 m 이상의 주행 통로가 남도록 구성했습니다.
+
+가구는 OpenRobotics Gazebo Fuel의 `AdjTable`, `Table`, `WoodenChair`, `SquareShelf`
+외형을 사용합니다. 중앙 공용석은 `AdjTable`, 좌우 개별석은 `Table`로 구분하며 두
+종류의 테이블 상판 최고점은 모두 바닥에서 0.72 m입니다. 중앙 공용석, 좌측 2인석,
+우측 4인석, 북측 바 좌석을 분리하고 책장과 화분을 landmark로 추가하되 남쪽 spawn
+구역과 1.5 m 이상의 순환 통로는 비워 둡니다. 의자 yaw는 WoodenChair의 local `+X`
+정면이 지정 테이블 중심을 향하도록 좌표에서 계산합니다. 테이블 collision은 상판과
+4개 다리, 의자는 좌판·등받이와 4개 다리의 primitive로 분리해 낮은 2D LiDAR가 가구
+전체를 채운 가상 벽으로 인식하지 않게 합니다. 최초 실행 시 Fuel asset 다운로드를
+위해 network가 필요하고 이후에는 Gazebo cache를 사용합니다.
+
+로컬 Jazzy/Harmonic Distrobox에서 GUI 배율 1.0으로 실행합니다.
+
+```bash
+make sim-gazebo-study-cafe
+```
+
+## 2D SLAM candidate profile
+
+`slam_toolbox` online async profile은 SCRUM-315 비교 실험을 시작하기 위한 첫 후보이며
+선정 결과가 아닙니다. 현재 simulation의 `/scan`과 `odom -> base_link`를 입력으로
+사용하고 `map -> odom`과 occupancy grid를 발행합니다. Cartographer와 RTAB-Map 등
+다른 후보에 동일한 sensor recording을 재생해 정확도·지도 품질·실시간성을 측정한 뒤
+사용자가 결과를 검토해 최종 알고리즘을 결정합니다.
+
+후보 parameter는 `config/slam_toolbox.yaml`에 있습니다. Ceres scan matcher와
+Huber loss, loop closure를 사용하며 LiDAR 범위는 simulation 계약과 같은
+0.15–12 m입니다. `/imu/data`는 `slam_toolbox`에 직접 연결하지 않습니다. 추후 IMU
+융합이 필요하면 `robot_localization` 등에서 `odom -> base_link` 추정을 개선한 뒤 같은
+SLAM 입력 계약을 유지합니다.
+
+Gazebo를 실행한 상태에서 다른 terminal에 SLAM node를 시작합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 launch cleany_gazebo_sim slam_mapping.launch.py
+```
+
+`ros2 topic echo --once /map`과 `ros2 run tf2_ros tf2_echo map base_link`로 map 및
+TF chain을 확인할 수 있습니다.
+
+## LiDAR mount SLAM evaluation
+
+SCRUM-316 평가 후보는 `config/lidar_mount_profiles.yaml`의 `floor_12cm`,
+`floor_26cm`, `floor_45cm`, `floor_70cm` 네 가지입니다. 모두 `base_link +X=0.16 m`를
+유지하고 scan 중심을 바닥에서 0.12, 0.26, 0.45, 0.70 m 높이에 둡니다. 상대 Z는
+각각 `-0.26 m`, `-0.12 m`, `+0.07 m`, `+0.32 m`이며 실제 하드웨어 실장 치수로
+확정된 값이 아닙니다. 평가 준비 도구는
+선택 위치를 Gazebo SDF와
+`base_link -> lidar_link` static TF 설정에 동시에 반영해 서로 다른 pose가 섞이는 것을
+방지합니다.
+
+네 후보를 한 화면에서 비교할 때는 기본 world에 네 LiDAR를 동시에 장착합니다. ROS
+topic은 `/scan_12cm`, `/scan`, `/scan_45cm`, `/scan_70cm`이며 26 cm의 기존 `/scan`
+계약은 SLAM 호환성을 위해 유지합니다. 생성 world에서는 현재 로봇 visual에
+`0x02`, LiDAR에 `0x01` visibility mask를 사용하므로 센서는 교체 예정인 기존 차체를
+투과해 환경만 봅니다. GUI 표시와 물리 collision에는 영향을 주지 않습니다.
+
+### Study cafe evaluation route
+
+`config/study_cafe_route.yaml`은 study cafe collision을 로봇 외곽과 안전 여유를 포함해
+0.43 m 팽창한 뒤 만든 약 51 m 폐루프 경로입니다. 남쪽 긴 직선, 서쪽 통로, 상단
+가구 구역, 동쪽 통로, 중앙 테이블 통로를 지나 spawn 위치로 돌아옵니다.
+`ground_truth_route_follower`는 `/ground_truth/odom`을 경로 제어에만 사용하고
+`/cmd_vel`을 발행합니다. SLAM에는 ground truth를 전달하지 않습니다.
+
+Gazebo study cafe를 먼저 실행한 뒤 별도 terminal에서 경로를 시작합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 launch cleany_gazebo_sim study_cafe_route.launch.py
+```
+
+직선 속도는 0.25 m/s, 회전 속도는 0.5 rad/s이며 경로가 끝나거나 ground-truth
+odometry가 0.5초 이상 끊기면 정지 명령을 발행합니다.
+
+먼저 패키지를 빌드한 뒤 각 후보의 독립된 run directory를 만듭니다. 아래 예시는
+Harmonic 예시입니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 run cleany_gazebo_sim lidar_slam_evaluation prepare \
+  --package-root ros2_ws/src/cleany_gazebo_sim \
+  --profiles ros2_ws/src/cleany_gazebo_sim/config/lidar_mount_profiles.yaml \
+  --profile floor_26cm \
+  --simulator harmonic \
+  --output /tmp/cleany-slam-front-low-01
+
+ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
+  world:=/tmp/cleany-slam-front-low-01/world.sdf \
+  sensor_config:=/tmp/cleany-slam-front-low-01/sensor_tf.yaml
+```
+
+다른 terminal에서 위의 `slam_mapping.launch.py`를 실행합니다. 세 후보 모두 동일한
+world, 주행 경로(`route_id`), 주행 시간과 trial 수를 사용해야 비교할 수 있습니다.
+최소 3회 반복을 권장하며 다음 지표와 artifact를 `result.json` 양식에 기록합니다.
+
+- 정량: ATE RMSE, translation/rotation RPE RMSE, map coverage, valid scan ratio,
+  평균 scan rate, real-time factor
+- 정성: map image, trajectory artifact, 사각·가림·벽 왜곡·loop closure 관찰 내용
+
+측정값을 별도 JSON에 작성한 뒤 run manifest와 schema가 일치하는지 검증하여
+기록합니다.
+
+```bash
+ros2 run cleany_gazebo_sim lidar_slam_evaluation record \
+  --run-dir /tmp/cleany-slam-front-low-01 \
+  --input /path/to/measured-result.json
+```
+
+현재 저장소에는 재현 가능한 후보 materialization과 결과 schema만 포함하며 측정하지
+않은 성능 수치를 임의로 채우지 않습니다. 최종 위치 선정은 동일 조건의 실제 runtime
+결과를 수집한 뒤 결정합니다.
 
 ## Run
 
