@@ -185,6 +185,7 @@ class FakeEffects:
 
     def __post_init__(self):
         self.calls = []
+        self.archived = []
 
     def _called(self, stage):
         self.calls.append(stage)
@@ -220,6 +221,9 @@ class FakeEffects:
         self._called(SinglePoseStage.ACQUIRE_IMAGE)
         return _pair()
 
+    def archive_image(self, request, pair, timeout_sec):
+        self.archived.append((request.pose_id, request.attempt, pair.stamp_ns))
+
     def detect_target(self, pair, timeout_sec):
         self._called(SinglePoseStage.DETECT_TARGET)
         return _observation()
@@ -249,6 +253,7 @@ def test_single_pose_runs_exact_stage_order_and_records_success():
     assert effects.calls == list(ORDERED_STAGES)
     assert result.resolved_pose == RESOLVED
     assert result.stored_sample == 'stored-sample'
+    assert effects.archived == [('calibration_001', 1, 1_500)]
     assert [entry.stage for entry in journal.entries] == [
         stage for stage in ORDERED_STAGES for _ in range(2)
     ]
@@ -277,6 +282,17 @@ def test_each_stage_failure_is_journaled_and_stops_later_effects(
     assert journal.entries[-1].stage is failed_stage
     assert journal.entries[-1].status is JournalStatus.FAILED
     assert 'forced' in journal.entries[-1].reason
+
+
+def test_target_detection_failure_keeps_the_acquired_attempt_image():
+    effects = FakeEffects(fail_stage=SinglePoseStage.DETECT_TARGET)
+
+    with pytest.raises(SinglePoseFailure):
+        SinglePoseOrchestrator(effects, MemoryStageJournal()).run(
+            _request()
+        )
+
+    assert effects.archived == [('calibration_001', 1, 1_500)]
 
 
 def test_stage_overrun_is_reported_as_that_stage_timeout():

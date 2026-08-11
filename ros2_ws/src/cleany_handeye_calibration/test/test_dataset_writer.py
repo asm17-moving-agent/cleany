@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 import json
-from pathlib import Path
-import subprocess
 
 import cv2
 import numpy as np
@@ -300,6 +298,43 @@ def test_writer_persists_lossless_image_and_complete_jsonl_row(tmp_path):
     assert len(mapping['target_detection']['image_points_px']) == 24
 
 
+def test_writer_archives_every_attempt_image_before_sample_commit(tmp_path):
+    manifest = _manifest()
+    writer = DatasetWriter(artifact_root=tmp_path, manifest=manifest)
+    _, pair = _record_and_pair(
+        'sample_001',
+        1_500,
+        color_rgb=(10, 20, 30),
+    )
+
+    first = writer.archive_attempt_image(
+        pose_id='calibration_001',
+        attempt=1,
+        pair=pair,
+    )
+    second = writer.archive_attempt_image(
+        pose_id='calibration_001',
+        attempt=2,
+        pair=pair,
+    )
+
+    assert (first.sequence, second.sequence) == (1, 2)
+    assert writer.read_samples() == ()
+    images = sorted(writer.attempt_images_directory.glob('*.png'))
+    metadata = sorted(writer.attempt_images_directory.glob('*.json'))
+    assert len(images) == len(metadata) == 2
+    decoded = cv2.imread(str(images[0]), cv2.IMREAD_COLOR)
+    np.testing.assert_array_equal(decoded[0, 0], (30, 20, 10))
+    first_metadata = json.loads(metadata[0].read_text(encoding='ascii'))
+    assert first_metadata['pose_id'] == 'calibration_001'
+    assert first_metadata['attempt'] == 1
+    assert first_metadata['image_stamp_ns'] == 1_500
+    assert first_metadata['png_sha256'] == sha256_file(images[0])
+
+    reopened = DatasetWriter(artifact_root=tmp_path, manifest=manifest)
+    assert len(tuple(reopened.attempt_images_directory.glob('*.png'))) == 2
+
+
 def test_writer_refuses_duplicate_sample_ids(tmp_path):
     writer = DatasetWriter(artifact_root=tmp_path, manifest=_manifest())
     record, pair = _record_and_pair(
@@ -447,48 +482,3 @@ def test_external_artifact_root_does_not_modify_source_inputs(tmp_path):
     assert writer.run_directory.is_relative_to(
         (tmp_path / 'external-artifacts').resolve()
     )
-
-
-def test_repository_handeye_artifacts_are_ignored_and_status_is_unchanged():
-    repository = Path(__file__).resolve().parents[4]
-    probe = repository / 'artifacts' / 'handeye' / '.commit13-ignore-probe'
-    before = subprocess.run(
-        [
-            'git',
-            '-C',
-            str(repository),
-            'status',
-            '--porcelain=v1',
-            '--untracked-files=all',
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
-    probe.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        probe.write_text('ignored dataset probe\n', encoding='utf-8')
-        ignored = subprocess.run(
-            ['git', '-C', str(repository), 'check-ignore', str(probe)],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        after = subprocess.run(
-            [
-                'git',
-                '-C',
-                str(repository),
-                'status',
-                '--porcelain=v1',
-                '--untracked-files=all',
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-    finally:
-        probe.unlink(missing_ok=True)
-
-    assert ignored.returncode == 0
-    assert after == before

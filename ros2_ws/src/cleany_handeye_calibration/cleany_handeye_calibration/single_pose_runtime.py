@@ -382,6 +382,19 @@ class SinglePoseRuntimeEffects:
             timeout_sec=timeout_sec,
         )
 
+    def archive_image(
+        self,
+        request: SinglePoseRequest,
+        pair: CameraFramePair,
+        timeout_sec: float,
+    ):
+        del timeout_sec
+        return self._writer.archive_attempt_image(
+            pose_id=request.pose_id,
+            attempt=request.attempt,
+            pair=pair,
+        )
+
     @staticmethod
     def _image_array(pair: CameraFramePair) -> np.ndarray:
         image = pair.image

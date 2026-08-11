@@ -1,4 +1,4 @@
-"""ROS executable for a preflighted, resumable 20+5 pose MuJoCo run."""
+"""ROS executable for a fresh, preflighted 20+5 pose MuJoCo run."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from cleany_handeye_calibration.pose_manifest import (
     RequiredStageTimeouts,
     load_pose_manifest,
 )
-from cleany_handeye_calibration.run_recovery import (
+from cleany_handeye_calibration.pose_run import (
     CommittedPoseSample,
     JsonlPoseRunJournal,
     MultiPoseRunOrchestrator,
@@ -89,6 +89,19 @@ def _single_pose_timeouts(values: RequiredStageTimeouts) -> SinglePoseTimeouts:
             values.record_sample_sec, 'record_sample_sec'
         ),
     )
+
+
+def _fresh_pose_run_journal(writer: DatasetWriter) -> Path:
+    if writer.read_samples():
+        raise RuntimeError(
+            'run already contains committed samples; choose a new run_id'
+        )
+    path = writer.run_directory / 'pose_run.jsonl'
+    if path.exists():
+        raise RuntimeError(
+            'run already contains a pose journal; choose a new run_id'
+        )
+    return path
 
 
 def _safety_profile(run: PoseRunConfiguration) -> SinglePoseSafetyProfile:
@@ -239,6 +252,7 @@ class RosPoseRunExecutor(PoseRunExecutor):
             ik_seed=pose.ik_seed,
             timeouts=_single_pose_timeouts(stage_timeouts),
             safety_profile=self._safety,
+            attempt=attempt,
         )
         stage_path = (
             self._writer.run_directory
@@ -261,17 +275,6 @@ class RosPoseRunExecutor(PoseRunExecutor):
             sample_id=stored.record.sample.sample_id,
             split=stored.record.sample.split,
         )
-
-
-def _stored_samples(writer: DatasetWriter) -> tuple[CommittedPoseSample, ...]:
-    return tuple(
-        CommittedPoseSample(
-            pose_id=item.record.sample.pose_id,
-            sample_id=item.record.sample.sample_id,
-            split=item.record.sample.split,
-        )
-        for item in writer.read_samples()
-    )
 
 
 def _run(pose_manifest_path: str, runtime_config_path: str) -> int:
@@ -298,6 +301,7 @@ def _run(pose_manifest_path: str, runtime_config_path: str) -> int:
         artifact_root=runtime.artifact_root,
         manifest=runtime.dataset_manifest,
     )
+    pose_run_journal = _fresh_pose_run_journal(writer)
     effects = SinglePoseRuntimeEffects(
         node,
         runtime,
@@ -332,13 +336,12 @@ def _run(pose_manifest_path: str, runtime_config_path: str) -> int:
         )
         summary = MultiPoseRunOrchestrator(
             pose_executor,
-            JsonlPoseRunJournal(writer.run_directory / 'pose_run.jsonl'),
+            JsonlPoseRunJournal(pose_run_journal),
             cancel_token,
-        ).run(manifest, completed_samples=_stored_samples(writer))
+        ).run(manifest)
         node.get_logger().info(
             'multi-pose calibration finished: '
             f'completed={len(summary.completed_pose_ids)}, '
-            f'skipped={len(summary.skipped_pose_ids)}, '
             f'failed={len(summary.failed_pose_ids)}, '
             f'canceled={summary.canceled}'
         )

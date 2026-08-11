@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from cleany_handeye_calibration.multi_pose_runtime import (
+    _fresh_pose_run_journal,
     validate_multi_pose_runtime_profile,
 )
 from cleany_handeye_calibration.pose_manifest import write_pose_manifest
@@ -16,6 +17,15 @@ from test_single_pose_runtime_config import _mapping
 
 
 PACKAGE_ROOT = Path(__file__).parents[1]
+
+
+class _WriterStub:
+    def __init__(self, run_directory, samples=()):
+        self.run_directory = run_directory
+        self._samples = samples
+
+    def read_samples(self):
+        return self._samples
 
 
 def _runtime(tmp_path, manifest_path, manifest):
@@ -102,6 +112,18 @@ def test_multi_pose_profile_is_hash_anchored_and_exact(tmp_path):
         )
 
 
+def test_multi_pose_runtime_requires_a_fresh_run_directory(tmp_path):
+    clean = _WriterStub(tmp_path)
+    assert _fresh_pose_run_journal(clean) == tmp_path / 'pose_run.jsonl'
+
+    with pytest.raises(RuntimeError, match='committed samples'):
+        _fresh_pose_run_journal(_WriterStub(tmp_path, samples=(object(),)))
+
+    (tmp_path / 'pose_run.jsonl').write_text('{}\n', encoding='ascii')
+    with pytest.raises(RuntimeError, match='pose journal'):
+        _fresh_pose_run_journal(clean)
+
+
 def test_multi_pose_launch_shows_viewer_by_default_and_node_is_installed():
     source = (
         PACKAGE_ROOT / 'launch' / 'multi_pose_mujoco.launch.py'
@@ -109,5 +131,7 @@ def test_multi_pose_launch_shows_viewer_by_default_and_node_is_installed():
     setup = (PACKAGE_ROOT / 'setup.py').read_text(encoding='utf-8')
 
     assert "'headless',\n                default_value='false'" in source
+    assert "'use_rviz',\n                default_value='true'" in source
+    assert "'use_rviz': use_rviz" in source
     assert "executable='multi_pose_calibration'" in source
     assert 'multi_pose_runtime:main' in setup

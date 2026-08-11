@@ -21,6 +21,7 @@ def generate_launch_description() -> LaunchDescription:
     runtime_config = LaunchConfiguration('runtime_config')
     scene_path = LaunchConfiguration('scene_path')
     headless = LaunchConfiguration('headless')
+    use_rviz = LaunchConfiguration('use_rviz')
     sim_speed_factor = LaunchConfiguration('sim_speed_factor')
     default_scene = str(
         Path(get_package_share_directory('cleany_mujoco_sim'))
@@ -53,6 +54,13 @@ def generate_launch_description() -> LaunchDescription:
                     'Automated tests override this to true.'
                 ),
             ),
+            DeclareLaunchArgument(
+                'use_rviz',
+                default_value='true',
+                description=(
+                    'Show MoveIt RViz on the same simulation clock as MuJoCo.'
+                ),
+            ),
             DeclareLaunchArgument('sim_speed_factor', default_value='1.0'),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -73,6 +81,7 @@ def generate_launch_description() -> LaunchDescription:
                     )
                 ),
                 launch_arguments={
+                    'use_rviz': use_rviz,
                     'use_sim_time': 'true',
                     'allow_trajectory_execution': 'true',
                 }.items(),
