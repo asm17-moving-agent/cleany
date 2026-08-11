@@ -124,6 +124,19 @@ rosdep update
 make deps
 ```
 
+`cleany_moveit_config` 패키지를 빌드하면 package manifest에 따라 ROS 2
+Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, `ros2_control` 및
+`joint_trajectory_controller`도 `make deps`가 함께 설치한다. 설치 후 다음으로
+필수 runtime package를 확인할 수 있다.
+
+```bash
+ros2 pkg prefix moveit_ros_move_group
+ros2 pkg prefix moveit_kinematics
+ros2 pkg prefix moveit_planners_ompl
+ros2 pkg prefix controller_manager
+ros2 pkg prefix joint_trajectory_controller
+```
+
 Gazebo 패키지만 재현할 때는 MuJoCo 등 다른 workspace 의존성을 제외하고 설치할 수
 있다.
 

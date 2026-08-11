@@ -3,5 +3,6 @@
   <xacro:include filename="$(find cleany_description)/urdf/materials.xacro"/>
   <xacro:include filename="$(find cleany_description)/urdf/cleany_geometry.xacro"/>
 
+  <!-- Control backends add their ros2_control definition only in this entrypoint. -->
   <xacro:cleany_robot_geometry/>
 </robot>

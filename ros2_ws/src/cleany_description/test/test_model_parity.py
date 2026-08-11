@@ -24,10 +24,58 @@ CANONICAL_LIMITS = {
     "right_wrist_roll_joint": (-2.7438472969992493, 2.841206309382605),
     "right_gripper_joint": (-0.37453297762778586, 1.7453291995659765),
 }
+URDF_ENTRYPOINTS = (
+    "cleany.urdf.xacro",
+    "cleany_control.urdf.xacro",
+)
 
 
 def _source_root() -> Path:
     return Path(__file__).parents[1]
+
+
+def _expand_urdf(entrypoint: str) -> ET.Element:
+    description = _source_root()
+    return ET.fromstring(
+        subprocess.check_output(
+            ["xacro", str(description / "urdf" / entrypoint)]
+        )
+    )
+
+
+def _physical_model_xml(root: ET.Element) -> tuple[bytes, ...]:
+    return tuple(
+        ET.tostring(node)
+        for node in root
+        if node.tag in {"material", "link", "joint"}
+    )
+
+
+def test_description_entrypoints_share_canonical_geometry() -> None:
+    roots = tuple(_expand_urdf(entrypoint) for entrypoint in URDF_ENTRYPOINTS)
+    assert _physical_model_xml(roots[0]) == _physical_model_xml(roots[1])
+
+    for root in roots:
+        links = root.findall("./link")
+        joints = root.findall("./joint")
+        assert len(links) == 13
+        assert len(joints) == 12
+        joint_names = {joint.attrib["name"] for joint in joints}
+        assert joint_names == set(CANONICAL_LIMITS)
+        for joint in joints:
+            limit = joint.find("limit")
+            assert limit is not None
+            assert (
+                float(limit.attrib["lower"]),
+                float(limit.attrib["upper"]),
+            ) == pytest.approx(CANONICAL_LIMITS[joint.attrib["name"]])
+
+
+def test_description_entrypoints_do_not_select_a_control_backend() -> None:
+    for entrypoint in URDF_ENTRYPOINTS:
+        root = _expand_urdf(entrypoint)
+        assert root.find("./ros2_control") is None
+        assert root.find(".//hardware/plugin") is None
 
 
 def test_mjcf_uses_canonical_arm_joint_names_and_limits() -> None:
@@ -169,13 +217,10 @@ def test_mjcf_mounts_arms_at_canonical_sides() -> None:
     assert right_position[:2] == pytest.approx((0.09, -0.11), abs=1e-6)
 
 
-def test_random_arm_fk_matches_mjcf() -> None:
+@pytest.mark.parametrize("urdf_entrypoint", URDF_ENTRYPOINTS)
+def test_random_arm_fk_matches_mjcf(urdf_entrypoint: str) -> None:
     description = _source_root()
-    urdf = ET.fromstring(
-        subprocess.check_output(
-            ["xacro", str(description / "urdf" / "cleany.urdf.xacro")]
-        )
-    )
+    urdf = _expand_urdf(urdf_entrypoint)
     urdf_joints = {node.attrib["name"]: node for node in urdf.findall("joint")}
     model = mujoco.MjModel.from_xml_path(str(description / "mjcf" / "cleany.xml"))
     data = mujoco.MjData(model)

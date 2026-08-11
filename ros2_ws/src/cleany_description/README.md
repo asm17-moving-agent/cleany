@@ -4,8 +4,11 @@ Authoritative robot description assets shared by MuJoCo, TF, and MoveIt.
 
 ## Contents
 
-- `urdf/cleany.urdf.xacro`: dual-arm URDF used by
+- `urdf/cleany_geometry.xacro`: backend-neutral canonical physical model
+- `urdf/cleany.urdf.xacro`: plugin-free dual-arm URDF used by
   `robot_state_publisher` and MoveIt
+- `urdf/cleany_control.urdf.xacro`: control-backend extension entrypoint; it
+  intentionally contains no hardware plugin until a backend adds one
 - `mjcf/cleany.xml`: MuJoCo robot model included by simulator scenes
 - `meshes/`: visual and collision CAD assets referenced by both descriptions
 - `test/test_model_parity.py`: canonical joint and randomized FK parity checks
@@ -39,3 +42,8 @@ Publish the description:
 ```bash
 ros2 launch cleany_description description.launch.py use_sim_time:=true
 ```
+
+Backend packages must assemble `cleany_geometry.xacro` from their own
+top-level description and keep `<ros2_control>` hardware declarations out of
+the default `cleany.urdf.xacro`. The control entrypoint is only an extension
+seam at this stage; it does not start or select a hardware backend.
