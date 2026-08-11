@@ -66,7 +66,10 @@ def test_harmonic_rendering_sensors_are_lazy():
         'head_realsense_depth',
         'left_wrist_rgb',
         'right_wrist_rgb',
+        'rplidar_12cm',
         'rplidar_a1',
+        'rplidar_45cm',
+        'rplidar_70cm',
     }
     assert all(sensor.findtext('always_on') != 'true' for sensor in rendering_sensors)
 
@@ -80,7 +83,7 @@ def test_harmonic_world_contains_rplidar_candidate():
     sensor = model.find("link[@name='lidar_link']/sensor[@name='rplidar_a1']")
     assert mount is not None
     assert mount.findtext('parent') == 'base_link'
-    assert mount.findtext('pose') == '0.32 0 -0.18 0 0 0'
+    assert mount.findtext('pose') == '0.16 0 -0.12 0 0 0'
     assert sensor is not None
     assert sensor.attrib['type'] == 'gpu_lidar'
     assert sensor.findtext('topic') == '/model/cleany_mecanum/lidar/scan'
@@ -88,6 +91,26 @@ def test_harmonic_world_contains_rplidar_candidate():
     assert sensor.findtext('lidar/scan/horizontal/samples') == '360'
     assert sensor.findtext('lidar/range/min') == '0.15'
     assert sensor.findtext('lidar/range/max') == '12.0'
+
+
+def test_harmonic_odometry_topics_are_not_shared():
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    model = root.find("./world/model[@name='cleany_mecanum']")
+    assert model is not None
+    drive = model.find("plugin[@name='gz::sim::systems::MecanumDrive']")
+    ground_truth = model.find(
+        "plugin[@name='gz::sim::systems::OdometryPublisher']"
+    )
+    assert drive is not None
+    assert ground_truth is not None
+    assert drive.find('odom_topic') is None
+    assert ground_truth.findtext('odom_topic') == (
+        '/model/cleany_mecanum/ground_truth'
+    )
+
+    bridge = BRIDGE_PATH.read_text(encoding='utf-8')
+    assert 'ros_topic_name: "/ground_truth/odom"' in bridge
+    assert 'gz_topic_name: "/model/cleany_mecanum/ground_truth"' in bridge
 
 
 def test_harmonic_world_contains_base_imu():

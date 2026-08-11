@@ -10,6 +10,12 @@
   gz_type_name: "gz.msgs.Odometry"
   direction: GZ_TO_ROS
 
+- ros_topic_name: "/ground_truth/odom"
+  gz_topic_name: "/model/cleany_mecanum/ground_truth"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+
 - ros_topic_name: "/clock"
   gz_topic_name: "/clock"
   ros_type_name: "rosgraph_msgs/msg/Clock"
@@ -18,6 +24,24 @@
 
 - ros_topic_name: "/scan"
   gz_topic_name: "/model/cleany_mecanum/lidar/scan"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/scan_12cm"
+  gz_topic_name: "/model/cleany_mecanum/lidar_12cm/scan"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/scan_45cm"
+  gz_topic_name: "/model/cleany_mecanum/lidar_45cm/scan"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/scan_70cm"
+  gz_topic_name: "/model/cleany_mecanum/lidar_70cm/scan"
   ros_type_name: "sensor_msgs/msg/LaserScan"
   gz_type_name: "gz.msgs.LaserScan"
   direction: GZ_TO_ROS

@@ -111,8 +111,14 @@
       <joint name="front_left_wheel_joint" type="revolute"><parent>base_link</parent><child>front_left_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
       <joint name="front_right_wheel_joint" type="revolute"><parent>base_link</parent><child>front_right_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
 
-      <!-- Candidate RPLIDAR A1M8-R6 mount shared with the Harmonic profile.
-           The physical mounting position remains subject to hardware review. -->
+      <!-- Four floor-referenced RPLIDAR height candidates. -->
+      <link name="lidar_12cm_link">
+        <pose relative_to="lidar_12cm_mount">0 0 0 0 0 0</pose>
+        <visual name="rplidar_12cm_visual"><geometry><cylinder><radius>0.0484</radius><length>0.055</length></cylinder></geometry><material><diffuse>0.48 0.12 0.72 1</diffuse></material></visual>
+        <sensor name="rplidar_12cm" type="gpu_lidar"><topic>/model/cleany_mecanum/lidar_12cm/scan</topic><always_on>true</always_on><update_rate>5.5</update_rate><visualize>false</visualize><gz_frame_id>lidar_12cm_link</gz_frame_id><lidar><scan><horizontal><samples>360</samples><resolution>1</resolution><min_angle>-3.141593</min_angle><max_angle>3.141593</max_angle></horizontal><vertical><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></vertical></scan><range><min>0.15</min><max>12.0</max><resolution>0.01</resolution></range><visibility_mask>0x01</visibility_mask></lidar></sensor>
+      </link>
+      <joint name="lidar_12cm_mount" type="fixed"><pose relative_to="base_link">0.16 0 -0.26 0 0 0</pose><parent>base_link</parent><child>lidar_12cm_link</child></joint>
+
       <link name="lidar_link">
         <pose relative_to="lidar_mount">0 0 0 0 0 0</pose>
         <visual name="rplidar_a1_visual">
@@ -131,10 +137,25 @@
               <vertical><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></vertical>
             </scan>
             <range><min>0.15</min><max>12.0</max><resolution>0.01</resolution></range>
+            <visibility_mask>0x01</visibility_mask>
           </lidar>
         </sensor>
       </link>
-      <joint name="lidar_mount" type="fixed"><pose relative_to="base_link">0.32 0 -0.18 0 0 0</pose><parent>base_link</parent><child>lidar_link</child></joint>
+      <joint name="lidar_mount" type="fixed"><pose relative_to="base_link">0.16 0 -0.12 0 0 0</pose><parent>base_link</parent><child>lidar_link</child></joint>
+
+      <link name="lidar_45cm_link">
+        <pose relative_to="lidar_45cm_mount">0 0 0 0 0 0</pose>
+        <visual name="rplidar_45cm_visual"><geometry><cylinder><radius>0.0484</radius><length>0.055</length></cylinder></geometry><material><diffuse>0.08 0.30 0.80 1</diffuse></material></visual>
+        <sensor name="rplidar_45cm" type="gpu_lidar"><topic>/model/cleany_mecanum/lidar_45cm/scan</topic><always_on>true</always_on><update_rate>5.5</update_rate><visualize>false</visualize><gz_frame_id>lidar_45cm_link</gz_frame_id><lidar><scan><horizontal><samples>360</samples><resolution>1</resolution><min_angle>-3.141593</min_angle><max_angle>3.141593</max_angle></horizontal><vertical><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></vertical></scan><range><min>0.15</min><max>12.0</max><resolution>0.01</resolution></range><visibility_mask>0x01</visibility_mask></lidar></sensor>
+      </link>
+      <joint name="lidar_45cm_mount" type="fixed"><pose relative_to="base_link">0.16 0 0.07 0 0 0</pose><parent>base_link</parent><child>lidar_45cm_link</child></joint>
+
+      <link name="lidar_70cm_link">
+        <pose relative_to="lidar_70cm_mount">0 0 0 0 0 0</pose>
+        <visual name="rplidar_70cm_visual"><geometry><cylinder><radius>0.0484</radius><length>0.055</length></cylinder></geometry><material><diffuse>0.90 0.32 0.06 1</diffuse></material></visual>
+        <sensor name="rplidar_70cm" type="gpu_lidar"><topic>/model/cleany_mecanum/lidar_70cm/scan</topic><always_on>true</always_on><update_rate>5.5</update_rate><visualize>false</visualize><gz_frame_id>lidar_70cm_link</gz_frame_id><lidar><scan><horizontal><samples>360</samples><resolution>1</resolution><min_angle>-3.141593</min_angle><max_angle>3.141593</max_angle></horizontal><vertical><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></vertical></scan><range><min>0.15</min><max>12.0</max><resolution>0.01</resolution></range><visibility_mask>0x01</visibility_mask></lidar></sensor>
+      </link>
+      <joint name="lidar_70cm_mount" type="fixed"><pose relative_to="base_link">0.16 0 0.32 0 0 0</pose><parent>base_link</parent><child>lidar_70cm_link</child></joint>
 
       <!-- Simulation IMU contract. Its physical mounting position is pending
            hardware review, so it is currently aligned with base_link. -->
@@ -251,16 +272,15 @@
         <max_acceleration>2.0</max_acceleration>
       </plugin>
       <!--
-        Publish simulator ground-truth independently of the drive plugin.  This
-        keeps the ROS odometry contract available even if the drive system
-        changes its internal odometry implementation between Gazebo releases.
+        Publish simulator ground truth on a dedicated topic. MecanumDrive owns
+        the odometry topic used by the ROS odom -> base_link contract.
       -->
       <plugin filename="ignition-gazebo-odometry-publisher-system" name="ignition::gazebo::systems::OdometryPublisher">
         <odom_frame>odom</odom_frame>
         <robot_base_frame>base_link</robot_base_frame>
         <dimensions>2</dimensions>
         <odom_publish_frequency>50</odom_publish_frequency>
-        <odom_topic>/model/cleany_mecanum/odometry</odom_topic>
+        <odom_topic>/model/cleany_mecanum/ground_truth</odom_topic>
       </plugin>
       <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher"/>
     </model>

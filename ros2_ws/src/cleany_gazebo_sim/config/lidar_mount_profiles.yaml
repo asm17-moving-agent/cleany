@@ -1,0 +1,24 @@
+schema_version: 1
+parent_frame_id: base_link
+lidar_frame_id: lidar_link
+
+# Experimental simulation candidates for SCRUM-316. These coordinates are
+# not approved hardware dimensions. Keep the same profile for every repeated
+# route trial and materialize both SDF and TF parameters with the evaluator.
+profiles:
+  floor_12cm:
+    description: Scan center 0.12 m above the world floor.
+    translation: [0.16, 0.0, -0.26]
+    rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
+  floor_26cm:
+    description: Scan center 0.26 m above the world floor and canonical SLAM input.
+    translation: [0.16, 0.0, -0.12]
+    rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
+  floor_45cm:
+    description: Scan center 0.45 m above the world floor.
+    translation: [0.16, 0.0, 0.07]
+    rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
+  floor_70cm:
+    description: Scan center 0.70 m above the world floor.
+    translation: [0.16, 0.0, 0.32]
+    rotation_xyzw: [0.0, 0.0, 0.0, 1.0]

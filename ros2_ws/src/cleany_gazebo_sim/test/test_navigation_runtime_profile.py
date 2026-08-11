@@ -23,8 +23,12 @@ def test_navigation_bridges_only_enable_runtime_contract_topics():
     expected_topics = {
         '/gazebo_cmd_vel',
         '/gazebo_odom',
+        '/ground_truth/odom',
         '/clock',
         '/scan',
+        '/scan_12cm',
+        '/scan_45cm',
+        '/scan_70cm',
         '/imu/data',
     }
 

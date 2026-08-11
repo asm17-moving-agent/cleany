@@ -24,11 +24,11 @@ def test_static_transform_spec_accepts_sensor_mount():
     transform = StaticTransformSpec.from_values(
         parent_frame_id='base_link',
         child_frame_id='lidar_link',
-        translation=(0.32, 0.0, -0.18),
+        translation=(0.16, 0.0, -0.12),
         rotation_xyzw=(0.0, 0.0, 0.0, 1.0),
     )
 
-    assert transform.translation == (0.32, 0.0, -0.18)
+    assert transform.translation == (0.16, 0.0, -0.12)
     assert transform.rotation_xyzw == (0.0, 0.0, 0.0, 1.0)
 
 
@@ -60,6 +60,9 @@ def test_sensor_tf_config_matches_both_gazebo_worlds():
 
     assert parameters['parent_frame_id'] == 'base_link'
     assert parameters['lidar_frame_id'] == 'lidar_link'
+    assert parameters['lidar_12cm_frame_id'] == 'lidar_12cm_link'
+    assert parameters['lidar_45cm_frame_id'] == 'lidar_45cm_link'
+    assert parameters['lidar_70cm_frame_id'] == 'lidar_70cm_link'
     assert parameters['imu_frame_id'] == 'imu_link'
     assert parameters['lidar_rotation_xyzw'] == [0.0, 0.0, 0.0, 1.0]
     assert parameters['imu_rotation_xyzw'] == [0.0, 0.0, 0.0, 1.0]
@@ -68,7 +71,9 @@ def test_sensor_tf_config_matches_both_gazebo_worlds():
         root = ElementTree.parse(world_path).getroot()
         model = root.find("./world/model[@name='cleany_mecanum']")
         assert model is not None
-        for sensor_name in ('lidar', 'imu'):
+        for sensor_name in (
+            'lidar_12cm', 'lidar', 'lidar_45cm', 'lidar_70cm', 'imu'
+        ):
             mount = model.find(f"joint[@name='{sensor_name}_mount']")
             assert mount is not None
             assert mount.findtext('parent') == parameters['parent_frame_id']

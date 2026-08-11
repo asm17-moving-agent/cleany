@@ -28,6 +28,9 @@ def generate_launch_description() -> LaunchDescription:
     world_arg = DeclareLaunchArgument(
         'world', default_value=str(default_world)
     )
+    sensor_config_arg = DeclareLaunchArgument(
+        'sensor_config', default_value=str(base_config)
+    )
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
@@ -88,7 +91,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='gazebo_sensor_tf_publisher',
         name='gazebo_sensor_tf_publisher',
         parameters=[
-            base_config,
+            LaunchConfiguration('sensor_config'),
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
         ],
         output='screen',
@@ -97,6 +100,7 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             world_arg,
+            sensor_config_arg,
             headless_arg,
             use_sim_time_arg,
             sensor_profile_arg,

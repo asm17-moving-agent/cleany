@@ -416,9 +416,9 @@ def _assert_sensor_transforms(buffer: Buffer) -> None:
 
     lidar_translation = lidar.transform.translation
     imu_translation = imu.transform.translation
-    assert math.isclose(lidar_translation.x, 0.32, abs_tol=1e-6)
+    assert math.isclose(lidar_translation.x, 0.16, abs_tol=1e-6)
     assert math.isclose(lidar_translation.y, 0.0, abs_tol=1e-6)
-    assert math.isclose(lidar_translation.z, -0.18, abs_tol=1e-6)
+    assert math.isclose(lidar_translation.z, -0.12, abs_tol=1e-6)
     assert math.isclose(imu_translation.x, 0.0, abs_tol=1e-6)
     assert math.isclose(imu_translation.y, 0.0, abs_tol=1e-6)
     assert math.isclose(imu_translation.z, 0.0, abs_tol=1e-6)
