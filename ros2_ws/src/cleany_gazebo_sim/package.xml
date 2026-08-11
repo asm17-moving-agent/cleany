@@ -20,6 +20,8 @@
   <depend>rosgraph_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>tf2_ros</depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
 
   <test_depend>python3-pytest</test_depend>
 
