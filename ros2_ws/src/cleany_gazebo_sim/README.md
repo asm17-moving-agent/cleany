@@ -29,8 +29,13 @@ Fortress의 mecanum 예제와 같은 diagonal anisotropic friction sphere로 단
 Gazebo world는 `cleany_description/meshes/`를 resource path로 참조해 팀의
 Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
 joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
-collision mesh도 Cleany description에서 가져왔습니다. 다만 arm/gripper controller가 아직
-없어 arm link의 gravity는 비활성화한 상태입니다. Fortress와 Harmonic launch는
+collision mesh도 Cleany description에서 가져왔습니다. 조작용 arm controller는 아직
+없지만, 양팔은 시작 시 어깨를 안쪽으로 돌리고 팔꿈치를 접은 대기 자세로 이동한 뒤
+Gazebo joint position controller가 그 자세를 유지합니다. 대기 자세는 좌·우 shoulder
+yaw `-1.5708`/`1.5708`, shoulder pitch `3.0`, elbow pitch `2.4`, wrist pitch
+`1.2`, wrist roll `0.0`, gripper `0.8` rad입니다. 이 controller는 SLAM용 시각 자세
+잠금이므로 물리 servo effort를 모사하지 않습니다. 현재 arm link의 gravity는
+비활성화한 상태입니다. Fortress와 Harmonic launch는
 공통 IMU `/imu/data` bridge와 필요한 rendering sensor bridge만 실행하는 sensor
 profile을 제공합니다. 기본값은 GPU LiDAR `/scan`만 추가로 활성화하는
 `lidar_nav`입니다. 2D mapping용 `slam_toolbox` profile은 제공하지만 Nav2 navigation,

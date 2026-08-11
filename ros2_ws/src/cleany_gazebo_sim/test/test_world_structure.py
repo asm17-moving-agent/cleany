@@ -6,6 +6,9 @@ from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
 WORLD_PATH = (
     Path(__file__).resolve().parents[1] / 'worlds' / 'cleany_mecanum_prototype.sdf'
 )
+HARMONIC_WORLD_PATH = (
+    Path(__file__).resolve().parents[1] / 'worlds' / 'cleany_mecanum_harmonic.sdf'
+)
 BRIDGE_PATH = Path(__file__).resolve().parents[1] / 'config' / 'bridge.yaml'
 LAUNCH_PATH = (
     Path(__file__).resolve().parents[1] / 'launch' / 'gazebo_sim.launch.py'
@@ -70,6 +73,57 @@ def test_world_contains_dual_arm_joint_skeleton():
         )
         assert shoulder_yaw is not None
         assert shoulder_yaw.findtext('axis/xyz') == '0 1 0'
+
+
+def test_worlds_hold_dual_arms_in_folded_standby_pose():
+    expected_positions = {
+        'left_shoulder_yaw_joint': '-1.5708',
+        'left_shoulder_pitch_joint': '3.0',
+        'left_elbow_pitch_joint': '2.4',
+        'left_wrist_pitch_joint': '1.2',
+        'left_wrist_roll_joint': '0.0',
+        'left_gripper_joint': '0.8',
+        'right_shoulder_yaw_joint': '1.5708',
+        'right_shoulder_pitch_joint': '3.0',
+        'right_elbow_pitch_joint': '2.4',
+        'right_wrist_pitch_joint': '1.2',
+        'right_wrist_roll_joint': '0.0',
+        'right_gripper_joint': '0.8',
+    }
+    profiles = (
+        (
+            WORLD_PATH,
+            'ignition-gazebo-joint-position-controller-system',
+            'ignition::gazebo::systems::JointPositionController',
+        ),
+        (
+            HARMONIC_WORLD_PATH,
+            'gz-sim-joint-position-controller-system',
+            'gz::sim::systems::JointPositionController',
+        ),
+    )
+
+    for world_path, filename, plugin_name in profiles:
+        root = ElementTree.parse(world_path).getroot()
+        model = root.find("./world/model[@name='cleany_mecanum']")
+        assert model is not None
+        controllers = {
+            plugin.findtext('joint_name'): plugin
+            for plugin in model.findall(
+                f"plugin[@name='{plugin_name}']"
+            )
+            if plugin.get('filename') == filename
+        }
+
+        assert set(controllers) == set(expected_positions)
+        for joint_name, initial_position in expected_positions.items():
+            controller = controllers[joint_name]
+            assert controller.findtext('initial_position') == initial_position
+            assert controller.findtext('use_velocity_commands') == 'true'
+            assert controller.findtext('cmd_max') == '1.5'
+            joint = model.find(f"joint[@name='{joint_name}']")
+            assert joint is not None
+            assert joint.findtext('axis/limit/effort') == '1000000'
 
 
 def test_world_uses_canonical_wheel_names_and_positive_x_front():
