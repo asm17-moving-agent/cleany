@@ -1,12 +1,11 @@
 from collections import Counter
 
-from cleany_handeye_calibration.run_recovery import (
+from cleany_handeye_calibration.pose_run import (
     CommittedPoseSample,
     JsonlPoseRunJournal,
     MultiPoseRunOrchestrator,
     PoseAttemptFailure,
     PoseFailureCategory,
-    PoseRunJournalEntry,
     RunCancelToken,
     RunJournalStatus,
 )
@@ -76,30 +75,6 @@ def test_retry_three_means_four_total_attempts_and_uses_manifest_timeouts(
     ] == [1, 2, 3, 4]
 
 
-def test_resume_skips_committed_samples_without_duplicate_execution(tmp_path):
-    manifest = materialized_manifest()
-    completed = tuple(
-        CommittedPoseSample(pose.pose_id, pose.pose_id, pose.split)
-        for pose in manifest.poses[:7]
-    )
-    executor = FakeExecutor()
-    journal = JsonlPoseRunJournal(tmp_path / 'pose_run.jsonl')
-
-    summary = MultiPoseRunOrchestrator(executor, journal).run(
-        manifest,
-        completed_samples=completed,
-    )
-
-    assert summary.success
-    assert summary.skipped_pose_ids == tuple(
-        pose.pose_id for pose in manifest.poses[:7]
-    )
-    assert [pose_id for pose_id, _, _ in executor.calls] == [
-        pose.pose_id for pose in manifest.poses[7:]
-    ]
-    assert executor.calls[-1][1].value == 'held_out'
-
-
 def test_retry_exhaustion_is_partial_but_nonretryable_failure_aborts(tmp_path):
     manifest = materialized_manifest()
     first = manifest.poses[0].pose_id
@@ -125,25 +100,9 @@ def test_retry_exhaustion_is_partial_but_nonretryable_failure_aborts(tmp_path):
     assert len(collision.calls) == 1
 
 
-def test_resume_counts_crashed_started_attempt_and_cancel_stops_next_pose(
-    tmp_path,
-):
+def test_cancel_stops_before_the_next_pose(tmp_path):
     manifest = materialized_manifest()
     first = manifest.poses[0]
-    journal = JsonlPoseRunJournal(tmp_path / 'resume.jsonl')
-    journal.append(
-        PoseRunJournalEntry(
-            first.pose_id,
-            first.split,
-            1,
-            RunJournalStatus.STARTED,
-        )
-    )
-    executor = FakeExecutor()
-    summary = MultiPoseRunOrchestrator(executor, journal).run(manifest)
-    assert summary.success
-    assert executor.calls[0][2] == 2
-
     cancel = RunCancelToken()
     cancel_executor = FakeExecutor(cancel_token=cancel)
     canceled = MultiPoseRunOrchestrator(

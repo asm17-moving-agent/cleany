@@ -1,4 +1,4 @@
-"""Durable multi-pose traversal, retry policy, cancellation, and resume."""
+"""Durable multi-pose traversal, retry policy, cancellation, and logging."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 import threading
-from typing import Any, Callable, Protocol, Sequence
+from typing import Any, Callable, Protocol
 
 from cleany_handeye_calibration.models import SampleSplit
 from cleany_handeye_calibration.pose_manifest import (
@@ -93,7 +93,6 @@ class RunJournalStatus(str, Enum):
     STARTED = 'started'
     SUCCEEDED = 'succeeded'
     FAILED = 'failed'
-    SKIPPED = 'skipped'
     CANCELED = 'canceled'
 
 
@@ -127,11 +126,8 @@ class PoseRunJournalEntry:
             RunJournalStatus.FAILED,
         } and not 1 <= self.attempt <= MAX_ATTEMPTS:
             raise ValueError('attempt status requires attempt in [1, 4]')
-        if self.status in {
-            RunJournalStatus.SKIPPED,
-            RunJournalStatus.CANCELED,
-        } and self.attempt != 0:
-            raise ValueError('skip/cancel status requires attempt zero')
+        if self.status is RunJournalStatus.CANCELED and self.attempt != 0:
+            raise ValueError('cancel status requires attempt zero')
         if self.status is RunJournalStatus.FAILED:
             if self.category is None or self.reason is None:
                 raise ValueError('failed journal row requires category/reason')
@@ -143,12 +139,9 @@ class PoseRunJournalEntry:
             object.__setattr__(self, 'reason', self.reason.strip())
         elif self.category is not None:
             raise ValueError('only failed rows may have a category')
-        elif self.status in {
-            RunJournalStatus.SKIPPED,
-            RunJournalStatus.CANCELED,
-        }:
+        elif self.status is RunJournalStatus.CANCELED:
             if not isinstance(self.reason, str) or not self.reason.strip():
-                raise ValueError('skip/cancel row requires a reason')
+                raise ValueError('cancel row requires a reason')
             object.__setattr__(self, 'reason', self.reason.strip())
         elif self.reason is not None:
             raise ValueError('started/succeeded rows cannot have a reason')
@@ -256,7 +249,6 @@ class RunCancelToken:
 @dataclass(frozen=True, slots=True)
 class PoseRunSummary:
     completed_pose_ids: tuple[str, ...]
-    skipped_pose_ids: tuple[str, ...]
     failed_pose_ids: tuple[str, ...]
     canceled: bool
     aborted_reason: str | None
@@ -266,59 +258,6 @@ class PoseRunSummary:
         return not self.failed_pose_ids and not self.canceled and (
             self.aborted_reason is None
         )
-
-
-def _completed_index(
-    samples: Sequence[CommittedPoseSample],
-    manifest: PoseManifest,
-) -> dict[str, CommittedPoseSample]:
-    poses = {pose.pose_id: pose for pose in manifest.poses}
-    result: dict[str, CommittedPoseSample] = {}
-    for sample in samples:
-        if not isinstance(sample, CommittedPoseSample):
-            raise ValueError('completed samples must be CommittedPoseSample')
-        pose = poses.get(sample.pose_id)
-        if pose is None:
-            raise ValueError(
-                'completed sample references unknown pose '
-                f'{sample.pose_id}'
-            )
-        if sample.split is not pose.split:
-            raise ValueError(
-                f'completed sample split differs for {sample.pose_id}'
-            )
-        if sample.pose_id in result:
-            raise ValueError(
-                f'duplicate completed sample for {sample.pose_id}'
-            )
-        result[sample.pose_id] = sample
-    return result
-
-
-def _attempts_used(
-    entries: Sequence[PoseRunJournalEntry],
-    manifest: PoseManifest,
-) -> dict[str, int]:
-    pose_ids = {pose.pose_id for pose in manifest.poses}
-    used = {pose_id: 0 for pose_id in pose_ids}
-    seen: set[tuple[str, int]] = set()
-    for entry in entries:
-        if entry.pose_id not in pose_ids:
-            raise ValueError(
-                f'pose-run journal references unknown pose {entry.pose_id}'
-            )
-        if entry.status is RunJournalStatus.STARTED:
-            key = (entry.pose_id, entry.attempt)
-            if key in seen:
-                raise ValueError('pose-run journal repeats an attempt start')
-            seen.add(key)
-            expected = used[entry.pose_id] + 1
-            if entry.attempt != expected:
-                raise ValueError(
-                    'pose-run journal attempts are not sequential'
-                )
-            used[entry.pose_id] = entry.attempt
-    return used
 
 
 class MultiPoseRunOrchestrator:
@@ -336,32 +275,12 @@ class MultiPoseRunOrchestrator:
         self._journal = journal
         self._cancel = cancel_token or RunCancelToken()
 
-    def run(
-        self,
-        manifest: PoseManifest,
-        *,
-        completed_samples: Sequence[CommittedPoseSample] = (),
-    ) -> PoseRunSummary:
+    def run(self, manifest: PoseManifest) -> PoseRunSummary:
         preflight_pose_manifest(manifest)
-        completed = _completed_index(completed_samples, manifest)
-        attempts_used = _attempts_used(self._journal.read(), manifest)
         completed_now: list[str] = []
-        skipped: list[str] = []
         failed: list[str] = []
 
         for pose in manifest.poses:
-            if pose.pose_id in completed:
-                skipped.append(pose.pose_id)
-                self._journal.append(
-                    PoseRunJournalEntry(
-                        pose.pose_id,
-                        pose.split,
-                        0,
-                        RunJournalStatus.SKIPPED,
-                        reason='sample already committed',
-                    )
-                )
-                continue
             if self._cancel.is_requested():
                 self._journal.append(
                     PoseRunJournalEntry(
@@ -374,18 +293,13 @@ class MultiPoseRunOrchestrator:
                 )
                 return PoseRunSummary(
                     tuple(completed_now),
-                    tuple(skipped),
                     tuple(failed),
                     True,
                     None,
                 )
 
-            first_attempt = attempts_used[pose.pose_id] + 1
-            if first_attempt > MAX_ATTEMPTS:
-                failed.append(pose.pose_id)
-                continue
             pose_succeeded = False
-            for attempt in range(first_attempt, MAX_ATTEMPTS + 1):
+            for attempt in range(1, MAX_ATTEMPTS + 1):
                 if self._cancel.is_requested():
                     self._journal.append(
                         PoseRunJournalEntry(
@@ -398,7 +312,6 @@ class MultiPoseRunOrchestrator:
                     )
                     return PoseRunSummary(
                         tuple(completed_now),
-                        tuple(skipped),
                         tuple(failed),
                         True,
                         None,
@@ -441,7 +354,6 @@ class MultiPoseRunOrchestrator:
                         failed.append(pose.pose_id)
                         return PoseRunSummary(
                             tuple(completed_now),
-                            tuple(skipped),
                             tuple(failed),
                             False,
                             str(error),
@@ -467,7 +379,6 @@ class MultiPoseRunOrchestrator:
                     failed.append(pose.pose_id)
                     return PoseRunSummary(
                         tuple(completed_now),
-                        tuple(skipped),
                         tuple(failed),
                         False,
                         str(failure),
@@ -481,7 +392,6 @@ class MultiPoseRunOrchestrator:
                             RunJournalStatus.SUCCEEDED,
                         )
                     )
-                    completed[pose.pose_id] = committed
                     completed_now.append(pose.pose_id)
                     pose_succeeded = True
                     break
@@ -490,7 +400,6 @@ class MultiPoseRunOrchestrator:
 
         return PoseRunSummary(
             tuple(completed_now),
-            tuple(skipped),
             tuple(failed),
             False,
             None,

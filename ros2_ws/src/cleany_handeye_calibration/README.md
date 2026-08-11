@@ -10,7 +10,7 @@ evaluation metrics, bounded joint-feedback synchronization, a MoveIt
 feedback-FK adapter, position-only IK/state-validity/motion adapters, a pure
 feedback settle gate, exact wrist-camera acquisition, a recoverable dataset
 writer, an exact nine-stage single-pose orchestrator, and MoveIt/MuJoCo
-launches. A deterministic pose generator and resumable 20-calibration plus
+launches. A deterministic pose generator and fresh-run 20-calibration plus
 5-held-out runner complete the collection workflow. It does not publish
 calibration TF; generated transforms remain review-only artifacts.
 
@@ -297,7 +297,7 @@ feedback sag, uses a 0.100 m required margin, yields at least 16 corners in all
 four quadrants, and produces a non-ambiguous IPPE result. Ground truth is not
 published to TF and is not used by detection, PnP, or stored solver inputs.
 
-## Materialized pose sets and resumable runs
+## Materialized pose sets and fresh runs
 
 `PoseGenerationConfig` samples target positions and complete five-joint IK
 seeds with a recorded `numpy.random.PCG64` seed and a hard generation-attempt
@@ -344,10 +344,8 @@ ros2 run cleany_handeye_calibration pose_manifest_preflight \
   /absolute/path/to/materialized_poses.yaml
 ```
 
-`MultiPoseRunOrchestrator` treats a row already committed in `samples.jsonl`
-as the resume authority and skips it without motion. Its durable
-`pose_run.jsonl` preserves split and attempt numbers, including a process that
-stopped after an attempt started. IK, planning, settle, image acquisition, and
+`MultiPoseRunOrchestrator` writes split, attempt, failure category, and reason
+to the durable `pose_run.jsonl`. IK, planning, settle, image acquisition, and
 target detection permit the initial attempt plus exactly 3 retries. Limit,
 collision, controller, e-stop, hardware, and data-integrity failures abort
 immediately. Exhausting a retryable pose leaves a partial run and continues to
@@ -402,13 +400,10 @@ and clock-synchronized RViz throughout motion and capture. It fails with a
 Alternate reviewed artifacts can still be selected with absolute
 `HANDEYE_POSE_MANIFEST` and `HANDEYE_RUNTIME_CONFIG` values.
 
-Committed `samples.jsonl` rows are the resume authority. Re-running the same
-command skips them without motion and continues missing poses, while the
-current `pose_run.jsonl` keeps the bounded retry counts. If an operator elects
-to start a new retry cycle after those counts are exhausted, first stop the
-launch and preserve both `pose_run.jsonl` and `pose_stages/` under a new
-`recovery_cycles/cycle_N/` directory. Never remove `samples.jsonl`, `images/`,
-or `manifest.yaml`; the next visible run will keep and skip those samples.
+Each execution requires a fresh `run_id`. If `samples.jsonl` already contains
+rows or `pose_run.jsonl` already exists, startup fails before motion and asks
+for a new run ID. Failed-run artifacts remain untouched for inspection; the
+runtime does not resume or create a recovery cycle.
 
 ## Stationary dataset validation
 
@@ -601,7 +596,7 @@ python3 -m pytest \
   test/test_single_pose_runtime_config.py
 python3 -m pytest \
   test/test_pose_diversity.py test/test_pose_manifest.py \
-  test/test_pose_generation.py test/test_run_recovery.py \
+  test/test_pose_generation.py test/test_pose_run.py \
   test/test_multi_pose_runtime.py
 python3 -m pytest \
   test/test_offline_fk.py test/test_experiment_evaluation.py \

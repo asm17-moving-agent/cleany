@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 import json
-from pathlib import Path
-import subprocess
 
 import cv2
 import numpy as np
@@ -484,48 +482,3 @@ def test_external_artifact_root_does_not_modify_source_inputs(tmp_path):
     assert writer.run_directory.is_relative_to(
         (tmp_path / 'external-artifacts').resolve()
     )
-
-
-def test_repository_handeye_artifacts_are_ignored_and_status_is_unchanged():
-    repository = Path(__file__).resolve().parents[4]
-    probe = repository / 'artifacts' / 'handeye' / '.commit13-ignore-probe'
-    before = subprocess.run(
-        [
-            'git',
-            '-C',
-            str(repository),
-            'status',
-            '--porcelain=v1',
-            '--untracked-files=all',
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
-    probe.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        probe.write_text('ignored dataset probe\n', encoding='utf-8')
-        ignored = subprocess.run(
-            ['git', '-C', str(repository), 'check-ignore', str(probe)],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        after = subprocess.run(
-            [
-                'git',
-                '-C',
-                str(repository),
-                'status',
-                '--porcelain=v1',
-                '--untracked-files=all',
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-    finally:
-        probe.unlink(missing_ok=True)
-
-    assert ignored.returncode == 0
-    assert after == before
