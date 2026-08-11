@@ -1,4 +1,5 @@
 <mujoco model="cleany_handeye_scene">
+  <!-- Camera materialization contract: @CLEANY_HANDEYE_CAMERA_CONTRACT@ -->
   <include file="@CLEANY_MJCF_PATH@"/>
 
   <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"

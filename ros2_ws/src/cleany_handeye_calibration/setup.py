@@ -26,7 +26,10 @@ setup(
     zip_safe=True,
     maintainer='이정현',
     maintainer_email='sw292ljh@gmail.com',
-    description='Cleany hand-eye calibration core and motion integration.',
+    description=(
+        'Cleany hand-eye calibration core, feedback sync, and MoveIt '
+        'adapters.'
+    ),
     license='Apache-2.0',
     tests_require=['pytest'],
 )

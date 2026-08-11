@@ -10,6 +10,15 @@ from typing import Any, Mapping, Sequence
 
 import yaml
 
+from cleany_mujoco_sim.camera_contract import (
+    CameraContract,
+    CameraContractError,
+    camera_contract_from_scene,
+)
+from cleany_mujoco_sim.ground_truth_evaluation import (
+    GroundTruthError,
+    camera_ground_truth,
+)
 from cleany_mujoco_sim.scene_loader import _package_share
 
 
@@ -44,6 +53,7 @@ class HandEyeSceneManifest:
     path: Path
     data: Mapping[str, Any]
     printable_assets: tuple[PrintableAsset, ...]
+    camera_contract: CameraContract
 
 
 def _mapping(value: Any, label: str) -> Mapping[str, Any]:
@@ -171,10 +181,18 @@ def load_handeye_scene_manifest(path: Path) -> HandEyeSceneManifest:
         )
 
     _validate_pose_metadata(target)
+    try:
+        camera_contract = camera_contract_from_scene(
+            _mapping(data.get('scene'), 'scene')
+        )
+        camera_ground_truth(data)
+    except (CameraContractError, GroundTruthError) as error:
+        raise SceneManifestError(str(error)) from error
     return HandEyeSceneManifest(
         path=manifest_path,
         data=data,
         printable_assets=tuple(records),
+        camera_contract=camera_contract,
     )
 
 

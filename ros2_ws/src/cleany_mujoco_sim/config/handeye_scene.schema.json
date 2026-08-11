@@ -4,12 +4,79 @@
   "title": "Cleany hand-eye scene manifest v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "scene", "target", "planning_scene"],
+  "required": [
+    "schema_version", "scene", "target", "planning_scene",
+    "evaluation_ground_truth"
+  ],
   "properties": {
     "schema_version": {"const": "cleany.handeye_scene/v1"},
     "scene": {
       "type": "object",
-      "required": ["template", "fixed_base", "camera_rendering"]
+      "required": ["template", "fixed_base", "camera_rendering"],
+      "properties": {
+        "camera_rendering": {
+          "type": "object",
+          "required": [
+            "width", "height", "camera_name", "fovy_deg",
+            "publish_rate_hz", "implementation", "model", "topics"
+          ],
+          "properties": {
+            "width": {"const": 640},
+            "height": {"const": 480},
+            "camera_name": {"const": "left_wrist_rgb"},
+            "fovy_deg": {"const": 93.0},
+            "publish_rate_hz": {"const": 10.0},
+            "implementation": {
+              "type": "object",
+              "required": [
+                "ros_package", "release_version", "release_api",
+                "camera_plugin_available", "registration_source"
+              ],
+              "properties": {
+                "ros_package": {"const": "mujoco_ros2_control"},
+                "release_version": {"const": "0.0.3"},
+                "release_api": {
+                  "const": "mujoco_ros2_control::MujocoCameras"
+                },
+                "camera_plugin_available": {"const": false}
+              }
+            },
+            "model": {
+              "type": "object",
+              "required": [
+                "frame_id", "distortion_model", "focal_length_formula",
+                "D", "K", "R", "P"
+              ],
+              "properties": {
+                "frame_id": {"const": "left_wrist_rgb_optical_frame"},
+                "distortion_model": {"const": "plumb_bob"},
+                "D": {"const": [0.0, 0.0, 0.0, 0.0, 0.0]},
+                "K": {
+                  "const": [
+                    227.751496, 0.0, 319.5,
+                    0.0, 227.751496, 239.5,
+                    0.0, 0.0, 1.0
+                  ]
+                },
+                "R": {
+                  "const": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+                },
+                "P": {
+                  "const": [
+                    227.751496, 0.0, 319.5, 0.0,
+                    0.0, 227.751496, 239.5, 0.0,
+                    0.0, 0.0, 1.0, 0.0
+                  ]
+                }
+              }
+            },
+            "topics": {
+              "type": "object",
+              "required": ["vendor", "internal", "public"]
+            }
+          }
+        }
+      }
     },
     "target": {
       "type": "object",
@@ -59,6 +126,31 @@
     "planning_scene": {
       "type": "object",
       "required": ["config_uri", "apply_service", "required_object_ids"]
+    },
+    "evaluation_ground_truth": {
+      "type": "object",
+      "required": ["camera_transform"],
+      "properties": {
+        "camera_transform": {
+          "type": "object",
+          "required": [
+            "semantics", "parent_frame", "child_frame", "translation_m",
+            "quaternion_xyzw", "source", "mujoco_parent_body",
+            "mujoco_child_site", "evaluation_only",
+            "allowed_for_solver_input", "published_to_tf"
+          ],
+          "properties": {
+            "semantics": {
+              "const": "left_gripper_T_left_wrist_rgb_optical"
+            },
+            "parent_frame": {"const": "left_gripper_frame"},
+            "child_frame": {"const": "left_wrist_rgb_optical_frame"},
+            "evaluation_only": {"const": true},
+            "allowed_for_solver_input": {"const": false},
+            "published_to_tf": {"const": false}
+          }
+        }
+      }
     }
   }
 }

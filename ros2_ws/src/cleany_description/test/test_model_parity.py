@@ -103,7 +103,22 @@ def test_control_description_exposes_arm_and_gripper_interfaces() -> None:
     assert parameters["mujoco_model"] == "/tmp/cleany_control_scene.xml"
     assert parameters["headless"].lower() == "true"
     assert parameters["sim_speed_factor"] == "1.25"
+    assert parameters["camera_publish_rate"] == "10.0"
     assert parameters["initial_keyframe"] == "handeye_ros2_control_home"
+
+    sensors = control.findall("./sensor")
+    assert len(sensors) == 1
+    assert sensors[0].attrib == {"name": "left_wrist_rgb"}
+    sensor_parameters = {
+        parameter.attrib["name"]: parameter.text
+        for parameter in sensors[0].findall("./param")
+    }
+    assert sensor_parameters == {
+        "frame_name": "left_wrist_rgb_vendor_frame",
+        "info_topic": "/left_wrist_rgb/camera_info",
+        "image_topic": "/left_wrist_rgb/color",
+        "depth_topic": "/left_wrist_rgb/depth",
+    }
 
     expected_arm_joints = {
         f"{side}_{suffix}"

@@ -12,6 +12,11 @@ from launch_ros.substitutions import FindPackageShare
 import xacro
 
 from cleany_mujoco_sim.scene_loader import resolve_control_scene_path
+from cleany_mujoco_sim.scene_manifest import (
+    default_manifest_path,
+    load_handeye_scene_manifest,
+    preflight_manifest,
+)
 
 
 def _launch_setup(context: LaunchContext) -> list[Node]:
@@ -19,6 +24,10 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         LaunchConfiguration('scene_path').perform(context)
     ).expanduser().resolve()
     control_scene = resolve_control_scene_path(scene_source)
+    manifest_path = default_manifest_path().resolve()
+    manifest = load_handeye_scene_manifest(manifest_path)
+    preflight_manifest(manifest, profile='simulation')
+    camera = manifest.camera_contract
 
     description_share = Path(
         get_package_share_directory('cleany_description')
@@ -32,6 +41,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
             'sim_speed_factor': LaunchConfiguration(
                 'sim_speed_factor'
             ).perform(context),
+            'camera_publish_rate': f'{camera.publish_rate_hz:g}',
         },
     ).toxml()
     robot_description = {
@@ -61,10 +71,23 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
             {'use_sim_time': True},
             ParameterFile(controller_config),
         ],
-        remappings=[('~/robot_description', '/robot_description')],
+        remappings=[
+            ('~/robot_description', '/robot_description'),
+            (camera.vendor_image_topic, camera.internal_image_topic),
+            (camera.vendor_info_topic, camera.internal_info_topic),
+            (camera.vendor_depth_topic, camera.internal_depth_topic),
+        ],
         emulate_tty=True,
         output='screen',
         on_exit=Shutdown(reason='MuJoCo ros2_control backend stopped'),
+    )
+    camera_contract_adapter = Node(
+        package='cleany_mujoco_sim',
+        executable='camera_contract_adapter',
+        parameters=[
+            {'use_sim_time': True, 'manifest_path': str(manifest_path)},
+        ],
+        output='screen',
     )
 
     spawners = [
@@ -88,7 +111,12 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
             'right_arm_controller',
         )
     ]
-    return [robot_state_publisher, control_node, *spawners]
+    return [
+        robot_state_publisher,
+        control_node,
+        camera_contract_adapter,
+        *spawners,
+    ]
 
 
 def generate_launch_description() -> LaunchDescription:
