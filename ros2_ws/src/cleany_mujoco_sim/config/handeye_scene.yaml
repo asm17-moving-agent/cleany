@@ -1,0 +1,97 @@
+schema_version: cleany.handeye_scene/v1
+
+scene:
+  template: package://cleany_mujoco_sim/scenes/handeye.xml.in
+  fixed_base:
+    body: chassis
+    world_body: world
+    constraint_type: weld
+    constraint_name: handeye_chassis_world_weld
+  camera_rendering:
+    width: 640
+    height: 480
+    camera_name: left_wrist_rgb
+    fovy_deg: 93.0
+
+target:
+  type: charuco
+  frame_id: charuco_target
+  board:
+    squares_x: 7
+    squares_y: 5
+    dictionary: DICT_5X5_100
+    legacy_pattern: false
+    marker_ids: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    coordinate_frame:
+      origin: printed_board_bottom_left
+      x_axis: printed_board_right
+      y_axis: printed_board_up
+      z_axis: out_of_printed_board
+      object_points_api: OpenCV_4.5.4_CharucoBoard.chessboardCorners
+    simulation_nominal:
+      status: nominal_model
+      square_length_m: 0.030
+      marker_length_m: 0.015
+      board_width_m: 0.210
+      board_height_m: 0.150
+      object_point_length_source: simulation_nominal
+    physical_measurement:
+      status: not_measured
+      square_length_m: null
+      marker_length_m: null
+      measured_at: null
+      measured_by: null
+      measurement_tool: null
+      evidence_ref: null
+      object_point_length_source: physical_measurement
+      required_for_physical_preflight: true
+  printable_assets:
+    generation:
+      source_api: OpenCV CharucoBoard_create/CharucoBoard.draw
+      opencv_version: 4.5.4
+      raster_reference_px: [1400, 1000]
+      margin_px: 0
+      marker_border_bits: 1
+      vectorization: lossless horizontal-run rectangles
+      black_rectangle_count: 211
+      print_scale_percent: 100
+      fit_to_page: false
+    svg:
+      uri: package://cleany_mujoco_sim/assets/charuco_7x5_30mm_15mm_dict_5x5_100.svg
+      sha256: 63284e29c1e359d90018c2138c6017879057b99811e7fa72a8fcc0b924d87d10
+      media_width_m: 0.210
+      media_height_m: 0.150
+    pdf:
+      uri: package://cleany_mujoco_sim/assets/charuco_7x5_30mm_15mm_dict_5x5_100.pdf
+      sha256: 614c2447b55101e0147851ce6a11a61a4013f0e34f15a6e4399aea764c213959
+      media_width_m: 0.210
+      media_height_m: 0.150
+  ground_truth_pose:
+    semantics: base_T_target
+    parent_frame: base_link
+    child_frame: charuco_target
+    translation_m: [0.650, 0.285, 0.325]
+    quaternion_xyzw: [0.5, -0.5, -0.5, 0.5]
+    source: simulation_scene_nominal
+    evaluation_only: true
+    allowed_for_pnp_or_solver_input: false
+  mujoco_geometry:
+    body_name: charuco_target
+    backing_geom_name: charuco_target_backing
+    backing_size_m: [0.210, 0.150, 0.006]
+    ink_geom_prefix: charuco_ink_
+    ink_rectangle_count: 211
+    world_T_base_link:
+      translation_m: [0.0, 0.0, 0.380]
+      quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
+    world_T_target:
+      translation_m: [0.650, 0.285, 0.705]
+      quaternion_xyzw: [0.5, -0.5, -0.5, 0.5]
+
+planning_scene:
+  config_uri: package://cleany_moveit_config/config/handeye_collision_objects.yaml
+  apply_service: /apply_planning_scene
+  required_object_ids:
+    - handeye_table
+    - handeye_target_stand
+    - charuco_target

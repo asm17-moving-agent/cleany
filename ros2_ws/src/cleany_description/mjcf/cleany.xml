@@ -181,51 +181,51 @@
         <geom type="cylinder" size="0.05 0.002" pos="0 0 0.0235" material="wheel_plate" class="visual"/>
         <geom type="cylinder" size="0.024 0.0255" material="wheel_plate" class="visual"/>
         <body name="rear_left_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_00_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_01_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_02_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_03_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_04_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_05_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_06_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_07_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_08_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_09_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_10_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_left_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_left_roller_11_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
       </body>
@@ -236,51 +236,51 @@
         <geom type="cylinder" size="0.05 0.002" pos="0 0 0.0235" material="wheel_plate" class="visual"/>
         <geom type="cylinder" size="0.024 0.0255" material="wheel_plate" class="visual"/>
         <body name="rear_right_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_00_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_01_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_02_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_03_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_04_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_05_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_06_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_07_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_08_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_09_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_10_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="rear_right_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="rear_right_roller_11_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
       </body>
@@ -292,51 +292,51 @@
         <geom type="cylinder" size="0.05 0.002" pos="0 0 0.0235" material="wheel_plate" class="visual"/>
         <geom type="cylinder" size="0.024 0.0255" material="wheel_plate" class="visual"/>
         <body name="front_left_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_00_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_01_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_02_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_03_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_04_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_05_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_06_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_07_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_08_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_09_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_10_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_left_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_left_roller_11_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
       </body>
@@ -347,51 +347,51 @@
         <geom type="cylinder" size="0.05 0.002" pos="0 0 0.0235" material="wheel_plate" class="visual"/>
         <geom type="cylinder" size="0.024 0.0255" material="wheel_plate" class="visual"/>
         <body name="front_right_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_00_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_01_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_02_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_03_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_04_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_05_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_06_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_07_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_08_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_09_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_10_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
         <body name="front_right_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 -0.707107">
-          <joint class="mecanum_roller"/>
+          <joint name="front_right_roller_11_joint" class="mecanum_roller"/>
           <geom class="mecanum_roller"/>
         </body>
       </body>

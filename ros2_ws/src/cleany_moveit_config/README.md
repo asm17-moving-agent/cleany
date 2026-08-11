@@ -32,6 +32,25 @@ The production controller contract is:
 Both actions use `control_msgs/action/FollowJointTrajectory`. An active robot
 backend must also publish all arm and gripper state on `/joint_states`.
 
+## Fixed hand-eye collision scene
+
+The fixed calibration table, target stand, and ChArUco backing are defined in
+`config/handeye_collision_objects.yaml` using the
+`cleany.moveit_collision_objects/v1` schema. Every box has a full-extent
+dimension and an explicit `primitive_pose` in `base_link`; no unused
+top-level `CollisionObject.pose` is assumed.
+
+After `move_group` is running, apply the scene once with:
+
+```bash
+ros2 launch cleany_moveit_config handeye_collision_scene.launch.py
+```
+
+The applier calls `/apply_planning_scene` and exits only after MoveIt accepts
+all three object IDs: `handeye_table`, `handeye_target_stand`, and
+`charuco_target`. The generic `move_group.launch.py` does not inject these
+hand-eye-only objects automatically.
+
 ## Launch
 
 Start only `move_group` against an already active robot backend and
@@ -66,8 +85,9 @@ colcon test-result --verbose
 
 The static contract test checks the SRDF chains and homes, conservative
 self-collision policy, position-only KDL settings, URDF limit parity, and
-controller joint ownership. The runtime smoke test launches the headless mock
+controller joint ownership. It also checks collision geometry/message parity.
+The runtime smoke tests launch the headless mock
 stack, verifies the all-zero state is collision-free, resolves position-only
 IK for each side, confirms orientation does not change the same seeded IK
-request, and plans/executes each resolved joint goal through its side-specific
-controller.
+request, plans/executes each resolved joint goal through its side-specific
+controller, and query MoveIt after applying the fixed hand-eye world objects.
