@@ -21,15 +21,25 @@ setup(
             os.path.join('share', package_name, 'launch'),
             glob('launch/*.launch.py'),
         ),
+        (
+            os.path.join('share', package_name, 'config'),
+            glob('config/*'),
+        ),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='이정현',
     maintainer_email='sw292ljh@gmail.com',
     description=(
-        'Cleany hand-eye calibration core, feedback sync, and MoveIt '
-        'adapters.'
+        'Cleany hand-eye calibration math, synchronized capture, MoveIt '
+        'adapters, and staged orchestration.'
     ),
     license='Apache-2.0',
     tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+            'single_pose_calibration = '
+            'cleany_handeye_calibration.single_pose_runtime:main',
+        ],
+    },
 )

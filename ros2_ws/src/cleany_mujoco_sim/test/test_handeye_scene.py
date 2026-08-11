@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import math
 from pathlib import Path
 import re
+import xml.etree.ElementTree as ET
 
 import mujoco
 import numpy as np
@@ -156,6 +156,44 @@ def test_scene_compiles_with_world_weld_and_opencv_target_frame() -> None:
     assert z_axis == pytest.approx((-1.0, 0.0, 0.0), abs=1.0e-12)
 
 
+def test_materialized_scene_uses_lossless_texture_from_vector_board() -> None:
+    scene_path = materialize_scene(SCENE_TEMPLATE)
+    scene_root = ET.parse(scene_path).getroot()
+    texture = scene_root.find(
+        "./asset/texture[@name='charuco_render_texture']"
+    )
+    assert texture is not None
+    texture_path = Path(texture.attrib['file'])
+    assert texture_path.parent == scene_path.parent
+    payload = texture_path.read_bytes()
+    assert payload.startswith(b'\x89PNG\r\n\x1a\n')
+    assert int.from_bytes(payload[16:20], 'big') == 1400
+    assert int.from_bytes(payload[20:24], 'big') == 1000
+
+    target = scene_root.find(".//body[@name='charuco_target']")
+    assert target is not None
+    ink = tuple(
+        geom
+        for geom in target.findall('./geom')
+        if geom.attrib.get('name', '').startswith('charuco_ink_')
+    )
+    assert len(ink) == 211
+    render_surface = target.find(
+        "./geom[@name='charuco_render_surface']"
+    )
+    assert render_surface is not None
+    assert render_surface.attrib['contype'] == '0'
+    assert render_surface.attrib['conaffinity'] == '0'
+    quiet_zone = target.find(
+        "./geom[@name='charuco_render_quiet_zone']"
+    )
+    assert quiet_zone is not None
+    assert quiet_zone.attrib['pos'] == '0.105 0.075 0.00005'
+    assert quiet_zone.attrib['size'] == '0.115 0.085 0.00005'
+    assert quiet_zone.attrib['contype'] == '0'
+    assert quiet_zone.attrib['conaffinity'] == '0'
+
+
 def test_base_target_transform_is_invariant_during_arm_motion() -> None:
     scene_path = materialize_scene(SCENE_TEMPLATE)
     model = mujoco.MjModel.from_xml_path(str(scene_path))
@@ -193,7 +231,8 @@ def test_base_target_transform_is_invariant_during_arm_motion() -> None:
     assert after_rotation == pytest.approx(before_rotation, abs=5.0e-6)
 
 
-def test_compiled_geometry_matches_manifest_and_moveit_collision_config() -> None:
+def test_compiled_geometry_matches_manifest_and_moveit_collision_config(
+) -> None:
     scene_path = materialize_scene(SCENE_TEMPLATE)
     model = mujoco.MjModel.from_xml_path(str(scene_path))
     data = mujoco.MjData(model)

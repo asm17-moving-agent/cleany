@@ -3,8 +3,10 @@ from __future__ import annotations
 import atexit
 import html
 import shutil
+import struct
 import tempfile
 import xml.etree.ElementTree as ET
+import zlib
 from pathlib import Path
 from typing import Any
 
@@ -23,9 +25,15 @@ from cleany_mujoco_sim.camera_contract import (
 
 _SCENE_MODEL_TOKEN = '@CLEANY_MJCF_PATH@'
 _HANDEYE_CAMERA_CONTRACT_TOKEN = '@CLEANY_HANDEYE_CAMERA_CONTRACT@'
+_HANDEYE_CHARUCO_TEXTURE_TOKEN = '@CLEANY_CHARUCO_TEXTURE_PATH@'
 _DESCRIPTION_MESHDIR = 'meshdir="../meshes/"'
 _MATERIALIZED_DIRECTORIES: list[Path] = []
 _CONTROL_INITIAL_KEYFRAME = 'handeye_ros2_control_home'
+_CHARUCO_TEXTURE_WIDTH = 1400
+_CHARUCO_TEXTURE_HEIGHT = 1000
+_CHARUCO_BOARD_WIDTH_M = 0.210
+_CHARUCO_BOARD_HEIGHT_M = 0.150
+_CHARUCO_INK_GEOMETRY_COUNT = 211
 _WHEEL_DCMOTOR_ACTUATORS = frozenset(
     {
         'rear_left_drive',
@@ -117,6 +125,9 @@ def _materialize_scene(
     apply_handeye_camera_contract = (
         _HANDEYE_CAMERA_CONTRACT_TOKEN in scene_text
     )
+    materialize_charuco_texture = (
+        _HANDEYE_CHARUCO_TEXTURE_TOKEN in scene_text
+    )
 
     materialized_dir = Path(
         tempfile.mkdtemp(prefix='cleany_mujoco_scene_')
@@ -167,10 +178,136 @@ def _materialize_scene(
             f'@fovy{CAMERA_FOVY_DEG:g}'
         ),
     )
+    if materialize_charuco_texture:
+        texture_path = materialized_dir / 'charuco_render_texture.png'
+        _write_charuco_texture(scene_text, texture_path)
+        scene_text = scene_text.replace(
+            _HANDEYE_CHARUCO_TEXTURE_TOKEN,
+            html.escape(str(texture_path.resolve()), quote=True),
+        )
+    if _HANDEYE_CHARUCO_TEXTURE_TOKEN in scene_text:
+        raise ValueError(
+            'Unresolved MuJoCo scene token: '
+            f'{_HANDEYE_CHARUCO_TEXTURE_TOKEN}'
+        )
 
     scene_path = materialized_dir / template_path.name.removesuffix('.in')
     scene_path.write_text(scene_text, encoding='utf-8')
     return scene_path
+
+
+def _png_chunk(chunk_type: bytes, payload: bytes) -> bytes:
+    body = chunk_type + payload
+    return (
+        struct.pack('>I', len(payload))
+        + body
+        + struct.pack('>I', zlib.crc32(body) & 0xFFFFFFFF)
+    )
+
+
+def _grayscale_png(width: int, height: int, pixels: bytes) -> bytes:
+    if len(pixels) != width * height:
+        raise ValueError('grayscale texture payload has an invalid size')
+    scanlines = b''.join(
+        b'\x00' + pixels[row * width:(row + 1) * width]
+        for row in range(height)
+    )
+    header = struct.pack('>IIBBBBB', width, height, 8, 0, 0, 0, 0)
+    return (
+        b'\x89PNG\r\n\x1a\n'
+        + _png_chunk(b'IHDR', header)
+        + _png_chunk(b'IDAT', zlib.compress(scanlines, level=9))
+        + _png_chunk(b'IEND', b'')
+    )
+
+
+def _write_charuco_texture(scene_text: str, texture_path: Path) -> None:
+    """Rasterize the exact vector ink boxes into a lossless temp texture.
+
+    At 640x480 the many sub-pixel box edges corrupt enough ArUco bits to make
+    the vector-only render undecodable.  The vector geometry remains the
+    canonical board source; this deterministic raster is merely its render
+    representation and is generated only in the temporary hand-eye scene.
+    """
+
+    root = ET.fromstring(scene_text)
+    target = root.find(".//body[@name='charuco_target']")
+    if target is None:
+        raise ValueError('hand-eye scene is missing charuco_target')
+    ink_geometries = tuple(
+        geom
+        for geom in target.findall('./geom')
+        if geom.attrib.get('name', '').startswith('charuco_ink_')
+    )
+    expected_names = tuple(
+        f'charuco_ink_{index:03d}'
+        for index in range(_CHARUCO_INK_GEOMETRY_COUNT)
+    )
+    actual_names = tuple(
+        geometry.attrib['name'] for geometry in ink_geometries
+    )
+    if actual_names != expected_names:
+        raise ValueError(
+            'hand-eye scene must contain the exact ordered 211-vector '
+            'ChArUco ink source'
+        )
+
+    pixels = bytearray(b'\xff') * (
+        _CHARUCO_TEXTURE_WIDTH * _CHARUCO_TEXTURE_HEIGHT
+    )
+    for geometry in ink_geometries:
+        if geometry.attrib.get('type') != 'box':
+            raise ValueError('ChArUco ink geometry must use boxes')
+        try:
+            position = tuple(
+                float(value) for value in geometry.attrib['pos'].split()
+            )
+            half_size = tuple(
+                float(value) for value in geometry.attrib['size'].split()
+            )
+        except (KeyError, ValueError) as error:
+            raise ValueError(
+                'ChArUco ink geometry must declare numeric pos and size'
+            ) from error
+        if len(position) != 3 or len(half_size) != 3:
+            raise ValueError('ChArUco ink pos and size must have three values')
+        x_min = position[0] - half_size[0]
+        x_max = position[0] + half_size[0]
+        y_min = position[1] - half_size[1]
+        y_max = position[1] + half_size[1]
+        x0 = round(
+            x_min / _CHARUCO_BOARD_WIDTH_M * _CHARUCO_TEXTURE_WIDTH
+        )
+        x1 = round(
+            x_max / _CHARUCO_BOARD_WIDTH_M * _CHARUCO_TEXTURE_WIDTH
+        )
+        y0 = round(
+            (_CHARUCO_BOARD_HEIGHT_M - y_max)
+            / _CHARUCO_BOARD_HEIGHT_M
+            * _CHARUCO_TEXTURE_HEIGHT
+        )
+        y1 = round(
+            (_CHARUCO_BOARD_HEIGHT_M - y_min)
+            / _CHARUCO_BOARD_HEIGHT_M
+            * _CHARUCO_TEXTURE_HEIGHT
+        )
+        if not (
+            0 <= x0 < x1 <= _CHARUCO_TEXTURE_WIDTH
+            and 0 <= y0 < y1 <= _CHARUCO_TEXTURE_HEIGHT
+        ):
+            raise ValueError('ChArUco ink geometry exceeds the board bounds')
+        black_run = b'\x00' * (x1 - x0)
+        for row in range(y0, y1):
+            start = row * _CHARUCO_TEXTURE_WIDTH + x0
+            pixels[start:start + len(black_run)] = black_run
+
+    texture_path.write_bytes(
+        _grayscale_png(
+            _CHARUCO_TEXTURE_WIDTH,
+            _CHARUCO_TEXTURE_HEIGHT,
+            bytes(pixels),
+        )
+    )
 
 
 def _handeye_camera_model_text(model_text: str) -> str:
