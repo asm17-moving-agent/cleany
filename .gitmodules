@@ -1,3 +1,7 @@
 [submodule "docs/cleany-docs"]
 	path = docs/cleany-docs
 	url = https://github.com/asm17-moving-agent/cleany-docs
+[submodule "ros2_ws/src/husarion_gz_worlds"]
+	path = ros2_ws/src/husarion_gz_worlds
+	url = https://github.com/husarion/husarion_gz_worlds.git
+	branch = main
