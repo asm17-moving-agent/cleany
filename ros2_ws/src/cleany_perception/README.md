@@ -106,6 +106,12 @@ ros2 action send_goal \
 
 - `perception/detections_2d`: 번호가 부여된 `DetectedObject2DArray`
 - `perception/objects`: 후속 선택 단계에서 사용할 `DetectedObject3DArray` topic
+
+선택 객체 inspection action 결과에는 grasp 입력용 `target_cloud`와
+`context_cloud`도 포함한다. 두 `PointCloud2`는 capture RGB optical frame/timestamp와
+`x`, `y`, `z`, packed `rgb` field를 공유한다. target은 SAM2 mask 내부이고 context는
+선택 bbox 주변 crop이며 `grasp_cloud_voxel_size_m`와 각각의 최대 점 개수 parameter로
+payload를 제한한다.
 - `perception/debug_image`: rqt용 `BEST_EFFORT`, `VOLATILE` debug image
 - `perception/debug_image_latched`: 마지막 결과를 보관하는 `RELIABLE`,
   `TRANSIENT_LOCAL` debug image

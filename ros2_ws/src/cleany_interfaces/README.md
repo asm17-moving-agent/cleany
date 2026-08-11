@@ -1,6 +1,6 @@
 # cleany_interfaces
 
-Cleany perception snapshot과 위치 기반 grasp planning이 공유하는 ROS 2 interface
+Cleany perception snapshot과 grasp candidate 생성이 공유하는 ROS 2 interface
 package다. 구현 내부 model이나 provider별 응답을 wire contract로 노출하지 않는다.
 
 ## 객체 메시지
@@ -31,7 +31,10 @@ cancel 가능한 action이다. 빈 `query`, 빈 `snapshot_id`, `selected_object_
 
 2차 단계는 1차 결과의 `snapshot_id`와 `selected_object_id`를 함께 전달한다. cache의
 선택 detection 하나만 SAM2와 3D 복원에 사용하고, 같은 촬영 시점 TF로 base frame OBB를
-반환한다. 두 필드 중 하나만 전달하거나 범위를 벗어난 번호는
+반환한다. 또한 RGB optical frame과 capture timestamp가 같은 `target_cloud`와
+`context_cloud`를 반환한다. 전자는 SAM2 mask 내부, 후자는 주변 장애물과 지지면을
+포함한 local crop이며 둘 다 RGB가 있는 voxel-downsampled `PointCloud2`다. 두 필드 중
+하나만 전달하거나 범위를 벗어난 번호는
 `ERROR_INVALID_SELECTION`, 없거나 만료된 snapshot은 `ERROR_SNAPSHOT_NOT_FOUND`다.
 
 오류 코드는 RGB-D timeout, detector API, detector response/JSON, mask, depth,
@@ -41,20 +44,17 @@ feedback은 RGB-D 대기와 detector 실행, 2차 feedback은 segmentation부터
 
 ## Grasp planning service
 
-`PlanGrasp` request는 선택한 `DetectedObject3D`와 그 snapshot header를 직접
-전달한다. 따라서 planning server는 perception node의 숨은 object cache에 의존하지
-않는다. `arm_override`는 `ARM_AUTO`, `ARM_LEFT`, `ARM_RIGHT` 중 하나다.
+`PlanGrasp` request는 `snapshot_id`, `object_id`, 두 점군과 원본
+`DetectedObject3D`를 직접 전달한다. planning server는 perception node의 숨은 cache에
+의존하지 않는다.
 
 성공 response는 다음 값을 제공한다.
 
-- `selected_arm`: `ARM_LEFT` 또는 `ARM_RIGHT`
-- `tcp_frame`: FK 검증에 사용한 nominal grasp TCP frame
-- `grasp_point`: request header frame의 상단 중심 파지점
-- `joint_target`: 관절 이름과 위치만 채운 planning 결과
-- `tcp_position_error_m`: joint target을 FK한 TCP 위치 오차
+- planning frame의 `tcp_pose`와 정규화 `approach_direction`
+- `required_opening_m`, `grasp_depth_m`, model `score`
+- MoveIt Planning Scene 등록에 사용할 원본 `target_object` OBB
 
-`joint_target`은 robot command가 아니다. 이 service는 trajectory, collision
-avoidance, gripper 자세와 실제 arm 전송을 수행하지 않는다.
+팔 선택, IK, robot collision, trajectory와 실행은 MoveIt 담당 경계다.
 
 ## 빌드와 검사
 
@@ -74,6 +74,7 @@ colcon test-result --verbose
 ```bash
 ros2 interface show cleany_interfaces/msg/DetectedObject3D
 ros2 interface show cleany_interfaces/msg/DetectedObject3DArray
+ros2 interface show cleany_interfaces/msg/GraspCandidate
 ros2 interface show cleany_interfaces/msg/DetectedObject2D
 ros2 interface show cleany_interfaces/msg/DetectedObject2DArray
 ros2 interface show cleany_interfaces/action/InspectScene

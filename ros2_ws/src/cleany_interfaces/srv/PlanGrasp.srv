@@ -1,30 +1,17 @@
-uint8 ARM_AUTO=0
-uint8 ARM_LEFT=1
-uint8 ARM_RIGHT=2
-
-# Header supplies the selected object's capture timestamp and coordinate frame.
-std_msgs/Header header
 string snapshot_id
-DetectedObject3D object
-uint8 arm_override
+uint32 object_id
+sensor_msgs/PointCloud2 target_cloud
+sensor_msgs/PointCloud2 context_cloud
+DetectedObject3D target_object
 ---
 uint8 ERROR_NONE=0
 uint8 ERROR_INVALID_REQUEST=1
-uint8 ERROR_INVALID_ARM_OVERRIDE=2
-uint8 ERROR_UNREACHABLE=3
-uint8 ERROR_IK_FAILED=4
-uint8 ERROR_FK_VALIDATION_FAILED=5
+uint8 ERROR_MODEL_UNAVAILABLE=2
+uint8 ERROR_INVALID_INPUT=3
+uint8 ERROR_NO_GRASP_CANDIDATE=4
 uint8 ERROR_INTERNAL=255
 
 bool success
 uint8 error_code
 string message
-
-# selected_arm uses the ARM_LEFT or ARM_RIGHT request constant.
-uint8 selected_arm
-string tcp_frame
-geometry_msgs/PointStamped grasp_point
-
-# A planning result only. It must not be published as a robot command.
-sensor_msgs/JointState joint_target
-float64 tcp_position_error_m
+GraspCandidate candidate

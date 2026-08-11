@@ -1,0 +1,11 @@
+grasp_server:
+  ros__parameters:
+    service_name: grasp/plan
+    planning_frame: base_link
+    checkpoint_path: ''  # Jetson-local licensed SDK checkpoint; configure at deployment.
+    license_path: ''     # Jetson-local AnyGrasp SDK license file.
+    maximum_gripper_width_m: 0.10  # Simulation value; replace after hardware calibration.
+    workspace_margin_m: 0.04
+    target_contact_margin_m: 0.015
+    canonical_to_tcp_rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    tcp_approach_axis: [1.0, 0.0, 0.0]

@@ -30,6 +30,12 @@ DetectedObject2DArray detections
 
 # Empty in phase 1; contains only the selected object in phase 2.
 DetectedObject3DArray objects
+
+# Empty in phase 1. Phase 2 clouds share the RGB optical frame and capture
+# timestamp. target_cloud contains selected-mask points; context_cloud includes
+# the configured local crop around the object.
+sensor_msgs/PointCloud2 target_cloud
+sensor_msgs/PointCloud2 context_cloud
 ---
 uint8 STAGE_WAITING_FOR_RGBD=0
 uint8 STAGE_DETECTING=1

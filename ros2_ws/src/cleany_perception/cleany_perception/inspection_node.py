@@ -3,6 +3,8 @@ from __future__ import annotations
 import threading
 from collections.abc import Sequence
 
+import numpy as np
+
 import rclpy
 from cleany_interfaces.action import InspectScene
 from cleany_interfaces.msg import (
@@ -36,6 +38,7 @@ from cleany_perception.adapters.gemini_detector import GeminiDetector
 from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
 from cleany_perception.adapters.tf2_transform import Tf2TransformAdapter
 from cleany_perception.core.geometry import quaternion_xyzw_from_rotation
+from cleany_perception.core.point_cloud import colored_cloud_from_selection
 from cleany_perception.core.models import (
     Detection2D,
     FailureKind,
@@ -60,6 +63,7 @@ from cleany_perception.rgbd_snapshot import (
     RgbdSnapshotBuffer,
     snapshot_from_messages,
 )
+from cleany_perception.point_cloud_message import colored_point_cloud_message
 from cleany_perception.snapshot_cache import (
     CachedDetectionSnapshot,
     DetectionSnapshotCache,
@@ -271,6 +275,10 @@ class InspectionNode(Node):
         self.declare_parameter('minimum_object_points', 30)
         self.declare_parameter('minimum_object_height_m', 0.005)
         self.declare_parameter('minimum_obb_extent_m', 0.005)
+        self.declare_parameter('grasp_context_margin_pixels', 80)
+        self.declare_parameter('grasp_cloud_voxel_size_m', 0.005)
+        self.declare_parameter('grasp_target_maximum_points', 12000)
+        self.declare_parameter('grasp_context_maximum_points', 30000)
 
     def _pipeline_config(self) -> PipelineConfig:
         return PipelineConfig(
@@ -525,6 +533,11 @@ class InspectionNode(Node):
             snapshot_id,
             (selected_id,),
         )
+        target_cloud, context_cloud = self._selected_cloud_messages(
+            cached.snapshot,
+            output.masks[0].mask,
+            selected,
+        )
         result.success = True
         result.error_code = InspectScene.Result.ERROR_NONE
         result.message = (
@@ -532,6 +545,8 @@ class InspectionNode(Node):
         )
         result.detections = detections_message
         result.objects = objects_message
+        result.target_cloud = target_cloud
+        result.context_cloud = context_cloud
         self._objects_publisher.publish(objects_message)
         debug_rgb = render_debug_image(
             cached.snapshot.rgb,
@@ -548,6 +563,39 @@ class InspectionNode(Node):
         )
         goal_handle.succeed()
         return result
+
+    def _selected_cloud_messages(self, snapshot, target_mask, detection):
+        height, width = snapshot.depth_m.shape
+        margin = int(self.get_parameter('grasp_context_margin_pixels').value)
+        x_min = max(0, int(detection.bbox.x_min) - margin)
+        y_min = max(0, int(detection.bbox.y_min) - margin)
+        x_max = min(width, int(detection.bbox.x_max + 0.999) + margin)
+        y_max = min(height, int(detection.bbox.y_max + 0.999) + margin)
+        context_mask = np.zeros((height, width), dtype=bool)
+        context_mask[y_min:y_max, x_min:x_max] = True
+        common = {
+            'depth_m': snapshot.depth_m,
+            'rgb': snapshot.rgb,
+            'intrinsics': snapshot.intrinsics,
+            'minimum_depth_m': float(self.get_parameter('minimum_depth_m').value),
+            'maximum_depth_m': float(self.get_parameter('maximum_depth_m').value),
+            'voxel_size_m': float(self.get_parameter('grasp_cloud_voxel_size_m').value),
+        }
+        target = colored_cloud_from_selection(
+            selection=target_mask,
+            maximum_points=int(self.get_parameter('grasp_target_maximum_points').value),
+            **common,
+        )
+        context = colored_cloud_from_selection(
+            selection=context_mask,
+            maximum_points=int(self.get_parameter('grasp_context_maximum_points').value),
+            **common,
+        )
+        stamp = Time(nanoseconds=snapshot.stamp_ns).to_msg()
+        return (
+            colored_point_cloud_message(target, stamp, snapshot.source_frame),
+            colored_point_cloud_message(context, stamp, snapshot.source_frame),
+        )
 
     def _publish_debug_image(self, message: Image) -> None:
         self._debug_publisher.publish(message)
