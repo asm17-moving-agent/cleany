@@ -173,9 +173,12 @@ confirmed only when the response is `ERROR_NONE` and its `goals_canceling`
 array contains the exact requested goal UUID; a success code for another goal
 does not count as confirmation.
 
-MuJoCo's conservative baseline is a 0.05 rad controller path tolerance, 0.01
-rad controller goal tolerance, 0.005 rad settle position error, 0.01 rad/s
-settle velocity, and a continuous 1.0 s settle interval. The pure
+The controller baseline is a 0.05 rad path tolerance and 0.01 rad goal
+tolerance. The original 0.005 rad MuJoCo settle-position trial was below the
+measured gravity-loaded steady-state error; repeated runs reached 0.010403
+rad, so the explicit MuJoCo E2E profile uses 0.015 rad after review. The 0.01
+rad/s settle velocity and continuous 1.0 s interval are unchanged. These are
+simulation values, not approved real-robot tolerances. The pure
 `JointSettleDetector` uses only feedback ROS stamps. Every left joint must meet
 both thresholds simultaneously; a threshold violation or ROS clock regression
 resets the interval. Successful PLAN/EXECUTE actions only arm this gate and

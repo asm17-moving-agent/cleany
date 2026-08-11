@@ -84,6 +84,28 @@ def test_mujoco_config_requires_explicit_preflight_and_stage_values():
         config.max_velocity_scaling_factor = 1.0
 
 
+def test_post_execution_settle_tolerance_is_independent_of_goal_region():
+    config = MujocoMotionConfig(
+        current_state_max_age_sec=0.2,
+        right_park_position_tolerance_rad=0.02,
+        stage_timeouts=_timeouts(),
+        controller_path_tolerance_rad=0.05,
+        controller_goal_tolerance_rad=0.01,
+        settle_position_tolerance_rad=0.015,
+    )
+
+    assert config.settle_position_tolerance_rad == 0.015
+    with pytest.raises(ValueError, match='controller path tolerance'):
+        MujocoMotionConfig(
+            current_state_max_age_sec=0.2,
+            right_park_position_tolerance_rad=0.02,
+            stage_timeouts=_timeouts(),
+            controller_path_tolerance_rad=0.05,
+            controller_goal_tolerance_rad=0.01,
+            settle_position_tolerance_rad=0.050001,
+        )
+
+
 @pytest.mark.parametrize(
     ('group', 'tip'),
     [

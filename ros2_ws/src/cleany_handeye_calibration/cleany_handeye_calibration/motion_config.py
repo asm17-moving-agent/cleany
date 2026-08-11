@@ -184,10 +184,10 @@ class MujocoMotionConfig:
             )
         if (
             self.settle_position_tolerance_rad
-            > self.controller_goal_tolerance_rad
+            > self.controller_path_tolerance_rad
         ):
             raise ValueError(
-                'settle position tolerance must not exceed controller goal '
+                'settle position tolerance must not exceed controller path '
                 'tolerance'
             )
         if self.stage_timeouts.settle_sec < self.settle_duration_sec:
