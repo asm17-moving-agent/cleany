@@ -31,6 +31,7 @@ setup(
             'gazebo_command_guard = cleany_gazebo_sim.command_guard:main',
             'gazebo_odom_tf_publisher = cleany_gazebo_sim.odom_tf_publisher:main',
             'gazebo_sensor_tf_publisher = cleany_gazebo_sim.sensor_tf_publisher:main',
+            'ground_truth_route_follower = cleany_gazebo_sim.ground_truth_route_follower:main',
         ],
     },
 )
