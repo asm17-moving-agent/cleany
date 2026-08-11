@@ -210,22 +210,36 @@ office의 일부 가구 mesh는 Gazebo Fuel URL을 참조하므로 최초 실행
 필요할 수 있습니다. 고정 경로와 rosbag 기반 비교를 시작하기 전에 필요한 resource를
 고정해 동일한 world revision을 사용합니다.
 
-## Spacious study cafe evaluation world
+## Demo study-room evaluation world
 
-`gazebo_study_cafe.launch.py`는 Husarion Office보다 넓고 가벼운 초기 평가용 공간을
-제공합니다. 내부 크기는 18×10.5 m이며 로봇은 가구가 없는 남쪽 시작 구역의
-`(x=0, y=-2.7, yaw=1.5708)`에 배치됩니다. 중앙 공용석과 좌우 개별석 사이에는
-1.5 m 이상의 주행 통로가 남도록 구성했습니다.
+`gazebo_study_cafe.launch.py`는 실제 시연실 좌석도를 단순화한 48석 평가 공간을
+제공합니다. 벽 안쪽 크기는 12.26×10.94 m이며 로봇은 남쪽의 왼쪽 세로 통로
+`(x=-1.865, y=-4.705, yaw=1.5708)`에 배치됩니다. 여덟 책상 열은 3-2-3 블록으로
+나뉘고 여섯 행은 두 행씩 마주 붙은 세 묶음으로 배치됩니다. 각 행의 첫째와 마지막
+책상 옆면은 서쪽·동쪽 벽면에 닿지만 첫째·마지막 행의 앞뒤는 벽에서 떨어져 있습니다.
 
-가구는 OpenRobotics Gazebo Fuel의 `AdjTable`, `Table`, `WoodenChair`, `SquareShelf`
-외형을 사용합니다. 중앙 공용석은 `AdjTable`, 좌우 개별석은 `Table`로 구분하며 두
-종류의 테이블 상판 최고점은 모두 바닥에서 0.72 m입니다. 중앙 공용석, 좌측 2인석,
-우측 4인석, 북측 바 좌석을 분리하고 책장과 화분을 landmark로 추가하되 남쪽 spawn
-구역과 1.5 m 이상의 순환 통로는 비워 둡니다. 의자 yaw는 WoodenChair의 local `+X`
-정면이 지정 테이블 중심을 향하도록 좌표에서 계산합니다. 테이블 collision은 상판과
-4개 다리, 의자는 좌판·등받이와 4개 다리의 primitive로 분리해 낮은 2D LiDAR가 가구
-전체를 채운 가상 벽으로 인식하지 않게 합니다. 최초 실행 시 Fuel asset 다운로드를
-위해 network가 필요하고 이후에는 Gazebo cache를 사용합니다.
+개별 책상은 1.2×0.77 m이고 흰색 상판 최고점은 바닥에서 0.72 m입니다. 파티션에 닿는
+두 모서리는 직각이고 의자 쪽 두 모서리는 반경 0.06 m로 둥글게 구성합니다. 흰색
+A형 다리는 상판 좌우 및 앞뒤 가장자리에서 0.08 m 안쪽에 발을 두고 상부 중앙으로
+모이며, 상단 crossbar를 포함한 visual과 collision이 같은 형상을 사용합니다. 마주
+붙은 두 행의 중앙 파티션은 바닥 0.30 m에서 상판 위 0.30 m인 1.02 m까지 이어지며
+네 모서리는 반경 0.05 m로 둥글게 처리합니다. 벽면은 흰색, roughness 0.92,
+metalness 0.0의 무광 석고 재질입니다. 의자 좌판 앞쪽은 상판 끝과 0.23 m 겹치도록
+책상 아래로 들어갑니다. 같은 행에서 떨어진 3-2-3 블록의 상판 사이 간격은 1.33 m,
+서로 붙지 않은 다른 행의 상판 사이 간격은 1.63 m입니다. 배치된 의자 등판 사이의
+실제 통과 폭은 0.83 m입니다. 가장 가까운 행의 상판 가장자리와 남북 벽면 사이는
+1.53 m이고, 의자 등판과 벽 사이 실제 통로는 1.13 m이므로 로봇 주행 경로를 만들기
+전 의자를 포함한 통과 가능성을 별도로 확인해야 합니다.
+
+각 책상에는 검정색 27인치 16:9 모니터가 하나씩 배치됩니다. 화면 크기는
+0.598×0.336 m이며 패널 중심은 의자 반대편 상판 끝에서 0.10 m 안쪽에 있습니다.
+화면 면은 배정된 의자를 향하고, 패널·스탠드·받침대는 각각 primitive collision을
+사용합니다.
+
+의자 visual은 CC BY 4.0의 OpenRobotics Gazebo Fuel `OfficeChairGrey`를 0.9배로
+사용합니다. 의자 yaw는 local `+X` 정면이 배정된 책상을 향하도록 계산하며 collision은
+캐스터 영역, 중앙축, 좌판, 등판 primitive로 분리합니다. 최초 실행 시 Fuel asset
+다운로드를 위해 network가 필요하고 이후에는 Gazebo cache를 사용합니다.
 
 로컬 Jazzy/Harmonic Distrobox에서 GUI 배율 1.0으로 실행합니다.
 
@@ -277,9 +291,11 @@ topic은 `/scan_12cm`, `/scan`, `/scan_45cm`, `/scan_70cm`이며 26 cm의 기존
 
 ### Study cafe evaluation route
 
-`config/study_cafe_route.yaml`은 study cafe collision을 로봇 외곽과 안전 여유를 포함해
-0.43 m 팽창한 뒤 만든 약 51 m 폐루프 경로입니다. 남쪽 긴 직선, 서쪽 통로, 상단
-가구 구역, 동쪽 통로, 중앙 테이블 통로를 지나 spawn 위치로 돌아옵니다.
+`config/study_cafe_route.yaml`의 약 51 m 폐루프는 이전 prototype study-cafe 배치용
+경로입니다. 현재 48석 시연실의 경계와 가구 배치를 반영하지 않으므로 SLAM 평가에
+사용하지 않습니다. GUI에서 배치를 확정한 뒤 로봇 footprint와 안전 여유를 적용한
+시연 동선으로 교체해야 합니다.
+
 `ground_truth_route_follower`는 `/ground_truth/odom`을 경로 제어에만 사용하고
 `/cmd_vel`을 발행합니다. SLAM에는 ground truth를 전달하지 않습니다.
 
