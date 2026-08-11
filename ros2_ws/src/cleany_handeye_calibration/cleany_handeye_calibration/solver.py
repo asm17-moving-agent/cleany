@@ -435,3 +435,41 @@ def solve_all_hand_eye_methods(
         )
         for method_spec in HAND_EYE_METHOD_REGISTRY
     )
+
+
+def solve_hand_eye_method(
+    samples: Sequence[CalibrationSample],
+    method: HandEyeMethod,
+    *,
+    validity_policy: HandEyeTransformValidityPolicy,
+    frame_convention: HandEyeFrameConvention = DEFAULT_HAND_EYE_FRAMES,
+    cv_module: Any = cv2,
+) -> HandEyeResult:
+    """Run one explicitly selected method on validated calibration pairs.
+
+    The full registry is still checked before execution.  This entry point is
+    reserved for the timestamp-sensitivity follow-up, where rerunning all five
+    methods would violate the selected-method-only experiment contract.
+    """
+
+    try:
+        selected = HandEyeMethod(method)
+    except ValueError as error:
+        raise ValueError(
+            'method must be a registered HandEyeMethod'
+        ) from error
+    inputs = _prepare_opencv_inputs(samples, frame_convention)
+    constants = validate_hand_eye_registry(cv_module)
+    method_spec = next(
+        item
+        for item in HAND_EYE_METHOD_REGISTRY
+        if item.method is selected
+    )
+    return _run_method(
+        method_spec,
+        constants[selected],
+        inputs,
+        frame_convention,
+        validity_policy,
+        cv_module,
+    )
