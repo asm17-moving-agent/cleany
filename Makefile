@@ -44,7 +44,6 @@ help:
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
-	@echo "  make sim-gazebo-office  Run Cleany in Husarion Office on Harmonic"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
 	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
@@ -162,7 +161,6 @@ sim-gazebo: build-gazebo
 sim-gazebo-harmonic:
 	$(MAKE) GAZEBO_PROFILE=harmonic sim-gazebo
 
-<<<<<<< HEAD
 handeye-generate-mujoco: build-handeye
 	@test ! -e "$(HANDEYE_PROFILE_DIR)" || \
 		(echo "pose profile already exists: $(HANDEYE_PROFILE_DIR)" >&2; exit 2)
@@ -221,7 +219,7 @@ handeye-validate-mujoco: build-handeye
 		--max-translation-norm-m "$(HANDEYE_MAX_TRANSLATION_NORM_M)" \
 		--dataset-mode "$(HANDEYE_DATASET_MODE)" \
 		--output "$(HANDEYE_VALIDATION_OUTPUT)"
-=======
+
 sim-gazebo-office:
 	$(MAKE) GAZEBO_PROFILE=harmonic build-gazebo
 	eval "$$(GAZEBO_PROFILE=harmonic python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
@@ -237,7 +235,6 @@ sim-gazebo-study-cafe:
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py headless:=false
->>>>>>> 750110d (feat(gazebo): add SLAM test environments)
 
 clean:
 	"$(REPO_ROOT)tools/ros2-clean"

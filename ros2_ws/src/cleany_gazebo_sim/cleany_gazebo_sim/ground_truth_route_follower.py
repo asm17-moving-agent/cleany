@@ -102,6 +102,11 @@ class GroundTruthRouteFollower(Node):
             return
 
         command = self._tracker.command(self._latest_pose)
+        if command.completed:
+            self._completed = True
+            self._publish_stop()
+            self.get_logger().info('Study-cafe evaluation route completed')
+            return
         if command.waypoint_index != self._last_reported_index:
             self._last_reported_index = command.waypoint_index
             self.get_logger().info(
@@ -109,12 +114,6 @@ class GroundTruthRouteFollower(Node):
                 f'{command.waypoint_index + 1}/'
                 f'{self._tracker.waypoint_count}'
             )
-        if command.completed:
-            self._completed = True
-            self._publish_stop()
-            self.get_logger().info('Study-cafe evaluation route completed')
-            return
-
         message = Twist()
         message.linear.x = command.linear_x
         message.angular.z = command.angular_z
@@ -132,8 +131,9 @@ def main(args: list[str] | None = None) -> None:
     except KeyboardInterrupt:
         pass
     finally:
-        if rclpy.ok():
-            node._publish_stop()
+        # The Gazebo command guard sends stop if launch has already
+        # invalidated the ROS context. Normal route completion publishes its
+        # own stop command before reaching this shutdown path.
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

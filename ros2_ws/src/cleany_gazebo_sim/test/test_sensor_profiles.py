@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
 from cleany_gazebo_sim.sensor_profile_launch import (
     SENSOR_PROFILES,
@@ -15,6 +16,7 @@ EXPECTED_GROUP_TOPICS = {
     'core': {
         '/gazebo_cmd_vel',
         '/gazebo_odom',
+        '/ground_truth/odom',
         '/joint_states',
         '/clock',
         '/imu/data',
@@ -61,6 +63,38 @@ def test_sensor_profiles_select_expected_bridge_groups():
 def test_unknown_sensor_profile_is_rejected():
     with pytest.raises(ValueError, match='unknown sensor profile'):
         sensor_profile_bridge_groups('all_sensors')
+
+
+@pytest.mark.parametrize(
+    ('height_cm', 'gz_scan_topic'),
+    (
+        (12, '/model/cleany_mecanum/lidar_12cm/scan'),
+        (26, '/model/cleany_mecanum/lidar/scan'),
+        (45, '/model/cleany_mecanum/lidar_45cm/scan'),
+        (70, '/model/cleany_mecanum/lidar_70cm/scan'),
+    ),
+)
+def test_height_slam_bridge_activates_only_selected_lidar(
+    height_cm: int,
+    gz_scan_topic: str,
+):
+    config_path = CONFIG_ROOT / (
+        f'slam_{height_cm}cm_bridge_harmonic.yaml'
+    )
+    entries = yaml.safe_load(config_path.read_text(encoding='utf-8'))
+    scan_entries = [
+        entry
+        for entry in entries
+        if entry['ros_type_name'] == 'sensor_msgs/msg/LaserScan'
+    ]
+
+    assert _ros_topics(config_path) == {
+        *EXPECTED_GROUP_TOPICS['core'],
+        '/scan',
+    }
+    assert len(scan_entries) == 1
+    assert scan_entries[0]['ros_topic_name'] == '/scan'
+    assert scan_entries[0]['gz_topic_name'] == gz_scan_topic
 
 
 @pytest.mark.parametrize(

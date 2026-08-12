@@ -1,4 +1,4 @@
-from math import pi
+from math import hypot, pi
 from pathlib import Path
 
 import yaml
@@ -27,12 +27,37 @@ def test_study_cafe_route_is_closed_and_covers_evaluation_zones() -> None:
 
     assert params['max_linear_speed'] == 0.25
     assert params['max_angular_speed'] == 0.5
-    assert len(waypoints) == 60
+    expected = (
+        (-1.865, -4.705),
+        (-5.65, -4.705),
+        (5.65, -4.705),
+        (1.865, -4.705),
+        (1.865, -1.585),
+        (5.65, -1.585),
+        (-5.65, -1.585),
+        (-1.865, -1.585),
+        (-1.865, 1.585),
+        (-5.65, 1.585),
+        (5.65, 1.585),
+        (1.865, 1.585),
+        (1.865, 4.705),
+        (5.65, 4.705),
+        (-5.65, 4.705),
+        (-1.865, 4.705),
+        (-1.865, -4.705),
+    )
+
+    assert tuple((point.x, point.y) for point in waypoints) == expected
     assert waypoints[0] == waypoints[-1]
-    assert min(point.x for point in waypoints) <= -7.2
-    assert max(point.x for point in waypoints) >= 7.3
-    assert max(point.y for point in waypoints) >= 4.8
-    assert any(point.x == 3.4 and point.y == 2.5 for point in waypoints)
+    assert {point.x for point in waypoints} == {-5.65, -1.865, 1.865, 5.65}
+    assert {point.y for point in waypoints} == {
+        -4.705, -1.585, 1.585, 4.705
+    }
+    length = sum(
+        hypot(second.x - first.x, second.y - first.y)
+        for first, second in zip(waypoints, waypoints[1:])
+    )
+    assert abs(length - 94.30) < 1e-9
 
 
 def test_route_tracker_turns_before_driving_when_target_is_sideways() -> None:

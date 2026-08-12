@@ -126,6 +126,42 @@ def test_worlds_hold_dual_arms_in_folded_standby_pose():
             assert joint.findtext('axis/limit/effort') == '1000000'
 
 
+def test_materialized_world_bakes_folded_arms_without_controllers():
+    expected_link_poses = {
+        'left_rotation_pitch': '0 0 0 0 -1.5708 0',
+        'left_upper_arm': '0 0 0 -3.0 0 0',
+        'left_lower_arm': '0 0 0 2.4 0 0',
+        'left_wrist_pitch': '0 0 0 1.2 0 0',
+        'left_fixed_jaw': '0 0 0 0 0 0',
+        'left_moving_jaw': '0 0 0 0 0 0.8',
+        'right_rotation_pitch': '0 0 0 0 1.5708 0',
+        'right_upper_arm': '0 0 0 -3.0 0 0',
+        'right_lower_arm': '0 0 0 2.4 0 0',
+        'right_wrist_pitch': '0 0 0 1.2 0 0',
+        'right_fixed_jaw': '0 0 0 0 0 0',
+        'right_moving_jaw': '0 0 0 0 0 0.8',
+    }
+
+    for world_path in (WORLD_PATH, HARMONIC_WORLD_PATH):
+        generated = materialize_mecanum_wheel_world(world_path)
+        root = ElementTree.parse(generated).getroot()
+        model = root.find("./world/model[@name='cleany_mecanum']")
+        assert model is not None
+        assert not any(
+            plugin.get('name', '').endswith('JointPositionController')
+            for plugin in model.findall('plugin')
+        )
+        for link_name, expected_pose in expected_link_poses.items():
+            link = model.find(f"link[@name='{link_name}']")
+            assert link is not None
+            assert link.findtext('pose') == expected_pose
+            joint_name = link.find('pose').get('relative_to')
+            joint = model.find(f"joint[@name='{joint_name}']")
+            assert joint is not None
+            assert joint.get('type') == 'fixed'
+            assert joint.find('axis') is None
+
+
 def test_world_uses_canonical_wheel_names_and_positive_x_front():
     root = ElementTree.parse(WORLD_PATH).getroot()
     model = root.find("./world/model[@name='cleany_mecanum']")

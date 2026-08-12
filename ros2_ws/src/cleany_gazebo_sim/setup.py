@@ -33,6 +33,7 @@ setup(
             'gazebo_sensor_tf_publisher = cleany_gazebo_sim.sensor_tf_publisher:main',
             'ground_truth_route_follower = cleany_gazebo_sim.ground_truth_route_follower:main',
             'lidar_slam_evaluation = cleany_gazebo_sim.lidar_slam_evaluation:main',
+            'occupancy_grid_marker = cleany_gazebo_sim.occupancy_grid_marker:main',
         ],
     },
 )

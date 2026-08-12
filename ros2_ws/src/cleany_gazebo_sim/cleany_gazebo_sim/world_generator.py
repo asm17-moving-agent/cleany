@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from copy import deepcopy
-from math import asin, atan2, cos, pi, sin, sqrt
+from math import asin, atan2, cos, isfinite, pi, sin, sqrt
 from pathlib import Path
 from tempfile import gettempdir
 from xml.etree import ElementTree
@@ -16,9 +15,22 @@ _WHEEL_HANDEDNESS = {
 _ROLLER_RADIUS = 0.008
 _ROLLER_LENGTH = 0.03
 _ROLLER_CENTER_RADIUS = 0.0555
-_OFFICE_SPAWN_POSE = (5.49526, -8.97241, 0.38, 0.0, 0.0, 2.7409)
 _STUDY_CAFE_SPAWN_POSE = (-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708)
 _ROBOT_VISIBILITY_FLAGS = '0x02'
+_FOLDED_ARM_LINK_POSES = {
+    'left_shoulder_yaw_joint': ('left_rotation_pitch', '0 0 0 0 -1.5708 0'),
+    'left_shoulder_pitch_joint': ('left_upper_arm', '0 0 0 -3.0 0 0'),
+    'left_elbow_pitch_joint': ('left_lower_arm', '0 0 0 2.4 0 0'),
+    'left_wrist_pitch_joint': ('left_wrist_pitch', '0 0 0 1.2 0 0'),
+    'left_wrist_roll_joint': ('left_fixed_jaw', '0 0 0 0 0 0'),
+    'left_gripper_joint': ('left_moving_jaw', '0 0 0 0 0 0.8'),
+    'right_shoulder_yaw_joint': ('right_rotation_pitch', '0 0 0 0 1.5708 0'),
+    'right_shoulder_pitch_joint': ('right_upper_arm', '0 0 0 -3.0 0 0'),
+    'right_elbow_pitch_joint': ('right_lower_arm', '0 0 0 2.4 0 0'),
+    'right_wrist_pitch_joint': ('right_wrist_pitch', '0 0 0 1.2 0 0'),
+    'right_wrist_roll_joint': ('right_fixed_jaw', '0 0 0 0 0 0'),
+    'right_gripper_joint': ('right_moving_jaw', '0 0 0 0 0 0.8'),
+}
 _FUEL_VISUALS = {
     'adj_table': (
         'https://fuel.gazebosim.org/1.0/openrobotics/models/'
@@ -37,20 +49,6 @@ _FUEL_VISUALS = {
         'OfficeChairGrey/1/files/meshes/OfficeChairGrey.obj'
     ),
 }
-_HARMONIC_SYSTEM_PLUGINS = {
-    'ignition-gazebo-contact-system': 'gz-sim-contact-system',
-    'ignition-gazebo-imu-system': 'gz-sim-imu-system',
-    'ignition-gazebo-physics-system': 'gz-sim-physics-system',
-    'ignition-gazebo-scene-broadcaster-system': (
-        'gz-sim-scene-broadcaster-system'
-    ),
-    'ignition-gazebo-sensors-system': 'gz-sim-sensors-system',
-    'ignition-gazebo-user-commands-system': (
-        'gz-sim-user-commands-system'
-    ),
-}
-
-
 def fixed_roller_visual_sdf(prefix: str, handedness: float) -> str:
     """Generate one wheel's fixed, non-controllable roller visuals."""
     fragments: list[str] = []
@@ -73,6 +71,35 @@ def fixed_roller_visual_sdf(prefix: str, handedness: float) -> str:
     return '\n'.join(fragments)
 
 
+def _freeze_folded_arms(robot: ElementTree.Element) -> None:
+    """Bake the standby angles into fixed joints without actuator impulse."""
+    controllers = {
+        plugin.findtext('joint_name'): plugin
+        for plugin in robot.findall('plugin')
+        if plugin.get('name', '').endswith('JointPositionController')
+    }
+    if set(controllers) != set(_FOLDED_ARM_LINK_POSES):
+        raise ValueError('robot template has an incomplete folded-arm profile')
+
+    for joint_name, (link_name, link_pose) in _FOLDED_ARM_LINK_POSES.items():
+        joint = robot.find(f"joint[@name='{joint_name}']")
+        link = robot.find(f"link[@name='{link_name}']")
+        if joint is None or link is None:
+            raise ValueError(f'folded-arm element is missing for {joint_name}')
+        if joint.findtext('child') != link_name:
+            raise ValueError(f'folded-arm child mismatch for {joint_name}')
+        pose = link.find('pose')
+        if pose is None or pose.get('relative_to') != joint_name:
+            raise ValueError(f'folded-arm pose frame mismatch for {joint_name}')
+
+        joint.set('type', 'fixed')
+        axis = joint.find('axis')
+        if axis is not None:
+            joint.remove(axis)
+        pose.text = link_pose
+        robot.remove(controllers[joint_name])
+
+
 def materialize_mecanum_wheel_world(template_path: Path) -> Path:
     """Materialize compact mecanum visuals without exposing roller joints."""
     template = template_path.read_text(encoding='utf-8')
@@ -92,6 +119,7 @@ def materialize_mecanum_wheel_world(template_path: Path) -> Path:
     robot = root.find("./world/model[@name='cleany_mecanum']")
     if robot is None:
         raise ValueError('world template is missing cleany_mecanum')
+    _freeze_folded_arms(robot)
     for visual in robot.findall('.//visual'):
         flags = visual.find('visibility_flags')
         if flags is None:
@@ -108,65 +136,6 @@ def materialize_mecanum_wheel_world(template_path: Path) -> Path:
         'gz', 'http://gazebosim.org/schema'
     )
     ElementTree.ElementTree(root).write(
-        target, encoding='unicode', xml_declaration=True
-    )
-    return target
-
-
-def materialize_husarion_office_world(
-    office_template_path: Path,
-    robot_template_path: Path,
-    target_path: Path | None = None,
-    simulator: str = 'harmonic',
-) -> Path:
-    """Replace Husarion's demo robots with Cleany in the office world."""
-    if simulator != 'harmonic':
-        raise ValueError('the Cleany office profile supports harmonic only')
-    robot_world_path = materialize_mecanum_wheel_world(robot_template_path)
-    office_root = ElementTree.parse(office_template_path).getroot()
-    robot_root = ElementTree.parse(robot_world_path).getroot()
-    office = office_root.find('world')
-    robot_world = robot_root.find('world')
-    if office is None or robot_world is None:
-        raise ValueError('both SDF documents must contain a world')
-    if office.find("model[@name='cleany_mecanum']") is not None:
-        raise ValueError('office world already contains cleany_mecanum')
-
-    demo_robots = [
-        model
-        for model in office.findall('model')
-        if model.get('name', '').startswith('OpenRobotics/_Rosbot')
-    ]
-    if not demo_robots:
-        raise ValueError('Husarion office world has no demo robots to replace')
-    for demo_robot in demo_robots:
-        office.remove(demo_robot)
-
-    for plugin in office.findall('plugin'):
-        filename = plugin.get('filename', '')
-        replacement = _HARMONIC_SYSTEM_PLUGINS.get(filename)
-        if replacement is not None:
-            plugin.set('filename', replacement)
-
-    cleany = robot_world.find("model[@name='cleany_mecanum']")
-    if cleany is None:
-        raise ValueError('robot template is missing cleany_mecanum')
-    cleany = deepcopy(cleany)
-    pose = cleany.find('pose')
-    if pose is None:
-        raise ValueError('cleany_mecanum is missing its world pose')
-    pose.text = ' '.join(str(value) for value in _OFFICE_SPAWN_POSE)
-    office.append(cleany)
-    office.set('name', 'cleany_husarion_office')
-
-    target = target_path or (
-        Path(gettempdir()) / 'cleany_husarion_office.sdf'
-    )
-    target.parent.mkdir(parents=True, exist_ok=True)
-    ElementTree.register_namespace(
-        'ignition', 'http://ignitionrobotics.org/schema'
-    )
-    ElementTree.ElementTree(office_root).write(
         target, encoding='unicode', xml_declaration=True
     )
     return target
@@ -697,10 +666,16 @@ def materialize_study_cafe_world(
     robot_template_path: Path,
     target_path: Path | None = None,
     simulator: str = 'harmonic',
+    max_step_size: float = 0.001,
+    real_time_factor: float = 1.0,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
     if simulator != 'harmonic':
         raise ValueError('the study cafe profile supports harmonic only')
+    if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
+        raise ValueError('max step size must be within (0, 0.01] seconds')
+    if not isfinite(real_time_factor) or real_time_factor <= 0.0:
+        raise ValueError('real time factor must be positive')
     generated_robot_world = materialize_mecanum_wheel_world(
         robot_template_path
     )
@@ -709,6 +684,15 @@ def materialize_study_cafe_world(
     if world is None:
         raise ValueError('robot template must contain a world')
     world.set('name', 'cleany_study_cafe')
+    physics = world.find('physics')
+    if physics is None:
+        raise ValueError('robot template must contain world physics')
+    step_element = physics.find('max_step_size')
+    factor_element = physics.find('real_time_factor')
+    if step_element is None or factor_element is None:
+        raise ValueError('world physics is missing timing parameters')
+    step_element.text = str(max_step_size)
+    factor_element.text = str(real_time_factor)
 
     scene = world.find('scene')
     if scene is None:

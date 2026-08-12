@@ -30,11 +30,13 @@ Gazebo world는 `cleany_description/meshes/`를 resource path로 참조해 팀�
 Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
 joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
 collision mesh도 Cleany description에서 가져왔습니다. 조작용 arm controller는 아직
-없지만, 양팔은 시작 시 어깨를 안쪽으로 돌리고 팔꿈치를 접은 대기 자세로 이동한 뒤
-Gazebo joint position controller가 그 자세를 유지합니다. 대기 자세는 좌·우 shoulder
+없지만, 양팔은 world materialization 시 어깨를 안쪽으로 돌리고 팔꿈치를 접은 대기 자세로
+고정됩니다. 시작 후 관절 제어기로 자세를 이동하지 않으므로 자유 상태의 mobile base에
+팔 구동 반작용이 전달되지 않습니다. 이 고정은 SLAM 주행 중 팔 자세를 유지하기 위한
+kinematic 잠금입니다. 대기 자세는 좌·우 shoulder
 yaw `-1.5708`/`1.5708`, shoulder pitch `3.0`, elbow pitch `2.4`, wrist pitch
-`1.2`, wrist roll `0.0`, gripper `0.8` rad입니다. 이 controller는 SLAM용 시각 자세
-잠금이므로 물리 servo effort를 모사하지 않습니다. 현재 arm link의 gravity는
+`1.2`, wrist roll `0.0`, gripper `0.8` rad입니다. 물리 servo effort는
+모사하지 않습니다. 현재 arm link의 gravity는
 비활성화한 상태입니다. Fortress와 Harmonic launch는
 공통 IMU `/imu/data` bridge와 필요한 rendering sensor bridge만 실행하는 sensor
 profile을 제공합니다. 기본값은 GPU LiDAR `/scan`만 추가로 활성화하는
@@ -183,38 +185,6 @@ odometry가 실제로 변하는지 확인합니다. 다음 조건을 모두 만�
 headless 실행에서도 rendering sensor이므로, 선택한 Gazebo profile에서 동작하는
 OpenGL display 또는 headless rendering 환경이 필요합니다.
 
-## Husarion Office experiment world
-
-SLAM 실험용 실내 환경으로 Apache-2.0의 `husarion_gz_worlds`를 source dependency로
-사용합니다. `gazebo_office.launch.py`는 원본 office의 세 ROSBOT demo model을 제거하고
-그중 첫 번째 시작 위치에 Cleany를 삽입합니다. 원본 world와 model은 별도 submodule로
-유지해 upstream 출처와 변경 경계를 보존합니다.
-
-이 프로젝트의 로컬 office 실험 profile은 Ubuntu 24.04 / ROS 2 Jazzy / Gazebo
-Harmonic입니다. submodule을 받은 뒤 다음과 같이 실행합니다.
-Office launch는 host monitor 설정을 변경하지 않고 Gazebo Qt GUI에만 1.0 배율을
-적용합니다.
-
-```bash
-git submodule update --init --recursive
-make sim-gazebo-office
-```
-
-office 실행은 SLAM에 필요한 navigation bridge만 올리므로 camera topic은 제외하고
-`/scan`, `/imu/data`, `/odom`, TF와 `/clock`을 제공합니다. 다른 terminal에서 기존
-`/cmd_vel` 계약으로 우선 주행을 확인할 수 있습니다.
-
-```bash
-source /opt/ros/jazzy/setup.bash
-source ros2_ws/install-harmonic/setup.bash
-ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
-  '{linear: {x: 0.1}, angular: {z: 0.1}}'
-```
-
-office의 일부 가구 mesh는 Gazebo Fuel URL을 참조하므로 최초 실행에는 network가
-필요할 수 있습니다. 고정 경로와 rosbag 기반 비교를 시작하기 전에 필요한 resource를
-고정해 동일한 world revision을 사용합니다.
-
 ## Demo study-room evaluation world
 
 `gazebo_study_cafe.launch.py`는 실제 시연실 좌석도를 단순화한 48석 평가 공간을
@@ -274,6 +244,43 @@ source ros2_ws/install-harmonic/setup.bash
 ros2 launch cleany_gazebo_sim slam_mapping.launch.py
 ```
 
+반복 구조에서 잘못된 loop closure가 발생하는지 분리해서 확인할 때는 baseline
+설정 파일을 바꾸지 않고 launch override를 사용합니다.
+
+```bash
+ros2 launch cleany_gazebo_sim slam_mapping.launch.py do_loop_closing:=false
+```
+
+Loop closure를 유지하면서 반복 구조에 더 보수적인 진단 조건을 적용할 수도 있습니다.
+
+```bash
+ros2 launch cleany_gazebo_sim slam_mapping.launch.py \
+  loop_search_maximum_distance:=2.0 \
+  loop_search_space_dimension:=4.0 \
+  loop_match_minimum_response_coarse:=0.50 \
+  loop_match_minimum_response_fine:=0.60
+```
+
+launch는 `slam_toolbox` lifecycle node를 자동으로 configure·activate합니다.
+지도와 scan을 함께 보려면 다음 RViz launch를 사용합니다. ARM Adreno Mesa에서
+RViz의 indexed-palette Map shader가 실패하는 문제를 피하기 위해 `/map`의 점유 셀을
+표준 `Marker`로 변환해 표시합니다. 원본 `/map` topic과 저장 결과는 바꾸지 않습니다.
+
+```bash
+ros2 launch cleany_gazebo_sim slam_visualization.launch.py
+```
+
+Harmonic에서 카메라와 다른 높이 LiDAR를 모두 비활성화하고 12 cm LiDAR 하나만
+표준 `/scan`으로 노출하려면 study-cafe launch에
+`bridge_config:=.../slam_<height>cm_bridge_harmonic.yaml`을 전달합니다. 12, 26,
+45, 70 cm 높이별 전용 bridge는 선택한 LiDAR 하나만 표준 `/scan`으로 노출하고
+이 전용 bridge는
+비교 실험 중 사용하지 않는 GPU sensor에 subscriber를 만들지 않습니다.
+headless 가속 실험은 `physics_max_step_size:=0.003`과
+`physics_real_time_factor:=2.0`처럼 launch 시 world physics에 적용합니다. 실행 중
+`set_physics`로 부분 갱신하면 `enable_physics` 기본값 때문에 동역학이 꺼질 수 있으므로
+평가 실행에는 사용하지 않습니다.
+
 `ros2 topic echo --once /map`과 `ros2 run tf2_ros tf2_echo map base_link`로 map 및
 TF chain을 확인할 수 있습니다.
 
@@ -296,19 +303,29 @@ topic은 `/scan_12cm`, `/scan`, `/scan_45cm`, `/scan_70cm`이며 26 cm의 기존
 
 ### Study cafe evaluation route
 
-`config/study_cafe_route.yaml`의 약 51 m 폐루프는 이전 prototype study-cafe 배치용
-경로입니다. 현재 48석 시연실의 경계와 가구 배치를 반영하지 않으므로 SLAM 평가에
-사용하지 않습니다. GUI에서 배치를 확정한 뒤 로봇 footprint와 안전 여유를 적용한
-시연 동선으로 교체해야 합니다.
+`config/study_cafe_route.yaml`은 현재 48석 시연실의 네 가로 통로와 두 세로 통로를
+순서대로 훑고 spawn으로 돌아오는 약 94.30 m의 17-waypoint 폐루프입니다. 경로 중심은
+가로 `y=-4.705, -1.585, 1.585, 4.705 m`, 세로 `x=-1.865, 1.865 m`이고,
+좌우 sweep 끝점은 `x=-5.65, 5.65 m`입니다. 경로는 고정 가구 배치와 현재 로봇
+footprint를 기준으로 하므로 가구 위치나 footprint가 달라지면 다시 검증합니다.
 
 `ground_truth_route_follower`는 `/ground_truth/odom`을 경로 제어에만 사용하고
 `/cmd_vel`을 발행합니다. SLAM에는 ground truth를 전달하지 않습니다.
 
-Gazebo study cafe를 먼저 실행한 뒤 별도 terminal에서 경로를 시작합니다.
+Gazebo study cafe를 LiDAR profile로 먼저 실행합니다. 이 profile은 LiDAR, IMU,
+odometry, ground truth와 TF에 필요한 bridge만 실행하고 camera bridge는 만들지
+않습니다. 별도 terminal에서 경로를 시작합니다.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-source ros2_ws/install-harmonic/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+  headless:=false sensor_profile:=lidar_nav
+```
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install/setup.bash
 ros2 launch cleany_gazebo_sim study_cafe_route.launch.py
 ```
 

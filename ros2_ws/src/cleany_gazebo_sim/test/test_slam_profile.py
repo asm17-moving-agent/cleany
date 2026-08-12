@@ -68,8 +68,18 @@ def test_launch_uses_async_slam_toolbox_and_accepts_overrides() -> None:
 
     assert "package='slam_toolbox'" in source
     assert "executable='async_slam_toolbox_node'" in source
+    assert "namespace=''" in source
+    assert 'LifecycleNode' in source
+    assert 'Transition.TRANSITION_CONFIGURE' in source
+    assert 'Transition.TRANSITION_ACTIVATE' in source
     assert "'slam_params_file'" in source
     assert "'use_sim_time'" in source
+    assert "'do_loop_closing'" in source
+    assert "default_value='true'" in source
+    assert "'loop_search_maximum_distance'" in source
+    assert "'loop_search_space_dimension'" in source
+    assert "'loop_match_minimum_response_coarse'" in source
+    assert "'loop_match_minimum_response_fine'" in source
 
 
 def test_package_declares_slam_toolbox_runtime_dependency() -> None:
@@ -81,3 +91,5 @@ def test_package_declares_slam_toolbox_runtime_dependency() -> None:
     }
 
     assert 'slam_toolbox' in dependencies
+    assert 'lifecycle_msgs' in dependencies
+    assert 'nav2_map_server' in dependencies

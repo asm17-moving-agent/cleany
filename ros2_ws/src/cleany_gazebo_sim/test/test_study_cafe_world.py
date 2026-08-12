@@ -55,6 +55,21 @@ def test_study_cafe_matches_demo_room_and_seat_count(
     assert not any(name.startswith('ceiling_') for name in names)
 
 
+def test_study_cafe_supports_bounded_accelerated_physics(
+    tmp_path: Path,
+) -> None:
+    generated = materialize_study_cafe_world(
+        ROBOT_WORLD,
+        tmp_path / 'accelerated.sdf',
+        max_step_size=0.003,
+        real_time_factor=2.0,
+    )
+    world = ElementTree.parse(generated).getroot().find('world')
+    assert world is not None
+    assert world.findtext('physics/max_step_size') == '0.003'
+    assert world.findtext('physics/real_time_factor') == '2.0'
+
+
 def test_robot_is_visible_in_gui_but_excluded_from_lidar(
     tmp_path: Path,
 ) -> None:
@@ -387,6 +402,10 @@ def test_study_cafe_launch_is_harmonic_gui_profile() -> None:
         PACKAGE_ROOT / 'launch' / 'gazebo_study_cafe.launch.py'
     ).read_text(encoding='utf-8')
     assert "'gazebo_harmonic.launch.py'" in source
-    assert "'navigation_bridge_harmonic.yaml'" in source
+    assert 'declare_sensor_profile_argument' in source
+    assert "'sensor_profile': LaunchConfiguration('sensor_profile')" in source
+    assert "default_value=''" in source
     assert "default_value='false'" in source
     assert "SetEnvironmentVariable('QT_SCALE_FACTOR', '1.0')" in source
+    assert "'physics_max_step_size'" in source
+    assert "'physics_real_time_factor'" in source
