@@ -25,6 +25,25 @@ lsb_release -ds
 python3 --version
 ```
 
+### Jetson Orin NX 런타임 기록
+
+Jetson에서는 패키지를 설치하기 전에 레포지토리 루트에서 preflight를 실행한다. 이
+도구는 추가 Python 패키지 없이 OS, L4T/JetPack, CUDA, cuDNN, TensorRT, 현재
+`nvpmodel` 모드, 온도·메모리, 주요 command와 PyTorch CUDA smoke 결과를 JSON으로
+기록한다. 성능 모드 번호는 장치마다 다를 수 있으므로 도구가 조회한 이름과 번호를
+그대로 사용하고 특정 번호를 가정하지 않는다.
+
+```bash
+python3 tools/jetson_preflight.py --check \
+  --output /tmp/cleany-jetson-preflight.json
+python3 -m json.tool /tmp/cleany-jetson-preflight.json
+```
+
+`--check`는 Jetson 기본 런타임 관문 중 하나라도 실패하면 종료 코드 2를 반환한다.
+ROS 2와 PyTorch는 후속 설치 전에는 없어도 되므로 JSON에 상태를 기록하되 이 기본
+관문의 필수 항목에는 포함하지 않는다. 설치가 끝난 뒤 같은 명령을 다시 실행해 성공한
+패키지 버전과 CUDA 동작 여부를 비교한다.
+
 ## 1. Ubuntu 기본 설정
 
 UTF-8 locale과 ROS 저장소 등록에 필요한 도구를 준비한다.
