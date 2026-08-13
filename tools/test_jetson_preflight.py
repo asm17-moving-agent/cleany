@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import tempfile
 from types import ModuleType
 import unittest
+from unittest.mock import patch
 
 
 def _load_module() -> ModuleType:
@@ -20,6 +22,29 @@ preflight = _load_module()
 
 
 class JetsonPreflightTest(unittest.TestCase):
+    def test_resolve_command_uses_fallback_when_path_is_not_sourced(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            fallback = Path(directory) / 'ros2'
+            fallback.touch(mode=0o755)
+
+            with patch.object(preflight.shutil, 'which', return_value=None):
+                result = preflight.resolve_command('ros2', [fallback])
+
+        self.assertEqual(result, str(fallback))
+
+    def test_resolve_command_prefers_path(self) -> None:
+        with patch.object(
+            preflight.shutil,
+            'which',
+            return_value='/custom/bin/ros2',
+        ):
+            result = preflight.resolve_command(
+                'ros2',
+                [Path('/opt/ros/humble/bin/ros2')],
+            )
+
+        self.assertEqual(result, '/custom/bin/ros2')
+
     def test_parse_os_release_removes_quotes(self) -> None:
         result = preflight.parse_os_release(
             'NAME="Ubuntu"\nVERSION_ID="22.04"\n# ignored\n'

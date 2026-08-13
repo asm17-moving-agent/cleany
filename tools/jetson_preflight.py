@@ -31,6 +31,21 @@ def _read_text(path: Path) -> str | None:
         return None
 
 
+def resolve_command(
+    command: str,
+    fallback_paths: Sequence[Path] = (),
+) -> str | None:
+    """Resolve a command from PATH or known installation locations."""
+    discovered = shutil.which(command)
+    if discovered is not None:
+        return discovered
+
+    for candidate in fallback_paths:
+        if candidate.is_file() and candidate.stat().st_mode & 0o111:
+            return str(candidate)
+    return None
+
+
 def _run(command: Sequence[str], *, cwd: Path | None = None) -> dict[str, Any]:
     executable = shutil.which(command[0])
     if executable is None:
@@ -233,6 +248,7 @@ def collect_report() -> dict[str, Any]:
     l4t_text = _read_text(Path('/etc/nv_tegra_release')) or ''
     nvpmodel_result = _run(['nvpmodel', '-q'])
     disk = shutil.disk_usage(REPO_ROOT)
+    ros2_fallbacks = sorted(Path('/opt/ros').glob('*/bin/ros2'))
     report: dict[str, Any] = {
         'schema_version': 1,
         'collected_at': datetime.now(timezone.utc).isoformat(),
@@ -270,8 +286,10 @@ def collect_report() -> dict[str, Any]:
             'free_bytes': disk.free,
         },
         'commands': {
-            command: shutil.which(command)
-            for command in ('tegrastats', 'jetson_clocks', 'ros2', 'rs-enumerate-devices')
+            'tegrastats': resolve_command('tegrastats'),
+            'jetson_clocks': resolve_command('jetson_clocks'),
+            'ros2': resolve_command('ros2', ros2_fallbacks),
+            'rs-enumerate-devices': resolve_command('rs-enumerate-devices'),
         },
         'repository': _git_report(),
     }
