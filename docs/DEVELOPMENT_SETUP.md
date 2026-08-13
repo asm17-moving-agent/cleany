@@ -103,6 +103,31 @@ ros2 doctor --report
 
 Python은 `3.10.x`, `ROS_DISTRO`는 `humble`이어야 한다.
 
+### 선택: Jetson RealSense D435 runtime
+
+D435 실물 RGB-D 검증 환경에는 Humble용 공식 ROS wrapper를 설치한다.
+
+```bash
+sudo apt install -y \
+  ros-humble-realsense2-camera \
+  ros-humble-realsense2-description
+```
+
+2026-08-13 Jetson 검증 기준은 RealSense ROS `4.58.3`, librealsense `2.58.3`, D435
+firmware `5.17.3.10`이다. 설치된 정확한 APT 버전은 다음 명령으로 기록한다.
+
+```bash
+dpkg-query -W \
+  ros-humble-librealsense2 \
+  ros-humble-realsense2-camera \
+  ros-humble-realsense2-camera-msgs \
+  ros-humble-realsense2-description
+```
+
+카메라 실행과 5분 aligned RGB-D 관문은
+[`cleany_perception` README](../ros2_ws/src/cleany_perception/README.md#jetson-d435-입력-관문)를
+따른다.
+
 ## 4. 레포지토리 준비
 
 SSH key가 GitHub에 등록되어 있다는 전제에서 submodule과 함께 clone한다.

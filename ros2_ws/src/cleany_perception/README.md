@@ -70,6 +70,35 @@ ros2 launch cleany_perception inspect_scene.launch.py \
 전에 확보하고 RGB-D 및 detections와 함께 cache에 보관한다. 기본 cache는 최근 2개
 snapshot을 120초 동안 유지하며 parameter로 조정한다.
 
+### Jetson D435 입력 관문
+
+Jetson의 native ROS 2 Humble에서 D435를 color/depth `640x480x15`로 실행하고 depth를
+color optical frame에 정렬한다.
+
+```bash
+ros2 launch realsense2_camera rs_launch.py \
+  depth_module.depth_profile:=640x480x15 \
+  rgb_camera.color_profile:=640x480x15 \
+  enable_sync:=true \
+  align_depth.enable:=true \
+  enable_color:=true \
+  enable_depth:=true
+```
+
+실제 wrapper topic은 `/camera/camera/color/*`와
+`/camera/camera/aligned_depth_to_color/*`이다. 다음 명령은 네 topic의 exact timestamp,
+해상도, optical frame, intrinsics, depth scale과 유효 depth를 5분 동안 검사한다. 기본
+최대 공백 2초는 `snapshot_timeout_seconds`와 같다.
+
+```bash
+python3 tools/realsense_rgbd_check.py \
+  --duration 300 \
+  --output /tmp/realsense-rgbd-5m.json
+```
+
+hardware config에서는 위 네 실제 topic을 perception 입력으로 remap하고, handheld
+검증의 `target_frame`은 검사 결과의 aligned-depth optical frame을 사용한다.
+
 ## ROS API
 
 Action:
