@@ -1,0 +1,17 @@
+/**:
+  ros__parameters:
+    depth_module.depth_profile: 640x480x15
+    rgb_camera.color_profile: 640x480x15
+    enable_sync: true
+    align_depth.enable: true
+    enable_color: true
+    enable_depth: true
+    enable_infra1: false
+    enable_infra2: false
+
+    # RealSense ROS 4.58.3 on aarch64 registers the optimized processing
+    # block with this NEON suffix. The upstream pointcloud.enable launch
+    # argument does not reach this runtime parameter on the tested Jetson.
+    pointcloud__neon_.enable: true
+    pointcloud__neon_.stream_filter: 2
+    pointcloud__neon_.stream_index_filter: 0
