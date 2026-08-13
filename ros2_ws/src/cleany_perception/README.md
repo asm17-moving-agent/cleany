@@ -55,9 +55,13 @@ source ros2_ws/install/setup.bash
 export GEMINI_API_KEY="<your-api-key>"
 ros2 launch cleany_perception inspect_scene.launch.py \
   sam2_model_config:=configs/sam2.1/sam2.1_hiera_s.yaml \
-  sam2_checkpoint:=/absolute/path/to/sam2.1_hiera_small.pt \
-  sam2_device:=cpu
+  sam2_checkpoint:=/home/cleany/models/sam2/sam2.1_hiera_small.pt \
+  sam2_device:=cuda
 ```
+
+Jetson에서는 ROS node를 실행하기 전에 repository root에서 독립 SAM2 CUDA smoke test를
+먼저 통과해야 한다. 설치 commit, checkpoint hash와 명령은
+[`DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md#sam2-설치)를 따른다.
 
 입력 topic 기본값:
 

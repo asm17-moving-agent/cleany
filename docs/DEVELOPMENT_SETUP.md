@@ -280,17 +280,51 @@ python3 -c 'import cv2, numpy; from cv_bridge import CvBridge; print(cv2.__versi
 
 #### SAM2 설치
 
-SAM2는 공식 저장소의 현재 구현과 별도 checkpoint가 필요하다. 공식 설치 과정은
+SAM2는 공식 저장소의 고정 commit과 별도 checkpoint가 필요하다. 공식 설치 과정은
 PyTorch와 torchvision을 업그레이드할 수 있으므로 Jetson에서는 위 조합을 먼저 검증한
 뒤 `--no-deps`로 설치한다. `make deps`는 PyTorch 또는 SAM2를 자동 설치하지 않는다.
 아래 `SAM2_BUILD_CUDA=0`은 선택적인 SAM2 custom extension만 생략하며 PyTorch model
 추론 device는 계속 CUDA를 사용한다.
 
 ```bash
-git clone https://github.com/facebookresearch/sam2.git <external-path>/sam2
+git clone https://github.com/facebookresearch/sam2.git \
+  /home/cleany/third_party/sam2
+git -C /home/cleany/third_party/sam2 checkout --detach \
+  2b90b9f5ceec907a1c18123530e92e794ad901a4
+python3 -m pip install --user \
+  hydra-core==1.3.2 iopath==0.1.10 tqdm==4.67.1
 SAM2_BUILD_CUDA=0 python3 -m pip install --user --no-deps \
-  --no-build-isolation -e <external-path>/sam2
+  --no-build-isolation -e /home/cleany/third_party/sam2
+
+mkdir -p /home/cleany/models/sam2
+curl -fL --retry 3 \
+  -o /home/cleany/models/sam2/sam2.1_hiera_small.pt \
+  https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_small.pt
+printf '%s  %s\n' \
+  '6d1aa6f30de5c92224f8172114de081d104bbd23dd9dc5c58996f0cad5dc4d38' \
+  '/home/cleany/models/sam2/sam2.1_hiera_small.pt' \
+  | sha256sum -c -
 ```
+
+2026-08-13 검증 기준은 SAM2 commit
+`2b90b9f5ceec907a1c18123530e92e794ad901a4`와 `sam2.1_hiera_small.pt`
+checkpoint다. checkpoint 크기는 `184416285` bytes, SHA-256은 위 명령에 기록한
+`6d1aa6f3...d38`이다. 모델 weight와 외부 checkout은 이 저장소에 넣지 않는다.
+
+설치와 checkpoint 검증 뒤 실제 small model을 CUDA에 load하고 640x480 synthetic RGB에
+bbox prompt를 주어 non-empty mask와 해상도 일치를 검사한다. 결과 JSON에는 model load와
+inference 시간, peak CUDA allocation도 기록된다.
+
+```bash
+cd /home/cleany/cleany
+python3 tools/sam2_smoke.py \
+  --checkpoint /home/cleany/models/sam2/sam2.1_hiera_small.pt \
+  --output /tmp/cleany-sam2-smoke.json
+```
+
+종료 코드가 0이고 `success`가 `true`, `device_name`이 `Orin`, `mask_shape`가
+`[480, 640]`, `mask_pixels`가 0보다 커야 통과다. 첫 실행은 checkpoint load와 CUDA
+초기화 때문에 후속 실행보다 오래 걸릴 수 있다.
 
 CUDA가 없는 Apple Silicon 기반 Ubuntu VM에서는 CUDA extension을 끄고 CPU device를
 사용한다. 예를 들어 VM 내부에 SAM2를 설치한 경우 다음과 같이 실행한다.
