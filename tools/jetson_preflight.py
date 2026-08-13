@@ -243,6 +243,15 @@ def base_checks(report: dict[str, Any]) -> dict[str, bool]:
     }
 
 
+def torch_checks(report: dict[str, Any]) -> dict[str, bool]:
+    torch = report['torch']
+    return {
+        'torch_installed': bool(torch.get('installed')),
+        'torch_cuda_available': bool(torch.get('cuda_available')),
+        'torch_cuda_smoke': bool(torch.get('cuda_smoke')),
+    }
+
+
 def collect_report() -> dict[str, Any]:
     os_release = parse_os_release(_read_text(Path('/etc/os-release')) or '')
     l4t_text = _read_text(Path('/etc/nv_tegra_release')) or ''
@@ -295,6 +304,8 @@ def collect_report() -> dict[str, Any]:
     }
     report['checks'] = base_checks(report)
     report['base_ready'] = all(report['checks'].values())
+    report['torch_checks'] = torch_checks(report)
+    report['torch_ready'] = all(report['torch_checks'].values())
     return report
 
 
@@ -304,6 +315,11 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         '--check',
         action='store_true',
         help='exit with status 2 when a base runtime check fails',
+    )
+    parser.add_argument(
+        '--require-torch',
+        action='store_true',
+        help='exit with status 2 unless PyTorch completes a CUDA smoke test',
     )
     parser.add_argument(
         '--output',
@@ -324,7 +340,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         options.output.parent.mkdir(parents=True, exist_ok=True)
         options.output.write_text(rendered, encoding='utf-8')
 
-    return 2 if options.check and not report['base_ready'] else 0
+    base_failed = options.check and not report['base_ready']
+    torch_failed = options.require_torch and not report['torch_ready']
+    return 2 if base_failed or torch_failed else 0
 
 
 if __name__ == '__main__':

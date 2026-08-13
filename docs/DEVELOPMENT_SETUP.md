@@ -209,14 +209,87 @@ python3 -c 'from google import genai; print(genai.__name__)'
 export GEMINI_API_KEY="<your-api-key>"
 ```
 
+#### Jetson PyTorch CUDA 관문
+
+NVIDIA 호환성 표는 JetPack 6.2에서 PyTorch `2.8.0a0+5228986c39`를 지원하지만 해당
+release의 standalone NVIDIA wheel은 제공하지 않는다. 따라서 이 프로젝트의 2026-08-13
+native 검증 후보는 NVIDIA `jetson-containers` 빌드 cache인 Jetson AI Lab에서 제공하는
+JetPack 6 / CUDA 12.6용 `torch==2.8.0`, `torchvision==0.23.0`이다. 이는
+`developer.download.nvidia.com`의 NVIDIA Framework wheel과 동일한 배포물이라고
+간주하지 않는다.
+
+- NVIDIA 호환성 표: <https://docs.nvidia.com/deeplearning/frameworks/install-pytorch-jetson-platform-release-notes/pytorch-jetson-rel.html#compatibility>
+- Jetson containers: <https://github.com/dusty-nv/jetson-containers>
+- wheel index: <https://pypi.jetson-ai-lab.io/jp6/cu126/+simple/>
+
+검증한 wheel과 SHA-256은 다음과 같다.
+
+| package | wheel URL | SHA-256 |
+|---|---|---|
+| torch 2.8.0 | <https://pypi.jetson-ai-lab.io/jp6/cu126/+f/62a/1beee9f2f1470/torch-2.8.0-cp310-cp310-linux_aarch64.whl> | `62a1beee9f2f147076a974d2942c90060c12771c94740830327cae705b2595fc` |
+| torchvision 0.23.0 | <https://pypi.jetson-ai-lab.io/jp6/cu126/+f/907/c4c1933789645/torchvision-0.23.0-cp310-cp310-linux_aarch64.whl> | `907c4c1933789645ebb20dd9181d40f8647978e6bd30086ae7b01febb937d2d1` |
+
+system Python과 ROS 2를 유지한 채 user site에 설치한다. 먼저 wheel을 임시 directory에
+받고 해시를 검증한다.
+
+```bash
+CLEANY_TORCH_WHEEL_DIR="$(mktemp -d /tmp/cleany-pytorch.XXXXXX)"
+python3 -m pip download --no-deps \
+  --dest "${CLEANY_TORCH_WHEEL_DIR}" \
+  --index-url https://pypi.jetson-ai-lab.io/jp6/cu126 \
+  torch==2.8.0 torchvision==0.23.0
+
+cd "${CLEANY_TORCH_WHEEL_DIR}"
+printf '%s  %s\n' \
+  '62a1beee9f2f147076a974d2942c90060c12771c94740830327cae705b2595fc' \
+  'torch-2.8.0-cp310-cp310-linux_aarch64.whl' \
+  '907c4c1933789645ebb20dd9181d40f8647978e6bd30086ae7b01febb937d2d1' \
+  'torchvision-0.23.0-cp310-cp310-linux_aarch64.whl' \
+  | sha256sum -c -
+```
+
+두 줄 모두 `OK`인 경우에만 고정한 runtime dependency와 wheel을 설치한다. PyPI의
+일반 `torch` 또는 `torchvision` package로 교체하거나 upgrade하지 않는다.
+
+```bash
+python3 -m pip install --user \
+  numpy==1.26.1 Pillow==11.3.0 \
+  filelock==3.32.2 typing-extensions==4.16.0 \
+  sympy==1.14.0 mpmath==1.3.0 networkx==3.4.2 \
+  Jinja2==3.1.6 MarkupSafe==3.0.3 fsspec==2026.7.0
+python3 -m pip install --user --no-deps \
+  "${CLEANY_TORCH_WHEEL_DIR}/torch-2.8.0-cp310-cp310-linux_aarch64.whl" \
+  "${CLEANY_TORCH_WHEEL_DIR}/torchvision-0.23.0-cp310-cp310-linux_aarch64.whl"
+```
+
+설치 후 새 terminal에서 CUDA 연산, torchvision import, ROS의 NumPy bridge를 함께
+확인한다.
+
+```bash
+cd /path/to/cleany
+python3 tools/jetson_preflight.py --check --require-torch \
+  --output /tmp/cleany-jetson-pytorch.json
+python3 -m json.tool /tmp/cleany-jetson-pytorch.json
+python3 -c 'import torch, torchvision; print(torch.__version__, torchvision.__version__)'
+python3 -c 'import cv2, numpy; from cv_bridge import CvBridge; print(cv2.__version__, numpy.__version__)'
+```
+
+검증된 임시 설치에서는 CUDA `12.6`, device `Orin`, CPU/GPU 행렬 연산 최대 절대 오차
+`0.0`을 확인했다. 실제 user-site 설치 결과는 preflight JSON과 `pip show` 출력으로 다시
+기록한다.
+
+#### SAM2 설치
+
 SAM2는 공식 저장소의 현재 구현과 별도 checkpoint가 필요하다. 공식 설치 과정은
-PyTorch와 torchvision을 업그레이드할 수 있으므로 Jetson에서는 먼저 JetPack/CUDA와
-호환되는 NVIDIA PyTorch 조합을 정한 뒤 설치한다. `make deps`는 PyTorch 또는 SAM2를
-자동 설치하지 않는다.
+PyTorch와 torchvision을 업그레이드할 수 있으므로 Jetson에서는 위 조합을 먼저 검증한
+뒤 `--no-deps`로 설치한다. `make deps`는 PyTorch 또는 SAM2를 자동 설치하지 않는다.
+아래 `SAM2_BUILD_CUDA=0`은 선택적인 SAM2 custom extension만 생략하며 PyTorch model
+추론 device는 계속 CUDA를 사용한다.
 
 ```bash
 git clone https://github.com/facebookresearch/sam2.git <external-path>/sam2
-python3 -m pip install --user -e <external-path>/sam2
+SAM2_BUILD_CUDA=0 python3 -m pip install --user --no-deps \
+  --no-build-isolation -e <external-path>/sam2
 ```
 
 CUDA가 없는 Apple Silicon 기반 Ubuntu VM에서는 CUDA extension을 끄고 CPU device를

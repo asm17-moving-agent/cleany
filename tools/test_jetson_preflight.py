@@ -112,6 +112,57 @@ class JetsonPreflightTest(unittest.TestCase):
         self.assertFalse(checks['tensorrt_detected'])
         self.assertFalse(all(checks.values()))
 
+    def test_torch_checks_require_cuda_smoke(self) -> None:
+        checks = preflight.torch_checks(
+            {
+                'torch': {
+                    'installed': True,
+                    'cuda_available': True,
+                    'cuda_smoke': False,
+                }
+            }
+        )
+
+        self.assertTrue(checks['torch_installed'])
+        self.assertTrue(checks['torch_cuda_available'])
+        self.assertFalse(checks['torch_cuda_smoke'])
+        self.assertFalse(all(checks.values()))
+
+    def test_torch_checks_pass_after_cuda_smoke(self) -> None:
+        checks = preflight.torch_checks(
+            {
+                'torch': {
+                    'installed': True,
+                    'cuda_available': True,
+                    'cuda_smoke': True,
+                }
+            }
+        )
+
+        self.assertTrue(all(checks.values()))
+
+    def test_main_fails_when_required_torch_is_not_ready(self) -> None:
+        report = {'base_ready': True, 'torch_ready': False}
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'report.json'
+            with patch.object(preflight, 'collect_report', return_value=report):
+                status = preflight.main(
+                    ['--require-torch', '--output', str(output)]
+                )
+
+        self.assertEqual(status, 2)
+
+    def test_main_passes_when_required_torch_is_ready(self) -> None:
+        report = {'base_ready': True, 'torch_ready': True}
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'report.json'
+            with patch.object(preflight, 'collect_report', return_value=report):
+                status = preflight.main(
+                    ['--check', '--require-torch', '--output', str(output)]
+                )
+
+        self.assertEqual(status, 0)
+
 
 if __name__ == '__main__':
     unittest.main()
