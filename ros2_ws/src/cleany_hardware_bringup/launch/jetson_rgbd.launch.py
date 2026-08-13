@@ -59,19 +59,41 @@ def generate_launch_description() -> LaunchDescription:
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument('enable_pointcloud', default_value='true'),
-            DeclareLaunchArgument('start_perception', default_value='false'),
+            DeclareLaunchArgument(
+                'enable_pointcloud',
+                default_value='true',
+                description='Publish the D435 colored PointCloud2 topic.',
+            ),
+            DeclareLaunchArgument(
+                'start_perception',
+                default_value='false',
+                description='Start the Gemini/SAM2 perception node.',
+            ),
             DeclareLaunchArgument(
                 'target_frame',
                 default_value='camera_color_optical_frame',
+                description='Handheld perception output frame.',
             ),
             DeclareLaunchArgument(
                 'gemini_model',
                 default_value='gemini-robotics-er-2-preview',
+                description='Gemini detector model ID.',
             ),
-            DeclareLaunchArgument('sam2_model_config', default_value=''),
-            DeclareLaunchArgument('sam2_checkpoint', default_value=''),
-            DeclareLaunchArgument('sam2_device', default_value='cuda'),
+            DeclareLaunchArgument(
+                'sam2_model_config',
+                default_value='',
+                description='SAM2 model config path.',
+            ),
+            DeclareLaunchArgument(
+                'sam2_checkpoint',
+                default_value='',
+                description='SAM2 checkpoint path.',
+            ),
+            DeclareLaunchArgument(
+                'sam2_device',
+                default_value='cuda',
+                description='SAM2 execution device.',
+            ),
             camera,
             perception,
         ]

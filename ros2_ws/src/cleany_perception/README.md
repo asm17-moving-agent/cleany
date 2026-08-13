@@ -23,6 +23,7 @@ workspace dependency와 별도 SAM2 설치는 `docs/DEVELOPMENT_SETUP.md`를 따
 
 - Gemini API key: `GEMINI_API_KEY` 환경변수
 - Gemini model ID: `gemini_model` parameter
+- Jetson 검증 SDK: `google-genai==2.18.0`
 - SAM2 model config/checkpoint/device: launch argument 또는 parameter
 - API key, checkpoint와 model weight는 commit하지 않는다.
 
@@ -110,6 +111,9 @@ perception/inspect_scene  cleany_interfaces/action/InspectScene
 빈 query는 `default_query` parameter를 사용한다. 1차 요청은 `snapshot_id=''`,
 `selected_object_id=0`이며, 동시에 하나의 goal만 실행한다. detection이 없으면 빈 2D
 detection 배열로 성공한다. 2차 요청은 1차 결과의 두 값을 함께 전달한다.
+
+`success`는 action 처리 상태이며 detection 존재 여부와는 별개다. `success: true`여도
+요청한 물체가 RGB frame에 없으면 `detections`는 빈 배열이다.
 
 ```bash
 ros2 action list

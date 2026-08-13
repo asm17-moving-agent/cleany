@@ -6,3 +6,7 @@ perception_inspector:
     depth_info_topic: /camera/camera/aligned_depth_to_color/camera_info
     target_frame: camera_color_optical_frame
     depth_16u_scale_m: 0.001
+    default_query: >-
+      Detect and tightly bound every clearly visible physical object in the
+      image. Use concise everyday labels and include objects on tables even
+      when they are partially occluded. Do not detect people or body parts.

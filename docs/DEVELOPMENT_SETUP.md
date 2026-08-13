@@ -63,12 +63,18 @@ ROS 공식 `ros2-apt-source` 패키지로 keyring과 apt source를 등록한다.
 
 ```bash
 ROS_APT_SOURCE_VERSION="$(
-  curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest \
+  curl -fsSL https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest \
     | grep -F '"tag_name"' \
     | awk -F'"' '{print $4}'
 )"
+source /etc/os-release
+ROS_APT_CODENAME="${UBUNTU_CODENAME:-${VERSION_CODENAME}}"
+ROS_APT_SOURCE_URL="https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.${ROS_APT_CODENAME}_all.deb"
+
+test -n "${ROS_APT_SOURCE_VERSION}"
+echo "${ROS_APT_SOURCE_URL}"
 curl -L -o /tmp/ros2-apt-source.deb \
-  "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo "${UBUNTU_CODENAME:-${VERSION_CODENAME}}")_all.deb"
+  "${ROS_APT_SOURCE_URL}"
 sudo dpkg -i /tmp/ros2-apt-source.deb
 ```
 
@@ -76,9 +82,13 @@ sudo dpkg -i /tmp/ros2-apt-source.deb
 
 ```bash
 sudo apt update
-sudo apt upgrade -y
+sudo apt upgrade
 sudo apt install -y ros-humble-desktop ros-dev-tools python3-pip git make
 ```
+
+Jetson에서는 upgrade 목록에서 `nvidia-jetpack`, `nvidia-l4t-*`, CUDA, cuDNN 또는
+TensorRT 제거·downgrade가 보이면 진행하지 않는다. kernel package hold도 임의로
+해제하지 않는다.
 
 현재 terminal에서 ROS 환경을 적용한다.
 
@@ -179,7 +189,23 @@ make deps-gazebo
 설치한다. API key는 파일이나 ROS parameter에 저장하지 않고 실행 terminal의 환경변수로
 제공한다.
 
+Jetson에서 검증한 SDK는 `google-genai==2.18.0`이며 custom rosdep 규칙도 같은 버전으로
+고정한다. 설치된 wheel은 `google_genai-2.18.0-py3-none-any.whl`, SHA-256은
+`4c5e60ccaed3ed35ac2ee81e87c5bebf7280cd49b81526d872a526e97ce25f46`이다. PyTorch가
+포함되는 `local-tokenizer` extra는 설치하지 않는다. SDK가 요구하는 최신 `anyio`의
+pytest plugin은 Ubuntu 22.04 기본 pytest `6.2.5`와 호환되지 않으므로 Jetson 검증
+버전인 `pytest==8.4.2`를 함께 설치한다.
+
+검증 wheel URL:
+
+```text
+https://files.pythonhosted.org/packages/99/63/84160760f74e6c74bab322afc26d064240f42b45a4150f184f7f2605d535/google_genai-2.18.0-py3-none-any.whl
+```
+
 ```bash
+python3 -m pip show google-genai
+python3 -m pip show pytest
+python3 -c 'from google import genai; print(genai.__name__)'
 export GEMINI_API_KEY="<your-api-key>"
 ```
 

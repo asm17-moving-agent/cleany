@@ -7,4 +7,5 @@ google-genai:
   ubuntu:
     pip:
       packages:
-        - google-genai
+        - google-genai==2.18.0
+        - pytest==8.4.2
