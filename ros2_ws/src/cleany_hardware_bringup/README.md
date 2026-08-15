@@ -3,6 +3,8 @@
 Jetson Orin NX에서 D435와 Cleany perception을 native ROS 2 Humble로 실행한다. 이
 bringup은 handheld 검증용이므로 임시 `base_link`를 만들지 않고 aligned-depth의 실제
 `camera_color_optical_frame`을 perception target frame으로 사용한다.
+Optical frame은 중력 정렬 frame이 아니므로 이 설정에서만 base-frame support-plane
+tilt 검사를 비활성화한다. plane 추정, object height와 OBB 검증 자체는 유지한다.
 
 ## 카메라-only 실행
 
@@ -74,5 +76,49 @@ Image View에서 `/perception/debug_image_latched`를 선택한다. topic이 목
 action을 먼저 실행하고 목록을 새로고침한다. Jetson GUI 부하가 크면 action 결과의 bbox
 좌표만 사용한다.
 
-SAM2 checkpoint가 준비되면 동일 launch에 `sam2_model_config`, `sam2_checkpoint`,
-`sam2_device` 인자를 전달한다. API key와 모델 weight는 저장소에 기록하지 않는다.
+SAM2 checkpoint가 준비되면 동일 launch에 다음 인자를 전달한다. API key와 모델 weight는
+저장소에 기록하지 않는다.
+
+```bash
+ros2 launch cleany_hardware_bringup jetson_rgbd.launch.py \
+  start_perception:=true \
+  enable_pointcloud:=false \
+  sam2_model_config:=configs/sam2.1/sam2.1_hiera_s.yaml \
+  sam2_checkpoint:=/home/cleany/models/sam2/sam2.1_hiera_small.pt \
+  sam2_device:=cuda \
+  save_debug_images:=true \
+  runtime_metrics_enabled:=true \
+  diagnostics_output_root:=/home/cleany/perception-results
+```
+
+진단 옵션을 켜면 각 action 종료 시 node log에 사람이 읽기 쉬운 `Runtime summary`와
+파싱 가능한 `runtime_metrics={...}`가 출력되고, 결과는 다음 구조로 저장된다. 저장
+실패는 warning으로 남지만 perception 결과를 실패로 바꾸지 않는다. snapshot을 얻기 전에
+실패한 요청은 폴더를 만들 수 없으므로 log에만 기록한다.
+
+```text
+/home/cleany/perception-results/
+└── <snapshot_id>/
+    ├── detections.png
+    ├── detections.json
+    ├── detection-metrics.json
+    ├── selection-001-mask.png
+    └── selection-001-metrics.json
+```
+
+`detections.json`에는 요청 query, capture timestamp/frame, 영상 크기와 bbox가 들어간다.
+`detection-metrics.json`은 RGB-D snapshot 대기·decode, capture TF, Gemini, 결과 출력과
+전체 시간을 기록한다. 선택 결과는 SAM2, debug 출력, 3D reconstruction, transform,
+cloud 생성, 결과 출력과 전체 시간을 기록한다. 종료 log는 전체 RAM 사용량/비율,
+perception process RSS/전체 RAM 비율, CUDA peak allocated/총 CUDA memory 비율을
+MiB·GiB 단위로 요약한다. JSON에는 원본 byte와 사람이 읽기 쉬운 단위·비율을 함께
+기록한다. Jetson은 CPU와 GPU가 RAM을 공유하므로 CUDA 비율은 PyTorch allocator 관점의
+수치이며 전력·온도는 후속 `tegrastats` 수집에서 별도로 측정한다.
+
+저장 결과를 확인한다.
+
+```bash
+find /home/cleany/perception-results -maxdepth 2 -type f -printf '%p\n'
+python3 -m json.tool \
+  /home/cleany/perception-results/<snapshot_id>/selection-001-metrics.json
+```

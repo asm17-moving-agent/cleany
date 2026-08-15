@@ -53,6 +53,17 @@ def generate_launch_description() -> LaunchDescription:
                 ),
                 'sam2_checkpoint': LaunchConfiguration('sam2_checkpoint'),
                 'sam2_device': LaunchConfiguration('sam2_device'),
+                'save_debug_images': ParameterValue(
+                    LaunchConfiguration('save_debug_images'),
+                    value_type=bool,
+                ),
+                'runtime_metrics_enabled': ParameterValue(
+                    LaunchConfiguration('runtime_metrics_enabled'),
+                    value_type=bool,
+                ),
+                'diagnostics_output_root': LaunchConfiguration(
+                    'diagnostics_output_root'
+                ),
             },
         ],
     )
@@ -93,6 +104,21 @@ def generate_launch_description() -> LaunchDescription:
                 'sam2_device',
                 default_value='cuda',
                 description='SAM2 execution device.',
+            ),
+            DeclareLaunchArgument(
+                'save_debug_images',
+                default_value='false',
+                description='Save bbox and mask images by snapshot ID.',
+            ),
+            DeclareLaunchArgument(
+                'runtime_metrics_enabled',
+                default_value='false',
+                description='Log and save action timing and memory metrics.',
+            ),
+            DeclareLaunchArgument(
+                'diagnostics_output_root',
+                default_value='/tmp/cleany-perception',
+                description='Root directory for snapshot diagnostics.',
             ),
             camera,
             perception,

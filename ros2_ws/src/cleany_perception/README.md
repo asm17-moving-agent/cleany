@@ -25,6 +25,9 @@ workspace dependency와 별도 SAM2 설치는 `docs/DEVELOPMENT_SETUP.md`를 따
 - Gemini model ID: `gemini_model` parameter
 - Jetson 검증 SDK: `google-genai==2.18.0`
 - SAM2 model config/checkpoint/device: launch argument 또는 parameter
+- `save_debug_images`: snapshot별 bbox/mask PNG와 detection JSON 저장
+- `runtime_metrics_enabled`: action별 timing/RSS/CUDA memory 로그·JSON 저장
+- `diagnostics_output_root`: 위 진단 파일의 root directory
 - API key, checkpoint와 model weight는 commit하지 않는다.
 
 1차 detector-only action은 SAM2와 checkpoint를 로드하거나 호출하지 않는다. Gemini SDK
@@ -149,16 +152,21 @@ ros2 action send_goal \
 `x`, `y`, `z`, packed `rgb` field를 공유한다. target은 SAM2 mask 내부이고 context는
 선택 bbox 주변 crop이며 `grasp_cloud_voxel_size_m`와 각각의 최대 점 개수 parameter로
 payload를 제한한다.
+
+Support plane은 선택 객체 bbox 주변에서만 추정하고 그 영역과 겹치는 모든 detection
+bbox 및 선택 SAM2 mask를 제외한다. 화면의 다른 객체 주변 영역을 합쳐 선택 객체의
+지지면 후보를 오염시키지 않는다.
 - `perception/debug_image`: rqt용 `BEST_EFFORT`, `VOLATILE` debug image
 - `perception/debug_image_latched`: 마지막 결과를 보관하는 `RELIABLE`,
   `TRANSIENT_LOCAL` debug image
 
-debug image는 각 단계가 성공했을 때 생성된다. 1차 결과는 모든 bbox와 번호, 2차 결과는
-선택 bbox와 SAM2 mask를 표시한다. rqt의 큰 best-effort sample 유실과
+debug image는 1차 detection 또는 2차 segmentation이 성공했을 때 생성된다. 1차 결과는
+모든 bbox와 번호, 2차 결과는 선택 bbox와 SAM2 mask를 표시한다. 따라서 후속 3D 복원이
+실패해도 성공한 segmentation 결과는 latched topic에 남는다. rqt의 큰 best-effort sample 유실과
 subscriber discovery 지연을 흡수하기 위해 live topic에는 기본 0.25초 간격으로 총 5회 같은
 snapshot을 제한 재발행한다. 횟수와 간격은 `debug_republish_count`와
 `debug_republish_period_seconds`로 조정한다. latched topic은 마지막 성공 결과 한 장만
-보관한다. detector 또는 SAM2 단계에서 실패하면 이전 결과를 재발행하지 않는다.
+보관한다. detector 또는 SAM2 자체가 실패하면 이전 결과를 재발행하지 않는다.
 
 ```bash
 ros2 topic echo /perception/detections_2d --once

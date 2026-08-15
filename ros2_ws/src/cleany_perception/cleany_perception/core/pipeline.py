@@ -21,6 +21,7 @@ from cleany_perception.core.models import (
     InspectionStage,
     ObjectMask,
     PipelineConfig,
+    Plane,
     RgbdSnapshot,
     RigidTransform,
 )
@@ -33,6 +34,7 @@ from cleany_perception.core.ports import (
 
 ProgressCallback = Callable[[InspectionStage, int, int, str], None]
 CancelCallback = Callable[[], bool]
+SegmentationCallback = Callable[[tuple[ObjectMask, ...]], None]
 
 
 class InspectionPipeline:
@@ -119,15 +121,7 @@ class InspectionPipeline:
                     f'Failed to look up capture transform: {error}',
                 ) from error
 
-        normal_in_target = transform_plane_normal(plane, transform)
-        cosine_limit = math.cos(
-            math.radians(self._config.maximum_plane_tilt_degrees)
-        )
-        if float(normal_in_target @ np.array((0.0, 0.0, 1.0))) < cosine_limit:
-            raise InspectionFailure(
-                FailureKind.PLANE,
-                'Support plane exceeds the configured base-frame tilt',
-            )
+        self._validate_plane_tilt(plane, transform)
 
         objects = tuple(
             InspectedObject(
@@ -170,6 +164,7 @@ class InspectionPipeline:
         capture_transform: RigidTransform,
         progress: ProgressCallback | None = None,
         cancelled: CancelCallback | None = None,
+        segmented: SegmentationCallback | None = None,
     ) -> InspectionOutput:
         if selected_detection not in all_detections:
             raise ValueError('Selected detection must belong to the snapshot')
@@ -187,6 +182,8 @@ class InspectionPipeline:
             f'Segmenting selected object: {selected_detection.label}',
         )
         masks = self._segment(snapshot, (selected_detection,))
+        if segmented is not None:
+            segmented(masks)
         self._raise_if_cancelled(is_cancelled)
 
         report(
@@ -209,18 +206,7 @@ class InspectionPipeline:
             1,
             f'Transforming selected object to {self._target_frame}',
         )
-        normal_in_target = transform_plane_normal(
-            plane,
-            capture_transform,
-        )
-        cosine_limit = math.cos(
-            math.radians(self._config.maximum_plane_tilt_degrees)
-        )
-        if float(normal_in_target @ np.array((0.0, 0.0, 1.0))) < cosine_limit:
-            raise InspectionFailure(
-                FailureKind.PLANE,
-                'Support plane exceeds the configured base-frame tilt',
-            )
+        self._validate_plane_tilt(plane, capture_transform)
         inspected = InspectedObject(
             label=selected_detection.label,
             confidence=selected_detection.confidence,
@@ -233,6 +219,23 @@ class InspectionPipeline:
             target_frame=self._target_frame,
             plane=plane,
         )
+
+    def _validate_plane_tilt(
+        self,
+        plane: Plane,
+        transform: RigidTransform,
+    ) -> None:
+        if not self._config.validate_support_plane_tilt:
+            return
+        normal_in_target = transform_plane_normal(plane, transform)
+        cosine_limit = math.cos(
+            math.radians(self._config.maximum_plane_tilt_degrees)
+        )
+        if float(normal_in_target @ np.array((0.0, 0.0, 1.0))) < cosine_limit:
+            raise InspectionFailure(
+                FailureKind.PLANE,
+                'Support plane exceeds the configured target-frame tilt',
+            )
 
     def _detect(
         self,
@@ -391,7 +394,12 @@ class InspectionPipeline:
         height, width = shape
         selection = np.zeros(shape, dtype=np.bool_)
         margin = self._config.support_margin_pixels
-        for detection in detections:
+        support_regions = (
+            tuple(object_mask.detection for object_mask in masks)
+            if exclude_detection_boxes and masks
+            else detections
+        )
+        for detection in support_regions:
             x_min = max(0, math.floor(detection.bbox.x_min) - margin)
             y_min = max(0, math.floor(detection.bbox.y_min) - margin)
             x_max = min(width, math.ceil(detection.bbox.x_max) + margin)

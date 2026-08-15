@@ -6,6 +6,9 @@ perception_inspector:
     depth_info_topic: /camera/camera/aligned_depth_to_color/camera_info
     target_frame: camera_color_optical_frame
     depth_16u_scale_m: 0.001
+    # Optical-frame +Z points forward, not upward. Handheld validation has no
+    # gravity-aligned frame in which the base-frame support tilt is meaningful.
+    validate_support_plane_tilt: false
     default_query: >-
       Detect and tightly bound every clearly visible physical object in the
       image. Use concise everyday labels and include objects on tables even

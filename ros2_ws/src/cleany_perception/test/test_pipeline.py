@@ -59,6 +59,7 @@ def _pipeline(
     detector=None,
     segmenter=None,
     transformer=None,
+    validate_support_plane_tilt=True,
 ):
     return InspectionPipeline(
         detector=detector or _Detector([synthetic_scene['detection']]),
@@ -69,6 +70,7 @@ def _pipeline(
             plane_distance_threshold_m=0.001,
             plane_minimum_inliers=100,
             plane_minimum_inlier_ratio=0.9,
+            validate_support_plane_tilt=validate_support_plane_tilt,
         ),
     )
 
@@ -157,6 +159,48 @@ def test_pipeline_rejects_support_plane_tilt_in_target_frame(synthetic_scene):
         pipeline.inspect(synthetic_scene['snapshot'], 'find box')
 
     assert raised.value.kind == FailureKind.PLANE
+
+
+def test_pipeline_allows_optical_frame_without_plane_tilt_validation(
+    synthetic_scene,
+):
+    identity_transform = type(synthetic_scene['transform'])(
+        translation=np.zeros(3),
+        rotation=np.eye(3),
+    )
+    pipeline = _pipeline(
+        synthetic_scene,
+        transformer=_Transformer(identity_transform),
+        validate_support_plane_tilt=False,
+    )
+
+    output = pipeline.inspect(synthetic_scene['snapshot'], 'find box')
+
+    assert len(output.objects) == 1
+
+
+def test_selected_pipeline_reports_mask_before_late_plane_failure(
+    synthetic_scene,
+):
+    identity_transform = type(synthetic_scene['transform'])(
+        translation=np.zeros(3),
+        rotation=np.eye(3),
+    )
+    pipeline = _pipeline(synthetic_scene)
+    segmented = []
+
+    with pytest.raises(InspectionFailure) as raised:
+        pipeline.inspect_selected(
+            synthetic_scene['snapshot'],
+            (synthetic_scene['detection'],),
+            synthetic_scene['detection'],
+            identity_transform,
+            segmented=lambda masks: segmented.append(masks),
+        )
+
+    assert raised.value.kind == FailureKind.PLANE
+    assert len(segmented) == 1
+    assert segmented[0][0].mask.shape == synthetic_scene['mask'].shape
 
 
 def test_pipeline_checks_cancel_before_detector(synthetic_scene):
@@ -293,6 +337,7 @@ def test_selected_inspection_excludes_every_detection_box_from_plane(
     assert not support[100:140, 135:185].any()
     assert not support[100:140, 210:250].any()
     assert support[95:100, 135:185].all()
+    assert not support[60:180, 225:290].any()
 
 
 def test_detect_only_returns_empty_without_downstream_work(synthetic_scene):

@@ -7,6 +7,9 @@ perception_inspector:
     latched_debug_image_topic: perception/debug_image_latched
     debug_republish_count: 5
     debug_republish_period_seconds: 0.25
+    save_debug_images: false
+    runtime_metrics_enabled: false
+    diagnostics_output_root: /tmp/cleany-perception
     color_image_topic: camera/color/image_raw
     color_info_topic: camera/color/camera_info
     depth_image_topic: camera/depth/image_raw
@@ -38,6 +41,7 @@ perception_inspector:
     plane_distance_threshold_m: 0.006
     plane_minimum_inliers: 100
     plane_minimum_inlier_ratio: 0.35
+    validate_support_plane_tilt: true
     maximum_plane_tilt_degrees: 20.0
     minimum_object_points: 30
     minimum_object_height_m: 0.005

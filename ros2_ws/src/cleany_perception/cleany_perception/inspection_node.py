@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 import threading
 from collections.abc import Sequence
 
@@ -45,6 +47,7 @@ from cleany_perception.core.models import (
     InspectionFailure,
     InspectionOutput,
     InspectionStage,
+    ObjectMask,
     PipelineConfig,
     RgbdSnapshot,
     RigidTransform,
@@ -62,6 +65,10 @@ from cleany_perception.debug_image import (
 from cleany_perception.rgbd_snapshot import (
     RgbdSnapshotBuffer,
     snapshot_from_messages,
+)
+from cleany_perception.runtime_diagnostics import (
+    RuntimeMonitor,
+    SnapshotArtifactStore,
 )
 from cleany_perception.point_cloud_message import colored_point_cloud_message
 from cleany_perception.snapshot_cache import (
@@ -124,6 +131,25 @@ class InspectionNode(Node):
         )
         self._debug_republish_period_seconds = float(
             self.get_parameter('debug_republish_period_seconds').value
+        )
+        self._save_debug_images = bool(
+            self.get_parameter('save_debug_images').value
+        )
+        self._runtime_metrics_enabled = bool(
+            self.get_parameter('runtime_metrics_enabled').value
+        )
+        diagnostics_output_root = str(
+            self.get_parameter('diagnostics_output_root').value
+        ).strip()
+        if (
+            self._save_debug_images or self._runtime_metrics_enabled
+        ) and not diagnostics_output_root:
+            raise ValueError(
+                'diagnostics_output_root is required when diagnostics '
+                'are enabled'
+            )
+        self._artifact_store = SnapshotArtifactStore(
+            Path(diagnostics_output_root or '/tmp/cleany-perception')
         )
         if self._debug_republish_count < 1:
             raise ValueError('Debug republish count must be at least one')
@@ -237,6 +263,12 @@ class InspectionNode(Node):
         )
         self.declare_parameter('debug_republish_count', 5)
         self.declare_parameter('debug_republish_period_seconds', 0.25)
+        self.declare_parameter('save_debug_images', False)
+        self.declare_parameter('runtime_metrics_enabled', False)
+        self.declare_parameter(
+            'diagnostics_output_root',
+            '/tmp/cleany-perception',
+        )
         self.declare_parameter('color_image_topic', 'camera/color/image_raw')
         self.declare_parameter('color_info_topic', 'camera/color/camera_info')
         self.declare_parameter('depth_image_topic', 'camera/depth/image_raw')
@@ -271,6 +303,7 @@ class InspectionNode(Node):
         self.declare_parameter('plane_distance_threshold_m', 0.006)
         self.declare_parameter('plane_minimum_inliers', 100)
         self.declare_parameter('plane_minimum_inlier_ratio', 0.35)
+        self.declare_parameter('validate_support_plane_tilt', True)
         self.declare_parameter('maximum_plane_tilt_degrees', 20.0)
         self.declare_parameter('minimum_object_points', 30)
         self.declare_parameter('minimum_object_height_m', 0.005)
@@ -307,6 +340,9 @@ class InspectionNode(Node):
             ),
             plane_minimum_inlier_ratio=float(
                 self.get_parameter('plane_minimum_inlier_ratio').value
+            ),
+            validate_support_plane_tilt=bool(
+                self.get_parameter('validate_support_plane_tilt').value
             ),
             maximum_plane_tilt_degrees=float(
                 self.get_parameter('maximum_plane_tilt_degrees').value
@@ -367,9 +403,17 @@ class InspectionNode(Node):
         result = InspectScene.Result()
         result.detections = self._empty_detections()
         result.objects = self._empty_objects()
+        snapshot_id = str(goal_handle.request.snapshot_id)
+        selected_object_id = int(goal_handle.request.selected_object_id)
+        is_selection = bool(snapshot_id)
+        monitor = RuntimeMonitor(
+            self._runtime_metrics_enabled,
+            'selection' if is_selection else 'detection',
+            include_cuda=is_selection,
+        )
         try:
-            has_snapshot = bool(goal_handle.request.snapshot_id)
-            has_selection = goal_handle.request.selected_object_id != 0
+            has_snapshot = bool(snapshot_id)
+            has_selection = selected_object_id != 0
             if has_snapshot != has_selection:
                 result.success = False
                 result.error_code = InspectScene.Result.ERROR_INVALID_SELECTION
@@ -380,7 +424,8 @@ class InspectionNode(Node):
                 goal_handle.abort()
                 return result
             if has_snapshot:
-                return self._execute_selection(goal_handle, result)
+                return self._execute_selection(goal_handle, result, monitor)
+            monitor.begin_stage('rgbd_snapshot_wait')
             self._feedback(
                 goal_handle,
                 InspectionStage.WAITING_FOR_RGBD,
@@ -394,12 +439,15 @@ class InspectionNode(Node):
                 self._snapshot_timeout_seconds,
                 cancelled=lambda: goal_handle.is_cancel_requested,
             )
+            monitor.begin_stage('rgbd_decode')
             snapshot = snapshot_from_messages(
                 messages,
                 depth_16u_scale_m=self._depth_16u_scale_m,
             )
+            monitor.begin_stage('capture_tf')
             capture_transform = self._lookup_capture_transform(snapshot)
             query = goal_handle.request.query.strip() or self._default_query
+            monitor.begin_stage('gemini')
             detections = self._pipeline.detect(
                 snapshot,
                 query,
@@ -414,6 +462,7 @@ class InspectionNode(Node):
                 ),
                 cancelled=lambda: goal_handle.is_cancel_requested,
             )
+            monitor.begin_stage('result_output')
             self._feedback(
                 goal_handle,
                 InspectionStage.DETECTING,
@@ -460,6 +509,14 @@ class InspectionNode(Node):
                     messages.color.header.frame_id,
                 ),
             )
+            self._save_detection_artifacts(
+                snapshot_id,
+                query,
+                snapshot.stamp_ns,
+                messages.color.header.frame_id,
+                detections,
+                debug_rgb,
+            )
             goal_handle.succeed()
             return result
         except InspectionFailure as error:
@@ -478,6 +535,14 @@ class InspectionNode(Node):
             goal_handle.abort()
             return result
         finally:
+            report = monitor.finish(
+                success=bool(result.success),
+                error_code=int(result.error_code),
+                message=result.message,
+                snapshot_id=snapshot_id,
+                selected_object_id=selected_object_id,
+            )
+            self._record_runtime_report(report)
             with self._busy_lock:
                 self._busy = False
 
@@ -485,6 +550,7 @@ class InspectionNode(Node):
         self,
         goal_handle,
         result: InspectScene.Result,
+        monitor: RuntimeMonitor,
     ) -> InspectScene.Result:
         snapshot_id = goal_handle.request.snapshot_id
         cached = self._snapshot_cache.get(snapshot_id)
@@ -511,8 +577,9 @@ class InspectionNode(Node):
             selected,
             cached.capture_transform,
             progress=lambda stage, detections, objects, message: (
-                self._feedback(
+                self._selection_progress(
                     goal_handle,
+                    monitor,
                     stage,
                     detections,
                     objects,
@@ -520,7 +587,16 @@ class InspectionNode(Node):
                 )
             ),
             cancelled=lambda: goal_handle.is_cancel_requested,
+            segmented=lambda masks: self._publish_selected_debug(
+                monitor,
+                snapshot_id,
+                cached,
+                selected,
+                selected_id,
+                masks,
+            ),
         )
+        monitor.begin_stage('cloud_generation')
         detections_message = self._detections_message(
             cached.detections,
             cached.snapshot.stamp_ns,
@@ -547,11 +623,25 @@ class InspectionNode(Node):
         result.objects = objects_message
         result.target_cloud = target_cloud
         result.context_cloud = context_cloud
+        monitor.begin_stage('result_output')
         self._objects_publisher.publish(objects_message)
+        goal_handle.succeed()
+        return result
+
+    def _publish_selected_debug(
+        self,
+        monitor: RuntimeMonitor,
+        snapshot_id: str,
+        cached: CachedDetectionSnapshot,
+        selected: Detection2D,
+        selected_id: int,
+        masks: tuple[ObjectMask, ...],
+    ) -> None:
+        monitor.begin_stage('debug_output')
         debug_rgb = render_debug_image(
             cached.snapshot.rgb,
-            output.detections,
-            output.masks,
+            (selected,),
+            masks,
             object_ids=(selected_id,),
         )
         self._publish_debug_image(
@@ -561,8 +651,11 @@ class InspectionNode(Node):
                 cached.color_frame,
             )
         )
-        goal_handle.succeed()
-        return result
+        self._save_debug_rgb(
+            snapshot_id,
+            f'selection-{selected_id:03d}-mask.png',
+            debug_rgb,
+        )
 
     def _selected_cloud_messages(self, snapshot, target_mask, detection):
         height, width = snapshot.depth_m.shape
@@ -577,18 +670,28 @@ class InspectionNode(Node):
             'depth_m': snapshot.depth_m,
             'rgb': snapshot.rgb,
             'intrinsics': snapshot.intrinsics,
-            'minimum_depth_m': float(self.get_parameter('minimum_depth_m').value),
-            'maximum_depth_m': float(self.get_parameter('maximum_depth_m').value),
-            'voxel_size_m': float(self.get_parameter('grasp_cloud_voxel_size_m').value),
+            'minimum_depth_m': float(
+                self.get_parameter('minimum_depth_m').value
+            ),
+            'maximum_depth_m': float(
+                self.get_parameter('maximum_depth_m').value
+            ),
+            'voxel_size_m': float(
+                self.get_parameter('grasp_cloud_voxel_size_m').value
+            ),
         }
         target = colored_cloud_from_selection(
             selection=target_mask,
-            maximum_points=int(self.get_parameter('grasp_target_maximum_points').value),
+            maximum_points=int(
+                self.get_parameter('grasp_target_maximum_points').value
+            ),
             **common,
         )
         context = colored_cloud_from_selection(
             selection=context_mask,
-            maximum_points=int(self.get_parameter('grasp_context_maximum_points').value),
+            maximum_points=int(
+                self.get_parameter('grasp_context_maximum_points').value
+            ),
             **common,
         )
         stamp = Time(nanoseconds=snapshot.stamp_ns).to_msg()
@@ -596,6 +699,173 @@ class InspectionNode(Node):
             colored_point_cloud_message(target, stamp, snapshot.source_frame),
             colored_point_cloud_message(context, stamp, snapshot.source_frame),
         )
+
+    def _selection_progress(
+        self,
+        goal_handle,
+        monitor: RuntimeMonitor,
+        stage: InspectionStage,
+        detections: int,
+        objects: int,
+        message: str,
+    ) -> None:
+        timing_names = {
+            InspectionStage.SEGMENTING: 'sam2',
+            InspectionStage.RECONSTRUCTING: 'reconstruction_3d',
+            InspectionStage.TRANSFORMING: 'transform',
+        }
+        timing_name = timing_names.get(stage)
+        if timing_name is not None:
+            monitor.begin_stage(timing_name)
+        self._feedback(
+            goal_handle,
+            stage,
+            detections,
+            objects,
+            message,
+        )
+
+    def _save_detection_artifacts(
+        self,
+        snapshot_id: str,
+        query: str,
+        stamp_ns: int,
+        frame_id: str,
+        detections: Sequence[Detection2D],
+        debug_rgb: np.ndarray,
+    ) -> None:
+        if not self._save_debug_images:
+            return
+        try:
+            self._artifact_store.save_rgb(
+                snapshot_id,
+                'detections.png',
+                debug_rgb,
+            )
+            self._artifact_store.save_json(
+                snapshot_id,
+                'detections.json',
+                {
+                    'snapshot_id': snapshot_id,
+                    'stamp_ns': stamp_ns,
+                    'frame_id': frame_id,
+                    'query': query,
+                    'image_width': int(debug_rgb.shape[1]),
+                    'image_height': int(debug_rgb.shape[0]),
+                    'detections': [
+                        {
+                            'object_id': object_id,
+                            'label': detection.label,
+                            'confidence': detection.confidence,
+                            'bbox_xyxy': [
+                                detection.bbox.x_min,
+                                detection.bbox.y_min,
+                                detection.bbox.x_max,
+                                detection.bbox.y_max,
+                            ],
+                        }
+                        for object_id, detection in enumerate(
+                            detections,
+                            start=1,
+                        )
+                    ],
+                },
+            )
+        except (OSError, ValueError) as error:
+            self.get_logger().warning(
+                f'Failed to save detection artifacts: {error}'
+            )
+
+    def _save_debug_rgb(
+        self,
+        snapshot_id: str,
+        filename: str,
+        debug_rgb: np.ndarray,
+    ) -> None:
+        if not self._save_debug_images:
+            return
+        try:
+            self._artifact_store.save_rgb(
+                snapshot_id,
+                filename,
+                debug_rgb,
+            )
+        except (OSError, ValueError) as error:
+            self.get_logger().warning(
+                f'Failed to save debug image artifact: {error}'
+            )
+
+    def _record_runtime_report(
+        self,
+        report: dict | None,
+    ) -> None:
+        if report is None:
+            return
+        timing = report.get('timing_seconds', {})
+        memory = report.get('memory', {})
+        ram_percent = self._format_percent(
+            memory.get('system_used_end_percent')
+        )
+        process_percent = self._format_percent(
+            memory.get('rss_end_percent_of_system')
+        )
+        cuda_percent = self._format_percent(
+            memory.get('cuda_peak_allocated_percent_of_total')
+        )
+        self.get_logger().info(
+            'Runtime summary: '
+            f"kind={report.get('request_kind')} "
+            f"success={report.get('success')} "
+            f"total={float(timing.get('total', 0.0)):.3f}s "
+            'RAM_used='
+            f"{self._format_gib(memory.get('system_used_end_bytes'))}/"
+            f"{self._format_gib(memory.get('system_total_bytes'))} "
+            f'({ram_percent}) '
+            'process_RSS='
+            f"{self._format_mib(memory.get('rss_end_bytes'))} "
+            '('
+            f'{process_percent}'
+            ') CUDA_peak='
+            f"{self._format_mib(memory.get('cuda_peak_allocated_bytes'))} "
+            '('
+            f'{cuda_percent}'
+            ')'
+        )
+        self.get_logger().info(
+            f'runtime_metrics={json.dumps(report, ensure_ascii=False)}'
+        )
+        snapshot_id = str(report.get('snapshot_id', ''))
+        if not snapshot_id:
+            return
+        if report.get('request_kind') == 'selection':
+            selected_id = int(report.get('selected_object_id', 0))
+            filename = f'selection-{selected_id:03d}-metrics.json'
+        else:
+            filename = 'detection-metrics.json'
+        try:
+            self._artifact_store.save_json(snapshot_id, filename, report)
+        except (OSError, ValueError) as error:
+            self.get_logger().warning(
+                f'Failed to save runtime metrics: {error}'
+            )
+
+    @staticmethod
+    def _format_mib(value: object) -> str:
+        if not isinstance(value, int):
+            return 'n/a'
+        return f'{value / (1024 * 1024):.1f}MiB'
+
+    @staticmethod
+    def _format_gib(value: object) -> str:
+        if not isinstance(value, int):
+            return 'n/a'
+        return f'{value / (1024**3):.1f}GiB'
+
+    @staticmethod
+    def _format_percent(value: object) -> str:
+        if not isinstance(value, (int, float)):
+            return 'n/a'
+        return f'{float(value):.1f}%'
 
     def _publish_debug_image(self, message: Image) -> None:
         self._debug_publisher.publish(message)

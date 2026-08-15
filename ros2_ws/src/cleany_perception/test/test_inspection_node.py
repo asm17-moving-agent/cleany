@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import threading
 import time
 from dataclasses import replace
@@ -127,7 +128,13 @@ def _sensor_messages(scene, stamp_ns):
     return color, color_info, depth, depth_info
 
 
-def _make_node(scene, events=None, segmenter=None, detector=None):
+def _make_node(
+    scene,
+    events=None,
+    segmenter=None,
+    detector=None,
+    extra_overrides=(),
+):
     overrides = [
         Parameter('snapshot_timeout_seconds', value=1.0),
         Parameter('plane_distance_threshold_m', value=0.001),
@@ -135,6 +142,7 @@ def _make_node(scene, events=None, segmenter=None, detector=None):
         Parameter('plane_minimum_inlier_ratio', value=0.9),
         Parameter('debug_republish_count', value=5),
         Parameter('debug_republish_period_seconds', value=0.05),
+        *extra_overrides,
     ]
     return InspectionNode(
         detector=detector or _Detector(scene['detection'], events),
@@ -146,6 +154,7 @@ def _make_node(scene, events=None, segmenter=None, detector=None):
 
 def test_inspection_actions_detect_all_then_inspect_only_selection(
     synthetic_scene,
+    tmp_path,
 ):
     rclpy.init(args=[])
     node = None
@@ -170,6 +179,13 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
             events,
             segmenter,
             detector,
+            (
+                Parameter('save_debug_images', value=True),
+                Parameter(
+                    'diagnostics_output_root',
+                    value=str(tmp_path),
+                ),
+            ),
         )
         client_node = rclpy.create_node('inspection_test_client')
         action_client = ActionClient(
@@ -301,6 +317,14 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert cached is not None
         assert [item.label for item in cached.detections] == ['can', 'box']
         assert cached.capture_transform is synthetic_scene['transform']
+        snapshot_directory = tmp_path / result.detections.snapshot_id
+        assert (snapshot_directory / 'detections.png').is_file()
+        saved_detections = json.loads(
+            (snapshot_directory / 'detections.json').read_text()
+        )
+        assert saved_detections['query'] == 'find box'
+        assert saved_detections['stamp_ns'] == 2_000_000_000
+        assert len(saved_detections['detections']) == 2
 
         invalid_goal = InspectScene.Goal()
         invalid_goal.snapshot_id = result.detections.snapshot_id
@@ -358,6 +382,9 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert selection_feedback[-1].objects_3d == 1
         assert events == ['tf', 'detect']
         assert segmenter.calls == 1
+        assert (
+            snapshot_directory / 'selection-002-mask.png'
+        ).is_file()
     finally:
         if executor is not None:
             executor.shutdown()

@@ -33,6 +33,7 @@ def test_perception_uses_aligned_color_optical_inputs() -> None:
     assert '/aligned_depth_to_color/' in parameters['depth_info_topic']
     assert parameters['target_frame'] == 'camera_color_optical_frame'
     assert parameters['depth_16u_scale_m'] == 0.001
+    assert parameters['validate_support_plane_tilt'] is False
     assert (
         'every clearly visible physical object'
         in parameters['default_query']

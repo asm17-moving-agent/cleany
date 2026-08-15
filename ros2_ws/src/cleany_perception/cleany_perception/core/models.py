@@ -237,6 +237,7 @@ class PipelineConfig:
     plane_distance_threshold_m: float = 0.006
     plane_minimum_inliers: int = 100
     plane_minimum_inlier_ratio: float = 0.35
+    validate_support_plane_tilt: bool = True
     maximum_plane_tilt_degrees: float = 20.0
     minimum_object_points: int = 30
     minimum_object_height_m: float = 0.005
