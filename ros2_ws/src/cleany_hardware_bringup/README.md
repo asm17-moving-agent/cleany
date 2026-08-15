@@ -103,17 +103,27 @@ ros2 launch cleany_hardware_bringup jetson_rgbd.launch.py \
     ├── detections.json
     ├── detection-metrics.json
     ├── selection-001-mask.png
+    ├── selection-001-3d-obb.png
     └── selection-001-metrics.json
 ```
 
 `detections.json`에는 요청 query, capture timestamp/frame, 영상 크기와 bbox가 들어간다.
 `detection-metrics.json`은 RGB-D snapshot 대기·decode, capture TF, Gemini, 결과 출력과
-전체 시간을 기록한다. 선택 결과는 SAM2, debug 출력, 3D reconstruction, transform,
-cloud 생성, 결과 출력과 전체 시간을 기록한다. 종료 log는 전체 RAM 사용량/비율,
+전체 시간을 기록한다. 선택 결과는 SAM2 runtime/CUDA setup, model load, image encode,
+mask decode, 3D
+reconstruction, OBB debug 출력, transform, cloud 생성, 결과 출력과 전체 시간을 기록한다.
+`sam2_runtime_setup`은 첫 PyTorch/CUDA 진단 초기화 시간이다. `sam2_inference`는 image
+encode와 mask decode의 합이며 이 값들과 model load는 모두 `sam2` 전체 시간 안에 포함된다.
+종료 log는 전체 RAM 사용량/비율,
 perception process RSS/전체 RAM 비율, CUDA peak allocated/총 CUDA memory 비율을
 MiB·GiB 단위로 요약한다. JSON에는 원본 byte와 사람이 읽기 쉬운 단위·비율을 함께
 기록한다. Jetson은 CPU와 GPU가 RAM을 공유하므로 CUDA 비율은 PyTorch allocator 관점의
 수치이며 전력·온도는 후속 `tegrastats` 수집에서 별도로 측정한다.
+
+3D OBB 이미지는 최종 OBB를 aligned color optical frame으로 되돌려 RGB에 투영한다.
+노란 선은 OBB, 흰 점은 중심, 빨강/초록/파랑 선은 OBB local X/Y/Z 축이다. `xyz`와
+`size`는 meter 단위다. 이 이미지는 육안 확인용이며 실제 공간 검증은 PointCloud2와
+RViz를 사용한다.
 
 저장 결과를 확인한다.
 

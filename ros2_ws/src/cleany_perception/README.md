@@ -168,6 +168,11 @@ snapshot을 제한 재발행한다. 횟수와 간격은 `debug_republish_count`�
 `debug_republish_period_seconds`로 조정한다. latched topic은 마지막 성공 결과 한 장만
 보관한다. detector 또는 SAM2 자체가 실패하면 이전 결과를 재발행하지 않는다.
 
+3D 복원까지 성공하면 latched debug image를 RGB 위에 투영한 최종 OBB로 갱신한다.
+`save_debug_images`가 켜져 있으면 mask image와 별도로
+`selection-<id>-3d-obb.png`를 저장한다. OBB 중심·크기는 optical-frame meter 단위로
+이미지에 표시한다.
+
 ```bash
 ros2 topic echo /perception/detections_2d --once
 ros2 topic echo /perception/debug_image_latched --once --field encoding \

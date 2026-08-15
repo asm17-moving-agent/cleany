@@ -326,6 +326,26 @@ python3 tools/sam2_smoke.py \
 `[480, 640]`, `mask_pixels`가 0보다 커야 통과다. 첫 실행은 checkpoint load와 CUDA
 초기화 때문에 후속 실행보다 오래 걸릴 수 있다.
 
+GUI 없이 640x480 bbox-prompt segmentation의 warm 성능을 확인하려면 모델을 한 번만
+load한 뒤 3회 warm-up과 10회 측정을 실행한다. 기본 측정은 ROS adapter와 동일하게
+bfloat16 autocast를 사용하지 않는다. JSON의 image encode/mask decode/inference p50·p95와
+`inference_fps_from_p50`을 확인한다.
+
+```bash
+python3 tools/sam2_smoke.py \
+  --checkpoint /home/cleany/models/sam2/sam2.1_hiera_small.pt \
+  --warmup-runs 3 \
+  --measured-runs 10 \
+  --output /tmp/cleany-sam2-benchmark.json
+```
+
+2026-08-15 Orin NX 16GB의 PyTorch `2.8.0`, CUDA `12.6`, small checkpoint,
+autocast 비활성 조건에서 model load `1.97s`, warm inference p50 `1.57s`/p95
+`1.84s`(`0.64 FPS`)를 확인했다. image encode p50 `1.53s`, mask decode p50
+`0.057s`로 새 프레임의 image encoder가 지배적이었다. 따라서 이 native PyTorch 설정은
+요청형 검증에는 사용 가능하지만 640x480 연속 프레임 실시간 segmentation 기준선으로는
+충분하지 않다.
+
 CUDA가 없는 Apple Silicon 기반 Ubuntu VM에서는 CUDA extension을 끄고 CPU device를
 사용한다. 예를 들어 VM 내부에 SAM2를 설치한 경우 다음과 같이 실행한다.
 

@@ -26,6 +26,17 @@ class _Predictor:
         return mask[None, :, :], np.array([0.88]), None
 
 
+class _Clock:
+    def __init__(self, values) -> None:
+        self.set_values(values)
+
+    def set_values(self, values) -> None:
+        self._values = iter(values)
+
+    def __call__(self) -> float:
+        return next(self._values)
+
+
 def _detection():
     return Detection2D(
         label='box',
@@ -39,6 +50,7 @@ def test_sam2_segmenter_preserves_detection_order(tmp_path):
     checkpoint.write_bytes(b'placeholder')
     predictor = _Predictor()
     factory_calls = []
+    clock = _Clock((0.0, 2.0, 2.0, 5.0, 5.0, 6.0))
 
     def factory(config, checkpoint_path, device):
         factory_calls.append((config, checkpoint_path, device))
@@ -49,6 +61,8 @@ def test_sam2_segmenter_preserves_detection_order(tmp_path):
         str(checkpoint),
         device='cpu',
         predictor_factory=factory,
+        clock=clock,
+        synchronizer=lambda: None,
     )
     rgb = np.zeros((20, 30, 3), dtype=np.uint8)
 
@@ -60,9 +74,20 @@ def test_sam2_segmenter_preserves_detection_order(tmp_path):
     assert np.count_nonzero(masks[0].mask) == 30
     assert predictor.boxes[0][0] == pytest.approx((4.0, 3.0, 10.0, 8.0))
     assert factory_calls == [('sam2-config', str(checkpoint), 'cpu')]
+    assert segmenter.last_timing_seconds == pytest.approx(
+        {
+            'sam2_model_load': 2.0,
+            'sam2_image_encode': 3.0,
+            'sam2_mask_decode': 1.0,
+            'sam2_inference': 4.0,
+        }
+    )
 
+    clock.set_values((10.0, 12.0, 12.0, 13.0))
     segmenter.segment(rgb, [_detection()])
     assert len(factory_calls) == 1
+    assert segmenter.last_timing_seconds['sam2_model_load'] == 0.0
+    assert segmenter.last_timing_seconds['sam2_inference'] == 3.0
 
 
 def test_sam2_segmenter_reports_missing_checkpoint():
@@ -83,6 +108,7 @@ def test_sam2_segmenter_rejects_wrong_mask_shape(tmp_path):
     segmenter = Sam2Segmenter(
         'config',
         str(checkpoint),
+        device='cpu',
         predictor_factory=lambda _config, _checkpoint, _device: _Predictor(
             shape=(5, 5)
         ),

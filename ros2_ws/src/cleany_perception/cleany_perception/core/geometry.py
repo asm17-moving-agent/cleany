@@ -185,6 +185,14 @@ def transform_box(
     )
 
 
+def inverse_transform(transform: RigidTransform) -> RigidTransform:
+    inverse_rotation = transform.rotation.T
+    return RigidTransform(
+        translation=-(inverse_rotation @ transform.translation),
+        rotation=inverse_rotation,
+    )
+
+
 def transform_plane_normal(
     plane: Plane,
     transform: RigidTransform,

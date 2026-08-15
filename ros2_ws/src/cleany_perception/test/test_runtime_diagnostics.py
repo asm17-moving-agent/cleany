@@ -50,6 +50,7 @@ def test_runtime_monitor_reports_stages_total_and_memory_delta():
         memory_reader=lambda _cuda, _reset: next(memory_reports),
     )
     monitor.begin_stage('sam2')
+    monitor.record_duration('sam2_model_load', 0.5)
     clock.value = 1.25
     monitor.begin_stage('reconstruction_3d')
     clock.value = 2.0
@@ -64,6 +65,8 @@ def test_runtime_monitor_reports_stages_total_and_memory_delta():
 
     assert report is not None
     assert report['timing_seconds']['sam2'] == pytest.approx(1.25)
+    assert report['timing_seconds']['sam2_runtime_setup'] == pytest.approx(0.0)
+    assert report['timing_seconds']['sam2_model_load'] == pytest.approx(0.5)
     assert report['timing_seconds']['reconstruction_3d'] == pytest.approx(0.75)
     assert report['timing_seconds']['total'] == pytest.approx(2.0)
     assert report['memory']['rss_delta_bytes'] == 60

@@ -53,6 +53,14 @@ class Sam2SmokeTest(unittest.TestCase):
                 (20, 30),
             )
 
+    def test_latency_summary_reports_percentiles(self) -> None:
+        summary = smoke.latency_summary((1.0, 2.0, 3.0, 4.0))
+
+        self.assertEqual(summary['minimum_seconds'], 1.0)
+        self.assertEqual(summary['p50_seconds'], 2.5)
+        self.assertAlmostEqual(summary['p95_seconds'], 3.85)
+        self.assertEqual(summary['maximum_seconds'], 4.0)
+
 
 if __name__ == '__main__':
     unittest.main()

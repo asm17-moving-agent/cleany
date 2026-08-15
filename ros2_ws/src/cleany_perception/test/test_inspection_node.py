@@ -385,6 +385,9 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert (
             snapshot_directory / 'selection-002-mask.png'
         ).is_file()
+        assert (
+            snapshot_directory / 'selection-002-3d-obb.png'
+        ).is_file()
     finally:
         if executor is not None:
             executor.shutdown()

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timezone
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -135,11 +136,29 @@ class RuntimeMonitor:
             and not self._cuda_metrics_started
             and name == 'sam2'
         ):
+            setup_started = self._clock()
             self._read_memory(
                 include_cuda=True,
                 reset_cuda_peak=True,
             )
+            setup_finished = self._clock()
+            self._durations['sam2_runtime_setup'] = (
+                self._durations.get('sam2_runtime_setup', 0.0)
+                + setup_finished
+                - setup_started
+            )
             self._cuda_metrics_started = True
+
+    def record_duration(self, name: str, seconds: float) -> None:
+        if not self._enabled:
+            return
+        if not name:
+            raise ValueError('runtime duration name must not be empty')
+        if not math.isfinite(seconds) or seconds < 0.0:
+            raise ValueError(
+                'runtime duration must be finite and non-negative'
+            )
+        self._durations[name] = self._durations.get(name, 0.0) + seconds
 
     def finish(
         self,

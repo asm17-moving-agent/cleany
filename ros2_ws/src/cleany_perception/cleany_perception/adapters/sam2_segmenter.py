@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from contextlib import nullcontext
 from pathlib import Path
+import time
 from typing import Any
 
 import numpy as np
@@ -17,6 +18,7 @@ from cleany_perception.core.models import (
 
 
 PredictorFactory = Callable[[str, str, str], Any]
+Synchronizer = Callable[[], None]
 
 
 class Sam2Segmenter:
@@ -26,6 +28,9 @@ class Sam2Segmenter:
         checkpoint_path: str,
         device: str = 'cuda',
         predictor_factory: PredictorFactory | None = None,
+        *,
+        clock: Callable[[], float] = time.monotonic,
+        synchronizer: Synchronizer | None = None,
     ) -> None:
         if not device:
             raise ValueError('SAM2 device must not be empty')
@@ -34,6 +39,13 @@ class Sam2Segmenter:
         self._device = device
         self._predictor_factory = predictor_factory
         self._predictor = None
+        self._clock = clock
+        self._synchronizer = synchronizer or self._synchronize_device
+        self._last_timing_seconds: dict[str, float] = {}
+
+    @property
+    def last_timing_seconds(self) -> dict[str, float]:
+        return dict(self._last_timing_seconds)
 
     def segment(
         self,
@@ -41,31 +53,39 @@ class Sam2Segmenter:
         detections: Sequence[Detection2D],
     ) -> Sequence[ObjectMask]:
         if not detections:
+            self._last_timing_seconds = {}
             return ()
-        predictor = self._get_predictor()
+        self._last_timing_seconds = {}
         try:
+            if self._predictor is None:
+                predictor, model_load_seconds = self._measure(
+                    self._get_predictor,
+                    synchronize_before=False,
+                )
+            else:
+                predictor = self._predictor
+                model_load_seconds = 0.0
             inference_context = nullcontext()
             if self._predictor_factory is None:
                 import torch
 
                 inference_context = torch.inference_mode()
             with inference_context:
-                predictor.set_image(np.asarray(rgb))
+                _, image_encode_seconds = self._measure(
+                    lambda: predictor.set_image(np.asarray(rgb))
+                )
                 masks = []
+                mask_decode_seconds = 0.0
                 for detection in detections:
-                    box = np.array(
-                        [
-                            detection.bbox.x_min,
-                            detection.bbox.y_min,
-                            detection.bbox.x_max,
-                            detection.bbox.y_max,
-                        ],
-                        dtype=np.float32,
+                    box = self._prompt_box(detection)
+                    prediction, elapsed = self._measure(
+                        lambda: predictor.predict(
+                            box=box,
+                            multimask_output=False,
+                        )
                     )
-                    predicted_masks, scores, _logits = predictor.predict(
-                        box=box,
-                        multimask_output=False,
-                    )
+                    mask_decode_seconds += elapsed
+                    predicted_masks, scores, _logits = prediction
                     mask_array = np.asarray(predicted_masks)
                     score_array = np.asarray(
                         scores,
@@ -97,6 +117,14 @@ class Sam2Segmenter:
                             score=score,
                         )
                     )
+            self._last_timing_seconds = {
+                'sam2_model_load': model_load_seconds,
+                'sam2_image_encode': image_encode_seconds,
+                'sam2_mask_decode': mask_decode_seconds,
+                'sam2_inference': (
+                    image_encode_seconds + mask_decode_seconds
+                ),
+            }
             return tuple(masks)
         except InspectionFailure:
             raise
@@ -156,3 +184,36 @@ class Sam2Segmenter:
             ) from error
         self._predictor = predictor
         return predictor
+
+    def _measure(
+        self,
+        operation: Callable[[], Any],
+        *,
+        synchronize_before: bool = True,
+    ) -> tuple[Any, float]:
+        started = self._clock()
+        if synchronize_before:
+            self._synchronizer()
+        value = operation()
+        self._synchronizer()
+        return value, self._clock() - started
+
+    def _synchronize_device(self) -> None:
+        if not self._device.startswith('cuda'):
+            return
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+    @staticmethod
+    def _prompt_box(detection: Detection2D) -> np.ndarray:
+        return np.array(
+            [
+                detection.bbox.x_min,
+                detection.bbox.y_min,
+                detection.bbox.x_max,
+                detection.bbox.y_max,
+            ],
+            dtype=np.float32,
+        )

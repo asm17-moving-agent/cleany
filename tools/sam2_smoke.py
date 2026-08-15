@@ -57,6 +57,9 @@ def run_smoke(
     checkpoint: Path,
     model_config: str,
     device: str,
+    warmup_runs: int = 0,
+    measured_runs: int = 1,
+    bfloat16_autocast: bool = False,
 ) -> dict[str, Any]:
     if not checkpoint.is_file():
         raise FileNotFoundError(f'SAM2 checkpoint not found: {checkpoint}')
@@ -67,6 +70,10 @@ def run_smoke(
 
     if device == 'cuda' and not torch.cuda.is_available():
         raise RuntimeError('CUDA was requested but torch.cuda is unavailable')
+    if warmup_runs < 0:
+        raise ValueError('warmup_runs must not be negative')
+    if measured_runs < 1:
+        raise ValueError('measured_runs must be at least one')
 
     image = synthetic_image()
     box = np.asarray(central_box(image.shape[1], image.shape[0]), np.float32)
@@ -83,27 +90,37 @@ def run_smoke(
         torch.cuda.synchronize()
     load_seconds = time.monotonic() - load_started
 
-    inference_started = time.monotonic()
     inference_context = torch.inference_mode()
     autocast_context = (
         torch.autocast('cuda', dtype=torch.bfloat16)
-        if device == 'cuda'
+        if device == 'cuda' and bfloat16_autocast
         else nullcontext()
     )
+    measured = []
+    mask = None
+    score = 0.0
     with inference_context, autocast_context:
-        predictor.set_image(image)
-        masks, scores, _logits = predictor.predict(
-            box=box,
-            multimask_output=False,
-        )
-    if device == 'cuda':
-        torch.cuda.synchronize()
-    inference_seconds = time.monotonic() - inference_started
+        for run_index in range(warmup_runs + measured_runs):
+            prediction, timing = _run_prediction(
+                predictor,
+                image,
+                box,
+                torch,
+                device,
+            )
+            masks, scores, _logits = prediction
+            mask, score = select_mask(masks, scores, image.shape[:2])
+            if not np.any(mask):
+                raise RuntimeError('SAM2 returned an empty mask')
+            if run_index >= warmup_runs:
+                measured.append(timing)
 
-    mask, score = select_mask(masks, scores, image.shape[:2])
+    assert mask is not None
+    encode_seconds = [item['image_encode_seconds'] for item in measured]
+    decode_seconds = [item['mask_decode_seconds'] for item in measured]
+    inference_seconds = [item['inference_seconds'] for item in measured]
+    inference_p50 = float(np.median(inference_seconds))
     mask_pixels = int(np.count_nonzero(mask))
-    if mask_pixels == 0:
-        raise RuntimeError('SAM2 returned an empty mask')
 
     return {
         'success': True,
@@ -122,7 +139,16 @@ def run_smoke(
         'mask_fraction': mask_pixels / mask.size,
         'score': score,
         'load_seconds': load_seconds,
-        'inference_seconds': inference_seconds,
+        'warmup_runs': warmup_runs,
+        'measured_runs': measured_runs,
+        'bfloat16_autocast': bfloat16_autocast,
+        'inference_seconds': inference_seconds[0],
+        'image_encode_latency': latency_summary(encode_seconds),
+        'mask_decode_latency': latency_summary(decode_seconds),
+        'inference_latency': latency_summary(inference_seconds),
+        'inference_fps_from_p50': (
+            1.0 / inference_p50 if inference_p50 > 0.0 else None
+        ),
         'peak_cuda_memory_bytes': (
             int(torch.cuda.max_memory_allocated())
             if device == 'cuda'
@@ -131,11 +157,64 @@ def run_smoke(
     }
 
 
+def _run_prediction(
+    predictor: Any,
+    image: np.ndarray,
+    box: np.ndarray,
+    torch_module: Any,
+    device: str,
+) -> tuple[Any, dict[str, float]]:
+    _synchronize(torch_module, device)
+    encode_started = time.monotonic()
+    predictor.set_image(image)
+    _synchronize(torch_module, device)
+    image_encode_seconds = time.monotonic() - encode_started
+
+    decode_started = time.monotonic()
+    prediction = predictor.predict(
+        box=box,
+        multimask_output=False,
+    )
+    _synchronize(torch_module, device)
+    mask_decode_seconds = time.monotonic() - decode_started
+    return prediction, {
+        'image_encode_seconds': image_encode_seconds,
+        'mask_decode_seconds': mask_decode_seconds,
+        'inference_seconds': image_encode_seconds + mask_decode_seconds,
+    }
+
+
+def _synchronize(torch_module: Any, device: str) -> None:
+    if device == 'cuda':
+        torch_module.cuda.synchronize()
+
+
+def latency_summary(seconds: Sequence[float]) -> dict[str, float]:
+    values = np.asarray(seconds, dtype=np.float64)
+    if values.ndim != 1 or values.size == 0:
+        raise ValueError('latency values must be a non-empty sequence')
+    if not np.isfinite(values).all() or np.any(values < 0.0):
+        raise ValueError('latency values must be finite and non-negative')
+    return {
+        'minimum_seconds': float(np.min(values)),
+        'p50_seconds': float(np.percentile(values, 50)),
+        'p95_seconds': float(np.percentile(values, 95)),
+        'maximum_seconds': float(np.max(values)),
+    }
+
+
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--checkpoint', type=Path, required=True)
     parser.add_argument('--model-config', default=DEFAULT_MODEL_CONFIG)
     parser.add_argument('--device', choices=('cuda', 'cpu'), default='cuda')
+    parser.add_argument('--warmup-runs', type=int, default=0)
+    parser.add_argument('--measured-runs', type=int, default=1)
+    parser.add_argument(
+        '--bfloat16-autocast',
+        action='store_true',
+        help='Use CUDA bfloat16 autocast; disabled to match the ROS adapter.',
+    )
     parser.add_argument('--output', type=Path)
     return parser.parse_args(argv)
 
@@ -147,6 +226,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             options.checkpoint,
             options.model_config,
             options.device,
+            options.warmup_runs,
+            options.measured_runs,
+            options.bfloat16_autocast,
         )
         status = 0
     except Exception as error:

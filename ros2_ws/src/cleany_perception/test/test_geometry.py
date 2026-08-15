@@ -4,6 +4,7 @@ import pytest
 from cleany_perception.core.geometry import (
     deproject_masked_depth,
     fit_plane_ransac,
+    inverse_transform,
     quaternion_xyzw_from_rotation,
     reconstruct_supported_obb,
     transform_box,
@@ -46,6 +47,10 @@ def test_synthetic_supported_box_meets_center_and_size_tolerances(
         minimum_points=30,
     )
     box = transform_box(camera_box, synthetic_scene['transform'])
+    recovered_camera_box = transform_box(
+        box,
+        inverse_transform(synthetic_scene['transform']),
+    )
 
     center_error = np.linalg.norm(
         box.center - synthetic_scene['expected_center']
@@ -58,6 +63,10 @@ def test_synthetic_supported_box_meets_center_and_size_tolerances(
     assert center_error <= 0.005
     assert np.all(size_error <= 0.010)
     assert box.size[2] == pytest.approx(0.20, abs=0.005)
+    assert recovered_camera_box.center == pytest.approx(camera_box.center)
+    assert recovered_camera_box.rotation == pytest.approx(
+        camera_box.rotation
+    )
     assert plane.normal == pytest.approx((0.0, 0.0, -1.0), abs=1e-6)
 
 

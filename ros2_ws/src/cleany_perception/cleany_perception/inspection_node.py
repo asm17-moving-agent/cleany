@@ -39,7 +39,11 @@ from sensor_msgs.msg import CameraInfo, Image
 from cleany_perception.adapters.gemini_detector import GeminiDetector
 from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
 from cleany_perception.adapters.tf2_transform import Tf2TransformAdapter
-from cleany_perception.core.geometry import quaternion_xyzw_from_rotation
+from cleany_perception.core.geometry import (
+    inverse_transform,
+    quaternion_xyzw_from_rotation,
+    transform_box,
+)
 from cleany_perception.core.point_cloud import colored_cloud_from_selection
 from cleany_perception.core.models import (
     Detection2D,
@@ -61,6 +65,7 @@ from cleany_perception.core.ports import (
 from cleany_perception.debug_image import (
     debug_image_message,
     render_debug_image,
+    render_obb_debug_image,
 )
 from cleany_perception.rgbd_snapshot import (
     RgbdSnapshotBuffer,
@@ -189,6 +194,7 @@ class InspectionNode(Node):
                 ),
             )
         self._transformer = transformer
+        self._segmenter = segmenter
         self._pipeline = InspectionPipeline(
             detector=detector,
             segmenter=segmenter,
@@ -596,6 +602,14 @@ class InspectionNode(Node):
                 masks,
             ),
         )
+        monitor.begin_stage('obb_debug_output')
+        self._publish_selected_obb_debug(
+            snapshot_id,
+            cached,
+            selected,
+            selected_id,
+            output,
+        )
         monitor.begin_stage('cloud_generation')
         detections_message = self._detections_message(
             cached.detections,
@@ -638,6 +652,7 @@ class InspectionNode(Node):
         masks: tuple[ObjectMask, ...],
     ) -> None:
         monitor.begin_stage('debug_output')
+        self._record_segmenter_timings(monitor)
         debug_rgb = render_debug_image(
             cached.snapshot.rgb,
             (selected,),
@@ -656,6 +671,54 @@ class InspectionNode(Node):
             f'selection-{selected_id:03d}-mask.png',
             debug_rgb,
         )
+
+    def _record_segmenter_timings(self, monitor: RuntimeMonitor) -> None:
+        timings = getattr(self._segmenter, 'last_timing_seconds', None)
+        if not isinstance(timings, dict):
+            return
+        for name, seconds in timings.items():
+            if isinstance(name, str) and isinstance(seconds, (int, float)):
+                monitor.record_duration(name, float(seconds))
+
+    def _publish_selected_obb_debug(
+        self,
+        snapshot_id: str,
+        cached: CachedDetectionSnapshot,
+        selected: Detection2D,
+        selected_id: int,
+        output: InspectionOutput,
+    ) -> None:
+        if not output.objects or not output.masks:
+            return
+        try:
+            camera_box = transform_box(
+                output.objects[0].box,
+                inverse_transform(cached.capture_transform),
+            )
+            debug_rgb = render_obb_debug_image(
+                cached.snapshot.rgb,
+                selected,
+                output.masks[0],
+                camera_box,
+                cached.snapshot.intrinsics,
+                selected_id,
+            )
+            self._publish_debug_image(
+                debug_image_message(
+                    debug_rgb,
+                    cached.snapshot.stamp_ns,
+                    cached.color_frame,
+                )
+            )
+            self._save_debug_rgb(
+                snapshot_id,
+                f'selection-{selected_id:03d}-3d-obb.png',
+                debug_rgb,
+            )
+        except Exception as error:
+            self.get_logger().warning(
+                f'Failed to render optional 3D OBB debug image: {error}'
+            )
 
     def _selected_cloud_messages(self, snapshot, target_mask, detection):
         height, width = snapshot.depth_m.shape
