@@ -270,9 +270,9 @@ RViz의 indexed-palette Map shader가 실패하는 문제를 피하기 위해 `/
 ros2 launch cleany_gazebo_sim slam_visualization.launch.py
 ```
 
-Harmonic에서 카메라와 다른 높이 LiDAR를 모두 비활성화하고 12 cm LiDAR 하나만
+Harmonic에서 카메라와 다른 높이 LiDAR를 모두 비활성화하고 하단 LiDAR 하나만
 표준 `/scan`으로 노출하려면 study-cafe launch에
-`bridge_config:=.../slam_<height>cm_bridge_harmonic.yaml`을 전달합니다. 12, 26,
+`bridge_config:=.../slam_<height>cm_bridge_harmonic.yaml`을 전달합니다. 16.5, 26,
 45, 70 cm 높이별 전용 bridge는 선택한 LiDAR 하나만 표준 `/scan`으로 노출하고
 이 전용 bridge는
 비교 실험 중 사용하지 않는 GPU sensor에 subscriber를 만들지 않습니다.
@@ -286,18 +286,19 @@ TF chain을 확인할 수 있습니다.
 
 ## LiDAR mount SLAM evaluation
 
-SCRUM-316 평가 후보는 `config/lidar_mount_profiles.yaml`의 `floor_12cm`,
+SCRUM-316 평가 후보는 `config/lidar_mount_profiles.yaml`의 `floor_16p5cm`,
 `floor_26cm`, `floor_45cm`, `floor_70cm` 네 가지입니다. 모두 `base_link +X=0.16 m`를
-유지하고 scan 중심을 바닥에서 0.12, 0.26, 0.45, 0.70 m 높이에 둡니다. 상대 Z는
-각각 `-0.26 m`, `-0.12 m`, `+0.07 m`, `+0.32 m`이며 실제 하드웨어 실장 치수로
+유지하고 scan 중심을 바닥에서 0.165, 0.26, 0.45, 0.70 m 높이에 둡니다. 상대 Z는
+각각 `-0.215 m`, `-0.12 m`, `+0.07 m`, `+0.32 m`이며 실제 하드웨어 실장 치수로
 확정된 값이 아닙니다. 평가 준비 도구는
 선택 위치를 Gazebo SDF와
 `base_link -> lidar_link` static TF 설정에 동시에 반영해 서로 다른 pose가 섞이는 것을
 방지합니다.
 
-네 후보를 한 화면에서 비교할 때는 기본 world에 네 LiDAR를 동시에 장착합니다. ROS
-topic은 `/scan_12cm`, `/scan`, `/scan_45cm`, `/scan_70cm`이며 26 cm의 기존 `/scan`
-계약은 SLAM 호환성을 위해 유지합니다. 생성 world에서는 현재 로봇 visual에
+16.5 cm 독립 실험 world는 기존 하단 센서의 내부 Gazebo topic과 frame 이름을
+호환성 때문에 유지하면서 mount와 static TF만 함께 4.5 cm 올립니다. 표준 SLAM 입력은
+`slam_16p5cm_bridge_harmonic.yaml`을 통해 `/scan`으로 노출됩니다. 생성 world에서는
+현재 로봇 visual에
 `0x02`, LiDAR에 `0x01` visibility mask를 사용하므로 센서는 교체 예정인 기존 차체를
 투과해 환경만 봅니다. GUI 표시와 물리 collision에는 영향을 주지 않습니다.
 
@@ -370,6 +371,74 @@ ros2 run cleany_gazebo_sim lidar_slam_evaluation record \
 현재 저장소에는 재현 가능한 후보 materialization과 결과 schema만 포함하며 측정하지
 않은 성능 수치를 임의로 채우지 않습니다. 최종 위치 선정은 동일 조건의 실제 runtime
 결과를 수집한 뒤 결정합니다.
+
+### Offline SLAM algorithm comparison
+
+알고리즘 비교에서는 주행 편차를 없애기 위해 높이별 Gazebo 주행을 한 번만 bag으로
+기록합니다. 입력 bag은 `/scan`, `/odom`, `/imu/data`, `/tf_static`, `/clock`과 평가에만
+쓰는 `/ground_truth/odom`을 보존합니다. SLAM 프로세스에는 ground truth를 재생하더라도
+입력으로 연결하지 않습니다. 다음 네 profile은 같은 bag을 사용합니다.
+
+- `slam_toolbox`: LiDAR + wheel odometry
+- `cartographer_2d.lua`: LiDAR + wheel odometry
+- `cartographer_2d_imu.lua`: LiDAR + wheel odometry + IMU
+- `rtabmap_mapping.launch.py`: RTAB-Map 2D, LiDAR + wheel odometry
+
+Jazzy/Harmonic 환경에서 높이 및 알고리즘 전체 조합을 2.5배속으로 처리하려면 저장소
+루트에서 다음을 실행합니다. 첫 번째와 두 번째 선택 인자로 알고리즘 이름과 높이를
+주면 단일 조합만 실행할 수 있습니다.
+
+```bash
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && ./tools/record_16p5cm_slam_input.sh'
+
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && ./tools/run_slam_algorithm_comparison.sh'
+
+./tools/run_slam_algorithm_comparison.sh cartographer_imu 16p5
+```
+
+각 run에는 공통 `map_final.pgm/.png/.yaml`, 처리 중 `/map`과 `/tf`를 담은
+`result_bag/`, 로그를 남깁니다. 알고리즘 고유 pose graph는 slam_toolbox의
+`.posegraph/.data`, Cartographer의 `.pbstream`, RTAB-Map의 `.db`입니다. 이 결과는
+`ros2_ws/slam_results/` 아래의 로컬 실험 생성물이며 소스 커밋 대상이 아닙니다.
+
+전체 run이 끝난 뒤 궤적 지표와 Gazebo 상면 overlay를 생성합니다. ATE는 scale을
+고정한 SE(2) rigid alignment 후 계산하고, RPE는 1초 간격 상대 pose로 계산합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+python3 tools/analyze_slam_algorithm_comparison.py
+python3 tools/capture_gazebo_top_view.py
+python3 tools/render_slam_algorithm_overlays.py
+```
+
+`capture_gazebo_top_view.py`는 원본 world를 수정하지 않고 결과 디렉터리에 전용
+Gazebo world를 materialize한 뒤, 광축이 바닥에 수직인 1600×1430 카메라로 새 기준
+이미지를 렌더링합니다. overlay는 이 이미지의 카메라 내·외부 파라미터와 map YAML의
+resolution/origin을 사용해 월드 좌표로 투영하므로 GUI 시점의 원근 변형에 의존하지
+않습니다.
+
+### Moved-chair fixed-map localization
+
+가구 변화에 대한 localization 강건성은 새 지도를 만들지 않고 각 높이에서 저장한
+slam_toolbox posegraph를 고정해 평가합니다. 변화 조건은 여섯 좌석열에서 고른 의자
+12개를 책상 방향으로 0.20 m 옮기고 교대로 ±10° 회전합니다. 12/16.5/26 cm의
+원래 배치 bag과 이동 배치 bag을 각각 같은 localization node에 재생합니다.
+
+```bash
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && ./tools/record_chair_shift_localization_inputs.sh'
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && ./tools/run_chair_shift_localization.sh'
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && python3 tools/analyze_chair_shift_localization.py'
+```
+
+분석 시 원래 배치에서 한 번 구한 map-to-world rigid alignment를 이동 배치에도 그대로
+적용하므로, 이동 조건마다 궤적을 따로 맞춰 localization의 전역 오차를 숨기지 않습니다.
+결과 CSV/JSON, 요약, 비교 그림과 각 replay bag은
+`slam_results/chair_shift_localization/`에만 생성되며 커밋하지 않습니다.
 
 ## Run
 

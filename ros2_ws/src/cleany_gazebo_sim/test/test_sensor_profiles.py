@@ -66,20 +66,20 @@ def test_unknown_sensor_profile_is_rejected():
 
 
 @pytest.mark.parametrize(
-    ('height_cm', 'gz_scan_topic'),
+    ('height_token', 'gz_scan_topic'),
     (
-        (12, '/model/cleany_mecanum/lidar_12cm/scan'),
-        (26, '/model/cleany_mecanum/lidar/scan'),
-        (45, '/model/cleany_mecanum/lidar_45cm/scan'),
-        (70, '/model/cleany_mecanum/lidar_70cm/scan'),
+        ('16p5', '/model/cleany_mecanum/lidar_12cm/scan'),
+        ('26', '/model/cleany_mecanum/lidar/scan'),
+        ('45', '/model/cleany_mecanum/lidar_45cm/scan'),
+        ('70', '/model/cleany_mecanum/lidar_70cm/scan'),
     ),
 )
 def test_height_slam_bridge_activates_only_selected_lidar(
-    height_cm: int,
+    height_token: str,
     gz_scan_topic: str,
 ):
     config_path = CONFIG_ROOT / (
-        f'slam_{height_cm}cm_bridge_harmonic.yaml'
+        f'slam_{height_token}cm_bridge_harmonic.yaml'
     )
     entries = yaml.safe_load(config_path.read_text(encoding='utf-8'))
     scan_entries = [

@@ -6,9 +6,9 @@ lidar_frame_id: lidar_link
 # not approved hardware dimensions. Keep the same profile for every repeated
 # route trial and materialize both SDF and TF parameters with the evaluator.
 profiles:
-  floor_12cm:
-    description: Scan center 0.12 m above the world floor.
-    translation: [0.16, 0.0, -0.26]
+  floor_16p5cm:
+    description: Scan center 0.165 m above the world floor.
+    translation: [0.16, 0.0, -0.215]
     rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
   floor_26cm:
     description: Scan center 0.26 m above the world floor and canonical SLAM input.

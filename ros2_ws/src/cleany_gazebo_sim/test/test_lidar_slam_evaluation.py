@@ -23,10 +23,10 @@ def test_mount_profiles_define_four_distinct_candidate_transforms() -> None:
     profiles = load_mount_profiles(PROFILES_PATH)
 
     assert set(profiles) == {
-        'floor_12cm', 'floor_26cm', 'floor_45cm', 'floor_70cm'
+        'floor_16p5cm', 'floor_26cm', 'floor_45cm', 'floor_70cm'
     }
-    assert profiles['floor_12cm'].transform.translation == (
-        0.16, 0.0, -0.26
+    assert profiles['floor_16p5cm'].transform.translation == (
+        0.16, 0.0, -0.215
     )
     assert profiles['floor_26cm'].transform.translation == (
         0.16, 0.0, -0.12
@@ -63,7 +63,7 @@ def test_profile_loader_rejects_duplicate_transforms(tmp_path: Path) -> None:
 @pytest.mark.parametrize('simulator', ('fortress', 'harmonic'))
 @pytest.mark.parametrize(
     'profile_name',
-    ('floor_12cm', 'floor_26cm', 'floor_45cm', 'floor_70cm'),
+    ('floor_16p5cm', 'floor_26cm', 'floor_45cm', 'floor_70cm'),
 )
 def test_materialized_world_and_tf_match_profile(
     tmp_path: Path, simulator: str, profile_name: str

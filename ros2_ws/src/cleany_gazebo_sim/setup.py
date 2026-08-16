@@ -15,7 +15,9 @@ setup(
         (f'share/{package_name}/launch', glob('launch/*.launch.py')),
         (
             f'share/{package_name}/config',
-            glob('config/*.yaml') + glob('config/*.rviz'),
+            glob('config/*.yaml')
+            + glob('config/*.rviz')
+            + glob('config/*.lua'),
         ),
         (f'share/{package_name}/worlds', glob('worlds/*.sdf')),
     ],
