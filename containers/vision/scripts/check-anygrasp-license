@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+/opt/cleany/bin/anygrasp-feature-id >/dev/null
+
+python3 - <<'PY'
+import os
+from gsnet import check_license
+
+license_dir = os.environ['ANYGRASP_LICENSE_DIR']
+if not check_license(license_dir):
+    raise SystemExit('AnyGrasp license validation failed')
+print('AnyGrasp license validation passed')
+PY

@@ -42,6 +42,11 @@ camera intrinsics가 grasp request에 포함되지 않으므로 pixel overlay가
 ros2 run rqt_image_view rqt_image_view /grasp/debug_image
 ```
 
+AnyGrasp import와 detector 생성은 adapter가 첫 요청까지 지연한다. 따라서 ROS 비의존
+core와 fake 테스트는 라이선스 SDK 없이 실행할 수 있다. `GraspPredictor` port를 구현하면
+다른 predictor도 주입할 수 있다. adapter는 2026 aarch64 `dev` SDK의
+`create_detector()`와 region steering API를 사용한다.
+
 ## 설정
 
 `config/anygrasp.yaml`에서 다음 값을 배포 환경에 맞게 설정한다.
@@ -50,6 +55,8 @@ ros2 run rqt_image_view rqt_image_view /grasp/debug_image
 - `debug_image_topic`: 후보 top-view 이미지 topic
 - `geometric.*`: gripper 형상, 충돌 여유, RANSAC, depth 경계 outlier trim과 yaw 후보 설정
 - `checkpoint_path`, `license_path`: Jetson-local AnyGrasp SDK 파일
+- SDK 제약상 네 license 파일의 directory 이름은 `license`여야 한다.
+- `gripper_height_m`: SDK collision model의 finger height
 - `planning_frame`: MoveIt planning frame (기본 `base_link`)
 - `maximum_gripper_width_m`: 실제 gripper calibration 뒤 확정할 값
 - `canonical_to_tcp_rotation`: GraspNet canonical frame에서 Cleany
@@ -71,7 +78,9 @@ Orin NX에서 별도 확인해야 한다.
 4. `ros2 service call /grasp/plan ...`으로 planning-frame candidate와 RViz marker 검증
 
 SDK와 license는 이 저장소에 vendor하지 않는다. 검증하지 않은 Jetson 호환성을 구현
-사실로 간주하지 않는다.
+사실로 간주하지 않는다. 고정 MAC container 개발과 license 신청 절차는
+[`containers/vision`](../../../containers/vision/README.md)을 따른다. host-native feature ID와
+container feature ID는 서로 다르므로 실제 배포 container 안에서 발급받는다.
 
 ## 빌드와 테스트
 

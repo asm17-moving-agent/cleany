@@ -43,7 +43,9 @@ GRASP_PREGRASP_DESCRIPTION_TESTS := \
 	test-grasp-pregrasp-runtime test-gazebo handeye-generate-mujoco \
 	handeye-validate-mujoco \
 	test-gazebo-harmonic test-gazebo-nav-runtime sim sim-gazebo \
-	sim-gazebo-harmonic handeye-mujoco clean
+	sim-gazebo-harmonic handeye-mujoco clean \
+	vision-init vision-host-setup vision-config vision-build vision-up vision-down vision-shell \
+	vision-feature-id vision-license-check vision-run
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -69,6 +71,12 @@ help:
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
 	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
+	@echo "  make vision-init   Create local Jetson vision container settings"
+	@echo "  make vision-host-setup  Enable Docker bridge networking on Jetson (sudo)"
+	@echo "  make vision-build  Build the Jetson vision development image"
+	@echo "  make vision-up     Start the fixed-MAC vision container"
+	@echo "  make vision-feature-id  Print AnyGrasp ID inside the container"
+	@echo "  make vision-run    Run perception and grasping in the container"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 
 deps:
@@ -270,6 +278,36 @@ handeye-validate-mujoco: build-handeye
 		--max-translation-norm-m "$(HANDEYE_MAX_TRANSLATION_NORM_M)" \
 		--dataset-mode "$(HANDEYE_DATASET_MODE)" \
 		--output "$(HANDEYE_VALIDATION_OUTPUT)"
+
+vision-init:
+	"$(REPO_ROOT)tools/vision-container" init
+
+vision-host-setup:
+	"$(REPO_ROOT)tools/vision-container" host-setup
+
+vision-config:
+	"$(REPO_ROOT)tools/vision-container" config
+
+vision-build:
+	"$(REPO_ROOT)tools/vision-container" build
+
+vision-up:
+	"$(REPO_ROOT)tools/vision-container" up
+
+vision-down:
+	"$(REPO_ROOT)tools/vision-container" down
+
+vision-shell:
+	"$(REPO_ROOT)tools/vision-container" shell
+
+vision-feature-id:
+	"$(REPO_ROOT)tools/vision-container" feature-id
+
+vision-license-check:
+	"$(REPO_ROOT)tools/vision-container" check-license
+
+vision-run:
+	"$(REPO_ROOT)tools/vision-container" run
 
 clean:
 	"$(REPO_ROOT)tools/ros2-clean"

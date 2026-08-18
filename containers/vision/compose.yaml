@@ -1,0 +1,68 @@
+name: cleany-vision
+
+services:
+  vision:
+    image: cleany-vision:jp6.2
+    build:
+      context: ../..
+      dockerfile: containers/vision/Dockerfile
+      # The Jetson kernel omits CONFIG_IP_NF_RAW. Host networking lets the
+      # image build avoid Docker's bridge endpoint setup; runtime still uses
+      # the fixed-MAC bridge below.
+      network: host
+    init: true
+    runtime: nvidia
+    working_dir: /workspace/cleany
+    environment:
+      ANYGRASP_EXPECTED_MAC: "${VISION_MAC_ADDRESS:-02:42:ac:1e:00:0a}"
+      ANYGRASP_LICENSE_DIR: /workspace/cleany/license
+      ANYGRASP_LICENSE_FILE: "${ANYGRASP_LICENSE_FILE:-JeongHyeonLee.lic}"
+      ANYGRASP_CHECKPOINT_PATH: "${ANYGRASP_CHECKPOINT_PATH:-/models/anygrasp/checkpoint_detection.tar}"
+      SAM2_MODEL_CONFIG: "${SAM2_MODEL_CONFIG:-configs/sam2.1/sam2.1_hiera_s.yaml}"
+      SAM2_CHECKPOINT_PATH: "${SAM2_CHECKPOINT_PATH:-/models/sam2/sam2.1_hiera_small.pt}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      ROS_DOMAIN_ID: "${ROS_DOMAIN_ID:-0}"
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      CYCLONEDDS_URI: file:///etc/cleany/cyclonedds.xml
+    volumes:
+      - type: bind
+        source: ../..
+        target: /workspace/cleany
+      - type: bind
+        source: "${ANYGRASP_LICENSE_DIR:-/home/cleany/.local/share/cleany/anygrasp/license}"
+        target: /workspace/cleany/license
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${ANYGRASP_MODEL_DIR:-/home/cleany/models/anygrasp}"
+        target: /models/anygrasp
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${SAM2_MODEL_DIR:-/home/cleany/models/sam2}"
+        target: /models/sam2
+        read_only: true
+        bind:
+          create_host_path: false
+      - vision-build:/workspace/cleany/ros2_ws/build-vision
+      - vision-install:/workspace/cleany/ros2_ws/install-vision
+      - vision-log:/workspace/cleany/ros2_ws/log-vision
+    networks:
+      vision:
+        ipv4_address: "${VISION_IPV4_ADDRESS:-172.30.0.10}"
+        mac_address: "${VISION_MAC_ADDRESS:-02:42:ac:1e:00:0a}"
+
+networks:
+  vision:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${VISION_SUBNET:-172.30.0.0/24}"
+          gateway: "${VISION_GATEWAY:-172.30.0.1}"
+
+volumes:
+  vision-build:
+  vision-install:
+  vision-log:

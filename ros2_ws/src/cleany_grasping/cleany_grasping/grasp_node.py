@@ -115,6 +115,7 @@ class GraspNode(Node):
         self.declare_parameter('predictor_type', 'geometric')
         self.declare_parameter('debug_image_topic', 'grasp/debug_image')
         self.declare_parameter('maximum_gripper_width_m', 0.10)
+        self.declare_parameter('gripper_height_m', 0.03)
         self.declare_parameter('workspace_margin_m', 0.04)
         self.declare_parameter('target_contact_margin_m', 0.015)
         self.declare_parameter('geometric.opening_margin_m', 0.008)
