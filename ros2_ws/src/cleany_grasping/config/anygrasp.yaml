@@ -2,10 +2,25 @@ grasp_server:
   ros__parameters:
     service_name: grasp/plan
     planning_frame: base_link
+    predictor_type: geometric  # geometric works without model files.
+    debug_image_topic: grasp/debug_image
     checkpoint_path: ''  # Jetson-local licensed SDK checkpoint; configure at deployment.
     license_path: ''     # Jetson-local AnyGrasp SDK license file.
     maximum_gripper_width_m: 0.10  # Simulation value; replace after hardware calibration.
     workspace_margin_m: 0.04
     target_contact_margin_m: 0.015
+    geometric:
+      opening_margin_m: 0.008
+      grasp_depth_m: 0.025
+      finger_thickness_m: 0.010
+      finger_length_m: 0.045
+      palm_depth_m: 0.018
+      collision_clearance_m: 0.003
+      plane_distance_threshold_m: 0.006
+      plane_ransac_iterations: 160
+      extent_trim_percentile: 0.5
+      axis_search_step_degrees: 1.0
+      yaw_offsets_degrees: [-20.0, -10.0, 0.0, 10.0, 20.0]
+      maximum_candidates: 12
     canonical_to_tcp_rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
     tcp_approach_axis: [1.0, 0.0, 0.0]

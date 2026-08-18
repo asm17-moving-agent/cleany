@@ -28,7 +28,8 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 ```
 
-RGB-D pick-demo 장면은 EGL renderer, 아래로 `1.0 rad` 기울인 head, 비활성화된
+RGB-D pick-demo 장면은 EGL renderer, 두 대상이 image boundary에서 잘리지 않도록 아래로
+`0.8 rad` 기울인 head, 비활성화된
 laser scan으로 별도 노드를 실행한다.
 
 ```bash

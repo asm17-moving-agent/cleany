@@ -9,13 +9,19 @@ from cleany_interfaces.msg import GraspCandidate
 from cleany_interfaces.srv import PlanGrasp
 from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
-from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import Image, PointCloud2
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from cleany_grasping.anygrasp_adapter import AnyGraspPredictor, ModelUnavailableError
 from cleany_grasping.core.models import PointCloud
-from cleany_grasping.core.selector import GraspConfig, select_grasp
+from cleany_grasping.core.selector import GraspConfig, rank_grasps
+from cleany_grasping.debug_image import debug_image_message, render_grasp_debug_image
+from cleany_grasping.geometric_predictor import (
+    GeometricGraspConfig,
+    GeometricGraspPredictor,
+)
 
 
 def _quaternion_from_rotation(matrix: np.ndarray) -> tuple[float, float, float, float]:
@@ -80,14 +86,36 @@ class GraspNode(Node):
         self.declare_parameter('planning_frame', 'base_link')
         self.declare_parameter('checkpoint_path', '')
         self.declare_parameter('license_path', '')
+        self.declare_parameter('predictor_type', 'geometric')
+        self.declare_parameter('debug_image_topic', 'grasp/debug_image')
         self.declare_parameter('maximum_gripper_width_m', 0.10)
         self.declare_parameter('workspace_margin_m', 0.04)
         self.declare_parameter('target_contact_margin_m', 0.015)
+        self.declare_parameter('geometric.opening_margin_m', 0.008)
+        self.declare_parameter('geometric.grasp_depth_m', 0.025)
+        self.declare_parameter('geometric.finger_thickness_m', 0.010)
+        self.declare_parameter('geometric.finger_length_m', 0.045)
+        self.declare_parameter('geometric.palm_depth_m', 0.018)
+        self.declare_parameter('geometric.collision_clearance_m', 0.003)
+        self.declare_parameter('geometric.plane_distance_threshold_m', 0.006)
+        self.declare_parameter('geometric.plane_ransac_iterations', 160)
+        self.declare_parameter('geometric.extent_trim_percentile', 0.5)
+        self.declare_parameter('geometric.axis_search_step_degrees', 1.0)
+        self.declare_parameter(
+            'geometric.yaw_offsets_degrees', [-20.0, -10.0, 0.0, 10.0, 20.0]
+        )
+        self.declare_parameter('geometric.maximum_candidates', 12)
         self.declare_parameter('canonical_to_tcp_rotation', [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
         self.declare_parameter('tcp_approach_axis', [1.0, 0.0, 0.0])
-        self._predictor = predictor or AnyGraspPredictor(
-            str(self.get_parameter('checkpoint_path').value),
-            str(self.get_parameter('license_path').value),
+        self._predictor = predictor or self._create_predictor()
+        self._debug_publisher = self.create_publisher(
+            Image,
+            str(self.get_parameter('debug_image_topic').value),
+            QoSProfile(
+                depth=1,
+                reliability=ReliabilityPolicy.RELIABLE,
+                durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            ),
         )
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
@@ -108,7 +136,24 @@ class GraspNode(Node):
                 canonical_to_tcp_rotation=np.asarray(self.get_parameter('canonical_to_tcp_rotation').value).reshape((3, 3)),
                 tcp_approach_axis=np.asarray(self.get_parameter('tcp_approach_axis').value),
             )
-            grasp = select_grasp(self._predictor, target, context, config)
+            target_min = target.points.min(axis=0)
+            target_max = target.points.max(axis=0)
+            workspace = np.column_stack(
+                (
+                    target_min - config.workspace_margin_m,
+                    target_max + config.workspace_margin_m,
+                )
+            ).reshape(-1)
+            candidates = self._predictor.predict(target, context, workspace)
+            ranked = rank_grasps(candidates, target, config)
+            grasp = ranked[0] if ranked else None
+            self._publish_debug(
+                target,
+                context,
+                candidates,
+                self._selected_raw_index(candidates, grasp),
+                request.context_cloud,
+            )
             if grasp is None:
                 return self._fail(response, response.ERROR_NO_GRASP_CANDIDATE, 'No valid grasp candidate')
             rotation, translation, approach = self._to_planning_frame(
@@ -137,6 +182,99 @@ class GraspNode(Node):
             return self._fail(response, response.ERROR_INVALID_INPUT, str(error))
         except Exception as error:
             return self._fail(response, response.ERROR_INTERNAL, f'Unexpected grasp error: {error}')
+
+    def _create_predictor(self):
+        predictor_type = str(self.get_parameter('predictor_type').value).strip().lower()
+        if predictor_type == 'anygrasp':
+            return AnyGraspPredictor(
+                str(self.get_parameter('checkpoint_path').value),
+                str(self.get_parameter('license_path').value),
+            )
+        if predictor_type == 'geometric':
+            return GeometricGraspPredictor(
+                GeometricGraspConfig(
+                    maximum_gripper_width_m=float(
+                        self.get_parameter('maximum_gripper_width_m').value
+                    ),
+                    opening_margin_m=float(
+                        self.get_parameter('geometric.opening_margin_m').value
+                    ),
+                    grasp_depth_m=float(
+                        self.get_parameter('geometric.grasp_depth_m').value
+                    ),
+                    finger_thickness_m=float(
+                        self.get_parameter('geometric.finger_thickness_m').value
+                    ),
+                    finger_length_m=float(
+                        self.get_parameter('geometric.finger_length_m').value
+                    ),
+                    palm_depth_m=float(
+                        self.get_parameter('geometric.palm_depth_m').value
+                    ),
+                    collision_clearance_m=float(
+                        self.get_parameter('geometric.collision_clearance_m').value
+                    ),
+                    plane_distance_threshold_m=float(
+                        self.get_parameter(
+                            'geometric.plane_distance_threshold_m'
+                        ).value
+                    ),
+                    plane_ransac_iterations=int(
+                        self.get_parameter('geometric.plane_ransac_iterations').value
+                    ),
+                    extent_trim_percentile=float(
+                        self.get_parameter('geometric.extent_trim_percentile').value
+                    ),
+                    axis_search_step_degrees=float(
+                        self.get_parameter('geometric.axis_search_step_degrees').value
+                    ),
+                    yaw_offsets_degrees=tuple(
+                        float(value)
+                        for value in self.get_parameter(
+                            'geometric.yaw_offsets_degrees'
+                        ).value
+                    ),
+                    maximum_candidates=int(
+                        self.get_parameter('geometric.maximum_candidates').value
+                    ),
+                )
+            )
+        raise ValueError(
+            f'Unsupported predictor_type {predictor_type!r}; use geometric or anygrasp'
+        )
+
+    @staticmethod
+    def _selected_raw_index(candidates, grasp) -> int | None:
+        if grasp is None:
+            return None
+        for index, candidate in enumerate(candidates):
+            if math.isclose(candidate.score, grasp.score) and np.allclose(
+                candidate.translation, grasp.translation
+            ):
+                return index
+        return None
+
+    def _publish_debug(
+        self,
+        target: PointCloud,
+        context: PointCloud,
+        candidates,
+        selected_index: int | None,
+        cloud_message: PointCloud2,
+    ) -> None:
+        rendered = render_grasp_debug_image(
+            target,
+            context,
+            candidates,
+            selected_index=selected_index,
+        )
+        self._debug_publisher.publish(
+            debug_image_message(
+                rendered,
+                Time.from_msg(cloud_message.header.stamp).nanoseconds,
+                cloud_message.header.frame_id,
+            )
+        )
 
     @staticmethod
     def _fail(response, code, message):

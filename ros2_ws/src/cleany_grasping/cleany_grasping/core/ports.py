@@ -11,6 +11,7 @@ from cleany_grasping.core.models import PointCloud, RawGrasp
 class GraspPredictor(Protocol):
     def predict(
         self,
+        target_cloud: PointCloud,
         context_cloud: PointCloud,
         workspace_bounds: NDArray[np.float64],
     ) -> tuple[RawGrasp, ...]: ...

@@ -98,7 +98,7 @@ def test_rgbd_sensor_bridge_renders_aligned_frames_and_ground_truth(
         model,
         data,
         ['head_tilt_joint'],
-        [1.0],
+        [0.8],
     )
     mujoco.mj_forward(model, data)
     context = MujocoSimulationContext(model=model, data=data)
@@ -151,7 +151,24 @@ def test_rgbd_sensor_bridge_renders_aligned_frames_and_ground_truth(
         assert color.header.stamp == depth.header.stamp
         assert color_info.header.stamp == depth_info.header.stamp
         assert color_info.k == pytest.approx(depth_info.k)
-        assert np.frombuffer(color.data, dtype=np.uint8).any()
+        color_array = np.frombuffer(color.data, dtype=np.uint8).reshape(
+            480, 640, 3
+        )
+        assert color_array.any()
+        red, green, blue = (
+            color_array[:, :, index].astype(float) for index in range(3)
+        )
+        object_masks = (
+            (blue > 80.0)
+            & (red < 120.0)
+            & ((blue > 1.15 * red) | (green > 1.3 * red)),
+            (red > 140.0) & (red > 1.55 * green) & (red > 1.7 * blue),
+        )
+        for object_mask in object_masks:
+            rows, columns = np.nonzero(object_mask)
+            assert rows.size > 100
+            assert rows.min() > 0 and rows.max() < color.height - 1
+            assert columns.min() > 0 and columns.max() < color.width - 1
 
         depth_array = np.frombuffer(depth.data, dtype='<f4').reshape(480, 640)
         finite_depth = depth_array[np.isfinite(depth_array)]

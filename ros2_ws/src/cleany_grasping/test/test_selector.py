@@ -9,7 +9,8 @@ class FakePredictor:
         self.candidates = tuple(candidates)
         self.workspace = None
 
-    def predict(self, context_cloud, workspace_bounds):
+    def predict(self, target_cloud, context_cloud, workspace_bounds):
+        del target_cloud, context_cloud
         self.workspace = workspace_bounds
         return self.candidates
 

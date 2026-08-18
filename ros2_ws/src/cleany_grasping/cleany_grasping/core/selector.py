@@ -50,6 +50,55 @@ def _rotation_distance(left: np.ndarray, right: np.ndarray) -> float:
     return float(np.arccos(cosine))
 
 
+def rank_grasps(
+    candidates: tuple[RawGrasp, ...],
+    target_cloud: PointCloud,
+    config: GraspConfig | None = None,
+) -> tuple[GraspPose, ...]:
+    settings = config or GraspConfig()
+    if target_cloud.points.shape[0] == 0:
+        raise ValueError('Target cloud must not be empty')
+    target_min = target_cloud.points.min(axis=0)
+    target_max = target_cloud.points.max(axis=0)
+    sorted_candidates = sorted(candidates, key=lambda item: item.score, reverse=True)
+    kept: list[RawGrasp] = []
+    contact_min = target_min - settings.target_contact_margin_m
+    contact_max = target_max + settings.target_contact_margin_m
+    for candidate in sorted_candidates:
+        if not 0.0 < candidate.width_m <= settings.maximum_gripper_width_m:
+            continue
+        contact = candidate.translation + candidate.depth_m * candidate.rotation[:, 0]
+        if not np.all((contact >= contact_min) & (contact <= contact_max)):
+            continue
+        if any(
+            np.linalg.norm(candidate.translation - prior.translation)
+            < settings.nms_translation_threshold_m
+            and _rotation_distance(candidate.rotation, prior.rotation)
+            < settings.nms_rotation_threshold_rad
+            for prior in kept
+        ):
+            continue
+        kept.append(candidate)
+    ranked = []
+    for candidate in kept:
+        tcp_rotation = candidate.rotation @ np.asarray(
+            settings.canonical_to_tcp_rotation
+        )
+        approach = tcp_rotation @ np.asarray(settings.tcp_approach_axis)
+        approach /= np.linalg.norm(approach)
+        ranked.append(
+            GraspPose(
+                rotation=tcp_rotation,
+                translation=candidate.translation.copy(),
+                approach_direction=approach,
+                required_opening_m=candidate.width_m,
+                depth_m=candidate.depth_m,
+                score=candidate.score,
+            )
+        )
+    return tuple(ranked)
+
+
 def select_grasp(
     predictor: GraspPredictor,
     target_cloud: PointCloud,
@@ -65,40 +114,9 @@ def select_grasp(
     workspace_max = target_max + settings.workspace_margin_m
     # AnyGrasp SDK order: xmin, xmax, ymin, ymax, zmin, zmax.
     workspace = np.column_stack((workspace_min, workspace_max)).reshape(-1)
-    candidates = sorted(
-        predictor.predict(context_cloud, workspace),
-        key=lambda item: item.score,
-        reverse=True,
+    ranked = rank_grasps(
+        predictor.predict(target_cloud, context_cloud, workspace),
+        target_cloud,
+        settings,
     )
-    kept: list[RawGrasp] = []
-    contact_min = target_min - settings.target_contact_margin_m
-    contact_max = target_max + settings.target_contact_margin_m
-    for candidate in candidates:
-        if not 0.0 < candidate.width_m <= settings.maximum_gripper_width_m:
-            continue
-        contact = candidate.translation + candidate.depth_m * candidate.rotation[:, 0]
-        if not np.all((contact >= contact_min) & (contact <= contact_max)):
-            continue
-        if any(
-            np.linalg.norm(candidate.translation - prior.translation)
-            < settings.nms_translation_threshold_m
-            and _rotation_distance(candidate.rotation, prior.rotation)
-            < settings.nms_rotation_threshold_rad
-            for prior in kept
-        ):
-            continue
-        kept.append(candidate)
-    if not kept:
-        return None
-    best = kept[0]
-    tcp_rotation = best.rotation @ np.asarray(settings.canonical_to_tcp_rotation)
-    approach = tcp_rotation @ np.asarray(settings.tcp_approach_axis)
-    approach /= np.linalg.norm(approach)
-    return GraspPose(
-        rotation=tcp_rotation,
-        translation=best.translation.copy(),
-        approach_direction=approach,
-        required_opening_m=best.width_m,
-        depth_m=best.depth_m,
-        score=best.score,
-    )
+    return ranked[0] if ranked else None

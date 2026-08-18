@@ -17,5 +17,6 @@ ros2_ws/install-harmonic/
 ros2_ws/log-harmonic/
 
 # Local artifacts
+/artifacts/
 *.log
 *.tmp

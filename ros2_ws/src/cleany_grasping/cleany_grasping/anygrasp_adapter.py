@@ -39,7 +39,13 @@ class AnyGraspPredictor:
         self._model = model
         return model
 
-    def predict(self, context_cloud: PointCloud, workspace_bounds: np.ndarray):
+    def predict(
+        self,
+        target_cloud: PointCloud,
+        context_cloud: PointCloud,
+        workspace_bounds: np.ndarray,
+    ):
+        del target_cloud
         model = self._load()
         result = model.get_grasp(
             context_cloud.points.astype(np.float32),

@@ -18,7 +18,7 @@ setup(
     zip_safe=True,
     maintainer='Cleany Team',
     maintainer_email='team@example.com',
-    description='AnyGrasp-backed single grasp candidate generation.',
+    description='Geometric and AnyGrasp-backed grasp candidate generation.',
     license='Apache-2.0',
     extras_require={'test': ['pytest']},
     entry_points={'console_scripts': ['grasp_server = cleany_grasping.grasp_node:main']},
