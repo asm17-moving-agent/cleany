@@ -81,6 +81,7 @@ class GraspNode(Node):
         self.declare_parameter('checkpoint_path', '')
         self.declare_parameter('license_path', '')
         self.declare_parameter('maximum_gripper_width_m', 0.10)
+        self.declare_parameter('gripper_height_m', 0.03)
         self.declare_parameter('workspace_margin_m', 0.04)
         self.declare_parameter('target_contact_margin_m', 0.015)
         self.declare_parameter('canonical_to_tcp_rotation', [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
@@ -88,6 +89,8 @@ class GraspNode(Node):
         self._predictor = predictor or AnyGraspPredictor(
             str(self.get_parameter('checkpoint_path').value),
             str(self.get_parameter('license_path').value),
+            float(self.get_parameter('maximum_gripper_width_m').value),
+            float(self.get_parameter('gripper_height_m').value),
         )
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)

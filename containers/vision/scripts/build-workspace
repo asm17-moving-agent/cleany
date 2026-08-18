@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+set +u
+source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
+set -u
+cd /workspace/cleany/ros2_ws
+
+colcon --log-base log-vision build \
+  --symlink-install \
+  --build-base build-vision \
+  --install-base install-vision \
+  --packages-up-to cleany_perception cleany_grasping

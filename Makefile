@@ -7,7 +7,9 @@ GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-gazebo-harmonic test test-mission test-mujoco test-gazebo \
-	test-gazebo-harmonic sim sim-gazebo sim-gazebo-harmonic clean
+	test-gazebo-harmonic sim sim-gazebo sim-gazebo-harmonic clean \
+	vision-init vision-host-setup vision-config vision-build vision-up vision-down vision-shell \
+	vision-feature-id vision-license-check vision-run
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -24,6 +26,12 @@ help:
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
+	@echo "  make vision-init   Create local Jetson vision container settings"
+	@echo "  make vision-host-setup  Enable Docker bridge networking on Jetson (sudo)"
+	@echo "  make vision-build  Build the Jetson vision development image"
+	@echo "  make vision-up     Start the fixed-MAC vision container"
+	@echo "  make vision-feature-id  Print AnyGrasp ID inside the container"
+	@echo "  make vision-run    Run perception and grasping in the container"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 
 deps:
@@ -112,6 +120,36 @@ sim-gazebo: build-gazebo
 
 sim-gazebo-harmonic:
 	$(MAKE) GAZEBO_PROFILE=harmonic sim-gazebo
+
+vision-init:
+	"$(REPO_ROOT)tools/vision-container" init
+
+vision-host-setup:
+	"$(REPO_ROOT)tools/vision-container" host-setup
+
+vision-config:
+	"$(REPO_ROOT)tools/vision-container" config
+
+vision-build:
+	"$(REPO_ROOT)tools/vision-container" build
+
+vision-up:
+	"$(REPO_ROOT)tools/vision-container" up
+
+vision-down:
+	"$(REPO_ROOT)tools/vision-container" down
+
+vision-shell:
+	"$(REPO_ROOT)tools/vision-container" shell
+
+vision-feature-id:
+	"$(REPO_ROOT)tools/vision-container" feature-id
+
+vision-license-check:
+	"$(REPO_ROOT)tools/vision-container" check-license
+
+vision-run:
+	"$(REPO_ROOT)tools/vision-container" run
 
 clean:
 	"$(REPO_ROOT)tools/ros2-clean"

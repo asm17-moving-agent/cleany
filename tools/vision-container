@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+vision_dir="${repo_root}/containers/vision"
+env_file="${vision_dir}/.env"
+compose=(docker compose --project-directory "${vision_dir}" --env-file "${env_file}" -f "${vision_dir}/compose.yaml")
+
+usage() {
+  cat <<'EOF'
+Usage: tools/vision-container COMMAND
+
+Commands:
+  init           Create the ignored local .env from .env.example
+  host-setup     Enable Docker bridge networking on the Jetson kernel
+  config         Validate and render the Compose configuration
+  build          Build the Jetson vision image
+  up             Start the persistent development container
+  down           Stop the development container
+  shell          Open a shell in the running container
+  build-workspace Build perception and grasping packages in the container
+  feature-id     Print the fixed-container AnyGrasp feature ID
+  check-license  Validate the mounted AnyGrasp license
+  run            Run perception and grasping nodes in the container
+EOF
+}
+
+command="${1:-}"
+if [[ "${command}" == host-setup ]]; then
+  drop_in_source="${vision_dir}/docker.service.d/10-cleany-jetson-no-iptables-raw.conf"
+  drop_in_target="/etc/systemd/system/docker.service.d/10-cleany-jetson-no-iptables-raw.conf"
+
+  if [[ -r "${drop_in_target}" ]] && cmp -s "${drop_in_source}" "${drop_in_target}"; then
+    echo "Already installed: ${drop_in_target}"
+    exit 0
+  fi
+
+  kernel_config="/boot/config-$(uname -r)"
+  if { [[ -r /proc/config.gz ]] &&
+       zgrep -Eq '^CONFIG_IP_NF_RAW=(y|m)$' /proc/config.gz; } ||
+     { [[ -r "${kernel_config}" ]] &&
+       grep -Eq '^CONFIG_IP_NF_RAW=(y|m)$' "${kernel_config}"; } ||
+     modinfo iptable_raw >/dev/null 2>&1; then
+    echo "The host provides the iptables raw table; no Docker workaround is required."
+    exit 0
+  fi
+
+  cat <<'EOF'
+This Jetson kernel has no CONFIG_IP_NF_RAW support. Docker's documented
+DOCKER_INSECURE_NO_IPTABLES_RAW workaround will be enabled system-wide and the
+Docker daemon will restart. It weakens isolation for ports published only on
+127.0.0.1; the Cleany vision service does not publish ports.
+EOF
+  read -r -p "Continue? [y/N] " answer
+  if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
+    echo "Cancelled."
+    exit 1
+  fi
+
+  sudo install -D -m 0644 "${drop_in_source}" "${drop_in_target}"
+  sudo systemctl daemon-reload
+  sudo systemctl restart docker
+  docker info >/dev/null
+  echo "Installed: ${drop_in_target}"
+  exit 0
+fi
+
+if [[ "${command}" == init ]]; then
+  if [[ -e "${env_file}" ]]; then
+    echo "Already exists: ${env_file}"
+  else
+    cp "${vision_dir}/.env.example" "${env_file}"
+    chmod 600 "${env_file}"
+    echo "Created: ${env_file}"
+  fi
+  exit 0
+fi
+
+if [[ ! -f "${env_file}" ]]; then
+  echo "Run 'tools/vision-container init' first." >&2
+  exit 1
+fi
+
+case "${command}" in
+  config) "${compose[@]}" config ;;
+  build) "${compose[@]}" build vision ;;
+  up) "${compose[@]}" up -d vision ;;
+  down) "${compose[@]}" down ;;
+  shell) "${compose[@]}" exec vision bash ;;
+  build-workspace) "${compose[@]}" exec vision /opt/cleany/bin/build-workspace ;;
+  feature-id) "${compose[@]}" exec vision /opt/cleany/bin/anygrasp-feature-id ;;
+  check-license) "${compose[@]}" exec vision /opt/cleany/bin/check-anygrasp-license ;;
+  run) "${compose[@]}" exec vision /opt/cleany/bin/run-vision ;;
+  *) usage; exit 2 ;;
+esac

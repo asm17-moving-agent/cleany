@@ -37,6 +37,10 @@ API는 제한이 설정된 API key가 필요할 수 있다.
 
 ## 실행
 
+Jetson에서 perception과 AnyGrasp를 동일한 고정 MAC container로 개발·실행할 때는
+[`containers/vision`](../../../containers/vision/README.md)을 따른다. 아래 명령은 native
+개발환경용이다.
+
 1차 detector-only 단계만 확인할 때는 SAM2 인자가 필요 없다.
 
 ```bash

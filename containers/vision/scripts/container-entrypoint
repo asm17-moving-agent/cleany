@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+set +u
+source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
+set -u
+
+vision_install=/workspace/cleany/ros2_ws/install-vision/setup.bash
+if [[ -f "${vision_install}" ]]; then
+  set +u
+  source "${vision_install}"
+  set -u
+fi
+
+exec "$@"

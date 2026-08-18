@@ -84,6 +84,24 @@ ros2 doctor --report
 
 Python은 `3.10.x`, `ROS_DISTRO`는 `humble`이어야 한다.
 
+### 선택: Jetson vision container
+
+일반 ROS package와 simulation 개발의 기본은 계속 native 환경이다. Jetson에서 CUDA,
+SAM2, MinkowskiEngine과 licensed AnyGrasp를 함께 개발할 때는 dependency와 license
+identity를 격리하기 위해 vision container를 사용할 수 있다.
+
+```bash
+make vision-init
+make vision-config
+make vision-build
+make vision-up
+make vision-feature-id
+```
+
+AnyGrasp license는 host가 아니라 고정 MAC container에서 출력한 feature ID로 신청한다.
+상세한 model/license mount, 재부팅 검증과 ROS 2 DDS 설정은
+[`containers/vision/README.md`](../containers/vision/README.md)를 따른다.
+
 ## 4. 레포지토리 준비
 
 SSH key가 GitHub에 등록되어 있다는 전제에서 submodule과 함께 clone한다.

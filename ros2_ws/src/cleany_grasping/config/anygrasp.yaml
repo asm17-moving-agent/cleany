@@ -5,6 +5,7 @@ grasp_server:
     checkpoint_path: ''  # Jetson-local licensed SDK checkpoint; configure at deployment.
     license_path: ''     # Jetson-local AnyGrasp SDK license file.
     maximum_gripper_width_m: 0.10  # Simulation value; replace after hardware calibration.
+    gripper_height_m: 0.03  # AnyGrasp collision-model finger height.
     workspace_margin_m: 0.04
     target_contact_margin_m: 0.015
     canonical_to_tcp_rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]

@@ -9,6 +9,9 @@ __pycache__/
 venv/
 
 # ROS 2 / colcon
+/build/
+/install/
+/log/
 ros2_ws/build/
 ros2_ws/install/
 ros2_ws/log/
@@ -19,3 +22,14 @@ ros2_ws/log-harmonic/
 # Local artifacts
 *.log
 *.tmp
+/perception-results/
+
+# Vision container local deployment state and licensed artifacts
+containers/vision/.env
+containers/vision/state/
+containers/vision/license/
+containers/vision/models/
+**/licenseCfg.json
+**/JeongHyeonLee.lic
+**/JeongHyeonLee.public_key
+**/JeongHyeonLee.signature

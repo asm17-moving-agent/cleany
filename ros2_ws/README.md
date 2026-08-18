@@ -9,6 +9,10 @@ Cleany의 로봇 엣지 시스템 코드가 들어가는 ROS 2 workspace다.
 공식 개발환경은 Ubuntu 22.04 VM과 ROS 2 Humble native 환경이다. ROS 2 Humble이
 설치되어 있고 `/opt/ros/humble/setup.bash`를 사용할 수 있어야 한다.
 
+Jetson의 perception/AnyGrasp CUDA dependency는 선택적으로 고정 MAC vision container에
+격리한다. 이는 공통 native 개발환경을 대체하지 않으며 사용법은
+[`containers/vision`](../containers/vision/README.md)을 따른다.
+
 새 VM을 준비하는 전체 절차는
 [개발환경 설치 가이드](../docs/DEVELOPMENT_SETUP.md)를 따른다.
 
