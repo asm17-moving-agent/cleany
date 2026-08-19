@@ -14,6 +14,7 @@ class RuntimeTestOptions:
     min_rtf: float | None
     min_camera_sim_hz: float | None
     min_lidar_sim_hz: float | None
+    min_imu_sim_hz: float | None
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -36,6 +37,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     group.addoption('--min-rtf', type=float, default=None)
     group.addoption('--min-camera-sim-hz', type=float, default=None)
     group.addoption('--min-lidar-sim-hz', type=float, default=None)
+    group.addoption('--min-imu-sim-hz', type=float, default=None)
 
 
 @pytest.fixture
@@ -51,6 +53,7 @@ def runtime_test_options(request: pytest.FixtureRequest) -> RuntimeTestOptions:
         min_rtf=request.config.getoption('--min-rtf'),
         min_camera_sim_hz=request.config.getoption('--min-camera-sim-hz'),
         min_lidar_sim_hz=request.config.getoption('--min-lidar-sim-hz'),
+        min_imu_sim_hz=request.config.getoption('--min-imu-sim-hz'),
     )
     durations = {
         '--warmup-sec': options.warmup_sec,
@@ -65,6 +68,7 @@ def runtime_test_options(request: pytest.FixtureRequest) -> RuntimeTestOptions:
         '--min-rtf': options.min_rtf,
         '--min-camera-sim-hz': options.min_camera_sim_hz,
         '--min-lidar-sim-hz': options.min_lidar_sim_hz,
+        '--min-imu-sim-hz': options.min_imu_sim_hz,
     }
     for name, value in thresholds.items():
         if value is not None and value < 0.0:

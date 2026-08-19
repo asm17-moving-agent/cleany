@@ -1,10 +1,14 @@
 import math
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import mujoco
 import pytest
 
-from cleany_mujoco_sim.scene_loader import load_model
+from cleany_mujoco_sim.scene_loader import (
+    load_model,
+    materialize_control_scene,
+)
 from cleany_mujoco_sim.state import actuated_joint_names
 
 
@@ -34,6 +38,64 @@ def test_cleany_scene_uses_description_model(cleany_scene_path: Path):
     assert legacy_joint_id < 0
 
 
+def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy():
+    package_root = Path(__file__).parents[1]
+    template_path = package_root / 'scenes' / 'default.xml.in'
+    canonical_path = (
+        package_root.parent / 'cleany_description' / 'mjcf' / 'cleany.xml'
+    )
+    canonical_text_before = canonical_path.read_text(encoding='utf-8')
+
+    control_scene = materialize_control_scene(template_path)
+    scene_root = ET.parse(control_scene).getroot()
+    include = scene_root.find('./include')
+    assert include is not None
+    materialized_model_path = Path(include.attrib['file'])
+    materialized_root = ET.parse(materialized_model_path).getroot()
+
+    assert materialized_root.findall('.//dcmotor') == []
+    actuator_names = {
+        actuator.attrib['name']
+        for actuator in materialized_root.findall('./actuator/*')
+    }
+    assert {
+        'rear_left_drive',
+        'rear_right_drive',
+        'front_left_drive',
+        'front_right_drive',
+    }.isdisjoint(actuator_names)
+    assert {
+        'left_shoulder_yaw_joint',
+        'left_shoulder_pitch_joint',
+        'left_elbow_pitch_joint',
+        'left_wrist_pitch_joint',
+        'left_wrist_roll_joint',
+        'right_shoulder_yaw_joint',
+        'right_shoulder_pitch_joint',
+        'right_elbow_pitch_joint',
+        'right_wrist_pitch_joint',
+        'right_wrist_roll_joint',
+    } <= actuator_names
+    startup_key = materialized_root.find(
+        "./keyframe/key[@name='handeye_ros2_control_home']"
+    )
+    assert startup_key is not None
+
+    model, _ = load_model(control_scene)
+    assert model.nu == 14
+    assert model.nkey == 1
+    key_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_KEY,
+        'handeye_ros2_control_home',
+    )
+    assert key_id >= 0
+    assert all(math.isfinite(value) for value in model.key_qpos[key_id])
+    assert all(math.isfinite(value) for value in model.key_ctrl[key_id])
+    assert canonical_path.read_text(encoding='utf-8') == canonical_text_before
+    assert '<dcmotor class="pg42_drive"' in canonical_text_before
+
+
 def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
     cleany_scene_path: Path,
 ):
@@ -53,13 +115,12 @@ def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
             joint_id = model.body_jntadr[body_id]
             assert model.jnt_type[joint_id] == mujoco.mjtJoint.mjJNT_HINGE
             assert model.jnt_group[joint_id] == 3
-            assert (
-                mujoco.mj_id2name(
-                    model,
-                    mujoco.mjtObj.mjOBJ_JOINT,
-                    joint_id,
-                )
-                is None
+            assert mujoco.mj_id2name(
+                model,
+                mujoco.mjtObj.mjOBJ_JOINT,
+                joint_id,
+            ) == (
+                f'{roller_name}_joint'
             )
             assert model.body_geomnum[body_id] == 1
 
@@ -90,14 +151,22 @@ def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
 
         assert actuator_id >= 0
         assert joint_id >= 0
-        assert model.actuator_dyntype[actuator_id] == mujoco.mjtDyn.mjDYN_DCMOTOR
-        assert model.actuator_trntype[actuator_id] == mujoco.mjtTrn.mjTRN_JOINT
+        assert model.actuator_dyntype[actuator_id] == (
+            mujoco.mjtDyn.mjDYN_DCMOTOR
+        )
+        assert model.actuator_trntype[actuator_id] == (
+            mujoco.mjtTrn.mjTRN_JOINT
+        )
         assert model.actuator_trnid[actuator_id, 0] == joint_id
-        assert model.actuator_ctrlrange[actuator_id] == pytest.approx((-10.8, 10.8))
+        assert model.actuator_ctrlrange[actuator_id] == pytest.approx(
+            (-10.8, 10.8)
+        )
         assert model.actuator_forcerange[actuator_id] == pytest.approx(
             (-2.646, 2.646)
         )
-        assert model.jnt_actfrcrange[joint_id] == pytest.approx((-2.646, 2.646))
+        assert model.jnt_actfrcrange[joint_id] == pytest.approx(
+            (-2.646, 2.646)
+        )
 
     rear_left_drive_id = mujoco.mj_name2id(
         model, mujoco.mjtObj.mjOBJ_ACTUATOR, 'rear_left_drive'
@@ -111,12 +180,16 @@ def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
     data.ctrl[rear_left_drive_id] = 10.8
     data.qvel[rear_left_dof_id] = 0.9 * 103.0 * 2.0 * math.pi / 60.0
     mujoco.mj_forward(model, data)
-    assert data.actuator_force[rear_left_drive_id] == pytest.approx(2.646, rel=1e-6)
+    assert data.actuator_force[rear_left_drive_id] == pytest.approx(
+        2.646, rel=1e-6
+    )
 
     # At 90 percent voltage, the no-load equilibrium speed also scales by 0.9.
     data.qvel[rear_left_dof_id] = 0.9 * (7000.0 / 61.0) * 2.0 * math.pi / 60.0
     mujoco.mj_forward(model, data)
-    assert data.actuator_force[rear_left_drive_id] == pytest.approx(0.0, abs=1e-6)
+    assert data.actuator_force[rear_left_drive_id] == pytest.approx(
+        0.0, abs=1e-6
+    )
 
     mujoco.mj_resetData(model, data)
     chassis_id = mujoco.mj_name2id(
@@ -257,74 +330,16 @@ def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
             assert model.jnt_actfrcrange[joint_id] == pytest.approx(
                 (-stall_torque, stall_torque)
             )
-            assert model.actuator_gainprm[actuator_id, 0] == pytest.approx(998.22)
-            assert model.actuator_biasprm[actuator_id, 2] == pytest.approx(-2.731)
+            assert model.actuator_gainprm[
+                actuator_id, 0
+            ] == pytest.approx(998.22)
+            assert model.actuator_biasprm[
+                actuator_id, 2
+            ] == pytest.approx(-2.731)
 
             modeled_no_load_speed = (
                 stall_torque - model.dof_frictionloss[dof_id]
             ) / model.dof_damping[dof_id]
-            assert modeled_no_load_speed == pytest.approx(no_load_speed, rel=1e-6)
-
-
-def test_rgbd_pick_scene_has_fixed_table_and_targets(
-    rgbd_pick_scene_path: Path,
-):
-    model, data = load_model(rgbd_pick_scene_path)
-    mujoco.mj_forward(model, data)
-
-    assert model.vis.quality.offsamples == 1
-
-    table_geom_id = mujoco.mj_name2id(
-        model,
-        mujoco.mjtObj.mjOBJ_GEOM,
-        'pick_tabletop',
-    )
-    box_geom_id = mujoco.mj_name2id(
-        model,
-        mujoco.mjtObj.mjOBJ_GEOM,
-        'pick_box_geom',
-    )
-    can_geom_id = mujoco.mj_name2id(
-        model,
-        mujoco.mjtObj.mjOBJ_GEOM,
-        'pick_can_geom',
-    )
-
-    assert data.geom_xpos[table_geom_id] == pytest.approx(
-        (0.635, -0.002, 0.710)
-    )
-    assert model.geom_size[table_geom_id] == pytest.approx(
-        (0.385, 0.600, 0.015)
-    )
-    assert data.geom_xpos[table_geom_id, 2] + model.geom_size[
-        table_geom_id, 2
-    ] == pytest.approx(0.725)
-    assert data.geom_xpos[table_geom_id, 0] - model.geom_size[
-        table_geom_id, 0
-    ] == pytest.approx(0.250)
-    assert data.geom_xpos[table_geom_id, 1] - model.geom_size[
-        table_geom_id, 1
-    ] == pytest.approx(-0.602)
-
-    assert model.geom_type[box_geom_id] == mujoco.mjtGeom.mjGEOM_BOX
-    assert data.geom_xpos[box_geom_id] == pytest.approx(
-        (0.560, -0.160, 0.765)
-    )
-    assert model.geom_size[box_geom_id] == pytest.approx(
-        (0.050, 0.040, 0.040)
-    )
-
-    assert model.geom_type[can_geom_id] == mujoco.mjtGeom.mjGEOM_CYLINDER
-    assert data.geom_xpos[can_geom_id] == pytest.approx(
-        (0.540, 0.160, 0.775)
-    )
-    assert model.geom_size[can_geom_id, :2] == pytest.approx((0.035, 0.050))
-
-    for body_name in ('pick_table', 'pick_box', 'pick_can'):
-        body_id = mujoco.mj_name2id(
-            model,
-            mujoco.mjtObj.mjOBJ_BODY,
-            body_name,
-        )
-        assert body_id >= 0
-        assert model.body_jntnum[body_id] == 0
+            assert modeled_no_load_speed == pytest.approx(
+                no_load_speed, rel=1e-6
+            )

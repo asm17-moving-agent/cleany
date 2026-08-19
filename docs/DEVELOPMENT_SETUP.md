@@ -18,6 +18,12 @@ ROS 2 개발환경을 준비하는 절차다. 팀은 VM 이미지를 배포하�
 ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원한다. Python
 가상환경으로 ROS의 system Python을 대체하지 않는다.
 
+GitHub Actions의 자동 검사는 설치 시간을 줄이기 위해 공식
+`ros:humble-ros-base-jammy` job container에서 실행하고, workspace에 필요한 추가
+의존성은 `package.xml`과 rosdep 규칙으로 설치한다. 이는 개발자의 native Humble
+Desktop 환경을 대체하지 않으며 GUI, 실제 센서와 actuator 검증도 포함하지 않는다.
+정확한 자동 검사 구성은 [CI workflow](../.github/workflows/ci.yml)를 따른다.
+
 설치 전 버전을 확인한다.
 
 ```bash
@@ -118,6 +124,22 @@ rosdep update
 make deps
 ```
 
+`cleany_moveit_config` 패키지를 빌드하면 package manifest에 따라 ROS 2
+Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, `ros2_control` 및
+`joint_trajectory_controller`도 `make deps`가 함께 설치한다. MuJoCo hand-eye
+backend를 포함한 전체 workspace 설치에서는 Humble용 `mujoco_ros2_control`도
+`cleany_mujoco_sim` manifest를 통해 설치한다. 설치 후 다음으로 필수 runtime
+package를 확인할 수 있다.
+
+```bash
+ros2 pkg prefix moveit_ros_move_group
+ros2 pkg prefix moveit_kinematics
+ros2 pkg prefix moveit_planners_ompl
+ros2 pkg prefix controller_manager
+ros2 pkg prefix joint_trajectory_controller
+ros2 pkg prefix mujoco_ros2_control
+```
+
 Gazebo 패키지만 재현할 때는 MuJoCo 등 다른 workspace 의존성을 제외하고 설치할 수
 있다.
 
@@ -180,8 +202,37 @@ make test
 ```bash
 make test-mission
 make test-mujoco
+make test-handeye
 make test-gazebo
 ```
+
+Hand-eye 개발 범위만 반복할 때는 아래 두 target을 사용한다.
+
+```bash
+make build-handeye
+make test-handeye
+```
+
+`make deps`는 hand-eye package manifest를 통해 MoveIt 2/KDL/OMPL,
+`ros2_control`, `mujoco_ros2_control`, OpenCV contrib, NumPy, PyYAML과 ROS service/action
+dependency를 설치한다. 별도 Python virtualenv에 OpenCV나 NumPy를 다시 설치하지
+않는다.
+
+MuJoCo용 random pose set을 생성하고 실제 calibration을 viewer와 함께 실행한 뒤
+완성 dataset을 검증한다.
+
+```bash
+make handeye-generate-mujoco
+make handeye-mujoco
+make handeye-validate-mujoco
+```
+
+첫 명령은 random seed와 제한된 workspace prior를 사용하되 MoveIt, collision,
+렌더링 ChArUco/PnP를 통과한 후보만 모으고 rotation axis/covariance 분석으로 20+5를
+선정한다. 두 번째 명령은 `headless:=false`를 고정해 operator 화면을 표시한다.
+마지막 명령은 row/image hash, PnP 재현과 150-run solver를 검증한다. 자동 테스트는
+`headless:=true`를 명시하므로 CI나 반복 회귀에서 viewer를 열지 않는다. Template의
+승인 전 `null` 값은 실행 입력으로 사용하지 않는다.
 
 Gazebo 재현성만 확인할 때는 환경 검사부터 실행한다. 활성 `ROS_DISTRO`와 Gazebo major
 version으로 Humble/Fortress 또는 Jazzy/Harmonic profile을 선택한 뒤, profile에 맞는
@@ -280,10 +331,9 @@ ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py headless:=false
 ```
 
 Harmonic profile은 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 사용한다.
-렌더링 sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용한다. camera, LiDAR와
-RViz 사용법은
-[`cleany_gazebo_sim` README](../ros2_ws/src/cleany_gazebo_sim/README.md)의 Harmonic
-절을 따른다.
+렌더링 sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용한다. Harmonic world의
+rendering sensor는 구독 전까지 비활성화할 수 있지만, 기본 bridge는 모든 sensor
+topic을 bridge한다.
 
 ## 8. 선택 개발도구
 
@@ -320,6 +370,11 @@ Make의 타깃 테스트는 이 과정을 자동으로 수행한다.
 VM의 3D acceleration과 display 설정을 확인한다. GUI가 필요하지 않은 검증은
 `make sim`의 headless 실행을 사용한다.
 
+`make handeye-mujoco`는 실제 calibration 관찰을 위해 viewer를 강제로 사용한다.
+VM 또는 Distrobox에서 실행한다면 `DISPLAY`가 전달됐는지와 X11/Wayland socket,
+OpenGL acceleration을 함께 확인한다. 화면이 없는 환경에서는 실제 calibration을
+진행하지 말고 `make test-handeye`로 headless runtime만 검증한다.
+
 ### `make check-gazebo-env`가 실패하는 경우
 
 다음 명령으로 어떤 기준이 맞지 않는지 확인한다.
@@ -337,6 +392,27 @@ ros2 pkg prefix ros_gz_bridge
 기대값은 Ubuntu `22.04`, Python `3.10.x`, ROS `humble`, Ignition Gazebo major
 version `6`이다. 다른 ROS 배포판에서 생성된 `build/`, `install/`, `log/`를 복사하거나
 재사용하지 않는다.
+
+### Gazebo rendering sensor 또는 GUI가 시작하지 않는 경우
+
+Camera와 GPU LiDAR는 headless server에서도 rendering context를 필요로 한다.
+Fortress의 `ign gazebo -s`는 GUI만 끄며 rendering sensor를 CPU-only sensor로
+바꾸지 않는다. 먼저 실행 환경 안에서 display와 ROS/Gazebo package를 확인한다.
+
+```bash
+echo "${DISPLAY}"
+ros2 pkg prefix ros_gz_sim
+ros2 pkg prefix ros_gz_bridge
+```
+
+GPU driver 또는 OpenGL 문제를 구분해야 할 때만 software rendering으로 재현한다.
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
+```
+
+이 설정은 진단용 저속 fallback이며 표준 실행 설정이 아니다. Harmonic에서는
+headless server가 OGRE2, GUI가 OGRE1을 사용한다.
 
 ## 참고 자료
 

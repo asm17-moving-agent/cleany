@@ -11,6 +11,7 @@
     <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster"/>
     <!-- GPU LiDAR and camera sensors render on OGRE2; the GUI uses OGRE1 separately. -->
     <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors"><render_engine>ogre2</render_engine></plugin>
+    <plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::systems::Imu"/>
 
     <light type="directional" name="sun">
       <pose>0 0 10 0 0 0</pose>
@@ -134,6 +135,20 @@
         </sensor>
       </link>
       <joint name="lidar_mount" type="fixed"><pose relative_to="base_link">0.32 0 -0.18 0 0 0</pose><parent>base_link</parent><child>lidar_link</child></joint>
+
+      <!-- Simulation IMU contract. Its physical mounting position is pending
+           hardware review, so it is currently aligned with base_link. -->
+      <link name="imu_link">
+        <pose relative_to="imu_mount">0 0 0 0 0 0</pose>
+        <sensor name="base_imu" type="imu">
+          <topic>/model/cleany_mecanum/imu</topic>
+          <always_on>true</always_on>
+          <update_rate>50</update_rate>
+          <gz_frame_id>imu_link</gz_frame_id>
+          <imu/>
+        </sensor>
+      </link>
+      <joint name="imu_mount" type="fixed"><pose relative_to="base_link">0 0 0 0 0 0</pose><parent>base_link</parent><child>imu_link</child></joint>
 
       <!--
         MuJoCo top_base_link: the upper support that physically and visually

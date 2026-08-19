@@ -24,31 +24,199 @@ CANONICAL_LIMITS = {
     "right_wrist_roll_joint": (-2.7438472969992493, 2.841206309382605),
     "right_gripper_joint": (-0.37453297762778586, 1.7453291995659765),
 }
+URDF_ENTRYPOINTS = (
+    "cleany.urdf.xacro",
+    "cleany_control.urdf.xacro",
+)
 
 
 def _source_root() -> Path:
     return Path(__file__).parents[1]
 
 
-def _expanded_urdf() -> ET.Element:
+def _expand_urdf(entrypoint: str, *xacro_args: str) -> ET.Element:
+    description = _source_root()
     return ET.fromstring(
         subprocess.check_output(
-            ["xacro", str(_source_root() / "urdf" / "cleany.urdf.xacro")]
+            [
+                "xacro",
+                str(description / "urdf" / entrypoint),
+                *xacro_args,
+            ]
         )
     )
 
 
+def _physical_model_xml(root: ET.Element) -> tuple[bytes, ...]:
+    return tuple(
+        ET.tostring(node).strip()
+        for node in root
+        if node.tag in {"material", "link", "joint"}
+    )
+
+
+def test_description_entrypoints_share_canonical_geometry() -> None:
+    roots = tuple(_expand_urdf(entrypoint) for entrypoint in URDF_ENTRYPOINTS)
+    assert _physical_model_xml(roots[0]) == _physical_model_xml(roots[1])
+
+    for root in roots:
+        links = root.findall("./link")
+        joints = root.findall("./joint")
+        assert len(links) == 13
+        assert len(joints) == 12
+        joint_names = {joint.attrib["name"] for joint in joints}
+        assert joint_names == set(CANONICAL_LIMITS)
+        for joint in joints:
+            limit = joint.find("limit")
+            assert limit is not None
+            assert (
+                float(limit.attrib["lower"]),
+                float(limit.attrib["upper"]),
+            ) == pytest.approx(CANONICAL_LIMITS[joint.attrib["name"]])
+
+
+def test_basic_description_does_not_select_a_control_backend() -> None:
+    root = _expand_urdf("cleany.urdf.xacro")
+    assert root.find("./ros2_control") is None
+    assert root.find(".//hardware/plugin") is None
+
+
+def test_control_description_exposes_arm_and_gripper_interfaces() -> None:
+    root = _expand_urdf(
+        "cleany_control.urdf.xacro",
+        "mujoco_model:=/tmp/cleany_control_scene.xml",
+        "headless:=true",
+        "sim_speed_factor:=1.25",
+    )
+    control = root.find("./ros2_control")
+    assert control is not None
+    assert control.attrib == {"name": "MujocoSystem", "type": "system"}
+    hardware = control.find("./hardware")
+    assert hardware is not None
+    plugin = hardware.find("./plugin")
+    assert plugin is not None
+    assert plugin.text == "mujoco_ros2_control/MujocoSystemInterface"
+    parameters = {
+        parameter.attrib["name"]: parameter.text
+        for parameter in hardware.findall("./param")
+    }
+    assert parameters["mujoco_model"] == "/tmp/cleany_control_scene.xml"
+    assert parameters["headless"].lower() == "true"
+    assert parameters["sim_speed_factor"] == "1.25"
+    assert parameters["camera_publish_rate"] == "10.0"
+    assert parameters["initial_keyframe"] == "handeye_ros2_control_home"
+
+    sensors = control.findall("./sensor")
+    assert len(sensors) == 1
+    assert sensors[0].attrib == {"name": "left_wrist_rgb"}
+    sensor_parameters = {
+        parameter.attrib["name"]: parameter.text
+        for parameter in sensors[0].findall("./param")
+    }
+    assert sensor_parameters == {
+        "frame_name": "left_wrist_rgb_vendor_frame",
+        "info_topic": "/left_wrist_rgb/camera_info",
+        "image_topic": "/left_wrist_rgb/color",
+        "depth_topic": "/left_wrist_rgb/depth",
+    }
+
+    expected_arm_joints = {
+        f"{side}_{suffix}"
+        for side in ("left", "right")
+        for suffix in (
+            "shoulder_yaw_joint",
+            "shoulder_pitch_joint",
+            "elbow_pitch_joint",
+            "wrist_pitch_joint",
+            "wrist_roll_joint",
+        )
+    }
+    control_joints = {
+        joint.attrib["name"]: joint for joint in control.findall("./joint")
+    }
+    expected_gripper_joints = {
+        "left_gripper_joint",
+        "right_gripper_joint",
+    }
+    assert set(control_joints) == expected_arm_joints | expected_gripper_joints
+    for joint_name in expected_arm_joints:
+        joint = control_joints[joint_name]
+        assert [
+            interface.attrib["name"]
+            for interface in joint.findall("./command_interface")
+        ] == ["position"]
+        state_interfaces = {
+            interface.attrib["name"]: interface
+            for interface in joint.findall("./state_interface")
+        }
+        assert set(state_interfaces) == {"position", "velocity"}
+        initial_value = state_interfaces["position"].find(
+            "./param[@name='initial_value']"
+        )
+        assert initial_value is not None
+        assert initial_value.text == "0.0"
+        assert state_interfaces["velocity"].find("./param") is None
+
+    for joint_name in expected_gripper_joints:
+        joint = control_joints[joint_name]
+        assert joint.findall("./command_interface") == []
+        state_interfaces = {
+            interface.attrib["name"]: interface
+            for interface in joint.findall("./state_interface")
+        }
+        assert set(state_interfaces) == {"position", "velocity"}
+        initial_value = state_interfaces["position"].find(
+            "./param[@name='initial_value']"
+        )
+        assert initial_value is not None
+        assert initial_value.text == "0.0"
+
+
 def test_mjcf_uses_canonical_arm_joint_names_and_limits() -> None:
     root = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
-    joints = {node.attrib["name"]: node for node in root.findall(".//joint") if "name" in node.attrib}
+    joints = {
+        node.attrib["name"]: node
+        for node in root.findall(".//joint")
+        if "name" in node.attrib
+    }
     for name, expected in CANONICAL_LIMITS.items():
         assert name in joints
-        actual = tuple(float(value) for value in joints[name].attrib["range"].split())
+        actual = tuple(
+            float(value) for value in joints[name].attrib["range"].split()
+        )
         assert actual == pytest.approx(expected)
 
-    legacy = {"Rotation_L", "Pitch_L", "Elbow_L", "Wrist_Pitch_L", "Wrist_Roll_L", "Jaw_L",
-              "Rotation_R", "Pitch_R", "Elbow_R", "Wrist_Pitch_R", "Wrist_Roll_R", "Jaw_R"}
+    legacy = {
+        "Rotation_L",
+        "Pitch_L",
+        "Elbow_L",
+        "Wrist_Pitch_L",
+        "Wrist_Roll_L",
+        "Jaw_L",
+        "Rotation_R",
+        "Pitch_R",
+        "Elbow_R",
+        "Wrist_Pitch_R",
+        "Wrist_Roll_R",
+        "Jaw_R",
+    }
     assert legacy.isdisjoint(joints)
+
+
+def test_mjcf_non_free_joints_have_unique_names() -> None:
+    model = mujoco.MjModel.from_xml_path(
+        str(_source_root() / "mjcf" / "cleany.xml")
+    )
+    names = []
+    for joint_id in range(model.njnt):
+        if model.jnt_type[joint_id] == mujoco.mjtJoint.mjJNT_FREE:
+            continue
+        name = mujoco.mj_id2name(
+            model, mujoco.mjtObj.mjOBJ_JOINT, joint_id
+        )
+        assert name is not None
+        names.append(name)
+    assert len(names) == len(set(names))
 
 
 def test_mjcf_arm_axes_are_finite_and_normalized() -> None:
@@ -58,7 +226,9 @@ def test_mjcf_arm_axes_are_finite_and_normalized() -> None:
             continue
         axis = tuple(float(value) for value in node.attrib["axis"].split())
         assert all(math.isfinite(value) for value in axis)
-        assert math.sqrt(sum(value * value for value in axis)) == pytest.approx(1.0)
+        assert math.sqrt(
+            sum(value * value for value in axis)
+        ) == pytest.approx(1.0)
 
 
 def test_mjcf_uses_rep103_base_and_joint_axes() -> None:
@@ -177,41 +347,14 @@ def test_mjcf_mounts_arms_at_canonical_sides() -> None:
     assert right_position[:2] == pytest.approx((0.09, -0.11), abs=1e-6)
 
 
-def test_nominal_grasp_tcp_offsets_match() -> None:
-    urdf = _expanded_urdf()
-    urdf_joints = {
-        node.attrib["name"]: node for node in urdf.findall("joint")
-    }
-    model = mujoco.MjModel.from_xml_path(
-        str(_source_root() / "mjcf" / "cleany.xml")
-    )
-
-    for side in ("left", "right"):
-        joint = urdf_joints[f"{side}_grasp_tcp_joint"]
-        origin = joint.find("origin")
-        parent = joint.find("parent")
-        child = joint.find("child")
-        assert origin is not None and parent is not None and child is not None
-        assert np.fromstring(origin.attrib["xyz"], sep=" ") == pytest.approx(
-            (0.0, -0.1, 0.0)
-        )
-        assert parent.attrib["link"] == f"{side}_gripper_frame"
-        assert child.attrib["link"] == f"{side}_grasp_tcp"
-
-        site_id = mujoco.mj_name2id(
-            model,
-            mujoco.mjtObj.mjOBJ_SITE,
-            f"{side}_grasp_tcp",
-        )
-        assert site_id >= 0
-        assert model.site_pos[site_id] == pytest.approx((0.0, -0.1, 0.0))
-
-
-def test_random_arm_fk_matches_mjcf() -> None:
+@pytest.mark.parametrize("urdf_entrypoint", URDF_ENTRYPOINTS)
+def test_random_arm_fk_matches_mjcf(urdf_entrypoint: str) -> None:
     description = _source_root()
-    urdf = _expanded_urdf()
+    urdf = _expand_urdf(urdf_entrypoint)
     urdf_joints = {node.attrib["name"]: node for node in urdf.findall("joint")}
-    model = mujoco.MjModel.from_xml_path(str(description / "mjcf" / "cleany.xml"))
+    model = mujoco.MjModel.from_xml_path(
+        str(description / "mjcf" / "cleany.xml")
+    )
     data = mujoco.MjData(model)
     random = np.random.default_rng(260727)
     suffixes = (
@@ -232,7 +375,9 @@ def test_random_arm_fk_matches_mjcf() -> None:
             }
             mujoco.mj_resetData(model, data)
             for name, value in values.items():
-                joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
+                joint_id = mujoco.mj_name2id(
+                    model, mujoco.mjtObj.mjOBJ_JOINT, name
+                )
                 data.qpos[model.jnt_qposadr[joint_id]] = value
             mujoco.mj_forward(model, data)
 
@@ -248,95 +393,6 @@ def test_random_arm_fk_matches_mjcf() -> None:
             expected = _urdf_fk(urdf_joints, names, values)
             assert actual == pytest.approx(expected, abs=1e-5)
 
-            tcp_site_id = mujoco.mj_name2id(
-                model,
-                mujoco.mjtObj.mjOBJ_SITE,
-                f"{side}_grasp_tcp",
-            )
-            actual_tcp = np.eye(4)
-            actual_tcp[:3, :3] = (
-                base_rotation.T
-                @ data.site_xmat[tcp_site_id].reshape(3, 3)
-            )
-            actual_tcp[:3, 3] = base_rotation.T @ (
-                data.site_xpos[tcp_site_id] - data.xpos[base_id]
-            )
-            expected_tcp = _urdf_fk(
-                urdf_joints,
-                names + (f"{side}_grasp_tcp_joint",),
-                values,
-            )
-            assert actual_tcp == pytest.approx(expected_tcp, abs=1e-5)
-
-
-def test_random_head_camera_optical_fk_matches_mjcf() -> None:
-    description = _source_root()
-    urdf = _expanded_urdf()
-    urdf_joints = {
-        node.attrib["name"]: node for node in urdf.findall("joint")
-    }
-    model = mujoco.MjModel.from_xml_path(
-        str(description / "mjcf" / "cleany.xml")
-    )
-    data = mujoco.MjData(model)
-    random = np.random.default_rng(260806)
-    base_id = mujoco.mj_name2id(
-        model,
-        mujoco.mjtObj.mjOBJ_BODY,
-        "chassis",
-    )
-    moving_joint_names = ("head_pan_joint", "head_tilt_joint")
-    limits = {
-        "head_pan_joint": (-3.2, 3.2),
-        "head_tilt_joint": (-0.76, 1.45),
-    }
-    prefix = (
-        "top_base_joint",
-        "head_pan_joint",
-        "head_tilt_joint",
-        "head_camera_joint",
-    )
-
-    for _ in range(10):
-        values = {
-            name: float(random.uniform(*limits[name]))
-            for name in moving_joint_names
-        }
-        mujoco.mj_resetData(model, data)
-        for name, value in values.items():
-            joint_id = mujoco.mj_name2id(
-                model,
-                mujoco.mjtObj.mjOBJ_JOINT,
-                name,
-            )
-            data.qpos[model.jnt_qposadr[joint_id]] = value
-        mujoco.mj_forward(model, data)
-        base_rotation = data.xmat[base_id].reshape(3, 3)
-
-        for stream in ("rgb", "depth"):
-            site_id = mujoco.mj_name2id(
-                model,
-                mujoco.mjtObj.mjOBJ_SITE,
-                f"head_camera_{stream}_optical_frame",
-            )
-            actual = np.eye(4)
-            actual[:3, :3] = (
-                base_rotation.T @ data.site_xmat[site_id].reshape(3, 3)
-            )
-            actual[:3, 3] = base_rotation.T @ (
-                data.site_xpos[site_id] - data.xpos[base_id]
-            )
-            expected = _urdf_fk(
-                urdf_joints,
-                prefix
-                + (
-                    f"head_camera_{stream}_joint",
-                    f"head_camera_{stream}_optical_joint",
-                ),
-                values,
-            )
-            assert actual == pytest.approx(expected, abs=1e-5)
-
 
 def _urdf_fk(
     joints: dict[str, ET.Element],
@@ -347,20 +403,18 @@ def _urdf_fk(
     for name in names:
         joint = joints[name]
         origin = joint.find("origin")
-        assert origin is not None
+        axis = joint.find("axis")
+        assert origin is not None and axis is not None
         fixed = np.eye(4)
         fixed[:3, :3] = _rpy(
             np.fromstring(origin.attrib.get("rpy", "0 0 0"), sep=" ")
         )
         fixed[:3, 3] = np.fromstring(origin.attrib["xyz"], sep=" ")
         motion = np.eye(4)
-        if joint.attrib["type"] != "fixed":
-            axis = joint.find("axis")
-            assert axis is not None
-            motion[:3, :3] = _axis_angle(
-                np.fromstring(axis.attrib["xyz"], sep=" "),
-                values[name],
-            )
+        motion[:3, :3] = _axis_angle(
+            np.fromstring(axis.attrib["xyz"], sep=" "),
+            values[name],
+        )
         result = result @ fixed @ motion
     return result
 

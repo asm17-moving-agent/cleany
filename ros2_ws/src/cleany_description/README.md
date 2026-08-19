@@ -4,9 +4,13 @@ Authoritative robot description assets shared by MuJoCo, TF, and MoveIt.
 
 ## Contents
 
-- `urdf/cleany.urdf.xacro`: dual-arm URDF used by
+- `urdf/cleany_geometry.xacro`: backend-neutral canonical physical model
+- `urdf/cleany.urdf.xacro`: plugin-free dual-arm URDF used by
   `robot_state_publisher` and MoveIt
-- `urdf/head_camera.xacro`: nominal head pan/tilt and RGB-D frame tree
+- `urdf/cleany_control.urdf.xacro`: control-backend extension entrypoint; it
+  adds the MuJoCo `ros2_control` hardware interface for the ten arm joints and
+  read-only state interfaces for both grippers
+- `urdf/cleany_mujoco_ros2_control.xacro`: reusable MuJoCo hardware macro
 - `mjcf/cleany.xml`: MuJoCo robot model included by simulator scenes
 - `meshes/`: visual and collision CAD assets referenced by both descriptions
 - `test/test_model_parity.py`: canonical joint and randomized FK parity checks
@@ -24,40 +28,42 @@ The descriptions follow ROS REP-103:
 
 The public mobile-base joint contract contains only
 `rear_left_wheel_joint`, `rear_right_wheel_joint`,
-`front_left_wheel_joint`, and `front_right_wheel_joint`. MuJoCo retains
-unnamed passive roller degrees of freedom internally for contact physics;
-they are not commandable robot joints and are not published in
-`joint_states`.
+`front_left_wheel_joint`, and `front_right_wheel_joint`. MuJoCo retains named
+passive roller degrees of freedom internally for contact physics. The names
+allow `MujocoSystemInterface` to validate the MJCF, but these joints are not
+listed in `ros2_control`, are not commandable, and are not published in the
+control backend's `joint_states`.
 
 The default head camera points toward `base_link +X`. Physical `+Y` is the
-canonical left arm and physical `-Y` is the canonical right arm.
+canonical left arm and physical `-Y` is the canonical right arm. Camera
+optical frames are intentionally absent from the URDF; the active calibration
+profile owns those transforms. MuJoCo nevertheless carries matching optical
+sites, and Gazebo image messages use the corresponding frame names.
 
-The nominal head camera frame tree is shared by URDF and MJCF:
-
-```text
-base_link
-└── top_base_link
-    └── head_pan_link
-        └── head_tilt_link
-            └── head_camera_link
-                ├── head_camera_rgb_frame
-                │   └── head_camera_rgb_optical_frame
-                └── head_camera_depth_frame
-                    └── head_camera_depth_optical_frame
-```
-
-RGB and aligned depth use colocated nominal optical origins. These fixed
-transforms describe the current simulation assembly; they are not a measured
-RealSense calibration. A real deployment must validate or replace them with
-its calibration profile while preserving the public frame contract.
-
-Each arm exposes `${side}_grasp_tcp` as a fixed frame and MuJoCo site at
-`(0, -0.100, 0) m` in `${side}_gripper_frame`. It is a nominal point near the
-center of the jaw tips for position-only IK. Its orientation inherits the
-gripper frame and is not a calibrated grasp orientation.
+`cleany_control.urdf.xacro` registers the `left_wrist_rgb` MJCF camera as a
+`ros2_control` sensor for the hand-eye MuJoCo backend. Its vendor topic names
+and 10 Hz render rate are consumed by Humble `mujoco_ros2_control` 0.0.3; the
+simulation package launch owns remapping and the public camera contract.
 
 Publish the description:
 
 ```bash
 ros2 launch cleany_description description.launch.py use_sim_time:=true
 ```
+
+The default `cleany.urdf.xacro` remains plugin-free. The MuJoCo control
+backend expands `cleany_control.urdf.xacro` with the materialized scene path
+and runtime options:
+
+```bash
+xacro urdf/cleany_control.urdf.xacro \
+  mujoco_model:=/absolute/path/to/control_scene.xml \
+  headless:=true \
+  sim_speed_factor:=1.0
+```
+
+The control entrypoint exposes position commands plus position and velocity
+state for the five joints of each arm. Both gripper joints expose read-only
+position and velocity state so MoveIt receives a complete dual-arm model
+state; they have no command interface. The base, head, and passive roller
+joints remain outside this control contract.
