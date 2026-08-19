@@ -6,6 +6,18 @@
   <group name="right_arm">
     <chain base_link="base_link" tip_link="right_gripper_frame"/>
   </group>
+  <group name="left_grasp_arm">
+    <chain base_link="base_link" tip_link="left_grasp_tcp"/>
+  </group>
+  <group name="right_grasp_arm">
+    <chain base_link="base_link" tip_link="right_grasp_tcp"/>
+  </group>
+  <group name="left_pregrasp_aim_arm">
+    <chain base_link="base_link" tip_link="left_pregrasp_aim_tip"/>
+  </group>
+  <group name="right_pregrasp_aim_arm">
+    <chain base_link="base_link" tip_link="right_pregrasp_aim_tip"/>
+  </group>
 
   <group_state name="left_home" group="left_arm">
     <joint name="left_shoulder_yaw_joint" value="0.0"/>
