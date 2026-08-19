@@ -6,8 +6,15 @@ source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
 set -u
 cd /workspace/cleany/ros2_ws
 
-colcon --log-base log-vision build \
+role="${CLEANY_WORKSPACE_ROLE:?CLEANY_WORKSPACE_ROLE is required}"
+case "${role}" in
+  anygrasp) packages=(cleany_grasping) ;;
+  perception) packages=(cleany_perception) ;;
+  *) echo "Unsupported workspace role: ${role}" >&2; exit 1 ;;
+esac
+
+colcon --log-base "log-${role}" build \
   --symlink-install \
-  --build-base build-vision \
-  --install-base install-vision \
-  --packages-up-to cleany_perception cleany_grasping
+  --build-base "build-${role}" \
+  --install-base "install-${role}" \
+  --packages-up-to "${packages[@]}"

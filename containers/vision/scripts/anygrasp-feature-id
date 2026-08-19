@@ -1,32 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-expected="${ANYGRASP_EXPECTED_MAC:?ANYGRASP_EXPECTED_MAC is required}"
-expected="${expected//:/}"
-expected="${expected^^}"
-
-mapfile -t macs < <(
-  ip -o link show | awk '
-    {
-      for (field = 1; field <= NF; field++) {
-        if ($field == "link/ether") {
-          mac = $(field + 1)
-          gsub(":", "", mac)
-          print toupper(mac)
-        }
-      }
-    }
-  ' | sort -u
-)
-
-if [[ "${#macs[@]}" -ne 1 || "${macs[0]}" != "${expected}" ]]; then
-  printf 'Unexpected container MAC set. expected=%s actual=%s\n' \
-    "${expected}" "${macs[*]:-none}" >&2
-  exit 1
-fi
-
-python3 - <<'PY'
-from gsnet import get_feature_id
-
-print(get_feature_id())
-PY
+exec /workspace/cleany/containers/vision/scripts/anygrasp_preflight.py \
+  --print-feature-id

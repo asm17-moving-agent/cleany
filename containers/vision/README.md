@@ -1,57 +1,75 @@
-# Jetson vision container
+# Jetson 혼합형 GPU runtime
 
-`cleany_perception`과 `cleany_grasping`을 JetPack 6.2 / CUDA 12.6 환경에서 함께 개발하고
-실행한다. AnyGrasp는 컨테이너의 고정 MAC만 사용해 feature ID를 만들며 host의 Ethernet,
-Wi-Fi, `docker0`, 다른 container의 `veth` 변화와 분리된다.
+안전·제어·mission stack은 Jetson의 native ROS 2 Humble에 유지하고, CUDA dependency가
+필요한 모델만 container로 격리한다. `cleany-vision:jp6.2` image와 그 안의 AnyGrasp SDK
+binary는 기존 것을 그대로 공유하지만 runtime service와 mount는 분리한다.
 
-## 배포 identity
+| 위치/service | 책임 | 고정 주소 |
+|---|---|---|
+| Native | Mission Manager, Skill Executor, Robot Interface, `ros2_control`, hardware driver, Nav2, safety watchdog, AI 결과 검증 | host |
+| `anygrasp` | `grasp/plan` (`PlanGrasp.srv`) | `172.30.0.10`, `02:42:ac:1e:00:0a` |
+| `perception` | SAM2, depth, 3D reconstruction와 `perception/inspect_scene` (`InspectScene.action`) | `172.30.0.11` |
+| `vlm` | Qwen/VLM service 예약; 아직 Compose service 없음 | `172.30.0.12` 예약 |
+| `motion` | cuRobo/cuMotion service 예약; 아직 Compose service 없음 | `172.30.0.13` 예약 |
 
-기본 identity는 다음과 같다.
+RGB-D driver도 초기에는 native에 둔다. 실제 profiling에서 DDS 전송이 병목으로 확인된
+뒤에만 perception container 이전을 검토한다. AI service는 ROS 결과만 반환하며
+`cmd_vel`, controller action 또는 actuator command를 발행하지 않는다.
 
-| 항목 | 값 |
-|---|---|
-| Compose project | `cleany-vision` |
-| Network | `172.30.0.0/24` |
-| Container IP | `172.30.0.10` |
-| Container MAC | `02:42:ac:1e:00:0a` |
+## Root-owned Jetson identity
 
-`make vision-init`이 만드는 `.env`는 Git에서 제외된다. AnyGrasp license 신청 뒤에는
-`VISION_MAC_ADDRESS`를 변경하지 않는다. 여러 robot을 같은 L2 network에 배포할 때는
-license 신청 전에 robot마다 서로 다른 locally administered MAC과 subnet을 정한다.
-
-`network_mode: host`를 사용하면 host의 가변 MAC들이 다시 AnyGrasp fingerprint에 들어가므로
-사용하지 않는다.
-
-## Host 준비
-
-Jetson에는 JetPack 6.2와 NVIDIA Container Toolkit이 설치되어 있어야 한다.
+Compose용 개발 `.env`는 더 이상 사용하지 않는다. 다음 명령은 pinned identity template을
+`/etc/cleany/jetson-identity.env`에 `root:root`, mode `0644`로 설치한다.
 
 ```bash
-uname -m                         # aarch64
-nvcc --version                   # CUDA 12.6
-docker info
+make vision-init
+sudoedit /etc/cleany/jetson-identity.env
+make hybrid-config
 ```
 
-JetPack 6.2.1의 기본 kernel에는 `CONFIG_IP_NF_RAW`가 없어서 Docker Engine 28 이상이 bridge
-endpoint를 만들지 못한다. 이 Jetson에서는 최초 한 번 다음 host 설정이 필요하다.
+실제 license/model host 경로만 확인한다. 아래 세 값과 service network는 일반 개발 변경
+대상이 아니며, 변경하려면 별도 AnyGrasp license migration과 코드 검토가 필요하다.
+
+```text
+ANYGRASP_MAC_ADDRESS=02:42:ac:1e:00:0a
+ANYGRASP_IPV4_ADDRESS=172.30.0.10
+ANYGRASP_EXPECTED_FEATURE_ID=N11176336906968411287
+```
+
+identity 파일이 없거나 root 소유가 아니거나 group/other writable이면 모든 Compose 명령이
+실패한다. 호출 shell의 동명 환경변수는 wrapper가 제거하므로 identity를 덮어쓸 수 없다.
+Compose interpolation에도 기본값이 없어서 wrapper를 우회해도 누락된 값은 configuration
+단계에서 실패한다.
+
+## Host와 image 준비
+
+Jetson에는 JetPack 6.2, NVIDIA Container Toolkit과 Docker Compose가 필요하다.
+image는 Jetson aarch64 CUDA/cuBLAS ABI를 제공하는 NVIDIA 공식
+`nvcr.io/nvidia/l4t-jetpack:r36.4.0` digest에 고정한다. 일반 ARM server용
+`nvidia/cuda` SBSA image는 Jetson에서 CUDA device가 보여도 cuBLAS 실행이 실패하므로
+사용하지 않는다.
 
 ```bash
+uname -m
+nvcc --version
+docker info
 make vision-host-setup
 ```
 
-이 명령은 Docker가 공식 제공하는 `DOCKER_INSECURE_NO_IPTABLES_RAW=1` 호환 설정을 systemd
-drop-in으로 설치하고 Docker daemon을 재시작한다. 이 설정은 Docker 전체에 적용되며,
-`127.0.0.1`에만 publish한 port의 격리를 약화시킬 수 있다. Cleany vision service 자체는
-port를 publish하지 않는다. 향후 Jetson kernel이 `CONFIG_IP_NF_RAW`를 제공하면 drop-in을
-제거하고 Docker daemon을 재시작한다.
+JetPack 6.2.1 kernel에 `CONFIG_IP_NF_RAW`가 없을 때 `vision-host-setup`은 Docker가 제공하는
+`DOCKER_INSECURE_NO_IPTABLES_RAW=1` systemd drop-in을 설치하고 daemon을 재시작한다. 이
+설정은 Docker 전체에 적용된다. GPU service는 port를 publish하지 않는다.
+
+기존 `cleany-vision:jp6.2` image가 SBSA 기반이거나 Dockerfile dependency를 갱신했다면
+다시 빌드한다. 이후에는 migration-controlled AnyGrasp SDK commit을 바꾸지 않는 한
+같은 image를 재사용한다.
 
 ```bash
-sudo rm /etc/systemd/system/docker.service.d/10-cleany-jetson-no-iptables-raw.conf
-sudo systemctl daemon-reload
-sudo systemctl restart docker
+make vision-build
 ```
 
-license와 model은 image에 넣지 않고 host에서 read-only로 mount한다.
+license와 checkpoint는 image에 넣지 않는다. 예시 identity 기준 host layout은 다음과
+같다.
 
 ```text
 /home/cleany/.local/share/cleany/anygrasp/license/
@@ -63,77 +81,113 @@ license와 model은 image에 넣지 않고 host에서 read-only로 mount한다.
 /home/cleany/models/sam2/sam2.1_hiera_small.pt
 ```
 
-초기 설정 파일을 만들고 실제 경로와 파일명을 확인한다.
+AnyGrasp license directory와 model directory는 `anygrasp`에만 read-only로 mount된다.
+`perception`에는 SAM2 model만 read-only로 mount되고 AnyGrasp identity, license와
+checkpoint는 노출되지 않는다.
+
+## 실행 명령
+
+서비스별로 container를 먼저 올리고 ROS server를 실행한다.
 
 ```bash
-make vision-init
-${EDITOR:-nano} containers/vision/.env
-make vision-config
+make anygrasp-up
+make anygrasp-run
+
+# 다른 terminal
+export GEMINI_API_KEY='<api-key>'  # 현재 detector adapter를 사용할 때만 필요
+make perception-up
+make perception-run
 ```
 
-`GEMINI_API_KEY`는 `.env`에 저장하지 않고 실행 shell에서 export한다.
+현재 `cleany_perception`의 2D detector는 Gemini adapter이므로 Qwen/VLM service가 구현되기
+전까지 API key를 실행 process에만 전달한다. key는 identity나 Compose environment에
+저장하지 않는다. `.12` VLM 주소는 IPAM이 선점하며 service 구현 시 예약을 해제하고 같은
+주소를 승계한다.
 
-## Image와 개발 container
-
-Image는 CUDA 12.6, ROS 2 Humble, Jetson PyTorch 2.8, 수정 MinkowskiEngine,
-AnyGrasp aarch64 dev SDK, GraspNet API와 SAM2를 설치한다. SDK와 주요 dependency는 commit
-hash로 고정한다. Image build만 host network를 사용하며 runtime identity에는 영향을 주지
-않는다. 첫 build에서는 CUDA extension compile에 시간이 오래 걸린다.
+전체 lifecycle 명령은 다음과 같다.
 
 ```bash
-make vision-build
-make vision-up
-make vision-shell
+make hybrid-up
+make hybrid-run
+make hybrid-down
 ```
 
-workspace source는 `/workspace/cleany`에 bind mount되고 colcon `build-vision`,
-`install-vision`, `log-vision`은 Docker volume에 둔다. host native build 결과와 섞이지
-않는다.
+`vision-up/down/run`, `vision-feature-id`, `vision-license-check`는 호환 alias다.
+`hybrid-down`은 같은 Compose project의 이전 `vision` orphan도 함께 정리한다. 이전
+container와 새 `anygrasp`가 같은 MAC으로 동시에 실행 중이면 시작 wrapper가 거부한다.
 
-```bash
-make vision-shell
-/opt/cleany/bin/build-workspace
-python3 -m pytest -q \
-  ros2_ws/src/cleany_perception/test \
-  ros2_ws/src/cleany_grasping/test
-```
+## AnyGrasp fail-closed preflight
 
-## AnyGrasp feature ID와 license
+`anygrasp` entrypoint는 model을 읽기 전에 다음을 모두 확인하고 성공 marker를 만든다.
 
-feature ID는 반드시 최종 Compose container 안에서 만든다. 기존 host-native ID로 발급된
-license는 이 container에서 사용할 수 없다.
+- root-owned identity가 read-only mount인지
+- 비-loopback interface가 `eth0` 하나뿐인지
+- `eth0` MAC/IP가 `02:42:ac:1e:00:0a`, `172.30.0.10`인지
+- SDK feature ID가 정확히 `N11176336906968411287`인지
+- license directory와 checkpoint 경로가 read-only mount에 포함되는지
+
+호스트 wrapper도 Docker inspect로 `network_mode: host`, 둘 이상의 network, MAC/IP 변경을
+검사한다. 어느 검사든 실패하면 container가 종료되고 `grasp/plan` node는 시작하지 않는다.
+실행 직전에 preflight를 다시 수행하므로 대기 container에 network를 나중에 추가해도
+`make anygrasp-run`은 실패한다.
+
+feature ID와 license/checkpoint 초기화를 별도로 확인할 수 있다.
 
 ```bash
 make vision-feature-id
-make vision-down
-make vision-up
-make vision-feature-id
-sudo reboot
-# 재접속 후
-make vision-up
-make vision-feature-id
-```
-
-세 출력이 같을 때 그 ID로 license를 신청한다. `anygrasp-feature-id` preflight는 container에
-보이는 Ethernet MAC이 정확히 `VISION_MAC_ADDRESS` 하나인지 검사하고 다르면 실패한다.
-
-새 license 네 파일을 host license directory에 교체한 뒤 검증한다.
-
-```bash
 make vision-license-check
 ```
 
-## ROS 2 실행과 host 연결
+첫 명령은 값을 출력만 하는 것이 아니라 pinned ID와 일치해야 성공한다. 두 번째 명령은
+SDK license validation 뒤 checkpoint를 읽어 detector까지 생성한다. 실제 CUDA inference
+warm-up은 유효한 RGB-D point cloud로 `grasp/plan`을 한 번 호출해 확인한다.
 
-한 container에서 perception과 grasping node를 실행한다.
+## Migration 검증
+
+코드를 바꾸기 전에 기존 `vision` container의 ID가 기준값인지 기록하고 container를
+내린다. 새 구성을 받은 뒤 다음 순서로 재생성 안정성을 확인한다.
 
 ```bash
-export GEMINI_API_KEY='<api-key>'
-make vision-run
+make hybrid-down
+make anygrasp-up
+make vision-feature-id
+
+for attempt in 1 2 3; do
+  make hybrid-down
+  make anygrasp-up
+  make vision-feature-id
+done
 ```
 
-container는 고정 bridge interface `eth0`만 사용하고 host gateway `172.30.0.1`을 CycloneDDS
-peer로 지정한다. host에서 container node와 통신할 terminal은 다음 설정을 사용한다.
+네 출력은 모두 `N11176336906968411287`이어야 한다. 이어서 Docker daemon 재시작과 Jetson
+재부팅 뒤에도 같은 명령을 반복한다. 새 license 설치 뒤에는 다음을 확인한다.
+
+```bash
+make vision-license-check
+make anygrasp-run
+# native ROS terminal에서 실제 point cloud를 포함한 /grasp/plan 요청 1회
+```
+
+다음 negative test도 Jetson 인수검사에 포함한다.
+
+- identity 파일 누락/권한 변경: Compose 단계에서 실패
+- identity의 MAC/IP/Feature ID 변경: migration-controlled 값 검사에서 실패
+- `network_mode: host`, MAC override: host inspect 또는 container IP/MAC 검사에서 실패
+- `docker network connect`로 추가 network 연결 후 `anygrasp-run`: interface 검사에서 실패
+- license/model mount를 read-write로 변경: mount 검사에서 실패
+
+AnyGrasp process를 강제 종료한 통합 시험에서는 native Skill Executor가 작업을 `BLOCKED`
+또는 `MODEL_UNAVAILABLE`로 끝내고 actuator command를 만들지 않는지 별도로 확인한다. 현재
+ROS 계약의 `PlanGrasp.ERROR_MODEL_UNAVAILABLE`는 유지되며, AI service 결과를 motion/control
+명령으로 직접 연결하지 않는다.
+
+## ROS 2 DDS 연결
+
+native와 container는 ROS 2 Humble, `rmw_cyclonedds_cpp`를 사용한다. 두 container는
+`eth0`만 사용하고 host bridge gateway `172.30.0.1`을 peer로 지정한다. native terminal은
+Wi-Fi/Ethernet 자동 선택 대신 bridge gateway `172.30.0.1`을 DDS interface로 고정하고,
+두 service 주소가 등록된 host 설정을 사용한다. 따라서 Compose network를 먼저 올린 뒤
+native ROS process를 시작한다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -142,17 +196,21 @@ export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export CYCLONEDDS_URI="file://${PWD}/containers/vision/cyclonedds/host.xml"
 export ROS_DOMAIN_ID=0
 ros2 node list
+ros2 action info /perception/inspect_scene
+ros2 service type /grasp/plan
 ```
 
-공공 Wi-Fi가 multicast나 peer-to-peer traffic을 막더라도 host와 vision container 사이의
-고정 bridge peer에는 영향을 주지 않는다. 다른 machine의 ROS graph까지 연결하는 topology는
-DDS Router 또는 별도 robot network 설계가 필요하다.
+외부 machine까지 ROS graph를 연결하는 topology는 DDS Router 또는 별도 robot network
+설계가 필요하다.
 
-## 제약
+## 로컬 deterministic test
 
-- AnyGrasp 공식 aarch64 SDK는 현재 시험 단계다.
-- license MAC과 Compose network identity를 license 발급 후 바꾸지 않는다.
-- Compose container에 network를 추가하면 feature ID가 달라질 수 있다.
-- checkpoint와 license가 없더라도 node는 시작하지만 첫 grasp 요청은 model unavailable로
-  실패한다.
-- SDK update는 commit을 명시적으로 변경하고 feature ID와 license 검증을 다시 수행한다.
+Jetson SDK 없이 identity/network/mount 정책의 순수 로직을 검사할 수 있다.
+
+```bash
+python3 -m pytest -q containers/vision/test
+make hybrid-config
+```
+
+Feature ID 재생성, Docker daemon/reboot, NVIDIA runtime, license, detector 초기화와 실제
+ROS DDS 호출은 Jetson에서만 검증할 수 있다.

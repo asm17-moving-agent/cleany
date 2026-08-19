@@ -5,10 +5,11 @@ set +u
 source "/opt/ros/${ROS_DISTRO:-humble}/setup.bash"
 set -u
 
-vision_install=/workspace/cleany/ros2_ws/install-vision/setup.bash
-if [[ -f "${vision_install}" ]]; then
+role="${CLEANY_WORKSPACE_ROLE:-}"
+role_install="/workspace/cleany/ros2_ws/install-${role}/setup.bash"
+if [[ -n "${role}" && -f "${role_install}" ]]; then
   set +u
-  source "${vision_install}"
+  source "${role_install}"
   set -u
 fi
 

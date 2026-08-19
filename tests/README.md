@@ -17,3 +17,13 @@ unit/contract 테스트만 실행한다. 두 번째 target은 가장 가까운 �
 다음 객체 fallback, 열린 gripper 상태의 재검증과 MuJoCo pre-grasp controller 실행을
 한 통합 테스트로 확인한다. 전체 workspace 회귀 검증은 병합 전 `make test`에서 별도로
 수행한다.
+
+Jetson container의 identity, network, read-only mount fail-closed 정책은 SDK 없이 다음처럼
+검사한다.
+
+```bash
+python3 -m pytest -q containers/vision/test
+```
+
+Feature ID, NVIDIA runtime, license와 실제 model warm-up은 Jetson 인수검사 항목이며
+[`containers/vision` README](../containers/vision/README.md)를 따른다.
