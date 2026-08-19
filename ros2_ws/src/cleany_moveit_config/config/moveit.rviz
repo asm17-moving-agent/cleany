@@ -31,6 +31,14 @@ Visualization Manager:
         Scene Alpha: 0.9
       Scene Robot:
         Robot Alpha: 0.5
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Marker Topic: /grasp_demo/markers
+      Name: Grasp Candidates
+      Namespaces:
+        grasp_approach: true
+        grasp_candidates: true
+        grasp_status: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

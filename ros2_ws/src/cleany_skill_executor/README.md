@@ -2,8 +2,9 @@
 
 ## 상태
 
-점수순 grasp 후보를 양팔 MoveIt plan-only 검증으로 평가한다. 실제 trajectory와
-gripper 명령은 실행하지 않는다.
+점수순 grasp 후보를 양팔 MoveIt plan-only 검증으로 평가한다. 운영 action은 실제
+trajectory와 gripper 명령을 실행하지 않는다. 별도 시뮬레이션 데모에서만 선택 결과를
+MuJoCo arm controller로 실행할 수 있다.
 
 ## Reachable grasp action
 
@@ -30,6 +31,41 @@ pytest -q ros2_ws/src/cleany_skill_executor/test
 
 timeout, planning attempt/scaling, 최대 후보 수는 `config/grasp_selection.yaml`의 ROS
 parameter로 설정한다.
+
+## MuJoCo 육안 확인 데모
+
+아래 단일 launch는 실제 `mujoco_ros2_control` backend, MoveIt, RViz, grasp selector와
+demo coordinator를 함께 시작한다. 기본값은 MuJoCo native viewer와 RViz를 모두
+표시한다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_skill_executor grasp_execution_demo.launch.py
+```
+
+데모는 의도적으로 최고 점수의 도달 불가 후보를 먼저 검사한 뒤, 초록색 MuJoCo box와
+정렬된 두 번째 후보를 왼팔로 선택한다. 선택 action에서 position-only IK, 두 endpoint의
+collision/state validity, 두 구간 OMPL plan-only를 통과해야만 demo coordinator가
+`left_arm_controller`로 pre-grasp와 grasp trajectory를 차례로 실행한다. 마지막에는
+실제 `/joint_states`가 선택 결과에 수렴했는지도 검사한다. Gripper close, attach, lift는
+아직 실행하지 않는다.
+
+RViz의 `Grasp Candidates` display에서 구/화살표/상태 문구를 보고,
+`MotionPlanning` display에서는 계획 궤적과 실제 joint state를 확인한다. MuJoCo 창의
+초록색 box가 target이며 왼팔이 먼저 pre-grasp에서 멈춘 다음 box까지 접근한다. 창이
+준비될 시간을 위해 평가 전 5초, 각 실행 구간 사이 3초를 기본 대기한다. 빠른 headless
+회귀 검증은 다음처럼 실행한다.
+
+```bash
+ros2 launch cleany_skill_executor grasp_execution_demo.launch.py \
+  headless:=true use_rviz:=false \
+  demo_start_delay_sec:=0.1 stage_hold_sec:=0.1
+```
+
+로그의 `Selected candidate=1 arm=left`, 두 개의
+`MoveIt execution succeeded`, `DEMO COMPLETE`가 전체 성공 기준이다. 데모는 완료
+자세와 marker를 유지하므로 종료는 `Ctrl-C`, 다시 보기는 launch 재실행으로 한다.
 
 ## 관련 KB
 

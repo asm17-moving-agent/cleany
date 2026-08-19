@@ -50,6 +50,16 @@ ros2 launch cleany_mujoco_sim handeye_backend.launch.py \
   headless:=true sim_speed_factor:=1.0
 ```
 
+`scenes/grasp_execution_demo.xml.in`은 같은 backend에서 MoveIt-selected trajectory를
+육안 확인하기 위한 전용 장면이다. chassis를 world에 고정하고, 기본 demo grasp/OBB와
+동일한 `base_link` 중심 `(0.09, 0.6696, 0.6158) m`, 크기 `0.03 m`의 초록색
+고정 box를 둔다. MuJoCo world에서는 초기 chassis 원점 Z=0.38 m를 더한
+`(0.09, 0.6696, 0.9958) m`에 배치되어 RViz/MoveIt target과 물리 위치가 일치한다.
+이 box는 아직 gripper command/force closure가 없는 reach 데모에서 controller 접촉
+오차를 만들지 않도록 MuJoCo에서는 render-only다. 동일 OBB의 collision 검사는
+MoveIt planning scene에서 수행한다. 통합 실행은 `cleany_skill_executor`의
+`grasp_execution_demo.launch.py`를 사용한다.
+
 이 backend의 기본값은 `scenes/handeye.xml.in`이다. 전용 scene은 canonical MJCF를
 그대로 include하고 `chassis`를 world에 weld하며, 고정 table/stand와
 7×5 ChArUco target을 추가한다. 기존 `mujoco_sim.launch.py`와 custom simulator의
