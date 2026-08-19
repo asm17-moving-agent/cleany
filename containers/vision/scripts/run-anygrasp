@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+/workspace/cleany/containers/vision/scripts/check-anygrasp-license
+/workspace/cleany/containers/vision/scripts/build-workspace
+
+set +u
+source /workspace/cleany/ros2_ws/install-anygrasp/setup.bash
+set -u
+
+license_path="${ANYGRASP_LICENSE_DIR}/${ANYGRASP_LICENSE_FILE}"
+exec ros2 run cleany_grasping grasp_server --ros-args \
+  --params-file /workspace/cleany/ros2_ws/src/cleany_grasping/config/anygrasp.yaml \
+  -p checkpoint_path:="${ANYGRASP_CHECKPOINT_PATH}" \
+  -p license_path:="${license_path}"

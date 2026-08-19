@@ -9,6 +9,7 @@
       <MaxMessageSize>65500B</MaxMessageSize>
     </General>
     <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
       <Peers>
         <Peer Address="172.30.0.1" />
       </Peers>

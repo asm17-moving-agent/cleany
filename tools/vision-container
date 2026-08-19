@@ -3,93 +3,264 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 vision_dir="${repo_root}/containers/vision"
-env_file="${vision_dir}/.env"
-compose=(docker compose --project-directory "${vision_dir}" --env-file "${env_file}" -f "${vision_dir}/compose.yaml")
+identity_file=/etc/cleany/jetson-identity.env
+identity_example="${vision_dir}/jetson-identity.env.example"
+identity_validator="${vision_dir}/scripts/anygrasp_preflight.py"
+
+identity_keys=(
+  ANYGRASP_MAC_ADDRESS
+  ANYGRASP_IPV4_ADDRESS
+  ANYGRASP_EXPECTED_FEATURE_ID
+  PERCEPTION_IPV4_ADDRESS
+  VLM_IPV4_ADDRESS
+  MOTION_IPV4_ADDRESS
+  HYBRID_SUBNET
+  HYBRID_GATEWAY
+  ROS_DOMAIN_ID
+  ANYGRASP_LICENSE_HOST_DIR
+  ANYGRASP_LICENSE_FILE
+  ANYGRASP_MODEL_HOST_DIR
+  ANYGRASP_CHECKPOINT_PATH
+  SAM2_MODEL_HOST_DIR
+  SAM2_MODEL_CONFIG
+  SAM2_CHECKPOINT_PATH
+)
+
+compose_environment=(env)
+for key in "${identity_keys[@]}" CLEANY_JETSON_IDENTITY_FILE; do
+  compose_environment+=(-u "${key}")
+done
+compose_environment+=("CLEANY_JETSON_IDENTITY_FILE=${identity_file}")
+compose=(
+  "${compose_environment[@]}"
+  docker compose
+  --project-directory "${vision_dir}"
+  --env-file "${identity_file}"
+  -f "${vision_dir}/compose.yaml"
+)
 
 usage() {
   cat <<'EOF'
 Usage: tools/vision-container COMMAND
 
 Commands:
-  init           Create the ignored local .env from .env.example
-  host-setup     Enable Docker bridge networking on the Jetson kernel
-  config         Validate and render the Compose configuration
-  build          Build the Jetson vision image
-  up             Start the persistent development container
-  down           Stop the development container
-  shell          Open a shell in the running container
-  build-workspace Build perception and grasping packages in the container
-  feature-id     Print the fixed-container AnyGrasp feature ID
-  check-license  Validate the mounted AnyGrasp license
-  run            Run perception and grasping nodes in the container
+  init             Install the root-owned Jetson identity template
+  host-setup       Enable Docker bridge networking on the Jetson kernel
+  hybrid-config    Validate and render the hybrid Compose configuration
+  build            Build the shared JetPack 6.2 GPU image
+  anygrasp-up      Start only the fail-closed AnyGrasp service
+  anygrasp-run     Run the AnyGrasp grasp/plan service
+  anygrasp-shell   Open a shell in the AnyGrasp container
+  perception-up    Start only the perception service
+  perception-run   Run the perception/inspect_scene action server
+  perception-shell Open a shell in the perception container
+  hybrid-up        Start AnyGrasp and perception
+  hybrid-run       Run both ROS servers (perception remains foreground)
+  hybrid-down      Stop the hybrid stack and legacy project orphans
+  feature-id       Print and verify the pinned AnyGrasp feature ID
+  check-license    Validate license and initialize the AnyGrasp detector
+
+Compatibility aliases: config, up, down, shell, build-workspace, run
 EOF
 }
 
+install_identity() {
+  if [[ -e "${identity_file}" ]]; then
+    echo "Already exists: ${identity_file}"
+    return
+  fi
+  sudo install -d -o root -g root -m 0755 "$(dirname "${identity_file}")"
+  sudo install -o root -g root -m 0644 "${identity_example}" "${identity_file}"
+  echo "Installed: ${identity_file}"
+  echo "Review host model/license paths with: sudoedit ${identity_file}"
+}
+
+require_identity() {
+  if ! python3 "${identity_validator}" --validate-host-identity "${identity_file}"; then
+    echo "Install it with 'tools/vision-container init'." >&2
+    return 1
+  fi
+}
+
+identity_value() {
+  local requested_key="$1"
+  awk -F= -v requested_key="${requested_key}" '
+    $1 == requested_key { print substr($0, index($0, "=") + 1); exit }
+  ' "${identity_file}"
+}
+
+guard_unique_anygrasp_mac() {
+  local expected_mac current_id container_id container_name actual_mac
+  expected_mac="$(identity_value ANYGRASP_MAC_ADDRESS)"
+  current_id="$("${compose[@]}" ps -q anygrasp 2>/dev/null || true)"
+
+  while read -r container_id; do
+    [[ -n "${container_id}" ]] || continue
+    [[ -n "${current_id}" && "${current_id}" == "${container_id}"* ]] && continue
+    actual_mac="$(docker inspect --format \
+      '{{range .NetworkSettings.Networks}}{{.MacAddress}}{{"\n"}}{{end}}' \
+      "${container_id}")"
+    if grep -Fxiq "${expected_mac}" <<<"${actual_mac}"; then
+      container_name="$(docker inspect --format '{{.Name}}' "${container_id}")"
+      echo "Refusing to start duplicate AnyGrasp MAC ${expected_mac}." >&2
+      echo "Stop the existing container first: ${container_name#/}" >&2
+      return 1
+    fi
+  done < <(docker ps -q)
+}
+
+assert_anygrasp_docker_identity() {
+  local container_id network_mode network_count expected_ip expected_mac actual_ip actual_mac
+  container_id="$("${compose[@]}" ps -q anygrasp)"
+  if [[ -z "${container_id}" ]]; then
+    echo 'AnyGrasp container was not created.' >&2
+    return 1
+  fi
+
+  network_mode="$(docker inspect --format '{{.HostConfig.NetworkMode}}' "${container_id}")"
+  network_count="$(docker inspect --format '{{len .NetworkSettings.Networks}}' "${container_id}")"
+  if [[ "${network_mode}" == host || "${network_count}" != 1 ]]; then
+    echo "AnyGrasp Docker network policy failed: mode=${network_mode} networks=${network_count}" >&2
+    return 1
+  fi
+
+  expected_ip="$(identity_value ANYGRASP_IPV4_ADDRESS)"
+  expected_mac="$(identity_value ANYGRASP_MAC_ADDRESS)"
+  read -r actual_ip actual_mac < <(
+    docker inspect --format \
+      '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{.MacAddress}}{{end}}' \
+      "${container_id}"
+  )
+  if [[ "${actual_ip}" != "${expected_ip}" || "${actual_mac,,}" != "${expected_mac,,}" ]]; then
+    echo "AnyGrasp Docker identity failed: expected=${expected_ip}/${expected_mac} actual=${actual_ip}/${actual_mac}" >&2
+    return 1
+  fi
+}
+
+wait_for_anygrasp_preflight() {
+  local container_id state attempt
+  container_id="$("${compose[@]}" ps -aq anygrasp)"
+  for attempt in {1..30}; do
+    state="$(docker inspect --format '{{.State.Running}}' "${container_id}" 2>/dev/null || true)"
+    if [[ "${state}" != true ]]; then
+      "${compose[@]}" logs --no-color anygrasp >&2 || true
+      echo 'AnyGrasp stopped before preflight completed.' >&2
+      return 1
+    fi
+    if docker exec "${container_id}" test -f /run/cleany/anygrasp-preflight.ok; then
+      return
+    fi
+    sleep 1
+  done
+  "${compose[@]}" logs --no-color anygrasp >&2 || true
+  echo 'Timed out waiting for AnyGrasp preflight.' >&2
+  return 1
+}
+
+start_anygrasp() {
+  guard_unique_anygrasp_mac
+  "${compose[@]}" up -d anygrasp
+  if ! assert_anygrasp_docker_identity || ! wait_for_anygrasp_preflight; then
+    "${compose[@]}" stop anygrasp >/dev/null || true
+    return 1
+  fi
+}
+
+start_perception() {
+  "${compose[@]}" up -d perception
+}
+
+run_perception() {
+  local environment_arguments=()
+  if [[ -n "${GEMINI_API_KEY:-}" ]]; then
+    environment_arguments=(-e GEMINI_API_KEY)
+  fi
+  "${compose[@]}" exec "${environment_arguments[@]}" perception \
+    /workspace/cleany/containers/vision/scripts/run-perception
+}
+
 command="${1:-}"
-if [[ "${command}" == host-setup ]]; then
-  drop_in_source="${vision_dir}/docker.service.d/10-cleany-jetson-no-iptables-raw.conf"
-  drop_in_target="/etc/systemd/system/docker.service.d/10-cleany-jetson-no-iptables-raw.conf"
+case "${command}" in
+  help|-h|--help|'') usage; [[ -n "${command}" ]] ;;
+  host-setup)
+    drop_in_source="${vision_dir}/docker.service.d/10-cleany-jetson-no-iptables-raw.conf"
+    drop_in_target="/etc/systemd/system/docker.service.d/10-cleany-jetson-no-iptables-raw.conf"
 
-  if [[ -r "${drop_in_target}" ]] && cmp -s "${drop_in_source}" "${drop_in_target}"; then
-    echo "Already installed: ${drop_in_target}"
-    exit 0
-  fi
+    if [[ -r "${drop_in_target}" ]] && cmp -s "${drop_in_source}" "${drop_in_target}"; then
+      echo "Already installed: ${drop_in_target}"
+      exit 0
+    fi
 
-  kernel_config="/boot/config-$(uname -r)"
-  if { [[ -r /proc/config.gz ]] &&
-       zgrep -Eq '^CONFIG_IP_NF_RAW=(y|m)$' /proc/config.gz; } ||
-     { [[ -r "${kernel_config}" ]] &&
-       grep -Eq '^CONFIG_IP_NF_RAW=(y|m)$' "${kernel_config}"; } ||
-     modinfo iptable_raw >/dev/null 2>&1; then
-    echo "The host provides the iptables raw table; no Docker workaround is required."
-    exit 0
-  fi
+    kernel_config="/boot/config-$(uname -r)"
+    if { [[ -r /proc/config.gz ]] &&
+         zgrep -Eq '^CONFIG_IP_NF_RAW=(y|m)$' /proc/config.gz; } ||
+       { [[ -r "${kernel_config}" ]] &&
+         grep -Eq '^CONFIG_IP_NF_RAW=(y|m)$' "${kernel_config}"; } ||
+       modinfo iptable_raw >/dev/null 2>&1; then
+      echo "The host provides the iptables raw table; no Docker workaround is required."
+      exit 0
+    fi
 
-  cat <<'EOF'
+    cat <<'EOF'
 This Jetson kernel has no CONFIG_IP_NF_RAW support. Docker's documented
 DOCKER_INSECURE_NO_IPTABLES_RAW workaround will be enabled system-wide and the
 Docker daemon will restart. It weakens isolation for ports published only on
-127.0.0.1; the Cleany vision service does not publish ports.
+127.0.0.1; the Cleany GPU services do not publish ports.
 EOF
-  read -r -p "Continue? [y/N] " answer
-  if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
-    echo "Cancelled."
-    exit 1
-  fi
+    read -r -p "Continue? [y/N] " answer
+    if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
+      echo "Cancelled."
+      exit 1
+    fi
 
-  sudo install -D -m 0644 "${drop_in_source}" "${drop_in_target}"
-  sudo systemctl daemon-reload
-  sudo systemctl restart docker
-  docker info >/dev/null
-  echo "Installed: ${drop_in_target}"
-  exit 0
-fi
-
-if [[ "${command}" == init ]]; then
-  if [[ -e "${env_file}" ]]; then
-    echo "Already exists: ${env_file}"
-  else
-    cp "${vision_dir}/.env.example" "${env_file}"
-    chmod 600 "${env_file}"
-    echo "Created: ${env_file}"
-  fi
-  exit 0
-fi
-
-if [[ ! -f "${env_file}" ]]; then
-  echo "Run 'tools/vision-container init' first." >&2
-  exit 1
-fi
-
-case "${command}" in
-  config) "${compose[@]}" config ;;
-  build) "${compose[@]}" build vision ;;
-  up) "${compose[@]}" up -d vision ;;
-  down) "${compose[@]}" down ;;
-  shell) "${compose[@]}" exec vision bash ;;
-  build-workspace) "${compose[@]}" exec vision /opt/cleany/bin/build-workspace ;;
-  feature-id) "${compose[@]}" exec vision /opt/cleany/bin/anygrasp-feature-id ;;
-  check-license) "${compose[@]}" exec vision /opt/cleany/bin/check-anygrasp-license ;;
-  run) "${compose[@]}" exec vision /opt/cleany/bin/run-vision ;;
-  *) usage; exit 2 ;;
+    sudo install -D -m 0644 "${drop_in_source}" "${drop_in_target}"
+    sudo systemctl daemon-reload
+    sudo systemctl restart docker
+    docker info >/dev/null
+    echo "Installed: ${drop_in_target}"
+    ;;
+  init) install_identity ;;
+  *)
+    require_identity
+    case "${command}" in
+      hybrid-config|config) "${compose[@]}" config ;;
+      build) "${compose[@]}" build anygrasp ;;
+      anygrasp-up) start_anygrasp ;;
+      anygrasp-run)
+        "${compose[@]}" exec anygrasp \
+          /workspace/cleany/containers/vision/scripts/run-anygrasp
+        ;;
+      anygrasp-shell|shell) "${compose[@]}" exec anygrasp bash ;;
+      perception-up) start_perception ;;
+      perception-run) run_perception ;;
+      perception-shell) "${compose[@]}" exec perception bash ;;
+      hybrid-up|up)
+        guard_unique_anygrasp_mac
+        "${compose[@]}" up -d anygrasp perception
+        if ! assert_anygrasp_docker_identity || ! wait_for_anygrasp_preflight; then
+          "${compose[@]}" stop anygrasp >/dev/null || true
+          exit 1
+        fi
+        ;;
+      hybrid-run|run)
+        "${compose[@]}" exec -d anygrasp \
+          /workspace/cleany/containers/vision/scripts/run-anygrasp
+        run_perception
+        ;;
+      hybrid-down|down) "${compose[@]}" down --remove-orphans ;;
+      build-workspace)
+        "${compose[@]}" exec anygrasp \
+          /workspace/cleany/containers/vision/scripts/build-workspace
+        ;;
+      feature-id)
+        "${compose[@]}" exec anygrasp \
+          /workspace/cleany/containers/vision/scripts/anygrasp-feature-id
+        ;;
+      check-license)
+        "${compose[@]}" exec anygrasp \
+          /workspace/cleany/containers/vision/scripts/check-anygrasp-license
+        ;;
+      *) usage; exit 2 ;;
+    esac
+    ;;
 esac

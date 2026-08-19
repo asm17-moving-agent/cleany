@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+/workspace/cleany/containers/vision/scripts/anygrasp_preflight.py
+install -d -m 0755 /run/cleany
+touch /run/cleany/anygrasp-preflight.ok
+
+exec /opt/cleany/bin/container-entrypoint "$@"

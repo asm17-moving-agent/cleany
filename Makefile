@@ -9,7 +9,10 @@ GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 	build-gazebo-harmonic test test-mission test-mujoco test-gazebo \
 	test-gazebo-harmonic sim sim-gazebo sim-gazebo-harmonic clean \
 	vision-init vision-host-setup vision-config vision-build vision-up vision-down vision-shell \
-	vision-feature-id vision-license-check vision-run
+	vision-feature-id vision-license-check vision-run \
+	anygrasp-up anygrasp-run anygrasp-shell anygrasp-feature-id anygrasp-license-check \
+	perception-up perception-run perception-shell \
+	hybrid-config hybrid-up hybrid-run hybrid-down
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -26,12 +29,13 @@ help:
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
-	@echo "  make vision-init   Create local Jetson vision container settings"
+	@echo "  make vision-init   Install /etc/cleany/jetson-identity.env (sudo)"
 	@echo "  make vision-host-setup  Enable Docker bridge networking on Jetson (sudo)"
 	@echo "  make vision-build  Build the Jetson vision development image"
-	@echo "  make vision-up     Start the fixed-MAC vision container"
-	@echo "  make vision-feature-id  Print AnyGrasp ID inside the container"
-	@echo "  make vision-run    Run perception and grasping in the container"
+	@echo "  make anygrasp-up/run    Start/run the isolated AnyGrasp service"
+	@echo "  make perception-up/run Start/run the perception service"
+	@echo "  make hybrid-up/down     Start/stop all implemented GPU services"
+	@echo "  make vision-feature-id Verify the pinned AnyGrasp ID (compatibility alias)"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 
 deps:
@@ -128,28 +132,64 @@ vision-host-setup:
 	"$(REPO_ROOT)tools/vision-container" host-setup
 
 vision-config:
-	"$(REPO_ROOT)tools/vision-container" config
+	$(MAKE) hybrid-config
 
 vision-build:
 	"$(REPO_ROOT)tools/vision-container" build
 
 vision-up:
-	"$(REPO_ROOT)tools/vision-container" up
+	$(MAKE) hybrid-up
 
 vision-down:
-	"$(REPO_ROOT)tools/vision-container" down
+	$(MAKE) hybrid-down
 
 vision-shell:
-	"$(REPO_ROOT)tools/vision-container" shell
+	$(MAKE) anygrasp-shell
 
 vision-feature-id:
-	"$(REPO_ROOT)tools/vision-container" feature-id
+	$(MAKE) anygrasp-feature-id
 
 vision-license-check:
-	"$(REPO_ROOT)tools/vision-container" check-license
+	$(MAKE) anygrasp-license-check
 
 vision-run:
-	"$(REPO_ROOT)tools/vision-container" run
+	$(MAKE) hybrid-run
+
+anygrasp-up:
+	"$(REPO_ROOT)tools/vision-container" anygrasp-up
+
+anygrasp-run:
+	"$(REPO_ROOT)tools/vision-container" anygrasp-run
+
+anygrasp-shell:
+	"$(REPO_ROOT)tools/vision-container" anygrasp-shell
+
+anygrasp-feature-id:
+	"$(REPO_ROOT)tools/vision-container" feature-id
+
+anygrasp-license-check:
+	"$(REPO_ROOT)tools/vision-container" check-license
+
+perception-up:
+	"$(REPO_ROOT)tools/vision-container" perception-up
+
+perception-run:
+	"$(REPO_ROOT)tools/vision-container" perception-run
+
+perception-shell:
+	"$(REPO_ROOT)tools/vision-container" perception-shell
+
+hybrid-config:
+	"$(REPO_ROOT)tools/vision-container" hybrid-config
+
+hybrid-up:
+	"$(REPO_ROOT)tools/vision-container" hybrid-up
+
+hybrid-run:
+	"$(REPO_ROOT)tools/vision-container" hybrid-run
+
+hybrid-down:
+	"$(REPO_ROOT)tools/vision-container" hybrid-down
 
 clean:
 	"$(REPO_ROOT)tools/ros2-clean"

@@ -3,14 +3,16 @@
   <Domain Id="any">
     <General>
       <Interfaces>
-        <NetworkInterface autodetermine="true" />
+        <NetworkInterface address="172.30.0.1" multicast="false" />
       </Interfaces>
-      <AllowMulticast>spdp</AllowMulticast>
+      <AllowMulticast>false</AllowMulticast>
       <MaxMessageSize>65500B</MaxMessageSize>
     </General>
     <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
       <Peers>
         <Peer Address="172.30.0.10" />
+        <Peer Address="172.30.0.11" />
       </Peers>
     </Discovery>
   </Domain>

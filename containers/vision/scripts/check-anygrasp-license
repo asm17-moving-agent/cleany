@@ -1,14 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-/opt/cleany/bin/anygrasp-feature-id >/dev/null
+/workspace/cleany/containers/vision/scripts/anygrasp_preflight.py
 
 python3 - <<'PY'
 import os
-from gsnet import check_license
+from pathlib import Path
+from types import SimpleNamespace
 
-license_dir = os.environ['ANYGRASP_LICENSE_DIR']
-if not check_license(license_dir):
+from gsnet import check_license, create_detector
+
+license_dir = Path(os.environ['ANYGRASP_LICENSE_DIR'])
+license_path = license_dir / os.environ['ANYGRASP_LICENSE_FILE']
+checkpoint_path = Path(os.environ['ANYGRASP_CHECKPOINT_PATH'])
+if not license_path.is_file():
+    raise SystemExit(f'AnyGrasp license file is missing: {license_path}')
+if not checkpoint_path.is_file():
+    raise SystemExit(f'AnyGrasp checkpoint is missing: {checkpoint_path}')
+if not check_license(str(license_dir)):
     raise SystemExit('AnyGrasp license validation failed')
-print('AnyGrasp license validation passed')
+
+configuration = SimpleNamespace(
+    checkpoint_path=str(checkpoint_path),
+    max_gripper_width=0.10,
+    gripper_height=0.03,
+)
+previous = Path.cwd()
+try:
+    os.chdir(license_dir.parent)
+    detector = create_detector(configuration)
+finally:
+    os.chdir(previous)
+if detector is None:
+    raise SystemExit('AnyGrasp detector initialization failed')
+print('AnyGrasp license validation and detector initialization passed')
 PY

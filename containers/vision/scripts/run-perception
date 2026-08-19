@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+/workspace/cleany/containers/vision/scripts/build-workspace
+
+set +u
+source /workspace/cleany/ros2_ws/install-perception/setup.bash
+set -u
+
+exec ros2 launch cleany_perception inspect_scene.launch.py \
+  sam2_model_config:="${SAM2_MODEL_CONFIG}" \
+  sam2_checkpoint:="${SAM2_CHECKPOINT_PATH}" \
+  sam2_device:=cuda

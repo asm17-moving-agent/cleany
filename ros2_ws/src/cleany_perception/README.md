@@ -37,7 +37,8 @@ API는 제한이 설정된 API key가 필요할 수 있다.
 
 ## 실행
 
-Jetson에서 perception과 AnyGrasp를 동일한 고정 MAC container로 개발·실행할 때는
+Jetson에서는 perception을 `172.30.0.11` 전용 GPU service로 실행한다. AnyGrasp의 고정
+MAC, license와 checkpoint는 perception container에 mount하지 않는다. 자세한 절차는
 [`containers/vision`](../../../containers/vision/README.md)을 따른다. 아래 명령은 native
 개발환경용이다.
 

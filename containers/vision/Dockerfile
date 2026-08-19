@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04
+FROM nvcr.io/nvidia/l4t-jetpack:r36.4.0@sha256:34ccf0f3b63c6da9eee45f2e79de9bf7fdf3beda9abfd72bbf285ae9d40bb673
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG ROS_DISTRO=humble
@@ -82,7 +82,13 @@ RUN git clone https://github.com/facebookresearch/sam2.git && \
 
 RUN python3 -m pip install --no-cache-dir google-genai==2.18.0
 
-ENV PYTHONPATH=/opt/anygrasp:${PYTHONPATH}
+# graspnetAPI imports IPython from its Dex-Net compatibility modules while the
+# licensed detector is being constructed, even for headless inference.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      python3-ipython && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONPATH=/opt/anygrasp
 
 COPY containers/vision/cyclonedds/container.xml /etc/cleany/cyclonedds.xml
 COPY containers/vision/scripts/ /opt/cleany/bin/

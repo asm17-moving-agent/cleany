@@ -58,7 +58,11 @@ sudo dpkg -i /tmp/ros2-apt-source.deb
 ```bash
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y ros-humble-desktop ros-dev-tools python3-pip git make
+sudo apt install -y \
+  ros-humble-desktop \
+  ros-humble-rmw-cyclonedds-cpp \
+  ros-dev-tools \
+  python3-pip git make
 ```
 
 현재 terminal에서 ROS 환경을 적용한다.
@@ -79,6 +83,7 @@ source /opt/ros/humble/setup.bash
 test "${ROS_DISTRO}" = "humble"
 python3 --version
 command -v ros2 colcon rosdep
+ros2 pkg prefix rmw_cyclonedds_cpp
 ros2 doctor --report
 ```
 
@@ -86,20 +91,23 @@ Python은 `3.10.x`, `ROS_DISTRO`는 `humble`이어야 한다.
 
 ### 선택: Jetson vision container
 
-일반 ROS package와 simulation 개발의 기본은 계속 native 환경이다. Jetson에서 CUDA,
-SAM2, MinkowskiEngine과 licensed AnyGrasp를 함께 개발할 때는 dependency와 license
-identity를 격리하기 위해 vision container를 사용할 수 있다.
+일반 ROS package, mission, safety, navigation과 hardware control의 기본은 계속 native
+환경이다. Jetson에서는 CUDA model만 container로 격리하며 AnyGrasp와 perception은 서로
+다른 service로 실행한다.
 
 ```bash
 make vision-init
 make vision-config
 make vision-build
-make vision-up
+make anygrasp-up
 make vision-feature-id
+make perception-up
 ```
 
-AnyGrasp license는 host가 아니라 고정 MAC container에서 출력한 feature ID로 신청한다.
-상세한 model/license mount, 재부팅 검증과 ROS 2 DDS 설정은
+`vision-init`은 Git의 `.env` 대신 root-owned
+`/etc/cleany/jetson-identity.env`를 설치한다. AnyGrasp license는 host가 아니라 고정
+MAC container에서 출력하고 pinned 값과 검증된 feature ID로 신청한다. 상세한
+model/license mount, fail-closed 검사, 재부팅 검증과 ROS 2 DDS 설정은
 [`containers/vision/README.md`](../containers/vision/README.md)를 따른다.
 
 ## 4. 레포지토리 준비
