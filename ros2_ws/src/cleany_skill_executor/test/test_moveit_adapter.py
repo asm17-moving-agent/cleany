@@ -105,6 +105,7 @@ def test_second_segment_has_explicit_pregrasp_start_state():
     grasp = JointSolution(ARM_JOINT_NAMES['right'], (25.0, 26.0, 27.0, 28.0, 29.0))
     assert adapter.plan('right', grasp, pregrasp)
     request = plan.goals[0].request
+    assert plan.goals[0].planning_options.plan_only is True
     assert request.group_name == 'right_grasp_arm'
     start = dict(zip(request.start_state.joint_state.name, request.start_state.joint_state.position))
     assert tuple(start[name] for name in ARM_JOINT_NAMES['right']) == pregrasp.positions

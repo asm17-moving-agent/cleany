@@ -144,7 +144,15 @@ class MoveItGraspAdapter:
         seconds = int(self._config.ik_timeout_sec)
         ik.timeout.sec = seconds
         ik.timeout.nanosec = int((self._config.ik_timeout_sec - seconds) * 1e9)
-        response = self._call(self._ik_client, request, self._config.ik_timeout_sec)
+        # MoveIt may legitimately consume the full solver timeout before
+        # returning NO_IK_SOLUTION. Keep transport overhead outside that
+        # algorithm budget so an unreachable pair remains a fallback result,
+        # not an infrastructure timeout.
+        response = self._call(
+            self._ik_client,
+            request,
+            self._config.ik_timeout_sec + 1.0,
+        )
         if response.error_code.val == MoveItErrorCodes.NO_IK_SOLUTION:
             return None
         if response.error_code.val != MoveItErrorCodes.SUCCESS:
@@ -186,6 +194,11 @@ class MoveItGraspAdapter:
         if not self._plan_client.wait_for_server(timeout_sec=wait_timeout):
             raise InfrastructureError('MoveGroup action unavailable')
         action_goal = MoveGroup.Goal()
+        action_goal.planning_options.plan_only = True
+        action_goal.planning_options.look_around = False
+        action_goal.planning_options.replan = False
+        action_goal.planning_options.planning_scene_diff.is_diff = True
+        action_goal.planning_options.planning_scene_diff.robot_state.is_diff = True
         request = action_goal.request
         request.group_name = f'{arm}_grasp_arm'
         request.num_planning_attempts = self._config.planning_attempts
