@@ -126,8 +126,10 @@ make deps
 
 `cleany_moveit_config` 패키지를 빌드하면 package manifest에 따라 ROS 2
 Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, `ros2_control` 및
-`joint_trajectory_controller`도 `make deps`가 함께 설치한다. 설치 후 다음으로
-필수 runtime package를 확인할 수 있다.
+`joint_trajectory_controller`도 `make deps`가 함께 설치한다. MuJoCo hand-eye
+backend를 포함한 전체 workspace 설치에서는 Humble용 `mujoco_ros2_control`도
+`cleany_mujoco_sim` manifest를 통해 설치한다. 설치 후 다음으로 필수 runtime
+package를 확인할 수 있다.
 
 ```bash
 ros2 pkg prefix moveit_ros_move_group
@@ -135,6 +137,7 @@ ros2 pkg prefix moveit_kinematics
 ros2 pkg prefix moveit_planners_ompl
 ros2 pkg prefix controller_manager
 ros2 pkg prefix joint_trajectory_controller
+ros2 pkg prefix mujoco_ros2_control
 ```
 
 Gazebo 패키지만 재현할 때는 MuJoCo 등 다른 workspace 의존성을 제외하고 설치할 수
@@ -168,8 +171,37 @@ make test
 ```bash
 make test-mission
 make test-mujoco
+make test-handeye
 make test-gazebo
 ```
+
+Hand-eye 개발 범위만 반복할 때는 아래 두 target을 사용한다.
+
+```bash
+make build-handeye
+make test-handeye
+```
+
+`make deps`는 hand-eye package manifest를 통해 MoveIt 2/KDL/OMPL,
+`ros2_control`, `mujoco_ros2_control`, OpenCV contrib, NumPy, PyYAML과 ROS service/action
+dependency를 설치한다. 별도 Python virtualenv에 OpenCV나 NumPy를 다시 설치하지
+않는다.
+
+MuJoCo용 random pose set을 생성하고 실제 calibration을 viewer와 함께 실행한 뒤
+완성 dataset을 검증한다.
+
+```bash
+make handeye-generate-mujoco
+make handeye-mujoco
+make handeye-validate-mujoco
+```
+
+첫 명령은 random seed와 제한된 workspace prior를 사용하되 MoveIt, collision,
+렌더링 ChArUco/PnP를 통과한 후보만 모으고 rotation axis/covariance 분석으로 20+5를
+선정한다. 두 번째 명령은 `headless:=false`를 고정해 operator 화면을 표시한다.
+마지막 명령은 row/image hash, PnP 재현과 150-run solver를 검증한다. 자동 테스트는
+`headless:=true`를 명시하므로 CI나 반복 회귀에서 viewer를 열지 않는다. Template의
+승인 전 `null` 값은 실행 입력으로 사용하지 않는다.
 
 Gazebo 재현성만 확인할 때는 환경 검사부터 실행한다. 활성 `ROS_DISTRO`와 Gazebo major
 version으로 Humble/Fortress 또는 Jazzy/Harmonic profile을 선택한 뒤, profile에 맞는
@@ -306,6 +338,11 @@ Make의 타깃 테스트는 이 과정을 자동으로 수행한다.
 
 VM의 3D acceleration과 display 설정을 확인한다. GUI가 필요하지 않은 검증은
 `make sim`의 headless 실행을 사용한다.
+
+`make handeye-mujoco`는 실제 calibration 관찰을 위해 viewer를 강제로 사용한다.
+VM 또는 Distrobox에서 실행한다면 `DISPLAY`가 전달됐는지와 X11/Wayland socket,
+OpenGL acceleration을 함께 확인한다. 화면이 없는 환경에서는 실제 calibration을
+진행하지 말고 `make test-handeye`로 headless runtime만 검증한다.
 
 ### `make check-gazebo-env`가 실패하는 경우
 

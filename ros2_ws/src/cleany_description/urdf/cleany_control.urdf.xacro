@@ -1,8 +1,18 @@
 <?xml version="1.0"?>
 <robot name="cleany" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="mujoco_model" default=""/>
+  <xacro:arg name="headless" default="true"/>
+  <xacro:arg name="sim_speed_factor" default="1.0"/>
+  <xacro:arg name="camera_publish_rate" default="10.0"/>
+
   <xacro:include filename="$(find cleany_description)/urdf/materials.xacro"/>
   <xacro:include filename="$(find cleany_description)/urdf/cleany_geometry.xacro"/>
+  <xacro:include filename="$(find cleany_description)/urdf/cleany_mujoco_ros2_control.xacro"/>
 
-  <!-- Control backends add their ros2_control definition only in this entrypoint. -->
   <xacro:cleany_robot_geometry/>
+  <xacro:cleany_mujoco_ros2_control
+    mujoco_model="$(arg mujoco_model)"
+    headless="$(arg headless)"
+    sim_speed_factor="$(arg sim_speed_factor)"
+    camera_publish_rate="$(arg camera_publish_rate)"/>
 </robot>

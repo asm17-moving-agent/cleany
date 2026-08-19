@@ -30,8 +30,29 @@ make test
 ```bash
 make test-mission
 make test-mujoco
+make test-handeye
 make test-gazebo
 ```
+
+Hand-eye 패키지 경계만 빌드하려면 `make build-handeye`를 사용한다.
+`make test-handeye`는 description, MuJoCo backend, MoveIt config와 calibration
+패키지를 함께 검사하며 실제 runtime test는 자동으로 `headless:=true`를 사용한다.
+
+MuJoCo에서 random pose 후보를 MoveIt/렌더링/PnP로 검증하고 axis parallelism과
+rotation covariance를 분석해 20+5 artifact를 생성한 뒤 실제 calibration을 실행한다.
+
+```bash
+make handeye-generate-mujoco
+make handeye-mujoco
+make handeye-validate-mujoco
+```
+
+생성 target은 준비 단계이므로 headless이고 기본 artifact 경로를 materialize한다.
+Calibration target은 operator가 motion과 target visibility를 확인할 수 있도록
+`headless:=false`를 명시하며 MuJoCo viewer를 연다. Template의 `null` 값을 그대로
+사용할 수 없고, pose preflight와 safety/timeouts 검토가 끝난 artifact만 허용한다.
+마지막 target은 25개 row/image/hash, ChArUco/PnP 재현, provenance와 150-run
+solver 결과를 `dataset_validation.json`으로 검증한다.
 
 MuJoCo 시뮬레이터를 headless 모드로 실행한다.
 
@@ -82,6 +103,11 @@ colcon test
 colcon test-result --verbose
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
 ```
+
+Hand-eye에 해당하는 native 세부 명령과 artifact schema는
+[`cleany_handeye_calibration` README](src/cleany_handeye_calibration/README.md)를
+따른다. 실제 calibration launch의 viewer 기본값은 `headless:=false`이고 테스트만
+명시적으로 headless 모드를 사용한다.
 
 `source install/setup.bash`는 build 후 같은 terminal session에서 실행한다.
 

@@ -12,6 +12,11 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (
+            os.path.join('share', package_name, 'config'),
+            glob('config/*.yaml') + glob('config/*.json'),
+        ),
+        (os.path.join('share', package_name, 'assets'), glob('assets/*')),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
         (os.path.join('share', package_name, 'scenes'), glob('scenes/*.xml.in')),
     ],
@@ -25,6 +30,14 @@ setup(
     entry_points={
         'console_scripts': [
             'mujoco_sim_node = cleany_mujoco_sim.sim_node:main',
+            (
+                'handeye_scene_preflight = '
+                'cleany_mujoco_sim.scene_manifest:main'
+            ),
+            (
+                'camera_contract_adapter = '
+                'cleany_mujoco_sim.camera_contract_adapter:main'
+            ),
         ],
     },
 )

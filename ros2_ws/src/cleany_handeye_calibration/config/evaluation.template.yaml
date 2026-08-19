@@ -1,0 +1,15 @@
+schema_version: 1
+
+# Exactly ten recorded seeds are required.  The condition-specific streams
+# use NumPy PCG64 and the same generated bundle is shared by all five methods.
+random_seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+# Materialize from the reviewed robot/camera geometry before running.  This is
+# a solver-output validity bound, not a calibration acceptance threshold.
+max_translation_norm_m: null
+
+# Continuous-motion observations are a separate artifact from the 20+5
+# stationary samples.  Choose and review offsets and interpolation distance.
+timestamp:
+  offsets_ns: null
+  max_joint_sample_distance_ns: null

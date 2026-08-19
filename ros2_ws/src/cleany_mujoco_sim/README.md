@@ -4,10 +4,12 @@ XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한�
 
 ## 상태와 책임
 
-이 패키지는 구현된 시뮬레이션 브리지이며, 전체 로봇 인터페이스는 아니다. MuJoCo
-장면을 불러오고 상태를 발행하며, 테스트용 관절 위치 직접 명령과 mobile-base
-`cmd_vel` 명령을 처리한다. 운영 환경의 내비게이션, 매니퓰레이션 및 하드웨어
-adapter는 이 패키지의 범위에 포함하지 않는다.
+이 패키지는 두 개의 배타적인 MuJoCo 실행 경로를 제공한다. 기존
+`mujoco_sim_node`는 mobile-base와 센서 개발용 custom bridge이고,
+`handeye_backend.launch.py`는 좌·우 arm trajectory를 위한
+`mujoco_ros2_control` backend다. 한 프로세스에서 두 경로를 함께 실행하지 않는다.
+운영 환경의 내비게이션 및 실제 하드웨어 adapter는 이 패키지의 범위에 포함하지
+않는다.
 
 ## 실행과 테스트
 
@@ -27,7 +29,59 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 ```
 
+Hand-eye arm controller backend는 별도로 실행한다. 이 launch는 기존
+`mujoco_sim_node`를 include하거나 시작하지 않는다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_mujoco_sim handeye_backend.launch.py \
+  headless:=true sim_speed_factor:=1.0
+```
+
+이 backend의 기본값은 `scenes/handeye.xml.in`이다. 전용 scene은 canonical MJCF를
+그대로 include하고 `chassis`를 world에 weld하며, 고정 table/stand와
+7×5 ChArUco target을 추가한다. 기존 `mujoco_sim.launch.py`와 custom simulator의
+기본 `scenes/default.xml.in` 경로는 그대로 유지된다.
+
+Scene 계약과 printable board provenance는
+`config/handeye_scene.yaml` (`cleany.handeye_scene/v1`)에 기록한다. Simulation은
+30 mm square/15 mm marker nominal 값을 사용한다. Physical profile의 실측값은 현재
+`not_measured`/`null`이며 임의 수치로 대체하지 않는다. 실제 인쇄물을 100% scale,
+page fitting 비활성화로 출력하고 실측 provenance를 채우기 전에는 physical
+preflight가 실패한다.
+
+같은 manifest는 wrist camera render/public contract도 고정한다. 640×480,
+vertical FOV 93°에서
+`f=(height/2)/tan(fovy/2)=227.751496 px`, `cx=319.5`, `cy=239.5`를 사용한다.
+Public `CameraInfo`는 `plumb_bob`, 5개 zero `D`, identity `R`, manifest의 exact
+`K/P`를 사용한다. Width/height/FOV/formula/K/D/R/P 중 하나라도 바뀌면 simulation
+preflight가 실패하고 adapter가 collection message를 발행하지 않는다.
+
+```bash
+ros2 run cleany_mujoco_sim handeye_scene_preflight --profile simulation
+# 실측값 기록 전에는 의도적으로 exit 2
+ros2 run cleany_mujoco_sim handeye_scene_preflight --profile physical
+```
+
+Printable SVG/PDF는 OpenCV 4.5.4 `CharucoBoard`의 7×5,
+`DICT_5X5_100`, marker IDs 0–16 패턴을 같은 lossless vector run으로 표현한다.
+파일별 SHA-256과 210×150 mm media 크기는 manifest에 고정되어 있다. Target GT는
+OpenCV 4.5 object frame(인쇄면 좌하단 원점, +X 오른쪽, +Y 위, +Z 인쇄면 밖)의
+`base_T_target`이며 평가 전용이다. PnP 후보 선택이나 solver 입력에는 사용하지 않는다.
+
+전용 raw action/runtime 계약은 다음으로 검증한다.
+
+```bash
+cd ros2_ws
+pytest -q -s \
+  src/cleany_mujoco_sim/test/test_handeye_backend_runtime.py \
+  src/cleany_mujoco_sim/test/test_handeye_camera_runtime.py
+```
+
 ## ROS contract
+
+### Custom simulation backend
 
 `mujoco_sim_node`는 다음 topic을 발행한다.
 
@@ -57,6 +111,51 @@ ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
 
 발행 중에는 전진·좌측 횡이동·반시계 회전이 함께 적용되고, 발행이 중단되면
 command timeout 후 정지 목표를 적용한다.
+
+### Hand-eye arm-control backend
+
+`handeye_backend.launch.py`는 `mujoco_ros2_control/ros2_control_node`,
+`robot_state_publisher`, `joint_state_broadcaster`와 side별
+`joint_trajectory_controller`, camera contract adapter를 시작한다.
+
+- `/left_arm_controller/follow_joint_trajectory`: left arm 5축만 claim
+- `/right_arm_controller/follow_joint_trajectory`: right arm 5축만 claim
+- `/joint_states`: 양팔 10축 position/velocity와 left/right gripper read-only
+  position/velocity
+- `/left_wrist_camera/image_raw`: 640×480 RGB, source simulation stamp,
+  `left_wrist_rgb_optical_frame`
+- `/left_wrist_camera/camera_info`: image와 같은 source stamp/frame 및 manifest의
+  exact pinhole model
+
+그리퍼는 MoveIt current-state completeness를 위해 상태만 내보내며 command
+interface는 없다. 이 backend는 private `~/joint_cmd` topic을 만들거나 사용하지
+않는다. Controller의 joint path/goal tolerance baseline은 각각 `0.05 rad`와
+`0.01 rad`이며 `config/handeye_ros2_controllers.yaml`에서 관리한다.
+
+ROS 2 Humble binary의 `mujoco_ros2_control` 0.0.3은 MuJoCo 3.4를 vendor하므로
+canonical model의 MuJoCo 3.7 `dcmotor`를 읽을 수 없다. Default `.xml.in` scene을
+hand-eye backend로 실행할 때 scene loader가 임시 model copy를 만들고 네 wheel
+`dcmotor` actuator와 그 default만 제거한다. 이 임시 copy에는 0.0.3 plugin이
+control contract 밖의 head actuator까지 finite command로 초기화하도록 startup
+keyframe도 추가한다. Canonical MJCF와 기존 `mujoco_sim_node` materialization은
+변경하지 않는다. 직접 `scene_path`에 완성된 `.xml`을 넘기면 호출자가 MuJoCo 3.4
+호환성과 `handeye_ros2_control_home` keyframe을 보장해야 한다.
+
+동일한 0.0.3 release에는 별도 `CameraPlugin`이 없다. 이 구현은 release에 실제로
+포함된 `mujoco_ros2_control::MujocoCameras`가 `hardware_info.sensors`의
+`frame_name`, `info_topic`, `image_topic`, `depth_topic`을 읽는 경로를 사용한다.
+Vendor `/left_wrist_rgb/*` 이름은 launch remap으로
+`/cleany/internal/mujoco/left_wrist_camera/*` 아래에 격리되고, 작은 adapter만 위의
+두 public topic을 발행한다. Adapter는 vendor image와 CameraInfo를 exact source
+stamp로 pair한 뒤 public frame/model을 정규화하며 wall clock stamp를 만들지 않는다.
+Hand-eye template marker가 있는 경우에만 scene loader가 임시 canonical include의
+`left_wrist_rgb` resolution을 640×480으로 materialize한다. Source canonical MJCF,
+default scene, custom simulator, Gazebo 경로의 bytes/동작은 바꾸지 않는다.
+
+Simulation camera GT는 manifest의 `evaluation_ground_truth.camera_transform`과
+`ground_truth_evaluation.py` pure accessor/metric에만 존재한다. 이는 compiled
+`Fixed_Jaw` body에서 `left_wrist_rgb_optical_frame` site까지의 transform이며 solver
+입력이나 canonical TF/topic으로 publish되지 않는다.
 
 ## 베이스 구동 모델
 
@@ -111,6 +210,25 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 `base_frame_id`, `laser_frame_id`, `publish_odom_tf`, `scan_enabled`,
 `scan_sample_rate_hz`, `scan_range_min`, `scan_range_max`도 지원한다.
 
+`handeye_backend.launch.py`는 다음 launch argument를 제공한다.
+
+- `scene_path`: control용 MuJoCo scene XML 또는 `.xml.in` template. 기본값은
+  `scenes/handeye.xml.in`
+- `headless`: native viewer 비활성화 여부. 기본값 `true`
+- `sim_speed_factor`: wall time 대비 simulation speed. 기본값 `1.0`
+
+Camera publish rate와 public model/topic은 launch override가 아니라
+`config/handeye_scene.yaml`의 preflight 계약으로 관리한다.
+
+ChArUco의 211개 vector ink box는 target geometry의 authoritative source로
+유지한다. 640×480 wrist render에서는 sub-pixel box edge가 ArUco bit를 손상시킬 수
+있으므로 `scene_loader`가 같은 box 좌표를 1400×1000 lossless grayscale PNG로
+deterministic rasterize하고, materialized temporary scene의 non-collision render
+surface에만 적용한다. 보드 바깥 10 mm 흰 quiet zone도 render-only/non-collision이며
+210×150 mm object point와 planning-scene collision 형상은 바꾸지 않는다. Canonical
+MJCF, `default.xml.in`, SVG/PDF source asset은 수정하지 않으며 temporary texture도
+source tree에 기록하지 않는다.
+
 ## 범위
 
 구현된 기능:
@@ -121,6 +239,10 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 - 시뮬레이션 시험용 직접 joint position 명령
 - `/cmd_vel` 검증·제한·timeout과 메카넘 역기구학
 - 휠별 PID, feed-forward, anti-windup, 전압 제한을 통한 actuator 제어
+- 좌·우 5축별 표준 `FollowJointTrajectory` action과 12개 arm/gripper joint state를
+  제공하는 배타적인 MuJoCo `ros2_control` backend
+- Humble release `MujocoCameras` 기반 left wrist RGB/CameraInfo와 public contract
+  normalizer
 
 아직 구현되지 않은 기능:
 
