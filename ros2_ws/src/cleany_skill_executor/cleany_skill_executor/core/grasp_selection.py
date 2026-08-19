@@ -90,21 +90,27 @@ class GraspSelectionConfig:
 
 
 class ReachabilityPort(Protocol):
+    def set_target_contacts(self, arm: str | None) -> None:
+        ...
+
     def solve_position_ik(
         self,
         arm: str,
         position: tuple[float, float, float],
         seed: JointSolution | None,
-    ) -> JointSolution | None: ...
+    ) -> JointSolution | None:
+        ...
 
-    def state_is_valid(self, arm: str, solution: JointSolution) -> bool: ...
+    def state_is_valid(self, arm: str, solution: JointSolution) -> bool:
+        ...
 
     def plan(
         self,
         arm: str,
         goal: JointSolution,
         start: JointSolution | None,
-    ) -> bool: ...
+    ) -> bool:
+        ...
 
 
 Feedback = Callable[[int, str, EvaluationStage, str], None]
@@ -156,25 +162,31 @@ class GraspSelector:
                 if cancel_requested():
                     raise InterruptedError('grasp selection canceled')
                 index = candidate.source_index
+                self._port.set_target_contacts(None)
                 feedback(index, arm, EvaluationStage.PREGRASP_IK, 'evaluating')
                 pregrasp = self._port.solve_position_ik(arm, pregrasp_position, None)
                 if pregrasp is None:
                     feedback(index, arm, EvaluationStage.PREGRASP_IK, 'no IK solution')
                     continue
+                self._port.set_target_contacts(arm)
                 feedback(index, arm, EvaluationStage.GRASP_IK, 'evaluating')
                 grasp = self._port.solve_position_ik(arm, candidate.position, pregrasp)
                 if grasp is None:
                     feedback(index, arm, EvaluationStage.GRASP_IK, 'no IK solution')
                     continue
+                self._port.set_target_contacts(None)
                 feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'pregrasp')
                 if not self._port.state_is_valid(arm, pregrasp):
                     continue
+                self._port.set_target_contacts(arm)
                 feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'grasp')
                 if not self._port.state_is_valid(arm, grasp):
                     continue
+                self._port.set_target_contacts(None)
                 feedback(index, arm, EvaluationStage.PLAN_PREGRASP, 'planning')
                 if not self._port.plan(arm, pregrasp, None):
                     continue
+                self._port.set_target_contacts(arm)
                 feedback(index, arm, EvaluationStage.PLAN_GRASP, 'planning')
                 if not self._port.plan(arm, grasp, pregrasp):
                     continue

@@ -67,7 +67,10 @@ class GraspSelectionNode(Node):
             20,
             callback_group=callback_group,
         )
-        wait = lambda duration: time.sleep(min(duration, 0.01))
+
+        def wait(duration: float) -> None:
+            time.sleep(min(duration, 0.01))
+
         self._adapter = MoveItGraspAdapter(
             self,
             MoveItAdapterConfig(

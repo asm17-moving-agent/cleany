@@ -67,6 +67,42 @@ ros2 launch cleany_skill_executor grasp_execution_demo.launch.py \
 `MoveIt execution succeeded`, `DEMO COMPLETE`가 전체 성공 기준이다. 데모는 완료
 자세와 marker를 유지하므로 종료는 `Ctrl-C`, 다시 보기는 launch 재실행으로 한다.
 
+### 실제 RGB-D can 검출·이동 데모
+
+다음 launch는 table, 파란 box, 빨간 can, 고정 RGB-D 카메라가 있는
+`mujoco_ros2_control` 장면을 연다. 시뮬레이터가 렌더링한 RGB-D에서 빨간 can을
+분할하고 `base_link` 점군으로 투영한 뒤, geometric grasp 후보 생성과 MoveIt
+양팔 검증을 거쳐 그리퍼를 열고 선택된 pre-grasp 자세까지 실제 controller로
+실행한다. 5축 position-only IK가 TCP quaternion을 무시하는 문제를 피하기 위해
+그리퍼 전방 0.14 m의 collision-free 가상 조준점을 grasp point에 맞춘다. 따라서 실제
+TCP는 can에서 0.14 m 떨어져 있고, 그리퍼의 접근축은 can을 향한 자세에서 멈춘다.
+이 보정은 can 데모의 실행 직전에 적용된다. 운영 `SelectReachableGrasp` action 자체는
+계속 position-only 후보 검증 계약을 유지하므로, action 결과만으로 TCP 방향까지
+검증됐다고 해석하면 안 된다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
+```
+
+기본으로 세 창이 열린다.
+
+- MuJoCo: 갈색 table 위 빨간 can으로 왼팔이 이동하는 실제 simulation 상태
+- RViz: 검출 can 반투명 원통, 후보 구, 선택 후보 초록 구, 접근 방향 파란 화살표
+- Image View: `/grasp/can_grasp_image`의 실제 RGB 영상 위 후보별 TCP, 접근 화살표,
+  score, 접근 azimuth/elevation, 요구 opening과 MoveIt 선택 결과
+
+로그에서 `RGB-D can segmented`, `GEOMETRIC GRASP COMPLETE`, `Selected generated
+candidate`, `gripper opened`, `Direction-aware pre-grasp verified`,
+`MoveIt execution succeeded: collision-checked aimed pre-grasp`,
+`CAN PREGRASP DEMO COMPLETE`가 차례대로
+나오면 전체 경로가 성공한 것이다. RGB-D 렌더링에는 OpenGL context가 필요하므로
+이 데모의 `headless:=true`는 지원하지 않는다. table과 can은 MuJoCo 물리
+충돌체다. 후보 선택 중에는 검출 can OBB를 검사하고, action 종료 뒤 실제 pre-grasp
+trajectory를 다시 계획할 때도 can cylinder를 Planning Scene에 contact permission
+없이 유지한다. gripper close, attach, lift는 포함하지 않는다.
+
 ## 관련 KB
 
 - [System Concept](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Concept.md)

@@ -36,6 +36,10 @@ Visualization Manager:
       Marker Topic: /grasp_demo/markers
       Name: Grasp Candidates
       Namespaces:
+        can_grasp_approach: true
+        can_grasp_candidates: true
+        can_grasp_status: true
+        detected_can: true
         grasp_approach: true
         grasp_candidates: true
         grasp_status: true

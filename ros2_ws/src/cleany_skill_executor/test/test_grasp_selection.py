@@ -14,6 +14,9 @@ class FakePort:
         self.failures = set(failures)
         self.calls = []
 
+    def set_target_contacts(self, arm):
+        self.calls.append(('contacts', arm))
+
     def solve_position_ik(self, arm, position, seed):
         stage = 'pre_ik' if seed is None else 'grasp_ik'
         self.calls.append((stage, arm, position, seed))
@@ -73,6 +76,21 @@ def test_second_plan_uses_pregrasp_as_explicit_start():
     selected = GraspSelector(port).select([candidate(0, y=0.2)])
     grasp_plan = next(call for call in port.calls if call[0] == 'plan_grasp')
     assert selected is not None and grasp_plan[3] == selected.pregrasp
+
+
+def test_target_contact_is_disallowed_for_pregrasp_and_allowed_for_grasp():
+    port = FakePort()
+    GraspSelector(port).select([candidate(0, y=0.2)])
+
+    contacts = [call for call in port.calls if call[0] == 'contacts']
+    assert contacts == [
+        ('contacts', None),
+        ('contacts', 'left'),
+        ('contacts', None),
+        ('contacts', 'left'),
+        ('contacts', None),
+        ('contacts', 'left'),
+    ]
 
 
 def test_all_pairs_failed_returns_none_and_cancel_stops_immediately():

@@ -20,12 +20,14 @@ from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
 
+from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
+
 
 class GraspExecutionDemo(Node):
     """Drive only the selected arm in a dedicated, operator-observed demo."""
 
-    def __init__(self) -> None:
-        super().__init__('grasp_execution_demo')
+    def __init__(self, node_name: str = 'grasp_execution_demo') -> None:
+        super().__init__(node_name)
         self.declare_parameter('selection_action', '/grasp/select_reachable')
         self.declare_parameter('move_group_action', '/move_action')
         self.declare_parameter('startup_timeout_sec', 60.0)
@@ -124,9 +126,16 @@ class GraspExecutionDemo(Node):
 
     def _wait_for_joint_state(self, timeout: float) -> None:
         deadline = time.monotonic() + timeout
-        while len(self._joint_positions) < 12 and time.monotonic() < deadline:
+        while (
+            not set(REQUIRED_JOINT_NAMES) <= self._joint_positions.keys()
+            and time.monotonic() < deadline
+        ):
             rclpy.spin_once(self, timeout_sec=0.05)
-        if len(self._joint_positions) < 12:
+        missing = set(REQUIRED_JOINT_NAMES) - self._joint_positions.keys()
+        if missing:
+            self.get_logger().error(
+                f'Missing required joint feedback: {sorted(missing)}'
+            )
             raise RuntimeError('complete 12-joint feedback is unavailable')
 
     def _candidates(self) -> list[GraspCandidate]:

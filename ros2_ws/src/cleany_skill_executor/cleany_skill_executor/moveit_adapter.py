@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass
-import math
 import time
 from typing import Any, Callable
 

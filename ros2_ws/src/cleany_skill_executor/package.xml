@@ -10,6 +10,7 @@
   <depend>action_msgs</depend>
   <depend>ament_index_python</depend>
   <depend>cleany_interfaces</depend>
+  <depend>control_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>launch</depend>
   <depend>launch_ros</depend>
@@ -18,10 +19,14 @@
   <depend>sensor_msgs</depend>
   <depend>shape_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>trajectory_msgs</depend>
   <depend>visualization_msgs</depend>
   <exec_depend>cleany_moveit_config</exec_depend>
   <exec_depend>cleany_mujoco_sim</exec_depend>
+  <exec_depend>cleany_grasping</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-pil</exec_depend>
+  <exec_depend>rqt_image_view</exec_depend>
   <test_depend>python3-pytest</test_depend>
   <export><build_type>ament_python</build_type></export>
 </package>

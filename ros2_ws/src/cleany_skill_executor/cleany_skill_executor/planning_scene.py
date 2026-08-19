@@ -125,6 +125,16 @@ class TargetSceneTransaction:
         if not self._apply(scene).success:
             raise InfrastructureError('failed to update target collision permissions')
 
+    def disallow_target_contacts(self) -> None:
+        if self._saved_acm is None or not self._object_id:
+            raise InfrastructureError('target scene transaction is not active')
+        scene = PlanningScene()
+        scene.is_diff = True
+        scene.robot_state.is_diff = True
+        scene.allowed_collision_matrix = deepcopy(self._saved_acm)
+        if not self._apply(scene).success:
+            raise InfrastructureError('failed to clear target contact permissions')
+
     def _apply(self, scene: PlanningScene) -> Any:
         request = ApplyPlanningScene.Request()
         request.scene = scene
@@ -162,10 +172,16 @@ class SceneAwarePort:
     def reset(self) -> None:
         self._arm = ''
 
-    def solve_position_ik(self, arm, position, seed):
-        if arm != self._arm:
+    def set_target_contacts(self, arm: str | None) -> None:
+        if arm == self._arm:
+            return
+        if arm is None:
+            self._scene.disallow_target_contacts()
+        else:
             self._scene.allow_contacts_for(arm)
-            self._arm = arm
+        self._arm = arm
+
+    def solve_position_ik(self, arm, position, seed):
         return self._adapter.solve_position_ik(arm, position, seed)
 
     def state_is_valid(self, arm, solution):

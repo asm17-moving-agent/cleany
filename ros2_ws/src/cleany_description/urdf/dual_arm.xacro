@@ -163,5 +163,17 @@
       <child link="${side}_grasp_tcp"/>
       <origin xyz="0 -0.100 0" rpy="0 0 0"/>
     </joint>
+
+    <!--
+      Position-only IK cannot constrain a 5-DOF arm's complete quaternion.
+      Placing this collision-free virtual tip on the grasp point makes the
+      physical TCP stand 140 mm back while its -Y approach axis points at it.
+    -->
+    <link name="${side}_pregrasp_aim_tip"/>
+    <joint name="${side}_pregrasp_aim_tip_joint" type="fixed">
+      <parent link="${side}_grasp_tcp"/>
+      <child link="${side}_pregrasp_aim_tip"/>
+      <origin xyz="0 -0.140 0" rpy="0 0 0"/>
+    </joint>
   </xacro:macro>
 </robot>

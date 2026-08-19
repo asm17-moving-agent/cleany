@@ -26,3 +26,9 @@ left_grasp_arm:
 right_grasp_arm:
   planner_configs:
     - RRTConnectkConfigDefault
+left_pregrasp_aim_arm:
+  planner_configs:
+    - RRTConnectkConfigDefault
+right_pregrasp_aim_arm:
+  planner_configs:
+    - RRTConnectkConfigDefault

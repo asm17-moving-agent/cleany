@@ -60,6 +60,14 @@ ros2 launch cleany_mujoco_sim handeye_backend.launch.py \
 MoveIt planning scene에서 수행한다. 통합 실행은 `cleany_skill_executor`의
 `grasp_execution_demo.launch.py`를 사용한다.
 
+`scenes/can_grasp_execution_demo.xml.in`은 실제 렌더 RGB-D 기반 grasp 통합 장면이다.
+chassis 기준 table 중심은 `(0.700, -0.002, 0.330) m`, 빨간 can 중심은
+`(0.540, 0.160, 0.395) m`이고 `pick_demo_rgbd` 카메라는 640×480, vertical FOV
+42°다. table과 can은 모두 MuJoCo 물리 충돌체다. 검출 OBB는 후보 검증 중 MoveIt에
+등록하고, pre-grasp 실제 실행 중에는 can cylinder를 contact permission 없이
+유지한다. 선택된 gripper를 연 뒤 can 접촉 전 0.14 m pre-grasp에서 멈춘다.
+통합 실행은 `cleany_skill_executor`의 `can_grasp_execution_demo.launch.py`를 사용한다.
+
 이 backend의 기본값은 `scenes/handeye.xml.in`이다. 전용 scene은 canonical MJCF를
 그대로 include하고 `chassis`를 world에 weld하며, 고정 table/stand와
 7×5 ChArUco target을 추가한다. 기존 `mujoco_sim.launch.py`와 custom simulator의
@@ -145,8 +153,9 @@ command timeout 후 정지 목표를 적용한다.
 
 - `/left_arm_controller/follow_joint_trajectory`: left arm 5축만 claim
 - `/right_arm_controller/follow_joint_trajectory`: right arm 5축만 claim
-- `/joint_states`: 양팔 10축 position/velocity와 left/right gripper read-only
-  position/velocity
+- `/joint_states`: 양팔 10축 position/velocity와 left/right gripper state. 기본
+  hand-eye launch에서는 gripper가 read-only이고, can pre-grasp 데모는
+  `enable_gripper_controllers:=true`로 side별 trajectory action을 추가한다.
 - `/left_wrist_camera/image_raw`: 640×480 RGB, source simulation stamp,
   `left_wrist_rgb_optical_frame`
 - `/left_wrist_camera/camera_info`: image와 같은 source stamp/frame 및 manifest의
@@ -169,7 +178,7 @@ keyframe도 추가한다. Canonical MJCF와 기존 `mujoco_sim_node` materializa
 동일한 0.0.3 release에는 별도 `CameraPlugin`이 없다. 이 구현은 release에 실제로
 포함된 `mujoco_ros2_control::MujocoCameras`가 `hardware_info.sensors`의
 `frame_name`, `info_topic`, `image_topic`, `depth_topic`을 읽는 경로를 사용한다.
-Vendor `/left_wrist_rgb/*` 이름은 launch remap으로
+선택한 hardware sensor의 `/<camera_name>/*` 이름은 launch remap으로
 `/cleany/internal/mujoco/left_wrist_camera/*` 아래에 격리되고, 작은 adapter만 위의
 두 public topic을 발행한다. Adapter는 vendor image와 CameraInfo를 exact source
 stamp로 pair한 뒤 public frame/model을 정규화하며 wall clock stamp를 만들지 않는다.
