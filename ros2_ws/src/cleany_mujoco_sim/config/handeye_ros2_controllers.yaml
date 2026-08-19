@@ -11,6 +11,12 @@ controller_manager:
     right_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
+    left_gripper_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    right_gripper_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
 left_arm_controller:
   ros__parameters:
     joints:
@@ -64,3 +70,41 @@ right_arm_controller:
       right_elbow_pitch_joint: {trajectory: 0.05, goal: 0.01}
       right_wrist_pitch_joint: {trajectory: 0.05, goal: 0.01}
       right_wrist_roll_joint: {trajectory: 0.05, goal: 0.01}
+
+left_gripper_controller:
+  ros__parameters:
+    joints:
+      - left_gripper_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    state_publish_rate: 50.0
+    action_monitor_rate: 20.0
+    allow_partial_joints_goal: false
+    open_loop_control: false
+    allow_nonzero_velocity_at_trajectory_end: false
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 2.0
+      left_gripper_joint: {trajectory: 0.05, goal: 0.02}
+
+right_gripper_controller:
+  ros__parameters:
+    joints:
+      - right_gripper_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    state_publish_rate: 50.0
+    action_monitor_rate: 20.0
+    allow_partial_joints_goal: false
+    open_loop_control: false
+    allow_nonzero_velocity_at_trajectory_end: false
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 2.0
+      right_gripper_joint: {trajectory: 0.05, goal: 0.02}

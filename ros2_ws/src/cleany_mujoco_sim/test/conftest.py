@@ -45,3 +45,11 @@ def cleany_scene_path() -> Path:
         Path(__file__).parents[1] / 'scenes' / 'default.xml.in'
     )
     return materialize_scene(template_path)
+
+
+@pytest.fixture(scope='session')
+def rgbd_pick_scene_path() -> Path:
+    template_path = (
+        Path(__file__).parents[1] / 'scenes' / 'rgbd_pick_demo.xml.in'
+    )
+    return materialize_scene(template_path)

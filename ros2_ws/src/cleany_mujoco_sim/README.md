@@ -29,6 +29,17 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 ```
 
+RGB-D pick demo는 custom backend만 실행하며 hand-eye ros2_control backend와 함께
+사용하지 않는다.
+
+```bash
+ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
+```
+
+이 장면의 table은 `1.20 x 0.77 x 0.03 m`, 중심은
+`(0.635, -0.002, 0.710) m`이며 고정 box/can과 정렬된 RGB-D 및 평가용 OBB를
+발행한다. 물체 동역학이나 실제 파지 실행을 검증하는 장면은 아니다.
+
 Hand-eye arm controller backend는 별도로 실행한다. 이 launch는 기존
 `mujoco_sim_node`를 include하거나 시작하지 않는다.
 
@@ -38,6 +49,24 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_mujoco_sim handeye_backend.launch.py \
   headless:=true sim_speed_factor:=1.0
 ```
+
+`scenes/grasp_execution_demo.xml.in`은 같은 backend에서 MoveIt-selected trajectory를
+육안 확인하기 위한 전용 장면이다. chassis를 world에 고정하고, 기본 demo grasp/OBB와
+동일한 `base_link` 중심 `(0.09, 0.6696, 0.6158) m`, 크기 `0.03 m`의 초록색
+고정 box를 둔다. MuJoCo world에서는 초기 chassis 원점 Z=0.38 m를 더한
+`(0.09, 0.6696, 0.9958) m`에 배치되어 RViz/MoveIt target과 물리 위치가 일치한다.
+이 box는 아직 gripper command/force closure가 없는 reach 데모에서 controller 접촉
+오차를 만들지 않도록 MuJoCo에서는 render-only다. 동일 OBB의 collision 검사는
+MoveIt planning scene에서 수행한다. 통합 실행은 `cleany_skill_executor`의
+`grasp_execution_demo.launch.py`를 사용한다.
+
+`scenes/can_grasp_execution_demo.xml.in`은 실제 렌더 RGB-D 기반 grasp 통합 장면이다.
+chassis 기준 table 중심은 `(0.700, -0.002, 0.330) m`, 빨간 can 중심은
+`(0.540, 0.160, 0.395) m`이고 `pick_demo_rgbd` 카메라는 640×480, vertical FOV
+42°다. table과 can은 모두 MuJoCo 물리 충돌체다. 검출 OBB는 후보 검증 중 MoveIt에
+등록하고, pre-grasp 실제 실행 중에는 can cylinder를 contact permission 없이
+유지한다. 선택된 gripper를 연 뒤 can 접촉 전 0.14 m pre-grasp에서 멈춘다.
+통합 실행은 `cleany_skill_executor`의 `can_grasp_execution_demo.launch.py`를 사용한다.
 
 이 backend의 기본값은 `scenes/handeye.xml.in`이다. 전용 scene은 canonical MJCF를
 그대로 include하고 `chassis`를 world에 weld하며, 고정 table/stand와
@@ -104,6 +133,10 @@ pytest -q -s \
 축별 속도 제한과 command timeout 정지를 적용한다. 검증된 차체 속도는 메카넘
 역기구학으로 네 휠의 목표 각속도로 변환된다.
 
+`rgbd_pick_demo.launch.py`의 `mujoco_rgbd_sim_node`는 추가로 color-aligned
+`camera/color/image_raw`, `camera/depth/image_raw`, 두 CameraInfo와 평가 전용
+`ground_truth/objects`를 같은 timestamp로 발행한다.
+
 ```bash
 ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
   '{linear: {x: 0.1, y: 0.05}, angular: {z: 0.1}}'
@@ -120,8 +153,9 @@ command timeout 후 정지 목표를 적용한다.
 
 - `/left_arm_controller/follow_joint_trajectory`: left arm 5축만 claim
 - `/right_arm_controller/follow_joint_trajectory`: right arm 5축만 claim
-- `/joint_states`: 양팔 10축 position/velocity와 left/right gripper read-only
-  position/velocity
+- `/joint_states`: 양팔 10축 position/velocity와 left/right gripper state. 기본
+  hand-eye launch에서는 gripper가 read-only이고, can pre-grasp 데모는
+  `enable_gripper_controllers:=true`로 side별 trajectory action을 추가한다.
 - `/left_wrist_camera/image_raw`: 640×480 RGB, source simulation stamp,
   `left_wrist_rgb_optical_frame`
 - `/left_wrist_camera/camera_info`: image와 같은 source stamp/frame 및 manifest의
@@ -144,7 +178,7 @@ keyframe도 추가한다. Canonical MJCF와 기존 `mujoco_sim_node` materializa
 동일한 0.0.3 release에는 별도 `CameraPlugin`이 없다. 이 구현은 release에 실제로
 포함된 `mujoco_ros2_control::MujocoCameras`가 `hardware_info.sensors`의
 `frame_name`, `info_topic`, `image_topic`, `depth_topic`을 읽는 경로를 사용한다.
-Vendor `/left_wrist_rgb/*` 이름은 launch remap으로
+선택한 hardware sensor의 `/<camera_name>/*` 이름은 launch remap으로
 `/cleany/internal/mujoco/left_wrist_camera/*` 아래에 격리되고, 작은 adapter만 위의
 두 public topic을 발행한다. Adapter는 vendor image와 CameraInfo를 exact source
 stamp로 pair한 뒤 public frame/model을 정규화하며 wall clock stamp를 만들지 않는다.
