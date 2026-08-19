@@ -6,8 +6,10 @@ Perception, Mission Manager, Skill Executor, Dashboard Bridge가 공유하는
 인터페이스를 이 패키지에 둔다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를 사용하는
 프로젝트 공통 topic 계약도 이곳에 기록한다.
 
-아직 ROS 2 package manifest와 실제 `msg`·`srv`·`action` 정의는 추가되지 않았으므로,
-이 디렉터리를 런타임 인터페이스 패키지로 사용하면 안 된다.
+`PlanGrasp`는 score 내림차순 `GraspCandidate[] candidates`를 반환한다.
+`SelectReachableGrasp` action은 같은 snapshot/object/frame/OBB 후보를 받아 양팔 IK,
+state validity, 2구간 plan-only 검증 후 선택 index, arm, endpoint joint state를 반환한다.
+trajectory는 현재 RobotState에 종속되므로 result에 포함하지 않는다.
 
 ## Contracts
 

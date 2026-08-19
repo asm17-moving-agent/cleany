@@ -2,13 +2,14 @@
 
 ## 상태
 
-현재는 설계 경계를 드러내는 scaffold다. ROS 2 package manifest와 skill 구현은 아직 없다.
+점수순 grasp 후보를 양팔 MoveIt plan-only 검증으로 평가한다. 실제 trajectory와
+gripper 명령은 실행하지 않는다.
 
-## 역할
+## Reachable grasp action
 
-`navigate_to`, `pick_object`, `place_object`, `push_object`, `inspect_area`,
-`return_to_home` 같은 high-level skill을 세부 동작으로 분해하고, Robot Interface,
-Nav2, MoveIt 또는 LeRobot adapter에 위임한다.
+`grasp/select_reachable` (`SelectReachableGrasp`)는 가까운 팔부터 position-only IK,
+state validity, current→pre-grasp와 pre-grasp→grasp plan을 검사한다. pre-grasp는 접근
+벡터 반대 방향 0.08 m다. 후보별 IK/충돌/plan 실패는 다음 arm 또는 후보로 fallback한다.
 
 ## 제공 계약
 
@@ -17,8 +18,18 @@ Skill Executor는 Mission Manager의 FSM 상태를 직접 변경하지 않는다
 
 ## 설정 및 검증
 
-안전 한계와 하드웨어 의존값은 설정 또는 adapter에 둔다. 구현 후에는 Mock 기반의
-성공·실패·안전 차단 경로를 우선 검증한다.
+입력 후보는 snapshot/object/frame/target OBB가 같아야 한다. 현재 12개 arm/gripper
+joint는 완전하고 0.5초 이내여야 한다. action 동안 target OBB와 ACM은 임시 변경되고
+모든 종료 경로에서 복원된다. 한 번에 goal 하나만 처리한다.
+
+```bash
+ros2 launch cleany_moveit_config mock_planning.launch.py
+ros2 launch cleany_skill_executor grasp_selection.launch.py
+pytest -q ros2_ws/src/cleany_skill_executor/test
+```
+
+timeout, planning attempt/scaling, 최대 후보 수는 `config/grasp_selection.yaml`의 ROS
+parameter로 설정한다.
 
 ## 관련 KB
 

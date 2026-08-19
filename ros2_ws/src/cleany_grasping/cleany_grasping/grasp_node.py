@@ -124,7 +124,7 @@ class GraspNode(Node):
         )
 
     def _plan(self, request, response):
-        response.candidate = GraspCandidate()
+        response.candidates = []
         try:
             self._validate(request)
             target = point_cloud_from_message(request.target_cloud)
@@ -156,25 +156,30 @@ class GraspNode(Node):
             )
             if grasp is None:
                 return self._fail(response, response.ERROR_NO_GRASP_CANDIDATE, 'No valid grasp candidate')
-            rotation, translation, approach = self._to_planning_frame(
-                grasp.rotation, grasp.translation, grasp.approach_direction, request.context_cloud
-            )
-            candidate = response.candidate
-            candidate.header.stamp = request.context_cloud.header.stamp
-            candidate.header.frame_id = str(self.get_parameter('planning_frame').value)
-            candidate.snapshot_id = request.snapshot_id
-            candidate.object_id = request.object_id
-            candidate.target_object = request.target_object
-            candidate.tcp_pose.position.x, candidate.tcp_pose.position.y, candidate.tcp_pose.position.z = translation
-            quaternion = _quaternion_from_rotation(rotation)
-            candidate.tcp_pose.orientation.x, candidate.tcp_pose.orientation.y, candidate.tcp_pose.orientation.z, candidate.tcp_pose.orientation.w = quaternion
-            candidate.approach_direction.x, candidate.approach_direction.y, candidate.approach_direction.z = approach
-            candidate.required_opening_m = grasp.required_opening_m
-            candidate.grasp_depth_m = grasp.depth_m
-            candidate.score = grasp.score
+            for grasp in ranked:
+                rotation, translation, approach = self._to_planning_frame(
+                    grasp.rotation,
+                    grasp.translation,
+                    grasp.approach_direction,
+                    request.context_cloud,
+                )
+                candidate = GraspCandidate()
+                candidate.header.stamp = request.context_cloud.header.stamp
+                candidate.header.frame_id = str(self.get_parameter('planning_frame').value)
+                candidate.snapshot_id = request.snapshot_id
+                candidate.object_id = request.object_id
+                candidate.target_object = request.target_object
+                candidate.tcp_pose.position.x, candidate.tcp_pose.position.y, candidate.tcp_pose.position.z = translation
+                quaternion = _quaternion_from_rotation(rotation)
+                candidate.tcp_pose.orientation.x, candidate.tcp_pose.orientation.y, candidate.tcp_pose.orientation.z, candidate.tcp_pose.orientation.w = quaternion
+                candidate.approach_direction.x, candidate.approach_direction.y, candidate.approach_direction.z = approach
+                candidate.required_opening_m = grasp.required_opening_m
+                candidate.grasp_depth_m = grasp.depth_m
+                candidate.score = grasp.score
+                response.candidates.append(candidate)
             response.success = True
             response.error_code = response.ERROR_NONE
-            response.message = 'Generated one grasp candidate'
+            response.message = f'Generated {len(response.candidates)} grasp candidates'
             return response
         except ModelUnavailableError as error:
             return self._fail(response, response.ERROR_MODEL_UNAVAILABLE, str(error))

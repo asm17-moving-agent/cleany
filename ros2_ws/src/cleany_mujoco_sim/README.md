@@ -29,6 +29,17 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 ```
 
+RGB-D pick demo는 custom backend만 실행하며 hand-eye ros2_control backend와 함께
+사용하지 않는다.
+
+```bash
+ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
+```
+
+이 장면의 table은 `1.20 x 0.77 x 0.03 m`, 중심은
+`(0.635, -0.002, 0.710) m`이며 고정 box/can과 정렬된 RGB-D 및 평가용 OBB를
+발행한다. 물체 동역학이나 실제 파지 실행을 검증하는 장면은 아니다.
+
 Hand-eye arm controller backend는 별도로 실행한다. 이 launch는 기존
 `mujoco_sim_node`를 include하거나 시작하지 않는다.
 
@@ -103,6 +114,10 @@ pytest -q -s \
 따른다. 지원 축은 `linear.x`, `linear.y`, `angular.z`이며, 잘못된 값은 거부하고
 축별 속도 제한과 command timeout 정지를 적용한다. 검증된 차체 속도는 메카넘
 역기구학으로 네 휠의 목표 각속도로 변환된다.
+
+`rgbd_pick_demo.launch.py`의 `mujoco_rgbd_sim_node`는 추가로 color-aligned
+`camera/color/image_raw`, `camera/depth/image_raw`, 두 CameraInfo와 평가 전용
+`ground_truth/objects`를 같은 timestamp로 발행한다.
 
 ```bash
 ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \

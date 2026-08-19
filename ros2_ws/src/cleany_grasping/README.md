@@ -1,7 +1,7 @@
 # cleany_grasping
 
-선택 객체에 대해 geometric 또는 AnyGrasp 후보를 필터링하고 최선의
-`GraspCandidate` 하나만 반환한다.
+선택 객체에 대해 geometric 또는 AnyGrasp 후보를 필터링하고 score 내림차순
+`GraspCandidate[]`를 반환한다.
 팔 선택, IK, MoveIt collision, trajectory와 실행은 이 패키지의 범위가 아니다.
 
 ## 처리 경계
@@ -35,7 +35,7 @@ checkpoint와 SDK license가 필요 없다. `GraspPredictor` port를 구현하�
 각 `grasp/plan` 요청은 `grasp/debug_image`에 800x800 RGB 이미지를 발행한다. 원본 RGB와
 camera intrinsics가 grasp request에 포함되지 않으므로 pixel overlay가 아니라 추정
 지지면 기준 top view를 사용한다. 주황색은 target, 회색은 context, 파란색 선은 후보 jaw,
-초록색은 최종 선택 후보이며 숫자 뒤 값은 후보 점수다. topic은 `TRANSIENT_LOCAL`이므로
+초록색은 최고 점수 후보이며 숫자 뒤 값은 후보 점수다. topic은 `TRANSIENT_LOCAL`이므로
 요청 뒤에 viewer를 열어도 마지막 결과를 받을 수 있다.
 
 ```bash

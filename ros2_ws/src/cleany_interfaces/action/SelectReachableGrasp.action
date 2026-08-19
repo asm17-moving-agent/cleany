@@ -1,0 +1,32 @@
+# Candidates must share snapshot_id, object_id, header frame, and target OBB.
+GraspCandidate[] candidates
+---
+uint8 ERROR_NONE=0
+uint8 ERROR_INVALID_INPUT=1
+uint8 ERROR_JOINT_STATE_INCOMPLETE=2
+uint8 ERROR_JOINT_STATE_STALE=3
+uint8 ERROR_MOVEIT_UNAVAILABLE=4
+uint8 ERROR_PLANNING_SCENE=5
+uint8 ERROR_NO_REACHABLE_GRASP=6
+uint8 ERROR_CANCELED=7
+uint8 ERROR_INTERNAL=255
+
+bool success
+uint8 error_code
+string message
+int32 selected_candidate_index
+string selected_arm
+GraspCandidate selected_candidate
+sensor_msgs/JointState pregrasp_joint_state
+sensor_msgs/JointState grasp_joint_state
+---
+uint8 STAGE_PREGRASP_IK=1
+uint8 STAGE_GRASP_IK=2
+uint8 STAGE_STATE_VALIDITY=3
+uint8 STAGE_PLAN_PREGRASP=4
+uint8 STAGE_PLAN_GRASP=5
+
+uint32 candidate_index
+string arm
+uint8 stage
+string message

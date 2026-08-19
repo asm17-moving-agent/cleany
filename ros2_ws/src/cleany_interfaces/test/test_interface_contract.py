@@ -1,4 +1,4 @@
-from cleany_interfaces.action import InspectScene
+from cleany_interfaces.action import InspectScene, SelectReachableGrasp
 from cleany_interfaces.msg import (
     DetectedObject2D,
     DetectedObject2DArray,
@@ -101,7 +101,20 @@ def test_plan_grasp_contract_constants_and_payloads() -> None:
         'no_grasp_candidate': 4,
         'internal': 255,
     }
-    assert isinstance(response.candidate, GraspCandidate)
+    assert response.candidates == []
+
+
+def test_select_reachable_grasp_contract() -> None:
+    goal = SelectReachableGrasp.Goal()
+    result = SelectReachableGrasp.Result()
+    feedback = SelectReachableGrasp.Feedback()
+
+    assert goal.candidates == []
+    assert result.ERROR_NO_REACHABLE_GRASP == 6
+    assert result.selected_candidate_index == 0
+    assert isinstance(result.selected_candidate, GraspCandidate)
+    assert feedback.STAGE_PREGRASP_IK == 1
+    assert feedback.STAGE_PLAN_GRASP == 5
 
 
 def test_inspect_scene_selected_cloud_defaults() -> None:

@@ -57,16 +57,27 @@ def _physical_model_xml(root: ET.Element) -> tuple[bytes, ...]:
 
 def test_description_entrypoints_share_canonical_geometry() -> None:
     roots = tuple(_expand_urdf(entrypoint) for entrypoint in URDF_ENTRYPOINTS)
-    assert _physical_model_xml(roots[0]) == _physical_model_xml(roots[1])
+    # The plugin-free perception description adds the nominal head RGB-D tree;
+    # the arm-control entrypoint deliberately keeps the 12-joint MoveIt state.
+    assert set(_physical_model_xml(roots[1])) <= set(_physical_model_xml(roots[0]))
 
-    for root in roots:
+    for index, root in enumerate(roots):
         links = root.findall("./link")
         joints = root.findall("./joint")
-        assert len(links) == 13
-        assert len(joints) == 12
+        assert len(links) == (23 if index == 0 else 15)
+        assert len(joints) == (22 if index == 0 else 14)
         joint_names = {joint.attrib["name"] for joint in joints}
-        assert joint_names == set(CANONICAL_LIMITS)
+        assert set(CANONICAL_LIMITS) <= joint_names
+        assert {'left_grasp_tcp_joint', 'right_grasp_tcp_joint'} <= joint_names
+        if index == 0:
+            assert {'head_camera_link', 'head_camera_depth_optical_frame'} <= {
+                link.attrib['name'] for link in links
+            }
         for joint in joints:
+            if joint.attrib['name'] not in CANONICAL_LIMITS:
+                if joint.attrib['name'].endswith('_grasp_tcp_joint'):
+                    assert joint.attrib['type'] == 'fixed'
+                continue
             limit = joint.find("limit")
             assert limit is not None
             assert (

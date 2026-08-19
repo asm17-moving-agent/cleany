@@ -14,4 +14,4 @@ uint8 ERROR_INTERNAL=255
 bool success
 uint8 error_code
 string message
-GraspCandidate candidate
+GraspCandidate[] candidates

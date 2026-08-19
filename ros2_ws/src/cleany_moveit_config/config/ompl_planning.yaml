@@ -20,3 +20,9 @@ left_arm:
 right_arm:
   planner_configs:
     - RRTConnectkConfigDefault
+left_grasp_arm:
+  planner_configs:
+    - RRTConnectkConfigDefault
+right_grasp_arm:
+  planner_configs:
+    - RRTConnectkConfigDefault
