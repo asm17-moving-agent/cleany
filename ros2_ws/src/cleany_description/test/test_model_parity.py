@@ -57,16 +57,31 @@ def _physical_model_xml(root: ET.Element) -> tuple[bytes, ...]:
 
 def test_description_entrypoints_share_canonical_geometry() -> None:
     roots = tuple(_expand_urdf(entrypoint) for entrypoint in URDF_ENTRYPOINTS)
-    assert _physical_model_xml(roots[0]) == _physical_model_xml(roots[1])
+    # The plugin-free perception description adds the nominal head RGB-D tree;
+    # the arm-control entrypoint deliberately keeps the 12-joint MoveIt state.
+    assert set(_physical_model_xml(roots[1])) <= set(_physical_model_xml(roots[0]))
 
-    for root in roots:
+    for index, root in enumerate(roots):
         links = root.findall("./link")
         joints = root.findall("./joint")
-        assert len(links) == 13
-        assert len(joints) == 12
+        assert len(links) == (25 if index == 0 else 17)
+        assert len(joints) == (24 if index == 0 else 16)
         joint_names = {joint.attrib["name"] for joint in joints}
-        assert joint_names == set(CANONICAL_LIMITS)
+        assert set(CANONICAL_LIMITS) <= joint_names
+        assert {
+            'left_grasp_tcp_joint', 'right_grasp_tcp_joint',
+            'left_pregrasp_aim_tip_joint',
+            'right_pregrasp_aim_tip_joint',
+        } <= joint_names
+        if index == 0:
+            assert {'head_camera_link', 'head_camera_depth_optical_frame'} <= {
+                link.attrib['name'] for link in links
+            }
         for joint in joints:
+            if joint.attrib['name'] not in CANONICAL_LIMITS:
+                if joint.attrib['name'].endswith('_grasp_tcp_joint'):
+                    assert joint.attrib['type'] == 'fixed'
+                continue
             limit = joint.find("limit")
             assert limit is not None
             assert (
@@ -170,6 +185,26 @@ def test_control_description_exposes_arm_and_gripper_interfaces() -> None:
         )
         assert initial_value is not None
         assert initial_value.text == "0.0"
+
+
+def test_control_description_can_enable_gripper_position_commands() -> None:
+    root = _expand_urdf(
+        "cleany_control.urdf.xacro",
+        "mujoco_model:=/tmp/cleany_control_scene.xml",
+        "enable_gripper_command:=true",
+    )
+    joints = {
+        joint.attrib["name"]: joint
+        for joint in root.findall("./ros2_control/joint")
+    }
+
+    for side in ("left", "right"):
+        command_interfaces = joints[f"{side}_gripper_joint"].findall(
+            "./command_interface"
+        )
+        assert [item.attrib["name"] for item in command_interfaces] == [
+            "position"
+        ]
 
 
 def test_mjcf_uses_canonical_arm_joint_names_and_limits() -> None:
