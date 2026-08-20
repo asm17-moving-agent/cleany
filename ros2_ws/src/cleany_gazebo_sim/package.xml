@@ -13,6 +13,7 @@
   <depend>launch_ros</depend>
   <depend>lifecycle_msgs</depend>
   <depend>cleany_description</depend>
+  <depend>cleany_navigation</depend>
   <depend>nav_msgs</depend>
   <depend>rclpy</depend>
   <depend>ros_gz_bridge</depend>

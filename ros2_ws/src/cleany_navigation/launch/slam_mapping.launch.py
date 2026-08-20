@@ -12,13 +12,13 @@ from lifecycle_msgs.msg import Transition
 
 
 def generate_launch_description() -> LaunchDescription:
-    package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    default_params = package_share / 'config' / 'slam_toolbox.yaml'
+    package_share = Path(get_package_share_directory('cleany_navigation'))
+    default_params = package_share / 'config' / 'slam' / 'slam_toolbox.yaml'
 
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='true',
-        description='Use the Gazebo simulation clock.',
+        default_value='false',
+        description='Use simulation or rosbag time from /clock.',
     )
     params_file_arg = DeclareLaunchArgument(
         'slam_params_file',
