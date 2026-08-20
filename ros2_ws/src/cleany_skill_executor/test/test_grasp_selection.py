@@ -99,6 +99,34 @@ def test_all_pairs_failed_returns_none_and_cancel_stops_immediately():
         GraspSelector(FakePort()).select([candidate(0, y=0.2)], cancel_requested=lambda: True)
 
 
+def test_cancel_after_blocking_stage_prevents_later_stages():
+    port = FakePort()
+
+    def canceled():
+        return any(call[0] == 'pre_ik' for call in port.calls)
+
+    with pytest.raises(InterruptedError):
+        GraspSelector(port).select(
+            [candidate(0, y=0.2)],
+            cancel_requested=canceled,
+        )
+
+    assert not any(call[0] == 'grasp_ik' for call in port.calls)
+
+
+def test_cancel_after_final_plan_prevents_success_result():
+    port = FakePort()
+
+    def canceled():
+        return any(call[0] == 'plan_grasp' for call in port.calls)
+
+    with pytest.raises(InterruptedError):
+        GraspSelector(port).select(
+            [candidate(0, y=0.2)],
+            cancel_requested=canceled,
+        )
+
+
 def test_feedback_exposes_each_stage():
     updates = []
     GraspSelector(FakePort()).select([candidate(0, y=0.2)], feedback=lambda *args: updates.append(args))

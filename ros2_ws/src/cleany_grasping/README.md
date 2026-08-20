@@ -56,9 +56,9 @@ ros2 run rqt_image_view rqt_image_view /grasp/debug_image
   `*_grasp_tcp` frame으로의 3x3 row-major rotation
 - `tcp_approach_axis`: Cleany TCP frame에서의 접근 축
 
-점군은 동일 optical frame/timestamp여야 한다. node는 촬영 시점 TF를 조회해 최종 pose와
-접근 방향만 planning frame으로 변환한다. OBB는 perception이 이미 planning frame에
-제공한 원본을 그대로 반환한다.
+점군은 동일 optical frame/timestamp여야 하며 요청의 OBB pose도 그 frame을 사용한다.
+node는 촬영 시점 TF를 한 번 조회해 최종 pose, 접근 방향과 OBB pose를 모두 planning
+frame으로 변환한다.
 
 ## Jetson 첫 관문
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import math
 import struct
 
@@ -56,6 +57,31 @@ def _rotation_from_quaternion(x: float, y: float, z: float, w: float) -> np.ndar
             (2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)),
         )
     )
+
+
+def _transform_target_object(target_object, rotation, translation):
+    """Return a copy of an object OBB expressed in the destination frame."""
+    transformed = deepcopy(target_object)
+    pose = transformed.obb_pose
+    position = np.array(
+        (pose.position.x, pose.position.y, pose.position.z), dtype=float
+    )
+    transformed_position = rotation @ position + translation
+    pose.position.x, pose.position.y, pose.position.z = transformed_position
+    source_orientation = _rotation_from_quaternion(
+        pose.orientation.x,
+        pose.orientation.y,
+        pose.orientation.z,
+        pose.orientation.w,
+    )
+    quaternion = _quaternion_from_rotation(rotation @ source_orientation)
+    (
+        pose.orientation.x,
+        pose.orientation.y,
+        pose.orientation.z,
+        pose.orientation.w,
+    ) = quaternion
+    return transformed
 
 
 def point_cloud_from_message(message: PointCloud2) -> PointCloud:
@@ -156,19 +182,26 @@ class GraspNode(Node):
             )
             if grasp is None:
                 return self._fail(response, response.ERROR_NO_GRASP_CANDIDATE, 'No valid grasp candidate')
+            frame_rotation, frame_translation = self._planning_transform(
+                request.context_cloud
+            )
+            target_object = _transform_target_object(
+                request.target_object,
+                frame_rotation,
+                frame_translation,
+            )
             for grasp in ranked:
-                rotation, translation, approach = self._to_planning_frame(
-                    grasp.rotation,
-                    grasp.translation,
-                    grasp.approach_direction,
-                    request.context_cloud,
+                rotation = frame_rotation @ grasp.rotation
+                translation = (
+                    frame_rotation @ grasp.translation + frame_translation
                 )
+                approach = frame_rotation @ grasp.approach_direction
                 candidate = GraspCandidate()
                 candidate.header.stamp = request.context_cloud.header.stamp
                 candidate.header.frame_id = str(self.get_parameter('planning_frame').value)
                 candidate.snapshot_id = request.snapshot_id
                 candidate.object_id = request.object_id
-                candidate.target_object = request.target_object
+                candidate.target_object = deepcopy(target_object)
                 candidate.tcp_pose.position.x, candidate.tcp_pose.position.y, candidate.tcp_pose.position.z = translation
                 quaternion = _quaternion_from_rotation(rotation)
                 candidate.tcp_pose.orientation.x, candidate.tcp_pose.orientation.y, candidate.tcp_pose.orientation.z, candidate.tcp_pose.orientation.w = quaternion
@@ -293,25 +326,49 @@ class GraspNode(Node):
         if request.target_object.object_id != request.object_id:
             raise ValueError('target object ID does not match request object_id')
         left, right = request.target_cloud.header, request.context_cloud.header
-        if left.frame_id != right.frame_id or left.stamp != right.stamp:
+        if (
+            not left.frame_id
+            or left.frame_id != right.frame_id
+            or left.stamp != right.stamp
+        ):
             raise ValueError('Target and context clouds must share frame and timestamp')
+        size = request.target_object.obb_size
+        pose = request.target_object.obb_pose
+        values = (
+            size.x,
+            size.y,
+            size.z,
+            pose.position.x,
+            pose.position.y,
+            pose.position.z,
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+            pose.orientation.w,
+        )
+        if (
+            not all(math.isfinite(value) for value in values)
+            or min(size.x, size.y, size.z) <= 0.0
+        ):
+            raise ValueError('target OBB must have finite positive dimensions and pose')
+        quaternion_norm = math.sqrt(
+            sum(value * value for value in values[-4:])
+        )
+        if not math.isclose(quaternion_norm, 1.0, abs_tol=1e-4):
+            raise ValueError('target OBB quaternion must be normalized')
 
-    def _to_planning_frame(self, rotation, translation, approach, cloud_message):
+    def _planning_transform(self, cloud_message):
         target_frame = str(self.get_parameter('planning_frame').value)
         source_frame = cloud_message.header.frame_id
         if target_frame == source_frame:
-            return rotation, translation, approach
+            return np.eye(3), np.zeros(3)
         transform = self._tf_buffer.lookup_transform(
             target_frame, source_frame, Time.from_msg(cloud_message.header.stamp), timeout=Duration(seconds=0.5)
         ).transform
         q = transform.rotation
         frame_rotation = _rotation_from_quaternion(q.x, q.y, q.z, q.w)
         frame_translation = np.array((transform.translation.x, transform.translation.y, transform.translation.z))
-        return (
-            frame_rotation @ rotation,
-            frame_rotation @ translation + frame_translation,
-            frame_rotation @ approach,
-        )
+        return frame_rotation, frame_translation
 
 
 def main(args=None) -> None:

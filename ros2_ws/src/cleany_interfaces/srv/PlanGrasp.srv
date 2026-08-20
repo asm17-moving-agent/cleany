@@ -2,6 +2,7 @@ string snapshot_id
 uint32 object_id
 sensor_msgs/PointCloud2 target_cloud
 sensor_msgs/PointCloud2 context_cloud
+# OBB pose uses the same frame and capture time as both point clouds.
 DetectedObject3D target_object
 ---
 uint8 ERROR_NONE=0

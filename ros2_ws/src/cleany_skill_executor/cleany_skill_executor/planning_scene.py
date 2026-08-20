@@ -39,6 +39,10 @@ class TargetSceneTransaction:
         self._object_id = ''
         self._saved_acm = None
 
+    @property
+    def active(self) -> bool:
+        return bool(self._object_id)
+
     def _call(self, client: Any, request: Any) -> Any:
         if not client.wait_for_service(timeout_sec=self._timeout):
             raise InfrastructureError('planning-scene service unavailable')
@@ -56,6 +60,10 @@ class TargetSceneTransaction:
         return response
 
     def begin(self, candidate: Any, object_id: str) -> None:
+        if self.active:
+            raise InfrastructureError(
+                'planning-scene transaction is already active'
+            )
         request = GetPlanningScene.Request()
         request.components.components = PlanningSceneComponents.ALLOWED_COLLISION_MATRIX
         response = self._call(self._get_client, request)
@@ -152,13 +160,11 @@ class TargetSceneTransaction:
         scene.world.collision_objects = [remove]
         if self._saved_acm is not None:
             scene.allowed_collision_matrix = deepcopy(self._saved_acm)
-        try:
-            response = self._apply(scene)
-            if not response.success:
-                raise InfrastructureError('failed to restore planning scene')
-        finally:
-            self._object_id = ''
-            self._saved_acm = None
+        response = self._apply(scene)
+        if not response.success:
+            raise InfrastructureError('failed to restore planning scene')
+        self._object_id = ''
+        self._saved_acm = None
 
 
 class SceneAwarePort:

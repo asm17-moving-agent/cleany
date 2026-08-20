@@ -9,6 +9,7 @@ import uuid
 
 import rclpy
 from cleany_interfaces.action import SelectReachableGrasp
+from cleany_interfaces.msg import GraspCandidate
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
@@ -42,6 +43,7 @@ class GraspSelectionNode(Node):
         defaults = {
             'action_name': 'grasp/select_reachable',
             'joint_state_topic': 'joint_states',
+            'planning_frame': 'base_link',
             'joint_state_max_age_sec': 0.5,
             'ik_timeout_sec': 0.15,
             'state_validity_timeout_sec': 1.0,
@@ -74,6 +76,7 @@ class GraspSelectionNode(Node):
         self._adapter = MoveItGraspAdapter(
             self,
             MoveItAdapterConfig(
+                base_frame=str(self.get_parameter('planning_frame').value),
                 ik_timeout_sec=float(self.get_parameter('ik_timeout_sec').value),
                 state_validity_timeout_sec=float(self.get_parameter('state_validity_timeout_sec').value),
                 planning_timeout_sec=float(self.get_parameter('planning_timeout_sec').value),
@@ -108,7 +111,10 @@ class GraspSelectionNode(Node):
 
     def _on_goal(self, request) -> GoalResponse:
         try:
-            self._validate_candidates(request.candidates)
+            self._validate_candidates(
+                request.candidates,
+                str(self.get_parameter('planning_frame').value),
+            )
         except ValueError as error:
             self.get_logger().warning(f'Rejecting invalid grasp goal: {error}')
             return GoalResponse.REJECT
@@ -123,14 +129,21 @@ class GraspSelectionNode(Node):
         return CancelResponse.ACCEPT
 
     @staticmethod
-    def _validate_candidates(candidates) -> None:
+    def _validate_candidates(candidates, planning_frame: str) -> None:
         if not candidates:
             raise ValueError('at least one candidate is required')
+        if not planning_frame:
+            raise ValueError('planning_frame must not be empty')
         first = candidates[0]
         if not first.snapshot_id or first.object_id == 0 or not first.header.frame_id:
             raise ValueError('candidate snapshot, object, and frame are required')
         if first.target_object.object_id != first.object_id:
             raise ValueError('target OBB object ID does not match candidate')
+        if first.header.frame_id != planning_frame:
+            raise ValueError(
+                'candidate frame must match configured planning_frame '
+                f'{planning_frame!r}'
+            )
         size = first.target_object.obb_size
         pose = first.target_object.obb_pose
         values = (
@@ -170,83 +183,144 @@ class GraspSelectionNode(Node):
     def _execute(self, goal_handle):
         result = SelectReachableGrasp.Result()
         result.selected_candidate_index = -1
-        deadline = time.monotonic() + float(self.get_parameter('action_timeout_sec').value)
+        deadline = time.monotonic() + float(
+            self.get_parameter('action_timeout_sec').value
+        )
         candidate_messages = list(goal_handle.request.candidates)
         scene_started = False
+        terminal_state = 'abort'
         try:
             try:
                 state = self._current_joint_state()
             except TimeoutError as error:
-                return self._abort(goal_handle, result, result.ERROR_JOINT_STATE_STALE, str(error))
+                self._set_failure(
+                    result,
+                    result.ERROR_JOINT_STATE_STALE,
+                    str(error),
+                )
             except ValueError as error:
-                return self._abort(goal_handle, result, result.ERROR_JOINT_STATE_INCOMPLETE, str(error))
-            self._adapter.set_current_state(state)
-            object_id = f'grasp_target_{uuid.uuid4().hex}'
-            scene_started = True
-            self._scene.begin(candidate_messages[0], object_id)
-            self._scene_port.reset()
-            candidates = [
-                Candidate(
-                    position=(item.tcp_pose.position.x, item.tcp_pose.position.y, item.tcp_pose.position.z),
-                    approach_direction=(item.approach_direction.x, item.approach_direction.y, item.approach_direction.z),
-                    score=float(item.score),
-                    source_index=index,
+                self._set_failure(
+                    result,
+                    result.ERROR_JOINT_STATE_INCOMPLETE,
+                    str(error),
                 )
-                for index, item in enumerate(candidate_messages)
-            ]
+            else:
+                self._adapter.set_current_state(state)
+                if self._scene.active:
+                    self._scene.restore()
+                object_id = f'grasp_target_{uuid.uuid4().hex}'
+                scene_started = True
+                self._scene.begin(candidate_messages[0], object_id)
+                self._scene_port.reset()
+                candidates = [
+                    Candidate(
+                        position=(
+                            item.tcp_pose.position.x,
+                            item.tcp_pose.position.y,
+                            item.tcp_pose.position.z,
+                        ),
+                        approach_direction=(
+                            item.approach_direction.x,
+                            item.approach_direction.y,
+                            item.approach_direction.z,
+                        ),
+                        score=float(item.score),
+                        source_index=index,
+                    )
+                    for index, item in enumerate(candidate_messages)
+                ]
 
-            def canceled() -> bool:
-                cancel = goal_handle.is_cancel_requested or time.monotonic() >= deadline
-                if cancel:
-                    self._adapter.cancel_active()
-                return cancel
+                def canceled() -> bool:
+                    cancel = (
+                        goal_handle.is_cancel_requested
+                        or time.monotonic() >= deadline
+                    )
+                    if cancel:
+                        self._adapter.cancel_active()
+                    return cancel
 
-            def feedback(index, arm, stage, message) -> None:
-                update = SelectReachableGrasp.Feedback()
-                update.candidate_index = index
-                update.arm = arm
-                update.stage = STAGE_CONSTANT[stage]
-                update.message = message
-                goal_handle.publish_feedback(update)
-                self.get_logger().info(f'candidate={index} arm={arm} stage={stage.value}: {message}')
+                def feedback(index, arm, stage, message) -> None:
+                    update = SelectReachableGrasp.Feedback()
+                    update.candidate_index = index
+                    update.arm = arm
+                    update.stage = STAGE_CONSTANT[stage]
+                    update.message = message
+                    goal_handle.publish_feedback(update)
+                    self.get_logger().info(
+                        f'candidate={index} arm={arm} '
+                        f'stage={stage.value}: {message}'
+                    )
 
-            selection = self._selector.select(candidates, cancel_requested=canceled, feedback=feedback)
-            if selection is None:
-                return self._abort(
-                    goal_handle, result, result.ERROR_NO_REACHABLE_GRASP,
-                    'No candidate-arm pair passed IK, validity, and both plans',
+                selection = self._selector.select(
+                    candidates,
+                    cancel_requested=canceled,
+                    feedback=feedback,
                 )
-            result.success = True
-            result.error_code = result.ERROR_NONE
-            result.message = 'Selected reachable grasp (plan-only)'
-            result.selected_candidate_index = selection.candidate_index
-            result.selected_arm = selection.arm
-            result.selected_candidate = candidate_messages[selection.candidate_index]
-            result.pregrasp_joint_state = self._joint_message(selection.pregrasp)
-            result.grasp_joint_state = self._joint_message(selection.grasp)
-            goal_handle.succeed()
-            return result
+                if selection is None:
+                    self._set_failure(
+                        result,
+                        result.ERROR_NO_REACHABLE_GRASP,
+                        'No candidate-arm pair passed IK, validity, and both plans',
+                    )
+                else:
+                    result.success = True
+                    result.error_code = result.ERROR_NONE
+                    result.message = 'Selected reachable grasp (plan-only)'
+                    result.selected_candidate_index = selection.candidate_index
+                    result.selected_arm = selection.arm
+                    result.selected_candidate = candidate_messages[
+                        selection.candidate_index
+                    ]
+                    result.pregrasp_joint_state = self._joint_message(
+                        selection.pregrasp
+                    )
+                    result.grasp_joint_state = self._joint_message(
+                        selection.grasp
+                    )
+                    terminal_state = 'succeed'
         except InterruptedError:
-            result.error_code = result.ERROR_CANCELED
-            result.message = 'Grasp selection canceled or timed out'
-            goal_handle.canceled()
-            return result
+            self._set_failure(
+                result,
+                result.ERROR_CANCELED,
+                'Grasp selection canceled or timed out',
+            )
+            terminal_state = 'canceled'
         except InfrastructureError as error:
             message = str(error)
-            code = result.ERROR_PLANNING_SCENE if 'planning-scene' in message or 'target OBB' in message or 'collision permissions' in message else result.ERROR_MOVEIT_UNAVAILABLE
-            return self._abort(goal_handle, result, code, message)
+            code = self._infrastructure_error_code(result, message)
+            self._set_failure(result, code, message)
         except (ValueError, TypeError) as error:
-            return self._abort(goal_handle, result, result.ERROR_INVALID_INPUT, str(error))
+            self._set_failure(result, result.ERROR_INVALID_INPUT, str(error))
         except Exception as error:
-            return self._abort(goal_handle, result, result.ERROR_INTERNAL, f'Unexpected error: {error}')
+            self._set_failure(
+                result,
+                result.ERROR_INTERNAL,
+                f'Unexpected error: {error}',
+            )
         finally:
             if scene_started:
                 try:
                     self._scene.restore()
                 except Exception as error:
-                    self.get_logger().error(f'Failed to restore planning scene: {error}')
+                    self.get_logger().error(
+                        f'Failed to restore planning scene: {error}'
+                    )
+                    self._set_failure(
+                        result,
+                        result.ERROR_PLANNING_SCENE,
+                        f'Failed to restore planning scene: {error}',
+                    )
+                    terminal_state = 'abort'
             with self._goal_lock:
                 self._goal_active = False
+
+        if terminal_state == 'succeed':
+            goal_handle.succeed()
+        elif terminal_state == 'canceled':
+            goal_handle.canceled()
+        else:
+            goal_handle.abort()
+        return result
 
     @staticmethod
     def _joint_message(solution) -> JointState:
@@ -256,12 +330,27 @@ class GraspSelectionNode(Node):
         return message
 
     @staticmethod
-    def _abort(goal_handle, result, code, message):
+    def _set_failure(result, code, message) -> None:
         result.success = False
         result.error_code = code
         result.message = message
-        goal_handle.abort()
-        return result
+        result.selected_candidate_index = -1
+        result.selected_arm = ''
+        result.selected_candidate = GraspCandidate()
+        result.pregrasp_joint_state = JointState()
+        result.grasp_joint_state = JointState()
+
+    @staticmethod
+    def _infrastructure_error_code(result, message: str) -> int:
+        planning_scene_terms = (
+            'planning-scene',
+            'planning scene',
+            'target OBB',
+            'collision permissions',
+        )
+        if any(term in message for term in planning_scene_terms):
+            return result.ERROR_PLANNING_SCENE
+        return result.ERROR_MOVEIT_UNAVAILABLE
 
 
 def main(args=None) -> None:

@@ -10,5 +10,5 @@ float32 required_opening_m
 float32 grasp_depth_m
 float32 score
 
-# Original selected-object OBB for MoveIt Planning Scene registration.
+# Selected-object OBB transformed into the candidate header frame.
 DetectedObject3D target_object

@@ -20,6 +20,7 @@ setup(
     maintainer_email='sw292ljh@gmail.com',
     description='Reachable grasp selection and simulation execution demo.',
     license='Apache-2.0',
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'grasp_selection_server = cleany_skill_executor.grasp_selection_node:main',

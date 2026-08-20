@@ -5,6 +5,7 @@
   <description>Geometric and AnyGrasp-backed grasp candidate generation.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>Apache-2.0</license>
+  <buildtool_depend>ament_python</buildtool_depend>
   <depend>rclpy</depend>
   <depend>cleany_interfaces</depend>
   <depend>geometry_msgs</depend>

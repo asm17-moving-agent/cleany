@@ -1,4 +1,5 @@
-# Candidates must share snapshot_id, object_id, header frame, and target OBB.
+# Candidates must share snapshot_id, object_id, configured planning frame,
+# and target OBB.
 GraspCandidate[] candidates
 ---
 uint8 ERROR_NONE=0

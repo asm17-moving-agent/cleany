@@ -154,41 +154,55 @@ class GraspSelector:
         ranked = sorted(candidates, key=lambda item: item.score, reverse=True)[
             : self._config.maximum_candidates
         ]
+
+        def check_canceled() -> None:
+            if cancel_requested():
+                raise InterruptedError('grasp selection canceled')
+
         for candidate in ranked:
             pregrasp_position = self.pregrasp_position(
                 candidate, self._config.pregrasp_offset_m
             )
             for arm in self.arm_order(candidate):
-                if cancel_requested():
-                    raise InterruptedError('grasp selection canceled')
+                check_canceled()
                 index = candidate.source_index
                 self._port.set_target_contacts(None)
                 feedback(index, arm, EvaluationStage.PREGRASP_IK, 'evaluating')
                 pregrasp = self._port.solve_position_ik(arm, pregrasp_position, None)
+                check_canceled()
                 if pregrasp is None:
                     feedback(index, arm, EvaluationStage.PREGRASP_IK, 'no IK solution')
                     continue
                 self._port.set_target_contacts(arm)
                 feedback(index, arm, EvaluationStage.GRASP_IK, 'evaluating')
                 grasp = self._port.solve_position_ik(arm, candidate.position, pregrasp)
+                check_canceled()
                 if grasp is None:
                     feedback(index, arm, EvaluationStage.GRASP_IK, 'no IK solution')
                     continue
                 self._port.set_target_contacts(None)
                 feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'pregrasp')
-                if not self._port.state_is_valid(arm, pregrasp):
+                pregrasp_is_valid = self._port.state_is_valid(arm, pregrasp)
+                check_canceled()
+                if not pregrasp_is_valid:
                     continue
                 self._port.set_target_contacts(arm)
                 feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'grasp')
-                if not self._port.state_is_valid(arm, grasp):
+                grasp_is_valid = self._port.state_is_valid(arm, grasp)
+                check_canceled()
+                if not grasp_is_valid:
                     continue
                 self._port.set_target_contacts(None)
                 feedback(index, arm, EvaluationStage.PLAN_PREGRASP, 'planning')
-                if not self._port.plan(arm, pregrasp, None):
+                pregrasp_is_planned = self._port.plan(arm, pregrasp, None)
+                check_canceled()
+                if not pregrasp_is_planned:
                     continue
                 self._port.set_target_contacts(arm)
                 feedback(index, arm, EvaluationStage.PLAN_GRASP, 'planning')
-                if not self._port.plan(arm, grasp, pregrasp):
+                grasp_is_planned = self._port.plan(arm, grasp, pregrasp)
+                check_canceled()
+                if not grasp_is_planned:
                     continue
                 return Selection(index, arm, candidate, pregrasp, grasp)
         return None

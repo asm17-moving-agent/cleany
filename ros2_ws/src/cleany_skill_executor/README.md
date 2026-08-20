@@ -19,9 +19,11 @@ Skill Executor는 Mission Manager의 FSM 상태를 직접 변경하지 않는다
 
 ## 설정 및 검증
 
-입력 후보는 snapshot/object/frame/target OBB가 같아야 한다. 현재 12개 arm/gripper
-joint는 완전하고 0.5초 이내여야 한다. action 동안 target OBB와 ACM은 임시 변경되고
-모든 종료 경로에서 복원된다. 한 번에 goal 하나만 처리한다.
+입력 후보는 snapshot/object/frame/target OBB가 같고 frame은 설정된 `planning_frame`과
+일치해야 한다. 현재 12개 arm/gripper joint는 완전하고 0.5초 이내여야 한다. action
+동안 target OBB와 ACM은 임시 변경되고, 복원에 성공한 뒤에만 최종 성공·실패·취소
+상태를 확정한다. 복원 실패는 planning-scene 오류로 반환한다. 한 번에 goal 하나만
+처리한다.
 
 ```bash
 ros2 launch cleany_moveit_config mock_planning.launch.py
@@ -29,8 +31,9 @@ ros2 launch cleany_skill_executor grasp_selection.launch.py
 pytest -q ros2_ws/src/cleany_skill_executor/test
 ```
 
-timeout, planning attempt/scaling, 최대 후보 수는 `config/grasp_selection.yaml`의 ROS
-parameter로 설정한다.
+planning frame, timeout, planning attempt/scaling, 최대 후보 수는
+`config/grasp_selection.yaml`의 ROS parameter로 설정한다. timeout/cancel은 각 IK,
+state-validity와 planning 단계 전후에 확인한다.
 
 ## MuJoCo 육안 확인 데모
 
