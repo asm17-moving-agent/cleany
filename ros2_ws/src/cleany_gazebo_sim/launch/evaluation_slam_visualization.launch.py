@@ -6,7 +6,9 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
+    navigation_share = Path(
+        get_package_share_directory('cleany_navigation')
+    )
     marker = Node(
         package='cleany_gazebo_sim',
         executable='occupancy_grid_marker',
@@ -17,7 +19,9 @@ def generate_launch_description() -> LaunchDescription:
         executable='rviz2',
         arguments=[
             '-d',
-            str(package_share / 'config' / 'slam_visualization.rviz'),
+            str(
+                navigation_share / 'rviz' / 'slam_visualization.rviz'
+            ),
         ],
         output='screen',
     )

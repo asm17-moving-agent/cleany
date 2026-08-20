@@ -50,7 +50,8 @@ run_one() {
   mkdir -p "$output"
   export ROS_DOMAIN_ID=$domain
   setsid ros2 launch cleany_gazebo_sim \
-    slam_toolbox_localization_replay.launch.py posegraph:="$posegraph" \
+    evaluation_slam_toolbox_localization_replay.launch.py \
+    posegraph:="$posegraph" \
     >"$output/processing.log" 2>&1 &
   launch_pid=$!
   sleep 5
@@ -76,7 +77,7 @@ run_one() {
   echo "completed localization ${height}cm $condition"
 }
 
-heights=(12 16p5 26)
+heights=(16p5 26)
 conditions=(baseline shifted)
 if [[ $# -ge 1 ]]; then heights=("$1"); fi
 if [[ $# -ge 2 ]]; then conditions=("$2"); fi

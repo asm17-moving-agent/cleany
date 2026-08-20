@@ -12,7 +12,9 @@ from lifecycle_msgs.msg import Transition
 
 
 def generate_launch_description() -> LaunchDescription:
-    package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
+    navigation_share = Path(
+        get_package_share_directory('cleany_navigation')
+    )
     posegraph_arg = DeclareLaunchArgument(
         'posegraph',
         description='Posegraph basename to load (without .posegraph/.data).',
@@ -20,7 +22,10 @@ def generate_launch_description() -> LaunchDescription:
     params_arg = DeclareLaunchArgument(
         'slam_params_file',
         default_value=str(
-            package_share / 'config' / 'slam_toolbox_localization.yaml'
+            navigation_share
+            / 'config'
+            / 'slam'
+            / 'slam_toolbox_localization.yaml'
         ),
     )
     slam = LifecycleNode(

@@ -15,7 +15,7 @@ from cleany_gazebo_sim.sensor_profile_launch import (
     declare_sensor_profile_argument,
     sensor_profile_bridges,
 )
-from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
+from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -23,7 +23,7 @@ def generate_launch_description() -> LaunchDescription:
     description_share = Path(
         get_package_share_directory('cleany_description')
     )
-    world_template = package_share / 'worlds' / 'cleany_mecanum_prototype.sdf'
+    world_template = package_share / 'worlds' / 'cleany_mecanum_fortress.sdf'
     default_world = materialize_mecanum_wheel_world(world_template)
     base_config = package_share / 'config' / 'base.yaml'
 

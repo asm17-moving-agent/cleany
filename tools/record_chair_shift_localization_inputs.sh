@@ -28,20 +28,14 @@ cleanup() {
 trap cleanup EXIT
 
 record_one() {
-  local height=$1 domain=$2 expected_frame bridge
+  local height=$1 domain=$2 expected_frame
   local environment="$result_root/environments/${height}cm_shifted"
   local input="$result_root/inputs/${height}cm_shifted"
   case "$height" in
-    12)
-      bridge="$ros_workspace/src/cleany_gazebo_sim/config/slam_12cm_bridge_harmonic.yaml"
-      expected_frame=lidar_12cm_link
-      ;;
     16p5)
-      bridge="$ros_workspace/src/cleany_gazebo_sim/config/slam_16p5cm_bridge_harmonic.yaml"
-      expected_frame=lidar_12cm_link
+      expected_frame=lidar_link
       ;;
     26)
-      bridge="$ros_workspace/src/cleany_gazebo_sim/config/slam_26cm_bridge_harmonic.yaml"
       expected_frame=lidar_link
       ;;
     *) echo "unsupported height: $height" >&2; return 2 ;;
@@ -64,7 +58,7 @@ record_one() {
 
   setsid ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
     world:="$environment/world.sdf" headless:=true \
-    bridge_config:="$bridge" sensor_config:="$environment/sensor_tf.yaml" \
+    sensor_config:="$environment/sensor_tf.yaml" \
     >"$environment/gazebo.log" 2>&1 &
   gazebo_pid=$!
   local scan_sample="" frame_id=""
@@ -85,7 +79,7 @@ record_one() {
     /cmd_vel /gazebo_cmd_vel >"$environment/recorder.log" 2>&1 &
   recorder_pid=$!
   sleep 2
-  setsid ros2 launch cleany_gazebo_sim study_cafe_route.launch.py \
+  setsid ros2 launch cleany_gazebo_sim evaluation_study_cafe_route.launch.py \
     >"$environment/route.log" 2>&1 &
   route_pid=$!
   local completed=false
@@ -109,7 +103,7 @@ record_one() {
   echo "completed shifted input ${height}cm"
 }
 
-heights=(12 16p5 26)
+heights=(16p5 26)
 if [[ $# -ge 1 ]]; then heights=("$1"); fi
 for index in "${!heights[@]}"; do
   record_one "${heights[$index]}" $((171 + index))

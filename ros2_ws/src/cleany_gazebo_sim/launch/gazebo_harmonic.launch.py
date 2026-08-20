@@ -15,7 +15,7 @@ from cleany_gazebo_sim.sensor_profile_launch import (
     declare_sensor_profile_argument,
     sensor_profile_bridges,
 )
-from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
+from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
 def generate_launch_description() -> LaunchDescription:

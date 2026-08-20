@@ -17,7 +17,7 @@ from PIL import Image
 from rclpy.node import Node
 from sensor_msgs.msg import Image as ImageMessage
 
-from cleany_gazebo_sim.world_generator import materialize_study_cafe_world
+from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
 
 
 def add_top_camera(world_path: Path) -> None:

@@ -11,14 +11,17 @@ from xml.etree import ElementTree
 import yaml
 from ament_index_python.packages import get_package_share_directory
 
-from cleany_gazebo_sim.world_generator import materialize_study_cafe_world
+from cleany_gazebo_sim.gazebo_slam_experiment import (
+    load_mount_profiles,
+    write_sensor_tf_config,
+)
+from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
 
 
 SHIFTED_CHAIRS = (2, 7, 10, 15, 18, 23, 26, 31, 34, 39, 42, 47)
 HEIGHTS = {
-    "12": (12.0, "lidar_12cm_mount", -0.26, "lidar_12cm_link"),
-    "16p5": (16.5, "lidar_12cm_mount", -0.215, "lidar_12cm_link"),
-    "26": (26.0, "lidar_mount", -0.12, "lidar_link"),
+    "16p5": (16.5, "floor_16p5cm"),
+    "26": (26.0, "floor_26cm"),
 }
 
 
@@ -60,8 +63,11 @@ def main() -> None:
         parser.error("--chair-shift-m must be within (0, 0.5]")
     args.output_dir.mkdir(parents=True, exist_ok=False)
 
-    height_cm, mount_name, relative_z, frame_id = HEIGHTS[args.height]
+    height_cm, profile_name = HEIGHTS[args.height]
     package_share = Path(get_package_share_directory("cleany_gazebo_sim"))
+    profile = load_mount_profiles(
+        package_share / "config/lidar_mount_profiles.yaml"
+    )[profile_name]
     world_path = args.output_dir / "world.sdf"
     materialize_study_cafe_world(
         package_share / "worlds/cleany_mecanum_harmonic.sdf",
@@ -69,33 +75,18 @@ def main() -> None:
         simulator="harmonic",
         max_step_size=0.004,
         real_time_factor=2.5,
+        lidar_translation=profile.transform.translation,
     )
     tree = ElementTree.parse(world_path)
     world = tree.getroot().find("world")
     if world is None:
         raise RuntimeError("generated world is missing its world element")
     changes = shift_chairs(world, args.chair_shift_m)
-    robot = world.find("model[@name='cleany_mecanum']")
-    if robot is None:
-        raise RuntimeError("generated world has no Cleany model")
-    mount = robot.find(f"joint[@name='{mount_name}']/pose")
-    if mount is None:
-        raise RuntimeError(f"generated world has no {mount_name}")
-    mount.text = f"0.16 0 {relative_z} 0 0 0"
     tree.write(world_path, encoding="unicode", xml_declaration=True)
-
-    with (package_share / "config/base.yaml").open(encoding="utf-8") as stream:
-        sensor_config = yaml.safe_load(stream)
-    if args.height in {"12", "16p5"}:
-        parameters = sensor_config[
-            "gazebo_sensor_tf_publisher"
-        ]["ros__parameters"]
-        parameters["lidar_12cm_translation"] = [0.16, 0.0, relative_z]
-    with (args.output_dir / "sensor_tf.yaml").open("w", encoding="utf-8") as stream:
-        yaml.safe_dump(sensor_config, stream, sort_keys=False)
+    write_sensor_tf_config(profile, args.output_dir / "sensor_tf.yaml")
     manifest = {
         "height_cm": height_cm,
-        "frame_id": frame_id,
+        "frame_id": profile.transform.child_frame_id,
         "chair_shift_m": args.chair_shift_m,
         "chair_yaw_deg": 10.0,
         "changes": changes,

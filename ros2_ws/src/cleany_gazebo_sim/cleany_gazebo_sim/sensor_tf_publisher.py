@@ -13,9 +13,7 @@ class GazeboSensorTfPublisher(Node):
     def __init__(self) -> None:
         super().__init__('gazebo_sensor_tf_publisher')
         self.declare_parameter('parent_frame_id', Parameter.Type.STRING)
-        sensor_names = (
-            'lidar_12cm', 'lidar', 'lidar_45cm', 'lidar_70cm', 'imu'
-        )
+        sensor_names = ('lidar', 'imu')
         for sensor_name in sensor_names:
             self.declare_parameter(
                 f'{sensor_name}_frame_id', Parameter.Type.STRING

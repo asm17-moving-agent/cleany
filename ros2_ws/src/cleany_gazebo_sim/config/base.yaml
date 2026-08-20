@@ -14,18 +14,9 @@ gazebo_odom_tf_publisher:
 gazebo_sensor_tf_publisher:
   ros__parameters:
     parent_frame_id: base_link
-    lidar_12cm_frame_id: lidar_12cm_link
-    lidar_12cm_translation: [0.16, 0.0, -0.26]
-    lidar_12cm_rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
     lidar_frame_id: lidar_link
     lidar_translation: [0.16, 0.0, -0.12]
     lidar_rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
-    lidar_45cm_frame_id: lidar_45cm_link
-    lidar_45cm_translation: [0.16, 0.0, 0.07]
-    lidar_45cm_rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
-    lidar_70cm_frame_id: lidar_70cm_link
-    lidar_70cm_translation: [0.16, 0.0, 0.32]
-    lidar_70cm_rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
     imu_frame_id: imu_link
     imu_translation: [0.0, 0.0, 0.0]
     imu_rotation_xyzw: [0.0, 0.0, 0.0, 1.0]

@@ -12,7 +12,11 @@ from launch.actions import (
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
-from cleany_gazebo_sim.world_generator import materialize_study_cafe_world
+from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
+from cleany_gazebo_sim.gazebo_slam_experiment import (
+    load_mount_profiles,
+    write_sensor_tf_config,
+)
 from cleany_gazebo_sim.sensor_profile_launch import (
     declare_sensor_profile_argument,
 )
@@ -21,6 +25,18 @@ from cleany_gazebo_sim.sensor_profile_launch import (
 def _launch_simulation(
     context: LaunchContext, *, package_share: Path
 ) -> list[IncludeLaunchDescription]:
+    profiles_path = Path(
+        LaunchConfiguration('lidar_profiles_config').perform(context)
+    )
+    profile_name = LaunchConfiguration('lidar_profile').perform(context)
+    try:
+        profile = load_mount_profiles(profiles_path)[profile_name]
+    except KeyError as error:
+        raise ValueError(
+            f'unknown lidar_profile {profile_name!r}; check {profiles_path}'
+        ) from error
+    if profile.transform.rotation_xyzw != (0.0, 0.0, 0.0, 1.0):
+        raise ValueError('study-cafe LiDAR profiles must be level mounts')
     world = materialize_study_cafe_world(
         package_share / 'worlds' / 'cleany_mecanum_harmonic.sdf',
         simulator='harmonic',
@@ -30,7 +46,15 @@ def _launch_simulation(
         real_time_factor=float(
             LaunchConfiguration('physics_real_time_factor').perform(context)
         ),
+        layout_path=Path(
+            LaunchConfiguration('layout_config').perform(context)
+        ),
+        lidar_translation=profile.transform.translation,
     )
+    sensor_config = Path('/tmp') / (
+        f'cleany_study_cafe_sensor_tf_{profile.name}.yaml'
+    )
+    write_sensor_tf_config(profile, sensor_config)
     simulation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             str(package_share / 'launch' / 'gazebo_harmonic.launch.py')
@@ -40,7 +64,7 @@ def _launch_simulation(
             'headless': LaunchConfiguration('headless'),
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'bridge_config': LaunchConfiguration('bridge_config'),
-            'sensor_config': LaunchConfiguration('sensor_config'),
+            'sensor_config': str(sensor_config),
             'sensor_profile': LaunchConfiguration('sensor_profile'),
         }.items(),
     )
@@ -49,7 +73,6 @@ def _launch_simulation(
 
 def generate_launch_description() -> LaunchDescription:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    base_config = package_share / 'config' / 'base.yaml'
     headless_arg = DeclareLaunchArgument('headless', default_value='false')
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
@@ -59,8 +82,22 @@ def generate_launch_description() -> LaunchDescription:
         default_value='',
         description='Optional bridge config overriding the sensor profile.',
     )
-    sensor_config_arg = DeclareLaunchArgument(
-        'sensor_config', default_value=str(base_config)
+    lidar_profiles_config_arg = DeclareLaunchArgument(
+        'lidar_profiles_config',
+        default_value=str(package_share / 'config' / 'lidar_mount_profiles.yaml'),
+    )
+    lidar_profile_arg = DeclareLaunchArgument(
+        'lidar_profile', default_value='floor_26cm'
+    )
+    layout_config_arg = DeclareLaunchArgument(
+        'layout_config',
+        default_value=str(
+            package_share
+            / 'config'
+            / 'study_cafe'
+            / 'study_cafe_layout.yaml'
+        ),
+        description='Study-cafe room and repeated furniture layout.',
     )
     physics_step_arg = DeclareLaunchArgument(
         'physics_max_step_size', default_value='0.001'
@@ -79,7 +116,9 @@ def generate_launch_description() -> LaunchDescription:
             headless_arg,
             use_sim_time_arg,
             bridge_config_arg,
-            sensor_config_arg,
+            lidar_profiles_config_arg,
+            lidar_profile_arg,
+            layout_config_arg,
             physics_step_arg,
             real_time_factor_arg,
             sensor_profile_arg,

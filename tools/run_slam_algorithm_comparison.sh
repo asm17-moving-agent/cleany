@@ -60,21 +60,21 @@ run_one() {
 
   case "$algorithm" in
     slam_toolbox)
-      setsid ros2 launch cleany_gazebo_sim slam_toolbox_replay.launch.py \
+      setsid ros2 launch cleany_gazebo_sim evaluation_slam_toolbox_replay.launch.py \
         >"$output/processing.log" 2>&1 &
       ;;
     cartographer)
-      setsid ros2 launch cleany_gazebo_sim cartographer_mapping.launch.py \
+      setsid ros2 launch cleany_gazebo_sim evaluation_cartographer_replay.launch.py \
         configuration_basename:=cartographer_2d.lua \
         >"$output/processing.log" 2>&1 &
       ;;
     cartographer_imu)
-      setsid ros2 launch cleany_gazebo_sim cartographer_mapping.launch.py \
+      setsid ros2 launch cleany_gazebo_sim evaluation_cartographer_replay.launch.py \
         configuration_basename:=cartographer_2d_imu.lua \
         >"$output/processing.log" 2>&1 &
       ;;
     rtabmap)
-      setsid ros2 launch cleany_gazebo_sim rtabmap_mapping.launch.py \
+      setsid ros2 launch cleany_gazebo_sim evaluation_rtabmap_replay.launch.py \
         database_path:="$output/rtabmap.db" \
         >"$output/processing.log" 2>&1 &
       ;;

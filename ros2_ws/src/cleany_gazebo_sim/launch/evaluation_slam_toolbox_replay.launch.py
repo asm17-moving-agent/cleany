@@ -8,12 +8,15 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
+    navigation_share = Path(
+        get_package_share_directory('cleany_navigation')
+    )
     slam = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            str(package_share / 'launch' / 'slam_mapping.launch.py')
+            str(navigation_share / 'launch' / 'slam_mapping.launch.py')
         ),
         launch_arguments={
+            'use_sim_time': 'true',
             'do_loop_closing': 'true',
             'loop_search_maximum_distance': '2.0',
             'loop_search_space_dimension': '4.0',

@@ -13,12 +13,12 @@ from xml.etree import ElementTree
 import yaml
 
 from cleany_gazebo_sim.static_transform import StaticTransformSpec
-from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
+from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
 SCHEMA_VERSION = 1
 _WORLD_FILENAMES = {
-    'fortress': 'cleany_mecanum_prototype.sdf',
+    'fortress': 'cleany_mecanum_fortress.sdf',
     'harmonic': 'cleany_mecanum_harmonic.sdf',
 }
 _REQUIRED_METRICS = (
@@ -98,7 +98,7 @@ def load_mount_profiles(path: Path) -> dict[str, LidarMountProfile]:
     return profiles
 
 
-def _write_sensor_config(profile: LidarMountProfile, path: Path) -> None:
+def write_sensor_tf_config(profile: LidarMountProfile, path: Path) -> None:
     parameters = {
         'gazebo_sensor_tf_publisher': {
             'ros__parameters': {
@@ -106,15 +106,6 @@ def _write_sensor_config(profile: LidarMountProfile, path: Path) -> None:
                 'lidar_frame_id': profile.transform.child_frame_id,
                 'lidar_translation': list(profile.transform.translation),
                 'lidar_rotation_xyzw': list(profile.transform.rotation_xyzw),
-                'lidar_12cm_frame_id': 'lidar_12cm_link',
-                'lidar_12cm_translation': [0.16, 0.0, -0.26],
-                'lidar_12cm_rotation_xyzw': [0.0, 0.0, 0.0, 1.0],
-                'lidar_45cm_frame_id': 'lidar_45cm_link',
-                'lidar_45cm_translation': [0.16, 0.0, 0.07],
-                'lidar_45cm_rotation_xyzw': [0.0, 0.0, 0.0, 1.0],
-                'lidar_70cm_frame_id': 'lidar_70cm_link',
-                'lidar_70cm_translation': [0.16, 0.0, 0.32],
-                'lidar_70cm_rotation_xyzw': [0.0, 0.0, 0.0, 1.0],
                 'imu_frame_id': 'imu_link',
                 'imu_translation': [0.0, 0.0, 0.0],
                 'imu_rotation_xyzw': [0.0, 0.0, 0.0, 1.0],
@@ -209,7 +200,7 @@ def materialize_evaluation(
             profile,
             world_path,
         )
-        _write_sensor_config(profile, sensor_config_path)
+        write_sensor_tf_config(profile, sensor_config_path)
         result_template_path.write_text(
             json.dumps(_result_template(profile, simulator), indent=2) + '\n',
             encoding='utf-8',
@@ -307,7 +298,7 @@ def record_result(run_dir: Path, input_path: Path) -> Path:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description='Prepare and record LiDAR SLAM trials.'
+        description='Prepare and record Gazebo LiDAR SLAM experiments.'
     )
     subparsers = parser.add_subparsers(dest='command', required=True)
     prepare = subparsers.add_parser('prepare')

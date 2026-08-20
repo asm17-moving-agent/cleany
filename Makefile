@@ -18,11 +18,11 @@ HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-gazebo-harmonic build-handeye test test-mission test-mujoco \
-	test-handeye test-gazebo handeye-generate-mujoco \
-	handeye-validate-mujoco \
-	test-gazebo-harmonic test-gazebo-nav-runtime sim sim-gazebo \
-	sim-gazebo-harmonic sim-gazebo-office sim-gazebo-study-cafe \
-	handeye-mujoco clean
+	test-handeye test-gazebo test-gazebo-harmonic \
+	test-gazebo-nav-runtime test-gazebo-evaluation \
+	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
+	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
+	sim-gazebo-study-cafe clean
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -40,6 +40,7 @@ help:
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
+	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
 	@echo "  make test-gazebo-harmonic  Compatibility alias selecting Harmonic"
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
@@ -57,7 +58,8 @@ deps-gazebo:
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
 	source "$${CLEANY_ROS_SETUP}" && \
 	cd "$(ROS2_WS)" && \
-	rosdep install --from-paths src/cleany_description src/cleany_gazebo_sim \
+	rosdep install --from-paths src/cleany_description src/cleany_navigation \
+		src/cleany_gazebo_sim \
 		--ignore-src --skip-keys mujoco --rosdistro "$${CLEANY_ROS_DISTRO}" -r -y
 
 check-gazebo-env:
@@ -142,8 +144,16 @@ test-gazebo-nav-runtime: build-gazebo
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest -s \
-		src/cleany_gazebo_sim/test/test_runtime_navigation.py \
+		src/cleany_gazebo_sim/test/test_runtime_simulation.py \
 		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}"
+
+test-gazebo-evaluation: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 -m pytest src/cleany_gazebo_sim/test/evaluation \
+		--run-evaluation-tests
 
 sim: build
 	source "$(ROS_SETUP)" && \

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 
@@ -19,12 +20,12 @@ class RuntimeTestOptions:
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    group = parser.getgroup('Gazebo runtime sensor test')
+    group = parser.getgroup('Gazebo runtime and evaluation tests')
     group.addoption(
         '--run-sim-runtime',
         action='store_true',
         default=False,
-        help='Run the opt-in Gazebo sensor performance test.',
+        help='Run opt-in Gazebo runtime tests.',
     )
     group.addoption(
         '--sim-profile',
@@ -51,6 +52,24 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     group.addoption('--min-camera-sim-hz', type=float, default=None)
     group.addoption('--min-lidar-sim-hz', type=float, default=None)
     group.addoption('--min-imu-sim-hz', type=float, default=None)
+    group.addoption(
+        '--run-evaluation-tests',
+        action='store_true',
+        default=False,
+        help='Run temporary SLAM and study-cafe evaluation checks.',
+    )
+
+
+def pytest_ignore_collect(
+    collection_path: Path,
+    config: pytest.Config,
+) -> bool | None:
+    if (
+        'evaluation' in collection_path.parts
+        and not config.getoption('--run-evaluation-tests')
+    ):
+        return True
+    return None
 
 
 @pytest.fixture

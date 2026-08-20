@@ -77,6 +77,7 @@ def _sensor_bridge_nodes(
                     'config_file': str(
                         package_share
                         / 'config'
+                        / 'bridge'
                         / f'{group}_bridge{config_suffix}.yaml'
                     )
                 }

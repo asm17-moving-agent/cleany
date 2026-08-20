@@ -32,12 +32,10 @@ if [[ -e "$input" || -e "$environment" ]]; then
   echo "refusing to overwrite existing 16.5 cm input or environment" >&2
   exit 1
 fi
-python3 "$workspace_root/tools/prepare_16p5cm_study_cafe.py" "$environment"
-
-setsid ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
-  world:="$environment/world.sdf" headless:=true \
-  bridge_config:="$ros_workspace/src/cleany_gazebo_sim/config/slam_16p5cm_bridge_harmonic.yaml" \
-  sensor_config:="$environment/sensor_tf.yaml" \
+mkdir -p "$environment"
+setsid ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+  headless:=true lidar_profile:=floor_16p5cm \
+  physics_max_step_size:=0.004 physics_real_time_factor:=2.5 \
   >"$environment/gazebo.log" 2>&1 &
 gazebo_pid=$!
 
@@ -53,7 +51,7 @@ for _ in {1..120}; do
   sleep 0.5
 done
 kill -0 "$gazebo_pid"
-if [[ "$frame_id" != "lidar_12cm_link" ]]; then
+if [[ "$frame_id" != "lidar_link" ]]; then
   echo "unexpected lower LiDAR frame: $frame_id" >&2
   exit 1
 fi
@@ -63,7 +61,7 @@ setsid ros2 bag record -o "$input" --storage mcap --topics \
   /cmd_vel /gazebo_cmd_vel >"$environment/recorder.log" 2>&1 &
 recorder_pid=$!
 sleep 2
-setsid ros2 launch cleany_gazebo_sim study_cafe_route.launch.py \
+setsid ros2 launch cleany_gazebo_sim evaluation_study_cafe_route.launch.py \
   >"$environment/route.log" 2>&1 &
 route_pid=$!
 

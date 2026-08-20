@@ -12,8 +12,10 @@ from cleany_gazebo_sim.route_control import (
 )
 
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-ROUTE_CONFIG = PACKAGE_ROOT / 'config' / 'study_cafe_route.yaml'
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+ROUTE_CONFIG = (
+    PACKAGE_ROOT / 'config' / 'study_cafe' / 'study_cafe_route.yaml'
+)
 
 
 def _limits() -> RouteLimits:

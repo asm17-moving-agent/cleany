@@ -22,7 +22,7 @@ from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import Imu, LaserScan
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
+from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 from conftest import RuntimeTestOptions
 
 
@@ -88,12 +88,12 @@ class NavigationMeasurements:
 def _launch_command(profile: str, world_path: Path) -> list[str]:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     if profile == 'fortress':
-        launch_file = 'gazebo_sim.launch.py'
+        launch_file = 'gazebo_fortress.launch.py'
         bridge_file = 'navigation_bridge.yaml'
     else:
         launch_file = 'gazebo_harmonic.launch.py'
         bridge_file = 'navigation_bridge_harmonic.yaml'
-    bridge_path = package_share / 'config' / bridge_file
+    bridge_path = package_share / 'config' / 'bridge' / bridge_file
     return [
         'ros2',
         'launch',
@@ -147,7 +147,7 @@ def _validation_scene_sdf() -> str:
 def _write_validation_world(profile: str, output_path: Path) -> None:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     world_name = (
-        'cleany_mecanum_prototype.sdf'
+        'cleany_mecanum_fortress.sdf'
         if profile == 'fortress'
         else 'cleany_mecanum_harmonic.sdf'
     )

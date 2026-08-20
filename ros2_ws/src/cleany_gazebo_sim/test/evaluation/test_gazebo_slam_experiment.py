@@ -7,7 +7,7 @@ from xml.etree import ElementTree
 import pytest
 import yaml
 
-from cleany_gazebo_sim.lidar_slam_evaluation import (
+from cleany_gazebo_sim.gazebo_slam_experiment import (
     load_mount_profiles,
     materialize_evaluation,
     record_result,
@@ -15,11 +15,12 @@ from cleany_gazebo_sim.lidar_slam_evaluation import (
 )
 
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 PROFILES_PATH = PACKAGE_ROOT / 'config' / 'lidar_mount_profiles.yaml'
+BRIDGE_CONFIG_ROOT = PACKAGE_ROOT / 'config' / 'bridge'
 
 
-def test_mount_profiles_define_four_distinct_candidate_transforms() -> None:
+def test_mount_profiles_define_distinct_candidate_transforms() -> None:
     profiles = load_mount_profiles(PROFILES_PATH)
 
     assert set(profiles) == {
@@ -48,6 +49,17 @@ def test_mount_profiles_define_four_distinct_candidate_transforms() -> None:
     )
 
 
+def test_shared_lidar_bridge_has_one_stable_scan_topic() -> None:
+    entries = yaml.safe_load(
+        (BRIDGE_CONFIG_ROOT / 'lidar_bridge_harmonic.yaml').read_text(
+            encoding='utf-8'
+        )
+    )
+    assert len(entries) == 1
+    assert entries[0]['ros_topic_name'] == '/scan'
+    assert entries[0]['gz_topic_name'] == '/model/cleany_mecanum/lidar/scan'
+
+
 def test_profile_loader_rejects_duplicate_transforms(tmp_path: Path) -> None:
     config = yaml.safe_load(PROFILES_PATH.read_text(encoding='utf-8'))
     config['profiles']['floor_70cm']['translation'] = config['profiles'][
@@ -63,7 +75,12 @@ def test_profile_loader_rejects_duplicate_transforms(tmp_path: Path) -> None:
 @pytest.mark.parametrize('simulator', ('fortress', 'harmonic'))
 @pytest.mark.parametrize(
     'profile_name',
-    ('floor_16p5cm', 'floor_26cm', 'floor_45cm', 'floor_70cm'),
+    (
+        'floor_16p5cm',
+        'floor_26cm',
+        'floor_45cm',
+        'floor_70cm',
+    ),
 )
 def test_materialized_world_and_tf_match_profile(
     tmp_path: Path, simulator: str, profile_name: str
@@ -197,7 +214,10 @@ def test_result_validation_rejects_invalid_ratio() -> None:
 
 
 def test_launch_profiles_accept_materialized_sensor_config() -> None:
-    for launch_name in ('gazebo_sim.launch.py', 'gazebo_harmonic.launch.py'):
+    for launch_name in (
+        'gazebo_fortress.launch.py',
+        'gazebo_harmonic.launch.py',
+    ):
         launch = (PACKAGE_ROOT / 'launch' / launch_name).read_text(
             encoding='utf-8'
         )

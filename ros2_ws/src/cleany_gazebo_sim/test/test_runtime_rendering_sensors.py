@@ -22,7 +22,7 @@ from rclpy.qos import qos_profile_sensor_data
 from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import Image, LaserScan
 
-from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
+from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 from conftest import RuntimeTestOptions
 
 
@@ -105,7 +105,7 @@ def _launch_command(
     world_path: Path,
 ) -> list[str]:
     launch_file = (
-        'gazebo_sim.launch.py'
+        'gazebo_fortress.launch.py'
         if profile == 'fortress'
         else 'gazebo_harmonic.launch.py'
     )
@@ -178,7 +178,7 @@ def _validation_scene_sdf() -> str:
 def _write_validation_world(profile: str, output_path: Path) -> None:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     world_name = (
-        'cleany_mecanum_prototype.sdf'
+        'cleany_mecanum_fortress.sdf'
         if profile == 'fortress'
         else 'cleany_mecanum_harmonic.sdf'
     )

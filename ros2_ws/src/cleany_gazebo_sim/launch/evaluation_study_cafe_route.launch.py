@@ -9,7 +9,9 @@ from launch_ros.actions import Node
 
 def generate_launch_description() -> LaunchDescription:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    route_config = package_share / 'config' / 'study_cafe_route.yaml'
+    route_config = (
+        package_share / 'config' / 'study_cafe' / 'study_cafe_route.yaml'
+    )
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
     )

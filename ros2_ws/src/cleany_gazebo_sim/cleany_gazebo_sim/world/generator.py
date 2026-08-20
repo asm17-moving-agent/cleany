@@ -5,6 +5,8 @@ from pathlib import Path
 from tempfile import gettempdir
 from xml.etree import ElementTree
 
+from cleany_gazebo_sim.world.layout import load_study_cafe_layout
+
 
 _WHEEL_HANDEDNESS = {
     'rear_left': -1.0,
@@ -15,7 +17,6 @@ _WHEEL_HANDEDNESS = {
 _ROLLER_RADIUS = 0.008
 _ROLLER_LENGTH = 0.03
 _ROLLER_CENTER_RADIUS = 0.0555
-_STUDY_CAFE_SPAWN_POSE = (-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708)
 _ROBOT_VISIBILITY_FLAGS = '0x02'
 _FOLDED_ARM_LINK_POSES = {
     'left_shoulder_yaw_joint': ('left_rotation_pitch', '0 0 0 0 -1.5708 0'),
@@ -668,6 +669,8 @@ def materialize_study_cafe_world(
     simulator: str = 'harmonic',
     max_step_size: float = 0.001,
     real_time_factor: float = 1.0,
+    layout_path: Path | None = None,
+    lidar_translation: tuple[float, float, float] | None = None,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
     if simulator != 'harmonic':
@@ -676,6 +679,13 @@ def materialize_study_cafe_world(
         raise ValueError('max step size must be within (0, 0.01] seconds')
     if not isfinite(real_time_factor) or real_time_factor <= 0.0:
         raise ValueError('real time factor must be positive')
+    layout = load_study_cafe_layout(
+        layout_path
+        or robot_template_path.parent.parent
+        / 'config'
+        / 'study_cafe'
+        / 'study_cafe_layout.yaml'
+    )
     generated_robot_world = materialize_mecanum_wheel_world(
         robot_template_path
     )
@@ -700,11 +710,11 @@ def materialize_study_cafe_world(
     ambient = scene.find('ambient')
     if ambient is None:
         ambient = ElementTree.SubElement(scene, 'ambient')
-    ambient.text = '0.65 0.65 0.65 1'
+    ambient.text = ' '.join(map(str, layout.scene.ambient_rgba))
     background = scene.find('background')
     if background is None:
         background = ElementTree.SubElement(scene, 'background')
-    background.text = '0.82 0.83 0.84 1'
+    background.text = ' '.join(map(str, layout.scene.background_rgba))
 
     robot = world.find("model[@name='cleany_mecanum']")
     if robot is None:
@@ -712,71 +722,95 @@ def materialize_study_cafe_world(
     pose = robot.find('pose')
     if pose is None:
         raise ValueError('cleany_mecanum is missing its world pose')
-    pose.text = ' '.join(map(str, _STUDY_CAFE_SPAWN_POSE))
+    pose.text = ' '.join(map(str, layout.robot_spawn_pose))
+    if lidar_translation is not None:
+        if len(lidar_translation) != 3 or not all(
+            isfinite(value) for value in lidar_translation
+        ):
+            raise ValueError('LiDAR translation must contain three finite values')
+        lidar_mount = robot.find("joint[@name='lidar_mount']")
+        lidar_pose = lidar_mount.find('pose') if lidar_mount is not None else None
+        if lidar_mount is None or lidar_pose is None:
+            raise ValueError('robot template is missing the lidar_mount pose')
+        if lidar_mount.findtext('parent') != 'base_link':
+            raise ValueError('lidar_mount must be fixed to base_link')
+        if lidar_mount.findtext('child') != 'lidar_link':
+            raise ValueError('lidar_mount must have lidar_link as its child')
+        lidar_pose.text = ' '.join(
+            str(value) for value in (*lidar_translation, 0.0, 0.0, 0.0)
+        )
 
-    # Eight desk columns form 3-2-3 blocks. The measured clear horizontal
-    # gaps are 1.33 m. The outer desk sides
-    # touch the east and west wall faces.
-    desk_x_positions = (
-        -5.53, -4.33, -3.13,
-        -0.60, 0.60,
-        3.13, 4.33, 5.53,
-    )
-    # Each pair of rows is back-to-back; chairs face their own desk from the
-    # outside. The seat front overlaps the tabletop edge by 23 cm.
-    row_pair_centers = (3.17, 0.0, -3.17)
-    room_half_width = 6.13
-    room_half_depth = 5.47
-    wall_thickness = 0.16
+    room_width, room_depth = layout.room.inside_size_m
+    room_half_width = room_width / 2.0
+    room_half_depth = room_depth / 2.0
+    wall_thickness = layout.room.wall_thickness_m
+    wall_height = layout.room.wall_height_m
+    outer_width = room_width + wall_thickness
+    outer_depth = room_depth + wall_thickness
 
     ground = world.find("model[@name='ground_plane']")
     if ground is not None:
         ElementTree.SubElement(ground, 'pose').text = '0 0 0 0 0 0'
         for ground_size in ground.findall('link/*/geometry/plane/size'):
-            ground_size.text = '12.42 11.10'
+            ground_size.text = f'{outer_width} {outer_depth}'
 
-    wall_color = '0.97 0.97 0.96 1'
+    wall_color = ' '.join(map(str, layout.room.wall_rgba))
+    wall_center_z = wall_height / 2.0
     _add_box_model(
         world, 'wall_north',
-        (0, room_half_depth + wall_thickness / 2.0, 1.25, 0, 0, 0),
-        (12.42, wall_thickness, 2.5), wall_color, roughness=0.92
+        (0, room_half_depth + wall_thickness / 2.0, wall_center_z, 0, 0, 0),
+        (outer_width, wall_thickness, wall_height),
+        wall_color,
+        roughness=layout.room.wall_roughness,
     )
     _add_box_model(
         world, 'wall_south',
-        (0, -room_half_depth - wall_thickness / 2.0, 1.25, 0, 0, 0),
-        (12.42, wall_thickness, 2.5), wall_color, roughness=0.92
+        (0, -room_half_depth - wall_thickness / 2.0, wall_center_z, 0, 0, 0),
+        (outer_width, wall_thickness, wall_height),
+        wall_color,
+        roughness=layout.room.wall_roughness,
     )
     _add_box_model(
         world, 'wall_east',
-        (room_half_width + wall_thickness / 2.0, 0, 1.25, 0, 0, 0),
-        (wall_thickness, 10.94, 2.5), wall_color, roughness=0.92
+        (room_half_width + wall_thickness / 2.0, 0, wall_center_z, 0, 0, 0),
+        (wall_thickness, room_depth, wall_height),
+        wall_color,
+        roughness=layout.room.wall_roughness,
     )
     _add_box_model(
         world, 'wall_west',
-        (-room_half_width - wall_thickness / 2.0, 0, 1.25, 0, 0, 0),
-        (wall_thickness, 10.94, 2.5), wall_color, roughness=0.92
+        (-room_half_width - wall_thickness / 2.0, 0, wall_center_z, 0, 0, 0),
+        (wall_thickness, room_depth, wall_height),
+        wall_color,
+        roughness=layout.room.wall_roughness,
     )
 
     partition_index = 1
-    for pair_center in row_pair_centers:
-        for desk_x in desk_x_positions:
+    for pair_center in layout.desks.row_pair_centers_y_m:
+        for desk_x in layout.desks.x_positions_m:
             # The divider starts 30 cm above the floor and reaches 30 cm
             # above the 72 cm tabletop: z=0.30..1.02 m.
             _add_rounded_partition(
                 world,
                 f'desk_partition_{partition_index:02d}',
-                (desk_x, pair_center, 0.66, 0.0, 0.0, 0.0),
+                (
+                    desk_x,
+                    pair_center,
+                    layout.desks.partition_center_z_m,
+                    0.0,
+                    0.0,
+                    0.0,
+                ),
             )
             partition_index += 1
 
     desk_index = 1
-    for pair_center in row_pair_centers:
-        for row_offset, chair_offset in (
-            ((0.385, 0.385), (-0.385, -0.385))
-        ):
-            desk_y = pair_center + row_offset
+    for pair_center in layout.desks.row_pair_centers_y_m:
+        for row in layout.desks.rows:
+            desk_y = pair_center + row.desk_y_offset_m
+            chair_offset = row.chair_y_offset_from_desk_m
             front_sign = 1.0 if chair_offset > 0 else -1.0
-            for desk_x in desk_x_positions:
+            for desk_x in layout.desks.x_positions_m:
                 desk_name = f'demo_desk_{desk_index:02d}'
                 monitor_name = f'desk_monitor_{desk_index:02d}'
                 chair_name = f'office_chair_{desk_index:02d}'
@@ -790,7 +824,9 @@ def materialize_study_cafe_world(
                     monitor_name,
                     (
                         desk_x,
-                        desk_y - front_sign * 0.285,
+                        desk_y
+                        - front_sign
+                        * layout.desks.monitor_y_offset_from_desk_center_m,
                         0.0,
                         0.0,
                         0.0,

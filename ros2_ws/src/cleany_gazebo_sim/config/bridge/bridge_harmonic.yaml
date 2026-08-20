@@ -28,15 +28,39 @@
   gz_type_name: "gz.msgs.Clock"
   direction: GZ_TO_ROS
 
+- ros_topic_name: "/scan"
+  gz_topic_name: "/model/cleany_mecanum/lidar/scan"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+
 - ros_topic_name: "/imu/data"
   gz_topic_name: "/model/cleany_mecanum/imu"
   ros_type_name: "sensor_msgs/msg/Imu"
   gz_type_name: "gz.msgs.IMU"
   direction: GZ_TO_ROS
 
-# Expose only the 45 cm sensor on the standard SLAM contract.
-- ros_topic_name: "/scan"
-  gz_topic_name: "/model/cleany_mecanum/lidar_45cm/scan"
-  ros_type_name: "sensor_msgs/msg/LaserScan"
-  gz_type_name: "gz.msgs.LaserScan"
+- ros_topic_name: "/camera/head/color/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/head_camera/rgb/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/camera/head/depth/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/head_camera/depth/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/camera/left_wrist/color/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/left_wrist_camera/rgb/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/camera/right_wrist/color/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/right_wrist_camera/rgb/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
   direction: GZ_TO_ROS

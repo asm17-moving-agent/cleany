@@ -34,23 +34,6 @@
   gz_type_name: "ignition.msgs.LaserScan"
   direction: GZ_TO_ROS
 
-- ros_topic_name: "/scan_12cm"
-  gz_topic_name: "/model/cleany_mecanum/lidar_12cm/scan"
-  ros_type_name: "sensor_msgs/msg/LaserScan"
-  gz_type_name: "ignition.msgs.LaserScan"
-  direction: GZ_TO_ROS
-
-- ros_topic_name: "/scan_45cm"
-  gz_topic_name: "/model/cleany_mecanum/lidar_45cm/scan"
-  ros_type_name: "sensor_msgs/msg/LaserScan"
-  gz_type_name: "ignition.msgs.LaserScan"
-  direction: GZ_TO_ROS
-
-- ros_topic_name: "/scan_70cm"
-  gz_topic_name: "/model/cleany_mecanum/lidar_70cm/scan"
-  ros_type_name: "sensor_msgs/msg/LaserScan"
-  gz_type_name: "ignition.msgs.LaserScan"
-  direction: GZ_TO_ROS
 
 - ros_topic_name: "/imu/data"
   gz_topic_name: "/model/cleany_mecanum/imu"
