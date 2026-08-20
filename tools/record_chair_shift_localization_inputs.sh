@@ -4,8 +4,12 @@ set -eo pipefail
 workspace_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 ros_workspace="$workspace_root/ros2_ws"
 result_root="$ros_workspace/slam_results/chair_shift_localization"
-source /opt/ros/jazzy/setup.bash
-source "$ros_workspace/install-harmonic/setup.bash"
+requested_profile=${GAZEBO_PROFILE:-harmonic}
+profile_shell=$(GAZEBO_PROFILE="$requested_profile" \
+  python3 "$workspace_root/tools/gazebo_profile.py" --shell)
+eval "$profile_shell"
+source "$CLEANY_ROS_SETUP"
+source "$ros_workspace/$CLEANY_INSTALL_BASE/setup.bash"
 
 gazebo_pid="" recorder_pid="" route_pid=""
 stop_group() {
@@ -28,7 +32,7 @@ cleanup() {
 trap cleanup EXIT
 
 record_one() {
-  local height=$1 domain=$2 expected_frame
+  local height=$1 domain=$2 expected_frame bridge launch_file
   local environment="$result_root/environments/${height}cm_shifted"
   local input="$result_root/inputs/${height}cm_shifted"
   case "$height" in
@@ -40,6 +44,21 @@ record_one() {
       ;;
     *) echo "unsupported height: $height" >&2; return 2 ;;
   esac
+  case "$CLEANY_GAZEBO_PROFILE" in
+    fortress)
+      launch_file=gazebo_fortress.launch.py
+      bridge="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml"
+      unset GZ_PARTITION || true
+      export IGN_PARTITION="cleany_chair_shift_${height}_${domain}"
+      ;;
+    harmonic)
+      launch_file=gazebo_harmonic.launch.py
+      bridge="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge_harmonic.yaml"
+      unset IGN_PARTITION || true
+      export GZ_PARTITION="cleany_chair_shift_${height}_${domain}"
+      ;;
+    *) echo "unsupported Gazebo profile: $CLEANY_GAZEBO_PROFILE" >&2; return 2 ;;
+  esac
   if [[ -f "$input/metadata.yaml" ]]; then
     echo "skip completed shifted input ${height}cm"
     return
@@ -50,15 +69,12 @@ record_one() {
   fi
   mkdir -p "$(dirname "$input")" "$(dirname "$environment")"
   export ROS_DOMAIN_ID=$domain
-  # Gazebo Transport is independent of ROS_DOMAIN_ID. Partition it as well so
-  # another Harmonic simulation cannot leak /clock, scan, or command topics.
-  export GZ_PARTITION="cleany_chair_shift_${height}_${domain}"
   python3 "$workspace_root/tools/prepare_chair_shift_localization_world.py" \
-    "$height" "$environment"
+    "$height" "$environment" --simulator "$CLEANY_GAZEBO_PROFILE"
 
-  setsid ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
+  setsid ros2 launch cleany_gazebo_sim "$launch_file" \
     world:="$environment/world.sdf" headless:=true \
-    sensor_config:="$environment/sensor_tf.yaml" \
+    bridge_config:="$bridge" sensor_config:="$environment/sensor_tf.yaml" \
     >"$environment/gazebo.log" 2>&1 &
   gazebo_pid=$!
   local scan_sample="" frame_id=""

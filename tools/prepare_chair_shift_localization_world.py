@@ -57,6 +57,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("height", choices=HEIGHTS)
     parser.add_argument("output_dir", type=Path)
+    parser.add_argument(
+        "--simulator", choices=("fortress", "harmonic"), default="harmonic"
+    )
     parser.add_argument("--chair-shift-m", type=float, default=0.20)
     args = parser.parse_args()
     if not 0.0 < args.chair_shift_m <= 0.5:
@@ -70,9 +73,9 @@ def main() -> None:
     )[profile_name]
     world_path = args.output_dir / "world.sdf"
     materialize_study_cafe_world(
-        package_share / "worlds/cleany_mecanum_harmonic.sdf",
+        package_share / f"worlds/cleany_mecanum_{args.simulator}.sdf",
         world_path,
-        simulator="harmonic",
+        simulator=args.simulator,
         max_step_size=0.004,
         real_time_factor=2.5,
         lidar_translation=profile.transform.translation,
@@ -92,6 +95,7 @@ def main() -> None:
         "changes": changes,
         "physics_max_step_size": 0.004,
         "physics_real_time_factor": 2.5,
+        "simulator": args.simulator,
     }
     with (args.output_dir / "manifest.yaml").open("w", encoding="utf-8") as stream:
         yaml.safe_dump(manifest, stream, sort_keys=False)

@@ -673,8 +673,10 @@ def materialize_study_cafe_world(
     lidar_translation: tuple[float, float, float] | None = None,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
-    if simulator != 'harmonic':
-        raise ValueError('the study cafe profile supports harmonic only')
+    if simulator not in {'fortress', 'harmonic'}:
+        raise ValueError(
+            'study cafe simulator must be fortress or harmonic'
+        )
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
         raise ValueError('max step size must be within (0, 0.01] seconds')
     if not isfinite(real_time_factor) or real_time_factor <= 0.0:

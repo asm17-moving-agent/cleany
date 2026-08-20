@@ -85,6 +85,7 @@ Core launch는 `launch/` 바로 아래에 둡니다.
 - `gazebo_fortress.launch.py`: Humble/Fortress simulation backend
 - `gazebo_harmonic.launch.py`: Jazzy/Harmonic simulation backend
 - `gazebo_study_cafe.launch.py`: Harmonic study-cafe scenario
+- `gazebo_study_cafe_fortress.launch.py`: Fortress study-cafe scenario
 
 rosbag replay, RTAB-Map 비교, 평가 route와 시각화는 제품용 simulation bringup과
 구분해 `evaluation_*.launch.py` 이름을 사용합니다. ROS 2 CLI가 package의 launch
@@ -224,7 +225,8 @@ OpenGL display 또는 headless rendering 환경이 필요합니다.
 
 ## Demo study-room evaluation world
 
-`gazebo_study_cafe.launch.py`는 실제 시연실 좌석도를 단순화한 48석 평가 공간을
+`gazebo_study_cafe.launch.py`와 `gazebo_study_cafe_fortress.launch.py`는 실제 시연실
+좌석도를 단순화한 48석 평가 공간을
 제공합니다. 벽 안쪽 크기는 12.26×10.94 m이며 로봇은 남쪽의 왼쪽 세로 통로
 `(x=-1.865, y=-4.705, yaw=1.5708)`에 배치됩니다. 여덟 책상 열은 3-2-3 블록으로
 나뉘고 여섯 행은 두 행씩 마주 붙은 세 묶음으로 배치됩니다. 각 행의 첫째와 마지막
@@ -356,7 +358,18 @@ odometry, ground truth와 TF에 필요한 bridge만 실행하고 camera bridge�
 source /opt/ros/jazzy/setup.bash
 source ros2_ws/install/setup.bash
 ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
-  headless:=false sensor_profile:=lidar_nav lidar_profile:=floor_26cm
+  headless:=false lidar_profile:=floor_26cm \
+  bridge_config:=ros2_ws/src/cleany_gazebo_sim/config/bridge/navigation_bridge_harmonic.yaml
+```
+
+Fortress/Humble에서는 동일한 scenario를 다음처럼 실행합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_study_cafe_fortress.launch.py \
+  headless:=false lidar_profile:=floor_26cm \
+  bridge_config:=ros2_ws/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml
 ```
 
 ```bash
@@ -426,6 +439,8 @@ Jazzy/Harmonic 환경에서 높이 및 알고리즘 전체 조합을 2.5배속�
 ```bash
 distrobox enter ros2-jazzy -- bash -lc \
   'cd /path/to/cleany && ./tools/record_16p5cm_slam_input.sh'
+
+GAZEBO_PROFILE=fortress ./tools/record_16p5cm_slam_input.sh
 
 distrobox enter ros2-jazzy -- bash -lc \
   'cd /path/to/cleany && ./tools/run_slam_algorithm_comparison.sh'

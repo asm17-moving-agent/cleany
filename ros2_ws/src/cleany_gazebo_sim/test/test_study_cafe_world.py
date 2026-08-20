@@ -9,6 +9,9 @@ from cleany_gazebo_sim.world.layout import load_study_cafe_layout
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 ROBOT_WORLD = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf'
+FORTRESS_ROBOT_WORLD = (
+    PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf'
+)
 LAYOUT_CONFIG = (
     PACKAGE_ROOT / 'config' / 'study_cafe' / 'study_cafe_layout.yaml'
 )
@@ -45,6 +48,20 @@ def test_study_cafe_materializes_expected_scenario_entities(
     assert len(
         [name for name in names if name.startswith('desk_monitor_')]
     ) == 48
+
+
+def test_study_cafe_materializes_for_fortress(tmp_path: Path) -> None:
+    generated = materialize_study_cafe_world(
+        FORTRESS_ROBOT_WORLD,
+        tmp_path / 'study_cafe_fortress.sdf',
+        simulator='fortress',
+        layout_path=LAYOUT_CONFIG,
+    )
+    world = ElementTree.parse(generated).getroot().find(
+        "world[@name='cleany_study_cafe']"
+    )
+    assert world is not None
+    assert world.find("model[@name='cleany_mecanum']") is not None
 
 
 def test_study_cafe_applies_bounded_physics_override(tmp_path: Path) -> None:

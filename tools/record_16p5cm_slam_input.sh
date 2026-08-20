@@ -8,8 +8,24 @@ input="$result_root/algorithm_compare_inputs/input_16p5cm_trial1"
 environment="$result_root/algorithm_comparison/16p5cm_environment"
 gazebo_pid="" recorder_pid="" route_pid=""
 
-source /opt/ros/jazzy/setup.bash
-source "$ros_workspace/install-harmonic/setup.bash"
+requested_profile=${GAZEBO_PROFILE:-harmonic}
+profile_shell=$(GAZEBO_PROFILE="$requested_profile" \
+  python3 "$workspace_root/tools/gazebo_profile.py" --shell)
+eval "$profile_shell"
+source "$CLEANY_ROS_SETUP"
+source "$ros_workspace/$CLEANY_INSTALL_BASE/setup.bash"
+
+case "$CLEANY_GAZEBO_PROFILE" in
+  fortress)
+    study_cafe_launch=gazebo_study_cafe_fortress.launch.py
+    bridge_config="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml"
+    ;;
+  harmonic)
+    study_cafe_launch=gazebo_study_cafe.launch.py
+    bridge_config="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge_harmonic.yaml"
+    ;;
+  *) echo "unsupported Gazebo profile: $CLEANY_GAZEBO_PROFILE" >&2; exit 2 ;;
+esac
 export ROS_DOMAIN_ID=151
 
 stop_group() {
@@ -33,9 +49,10 @@ if [[ -e "$input" || -e "$environment" ]]; then
   exit 1
 fi
 mkdir -p "$environment"
-setsid ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+setsid ros2 launch cleany_gazebo_sim "$study_cafe_launch" \
   headless:=true lidar_profile:=floor_16p5cm \
   physics_max_step_size:=0.004 physics_real_time_factor:=2.5 \
+  bridge_config:="$bridge_config" \
   >"$environment/gazebo.log" 2>&1 &
 gazebo_pid=$!
 
