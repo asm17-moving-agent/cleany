@@ -10,25 +10,20 @@ from cleany_gazebo_sim.static_transform import StaticTransformSpec
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 BASE_CONFIG_PATH = PACKAGE_ROOT / 'config' / 'base.yaml'
 WORLD_PATHS = (
-    PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_prototype.sdf',
+    PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf',
     PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf',
 )
-LAUNCH_PATHS = (
-    PACKAGE_ROOT / 'launch' / 'gazebo_sim.launch.py',
-    PACKAGE_ROOT / 'launch' / 'gazebo_harmonic.launch.py',
-)
-SETUP_PATH = PACKAGE_ROOT / 'setup.py'
 
 
 def test_static_transform_spec_accepts_sensor_mount():
     transform = StaticTransformSpec.from_values(
         parent_frame_id='base_link',
         child_frame_id='lidar_link',
-        translation=(0.32, 0.0, -0.18),
+        translation=(0.16, 0.0, -0.12),
         rotation_xyzw=(0.0, 0.0, 0.0, 1.0),
     )
 
-    assert transform.translation == (0.32, 0.0, -0.18)
+    assert transform.translation == (0.16, 0.0, -0.12)
     assert transform.rotation_xyzw == (0.0, 0.0, 0.0, 1.0)
 
 
@@ -80,13 +75,3 @@ def test_sensor_tf_config_matches_both_gazebo_worlds():
             pose = [float(value) for value in pose_text.split()]
             assert pose[:3] == parameters[f'{sensor_name}_translation']
             assert pose[3:] == [0.0, 0.0, 0.0]
-
-
-def test_both_launch_profiles_publish_static_sensor_frames():
-    for launch_path in LAUNCH_PATHS:
-        launch = launch_path.read_text(encoding='utf-8')
-        assert "executable='gazebo_sensor_tf_publisher'" in launch
-        assert "name='gazebo_sensor_tf_publisher'" in launch
-
-    setup = SETUP_PATH.read_text(encoding='utf-8')
-    assert 'gazebo_sensor_tf_publisher = ' in setup

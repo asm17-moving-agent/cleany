@@ -167,6 +167,8 @@ def test_moveit_joint_limits_match_canonical_urdf() -> None:
     assert set(configured) == _all_modeled_joints()
 
     for joint in _canonical_joint_elements():
+        if joint.attrib['type'] == 'fixed':
+            continue
         template_name = joint.attrib['name']
         limit = joint.find('limit')
         assert limit is not None

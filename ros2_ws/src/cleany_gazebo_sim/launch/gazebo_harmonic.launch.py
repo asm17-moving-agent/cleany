@@ -10,9 +10,12 @@ from launch.actions import (
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.parameter_descriptions import ParameterValue
 
-from cleany_gazebo_sim.world_generator import materialize_mecanum_wheel_world
+from cleany_gazebo_sim.sensor_profile_launch import (
+    declare_sensor_profile_argument,
+    sensor_profile_bridges,
+)
+from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -21,18 +24,23 @@ def generate_launch_description() -> LaunchDescription:
     world_template = package_share / 'worlds' / 'cleany_mecanum_harmonic.sdf'
     default_world = materialize_mecanum_wheel_world(world_template)
     base_config = package_share / 'config' / 'base.yaml'
-    bridge_config = package_share / 'config' / 'bridge_harmonic.yaml'
 
     world_arg = DeclareLaunchArgument(
         'world', default_value=str(default_world)
     )
     bridge_config_arg = DeclareLaunchArgument(
-        'bridge_config', default_value=str(bridge_config)
+        'bridge_config',
+        default_value='',
+        description='Optional bridge config overriding the sensor profile.',
+    )
+    sensor_config_arg = DeclareLaunchArgument(
+        'sensor_config', default_value=str(base_config)
     )
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
     )
+    sensor_profile_arg = declare_sensor_profile_argument()
 
     server = ExecuteProcess(
         cmd=[
@@ -62,18 +70,10 @@ def generate_launch_description() -> LaunchDescription:
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',
     )
-    bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        name='gazebo_harmonic_parameter_bridge',
-        parameters=[
-            {
-                'config_file': ParameterValue(
-                    LaunchConfiguration('bridge_config'), value_type=str
-                )
-            }
-        ],
-        output='screen',
+    bridges = sensor_profile_bridges(
+        package_share,
+        harmonic=True,
+        bridge_config=LaunchConfiguration('bridge_config'),
     )
     command_guard = Node(
         package='cleany_gazebo_sim',
@@ -100,7 +100,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='gazebo_sensor_tf_publisher',
         name='gazebo_sensor_tf_publisher',
         parameters=[
-            base_config,
+            LaunchConfiguration('sensor_config'),
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
         ],
         output='screen',
@@ -110,14 +110,16 @@ def generate_launch_description() -> LaunchDescription:
         [
             world_arg,
             bridge_config_arg,
+            sensor_config_arg,
             headless_arg,
             use_sim_time_arg,
+            sensor_profile_arg,
             AppendEnvironmentVariable(
                 'GZ_SIM_RESOURCE_PATH', str(description_share)
             ),
             server,
             gui,
-            bridge,
+            bridges,
             command_guard,
             odom_tf,
             sensor_tf,

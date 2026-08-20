@@ -106,13 +106,41 @@
         The finite display range keeps Gazebo's generic position-controller
         panel readable while remaining effectively unbounded for simulation.
       -->
-      <joint name="rear_left_wheel_joint" type="revolute"><parent>base_link</parent><child>rear_left_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
-      <joint name="rear_right_wheel_joint" type="revolute"><parent>base_link</parent><child>rear_right_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
-      <joint name="front_left_wheel_joint" type="revolute"><parent>base_link</parent><child>front_left_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
-      <joint name="front_right_wheel_joint" type="revolute"><parent>base_link</parent><child>front_right_wheel</child><axis><xyz expressed_in="base_link">0 1 0</xyz><limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="rear_left_wheel_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>rear_left_wheel</child>
+        <axis>
+          <xyz expressed_in="base_link">0 1 0</xyz>
+          <limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit>
+        </axis>
+      </joint>
+      <joint name="rear_right_wheel_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>rear_right_wheel</child>
+        <axis>
+          <xyz expressed_in="base_link">0 1 0</xyz>
+          <limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit>
+        </axis>
+      </joint>
+      <joint name="front_left_wheel_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>front_left_wheel</child>
+        <axis>
+          <xyz expressed_in="base_link">0 1 0</xyz>
+          <limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit>
+        </axis>
+      </joint>
+      <joint name="front_right_wheel_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>front_right_wheel</child>
+        <axis>
+          <xyz expressed_in="base_link">0 1 0</xyz>
+          <limit><lower>-1000000</lower><upper>1000000</upper><effort>1000000</effort></limit>
+        </axis>
+      </joint>
 
-      <!-- Candidate RPLIDAR A1M8-R6 mount for Harmonic compatibility tests.
-           The physical mounting position remains subject to hardware review. -->
+      <!-- One physical RPLIDAR. The study-cafe launch materializes its mount
+           pose from the selected lidar_profile before starting Gazebo. -->
       <link name="lidar_link">
         <pose relative_to="lidar_mount">0 0 0 0 0 0</pose>
         <visual name="rplidar_a1_visual">
@@ -121,18 +149,30 @@
         </visual>
         <sensor name="rplidar_a1" type="gpu_lidar">
           <topic>/model/cleany_mecanum/lidar/scan</topic>
+          <always_on>false</always_on>
           <update_rate>5.5</update_rate>
           <gz_frame_id>lidar_link</gz_frame_id>
           <lidar>
             <scan>
-              <horizontal><samples>360</samples><resolution>1</resolution><min_angle>-3.141593</min_angle><max_angle>3.141593</max_angle></horizontal>
-              <vertical><samples>1</samples><resolution>1</resolution><min_angle>0</min_angle><max_angle>0</max_angle></vertical>
+              <horizontal>
+                <samples>360</samples><resolution>1</resolution>
+                <min_angle>-3.141593</min_angle><max_angle>3.141593</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>1</samples><resolution>1</resolution>
+                <min_angle>0</min_angle><max_angle>0</max_angle>
+              </vertical>
             </scan>
             <range><min>0.15</min><max>12.0</max><resolution>0.01</resolution></range>
+            <visibility_mask>0x01</visibility_mask>
           </lidar>
         </sensor>
       </link>
-      <joint name="lidar_mount" type="fixed"><pose relative_to="base_link">0.32 0 -0.18 0 0 0</pose><parent>base_link</parent><child>lidar_link</child></joint>
+      <joint name="lidar_mount" type="fixed">
+        <pose relative_to="base_link">0.16 0 -0.12 0 0 0</pose>
+        <parent>base_link</parent>
+        <child>lidar_link</child>
+      </joint>
 
       <!-- Simulation IMU contract. Its physical mounting position is pending
            hardware review, so it is currently aligned with base_link. -->
@@ -146,7 +186,11 @@
           <imu/>
         </sensor>
       </link>
-      <joint name="imu_mount" type="fixed"><pose relative_to="base_link">0 0 0 0 0 0</pose><parent>base_link</parent><child>imu_link</child></joint>
+      <joint name="imu_mount" type="fixed">
+        <pose relative_to="base_link">0 0 0 0 0 0</pose>
+        <parent>base_link</parent>
+        <child>imu_link</child>
+      </joint>
 
       <!--
         MuJoCo top_base_link: the upper support that physically and visually
@@ -213,12 +257,12 @@
       <link name="left_moving_jaw"><pose relative_to="left_gripper_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.00157495 -0.0300244 0.0192755 0 0 0</pose><mass>0.012</mass><inertia><ixx>0.00000661427</ixx><iyy>0.00000189032</iyy><izz>0.00000528738</izz><ixy>-0.000000319807</ixy><ixz>-0.00000000590717</ixz><iyz>-0.000000109945</iyz></inertia></inertial><collision name="finger_1_collision"><geometry><mesh><uri>model://meshes/Moving_Jaw_part1.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_2_collision"><geometry><mesh><uri>model://meshes/Moving_Jaw_part2.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_3_collision"><geometry><mesh><uri>model://meshes/Moving_Jaw_part3.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><visual name="body"><geometry><mesh><uri>model://meshes/Moving_Jaw.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual></link>
 
       <joint name="left_arm_mount" type="fixed"><pose relative_to="base_link">0.09 0.11 0.395 0 0 3.14159265</pose><parent>base_link</parent><child>left_arm_base</child></joint>
-      <joint name="left_shoulder_yaw_joint" type="revolute"><pose relative_to="left_arm_base">0 -0.0452 0.0165 1.5708 0 0</pose><parent>left_arm_base</parent><child>left_rotation_pitch</child><axis><xyz>0 1 0</xyz><limit><lower>-2.16</lower><upper>2.16</upper></limit></axis></joint>
-      <joint name="left_shoulder_pitch_joint" type="revolute"><pose relative_to="left_rotation_pitch">0 0.1025 0.0306 1.5708 0 0</pose><parent>left_rotation_pitch</parent><child>left_upper_arm</child><axis><xyz>-1 0 0</xyz><limit><lower>-0.22</lower><upper>3.37</upper></limit></axis></joint>
-      <joint name="left_elbow_pitch_joint" type="revolute"><pose relative_to="left_upper_arm">0 0.16257 0.028 -1.5708 0 0</pose><parent>left_upper_arm</parent><child>left_lower_arm</child><axis><xyz>1 0 0</xyz><limit><lower>-0.22</lower><upper>3.14</upper></limit></axis></joint>
-      <joint name="left_wrist_pitch_joint" type="revolute"><pose relative_to="left_lower_arm">0 0.0052 0.1849 -1.5708 0 0</pose><parent>left_lower_arm</parent><child>left_wrist_pitch</child><axis><xyz>1 0 0</xyz><limit><lower>-1.658062849</lower><upper>1.658062729</upper></limit></axis></joint>
-      <joint name="left_wrist_roll_joint" type="revolute"><pose relative_to="left_wrist_pitch">0 -0.0601 0 0 1.5708 0</pose><parent>left_wrist_pitch</parent><child>left_fixed_jaw</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.743847297</lower><upper>2.841206309</upper></limit></axis></joint>
-      <joint name="left_gripper_joint" type="revolute"><pose relative_to="left_fixed_jaw">-0.0202 -0.0244 0 3.1416 0 3.33</pose><parent>left_fixed_jaw</parent><child>left_moving_jaw</child><axis><xyz>0 0 1</xyz><limit><lower>-0.374532978</lower><upper>1.745329200</upper></limit></axis></joint>
+      <joint name="left_shoulder_yaw_joint" type="revolute"><pose relative_to="left_arm_base">0 -0.0452 0.0165 1.5708 0 0</pose><parent>left_arm_base</parent><child>left_rotation_pitch</child><axis><xyz>0 1 0</xyz><limit><lower>-2.16</lower><upper>2.16</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="left_shoulder_pitch_joint" type="revolute"><pose relative_to="left_rotation_pitch">0 0.1025 0.0306 1.5708 0 0</pose><parent>left_rotation_pitch</parent><child>left_upper_arm</child><axis><xyz>-1 0 0</xyz><limit><lower>-0.22</lower><upper>3.37</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="left_elbow_pitch_joint" type="revolute"><pose relative_to="left_upper_arm">0 0.16257 0.028 -1.5708 0 0</pose><parent>left_upper_arm</parent><child>left_lower_arm</child><axis><xyz>1 0 0</xyz><limit><lower>-0.22</lower><upper>3.14</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="left_wrist_pitch_joint" type="revolute"><pose relative_to="left_lower_arm">0 0.0052 0.1849 -1.5708 0 0</pose><parent>left_lower_arm</parent><child>left_wrist_pitch</child><axis><xyz>1 0 0</xyz><limit><lower>-1.658062849</lower><upper>1.658062729</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="left_wrist_roll_joint" type="revolute"><pose relative_to="left_wrist_pitch">0 -0.0601 0 0 1.5708 0</pose><parent>left_wrist_pitch</parent><child>left_fixed_jaw</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.743847297</lower><upper>2.841206309</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="left_gripper_joint" type="revolute"><pose relative_to="left_fixed_jaw">-0.0202 -0.0244 0 3.1416 0 3.33</pose><parent>left_fixed_jaw</parent><child>left_moving_jaw</child><axis><xyz>0 0 1</xyz><limit><lower>-0.374532978</lower><upper>1.745329200</upper><effort>1000000</effort></limit></axis></joint>
 
       <link name="right_arm_base"><pose relative_to="right_arm_mount">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>0.0137179 -0.0000519711 0.0334843 0 0 0</pose><mass>0.147</mass><inertia><ixx>0.000114686</ixx><iyy>0.000136117</iyy><izz>0.000130364</izz><ixy>-0.000000459787</ixy><ixz>0.00000497151</ixz><iyz>0.0000000975275</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://meshes/Base.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://meshes/Base_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="base"><geometry><mesh><uri>model://meshes/Base.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://meshes/Base_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
       <link name="right_rotation_pitch"><pose relative_to="right_shoulder_yaw_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.0307604 -0.0000166727 -0.0252713 0 0 0</pose><mass>0.100006</mass><inertia><ixx>0.000083759</ixx><iyy>0.0000810403</iyy><izz>0.0000239783</izz><ixy>0.0000000755525</ixy><ixz>-0.00000116342</ixz><iyz>0.000000154663</iyz></inertia></inertial><collision name="body_collision"><geometry><mesh><uri>model://meshes/Rotation_Pitch.stl.convex.stl</uri></mesh></geometry></collision><collision name="motor_collision"><geometry><mesh><uri>model://meshes/Rotation_Pitch_Motor.stl.convex.stl</uri></mesh></geometry></collision><visual name="body"><geometry><mesh><uri>model://meshes/Rotation_Pitch.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual><visual name="motor"><geometry><mesh><uri>model://meshes/Rotation_Pitch_Motor.stl</uri></mesh></geometry><material><diffuse>0.18 0.18 0.20 1</diffuse></material></visual></link>
@@ -229,12 +273,26 @@
       <link name="right_moving_jaw"><pose relative_to="right_gripper_joint">0 0 0 0 0 0</pose><gravity>false</gravity><inertial><pose>-0.00157495 -0.0300244 0.0192755 0 0 0</pose><mass>0.012</mass><inertia><ixx>0.00000661427</ixx><iyy>0.00000189032</iyy><izz>0.00000528738</izz><ixy>-0.000000319807</ixy><ixz>-0.00000000590717</ixz><iyz>-0.000000109945</iyz></inertia></inertial><collision name="finger_1_collision"><geometry><mesh><uri>model://meshes/Moving_Jaw_part1.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_2_collision"><geometry><mesh><uri>model://meshes/Moving_Jaw_part2.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><collision name="finger_3_collision"><geometry><mesh><uri>model://meshes/Moving_Jaw_part3.ply.convex.stl</uri></mesh></geometry><surface><friction><ode><mu>3.0</mu><mu2>3.0</mu2></ode></friction></surface></collision><visual name="body"><geometry><mesh><uri>model://meshes/Moving_Jaw.stl</uri></mesh></geometry><material><diffuse>0.85 0.85 0.85 1</diffuse></material></visual></link>
 
       <joint name="right_arm_mount" type="fixed"><pose relative_to="base_link">0.09 -0.11 0.395 0 0 0</pose><parent>base_link</parent><child>right_arm_base</child></joint>
-      <joint name="right_shoulder_yaw_joint" type="revolute"><pose relative_to="right_arm_base">0 -0.0452 0.0165 1.5708 0 0</pose><parent>right_arm_base</parent><child>right_rotation_pitch</child><axis><xyz>0 1 0</xyz><limit><lower>-2.16</lower><upper>2.16</upper></limit></axis></joint>
-      <joint name="right_shoulder_pitch_joint" type="revolute"><pose relative_to="right_rotation_pitch">0 0.1025 0.0306 1.5708 0 0</pose><parent>right_rotation_pitch</parent><child>right_upper_arm</child><axis><xyz>-1 0 0</xyz><limit><lower>-0.22</lower><upper>3.37</upper></limit></axis></joint>
-      <joint name="right_elbow_pitch_joint" type="revolute"><pose relative_to="right_upper_arm">0 0.16257 0.028 -1.5708 0 0</pose><parent>right_upper_arm</parent><child>right_lower_arm</child><axis><xyz>1 0 0</xyz><limit><lower>-0.22</lower><upper>3.14</upper></limit></axis></joint>
-      <joint name="right_wrist_pitch_joint" type="revolute"><pose relative_to="right_lower_arm">0 0.0052 0.1849 -1.5708 0 0</pose><parent>right_lower_arm</parent><child>right_wrist_pitch</child><axis><xyz>1 0 0</xyz><limit><lower>-1.658062849</lower><upper>1.658062729</upper></limit></axis></joint>
-      <joint name="right_wrist_roll_joint" type="revolute"><pose relative_to="right_wrist_pitch">0 -0.0601 0 0 1.5708 0</pose><parent>right_wrist_pitch</parent><child>right_fixed_jaw</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.743847297</lower><upper>2.841206309</upper></limit></axis></joint>
-      <joint name="right_gripper_joint" type="revolute"><pose relative_to="right_fixed_jaw">-0.0202 -0.0244 0 3.1416 0 3.33</pose><parent>right_fixed_jaw</parent><child>right_moving_jaw</child><axis><xyz>0 0 1</xyz><limit><lower>-0.374532978</lower><upper>1.745329200</upper></limit></axis></joint>
+      <joint name="right_shoulder_yaw_joint" type="revolute"><pose relative_to="right_arm_base">0 -0.0452 0.0165 1.5708 0 0</pose><parent>right_arm_base</parent><child>right_rotation_pitch</child><axis><xyz>0 1 0</xyz><limit><lower>-2.16</lower><upper>2.16</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="right_shoulder_pitch_joint" type="revolute"><pose relative_to="right_rotation_pitch">0 0.1025 0.0306 1.5708 0 0</pose><parent>right_rotation_pitch</parent><child>right_upper_arm</child><axis><xyz>-1 0 0</xyz><limit><lower>-0.22</lower><upper>3.37</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="right_elbow_pitch_joint" type="revolute"><pose relative_to="right_upper_arm">0 0.16257 0.028 -1.5708 0 0</pose><parent>right_upper_arm</parent><child>right_lower_arm</child><axis><xyz>1 0 0</xyz><limit><lower>-0.22</lower><upper>3.14</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="right_wrist_pitch_joint" type="revolute"><pose relative_to="right_lower_arm">0 0.0052 0.1849 -1.5708 0 0</pose><parent>right_lower_arm</parent><child>right_wrist_pitch</child><axis><xyz>1 0 0</xyz><limit><lower>-1.658062849</lower><upper>1.658062729</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="right_wrist_roll_joint" type="revolute"><pose relative_to="right_wrist_pitch">0 -0.0601 0 0 1.5708 0</pose><parent>right_wrist_pitch</parent><child>right_fixed_jaw</child><axis><xyz>0 -1 0</xyz><limit><lower>-2.743847297</lower><upper>2.841206309</upper><effort>1000000</effort></limit></axis></joint>
+      <joint name="right_gripper_joint" type="revolute"><pose relative_to="right_fixed_jaw">-0.0202 -0.0244 0 3.1416 0 3.33</pose><parent>right_fixed_jaw</parent><child>right_moving_jaw</child><axis><xyz>0 0 1</xyz><limit><lower>-0.374532978</lower><upper>1.745329200</upper><effort>1000000</effort></limit></axis></joint>
+
+      <!-- Hold a compact, forward-facing standby pose until arm control is implemented. -->
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>left_shoulder_yaw_joint</joint_name><initial_position>-1.5708</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>left_shoulder_pitch_joint</joint_name><initial_position>3.0</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>left_elbow_pitch_joint</joint_name><initial_position>2.4</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>left_wrist_pitch_joint</joint_name><initial_position>1.2</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>left_wrist_roll_joint</joint_name><initial_position>0.0</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>left_gripper_joint</joint_name><initial_position>0.8</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>right_shoulder_yaw_joint</joint_name><initial_position>1.5708</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>right_shoulder_pitch_joint</joint_name><initial_position>3.0</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>right_elbow_pitch_joint</joint_name><initial_position>2.4</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>right_wrist_pitch_joint</joint_name><initial_position>1.2</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>right_wrist_roll_joint</joint_name><initial_position>0.0</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController"><joint_name>right_gripper_joint</joint_name><initial_position>0.8</initial_position><use_velocity_commands>true</use_velocity_commands><cmd_max>1.5</cmd_max></plugin>
 
       <plugin filename="gz-sim-mecanum-drive-system" name="gz::sim::systems::MecanumDrive">
         <front_left_joint>front_left_wheel_joint</front_left_joint>
@@ -249,16 +307,15 @@
         <max_acceleration>2.0</max_acceleration>
       </plugin>
       <!--
-        Publish simulator ground-truth independently of the drive plugin.  This
-        keeps the ROS odometry contract available even if the drive system
-        changes its internal odometry implementation between Gazebo releases.
+        Publish simulator ground truth on a dedicated topic. MecanumDrive owns
+        the odometry topic used by the ROS odom -> base_link contract.
       -->
       <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
         <odom_frame>odom</odom_frame>
         <robot_base_frame>base_link</robot_base_frame>
         <dimensions>2</dimensions>
         <odom_publish_frequency>50</odom_publish_frequency>
-        <odom_topic>/model/cleany_mecanum/odometry</odom_topic>
+        <odom_topic>/model/cleany_mecanum/ground_truth</odom_topic>
       </plugin>
       <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher"/>
     </model>

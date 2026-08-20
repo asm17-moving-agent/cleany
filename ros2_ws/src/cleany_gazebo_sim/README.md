@@ -29,10 +29,19 @@ Fortress의 mecanum 예제와 같은 diagonal anisotropic friction sphere로 단
 Gazebo world는 `cleany_description/meshes/`를 resource path로 참조해 팀의
 Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
 joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
-collision mesh도 Cleany description에서 가져왔습니다. 다만 arm/gripper controller가 아직
-없어 arm link의 gravity는 비활성화한 상태입니다. Fortress와 Harmonic 기본 profile은
-네 개의 camera image, GPU LiDAR `/scan`, IMU `/imu/data` bridge를 포함합니다. Nav2, MoveIt,
-Mission Manager integration은 아직 포함하지 않습니다.
+collision mesh도 Cleany description에서 가져왔습니다. 조작용 arm controller는 아직
+없지만, 양팔은 world materialization 시 어깨를 안쪽으로 돌리고 팔꿈치를 접은 대기 자세로
+고정됩니다. 시작 후 관절 제어기로 자세를 이동하지 않으므로 자유 상태의 mobile base에
+팔 구동 반작용이 전달되지 않습니다. 이 고정은 SLAM 주행 중 팔 자세를 유지하기 위한
+kinematic 잠금입니다. 대기 자세는 좌·우 shoulder
+yaw `-1.5708`/`1.5708`, shoulder pitch `3.0`, elbow pitch `2.4`, wrist pitch
+`1.2`, wrist roll `0.0`, gripper `0.8` rad입니다. 물리 servo effort는
+모사하지 않습니다. 현재 arm link의 gravity는
+비활성화한 상태입니다. Fortress와 Harmonic launch는
+공통 IMU `/imu/data` bridge와 필요한 rendering sensor bridge만 실행하는 sensor
+profile을 제공합니다. 기본값은 GPU LiDAR `/scan`만 추가로 활성화하는
+`lidar_nav`입니다. 2D mapping용 `slam_toolbox` profile은 제공하지만 Nav2 navigation,
+MoveIt, Mission Manager integration은 아직 포함하지 않습니다.
 
 ## Simulation IMU contract
 
@@ -51,6 +60,11 @@ publisher가 고정 `base_link -> lidar_link`와 `base_link -> imu_link`를
 구조 test에서 같은 값인지 검사합니다. 현재 sensor mount는 simulation 후보값이며
 hardware description의 확정 mount로 취급하지 않습니다.
 
+`MecanumDrive` odometry는 `/gazebo_odom`을 거쳐 ROS `/odom`과
+`odom -> base_link`를 소유합니다. 별도 `OdometryPublisher`의 simulator ground truth는
+`/ground_truth/odom`으로만 bridge하며 TF를 발행하지 않습니다. 두 source를 같은
+odometry topic에 섞지 않아 RViz와 SLAM의 기준 frame이 교대로 점프하지 않게 합니다.
+
 ## Environment
 
 팀 표준인 Ubuntu 22.04 / ROS 2 Humble / Gazebo Fortress 환경과 선택적인
@@ -58,21 +72,53 @@ Ubuntu 24.04 / ROS 2 Jazzy / Gazebo Harmonic 환경의 설치·의존성·render
 [`DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 따른다. 이 README는
 준비된 환경에서의 Gazebo backend 계약과 실행·검증만 다룬다.
 
+## Configuration layout
+
+- `config/bridge/`: Gazebo transport와 ROS topic을 연결하는 bridge 설정
+- `config/study_cafe/`: study cafe 배치와 주행 경로
+- `config/rviz/`: LiDAR 시각화 설정
+- `config/base.yaml`: simulation 지원 node의 공통 ROS parameter
+- `config/lidar_mount_profiles.yaml`: LiDAR 높이별 평가 profile
+
+Core launch는 `launch/` 바로 아래에 둡니다.
+
+- `gazebo_fortress.launch.py`: Humble/Fortress simulation backend
+- `gazebo_harmonic.launch.py`: Jazzy/Harmonic simulation backend
+- `gazebo_study_cafe.launch.py`: Harmonic study-cafe scenario
+- `gazebo_study_cafe_fortress.launch.py`: Fortress study-cafe scenario
+
+rosbag replay, RTAB-Map 비교, 평가 route와 시각화는 제품용 simulation bringup과
+구분해 `evaluation_*.launch.py` 이름을 사용합니다. ROS 2 CLI가 package의 launch
+하위 디렉터리를 직접 찾지 않으므로 같은 디렉터리에 두되 접두사로 역할을 나눕니다.
+
+- `evaluation_slam_toolbox_replay.launch.py`: recorded bag용 slam_toolbox wrapper
+- `evaluation_cartographer_replay.launch.py`: recorded bag용 Cartographer wrapper
+- `evaluation_rtabmap_replay.launch.py`: recorded bag용 RTAB-Map wrapper
+- `evaluation_slam_toolbox_localization_replay.launch.py`: posegraph localization 평가
+- `evaluation_slam_visualization.launch.py`: 평가 지도 RViz 시각화
+- `evaluation_study_cafe_route.launch.py`: Gazebo ground-truth 평가 경로 주행
+
 ## Build and validation
 
-다음 명령은 `cleany_description`과 `cleany_gazebo_sim`까지만 빌드하고 패키지의
-parameter, Fortress world structure, Harmonic profile isolation test를 실행합니다.
+다음 명령은 `cleany_description`, `cleany_navigation`, `cleany_gazebo_sim`을 빌드하고
+Gazebo의 world, bridge, sensor TF와 command guard 계약을 검사합니다.
 
 ```bash
 make test-gazebo
 ```
 
-모든 pytest가 통과해야 하며, 생성된 mecanum wheel world가 canonical description의
-link, joint, mesh 구조를 유지하는지도 함께 검사합니다.
+기본 suite는 world system, bridge topic/type, sensor TF, command guard와 study-cafe
+생성 계약만 빠르게 검사합니다. SLAM 비교와 상세 study-cafe 형상 검사는
+`test/evaluation/`에 격리되어 기본 실행에서는 skip됩니다. 평가 작업 중 해당 검사를
+실행하려면 다음 명령을 사용합니다.
 
-네 개 camera와 GPU LiDAR를 실제로 실행해 RTF와 sensor 수신 주기를 측정하는 테스트는
-일반 test suite와 분리된 opt-in test입니다. 먼저 해당 profile을 build한 뒤, 준비된
-환경 안에서 실행합니다.
+```bash
+make test-gazebo-evaluation
+```
+
+선택한 sensor profile을 실제로 실행해 RTF와 sensor 수신 주기를 측정하는 테스트는
+일반 test suite와 분리된 opt-in test입니다. 먼저 해당 Gazebo profile을 build한 뒤,
+준비된 환경 안에서 실행합니다.
 
 Fortress/Humble:
 
@@ -81,8 +127,9 @@ source /opt/ros/humble/setup.bash
 cd ros2_ws
 source install/setup.bash
 python3 -m pytest -s \
-  src/cleany_gazebo_sim/test/test_runtime_sensor_performance.py \
-  --run-sim-runtime --sim-profile=fortress
+  src/cleany_gazebo_sim/test/test_runtime_rendering_sensors.py \
+  --run-sim-runtime --sim-profile=fortress \
+  --sensor-profile=all_cameras
 ```
 
 Harmonic/Jazzy:
@@ -92,19 +139,64 @@ source /opt/ros/jazzy/setup.bash
 cd ros2_ws
 source install-harmonic/setup.bash
 python3 -m pytest -s \
-  src/cleany_gazebo_sim/test/test_runtime_sensor_performance.py \
-  --run-sim-runtime --sim-profile=harmonic
+  src/cleany_gazebo_sim/test/test_runtime_rendering_sensors.py \
+  --run-sim-runtime --sim-profile=harmonic \
+  --sensor-profile=all_cameras
 ```
 
 기본값은 10초 warm-up과 30초 측정이며 `--warmup-sec`, `--measure-sec`,
-`--startup-timeout-sec`로 조절합니다. test는 `/clock`, camera 네 topic, `/scan`을 모두
-수신하고 simulation time이 전진하는지를 검사하며 RTF, wall Hz, simulation Hz를
-출력합니다. 원본 world를 변경하지 않고 명암 줄무늬가 있는 네 벽을 추가한 임시
-validation world를 생성하며, warm-up 중 저속 이동 후 camera 해상도·encoding·frame ID·timestamp,
-빈/단색 frame 여부와 frame 변화, LiDAR의 360개 range·유한 장애물 거리·선언 범위를
-검사합니다. 성능 기준도 실패 조건으로 사용할 때만 `--min-rtf`,
-`--min-camera-sim-hz`, `--min-lidar-sim-hz`를 지정합니다. 기본 `make test-gazebo`에는
-실제 simulator를 띄우는 이 test가 포함되지 않습니다.
+`--startup-timeout-sec`로 조절합니다. `--sensor-profile` 기본값은
+`all_cameras`이며 다른 launch profile도 동일하게 선택할 수 있습니다. test는
+`/clock`과 선택한 sensor topic을 수신하고 비활성 sensor topic에서는 message가 오지
+않는지 검사하며 RTF, wall Hz, simulation Hz를 출력합니다. 원본 world를 변경하지
+않고 명암 줄무늬가 있는 네 벽을 추가한 임시 validation world를 생성하며, warm-up 중
+저속 이동 후 선택한 camera의 해상도·encoding·frame ID·timestamp, 빈/단색 frame
+여부와 frame 변화를 검사합니다. `lidar_nav`에서는 LiDAR의 360개 range·유한 장애물
+거리·선언 범위를 검사합니다. 성능 기준도 실패 조건으로 사용할 때만 `--min-rtf`,
+`--min-camera-sim-hz`, `--min-lidar-sim-hz`를 지정합니다. 기본
+`make test-gazebo`에는 실제 simulator를 띄우는 이 test가 포함되지 않습니다.
+LiDAR·IMU·odometry·TF와 차체 구동을 함께 확인하는 runtime smoke test도 별도로
+실행합니다.
+
+```bash
+make test-gazebo-nav-runtime
+```
+
+## Sensor profiles
+
+두 Gazebo launch는 `sensor_profile` argument로 rendering sensor 부하를 선택합니다.
+차체 명령, odometry, joint state, clock, IMU bridge는 모든 profile에서 실행됩니다.
+`bridge_config`를 지정하면 sensor profile 대신 해당 단일 bridge 설정을 사용합니다.
+
+| Profile | LiDAR scans | Head RGB | Head depth | Left wrist | Right wrist |
+| --- | --- | --- | --- | --- | --- |
+| `lidar_nav` (기본값) | O | X | X | X | X |
+| `head_rgbd` | X | O | O | X | X |
+| `left_wrist` | X | X | X | O | X |
+| `right_wrist` | X | X | X | X | O |
+| `all_cameras` | X | O | O | O | O |
+
+`all_cameras`는 head color/depth와 좌·우 wrist color를 합친 네 image stream의
+부하 profile입니다. 선택되지 않은 rendering sensor는 bridge 구독자를 만들지 않으며,
+world의 `always_on=false` 설정과 함께 lazy 상태를 유지합니다.
+
+Fortress/Humble에서 profile을 직접 선택하는 예시는 다음과 같습니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py \
+  headless:=true sensor_profile:=head_rgbd
+```
+
+Harmonic/Jazzy에서는 launch 파일과 install 경로를 호환 profile에 맞춥니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
+  headless:=true sensor_profile:=all_cameras
+```
 
 LiDAR, IMU, odometry, TF만 검증하는 navigation runtime test는 저장소 루트에서
 다음 명령으로 실행합니다. 활성 ROS/Gazebo 환경을 감지해 Fortress 또는 Harmonic
@@ -131,6 +223,273 @@ odometry가 실제로 변하는지 확인합니다. 다음 조건을 모두 만�
 headless 실행에서도 rendering sensor이므로, 선택한 Gazebo profile에서 동작하는
 OpenGL display 또는 headless rendering 환경이 필요합니다.
 
+## Demo study-room evaluation world
+
+`gazebo_study_cafe.launch.py`와 `gazebo_study_cafe_fortress.launch.py`는 실제 시연실
+좌석도를 단순화한 48석 평가 공간을
+제공합니다. 벽 안쪽 크기는 12.26×10.94 m이며 로봇은 남쪽의 왼쪽 세로 통로
+`(x=-1.865, y=-4.705, yaw=1.5708)`에 배치됩니다. 여덟 책상 열은 3-2-3 블록으로
+나뉘고 여섯 행은 두 행씩 마주 붙은 세 묶음으로 배치됩니다. 각 행의 첫째와 마지막
+책상 옆면은 서쪽·동쪽 벽면에 닿지만 첫째·마지막 행의 앞뒤는 벽에서 떨어져 있습니다.
+
+사람이 검토하고 조정하는 방 크기, 로봇 시작 pose, 책상 열과 행, 의자 offset은
+`config/study_cafe/study_cafe_layout.yaml`에서 관리합니다. `world/layout.py`가 설정을 검증하고
+`world/generator.py`가 반복되는 벽·책상·파티션·모니터·의자 SDF를 생성합니다. launch의
+`layout_config` 인자로 다른 배치 설정을 지정할 수 있으며, 최종 생성물은 기본적으로
+`/tmp/cleany_study_cafe.sdf`에 기록되고 소스에는 커밋하지 않습니다.
+
+개별 책상은 1.2×0.77 m이고 흰색 상판 최고점은 바닥에서 0.72 m입니다. 파티션에 닿는
+두 모서리는 직각이고 의자 쪽 두 모서리는 반경 0.06 m로 둥글게 구성합니다. 흰색
+A형 다리는 상판 좌우 및 앞뒤 가장자리에서 0.08 m 안쪽에 발을 두고 상부 중앙으로
+모이며, 상단 crossbar를 포함한 visual과 collision이 같은 형상을 사용합니다. 마주
+붙은 두 행의 중앙 파티션은 바닥 0.30 m에서 상판 위 0.30 m인 1.02 m까지 이어지며
+네 모서리는 반경 0.05 m로 둥글게 처리합니다. 벽면은 흰색, roughness 0.92,
+metalness 0.0의 무광 석고 재질입니다. 의자 좌판 앞쪽은 상판 끝과 0.23 m 겹치도록
+책상 아래로 들어갑니다. 같은 행에서 떨어진 3-2-3 블록의 상판 사이 간격은 1.33 m,
+서로 붙지 않은 다른 행의 상판 사이 간격은 1.63 m입니다. 배치된 의자 등판 사이의
+실제 통과 폭은 0.83 m입니다. 가장 가까운 행의 상판 가장자리와 남북 벽면 사이는
+1.53 m이고, 의자 등판과 벽 사이 실제 통로는 1.13 m이므로 로봇 주행 경로를 만들기
+전 의자를 포함한 통과 가능성을 별도로 확인해야 합니다.
+
+각 책상에는 검정색 27인치 16:9 모니터가 하나씩 배치됩니다. 화면 크기는
+0.598×0.336 m이며 패널 중심은 의자 반대편 상판 끝에서 0.10 m 안쪽에 있습니다.
+화면 면은 배정된 의자를 향하고, 패널·스탠드·받침대는 각각 primitive collision을
+사용합니다.
+
+의자 visual은 CC BY 4.0의 OpenRobotics Gazebo Fuel `OfficeChairGrey`를 0.9배로
+사용합니다. 의자 yaw는 local `+X` 정면이 배정된 책상을 향하도록 계산하며 collision은
+캐스터 영역, 중앙축, 좌판, 등판 primitive로 분리합니다. 최초 실행 시 Fuel asset
+다운로드를 위해 network가 필요하고 이후에는 Gazebo cache를 사용합니다.
+
+로컬 Jazzy/Harmonic Distrobox에서 GUI 배율 1.0으로 실행합니다.
+
+```bash
+make sim-gazebo-study-cafe
+```
+
+## 2D SLAM candidate profile
+
+`slam_toolbox` online async profile은 SCRUM-315 비교 실험을 시작하기 위한 첫 후보이며
+선정 결과가 아닙니다. 현재 simulation의 `/scan`과 `odom -> base_link`를 입력으로
+사용하고 `map -> odom`과 occupancy grid를 발행합니다. Cartographer와 RTAB-Map 등
+다른 후보에 동일한 sensor recording을 재생해 정확도·지도 품질·실시간성을 측정한 뒤
+사용자가 결과를 검토해 최종 알고리즘을 결정합니다.
+
+후보 parameter는 `cleany_navigation/config/slam/slam_toolbox.yaml`에 있습니다. Ceres scan matcher와
+Huber loss, loop closure를 사용하며 LiDAR 범위는 simulation 계약과 같은
+0.15–12 m입니다. `/imu/data`는 `slam_toolbox`에 직접 연결하지 않습니다. 추후 IMU
+융합이 필요하면 `robot_localization` 등에서 `odom -> base_link` 추정을 개선한 뒤 같은
+SLAM 입력 계약을 유지합니다.
+
+Gazebo를 실행한 상태에서 다른 terminal에 SLAM node를 시작합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 launch cleany_navigation slam_mapping.launch.py use_sim_time:=true
+```
+
+반복 구조에서 잘못된 loop closure가 발생하는지 분리해서 확인할 때는 baseline
+설정 파일을 바꾸지 않고 launch override를 사용합니다.
+
+```bash
+ros2 launch cleany_navigation slam_mapping.launch.py \
+  use_sim_time:=true do_loop_closing:=false
+```
+
+Loop closure를 유지하면서 반복 구조에 더 보수적인 진단 조건을 적용할 수도 있습니다.
+
+```bash
+ros2 launch cleany_navigation slam_mapping.launch.py \
+  use_sim_time:=true \
+  loop_search_maximum_distance:=2.0 \
+  loop_search_space_dimension:=4.0 \
+  loop_match_minimum_response_coarse:=0.50 \
+  loop_match_minimum_response_fine:=0.60
+```
+
+launch는 `slam_toolbox` lifecycle node를 자동으로 configure·activate합니다.
+지도와 scan을 함께 보려면 다음 RViz launch를 사용합니다. ARM Adreno Mesa에서
+RViz의 indexed-palette Map shader가 실패하는 문제를 피하기 위해 `/map`의 점유 셀을
+표준 `Marker`로 변환해 표시합니다. 원본 `/map` topic과 저장 결과는 바꾸지 않습니다.
+
+```bash
+ros2 launch cleany_gazebo_sim evaluation_slam_visualization.launch.py
+```
+
+Harmonic에서 카메라와 다른 높이 LiDAR를 모두 비활성화하고 하단 LiDAR 하나만
+표준 `/scan`으로 노출하려면 study-cafe launch에
+LiDAR는 `lidar_link` 하나만 사용하며 Gazebo topic과 ROS topic은 각각
+`/model/cleany_mecanum/lidar/scan`, `/scan`으로 고정합니다.
+headless 가속 실험은 `physics_max_step_size:=0.003`과
+`physics_real_time_factor:=2.0`처럼 launch 시 world physics에 적용합니다. 실행 중
+`set_physics`로 부분 갱신하면 `enable_physics` 기본값 때문에 동역학이 꺼질 수 있으므로
+평가 실행에는 사용하지 않습니다.
+
+`ros2 topic echo --once /map`과 `ros2 run tf2_ros tf2_echo map base_link`로 map 및
+TF chain을 확인할 수 있습니다.
+
+## LiDAR mount SLAM evaluation
+
+SCRUM-316 후보 높이는 `config/lidar_mount_profiles.yaml`의 `floor_16p5cm`,
+`floor_26cm`, `floor_45cm`, `floor_70cm`입니다. `gazebo_study_cafe`
+launch의 `lidar_profile`은 선택한 pose를 생성 SDF와 `base_link -> lidar_link` static
+TF에 함께 적용합니다. 따라서 scan frame과 실제 scan 높이가 항상 일치합니다. 생성 world에서는
+현재 로봇 visual에
+`0x02`, LiDAR에 `0x01` visibility mask를 사용하므로 센서는 교체 예정인 기존 차체를
+투과해 환경만 봅니다. GUI 표시와 물리 collision에는 영향을 주지 않습니다.
+
+### Study cafe evaluation route
+
+`config/study_cafe/study_cafe_route.yaml`은 현재 48석 시연실의 네 가로 통로와 두 세로 통로를
+순서대로 훑고 spawn으로 돌아오는 약 94.30 m의 17-waypoint 폐루프입니다. 경로 중심은
+가로 `y=-4.705, -1.585, 1.585, 4.705 m`, 세로 `x=-1.865, 1.865 m`이고,
+좌우 sweep 끝점은 `x=-5.65, 5.65 m`입니다. 경로는 고정 가구 배치와 현재 로봇
+footprint를 기준으로 하므로 가구 위치나 footprint가 달라지면 다시 검증합니다.
+
+`ground_truth_route_follower`는 `/ground_truth/odom`을 경로 제어에만 사용하고
+`/cmd_vel`을 발행합니다. SLAM에는 ground truth를 전달하지 않습니다.
+
+Gazebo study cafe를 LiDAR profile로 먼저 실행합니다. 이 profile은 LiDAR, IMU,
+odometry, ground truth와 TF에 필요한 bridge만 실행하고 camera bridge는 만들지
+않습니다. 별도 terminal에서 경로를 시작합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+  headless:=false lidar_profile:=floor_26cm \
+  bridge_config:=ros2_ws/src/cleany_gazebo_sim/config/bridge/navigation_bridge_harmonic.yaml
+```
+
+Fortress/Humble에서는 동일한 scenario를 다음처럼 실행합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_study_cafe_fortress.launch.py \
+  headless:=false lidar_profile:=floor_26cm \
+  bridge_config:=ros2_ws/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml
+```
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim evaluation_study_cafe_route.launch.py
+```
+
+직선 속도는 0.25 m/s, 회전 속도는 0.5 rad/s이며 경로가 끝나거나 ground-truth
+odometry가 0.5초 이상 끊기면 정지 명령을 발행합니다.
+
+먼저 패키지를 빌드한 뒤 각 후보의 독립된 run directory를 만듭니다. 아래 예시는
+Harmonic 예시입니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ros2_ws/install-harmonic/setup.bash
+ros2 run cleany_gazebo_sim gazebo_slam_experiment prepare \
+  --package-root ros2_ws/src/cleany_gazebo_sim \
+  --profiles ros2_ws/src/cleany_gazebo_sim/config/lidar_mount_profiles.yaml \
+  --profile floor_26cm \
+  --simulator harmonic \
+  --output /tmp/cleany-slam-front-low-01
+
+ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
+  world:=/tmp/cleany-slam-front-low-01/world.sdf \
+  sensor_config:=/tmp/cleany-slam-front-low-01/sensor_tf.yaml
+```
+
+다른 terminal에서 위의 `slam_mapping.launch.py`를 실행합니다. 세 후보 모두 동일한
+world, 주행 경로(`route_id`), 주행 시간과 trial 수를 사용해야 비교할 수 있습니다.
+최소 3회 반복을 권장하며 다음 지표와 artifact를 `result.json` 양식에 기록합니다.
+
+- 정량: ATE RMSE, translation/rotation RPE RMSE, map coverage, valid scan ratio,
+  평균 scan rate, real-time factor
+- 정성: map image, trajectory artifact, 사각·가림·벽 왜곡·loop closure 관찰 내용
+
+측정값을 별도 JSON에 작성한 뒤 run manifest와 schema가 일치하는지 검증하여
+기록합니다.
+
+```bash
+ros2 run cleany_gazebo_sim gazebo_slam_experiment record \
+  --run-dir /tmp/cleany-slam-front-low-01 \
+  --input /path/to/measured-result.json
+```
+
+현재 저장소에는 재현 가능한 후보 materialization과 결과 schema만 포함하며 측정하지
+않은 성능 수치를 임의로 채우지 않습니다. 최종 위치 선정은 동일 조건의 실제 runtime
+결과를 수집한 뒤 결정합니다.
+
+### Offline SLAM algorithm comparison
+
+알고리즘 비교에서는 주행 편차를 없애기 위해 높이별 Gazebo 주행을 한 번만 bag으로
+기록합니다. 입력 bag은 `/scan`, `/odom`, `/imu/data`, `/tf_static`, `/clock`과 평가에만
+쓰는 `/ground_truth/odom`을 보존합니다. SLAM 프로세스에는 ground truth를 재생하더라도
+입력으로 연결하지 않습니다. 다음 네 profile은 같은 bag을 사용합니다.
+
+- `slam_toolbox`: LiDAR + wheel odometry
+- `cartographer_2d.lua`: LiDAR + wheel odometry
+- `cartographer_2d_imu.lua`: LiDAR + wheel odometry + IMU
+- `evaluation_rtabmap_replay.launch.py`: RTAB-Map 2D, LiDAR + wheel odometry
+
+Jazzy/Harmonic 환경에서 높이 및 알고리즘 전체 조합을 2.5배속으로 처리하려면 저장소
+루트에서 다음을 실행합니다. 첫 번째와 두 번째 선택 인자로 알고리즘 이름과 높이를
+주면 단일 조합만 실행할 수 있습니다.
+
+```bash
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && ./tools/record_16p5cm_slam_input.sh'
+
+GAZEBO_PROFILE=fortress ./tools/record_16p5cm_slam_input.sh
+
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && ./tools/run_slam_algorithm_comparison.sh'
+
+./tools/run_slam_algorithm_comparison.sh cartographer_imu 16p5
+```
+
+각 run에는 공통 `map_final.pgm/.png/.yaml`, 처리 중 `/map`과 `/tf`를 담은
+`result_bag/`, 로그를 남깁니다. 알고리즘 고유 pose graph는 slam_toolbox의
+`.posegraph/.data`, Cartographer의 `.pbstream`, RTAB-Map의 `.db`입니다. 이 결과는
+`ros2_ws/slam_results/` 아래의 로컬 실험 생성물이며 소스 커밋 대상이 아닙니다.
+
+전체 run이 끝난 뒤 궤적 지표와 Gazebo 상면 overlay를 생성합니다. ATE는 scale을
+고정한 SE(2) rigid alignment 후 계산하고, RPE는 1초 간격 상대 pose로 계산합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+python3 tools/analyze_slam_algorithm_comparison.py
+python3 tools/capture_gazebo_top_view.py
+python3 tools/render_slam_algorithm_overlays.py
+```
+
+`capture_gazebo_top_view.py`는 원본 world를 수정하지 않고 결과 디렉터리에 전용
+Gazebo world를 materialize한 뒤, 광축이 바닥에 수직인 1600×1430 카메라로 새 기준
+이미지를 렌더링합니다. overlay는 이 이미지의 카메라 내·외부 파라미터와 map YAML의
+resolution/origin을 사용해 월드 좌표로 투영하므로 GUI 시점의 원근 변형에 의존하지
+않습니다.
+
+### Moved-chair fixed-map localization
+
+가구 변화에 대한 localization 강건성은 새 지도를 만들지 않고 각 높이에서 저장한
+slam_toolbox posegraph를 고정해 평가합니다. 변화 조건은 여섯 좌석열에서 고른 의자
+12개를 책상 방향으로 0.20 m 옮기고 교대로 ±10° 회전합니다. 12/16.5/26 cm의
+원래 배치 bag과 이동 배치 bag을 각각 같은 localization node에 재생합니다.
+
+```bash
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && ./tools/record_chair_shift_localization_inputs.sh'
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && ./tools/run_chair_shift_localization.sh'
+distrobox enter ros2-jazzy -- bash -lc \
+  'cd /path/to/cleany && python3 tools/analyze_chair_shift_localization.py'
+```
+
+분석 시 원래 배치에서 한 번 구한 map-to-world rigid alignment를 이동 배치에도 그대로
+적용하므로, 이동 조건마다 궤적을 따로 맞춰 localization의 전역 오차를 숨기지 않습니다.
+결과 CSV/JSON, 요약, 비교 그림과 각 replay bag은
+`slam_results/chair_shift_localization/`에만 생성되며 커밋하지 않습니다.
+
 ## Run
 
 저장소 루트에서 실행합니다.
@@ -140,8 +499,8 @@ make sim-gazebo
 ```
 
 이 명령은 활성 ROS와 Gazebo version을 검사하고 `make build-gazebo`를 먼저 실행한 뒤,
-선택된 Fortress 또는 Harmonic 서버를 GUI 없이 시작합니다. 종료할 때는 `Ctrl-C`를
-누릅니다.
+선택된 Fortress 또는 Harmonic 서버를 `lidar_nav` sensor profile과 GUI 없는 상태로
+시작합니다. 종료할 때는 `Ctrl-C`를 누릅니다.
 
 다른 terminal에서 명령을 보냅니다.
 
@@ -178,7 +537,7 @@ GUI가 필요하면 build 후 직접 launch합니다.
 ```bash
 source /opt/ros/humble/setup.bash
 source ros2_ws/install/setup.bash
-ros2 launch cleany_gazebo_sim gazebo_sim.launch.py headless:=false
+ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py headless:=false
 ```
 
 ## Profiles
@@ -195,4 +554,55 @@ profile이다. 환경 준비와 자동 판정·output 분리 규칙은
 
 Harmonic 서버는 OGRE2를 사용한다. GUI를 함께 실행할 때도 server는 OGRE2, GUI는
 OGRE1을 사용한다. Harmonic world의 rendering sensor는 구독 전까지 비활성화할 수
-있지만, 기본 bridge는 모든 sensor topic을 bridge한다.
+있으며, launch는 선택한 sensor profile에 해당하는 bridge만 실행한다.
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
+```
+
+이 설정은 GPU driver 문제를 분리하기 위한 저속 fallback이며 팀 표준 실행 설정은
+아닙니다.
+
+## Runtime and build state
+
+APT/rosdep package와 colcon output이 존재한다는 사실만으로 현재 runtime에
+ROS/Gazebo package가 설치됐다고 판단하지 말고, 실행할 환경 안에서 다음 명령을
+확인합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+ros2 pkg prefix ros_gz_sim
+ros2 pkg prefix ros_gz_bridge
+```
+
+Humble/Python 3.10의 `build/`, `install/`, `log/`는 다른 ROS 배포판이나 Python
+version에서 재사용하지 않습니다. 세부 native 명령은 `ros2_ws/README.md`를
+참고합니다.
+
+## Optional Harmonic compatibility profile
+
+팀의 재현성 기준은 위의 Ubuntu 22.04, ROS 2 Humble, Gazebo Fortress 조합입니다.
+별도 환경에서 Jazzy/Harmonic 구성이 필요할 때는 호환 프로필로 격리하며 팀 표준
+환경을 대체하지 않습니다.
+
+Harmonic용 파일은 다음처럼 명시적인 이름을 사용합니다.
+
+- `launch/gazebo_harmonic.launch.py`
+- `worlds/cleany_mecanum_harmonic.sdf`
+- `config/bridge/*_bridge_harmonic.yaml`
+
+ROS 2 Jazzy와 Gazebo Harmonic 환경 준비는
+[`개발환경 설치 가이드`](../../../docs/DEVELOPMENT_SETUP.md#7-선택-ros-2-jazzy--gazebo-harmonic-호환-환경)를
+따릅니다. 준비된 환경에서 저장소 루트의 공통 명령을 실행합니다.
+
+```bash
+make sim-gazebo
+```
+
+Jazzy와 Gazebo 8.x가 확인되면 Harmonic을 자동 선택하며, Fortress와 빌드 결과를
+공유하지 않도록 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 사용합니다.
+자동 판정이 불가능하면 `GAZEBO_PROFILE=harmonic make sim-gazebo`처럼 명시할 수
+있습니다. headless 서버 센서는 OGRE2, GUI 실행 시 서버는 OGRE2, GUI는 OGRE1을
+사용합니다. Harmonic world의 rendering sensor는 구독이 생기기 전까지 비활성화할
+수 있도록 `always_on=false`로 정의되어 있습니다. launch는 선택한 sensor profile에
+해당하는 `*_bridge_harmonic.yaml`만 실행합니다.

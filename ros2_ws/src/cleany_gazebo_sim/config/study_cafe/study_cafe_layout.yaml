@@ -1,0 +1,28 @@
+schema_version: 1
+
+scene:
+  ambient_rgba: [0.65, 0.65, 0.65, 1.0]
+  background_rgba: [0.82, 0.83, 0.84, 1.0]
+
+robot:
+  # x, y, z, roll, pitch, yaw in the world frame.
+  spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
+
+room:
+  inside_size_m: [12.26, 10.94]
+  wall_thickness_m: 0.16
+  wall_height_m: 2.5
+  wall_rgba: [0.97, 0.97, 0.96, 1.0]
+  wall_roughness: 0.92
+
+desk_layout:
+  # Eight columns form the measured 3-2-3 blocks.
+  x_positions_m: [-5.53, -4.33, -3.13, -0.60, 0.60, 3.13, 4.33, 5.53]
+  row_pair_centers_y_m: [3.17, 0.0, -3.17]
+  rows:
+    - desk_y_offset_m: 0.385
+      chair_y_offset_from_desk_m: 0.385
+    - desk_y_offset_m: -0.385
+      chair_y_offset_from_desk_m: -0.385
+  partition_center_z_m: 0.66
+  monitor_y_offset_from_desk_center_m: 0.285

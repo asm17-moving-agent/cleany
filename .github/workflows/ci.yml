@@ -25,6 +25,7 @@ jobs:
       image: ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4
     env:
       DEBIAN_FRONTEND: noninteractive
+      LIBGL_ALWAYS_SOFTWARE: "1"
       ROS_DOMAIN_ID: "42"
       ROS_HOME: /tmp/cleany-ros
     defaults:
@@ -42,7 +43,10 @@ jobs:
         run: |
           set -euo pipefail
           apt-get update
-          apt-get install -y --no-install-recommends python3-pip
+          apt-get install -y --no-install-recommends \
+            libgl1-mesa-dri \
+            python3-pip \
+            xvfb
 
       - name: Verify CI environment
         run: |
@@ -59,6 +63,9 @@ jobs:
           command -v ros2
           command -v colcon
           command -v rosdep
+          command -v xvfb-run
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git -C "${GITHUB_WORKSPACE}" rev-parse HEAD
 
       - name: Register Cleany rosdep rules
         run: |
@@ -76,4 +83,4 @@ jobs:
         run: make check-gazebo-env
 
       - name: Build and test workspace
-        run: make test
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test

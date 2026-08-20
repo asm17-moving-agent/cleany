@@ -15,7 +15,7 @@ gazebo_sensor_tf_publisher:
   ros__parameters:
     parent_frame_id: base_link
     lidar_frame_id: lidar_link
-    lidar_translation: [0.32, 0.0, -0.18]
+    lidar_translation: [0.16, 0.0, -0.12]
     lidar_rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
     imu_frame_id: imu_link
     imu_translation: [0.0, 0.0, 0.0]
