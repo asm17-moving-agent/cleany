@@ -21,7 +21,7 @@
 
   <xacro:macro
     name="cleany_mujoco_ros2_control"
-    params="mujoco_model headless sim_speed_factor camera_publish_rate">
+    params="mujoco_model headless sim_speed_factor camera_publish_rate camera_name camera_frame_name enable_gripper_command">
     <ros2_control name="MujocoSystem" type="system">
       <hardware>
         <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
@@ -34,11 +34,11 @@
 
       <!-- Humble mujoco_ros2_control 0.0.3 discovers MJCF cameras through
            hardware_info.sensors; that release has no CameraPlugin. -->
-      <sensor name="left_wrist_rgb">
-        <param name="frame_name">left_wrist_rgb_vendor_frame</param>
-        <param name="info_topic">/left_wrist_rgb/camera_info</param>
-        <param name="image_topic">/left_wrist_rgb/color</param>
-        <param name="depth_topic">/left_wrist_rgb/depth</param>
+      <sensor name="${camera_name}">
+        <param name="frame_name">${camera_frame_name}</param>
+        <param name="info_topic">/${camera_name}/camera_info</param>
+        <param name="image_topic">/${camera_name}/color</param>
+        <param name="depth_topic">/${camera_name}/depth</param>
       </sensor>
 
       <xacro:cleany_mujoco_arm_joint joint_name="left_shoulder_yaw_joint"/>
@@ -51,8 +51,14 @@
       <xacro:cleany_mujoco_arm_joint joint_name="right_elbow_pitch_joint"/>
       <xacro:cleany_mujoco_arm_joint joint_name="right_wrist_pitch_joint"/>
       <xacro:cleany_mujoco_arm_joint joint_name="right_wrist_roll_joint"/>
-      <xacro:cleany_mujoco_read_only_joint joint_name="left_gripper_joint"/>
-      <xacro:cleany_mujoco_read_only_joint joint_name="right_gripper_joint"/>
+      <xacro:if value="${enable_gripper_command}">
+        <xacro:cleany_mujoco_arm_joint joint_name="left_gripper_joint"/>
+        <xacro:cleany_mujoco_arm_joint joint_name="right_gripper_joint"/>
+      </xacro:if>
+      <xacro:unless value="${enable_gripper_command}">
+        <xacro:cleany_mujoco_read_only_joint joint_name="left_gripper_joint"/>
+        <xacro:cleany_mujoco_read_only_joint joint_name="right_gripper_joint"/>
+      </xacro:unless>
     </ros2_control>
   </xacro:macro>
 </robot>

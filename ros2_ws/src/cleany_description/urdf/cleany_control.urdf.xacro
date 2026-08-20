@@ -4,6 +4,9 @@
   <xacro:arg name="headless" default="true"/>
   <xacro:arg name="sim_speed_factor" default="1.0"/>
   <xacro:arg name="camera_publish_rate" default="10.0"/>
+  <xacro:arg name="camera_name" default="left_wrist_rgb"/>
+  <xacro:arg name="camera_frame_name" default="left_wrist_rgb_vendor_frame"/>
+  <xacro:arg name="enable_gripper_command" default="false"/>
 
   <xacro:include filename="$(find cleany_description)/urdf/materials.xacro"/>
   <xacro:include filename="$(find cleany_description)/urdf/cleany_geometry.xacro"/>
@@ -14,5 +17,8 @@
     mujoco_model="$(arg mujoco_model)"
     headless="$(arg headless)"
     sim_speed_factor="$(arg sim_speed_factor)"
-    camera_publish_rate="$(arg camera_publish_rate)"/>
+    camera_publish_rate="$(arg camera_publish_rate)"
+    camera_name="$(arg camera_name)"
+    camera_frame_name="$(arg camera_frame_name)"
+    enable_gripper_command="$(arg enable_gripper_command)"/>
 </robot>

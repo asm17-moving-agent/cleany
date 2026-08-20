@@ -155,5 +155,25 @@
       <axis xyz="0 0 1"/>
       <limit lower="-0.374532977628" upper="1.74532919957" effort="2.6477955" velocity="4.245"/>
     </joint>
+
+    <!-- Nominal midpoint between the jaw tips; not a hardware calibration. -->
+    <link name="${side}_grasp_tcp"/>
+    <joint name="${side}_grasp_tcp_joint" type="fixed">
+      <parent link="${side}_gripper_frame"/>
+      <child link="${side}_grasp_tcp"/>
+      <origin xyz="0 -0.100 0" rpy="0 0 0"/>
+    </joint>
+
+    <!--
+      Position-only IK cannot constrain a 5-DOF arm's complete quaternion.
+      Placing this collision-free virtual tip on the grasp point makes the
+      physical TCP stand 140 mm back while its -Y approach axis points at it.
+    -->
+    <link name="${side}_pregrasp_aim_tip"/>
+    <joint name="${side}_pregrasp_aim_tip_joint" type="fixed">
+      <parent link="${side}_grasp_tcp"/>
+      <child link="${side}_pregrasp_aim_tip"/>
+      <origin xyz="0 -0.140 0" rpy="0 0 0"/>
+    </joint>
   </xacro:macro>
 </robot>

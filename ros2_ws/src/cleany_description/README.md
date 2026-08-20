@@ -11,6 +11,7 @@ Authoritative robot description assets shared by MuJoCo, TF, and MoveIt.
   adds the MuJoCo `ros2_control` hardware interface for the ten arm joints and
   read-only state interfaces for both grippers
 - `urdf/cleany_mujoco_ros2_control.xacro`: reusable MuJoCo hardware macro
+- `urdf/head_camera.xacro`: nominal head pan/tilt and RGB-D frame tree
 - `mjcf/cleany.xml`: MuJoCo robot model included by simulator scenes
 - `meshes/`: visual and collision CAD assets referenced by both descriptions
 - `test/test_model_parity.py`: canonical joint and randomized FK parity checks
@@ -35,10 +36,19 @@ listed in `ros2_control`, are not commandable, and are not published in the
 control backend's `joint_states`.
 
 The default head camera points toward `base_link +X`. Physical `+Y` is the
-canonical left arm and physical `-Y` is the canonical right arm. Camera
-optical frames are intentionally absent from the URDF; the active calibration
-profile owns those transforms. MuJoCo nevertheless carries matching optical
-sites, and Gazebo image messages use the corresponding frame names.
+canonical left arm and physical `-Y` is the canonical right arm. The nominal
+head RGB-D optical frames in the plugin-free description support the perception
+demo and are not a measured RealSense calibration. The arm-control entrypoint
+omits that head tree so its current-state contract remains exactly ten arm plus
+two gripper joints. Hand-eye evaluation uses its separately governed left-wrist
+camera profile.
+MoveIt's real-backend launch expands `cleany.urdf.xacro` with
+`include_head_camera:=false`; the regular description launch keeps the default
+`true` for perception.
+
+Each arm exposes `${side}_grasp_tcp` as a fixed frame at `(0, -0.100, 0) m`
+in `${side}_gripper_frame`. It is a nominal point near the jaw tips for
+position-only IK; its orientation is not a calibrated grasp orientation.
 
 `cleany_control.urdf.xacro` registers the `left_wrist_rgb` MJCF camera as a
 `ros2_control` sensor for the hand-eye MuJoCo backend. Its vendor topic names

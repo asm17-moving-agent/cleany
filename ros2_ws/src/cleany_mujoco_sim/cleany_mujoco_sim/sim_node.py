@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 from pathlib import Path
 
 import mujoco
@@ -8,6 +9,7 @@ import rclpy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from sensor_msgs.msg import JointState, LaserScan
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 
@@ -18,6 +20,7 @@ from cleany_mujoco_sim.base_command import (
     bounded_command,
     stopped_command,
 )
+from cleany_mujoco_sim.extensions import MujocoSimulationContext, StepObserver
 from cleany_mujoco_sim.mecanum_kinematics import (
     MecanumGeometry,
     WheelSpeedLimit,
@@ -33,6 +36,7 @@ from cleany_mujoco_sim.state import (
     laser_scan_msg,
     odometry_msg,
     scan_sample_count,
+    initialize_joint_positions,
     static_site_transform_msg,
     steps_per_tick,
     transform_msg,
@@ -44,7 +48,12 @@ from cleany_mujoco_sim.wheel_speed_controller import (
 
 
 class MujocoSimNode(Node):
-    def __init__(self, **kwargs) -> None:
+    def __init__(
+        self,
+        *,
+        step_observers: Iterable[StepObserver] | None = None,
+        **kwargs,
+    ) -> None:
         super().__init__("mujoco_sim", **kwargs)
 
         self.declare_parameter('scene_path', '')
@@ -62,6 +71,8 @@ class MujocoSimNode(Node):
         self.declare_parameter('scan_samples', 0)
         self.declare_parameter('scan_range_min', 0.15)
         self.declare_parameter('scan_range_max', 12.0)
+        self.declare_parameter('initial_joint_names', Parameter.Type.STRING_ARRAY)
+        self.declare_parameter('initial_joint_positions', Parameter.Type.DOUBLE_ARRAY)
         self.declare_parameter('max_linear_x', 0.3)
         self.declare_parameter('max_linear_y', 0.3)
         self.declare_parameter('max_angular_z', 0.8)
@@ -98,6 +109,18 @@ class MujocoSimNode(Node):
         )
         self._scan_range_min = self.get_parameter('scan_range_min').get_parameter_value().double_value
         self._scan_range_max = self.get_parameter('scan_range_max').get_parameter_value().double_value
+        initial_joint_names = list(
+            self.get_parameter_or(
+                'initial_joint_names',
+                Parameter('initial_joint_names', Parameter.Type.STRING_ARRAY, []),
+            ).get_parameter_value().string_array_value
+        )
+        initial_joint_positions = list(
+            self.get_parameter_or(
+                'initial_joint_positions',
+                Parameter('initial_joint_positions', Parameter.Type.DOUBLE_ARRAY, []),
+            ).get_parameter_value().double_array_value
+        )
         self._command_limits = CommandLimits(
             max_linear_x=float(self.get_parameter('max_linear_x').value),
             max_linear_y=float(self.get_parameter('max_linear_y').value),
@@ -165,7 +188,18 @@ class MujocoSimNode(Node):
             else None
         )
 
+        initialize_joint_positions(
+            self._model,
+            self._data,
+            initial_joint_names,
+            initial_joint_positions,
+        )
         mujoco.mj_forward(self._model, self._data)
+        self._simulation_context = MujocoSimulationContext(
+            model=self._model,
+            data=self._data,
+        )
+        self._step_observers = list(step_observers or ())
         self._steps_per_tick = steps_per_tick(self._model.opt.timestep, publish_rate_hz)
         self._scan_samples = 0
         self._sim_time_at_last_scan = 0.0
@@ -214,6 +248,13 @@ class MujocoSimNode(Node):
 
     def _on_joint_cmd(self, msg: JointState) -> None:
         apply_joint_cmd(self._model, self._data, msg)
+
+    @property
+    def simulation_context(self) -> MujocoSimulationContext:
+        return self._simulation_context
+
+    def add_step_observer(self, observer: StepObserver) -> None:
+        self._step_observers.append(observer)
 
     def _on_cmd_vel(self, msg: Twist) -> None:
         all_axes = (
@@ -291,6 +332,8 @@ class MujocoSimNode(Node):
                 )
             mujoco.mj_step(self._model, self._data)
         stamp = self.get_clock().now()
+        for observer in self._step_observers:
+            observer.after_step(self._simulation_context, stamp)
         self._joint_state_pub.publish(joint_state_msg(self._model, self._data, stamp))
         self._odom_pub.publish(
             odometry_msg(
