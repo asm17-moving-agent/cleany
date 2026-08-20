@@ -38,6 +38,7 @@ setup(
                 'camera_contract_adapter = '
                 'cleany_mujoco_sim.camera_contract_adapter:main'
             ),
+            'mujoco_rgbd_sim_node = cleany_mujoco_sim.rgbd_sim_node:main',
         ],
     },
 )

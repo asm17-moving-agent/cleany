@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 import rclpy
 from geometry_msgs.msg import Twist
+from rclpy.time import Time
 from nav_msgs.msg import Odometry
 from rclpy.parameter import Parameter
 from sensor_msgs.msg import JointState, LaserScan
@@ -15,6 +16,7 @@ from cleany_mujoco_sim.state import joint_positions
 
 
 def _make_node(scene_path: Path, **overrides) -> MujocoSimNode:
+    step_observers = overrides.pop('step_observers', None)
     params = {
         'scene_path': str(scene_path),
         'publish_rate_hz': 1000.0,
@@ -24,6 +26,7 @@ def _make_node(scene_path: Path, **overrides) -> MujocoSimNode:
     }
     params.update(overrides)
     return MujocoSimNode(
+        step_observers=step_observers,
         namespace='test_mujoco_sim',
         parameter_overrides=[Parameter(name, value=value) for name, value in params.items()]
     )
@@ -339,4 +342,121 @@ def test_sim_node_rejects_invalid_command_parameters(
         with pytest.raises(ValueError):
             _make_node(scene_path, **{parameter_name: value})
     finally:
+        rclpy.shutdown()
+
+
+def test_sim_node_exposes_context_and_notifies_observer_after_step(
+    scene_path: Path,
+):
+    class RecordingObserver:
+        def __init__(self) -> None:
+            self.calls = []
+
+        def after_step(self, context, stamp) -> None:
+            self.calls.append((context, stamp, context.data.time))
+
+    rclpy.init(args=[])
+    node = None
+    try:
+        observer = RecordingObserver()
+        node = _make_node(scene_path, step_observers=[observer])
+
+        assert node.simulation_context.model is node._model
+        assert node.simulation_context.data is node._data
+        assert node.simulation_context.data.time == pytest.approx(0.0)
+
+        node._on_timer()
+
+        assert len(observer.calls) == 1
+        context, stamp, simulation_time = observer.calls[0]
+        assert context is node.simulation_context
+        assert isinstance(stamp, Time)
+        assert simulation_time > 0.0
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_can_register_observer_after_construction(scene_path: Path):
+    class CountingObserver:
+        def __init__(self) -> None:
+            self.call_count = 0
+
+        def after_step(self, context, stamp) -> None:
+            self.call_count += 1
+
+    rclpy.init(args=[])
+    node = None
+    try:
+        node = _make_node(scene_path)
+        observer = CountingObserver()
+
+        node.add_step_observer(observer)
+        node._on_timer()
+
+        assert observer.call_count == 1
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_propagates_step_observer_errors(scene_path: Path):
+    class FailingObserver:
+        def after_step(self, context, stamp) -> None:
+            raise RuntimeError('sensor failure')
+
+    rclpy.init(args=[])
+    node = None
+    try:
+        node = _make_node(scene_path, step_observers=[FailingObserver()])
+
+        with pytest.raises(RuntimeError, match='sensor failure'):
+            node._on_timer()
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_applies_opt_in_initial_joint_positions(scene_path: Path):
+    rclpy.init(args=[])
+    node = None
+    try:
+        node = _make_node(
+            scene_path,
+            initial_joint_names=['shoulder'],
+            initial_joint_positions=[0.01],
+        )
+
+        assert joint_positions(node._model, node._data) == pytest.approx(
+            [0.01]
+        )
+        assert node._data.ctrl[0] == pytest.approx(0.01)
+
+        node._on_timer()
+
+        assert joint_positions(node._model, node._data) == pytest.approx(
+            [0.01], abs=1e-6
+        )
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_sim_node_keeps_model_defaults_without_initial_joint_params(
+    scene_path: Path,
+):
+    rclpy.init(args=[])
+    node = None
+    try:
+        node = _make_node(scene_path)
+
+        assert joint_positions(node._model, node._data) == pytest.approx([0.0])
+        assert node._data.ctrl[0] == pytest.approx(0.0)
+    finally:
+        if node is not None:
+            node.destroy_node()
         rclpy.shutdown()

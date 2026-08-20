@@ -1,6 +1,11 @@
+import os
 from pathlib import Path
 
 import pytest
+
+# The RGB-D launch selects EGL before importing MuJoCo. Mirror that contract
+# for direct pytest and headless CI runs, which do not execute the launch file.
+os.environ.setdefault('MUJOCO_GL', 'egl')
 
 from cleany_mujoco_sim.scene_loader import load_model, materialize_scene
 
@@ -43,5 +48,13 @@ def model_data(scene_path: Path):
 def cleany_scene_path() -> Path:
     template_path = (
         Path(__file__).parents[1] / 'scenes' / 'default.xml.in'
+    )
+    return materialize_scene(template_path)
+
+
+@pytest.fixture(scope='session')
+def rgbd_pick_scene_path() -> Path:
+    template_path = (
+        Path(__file__).parents[1] / 'scenes' / 'rgbd_pick_demo.xml.in'
     )
     return materialize_scene(template_path)
