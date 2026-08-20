@@ -61,11 +61,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 def pytest_ignore_collect(
-    collection_path: Path,
+    path: Path,
     config: pytest.Config,
 ) -> bool | None:
     if (
-        'evaluation' in collection_path.parts
+        'evaluation' in Path(str(path)).parts
         and not config.getoption('--run-evaluation-tests')
     ):
         return True
