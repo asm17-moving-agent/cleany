@@ -22,4 +22,4 @@ ros2_ws/log-harmonic/
 # Local artifacts
 *.log
 *.tmp
-/artifacts/handeye/
+/artifacts/
