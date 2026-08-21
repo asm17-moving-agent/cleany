@@ -344,6 +344,8 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
             == result.detections.snapshot_id
         )
         assert selection_result.objects.header.frame_id == 'base_link'
+        assert selection_result.target_cloud.header.frame_id == 'base_link'
+        assert selection_result.context_cloud.header.frame_id == 'base_link'
         assert len(selection_result.objects.objects) == 1
         assert selection_result.objects.objects[0].object_id == 2
         assert selection_result.objects.objects[0].label == 'box'

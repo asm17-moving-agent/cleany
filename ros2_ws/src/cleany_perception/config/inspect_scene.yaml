@@ -42,3 +42,7 @@ perception_inspector:
     minimum_object_points: 30
     minimum_object_height_m: 0.005
     minimum_obb_extent_m: 0.005
+    grasp_context_margin_pixels: 80
+    grasp_cloud_voxel_size_m: 0.005
+    grasp_target_maximum_points: 12000
+    grasp_context_maximum_points: 30000

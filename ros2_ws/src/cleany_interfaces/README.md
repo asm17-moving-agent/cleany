@@ -1,72 +1,42 @@
 # cleany_interfaces
 
-Cleany의 Perception, Grasping, Mission Manager, Skill Executor와 Dashboard
-Bridge가 공유하는 ROS 2 interface package다. 구현 내부 model이나 provider별
-응답을 wire contract로 노출하지 않는다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를
-사용하는 프로젝트 공통 topic 계약도 이곳에 기록한다.
+Cleany perception snapshot, grasp candidate 생성과 MoveIt 도달 가능성 검증이
+공유하는 ROS 2 interface package다. 구현 내부 model이나 provider별 응답은 wire
+contract로 노출하지 않는다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를 사용하는
+프로젝트 공통 topic 계약도 이곳에 기록한다.
+
+## 객체 메시지
+
+`DetectedObject2D`와 `DetectedObject2DArray`는 Gemini detector가 반환한 RGB pixel
+bounding box, snapshot-local 번호와 후속 선택 요청에 사용할 `snapshot_id`를 표현한다.
+`DetectedObject3D`와 `DetectedObject3DArray`는 선택 객체의 OBB와 동일 snapshot 문맥을
+표현한다.
+
+## Scene inspection action
+
+`InspectScene` 1차 단계는 동기화된 RGB-D snapshot에서 2D detection만 수행하고,
+2차 단계는 `snapshot_id`와 `selected_object_id`로 선택한 객체 하나만 SAM2 및 3D
+복원한다. 성공한 2차 결과는 같은 configured target frame과 capture timestamp의
+`target_cloud`, `context_cloud`와 선택 객체 OBB를 반환한다.
+
+## Grasp planning과 선택
 
 `PlanGrasp`는 score 내림차순 `GraspCandidate[] candidates`를 반환한다.
 `SelectReachableGrasp` action은 같은 snapshot/object/frame/OBB 후보를 받아 양팔 IK,
 state validity, 2구간 plan-only 검증 후 선택 index, arm, endpoint joint state를 반환한다.
 trajectory는 현재 RobotState에 종속되므로 result에 포함하지 않는다.
 
+팔 선택, IK, robot collision과 trajectory 계획은 `SelectReachableGrasp` 경계이며,
+gripper 명령과 실제 trajectory 실행은 별도 Skill Executor coordinator가 담당한다.
+
 ## Contracts
 
 - [Mobile base](docs/mobile_base.md): `/cmd_vel` 차체 속도 명령
 
-## 객체 메시지
+## 설정 및 검증
 
-`DetectedObject2D`는 Gemini detector가 반환한 RGB pixel bounding box와
-snapshot-local 번호를 표현한다. `DetectedObject2DArray`가 capture timestamp,
-RGB optical frame과 후속 선택 요청에 사용할 `snapshot_id`를 소유한다.
-
-`DetectedObject3D`는 하나의 oriented bounding box를 표현한다.
-
-- `object_id`: snapshot 안에서 1부터 부여하는 사용자 선택 번호
-- `label`: detector가 반환한 객체 label
-- `confidence`: `[0, 1]` 범위의 normalized confidence
-- `obb_pose`: OBB 중심과 방향
-- `obb_size`: OBB local X/Y/Z 방향의 전체 길이(m)
-
-`DetectedObject3DArray.header`가 모든 객체의 capture timestamp와 frame을 소유한다.
-`snapshot_id`는 inspection 결과와 이후 planning 요청을 연결하는 opaque identifier다.
-객체별로 서로 다른 frame을 사용하지 않는다.
-
-## Scene inspection action
-
-`InspectScene`의 1차 단계는 동기화한 RGB-D snapshot에 detector를 한 번 수행하는
-cancel 가능한 action이다. 빈 `query`, 빈 `snapshot_id`, `selected_object_id=0`으로
-호출하면 번호가 부여된 `DetectedObject2DArray`를 반환한다. RGB-D, detections와 촬영
-시점 TF는 선택 단계를 위해 제한된 cache에 보관한다. 이 단계에서는 SAM2와 3D 복원을
-실행하지 않으며 `objects`는 비어 있다.
-
-2차 단계는 1차 결과의 `snapshot_id`와 `selected_object_id`를 함께 전달한다. cache의
-선택 detection 하나만 SAM2와 3D 복원에 사용하고, 같은 촬영 시점 TF로 base frame OBB를
-반환한다. 두 필드 중 하나만 전달하거나 범위를 벗어난 번호는
-`ERROR_INVALID_SELECTION`, 없거나 만료된 snapshot은 `ERROR_SNAPSHOT_NOT_FOUND`다.
-
-오류 코드는 RGB-D timeout, detector API, detector response/JSON, mask, depth,
-plane, TF, cancel, snapshot lookup, selection과 internal failure를 구분한다. 1차
-feedback은 RGB-D 대기와 detector 실행, 2차 feedback은 segmentation부터 target-frame
-변환까지 나타낸다.
-
-## Grasp planning service
-
-`PlanGrasp` request는 선택한 객체의 snapshot/object ID, target/context point cloud와
-`DetectedObject3D` OBB를 직접 전달한다. 따라서 planning server는 perception node의
-숨은 object cache에 의존하지 않는다. geometric predictor나 AnyGrasp 같은 내부
-provider가 score 내림차순 `GraspCandidate[]`를 생성한다.
-
-## Reachable grasp selection action
-
-`SelectReachableGrasp`는 `PlanGrasp`가 만든 후보들을 받아 양팔 IK, state validity와
-pregrasp/grasp 2구간 plan-only 검증을 수행한다. 성공 result는 선택한 candidate index,
-arm, candidate와 endpoint joint state를 반환한다. 실제 trajectory는 현재
-`RobotState`에 종속되므로 result에 포함하지 않는다.
-
-## 빌드와 검사
-
-레포지토리 루트에서 실행한다.
+인터페이스를 추가하거나 변경할 때는 해당 의존 패키지, `package.xml`, 빌드 및 메시지
+호환성 검증을 함께 갱신한다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -77,18 +47,8 @@ colcon test --packages-select cleany_interfaces
 colcon test-result --verbose
 ```
 
-설치된 계약을 확인한다.
-
-```bash
-ros2 interface show cleany_interfaces/msg/DetectedObject3D
-ros2 interface show cleany_interfaces/msg/DetectedObject3DArray
-ros2 interface show cleany_interfaces/msg/GraspCandidate
-ros2 interface show cleany_interfaces/msg/DetectedObject2D
-ros2 interface show cleany_interfaces/msg/DetectedObject2DArray
-ros2 interface show cleany_interfaces/action/InspectScene
-ros2 interface show cleany_interfaces/action/SelectReachableGrasp
-ros2 interface show cleany_interfaces/srv/PlanGrasp
-```
+설치된 계약은 `ros2 interface show`로 `InspectScene`, `PlanGrasp`,
+`SelectReachableGrasp`와 관련 message를 확인한다.
 
 ## 관련 KB
 
