@@ -3,7 +3,7 @@
 <package format="3">
   <name>cleany_interfaces</name>
   <version>0.1.0</version>
-  <description>ROS 2 grasp-planning interfaces for Cleany.</description>
+  <description>ROS 2 inspection and grasp-planning interfaces for Cleany.</description>
   <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
   <license>Apache-2.0</license>
 

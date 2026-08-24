@@ -36,19 +36,41 @@ listed in `ros2_control`, are not commandable, and are not published in the
 control backend's `joint_states`.
 
 The default head camera points toward `base_link +X`. Physical `+Y` is the
-canonical left arm and physical `-Y` is the canonical right arm. The nominal
-head RGB-D optical frames in the plugin-free description support the perception
-demo and are not a measured RealSense calibration. The arm-control entrypoint
-omits that head tree so its current-state contract remains exactly ten arm plus
-two gripper joints. Hand-eye evaluation uses its separately governed left-wrist
-camera profile.
+canonical left arm and physical `-Y` is the canonical right arm.
+
+The nominal head camera frame tree is shared by URDF and MJCF:
+
+```text
+base_link
+└── top_base_link
+    └── head_pan_link
+        └── head_tilt_link
+            └── head_camera_link
+                ├── head_camera_rgb_frame
+                │   └── head_camera_rgb_optical_frame
+                └── head_camera_depth_frame
+                    └── head_camera_depth_optical_frame
+```
+
+RGB and aligned depth use colocated nominal optical origins. These fixed
+transforms describe the current simulation assembly; they are not a measured
+RealSense calibration. A real deployment must validate or replace them with
+its calibration profile while preserving the public frame contract.
+
+The nominal head RGB-D optical frames in the plugin-free description support
+the perception demo. The arm-control entrypoint omits that head tree so its
+current-state contract remains exactly ten arm plus two gripper joints.
+Hand-eye evaluation uses its separately governed left-wrist camera profile.
 MoveIt's real-backend launch expands `cleany.urdf.xacro` with
 `include_head_camera:=false`; the regular description launch keeps the default
-`true` for perception.
+`true` so the perception-side `robot_state_publisher` can provide the head
+camera TF tree. Detection results must be transformed into the configured
+planning frame before they are passed to MoveIt.
 
-Each arm exposes `${side}_grasp_tcp` as a fixed frame at `(0, -0.100, 0) m`
-in `${side}_gripper_frame`. It is a nominal point near the jaw tips for
-position-only IK; its orientation is not a calibrated grasp orientation.
+Each arm exposes `${side}_grasp_tcp` as a fixed frame and MuJoCo site at
+`(0, -0.100, 0) m` in `${side}_gripper_frame`. It is a nominal point near the
+center of the jaw tips for position-only IK. Its orientation inherits the
+gripper frame and is not a calibrated grasp orientation.
 
 `cleany_control.urdf.xacro` registers the `left_wrist_rgb` MJCF camera as a
 `ros2_control` sensor for the hand-eye MuJoCo backend. Its vendor topic names
