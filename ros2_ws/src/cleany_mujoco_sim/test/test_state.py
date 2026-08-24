@@ -6,9 +6,11 @@ import pytest
 from rclpy.time import Time
 from sensor_msgs.msg import JointState
 
+from cleany_mujoco_sim.scene_loader import load_model
 from cleany_mujoco_sim.state import (
     actuated_joint_names,
     apply_joint_cmd,
+    initialize_joint_positions,
     joint_positions,
     joint_velocities,
     joint_state_msg,
@@ -55,6 +57,69 @@ def test_apply_joint_cmd_writes_qpos(model_data):
     cmd.position = [0.3]
     apply_joint_cmd(model, data, cmd)
     assert data.qpos[model.jnt_qposadr[1]] == pytest.approx(0.3)
+
+
+def test_initialize_joint_positions_sets_qpos_and_position_target(model_data):
+    model, data = model_data
+
+    initialize_joint_positions(model, data, ['shoulder'], [0.01])
+
+    assert data.qpos[model.jnt_qposadr[1]] == pytest.approx(0.01)
+    assert data.ctrl[0] == pytest.approx(0.01)
+
+
+def test_initialize_joint_positions_is_noop_for_empty_input(model_data):
+    model, data = model_data
+    original_qpos = data.qpos.copy()
+    original_ctrl = data.ctrl.copy()
+
+    initialize_joint_positions(model, data, [], [])
+
+    assert data.qpos == pytest.approx(original_qpos)
+    assert data.ctrl == pytest.approx(original_ctrl)
+
+
+def test_initialize_joint_positions_sets_cleany_head_tilt_target(
+    cleany_scene_path,
+):
+    model, data = load_model(cleany_scene_path)
+    joint_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_JOINT,
+        'head_tilt_joint',
+    )
+    actuator_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_ACTUATOR,
+        'head_tilt',
+    )
+
+    initialize_joint_positions(model, data, ['head_tilt_joint'], [1.0])
+
+    assert data.qpos[model.jnt_qposadr[joint_id]] == pytest.approx(1.0)
+    assert data.ctrl[actuator_id] == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ('names', 'positions', 'message'),
+    [
+        (['shoulder'], [], 'same length'),
+        (['shoulder', 'shoulder'], [0.1, 0.2], 'duplicates'),
+        (['missing'], [0.1], 'Unknown actuated scalar joint'),
+        (['shoulder'], [math.inf], 'must be finite'),
+        (['shoulder'], [0.02], 'is outside'),
+    ],
+)
+def test_initialize_joint_positions_rejects_invalid_input(
+    model_data,
+    names,
+    positions,
+    message,
+):
+    model, data = model_data
+
+    with pytest.raises(ValueError, match=message):
+        initialize_joint_positions(model, data, names, positions)
 
 
 def test_steps_per_tick_matches_tick_period_to_timestep():

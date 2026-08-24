@@ -39,6 +39,9 @@ jobs:
           persist-credentials: false
           submodules: false
 
+      - name: Trust checkout workspace
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
       - name: Install CI bootstrap dependencies
         run: |
           set -euo pipefail
@@ -46,6 +49,7 @@ jobs:
           apt-get install -y --no-install-recommends \
             libgl1-mesa-dri \
             python3-pip \
+            xauth \
             xvfb
 
       - name: Verify CI environment
@@ -64,7 +68,6 @@ jobs:
           command -v colcon
           command -v rosdep
           command -v xvfb-run
-          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
           git -C "${GITHUB_WORKSPACE}" rev-parse HEAD
 
       - name: Register Cleany rosdep rules

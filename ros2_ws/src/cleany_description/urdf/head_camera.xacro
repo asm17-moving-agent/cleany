@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    Nominal simulation geometry for the head-mounted RGB-D camera. Physical
+    calibration may replace the fixed camera transforms in a real deployment.
+  -->
+  <xacro:macro name="cleany_head_camera">
+    <link name="top_base_link"/>
+    <joint name="top_base_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="top_base_link"/>
+      <origin xyz="0 0 0.35" rpy="0 0 3.14159265359"/>
+    </joint>
+
+    <link name="head_pan_link"/>
+    <joint name="head_pan_joint" type="revolute">
+      <parent link="top_base_link"/>
+      <child link="head_pan_link"/>
+      <origin xyz="-0.103 0 0.323" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-3.2" upper="3.2" effort="2.6477955" velocity="4.245"/>
+    </joint>
+
+    <link name="head_tilt_link"/>
+    <joint name="head_tilt_joint" type="revolute">
+      <parent link="head_pan_link"/>
+      <child link="head_tilt_link"/>
+      <origin xyz="0.001 0.002 0.09815" rpy="0 0 3.14159265359"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="-0.76" upper="1.45" effort="2.6477955" velocity="4.245"/>
+    </joint>
+
+    <link name="head_camera_link"/>
+    <joint name="head_camera_joint" type="fixed">
+      <parent link="head_tilt_link"/>
+      <child link="head_camera_link"/>
+      <origin xyz="0.025 0 0.03" rpy="0 0 0"/>
+    </joint>
+
+    <link name="head_camera_rgb_frame"/>
+    <joint name="head_camera_rgb_joint" type="fixed">
+      <parent link="head_camera_link"/>
+      <child link="head_camera_rgb_frame"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <link name="head_camera_rgb_optical_frame"/>
+    <joint name="head_camera_rgb_optical_joint" type="fixed">
+      <parent link="head_camera_rgb_frame"/>
+      <child link="head_camera_rgb_optical_frame"/>
+      <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
+    </joint>
+
+    <link name="head_camera_depth_frame"/>
+    <joint name="head_camera_depth_joint" type="fixed">
+      <parent link="head_camera_link"/>
+      <child link="head_camera_depth_frame"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <link name="head_camera_depth_optical_frame"/>
+    <joint name="head_camera_depth_optical_joint" type="fixed">
+      <parent link="head_camera_depth_frame"/>
+      <child link="head_camera_depth_optical_frame"/>
+      <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
+    </joint>
+  </xacro:macro>
+</robot>
