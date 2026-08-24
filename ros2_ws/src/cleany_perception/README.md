@@ -1,13 +1,15 @@
 # cleany_perception
 
-동기화된 RGB-D snapshot에서 Gemini 2D bbox를 한 번 검출하고, 사용자가 선택한 객체
-하나만 SAM2와 3D reconstruction으로 정밀 검사하는 package다. Perception은 객체와 위치
+동기화된 RGB-D snapshot에서 Gemini 2D bbox를 한 번 검출하고, 사용자 또는 외부
+coordinator가 선택한 객체 하나만 SAM2와 3D reconstruction으로 정밀 검사하는 package다.
+Perception은 객체와 위치
 후보만 제공하며 수거·보관 등 최종 행동을 결정하지 않는다.
 
 ## 처리 경계
 
 ```text
 aligned RGB-D → capture-time TF → Gemini bbox + 번호
+→ bbox 중앙 depth로 base_link 거리 산정 및 가까운 순 정렬
 → bounded snapshot cache → 사용자 선택
 → selected bbox만 SAM2 → support plane → base_link 3D OBB
 ```
@@ -70,6 +72,14 @@ ros2 launch cleany_perception inspect_scene.launch.py \
 전에 확보하고 RGB-D 및 detections와 함께 cache에 보관한다. 기본 cache는 최근 2개
 snapshot을 120초 동안 유지하며 parameter로 조정한다.
 
+1차 detection은 bbox 중앙 영역의 유효 depth 중앙값으로 대표 3D point를 만들고,
+촬영 시점 TF를 적용해 configured target frame 원점(기본 `base_link`)까지의 거리를
+계산한다. `nearest_object_central_bbox_fraction`과
+`nearest_object_minimum_depth_pixels`로 배경 혼입과 depth hole을 제한한다. 결과는
+유효 거리 오름차순, confidence 내림차순, detector 원본 순서로 번호를 부여하며,
+유효 depth가 부족한 detection은 `distance_valid=false`로 배열 뒤에 남긴다. 자동 조작
+coordinator는 `distance_valid=true`인 객체만 가까운 순서로 시도해야 한다.
+
 ## ROS API
 
 Action:
@@ -123,6 +133,13 @@ subscriber discovery 지연을 흡수하기 위해 live topic에는 기본 0.25�
 snapshot을 제한 재발행한다. 횟수와 간격은 `debug_republish_count`와
 `debug_republish_period_seconds`로 조정한다. latched topic은 마지막 성공 결과 한 장만
 보관한다. detector 또는 SAM2 단계에서 실패하면 이전 결과를 재발행하지 않는다.
+
+MuJoCo 통합 데모는 `detector_type=simulation_color`,
+`segmenter_type=simulation_color`로 시뮬레이션 전용 adapter를 선택한다. 이 adapter는
+렌더링된 RGB의 빨강/파랑 픽셀에서 bbox와 mask를 계산할 뿐, 물체 pose나 합성 점을
+주입하지 않는다. 거리와 3D geometry는 운영 경로와 동일하게 실제 depth image,
+CameraInfo 및 촬영 시점 TF에서 계산한다. 색상 규칙은 통합 검증용이므로 실제 배포
+perception 대체물로 사용하지 않는다.
 
 ```bash
 ros2 topic echo /perception/detections_2d --once

@@ -15,10 +15,32 @@ HANDEYE_MAX_TRANSLATION_NORM_M ?= 1.0
 HANDEYE_DATASET_MODE ?= strict
 HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 	cleany_moveit_config cleany_handeye_calibration
+GRASP_PREGRASP_PACKAGES := cleany_interfaces cleany_description \
+	cleany_mujoco_sim cleany_moveit_config cleany_perception \
+	cleany_grasping cleany_skill_executor
+GRASP_PREGRASP_SKILL_TESTS := \
+	src/cleany_skill_executor/test/test_can_rgbd.py \
+	src/cleany_skill_executor/test/test_grasp_execution_demo_contract.py \
+	src/cleany_skill_executor/test/test_nearest_object.py \
+	src/cleany_skill_executor/test/test_grasp_selection.py \
+	src/cleany_skill_executor/test/test_grasp_selection_node.py \
+	src/cleany_skill_executor/test/test_moveit_adapter.py \
+	src/cleany_skill_executor/test/test_planning_scene.py
+GRASP_PREGRASP_MOVEIT_TESTS := \
+	src/cleany_moveit_config/test/test_moveit_config.py \
+	src/cleany_moveit_config/test/test_handeye_collision_scene.py
+GRASP_PREGRASP_MUJOCO_TESTS := \
+	src/cleany_mujoco_sim/test/test_can_grasp_execution_scene.py \
+	src/cleany_mujoco_sim/test/test_grasp_execution_scene.py \
+	src/cleany_mujoco_sim/test/test_handeye_backend_config.py
+GRASP_PREGRASP_DESCRIPTION_TESTS := \
+	src/cleany_description/test/test_model_parity.py::test_description_entrypoints_share_canonical_geometry \
+	src/cleany_description/test/test_model_parity.py::test_control_description_can_enable_gripper_position_commands
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
-	build-gazebo-harmonic build-handeye test test-mission test-mujoco \
-	test-handeye test-gazebo handeye-generate-mujoco \
+	build-gazebo-harmonic build-handeye build-grasp-pregrasp test \
+	test-mission test-mujoco test-handeye test-grasp-pregrasp \
+	test-grasp-pregrasp-runtime test-gazebo handeye-generate-mujoco \
 	handeye-validate-mujoco \
 	test-gazebo-harmonic test-gazebo-nav-runtime sim sim-gazebo \
 	sim-gazebo-harmonic handeye-mujoco clean
@@ -31,10 +53,13 @@ help:
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
+	@echo "  make build-grasp-pregrasp  Build RGB-D grasp/pre-grasp packages"
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-handeye  Build and test the hand-eye package boundary"
+	@echo "  make test-grasp-pregrasp  Run focused RGB-D grasp/pre-grasp tests"
+	@echo "  make test-grasp-pregrasp-runtime  Run the MuJoCo execution test"
 	@echo "  make handeye-generate-mujoco  Generate analyzed random 20+5 poses"
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
@@ -92,6 +117,12 @@ build-handeye:
 	colcon build --symlink-install \
 		--packages-up-to cleany_handeye_calibration
 
+build-grasp-pregrasp:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon build --symlink-install \
+		--packages-up-to $(GRASP_PREGRASP_PACKAGES)
+
 test: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
@@ -122,6 +153,28 @@ test-handeye: build-handeye
 		colcon test-result --test-result-base "build/$${package}" \
 			--verbose || exit 1; \
 	done
+
+test-grasp-pregrasp: build-grasp-pregrasp
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source install/setup.bash && \
+	export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && \
+	python3 -m pytest -q \
+		src/cleany_interfaces/test/test_interface_contract.py && \
+	python3 -m pytest -q src/cleany_perception/test && \
+	python3 -m pytest -q src/cleany_grasping/test && \
+	python3 -m pytest -q $(GRASP_PREGRASP_SKILL_TESTS) && \
+	python3 -m pytest -q $(GRASP_PREGRASP_MOVEIT_TESTS) && \
+	python3 -m pytest -q $(GRASP_PREGRASP_MUJOCO_TESTS) && \
+	python3 -m pytest -q $(GRASP_PREGRASP_DESCRIPTION_TESTS)
+
+test-grasp-pregrasp-runtime: build-grasp-pregrasp
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source install/setup.bash && \
+	export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && \
+	python3 -m pytest -q -s \
+		src/cleany_skill_executor/test/test_nearest_pregrasp_runtime.py
 
 test-gazebo: build-gazebo
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \

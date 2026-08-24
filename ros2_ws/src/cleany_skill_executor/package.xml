@@ -3,7 +3,7 @@
 <package format="3">
   <name>cleany_skill_executor</name>
   <version>0.1.0</version>
-  <description>Reachable grasp selection and simulation execution demo.</description>
+  <description>Reachable grasp selection and nearest pre-grasp execution.</description>
   <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_python</buildtool_depend>
@@ -24,9 +24,11 @@
   <exec_depend>cleany_moveit_config</exec_depend>
   <exec_depend>cleany_mujoco_sim</exec_depend>
   <exec_depend>cleany_grasping</exec_depend>
+  <exec_depend>cleany_perception</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-pil</exec_depend>
   <exec_depend>rqt_image_view</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
   <test_depend>python3-pytest</test_depend>
   <export><build_type>ament_python</build_type></export>
 </package>

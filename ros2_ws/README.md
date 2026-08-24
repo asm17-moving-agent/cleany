@@ -31,8 +31,17 @@ make test
 make test-mission
 make test-mujoco
 make test-handeye
+make test-grasp-pregrasp
+make test-grasp-pregrasp-runtime
 make test-gazebo
 ```
+
+RGB-D perception부터 grasp 후보 생성과 MoveIt pre-grasp까지 변경할 때는
+`make test-grasp-pregrasp`로 관련 unit/contract 테스트만 실행한다. 전체 MuJoCo,
+주행과 hand-eye calibration 테스트는 포함하지 않는다. 실제 MuJoCo controller 실행은
+시간이 더 걸리는 `make test-grasp-pregrasp-runtime`으로 별도 확인한다. runtime은
+가장 가까운 객체 실패 후 다음 객체 fallback과 pre-grasp 정지를 검증한다. RGB-D 캔
+GUI 데모는 OpenGL viewer가 필요하므로 자동 runtime target에 포함하지 않는다.
 
 Hand-eye 패키지 경계만 빌드하려면 `make build-handeye`를 사용한다.
 `make test-handeye`는 description, MuJoCo backend, MoveIt config와 calibration

@@ -4,7 +4,9 @@
 
 점수순 grasp 후보를 양팔 MoveIt plan-only 검증으로 평가한다. 운영 action은 실제
 trajectory와 gripper 명령을 실행하지 않는다. 별도 시뮬레이션 데모에서만 선택 결과를
-MuJoCo arm controller로 실행할 수 있다.
+MuJoCo arm controller로 실행할 수 있다. `nearest_pregrasp_coordinator`는 perception이
+제공한 거리 유효 객체를 가까운 순서로 시도해 첫 reachable grasp의 pre-grasp까지만
+실제 controller로 실행하는 초기 운영 coordinator다.
 
 ## Reachable grasp action
 
@@ -34,6 +36,75 @@ pytest -q ros2_ws/src/cleany_skill_executor/test
 planning frame, timeout, planning attempt/scaling, 최대 후보 수는
 `config/grasp_selection.yaml`의 ROS parameter로 설정한다. timeout/cancel은 각 IK,
 state-validity와 planning 단계 전후에 확인한다.
+
+## 가까운 객체 자동 pre-grasp
+
+`nearest_pregrasp_coordinator`는 다음 순서로 한 번의 작업을 수행한다.
+
+```text
+InspectScene 1차 detection
+→ distance_valid 후보를 base_link 거리순 정렬
+→ selected-object inspection
+→ PlanGrasp
+→ SelectReachableGrasp
+→ target OBB를 충돌물로 유지하며 pre-grasp 실행
+```
+
+양쪽 gripper는 object evaluation 전에 open한다. 따라서 MoveIt 후보 검증과 실제 실행이
+동일한 gripper joint state 및 collision geometry를 사용한다.
+
+가장 가까운 객체가 segmentation, grasp 생성 또는 양팔 도달성 검사에서 실패하면 다음
+가까운 객체로 fallback한다. depth가 불충분해 `distance_valid=false`인 detection은
+자동 조작에서 제외한다. infrastructure, MoveIt 또는 controller 실패는 다른 객체로
+넘기지 않고 전체 작업을 실패시킨다.
+
+RGB-D camera, `perception/inspect_scene`, `grasp/plan`,
+`grasp/select_reachable`, MoveGroup과 arm/gripper controller를 먼저 실행한 뒤 coordinator를
+시작한다.
+
+```bash
+ros2 launch cleany_skill_executor nearest_pregrasp.launch.py
+```
+
+query, timeout, 속도/가속도 scaling과 gripper open 위치는
+`config/nearest_pregrasp.yaml`에서 설정한다. 현재 pre-grasp joint target은 운영 selector의
+0.08 m position-only IK 결과를 사용한다. 5축 팔의 접근 방향을 보장하는 aim-tip 보정은
+아직 can GUI 데모에만 있으며 coordinator 일반화 전까지 실제 로봇 실행 기준으로
+간주하지 않는다. 성공한 target OBB는 완료 자세에서 Planning Scene에 유지하며,
+실패하거나 coordinator가 종료될 때 기존 ACM과 함께 복원한다.
+
+가까운 객체 선택을 실제 MuJoCo RGB-D 입력부터 확인하는 GUI 데모는 다음과 같이 실행한다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_skill_executor nearest_rgbd_pregrasp_demo.launch.py
+```
+
+MuJoCo가 렌더링한 빨간 can과 파란 box의 실제 RGB 픽셀로 bbox/mask를 만들고, depth와
+CameraInfo를 역투영한 뒤 capture-time TF로 `base_link` 거리를 계산한다. 유효 거리순으로
+첫 객체를 선택해 geometric grasp, 양팔 MoveIt 검증 및 실제 controller pre-grasp 실행까지
+이어진다. MuJoCo, RViz와 `/perception/debug_image_latched` Image View가 기본으로 열린다.
+색상 detector/segmenter는 이 결정적 simulation 회귀 데모만을 위한 adapter이며 물체 pose나
+가상 point cloud를 사용하지 않는다.
+
+Gemini detection부터 SAM2 segmentation 및 pre-grasp 실행까지 확인하려면 키를 현재
+shell의 환경변수로만 주입하고 다음처럼 실행한다. 키를 저장소 파일이나 launch 인자에
+기록하지 않는다.
+
+```bash
+export GEMINI_API_KEY="<your-api-key>"
+ros2 launch cleany_skill_executor nearest_rgbd_pregrasp_demo.launch.py \
+  detector_type:=gemini segmenter_type:=sam2 \
+  gemini_model:=gemini-robotics-er-2-preview \
+  sam2_model_config:=configs/sam2.1/sam2.1_hiera_t.yaml \
+  sam2_checkpoint:=/home/ubuntu/models/sam2/sam2.1_t.pt \
+  sam2_device:=cpu
+```
+
+Gemini는 렌더 RGB에서 bbox와 label만 반환한다. 이후 mask는 SAM2, 거리와 3D geometry는
+MuJoCo depth·CameraInfo·capture-time TF에서 계산하며, 이동은 동일한 MoveIt 및
+`mujoco_ros2_control` 경로를 사용한다.
 
 ## MuJoCo 육안 확인 데모
 

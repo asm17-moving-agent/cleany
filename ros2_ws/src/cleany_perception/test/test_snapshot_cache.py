@@ -8,6 +8,7 @@ def _cached_scene(synthetic_scene):
     return CachedDetectionSnapshot(
         snapshot=synthetic_scene['snapshot'],
         detections=(synthetic_scene['detection'],),
+        detection_distances_m=(0.2,),
         capture_transform=synthetic_scene['transform'],
         color_frame='rgb_optical_frame',
     )

@@ -9,6 +9,9 @@ contract로 노출하지 않는다. 커스텀 메시지뿐 아니라 표준 ROS 
 
 `DetectedObject2D`와 `DetectedObject2DArray`는 Gemini detector가 반환한 RGB pixel
 bounding box, snapshot-local 번호와 후속 선택 요청에 사용할 `snapshot_id`를 표현한다.
+각 detection은 촬영 시점 depth와 TF로 계산한 configured target-frame 원점 기준
+`distance_m`과 유효 여부를 포함한다. 유효한 후보는 거리, confidence, detector 원본
+순서로 정렬되며 depth가 불충분한 후보는 자동 조작 대상으로 선택하지 않는다.
 `DetectedObject3D`와 `DetectedObject3DArray`는 선택 객체의 OBB와 동일 snapshot 문맥을
 표현한다.
 
@@ -28,6 +31,8 @@ trajectory는 현재 RobotState에 종속되므로 result에 포함하지 않는
 
 팔 선택, IK, robot collision과 trajectory 계획은 `SelectReachableGrasp` 경계이며,
 gripper 명령과 실제 trajectory 실행은 별도 Skill Executor coordinator가 담당한다.
+초기 `nearest_pregrasp_coordinator`는 `DetectedObject2D.distance_valid`와 `distance_m`을
+사용해 가까운 객체부터 시도한다.
 
 ## Contracts
 

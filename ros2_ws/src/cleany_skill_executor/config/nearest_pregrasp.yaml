@@ -1,0 +1,17 @@
+nearest_pregrasp_coordinator:
+  ros__parameters:
+    inspection_action: /perception/inspect_scene
+    grasp_service: /grasp/plan
+    selection_action: /grasp/select_reachable
+    move_group_action: /move_action
+    query: Detect the box and can on the table.
+    startup_timeout_sec: 60.0
+    inspection_timeout_sec: 60.0
+    grasp_timeout_sec: 30.0
+    selection_timeout_sec: 120.0
+    planning_timeout_sec: 5.0
+    planning_attempts: 3
+    velocity_scaling: 0.1
+    acceleration_scaling: 0.1
+    gripper_open_position_rad: 1.2
+    gripper_motion_sec: 2.0

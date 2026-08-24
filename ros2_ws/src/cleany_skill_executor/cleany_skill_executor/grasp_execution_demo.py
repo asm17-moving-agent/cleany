@@ -217,7 +217,9 @@ class GraspExecutionDemo(Node):
         request.goal_constraints = [constraints]
         goal.planning_options.plan_only = False
         goal.planning_options.look_around = False
-        goal.planning_options.replan = False
+        goal.planning_options.replan = True
+        goal.planning_options.replan_attempts = 3
+        goal.planning_options.replan_delay = 0.1
         goal.planning_options.planning_scene_diff.is_diff = True
         goal.planning_options.planning_scene_diff.robot_state.is_diff = True
 

@@ -4,6 +4,7 @@ import threading
 import time
 from dataclasses import replace
 
+import pytest
 import rclpy
 from action_msgs.msg import GoalStatus
 from cleany_interfaces.action import InspectScene
@@ -267,6 +268,12 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert [
             item.object_id for item in result.detections.detections
         ] == [1, 2]
+        assert all(
+            item.distance_valid for item in result.detections.detections
+        )
+        assert result.detections.detections[0].distance_m == pytest.approx(
+            result.detections.detections[1].distance_m
+        )
         assert result.detections.detections[1].x_min == 135.0
         assert _wait_until(lambda: bool(detection_arrays))
         assert not objects
@@ -300,6 +307,9 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         cached = node._snapshot_cache.get(result.detections.snapshot_id)
         assert cached is not None
         assert [item.label for item in cached.detections] == ['can', 'box']
+        assert cached.detection_distances_m[0] == pytest.approx(
+            cached.detection_distances_m[1]
+        )
         assert cached.capture_transform is synthetic_scene['transform']
 
         invalid_goal = InspectScene.Goal()

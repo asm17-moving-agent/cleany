@@ -5,6 +5,7 @@ import time
 from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
+import math
 
 from cleany_perception.core.models import (
     Detection2D,
@@ -17,8 +18,21 @@ from cleany_perception.core.models import (
 class CachedDetectionSnapshot:
     snapshot: RgbdSnapshot
     detections: tuple[Detection2D, ...]
+    detection_distances_m: tuple[float | None, ...]
     capture_transform: RigidTransform
     color_frame: str
+
+    def __post_init__(self) -> None:
+        if len(self.detections) != len(self.detection_distances_m):
+            raise ValueError('Detection distances must match detections')
+        if any(
+            distance is not None
+            and (not math.isfinite(distance) or distance < 0.0)
+            for distance in self.detection_distances_m
+        ):
+            raise ValueError(
+                'Detection distances must be finite and non-negative'
+            )
 
 
 class DetectionSnapshotCache:

@@ -25,6 +25,8 @@ def test_detected_object_2d_defaults() -> None:
 
     assert detected.object_id == 0
     assert detected.label == ''
+    assert not detected.distance_valid
+    assert detected.distance_m == 0.0
     assert detected.x_min == 0.0
     assert detected_array.snapshot_id == ''
     assert detected_array.detections == []

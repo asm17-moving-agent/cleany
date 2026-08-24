@@ -36,6 +36,10 @@ from sensor_msgs.msg import CameraInfo, Image
 
 from cleany_perception.adapters.gemini_detector import GeminiDetector
 from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
+from cleany_perception.adapters.simulation_color import (
+    SimulationColorDetector,
+    SimulationColorSegmenter,
+)
 from cleany_perception.adapters.tf2_transform import Tf2TransformAdapter
 from cleany_perception.core.geometry import quaternion_xyzw_from_rotation
 from cleany_perception.core.point_cloud import (
@@ -51,6 +55,10 @@ from cleany_perception.core.models import (
     PipelineConfig,
     RgbdSnapshot,
     RigidTransform,
+)
+from cleany_perception.core.object_ranking import (
+    ObjectRankingConfig,
+    rank_detections_by_distance,
 )
 from cleany_perception.core.pipeline import InspectionPipeline
 from cleany_perception.core.ports import (
@@ -135,26 +143,46 @@ class InspectionNode(Node):
         target_frame = str(self.get_parameter('target_frame').value)
         self._target_frame = target_frame
 
+        detector_type = str(self.get_parameter('detector_type').value)
+        segmenter_type = str(self.get_parameter('segmenter_type').value)
         if detector is None:
-            detector = GeminiDetector(
-                model=str(self.get_parameter('gemini_model').value),
-                api_key_environment=str(
-                    self.get_parameter('gemini_api_key_environment').value
-                ),
-                timeout_seconds=float(
-                    self.get_parameter('detector_timeout_seconds').value
-                ),
-            )
+            if detector_type == 'gemini':
+                detector = GeminiDetector(
+                    model=str(self.get_parameter('gemini_model').value),
+                    api_key_environment=str(
+                        self.get_parameter('gemini_api_key_environment').value
+                    ),
+                    timeout_seconds=float(
+                        self.get_parameter('detector_timeout_seconds').value
+                    ),
+                )
+            elif detector_type == 'simulation_color':
+                detector = SimulationColorDetector(
+                    minimum_pixels=int(
+                        self.get_parameter(
+                            'simulation_color_minimum_pixels'
+                        ).value
+                    )
+                )
+            else:
+                raise ValueError(f'Unsupported detector_type: {detector_type}')
         if segmenter is None:
-            segmenter = Sam2Segmenter(
-                model_config=str(
-                    self.get_parameter('sam2_model_config').value
-                ),
-                checkpoint_path=str(
-                    self.get_parameter('sam2_checkpoint').value
-                ),
-                device=str(self.get_parameter('sam2_device').value),
-            )
+            if segmenter_type == 'sam2':
+                segmenter = Sam2Segmenter(
+                    model_config=str(
+                        self.get_parameter('sam2_model_config').value
+                    ),
+                    checkpoint_path=str(
+                        self.get_parameter('sam2_checkpoint').value
+                    ),
+                    device=str(self.get_parameter('sam2_device').value),
+                )
+            elif segmenter_type == 'simulation_color':
+                segmenter = SimulationColorSegmenter()
+            else:
+                raise ValueError(
+                    f'Unsupported segmenter_type: {segmenter_type}'
+                )
         if transformer is None:
             transformer = Tf2TransformAdapter(
                 self,
@@ -172,6 +200,22 @@ class InspectionNode(Node):
             transformer=transformer,
             target_frame=target_frame,
             config=self._pipeline_config(),
+        )
+        self._object_ranking_config = ObjectRankingConfig(
+            central_bbox_fraction=float(
+                self.get_parameter(
+                    'nearest_object_central_bbox_fraction'
+                ).value
+            ),
+            minimum_valid_depth_pixels=int(
+                self.get_parameter('nearest_object_minimum_depth_pixels').value
+            ),
+            minimum_depth_m=float(
+                self.get_parameter('minimum_depth_m').value
+            ),
+            maximum_depth_m=float(
+                self.get_parameter('maximum_depth_m').value
+            ),
         )
         self._snapshot_cache = DetectionSnapshotCache(
             maximum_entries=int(
@@ -249,6 +293,9 @@ class InspectionNode(Node):
             'default_query',
             'Detect the box and can on the table.',
         )
+        self.declare_parameter('detector_type', 'gemini')
+        self.declare_parameter('segmenter_type', 'sam2')
+        self.declare_parameter('simulation_color_minimum_pixels', 100)
         self.declare_parameter('snapshot_timeout_seconds', 2.0)
         self.declare_parameter('depth_16u_scale_m', 0.001)
         self.declare_parameter('snapshot_cache_max_entries', 2)
@@ -268,6 +315,8 @@ class InspectionNode(Node):
         self.declare_parameter('maximum_detections', 10)
         self.declare_parameter('minimum_depth_m', 0.1)
         self.declare_parameter('maximum_depth_m', 3.0)
+        self.declare_parameter('nearest_object_central_bbox_fraction', 0.5)
+        self.declare_parameter('nearest_object_minimum_depth_pixels', 20)
         self.declare_parameter('support_margin_pixels', 40)
         self.declare_parameter('support_sample_stride', 4)
         self.declare_parameter('plane_ransac_iterations', 200)
@@ -417,6 +466,16 @@ class InspectionNode(Node):
                 ),
                 cancelled=lambda: goal_handle.is_cancel_requested,
             )
+            ranked_detections = rank_detections_by_distance(
+                snapshot,
+                detections,
+                capture_transform,
+                self._object_ranking_config,
+            )
+            detections = tuple(item.detection for item in ranked_detections)
+            detection_distances_m = tuple(
+                item.distance_m for item in ranked_detections
+            )
             self._feedback(
                 goal_handle,
                 InspectionStage.DETECTING,
@@ -433,6 +492,7 @@ class InspectionNode(Node):
                 CachedDetectionSnapshot(
                     snapshot=snapshot,
                     detections=detections,
+                    detection_distances_m=detection_distances_m,
                     capture_transform=capture_transform,
                     color_frame=messages.color.header.frame_id,
                 ),
@@ -442,11 +502,13 @@ class InspectionNode(Node):
                 snapshot.stamp_ns,
                 messages.color.header.frame_id,
                 snapshot_id,
+                detection_distances_m,
             )
             result.success = True
             result.error_code = InspectScene.Result.ERROR_NONE
             result.message = (
-                f'Detected {len(detections)} objects; select an object_id '
+                f'Detected {len(detections)} objects ordered by nearest '
+                'target-frame distance; select a distance-valid object_id '
                 'for selected-object inspection'
             )
             result.detections = detections_message
@@ -529,6 +591,7 @@ class InspectionNode(Node):
             cached.snapshot.stamp_ns,
             cached.color_frame,
             snapshot_id,
+            cached.detection_distances_m,
         )
         objects_message = self._objects_message(
             output,
@@ -696,16 +759,24 @@ class InspectionNode(Node):
         stamp_ns: int,
         frame_id: str,
         snapshot_id: str,
+        detection_distances_m: Sequence[float | None],
     ) -> DetectedObject2DArray:
+        if len(detections) != len(detection_distances_m):
+            raise ValueError('Detection distances must match detections')
         message = DetectedObject2DArray()
         message.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
         message.header.frame_id = frame_id
         message.snapshot_id = snapshot_id
-        for object_id, detection in enumerate(detections, start=1):
+        for object_id, (detection, distance_m) in enumerate(
+            zip(detections, detection_distances_m, strict=True),
+            start=1,
+        ):
             detected = DetectedObject2D()
             detected.object_id = object_id
             detected.label = detection.label
             detected.confidence = detection.confidence
+            detected.distance_valid = distance_m is not None
+            detected.distance_m = 0.0 if distance_m is None else distance_m
             detected.x_min = detection.bbox.x_min
             detected.y_min = detection.bbox.y_min
             detected.x_max = detection.bbox.x_max
