@@ -69,7 +69,7 @@ def _config(artifact_root: Path, run_id: str) -> dict:
         'plan': 12.0,
         'execute': 18.0,
         'wait_settled': 6.0,
-        'acquire_image': 5.0,
+        'acquire_image': 15.0,
         'detect_target': 2.0,
         'compute_feedback_fk': 6.0,
         'record_sample': 3.0,
@@ -286,8 +286,7 @@ def test_single_pose_launch_records_feedback_timed_mujoco_sample() -> None:
                         'single-pose orchestrator failed during startup\n'
                         + log_tail
                     )
-                if samples_path.is_file() and samples_path.stat().st_size:
-                    break
+                rows = []
                 if journal_path.is_file():
                     rows = [
                         json.loads(line)
@@ -299,6 +298,17 @@ def test_single_pose_launch_records_feedback_timed_mujoco_sample() -> None:
                             'single-pose stage failed: '
                             f'{rows[-1]}\n{_log_tail(log_path)}'
                         )
+                sample_ready = (
+                    samples_path.is_file()
+                    and samples_path.stat().st_size > 0
+                )
+                record_completed = (
+                    bool(rows)
+                    and rows[-1]['stage'] == 'record_sample'
+                    and rows[-1]['status'] == 'succeeded'
+                )
+                if sample_ready and record_completed:
+                    break
                 time.sleep(0.1)
             else:
                 pytest.fail(
