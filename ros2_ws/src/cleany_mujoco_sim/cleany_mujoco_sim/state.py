@@ -10,7 +10,10 @@ from nav_msgs.msg import Odometry
 from rclpy.time import Time
 from sensor_msgs.msg import JointState, LaserScan
 
-_SCALAR_JOINT_TYPES = (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE)
+_SCALAR_JOINT_TYPES = {
+    int(mujoco.mjtJoint.mjJNT_HINGE),
+    int(mujoco.mjtJoint.mjJNT_SLIDE),
+}
 
 
 @lru_cache(maxsize=None)
@@ -27,7 +30,7 @@ def actuated_joint_ids(model: mujoco.MjModel) -> list[int]:
         if (
             joint_id < 0
             or joint_id in seen
-            or model.jnt_type[joint_id] not in _SCALAR_JOINT_TYPES
+            or int(model.jnt_type[joint_id]) not in _SCALAR_JOINT_TYPES
         ):
             continue
         seen.add(joint_id)
