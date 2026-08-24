@@ -17,6 +17,7 @@ if os.environ.get('ROS_DISTRO') is None:
 
 from action_msgs.msg import GoalStatus
 from control_msgs.action import FollowJointTrajectory
+from controller_manager_msgs.msg import ControllerState
 from controller_manager_msgs.srv import ListControllers
 import rclpy
 from rclpy.action import ActionClient
@@ -165,6 +166,43 @@ def _future_result(
     result = future.result()
     assert result is not None
     return result
+
+
+def _wait_for_active_arm_controllers(
+    probe: BackendProbe,
+    *,
+    process: subprocess.Popen[bytes],
+    log_path: Path,
+) -> dict[str, ControllerState]:
+    expected_names = {
+        f'{side}_arm_controller' for side in ('left', 'right')
+    }
+    deadline = time.monotonic() + 20.0
+    last_states: dict[str, str] = {}
+    while time.monotonic() < deadline:
+        response = _future_result(
+            probe.list_controllers.call_async(ListControllers.Request()),
+            timeout_sec=5.0,
+            node=probe,
+            process=process,
+            log_path=log_path,
+            description='controller activation inspection',
+        )
+        controllers_by_name = {
+            controller.name: controller for controller in response.controller
+        }
+        last_states = {
+            name: controllers_by_name[name].state
+            for name in expected_names
+            if name in controllers_by_name
+        }
+        if last_states == {name: 'active' for name in expected_names}:
+            return controllers_by_name
+        rclpy.spin_once(probe, timeout_sec=0.1)
+    pytest.fail(
+        'timed out waiting for active arm controllers; '
+        f'last states: {last_states}'
+    )
 
 
 def _execute_trajectory(
@@ -334,23 +372,13 @@ def test_raw_per_arm_trajectories_and_joint_state_feedback() -> None:
                     log_path=log_path,
                     description='/controller_manager/list_controllers',
                 )
-                controllers = _future_result(
-                    probe.list_controllers.call_async(
-                        ListControllers.Request()
-                    ),
-                    timeout_sec=10.0,
-                    node=probe,
+                controllers_by_name = _wait_for_active_arm_controllers(
+                    probe,
                     process=process,
                     log_path=log_path,
-                    description='controller claim inspection',
                 )
-                controllers_by_name = {
-                    controller.name: controller
-                    for controller in controllers.controller
-                }
                 for side in ('left', 'right'):
                     controller = controllers_by_name[f'{side}_arm_controller']
-                    assert controller.state == 'active'
                     assert set(controller.claimed_interfaces) == {
                         f'{joint_name}/position'
                         for joint_name in ARM_JOINTS[side]

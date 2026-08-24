@@ -25,6 +25,7 @@ jobs:
       image: ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4
     env:
       DEBIAN_FRONTEND: noninteractive
+      LIBGL_ALWAYS_SOFTWARE: "1"
       ROS_DOMAIN_ID: "42"
       ROS_HOME: /tmp/cleany-ros
     defaults:
@@ -46,6 +47,7 @@ jobs:
           set -euo pipefail
           apt-get update
           apt-get install -y --no-install-recommends \
+            libgl1-mesa-dri \
             python3-pip \
             xauth \
             xvfb
@@ -83,4 +85,4 @@ jobs:
         run: make check-gazebo-env
 
       - name: Build and test workspace
-        run: xvfb-run -a -s "-screen 0 1280x1024x24" make test
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test

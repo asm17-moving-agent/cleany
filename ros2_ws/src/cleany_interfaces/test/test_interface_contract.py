@@ -1,4 +1,4 @@
-from cleany_interfaces.action import SelectReachableGrasp
+from cleany_interfaces.action import InspectScene, SelectReachableGrasp
 from cleany_interfaces.msg import (
     DetectedObject3D,
     DetectedObject3DArray,
@@ -23,6 +23,40 @@ def test_detected_object_array_carries_snapshot_context() -> None:
     assert detected_array.header.frame_id == ''
     assert detected_array.snapshot_id == ''
     assert detected_array.objects == []
+
+
+def test_inspect_scene_contract_constants_and_payloads() -> None:
+    goal = InspectScene.Goal()
+    result = InspectScene.Result()
+    feedback = InspectScene.Feedback()
+
+    assert goal.query == ''
+    assert {
+        'none': result.ERROR_NONE,
+        'rgbd_timeout': result.ERROR_RGBD_TIMEOUT,
+        'detector_api': result.ERROR_DETECTOR_API,
+        'detector_response': result.ERROR_DETECTOR_RESPONSE,
+        'mask': result.ERROR_MASK,
+        'depth': result.ERROR_DEPTH,
+        'plane': result.ERROR_PLANE,
+        'tf': result.ERROR_TF,
+        'cancelled': result.ERROR_CANCELLED,
+        'internal': result.ERROR_INTERNAL,
+    } == {
+        'none': 0,
+        'rgbd_timeout': 1,
+        'detector_api': 2,
+        'detector_response': 3,
+        'mask': 4,
+        'depth': 5,
+        'plane': 6,
+        'tf': 7,
+        'cancelled': 8,
+        'internal': 255,
+    }
+    assert isinstance(result.objects, DetectedObject3DArray)
+    assert feedback.STAGE_WAITING_FOR_RGBD == 0
+    assert feedback.STAGE_TRANSFORMING == 4
 
 
 def test_plan_grasp_contract_constants_and_payloads() -> None:

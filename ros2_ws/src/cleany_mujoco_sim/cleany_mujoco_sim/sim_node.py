@@ -20,7 +20,10 @@ from cleany_mujoco_sim.base_command import (
     bounded_command,
     stopped_command,
 )
-from cleany_mujoco_sim.extensions import MujocoSimulationContext, StepObserver
+from cleany_mujoco_sim.extensions import (
+    MujocoSimulationContext,
+    StepObserver,
+)
 from cleany_mujoco_sim.mecanum_kinematics import (
     MecanumGeometry,
     WheelSpeedLimit,
@@ -32,6 +35,7 @@ from cleany_mujoco_sim.mujoco_drive import MujocoMecanumDrive
 from cleany_mujoco_sim.scene_loader import default_scene_path, load_model
 from cleany_mujoco_sim.state import (
     apply_joint_cmd,
+    initialize_joint_positions,
     joint_state_msg,
     laser_scan_msg,
     odometry_msg,
@@ -321,6 +325,13 @@ class MujocoSimNode(Node):
         self._last_cmd_vel_time = None
         if self._mujoco_drive is not None:
             self._mujoco_drive.reset()
+
+    @property
+    def simulation_context(self) -> MujocoSimulationContext:
+        return self._simulation_context
+
+    def add_step_observer(self, observer: StepObserver) -> None:
+        self._step_observers.append(observer)
 
     def _on_timer(self) -> None:
         for _ in range(self._steps_per_tick):
