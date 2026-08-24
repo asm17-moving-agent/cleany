@@ -40,6 +40,7 @@ from cleany_mujoco_sim.state import (
     laser_scan_msg,
     odometry_msg,
     scan_sample_count,
+    initialize_joint_positions,
     static_site_transform_msg,
     steps_per_tick,
     transform_msg,
@@ -53,6 +54,7 @@ from cleany_mujoco_sim.wheel_speed_controller import (
 class MujocoSimNode(Node):
     def __init__(
         self,
+        *,
         step_observers: Iterable[StepObserver] | None = None,
         **kwargs,
     ) -> None:
@@ -73,6 +75,8 @@ class MujocoSimNode(Node):
         self.declare_parameter('scan_samples', 0)
         self.declare_parameter('scan_range_min', 0.15)
         self.declare_parameter('scan_range_max', 12.0)
+        self.declare_parameter('initial_joint_names', Parameter.Type.STRING_ARRAY)
+        self.declare_parameter('initial_joint_positions', Parameter.Type.DOUBLE_ARRAY)
         self.declare_parameter('max_linear_x', 0.3)
         self.declare_parameter('max_linear_y', 0.3)
         self.declare_parameter('max_angular_z', 0.8)
@@ -88,12 +92,6 @@ class MujocoSimNode(Node):
         self.declare_parameter('wheel_kd', 0.0)
         self.declare_parameter('motor_voltage_limit', 10.8)
         self.declare_parameter('motor_no_load_speed', 10.815)
-        self.declare_parameter(
-            'initial_joint_names', Parameter.Type.STRING_ARRAY
-        )
-        self.declare_parameter(
-            'initial_joint_positions', Parameter.Type.DOUBLE_ARRAY
-        )
 
         scene_path_value = self.get_parameter('scene_path').get_parameter_value().string_value
         scene_path = Path(scene_path_value) if scene_path_value else default_scene_path()
@@ -115,6 +113,18 @@ class MujocoSimNode(Node):
         )
         self._scan_range_min = self.get_parameter('scan_range_min').get_parameter_value().double_value
         self._scan_range_max = self.get_parameter('scan_range_max').get_parameter_value().double_value
+        initial_joint_names = list(
+            self.get_parameter_or(
+                'initial_joint_names',
+                Parameter('initial_joint_names', Parameter.Type.STRING_ARRAY, []),
+            ).get_parameter_value().string_array_value
+        )
+        initial_joint_positions = list(
+            self.get_parameter_or(
+                'initial_joint_positions',
+                Parameter('initial_joint_positions', Parameter.Type.DOUBLE_ARRAY, []),
+            ).get_parameter_value().double_array_value
+        )
         self._command_limits = CommandLimits(
             max_linear_x=float(self.get_parameter('max_linear_x').value),
             max_linear_y=float(self.get_parameter('max_linear_y').value),
@@ -145,30 +155,6 @@ class MujocoSimNode(Node):
             ),
             voltage_limit=float(self.get_parameter('motor_voltage_limit').value),
             no_load_speed=float(self.get_parameter('motor_no_load_speed').value),
-        )
-        initial_joint_names = list(
-            self.get_parameter_or(
-                'initial_joint_names',
-                Parameter(
-                    'initial_joint_names',
-                    Parameter.Type.STRING_ARRAY,
-                    [],
-                ),
-            )
-            .get_parameter_value()
-            .string_array_value
-        )
-        initial_joint_positions = list(
-            self.get_parameter_or(
-                'initial_joint_positions',
-                Parameter(
-                    'initial_joint_positions',
-                    Parameter.Type.DOUBLE_ARRAY,
-                    [],
-                ),
-            )
-            .get_parameter_value()
-            .double_array_value
         )
 
         if publish_rate_hz <= 0:
@@ -266,6 +252,13 @@ class MujocoSimNode(Node):
 
     def _on_joint_cmd(self, msg: JointState) -> None:
         apply_joint_cmd(self._model, self._data, msg)
+
+    @property
+    def simulation_context(self) -> MujocoSimulationContext:
+        return self._simulation_context
+
+    def add_step_observer(self, observer: StepObserver) -> None:
+        self._step_observers.append(observer)
 
     def _on_cmd_vel(self, msg: Twist) -> None:
         all_axes = (

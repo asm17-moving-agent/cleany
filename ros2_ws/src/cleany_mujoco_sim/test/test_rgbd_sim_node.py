@@ -18,7 +18,7 @@ def _make_node(scene_path) -> MujocoRgbdSimNode:
         'headless': True,
         'scan_enabled': False,
         'initial_joint_names': ['head_tilt_joint'],
-        'initial_joint_positions': [1.0],
+        'initial_joint_positions': [0.8],
         'rgbd_rate_hz': 5.0,
         'ground_truth_geom_names': ['pick_box_geom', 'pick_can_geom'],
         'ground_truth_labels': ['box', 'can'],

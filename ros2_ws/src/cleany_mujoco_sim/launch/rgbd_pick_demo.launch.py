@@ -26,7 +26,7 @@ def generate_launch_description() -> LaunchDescription:
                 'headless': headless,
                 'scan_enabled': False,
                 'initial_joint_names': ['head_tilt_joint'],
-                'initial_joint_positions': [1.0],
+                'initial_joint_positions': [0.8],
                 'rgbd_rate_hz': rgbd_rate_hz,
                 'ground_truth_geom_names': [
                     'pick_box_geom',

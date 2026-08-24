@@ -57,6 +57,16 @@ transforms describe the current simulation assembly; they are not a measured
 RealSense calibration. A real deployment must validate or replace them with
 its calibration profile while preserving the public frame contract.
 
+The nominal head RGB-D optical frames in the plugin-free description support
+the perception demo. The arm-control entrypoint omits that head tree so its
+current-state contract remains exactly ten arm plus two gripper joints.
+Hand-eye evaluation uses its separately governed left-wrist camera profile.
+MoveIt's real-backend launch expands `cleany.urdf.xacro` with
+`include_head_camera:=false`; the regular description launch keeps the default
+`true` so the perception-side `robot_state_publisher` can provide the head
+camera TF tree. Detection results must be transformed into the configured
+planning frame before they are passed to MoveIt.
+
 Each arm exposes `${side}_grasp_tcp` as a fixed frame and MuJoCo site at
 `(0, -0.100, 0) m` in `${side}_gripper_frame`. It is a nominal point near the
 center of the jaw tips for position-only IK. Its orientation inherits the

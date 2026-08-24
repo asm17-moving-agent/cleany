@@ -1,0 +1,88 @@
+<mujoco model="cleany_can_grasp_execution_demo">
+  <include file="@CLEANY_MJCF_PATH@"/>
+
+  <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"
+          noslip_iterations="5">
+    <flag multiccd="enable"/>
+  </option>
+
+  <statistic center="0.52 0 0.70" extent="1.35"/>
+
+  <visual>
+    <quality offsamples="1"/>
+    <headlight diffuse="0.7 0.7 0.7" ambient="0.35 0.35 0.35"
+               specular="0 0 0"/>
+    <rgba haze="0.15 0.20 0.25 1"/>
+    <global azimuth="125" elevation="-22" offwidth="640" offheight="480"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.25 0.35 0.45"
+             rgb2="0.02 0.02 0.02" width="512" height="3072"/>
+    <texture type="2d" name="can_demo_ground" builtin="checker"
+             rgb1="0.12 0.12 0.12" rgb2="0.18 0.18 0.18"
+             width="300" height="300"/>
+    <material name="can_demo_ground" texture="can_demo_ground"
+              texuniform="true" texrepeat="5 5" reflectance="0.05"/>
+    <material name="can_demo_table" rgba="0.55 0.36 0.20 1"
+              specular="0.05" shininess="0.1"/>
+    <material name="can_demo_box" rgba="0.12 0.42 0.92 1"/>
+    <material name="can_demo_obstacle" rgba="0.95 0.72 0.08 1"
+              specular="0.1" shininess="0.2"/>
+    <material name="can_demo_can" rgba="0.92 0.18 0.12 1"
+              specular="0.2" shininess="0.3"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.55 0 1.6" dir="0 0 -1" directional="true"/>
+    <light pos="0.15 -0.7 1.2" dir="0.4 0.7 -1" directional="true"/>
+    <geom name="can_demo_floor" size="0 0 0.05" type="plane"
+          material="can_demo_ground" contype="1" conaffinity="1"/>
+
+    <!-- Fixed RGB-D view matching the head camera at tilt=0.8 rad. -->
+    <camera name="pick_demo_rgbd"
+            pos="0.140938350461 -0.002000000140 1.154117299010"
+            xyaxes="0 -1 0 0.7173560909 0 0.696706709347"
+            fovy="42" resolution="640 480"/>
+
+    <!-- Full-size table; its base_link center is (0.70, -0.002, 0.33). -->
+    <body name="pick_table" pos="0.700 -0.002 0.710">
+      <geom name="pick_tabletop" type="box" size="0.385 0.600 0.015"
+            material="can_demo_table" contype="1" conaffinity="1"/>
+    </body>
+
+    <body name="pick_box" pos="0.560 -0.160 0.765">
+      <geom name="pick_box_geom" type="box" size="0.050 0.040 0.040"
+            material="can_demo_box" contype="0" conaffinity="0"/>
+    </body>
+
+    <!--
+      Yellow post on the tabletop. Its base_link geometry exactly matches
+      can_demo_route_obstacle in pick_demo_collision_objects.yaml. It blocks
+      the nominal joint-interpolated left-arm sweep but leaves an OMPL route
+      around its sides.
+    -->
+    <body name="can_demo_route_obstacle" pos="0.350 0.420 0.850">
+      <geom name="can_demo_route_obstacle_geom" type="box"
+            size="0.050 0.050 0.125" material="can_demo_obstacle"
+            contype="1" conaffinity="1"/>
+    </body>
+
+    <!--
+      The red can is segmented from RGB-D and remains fixed until gripper
+      force closure is implemented. The demo stops at pre-grasp; MuJoCo and
+      MoveIt both keep the can collision enabled.
+      World Z=0.775 corresponds to base_link Z=0.395.
+    -->
+    <body name="pick_can" pos="0.540 0.160 0.775">
+      <geom name="pick_can_geom" type="cylinder" size="0.035 0.050"
+            material="can_demo_can" contype="1" conaffinity="1"
+            friction="1.5 0.1 0.05"/>
+    </body>
+  </worldbody>
+
+  <equality>
+    <weld name="can_demo_chassis_world_weld" body1="chassis"
+          solref="0.002 1"/>
+  </equality>
+</mujoco>

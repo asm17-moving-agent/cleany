@@ -1,11 +1,14 @@
 # cleany_interfaces
 
-Cleany perception snapshot과 위치 기반 grasp planning이 공유하는 ROS 2 interface
-package다. 구현 내부 model이나 provider별 응답을 wire contract로 노출하지 않는다.
+Cleany의 Perception, Grasping, Mission Manager, Skill Executor와 Dashboard
+Bridge가 공유하는 ROS 2 interface package다. 구현 내부 model이나 provider별
+응답을 wire contract로 노출하지 않는다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를
+사용하는 프로젝트 공통 topic 계약도 이곳에 기록한다.
 
-Perception, Mission Manager, Skill Executor, Dashboard Bridge가 공유하는
-인터페이스를 이 패키지에 둔다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를 사용하는
-프로젝트 공통 topic 계약도 이곳에 기록한다.
+`PlanGrasp`는 score 내림차순 `GraspCandidate[] candidates`를 반환한다.
+`SelectReachableGrasp` action은 같은 snapshot/object/frame/OBB 후보를 받아 양팔 IK,
+state validity, 2구간 plan-only 검증 후 선택 index, arm, endpoint joint state를 반환한다.
+trajectory는 현재 RobotState에 종속되므로 result에 포함하지 않는다.
 
 ## Contracts
 
@@ -38,20 +41,17 @@ target-frame 변환까지의 현재 단계를 나타낸다.
 
 ## Grasp planning service
 
-`PlanGrasp` request는 선택한 `DetectedObject3D`와 그 snapshot header를 직접
-전달한다. 따라서 planning server는 perception node의 숨은 object cache에 의존하지
-않는다. `arm_override`는 `ARM_AUTO`, `ARM_LEFT`, `ARM_RIGHT` 중 하나다.
+`PlanGrasp` request는 선택한 객체의 snapshot/object ID, target/context point cloud와
+`DetectedObject3D` OBB를 직접 전달한다. 따라서 planning server는 perception node의
+숨은 object cache에 의존하지 않는다. geometric predictor나 AnyGrasp 같은 내부
+provider가 score 내림차순 `GraspCandidate[]`를 생성한다.
 
-성공 response는 다음 값을 제공한다.
+## Reachable grasp selection action
 
-- `selected_arm`: `ARM_LEFT` 또는 `ARM_RIGHT`
-- `tcp_frame`: FK 검증에 사용한 nominal grasp TCP frame
-- `grasp_point`: request header frame의 상단 중심 파지점
-- `joint_target`: 관절 이름과 위치만 채운 planning 결과
-- `tcp_position_error_m`: joint target을 FK한 TCP 위치 오차
-
-`joint_target`은 robot command가 아니다. 이 service는 trajectory, collision
-avoidance, gripper 자세와 실제 arm 전송을 수행하지 않는다.
+`SelectReachableGrasp`는 `PlanGrasp`가 만든 후보들을 받아 양팔 IK, state validity와
+pregrasp/grasp 2구간 plan-only 검증을 수행한다. 성공 result는 선택한 candidate index,
+arm, candidate와 endpoint joint state를 반환한다. 실제 trajectory는 현재
+`RobotState`에 종속되므로 result에 포함하지 않는다.
 
 ## 빌드와 검사
 
@@ -71,7 +71,9 @@ colcon test-result --verbose
 ```bash
 ros2 interface show cleany_interfaces/msg/DetectedObject3D
 ros2 interface show cleany_interfaces/msg/DetectedObject3DArray
+ros2 interface show cleany_interfaces/msg/GraspCandidate
 ros2 interface show cleany_interfaces/action/InspectScene
+ros2 interface show cleany_interfaces/action/SelectReachableGrasp
 ros2 interface show cleany_interfaces/srv/PlanGrasp
 ```
 

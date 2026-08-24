@@ -1,5 +1,9 @@
-from cleany_interfaces.action import InspectScene
-from cleany_interfaces.msg import DetectedObject3D, DetectedObject3DArray
+from cleany_interfaces.action import InspectScene, SelectReachableGrasp
+from cleany_interfaces.msg import (
+    DetectedObject3D,
+    DetectedObject3DArray,
+    GraspCandidate,
+)
 from cleany_interfaces.srv import PlanGrasp
 
 
@@ -59,26 +63,35 @@ def test_plan_grasp_contract_constants_and_payloads() -> None:
     request = PlanGrasp.Request()
     response = PlanGrasp.Response()
 
-    assert request.ARM_AUTO == 0
-    assert request.ARM_LEFT == 1
-    assert request.ARM_RIGHT == 2
-    assert isinstance(request.object, DetectedObject3D)
+    assert isinstance(request.target_object, DetectedObject3D)
+    assert request.target_cloud.header.frame_id == ''
+    assert request.context_cloud.header.frame_id == ''
     assert {
         'none': response.ERROR_NONE,
         'invalid_request': response.ERROR_INVALID_REQUEST,
-        'invalid_arm_override': response.ERROR_INVALID_ARM_OVERRIDE,
-        'unreachable': response.ERROR_UNREACHABLE,
-        'ik_failed': response.ERROR_IK_FAILED,
-        'fk_validation_failed': response.ERROR_FK_VALIDATION_FAILED,
+        'model_unavailable': response.ERROR_MODEL_UNAVAILABLE,
+        'invalid_input': response.ERROR_INVALID_INPUT,
+        'no_grasp_candidate': response.ERROR_NO_GRASP_CANDIDATE,
         'internal': response.ERROR_INTERNAL,
     } == {
         'none': 0,
         'invalid_request': 1,
-        'invalid_arm_override': 2,
-        'unreachable': 3,
-        'ik_failed': 4,
-        'fk_validation_failed': 5,
+        'model_unavailable': 2,
+        'invalid_input': 3,
+        'no_grasp_candidate': 4,
         'internal': 255,
     }
-    assert response.grasp_point.header.frame_id == ''
-    assert response.joint_target.name == []
+    assert response.candidates == []
+
+
+def test_select_reachable_grasp_contract() -> None:
+    goal = SelectReachableGrasp.Goal()
+    result = SelectReachableGrasp.Result()
+    feedback = SelectReachableGrasp.Feedback()
+
+    assert goal.candidates == []
+    assert result.ERROR_NO_REACHABLE_GRASP == 6
+    assert result.selected_candidate_index == 0
+    assert isinstance(result.selected_candidate, GraspCandidate)
+    assert feedback.STAGE_PREGRASP_IK == 1
+    assert feedback.STAGE_PLAN_GRASP == 5
