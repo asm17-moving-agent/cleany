@@ -5,7 +5,7 @@
   direction: ROS_TO_GZ
 
 - ros_topic_name: "/gazebo_odom"
-  gz_topic_name: "/model/cleany_mecanum/odometry"
+  gz_topic_name: "/model/cleany_mecanum/ground_truth"
   ros_type_name: "nav_msgs/msg/Odometry"
   gz_type_name: "ignition.msgs.Odometry"
   direction: GZ_TO_ROS

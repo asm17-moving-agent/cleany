@@ -60,10 +60,16 @@ publisher가 고정 `base_link -> lidar_link`와 `base_link -> imu_link`를
 구조 test에서 같은 값인지 검사합니다. 현재 sensor mount는 simulation 후보값이며
 hardware description의 확정 mount로 취급하지 않습니다.
 
-`MecanumDrive` odometry는 `/gazebo_odom`을 거쳐 ROS `/odom`과
+Harmonic에서는 `MecanumDrive` odometry가 `/gazebo_odom`을 거쳐 ROS `/odom`과
 `odom -> base_link`를 소유합니다. 별도 `OdometryPublisher`의 simulator ground truth는
 `/ground_truth/odom`으로만 bridge하며 TF를 발행하지 않습니다. 두 source를 같은
 odometry topic에 섞지 않아 RViz와 SLAM의 기준 frame이 교대로 점프하지 않게 합니다.
+
+Stock Fortress의 `MecanumDrive`는 차체를 구동하지만 odometry message를 발행하지
+않습니다. Fortress profile은 `OdometryPublisher`의 plain ground-truth 출력을
+`/gazebo_odom`과 `/ground_truth/odom`에 각각 변환해 동일한 ROS `/odom` 및 TF 계약을
+유지합니다. 두 ROS topic은 같은 simulator pose source를 사용합니다. 이 fallback은
+실제 wheel odometry의 drift나 slip을 모사하지 않습니다.
 
 ## Environment
 

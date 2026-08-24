@@ -265,8 +265,10 @@
         <max_acceleration>2.0</max_acceleration>
       </plugin>
       <!--
-        Publish simulator ground truth on a dedicated topic. MecanumDrive owns
-        the odometry topic used by the ROS odom -> base_link contract.
+        Stock Gazebo Fortress does not publish usable odometry from
+        MecanumDrive. OdometryPublisher therefore owns the simulator
+        ground-truth output used by both the ROS odom -> base_link fallback
+        contract and the evaluation-only ground-truth topic.
       -->
       <plugin filename="ignition-gazebo-odometry-publisher-system" name="ignition::gazebo::systems::OdometryPublisher">
         <odom_frame>odom</odom_frame>

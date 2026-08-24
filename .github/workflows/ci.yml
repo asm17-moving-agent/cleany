@@ -87,3 +87,6 @@ jobs:
 
       - name: Build and test workspace
         run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test
+
+      - name: Test Gazebo navigation runtime
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test-gazebo-nav-runtime

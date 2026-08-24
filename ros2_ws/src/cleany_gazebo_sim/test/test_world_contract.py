@@ -62,6 +62,7 @@ def test_world_has_required_systems_and_robot_contract(profile: str) -> None:
     assert ground_truth.findtext('odom_topic') == (
         '/model/cleany_mecanum/ground_truth'
     )
+    assert ground_truth.find('odom_covariance_topic') is None
 
 
 def test_fortress_and_harmonic_preserve_same_robot_structure() -> None:
