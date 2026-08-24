@@ -10,12 +10,17 @@ geometry, link names, joint names, or hard limits.
 |---|---|---|
 | `left_arm` | `base_link` -> `left_gripper_frame` | `left_arm_controller` |
 | `right_arm` | `base_link` -> `right_gripper_frame` | `right_arm_controller` |
+| `left_grasp_arm` | `base_link` -> `left_grasp_tcp` | plan-only |
+| `right_grasp_arm` | `base_link` -> `right_grasp_tcp` | plan-only |
 
 Each group contains only its five arm joints. Gripper joints and the mobile
 base are not planning-group joints. Both groups use
 `kdl_kinematics_plugin/KDLKinematicsPlugin` with `position_only_ik: true`, so
 the target position and the complete arm seed determine the resolved joint
 configuration; target orientation is not constrained by IK.
+
+Grasp groups share the same five active joints as their corresponding arm
+group and extend the chain only through the fixed `*_grasp_tcp_joint`.
 
 The named states `left_home` and `right_home` set all five corresponding arm
 joints to `0.0 rad`. The SRDF collision matrix disables only direct
@@ -50,6 +55,11 @@ The applier calls `/apply_planning_scene` and exits only after MoveIt accepts
 all three object IDs: `handeye_table`, `handeye_target_stand`, and
 `charuco_target`. The generic `move_group.launch.py` does not inject these
 hand-eye-only objects automatically.
+
+The RGB-D pick demo table is separately defined in
+`config/pick_demo_collision_objects.yaml`, with the same full size and pose as
+`rgbd_pick_demo.xml.in`. Box/can targets are registered dynamically by the
+reachable-grasp action instead of this fixed scene.
 
 ## Launch
 

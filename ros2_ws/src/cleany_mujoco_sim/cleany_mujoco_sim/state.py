@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from functools import lru_cache
 
 import mujoco
@@ -78,6 +79,53 @@ def apply_joint_cmd(
         qposadr = name_to_qposadr.get(name)
         if qposadr is not None:
             data.qpos[qposadr] = position
+
+
+def initialize_joint_positions(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    names: Sequence[str],
+    positions: Sequence[float],
+) -> None:
+    """Set an opt-in initial pose and matching position-actuator targets."""
+    if len(names) != len(positions):
+        raise ValueError(
+            'initial_joint_names and initial_joint_positions must have '
+            'the same length'
+        )
+    if len(set(names)) != len(names):
+        raise ValueError('initial_joint_names must not contain duplicates')
+
+    name_to_joint_id = {
+        mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, joint_id): joint_id
+        for joint_id in actuated_joint_ids(model)
+    }
+    for name, position_value in zip(names, positions):
+        joint_id = name_to_joint_id.get(name)
+        if joint_id is None:
+            raise ValueError(f'Unknown actuated scalar joint: {name}')
+
+        position = float(position_value)
+        if not math.isfinite(position):
+            raise ValueError(f'Initial joint position must be finite: {name}')
+        if model.jnt_limited[joint_id]:
+            lower, upper = model.jnt_range[joint_id]
+            if position < lower or position > upper:
+                raise ValueError(
+                    f'Initial joint position for {name} is outside '
+                    f'[{lower}, {upper}]: {position}'
+                )
+
+        data.qpos[model.jnt_qposadr[joint_id]] = position
+        for actuator_id in range(model.nu):
+            if (
+                model.actuator_trntype[actuator_id]
+                == mujoco.mjtTrn.mjTRN_JOINT
+                and model.actuator_trnid[actuator_id, 0] == joint_id
+                and model.actuator_biastype[actuator_id]
+                == mujoco.mjtBias.mjBIAS_AFFINE
+            ):
+                data.ctrl[actuator_id] = position
 
 
 def ros_quaternion_from_mujoco(wxyz: np.ndarray) -> tuple[float, float, float, float]:

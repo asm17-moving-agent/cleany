@@ -61,6 +61,16 @@ def test_handeye_controllers_claim_disjoint_arm_joints() -> None:
         for name in names
     )
 
+    for side in ('left', 'right'):
+        controller_name = f'{side}_gripper_controller'
+        assert manager[controller_name]['type'] == (
+            'joint_trajectory_controller/JointTrajectoryController'
+        )
+        parameters = config[controller_name]['ros__parameters']
+        assert parameters['joints'] == [f'{side}_gripper_joint']
+        assert parameters['command_interfaces'] == ['position']
+        assert parameters['state_interfaces'] == ['position', 'velocity']
+
 
 def test_handeye_backend_does_not_compose_the_custom_simulator() -> None:
     launch_path = PACKAGE_ROOT / 'launch' / 'handeye_backend.launch.py'

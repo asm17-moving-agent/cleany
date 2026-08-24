@@ -5,3 +5,19 @@ left_arm:
 right_arm:
   kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
   position_only_ik: true
+
+left_grasp_arm:
+  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+  position_only_ik: true
+
+right_grasp_arm:
+  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+  position_only_ik: true
+
+left_pregrasp_aim_arm:
+  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+  position_only_ik: true
+
+right_pregrasp_aim_arm:
+  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+  position_only_ik: true

@@ -77,12 +77,15 @@ def _canonical_chain(side: str, tip_link: str) -> tuple[str, ...]:
     return tuple(joints)
 
 
-def test_srdf_has_two_five_joint_arm_chains() -> None:
+def test_srdf_has_arm_and_grasp_tcp_chains() -> None:
     root = ET.parse(CONFIG_ROOT / 'cleany.srdf').getroot()
     groups = {
         element.attrib['name']: element for element in root.findall('group')
     }
-    assert set(groups) == {'left_arm', 'right_arm'}
+    assert set(groups) == {
+        'left_arm', 'right_arm', 'left_grasp_arm', 'right_grasp_arm',
+        'left_pregrasp_aim_arm', 'right_pregrasp_aim_arm',
+    }
 
     for side in SIDES:
         group = groups[f'{side}_arm']
@@ -96,6 +99,35 @@ def test_srdf_has_two_five_joint_arm_chains() -> None:
         chain = _canonical_chain(side, f'{side}_gripper_frame')
         assert chain == _arm_joints(side)
         assert f'{side}_gripper_joint' not in chain
+        grasp_group = groups[f'{side}_grasp_arm']
+        grasp_chain = list(grasp_group)[0]
+        assert grasp_chain.attrib == {
+            'base_link': 'base_link',
+            'tip_link': f'{side}_grasp_tcp',
+        }
+        assert _canonical_chain(side, f'{side}_grasp_tcp') == (
+            *_arm_joints(side), f'{side}_grasp_tcp_joint'
+        )
+        aim_group = groups[f'{side}_pregrasp_aim_arm']
+        aim_chain = list(aim_group)[0]
+        assert aim_chain.attrib == {
+            'base_link': 'base_link',
+            'tip_link': f'{side}_pregrasp_aim_tip',
+        }
+        assert _canonical_chain(side, f'{side}_pregrasp_aim_tip') == (
+            *_arm_joints(side),
+            f'{side}_grasp_tcp_joint',
+            f'{side}_pregrasp_aim_tip_joint',
+        )
+        aim_joint = next(
+            joint
+            for joint in _canonical_joint_elements()
+            if joint.attrib['name'] == '${side}_pregrasp_aim_tip_joint'
+        )
+        assert aim_joint.find('origin').attrib == {
+            'xyz': '0 -0.140 0',
+            'rpy': '0 0 0',
+        }
 
 
 def test_named_home_states_are_all_zero() -> None:
@@ -152,8 +184,11 @@ def test_self_collision_matrix_only_disables_adjacent_links() -> None:
 
 def test_both_groups_use_position_only_kdl() -> None:
     kinematics = _load_yaml('kinematics.yaml')
-    assert set(kinematics) == {'left_arm', 'right_arm'}
-    for group in ('left_arm', 'right_arm'):
+    assert set(kinematics) == {
+        'left_arm', 'right_arm', 'left_grasp_arm', 'right_grasp_arm',
+        'left_pregrasp_aim_arm', 'right_pregrasp_aim_arm',
+    }
+    for group in kinematics:
         assert kinematics[group] == {
             'kinematics_solver': (
                 'kdl_kinematics_plugin/KDLKinematicsPlugin'
@@ -169,7 +204,9 @@ def test_moveit_joint_limits_match_canonical_urdf() -> None:
     for joint in _canonical_joint_elements():
         template_name = joint.attrib['name']
         limit = joint.find('limit')
-        assert limit is not None
+        if limit is None:
+            assert joint.attrib['type'] == 'fixed'
+            continue
         for side in SIDES:
             joint_name = _expand_side(template_name, side)
             actual = configured[joint_name]
@@ -193,7 +230,10 @@ def test_ompl_is_configured_for_each_arm() -> None:
     assert ompl['planner_configs']['RRTConnectkConfigDefault']['type'] == (
         'geometric::RRTConnect'
     )
-    for group in ('left_arm', 'right_arm'):
+    for group in (
+        'left_arm', 'right_arm', 'left_grasp_arm', 'right_grasp_arm',
+        'left_pregrasp_aim_arm', 'right_pregrasp_aim_arm',
+    ):
         assert ompl[group]['planner_configs'] == ['RRTConnectkConfigDefault']
 
 
@@ -258,6 +298,7 @@ def test_optional_rviz_uses_the_moveit_model_and_selected_clock() -> None:
     )
 
     assert "DeclareLaunchArgument('use_rviz', default_value='false')" in source
+    assert "mappings={'include_head_camera': 'false'}" in source
     assert "condition=IfCondition(use_rviz)" in source
     assert 'moveit_config.robot_description,' in source
     assert 'moveit_config.robot_description_semantic,' in source
