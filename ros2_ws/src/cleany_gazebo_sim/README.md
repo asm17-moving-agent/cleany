@@ -140,6 +140,10 @@ LiDAR에 별도 visibility mask를 적용해 self-hit를 방지합니다.
 의자 visual은 OpenRobotics Gazebo Fuel `OfficeChairGrey` (CC BY 4.0)를
 사용하며 최초 실행 시 network가 필요할 수 있습니다.
 
+평가 route는 waypoint마다 방향 오차가 0.08 rad 이하가 될 때까지 제자리
+회전한 후 주행합니다. 주행 중 오차가 0.15 rad 이상이면 다시 정지 회전하며,
+전진 속도는 0.20 m/s²로 증가시켜 좁은 통로의 급격한 선회 진입을 방지합니다.
+
 ## SLAM evaluation
 
 LiDAR 높이별 bag 기록, slam_toolbox·Cartographer·RTAB-Map 비교,
