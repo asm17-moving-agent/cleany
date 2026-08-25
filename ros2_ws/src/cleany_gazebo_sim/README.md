@@ -139,10 +139,6 @@ ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
 World의 반복 가구는 상세 visual과 모델별 단일 보수적 primitive collision을
 분리해 사용하고, 로봇 visual과 LiDAR에 별도 visibility mask를 적용해
 self-hit를 방지합니다.
-고정된 양팔의 30개 mesh collision은 navigation 평가 world 생성 시
-`base_link`의 단일 primitive 상체 envelope로 교체합니다. 팔·상체·센서
-링크는 비물리 frame으로 변환하여 실행 모델을 5개 link과 4개 wheel
-joint로 줄이면서 visual, sensor, frame 이름과 자세는 유지합니다.
 의자 visual은 OpenRobotics Gazebo Fuel `OfficeChairGrey` (CC BY 4.0)를
 사용하며 최초 실행 시 network가 필요할 수 있습니다.
 
