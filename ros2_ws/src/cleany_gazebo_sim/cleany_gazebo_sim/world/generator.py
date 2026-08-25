@@ -390,11 +390,16 @@ def _add_box_part(
     size: tuple[float, float, float],
     pose: tuple[float, float, float, float, float, float],
     color: str,
+    *,
+    with_collision: bool = True,
 ) -> None:
-    """Add matching primitive collision and visual elements."""
+    """Add a detailed visual and, when requested, matching collision."""
     pose_text = ' '.join(map(str, pose))
     size_text = ' '.join(map(str, size))
-    for element_name in ('collision', 'visual'):
+    element_names = (
+        ('collision', 'visual') if with_collision else ('visual',)
+    )
+    for element_name in element_names:
         element = ElementTree.SubElement(
             link, element_name, {'name': f'{name}_{element_name}'}
         )
@@ -415,10 +420,15 @@ def _add_cylinder_part(
     length: float,
     pose: tuple[float, float, float, float, float, float],
     color: str,
+    *,
+    with_collision: bool = True,
 ) -> None:
-    """Add matching cylindrical collision and visual elements."""
+    """Add a detailed visual and, when requested, matching collision."""
     pose_text = ' '.join(map(str, pose))
-    for element_name in ('collision', 'visual'):
+    element_names = (
+        ('collision', 'visual') if with_collision else ('visual',)
+    )
+    for element_name in element_names:
         element = ElementTree.SubElement(
             link, element_name, {'name': f'{name}_{element_name}'}
         )
@@ -446,6 +456,14 @@ def _add_demo_desk(
     link = ElementTree.SubElement(model, 'link', {'name': 'body'})
     white = '0.92 0.93 0.94 1'
 
+    # Navigation only needs the furniture's occupied volume. One conservative
+    # primitive avoids iterating nine separate static collision geometries for
+    # every repeated desk while keeping the detailed visual unchanged.
+    _add_box_collision(
+        link, 'desk_envelope_collision', (1.2, 0.77, 0.72),
+        (0.0, 0.0, 0.36),
+    )
+
     corner_radius = 0.06
     tabletop_half_depth = 0.385
     # Keep the partition-side corners square and round only the two corners
@@ -458,6 +476,7 @@ def _add_demo_desk(
             0.0, 0.0, 0.0,
         ),
         white,
+        with_collision=False,
     )
     _add_box_part(
         link,
@@ -470,6 +489,7 @@ def _add_demo_desk(
             0.0, 0.0, 0.0,
         ),
         white,
+        with_collision=False,
     )
     for side_name, x in (
         ('left', -0.60 + corner_radius),
@@ -489,6 +509,7 @@ def _add_demo_desk(
                 0.0,
             ),
             white,
+            with_collision=False,
         )
     leg_bottom_z = 0.02
     leg_top_z = 0.67
@@ -516,10 +537,12 @@ def _add_demo_desk(
                     0.0,
                 ),
                 white,
+                with_collision=False,
             )
     _add_box_part(
         link, 'upper_crossbar', (0.82, 0.045, 0.045),
-        (0.0, 0.0, 0.62, 0.0, 0.0, 0.0), white
+        (0.0, 0.0, 0.62, 0.0, 0.0, 0.0), white,
+        with_collision=False,
     )
 
 
@@ -539,13 +562,20 @@ def _add_rounded_partition(
     height = 0.72
     radius = 0.05
 
+    _add_box_collision(
+        link, 'partition_envelope_collision',
+        (width, thickness, height), (0.0, 0.0, 0.0),
+    )
+
     _add_box_part(
         link, 'partition_center', (width - 2.0 * radius, thickness, height),
-        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), color
+        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), color,
+        with_collision=False,
     )
     _add_box_part(
         link, 'partition_middle', (width, thickness, height - 2.0 * radius),
-        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), color
+        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), color,
+        with_collision=False,
     )
     for horizontal_name, x in (
         ('left', -width / 2.0 + radius),
@@ -562,6 +592,7 @@ def _add_rounded_partition(
                 thickness,
                 (x, 0.0, z, pi / 2.0, 0.0, 0.0),
                 color,
+                with_collision=False,
             )
 
 
@@ -579,18 +610,26 @@ def _add_desk_monitor(
     bezel_color = '0.025 0.025 0.03 1'
     screen_color = '0.008 0.010 0.014 1'
 
+    _add_box_collision(
+        link, 'monitor_envelope_collision', (0.62, 0.16, 0.46),
+        (0.0, front_sign * 0.04, 0.95),
+    )
+
     _add_box_part(
         link, 'monitor_panel', (0.62, 0.035, 0.36),
-        (0.0, 0.0, 1.00, 0.0, 0.0, 0.0), bezel_color
+        (0.0, 0.0, 1.00, 0.0, 0.0, 0.0), bezel_color,
+        with_collision=False,
     )
     _add_box_part(
         link, 'monitor_stem', (0.035, 0.035, 0.12),
-        (0.0, 0.0, 0.79, 0.0, 0.0, 0.0), bezel_color
+        (0.0, 0.0, 0.79, 0.0, 0.0, 0.0), bezel_color,
+        with_collision=False,
     )
     _add_box_part(
         link, 'monitor_base', (0.24, 0.16, 0.02),
         (0.0, front_sign * 0.04, 0.73, 0.0, 0.0, 0.0),
         bezel_color,
+        with_collision=False,
     )
 
     screen = ElementTree.SubElement(
@@ -633,21 +672,9 @@ def _add_office_chair(
     ]
     ElementTree.SubElement(mesh, 'scale').text = '0.9 0.9 0.9'
 
-    _add_cylinder_collision(
-        link, 'caster_base_collision', 0.32, 0.06,
-        (0.0, 0.0, 0.05)
-    )
-    _add_cylinder_collision(
-        link, 'center_column_collision', 0.045, 0.34,
-        (-0.02, 0.0, 0.22)
-    )
     _add_box_collision(
-        link, 'seat_collision', (0.52, 0.55, 0.08),
-        (-0.03, 0.0, 0.42)
-    )
-    _add_box_collision(
-        link, 'backrest_collision', (0.10, 0.48, 0.50),
-        (-0.35, 0.0, 0.73)
+        link, 'chair_envelope_collision', (0.72, 0.64, 0.96),
+        (-0.04, 0.0, 0.50),
     )
 
 

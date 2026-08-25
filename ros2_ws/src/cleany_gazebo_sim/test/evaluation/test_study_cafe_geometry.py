@@ -67,6 +67,29 @@ def test_study_cafe_matches_demo_room_and_seat_count(
     assert not any(name.startswith('ceiling_') for name in names)
 
 
+def test_repeated_furniture_uses_one_collision_per_static_model(
+    tmp_path: Path,
+) -> None:
+    world = _world(tmp_path)
+    robot = world.find("model[@name='cleany_mecanum']")
+    assert robot is not None
+    repeated_prefixes = (
+        'demo_desk_',
+        'office_chair_',
+        'desk_partition_',
+        'desk_monitor_',
+    )
+    repeated = [
+        model for model in world.findall('model')
+        if model.get('name', '').startswith(repeated_prefixes)
+    ]
+
+    assert len(repeated) == 168
+    assert all(len(model.findall('.//collision')) == 1 for model in repeated)
+    assert len(world.findall('.//collision')) == 208
+    assert len(robot.findall('.//collision')) == 35
+
+
 def test_study_cafe_supports_bounded_accelerated_physics(
     tmp_path: Path,
 ) -> None:
@@ -121,12 +144,10 @@ def test_office_chair_uses_fuel_visual_and_primitive_collisions(
     collisions = chair.findall('link/collision')
     assert {
         collision.get('name') for collision in collisions
-    } == {
-        'caster_base_collision',
-        'center_column_collision',
-        'seat_collision',
-        'backrest_collision',
-    }
+    } == {'chair_envelope_collision'}
+    assert chair.findtext(
+        'link/collision/geometry/box/size'
+    ) == '0.72 0.64 0.96'
     assert all(
         collision.find('geometry/mesh') is None
         for collision in collisions
@@ -140,11 +161,8 @@ def test_desks_have_white_72_cm_top_and_a_frame_legs(
     desk = world.find("model[@name='demo_desk_01']/link")
     assert desk is not None
     assert desk.findtext(
-        "collision[@name='tabletop_back_collision']/geometry/box/size"
-    ) == '1.2 0.71 0.04'
-    assert desk.findtext(
-        "collision[@name='tabletop_back_collision']/pose"
-    ) == '0.0 -0.03 0.7 0.0 0.0 0.0'
+        "collision[@name='desk_envelope_collision']/geometry/box/size"
+    ) == '1.2 0.77 0.72'
     assert desk.findtext(
         "visual[@name='tabletop_back_visual']/material/diffuse"
     ) == '0.92 0.93 0.94 1'
@@ -152,50 +170,40 @@ def test_desks_have_white_72_cm_top_and_a_frame_legs(
     names = {
         collision.get('name') for collision in desk.findall('collision')
     }
-    assert names == {
-        'tabletop_back_collision',
-        'tabletop_front_center_collision',
-        'tabletop_front_left_corner_collision',
-        'tabletop_front_right_corner_collision',
-        'left_front_leg_collision',
-        'left_back_leg_collision',
-        'right_front_leg_collision',
-        'right_back_leg_collision',
-        'upper_crossbar_collision',
-    }
+    assert names == {'desk_envelope_collision'}
     leg_poses = [
-        collision.findtext('pose', '').split()
-        for collision in desk.findall('collision')
-        if '_leg_collision' in collision.get('name', '')
+        visual.findtext('pose', '').split()
+        for visual in desk.findall('visual')
+        if '_leg_visual' in visual.get('name', '')
     ]
     assert len(leg_poses) == 4
     assert all(abs(float(pose[3])) > 0.2 for pose in leg_poses)
     assert sorted({abs(float(pose[0])) for pose in leg_poses}) == [0.52]
 
     corner_collisions = [
-        collision for collision in desk.findall('collision')
-        if 'tabletop_front_' in collision.get('name', '')
-        and collision.find('geometry/cylinder') is not None
+        visual for visual in desk.findall('visual')
+        if 'tabletop_front_' in visual.get('name', '')
+        and visual.find('geometry/cylinder') is not None
     ]
     assert len(corner_collisions) == 2
     assert {
-        collision.findtext('geometry/cylinder/radius')
-        for collision in corner_collisions
+        visual.findtext('geometry/cylinder/radius')
+        for visual in corner_collisions
     } == {'0.06'}
     assert {
-        tuple(round(float(value), 2) for value in collision.findtext(
+        tuple(round(float(value), 2) for value in visual.findtext(
             'pose', ''
         ).split()[:3])
-        for collision in corner_collisions
+        for visual in corner_collisions
     } == {(-0.54, 0.33, 0.70), (0.54, 0.33, 0.70)}
 
     opposite_desk = world.find("model[@name='demo_desk_09']/link")
     assert opposite_desk is not None
     assert {
-        round(float(collision.findtext('pose', '').split()[1]), 2)
-        for collision in opposite_desk.findall('collision')
-        if 'tabletop_front_' in collision.get('name', '')
-        and collision.find('geometry/cylinder') is not None
+        round(float(visual.findtext('pose', '').split()[1]), 2)
+        for visual in opposite_desk.findall('visual')
+        if 'tabletop_front_' in visual.get('name', '')
+        and visual.find('geometry/cylinder') is not None
     } == {-0.33}
 
 
@@ -209,25 +217,18 @@ def test_partitions_span_30_cm_above_floor_to_30_cm_above_desk(
     collisions = partition.findall('link/collision')
     assert {
         collision.get('name') for collision in collisions
-    } == {
-        'partition_center_collision',
-        'partition_middle_collision',
-        'partition_bottom_left_corner_collision',
-        'partition_top_left_corner_collision',
-        'partition_bottom_right_corner_collision',
-        'partition_top_right_corner_collision',
-    }
+    } == {'partition_envelope_collision'}
     corners = [
-        collision for collision in collisions
-        if collision.find('geometry/cylinder') is not None
+        visual for visual in partition.findall('link/visual')
+        if visual.find('geometry/cylinder') is not None
     ]
     assert len(corners) == 4
     assert all(
-        collision.findtext('geometry/cylinder/radius') == '0.05'
-        and collision.findtext('geometry/cylinder/length') == '0.025'
-        and round(float(collision.findtext('pose', '').split()[3]), 5)
+        visual.findtext('geometry/cylinder/radius') == '0.05'
+        and visual.findtext('geometry/cylinder/length') == '0.025'
+        and round(float(visual.findtext('pose', '').split()[3]), 5)
         == round(3.141592653589793 / 2.0, 5)
-        for collision in corners
+        for visual in corners
     )
     center_z = float(partition.findtext('pose', '').split()[2])
     height = 0.72
@@ -251,11 +252,10 @@ def test_each_desk_has_27_inch_monitor_facing_its_chair(
     assert link is not None
     assert {
         collision.get('name') for collision in link.findall('collision')
-    } == {
-        'monitor_panel_collision',
-        'monitor_stem_collision',
-        'monitor_base_collision',
-    }
+    } == {'monitor_envelope_collision'}
+    assert link.findtext(
+        'collision/geometry/box/size'
+    ) == '0.62 0.16 0.46'
     assert link.findtext(
         "visual[@name='monitor_panel_visual']/geometry/box/size"
     ) == '0.62 0.035 0.36'

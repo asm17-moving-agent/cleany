@@ -135,8 +135,9 @@ ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
   headless:=false lidar_profile:=floor_26cm
 ```
 
-World의 반복 가구는 primitive collision을 사용하고, 로봇 visual과
-LiDAR에 별도 visibility mask를 적용해 self-hit를 방지합니다.
+World의 반복 가구는 상세 visual과 모델별 단일 보수적 primitive collision을
+분리해 사용하고, 로봇 visual과 LiDAR에 별도 visibility mask를 적용해
+self-hit를 방지합니다.
 의자 visual은 OpenRobotics Gazebo Fuel `OfficeChairGrey` (CC BY 4.0)를
 사용하며 최초 실행 시 network가 필요할 수 있습니다.
 
