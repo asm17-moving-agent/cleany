@@ -104,11 +104,7 @@ def _launch_command(
     sensor_profile: str,
     world_path: Path,
 ) -> list[str]:
-    launch_file = (
-        'gazebo_fortress.launch.py'
-        if profile == 'fortress'
-        else 'gazebo_harmonic.launch.py'
-    )
+    launch_file = 'gazebo_fortress.launch.py'
     return [
         'ros2',
         'launch',
@@ -177,11 +173,7 @@ def _validation_scene_sdf() -> str:
 
 def _write_validation_world(profile: str, output_path: Path) -> None:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    world_name = (
-        'cleany_mecanum_fortress.sdf'
-        if profile == 'fortress'
-        else 'cleany_mecanum_harmonic.sdf'
-    )
+    world_name = 'cleany_mecanum_fortress.sdf'
     materialized_world = materialize_mecanum_wheel_world(
         package_share / 'worlds' / world_name
     ).read_text(encoding='utf-8')
@@ -196,7 +188,7 @@ def _write_validation_world(profile: str, output_path: Path) -> None:
 
 
 def _assert_profile_environment(profile: str) -> None:
-    expected_ros_distro = 'humble' if profile == 'fortress' else 'jazzy'
+    expected_ros_distro = 'humble'
     actual_ros_distro = os.environ.get('ROS_DISTRO')
     if actual_ros_distro != expected_ros_distro:
         pytest.fail(
@@ -451,10 +443,7 @@ def test_sensor_profile_and_rtf(
 
     monkeypatch.setenv('ROS_DOMAIN_ID', str(100 + os.getpid() % 100))
     partition = f'cleany_runtime_test_{uuid4().hex}'
-    partition_variable = (
-        'IGN_PARTITION' if options.profile == 'fortress' else 'GZ_PARTITION'
-    )
-    monkeypatch.setenv(partition_variable, partition)
+    monkeypatch.setenv('IGN_PARTITION', partition)
     launch_environment = os.environ.copy()
 
     rclpy.init()

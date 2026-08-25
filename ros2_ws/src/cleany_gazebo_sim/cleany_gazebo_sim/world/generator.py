@@ -666,17 +666,12 @@ def _add_planter(
 def materialize_study_cafe_world(
     robot_template_path: Path,
     target_path: Path | None = None,
-    simulator: str = 'harmonic',
     max_step_size: float = 0.001,
     real_time_factor: float = 1.0,
     layout_path: Path | None = None,
     lidar_translation: tuple[float, float, float] | None = None,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
-    if simulator not in {'fortress', 'harmonic'}:
-        raise ValueError(
-            'study cafe simulator must be fortress or harmonic'
-        )
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
         raise ValueError('max step size must be within (0, 0.01] seconds')
     if not isfinite(real_time_factor) or real_time_factor <= 0.0:

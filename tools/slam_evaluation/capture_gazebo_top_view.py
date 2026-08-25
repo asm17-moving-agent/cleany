@@ -108,20 +108,19 @@ def main() -> None:
     description_share = Path(get_package_share_directory('cleany_description'))
     world_path = args.output.parent / 'gazebo_top_view_world.sdf'
     materialize_study_cafe_world(
-        package_share / 'worlds/cleany_mecanum_harmonic.sdf',
+        package_share / 'worlds/cleany_mecanum_fortress.sdf',
         world_path,
-        simulator='harmonic',
     )
     add_top_camera(world_path)
 
     environment = os.environ.copy()
-    resource_path = environment.get('GZ_SIM_RESOURCE_PATH', '')
-    environment['GZ_SIM_RESOURCE_PATH'] = os.pathsep.join(
+    resource_path = environment.get('IGN_GAZEBO_RESOURCE_PATH', '')
+    environment['IGN_GAZEBO_RESOURCE_PATH'] = os.pathsep.join(
         value for value in (resource_path, str(description_share)) if value
     )
     gazebo = subprocess.Popen(
         [
-            'gz', 'sim', '-r', '-s', '--headless-rendering',
+            'ign', 'gazebo', '-r', '-s',
             '--render-engine-server', 'ogre2', str(world_path),
         ],
         env=environment,
@@ -130,7 +129,7 @@ def main() -> None:
     bridge = subprocess.Popen(
         [
             'ros2', 'run', 'ros_gz_bridge', 'parameter_bridge',
-            '/cleany_top_view/image@sensor_msgs/msg/Image@gz.msgs.Image',
+            '/cleany_top_view/image@sensor_msgs/msg/Image@ignition.msgs.Image',
         ],
         env=environment,
         start_new_session=True,

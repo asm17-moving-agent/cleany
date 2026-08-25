@@ -9,7 +9,7 @@ from cleany_gazebo_sim.world.layout import load_study_cafe_layout
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
-ROBOT_WORLD = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf'
+ROBOT_WORLD = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf'
 LAYOUT_CONFIG = (
     PACKAGE_ROOT / 'config' / 'study_cafe' / 'study_cafe_layout.yaml'
 )
@@ -410,20 +410,15 @@ def test_every_chair_faces_its_assigned_desk(tmp_path: Path) -> None:
         assert alignment > 0.999
 
 
-def test_study_cafe_launch_is_harmonic_gui_profile() -> None:
+def test_study_cafe_launch_uses_fortress_gui_profile() -> None:
     source = (
         PACKAGE_ROOT / 'cleany_gazebo_sim' / 'study_cafe_launch.py'
     ).read_text(encoding='utf-8')
-    harmonic_wrapper = (
+    wrapper = (
         PACKAGE_ROOT / 'launch' / 'gazebo_study_cafe.launch.py'
     ).read_text(encoding='utf-8')
-    fortress_wrapper = (
-        PACKAGE_ROOT / 'launch' / 'gazebo_study_cafe_fortress.launch.py'
-    ).read_text(encoding='utf-8')
-    assert "'gazebo_harmonic.launch.py'" in source
     assert "'gazebo_fortress.launch.py'" in source
-    assert "study_cafe_launch_description('harmonic')" in harmonic_wrapper
-    assert "study_cafe_launch_description('fortress')" in fortress_wrapper
+    assert 'study_cafe_launch_description()' in wrapper
     assert 'declare_sensor_profile_argument' in source
     assert "'sensor_profile': LaunchConfiguration('sensor_profile')" in source
     assert "default_value=''" in source

@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-workspace_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+workspace_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 ros_workspace="$workspace_root/ros2_ws"
 result_root="$ros_workspace/slam_results/chair_shift_localization"
-requested_profile=${GAZEBO_PROFILE:-harmonic}
-profile_shell=$(GAZEBO_PROFILE="$requested_profile" \
-  python3 "$workspace_root/tools/gazebo_profile.py" --shell)
+profile_shell=$(python3 "$workspace_root/tools/gazebo_profile.py" --shell)
 eval "$profile_shell"
 source "$CLEANY_ROS_SETUP"
 source "$ros_workspace/$CLEANY_INSTALL_BASE/setup.bash"
@@ -32,7 +30,7 @@ cleanup() {
 trap cleanup EXIT
 
 record_one() {
-  local height=$1 domain=$2 expected_frame bridge launch_file
+  local height=$1 domain=$2 expected_frame
   local environment="$result_root/environments/${height}cm_shifted"
   local input="$result_root/inputs/${height}cm_shifted"
   case "$height" in
@@ -44,21 +42,9 @@ record_one() {
       ;;
     *) echo "unsupported height: $height" >&2; return 2 ;;
   esac
-  case "$CLEANY_GAZEBO_PROFILE" in
-    fortress)
-      launch_file=gazebo_fortress.launch.py
-      bridge="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml"
-      unset GZ_PARTITION || true
-      export IGN_PARTITION="cleany_chair_shift_${height}_${domain}"
-      ;;
-    harmonic)
-      launch_file=gazebo_harmonic.launch.py
-      bridge="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge_harmonic.yaml"
-      unset IGN_PARTITION || true
-      export GZ_PARTITION="cleany_chair_shift_${height}_${domain}"
-      ;;
-    *) echo "unsupported Gazebo profile: $CLEANY_GAZEBO_PROFILE" >&2; return 2 ;;
-  esac
+  local launch_file=gazebo_fortress.launch.py
+  local bridge="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml"
+  export IGN_PARTITION="cleany_chair_shift_${height}_${domain}"
   if [[ -f "$input/metadata.yaml" ]]; then
     echo "skip completed shifted input ${height}cm"
     return
@@ -69,8 +55,8 @@ record_one() {
   fi
   mkdir -p "$(dirname "$input")" "$(dirname "$environment")"
   export ROS_DOMAIN_ID=$domain
-  python3 "$workspace_root/tools/prepare_chair_shift_localization_world.py" \
-    "$height" "$environment" --simulator "$CLEANY_GAZEBO_PROFILE"
+  python3 "$workspace_root/tools/slam_evaluation/prepare_chair_shift_localization_world.py" \
+    "$height" "$environment"
 
   setsid ros2 launch cleany_gazebo_sim "$launch_file" \
     world:="$environment/world.sdf" headless:=true \

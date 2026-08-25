@@ -1,4 +1,4 @@
-"""Shared launch construction for the Fortress and Harmonic study-cafe worlds."""
+"""Launch construction for the Gazebo Fortress study-cafe world."""
 
 from pathlib import Path
 
@@ -23,14 +23,8 @@ from cleany_gazebo_sim.sensor_profile_launch import (
 from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
 
 
-_BACKEND_LAUNCH = {
-    'fortress': 'gazebo_fortress.launch.py',
-    'harmonic': 'gazebo_harmonic.launch.py',
-}
-
-
 def _launch_simulation(
-    context: LaunchContext, *, package_share: Path, simulator: str
+    context: LaunchContext, *, package_share: Path
 ) -> list[IncludeLaunchDescription]:
     profiles_path = Path(
         LaunchConfiguration('lidar_profiles_config').perform(context)
@@ -46,8 +40,7 @@ def _launch_simulation(
         raise ValueError('study-cafe LiDAR profiles must be level mounts')
 
     world = materialize_study_cafe_world(
-        package_share / 'worlds' / f'cleany_mecanum_{simulator}.sdf',
-        simulator=simulator,
+        package_share / 'worlds' / 'cleany_mecanum_fortress.sdf',
         max_step_size=float(
             LaunchConfiguration('physics_max_step_size').perform(context)
         ),
@@ -60,12 +53,12 @@ def _launch_simulation(
         lidar_translation=profile.transform.translation,
     )
     sensor_config = Path('/tmp') / (
-        f'cleany_study_cafe_sensor_tf_{simulator}_{profile.name}.yaml'
+        f'cleany_study_cafe_sensor_tf_fortress_{profile.name}.yaml'
     )
     write_sensor_tf_config(profile, sensor_config)
     simulation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            str(package_share / 'launch' / _BACKEND_LAUNCH[simulator])
+            str(package_share / 'launch' / 'gazebo_fortress.launch.py')
         ),
         launch_arguments={
             'world': str(world),
@@ -79,11 +72,8 @@ def _launch_simulation(
     return [simulation]
 
 
-def study_cafe_launch_description(simulator: str) -> LaunchDescription:
-    """Build the profile-specific study-cafe scenario launch description."""
-    if simulator not in _BACKEND_LAUNCH:
-        raise ValueError(f'unsupported study-cafe simulator: {simulator!r}')
-
+def study_cafe_launch_description() -> LaunchDescription:
+    """Build the Gazebo Fortress study-cafe scenario launch description."""
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     headless_arg = DeclareLaunchArgument('headless', default_value='false')
     use_sim_time_arg = DeclareLaunchArgument(
@@ -120,7 +110,7 @@ def study_cafe_launch_description(simulator: str) -> LaunchDescription:
     sensor_profile_arg = declare_sensor_profile_argument()
     simulation = OpaqueFunction(
         function=_launch_simulation,
-        kwargs={'package_share': package_share, 'simulator': simulator},
+        kwargs={'package_share': package_share},
     )
 
     return LaunchDescription(

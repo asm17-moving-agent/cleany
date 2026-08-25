@@ -73,7 +73,6 @@ def generate_launch_description() -> LaunchDescription:
     )
     bridges = sensor_profile_bridges(
         package_share,
-        harmonic=False,
         bridge_config=LaunchConfiguration('bridge_config'),
     )
     command_guard = Node(

@@ -181,12 +181,19 @@ def render(
     trajectories: dict[float, tuple[np.ndarray, np.ndarray]],
     output: Path,
 ) -> None:
-    heights = (12.0, 16.5, 26.0)
-    colors = {12.0: "#ff315f", 16.5: "#ff9700", 26.0: "#06b6d4"}
+    heights = tuple(sorted(trajectories))
+    colors = {16.5: "#ff9700", 26.0: "#06b6d4"}
+    panels = (
+        ("ATE translation (cm)", "ate_translation_rmse_m", 100.0),
+        ("1 s RPE translation (cm)", "rpe_1s_translation_rmse_m", 100.0),
+        ("Max map→odom jump (cm)", "max_map_odom_translation_jump_m", 100.0),
+    )
     figure = plt.figure(figsize=(16, 10), constrained_layout=True)
-    grid = figure.add_gridspec(2, 3, height_ratios=(2.0, 1.25))
+    grid = figure.add_gridspec(2, 1, height_ratios=(2.0, 1.25))
+    trajectory_grid = grid[0].subgridspec(1, len(heights))
+    metric_grid = grid[1].subgridspec(1, len(panels))
     for column, height in enumerate(heights):
-        axis = figure.add_subplot(grid[0, column])
+        axis = figure.add_subplot(trajectory_grid[0, column])
         estimate, truth = trajectories[height]
         axis.plot(truth[:, 0], truth[:, 1], color="#263445", lw=2, label="ground truth")
         axis.plot(
@@ -202,13 +209,8 @@ def render(
     }
     labels = [f"{height:g} cm" for height in heights]
     x = np.arange(len(heights))
-    panels = (
-        ("ATE translation (cm)", "ate_translation_rmse_m", 100.0),
-        ("1 s RPE translation (cm)", "rpe_1s_translation_rmse_m", 100.0),
-        ("Max map→odom jump (cm)", "max_map_odom_translation_jump_m", 100.0),
-    )
     for column, (title, field, scale) in enumerate(panels):
-        axis = figure.add_subplot(grid[1, column])
+        axis = figure.add_subplot(metric_grid[0, column])
         baseline = [scale * getattr(metrics[(height, "baseline")], field) for height in heights]
         shifted = [scale * getattr(metrics[(height, "shifted")], field) for height in heights]
         axis.bar(x - 0.18, baseline, 0.36, color="#aab3bf", label="original chairs")
@@ -231,7 +233,7 @@ def render(
 def main() -> None:
     results = Path("ros2_ws/slam_results")
     study = results / "chair_shift_localization"
-    height_tokens = ((12.0, "12"), (16.5, "16p5"), (26.0, "26"))
+    height_tokens = ((16.5, "16p5"), (26.0, "26"))
     records: list[LocalizationMetrics] = []
     trajectories: dict[float, tuple[np.ndarray, np.ndarray]] = {}
     alignments: dict[str, dict] = {}
