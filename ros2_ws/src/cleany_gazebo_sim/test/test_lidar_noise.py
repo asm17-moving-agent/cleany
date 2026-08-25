@@ -29,7 +29,7 @@ def test_noise_profile_materializes_expected_gaussian_noise(
     )
     root = ElementTree.parse(world_path).getroot()
     noise = root.find(
-        ".//link[@name='lidar_link']/sensor[@name='rplidar_a1']/lidar/noise"
+        ".//sensor[@name='rplidar_a1']/lidar/noise"
     )
     assert noise is not None
     assert noise.findtext('type') == 'gaussian'
@@ -65,7 +65,7 @@ def test_study_cafe_world_keeps_selected_noise_profile(tmp_path: Path) -> None:
     )
     root = ElementTree.parse(world_path).getroot()
     noise = root.find(
-        ".//link[@name='lidar_link']/sensor[@name='rplidar_a1']/lidar/noise"
+        ".//sensor[@name='rplidar_a1']/lidar/noise"
     )
     assert noise is not None
     assert float(noise.findtext('stddev', 'nan')) == 0.01

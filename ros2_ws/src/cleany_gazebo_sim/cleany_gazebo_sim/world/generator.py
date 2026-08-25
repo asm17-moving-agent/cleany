@@ -19,6 +19,33 @@ _ROLLER_RADIUS = 0.008
 _ROLLER_LENGTH = 0.03
 _ROLLER_CENTER_RADIUS = 0.0555
 _ROBOT_VISIBILITY_FLAGS = '0x02'
+_FOLDED_ARM_LINKS = (
+    'left_arm_base',
+    'left_rotation_pitch',
+    'left_upper_arm',
+    'left_lower_arm',
+    'left_wrist_pitch',
+    'left_fixed_jaw',
+    'left_moving_jaw',
+    'right_arm_base',
+    'right_rotation_pitch',
+    'right_upper_arm',
+    'right_lower_arm',
+    'right_wrist_pitch',
+    'right_fixed_jaw',
+    'right_moving_jaw',
+)
+_FOLDED_ARM_COLLISION_COUNT = 30
+_UPPER_BODY_ENVELOPE_SIZE = (0.55, 0.52, 0.70)
+_UPPER_BODY_ENVELOPE_CENTER = (0.0, 0.0, 0.35)
+_PHYSICAL_LINKS = {
+    'base_link',
+    'rear_left_wheel',
+    'rear_right_wheel',
+    'front_left_wheel',
+    'front_right_wheel',
+}
+_COLLAPSED_FIXED_LINK_COUNT = 22
 _FOLDED_ARM_LINK_POSES = {
     'left_shoulder_yaw_joint': ('left_rotation_pitch', '0 0 0 0 -1.5708 0'),
     'left_shoulder_pitch_joint': ('left_upper_arm', '0 0 0 -3.0 0 0'),
@@ -99,7 +126,9 @@ def _freeze_folded_arms(robot: ElementTree.Element) -> None:
             raise ValueError(f'folded-arm child mismatch for {joint_name}')
         pose = link.find('pose')
         if pose is None or pose.get('relative_to') != joint_name:
-            raise ValueError(f'folded-arm pose frame mismatch for {joint_name}')
+            raise ValueError(
+                f'folded-arm pose frame mismatch for {joint_name}'
+            )
 
         joint.set('type', 'fixed')
         axis = joint.find('axis')
@@ -107,6 +136,107 @@ def _freeze_folded_arms(robot: ElementTree.Element) -> None:
             joint.remove(axis)
         pose.text = link_pose
         robot.remove(controllers[joint_name])
+
+
+def _collapse_fixed_upper_body(
+    robot: ElementTree.Element,
+) -> None:
+    """Keep upper-body frames and visuals without separate physics bodies."""
+    removed = 0
+    for link_name in _FOLDED_ARM_LINKS:
+        link = robot.find(f"link[@name='{link_name}']")
+        if link is None:
+            raise ValueError(f'folded-arm link is missing: {link_name}')
+        collisions = link.findall('collision')
+        removed += len(collisions)
+        for collision in collisions:
+            link.remove(collision)
+    if removed != _FOLDED_ARM_COLLISION_COUNT:
+        raise ValueError(
+            'robot template folded-arm collision count changed: '
+            f'expected {_FOLDED_ARM_COLLISION_COUNT}, found {removed}'
+        )
+
+    base_link = robot.find("link[@name='base_link']")
+    if base_link is None:
+        raise ValueError('robot template is missing base_link')
+    _add_box_collision(
+        base_link,
+        'folded_upper_body_envelope_collision',
+        _UPPER_BODY_ENVELOPE_SIZE,
+        _UPPER_BODY_ENVELOPE_CENTER,
+    )
+
+    collapsed_links = [
+        link for link in robot.findall('link')
+        if link.get('name') not in _PHYSICAL_LINKS
+    ]
+    if len(collapsed_links) != _COLLAPSED_FIXED_LINK_COUNT:
+        raise ValueError(
+            'robot template fixed-link count changed: '
+            f'expected {_COLLAPSED_FIXED_LINK_COUNT}, '
+            f'found {len(collapsed_links)}'
+        )
+    collapsed_names = {link.get('name', '') for link in collapsed_links}
+    collapsed_joints = [
+        joint for joint in robot.findall('joint')
+        if joint.findtext('child') in collapsed_names
+    ]
+    if len(collapsed_joints) != _COLLAPSED_FIXED_LINK_COUNT:
+        raise ValueError('each collapsed link must have one fixed joint')
+    if any(joint.get('type') != 'fixed' for joint in collapsed_joints):
+        raise ValueError('all collapsed upper-body joints must be fixed')
+
+    for joint in collapsed_joints:
+        joint_name = joint.get('name')
+        parent_name = joint.findtext('parent')
+        pose = joint.find('pose')
+        if not joint_name or not parent_name or pose is None:
+            raise ValueError('collapsed joint is missing its frame contract')
+        frame = ElementTree.Element(
+            'frame', {'name': joint_name, 'attached_to': parent_name}
+        )
+        frame.append(pose)
+        robot.append(frame)
+
+    for link in collapsed_links:
+        link_name = link.get('name')
+        pose = link.find('pose')
+        if not link_name or pose is None:
+            raise ValueError('collapsed link is missing its frame pose')
+        attached_to = pose.get('relative_to')
+        if not attached_to:
+            raise ValueError(
+                f'collapsed link pose has no relative frame: {link_name}'
+            )
+        frame = ElementTree.Element(
+            'frame', {'name': link_name, 'attached_to': attached_to}
+        )
+        frame.append(pose)
+        robot.append(frame)
+
+        for element_name in ('visual', 'sensor'):
+            for element in link.findall(element_name):
+                element_pose = element.find('pose')
+                if element_pose is None:
+                    element_pose = ElementTree.Element(
+                        'pose', {'relative_to': link_name}
+                    )
+                    element_pose.text = '0 0 0 0 0 0'
+                    element.insert(0, element_pose)
+                elif element_pose.get('relative_to') is None:
+                    element_pose.set('relative_to', link_name)
+                if element_name == 'visual':
+                    element.set(
+                        'name', f'{link_name}_{element.get("name", "visual")}'
+                    )
+                link.remove(element)
+                base_link.append(element)
+
+    for joint in collapsed_joints:
+        robot.remove(joint)
+    for link in collapsed_links:
+        robot.remove(link)
 
 
 def materialize_mecanum_wheel_world(
@@ -134,6 +264,7 @@ def materialize_mecanum_wheel_world(
     if robot is None:
         raise ValueError('world template is missing cleany_mecanum')
     _freeze_folded_arms(robot)
+    _collapse_fixed_upper_body(robot)
     for visual in robot.findall('.//visual'):
         flags = visual.find('visibility_flags')
         if flags is None:
@@ -146,7 +277,7 @@ def materialize_mecanum_wheel_world(
         flags.text = _ROBOT_VISIBILITY_FLAGS
 
     if lidar_noise is not None:
-        lidar = robot.find("link[@name='lidar_link']/sensor[@name='rplidar_a1']/lidar")
+        lidar = robot.find(".//sensor[@name='rplidar_a1']/lidar")
         if lidar is None:
             raise ValueError('world template is missing the RPLIDAR sensor')
         noise = lidar.find('noise')
@@ -729,7 +860,7 @@ def _add_planter(
 def materialize_study_cafe_world(
     robot_template_path: Path,
     target_path: Path | None = None,
-    max_step_size: float = 0.001,
+    max_step_size: float = 0.002,
     real_time_factor: float = 1.0,
     layout_path: Path | None = None,
     lidar_translation: tuple[float, float, float] | None = None,
@@ -797,15 +928,23 @@ def materialize_study_cafe_world(
         if len(lidar_translation) != 3 or not all(
             isfinite(value) for value in lidar_translation
         ):
-            raise ValueError('LiDAR translation must contain three finite values')
-        lidar_mount = robot.find("joint[@name='lidar_mount']")
-        lidar_pose = lidar_mount.find('pose') if lidar_mount is not None else None
+            raise ValueError(
+                'LiDAR translation must contain three finite values'
+            )
+        lidar_mount = robot.find("frame[@name='lidar_mount']")
+        lidar_pose = (
+            lidar_mount.find('pose') if lidar_mount is not None else None
+        )
         if lidar_mount is None or lidar_pose is None:
             raise ValueError('robot template is missing the lidar_mount pose')
-        if lidar_mount.findtext('parent') != 'base_link':
+        if lidar_mount.get('attached_to') != 'base_link':
             raise ValueError('lidar_mount must be fixed to base_link')
-        if lidar_mount.findtext('child') != 'lidar_link':
-            raise ValueError('lidar_mount must have lidar_link as its child')
+        lidar_frame = robot.find("frame[@name='lidar_link']")
+        if (
+            lidar_frame is None
+            or lidar_frame.get('attached_to') != 'lidar_mount'
+        ):
+            raise ValueError('lidar_link must be fixed to lidar_mount')
         lidar_pose.text = ' '.join(
             str(value) for value in (*lidar_translation, 0.0, 0.0, 0.0)
         )

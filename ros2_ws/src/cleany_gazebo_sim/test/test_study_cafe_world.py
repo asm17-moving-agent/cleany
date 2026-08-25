@@ -63,6 +63,19 @@ def test_study_cafe_applies_bounded_physics_override(tmp_path: Path) -> None:
     assert world.findtext('physics/real_time_factor') == '2.0'
 
 
+def test_study_cafe_defaults_to_two_millisecond_physics_step(
+    tmp_path: Path,
+) -> None:
+    generated = materialize_study_cafe_world(
+        ROBOT_WORLD,
+        tmp_path / 'default_physics.sdf',
+        layout_path=LAYOUT_CONFIG,
+    )
+    world = ElementTree.parse(generated).getroot().find('world')
+    assert world is not None
+    assert world.findtext('physics/max_step_size') == '0.002'
+
+
 def test_robot_visual_is_excluded_from_its_lidar(tmp_path: Path) -> None:
     robot = _world(tmp_path).find("model[@name='cleany_mecanum']")
     assert robot is not None
@@ -77,7 +90,9 @@ def test_robot_visual_is_excluded_from_its_lidar(tmp_path: Path) -> None:
     assert all(lidar.findtext('visibility_mask') == '0x01' for lidar in lidars)
 
 
-def test_study_cafe_materializes_one_selected_lidar_pose(tmp_path: Path) -> None:
+def test_study_cafe_materializes_one_selected_lidar_pose(
+    tmp_path: Path,
+) -> None:
     generated = materialize_study_cafe_world(
         ROBOT_WORLD,
         tmp_path / 'lidar_70cm.sdf',
@@ -85,10 +100,10 @@ def test_study_cafe_materializes_one_selected_lidar_pose(tmp_path: Path) -> None
         lidar_translation=(0.16, 0.0, 0.32),
     )
     mount = ElementTree.parse(generated).getroot().find(
-        "./world/model[@name='cleany_mecanum']/joint[@name='lidar_mount']"
+        "./world/model[@name='cleany_mecanum']/frame[@name='lidar_mount']"
     )
     assert mount is not None
-    assert mount.findtext('child') == 'lidar_link'
+    assert mount.get('attached_to') == 'base_link'
     assert mount.findtext('pose') == '0.16 0.0 0.32 0.0 0.0 0.0'
 
 
