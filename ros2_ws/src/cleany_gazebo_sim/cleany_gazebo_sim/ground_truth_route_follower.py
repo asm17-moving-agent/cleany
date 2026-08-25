@@ -5,6 +5,7 @@ import math
 import rclpy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 
@@ -149,7 +150,7 @@ def main(args: list[str] | None = None) -> None:
     node = GroundTruthRouteFollower()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         # The Gazebo command guard sends stop if launch has already
