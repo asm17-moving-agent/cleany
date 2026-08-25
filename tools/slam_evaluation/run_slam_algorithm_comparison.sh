@@ -53,6 +53,11 @@ run_one() {
   esac
   export ROS_DOMAIN_ID=$((algorithm_domain + height_domain))
 
+  if [[ ! -f "$input/metadata.yaml" ]]; then
+    echo "missing input bag: $input" >&2
+    return 1
+  fi
+
   if [[ -f "$output/run_complete" ]]; then
     echo "skip completed $algorithm ${height}cm"
     return
@@ -155,17 +160,17 @@ PY
   echo "completed $noise_profile $algorithm ${height}cm"
 }
 
-algorithms=(slam_toolbox cartographer cartographer_imu rtabmap)
-heights=(16p5 26 45 70)
+algorithms=(slam_toolbox cartographer)
+heights=(16p5 45)
 noise_profiles=(measured stress)
 if [[ $# -ge 1 ]]; then
-  algorithms=($1)
+  algorithms=("$1")
 fi
 if [[ $# -ge 2 ]]; then
-  heights=($2)
+  heights=("$2")
 fi
 if [[ $# -ge 3 ]]; then
-  noise_profiles=($3)
+  noise_profiles=("$3")
 fi
 for noise_profile in "${noise_profiles[@]}"; do
   for algorithm in "${algorithms[@]}"; do

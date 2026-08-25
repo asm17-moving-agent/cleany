@@ -56,19 +56,32 @@ case "$noise_profile" in
     exit 2
     ;;
 esac
-
 input=${SLAM_INPUT_PATH:-$result_root/algorithm_compare_inputs/$noise_profile/input_${height}cm_trial1}
 environment=${SLAM_ENVIRONMENT_PATH:-$result_root/algorithm_comparison/$noise_profile/${height}cm_environment}
 robot_spawn_pose=${ROBOT_SPAWN_POSE:-}
 route_config=${ROUTE_CONFIG:-}
 
-profile_shell=$(python3 "$workspace_root/tools/gazebo_profile.py" --shell)
+requested_profile=${GAZEBO_PROFILE:-harmonic}
+profile_shell=$(GAZEBO_PROFILE="$requested_profile" \
+  python3 "$workspace_root/tools/gazebo_profile.py" --shell)
 eval "$profile_shell"
 source "$CLEANY_ROS_SETUP"
 source "$ros_workspace/$CLEANY_INSTALL_BASE/setup.bash"
 
-study_cafe_launch=gazebo_study_cafe.launch.py
-bridge_config="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml"
+case "$CLEANY_GAZEBO_PROFILE" in
+  fortress)
+    study_cafe_launch=gazebo_study_cafe_fortress.launch.py
+    bridge_config="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml"
+    ;;
+  harmonic)
+    study_cafe_launch=gazebo_study_cafe.launch.py
+    bridge_config="$ros_workspace/src/cleany_gazebo_sim/config/bridge/navigation_bridge_harmonic.yaml"
+    ;;
+  *)
+    echo "unsupported Gazebo profile: $CLEANY_GAZEBO_PROFILE" >&2
+    exit 2
+    ;;
+esac
 export ROS_DOMAIN_ID=$domain_id
 
 stop_group() {
@@ -137,6 +150,7 @@ if ! python3 -c 'import sys; sys.exit(float(sys.argv[1]) < 0.01)' "$scan_spread"
 fi
 
 setsid ros2 bag record -o "$input" --storage sqlite3 \
+  --topics \
   /scan /imu/data /odom /ground_truth/odom /tf_static /clock \
   /cmd_vel /gazebo_cmd_vel >"$environment/recorder.log" 2>&1 &
 recorder_pid=$!
@@ -157,11 +171,11 @@ route_pid=$!
 completed=false
 for _ in {1..900}; do
   kill -0 "$gazebo_pid"
-  kill -0 "$route_pid"
   if grep -q 'evaluation route completed' "$environment/route.log"; then
     completed=true
     break
   fi
+  kill -0 "$route_pid"
   sleep 1
 done
 if [[ "$completed" != true ]]; then
@@ -171,5 +185,7 @@ fi
 sleep 2
 stop_group "$route_pid"; route_pid=""
 stop_group "$recorder_pid"; recorder_pid=""
+python3 "$workspace_root/tools/slam_evaluation/prepare_humble_bag.py" \
+  "$input" >>"$environment/recorder.log" 2>&1
 stop_group "$gazebo_pid"; gazebo_pid=""
 echo "completed $noise_profile ${display_height} cm input bag"
