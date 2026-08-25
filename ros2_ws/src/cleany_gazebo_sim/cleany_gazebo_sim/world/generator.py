@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import gettempdir
 from xml.etree import ElementTree
 
+from cleany_gazebo_sim.lidar_noise import LidarNoiseProfile
 from cleany_gazebo_sim.world.layout import load_study_cafe_layout
 
 
@@ -101,7 +102,10 @@ def _freeze_folded_arms(robot: ElementTree.Element) -> None:
         robot.remove(controllers[joint_name])
 
 
-def materialize_mecanum_wheel_world(template_path: Path) -> Path:
+def materialize_mecanum_wheel_world(
+    template_path: Path,
+    lidar_noise: LidarNoiseProfile | None = None,
+) -> Path:
     """Materialize compact mecanum visuals without exposing roller joints."""
     template = template_path.read_text(encoding='utf-8')
     world = template
@@ -132,7 +136,29 @@ def materialize_mecanum_wheel_world(template_path: Path) -> Path:
             visual.insert(insert_at, flags)
         flags.text = _ROBOT_VISIBILITY_FLAGS
 
-    target = Path(gettempdir()) / 'cleany_mecanum_fixed_roller_visuals.sdf'
+    if lidar_noise is not None:
+        lidar = robot.find("link[@name='lidar_link']/sensor[@name='rplidar_a1']/lidar")
+        if lidar is None:
+            raise ValueError('world template is missing the RPLIDAR sensor')
+        noise = lidar.find('noise')
+        if noise is None:
+            noise = ElementTree.Element('noise')
+            visibility_mask = lidar.find('visibility_mask')
+            insert_at = (
+                list(lidar).index(visibility_mask)
+                if visibility_mask is not None
+                else len(lidar)
+            )
+            lidar.insert(insert_at, noise)
+        noise.clear()
+        ElementTree.SubElement(noise, 'type').text = 'gaussian'
+        ElementTree.SubElement(noise, 'mean').text = str(lidar_noise.mean)
+        ElementTree.SubElement(noise, 'stddev').text = str(lidar_noise.stddev)
+
+    suffix = lidar_noise.name if lidar_noise is not None else 'no_noise'
+    target = Path(gettempdir()) / (
+        f'cleany_mecanum_{suffix}_fixed_roller_visuals.sdf'
+    )
     ElementTree.register_namespace(
         'gz', 'http://gazebosim.org/schema'
     )
@@ -670,6 +696,7 @@ def materialize_study_cafe_world(
     real_time_factor: float = 1.0,
     layout_path: Path | None = None,
     lidar_translation: tuple[float, float, float] | None = None,
+    lidar_noise: LidarNoiseProfile | None = None,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
@@ -684,7 +711,7 @@ def materialize_study_cafe_world(
         / 'study_cafe_layout.yaml'
     )
     generated_robot_world = materialize_mecanum_wheel_world(
-        robot_template_path
+        robot_template_path, lidar_noise
     )
     root = ElementTree.parse(generated_robot_world).getroot()
     world = root.find('world')

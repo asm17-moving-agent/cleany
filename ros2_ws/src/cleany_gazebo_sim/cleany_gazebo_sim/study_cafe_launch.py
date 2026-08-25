@@ -17,6 +17,7 @@ from cleany_gazebo_sim.gazebo_slam_experiment import (
     load_mount_profiles,
     write_sensor_tf_config,
 )
+from cleany_gazebo_sim.lidar_noise import load_lidar_noise_profile
 from cleany_gazebo_sim.sensor_profile_launch import (
     declare_sensor_profile_argument,
 )
@@ -30,6 +31,12 @@ def _launch_simulation(
         LaunchConfiguration('lidar_profiles_config').perform(context)
     )
     profile_name = LaunchConfiguration('lidar_profile').perform(context)
+    noise_profile_name = LaunchConfiguration('lidar_noise_profile').perform(
+        context
+    )
+    noise_profiles_path = Path(
+        LaunchConfiguration('lidar_noise_profiles_config').perform(context)
+    )
     try:
         profile = load_mount_profiles(profiles_path)[profile_name]
     except KeyError as error:
@@ -51,6 +58,10 @@ def _launch_simulation(
             LaunchConfiguration('layout_config').perform(context)
         ),
         lidar_translation=profile.transform.translation,
+        lidar_noise=load_lidar_noise_profile(
+            noise_profiles_path,
+            noise_profile_name,
+        ),
     )
     sensor_config = Path('/tmp') / (
         f'cleany_study_cafe_sensor_tf_fortress_{profile.name}.yaml'
@@ -100,6 +111,13 @@ def study_cafe_launch_description() -> LaunchDescription:
     lidar_profile_arg = DeclareLaunchArgument(
         'lidar_profile', default_value='floor_26cm'
     )
+    lidar_noise_profiles_config_arg = DeclareLaunchArgument(
+        'lidar_noise_profiles_config',
+        default_value=str(package_share / 'config' / 'lidar_noise_profiles.yaml'),
+    )
+    lidar_noise_profile_arg = DeclareLaunchArgument(
+        'lidar_noise_profile', default_value='measured'
+    )
     layout_config_arg = DeclareLaunchArgument(
         'layout_config',
         default_value=str(
@@ -130,6 +148,8 @@ def study_cafe_launch_description() -> LaunchDescription:
             bridge_config_arg,
             lidar_profiles_config_arg,
             lidar_profile_arg,
+            lidar_noise_profiles_config_arg,
+            lidar_noise_profile_arg,
             layout_config_arg,
             physics_step_arg,
             real_time_factor_arg,
