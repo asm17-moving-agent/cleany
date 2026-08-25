@@ -12,6 +12,7 @@ from cleany_gazebo_sim.route_control import (
     Pose2D,
     RouteLimits,
     RouteTracker,
+    limit_linear_acceleration,
     waypoints_from_flat,
 )
 
@@ -22,9 +23,11 @@ class GroundTruthRouteFollower(Node):
         self.declare_parameter('waypoints_xy', Parameter.Type.DOUBLE_ARRAY)
         self.declare_parameter('max_linear_speed', 0.15)
         self.declare_parameter('max_angular_speed', 0.25)
+        self.declare_parameter('max_linear_acceleration', 0.2)
         self.declare_parameter('heading_gain', 1.2)
         self.declare_parameter('position_tolerance', 0.09)
-        self.declare_parameter('turn_in_place_threshold', 0.45)
+        self.declare_parameter('heading_tolerance', 0.08)
+        self.declare_parameter('turn_in_place_threshold', 0.15)
         self.declare_parameter('control_rate_hz', 20.0)
         self.declare_parameter('odom_timeout_sec', 0.5)
 
@@ -40,9 +43,15 @@ class GroundTruthRouteFollower(Node):
                 max_angular_speed=float(
                     self.get_parameter('max_angular_speed').value
                 ),
+                max_linear_acceleration=float(
+                    self.get_parameter('max_linear_acceleration').value
+                ),
                 heading_gain=float(self.get_parameter('heading_gain').value),
                 position_tolerance=float(
                     self.get_parameter('position_tolerance').value
+                ),
+                heading_tolerance=float(
+                    self.get_parameter('heading_tolerance').value
                 ),
                 turn_in_place_threshold=float(
                     self.get_parameter('turn_in_place_threshold').value
@@ -55,6 +64,11 @@ class GroundTruthRouteFollower(Node):
         )
         if rate <= 0.0 or self._odom_timeout_sec <= 0.0:
             raise ValueError('control rate and odom timeout must be positive')
+        self._control_period_sec = 1.0 / rate
+        self._max_linear_acceleration = float(
+            self.get_parameter('max_linear_acceleration').value
+        )
+        self._linear_x = 0.0
 
         self._latest_pose: Pose2D | None = None
         self._latest_odom_ns: int | None = None
@@ -64,7 +78,7 @@ class GroundTruthRouteFollower(Node):
         self.create_subscription(
             Odometry, 'ground_truth/odom', self._on_odometry, 10
         )
-        self.create_timer(1.0 / rate, self._on_control)
+        self.create_timer(self._control_period_sec, self._on_control)
         self.get_logger().info(
             f'Loaded route with {self._tracker.waypoint_count} waypoints'
         )
@@ -115,11 +129,18 @@ class GroundTruthRouteFollower(Node):
                 f'{self._tracker.waypoint_count}'
             )
         message = Twist()
-        message.linear.x = command.linear_x
+        self._linear_x = limit_linear_acceleration(
+            self._linear_x,
+            command.linear_x,
+            self._max_linear_acceleration,
+            self._control_period_sec,
+        )
+        message.linear.x = self._linear_x
         message.angular.z = command.angular_z
         self._publisher.publish(message)
 
     def _publish_stop(self) -> None:
+        self._linear_x = 0.0
         self._publisher.publish(Twist())
 
 

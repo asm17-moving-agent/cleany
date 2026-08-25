@@ -30,24 +30,50 @@ class RouteCommand:
 class RouteLimits:
     max_linear_speed: float
     max_angular_speed: float
+    max_linear_acceleration: float
     heading_gain: float
     position_tolerance: float
+    heading_tolerance: float
     turn_in_place_threshold: float
 
     def __post_init__(self) -> None:
         values = (
             self.max_linear_speed,
             self.max_angular_speed,
+            self.max_linear_acceleration,
             self.heading_gain,
             self.position_tolerance,
+            self.heading_tolerance,
             self.turn_in_place_threshold,
         )
         if not all(math.isfinite(value) and value > 0.0 for value in values):
             raise ValueError('route limits must be positive and finite')
+        if self.heading_tolerance >= self.turn_in_place_threshold:
+            raise ValueError(
+                'heading tolerance must be smaller than turn threshold'
+            )
 
 
 def normalize_angle(angle: float) -> float:
     return math.atan2(math.sin(angle), math.cos(angle))
+
+
+def limit_linear_acceleration(
+    current: float,
+    target: float,
+    max_acceleration: float,
+    period_sec: float,
+) -> float:
+    values = (current, target, max_acceleration, period_sec)
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError('velocity limit inputs must be finite')
+    if current < 0.0 or target < 0.0:
+        raise ValueError('linear speeds must be non-negative')
+    if max_acceleration <= 0.0 or period_sec <= 0.0:
+        raise ValueError('acceleration and period must be positive')
+    if target <= current:
+        return target
+    return min(target, current + max_acceleration * period_sec)
 
 
 def waypoints_from_flat(values: Sequence[float]) -> tuple[Waypoint, ...]:
@@ -71,6 +97,7 @@ class RouteTracker:
         self._waypoints = tuple(waypoints)
         self._limits = limits
         self._index = 0
+        self._turning = True
 
     @property
     def waypoint_index(self) -> int:
@@ -90,6 +117,7 @@ class RouteTracker:
             if distance > self._limits.position_tolerance:
                 break
             self._index += 1
+            self._turning = True
 
         if self._index >= len(self._waypoints):
             return RouteCommand(0.0, 0.0, self._index, True)
@@ -99,6 +127,11 @@ class RouteTracker:
         dy = target.y - pose.y
         distance = math.hypot(dx, dy)
         heading_error = normalize_angle(math.atan2(dy, dx) - pose.yaw)
+        if self._turning:
+            if abs(heading_error) <= self._limits.heading_tolerance:
+                self._turning = False
+        elif abs(heading_error) >= self._limits.turn_in_place_threshold:
+            self._turning = True
         angular = max(
             -self._limits.max_angular_speed,
             min(
@@ -106,7 +139,7 @@ class RouteTracker:
                 self._limits.heading_gain * heading_error,
             ),
         )
-        if abs(heading_error) >= self._limits.turn_in_place_threshold:
+        if self._turning:
             linear = 0.0
         else:
             linear = min(self._limits.max_linear_speed, distance)
