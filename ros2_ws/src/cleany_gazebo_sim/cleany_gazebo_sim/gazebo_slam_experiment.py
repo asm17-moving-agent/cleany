@@ -17,7 +17,10 @@ from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
 SCHEMA_VERSION = 1
-_WORLD_FILENAME = 'cleany_mecanum_fortress.sdf'
+_WORLD_FILENAMES = {
+    'fortress': 'cleany_mecanum_fortress.sdf',
+    'harmonic': 'cleany_mecanum_harmonic.sdf',
+}
 _REQUIRED_METRICS = (
     'ate_rmse_m',
     'rpe_translation_rmse_m',
@@ -179,7 +182,7 @@ def materialize_evaluation(
     simulator: str,
     output_dir: Path,
 ) -> EvaluationArtifacts:
-    if simulator != 'fortress':
+    if simulator not in _WORLD_FILENAMES:
         raise ValueError(f'unsupported simulator profile: {simulator!r}')
     profiles = load_mount_profiles(profiles_path)
     try:
@@ -196,7 +199,7 @@ def materialize_evaluation(
     manifest_path = output_dir / 'manifest.json'
     try:
         _write_profile_world(
-            package_root / 'worlds' / _WORLD_FILENAME,
+            package_root / 'worlds' / _WORLD_FILENAMES[simulator],
             profile,
             world_path,
         )
@@ -306,7 +309,7 @@ def _parser() -> argparse.ArgumentParser:
     prepare.add_argument('--profiles', type=Path, required=True)
     prepare.add_argument('--profile', required=True)
     prepare.add_argument(
-        '--simulator', choices=('fortress',), default='fortress'
+        '--simulator', choices=tuple(_WORLD_FILENAMES), default='fortress'
     )
     prepare.add_argument('--output', type=Path, required=True)
     record = subparsers.add_parser('record')

@@ -218,14 +218,18 @@ def test_result_validation_rejects_invalid_ratio() -> None:
 
 
 def test_launch_profiles_accept_materialized_sensor_config() -> None:
-    launch = (PACKAGE_ROOT / 'launch' / 'gazebo_fortress.launch.py').read_text(
-        encoding='utf-8'
-    )
-    assert "DeclareLaunchArgument(\n        'sensor_config'" in launch
-    sensor_node = launch.split(
-        "executable='gazebo_sensor_tf_publisher'", 1
-    )[1]
-    assert "LaunchConfiguration('sensor_config')" in sensor_node
+    for launch_name in (
+        'gazebo_fortress.launch.py',
+        'gazebo_harmonic.launch.py',
+    ):
+        launch = (PACKAGE_ROOT / 'launch' / launch_name).read_text(
+            encoding='utf-8'
+        )
+        assert "DeclareLaunchArgument(\n        'sensor_config'" in launch
+        sensor_node = launch.split(
+            "executable='gazebo_sensor_tf_publisher'", 1
+        )[1]
+        assert "LaunchConfiguration('sensor_config')" in sensor_node
 
 
 def test_fortress_gui_renderer_is_machine_selectable() -> None:
