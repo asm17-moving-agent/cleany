@@ -23,3 +23,4 @@ ros2_ws/log-harmonic/
 *.log
 *.tmp
 /artifacts/
+ros2_ws/slam_results/

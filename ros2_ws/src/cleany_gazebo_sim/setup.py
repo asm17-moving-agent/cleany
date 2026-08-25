@@ -15,7 +15,19 @@ setup(
         (f'share/{package_name}/launch', glob('launch/*.launch.py')),
         (
             f'share/{package_name}/config',
-            glob('config/*.yaml') + glob('config/*.rviz'),
+            glob('config/*.yaml'),
+        ),
+        (
+            f'share/{package_name}/config/bridge',
+            glob('config/bridge/*.yaml'),
+        ),
+        (
+            f'share/{package_name}/config/study_cafe',
+            glob('config/study_cafe/*.yaml'),
+        ),
+        (
+            f'share/{package_name}/config/rviz',
+            glob('config/rviz/*.rviz'),
         ),
         (f'share/{package_name}/worlds', glob('worlds/*.sdf')),
     ],
@@ -31,6 +43,9 @@ setup(
             'gazebo_command_guard = cleany_gazebo_sim.command_guard:main',
             'gazebo_odom_tf_publisher = cleany_gazebo_sim.odom_tf_publisher:main',
             'gazebo_sensor_tf_publisher = cleany_gazebo_sim.sensor_tf_publisher:main',
+            'ground_truth_route_follower = cleany_gazebo_sim.ground_truth_route_follower:main',
+            'gazebo_slam_experiment = cleany_gazebo_sim.gazebo_slam_experiment:main',
+            'occupancy_grid_marker = cleany_gazebo_sim.occupancy_grid_marker:main',
         ],
     },
 )

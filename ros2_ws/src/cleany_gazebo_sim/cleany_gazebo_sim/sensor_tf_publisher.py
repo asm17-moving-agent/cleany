@@ -13,7 +13,8 @@ class GazeboSensorTfPublisher(Node):
     def __init__(self) -> None:
         super().__init__('gazebo_sensor_tf_publisher')
         self.declare_parameter('parent_frame_id', Parameter.Type.STRING)
-        for sensor_name in ('lidar', 'imu'):
+        sensor_names = ('lidar', 'imu')
+        for sensor_name in sensor_names:
             self.declare_parameter(
                 f'{sensor_name}_frame_id', Parameter.Type.STRING
             )
@@ -27,7 +28,7 @@ class GazeboSensorTfPublisher(Node):
         parent_frame_id = self.get_parameter('parent_frame_id').value
         transforms = [
             self._read_transform(parent_frame_id, sensor_name)
-            for sensor_name in ('lidar', 'imu')
+            for sensor_name in sensor_names
         ]
 
         self._tf_broadcaster = StaticTransformBroadcaster(self)

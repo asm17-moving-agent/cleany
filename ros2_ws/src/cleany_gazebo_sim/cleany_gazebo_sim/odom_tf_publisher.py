@@ -14,18 +14,25 @@ class GazeboOdomTfPublisher(Node):
         super().__init__('gazebo_odom_tf_publisher')
         self.declare_parameter('odom_frame_id', 'odom')
         self.declare_parameter('base_frame_id', 'base_link')
+        self.declare_parameter('input_topic', 'gazebo_odom')
+        self.declare_parameter('publish_odometry', True)
         self._odom_frame_id = str(self.get_parameter('odom_frame_id').value)
         self._base_frame_id = str(self.get_parameter('base_frame_id').value)
+        input_topic = str(self.get_parameter('input_topic').value)
+        self._publish_odometry = bool(
+            self.get_parameter('publish_odometry').value
+        )
 
         self._publisher = self.create_publisher(Odometry, 'odom', 10)
         self._tf_broadcaster = TransformBroadcaster(self)
-        self.create_subscription(Odometry, 'gazebo_odom', self._on_odometry, 10)
+        self.create_subscription(Odometry, input_topic, self._on_odometry, 10)
 
     def _on_odometry(self, message: Odometry) -> None:
         output = deepcopy(message)
         output.header.frame_id = self._odom_frame_id
         output.child_frame_id = self._base_frame_id
-        self._publisher.publish(output)
+        if self._publish_odometry:
+            self._publisher.publish(output)
 
         transform = TransformStamped()
         transform.header = output.header

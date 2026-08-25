@@ -1,0 +1,5 @@
+- ros_topic_name: "/camera/left_wrist/color/image_raw"
+  gz_topic_name: "/model/cleany_mecanum/left_wrist_camera/rgb/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "ignition.msgs.Image"
+  direction: GZ_TO_ROS
