@@ -63,9 +63,7 @@ def _launch_simulation(
             noise_profile_name,
         ),
     )
-    sensor_config = Path('/tmp') / (
-        f'cleany_study_cafe_sensor_tf_fortress_{profile.name}.yaml'
-    )
+    sensor_config = world.parent / 'sensor_tf.yaml'
     write_sensor_tf_config(profile, sensor_config)
     simulation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
