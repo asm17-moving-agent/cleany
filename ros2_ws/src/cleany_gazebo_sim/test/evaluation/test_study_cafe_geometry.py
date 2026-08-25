@@ -412,7 +412,10 @@ def test_every_chair_faces_its_assigned_desk(tmp_path: Path) -> None:
 
 def test_study_cafe_launch_uses_fortress_gui_profile() -> None:
     source = (
-        PACKAGE_ROOT / 'cleany_gazebo_sim' / 'study_cafe_launch.py'
+        PACKAGE_ROOT
+        / 'cleany_gazebo_sim'
+        / 'launch_helpers'
+        / 'study_cafe.py'
     ).read_text(encoding='utf-8')
     wrapper = (
         PACKAGE_ROOT / 'launch' / 'gazebo_study_cafe.launch.py'

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from cleany_gazebo_sim.sensor_profile_launch import (
+from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     SENSOR_PROFILES,
     sensor_profile_bridge_groups,
 )

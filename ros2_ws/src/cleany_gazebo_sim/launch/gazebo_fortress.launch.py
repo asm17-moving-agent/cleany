@@ -12,7 +12,7 @@ from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
-from cleany_gazebo_sim.sensor_profile_launch import (
+from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     declare_sensor_profile_argument,
     sensor_profile_bridges,
 )
