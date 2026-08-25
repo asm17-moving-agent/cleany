@@ -242,9 +242,13 @@ metalness 0.0의 무광 석고 재질입니다. 의자 좌판 앞쪽은 상판 �
 다운로드를 위해 network가 필요하고 이후에는 Gazebo cache를 사용합니다.
 
 로컬 Humble/Fortress Distrobox에서 GUI 배율 1.0으로 실행합니다.
+GUI renderer 기본값은 OGRE1이며, host GPU·Mesa 호환성에 따라 OGRE2를
+선택할 수 있습니다.
 
 ```bash
 make sim-gazebo-study-cafe
+
+GAZEBO_GUI_RENDER_ENGINE=ogre2 make sim-gazebo-study-cafe
 ```
 
 ## 2D SLAM candidate profile
@@ -507,9 +511,16 @@ ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py headless:=false
 ## Profiles
 
 GUI와 camera sensor는 host의 OpenGL/OGRE 호환성에 영향을 받습니다. Fortress의
-GPU LiDAR와 camera sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용합니다.
+GPU LiDAR와 camera sensor server는 항상 OGRE2로 실행하고, GUI는
+`gui_render_engine:=ogre|ogre2` 인자로 선택합니다. 기본값은 OGRE1이며
+`GAZEBO_GUI_RENDER_ENGINE` 환경변수로 machine별 기본값을 지정할 수 있습니다.
 Fortress의 server-only `-s`는 GUI만 끄며 rendering sensor가 있으면 server 내부에서
 여전히 rendering context를 생성합니다.
+
+```bash
+ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+  headless:=false gui_render_engine:=ogre2
+```
 
 `make sim-gazebo`와 `make test-gazebo`는 ROS 2 Humble과 Gazebo Fortress version을
 검사합니다. 환경 준비 규칙은

@@ -4,6 +4,7 @@ REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
+GAZEBO_GUI_RENDER_ENGINE ?= ogre
 HANDEYE_PROFILE_DIR ?= $(REPO_ROOT)artifacts/handeye/profiles/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
@@ -224,7 +225,8 @@ sim-gazebo-study-cafe:
 	source "$${CLEANY_ROS_SETUP}" && \
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
-	ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py headless:=false
+	ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+		headless:=false gui_render_engine:="$(GAZEBO_GUI_RENDER_ENGINE)"
 
 clean:
 	"$(REPO_ROOT)tools/ros2-clean"

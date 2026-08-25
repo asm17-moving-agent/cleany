@@ -8,7 +8,7 @@ from launch.actions import (
     ExecuteProcess,
 )
 from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 from launch_ros.actions import Node
 
 from cleany_gazebo_sim.sensor_profile_launch import (
@@ -42,6 +42,14 @@ def generate_launch_description() -> LaunchDescription:
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
     )
+    gui_render_engine_arg = DeclareLaunchArgument(
+        'gui_render_engine',
+        default_value=EnvironmentVariable(
+            'GAZEBO_GUI_RENDER_ENGINE', default_value='ogre'
+        ),
+        choices=['ogre', 'ogre2'],
+        description='Rendering engine used by the Gazebo GUI.',
+    )
     sensor_profile_arg = declare_sensor_profile_argument()
 
     server = ExecuteProcess(
@@ -65,7 +73,7 @@ def generate_launch_description() -> LaunchDescription:
             '--render-engine-server',
             'ogre2',
             '--render-engine-gui',
-            'ogre',
+            LaunchConfiguration('gui_render_engine'),
             LaunchConfiguration('world'),
         ],
         condition=UnlessCondition(LaunchConfiguration('headless')),
@@ -113,6 +121,7 @@ def generate_launch_description() -> LaunchDescription:
             sensor_config_arg,
             headless_arg,
             use_sim_time_arg,
+            gui_render_engine_arg,
             sensor_profile_arg,
             # Reuse the authoritative description meshes instead of
             # committing duplicate, large STL assets to this package.

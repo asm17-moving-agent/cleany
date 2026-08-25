@@ -421,6 +421,9 @@ def test_study_cafe_launch_uses_fortress_gui_profile() -> None:
     assert 'study_cafe_launch_description()' in wrapper
     assert 'declare_sensor_profile_argument' in source
     assert "'sensor_profile': LaunchConfiguration('sensor_profile')" in source
+    assert "'gui_render_engine': LaunchConfiguration(" in source
+    assert "'GAZEBO_GUI_RENDER_ENGINE', default_value='ogre'" in source
+    assert "choices=['ogre', 'ogre2']" in source
     assert "default_value=''" in source
     assert "default_value='false'" in source
     assert "SetEnvironmentVariable('QT_SCALE_FACTOR', '1.0')" in source

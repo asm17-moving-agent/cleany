@@ -222,3 +222,15 @@ def test_launch_profiles_accept_materialized_sensor_config() -> None:
         "executable='gazebo_sensor_tf_publisher'", 1
     )[1]
     assert "LaunchConfiguration('sensor_config')" in sensor_node
+
+
+def test_fortress_gui_renderer_is_machine_selectable() -> None:
+    launch = (PACKAGE_ROOT / 'launch' / 'gazebo_fortress.launch.py').read_text(
+        encoding='utf-8'
+    )
+    assert "'gui_render_engine'" in launch
+    assert "'GAZEBO_GUI_RENDER_ENGINE', default_value='ogre'" in launch
+    assert "choices=['ogre', 'ogre2']" in launch
+    gui_command = launch.split("gui = ExecuteProcess(", 1)[1]
+    assert "'--render-engine-server',\n            'ogre2'" in gui_command
+    assert "LaunchConfiguration('gui_render_engine')" in gui_command

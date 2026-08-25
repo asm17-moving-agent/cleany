@@ -11,7 +11,7 @@ from launch.actions import (
     SetEnvironmentVariable,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 
 from cleany_gazebo_sim.gazebo_slam_experiment import (
     load_mount_profiles,
@@ -64,6 +64,7 @@ def _launch_simulation(
             'world': str(world),
             'headless': LaunchConfiguration('headless'),
             'use_sim_time': LaunchConfiguration('use_sim_time'),
+            'gui_render_engine': LaunchConfiguration('gui_render_engine'),
             'bridge_config': LaunchConfiguration('bridge_config'),
             'sensor_config': str(sensor_config),
             'sensor_profile': LaunchConfiguration('sensor_profile'),
@@ -78,6 +79,14 @@ def study_cafe_launch_description() -> LaunchDescription:
     headless_arg = DeclareLaunchArgument('headless', default_value='false')
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
+    )
+    gui_render_engine_arg = DeclareLaunchArgument(
+        'gui_render_engine',
+        default_value=EnvironmentVariable(
+            'GAZEBO_GUI_RENDER_ENGINE', default_value='ogre'
+        ),
+        choices=['ogre', 'ogre2'],
+        description='Rendering engine used by the Gazebo GUI.',
     )
     bridge_config_arg = DeclareLaunchArgument(
         'bridge_config',
@@ -117,6 +126,7 @@ def study_cafe_launch_description() -> LaunchDescription:
         [
             headless_arg,
             use_sim_time_arg,
+            gui_render_engine_arg,
             bridge_config_arg,
             lidar_profiles_config_arg,
             lidar_profile_arg,
