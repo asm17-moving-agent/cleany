@@ -124,8 +124,9 @@ ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py \
 
 `gazebo_study_cafe.launch.py`는 12.26×10.94 m, 48석 study-cafe 평가
 공간을 생성합니다. 로봇 spawn, 방 크기, 책상·의자 배치는
-`config/study_cafe/study_cafe_layout.yaml`이 관리하며 생성된 world는
-`/tmp/cleany_study_cafe.sdf`에 기록됩니다.
+`config/study_cafe/study_cafe_layout.yaml`이 관리합니다. launch마다
+`/tmp/cleany-study-cafe-*/` 전용 디렉터리를 만들고 그 안에 world와 sensor TF
+설정을 기록하므로 동시 실행이나 이전 실행의 파일 권한과 충돌하지 않습니다.
 
 LiDAR 높이는 `lidar_profile` argument로 선택합니다.
 

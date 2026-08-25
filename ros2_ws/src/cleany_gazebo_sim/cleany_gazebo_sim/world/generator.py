@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from math import asin, atan2, cos, isfinite, pi, sin, sqrt
 from pathlib import Path
-from tempfile import gettempdir
+from tempfile import mkdtemp
 from xml.etree import ElementTree
 
 from cleany_gazebo_sim.lidar_noise import LidarNoiseProfile
@@ -51,6 +51,13 @@ _FUEL_VISUALS = {
         'OfficeChairGrey/1/files/meshes/OfficeChairGrey.obj'
     ),
 }
+
+
+def _unique_runtime_target(prefix: str, filename: str) -> Path:
+    """Reserve a process-owned runtime directory and return a file in it."""
+    return Path(mkdtemp(prefix=prefix)) / filename
+
+
 def fixed_roller_visual_sdf(prefix: str, handedness: float) -> str:
     """Generate one wheel's fixed, non-controllable roller visuals."""
     fragments: list[str] = []
@@ -105,6 +112,8 @@ def _freeze_folded_arms(robot: ElementTree.Element) -> None:
 def materialize_mecanum_wheel_world(
     template_path: Path,
     lidar_noise: LidarNoiseProfile | None = None,
+    *,
+    target_path: Path | None = None,
 ) -> Path:
     """Materialize compact mecanum visuals without exposing roller joints."""
     template = template_path.read_text(encoding='utf-8')
@@ -156,9 +165,10 @@ def materialize_mecanum_wheel_world(
         ElementTree.SubElement(noise, 'stddev').text = str(lidar_noise.stddev)
 
     suffix = lidar_noise.name if lidar_noise is not None else 'no_noise'
-    target = Path(gettempdir()) / (
-        f'cleany_mecanum_{suffix}_fixed_roller_visuals.sdf'
+    target = target_path or _unique_runtime_target(
+        f'cleany-mecanum-{suffix}-', 'world.sdf'
     )
+    target.parent.mkdir(parents=True, exist_ok=True)
     ElementTree.register_namespace(
         'gz', 'http://gazebosim.org/schema'
     )
@@ -710,10 +720,19 @@ def materialize_study_cafe_world(
         / 'study_cafe'
         / 'study_cafe_layout.yaml'
     )
-    generated_robot_world = materialize_mecanum_wheel_world(
-        robot_template_path, lidar_noise
+    target = target_path or _unique_runtime_target(
+        'cleany-study-cafe-', 'world.sdf'
     )
-    root = ElementTree.parse(generated_robot_world).getroot()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    generated_robot_world = materialize_mecanum_wheel_world(
+        robot_template_path,
+        lidar_noise,
+        target_path=target.parent / '.robot-world.sdf',
+    )
+    try:
+        root = ElementTree.parse(generated_robot_world).getroot()
+    finally:
+        generated_robot_world.unlink(missing_ok=True)
     world = root.find('world')
     if world is None:
         raise ValueError('robot template must contain a world')
@@ -865,10 +884,6 @@ def materialize_study_cafe_world(
                 )
                 desk_index += 1
 
-    target = target_path or (
-        Path(gettempdir()) / 'cleany_study_cafe.sdf'
-    )
-    target.parent.mkdir(parents=True, exist_ok=True)
     ElementTree.ElementTree(root).write(
         target, encoding='unicode', xml_declaration=True
     )
