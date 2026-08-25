@@ -51,7 +51,7 @@ def test_mount_profiles_define_distinct_candidate_transforms() -> None:
 
 def test_shared_lidar_bridge_has_one_stable_scan_topic() -> None:
     entries = yaml.safe_load(
-        (BRIDGE_CONFIG_ROOT / 'lidar_bridge_harmonic.yaml').read_text(
+        (BRIDGE_CONFIG_ROOT / 'lidar_bridge.yaml').read_text(
             encoding='utf-8'
         )
     )
@@ -72,7 +72,6 @@ def test_profile_loader_rejects_duplicate_transforms(tmp_path: Path) -> None:
         load_mount_profiles(path)
 
 
-@pytest.mark.parametrize('simulator', ('fortress', 'harmonic'))
 @pytest.mark.parametrize(
     'profile_name',
     (
@@ -83,9 +82,10 @@ def test_profile_loader_rejects_duplicate_transforms(tmp_path: Path) -> None:
     ),
 )
 def test_materialized_world_and_tf_match_profile(
-    tmp_path: Path, simulator: str, profile_name: str
+    tmp_path: Path, profile_name: str
 ) -> None:
-    output_dir = tmp_path / f'{simulator}-{profile_name}'
+    simulator = 'fortress'
+    output_dir = tmp_path / f'fortress-{profile_name}'
     artifacts = materialize_evaluation(
         package_root=PACKAGE_ROOT,
         profiles_path=PROFILES_PATH,
@@ -214,15 +214,23 @@ def test_result_validation_rejects_invalid_ratio() -> None:
 
 
 def test_launch_profiles_accept_materialized_sensor_config() -> None:
-    for launch_name in (
-        'gazebo_fortress.launch.py',
-        'gazebo_harmonic.launch.py',
-    ):
-        launch = (PACKAGE_ROOT / 'launch' / launch_name).read_text(
-            encoding='utf-8'
-        )
-        assert "DeclareLaunchArgument(\n        'sensor_config'" in launch
-        sensor_node = launch.split(
-            "executable='gazebo_sensor_tf_publisher'", 1
-        )[1]
-        assert "LaunchConfiguration('sensor_config')" in sensor_node
+    launch = (PACKAGE_ROOT / 'launch' / 'gazebo_fortress.launch.py').read_text(
+        encoding='utf-8'
+    )
+    assert "DeclareLaunchArgument(\n        'sensor_config'" in launch
+    sensor_node = launch.split(
+        "executable='gazebo_sensor_tf_publisher'", 1
+    )[1]
+    assert "LaunchConfiguration('sensor_config')" in sensor_node
+
+
+def test_fortress_gui_renderer_is_machine_selectable() -> None:
+    launch = (PACKAGE_ROOT / 'launch' / 'gazebo_fortress.launch.py').read_text(
+        encoding='utf-8'
+    )
+    assert "'gui_render_engine'" in launch
+    assert "'GAZEBO_GUI_RENDER_ENGINE', default_value='ogre'" in launch
+    assert "choices=['ogre', 'ogre2']" in launch
+    gui_command = launch.split("gui = ExecuteProcess(", 1)[1]
+    assert "'--render-engine-server',\n            'ogre2'" in gui_command
+    assert "LaunchConfiguration('gui_render_engine')" in gui_command

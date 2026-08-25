@@ -29,7 +29,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
     group.addoption(
         '--sim-profile',
-        choices=('fortress', 'harmonic'),
+        choices=('fortress',),
         default='fortress',
         help='Gazebo profile used by the runtime test (default: fortress).',
     )

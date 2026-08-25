@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-workspace_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+workspace_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 ros_workspace="$workspace_root/ros2_ws"
 input_root="$ros_workspace/slam_results/algorithm_compare_inputs"
 run_root="$ros_workspace/slam_results/algorithm_compare_runs"
 rate=${SLAM_REPLAY_RATE:-2.5}
 
-source /opt/ros/jazzy/setup.bash
-source "$ros_workspace/install-harmonic/setup.bash"
+source /opt/ros/humble/setup.bash
+source "$ros_workspace/install/setup.bash"
 set -u
 
 stop_process() {
@@ -130,7 +130,7 @@ run_one() {
   stop_process "$launch_pid"
   launch_pid=""
   if [[ "$algorithm" == rtabmap ]]; then
-    python3 "$workspace_root/tools/analyze_slam_algorithm_comparison.py" \
+    python3 "$workspace_root/tools/slam_evaluation/analyze_slam_algorithm_comparison.py" \
       --extract-rtabmap-run "$output" --input-bag "$input" \
       >>"$output/save.log" 2>&1
   fi

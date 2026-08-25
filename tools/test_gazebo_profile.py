@@ -19,43 +19,32 @@ def _all_setups(_path: str) -> bool:
     return True
 
 
-@pytest.mark.parametrize(
-    ('ros_distro', 'expected'),
-    [('humble', 'fortress'), ('jazzy', 'harmonic')],
-)
-def test_ros_distro_selects_matching_profile(
-    ros_distro: str,
-    expected: str,
-) -> None:
-    profile = select_profile({'ROS_DISTRO': ros_distro}, _all_setups)
-    assert profile.name == expected
+def test_humble_selects_fortress() -> None:
+    profile = select_profile({'ROS_DISTRO': 'humble'}, _all_setups)
+    assert profile == PROFILES['fortress']
 
 
-def test_override_selects_profile_when_ros_is_not_sourced() -> None:
-    profile = select_profile({'GAZEBO_PROFILE': 'harmonic'}, _all_setups)
-    assert profile == PROFILES['harmonic']
+def test_fortress_override_is_supported() -> None:
+    profile = select_profile({'GAZEBO_PROFILE': 'fortress'}, _all_setups)
+    assert profile == PROFILES['fortress']
 
 
-def test_conflicting_override_and_ros_distro_fail() -> None:
-    with pytest.raises(ProfileError, match='conflicts'):
-        select_profile(
-            {'ROS_DISTRO': 'humble', 'GAZEBO_PROFILE': 'harmonic'},
-            _all_setups,
-        )
+def test_unsupported_ros_distro_fails() -> None:
+    with pytest.raises(ProfileError, match='unsupported ROS_DISTRO'):
+        select_profile({'ROS_DISTRO': 'unsupported'}, _all_setups)
 
 
-def test_ambiguous_installed_distributions_fail() -> None:
-    with pytest.raises(ProfileError, match='ambiguous'):
-        select_profile({}, _all_setups)
+def test_missing_ros_distro_uses_installed_humble() -> None:
+    assert select_profile({}, _all_setups) == PROFILES['fortress']
 
 
 def test_gazebo_major_must_match_profile() -> None:
-    with pytest.raises(ProfileError, match='requires Gazebo major 8'):
-        validate_gazebo(PROFILES['harmonic'], lambda _profile: 7)
+    with pytest.raises(ProfileError, match='requires Gazebo major 6'):
+        validate_gazebo(PROFILES['fortress'], lambda _profile: 7)
 
 
-def test_shell_environment_keeps_build_outputs_isolated() -> None:
-    output = shell_environment(PROFILES['harmonic'])
-    assert 'CLEANY_GAZEBO_PROFILE=harmonic' in output
-    assert 'CLEANY_BUILD_BASE=build-harmonic' in output
-    assert 'CLEANY_INSTALL_BASE=install-harmonic' in output
+def test_shell_environment_uses_standard_build_outputs() -> None:
+    output = shell_environment(PROFILES['fortress'])
+    assert 'CLEANY_GAZEBO_PROFILE=fortress' in output
+    assert 'CLEANY_BUILD_BASE=build' in output
+    assert 'CLEANY_INSTALL_BASE=install' in output

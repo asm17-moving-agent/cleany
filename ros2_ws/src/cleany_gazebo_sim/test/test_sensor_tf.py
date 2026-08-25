@@ -9,10 +9,7 @@ from cleany_gazebo_sim.static_transform import StaticTransformSpec
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 BASE_CONFIG_PATH = PACKAGE_ROOT / 'config' / 'base.yaml'
-WORLD_PATHS = (
-    PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf',
-    PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf',
-)
+WORLD_PATH = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf'
 
 
 def test_static_transform_spec_accepts_sensor_mount():
@@ -49,7 +46,7 @@ def test_static_transform_spec_rejects_invalid_values(
         )
 
 
-def test_sensor_tf_config_matches_both_gazebo_worlds():
+def test_sensor_tf_config_matches_gazebo_world():
     config = yaml.safe_load(BASE_CONFIG_PATH.read_text(encoding='utf-8'))
     parameters = config['gazebo_sensor_tf_publisher']['ros__parameters']
 
@@ -59,19 +56,16 @@ def test_sensor_tf_config_matches_both_gazebo_worlds():
     assert parameters['lidar_rotation_xyzw'] == [0.0, 0.0, 0.0, 1.0]
     assert parameters['imu_rotation_xyzw'] == [0.0, 0.0, 0.0, 1.0]
 
-    for world_path in WORLD_PATHS:
-        root = ElementTree.parse(world_path).getroot()
-        model = root.find("./world/model[@name='cleany_mecanum']")
-        assert model is not None
-        for sensor_name in ('lidar', 'imu'):
-            mount = model.find(f"joint[@name='{sensor_name}_mount']")
-            assert mount is not None
-            assert mount.findtext('parent') == parameters['parent_frame_id']
-            assert mount.findtext('child') == parameters[
-                f'{sensor_name}_frame_id'
-            ]
-            pose_text = mount.findtext('pose')
-            assert pose_text is not None
-            pose = [float(value) for value in pose_text.split()]
-            assert pose[:3] == parameters[f'{sensor_name}_translation']
-            assert pose[3:] == [0.0, 0.0, 0.0]
+    root = ElementTree.parse(WORLD_PATH).getroot()
+    model = root.find("./world/model[@name='cleany_mecanum']")
+    assert model is not None
+    for sensor_name in ('lidar', 'imu'):
+        mount = model.find(f"joint[@name='{sensor_name}_mount']")
+        assert mount is not None
+        assert mount.findtext('parent') == parameters['parent_frame_id']
+        assert mount.findtext('child') == parameters[f'{sensor_name}_frame_id']
+        pose_text = mount.findtext('pose')
+        assert pose_text is not None
+        pose = [float(value) for value in pose_text.split()]
+        assert pose[:3] == parameters[f'{sensor_name}_translation']
+        assert pose[3:] == [0.0, 0.0, 0.0]

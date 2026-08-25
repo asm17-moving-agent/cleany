@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-workspace_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+workspace_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 ros_workspace="$workspace_root/ros2_ws"
 result_root="$ros_workspace/slam_results"
 study_root="$result_root/chair_shift_localization"
 rate=${SLAM_REPLAY_RATE:-2.5}
-source /opt/ros/jazzy/setup.bash
-source "$ros_workspace/install-harmonic/setup.bash"
+source /opt/ros/humble/setup.bash
+source "$ros_workspace/install/setup.bash"
 
 launch_pid="" recorder_pid=""
 stop_group() {

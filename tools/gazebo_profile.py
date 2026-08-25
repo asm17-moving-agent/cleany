@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detect and validate the supported ROS 2 / Gazebo profile."""
+"""Validate the ROS 2 Humble / Gazebo Fortress environment."""
 
 from __future__ import annotations
 
@@ -48,21 +48,7 @@ PROFILES = {
         ubuntu_version='22.04',
         python_version='3.10',
     ),
-    'harmonic': GazeboProfile(
-        name='harmonic',
-        ros_distro='jazzy',
-        ros_setup='/opt/ros/jazzy/setup.bash',
-        gazebo_command=('gz', 'sim', '--versions'),
-        gazebo_major=8,
-        launch_file='gazebo_harmonic.launch.py',
-        build_base='build-harmonic',
-        install_base='install-harmonic',
-        log_base='log-harmonic',
-        ubuntu_version='24.04',
-        python_version='3.12',
-    ),
 }
-ROS_PROFILES = {profile.ros_distro: profile for profile in PROFILES.values()}
 
 
 def _setup_exists(path: str) -> bool:
@@ -76,41 +62,16 @@ def select_profile(
     override = environment.get('GAZEBO_PROFILE', '').strip().lower()
     ros_distro = environment.get('ROS_DISTRO', '').strip().lower()
 
-    if override and override not in PROFILES:
-        supported = ', '.join(PROFILES)
+    if override and override != 'fortress':
         raise ProfileError(
-            f'unsupported GAZEBO_PROFILE={override!r}; choose {supported}'
+            f'unsupported GAZEBO_PROFILE={override!r}; choose fortress'
         )
 
-    if ros_distro:
-        detected = ROS_PROFILES.get(ros_distro)
-        if detected is None:
-            supported = ', '.join(ROS_PROFILES)
-            raise ProfileError(
-                f'unsupported ROS_DISTRO={ros_distro!r}; choose {supported}'
-            )
-        if override and detected.name != override:
-            raise ProfileError(
-                f'GAZEBO_PROFILE={override} conflicts with '
-                f'ROS_DISTRO={ros_distro}'
-            )
-        profile = detected
-    elif override:
-        profile = PROFILES[override]
-    else:
-        installed = [
-            profile
-            for profile in PROFILES.values()
-            if setup_exists(profile.ros_setup)
-        ]
-        if len(installed) != 1:
-            raise ProfileError(
-                'ROS_DISTRO is not set and the ROS installation is ambiguous; '
-                'source /opt/ros/humble/setup.bash or '
-                '/opt/ros/jazzy/setup.bash, or set '
-                'GAZEBO_PROFILE=fortress|harmonic'
-            )
-        profile = installed[0]
+    if ros_distro and ros_distro != 'humble':
+        raise ProfileError(
+            f'unsupported ROS_DISTRO={ros_distro!r}; choose humble'
+        )
+    profile = PROFILES['fortress']
 
     if not setup_exists(profile.ros_setup):
         raise ProfileError(f'ROS setup file not found: {profile.ros_setup}')
