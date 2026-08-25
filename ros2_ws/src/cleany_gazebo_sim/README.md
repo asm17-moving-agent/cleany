@@ -45,6 +45,27 @@ ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
   headless:=false gui_render_engine:=ogre2
 ```
 
+## LiDAR noise profile
+
+`gazebo_fortress.launch.py`는 기본 world를 생성할 때 RPLIDAR A1M8 Gaussian
+noise profile을 적용합니다. 두 profile 모두 고정 bias 없이 `mean=0.0`을 사용합니다.
+
+| Profile | `stddev` | 용도 |
+| --- | ---: | --- |
+| `measured` | 0.0025 m | 1–3 m 실물 벽 측정의 초기 근사값 |
+| `stress` | 0.01 m | localization robustness 시험 |
+
+```bash
+ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py \
+  headless:=true lidar_noise_profile:=measured
+
+ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+  headless:=true lidar_noise_profile:=stress
+```
+
+`world:=...`를 직접 지정하면 해당 world를 그대로 사용하므로 noise profile을
+별도로 적용하지 않습니다.
+
 ## ROS interface
 
 | Direction | ROS topic | Type / role |
@@ -165,6 +186,7 @@ python3 -m pytest -s \
 - `config/base.yaml`: command guard와 TF publisher parameter
 - `config/bridge/`: Gazebo transport / ROS bridge
 - `config/lidar_mount_profiles.yaml`: LiDAR 높이 후보
+- `config/lidar_noise_profiles.yaml`: 실측 근사·stress LiDAR noise profile
 - `config/study_cafe/`: study-cafe layout과 평가 route
 - `launch/gazebo_fortress.launch.py`: core Fortress backend
 - `launch/gazebo_study_cafe.launch.py`: study-cafe scenario

@@ -6,6 +6,7 @@ from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
     ExecuteProcess,
+    OpaqueFunction,
 )
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
@@ -15,6 +16,7 @@ from cleany_gazebo_sim.sensor_profile_launch import (
     declare_sensor_profile_argument,
     sensor_profile_bridges,
 )
+from cleany_gazebo_sim.lidar_noise import load_lidar_noise_profile
 from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
@@ -24,11 +26,18 @@ def generate_launch_description() -> LaunchDescription:
         get_package_share_directory('cleany_description')
     )
     world_template = package_share / 'worlds' / 'cleany_mecanum_fortress.sdf'
-    default_world = materialize_mecanum_wheel_world(world_template)
     base_config = package_share / 'config' / 'base.yaml'
+    noise_profiles = package_share / 'config' / 'lidar_noise_profiles.yaml'
 
     world_arg = DeclareLaunchArgument(
-        'world', default_value=str(default_world)
+        'world',
+        default_value='',
+        description='Optional SDF world overriding the generated LiDAR profile world.',
+    )
+    lidar_noise_profile_arg = DeclareLaunchArgument(
+        'lidar_noise_profile',
+        default_value='measured',
+        description='LiDAR Gaussian noise profile: measured or stress.',
     )
     bridge_config_arg = DeclareLaunchArgument(
         'bridge_config',
@@ -52,6 +61,47 @@ def generate_launch_description() -> LaunchDescription:
     )
     sensor_profile_arg = declare_sensor_profile_argument()
 
+    return LaunchDescription(
+        [
+            world_arg,
+            lidar_noise_profile_arg,
+            bridge_config_arg,
+            sensor_config_arg,
+            headless_arg,
+            use_sim_time_arg,
+            gui_render_engine_arg,
+            sensor_profile_arg,
+            OpaqueFunction(
+                function=_launch_setup,
+                kwargs={
+                    'package_share': package_share,
+                    'description_share': description_share,
+                    'world_template': world_template,
+                    'noise_profiles': noise_profiles,
+                    'base_config': base_config,
+                },
+            ),
+        ]
+    )
+
+
+def _launch_setup(
+    context,
+    *,
+    package_share: Path,
+    description_share: Path,
+    world_template: Path,
+    noise_profiles: Path,
+    base_config: Path,
+):
+    world_override = LaunchConfiguration('world').perform(context)
+    if world_override:
+        world = world_override
+    else:
+        profile_name = LaunchConfiguration('lidar_noise_profile').perform(context)
+        profile = load_lidar_noise_profile(noise_profiles, profile_name)
+        world = str(materialize_mecanum_wheel_world(world_template, profile))
+
     server = ExecuteProcess(
         cmd=[
             'ign',
@@ -60,7 +110,7 @@ def generate_launch_description() -> LaunchDescription:
             '-s',
             '--render-engine-server',
             'ogre2',
-            LaunchConfiguration('world'),
+            world,
         ],
         condition=IfCondition(LaunchConfiguration('headless')),
         output='screen',
@@ -74,7 +124,7 @@ def generate_launch_description() -> LaunchDescription:
             'ogre2',
             '--render-engine-gui',
             LaunchConfiguration('gui_render_engine'),
-            LaunchConfiguration('world'),
+            world,
         ],
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',
@@ -114,25 +164,16 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
     )
 
-    return LaunchDescription(
-        [
-            world_arg,
-            bridge_config_arg,
-            sensor_config_arg,
-            headless_arg,
-            use_sim_time_arg,
-            gui_render_engine_arg,
-            sensor_profile_arg,
-            # Reuse the authoritative description meshes instead of
-            # committing duplicate, large STL assets to this package.
-            AppendEnvironmentVariable(
-                'IGN_GAZEBO_RESOURCE_PATH', str(description_share)
-            ),
-            server,
-            gui,
-            bridges,
-            command_guard,
-            odom_tf,
-            sensor_tf,
-        ]
-    )
+    return [
+        # Reuse the authoritative description meshes instead of
+        # committing duplicate, large STL assets to this package.
+        AppendEnvironmentVariable(
+            'IGN_GAZEBO_RESOURCE_PATH', str(description_share)
+        ),
+        server,
+        gui,
+        bridges,
+        command_guard,
+        odom_tf,
+        sensor_tf,
+    ]
