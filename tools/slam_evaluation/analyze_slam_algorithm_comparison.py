@@ -29,6 +29,7 @@ class Pose:
 
 @dataclass(frozen=True)
 class RunMetrics:
+    noise_profile: str
     algorithm: str
     height_cm: float
     ate_translation_rmse_m: float
@@ -81,9 +82,14 @@ def compose(a: tuple[float, float, float], b: tuple[float, float, float]) -> tup
 
 
 def open_reader(path: Path) -> tuple[rosbag2_py.SequentialReader, dict[str, type]]:
+    metadata = yaml.safe_load(
+        (path / "metadata.yaml").read_text(encoding="utf-8")
+    )
+    bag_information = metadata.get("rosbag2_bagfile_information", metadata)
+    storage_id = str(bag_information["storage_identifier"])
     reader = rosbag2_py.SequentialReader()
     reader.open(
-        rosbag2_py.StorageOptions(uri=str(path), storage_id="mcap"),
+        rosbag2_py.StorageOptions(uri=str(path), storage_id=storage_id),
         rosbag2_py.ConverterOptions("cdr", "cdr"),
     )
     types = {
@@ -300,38 +306,47 @@ def extract_rtabmap_final_map(run_path: Path, end_stamp: float) -> None:
 
 
 def analyze(root: Path) -> list[RunMetrics]:
-    input_cache: dict[float, tuple[list[Pose], int, int, int]] = {}
+    input_cache: dict[
+        tuple[str, float], tuple[list[Pose], int, int, int]
+    ] = {}
     metrics: list[RunMetrics] = []
-    heights = ((16.5, "16p5"), (26.0, "26"), (45.0, "45"), (70.0, "70"))
-    for algorithm in ("slam_toolbox", "cartographer", "cartographer_imu", "rtabmap"):
-        for height, token in heights:
-            input_path = root / "algorithm_compare_inputs" / f"input_{token}cm_trial1"
-            run_path = root / "algorithm_compare_runs" / algorithm / f"{token}cm"
-            if not (run_path / "run_complete").exists():
-                raise RuntimeError(f"incomplete run: {run_path}")
-            if height not in input_cache:
-                input_cache[height] = read_input(input_path)
-            truth, scans, finite, beams = input_cache[height]
-            if algorithm == "rtabmap":
-                extract_rtabmap_final_map(run_path, truth[-1].stamp)
-            estimate = read_estimate(run_path / "result_bag")
-            trajectory = trajectory_metrics(estimate, truth)
-            occupied, known, known_area, width, map_height, resolution = map_metrics(run_path)
-            metrics.append(
-                RunMetrics(
-                    algorithm,
-                    height,
-                    *trajectory,
-                    scans,
-                    100.0 * finite / beams,
-                    occupied,
-                    known,
-                    known_area,
-                    width,
-                    map_height,
-                    resolution,
+    heights = ((16.5, "16p5"), (45.0, "45"))
+    for noise_profile in ("measured", "stress"):
+        for algorithm in ("slam_toolbox", "cartographer"):
+            for height, token in heights:
+                input_path = (
+                    root
+                    / "algorithm_compare_inputs"
+                    / noise_profile
+                    / f"input_{token}cm_trial1"
                 )
-            )
+                run_path = (
+                    root
+                    / "algorithm_compare_runs"
+                    / noise_profile
+                    / algorithm
+                    / f"{token}cm"
+                )
+                if not (run_path / "run_complete").exists():
+                    raise RuntimeError(f"incomplete run: {run_path}")
+                cache_key = (noise_profile, height)
+                if cache_key not in input_cache:
+                    input_cache[cache_key] = read_input(input_path)
+                truth, scans, finite, beams = input_cache[cache_key]
+                estimate = read_estimate(run_path / "result_bag")
+                trajectory = trajectory_metrics(estimate, truth)
+                map_values = map_metrics(run_path)
+                metrics.append(
+                    RunMetrics(
+                        noise_profile,
+                        algorithm,
+                        height,
+                        *trajectory,
+                        scans,
+                        100.0 * finite / beams,
+                        *map_values,
+                    )
+                )
     return metrics
 
 
@@ -351,7 +366,7 @@ def main() -> None:
         truth, _, _, _ = read_input(args.input_bag)
         extract_rtabmap_final_map(args.extract_rtabmap_run, truth[-1].stamp)
         return
-    output = args.results_root / "algorithm_comparison"
+    output = args.results_root / "algorithm_comparison" / "lidar_noise"
     output.mkdir(parents=True, exist_ok=True)
     metrics = analyze(args.results_root)
     records = [asdict(item) for item in metrics]
@@ -362,39 +377,110 @@ def main() -> None:
         writer = csv.DictWriter(stream, fieldnames=list(records[0]))
         writer.writeheader()
         writer.writerows(records)
-    by_algorithm = {
-        algorithm: [row for row in records if row["algorithm"] == algorithm]
-        for algorithm in ("slam_toolbox", "cartographer", "cartographer_imu", "rtabmap")
+    groups = {
+        (noise_profile, algorithm): [
+            row
+            for row in records
+            if row["noise_profile"] == noise_profile
+            and row["algorithm"] == algorithm
+        ]
+        for noise_profile in ("measured", "stress")
+        for algorithm in ("slam_toolbox", "cartographer")
     }
     ranking = sorted(
-        by_algorithm,
-        key=lambda algorithm: sum(
-            row["ate_translation_rmse_m"] for row in by_algorithm[algorithm]
+        groups,
+        key=lambda group: sum(
+            row["ate_translation_rmse_m"] for row in groups[group]
         ),
     )
     lines = [
-        "# Offline SLAM comparison summary",
+        "# LiDAR noise SLAM comparison summary",
         "",
-        "All runs use the same height-specific sensor bags and 2.5x replay. "
-        "ATE uses scale-fixed SE(2) alignment; RPE uses a 1 s interval.",
+        "Measured noise uses 2.5 mm standard deviation and stress noise uses "
+        "10 mm. All runs use profile- and height-specific sensor bags with "
+        "2.5x replay. ATE uses scale-fixed SE(2) alignment; RPE uses a 1 s "
+        "interval.",
         "",
-        "| Algorithm | Mean ATE | Mean 1 s RPE | Mean yaw RMSE | Mean known area |",
-        "|---|---:|---:|---:|---:|",
+        (
+            "| Noise | Algorithm | Mean ATE | Mean 1 s RPE "
+            "| Mean yaw RMSE | Mean known area |"
+        ),
+        "|---|---|---:|---:|---:|---:|",
     ]
-    for algorithm in ranking:
-        rows = by_algorithm[algorithm]
+    for noise_profile, algorithm in ranking:
+        rows = groups[noise_profile, algorithm]
+        mean_ate_cm = 100 * np.mean(
+            [row['ate_translation_rmse_m'] for row in rows]
+        )
+        mean_rpe_cm = 100 * np.mean(
+            [row['rpe_1s_translation_rmse_m'] for row in rows]
+        )
+        mean_yaw_deg = np.mean(
+            [row['ate_yaw_rmse_deg'] for row in rows]
+        )
+        mean_known_area = np.mean(
+            [row['known_area_m2'] for row in rows]
+        )
         lines.append(
-            f"| {algorithm} | {100 * np.mean([row['ate_translation_rmse_m'] for row in rows]):.2f} cm "
-            f"| {100 * np.mean([row['rpe_1s_translation_rmse_m'] for row in rows]):.2f} cm "
-            f"| {np.mean([row['ate_yaw_rmse_deg'] for row in rows]):.2f} deg "
-            f"| {np.mean([row['known_area_m2'] for row in rows]):.1f} m2 |"
+            f"| {noise_profile} | {algorithm} "
+            f"| {mean_ate_cm:.2f} cm | {mean_rpe_cm:.2f} cm "
+            f"| {mean_yaw_deg:.2f} deg | {mean_known_area:.1f} m2 |"
         )
     lines.extend(
         [
             "",
-            "Each run directory contains map_final.pgm/png/yaml, result_bag, logs, "
-            "gazebo_overlay.png, and the algorithm-native graph artifact: "
-            "slam_toolbox posegraph/data, Cartographer pbstream, or RTAB-Map db.",
+            "## Per-run trajectory metrics",
+            "",
+            (
+                "| Noise | Algorithm | Height | ATE | 1 s RPE "
+                "| Yaw RMSE | Final error |"
+            ),
+            "|---|---|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for row in records:
+        lines.append(
+            f"| {row['noise_profile']} | {row['algorithm']} "
+            f"| {row['height_cm']:.1f} cm "
+            f"| {100 * row['ate_translation_rmse_m']:.2f} cm "
+            f"| {100 * row['rpe_1s_translation_rmse_m']:.2f} cm "
+            f"| {row['ate_yaw_rmse_deg']:.2f} deg "
+            f"| {100 * row['final_translation_error_m']:.2f} cm |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Stress-noise ATE delta",
+            "",
+            "| Algorithm | Height | Measured | Stress | Delta |",
+            "|---|---:|---:|---:|---:|",
+        ]
+    )
+    for algorithm in ("slam_toolbox", "cartographer"):
+        for height in (16.5, 45.0):
+            pair = {
+                row["noise_profile"]: row
+                for row in records
+                if row["algorithm"] == algorithm
+                and row["height_cm"] == height
+            }
+            measured = pair["measured"]["ate_translation_rmse_m"]
+            stress = pair["stress"]["ate_translation_rmse_m"]
+            delta_percent = 100.0 * (stress / measured - 1.0)
+            lines.append(
+                f"| {algorithm} | {height:.1f} cm "
+                f"| {100 * measured:.2f} cm | {100 * stress:.2f} cm "
+                f"| {delta_percent:+.1f}% |"
+            )
+    lines.extend(
+        [
+            "",
+            "Each matrix cell contains one recorded trial. Paired deltas "
+            "describe this run and are not confidence intervals.",
+            "",
+            "Each run directory contains map_final.pgm/png/yaml, result_bag, "
+            "logs, and the algorithm-native graph artifact: slam_toolbox "
+            "posegraph/data or Cartographer pbstream.",
             "",
         ]
     )
