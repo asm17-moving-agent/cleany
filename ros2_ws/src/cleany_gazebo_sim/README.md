@@ -1,131 +1,156 @@
 # cleany_gazebo_sim
 
-Gazebo Fortress 기반의 Cleany mobile-base simulation backend입니다. 이 패키지는
-MuJoCo의 motor-voltage dynamics를 복제하지 않고, ROS 차체 속도 계약의
-`cmd_vel -> odom / TF` 경계를 headless에서 검증하는 데 초점을 둡니다.
+ROS 2 Humble / Gazebo Fortress 기반의 Cleany mobile-base simulation
+backend입니다. `cmd_vel -> odom / TF` 계약과 LiDAR·IMU·camera sensor를
+headless 및 GUI 환경에서 검증합니다.
 
-## Scope
+## 지원 환경
 
-- Gazebo `MecanumDrive` system을 이용한 `linear.x`, `linear.y`, `angular.z` 이동
-- `cmd_vel` 유효성 검사, 속도 제한, command timeout 정지
-- `/clock`, `/odom`, `/joint_states`, `odom -> base_link` TF bridge
-- `base_link -> lidar_link / imu_link` static sensor TF
-- MuJoCo의 head RGBD와 좌·우 wrist RGB camera image bridge
-- RPLIDAR A1 후보 사양의 GPU LiDAR와 ROS `/scan` bridge
-- base-aligned simulation IMU와 ROS `/imu/data` bridge
-- `base_link +X`를 camera-forward 전면으로 사용하는 canonical 4-wheel/arm 배치
-- controller UI와 `joint_states`에는 4개의 drive wheel joint만 노출
+- Ubuntu 22.04
+- ROS 2 Humble
+- Gazebo Fortress 6
 
-좌표와 회전은 ROS REP-103을 따릅니다. `base_link`는 `+X` 전방, `+Y` 좌측,
-`+Z` 상방인 오른손 좌표계이며 양의 yaw는 위에서 볼 때 반시계 방향입니다.
-wheel joint axis는 `base_link +Y`로 명시되어 양의 wheel 회전이 `+X` 전진을
-뜻합니다. camera image의 frame id는 REP-103 `_optical_frame`
-(`+X` right, `+Y` down, `+Z` forward) 이름을 사용합니다.
-
-각 wheel은 12개의 고정 capsule roller visual을 사용합니다. 실제 접촉은 Gazebo
-Fortress의 mecanum 예제와 같은 diagonal anisotropic friction sphere로 단순화해,
-48개의 passive roller joint를 GUI나 ROS interface에 노출하지 않습니다.
-
-Gazebo world는 `cleany_description/meshes/`를 resource path로 참조해 팀의
-Cleany/RASKOG base, dual-arm, gripper visual mesh를 재사용합니다. arm/gripper의
-joint pose, axis, limit과 extended-link mass/center-of-mass/full inertia tensor,
-collision mesh도 Cleany description에서 가져왔습니다. 조작용 arm controller는 아직
-없지만, 양팔은 world materialization 시 어깨를 안쪽으로 돌리고 팔꿈치를 접은 대기 자세로
-고정됩니다. 시작 후 관절 제어기로 자세를 이동하지 않으므로 자유 상태의 mobile base에
-팔 구동 반작용이 전달되지 않습니다. 이 고정은 SLAM 주행 중 팔 자세를 유지하기 위한
-kinematic 잠금입니다. 대기 자세는 좌·우 shoulder
-yaw `-1.5708`/`1.5708`, shoulder pitch `3.0`, elbow pitch `2.4`, wrist pitch
-`1.2`, wrist roll `0.0`, gripper `0.8` rad입니다. 물리 servo effort는
-모사하지 않습니다. 현재 arm link의 gravity는
-비활성화한 상태입니다. Gazebo launch는
-공통 IMU `/imu/data` bridge와 필요한 rendering sensor bridge만 실행하는 sensor
-profile을 제공합니다. 기본값은 GPU LiDAR `/scan`만 추가로 활성화하는
-`lidar_nav`입니다. 2D mapping용 `slam_toolbox` profile은 제공하지만 Nav2 navigation,
-MoveIt, Mission Manager integration은 아직 포함하지 않습니다.
-
-## Simulation IMU contract
-
-Gazebo는 `/model/cleany_mecanum/imu`를 발행하고 기본 bridge가 이를
-`sensor_msgs/msg/Imu` ROS topic `/imu/data`로 전달합니다. `header.frame_id`는
-`imu_link`이고 update rate는 50 Hz입니다. `imu_link`는 현재 `base_link`와 같은
-위치·방향으로 고정되어 있으며, SDF에 별도 stochastic noise 또는 bias 모델은
-설정하지 않았습니다. 이 값은 LiDAR·IMU·TF 시뮬레이션 검증을 위한 후보값이며
-실제 하드웨어 실장 위치와 noise 모델은 추후 하드웨어 검토에서 확정합니다.
-
-## TF ownership
-
-Gazebo odometry adapter가 동적 `odom -> base_link`를 발행하고, Gazebo sensor TF
-publisher가 고정 `base_link -> lidar_link`와 `base_link -> imu_link`를
-`/tf_static`에 발행합니다. Gazebo SDF의 fixed joint와 ROS static TF parameter는
-구조 test에서 같은 값인지 검사합니다. 현재 sensor mount는 simulation 후보값이며
-hardware description의 확정 mount로 취급하지 않습니다.
-
-Stock Fortress의 `MecanumDrive`는 차체를 구동하지만 odometry message를 발행하지
-않습니다. Fortress profile은 `OdometryPublisher`의 plain ground-truth 출력을
-`/gazebo_odom`과 `/ground_truth/odom`에 각각 변환해 동일한 ROS `/odom` 및 TF 계약을
-유지합니다. 두 ROS topic은 같은 simulator pose source를 사용합니다. 이 fallback은
-실제 wheel odometry의 drift나 slip을 모사하지 않습니다.
-
-## Environment
-
-지원 환경은 Ubuntu 22.04 / ROS 2 Humble / Gazebo Fortress 한 가지입니다.
-설치·의존성·renderer 진단은
-[`DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 따른다. 이 README는
-준비된 환경에서의 Gazebo backend 계약과 실행·검증만 다룬다.
+설치와 renderer 진단은
+[`DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 따릅니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
 make check-gazebo-env
 ```
 
-## Configuration layout
+## 빠른 실행
 
-- `config/bridge/`: Gazebo transport와 ROS topic을 연결하는 bridge 설정
-- `config/study_cafe/`: study cafe 배치와 주행 경로
-- `config/rviz/`: LiDAR 시각화 설정
-- `config/base.yaml`: simulation 지원 node의 공통 ROS parameter
-- `config/lidar_mount_profiles.yaml`: LiDAR 높이별 평가 profile
+저장소 루트에서 headless simulation을 실행합니다.
 
-Core launch는 `launch/` 바로 아래에 둡니다.
+```bash
+make sim-gazebo
+```
 
-- `gazebo_fortress.launch.py`: Humble/Fortress simulation backend
-- `gazebo_study_cafe.launch.py`: Fortress study-cafe scenario
+48석 study-cafe GUI를 실행합니다. Sensor server는 항상 OGRE2를
+사용하고 GUI renderer는 machine별로 선택합니다.
 
-rosbag replay, RTAB-Map 비교, 평가 route와 시각화는 제품용 simulation bringup과
-구분해 `evaluation_*.launch.py` 이름을 사용합니다. ROS 2 CLI가 package의 launch
-하위 디렉터리를 직접 찾지 않으므로 같은 디렉터리에 두되 접두사로 역할을 나눕니다.
+```bash
+# 기본 GUI renderer: OGRE1
+make sim-gazebo-study-cafe
 
-- `evaluation_slam_toolbox_replay.launch.py`: recorded bag용 slam_toolbox wrapper
-- `evaluation_cartographer_replay.launch.py`: recorded bag용 Cartographer wrapper
-- `evaluation_rtabmap_replay.launch.py`: recorded bag용 RTAB-Map wrapper
-- `evaluation_slam_toolbox_localization_replay.launch.py`: posegraph localization 평가
-- `evaluation_slam_visualization.launch.py`: 평가 지도 RViz 시각화
-- `evaluation_study_cafe_route.launch.py`: Gazebo ground-truth 평가 경로 주행
+# OGRE2가 필요한 machine
+GAZEBO_GUI_RENDER_ENGINE=ogre2 make sim-gazebo-study-cafe
+```
 
-## Build and validation
+직접 launch할 때는 `gui_render_engine:=ogre|ogre2`를 지정합니다.
 
-다음 명령은 `cleany_description`, `cleany_navigation`, `cleany_gazebo_sim`을 빌드하고
-Gazebo의 world, bridge, sensor TF와 command guard 계약을 검사합니다.
+```bash
+source ros2_ws/install/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+  headless:=false gui_render_engine:=ogre2
+```
+
+## ROS interface
+
+| Direction | ROS topic | Type / role |
+| --- | --- | --- |
+| Input | `/cmd_vel` | 사용자 차체 속도 명령 |
+| Internal | `/gazebo_cmd_vel` | guard를 통과한 Gazebo 명령 |
+| Output | `/clock` | simulation clock |
+| Output | `/odom` | `odom -> base_link` 기준 pose |
+| Evaluation | `/ground_truth/odom` | 평가 전용 simulator pose |
+| Output | `/joint_states` | 4개 drive wheel joint |
+| Output | `/scan` | 360-sample GPU LiDAR |
+| Output | `/imu/data` | `imu_link`, 50 Hz simulation IMU |
+
+Camera profile은 head RGB·depth와 좌·우 wrist RGB를 다음 topic으로
+발행합니다.
+
+- `/camera/head/color/image_raw`
+- `/camera/head/depth/image_raw`
+- `/camera/left_wrist/color/image_raw`
+- `/camera/right_wrist/color/image_raw`
+
+### TF ownership
+
+- `gazebo_odom_tf_publisher`: `odom -> base_link`
+- `gazebo_sensor_tf_publisher`: `base_link -> lidar_link / imu_link`
+- Camera optical frame: REP-103 `_optical_frame`
+
+Stock Fortress `MecanumDrive` 플러그인은 odometry message를 발행하지
+않습니다. 따라서 Fortress profile은 `OdometryPublisher`의 ground-truth
+출력을 `/gazebo_odom`과 `/ground_truth/odom`에 동시에 bridge합니다.
+현재 `/odom`은 wheel drift나 slip이 반영된 odometry가 아닙니다.
+
+## Sensor profiles
+
+`sensor_profile` launch argument로 rendering sensor 부하를 선택합니다.
+차체, clock, odometry, joint state, IMU bridge는 모든 profile에서 실행됩니다.
+
+| Profile | LiDAR | Head RGB | Head depth | Left wrist | Right wrist |
+| --- | --- | --- | --- | --- | --- |
+| `lidar_nav` (기본값) | O | X | X | X | X |
+| `head_rgbd` | X | O | O | X | X |
+| `left_wrist` | X | X | X | O | X |
+| `right_wrist` | X | X | X | X | O |
+| `all_cameras` | X | O | O | O | O |
+
+```bash
+ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py \
+  headless:=true sensor_profile:=head_rgbd
+```
+
+`bridge_config` launch argument를 지정하면 sensor profile 대신 해당 bridge
+설정 하나를 사용합니다. 선택되지 않은 rendering sensor는
+`always_on=false`와 bridge subscriber 부재로 lazy 상태를 유지합니다.
+
+## Study-cafe world
+
+`gazebo_study_cafe.launch.py`는 12.26×10.94 m, 48석 study-cafe 평가
+공간을 생성합니다. 로봇 spawn, 방 크기, 책상·의자 배치는
+`config/study_cafe/study_cafe_layout.yaml`이 관리하며 생성된 world는
+`/tmp/cleany_study_cafe.sdf`에 기록됩니다.
+
+LiDAR 높이는 `lidar_profile` argument로 선택합니다.
+
+```bash
+ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+  headless:=false lidar_profile:=floor_26cm
+```
+
+World의 반복 가구는 primitive collision을 사용하고, 로봇 visual과
+LiDAR에 별도 visibility mask를 적용해 self-hit를 방지합니다.
+의자 visual은 OpenRobotics Gazebo Fuel `OfficeChairGrey` (CC BY 4.0)를
+사용하며 최초 실행 시 network가 필요할 수 있습니다.
+
+## SLAM evaluation
+
+LiDAR 높이별 bag 기록, slam_toolbox·Cartographer·RTAB-Map 비교,
+의자 이동 localization 실험은
+[`tools/slam_evaluation/README.md`](../../../tools/slam_evaluation/README.md)를
+참고합니다. 실험 생성물은 `ros2_ws/slam_results/`에 저장하며
+커밋하지 않습니다.
+
+## Validation
+
+정적 world·bridge·TF·command guard 계약을 검증합니다.
 
 ```bash
 make test-gazebo
 ```
 
-기본 suite는 world system, bridge topic/type, sensor TF, command guard와 study-cafe
-생성 계약만 빠르게 검사합니다. SLAM 비교와 상세 study-cafe 형상 검사는
-`test/evaluation/`에 격리되어 기본 실행에서는 skip됩니다. 평가 작업 중 해당 검사를
-실행하려면 다음 명령을 사용합니다.
+SLAM 실험과 study-cafe 형상 계약을 검증합니다.
 
 ```bash
 make test-gazebo-evaluation
 ```
 
-선택한 sensor profile을 실제로 실행해 RTF와 sensor 수신 주기를 측정하는 테스트는
-일반 test suite와 분리된 opt-in test입니다. 먼저 Fortress backend를 build한 뒤,
-준비된 환경 안에서 실행합니다.
+LiDAR·IMU·odometry·TF와 차체 구동을 실제 Fortress runtime에서
+검증합니다.
 
 ```bash
-source /opt/ros/humble/setup.bash
+make test-gazebo-nav-runtime
+```
+
+모든 camera stream의 해상도·encoding·frame·timestamp와 실제 image 변화를
+검증하려면 opt-in runtime test를 실행합니다.
+
+```bash
 cd ros2_ws
 source install/setup.bash
 python3 -m pytest -s \
@@ -134,415 +159,25 @@ python3 -m pytest -s \
   --sensor-profile=all_cameras
 ```
 
-기본값은 10초 warm-up과 30초 측정이며 `--warmup-sec`, `--measure-sec`,
-`--startup-timeout-sec`로 조절합니다. `--sensor-profile` 기본값은
-`all_cameras`이며 다른 launch profile도 동일하게 선택할 수 있습니다. test는
-`/clock`과 선택한 sensor topic을 수신하고 비활성 sensor topic에서는 message가 오지
-않는지 검사하며 RTF, wall Hz, simulation Hz를 출력합니다. 원본 world를 변경하지
-않고 명암 줄무늬가 있는 네 벽을 추가한 임시 validation world를 생성하며, warm-up 중
-저속 이동 후 선택한 camera의 해상도·encoding·frame ID·timestamp, 빈/단색 frame
-여부와 frame 변화를 검사합니다. `lidar_nav`에서는 LiDAR의 360개 range·유한 장애물
-거리·선언 범위를 검사합니다. 성능 기준도 실패 조건으로 사용할 때만 `--min-rtf`,
-`--min-camera-sim-hz`, `--min-lidar-sim-hz`를 지정합니다. 기본
-`make test-gazebo`에는 실제 simulator를 띄우는 이 test가 포함되지 않습니다.
-LiDAR·IMU·odometry·TF와 차체 구동을 함께 확인하는 runtime smoke test도 별도로
-실행합니다.
-
-```bash
-make test-gazebo-nav-runtime
-```
-
-## Sensor profiles
-
-Gazebo launch는 `sensor_profile` argument로 rendering sensor 부하를 선택합니다.
-차체 명령, odometry, joint state, clock, IMU bridge는 모든 profile에서 실행됩니다.
-`bridge_config`를 지정하면 sensor profile 대신 해당 단일 bridge 설정을 사용합니다.
-
-| Profile | LiDAR scans | Head RGB | Head depth | Left wrist | Right wrist |
-| --- | --- | --- | --- | --- | --- |
-| `lidar_nav` (기본값) | O | X | X | X | X |
-| `head_rgbd` | X | O | O | X | X |
-| `left_wrist` | X | X | X | O | X |
-| `right_wrist` | X | X | X | X | O |
-| `all_cameras` | X | O | O | O | O |
-
-`all_cameras`는 head color/depth와 좌·우 wrist color를 합친 네 image stream의
-부하 profile입니다. 선택되지 않은 rendering sensor는 bridge 구독자를 만들지 않으며,
-world의 `always_on=false` 설정과 함께 lazy 상태를 유지합니다.
-
-profile을 직접 선택하는 예시는 다음과 같습니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py \
-  headless:=true sensor_profile:=head_rgbd
-```
-
-LiDAR, IMU, odometry, TF만 검증하는 navigation runtime test는 저장소 루트에서
-다음 명령으로 실행합니다. 카메라 bridge는 시작하지 않습니다.
-
-```bash
-make test-gazebo-nav-runtime
-```
-
-이 test도 기본값으로 10초 warm-up 후 30초를 측정합니다. 임시 world에 네 개의
-벽을 추가하고 카메라 sensor를 끈 뒤 `/scan`, `/imu/data`, `/odom`, `/clock`을
-동시에 관찰합니다. 측정 초반에는 `cmd_vel`을 보내 LiDAR와 IMU가 장착된 로봇의
-odometry가 실제로 변하는지 확인합니다. 다음 조건을 모두 만족해야 통과합니다.
-
-- LiDAR의 frame, timestamp, 360개 range, 선언 범위와 장애물 거리 분포가 유효함
-- 거의 모든 LiDAR 광선이 `range_min`에 붙는 self-hit 상태가 아님
-- IMU의 frame, timestamp, quaternion, 중력 크기와 회전 명령 응답이 유효함
-- `base_link -> lidar_link`, `base_link -> imu_link` static TF와
-  `odom`까지 이어지는 TF chain이 유효함
-- 측정 중 simulation time과 모든 필수 topic이 진행됨
-
-실패 기준으로 성능 하한도 적용하려면 `--min-rtf`, `--min-lidar-sim-hz`,
-`--min-imu-sim-hz`를 pytest 직접 실행 시 지정할 수 있습니다. GPU LiDAR는
-headless 실행에서도 rendering sensor이므로, Fortress에서 동작하는
-OpenGL display 또는 headless rendering 환경이 필요합니다.
-
-## Study-cafe evaluation world
-
-`gazebo_study_cafe.launch.py`는 실제 시연실
-좌석도를 단순화한 48석 평가 공간을
-제공합니다. 벽 안쪽 크기는 12.26×10.94 m이며 로봇은 남쪽의 왼쪽 세로 통로
-`(x=-1.865, y=-4.705, yaw=1.5708)`에 배치됩니다. 여덟 책상 열은 3-2-3 블록으로
-나뉘고 여섯 행은 두 행씩 마주 붙은 세 묶음으로 배치됩니다. 각 행의 첫째와 마지막
-책상 옆면은 서쪽·동쪽 벽면에 닿지만 첫째·마지막 행의 앞뒤는 벽에서 떨어져 있습니다.
-
-사람이 검토하고 조정하는 방 크기, 로봇 시작 pose, 책상 열과 행, 의자 offset은
-`config/study_cafe/study_cafe_layout.yaml`에서 관리합니다. `world/layout.py`가 설정을 검증하고
-`world/generator.py`가 반복되는 벽·책상·파티션·모니터·의자 SDF를 생성합니다. launch의
-`layout_config` 인자로 다른 배치 설정을 지정할 수 있으며, 최종 생성물은 기본적으로
-`/tmp/cleany_study_cafe.sdf`에 기록되고 소스에는 커밋하지 않습니다.
-
-개별 책상은 1.2×0.77 m이고 흰색 상판 최고점은 바닥에서 0.72 m입니다. 파티션에 닿는
-두 모서리는 직각이고 의자 쪽 두 모서리는 반경 0.06 m로 둥글게 구성합니다. 흰색
-A형 다리는 상판 좌우 및 앞뒤 가장자리에서 0.08 m 안쪽에 발을 두고 상부 중앙으로
-모이며, 상단 crossbar를 포함한 visual과 collision이 같은 형상을 사용합니다. 마주
-붙은 두 행의 중앙 파티션은 바닥 0.30 m에서 상판 위 0.30 m인 1.02 m까지 이어지며
-네 모서리는 반경 0.05 m로 둥글게 처리합니다. 벽면은 흰색, roughness 0.92,
-metalness 0.0의 무광 석고 재질입니다. 의자 좌판 앞쪽은 상판 끝과 0.23 m 겹치도록
-책상 아래로 들어갑니다. 같은 행에서 떨어진 3-2-3 블록의 상판 사이 간격은 1.33 m,
-서로 붙지 않은 다른 행의 상판 사이 간격은 1.63 m입니다. 배치된 의자 등판 사이의
-실제 통과 폭은 0.83 m입니다. 가장 가까운 행의 상판 가장자리와 남북 벽면 사이는
-1.53 m이고, 의자 등판과 벽 사이 실제 통로는 1.13 m이므로 로봇 주행 경로를 만들기
-전 의자를 포함한 통과 가능성을 별도로 확인해야 합니다.
-
-각 책상에는 검정색 27인치 16:9 모니터가 하나씩 배치됩니다. 화면 크기는
-0.598×0.336 m이며 패널 중심은 의자 반대편 상판 끝에서 0.10 m 안쪽에 있습니다.
-화면 면은 배정된 의자를 향하고, 패널·스탠드·받침대는 각각 primitive collision을
-사용합니다.
-
-의자 visual은 CC BY 4.0의 OpenRobotics Gazebo Fuel `OfficeChairGrey`를 0.9배로
-사용합니다. 의자 yaw는 local `+X` 정면이 배정된 책상을 향하도록 계산하며 collision은
-캐스터 영역, 중앙축, 좌판, 등판 primitive로 분리합니다. 최초 실행 시 Fuel asset
-다운로드를 위해 network가 필요하고 이후에는 Gazebo cache를 사용합니다.
-
-로컬 Humble/Fortress Distrobox에서 GUI 배율 1.0으로 실행합니다.
-GUI renderer 기본값은 OGRE1이며, host GPU·Mesa 호환성에 따라 OGRE2를
-선택할 수 있습니다.
-
-```bash
-make sim-gazebo-study-cafe
-
-GAZEBO_GUI_RENDER_ENGINE=ogre2 make sim-gazebo-study-cafe
-```
-
-## 2D SLAM candidate profile
-
-`slam_toolbox` online async profile은 SCRUM-315 비교 실험을 시작하기 위한 첫 후보이며
-선정 결과가 아닙니다. 현재 simulation의 `/scan`과 `odom -> base_link`를 입력으로
-사용하고 `map -> odom`과 occupancy grid를 발행합니다. Cartographer와 RTAB-Map 등
-다른 후보에 동일한 sensor recording을 재생해 정확도·지도 품질·실시간성을 측정한 뒤
-사용자가 결과를 검토해 최종 알고리즘을 결정합니다.
-
-후보 parameter는 `cleany_navigation/config/slam/slam_toolbox.yaml`에 있습니다. Ceres scan matcher와
-Huber loss, loop closure를 사용하며 LiDAR 범위는 simulation 계약과 같은
-0.15–12 m입니다. `/imu/data`는 `slam_toolbox`에 직접 연결하지 않습니다. 추후 IMU
-융합이 필요하면 `robot_localization` 등에서 `odom -> base_link` 추정을 개선한 뒤 같은
-SLAM 입력 계약을 유지합니다.
-
-Gazebo를 실행한 상태에서 다른 terminal에 SLAM node를 시작합니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 launch cleany_navigation slam_mapping.launch.py use_sim_time:=true
-```
-
-반복 구조에서 잘못된 loop closure가 발생하는지 분리해서 확인할 때는 baseline
-설정 파일을 바꾸지 않고 launch override를 사용합니다.
-
-```bash
-ros2 launch cleany_navigation slam_mapping.launch.py \
-  use_sim_time:=true do_loop_closing:=false
-```
-
-Loop closure를 유지하면서 반복 구조에 더 보수적인 진단 조건을 적용할 수도 있습니다.
-
-```bash
-ros2 launch cleany_navigation slam_mapping.launch.py \
-  use_sim_time:=true \
-  loop_search_maximum_distance:=2.0 \
-  loop_search_space_dimension:=4.0 \
-  loop_match_minimum_response_coarse:=0.50 \
-  loop_match_minimum_response_fine:=0.60
-```
-
-launch는 `slam_toolbox` lifecycle node를 자동으로 configure·activate합니다.
-지도와 scan을 함께 보려면 다음 RViz launch를 사용합니다. ARM Adreno Mesa에서
-RViz의 indexed-palette Map shader가 실패하는 문제를 피하기 위해 `/map`의 점유 셀을
-표준 `Marker`로 변환해 표시합니다. 원본 `/map` topic과 저장 결과는 바꾸지 않습니다.
-
-```bash
-ros2 launch cleany_gazebo_sim evaluation_slam_visualization.launch.py
-```
-
-카메라와 다른 높이 LiDAR를 모두 비활성화하고 하단 LiDAR 하나만
-표준 `/scan`으로 노출하려면 study-cafe launch에
-LiDAR는 `lidar_link` 하나만 사용하며 Gazebo topic과 ROS topic은 각각
-`/model/cleany_mecanum/lidar/scan`, `/scan`으로 고정합니다.
-headless 가속 실험은 `physics_max_step_size:=0.003`과
-`physics_real_time_factor:=2.0`처럼 launch 시 world physics에 적용합니다. 실행 중
-`set_physics`로 부분 갱신하면 `enable_physics` 기본값 때문에 동역학이 꺼질 수 있으므로
-평가 실행에는 사용하지 않습니다.
-
-`ros2 topic echo --once /map`과 `ros2 run tf2_ros tf2_echo map base_link`로 map 및
-TF chain을 확인할 수 있습니다.
-
-## LiDAR mount SLAM evaluation
-
-SCRUM-316 후보 높이는 `config/lidar_mount_profiles.yaml`의 `floor_16p5cm`,
-`floor_26cm`, `floor_45cm`, `floor_70cm`입니다. `gazebo_study_cafe`
-launch의 `lidar_profile`은 선택한 pose를 생성 SDF와 `base_link -> lidar_link` static
-TF에 함께 적용합니다. 따라서 scan frame과 실제 scan 높이가 항상 일치합니다. 생성 world에서는
-현재 로봇 visual에
-`0x02`, LiDAR에 `0x01` visibility mask를 사용하므로 센서는 교체 예정인 기존 차체를
-투과해 환경만 봅니다. GUI 표시와 물리 collision에는 영향을 주지 않습니다.
-
-### Study-cafe evaluation route
-
-`config/study_cafe/study_cafe_route.yaml`은 현재 48석 시연실의 네 가로 통로와 두 세로 통로를
-순서대로 훑고 spawn으로 돌아오는 약 94.30 m의 17-waypoint 폐루프입니다. 경로 중심은
-가로 `y=-4.705, -1.585, 1.585, 4.705 m`, 세로 `x=-1.865, 1.865 m`이고,
-좌우 sweep 끝점은 `x=-5.65, 5.65 m`입니다. 경로는 고정 가구 배치와 현재 로봇
-footprint를 기준으로 하므로 가구 위치나 footprint가 달라지면 다시 검증합니다.
-
-`ground_truth_route_follower`는 `/ground_truth/odom`을 경로 제어에만 사용하고
-`/cmd_vel`을 발행합니다. SLAM에는 ground truth를 전달하지 않습니다.
-
-Gazebo study-cafe를 LiDAR profile로 먼저 실행합니다. 이 profile은 LiDAR, IMU,
-odometry, ground truth와 TF에 필요한 bridge만 실행하고 camera bridge는 만들지
-않습니다. 별도 terminal에서 경로를 시작합니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
-  headless:=false lidar_profile:=floor_26cm \
-  bridge_config:=ros2_ws/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml
-```
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 launch cleany_gazebo_sim evaluation_study_cafe_route.launch.py
-```
-
-직선 속도는 0.25 m/s, 회전 속도는 0.5 rad/s이며 경로가 끝나거나 ground-truth
-odometry가 0.5초 이상 끊기면 정지 명령을 발행합니다.
-
-먼저 패키지를 빌드한 뒤 각 후보의 독립된 run directory를 만듭니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 run cleany_gazebo_sim gazebo_slam_experiment prepare \
-  --package-root ros2_ws/src/cleany_gazebo_sim \
-  --profiles ros2_ws/src/cleany_gazebo_sim/config/lidar_mount_profiles.yaml \
-  --profile floor_26cm \
-  --simulator fortress \
-  --output /tmp/cleany-slam-front-low-01
-
-ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py \
-  world:=/tmp/cleany-slam-front-low-01/world.sdf \
-  sensor_config:=/tmp/cleany-slam-front-low-01/sensor_tf.yaml
-```
-
-다른 terminal에서 위의 `slam_mapping.launch.py`를 실행합니다. 세 후보 모두 동일한
-world, 주행 경로(`route_id`), 주행 시간과 trial 수를 사용해야 비교할 수 있습니다.
-최소 3회 반복을 권장하며 다음 지표와 artifact를 `result.json` 양식에 기록합니다.
-
-- 정량: ATE RMSE, translation/rotation RPE RMSE, map coverage, valid scan ratio,
-  평균 scan rate, real-time factor
-- 정성: map image, trajectory artifact, 사각·가림·벽 왜곡·loop closure 관찰 내용
-
-측정값을 별도 JSON에 작성한 뒤 run manifest와 schema가 일치하는지 검증하여
-기록합니다.
-
-```bash
-ros2 run cleany_gazebo_sim gazebo_slam_experiment record \
-  --run-dir /tmp/cleany-slam-front-low-01 \
-  --input /path/to/measured-result.json
-```
-
-현재 저장소에는 재현 가능한 후보 materialization과 결과 schema만 포함하며 측정하지
-않은 성능 수치를 임의로 채우지 않습니다. 최종 위치 선정은 동일 조건의 실제 runtime
-결과를 수집한 뒤 결정합니다.
-
-### Offline SLAM algorithm comparison
-
-알고리즘 비교에서는 주행 편차를 없애기 위해 높이별 Gazebo 주행을 한 번만 bag으로
-기록합니다. 입력 bag은 `/scan`, `/odom`, `/imu/data`, `/tf_static`, `/clock`과 평가에만
-쓰는 `/ground_truth/odom`을 보존합니다. SLAM 프로세스에는 ground truth를 재생하더라도
-입력으로 연결하지 않습니다. 다음 네 profile은 같은 bag을 사용합니다.
-
-- `slam_toolbox`: LiDAR + wheel odometry
-- `cartographer_2d.lua`: LiDAR + wheel odometry
-- `cartographer_2d_imu.lua`: LiDAR + wheel odometry + IMU
-- `evaluation_rtabmap_replay.launch.py`: RTAB-Map 2D, LiDAR + wheel odometry
-
-Humble/Fortress 환경에서 높이 및 알고리즘 전체 조합을 2.5배속으로 처리하려면 저장소
-루트에서 다음을 실행합니다. 첫 번째와 두 번째 선택 인자로 알고리즘 이름과 높이를
-주면 단일 조합만 실행할 수 있습니다.
-
-```bash
-for height in 16p5 26 45 70; do
-  ./tools/slam_evaluation/record_slam_input.sh "$height"
-done
-
-./tools/slam_evaluation/run_slam_algorithm_comparison.sh
-
-./tools/slam_evaluation/run_slam_algorithm_comparison.sh cartographer_imu 16p5
-```
-
-각 run에는 공통 `map_final.pgm/.png/.yaml`, 처리 중 `/map`과 `/tf`를 담은
-`result_bag/`, 로그를 남깁니다. 알고리즘 고유 pose graph는 slam_toolbox의
-`.posegraph/.data`, Cartographer의 `.pbstream`, RTAB-Map의 `.db`입니다. 이 결과는
-`ros2_ws/slam_results/` 아래의 로컬 실험 생성물이며 소스 커밋 대상이 아닙니다.
-
-전체 run이 끝난 뒤 궤적 지표와 Gazebo 상면 overlay를 생성합니다. ATE는 scale을
-고정한 SE(2) rigid alignment 후 계산하고, RPE는 1초 간격 상대 pose로 계산합니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-python3 tools/slam_evaluation/analyze_slam_algorithm_comparison.py
-python3 tools/slam_evaluation/capture_gazebo_top_view.py
-python3 tools/slam_evaluation/render_slam_algorithm_overlays.py
-```
-
-`capture_gazebo_top_view.py`는 원본 world를 수정하지 않고 결과 디렉터리에 전용
-Gazebo world를 materialize한 뒤, 광축이 바닥에 수직인 1600×1430 카메라로 새 기준
-이미지를 렌더링합니다. overlay는 이 이미지의 카메라 내·외부 파라미터와 map YAML의
-resolution/origin을 사용해 월드 좌표로 투영하므로 GUI 시점의 원근 변형에 의존하지
-않습니다.
-
-### Moved-chair fixed-map localization
-
-가구 변화에 대한 localization 강건성은 새 지도를 만들지 않고 각 높이에서 저장한
-slam_toolbox posegraph를 고정해 평가합니다. 변화 조건은 여섯 좌석열에서 고른 의자
-12개를 책상 방향으로 0.20 m 옮기고 교대로 ±10° 회전합니다. 16.5/26 cm의
-원래 배치 bag과 이동 배치 bag을 각각 같은 localization node에 재생합니다.
-
-```bash
-./tools/slam_evaluation/record_chair_shift_localization_inputs.sh
-./tools/slam_evaluation/run_chair_shift_localization.sh
-python3 tools/slam_evaluation/analyze_chair_shift_localization.py
-```
-
-분석 시 원래 배치에서 한 번 구한 map-to-world rigid alignment를 이동 배치에도 그대로
-적용하므로, 이동 조건마다 궤적을 따로 맞춰 localization의 전역 오차를 숨기지 않습니다.
-결과 CSV/JSON, 요약, 비교 그림과 각 replay bag은
-`slam_results/chair_shift_localization/`에만 생성되며 커밋하지 않습니다.
-
-## Run
-
-저장소 루트에서 실행합니다.
-
-```bash
-make sim-gazebo
-```
-
-이 명령은 활성 ROS와 Gazebo version을 검사하고 `make build-gazebo`를 먼저 실행한 뒤,
-Fortress 서버를 `lidar_nav` sensor profile과 GUI 없는 상태로
-시작합니다. 종료할 때는 `Ctrl-C`를 누릅니다.
-
-다른 terminal에서 명령을 보냅니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
-  '{linear: {x: 0.1, y: 0.05}, angular: {z: 0.1}}'
-```
-
-다른 terminal에서 다음 항목을 확인합니다.
-
-```bash
-ros2 topic echo --once /clock
-ros2 topic echo --once /odom
-ros2 topic echo --once /joint_states
-ros2 topic echo --once /scan
-ros2 topic echo --once /imu/data
-ros2 run tf2_ros tf2_echo odom lidar_link
-ros2 run tf2_ros tf2_echo odom imu_link
-ros2 topic list | grep -E '^/(clock|gazebo_cmd_vel|gazebo_odom|imu/data|joint_states|odom|scan|tf|tf_static)$'
-```
-
-재현 성공 기준은 다음과 같습니다.
-
-- simulator와 bridge process가 조기 종료하지 않는다.
-- `/clock`, `/odom`, `/joint_states`, `/scan`, `/imu/data`에서 message를 수신한다.
-- `odom -> base_link -> lidar_link / imu_link` TF lookup이 성공한다.
-- `/cmd_vel`을 보내면 guard output `/gazebo_cmd_vel`이 발행되고 `/odom`이 변한다.
-- `Ctrl-C`로 launch process가 종료된다.
-
-GUI가 필요하면 build 후 직접 launch합니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py headless:=false
-```
-
-## Profiles
-
-GUI와 camera sensor는 host의 OpenGL/OGRE 호환성에 영향을 받습니다. Fortress의
-GPU LiDAR와 camera sensor server는 항상 OGRE2로 실행하고, GUI는
-`gui_render_engine:=ogre|ogre2` 인자로 선택합니다. 기본값은 OGRE1이며
-`GAZEBO_GUI_RENDER_ENGINE` 환경변수로 machine별 기본값을 지정할 수 있습니다.
-Fortress의 server-only `-s`는 GUI만 끄며 rendering sensor가 있으면 server 내부에서
-여전히 rendering context를 생성합니다.
-
-```bash
-ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
-  headless:=false gui_render_engine:=ogre2
-```
-
-`make sim-gazebo`와 `make test-gazebo`는 ROS 2 Humble과 Gazebo Fortress version을
-검사합니다. 환경 준비 규칙은
-[`DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 따른다.
-
-```bash
-LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
-```
-
-이 설정은 GPU driver 문제를 분리하기 위한 저속 fallback이며 팀 표준 실행 설정은
-아닙니다.
-
-## Runtime and build state
-
-APT/rosdep package와 colcon output이 존재한다는 사실만으로 현재 runtime에
-ROS/Gazebo package가 설치됐다고 판단하지 말고, 실행할 환경 안에서 다음 명령을
-확인합니다.
-
-```bash
-source /opt/ros/humble/setup.bash
-ros2 pkg prefix ros_gz_bridge
-```
-
-Humble/Python 3.10의 `build/`, `install/`, `log/`는 다른 Python version에서
-재사용하지 않습니다. 세부 native 명령은 `ros2_ws/README.md`를 참고합니다.
+## Configuration map
+
+- `worlds/cleany_mecanum_fortress.sdf`: robot, physics, sensor system
+- `config/base.yaml`: command guard와 TF publisher parameter
+- `config/bridge/`: Gazebo transport / ROS bridge
+- `config/lidar_mount_profiles.yaml`: LiDAR 높이 후보
+- `config/study_cafe/`: study-cafe layout과 평가 route
+- `launch/gazebo_fortress.launch.py`: core Fortress backend
+- `launch/gazebo_study_cafe.launch.py`: study-cafe scenario
+- `launch/evaluation_*.launch.py`: SLAM replay·visualization·route 평가
+- `test/evaluation/`: 실험 전용 계약 테스트
+
+## Known limitations
+
+- Mobile base 주행에 초점을 두며 arm controller와 manipulation은 포함하지
+  않습니다. 양팔은 접은 대기 자세로 고정됩니다.
+- Mecanum roller는 visual로만 표현하고 contact는 anisotropic friction으로
+  단순화합니다.
+- Simulation IMU에 stochastic noise와 bias model이 없습니다.
+- Fortress odometry fallback은 wheel drift와 slip을 모사하지 않습니다.
+- GPU LiDAR와 camera는 headless 실행에서도 OpenGL rendering context가
+  필요합니다.
