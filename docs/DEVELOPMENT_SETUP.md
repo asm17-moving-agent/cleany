@@ -236,6 +236,14 @@ Jazzy/Harmonic 호환 profile이 필요하면 별도의 Ubuntu 24.04 환경을 �
 | ROS / Python | ROS 2 Jazzy / Python 3.12.x |
 | Gazebo | Harmonic (`gz sim` 8.x, 검증 버전 8.11.0) |
 
+Fedora host에서 실험 환경만 분리할 때는 Ubuntu 24.04 Distrobox를 사용할 수 있다.
+
+```bash
+distrobox create --name ros2-jazzy \
+  --image docker.io/library/ubuntu:24.04 --yes
+distrobox enter ros2-jazzy
+```
+
 ### ROS와 Gazebo 설치
 
 Ubuntu 24.04 환경에서 이 문서의 1절과 2절을 실행해 locale과 ROS apt source를 준비한
@@ -275,6 +283,20 @@ python3 --version
 gz sim --versions
 ros2 pkg prefix ros_gz_sim
 ros2 pkg prefix ros_gz_bridge
+```
+
+Snapdragon X2-85 host에서는 Ubuntu Noble 기본 Mesa 25.2.8이 GPU를 인식하지 못해
+OGRE2 sensor server가 시작되지 않는다. 이 경우에만 격리된 Distrobox 안에서 Kisak
+Mesa를 사용한다. Mesa 26.1.7과 `eglinfo`의 `Adreno (TM) X2-85` 출력을 확인한 뒤
+Gazebo runtime test를 실행한다. 이 PPA를 호스트 Fedora에 추가하지 않는다.
+
+```bash
+sudo add-apt-repository -y ppa:kisak/kisak-mesa
+sudo apt update
+sudo apt install -y \
+  libgl1-mesa-dri libegl-mesa0 libgbm1 libglx-mesa0 \
+  mesa-vulkan-drivers mesa-utils
+eglinfo -B
 ```
 
 저장소 루트에서 공통 Gazebo 명령을 실행한다. 활성 `ROS_DISTRO=jazzy`와 Gazebo 8.x를

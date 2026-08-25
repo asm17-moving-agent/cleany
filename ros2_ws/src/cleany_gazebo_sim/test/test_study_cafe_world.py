@@ -54,7 +54,6 @@ def test_study_cafe_materializes_for_fortress(tmp_path: Path) -> None:
     generated = materialize_study_cafe_world(
         FORTRESS_ROBOT_WORLD,
         tmp_path / 'study_cafe_fortress.sdf',
-        simulator='fortress',
         layout_path=LAYOUT_CONFIG,
     )
     world = ElementTree.parse(generated).getroot().find(
