@@ -6,7 +6,7 @@ import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
 
-from cleany_gazebo_sim.parameters import (
+from cleany_gazebo_sim.command_limits import (
     ChassisCommand,
     CommandLimits,
     are_finite_values,

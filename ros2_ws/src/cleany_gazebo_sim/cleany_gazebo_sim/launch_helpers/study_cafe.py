@@ -18,7 +18,7 @@ from cleany_gazebo_sim.gazebo_slam_experiment import (
     write_sensor_tf_config,
 )
 from cleany_gazebo_sim.lidar_noise import load_lidar_noise_profile
-from cleany_gazebo_sim.sensor_profile_launch import (
+from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     declare_sensor_profile_argument,
 )
 from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
