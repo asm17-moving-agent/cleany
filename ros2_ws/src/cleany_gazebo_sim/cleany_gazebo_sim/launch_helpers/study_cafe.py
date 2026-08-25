@@ -104,14 +104,18 @@ def study_cafe_launch_description() -> LaunchDescription:
     )
     lidar_profiles_config_arg = DeclareLaunchArgument(
         'lidar_profiles_config',
-        default_value=str(package_share / 'config' / 'lidar_mount_profiles.yaml'),
+        default_value=str(
+            package_share / 'config' / 'lidar_mount_profiles.yaml'
+        ),
     )
     lidar_profile_arg = DeclareLaunchArgument(
         'lidar_profile', default_value='floor_26cm'
     )
     lidar_noise_profiles_config_arg = DeclareLaunchArgument(
         'lidar_noise_profiles_config',
-        default_value=str(package_share / 'config' / 'lidar_noise_profiles.yaml'),
+        default_value=str(
+            package_share / 'config' / 'lidar_noise_profiles.yaml'
+        ),
     )
     lidar_noise_profile_arg = DeclareLaunchArgument(
         'lidar_noise_profile', default_value='measured'
@@ -127,7 +131,7 @@ def study_cafe_launch_description() -> LaunchDescription:
         description='Study-cafe room and repeated furniture layout.',
     )
     physics_step_arg = DeclareLaunchArgument(
-        'physics_max_step_size', default_value='0.001'
+        'physics_max_step_size', default_value='0.002'
     )
     real_time_factor_arg = DeclareLaunchArgument(
         'physics_real_time_factor', default_value='1.0'

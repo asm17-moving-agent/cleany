@@ -97,11 +97,15 @@ def test_materialized_world_and_tf_match_profile(
 
     root = ElementTree.parse(artifacts.world_path).getroot()
     mount = root.find(
-        "./world/model[@name='cleany_mecanum']/joint[@name='lidar_mount']"
+        "./world/model[@name='cleany_mecanum']/frame[@name='lidar_mount']"
     )
     assert mount is not None
-    assert mount.findtext('parent') == profile.transform.parent_frame_id
-    assert mount.findtext('child') == profile.transform.child_frame_id
+    assert mount.get('attached_to') == profile.transform.parent_frame_id
+    lidar_frame = root.find(
+        "./world/model[@name='cleany_mecanum']/frame[@name='lidar_link']"
+    )
+    assert lidar_frame is not None
+    assert lidar_frame.get('attached_to') == 'lidar_mount'
     pose = [float(value) for value in mount.findtext('pose', '').split()]
     assert tuple(pose[:3]) == profile.transform.translation
     assert pose[3:] == [0.0, 0.0, 0.0]

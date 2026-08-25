@@ -86,8 +86,31 @@ def test_repeated_furniture_uses_one_collision_per_static_model(
 
     assert len(repeated) == 168
     assert all(len(model.findall('.//collision')) == 1 for model in repeated)
-    assert len(world.findall('.//collision')) == 208
-    assert len(robot.findall('.//collision')) == 35
+    assert len(world.findall('.//collision')) == 179
+    assert len(robot.findall('.//collision')) == 6
+
+
+def test_folded_arms_use_one_primitive_upper_body_collision(
+    tmp_path: Path,
+) -> None:
+    robot = _world(tmp_path).find("model[@name='cleany_mecanum']")
+    assert robot is not None
+    envelope = robot.find(
+        "link[@name='base_link']/"
+        "collision[@name='folded_upper_body_envelope_collision']"
+    )
+
+    assert len(robot.findall('link')) == 5
+    assert len(robot.findall('joint')) == 4
+    assert len(robot.findall('frame')) == 44
+    assert robot.find("frame[@name='left_arm_base']") is not None
+    assert robot.find("frame[@name='right_moving_jaw']") is not None
+    assert robot.find("frame[@name='lidar_link']") is not None
+    assert robot.find("frame[@name='imu_link']") is not None
+    assert envelope is not None
+    assert envelope.find('geometry/mesh') is None
+    assert envelope.findtext('geometry/box/size') == '0.55 0.52 0.7'
+    assert envelope.findtext('pose') == '0.0 0.0 0.35 0 0 0'
 
 
 def test_study_cafe_supports_bounded_accelerated_physics(

@@ -122,12 +122,15 @@ def _write_profile_world(
     model = root.find("./world/model[@name='cleany_mecanum']")
     if model is None:
         raise ValueError('world is missing the cleany_mecanum model')
-    mount = model.find("joint[@name='lidar_mount']")
+    mount = model.find("frame[@name='lidar_mount']")
     if mount is None or mount.find('pose') is None:
         raise ValueError('world is missing the lidar_mount pose')
-    if mount.findtext('parent') != profile.transform.parent_frame_id:
+    if mount.get('attached_to') != profile.transform.parent_frame_id:
         raise ValueError('world lidar parent does not match the profile')
-    if mount.findtext('child') != profile.transform.child_frame_id:
+    lidar_frame = model.find(
+        f"frame[@name='{profile.transform.child_frame_id}']"
+    )
+    if lidar_frame is None or lidar_frame.get('attached_to') != 'lidar_mount':
         raise ValueError('world lidar child does not match the profile')
 
     translation = profile.transform.translation
