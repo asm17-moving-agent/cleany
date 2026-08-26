@@ -131,9 +131,17 @@ class GraspNode(Node):
         self.declare_parameter(
             'geometric.yaw_offsets_degrees', [-20.0, -10.0, 0.0, 10.0, 20.0]
         )
+        self.declare_parameter('geometric.approach_tilt_degrees', 0.0)
+        self.declare_parameter(
+            'geometric.approach_tilt_direction',
+            [1.0, 0.0, 0.0],
+        )
         self.declare_parameter('geometric.maximum_candidates', 12)
-        self.declare_parameter('canonical_to_tcp_rotation', [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
-        self.declare_parameter('tcp_approach_axis', [1.0, 0.0, 0.0])
+        self.declare_parameter(
+            'canonical_to_tcp_rotation',
+            [0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        )
+        self.declare_parameter('tcp_approach_axis', [0.0, -1.0, 0.0])
         self._predictor = predictor or self._create_predictor()
         self._debug_publisher = self.create_publisher(
             Image,
@@ -228,6 +236,12 @@ class GraspNode(Node):
             return AnyGraspPredictor(
                 str(self.get_parameter('checkpoint_path').value),
                 str(self.get_parameter('license_path').value),
+                maximum_gripper_width_m=float(
+                    self.get_parameter('maximum_gripper_width_m').value
+                ),
+                gripper_height_m=float(
+                    self.get_parameter('gripper_height_m').value
+                ),
             )
         if predictor_type == 'geometric':
             return GeometricGraspPredictor(
@@ -271,6 +285,17 @@ class GraspNode(Node):
                         float(value)
                         for value in self.get_parameter(
                             'geometric.yaw_offsets_degrees'
+                        ).value
+                    ),
+                    approach_tilt_degrees=float(
+                        self.get_parameter(
+                            'geometric.approach_tilt_degrees'
+                        ).value
+                    ),
+                    approach_tilt_direction=tuple(
+                        float(value)
+                        for value in self.get_parameter(
+                            'geometric.approach_tilt_direction'
                         ).value
                     ),
                     maximum_candidates=int(

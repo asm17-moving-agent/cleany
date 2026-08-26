@@ -96,8 +96,14 @@ def test_selected_grasp_is_executed_in_mujoco() -> None:
                 _stop_launch(process)
 
         text = _log_text(log_path)
-        assert 'candidate=0 arm=left stage=PREGRASP_IK: no IK solution' in text
-        assert 'candidate=0 arm=right stage=PREGRASP_IK: no IK solution' in text
+        assert (
+            'candidate=0 arm=left stage=PREGRASP_IK: '
+            'seed IK failed; current-state fallback also failed'
+        ) in text
+        assert (
+            'candidate=0 arm=right stage=PREGRASP_IK: '
+            'seed IK failed; current-state fallback also failed'
+        ) in text
         assert 'Selected candidate=1 arm=left' in text
         assert 'MoveIt execution succeeded: pre-grasp' in text
         assert 'MoveIt execution succeeded: grasp' in text

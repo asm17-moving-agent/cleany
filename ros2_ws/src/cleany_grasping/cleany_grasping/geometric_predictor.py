@@ -24,6 +24,8 @@ class GeometricGraspConfig:
     extent_trim_percentile: float = 0.5
     axis_search_step_degrees: float = 1.0
     yaw_offsets_degrees: tuple[float, ...] = (-20.0, -10.0, 0.0, 10.0, 20.0)
+    approach_tilt_degrees: float = 0.0
+    approach_tilt_direction: tuple[float, float, float] = (1.0, 0.0, 0.0)
     maximum_candidates: int = 12
 
     def __post_init__(self) -> None:
@@ -49,6 +51,18 @@ class GeometricGraspConfig:
             math.isfinite(value) for value in self.yaw_offsets_degrees
         ):
             raise ValueError('At least one finite yaw offset is required')
+        tilt_direction = np.asarray(self.approach_tilt_direction, dtype=float)
+        if (
+            not math.isfinite(self.approach_tilt_degrees)
+            or not 0.0 <= self.approach_tilt_degrees < 90.0
+            or tilt_direction.shape != (3,)
+            or not np.isfinite(tilt_direction).all()
+            or np.linalg.norm(tilt_direction) <= 1e-9
+        ):
+            raise ValueError(
+                'Approach tilt must use a finite angle in [0, 90) and '
+                'a non-zero 3-vector'
+            )
 
 
 def _fit_support_normal(
@@ -219,6 +233,25 @@ class GeometricGraspPredictor:
             self._config.extent_trim_percentile,
         )
         approach = -normal
+        if self._config.approach_tilt_degrees > 0.0:
+            tilt_direction = np.asarray(
+                self._config.approach_tilt_direction,
+                dtype=float,
+            )
+            tilt_direction -= float(tilt_direction @ normal) * normal
+            tilt_norm = float(np.linalg.norm(tilt_direction))
+            if tilt_norm <= 1e-9:
+                raise ValueError(
+                    'Approach tilt direction must not be parallel to the '
+                    'support normal'
+                )
+            tilt_direction /= tilt_norm
+            tilt = math.radians(self._config.approach_tilt_degrees)
+            approach = (
+                math.cos(tilt) * approach
+                + math.sin(tilt) * tilt_direction
+            )
+            approach /= np.linalg.norm(approach)
         generated: list[RawGrasp] = []
         for base_axis in (minor, major):
             for yaw_degrees in self._config.yaw_offsets_degrees:
@@ -226,6 +259,7 @@ class GeometricGraspPredictor:
                 closing = math.cos(yaw) * base_axis + math.sin(yaw) * np.cross(
                     normal, base_axis
                 )
+                closing -= float(closing @ approach) * approach
                 closing /= np.linalg.norm(closing)
                 lateral = np.cross(approach, closing)
                 lateral /= np.linalg.norm(lateral)

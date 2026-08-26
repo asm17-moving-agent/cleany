@@ -10,9 +10,18 @@ MuJoCo arm controller로 실행할 수 있다. `nearest_pregrasp_coordinator`는
 
 ## Reachable grasp action
 
-`grasp/select_reachable` (`SelectReachableGrasp`)는 가까운 팔부터 position-only IK,
-state validity, current→pre-grasp와 pre-grasp→grasp plan을 검사한다. pre-grasp는 접근
-벡터 반대 방향 0.08 m다. 후보별 IK/충돌/plan 실패는 다음 arm 또는 후보로 fallback한다.
+`grasp/select_reachable` (`SelectReachableGrasp`)는 가까운 팔부터 IK, state validity,
+current→pre-grasp와 pre-grasp→grasp plan을 검사한다. pre-grasp는 접근 벡터 반대 방향
+0.14 m다. 5축 position-only IK의 방향 손실을 막기 위해 먼저 TCP 위치 IK로 seed를 만든
+뒤, TCP의 실제 `-Y` 접근축 앞 0.14 m에 있는 가상 aim tip을 grasp point에 맞춘다. 이로써
+물리 gripper가 선택 객체를 바라보는 것은 강제된다. 위치 seed가 실패하면 현재 joint
+state에서도 계속 시도하며, 전체 arm joint limit 안에 분산한 팔당 8개 seed에서 허용
+오차를 만족하는 해를 자세 오차순으로 정렬한다. 5축 기구가 정확한
+후보 방향을 만들 수 없는 경우에는 접근축 최대 15도, parallel-jaw 대칭을 고려한 closing
+축 최대 30도 안에서 가장 가까운 실행 가능 방향을 허용한다. 그보다 큰 오차는 다음 arm
+또는 후보로 fallback한다. grasp 위치에서도 TCP 위치·접근축·closing 축을 FK로 다시
+검사한다. 한 해의 validity 또는 planning이 실패하면 같은 팔의 다음 grasp/pre-grasp
+해를 먼저 시도한 뒤 반대 팔과 다음 후보로 넘어간다. 선택 오차는 selector 로그에 남긴다.
 
 ## 제공 계약
 
@@ -36,6 +45,10 @@ pytest -q ros2_ws/src/cleany_skill_executor/test
 planning frame, timeout, planning attempt/scaling, 최대 후보 수는
 `config/grasp_selection.yaml`의 ROS parameter로 설정한다. timeout/cancel은 각 IK,
 state-validity와 planning 단계 전후에 확인한다.
+
+simulation 실행은 planning attempts 3, velocity/acceleration scaling 0.08,
+MoveGroup replan 2회와 0.25초 delay를 사용한다. controller 실패 시 joint별 tracking
+error를 기록하고 현재 상태에서 한 번만 같은 joint goal로 안전 재계획한다.
 
 ## 가까운 객체 자동 pre-grasp
 
@@ -67,11 +80,9 @@ ros2 launch cleany_skill_executor nearest_pregrasp.launch.py
 ```
 
 query, timeout, 속도/가속도 scaling과 gripper open 위치는
-`config/nearest_pregrasp.yaml`에서 설정한다. 현재 pre-grasp joint target은 운영 selector의
-0.08 m position-only IK 결과를 사용한다. 5축 팔의 접근 방향을 보장하는 aim-tip 보정은
-아직 can GUI 데모에만 있으며 coordinator 일반화 전까지 실제 로봇 실행 기준으로
-간주하지 않는다. 성공한 target OBB는 완료 자세에서 Planning Scene에 유지하며,
-실패하거나 coordinator가 종료될 때 기존 ACM과 함께 복원한다.
+`config/nearest_pregrasp.yaml`에서 설정한다. pre-grasp joint target은 운영 selector가
+aim-tip IK와 FK 방향 검증까지 통과한 결과를 사용한다. 성공한 target OBB는 완료 자세에서
+Planning Scene에 유지하며, 실패하거나 coordinator가 종료될 때 기존 ACM과 함께 복원한다.
 
 가까운 객체 선택을 실제 MuJoCo RGB-D 입력부터 확인하는 GUI 데모는 다음과 같이 실행한다.
 
@@ -118,9 +129,13 @@ source ros2_ws/install/setup.bash
 ros2 launch cleany_skill_executor grasp_execution_demo.launch.py
 ```
 
+기본 synthetic reachable candidate는 같은 grasp point를 공유하는 실제 5축
+pre-grasp/grasp FK 해에서 얻은 quaternion을 사용한다. 따라서 local `-Y` 접근축과
+local `+X` closing 축을 selector가 보존하는지 데모 자체에서도 검증한다.
+
 데모는 의도적으로 최고 점수의 도달 불가 후보를 먼저 검사한 뒤, 초록색 MuJoCo box와
-정렬된 두 번째 후보를 왼팔로 선택한다. 선택 action에서 position-only IK, 두 endpoint의
-collision/state validity, 두 구간 OMPL plan-only를 통과해야만 demo coordinator가
+정렬된 두 번째 후보를 왼팔로 선택한다. 선택 action에서 direction-aware pre-grasp IK,
+두 endpoint의 collision/state validity, 두 구간 OMPL plan-only를 통과해야만 coordinator가
 `left_arm_controller`로 pre-grasp와 grasp trajectory를 차례로 실행한다. 마지막에는
 실제 `/joint_states`가 선택 결과에 수렴했는지도 검사한다. Gripper close, attach, lift는
 아직 실행하지 않는다.
@@ -146,13 +161,16 @@ ros2 launch cleany_skill_executor grasp_execution_demo.launch.py \
 다음 launch는 table, 파란 box, 빨간 can, 노란 경로 장애물과 고정 RGB-D 카메라가 있는
 `mujoco_ros2_control` 장면을 연다. 시뮬레이터가 렌더링한 RGB-D에서 빨간 can을
 분할하고 `base_link` 점군으로 투영한 뒤, geometric grasp 후보 생성과 MoveIt
-양팔 검증을 거쳐 그리퍼를 열고 선택된 pre-grasp 자세까지 실제 controller로
-실행한다. 5축 position-only IK가 TCP quaternion을 무시하는 문제를 피하기 위해
-그리퍼 전방 0.14 m의 collision-free 가상 조준점을 grasp point에 맞춘다. 따라서 실제
+양팔 검증을 거쳐 선택된 pre-grasp 자세까지 실제 controller로 이동한다. 실제 joint
+feedback으로 도착을 확인한 뒤 그 위치에서 그리퍼를 연다. selector가 반환한 동일
+joint goal을 실행하며 실행 직전 IK를 다시 계산하지 않는다. 그리퍼 전방 0.14 m의
+가상 조준점은 selector에서 계산하고, can 데모는 FK로 그 결과만 다시 확인한다. 따라서 실제
 TCP는 can에서 0.14 m 떨어져 있고, 그리퍼의 접근축은 can을 향한 자세에서 멈춘다.
-이 보정은 can 데모의 실행 직전에 적용된다. 운영 `SelectReachableGrasp` action 자체는
-계속 position-only 후보 검증 계약을 유지하므로, action 결과만으로 TCP 방향까지
-검증됐다고 해석하면 안 된다.
+Can demo는 기계적 limit에서 최소 0.02 rad 여유를 둔 접힌 초기 자세로 양팔을 소환한다.
+이 초기값은 launch에서 ROS control description에 전달되며 다른 MuJoCo workflow의 기본
+0 rad 초기 자세는 변경하지 않는다.
+운영 `SelectReachableGrasp` action에서도 같은 보정과 FK 방향 검증을 수행한다. can 데모는
+실행 직전에 한 번 더 FK 결과를 표시해 육안 확인용 marker와 로그를 제공한다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -170,8 +188,8 @@ ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
   score, 접근 azimuth/elevation, 요구 opening과 MoveIt 선택 결과
 
 로그에서 `RGB-D can segmented`, `GEOMETRIC GRASP COMPLETE`, `Selected generated
-candidate`, `gripper opened`, `Direction-aware pre-grasp verified`,
-`MoveIt execution succeeded: collision-checked aimed pre-grasp`,
+candidate`, `Direction-aware pre-grasp verified`,
+`MoveIt execution succeeded: collision-checked aimed pre-grasp`, `gripper opened`,
 `CAN PREGRASP DEMO COMPLETE`가 차례대로
 나오면 전체 경로가 성공한 것이다. RGB-D 렌더링에는 OpenGL context가 필요하므로
 이 데모의 `headless:=true`는 지원하지 않는다. table, can과 노란 장애물은 MuJoCo

@@ -20,7 +20,7 @@ from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
 
-from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
+from cleany_skill_executor.core.grasp_selection import Candidate, REQUIRED_JOINT_NAMES
 
 
 class GraspExecutionDemo(Node):
@@ -33,13 +33,22 @@ class GraspExecutionDemo(Node):
         self.declare_parameter('startup_timeout_sec', 60.0)
         self.declare_parameter('demo_start_delay_sec', 5.0)
         self.declare_parameter('planning_timeout_sec', 5.0)
-        self.declare_parameter('planning_attempts', 1)
+        self.declare_parameter('planning_attempts', 3)
+        self.declare_parameter('replan_attempts', 2)
+        self.declare_parameter('replan_delay_sec', 0.25)
         self.declare_parameter('stage_hold_sec', 3.0)
-        self.declare_parameter('velocity_scaling', 0.12)
-        self.declare_parameter('acceleration_scaling', 0.12)
+        self.declare_parameter('velocity_scaling', 0.08)
+        self.declare_parameter('acceleration_scaling', 0.08)
         self.declare_parameter('target_position', [0.09, 0.6696, 0.6158])
         self.declare_parameter('target_size', [0.03, 0.03, 0.03])
-        self.declare_parameter('approach_direction', [0.0, -0.186, 0.983])
+        self.declare_parameter(
+            'approach_direction',
+            [0.0, 0.97291739, 0.23115309],
+        )
+        self.declare_parameter(
+            'tcp_orientation',
+            [0.86024568, 0.05816248, -0.49642327, -0.10078904],
+        )
         self._selection = ActionClient(
             self,
             SelectReachableGrasp,
@@ -145,12 +154,21 @@ class GraspExecutionDemo(Node):
         approach = tuple(
             float(v) for v in self.get_parameter('approach_direction').value
         )
+        orientation = tuple(
+            float(v) for v in self.get_parameter('tcp_orientation').value
+        )
         definitions = (
-            ((2.0, 1.0, 1.5), (0.0, 0.0, -1.0), 0.9),
-            (target, approach, 0.8),
+            ((2.0, 1.0, 1.5), (0.0, 0.0, -1.0), 0.9, None),
+            (target, approach, 0.8, orientation),
         )
         candidates: list[GraspCandidate] = []
-        for position, direction, score in definitions:
+        for position, direction, score, desired_orientation in definitions:
+            core_candidate = Candidate(
+                position,
+                direction,
+                score,
+                orientation=desired_orientation,
+            )
             candidate = GraspCandidate()
             candidate.header.frame_id = 'base_link'
             candidate.snapshot_id = 'mujoco-grasp-execution-demo'
@@ -158,10 +176,17 @@ class GraspExecutionDemo(Node):
             candidate.tcp_pose.position.x = position[0]
             candidate.tcp_pose.position.y = position[1]
             candidate.tcp_pose.position.z = position[2]
-            candidate.tcp_pose.orientation.w = 1.0
-            candidate.approach_direction.x = direction[0]
-            candidate.approach_direction.y = direction[1]
-            candidate.approach_direction.z = direction[2]
+            (
+                candidate.tcp_pose.orientation.x,
+                candidate.tcp_pose.orientation.y,
+                candidate.tcp_pose.orientation.z,
+                candidate.tcp_pose.orientation.w,
+            ) = core_candidate.orientation
+            (
+                candidate.approach_direction.x,
+                candidate.approach_direction.y,
+                candidate.approach_direction.z,
+            ) = core_candidate.approach_direction
             candidate.required_opening_m = 0.03
             candidate.grasp_depth_m = 0.015
             candidate.score = score
@@ -186,6 +211,42 @@ class GraspExecutionDemo(Node):
         )
 
     def _move_to(self, arm: str, joint_state: JointState, label: str) -> None:
+        for execution_attempt in (1, 2):
+            goal = self._execution_goal(arm, joint_state, label)
+            self.get_logger().info(
+                f'MoveIt plan-and-execute: {label} attempt={execution_attempt}/2'
+            )
+            handle = self._future(
+                self._move_group.send_goal_async(goal),
+                10.0,
+                f'{label} goal response',
+            )
+            if not handle.accepted:
+                raise RuntimeError(f'{label} MoveGroup goal was rejected')
+            wrapped = self._future(
+                handle.get_result_async(), 60.0, f'{label} execution result'
+            )
+            code = wrapped.result.error_code.val
+            if (
+                wrapped.status == GoalStatus.STATUS_SUCCEEDED
+                and code == MoveItErrorCodes.SUCCESS
+            ):
+                self.get_logger().info(f'MoveIt execution succeeded: {label}')
+                return
+            self._log_joint_tracking_error(joint_state, label, code)
+            if execution_attempt == 1 and code == MoveItErrorCodes.CONTROL_FAILED:
+                self.get_logger().warning(
+                    f'{label} controller failed; replanning once from current state'
+                )
+                continue
+            raise RuntimeError(
+                f'{label} execution failed: status={wrapped.status} code={code}'
+            )
+        raise RuntimeError(f'{label} controller recovery was exhausted')
+
+    def _execution_goal(
+        self, arm: str, joint_state: JointState, label: str
+    ) -> MoveGroup.Goal:
         goal = MoveGroup.Goal()
         request = goal.request
         request.group_name = f'{arm}_grasp_arm'
@@ -218,31 +279,38 @@ class GraspExecutionDemo(Node):
         goal.planning_options.plan_only = False
         goal.planning_options.look_around = False
         goal.planning_options.replan = True
-        goal.planning_options.replan_attempts = 3
-        goal.planning_options.replan_delay = 0.1
+        goal.planning_options.replan_attempts = int(
+            self.get_parameter('replan_attempts').value
+        )
+        goal.planning_options.replan_delay = float(
+            self.get_parameter('replan_delay_sec').value
+        )
         goal.planning_options.planning_scene_diff.is_diff = True
         goal.planning_options.planning_scene_diff.robot_state.is_diff = True
+        return goal
 
-        self.get_logger().info(f'MoveIt plan-and-execute: {label}')
-        handle = self._future(
-            self._move_group.send_goal_async(goal),
-            10.0,
-            f'{label} goal response',
-        )
-        if not handle.accepted:
-            raise RuntimeError(f'{label} MoveGroup goal was rejected')
-        wrapped = self._future(
-            handle.get_result_async(), 60.0, f'{label} execution result'
-        )
-        if (
-            wrapped.status != GoalStatus.STATUS_SUCCEEDED
-            or wrapped.result.error_code.val != MoveItErrorCodes.SUCCESS
-        ):
-            raise RuntimeError(
-                f'{label} execution failed: status={wrapped.status} '
-                f'code={wrapped.result.error_code.val}'
+    def _log_joint_tracking_error(
+        self, joint_state: JointState, label: str, error_code: int
+    ) -> None:
+        errors = {
+            name: abs(float(target) - self._joint_positions[name])
+            for name, target in zip(
+                joint_state.name, joint_state.position, strict=True
             )
-        self.get_logger().info(f'MoveIt execution succeeded: {label}')
+            if name in self._joint_positions
+        }
+        if not errors:
+            self.get_logger().error(
+                f'{label} failed code={error_code}; joint feedback unavailable'
+            )
+            return
+        details = ', '.join(
+            f'{name}={error:.4f}rad'
+            for name, error in sorted(errors.items())
+        )
+        self.get_logger().error(
+            f'{label} failed code={error_code}; joint tracking error: {details}'
+        )
 
     def _verify_feedback(self, goal: JointState) -> None:
         deadline = time.monotonic() + 5.0

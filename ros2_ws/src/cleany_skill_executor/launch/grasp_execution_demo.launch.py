@@ -34,6 +34,11 @@ def generate_launch_description() -> LaunchDescription:
         ),
         launch_arguments={
             'scene_path': scene,
+            'controller_config': str(
+                Path(get_package_share_directory('cleany_mujoco_sim'))
+                / 'config'
+                / 'grasp_demo_ros2_controllers.yaml'
+            ),
             'headless': headless,
             'sim_speed_factor': '1.0',
         }.items(),

@@ -26,6 +26,8 @@ def _candidate(frame_id='base_link'):
     message.tcp_pose.position.x = 0.5
     message.tcp_pose.position.y = 0.2
     message.tcp_pose.position.z = 0.8
+    message.tcp_pose.orientation.z = 2**-0.5
+    message.tcp_pose.orientation.w = 2**-0.5
     message.approach_direction.x = 1.0
     message.score = 1.0
     return message

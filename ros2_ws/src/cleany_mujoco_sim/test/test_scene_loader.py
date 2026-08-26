@@ -96,6 +96,53 @@ def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy():
     assert '<dcmotor class="pg42_drive"' in canonical_text_before
 
 
+def test_control_scene_materializes_workflow_initial_joint_keyframe():
+    package_root = Path(__file__).parents[1]
+    expected = {
+        'left_shoulder_yaw_joint': -1.53,
+        'left_shoulder_pitch_joint': 3.35,
+        'left_elbow_pitch_joint': 3.12,
+        'left_wrist_pitch_joint': -1.63,
+        'left_wrist_roll_joint': 1.58,
+        'left_gripper_joint': -0.35,
+        'right_shoulder_yaw_joint': 1.58,
+        'right_shoulder_pitch_joint': 3.35,
+        'right_elbow_pitch_joint': 3.12,
+        'right_wrist_pitch_joint': -1.63,
+        'right_wrist_roll_joint': 1.58,
+        'right_gripper_joint': -0.35,
+    }
+    scene = materialize_control_scene(
+        package_root / 'scenes' / 'can_grasp_execution_demo.xml.in',
+        initial_joint_positions=expected,
+    )
+    model, data = load_model(scene)
+    key_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_KEY, 'handeye_ros2_control_home'
+    )
+    mujoco.mj_resetDataKeyframe(model, data, key_id)
+    mujoco.mj_forward(model, data)
+
+    for name, value in expected.items():
+        joint_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_JOINT, name
+        )
+        assert data.qpos[model.jnt_qposadr[joint_id]] == pytest.approx(value)
+    arm_bodies = {
+        mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+        for name in (
+            'Upper_Arm', 'Lower_Arm', 'Wrist_Pitch_Roll', 'Fixed_Jaw',
+            'Moving_Jaw', 'Upper_Arm_2', 'Lower_Arm_2',
+            'Wrist_Pitch_Roll_2', 'Fixed_Jaw_2', 'Moving_Jaw_2',
+        )
+    }
+    assert all(
+        model.geom_bodyid[contact.geom1] not in arm_bodies
+        and model.geom_bodyid[contact.geom2] not in arm_bodies
+        for contact in data.contact
+    )
+
+
 def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
     cleany_scene_path: Path,
 ):

@@ -209,6 +209,43 @@ def test_control_description_can_enable_gripper_position_commands() -> None:
         ]
 
 
+def test_control_description_accepts_workflow_specific_initial_positions() -> None:
+    expected = {
+        "left_shoulder_yaw_joint": -1.53,
+        "left_shoulder_pitch_joint": 3.35,
+        "left_elbow_pitch_joint": 3.12,
+        "left_wrist_pitch_joint": -1.63,
+        "left_wrist_roll_joint": 1.58,
+        "left_gripper_joint": -0.35,
+        "right_shoulder_yaw_joint": 1.58,
+        "right_shoulder_pitch_joint": 3.35,
+        "right_elbow_pitch_joint": 3.12,
+        "right_wrist_pitch_joint": -1.63,
+        "right_wrist_roll_joint": 1.58,
+        "right_gripper_joint": -0.35,
+    }
+    arguments = [
+        f"{name.removesuffix('_joint')}_initial:={value}"
+        for name, value in expected.items()
+    ]
+    root = _expand_urdf(
+        "cleany_control.urdf.xacro",
+        "mujoco_model:=/tmp/cleany_control_scene.xml",
+        "enable_gripper_command:=true",
+        *arguments,
+    )
+    joints = {
+        joint.attrib["name"]: joint
+        for joint in root.findall("./ros2_control/joint")
+    }
+    for name, value in expected.items():
+        initial = joints[name].find(
+            "./state_interface[@name='position']/param[@name='initial_value']"
+        )
+        assert initial is not None
+        assert float(initial.text) == pytest.approx(value)
+
+
 def test_mjcf_uses_canonical_arm_joint_names_and_limits() -> None:
     root = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
     joints = {

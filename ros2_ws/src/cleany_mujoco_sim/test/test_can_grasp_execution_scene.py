@@ -46,7 +46,7 @@ def test_can_grasp_scene_matches_camera_and_moveit_geometry() -> None:
         (0.700, -0.002, 0.330)
     )
     assert data.xpos[can] - data.xpos[chassis] == pytest.approx(
-        (0.540, 0.160, 0.395)
+        (0.440, 0.160, 0.395)
     )
     assert data.xpos[obstacle] - data.xpos[chassis] == pytest.approx(
         (0.350, 0.420, 0.470)

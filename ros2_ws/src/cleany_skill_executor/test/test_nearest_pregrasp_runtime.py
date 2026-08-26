@@ -24,27 +24,35 @@ from cleany_interfaces.msg import (
 from cleany_interfaces.srv import PlanGrasp
 import rclpy
 from rclpy.action import ActionServer
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
+from cleany_skill_executor.core.grasp_selection import quaternion_axis
 
-TARGET = (0.09, 0.6696, 0.6158)
+
+TARGET = (0.296499, 0.521873, 0.705470)
+ORIENTATION = (-0.308136, -0.164442, 0.887690, 0.300028)
+APPROACH = quaternion_axis(ORIENTATION, (0.0, -1.0, 0.0))
 
 
 class FakeNearestObjectProviders(Node):
     def __init__(self) -> None:
         super().__init__('fake_nearest_object_providers')
         self.inspected_ids: list[int] = []
+        self._callbacks = ReentrantCallbackGroup()
         self._inspection = ActionServer(
             self,
             InspectScene,
             '/perception/inspect_scene',
             execute_callback=self._inspect,
+            callback_group=self._callbacks,
         )
         self._grasp = self.create_service(
             PlanGrasp,
             '/grasp/plan',
             self._plan,
+            callback_group=self._callbacks,
         )
 
     def destroy_node(self) -> None:
@@ -126,19 +134,28 @@ class FakeNearestObjectProviders(Node):
         candidate.header.frame_id = 'base_link'
         candidate.snapshot_id = request.snapshot_id
         candidate.object_id = request.object_id
-        candidate.tcp_pose.position.x = TARGET[0]
-        candidate.tcp_pose.position.y = TARGET[1]
-        candidate.tcp_pose.position.z = TARGET[2]
-        candidate.tcp_pose.orientation.w = 1.0
-        candidate.approach_direction.y = -0.186
-        candidate.approach_direction.z = 0.983
+        (
+            candidate.tcp_pose.position.x,
+            candidate.tcp_pose.position.y,
+            candidate.tcp_pose.position.z,
+        ) = TARGET
+        (
+            candidate.tcp_pose.orientation.x,
+            candidate.tcp_pose.orientation.y,
+            candidate.tcp_pose.orientation.z,
+            candidate.tcp_pose.orientation.w,
+        ) = ORIENTATION
+        (
+            candidate.approach_direction.x,
+            candidate.approach_direction.y,
+            candidate.approach_direction.z,
+        ) = APPROACH
         candidate.required_opening_m = 0.03
         candidate.grasp_depth_m = 0.015
         candidate.score = 0.9
         candidate.target_object = request.target_object
         response.candidates = [candidate]
         return response
-
 
 def _log_text(path: Path) -> str:
     try:

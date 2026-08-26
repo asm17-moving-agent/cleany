@@ -11,7 +11,9 @@ nearest_pregrasp_coordinator:
     selection_timeout_sec: 120.0
     planning_timeout_sec: 5.0
     planning_attempts: 3
-    velocity_scaling: 0.1
-    acceleration_scaling: 0.1
+    replan_attempts: 2
+    replan_delay_sec: 0.25
+    velocity_scaling: 0.08
+    acceleration_scaling: 0.08
     gripper_open_position_rad: 1.2
-    gripper_motion_sec: 2.0
+    gripper_motion_sec: 3.0

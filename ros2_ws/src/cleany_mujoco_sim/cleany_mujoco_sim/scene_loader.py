@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import html
+import math
 import shutil
 import struct
 import tempfile
@@ -74,7 +75,11 @@ def materialize_scene(template_path: Path) -> Path:
     return _materialize_scene(template_path, control_compatible=False)
 
 
-def materialize_control_scene(template_path: Path) -> Path:
+def materialize_control_scene(
+    template_path: Path,
+    *,
+    initial_joint_positions: dict[str, float] | None = None,
+) -> Path:
     """Materialize a MuJoCo 3.4-compatible arm-control scene.
 
     The canonical model uses MuJoCo 3.7 ``dcmotor`` actuators for the mobile
@@ -86,12 +91,28 @@ def materialize_control_scene(template_path: Path) -> Path:
     finite value.  The canonical model and the default custom simulator path
     remain unchanged.
     """
-    return _materialize_scene(template_path, control_compatible=True)
+    return _materialize_scene(
+        template_path,
+        control_compatible=True,
+        initial_joint_positions=initial_joint_positions,
+    )
 
 
-def resolve_control_scene_path(scene_path: Path) -> Path:
+def resolve_control_scene_path(
+    scene_path: Path,
+    *,
+    initial_joint_positions: dict[str, float] | None = None,
+) -> Path:
     if scene_path.suffix == '.in':
-        return materialize_control_scene(scene_path)
+        return materialize_control_scene(
+            scene_path,
+            initial_joint_positions=initial_joint_positions,
+        )
+    if initial_joint_positions and any(initial_joint_positions.values()):
+        raise ValueError(
+            'Custom initial joints require an XML scene template so its '
+            'control keyframe can be materialized safely'
+        )
     return scene_path
 
 
@@ -99,6 +120,7 @@ def _materialize_scene(
     template_path: Path,
     *,
     control_compatible: bool,
+    initial_joint_positions: dict[str, float] | None = None,
 ) -> Path:
     if not template_path.is_file():
         raise FileNotFoundError(
@@ -148,9 +170,15 @@ def _materialize_scene(
         quote=True,
     )
     if control_compatible:
+        initial_qpos, initial_ctrl = _initial_control_keyframe(
+            description_model,
+            initial_joint_positions or {},
+        )
         materialized_model = _control_compatible_model_text(
             model_text,
             absolute_meshdir=description_meshes.resolve(),
+            initial_qpos=initial_qpos,
+            initial_ctrl=initial_ctrl,
         )
     else:
         materialized_model = model_text.replace(
@@ -348,6 +376,8 @@ def _control_compatible_model_text(
     model_text: str,
     *,
     absolute_meshdir: Path,
+    initial_qpos: tuple[float, ...] = (),
+    initial_ctrl: tuple[float, ...] = (),
 ) -> str:
     root = ET.fromstring(model_text)
     compiler = root.find('./compiler')
@@ -393,14 +423,55 @@ def _control_compatible_model_text(
         raise ValueError(
             f'Cleany MJCF already defines {_CONTROL_INITIAL_KEYFRAME}'
         )
-    ET.SubElement(
+    keyframe = ET.SubElement(
         keyframe_group,
         'key',
         {'name': _CONTROL_INITIAL_KEYFRAME},
     )
+    if initial_qpos:
+        keyframe.set('qpos', ' '.join(f'{value:.12g}' for value in initial_qpos))
+    if initial_ctrl:
+        keyframe.set('ctrl', ' '.join(f'{value:.12g}' for value in initial_ctrl))
 
     ET.indent(root, space='  ')
     return ET.tostring(root, encoding='unicode') + '\n'
+
+
+def _initial_control_keyframe(
+    description_model: Path,
+    positions: dict[str, float],
+) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    if not positions or not any(positions.values()):
+        return (), ()
+    model = mujoco.MjModel.from_xml_path(str(description_model))
+    data = mujoco.MjData(model)
+    remaining = set(positions)
+    for joint_id in range(model.njnt):
+        name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, joint_id)
+        if name not in positions:
+            continue
+        value = float(positions[name])
+        lower, upper = model.jnt_range[joint_id]
+        if not math.isfinite(value) or not lower <= value <= upper:
+            raise ValueError(
+                f'Initial joint {name}={value} is outside [{lower}, {upper}]'
+            )
+        data.qpos[model.jnt_qposadr[joint_id]] = value
+        remaining.remove(name)
+    if remaining:
+        raise ValueError(f'Unknown initial joints: {sorted(remaining)}')
+
+    controls: list[float] = []
+    for actuator_id in range(model.nu):
+        actuator = mujoco.mj_id2name(
+            model,
+            mujoco.mjtObj.mjOBJ_ACTUATOR,
+            actuator_id,
+        )
+        if actuator in _WHEEL_DCMOTOR_ACTUATORS:
+            continue
+        controls.append(float(positions.get(actuator, 0.0)))
+    return tuple(float(value) for value in data.qpos), tuple(controls)
 
 
 def load_model(scene_path: Path) -> tuple[Any, Any]:

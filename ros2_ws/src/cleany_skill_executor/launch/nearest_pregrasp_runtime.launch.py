@@ -27,6 +27,9 @@ def generate_launch_description() -> LaunchDescription:
             'scene_path': str(
                 mujoco_share / 'scenes' / 'grasp_execution_demo.xml.in'
             ),
+            'controller_config': str(
+                mujoco_share / 'config' / 'grasp_demo_ros2_controllers.yaml'
+            ),
             'headless': headless,
             'sim_speed_factor': '1.0',
             'enable_gripper_controllers': 'true',

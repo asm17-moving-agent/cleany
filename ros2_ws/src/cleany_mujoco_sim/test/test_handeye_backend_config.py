@@ -87,3 +87,34 @@ def test_handeye_backend_does_not_compose_the_custom_simulator() -> None:
     assert 'mujoco_sim_node' not in launch_source
     assert "package='mujoco_ros2_control'" in launch_source
     assert "executable='ros2_control_node'" in launch_source
+
+
+def test_grasp_demo_controller_profile_is_isolated_and_relaxes_only_arm_path() -> None:
+    handeye_path = PACKAGE_ROOT / 'config' / 'handeye_ros2_controllers.yaml'
+    grasp_path = PACKAGE_ROOT / 'config' / 'grasp_demo_ros2_controllers.yaml'
+    handeye = yaml.safe_load(handeye_path.read_text(encoding='utf-8'))
+    grasp = yaml.safe_load(grasp_path.read_text(encoding='utf-8'))
+
+    assert grasp_path != handeye_path
+    for side in ('left', 'right'):
+        controller = f'{side}_arm_controller'
+        grasp_constraints = grasp[controller]['ros__parameters']['constraints']
+        handeye_constraints = handeye[controller]['ros__parameters']['constraints']
+        for joint in _arm_joints(side):
+            assert grasp_constraints[joint] == {'trajectory': 0.08, 'goal': 0.01}
+            assert handeye_constraints[joint] == {
+                'trajectory': 0.05,
+                'goal': 0.01,
+            }
+        gripper = grasp[f'{side}_gripper_controller']['ros__parameters']
+        assert gripper['constraints']['goal_time'] == 3.0
+
+
+def test_handeye_backend_accepts_workflow_specific_controller_config() -> None:
+    source = (
+        PACKAGE_ROOT / 'launch' / 'handeye_backend.launch.py'
+    ).read_text(encoding='utf-8')
+
+    assert "'controller_config'" in source
+    assert "controller_config = LaunchConfiguration('controller_config')" in source
+    assert "'handeye_ros2_controllers.yaml'" in source

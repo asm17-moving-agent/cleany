@@ -61,8 +61,32 @@ def test_canonical_rotation_is_converted_to_tcp_axes() -> None:
 
     assert result is not None
     assert np.allclose(result.rotation, conversion)
-    assert np.allclose(result.approach_direction, (0.0, 1.0, 0.0))
+    assert np.allclose(result.approach_direction, (1.0, 0.0, 0.0))
     assert result.required_opening_m == 0.04
+
+
+def test_cleany_negative_y_tcp_axis_preserves_canonical_approach() -> None:
+    target = cloud(((-0.1, -0.1, -0.1), (0.1, 0.1, 0.1)))
+    conversion = np.array(
+        ((0.0, -1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
+    )
+
+    result = select_grasp(
+        FakePredictor((grasp((0.0, 0.0, 0.0), 0.7),)),
+        target,
+        target,
+        GraspConfig(
+            canonical_to_tcp_rotation=conversion,
+            tcp_approach_axis=np.array((0.0, -1.0, 0.0)),
+        ),
+    )
+
+    assert result is not None
+    assert np.allclose(
+        result.rotation @ np.array((0.0, -1.0, 0.0)),
+        result.approach_direction,
+    )
+    assert np.allclose(result.approach_direction, (1.0, 0.0, 0.0))
 
 
 def test_returns_none_instead_of_inventing_candidate() -> None:

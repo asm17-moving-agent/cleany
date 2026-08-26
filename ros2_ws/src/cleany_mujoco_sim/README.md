@@ -78,7 +78,7 @@ MoveIt planning scene에서 수행한다. 통합 실행은 `cleany_skill_executo
 
 `scenes/can_grasp_execution_demo.xml.in`은 실제 렌더 RGB-D 기반 grasp 통합 장면이다.
 chassis 기준 table 중심은 `(0.700, -0.002, 0.330) m`, 빨간 can 중심은
-`(0.540, 0.160, 0.395) m`이고 `pick_demo_rgbd` 카메라는 640×480, vertical FOV
+`(0.440, 0.160, 0.395) m`이고 `pick_demo_rgbd` 카메라는 640×480, vertical FOV
 42°다. table과 can은 모두 MuJoCo 물리 충돌체다. 검출 OBB는 후보 검증 중 MoveIt에
 등록하고, pre-grasp 실제 실행 중에는 can cylinder를 contact permission 없이
 유지한다. 선택된 gripper를 연 뒤 can 접촉 전 0.14 m pre-grasp에서 멈춘다.
@@ -180,7 +180,9 @@ command timeout 후 정지 목표를 적용한다.
 그리퍼는 MoveIt current-state completeness를 위해 상태만 내보내며 command
 interface는 없다. 이 backend는 private `~/joint_cmd` topic을 만들거나 사용하지
 않는다. Controller의 joint path/goal tolerance baseline은 각각 `0.05 rad`와
-`0.01 rad`이며 `config/handeye_ros2_controllers.yaml`에서 관리한다.
+`0.01 rad`이며 `config/handeye_ros2_controllers.yaml`에서 관리한다. Grasp demo는 이
+baseline을 바꾸지 않고 `config/grasp_demo_ros2_controllers.yaml`을 명시적으로 선택한다.
+전용 profile의 arm path tolerance는 `0.08 rad`이고 gripper goal time은 3초다.
 
 ROS 2 Humble binary의 `mujoco_ros2_control` 0.0.3은 MuJoCo 3.4를 vendor하므로
 canonical model의 MuJoCo 3.7 `dcmotor`를 읽을 수 없다. Default `.xml.in` scene을

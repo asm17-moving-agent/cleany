@@ -20,7 +20,7 @@ from moveit_msgs.msg import (
     PlanningScene,
     RobotState,
 )
-from moveit_msgs.srv import ApplyPlanningScene, GetPositionFK, GetPositionIK
+from moveit_msgs.srv import ApplyPlanningScene, GetPositionFK
 import numpy as np
 import rclpy
 from rclpy.action import ActionClient
@@ -42,7 +42,12 @@ from cleany_skill_executor.core.can_rgbd import (
     render_grasp_overlay,
     segment_red_can,
 )
-from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
+from cleany_skill_executor.core.grasp_selection import (
+    REQUIRED_JOINT_NAMES,
+    directed_axis_error_deg,
+    quaternion_axis,
+    unsigned_axis_error_deg,
+)
 from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo
 
 
@@ -90,17 +95,16 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
         self.declare_parameter('table_top_z_base', 0.345)
         self.declare_parameter('can_diameter_m', 0.070)
         self.declare_parameter('can_height_m', 0.100)
-        self.declare_parameter('pregrasp_aim_ik_timeout_sec', 1.0)
-        self.declare_parameter('pregrasp_facing_tolerance_deg', 2.0)
+        self.declare_parameter('pregrasp_facing_tolerance_deg', 15.0)
+        self.declare_parameter('pregrasp_closing_tolerance_deg', 30.0)
         self.declare_parameter('gripper_open_position_rad', 1.2)
-        self.declare_parameter('gripper_motion_sec', 2.0)
+        self.declare_parameter('gripper_motion_sec', 3.0)
         self._grasp = self.create_client(
             PlanGrasp, str(self.get_parameter('grasp_service').value)
         )
         self._apply_scene = self.create_client(
             ApplyPlanningScene, '/apply_planning_scene'
         )
-        self._aim_ik = self.create_client(GetPositionIK, '/compute_ik')
         self._fk = self.create_client(GetPositionFK, '/compute_fk')
         self._grippers = {
             arm: ActionClient(
@@ -266,7 +270,6 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             status=f'can grasp selected: {result.selected_arm}',
         )
         self._register_execution_collision(target_object)
-        self._open_gripper(result.selected_arm)
         aimed_pregrasp = self._solve_aimed_pregrasp(
             result.selected_arm,
             result.selected_candidate,
@@ -302,12 +305,21 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             response.candidates,
             target_object,
             selected_index=result.selected_candidate_index,
-            status=f'open gripper at pre-grasp: {result.selected_arm}',
+            status=f'pre-grasp reached; opening gripper: {result.selected_arm}',
+            selected_pregrasp=aimed_pregrasp.tcp_position,
+        )
+        self._open_gripper(result.selected_arm)
+        self._publish_can_markers(
+            response.candidates,
+            target_object,
+            selected_index=result.selected_candidate_index,
+            status=f'gripper open at pre-grasp: {result.selected_arm}',
             selected_pregrasp=aimed_pregrasp.tcp_position,
         )
         self.get_logger().info(
-            'CAN PREGRASP DEMO COMPLETE: gripper opened, can collision '
-            'retained, and the TCP approach axis faces the grasp point'
+            'CAN PREGRASP DEMO COMPLETE: pre-grasp reached, gripper opened, '
+            'can collision retained, and the TCP approach axis faces the '
+            'grasp point'
         )
 
     def _solve_aimed_pregrasp(
@@ -316,9 +328,7 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
         candidate: GraspCandidate,
         seed: JointState,
     ) -> AimedPregrasp:
-        """Aim the physical TCP at the grasp using a virtual offset tip."""
-        if not self._aim_ik.wait_for_service(timeout_sec=2.0):
-            raise RuntimeError('MoveIt IK service is unavailable for pre-grasp aiming')
+        """FK-verify the selector goal without replacing it with a new IK result."""
         positions = {
             name: float(self._joint_positions[name])
             for name in REQUIRED_JOINT_NAMES
@@ -327,57 +337,16 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             (name, float(value))
             for name, value in zip(seed.name, seed.position, strict=True)
         )
-        request = GetPositionIK.Request()
-        ik = request.ik_request
-        ik.group_name = f'{arm}_pregrasp_aim_arm'
-        ik.ik_link_name = f'{arm}_pregrasp_aim_tip'
-        ik.avoid_collisions = True
-        ik.robot_state.joint_state.name = list(REQUIRED_JOINT_NAMES)
-        ik.robot_state.joint_state.position = [
+        state = RobotState()
+        state.joint_state.name = list(REQUIRED_JOINT_NAMES)
+        state.joint_state.position = [
             positions[name] for name in REQUIRED_JOINT_NAMES
         ]
-        ik.pose_stamped.header.frame_id = 'base_link'
-        ik.pose_stamped.pose.position = candidate.tcp_pose.position
-        ik.pose_stamped.pose.orientation.w = 1.0
-        timeout = float(
-            self.get_parameter('pregrasp_aim_ik_timeout_sec').value
-        )
-        seconds = int(timeout)
-        ik.timeout.sec = seconds
-        ik.timeout.nanosec = int((timeout - seconds) * 1e9)
-        response = self._future(
-            self._aim_ik.call_async(request),
-            timeout + 2.0,
-            'direction-aware pre-grasp IK',
-        )
-        if response.error_code.val != MoveItErrorCodes.SUCCESS:
-            raise RuntimeError(
-                'no collision-free pre-grasp can face the can: '
-                f'IK code={response.error_code.val}'
-            )
-        solved = dict(
-            zip(
-                response.solution.joint_state.name,
-                response.solution.joint_state.position,
-                strict=True,
-            )
-        )
-        missing = set(seed.name) - solved.keys()
-        if missing:
-            raise RuntimeError(
-                'direction-aware IK response omitted arm joints: '
-                f'{sorted(missing)}'
-            )
-        joint_state = JointState()
-        joint_state.name = list(seed.name)
-        joint_state.position = [
-            float(solved[name]) for name in joint_state.name
-        ]
         tcp_position, approach, angle_deg = self._verify_pregrasp_facing(
-            arm, candidate, response.solution, timeout=2.0
+            arm, candidate, state, timeout=2.0
         )
         return AimedPregrasp(
-            joint_state=joint_state,
+            joint_state=seed,
             tcp_position=tcp_position,
             approach_direction=approach,
             facing_error_deg=angle_deg,
@@ -441,23 +410,57 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             min(1.0, sum(a * b for a, b in zip(forward, direction, strict=True))),
         )
         angle_deg = math.degrees(math.acos(cosine))
+        desired_approach = (
+            candidate.approach_direction.x,
+            candidate.approach_direction.y,
+            candidate.approach_direction.z,
+        )
+        candidate_approach_error = directed_axis_error_deg(
+            forward, desired_approach
+        )
+        desired_orientation = candidate.tcp_pose.orientation
+        desired_closing = quaternion_axis(
+            (
+                desired_orientation.x,
+                desired_orientation.y,
+                desired_orientation.z,
+                desired_orientation.w,
+            ),
+            (1.0, 0.0, 0.0),
+        )
+        actual_closing = quaternion_axis(
+            (q.x, q.y, q.z, q.w),
+            (1.0, 0.0, 0.0),
+        )
+        closing_error = unsigned_axis_error_deg(
+            actual_closing, desired_closing
+        )
         tolerance = float(
             self.get_parameter('pregrasp_facing_tolerance_deg').value
         )
+        closing_tolerance = float(
+            self.get_parameter('pregrasp_closing_tolerance_deg').value
+        )
         expected_offset = PREGRASP_AIM_OFFSET_M
         if (
-            target_error > 0.002
-            or abs(distance - expected_offset) > 0.002
+            target_error > 0.005
+            or abs(distance - expected_offset) > 0.005
             or angle_deg > tolerance
+            or candidate_approach_error > tolerance
+            or closing_error > closing_tolerance
         ):
             raise RuntimeError(
                 'pre-grasp does not face the can: '
                 f'angle={angle_deg:.2f}deg distance={distance:.3f}m '
-                f'target_error={target_error:.4f}m'
+                f'target_error={target_error:.4f}m '
+                f'candidate_approach_error={candidate_approach_error:.2f}deg '
+                f'closing_error={closing_error:.2f}deg'
             )
         self.get_logger().info(
             'Direction-aware pre-grasp verified: '
-            f'TCP-to-can={distance:.3f}m facing_error={angle_deg:.2f}deg'
+            f'TCP-to-can={distance:.3f}m facing_error={angle_deg:.2f}deg '
+            f'candidate_approach_error={candidate_approach_error:.2f}deg '
+            f'closing_error={closing_error:.2f}deg'
         )
         return (
             (tcp.position.x, tcp.position.y, tcp.position.z),

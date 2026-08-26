@@ -20,11 +20,34 @@ from cleany_mujoco_sim.scene_manifest import (
 )
 
 
+_INITIAL_JOINT_ARGUMENTS = tuple(
+    f'{side}_{joint}_initial'
+    for side in ('left', 'right')
+    for joint in (
+        'shoulder_yaw',
+        'shoulder_pitch',
+        'elbow_pitch',
+        'wrist_pitch',
+        'wrist_roll',
+        'gripper',
+    )
+)
+
+
 def _launch_setup(context: LaunchContext) -> list[Node]:
     scene_source = Path(
         LaunchConfiguration('scene_path').perform(context)
     ).expanduser().resolve()
-    control_scene = resolve_control_scene_path(scene_source)
+    initial_joint_positions = {
+        f'{name.removesuffix("_initial")}_joint': float(
+            LaunchConfiguration(name).perform(context)
+        )
+        for name in _INITIAL_JOINT_ARGUMENTS
+    }
+    control_scene = resolve_control_scene_path(
+        scene_source,
+        initial_joint_positions=initial_joint_positions,
+    )
     manifest_path = default_manifest_path().resolve()
     manifest = load_handeye_scene_manifest(manifest_path)
     preflight_manifest(manifest, profile='simulation')
@@ -51,6 +74,10 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
             'enable_gripper_command': LaunchConfiguration(
                 'enable_gripper_controllers'
             ).perform(context),
+            **{
+                name: LaunchConfiguration(name).perform(context)
+                for name in _INITIAL_JOINT_ARGUMENTS
+            },
         },
     ).toxml()
     robot_description = {
@@ -60,13 +87,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         )
     }
 
-    controller_config = PathJoinSubstitution(
-        [
-            FindPackageShare('cleany_mujoco_sim'),
-            'config',
-            'handeye_ros2_controllers.yaml',
-        ]
-    )
+    controller_config = LaunchConfiguration('controller_config')
     robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
@@ -156,6 +177,17 @@ def generate_launch_description() -> LaunchDescription:
                 ),
             ),
             DeclareLaunchArgument(
+                'controller_config',
+                default_value=PathJoinSubstitution(
+                    [
+                        FindPackageShare('cleany_mujoco_sim'),
+                        'config',
+                        'handeye_ros2_controllers.yaml',
+                    ]
+                ),
+                description='ros2_control YAML for this simulation workflow.',
+            ),
+            DeclareLaunchArgument(
                 'headless',
                 default_value='true',
                 description='Run MuJoCo without its native viewer.',
@@ -185,6 +217,17 @@ def generate_launch_description() -> LaunchDescription:
                 description=(
                     'Expose and start left/right gripper trajectory actions.'
                 ),
+            ),
+            *(
+                DeclareLaunchArgument(
+                    name,
+                    default_value='0.0',
+                    description=(
+                        'Initial MuJoCo joint position in radians; defaults '
+                        'to the existing zero-state pose.'
+                    ),
+                )
+                for name in _INITIAL_JOINT_ARGUMENTS
             ),
             OpaqueFunction(function=_launch_setup),
         ]

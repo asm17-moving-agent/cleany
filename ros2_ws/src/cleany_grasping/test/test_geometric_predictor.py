@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 
 from cleany_grasping.core.models import PointCloud
@@ -54,6 +56,35 @@ def test_generates_ranked_top_down_candidates_for_tabletop_box() -> None:
         + candidates[0].depth_m * candidates[0].rotation[:, 0]
     )
     assert np.allclose(contact, np.median(target.points, axis=0))
+
+
+def test_configured_approach_tilt_preserves_a_proper_grasp_rotation() -> None:
+    target, context = tabletop_scene()
+    predictor = GeometricGraspPredictor(
+        GeometricGraspConfig(
+            approach_tilt_degrees=12.0,
+            approach_tilt_direction=(1.0, 0.0, 0.0),
+        )
+    )
+
+    candidates = predictor.predict(target, context, np.zeros(6))
+
+    assert candidates
+    expected_approach = (
+        math.sin(math.radians(12.0)),
+        0.0,
+        -math.cos(math.radians(12.0)),
+    )
+    assert np.allclose(
+        candidates[0].rotation[:, 0],
+        expected_approach,
+        atol=1e-3,
+    )
+    assert np.allclose(
+        candidates[0].rotation.T @ candidates[0].rotation,
+        np.eye(3),
+        atol=1e-6,
+    )
 
 
 def test_rejects_candidates_when_palm_is_blocked() -> None:

@@ -34,12 +34,29 @@ def generate_launch_description() -> LaunchDescription:
             'scene_path': str(
                 mujoco_share / 'scenes' / 'can_grasp_execution_demo.xml.in'
             ),
+            'controller_config': str(
+                mujoco_share / 'config' / 'grasp_demo_ros2_controllers.yaml'
+            ),
             'headless': headless,
             'sim_speed_factor': '1.0',
             'camera_name': 'pick_demo_rgbd',
             'camera_frame_name': 'pick_demo_rgbd_optical_frame',
             'enable_camera_contract_adapter': 'false',
             'enable_gripper_controllers': 'true',
+            # Folded, collision-checked can-demo spawn pose. Keep a small
+            # margin from every mechanical joint limit.
+            'left_shoulder_yaw_initial': '-1.53',
+            'left_shoulder_pitch_initial': '3.35',
+            'left_elbow_pitch_initial': '3.12',
+            'left_wrist_pitch_initial': '-1.63',
+            'left_wrist_roll_initial': '1.58',
+            'left_gripper_initial': '-0.35',
+            'right_shoulder_yaw_initial': '1.58',
+            'right_shoulder_pitch_initial': '3.35',
+            'right_elbow_pitch_initial': '3.12',
+            'right_wrist_pitch_initial': '-1.63',
+            'right_wrist_roll_initial': '1.58',
+            'right_gripper_initial': '-0.35',
         }.items(),
     )
     move_group = IncludeLaunchDescription(
@@ -70,7 +87,14 @@ def generate_launch_description() -> LaunchDescription:
         executable='grasp_server',
         parameters=[
             str(grasping_share / 'config' / 'anygrasp.yaml'),
-            {'use_sim_time': True},
+            {
+                'use_sim_time': True,
+                'geometric.approach_tilt_degrees': 16.0,
+                'geometric.approach_tilt_direction': [1.0, 0.0, 0.0],
+                # The rendered can/table depth boundary is mixed by roughly
+                # one centimetre; keep that band out of obstacle voxels.
+                'geometric.collision_clearance_m': 0.012,
+            },
         ],
         output='screen',
     )

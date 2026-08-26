@@ -14,6 +14,7 @@ def test_demo_launch_composes_backend_moveit_and_executor() -> None:
     assert "executable='grasp_selection_server'" in source
     assert "executable='grasp_execution_demo'" in source
     assert "'allow_trajectory_execution': 'true'" in source
+    assert "'grasp_demo_ros2_controllers.yaml'" in source
     assert source.count("'use_sim_time': True") == 2
 
 
@@ -29,6 +30,11 @@ def test_demo_executes_both_selected_endpoints_and_verifies_feedback() -> None:
     assert source.index(pregrasp) < source.index(grasp)
     assert "goal.planning_options.plan_only = False" in source
     assert "self._verify_feedback(result.grasp_joint_state)" in source
+    assert "self.declare_parameter('planning_attempts', 3)" in source
+    assert "self.declare_parameter('replan_attempts', 2)" in source
+    assert "self.declare_parameter('replan_delay_sec', 0.25)" in source
+    assert "code == MoveItErrorCodes.CONTROL_FAILED" in source
+    assert 'replanning once from current state' in source
     assert "'DEMO COMPLETE:" in source
 
 
@@ -57,7 +63,15 @@ def test_can_demo_composes_rgbd_grasping_selection_and_gui() -> None:
     assert "arguments=['/grasp/can_grasp_image']" in source
     assert "'allow_trajectory_execution': 'true'" in source
     assert "'enable_gripper_controllers': 'true'" in source
+    assert "'grasp_demo_ros2_controllers.yaml'" in source
     assert "'planning_attempts': 3" in source
+    assert "'left_shoulder_yaw_initial': '-1.53'" in source
+    assert "'right_shoulder_yaw_initial': '1.58'" in source
+    assert source.count("_pitch_initial': '3.35'") == 2
+    assert source.count("_elbow_pitch_initial': '3.12'") == 2
+    assert source.count("_wrist_pitch_initial': '-1.63'") == 2
+    assert source.count("_wrist_roll_initial': '1.58'") == 2
+    assert source.count("_gripper_initial': '-0.35'") == 2
     assert "'can_grasp_execution_demo = '" in setup
     assert "'cleany_skill_executor.can_grasp_execution_demo:main'" in setup
 
@@ -72,13 +86,19 @@ def test_can_demo_opens_and_stops_at_collision_checked_pregrasp() -> None:
     assert 'self._register_execution_collision(target_object)' in source
     assert 'self._open_gripper(result.selected_arm)' in source
     assert 'aimed_pregrasp = self._solve_aimed_pregrasp(' in source
-    assert "ik.group_name = f'{arm}_pregrasp_aim_arm'" in source
-    assert "ik.ik_link_name = f'{arm}_pregrasp_aim_tip'" in source
-    assert 'ik.avoid_collisions = True' in source
+    assert 'joint_state=seed' in source
+    assert "GetPositionIK" not in source
+    assert "f'{arm}_pregrasp_aim_tip'" in source
     assert "'collision-checked aimed pre-grasp'" in source
     assert 'self._verify_pregrasp_facing(' in source
     assert 'selected_approach=aimed_pregrasp.approach_direction' in source
     assert 'selected_pregrasp=aimed_pregrasp.tcp_position' in source
+    move = "self._move_to(\n            result.selected_arm,"
+    feedback = 'self._verify_feedback(aimed_pregrasp.joint_state)'
+    opening = 'self._open_gripper(result.selected_arm)'
+    assert source.index(move) < source.index(feedback) < source.index(opening)
+    assert 'pre-grasp reached; opening gripper' in source
+    assert 'gripper open at pre-grasp' in source
     grasp_execution = (
         "self._move_to(result.selected_arm, result.grasp_joint_state"
     )

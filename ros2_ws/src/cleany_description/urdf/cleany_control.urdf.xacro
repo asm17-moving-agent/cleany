@@ -7,6 +7,18 @@
   <xacro:arg name="camera_name" default="left_wrist_rgb"/>
   <xacro:arg name="camera_frame_name" default="left_wrist_rgb_vendor_frame"/>
   <xacro:arg name="enable_gripper_command" default="false"/>
+  <xacro:arg name="left_shoulder_yaw_initial" default="0.0"/>
+  <xacro:arg name="left_shoulder_pitch_initial" default="0.0"/>
+  <xacro:arg name="left_elbow_pitch_initial" default="0.0"/>
+  <xacro:arg name="left_wrist_pitch_initial" default="0.0"/>
+  <xacro:arg name="left_wrist_roll_initial" default="0.0"/>
+  <xacro:arg name="left_gripper_initial" default="0.0"/>
+  <xacro:arg name="right_shoulder_yaw_initial" default="0.0"/>
+  <xacro:arg name="right_shoulder_pitch_initial" default="0.0"/>
+  <xacro:arg name="right_elbow_pitch_initial" default="0.0"/>
+  <xacro:arg name="right_wrist_pitch_initial" default="0.0"/>
+  <xacro:arg name="right_wrist_roll_initial" default="0.0"/>
+  <xacro:arg name="right_gripper_initial" default="0.0"/>
 
   <xacro:include filename="$(find cleany_description)/urdf/materials.xacro"/>
   <xacro:include filename="$(find cleany_description)/urdf/cleany_geometry.xacro"/>
@@ -20,5 +32,17 @@
     camera_publish_rate="$(arg camera_publish_rate)"
     camera_name="$(arg camera_name)"
     camera_frame_name="$(arg camera_frame_name)"
-    enable_gripper_command="$(arg enable_gripper_command)"/>
+    enable_gripper_command="$(arg enable_gripper_command)"
+    left_shoulder_yaw_initial="$(arg left_shoulder_yaw_initial)"
+    left_shoulder_pitch_initial="$(arg left_shoulder_pitch_initial)"
+    left_elbow_pitch_initial="$(arg left_elbow_pitch_initial)"
+    left_wrist_pitch_initial="$(arg left_wrist_pitch_initial)"
+    left_wrist_roll_initial="$(arg left_wrist_roll_initial)"
+    left_gripper_initial="$(arg left_gripper_initial)"
+    right_shoulder_yaw_initial="$(arg right_shoulder_yaw_initial)"
+    right_shoulder_pitch_initial="$(arg right_shoulder_pitch_initial)"
+    right_elbow_pitch_initial="$(arg right_elbow_pitch_initial)"
+    right_wrist_pitch_initial="$(arg right_wrist_pitch_initial)"
+    right_wrist_roll_initial="$(arg right_wrist_roll_initial)"
+    right_gripper_initial="$(arg right_gripper_initial)"/>
 </robot>

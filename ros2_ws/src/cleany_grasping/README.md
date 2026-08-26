@@ -18,7 +18,7 @@
 1. context 점군에서 RANSAC으로 지지면 법선을 추정한다.
 2. target 점군을 지지면에 투영하고 최소 폭 방향을 탐색해 두 물체축을 구한다.
 3. 축별 robust extent 중점으로 visible surface 편향을 보정한 3D 중심을 복원한다.
-4. 각 주축과 설정된 yaw offset마다 gripper 폭과 pose를 계산한다.
+4. 설정된 support-normal tilt, 각 주축과 yaw offset마다 gripper 폭과 pose를 계산한다.
 5. finger/palm 부피가 target 외 context 점과 겹치는 후보를 제거한다.
 6. 폭 여유, 주축 정렬과 짧은 축 선호도를 점수화한다.
 
@@ -55,7 +55,8 @@ license validation과 detector 초기화를 마친 뒤 node를 시작한다. `Gr
 
 - `predictor_type`: 기본 `geometric`, SDK 사용 시 `anygrasp`
 - `debug_image_topic`: 후보 top-view 이미지 topic
-- `geometric.*`: gripper 형상, 충돌 여유, RANSAC, depth 경계 outlier trim과 yaw 후보 설정
+- `geometric.*`: gripper 형상, 충돌 여유, RANSAC, depth 경계 outlier trim,
+  yaw와 planning-frame 접근 tilt 설정
 - `checkpoint_path`, `license_path`: Jetson-local AnyGrasp SDK 파일
 - SDK 제약상 네 license 파일의 directory 이름은 `license`여야 한다.
 - `gripper_height_m`: SDK collision model의 finger height
@@ -64,6 +65,10 @@ license validation과 detector 초기화를 마친 뒤 node를 시작한다. `Gr
 - `canonical_to_tcp_rotation`: GraspNet canonical frame에서 Cleany
   `*_grasp_tcp` frame으로의 3x3 row-major rotation
 - `tcp_approach_axis`: Cleany TCP frame에서의 접근 축
+
+Cleany의 물리 TCP 접근축은 local `-Y`다. 기본 변환은 GraspNet canonical `+X`
+approach와 `+Y` closing을 각각 Cleany TCP `-Y`와 `+X`에 대응시킨다. 따라서 geometric과
+AnyGrasp 후보 모두 동일한 실제 gripper 접근축 기준의 pose와 방향을 반환한다.
 
 점군은 동일 optical frame/timestamp여야 하며 요청의 OBB pose도 그 frame을 사용한다.
 node는 촬영 시점 TF를 한 번 조회해 최종 pose, 접근 방향과 OBB pose를 모두 planning

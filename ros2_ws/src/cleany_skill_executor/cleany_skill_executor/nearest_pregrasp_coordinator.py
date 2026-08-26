@@ -40,7 +40,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         self.declare_parameter('grasp_timeout_sec', 30.0)
         self.declare_parameter('selection_timeout_sec', 120.0)
         self.declare_parameter('gripper_open_position_rad', 1.2)
-        self.declare_parameter('gripper_motion_sec', 2.0)
+        self.declare_parameter('gripper_motion_sec', 3.0)
         self._inspection = ActionClient(
             self,
             InspectScene,

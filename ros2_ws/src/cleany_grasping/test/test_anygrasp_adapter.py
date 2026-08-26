@@ -81,6 +81,7 @@ def test_uses_new_sdk_detector_and_region_steering(
 
     result = predictor.predict(
         _cloud(),
+        _cloud(),
         np.asarray((-0.05, 0.05, -0.1, 0.1, 0.4, 0.6)),
     )
 
@@ -107,7 +108,7 @@ def test_rejects_failed_license_validation(tmp_path, monkeypatch) -> None:
     predictor = AnyGraspPredictor(str(checkpoint), str(license_file))
 
     with pytest.raises(ModelUnavailableError, match='validation failed'):
-        predictor.predict(_cloud(), np.asarray((-1.0, 1.0) * 3))
+        predictor.predict(_cloud(), _cloud(), np.asarray((-1.0, 1.0) * 3))
 
 
 def test_requires_sdk_license_directory_name(tmp_path) -> None:
@@ -120,4 +121,4 @@ def test_requires_sdk_license_directory_name(tmp_path) -> None:
     predictor = AnyGraspPredictor(str(checkpoint), str(license_file))
 
     with pytest.raises(ModelUnavailableError, match='directory named license'):
-        predictor.predict(_cloud(), np.asarray((-1.0, 1.0) * 3))
+        predictor.predict(_cloud(), _cloud(), np.asarray((-1.0, 1.0) * 3))

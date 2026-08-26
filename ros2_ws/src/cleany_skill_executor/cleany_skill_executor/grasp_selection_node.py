@@ -46,14 +46,24 @@ class GraspSelectionNode(Node):
             'planning_frame': 'base_link',
             'joint_state_max_age_sec': 0.5,
             'ik_timeout_sec': 0.15,
+            'pregrasp_aim_ik_timeout_sec': 1.0,
             'state_validity_timeout_sec': 1.0,
+            'fk_timeout_sec': 1.0,
+            'pregrasp_position_tolerance_m': 0.005,
+            'pregrasp_preferred_approach_tolerance_deg': 5.0,
+            'pregrasp_approach_tolerance_deg': 15.0,
+            'pregrasp_closing_tolerance_deg': 30.0,
+            'pregrasp_aim_attempts': 8,
+            'wrist_roll_lower_rad': -2.743847297,
+            'wrist_roll_upper_rad': 2.84120630938,
             'planning_timeout_sec': 4.0,
-            'planning_attempts': 1,
-            'velocity_scaling': 0.1,
-            'acceleration_scaling': 0.1,
+            'planning_attempts': 3,
+            'velocity_scaling': 0.08,
+            'acceleration_scaling': 0.08,
             'maximum_candidates': 12,
             'action_timeout_sec': 120.0,
-            'pregrasp_offset_m': 0.08,
+            'pregrasp_offset_m': 0.14,
+            'pregrasp_seed_offset_m': 0.08,
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
@@ -78,7 +88,34 @@ class GraspSelectionNode(Node):
             MoveItAdapterConfig(
                 base_frame=str(self.get_parameter('planning_frame').value),
                 ik_timeout_sec=float(self.get_parameter('ik_timeout_sec').value),
+                pregrasp_aim_ik_timeout_sec=float(
+                    self.get_parameter('pregrasp_aim_ik_timeout_sec').value
+                ),
                 state_validity_timeout_sec=float(self.get_parameter('state_validity_timeout_sec').value),
+                fk_timeout_sec=float(self.get_parameter('fk_timeout_sec').value),
+                pregrasp_position_tolerance_m=float(
+                    self.get_parameter('pregrasp_position_tolerance_m').value
+                ),
+                pregrasp_preferred_approach_tolerance_deg=float(
+                    self.get_parameter(
+                        'pregrasp_preferred_approach_tolerance_deg'
+                    ).value
+                ),
+                pregrasp_approach_tolerance_deg=float(
+                    self.get_parameter('pregrasp_approach_tolerance_deg').value
+                ),
+                pregrasp_closing_tolerance_deg=float(
+                    self.get_parameter('pregrasp_closing_tolerance_deg').value
+                ),
+                pregrasp_aim_attempts=int(
+                    self.get_parameter('pregrasp_aim_attempts').value
+                ),
+                wrist_roll_lower_rad=float(
+                    self.get_parameter('wrist_roll_lower_rad').value
+                ),
+                wrist_roll_upper_rad=float(
+                    self.get_parameter('wrist_roll_upper_rad').value
+                ),
                 planning_timeout_sec=float(self.get_parameter('planning_timeout_sec').value),
                 planning_attempts=int(self.get_parameter('planning_attempts').value),
                 velocity_scaling=float(self.get_parameter('velocity_scaling').value),
@@ -92,6 +129,9 @@ class GraspSelectionNode(Node):
             self._scene_port,
             GraspSelectionConfig(
                 pregrasp_offset_m=float(self.get_parameter('pregrasp_offset_m').value),
+                pregrasp_seed_offset_m=float(
+                    self.get_parameter('pregrasp_seed_offset_m').value
+                ),
                 maximum_candidates=int(self.get_parameter('maximum_candidates').value),
             ),
         )
@@ -226,6 +266,12 @@ class GraspSelectionNode(Node):
                         ),
                         score=float(item.score),
                         source_index=index,
+                        orientation=(
+                            item.tcp_pose.orientation.x,
+                            item.tcp_pose.orientation.y,
+                            item.tcp_pose.orientation.z,
+                            item.tcp_pose.orientation.w,
+                        ),
                     )
                     for index, item in enumerate(candidate_messages)
                 ]

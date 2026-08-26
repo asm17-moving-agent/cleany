@@ -5,11 +5,24 @@ grasp_selection_server:
     planning_frame: base_link
     joint_state_max_age_sec: 0.5
     ik_timeout_sec: 0.15
+    pregrasp_aim_ik_timeout_sec: 1.0
     state_validity_timeout_sec: 1.0
+    fk_timeout_sec: 1.0
+    pregrasp_position_tolerance_m: 0.005
+    pregrasp_preferred_approach_tolerance_deg: 5.0
+    pregrasp_approach_tolerance_deg: 15.0
+    pregrasp_closing_tolerance_deg: 30.0
+    pregrasp_aim_attempts: 8
+    # Must match cleany_description wrist-roll limits.
+    wrist_roll_lower_rad: -2.743847297
+    wrist_roll_upper_rad: 2.84120630938
     planning_timeout_sec: 4.0
-    planning_attempts: 1
-    velocity_scaling: 0.1
-    acceleration_scaling: 0.1
+    planning_attempts: 3
+    velocity_scaling: 0.08
+    acceleration_scaling: 0.08
     maximum_candidates: 12
     action_timeout_sec: 120.0
-    pregrasp_offset_m: 0.08
+    # Must match the fixed *_pregrasp_aim_tip offset in the robot description.
+    pregrasp_offset_m: 0.14
+    # Reachable position-only seed; the accepted result still uses 0.14 m.
+    pregrasp_seed_offset_m: 0.08

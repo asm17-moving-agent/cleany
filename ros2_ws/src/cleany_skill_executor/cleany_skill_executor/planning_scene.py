@@ -190,6 +190,40 @@ class SceneAwarePort:
     def solve_position_ik(self, arm, position, seed):
         return self._adapter.solve_position_ik(arm, position, seed)
 
+    def solve_aimed_pregrasp_ik(
+        self,
+        arm,
+        grasp_position,
+        approach_direction,
+        closing_direction,
+        pregrasp_position,
+        seed,
+    ):
+        return self._adapter.solve_aimed_pregrasp_ik(
+            arm,
+            grasp_position,
+            approach_direction,
+            closing_direction,
+            pregrasp_position,
+            seed,
+        )
+
+    def solve_grasp_ik(
+        self,
+        arm,
+        grasp_position,
+        approach_direction,
+        closing_direction,
+        seed,
+    ):
+        return self._adapter.solve_grasp_ik(
+            arm,
+            grasp_position,
+            approach_direction,
+            closing_direction,
+            seed,
+        )
+
     def state_is_valid(self, arm, solution):
         return self._adapter.state_is_valid(arm, solution)
 
