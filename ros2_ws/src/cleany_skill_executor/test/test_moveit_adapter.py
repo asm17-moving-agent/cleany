@@ -444,6 +444,41 @@ def test_aimed_pregrasp_seeds_cover_all_arm_joints():
         assert len({seed.positions[joint_index] for seed in seeds}) > 2
 
 
+def test_aimed_pregrasp_prioritizes_location_seed_wrist_variants():
+    adapter = MoveItGraspAdapter(
+        object(),
+        ik_client=object(),
+        fk_client=object(),
+        validity_client=object(),
+        plan_client=object(),
+    )
+    adapter.set_current_state(current_state())
+    candidate_seed = JointSolution(
+        ARM_JOINT_NAMES['left'],
+        (0.1, 0.2, 0.3, 0.4, 0.5),
+    )
+
+    positive = adapter._aim_seed_solutions(
+        'left',
+        candidate_seed,
+        8,
+        target_position=(0.45, 0.18, 0.40),
+    )
+    negative = adapter._aim_seed_solutions(
+        'left',
+        candidate_seed,
+        8,
+        target_position=(0.45, -0.18, 0.40),
+    )
+    without_target = adapter._aim_seed_solutions('left', candidate_seed, 8)
+
+    assert positive[0] == candidate_seed
+    assert positive[1].positions[:4] == candidate_seed.positions[:4]
+    assert positive[1].positions[-1] > negative[1].positions[-1]
+    assert without_target[0] == candidate_seed
+    assert without_target[1] == adapter._current_arm_solution('left')
+
+
 def test_aimed_pregrasp_seeds_fill_attempts_when_initial_seeds_duplicate():
     adapter = MoveItGraspAdapter(
         object(),

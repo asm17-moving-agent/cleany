@@ -158,7 +158,7 @@ ros2 launch cleany_skill_executor grasp_execution_demo.launch.py \
 
 ### 실제 RGB-D can 검출·이동 데모
 
-다음 launch는 table, 파란 box, 빨간 can, 노란 경로 장애물과 고정 RGB-D 카메라가 있는
+다음 launch는 table, 파란 box, 빨간 can과 고정 RGB-D 카메라가 있는
 `mujoco_ros2_control` 장면을 연다. 시뮬레이터가 렌더링한 RGB-D에서 빨간 can을
 분할하고 `base_link` 점군으로 투영한 뒤, geometric grasp 후보 생성과 MoveIt
 양팔 검증을 거쳐 선택된 pre-grasp 자세까지 실제 controller로 이동한다. 실제 joint
@@ -180,8 +180,8 @@ ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
 
 기본으로 세 창이 열린다.
 
-- MuJoCo: 갈색 table 위 노란 장애물을 우회해 빨간 can으로 이동하는 실제 simulation 상태
-- RViz: 동일 위치의 Planning Scene 장애물과 검출 can 반투명 원통, 후보 구,
+- MuJoCo: 갈색 table 위 빨간 can으로 이동하는 실제 simulation 상태
+- RViz: Planning Scene table과 검출 can 반투명 원통, 후보 구,
   선택 후보 초록 구,
   접근 방향 파란 화살표
 - Image View: `/grasp/can_grasp_image`의 실제 RGB 영상 위 후보별 TCP, 접근 화살표,
@@ -192,12 +192,38 @@ candidate`, `Direction-aware pre-grasp verified`,
 `MoveIt execution succeeded: collision-checked aimed pre-grasp`, `gripper opened`,
 `CAN PREGRASP DEMO COMPLETE`가 차례대로
 나오면 전체 경로가 성공한 것이다. RGB-D 렌더링에는 OpenGL context가 필요하므로
-이 데모의 `headless:=true`는 지원하지 않는다. table, can과 노란 장애물은 MuJoCo
-물리 충돌체이며 같은 크기와 pose로 MoveIt Planning Scene에도 등록된다. 노란
-장애물은 기존 관절 직선 보간 경로의 중간을 막으므로 성공한 실행은 OMPL이 충돌
-구간을 우회했다는 뜻이다. 후보 선택 중에는 검출 can OBB를 검사하고, action 종료 뒤
+이 데모의 `headless:=true`는 지원하지 않는다. table과 can은 MuJoCo 물리 충돌체이며
+같은 크기와 pose로 MoveIt Planning Scene에도 등록된다. 후보 선택 중에는 검출 can
+OBB를 검사하고, action 종료 뒤
 실제 pre-grasp trajectory를 다시 계획할 때도 can cylinder를 Planning Scene에
 contact permission 없이 유지한다. gripper close, attach, lift는 포함하지 않는다.
+
+selector는 물체 위치로 먼저 구한 어깨·팔꿈치 자세를 우선 IK seed로 쓰고, 같은 자세의
+wrist roll을 물체가 놓인 좌우 방향에 맞춰 한 번 더 검사한 다음 범용 seed로 넘어간다.
+pre-grasp 거리는 기존과 동일하게 14 cm 하나만 사용하며 selector 전체 작업 재시도는
+하지 않는다.
+
+### 무작위 headless pre-grasp 스트레스 검증
+
+DISPLAY가 없는 환경에서는 `mujoco_ros2_control`의 GLFW RGB-D renderer를 사용할 수
+없다. 다음 검증은 RGB-D detection/segmentation을 제외하고 headless MuJoCo controller,
+MoveIt selector, FK 자세 오차, 충돌 검사와 실제 pre-grasp 실행을 반복한다. 각 반복에서
+table 위 box와 can 위치를 seed 기반으로 독립 생성하고, 하나를 target으로 선택하는 동안
+다른 하나도 Planning Scene 충돌체로 유지한다. target은 box와 can을 번갈아 사용하며 성공
+후 선택된 팔을 초기 자세로 복귀시켜 각 반복의 시작 조건을 맞춘다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+CLEANY_RANDOM_STRESS_ITERATIONS=100 \
+CLEANY_RANDOM_STRESS_SEED=20260826 \
+CLEANY_RANDOM_STRESS_RESULT=/tmp/randomized_pregrasp_stress.json \
+python3 -m pytest -q -s \
+  ros2_ws/src/cleany_skill_executor/test/test_randomized_pregrasp_stress.py
+```
+
+반복 수를 지정하지 않으면 장시간 스트레스 테스트는 일반 pytest에서 skip된다. 결과 JSON은
+반복별 물체 위치, 선택·실행·전체 시간, 선택 arm/candidate와 실패 stage/error code를 담는다.
 
 ## 관련 KB
 

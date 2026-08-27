@@ -27,8 +27,6 @@
     <material name="can_demo_table" rgba="0.55 0.36 0.20 1"
               specular="0.05" shininess="0.1"/>
     <material name="can_demo_box" rgba="0.12 0.42 0.92 1"/>
-    <material name="can_demo_obstacle" rgba="0.95 0.72 0.08 1"
-              specular="0.1" shininess="0.2"/>
     <material name="can_demo_can" rgba="0.92 0.18 0.12 1"
               specular="0.2" shininess="0.3"/>
   </asset>
@@ -54,18 +52,6 @@
     <body name="pick_box" pos="0.560 -0.160 0.765">
       <geom name="pick_box_geom" type="box" size="0.050 0.040 0.040"
             material="can_demo_box" contype="0" conaffinity="0"/>
-    </body>
-
-    <!--
-      Yellow post on the tabletop. Its base_link geometry exactly matches
-      can_demo_route_obstacle in pick_demo_collision_objects.yaml. It blocks
-      the nominal joint-interpolated left-arm sweep but leaves an OMPL route
-      around its sides.
-    -->
-    <body name="can_demo_route_obstacle" pos="0.350 0.420 0.850">
-      <geom name="can_demo_route_obstacle_geom" type="box"
-            size="0.050 0.050 0.125" material="can_demo_obstacle"
-            contype="1" conaffinity="1"/>
     </body>
 
     <!--

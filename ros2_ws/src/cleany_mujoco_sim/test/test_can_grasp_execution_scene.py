@@ -24,19 +24,11 @@ def test_can_grasp_scene_matches_camera_and_moveit_geometry() -> None:
         model, mujoco.mjtObj.mjOBJ_BODY, 'pick_table'
     )
     can = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'pick_can')
-    obstacle = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_BODY, 'can_demo_route_obstacle'
-    )
     can_geom = mujoco.mj_name2id(
         model, mujoco.mjtObj.mjOBJ_GEOM, 'pick_can_geom'
     )
     table_geom = mujoco.mj_name2id(
         model, mujoco.mjtObj.mjOBJ_GEOM, 'pick_tabletop'
-    )
-    obstacle_geom = mujoco.mj_name2id(
-        model,
-        mujoco.mjtObj.mjOBJ_GEOM,
-        'can_demo_route_obstacle_geom',
     )
     camera = mujoco.mj_name2id(
         model, mujoco.mjtObj.mjOBJ_CAMERA, 'pick_demo_rgbd'
@@ -48,20 +40,15 @@ def test_can_grasp_scene_matches_camera_and_moveit_geometry() -> None:
     assert data.xpos[can] - data.xpos[chassis] == pytest.approx(
         (0.440, 0.160, 0.395)
     )
-    assert data.xpos[obstacle] - data.xpos[chassis] == pytest.approx(
-        (0.350, 0.420, 0.470)
-    )
     assert model.geom_size[table_geom] == pytest.approx(
         (0.385, 0.600, 0.015)
     )
     assert model.geom_size[can_geom] == pytest.approx((0.035, 0.050, 0.0))
-    assert model.geom_size[obstacle_geom] == pytest.approx(
-        (0.050, 0.050, 0.125)
-    )
     assert model.geom_contype[table_geom] == 1
     assert model.geom_contype[can_geom] == 1
-    assert model.geom_contype[obstacle_geom] == 1
     assert model.geom_conaffinity[can_geom] == 1
-    assert model.geom_conaffinity[obstacle_geom] == 1
+    assert mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'can_demo_route_obstacle'
+    ) == -1
     assert model.cam_resolution[camera] == pytest.approx((640, 480))
     assert model.cam_fovy[camera] == pytest.approx(42.0)

@@ -9,10 +9,3 @@ objects:
         pose:
           translation_m: [0.700, -0.002, 0.330]
           quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
-  - id: can_demo_route_obstacle
-    primitives:
-      - type: box
-        dimensions_m: [0.10, 0.10, 0.25]
-        pose:
-          translation_m: [0.350, 0.420, 0.470]
-          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]

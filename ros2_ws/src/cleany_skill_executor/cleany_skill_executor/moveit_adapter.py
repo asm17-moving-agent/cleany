@@ -268,7 +268,12 @@ class MoveItGraspAdapter:
         if seed is None:
             seed = self._current_arm_solution(arm)
         attempts = self._config.pregrasp_aim_attempts
-        for current_seed in self._aim_seed_solutions(arm, seed, attempts):
+        for current_seed in self._aim_seed_solutions(
+            arm,
+            seed,
+            attempts,
+            target_position=grasp_position,
+        ):
             solution = self._solve_aim_tip_position_ik(
                 arm, grasp_position, current_seed
             )
@@ -324,6 +329,8 @@ class MoveItGraspAdapter:
         arm: str,
         candidate_seed: JointSolution,
         attempts: int,
+        *,
+        target_position: tuple[float, float, float] | None = None,
     ) -> tuple[JointSolution, ...]:
         limits = (
             *_ARM_JOINT_LIMITS[:-1],
@@ -341,7 +348,17 @@ class MoveItGraspAdapter:
                 seen.add(key)
                 unique.append(item)
 
-        add_seed(candidate_seed)
+        # The position-only seed already reflects this object's location.
+        # Keep its shoulder/elbow solution and vary wrist roll before using
+        # target-independent whole-joint samples.
+        for location_seed in self._location_biased_seeds(
+            candidate_seed,
+            limits,
+            target_position,
+        ):
+            add_seed(location_seed)
+            if len(unique) >= attempts:
+                return tuple(unique[:attempts])
         add_seed(self._current_arm_solution(arm))
         for fractions in _DISTRIBUTED_SEED_FRACTIONS:
             positions = tuple(
@@ -368,6 +385,28 @@ class MoveItGraspAdapter:
             add_seed(JointSolution(ARM_JOINT_NAMES[arm], positions))
             sequence_index += 1
         return tuple(unique)
+
+    @staticmethod
+    def _location_biased_seeds(
+        candidate_seed: JointSolution,
+        limits: tuple[tuple[float, float], ...],
+        target_position: tuple[float, float, float] | None,
+    ) -> tuple[JointSolution, ...]:
+        if target_position is None:
+            return (candidate_seed,)
+        lower, upper = limits[-1]
+        midpoint = (lower + upper) / 2.0
+        quarter_range = (upper - lower) / 4.0
+        lateral = target_position[1]
+        side = 1.0 if lateral >= 0.0 else -1.0
+        rolls = (
+            float(candidate_seed.positions[-1]),
+            midpoint + side * quarter_range,
+        )
+        return tuple(
+            MoveItGraspAdapter._with_wrist_roll(candidate_seed, roll)
+            for roll in rolls
+        )
 
     @staticmethod
     def _radical_inverse(index: int, base: int) -> float:
