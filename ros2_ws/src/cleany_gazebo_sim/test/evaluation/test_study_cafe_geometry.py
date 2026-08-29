@@ -448,6 +448,7 @@ def test_study_cafe_launch_uses_fortress_gui_profile() -> None:
     assert 'declare_sensor_profile_argument' in source
     assert "'sensor_profile': LaunchConfiguration('sensor_profile')" in source
     assert "'gui_render_engine': LaunchConfiguration(" in source
+    assert "'server_render_engine': LaunchConfiguration(" in source
     assert "'GAZEBO_GUI_RENDER_ENGINE', default_value='ogre'" in source
     assert "choices=['ogre', 'ogre2']" in source
     assert "default_value=''" in source

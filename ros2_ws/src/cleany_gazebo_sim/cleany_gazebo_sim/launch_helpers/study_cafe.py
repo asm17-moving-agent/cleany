@@ -24,6 +24,22 @@ from cleany_gazebo_sim.launch_helpers.sensor_profile import (
 from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
 
 
+def _optional_spawn_pose(value: str) -> tuple[float, ...] | None:
+    if not value.strip():
+        return None
+    try:
+        pose = tuple(float(item) for item in value.split(','))
+    except ValueError as error:
+        raise ValueError(
+            'robot_spawn_pose must be six comma-separated numbers'
+        ) from error
+    if len(pose) != 6:
+        raise ValueError(
+            'robot_spawn_pose must be six comma-separated numbers'
+        )
+    return pose
+
+
 def _launch_simulation(
     context: LaunchContext, *, package_share: Path
 ) -> list[IncludeLaunchDescription]:
@@ -62,6 +78,12 @@ def _launch_simulation(
             noise_profiles_path,
             noise_profile_name,
         ),
+        sensor_render_engine=LaunchConfiguration(
+            'sensor_render_engine'
+        ).perform(context),
+        robot_spawn_pose=_optional_spawn_pose(
+            LaunchConfiguration('robot_spawn_pose').perform(context)
+        ),
     )
     sensor_config = world.parent / 'sensor_tf.yaml'
     write_sensor_tf_config(profile, sensor_config)
@@ -74,6 +96,9 @@ def _launch_simulation(
             'headless': LaunchConfiguration('headless'),
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'gui_render_engine': LaunchConfiguration('gui_render_engine'),
+            'server_render_engine': LaunchConfiguration(
+                'server_render_engine'
+            ),
             'bridge_config': LaunchConfiguration('bridge_config'),
             'sensor_config': str(sensor_config),
             'sensor_profile': LaunchConfiguration('sensor_profile'),
@@ -96,6 +121,18 @@ def study_cafe_launch_description() -> LaunchDescription:
         ),
         choices=['ogre', 'ogre2'],
         description='Rendering engine used by the Gazebo GUI.',
+    )
+    server_render_engine_arg = DeclareLaunchArgument(
+        'server_render_engine',
+        default_value='ogre2',
+        choices=['ogre', 'ogre2'],
+        description='Rendering engine used by the Gazebo server.',
+    )
+    sensor_render_engine_arg = DeclareLaunchArgument(
+        'sensor_render_engine',
+        default_value='ogre2',
+        choices=['ogre', 'ogre2'],
+        description='Rendering engine used by Gazebo rendering sensors.',
     )
     bridge_config_arg = DeclareLaunchArgument(
         'bridge_config',
@@ -130,6 +167,13 @@ def study_cafe_launch_description() -> LaunchDescription:
         ),
         description='Study-cafe room and repeated furniture layout.',
     )
+    robot_spawn_pose_arg = DeclareLaunchArgument(
+        'robot_spawn_pose',
+        default_value='',
+        description=(
+            'Optional x,y,z,roll,pitch,yaw pose overriding the layout spawn.'
+        ),
+    )
     physics_step_arg = DeclareLaunchArgument(
         'physics_max_step_size', default_value='0.002'
     )
@@ -147,12 +191,15 @@ def study_cafe_launch_description() -> LaunchDescription:
             headless_arg,
             use_sim_time_arg,
             gui_render_engine_arg,
+            server_render_engine_arg,
+            sensor_render_engine_arg,
             bridge_config_arg,
             lidar_profiles_config_arg,
             lidar_profile_arg,
             lidar_noise_profiles_config_arg,
             lidar_noise_profile_arg,
             layout_config_arg,
+            robot_spawn_pose_arg,
             physics_step_arg,
             real_time_factor_arg,
             sensor_profile_arg,

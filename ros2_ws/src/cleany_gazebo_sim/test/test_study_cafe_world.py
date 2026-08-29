@@ -76,6 +76,37 @@ def test_study_cafe_defaults_to_two_millisecond_physics_step(
     assert world.findtext('physics/max_step_size') == '0.002'
 
 
+def test_study_cafe_can_override_robot_spawn_pose(tmp_path: Path) -> None:
+    spawn_pose = (1.0, -2.0, 0.38, 0.0, 0.0, -1.5708)
+    generated = materialize_study_cafe_world(
+        ROBOT_WORLD,
+        tmp_path / 'spawn_override.sdf',
+        layout_path=LAYOUT_CONFIG,
+        robot_spawn_pose=spawn_pose,
+    )
+    robot = ElementTree.parse(generated).getroot().find(
+        "./world/model[@name='cleany_mecanum']"
+    )
+    assert robot is not None
+    assert robot.findtext('pose') == '1.0 -2.0 0.38 0.0 0.0 -1.5708'
+
+
+def test_study_cafe_can_materialize_ogre_sensor_renderer(
+    tmp_path: Path,
+) -> None:
+    generated = materialize_study_cafe_world(
+        ROBOT_WORLD,
+        tmp_path / 'ogre_sensors.sdf',
+        layout_path=LAYOUT_CONFIG,
+        sensor_render_engine='ogre',
+    )
+    root = ElementTree.parse(generated).getroot()
+    assert root.findtext(
+        "./world/plugin[@name='ignition::gazebo::systems::Sensors']/"
+        'render_engine'
+    ) == 'ogre'
+
+
 def test_robot_visual_is_excluded_from_its_lidar(tmp_path: Path) -> None:
     robot = _world(tmp_path).find("model[@name='cleany_mecanum']")
     assert robot is not None

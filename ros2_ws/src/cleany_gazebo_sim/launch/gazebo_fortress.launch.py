@@ -59,6 +59,12 @@ def generate_launch_description() -> LaunchDescription:
         choices=['ogre', 'ogre2'],
         description='Rendering engine used by the Gazebo GUI.',
     )
+    server_render_engine_arg = DeclareLaunchArgument(
+        'server_render_engine',
+        default_value='ogre2',
+        choices=['ogre', 'ogre2'],
+        description='Rendering engine used by the Gazebo server.',
+    )
     sensor_profile_arg = declare_sensor_profile_argument()
 
     return LaunchDescription(
@@ -70,6 +76,7 @@ def generate_launch_description() -> LaunchDescription:
             headless_arg,
             use_sim_time_arg,
             gui_render_engine_arg,
+            server_render_engine_arg,
             sensor_profile_arg,
             OpaqueFunction(
                 function=_launch_setup,
@@ -109,7 +116,7 @@ def _launch_setup(
             '-r',
             '-s',
             '--render-engine-server',
-            'ogre2',
+            LaunchConfiguration('server_render_engine'),
             world,
         ],
         condition=IfCondition(LaunchConfiguration('headless')),
@@ -121,7 +128,7 @@ def _launch_setup(
             'gazebo',
             '-r',
             '--render-engine-server',
-            'ogre2',
+            LaunchConfiguration('server_render_engine'),
             '--render-engine-gui',
             LaunchConfiguration('gui_render_engine'),
             world,

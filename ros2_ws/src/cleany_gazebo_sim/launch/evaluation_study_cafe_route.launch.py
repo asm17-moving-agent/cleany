@@ -15,14 +15,19 @@ def generate_launch_description() -> LaunchDescription:
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
     )
+    route_config_arg = DeclareLaunchArgument(
+        'route_config',
+        default_value=str(route_config),
+        description='Route follower parameter file.',
+    )
     follower = Node(
         package='cleany_gazebo_sim',
         executable='ground_truth_route_follower',
         name='ground_truth_route_follower',
         parameters=[
-            route_config,
+            LaunchConfiguration('route_config'),
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
         ],
         output='screen',
     )
-    return LaunchDescription([use_sim_time_arg, follower])
+    return LaunchDescription([use_sim_time_arg, route_config_arg, follower])

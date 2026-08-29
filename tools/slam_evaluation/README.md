@@ -66,19 +66,28 @@ ros2 launch cleany_gazebo_sim evaluation_slam_visualization.launch.py
 
 ## Record common input bags
 
-높이별 study-cafe 경로를 주행하고 비교용 bag을 기록합니다.
+높이·LiDAR noise profile별 study-cafe 경로를 주행하고 비교용 bag을
+기록합니다. Physics는 2 ms timestep과 목표 RTF 2.0을 사용합니다.
 Script는 LiDAR frame, Gazebo process, route 완료 여부를 검사합니다.
+OGRE2 장시간 sensor rendering이 중단되는 환경에서는 각 route edge를
+별도 Gazebo process로 기록하고 simulation stamp를 보정해 병합합니다.
 
 ```bash
-for height in 16p5 26 45 70; do
-  ./tools/slam_evaluation/record_slam_input.sh "$height"
+for noise in measured stress; do
+  for height in 16p5 45; do
+    ./tools/slam_evaluation/record_slam_input.sh "$height" "$noise"
+  done
 done
+```
+
+```bash
+./tools/slam_evaluation/record_segmented_slam_input.sh 16p5 measured
 ```
 
 입력은 다음 경로에 생성됩니다.
 
 ```text
-ros2_ws/slam_results/algorithm_compare_inputs/input_<height>cm_trial1/
+ros2_ws/slam_results/algorithm_compare_inputs/<noise>/input_<height>cm_trial1/
 ```
 
 ## Run algorithm comparison
@@ -89,11 +98,11 @@ ros2_ws/slam_results/algorithm_compare_inputs/input_<height>cm_trial1/
 ./tools/slam_evaluation/run_slam_algorithm_comparison.sh
 ```
 
-알고리즘과 높이 하나만 선택할 수 있습니다.
+알고리즘, 높이, LiDAR noise profile 하나씩 선택할 수 있습니다.
 
 ```bash
 ./tools/slam_evaluation/run_slam_algorithm_comparison.sh \
-  cartographer_imu 16p5
+  cartographer 16p5 measured
 ```
 
 Replay 배속은 `SLAM_REPLAY_RATE`로 변경합니다.
@@ -106,7 +115,7 @@ SLAM_REPLAY_RATE=1.0 \
 Run output은 다음 경로에 생성됩니다.
 
 ```text
-ros2_ws/slam_results/algorithm_compare_runs/<algorithm>/<height>cm/
+ros2_ws/slam_results/algorithm_compare_runs/<noise>/<algorithm>/<height>cm/
 ```
 
 공통 생성물은 `map_final.pgm/.png/.yaml`, `result_bag/`, log,
