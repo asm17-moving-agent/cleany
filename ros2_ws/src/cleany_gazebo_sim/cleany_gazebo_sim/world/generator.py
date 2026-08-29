@@ -244,8 +244,11 @@ def materialize_mecanum_wheel_world(
     lidar_noise: LidarNoiseProfile | None = None,
     *,
     target_path: Path | None = None,
+    sensor_render_engine: str = 'ogre2',
 ) -> Path:
     """Materialize compact mecanum visuals without exposing roller joints."""
+    if sensor_render_engine not in {'ogre', 'ogre2'}:
+        raise ValueError('sensor render engine must be ogre or ogre2')
     template = template_path.read_text(encoding='utf-8')
     world = template
     for prefix, handedness in _WHEEL_HANDEDNESS.items():
@@ -263,6 +266,17 @@ def materialize_mecanum_wheel_world(
     robot = root.find("./world/model[@name='cleany_mecanum']")
     if robot is None:
         raise ValueError('world template is missing cleany_mecanum')
+    sensors_plugin = root.find(
+        "./world/plugin[@name='ignition::gazebo::systems::Sensors']"
+    )
+    render_engine = (
+        sensors_plugin.find('render_engine')
+        if sensors_plugin is not None
+        else None
+    )
+    if render_engine is None:
+        raise ValueError('world template is missing the sensor render engine')
+    render_engine.text = sensor_render_engine
     _freeze_folded_arms(robot)
     _collapse_fixed_upper_body(robot)
     for visual in robot.findall('.//visual'):
@@ -865,6 +879,9 @@ def materialize_study_cafe_world(
     layout_path: Path | None = None,
     lidar_translation: tuple[float, float, float] | None = None,
     lidar_noise: LidarNoiseProfile | None = None,
+    sensor_render_engine: str = 'ogre2',
+    robot_spawn_pose: tuple[float, float, float, float, float, float]
+    | None = None,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
@@ -886,6 +903,7 @@ def materialize_study_cafe_world(
         robot_template_path,
         lidar_noise,
         target_path=target.parent / '.robot-world.sdf',
+        sensor_render_engine=sensor_render_engine,
     )
     try:
         root = ElementTree.parse(generated_robot_world).getroot()
@@ -923,7 +941,10 @@ def materialize_study_cafe_world(
     pose = robot.find('pose')
     if pose is None:
         raise ValueError('cleany_mecanum is missing its world pose')
-    pose.text = ' '.join(map(str, layout.robot_spawn_pose))
+    spawn_pose = robot_spawn_pose or layout.robot_spawn_pose
+    if len(spawn_pose) != 6 or not all(isfinite(value) for value in spawn_pose):
+        raise ValueError('robot spawn pose must contain six finite values')
+    pose.text = ' '.join(map(str, spawn_pose))
     if lidar_translation is not None:
         if len(lidar_translation) != 3 or not all(
             isfinite(value) for value in lidar_translation
