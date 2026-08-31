@@ -230,13 +230,13 @@ def test_desks_have_white_72_cm_top_and_a_frame_legs(
     } == {-0.33}
 
 
-def test_partitions_span_30_cm_above_floor_to_30_cm_above_desk(
+def test_partitions_start_26_cm_above_floor_with_72_cm_height(
     tmp_path: Path,
 ) -> None:
     world = _world(tmp_path)
     partition = world.find("model[@name='desk_partition_01']")
     assert partition is not None
-    assert partition.findtext('pose') == '-5.53 3.17 0.66 0.0 0.0 0.0'
+    assert partition.findtext('pose') == '-5.53 3.17 0.62 0.0 0.0 0.0'
     collisions = partition.findall('link/collision')
     assert {
         collision.get('name') for collision in collisions
@@ -255,8 +255,8 @@ def test_partitions_span_30_cm_above_floor_to_30_cm_above_desk(
     )
     center_z = float(partition.findtext('pose', '').split()[2])
     height = 0.72
-    assert round(center_z - height / 2.0, 2) == 0.30
-    assert round(center_z + height / 2.0, 2) == 1.02
+    assert round(center_z - height / 2.0, 2) == 0.26
+    assert round(center_z + height / 2.0, 2) == 0.98
 
 
 def test_each_desk_has_27_inch_monitor_facing_its_chair(

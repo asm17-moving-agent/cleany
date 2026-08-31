@@ -310,7 +310,7 @@ def analyze(root: Path) -> list[RunMetrics]:
         tuple[str, float], tuple[list[Pose], int, int, int]
     ] = {}
     metrics: list[RunMetrics] = []
-    heights = ((16.5, "16p5"), (45.0, "45"))
+    heights = ((16.5, "16p5"), (30.0, "30"), (45.0, "45"))
     for noise_profile in ("measured", "stress"):
         for algorithm in ("slam_toolbox", "cartographer"):
             for height, token in heights:
@@ -457,7 +457,7 @@ def main() -> None:
         ]
     )
     for algorithm in ("slam_toolbox", "cartographer"):
-        for height in (16.5, 45.0):
+        for height in (16.5, 30.0, 45.0):
             pair = {
                 row["noise_profile"]: row
                 for row in records

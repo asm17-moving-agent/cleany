@@ -22,7 +22,7 @@ source ros2_ws/install/setup.bash
 
 ## Evaluation contract
 
-- 지원 LiDAR 높이: `16p5`, `26`, `45`, `70` cm
+- 지원 LiDAR 높이: `16p5`, `26`, `30`, `45`, `70` cm
 - 공통 frame: `lidar_link`
 - 공통 input: `/scan`, `/odom`, `/tf_static`, `/clock`
 - IMU algorithm input: `/imu/data`
@@ -70,7 +70,8 @@ ros2 launch cleany_gazebo_sim evaluation_slam_visualization.launch.py
 실험용 Jazzy + Harmonic 환경에서 높이·LiDAR noise profile별
 study-cafe 경로를 주행하고 비교용 bag을 기록합니다. Physics는 2 ms
 timestep과 목표 RTF 2.0을 사용합니다. Script는 LiDAR frame, Gazebo
-process, recorder, route 완료 여부를 검사합니다. 제품 edge runtime의
+process, `/clock`, recorder, route 완료 여부를 검사하고 실행별 Gazebo
+Transport partition을 분리합니다. 제품 edge runtime의
 Humble 기준은 변경하지 않습니다. Jazzy가 기록한 SQLite bag의 QoS metadata는
 원본을 `metadata.jazzy.yaml`로 보존하고 Humble 호환 metadata v5로 변환합니다.
 OGRE2 장시간 sensor rendering이 중단되는 환경에서는 각 route edge를
@@ -78,7 +79,7 @@ OGRE2 장시간 sensor rendering이 중단되는 환경에서는 각 route edge�
 
 ```bash
 for noise in measured stress; do
-  for height in 16p5 45; do
+  for height in 16p5 30 45; do
     GAZEBO_PROFILE=harmonic \
       ./tools/slam_evaluation/record_slam_input.sh "$height" "$noise"
   done
@@ -97,7 +98,7 @@ ros2_ws/slam_results/algorithm_compare_inputs/<noise>/input_<height>cm_trial1/
 
 ## Run algorithm comparison
 
-기본 실험 행렬인 noise 2종×알고리즘 2종×높이 2종, 총 8개 조합을
+기본 실험 행렬인 noise 2종×알고리즘 2종×높이 3종, 총 12개 조합을
 2.5배속으로 replay합니다.
 
 ```bash
@@ -116,7 +117,7 @@ Replay 배속은 `SLAM_REPLAY_RATE`로 변경합니다.
 ```bash
 SLAM_REPLAY_RATE=1.0 \
   ./tools/slam_evaluation/run_slam_algorithm_comparison.sh \
-    slam_toolbox 26 measured
+    slam_toolbox 30 measured
 ```
 
 Run output은 다음 경로에 생성됩니다.
@@ -140,6 +141,7 @@ map YAML의 resolution/origin을 사용해 world coordinate로 투영합니다.
 
 ```bash
 python3 tools/slam_evaluation/analyze_slam_algorithm_comparison.py
+python3 tools/slam_evaluation/render_lidar_noise_map_matrix.py
 python3 tools/slam_evaluation/capture_gazebo_top_view.py
 python3 tools/slam_evaluation/render_slam_algorithm_overlays.py
 ```

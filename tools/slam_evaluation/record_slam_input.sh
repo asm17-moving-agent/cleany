@@ -9,7 +9,7 @@ server_render_engine=${GAZEBO_SERVER_RENDER_ENGINE:-ogre2}
 sensor_render_engine=${GAZEBO_SENSOR_RENDER_ENGINE:-ogre2}
 
 usage() {
-  echo "usage: $0 {16p5|26|45|70} {measured|stress}" >&2
+  echo "usage: $0 {16p5|26|30|45|70} {measured|stress}" >&2
 }
 
 if [[ $# -ne 2 ]]; then
@@ -29,6 +29,11 @@ case "$height" in
     display_height=26
     lidar_profile=floor_26cm
     domain_id=152
+    ;;
+  30)
+    display_height=30
+    lidar_profile=floor_30cm
+    domain_id=155
     ;;
   45)
     display_height=45
@@ -83,6 +88,9 @@ case "$CLEANY_GAZEBO_PROFILE" in
     ;;
 esac
 export ROS_DOMAIN_ID=$domain_id
+transport_partition="cleany_slam_input_${domain_id}_$$"
+export GZ_PARTITION=$transport_partition
+export IGN_PARTITION=$transport_partition
 
 stop_group() {
   local pid=${1:-}
@@ -130,6 +138,11 @@ done
 kill -0 "$gazebo_pid"
 if [[ "$frame_id" != "lidar_link" ]]; then
   echo "unexpected lower LiDAR frame: $frame_id" >&2
+  exit 1
+fi
+clock_sample=$(timeout 5 ros2 topic echo --once /clock 2>/dev/null || true)
+if [[ -z "$clock_sample" ]]; then
+  echo "Gazebo clock bridge did not publish /clock" >&2
   exit 1
 fi
 scan_spread=$(python3 -c '
