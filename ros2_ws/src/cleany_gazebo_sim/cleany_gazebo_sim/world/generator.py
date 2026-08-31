@@ -1018,8 +1018,8 @@ def materialize_study_cafe_world(
     partition_index = 1
     for pair_center in layout.desks.row_pair_centers_y_m:
         for desk_x in layout.desks.x_positions_m:
-            # The divider starts 30 cm above the floor and reaches 30 cm
-            # above the 72 cm tabletop: z=0.30..1.02 m.
+            # Keep the 72 cm divider height while matching the measured
+            # 26 cm floor clearance: z=0.26..0.98 m.
             _add_rounded_partition(
                 world,
                 f'desk_partition_{partition_index:02d}',

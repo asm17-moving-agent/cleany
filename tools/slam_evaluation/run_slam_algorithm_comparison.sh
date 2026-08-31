@@ -42,6 +42,7 @@ run_one() {
   case "$height" in
     16p5) height_domain=1 ;;
     26) height_domain=2 ;;
+    30) height_domain=5 ;;
     45) height_domain=3 ;;
     70) height_domain=4 ;;
     *) echo "unknown height: $height" >&2; return 2 ;;
@@ -161,7 +162,7 @@ PY
 }
 
 algorithms=(slam_toolbox cartographer)
-heights=(16p5 45)
+heights=(16p5 30 45)
 noise_profiles=(measured stress)
 if [[ $# -ge 1 ]]; then
   algorithms=("$1")

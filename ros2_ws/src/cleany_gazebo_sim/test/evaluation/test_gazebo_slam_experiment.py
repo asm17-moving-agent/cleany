@@ -24,13 +24,17 @@ def test_mount_profiles_define_distinct_candidate_transforms() -> None:
     profiles = load_mount_profiles(PROFILES_PATH)
 
     assert set(profiles) == {
-        'floor_16p5cm', 'floor_26cm', 'floor_45cm', 'floor_70cm'
+        'floor_16p5cm', 'floor_26cm', 'floor_30cm', 'floor_45cm',
+        'floor_70cm',
     }
     assert profiles['floor_16p5cm'].transform.translation == (
         0.16, 0.0, -0.215
     )
     assert profiles['floor_26cm'].transform.translation == (
         0.16, 0.0, -0.12
+    )
+    assert profiles['floor_30cm'].transform.translation == (
+        0.16, 0.0, -0.08
     )
     assert profiles['floor_45cm'].transform.translation == (
         0.16, 0.0, 0.07
@@ -41,7 +45,7 @@ def test_mount_profiles_define_distinct_candidate_transforms() -> None:
     translations = {
         profile.transform.translation for profile in profiles.values()
     }
-    assert len(translations) == 4
+    assert len(translations) == 5
     assert all(
         profile.transform.parent_frame_id == 'base_link'
         and profile.transform.child_frame_id == 'lidar_link'
@@ -77,6 +81,7 @@ def test_profile_loader_rejects_duplicate_transforms(tmp_path: Path) -> None:
     (
         'floor_16p5cm',
         'floor_26cm',
+        'floor_30cm',
         'floor_45cm',
         'floor_70cm',
     ),

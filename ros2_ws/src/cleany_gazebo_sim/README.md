@@ -128,6 +128,7 @@ ros2 launch cleany_gazebo_sim gazebo_fortress.launch.py \
 `/tmp/cleany-study-cafe-*/` 전용 디렉터리를 만들고 그 안에 world와 sensor TF
 설정을 기록하므로 동시 실행이나 이전 실행의 파일 권한과 충돌하지 않습니다.
 Study-cafe 평가의 기본 physics timestep은 2 ms입니다.
+책상 사이 파티션은 바닥 0.26 m부터 0.98 m까지 배치합니다.
 
 LiDAR 높이는 `lidar_profile` argument로 선택합니다.
 
