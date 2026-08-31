@@ -73,9 +73,11 @@ ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
 | Input | `/cmd_vel` | 사용자 차체 속도 명령 |
 | Internal | `/gazebo_cmd_vel` | guard를 통과한 Gazebo 명령 |
 | Output | `/clock` | simulation clock |
-| Output | `/odom` | `odom -> base_link` 기준 pose |
+| Output | `/odom` | 선택한 odometry source를 재발행한 canonical pose |
+| Output | `/wheel/odom` | 4개 drive wheel joint의 누적 회전각 기반 pose |
 | Evaluation | `/ground_truth/odom` | 평가 전용 simulator pose |
 | Output | `/joint_states` | 4개 drive wheel joint |
+| Optional | `/wheel_encoder/joint_states` | 가상 quadrature encoder 측정값 |
 | Output | `/scan` | 360-sample GPU LiDAR |
 | Output | `/imu/data` | `imu_link`, 50 Hz simulation IMU |
 
@@ -93,10 +95,50 @@ Camera profile은 head RGB·depth와 좌·우 wrist RGB를 다음 topic으로
 - `gazebo_sensor_tf_publisher`: `base_link -> lidar_link / imu_link`
 - Camera optical frame: REP-103 `_optical_frame`
 
+기본 `odometry_source:=wheel`은 `/wheel/odom`을 canonical `/odom`과
+`odom -> base_link` TF로 재발행하므로 SLAM과 navigation이 wheel odometry를
+사용합니다. 비교용 `odometry_source:=gazebo`는 기존 `/gazebo_odom`을 사용합니다.
+
+```bash
+ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
+  odometry_source:=gazebo
+```
+
 Stock Fortress `MecanumDrive` 플러그인은 odometry message를 발행하지
 않습니다. 따라서 Fortress profile은 `OdometryPublisher`의 ground-truth
 출력을 `/gazebo_odom`과 `/ground_truth/odom`에 동시에 bridge합니다.
-현재 `/odom`은 wheel drift나 slip이 반영된 odometry가 아닙니다.
+Fortress에서 `odometry_source:=gazebo`를 선택하면 `/odom`은 wheel drift나
+slip이 반영된 odometry가 아닙니다.
+
+`cleany_base_odometry`는 `/joint_states`의 네 drive wheel 누적 회전각을
+Mecanum kinematics로 적분해 `/wheel/odom`을 별도로 발행합니다. 이 출력은 TF를
+발행하거나 기존 `/odom`을 대체하지 않습니다. Gazebo launch에서는 가상 encoder의
+양자화된 `/wheel_encoder/joint_states`를 입력으로 사용합니다.
+
+### Simulated wheel encoder
+
+`simulated_encoder_node`는 Gazebo `/joint_states`의 휠 각도를 모터 사양
+`13 PPR`, 감속비 `1:61`, 4배 quadrature 기준인 `3172 tick/rev`로
+양자화해 `/wheel_encoder/joint_states`를 발행합니다. 휠별 scale과 이동 중
+tick 증분의 Gaussian noise를 선택적으로 적용할 수 있습니다.
+
+기본 설정 `config/simulated_encoder.yaml`은 noise가 없는 변환만 수행합니다.
+`config/simulated_encoder_synthetic_noise.yaml`의 편차는 실제 측정값이 아닌
+파이프라인 검증용 합성값입니다. Gazebo launch는 기본 encoder 설정을 자동으로
+실행하고 `/wheel/odom` 입력을 `/wheel_encoder/joint_states`에 연결합니다.
+
+합성 오차 profile은 encoder의 휠별 scale 및 tick 편차와 wheel odometry의 반경 및
+기구학 parameter 편차를 함께 사용합니다. 모두 실제 측정값이 아닌 파이프라인
+검증용 값이며, 물리 slip·backlash·통신 지연은 포함하지 않습니다.
+
+```bash
+ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py \
+  encoder_config:=$(ros2 pkg prefix cleany_gazebo_sim)/share/cleany_gazebo_sim/config/simulated_encoder_synthetic_noise.yaml \
+  wheel_odometry_config:=$(ros2 pkg prefix cleany_base_odometry)/share/cleany_base_odometry/config/wheel_odometry_synthetic_error.yaml
+```
+
+같은 인자는 `gazebo_study_cafe.launch.py`와
+`gazebo_study_cafe_fortress.launch.py`에도 전달됩니다.
 
 ## Sensor profiles
 
