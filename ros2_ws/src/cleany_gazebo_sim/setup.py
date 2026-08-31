@@ -29,6 +29,10 @@ setup(
             f'share/{package_name}/config/rviz',
             glob('config/rviz/*.rviz'),
         ),
+        (
+            f'share/{package_name}/maps',
+            glob('maps/*.yaml') + glob('maps/*.pgm'),
+        ),
         (f'share/{package_name}/worlds', glob('worlds/*.sdf')),
     ],
     install_requires=['setuptools'],

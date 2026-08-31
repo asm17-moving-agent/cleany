@@ -253,7 +253,8 @@ Ubuntu 24.04 환경에서 이 문서의 1절과 2절을 실행해 locale과 ROS 
 sudo apt update
 sudo apt install -y \
   ros-jazzy-desktop ros-dev-tools python3-pip git make \
-  ros-jazzy-ros-gz-sim ros-jazzy-ros-gz-bridge
+  ros-jazzy-ros-gz-sim ros-jazzy-ros-gz-bridge \
+  ros-jazzy-navigation2
 source /opt/ros/jazzy/setup.bash
 ```
 
@@ -283,6 +284,7 @@ python3 --version
 gz sim --versions
 ros2 pkg prefix ros_gz_sim
 ros2 pkg prefix ros_gz_bridge
+ros2 pkg prefix nav2_amcl
 ```
 
 Snapdragon X2-85 host에서는 Ubuntu Noble 기본 Mesa 25.2.8이 GPU를 인식하지 못해

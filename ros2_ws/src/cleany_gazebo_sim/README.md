@@ -155,6 +155,68 @@ LiDAR 높이별 bag 기록, slam_toolbox·Cartographer·RTAB-Map 비교,
 참고합니다. 실험 생성물은 `ros2_ws/slam_results/`에 저장하며
 커밋하지 않습니다.
 
+## AMCL / Nav2 study-cafe evaluation
+
+`amcl_nav2.launch.py`는 저장된 26 cm LiDAR 지도와 simulation topic 계약을 이용해
+AMCL, map server, planner, controller, recovery behavior, BT navigator를 실행합니다.
+AMCL은 Mecanum odometry를 반영하는 `OmniMotionModel`, controller는 lateral velocity를
+생성할 수 있는 MPPI `Omni` model을 사용합니다. Nav2가 발행한 `/cmd_vel`은 기존
+`gazebo_command_guard`를 거쳐 simulator에 전달됩니다.
+
+기본 지도 `maps/study_cafe_26cm.yaml`은
+`compare_26cm_strict_loop_2p5x_trial1`에서 저장한 26 cm LiDAR 지도입니다. 현재
+canonical `lidar_link`와 입력 높이를 맞추기 위한 integration 기준이며, 실제 LiDAR
+설치 위치나 최종 localization 구성을 확정하는 선택은 아닙니다. 기본 AMCL initial
+pose `(x=0, y=0, yaw=0)`도 기존 study-cafe spawn과 같은 새 simulation world에서만
+유효합니다.
+
+Jazzy/Harmonic 환경에서 패키지를 빌드한 뒤 첫 terminal에 study-cafe와 26 cm LiDAR
+profile을 실행합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+cd ros2_ws
+colcon --log-base log-harmonic build --symlink-install \
+  --build-base build-harmonic --install-base install-harmonic \
+  --packages-up-to cleany_gazebo_sim
+source install-harmonic/setup.bash
+ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+  headless:=true lidar_profile:=floor_26cm sensor_profile:=lidar_nav
+```
+
+두 번째 terminal에서 AMCL/Nav2를 시작합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+cd ros2_ws
+source install-harmonic/setup.bash
+ros2 launch cleany_gazebo_sim amcl_nav2.launch.py
+```
+
+AMCL과 Nav2가 active 상태가 되고 `map -> odom -> base_link`가 연결됐는지 확인합니다.
+
+```bash
+ros2 lifecycle get /map_server
+ros2 lifecycle get /amcl
+ros2 lifecycle get /controller_server
+ros2 lifecycle get /planner_server
+ros2 lifecycle get /bt_navigator
+ros2 run tf2_ros tf2_echo map base_link
+```
+
+fresh spawn에서 첫 navigation goal을 보냅니다. 좌표는 저장 지도 `map` frame
+기준입니다.
+
+```bash
+ros2 action send_goal --feedback \
+  /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  '{pose: {header: {frame_id: map}, pose: {position: {x: 3.0, y: 0.0}, orientation: {w: 1.0}}}}'
+```
+
+simulation을 재사용해 로봇이 이미 움직였거나 spawn을 바꾼 경우에는 기본 initial pose를
+사용하지 말고 RViz의 `2D Pose Estimate` 또는 `/initialpose`로 실제 map pose를 먼저
+제공합니다. 같은 `/cmd_vel`에 route follower나 teleop을 동시에 연결하지 않습니다.
+
 ## Validation
 
 정적 world·bridge·TF·command guard 계약을 검증합니다.
@@ -195,7 +257,10 @@ python3 -m pytest -s \
 - `config/bridge/`: Gazebo transport / ROS bridge
 - `config/lidar_mount_profiles.yaml`: LiDAR 높이 후보
 - `config/lidar_noise_profiles.yaml`: 실측 근사·stress LiDAR noise profile
+- `config/nav2_amcl.yaml`: AMCL/Nav2 simulation 평가 parameter
 - `config/study_cafe/`: study-cafe layout과 평가 route
+- `maps/study_cafe_26cm.*`: AMCL 평가용 저장 지도
+- `launch/amcl_nav2.launch.py`: AMCL/Nav2 evaluation stack
 - `launch/gazebo_fortress.launch.py`: core Fortress backend
 - `launch/gazebo_study_cafe.launch.py`: study-cafe scenario
 - `launch/evaluation_*.launch.py`: SLAM replay·visualization·route 평가
