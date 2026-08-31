@@ -8,7 +8,7 @@ from launch.actions import (
     ExecuteProcess,
 )
 from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 from cleany_gazebo_sim.launch_helpers.sensor_profile import (
@@ -20,10 +20,17 @@ from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 def generate_launch_description() -> LaunchDescription:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
+    odometry_share = Path(
+        get_package_share_directory('cleany_base_odometry')
+    )
     description_share = Path(get_package_share_directory('cleany_description'))
     world_template = package_share / 'worlds' / 'cleany_mecanum_harmonic.sdf'
     default_world = materialize_mecanum_wheel_world(world_template)
     base_config = package_share / 'config' / 'base.yaml'
+    encoder_config = package_share / 'config' / 'simulated_encoder.yaml'
+    wheel_odometry_config = (
+        odometry_share / 'config' / 'wheel_odometry.yaml'
+    )
 
     world_arg = DeclareLaunchArgument(
         'world', default_value=str(default_world)
@@ -35,6 +42,22 @@ def generate_launch_description() -> LaunchDescription:
     )
     sensor_config_arg = DeclareLaunchArgument(
         'sensor_config', default_value=str(base_config)
+    )
+    encoder_config_arg = DeclareLaunchArgument(
+        'encoder_config',
+        default_value=str(encoder_config),
+        description='Simulated wheel encoder parameter file.',
+    )
+    wheel_odometry_config_arg = DeclareLaunchArgument(
+        'wheel_odometry_config',
+        default_value=str(wheel_odometry_config),
+        description='Wheel odometry parameter file.',
+    )
+    odometry_source_arg = DeclareLaunchArgument(
+        'odometry_source',
+        default_value='wheel',
+        choices=['wheel', 'gazebo'],
+        description='Source republished as /odom and odom -> base_link TF.',
     )
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
     use_sim_time_arg = DeclareLaunchArgument(
@@ -91,6 +114,38 @@ def generate_launch_description() -> LaunchDescription:
         name='gazebo_odom_tf_publisher',
         parameters=[
             base_config,
+            {
+                'input_topic': PythonExpression(
+                    [
+                        "'wheel/odom' if '",
+                        LaunchConfiguration('odometry_source'),
+                        "' == 'wheel' else 'gazebo_odom'",
+                    ]
+                ),
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            },
+        ],
+        output='screen',
+    )
+    wheel_odometry = Node(
+        package='cleany_base_odometry',
+        executable='wheel_odometry_node',
+        name='wheel_odometry',
+        parameters=[
+            LaunchConfiguration('wheel_odometry_config'),
+            {
+                'input_topic': 'wheel_encoder/joint_states',
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            },
+        ],
+        output='screen',
+    )
+    simulated_encoder = Node(
+        package='cleany_gazebo_sim',
+        executable='simulated_encoder_node',
+        name='simulated_encoder',
+        parameters=[
+            LaunchConfiguration('encoder_config'),
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
         ],
         output='screen',
@@ -111,6 +166,9 @@ def generate_launch_description() -> LaunchDescription:
             world_arg,
             bridge_config_arg,
             sensor_config_arg,
+            encoder_config_arg,
+            wheel_odometry_config_arg,
+            odometry_source_arg,
             headless_arg,
             use_sim_time_arg,
             sensor_profile_arg,
@@ -122,6 +180,8 @@ def generate_launch_description() -> LaunchDescription:
             bridges,
             command_guard,
             odom_tf,
+            simulated_encoder,
+            wheel_odometry,
             sensor_tf,
         ]
     )

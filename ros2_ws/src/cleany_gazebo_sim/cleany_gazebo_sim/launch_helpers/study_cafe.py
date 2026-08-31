@@ -104,6 +104,11 @@ def _launch_simulation(
             'bridge_config': LaunchConfiguration('bridge_config'),
             'sensor_config': str(sensor_config),
             'sensor_profile': LaunchConfiguration('sensor_profile'),
+            'encoder_config': LaunchConfiguration('encoder_config'),
+            'wheel_odometry_config': LaunchConfiguration(
+                'wheel_odometry_config'
+            ),
+            'odometry_source': LaunchConfiguration('odometry_source'),
             **(
                 {
                     'gui_render_engine': LaunchConfiguration('gui_render_engine'),
@@ -126,6 +131,9 @@ def study_cafe_launch_description(
     if simulator not in _BACKEND_LAUNCH:
         raise ValueError(f'unsupported study-cafe simulator: {simulator!r}')
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
+    odometry_share = Path(
+        get_package_share_directory('cleany_base_odometry')
+    )
     headless_arg = DeclareLaunchArgument('headless', default_value='false')
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
@@ -154,6 +162,26 @@ def study_cafe_launch_description(
         'bridge_config',
         default_value='',
         description='Optional bridge config overriding the sensor profile.',
+    )
+    encoder_config_arg = DeclareLaunchArgument(
+        'encoder_config',
+        default_value=str(
+            package_share / 'config' / 'simulated_encoder.yaml'
+        ),
+        description='Simulated wheel encoder parameter file.',
+    )
+    wheel_odometry_config_arg = DeclareLaunchArgument(
+        'wheel_odometry_config',
+        default_value=str(
+            odometry_share / 'config' / 'wheel_odometry.yaml'
+        ),
+        description='Wheel odometry parameter file.',
+    )
+    odometry_source_arg = DeclareLaunchArgument(
+        'odometry_source',
+        default_value='wheel',
+        choices=['wheel', 'gazebo'],
+        description='Source republished as /odom and odom -> base_link TF.',
     )
     lidar_profiles_config_arg = DeclareLaunchArgument(
         'lidar_profiles_config',
@@ -210,6 +238,9 @@ def study_cafe_launch_description(
             server_render_engine_arg,
             sensor_render_engine_arg,
             bridge_config_arg,
+            encoder_config_arg,
+            wheel_odometry_config_arg,
+            odometry_source_arg,
             lidar_profiles_config_arg,
             lidar_profile_arg,
             lidar_noise_profiles_config_arg,
