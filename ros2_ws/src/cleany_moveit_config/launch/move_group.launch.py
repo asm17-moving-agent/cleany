@@ -45,6 +45,12 @@ def generate_launch_description() -> LaunchDescription:
     allow_trajectory_execution = LaunchConfiguration(
         'allow_trajectory_execution'
     )
+    execution_duration_scaling = LaunchConfiguration(
+        'allowed_execution_duration_scaling'
+    )
+    goal_duration_margin = LaunchConfiguration(
+        'allowed_goal_duration_margin'
+    )
     moveit_config = _moveit_config()
 
     move_group = Node(
@@ -58,6 +64,14 @@ def generate_launch_description() -> LaunchDescription:
                     allow_trajectory_execution, value_type=bool
                 ),
                 'publish_robot_description_semantic': True,
+                'trajectory_execution.allowed_execution_duration_scaling': (
+                    ParameterValue(
+                        execution_duration_scaling, value_type=float
+                    )
+                ),
+                'trajectory_execution.allowed_goal_duration_margin': (
+                    ParameterValue(goal_duration_margin, value_type=float)
+                ),
                 'use_sim_time': ParameterValue(use_sim_time, value_type=bool),
             },
         ],
@@ -93,6 +107,12 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('use_sim_time', default_value='false'),
             DeclareLaunchArgument(
                 'allow_trajectory_execution', default_value='true'
+            ),
+            DeclareLaunchArgument(
+                'allowed_execution_duration_scaling', default_value='1.2'
+            ),
+            DeclareLaunchArgument(
+                'allowed_goal_duration_margin', default_value='0.5'
             ),
             move_group,
             rviz,

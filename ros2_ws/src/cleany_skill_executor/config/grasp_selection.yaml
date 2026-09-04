@@ -12,6 +12,9 @@ grasp_selection_server:
     pregrasp_preferred_approach_tolerance_deg: 5.0
     pregrasp_approach_tolerance_deg: 15.0
     pregrasp_closing_tolerance_deg: 30.0
+    grasp_closing_tolerance_deg: 30.0
+    # Symmetric parallel jaws treat +X and -X as the same closing axis.
+    grasp_closing_sign_invariant: true
     pregrasp_aim_attempts: 8
     # Must match cleany_description wrist-roll limits.
     wrist_roll_lower_rad: -2.743847297
@@ -26,3 +29,8 @@ grasp_selection_server:
     pregrasp_offset_m: 0.14
     # Reachable position-only seed; the accepted result still uses 0.14 m.
     pregrasp_seed_offset_m: 0.08
+    # Robot/predictor tool-depth correction applied only to final grasp IK.
+    grasp_approach_offset_m: 0.0
+    # Robot-specific +X correction for asymmetric jaws. Generic workflows
+    # preserve the candidate centre; the can demo overrides this value.
+    grasp_lateral_offset_m: 0.0

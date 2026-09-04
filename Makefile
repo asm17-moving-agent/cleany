@@ -20,6 +20,7 @@ GRASP_PREGRASP_PACKAGES := cleany_interfaces cleany_description \
 	cleany_grasping cleany_skill_executor
 GRASP_PREGRASP_SKILL_TESTS := \
 	src/cleany_skill_executor/test/test_can_rgbd.py \
+	src/cleany_skill_executor/test/test_can_grasp_execution_core.py \
 	src/cleany_skill_executor/test/test_grasp_execution_demo_contract.py \
 	src/cleany_skill_executor/test/test_nearest_object.py \
 	src/cleany_skill_executor/test/test_grasp_selection.py \

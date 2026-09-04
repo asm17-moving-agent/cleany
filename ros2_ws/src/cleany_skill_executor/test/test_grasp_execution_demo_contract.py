@@ -62,9 +62,26 @@ def test_can_demo_composes_rgbd_grasping_selection_and_gui() -> None:
     assert "package='rqt_image_view'" in source
     assert "arguments=['/grasp/can_grasp_image']" in source
     assert "'allow_trajectory_execution': 'true'" in source
+    assert "'allowed_execution_duration_scaling': '2.0'" in source
+    assert "'allowed_goal_duration_margin': '1.0'" in source
     assert "'enable_gripper_controllers': 'true'" in source
     assert "'grasp_demo_ros2_controllers.yaml'" in source
     assert "'planning_attempts': 3" in source
+    assert "'pregrasp_closing_tolerance_deg': 15.0" in source
+    assert "'grasp_closing_tolerance_deg': ParameterValue(" in source
+    assert "'grasp_closing_sign_invariant': False" in source
+    assert "'grasp_approach_offset_m': ParameterValue(" in source
+    assert "'grasp_lateral_offset_m': ParameterValue(" in source
+    assert "'grasp_lateral_execution_offset_m': ParameterValue(" in source
+    assert "'grasp_approach_execution_offset_m': ParameterValue(" in source
+    assert "'gripper_close_position_rad': ParameterValue(" in source
+    assert "'gripper_close_position_rad', default_value='0.30'" in source
+    assert "'gripper_force_full_close': ParameterValue(" in source
+    assert "'gripper_force_full_close', default_value='false'" in source
+    assert "') / 2.0 - 0.008'" in source
+    assert "target_depth_m," in source
+    assert "'target_label': target_label" in source
+    assert "'grasp_closing_tolerance_deg', default_value='5.0'" in source
     assert "'left_shoulder_yaw_initial': '-1.53'" in source
     assert "'right_shoulder_yaw_initial': '1.58'" in source
     assert source.count("_pitch_initial': '3.35'") == 2
@@ -76,15 +93,32 @@ def test_can_demo_composes_rgbd_grasping_selection_and_gui() -> None:
     assert "'cleany_skill_executor.can_grasp_execution_demo:main'" in setup
 
 
-def test_can_demo_opens_and_stops_at_collision_checked_pregrasp() -> None:
+def test_can_demo_executes_selected_grasp_closes_and_lifts() -> None:
     source = (
         PACKAGE_ROOT
         / 'cleany_skill_executor'
         / 'can_grasp_execution_demo.py'
     ).read_text(encoding='utf-8')
 
-    assert 'self._register_execution_collision(target_object)' in source
-    assert 'self._open_gripper(result.selected_arm)' in source
+    registration = (
+        'self._register_execution_collision(target_object, result.selected_arm)'
+    )
+    opening = (
+        "self._command_gripper(\n                result.selected_arm,\n"
+        "                float(self.get_parameter('gripper_open_position_rad').value)"
+    )
+    grasp_execution = "result.grasp_joint_state,\n                'contact-enabled grasp'"
+    closing = (
+        "self._command_gripper(\n                result.selected_arm,\n"
+        '                self._candidate_close_position(result.selected_candidate)'
+    )
+    attachment = (
+        'self._attach_execution_collision(target_object, result.selected_arm)'
+    )
+    lift = "result.pregrasp_joint_state,\n                'attached-can lift retreat'"
+    verification = 'self._verify_can_lifted('
+
+    assert registration in source
     assert 'aimed_pregrasp = self._solve_aimed_pregrasp(' in source
     assert 'joint_state=seed' in source
     assert "GetPositionIK" not in source
@@ -93,13 +127,26 @@ def test_can_demo_opens_and_stops_at_collision_checked_pregrasp() -> None:
     assert 'self._verify_pregrasp_facing(' in source
     assert 'selected_approach=aimed_pregrasp.approach_direction' in source
     assert 'selected_pregrasp=aimed_pregrasp.tcp_position' in source
-    move = "self._move_to(\n            result.selected_arm,"
+    move = "self._move_to(\n                result.selected_arm,"
     feedback = 'self._verify_feedback(aimed_pregrasp.joint_state)'
-    opening = 'self._open_gripper(result.selected_arm)'
     assert source.index(move) < source.index(feedback) < source.index(opening)
-    assert 'pre-grasp reached; opening gripper' in source
-    assert 'gripper open at pre-grasp' in source
-    grasp_execution = (
-        "self._move_to(result.selected_arm, result.grasp_joint_state"
+    assert (
+        source.index(opening)
+        < source.index(grasp_execution)
+        < source.index(closing)
+        < source.index(attachment)
+        < source.index(lift)
+        < source.index(verification)
     )
-    assert grasp_execution not in source
+    assert 'pre-grasp reached; opening gripper' in source
+    assert 'accept_control_failure=lambda:' in source
+    assert 'self._guarded_contact_stop_is_valid(' in source
+    assert 'allow_contact_stall=True' in source
+    assert 'goal.path_tolerance = [tolerance]' in source
+    assert 'goal.goal_tolerance = [tolerance]' in source
+    assert "JointTolerance(name=joint, position=-1.0)" in source
+    assert "self._hold('lift_hold_sec')" in source
+    assert source.count('self._verify_can_lifted(') == 2
+    assert "self.declare_parameter('gripper_close_position_rad', 0.30)" in source
+    assert 'MoveIt attached collision remains active' in source
+    assert 'self._restore_execution_collision()' in source

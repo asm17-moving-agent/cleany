@@ -53,6 +53,8 @@ class GraspSelectionNode(Node):
             'pregrasp_preferred_approach_tolerance_deg': 5.0,
             'pregrasp_approach_tolerance_deg': 15.0,
             'pregrasp_closing_tolerance_deg': 30.0,
+            'grasp_closing_tolerance_deg': 30.0,
+            'grasp_closing_sign_invariant': True,
             'pregrasp_aim_attempts': 8,
             'wrist_roll_lower_rad': -2.743847297,
             'wrist_roll_upper_rad': 2.84120630938,
@@ -64,6 +66,8 @@ class GraspSelectionNode(Node):
             'action_timeout_sec': 120.0,
             'pregrasp_offset_m': 0.14,
             'pregrasp_seed_offset_m': 0.08,
+            'grasp_approach_offset_m': 0.0,
+            'grasp_lateral_offset_m': 0.0,
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
@@ -107,6 +111,12 @@ class GraspSelectionNode(Node):
                 pregrasp_closing_tolerance_deg=float(
                     self.get_parameter('pregrasp_closing_tolerance_deg').value
                 ),
+                grasp_closing_tolerance_deg=float(
+                    self.get_parameter('grasp_closing_tolerance_deg').value
+                ),
+                grasp_closing_sign_invariant=bool(
+                    self.get_parameter('grasp_closing_sign_invariant').value
+                ),
                 pregrasp_aim_attempts=int(
                     self.get_parameter('pregrasp_aim_attempts').value
                 ),
@@ -131,6 +141,12 @@ class GraspSelectionNode(Node):
                 pregrasp_offset_m=float(self.get_parameter('pregrasp_offset_m').value),
                 pregrasp_seed_offset_m=float(
                     self.get_parameter('pregrasp_seed_offset_m').value
+                ),
+                grasp_approach_offset_m=float(
+                    self.get_parameter('grasp_approach_offset_m').value
+                ),
+                grasp_lateral_offset_m=float(
+                    self.get_parameter('grasp_lateral_offset_m').value
                 ),
                 maximum_candidates=int(self.get_parameter('maximum_candidates').value),
             ),

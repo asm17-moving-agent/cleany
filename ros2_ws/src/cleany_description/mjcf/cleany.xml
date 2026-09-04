@@ -463,8 +463,8 @@
                   <geom type="mesh" mesh="Fixed_Jaw" material="white" class="visual"/>
                   <geom type="mesh" mesh="Fixed_Jaw_Motor" material="motor" class="visual"/>
                   <!-- Collision meshes with very high friction for gripping -->
-                  <geom type="mesh" mesh="Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
-                  <geom type="mesh" mesh="Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  <geom name="left_fixed_jaw_contact_1" type="mesh" mesh="Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  <geom name="left_fixed_jaw_contact_2" type="mesh" mesh="Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
                   <!-- Nominal jaw-tip midpoint used as the left arm IK target. -->
                   <site name="left_grasp_tcp" pos="0 -0.100 0" size="0.005" rgba="0 0.8 1 0.4"/>
 
@@ -474,9 +474,9 @@
                     <!-- Visual mesh -->
                     <geom type="mesh" mesh="Moving_Jaw" material="white" class="visual"/>
                     <!-- Collision meshes with very high friction for gripping -->
-                    <geom type="mesh" mesh="Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
-                    <geom type="mesh" mesh="Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
-                    <geom type="mesh" mesh="Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom name="left_moving_jaw_contact_1" type="mesh" mesh="Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom name="left_moving_jaw_contact_2" type="mesh" mesh="Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom name="left_moving_jaw_contact_3" type="mesh" mesh="Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6"/>
                   </body>
 
                   <!-- Camera on left arm -->
@@ -557,8 +557,8 @@
                   <geom type="mesh" mesh="Fixed_Jaw" material="white" class="visual"/>
                   <geom type="mesh" mesh="Fixed_Jaw_Motor" material="motor" class="visual"/>
                   <!-- Collision meshes with very high friction for gripping -->
-                  <geom type="mesh" mesh="Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
-                  <geom type="mesh" mesh="Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  <geom name="right_fixed_jaw_contact_1" type="mesh" mesh="Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
+                  <geom name="right_fixed_jaw_contact_2" type="mesh" mesh="Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
                   <!-- Nominal jaw-tip midpoint used as the right arm IK target. -->
                   <site name="right_grasp_tcp" pos="0 -0.100 0" size="0.005" rgba="0 0.8 1 0.4"/>
 
@@ -568,9 +568,9 @@
                     <!-- Visual mesh -->
                     <geom type="mesh" mesh="Moving_Jaw" material="white" class="visual"/>
                     <!-- Collision meshes with very high friction for gripping -->
-                    <geom type="mesh" mesh="Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
-                    <geom type="mesh" mesh="Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
-                    <geom type="mesh" mesh="Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom name="right_moving_jaw_contact_1" type="mesh" mesh="Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom name="right_moving_jaw_contact_2" type="mesh" mesh="Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6"/>
+                    <geom name="right_moving_jaw_contact_3" type="mesh" mesh="Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6"/>
                   </body>
 
                   <!-- Camera on right arm -->

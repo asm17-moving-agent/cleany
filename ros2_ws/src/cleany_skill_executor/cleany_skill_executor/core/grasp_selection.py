@@ -190,6 +190,8 @@ class Selection:
 class GraspSelectionConfig:
     pregrasp_offset_m: float = 0.14
     pregrasp_seed_offset_m: float = 0.08
+    grasp_approach_offset_m: float = 0.0
+    grasp_lateral_offset_m: float = 0.0
     maximum_candidates: int = 12
 
     def __post_init__(self) -> None:
@@ -200,6 +202,14 @@ class GraspSelectionConfig:
             or self.pregrasp_seed_offset_m <= 0
         ):
             raise ValueError('pregrasp_seed_offset_m must be positive and finite')
+        if not all(
+            math.isfinite(value)
+            for value in (
+                self.grasp_approach_offset_m,
+                self.grasp_lateral_offset_m,
+            )
+        ):
+            raise ValueError('grasp execution offsets must be finite')
         if self.maximum_candidates <= 0:
             raise ValueError('maximum_candidates must be positive')
 
@@ -265,20 +275,50 @@ class GraspSelector:
     def pregrasp_position(
         candidate: Candidate,
         offset_m: float = 0.14,
+        lateral_offset_m: float = 0.0,
     ) -> tuple[float, float, float]:
         norm = math.sqrt(sum(value * value for value in candidate.approach_direction))
         if not math.isfinite(norm) or norm <= 1e-9:
             raise ValueError('approach_direction must be non-zero')
         return tuple(
-            position - direction / norm * offset_m
-            for position, direction in zip(
-                candidate.position, candidate.approach_direction, strict=True
+            position
+            - direction / norm * offset_m
+            + lateral_offset_m * closing
+            for position, direction, closing in zip(
+                candidate.position,
+                candidate.approach_direction,
+                candidate.closing_direction,
+                strict=True,
             )
         )
 
     @staticmethod
     def arm_order(candidate: Candidate) -> tuple[str, str]:
         return ('left', 'right') if candidate.position[1] >= 0.0 else ('right', 'left')
+
+    @staticmethod
+    def grasp_position(
+        candidate: Candidate,
+        approach_offset_m: float = 0.0,
+        lateral_offset_m: float = 0.0,
+    ) -> tuple[float, float, float]:
+        """Map a symmetric candidate centre to a calibrated robot TCP."""
+        if not all(
+            math.isfinite(value)
+            for value in (approach_offset_m, lateral_offset_m)
+        ):
+            raise ValueError('grasp offsets must be finite')
+        return tuple(
+            position
+            + approach_offset_m * approach
+            + lateral_offset_m * closing
+            for position, approach, closing in zip(
+                candidate.position,
+                candidate.approach_direction,
+                candidate.closing_direction,
+                strict=True,
+            )
+        )
 
     def select(
         self,
@@ -297,10 +337,24 @@ class GraspSelector:
 
         for candidate in ranked:
             pregrasp_position = self.pregrasp_position(
-                candidate, self._config.pregrasp_offset_m
+                candidate,
+                self._config.pregrasp_offset_m,
+                self._config.grasp_lateral_offset_m,
             )
             pregrasp_seed_position = self.pregrasp_position(
-                candidate, self._config.pregrasp_seed_offset_m
+                candidate,
+                self._config.pregrasp_seed_offset_m,
+                self._config.grasp_lateral_offset_m,
+            )
+            pregrasp_aim_position = self.grasp_position(
+                candidate,
+                0.0,
+                self._config.grasp_lateral_offset_m,
+            )
+            grasp_position = self.grasp_position(
+                candidate,
+                self._config.grasp_approach_offset_m,
+                self._config.grasp_lateral_offset_m,
             )
             for arm in self.arm_order(candidate):
                 check_canceled()
@@ -313,7 +367,7 @@ class GraspSelector:
                 check_canceled()
                 pregrasps = self._port.solve_aimed_pregrasp_ik(
                     arm,
-                    candidate.position,
+                    pregrasp_aim_position,
                     candidate.approach_direction,
                     candidate.closing_direction,
                     pregrasp_position,
@@ -357,7 +411,7 @@ class GraspSelector:
                     feedback(index, arm, EvaluationStage.GRASP_IK, 'evaluating')
                     grasps = self._port.solve_grasp_ik(
                         arm,
-                        candidate.position,
+                        grasp_position,
                         candidate.approach_direction,
                         candidate.closing_direction,
                         pregrasp,

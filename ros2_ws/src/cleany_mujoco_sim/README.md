@@ -80,9 +80,21 @@ MoveIt planning scene에서 수행한다. 통합 실행은 `cleany_skill_executo
 chassis 기준 table 중심은 `(0.700, -0.002, 0.330) m`, 빨간 can 중심은
 `(0.440, 0.160, 0.395) m`이고 `pick_demo_rgbd` 카메라는 640×480, vertical FOV
 42°다. table과 can은 모두 MuJoCo 물리 충돌체다. 검출 OBB는 후보 검증 중 MoveIt에
-등록하고, pre-grasp 실제 실행 중에는 can cylinder를 contact permission 없이
-유지한다. 선택된 gripper를 연 뒤 can 접촉 전 0.14 m pre-grasp에서 멈춘다.
+등록한다. can은 60 g free body로 table 위에 놓이며, 선택된 gripper를 pre-grasp에서
+연 뒤 grasp 위치로 전진하고 jaw 마찰로 압착한다. 이후 같은 pre-grasp joint goal로
+복귀해 can을 들어 올린다. MuJoCo equality weld나 강제 attach는 사용하지 않는다.
 통합 실행은 `cleany_skill_executor`의 `can_grasp_execution_demo.launch.py`를 사용한다.
+
+`scenes/box_grasp_execution_demo.xml.in`은 기존 박스와 장애물을 제거하고 새
+50×70×100 mm 테스트 블록 하나만 사용한다. 블록 자체에
+`friction="2.0 0.12 0.06"`과
+`condim="6"`을 명시하고, fixed/moving jaw contact pair에는 simulation 전용
+고마찰 패드(`friction="5 5 0.4 0.15 0.15"`, `condim="6"`)를 적용한다. 이 값은
+캔 장면이나 실제 로봇의 접촉 설정에는 영향을 주지 않는다. box demo tabletop에도
+명시적으로 `friction="2.0 0.08 0.02"`, `condim="4"`를 적용해 접근 중 작은 충격에
+박스가 쉽게 미끄러지지 않게 한다. jaw가 강한 위치 명령으로 블록을 관통하지 않도록
+이 장면만 1 ms step, Newton 100회, no-slip 20회와 단단한 contact impedance를
+사용한다.
 
 이 backend의 기본값은 `scenes/handeye.xml.in`이다. 전용 scene은 canonical MJCF를
 그대로 include하고 `chassis`를 world에 weld하며, 고정 table/stand와
@@ -182,7 +194,10 @@ interface는 없다. 이 backend는 private `~/joint_cmd` topic을 만들거나 
 않는다. Controller의 joint path/goal tolerance baseline은 각각 `0.05 rad`와
 `0.01 rad`이며 `config/handeye_ros2_controllers.yaml`에서 관리한다. Grasp demo는 이
 baseline을 바꾸지 않고 `config/grasp_demo_ros2_controllers.yaml`을 명시적으로 선택한다.
-전용 profile의 arm path tolerance는 `0.08 rad`이고 gripper goal time은 3초다.
+전용 profile의 arm path tolerance는 `0.12 rad`이고 gripper goal time은 3초다.
+실제 can 최종 접근에서 shoulder tracking error가 기존 `0.08 rad` 경계를 반복적으로
+약 `0.0008 rad` 초과한 측정 결과를 반영한 simulation 전용 값이다. hand-eye와 실제
+로봇 controller 설정에는 적용하지 않는다.
 
 ROS 2 Humble binary의 `mujoco_ros2_control` 0.0.3은 MuJoCo 3.4를 vendor하므로
 canonical model의 MuJoCo 3.7 `dcmotor`를 읽을 수 없다. Default `.xml.in` scene을

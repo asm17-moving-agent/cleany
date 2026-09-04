@@ -101,7 +101,7 @@ def test_grasp_demo_controller_profile_is_isolated_and_relaxes_only_arm_path() -
         grasp_constraints = grasp[controller]['ros__parameters']['constraints']
         handeye_constraints = handeye[controller]['ros__parameters']['constraints']
         for joint in _arm_joints(side):
-            assert grasp_constraints[joint] == {'trajectory': 0.08, 'goal': 0.01}
+            assert grasp_constraints[joint] == {'trajectory': 0.12, 'goal': 0.01}
             assert handeye_constraints[joint] == {
                 'trajectory': 0.05,
                 'goal': 0.01,

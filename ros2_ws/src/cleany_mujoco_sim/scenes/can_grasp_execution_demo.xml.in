@@ -55,15 +55,15 @@
     </body>
 
     <!--
-      The red can is segmented from RGB-D and remains fixed until gripper
-      force closure is implemented. The demo stops at pre-grasp; MuJoCo and
-      MoveIt both keep the can collision enabled.
-      World Z=0.775 corresponds to base_link Z=0.395.
+      Dynamic 60 g can used for the physical force-closure/lift demo.
+      World Z=0.775 places its bottom exactly on the tabletop and corresponds
+      to base_link Z=0.395 at its centre.
     -->
     <body name="pick_can" pos="0.440 0.160 0.775">
+      <freejoint name="pick_can_freejoint"/>
       <geom name="pick_can_geom" type="cylinder" size="0.035 0.050"
             material="can_demo_can" contype="1" conaffinity="1"
-            friction="1.5 0.1 0.05"/>
+            friction="1.5 0.1 0.05" mass="0.060"/>
     </body>
   </worldbody>
 

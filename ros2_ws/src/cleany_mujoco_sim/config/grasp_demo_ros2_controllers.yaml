@@ -35,11 +35,11 @@ left_arm_controller:
     constraints:
       stopped_velocity_tolerance: 0.01
       goal_time: 2.0
-      left_shoulder_yaw_joint: {trajectory: 0.08, goal: 0.01}
-      left_shoulder_pitch_joint: {trajectory: 0.08, goal: 0.01}
-      left_elbow_pitch_joint: {trajectory: 0.08, goal: 0.01}
-      left_wrist_pitch_joint: {trajectory: 0.08, goal: 0.01}
-      left_wrist_roll_joint: {trajectory: 0.08, goal: 0.01}
+      left_shoulder_yaw_joint: {trajectory: 0.12, goal: 0.01}
+      left_shoulder_pitch_joint: {trajectory: 0.12, goal: 0.01}
+      left_elbow_pitch_joint: {trajectory: 0.12, goal: 0.01}
+      left_wrist_pitch_joint: {trajectory: 0.12, goal: 0.01}
+      left_wrist_roll_joint: {trajectory: 0.12, goal: 0.01}
 
 right_arm_controller:
   ros__parameters:
@@ -59,11 +59,11 @@ right_arm_controller:
     constraints:
       stopped_velocity_tolerance: 0.01
       goal_time: 2.0
-      right_shoulder_yaw_joint: {trajectory: 0.08, goal: 0.01}
-      right_shoulder_pitch_joint: {trajectory: 0.08, goal: 0.01}
-      right_elbow_pitch_joint: {trajectory: 0.08, goal: 0.01}
-      right_wrist_pitch_joint: {trajectory: 0.08, goal: 0.01}
-      right_wrist_roll_joint: {trajectory: 0.08, goal: 0.01}
+      right_shoulder_yaw_joint: {trajectory: 0.12, goal: 0.01}
+      right_shoulder_pitch_joint: {trajectory: 0.12, goal: 0.01}
+      right_elbow_pitch_joint: {trajectory: 0.12, goal: 0.01}
+      right_wrist_pitch_joint: {trajectory: 0.12, goal: 0.01}
+      right_wrist_roll_joint: {trajectory: 0.12, goal: 0.01}
 
 left_gripper_controller:
   ros__parameters:

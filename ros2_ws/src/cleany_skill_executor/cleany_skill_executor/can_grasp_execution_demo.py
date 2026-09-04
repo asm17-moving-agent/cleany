@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 import math
 import struct
@@ -13,14 +14,17 @@ from cleany_interfaces.action import SelectReachableGrasp
 from cleany_interfaces.msg import DetectedObject3D, GraspCandidate
 from cleany_interfaces.srv import PlanGrasp
 from control_msgs.action import FollowJointTrajectory
+from control_msgs.msg import JointTolerance
 from geometry_msgs.msg import Point
 from moveit_msgs.msg import (
+    AttachedCollisionObject,
     CollisionObject,
     MoveItErrorCodes,
     PlanningScene,
+    PlanningSceneComponents,
     RobotState,
 )
-from moveit_msgs.srv import ApplyPlanningScene, GetPositionFK
+from moveit_msgs.srv import ApplyPlanningScene, GetPlanningScene, GetPositionFK
 import numpy as np
 import rclpy
 from rclpy.action import ActionClient
@@ -49,9 +53,11 @@ from cleany_skill_executor.core.grasp_selection import (
     unsigned_axis_error_deg,
 )
 from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo
+from cleany_skill_executor.planning_scene import TargetSceneTransaction
 
 
 PREGRASP_AIM_OFFSET_M = 0.14
+EXECUTION_CAN_ID = 'detected_can_execution_collision'
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,17 +99,42 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             ],
         )
         self.declare_parameter('table_top_z_base', 0.345)
+        self.declare_parameter('target_label', 'can')
         self.declare_parameter('can_diameter_m', 0.070)
         self.declare_parameter('can_height_m', 0.100)
+        self.declare_parameter('target_depth_m', 0.070)
         self.declare_parameter('pregrasp_facing_tolerance_deg', 15.0)
         self.declare_parameter('pregrasp_closing_tolerance_deg', 30.0)
         self.declare_parameter('gripper_open_position_rad', 1.2)
+        self.declare_parameter('gripper_close_position_rad', 0.30)
+        self.declare_parameter('gripper_force_full_close', False)
+        self.declare_parameter('gripper_aperture_reference_m', 0.050)
+        self.declare_parameter(
+            'gripper_aperture_reference_position_rad', 0.30
+        )
+        self.declare_parameter('gripper_aperture_m_per_rad', 0.10)
+        self.declare_parameter('gripper_close_opening_reduction_m', 0.010)
         self.declare_parameter('gripper_motion_sec', 3.0)
+        self.declare_parameter('fixed_jaw_inner_surface_x_m', 0.008)
+        self.declare_parameter('grasp_approach_execution_offset_m', 0.010)
+        self.declare_parameter('grasp_lateral_execution_offset_m', 0.040)
+        self.declare_parameter('grasp_contact_stop_max_distance_m', 0.010)
+        self.declare_parameter('gripper_contact_min_motion_rad', 0.10)
+        self.declare_parameter('gripper_contact_min_residual_rad', 0.05)
+        self.declare_parameter('gripper_contact_max_velocity_rad_s', 0.05)
+        self.declare_parameter('grasp_settle_sec', 1.0)
+        self.declare_parameter('preclose_hold_sec', 0.0)
+        self.declare_parameter('lift_verification_timeout_sec', 5.0)
+        self.declare_parameter('lift_min_height_m', 0.05)
+        self.declare_parameter('lift_hold_sec', 3.0)
         self._grasp = self.create_client(
             PlanGrasp, str(self.get_parameter('grasp_service').value)
         )
         self._apply_scene = self.create_client(
             ApplyPlanningScene, '/apply_planning_scene'
+        )
+        self._get_scene = self.create_client(
+            GetPlanningScene, '/get_planning_scene'
         )
         self._fk = self.create_client(GetPositionFK, '/compute_fk')
         self._grippers = {
@@ -124,6 +155,9 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
         )
         self._camera_messages: dict[tuple[int, int], dict[str, Any]] = {}
         self._rgbd_frame: tuple[Image, Image, CameraInfo] | None = None
+        self._joint_velocities: dict[str, float] = {}
+        self._saved_execution_acm: Any | None = None
+        self._execution_arm = ''
         self.create_subscription(
             Image,
             str(self.get_parameter('color_topic').value),
@@ -142,6 +176,13 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             lambda message: self._on_camera('info', message),
             qos_profile_sensor_data,
         )
+
+    def _on_joints(self, message: JointState) -> None:
+        super()._on_joints(message)
+        if len(message.velocity) == len(message.name):
+            self._joint_velocities.update(
+                zip(message.name, message.velocity, strict=True)
+            )
 
     def _on_camera(self, kind: str, message: Any) -> None:
         key = (message.header.stamp.sec, message.header.stamp.nanosec)
@@ -211,6 +252,22 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             f'GEOMETRIC GRASP COMPLETE: generated '
             f'{len(response.candidates)} candidates from simulated can RGB-D'
         )
+        can_diameter = float(self.get_parameter('can_diameter_m').value)
+        fixed_jaw_surface = float(
+            self.get_parameter('fixed_jaw_inner_surface_x_m').value
+        )
+        minimum_centering_offset = self._fixed_jaw_centering_offset(
+            can_diameter, fixed_jaw_surface
+        )
+        execution_lateral_offset = float(
+            self.get_parameter('grasp_lateral_execution_offset_m').value
+        )
+        self.get_logger().info(
+            'Using selector-only asymmetric-jaw grasp calibration without '
+            f'changing candidate/pregrasp poses: TCP +X offset='
+            f'{execution_lateral_offset:.3f}m '
+            f'(geometric minimum={minimum_centering_offset:.3f}m)'
+        )
         self._publish_grasp_image(
             rgb,
             projection,
@@ -269,58 +326,130 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             selected_index=result.selected_candidate_index,
             status=f'can grasp selected: {result.selected_arm}',
         )
-        self._register_execution_collision(target_object)
-        aimed_pregrasp = self._solve_aimed_pregrasp(
-            result.selected_arm,
-            result.selected_candidate,
-            result.pregrasp_joint_state,
-        )
-        self._publish_grasp_image(
-            rgb,
-            projection,
-            response.candidates,
-            color,
-            selected_index=result.selected_candidate_index,
-            selected_arm=result.selected_arm,
-            selected_approach=aimed_pregrasp.approach_direction,
-        )
-        self._publish_can_markers(
-            response.candidates,
-            target_object,
-            selected_index=result.selected_candidate_index,
-            status=(
-                f'aimed pre-grasp: {result.selected_arm}, '
-                f'error {aimed_pregrasp.facing_error_deg:.1f} deg'
-            ),
-            selected_pregrasp=aimed_pregrasp.tcp_position,
-        )
-        self._hold('stage_hold_sec')
-        self._move_to(
-            result.selected_arm,
-            aimed_pregrasp.joint_state,
-            'collision-checked aimed pre-grasp',
-        )
-        self._verify_feedback(aimed_pregrasp.joint_state)
-        self._publish_can_markers(
-            response.candidates,
-            target_object,
-            selected_index=result.selected_candidate_index,
-            status=f'pre-grasp reached; opening gripper: {result.selected_arm}',
-            selected_pregrasp=aimed_pregrasp.tcp_position,
-        )
-        self._open_gripper(result.selected_arm)
-        self._publish_can_markers(
-            response.candidates,
-            target_object,
-            selected_index=result.selected_candidate_index,
-            status=f'gripper open at pre-grasp: {result.selected_arm}',
-            selected_pregrasp=aimed_pregrasp.tcp_position,
-        )
-        self.get_logger().info(
-            'CAN PREGRASP DEMO COMPLETE: pre-grasp reached, gripper opened, '
-            'can collision retained, and the TCP approach axis faces the '
-            'grasp point'
-        )
+        self._register_execution_collision(target_object, result.selected_arm)
+        try:
+            aimed_pregrasp = self._solve_aimed_pregrasp(
+                result.selected_arm,
+                result.selected_candidate,
+                result.pregrasp_joint_state,
+            )
+            self._publish_grasp_image(
+                rgb,
+                projection,
+                response.candidates,
+                color,
+                selected_index=result.selected_candidate_index,
+                selected_arm=result.selected_arm,
+                selected_approach=aimed_pregrasp.approach_direction,
+            )
+            self._publish_can_markers(
+                response.candidates,
+                target_object,
+                selected_index=result.selected_candidate_index,
+                status=(
+                    f'aimed pre-grasp: {result.selected_arm}, '
+                    f'error {aimed_pregrasp.facing_error_deg:.1f} deg'
+                ),
+                selected_pregrasp=aimed_pregrasp.tcp_position,
+            )
+            self._hold('stage_hold_sec')
+            self._move_to(
+                result.selected_arm,
+                aimed_pregrasp.joint_state,
+                'collision-checked aimed pre-grasp',
+            )
+            self._verify_feedback(aimed_pregrasp.joint_state)
+            self._publish_can_markers(
+                response.candidates,
+                target_object,
+                selected_index=result.selected_candidate_index,
+                status=(
+                    f'pre-grasp reached; opening gripper: '
+                    f'{result.selected_arm}'
+                ),
+                selected_pregrasp=aimed_pregrasp.tcp_position,
+            )
+            self._command_gripper(
+                result.selected_arm,
+                float(self.get_parameter('gripper_open_position_rad').value),
+                'open',
+            )
+            self._publish_can_markers(
+                response.candidates,
+                target_object,
+                selected_index=result.selected_candidate_index,
+                status=f'gripper open; approaching can: {result.selected_arm}',
+                selected_pregrasp=aimed_pregrasp.tcp_position,
+            )
+            exact_grasp_reached = self._move_to(
+                result.selected_arm,
+                result.grasp_joint_state,
+                'contact-enabled grasp',
+                accept_control_failure=lambda: (
+                    self._guarded_contact_stop_is_valid(
+                        result.selected_arm,
+                        result.selected_candidate,
+                    )
+                ),
+            )
+            if exact_grasp_reached:
+                self._verify_feedback(result.grasp_joint_state)
+            self._hold('preclose_hold_sec')
+            contact_detected = self._command_gripper(
+                result.selected_arm,
+                self._candidate_close_position(result.selected_candidate),
+                'close',
+                allow_contact_stall=True,
+            )
+            if (
+                bool(self.get_parameter('gripper_force_full_close').value)
+                and not contact_detected
+            ):
+                raise RuntimeError(
+                    'Gripper reached the configured full-close limit without '
+                    'contact resistance; refusing to treat a penetrated or '
+                    'escaped object as a successful grasp'
+                )
+            self._hold('grasp_settle_sec')
+            self._attach_execution_collision(target_object, result.selected_arm)
+            pre_lift_stamp = self._rgbd_stamp()
+            self._move_to(
+                result.selected_arm,
+                result.pregrasp_joint_state,
+                'attached-can lift retreat',
+            )
+            self._verify_feedback(result.pregrasp_joint_state)
+            lift_height, lifted_target = self._verify_can_lifted(
+                cloud, projection, pre_lift_stamp
+            )
+            post_lift_stamp = self._rgbd_stamp()
+            self._hold('lift_hold_sec')
+            lift_height, lifted_target = self._verify_can_lifted(
+                cloud, projection, post_lift_stamp
+            )
+            self._publish_can_markers(
+                response.candidates,
+                lifted_target,
+                selected_index=result.selected_candidate_index,
+                status=(
+                    f'CAN GRASP COMPLETE: lifted {lift_height * 1000.0:.0f} mm '
+                    f'with {result.selected_arm}'
+                ),
+                selected_pregrasp=aimed_pregrasp.tcp_position,
+            )
+            self.get_logger().info(
+                'CAN GRASP DEMO COMPLETE: physical jaw contact retained the '
+                f'can through a {lift_height:.3f} m lift; '
+                'MoveIt attached collision remains active'
+            )
+        except Exception:
+            try:
+                self._restore_execution_collision()
+            except Exception as cleanup_error:
+                self.get_logger().error(
+                    f'failed to restore execution planning scene: {cleanup_error}'
+                )
+            raise
 
     def _solve_aimed_pregrasp(
         self,
@@ -383,11 +512,19 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             raise RuntimeError('MoveIt could not verify the aimed pre-grasp')
         tcp = response.pose_stamped[0].pose
         aim_tip = response.pose_stamped[1].pose.position
-        grasp = candidate.tcp_pose.position
+        grasp = self._execution_tcp_position(
+            candidate,
+            approach_offset_m=0.0,
+            lateral_offset_m=float(
+                self.get_parameter(
+                    'grasp_lateral_execution_offset_m'
+                ).value
+            ),
+        )
         target_error = math.sqrt(
-            (aim_tip.x - grasp.x) ** 2
-            + (aim_tip.y - grasp.y) ** 2
-            + (aim_tip.z - grasp.z) ** 2
+            (aim_tip.x - grasp[0]) ** 2
+            + (aim_tip.y - grasp[1]) ** 2
+            + (aim_tip.z - grasp[2]) ** 2
         )
         q = tcp.orientation
         # Rotate the TCP's local -Y approach axis into base_link.
@@ -397,9 +534,9 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             -2.0 * (q.y * q.z + q.w * q.x),
         )
         to_grasp = (
-            grasp.x - tcp.position.x,
-            grasp.y - tcp.position.y,
-            grasp.z - tcp.position.z,
+            grasp[0] - tcp.position.x,
+            grasp[1] - tcp.position.y,
+            grasp[2] - tcp.position.z,
         )
         distance = math.sqrt(sum(value * value for value in to_grasp))
         if not math.isfinite(distance) or distance <= 1.0e-9:
@@ -478,6 +615,24 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             raise RuntimeError('synchronized MuJoCo RGB-D is unavailable')
         return self._rgbd_frame
 
+    def _rgbd_stamp(self) -> tuple[int, int]:
+        if self._rgbd_frame is None:
+            raise RuntimeError('synchronized MuJoCo RGB-D is unavailable')
+        stamp = self._rgbd_frame[0].header.stamp
+        return stamp.sec, stamp.nanosec
+
+    def _wait_for_rgbd_after(
+        self,
+        stamp: tuple[int, int],
+        timeout: float,
+    ) -> tuple[Image, Image, CameraInfo]:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            rclpy.spin_once(self, timeout_sec=0.05)
+            if self._rgbd_frame is not None and self._rgbd_stamp() > stamp:
+                return self._rgbd_frame
+        raise RuntimeError('post-lift synchronized MuJoCo RGB-D timed out')
+
     def _camera_projection(self, info: CameraInfo) -> CameraProjection:
         return CameraProjection(
             fx=float(info.k[0]),
@@ -498,75 +653,525 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
             ),
         )
 
-    def _register_execution_collision(
-        self, target: DetectedObject3D
-    ) -> None:
-        if not self._apply_scene.wait_for_service(timeout_sec=2.0):
-            raise RuntimeError(
-                'planning-scene service unavailable for execution'
+    @staticmethod
+    def _fixed_jaw_centering_offset(
+        can_diameter_m: float,
+        fixed_jaw_inner_surface_x_m: float,
+    ) -> float:
+        if not math.isfinite(can_diameter_m) or can_diameter_m <= 0.0:
+            raise ValueError('can diameter must be positive and finite')
+        radius = can_diameter_m / 2.0
+        if (
+            not math.isfinite(fixed_jaw_inner_surface_x_m)
+            or fixed_jaw_inner_surface_x_m < 0.0
+            or fixed_jaw_inner_surface_x_m >= radius
+        ):
+            raise ValueError(
+                'fixed-jaw inner surface must be within the can radius'
             )
+        return radius - fixed_jaw_inner_surface_x_m
+
+    @staticmethod
+    def _execution_tcp_position(
+        candidate: GraspCandidate,
+        *,
+        approach_offset_m: float,
+        lateral_offset_m: float,
+    ) -> tuple[float, float, float]:
+        approach = np.asarray(
+            (
+                candidate.approach_direction.x,
+                candidate.approach_direction.y,
+                candidate.approach_direction.z,
+            ),
+            dtype=float,
+        )
+        norm = float(np.linalg.norm(approach))
+        if not math.isfinite(norm) or norm <= 1.0e-9:
+            raise ValueError('candidate approach must be finite and non-zero')
+        approach /= norm
+        orientation = candidate.tcp_pose.orientation
+        closing = quaternion_axis(
+            (
+                orientation.x,
+                orientation.y,
+                orientation.z,
+                orientation.w,
+            ),
+            (1.0, 0.0, 0.0),
+        )
+        source = candidate.tcp_pose.position
+        return (
+            source.x
+            + approach_offset_m * approach[0]
+            + lateral_offset_m * closing[0],
+            source.y
+            + approach_offset_m * approach[1]
+            + lateral_offset_m * closing[1],
+            source.z
+            + approach_offset_m * approach[2]
+            + lateral_offset_m * closing[2],
+        )
+
+    def _guarded_contact_stop_is_valid(
+        self,
+        arm: str,
+        candidate: GraspCandidate,
+    ) -> bool:
+        positions = {
+            name: float(self._joint_positions[name])
+            for name in REQUIRED_JOINT_NAMES
+        }
+        state = RobotState()
+        state.joint_state.name = list(REQUIRED_JOINT_NAMES)
+        state.joint_state.position = [
+            positions[name] for name in REQUIRED_JOINT_NAMES
+        ]
+        request = GetPositionFK.Request()
+        request.header.frame_id = 'base_link'
+        request.fk_link_names = [f'{arm}_grasp_tcp']
+        request.robot_state = state
+        response = self._future(
+            self._fk.call_async(request),
+            2.0,
+            'guarded-contact FK verification',
+        )
+        if (
+            response.error_code.val != MoveItErrorCodes.SUCCESS
+            or len(response.pose_stamped) != 1
+        ):
+            return False
+        target = self._execution_tcp_position(
+            candidate,
+            approach_offset_m=float(
+                self.get_parameter(
+                    'grasp_approach_execution_offset_m'
+                ).value
+            ),
+            lateral_offset_m=float(
+                self.get_parameter(
+                    'grasp_lateral_execution_offset_m'
+                ).value
+            ),
+        )
+        actual = response.pose_stamped[0].pose.position
+        distance = math.dist((actual.x, actual.y, actual.z), target)
+        maximum = float(
+            self.get_parameter('grasp_contact_stop_max_distance_m').value
+        )
+        accepted = math.isfinite(distance) and distance <= maximum
+        self.get_logger().info(
+            'Guarded grasp contact check: '
+            f'TCP remaining_distance={distance:.3f}m '
+            f'maximum={maximum:.3f}m accepted={accepted}'
+        )
+        return accepted
+
+    @staticmethod
+    def _execution_collision(target: DetectedObject3D) -> CollisionObject:
         collision = CollisionObject()
         collision.header.frame_id = 'base_link'
-        collision.id = 'detected_can_execution_collision'
+        collision.id = EXECUTION_CAN_ID
         collision.operation = CollisionObject.ADD
-        cylinder = SolidPrimitive()
-        cylinder.type = SolidPrimitive.CYLINDER
-        cylinder.dimensions = [target.obb_size.z, target.obb_size.x / 2.0]
-        collision.primitives = [cylinder]
-        collision.primitive_poses = [target.obb_pose]
-        scene = PlanningScene()
-        scene.is_diff = True
-        scene.robot_state.is_diff = True
-        scene.world.collision_objects = [collision]
+        primitive = SolidPrimitive()
+        if target.label == 'box':
+            primitive.type = SolidPrimitive.BOX
+            primitive.dimensions = [
+                target.obb_size.x,
+                target.obb_size.y,
+                target.obb_size.z,
+            ]
+        else:
+            primitive.type = SolidPrimitive.CYLINDER
+            primitive.dimensions = [target.obb_size.z, target.obb_size.x / 2.0]
+        collision.primitives = [primitive]
+        collision.primitive_poses = [deepcopy(target.obb_pose)]
+        return collision
+
+    def _apply_execution_scene(self, scene: PlanningScene, label: str) -> None:
+        if not self._apply_scene.wait_for_service(timeout_sec=2.0):
+            raise RuntimeError('planning-scene service unavailable for execution')
         request = ApplyPlanningScene.Request()
         request.scene = scene
         response = self._future(
-            self._apply_scene.call_async(request),
-            2.0,
-            'persistent can collision registration',
+            self._apply_scene.call_async(request), 2.0, label
         )
         if not response.success:
-            raise RuntimeError('MoveIt rejected persistent can collision')
+            raise RuntimeError(f'MoveIt rejected {label}')
+
+    def _register_execution_collision(
+        self,
+        target: DetectedObject3D,
+        arm: str,
+    ) -> bool:
+        """Move one gripper and report whether closing stopped on contact.
+
+        A normal completed trajectory returns ``False``.  An accepted contact
+        stall returns ``True``.  This distinction matters for force-full-close
+        simulation runs: reaching the mechanical close limit means the object
+        did not physically remain between the jaws.
+        """
+        if self._execution_arm:
+            raise RuntimeError('execution collision is already registered')
+        current_scene = self._query_execution_scene(
+            PlanningSceneComponents.ALLOWED_COLLISION_MATRIX,
+            'execution allowed-collision matrix',
+        )
+        saved_acm = deepcopy(current_scene.allowed_collision_matrix)
+        scene = PlanningScene()
+        scene.is_diff = True
+        scene.robot_state.is_diff = True
+        scene.world.collision_objects = [self._execution_collision(target)]
+        scene.allowed_collision_matrix = (
+            TargetSceneTransaction._with_target_permissions(
+                saved_acm, EXECUTION_CAN_ID, arm
+            )
+        )
+        self._apply_execution_scene(
+            scene, 'contact-enabled can collision registration'
+        )
+        self._saved_execution_acm = saved_acm
+        self._execution_arm = arm
         self.get_logger().info(
-            'Execution planning scene retains detected can as a cylinder; '
-            'no contact permissions are enabled'
+            f'Execution can registered; only {arm} fixed/moving jaw contact '
+            'is allowed'
         )
 
-    def _open_gripper(self, arm: str) -> None:
+    def _attach_execution_collision(
+        self,
+        target: DetectedObject3D,
+        arm: str,
+    ) -> None:
+        if self._execution_arm != arm or self._saved_execution_acm is None:
+            raise RuntimeError('execution can is not registered for this arm')
+        scene = self._attachment_scene(target, arm)
+        self._apply_execution_scene(scene, 'can attachment')
+        self.get_logger().info(
+            f'MoveIt can attached to {arm}_gripper_frame for lift planning; '
+            'MuJoCo remains pure contact physics'
+        )
+
+    @staticmethod
+    def _attachment_scene(
+        target: DetectedObject3D,
+        arm: str,
+    ) -> PlanningScene:
+        attached = AttachedCollisionObject()
+        attached.link_name = f'{arm}_gripper_frame'
+        attached.object = CanGraspExecutionDemo._execution_collision(target)
+        attached.touch_links = [
+            f'{arm}_gripper_frame',
+            f'{arm}_moving_jaw_link',
+        ]
+        scene = PlanningScene()
+        scene.is_diff = True
+        scene.robot_state.is_diff = True
+        scene.robot_state.attached_collision_objects = [attached]
+        return scene
+
+    def _query_execution_scene(
+        self,
+        components: int,
+        label: str,
+    ) -> PlanningScene:
+        if not self._get_scene.wait_for_service(timeout_sec=2.0):
+            raise RuntimeError('planning-scene query service unavailable')
+        request = GetPlanningScene.Request()
+        request.components.components = components
+        response = self._future(
+            self._get_scene.call_async(request), 2.0, label
+        )
+        return response.scene
+
+    def _restore_execution_collision(self) -> None:
+        if not self._execution_arm:
+            return
+        current = self._query_execution_scene(
+            PlanningSceneComponents.WORLD_OBJECT_GEOMETRY
+            | PlanningSceneComponents.ROBOT_STATE_ATTACHED_OBJECTS,
+            'execution can cleanup state',
+        )
+        scene = PlanningScene()
+        scene.is_diff = True
+        scene.robot_state.is_diff = True
+        if any(
+            item.id == EXECUTION_CAN_ID
+            for item in current.world.collision_objects
+        ):
+            remove = CollisionObject()
+            remove.id = EXECUTION_CAN_ID
+            remove.operation = CollisionObject.REMOVE
+            scene.world.collision_objects = [remove]
+        current_attached = next(
+            (
+                item
+                for item in current.robot_state.attached_collision_objects
+                if item.object.id == EXECUTION_CAN_ID
+            ),
+            None,
+        )
+        if current_attached is not None:
+            attached = AttachedCollisionObject()
+            attached.link_name = current_attached.link_name
+            attached.object.id = EXECUTION_CAN_ID
+            attached.object.operation = CollisionObject.REMOVE
+            scene.robot_state.attached_collision_objects = [attached]
+        if self._saved_execution_acm is not None:
+            scene.allowed_collision_matrix = deepcopy(
+                self._saved_execution_acm
+            )
+        self._apply_execution_scene(scene, 'execution can cleanup')
+        self._saved_execution_acm = None
+        self._execution_arm = ''
+
+    def _command_gripper(
+        self,
+        arm: str,
+        position: float,
+        command: str,
+        *,
+        allow_contact_stall: bool = False,
+    ) -> None:
         client = self._grippers[arm]
         if not client.wait_for_server(timeout_sec=5.0):
             raise RuntimeError(f'{arm} gripper controller is unavailable')
+        joint = f'{arm}_gripper_joint'
+        start = self._joint_positions.get(joint, math.nan)
         goal = FollowJointTrajectory.Goal()
-        goal.trajectory.joint_names = [f'{arm}_gripper_joint']
+        goal.trajectory.joint_names = [joint]
         point = JointTrajectoryPoint()
-        point.positions = [
-            float(self.get_parameter('gripper_open_position_rad').value)
-        ]
+        point.positions = [position]
         point.time_from_start = Duration(
             seconds=float(self.get_parameter('gripper_motion_sec').value)
         ).to_msg()
         goal.trajectory.points = [point]
+        if allow_contact_stall:
+            # A grasp intentionally cannot reach the commanded close position.
+            # Erasing the trajectory tolerances prevents the controller from
+            # aborting into a zero-preload hold at the first physical contact.
+            # The position actuator therefore keeps the bounded close target
+            # active throughout the lift.
+            tolerance = JointTolerance(name=joint, position=-1.0)
+            goal.path_tolerance = [tolerance]
+            goal.goal_tolerance = [tolerance]
         self.get_logger().info(
-            f'Opening {arm} gripper to {point.positions[0]:.3f} rad'
+            f'Commanding {arm} gripper {command} to {position:.3f} rad'
         )
         handle = self._future(
-            client.send_goal_async(goal), 5.0, f'{arm} gripper goal response'
+            client.send_goal_async(goal),
+            5.0,
+            f'{arm} gripper {command} goal response',
         )
         if not handle.accepted:
-            raise RuntimeError(f'{arm} gripper command was rejected')
+            raise RuntimeError(f'{arm} gripper {command} command was rejected')
         wrapped = self._future(
-            handle.get_result_async(), 10.0, f'{arm} gripper result'
+            handle.get_result_async(), 10.0, f'{arm} gripper {command} result'
         )
-        if (
-            wrapped.status != GoalStatus.STATUS_SUCCEEDED
-            or wrapped.result.error_code
-            != FollowJointTrajectory.Result.SUCCESSFUL
+        deadline = time.monotonic() + 0.25
+        while time.monotonic() < deadline:
+            rclpy.spin_once(self, timeout_sec=0.05)
+        actual = self._joint_positions.get(joint, math.inf)
+        velocity = self._joint_velocities.get(joint, math.inf)
+        succeeded = (
+            wrapped.status == GoalStatus.STATUS_SUCCEEDED
+            and wrapped.result.error_code
+            == FollowJointTrajectory.Result.SUCCESSFUL
+        )
+        if allow_contact_stall and self._is_gripper_contact_stall(
+            start=start,
+            actual=actual,
+            command=position,
+            velocity=velocity,
+            minimum_motion=float(
+                self.get_parameter('gripper_contact_min_motion_rad').value
+            ),
+            minimum_residual=float(
+                self.get_parameter('gripper_contact_min_residual_rad').value
+            ),
+            maximum_velocity=float(
+                self.get_parameter(
+                    'gripper_contact_max_velocity_rad_s'
+                ).value
+            ),
         ):
+            self.get_logger().info(
+                f'{arm} gripper contact detected: start={start:.3f} '
+                f'command={position:.3f} actual={actual:.3f}rad '
+                f'velocity={velocity:.3f}rad/s; bounded close target remains '
+                'active during lift'
+            )
+            return True
+        if not succeeded:
             raise RuntimeError(
-                f'{arm} gripper failed: status={wrapped.status} '
+                f'{arm} gripper {command} failed: status={wrapped.status} '
                 f'code={wrapped.result.error_code}'
             )
-        self.get_logger().info(f'{arm} gripper opened')
+        error = abs(actual - position)
+        if error > 0.05:
+            raise RuntimeError(
+                f'{arm} gripper {command} feedback error={error:.3f} rad'
+            )
+        self.get_logger().info(
+            f'{arm} gripper {command} complete: target={position:.3f} '
+            f'actual={actual:.3f} rad'
+        )
+        return False
+
+    def _candidate_close_position(self, candidate: GraspCandidate) -> float:
+        fallback = float(self.get_parameter('gripper_close_position_rad').value)
+        if bool(self.get_parameter('gripper_force_full_close').value):
+            self.get_logger().warning(
+                'Force-full-close mode enabled; bypassing candidate width and '
+                f'commanding the configured joint limit {fallback:.3f} rad'
+            )
+            return fallback
+        required = float(candidate.required_opening_m)
+        if not math.isfinite(required) or required <= 0.0:
+            self.get_logger().warning(
+                'Selected grasp has no valid required opening; using fixed '
+                f'close target {fallback:.3f} rad'
+            )
+            return fallback
+        position = self._opening_to_gripper_position(
+            required_opening_m=required,
+            opening_reduction_m=float(
+                self.get_parameter(
+                    'gripper_close_opening_reduction_m'
+                ).value
+            ),
+            reference_aperture_m=float(
+                self.get_parameter('gripper_aperture_reference_m').value
+            ),
+            reference_position_rad=float(
+                self.get_parameter(
+                    'gripper_aperture_reference_position_rad'
+                ).value
+            ),
+            aperture_m_per_rad=float(
+                self.get_parameter('gripper_aperture_m_per_rad').value
+            ),
+            minimum_position_rad=fallback,
+            maximum_position_rad=float(
+                self.get_parameter('gripper_open_position_rad').value
+            ),
+        )
+        self.get_logger().info(
+            f'Width-aware gripper close: required_opening={required:.3f}m '
+            f'target={position:.3f}rad'
+        )
+        return position
+
+    @staticmethod
+    def _opening_to_gripper_position(
+        *,
+        required_opening_m: float,
+        opening_reduction_m: float,
+        reference_aperture_m: float,
+        reference_position_rad: float,
+        aperture_m_per_rad: float,
+        minimum_position_rad: float,
+        maximum_position_rad: float,
+    ) -> float:
+        values = (
+            required_opening_m,
+            opening_reduction_m,
+            reference_aperture_m,
+            reference_position_rad,
+            aperture_m_per_rad,
+            minimum_position_rad,
+            maximum_position_rad,
+        )
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError('gripper aperture calibration must be finite')
+        if required_opening_m <= 0.0 or opening_reduction_m < 0.0:
+            raise ValueError('gripper opening values must be positive')
+        if reference_aperture_m <= 0.0 or aperture_m_per_rad <= 0.0:
+            raise ValueError('gripper aperture calibration must be positive')
+        if minimum_position_rad > maximum_position_rad:
+            raise ValueError('gripper position limits are reversed')
+        contact_aperture = max(
+            0.0, required_opening_m - opening_reduction_m
+        )
+        position = reference_position_rad + (
+            contact_aperture - reference_aperture_m
+        ) / aperture_m_per_rad
+        return min(
+            maximum_position_rad, max(minimum_position_rad, position)
+        )
+
+    @staticmethod
+    def _is_gripper_contact_stall(
+        *,
+        start: float,
+        actual: float,
+        command: float,
+        velocity: float,
+        minimum_motion: float,
+        minimum_residual: float,
+        maximum_velocity: float,
+    ) -> bool:
+        values = (
+            start,
+            actual,
+            command,
+            velocity,
+            minimum_motion,
+            minimum_residual,
+            maximum_velocity,
+        )
+        if not all(math.isfinite(value) for value in values):
+            return False
+        if minimum_motion <= 0.0 or minimum_residual <= 0.0:
+            return False
+        if maximum_velocity < 0.0 or command >= start:
+            return False
+        motion = start - actual
+        residual = actual - command
+        return (
+            motion >= minimum_motion
+            and residual >= minimum_residual
+            and abs(velocity) <= maximum_velocity
+        )
+
+    @staticmethod
+    def _observed_can_center_z(cloud: SegmentedCanCloud) -> float:
+        low, high = np.percentile(
+            cloud.target_points[:, 2], [1.0, 99.0]
+        )
+        return float((low + high) / 2.0)
+
+    def _verify_can_lifted(
+        self,
+        initial_cloud: SegmentedCanCloud,
+        projection: CameraProjection,
+        after_stamp: tuple[int, int],
+    ) -> tuple[float, DetectedObject3D]:
+        color, depth, _ = self._wait_for_rgbd_after(
+            after_stamp,
+            float(
+                self.get_parameter('lift_verification_timeout_sec').value
+            ),
+        )
+        lifted_cloud = segment_red_can(
+            self._rgb_array(color), self._depth_array(depth), projection
+        )
+        initial_z = self._observed_can_center_z(initial_cloud)
+        lifted_z = self._observed_can_center_z(lifted_cloud)
+        height = lifted_z - initial_z
+        minimum = float(self.get_parameter('lift_min_height_m').value)
+        if height < minimum:
+            raise RuntimeError(
+                f'physical can lift verification failed: '
+                f'height={height:.3f}m minimum={minimum:.3f}m'
+            )
+        target = self._target_object(lifted_cloud)
+        target.obb_pose.position.z = lifted_z
+        self.get_logger().info(
+            f'Physical can lift verified from RGB-D: '
+            f'{initial_z:.3f}m -> {lifted_z:.3f}m '
+            f'(delta={height:.3f}m)'
+        )
+        return height, target
 
     def _publish_grasp_image(
         self,
@@ -650,7 +1255,7 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
     def _target_object(self, cloud: SegmentedCanCloud) -> DetectedObject3D:
         result = DetectedObject3D()
         result.object_id = 2
-        result.label = 'can'
+        result.label = str(self.get_parameter('target_label').value)
         result.confidence = 1.0
         # The visible surface median is biased toward the camera.  A trimmed
         # extent recovers the cylinder centre while rejecting a few red edge
@@ -667,7 +1272,8 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
         )
         result.obb_pose.orientation.w = 1.0
         diameter = float(self.get_parameter('can_diameter_m').value)
-        result.obb_size.x = result.obb_size.y = diameter
+        result.obb_size.x = diameter
+        result.obb_size.y = float(self.get_parameter('target_depth_m').value)
         result.obb_size.z = height
         return result
 

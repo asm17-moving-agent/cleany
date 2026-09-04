@@ -397,6 +397,52 @@ def test_grasp_ik_is_fk_verified_against_position_and_both_axes():
     assert fk.requests[0].fk_link_names == ['left_grasp_tcp']
 
 
+def test_asymmetric_grasp_rejects_closing_axis_sign_flip() -> None:
+    solution = RobotState()
+    solution.joint_state = current_state()
+    ik = ServiceClient(
+        SimpleNamespace(
+            error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
+            solution=solution,
+        )
+    )
+    response = _grasp_fk_response((0.5, 0.2, 0.8))
+    response.pose_stamped[0].pose.orientation.y = 1.0
+    response.pose_stamped[0].pose.orientation.w = 0.0
+    fk = ServiceClient(response)
+    seed = JointSolution(
+        ARM_JOINT_NAMES['left'], (1.0, 2.0, 3.0, 0.0, 0.0)
+    )
+
+    symmetric = MoveItGraspAdapter(
+        object(),
+        ik_client=ik,
+        fk_client=fk,
+        validity_client=object(),
+        plan_client=object(),
+    )
+    symmetric.set_current_state(current_state())
+    asymmetric = MoveItGraspAdapter(
+        object(),
+        MoveItAdapterConfig(grasp_closing_sign_invariant=False),
+        ik_client=ik,
+        fk_client=fk,
+        validity_client=object(),
+        plan_client=object(),
+    )
+    asymmetric.set_current_state(current_state())
+
+    args = (
+        'left',
+        (0.5, 0.2, 0.8),
+        (0.0, -1.0, 0.0),
+        (1.0, 0.0, 0.0),
+        seed,
+    )
+    assert symmetric.solve_grasp_ik(*args)
+    assert asymmetric.solve_grasp_ik(*args) == ()
+
+
 def test_wrist_roll_seeds_are_distributed_inside_robot_limits():
     config = MoveItAdapterConfig(pregrasp_aim_attempts=8)
     adapter = MoveItGraspAdapter(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import time
-from typing import Any
+from typing import Any, Callable
 
 from action_msgs.msg import GoalStatus
 from cleany_interfaces.action import SelectReachableGrasp
@@ -210,7 +210,14 @@ class GraspExecutionDemo(Node):
             f'stage={feedback.stage}: {feedback.message}'
         )
 
-    def _move_to(self, arm: str, joint_state: JointState, label: str) -> None:
+    def _move_to(
+        self,
+        arm: str,
+        joint_state: JointState,
+        label: str,
+        *,
+        accept_control_failure: Callable[[], bool] | None = None,
+    ) -> bool:
         for execution_attempt in (1, 2):
             goal = self._execution_goal(arm, joint_state, label)
             self.get_logger().info(
@@ -232,8 +239,18 @@ class GraspExecutionDemo(Node):
                 and code == MoveItErrorCodes.SUCCESS
             ):
                 self.get_logger().info(f'MoveIt execution succeeded: {label}')
-                return
+                return True
             self._log_joint_tracking_error(joint_state, label, code)
+            if (
+                code == MoveItErrorCodes.CONTROL_FAILED
+                and accept_control_failure is not None
+                and accept_control_failure()
+            ):
+                self.get_logger().info(
+                    f'{label} stopped on verified target contact; '
+                    'skipping endpoint retry'
+                )
+                return False
             if execution_attempt == 1 and code == MoveItErrorCodes.CONTROL_FAILED:
                 self.get_logger().warning(
                     f'{label} controller failed; replanning once from current state'

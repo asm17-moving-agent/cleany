@@ -63,6 +63,8 @@ class MoveItAdapterConfig:
     pregrasp_preferred_approach_tolerance_deg: float = 5.0
     pregrasp_approach_tolerance_deg: float = 15.0
     pregrasp_closing_tolerance_deg: float = 30.0
+    grasp_closing_tolerance_deg: float = 30.0
+    grasp_closing_sign_invariant: bool = True
     pregrasp_aim_attempts: int = 8
     wrist_roll_lower_rad: float = -2.743847297
     wrist_roll_upper_rad: float = 2.84120630938
@@ -82,6 +84,7 @@ class MoveItAdapterConfig:
             self.pregrasp_preferred_approach_tolerance_deg,
             self.pregrasp_approach_tolerance_deg,
             self.pregrasp_closing_tolerance_deg,
+            self.grasp_closing_tolerance_deg,
             self.planning_timeout_sec,
             self.velocity_scaling,
             self.acceleration_scaling,
@@ -104,6 +107,7 @@ class MoveItAdapterConfig:
             > self.pregrasp_approach_tolerance_deg
             or self.pregrasp_approach_tolerance_deg > 180.0
             or self.pregrasp_closing_tolerance_deg > 90.0
+            or self.grasp_closing_tolerance_deg > 90.0
         ):
             raise ValueError('pregrasp approach tolerances are inconsistent')
 
@@ -474,7 +478,7 @@ class MoveItGraspAdapter:
             if (
                 position_error <= self._config.pregrasp_position_tolerance_m
                 and approach_error <= self._config.pregrasp_approach_tolerance_deg
-                and closing_error <= self._config.pregrasp_closing_tolerance_deg
+                and closing_error <= self._config.grasp_closing_tolerance_deg
             ):
                 valid.append((
                     approach_error,
@@ -743,9 +747,14 @@ class MoveItGraspAdapter:
         approach_error = directed_axis_error_deg(
             actual_approach, approach_direction
         )
-        closing_error = unsigned_axis_error_deg(
-            actual_closing, closing_direction
-        )
+        if self._config.grasp_closing_sign_invariant:
+            closing_error = unsigned_axis_error_deg(
+                actual_closing, closing_direction
+            )
+        else:
+            closing_error = directed_axis_error_deg(
+                actual_closing, closing_direction
+            )
         return position_error, approach_error, closing_error
 
     def state_is_valid(self, arm: str, solution: JointSolution) -> bool:

@@ -128,6 +128,15 @@ def test_control_scene_materializes_workflow_initial_joint_keyframe():
             model, mujoco.mjtObj.mjOBJ_JOINT, name
         )
         assert data.qpos[model.jnt_qposadr[joint_id]] == pytest.approx(value)
+    can = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'pick_can'
+    )
+    chassis = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
+    )
+    assert data.xpos[can] - data.xpos[chassis] == pytest.approx(
+        (0.440, 0.160, 0.395)
+    )
     arm_bodies = {
         mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
         for name in (
@@ -140,6 +149,26 @@ def test_control_scene_materializes_workflow_initial_joint_keyframe():
         model.geom_bodyid[contact.geom1] not in arm_bodies
         and model.geom_bodyid[contact.geom2] not in arm_bodies
         for contact in data.contact
+    )
+
+
+def test_control_scene_default_keyframe_preserves_dynamic_object_pose():
+    package_root = Path(__file__).parents[1]
+    scene = materialize_control_scene(
+        package_root / 'scenes' / 'can_grasp_execution_demo.xml.in'
+    )
+    model, data = load_model(scene)
+    key_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_KEY, 'handeye_ros2_control_home'
+    )
+
+    mujoco.mj_resetDataKeyframe(model, data, key_id)
+    mujoco.mj_forward(model, data)
+
+    can = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'pick_can')
+    chassis = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'chassis')
+    assert data.xpos[can] - data.xpos[chassis] == pytest.approx(
+        (0.440, 0.160, 0.395)
     )
 
 

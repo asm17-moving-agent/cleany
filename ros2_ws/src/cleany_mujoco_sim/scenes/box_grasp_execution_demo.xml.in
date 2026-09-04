@@ -1,0 +1,80 @@
+<mujoco model="cleany_box_grasp_execution_demo">
+  <include file="@CLEANY_MJCF_PATH@"/>
+
+  <option timestep="0.001" gravity="0 0 -9.80665" integrator="implicitfast"
+          solver="Newton" iterations="100" ls_iterations="20"
+          noslip_iterations="20">
+    <flag multiccd="enable"/>
+  </option>
+
+  <statistic center="0.52 0 0.70" extent="1.35"/>
+
+  <visual>
+    <quality offsamples="1"/>
+    <headlight diffuse="0.7 0.7 0.7" ambient="0.35 0.35 0.35"
+               specular="0 0 0"/>
+    <rgba haze="0.15 0.20 0.25 1"/>
+    <global azimuth="125" elevation="-22" offwidth="640" offheight="480"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.25 0.35 0.45"
+             rgb2="0.02 0.02 0.02" width="512" height="3072"/>
+    <texture type="2d" name="box_demo_ground" builtin="checker"
+             rgb1="0.12 0.12 0.12" rgb2="0.18 0.18 0.18"
+             width="300" height="300"/>
+    <material name="box_demo_ground" texture="box_demo_ground"
+              texuniform="true" texrepeat="5 5" reflectance="0.05"/>
+    <material name="box_demo_table" rgba="0.55 0.36 0.20 1"
+              specular="0.05" shininess="0.1"/>
+    <material name="grasp_test_block_material" rgba="0.90 0.22 0.08 1"
+              specular="0.1" shininess="0.2"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.55 0 1.6" dir="0 0 -1" directional="true"/>
+    <light pos="0.15 -0.7 1.2" dir="0.4 0.7 -1" directional="true"/>
+    <geom name="box_demo_floor" size="0 0 0.05" type="plane"
+          material="box_demo_ground" contype="1" conaffinity="1"/>
+
+    <camera name="pick_demo_rgbd"
+            pos="0.140938350461 -0.002000000140 1.154117299010"
+            xyaxes="0 -1 0 0.7173560909 0 0.696706709347"
+            fovy="42" resolution="640 480"/>
+
+    <body name="pick_table" pos="0.700 -0.002 0.710">
+      <geom name="pick_tabletop" type="box" size="0.385 0.600 0.015"
+            material="box_demo_table" contype="1" conaffinity="1"
+            condim="4" friction="2.0 0.08 0.02"/>
+    </body>
+
+    <!-- Fresh dynamic 50 x 70 x 100 mm block with explicit contact physics. -->
+    <body name="grasp_test_block" pos="0.440 0.160 0.775">
+      <freejoint name="grasp_test_block_freejoint"/>
+      <geom name="grasp_test_block_geom" type="box" size="0.025 0.035 0.050"
+            material="grasp_test_block_material" contype="1" conaffinity="1"
+            condim="6" friction="2.0 0.12 0.06"
+            solref="0.002 1" solimp="0.99 0.9999 0.0001"
+            mass="0.080"/>
+    </body>
+  </worldbody>
+
+  <!-- High-friction pads for the new block against either gripper. -->
+  <contact>
+    <pair name="block_left_fixed_1" geom1="grasp_test_block_geom" geom2="left_fixed_jaw_contact_1" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_left_fixed_2" geom1="grasp_test_block_geom" geom2="left_fixed_jaw_contact_2" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_left_moving_1" geom1="grasp_test_block_geom" geom2="left_moving_jaw_contact_1" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_left_moving_2" geom1="grasp_test_block_geom" geom2="left_moving_jaw_contact_2" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_left_moving_3" geom1="grasp_test_block_geom" geom2="left_moving_jaw_contact_3" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_right_fixed_1" geom1="grasp_test_block_geom" geom2="right_fixed_jaw_contact_1" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_right_fixed_2" geom1="grasp_test_block_geom" geom2="right_fixed_jaw_contact_2" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_right_moving_1" geom1="grasp_test_block_geom" geom2="right_moving_jaw_contact_1" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_right_moving_2" geom1="grasp_test_block_geom" geom2="right_moving_jaw_contact_2" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="block_right_moving_3" geom1="grasp_test_block_geom" geom2="right_moving_jaw_contact_3" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+  </contact>
+
+  <equality>
+    <weld name="box_demo_chassis_world_weld" body1="chassis"
+          solref="0.002 1"/>
+  </equality>
+</mujoco>

@@ -156,16 +156,25 @@ ros2 launch cleany_skill_executor grasp_execution_demo.launch.py \
 `MoveIt execution succeeded`, `DEMO COMPLETE`가 전체 성공 기준이다. 데모는 완료
 자세와 marker를 유지하므로 종료는 `Ctrl-C`, 다시 보기는 launch 재실행으로 한다.
 
-### 실제 RGB-D can 검출·이동 데모
+### 실제 RGB-D can 검출·잡기·들기 데모
 
 다음 launch는 table, 파란 box, 빨간 can과 고정 RGB-D 카메라가 있는
 `mujoco_ros2_control` 장면을 연다. 시뮬레이터가 렌더링한 RGB-D에서 빨간 can을
 분할하고 `base_link` 점군으로 투영한 뒤, geometric grasp 후보 생성과 MoveIt
 양팔 검증을 거쳐 선택된 pre-grasp 자세까지 실제 controller로 이동한다. 실제 joint
-feedback으로 도착을 확인한 뒤 그 위치에서 그리퍼를 연다. selector가 반환한 동일
-joint goal을 실행하며 실행 직전 IK를 다시 계산하지 않는다. 그리퍼 전방 0.14 m의
-가상 조준점은 selector에서 계산하고, can 데모는 FK로 그 결과만 다시 확인한다. 따라서 실제
-TCP는 can에서 0.14 m 떨어져 있고, 그리퍼의 접근축은 can을 향한 자세에서 멈춘다.
+feedback으로 도착을 확인한 뒤 그리퍼를 열고, selector가 이미 검증한 grasp joint goal로
+전진해 그리퍼를 닫는다. 비대칭 gripper 때문에 원본 후보와 pre-grasp pose는 보존하되
+최종 grasp IK에만 local 접근축 `+10 mm`와 물체 폭으로 계산한 closing `+X`축
+보정을 적용한다. 범용 selector의 closing 축 최대 오차는 30도지만, 원통형 캔이
+jaw 사이로 빠져나가지 않도록 이 demo에서만 15도로 제한한다. 범용 parallel-jaw
+계약은 `+X/-X`를 같은 축으로 보지만, 고정 jaw 보정에는 방향이 있으므로 이
+demo의 최종 grasp만 부호까지 일치해야 한다. 접근 중 controller가
+멈추면 FK로 목표까지 남은 거리가 10 mm
+이내인지 확인한 경우에만 물체 접촉으로 받아들이고 endpoint 재시도를 생략한다.
+MoveIt에는 can을 선택 gripper의 attached collision object로 전환하고, 같은 pre-grasp
+goal까지 되돌아가 약 14 cm 후퇴·상승한다. 실행 직전 IK를 다시
+계산하지 않는다. MuJoCo can은 60 g free body이며 weld 없이 jaw 접촉과 마찰만으로 들어
+올린다. 마지막에는 새 RGB-D frame에서 can 높이가 5 cm 이상 증가했는지 확인한다.
 Can demo는 기계적 limit에서 최소 0.02 rad 여유를 둔 접힌 초기 자세로 양팔을 소환한다.
 이 초기값은 launch에서 ROS control description에 전달되며 다른 MuJoCo workflow의 기본
 0 rad 초기 자세는 변경하지 않는다.
@@ -189,19 +198,51 @@ ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
 
 로그에서 `RGB-D can segmented`, `GEOMETRIC GRASP COMPLETE`, `Selected generated
 candidate`, `Direction-aware pre-grasp verified`,
-`MoveIt execution succeeded: collision-checked aimed pre-grasp`, `gripper opened`,
-`CAN PREGRASP DEMO COMPLETE`가 차례대로
-나오면 전체 경로가 성공한 것이다. RGB-D 렌더링에는 OpenGL context가 필요하므로
-이 데모의 `headless:=true`는 지원하지 않는다. table과 can은 MuJoCo 물리 충돌체이며
+`MoveIt execution succeeded: collision-checked aimed pre-grasp`, gripper open,
+`MoveIt execution succeeded: contact-enabled grasp`, gripper close,
+`MoveIt execution succeeded: attached-can lift retreat`,
+`Physical can lift verified from RGB-D`, `CAN GRASP DEMO COMPLETE`가 차례대로
+나오면 전체 경로가 성공한 것이다. RGB-D 렌더링에는 OpenGL context가 필요하다.
+`headless:=true`로 native viewer를 숨길 수는 있지만 `DISPLAY`가 없으면 카메라가
+비활성화되므로 X11/Xvfb context가 필요하다. table과 can은 MuJoCo 물리 충돌체이며
 같은 크기와 pose로 MoveIt Planning Scene에도 등록된다. 후보 선택 중에는 검출 can
-OBB를 검사하고, action 종료 뒤
-실제 pre-grasp trajectory를 다시 계획할 때도 can cylinder를 Planning Scene에
-contact permission 없이 유지한다. gripper close, attach, lift는 포함하지 않는다.
+OBB를 검사한다. 실제 최종 접근부터는 선택 팔의 fixed/moving jaw에만 can 접촉을
+허용하고, 닫기 뒤 MoveIt collision cylinder를 선택 gripper에 attach한다. 이 attach는
+RViz와 lift 충돌 계획용이며 MuJoCo 물체를 강제로 고정하지 않는다. 닫힘 명령은 후보의
+`required_opening_m`을 jaw 각도로 환산한다. 50 mm aperture의 기준점은 `0.30 rad`,
+기울기는 `0.10 m/rad`이며 후보 opening보다 10 mm 작게 명령해 접촉력을 만든다.
+후보 opening이 없을 때만 `0.30 rad`를 fallback으로 쓴다. 따라서 비스듬한 자세에서
+약 70 mm로 보이는 박스를 50 mm용 각도까지 억지로 조여 밀어내지 않는다. 실제 접촉 시
+목표까지 닫히지 않으면 0.10 rad 이상 닫힌 뒤 명령과 0.05 rad 이상 차이가 난 저속
+정지 상태를 contact로 판정한다. 안정화
+시간은 1초다. arm path tolerance는 실제 추종 오차 `0.100364 rad`가 기존
+`0.10 rad` 경계를 넘은 측정 결과를 반영해 이 demo controller에만 `0.12 rad`를
+적용한다. 최종 성공 판정은 이 관절 정지가 아니라 lift 뒤 RGB-D 높이 변화다.
+`gripper_force_full_close:=true`는 후보 폭 환산을 우회해
+`gripper_close_position_rad`를 직접 명령하는 simulation 진단 옵션이며 기본값은
+`false`다. 이 모드에서는 물체 접촉으로 jaw가 목표 전에 정지해야만 파지로 인정한다.
+설정된 완전 닫힘 위치에 도달하면 물체가 jaw 사이를 벗어났거나 contact가 관통한
+것이므로 lift 전에 실패 처리한다. 실제 물체에 쓰기 전에는 충돌·토크 한계를 별도로
+검증해야 한다. 접촉이 검출되면 해당 close trajectory의 위치 tolerance만 지워
+토크 제한이 적용된 닫힘 목표를 lift 동안 계속 유지한다. lift 직후 높이 검사에 더해
+기본 3초 유지 뒤 RGB-D 높이를 다시 검사하므로 잠깐 들렸다 떨어지는 경우는 성공으로
+판정하지 않는다.
+느린 simulation controller가 짧은 최종 접근 trajectory의 기본 MoveIt 시간 상한에
+걸리지 않도록 이 launch에만 execution-duration scaling `2.0`, goal margin `1.0초`를
+적용한다. 다른 MoveIt workflow의 기본값 `1.2`/`0.5초`는 유지한다.
 
 selector는 물체 위치로 먼저 구한 어깨·팔꿈치 자세를 우선 IK seed로 쓰고, 같은 자세의
 wrist roll을 물체가 놓인 좌우 방향에 맞춰 한 번 더 검사한 다음 범용 seed로 넘어간다.
 pre-grasp 거리는 기존과 동일하게 14 cm 하나만 사용하며 selector 전체 작업 재시도는
-하지 않는다.
+하지 않는다. `grasp_approach_offset_m`과 `grasp_lateral_offset_m`의 공통 기본값은
+모두 0이다. 이 simulation launch는 접근 방향으로 10 mm를 적용하고, 비대칭 jaw의
+좌우 중심 보정은 `max(target_width_m, target_depth_m) / 2 - 8 mm`로 계산한다.
+따라서 70 mm 캔과 50×70 mm 박스는 모두 27 mm를 사용한다. 박스 후보가 회전해 긴
+변을 물더라도 고정 손가락이 물체 안에서 출발하지 않게 하는 보수적인 값이다. 같은
+값을 selector와 실행 시 접촉 검증에 전달하므로
+계획 목표와 검증 목표가 어긋나지 않는다.
+같은 좌우 보정을 pre-grasp에도 적용한다. 따라서 마지막 14 cm 접근에서 TCP가
+옆으로 이동하며 박스를 쓸지 않고, pre-grasp와 grasp 사이 변위가 접근축과 평행하다.
 
 ### 무작위 headless pre-grasp 스트레스 검증
 

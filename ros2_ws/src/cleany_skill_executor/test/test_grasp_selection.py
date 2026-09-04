@@ -5,6 +5,7 @@ import pytest
 from cleany_skill_executor.core.grasp_selection import (
     Candidate,
     EvaluationStage,
+    GraspSelectionConfig,
     GraspSelector,
     JointSolution,
     directed_axis_error_deg,
@@ -134,6 +135,62 @@ def test_candidate_approach_is_passed_to_direction_aware_ik():
     assert aimed[5] == pytest.approx((0.5, 0.34, 0.8))
     seed = next(call for call in port.calls if call[0] == 'pre_ik')
     assert seed[2] == pytest.approx((0.5, 0.28, 0.8))
+
+
+def test_tcp_calibration_keeps_pregrasp_and_grasp_laterally_aligned() -> None:
+    port = FakePort()
+    item = candidate(0, y=0.2, approach=(0.0, -1.0, 0.0))
+    selector = GraspSelector(
+        port,
+        GraspSelectionConfig(
+            grasp_approach_offset_m=0.025,
+            grasp_lateral_offset_m=0.027,
+        ),
+    )
+
+    selected = selector.select([item])
+
+    aimed = next(call for call in port.calls if call[0] == 'aim_ik')
+    grasp = next(call for call in port.calls if call[0] == 'grasp_ik')
+    assert selected is not None
+    expected_aim = tuple(
+        position + 0.027 * closing
+        for position, closing in zip(
+            item.position, item.closing_direction, strict=True
+        )
+    )
+    assert aimed[2] == pytest.approx(expected_aim)
+    assert aimed[5] == pytest.approx(
+        tuple(
+            position - 0.14 * approach
+            for position, approach in zip(
+                expected_aim, item.approach_direction, strict=True
+            )
+        )
+    )
+    assert grasp[2] == pytest.approx(
+        tuple(
+            position + 0.025 * approach + 0.027 * closing
+            for position, approach, closing in zip(
+                item.position,
+                item.approach_direction,
+                item.closing_direction,
+                strict=True,
+            )
+        )
+    )
+    delta = tuple(
+        grasp_value - pregrasp_value
+        for grasp_value, pregrasp_value in zip(
+            grasp[2], aimed[5], strict=True
+        )
+    )
+    assert delta == pytest.approx(
+        tuple(
+            (0.14 + 0.025) * approach
+            for approach in item.approach_direction
+        )
+    )
 
 
 def test_direction_aware_ik_failure_falls_back_to_other_arm():

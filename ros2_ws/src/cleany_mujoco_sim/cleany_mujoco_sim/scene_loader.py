@@ -221,7 +221,53 @@ def _materialize_scene(
 
     scene_path = materialized_dir / template_path.name.removesuffix('.in')
     scene_path.write_text(scene_text, encoding='utf-8')
+    if control_compatible:
+        _expand_control_keyframe_for_scene(
+            scene_path,
+            model_path,
+            initial_joint_positions or {},
+        )
     return scene_path
+
+
+def _expand_control_keyframe_for_scene(
+    scene_path: Path,
+    model_path: Path,
+    positions: dict[str, float],
+) -> None:
+    """Preserve workflow free joints when applying robot spawn positions.
+
+    The control keyframe lives in the included canonical model, while a
+    workflow scene may append free joints for dynamic objects. A keyframe
+    containing only the canonical qpos count is padded with zeros by MuJoCo,
+    which would move those objects to the world origin. Compile the complete
+    scene once, start from its qpos0, overlay the requested robot joints, and
+    write the complete qpos vector back to the temporary keyframe.
+    """
+    model = mujoco.MjModel.from_xml_path(str(scene_path))
+    qpos = model.qpos0.copy()
+    for name, value in positions.items():
+        joint_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_JOINT, name
+        )
+        if joint_id < 0:
+            raise ValueError(f'Unknown initial joint in workflow scene: {name}')
+        qpos[model.jnt_qposadr[joint_id]] = float(value)
+
+    root = ET.parse(model_path).getroot()
+    keyframe = root.find(
+        f"./keyframe/key[@name='{_CONTROL_INITIAL_KEYFRAME}']"
+    )
+    if keyframe is None:
+        raise ValueError(
+            f'Materialized model is missing {_CONTROL_INITIAL_KEYFRAME}'
+        )
+    keyframe.set('qpos', ' '.join(f'{value:.12g}' for value in qpos))
+    ET.indent(root, space='  ')
+    model_path.write_text(
+        ET.tostring(root, encoding='unicode') + '\n',
+        encoding='utf-8',
+    )
 
 
 def _png_chunk(chunk_type: bytes, payload: bytes) -> bytes:
