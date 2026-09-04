@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "PCM_Espressif")(type "KiCad")(uri "${KIPRJMOD}/libraries/symbols/Espressif_ESP32-S3-DevKitC.kicad_sym")(options "")(descr "Official Espressif ESP32-S3-DevKitC symbol"))
+)
+

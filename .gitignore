@@ -24,6 +24,7 @@ ros2_ws/log-harmonic/
 *.tmp
 /artifacts/
 /perception-results/
+ros2_ws/slam_results/
 
 # Vision container local deployment state and licensed artifacts
 containers/vision/.env

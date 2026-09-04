@@ -1,0 +1,31 @@
+ground_truth_route_follower:
+  ros__parameters:
+    max_linear_speed: 0.25
+    max_angular_speed: 0.5
+    heading_gain: 1.2
+    position_tolerance: 0.09
+    turn_in_place_threshold: 0.45
+    control_rate_hz: 20.0
+    odom_timeout_sec: 0.5
+    # Measured 48-seat demo-room route. It sweeps the four horizontal
+    # corridors and connects them through the two vertical aisles before
+    # returning to the spawn point.
+    waypoints_xy: [
+      -1.865, -4.705,
+      -5.65, -4.705,
+      5.65, -4.705,
+      1.865, -4.705,
+      1.865, -1.585,
+      5.65, -1.585,
+      -5.65, -1.585,
+      -1.865, -1.585,
+      -1.865, 1.585,
+      -5.65, 1.585,
+      5.65, 1.585,
+      1.865, 1.585,
+      1.865, 4.705,
+      5.65, 4.705,
+      -5.65, 4.705,
+      -1.865, 4.705,
+      -1.865, -4.705
+    ]

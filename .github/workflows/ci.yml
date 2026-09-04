@@ -68,6 +68,7 @@ jobs:
           command -v colcon
           command -v rosdep
           command -v xvfb-run
+          git -C "${GITHUB_WORKSPACE}" rev-parse HEAD
 
       - name: Register Cleany rosdep rules
         run: |
@@ -86,3 +87,5 @@ jobs:
 
       - name: Build and test workspace
         run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test
+      - name: Test Gazebo navigation runtime
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test-gazebo-nav-runtime

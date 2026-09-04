@@ -4,6 +4,7 @@ REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
+GAZEBO_GUI_RENDER_ENGINE ?= ogre
 HANDEYE_PROFILE_DIR ?= $(REPO_ROOT)artifacts/handeye/profiles/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
@@ -39,12 +40,12 @@ GRASP_PREGRASP_DESCRIPTION_TESTS := \
 	src/cleany_description/test/test_model_parity.py::test_control_description_can_enable_gripper_position_commands
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
-	build-gazebo-harmonic build-handeye build-grasp-pregrasp test \
+	build-handeye build-grasp-pregrasp test \
 	test-mission test-mujoco test-handeye test-grasp-pregrasp \
-	test-grasp-pregrasp-runtime test-gazebo handeye-generate-mujoco \
-	handeye-validate-mujoco \
-	test-gazebo-harmonic test-gazebo-nav-runtime sim sim-gazebo \
-	sim-gazebo-harmonic handeye-mujoco clean \
+	test-grasp-pregrasp-runtime test-gazebo test-gazebo-nav-runtime \
+	test-gazebo-evaluation handeye-generate-mujoco \
+	handeye-validate-mujoco handeye-mujoco sim sim-gazebo \
+	sim-gazebo-study-cafe clean \
 	vision-init vision-host-setup vision-config vision-build vision-up vision-down vision-shell \
 	vision-feature-id vision-license-check vision-run \
 	anygrasp-up anygrasp-run anygrasp-shell anygrasp-feature-id anygrasp-license-check \
@@ -55,7 +56,7 @@ help:
 	@echo "Cleany native ROS 2 commands"
 	@echo "  make deps          Install workspace dependencies with rosdep"
 	@echo "  make deps-gazebo   Install dependencies for the detected Gazebo profile"
-	@echo "  make check-gazebo-env  Detect and verify Humble/Fortress or Jazzy/Harmonic"
+	@echo "  make check-gazebo-env  Verify ROS 2 Humble / Gazebo Fortress"
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
@@ -70,10 +71,10 @@ help:
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
-	@echo "  make test-gazebo-harmonic  Compatibility alias selecting Harmonic"
+	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
-	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
+	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
 	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
 	@echo "  make vision-init   Install /etc/cleany/jetson-identity.env (sudo)"
 	@echo "  make vision-host-setup  Enable Docker bridge networking on Jetson (sudo)"
@@ -93,7 +94,8 @@ deps-gazebo:
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
 	source "$${CLEANY_ROS_SETUP}" && \
 	cd "$(ROS2_WS)" && \
-	rosdep install --from-paths src/cleany_description src/cleany_gazebo_sim \
+	rosdep install --from-paths src/cleany_description src/cleany_navigation \
+		src/cleany_gazebo_sim \
 		--ignore-src --skip-keys mujoco --rosdistro "$${CLEANY_ROS_DISTRO}" -r -y
 
 check-gazebo-env:
@@ -103,7 +105,6 @@ check-gazebo-env:
 	source "$${CLEANY_ROS_SETUP}" && \
 	test "$${ROS_DISTRO}" = "$${CLEANY_ROS_DISTRO}" && \
 	test "$$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" = "$${CLEANY_PYTHON_VERSION}" && \
-	ros2 pkg prefix ros_gz_sim >/dev/null && \
 	ros2 pkg prefix ros_gz_bridge >/dev/null && \
 	echo "Gazebo profile: $${CLEANY_GAZEBO_PROFILE} ($${CLEANY_ROS_DISTRO})"
 
@@ -120,9 +121,6 @@ build-gazebo: check-gazebo-env
 		--build-base "$${CLEANY_BUILD_BASE}" \
 		--install-base "$${CLEANY_INSTALL_BASE}" \
 		--packages-up-to cleany_gazebo_sim
-
-build-gazebo-harmonic:
-	$(MAKE) GAZEBO_PROFILE=harmonic build-gazebo
 
 build-handeye:
 	source "$(ROS_SETUP)" && \
@@ -197,17 +195,22 @@ test-gazebo: build-gazebo
 	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" \
 		src/cleany_gazebo_sim/test
 
-test-gazebo-harmonic:
-	$(MAKE) GAZEBO_PROFILE=harmonic test-gazebo
-
 test-gazebo-nav-runtime: build-gazebo
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
 	source "$${CLEANY_ROS_SETUP}" && \
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest -s \
-		src/cleany_gazebo_sim/test/test_runtime_navigation.py \
+		src/cleany_gazebo_sim/test/test_runtime_simulation.py \
 		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}"
+
+test-gazebo-evaluation: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 -m pytest src/cleany_gazebo_sim/test/evaluation \
+		--run-evaluation-tests
 
 sim: build
 	source "$(ROS_SETUP)" && \
@@ -221,9 +224,6 @@ sim-gazebo: build-gazebo
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	ros2 launch cleany_gazebo_sim "$${CLEANY_GAZEBO_LAUNCH}" headless:=true
-
-sim-gazebo-harmonic:
-	$(MAKE) GAZEBO_PROFILE=harmonic sim-gazebo
 
 handeye-generate-mujoco: build-handeye
 	@test ! -e "$(HANDEYE_PROFILE_DIR)" || \
@@ -283,6 +283,15 @@ handeye-validate-mujoco: build-handeye
 		--max-translation-norm-m "$(HANDEYE_MAX_TRANSLATION_NORM_M)" \
 		--dataset-mode "$(HANDEYE_DATASET_MODE)" \
 		--output "$(HANDEYE_VALIDATION_OUTPUT)"
+
+sim-gazebo-study-cafe:
+	$(MAKE) build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+		headless:=false gui_render_engine:="$(GAZEBO_GUI_RENDER_ENGINE)"
 
 vision-init:
 	"$(REPO_ROOT)tools/vision-container" init
