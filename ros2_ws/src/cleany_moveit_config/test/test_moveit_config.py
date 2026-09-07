@@ -300,7 +300,8 @@ def test_optional_rviz_uses_the_moveit_model_and_selected_clock() -> None:
     )
 
     assert "DeclareLaunchArgument('use_rviz', default_value='false')" in source
-    assert "mappings={'include_head_camera': 'false'}" in source
+    assert "'include_head_camera': 'false'" in source
+    assert "'include_wheel_joints': 'false'" in source
     assert "condition=IfCondition(use_rviz)" in source
     assert 'moveit_config.robot_description,' in source
     assert 'moveit_config.robot_description_semantic,' in source

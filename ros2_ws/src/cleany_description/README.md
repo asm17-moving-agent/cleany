@@ -1,101 +1,60 @@
 # cleany_description
 
-Authoritative robot description assets shared by MuJoCo, TF, and MoveIt.
+Shared CAD-frame robot model for MuJoCo, TF, and MoveIt.
 
-## Contents
+## Files
 
-- `urdf/cleany_geometry.xacro`: backend-neutral canonical physical model
-- `urdf/cleany.urdf.xacro`: plugin-free dual-arm URDF used by
-  `robot_state_publisher` and MoveIt
-- `urdf/cleany_control.urdf.xacro`: control-backend extension entrypoint; it
-  adds the MuJoCo `ros2_control` hardware interface for the ten arm joints and
-  read-only state interfaces for both grippers
-- `urdf/cleany_mujoco_ros2_control.xacro`: reusable MuJoCo hardware macro
-- `urdf/head_camera.xacro`: nominal head pan/tilt and RGB-D frame tree
-- `mjcf/cleany.xml`: MuJoCo robot model included by simulator scenes
-- `meshes/`: visual and collision CAD assets referenced by both descriptions
-- `test/test_model_parity.py`: canonical joint and randomized FK parity checks
+- `mjcf/cleany.xml`: MuJoCo geometry, dynamics, cameras, and actuators.
+- `urdf/cleany_geometry.xacro`: base, arm mounts, and wheels.
+- `urdf/physical_properties.xacro`: URDF geometry, colors, and inertials.
+- `urdf/dual_arm.xacro`, `urdf/head_camera.xacro`: joint and frame trees.
+- `urdf/cleany.urdf.xacro`: plugin-free description; 29 links, 18 movable joints.
+- `urdf/cleany_control.urdf.xacro`: arm-only ros2_control description;
+  21 links, 12 movable joints.
+- `meshes/`: shared assets; runtime needs no external CAD export.
 
-## Coordinate and rotation convention
+## Model contract
 
-The descriptions follow ROS REP-103:
+- REP-103: `base_link` +X forward, +Y left, +Z up; wheel axes +Y.
+  Optical frames use +X right, +Y down, +Z forward.
+- Wheelbase **0.35 m**, track **0.6038 m**, wheel radius **0.0635 m**.
+  URDF wheels are rigid 500 g assemblies; 48 passive roller joints are MJCF-only.
+- `${side}_grasp_tcp` is fixed at `(0, -0.100, 0)` m in
+  `${side}_gripper_frame`; the original hinged gripper is retained.
+- Head RGB-D transforms are nominal, not measured calibration.
+  Wrist camera ground-truth edges remain out of runtime TF for hand-eye calibration.
+- The control entrypoint commands ten arm joints and reads both grippers.
+  Gripper commands are opt-in via `enable_gripper_command:=true`.
+  Base, head, and rollers are outside this control contract.
+- Arm-only MoveIt uses `include_head_camera:=false include_wheel_joints:=false`.
+  These default to `true` in the full description; disabling wheel joints
+  retains their geometry as fixed links.
+- Fourteen legacy servo position actuators and four PG42 voltage actuators
+  remain active. New servo DC-motor defaults are commented out pending the
+  separate MuJoCo/ros2_control upgrade. The 3.4 backend removes only wheel
+  actuators from its temporary scene; see [simulation setup](../cleany_mujoco_sim/README.md).
 
-- right-handed `base_link`: `+X` forward, `+Y` left, `+Z` up
-- positive rotation follows the right-hand rule
-- roll, pitch, and yaw rotate about `+X`, `+Y`, and `+Z`
-- positive yaw is counter-clockwise when viewed from above
-- wheel axes are `+Y`, so positive wheel rotation drives toward `+X`
-- `_optical_frame` axes are `+X` right, `+Y` down, `+Z` forward
+Mass properties are estimates: total **15.933871 kg**,
+including a provisional **5.20 kg, 195×165×175 mm battery**, **0.8 kg per PG42
+motor**, and estimated PLA parts.
 
-The public mobile-base joint contract contains only
-`rear_left_wheel_joint`, `rear_right_wheel_joint`,
-`front_left_wheel_joint`, and `front_right_wheel_joint`. MuJoCo retains named
-passive roller degrees of freedom internally for contact physics. The names
-allow `MujocoSystemInterface` to validate the MJCF, but these joints are not
-listed in `ros2_control`, are not commandable, and are not published in the
-control backend's `joint_states`.
+## Use
 
-The default head camera points toward `base_link +X`. Physical `+Y` is the
-canonical left arm and physical `-Y` is the canonical right arm.
-
-The nominal head camera frame tree is shared by URDF and MJCF:
-
-```text
-base_link
-└── top_base_link
-    └── head_pan_link
-        └── head_tilt_link
-            └── head_camera_link
-                ├── head_camera_rgb_frame
-                │   └── head_camera_rgb_optical_frame
-                └── head_camera_depth_frame
-                    └── head_camera_depth_optical_frame
-```
-
-RGB and aligned depth use colocated nominal optical origins. These fixed
-transforms describe the current simulation assembly; they are not a measured
-RealSense calibration. A real deployment must validate or replace them with
-its calibration profile while preserving the public frame contract.
-
-The nominal head RGB-D optical frames in the plugin-free description support
-the perception demo. The arm-control entrypoint omits that head tree so its
-current-state contract remains exactly ten arm plus two gripper joints.
-Hand-eye evaluation uses its separately governed left-wrist camera profile.
-MoveIt's real-backend launch expands `cleany.urdf.xacro` with
-`include_head_camera:=false`; the regular description launch keeps the default
-`true` so the perception-side `robot_state_publisher` can provide the head
-camera TF tree. Detection results must be transformed into the configured
-planning frame before they are passed to MoveIt.
-
-Each arm exposes `${side}_grasp_tcp` as a fixed frame and MuJoCo site at
-`(0, -0.100, 0) m` in `${side}_gripper_frame`. It is a nominal point near the
-center of the jaw tips for position-only IK. Its orientation inherits the
-gripper frame and is not a calibrated grasp orientation.
-
-`cleany_control.urdf.xacro` registers the `left_wrist_rgb` MJCF camera as a
-`ros2_control` sensor for the hand-eye MuJoCo backend. Its vendor topic names
-and 10 Hz render rate are consumed by Humble `mujoco_ros2_control` 0.0.3; the
-simulation package launch owns remapping and the public camera contract.
-
-Publish the description:
+After building and sourcing `ros2_ws`, publish the full description:
 
 ```bash
 ros2 launch cleany_description description.launch.py use_sim_time:=true
 ```
 
-The default `cleany.urdf.xacro` remains plugin-free. The MuJoCo control
-backend expands `cleany_control.urdf.xacro` with the materialized scene path
-and runtime options:
+Expand the control description from this package directory:
 
 ```bash
 xacro urdf/cleany_control.urdf.xacro \
-  mujoco_model:=/absolute/path/to/control_scene.xml \
-  headless:=true \
-  sim_speed_factor:=1.0
+  mujoco_model:=/absolute/path/to/control_scene.xml headless:=true
 ```
 
-The control entrypoint exposes position commands plus position and velocity
-state for the five joints of each arm. Both gripper joints expose read-only
-position and velocity state so MoveIt receives a complete dual-arm model
-state; they have no command interface. The base, head, and passive roller
-joints remain outside this control contract.
+Run geometry, color, mass, joint-contract, and randomized FK checks from `ros2_ws`:
+
+```bash
+python3 -m pytest src/cleany_description/test/test_model_parity.py
+```

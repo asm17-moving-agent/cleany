@@ -22,7 +22,10 @@ def _moveit_config():
         )
         .robot_description(
             file_path=str(description_xacro),
-            mappings={'include_head_camera': 'false'},
+            mappings={
+                'include_head_camera': 'false',
+                'include_wheel_joints': 'false',
+            },
         )
         .robot_description_semantic(file_path='config/cleany.srdf')
         .robot_description_kinematics(file_path='config/kinematics.yaml')

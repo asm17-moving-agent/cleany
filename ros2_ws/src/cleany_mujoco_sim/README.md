@@ -12,6 +12,12 @@ XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한�
 운영 환경의 내비게이션 및 실제 하드웨어 adapter는 이 패키지의 범위에 포함하지
 않는다.
 
+주행 기본값은 wheelbase **0.35 m**, track **0.6038 m**, wheel radius
+**0.0635 m**이며 launch/ROS parameter로 변경할 수 있다. CAD 치수이며 실측
+odometry 보정값은 아니다. 기존 액추에이터와 MuJoCo 3.4 제어 호환 경로를
+유지한다. 물성 추정과 모델 계약은
+[cleany_description](../cleany_description/README.md)을 참고한다.
+
 ## 실행과 테스트
 
 아래 명령은 레포지토리 루트에서 실행한다.
