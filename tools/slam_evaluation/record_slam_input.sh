@@ -113,12 +113,16 @@ if [[ -e "$input" || -e "$environment" ]]; then
   exit 1
 fi
 mkdir -p "$(dirname "$input")" "$environment"
+gazebo_arguments=()
+if [[ -n "$robot_spawn_pose" ]]; then
+  gazebo_arguments+=(robot_spawn_pose:="$robot_spawn_pose")
+fi
 setsid ros2 launch cleany_gazebo_sim "$study_cafe_launch" \
   headless:=true lidar_profile:="$lidar_profile" \
   lidar_noise_profile:="$noise_profile" \
   server_render_engine:="$server_render_engine" \
   sensor_render_engine:="$sensor_render_engine" \
-  robot_spawn_pose:="$robot_spawn_pose" \
+  "${gazebo_arguments[@]}" \
   physics_max_step_size:=0.002 physics_real_time_factor:=2.0 \
   bridge_config:="$bridge_config" \
   >"$environment/gazebo.log" 2>&1 &
@@ -165,6 +169,7 @@ fi
 setsid ros2 bag record -o "$input" --storage sqlite3 \
   --topics \
   /scan /imu/data /odom /ground_truth/odom /tf_static /clock \
+  /wheel/odom_raw /wheel/odom /wheel_encoder/joint_states /joint_states \
   /cmd_vel /gazebo_cmd_vel >"$environment/recorder.log" 2>&1 &
 recorder_pid=$!
 sleep 2

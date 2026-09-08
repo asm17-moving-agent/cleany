@@ -266,8 +266,17 @@ def materialize_mecanum_wheel_world(
     robot = root.find("./world/model[@name='cleany_mecanum']")
     if robot is None:
         raise ValueError('world template is missing cleany_mecanum')
-    sensors_plugin = root.find(
-        "./world/plugin[@name='ignition::gazebo::systems::Sensors']"
+    sensor_plugin_names = {
+        'ignition::gazebo::systems::Sensors',
+        'gz::sim::systems::Sensors',
+    }
+    sensors_plugin = next(
+        (
+            plugin
+            for plugin in root.findall('./world/plugin')
+            if plugin.get('name') in sensor_plugin_names
+        ),
+        None,
     )
     render_engine = (
         sensors_plugin.find('render_engine')
