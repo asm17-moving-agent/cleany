@@ -31,6 +31,9 @@ def generate_launch_description() -> LaunchDescription:
     wheel_odometry_config = (
         odometry_share / 'config' / 'wheel_odometry.yaml'
     )
+    odometry_error_config = (
+        package_share / 'config' / 'odometry_error_ideal.yaml'
+    )
 
     world_arg = DeclareLaunchArgument(
         'world', default_value=str(default_world)
@@ -52,6 +55,11 @@ def generate_launch_description() -> LaunchDescription:
         'wheel_odometry_config',
         default_value=str(wheel_odometry_config),
         description='Wheel odometry parameter file.',
+    )
+    odometry_error_config_arg = DeclareLaunchArgument(
+        'odometry_error_config',
+        default_value=str(odometry_error_config),
+        description='Simulation-only wheel odometry error parameter file.',
     )
     odometry_source_arg = DeclareLaunchArgument(
         'odometry_source',
@@ -135,6 +143,7 @@ def generate_launch_description() -> LaunchDescription:
             LaunchConfiguration('wheel_odometry_config'),
             {
                 'input_topic': 'wheel_encoder/joint_states',
+                'output_topic': 'wheel/odom_raw',
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
             },
         ],
@@ -146,6 +155,16 @@ def generate_launch_description() -> LaunchDescription:
         name='simulated_encoder',
         parameters=[
             LaunchConfiguration('encoder_config'),
+            {'use_sim_time': LaunchConfiguration('use_sim_time')},
+        ],
+        output='screen',
+    )
+    simulated_odometry_error = Node(
+        package='cleany_gazebo_sim',
+        executable='simulated_odometry_error_node',
+        name='simulated_odometry_error',
+        parameters=[
+            LaunchConfiguration('odometry_error_config'),
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
         ],
         output='screen',
@@ -168,6 +187,7 @@ def generate_launch_description() -> LaunchDescription:
             sensor_config_arg,
             encoder_config_arg,
             wheel_odometry_config_arg,
+            odometry_error_config_arg,
             odometry_source_arg,
             headless_arg,
             use_sim_time_arg,
@@ -182,6 +202,7 @@ def generate_launch_description() -> LaunchDescription:
             odom_tf,
             simulated_encoder,
             wheel_odometry,
+            simulated_odometry_error,
             sensor_tf,
         ]
     )

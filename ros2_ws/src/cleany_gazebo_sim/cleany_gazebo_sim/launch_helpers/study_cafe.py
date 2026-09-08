@@ -108,10 +108,15 @@ def _launch_simulation(
             'wheel_odometry_config': LaunchConfiguration(
                 'wheel_odometry_config'
             ),
+            'odometry_error_config': LaunchConfiguration(
+                'odometry_error_config'
+            ),
             'odometry_source': LaunchConfiguration('odometry_source'),
             **(
                 {
-                    'gui_render_engine': LaunchConfiguration('gui_render_engine'),
+                    'gui_render_engine': LaunchConfiguration(
+                        'gui_render_engine'
+                    ),
                     'server_render_engine': LaunchConfiguration(
                         'server_render_engine'
                     ),
@@ -177,6 +182,13 @@ def study_cafe_launch_description(
         ),
         description='Wheel odometry parameter file.',
     )
+    odometry_error_config_arg = DeclareLaunchArgument(
+        'odometry_error_config',
+        default_value=str(
+            package_share / 'config' / 'odometry_error_ideal.yaml'
+        ),
+        description='Simulation-only wheel odometry error parameter file.',
+    )
     odometry_source_arg = DeclareLaunchArgument(
         'odometry_source',
         default_value='wheel',
@@ -240,6 +252,7 @@ def study_cafe_launch_description(
             bridge_config_arg,
             encoder_config_arg,
             wheel_odometry_config_arg,
+            odometry_error_config_arg,
             odometry_source_arg,
             lidar_profiles_config_arg,
             lidar_profile_arg,
