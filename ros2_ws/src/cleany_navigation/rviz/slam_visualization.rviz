@@ -24,7 +24,7 @@ Visualization Manager:
       Class: rviz_default_plugins/LaserScan
       Color: 255; 64; 64
       Enabled: true
-      Name: 26 cm LiDAR
+      Name: LiDAR Scan
       Position Transformer: XYZ
       Size (Pixels): 3
       Style: Points
