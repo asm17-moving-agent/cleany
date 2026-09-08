@@ -45,6 +45,8 @@ setup(
             'gazebo_sensor_tf_publisher = cleany_gazebo_sim.sensor_tf_publisher:main',
             'simulated_encoder_node = '
             'cleany_gazebo_sim.simulated_encoder_node:main',
+            'simulated_odometry_error_node = '
+            'cleany_gazebo_sim.simulated_odometry_error_node:main',
             'ground_truth_route_follower = cleany_gazebo_sim.ground_truth_route_follower:main',
             'gazebo_slam_experiment = cleany_gazebo_sim.gazebo_slam_experiment:main',
             'occupancy_grid_marker = cleany_gazebo_sim.occupancy_grid_marker:main',

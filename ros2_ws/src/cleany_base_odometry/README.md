@@ -31,10 +31,12 @@ ros2 launch cleany_base_odometry wheel_odometry.launch.py \
 ```
 
 Gazebo Cleany launch는 가상 encoder의 `/wheel_encoder/joint_states`를 입력으로
-이 노드를 자동 실행합니다. 독립 실행과 실제 로봇에서는 기본 `/joint_states`를
-입력으로 사용합니다. Gazebo launch의 기본 `odometry_source:=wheel`은 이 출력으로
-canonical `/odom`과 `odom -> base_link` TF를 발행합니다. 해당 TF와 `/odom`의
-publisher 소유권은 `cleany_gazebo_sim`에 남아 있습니다.
+이 노드를 자동 실행하고 출력을 `/wheel/odom_raw`로 override합니다. Simulation 전용
+error node가 이를 `/wheel/odom`으로 변환합니다. 독립 실행과 실제 로봇에서는 기본
+`/joint_states`를 입력으로 받아 `/wheel/odom`을 직접 발행합니다. Gazebo launch의
+기본 `odometry_source:=wheel`은 최종 `/wheel/odom`으로 canonical `/odom`과
+`odom -> base_link` TF를 발행합니다. 해당 TF와 `/odom`의 publisher 소유권은
+`cleany_gazebo_sim`에 남아 있습니다.
 
 Gazebo에서 합성 odometry parameter 오차를 선택하려면 `wheel_odometry_config`에
 `config/wheel_odometry_synthetic_error.yaml`을 지정합니다. encoder 합성 profile과
