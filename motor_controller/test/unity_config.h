@@ -1,6 +1,8 @@
 #ifndef UNITY_CONFIG_H
 #define UNITY_CONFIG_H
 
+#include <stdio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
