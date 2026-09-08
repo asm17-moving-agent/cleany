@@ -127,6 +127,9 @@ tick 증분의 Gaussian noise를 선택적으로 적용할 수 있습니다.
 파이프라인 검증용 합성값입니다. Gazebo launch는 기본 encoder 설정을 자동으로
 실행하고 `/wheel/odom` 입력을 `/wheel_encoder/joint_states`에 연결합니다.
 
+Gazebo JointStatePublisher는 world 이름과 무관한
+`/model/cleany_mecanum/joint_state` transport topic을 사용하므로 일반 world와
+Study-cafe world가 같은 `/joint_states` bridge 계약을 공유합니다.
 합성 오차 profile은 encoder의 휠별 scale 및 tick 편차와 wheel odometry의 반경 및
 기구학 parameter 편차를 함께 사용합니다. 모두 실제 측정값이 아닌 파이프라인
 검증용 값이며, 물리 slip·backlash·통신 지연은 포함하지 않습니다.
