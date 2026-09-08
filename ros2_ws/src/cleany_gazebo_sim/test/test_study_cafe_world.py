@@ -8,7 +8,8 @@ from cleany_gazebo_sim.world.layout import load_study_cafe_layout
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-ROBOT_WORLD = (
+ROBOT_WORLD = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf'
+FORTRESS_ROBOT_WORLD = (
     PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf'
 )
 LAYOUT_CONFIG = (
@@ -49,6 +50,19 @@ def test_study_cafe_materializes_expected_scenario_entities(
     ) == 48
 
 
+def test_study_cafe_materializes_for_fortress(tmp_path: Path) -> None:
+    generated = materialize_study_cafe_world(
+        FORTRESS_ROBOT_WORLD,
+        tmp_path / 'study_cafe_fortress.sdf',
+        layout_path=LAYOUT_CONFIG,
+    )
+    world = ElementTree.parse(generated).getroot().find(
+        "world[@name='cleany_study_cafe']"
+    )
+    assert world is not None
+    assert world.find("model[@name='cleany_mecanum']") is not None
+
+
 def test_study_cafe_applies_bounded_physics_override(tmp_path: Path) -> None:
     generated = materialize_study_cafe_world(
         ROBOT_WORLD,
@@ -61,6 +75,57 @@ def test_study_cafe_applies_bounded_physics_override(tmp_path: Path) -> None:
     assert world is not None
     assert world.findtext('physics/max_step_size') == '0.003'
     assert world.findtext('physics/real_time_factor') == '2.0'
+
+
+def test_study_cafe_defaults_to_two_millisecond_physics_step(
+    tmp_path: Path,
+) -> None:
+    generated = materialize_study_cafe_world(
+        ROBOT_WORLD,
+        tmp_path / 'default_physics.sdf',
+        layout_path=LAYOUT_CONFIG,
+    )
+    world = ElementTree.parse(generated).getroot().find('world')
+    assert world is not None
+    assert world.findtext('physics/max_step_size') == '0.002'
+
+
+def test_study_cafe_can_override_robot_spawn_pose(tmp_path: Path) -> None:
+    spawn_pose = (1.0, -2.0, 0.38, 0.0, 0.0, -1.5708)
+    generated = materialize_study_cafe_world(
+        ROBOT_WORLD,
+        tmp_path / 'spawn_override.sdf',
+        layout_path=LAYOUT_CONFIG,
+        robot_spawn_pose=spawn_pose,
+    )
+    robot = ElementTree.parse(generated).getroot().find(
+        "./world/model[@name='cleany_mecanum']"
+    )
+    assert robot is not None
+    assert robot.findtext('pose') == '1.0 -2.0 0.38 0.0 0.0 -1.5708'
+
+
+def test_study_cafe_can_materialize_ogre_sensor_renderer(
+    tmp_path: Path,
+) -> None:
+    generated = materialize_study_cafe_world(
+        ROBOT_WORLD,
+        tmp_path / 'ogre_sensors.sdf',
+        layout_path=LAYOUT_CONFIG,
+        sensor_render_engine='ogre',
+    )
+    root = ElementTree.parse(generated).getroot()
+    sensor_plugin_names = {
+        'ignition::gazebo::systems::Sensors',
+        'gz::sim::systems::Sensors',
+    }
+    sensor_plugins = [
+        plugin
+        for plugin in root.findall('./world/plugin')
+        if plugin.get('name') in sensor_plugin_names
+    ]
+    assert len(sensor_plugins) == 1
+    assert sensor_plugins[0].findtext('render_engine') == 'ogre'
 
 
 def test_robot_visual_is_excluded_from_its_lidar(tmp_path: Path) -> None:
@@ -77,7 +142,9 @@ def test_robot_visual_is_excluded_from_its_lidar(tmp_path: Path) -> None:
     assert all(lidar.findtext('visibility_mask') == '0x01' for lidar in lidars)
 
 
-def test_study_cafe_materializes_one_selected_lidar_pose(tmp_path: Path) -> None:
+def test_study_cafe_materializes_one_selected_lidar_pose(
+    tmp_path: Path,
+) -> None:
     generated = materialize_study_cafe_world(
         ROBOT_WORLD,
         tmp_path / 'lidar_70cm.sdf',
@@ -85,10 +152,10 @@ def test_study_cafe_materializes_one_selected_lidar_pose(tmp_path: Path) -> None
         lidar_translation=(0.16, 0.0, 0.32),
     )
     mount = ElementTree.parse(generated).getroot().find(
-        "./world/model[@name='cleany_mecanum']/joint[@name='lidar_mount']"
+        "./world/model[@name='cleany_mecanum']/frame[@name='lidar_mount']"
     )
     assert mount is not None
-    assert mount.findtext('child') == 'lidar_link'
+    assert mount.get('attached_to') == 'base_link'
     assert mount.findtext('pose') == '0.16 0.0 0.32 0.0 0.0 0.0'
 
 

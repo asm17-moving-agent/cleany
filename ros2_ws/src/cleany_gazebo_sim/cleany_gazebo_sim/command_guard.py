@@ -4,9 +4,10 @@ import time
 
 import rclpy
 from geometry_msgs.msg import Twist
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 
-from cleany_gazebo_sim.parameters import (
+from cleany_gazebo_sim.command_limits import (
     ChassisCommand,
     CommandLimits,
     are_finite_values,
@@ -105,7 +106,7 @@ def main(args: list[str] | None = None) -> None:
     node = GazeboCommandGuard()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         try:

@@ -17,7 +17,10 @@ from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
 SCHEMA_VERSION = 1
-_WORLD_FILENAME = 'cleany_mecanum_fortress.sdf'
+_WORLD_FILENAMES = {
+    'fortress': 'cleany_mecanum_fortress.sdf',
+    'harmonic': 'cleany_mecanum_harmonic.sdf',
+}
 _REQUIRED_METRICS = (
     'ate_rmse_m',
     'rpe_translation_rmse_m',
@@ -122,12 +125,15 @@ def _write_profile_world(
     model = root.find("./world/model[@name='cleany_mecanum']")
     if model is None:
         raise ValueError('world is missing the cleany_mecanum model')
-    mount = model.find("joint[@name='lidar_mount']")
+    mount = model.find("frame[@name='lidar_mount']")
     if mount is None or mount.find('pose') is None:
         raise ValueError('world is missing the lidar_mount pose')
-    if mount.findtext('parent') != profile.transform.parent_frame_id:
+    if mount.get('attached_to') != profile.transform.parent_frame_id:
         raise ValueError('world lidar parent does not match the profile')
-    if mount.findtext('child') != profile.transform.child_frame_id:
+    lidar_frame = model.find(
+        f"frame[@name='{profile.transform.child_frame_id}']"
+    )
+    if lidar_frame is None or lidar_frame.get('attached_to') != 'lidar_mount':
         raise ValueError('world lidar child does not match the profile')
 
     translation = profile.transform.translation
@@ -176,7 +182,7 @@ def materialize_evaluation(
     simulator: str,
     output_dir: Path,
 ) -> EvaluationArtifacts:
-    if simulator != 'fortress':
+    if simulator not in _WORLD_FILENAMES:
         raise ValueError(f'unsupported simulator profile: {simulator!r}')
     profiles = load_mount_profiles(profiles_path)
     try:
@@ -193,7 +199,7 @@ def materialize_evaluation(
     manifest_path = output_dir / 'manifest.json'
     try:
         _write_profile_world(
-            package_root / 'worlds' / _WORLD_FILENAME,
+            package_root / 'worlds' / _WORLD_FILENAMES[simulator],
             profile,
             world_path,
         )
@@ -303,7 +309,7 @@ def _parser() -> argparse.ArgumentParser:
     prepare.add_argument('--profiles', type=Path, required=True)
     prepare.add_argument('--profile', required=True)
     prepare.add_argument(
-        '--simulator', choices=('fortress',), default='fortress'
+        '--simulator', choices=tuple(_WORLD_FILENAMES), default='fortress'
     )
     prepare.add_argument('--output', type=Path, required=True)
     record = subparsers.add_parser('record')

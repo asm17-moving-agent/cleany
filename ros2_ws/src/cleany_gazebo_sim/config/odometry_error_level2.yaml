@@ -1,0 +1,21 @@
+simulated_odometry_error:
+  ros__parameters:
+    input_topic: wheel/odom_raw
+    output_topic: wheel/odom
+    # Two-thirds interpolation from ideal to the synthetic stress profile.
+    # These values are robustness-test inputs, not measured hardware data.
+    forward_scale: 1.0066666667
+    lateral_scale: 0.9666666667
+    rotation_scale: 1.0133333333
+    forward_noise_stddev_per_sqrt_m: 0.0013333333
+    lateral_noise_stddev_per_sqrt_m: 0.0053333333
+    rotation_noise_stddev_per_sqrt_rad: 0.0066666667
+    yaw_bias_walk_stddev_per_sqrt_m: 0.0013333333
+    max_abs_yaw_bias_rad_per_m: 0.0133333333
+    yaw_drift_rad_per_forward_m: 0.0033333333
+    slip_events_per_second: 0.0533333333
+    slip_duration_min_sec: 0.1333333333
+    slip_duration_max_sec: 0.5333333333
+    slip_gain_min: 1.0333333333
+    slip_gain_max: 1.10
+    random_seed: 42
