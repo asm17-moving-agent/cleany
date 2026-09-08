@@ -32,10 +32,12 @@ NAVIGATION_TOPICS = {
     '/gazebo_cmd_vel',
     '/gazebo_odom',
     '/ground_truth/odom',
+    '/joint_states',
     '/clock',
     '/scan',
     '/imu/data',
 }
+JOINT_STATE_TOPIC = '/model/cleany_mecanum/joint_state'
 FORTRESS_ODOMETRY_TOPIC = '/model/cleany_mecanum/ground_truth'
 HARMONIC_ODOMETRY_TOPIC = '/model/cleany_mecanum/odometry'
 
@@ -125,6 +127,22 @@ def test_navigation_bridge_exposes_only_runtime_topics(
         str(entry['gz_type_name']).startswith(transport_namespace)
         for entry in entries
     )
+
+
+@pytest.mark.parametrize(
+    'filename',
+    (
+        'bridge.yaml',
+        'bridge_harmonic.yaml',
+        'core_bridge.yaml',
+        'core_bridge_harmonic.yaml',
+        'navigation_bridge.yaml',
+        'navigation_bridge_harmonic.yaml',
+    ),
+)
+def test_joint_state_bridge_is_independent_of_world_name(filename: str) -> None:
+    entry = _entry_for_ros_topic(CONFIG_ROOT / filename, '/joint_states')
+    assert entry['gz_topic_name'] == JOINT_STATE_TOPIC
 
 
 @pytest.mark.parametrize(

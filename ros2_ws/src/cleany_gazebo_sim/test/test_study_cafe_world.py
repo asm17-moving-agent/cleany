@@ -115,10 +115,17 @@ def test_study_cafe_can_materialize_ogre_sensor_renderer(
         sensor_render_engine='ogre',
     )
     root = ElementTree.parse(generated).getroot()
-    assert root.findtext(
-        "./world/plugin[@name='ignition::gazebo::systems::Sensors']/"
-        'render_engine'
-    ) == 'ogre'
+    sensor_plugin_names = {
+        'ignition::gazebo::systems::Sensors',
+        'gz::sim::systems::Sensors',
+    }
+    sensor_plugins = [
+        plugin
+        for plugin in root.findall('./world/plugin')
+        if plugin.get('name') in sensor_plugin_names
+    ]
+    assert len(sensor_plugins) == 1
+    assert sensor_plugins[0].findtext('render_engine') == 'ogre'
 
 
 def test_robot_visual_is_excluded_from_its_lidar(tmp_path: Path) -> None:
