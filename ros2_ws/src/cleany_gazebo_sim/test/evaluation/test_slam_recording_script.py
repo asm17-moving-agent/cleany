@@ -36,6 +36,8 @@ def test_recording_script_separates_noise_inputs_and_uses_two_ms_physics(
     assert 'GAZEBO_SERVER_RENDER_ENGINE:-ogre2' in source
     assert 'invalid LiDAR scan: range spread' in source
     assert '--storage sqlite3' in source
+    assert '/wheel/odom_raw /wheel/odom' in source
+    assert '/wheel_encoder/joint_states /joint_states' in source
     assert 'rosbag recorder failed to start' in source
 
 
