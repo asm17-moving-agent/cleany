@@ -8,6 +8,7 @@ NAVIGATION_PACKAGE_ROOT = PACKAGE_ROOT.parent / 'cleany_navigation'
 def test_offline_launches_republish_bag_odometry_as_tf_only():
     for name in (
         'evaluation_slam_toolbox_replay.launch.py',
+        'evaluation_slam_toolbox_live_replay.launch.py',
         'evaluation_cartographer_replay.launch.py',
         'evaluation_rtabmap_replay.launch.py',
     ):

@@ -155,6 +155,58 @@ python3 tools/slam_evaluation/render_slam_algorithm_overlays.py
 - real-time factor와 resource usage
 - 사각, 가림, 벽 왜곡, loop closure 정성 관찰
 
+## 30 cm odometry-noise matrix
+
+기존 30 cm `measured` LiDAR bag의 `/scan`, `/ground_truth/odom`, `/clock`은
+그대로 유지하고 `/odom`만 deterministic synthetic error level로 교체합니다.
+Level 0은 입력 odom에 추가 합성 오차를 넣지 않고, Level 3은 기존 stress이며
+Level 1과 2는 모든 수치 parameter의 1/3, 2/3 선형 보간입니다. Level 0도 원본
+wheel odom 자체의 오차는 남아 있으므로 완전한 ground-truth odom을 뜻하지 않습니다.
+실제 하드웨어 측정 profile로 해석하지 않습니다.
+
+```bash
+python3 tools/slam_evaluation/materialize_odometry_noise_bags.py
+./tools/slam_evaluation/run_odometry_noise_comparison.sh
+python3 tools/slam_evaluation/analyze_odometry_noise_comparison.py
+python3 tools/slam_evaluation/render_odometry_noise_map_matrix.py
+```
+
+파생 bag과 8개 SLAM run, 비교 결과는 각각 아래에 생성됩니다.
+
+```text
+ros2_ws/slam_results/odometry_noise/inputs/<level>/input_30cm_trial1/
+ros2_ws/slam_results/odometry_noise/runs/<algorithm>/<level>/
+ros2_ws/slam_results/odometry_noise/comparison/map_matrix_2x4.png
+```
+
+생성기는 기존 output을 덮어쓰지 않습니다. 각 cell은 고정 seed 42를 사용하는
+단일 synthetic trial이므로 통계적 우열이 아니라 단계별 강건성 확인 결과입니다.
+
+실제 simulated encoder와 Mecanum 적분을 포함하려면 Study-cafe route를 한 번
+기록해 `/wheel/odom_raw`을 원본으로 사용합니다. 이 실험은 live mapping과 같은
+slam_toolbox loop parameter를 replay에도 사용합니다. 파생 bag은 지도 생성에
+필요하지 않은 고주기 wheel/joint 진단 topic을 복제하지 않으며, 분석 결과에는
+각 단계의 입력 odom과 최종 SLAM 궤적을 각각 GT와 비교한 ATE/RPE를 함께 남깁니다.
+
+```bash
+SLAM_INPUT_PATH=ros2_ws/slam_results/odometry_noise_wheel_raw/base/input_30cm_trial1 \
+SLAM_ENVIRONMENT_PATH=ros2_ws/slam_results/odometry_noise_wheel_raw/base/environment \
+GAZEBO_PROFILE=harmonic \
+  ./tools/slam_evaluation/record_slam_input.sh 30 measured
+
+python3 tools/slam_evaluation/materialize_odometry_noise_bags.py \
+  --input-bag ros2_ws/slam_results/odometry_noise_wheel_raw/base/input_30cm_trial1 \
+  --source-odom-topic /wheel/odom_raw \
+  --output-root ros2_ws/slam_results/odometry_noise_wheel_raw/inputs
+
+ODOMETRY_EXPERIMENT_NAME=odometry_noise_wheel_raw \
+  ./tools/slam_evaluation/run_odometry_noise_comparison.sh
+python3 tools/slam_evaluation/analyze_odometry_noise_comparison.py \
+  --experiment-name odometry_noise_wheel_raw
+python3 tools/slam_evaluation/render_odometry_noise_map_matrix.py \
+  --experiment-name odometry_noise_wheel_raw
+```
+
 ## Moved-chair localization
 
 가구 변화에 대한 fixed-map localization 강건성을 16.5 cm와 26 cm
