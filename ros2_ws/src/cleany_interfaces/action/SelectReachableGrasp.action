@@ -1,6 +1,9 @@
 # Candidates must share snapshot_id, object_id, configured planning frame,
 # and target OBB.
 GraspCandidate[] candidates
+# Optional arm lock for post-pregrasp re-selection. Empty preserves the
+# nearest-arm-first bilateral fallback behavior.
+string required_arm
 ---
 uint8 ERROR_NONE=0
 uint8 ERROR_INVALID_INPUT=1

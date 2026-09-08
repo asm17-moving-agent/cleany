@@ -34,6 +34,18 @@ def _source_root() -> Path:
     return Path(__file__).parents[1]
 
 
+def test_grasp_roll_alignment_matches_collinear_robot_geometry():
+    root = _expand_urdf('cleany_control.urdf.xacro')
+    for side in ('left', 'right'):
+        roll = root.find(f"./joint[@name='{side}_wrist_roll_joint']")
+        assert roll.find('axis').get('xyz') == '0 -1 0'
+        assert roll.find('child').get('link') == f'{side}_gripper_frame'
+        tcp = root.find(f"./joint[@name='{side}_grasp_tcp_joint']")
+        assert tcp.find('parent').get('link') == f'{side}_gripper_frame'
+        assert [float(x) for x in tcp.find('origin').get('xyz').split()] == [0., -.1, 0.]
+        assert [float(x) for x in tcp.find('origin').get('rpy').split()] == [0., 0., 0.]
+
+
 def _expand_urdf(entrypoint: str, *xacro_args: str) -> ET.Element:
     description = _source_root()
     return ET.fromstring(
@@ -96,6 +108,128 @@ def test_basic_description_does_not_select_a_control_backend() -> None:
     root = _expand_urdf("cleany.urdf.xacro")
     assert root.find("./ros2_control") is None
     assert root.find(".//hardware/plugin") is None
+
+
+@pytest.mark.parametrize("entrypoint", URDF_ENTRYPOINTS)
+@pytest.mark.parametrize("side", ("left", "right"))
+def test_arm_motor_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
+    """Rendered motors must be inside the robot self-mask, not the OctoMap."""
+    urdf = _expand_urdf(entrypoint)
+    mjcf = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
+    mesh_files = {
+        mesh.attrib["name"]: mesh.attrib["file"]
+        for mesh in mjcf.findall("./asset/mesh")
+    }
+    body_links = {
+        "Rotation_Pitch": "shoulder_yaw_link",
+        "Upper_Arm": "upper_arm_link",
+        "Lower_Arm": "lower_arm_link",
+        "Wrist_Pitch_Roll": "wrist_pitch_link",
+        "Fixed_Jaw": "gripper_frame",
+    }
+    for body_name, link_suffix in body_links.items():
+        body = mjcf.find(
+            f".//body[@name='{body_name}{'_2' if side == 'right' else ''}']"
+        )
+        assert body is not None
+        motors = [
+            geom for geom in body.findall("./geom[@class='visual']")
+            if geom.attrib.get("mesh", "").endswith("_Motor")
+        ]
+        assert len(motors) == 1
+        motor = motors[0]
+        mesh_file = mesh_files[motor.attrib["mesh"]]
+        assert (_source_root() / "meshes" / mesh_file).is_file()
+        # Current motor meshes have no body-local rotation or scale.
+        assert not {"quat", "euler", "axisangle", "xyaxes", "zaxis"} & set(motor.keys())
+        expected_position = np.fromstring(motor.get("pos", "0 0 0"), sep=" ")
+        link = urdf.find(f"./link[@name='{side}_{link_suffix}']")
+        assert link is not None
+        for kind in ("visual", "collision"):
+            matches = [
+                element for element in link.findall(kind)
+                if element.find("geometry/mesh") is not None
+                and element.find("geometry/mesh").get("filename")
+                == f"package://cleany_description/meshes/{mesh_file}"
+            ]
+            assert len(matches) == 1, (side, body_name, kind)
+            mesh = matches[0].find("geometry/mesh")
+            assert mesh is not None
+            assert np.fromstring(
+                mesh.get("scale", "1 1 1"), sep=" "
+            ) == pytest.approx((1, 1, 1))
+            origin = matches[0].find("origin")
+            attributes = {} if origin is None else origin.attrib
+            assert np.fromstring(
+                attributes.get("xyz", "0 0 0"), sep=" "
+            ) == pytest.approx(expected_position)
+            assert np.fromstring(
+                attributes.get("rpy", "0 0 0"), sep=" "
+            ) == pytest.approx((0, 0, 0))
+
+
+@pytest.mark.parametrize("entrypoint", URDF_ENTRYPOINTS)
+@pytest.mark.parametrize("side", ("left", "right"))
+def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
+    urdf = _expand_urdf(entrypoint)
+    mjcf = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
+    body = mjcf.find(f".//body[@name='{side.title()}_Arm_Camera']")
+    assert body is not None
+    quaternion = np.empty(4)
+    mujoco.mju_euler2Quat(
+        quaternion, np.fromstring(body.get("euler"), sep=" "), "xyz"
+    )
+    rotation = np.empty(9)
+    mujoco.mju_quat2Mat(rotation, quaternion)
+    rotation = rotation.reshape(3, 3)
+    link = urdf.find(f"./link[@name='{side}_gripper_frame']")
+    assert link is not None
+    geoms = body.findall("./geom[@class='visual']")
+    assert len(geoms) == 2
+    for geom in geoms:
+        asset = mjcf.find(f"./asset/mesh[@name='{geom.get('mesh')}']")
+        assert asset is not None
+        assert (_source_root() / "meshes" / asset.get("file")).is_file()
+        expected_position = (
+            np.fromstring(body.get("pos"), sep=" ")
+            + rotation @ np.fromstring(geom.get("pos"), sep=" ")
+        )
+        for kind in ("visual", "collision"):
+            matches = [
+                element for element in link.findall(kind)
+                if element.find("geometry/mesh") is not None
+                and element.find("geometry/mesh").get("filename")
+                == f"package://cleany_description/meshes/{geom.get('mesh')}.stl"
+            ]
+            assert len(matches) == 1, (side, geom.get("mesh"), kind)
+            mesh = matches[0].find("geometry/mesh")
+            assert mesh is not None
+            assert np.fromstring(mesh.get("scale", "1 1 1"), sep=" ") == pytest.approx(
+                np.fromstring(asset.get("scale", "1 1 1"), sep=" ")
+            )
+            origin = matches[0].find("origin")
+            assert origin is not None
+            assert np.fromstring(origin.get("xyz"), sep=" ") == pytest.approx(
+                expected_position, abs=1e-5
+            )
+            assert _rpy(np.fromstring(origin.get("rpy"), sep=" ")) == pytest.approx(
+                rotation, abs=1e-5
+            )
+
+
+def test_sorting_observer_override_preserves_control_interfaces() -> None:
+    default = _expand_urdf('cleany_control.urdf.xacro')
+    observed = _expand_urdf(
+        'cleany_control.urdf.xacro',
+        'mujoco_hardware_plugin:=cleany_mujoco_observer/ObservedMujocoSystem',
+    )
+    expected = default.find('./ros2_control')
+    actual = observed.find('./ros2_control')
+    assert actual.find('./hardware/plugin').text == (
+        'cleany_mujoco_observer/ObservedMujocoSystem'
+    )
+    actual.find('./hardware/plugin').text = expected.find('./hardware/plugin').text
+    assert ET.tostring(actual) == ET.tostring(expected)
 
 
 def test_control_description_exposes_arm_and_gripper_interfaces() -> None:
@@ -472,10 +606,11 @@ def test_random_arm_fk_matches_mjcf(urdf_entrypoint: str) -> None:
     base_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "chassis")
     for side in ("left", "right"):
         names = tuple(f"{side}_{suffix}" for suffix in suffixes)
+        jaw_names = names + (f"{side}_gripper_joint",)
         for _ in range(10):
             values = {
                 name: float(random.uniform(*CANONICAL_LIMITS[name]))
-                for name in names
+                for name in jaw_names
             }
             mujoco.mj_resetData(model, data)
             for name, value in values.items():
@@ -516,6 +651,22 @@ def test_random_arm_fk_matches_mjcf(urdf_entrypoint: str) -> None:
                 values,
             )
             assert actual_tcp == pytest.approx(expected_tcp, abs=1e-5)
+
+            # The self-filter also consumes this articulated collision link.
+            # Fixed-jaw/TCP parity alone cannot detect its origin rotation error.
+            jaw_id = mujoco.mj_name2id(
+                model, mujoco.mjtObj.mjOBJ_BODY,
+                "Moving_Jaw" if side == "left" else "Moving_Jaw_2",
+            )
+            actual_jaw = np.eye(4)
+            actual_jaw[:3, :3] = (
+                base_rotation.T @ data.xmat[jaw_id].reshape(3, 3)
+            )
+            actual_jaw[:3, 3] = base_rotation.T @ (
+                data.xpos[jaw_id] - data.xpos[base_id]
+            )
+            expected_jaw = _urdf_fk(urdf_joints, jaw_names, values)
+            assert actual_jaw == pytest.approx(expected_jaw, abs=1e-5)
 
 
 def test_random_head_camera_optical_fk_matches_mjcf() -> None:

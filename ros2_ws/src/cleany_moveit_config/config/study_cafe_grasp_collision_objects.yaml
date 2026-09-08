@@ -1,0 +1,46 @@
+schema_version: cleany.moveit_collision_objects/v1
+planning_frame: base_link
+apply_service: /apply_planning_scene
+objects:
+  - id: study_cafe_robot_desk
+    primitives:
+      - type: box
+        dimensions_m: [0.77, 1.20, 0.04]
+        pose:
+          translation_m: [0.565, 0.0, 0.320]
+          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
+  - id: study_cafe_partition
+    primitives:
+      - type: box
+        dimensions_m: [0.025, 1.20, 0.72]
+        pose:
+          translation_m: [0.950, 0.0, 0.280]
+          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
+  - id: study_cafe_monitor
+    primitives:
+      - type: box
+        dimensions_m: [0.035, 0.62, 0.36]
+        pose:
+          translation_m: [0.850, 0.0, 0.620]
+          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
+  - id: study_cafe_cup_obstacle
+    primitives:
+      - type: box
+        dimensions_m: [0.085, 0.085, 0.095]
+        pose:
+          translation_m: [0.390, 0.120, 0.3875]
+          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
+  - id: study_cafe_wallet_obstacle
+    primitives:
+      - type: box
+        dimensions_m: [0.10, 0.12, 0.020]
+        pose:
+          translation_m: [0.550, 0.140, 0.350]
+          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
+  - id: study_cafe_tissue_obstacle
+    primitives:
+      - type: box
+        dimensions_m: [0.057, 0.067, 0.045]
+        pose:
+          translation_m: [0.495, -0.110, 0.3625]
+          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]

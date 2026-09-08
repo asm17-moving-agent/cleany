@@ -18,39 +18,91 @@ from cleany_perception.core.models import (
 @dataclass(frozen=True, slots=True)
 class _ColorClass:
     label: str
-    channel: int
-    minimum_value: float
-    other_channel_ratios: tuple[float, float]
+    minimum_rgb: tuple[float, float, float]
+    maximum_rgb: tuple[float, float, float]
+    ratios: tuple[tuple[int, int, float], ...] = ()
+    maximum_channel_spread: float | None = None
 
 
-_COLOR_CLASSES = (
-    _ColorClass('red_can', 0, 140.0, (1.55, 1.70)),
-    _ColorClass('blue_box', 2, 120.0, (1.35, 1.35)),
-)
+_COLOR_PROFILES = {
+    'legacy': (
+        _ColorClass(
+            'red_can',
+            (140.0, 0.0, 0.0),
+            (255.0, 255.0, 255.0),
+            ((0, 1, 1.55), (0, 2, 1.70)),
+        ),
+        _ColorClass(
+            'blue_box',
+            (0.0, 0.0, 120.0),
+            (255.0, 255.0, 255.0),
+            ((2, 0, 1.35), (2, 1, 1.35)),
+        ),
+    ),
+    'study_cafe': (
+        _ColorClass(
+            'cup',
+            (0.0, 0.0, 60.0),
+            (255.0, 255.0, 255.0),
+            ((2, 0, 1.50), (2, 1, 1.50)),
+        ),
+        _ColorClass(
+            'wallet',
+            (45.0, 0.0, 0.0),
+            (180.0, 255.0, 255.0),
+            ((0, 1, 1.80), (1, 2, 1.70)),
+        ),
+        _ColorClass(
+            'phone',
+            (0.0, 0.0, 0.0),
+            (40.0, 40.0, 40.0),
+            maximum_channel_spread=5.0,
+        ),
+        _ColorClass(
+            'box',
+            (7.0, 0.0, 0.0),
+            (255.0, 255.0, 255.0),
+            ((0, 1, 1.50), (2, 1, 1.30)),
+        ),
+    ),
+}
 
 
 def _color_mask(rgb: RgbArray, color: _ColorClass) -> np.ndarray:
     values = np.asarray(rgb, dtype=np.float32)
-    selected = values[:, :, color.channel]
-    other_channels = tuple(
-        index for index in range(3) if index != color.channel
-    )
-    first_other = values[:, :, other_channels[0]]
-    second_other = values[:, :, other_channels[1]]
-    return (
-        (selected > color.minimum_value)
-        & (selected > color.other_channel_ratios[0] * first_other)
-        & (selected > color.other_channel_ratios[1] * second_other)
-    )
+    mask = np.all(values >= np.asarray(color.minimum_rgb), axis=2)
+    mask &= np.all(values <= np.asarray(color.maximum_rgb), axis=2)
+    for numerator, denominator, ratio in color.ratios:
+        mask &= values[:, :, numerator] > ratio * values[:, :, denominator]
+    if color.maximum_channel_spread is not None:
+        mask &= (
+            values.max(axis=2) - values.min(axis=2)
+            <= color.maximum_channel_spread
+        )
+    return mask
+
+
+def _classes(profile: str) -> tuple[_ColorClass, ...]:
+    try:
+        return _COLOR_PROFILES[profile]
+    except KeyError as error:
+        raise ValueError(
+            f'unsupported simulation color profile: {profile}'
+        ) from error
 
 
 class SimulationColorDetector:
     """Return bboxes measured from rendered red and blue pixels."""
 
-    def __init__(self, minimum_pixels: int = 100) -> None:
+    def __init__(
+        self,
+        minimum_pixels: int = 100,
+        profile: str = 'legacy',
+    ) -> None:
         if minimum_pixels <= 0:
             raise ValueError('minimum_pixels must be positive')
         self._minimum_pixels = minimum_pixels
+        self._colors = _classes(profile)
 
     def detect(
         self,
@@ -58,7 +110,7 @@ class SimulationColorDetector:
         _query: str,
     ) -> Sequence[Detection2D]:
         detections = []
-        for color in _COLOR_CLASSES:
+        for color in self._colors:
             rows, columns = np.nonzero(_color_mask(rgb, color))
             if rows.size < self._minimum_pixels:
                 continue
@@ -80,12 +132,15 @@ class SimulationColorDetector:
 class SimulationColorSegmenter:
     """Return full-resolution rendered color masks for selected bboxes."""
 
+    def __init__(self, profile: str = 'legacy') -> None:
+        self._colors = _classes(profile)
+
     def segment(
         self,
         rgb: RgbArray,
         detections: Sequence[Detection2D],
     ) -> Sequence[ObjectMask]:
-        colors = {color.label: color for color in _COLOR_CLASSES}
+        colors = {color.label: color for color in self._colors}
         masks = []
         height, width = rgb.shape[:2]
         for detection in detections:

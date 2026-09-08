@@ -35,6 +35,10 @@ class Sam2Segmenter:
         self._predictor_factory = predictor_factory
         self._predictor = None
 
+    def prepare(self) -> None:
+        """Load the selected predictor without publishing synthetic results."""
+        self._get_predictor()
+
     def segment(
         self,
         rgb: RgbArray,
@@ -50,7 +54,10 @@ class Sam2Segmenter:
 
                 inference_context = torch.inference_mode()
             with inference_context:
-                predictor.set_image(np.asarray(rgb))
+                # ROS Image buffers are commonly exposed as read-only NumPy
+                # views. Torch warns that wrapping such arrays can lead to
+                # undefined writes, so SAM2 receives an owned RGB array.
+                predictor.set_image(np.array(rgb, copy=True))
                 masks = []
                 for detection in detections:
                     box = np.array(

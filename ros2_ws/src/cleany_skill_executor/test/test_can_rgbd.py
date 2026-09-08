@@ -4,6 +4,7 @@ import pytest
 from cleany_skill_executor.core.can_rgbd import (
     CameraProjection,
     render_grasp_overlay,
+    rotation_matrix_from_quaternion,
     segment_red_can,
 )
 
@@ -70,6 +71,18 @@ def test_camera_projection_rejects_non_finite_translation() -> None:
             translation_base=(0.0, float('nan'), 0.0),
             rotation_base_from_optical=tuple(np.eye(3).reshape(-1)),
         )
+
+
+def test_quaternion_rotation_matrix_is_normalized() -> None:
+    rotation = rotation_matrix_from_quaternion(0.0, 0.0, 2.0, 2.0)
+
+    assert rotation.T @ rotation == pytest.approx(np.eye(3), abs=1.0e-12)
+    assert np.linalg.det(rotation) == pytest.approx(1.0)
+
+
+def test_quaternion_rotation_matrix_rejects_zero() -> None:
+    with pytest.raises(ValueError, match='finite and non-zero'):
+        rotation_matrix_from_quaternion(0.0, 0.0, 0.0, 0.0)
 
 
 def test_segmentation_rejects_non_positive_cloud_limit() -> None:

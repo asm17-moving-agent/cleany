@@ -28,6 +28,7 @@ setup(
     entry_points={
         'console_scripts': [
             'grasp_selection_server = cleany_skill_executor.grasp_selection_node:main',
+            'sorting_coordinator = cleany_skill_executor.sorting_coordinator:main',
             'grasp_execution_demo = cleany_skill_executor.grasp_execution_demo:main',
             (
                 'can_grasp_execution_demo = '

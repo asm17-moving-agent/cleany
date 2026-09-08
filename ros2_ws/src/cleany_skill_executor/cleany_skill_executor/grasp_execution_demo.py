@@ -1,6 +1,7 @@
 """Operator-visible MuJoCo demo: select, then execute a reachable grasp."""
 
 from __future__ import annotations
+from cleany_skill_executor.motion_guard import enforce_motion_guard, guarded_action_result
 
 import math
 import time
@@ -219,6 +220,7 @@ class GraspExecutionDemo(Node):
         accept_control_failure: Callable[[], bool] | None = None,
     ) -> bool:
         for execution_attempt in (1, 2):
+            enforce_motion_guard(self)
             goal = self._execution_goal(arm, joint_state, label)
             self.get_logger().info(
                 f'MoveIt plan-and-execute: {label} attempt={execution_attempt}/2'
@@ -230,9 +232,7 @@ class GraspExecutionDemo(Node):
             )
             if not handle.accepted:
                 raise RuntimeError(f'{label} MoveGroup goal was rejected')
-            wrapped = self._future(
-                handle.get_result_async(), 60.0, f'{label} execution result'
-            )
+            wrapped = guarded_action_result(self, handle, 60.0, f'{label} execution result')
             code = wrapped.result.error_code.val
             if (
                 wrapped.status == GoalStatus.STATUS_SUCCEEDED

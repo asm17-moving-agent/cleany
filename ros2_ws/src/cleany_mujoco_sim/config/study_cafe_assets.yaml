@@ -1,0 +1,64 @@
+schema_version: 1
+active_scene_assets: [paper_cup, lego_brick, crumpled_tissue, wallet]
+procedural_assets:
+  generator: cleany_mujoco_sim/tabletop_shapes.py
+  configuration: study_cafe_layout.yaml
+  units: metres
+  paper_cup:
+    description: Original handleless hollow tapered cup, not the archived Coffee Mug mesh.
+    collision: bottom plus 32 convex wall panels; no solid cap across the opening
+  lego_brick:
+    description: Original 2x4 studded brick approximation, without brand lettering.
+    body_extent_m: [0.0318, 0.0158, 0.0096]
+    total_height_m: 0.0114
+    dimension_sources:
+      - https://ldraw.org/article/218.html
+      - https://www.cailliau.org/Alphabetical/L/Lego/Dimensions/More%20Dimensions/BBEditPreviewTemp.html
+    collision: solid body and eight studs; underside clutch tubes not simulated
+  crumpled_tissue:
+    description: Original deterministic folded surface, not an imported paper model.
+    collision: convex hull of the rendered mesh; no paper deformation
+# Old mesh files/provenance below are retained for historical reproducibility.
+downloaded_on: '2026-09-04'
+source_catalog: https://poly.pizza/
+conversion:
+  tool: trimesh 4.8.3
+  transform: glTF Y-up to MuJoCo Z-up, centered in XY with bottom at Z=0
+  materials: source materials removed; MJCF supplies the display color
+assets:
+  cup:
+    active: false
+    title: Coffee Mug
+    author: Michael Fuchs
+    source_page: https://poly.pizza/m/eYH-QqBybgU
+    source_file: https://static.poly.pizza/72ca337a-b7a7-4e17-82d8-3b28164cf6f6.glb
+    license: CC-BY-3.0
+    license_url: https://creativecommons.org/licenses/by/3.0/
+    source_sha256: f51974486eab1d86a719d60a81b88f53774998d1d09c6bb7584454cc962f1550
+    imported_file: study_cafe_cup.obj
+    imported_sha256: 9cde74003691625bdb2822477bd7dad7605e68f1cc559b4dcdb86377aac5f8f6
+    normalized_extent_m: [0.120, 0.085, 0.095]
+  phone:
+    active: false
+    title: Smartphone
+    author: smallbigsquare
+    source_page: https://poly.pizza/m/4DRZmTs3jq
+    source_file: https://static.poly.pizza/68a8586b-e540-431c-b42e-e3c6bc691e11.glb
+    license: CC0-1.0
+    license_url: https://creativecommons.org/publicdomain/zero/1.0/
+    source_sha256: 868e2d7b191defae7b7c8e2908d3cd41d1c7be1a940945737010590e89b35e90
+    imported_file: study_cafe_phone.obj
+    imported_sha256: 1e21885664d15d75685a32e0461d16b6e0a226a3efa368bf9f004971aff9d715
+    normalized_extent_m: [0.0675, 0.135, 0.0072]
+  wallet:
+    active: true
+    title: Wallet
+    author: Poly by Google
+    source_page: https://poly.pizza/m/bN7GPQFma7_
+    source_file: https://static.poly.pizza/bb633adb-57f0-4d6f-8752-436e0047c96d.glb
+    license: CC-BY-3.0
+    license_url: https://creativecommons.org/licenses/by/3.0/
+    source_sha256: f19b9ceeb64961634fab36fb5a6155882301a0cc8760ccb92ea3a9aeb8c9df35
+    imported_file: study_cafe_wallet.obj
+    imported_sha256: 0b08397cc2b06ded9d07902edcfd75c65af220de161aeb4804d0d4adc3391dd7
+    normalized_extent_m: [0.110, 0.085, 0.020]

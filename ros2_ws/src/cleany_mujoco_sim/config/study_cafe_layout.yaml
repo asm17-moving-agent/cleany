@@ -1,0 +1,88 @@
+schema_version: 1
+
+scene:
+  ambient_rgba: [0.65, 0.65, 0.65, 1.0]
+  background_rgba: [0.82, 0.83, 0.84, 1.0]
+
+robot:
+  # x, y, z, roll, pitch, yaw in the world frame.
+  spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
+
+mujoco:
+  # The chair center overlaps Cleany's front collision geometry by 0.16 m.
+  # Shift the robot away from the desk by that amount plus 0.02 m clearance.
+  robot_center_rearward_offset_m: 0.18
+  # Keep all four objects within the 640x480 head RGB camera at 1.00 rad tilt.
+  tabletop_objects:
+    - name: cup
+      xy_offset_from_desk_center_m: [-0.12, -0.175]
+      yaw_rad: 0.20
+      # Empty paper cup; mass is a simulation assumption, not a measured sample.
+      mass_kg: 0.008
+      rgba: [0.92, 0.87, 0.74, 1.0]
+      visual_type: paper_cup
+      geometry:
+        bottom_diameter_m: 0.055
+        wall_thickness_m: 0.0007
+        segments: 32
+      collision:
+        type: compound
+        # top diameter, height; open hollow tapered walls plus bottom
+        size_m: [0.085, 0.095]
+    - name: wallet
+      xy_offset_from_desk_center_m: [-0.14, -0.015]
+      yaw_rad: -0.18
+      mass_kg: 0.12
+      rgba: [0.30, 0.12, 0.045, 1.0]
+      collision:
+        # Use the existing visual mesh's convex hull, not its oversized axis box.
+        type: mesh
+        size_m: [0.110, 0.085, 0.020]
+    - name: tissue
+      xy_offset_from_desk_center_m: [0.11, -0.070]
+      yaw_rad: 0.12
+      mass_kg: 0.001
+      rgba: [0.96, 0.96, 0.94, 1.0]
+      visual_type: crumpled_tissue
+      geometry:
+        latitude_segments: 10
+        longitude_segments: 24
+        wrinkle_amplitude: 0.24
+      collision:
+        type: mesh
+        size_m: [0.060, 0.050, 0.045]
+    - name: lego
+      xy_offset_from_desk_center_m: [0.16, -0.205]
+      yaw_rad: -0.25
+      mass_kg: 0.0023
+      rgba: [0.92, 0.035, 0.025, 1.0]
+      visual_type: lego_brick
+      geometry:
+        studs_x: 4
+        studs_y: 2
+        stud_pitch_m: 0.008
+        stud_diameter_m: 0.0048
+        stud_height_m: 0.0018
+      collision:
+        type: compound
+        # Standard 2x4 body; total height including studs is 11.4 mm.
+        size_m: [0.0318, 0.0158, 0.0096]
+
+room:
+  inside_size_m: [12.26, 10.94]
+  wall_thickness_m: 0.16
+  wall_height_m: 2.5
+  wall_rgba: [0.97, 0.97, 0.96, 1.0]
+  wall_roughness: 0.92
+
+desk_layout:
+  # Eight columns form the measured 3-2-3 blocks.
+  x_positions_m: [-5.53, -4.33, -3.13, -0.60, 0.60, 3.13, 4.33, 5.53]
+  row_pair_centers_y_m: [3.17, 0.0, -3.17]
+  rows:
+    - desk_y_offset_m: 0.385
+      chair_y_offset_from_desk_m: 0.385
+    - desk_y_offset_m: -0.385
+      chair_y_offset_from_desk_m: -0.385
+  partition_center_z_m: 0.66
+  monitor_y_offset_from_desk_center_m: 0.285

@@ -37,6 +37,8 @@ make test-mission
 make test-mujoco
 make test-handeye
 make test-grasp-pregrasp
+make test-scene-mapping
+make test-mujoco-observer
 make test-grasp-pregrasp-runtime
 make test-gazebo
 ```
@@ -45,8 +47,17 @@ RGB-D perception부터 grasp 후보 생성과 MoveIt pre-grasp까지 변경할 �
 `make test-grasp-pregrasp`로 관련 unit/contract 테스트만 실행한다. 전체 MuJoCo,
 주행과 hand-eye calibration 테스트는 포함하지 않는다. 실제 MuJoCo controller 실행은
 시간이 더 걸리는 `make test-grasp-pregrasp-runtime`으로 별도 확인한다. runtime은
-가장 가까운 객체 실패 후 다음 객체 fallback과 pre-grasp 정지를 검증한다. RGB-D 캔
+OMPL과 Pilz LIN 동시 로딩 및 LIN FK 직선성, 가장 가까운 객체 실패 후 다음 객체
+fallback과 pre-grasp 정지를 검증한다. RGB-D 캔
 GUI 데모는 OpenGL viewer가 필요하므로 자동 runtime target에 포함하지 않는다.
+
+`make test-scene-mapping`은 선택형 known-geometry OctoMap updater만 빌드하고
+C++ geometry/TF guard 및 plugin 로딩을 검사한다. 이 검사도
+`make test-grasp-pregrasp`에 포함된다. 실제 물체 집기/분리 수거 완료 검사는 아니다.
+저장한 정지 상태 RGB-D/URDF fixture가 있으면
+`make profile-scene-mask MASK_FIXTURE=/absolute/path/to/fixture`로 ROS node 없이
+serial/분할 self-mask의 점 단위 일치와 처리 시간을 비교한다. fixture 계약과
+robot-only 측정 범위는 `src/cleany_scene_mapping/README.md`를 따른다.
 
 Hand-eye 패키지 경계만 빌드하려면 `make build-handeye`를 사용한다.
 `make test-handeye`는 description, MuJoCo backend, MoveIt config와 calibration
@@ -73,6 +84,30 @@ MuJoCo 시뮬레이터를 headless 모드로 실행한다.
 ```bash
 make sim
 ```
+
+Gazebo study-cafe와 같은 벽·책상·파티션·모니터·의자 배치를 MuJoCo viewer에서
+실행하려면 전용 target을 사용한다.
+
+```bash
+make sim-mujoco-study-cafe
+```
+
+Gemini Flash-Lite + 로컬 SAM2-tiny와 카메라 기반 충돌 지도를 포함한 기본 파이프라인은
+레포 루트에서 `make sim-mujoco-pipeline`으로 실행한다. 모델 옵션 없이 공통
+프로필을 로딩하며, 기본은 실제 팔 명령을 내리지 않는 plan-only다. 실행 환경에
+`GEMINI_API_KEY`가 필요하고 RGB 영상은 검출 시 Google API로 전송된다.
+모델/플러그인 준비는 `docs/DEVELOPMENT_SETUP.md`, 동작과 한계는
+`src/cleany_skill_executor/README.md`의 센서 전용 항목을 따른다.
+
+로봇 후면 선반 위 좌측 분실물함/우측 쓰레기함과 분류·집기·놓기 흐름은
+`make sim-mujoco-sorting`으로 실행한다. 시뮬레이션에서만 실제 관절 명령을
+보내는 통합 검증 경로이며, 두 종류의 물리적 수거 성공은 검증 진행 중이다.
+GUI 없이 실행하려면 `DISPLAY=:0 make sim-mujoco-sorting
+SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'`를 사용한다.
+현재 vendor 카메라 렌더링은 headless에서도 사용 가능한 X display가 필요하다.
+tracking 중단은 `sam2_tracking_enabled:=false`, 외부 GPU perception 사용은
+`start_perception:=false`를 추가한다. 외부 노드도 같은 tracking/시계 설정으로
+실행한다. 현재 배치에는 중앙 인계 구역이 없고 후면 운반 성공은 아직 미검증이다.
 
 Gazebo Fortress 시뮬레이터는 `make sim-gazebo`로 실행한다.
 

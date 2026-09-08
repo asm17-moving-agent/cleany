@@ -7,7 +7,19 @@ set +u
 source /workspace/cleany/ros2_ws/install-perception/setup.bash
 set -u
 
-exec ros2 launch cleany_perception inspect_scene.launch.py \
+perception_sim_time="${CLEANY_PERCEPTION_USE_SIM_TIME:-false}"
+perception_tracking="${CLEANY_SAM2_TRACKING:-true}"
+for value in "${perception_sim_time}" "${perception_tracking}"; do
+  case "${value}" in
+    true|false) ;;
+    *) echo "Perception clock/tracking options must be true or false" >&2; exit 1 ;;
+  esac
+done
+
+exec ros2 launch cleany_perception learned_rgbd.launch.py \
+  model_directory:=/models \
+  use_sim_time:="${perception_sim_time}" \
+  sam2_tracking_enabled:="${perception_tracking}" \
   sam2_model_config:="${SAM2_MODEL_CONFIG}" \
   sam2_checkpoint:="${SAM2_CHECKPOINT_PATH}" \
-  sam2_device:=cuda
+  device:=cuda

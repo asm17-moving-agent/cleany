@@ -24,6 +24,8 @@ grasp_server:
       yaw_offsets_degrees: [-20.0, -10.0, 0.0, 10.0, 20.0]
       approach_tilt_degrees: 0.0
       approach_tilt_direction: [1.0, 0.0, 0.0]
+      reject_robot_opposite_approach: false
+      robot_reference_position: [0.0, 0.0, 0.0]
       maximum_candidates: 12
     # GraspNet canonical +X approach / +Y closing -> Cleany TCP -Y / +X.
     canonical_to_tcp_rotation: [0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]

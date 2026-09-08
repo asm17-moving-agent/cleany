@@ -13,6 +13,8 @@ class ObjectAttempt:
     label: str
     confidence: float
     distance_m: float
+    sorting_category: str = ''
+    sorting_reason: str = ''
 
     def __post_init__(self) -> None:
         if self.object_id <= 0:

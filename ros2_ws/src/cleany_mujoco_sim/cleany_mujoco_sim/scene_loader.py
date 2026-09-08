@@ -23,9 +23,16 @@ from cleany_mujoco_sim.camera_contract import (
     CAMERA_NAME,
     CAMERA_WIDTH,
 )
+from cleany_mujoco_sim.study_cafe_scene import (
+    STUDY_CAFE_ENVIRONMENT_TOKEN,
+    apply_study_cafe_layout,
+)
 
 _SCENE_MODEL_TOKEN = '@CLEANY_MJCF_PATH@'
 _HANDEYE_CAMERA_CONTRACT_TOKEN = '@CLEANY_HANDEYE_CAMERA_CONTRACT@'
+_STUDY_CAFE_HEAD_CAMERA_CONTRACT_TOKEN = (
+    '@CLEANY_STUDY_CAFE_HEAD_CAMERA_CONTRACT@'
+)
 _HANDEYE_CHARUCO_TEXTURE_TOKEN = '@CLEANY_CHARUCO_TEXTURE_PATH@'
 _DESCRIPTION_MESHDIR = 'meshdir="../meshes/"'
 _MATERIALIZED_DIRECTORIES: list[Path] = []
@@ -79,6 +86,7 @@ def materialize_control_scene(
     template_path: Path,
     *,
     initial_joint_positions: dict[str, float] | None = None,
+    sorting_bins_config: Path | None = None,
 ) -> Path:
     """Materialize a MuJoCo 3.4-compatible arm-control scene.
 
@@ -95,6 +103,7 @@ def materialize_control_scene(
         template_path,
         control_compatible=True,
         initial_joint_positions=initial_joint_positions,
+        sorting_bins_config=sorting_bins_config,
     )
 
 
@@ -102,12 +111,16 @@ def resolve_control_scene_path(
     scene_path: Path,
     *,
     initial_joint_positions: dict[str, float] | None = None,
+    sorting_bins_config: Path | None = None,
 ) -> Path:
     if scene_path.suffix == '.in':
         return materialize_control_scene(
             scene_path,
             initial_joint_positions=initial_joint_positions,
+            sorting_bins_config=sorting_bins_config,
         )
+    if sorting_bins_config is not None:
+        raise ValueError('Sorting bins require a materialized scene template')
     if initial_joint_positions and any(initial_joint_positions.values()):
         raise ValueError(
             'Custom initial joints require an XML scene template so its '
@@ -121,6 +134,7 @@ def _materialize_scene(
     *,
     control_compatible: bool,
     initial_joint_positions: dict[str, float] | None = None,
+    sorting_bins_config: Path | None = None,
 ) -> Path:
     if not template_path.is_file():
         raise FileNotFoundError(
@@ -146,6 +160,9 @@ def _materialize_scene(
         )
     apply_handeye_camera_contract = (
         _HANDEYE_CAMERA_CONTRACT_TOKEN in scene_text
+    )
+    apply_study_cafe_head_camera_contract = (
+        _STUDY_CAFE_HEAD_CAMERA_CONTRACT_TOKEN in scene_text
     )
     materialize_charuco_texture = (
         _HANDEYE_CHARUCO_TEXTURE_TOKEN in scene_text
@@ -188,6 +205,31 @@ def _materialize_scene(
         )
     if apply_handeye_camera_contract:
         materialized_model = _handeye_camera_model_text(materialized_model)
+    if apply_study_cafe_head_camera_contract:
+        materialized_model = _camera_resolution_model_text(
+            materialized_model,
+            camera_name='head_realsense_rgb',
+            width=640,
+            height=480,
+            expected_fovy=42.0,
+        )
+    if STUDY_CAFE_ENVIRONMENT_TOKEN in scene_text:
+        study_cafe_layout = (
+            _package_share('cleany_mujoco_sim')
+            / 'config'
+            / 'study_cafe_layout.yaml'
+        )
+        scene_text, materialized_model = apply_study_cafe_layout(
+            scene_text,
+            materialized_model,
+            study_cafe_layout,
+            _package_share('cleany_mujoco_sim') / 'assets',
+        )
+    if sorting_bins_config is not None:
+        from cleany_mujoco_sim.sorting_scene import add_sorting_bins
+        materialized_model = add_sorting_bins(
+            materialized_model, sorting_bins_config
+        )
     model_path.write_text(materialized_model, encoding='utf-8')
 
     model_include_path = html.escape(str(model_path.resolve()), quote=True)
@@ -199,12 +241,21 @@ def _materialize_scene(
         raise ValueError(
             f'Unresolved MuJoCo scene token: {_SCENE_MODEL_TOKEN}'
         )
+    if STUDY_CAFE_ENVIRONMENT_TOKEN in scene_text:
+        raise ValueError(
+            'Unresolved MuJoCo scene token: '
+            f'{STUDY_CAFE_ENVIRONMENT_TOKEN}'
+        )
     scene_text = scene_text.replace(
         _HANDEYE_CAMERA_CONTRACT_TOKEN,
         (
             f'{CAMERA_NAME}:{CAMERA_WIDTH}x{CAMERA_HEIGHT}'
             f'@fovy{CAMERA_FOVY_DEG:g}'
         ),
+    )
+    scene_text = scene_text.replace(
+        _STUDY_CAFE_HEAD_CAMERA_CONTRACT_TOKEN,
+        'head_realsense_rgb:640x480@fovy42',
     )
     if materialize_charuco_texture:
         texture_path = materialized_dir / 'charuco_render_texture.png'
@@ -251,7 +302,9 @@ def _expand_control_keyframe_for_scene(
             model, mujoco.mjtObj.mjOBJ_JOINT, name
         )
         if joint_id < 0:
-            raise ValueError(f'Unknown initial joint in workflow scene: {name}')
+            raise ValueError(
+                f'Unknown initial joint in workflow scene: {name}'
+            )
         qpos[model.jnt_qposadr[joint_id]] = float(value)
 
     root = ET.parse(model_path).getroot()
@@ -418,6 +471,46 @@ def _handeye_camera_model_text(model_text: str) -> str:
     return ET.tostring(root, encoding='unicode') + '\n'
 
 
+def _camera_resolution_model_text(
+    model_text: str,
+    *,
+    camera_name: str,
+    width: int,
+    height: int,
+    expected_fovy: float,
+) -> str:
+    """Add an explicit resolution to one camera in a temporary include."""
+
+    root = ET.fromstring(model_text)
+    cameras = root.findall(f".//camera[@name='{camera_name}']")
+    if len(cameras) != 1:
+        raise ValueError(
+            f'Cleany MJCF must define exactly one {camera_name} camera'
+        )
+    camera = cameras[0]
+    try:
+        source_fovy = float(camera.attrib['fovy'])
+    except (KeyError, ValueError) as error:
+        raise ValueError(
+            f'{camera_name} must declare a numeric fovy'
+        ) from error
+    if source_fovy != expected_fovy:
+        raise ValueError(
+            f'{camera_name} fovy changed: expected {expected_fovy:g}, '
+            f'got {source_fovy:g}'
+        )
+    expected_resolution = f'{width} {height}'
+    source_resolution = camera.attrib.get('resolution')
+    if source_resolution not in (None, expected_resolution):
+        raise ValueError(
+            f'{camera_name} resolution changed: expected '
+            f'{expected_resolution}, got {source_resolution}'
+        )
+    camera.set('resolution', expected_resolution)
+    ET.indent(root, space='  ')
+    return ET.tostring(root, encoding='unicode') + '\n'
+
+
 def _control_compatible_model_text(
     model_text: str,
     *,
@@ -475,9 +568,15 @@ def _control_compatible_model_text(
         {'name': _CONTROL_INITIAL_KEYFRAME},
     )
     if initial_qpos:
-        keyframe.set('qpos', ' '.join(f'{value:.12g}' for value in initial_qpos))
+        keyframe.set(
+            'qpos',
+            ' '.join(f'{value:.12g}' for value in initial_qpos),
+        )
     if initial_ctrl:
-        keyframe.set('ctrl', ' '.join(f'{value:.12g}' for value in initial_ctrl))
+        keyframe.set(
+            'ctrl',
+            ' '.join(f'{value:.12g}' for value in initial_ctrl),
+        )
 
     ET.indent(root, space='  ')
     return ET.tostring(root, encoding='unicode') + '\n'

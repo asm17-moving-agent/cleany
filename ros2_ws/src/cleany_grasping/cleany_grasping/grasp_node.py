@@ -6,7 +6,9 @@ import struct
 
 import numpy as np
 import rclpy
-from cleany_interfaces.msg import GraspCandidate
+from cleany_interfaces.msg import GraspCandidate, ObservedObjectGeometry
+from geometry_msgs.msg import Point
+from shape_msgs.msg import MeshTriangle
 from cleany_interfaces.srv import PlanGrasp
 from rclpy.duration import Duration
 from rclpy.node import Node
@@ -17,6 +19,7 @@ from tf2_ros import Buffer, TransformException, TransformListener
 
 from cleany_grasping.anygrasp_adapter import AnyGraspPredictor, ModelUnavailableError
 from cleany_grasping.core.models import PointCloud
+from cleany_grasping.core.collision_geometry import observed_convex_prism
 from cleany_grasping.core.selector import GraspConfig, rank_grasps
 from cleany_grasping.debug_image import debug_image_message, render_grasp_debug_image
 from cleany_grasping.geometric_predictor import (
@@ -84,6 +87,20 @@ def _transform_target_object(target_object, rotation, translation):
     return transformed
 
 
+def observed_geometry_message(points, target_object, header, snapshot_id, object_id):
+    pose = target_object.obb_pose
+    q, p = pose.orientation, pose.position
+    mesh = observed_convex_prism(points, np.array((p.x,p.y,p.z)),
+        _rotation_from_quaternion(q.x,q.y,q.z,q.w), target_object.obb_size.z)
+    geometry = ObservedObjectGeometry()
+    geometry.header = deepcopy(header)
+    geometry.snapshot_id, geometry.object_id = snapshot_id, object_id
+    geometry.mesh_pose = deepcopy(pose)
+    geometry.mesh.vertices = [Point(x=float(x), y=float(y), z=float(z)) for x,y,z in mesh.vertices]
+    geometry.mesh.triangles = [MeshTriangle(vertex_indices=list(map(int, face))) for face in mesh.triangles]
+    return geometry
+
+
 def point_cloud_from_message(message: PointCloud2) -> PointCloud:
     fields = {field.name: field.offset for field in message.fields}
     if not {'x', 'y', 'z', 'rgb'} <= fields.keys() or message.point_step <= 0:
@@ -113,13 +130,17 @@ class GraspNode(Node):
         self.declare_parameter('checkpoint_path', '')
         self.declare_parameter('license_path', '')
         self.declare_parameter('predictor_type', 'geometric')
+        self.declare_parameter('publish_collision_geometry', False)
+        self.declare_parameter('collision_geometry_topic', '/grasp/collision_geometry')
         self.declare_parameter('debug_image_topic', 'grasp/debug_image')
         self.declare_parameter('maximum_gripper_width_m', 0.10)
         self.declare_parameter('gripper_height_m', 0.03)
         self.declare_parameter('workspace_margin_m', 0.04)
         self.declare_parameter('target_contact_margin_m', 0.015)
+        self.declare_parameter('nms_rotation_threshold_degrees', 20.0)
         self.declare_parameter('geometric.opening_margin_m', 0.008)
         self.declare_parameter('geometric.grasp_depth_m', 0.025)
+        self.declare_parameter('geometric.maximum_top_contact_depth_m', 0.0)
         self.declare_parameter('geometric.finger_thickness_m', 0.010)
         self.declare_parameter('geometric.finger_length_m', 0.045)
         self.declare_parameter('geometric.palm_depth_m', 0.018)
@@ -132,9 +153,29 @@ class GraspNode(Node):
             'geometric.yaw_offsets_degrees', [-20.0, -10.0, 0.0, 10.0, 20.0]
         )
         self.declare_parameter('geometric.approach_tilt_degrees', 0.0)
+        self.declare_parameter('geometric.search_approach_tilts', False)
+        self.declare_parameter('geometric.include_reverse_closing_axis', False)
+        self.declare_parameter('geometric.prefer_upward_closing_axis', False)
+        self.declare_parameter('geometric.search_longitudinal_contacts', False)
+        self.declare_parameter('geometric.longitudinal_offset_fractions', [0.0, -0.25, 0.25])
+        self.declare_parameter('geometric.longitudinal_max_height_ratio', 0.4)
+        self.declare_parameter('geometric.longitudinal_contact_height_offset_m', 0.0)
+        self.declare_parameter('geometric.defer_support_plane_collision', False)
+        self.declare_parameter('geometric.approach_reference_positions', [0.0])
+        self.declare_parameter(
+            'geometric.approach_tilt_options', [0.0, 8.0, 16.0, 24.0]
+        )
         self.declare_parameter(
             'geometric.approach_tilt_direction',
             [1.0, 0.0, 0.0],
+        )
+        self.declare_parameter(
+            'geometric.reject_robot_opposite_approach',
+            False,
+        )
+        self.declare_parameter(
+            'geometric.robot_reference_position',
+            [0.0, 0.0, 0.0],
         )
         self.declare_parameter('geometric.maximum_candidates', 12)
         self.declare_parameter(
@@ -153,6 +194,11 @@ class GraspNode(Node):
             ),
         )
         self._tf_buffer = Buffer()
+        self._geometry_publisher = None
+        if self.get_parameter('publish_collision_geometry').value:
+            self._geometry_publisher = self.create_publisher(ObservedObjectGeometry,
+                str(self.get_parameter('collision_geometry_topic').value),
+                QoSProfile(depth=16, durability=DurabilityPolicy.TRANSIENT_LOCAL))
         self._tf_listener = TransformListener(self._tf_buffer, self)
         self._service = self.create_service(
             PlanGrasp, str(self.get_parameter('service_name').value), self._plan
@@ -165,6 +211,9 @@ class GraspNode(Node):
             target = point_cloud_from_message(request.target_cloud)
             context = point_cloud_from_message(request.context_cloud)
             config = GraspConfig(
+                nms_rotation_threshold_rad=math.radians(float(
+                    self.get_parameter('nms_rotation_threshold_degrees').value
+                )),
                 workspace_margin_m=float(self.get_parameter('workspace_margin_m').value),
                 target_contact_margin_m=float(self.get_parameter('target_contact_margin_m').value),
                 maximum_gripper_width_m=float(self.get_parameter('maximum_gripper_width_m').value),
@@ -199,6 +248,12 @@ class GraspNode(Node):
                 frame_rotation,
                 frame_translation,
             )
+            if self._geometry_publisher is not None:
+                header = deepcopy(request.context_cloud.header)
+                header.frame_id = str(self.get_parameter('planning_frame').value)
+                geometry = observed_geometry_message(target.points @ frame_rotation.T+frame_translation,
+                    target_object, header, request.snapshot_id, request.object_id)
+                self._geometry_publisher.publish(geometry)
             for grasp in ranked:
                 rotation = frame_rotation @ grasp.rotation
                 translation = (
@@ -244,8 +299,33 @@ class GraspNode(Node):
                 ),
             )
         if predictor_type == 'geometric':
+            origins = list(self.get_parameter('geometric.approach_reference_positions').value)
+            if origins == [0.0]:
+                origins = []
+            if len(origins) % 3:
+                raise ValueError('Approach reference positions need flattened xyz triples')
             return GeometricGraspPredictor(
                 GeometricGraspConfig(
+                    defer_support_plane_collision=bool(self.get_parameter(
+                        'geometric.defer_support_plane_collision').value),
+                    longitudinal_offset_fractions=tuple(float(v) for v in self.get_parameter(
+                        'geometric.longitudinal_offset_fractions').value) if self.get_parameter(
+                            'geometric.search_longitudinal_contacts').value else (0.0,),
+                    longitudinal_max_height_ratio=float(self.get_parameter(
+                        'geometric.longitudinal_max_height_ratio').value),
+                    longitudinal_contact_height_offset_m=float(self.get_parameter(
+                        'geometric.longitudinal_contact_height_offset_m').value),
+                    approach_reference_positions=tuple(tuple(float(v) for v in origins[i:i+3])
+                                                       for i in range(0, len(origins), 3)),
+                    include_reverse_closing_axis=bool(self.get_parameter(
+                        'geometric.include_reverse_closing_axis').value),
+                    prefer_upward_closing_axis=bool(self.get_parameter(
+                        'geometric.prefer_upward_closing_axis').value),
+                    approach_tilt_options=tuple(
+                        self.get_parameter('geometric.approach_tilt_options').value
+                    ) if self.get_parameter(
+                        'geometric.search_approach_tilts'
+                    ).value else (),
                     maximum_gripper_width_m=float(
                         self.get_parameter('maximum_gripper_width_m').value
                     ),
@@ -255,6 +335,8 @@ class GraspNode(Node):
                     grasp_depth_m=float(
                         self.get_parameter('geometric.grasp_depth_m').value
                     ),
+                    maximum_top_contact_depth_m=float(
+                        self.get_parameter('geometric.maximum_top_contact_depth_m').value),
                     finger_thickness_m=float(
                         self.get_parameter('geometric.finger_thickness_m').value
                     ),
@@ -296,6 +378,17 @@ class GraspNode(Node):
                         float(value)
                         for value in self.get_parameter(
                             'geometric.approach_tilt_direction'
+                        ).value
+                    ),
+                    reject_robot_opposite_approach=bool(
+                        self.get_parameter(
+                            'geometric.reject_robot_opposite_approach'
+                        ).value
+                    ),
+                    robot_reference_position=tuple(
+                        float(value)
+                        for value in self.get_parameter(
+                            'geometric.robot_reference_position'
                         ).value
                     ),
                     maximum_candidates=int(

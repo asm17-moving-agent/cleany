@@ -2,7 +2,7 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, Shutdown
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -10,7 +10,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def _moveit_config():
+def _moveit_config(controller_config='config/moveit_controllers.yaml'):
     description_xacro = (
         Path(get_package_share_directory('cleany_description'))
         / 'urdf'
@@ -28,18 +28,19 @@ def _moveit_config():
         .robot_description_kinematics(file_path='config/kinematics.yaml')
         .joint_limits(file_path='config/joint_limits.yaml')
         .trajectory_execution(
-            file_path='config/moveit_controllers.yaml',
+            file_path=controller_config,
             moveit_manage_controllers=False,
         )
         .planning_pipelines(
-            default_planning_pipeline='ompl', pipelines=['ompl']
+            default_planning_pipeline='ompl',
+            pipelines=['ompl', 'pilz_industrial_motion_planner'],
         )
         .planning_scene_monitor()
         .to_moveit_configs()
     )
 
 
-def generate_launch_description() -> LaunchDescription:
+def _launch_setup(context):
     use_rviz = LaunchConfiguration('use_rviz')
     use_sim_time = LaunchConfiguration('use_sim_time')
     allow_trajectory_execution = LaunchConfiguration(
@@ -51,14 +52,31 @@ def generate_launch_description() -> LaunchDescription:
     goal_duration_margin = LaunchConfiguration(
         'allowed_goal_duration_margin'
     )
-    moveit_config = _moveit_config()
+    moveit_config = (_moveit_config('config/sorting_moveit_controllers.yaml')
+                    if LaunchConfiguration('enable_gripper_execution', default='false').perform(context) == 'true'
+                    else _moveit_config())
+    sensor_parameters = []
+    sensor_condition = IfCondition(LaunchConfiguration('enable_depth_octomap'))
+    if sensor_condition.evaluate(context):
+        sensor_parameters = [
+            str(Path(moveit_config.package_path)
+                / 'config' / 'depth_octomap.yaml'),
+            {
+                'sensors': ['depth_cloud'],
+                'depth_cloud.sensor_plugin': LaunchConfiguration(
+                    'depth_octomap_plugin'
+                ),
+            },
+        ]
 
     move_group = Node(
         package='moveit_ros_move_group',
         executable='move_group',
         output='screen',
+        on_exit=Shutdown(reason='MoveIt planning process stopped'),
         parameters=[
             moveit_config.to_dict(),
+            *sensor_parameters,
             {
                 'allow_trajectory_execution': ParameterValue(
                     allow_trajectory_execution, value_type=bool
@@ -101,10 +119,22 @@ def generate_launch_description() -> LaunchDescription:
         ],
     )
 
+    return [move_group, rviz]
+
+
+def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             DeclareLaunchArgument('use_rviz', default_value='false'),
             DeclareLaunchArgument('use_sim_time', default_value='false'),
+            DeclareLaunchArgument('enable_gripper_execution', default_value='false', choices=['true', 'false']),
+            DeclareLaunchArgument(
+                'enable_depth_octomap', default_value='false'
+            ),
+            DeclareLaunchArgument(
+                'depth_octomap_plugin',
+                default_value='occupancy_map_monitor/PointCloudOctomapUpdater',
+            ),
             DeclareLaunchArgument(
                 'allow_trajectory_execution', default_value='true'
             ),
@@ -114,7 +144,6 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'allowed_goal_duration_margin', default_value='0.5'
             ),
-            move_group,
-            rviz,
+            OpaqueFunction(function=_launch_setup),
         ]
     )

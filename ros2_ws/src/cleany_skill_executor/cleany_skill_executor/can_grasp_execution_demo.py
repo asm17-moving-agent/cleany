@@ -52,6 +52,10 @@ from cleany_skill_executor.core.grasp_selection import (
     quaternion_axis,
     unsigned_axis_error_deg,
 )
+from cleany_skill_executor.core.gripper import (
+    is_gripper_contact_stall,
+    opening_to_gripper_position,
+)
 from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo
 from cleany_skill_executor.planning_scene import TargetSceneTransaction
 
@@ -1072,31 +1076,14 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
         minimum_position_rad: float,
         maximum_position_rad: float,
     ) -> float:
-        values = (
-            required_opening_m,
-            opening_reduction_m,
-            reference_aperture_m,
-            reference_position_rad,
-            aperture_m_per_rad,
-            minimum_position_rad,
-            maximum_position_rad,
-        )
-        if not all(math.isfinite(value) for value in values):
-            raise ValueError('gripper aperture calibration must be finite')
-        if required_opening_m <= 0.0 or opening_reduction_m < 0.0:
-            raise ValueError('gripper opening values must be positive')
-        if reference_aperture_m <= 0.0 or aperture_m_per_rad <= 0.0:
-            raise ValueError('gripper aperture calibration must be positive')
-        if minimum_position_rad > maximum_position_rad:
-            raise ValueError('gripper position limits are reversed')
-        contact_aperture = max(
-            0.0, required_opening_m - opening_reduction_m
-        )
-        position = reference_position_rad + (
-            contact_aperture - reference_aperture_m
-        ) / aperture_m_per_rad
-        return min(
-            maximum_position_rad, max(minimum_position_rad, position)
+        return opening_to_gripper_position(
+            required_opening_m=required_opening_m,
+            opening_reduction_m=opening_reduction_m,
+            reference_aperture_m=reference_aperture_m,
+            reference_position_rad=reference_position_rad,
+            aperture_m_per_rad=aperture_m_per_rad,
+            minimum_position_rad=minimum_position_rad,
+            maximum_position_rad=maximum_position_rad,
         )
 
     @staticmethod
@@ -1110,27 +1097,14 @@ class CanGraspExecutionDemo(GraspExecutionDemo):
         minimum_residual: float,
         maximum_velocity: float,
     ) -> bool:
-        values = (
-            start,
-            actual,
-            command,
-            velocity,
-            minimum_motion,
-            minimum_residual,
-            maximum_velocity,
-        )
-        if not all(math.isfinite(value) for value in values):
-            return False
-        if minimum_motion <= 0.0 or minimum_residual <= 0.0:
-            return False
-        if maximum_velocity < 0.0 or command >= start:
-            return False
-        motion = start - actual
-        residual = actual - command
-        return (
-            motion >= minimum_motion
-            and residual >= minimum_residual
-            and abs(velocity) <= maximum_velocity
+        return is_gripper_contact_stall(
+            start=start,
+            actual=actual,
+            command=command,
+            velocity=velocity,
+            minimum_motion=minimum_motion,
+            minimum_residual=minimum_residual,
+            maximum_velocity=maximum_velocity,
         )
 
     @staticmethod

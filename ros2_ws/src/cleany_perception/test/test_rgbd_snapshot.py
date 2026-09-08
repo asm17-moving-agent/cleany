@@ -70,6 +70,14 @@ def test_snapshot_conversion_rejects_mismatched_intrinsics():
     assert raised.value.kind == FailureKind.DEPTH
 
 
+def test_snapshot_rejects_unregistered_depth_frame():
+    messages = _messages()
+    messages.depth.header.frame_id = 'unregistered_depth_optical'
+    messages.depth_info.header.frame_id = 'unregistered_depth_optical'
+    with pytest.raises(InspectionFailure, match='optical frames differ'):
+        snapshot_from_messages(messages)
+
+
 def test_snapshot_buffer_only_releases_exact_timestamp_bundle():
     buffer = RgbdSnapshotBuffer()
     first = _messages(stamp_ns=10)

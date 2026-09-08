@@ -15,7 +15,37 @@ perception_inspector:
     default_query: Detect the box and can on the table.
     detector_type: gemini
     segmenter_type: sam2
+    enable_wrist_observation: false
+    wrist_handoff_require_redetection: false
+    wrist_continuous_tracking: true
+    wrist_streaming_memory_frames: 32
+    wrist_streaming_cpu_threads: 4
+    wrist_tracking_check_timeout_seconds: 12.0
+    wrist_maximum_tracking_result_age_seconds: 6.0
+    wrist_capture_timeout_seconds: 3.0
+    wrist_maximum_frame_age_seconds: 0.75
+    wrist_maximum_head_prior_age_seconds: 60.0
+    wrist_reference_ttl_seconds: 120.0
+    wrist_minimum_detection_confidence: 0.25
+    wrist_minimum_segmentation_score: 0.8
+    wrist_minimum_detection_iou: 0.2
+    wrist_near_plane_m: 0.005
+    wrist_minimum_box_edge_pixels: 8.0
+    wrist_minimum_visible_fraction: 0.6
+    wrist_minimum_mask_pixels: 100
+    wrist_maximum_mask_fraction: 0.7
+    wrist_minimum_mask_in_box_fraction: 0.65
+    wrist_history_period_seconds: 2.0
+    wrist_history_maximum_frames: 32
+    wrist_tracking_support_frames: 4
     simulation_color_minimum_pixels: 100
+    simulation_color_profile: legacy
+    yoloe_model_path: ''
+    yoloe_classes: [cup, wallet, crumpled tissue, lego brick]
+    yoloe_device: cuda
+    yoloe_image_size: 640
+    yoloe_iou_threshold: 0.5
+    yoloe_text_encoder_directory: ''
     snapshot_timeout_seconds: 2.0
     depth_16u_scale_m: 0.001
     snapshot_cache_max_entries: 2

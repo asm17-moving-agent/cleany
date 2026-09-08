@@ -171,9 +171,9 @@ start_perception() {
 }
 
 run_perception() {
-  local environment_arguments=()
+  local environment_arguments=(-e CLEANY_PERCEPTION_USE_SIM_TIME -e CLEANY_SAM2_TRACKING)
   if [[ -n "${GEMINI_API_KEY:-}" ]]; then
-    environment_arguments=(-e GEMINI_API_KEY)
+    environment_arguments+=(-e GEMINI_API_KEY)
   fi
   "${compose[@]}" exec "${environment_arguments[@]}" perception \
     /workspace/cleany/containers/vision/scripts/run-perception

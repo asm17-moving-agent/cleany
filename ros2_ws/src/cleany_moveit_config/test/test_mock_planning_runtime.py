@@ -23,6 +23,8 @@ from moveit_msgs.msg import (
     Constraints,
     JointConstraint,
     MoveItErrorCodes,
+    OrientationConstraint,
+    PositionConstraint,
     RobotState,
 )
 from moveit_msgs.srv import GetPositionFK, GetPositionIK, GetStateValidity
@@ -32,6 +34,7 @@ from rclpy.client import Client
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import JointState
+from shape_msgs.msg import SolidPrimitive
 
 
 ARM_JOINT_SUFFIXES = (
@@ -334,6 +337,130 @@ def _execute_joint_goal(
     assert trajectory.points
 
 
+def _assert_pilz_lin_is_cartesian(
+    move_client: ActionClient,
+    fk_client: Client,
+    state: RobotState,
+    *,
+    node: Node,
+    process: subprocess.Popen[bytes],
+    log_path: Path,
+) -> None:
+    # The grasp TCP differs from gripper_frame only by a fixed transform, so
+    # query its exact start orientation for the LIN pose constraint.
+    request = GetPositionFK.Request()
+    request.header.frame_id = 'base_link'
+    request.fk_link_names = ['left_grasp_tcp']
+    request.robot_state = state
+    response = _call_service(
+        fk_client,
+        request,
+        node=node,
+        process=process,
+        log_path=log_path,
+    )
+    assert response.error_code.val == MoveItErrorCodes.SUCCESS
+    tcp_start = response.pose_stamped[0].pose
+    target = type(tcp_start)()
+    target.position.x = tcp_start.position.x
+    target.position.y = tcp_start.position.y
+    target.position.z = tcp_start.position.z + 0.01
+    target.orientation = tcp_start.orientation
+
+    sphere = SolidPrimitive()
+    sphere.type = SolidPrimitive.SPHERE
+    sphere.dimensions = [0.001]
+    position = PositionConstraint()
+    position.header.frame_id = 'base_link'
+    position.link_name = 'left_grasp_tcp'
+    position.constraint_region.primitives = [sphere]
+    position.constraint_region.primitive_poses = [target]
+    position.weight = 1.0
+    orientation = OrientationConstraint()
+    orientation.header.frame_id = 'base_link'
+    orientation.link_name = 'left_grasp_tcp'
+    orientation.orientation = target.orientation
+    orientation.absolute_x_axis_tolerance = 0.01
+    orientation.absolute_y_axis_tolerance = 0.01
+    orientation.absolute_z_axis_tolerance = 0.01
+    orientation.weight = 1.0
+    constraints = Constraints()
+    constraints.position_constraints = [position]
+    constraints.orientation_constraints = [orientation]
+
+    goal = MoveGroup.Goal()
+    goal.request.group_name = 'left_grasp_arm'
+    goal.request.pipeline_id = 'pilz_industrial_motion_planner'
+    goal.request.planner_id = 'LIN'
+    goal.request.num_planning_attempts = 1
+    goal.request.allowed_planning_time = 5.0
+    goal.request.max_velocity_scaling_factor = 0.2
+    goal.request.max_acceleration_scaling_factor = 0.4
+    goal.request.start_state.is_diff = True
+    goal.request.goal_constraints = [constraints]
+    goal.planning_options.plan_only = True
+    goal.planning_options.planning_scene_diff.is_diff = True
+    goal.planning_options.planning_scene_diff.robot_state.is_diff = True
+    handle = _future_result(
+        move_client.send_goal_async(goal),
+        timeout_sec=10.0,
+        node=node,
+        process=process,
+        log_path=log_path,
+        description='Pilz LIN goal acceptance',
+    )
+    assert handle.accepted
+    wrapped = _future_result(
+        handle.get_result_async(),
+        timeout_sec=30.0,
+        node=node,
+        process=process,
+        log_path=log_path,
+        description='Pilz LIN plan-only result',
+    )
+    assert wrapped.status == GoalStatus.STATUS_SUCCEEDED
+    assert wrapped.result.error_code.val == MoveItErrorCodes.SUCCESS
+    trajectory = wrapped.result.planned_trajectory.joint_trajectory
+    assert trajectory.points
+
+    start_point = (
+        tcp_start.position.x,
+        tcp_start.position.y,
+        tcp_start.position.z,
+    )
+    goal_point = (target.position.x, target.position.y, target.position.z)
+    delta = tuple(b - a for a, b in zip(start_point, goal_point))
+    denominator = sum(value * value for value in delta)
+    maximum_deviation = 0.0
+    for point in trajectory.points:
+        sample = _robot_state(dict(zip(trajectory.joint_names, point.positions)))
+        sample_request = GetPositionFK.Request()
+        sample_request.header.frame_id = 'base_link'
+        sample_request.fk_link_names = ['left_grasp_tcp']
+        sample_request.robot_state = sample
+        sample_response = _call_service(
+            fk_client,
+            sample_request,
+            node=node,
+            process=process,
+            log_path=log_path,
+        )
+        actual = sample_response.pose_stamped[0].pose.position
+        actual_point = (actual.x, actual.y, actual.z)
+        fraction = sum(
+            (actual_point[index] - start_point[index]) * delta[index]
+            for index in range(3)
+        ) / denominator
+        projected = tuple(
+            start_point[index] + fraction * delta[index]
+            for index in range(3)
+        )
+        maximum_deviation = max(
+            maximum_deviation, math.dist(actual_point, projected)
+        )
+    assert maximum_deviation <= 0.002
+
+
 def _stop_process(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is not None:
         return
@@ -440,6 +567,14 @@ def test_per_arm_position_ik_plan_and_execute() -> None:
                 validity_client,
                 home_state,
                 '',
+                node=node,
+                process=process,
+                log_path=log_path,
+            )
+            _assert_pilz_lin_is_cartesian(
+                move_group_client,
+                fk_client,
+                home_state,
                 node=node,
                 process=process,
                 log_path=log_path,

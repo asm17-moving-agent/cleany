@@ -5,6 +5,7 @@ find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(shape_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -13,10 +14,15 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectedObject3D.msg"
   "msg/DetectedObject3DArray.msg"
   "msg/GraspCandidate.msg"
+  "msg/ObservedObjectGeometry.msg"
+  "msg/WristTrackingStatus.msg"
   "action/InspectScene.action"
   "action/SelectReachableGrasp.action"
   "srv/PlanGrasp.srv"
-  DEPENDENCIES geometry_msgs sensor_msgs std_msgs
+  "srv/VerifyPlacement.srv"
+  "srv/ObserveObjectReference.srv"
+  "srv/ObserveWristTarget.srv"
+  DEPENDENCIES geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 
 if(BUILD_TESTING)

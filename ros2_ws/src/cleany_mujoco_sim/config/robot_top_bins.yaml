@@ -1,0 +1,31 @@
+# Simulation concept only: mounting strength and collection trajectories unverified.
+# +X forward, +Y robot-left. No table zones or divider lines in this layout.
+# Independent rear furniture preview; filename retained for launch compatibility.
+schema_version: 1
+frame_id: base_link
+rear_shelf:
+  center_xy_m: [-0.405, 0.0]
+  size_xy_m: [0.32, 0.46]
+  top_z_m: 0.18
+  floor_z_m: -0.38
+  board_thickness_m: 0.025
+  leg_width_m: 0.025
+  board_rgba: [0.62, 0.49, 0.34, 1.0]
+  frame_rgba: [0.20, 0.22, 0.24, 1.0]
+bins:
+  - id: lost_items_left
+    label: LOST ITEMS
+    center_xy_m: [-0.405, 0.105]
+    bottom_z_m: 0.18
+    outside_size_m: [0.18, 0.17, 0.12]
+    wall_thickness_m: 0.008
+    rgba: [0.15, 0.19, 0.26, 1.0]
+    rim_rgba: [0.27, 0.58, 0.67, 1.0]
+  - id: trash_right
+    label: TRASH
+    center_xy_m: [-0.405, -0.105]
+    bottom_z_m: 0.18
+    outside_size_m: [0.18, 0.17, 0.12]
+    wall_thickness_m: 0.008
+    rgba: [0.15, 0.19, 0.26, 1.0]
+    rim_rgba: [0.78, 0.49, 0.26, 1.0]

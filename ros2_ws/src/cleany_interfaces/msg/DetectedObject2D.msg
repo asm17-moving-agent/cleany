@@ -6,6 +6,11 @@ string label
 # Detector confidence normalized to [0, 1].
 float32 confidence
 
+# Optional model-provided sorting semantics. Empty means unavailable, never
+# permission to infer disposal from the label. Values: trash/lost_item/review.
+string sorting_category
+string sorting_reason
+
 # Robust representative-point distance from the configured target-frame
 # origin. distance_valid=false means the bbox did not contain enough valid
 # aligned depth and must not be selected for autonomous manipulation.

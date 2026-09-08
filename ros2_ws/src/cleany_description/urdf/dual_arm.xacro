@@ -5,6 +5,36 @@
     MuJoCo body-local joints in mjcf/cleany.xml.  side_sign is +1 on physical
     +Y (left) and -1 on physical -Y (right).
   -->
+  <!-- Motors are separate CAD parts. Include them in the collision model so
+       RGB-D robot self-filtering does not insert their surfaces into OctoMap. -->
+  <xacro:macro name="cleany_arm_motor" params="mesh xyz:='0 0 0'">
+    <visual>
+      <origin xyz="${xyz}"/>
+      <geometry><mesh filename="package://cleany_description/meshes/${mesh}.stl"/></geometry>
+      <material name="cleany_motor"/>
+    </visual>
+    <collision>
+      <origin xyz="${xyz}"/>
+      <geometry><mesh filename="package://cleany_description/meshes/${mesh}.stl"/></geometry>
+    </collision>
+  </xacro:macro>
+
+  <!-- Camera meshes are rigidly mounted on the gripper. Compose the MJCF
+       camera-body and geom origins here without adding control joints. -->
+  <xacro:macro name="cleany_wrist_camera_mesh" params="mesh material side">
+    <visual>
+      <origin xyz="0 ${-0.007 if side == 'left' else -0.006} 0.024"
+              rpy="1.57079632679 0 -1.57079632679"/>
+      <geometry><mesh filename="package://cleany_description/meshes/${mesh}.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="${material}"/>
+    </visual>
+    <collision>
+      <origin xyz="0 ${-0.007 if side == 'left' else -0.006} 0.024"
+              rpy="1.57079632679 0 -1.57079632679"/>
+      <geometry><mesh filename="package://cleany_description/meshes/${mesh}.stl" scale="0.001 0.001 0.001"/></geometry>
+    </collision>
+  </xacro:macro>
+
   <xacro:macro name="cleany_arm" params="side side_sign base_y base_yaw">
     <link name="${side}_shoulder_yaw_link">
       <inertial>
@@ -19,6 +49,7 @@
       <collision>
         <geometry><mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl.convex.stl"/></geometry>
       </collision>
+      <xacro:cleany_arm_motor mesh="Rotation_Pitch_Motor"/>
     </link>
     <joint name="${side}_shoulder_yaw_joint" type="revolute">
       <parent link="base_link"/>
@@ -50,6 +81,7 @@
         <origin xyz="-0.0001 0.0651 -0.012" rpy="1.57079632679 0 -1.57079632679"/>
         <geometry><mesh filename="package://cleany_description/meshes/Upper_Arm_5cm.stl"/></geometry>
       </collision>
+      <xacro:cleany_arm_motor mesh="Upper_Arm_Motor" xyz="0 0.05 0"/>
     </link>
     <joint name="${side}_shoulder_pitch_joint" type="revolute">
       <parent link="${side}_shoulder_yaw_link"/>
@@ -80,6 +112,7 @@
         <origin xyz="-0.0025 0.032 0.065" rpy="0 1.57079632679 0"/>
         <geometry><mesh filename="package://cleany_description/meshes/Lower_Arm_5cm.stl"/></geometry>
       </collision>
+      <xacro:cleany_arm_motor mesh="Lower_Arm_Motor" xyz="0 0 0.05"/>
     </link>
     <joint name="${side}_elbow_pitch_joint" type="revolute">
       <parent link="${side}_upper_arm_link"/>
@@ -103,6 +136,7 @@
       <collision>
         <geometry><mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl.convex.stl"/></geometry>
       </collision>
+      <xacro:cleany_arm_motor mesh="Wrist_Pitch_Roll_Motor"/>
     </link>
     <joint name="${side}_wrist_pitch_joint" type="revolute">
       <parent link="${side}_lower_arm_link"/>
@@ -125,6 +159,9 @@
       <collision>
         <geometry><mesh filename="package://cleany_description/meshes/Fixed_Jaw.stl.convex.stl"/></geometry>
       </collision>
+      <xacro:cleany_arm_motor mesh="Fixed_Jaw_Motor"/>
+      <xacro:cleany_wrist_camera_mesh mesh="XLeRobot_camera1" material="cleany_white" side="${side}"/>
+      <xacro:cleany_wrist_camera_mesh mesh="XLeRobot_camera2" material="cleany_motor" side="${side}"/>
     </link>
     <joint name="${side}_wrist_roll_joint" type="revolute">
       <parent link="${side}_wrist_pitch_link"/>
@@ -151,7 +188,9 @@
     <joint name="${side}_gripper_joint" type="revolute">
       <parent link="${side}_gripper_frame"/>
       <child link="${side}_moving_jaw_link"/>
-      <origin xyz="-0.0202 -0.0244 0" rpy="3.14159265359 0 3.33"/>
+      <!-- Convert MJCF intrinsic xyz Rx(3.1416)*Rz(3.33) to URDF
+           fixed-axis Rz*Ry*Rx, preserving the rounded CAD roll exactly. -->
+      <origin xyz="-0.0202 -0.0244 0" rpy="3.141585437183305 -0.000001375943427901895 2.953185307184551"/>
       <axis xyz="0 0 1"/>
       <limit lower="-0.374532977628" upper="1.74532919957" effort="2.6477955" velocity="4.245"/>
     </joint>

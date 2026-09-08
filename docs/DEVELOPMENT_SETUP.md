@@ -151,7 +151,8 @@ make deps
 ```
 
 `cleany_moveit_config` 패키지를 빌드하면 package manifest에 따라 ROS 2
-Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, `ros2_control` 및
+Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, Pilz industrial
+motion planner, `ros2_control` 및
 `joint_trajectory_controller`도 `make deps`가 함께 설치한다. MuJoCo hand-eye
 backend를 포함한 전체 workspace 설치에서는 Humble용 `mujoco_ros2_control`도
 `cleany_mujoco_sim` manifest를 통해 설치한다. 설치 후 다음으로 필수 runtime
@@ -159,12 +160,20 @@ package를 확인할 수 있다.
 
 ```bash
 ros2 pkg prefix moveit_ros_move_group
+ros2 pkg prefix moveit_ros_perception
 ros2 pkg prefix moveit_kinematics
 ros2 pkg prefix moveit_planners_ompl
+ros2 pkg prefix pilz_industrial_motion_planner
 ros2 pkg prefix controller_manager
 ros2 pkg prefix joint_trajectory_controller
 ros2 pkg prefix mujoco_ros2_control
 ```
+
+센서 기반 MoveIt 충돌 지도에는 `moveit_ros_perception`의
+`PointCloudOctomapUpdater`가 필요하다. 기존 환경에 없으면
+`sudo apt-get install ros-humble-moveit-ros-perception`으로 설치한다.
+플러그인 없이 포인트클라우드가 RViz에 보이는 것만으로는 충돌 검사 연결을
+검증한 것이 아니다.
 
 Gazebo 패키지만 재현할 때는 MuJoCo 등 다른 workspace 의존성을 제외하고 설치할 수
 있다.
@@ -177,7 +186,44 @@ make deps-gazebo
 제외합니다. 전체 workspace test를 실행할 환경에서는 custom rosdep 규칙을 등록한 뒤
 `make deps`를 사용합니다.
 
-### 선택: Gemini와 SAM2 perception runtime
+### Gemini Flash-Lite + SAM2-tiny runtime
+
+`make sim-mujoco-pipeline`의 기본 인식은 Gemini Flash-Lite + SAM2-tiny다.
+API 키·네트워크와 PyTorch/SAM2 checkpoint가 필요하다. Ultralytics와 아래
+YOLOE asset은 YOLOE를 명시적으로 선택할 때만 필요하다. 모델은 저장소에 포함하거나 실행 시
+자동 다운로드하지 않는다. 기본 root는 `~/models`이고 `CLEANY_MODEL_DIR`로
+바꿀 수 있다.
+
+```text
+models/
+  yoloe/yoloe-26s-seg.pt
+  yoloe/mobileclip2_b.ts
+  sam2/sam2.1_t.pt
+```
+
+이 VM에서 검증한 조합은 PyTorch `2.7.1+cpu`, Ultralytics `8.4.107`,
+SAM2.1 tiny (`configs/sam2.1/sam2.1_hiera_t.yaml`)다. Jetson에는 별도의
+JetPack 호환 CUDA PyTorch가 필요하며 이 CPU 환경의 wheel을 그대로 설치하면
+안 된다. `auto` 장치 선택 결과는 로그와 ROS parameter로 확인한다.
+
+현재 VM에서는 관리자 권한 없이 공식 arm64 MoveIt perception `2.5.9` deb의
+런타임을 `~/.local/share/cleany/moveit-perception/opt/ros/humble`에 준비했다.
+`make sim-mujoco-pipeline`은 시스템 `moveit_ros_perception`이 없을 때만
+이 사용자 전용 prefix를 사용하고 로그에 알린다. 다른 위치는
+`CLEANY_ROS_PERCEPTION_PREFIX` Make 변수로 지정한다. 다른 머신에 자동
+설치되는 것은 아니며 일반 설치는 `make deps` 또는 위의 apt 명령을 따른다.
+이 overlay는 현재 시스템 MoveIt/OctoMap ABI 조합에서만 검증했다. 시스템
+MoveIt 업데이트 시 호환성을 다시 검증하거나 시스템 패키지로 설치한다.
+
+선택형 `cleany_scene_mapping` C++ updater는 위 런타임 외에 배포 deb의
+header/CMake export도 필요하다. `make build`, `make build-handeye`,
+`make build-grasp-pregrasp`, `make test-scene-mapping`은 시스템 perception
+패키지가 없고 이 prefix가 존재할 때 AMENT/CMAKE/라이브러리 검색 경로에
+추가한다. 설치 파일을 자동 다운로드하거나 시스템 `/opt/ros`를 수정하지 않는다.
+일반 ROS 설치는 rosdep으로 `moveit_ros_perception`,
+`moveit_ros_occupancy_map_monitor`, `geometric_shapes`, `octomap`을 준비한다.
+
+### 선택: Gemini 및 SAM2 소스 설치
 
 `make deps`는 `cleany_perception`의 Gemini adapter에 필요한 `google-genai`와 Pillow를
 설치한다. API key는 파일이나 ROS parameter에 저장하지 않고 실행 terminal의 환경변수로
@@ -187,13 +233,16 @@ make deps-gazebo
 export GEMINI_API_KEY="<your-api-key>"
 ```
 
-SAM2는 공식 저장소의 현재 구현과 별도 checkpoint가 필요하다. 공식 설치 과정은
+SAM2는 아래 고정 commit과 별도 checkpoint가 필요하다. tracking은 해당 commit의
+video predictor 내부 state 구조에 의존한다. 컨테이너 `SAM2_COMMIT`도 같은 값이며
+변경 시 두 경로의 추적 회귀시험이 필요하다. 공식 설치 과정은
 PyTorch와 torchvision을 업그레이드할 수 있으므로 Jetson에서는 먼저 JetPack/CUDA와
 호환되는 NVIDIA PyTorch 조합을 정한 뒤 설치한다. `make deps`는 PyTorch 또는 SAM2를
 자동 설치하지 않는다.
 
 ```bash
 git clone https://github.com/facebookresearch/sam2.git <external-path>/sam2
+git -C <external-path>/sam2 checkout 2b90b9f5ceec907a1c18123530e92e794ad901a4
 python3 -m pip install --user -e <external-path>/sam2
 ```
 

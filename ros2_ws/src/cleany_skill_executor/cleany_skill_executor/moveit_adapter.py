@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from copy import deepcopy
 import math
 import time
+import numpy as np
 from typing import Any, Callable
 
 from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped
 from moveit_msgs.action import MoveGroup
-from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes, RobotState
+from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes, RobotState, VisibilityConstraint
 from moveit_msgs.srv import GetPositionFK, GetPositionIK, GetStateValidity
 from rclpy.action import ActionClient
 from sensor_msgs.msg import JointState
@@ -24,6 +26,9 @@ from cleany_skill_executor.core.grasp_selection import (
     quaternion_axis,
     unsigned_axis_error_deg,
 )
+from cleany_skill_executor.core.gripper import aligned_wrist_rolls
+from cleany_skill_executor.core.pose_refinement import refine_pose
+from cleany_skill_executor.core.urdf_fk import UrdfChain
 
 
 # Canonical limits from cleany_description/urdf/dual_arm.xacro.  The wrist
@@ -55,20 +60,31 @@ _DISTRIBUTED_SEED_FRACTIONS = (
 @dataclass(frozen=True, slots=True)
 class MoveItAdapterConfig:
     base_frame: str = 'base_link'
+    preserve_scene_attachments: bool = False
     ik_timeout_sec: float = 0.15
+    ik_response_margin_sec: float = 1.0
     pregrasp_aim_ik_timeout_sec: float = 1.0
     state_validity_timeout_sec: float = 1.0
     fk_timeout_sec: float = 1.0
     pregrasp_position_tolerance_m: float = 0.005
+    grasp_position_tolerance_m: float = 0.005
     pregrasp_preferred_approach_tolerance_deg: float = 5.0
     pregrasp_approach_tolerance_deg: float = 15.0
     pregrasp_closing_tolerance_deg: float = 30.0
     grasp_closing_tolerance_deg: float = 30.0
+    # Applies to both pregrasp and grasp: a fixed/moving-jaw tool cannot flip
+    # its lateral correction by 180 degrees during the final approach.
     grasp_closing_sign_invariant: bool = True
     pregrasp_aim_attempts: int = 8
+    grasp_pose_seed_attempts: int = 0
+    align_grasp_wrist_roll: bool = False
+    pose_refinement_iterations: int = 0
+    pose_refinement_position_weight: float = 1.0
+    joint_limit_margin_rad: float = 0.0
     wrist_roll_lower_rad: float = -2.743847297
     wrist_roll_upper_rad: float = 2.84120630938
     planning_timeout_sec: float = 4.0
+    planning_response_margin_sec: float = 1.0
     planning_attempts: int = 3
     velocity_scaling: float = 0.08
     acceleration_scaling: float = 0.08
@@ -77,15 +93,19 @@ class MoveItAdapterConfig:
     def __post_init__(self) -> None:
         positive = (
             self.ik_timeout_sec,
+            self.ik_response_margin_sec,
             self.pregrasp_aim_ik_timeout_sec,
             self.state_validity_timeout_sec,
             self.fk_timeout_sec,
             self.pregrasp_position_tolerance_m,
+            self.grasp_position_tolerance_m,
+            self.pose_refinement_position_weight,
             self.pregrasp_preferred_approach_tolerance_deg,
             self.pregrasp_approach_tolerance_deg,
             self.pregrasp_closing_tolerance_deg,
             self.grasp_closing_tolerance_deg,
             self.planning_timeout_sec,
+            self.planning_response_margin_sec,
             self.velocity_scaling,
             self.acceleration_scaling,
             self.poll_interval_sec,
@@ -96,12 +116,22 @@ class MoveItAdapterConfig:
             raise ValueError('MoveIt adapter limits must be finite and positive')
         if self.planning_attempts <= 0 or self.pregrasp_aim_attempts <= 0:
             raise ValueError('MoveIt attempt counts must be positive')
+        if self.grasp_pose_seed_attempts < 0:
+            raise ValueError('Grasp pose seed count must be non-negative')
+        if self.pose_refinement_iterations < 0:
+            raise ValueError('Pose refinement iterations must be non-negative')
+        if not math.isfinite(self.joint_limit_margin_rad) or self.joint_limit_margin_rad < 0.:
+            raise ValueError('Joint limit margin must be finite and nonnegative')
         if (
             not math.isfinite(self.wrist_roll_lower_rad)
             or not math.isfinite(self.wrist_roll_upper_rad)
             or self.wrist_roll_lower_rad >= self.wrist_roll_upper_rad
         ):
             raise ValueError('wrist roll limits are inconsistent')
+        if 2*self.joint_limit_margin_rad >= min(
+                *(upper-lower for lower, upper in _ARM_JOINT_LIMITS[:-1]),
+                self.wrist_roll_upper_rad-self.wrist_roll_lower_rad):
+            raise ValueError('Joint limit margin consumes the usable joint range')
         if (
             self.pregrasp_preferred_approach_tolerance_deg
             > self.pregrasp_approach_tolerance_deg
@@ -126,8 +156,10 @@ class MoveItGraspAdapter:
         plan_client: Any | None = None,
         monotonic: Callable[[], float] = time.monotonic,
         spin_once: Callable[[float], None] | None = None,
+        service_trace: Callable[[str, Any, Any], None] | None = None,
     ) -> None:
         self._node = node
+        self._local_fk = {}
         self._config = config
         self._ik_client = ik_client or node.create_client(GetPositionIK, '/compute_ik')
         self._fk_client = fk_client or node.create_client(GetPositionFK, '/compute_fk')
@@ -137,6 +169,7 @@ class MoveItGraspAdapter:
         self._plan_client = plan_client or ActionClient(node, MoveGroup, '/move_action')
         self._monotonic = monotonic
         self._spin_once = spin_once or self._default_spin
+        self._service_trace = service_trace
         self._current_state: JointState | None = None
         self._active_goal_handle: Any | None = None
 
@@ -166,7 +199,9 @@ class MoveItGraspAdapter:
         if solution is not None:
             positions.update(zip(solution.names, solution.positions, strict=True))
         result = RobotState()
-        result.is_diff = False
+        # Complete joint feedback is still supplied. A carry request must
+        # retain scene attachments rather than replace them with an empty list.
+        result.is_diff = self._config.preserve_scene_attachments
         result.joint_state.header = self._current_state.header
         result.joint_state.name = list(REQUIRED_JOINT_NAMES)
         result.joint_state.position = [positions[name] for name in REQUIRED_JOINT_NAMES]
@@ -188,12 +223,18 @@ class MoveItGraspAdapter:
     def _call(self, client: Any, request: Any, timeout: float) -> Any:
         self._wait_service(client, timeout)
         future = client.call_async(request)
+        if self._service_trace is not None:
+            self._service_trace(
+                getattr(client, 'srv_name', type(request).__name__), request, future
+            )
         deadline = self._monotonic() + timeout
         while not future.done():
             remaining = deadline - self._monotonic()
             if remaining <= 0:
                 future.cancel()
-                raise InfrastructureError('MoveIt service timed out')
+                service = getattr(client, 'srv_name', type(request).__name__)
+                raise InfrastructureError(
+                    f'MoveIt service {service} timed out after {timeout:.2f}s')
             self._spin_once(min(self._config.poll_interval_sec, remaining))
         try:
             response = future.result()
@@ -229,7 +270,7 @@ class MoveItGraspAdapter:
         response = self._call(
             self._ik_client,
             request,
-            self._config.ik_timeout_sec + 1.0,
+            self._config.ik_timeout_sec + self._config.ik_response_margin_sec,
         )
         if response.error_code.val == MoveItErrorCodes.NO_IK_SOLUTION:
             return None
@@ -263,6 +304,10 @@ class MoveItGraspAdapter:
         seed: JointSolution | None,
     ) -> tuple[JointSolution, ...]:
         """Return pose-compatible pregrasp solutions in increasing error order."""
+        if self._config.pose_refinement_iterations:
+            return self._refined_pose_candidates(arm, pregrasp_position,
+                approach_direction, closing_direction, seed or self._current_arm_solution(arm),
+                pregrasp_grasp_position=grasp_position)
         valid: list[
             tuple[float, float, float, JointSolution, float, float]
         ] = []
@@ -319,7 +364,8 @@ class MoveItGraspAdapter:
         ranked = self._unique_ranked_solutions(valid)
         if ranked:
             self._log_pose_result(
-                'Accepted pregrasp', min(valid, key=lambda item: item[:3])
+                'First ranked pregrasp',
+                next(item for item in valid if item[3] == ranked[0]),
             )
         elif evaluated:
             self._log_pose_result(
@@ -447,19 +493,31 @@ class MoveItGraspAdapter:
         seed: JointSolution,
     ) -> tuple[JointSolution, ...]:
         """Project the desired grasp pose onto feasible 5-axis joint states."""
+        if self._config.pose_refinement_iterations:
+            return self._refined_pose_candidates(arm, grasp_position,
+                approach_direction, closing_direction, seed)
         valid: list[
             tuple[float, float, float, JointSolution, float, float]
         ] = []
         evaluated: list[
             tuple[float, float, float, JointSolution, float, float]
         ] = []
-        for roll in self._wrist_roll_seeds(
-            seed, self._config.pregrasp_aim_attempts
-        ):
-            trial_seed = self._with_wrist_roll(seed, roll)
+        trial_seeds = [self._with_wrist_roll(seed, roll)
+                       for roll in self._wrist_roll_seeds(
+                           seed, self._config.pregrasp_aim_attempts)]
+        if self._config.grasp_pose_seed_attempts:
+            trial_seeds.extend(self._aim_seed_solutions(
+                arm, seed, self._config.grasp_pose_seed_attempts,
+                target_position=grasp_position,
+            ))
+        for trial_seed in trial_seeds:
             solution = self.solve_position_ik(arm, grasp_position, trial_seed)
             if solution is None:
                 continue
+            if self._config.align_grasp_wrist_roll:
+                corrected = self._aligned_grasp_solution(arm, solution, closing_direction)
+                if corrected is not None:
+                    solution = corrected
             position_error, approach_error, closing_error = self._grasp_pose_errors(
                 arm,
                 solution,
@@ -476,7 +534,7 @@ class MoveItGraspAdapter:
                 0.0,
             ))
             if (
-                position_error <= self._config.pregrasp_position_tolerance_m
+                position_error <= self._config.grasp_position_tolerance_m
                 and approach_error <= self._config.pregrasp_approach_tolerance_deg
                 and closing_error <= self._config.grasp_closing_tolerance_deg
             ):
@@ -491,7 +549,8 @@ class MoveItGraspAdapter:
         ranked = self._unique_ranked_solutions(valid)
         if ranked:
             self._log_pose_result(
-                'Accepted grasp', min(valid, key=lambda item: item[:3])
+                'First ranked grasp',
+                next(item for item in valid if item[3] == ranked[0]),
             )
         elif evaluated:
             self._log_pose_result(
@@ -499,6 +558,78 @@ class MoveItGraspAdapter:
                 min(evaluated, key=lambda item: item[:3]),
             )
         return ranked
+
+    def _refined_pose_candidates(self, arm, position, approach, closing, seed,
+                                 *, pregrasp_grasp_position=None):
+        chain = self._local_fk.get(arm)
+        if chain is None:
+            raise InfrastructureError('Runtime URDF required for local pose refinement')
+        # Independently compare the local model against MoveIt before using it
+        # for numerical iterations. Final candidates still use MoveIt checks.
+        reference = self._grasp_pose(arm, seed)
+        local_p, local_r = chain.pose(dict(zip(seed.names, seed.positions)))
+        q = reference.orientation
+        reference_rotation = np.column_stack([quaternion_axis((q.x,q.y,q.z,q.w),axis)
+                                              for axis in ((1.,0.,0.),(0.,1.,0.),(0.,0.,1.))])
+        if (np.linalg.norm(local_p-np.array((reference.position.x,reference.position.y,reference.position.z))) > 1e-5
+                or np.linalg.norm(local_r-reference_rotation) > 1e-5):
+            raise InfrastructureError('Runtime URDF FK disagrees with MoveIt')
+        bounds = [list(item) for item in _ARM_JOINT_LIMITS]
+        bounds[-1] = [self._config.wrist_roll_lower_rad, self._config.wrist_roll_upper_rad]
+        margin = self._config.joint_limit_margin_rad
+        bounds = [(a+margin, b-margin) for a,b in bounds]
+        target = np.asarray(position)
+        def residual(q):
+            p, r = chain.pose(dict(zip(seed.names,q)))
+            return np.concatenate((self._config.pose_refinement_position_weight*(p-target),
+                                   .14*(-r[:,1]-approach), .08*(r[:,0]-closing)))
+        attempts = self._config.pregrasp_aim_attempts
+        if pregrasp_grasp_position is None and self._config.grasp_pose_seed_attempts:
+            attempts = self._config.grasp_pose_seed_attempts
+        for initial in self._aim_seed_solutions(arm, seed, attempts, target_position=position):
+            values = refine_pose(residual, initial.positions, bounds, self._config.pose_refinement_iterations)
+            result = JointSolution(seed.names, values)
+            if pregrasp_grasp_position is not None:
+                tcp, aim, distance, angle, closing_error = self._pregrasp_direction_errors(
+                    arm, result, pregrasp_grasp_position, approach, closing, position)
+                position_error = max(tcp, aim, distance)
+                closing_limit = self._config.pregrasp_closing_tolerance_deg
+                position_limit = self._config.pregrasp_position_tolerance_m
+            else:
+                position_error, angle, closing_error = self._grasp_pose_errors(arm,result,position,approach,closing)
+                closing_limit = self._config.grasp_closing_tolerance_deg
+                position_limit = self._config.grasp_position_tolerance_m
+            if (position_error <= position_limit
+                    and angle <= self._config.pregrasp_approach_tolerance_deg
+                    and closing_error <= closing_limit and self.state_is_valid(arm,result)):
+                self._node.get_logger().info(f'Refined pose: arm={arm} position_error={position_error:.4f}m approach={angle:.2f}deg closing={closing_error:.2f}deg')
+                return (result,)
+        return ()
+
+    def set_robot_description(self, description: str):
+        self._local_fk = {arm: UrdfChain(description, self._config.base_frame, f'{arm}_grasp_tcp')
+                          for arm in ('left','right')}
+
+    def _aligned_grasp_solution(self, arm: str, solution: JointSolution,
+                                 closing_direction: tuple[float, float, float]) -> JointSolution | None:
+        # Cleany's wrist-roll axis and TCP offset are both local -Y. Rotating
+        # this joint changes closing direction without translating the TCP.
+        # A model-parity test guards that assumption. Never bypass collision
+        # or subsequent FK pose gates after changing the candidate joint.
+        pose = self._grasp_pose(arm, solution)
+        q = pose.orientation
+        quaternion = (q.x, q.y, q.z, q.w)
+        rolls = aligned_wrist_rolls(
+            approach=quaternion_axis(quaternion, (0., -1., 0.)),
+            closing=quaternion_axis(quaternion, (1., 0., 0.)),
+            desired=closing_direction, current=solution.positions[-1],
+            lower=self._config.wrist_roll_lower_rad, upper=self._config.wrist_roll_upper_rad,
+            sign_invariant=self._config.grasp_closing_sign_invariant)
+        for roll in rolls:
+            candidate = self._with_wrist_roll(solution, roll)
+            if self.state_is_valid(arm, candidate):
+                return candidate
+        return None
 
     def _wrist_roll_seeds(
         self, seed: JointSolution, attempts: int
@@ -519,21 +650,62 @@ class MoveItGraspAdapter:
         positions = (*seed.positions[:-1], float(roll))
         return JointSolution(seed.names, positions)
 
-    @staticmethod
     def _unique_ranked_solutions(
+        self,
         results: list[tuple[float, float, float, JointSolution, float, float]],
     ) -> tuple[JointSolution, ...]:
+        """Prefer minimum normalized motion; pose error only breaks ties."""
         unique: list[JointSolution] = []
         seen: set[tuple[int, ...]] = set()
-        for _, _, _, solution, _, _ in sorted(
-            results, key=lambda item: (item[0], item[1], item[2])
-        ):
+        current_by_name: dict[str, float] = {}
+        if self._current_state is not None:
+            current_by_name = dict(
+                zip(
+                    self._current_state.name,
+                    self._current_state.position,
+                    strict=True,
+                )
+            )
+
+        def rank(item):
+            approach, closing, position, solution, _, _ = item
+            movement = 0.0
+            for index, (name, target) in enumerate(
+                zip(solution.names, solution.positions, strict=True)
+            ):
+                current = current_by_name.get(name, target)
+                lower, upper = (
+                    (
+                        self._config.wrist_roll_lower_rad,
+                        self._config.wrist_roll_upper_rad,
+                    )
+                    if name.endswith('wrist_roll_joint')
+                    else _ARM_JOINT_LIMITS[index]
+                )
+                weight = 2.0 if name.endswith('wrist_roll_joint') else 1.0
+                movement += weight * abs(target - current) / (upper - lower)
+            return movement, approach, closing, position
+
+        for _, _, _, solution, _, _ in sorted(results, key=rank):
+            if not self._has_joint_limit_margin(solution):
+                continue
             key = tuple(round(value * 1e6) for value in solution.positions)
             if key in seen:
                 continue
             seen.add(key)
             unique.append(solution)
         return tuple(unique)
+
+    def _has_joint_limit_margin(self, solution: JointSolution) -> bool:
+        margin = self._config.joint_limit_margin_rad
+        if margin == 0.:
+            return True  # Existing generic mode delegates bounds to MoveIt.
+        limits = (*_ARM_JOINT_LIMITS[:-1],
+                  (self._config.wrist_roll_lower_rad, self._config.wrist_roll_upper_rad))
+        by_name = {name: bound for names in ARM_JOINT_NAMES.values()
+                   for name, bound in zip(names, limits, strict=True)}
+        return all(name not in by_name or by_name[name][0]+margin <= value <= by_name[name][1]-margin
+                   for name, value in zip(solution.names, solution.positions, strict=True))
 
     def _log_pose_result(
         self,
@@ -585,7 +757,7 @@ class MoveItGraspAdapter:
         response = self._call(
             self._ik_client,
             request,
-            timeout + 1.0,
+            timeout + self._config.ik_response_margin_sec,
         )
         if response.error_code.val == MoveItErrorCodes.NO_IK_SOLUTION:
             return None
@@ -697,7 +869,11 @@ class MoveItGraspAdapter:
             (orientation.x, orientation.y, orientation.z, orientation.w),
             (1.0, 0.0, 0.0),
         )
-        closing_error_deg = unsigned_axis_error_deg(actual_closing, closing_direction)
+        closing_error_deg = (
+            unsigned_axis_error_deg(actual_closing, closing_direction)
+            if self._config.grasp_closing_sign_invariant
+            else directed_axis_error_deg(actual_closing, closing_direction)
+        )
         return tcp_error, aim_error, distance_error, angle_deg, closing_error_deg
 
     def _grasp_pose_errors(
@@ -708,6 +884,21 @@ class MoveItGraspAdapter:
         approach_direction: tuple[float, float, float],
         closing_direction: tuple[float, float, float],
     ) -> tuple[float, float, float]:
+        pose = self._grasp_pose(arm, solution)
+        actual_position = (
+            float(pose.position.x), float(pose.position.y), float(pose.position.z))
+        position_error = math.dist(actual_position, grasp_position)
+        quaternion = (float(pose.orientation.x), float(pose.orientation.y),
+                      float(pose.orientation.z), float(pose.orientation.w))
+        actual_approach = quaternion_axis(quaternion, (0.0, -1.0, 0.0))
+        actual_closing = quaternion_axis(quaternion, (1.0, 0.0, 0.0))
+        approach_error = directed_axis_error_deg(actual_approach, approach_direction)
+        closing_error = (unsigned_axis_error_deg(actual_closing, closing_direction)
+                         if self._config.grasp_closing_sign_invariant
+                         else directed_axis_error_deg(actual_closing, closing_direction))
+        return position_error, approach_error, closing_error
+
+    def _grasp_pose(self, arm: str, solution: JointSolution):
         request = GetPositionFK.Request()
         request.header.frame_id = self._config.base_frame
         request.fk_link_names = [f'{arm}_grasp_tcp']
@@ -722,42 +913,39 @@ class MoveItGraspAdapter:
             or len(response.pose_stamped) != 1
         ):
             raise InfrastructureError('MoveIt could not verify grasp pose')
-        pose = response.pose_stamped[0].pose
-        actual_position = (
-            float(pose.position.x),
-            float(pose.position.y),
-            float(pose.position.z),
-        )
-        position_error = math.sqrt(
-            sum(
-                (actual - expected) ** 2
-                for actual, expected in zip(
-                    actual_position, grasp_position, strict=True
-                )
-            )
-        )
-        quaternion = (
-            float(pose.orientation.x),
-            float(pose.orientation.y),
-            float(pose.orientation.z),
-            float(pose.orientation.w),
-        )
-        actual_approach = quaternion_axis(quaternion, (0.0, -1.0, 0.0))
-        actual_closing = quaternion_axis(quaternion, (1.0, 0.0, 0.0))
-        approach_error = directed_axis_error_deg(
-            actual_approach, approach_direction
-        )
-        if self._config.grasp_closing_sign_invariant:
-            closing_error = unsigned_axis_error_deg(
-                actual_closing, closing_direction
-            )
-        else:
-            closing_error = directed_axis_error_deg(
-                actual_closing, closing_direction
-            )
-        return position_error, approach_error, closing_error
+        return response.pose_stamped[0].pose
+
+    def open_grasp_is_valid(self, arm: str, solution: JointSolution, opening: float) -> bool:
+        if not math.isfinite(opening) or not 0 <= opening <= 1.74532919957:
+            raise ValueError('Open gripper position is outside tool joint limits')
+        return self._gripper_state_is_valid(arm, solution, opening)
+
+    def gripper_sweep_is_valid(self, arm: str, solution: JointSolution,
+                              opening: float, closing: float, step: float) -> bool:
+        if (not all(math.isfinite(v) for v in (opening, closing, step))
+                or not -.374532977628 <= closing < opening <= 1.74532919957
+                or not .005 <= step <= .2):
+            raise ValueError('Invalid gripper closure sweep bounds')
+        samples = math.ceil((opening-closing)/step)
+        return all(self._gripper_state_is_valid(arm, solution, float(position))
+                   for position in np.linspace(opening, closing, samples+1))
+
+    def _gripper_state_is_valid(self, arm: str, solution: JointSolution, opening: float) -> bool:
+        if not self._has_joint_limit_margin(solution):
+            return False
+        request = GetStateValidity.Request()
+        # Full-robot query includes the actuated moving jaw even if it is not
+        # a member of the five-joint arm planning group.
+        request.group_name = ''
+        request.robot_state = self._merged_state(solution)
+        state = request.robot_state.joint_state
+        state.position[state.name.index(f'{arm}_gripper_joint')] = opening
+        response = self._call(self._validity_client, request, self._config.state_validity_timeout_sec)
+        return bool(response.valid)
 
     def state_is_valid(self, arm: str, solution: JointSolution) -> bool:
+        if not self._has_joint_limit_margin(solution):
+            return False
         request = GetStateValidity.Request()
         request.group_name = f'{arm}_grasp_arm'
         request.robot_state = self._merged_state(solution)
@@ -766,13 +954,33 @@ class MoveItGraspAdapter:
         )
         return bool(response.valid)
 
+    def set_visibility_constraint(self, constraint: VisibilityConstraint | None) -> None:
+        self._visibility_constraint = deepcopy(constraint)
+
+    def pregrasp_is_visible(self, arm: str, solution: JointSolution) -> bool:
+        constraint = getattr(self, '_visibility_constraint', None)
+        if constraint is None:
+            raise InfrastructureError('pregrasp visibility constraint is not configured')
+        request = GetStateValidity.Request()
+        request.group_name = f'{arm}_grasp_arm'
+        request.robot_state = self._merged_state(solution)
+        request.constraints.visibility_constraints = [deepcopy(constraint)]
+        response = self._call(
+            self._validity_client, request, self._config.state_validity_timeout_sec
+        )
+        # MoveIt can ignore an invalid/disabled constraint. Never treat that
+        # empty result as proof of visibility.
+        if len(response.constraint_result) != 1:
+            raise InfrastructureError('MoveIt did not evaluate the visibility constraint')
+        return bool(response.valid and response.constraint_result[0].result)
+
     def plan(
         self,
         arm: str,
         goal: JointSolution,
         start: JointSolution | None,
     ) -> bool:
-        wait_timeout = self._config.planning_timeout_sec
+        wait_timeout = self._config.planning_timeout_sec + self._config.planning_response_margin_sec
         if not self._plan_client.wait_for_server(timeout_sec=wait_timeout):
             raise InfrastructureError('MoveGroup action unavailable')
         action_goal = MoveGroup.Goal()

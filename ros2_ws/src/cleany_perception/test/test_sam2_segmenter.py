@@ -52,6 +52,8 @@ def test_sam2_segmenter_preserves_detection_order(tmp_path):
     )
     rgb = np.zeros((20, 30, 3), dtype=np.uint8)
 
+    segmenter.prepare()
+    assert predictor.images == []
     masks = segmenter.segment(rgb, [_detection()])
 
     assert len(masks) == 1

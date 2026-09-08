@@ -64,8 +64,14 @@ class Detection2D:
     label: str
     confidence: float
     bbox: BoundingBox2D
+    sorting_category: str = ''
+    sorting_reason: str = ''
 
     def __post_init__(self) -> None:
+        if self.sorting_category not in ('', 'trash', 'lost_item', 'review'):
+            raise ValueError('Invalid sorting category')
+        if not isinstance(self.sorting_reason, str):
+            raise ValueError('Sorting reason must be a string')
         if not self.label.strip():
             raise ValueError('Detection label must not be empty')
         if (

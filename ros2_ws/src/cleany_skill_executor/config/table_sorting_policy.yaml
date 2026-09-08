@@ -1,0 +1,10 @@
+# Simulation safety veto list; Gemini, not these label groups, decides category.
+schema_version: 1
+minimum_confidence: 0.25
+rules:
+  trash: [cup, crumpled tissue]
+  lost_item: [wallet, lego brick]
+  hazardous: [person, knife, scissors, battery, broken glass]
+destinations:
+  trash: trash_right
+  lost_item: lost_items_left

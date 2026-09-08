@@ -5,8 +5,44 @@ from cleany_interfaces.msg import (
     DetectedObject3D,
     DetectedObject3DArray,
     GraspCandidate,
+    ObservedObjectGeometry,
+    WristTrackingStatus,
 )
-from cleany_interfaces.srv import PlanGrasp
+from cleany_interfaces.srv import ObserveObjectReference, PlanGrasp, VerifyPlacement
+
+
+def test_observed_geometry_has_explicit_identity_and_empty_default_mesh():
+    geometry = ObservedObjectGeometry()
+    assert geometry.snapshot_id == geometry.header.frame_id == ''
+    assert geometry.object_id == 0
+    assert geometry.mesh.vertices == geometry.mesh.triangles == []
+
+
+def test_tracking_status_defaults_cannot_authorize_carry():
+    status = WristTrackingStatus()
+    assert not status.valid and not status.visible
+    assert status.reference_id == status.source_snapshot_id == status.arm == ''
+    assert status.source_object_id == status.mask_pixels == status.image_pixels == 0
+    assert status.header.stamp.sec == 0
+
+
+def test_reference_observation_keeps_semantic_source_separate_from_current_surface():
+    request, response = ObserveObjectReference.Request(), ObserveObjectReference.Response()
+    assert (request.PIN, request.OBSERVE, request.CLEAR) == (1, 2, 3)
+    assert request.reference_id == request.source_snapshot_id == ''
+    assert request.after_stamp_ns == 0
+    assert response.source_capture_stamp_ns == 0
+    assert response.source_confidence == 0. and not response.success
+    assert response.header.frame_id == response.mask.header.frame_id == ''
+    assert response.observed_cloud.width == 0
+
+
+def test_placement_verification_requires_post_release_evidence():
+    request = VerifyPlacement.Request()
+    response = VerifyPlacement.Response()
+    assert request.label == request.destination_id == ''
+    assert request.after_stamp_ns == 0
+    assert not response.success
 
 
 def test_detected_object_3d_defaults() -> None:
@@ -112,6 +148,7 @@ def test_select_reachable_grasp_contract() -> None:
     feedback = SelectReachableGrasp.Feedback()
 
     assert goal.candidates == []
+    assert goal.required_arm == ''
     assert result.ERROR_NO_REACHABLE_GRASP == 6
     assert result.selected_candidate_index == 0
     assert isinstance(result.selected_candidate, GraspCandidate)

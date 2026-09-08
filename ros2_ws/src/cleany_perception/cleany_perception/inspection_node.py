@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import threading
+import os
+from pathlib import Path
 from collections.abc import Sequence
 
 import numpy as np
 
 import rclpy
 from cleany_interfaces.action import InspectScene
+from cleany_interfaces.srv import ObserveObjectReference
 from cleany_interfaces.msg import (
     DetectedObject2D,
     DetectedObject2DArray,
@@ -24,6 +27,7 @@ from rclpy.callback_groups import (
 )
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from rclpy.qos import (
     DurabilityPolicy,
     HistoryPolicy,
@@ -36,11 +40,18 @@ from sensor_msgs.msg import CameraInfo, Image
 
 from cleany_perception.adapters.gemini_detector import GeminiDetector
 from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
+from cleany_perception.adapters.sam2_reference_tracker import Sam2ReferenceTracker
+from cleany_perception.core.reference_observation import ReferenceObservationConfig
+from cleany_perception.reference_service import ReferenceService
 from cleany_perception.adapters.simulation_color import (
     SimulationColorDetector,
     SimulationColorSegmenter,
 )
 from cleany_perception.adapters.tf2_transform import Tf2TransformAdapter
+from cleany_perception.adapters.yoloe_detector import YoloeDetector
+from cleany_perception.model_runtime import (
+    resolve_device, resolve_model_assets,
+)
 from cleany_perception.core.geometry import quaternion_xyzw_from_rotation
 from cleany_perception.core.point_cloud import (
     colored_cloud_from_selection,
@@ -63,6 +74,7 @@ from cleany_perception.core.object_ranking import (
 from cleany_perception.core.pipeline import InspectionPipeline
 from cleany_perception.core.ports import (
     DetectorPort,
+    ReferenceTrackerPort,
     SegmenterPort,
     TransformPort,
 )
@@ -119,6 +131,7 @@ class InspectionNode(Node):
         detector: DetectorPort | None = None,
         segmenter: SegmenterPort | None = None,
         transformer: TransformPort | None = None,
+        reference_tracker: ReferenceTrackerPort | None = None,
         **kwargs,
     ) -> None:
         super().__init__('perception_inspector', **kwargs)
@@ -145,6 +158,10 @@ class InspectionNode(Node):
 
         detector_type = str(self.get_parameter('detector_type').value)
         segmenter_type = str(self.get_parameter('segmenter_type').value)
+        for kind, supplied in ((detector_type, detector),
+                               (segmenter_type, segmenter)):
+            if supplied is None and kind in ('yoloe', 'sam2'):
+                self._resolve_local_model(kind)
         if detector is None:
             if detector_type == 'gemini':
                 detector = GeminiDetector(
@@ -162,7 +179,41 @@ class InspectionNode(Node):
                         self.get_parameter(
                             'simulation_color_minimum_pixels'
                         ).value
-                    )
+                    ),
+                    profile=str(
+                        self.get_parameter(
+                            'simulation_color_profile'
+                        ).value
+                    ),
+                )
+            elif detector_type == 'yoloe':
+                detector = YoloeDetector(
+                    model_path=str(
+                        self.get_parameter('yoloe_model_path').value
+                    ),
+                    classes=tuple(
+                        self.get_parameter('yoloe_classes').value
+                    ),
+                    device=str(self.get_parameter('yoloe_device').value),
+                    image_size=int(
+                        self.get_parameter('yoloe_image_size').value
+                    ),
+                    confidence_threshold=float(
+                        self.get_parameter(
+                            'minimum_detection_confidence'
+                        ).value
+                    ),
+                    iou_threshold=float(
+                        self.get_parameter('yoloe_iou_threshold').value
+                    ),
+                    maximum_detections=int(
+                        self.get_parameter('maximum_detections').value
+                    ),
+                    text_encoder_directory=str(
+                        self.get_parameter(
+                            'yoloe_text_encoder_directory'
+                        ).value
+                    ),
                 )
             else:
                 raise ValueError(f'Unsupported detector_type: {detector_type}')
@@ -178,11 +229,35 @@ class InspectionNode(Node):
                     device=str(self.get_parameter('sam2_device').value),
                 )
             elif segmenter_type == 'simulation_color':
-                segmenter = SimulationColorSegmenter()
+                segmenter = SimulationColorSegmenter(
+                    profile=str(
+                        self.get_parameter(
+                            'simulation_color_profile'
+                        ).value
+                    )
+                )
             else:
                 raise ValueError(
                     f'Unsupported segmenter_type: {segmenter_type}'
                 )
+        if bool(self.get_parameter('preload_models').value):
+            adapters = (('detector', detector), ('segmenter', segmenter))
+            for name, adapter in adapters:
+                prepare = getattr(adapter, 'prepare', None)
+                if not callable(prepare):
+                    raise ValueError(f'{name} cannot preload models')
+                self.get_logger().info(f'Loading {name} before action ready')
+                prepare()
+            detector_device = (
+                f"remote API: {self.get_parameter('gemini_model').value}; access not yet verified"
+                if detector_type == 'gemini' else self.get_parameter('yoloe_device').value)
+            segmenter_device = self.get_parameter('sam2_device').value
+            self.get_logger().info(
+                'PERCEPTION MODELS READY: '
+                f'{detector_type} ({detector_device}) + '
+                f'{segmenter_type} ({segmenter_device}); '
+                'no simulation fallback'
+            )
         if transformer is None:
             transformer = Tf2TransformAdapter(
                 self,
@@ -259,6 +334,51 @@ class InspectionNode(Node):
         )
         self._busy_lock = threading.Lock()
         self._busy = False
+        self._reference_service = None
+        if bool(self.get_parameter('enable_reference_observation').value):
+            if reference_tracker is None:
+                if segmenter_type != 'sam2' or detector_type not in ('yoloe', 'gemini'):
+                    raise ValueError('Reference observation requires YOLOE or Gemini with SAM2')
+                reference_tracker = Sam2ReferenceTracker(
+                    str(self.get_parameter('sam2_model_config').value),
+                    str(self.get_parameter('sam2_checkpoint').value),
+                    str(self.get_parameter('sam2_device').value))
+            if bool(self.get_parameter('preload_models').value):
+                self.get_logger().info('Loading SAM2 reference predictor before service ready')
+                reference_tracker.prepare()
+            config = ReferenceObservationConfig(
+                minimum_points=int(self.get_parameter('minimum_object_points').value),
+                maximum_mask_fraction=float(self.get_parameter('reference_maximum_mask_fraction').value),
+                minimum_valid_depth_fraction=float(self.get_parameter('reference_minimum_depth_fraction').value),
+                border_margin_px=int(self.get_parameter('reference_border_margin_px').value),
+                minimum_depth_m=float(self.get_parameter('minimum_depth_m').value),
+                maximum_depth_m=float(self.get_parameter('maximum_depth_m').value),
+                trim_fraction=float(self.get_parameter('reference_trim_fraction').value))
+            self._reference_handler = ReferenceService(
+                cache=self._snapshot_cache, buffer=self._snapshot_buffer,
+                tracker=reference_tracker, lookup_transform=self._lookup_capture_transform,
+                target_frame=self._target_frame, depth_scale=self._depth_16u_scale_m,
+                timeout_seconds=self._snapshot_timeout_seconds,
+                ttl_seconds=float(self.get_parameter('reference_ttl_seconds').value), config=config)
+            self._reference_service = self.create_service(
+                ObserveObjectReference, 'perception/observe_object_reference',
+                self._execute_reference, callback_group=self._action_callback_group)
+        self._wrist_service = None
+        if bool(self.get_parameter('enable_wrist_observation').value):
+            if (reference_tracker is None or detector_type not in ('yoloe', 'gemini')
+                    or segmenter_type != 'sam2'):
+                raise ValueError('Wrist observation requires learned reference models')
+            from cleany_perception.wrist_service import WristService
+            from dataclasses import asdict
+            from cleany_perception.core.wrist_observation import WristObservationConfig
+            wrist_config = WristObservationConfig(**{
+                name: self.declare_parameter(f'wrist_{name}', default).value
+                for name, default in asdict(WristObservationConfig()).items()
+            })
+            self._wrist_service = WristService(self, detector, segmenter, reference_tracker,
+                config=wrist_config,
+                continuous_tracking=bool(self.get_parameter('wrist_continuous_tracking').value),
+                require_redetection=bool(self.get_parameter('wrist_handoff_require_redetection').value))
         self._action_server = ActionServer(
             self,
             InspectScene,
@@ -270,10 +390,26 @@ class InspectionNode(Node):
         )
 
     def destroy_node(self) -> None:
+        if self._wrist_service is not None:
+            self._wrist_service.close(wait=True)
         self._action_server.destroy()
         super().destroy_node()
 
     def _declare_parameters(self) -> None:
+        self.declare_parameter('enable_reference_observation', False)
+        self.declare_parameter('enable_wrist_observation', False)
+        self.declare_parameter('wrist_handoff_require_redetection', False)
+        self.declare_parameter('wrist_continuous_tracking', True)
+        self.declare_parameter('reference_ttl_seconds', 120.0)
+        self.declare_parameter('reference_maximum_mask_fraction', 0.5)
+        self.declare_parameter('reference_minimum_depth_fraction', 0.8)
+        self.declare_parameter('reference_border_margin_px', 2)
+        self.declare_parameter('reference_trim_fraction', 0.01)
+        self.declare_parameter('preload_models', False)
+        self.declare_parameter(
+            'model_directory',
+            os.environ.get('CLEANY_MODEL_DIR', str(Path.home() / 'models')),
+        )
         self.declare_parameter('action_name', 'perception/inspect_scene')
         self.declare_parameter('objects_topic', 'perception/objects')
         self.declare_parameter('detections_topic', 'perception/detections_2d')
@@ -296,6 +432,16 @@ class InspectionNode(Node):
         self.declare_parameter('detector_type', 'gemini')
         self.declare_parameter('segmenter_type', 'sam2')
         self.declare_parameter('simulation_color_minimum_pixels', 100)
+        self.declare_parameter('simulation_color_profile', 'legacy')
+        self.declare_parameter('yoloe_model_path', '')
+        self.declare_parameter(
+            'yoloe_classes',
+            ['cup', 'wallet', 'crumpled tissue', 'lego brick'],
+        )
+        self.declare_parameter('yoloe_device', 'cuda')
+        self.declare_parameter('yoloe_image_size', 640)
+        self.declare_parameter('yoloe_iou_threshold', 0.5)
+        self.declare_parameter('yoloe_text_encoder_directory', '')
         self.declare_parameter('snapshot_timeout_seconds', 2.0)
         self.declare_parameter('depth_16u_scale_m', 0.001)
         self.declare_parameter('snapshot_cache_max_entries', 2)
@@ -331,6 +477,26 @@ class InspectionNode(Node):
         self.declare_parameter('grasp_cloud_voxel_size_m', 0.005)
         self.declare_parameter('grasp_target_maximum_points', 12000)
         self.declare_parameter('grasp_context_maximum_points', 30000)
+
+    def _resolve_local_model(self, kind: str) -> None:
+        keys = (
+            ('yoloe_model_path', 'yoloe_text_encoder_directory')
+            if kind == 'yoloe' else ('sam2_checkpoint', 'sam2_model_config')
+        )
+        resolved = resolve_model_assets(
+            {key: str(self.get_parameter(key).value) for key in keys},
+            str(self.get_parameter('model_directory').value), kind,
+        )
+        import torch
+
+        device_key = kind + '_device'
+        requested = str(self.get_parameter(device_key).value)
+        resolved[device_key] = resolve_device(
+            requested, torch.cuda.is_available()
+        )
+        for key, value in resolved.items():
+            self.set_parameters([Parameter(key, value=value)])
+            self.get_logger().info(f'Perception runtime: {key}={value}')
 
     def _pipeline_config(self) -> PipelineConfig:
         return PipelineConfig(
@@ -546,6 +712,20 @@ class InspectionNode(Node):
             with self._busy_lock:
                 self._busy = False
 
+    def _execute_reference(self, request, response):
+        # Image and video predictors may not execute alongside detection/actions.
+        with self._busy_lock:
+            if self._busy:
+                response.error_code = response.ERROR_BUSY
+                response.message = 'Inspector is busy'
+                return response
+            self._busy = True
+        try:
+            return self._reference_handler.execute(request, response)
+        finally:
+            with self._busy_lock:
+                self._busy = False
+
     def _execute_selection(
         self,
         goal_handle,
@@ -605,6 +785,7 @@ class InspectionNode(Node):
             selected,
             cached.capture_transform,
             output.target_frame,
+            support_plane=output.plane,
         )
         result.success = True
         result.error_code = InspectScene.Result.ERROR_NONE
@@ -639,6 +820,7 @@ class InspectionNode(Node):
         detection,
         capture_transform,
         target_frame,
+        support_plane=None,
     ):
         height, width = snapshot.depth_m.shape
         margin = int(self.get_parameter('grasp_context_margin_pixels').value)
@@ -665,6 +847,9 @@ class InspectionNode(Node):
         target = transform_colored_cloud(
             colored_cloud_from_selection(
                 selection=target_mask,
+                support_plane=support_plane,
+                minimum_height_m=float(
+                    self.get_parameter('minimum_object_height_m').value),
                 maximum_points=int(
                     self.get_parameter('grasp_target_maximum_points').value
                 ),
@@ -775,6 +960,8 @@ class InspectionNode(Node):
             detected.object_id = object_id
             detected.label = detection.label
             detected.confidence = detection.confidence
+            detected.sorting_category = detection.sorting_category
+            detected.sorting_reason = detection.sorting_reason
             detected.distance_valid = distance_m is not None
             detected.distance_m = 0.0 if distance_m is None else distance_m
             detected.x_min = detection.bbox.x_min

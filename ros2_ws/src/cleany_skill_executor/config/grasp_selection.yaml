@@ -1,10 +1,14 @@
 grasp_selection_server:
   ros__parameters:
+    align_grasp_wrist_roll: false
+    # Generic mode unchanged; sorting requests an interior endpoint margin.
+    joint_limit_margin_rad: 0.0
     action_name: grasp/select_reachable
     joint_state_topic: joint_states
     planning_frame: base_link
     joint_state_max_age_sec: 0.5
     ik_timeout_sec: 0.15
+    ik_response_margin_sec: 1.0
     pregrasp_aim_ik_timeout_sec: 1.0
     state_validity_timeout_sec: 1.0
     fk_timeout_sec: 1.0
@@ -20,10 +24,18 @@ grasp_selection_server:
     wrist_roll_lower_rad: -2.743847297
     wrist_roll_upper_rad: 2.84120630938
     planning_timeout_sec: 4.0
+    planning_response_margin_sec: 1.0
     planning_attempts: 3
     velocity_scaling: 0.08
     acceleration_scaling: 0.08
     maximum_candidates: 12
+    # Fixed camera relative to base during arm selection. Checks only the
+    # pregrasp endpoint; fresh RGB-D reinspection remains mandatory.
+    require_pregrasp_visibility: false
+    visibility_camera_frame: head_camera_rgb_optical_frame
+    visibility_camera_max_age_sec: 0.5
+    visibility_padding_m: 0.003
+    visibility_cone_sides: 16
     action_timeout_sec: 120.0
     # Must match the fixed *_pregrasp_aim_tip offset in the robot description.
     pregrasp_offset_m: 0.14

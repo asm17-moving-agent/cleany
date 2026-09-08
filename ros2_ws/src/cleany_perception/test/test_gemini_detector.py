@@ -11,6 +11,38 @@ from cleany_perception.adapters.gemini_detector import (
 from cleany_perception.core.models import FailureKind, InspectionFailure
 
 
+def test_gemini_sorting_semantics_survive_parser_and_missing_is_not_guessed():
+    item = dict(label='cup', confidence=.9, box_2d=[100,100,200,200],
+                sorting_category='lost_item', sorting_reason='Reusable ceramic cup')
+    result = parse_gemini_detections(json.dumps([item]), 640, 480)[0]
+    assert result.sorting_category == 'lost_item'
+    assert result.sorting_reason == item['sorting_reason']
+    item.pop('sorting_category')
+    assert parse_gemini_detections(json.dumps([item]), 640, 480)[0].sorting_category == ''
+    item['sorting_category'] = 'recycle'
+    with pytest.raises(InspectionFailure):
+        parse_gemini_detections(json.dumps([item]), 640, 480)
+
+
+def test_flash_lite_prepare_initializes_client_without_inference(monkeypatch):
+    monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'unit-test-placeholder')
+    calls = []
+    detector = GeminiDetector('gemini-3.1-flash-lite',
+        api_key_environment='CLEANY_TEST_GEMINI_KEY',
+        client_factory=lambda key, timeout: calls.append(timeout) or object())
+    detector.prepare()
+    detector.prepare()
+    assert calls == [30.0]
+
+
+def test_gemini_prepare_fails_without_key_before_advertising_ready(monkeypatch):
+    monkeypatch.delenv('CLEANY_TEST_GEMINI_KEY', raising=False)
+    detector = GeminiDetector('gemini-3.1-flash-lite',
+        api_key_environment='CLEANY_TEST_GEMINI_KEY')
+    with pytest.raises(InspectionFailure, match='CLEANY_TEST_GEMINI_KEY is not set'):
+        detector.prepare()
+
+
 def test_gemini_detector_encodes_image_and_parses_normalized_bbox():
     requests = []
 

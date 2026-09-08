@@ -1,0 +1,11 @@
+# Simulation-only allowlist. Ownership/disposability in a real facility is
+# not inferable from these labels alone; this is not a production policy.
+schema_version: 1
+minimum_confidence: 0.25
+rules:
+  trash: [cup, paper cup, disposable cup, can, soda can, tissue, crumpled tissue, paper ball]
+  lost_item: [wallet, phone, cell phone, mobile phone, eraser, keys, lego brick, lego, toy brick]
+  hazardous: [person, knife, scissors, battery, broken glass]
+destinations:
+  trash: trash_left
+  lost_item: lost_items_right

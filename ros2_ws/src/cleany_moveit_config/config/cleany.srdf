@@ -18,6 +18,24 @@
   <group name="right_pregrasp_aim_arm">
     <chain base_link="base_link" tip_link="right_pregrasp_aim_tip"/>
   </group>
+  <!-- Joint-goal-only coordinated transport to pregrasp with the jaw opening.
+       Keep existing five-joint IK groups unchanged. -->
+  <group name="left_pregrasp_open">
+    <group name="left_grasp_arm"/>
+    <joint name="left_gripper_joint"/>
+  </group>
+  <group name="right_pregrasp_open">
+    <group name="right_grasp_arm"/>
+    <joint name="right_gripper_joint"/>
+  </group>
+  <group name="left_return_close">
+    <group name="left_grasp_arm"/>
+    <joint name="left_gripper_joint"/>
+  </group>
+  <group name="right_return_close">
+    <group name="right_grasp_arm"/>
+    <joint name="right_gripper_joint"/>
+  </group>
 
   <group_state name="left_home" group="left_arm">
     <joint name="left_shoulder_yaw_joint" value="0.0"/>

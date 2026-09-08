@@ -1,0 +1,39 @@
+# Pin an existing detector snapshot before grasp, observe it in NEW RGB-D, clear.
+# One bounded reference per inspector; no GT, target-pose prompt, or class change.
+uint8 PIN=1
+uint8 OBSERVE=2
+uint8 CLEAR=3
+uint8 operation
+string source_snapshot_id
+uint32 source_object_id
+string reference_id
+# OBSERVE requires a capture strictly newer than this stamp and the source.
+int64 after_stamp_ns
+---
+uint8 ERROR_NONE=0
+uint8 ERROR_RGBD_TIMEOUT=1
+uint8 ERROR_MASK=4
+uint8 ERROR_DEPTH=5
+uint8 ERROR_TF=7
+uint8 ERROR_REFERENCE=9
+uint8 ERROR_BUSY=10
+uint8 ERROR_INTERNAL=255
+bool success
+uint8 error_code
+string message
+string reference_id
+string source_snapshot_id
+uint32 source_object_id
+int64 source_capture_stamp_ns
+# Original YOLOE identity/confidence, NOT a fresh detection or SAM2 probability.
+string source_label
+float64 source_confidence
+# Current capture, target frame; observed surface AABB, NOT a completed OBB.
+std_msgs/Header header
+geometry_msgs/Point observed_center
+geometry_msgs/Vector3 observed_extent
+uint32 mask_pixels
+uint32 valid_depth_points
+float64 valid_depth_fraction
+sensor_msgs/Image mask
+sensor_msgs/PointCloud2 observed_cloud

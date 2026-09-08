@@ -1,0 +1,24 @@
+# Cloud bbox detector + local SAM2. No automatic YOLOE/color fallback.
+# Model: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite
+perception_inspector:
+  ros__parameters:
+    detector_type: gemini
+    gemini_model: gemini-3.1-flash-lite
+    gemini_api_key_environment: GEMINI_API_KEY
+    detector_timeout_seconds: 30.0
+    segmenter_type: sam2
+    sam2_model_config: configs/sam2.1/sam2.1_hiera_t.yaml
+    sam2_checkpoint: sam2/sam2.1_t.pt
+    sam2_device: auto
+    preload_models: true
+    enable_reference_observation: true
+    reference_ttl_seconds: 120.0
+    reference_maximum_mask_fraction: 0.5
+    reference_minimum_depth_fraction: 0.8
+    reference_border_margin_px: 2
+    reference_trim_fraction: 0.01
+    minimum_detection_confidence: 0.25
+    default_query: >-
+      Detect only visible paper cups, wallets, crumpled tissues, and LEGO bricks
+      on the table. Use exactly these labels respectively: cup, wallet,
+      crumpled tissue, lego brick. Do not invent hidden or absent objects.

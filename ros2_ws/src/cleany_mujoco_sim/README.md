@@ -1,5 +1,71 @@
 # cleany_mujoco_sim
 
+## 로봇 후면 수거함 배치 미리보기
+
+`ros2 launch cleany_mujoco_sim robot_top_bins_preview.launch.py`는 기존 책상
+양끝 분류 영역/구분선을 넣지 않고, 로봇 뒤쪽에 청록 테두리 분실물함(로봇 왼쪽)과
+주황 테두리 쓰레기함(오른쪽)을 배치한다. 본체는 저채도 네이비로 통일한다.
+`config/robot_top_bins.yaml`에서 base_link 기준 위치와 크기를 변경한다.
+기존 실행 호환을 위해 파일명은 유지하지만 현재 배치는 상단이 아닌 후면이다.
+각 함의 중심은 초기 base_link 기준 x=-0.405 m, y=±0.105 m이며
+바닥 z=0.18 m, 상단 z=0.30 m이다. `rear_shelf` 설정으로 320×460 mm
+목재색 상판, 하단 선반, 금속색 다리 네 개를 추가한다. 바닥에서 상판까지
+높이는 560 mm이며 수거함 바닥과 상판 윗면은 일치한다.
+선반과 수거함은 초기 chassis 변환을 복사한 world 고정 body에 배치하므로
+로봇을 이동해도 따라가지 않는다. 수거함은 정적 fixture이며 자유롭게 밀리거나
+넘어지는 동역학은 모델링하지 않았다. `rear_shelf`가 없으면 기존 chassis
+부착 동작을 유지한다. 이 후면 배치는 미리보기 전용이며, 이동 로봇의 수거
+계획에 사용하려면 초기 base 좌표를 현재 base 좌표로 변환하는 연결이 필요하다.
+각 함의 외형은 180×170×120 mm,
+벽 두께 8 mm이며 바닥과 네 벽이 있는 열린 충돌 형상이다.
+기존 홈 자세를 유지하는 MuJoCo GUI만 실행하며 인식·자동 수거는 시작하지 않는다.
+이 설정은 배치 검토용 시뮬레이션 시안이며 실제 장착 강도/하중과 수거 경로는
+검증되지 않았다. 자동 수거와 일반 파이프라인 launch도 동일한 후면 설정을
+기본으로 사용한다. 배치 통일은 수거 경로 검증 완료를 뜻하지 않는다.
+선택적 `rim_rgba`는 벽 두께 안쪽의 둥근 시각 테두리를 추가하며 질량/충돌은
+추가하지 않는다. 물리 형상은 기존 바닥과 네 벽으로 유지한다.
+
+`handeye_backend.launch.py scheduled_cameras:=true`는 sorting observer hardware의
+카메라별 촬영 주기 제어를 켠다. sorting_bins_config가 있어야 해당 hardware를 사용한다.
+일반 hand-eye 실행 기본값은 false이며 기존 카메라 계약은 변경하지 않는다.
+`config/sorting_wrist_cameras.yaml`은 양팔 RGB optical frame의 nominal CAD 장착값이다.
+수거 launch의 TF 입력이며 실제 로봇에서 측정한 hand-eye calibration이 아니다.
+
+`scenes/study_cafe_grasp_execution.xml.in`에는 컵–양손 그리퍼의 10개 접촉쌍을
+명시해 미끄럼 마찰을 기존 접촉값 3에서 6으로 높인 시험 설정을 둔다.
+`friction="6 6 0.2 0.1 0.1"`이며 비틀림/구름 마찰과 기본 접촉 softness는
+유지한다. 컵–책상, 다른 물체, 질량·모터 힘·형상은 바꾸지 않는다.
+이는 실측 재질 계수가 아닌 시뮬레이션 민감도 시험이며 실제 패드 성능을 보장하지 않는다.
+
+분리 수거용 `handeye_backend.launch.py`에서 수거함 config를 전달한 경우,
+`sorting_contact_diagnostics:=true`로 출력 전용 접촉 진단을 켤 수 있다.
+기본은 false이며 `/simulation/contact_diagnostics` 계약과 한계는
+`cleany_mujoco_observer/README.md`를 따른다. 로봇/물체 물리 상태나 perception
+입력을 바꾸지 않으며 일반 hand-eye 실행에는 observer를 추가하지 않는다.
+
+## 분리 수거 fixture
+
+`handeye_backend.launch.py sorting_bins_config:=<path>`는 materialized
+scene의 chassis 기준으로 바닥과 네 벽을 갖는 좌우 수거함을 추가한다.
+`config/robot_top_bins.yaml`의 +Y가 분실물함, -Y가 쓰레기함이다.
+빈 인자(기본값)는 기존 장면을 그대로 사용한다. template/materializer 외의
+canonical 로봇 mesh/scene asset은 변경하지 않는다.
+
+수거함은 실제 MuJoCo 충돌 형상이다. 물체를 순간 이동하거나 그리퍼에
+weld하는 기능은 추가하지 않았다. 설정 시
+`cleany_mujoco_observer/ObservedMujocoSystem` hardware wrapper를 선택한다.
+설치된 backend의 제어/물리 동작을 유지하며, 잠금된 `get_data` 복사로
+평가용 관측을 수행한다. 동시 갱신되는 vendor plugin 배열을 직접 읽지 않는다.
+`placement_verifier`는 `/simulation/sorting_ground_truth`를 관찰하고
+`/sorting/verify_placement` 요청에 release 이후의 올바른 수거함 내부
+안착 여부를 응답한다. 이는 시뮬레이션 평가용 정답 정보이며 RGB-D 인식이나
+grasp/경로의 입력으로 쓰지 않는다. 동작 연결은 skill executor의
+`make sim-mujoco-sorting`을 사용한다(전체 집기·놓기 검증은 진행 중).
+
+현재 vendor renderer는 headless여도 GLFW 연결을 필요로 한다. 이 VM에서는
+유효한 `DISPLAY=:0`을 전달해야 RGB-D가 발행된다. GUI 창을 켜야 한다는
+뜻은 아니며 display가 없으면 모델 준비 완료 뒤에도 RGB-D timeout이 난다.
+
 XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한다.
 
 ## 상태와 책임
@@ -18,7 +84,93 @@ XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한�
 
 ```bash
 make sim
+make sim-mujoco-study-cafe
 make test-mujoco
+```
+
+`sim-mujoco-study-cafe`는 Gazebo 개발공간의 12.26×10.94 m 방과 동일한 좌표에
+벽 4개, 책상 48개, 파티션 24개, 모니터 48개와 의자 47개를 띄운다. 기존 Gazebo
+spawn에서 가장 가까운 43번 의자만 제거하고, 조종 가능한 끌리니 1대를 그 위치에서
+책상을 향하도록 배치한다. 의자 중심에서 책상 반대 방향으로 0.18 m 이동해 로봇
+collision 외곽과 책상 사이에 약 0.02 m 여유를 둔다. 로봇 앞 43번 책상의 현재
+물체는 손잡이 없는 종이컵, 빨간 2×4 레고 블록, 흰 휴지뭉치, 기존 지갑이다.
+머그컵/지우개/휴대폰을 교체하되 배치 위치와 지갑 mesh는 유지한다.
+
+| 물체 / body ID | 외형 크기 | 물리 모델 |
+| --- | --- | --- |
+| 종이컵 / `study_cafe_cup` | 윗지름 85, 밑지름 55, 높이 95, 벽 0.7 mm | 열린 원뿔대 벽 32개와 바닥, 8 g |
+| 레고 / `study_cafe_lego` | 몸체 31.8×15.8×9.6 mm, 돌기 포함 높이 11.4 mm | 본체 box와 8개 돌기 cylinder, 2.3 g |
+| 휴지뭉치 / `study_cafe_tissue` | 60×50×45 mm | 불규칙 삼각형 표면과 convex-hull collision, 1 g |
+
+`cleany_mujoco_sim/tabletop_shapes.py`가 설정값에서 결정적으로 MJCF mesh/primitive를
+생성한다. 네 물체 모두 free joint가 있으며 강제 고정/attach하지 않는다. 종이컵은
+안쪽을 채운 cylinder가 아니므로 입구로 들어가는 접촉도 가능하다. 다만 종이컵과 휴지는
+눌리거나 구겨지지 않는 **강체 근사**이며, 레고 밑면 결합 튜브와 로고는 생략했다.
+질량과 종이컵/휴지 크기는 시뮬레이션 가정이며 실물 측정값이 아니다. 레고는
+[실측 치수](https://www.cailliau.org/Alphabetical/L/Lego/Dimensions/More%20Dimensions/BBEditPreviewTemp.html)의
+8 mm 돌기 간격, 4.8 mm 지름, 1.8 mm 돌기 높이를 사용한다.
+파지 실행 launch의 우측 팔 mirrored home 자세는 wrist-roll을 `-1.58 rad`로
+시작하는 기존 설정을 유지한다.
+위치, 질량, 색상과 collision 크기는
+`config/study_cafe_layout.yaml`에서 조정할 수 있다. 기본 위치는 640×480
+`head_realsense_rgb` 카메라와 `head_tilt_joint=1.00 rad` 조건에서 네 물체의 전체
+물체가 화면 경계 안에 들어오도록 맞춰져 있다.
+
+실제 집기 실행은 `scenes/study_cafe_grasp_execution.xml.in`을 사용한다. 일반 관찰 장면과
+같은 배치를 유지하면서 chassis를 world에 고정한다. 종이컵/레고와 양쪽 fixed/moving jaw
+사이의 고마찰 contact pair는 복합 collision의 모든 부분으로 확장한다(컵 330개,
+레고 90개). 컵의 sliding friction 6, 레고 5는 기존 실험 설정을 계승한 값이지
+실제 종이/플라스틱의 측정 마찰계수가 아니다. 얇은 강체 컵 벽의 수치적 관통을
+줄이기 위해 컵 pair는 `solref="0.002 1"`, `solimp="0.99 0.9999 0.0001"`을 사용한다.
+이는 종이의 찌그러짐을 재현하는 설정이 아니며 실제 컵 파지력 검증을 대체하지 않는다.
+휴지와 지갑 강체 proxy도 각각 양쪽 jaw와의 10개 pair에 같은 강성을 적용한다. 기본 혼합
+마찰 `(3, 3, .2, .1, .1)`과 질량/형상/모터 한도는 유지한다. 부드러운 접촉에서
+관측된 휴지 약 18mm, 지갑 약 2.1mm 메시 관통을 줄이기 위한 설정이며
+실제 휴지나 지갑의 압축 모델은 아니다.
+지갑은 기존 시각 메시를 collision mesh에도 공유한다(MuJoCo convex hull).
+시각 메시의 최소 평면 폭 약 52mm와 맞지 않는 110×85mm 축 정렬 box 때문에
+보이지 않는 영역을 손가락이 누르던 문제를 수정했다. 메시 파일/스케일, 질량과
+마찰은 변경하지 않는다. 오목한 내부 장식까지 충돌 분해한 모델은 아니다.
+머리 카메라는 materialization 시
+`640×480`, `fovy=42°` 계약을 검사해 RGB-D driver의 1×1 기본 해상도 사용을 막는다.
+
+조명은 `config/study_cafe_lighting.yaml`에서 설정하며 일반 관찰/집기 장면과 GUI/RGB-D
+렌더에 공통 적용한다. 기존 canonical robot의 world light는 materialized copy에서만
+제거하고, **작업 책상 및 주변 책상을 비추는 넓은 spotlight와 방 전체 directional
+보조광**으로 대체한다. 주광원은 `(-3.13, -3.60, 2.45) m`, cutoff 55°,
+exponent 2로, 상판 높이에서 대략 5 m 폭의 주변 구역을 비춘다. 약한 전역 보조광은
+유지하므로 나머지 공간도 완전히 어두워지지 않는다. 주광원만 그림자를 만든다.
+카메라 headlight는 ambient 0.12, diffuse 0.08, shadow map은 4096이며
+spot shadow scale 1.0으로 해당 광원 범위를 사용한다. 전역 directional shadow 설정의
+half extent 12 m는 보존하지만 현재 보조광의 그림자는 꺼져 있다. 이는 실측 조도나
+실내 간접광을 계산하는 모델이 아닌 근사다.
+기존 headlight와 기본 광원의 합산으로 흰 상판이 포화되고
+그림자 대비가 사라지는 문제를 줄이기 위한 설정이지 실측 조도/카메라 보정값은 아니다.
+[MuJoCo headlight는 자체적으로 그림자를 만들지 않는다](https://mujoco.readthedocs.io/en/stable/XMLreference.html#visual-headlight).
+그림자 광원은 추가 렌더 패스를 사용하므로 렌더링 비용이 증가할 수 있다. 물체 크기,
+마찰, 카메라 intrinsics, 검출 confidence 및 파지 안전 기준은 조명 변경으로 바꾸지 않는다.
+
+Gazebo plugin·sensor는 옮기지 않으며, Fuel에서 내려받는 의자 mesh 대신 Gazebo
+collision 치수와 같은 MuJoCo primitive를 visual/collision로 사용한다. 원본 배치는
+`config/study_cafe_layout.yaml`에 독립 실행용으로 복제하며, 테스트에서 Gazebo 원본
+YAML과의 일치 여부를 확인한다.
+
+Tabletop asset 출처와 라이선스는 `config/study_cafe_assets.yaml`에 기록한다. 현재
+외부 mesh는 Poly by Google의 Wallet(CC BY 3.0)만 사용하며 원본 material 대신
+scene color를 사용한다. 과거 Coffee Mug(Michael Fuchs, CC BY 3.0)와
+Smartphone(smallbigsquare, CC0)의 OBJ, URL, 변환 내역, SHA-256은 이력용으로
+보존하지만 현재 장면에 로드하지 않는다.
+
+새 형상의 장면 컴파일, 실물 크기, 열린 컵 충돌체, 물리 settle, 카메라 시야는
+`test_study_cafe_scene.py`/`test_tabletop_shapes.py`와 `make test-grasp-pregrasp`로
+검사한다. 이 검증은 YOLOE 검출이나 집기 성공 검증을 대신하지 않는다. 기존 머그컵의
+수거 성공/시간 측정 결과를 새 종이컵·레고·휴지에 적용하지 않는다. 실제 크기 레고는
+sorting의 기존 50 mm 최소 파지 후보 폭보다 작으므로 자동 집기 대상에서 제외될 수 있다.
+
+직접 launch할 수도 있다.
+
+```bash
+ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=false
 ```
 
 MuJoCo viewer가 필요하면 build 후 실행한다.
@@ -391,12 +543,30 @@ timer tick의 모든 물리 substep이 끝난 직후 한 번 `after_step(context
 - 실제 encoder noise, 전류, 열, 과부하 차단 동작
 - 베이스 또는 매니퓰레이터용 하드웨어 현실성 기반 controller
 
+## 공통 RGB-D 파이프라인 연결
+
+`handeye_backend.launch.py`에 `color_image_topic`, `camera_info_topic`,
+`depth_image_topic`을 명시하면 선택 MJCF camera 출력을 해당 ROS 토픽으로
+직접 remap한다. 비워 두면 기존 hand-eye manifest의 internal 토픽을 유지한다.
+custom 토픽 사용 시 `enable_camera_contract_adapter:=false`가 필요하다.
+이 옵션은 영상 전달 경계만 바꾸며 simulator geometry/물체 정답을 알고리즘에
+주입하지 않는다. head 고정 camera 보정 TF의 실제 로봇 정확성을 뜻하지 않는다.
+
+레포 루트의 `make sim-mujoco-pipeline`은 학습 perception과 sensor-only
+MoveIt 지도를 포함하는 plan-only GUI 실행이다. 장면만 띄우는
+`make sim-mujoco-study-cafe` 및 legacy 테스트 launch와 구분한다.
+
 ## 관련 KB와 문서 갱신
 
 - [Robot Platform XLeRobot](../../../docs/cleany-docs/20_TECHNICAL/04%20-%20Robot%20Platform%20XLeRobot.md)
 - [Navigation and Mapping](../../../docs/cleany-docs/20_TECHNICAL/05%20-%20Navigation%20and%20Mapping.md)
 - [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
 
+### 단일 후면 수거함 fixture (2026-09-08)
+
+책상 4분할 및 이전 좌우 수거함 YAML을 삭제했다. 책상 구분선 생성 코드도
+제거했으며 `robot_top_bins.yaml`만 기본 배치로 사용한다. 과거 실행 기록은
+진단 이력으로 보존하지만 새 실행의 장면 입력으로 사용하지 않는다.
 발행 topic, launch parameter, 시뮬레이션 모델 가정 또는 테스트 명령이 바뀌면 이
 README도 갱신한다. 시뮬레이션 하드웨어 파라미터를 관련 KB 결정 없이 확정된 실제
 하드웨어 사양으로 표현하지 않는다.

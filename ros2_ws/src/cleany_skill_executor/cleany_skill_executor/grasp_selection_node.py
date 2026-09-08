@@ -15,6 +15,12 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
+from std_msgs.msg import String
+from rclpy.qos import QoSProfile, DurabilityPolicy
+from moveit_msgs.msg import VisibilityConstraint
+from rclpy.duration import Duration
+from rclpy.time import Time
+from tf2_ros import Buffer, TransformListener
 
 from cleany_skill_executor.core.grasp_selection import (
     Candidate,
@@ -26,6 +32,10 @@ from cleany_skill_executor.core.grasp_selection import (
 )
 from cleany_skill_executor.moveit_adapter import MoveItAdapterConfig, MoveItGraspAdapter
 from cleany_skill_executor.planning_scene import SceneAwarePort, TargetSceneTransaction
+from cleany_skill_executor.collision_geometry_cache import CollisionGeometryCache, subscribe_collision_geometry
+from cleany_skill_executor.service_trace import ServiceTrace
+from cleany_skill_executor.core.visibility import enclosing_visibility_cone
+from cleany_skill_executor.core.gripper import aperture_centering_offset
 
 
 STAGE_CONSTANT = {
@@ -45,20 +55,29 @@ class GraspSelectionNode(Node):
             'joint_state_topic': 'joint_states',
             'planning_frame': 'base_link',
             'joint_state_max_age_sec': 0.5,
+            'service_artifact_directory': '',
             'ik_timeout_sec': 0.15,
+            'ik_response_margin_sec': 1.0,
             'pregrasp_aim_ik_timeout_sec': 1.0,
             'state_validity_timeout_sec': 1.0,
             'fk_timeout_sec': 1.0,
             'pregrasp_position_tolerance_m': 0.005,
+            'grasp_position_tolerance_m': 0.005,
             'pregrasp_preferred_approach_tolerance_deg': 5.0,
             'pregrasp_approach_tolerance_deg': 15.0,
             'pregrasp_closing_tolerance_deg': 30.0,
             'grasp_closing_tolerance_deg': 30.0,
             'grasp_closing_sign_invariant': True,
             'pregrasp_aim_attempts': 8,
+            'grasp_pose_seed_attempts': 0,
+            'align_grasp_wrist_roll': False,
+            'pose_refinement_iterations': 0,
+            'pose_refinement_position_weight': 1.0,
+            'joint_limit_margin_rad': 0.0,
             'wrist_roll_lower_rad': -2.743847297,
             'wrist_roll_upper_rad': 2.84120630938,
             'planning_timeout_sec': 4.0,
+            'planning_response_margin_sec': 1.0,
             'planning_attempts': 3,
             'velocity_scaling': 0.08,
             'acceleration_scaling': 0.08,
@@ -68,9 +87,34 @@ class GraspSelectionNode(Node):
             'pregrasp_seed_offset_m': 0.08,
             'grasp_approach_offset_m': 0.0,
             'grasp_lateral_offset_m': 0.0,
+            'grasp_use_aperture_centering': False,
+            'grasp_aperture_margin_m': 0.008,
+            'grasp_fixed_jaw_inner_x_m': 0.008,
+            'grasp_fixed_jaw_clearance_m': 0.0,
+            'grasp_execution_lateral_offset_m': math.nan,
+            'require_pregrasp_visibility': False,
+            'require_open_grasp_clearance': False,
+            'require_gripper_closure_clearance': False,
+            'support_patch_margin_m': 0.0,
+            'planning_scene_timeout_sec': 1.0,
+            'use_observed_collision_geometry': False,
+            'collision_geometry_topic': '/grasp/collision_geometry',
+            'selection_gripper_close_position_rad': -0.3,
+            'gripper_sweep_step_rad': .05,
+            'selection_gripper_open_position_rad': 1.4,
+            'visibility_camera_frame': 'head_camera_rgb_optical_frame',
+            'visibility_camera_max_age_sec': 0.5,
+            'visibility_padding_m': 0.003,
+            'visibility_cone_sides': 16,
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
+        self._visibility_tf = None
+        if bool(self.get_parameter('require_pregrasp_visibility').value):
+            if not str(self.get_parameter('visibility_camera_frame').value):
+                raise ValueError('visibility_camera_frame is required')
+            self._visibility_tf = Buffer()
+            self._visibility_listener = TransformListener(self._visibility_tf, self)
         self._joint_state: JointState | None = None
         self._joint_state_lock = threading.Lock()
         self._goal_lock = threading.Lock()
@@ -87,11 +131,15 @@ class GraspSelectionNode(Node):
         def wait(duration: float) -> None:
             time.sleep(min(duration, 0.01))
 
+        directory = str(self.get_parameter('service_artifact_directory').value)
+        trace = ServiceTrace(directory, self.get_logger().warning) if directory else None
         self._adapter = MoveItGraspAdapter(
             self,
             MoveItAdapterConfig(
                 base_frame=str(self.get_parameter('planning_frame').value),
                 ik_timeout_sec=float(self.get_parameter('ik_timeout_sec').value),
+                ik_response_margin_sec=float(self.get_parameter('ik_response_margin_sec').value),
+                planning_response_margin_sec=float(self.get_parameter('planning_response_margin_sec').value),
                 pregrasp_aim_ik_timeout_sec=float(
                     self.get_parameter('pregrasp_aim_ik_timeout_sec').value
                 ),
@@ -100,6 +148,8 @@ class GraspSelectionNode(Node):
                 pregrasp_position_tolerance_m=float(
                     self.get_parameter('pregrasp_position_tolerance_m').value
                 ),
+                grasp_position_tolerance_m=float(self.get_parameter('grasp_position_tolerance_m').value),
+                pose_refinement_position_weight=float(self.get_parameter('pose_refinement_position_weight').value),
                 pregrasp_preferred_approach_tolerance_deg=float(
                     self.get_parameter(
                         'pregrasp_preferred_approach_tolerance_deg'
@@ -120,6 +170,12 @@ class GraspSelectionNode(Node):
                 pregrasp_aim_attempts=int(
                     self.get_parameter('pregrasp_aim_attempts').value
                 ),
+                grasp_pose_seed_attempts=int(
+                    self.get_parameter('grasp_pose_seed_attempts').value
+                ),
+                align_grasp_wrist_roll=bool(self.get_parameter('align_grasp_wrist_roll').value),
+                pose_refinement_iterations=int(self.get_parameter('pose_refinement_iterations').value),
+                joint_limit_margin_rad=float(self.get_parameter('joint_limit_margin_rad').value),
                 wrist_roll_lower_rad=float(
                     self.get_parameter('wrist_roll_lower_rad').value
                 ),
@@ -132,9 +188,24 @@ class GraspSelectionNode(Node):
                 acceleration_scaling=float(self.get_parameter('acceleration_scaling').value),
             ),
             spin_once=wait,
+            service_trace=trace,
         )
-        self._scene = TargetSceneTransaction(self, spin_once=wait)
+        use_mesh = bool(self.get_parameter('use_observed_collision_geometry').value)
+        self._geometry_cache = CollisionGeometryCache()
+        self._geometry_subscription = (subscribe_collision_geometry(self, self._geometry_cache,
+            callback_group=callback_group) if use_mesh else None)
+        self._scene = TargetSceneTransaction(self, spin_once=wait,
+            timeout_sec=float(self.get_parameter('planning_scene_timeout_sec').value),
+            support_patch_margin_m=float(self.get_parameter('support_patch_margin_m').value),
+            geometry_lookup=self._geometry_cache.get if use_mesh else None)
+        self._description_subscription = self.create_subscription(
+            String, '/robot_description', self._on_robot_description,
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+            callback_group=callback_group)
         self._scene_port = SceneAwarePort(self._adapter, self._scene)
+        execution_lateral_offset = float(
+            self.get_parameter('grasp_execution_lateral_offset_m').value
+        )
         self._selector = GraspSelector(
             self._scene_port,
             GraspSelectionConfig(
@@ -148,7 +219,21 @@ class GraspSelectionNode(Node):
                 grasp_lateral_offset_m=float(
                     self.get_parameter('grasp_lateral_offset_m').value
                 ),
+                grasp_execution_lateral_offset_m=(
+                    None
+                    if math.isnan(execution_lateral_offset)
+                    else execution_lateral_offset
+                ),
                 maximum_candidates=int(self.get_parameter('maximum_candidates').value),
+                closed_gripper_position_rad=(float(self.get_parameter(
+                    'selection_gripper_close_position_rad').value)
+                    if self.get_parameter('require_gripper_closure_clearance').value else None),
+                gripper_sweep_step_rad=float(self.get_parameter('gripper_sweep_step_rad').value),
+                require_pregrasp_visibility=bool(
+                    self.get_parameter('require_pregrasp_visibility').value),
+                open_gripper_position_rad=(float(self.get_parameter(
+                    'selection_gripper_open_position_rad').value)
+                    if self.get_parameter('require_open_grasp_clearance').value else None),
             ),
         )
         self._server = ActionServer(
@@ -160,6 +245,12 @@ class GraspSelectionNode(Node):
             cancel_callback=self._on_cancel,
             callback_group=callback_group,
         )
+
+    def _on_robot_description(self, message: String) -> None:
+        try:
+            self._adapter.set_robot_description(message.data)
+        except (ValueError, KeyError) as error:
+            self.get_logger().error(f'Invalid runtime URDF for pose refinement: {error}')
 
     def _on_joint_state(self, message: JointState) -> None:
         with self._joint_state_lock:
@@ -236,6 +327,42 @@ class GraspSelectionNode(Node):
             raise TimeoutError('joint state is stale')
         return state
 
+    def _visibility_constraint(self, candidate) -> VisibilityConstraint:
+        frame = str(self.get_parameter('planning_frame').value)
+        camera_frame = str(self.get_parameter('visibility_camera_frame').value)
+        try:
+            transform = self._visibility_tf.lookup_transform(
+                frame, camera_frame, Time(), timeout=Duration(seconds=1.0))
+        except Exception as error:
+            raise InfrastructureError(f'visibility camera TF unavailable: {error}') from error
+        stamp = transform.header.stamp.sec*1_000_000_000 + transform.header.stamp.nanosec
+        age = (self.get_clock().now().nanoseconds - stamp)/1e9
+        maximum_age = float(self.get_parameter('visibility_camera_max_age_sec').value)
+        if (not math.isfinite(maximum_age) or maximum_age <= 0.
+                or (stamp != 0 and not -0.05 <= age <= maximum_age)):
+            raise InfrastructureError('visibility camera TF is stale or its age limit is invalid')
+        camera = transform.transform.translation
+        obj = candidate.target_object
+        p, q, size = obj.obb_pose.position, obj.obb_pose.orientation, obj.obb_size
+        cone = enclosing_visibility_cone(
+            (camera.x, camera.y, camera.z), (p.x, p.y, p.z),
+            (size.x, size.y, size.z), (q.x, q.y, q.z, q.w),
+            padding_m=float(self.get_parameter('visibility_padding_m').value),
+            sides=int(self.get_parameter('visibility_cone_sides').value))
+        message = VisibilityConstraint()
+        message.target_radius = cone.radius_m
+        message.cone_sides = cone.sides
+        message.target_pose.header.frame_id = frame
+        message.target_pose.pose.position.x, message.target_pose.pose.position.y, message.target_pose.pose.position.z = cone.target
+        (message.target_pose.pose.orientation.x, message.target_pose.pose.orientation.y,
+         message.target_pose.pose.orientation.z, message.target_pose.pose.orientation.w) = cone.orientation
+        message.sensor_pose.header.frame_id = frame
+        message.sensor_pose.pose.position.x, message.sensor_pose.pose.position.y, message.sensor_pose.pose.position.z = cone.camera
+        message.sensor_pose.pose.orientation.w = 1.
+        message.weight = 1.
+        self.get_logger().info(f'Pregrasp visibility envelope radius={cone.radius_m:.4f}m camera={camera_frame}')
+        return message
+
     def _execute(self, goal_handle):
         result = SelectReachableGrasp.Result()
         result.selected_candidate_index = -1
@@ -246,6 +373,8 @@ class GraspSelectionNode(Node):
         scene_started = False
         terminal_state = 'abort'
         try:
+            if goal_handle.request.required_arm not in ('', 'left', 'right'):
+                raise ValueError('required_arm must be empty, left, or right')
             try:
                 state = self._current_joint_state()
             except TimeoutError as error:
@@ -262,6 +391,9 @@ class GraspSelectionNode(Node):
                 )
             else:
                 self._adapter.set_current_state(state)
+                if getattr(self, '_visibility_tf', None) is not None:
+                    self._adapter.set_visibility_constraint(
+                        self._visibility_constraint(candidate_messages[0]))
                 if self._scene.active:
                     self._scene.restore()
                 object_id = f'grasp_target_{uuid.uuid4().hex}'
@@ -282,6 +414,11 @@ class GraspSelectionNode(Node):
                         ),
                         score=float(item.score),
                         source_index=index,
+                        lateral_offset_m=(aperture_centering_offset(float(item.required_opening_m),
+                            float(self.get_parameter('grasp_aperture_margin_m').value),
+                            float(self.get_parameter('grasp_fixed_jaw_inner_x_m').value),
+                            float(self.get_parameter('grasp_fixed_jaw_clearance_m').value))
+                            if self.get_parameter('grasp_use_aperture_centering').value else None),
                         orientation=(
                             item.tcp_pose.orientation.x,
                             item.tcp_pose.orientation.y,
@@ -315,6 +452,9 @@ class GraspSelectionNode(Node):
 
                 selection = self._selector.select(
                     candidates,
+                    required_arm=getattr(
+                        goal_handle.request, 'required_arm', ''
+                    ),
                     cancel_requested=canceled,
                     feedback=feedback,
                 )
@@ -360,6 +500,8 @@ class GraspSelectionNode(Node):
                 f'Unexpected error: {error}',
             )
         finally:
+            if getattr(self, '_visibility_tf', None) is not None:
+                self._adapter.set_visibility_constraint(None)
             if scene_started:
                 try:
                     self._scene.restore()

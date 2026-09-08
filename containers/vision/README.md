@@ -78,7 +78,7 @@ license와 checkpoint는 image에 넣지 않는다. 예시 identity 기준 host 
   JeongHyeonLee.public_key
   JeongHyeonLee.signature
 /home/cleany/models/anygrasp/checkpoint_detection.tar
-/home/cleany/models/sam2/sam2.1_hiera_small.pt
+/home/cleany/models/sam2/sam2.1_t.pt
 ```
 
 AnyGrasp license directory와 model directory는 `anygrasp`에만 read-only로 mount된다.
@@ -182,6 +182,31 @@ ROS 계약의 `PlanGrasp.ERROR_MODEL_UNAVAILABLE`는 유지되며, AI service �
 명령으로 직접 연결하지 않는다.
 
 ## ROS 2 DDS 연결
+
+현재 `perception-run`은 Gemini Flash-Lite + SAM2-tiny 공통 프로필을 사용한다.
+기존 root-owned identity는 자동 변경하지 않으므로 small 모델 설정이 있으면
+`SAM2_MODEL_CONFIG=configs/sam2.1/sam2.1_hiera_t.yaml` 및
+`SAM2_CHECKPOINT_PATH=/models/sam2/sam2.1_t.pt`와 실제 checkpoint를 맞춘다.
+AnyGrasp identity/MAC/license 값은 변경하지 않는다.
+
+MuJoCo 연결 시험은 양쪽에서 설정한다. 컨테이너 실행 터미널:
+
+```bash
+# GEMINI_API_KEY는 앞 절처럼 환경으로 전달
+CLEANY_PERCEPTION_USE_SIM_TIME=true CLEANY_SAM2_TRACKING=false make perception-run
+```
+
+아래 DDS 환경을 설정한 native 터미널:
+
+```bash
+make sim-mujoco-sorting SORTING_ARGS='start_perception:=false sam2_tracking_enabled:=false sorting_test_only_label:="lego brick"'
+```
+
+실카메라 시계는 `CLEANY_PERCEPTION_USE_SIM_TIME=false`(기본), tracking 기본값은
+true다. 양쪽 tracking과 시계를 맞춘다. CUDA를 명시하므로 사용 불가 시 CPU로
+대체하지 않는다. 외부 노드의 프로필·장치·시계는 로그/ROS parameter로 확인한다.
+이 연결의 Jetson 실장비 검증과 후면 자동 수거 성공은 아직 완료되지 않았다.
+MuJoCo headless도 유효한 X display가 필요하다.
 
 native와 container는 ROS 2 Humble, `rmw_cyclonedds_cpp`를 사용한다. 두 container는
 `eth0`만 사용하고 host bridge gateway `172.30.0.1`을 peer로 지정한다. native terminal은

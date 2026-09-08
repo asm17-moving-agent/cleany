@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from cleany_perception.core.models import CameraIntrinsics, RigidTransform
+from cleany_perception.core.models import CameraIntrinsics, Plane, RigidTransform
 
 
 @dataclass(frozen=True)
@@ -47,6 +47,8 @@ def colored_cloud_from_selection(
     maximum_depth_m: float,
     voxel_size_m: float,
     maximum_points: int,
+    support_plane: Plane | None = None,
+    minimum_height_m: float = 0.005,
 ) -> ColoredPointCloud:
     if depth_m.shape != selection.shape or rgb.shape[:2] != depth_m.shape:
         raise ValueError('RGB, depth, and selection dimensions must match')
@@ -75,6 +77,12 @@ def colored_cloud_from_selection(
         )
     ).astype(np.float32)
     colors = rgb[rows, columns].astype(np.uint8, copy=True)
+    if support_plane is not None:
+        if not np.isfinite(minimum_height_m) or minimum_height_m < 0:
+            raise ValueError('Minimum height must be finite and non-negative')
+        above = (points @ support_plane.normal + support_plane.offset
+                 >= minimum_height_m)
+        points, colors = points[above], colors[above]
 
     voxel_keys = np.floor(points / voxel_size_m).astype(np.int64)
     _, indices = np.unique(voxel_keys, axis=0, return_index=True)

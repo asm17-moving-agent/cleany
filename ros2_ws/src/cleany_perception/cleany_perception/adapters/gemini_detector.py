@@ -33,6 +33,8 @@ _RESPONSE_SCHEMA: dict[str, Any] = {
                 'properties': {
                     'label': {'type': 'STRING'},
                     'confidence': {'type': 'NUMBER'},
+                    'sorting_category': {'type': 'STRING', 'enum': ['trash', 'lost_item', 'review']},
+                    'sorting_reason': {'type': 'STRING'},
                     'box_2d': {
                         'type': 'ARRAY',
                         'items': {'type': 'NUMBER'},
@@ -40,7 +42,7 @@ _RESPONSE_SCHEMA: dict[str, Any] = {
                         'maxItems': 4,
                     },
                 },
-                'required': ['label', 'confidence', 'box_2d'],
+                'required': ['label', 'confidence', 'box_2d', 'sorting_category', 'sorting_reason'],
             },
         }
     },
@@ -54,12 +56,14 @@ _INTERACTION_RESPONSE_SCHEMA: dict[str, Any] = {
         'properties': {
             'label': {'type': 'string'},
             'confidence': {'type': 'number'},
+            'sorting_category': {'type': 'string', 'enum': ['trash', 'lost_item', 'review']},
+            'sorting_reason': {'type': 'string'},
             'y': {'type': 'number'},
             'x': {'type': 'number'},
             'y2': {'type': 'number'},
             'x2': {'type': 'number'},
         },
-        'required': ['label', 'confidence', 'y', 'x', 'y2', 'x2'],
+        'required': ['label', 'confidence', 'y', 'x', 'y2', 'x2', 'sorting_category', 'sorting_reason'],
     },
 }
 
@@ -156,6 +160,8 @@ def parse_gemini_detections(
                     label=label.strip(),
                     confidence=float(confidence),
                     bbox=bbox,
+                    sorting_category=item.get('sorting_category', ''),
+                    sorting_reason=item.get('sorting_reason', ''),
                 )
             )
         except ValueError as error:
@@ -191,6 +197,16 @@ class GeminiDetector:
         self._client = None
         self._types = None
 
+    def prepare(self) -> None:
+        """Validate local credentials/client setup, without an API inference call."""
+        if self._response_provider is not None:
+            return
+        api_key = os.environ.get(self._api_key_environment, '').strip()
+        if not api_key:
+            raise InspectionFailure(
+                FailureKind.DETECTOR_API, f'{self._api_key_environment} is not set')
+        self._get_client(api_key)
+
     def detect(
         self,
         rgb: RgbArray,
@@ -208,7 +224,12 @@ class GeminiDetector:
             'Detect every requested visible object. Return each bounding box '
             'as [ymin, xmin, ymax, xmax] coordinates normalized to 0-1000. '
             'Return a concise label and confidence in [0, 1]. Do not return '
-            'segmentation masks.'
+            'segmentation masks. Also classify each object for this supervised '
+            'table-clearing simulation: sorting_category must be trash, lost_item, '
+            'or review, with a short sorting_reason based on visible evidence. '
+            'Discarded disposable material is trash; reusable personal belongings '
+            'are lost_item. Use review for uncertainty, hazardous objects, or '
+            'unclear disposability. Do not infer ownership as fact.'
         )
         buffer = io.BytesIO()
         PilImage.fromarray(image, mode='RGB').save(buffer, format='PNG')

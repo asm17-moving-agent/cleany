@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import xml.etree.ElementTree as ET
+import runpy
 
 import pytest
 import yaml
@@ -19,6 +20,13 @@ ARM_JOINT_SUFFIXES = (
     'wrist_roll_joint',
 )
 SIDES = ('left', 'right')
+
+
+def test_grasp_corridors_use_fine_collision_resolution_and_bounded_rounding():
+    config = _load_yaml('ompl_planning.yaml')
+    assert config['path_tolerance'] == 0.0001
+    for side in SIDES:
+        assert config[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .001
 
 
 def _arm_joints(side: str) -> tuple[str, ...]:
@@ -85,9 +93,17 @@ def test_srdf_has_arm_and_grasp_tcp_chains() -> None:
     assert set(groups) == {
         'left_arm', 'right_arm', 'left_grasp_arm', 'right_grasp_arm',
         'left_pregrasp_aim_arm', 'right_pregrasp_aim_arm',
+        'left_pregrasp_open', 'right_pregrasp_open',
+        'left_return_close', 'right_return_close',
     }
 
     for side in SIDES:
+        combined = groups[f'{side}_pregrasp_open']
+        assert combined.find('group').attrib == {'name': f'{side}_grasp_arm'}
+        assert combined.find('joint').attrib == {'name': f'{side}_gripper_joint'}
+        returning = groups[f'{side}_return_close']
+        assert returning.find('group').attrib == {'name': f'{side}_grasp_arm'}
+        assert returning.find('joint').attrib == {'name': f'{side}_gripper_joint'}
         group = groups[f'{side}_arm']
         children = list(group)
         assert len(children) == 1
@@ -239,6 +255,27 @@ def test_ompl_is_configured_for_each_arm() -> None:
         assert ompl[group]['planner_configs'] == ['RRTConnectkConfigDefault']
 
 
+def test_pilz_lin_and_cartesian_limits_are_configured() -> None:
+    pilz = _load_yaml('pilz_industrial_motion_planner_planning.yaml')
+    limits = _load_yaml('pilz_cartesian_limits.yaml')['cartesian_limits']
+    assert pilz['planning_plugin'] == (
+        'pilz_industrial_motion_planner/CommandPlanner'
+    )
+    assert limits == {
+        'max_trans_vel': 0.10,
+        'max_trans_acc': 0.20,
+        'max_trans_dec': -0.20,
+        'max_rot_vel': 0.50,
+    }
+
+
+@pytest.mark.parametrize('launch_name', ['move_group.launch.py', 'mock_planning.launch.py'])
+def test_ompl_remains_default_with_pilz_available(launch_name: str) -> None:
+    source = (PACKAGE_ROOT / 'launch' / launch_name).read_text(encoding='utf-8')
+    assert "default_planning_pipeline='ompl'" in source
+    assert "['ompl', 'pilz_industrial_motion_planner']" in source
+
+
 def test_moveit_controllers_claim_disjoint_side_joints() -> None:
     config = _load_yaml('moveit_controllers.yaml')
     assert config['moveit_controller_manager'] == (
@@ -260,6 +297,21 @@ def test_moveit_controllers_claim_disjoint_side_joints() -> None:
         assert f'{side}_gripper_joint' not in controller['joints']
         claimed.append(set(controller['joints']))
     assert claimed[0].isdisjoint(claimed[1])
+
+
+def test_sorting_controller_profile_adds_disjoint_grippers_only():
+    base = _load_yaml('moveit_controllers.yaml')['moveit_simple_controller_manager']
+    combined = _load_yaml('sorting_moveit_controllers.yaml')['moveit_simple_controller_manager']
+    claimed = set()
+    for name in combined['controller_names']:
+        joints = set(combined[name]['joints'])
+        assert not joints & claimed
+        claimed |= joints
+    for arm in SIDES:
+        assert combined[f'{arm}_arm_controller'] == base[f'{arm}_arm_controller']
+        assert combined[f'{arm}_gripper_controller']['joints'] == [f'{arm}_gripper_joint']
+        assert _load_yaml('ompl_planning.yaml')[f'{arm}_pregrasp_open']['longest_valid_segment_fraction'] == .001
+        assert _load_yaml('ompl_planning.yaml')[f'{arm}_return_close']['longest_valid_segment_fraction'] == .001
 
 
 def test_mock_ros2_control_matches_moveit_controller_contract() -> None:
@@ -306,3 +358,35 @@ def test_optional_rviz_uses_the_moveit_model_and_selected_clock() -> None:
     assert 'moveit_config.robot_description_semantic,' in source
     assert 'moveit_config.robot_description_kinematics,' in source
     assert "'use_sim_time': ParameterValue(" in source
+
+
+def test_move_group_exit_uses_a_launch_action_not_a_raw_event() -> None:
+    from launch import LaunchDescriptionEntity
+
+    namespace = runpy.run_path(str(PACKAGE_ROOT / 'launch/move_group.launch.py'))
+    shutdown = namespace['Shutdown'](reason='test required process exit')
+    assert isinstance(shutdown, LaunchDescriptionEntity)
+
+
+def test_depth_octomap_and_rviz_share_sensor_cloud_contract() -> None:
+    config = _load_yaml('depth_octomap.yaml')['/**']['ros__parameters']
+    assert config['octomap_frame'] == 'base_link'
+    assert config['octomap_resolution'] == 0.01
+    sensor = config['depth_cloud']
+    assert sensor['sensor_plugin'] == (
+        'occupancy_map_monitor/PointCloudOctomapUpdater'
+    )
+    assert sensor['point_cloud_topic'] == '/perception/scene_cloud'
+    assert sensor['filtered_cloud_topic'] == '/perception/scene_cloud_filtered'
+    # Self-filter margin must cover a voxel half-diagonal plus model error.
+    assert sensor['padding_offset'] >= (
+        3 ** 0.5 * config['octomap_resolution'] / 2 + 0.005
+    )
+    displays = _load_yaml('moveit.rviz')['Visualization Manager']['Displays']
+    cloud = next(d for d in displays
+                 if d['Class'] == 'rviz_default_plugins/PointCloud2')
+    assert cloud['Topic']['Value'] == sensor['point_cloud_topic']
+    manifest = ET.parse(PACKAGE_ROOT / 'package.xml').getroot()
+    assert 'moveit_ros_perception' in {
+        dependency.text for dependency in manifest.findall('exec_depend')
+    }

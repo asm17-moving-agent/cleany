@@ -44,6 +44,40 @@ class SegmentedCanCloud:
     context_colors: np.ndarray
 
 
+def rotation_matrix_from_quaternion(
+    x: float,
+    y: float,
+    z: float,
+    w: float,
+) -> np.ndarray:
+    """Return a normalized 3x3 rotation matrix for an xyzw quaternion."""
+    quaternion = np.asarray((x, y, z, w), dtype=float)
+    norm = float(np.linalg.norm(quaternion))
+    if not np.isfinite(quaternion).all() or norm <= 1.0e-12:
+        raise ValueError('quaternion must be finite and non-zero')
+    x, y, z, w = quaternion / norm
+    return np.asarray(
+        (
+            (
+                1.0 - 2.0 * (y * y + z * z),
+                2.0 * (x * y - z * w),
+                2.0 * (x * z + y * w),
+            ),
+            (
+                2.0 * (x * y + z * w),
+                1.0 - 2.0 * (x * x + z * z),
+                2.0 * (y * z - x * w),
+            ),
+            (
+                2.0 * (x * z - y * w),
+                2.0 * (y * z + x * w),
+                1.0 - 2.0 * (x * x + y * y),
+            ),
+        ),
+        dtype=float,
+    )
+
+
 def _project(
     rows: np.ndarray,
     columns: np.ndarray,
@@ -152,6 +186,7 @@ def render_grasp_overlay(
     selected_index: int | None = None,
     selected_arm: str = '',
     pregrasp_offset_m: float = 0.08,
+    title: str = 'CAN GRASP',
 ) -> np.ndarray:
     """Draw grasp directions and numeric angles over the rendered RGB image."""
 
@@ -173,6 +208,8 @@ def render_grasp_overlay(
         raise ValueError('selected grasp index is outside the candidate list')
     if not math.isfinite(pregrasp_offset_m) or pregrasp_offset_m <= 0.0:
         raise ValueError('pregrasp offset must be positive and finite')
+    if not title:
+        raise ValueError('grasp overlay title must not be empty')
 
     norms = np.linalg.norm(approaches, axis=1)
     if np.any(~np.isfinite(norms)) or np.any(norms <= 1.0e-9):
@@ -199,6 +236,19 @@ def render_grasp_overlay(
         start = tuple(float(value) for value in pre_pixels[index])
         end = tuple(float(value) for value in tcp_pixels[index])
         draw.line((start, end), fill=color, width=width)
+        pre_x, pre_y = pre_pixels[index]
+        draw.rectangle(
+            (pre_x - 6, pre_y - 6, pre_x + 6, pre_y + 6),
+            outline=color,
+            width=width,
+        )
+        draw.text(
+            (pre_x + 9, pre_y - 16),
+            f'PG{index}',
+            fill=color,
+            stroke_width=2,
+            stroke_fill=(0, 0, 0),
+        )
         direction = pre_pixels[index] - tcp_pixels[index]
         length = float(np.linalg.norm(direction))
         if length > 1.0:
@@ -212,6 +262,13 @@ def render_grasp_overlay(
             )
         x, y = tcp_pixels[index]
         draw.ellipse((x - 7, y - 7, x + 7, y + 7), outline=color, width=width)
+        draw.text(
+            (x + 9, y - 16),
+            f'G{index}',
+            fill=color,
+            stroke_width=2,
+            stroke_fill=(0, 0, 0),
+        )
         azimuth = math.degrees(math.atan2(unit[index, 1], unit[index, 0]))
         elevation = math.degrees(
             math.atan2(
@@ -232,8 +289,8 @@ def render_grasp_overlay(
         )
 
     draw.rectangle((8, 8, min(rgb.shape[1] - 8, 525), 72), fill=(8, 10, 13))
-    title = 'CAN GRASP: cyan=candidate  green=MoveIt-selected'
-    draw.text((18, 16), title, fill=(240, 244, 248))
+    legend = f'{title}: square=pre-grasp  circle=grasp'
+    draw.text((18, 16), legend, fill=(240, 244, 248))
     state = 'evaluating MoveIt reachability'
     if selected_index is not None:
         state = (

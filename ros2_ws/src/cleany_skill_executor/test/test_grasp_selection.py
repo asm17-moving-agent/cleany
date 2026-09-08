@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from dataclasses import replace
 
 from cleany_skill_executor.core.grasp_selection import (
     Candidate,
@@ -85,15 +86,72 @@ class FakePort:
         self.calls.append(('valid', arm, solution))
         return ('valid', arm) not in self.failures
 
+    def open_grasp_is_valid(self, arm, solution, opening):
+        self.calls.append(('open_clearance', arm, opening))
+        return ('open_clearance', arm) not in self.failures
+
+    def gripper_sweep_is_valid(self, arm, solution, opening, closing, step):
+        self.calls.append(('closure_clearance', arm, opening, closing, step))
+        return ('closure_clearance', arm) not in self.failures
+
+    def pregrasp_is_visible(self, arm, solution):
+        self.calls.append(('visible', arm, solution))
+        return ('visible', arm) not in self.failures
+
     def plan(self, arm, goal, start):
         stage = 'plan_current' if start is None else 'plan_grasp'
         self.calls.append((stage, arm, goal, start))
         return (stage, arm) not in self.failures
 
 
+def test_open_target_overlap_rejects_arm_before_grasp_plan():
+    port = FakePort(failures={('open_clearance', 'left')})
+    selector = GraspSelector(port, GraspSelectionConfig(open_gripper_position_rad=1.4))
+    selected = selector.select([candidate(0, y=.2)])
+    assert selected is not None and selected.arm == 'right'
+    assert ('open_clearance', 'left', 1.4) in port.calls
+    assert not any(c[0] == 'plan_grasp' and c[1] == 'left' for c in port.calls)
+
+
+def test_closure_collision_rejects_arm_before_grasp_plan():
+    port = FakePort(failures={('closure_clearance', 'left')})
+    selector = GraspSelector(port, GraspSelectionConfig(
+        open_gripper_position_rad=1.4, closed_gripper_position_rad=-.3))
+    selected = selector.select([candidate(0, y=.2)])
+    assert selected is not None and selected.arm == 'right'
+    assert ('closure_clearance', 'left', 1.4, -.3, .05) in port.calls
+    assert not any(c[0] == 'plan_grasp' and c[1] == 'left' for c in port.calls)
+
+
 def test_pregrasp_is_fourteen_centimeters_opposite_normalized_approach():
     value = GraspSelector.pregrasp_position(candidate(0, y=0.2, approach=(2.0, 0.0, 0.0)))
     assert value == pytest.approx((0.36, 0.2, 0.8))
+
+
+def test_candidate_centering_overrides_both_old_lateral_offsets():
+    port = FakePort()
+    item = replace(candidate(0,y=.2), lateral_offset_m=.004)
+    selector = GraspSelector(port,GraspSelectionConfig(
+        grasp_lateral_offset_m=.03,grasp_execution_lateral_offset_m=.03))
+    assert selector.select([item]) is not None
+    expected = GraspSelector.grasp_position(item,0,.004)
+    assert next(c for c in port.calls if c[0]=='grasp_ik')[2] == pytest.approx(expected)
+
+
+def test_occluded_pregrasp_falls_back_before_planning():
+    port = FakePort({('visible', 'left')})
+    selector = GraspSelector(port, GraspSelectionConfig(require_pregrasp_visibility=True))
+    result = selector.select([candidate(0, y=.2)])
+    assert result.arm == 'right'
+    assert not any(c[0].startswith('plan') and c[1] == 'left' for c in port.calls)
+    assert sum(c[0] == 'visible' for c in port.calls) == 2  # Never at grasp endpoint.
+
+
+def test_visibility_default_does_not_change_generic_selection():
+    port = FakePort({('visible', 'left')})
+    result = GraspSelector(port).select([candidate(0, y=.2)])
+    assert result.arm == 'left'
+    assert not any(c[0] == 'visible' for c in port.calls)
 
 
 def test_candidate_preserves_normalized_pose_and_rejects_mismatched_approach():
@@ -207,6 +265,19 @@ def test_score_order_and_target_y_choose_arm_order():
     ])
     assert selected is not None
     assert (selected.candidate_index, selected.arm) == (1, 'left')
+
+
+def test_required_arm_disables_bilateral_fallback():
+    port = FakePort()
+    selected = GraspSelector(port).select(
+        [candidate(0, y=0.2)], required_arm='right'
+    )
+    assert selected is not None and selected.arm == 'right'
+    assert not any(len(call) > 1 and call[1] == 'left' for call in port.calls)
+    with pytest.raises(ValueError, match='required_arm'):
+        GraspSelector(FakePort()).select(
+            [candidate(0, y=0.2)], required_arm='middle'
+        )
 
 
 @pytest.mark.parametrize('failure', [('valid', 'left'), ('plan_current', 'left'), ('plan_grasp', 'left')])

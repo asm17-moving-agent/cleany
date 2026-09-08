@@ -118,3 +118,15 @@ def test_handeye_backend_accepts_workflow_specific_controller_config() -> None:
     assert "'controller_config'" in source
     assert "controller_config = LaunchConfiguration('controller_config')" in source
     assert "'handeye_ros2_controllers.yaml'" in source
+    assert "'head_tilt_initial'" in source
+    assert "initial_joint_positions['head_tilt_joint']" in source
+
+
+def test_contact_diagnostics_are_opt_in_and_observer_only() -> None:
+    source = (PACKAGE_ROOT / 'launch' / 'handeye_backend.launch.py').read_text()
+    assert "DeclareLaunchArgument('sorting_contact_diagnostics', default_value='false')" in source
+    assert "'sorting_observer.publish_contacts': ParameterValue(" in source
+    assert "LaunchConfiguration('sorting_contact_diagnostics'), value_type=bool" in source
+    assert "hardware_plugin = 'cleany_mujoco_observer/ObservedMujocoSystem'" in source
+    assert "'mujoco_hardware_plugin': hardware_plugin" in source
+    assert 'mujoco_plugins.sorting_observer' not in source

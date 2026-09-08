@@ -88,7 +88,8 @@ def _sensor_messages(scene, stamp_ns):
     snapshot = scene['snapshot']
     color = Image()
     color.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
-    color.header.frame_id = 'rgb_optical_frame'
+    # This fixture represents depth already registered to the color image.
+    color.header.frame_id = snapshot.source_frame
     color.width = snapshot.intrinsics.width
     color.height = snapshot.intrinsics.height
     color.encoding = 'rgb8'
@@ -260,7 +261,10 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert result.success
         assert result.error_code == InspectScene.Result.ERROR_NONE
         assert result.objects.objects == []
-        assert result.detections.header.frame_id == 'rgb_optical_frame'
+        assert (
+            result.detections.header.frame_id
+            == synthetic_scene['snapshot'].source_frame
+        )
         assert result.detections.snapshot_id.startswith('rgbd-')
         assert [
             item.label for item in result.detections.detections

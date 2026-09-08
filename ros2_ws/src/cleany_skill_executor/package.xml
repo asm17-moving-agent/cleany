@@ -12,6 +12,7 @@
   <depend>cleany_interfaces</depend>
   <depend>control_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>rcl_interfaces</depend>
   <depend>launch</depend>
   <depend>launch_ros</depend>
   <depend>moveit_msgs</depend>
@@ -27,6 +28,7 @@
   <exec_depend>cleany_perception</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-pil</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
   <exec_depend>rqt_image_view</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <test_depend>python3-pytest</test_depend>

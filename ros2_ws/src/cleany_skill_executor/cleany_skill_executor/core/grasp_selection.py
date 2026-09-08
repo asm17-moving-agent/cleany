@@ -48,8 +48,11 @@ class Candidate:
     score: float
     source_index: int = 0
     orientation: tuple[float, float, float, float] | None = None
+    lateral_offset_m: float | None = None
 
     def __post_init__(self) -> None:
+        if self.lateral_offset_m is not None and not math.isfinite(self.lateral_offset_m):
+            raise ValueError('Candidate lateral offset must be finite')
         values = (*self.position, *self.approach_direction, self.score)
         if not all(math.isfinite(value) for value in values):
             raise ValueError('candidate values must be finite')
@@ -192,9 +195,25 @@ class GraspSelectionConfig:
     pregrasp_seed_offset_m: float = 0.08
     grasp_approach_offset_m: float = 0.0
     grasp_lateral_offset_m: float = 0.0
+    grasp_execution_lateral_offset_m: float | None = None
     maximum_candidates: int = 12
+    require_pregrasp_visibility: bool = False
+    open_gripper_position_rad: float | None = None
+    closed_gripper_position_rad: float | None = None
+    gripper_sweep_step_rad: float = .05
 
     def __post_init__(self) -> None:
+        if self.closed_gripper_position_rad is not None and (
+                self.open_gripper_position_rad is None
+                or not math.isfinite(self.closed_gripper_position_rad)
+                or not -.374532977628 <= self.closed_gripper_position_rad < self.open_gripper_position_rad
+                or not math.isfinite(self.gripper_sweep_step_rad)
+                or not .005 <= self.gripper_sweep_step_rad <= .2):
+            raise ValueError('Invalid gripper closure sweep configuration')
+        if self.open_gripper_position_rad is not None and (
+                not math.isfinite(self.open_gripper_position_rad)
+                or not 0 <= self.open_gripper_position_rad <= 1.74532919957):
+            raise ValueError('Open gripper position must be within the tool joint limits')
         if not math.isfinite(self.pregrasp_offset_m) or self.pregrasp_offset_m <= 0:
             raise ValueError('pregrasp_offset_m must be positive and finite')
         if (
@@ -210,11 +229,21 @@ class GraspSelectionConfig:
             )
         ):
             raise ValueError('grasp execution offsets must be finite')
+        if (
+            self.grasp_execution_lateral_offset_m is not None
+            and not math.isfinite(self.grasp_execution_lateral_offset_m)
+        ):
+            raise ValueError(
+                'grasp_execution_lateral_offset_m must be finite'
+            )
         if self.maximum_candidates <= 0:
             raise ValueError('maximum_candidates must be positive')
 
 
 class ReachabilityPort(Protocol):
+    def pregrasp_is_visible(self, arm: str, solution: JointSolution) -> bool:
+        ...
+
     def set_target_contacts(self, arm: str | None) -> None:
         ...
 
@@ -245,6 +274,13 @@ class ReachabilityPort(Protocol):
         closing_direction: tuple[float, float, float],
         seed: JointSolution,
     ) -> tuple[JointSolution, ...]:
+        ...
+
+    def open_grasp_is_valid(self, arm: str, solution: JointSolution, opening: float) -> bool:
+        ...
+
+    def gripper_sweep_is_valid(self, arm: str, solution: JointSolution,
+                              opening: float, closing: float, step: float) -> bool:
         ...
 
     def state_is_valid(self, arm: str, solution: JointSolution) -> bool:
@@ -324,9 +360,12 @@ class GraspSelector:
         self,
         candidates: Sequence[Candidate],
         *,
+        required_arm: str = '',
         cancel_requested: Callable[[], bool] = lambda: False,
         feedback: Feedback = lambda *_: None,
     ) -> Selection | None:
+        if required_arm not in ('', 'left', 'right'):
+            raise ValueError("required_arm must be '', 'left', or 'right'")
         ranked = sorted(candidates, key=lambda item: item.score, reverse=True)[
             : self._config.maximum_candidates
         ]
@@ -336,27 +375,34 @@ class GraspSelector:
                 raise InterruptedError('grasp selection canceled')
 
         for candidate in ranked:
+            lateral = (self._config.grasp_lateral_offset_m if candidate.lateral_offset_m is None
+                       else candidate.lateral_offset_m)
             pregrasp_position = self.pregrasp_position(
                 candidate,
                 self._config.pregrasp_offset_m,
-                self._config.grasp_lateral_offset_m,
+                lateral,
             )
             pregrasp_seed_position = self.pregrasp_position(
                 candidate,
                 self._config.pregrasp_seed_offset_m,
-                self._config.grasp_lateral_offset_m,
+                lateral,
             )
             pregrasp_aim_position = self.grasp_position(
                 candidate,
                 0.0,
-                self._config.grasp_lateral_offset_m,
+                lateral,
             )
             grasp_position = self.grasp_position(
                 candidate,
                 self._config.grasp_approach_offset_m,
-                self._config.grasp_lateral_offset_m,
+                (
+                    lateral
+                    if (self._config.grasp_execution_lateral_offset_m is None or candidate.lateral_offset_m is not None)
+                    else self._config.grasp_execution_lateral_offset_m
+                ),
             )
-            for arm in self.arm_order(candidate):
+            arms = (required_arm,) if required_arm else self.arm_order(candidate)
+            for arm in arms:
                 check_canceled()
                 index = candidate.source_index
                 self._port.set_target_contacts(None)
@@ -393,6 +439,13 @@ class GraspSelector:
                         f'pregrasp solution {pregrasp_attempt}/{len(pregrasps)}',
                     )
                     if not self._port.state_is_valid(arm, pregrasp):
+                        check_canceled()
+                        continue
+                    check_canceled()
+                    if (self._config.require_pregrasp_visibility
+                            and not self._port.pregrasp_is_visible(arm, pregrasp)):
+                        feedback(index, arm, EvaluationStage.STATE_VALIDITY,
+                                 'pregrasp occludes the camera-to-target envelope')
                         check_canceled()
                         continue
                     check_canceled()
@@ -435,7 +488,23 @@ class GraspSelector:
                         if not self._port.state_is_valid(arm, grasp):
                             check_canceled()
                             continue
+                        if (self._config.open_gripper_position_rad is not None
+                                and not self._port.open_grasp_is_valid(
+                                    arm, grasp, self._config.open_gripper_position_rad)):
+                            feedback(index, arm, EvaluationStage.STATE_VALIDITY,
+                                     'open gripper overlaps target or environment at grasp')
+                            check_canceled()
+                            continue
                         check_canceled()
+                        if (self._config.closed_gripper_position_rad is not None
+                                and not self._port.gripper_sweep_is_valid(
+                                    arm, grasp, self._config.open_gripper_position_rad,
+                                    self._config.closed_gripper_position_rad,
+                                    self._config.gripper_sweep_step_rad)):
+                            feedback(index, arm, EvaluationStage.STATE_VALIDITY,
+                                     'gripper closure sweep overlaps environment')
+                            check_canceled()
+                            continue
                         feedback(
                             index,
                             arm,

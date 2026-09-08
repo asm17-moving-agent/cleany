@@ -1,5 +1,8 @@
 nearest_pregrasp_coordinator:
   ros__parameters:
+    # Empty keeps direct PointCloud2 reception. The sensor-only launch starts
+    # a dedicated receipt node and supplies its reliable Header topic.
+    sensor_scene_receipt_topic: ''
     inspection_action: /perception/inspect_scene
     grasp_service: /grasp/plan
     selection_action: /grasp/select_reachable
@@ -17,3 +20,37 @@ nearest_pregrasp_coordinator:
     acceleration_scaling: 0.08
     gripper_open_position_rad: 1.2
     gripper_motion_sec: 3.0
+    preapproach_maximum_geometry_shift_m: 0.005
+    pilz_pipeline_id: pilz_industrial_motion_planner
+    pilz_planner_id: LIN
+    approach_velocity_scaling: 0.2
+    retreat_velocity_scaling: 0.4
+    lin_acceleration_scaling: 0.4
+    lin_position_tolerance_m: 0.001
+    lin_orientation_tolerance_rad: 0.01
+    lin_alignment_tolerance_deg: 10.0
+    use_joint_corridor_grasp: false
+    use_seeded_cartesian_grasp: false
+    cartesian_ik_step_m: 0.01
+    cartesian_validation_step_m: 0.001
+    cartesian_validation_joint_step_rad: 0.005
+    cartesian_maximum_points: 2000
+    cartesian_joint_acceleration_rad_s2: 1.0
+    attachment_scene_timeout_sec: 5.0
+    corridor_orientation_tolerance_deg: 5.0
+    corridor_time_margin: 2.0
+    cartesian_translation_speed_m_s: 0.10
+    cartesian_translation_acceleration_m_s2: 0.20
+    cartesian_rotation_speed_rad_s: 0.50
+    arm_stationary_velocity_rad_s: 0.02
+    arm_stationary_samples: 5
+    reinspection_max_center_shift_m: 0.03
+    reinspection_max_axis_change_deg: 15.0
+    reinspection_ambiguity_distance_m: 0.01
+    grasp_contact_stop_max_distance_m: 0.02
+    contact_min_joint_error_rad: 0.10
+    contact_max_joint_velocity_rad_s: 0.05
+    contact_consecutive_samples: 5
+    contact_effort_threshold: 0.0
+    lift_distance_m: 0.06
+    count_retreat_as_lift: false

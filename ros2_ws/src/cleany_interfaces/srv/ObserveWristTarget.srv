@@ -1,0 +1,23 @@
+# RGB-only wrist verification. No inferred depth or fresh 3D measurement.
+uint8 HANDOFF=0
+uint8 CHECK=1
+uint8 CLEAR=2
+uint8 operation
+string arm
+string source_snapshot_id
+uint32 source_object_id
+string label
+float32 source_confidence
+string reference_id
+# Expected pose from head RGB-D or held-object kinematics, not a measurement.
+geometry_msgs/PoseStamped expected_pose
+geometry_msgs/Vector3 size
+int64 after_stamp_ns
+---
+bool success
+string message
+string reference_id
+std_msgs/Header header
+string source_snapshot_id
+uint32 source_object_id
+sensor_msgs/Image mask

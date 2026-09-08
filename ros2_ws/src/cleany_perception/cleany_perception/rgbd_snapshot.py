@@ -131,6 +131,8 @@ def snapshot_from_messages(
         _validate_camera_info(messages.depth_info, messages.depth)
         if rgb.shape[:2] != depth_m.shape:
             raise ValueError('Aligned RGB and depth dimensions do not match')
+        if messages.color.header.frame_id != messages.depth.header.frame_id:
+            raise ValueError('Aligned RGB and depth optical frames differ')
         color_matrix = np.asarray(messages.color_info.k, dtype=np.float64)
         depth_matrix = np.asarray(messages.depth_info.k, dtype=np.float64)
         if not np.allclose(color_matrix, depth_matrix, rtol=0.0, atol=1e-6):
