@@ -30,11 +30,64 @@ counts from encoders 1–4. The board layout is:
 
 Motor numbering proceeds clockwise from M1 at front-left. M1 and M4 direction
 polarity is inverted in firmware to match the installed wheel orientation;
-M2 and M3 use normal polarity. Verify all wheel directions with the robot
-lifted before driving it. Each active motor must receive the browser's 250 ms
-heartbeat and is stopped by the firmware after 750 ms without a command.
-Releasing a drive button stops all four motors. A Wi-Fi client disconnect also
-stops all motors. GPIO assignments come from [`PINMAP.md`](PINMAP.md).
+M2 and M3 use normal polarity. Encoder polarity is calibrated separately so
+positive measured velocity matches a positive logical wheel command. Verify
+all wheel directions and measured velocity signs with the robot lifted before
+driving it. Each active motor must receive the browser's 250 ms heartbeat and
+is stopped by the firmware after 750 ms without a command.
+Motor commands pass through a 5 ms, 1%-per-tick slew-rate limiter, taking about
+500 ms from 0 to 100%. This limiter is applied to the final PI-controlled PWM
+output, so feedback correction cannot bypass the motor-protection rate limit.
+A direction change ramps to zero and waits until
+encoder feedback remains below 0.5 rad/s for 50 ms before changing `DIR`.
+Releasing a drive button uses this controlled stop. The `STOP ALL` button,
+command watchdog, and Wi-Fi disconnect retain an immediate electrical brake for
+fail-safe operation. GPIO assignments come from [`PINMAP.md`](PINMAP.md).
+
+Each ramped percentage command is mapped to a target output-shaft velocity,
+where 100% currently means 10 rad/s. A per-wheel feed-forward plus PI loop
+uses an 11 rad/s measured no-load feed-forward scale and encoder feedback to
+produce the applied PWM percentage. The initial
+controller values (`Kp=6`, `Ki=6`) are hardware response-calibrated baseline
+gains, not a substitute for loaded-floor validation. Verify encoder polarity
+with the robot lifted before loaded driving.
+
+The web debug panel displays a selectable motor's requested, rate-limited, and
+measured velocity response over the latest 20 seconds. Its table also shows
+encoder counts, tracking error, final PWM, and controller state for every
+motor.
+The same values are available from `/api/status` as `encoders`, `target`,
+`applied`, `target_rad_s`, `commanded_rad_s`, `omega_rad_s`, and
+`reverse_waiting`. Velocity conversion uses 3172 quadrature counts per output
+revolution (13 PPR, 4x decoding, 61:1 reduction).
+
+## USB serial control and calibration
+
+The USB Serial/JTAG port provides motor control and telemetry without changing
+the host's network connection. Commands are newline terminated:
+
+```text
+HELP
+STATUS
+MOTOR <1-4> <-100..100 percent>
+VELOCITY <1-4> <-10..10 rad/s>
+MOVE <1-4> <-10..10 rad/s> <0.5..6 rad>
+MOVE ALL <-10..10 rad/s> <0.5..6 rad>
+TRACE <1-4> <20..1000 ms>
+TRACE ALL <50..1000 ms>
+TRACE STOP
+STOP
+```
+
+`MOVE` is intended for response calibration. `MOVE ALL` drives all wheels in
+the same logical direction to avoid the wheel slip caused by running one wheel
+against three stationary wheels. Each wheel stops immediately when its encoder
+displacement reaches the requested bound (never more than 6 rad) or after five
+seconds. Firmware starts braking 0.25 rad before the requested limit to reserve
+room for control-loop and mechanical stopping latency. `TRACE` emits CSV-like
+`CLEANY_TRACE` records containing timestamp, motor, encoder count, requested
+velocity, rate-limited velocity, measured velocity, PWM, and bounded-move
+state. `STOP` remains an immediate stop.
 
 Build and upload the non-test firmware with PlatformIO isolated by `uv`:
 
@@ -58,6 +111,26 @@ pio run -e esp32-s3-devkitc-1-n32r16v -t compiledb
 
 The project-local `.clangd` configuration and compilation database provide
 ESP32-S3 completion and diagnostics without editor-specific configuration.
+
+Run the host-side command-filter check without attached hardware:
+
+```bash
+c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
+  -Imotor_controller/src \
+  motor_controller/tests/motor_command_filter_test.cpp \
+  -o /tmp/motor_command_filter_test &&
+  /tmp/motor_command_filter_test
+```
+
+Run the host-side velocity-controller check:
+
+```bash
+c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
+  -Imotor_controller/src \
+  motor_controller/tests/wheel_velocity_controller_test.cpp \
+  -o /tmp/wheel_velocity_controller_test &&
+  /tmp/wheel_velocity_controller_test
+```
 
 ## Hardware tests
 
@@ -88,9 +161,10 @@ uvx --with pip --from platformio pio test -d motor_controller \
 ```
 
 The motor test uses encoder A on GPIO4, encoder B on GPIO3, direction on
-GPIO10, and PWM on GPIO11. It applies 50% duty for at most three seconds and
-always stops before reporting whether 793 encoder counts were reached. The
-motor supply, driver, encoder, and development board must share ground.
+GPIO10, and PWM on GPIO11. It ramps to 50% duty, runs for at most three
+seconds, and ramps down before reporting whether 793 encoder counts were
+reached. The motor supply, driver, encoder, and development board must share
+ground.
 
 Run only the MPU6050 test:
 

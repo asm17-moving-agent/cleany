@@ -1,4 +1,5 @@
 .pio/
+/logs/
 compile_commands.json
 /sdkconfig.esp32-s3-devkitc-1-n32r16v
 /.memory/
