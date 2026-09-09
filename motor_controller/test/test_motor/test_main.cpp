@@ -44,6 +44,8 @@ constexpr ledc_mode_t kPwmMode = LEDC_LOW_SPEED_MODE;
 constexpr uint32_t kPwmFrequencyHz = 20000;
 constexpr ledc_timer_bit_t kPwmResolution = LEDC_TIMER_8_BIT;
 constexpr uint32_t kTestDuty = 128;
+constexpr uint32_t kDutyRampStep = 5;
+constexpr uint32_t kDutyRampPeriodMs = 10;
 constexpr int32_t kCountsPerRevolution = 3172;
 constexpr int32_t kTargetCounts = kCountsPerRevolution / 4;
 constexpr uint32_t kMotionTimeoutMs = 3000;
@@ -117,6 +119,23 @@ esp_err_t setMotorDuty(uint32_t duty) {
   return ledc_update_duty(kPwmMode, kPwmChannel);
 }
 
+esp_err_t rampMotorDuty(uint32_t from, uint32_t to) {
+  uint32_t duty = from;
+  while (duty != to) {
+    if (duty < to) {
+      duty = duty + kDutyRampStep < to ? duty + kDutyRampStep : to;
+    } else {
+      duty = duty > to + kDutyRampStep ? duty - kDutyRampStep : to;
+    }
+    const esp_err_t result = setMotorDuty(duty);
+    if (result != ESP_OK) {
+      return result;
+    }
+    vTaskDelay(pdMS_TO_TICKS(kDutyRampPeriodMs));
+  }
+  return ESP_OK;
+}
+
 uint32_t uptimeMs() {
   return static_cast<uint32_t>(esp_timer_get_time() / 1000);
 }
@@ -130,7 +149,7 @@ void testMotorReachesEncoderTarget() {
   const uint32_t startTimeMs = uptimeMs();
 
   ASSERT_ESP_OK(gpio_set_level(kMotorDirectionPin, 1));
-  ASSERT_ESP_OK(setMotorDuty(kTestDuty));
+  ASSERT_ESP_OK(rampMotorDuty(0, kTestDuty));
 
   int32_t count = startCount;
   while (!targetReached(count - startCount) &&
@@ -139,7 +158,7 @@ void testMotorReachesEncoderTarget() {
     count = readEncoder();
   }
 
-  ASSERT_ESP_OK(setMotorDuty(0));
+  ASSERT_ESP_OK(rampMotorDuty(kTestDuty, 0));
 
   const int32_t delta = count - startCount;
   const uint32_t elapsedMs = uptimeMs() - startTimeMs;
