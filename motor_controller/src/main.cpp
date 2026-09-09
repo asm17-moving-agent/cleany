@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <array>
 #include <cerrno>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -12,6 +14,7 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_netif.h"
+#include "esp_random.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
@@ -19,6 +22,7 @@
 #include "freertos/task.h"
 #include "motor_command_filter.hpp"
 #include "nvs_flash.h"
+#include "serial_protocol.hpp"
 #include "wheel_velocity_controller.hpp"
 
 namespace {
@@ -40,6 +44,7 @@ constexpr float kMaximumTargetVelocityRadPerSecond = 10.0F;
 constexpr float kMaximumCalibrationTravelRad = 6.0F;
 constexpr float kCalibrationStoppingMarginRad = 0.25F;
 constexpr int64_t kCalibrationTimeoutUs = 5000000;
+constexpr int64_t kSerialCommandTimeoutUs = 250000;
 
 struct Motor {
   gpio_num_t pwmPin;
@@ -90,6 +95,16 @@ portMUX_TYPE encoderMux = portMUX_INITIALIZER_UNLOCKED;
 int serialTraceMotor = -1;
 uint32_t serialTracePeriodMs = 0;
 int64_t lastSerialTraceUs = 0;
+bool serialControlActive = false;
+int64_t lastSerialWheelCommandUs = 0;
+uint32_t serialTelemetryPeriodMs = 0;
+int64_t lastSerialTelemetryUs = 0;
+uint32_t serialTelemetrySequence = 0;
+uint32_t serialBootId = 0;
+uint32_t serialSessionId = 0;
+uint32_t lastSerialCommandSequence = 0;
+bool hasSerialCommandSequence = false;
+uint32_t serialFaultBits = 0;
 
 constexpr int8_t kEncoderTable[16] = {
     0, -1, 1, 0,
@@ -394,6 +409,7 @@ esp_err_t setMotorSpeed(size_t index, int speed) {
   motors[index].commandFilter.setTargetSpeed(speed);
   motors[index].lastCommandUs = esp_timer_get_time();
   motors[index].calibrationMoveActive = false;
+  serialControlActive = false;
   xSemaphoreGive(motorMutex);
   return ESP_OK;
 }
@@ -418,6 +434,7 @@ esp_err_t setDriveSpeed(int forward, int left, int counterclockwise) {
   }
   esp_err_t result = ESP_OK;
   const int64_t nowUs = esp_timer_get_time();
+  serialControlActive = false;
   for (size_t i = 0; i < speeds.size(); ++i) {
     speeds[i] = speeds[i] * 100 / maximum;
     motors[i].commandFilter.setTargetSpeed(speeds[i]);
@@ -441,6 +458,7 @@ void stopAll() {
       ESP_LOGE(kTag, "Failed to stop motor %u", static_cast<unsigned>(i + 1));
     }
   }
+  serialControlActive = false;
   xSemaphoreGive(motorMutex);
 }
 
@@ -630,11 +648,24 @@ void motorControlTask(void*) {
 
 void motorWatchdog(void*) {
   while (true) {
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(25));
     if (xSemaphoreTake(motorMutex, pdMS_TO_TICKS(50)) != pdTRUE) {
       continue;
     }
     const int64_t now = esp_timer_get_time();
+    if (serialControlActive &&
+        now - lastSerialWheelCommandUs > kSerialCommandTimeoutUs) {
+      ESP_LOGW(kTag, "Serial wheel command timed out");
+      for (size_t i = 0; i < motors.size(); ++i) {
+        motors[i].commandFilter.forceStop();
+        motors[i].velocityController.reset();
+        motors[i].commandedVelocityRadPerSecond = 0.0F;
+        motors[i].calibrationMoveActive = false;
+        applyMotorSpeedLocked(i, 0);
+      }
+      serialControlActive = false;
+      serialFaultBits |= 1U;
+    }
     for (size_t i = 0; i < motors.size(); ++i) {
       if (!motors[i].calibrationMoveActive &&
           (motors[i].commandFilter.targetSpeed() != 0 ||
@@ -676,6 +707,7 @@ esp_err_t startCalibrationMove(int id, float targetRadPerSecond,
     return ESP_ERR_TIMEOUT;
   }
   Motor& motor = motors[static_cast<size_t>(id - 1)];
+  serialControlActive = false;
   const int targetPercent = static_cast<int>(std::lround(
       targetRadPerSecond / kMaximumTargetVelocityRadPerSecond * 100.0F));
   motor.commandFilter.setTargetSpeed(targetPercent);
@@ -711,6 +743,7 @@ esp_err_t startCalibrationMoveAll(float targetRadPerSecond,
       cleany::kTwoPi *
       static_cast<float>(cleany::kEncoderCountsPerOutputRevolution)));
   const int64_t nowUs = esp_timer_get_time();
+  serialControlActive = false;
   for (size_t i = 0; i < motors.size(); ++i) {
     Motor& motor = motors[i];
     motor.commandFilter.setTargetSpeed(targetPercent);
@@ -720,6 +753,32 @@ esp_err_t startCalibrationMoveAll(float targetRadPerSecond,
     motor.calibrationDeadlineUs = nowUs + kCalibrationTimeoutUs;
     motor.calibrationMoveActive = true;
   }
+  xSemaphoreGive(motorMutex);
+  return ESP_OK;
+}
+
+esp_err_t setSerialWheelVelocities(
+    const std::array<float, 4>& targetRadPerSecond) {
+  for (const float velocity : targetRadPerSecond) {
+    if (!std::isfinite(velocity) ||
+        std::fabs(velocity) > kMaximumTargetVelocityRadPerSecond) {
+      return ESP_ERR_INVALID_ARG;
+    }
+  }
+  if (xSemaphoreTake(motorMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    return ESP_ERR_TIMEOUT;
+  }
+  const int64_t nowUs = esp_timer_get_time();
+  for (size_t i = 0; i < motors.size(); ++i) {
+    const int targetPercent = static_cast<int>(std::lround(
+        targetRadPerSecond[i] /
+        kMaximumTargetVelocityRadPerSecond * 100.0F));
+    motors[i].commandFilter.setTargetSpeed(targetPercent);
+    motors[i].lastCommandUs = nowUs;
+    motors[i].calibrationMoveActive = false;
+  }
+  lastSerialWheelCommandUs = nowUs;
+  serialControlActive = true;
   xSemaphoreGive(motorMutex);
   return ESP_OK;
 }
@@ -862,6 +921,256 @@ void serialWrite(const char* text) {
   usb_serial_jtag_write_bytes(text, std::strlen(text), pdMS_TO_TICKS(100));
 }
 
+bool serialWritePacket(cleany::serial::MessageType type, uint8_t flags,
+                       uint32_t sequence, const uint8_t* payload,
+                       uint16_t payloadLength) {
+  uint8_t frame[cleany::serial::kMaximumWireFrameSize]{};
+  const size_t frameLength = cleany::serial::encodePacket(
+      type, flags, sequence, payload, payloadLength, frame, sizeof(frame));
+  if (frameLength == 0) {
+    return false;
+  }
+  return usb_serial_jtag_write_bytes(
+             frame, frameLength, pdMS_TO_TICKS(100)) ==
+         static_cast<int>(frameLength);
+}
+
+void serialWriteAck(cleany::serial::MessageType requestType,
+                    uint32_t sequence, cleany::serial::Status status,
+                    uint16_t detail = 0) {
+  uint8_t payload[4]{};
+  payload[0] = static_cast<uint8_t>(requestType);
+  payload[1] = static_cast<uint8_t>(status);
+  cleany::serial::writeU16(payload + 2, detail);
+  serialWritePacket(cleany::serial::MessageType::kAck, 0, sequence,
+                    payload, sizeof(payload));
+}
+
+void writeSerialHello(uint32_t sequence) {
+  uint8_t payload[32]{};
+  cleany::serial::writeU32(payload, serialBootId);
+  cleany::serial::writeU32(payload + 4, serialSessionId);
+  payload[8] = 1;
+  payload[9] = 0;
+  payload[10] = 0;
+  cleany::serial::writeU32(
+      payload + 12, cleany::serial::kCapabilityWheelVelocity |
+                        cleany::serial::kCapabilityTimeSync);
+  cleany::serial::writeF32(
+      payload + 16, kMaximumTargetVelocityRadPerSecond);
+  cleany::serial::writeU32(
+      payload + 20, cleany::kEncoderCountsPerOutputRevolution);
+  cleany::serial::writeU16(
+      payload + 24, static_cast<uint16_t>(kSerialCommandTimeoutUs / 1000));
+  cleany::serial::writeU16(
+      payload + 26, static_cast<uint16_t>(1000 / kMotorControlPeriodMs));
+  cleany::serial::writeU16(payload + 28, 50);
+  cleany::serial::writeU16(payload + 30, 0);
+  serialWritePacket(cleany::serial::MessageType::kHello, 0, sequence,
+                    payload, sizeof(payload));
+}
+
+int32_t logicalEncoderCount(size_t motorIndex, int32_t rawCount) {
+  if (motors[motorIndex].encoderPolarity > 0) {
+    return rawCount;
+  }
+  return static_cast<int32_t>(0U - static_cast<uint32_t>(rawCount));
+}
+
+void writeSerialWheelTelemetry(int64_t nowUs) {
+  // Protocol order is FL, FR, RL, RR. PCB order is FL, FR, RR, RL.
+  constexpr std::array<size_t, 4> kWireToMotor = {0, 1, 3, 2};
+  const auto rawCounts = readEncoderCounts();
+  uint8_t payload[96]{};
+  cleany::serial::writeU64(payload, static_cast<uint64_t>(nowUs));
+
+  if (xSemaphoreTake(motorMutex, pdMS_TO_TICKS(10)) != pdTRUE) {
+    return;
+  }
+  cleany::serial::writeU32(payload + 8, serialBootId);
+  cleany::serial::writeU32(payload + 12, serialSessionId);
+  cleany::serial::writeU32(payload + 16, lastSerialCommandSequence);
+  const int64_t commandAgeMs =
+      hasSerialCommandSequence
+          ? std::max<int64_t>(0, (nowUs - lastSerialWheelCommandUs) / 1000)
+          : 65535;
+  cleany::serial::writeU16(
+      payload + 20,
+      static_cast<uint16_t>(std::min<int64_t>(commandAgeMs, 65535)));
+
+  bool reverseWaiting = false;
+  bool calibrationActive = false;
+  bool anyOutput = false;
+  for (const Motor& motor : motors) {
+    reverseWaiting =
+        reverseWaiting || motor.commandFilter.waitingForReverse();
+    calibrationActive = calibrationActive || motor.calibrationMoveActive;
+    anyOutput = anyOutput || motor.outputSpeed != 0;
+  }
+  payload[22] = calibrationActive ? 3
+                : reverseWaiting  ? 2
+                : serialControlActive ? 1
+                : anyOutput ? 5
+                : (serialFaultBits & 1U) != 0 ? 4
+                                              : 0;
+
+  for (size_t wireIndex = 0; wireIndex < kWireToMotor.size(); ++wireIndex) {
+    const size_t motorIndex = kWireToMotor[wireIndex];
+    const Motor& motor = motors[motorIndex];
+    cleany::serial::writeU32(
+        payload + 24 + wireIndex * 4,
+        static_cast<uint32_t>(
+            logicalEncoderCount(motorIndex, rawCounts[motorIndex])));
+    cleany::serial::writeF32(
+        payload + 40 + wireIndex * 4,
+        motor.feedbackVelocityRadPerSecond);
+    cleany::serial::writeF32(
+        payload + 56 + wireIndex * 4,
+        static_cast<float>(motor.commandFilter.targetSpeed()) *
+            kMaximumTargetVelocityRadPerSecond / 100.0F);
+    cleany::serial::writeF32(
+        payload + 72 + wireIndex * 4,
+        motor.commandedVelocityRadPerSecond);
+    payload[88 + wireIndex] =
+        static_cast<uint8_t>(static_cast<int8_t>(motor.outputSpeed));
+  }
+  cleany::serial::writeU32(payload + 92, serialFaultBits);
+  xSemaphoreGive(motorMutex);
+
+  serialWritePacket(cleany::serial::MessageType::kWheelState, 0,
+                    serialTelemetrySequence++, payload, sizeof(payload));
+}
+
+bool serialSessionMatches(const cleany::serial::DecodedPacket& packet) {
+  return packet.payloadLength >= 4 &&
+         cleany::serial::readU32(packet.payload) == serialSessionId &&
+         serialSessionId != 0;
+}
+
+bool handleSerialProtocolPacket(const uint8_t* encoded, size_t encodedLength) {
+  uint8_t decoded[cleany::serial::kMaximumDecodedPacketSize]{};
+  cleany::serial::DecodedPacket packet{};
+  if (!cleany::serial::decodePacket(
+          encoded, encodedLength, decoded, sizeof(decoded), &packet)) {
+    return false;
+  }
+
+  using cleany::serial::MessageType;
+  using cleany::serial::Status;
+  if (packet.type == MessageType::kHelloRequest) {
+    if (packet.payloadLength != 8) {
+      serialWriteAck(packet.type, packet.sequence, Status::kBadPayload);
+      return true;
+    }
+    stopAll();
+    serialSessionId = cleany::serial::readU32(packet.payload);
+    if (serialSessionId == 0) {
+      serialWriteAck(packet.type, packet.sequence, Status::kOutOfRange);
+      return true;
+    }
+    hasSerialCommandSequence = false;
+    lastSerialCommandSequence = 0;
+    serialTelemetryPeriodMs = 0;
+    lastSerialTelemetryUs = 0;
+    serialFaultBits = 0;
+    writeSerialHello(packet.sequence);
+    return true;
+  }
+
+  if (packet.type == MessageType::kStop) {
+    const bool validPayload = packet.payloadLength == 8;
+    const bool validSession = validPayload && serialSessionMatches(packet);
+    stopAll();
+    serialWriteAck(packet.type, packet.sequence,
+                   !validPayload ? Status::kBadPayload
+                                 : validSession ? Status::kOk
+                                                : Status::kBadSession);
+    return true;
+  }
+
+  if (!serialSessionMatches(packet)) {
+    serialWriteAck(packet.type, packet.sequence, Status::kBadSession);
+    return true;
+  }
+
+  if (packet.type == MessageType::kWheelCommand) {
+    if (packet.payloadLength != 20) {
+      serialWriteAck(packet.type, packet.sequence, Status::kBadPayload);
+      return true;
+    }
+    if (hasSerialCommandSequence &&
+        !cleany::serial::sequenceIsNewer(
+            packet.sequence, lastSerialCommandSequence)) {
+      serialWriteAck(packet.type, packet.sequence, Status::kStaleSequence);
+      return true;
+    }
+    const float fl = cleany::serial::readF32(packet.payload + 4);
+    const float fr = cleany::serial::readF32(packet.payload + 8);
+    const float rl = cleany::serial::readF32(packet.payload + 12);
+    const float rr = cleany::serial::readF32(packet.payload + 16);
+    const esp_err_t result = setSerialWheelVelocities({fl, fr, rr, rl});
+    if (result != ESP_OK) {
+      serialWriteAck(
+          packet.type, packet.sequence,
+          result == ESP_ERR_INVALID_ARG ? Status::kOutOfRange
+                                        : Status::kInternalError);
+      return true;
+    }
+    lastSerialCommandSequence = packet.sequence;
+    hasSerialCommandSequence = true;
+    if ((packet.flags & cleany::serial::kFlagAckRequired) != 0) {
+      serialWriteAck(packet.type, packet.sequence, Status::kOk);
+    }
+    return true;
+  }
+
+  if (packet.type == MessageType::kStreamConfig) {
+    if (packet.payloadLength != 8) {
+      serialWriteAck(packet.type, packet.sequence, Status::kBadPayload);
+      return true;
+    }
+    const uint16_t wheelPeriodMs =
+        cleany::serial::readU16(packet.payload + 4);
+    const uint16_t imuPeriodMs =
+        cleany::serial::readU16(packet.payload + 6);
+    const bool wheelPeriodValid =
+        wheelPeriodMs == 0 ||
+        (wheelPeriodMs >= 20 && wheelPeriodMs <= 1000);
+    if (!wheelPeriodValid) {
+      serialWriteAck(packet.type, packet.sequence, Status::kOutOfRange);
+    } else if (imuPeriodMs != 0) {
+      serialWriteAck(packet.type, packet.sequence, Status::kUnsupported);
+    } else {
+      serialTelemetryPeriodMs = wheelPeriodMs;
+      lastSerialTelemetryUs = 0;
+      serialWriteAck(packet.type, packet.sequence, Status::kOk);
+    }
+    return true;
+  }
+
+  if (packet.type == MessageType::kTimeSyncRequest) {
+    if (packet.payloadLength != 12) {
+      serialWriteAck(packet.type, packet.sequence, Status::kBadPayload);
+      return true;
+    }
+    const uint64_t hostMonotonicNs =
+        cleany::serial::readU64(packet.payload + 4);
+    const uint64_t receiveUs =
+        static_cast<uint64_t>(esp_timer_get_time());
+    uint8_t response[24]{};
+    cleany::serial::writeU64(response, hostMonotonicNs);
+    cleany::serial::writeU64(response + 8, receiveUs);
+    cleany::serial::writeU64(
+        response + 16, static_cast<uint64_t>(esp_timer_get_time()));
+    serialWritePacket(MessageType::kTimeSyncResponse, 0, packet.sequence,
+                      response, sizeof(response));
+    return true;
+  }
+
+  serialWriteAck(packet.type, packet.sequence, Status::kUnsupported);
+  return true;
+}
+
 void writeSerialTrace(int motorIndex, int64_t nowUs) {
   const auto counts = readEncoderCounts();
   if (xSemaphoreTake(motorMutex, pdMS_TO_TICKS(10)) != pdTRUE) {
@@ -965,27 +1274,74 @@ void handleSerialCommand(char* command) {
 
 void serialCommandTask(void*) {
   std::array<char, 96> line{};
-  size_t length = 0;
+  std::array<uint8_t, cleany::serial::kMaximumEncodedPacketSize>
+      encodedPacket{};
+  size_t lineLength = 0;
+  size_t encodedLength = 0;
+  bool binaryMode = false;
+  bool discardUntilNewline = false;
+  bool discardUntilDelimiter = false;
   while (true) {
-    char input[32];
+    uint8_t input[32];
     const int received = usb_serial_jtag_read_bytes(
         input, sizeof(input), pdMS_TO_TICKS(10));
     for (int i = 0; i < received; ++i) {
-      const char character = input[i];
-      if (character == '\r' || character == '\n') {
-        if (length > 0) {
-          line[length] = '\0';
-          handleSerialCommand(line.data());
-          length = 0;
+      const uint8_t byte = input[i];
+      if (!binaryMode && byte == 0) {
+        binaryMode = true;
+        lineLength = 0;
+        discardUntilNewline = false;
+        serialTraceMotor = -1;
+        serialTracePeriodMs = 0;
+        continue;
+      }
+      if (binaryMode) {
+        if (byte == 0) {
+          if (!discardUntilDelimiter && encodedLength > 0) {
+            handleSerialProtocolPacket(
+                encodedPacket.data(), encodedLength);
+          }
+          encodedLength = 0;
+          discardUntilDelimiter = false;
+        } else if (!discardUntilDelimiter) {
+          if (encodedLength < encodedPacket.size()) {
+            encodedPacket[encodedLength++] = byte;
+          } else {
+            encodedLength = 0;
+            discardUntilDelimiter = true;
+          }
         }
-      } else if (length + 1 < line.size()) {
-        line[length++] = character;
+        continue;
+      }
+
+      const char character = static_cast<char>(byte);
+      if (character == '\r' || character == '\n') {
+        if (discardUntilNewline) {
+          discardUntilNewline = false;
+          lineLength = 0;
+        } else if (lineLength > 0) {
+          line[lineLength] = '\0';
+          handleSerialCommand(line.data());
+          lineLength = 0;
+        }
+      } else if (lineLength + 1 < line.size()) {
+        if (!discardUntilNewline) {
+          line[lineLength++] = character;
+        }
       } else {
-        length = 0;
+        lineLength = 0;
+        discardUntilNewline = true;
         serialWrite("CLEANY_ERROR command too long\r\n");
       }
     }
     const int64_t nowUs = esp_timer_get_time();
+    if (serialTelemetryPeriodMs > 0 &&
+        (lastSerialTelemetryUs == 0 ||
+         nowUs - lastSerialTelemetryUs >=
+             static_cast<int64_t>(serialTelemetryPeriodMs) * 1000)) {
+      writeSerialWheelTelemetry(nowUs);
+      lastSerialTelemetryUs = nowUs;
+    }
     if (serialTraceMotor != -1 && serialTracePeriodMs > 0 &&
         (lastSerialTraceUs == 0 ||
          nowUs - lastSerialTraceUs >=
@@ -1009,11 +1365,13 @@ void startSerialInterface() {
   };
   ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&config));
   usb_serial_jtag_vfs_use_driver();
+  serialBootId = esp_random();
   ESP_ERROR_CHECK(xTaskCreate(serialCommandTask, "serial_command", 4096,
                               nullptr, 4, nullptr) == pdPASS
                       ? ESP_OK
                       : ESP_ERR_NO_MEM);
-  serialWrite("CLEANY_READY send HELP for commands\r\n");
+  serialWrite(
+      "CLEANY_READY send HELP, or NUL to enter binary protocol v1\r\n");
 }
 
 void startWebServer() {

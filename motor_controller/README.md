@@ -64,7 +64,10 @@ revolution (13 PPR, 4x decoding, 61:1 reduction).
 ## USB serial control and calibration
 
 The USB Serial/JTAG port provides motor control and telemetry without changing
-the host's network connection. Commands are newline terminated:
+the host's network connection. The COBS-framed, CRC-protected binary Jetson
+interface, including wheel telemetry and the reserved MPU6050 frame, is specified in
+[`SERIAL_PROTOCOL.md`](SERIAL_PROTOCOL.md). The following newline-terminated
+commands remain available for manual commissioning only:
 
 ```text
 HELP
@@ -81,13 +84,18 @@ STOP
 
 `MOVE` is intended for response calibration. `MOVE ALL` drives all wheels in
 the same logical direction to avoid the wheel slip caused by running one wheel
-against three stationary wheels. Each wheel stops immediately when its encoder
-displacement reaches the requested bound (never more than 6 rad) or after five
-seconds. Firmware starts braking 0.25 rad before the requested limit to reserve
-room for control-loop and mechanical stopping latency. `TRACE` emits CSV-like
+against three stationary wheels. Each wheel commands an immediate electrical
+stop at its encoder threshold or after five seconds. Firmware places that
+threshold 0.25 rad before the requested limit to reserve room for control-loop
+and mechanical stopping latency; physical coasting still depends on load and
+surface and is not a position-control guarantee. `TRACE` emits CSV-like
 `CLEANY_TRACE` records containing timestamp, motor, encoder count, requested
 velocity, rate-limited velocity, measured velocity, PWM, and bounded-move
 state. `STOP` remains an immediate stop.
+
+Firmware boots in manual commissioning mode. A binary frame's leading NUL byte
+switches the serial receiver into binary mode until reboot, preventing binary
+payload bytes from being misinterpreted as manual commands.
 
 Build and upload the non-test firmware with PlatformIO isolated by `uv`:
 
@@ -130,6 +138,16 @@ c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
   motor_controller/tests/wheel_velocity_controller_test.cpp \
   -o /tmp/wheel_velocity_controller_test &&
   /tmp/wheel_velocity_controller_test
+```
+
+Run the host-side binary protocol codec check:
+
+```bash
+c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
+  -Imotor_controller/src \
+  motor_controller/tests/serial_protocol_test.cpp \
+  -o /tmp/serial_protocol_test &&
+  /tmp/serial_protocol_test
 ```
 
 ## Hardware tests
