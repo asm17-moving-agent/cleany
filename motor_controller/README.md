@@ -23,8 +23,14 @@ bootloader switches the detected octal flash to OPI mode.
 
 The normal firmware creates the `Cleany` Wi-Fi access point with password
 `ASM_2026`. Connect to it and open `http://192.168.4.1/`. The left side of the
-page has press-and-hold controls for forward, backward, left, right, clockwise,
-and counterclockwise motion using X-configuration mecanum mixing. It also has
+page has a proportional movement joystick, with a counterclockwise icon button
+on its left and a clockwise icon button on its right. Drag the joystick for
+forward/backward, sideways or diagonal movement using X-configuration mecanum
+mixing. Joystick distance controls the requested speed up to the speed slider's
+limit, with a 10% center dead zone. Hold either rotation icon for rotation;
+the buttons also support holding Space or Enter. One pointer or keyboard
+gesture owns the drive controls at a time. Additional pointers cannot take over
+an active gesture. The page also has
 signed target-speed controls for each motor. The right side graphs requested,
 commanded and measured wheel velocity, with counts and PWM in the table.
 The board layout is:
@@ -47,9 +53,33 @@ Motor commands pass through a 5 ms, 1%-per-tick slew-rate limiter, taking about
 output, so feedback correction cannot bypass the motor-protection rate limit.
 A direction change ramps to zero and waits until
 encoder feedback remains below 0.5 rad/s for 50 ms before changing `DIR`.
-Releasing a drive button uses this controlled stop. The `STOP ALL` button,
+Releasing the joystick or rotation icon uses this controlled stop. The joystick
+returns to center on release, pointer cancellation, lost capture or window blur.
+`STOP ALL` is directly below the drive speed control. `Escape`, a hidden page,
+and `pagehide` also stop control. The `STOP ALL` button,
 command watchdog, and Wi-Fi disconnect retain an immediate electrical brake for
 fail-safe operation. GPIO assignments come from [`PINMAP.md`](PINMAP.md).
+
+Joystick movement updates are coalesced every 50 ms; the held-input heartbeat
+remains 250 ms. Control HTTP requests are serialized, and pending commands are
+coalesced by control so fast dragging cannot create a backlog. Release/STOP
+removes unsent movement commands; a request already in flight finishes before
+the stop request is sent. HTTP failure or the 500 ms request timeout clears
+held inputs and pending commands, requiring a new gesture before resuming.
+The firmware's 750 ms command watchdog remains the fallback on connection loss.
+These browser changes do not alter motor PI gains, acceleration, reversal
+protection, encoder metadata or odometry interfaces.
+
+Run the browser-control regression tests without hardware (Node.js 18+):
+
+```bash
+node --test motor_controller/tests/web_interface_test.cjs
+```
+
+These execute the actual inline page script against a fake DOM, clock and HTTP
+transport. They cover direction/sign mapping, proportional movement, dead zone,
+pointer ownership, cancellation, heartbeat, slow requests, STOP ordering and
+connection failure. They do not replace a physical browser or motor test.
 
 Each ramped percentage command is mapped to a target output-shaft velocity,
 where 100% currently means 10 rad/s. A per-wheel feed-forward plus PI loop
@@ -312,6 +342,18 @@ Encoder 부호와 3172 count/rev의 근거는 `feat/motor-pid-control`의 `6c0fa
 
 로그와 원본/통합 파일 비교는 로컬 `artifacts/motor-control-restore-20260910/`에
 보존한다. 펌웨어 이미지에는 Wi-Fi 접속 정보가 포함되므로 Git에서 제외한다.
+
+### 2026-09-11 조이스틱 적용 확인
+
+- 비례 이동 조이스틱과 양옆 반시계/시계 회전 아이콘을 구현했다. Firefox와 niri
+  캡처로 desktop/360px 배치를 확인했고, 모의 입력/통신 regression test 11개가
+  통과했다. UI raw string 외 펌웨어 코드는 변경 전과 동일하다.
+- 기존 실물 app을 백업한 뒤 app 영역만 업로드하고 flash hash를 확인했다.
+  첫 reset 후 무응답은 DTR 해제 및 USB hard reset 후 정상 부팅으로 복구됐다.
+- 실물 HTTP 페이지가 빌드 소스와 byte-for-byte 일치하고 target/applied 0을
+  확인했다. 재실행한 odom은 정지 상태 30초간 약 17.82 Hz, odom/TF 각 534개가
+  일치했다. 실제 조이스틱 주행과 모바일 터치 검증은 수행하지 않았다.
+- 원자료는 `artifacts/motor-joystick-20260911/upload/`에 보존한다.
 
 ## 확인 순서
 

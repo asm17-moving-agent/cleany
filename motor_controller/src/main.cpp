@@ -148,12 +148,22 @@ constexpr char kIndexHtml[] = R"HTML(
   h1 { margin-bottom: 4px; }
   .status { color: #9ca3af; margin: 0 0 18px; }
   .layout { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 16px; align-items: start; }
-  .controls, .graph { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 16px; }
+  .controls, .graph { min-width: 0; background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 16px; }
   .controls h2, .graph h2 { margin-top: 0; }
   .front { text-align: center; color: #60a5fa; font-weight: 700; margin: 4px; }
-  .drive { display: grid; grid-template-columns: repeat(3, 64px); justify-content: center; gap: 8px; margin: 14px 0; }
-  .drive button { height: 54px; padding: 4px; background: #2563eb; color: white; font-size: 1rem; touch-action: none; user-select: none; }
-  .drive .stop { background: #dc2626; }
+  .drive { display: grid; grid-template-columns: 48px minmax(0, 200px) 48px; justify-content: center; align-items: center; gap: 8px; margin: 18px 0 12px; }
+  .rotate { width: 48px; height: 64px; padding: 10px; background: #273b5e; border: 1px solid #3b5884; color: #93c5fd; touch-action: none; user-select: none; }
+  .rotate svg { display: block; width: 100%; height: 100%; pointer-events: none; }
+  .rotate.active { background: #2563eb; color: white; border-color: #93c5fd; }
+  .joystick { position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%; border: 1px solid #45618c; box-sizing: border-box; background: radial-gradient(circle, #253955 0 28%, #18263c 29% 60%, #223550 61% 62%, #18263c 63%); touch-action: none; user-select: none; cursor: grab; }
+  .joystick::before, .joystick::after { content: ''; position: absolute; background: #45618c; opacity: .5; pointer-events: none; }
+  .joystick::before { width: 1px; top: 12%; bottom: 12%; left: 50%; }
+  .joystick::after { height: 1px; left: 12%; right: 12%; top: 50%; }
+  .joystick.active { border-color: #93c5fd; cursor: grabbing; }
+  .joystick-knob { position: absolute; width: 54px; height: 54px; left: 50%; top: 50%; margin: -27px; border-radius: 50%; background: linear-gradient(145deg, #60a5fa, #2563eb); border: 2px solid #bfdbfe; box-sizing: border-box; box-shadow: 0 5px 16px #0008; pointer-events: none; z-index: 1; }
+  .joystick:not(.active) .joystick-knob { transition: transform .12s ease-out; }
+  .drive-hint { text-align: center; color: #9ca3af; font-size: .85rem; margin: 8px 0; }
+  #drive-state { display: block; text-align: center; color: #93c5fd; font-size: .85rem; font-variant-numeric: tabular-nums; min-height: 1.3em; margin-bottom: 14px; }
   .drive-speed { margin-bottom: 18px; }
   .grid { display: grid; gap: 10px; }
   .motor { background: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 16px; }
@@ -162,7 +172,7 @@ constexpr char kIndexHtml[] = R"HTML(
   input { width: 100%; margin: 14px 0; }
   button { border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer; }
   .motor button { width: 100%; background: #4b5563; color: white; }
-  #stop-all { width: 100%; margin-top: 16px; background: #dc2626; color: white; font-size: 1.1rem; }
+  #stop-all { width: 100%; margin: 0 0 20px; background: #dc2626; color: white; font-size: 1.1rem; }
   .axis { display: flex; justify-content: space-between; color: #9ca3af; font-size: .8rem; }
   canvas { display: block; width: 100%; height: 420px; background: #111827; border-radius: 8px; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
@@ -183,19 +193,23 @@ constexpr char kIndexHtml[] = R"HTML(
   <h2>Mecanum drive</h2>
   <div class="front">▲ FRONT</div>
   <div class="drive">
-    <button data-x="0" data-y="0" data-w="100">CCW</button>
-    <button data-x="100" data-y="0" data-w="0">▲ F</button>
-    <button data-x="0" data-y="0" data-w="-100">CW</button>
-    <button data-x="0" data-y="100" data-w="0">◀ L</button>
-    <button class="stop">STOP</button>
-    <button data-x="0" data-y="-100" data-w="0">R ▶</button>
-    <span></span>
-    <button data-x="-100" data-y="0" data-w="0">▼ B</button>
+    <button class="rotate" data-w="100" aria-label="반시계 방향 회전" title="반시계 방향 회전">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.8 6.7"/><path d="M3 4v7h7"/></svg>
+    </button>
+    <div class="joystick" id="joystick" role="group" aria-label="이동 조이스틱" aria-describedby="drive-hint">
+      <div class="joystick-knob" id="joystick-knob"></div>
+    </div>
+    <button class="rotate" data-w="-100" aria-label="시계 방향 회전" title="시계 방향 회전">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="translate(24 0) scale(-1 1)"><path d="M3 11a9 9 0 1 1 2.8 6.7"/><path d="M3 4v7h7"/></g></svg>
+    </button>
   </div>
+  <p class="drive-hint" id="drive-hint">Drag to move · Hold ↶ / ↷ to rotate · Release to stop</p>
+  <output id="drive-state">STOP</output>
   <div class="drive-speed">
     <label>Drive speed <b id="drive-speed-value">40%</b></label>
     <input id="drive-speed" type="range" min="10" max="100" value="40">
   </div>
+  <button id="stop-all">STOP ALL</button>
   <h2>Individual motors</h2>
   <div class="grid">
     <section class="motor" data-id="1"><h2>M1 · Front left <span class="value">STOP</span></h2><input type="range" min="-100" max="100" value="0"><div class="axis"><span>Reverse</span><span>Forward</span></div><button>Stop M1</button></section>
@@ -203,7 +217,6 @@ constexpr char kIndexHtml[] = R"HTML(
     <section class="motor" data-id="3"><h2>M3 · Rear right <span class="value">STOP</span></h2><input type="range" min="-100" max="100" value="0"><div class="axis"><span>Reverse</span><span>Forward</span></div><button>Stop M3</button></section>
     <section class="motor" data-id="4"><h2>M4 · Rear left <span class="value">STOP</span></h2><input type="range" min="-100" max="100" value="0"><div class="axis"><span>Reverse</span><span>Forward</span></div><button>Stop M4</button></section>
   </div>
-  <button id="stop-all">STOP ALL</button>
 </section>
 <section class="graph">
   <h2>Wheel velocity response</h2>
@@ -242,54 +255,160 @@ constexpr char kIndexHtml[] = R"HTML(
 <script>
   const status = document.querySelector('#status');
   let activeDrive = null;
+  let drivePointer = null;
+  let driveElement = null;
+  let driveKey = null;
+  let driveTimer = null;
+  const joystick = document.querySelector('#joystick');
+  const knob = document.querySelector('#joystick-knob');
+  const driveState = document.querySelector('#drive-state');
   const driveSpeed = document.querySelector('#drive-speed');
-  driveSpeed.addEventListener('input', () => document.querySelector('#drive-speed-value').textContent = `${driveSpeed.value}%`);
+  // Serialize commands and replace pending updates instead of accumulating
+  // pointermove requests. A release/STOP removes unsent movement commands.
+  const commandQueue = new Map();
+  let commandBusy = false;
+  const postControl = (key, url, replace = false) => {
+    if (replace) commandQueue.clear();
+    commandQueue.set(key, url);
+    flushControl();
+  };
+  async function flushControl() {
+    if (commandBusy || !commandQueue.size) return;
+    const [key, url] = commandQueue.entries().next().value;
+    commandQueue.delete(key);
+    commandBusy = true;
+    const abort = new AbortController();
+    const timeout = setTimeout(() => abort.abort(), 500);
+    try {
+      const response = await fetch(url, {method: 'POST', signal: abort.signal});
+      if (!response.ok) throw Error('Control request failed');
+      status.textContent = 'Connected — motor control ready';
+    } catch (_) {
+      commandQueue.clear();
+      resetDrive();
+      controls.forEach(c => { c.slider.value = 0; c.show(); });
+      status.textContent = 'Connection lost — release and retry; firmware watchdog will stop motors';
+    } finally {
+      clearTimeout(timeout);
+      commandBusy = false;
+      flushControl();
+    }
+  }
+  driveSpeed.addEventListener('input', () => {
+    document.querySelector('#drive-speed-value').textContent = `${driveSpeed.value}%`;
+    if (activeDrive) sendDrive();
+  });
   const sendDrive = () => {
     if (!activeDrive) return;
     const scale = +driveSpeed.value / 100;
     const [x, y, w] = activeDrive.map(value => Math.round(value * scale));
-    fetch(`/api/drive?x=${x}&y=${y}&w=${w}`, {method:'POST'})
-      .then(r => { if (!r.ok) throw Error(); status.textContent = 'Connected — mecanum drive active'; })
-      .catch(() => status.textContent = 'Connection lost — firmware watchdog will stop motors');
+    driveState.textContent = w ? `${w > 0 ? '↶' : '↷'} ${Math.abs(w)}%` :
+      x || y ? `${x > 0 ? '↑' : x < 0 ? '↓' : ''} ${Math.abs(x)}%   ${y > 0 ? '←' : y < 0 ? '→' : ''} ${Math.abs(y)}%` : 'STOP';
+    postControl('drive', `/api/drive?x=${x}&y=${y}&w=${w}`);
   };
-  const stopDrive = () => {
-    if (!activeDrive) return;
+  function resetDrive() {
+    const element = driveElement, pointer = drivePointer;
     activeDrive = null;
-    fetch('/api/drive?x=0&y=0&w=0', {method:'POST'}).catch(() => {});
+    driveElement = null;
+    drivePointer = null;
+    driveKey = null;
+    clearTimeout(driveTimer);
+    driveTimer = null;
+    knob.style.transform = 'translate(0px, 0px)';
+    joystick.classList.remove('active');
+    if (element) {
+      element.classList.remove('active');
+      if (pointer !== null && element.hasPointerCapture(pointer)) element.releasePointerCapture(pointer);
+    }
+    driveState.textContent = 'STOP';
+  }
+  const stopDrive = () => {
+    const wasActive = activeDrive !== null;
+    resetDrive();
+    if (wasActive) postControl('drive', '/api/drive?x=0&y=0&w=0', true);
   };
-  document.querySelectorAll('.drive button[data-x]').forEach(button => {
+  function beginDrive(element, event) {
+    if (driveElement || (event.pointerType === 'mouse' && event.button !== 0)) return false;
+    event.preventDefault();
+    driveElement = element;
+    drivePointer = event.pointerId;
+    element.setPointerCapture(event.pointerId);
+    element.classList.add('active');
+    commandQueue.clear();
+    controls.forEach(c => { c.slider.value = 0; c.show(); });
+    return true;
+  }
+  function moveJoystick(event) {
+    if (driveElement !== joystick || event.pointerId !== drivePointer) return;
+    event.preventDefault();
+    if (event.pointerType === 'mouse' && !(event.buttons & 1)) { stopDrive(); return; }
+    const rect = joystick.getBoundingClientRect();
+    const radius = Math.max(1, (Math.min(rect.width, rect.height) - knob.offsetWidth) / 2 - 6);
+    const dx = event.clientX - rect.left - rect.width / 2;
+    const dy = event.clientY - rect.top - rect.height / 2;
+    const distance = Math.hypot(dx, dy);
+    const limit = distance ? Math.min(distance, radius) / distance : 0;
+    knob.style.transform = `translate(${dx * limit}px, ${dy * limit}px)`;
+    const magnitude = Math.max(0, (Math.min(distance / radius, 1) - 0.1) / 0.9);
+    // Screen up -> forward (+x); screen left -> left (+y).
+    activeDrive = distance ? [-dy / distance * magnitude * 100, -dx / distance * magnitude * 100, 0] : [0, 0, 0];
+    if (driveTimer === null) driveTimer = setTimeout(() => { driveTimer = null; sendDrive(); }, 50);
+  }
+  joystick.addEventListener('pointerdown', event => {
+    if (!beginDrive(joystick, event)) return;
+    moveJoystick(event);
+    clearTimeout(driveTimer); driveTimer = null;
+    sendDrive();
+  });
+  joystick.addEventListener('pointermove', moveJoystick);
+  document.querySelectorAll('.rotate').forEach(button => {
     button.addEventListener('pointerdown', event => {
+      if (!beginDrive(button, event)) return;
+      activeDrive = [0, 0, +button.dataset.w];
+      sendDrive();
+    });
+    button.addEventListener('keydown', event => {
+      if (![' ', 'Enter'].includes(event.key)) return;
       event.preventDefault();
-      activeDrive = [+button.dataset.x, +button.dataset.y, +button.dataset.w];
+      if (event.repeat || driveElement) return;
+      driveElement = button; driveKey = event.key;
+      button.classList.add('active');
+      commandQueue.clear();
       controls.forEach(c => { c.slider.value = 0; c.show(); });
+      activeDrive = [0, 0, +button.dataset.w];
       sendDrive();
     });
   });
-  document.querySelector('.drive .stop').addEventListener('click', () => {
-    activeDrive = [0, 0, 0]; sendDrive(); activeDrive = null;
+  document.querySelectorAll('.joystick, .rotate').forEach(element => {
+    element.addEventListener('lostpointercapture', event => {
+      if (event.pointerId === drivePointer) stopDrive();
+    });
+    element.addEventListener('contextmenu', event => event.preventDefault());
   });
-  addEventListener('pointerup', stopDrive);
-  addEventListener('pointercancel', stopDrive);
+  addEventListener('pointerup', event => { if (event.pointerId === drivePointer) stopDrive(); });
+  addEventListener('pointercancel', event => { if (event.pointerId === drivePointer) stopDrive(); });
+  addEventListener('keyup', event => { if (driveKey && event.key === driveKey) stopDrive(); });
+  addEventListener('keydown', event => { if (event.key === 'Escape') stopAllControls(); });
   addEventListener('blur', stopDrive);
   setInterval(() => { if (activeDrive) sendDrive(); }, 250);
 
   const controls = [...document.querySelectorAll('.motor')].map(card => {
     const id = card.dataset.id, slider = card.querySelector('input'), value = card.querySelector('.value');
     const show = () => { const n = +slider.value; value.textContent = n ? `${n > 0 ? 'FWD' : 'REV'} ${Math.abs(n)}%` : 'STOP'; };
-    const send = () => fetch(`/api/motor?id=${id}&speed=${slider.value}`, {method:'POST'})
-      .then(r => { if (!r.ok) throw Error(); status.textContent = 'Connected — controls use calibrated wheel directions'; })
-      .catch(() => status.textContent = 'Connection lost — firmware watchdog will stop motors');
+    const send = () => postControl(`motor${id}`, `/api/motor?id=${id}&speed=${slider.value}`);
     slider.addEventListener('input', () => { stopDrive(); show(); send(); });
     card.querySelector('button').addEventListener('click', () => { slider.value = 0; show(); send(); });
     return {slider, send, show};
   });
   setInterval(() => controls.filter(c => +c.slider.value).forEach(c => c.send()), 250);
-  document.querySelector('#stop-all').addEventListener('click', () => {
-    activeDrive = null;
+  function stopAllControls() {
+    resetDrive();
     controls.forEach(c => { c.slider.value = 0; c.show(); });
-    fetch('/api/stop', {method:'POST'}).catch(() => {});
-  });
-  addEventListener('pagehide', () => navigator.sendBeacon('/api/stop'));
+    postControl('stop', '/api/stop', true);
+  }
+  document.querySelector('#stop-all').addEventListener('click', stopAllControls);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopAllControls(); });
+  addEventListener('pagehide', () => { resetDrive(); commandQueue.clear(); controls.forEach(c => { c.slider.value = 0; c.show(); }); navigator.sendBeacon('/api/stop'); });
 
   const canvas = document.querySelector('#encoder-graph'), ctx = canvas.getContext('2d');
   const traceMotor = document.querySelector('#trace-motor');
