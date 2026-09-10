@@ -28,6 +28,10 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'hardware_odom_node = '
+            'cleany_base_odometry.hardware_odom_node:main',
+            'encoder_http_node = '
+            'cleany_base_odometry.encoder_http_node:main',
             'wheel_odometry_node = '
             'cleany_base_odometry.wheel_odom_node:main',
         ],

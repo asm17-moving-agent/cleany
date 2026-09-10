@@ -1,0 +1,7 @@
+encoder_http:
+  ros__parameters:
+    host: 192.168.4.1
+    port: 80
+    poll_rate_hz: 20.0
+    request_timeout_sec: 0.2
+    output_topic: wheel/encoder_ticks

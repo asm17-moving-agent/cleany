@@ -72,6 +72,11 @@ class MecanumOdometry:
         self._y_m = 0.0
         self._yaw_rad = 0.0
 
+    def reset_baseline(self) -> None:
+        """Discard the previous wheel sample while preserving the integrated pose."""
+        self._previous_positions = None
+        self._previous_stamp_s = None
+
     def update(
         self,
         positions: WheelPositions,

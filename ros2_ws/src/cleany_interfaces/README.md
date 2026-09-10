@@ -14,6 +14,22 @@ trajectory는 현재 RobotState에 종속되므로 result에 포함하지 않는
 
 - [Mobile base](docs/mobile_base.md): `/cmd_vel` 차체 속도 명령
 
+## 휠 엔코더 원본 틱
+
+`/wheel/encoder_ticks` (`WheelEncoderTicks`)는 ESP32의 누적 signed int32 틱
+4개를 M1 FL, M2 FR, M3 RR, M4 RL 순서로 전달한다. 부호 보정이나 각도 변환을
+하지 않는다. `header.stamp`는 Jetson의 HTTP 응답 수신 시각이며 MCU 측정 시각이
+아니다. `header.frame_id`는 비워 둔다. `round_trip_time_sec`는 호스트 monotonic
+clock으로 측정한 HTTP 요청/응답 소요 시간이다.
+
+`has_mcu_time=true`이면 `boot_id`, `sample_seq`, `sample_time_us`에 MCU의 원자적
+snapshot 정보가 있다. `sample_time_us`는 부팅 후 monotonic microsecond이며
+Unix epoch가 아니다. HTTP protocol version 1에서 이 정보를 제공한다.
+기존 펌웨어 응답은 `has_mcu_time=false`로 전달하며 odometry 적분기는 이를 거부한다.
+통신 오류에는 메시지를 발행하지 않으므로 소비자는 수신 중단을 확인해야 한다.
+실행과 odometry 연결 전제는
+[`cleany_base_odometry`](../cleany_base_odometry/README.md#esp32-원본-틱-수신)를 따른다.
+
 ## 객체 메시지
 
 `DetectedObject3D`는 하나의 oriented bounding box를 표현한다.

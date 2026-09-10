@@ -1,0 +1,23 @@
+hardware_wheel_odometry:
+  ros__parameters:
+    input_topic: wheel/encoder_ticks
+    joint_state_topic: wheel_encoder/joint_states
+    output_topic: wheel/odom
+    canonical_topic: odom
+    odom_frame_id: odom
+    base_frame_id: base_link
+    publish_tf: true
+    calibration_verified: false
+    # origin/feat/motor-pid-control @ 6c0fa41, raw PCB order FL/FR/RR/RL.
+    ticks_per_revolution: [3172.0, 3172.0, 3172.0, 3172.0]
+    encoder_signs: [1, -1, -1, 1]
+    # Existing robot model dimensions; no separate physical measurement record found.
+    wheel_radius_m: 0.0635
+    wheelbase_m: 0.30
+    wheel_separation_m: 0.51
+    max_sample_gap_sec: 0.5
+    max_wheel_speed_rad_s: 50.0
+    max_clock_error_sec: 0.25
+    # Configured uncertainty assumptions, not empirically fitted covariance.
+    pose_covariance_diagonal: [0.25, 0.25, 1000000.0, 1000000.0, 1000000.0, 0.25]
+    twist_covariance_diagonal: [0.04, 0.04, 1000000.0, 1000000.0, 1000000.0, 0.09]

@@ -8,13 +8,17 @@
   <license>Apache-2.0</license>
 
   <depend>ament_index_python</depend>
+  <depend>cleany_interfaces</depend>
+  <depend>geometry_msgs</depend>
   <depend>launch</depend>
   <depend>launch_ros</depend>
   <depend>nav_msgs</depend>
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
 
   <test_depend>python3-pytest</test_depend>
+  <test_depend>tf2_msgs</test_depend>
 
   <export>
     <build_type>ament_python</build_type>
