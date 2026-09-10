@@ -25,9 +25,21 @@
 #include "serial_protocol.hpp"
 #include "wheel_velocity_controller.hpp"
 
+#if __has_include("wifi_credentials.local.h")
+#include "wifi_credentials.local.h"
+#endif
+#ifndef CLEANY_STA_SSID
+#define CLEANY_STA_SSID ""
+#define CLEANY_STA_PASSWORD ""
+#endif
+
 namespace {
 
 constexpr char kTag[] = "motor_controller";
+constexpr char kStationSsid[] = CLEANY_STA_SSID;
+constexpr char kStationPassword[] = CLEANY_STA_PASSWORD;
+static_assert(sizeof(kStationSsid) <= 32, "Station SSID is too long");
+static_assert(sizeof(kStationPassword) <= 64, "Station password is too long");
 constexpr char kWifiSsid[] = "Cleany";
 constexpr char kWifiPassword[] = "ASM_2026";
 
@@ -37,6 +49,8 @@ constexpr uint32_t kPwmFrequencyHz = 20000;
 constexpr ledc_timer_bit_t kPwmResolution = LEDC_TIMER_8_BIT;
 constexpr int64_t kCommandTimeoutUs = 750000;
 constexpr uint32_t kMotorControlPeriodMs = 5;
+static_assert(configTICK_RATE_HZ == 1000,
+              "Motor control requires CONFIG_FREERTOS_HZ=1000");
 constexpr int kOutputSlewStepPercent = 1;
 constexpr float kVelocityFilterTimeConstantSeconds = 0.05F;
 constexpr int64_t kReverseWaitWarningUs = 1500000;
@@ -72,7 +86,7 @@ struct Motor {
 struct Encoder {
   gpio_num_t pinA;
   gpio_num_t pinB;
-  volatile int32_t count = 0;
+  volatile uint32_t count = 0;
   volatile uint8_t previousState = 0;
 };
 
@@ -92,6 +106,15 @@ std::array<Encoder, 4> encoders = {{
 
 SemaphoreHandle_t motorMutex;
 portMUX_TYPE encoderMux = portMUX_INITIALIZER_UNLOCKED;
+char encoderBootId[17] = {};
+uint32_t encoderSampleSequence = 0;
+
+struct EncoderSnapshot {
+  std::array<int32_t, 4> counts;
+  int64_t sampleTimeUs;
+  uint32_t sequence;
+};
+
 int serialTraceMotor = -1;
 uint32_t serialTracePeriodMs = 0;
 int64_t lastSerialTraceUs = 0;
@@ -351,14 +374,31 @@ void updateEncoder(void* argument) {
   portEXIT_CRITICAL_ISR(&encoderMux);
 }
 
+int32_t signedEncoderCount(uint32_t raw) {
+  return static_cast<int32_t>(
+      static_cast<int64_t>(raw) - (raw >= 0x80000000U ? 0x100000000LL : 0));
+}
+
 std::array<int32_t, 4> readEncoderCounts() {
   std::array<int32_t, 4> counts;
   portENTER_CRITICAL(&encoderMux);
   for (size_t i = 0; i < encoders.size(); ++i) {
-    counts[i] = encoders[i].count;
+    counts[i] = signedEncoderCount(encoders[i].count);
   }
   portEXIT_CRITICAL(&encoderMux);
   return counts;
+}
+
+EncoderSnapshot readEncoderSnapshot() {
+  EncoderSnapshot snapshot;
+  portENTER_CRITICAL(&encoderMux);
+  for (size_t i = 0; i < encoders.size(); ++i) {
+    snapshot.counts[i] = signedEncoderCount(encoders[i].count);
+  }
+  snapshot.sampleTimeUs = esp_timer_get_time();
+  snapshot.sequence = encoderSampleSequence++;
+  portEXIT_CRITICAL(&encoderMux);
+  return snapshot;
 }
 
 esp_err_t applyMotorSpeedLocked(size_t index, int speed) {
@@ -846,7 +886,10 @@ esp_err_t stopHandler(httpd_req_t* request) {
 }
 
 bool formatMotorStatus(char* response, size_t responseSize) {
-  const auto counts = readEncoderCounts();
+  // HTTP/manual status keeps raw PCB order and signs. The binary protocol
+  // separately exposes logical, sign-corrected FL/FR/RL/RR counts.
+  const auto snapshot = readEncoderSnapshot();
+  const auto& counts = snapshot.counts;
   std::array<int, 4> targets{};
   std::array<int, 4> applied{};
   std::array<float, 4> targetVelocities{};
@@ -873,6 +916,8 @@ bool formatMotorStatus(char* response, size_t responseSize) {
   const int written = std::snprintf(
       response, responseSize,
       "{\"encoders\":[%ld,%ld,%ld,%ld],"
+      "\"protocol_version\":1,\"boot_id\":\"%s\","
+      "\"sample_seq\":%lu,\"sample_time_us\":%lld,"
       "\"target\":[%d,%d,%d,%d],"
       "\"applied\":[%d,%d,%d,%d],"
       "\"target_rad_s\":[%.2f,%.2f,%.2f,%.2f],"
@@ -882,6 +927,8 @@ bool formatMotorStatus(char* response, size_t responseSize) {
       "\"calibration_move_active\":[%s,%s,%s,%s]}",
       static_cast<long>(counts[0]), static_cast<long>(counts[1]),
       static_cast<long>(counts[2]), static_cast<long>(counts[3]),
+      encoderBootId, static_cast<unsigned long>(snapshot.sequence),
+      static_cast<long long>(snapshot.sampleTimeUs),
       targets[0], targets[1], targets[2], targets[3],
       applied[0], applied[1], applied[2], applied[3],
       static_cast<double>(targetVelocities[0]),
@@ -908,7 +955,7 @@ bool formatMotorStatus(char* response, size_t responseSize) {
 }
 
 esp_err_t statusHandler(httpd_req_t* request) {
-  char response[768];
+  char response[1024];
   if (!formatMotorStatus(response, sizeof(response))) {
     return httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR,
                                "Motor status unavailable");
@@ -1207,7 +1254,7 @@ void handleSerialCommand(char* command) {
   float travel = 0.0F;
   int periodMs = 0;
   if (std::strcmp(command, "STATUS") == 0) {
-    char status[768];
+    char status[1024];
     if (formatMotorStatus(status, sizeof(status))) {
       serialWrite("CLEANY_STATUS ");
       serialWrite(status);
@@ -1417,10 +1464,25 @@ void startWebServer() {
 }
 
 void wifiEventHandler(void*, esp_event_base_t eventBase, int32_t eventId,
-                      void*) {
+                      void* eventData) {
   if (eventBase == WIFI_EVENT && eventId == WIFI_EVENT_AP_STADISCONNECTED) {
     stopAll();
     ESP_LOGW(kTag, "Wi-Fi client disconnected; motors stopped");
+  }
+  if (eventBase == WIFI_EVENT && eventId == WIFI_EVENT_STA_START) {
+    esp_wifi_connect();
+  }
+  if (eventBase == WIFI_EVENT && eventId == WIFI_EVENT_STA_DISCONNECTED) {
+    stopAll();
+    const auto* event = static_cast<wifi_event_sta_disconnected_t*>(eventData);
+    ESP_LOGW(kTag, "Station disconnected (reason %u); reconnecting",
+             static_cast<unsigned>(event->reason));
+    esp_wifi_connect();
+  }
+  if (eventBase == IP_EVENT && eventId == IP_EVENT_STA_GOT_IP) {
+    const auto* event = static_cast<ip_event_got_ip_t*>(eventData);
+    ESP_LOGI(kTag, "Station status endpoint: http://" IPSTR "/api/status",
+             IP2STR(&event->ip_info.ip));
   }
 }
 
@@ -1428,10 +1490,17 @@ void startWifiAccessPoint() {
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());
   esp_netif_t* accessPoint = esp_netif_create_default_wifi_ap();
+  const bool enableStation = kStationSsid[0] != '\0';
+  if (enableStation) {
+    esp_netif_t* station = esp_netif_create_default_wifi_sta();
+    ESP_ERROR_CHECK(esp_netif_set_hostname(station, "cleany-encoder"));
+  }
 
   wifi_init_config_t initConfig = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&initConfig));
   ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                                             wifiEventHandler, nullptr));
+  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
                                              wifiEventHandler, nullptr));
 
   wifi_config_t wifiConfig = {};
@@ -1445,9 +1514,20 @@ void startWifiAccessPoint() {
   wifiConfig.ap.max_connection = 4;
   wifiConfig.ap.pmf_cfg.required = false;
 
-  ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+  ESP_ERROR_CHECK(esp_wifi_set_mode(enableStation ? WIFI_MODE_APSTA : WIFI_MODE_AP));
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifiConfig));
+  if (enableStation) {
+    wifi_config_t stationConfig = {};
+    std::memcpy(stationConfig.sta.ssid, kStationSsid, sizeof(kStationSsid));
+    std::memcpy(stationConfig.sta.password, kStationPassword,
+                sizeof(kStationPassword));
+    stationConfig.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &stationConfig));
+  }
   ESP_ERROR_CHECK(esp_wifi_start());
+  if (enableStation) {
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+  }
 
   esp_netif_ip_info_t ipInfo;
   ESP_ERROR_CHECK(esp_netif_get_ip_info(accessPoint, &ipInfo));
@@ -1479,8 +1559,11 @@ extern "C" void app_main() {
                               5, nullptr) == pdPASS
                       ? ESP_OK
                       : ESP_ERR_NO_MEM);
-  startSerialInterface();
-
   startWifiAccessPoint();
+  // Generate after Wi-Fi starts, when the hardware RNG has RF entropy.
+  std::snprintf(encoderBootId, sizeof(encoderBootId), "%08lx%08lx",
+                static_cast<unsigned long>(esp_random()),
+                static_cast<unsigned long>(esp_random()));
+  startSerialInterface();
   startWebServer();
 }

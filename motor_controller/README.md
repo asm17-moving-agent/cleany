@@ -1,4 +1,10 @@
-# ESP32-S3 motor and IMU hardware tests
+# ESP32-S3 motor control, Wi-Fi odometry and hardware tests
+
+`origin/feat/motor-pid-control`의 `6c0fa41`을 기준으로 펌웨어, USB protocol,
+제어/통신 단위 테스트, 모터/IMU 하드웨어 테스트, PCB 및 라이브러리 파일을
+모두 가져왔다. 이 브랜치의 가감속, 반전 보호, PI 제어, 보정 명령과 진단 화면을
+유지하면서 AP+STA 연결과 HTTP encoder snapshot metadata를 추가했다.
+Jetson의 기존 Wi-Fi odometry 경로는 그대로 사용할 수 있다.
 
 The normal PlatformIO firmware entry point is `src/main.cpp`. Hardware checks
 are independent Unity applications under `test/`, so a test runs only when it
@@ -19,8 +25,9 @@ The normal firmware creates the `Cleany` Wi-Fi access point with password
 `ASM_2026`. Connect to it and open `http://192.168.4.1/`. The left side of the
 page has press-and-hold controls for forward, backward, left, right, clockwise,
 and counterclockwise motion using X-configuration mecanum mixing. It also has
-signed PWM controls for each motor. The right side graphs live quadrature
-counts from encoders 1–4. The board layout is:
+signed target-speed controls for each motor. The right side graphs requested,
+commanded and measured wheel velocity, with counts and PWM in the table.
+The board layout is:
 
 ```text
           FRONT
@@ -209,3 +216,108 @@ ESP32-S3-DevKitC symbol and footprint as
 `PCM_Espressif:ESP32-S3-DevKitC`. The vendored source revision, mechanical
 drawing used for verification, and license are recorded in
 [`libraries/README.md`](libraries/README.md).
+
+
+## 엔코더 Wi-Fi 수신 연결
+
+HTTP의 `encoders`는 원본 PCB 순서 FL/FR/RR/RL과 원시 부호를 유지한다.
+PI 피드백과 USB binary telemetry의 논리 방향 보정은 펌웨어 내부에서 적용하고,
+HTTP 기반 odom의 방향 보정은 Jetson에서 한 번만 적용한다.
+
+## Wi-Fi 설정
+
+설정하지 않으면 기존 `Cleany` AP와 `192.168.4.1` 웹페이지를 제공한다.
+아래 명령으로 station 접속 정보를 생성하면 AP를 유지하면서 같은 Wi-Fi radio로
+사무실 AP에도 연결한다. Jetson은 사무실 Wi-Fi와 기존 SSH 연결을 유지할 수 있다.
+사무실 AP가 client isolation을 적용하면 같은 SSID에서도 Jetson과 ESP32 간
+통신이 막힐 수 있으므로 실제 HTTP 연결을 확인해야 한다.
+
+```bash
+python3 motor_controller/scripts/configure_wifi.py --ssid ASM_BUSAN_18F
+uvx --with pip --from platformio pio run -d motor_controller
+```
+
+비밀번호는 숨김 입력으로 받으며 `src/wifi_credentials.local.h`에만 저장한다.
+이 파일과 `.pio/` 빌드 결과는 Git에서 제외한다. 빌드된 펌웨어에는 접속 정보가
+포함되므로 이미지 파일을 공유하지 않는다. 자동화는 `--password-stdin`을 지원한다.
+로컬 헤더 없이 다시 빌드하면 AP 전용 모드로 돌아간다.
+
+USB 포트를 확인한 뒤 업로드하고 serial log에서 station DHCP 주소를 읽는다.
+보드는 기존 설정과 같은 ESP32-S3-DevKitC-1-N32R16V, ESP-IDF 대상이다.
+
+```bash
+uvx --with pip --from platformio pio run -d motor_controller --target upload \
+  --upload-port /dev/serial/by-id/<ESP32-device>
+uvx --with pip --from platformio pio device monitor -d motor_controller \
+  --port /dev/serial/by-id/<ESP32-device> --baud 115200
+```
+
+성공하면 `Station status endpoint: http://<DHCP-IP>/api/status`를 출력한다.
+hostname `cleany-encoder`는 DHCP hostname이며 mDNS 서비스를 추가하지는 않는다.
+STA 연결이 끊기면 모터를 정지시키고 다시 연결한다. AP client 연결 해제 시의
+기존 전체 정지 동작도 유지한다. 이 펌웨어의 HTTP 모터 제어 페이지가 station
+인터페이스에서도 열리므로 접속 가능한 사무실/실험 네트워크에서 사용한다.
+
+## 틱 수신
+
+`GET /api/status`는 기존 제어 진단 필드를 유지하고 아래 MCU metadata를 함께
+반환한다. 다음 예시는 encoder 수신에 필요한 필드만 표시한다.
+
+```json
+{"encoders":[0,0,0,0],"protocol_version":1,"boot_id":"0123456789abcdef","sample_seq":0,"sample_time_us":123456}
+```
+
+순서는
+전방 왼쪽, 전방 오른쪽, 후방 오른쪽, 후방 왼쪽이다. 모터 PWM polarity와
+encoder count의 부호는 별개이며 tick 값에는 방향 보정을 적용하지 않는다.
+상태 요청은 모터 command watchdog을 갱신하거나 모터를 구동하지 않는다.
+
+Jetson에서 [`cleany_base_odometry`](../ros2_ws/src/cleany_base_odometry/README.md)의
+`encoder_http_node`를 station IP로 실행하면 `/wheel/encoder_ticks`를 받는다.
+`boot_id`는 Wi-Fi 시작 후 한 번 생성한 64-bit random token의 16자리 hex 문자열이다.
+`sample_seq`는 상태 snapshot마다 증가하는 uint32 값이고, `sample_time_us`는
+`esp_timer_get_time()`으로 읽은 MCU monotonic 시각이다. 카운터와 시각은 같은
+critical section에서 읽는다. ISR의 카운터는 unsigned modulo-2^32로 누적하고
+응답에는 동일 비트 패턴의 signed int32 값을 사용한다.
+
+Jetson의 `hardware_odometry.launch.py`는 이 metadata로 재시작/누락을 처리한 뒤
+wheel odometry와 TF를 발행한다. 절대 시계 동기화나 SLAM 설정까지 포함하지 않는다.
+Encoder 부호와 3172 count/rev의 근거는 `feat/motor-pid-control`의 `6c0fa41`이며,
+이 브랜치의 HTTP 응답은 부호 보정 전 원본을 유지한다. USB binary protocol의
+32-bit boot ID와 HTTP snapshot의 64-bit hex boot ID는 별도 transport 식별자다.
+`sample_time_us`는 원시 encoder snapshot 시각이며 PI 진단 필드의 정확한 동시
+샘플링을 의미하지 않는다. HTTP 요청과 USB `STATUS`는 모터 watchdog을 갱신하지 않는다.
+
+### 빌드 설정
+
+5 ms 제어 task를 위해 `sdkconfig.defaults`의 `CONFIG_FREERTOS_HZ=1000`을
+사용한다. 이전 SDK 설정이 캐시에 남으면 기본값 변경이 반영되지 않을 수 있어
+펌웨어에서 tick rate를 compile-time 검사한다. 이 경우 기존 생성물을 보존하고
+별도 빌드 디렉터리에서 새 SDK 설정으로 빌드한다.
+
+### 2026-09-10 복원 확인
+
+- 원본 브랜치의 30개 파일을 모두 복원했다. 제어/통신 header와 기존 테스트는
+  원본과 동일하고, 네 파일에만 Wi-Fi/HTTP 통합 및 문서/빌드 의존 변경이 있다.
+- 가감속, PI, binary codec의 host 테스트 3종과 Jetson ROS 테스트 51개가 통과했다.
+- 일반 펌웨어와 모터/IMU 테스트 앱이 빌드됐다. 하드웨어 테스트 앱은 업로드하거나
+  실행하지 않았으며, 비영점 모터 명령도 보내지 않았다.
+- ESP32에 일반 펌웨어를 업로드하고 HTTP 제어 진단 필드, 웹 속도 그래프 코드,
+  USB `HELP`/`STATUS` 응답 및 네 모터의 목표/출력 0을 확인했다.
+- 펌웨어 업로드 전후 odom/TF 525개가 일치했고 기존 pose가 유지됐다.
+  USB 포트를 여는 과정에서 `USB_UART_CHIP_RESET`이 한 번 관측됐으며,
+  이 재시작 후에도 수신이 자동 복구되고 odom/TF 42개가 일치했다.
+- 실제 부하 주행, 가감속 시간 실측, USB binary 명령의 실물 구동은 수행하지 않았다.
+  IMU는 원본처럼 독립 하드웨어 테스트와 예약 protocol만 제공한다.
+
+로그와 원본/통합 파일 비교는 로컬 `artifacts/motor-control-restore-20260910/`에
+보존한다. 펌웨어 이미지에는 Wi-Fi 접속 정보가 포함되므로 Git에서 제외한다.
+
+## 확인 순서
+
+1. 모터 전원을 끄거나 로봇의 이동을 막은 상태에서 USB 장치와 보드 사양 확인.
+2. 펌웨어 빌드, USB 업로드, station IP와 Jetson HTTP 접근 확인.
+3. ROS 원본 틱의 수신 빈도와 네 바퀴 값을 확인.
+4. 바퀴를 수동으로 돌려 값 변화와 방향을 확인한 뒤 1회전 tick 수 측정.
+
+빌드 성공만으로 실물 연결이나 encoder 변화가 검증된 것은 아니다.

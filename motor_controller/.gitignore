@@ -11,3 +11,4 @@ compile_commands.json
 fp-info-cache
 ~*.lck
 
+src/wifi_credentials.local.h
