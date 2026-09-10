@@ -1,0 +1,12 @@
+CompileFlags:
+  Add:
+    - --target=xtensa-esp32s3-unknown-elf
+  Remove:
+    - -mlongcalls
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+    - -fno-shrink-wrap
+    - -mdisable-hardware-atomics
+Diagnostics:
+  Suppress:
+    - unused-includes
