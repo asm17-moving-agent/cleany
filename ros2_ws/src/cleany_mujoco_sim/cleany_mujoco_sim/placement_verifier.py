@@ -14,7 +14,9 @@ from cleany_mujoco_sim.sorting_scene import load_bins
 
 DEFAULT_LABEL_BODIES = {
     'cup': 'study_cafe_cup',
-    'wallet': 'study_cafe_wallet',
+    'mouse': 'study_cafe_mouse',
+    'computer mouse': 'study_cafe_mouse',
+    'wireless mouse': 'study_cafe_mouse',
     'crumpled tissue': 'study_cafe_tissue',
     'lego brick': 'study_cafe_lego',
 }

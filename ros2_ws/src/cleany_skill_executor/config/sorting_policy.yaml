@@ -4,7 +4,7 @@ schema_version: 1
 minimum_confidence: 0.25
 rules:
   trash: [cup, paper cup, disposable cup, can, soda can, tissue, crumpled tissue, paper ball]
-  lost_item: [wallet, phone, cell phone, mobile phone, eraser, keys, lego brick, lego, toy brick]
+  lost_item: [wallet, mouse, computer mouse, wireless mouse, phone, cell phone, mobile phone, eraser, keys, lego brick, lego, toy brick]
   hazardous: [person, knife, scissors, battery, broken glass]
 destinations:
   trash: trash_left

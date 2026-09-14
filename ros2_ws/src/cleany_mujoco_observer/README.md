@@ -8,7 +8,11 @@ sorting의 `scheduled_cameras=true`에서는 원래 공통 카메라 renderer의
 `head`, `left`, `right`로 변경하면 **렌더링 자체의 주기**를 전환한다.
 헤드 기본 10 Hz / 손목 사용 중 헤드 2 Hz / 선택 손목 10 Hz, 비선택 손목은 0 Hz다.
 시작 파라미터는 `head_rate_hz`, `head_idle_rate_hz`, `wrist_rate_hz`이며
-실행 중 rate 수정은 거부한다. `/camera/color/{image_raw,camera_info}` 및
+실행 중 rate 수정은 거부한다. 별도 boolean `head_depth_boost`(기본 false)를
+true로 설정하면 선택 손목 카메라를 유지하면서 헤드를 `head_rate_hz`로 촬영한다.
+sorting은 접근·파지·lift 동안만 이를 켜고 성공/실패 시 해제한다.
+이는 목표 촬영 빈도 변경이며 처리 지연을 없애거나 최신 지도 수신을 보장하지 않는다.
+`/camera/color/{image_raw,camera_info}` 및
 `/camera/aligned_depth_to_color/image_raw`는 헤드 RGB-D이고,
 `/{left,right}_wrist_camera/{image_raw,camera_info}`는 RGB 전용이다.
 640×480, 촬영한 snapshot의 simulation timestamp, optical frame을 사용한다.

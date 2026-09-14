@@ -87,6 +87,7 @@ def materialize_control_scene(
     *,
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
+    performance_profile: str = 'baseline',
 ) -> Path:
     """Materialize a MuJoCo 3.4-compatible arm-control scene.
 
@@ -104,6 +105,7 @@ def materialize_control_scene(
         control_compatible=True,
         initial_joint_positions=initial_joint_positions,
         sorting_bins_config=sorting_bins_config,
+        performance_profile=performance_profile,
     )
 
 
@@ -112,13 +114,17 @@ def resolve_control_scene_path(
     *,
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
+    performance_profile: str = 'baseline',
 ) -> Path:
     if scene_path.suffix == '.in':
         return materialize_control_scene(
             scene_path,
             initial_joint_positions=initial_joint_positions,
             sorting_bins_config=sorting_bins_config,
+            performance_profile=performance_profile,
         )
+    if performance_profile != 'baseline':
+        raise ValueError('Performance profiles require a materialized scene template')
     if sorting_bins_config is not None:
         raise ValueError('Sorting bins require a materialized scene template')
     if initial_joint_positions and any(initial_joint_positions.values()):
@@ -135,6 +141,7 @@ def _materialize_scene(
     control_compatible: bool,
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
+    performance_profile: str = 'baseline',
 ) -> Path:
     if not template_path.is_file():
         raise FileNotFoundError(
@@ -230,6 +237,16 @@ def _materialize_scene(
         materialized_model = add_sorting_bins(
             materialized_model, sorting_bins_config
         )
+    from cleany_mujoco_sim.tabletop_performance import (
+        apply_tabletop_performance, load_performance_profile,
+    )
+    performance = load_performance_profile(
+        _package_share('cleany_mujoco_sim') / 'config' / 'tabletop_performance.yaml',
+        performance_profile,
+    )
+    scene_text, materialized_model, _ = apply_tabletop_performance(
+        scene_text, materialized_model, performance,
+    )
     model_path.write_text(materialized_model, encoding='utf-8')
 
     model_include_path = html.escape(str(model_path.resolve()), quote=True)
@@ -615,7 +632,16 @@ def _initial_control_keyframe(
         )
         if actuator in _WHEEL_DCMOTOR_ACTUATORS:
             continue
-        controls.append(float(positions.get(actuator, 0.0)))
+        # Position actuator names need not equal their driven joint names
+        # (head_tilt drives head_tilt_joint). Match the transmission so the
+        # initial camera pose is held instead of being driven back to zero.
+        joint_name = None
+        if model.actuator_trntype[actuator_id] == mujoco.mjtTrn.mjTRN_JOINT:
+            joint_name = mujoco.mj_id2name(
+                model, mujoco.mjtObj.mjOBJ_JOINT,
+                int(model.actuator_trnid[actuator_id, 0]),
+            )
+        controls.append(float(positions.get(joint_name, positions.get(actuator, 0.0))))
     return tuple(float(value) for value in data.qpos), tuple(controls)
 
 

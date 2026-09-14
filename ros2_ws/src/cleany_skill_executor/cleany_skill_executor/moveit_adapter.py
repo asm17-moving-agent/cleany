@@ -606,6 +606,84 @@ class MoveItGraspAdapter:
                 return (result,)
         return ()
 
+    def solve_held_region_ik(
+        self, arm: str, lower: tuple[float, float, float], upper: tuple[float, float, float],
+        offset_in_tcp: np.ndarray, *, attempts: int = 16, iterations: int = 80,
+        joint_bounds: dict[str, tuple[float, float]] | None = None,
+        fixed_joints: dict[str, float] | None = None,
+        accept_solution: Callable[[JointSolution], bool] | None = None,
+    ) -> JointSolution | None:
+        """Search a bounded object-center region; independently validate with MoveIt."""
+        low, high, offset = (np.asarray(v, dtype=float) for v in (lower, upper, offset_in_tcp))
+        if (any(v.shape != (3,) or not np.isfinite(v).all() for v in (low, high, offset))
+                or np.any(low > high) or not 1 <= attempts <= 64 or not 1 <= iterations <= 200):
+            raise ValueError('Invalid held-object region or search budget')
+        chain = self._local_fk.get(arm)
+        if chain is None:
+            raise InfrastructureError('Runtime URDF required for held-object region IK')
+        seed = self._current_arm_solution(arm)
+        def moveit_pose(solution):
+            p = self._grasp_pose(arm, solution)
+            q = p.orientation
+            r = np.column_stack([quaternion_axis((q.x,q.y,q.z,q.w),axis)
+                                 for axis in ((1.,0.,0.),(0.,1.,0.),(0.,0.,1.))])
+            return np.array((p.position.x,p.position.y,p.position.z)), r
+        p, r = moveit_pose(seed)
+        lp, lr = chain.pose(dict(zip(seed.names, seed.positions)))
+        if np.linalg.norm(p-lp) > 1e-5 or np.linalg.norm(r-lr) > 1e-5:
+            raise InfrastructureError('Runtime URDF FK disagrees with MoveIt')
+        margin = self._config.joint_limit_margin_rad
+        limits = (*_ARM_JOINT_LIMITS[:-1],
+                  (self._config.wrist_roll_lower_rad, self._config.wrist_roll_upper_rad))
+        bounds = [(a+margin,b-margin) for a,b in limits]
+        for name, (lower, upper) in (joint_bounds or {}).items():
+            if name not in seed.names or not math.isfinite(lower) or not math.isfinite(upper) or lower > upper:
+                raise ValueError('Invalid carry joint bounds')
+            index = seed.names.index(name)
+            bounds[index] = (max(bounds[index][0], lower), min(bounds[index][1], upper))
+            if bounds[index][0] >= bounds[index][1]:
+                return None
+        fixed = dict(fixed_joints or {})
+        for name, value in fixed.items():
+            if name not in seed.names or not math.isfinite(value):
+                raise ValueError('Invalid fixed IK joint')
+            lower, upper = bounds[seed.names.index(name)]
+            if not lower <= value <= upper:
+                return None
+        free = [i for i, name in enumerate(seed.names) if name not in fixed]
+        def expand(values):
+            result = np.array(seed.positions, dtype=float)
+            result[free] = values
+            for name, value in fixed.items():
+                result[seed.names.index(name)] = value
+            return result
+        def residual(q):
+            p, r = chain.pose(dict(zip(seed.names, q)))
+            center = p + r @ offset
+            return center - np.clip(center, low, high)
+        for initial in self._aim_seed_solutions(arm, seed, attempts,
+                                              target_position=tuple((low+high)/2)):
+            initial_values = np.clip(initial.positions, np.array(bounds)[:, 0], np.array(bounds)[:, 1])
+            values = (expand(refine_pose(lambda q: residual(expand(q)), initial_values[free],
+                                        [bounds[i] for i in free], iterations))
+                      if free else expand([]))
+            if (not np.isfinite(values).all()
+                    or any(value < a-1e-9 or value > b+1e-9
+                           for value, (a, b) in zip(values, bounds, strict=True))):
+                continue
+            if np.linalg.norm(residual(values)) > 1e-5:
+                continue
+            solution = JointSolution(seed.names, values)
+            p, r = moveit_pose(solution)
+            center = p+r@offset
+            if (np.any(center < low-1e-5) or np.any(center > high+1e-5)
+                    or not self.state_is_valid(arm, solution)):
+                continue
+            if accept_solution is not None and not accept_solution(solution):
+                continue
+            return solution
+        return None
+
     def set_robot_description(self, description: str):
         self._local_fk = {arm: UrdfChain(description, self._config.base_frame, f'{arm}_grasp_tcp')
                           for arm in ('left','right')}

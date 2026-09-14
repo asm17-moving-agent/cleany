@@ -53,6 +53,8 @@
   </group_state>
 
   <!-- Keep the matrix conservative: only direct parent/child collision pairs are disabled. -->
+  <!-- Fixed chassis/mast mounting volumes overlap in the canonical CAD. -->
+  <disable_collisions link1="base_link" link2="top_base_link" reason="Adjacent"/>
   <disable_collisions link1="base_link" link2="left_shoulder_yaw_link" reason="Adjacent"/>
   <disable_collisions link1="left_shoulder_yaw_link" link2="left_upper_arm_link" reason="Adjacent"/>
   <disable_collisions link1="left_upper_arm_link" link2="left_lower_arm_link" reason="Adjacent"/>

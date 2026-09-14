@@ -31,8 +31,8 @@ def test_flash_lite_profile_uses_cloud_detection_and_local_tiny_masks():
     assert profile['segmenter_type'] == 'sam2'
     assert profile['sam2_checkpoint'] == 'sam2/sam2.1_t.pt'
     assert profile['preload_models'] is True
-    for label in ('cup', 'wallet', 'crumpled tissue', 'lego brick'):
-        assert label in profile['default_query']
+    for label in ('cup', 'computer mouse', 'crumpled tissue', 'lego brick'):
+        assert label not in profile['default_query'].lower()
 
 
 @pytest.mark.parametrize('requested,available,expected', [

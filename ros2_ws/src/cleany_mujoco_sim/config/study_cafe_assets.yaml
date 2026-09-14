@@ -1,5 +1,5 @@
 schema_version: 1
-active_scene_assets: [paper_cup, lego_brick, crumpled_tissue, wallet]
+active_scene_assets: [paper_cup, lego_brick, crumpled_tissue, mouse]
 procedural_assets:
   generator: cleany_mujoco_sim/tabletop_shapes.py
   configuration: study_cafe_layout.yaml
@@ -51,14 +51,34 @@ assets:
     imported_sha256: 1e21885664d15d75685a32e0461d16b6e0a226a3efa368bf9f004971aff9d715
     normalized_extent_m: [0.0675, 0.135, 0.0072]
   wallet:
-    active: true
-    title: Wallet
-    author: Poly by Google
-    source_page: https://poly.pizza/m/bN7GPQFma7_
-    source_file: https://static.poly.pizza/bb633adb-57f0-4d6f-8752-436e0047c96d.glb
+    active: false
+    title: A Wallet (closed, thicker adaptation)
+    author: senior design
+    source_page: https://poly.pizza/m/898ojWnA41a
+    source_file: https://static.poly.pizza/89b00f66-3ee6-4312-b779-208dba883b1d.glb
     license: CC-BY-3.0
     license_url: https://creativecommons.org/licenses/by/3.0/
-    source_sha256: f19b9ceeb64961634fab36fb5a6155882301a0cc8760ccb92ea3a9aeb8c9df35
+    source_sha256: bc58f3dd4b241162d1c11fdbe92e8ba0d8826eb1b042d5fd4a0f97e418fecd99
     imported_file: study_cafe_wallet.obj
-    imported_sha256: 0b08397cc2b06ded9d07902edcfd75c65af220de161aeb4804d0d4adc3391dd7
-    normalized_extent_m: [0.110, 0.085, 0.020]
+    imported_sha256: ecc3e50ce87bf3d7a3d8f2498f9e3a49d0550c006cd6e1ed5c4bf7be85e1695b
+    normalized_extent_m: [0.110, 0.085, 0.030]
+    downloaded_on: '2026-09-11'
+    conversion_tool: tools/convert_closed_wallet.py (NumPy, GLB accessors)
+    modifications: Retain brown mat20 shell; remove bills/cards; principal-axis alignment; split at spine and fold 180 degrees; scale to 110x85x30mm; MJCF uniform brown color. Interior layers may overlap; collision uses convex hull.
+  mouse:
+    active: true
+    title: Computer Mouse
+    author: CreativeTrio
+    source_page: https://poly.pizza/m/V2Ebx3pvo4
+    source_file: https://static.poly.pizza/c0123ed1-38d1-4532-a711-3fccdc42fe25.glb
+    license: CC0-1.0
+    license_url: https://creativecommons.org/publicdomain/zero/1.0/
+    source_sha256: 75ed200f645b00c86ab4580aecf9d8c72af924e306c4c987bb8426e6d043b8ed
+    imported_file: study_cafe_mouse.obj
+    imported_sha256: 9c4e6340ceefe5d170c796fd25968e22dbe518cd90f5a5ffc6c418a03e0ce651
+    texture_file: study_cafe_mouse.png
+    texture_sha256: ef89e695b8f33c051f023772aa1b150ed8be26f141cb1818b35ed2df2bd59a67
+    normalized_extent_m: [0.110, 0.065, 0.035]
+    downloaded_on: '2026-09-11'
+    conversion_tool: tools/convert_computer_mouse.py
+    modifications: Y-up to Z-up; scaled to 110x65x35mm; original UV texture retained; convex hull collision.

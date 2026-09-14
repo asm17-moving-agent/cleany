@@ -28,13 +28,13 @@
           material="demo_floor_material" contype="1" conaffinity="1"/>
 
     <!--
-      The candidate is expressed in ROS base_link at (0.09, 0.6696, 0.6158).
+      The candidate is expressed in ROS base_link at (0.1163, 0.699517, 0.652097).
       MuJoCo's chassis/base origin starts at world Z=0.38, so this fixed world
       body applies that translation and appears at the same physical point.
       Contact is render-only in this reach demo: MoveIt checks the matching
       target OBB, while gripper actuation/force closure is not implemented yet.
     -->
-    <body name="demo_grasp_target" pos="0.09 0.6696 0.9958">
+    <body name="demo_grasp_target" pos="0.1163 0.699517 1.032097">
       <geom name="demo_grasp_target_geom" type="box"
             size="0.015 0.015 0.015" material="demo_target_material"
             contype="0" conaffinity="0"/>

@@ -329,6 +329,23 @@ Make target과 내부 native 명령은 [ROS 2 workspace 안내](../ros2_ws/READM
 
 ## 7. 선택 개발도구
 
+### Python 정적 검사
+
+미사용 import·중복 정의·정의되지 않은 이름·문법 오류는 다음처럼 확인한다.
+
+```bash
+sudo apt install -y python3-flake8
+python3 -m flake8 ros2_ws/src tools containers/vision --select F,E9
+```
+
+Make 테스트는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 사용자 site-package의
+관계없는 pytest 플러그인 충돌을 방지한다. `colcon test --python-testing pytest`로
+실행 프레임워크를 명시하며 `setup.py`의 test extra도 pytest로 선언한다.
+구버전 `tests_require`가 무시되어 `Ran 0 tests`로 끝나는 것을 통과로 해석하지 않는다.
+`make test`는 CMake 재설정도 포함해 pytest가 빠진 이전 등록 상태를 갱신한다.
+카메라를 포함한 전체 검사는 GUI 세션에서 `DISPLAY`를 전달하거나
+CI와 같이 `xvfb-run --auto-servernum make test`로 실행한다(Xvfb/xauth 설치 필요).
+
 ### Helix와 Pyright
 
 레포의 Helix 설정은 native `pyright-langserver`를 사용한다. Helix에서 Python

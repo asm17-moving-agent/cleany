@@ -1,8 +1,9 @@
 # Cleany sensor scene mapping
 
-실험용 MoveIt OctoMap updater. 기본 파이프라인은 기존 updater를 유지하며,
+실험용 MoveIt OctoMap updater. MuJoCo sorting 파이프라인은 이 updater를
+기본으로 사용한다. 실물 및 다른 모드는 기존 updater를 유지하며,
 `depth_octomap_plugin:=cleany_scene_mapping/KnownGeometryOctomapUpdater`로
-명시 선택할 때만 사용한다. 실제 하드웨어 안전 검증을 완료한 기능이 아니다.
+명시 선택할 수 있다. 실제 하드웨어 안전 검증을 완료한 기능이 아니다.
 
 MoveIt의 `ShapeMask`로 점군 self-mask를 계산하고, sensor ray의 free/occupied/
 model/clip 셀을 갱신한다. MoveIt이 제외 대상으로 전달한 collision shape 안에

@@ -111,6 +111,18 @@ def add_sorting_bins(model_text: str, config: str | Path) -> str:
     if chassis is None:
         raise ValueError('Sorting fixture requires the Cleany chassis')
     raw = yaml.safe_load(Path(config).read_text(encoding='utf-8'))
+    ignore_mast = raw.get('simulation_ignore_mast_collision', False)
+    if not isinstance(ignore_mast, bool):
+        raise ValueError('simulation_ignore_mast_collision must be a boolean')
+    if ignore_mast:
+        # Only the fixed mast, never its articulated camera children or the arms.
+        mast = root.find(".//body[@name='top_base_link']")
+        if mast is not None:
+            for geom in mast.findall('geom'):
+                geom.set('contype', '0')
+                geom.set('conaffinity', '0')
+    if 'rear_shelf' in raw and 'internal_tray' in raw:
+        raise ValueError('Choose either rear_shelf or internal_tray')
     parent = chassis
     if 'rear_shelf' in raw:
         # Copy only the initial frame transform: furniture must not follow the robot.
@@ -120,6 +132,8 @@ def add_sorting_bins(model_text: str, config: str | Path) -> str:
                if chassis.get(key) is not None},
         })
         _add_rear_shelf(parent, raw['rear_shelf'], load_bins(config))
+    if 'internal_tray' in raw:
+        _add_internal_tray(parent, raw['internal_tray'], load_bins(config))
     for bin_ in load_bins(config):
         body = ET.SubElement(parent, 'body', name=bin_.name)
         if bin_.kind == 'table_zone':
@@ -155,16 +169,46 @@ def add_sorting_bins(model_text: str, config: str | Path) -> str:
 
 
 def load_shelf_boxes(path: str | Path) -> tuple:
-    """Return the same known shelf boxes for planning, in the initial base frame."""
+    """Return shared fixture boxes for planning, in base_link coordinates."""
     raw = yaml.safe_load(Path(path).read_text(encoding='utf-8'))
-    if 'rear_shelf' not in raw:
-        return ()
+    if 'rear_shelf' in raw and 'internal_tray' in raw:
+        raise ValueError('Choose either rear_shelf or internal_tray')
     parent = ET.Element('body')
-    _add_rear_shelf(parent, raw['rear_shelf'], load_bins(path))
+    if 'rear_shelf' in raw:
+        _add_rear_shelf(parent, raw['rear_shelf'], load_bins(path))
+    if 'internal_tray' in raw:
+        _add_internal_tray(parent, raw['internal_tray'], load_bins(path))
     return tuple((geom.get('name'),
                   tuple(2*float(v) for v in geom.get('size').split()),
                   tuple(float(v) for v in geom.get('pos').split()))
                  for geom in parent.findall('geom'))
+
+
+def _add_internal_tray(parent: ET.Element, config: dict,
+                       bins: tuple[BinGeometry, ...]) -> None:
+    """Chassis-mounted support plate; structural fasteners are not modeled."""
+    x, y = (float(v) for v in config['center_xy_m'])
+    sx, sy = (float(v) for v in config['size_xy_m'])
+    top = float(config['top_z_m'])
+    thickness = float(config['board_thickness_m'])
+    color = tuple(float(v) for v in config['board_rgba'])
+    if (not all(math.isfinite(v) for v in (x, y, sx, sy, top, thickness))
+            or min(sx, sy, thickness) <= 0 or len(color) != 4
+            or not all(math.isfinite(v) and 0 <= v <= 1 for v in color)):
+        raise ValueError('Invalid internal tray geometry')
+    for bin_ in bins:
+        if (bin_.kind != 'bin' or abs(bin_.bottom_z-top) > 1e-8
+                or abs(bin_.center_xy[0]-x)+bin_.outside_size[0]/2 > sx/2
+                or abs(bin_.center_xy[1]-y)+bin_.outside_size[1]/2 > sy/2):
+            raise ValueError('Internal tray must support the complete bin footprint')
+    ET.SubElement(parent, 'geom', {
+        'name': 'internal_collection_tray', 'type': 'box',
+        'size': f'{sx/2} {sy/2} {thickness/2}',
+        'pos': f'{x} {y} {top-thickness/2}',
+        'rgba': ' '.join(str(v) for v in color),
+        'contype': '1', 'conaffinity': '1', 'condim': '4',
+        'friction': '1 0.005 0.0001',
+    })
 
 
 def _add_rear_shelf(parent: ET.Element, config: dict, bins: tuple[BinGeometry, ...]) -> None:

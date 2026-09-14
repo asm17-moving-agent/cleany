@@ -1,4 +1,5 @@
 import math
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -10,6 +11,41 @@ from cleany_mujoco_sim.scene_loader import (
     materialize_control_scene,
 )
 from cleany_mujoco_sim.state import actuated_joint_names
+
+
+def test_sorting_startup_wrist_camera_mounts_have_matching_orientation():
+    package = Path(__file__).parents[1]
+    launch = (package.parent / 'cleany_skill_executor/launch/study_cafe_nearest_grasp_demo.launch.py').read_text()
+    initial = {f'{arm}_{joint}_joint': float(value) for arm, joint, value in re.findall(
+        r"'(left|right)_(\w+)_initial': '(-?[0-9.]+)'", launch)}
+    assert initial['left_wrist_roll_joint'] == initial['right_wrist_roll_joint'] == 1.58
+    path = materialize_control_scene(package / 'scenes/study_cafe_grasp_execution.xml.in',
+                                     initial_joint_positions=initial)
+    model = mujoco.MjModel.from_xml_path(str(path))
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
+    mujoco.mj_forward(model, data)
+    left = data.cam_xmat[model.camera('left_wrist_rgb').id].reshape(3, 3)
+    right = data.cam_xmat[model.camera('right_wrist_rgb').id].reshape(3, 3)
+    # Shoulder yaw differs; compare vertical components of all camera axes.
+    assert left[2] == pytest.approx(right[2], abs=1e-4)
+    for arm in ('left', 'right'):
+        assert data.ctrl[model.actuator(f'{arm}_wrist_roll_joint').id] == pytest.approx(1.58)
+
+
+def test_initial_head_position_uses_actuator_transmission_not_actuator_name():
+    package = Path(__file__).parents[1]
+    path = materialize_control_scene(
+        package / 'scenes/study_cafe_grasp_execution.xml.in',
+        initial_joint_positions={'head_tilt_joint': 1.0},
+    )
+    model = mujoco.MjModel.from_xml_path(str(path))
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
+    assert data.ctrl[model.actuator('head_tilt').id] == pytest.approx(1.0)
+    assert data.qpos[model.joint('head_tilt_joint').qposadr[0]] == pytest.approx(1.0)
+    mujoco.mj_step(model, data, nstep=1000)
+    assert data.qpos[model.joint('head_tilt_joint').qposadr[0]] == pytest.approx(1.0, abs=.02)
 
 
 def test_load_model_from_xml_path(scene_path: Path):

@@ -49,8 +49,11 @@ class Candidate:
     source_index: int = 0
     orientation: tuple[float, float, float, float] | None = None
     lateral_offset_m: float | None = None
+    approach_offset_m: float | None = None
 
     def __post_init__(self) -> None:
+        if self.approach_offset_m is not None and not math.isfinite(self.approach_offset_m):
+            raise ValueError('Candidate approach offset must be finite')
         if self.lateral_offset_m is not None and not math.isfinite(self.lateral_offset_m):
             raise ValueError('Candidate lateral offset must be finite')
         values = (*self.position, *self.approach_direction, self.score)
@@ -394,7 +397,8 @@ class GraspSelector:
             )
             grasp_position = self.grasp_position(
                 candidate,
-                self._config.grasp_approach_offset_m,
+                (self._config.grasp_approach_offset_m if candidate.approach_offset_m is None
+                 else candidate.approach_offset_m),
                 (
                     lateral
                     if (self._config.grasp_execution_lateral_offset_m is None or candidate.lateral_offset_m is not None)

@@ -23,8 +23,6 @@ from cleany_interfaces.msg import GraspCandidate
 from moveit_msgs.msg import CollisionObject, PlanningScene
 from moveit_msgs.srv import ApplyPlanningScene
 import rclpy
-from rclpy.action import ActionClient
-from rclpy.node import Node
 from shape_msgs.msg import SolidPrimitive
 
 from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo

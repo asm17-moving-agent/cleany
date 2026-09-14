@@ -3,6 +3,18 @@ nearest_pregrasp_coordinator:
     # Empty keeps direct PointCloud2 reception. The sensor-only launch starts
     # a dedicated receipt node and supplies its reliable Header topic.
     sensor_scene_receipt_topic: ''
+    # Wrist ROLL only: pitch remains free. Absolute deviations from grasp contact.
+    sorting_carry_wrist_tolerances_deg: [2.0, 5.0, 10.0, 20.0, 30.0]
+    # Wrist joint hold does not imply a fixed TCP world orientation.
+    sorting_carry_cartesian_rotation_limit_deg: 30.0
+    sorting_fixed_release_enabled: true
+    sorting_fixed_release_wrist_tolerance_deg: 0.5
+    # Fixed OBJECT-center destinations in base_link; not blind TCP drop commands.
+    sorting_fixed_release_lost_items_left_m: [-0.075, 0.105, 0.50]
+    sorting_fixed_release_trash_right_m: [-0.075, -0.105, 0.50]
+    # Empty return: STS3215 torque saturation + velocity damping preclude 30% yaw speed.
+    sorting_return_velocity_scaling: 0.12
+    sorting_return_acceleration_scaling: 0.15
     inspection_action: /perception/inspect_scene
     grasp_service: /grasp/plan
     selection_action: /grasp/select_reachable
@@ -37,6 +49,8 @@ nearest_pregrasp_coordinator:
     cartesian_maximum_points: 2000
     cartesian_joint_acceleration_rad_s2: 1.0
     attachment_scene_timeout_sec: 5.0
+    gripper_contact_feedback_timeout_sec: 5.0
+    gripper_contact_stable_duration_sec: 0.10
     corridor_orientation_tolerance_deg: 5.0
     corridor_time_margin: 2.0
     cartesian_translation_speed_m_s: 0.10

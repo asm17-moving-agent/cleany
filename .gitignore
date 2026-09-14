@@ -24,6 +24,10 @@ ros2_ws/log-harmonic/
 *.tmp
 /artifacts/
 /perception-results/
+# Presentation sources and exports stay local.
+/output/
+/tools/presentation/
+/docs/mujoco_midterm_presentation_draft.md
 /MUJOCO_LOG.TXT
 ros2_ws/slam_results/
 

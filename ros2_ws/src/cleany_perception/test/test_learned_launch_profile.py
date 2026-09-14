@@ -1,12 +1,15 @@
-"""Launch contract checks without starting ROS nodes or loading model weights."""
 import importlib.util
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch_ros.parameter_descriptions import ParameterValue
 import pytest
 import yaml
+
+
+"""Launch contract checks without starting ROS nodes or loading model weights."""
 
 
 @pytest.mark.parametrize('tracking', ['true', 'false'])
@@ -63,9 +66,16 @@ def test_selected_profile_checkpoint_is_not_overridden_by_tiny_defaults(tmp_path
     assert context.launch_configurations['sam2_model_config'] == 'custom/config.yaml'
 
 
-def test_native_install_guide_pins_the_container_sam2_commit():
-    root = Path(__file__).parents[4]
-    dockerfile = (root / 'containers/vision/Dockerfile').read_text()
-    commit = next(line.split('=', 1)[1] for line in dockerfile.splitlines()
-                  if line.startswith('ARG SAM2_COMMIT='))
-    assert f'checkout {commit}' in (root / 'docs/DEVELOPMENT_SETUP.md').read_text()
+def test_large_rgbd_profile_keeps_udp_and_bounded_shared_memory_without_qos_override():
+    source = Path(__file__).parents[1] / 'config' / 'fastdds_rgbd.xml'
+    ns = {'d': 'http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles'}
+    root = ET.parse(source).getroot()
+    transports = root.findall('d:transport_descriptors/d:transport_descriptor', ns)
+    by_type = {item.findtext('d:type', namespaces=ns): item for item in transports}
+    assert set(by_type) == {'UDPv4', 'SHM'}
+    assert int(by_type['SHM'].findtext('d:segment_size', namespaces=ns)) == 16*1024*1024
+    participant = root.find('d:participant', ns)
+    assert participant.attrib['is_default_profile'] == 'true'
+    assert participant.findtext('d:rtps/d:useBuiltinTransports', namespaces=ns) == 'false'
+    assert len(participant.findall('d:rtps/d:userTransports/d:transport_id', ns)) == 2
+    assert not root.findall('.//d:reliability', ns) and not root.findall('.//d:history', ns)

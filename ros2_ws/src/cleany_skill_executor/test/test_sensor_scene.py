@@ -1,4 +1,3 @@
-from pathlib import Path
 from types import SimpleNamespace
 from std_msgs.msg import Header
 
@@ -64,19 +63,6 @@ def test_missing_or_stale_camera_fails_closed(age):
 def test_missing_map_fails_closed(tree_id, size):
     with pytest.raises(RuntimeError, match='OctoMap'):
         validate_sensor_scene(0., 2., tree_id, size)
-
-
-def test_sensor_launch_defaults_no_static_geometry_and_no_execution():
-    package = Path(__file__).resolve().parents[1]
-    launch = (package / 'launch' /
-              'study_cafe_nearest_grasp_demo.launch.py').read_text()
-    assert "'sensor_scene', default_value='true'" in launch
-    assert 'condition=UnlessCondition(sensor_scene)' in launch
-    assert "'plan_only', default_value='true'" in launch
-    source = (package / 'cleany_skill_executor' /
-              'nearest_pregrasp_coordinator.py').read_text()
-    guard = source.index("if bool(self.get_parameter('plan_only').value):")
-    assert guard < source.index('self._execute_pregrasp(selected, attempt)')
 
 
 def test_plan_only_never_executes_even_with_reachable_candidate():

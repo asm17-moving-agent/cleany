@@ -20,6 +20,15 @@ TEST(CameraRates, InvalidRatesRejected) {
   }
   CameraRates r; r.head_idle=11; EXPECT_THROW(r.validate(),std::invalid_argument);
 }
+TEST(CameraRates, DepthBoostPreservesWristSelectionAndRestoresIdleRate) {
+  CameraRates r;
+  for (const auto& arm: {"left", "right"}) {
+    EXPECT_EQ(r.rate(arm,"head",true),r.head_active);
+    EXPECT_EQ(r.rate(arm,arm,true),r.wrist_active);
+    EXPECT_EQ(r.rate(arm,arm==std::string("left") ? "right" : "left",true),0);
+    EXPECT_EQ(r.rate(arm,"head",false),r.head_idle);
+  }
+}
 TEST(CameraRates, UnknownCameraRejected) {
   CameraRates r;
   EXPECT_THROW(r.rate("unknown","head"),std::invalid_argument);

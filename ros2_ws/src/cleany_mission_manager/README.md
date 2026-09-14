@@ -33,5 +33,6 @@ make build
 ## 관련 KB와 갱신 규칙
 
 - 패키지 core logic은 가능하면 ROS 의존 없이 유지해 pytest로 검증합니다.
-- FSM 상태, 책임 경계, retry/report 정책을 바꾸면 docs의 Mission Manager FSM 문서도 함께 갱신합니다.
+- FSM 상태, 책임 경계, retry/report 구현을 바꾸면 이 README를 함께 갱신합니다.
+  KB와 충돌하는 정책은 임의 확정하지 않으며 KB 수정은 명시 요청이 있을 때 수행합니다.
 - MVP 범위나 안전 정책이 아직 검토 중이면 [기획 KB 안내](../../../docs/cleany-docs/00_START_HERE/00%20-%20README.md)와 [Planning Questions](../../../docs/cleany-docs/10_PLANNING/99%20-%20Questions.md)를 우선 확인합니다.

@@ -40,7 +40,8 @@ class GraspExecutionDemo(Node):
         self.declare_parameter('stage_hold_sec', 3.0)
         self.declare_parameter('velocity_scaling', 0.08)
         self.declare_parameter('acceleration_scaling', 0.08)
-        self.declare_parameter('target_position', [0.09, 0.6696, 0.6158])
+        # Synthetic reach fixture translated with the canonical left shoulder.
+        self.declare_parameter('target_position', [0.1163, 0.699517, 0.652097])
         self.declare_parameter('target_size', [0.03, 0.03, 0.03])
         self.declare_parameter(
             'approach_direction',
@@ -418,9 +419,9 @@ class GraspExecutionDemo(Node):
         text.id = 200
         text.type = Marker.TEXT_VIEW_FACING
         text.action = Marker.ADD
-        text.pose.position.x = 0.09
-        text.pose.position.y = 0.6696
-        text.pose.position.z = 0.72
+        text.pose.position.x = end.x
+        text.pose.position.y = end.y
+        text.pose.position.z = end.z + 0.10
         text.scale.z = 0.045
         text.color.r = text.color.g = text.color.b = text.color.a = 1.0
         text.text = status

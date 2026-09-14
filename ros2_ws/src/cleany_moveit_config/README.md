@@ -1,5 +1,23 @@
 # cleany_moveit_config
 
+수거 시뮬레이션 launch는 `simulation_bins_config`로 같은 수거함 YAML을 전달한다.
+`simulation_ignore_mast_collision: true`이면 런타임 SRDF에 기둥과 모든 로봇
+링크 간 충돌 예외를 추가한다. `use_sim_time:=false`에서는 이 예외를 거부한다.
+기본 SRDF/URDF는 수정하지 않으며, 기둥 collision geometry와 TF는 센서
+self-filter를 위해 유지한다. 일반 MoveIt launch는 예외가 기본 비활성이다.
+
+Canonical SRDF에는 고정 결합부 `base_link`–`top_base_link` 한 쌍의 `Adjacent`
+예외가 있다. CAD 장착부의 겹침 때문에 모든 자세가 자기충돌로 거부되는 것을 막는다.
+기둥과 팔·손목의 충돌 제외는 위 시뮬레이션 옵션을 켠 경우에만 추가된다.
+
+팔 전용 모델은 카메라 관절 feedback이 없으므로 `include_head_camera:=false`를
+유지하지만, 고정 기둥 `top_base_link`의 충돌 형상은 반드시 포함한다.
+기둥은 기본 충돌 검사와 자기 형상 필터에 사용한다. pan/tilt 관절 전체는 아직 제외된다.
+
+Arm-only MoveGroup는 `include_wheel_joints=false`로 URDF를 확장한다.
+고정 바퀴를 쓰는 MuJoCo ros2_control 모델과 일치시켜, 제공되지 않는 바퀴
+joint state/TF를 기다리며 depth self-filter가 멈추는 것을 방지한다.
+
 MoveIt 2 configuration shared by Cleany's left and right arms. The package
 uses the authoritative URDF from `cleany_description`; it does not copy robot
 geometry, link names, joint names, or hard limits.
@@ -152,10 +170,10 @@ reachable-grasp action instead of this fixed scene.
 
 The legacy configured study-cafe fixture is
 `config/study_cafe_grasp_collision_objects.yaml`. Its fixed list contains the
-robot-side desk, partition, monitor, paper cup, wallet, and crumpled tissue.
+robot-side desk, partition, monitor, paper cup, mouse, and crumpled tissue.
 The LEGO target is omitted because the reachable-grasp target transaction owns
 its OBB and temporarily permits contacts only for the selected jaw links.
-These boxes are fixture approximations, not observations. The current
+These boxes are legacy fixture approximations, not current layout parity or observations. The current
 `sensor_scene:=true` workflow does not load this file; its environment is built
 from camera depth instead. The object replacement does not inject simulator
 geometry or poses into that sensor-only planning path.

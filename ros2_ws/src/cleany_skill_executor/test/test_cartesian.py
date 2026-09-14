@@ -2,20 +2,30 @@ from copy import deepcopy
 import math
 from types import SimpleNamespace
 
-import pytest
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Quaternion
 from moveit_msgs.action import MoveGroup
 from moveit_msgs.msg import Constraints, RobotTrajectory
+import pytest
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 from cleany_skill_executor.core.cartesian import (
-    CartesianPose, execution_wall_timeout, interpolate_orientation, line_corridor, orientation_error_rad,
-    sampled_time_scale, validate_corridor_samples, validate_pose_endpoint,
+    CartesianPose,
+    execution_wall_timeout,
+    interpolate_orientation,
+    line_corridor,
+    orientation_error_rad,
+    sampled_time_scale,
+    validate_corridor_samples,
+    validate_pose_endpoint,
 )
 from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES, quaternion_axis
 from cleany_skill_executor.core.gripper import aligned_wrist_rolls
-from cleany_skill_executor.nearest_pregrasp_coordinator import NearestPregraspCoordinator as Coordinator
+from cleany_skill_executor.core.wrist_pose import carried_orientation
+from cleany_skill_executor.nearest_pregrasp_coordinator import (
+    NearestPregraspCoordinator as Coordinator,
+)
+
 
 IDENTITY = (0., 0., 0., 1.)
 
@@ -200,6 +210,7 @@ def test_bad_cartesian_endpoint_never_reaches_execute_action():
         get_parameter=lambda name: SimpleNamespace(value={
             'lin_position_tolerance_m': .001, 'lin_orientation_tolerance_rad': .01}[name]))
     node._validate_cartesian_plan = lambda *args, **kwargs: Coordinator._validate_cartesian_plan(node, *args, **kwargs)
+    node._plan_linear_motion = lambda *args, **kwargs: Coordinator._plan_linear_motion(node, *args, **kwargs)
     with pytest.raises(RuntimeError, match='rejected before execution.*endpoint mismatch'):
         Coordinator._execute_linear(node, 'left', target, 'approach', velocity_scaling=.2)
     assert executed == []
@@ -230,8 +241,19 @@ def test_seeded_path_still_cannot_bypass_cartesian_orientation_gate():
             'lin_position_tolerance_m': .001, 'lin_orientation_tolerance_rad': .01,
             'corridor_orientation_tolerance_deg': 5.}[name]))
     node._validate_cartesian_plan = lambda *args, **kwargs: Coordinator._validate_cartesian_plan(node, *args, **kwargs)
+    node._plan_linear_motion = lambda *args, **kwargs: Coordinator._plan_linear_motion(node, *args, **kwargs)
     with pytest.raises(RuntimeError, match='corridor violated'):
         Coordinator._execute_linear(node, 'left', target, 'seeded', velocity_scaling=.2,
                                      joint_target=JointState(name=['left_wrist_roll_joint'], position=[0.]))
     assert executed == []
     assert traces == ['motion_request', 'motion_result']
+
+
+def test_relative_carried_orientation_and_invalid_quaternion():
+    identity=Quaternion(w=1.)
+    yaw=Quaternion(z=math.sin(.4),w=math.cos(.4))
+    q=carried_orientation(identity,yaw,identity)
+    assert q.z==pytest.approx(yaw.z) and q.w==pytest.approx(yaw.w)
+    q=carried_orientation(yaw,yaw,identity)
+    assert q.w==pytest.approx(1.)
+    with pytest.raises(ValueError): carried_orientation(Quaternion(w=0.),yaw,identity)

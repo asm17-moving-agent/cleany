@@ -409,9 +409,14 @@ class GeometricGraspPredictor:
                         )
                     )
         if len(self._config.longitudinal_offset_fractions) > 1:
-            # Stable tie-break: nearer contact first, without increasing scores.
-            reference = np.asarray(self._config.robot_reference_position)
-            generated.sort(key=lambda candidate: float(np.linalg.norm(candidate.translation-reference)))
+            # Prefer the volume center over tapered tips at equal quality.
+            # Reachability still evaluates shifted contacts if central ones fail.
+            def center_distance(candidate):
+                contact = candidate.translation + candidate.depth_m * candidate.rotation[:, 0]
+                delta = contact - center
+                delta -= float(delta @ normal) * normal
+                return float(np.linalg.norm(delta))
+            generated.sort(key=center_distance)
         if self._config.prefer_upward_closing_axis:
             # For this asymmetric tool, +closing is the fixed-jaw side.
             # Only break equal-quality ties; do not inflate confidence scores.

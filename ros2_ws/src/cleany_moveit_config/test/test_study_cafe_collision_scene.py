@@ -19,7 +19,7 @@ def test_study_cafe_grasp_collision_scene_keeps_target_dynamic() -> None:
         'study_cafe_partition',
         'study_cafe_monitor',
         'study_cafe_cup_obstacle',
-        'study_cafe_wallet_obstacle',
+        'study_cafe_mouse_obstacle',
         'study_cafe_tissue_obstacle',
     }
     assert 'study_cafe_lego' not in objects

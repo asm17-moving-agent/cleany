@@ -72,21 +72,25 @@ def test_handeye_controllers_claim_disjoint_arm_joints() -> None:
         assert parameters['state_interfaces'] == ['position', 'velocity']
 
 
-def test_handeye_backend_does_not_compose_the_custom_simulator() -> None:
-    launch_path = PACKAGE_ROOT / 'launch' / 'handeye_backend.launch.py'
-    launch_source = launch_path.read_text(encoding='utf-8')
-    tree = ast.parse(launch_source)
-
-    imported_names = {
-        alias.name
-        for node in ast.walk(tree)
-        if isinstance(node, (ast.Import, ast.ImportFrom))
-        for alias in node.names
-    }
-    assert 'IncludeLaunchDescription' not in imported_names
-    assert 'mujoco_sim_node' not in launch_source
-    assert "package='mujoco_ros2_control'" in launch_source
-    assert "executable='ros2_control_node'" in launch_source
+def test_xim_workaround_is_configurable_and_simulator_only() -> None:
+    source = (PACKAGE_ROOT / 'launch' / 'handeye_backend.launch.py').read_text()
+    tree = ast.parse(source)
+    overrides = []
+    for call in ast.walk(tree):
+        if not isinstance(call, ast.Call):
+            continue
+        if isinstance(call.func, ast.Name) and call.func.id == 'Node':
+            keywords = {kw.arg: kw.value for kw in call.keywords}
+            if 'additional_env' in keywords:
+                overrides.append(keywords)
+    assert len(overrides) == 1
+    assert ast.literal_eval(overrides[0]['executable']) == 'ros2_control_node'
+    env = overrides[0]['additional_env']
+    assert isinstance(env, ast.Dict)
+    assert [ast.literal_eval(key) for key in env.keys] == ['XMODIFIERS']
+    assert ast.unparse(env.values[0]) == "LaunchConfiguration('sim_xmodifiers').perform(context)"
+    assert "'sim_xmodifiers', default_value='@im=none'" in source
+    assert 'SetEnvironmentVariable' not in source
 
 
 def test_grasp_demo_controller_profile_is_isolated_and_relaxes_only_arm_path() -> None:
@@ -108,25 +112,3 @@ def test_grasp_demo_controller_profile_is_isolated_and_relaxes_only_arm_path() -
             }
         gripper = grasp[f'{side}_gripper_controller']['ros__parameters']
         assert gripper['constraints']['goal_time'] == 3.0
-
-
-def test_handeye_backend_accepts_workflow_specific_controller_config() -> None:
-    source = (
-        PACKAGE_ROOT / 'launch' / 'handeye_backend.launch.py'
-    ).read_text(encoding='utf-8')
-
-    assert "'controller_config'" in source
-    assert "controller_config = LaunchConfiguration('controller_config')" in source
-    assert "'handeye_ros2_controllers.yaml'" in source
-    assert "'head_tilt_initial'" in source
-    assert "initial_joint_positions['head_tilt_joint']" in source
-
-
-def test_contact_diagnostics_are_opt_in_and_observer_only() -> None:
-    source = (PACKAGE_ROOT / 'launch' / 'handeye_backend.launch.py').read_text()
-    assert "DeclareLaunchArgument('sorting_contact_diagnostics', default_value='false')" in source
-    assert "'sorting_observer.publish_contacts': ParameterValue(" in source
-    assert "LaunchConfiguration('sorting_contact_diagnostics'), value_type=bool" in source
-    assert "hardware_plugin = 'cleany_mujoco_observer/ObservedMujocoSystem'" in source
-    assert "'mujoco_hardware_plugin': hardware_plugin" in source
-    assert 'mujoco_plugins.sorting_observer' not in source

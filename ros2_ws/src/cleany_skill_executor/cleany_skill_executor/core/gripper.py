@@ -5,6 +5,18 @@ from __future__ import annotations
 import math
 
 
+def approach_offset_for_label(label: str, base: float, labels: list[str], extra: float | list[float]) -> float:
+    """Apply an explicitly configured object-class insertion correction."""
+    offsets = extra if isinstance(extra, list) else [extra] * len(labels)
+    if (len(offsets) != len(labels) or not math.isfinite(base)
+            or any(not math.isfinite(value) or not 0 <= value <= .02 for value in offsets)):
+        raise ValueError('Approach correction must be finite and within 0..0.02 m')
+    normalized = [value.strip().casefold() for value in labels]
+    if len(set(normalized)) != len(normalized):
+        raise ValueError('Approach correction labels must be unique')
+    return base + dict(zip(normalized, offsets)).get(label.strip().casefold(), 0.)
+
+
 def aperture_centering_offset(required_opening_m: float, margin_m: float,
                               fixed_inner_x_m: float, clearance_m: float = 0.0) -> float:
     """Fixed-jaw tool correction: put the physical width between the jaws."""

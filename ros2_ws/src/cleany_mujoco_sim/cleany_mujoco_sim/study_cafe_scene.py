@@ -186,9 +186,9 @@ def _tabletop_objects(
             )
         )
     names = [item.name for item in objects]
-    if set(names) != {'cup', 'lego', 'tissue', 'wallet'}:
+    if set(names) != {'cup', 'lego', 'tissue', 'mouse'}:
         raise ValueError(
-            'mujoco.tabletop_objects must define cup, lego, tissue, wallet'
+            'mujoco.tabletop_objects must define cup, lego, tissue, mouse'
         )
     if len(names) != len(set(names)):
         raise ValueError('mujoco.tabletop_objects names must be unique')
@@ -582,50 +582,6 @@ def _add_monitor(
     )
 
 
-def _add_chair(
-    parent: ET.Element,
-    name: str,
-    chair_x: float,
-    chair_y: float,
-    desk_x: float,
-    desk_y: float,
-) -> None:
-    yaw = math.atan2(desk_y - chair_y, desk_x - chair_x)
-    body = _add_body(parent, name, (chair_x, chair_y, 0.0), yaw=yaw)
-    dark = (0.10, 0.11, 0.12, 1.0)
-    fabric = (0.32, 0.34, 0.36, 1.0)
-    _add_cylinder(
-        body,
-        f'{name}__caster_base',
-        0.32,
-        0.06,
-        (0.0, 0.0, 0.05),
-        dark,
-    )
-    _add_cylinder(
-        body,
-        f'{name}__center_column',
-        0.045,
-        0.34,
-        (-0.02, 0.0, 0.22),
-        dark,
-    )
-    _add_box(
-        body,
-        f'{name}__seat',
-        (0.52, 0.55, 0.08),
-        (-0.03, 0.0, 0.42),
-        fabric,
-    )
-    _add_box(
-        body,
-        f'{name}__backrest',
-        (0.10, 0.48, 0.50),
-        (-0.35, 0.0, 0.73),
-        fabric,
-    )
-
-
 def _desk_stations(layout: StudyCafeLayout) -> tuple[DeskStation, ...]:
     stations: list[DeskStation] = []
     index = 1
@@ -694,6 +650,8 @@ def _add_tabletop_object(
         'group': '2',
     }
     if item.visual_type == 'mesh':
+        if item.name == 'mouse':
+            visual_attributes['material'] = 'study_cafe_mouse_material'
         visual_attributes.update(
             {'type': 'mesh', 'mesh': f'{body_name}_mesh'}
         )
@@ -829,15 +787,8 @@ def build_study_cafe_environment(layout: StudyCafeLayout) -> str:
             * layout.desks.monitor_y_offset_from_desk_center_m,
             station.front_sign,
         )
-        if station.index != robot_station.index:
-            _add_chair(
-                environment,
-                f'office_chair_{station.index:02d}',
-                station.x,
-                station.chair_y,
-                station.x,
-                station.desk_y,
-            )
+        # The study-cafe simulation omits chairs; retain station chair offsets
+        # only as the existing robot docking reference.
     for item in layout.tabletop_objects:
         _add_tabletop_object(environment, robot_station, item)
 
@@ -886,6 +837,13 @@ def apply_study_cafe_layout(
     assets = scene_root.find('asset')
     if assets is None:
         raise ValueError('Study-cafe template requires an asset section')
+    if any(item.name == 'mouse' for item in layout.tabletop_objects):
+        ET.SubElement(assets, 'texture', {
+            'name': 'study_cafe_mouse_texture', 'type': '2d',
+            'file': str((asset_directory / 'study_cafe_mouse.png').resolve())})
+        ET.SubElement(assets, 'material', {
+            'name': 'study_cafe_mouse_material', 'texture': 'study_cafe_mouse_texture',
+            'specular': '0.15', 'shininess': '0.2'})
     for item in layout.tabletop_objects:
         if item.shape is not None:
             add_shape_assets(assets, f'study_cafe_{item.name}', item.collision_size_m, item.shape)

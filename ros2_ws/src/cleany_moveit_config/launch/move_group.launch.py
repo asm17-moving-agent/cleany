@@ -1,4 +1,7 @@
 from pathlib import Path
+import yaml
+
+from cleany_moveit_config.simulation_collision import ignore_simulation_mast
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -22,7 +25,8 @@ def _moveit_config(controller_config='config/moveit_controllers.yaml'):
         )
         .robot_description(
             file_path=str(description_xacro),
-            mappings={'include_head_camera': 'false'},
+            # Arm-only backend publishes no wheel states; match its fixed wheels.
+            mappings={'include_head_camera': 'false', 'include_wheel_joints': 'false'},
         )
         .robot_description_semantic(file_path='config/cleany.srdf')
         .robot_description_kinematics(file_path='config/kinematics.yaml')
@@ -55,6 +59,18 @@ def _launch_setup(context):
     moveit_config = (_moveit_config('config/sorting_moveit_controllers.yaml')
                     if LaunchConfiguration('enable_gripper_execution', default='false').perform(context) == 'true'
                     else _moveit_config())
+    simulation_bins = LaunchConfiguration('simulation_bins_config').perform(context)
+    if simulation_bins:
+        fixture = yaml.safe_load(Path(simulation_bins).read_text(encoding='utf-8'))
+        ignore_mast = fixture.get('simulation_ignore_mast_collision', False)
+        if not isinstance(ignore_mast, bool):
+            raise ValueError('simulation_ignore_mast_collision must be a boolean')
+        if ignore_mast:
+            moveit_config.robot_description_semantic['robot_description_semantic'] = ignore_simulation_mast(
+                moveit_config.robot_description['robot_description'],
+                moveit_config.robot_description_semantic['robot_description_semantic'],
+                use_sim_time=use_sim_time.perform(context).lower() == 'true',
+            )
     sensor_parameters = []
     sensor_condition = IfCondition(LaunchConfiguration('enable_depth_octomap'))
     if sensor_condition.evaluate(context):
@@ -127,6 +143,7 @@ def generate_launch_description() -> LaunchDescription:
         [
             DeclareLaunchArgument('use_rviz', default_value='false'),
             DeclareLaunchArgument('use_sim_time', default_value='false'),
+            DeclareLaunchArgument('simulation_bins_config', default_value=''),
             DeclareLaunchArgument('enable_gripper_execution', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument(
                 'enable_depth_octomap', default_value='false'

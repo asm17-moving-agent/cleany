@@ -127,6 +127,24 @@ def generate_launch_description() -> LaunchDescription:
     grasp_approach_offset = ParameterValue(
         LaunchConfiguration('grasp_approach_offset_m'), value_type=float
     )
+    # One parameter mapping keeps selection IK and execution depth identical.
+    grasp_depth_parameters = {
+        'deeper_grasp_labels': [
+            'mouse', 'computer mouse', 'wireless mouse',
+            'lego brick', 'lego', 'toy brick',
+            'crumpled tissue', 'tissue', 'crumpled paper',
+        ],
+        'deeper_grasp_offsets_m': ParameterValue(PythonExpression([
+            "'[", LaunchConfiguration('mouse_grasp_extra_depth_m'), ",",
+            LaunchConfiguration('mouse_grasp_extra_depth_m'), ",",
+            LaunchConfiguration('mouse_grasp_extra_depth_m'), ",",
+            LaunchConfiguration('lego_grasp_extra_depth_m'), ",",
+            LaunchConfiguration('lego_grasp_extra_depth_m'), ",",
+            LaunchConfiguration('lego_grasp_extra_depth_m'), ",",
+            LaunchConfiguration('tissue_grasp_extra_depth_m'), ",",
+            LaunchConfiguration('tissue_grasp_extra_depth_m'), ",",
+            LaunchConfiguration('tissue_grasp_extra_depth_m'), "]'"])),
+    }
     perception_detector_type = LaunchConfiguration(
         'perception_detector_type'
     )
@@ -178,6 +196,7 @@ def generate_launch_description() -> LaunchDescription:
             ),
             'headless': headless,
             'sim_speed_factor': LaunchConfiguration('sim_speed_factor'),
+            'sim_performance_profile': LaunchConfiguration('sim_performance_profile'),
             'camera_name': 'head_realsense_rgb',
             'camera_frame_name': 'head_camera_rgb_optical_frame',
             'enable_camera_contract_adapter': 'false',
@@ -193,7 +212,7 @@ def generate_launch_description() -> LaunchDescription:
             'right_shoulder_pitch_initial': '3.35',
             'right_elbow_pitch_initial': '3.12',
             'right_wrist_pitch_initial': '-1.63',
-            'right_wrist_roll_initial': '-1.58',
+            'right_wrist_roll_initial': '1.58',
             'right_gripper_initial': '-0.35',
         }.items(),
     )
@@ -223,6 +242,10 @@ def generate_launch_description() -> LaunchDescription:
             'use_sim_time': use_sim_time,
             'use_rviz': use_rviz,
             'enable_gripper_execution': sorting_mode,
+            'simulation_bins_config': PythonExpression([
+                "'", LaunchConfiguration('sorting_bins_config'), "' if '",
+                sorting_mode, "' == 'true' else ''",
+            ]),
             'allow_trajectory_execution': PythonExpression([
                 "'false' if '", plan_only, "' == 'true' else 'true'",
             ]),
@@ -258,6 +281,8 @@ def generate_launch_description() -> LaunchDescription:
                 'use_sim_time': clock_parameter,
                 'depth_image_topic': LaunchConfiguration('depth_image_topic'),
                 'depth_info_topic': LaunchConfiguration('depth_info_topic'),
+                'pixel_stride': ParameterValue(
+                    LaunchConfiguration('scene_cloud_pixel_stride'), value_type=int),
             },
         ],
         output='screen',
@@ -322,7 +347,9 @@ def generate_launch_description() -> LaunchDescription:
             str(grasping_share / 'config' / 'anygrasp.yaml'),
             {
                 'use_sim_time': clock_parameter,
-                'geometric.approach_tilt_degrees': 16.0,
+                'geometric.approach_tilt_degrees': ParameterValue(PythonExpression([
+                    "0.0 if '", LaunchConfiguration('topdown_only'), "' == 'true' else 16.0"]), value_type=float),
+                'geometric.opening_margin_m': ParameterValue(LaunchConfiguration('grasp_opening_margin_m'), value_type=float),
                 'geometric.maximum_top_contact_depth_m': ParameterValue(
                     LaunchConfiguration('grasp_maximum_top_contact_depth_m'), value_type=float),
                 'publish_collision_geometry': ParameterValue(sorting_mode, value_type=bool),
@@ -333,9 +360,10 @@ def generate_launch_description() -> LaunchDescription:
                 'geometric.prefer_upward_closing_axis': ParameterValue(
                     LaunchConfiguration('prefer_upward_closing_axis'), value_type=bool),
                 # Nominal base_link shoulder origins from cleany_geometry.xacro.
-                'geometric.approach_reference_positions': [0.09, 0.1552, 0.4115, 0.09, -0.1552, 0.4115],
+                'geometric.approach_reference_positions': [0.1163, 0.185117, 0.447797, 0.116101, -0.185063, 0.447797],
                 'geometric.search_approach_tilts': ParameterValue(
-                    sorting_mode, value_type=bool
+                    PythonExpression(["'", sorting_mode, "' == 'true' and '",
+                                      LaunchConfiguration('topdown_only'), "' != 'true'"]), value_type=bool
                 ),
                 'geometric.include_reverse_closing_axis': ParameterValue(
                     sorting_mode, value_type=bool
@@ -346,7 +374,10 @@ def generate_launch_description() -> LaunchDescription:
                     ]), value_type=float,
                 ),
                 'geometric.approach_tilt_direction': [1.0, 0.0, 0.0],
-                'geometric.reject_robot_opposite_approach': True,
+                # A measured plane normal can have tiny horizontal noise. The
+                # front/back filter is meaningful only for tilted approaches.
+                'geometric.reject_robot_opposite_approach': ParameterValue(PythonExpression([
+                    "'", LaunchConfiguration('topdown_only'), "' != 'true'"]), value_type=bool),
                 'geometric.robot_reference_position': [0.0, 0.0, 0.0],
                 'geometric.yaw_offsets_degrees': [
                     -80.0,
@@ -405,11 +436,12 @@ def generate_launch_description() -> LaunchDescription:
                 'service_artifact_directory': LaunchConfiguration('sorting_artifact_directory'),
                 'maximum_candidates': 24,
                 'grasp_approach_offset_m': grasp_approach_offset,
+                **grasp_depth_parameters,
                 'grasp_lateral_offset_m': 0.030,
                 'grasp_use_aperture_centering': ParameterValue(sorting_mode, value_type=bool),
                 'grasp_execution_lateral_offset_m': 0.030,
-                'grasp_fixed_jaw_clearance_m': ParameterValue(PythonExpression([
-                    "0.003 if '", sorting_mode, "' == 'true' else 0.0"]), value_type=float),
+                'grasp_fixed_jaw_clearance_m': ParameterValue(LaunchConfiguration('fixed_jaw_clearance_m'), value_type=float),
+                'grasp_aperture_margin_m': ParameterValue(LaunchConfiguration('grasp_opening_margin_m'), value_type=float),
                 'require_open_grasp_clearance': ParameterValue(sorting_mode, value_type=bool),
                 'require_gripper_closure_clearance': ParameterValue(sorting_mode, value_type=bool),
                 'use_observed_collision_geometry': ParameterValue(sorting_mode, value_type=bool),
@@ -463,6 +495,7 @@ def generate_launch_description() -> LaunchDescription:
                 'lin_acceleration_scaling': ParameterValue(LaunchConfiguration('lin_acceleration_scaling'), value_type=float),
                 'corridor_time_margin': ParameterValue(LaunchConfiguration('corridor_time_margin'), value_type=float),
                 'sorting_payload_velocity_scaling': ParameterValue(LaunchConfiguration('sorting_payload_velocity_scaling'), value_type=float),
+                'sorting_verify_placement': ParameterValue(LaunchConfiguration('sorting_verify_placement'), value_type=bool),
                 'sorting_payload_acceleration_scaling': ParameterValue(LaunchConfiguration('sorting_payload_acceleration_scaling'), value_type=float),
                 'query': profile['default_query'],
                 'camera_info_topic': LaunchConfiguration('color_info_topic'),
@@ -481,8 +514,8 @@ def generate_launch_description() -> LaunchDescription:
                 'gripper_force_full_close': ParameterValue(sorting_mode, value_type=bool),
                 'direct_vertical_lift': ParameterValue(
                     LaunchConfiguration('direct_vertical_lift'), value_type=bool),
-                'attachment_scene_timeout_sec': ParameterValue(PythonExpression([
-                    "10.0 if '", sorting_mode, "' == 'true' else 5.0"]), value_type=float),
+                'attachment_scene_timeout_sec': ParameterValue(
+                    LaunchConfiguration('attachment_scene_timeout_sec'), value_type=float),
                 'grasp_use_aperture_centering': ParameterValue(sorting_mode, value_type=bool),
                 'gripper_aperture_m_per_rad': 0.065,
                 'gripper_close_opening_reduction_m': 0.018,
@@ -505,9 +538,10 @@ def generate_launch_description() -> LaunchDescription:
                 'support_patch_margin_m': ParameterValue(PythonExpression([
                     "0.02 if '", sorting_mode, "' == 'true' else 0.0"]), value_type=float),
                 'selector_grasp_approach_offset_m': grasp_approach_offset,
+                **grasp_depth_parameters,
                 'selector_grasp_lateral_offset_m': 0.030,
-                'grasp_fixed_jaw_clearance_m': ParameterValue(PythonExpression([
-                    "0.003 if '", sorting_mode, "' == 'true' else 0.0"]), value_type=float),
+                'grasp_fixed_jaw_clearance_m': ParameterValue(LaunchConfiguration('fixed_jaw_clearance_m'), value_type=float),
+                'grasp_aperture_margin_m': ParameterValue(LaunchConfiguration('grasp_opening_margin_m'), value_type=float),
                 'require_gripper_contact': True,
                 'demo_start_delay_sec': 3.0,
                 'stage_hold_sec': 1.0,
@@ -576,13 +610,25 @@ def generate_launch_description() -> LaunchDescription:
                 default_value=LaunchConfiguration('color_info_topic'),
             ),
             DeclareLaunchArgument('headless', default_value='false'),
+            DeclareLaunchArgument('topdown_only', default_value='false',
+                description='Use only support-plane-normal grasp approaches; no tilted fallback.'),
             DeclareLaunchArgument('sim_speed_factor', default_value='1.0'),
+            DeclareLaunchArgument('sim_performance_profile', default_value='baseline',
+                choices=['baseline', 'tabletop_collision', 'tabletop_fast'],
+                description='Opt-in fixed-base MuJoCo optimization; baseline restores original settings.'),
+            DeclareLaunchArgument('scene_cloud_pixel_stride', default_value=PythonExpression([
+                "4 if '", start_simulator, "' == 'true' else 2"]),
+                description='Depth sampling stride for the obstacle cloud only.'),
+            DeclareLaunchArgument('attachment_scene_timeout_sec', default_value=PythonExpression([
+                "30.0 if '", start_simulator, "' == 'true' and '", sorting_mode,
+                "' == 'true' else (10.0 if '", sorting_mode, "' == 'true' else 5.0)"]),
+                description='Wall-time budget for fresh post-attachment depth; returns immediately when ready.'),
             DeclareLaunchArgument('sorting_use_wrist_camera', default_value=PythonExpression([
                 "'true' if '", sorting_mode, "' == 'true' and '",
                 LaunchConfiguration('sam2_tracking_enabled'), "' == 'true' else 'false'",
             ]), choices=['true','false']),
             DeclareLaunchArgument('sorting_use_reference_observation', default_value=LaunchConfiguration('sam2_tracking_enabled'), choices=['true','false']),
-            DeclareLaunchArgument('sorting_head_reference_refresh_age_sec', default_value='30.0'),
+            DeclareLaunchArgument('sorting_head_reference_refresh_age_sec', default_value='0.0'),
             DeclareLaunchArgument('wrist_continuous_tracking', default_value=LaunchConfiguration('sam2_tracking_enabled'), choices=['true','false']),
             DeclareLaunchArgument('sorting_async_carry_monitor', default_value=LaunchConfiguration('sorting_use_wrist_camera'), choices=['true','false']),
             DeclareLaunchArgument('sorting_approach_acceleration_scaling', default_value='1.0'),
@@ -595,7 +641,25 @@ def generate_launch_description() -> LaunchDescription:
                     default_value=str(perception_share / 'config' / 'fastdds_rgbd.xml'))),
             DeclareLaunchArgument('sorting_artifact_directory', default_value=''),
             DeclareLaunchArgument('sorting_test_only_label', default_value=''),
-            DeclareLaunchArgument('grasp_approach_offset_m', default_value='0.016'),
+            DeclareLaunchArgument('grasp_approach_offset_m', default_value=PythonExpression([
+                "0.018 if '", start_simulator, "' == 'true' and '", sorting_mode,
+                "' == 'true' else 0.016"])),
+            DeclareLaunchArgument('fixed_jaw_clearance_m', default_value=PythonExpression([
+                "0.003 if '", sorting_mode, "' == 'true' else 0.0"])),
+            DeclareLaunchArgument('grasp_opening_margin_m', default_value='0.008'),
+            DeclareLaunchArgument('mouse_grasp_extra_depth_m', default_value=PythonExpression([
+                "0.014 if '", start_simulator, "' == 'true' and '", sorting_mode,
+                "' == 'true' else 0.0"])),
+            DeclareLaunchArgument('lego_grasp_extra_depth_m', default_value=PythonExpression([
+                "0.004 if '", start_simulator, "' == 'true' and '", sorting_mode,
+                "' == 'true' else 0.0"])),
+            DeclareLaunchArgument('tissue_grasp_extra_depth_m', default_value=PythonExpression([
+                "0.004 if '", start_simulator, "' == 'true' and '", sorting_mode,
+                "' == 'true' else 0.0"])),
+            DeclareLaunchArgument('sorting_verify_placement', default_value=PythonExpression([
+                "'false' if '", start_simulator, "' == 'true' and '", sorting_mode,
+                "' == 'true' else 'true'"]), choices=['true', 'false'],
+                description='Verify bin placement after retreat; simulation sorting defaults to operator observation.'),
             DeclareLaunchArgument('grasp_maximum_top_contact_depth_m', default_value='0.0'),
             DeclareLaunchArgument('gripper_open_position_rad', default_value='1.2'),
             DeclareLaunchArgument('prefer_upward_closing_axis', default_value='false'),
@@ -632,7 +696,10 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('sorting_contact_diagnostics', default_value='false'),
             DeclareLaunchArgument(
                 'depth_octomap_plugin',
-                default_value='occupancy_map_monitor/PointCloudOctomapUpdater',
+                default_value=PythonExpression([
+                    "'cleany_scene_mapping/KnownGeometryOctomapUpdater' if '",
+                    start_simulator, "' == 'true' and '", sorting_mode,
+                    "' == 'true' else 'occupancy_map_monitor/PointCloudOctomapUpdater'"]),
             ),
             DeclareLaunchArgument('use_rviz', default_value='true'),
             DeclareLaunchArgument('use_image_view', default_value='true'),
@@ -684,6 +751,10 @@ def generate_launch_description() -> LaunchDescription:
             OpaqueFunction(function=_preflight),
             SetEnvironmentVariable(
                 'FASTRTPS_DEFAULT_PROFILES_FILE', LaunchConfiguration('fastdds_profiles_file')),
+            DeclareLaunchArgument(
+                'shutdown_on_sorting_exit', default_value='true', choices=['true', 'false'],
+                description='Close simulation when sorting finishes or fails.',
+            ),
             RegisterEventHandler(OnProcessExit(
                 target_action=perception,
                 on_exit=[EmitEvent(event=Shutdown(
@@ -715,7 +786,10 @@ def generate_launch_description() -> LaunchDescription:
             coordinator,
             RegisterEventHandler(OnProcessExit(
                 target_action=coordinator,
-                on_exit=[EmitEvent(event=Shutdown(reason='Coordinator finished'))],
+                on_exit=[EmitEvent(
+                    event=Shutdown(reason='Coordinator finished'),
+                    condition=IfCondition(LaunchConfiguration('shutdown_on_sorting_exit')),
+                )],
             ), condition=IfCondition(sorting_mode)),
             delayed_image_view,
         ]

@@ -19,8 +19,8 @@
   </visual>
 
   <asset>
-    <mesh name="study_cafe_wallet_mesh"
-          file="@CLEANY_STUDY_CAFE_ASSET_DIR@/study_cafe_wallet.obj"/>
+    <mesh name="study_cafe_mouse_mesh"
+          file="@CLEANY_STUDY_CAFE_ASSET_DIR@/study_cafe_mouse.obj"/>
     <texture type="skybox" builtin="gradient" rgb1="0.82 0.83 0.84"
              rgb2="0.55 0.57 0.60" width="512" height="3072"/>
     <texture type="2d" name="study_cafe_grasp_floor_texture"
@@ -41,17 +41,17 @@
 
   <!-- Simulation-only jaw friction; expanded across the paper cup / LEGO compound geoms. -->
   <contact>
-    <!-- Rigid wallet proxy: same original mixed friction, stiff jaw contact. -->
-    <pair name="wallet_left_fixed_1" geom1="study_cafe_wallet_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_left_fixed_2" geom1="study_cafe_wallet_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_left_moving_1" geom1="study_cafe_wallet_collision" geom2="left_moving_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_left_moving_2" geom1="study_cafe_wallet_collision" geom2="left_moving_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_left_moving_3" geom1="study_cafe_wallet_collision" geom2="left_moving_jaw_contact_3" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_right_fixed_1" geom1="study_cafe_wallet_collision" geom2="right_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_right_fixed_2" geom1="study_cafe_wallet_collision" geom2="right_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_right_moving_1" geom1="study_cafe_wallet_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_right_moving_2" geom1="study_cafe_wallet_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="wallet_right_moving_3" geom1="study_cafe_wallet_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <!-- Rigid mouse proxy: same original mixed friction, stiff jaw contact. -->
+    <pair name="mouse_left_fixed_1" geom1="study_cafe_mouse_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_fixed_2" geom1="study_cafe_mouse_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_moving_1" geom1="study_cafe_mouse_collision" geom2="left_moving_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_moving_2" geom1="study_cafe_mouse_collision" geom2="left_moving_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_left_moving_3" geom1="study_cafe_mouse_collision" geom2="left_moving_jaw_contact_3" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_fixed_1" geom1="study_cafe_mouse_collision" geom2="right_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_fixed_2" geom1="study_cafe_mouse_collision" geom2="right_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_moving_1" geom1="study_cafe_mouse_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_moving_2" geom1="study_cafe_mouse_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="mouse_right_moving_3" geom1="study_cafe_mouse_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <!-- Rigid tissue proxy: preserve mixed friction, prevent numerical penetration. -->
     <pair name="tissue_left_fixed_1" geom1="study_cafe_tissue_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="tissue_left_fixed_2" geom1="study_cafe_tissue_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="3 3 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
@@ -75,16 +75,18 @@
     <pair name="cup_right_moving_1" geom1="study_cafe_cup_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="cup_right_moving_2" geom1="study_cafe_cup_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
     <pair name="cup_right_moving_3" geom1="study_cafe_cup_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="6 6 0.2 0.1 0.1" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_fixed_1" geom1="study_cafe_lego_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_fixed_2" geom1="study_cafe_lego_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_moving_1" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_1" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_moving_2" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_2" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_left_moving_3" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_3" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_fixed_1" geom1="study_cafe_lego_collision" geom2="right_fixed_jaw_contact_1" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_fixed_2" geom1="study_cafe_lego_collision" geom2="right_fixed_jaw_contact_2" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_moving_1" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_moving_2" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
-    <pair name="lego_right_moving_3" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="5 5 0.4 0.15 0.15" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <!-- LEGO: retain sliding grip, but avoid oversized torsional/rolling contact resistance.
+         Constant across grip/release; no contact disabling or artificial drop force. -->
+    <pair name="lego_left_fixed_1" geom1="study_cafe_lego_collision" geom2="left_fixed_jaw_contact_1" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_fixed_2" geom1="study_cafe_lego_collision" geom2="left_fixed_jaw_contact_2" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_moving_1" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_1" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_moving_2" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_2" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_left_moving_3" geom1="study_cafe_lego_collision" geom2="left_moving_jaw_contact_3" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_fixed_1" geom1="study_cafe_lego_collision" geom2="right_fixed_jaw_contact_1" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_fixed_2" geom1="study_cafe_lego_collision" geom2="right_fixed_jaw_contact_2" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_moving_1" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_1" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_moving_2" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_2" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
+    <pair name="lego_right_moving_3" geom1="study_cafe_lego_collision" geom2="right_moving_jaw_contact_3" condim="6" friction="1.5 1.5 0.001 0.0001 0.0001" solref="0.002 1" solimp="0.99 0.9999 0.0001"/>
   </contact>
 
   <equality>

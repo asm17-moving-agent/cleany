@@ -29,18 +29,41 @@ LEFT_JOINTS = (
 )
 RIGHT_JOINTS = tuple(name.replace('left_', 'right_') for name in LEFT_JOINTS)
 EXPECTED_RESOLVED = (
-    -1.5767935884419453,
-    0.7221886746271129,
-    0.35912286260054327,
-    0.9498367845587643,
-    -1.1053229792363208,
+    -1.485510890745045,
+    0.729915821138758,
+    0.3791935399045544,
+    1.0129736253170643,
+    -1.651727106010282,
 )
 TARGET_POSITION_M = (
-    0.48213565748783654,
-    0.15284906255858033,
-    0.6377038732895058,
+    0.504559895791764,
+    0.21831124579349348,
+    0.6692884522564874,
 )
-OBSERVED_TARGET_CLEARANCE_M = 0.1286505425794566
+# Measured with the 2026-09 CAD in handeye.xml.in: all board corners in frame,
+# 24 detected ChArUco corners, valid PnP (0.047 px RMSE). The runtime below
+# independently validates MoveIt collision/planning and feedback-timed images.
+OBSERVED_TARGET_CLEARANCE_M = 0.14179470277189735
+
+
+def test_single_pose_fixture_matches_current_model() -> None:
+    from cleany_handeye_calibration.models import JointPose
+    from cleany_handeye_calibration.mujoco_pose_evidence import (
+        MujocoPoseEvidenceEvaluator,
+    )
+
+    evaluator = MujocoPoseEvidenceEvaluator(
+        WORKSPACE_ROOT / 'src/cleany_mujoco_sim/scenes/handeye.xml.in',
+        minimum_camera_depth_m=0.18,
+        image_border_fraction=0.08,
+    )
+    evidence = evaluator.evaluate(JointPose(LEFT_JOINTS, EXPECTED_RESOLVED))
+    assert evidence.base_gripper_position_m == pytest.approx(TARGET_POSITION_M)
+    assert evidence.minimum_collision_distance_m == pytest.approx(
+        OBSERVED_TARGET_CLEARANCE_M, abs=1e-5
+    )
+    assert evidence.minimum_collision_distance_m > 0.10
+    assert evidence.target_visible
 
 
 def _sha256(path: Path) -> str:

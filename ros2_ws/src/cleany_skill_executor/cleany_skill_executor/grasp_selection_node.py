@@ -35,7 +35,7 @@ from cleany_skill_executor.planning_scene import SceneAwarePort, TargetSceneTran
 from cleany_skill_executor.collision_geometry_cache import CollisionGeometryCache, subscribe_collision_geometry
 from cleany_skill_executor.service_trace import ServiceTrace
 from cleany_skill_executor.core.visibility import enclosing_visibility_cone
-from cleany_skill_executor.core.gripper import aperture_centering_offset
+from cleany_skill_executor.core.gripper import aperture_centering_offset, approach_offset_for_label
 
 
 STAGE_CONSTANT = {
@@ -86,6 +86,8 @@ class GraspSelectionNode(Node):
             'pregrasp_offset_m': 0.14,
             'pregrasp_seed_offset_m': 0.08,
             'grasp_approach_offset_m': 0.0,
+            'deeper_grasp_labels': [''],
+            'deeper_grasp_offsets_m': [0.0],
             'grasp_lateral_offset_m': 0.0,
             'grasp_use_aperture_centering': False,
             'grasp_aperture_margin_m': 0.008,
@@ -414,6 +416,11 @@ class GraspSelectionNode(Node):
                         ),
                         score=float(item.score),
                         source_index=index,
+                        approach_offset_m=approach_offset_for_label(
+                            item.target_object.label,
+                            float(self.get_parameter('grasp_approach_offset_m').value),
+                            list(self.get_parameter('deeper_grasp_labels').value),
+                            list(self.get_parameter('deeper_grasp_offsets_m').value)),
                         lateral_offset_m=(aperture_centering_offset(float(item.required_opening_m),
                             float(self.get_parameter('grasp_aperture_margin_m').value),
                             float(self.get_parameter('grasp_fixed_jaw_inner_x_m').value),

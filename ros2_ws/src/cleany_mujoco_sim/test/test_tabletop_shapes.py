@@ -6,7 +6,7 @@ import pytest
 
 from cleany_mujoco_sim.scene_loader import materialize_scene
 from cleany_mujoco_sim.study_cafe_scene import load_study_cafe_layout
-from cleany_mujoco_sim.tabletop_shapes import parse_shape, tissue_vertices
+from cleany_mujoco_sim.tabletop_shapes import cup_vertices, parse_shape, tissue_vertices
 
 
 ROOT = Path(__file__).parents[1]
@@ -33,19 +33,33 @@ def test_cup_is_physically_open_not_a_solid_collision_cylinder(model):
     finally:
         model.geom_rgba[:,3] = alpha
     assert hit[0] == model.geom('study_cafe_cup_collision').id
-    assert distance == pytest.approx(.12-.0007, abs=1e-7)
+    assert distance == pytest.approx(.12-.000504, abs=1e-7)
     assert model.body_mass[cup] == pytest.approx(.008)
 
 
-def test_lego_body_and_all_eight_physical_studs_have_real_scale(model):
+def test_cup_has_eighty_percent_external_dimensions():
+    item = next(i for i in load_study_cafe_layout(ROOT/'config/study_cafe_layout.yaml').tabletop_objects
+                if i.name == 'cup')
+    vertices, _ = cup_vertices(item.collision_size_m, item.shape)
+    np.testing.assert_allclose(np.ptp(np.asarray(vertices), axis=0), (.0612, .0612, .0684), atol=1e-9)
+    assert item.shape.number('bottom_diameter_m') == pytest.approx(.0396)
+    assert item.shape.number('wall_thickness_m') == pytest.approx(.000504)
+
+
+def test_lego_body_and_all_eight_studs_have_enlarged_scale(model):
     body = model.geom('study_cafe_lego_collision').id
-    np.testing.assert_allclose(2*model.geom_size[body], (.0318, .0158, .0096), atol=1e-9)
+    np.testing.assert_allclose(2*model.geom_size[body], (.0636, .0316, .02112), atol=1e-9)
+    visual = model.geom('study_cafe_lego_visual').id
+    np.testing.assert_allclose(model.geom_size[visual], model.geom_size[body])
     for i in range(4):
         for j in range(2):
             stud = model.geom(f'study_cafe_lego_stud_{i}_{j}_collision').id
             assert model.geom_contype[stud] == 1
-            np.testing.assert_allclose(model.geom_pos[stud], ((i-1.5)*.008, (j-.5)*.008, .0105))
-            np.testing.assert_allclose(model.geom_size[stud][:2], (.0024, .0009))
+            np.testing.assert_allclose(model.geom_pos[stud], ((i-1.5)*.016, (j-.5)*.016, .0231))
+            np.testing.assert_allclose(model.geom_size[stud][:2], (.0048, .00198))
+            visual = model.geom(f'study_cafe_lego_stud_{i}_{j}_visual').id
+            np.testing.assert_allclose(model.geom_pos[visual], model.geom_pos[stud])
+            np.testing.assert_allclose(model.geom_size[visual], model.geom_size[stud])
     assert model.body_mass[model.body('study_cafe_lego').id] == pytest.approx(.0023)
 
 
@@ -81,4 +95,4 @@ def test_missing_shape_parameters_have_a_clear_validation_error():
 def test_old_mug_and_phone_assets_are_not_loaded_in_active_scene():
     scene = materialize_scene(ROOT/'scenes/study_cafe.xml.in').read_text()
     assert 'study_cafe_cup.obj' not in scene and 'study_cafe_phone.obj' not in scene
-    assert 'study_cafe_wallet.obj' in scene
+    assert 'study_cafe_mouse.obj' in scene

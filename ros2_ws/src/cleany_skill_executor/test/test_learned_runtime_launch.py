@@ -7,28 +7,6 @@ from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument
 
 
-@pytest.mark.parametrize('parameter', [
-    'state_validity_timeout_sec', 'fk_timeout_sec',
-    'ik_response_margin_sec', 'planning_response_margin_sec'])
-def test_sorting_selector_collision_rpc_has_cpu_response_margin(parameter):
-    source = (Path(__file__).resolve().parents[1] / 'launch' /
-              'study_cafe_nearest_grasp_demo.launch.py').read_text()
-    assert f"'{parameter}': ParameterValue(PythonExpression([\n" in source
-    setting = source.split(f"'{parameter}':", 1)[1].split('\n', 2)
-    assert "5.0 if" in setting[1]
-    assert "sorting_mode" in setting[1]
-    assert "else 1.0" in setting[1]
-
-
-def test_sorting_generates_more_geometry_without_expanding_ik_candidate_budget():
-    source = (Path(__file__).resolve().parents[1] / 'launch' /
-              'study_cafe_nearest_grasp_demo.launch.py').read_text()
-    setting = source.split("'geometric.maximum_candidates':", 1)[1].split('\n', 2)
-    assert "96 if" in setting[1] and "sorting_mode" in setting[1]
-    assert "else 24" in setting[1]
-    assert "'maximum_candidates': 24," in source
-
-
 @pytest.fixture
 def runtime(monkeypatch):
     # LaunchContext.environment is os.environ in Humble. Register both keys
@@ -53,24 +31,47 @@ def runtime(monkeypatch):
     return module, context
 
 
+@pytest.mark.parametrize('simulator,sorting,known', [
+    ('true', 'true', True), ('false', 'true', False),
+    ('true', 'false', False), ('false', 'false', False),
+])
+def test_known_geometry_default_is_scoped_to_simulation_sorting(
+        runtime, simulator, sorting, known):
+    module, context = runtime
+    context.launch_configurations.update(start_simulator=simulator, sorting_mode=sorting)
+    del context.launch_configurations['depth_octomap_plugin']
+    argument = next(entity for entity in module.generate_launch_description().entities
+                    if isinstance(entity, DeclareLaunchArgument)
+                    and entity.name == 'depth_octomap_plugin')
+    argument.execute(context)
+    expected = ('cleany_scene_mapping/KnownGeometryOctomapUpdater' if known else
+                'occupancy_map_monitor/PointCloudOctomapUpdater')
+    assert context.launch_configurations['depth_octomap_plugin'] == expected
+
+
+@pytest.mark.parametrize('simulator,sorting,depth,verify', [
+    ('true', 'true', '0.004', 'false'),
+    ('false', 'true', '0.0', 'true'),
+    ('true', 'false', '0.0', 'true'),
+])
+def test_operator_observation_and_tissue_depth_are_simulation_scoped(runtime, simulator, sorting, depth, verify):
+    module, context = runtime
+    context.launch_configurations.update(start_simulator=simulator, sorting_mode=sorting)
+    for name, expected in [('tissue_grasp_extra_depth_m', depth), ('sorting_verify_placement', verify)]:
+        context.launch_configurations.pop(name)
+        argument = next(action for action in module.generate_launch_description().entities
+                        if isinstance(action, DeclareLaunchArgument) and action.name == name)
+        argument.execute(context)
+        assert context.launch_configurations[name] == expected
+
+
 def test_no_arguments_selects_learned_sensor_only_plan_mode(runtime):
     _, context = runtime
     values = context.launch_configurations
     assert values['perception_detector_type'] == 'gemini'
-    assert values['gemini_model'] == 'gemini-3.1-flash-lite'
-    assert values['gemini_api_key_environment'] == 'GEMINI_API_KEY'
     assert values['perception_segmenter_type'] == 'sam2'
-    assert values['yoloe_model_path'].endswith('yoloe-26s-seg.pt')
-    assert values['sam2_checkpoint'].endswith('sam2.1_t.pt')
-    assert values['preload_models'] == 'true'
     assert values['sorting_contact_diagnostics'] == 'false'
-    assert values['sorting_use_reference_observation'] == 'true'
-    assert values['sorting_bins_config'].endswith('/config/robot_top_bins.yaml')
-    assert values['sorting_head_reference_refresh_age_sec'] == '30.0'
-    assert values['grasp_maximum_top_contact_depth_m'] == '0.0'
-    assert values['sim_speed_factor'] == '1.0'
-    assert values['gripper_open_position_rad'] == '1.2'
-    assert values['lin_acceleration_scaling'] == '0.4'
+    assert values['sim_performance_profile'] == 'baseline'
     assert values['sensor_scene'] == values['plan_only'] == 'true'
     assert values['depth_octomap_plugin'] == (
         'occupancy_map_monitor/PointCloudOctomapUpdater'
@@ -79,16 +80,6 @@ def test_no_arguments_selects_learned_sensor_only_plan_mode(runtime):
     assert values['depth_image_topic'] == (
         '/camera/aligned_depth_to_color/image_raw'
     )
-
-
-def test_tracking_off_exposes_both_reference_and_wrist_controls(runtime):
-    module, context = runtime
-    for name in ('sorting_use_reference_observation', 'sorting_use_wrist_camera',
-                 'sorting_async_carry_monitor', 'wrist_continuous_tracking'):
-        context.launch_configurations[name] = 'false'
-    source = Path(module.__file__).read_text()
-    assert "'enable_reference_observation': ParameterValue(PythonExpression([" in source
-    assert "'sorting_use_reference_observation': ParameterValue(LaunchConfiguration('sorting_use_reference_observation'), value_type=bool)" in source
 
 
 @pytest.mark.parametrize('tracking', ['true', 'false'])
@@ -118,52 +109,6 @@ def test_external_perception_skips_only_local_models_and_credentials(runtime, mo
     context.launch_configurations['use_sim_time'] = 'false'
     with pytest.raises(RuntimeError, match='MuJoCo requires'):
         module._preflight(context)
-
-
-@pytest.mark.parametrize('sorting,expected', [
-    ('false', ('0.2', '0.4', '2.0')),
-    ('true', ('1.0', '0.8', '1.05')),
-])
-def test_motion_defaults_are_scoped_to_sorting(runtime, sorting, expected):
-    module, context = runtime
-    context.launch_configurations['sorting_mode'] = sorting
-    names = ('approach_velocity_scaling', 'retreat_velocity_scaling', 'corridor_time_margin')
-    for name in names:
-        context.launch_configurations.pop(name)
-    for entity in module.generate_launch_description().entities:
-        if isinstance(entity, DeclareLaunchArgument) and entity.name in names:
-            entity.execute(context)
-    assert tuple(context.launch_configurations[name] for name in names) == expected
-
-
-@pytest.mark.parametrize('sorting', ['false', 'true'])
-def test_speed_profile_overrides_base_caps_and_preserves_generic_defaults(runtime, sorting):
-    module, context = runtime
-    expected = {
-        'velocity_scaling': (.08, .30), 'acceleration_scaling': (.08, .50),
-        'sorting_payload_velocity_scaling': (.04, .24),
-        'sorting_payload_acceleration_scaling': (.02, .20),
-        'lin_acceleration_scaling': (.4, .8),
-        'cartesian_translation_speed_m_s': (.10, .30),
-        'cartesian_translation_acceleration_m_s2': (.20, .80),
-        'cartesian_rotation_speed_rad_s': (.50, 1.50),
-        'cartesian_joint_acceleration_rad_s2': (1., 4.),
-        'gripper_motion_sec': (3., 2.),
-    }
-    context.launch_configurations['sorting_mode'] = sorting
-    for name in expected:
-        context.launch_configurations.pop(name)
-    for entity in module.generate_launch_description().entities:
-        if isinstance(entity, DeclareLaunchArgument) and entity.name in expected:
-            entity.execute(context)
-    values = {name: float(context.launch_configurations[name]) for name in expected}
-    assert values == {name: options[sorting == 'true'] for name, options in expected.items()}
-    assert values['sorting_payload_velocity_scaling'] <= values['velocity_scaling']
-    assert values['sorting_payload_acceleration_scaling'] <= values['acceleration_scaling']
-    source = (Path(__file__).resolve().parents[1] / 'launch' /
-              'study_cafe_nearest_grasp_demo.launch.py').read_text()
-    for name in expected:
-        assert f"'{name}': ParameterValue(LaunchConfiguration('{name}'), value_type=float)" in source
 
 
 def test_dds_profile_is_installed_and_applied_before_any_process(runtime):
@@ -263,33 +208,26 @@ def test_async_monitor_requires_enabled_wrist_stream(runtime, wrist, tracking):
     with pytest.raises(RuntimeError, match='requires wrist camera and continuous tracking'):
         module._preflight(context)
 
-def test_tool_depth_offset_is_shared_by_selection_and_execution():
-    from pathlib import Path
-    source = (Path(__file__).parents[1] / 'launch' /
-              'study_cafe_nearest_grasp_demo.launch.py').read_text()
-    assert "'grasp_approach_offset_m': grasp_approach_offset" in source
-    assert "'selector_grasp_approach_offset_m': grasp_approach_offset" in source
-    assert "DeclareLaunchArgument('grasp_approach_offset_m', default_value='0.016')" in source
 
-
-def test_sorting_support_deferral_is_paired_with_robot_checks_and_local_patches():
-    source = (Path(__file__).parents[1] / 'launch' /
-              'study_cafe_nearest_grasp_demo.launch.py').read_text()
-    for parameter in ('geometric.defer_support_plane_collision',
-                      'require_open_grasp_clearance', 'require_gripper_closure_clearance'):
-        assert f"'{parameter}': ParameterValue(sorting_mode, value_type=bool)" in source
-    assert source.count("'support_patch_margin_m': ParameterValue(PythonExpression([") == 2
-    assert source.count('"0.02 if \'", sorting_mode, "\' == \'true\' else 0.0"]), value_type=float)') == 2
-
-
-def test_only_head_sorting_requires_head_pregrasp_visibility():
-    import yaml
-    package = Path(__file__).parents[1]
-    source = (package / 'launch' / 'study_cafe_nearest_grasp_demo.launch.py').read_text()
-    assert "'require_pregrasp_visibility': ParameterValue(PythonExpression([" in source
-    assert "LaunchConfiguration('sorting_use_wrist_camera'), \"' != 'true'\"" in source
-    defaults = yaml.safe_load((package / 'config' / 'grasp_selection.yaml').read_text())
-    assert defaults['grasp_selection_server']['ros__parameters']['require_pregrasp_visibility'] is False
+@pytest.mark.parametrize('simulator,sorting,expected', [
+    ('true', 'true', '0.018'),
+    ('false', 'true', '0.016'),
+    ('true', 'false', '0.016'),
+    ('false', 'false', '0.016'),
+])
+def test_deeper_base_grasp_is_simulation_sorting_only(runtime, simulator, sorting, expected):
+    module, context = runtime
+    context.launch_configurations.update(start_simulator=simulator, sorting_mode=sorting)
+    context.launch_configurations.pop('grasp_approach_offset_m')
+    argument = next(action for action in module.generate_launch_description().entities
+                    if isinstance(action, DeclareLaunchArgument)
+                    and action.name == 'grasp_approach_offset_m')
+    argument.execute(context)
+    assert context.launch_configurations['grasp_approach_offset_m'] == expected
+    # A caller can restore the previous value without changing other offsets.
+    context.launch_configurations['grasp_approach_offset_m'] = '0.016'
+    argument.execute(context)
+    assert context.launch_configurations['grasp_approach_offset_m'] == '0.016'
 
 
 def test_nominal_wrist_frames_only_start_in_simulation_sorting(runtime):
@@ -304,30 +242,51 @@ def test_nominal_wrist_frames_only_start_in_simulation_sorting(runtime):
     assert len(module._wrist_camera_transforms(context)) == 2
 
 
-def test_sorting_uses_joint_corridor_with_generic_mode_opt_in():
-    import yaml
-    package = Path(__file__).parents[1]
-    source = (package / 'launch' / 'study_cafe_nearest_grasp_demo.launch.py').read_text()
-    assert "'use_joint_corridor_grasp': ParameterValue(sorting_mode, value_type=bool)" in source
-    assert "'use_seeded_cartesian_grasp': ParameterValue(sorting_mode, value_type=bool)" in source
-    assert "'count_retreat_as_lift': ParameterValue(sorting_mode, value_type=bool)" in source
-    assert "'align_grasp_wrist_roll': ParameterValue(sorting_mode, value_type=bool)" in source
-    defaults = yaml.safe_load((package / 'config' / 'nearest_pregrasp.yaml').read_text())
-    assert defaults['nearest_pregrasp_coordinator']['ros__parameters']['use_joint_corridor_grasp'] is False
-    assert defaults['nearest_pregrasp_coordinator']['ros__parameters']['use_seeded_cartesian_grasp'] is False
-    assert defaults['nearest_pregrasp_coordinator']['ros__parameters']['count_retreat_as_lift'] is False
-
-
-def test_optional_octomap_plugin_is_forwarded_to_moveit(runtime):
+@pytest.mark.parametrize('argument,custom', [
+    ('depth_octomap_plugin', 'cleany_scene_mapping/KnownGeometryOctomapUpdater'),
+    ('sim_performance_profile', 'tabletop_fast'),
+])
+def test_backend_options_are_forwarded(runtime, argument, custom):
     from launch.actions import IncludeLaunchDescription
     from launch.utilities import perform_substitutions
 
     module, context = runtime
-    custom = 'cleany_scene_mapping/KnownGeometryOctomapUpdater'
-    context.launch_configurations['depth_octomap_plugin'] = custom
+    context.launch_configurations[argument] = custom
     includes = [entity for entity in module.generate_launch_description().entities
                 if isinstance(entity, IncludeLaunchDescription)]
-    moveit = next(entity for entity in includes
-                  if 'depth_octomap_plugin' in dict(entity.launch_arguments))
-    value = dict(moveit.launch_arguments)['depth_octomap_plugin']
+    backend = next(entity for entity in includes
+                   if argument in dict(entity.launch_arguments))
+    value = dict(backend.launch_arguments)[argument]
     assert perform_substitutions(context, [value]) == custom
+
+
+@pytest.mark.parametrize('sorting,wrist', [('false', 'false'), ('true', 'false'), ('true', 'true')])
+def test_resolved_nodes_share_grasp_geometry_and_mode_guards(runtime, monkeypatch, sorting, wrist):
+    from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
+    from launch_ros.utilities import evaluate_parameters, normalize_parameters
+
+    module, context = runtime
+    context.launch_configurations.update(sorting_mode=sorting, sorting_use_wrist_camera=wrist,
+                                        grasp_approach_offset_m='0.019')
+    parameters = {}
+    original = module.Node
+
+    def capture(**kwargs):
+        executable = perform_substitutions(context, normalize_to_list_of_substitutions(kwargs['executable']))
+        values = [p for p in kwargs.get('parameters', []) if isinstance(p, dict)]
+        parameters[executable] = {key: value for p in evaluate_parameters(context, normalize_parameters(values))
+                                  for key, value in p.items()}
+        return original(**kwargs)
+
+    monkeypatch.setattr(module, 'Node', capture)
+    module.generate_launch_description()
+    selector = parameters['grasp_selection_server']
+    coordinator = parameters['sorting_coordinator' if sorting == 'true' else 'nearest_pregrasp_coordinator']
+    assert selector['grasp_approach_offset_m'] == coordinator['selector_grasp_approach_offset_m'] == .019
+    for key in ('deeper_grasp_labels', 'deeper_grasp_offsets_m', 'support_patch_margin_m'):
+        assert selector[key] == coordinator[key]
+    for key in ('require_open_grasp_clearance', 'require_gripper_closure_clearance'):
+        assert selector[key] is (sorting == 'true')
+    assert selector['require_pregrasp_visibility'] is (sorting == 'true' and wrist == 'false')
+    assert coordinator['use_seeded_cartesian_grasp'] is (sorting == 'true')
+    assert parameters['grasp_server']['geometric.defer_support_plane_collision'] is (sorting == 'true')

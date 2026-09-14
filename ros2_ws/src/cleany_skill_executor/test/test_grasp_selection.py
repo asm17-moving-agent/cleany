@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import pytest
 from dataclasses import replace
+import math
+
+import pytest
 
 from cleany_skill_executor.core.grasp_selection import (
     Candidate,
@@ -10,8 +12,41 @@ from cleany_skill_executor.core.grasp_selection import (
     GraspSelector,
     JointSolution,
     directed_axis_error_deg,
+    quaternion_axis,
     unsigned_axis_error_deg,
 )
+from cleany_skill_executor.core.gripper import approach_offset_for_label
+from cleany_skill_executor.core.visibility import enclosing_visibility_cone
+
+
+@pytest.mark.parametrize('label,expected', [('computer mouse', .030), (' MOUSE ', .030),
+    ('wireless mouse', .030), ('cup', .016), ('lego brick', .016), ('crumpled tissue', .016)])
+def test_depth_correction_is_scoped_to_configured_labels(label, expected):
+    assert approach_offset_for_label(label, .016,
+        ['mouse', 'computer mouse', 'wireless mouse'], .014) == pytest.approx(expected)
+
+
+def test_tissue_depth_does_not_change_cup_mouse_or_lego():
+    labels = ['mouse', 'lego brick', 'crumpled tissue', 'tissue', 'crumpled paper']
+    offsets = [.014, .004, .004, .004, .004]
+    for label, expected in [('cup', .016), ('mouse', .030), ('lego brick', .020),
+                            ('crumpled tissue', .020), (' TISSUE ', .020)]:
+        assert approach_offset_for_label(label, .016, labels, offsets) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize('extra', [-.001, .021, float('nan')])
+def test_depth_correction_rejects_invalid_configuration(extra):
+    with pytest.raises(ValueError):
+        approach_offset_for_label('mouse', .016, ['mouse'], extra)
+
+
+def test_independent_mouse_and_lego_depths_preserve_other_objects():
+    labels, offsets = ['mouse', 'lego brick'], [.014, .004]
+    assert approach_offset_for_label('mouse', .016, labels, offsets) == pytest.approx(.030)
+    assert approach_offset_for_label('lego brick', .016, labels, offsets) == pytest.approx(.020)
+    assert approach_offset_for_label('cup', .016, labels, offsets) == pytest.approx(.016)
+    with pytest.raises(ValueError):
+        approach_offset_for_label('mouse', .016, labels, [.014])
 
 
 def candidate(index, *, y, score=1.0, approach=(1.0, 0.0, 0.0)):
@@ -126,6 +161,17 @@ def test_closure_collision_rejects_arm_before_grasp_plan():
 def test_pregrasp_is_fourteen_centimeters_opposite_normalized_approach():
     value = GraspSelector.pregrasp_position(candidate(0, y=0.2, approach=(2.0, 0.0, 0.0)))
     assert value == pytest.approx((0.36, 0.2, 0.8))
+
+
+def test_candidate_depth_override_changes_grasp_but_not_pregrasp():
+    port = FakePort()
+    item = replace(candidate(0, y=.2), approach_offset_m=.030)
+    selector = GraspSelector(port, GraspSelectionConfig(grasp_approach_offset_m=.016))
+    assert selector.select([item]) is not None
+    grasp_call = next(call for call in port.calls if call[0] == 'grasp_ik')
+    assert grasp_call[2] == pytest.approx(GraspSelector.grasp_position(item, .030, 0.))
+    assert next(call for call in port.calls if call[0] == 'aim_ik')[5] == pytest.approx(
+        GraspSelector.pregrasp_position(item, GraspSelectionConfig().pregrasp_offset_m, 0.))
 
 
 def test_candidate_centering_overrides_both_old_lateral_offsets():
@@ -393,3 +439,39 @@ def test_feedback_exposes_each_stage():
     updates = []
     GraspSelector(FakePort()).select([candidate(0, y=0.2)], feedback=lambda *args: updates.append(args))
     assert {item[2] for item in updates} == set(EvaluationStage)
+
+
+def test_near_corners_and_polygon_sides_are_enclosed():
+    cone = enclosing_visibility_cone((0., 0., 1.), (0., 0., 0.),
+                                     (.2, .2, .2), (0., 0., 0., 1.), padding_m=0.)
+    assert cone.radius_m == pytest.approx(math.sqrt(.02)/.9/math.cos(math.pi/16))
+    assert quaternion_axis(cone.orientation, (0., 0., 1.)) == pytest.approx((0., 0., 1.))
+
+
+def test_rigid_rotation_and_translation_preserve_envelope():
+    original = enclosing_visibility_cone((0., 0., 1.), (0., 0., 0.),
+                                         (.2, .1, .15), (0., 0., 0., 1.))
+    rotated = enclosing_visibility_cone((2., 2., 3.), (1., 2., 3.),
+                                        (.2, .1, .15), (0., 2**-.5, 0., 2**-.5))
+    assert rotated.radius_m == pytest.approx(original.radius_m)
+    assert quaternion_axis(rotated.orientation, (0., 0., 1.)) == pytest.approx((1., 0., 0.))
+
+
+def test_camera_below_target_has_normalized_disc_orientation():
+    cone = enclosing_visibility_cone((0., 0., -1.), (0., 0., 0.),
+                                     (.2, .1, .15), (0., 0., 0., 1.))
+    assert quaternion_axis(cone.orientation, (0., 0., 1.)) == pytest.approx((0., 0., -1.))
+
+
+@pytest.mark.parametrize('camera,size,q,padding,sides', [
+    ((0., 0., 0.), (.1, .1, .1), (0., 0., 0., 1.), 0., 16),
+    ((0., 0., .01), (.1, .1, .1), (0., 0., 0., 1.), 0., 16),
+    ((math.nan, 0., 1.), (.1, .1, .1), (0., 0., 0., 1.), 0., 16),
+    ((0., 0., 1.), (-.1, .1, .1), (0., 0., 0., 1.), 0., 16),
+    ((0., 0., 1.), (.1, .1, .1), (0., 0., 0., 2.), 0., 16),
+    ((0., 0., 1.), (.1, .1, .1), (0., 0., 0., 1.), -.1, 16),
+    ((0., 0., 1.), (.1, .1, .1), (0., 0., 0., 1.), 0., 2),
+])
+def test_invalid_or_behind_camera_geometry_is_rejected(camera, size, q, padding, sides):
+    with pytest.raises(ValueError):
+        enclosing_visibility_cone(camera, (0., 0., 0.), size, q, padding_m=padding, sides=sides)

@@ -832,3 +832,49 @@ def test_refined_grasp_honors_configured_seed_budget(grasp_attempts, expected):
     seed = JointSolution(ARM_JOINT_NAMES['left'], (1., 2., 3., 0., 0.))
     assert adapter.solve_grasp_ik('left', (.5,.2,.8), (0.,-1.,0.), (1.,0.,0.), seed) == ()
     assert calls == [expected]
+@pytest.mark.parametrize('valid', [True, False])
+@pytest.mark.parametrize('rotated', [True, False])
+@pytest.mark.parametrize('frozen', [False, True])
+def test_held_region_ik_includes_offset_and_checks_collision(valid, rotated, frozen):
+    from geometry_msgs.msg import Pose
+    adapter = object.__new__(MoveItGraspAdapter)
+    adapter._config = MoveItAdapterConfig()
+    names = ARM_JOINT_NAMES['right']
+    seed = JointSolution(names, (0., .5, .5, .2, .2))
+    adapter._current_arm_solution = lambda _: seed
+    rotation = np.array([[0.,-1.,0.],[1.,0.,0.],[0.,0.,1.]]) if rotated else np.eye(3)
+    adapter._local_fk = {'right': SimpleNamespace(
+        pose=lambda values: (np.array([values[n] for n in names[:3]]), rotation))}
+    adapter._aim_seed_solutions = lambda *args, **kwargs: (seed,)
+    def fk(arm, solution):
+        pose = Pose()
+        pose.position.x, pose.position.y, pose.position.z = solution.positions[:3]
+        pose.orientation.w = 1.
+        if rotated:
+            pose.orientation.z = pose.orientation.w = 2**-.5
+        return pose
+    adapter._grasp_pose = fk
+    checked = []
+    adapter.state_is_valid = lambda arm, solution: checked.append(solution) or valid
+    low, high, offset = np.array([.1,.55,.55]), np.array([.2,.65,.65]), np.array([.03,0.,0.])
+    wrist_bounds = {names[-1]: (-.02, .02), names[-2]: (-.03, .03)}
+    fixed = {names[-1]: .005, names[-2]: -.005} if frozen else None
+    accepted = []
+    def accept(solution):
+        accepted.append(solution)
+        return len(accepted) > 1
+    adapter._aim_seed_solutions = lambda *args, **kwargs: (seed, seed)
+    result = adapter.solve_held_region_ik('right', low, high, offset,
+                                        joint_bounds=wrist_bounds, fixed_joints=fixed,
+                                        accept_solution=accept)
+    assert checked
+    if valid:
+        assert len(accepted) == 2  # rejecting the first endpoint must try the next candidate
+        if frozen:
+            assert tuple(result.positions[-2:]) == (-.005, .005)
+        assert abs(result.positions[-1]) <= .02
+        assert abs(result.positions[-2]) <= .03
+        center = np.array(result.positions[:3])+rotation@offset
+        assert np.all(center >= low-1e-5) and np.all(center <= high+1e-5)
+    else:
+        assert result is None

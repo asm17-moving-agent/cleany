@@ -5,7 +5,7 @@ import math
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 
 from cleany_perception.depth_scene_cloud import depth_scene_cloud
@@ -36,13 +36,14 @@ class DepthSceneNode(Node):
         self._publisher = self.create_publisher(
             PointCloud2, str(self.get_parameter('cloud_topic').value), 1
         )
+        latest_sensor = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
         self.create_subscription(
             Image, str(self.get_parameter('depth_image_topic').value),
-            self._on_depth, qos_profile_sensor_data,
+            self._on_depth, latest_sensor,
         )
         self.create_subscription(
             CameraInfo, str(self.get_parameter('depth_info_topic').value),
-            self._on_info, qos_profile_sensor_data,
+            self._on_info, latest_sensor,
         )
         self.create_timer(1.0 / rate, self._publish)
 

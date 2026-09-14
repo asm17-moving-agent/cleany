@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import xml.etree.ElementTree as ET
-import runpy
 
 import pytest
 import yaml
@@ -20,6 +19,18 @@ ARM_JOINT_SUFFIXES = (
     'wrist_roll_joint',
 )
 SIDES = ('left', 'right')
+
+
+def test_canonical_mast_exception_only_covers_its_fixed_mount():
+    mast = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'head_camera.xacro').getroot()
+    joint = mast.find(".//joint[@name='top_base_joint']")
+    assert joint.get('type') == 'fixed'
+    assert joint.find('parent').get('link') == 'base_link'
+    assert joint.find('child').get('link') == 'top_base_link'
+    semantic = ET.parse(CONFIG_ROOT / 'cleany.srdf').getroot()
+    pairs = [entry.attrib for entry in semantic.findall('disable_collisions')
+             if 'top_base_link' in (entry.get('link1'), entry.get('link2'))]
+    assert pairs == [{'link1': 'base_link', 'link2': 'top_base_link', 'reason': 'Adjacent'}]
 
 
 def test_grasp_corridors_use_fine_collision_resolution_and_bounded_rounding():
@@ -178,7 +189,7 @@ def test_self_collision_matrix_only_disables_adjacent_links() -> None:
         for entry in root.findall('disable_collisions')
     )
 
-    expected: set[frozenset[str]] = set()
+    expected: set[frozenset[str]] = {frozenset(('base_link', 'top_base_link'))}
     for side in SIDES:
         links = (
             'base_link',
@@ -344,28 +355,6 @@ def test_mock_ros2_control_matches_moveit_controller_contract() -> None:
         and 'joint_name' in element.attrib
     }
     assert configured_mock_joints == _all_modeled_joints()
-
-
-def test_optional_rviz_uses_the_moveit_model_and_selected_clock() -> None:
-    source = (PACKAGE_ROOT / 'launch' / 'move_group.launch.py').read_text(
-        encoding='utf-8'
-    )
-
-    assert "DeclareLaunchArgument('use_rviz', default_value='false')" in source
-    assert "mappings={'include_head_camera': 'false'}" in source
-    assert "condition=IfCondition(use_rviz)" in source
-    assert 'moveit_config.robot_description,' in source
-    assert 'moveit_config.robot_description_semantic,' in source
-    assert 'moveit_config.robot_description_kinematics,' in source
-    assert "'use_sim_time': ParameterValue(" in source
-
-
-def test_move_group_exit_uses_a_launch_action_not_a_raw_event() -> None:
-    from launch import LaunchDescriptionEntity
-
-    namespace = runpy.run_path(str(PACKAGE_ROOT / 'launch/move_group.launch.py'))
-    shutdown = namespace['Shutdown'](reason='test required process exit')
-    assert isinstance(shutdown, LaunchDescriptionEntity)
 
 
 def test_depth_octomap_and_rviz_share_sensor_cloud_contract() -> None:

@@ -113,6 +113,23 @@ def test_release_command_is_not_placement_success():
     assert 'complete' not in stages
 
 
+def test_operator_observation_skips_verification_without_claiming_success():
+    port, stages = Port(verified=False), []
+    decision = load_sorting_policy(PROFILE).classify('cup', 0.8)
+    assert execute_sort('target', decision, port, stages.append, verify_placement=False)
+    assert stages == ['pick', 'transport', 'release', 'retreat', 'complete_unverified']
+    assert [name for name, _ in port.calls] == ['pick', 'transport', 'release', 'retreat']
+
+
+@pytest.mark.parametrize('failed_stage', ['pick', 'transport', 'release', 'retreat'])
+def test_operator_observation_does_not_bypass_motion_failure(failed_stage):
+    port, stages = Port(failed_stage=failed_stage), []
+    decision = load_sorting_policy(PROFILE).classify('cup', 0.8)
+    with pytest.raises(RuntimeError):
+        execute_sort('target', decision, port, stages.append, verify_placement=False)
+    assert 'complete_unverified' not in stages
+
+
 def test_review_does_not_command_robot():
     port, stages = Port(), []
     decision = load_sorting_policy(PROFILE).classify('unknown', 0.99)
@@ -127,3 +144,13 @@ def test_table_slots_include_narrow_interior_and_stay_inside_sphere_margin():
         assert abs(x - .34) + .076 <= .10 + 1e-12
         assert abs(y) + .076 <= .10 + 1e-12
     assert table_placement_slots((.34, 0.), (.15, .15), .076) == []
+def test_bin_release_region_keeps_whole_payload_inside_opening():
+    from cleany_skill_executor.core.sorting import bin_release_region
+    low, high = bin_release_region((-.405, .105), (.18, .17, .12), .008, .30,
+                                   .04, .06, .21, .005)
+    assert low == pytest.approx((-.442, .073, .40))
+    assert high == pytest.approx((-.368, .137, .55))
+    for radius in (.08, float('nan')):
+        with pytest.raises(ValueError):
+            bin_release_region((-.405, .105), (.18, .17, .12), .008, .30,
+                               radius, .06, .21, .005)

@@ -31,6 +31,7 @@ struct ScheduledCameras::Impl {
   explicit Impl(mjModel* m, Snapshot getter): model(m), snapshot(std::move(getter)) {
     node = std::make_shared<rclcpp::Node>("sorting_cameras");
     node->declare_parameter("active_camera", "head");
+    node->declare_parameter("head_depth_boost", false);
     rates.head_active = node->declare_parameter("head_rate_hz", 10.0);
     rates.head_idle = node->declare_parameter("head_idle_rate_hz", 2.0);
     rates.wrist_active = node->declare_parameter("wrist_rate_hz", 10.0);
@@ -41,9 +42,10 @@ struct ScheduledCameras::Impl {
       out.successful = true;
       for (const auto& p: ps) {
         if (p.get_name() == "use_sim_time") continue;
+        if (p.get_name() == "head_depth_boost" && p.get_type() == rclcpp::ParameterType::PARAMETER_BOOL) continue;
         if (p.get_name() != "active_camera" || p.get_type() != rclcpp::ParameterType::PARAMETER_STRING ||
             (p.as_string() != "head" && p.as_string() != "left" && p.as_string() != "right")) {
-          out.successful = false; out.reason = "Only active_camera=head/left/right is mutable";
+          out.successful = false; out.reason = "Only active_camera=head/left/right and boolean head_depth_boost are mutable";
         }
       }
       return out;
@@ -86,11 +88,18 @@ struct ScheduledCameras::Impl {
       while(!stop && rclcpp::ok()) {
         rclcpp::spin_some(node);
         const auto active=node->get_parameter("active_camera").as_string();
+        const bool boost=node->get_parameter("head_depth_boost").as_bool();
         snapshot(data);
         if(!data) throw std::runtime_error("camera snapshot unavailable");
         for(auto& c:cameras) {
-          const double rate=rates.rate(active,c.key);
+          const double rate=rates.rate(active,c.key,boost);
           if(rate==0 || data->time<=c.last || data->time+1e-9<c.next) continue;
+          if (c.depth && data->time > 1.0) {
+            const int tilt = mj_name2id(model, mjOBJ_JOINT, "head_tilt_joint");
+            RCLCPP_INFO_ONCE(node->get_logger(), "Head camera snapshot: tilt=%.4f position=(%.3f %.3f %.3f)",
+              tilt >= 0 ? data->qpos[model->jnt_qposadr[tilt]] : 0.0,
+              data->cam_xpos[3*c.id], data->cam_xpos[3*c.id+1], data->cam_xpos[3*c.id+2]);
+          }
           c.last=data->time; c.next=data->time+1/rate;
           view.fixedcamid=c.id;
           mjv_updateScene(model,data,&opt,nullptr,&view,mjCAT_ALL,&scene);

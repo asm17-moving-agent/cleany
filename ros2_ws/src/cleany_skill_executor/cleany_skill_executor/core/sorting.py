@@ -20,6 +20,26 @@ class Category(str, Enum):
     REVIEW = 'review'
 
 
+def bin_release_region(
+    center_xy: tuple[float, float], outside_size: tuple[float, float, float],
+    wall: float, top_z: float, radius: float, minimum_clearance: float,
+    maximum_clearance: float, edge_margin: float,
+) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    """Object-center bounds: the entire bounding sphere stays inside the opening."""
+    values = (*center_xy, *outside_size[:2], wall, top_z, radius,
+              minimum_clearance, maximum_clearance, edge_margin)
+    if (not all(math.isfinite(v) for v in values)
+            or min(*outside_size[:2], wall, radius, minimum_clearance, edge_margin) <= 0
+            or maximum_clearance < minimum_clearance):
+        raise ValueError('Invalid bin release region dimensions or clearances')
+    half = [s / 2 - wall - radius - edge_margin for s in outside_size[:2]]
+    if min(half) <= 0:
+        raise ValueError('Payload bounding sphere does not fit inside bin opening')
+    lower = (center_xy[0]-half[0], center_xy[1]-half[1], top_z+radius+minimum_clearance)
+    upper = (center_xy[0]+half[0], center_xy[1]+half[1], top_z+radius+maximum_clearance)
+    return lower, upper
+
+
 def table_placement_slots(
     center_xy: tuple[float, float], size_xy: tuple[float, float], radius: float,
     *, edge_margin: float = .01, step: float = .04,
@@ -143,11 +163,15 @@ def execute_sort(
     decision: Decision,
     port: SortingPort,
     stage: Callable[[str], None],
+    *,
+    verify_placement: bool = True,
 ) -> bool:
     """Do not report placement just because a gripper-open command succeeded.
 
     Exceptions stop the sequence. In particular, a failed transport must not
     trigger release over the floor. Recovery belongs to the physical port.
+    With verification disabled, True means the motion sequence finished only;
+    the distinct complete_unverified stage leaves placement to the operator.
     """
     if decision.category == Category.REVIEW or decision.destination is None:
         stage('review')
@@ -160,6 +184,10 @@ def execute_sort(
     port.release(held, decision.destination)
     stage('retreat')
     port.retreat(held, decision.destination)
+    if not verify_placement:
+        # Operator-observed simulation: completed motion is not verified placement.
+        stage('complete_unverified')
+        return True
     stage('verify')
     if not port.verify_placement(target, decision.destination):
         raise RuntimeError('Placement could not be verified in destination')

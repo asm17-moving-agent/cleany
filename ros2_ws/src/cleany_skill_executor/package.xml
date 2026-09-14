@@ -23,6 +23,7 @@
   <depend>trajectory_msgs</depend>
   <depend>visualization_msgs</depend>
   <exec_depend>cleany_moveit_config</exec_depend>
+  <exec_depend>cleany_scene_mapping</exec_depend>
   <exec_depend>cleany_mujoco_sim</exec_depend>
   <exec_depend>cleany_grasping</exec_depend>
   <exec_depend>cleany_perception</exec_depend>

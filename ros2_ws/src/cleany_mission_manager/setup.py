@@ -16,5 +16,5 @@ setup(
     maintainer_email="team@example.com",
     description="Cleany mission lifecycle and FSM manager.",
     license="MIT",
-    tests_require=["pytest"],
+    extras_require={"test": ["pytest"]},
 )

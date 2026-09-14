@@ -1,5 +1,10 @@
 # cleany_grasping
 
+길이 방향 접촉 후보는 동일 품질일 때 관측된 체적 중심에 가까운 후보를 먼저
+검사한다. 마우스처럼 끝으로 갈수록 얇아지는 물체에서 가까운 끝부분을 먼저
+집어 손가락이 윗면을 스치는 문제를 줄이기 위한 순서다. 끝부분 후보도 남겨
+중앙 후보의 IK/충돌 검사가 실패하면 평가하며, 점수와 충돌 허용값은 바꾸지 않는다.
+
 sorting launch는 `publish_collision_geometry=true`로 같은 RGB-D target 점군의
 관측 볼록 외곽을 `/grasp/collision_geometry`에 발행한다(reliable/transient-local,
 depth 16). 일반 node 기본은 false다. target OBB local XY에서 모든 관측점을

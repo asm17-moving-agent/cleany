@@ -1,8 +1,12 @@
 SHELL := /bin/bash
 
+# Keep unrelated user-installed pytest plugins out of ROS/system Python tests.
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD ?= 1
+
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
+COLCON_BUILD_ARGS ?=
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
 HANDEYE_PROFILE_DIR ?= $(REPO_ROOT)artifacts/handeye/profiles/mujoco_seed_20260810
@@ -32,36 +36,29 @@ SORTING_ARGS ?=
 GRASP_PREGRASP_SKILL_TESTS := \
 	src/cleany_skill_executor/test/test_carry_guard.py \
 	src/cleany_skill_executor/test/test_motion_guard.py \
-	src/cleany_skill_executor/test/test_controller_stop.py \
 	src/cleany_skill_executor/test/test_reobservation.py \
 	src/cleany_skill_executor/test/test_seeded_cartesian.py \
-	src/cleany_skill_executor/test/test_joint_path.py \
-	src/cleany_skill_executor/test/test_pose_refinement.py \
-	src/cleany_skill_executor/test/test_urdf_fk.py \
 	src/cleany_skill_executor/test/test_gripper_geometry.py \
 	src/cleany_skill_executor/test/test_cartesian.py \
-	src/cleany_skill_executor/test/test_visibility.py \
 	src/cleany_skill_executor/test/test_service_trace.py \
 	src/cleany_skill_executor/test/test_sorting.py \
 	src/cleany_skill_executor/test/test_sorting_coordinator.py \
-	src/cleany_skill_executor/test/test_wrist_pose.py \
 	src/cleany_skill_executor/test/test_learned_runtime_launch.py \
 	src/cleany_skill_executor/test/test_sensor_scene.py \
 	src/cleany_skill_executor/test/test_can_rgbd.py \
 	src/cleany_skill_executor/test/test_can_grasp_execution_core.py \
-	src/cleany_skill_executor/test/test_grasp_execution_demo_contract.py \
 	src/cleany_skill_executor/test/test_nearest_object.py \
-	src/cleany_skill_executor/test/test_grasp_pipeline.py \
 	src/cleany_skill_executor/test/test_grasp_selection.py \
 	src/cleany_skill_executor/test/test_grasp_selection_node.py \
 	src/cleany_skill_executor/test/test_moveit_adapter.py \
-	src/cleany_skill_executor/test/test_collision_geometry_cache.py \
 	src/cleany_skill_executor/test/test_planning_scene.py
 GRASP_PREGRASP_MOVEIT_TESTS := \
+	src/cleany_moveit_config/test/test_simulation_collision.py \
 	src/cleany_moveit_config/test/test_study_cafe_collision_scene.py \
 	src/cleany_moveit_config/test/test_moveit_config.py \
 	src/cleany_moveit_config/test/test_handeye_collision_scene.py
 GRASP_PREGRASP_MUJOCO_TESTS := \
+	src/cleany_mujoco_sim/test/test_tabletop_performance.py \
 	src/cleany_mujoco_sim/test/test_study_cafe_scene.py \
 	src/cleany_mujoco_sim/test/test_tabletop_shapes.py \
 	src/cleany_mujoco_sim/test/test_placement_verifier.py \
@@ -70,16 +67,9 @@ GRASP_PREGRASP_MUJOCO_TESTS := \
 	src/cleany_mujoco_sim/test/test_grasp_execution_scene.py \
 	src/cleany_mujoco_sim/test/test_handeye_backend_config.py
 GRASP_PREGRASP_DESCRIPTION_TESTS := \
-	src/cleany_description/test/test_model_parity.py::test_random_arm_fk_matches_mjcf \
-	src/cleany_description/test/test_model_parity.py::test_grasp_roll_alignment_matches_collinear_robot_geometry \
-	src/cleany_description/test/test_model_parity.py::test_sorting_observer_override_preserves_control_interfaces \
-	src/cleany_description/test/test_model_parity.py::test_control_description_exposes_arm_and_gripper_interfaces \
-	src/cleany_description/test/test_model_parity.py::test_description_entrypoints_share_canonical_geometry \
-	src/cleany_description/test/test_model_parity.py::test_arm_motor_geometry_matches_mjcf \
-	src/cleany_description/test/test_model_parity.py::test_wrist_camera_geometry_matches_mjcf \
-	src/cleany_description/test/test_model_parity.py::test_control_description_can_enable_gripper_position_commands
+	src/cleany_description/test/test_model_parity.py
 
-.PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo profile-scene-mask \
+.PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo profile-scene-mask profile-mujoco-tabletop \
 	build-handeye build-grasp-pregrasp build-scene-mapping test-scene-mapping test \
 	build-mujoco-observer test-mujoco-observer \
 	test-mission test-mujoco test-handeye test-grasp-pregrasp \
@@ -120,6 +110,7 @@ help:
 	@echo "  make sim-mujoco-study-cafe  Run the study cafe in MuJoCo"
 	@echo "  make sim-mujoco-pipeline  Run Gemini Flash-Lite + SAM2-tiny GUI (API key, plan-only)"
 	@echo "  make sim-mujoco-sorting   Run simulation rule-based pick/sort/place"
+	@echo "  make profile-mujoco-tabletop  Compare opt-in tabletop physics/render profiles"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
 	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
@@ -159,7 +150,7 @@ build:
 	source "$(ROS_SETUP)" && \
 	$(use_local_moveit_perception) && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install
+	colcon build --symlink-install $(COLCON_BUILD_ARGS)
 
 build-gazebo: check-gazebo-env
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
@@ -210,14 +201,16 @@ test-mujoco-observer: build-mujoco-observer
 	colcon test --packages-select cleany_mujoco_observer --event-handlers console_direct+ && \
 	colcon test-result --test-result-base build/cleany_mujoco_observer --verbose
 
+test: COLCON_BUILD_ARGS += --cmake-force-configure
 test: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
 	$(use_local_moveit_perception) && \
-	colcon test && \
+	colcon test --python-testing pytest && \
 	colcon test-result --verbose && \
-	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py"
+	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" \
+		"$(REPO_ROOT)containers/vision/test"
 
 test-mission: build
 	source "$(ROS_SETUP)" && \
@@ -230,16 +223,14 @@ test-mujoco: build
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
 	export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && \
-	python3 -m pytest \
-		src/cleany_mujoco_sim/test/test_scene_loader.py \
-		src/cleany_mujoco_sim/test/test_study_cafe_scene.py
+	python3 -m pytest src/cleany_mujoco_sim/test
 
 test-handeye: build-handeye
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
 	$(use_local_moveit_perception) && \
-	colcon test --packages-select $(HANDEYE_PACKAGES) \
+	colcon test --python-testing pytest --packages-select $(HANDEYE_PACKAGES) \
 		--event-handlers console_cohesion+ && \
 	for package in $(HANDEYE_PACKAGES); do \
 		colcon test-result --test-result-base "build/$${package}" \
@@ -315,6 +306,11 @@ sim-mujoco-study-cafe: build
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
 	ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=false
+
+profile-mujoco-tabletop: build-grasp-pregrasp
+	source "$(ROS_SETUP)" && \
+	source "$(ROS2_WS)/install/setup.bash" && \
+	python3 "$(ROS2_WS)/src/cleany_mujoco_sim/tools/benchmark_tabletop.py" $(BENCHMARK_ARGS)
 
 sim-mujoco-sorting sim-mujoco-pipeline: build-grasp-pregrasp
 	source "$(ROS_SETUP)" && \

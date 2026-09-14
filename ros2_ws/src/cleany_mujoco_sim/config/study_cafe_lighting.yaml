@@ -9,24 +9,24 @@ headlight:
   diffuse: [0.08, 0.08, 0.08]
   specular: [0.0, 0.0, 0.0]
 lights:
-  # Broad work-area light: roughly 5 m footprint at tabletop height, with a
-  # gentler angular falloff than the original single-desk spotlight.
+  # Six adjoining desks: X=-5.53/-4.33/-3.13, Y=-2.785/-3.555.
+  # One flat-profile ceiling light covers the block, concentrating shadow texels.
   - name: study_cafe_work_area_key
-    position_m: [-3.13, -3.60, 2.45]
-    direction: [0.15, 0.10, -1.0]
+    position_m: [-4.33, -3.17, 3.30]
+    direction: [0.0, 0.0, -1.0]
     directional: false
     cast_shadow: true
-    cutoff_degrees: 55.0
-    exponent: 2.0
-    diffuse: [0.65, 0.62, 0.58]
-    ambient: [0.0, 0.0, 0.0]
-    specular: [0.06, 0.06, 0.06]
+    cutoff_degrees: 40.0
+    exponent: 0.0
+    diffuse: [0.40, 0.39, 0.37]
+    ambient: [0.07, 0.07, 0.07]
+    specular: [0.03, 0.03, 0.03]
   - name: study_cafe_room_fill
     position_m: [0.0, 0.0, 2.50]
     direction: [-0.3, -0.2, -1.0]
     directional: true
     cast_shadow: false
     cutoff_degrees: 60.0
-    diffuse: [0.12, 0.13, 0.15]
-    ambient: [0.02, 0.02, 0.02]
+    diffuse: [0.24, 0.25, 0.27]
+    ambient: [0.04, 0.04, 0.04]
     specular: [0.0, 0.0, 0.0]

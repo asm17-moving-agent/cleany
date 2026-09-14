@@ -281,6 +281,13 @@ before IK. It records the first exact Image/CameraInfo pair strictly after
 settle, interpolates feedback at that image stamp, obtains feedback FK, and
 atomically stores the row and PNG.
 
+The single-pose runtime regression uses a simulation-only pose remeasured for
+the September 2026 CAD: 0.14179 m fixture clearance, all board corners in the
+camera frustum, and 24 detected ChArUco corners in the static rendering. A fast
+geometry check ties its stored joint vector, FK target and clearance to the
+current scene; the runtime separately checks planning, execution, settling and
+image-stamped feedback. These fixture values are not hardware safety defaults.
+
 Operator-observed calibration shows the MuJoCo viewer by default:
 
 ```bash
@@ -605,7 +612,8 @@ python3 -m pytest test
 cd ../..
 colcon build --symlink-install --packages-select cleany_handeye_calibration
 source install/setup.bash
-colcon test --packages-select cleany_handeye_calibration
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon test --python-testing pytest \
+  --packages-select cleany_handeye_calibration
 colcon test-result \
   --test-result-base build/cleany_handeye_calibration --verbose
 ```

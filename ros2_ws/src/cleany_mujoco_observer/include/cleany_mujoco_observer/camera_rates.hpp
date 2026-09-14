@@ -13,9 +13,9 @@ struct CameraRates {
     if(head_idle>head_active) throw std::invalid_argument("idle head rate exceeds active rate");
   }
   static bool known(const std::string& key) {return key=="head" || key=="left" || key=="right";}
-  double rate(const std::string& active, const std::string& camera) const {
+  double rate(const std::string& active, const std::string& camera, bool head_depth_boost=false) const {
     if(!known(active) || !known(camera)) throw std::invalid_argument("unknown camera");
-    return camera=="head" ? (active=="head" ? head_active : head_idle) : (active==camera ? wrist_active : 0);
+    return camera=="head" ? (active=="head" || head_depth_boost ? head_active : head_idle) : (active==camera ? wrist_active : 0);
   }
 };
 }

@@ -19,6 +19,9 @@ perception_inspector:
     reference_trim_fraction: 0.01
     minimum_detection_confidence: 0.25
     default_query: >-
-      Detect only visible paper cups, wallets, crumpled tissues, and LEGO bricks
-      on the table. Use exactly these labels respectively: cup, wallet,
-      crumpled tissue, lego brick. Do not invent hidden or absent objects.
+      Detect visible movable objects on the tabletop. Describe each object with
+      a concise label based on its visible appearance, without assuming an
+      expected set of objects. If its identity is unclear, use a general
+      description rather than guessing a specific object type. Exclude the
+      table itself, fixed fixtures, and robot parts. Do not invent hidden or
+      absent objects. Return an empty objects list if none are visible.

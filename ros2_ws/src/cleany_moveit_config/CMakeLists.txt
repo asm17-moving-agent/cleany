@@ -32,8 +32,16 @@ if(BUILD_TESTING)
     test/test_moveit_config.py
   )
   ament_add_pytest_test(
+    simulation_collision_contract
+    test/test_simulation_collision.py
+  )
+  ament_add_pytest_test(
     handeye_collision_scene_contract
     test/test_handeye_collision_scene.py
+  )
+  ament_add_pytest_test(
+    study_cafe_collision_scene_contract
+    test/test_study_cafe_collision_scene.py
   )
   ament_add_pytest_test(
     mock_planning_runtime

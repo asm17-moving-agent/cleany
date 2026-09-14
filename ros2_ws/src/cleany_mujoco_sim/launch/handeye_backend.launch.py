@@ -13,6 +13,7 @@ from launch_ros.substitutions import FindPackageShare
 import xacro
 
 from cleany_mujoco_sim.scene_loader import resolve_control_scene_path
+from cleany_mujoco_sim.tabletop_performance import PERFORMANCE_PROFILES
 from cleany_mujoco_sim.scene_manifest import (
     default_manifest_path,
     load_handeye_scene_manifest,
@@ -64,6 +65,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         scene_source,
         initial_joint_positions=initial_joint_positions,
         sorting_bins_config=Path(bins_path) if bins_path else None,
+        performance_profile=LaunchConfiguration('sim_performance_profile').perform(context),
     )
     manifest_path = default_manifest_path().resolve()
     manifest = load_handeye_scene_manifest(manifest_path)
@@ -124,6 +126,12 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
     control_node = Node(
         package='mujoco_ros2_control',
         executable='ros2_control_node',
+        # Keep the simulator's GLFW contexts out of the desktop IBus/XIM
+        # protocol: concurrent GUI/camera creation can stall in XCreateIC.
+        # This override is process-local; other applications retain their IM.
+        additional_env={
+            'XMODIFIERS': LaunchConfiguration('sim_xmodifiers').perform(context),
+        },
         parameters=[
             {'use_sim_time': True},
             ParameterFile(controller_config),
@@ -193,7 +201,13 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
 def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
+            DeclareLaunchArgument('sim_performance_profile', default_value='baseline',
+                                  choices=list(PERFORMANCE_PROFILES)),
             DeclareLaunchArgument('scheduled_cameras', default_value='false'),
+            DeclareLaunchArgument(
+                'sim_xmodifiers', default_value='@im=none',
+                description='MuJoCo-only XIM selection; @im=none avoids IBus startup hangs.',
+            ),
             DeclareLaunchArgument(
                 'scene_path',
                 default_value=PathJoinSubstitution(

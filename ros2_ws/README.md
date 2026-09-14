@@ -30,6 +30,15 @@ make build
 make test
 ```
 
+`make test`는 13개 패키지를 빌드하고 C++/Python 검사와 패키지에 등록된
+ROS runtime 검사, 개발 도구·vision container 계약 검사를 실행한다.
+Python은 `pytest`를 명시적으로 선택하고 외부 플러그인 자동 로드를 차단한다.
+CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복원한다.
+카메라 runtime은 headless여도 유효한 X display가 필요하다. GUI 세션의
+`DISPLAY`를 전달하거나 CI처럼 Xvfb 환경에서 실행한다.
+`make test-mujoco`는 MuJoCo 패키지의 `test/` 전체를 검사하며 카메라·controller
+runtime도 포함한다. 짧은 개별 검사는 아래 native pytest 명령을 사용한다.
+
 변경한 영역부터 확인할 때는 타깃 테스트를 사용한다.
 
 ```bash
@@ -85,7 +94,7 @@ MuJoCo 시뮬레이터를 headless 모드로 실행한다.
 make sim
 ```
 
-Gazebo study-cafe와 같은 벽·책상·파티션·모니터·의자 배치를 MuJoCo viewer에서
+스터디카페의 벽·책상·파티션·모니터 배치를 MuJoCo viewer에서
 실행하려면 전용 target을 사용한다.
 
 ```bash
@@ -99,7 +108,7 @@ Gemini Flash-Lite + 로컬 SAM2-tiny와 카메라 기반 충돌 지도를 포함
 모델/플러그인 준비는 `docs/DEVELOPMENT_SETUP.md`, 동작과 한계는
 `src/cleany_skill_executor/README.md`의 센서 전용 항목을 따른다.
 
-로봇 후면 선반 위 좌측 분실물함/우측 쓰레기함과 분류·집기·놓기 흐름은
+로봇 내부 후면 받침판 위 좌측 분실물함/우측 쓰레기함과 분류·집기·놓기 흐름은
 `make sim-mujoco-sorting`으로 실행한다. 시뮬레이션에서만 실제 관절 명령을
 보내는 통합 검증 경로이며, 두 종류의 물리적 수거 성공은 검증 진행 중이다.
 GUI 없이 실행하려면 `DISPLAY=:0 make sim-mujoco-sorting
@@ -107,7 +116,16 @@ SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'`를 사용�
 현재 vendor 카메라 렌더링은 headless에서도 사용 가능한 X display가 필요하다.
 tracking 중단은 `sam2_tracking_enabled:=false`, 외부 GPU perception 사용은
 `start_perception:=false`를 추가한다. 외부 노드도 같은 tracking/시계 설정으로
-실행한다. 현재 배치에는 중앙 인계 구역이 없고 후면 운반 성공은 아직 미검증이다.
+실행한다. 현재 배치에는 중앙 인계 구역이 없다. 기본은 작업자 관찰 모드로
+`complete_unverified` 및 `mission_complete_unverified`를 발행한다.
+`SORTING_ARGS='sorting_verify_placement:=true'`로 독립 배치 검증을 켠다.
+현재 `robot_top_bins.yaml`은 시뮬레이션 기둥 충돌 제외 설정을 사용한다.
+개별 배치 성공 기록과 전체 수거 성공은 구분하며 자세한 동작·제한은
+[`cleany_skill_executor` README](src/cleany_skill_executor/README.md)를 따른다.
+
+고정 베이스 성능 비교는 `make profile-mujoco-tabletop`을 사용한다.
+`sim_performance_profile:=tabletop_fast`는 선택형이며 기본은 `baseline`이다.
+프로필은 먼 정적 배경 충돌·그림자 설정만 바꾸고 주행에는 사용하지 않는다.
 
 Gazebo Fortress 시뮬레이터는 `make sim-gazebo`로 실행한다.
 
@@ -136,12 +154,13 @@ Makefile은 아래 native 명령을 짧게 제공할 뿐 `colcon`, `pytest`, `ro
 
 ```bash
 source /opt/ros/humble/setup.bash
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
 cd ros2_ws
 rosdep install --from-paths src --ignore-src -r -y
 colcon build --symlink-install
 source install/setup.bash
 python3 -m pytest src/cleany_mujoco_sim/test/test_scene_loader.py
-colcon test
+colcon test --python-testing pytest
 colcon test-result --verbose
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
 ```

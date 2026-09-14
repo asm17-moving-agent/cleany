@@ -37,7 +37,7 @@ setup(
     maintainer_email='team@example.com',
     description='Gazebo Fortress backend for Cleany mobile-base contract tests.',
     license='Apache-2.0',
-    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'gazebo_command_guard = cleany_gazebo_sim.command_guard:main',

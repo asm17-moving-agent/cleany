@@ -24,6 +24,7 @@ from moveit_msgs.msg import (
     PositionConstraint,
     PlanningScene,
     RobotState,
+    RobotTrajectory,
 )
 from moveit_msgs.srv import GetPositionFK, GetPositionIK, GetStateValidity
 from rclpy.action import ActionClient
@@ -59,6 +60,7 @@ from cleany_skill_executor.core.cartesian import (
     CartesianPose, execution_wall_timeout, line_corridor, sampled_time_scale, validate_corridor_samples, validate_pose_endpoint,
 )
 from cleany_skill_executor.core.gripper import (
+    approach_offset_for_label,
     aperture_centering_offset,
     is_gripper_contact_stall,
     opening_to_gripper_position,
@@ -80,6 +82,7 @@ from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo
 from cleany_skill_executor.planning_scene import TargetSceneTransaction
 from cleany_skill_executor.collision_geometry_cache import CollisionGeometryCache, subscribe_collision_geometry
 from cleany_skill_executor.seeded_cartesian import (
+    CartesianPlanningError,
     SeededCartesianConfig, SeededCartesianPlanner, load_joint_motion_limits,
 )
 
@@ -134,6 +137,8 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         self.declare_parameter('gripper_contact_min_motion_rad', 0.10)
         self.declare_parameter('gripper_contact_min_residual_rad', 0.05)
         self.declare_parameter('gripper_contact_max_velocity_rad_s', 0.05)
+        self.declare_parameter('gripper_contact_feedback_timeout_sec', 5.0)
+        self.declare_parameter('gripper_contact_stable_duration_sec', 0.10)
         self.declare_parameter('require_gripper_contact', True)
         self.declare_parameter('grasp_contact_stop_max_distance_m', 0.020)
         self.declare_parameter('pilz_pipeline_id', 'pilz_industrial_motion_planner')
@@ -249,6 +254,8 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         self.declare_parameter('selector_grasp_approach_offset_m', 0.0)
         self.declare_parameter('selector_grasp_lateral_offset_m', 0.0)
         self._aperture_centering = self.declare_parameter('grasp_use_aperture_centering', False).value
+        self.declare_parameter('deeper_grasp_labels', [''])
+        self.declare_parameter('deeper_grasp_offsets_m', [0.0])
         self.declare_parameter('grasp_aperture_margin_m', 0.008)
         self.declare_parameter('grasp_fixed_jaw_inner_x_m', 0.008)
         self.declare_parameter('grasp_fixed_jaw_clearance_m', 0.0)
@@ -346,6 +353,13 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
 
     def _on_joints(self, message) -> None:
         super()._on_joints(message)
+        if not hasattr(self, '_gripper_feedback_stamps'):
+            self._gripper_feedback_stamps = {}
+        stamp = message.header.stamp.sec * 1_000_000_000 + message.header.stamp.nanosec
+        for joint in message.name:
+            if joint.endswith('_gripper_joint'):
+                self._gripper_feedback_stamps[joint] = stamp
+                self._joint_velocities[joint] = math.inf
         if len(message.velocity) == len(message.name):
             self._joint_velocities.update(
                 zip(message.name, message.velocity, strict=True)
@@ -415,11 +429,11 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         )
         grasp = (
             source
-            + float(
-                self.get_parameter(
-                    'selector_grasp_approach_offset_m'
-                ).value
-            )
+            + approach_offset_for_label(
+                candidate.target_object.label,
+                float(self.get_parameter('selector_grasp_approach_offset_m').value),
+                list(self.get_parameter('deeper_grasp_labels').value),
+                list(self.get_parameter('deeper_grasp_offsets_m').value))
             * approach
             + lateral * closing
         )
@@ -721,13 +735,18 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
 
     def _wait_for_sensor_scene(self, timeout_sec: float, *, after_stamp_ns: int | None = None) -> None:
         self.get_logger().info('Waiting for fresh depth and populated OctoMap')
-        deadline = time.monotonic() + timeout_sec
+        started = time.monotonic()
+        deadline = started + timeout_sec
         while True:
             try:
                 self._check_sensor_scene()
                 if after_stamp_ns is not None and (
                         self._scene_cloud_stamp_ns is None or self._scene_cloud_stamp_ns <= after_stamp_ns):
                     raise RuntimeError('No processed depth capture after the attachment scene update')
+                if after_stamp_ns is not None:
+                    self.get_logger().info(
+                        f'Post-attachment depth ready: wait_wall_sec={time.monotonic()-started:.3f} '
+                        f'capture_after_attachment_sec={(self._scene_cloud_stamp_ns-after_stamp_ns)/1e9:.3f}')
                 return
             except RuntimeError:
                 if time.monotonic() >= deadline:
@@ -735,9 +754,12 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
                 rclpy.spin_once(self, timeout_sec=0.2)
 
     def _detect_objects(self):
+        return self._finish_object_detection(self._begin_object_detection())
+
+    def _begin_object_detection(self):
+        """Submit detection and return its handle/future without waiting for inference."""
         goal = InspectScene.Goal()
         goal.query = str(self.get_parameter('query').value)
-        timeout = float(self.get_parameter('inspection_timeout_sec').value)
         handle = self._future(
             self._inspection.send_goal_async(goal),
             10.0,
@@ -745,8 +767,12 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         )
         if not handle.accepted:
             raise RuntimeError('inspection detection goal was rejected')
+        return handle, handle.get_result_async()
+
+    def _finish_object_detection(self, pending):
+        timeout = float(self.get_parameter('inspection_timeout_sec').value)
         wrapped = self._future(
-            handle.get_result_async(),
+            pending[1],
             timeout,
             'inspection detection result',
         )
@@ -1437,7 +1463,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
                 validate_pose_endpoint(samples[-1], self._cartesian_pose(target),
                                        position_limit, orientation_limit)
         except ValueError as error:
-            raise RuntimeError(f'{label} plan rejected before execution: {error}') from error
+            raise CartesianPlanningError(f'{label} plan rejected before execution: {error}') from error
         return samples
 
     def _slow_corridor_plan(self, trajectory, samples: list[CartesianPose],
@@ -1491,7 +1517,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         constraints.orientation_constraints = [orientation]
         return constraints
 
-    def _execute_linear(
+    def _plan_linear_motion(
         self,
         arm: str,
         target: Pose,
@@ -1500,7 +1526,8 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         velocity_scaling: float,
         contact_target: Pose | None = None,
         joint_target: JointState | None = None,
-    ) -> bool:
+    ) -> RobotTrajectory:
+        """Plan and validate without sending a controller command; safe retry boundary."""
         self._wait_arm_stationary(arm)
         start = self._tcp_pose(arm)
         goal = (self._linear_goal(arm, target, label, velocity_scaling)
@@ -1542,7 +1569,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
                 trace('motion_result', result)
             if (planned.status != GoalStatus.STATUS_SUCCEEDED or
                     result.error_code.val != MoveItErrorCodes.SUCCESS):
-                raise RuntimeError(f'{label} Cartesian planning failed: code={result.error_code.val}')
+                raise CartesianPlanningError(f'{label} Cartesian planning failed: code={result.error_code.val}')
         samples = self._validate_cartesian_plan(
             arm, result.planned_trajectory, start, target,
             label, corridor=joint_target is not None, precomputed_samples=precomputed)
@@ -1551,7 +1578,16 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
                 acceleration_scaling=goal.request.max_acceleration_scaling_factor)
         if trace is not None:
             trace('motion_plan', result.planned_trajectory)
-        last_time = result.planned_trajectory.joint_trajectory.points[-1].time_from_start
+        return result.planned_trajectory
+
+    def _execute_linear(
+        self, arm: str, target: Pose, label: str, *, velocity_scaling: float,
+        contact_target: Pose | None = None, joint_target: JointState | None = None,
+    ) -> bool:
+        trajectory = self._plan_linear_motion(
+            arm, target, label, velocity_scaling=velocity_scaling,
+            contact_target=contact_target, joint_target=joint_target)
+        last_time = trajectory.joint_trajectory.points[-1].time_from_start
         planned_duration = last_time.sec + last_time.nanosec / 1e9
         execution_timeout = execution_wall_timeout(planned_duration,
             float(self.get_parameter('cartesian_execution_wall_timeout_factor').value),
@@ -1560,7 +1596,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         self.get_logger().info(f'{label} execution deadline: trajectory={planned_duration:.3f}s '
                                f'wall_timeout={execution_timeout:.3f}s')
         execute_goal = ExecuteTrajectory.Goal()
-        execute_goal.trajectory = result.planned_trajectory
+        execute_goal.trajectory = trajectory
         enforce_motion_guard(self)
         execute_handle = self._future(
             self._execute_trajectory.send_goal_async(execute_goal),
@@ -1812,7 +1848,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
             and wrapped.result.error_code
             == FollowJointTrajectory.Result.SUCCESSFUL
         )
-        if allow_contact_stall and self._gripper_contact_stalled(
+        if allow_contact_stall and succeeded and self._wait_for_gripper_contact(
             arm, start if contact_start is None else contact_start, position
         ):
             self.get_logger().info(
@@ -1825,12 +1861,49 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
                 f'{arm} gripper {command} failed: status={wrapped.status} '
                 f'code={wrapped.result.error_code}'
             )
+        actual = self._joint_positions.get(joint, math.inf)
         if abs(actual - position) > 0.05:
             raise RuntimeError(
                 f'{arm} gripper {command} feedback error='
                 f'{abs(actual - position):.3f} rad'
             )
         return False
+
+    def _wait_for_gripper_contact(self, arm: str, start: float, command: float) -> bool:
+        """Observe settling after close without sending another motor command."""
+        timeout = float(self.get_parameter('gripper_contact_feedback_timeout_sec').value)
+        duration = float(self.get_parameter('gripper_contact_stable_duration_sec').value)
+        if not all(math.isfinite(v) and v > 0 for v in (timeout, duration)):
+            raise ValueError('Gripper contact feedback durations must be positive and finite')
+        joint = f'{arm}_gripper_joint'
+        started = time.monotonic()
+        previous = getattr(self, '_gripper_feedback_stamps', {}).get(joint, 0)
+        stable_since = None
+        samples = 0
+        while time.monotonic() - started < timeout:
+            rclpy.spin_once(self, timeout_sec=0.05)
+            stamp = getattr(self, '_gripper_feedback_stamps', {}).get(joint, 0)
+            if stamp <= previous:
+                continue
+            previous = stamp
+            if self._gripper_contact_stalled(arm, start, command):
+                if stable_since is None:
+                    stable_since = stamp
+                samples += 1
+                if samples >= 3 and (stamp - stable_since) / 1e9 >= duration:
+                    self.get_logger().info(
+                        f'{arm} gripper stable contact: samples={samples} '
+                        f'wait_wall_sec={time.monotonic()-started:.3f}')
+                    return True
+            else:
+                stable_since = None
+                samples = 0
+                actual = self._joint_positions.get(joint, math.inf)
+                velocity = self._joint_velocities.get(joint, math.inf)
+                limit = float(self.get_parameter('gripper_contact_max_velocity_rad_s').value)
+                if abs(actual-command) <= .05 and abs(velocity) <= limit:
+                    return False  # Fully closed, with no object contact.
+        raise RuntimeError(f'{arm} gripper contact did not stabilize within {timeout:.1f}s')
 
     def _gripper_contact_stalled(
         self, arm: str, start: float, command: float, *, allow_closing_motion: bool = False

@@ -25,6 +25,10 @@ from cleany_skill_executor.core.urdf_fk import UrdfChain
 from cleany_skill_executor.core.grasp_selection import quaternion_axis
 
 
+class CartesianPlanningError(RuntimeError):
+    """No executable Cartesian path; no controller command has been sent."""
+
+
 @dataclass(frozen=True)
 class JointMotionLimit:
     lower: float
@@ -97,6 +101,20 @@ class SeededCartesianPlanner:
         first = tuple(current[name] for name in names)
         last = tuple(c.position for c in goal_constraints)
         constraints = request.path_constraints
+        bounds = {name: (self.limits[name].lower, self.limits[name].upper) for name in names}
+        for constraint in constraints.joint_constraints:
+            name = constraint.joint_name
+            if (name not in bounds or not all(math.isfinite(v) for v in (
+                    constraint.position, constraint.tolerance_below, constraint.tolerance_above))
+                    or min(constraint.tolerance_below, constraint.tolerance_above) < 0):
+                raise ValueError('Invalid Cartesian joint path constraint')
+            lower, upper = bounds[name]
+            bounds[name] = (max(lower, constraint.position-constraint.tolerance_below),
+                            min(upper, constraint.position+constraint.tolerance_above))
+        for name, a, b in zip(names, first, last, strict=True):
+            lower, upper = bounds[name]
+            if lower >= upper or not lower <= a <= upper or not lower <= b <= upper:
+                raise CartesianPlanningError(f'Cartesian endpoint violates position limit/path bound: {name}')
         tip = constraints.position_constraints[0].link_name
         frame = constraints.position_constraints[0].header.frame_id
         count = max(2, math.ceil(math.dist(start.position, target.position)/self.config.ik_step_m))
@@ -142,10 +160,10 @@ class SeededCartesianPlanner:
                     # position dominates this weak regularization.
                     return np.concatenate((p-target_p, 1e-4*(np.asarray(values)-seed)))
                 values = refine_pose(residual, seed,
-                    [(self.limits[n].lower,self.limits[n].upper) for n in names],
+                    [bounds[n] for n in names],
                     self.config.local_refinement_iterations)
                 if np.linalg.norm(residual(values)[:3]) > self.config.validation_step_m/2:
-                    raise RuntimeError(f'Local Cartesian position refinement failed at {index}/{count}')
+                    raise CartesianPlanningError(f'Local Cartesian position refinement failed at {index}/{count}')
                 knots.append(values)
                 continue  # Full MoveIt collision/constraint/FK checks follow below.
             query = GetPositionIK.Request()
@@ -161,7 +179,7 @@ class SeededCartesianPlanner:
             ik.timeout = Duration(seconds=self.config.ik_timeout_sec).to_msg()
             result = self.solve_ik(query)
             if result.error_code.val != 1:
-                raise RuntimeError(f'seeded Cartesian IK failed at {index}/{count}: code={result.error_code.val}')
+                raise CartesianPlanningError(f'seeded Cartesian IK failed at {index}/{count}: code={result.error_code.val}')
             solved_names = result.solution.joint_state.name
             solved_positions = result.solution.joint_state.position
             if len(solved_names) != len(set(solved_names)) or len(solved_names) != len(solved_positions):
@@ -173,9 +191,9 @@ class SeededCartesianPlanner:
         knots.append(last)
         for values in knots:
             for name, value in zip(names, values, strict=True):
-                limit = self.limits[name]
-                if not math.isfinite(value) or not limit.lower <= value <= limit.upper:
-                    raise RuntimeError(f'seeded path violates position limit: {name}={value}')
+                lower, upper = bounds[name]
+                if not math.isfinite(value) or not lower <= value <= upper:
+                    raise CartesianPlanningError(f'seeded path violates position limit/path bound: {name}={value}')
         for scaling in (request.max_velocity_scaling_factor, request.max_acceleration_scaling_factor):
             if not math.isfinite(scaling) or not 0 < scaling <= 1:
                 raise ValueError('invalid motion scaling')
@@ -202,7 +220,7 @@ class SeededCartesianPlanner:
                     f' frame={c.header.frame_id or frame} depth={c.depth:.6f}m'
                     for c in checked.contacts[:8])
                 constraints_failed = [(c.result, c.distance) for c in checked.constraint_result if not c.result]
-                raise RuntimeError(f'seeded cubic collision/constraint failure at {index}/{len(samples)}: '
+                raise CartesianPlanningError(f'seeded cubic collision/constraint failure at {index}/{len(samples)}: '
                                    f'{contacts}; constraints={constraints_failed}')
             fk = GetPositionFK.Request(robot_state=state, fk_link_names=[tip])
             fk.header.frame_id = frame

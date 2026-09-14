@@ -13,7 +13,7 @@ perception_inspector:
     reference_trim_fraction: 0.01
     yoloe_model_path: yoloe/yoloe-26s-seg.pt
     yoloe_text_encoder_directory: yoloe
-    yoloe_classes: [cup, wallet, crumpled tissue, lego brick]
+    yoloe_classes: [cup, computer mouse, crumpled tissue, lego brick]
     yoloe_device: auto
     yoloe_image_size: 640
     yoloe_iou_threshold: 0.5
@@ -21,4 +21,4 @@ perception_inspector:
     sam2_model_config: configs/sam2.1/sam2.1_hiera_t.yaml
     sam2_checkpoint: sam2/sam2.1_t.pt
     sam2_device: auto
-    default_query: Detect the paper cup, wallet, crumpled tissue, and LEGO brick.
+    default_query: Detect the paper cup, computer mouse, crumpled tissue, and LEGO brick.

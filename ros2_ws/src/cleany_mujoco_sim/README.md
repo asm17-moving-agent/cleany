@@ -1,5 +1,32 @@
 # cleany_mujoco_sim
 
+수거 시뮬레이션은 `robot_top_bins.yaml`의
+`simulation_ignore_mast_collision: true`를 기본으로 사용한다.
+고정 기둥(`top_base_link`) 외형은 남기되 MuJoCo 접촉을 끄고, MoveIt에서도
+기둥과 로봇 링크 간 충돌을 제외한다. 팔·책상·수거함·물체의 충돌은 유지한다.
+이는 시뮬레이션 편의 설정이며 기둥을 통과하는 동작은 실물에서 안전하지 않다.
+해당 값을 false로 바꾸면 기둥 충돌 검사를 복원한다.
+
+기본 책상 테스트 배치는 로봇 기준 왼쪽에 레고·마우스(분실물), 오른쪽에
+종이컵·휴지뭉치(쓰레기)를 둔다. `study_cafe_layout.yaml`의 현재 로봇 yaw에서는
+desk X 음수가 로봇 왼쪽이다. 같은 쪽 팔에서 같은 쪽 수거함으로의 도달성을
+시험하기 위한 배치이며, 실제 분류와 팔 선택은 기존 인식 파이프라인을 유지한다.
+
+스터디카페는 `cleany_description/mjcf/cleany.xml`의 migrated CAD 모델을 사용한다.
+CAD 전면 기둥과 책상의 초기 겹침을 피하도록 chair 기준 후퇴 거리를 0.22m로
+설정한다(기존 0.18m에서 4cm 후퇴). 내부 후면 수거함은 chassis에 부착한다.
+초기 keyframe의 position actuator 명령은 actuator 이름이 아니라 연결된
+joint 이름으로 찾는다. 따라서 `head_tilt` / `head_tilt_joint`처럼 이름이
+달라도 지정된 카메라 자세를 유지하며 0rad로 돌아가지 않는다.
+책상·물체·후면 수거함 배치는 유지하며, 기존 접촉 pair는 이름이 유지된 양팔
+jaw collision geom을 참조한다. `robot_top_bins_preview.launch.py`는 모델 배치
+확인용이며 자동 집기·수거를 실행하지 않는다. 전체 수거 성공은 별도 검증 대상이다.
+
+날짜별 CAD 이관·수거 실행 결과는 [실행 기록](../../../docs/SORTING_PIPELINE_TRIALS_20260909.md)을
+따른다. 단위 테스트 통과는 전체 물리 수거 성공률을 나타내지 않는다.
+`make test-mujoco`는 장면 검사뿐 아니라 `test/` 전체의 동역학·카메라·controller
+검사를 실행한다. Python bridge의 시뮬레이션 context와 step observer는 단일 정의로 관리한다.
+
 ## 로봇 후면 수거함 배치 미리보기
 
 `ros2 launch cleany_mujoco_sim robot_top_bins_preview.launch.py`는 기존 책상
@@ -7,15 +34,14 @@
 주황 테두리 쓰레기함(오른쪽)을 배치한다. 본체는 저채도 네이비로 통일한다.
 `config/robot_top_bins.yaml`에서 base_link 기준 위치와 크기를 변경한다.
 기존 실행 호환을 위해 파일명은 유지하지만 현재 배치는 상단이 아닌 후면이다.
-각 함의 중심은 초기 base_link 기준 x=-0.405 m, y=±0.105 m이며
-바닥 z=0.18 m, 상단 z=0.30 m이다. `rear_shelf` 설정으로 320×460 mm
-목재색 상판, 하단 선반, 금속색 다리 네 개를 추가한다. 바닥에서 상판까지
-높이는 560 mm이며 수거함 바닥과 상판 윗면은 일치한다.
-선반과 수거함은 초기 chassis 변환을 복사한 world 고정 body에 배치하므로
-로봇을 이동해도 따라가지 않는다. 수거함은 정적 fixture이며 자유롭게 밀리거나
-넘어지는 동역학은 모델링하지 않았다. `rear_shelf`가 없으면 기존 chassis
-부착 동작을 유지한다. 이 후면 배치는 미리보기 전용이며, 이동 로봇의 수거
-계획에 사용하려면 초기 base 좌표를 현재 base 좌표로 변환하는 연결이 필요하다.
+각 함의 중심은 base_link 기준 x=-0.075 m, y=±0.105 m이며
+바닥 z=0.22 m, 상단 z=0.34 m이다. 외부 선반 대신 `internal_tray` 설정으로
+210×460×12 mm 받침판을 로봇 프레임 내부 뒤쪽에 둔다.
+함과 받침판은 chassis에 부착되어 로봇을 따라 움직이며 동일한 충돌 형상을
+MoveIt에 등록한다. 함의 탈착·체결부 강도·배선 여유는 모델링하지 않은
+시뮬레이션 설계안이다. 이동 베이스 운용 및 모든 물체의 수거 성공은 별도 검증이 필요하다.
+선택 설정 `rear_shelf`는 외부 고정 가구를 위한 호환 기능으로만 남기며,
+`internal_tray`와 동시에 사용할 수 없다.
 각 함의 외형은 180×170×120 mm,
 벽 두께 8 mm이며 바닥과 네 벽이 있는 열린 충돌 형상이다.
 기존 홈 자세를 유지하는 MuJoCo GUI만 실행하며 인식·자동 수거는 시작하지 않는다.
@@ -80,6 +106,52 @@ XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한�
 
 ## 실행과 테스트
 
+### 되돌릴 수 있는 고정 책상 최적화
+
+`sim_performance_profile`은 임시 materialized scene에만 적용한다. 기본값
+`baseline`은 기존 설정을 그대로 유지한다. 소스 MJCF, mesh, layout은 수정하지 않는다.
+
+| 프로필 | 배경 충돌 | 그림자 맵 |
+| --- | --- | --- |
+| `baseline` | 기존 그대로 | 4096 |
+| `tabletop_collision` | 먼 정적 가구만 비활성화 | 4096 |
+| `tabletop_fast` | 먼 정적 가구만 비활성화 | 2048 |
+
+`config/tabletop_performance.yaml`의 반경 2m 바깥에 **형상 전체가** 위치한
+책상·모니터·파티션·벽만 대상으로 한다. 보수적인 경계구를 사용하므로 근처
+가구와 큰 벽은 유지될 수 있다. 바닥, 로봇, 수거함, 물체 및 명시 contact pair는
+유지한다. 질량·마찰·관절 제한·timestep·solver·카메라 해상도/FOV·추적 FPS·
+MoveIt/OctoMap은 변경하지 않는다. `tabletop_fast`는 GUI와 센서 영상 모두에서
+그림자 정밀도가 낮아질 수 있으므로 인식 회귀 검사가 필요하다.
+
+이 프로필은 chassis-world weld가 있는 `study_cafe_grasp_execution` 장면에만
+허용한다. 이동 베이스·내비게이션·실제 하드웨어에는 적용하지 않는다.
+시뮬레이션 시간 배속이나 로봇 이동 속도 상향 기능이 아니다.
+
+2026-09-11 시험에서 먼 배경 충돌 602개를 비활성화해도 물리 step 시간은
+유의미하게 줄지 않았다. 그림자 축소의 헤드 RGB 렌더 시간 감소는 약 12%였으나
+전체 수거 시간 단축은 확인하지 못했다. `tabletop_fast` headless 시험은 레고
+수거 후 컵 접근에서 관절 목표 오차로 실패했고, 비교 `baseline` 실행은 그 컵을
+수거했다. 원인을 최적화로 확정한 것은 아니지만 **기본 프로필은 baseline으로
+유지하며 fast는 실험용**이다. 같은 파지 성공률이 검증됐다고 해석하지 않는다.
+
+```bash
+# 적용 (기존 GEMINI_API_KEY / DISPLAY 등 실행 환경 유지)
+make sim-mujoco-sorting SORTING_ARGS='sim_performance_profile:=tabletop_fast headless:=true use_rviz:=false use_image_view:=false'
+# 원복: 실행을 종료한 뒤 baseline으로 재시작 (파일 복원 불필요)
+make sim-mujoco-sorting SORTING_ARGS='sim_performance_profile:=baseline headless:=true use_rviz:=false use_image_view:=false'
+# 그림자 품질을 유지하며 배경 충돌만 줄이기
+make sim-mujoco-sorting SORTING_ARGS='sim_performance_profile:=tabletop_collision'
+# 별도 정지 장면 성능 비교: 다른 시뮬레이터를 종료한 뒤 실행
+make profile-mujoco-tabletop BENCHMARK_ARGS='--output /tmp/tabletop_benchmark.json'
+```
+
+벤치마크는 현재 launch 초기자세에서 세 프로필을 교차 순서로 반복한다.
+물리 step과 640×480 카메라별 RGB 렌더+readback을 따로 측정하며,
+MuJoCo Python 버전도 기록한다. ROS backend/vendor 버전, depth readback,
+SAM2, GUI, 실제 파지 접촉 부하를 포함한 전체 수거 시간과는 다르다.
+일괄 속도 향상률로 해석하지 않는다.
+
 아래 명령은 레포지토리 루트에서 실행한다.
 
 ```bash
@@ -89,26 +161,38 @@ make test-mujoco
 ```
 
 `sim-mujoco-study-cafe`는 Gazebo 개발공간의 12.26×10.94 m 방과 동일한 좌표에
-벽 4개, 책상 48개, 파티션 24개, 모니터 48개와 의자 47개를 띄운다. 기존 Gazebo
-spawn에서 가장 가까운 43번 의자만 제거하고, 조종 가능한 끌리니 1대를 그 위치에서
-책상을 향하도록 배치한다. 의자 중심에서 책상 반대 방향으로 0.18 m 이동해 로봇
-collision 외곽과 책상 사이에 약 0.02 m 여유를 둔다. 로봇 앞 43번 책상의 현재
-물체는 손잡이 없는 종이컵, 빨간 2×4 레고 블록, 흰 휴지뭉치, 기존 지갑이다.
-머그컵/지우개/휴대폰을 교체하되 배치 위치와 지갑 mesh는 유지한다.
+벽 4개, 책상 48개, 파티션 24개, 모니터 48개를 띄우며 의자는 생성하지 않는다.
+기존 Gazebo spawn에서 가장 가까웠던 43번 의자 자리를 기준으로 끌리니 1대를
+책상을 향하도록 배치한다. 의자 중심에서 책상 반대 방향으로 0.22 m 이동하며
+후퇴 거리는 `robot_center_rearward_offset_m`으로 설정한다. 로봇 앞 43번 책상의 현재
+물체는 손잡이 없는 종이컵, 빨간 2×4 레고 블록, 흰 휴지뭉치, 무선 마우스다.
+마우스는 [Computer Mouse — CreativeTrio](https://poly.pizza/m/V2Ebx3pvo4)의 CC0
+메시와 원본 텍스처를 사용하고 110×65×35mm로 정규화했다.
+원본/변환 SHA256과 변경 사항은 `config/study_cafe_assets.yaml`, 재현 도구는
+`tools/convert_computer_mouse.py`에 있다. 기존 지갑의 위치·질량·마찰을 계승한다.
+과거 지갑 asset은 비활성 provenance로 남기며 현재 장면에는 로드하지 않는다.
+마우스는 책상 중심 기준 `[-0.14, -0.095]m`에 배치한다. 이전 위치에서
+로봇 방향으로 8cm 당긴 시험 배치이며 크기·질량·마찰은 유지한다.
 
 | 물체 / body ID | 외형 크기 | 물리 모델 |
 | --- | --- | --- |
-| 종이컵 / `study_cafe_cup` | 윗지름 85, 밑지름 55, 높이 95, 벽 0.7 mm | 열린 원뿔대 벽 32개와 바닥, 8 g |
-| 레고 / `study_cafe_lego` | 몸체 31.8×15.8×9.6 mm, 돌기 포함 높이 11.4 mm | 본체 box와 8개 돌기 cylinder, 2.3 g |
+| 종이컵 / `study_cafe_cup` | 기존 80% 크기에서 추가 10% 축소: 윗지름 61.2, 밑지름 39.6, 높이 68.4, 벽 0.504 mm | 열린 원뿔대 벽 32개와 바닥, 8 g 유지 |
+| 레고 / `study_cafe_lego` | 2배 확대 후 높이만 추가 10% 확대: 몸체 63.6×31.6×21.12 mm, 돌기 포함 높이 25.08 mm | 본체 box와 8개 돌기 cylinder, 2.3 g 유지 |
 | 휴지뭉치 / `study_cafe_tissue` | 60×50×45 mm | 불규칙 삼각형 표면과 convex-hull collision, 1 g |
+| 무선 마우스 / `study_cafe_mouse` | 110×65×35 mm | CreativeTrio CC0 mesh·원본 텍스처와 convex-hull 충돌, 120 g (시뮬레이션 가정) |
 
 `cleany_mujoco_sim/tabletop_shapes.py`가 설정값에서 결정적으로 MJCF mesh/primitive를
-생성한다. 네 물체 모두 free joint가 있으며 강제 고정/attach하지 않는다. 종이컵은
+생성한다. 컵은 수거함 입구의 보수적 크기 판정 여유를 확보하기 위해 기존 형상의
+80%로 축소한 뒤 접근 비교를 위해 추가 10% 축소했다(최초 대비 72%). 질량·마찰·위치·파지 설정은 유지하며, 축소만으로 실제 파지/수거
+성공을 보장하지 않는다. 네 물체 모두 free joint가 있으며 강제 고정/attach하지 않는다. 종이컵은
 안쪽을 채운 cylinder가 아니므로 입구로 들어가는 접촉도 가능하다. 다만 종이컵과 휴지는
 눌리거나 구겨지지 않는 **강체 근사**이며, 레고 밑면 결합 튜브와 로고는 생략했다.
 질량과 종이컵/휴지 크기는 시뮬레이션 가정이며 실물 측정값이 아니다. 레고는
 [실측 치수](https://www.cailliau.org/Alphabetical/L/Lego/Dimensions/More%20Dimensions/BBEditPreviewTemp.html)의
-8 mm 돌기 간격, 4.8 mm 지름, 1.8 mm 돌기 높이를 사용한다.
+8 mm 돌기 간격, 4.8 mm 지름, 1.8 mm 돌기 높이를 기준으로 현재 모두 2배
+확대해 각각 16 mm, 9.6 mm, 3.6 mm를 사용한다. 시각·충돌 형상을 함께 확대하며,
+크기에 따른 파지 비교를 위해 질량·위치·마찰·파지 설정은 유지한다.
+이는 실제 규격 크기가 아닌 진단용 확대 모델이다.
 파지 실행 launch의 우측 팔 mirrored home 자세는 wrist-roll을 `-1.58 rad`로
 시작하는 기존 설정을 유지한다.
 위치, 질량, 색상과 collision 크기는
@@ -119,30 +203,37 @@ collision 외곽과 책상 사이에 약 0.02 m 여유를 둔다. 로봇 앞 43�
 실제 집기 실행은 `scenes/study_cafe_grasp_execution.xml.in`을 사용한다. 일반 관찰 장면과
 같은 배치를 유지하면서 chassis를 world에 고정한다. 종이컵/레고와 양쪽 fixed/moving jaw
 사이의 고마찰 contact pair는 복합 collision의 모든 부분으로 확장한다(컵 330개,
-레고 90개). 컵의 sliding friction 6, 레고 5는 기존 실험 설정을 계승한 값이지
-실제 종이/플라스틱의 측정 마찰계수가 아니다. 얇은 강체 컵 벽의 수치적 관통을
+레고 90개). 컵의 sliding friction은 6이다. 레고는 열린 fixed jaw에 남는 현상을
+줄이기 위해 명시 pair friction을 `(1.5, 1.5, .001, .0001, .0001)`로 설정한다
+(이전 `(5, 5, .4, .15, .15)`). 좌우 sliding 마찰 외에 비틀림/구름 저항도 낮췄다.
+두 팔의 본체/돌기 pair에 동일하게 적용하며 파지와 방출 중 값을 전환하지 않는다.
+이는 시뮬레이션 튜닝값이지 실제 종이/플라스틱의 측정 마찰계수가 아니다.
+물체 weld, 중력 보상, 강제 낙하 힘 또는 방출 시 collision 비활성화는 사용하지 않는다.
+2026-09-11 headless 레고 단독 파이프라인에서 파지·운반·배치 성공과
+열림 시작 후 약 0.10 simulation 초에 하강, 완전 열림/팔 복귀 전에 낙하를 확인했다.
+진단은 `artifacts/lego_release_fix_20260911/REPORT.md`에 기록했으며,
+다른 자세/물체의 성공률 보장은 아니다.
+얇은 강체 컵 벽의 수치적 관통을
 줄이기 위해 컵 pair는 `solref="0.002 1"`, `solimp="0.99 0.9999 0.0001"`을 사용한다.
 이는 종이의 찌그러짐을 재현하는 설정이 아니며 실제 컵 파지력 검증을 대체하지 않는다.
-휴지와 지갑 강체 proxy도 각각 양쪽 jaw와의 10개 pair에 같은 강성을 적용한다. 기본 혼합
+휴지와 마우스 강체 proxy도 각각 양쪽 jaw와의 10개 pair에 같은 강성을 적용한다. 기본 혼합
 마찰 `(3, 3, .2, .1, .1)`과 질량/형상/모터 한도는 유지한다. 부드러운 접촉에서
 관측된 휴지 약 18mm, 지갑 약 2.1mm 메시 관통을 줄이기 위한 설정이며
-실제 휴지나 지갑의 압축 모델은 아니다.
-지갑은 기존 시각 메시를 collision mesh에도 공유한다(MuJoCo convex hull).
-시각 메시의 최소 평면 폭 약 52mm와 맞지 않는 110×85mm 축 정렬 box 때문에
-보이지 않는 영역을 손가락이 누르던 문제를 수정했다. 메시 파일/스케일, 질량과
-마찰은 변경하지 않는다. 오목한 내부 장식까지 충돌 분해한 모델은 아니다.
+실제 휴지나 마우스의 변형 모델은 아니다.
+마우스는 시각 메시를 collision mesh에도 공유한다(MuJoCo convex hull).
+오목한 버튼 장식까지 충돌 분해한 모델은 아니다.
 머리 카메라는 materialization 시
 `640×480`, `fovy=42°` 계약을 검사해 RGB-D driver의 1×1 기본 해상도 사용을 막는다.
 
 조명은 `config/study_cafe_lighting.yaml`에서 설정하며 일반 관찰/집기 장면과 GUI/RGB-D
 렌더에 공통 적용한다. 기존 canonical robot의 world light는 materialized copy에서만
-제거하고, **작업 책상 및 주변 책상을 비추는 넓은 spotlight와 방 전체 directional
-보조광**으로 대체한다. 주광원은 `(-3.13, -3.60, 2.45) m`, cutoff 55°,
-exponent 2로, 상판 높이에서 대략 5 m 폭의 주변 구역을 비춘다. 약한 전역 보조광은
-유지하므로 나머지 공간도 완전히 어두워지지 않는다. 주광원만 그림자를 만든다.
+제거하고, 작업 책상이 포함된 3열×2행의 인접 책상 6개에 하나의 spotlight를
+배치한다. 중심은 `(-4.33, -3.17, 3.30)m`, 수직 아래 방향, cutoff 40°,
+exponent 0이다. 책상 높이에서 반경 약 2.16m 범위를 같은 각도 강도로 비춘다.
+4096 shadow map을 방 전체 대신 이 구역에 집중해 그림자 계단 현상을 줄인다.
+방 전체 directional 보조광과 ambient는 유지하며, 그림자 광원은 하나다.
 카메라 headlight는 ambient 0.12, diffuse 0.08, shadow map은 4096이며
-spot shadow scale 1.0으로 해당 광원 범위를 사용한다. 전역 directional shadow 설정의
-half extent 12 m는 보존하지만 현재 보조광의 그림자는 꺼져 있다. 이는 실측 조도나
+전역 directional shadow half extent는 12 m다. 보조광의 그림자는 꺼져 있다. 이는 실측 조도나
 실내 간접광을 계산하는 모델이 아닌 근사다.
 기존 headlight와 기본 광원의 합산으로 흰 상판이 포화되고
 그림자 대비가 사라지는 문제를 줄이기 위한 설정이지 실측 조도/카메라 보정값은 아니다.
@@ -220,9 +311,10 @@ ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
 
 `scenes/grasp_execution_demo.xml.in`은 같은 backend에서 MoveIt-selected trajectory를
 육안 확인하기 위한 전용 장면이다. chassis를 world에 고정하고, 기본 demo grasp/OBB와
-동일한 `base_link` 중심 `(0.09, 0.6696, 0.6158) m`, 크기 `0.03 m`의 초록색
+동일한 `base_link` 중심 `(0.1163, 0.699517, 0.652097) m`, 크기 `0.03 m`의 초록색
 고정 box를 둔다. MuJoCo world에서는 초기 chassis 원점 Z=0.38 m를 더한
-`(0.09, 0.6696, 0.9958) m`에 배치되어 RViz/MoveIt target과 물리 위치가 일치한다.
+`(0.1163, 0.699517, 1.032097) m`에 배치되어 RViz/MoveIt target과 물리 위치가 일치한다.
+이 합성 목표는 CAD 어깨 장착점 이관에 맞춰 기존 팔 상대 좌표를 유지한 위치다.
 이 box는 아직 gripper command/force closure가 없는 reach 데모에서 controller 접촉
 오차를 만들지 않도록 MuJoCo에서는 render-only다. 동일 OBB의 collision 검사는
 MoveIt planning scene에서 수행한다. 통합 실행은 `cleany_skill_executor`의
@@ -456,6 +548,13 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 
 `handeye_backend.launch.py`는 다음 launch argument를 제공한다.
 
+- `sim_xmodifiers` (기본 `@im=none`): MuJoCo `ros2_control_node`에만 적용하는
+  X11 입력기 설정. Ubuntu IBus 환경에서 GUI와 카메라의 GLFW 창 초기화가
+  `XCreateIC` / `XGetICValues`에서 대기하며 `/clock`과 RGB-D까지 멈추는
+  현상을 우회한다. 터미널, RViz, 데스크톱 전체의 한글 입력 설정은 변경하지 않는다.
+  이전 입력기 연동을 재현하려면 `sim_xmodifiers:=@im=ibus`를 사용한다.
+  이는 입력기 경로 우회이며 GLFW 창 생성의 스레드 구조 자체를 수정한 것은 아니다.
+
 - `scene_path`: control용 MuJoCo scene XML 또는 `.xml.in` template. 기본값은
   `scenes/handeye.xml.in`
 - `headless`: native viewer 비활성화 여부. 기본값 `true`
@@ -562,11 +661,6 @@ MoveIt 지도를 포함하는 plan-only GUI 실행이다. 장면만 띄우는
 - [Navigation and Mapping](../../../docs/cleany-docs/20_TECHNICAL/05%20-%20Navigation%20and%20Mapping.md)
 - [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
 
-### 단일 후면 수거함 fixture (2026-09-08)
-
-책상 4분할 및 이전 좌우 수거함 YAML을 삭제했다. 책상 구분선 생성 코드도
-제거했으며 `robot_top_bins.yaml`만 기본 배치로 사용한다. 과거 실행 기록은
-진단 이력으로 보존하지만 새 실행의 장면 입력으로 사용하지 않는다.
 발행 topic, launch parameter, 시뮬레이션 모델 가정 또는 테스트 명령이 바뀌면 이
 README도 갱신한다. 시뮬레이션 하드웨어 파라미터를 관련 KB 결정 없이 확정된 실제
 하드웨어 사양으로 표현하지 않는다.

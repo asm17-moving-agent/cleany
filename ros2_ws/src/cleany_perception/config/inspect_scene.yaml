@@ -41,7 +41,7 @@ perception_inspector:
     simulation_color_minimum_pixels: 100
     simulation_color_profile: legacy
     yoloe_model_path: ''
-    yoloe_classes: [cup, wallet, crumpled tissue, lego brick]
+    yoloe_classes: [cup, computer mouse, crumpled tissue, lego brick]
     yoloe_device: cuda
     yoloe_image_size: 640
     yoloe_iou_threshold: 0.5

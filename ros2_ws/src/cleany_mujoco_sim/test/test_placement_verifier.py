@@ -15,7 +15,10 @@ def test_default_oracle_labels_match_learned_profile_policy_and_scene():
     perception = source / 'cleany_perception' / 'config'
     for name in ('yoloe_s_sam2_tiny.yaml', 'inspect_scene.yaml'):
         parameters = yaml.safe_load((perception / name).read_text())['perception_inspector']['ros__parameters']
-        assert parameters['yoloe_classes'] == list(DEFAULT_LABEL_BODIES)
+        assert parameters['yoloe_classes'] == ['cup', 'computer mouse', 'crumpled tissue', 'lego brick']
+        assert set(parameters['yoloe_classes']) <= set(DEFAULT_LABEL_BODIES)
+    for alias in ('mouse', 'computer mouse', 'wireless mouse'):
+        assert DEFAULT_LABEL_BODIES[alias] == 'study_cafe_mouse'
     layout = load_study_cafe_layout(
         source / 'cleany_mujoco_sim' / 'config' / 'study_cafe_layout.yaml')
     assert set(DEFAULT_LABEL_BODIES.values()) == {
@@ -23,14 +26,18 @@ def test_default_oracle_labels_match_learned_profile_policy_and_scene():
     }
     policy = yaml.safe_load((source / 'cleany_skill_executor' / 'config' / 'sorting_policy.yaml').read_text())
     assert {'cup', 'crumpled tissue'} <= set(policy['rules']['trash'])
-    assert {'wallet', 'lego brick'} <= set(policy['rules']['lost_item'])
+    assert {'mouse', 'computer mouse', 'wireless mouse', 'lego brick'} <= set(policy['rules']['lost_item'])
 
 
-def verifier(*, destination='trash_right', z=0.22, size=(0.04, 0.04, 0.04),
+def verifier(*, destination='trash_right', z=None, size=(0.04, 0.04, 0.04),
              after_stamp=500_000_000, now=1_450_000_000, drift=0.0):
     bins = {b.name: b for b in load_bins(
         Path(__file__).parents[1] / 'config' / 'robot_top_bins.yaml')}
     bin_ = bins[destination]
+    if z is None:
+        z = bin_.bottom_z + bin_.wall + size[2]/2 + .002
+    elif z == 'rim':
+        z = bin_.top_z
     parameters = dict(minimum_samples=5, maximum_age_sec=1.0,
                       maximum_drift_m=0.003, settled_duration_sec=0.4)
     node = SimpleNamespace(
@@ -55,7 +62,7 @@ def test_settled_object_inside_correct_bin_is_verified():
 
 def test_wrong_bin_and_rim_hover_are_not_verified():
     assert not verifier(destination='lost_items_left').success
-    assert not verifier(z=0.30).success
+    assert not verifier(z='rim').success
     assert not verifier(size=(0.30, 0.04, 0.04)).success
 
 

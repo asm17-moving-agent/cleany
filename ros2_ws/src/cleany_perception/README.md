@@ -1,5 +1,10 @@
 # cleany_perception
 
+`depth_scene_node`의 Depth/CameraInfo 구독은 best-effort KEEP_LAST(1)이다.
+부하가 높을 때 과거 입력을 순차 처리하지 않고 최신 수신 프레임을 사용한다.
+촬영 timestamp와 `maximum_depth_age_sec` 검사는 유지하며 오래된 Depth를
+현재 시각으로 재표기하지 않는다.
+
 `enable_wrist_observation=true`는 `/perception/observe_wrist_target`를 추가한다.
 기존 YOLOE/SAM2 모델 및 서비스 요청 busy lock을 공유하며 손목별 RGB/CameraInfo를 exact stamp로
 짝지어 최신 frame에서 처리한다. 손목 HANDOFF는 head RGB-D에서 전달한 예상 OBB를
@@ -155,7 +160,7 @@ ros2 launch cleany_perception inspect_scene.launch.py \
   detector_type:=yoloe segmenter_type:=sam2 \
   yoloe_model_path:=/absolute/path/to/yoloe-26n-seg.pt \
   yoloe_text_encoder_directory:=/absolute/path/to/yoloe-model-directory \
-  yoloe_classes:="[cup, wallet, crumpled tissue, lego brick]" \
+  yoloe_classes:="[cup, computer mouse, crumpled tissue, lego brick]" \
   yoloe_device:=cpu minimum_detection_confidence:=0.05 \
   sam2_model_config:=configs/sam2.1/sam2.1_hiera_t.yaml \
   sam2_checkpoint:=/absolute/path/to/sam2.1_hiera_tiny.pt \
@@ -289,6 +294,11 @@ colcon test --packages-select cleany_perception
 colcon test-result --verbose
 ```
 
+작은 검사는 관련 기능의 suite에 포함한다. `test_geometry.py`는 point cloud 변환,
+`test_depth_scene_cloud.py`는 cloud 수신 시각, `test_rgbd_snapshot.py`는 snapshot cache,
+`test_reference_service.py`는 reference 관측, `test_sam2_reference_tracker.py`는 연속
+tracking을 함께 검사한다. DDS 설정 검사는 `test_learned_launch_profile.py`에 둔다.
+
 ## YOLOE-s + SAM2-tiny 공통 실행 프로필
 
 설치되는 `config/fastdds_rgbd.xml`은 Fast DDS 2.6/Humble용 UDP + participant별
@@ -317,12 +327,12 @@ predictor를 각각 준비하므로 기존보다 메모리가 늘어난다. Jets
 (`reference_trim_fraction=0.01`). **탁자 평면으로 바닥을 채우지 않으며 완전한 물체 OBB로
 취급하지 않는다.** 원래 검출 confidence는 `source_confidence`에만 보존한다.
 reference 실패에 GT/color fallback은 없다. mask와 현재 point cloud는 service 결과에
-포함되어 실행 artifact로 저장할 수 있다. 테스트는 `test_reference_*`,
+포함되어 실행 artifact로 저장할 수 있다. 테스트는 `test_reference_service.py`,
 `test_sam2_reference_tracker.py`와 `make test-grasp-pregrasp`에 포함된다.
 
 `config/yoloe_s_sam2_tiny.yaml`은 MuJoCo 파이프라인과 일반 RGB-D 실행에서
 명시적으로 YOLOE를 선택할 때 사용하는 로컬 모델 프로필이다. YOLOE-26s segmentation checkpoint의 bbox만
-검출 결과로 사용하고 마스크는 SAM2.1 tiny로 만든다. 클래스는 cup/wallet/
+검출 결과로 사용하고 마스크는 SAM2.1 tiny로 만든다. 클래스는 cup/computer mouse/
 crumpled tissue/lego brick, YOLOE 입력 크기는 640, confidence 0.25다.
 이는 장면 교체에 맞춘 text prompt 설정이며 새 물체의 검출 정확도를 보증하지 않는다.
 
@@ -334,6 +344,12 @@ API에 보내 bbox를 받고, SAM2.1-tiny는 로컬에서 mask/추적을 담당�
 API 호출 없이 인증 값의 존재와 client 생성만 확인한다. API 접근 권한·quota·bbox 정확도는
 실제 요청에서 별도로 확인해야 하며, 실패 시 YOLOE나 색상 검출기로 자동 대체하지 않는다.
 Gemini confidence는 자기 보고 점수로 YOLOE confidence와 직접 동등 비교할 수 없다.
+Gemini 기본 query는 책상 위의 이동 가능한 물체를 일반적으로 검출하도록 요청한다.
+특정 물체 목록, 고정 label, 수거 완료/잔여 물체 목록은 prompt에 넣지 않는다.
+보이는 외형에 따라 자유롭게 label을 생성하며, 정체가 불분명하면 구체적인 종류를
+추측하는 대신 일반적인 외형 설명을 사용하도록 요청한다. 책상·고정 설비·로봇 부품은
+제외하고, 물체가 없으면 빈 검출 목록을 요청한다. 이는 오탐 방지를 보장하지 않으며
+객체 ID 유지나 프레임 간 일관성 검증을 추가하는 기능은 아니다.
 일반 `learned_rgbd.launch.py`도 `gemini_flash_lite_sam2_tiny.yaml`을 기본으로
 사용한다. `model_profile:=<yaml>`로 대체 프로필을 명시할 수 있다.
 SAM2 reference/wrist service의 시작 조건은 YOLOE와 Gemini 검출기를 모두 지원한다.

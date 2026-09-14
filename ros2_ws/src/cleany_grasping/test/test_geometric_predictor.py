@@ -108,7 +108,7 @@ def test_upward_closing_preference_only_reorders_equal_quality_candidates():
     assert preferred[0].rotation[2, 1] > 0
 
 
-def test_thin_object_predictor_generates_nearer_contacts_without_score_inflation():
+def test_thin_object_prefers_center_but_retains_nearer_fallback_without_score_inflation():
     target, context = tabletop_scene()
     target = cloud(target.points * (1., 1., .25))
     context = cloud(context.points * (1., 1., .25))
@@ -118,7 +118,8 @@ def test_thin_object_predictor_generates_nearer_contacts_without_score_inflation
     shifted = GeometricGraspPredictor(GeometricGraspConfig(**options,
         longitudinal_offset_fractions=(0., -.25, .25))).predict(target, context, np.zeros(6))
     assert len(shifted) > len(plain)
-    assert shifted[0].translation[0] < plain[0].translation[0] - .005
+    np.testing.assert_allclose(shifted[0].translation, plain[0].translation, atol=1e-6)
+    assert any(item.translation[0] < plain[0].translation[0] - .005 for item in shifted)
     assert shifted[0].score == pytest.approx(plain[0].score)
     assert shifted[0].width_m == pytest.approx(plain[0].width_m)
     assert shifted[0].translation[2] == pytest.approx(plain[0].translation[2])
@@ -140,6 +141,19 @@ def test_plane_deferral_preserves_above_plane_context_obstacles(monkeypatch, def
     for points in observed:
         assert np.any(points[:, 2] >= .10)
         assert bool(np.any(np.abs(points[:, 2]) < 1e-9)) is not deferred
+
+
+def test_topdown_only_keeps_all_shoulder_and_reverse_candidates_vertical():
+    target, context = tabletop_scene()
+    predictor = GeometricGraspPredictor(GeometricGraspConfig(
+        approach_tilt_degrees=0., approach_tilt_options=(),
+        approach_reference_positions=((.1163, .185117, .447797),
+                                      (.116101, -.185063, .447797)),
+        include_reverse_closing_axis=True, maximum_candidates=96))
+    candidates = predictor.predict(target, context, np.zeros(6))
+    assert candidates
+    for candidate in candidates:
+        assert np.allclose(candidate.rotation[:, 0], (0., 0., -1.), atol=1e-3)
 
 
 def test_generates_ranked_top_down_candidates_for_tabletop_box() -> None:

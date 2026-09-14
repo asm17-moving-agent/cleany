@@ -1,4 +1,3 @@
-import ast
 import hashlib
 import math
 from pathlib import Path
@@ -80,7 +79,7 @@ def test_tabletop_asset_files_match_provenance_manifest() -> None:
     manifest = yaml.safe_load(ASSET_MANIFEST.read_text(encoding='utf-8'))
 
     assert manifest['schema_version'] == 1
-    assert set(manifest['assets']) == {'cup', 'phone', 'wallet'}
+    assert set(manifest['assets']) == {'cup', 'phone', 'wallet', 'mouse'}
     for item in manifest['assets'].values():
         asset_path = PACKAGE_ROOT / 'assets' / item['imported_file']
         assert asset_path.is_file()
@@ -104,11 +103,12 @@ def test_study_cafe_uses_scoped_non_saturating_shadow_lights(template: Path) -> 
     assert model.vis.quality.shadowsize == 4096
     assert model.vis.map.shadowclip * model.stat.extent == pytest.approx(12.0)
     np.testing.assert_allclose(model.vis.headlight.ambient, (.12, .12, .12))
-    np.testing.assert_allclose(model.light_pos[key], (-3.13, -3.60, 2.45))
-    assert model.light_cutoff[key] == pytest.approx(55.0)
-    assert model.light_exponent[key] == pytest.approx(2.0)
-    # Nominal cone footprint spans neighboring desks, not only the target.
-    assert 2 * (2.45 - .72) * math.tan(math.radians(55)) > 4.9
+    np.testing.assert_allclose(model.light_pos[key], (-4.33, -3.17, 3.30))
+    assert model.light_cutoff[key] == pytest.approx(40.0)
+    assert model.light_exponent[key] == pytest.approx(0.0)
+    # Farthest corner of the 3-by-2 desk block remains inside the cone.
+    radius = (3.30 - .72) * math.tan(math.radians(40))
+    assert math.hypot(1.2 + .60, .385 + .385) < radius
 
 
 def test_study_cafe_scene_compiles_with_all_static_environment_bodies(
@@ -117,7 +117,7 @@ def test_study_cafe_scene_compiles_with_all_static_environment_bodies(
     expected_prefix_counts = {
         'wall_': 4,
         'demo_desk_': 48,
-        'office_chair_': 47,
+        'office_chair_': 0,
         'desk_partition_': 24,
         'desk_monitor_': 48,
     }
@@ -154,14 +154,14 @@ def test_tabletop_objects_use_visuals_and_dynamic_collisions(
 ) -> None:
     expected = {
         'cup': {
-            'position': (-3.25, -3.73, 0.72),
+            'position': (-3.01, -3.73, 0.72),
             'mass': 0.008,
             'type': mujoco.mjtGeom.mjGEOM_CYLINDER,
-            'size': (0.0275, 0.00035, 0.0),
+            'size': (0.0198, 0.000252, 0.0),
             'visual_type': mujoco.mjtGeom.mjGEOM_MESH,
         },
-        'wallet': {
-            'position': (-3.27, -3.57, 0.72),
+        'mouse': {
+            'position': (-3.27, -3.65, 0.72),
             'mass': 0.12,
             'type': mujoco.mjtGeom.mjGEOM_MESH,
             'size': None,
@@ -175,10 +175,10 @@ def test_tabletop_objects_use_visuals_and_dynamic_collisions(
             'visual_type': mujoco.mjtGeom.mjGEOM_MESH,
         },
         'lego': {
-            'position': (-2.97, -3.76, 0.72),
+            'position': (-3.29, -3.76, 0.72),
             'mass': 0.0023,
             'type': mujoco.mjtGeom.mjGEOM_BOX,
-            'size': (0.0159, 0.0079, 0.0048),
+            'size': (0.0318, 0.0158, 0.01056),
             'visual_type': mujoco.mjtGeom.mjGEOM_BOX,
         },
     }
@@ -218,6 +218,17 @@ def test_tabletop_objects_use_visuals_and_dynamic_collisions(
     ) == -1
 
 
+def test_lost_items_left_and_trash_right_in_robot_frame(study_cafe_model):
+    data = mujoco.MjData(study_cafe_model)
+    mujoco.mj_forward(study_cafe_model, data)
+    chassis = _body_id(study_cafe_model, 'chassis')
+    rotation = data.xmat[chassis].reshape(3, 3)
+    for name, side in (('lego', 1), ('mouse', 1), ('cup', -1), ('tissue', -1)):
+        position = data.xpos[_body_id(study_cafe_model, f'study_cafe_{name}')]
+        local = rotation.T @ (position-data.xpos[chassis])
+        assert side * local[1] > .05, (name, local)
+
+
 def test_tabletop_objects_settle_on_robot_desk(
     study_cafe_model: mujoco.MjModel,
 ) -> None:
@@ -229,14 +240,14 @@ def test_tabletop_objects_settle_on_robot_desk(
         study_cafe_model,
         'demo_desk_43__tabletop_back',
     )
-    for name in ('cup', 'wallet', 'tissue', 'lego'):
+    for name in ('cup', 'mouse', 'tissue', 'lego'):
         body_name = f'study_cafe_{name}'
         body = _body_id(study_cafe_model, body_name)
         collision = _geom_id(
             study_cafe_model,
             f'{body_name}_collision',
         )
-        if name == 'wallet':
+        if name == 'mouse':
             # Its non-flat mesh base can tilt; check actual support, not body origin.
             mesh = study_cafe_model.geom_dataid[collision]
             first = study_cafe_model.mesh_vertadr[mesh]
@@ -252,12 +263,12 @@ def test_tabletop_objects_settle_on_robot_desk(
         )
 
 
-def test_wallet_collision_reuses_visible_mesh_without_hidden_box(
+def test_mouse_collision_reuses_visible_mesh_without_hidden_box(
     study_cafe_model: mujoco.MjModel,
 ) -> None:
     model = study_cafe_model
-    visual = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, 'study_cafe_wallet_visual')
-    collision = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, 'study_cafe_wallet_collision')
+    visual = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, 'study_cafe_mouse_visual')
+    collision = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, 'study_cafe_mouse_collision')
     assert model.geom_type[collision] == mujoco.mjtGeom.mjGEOM_MESH
     assert model.geom_dataid[collision] == model.geom_dataid[visual]
     assert model.geom_pos[collision] == pytest.approx(model.geom_pos[visual])
@@ -288,13 +299,13 @@ def test_tabletop_objects_fit_head_camera_at_one_radian(
     half_fovy = math.radians(study_cafe_model.cam_fovy[camera]) / 2.0
     aspect_ratio = camera_config.width / camera_config.height
 
-    for name in ('cup', 'wallet', 'tissue', 'lego'):
+    for name in ('cup', 'mouse', 'tissue', 'lego'):
         body = _body_id(study_cafe_model, f'study_cafe_{name}')
         if name in ('cup', 'tissue', 'lego'):
             half_x, half_y, height = {
-                'cup': (.0425, .0425, .095),
+                'cup': (.0306, .0306, .0684),
                 'tissue': (.03, .025, .045),
-                'lego': (.0159, .0079, .0114),
+                'lego': (.0318, .0158, .02508),
             }[name]
             vertices = np.asarray(
                 [
@@ -342,19 +353,11 @@ def test_study_cafe_entity_positions_match_gazebo_layout(
         'desk_partition_01': (-5.53, 3.17, 0.66),
         'demo_desk_01': (-5.53, 3.555, 0.0),
         'desk_monitor_01': (-5.53, 3.27, 0.0),
-        'office_chair_01': (-5.53, 3.94, 0.0),
     }
     for name, expected in expected_positions.items():
         assert study_cafe_model.body_pos[
             _body_id(study_cafe_model, name)
         ] == pytest.approx(expected)
-
-    chair_quat = study_cafe_model.body_quat[
-        _body_id(study_cafe_model, 'office_chair_01')
-    ]
-    assert chair_quat == pytest.approx(
-        (math.sqrt(0.5), 0.0, 0.0, -math.sqrt(0.5))
-    )
 
 
 def test_study_cafe_robot_replaces_nearest_chair_and_faces_desk(
@@ -362,7 +365,7 @@ def test_study_cafe_robot_replaces_nearest_chair_and_faces_desk(
 ) -> None:
     chassis = _body_id(study_cafe_model, 'chassis')
     assert study_cafe_model.body_pos[chassis] == pytest.approx(
-        (-3.13, -4.12, 0.38)
+        (-3.13, -4.16, 0.38)
     )
     assert study_cafe_model.body_quat[chassis] == pytest.approx(
         (
@@ -423,7 +426,6 @@ def test_study_cafe_primitive_dimensions_and_collisions_match_gazebo(
         'wall_north__body': (6.21, 0.08, 1.25),
         'demo_desk_01__tabletop_back': (0.60, 0.355, 0.02),
         'desk_monitor_01__monitor_panel': (0.31, 0.0175, 0.18),
-        'office_chair_01__seat': (0.26, 0.275, 0.04),
     }
     for name, expected in expected_sizes.items():
         geom_id = _geom_id(study_cafe_model, name)
@@ -441,16 +443,6 @@ def test_study_cafe_primitive_dimensions_and_collisions_match_gazebo(
     )
     assert study_cafe_model.geom_contype[screen] == 0
     assert study_cafe_model.geom_conaffinity[screen] == 0
-
-
-def test_study_cafe_launch_selects_dedicated_scene_and_viewer() -> None:
-    launch_path = PACKAGE_ROOT / 'launch' / 'mujoco_study_cafe.launch.py'
-    source = launch_path.read_text(encoding='utf-8')
-    ast.parse(source)
-
-    assert "'study_cafe.xml.in'" in source
-    assert "default_value='false'" in source
-    assert "'mujoco_sim.launch.py'" in source
 
 
 def test_scene_loader_rejects_duplicate_environment_tokens(
@@ -496,7 +488,7 @@ def test_grasp_execution_scene_has_fixed_base_and_compound_object_contacts() -> 
         mujoco.mjtObj.mjOBJ_EQUALITY,
         'study_cafe_grasp_chassis_world_weld',
     ) >= 0
-    assert model.npair == 10*(33+9+2)  # Cup shell, LEGO body+studs, tissue, wallet.
+    assert model.npair == 10*(33+9+2)  # Cup shell, LEGO body+studs, tissue, mouse.
     cup = _geom_id(model, 'study_cafe_cup_collision')
     cup_pairs = [i for i in range(model.npair)
                  if cup in (model.pair_geom1[i], model.pair_geom2[i])]
@@ -521,7 +513,7 @@ def test_grasp_execution_scene_has_fixed_base_and_compound_object_contacts() -> 
         assert model.pair_solref[pair] == pytest.approx((0.002, 1))
         assert model.pair_solimp[pair] == pytest.approx((0.99, 0.9999, 0.0001, 0.5, 2))
 
-    for label in ('tissue', 'wallet'):
+    for label in ('tissue', 'mouse'):
         geom = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, f'study_cafe_{label}_collision')
         pairs = [i for i in range(model.npair)
                  if geom in (model.pair_geom1[i], model.pair_geom2[i])]

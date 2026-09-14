@@ -31,7 +31,9 @@ from rclpy.node import Node
 from cleany_skill_executor.core.grasp_selection import quaternion_axis
 
 
-TARGET = (0.296499, 0.521873, 0.705470)
+# Preserve the synthetic arm-relative pose after the CAD shoulder translation
+# (+0.0263, +0.029917, +0.036297 m); runtime still checks IK and execution.
+TARGET = (0.322799, 0.551790, 0.741767)
 ORIENTATION = (-0.308136, -0.164442, 0.887690, 0.300028)
 APPROACH = quaternion_axis(ORIENTATION, (0.0, -1.0, 0.0))
 
@@ -225,7 +227,7 @@ def test_nearest_failure_falls_back_and_executes_pregrasp() -> None:
                                 'nearest pre-grasp launch exited early\n'
                                 + text[-12000:]
                             )
-                        if 'NEAREST PREGRASP FAILED' in text:
+                        if 'NEAREST GRASP PIPELINE FAILED' in text:
                             pytest.fail(
                                 'nearest pre-grasp reported failure\n'
                                 + text[-12000:]
