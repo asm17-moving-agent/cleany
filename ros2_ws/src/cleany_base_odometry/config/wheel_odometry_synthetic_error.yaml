@@ -1,0 +1,15 @@
+wheel_odometry:
+  ros__parameters:
+    input_topic: joint_states
+    output_topic: wheel/odom
+    odom_frame_id: odom
+    base_frame_id: base_link
+    # Synthetic, uncalibrated values for pipeline robustness tests.
+    # Radius is +1%; wheelbase and separation are -1% from the nominal model.
+    wheel_radius_m: 0.064135
+    wheelbase_m: 0.297
+    wheel_separation_m: 0.5049
+    front_left_joint: front_left_wheel_joint
+    front_right_joint: front_right_wheel_joint
+    rear_left_joint: rear_left_wheel_joint
+    rear_right_joint: rear_right_wheel_joint

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import rclpy
 from geometry_msgs.msg import TransformStamped
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from tf2_ros.static_transform_broadcaster import StaticTransformBroadcaster
@@ -79,7 +80,7 @@ def main(args: list[str] | None = None) -> None:
     node = GazeboSensorTfPublisher()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         try:

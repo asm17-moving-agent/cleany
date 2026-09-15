@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from cleany_gazebo_sim.sensor_profile_launch import (
+from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     SENSOR_PROFILES,
     sensor_profile_bridge_groups,
 )
@@ -32,11 +32,14 @@ NAVIGATION_TOPICS = {
     '/gazebo_cmd_vel',
     '/gazebo_odom',
     '/ground_truth/odom',
+    '/joint_states',
     '/clock',
     '/scan',
     '/imu/data',
 }
+JOINT_STATE_TOPIC = '/model/cleany_mecanum/joint_state'
 FORTRESS_ODOMETRY_TOPIC = '/model/cleany_mecanum/ground_truth'
+HARMONIC_ODOMETRY_TOPIC = '/model/cleany_mecanum/odometry'
 
 
 def _entries(path: Path) -> list[dict[str, object]]:
@@ -87,26 +90,59 @@ def test_sensor_profiles_select_only_their_bridge_groups() -> None:
         sensor_profile_bridge_groups('all_sensors')
 
 
-def test_split_bridge_configs_match_ros_topic_contract() -> None:
+@pytest.mark.parametrize(
+    ('suffix', 'transport_namespace'),
+    (('', 'ignition.msgs.'), ('_harmonic', 'gz.msgs.')),
+)
+def test_split_bridge_configs_match_ros_topic_contract(
+    suffix: str,
+    transport_namespace: str,
+) -> None:
     for group, expected_topics in EXPECTED_GROUP_TOPICS.items():
-        path = CONFIG_ROOT / f'{group}_bridge.yaml'
+        path = CONFIG_ROOT / f'{group}_bridge{suffix}.yaml'
         entries = _entries(path)
         assert _ros_topics(path) == expected_topics
         assert all(
-            str(entry['gz_type_name']).startswith('ignition.msgs.')
+            str(entry['gz_type_name']).startswith(transport_namespace)
             for entry in entries
         )
 
 
-def test_navigation_bridge_exposes_only_runtime_topics() -> None:
-    path = CONFIG_ROOT / 'navigation_bridge.yaml'
+@pytest.mark.parametrize(
+    ('filename', 'transport_namespace'),
+    (
+        ('navigation_bridge.yaml', 'ignition.msgs.'),
+        ('navigation_bridge_harmonic.yaml', 'gz.msgs.'),
+    ),
+)
+def test_navigation_bridge_exposes_only_runtime_topics(
+    filename: str,
+    transport_namespace: str,
+) -> None:
+    path = CONFIG_ROOT / filename
     entries = _entries(path)
     assert _ros_topics(path) == NAVIGATION_TOPICS
     assert all('/camera/' not in topic for topic in _ros_topics(path))
     assert all(
-        str(entry['gz_type_name']).startswith('ignition.msgs.')
+        str(entry['gz_type_name']).startswith(transport_namespace)
         for entry in entries
     )
+
+
+@pytest.mark.parametrize(
+    'filename',
+    (
+        'bridge.yaml',
+        'bridge_harmonic.yaml',
+        'core_bridge.yaml',
+        'core_bridge_harmonic.yaml',
+        'navigation_bridge.yaml',
+        'navigation_bridge_harmonic.yaml',
+    ),
+)
+def test_joint_state_bridge_is_independent_of_world_name(filename: str) -> None:
+    entry = _entry_for_ros_topic(CONFIG_ROOT / filename, '/joint_states')
+    assert entry['gz_topic_name'] == JOINT_STATE_TOPIC
 
 
 @pytest.mark.parametrize(
@@ -123,3 +159,25 @@ def test_fortress_uses_odometry_publisher_fallback(filename: str) -> None:
     assert entry['direction'] == 'GZ_TO_ROS'
     assert ground_truth['gz_topic_name'] == FORTRESS_ODOMETRY_TOPIC
     assert ground_truth['gz_type_name'] == 'ignition.msgs.Odometry'
+
+
+@pytest.mark.parametrize(
+    'filename',
+    (
+        'bridge_harmonic.yaml',
+        'core_bridge_harmonic.yaml',
+        'navigation_bridge_harmonic.yaml',
+    ),
+)
+def test_harmonic_uses_mecanum_drive_odometry(filename: str) -> None:
+    path = CONFIG_ROOT / filename
+    entry = _entry_for_ros_topic(path, '/gazebo_odom')
+    ground_truth = _entry_for_ros_topic(path, '/ground_truth/odom')
+    assert entry['gz_topic_name'] == HARMONIC_ODOMETRY_TOPIC
+    assert entry['gz_type_name'] == 'gz.msgs.Odometry'
+    assert entry['ros_type_name'] == 'nav_msgs/msg/Odometry'
+    assert entry['direction'] == 'GZ_TO_ROS'
+    assert ground_truth['gz_topic_name'] == (
+        '/model/cleany_mecanum/ground_truth'
+    )
+    assert ground_truth['gz_topic_name'] != entry['gz_topic_name']
