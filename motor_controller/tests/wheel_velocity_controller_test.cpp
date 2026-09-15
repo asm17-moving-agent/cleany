@@ -40,7 +40,9 @@ void testStopResetsController() {
 void testOutputCannotOpposeTargetDirection() {
   cleany::WheelVelocityController controller;
   assert(controller.update(0.1F, 5.0F, 0.01F) == 0.0F);
+  assert(controller.integralError() == 0.0F);
   assert(controller.update(-0.1F, -5.0F, 0.01F) == 0.0F);
+  assert(controller.integralError() == 0.0F);
 }
 
 }  // namespace

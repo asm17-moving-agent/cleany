@@ -30,6 +30,10 @@ class WheelVelocityController {
     const float feedForward =
         targetRadPerSecond / config_.maximumTargetRadPerSecond *
         config_.outputLimitPercent;
+    const float lowerOutput =
+        targetRadPerSecond > 0.0F ? 0.0F : -config_.outputLimitPercent;
+    const float upperOutput =
+        targetRadPerSecond > 0.0F ? config_.outputLimitPercent : 0.0F;
     float candidateIntegral = integralError_ + error * elapsedSeconds;
     if (config_.integralGain > 0.0F) {
       const float integralLimit =
@@ -41,23 +45,18 @@ class WheelVelocityController {
     const float candidateOutput =
         feedForward + config_.proportionalGain * error +
         config_.integralGain * candidateIntegral;
-    const bool saturatingHigh =
-        candidateOutput > config_.outputLimitPercent && error > 0.0F;
-    const bool saturatingLow =
-        candidateOutput < -config_.outputLimitPercent && error < 0.0F;
-    if (!saturatingHigh && !saturatingLow) {
+    const bool windingUp =
+        (candidateOutput > upperOutput && error > 0.0F) ||
+        (candidateOutput < lowerOutput && error < 0.0F);
+    if (!windingUp) {
       integralError_ = candidateIntegral;
     }
 
     const float output =
         feedForward + config_.proportionalGain * error +
         config_.integralGain * integralError_;
-    // A velocity command must not make the PWM direction oppose its target.
     // Direction changes are handled separately after encoder-confirmed stop.
-    if (targetRadPerSecond > 0.0F) {
-      return std::clamp(output, 0.0F, config_.outputLimitPercent);
-    }
-    return std::clamp(output, -config_.outputLimitPercent, 0.0F);
+    return std::clamp(output, lowerOutput, upperOutput);
   }
 
   void reset() {
