@@ -10,6 +10,7 @@ setup(
     version='0.1.0',
     packages=find_packages(exclude=['test']),
     data_files=[
+        (f'share/{package_name}/config/behavior_trees', glob('config/behavior_trees/*.xml')),
         ('share/ament_index/resource_index/packages', [f'resource/{package_name}']),
         (f'share/{package_name}', ['package.xml']),
         (f'share/{package_name}/launch', glob('launch/*.launch.py')),
@@ -44,6 +45,11 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'pan_motion_gate = cleany_gazebo_sim.pan_motion_gate_node:main',
+            'voxel_guard = cleany_gazebo_sim.voxel_guard_node:main',
+            'body_guard_observer = cleany_gazebo_sim.body_guard_observer:main',
+            'obstacle_memory = cleany_gazebo_sim.obstacle_memory_node:main',
+            'depth_clearance = cleany_gazebo_sim.depth_clearance_node:main',
             'gazebo_command_guard = cleany_gazebo_sim.command_guard:main',
             'gazebo_odom_tf_publisher = cleany_gazebo_sim.odom_tf_publisher:main',
             'gazebo_sensor_tf_publisher = cleany_gazebo_sim.sensor_tf_publisher:main',

@@ -1,0 +1,66 @@
+# DWB evaluates the same single-axis commands that will be sent to the guards.
+controller_server:
+  ros__parameters:
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.001
+    min_theta_velocity_threshold: 0.001
+    FollowPath:
+      plugin: dwb_core::DWBLocalPlanner
+      trajectory_generator_name: cleany_axis_controller::AxisGenerator
+      min_vel_x: -0.15
+      max_vel_x: 0.15
+      min_vel_y: -0.15
+      max_vel_y: 0.15
+      max_vel_theta: 0.3
+      min_speed_xy: 0.0
+      max_speed_xy: 0.15
+      min_speed_theta: 0.0
+      acc_lim_x: 0.4
+      acc_lim_y: 0.4
+      acc_lim_theta: 0.6
+      decel_lim_x: -0.4
+      decel_lim_y: -0.4
+      decel_lim_theta: -0.6
+      vx_samples: 11
+      vy_samples: 11
+      vtheta_samples: 11
+      sim_time: 2.0
+      discretize_by_time: true
+      time_granularity: 0.05
+      include_last_point: true
+      limit_vel_cmd_in_traj: false
+      transform_tolerance: 0.3
+      prune_plan: true
+      prune_distance: 1.5
+      forward_prune_distance: 2.0
+      shorten_transformed_plan: true
+      axis_linear_stopped: 0.01
+      axis_angular_stopped: 0.02
+      axis_settle_s: 0.3
+      stateful: true
+      xy_goal_tolerance: 0.12
+      trans_stopped_velocity: 0.01
+      critics: [ObstacleFootprint, PathDist, GoalDist, RotateToGoal]
+      ObstacleFootprint.scale: 0.05
+      PathDist.scale: 32.0
+      GoalDist.scale: 24.0
+      RotateToGoal.scale: 32.0
+      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.lookahead_time: -1.0
+
+planner_server:
+  ros__parameters:
+    GridBased:
+      plugin: nav2_smac_planner::SmacPlannerLattice
+      tolerance: 0.12
+      allow_unknown: false
+      smooth_path: false
+      max_planning_time: 2.0
+      cache_obstacle_heuristic: false
+      # Resolved from the installed nav2_smac_planner package by the launch file.
+      lattice_filepath: ""
+      analytic_expansion_max_length: 0.5
+      cost_penalty: 2.0
+bt_navigator:
+  ros__parameters:
+    plugin_lib_names: [cleany_yield_wait_bt_node]

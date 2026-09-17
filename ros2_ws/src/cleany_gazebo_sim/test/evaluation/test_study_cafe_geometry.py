@@ -153,7 +153,7 @@ def test_robot_is_visible_in_gui_but_excluded_from_lidar(
     )
 
 
-def test_office_chair_uses_fuel_visual_and_primitive_collisions(
+def test_office_chair_collision_matches_visual_surface_transform(
     tmp_path: Path,
 ) -> None:
     world = _world(tmp_path)
@@ -167,14 +167,15 @@ def test_office_chair_uses_fuel_visual_and_primitive_collisions(
     collisions = chair.findall('link/collision')
     assert {
         collision.get('name') for collision in collisions
-    } == {'chair_envelope_collision'}
-    assert chair.findtext(
-        'link/collision/geometry/box/size'
-    ) == '0.72 0.64 0.96'
-    assert all(
-        collision.find('geometry/mesh') is None
-        for collision in collisions
-    )
+    } == {'chair_surface_collision'}
+    visual = chair.find('link/visual')
+    collision = collisions[0]
+    assert chair.findtext('static') == 'true'
+    assert collision.findtext('pose') == visual.findtext('pose')
+    for field in ('uri', 'scale'):
+        assert collision.findtext('geometry/mesh/'+field) == visual.findtext('geometry/mesh/'+field)
+    assert collision.find('geometry/box') is None
+    assert collision.find('geometry/mesh').get('optimization') is None
 
 
 def test_desks_have_white_72_cm_top_and_a_frame_legs(

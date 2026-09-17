@@ -5,6 +5,8 @@ ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
+SAFETY_MODE ?= sensors
+ROBOT_MODEL ?= cad_frame
 HANDEYE_PROFILE_DIR ?= $(REPO_ROOT)artifacts/handeye/profiles/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
@@ -20,7 +22,7 @@ HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-gazebo-harmonic build-handeye test test-mission test-mujoco \
 	test-handeye test-gazebo test-gazebo-harmonic \
-	test-gazebo-nav-runtime test-gazebo-evaluation \
+	test-gazebo-nav-runtime test-gazebo-evaluation test-gazebo-safety view-gazebo-costmap \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
 	sim-gazebo-study-cafe clean
@@ -42,6 +44,8 @@ help:
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
 	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
+	@echo "  make test-gazebo-safety  Run SCRUM-306 sensors/monitor/avoid evaluation"
+	@echo "  make view-gazebo-costmap  Show live costmap over saved SLAM map in RViz"
 	@echo "  make test-gazebo-harmonic  Compatibility alias selecting Harmonic"
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
@@ -134,7 +138,9 @@ test-gazebo: build-gazebo
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" \
-		src/cleany_gazebo_sim/test
+		src/cleany_gazebo_sim/test && \
+	"$${CLEANY_BUILD_BASE}/cleany_axis_controller/test_axis_generator" && \
+	"$${CLEANY_BUILD_BASE}/cleany_axis_controller/test_yield_wait"
 
 test-gazebo-harmonic:
 	$(MAKE) GAZEBO_PROFILE=harmonic test-gazebo
@@ -155,6 +161,26 @@ test-gazebo-evaluation: build-gazebo
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest src/cleany_gazebo_sim/test/evaluation \
 		--run-evaluation-tests
+
+test-gazebo-safety: build-gazebo
+	@test -n "$(SAFETY_MAP)" && test -n "$(SAFETY_OUTPUT)" || \
+		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	test "$${CLEANY_GAZEBO_PROFILE}" = harmonic && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	source "$(ROS2_WS)/$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 "$(REPO_ROOT)tools/navigation_evaluation/run_safety_evaluation.py" \
+		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --mode "$(SAFETY_MODE)" --robot-model "$(ROBOT_MODEL)"
+
+view-gazebo-costmap: build-gazebo
+	@test -n "$(SAFETY_MAP)" && test -n "$(SAFETY_OUTPUT)" || \
+		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	test "$${CLEANY_GAZEBO_PROFILE}" = harmonic && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	source "$(ROS2_WS)/$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 "$(REPO_ROOT)tools/navigation_evaluation/live_costmap.py" \
+		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --robot-model "$(ROBOT_MODEL)" $(if $(filter 1,$(SAFETY_DRIVE)),--drive,)
 
 sim: build
 	source "$(ROS_SETUP)" && \

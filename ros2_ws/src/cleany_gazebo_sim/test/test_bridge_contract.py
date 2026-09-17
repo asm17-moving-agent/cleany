@@ -21,6 +21,7 @@ EXPECTED_GROUP_TOPICS = {
         '/imu/data',
     },
     'lidar': {'/scan'},
+    'head_depth': {'/camera/head/depth/image_raw', '/camera/head/depth/camera_info'},
     'head_rgbd': {
         '/camera/head/color/image_raw',
         '/camera/head/depth/image_raw',
@@ -68,12 +69,14 @@ def _entry_for_ros_topic(path: Path, topic: str) -> dict[str, object]:
 def test_sensor_profiles_select_only_their_bridge_groups() -> None:
     assert SENSOR_PROFILES == (
         'lidar_nav',
+        'lidar_depth_nav',
         'head_rgbd',
         'left_wrist',
         'right_wrist',
         'all_cameras',
     )
     assert sensor_profile_bridge_groups('lidar_nav') == ('core', 'lidar')
+    assert sensor_profile_bridge_groups('lidar_depth_nav') == ('core', 'lidar', 'head_depth')
     assert sensor_profile_bridge_groups('head_rgbd') == ('core', 'head_rgbd')
     assert sensor_profile_bridge_groups('left_wrist') == ('core', 'left_wrist')
     assert sensor_profile_bridge_groups('right_wrist') == (
