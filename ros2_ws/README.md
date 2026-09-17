@@ -34,6 +34,10 @@ make test-handeye
 make test-gazebo
 ```
 
+Telemetry-only checks use `make build-telemetry` and `make test-telemetry`.
+The `cleany_telemetry` package relays latest-only finite `/odom` `x`/`y`
+over the configured WebSocket; see its README for parameters and endpoint.
+
 Hand-eye 패키지 경계만 빌드하려면 `make build-handeye`를 사용한다.
 `make test-handeye`는 description, MuJoCo backend, MoveIt config와 calibration
 패키지를 함께 검사하며 실제 runtime test는 자동으로 `headless:=true`를 사용한다.
