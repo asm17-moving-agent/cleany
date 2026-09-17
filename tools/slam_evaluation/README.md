@@ -22,12 +22,13 @@ source ros2_ws/install/setup.bash
 
 ## Evaluation contract
 
-- 지원 LiDAR 높이: `16p5`, `26`, `45`, `70` cm
+- 지원 LiDAR 높이: `16p5`, `26`, `30`, `45`, `70` cm
 - 공통 frame: `lidar_link`
 - 공통 input: `/scan`, `/odom`, `/tf_static`, `/clock`
 - IMU algorithm input: `/imu/data`
 - 평가 전용 reference: `/ground_truth/odom`
 - 공통 경로: 17-waypoint study-cafe closed loop
+- LiDAR noise: mean 0 m, measured stddev 0.0025 m, stress stddev 0.01 m
 - 비교 후보: slam_toolbox, Cartographer 2D, Cartographer 2D + IMU,
   RTAB-Map 2D
 
@@ -66,47 +67,63 @@ ros2 launch cleany_gazebo_sim evaluation_slam_visualization.launch.py
 
 ## Record common input bags
 
-높이별 study-cafe 경로를 주행하고 비교용 bag을 기록합니다.
-Script는 LiDAR frame, Gazebo process, route 완료 여부를 검사합니다.
+실험용 Jazzy + Harmonic 환경에서 높이·LiDAR noise profile별
+study-cafe 경로를 주행하고 비교용 bag을 기록합니다. Physics는 2 ms
+timestep과 목표 RTF 2.0을 사용합니다. Script는 LiDAR frame, Gazebo
+process, `/clock`, recorder, route 완료 여부를 검사하고 실행별 Gazebo
+Transport partition을 분리합니다. 제품 edge runtime의
+Humble 기준은 변경하지 않습니다. Jazzy가 기록한 SQLite bag의 QoS metadata는
+원본을 `metadata.jazzy.yaml`로 보존하고 Humble 호환 metadata v5로 변환합니다.
+OGRE2 장시간 sensor rendering이 중단되는 환경에서는 각 route edge를
+별도 Gazebo process로 기록하고 simulation stamp를 보정해 병합합니다.
 
 ```bash
-for height in 16p5 26 45 70; do
-  ./tools/slam_evaluation/record_slam_input.sh "$height"
+for noise in measured stress; do
+  for height in 16p5 30 45; do
+    GAZEBO_PROFILE=harmonic \
+      ./tools/slam_evaluation/record_slam_input.sh "$height" "$noise"
+  done
 done
+```
+
+```bash
+./tools/slam_evaluation/record_segmented_slam_input.sh 16p5 measured
 ```
 
 입력은 다음 경로에 생성됩니다.
 
 ```text
-ros2_ws/slam_results/algorithm_compare_inputs/input_<height>cm_trial1/
+ros2_ws/slam_results/algorithm_compare_inputs/<noise>/input_<height>cm_trial1/
 ```
 
 ## Run algorithm comparison
 
-전체 알고리즘×높이 조합을 기본 2.5배속으로 replay합니다.
+기본 실험 행렬인 noise 2종×알고리즘 2종×높이 3종, 총 12개 조합을
+2.5배속으로 replay합니다.
 
 ```bash
 ./tools/slam_evaluation/run_slam_algorithm_comparison.sh
 ```
 
-알고리즘과 높이 하나만 선택할 수 있습니다.
+알고리즘, 높이, LiDAR noise profile 하나씩 선택할 수 있습니다.
 
 ```bash
 ./tools/slam_evaluation/run_slam_algorithm_comparison.sh \
-  cartographer_imu 16p5
+  cartographer 16p5 measured
 ```
 
 Replay 배속은 `SLAM_REPLAY_RATE`로 변경합니다.
 
 ```bash
 SLAM_REPLAY_RATE=1.0 \
-  ./tools/slam_evaluation/run_slam_algorithm_comparison.sh slam_toolbox 26
+  ./tools/slam_evaluation/run_slam_algorithm_comparison.sh \
+    slam_toolbox 30 measured
 ```
 
 Run output은 다음 경로에 생성됩니다.
 
 ```text
-ros2_ws/slam_results/algorithm_compare_runs/<algorithm>/<height>cm/
+ros2_ws/slam_results/algorithm_compare_runs/<noise>/<algorithm>/<height>cm/
 ```
 
 공통 생성물은 `map_final.pgm/.png/.yaml`, `result_bag/`, log,
@@ -124,6 +141,7 @@ map YAML의 resolution/origin을 사용해 world coordinate로 투영합니다.
 
 ```bash
 python3 tools/slam_evaluation/analyze_slam_algorithm_comparison.py
+python3 tools/slam_evaluation/render_lidar_noise_map_matrix.py
 python3 tools/slam_evaluation/capture_gazebo_top_view.py
 python3 tools/slam_evaluation/render_slam_algorithm_overlays.py
 ```
@@ -136,6 +154,58 @@ python3 tools/slam_evaluation/render_slam_algorithm_overlays.py
 - valid scan ratio와 scan rate
 - real-time factor와 resource usage
 - 사각, 가림, 벽 왜곡, loop closure 정성 관찰
+
+## 30 cm odometry-noise matrix
+
+기존 30 cm `measured` LiDAR bag의 `/scan`, `/ground_truth/odom`, `/clock`은
+그대로 유지하고 `/odom`만 deterministic synthetic error level로 교체합니다.
+Level 0은 입력 odom에 추가 합성 오차를 넣지 않고, Level 3은 기존 stress이며
+Level 1과 2는 모든 수치 parameter의 1/3, 2/3 선형 보간입니다. Level 0도 원본
+wheel odom 자체의 오차는 남아 있으므로 완전한 ground-truth odom을 뜻하지 않습니다.
+실제 하드웨어 측정 profile로 해석하지 않습니다.
+
+```bash
+python3 tools/slam_evaluation/materialize_odometry_noise_bags.py
+./tools/slam_evaluation/run_odometry_noise_comparison.sh
+python3 tools/slam_evaluation/analyze_odometry_noise_comparison.py
+python3 tools/slam_evaluation/render_odometry_noise_map_matrix.py
+```
+
+파생 bag과 8개 SLAM run, 비교 결과는 각각 아래에 생성됩니다.
+
+```text
+ros2_ws/slam_results/odometry_noise/inputs/<level>/input_30cm_trial1/
+ros2_ws/slam_results/odometry_noise/runs/<algorithm>/<level>/
+ros2_ws/slam_results/odometry_noise/comparison/map_matrix_2x4.png
+```
+
+생성기는 기존 output을 덮어쓰지 않습니다. 각 cell은 고정 seed 42를 사용하는
+단일 synthetic trial이므로 통계적 우열이 아니라 단계별 강건성 확인 결과입니다.
+
+실제 simulated encoder와 Mecanum 적분을 포함하려면 Study-cafe route를 한 번
+기록해 `/wheel/odom_raw`을 원본으로 사용합니다. 이 실험은 live mapping과 같은
+slam_toolbox loop parameter를 replay에도 사용합니다. 파생 bag은 지도 생성에
+필요하지 않은 고주기 wheel/joint 진단 topic을 복제하지 않으며, 분석 결과에는
+각 단계의 입력 odom과 최종 SLAM 궤적을 각각 GT와 비교한 ATE/RPE를 함께 남깁니다.
+
+```bash
+SLAM_INPUT_PATH=ros2_ws/slam_results/odometry_noise_wheel_raw/base/input_30cm_trial1 \
+SLAM_ENVIRONMENT_PATH=ros2_ws/slam_results/odometry_noise_wheel_raw/base/environment \
+GAZEBO_PROFILE=harmonic \
+  ./tools/slam_evaluation/record_slam_input.sh 30 measured
+
+python3 tools/slam_evaluation/materialize_odometry_noise_bags.py \
+  --input-bag ros2_ws/slam_results/odometry_noise_wheel_raw/base/input_30cm_trial1 \
+  --source-odom-topic /wheel/odom_raw \
+  --output-root ros2_ws/slam_results/odometry_noise_wheel_raw/inputs
+
+ODOMETRY_EXPERIMENT_NAME=odometry_noise_wheel_raw \
+  ./tools/slam_evaluation/run_odometry_noise_comparison.sh
+python3 tools/slam_evaluation/analyze_odometry_noise_comparison.py \
+  --experiment-name odometry_noise_wheel_raw
+python3 tools/slam_evaluation/render_odometry_noise_map_matrix.py \
+  --experiment-name odometry_noise_wheel_raw
+```
 
 ## Moved-chair localization
 

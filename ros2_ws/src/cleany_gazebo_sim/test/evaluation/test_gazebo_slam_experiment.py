@@ -24,13 +24,17 @@ def test_mount_profiles_define_distinct_candidate_transforms() -> None:
     profiles = load_mount_profiles(PROFILES_PATH)
 
     assert set(profiles) == {
-        'floor_16p5cm', 'floor_26cm', 'floor_45cm', 'floor_70cm'
+        'floor_16p5cm', 'floor_26cm', 'floor_30cm', 'floor_45cm',
+        'floor_70cm',
     }
     assert profiles['floor_16p5cm'].transform.translation == (
         0.16, 0.0, -0.215
     )
     assert profiles['floor_26cm'].transform.translation == (
         0.16, 0.0, -0.12
+    )
+    assert profiles['floor_30cm'].transform.translation == (
+        0.16, 0.0, -0.08
     )
     assert profiles['floor_45cm'].transform.translation == (
         0.16, 0.0, 0.07
@@ -41,7 +45,7 @@ def test_mount_profiles_define_distinct_candidate_transforms() -> None:
     translations = {
         profile.transform.translation for profile in profiles.values()
     }
-    assert len(translations) == 4
+    assert len(translations) == 5
     assert all(
         profile.transform.parent_frame_id == 'base_link'
         and profile.transform.child_frame_id == 'lidar_link'
@@ -77,6 +81,7 @@ def test_profile_loader_rejects_duplicate_transforms(tmp_path: Path) -> None:
     (
         'floor_16p5cm',
         'floor_26cm',
+        'floor_30cm',
         'floor_45cm',
         'floor_70cm',
     ),
@@ -97,11 +102,15 @@ def test_materialized_world_and_tf_match_profile(
 
     root = ElementTree.parse(artifacts.world_path).getroot()
     mount = root.find(
-        "./world/model[@name='cleany_mecanum']/joint[@name='lidar_mount']"
+        "./world/model[@name='cleany_mecanum']/frame[@name='lidar_mount']"
     )
     assert mount is not None
-    assert mount.findtext('parent') == profile.transform.parent_frame_id
-    assert mount.findtext('child') == profile.transform.child_frame_id
+    assert mount.get('attached_to') == profile.transform.parent_frame_id
+    lidar_frame = root.find(
+        "./world/model[@name='cleany_mecanum']/frame[@name='lidar_link']"
+    )
+    assert lidar_frame is not None
+    assert lidar_frame.get('attached_to') == 'lidar_mount'
     pose = [float(value) for value in mount.findtext('pose', '').split()]
     assert tuple(pose[:3]) == profile.transform.translation
     assert pose[3:] == [0.0, 0.0, 0.0]
@@ -214,14 +223,18 @@ def test_result_validation_rejects_invalid_ratio() -> None:
 
 
 def test_launch_profiles_accept_materialized_sensor_config() -> None:
-    launch = (PACKAGE_ROOT / 'launch' / 'gazebo_fortress.launch.py').read_text(
-        encoding='utf-8'
-    )
-    assert "DeclareLaunchArgument(\n        'sensor_config'" in launch
-    sensor_node = launch.split(
-        "executable='gazebo_sensor_tf_publisher'", 1
-    )[1]
-    assert "LaunchConfiguration('sensor_config')" in sensor_node
+    for launch_name in (
+        'gazebo_fortress.launch.py',
+        'gazebo_harmonic.launch.py',
+    ):
+        launch = (PACKAGE_ROOT / 'launch' / launch_name).read_text(
+            encoding='utf-8'
+        )
+        assert "DeclareLaunchArgument(\n        'sensor_config'" in launch
+        sensor_node = launch.split(
+            "executable='gazebo_sensor_tf_publisher'", 1
+        )[1]
+        assert "LaunchConfiguration('sensor_config')" in sensor_node
 
 
 def test_fortress_gui_renderer_is_machine_selectable() -> None:
@@ -231,6 +244,7 @@ def test_fortress_gui_renderer_is_machine_selectable() -> None:
     assert "'gui_render_engine'" in launch
     assert "'GAZEBO_GUI_RENDER_ENGINE', default_value='ogre'" in launch
     assert "choices=['ogre', 'ogre2']" in launch
+    assert "'server_render_engine'" in launch
     gui_command = launch.split("gui = ExecuteProcess(", 1)[1]
-    assert "'--render-engine-server',\n            'ogre2'" in gui_command
+    assert "LaunchConfiguration('server_render_engine')" in gui_command
     assert "LaunchConfiguration('gui_render_engine')" in gui_command

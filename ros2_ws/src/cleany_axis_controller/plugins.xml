@@ -1,0 +1,5 @@
+<library path="axis_generator">
+  <class name="cleany_axis_controller::AxisGenerator" type="cleany_axis_controller::AxisGenerator" base_class_type="dwb_core::TrajectoryGenerator">
+    <description>Single-axis commands, acceleration-aware rollout and stop-before-switch.</description>
+  </class>
+</library>
