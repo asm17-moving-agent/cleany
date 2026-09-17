@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from math import asin, atan2, cos, isfinite, pi, sin, sqrt
+import json
 from pathlib import Path
 from tempfile import mkdtemp
 from xml.etree import ElementTree
@@ -245,6 +247,7 @@ def materialize_mecanum_wheel_world(
     *,
     target_path: Path | None = None,
     sensor_render_engine: str = 'ogre2',
+    robot_model: str = 'legacy',
 ) -> Path:
     """Materialize compact mecanum visuals without exposing roller joints."""
     if sensor_render_engine not in {'ogre', 'ogre2'}:
@@ -288,6 +291,19 @@ def materialize_mecanum_wheel_world(
     render_engine.text = sensor_render_engine
     _freeze_folded_arms(robot)
     _collapse_fixed_upper_body(robot)
+    model_metadata = None
+    if robot_model == 'cad_frame':
+        from ament_index_python.packages import get_package_share_directory
+        from cleany_gazebo_sim.world.cad_frame import adapt_cad_frame
+        new_robot, model_metadata = adapt_cad_frame(
+            robot, Path(get_package_share_directory('cleany_description')),
+            template_path.parent.parent/'config/cad_frame.yaml',
+        )
+        root.find('world').remove(robot)
+        root.find('world').append(new_robot)
+        robot = new_robot
+    elif robot_model != 'legacy':
+        raise ValueError(f'Unknown robot model: {robot_model}')
     for visual in robot.findall('.//visual'):
         flags = visual.find('visibility_flags')
         if flags is None:
@@ -329,6 +345,8 @@ def materialize_mecanum_wheel_world(
     ElementTree.ElementTree(root).write(
         target, encoding='unicode', xml_declaration=True
     )
+    if model_metadata is not None:
+        target.with_suffix('.model.json').write_text(json.dumps(model_metadata, indent=2))
     return target
 
 
@@ -806,7 +824,7 @@ def _add_office_chair(
     name: str,
     pose: tuple[float, float, float, float, float, float],
 ) -> None:
-    """Add a Fuel office-chair visual with lightweight collisions."""
+    """Use the same low-poly mesh for the static chair's visible and contact surfaces."""
     model = ElementTree.SubElement(world, 'model', {'name': name})
     ElementTree.SubElement(model, 'static').text = 'true'
     ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
@@ -826,10 +844,15 @@ def _add_office_chair(
     ]
     ElementTree.SubElement(mesh, 'scale').text = '0.9 0.9 0.9'
 
-    _add_box_collision(
-        link, 'chair_envelope_collision', (0.72, 0.64, 0.96),
-        (-0.04, 0.0, 0.50),
+    # The old solid envelope filled the empty space beneath the seat and
+    # between the legs. Fuel's *_Col.obj is also a coarse solid proxy.
+    # This static visual mesh is only 240 vertices / 221 OBJ faces; preserve
+    # its concavities rather than requesting convex-hull optimization.
+    collision = ElementTree.SubElement(
+        link, 'collision', {'name': 'chair_surface_collision'}
     )
+    collision.append(deepcopy(visual.find('pose')))
+    collision.append(deepcopy(geometry))
 
 
 def _chair_pose_toward(
@@ -891,6 +914,7 @@ def materialize_study_cafe_world(
     sensor_render_engine: str = 'ogre2',
     robot_spawn_pose: tuple[float, float, float, float, float, float]
     | None = None,
+    robot_model: str = 'legacy',
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
@@ -913,9 +937,12 @@ def materialize_study_cafe_world(
         lidar_noise,
         target_path=target.parent / '.robot-world.sdf',
         sensor_render_engine=sensor_render_engine,
+        robot_model=robot_model,
     )
     try:
         root = ElementTree.parse(generated_robot_world).getroot()
+        if robot_model == 'cad_frame':
+            generated_robot_world.with_suffix('.model.json').replace(target.with_suffix('.model.json'))
     finally:
         generated_robot_world.unlink(missing_ok=True)
     world = root.find('world')
