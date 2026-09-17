@@ -534,6 +534,14 @@ AMCL은 Mecanum odometry를 반영하는 `OmniMotionModel`, controller는 latera
 생성할 수 있는 MPPI `Omni` model을 사용합니다. Nav2가 발행한 `/cmd_vel`은 기존
 `gazebo_command_guard`를 거쳐 simulator에 전달됩니다.
 
+선택 지도 `maps/study_cafe_30cm.yaml`은
+`odometry_noise_wheel_raw/runs/cartographer/level0/map_final.*`에서 복사한
+30 cm measured-LiDAR 지도입니다. L0는 추가 odometry 오차를 적용하지 않은
+조건이며, encoder 양자화와 기본 wheel odometry 오차는 남아 있습니다.
+이 지도 사용 시 simulation의 `lidar_profile:=floor_30cm`과 AMCL launch의
+`map:=$(ros2 pkg prefix --share cleany_gazebo_sim)/maps/study_cafe_30cm.yaml`을
+함께 지정합니다. 이 지도에서의 AMCL/Nav2 목표 주행은 아직 검증하지 않았습니다.
+
 기본 지도 `maps/study_cafe_26cm.yaml`은
 `compare_26cm_strict_loop_2p5x_trial1`에서 저장한 26 cm LiDAR 지도입니다. 현재
 canonical `lidar_link`와 입력 높이를 맞추기 위한 integration 기준이며, 실제 LiDAR
