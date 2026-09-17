@@ -27,3 +27,5 @@ DWB의 footprint 비용 평가와 가속·감속 rollout을 사용하며,
 `YieldWait` BT 노드를 제공한다. `wait_duration`은 양의 유한 초 단위이며
 의도적인 양보에는 recovery count를 증가시키지 않는다. 취소와 결과 처리는
 Nav2 BtActionNode를 사용한다. navigator의 `plugin_lib_names`에 등록한다.
+플러그인 등록 헤더는 Nav2가 제공하는 Humble의 BehaviorTree.CPP v3 경로와
+Jazzy의 v4 경로를 지원한다. factory 헤더는 등록 구현 파일에서만 포함한다.
