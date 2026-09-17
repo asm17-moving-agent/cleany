@@ -19,6 +19,7 @@ HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-handeye test test-mission test-mujoco \
+	build-telemetry test-telemetry \
 	test-handeye test-gazebo \
 	test-gazebo-nav-runtime test-gazebo-evaluation \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
@@ -33,10 +34,12 @@ help:
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
+	@echo "  make build-telemetry Build the ROS telemetry package"
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-handeye  Build and test the hand-eye package boundary"
+	@echo "  make test-telemetry Test the ROS telemetry package"
 	@echo "  make handeye-generate-mujoco  Generate analyzed random 20+5 poses"
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
@@ -90,6 +93,17 @@ build-handeye:
 	cd "$(ROS2_WS)" && \
 	colcon build --symlink-install \
 		--packages-up-to cleany_handeye_calibration
+
+build-telemetry:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon build --symlink-install --packages-select cleany_telemetry
+
+test-telemetry: build-telemetry
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source install/setup.bash && \
+	python3 -m pytest src/cleany_telemetry/test
 
 test: build
 	source "$(ROS_SETUP)" && \
