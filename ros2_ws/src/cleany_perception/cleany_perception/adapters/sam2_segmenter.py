@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from contextlib import nullcontext
 from pathlib import Path
+import threading
 from typing import Any
 
 import numpy as np
@@ -14,6 +15,7 @@ from cleany_perception.core.models import (
     ObjectMask,
     RgbArray,
 )
+from cleany_perception.adapters.sam2_runtime import Sam2SharedPredictors
 
 
 PredictorFactory = Callable[[str, str, str], Any]
@@ -26,14 +28,23 @@ class Sam2Segmenter:
         checkpoint_path: str,
         device: str = 'cuda',
         predictor_factory: PredictorFactory | None = None,
+        shared_predictors: Sam2SharedPredictors | None = None,
     ) -> None:
         if not device:
             raise ValueError('SAM2 device must not be empty')
+        if predictor_factory is not None and shared_predictors is not None:
+            raise ValueError('Use either a SAM2 predictor factory or shared predictors')
         self._model_config = model_config
         self._checkpoint_path = checkpoint_path
         self._device = device
         self._predictor_factory = predictor_factory
+        self._shared_predictors = shared_predictors
         self._predictor = None
+        self._lock = (
+            shared_predictors.lock
+            if shared_predictors is not None
+            else threading.RLock()
+        )
 
     def prepare(self) -> None:
         """Load the selected predictor without publishing synthetic results."""
@@ -53,7 +64,7 @@ class Sam2Segmenter:
                 import torch
 
                 inference_context = torch.inference_mode()
-            with inference_context:
+            with self._lock, inference_context:
                 # ROS Image buffers are commonly exposed as read-only NumPy
                 # views. Torch warns that wrapping such arrays can lead to
                 # undefined writes, so SAM2 receives an owned RGB array.
@@ -114,52 +125,57 @@ class Sam2Segmenter:
             ) from error
 
     def _get_predictor(self):
-        if self._predictor is not None:
-            return self._predictor
-        if not self._model_config:
-            raise InspectionFailure(
-                FailureKind.MASK,
-                'SAM2 model config parameter is empty',
-            )
-        if not self._checkpoint_path:
-            raise InspectionFailure(
-                FailureKind.MASK,
-                'SAM2 checkpoint parameter is empty',
-            )
-        if not Path(self._checkpoint_path).is_file():
-            raise InspectionFailure(
-                FailureKind.MASK,
-                f'SAM2 checkpoint not found: {self._checkpoint_path}',
-            )
-        try:
-            if self._predictor_factory is not None:
-                predictor = self._predictor_factory(
-                    self._model_config,
-                    self._checkpoint_path,
-                    self._device,
+        with self._lock:
+            if self._predictor is not None:
+                return self._predictor
+            if self._shared_predictors is not None:
+                predictor = self._shared_predictors.image_predictor()
+                self._predictor = predictor
+                return predictor
+            if not self._model_config:
+                raise InspectionFailure(
+                    FailureKind.MASK,
+                    'SAM2 model config parameter is empty',
                 )
-            else:
-                from sam2.build_sam import build_sam2
-                from sam2.sam2_image_predictor import SAM2ImagePredictor
-
-                predictor = SAM2ImagePredictor(
-                    build_sam2(
+            if not self._checkpoint_path:
+                raise InspectionFailure(
+                    FailureKind.MASK,
+                    'SAM2 checkpoint parameter is empty',
+                )
+            if not Path(self._checkpoint_path).is_file():
+                raise InspectionFailure(
+                    FailureKind.MASK,
+                    f'SAM2 checkpoint not found: {self._checkpoint_path}',
+                )
+            try:
+                if self._predictor_factory is not None:
+                    predictor = self._predictor_factory(
                         self._model_config,
                         self._checkpoint_path,
-                        device=self._device,
+                        self._device,
                     )
-                )
-        except InspectionFailure:
-            raise
-        except ImportError as error:
-            raise InspectionFailure(
-                FailureKind.MASK,
-                'SAM2 is not installed',
-            ) from error
-        except Exception as error:
-            raise InspectionFailure(
-                FailureKind.MASK,
-                f'Failed to load SAM2: {error}',
-            ) from error
-        self._predictor = predictor
-        return predictor
+                else:
+                    from sam2.build_sam import build_sam2
+                    from sam2.sam2_image_predictor import SAM2ImagePredictor
+
+                    predictor = SAM2ImagePredictor(
+                        build_sam2(
+                            self._model_config,
+                            self._checkpoint_path,
+                            device=self._device,
+                        )
+                    )
+            except InspectionFailure:
+                raise
+            except ImportError as error:
+                raise InspectionFailure(
+                    FailureKind.MASK,
+                    'SAM2 is not installed',
+                ) from error
+            except Exception as error:
+                raise InspectionFailure(
+                    FailureKind.MASK,
+                    f'Failed to load SAM2: {error}',
+                ) from error
+            self._predictor = predictor
+            return predictor

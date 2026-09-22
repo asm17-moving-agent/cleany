@@ -106,6 +106,11 @@ workspace dependency와 별도 SAM2 설치는 `docs/DEVELOPMENT_SETUP.md`를 따
 1차 detector-only action은 SAM2와 checkpoint를 로드하거나 호출하지 않는다. Gemini SDK
 또는 API key가 없으면 `ERROR_DETECTOR_API`를 반환한다. 2차 선택 요청에서 처음으로 SAM2를
 lazy load하며 dependency 또는 checkpoint 문제가 있으면 `ERROR_MASK`를 반환한다.
+reference 또는 wrist tracking을 함께 활성화하면 image segmenter는 별도 SAM2 모델을
+만들지 않고 video predictor의 동일한 `SAM2Base` 인스턴스를 감싸서 사용한다. 모델
+weight는 프로세스에 한 벌만 상주하며 image/video 추론은 공유 lock으로 직렬화한다.
+`preload_models=false`에서는 이 공유 모델도 첫 segmentation 또는 tracking 요청까지
+생성하지 않는다.
 
 기본 detector는 `gemini-robotics-er-2-preview`다. Robotics ER 계열은 공식
 Interactions API와 업로드된 RGB snapshot을 사용하고, 요청이 끝나면 원격 임시 파일을

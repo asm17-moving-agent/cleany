@@ -20,6 +20,7 @@ from PIL import Image
 from cleany_perception.core.models import (
     Detection2D, FailureKind, InspectionFailure, MaskArray, RgbArray,
 )
+from cleany_perception.adapters.sam2_runtime import Sam2SharedPredictors
 
 
 def _serialized(method):
@@ -33,13 +34,21 @@ def _serialized(method):
 class Sam2ReferenceTracker:
     def __init__(self, model_config: str, checkpoint_path: str,
                  device: str = 'cuda',
-                 predictor_factory: Callable[[str, str, str], Any] | None = None):
+                 predictor_factory: Callable[[str, str, str], Any] | None = None,
+                 shared_predictors: Sam2SharedPredictors | None = None):
+        if predictor_factory is not None and shared_predictors is not None:
+            raise ValueError('Use either a SAM2 predictor factory or shared predictors')
         self._config = model_config
         self._checkpoint = checkpoint_path
         self._device = device
         self._factory = predictor_factory
+        self._shared_predictors = shared_predictors
         self._predictor = None
-        self._lock = threading.RLock()
+        self._lock = (
+            shared_predictors.lock
+            if shared_predictors is not None
+            else threading.RLock()
+        )
         self._streams = 0
         self._stream_threads = None
         self._previous_threads = None
@@ -47,6 +56,9 @@ class Sam2ReferenceTracker:
     @_serialized
     def prepare(self) -> None:
         if self._predictor is not None:
+            return
+        if self._shared_predictors is not None:
+            self._predictor = self._shared_predictors.video_predictor()
             return
         if not self._config or not self._device or not Path(self._checkpoint).is_file():
             raise InspectionFailure(FailureKind.MASK, 'Invalid SAM2 reference model assets/device')

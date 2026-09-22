@@ -41,6 +41,7 @@ from sensor_msgs.msg import CameraInfo, Image
 from cleany_perception.adapters.gemini_detector import GeminiDetector
 from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
 from cleany_perception.adapters.sam2_reference_tracker import Sam2ReferenceTracker
+from cleany_perception.adapters.sam2_runtime import Sam2SharedPredictors
 from cleany_perception.core.reference_observation import ReferenceObservationConfig
 from cleany_perception.reference_service import ReferenceService
 from cleany_perception.adapters.simulation_color import (
@@ -162,6 +163,21 @@ class InspectionNode(Node):
                                (segmenter_type, segmenter)):
             if supplied is None and kind in ('yoloe', 'sam2'):
                 self._resolve_local_model(kind)
+        shared_sam2 = None
+        if (
+            segmenter is None
+            and reference_tracker is None
+            and segmenter_type == 'sam2'
+            and (
+                bool(self.get_parameter('enable_reference_observation').value)
+                or bool(self.get_parameter('enable_wrist_observation').value)
+            )
+        ):
+            shared_sam2 = Sam2SharedPredictors(
+                str(self.get_parameter('sam2_model_config').value),
+                str(self.get_parameter('sam2_checkpoint').value),
+                str(self.get_parameter('sam2_device').value),
+            )
         if detector is None:
             if detector_type == 'gemini':
                 detector = GeminiDetector(
@@ -227,6 +243,7 @@ class InspectionNode(Node):
                         self.get_parameter('sam2_checkpoint').value
                     ),
                     device=str(self.get_parameter('sam2_device').value),
+                    shared_predictors=shared_sam2,
                 )
             elif segmenter_type == 'simulation_color':
                 segmenter = SimulationColorSegmenter(
@@ -342,7 +359,12 @@ class InspectionNode(Node):
                 reference_tracker = Sam2ReferenceTracker(
                     str(self.get_parameter('sam2_model_config').value),
                     str(self.get_parameter('sam2_checkpoint').value),
-                    str(self.get_parameter('sam2_device').value))
+                    str(self.get_parameter('sam2_device').value),
+                    **(
+                        {'shared_predictors': shared_sam2}
+                        if shared_sam2 is not None
+                        else {}
+                    ))
             if bool(self.get_parameter('preload_models').value):
                 self.get_logger().info('Loading SAM2 reference predictor before service ready')
                 reference_tracker.prepare()

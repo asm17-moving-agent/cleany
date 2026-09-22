@@ -79,6 +79,53 @@ def test_learned_detectors_initialize_reference_and_wrist_services(monkeypatch, 
         rclpy.shutdown()
 
 
+def test_internal_sam2_adapters_receive_the_same_shared_runtime(monkeypatch):
+    import cleany_perception.inspection_node as module
+
+    created = []
+
+    class Shared:
+        def __init__(self, *args):
+            created.append(('shared', self, args))
+
+    class Segmenter:
+        def __init__(self, **kwargs):
+            created.append(('segmenter', kwargs['shared_predictors']))
+
+    class Tracker:
+        def __init__(self, *args, **kwargs):
+            created.append(('tracker', kwargs['shared_predictors']))
+
+    monkeypatch.setattr(module, 'Sam2SharedPredictors', Shared)
+    monkeypatch.setattr(module, 'Sam2Segmenter', Segmenter)
+    monkeypatch.setattr(module, 'Sam2ReferenceTracker', Tracker)
+    monkeypatch.setattr(module.InspectionNode, '_resolve_local_model', lambda *_: None)
+    rclpy.init(args=[])
+    node = None
+    try:
+        node = InspectionNode(
+            detector=object(),
+            transformer=object(),
+            parameter_overrides=[
+                Parameter('detector_type', value='gemini'),
+                Parameter('segmenter_type', value='sam2'),
+                Parameter('enable_reference_observation', value=True),
+            ],
+        )
+        shared = created[0][1]
+        assert [entry[0] for entry in created] == [
+            'shared',
+            'segmenter',
+            'tracker',
+        ]
+        assert created[1][1] is shared
+        assert created[2][1] is shared
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
 def test_relative_assets_resolve_against_model_directory(tmp_path):
     (tmp_path / 'yoloe').mkdir()
     (tmp_path / 'yoloe/small.pt').write_bytes(b'checkpoint')

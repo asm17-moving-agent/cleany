@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 
 from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
+from cleany_perception.adapters.sam2_reference_tracker import Sam2ReferenceTracker
+from cleany_perception.adapters.sam2_runtime import Sam2SharedPredictors
 from cleany_perception.core.models import (
     BoundingBox2D,
     Detection2D,
@@ -97,3 +99,49 @@ def test_sam2_segmenter_rejects_wrong_mask_shape(tmp_path):
         )
 
     assert raised.value.kind == FailureKind.MASK
+
+
+def test_image_and_video_predictors_share_one_model_and_lock(tmp_path):
+    checkpoint = tmp_path / 'sam2.pt'
+    checkpoint.write_bytes(b'placeholder')
+    model = object()
+    image_predictor = _Predictor()
+    model_calls = []
+
+    def build_model(config, checkpoint_path, device):
+        model_calls.append((config, checkpoint_path, device))
+        return model
+
+    def build_image(received_model):
+        assert received_model is model
+        return image_predictor
+
+    shared = Sam2SharedPredictors(
+        'sam2-config',
+        str(checkpoint),
+        'cpu',
+        model_factory=build_model,
+        image_predictor_factory=build_image,
+    )
+    segmenter = Sam2Segmenter(
+        'sam2-config',
+        str(checkpoint),
+        'cpu',
+        shared_predictors=shared,
+    )
+    tracker = Sam2ReferenceTracker(
+        'sam2-config',
+        str(checkpoint),
+        'cpu',
+        shared_predictors=shared,
+    )
+
+    assert model_calls == []
+    segmenter.prepare()
+    tracker.prepare()
+    segmenter.prepare()
+
+    assert segmenter._predictor is image_predictor
+    assert tracker._predictor is model
+    assert segmenter._lock is tracker._lock
+    assert model_calls == [('sam2-config', str(checkpoint), 'cpu')]
