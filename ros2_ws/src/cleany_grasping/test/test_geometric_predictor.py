@@ -74,6 +74,30 @@ def test_approaches_follow_both_configured_shoulder_origins():
     assert min(horizontal_y) < -.05 and max(horizontal_y) > .05
 
 
+def test_multi_approach_search_prepares_shared_geometry_once(monkeypatch):
+    import cleany_grasping.geometric_predictor as geometry
+
+    target, context = tabletop_scene()
+    calls = 0
+    original = geometry._fit_support_plane
+
+    def count_calls(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(geometry, '_fit_support_plane', count_calls)
+    result = GeometricGraspPredictor(GeometricGraspConfig(
+        approach_tilt_options=(0., 8., 16., 24.),
+        approach_reference_positions=((-0.3, .15, .4), (-0.3, -.15, .4)),
+        include_reverse_closing_axis=True,
+        maximum_candidates=24,
+    )).predict(target, context, np.zeros(6))
+
+    assert result
+    assert calls == 1
+
+
 def tabletop_scene(obstacle=False):
     x, y = np.meshgrid(np.linspace(-0.12, 0.12, 31), np.linspace(-0.12, 0.12, 31))
     plane = np.column_stack((x.ravel(), y.ravel(), np.zeros(x.size)))

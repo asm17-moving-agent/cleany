@@ -81,6 +81,9 @@ checkpoint와 SDK license가 필요 없다. `GraspPredictor` port를 구현하�
 각도 후보가 NMS에서 합쳐지지 않도록 이 launch의
 `nms_rotation_threshold_degrees`는 5도로 설정한다(기존 기본 20도).
 물리 그리퍼 최대 폭이나 충돌 검사는 완화하지 않는다.
+여러 tilt와 어깨 기준점을 함께 탐색할 때도 지지면 RANSAC, 물체축·중심,
+target 밖 장애물 점 추출은 요청당 한 번만 수행한다. 각 접근 조합은 이 공통
+기하 결과를 읽어 후보 자세만 계산하며 후보 순서·점수·충돌 기준은 유지한다.
 
 ## 후보 이미지 확인
 

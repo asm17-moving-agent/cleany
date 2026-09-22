@@ -102,6 +102,17 @@ class GeometricGraspConfig:
             )
 
 
+@dataclass(frozen=True)
+class _PreparedGeometry:
+    target: np.ndarray
+    target_median: np.ndarray
+    normal: np.ndarray
+    major: np.ndarray
+    minor: np.ndarray
+    center: np.ndarray
+    obstacles: np.ndarray
+
+
 def _fit_support_plane(
     target_points: np.ndarray,
     context_points: np.ndarray,
@@ -235,17 +246,12 @@ def _collides(
     rotation: np.ndarray,
     width_m: float,
     target_points: np.ndarray,
-    context_points: np.ndarray,
+    obstacle_points: np.ndarray,
     config: GeometricGraspConfig,
 ) -> bool:
-    target_min = target_points.min(axis=0) - config.collision_clearance_m
-    target_max = target_points.max(axis=0) + config.collision_clearance_m
-    obstacles = context_points[
-        np.any((context_points < target_min) | (context_points > target_max), axis=1)
-    ]
-    if obstacles.shape[0] == 0:
+    if obstacle_points.shape[0] == 0:
         return False
-    local = (obstacles - translation) @ rotation
+    local = (obstacle_points - translation) @ rotation
     target_local = (target_points - translation) @ rotation
     approach, closing, lateral = local[:, 0], local[:, 1], local[:, 2]
     half_opening = width_m / 2.0
@@ -280,18 +286,19 @@ class GeometricGraspPredictor:
         context_cloud: PointCloud,
         workspace_bounds: np.ndarray,
     ) -> tuple[RawGrasp, ...]:
+        del workspace_bounds
+        prepared = self._prepare_geometry(target_cloud, context_cloud)
         if self._config.approach_tilt_options or self._config.approach_reference_positions:
             directions = [self._config.approach_tilt_direction]
             if self._config.approach_reference_positions:
-                center = np.median(target_cloud.points, axis=0)
-                directions = [tuple(center-np.asarray(origin))
+                directions = [tuple(prepared.target_median-np.asarray(origin))
                               for origin in self._config.approach_reference_positions]
             groups = [
                 GeometricGraspPredictor(replace(
                     self._config, approach_tilt_degrees=tilt,
                     approach_tilt_options=(), approach_reference_positions=(),
                     approach_tilt_direction=direction,
-                )).predict(target_cloud, context_cloud, workspace_bounds)
+                ))._predict_prepared(prepared)
                 for tilt in (self._config.approach_tilt_options or (self._config.approach_tilt_degrees,))
                 for direction in directions
             ]
@@ -301,7 +308,13 @@ class GeometricGraspPredictor:
                        for index in range(max(map(len, groups), default=0))
                        for group in groups if index < len(group)]
             return tuple(diverse[:self._config.maximum_candidates])
-        del workspace_bounds
+        return self._predict_prepared(prepared)
+
+    def _prepare_geometry(
+        self,
+        target_cloud: PointCloud,
+        context_cloud: PointCloud,
+    ) -> _PreparedGeometry:
         target = target_cloud.points
         context = context_cloud.points
         if target.shape[0] < 3 or context.shape[0] < 3:
@@ -314,6 +327,11 @@ class GeometricGraspPredictor:
             # open-jaw and closure-sweep collision checks before execution.
             collision_context = context[
                 np.abs((context-plane_center) @ normal) > self._config.plane_distance_threshold_m]
+        target_min = target.min(axis=0) - self._config.collision_clearance_m
+        target_max = target.max(axis=0) + self._config.collision_clearance_m
+        obstacles = collision_context[
+            np.any((collision_context < target_min) | (collision_context > target_max), axis=1)
+        ]
         major, pca_minor = _tangent_axes(target, normal)
         minor = _minimum_width_axis(
             target,
@@ -329,6 +347,25 @@ class GeometricGraspPredictor:
             (major, minor, normal),
             self._config.extent_trim_percentile,
         )
+        return _PreparedGeometry(
+            target=target,
+            target_median=np.median(target, axis=0),
+            normal=normal,
+            major=major,
+            minor=minor,
+            center=center,
+            obstacles=obstacles,
+        )
+
+    def _predict_prepared(
+        self,
+        prepared: _PreparedGeometry,
+    ) -> tuple[RawGrasp, ...]:
+        target = prepared.target
+        normal = prepared.normal
+        major = prepared.major
+        minor = prepared.minor
+        center = prepared.center
         approach = -normal
         if self._config.approach_tilt_degrees > 0.0:
             tilt_direction = np.asarray(
@@ -397,7 +434,14 @@ class GeometricGraspPredictor:
                 for contact_point in _longitudinal_contacts(
                         contact, lateral, normal, target, self._config):
                     translation = contact_point - self._config.grasp_depth_m * approach
-                    if _collides(translation, rotation, width, target, collision_context, self._config):
+                    if _collides(
+                        translation,
+                        rotation,
+                        width,
+                        target,
+                        prepared.obstacles,
+                        self._config,
+                    ):
                         continue
                     generated.append(
                         RawGrasp(
