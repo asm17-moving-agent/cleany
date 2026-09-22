@@ -6,6 +6,8 @@
 
 #include <chrono>
 #include <algorithm>
+#include <atomic>
+#include <cmath>
 #include <memory>
 
 namespace cleany_mujoco_observer
@@ -52,6 +54,7 @@ public:
     mjData* snapshot = nullptr;
     get_data(snapshot);
     snapshot_.reset(snapshot);
+    if (snapshot_) {simulation_time_seconds_.store(snapshot_->time, std::memory_order_relaxed);}
     // Publisher-only node; no executor/thread or live parameter mutation.
     // Launch parameter files are inherited through global ROS arguments.
     rclcpp::NodeOptions options;
@@ -62,7 +65,13 @@ public:
       return hardware_interface::CallbackReturn::ERROR;
     }
     RCLCPP_INFO(get_logger(), "Sorting oracle uses mutex-protected private snapshots");
-    if (scheduled) cameras_=std::make_unique<ScheduledCameras>(model_.get(), [this](mjData*& data) {get_data(data);});
+    if (scheduled) cameras_=std::make_unique<ScheduledCameras>(
+      model_.get(),
+      [this](mjData*& data) {
+        get_data(data);
+        if (data) {simulation_time_seconds_.store(data->time, std::memory_order_relaxed);}
+      },
+      [this]() {return simulation_time_seconds_.load(std::memory_order_relaxed);});
     return result;
   }
 
@@ -70,6 +79,12 @@ public:
   {
     const auto result = MujocoSystemInterface::read(time, period);
     if (result != hardware_interface::return_type::OK || !observer_) {return result;}
+    const double elapsed = period.seconds();
+    if (std::isfinite(elapsed) && elapsed >= 0) {
+      simulation_time_seconds_.store(
+        simulation_time_seconds_.load(std::memory_order_relaxed) + elapsed,
+        std::memory_order_relaxed);
+    }
     const auto now = std::chrono::steady_clock::now();
     if (now < next_sample_) {return result;}
     next_sample_ = now + std::chrono::milliseconds(100);
@@ -84,6 +99,7 @@ public:
 private:
   std::unique_ptr<mjModel, decltype(&mj_deleteModel)> model_{nullptr, mj_deleteModel};
   std::unique_ptr<mjData, decltype(&mj_deleteData)> snapshot_{nullptr, mj_deleteData};
+  std::atomic<double> simulation_time_seconds_{0.0};
   rclcpp::Node::SharedPtr node_;
   std::unique_ptr<mujoco_ros2_control_plugins::MuJoCoROS2ControlPluginBase> observer_;
   std::chrono::steady_clock::time_point next_sample_{};

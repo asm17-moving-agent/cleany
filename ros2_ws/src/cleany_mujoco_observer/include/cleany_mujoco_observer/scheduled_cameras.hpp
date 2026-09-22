@@ -9,7 +9,8 @@ namespace cleany_mujoco_observer {
 class ScheduledCameras {
 public:
   using Snapshot = std::function<void(mjData*&)>;
-  ScheduledCameras(mjModel* model, Snapshot snapshot);
+  using SimulationTime = std::function<double()>;
+  ScheduledCameras(mjModel* model, Snapshot snapshot, SimulationTime simulation_time);
   ~ScheduledCameras();
 private:
   struct Impl;

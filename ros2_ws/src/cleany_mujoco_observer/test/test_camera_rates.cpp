@@ -2,6 +2,7 @@
 #include <limits>
 #include "cleany_mujoco_observer/camera_rates.hpp"
 using cleany_mujoco_observer::CameraRates;
+using cleany_mujoco_observer::camera_is_due;
 
 TEST(CameraRates, SearchOnlyRendersHead) {
   CameraRates r; r.validate();
@@ -33,4 +34,19 @@ TEST(CameraRates, UnknownCameraRejected) {
   CameraRates r;
   EXPECT_THROW(r.rate("unknown","head"),std::invalid_argument);
   EXPECT_THROW(r.rate("head","unknown"),std::invalid_argument);
+}
+
+TEST(CameraRates, SnapshotIsRequestedOnlyAtACaptureDeadline) {
+  EXPECT_TRUE(camera_is_due(0.0, -1.0, 0.0, 10.0));
+  EXPECT_FALSE(camera_is_due(0.05, 0.0, 0.1, 10.0));
+  EXPECT_TRUE(camera_is_due(0.1, 0.0, 0.1, 10.0));
+  EXPECT_FALSE(camera_is_due(0.1, 0.0, 0.1, 0.0));
+  EXPECT_FALSE(camera_is_due(0.1, 0.1, 0.1, 10.0));
+}
+
+TEST(CameraRates, InvalidScheduleValuesAreRejected) {
+  EXPECT_THROW(
+    camera_is_due(std::numeric_limits<double>::quiet_NaN(), -1.0, 0.0, 10.0),
+    std::invalid_argument);
+  EXPECT_THROW(camera_is_due(0.0, -1.0, 0.0, -1.0), std::invalid_argument);
 }

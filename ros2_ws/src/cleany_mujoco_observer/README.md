@@ -19,7 +19,10 @@ sorting은 접근·파지·lift 동안만 이를 켜고 성공/실패 시 해제
 공개 손목 depth/GT mask는 발행하지 않는다. 이 모드는 GLFW offscreen context가 필요하다.
 GLFW는 backend thread 시작 전에 동기 초기화한다. FPS는 simulation timestamp 기준
 최대 목표치이며 렌더링 비용에 따라 낮아질 수 있다. 프레임 수 감소가 곧 전체 CPU/GPU
-부하의 같은 비율 감소를 뜻하지 않는다.
+부하의 같은 비율 감소를 뜻하지 않는다. 카메라 worker는 가벼운 simulation clock으로
+촬영 기한을 먼저 확인하고, 촬영할 카메라가 있을 때만 mutex 보호 `get_data` snapshot을
+복사한다. 같은 scheduling pass에 촬영하는 head/wrist 카메라는 하나의 일관된 snapshot을
+공유한다.
 
 MuJoCo 분리 수거 시뮬레이션의 결과를 독립적으로 평가하는 read-only 관측기다.
 `cleany_mujoco_observer/ObservedMujocoSystem`은 설치된

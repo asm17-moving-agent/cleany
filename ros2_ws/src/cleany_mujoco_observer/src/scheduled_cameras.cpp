@@ -22,13 +22,15 @@ struct ScheduledCameras::Impl {
   };
   mjModel* model;
   Snapshot snapshot;
+  SimulationTime simulation_time;
   rclcpp::Node::SharedPtr node;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr callback;
   std::array<Camera, 3> cameras;
   std::atomic_bool stop{false};
   std::thread worker;
   CameraRates rates;
-  explicit Impl(mjModel* m, Snapshot getter): model(m), snapshot(std::move(getter)) {
+  explicit Impl(mjModel* m, Snapshot getter, SimulationTime clock):
+    model(m), snapshot(std::move(getter)), simulation_time(std::move(clock)) {
     node = std::make_shared<rclcpp::Node>("sorting_cameras");
     node->declare_parameter("active_camera", "head");
     node->declare_parameter("head_depth_boost", false);
@@ -89,11 +91,24 @@ struct ScheduledCameras::Impl {
         rclcpp::spin_some(node);
         const auto active=node->get_parameter("active_camera").as_string();
         const bool boost=node->get_parameter("head_depth_boost").as_bool();
+        const double schedule_time=simulation_time();
+        bool capture_due=false;
+        for(const auto& c:cameras) {
+          capture_due = capture_due || camera_is_due(
+            schedule_time,c.last,c.next,rates.rate(active,c.key,boost));
+        }
+        if(!capture_due) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          continue;
+        }
+        // get_data() copies the full mjData while holding the physics mutex.
+        // Only pay that cost when at least one camera is scheduled to render;
+        // all cameras due in this pass share the same consistent snapshot.
         snapshot(data);
         if(!data) throw std::runtime_error("camera snapshot unavailable");
         for(auto& c:cameras) {
           const double rate=rates.rate(active,c.key,boost);
-          if(rate==0 || data->time<=c.last || data->time+1e-9<c.next) continue;
+          if(!camera_is_due(data->time,c.last,c.next,rate)) continue;
           if (c.depth && data->time > 1.0) {
             const int tilt = mj_name2id(model, mjOBJ_JOINT, "head_tilt_joint");
             RCLCPP_INFO_ONCE(node->get_logger(), "Head camera snapshot: tilt=%.4f position=(%.3f %.3f %.3f)",
@@ -132,6 +147,7 @@ struct ScheduledCameras::Impl {
     if(window) {mjr_freeContext(&context); mjv_freeScene(&scene); glfwMakeContextCurrent(nullptr); glfwDestroyWindow(window);}
   }
 };
-ScheduledCameras::ScheduledCameras(mjModel* m, Snapshot s): impl_(std::make_unique<Impl>(m,std::move(s))) {}
+ScheduledCameras::ScheduledCameras(mjModel* m, Snapshot s, SimulationTime t):
+  impl_(std::make_unique<Impl>(m,std::move(s),std::move(t))) {}
 ScheduledCameras::~ScheduledCameras()=default;
 }
