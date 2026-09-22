@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterator
 from dataclasses import dataclass, replace
+from itertools import islice
 
 import numpy as np
 
@@ -298,16 +300,27 @@ class GeometricGraspPredictor:
                     self._config, approach_tilt_degrees=tilt,
                     approach_tilt_options=(), approach_reference_positions=(),
                     approach_tilt_direction=direction,
-                ))._predict_prepared(prepared)
+                ))._iter_prepared(prepared)
                 for tilt in (self._config.approach_tilt_options or (self._config.approach_tilt_degrees,))
                 for direction in directions
             ]
             # Round-robin preserves approach diversity under the candidate
-            # cap; each constituent list is already ordered by quality.
-            diverse = [group[index]
-                       for index in range(max(map(len, groups), default=0))
-                       for group in groups if index < len(group)]
-            return tuple(diverse[:self._config.maximum_candidates])
+            # cap. Pull lazily so discarded tails never run point-cloud
+            # collision checks.
+            diverse: list[RawGrasp] = []
+            while len(diverse) < self._config.maximum_candidates:
+                added = False
+                for group in groups:
+                    candidate = next(group, None)
+                    if candidate is None:
+                        continue
+                    diverse.append(candidate)
+                    added = True
+                    if len(diverse) == self._config.maximum_candidates:
+                        break
+                if not added:
+                    break
+            return tuple(diverse)
         return self._predict_prepared(prepared)
 
     def _prepare_geometry(
@@ -361,6 +374,15 @@ class GeometricGraspPredictor:
         self,
         prepared: _PreparedGeometry,
     ) -> tuple[RawGrasp, ...]:
+        return tuple(islice(
+            self._iter_prepared(prepared),
+            self._config.maximum_candidates,
+        ))
+
+    def _iter_prepared(
+        self,
+        prepared: _PreparedGeometry,
+    ) -> Iterator[RawGrasp]:
         target = prepared.target
         normal = prepared.normal
         major = prepared.major
@@ -397,7 +419,7 @@ class GeometricGraspPredictor:
                 and np.linalg.norm(horizontal_approach) > 1.0e-9
                 and float(robot_to_target @ horizontal_approach) <= 0.0
             ):
-                return ()
+                return
         generated: list[RawGrasp] = []
         axes = ((minor, major, -minor, -major)
                 if self._config.include_reverse_closing_axis
@@ -434,15 +456,6 @@ class GeometricGraspPredictor:
                 for contact_point in _longitudinal_contacts(
                         contact, lateral, normal, target, self._config):
                     translation = contact_point - self._config.grasp_depth_m * approach
-                    if _collides(
-                        translation,
-                        rotation,
-                        width,
-                        target,
-                        prepared.obstacles,
-                        self._config,
-                    ):
-                        continue
                     generated.append(
                         RawGrasp(
                             rotation=rotation,
@@ -468,4 +481,13 @@ class GeometricGraspPredictor:
                 round(candidate.score, 10), float(candidate.rotation[:, 1] @ normal)), reverse=True)
         else:
             generated.sort(key=lambda candidate: candidate.score, reverse=True)
-        return tuple(generated[: self._config.maximum_candidates])
+        for candidate in generated:
+            if not _collides(
+                candidate.translation,
+                candidate.rotation,
+                candidate.width_m,
+                target,
+                prepared.obstacles,
+                self._config,
+            ):
+                yield candidate
