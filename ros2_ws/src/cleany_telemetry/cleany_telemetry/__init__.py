@@ -1,2 +1,1 @@
 """ROS telemetry adapters."""
-
