@@ -1,7 +1,12 @@
 # cleany_telemetry
 
-Subscribes to `nav_msgs/Odometry` (default `/odom`) and sends only the latest
-finite `x`/`y` as `{"x":...,"y":...}` over a WebSocket. ROS callbacks never
+Subscribes to `nav_msgs/Odometry` (default `/odom`) and sends the latest finite `x`/`y`
+plus optional `yaw` as `{"x":...,"y":...,"yaw":...}` over a WebSocket.
+Yaw is in radians, world +X = 0 and counterclockwise positive. It is derived
+from the normalized odometry quaternion using atan2. Nonfinite or near-zero
+quaternions omit yaw while preserving valid x/y; legacy x/y-only callers remain
+supported. Each sample replaces yaw too, so invalid orientation never retains
+a previous heading. ROS callbacks never
 perform network I/O; a wall-clock worker sends at most the configured rate.
 Expired input is not repeated, and simulation-clock resets invalidate the cache.
 The odometry header timestamp is used to detect a reset: repeated timestamps

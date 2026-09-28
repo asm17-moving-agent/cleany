@@ -201,3 +201,44 @@ def test_send_failure_reconnects_with_backoff():
     relay.stop()
     assert len(transports) >= 2
     assert transports[1].messages
+
+
+def test_quaternion_yaw_cardinal_scaled_and_invalid():
+    import math
+    import pytest
+    from cleany_telemetry.relay import quaternion_yaw
+
+    for angle in (0, math.pi / 2, -math.pi / 2, math.pi - 0.001, -math.pi + 0.001):
+        for scale in (1, 2, -1):
+            assert quaternion_yaw(0, 0, scale * math.sin(angle / 2), scale * math.cos(angle / 2)) == pytest.approx(angle)
+    for q in ((0, 0, 0, 0), (0, 0, float('nan'), 1), (0, float('inf'), 0, 1)):
+        assert quaternion_yaw(*q) is None
+
+
+def test_worker_optional_yaw_and_invalid_orientation_clear_heading():
+    import math
+    received = []
+    ready = threading.Event()
+
+    class Capture:
+        def send(self, message):
+            received.append(json.loads(message))
+            ready.set()
+
+        def close(self):
+            pass
+
+    relay = PoseRelay('ws://test', rate=50, transport_factory=lambda _: Capture())
+    relay.update_pose(1, 2, 1, yaw=math.pi / 2)
+    relay.start()
+    try:
+        assert ready.wait(1)
+        assert received[-1] == {'x': 1, 'y': 2, 'yaw': math.pi / 2}
+        for stamp, invalid in ((2, None), (3, float('nan')), (4, float('inf'))):
+            relay.update_pose(stamp, 2, stamp, yaw=invalid)
+            deadline = time.monotonic() + 1
+            while received[-1]['x'] != stamp and time.monotonic() < deadline:
+                time.sleep(.01)
+            assert received[-1] == {'x': stamp, 'y': 2}
+    finally:
+        relay.stop()

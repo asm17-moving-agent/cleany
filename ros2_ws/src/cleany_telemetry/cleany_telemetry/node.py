@@ -9,7 +9,7 @@ from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 
-from .relay import PoseRelay
+from .relay import PoseRelay, quaternion_yaw
 
 
 class TelemetryNode(Node):
@@ -44,7 +44,8 @@ class TelemetryNode(Node):
             return
         stamp = message.header.stamp
         sim_stamp = float(stamp.sec) + float(stamp.nanosec) * 1e-9
-        self._relay.update_pose(x, y, sim_stamp)
+        q = message.pose.pose.orientation
+        self._relay.update_pose(x, y, sim_stamp, yaw=quaternion_yaw(q.x, q.y, q.z, q.w))
 
     def destroy_node(self) -> bool:
         self._relay.stop()

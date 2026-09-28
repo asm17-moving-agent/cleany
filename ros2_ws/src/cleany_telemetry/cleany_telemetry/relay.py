@@ -14,6 +14,17 @@ from urllib.parse import urlparse
 LOGGER = logging.getLogger(__name__)
 
 
+def quaternion_yaw(x: float, y: float, z: float, w: float) -> Optional[float]:
+    """World +X heading in radians, CCW positive; invalid rotations have no yaw."""
+    if not all(math.isfinite(v) for v in (x, y, z, w)):
+        return None
+    norm = math.hypot(x, y, z, w)
+    if not math.isfinite(norm) or norm < 1e-12:
+        return None
+    x, y, z, w = (v / norm for v in (x, y, z, w))
+    return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
+
+
 class Transport(Protocol):
     def send(self, message: str) -> None: ...
     def close(self) -> None: ...
@@ -25,6 +36,7 @@ class Pose:
     y: float
     received_at: float
     sim_stamp: Optional[float]
+    yaw: Optional[float] = None
 
 
 class PoseCache:
@@ -36,7 +48,10 @@ class PoseCache:
         self._last_sim_stamp: Optional[float] = None
         self._lock = threading.Lock()
 
-    def update(self, x: float, y: float, received_at: float, sim_stamp: Optional[float]) -> bool:
+    def update(
+        self, x: float, y: float, received_at: float,
+        sim_stamp: Optional[float], yaw: Optional[float] = None,
+    ) -> bool:
         if not (math.isfinite(x) and math.isfinite(y)):
             return False
         with self._lock:
@@ -58,7 +73,8 @@ class PoseCache:
                 # Repeated messages from a paused simulator are not fresh input.
                 return False
             self._last_sim_stamp = sim_stamp
-            self._pose = Pose(x, y, received_at, sim_stamp)
+            valid_yaw = yaw if yaw is not None and math.isfinite(yaw) else None
+            self._pose = Pose(x, y, received_at, sim_stamp, valid_yaw)
             return True
 
     def fresh(self, now: float) -> Optional[Pose]:
@@ -102,8 +118,11 @@ class PoseRelay:
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
-    def update_pose(self, x: float, y: float, sim_stamp: Optional[float] = None) -> bool:
-        return self.cache.update(x, y, self._clock(), sim_stamp)
+    def update_pose(
+        self, x: float, y: float, sim_stamp: Optional[float] = None,
+        *, yaw: Optional[float] = None,
+    ) -> bool:
+        return self.cache.update(x, y, self._clock(), sim_stamp, yaw)
 
     def start(self) -> None:
         if self._thread is None:
@@ -142,7 +161,10 @@ class PoseRelay:
                 pose = self.cache.fresh(now)
                 if pose is not None:
                     try:
-                        transport.send(json.dumps({"x": pose.x, "y": pose.y}, separators=(",", ":")))
+                        payload = {"x": pose.x, "y": pose.y}
+                        if pose.yaw is not None:
+                            payload["yaw"] = pose.yaw
+                        transport.send(json.dumps(payload, separators=(",", ":"), allow_nan=False))
                     except Exception as error:
                         LOGGER.warning(
                             "Pose WebSocket send failed (%s); reconnecting",
