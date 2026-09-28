@@ -409,6 +409,8 @@ fine-tune한 파일이며, 생성·학습·평가 절차는
 YOLOE 추론의 최소 confidence는 0.08이고, 클래스별로 컵·마우스·휴지는 0.25,
 레고는 0.08을 적용한다. 다른 클래스 목록이나 모델로 바꿀 때는
 `yoloe_class_confidence_thresholds`도 같은 순서로 조정해야 한다.
+시뮬레이션 수거 정책 `table_sorting_policy.yaml`의 최종 최소 confidence도 0.08로
+맞췄다. 레고 외 물체는 YOLOE 단계에서 먼저 0.25 미만을 제거한다.
 다른 YOLOE checkpoint와 SAM2.1 tiny mask 실행은 다음처럼 선택한다. Headless에서도 MuJoCo
 camera에는 유효한 X11/Xvfb context가 필요하다.
 

@@ -19,6 +19,12 @@ def test_model_category_overrides_label_allowlist_without_fallback():
     assert policy.classify_model('paper wrapper', .9, 'trash', 'Discarded packaging').destination == 'trash_right'
 
 
+def test_table_policy_accepts_simulation_lego_threshold_after_detector_filter():
+    policy = load_sorting_policy(PROFILE.parent / 'table_sorting_policy.yaml')
+    assert policy.classify_model('lego brick', .098, 'lost_item', 'Toy').category == Category.LOST_ITEM
+    assert policy.classify_model('lego brick', .079, 'lost_item', 'Toy').category == Category.REVIEW
+
+
 @pytest.mark.parametrize('label,category,destination', [
     ('cup', Category.TRASH, 'trash_left'),
     ('  Paper   Cup ', Category.TRASH, 'trash_left'),
