@@ -266,6 +266,12 @@ precomputed clearance evidence tied to the expected resolved joint vector,
 and MoveIt state-validity success. There are deliberately no production
 defaults for the still-unapproved safety values.
 
+The single-pose runtime test uses a CAD-frame simulation fixture. Its target
+position and 0.146088 m fixture clearance were re-measured with the MuJoCo 3.4
+control scene; a regression test checks both against the current model before
+the runtime integration test. The required 0.10 m margin and 1e-4 rad resolved
+pose match tolerance remain unchanged. This is simulation evidence only.
+
 The installed `config/single_pose_request.template.json` keeps unresolved
 values as `null`. It is documentation and a materialization starting point,
 not a runnable profile: strict preflight rejects it until the artifact root,

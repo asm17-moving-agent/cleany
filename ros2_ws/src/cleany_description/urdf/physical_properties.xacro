@@ -1,0 +1,3384 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="cleany_link_properties" params="link_name">
+    <xacro:if value="${link_name == 'base_link'}">
+      <inertial>
+        <origin xyz="0.00644072910811 2.68920880351e-05 -0.141372186369" rpy="0 -0 0" />
+        <mass value="12.3513377764" />
+        <inertia ixx="0.932591878949" ixy="0.0005589332157" ixz="-0.046314226328" iyy="0.865628944375" iyz="1.45840680831e-08" izz="0.486831237121" />
+      </inertial>
+      <visual name="mjcf_geom_0_0_visual">
+        <origin xyz="-0.0154995 -0.0745144 -0.317538" rpy="-5.55160000426e-08 -7.33800005229e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/035armbase_step__êäèë4.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_0">
+          <color rgba="0.231372997165 0.380391985178 0.705882012844 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_1_0_visual">
+        <origin xyz="0.1162 2.68346e-05 0.415503" rpy="-5.55159998528e-08 -7.33800004094e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/part_1__2.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_1">
+          <color rgba="0.615685999393 0.811765015125 0.929412007332 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_2_0_visual">
+        <origin xyz="0.2479 0.0745681 -0.317538" rpy="5.55159999405e-08 7.33799993599e-09 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/035armbase_step__êäèë4.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_2">
+          <color rgba="0.231372997165 0.380391985178 0.705882012844 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_3_0_visual">
+        <origin xyz="-2.45311e-05 2.68390000001e-05 -0.274497" rpy="-5.55160000193e-08 -7.33800009645e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/upper_right_side_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_3">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_4_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.55159998528e-08 -7.33800004094e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/lower_rear_cross_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_4">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_5_0_visual">
+        <origin xyz="-2.45310999999e-05 2.68390000002e-05 -0.274497" rpy="-5.55160000289e-08 -7.33800026298e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/upper_front_cross_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_5">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_6_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.55160000289e-08 -7.33800026298e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/rear_inner_lower_cross_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_6">
+          <color rgba="0.768626987934 0.88627499342 0.952941000462 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_7_0_visual">
+        <origin xyz="-2.45310999999e-05 2.68389999999e-05 -0.274497" rpy="-5.55160000193e-08 -7.33800009645e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/lower_left_side_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_7">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_8_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.55159998528e-08 -7.33800004094e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/lower_front_cross_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_8">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_9_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.55160000193e-08 -7.33800009645e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/right_inner_lower_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_9">
+          <color rgba="0.917647004128 0.917647004128 0.917647004128 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_10_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.55160000289e-08 -7.33800026298e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/front_inner_lower_cross_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_10">
+          <color rgba="0.768626987934 0.88627499342 0.952941000462 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_11_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.5516e-08 -7.33800000011e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/rl_upright.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_11">
+          <color rgba="0.231372997165 0.380391985178 0.705882012844 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_12_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.5516e-08 -7.33800000011e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/rr_upright.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_12">
+          <color rgba="0.231372997165 0.380391985178 0.705882012844 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_13_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.5516e-08 -7.33800000011e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/fr_upright.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_13">
+          <color rgba="0.231372997165 0.380391985178 0.705882012844 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_14_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.5516e-08 -7.33800000011e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/fl_upright.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_14">
+          <color rgba="0.231372997165 0.380391985178 0.705882012844 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_15_0_visual">
+        <origin xyz="-2.45311e-05 2.6839e-05 -0.274497" rpy="-5.55160000193e-08 -7.33800009645e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/left_inner_lower_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_15">
+          <color rgba="0.917647004128 0.917647004128 0.917647004128 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_16_0_visual">
+        <origin xyz="-2.45310999999e-05 2.68389999999e-05 -0.274497" rpy="-5.55160000193e-08 -7.33800009645e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/upper_left_side_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_16">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_17_0_visual">
+        <origin xyz="-2.45311e-05 2.68390000002e-05 -0.274497" rpy="-5.55160000289e-08 -7.33800026298e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/upper_rear_cross_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_17">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_18_0_visual">
+        <origin xyz="-2.45311000001e-05 2.68390000001e-05 -0.274497" rpy="-5.55160000193e-08 -7.33800009645e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/lower_right_side_rail.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_18">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_19_0_visual">
+        <origin xyz="0.174975 -0.249973 -0.287497" rpy="-1.5708 -5.55160000193e-08 6.38100000616e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/pg42_motor_bracket.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_19">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_20_0_visual">
+        <origin xyz="0.174975 -0.246973 -0.316497" rpy="5.5516000007e-08 7.33800001822e-09 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/pg42_4266_1270ne___1_61.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_20">
+          <color rgba="0.615685999393 0.811765015125 0.929412007332 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_21_0_visual">
+        <origin xyz="-0.175025 0.250027 -0.287497" rpy="-1.5708 5.55159999638e-08 -3.14159" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/pg42_motor_bracket.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_21">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_22_0_visual">
+        <origin xyz="-0.175025 0.247027 -0.316497" rpy="-5.55159999515e-08 -7.33799993496e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/pg42_4266_1270ne___1_61.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_22">
+          <color rgba="0.615685999393 0.811765015125 0.929412007332 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_23_0_visual">
+        <origin xyz="0.174975 0.250027 -0.287497" rpy="-1.5708 5.55159999638e-08 -3.14159" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/pg42_motor_bracket.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_23">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_24_0_visual">
+        <origin xyz="0.174975 0.247027 -0.316497" rpy="-5.55159999515e-08 -7.33799993496e-09 1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/pg42_4266_1270ne___1_61.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_24">
+          <color rgba="0.615685999393 0.811765015125 0.929412007332 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_25_0_visual">
+        <origin xyz="-0.175025 -0.249973 -0.287497" rpy="-1.5708 -5.55160000193e-08 6.38100000616e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/pg42_motor_bracket.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_25">
+          <color rgba="0.64705902338 0.64705902338 0.64705902338 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_26_0_visual">
+        <origin xyz="-0.175025 -0.246973 -0.316497" rpy="5.5516000007e-08 7.33800001822e-09 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/pg42_4266_1270ne___1_61.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_26">
+          <color rgba="0.615685999393 0.811765015125 0.929412007332 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_27_0_collision">
+        <origin xyz="0 0.24 -0.274" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.36 0.02 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_28_0_collision">
+        <origin xyz="0 -0.24 -0.274" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.36 0.02 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_29_0_collision">
+        <origin xyz="0 0.21 -0.274" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.36 0.02 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_30_0_collision">
+        <origin xyz="0 -0.21 -0.274" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.36 0.02 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_31_0_collision">
+        <origin xyz="0.19 0 -0.274" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.5 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_32_0_collision">
+        <origin xyz="-0.19 0 -0.274" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.5 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_33_0_collision">
+        <origin xyz="0.063 0 -0.274" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.4 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_34_0_collision">
+        <origin xyz="-0.063 0 -0.274" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.4 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_35_0_collision">
+        <origin xyz="0.19 0.24 0.066" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.02 0.66" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_36_0_collision">
+        <origin xyz="0.19 -0.24 0.066" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.02 0.66" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_37_0_collision">
+        <origin xyz="-0.19 0.24 0.066" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.02 0.66" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_38_0_collision">
+        <origin xyz="-0.19 -0.24 0.066" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.02 0.66" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_39_0_collision">
+        <origin xyz="0 0.24 0.406" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.36 0.02 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_40_0_collision">
+        <origin xyz="0 -0.24 0.406" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.36 0.02 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_41_0_collision">
+        <origin xyz="0.19 0 0.406" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.5 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_42_0_collision">
+        <origin xyz="-0.19 0 0.406" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.02 0.5 0.02" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_43_0_collision">
+        <origin xyz="0.116 0 0.4175" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.16 0.5 0.003" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_44_0_collision">
+        <origin xyz="0.116 0.175 0.425" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.11 0.11 0.012" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_45_0_collision">
+        <origin xyz="0.116 -0.175 0.425" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.11 0.11 0.012" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_46_0_visual">
+        <origin xyz="-2.45499754308e-05 2.68365050107e-05 -0.175996987286" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.195 0.165 0.175" />
+        </geometry>
+        <material name="mjcf_color_46">
+          <color rgba="0.0799999982119 0.119999997318 0.180000007153 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_47_0_collision">
+        <origin xyz="-2.45499754308e-05 2.68365050107e-05 -0.175996987286" rpy="0 -0 0" />
+        <geometry>
+          <box size="0.195 0.165 0.175" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_48_0_visual">
+        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_48">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_49_0_visual">
+        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_49">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_50_0_collision">
+        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_51_0_collision">
+        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_80_0_visual">
+        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_80">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_81_0_visual">
+        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -0 -3.58979302984e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_81">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_82_0_collision">
+        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_83_0_collision">
+        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -0 -3.58979302984e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_shoulder_yaw_link'}">
+      <inertial>
+        <origin xyz="-0.0307603329402 -1.66727003084e-05 -0.0252713816254" rpy="0 -0 0" />
+        <mass value="0.100006" />
+        <inertia ixx="8.37590061794e-05" ixy="7.55519873098e-08" ixz="-1.1632612288e-06" iyy="8.10403000287e-05" iyz="1.54657960464e-07" izz="2.39782937919e-05" />
+      </inertial>
+      <visual name="mjcf_geom_52_0_visual">
+        <origin xyz="-2.98155597434e-19 -9.71445146547e-17 5.55111512313e-17" rpy="-3.3539837574e-13 -2.65358979332e-06 9.74718396277e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_52">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_53_0_visual">
+        <origin xyz="6.93889390391e-18 -9.71445146547e-17 6.24500451352e-17" rpy="-3.35618590807e-13 -2.65358979329e-06 9.74722386141e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Rotation_Pitch_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_53">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_54_0_collision">
+        <origin xyz="-2.98155597434e-19 -9.71445146547e-17 5.55111512313e-17" rpy="-3.3539837574e-13 -2.65358979332e-06 9.74718396277e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_55_0_collision">
+        <origin xyz="6.93889390391e-18 -9.71445146547e-17 6.24500451352e-17" rpy="-3.35618590807e-13 -2.65358979329e-06 9.74722386141e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Rotation_Pitch_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_upper_arm_link'}">
+      <inertial>
+        <origin xyz="0.000118658583047 0.133663364795 0.00941424883683" rpy="0 -0 0" />
+        <mass value="0.1185" />
+        <inertia ixx="0.000344882383863" ixy="1.34368294849e-08" ixz="-1.76012339223e-09" iyy="3.90640386873e-05" iyz="-3.22497619774e-05" izz="0.000341356582523" />
+      </inertial>
+      <visual name="mjcf_geom_56_0_visual">
+        <origin xyz="-0.000100253949776 0.0650999997343 -0.0120000000001" rpy="1.57079632678 -6.70904304334e-13 -1.57079367321" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_5cm_Sockets.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_56">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_57_0_visual">
+        <origin xyz="-0.000100253949776 0.0650999997343 -0.0120000000001" rpy="1.57079632678 -6.70859917266e-13 -1.57079367321" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_5cm_Carbon.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_57">
+          <color rgba="0.0149999996647 0.0179999992251 0.019999999553 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_58_0_visual">
+        <origin xyz="-2.13880336414e-07 0.0499999999997 -4.37740121928e-14" rpy="-6.70963993052e-13 1.94943609866e-11 2.65358979315e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_58">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_59_0_collision">
+        <origin xyz="-0.000100253949776 0.0650999997343 -0.0120000000001" rpy="1.57079632678 -6.71128083662e-13 -1.57079367321" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_5cm.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_60_0_collision">
+        <origin xyz="-2.13880336414e-07 0.0499999999997 -4.37740121928e-14" rpy="-6.70963993052e-13 1.94943609866e-11 2.65358979315e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_lower_arm_link'}">
+      <inertial>
+        <origin xyz="-0.000706245428667 0.00322236118616 0.133834078486" rpy="0 -0 0" />
+        <mass value="0.093" />
+        <inertia ixx="0.000317919870866" ixy="-2.45274118949e-07" ixz="-4.42666525312e-06" iyy="0.000326130407595" iyz="-1.12862340896e-05" izz="1.82344619031e-05" />
+      </inertial>
+      <visual name="mjcf_geom_61_0_visual">
+        <origin xyz="-0.00250068507803 0.0320000000001 0.0649999933651" rpy="-1.26479190799e-07 1.57079367321 -1.26466116258e-07" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_5cm_Sockets.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_61">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_62_0_visual">
+        <origin xyz="-0.00250068507803 0.0320000000001 0.0649999933651" rpy="-1.26414733891e-07 1.57079367321 -1.26404986719e-07" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_5cm_Carbon.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_62">
+          <color rgba="0.0149999996647 0.0179999992251 0.019999999553 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_63_0_visual">
+        <origin xyz="-6.45273883274e-07 1.36086454605e-13 0.0499999999991" rpy="-3.35508353651e-13 -2.65358979335e-06 9.74729819568e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_63">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_64_0_collision">
+        <origin xyz="-0.00250068507803 0.0320000000001 0.0649999933651" rpy="-1.26408588281e-07 1.57079367321 -1.26413818102e-07" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_5cm.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_65_0_collision">
+        <origin xyz="-6.45273883274e-07 1.36086454605e-13 0.0499999999991" rpy="-3.35508353651e-13 -2.65358979335e-06 9.74729819568e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_wrist_pitch_link'}">
+      <inertial>
+        <origin xyz="-0.000104417709709 -0.0386142997244 0.0281156000002" rpy="0 -0 0" />
+        <mass value="0.079" />
+        <inertia ixx="3.68263000947e-05" ixy="1.78626727468e-08" ixz="-5.28031684557e-08" iyy="2.53909999051e-05" iyz="3.64120014009e-06" izz="2.10000000003e-05" />
+      </inertial>
+      <visual name="mjcf_geom_66_0_visual">
+        <origin xyz="-1.00324319708e-06 1.34834851617e-12 1.81327947991e-13" rpy="-1.19262238973e-17 7.3725747729e-18 -2.65358979346e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_66">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_67_0_visual">
+        <origin xyz="-1.0032431971e-06 1.34827565779e-12 1.81325612443e-13" rpy="1.71455341476e-18 9.38558131561e-18 -2.65358979335e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_67">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_68_0_collision">
+        <origin xyz="-1.00324319708e-06 1.34834851617e-12 1.81327947991e-13" rpy="-1.19262238973e-17 7.3725747729e-18 -2.65358979346e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_69_0_collision">
+        <origin xyz="-1.0032431971e-06 1.34827565779e-12 1.81325612443e-13" rpy="1.71455341476e-18 9.38558131561e-18 -2.65358979335e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_gripper_frame'}">
+      <inertial>
+        <origin xyz="0.000213627004096 0.000245204837527 -0.0251881620734" rpy="0 -0 0" />
+        <mass value="0.087" />
+        <inertia ixx="2.75086999999e-05" ixy="-3.35225779352e-07" ixz="-5.7352008894e-06" iyy="4.3365700275e-05" iyz="-5.17611957288e-08" izz="3.45058997251e-05" />
+      </inertial>
+      <visual name="mjcf_geom_70_0_visual">
+        <origin xyz="4.08950130704e-12 1.55983906347e-12 -1.16272394366e-06" rpy="2.65358979337e-06 -3.35526094755e-13 9.74725855585e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_70">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_71_0_visual">
+        <origin xyz="4.08954814457e-12 1.5600333525e-12 -1.16272394365e-06" rpy="2.65358979332e-06 -3.35582256428e-13 9.74717818498e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_71">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_72_0_collision">
+        <origin xyz="4.08954944561e-12 1.56000906637e-12 -1.16272394366e-06" rpy="2.6535897933e-06 -3.35547845291e-13 9.74717868076e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_part1.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_73_0_collision">
+        <origin xyz="4.08964528908e-12 1.55996743301e-12 -1.16272394365e-06" rpy="2.65358979337e-06 -3.35601202861e-13 9.74714753355e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_part2.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_78_0_visual">
+        <origin xyz="5.51022591132e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.32679579342e-06 -1.57079999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_78">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_79_0_visual">
+        <origin xyz="5.51022591513e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.3267957937e-06 -1.57079999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_79">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_moving_jaw_link'}">
+      <inertial>
+        <origin xyz="0.00958316997262 -0.0284972545503 0.0192771009713" rpy="0 -0 0" />
+        <mass value="0.012" />
+        <inertia ixx="6.19352461821e-06" ixy="1.38305141899e-06" ixz="3.49466220217e-08" iyy="2.31106264266e-06" iyz="-1.04365408296e-07" izz="5.28738273914e-06" />
+      </inertial>
+      <visual name="mjcf_geom_74_0_visual">
+        <origin xyz="-4.52233216153e-12 3.87018542214e-12 1.22747154143e-06" rpy="-1.22904601048e-05 2.84935098182e-06 0.376809999975" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Moving_Jaw.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_74">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_75_0_collision">
+        <origin xyz="-4.52224152223e-12 3.87021664716e-12 1.22747154141e-06" rpy="-1.22904601047e-05 2.84935098181e-06 0.376809999975" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Moving_Jaw_part1.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_76_0_collision">
+        <origin xyz="-4.52220379199e-12 3.87002235813e-12 1.2274715414e-06" rpy="-1.22904601048e-05 2.84935098184e-06 0.376809999975" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Moving_Jaw_part2.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_77_0_collision">
+        <origin xyz="-4.52242410187e-12 3.87008480818e-12 1.2274715414e-06" rpy="-1.22904601048e-05 2.84935098183e-06 0.376809999975" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Moving_Jaw_part3.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_grasp_tcp'}">
+      <inertial>
+        <origin xyz="-1.81299419921e-13 1.69864122768e-14 1.38777878078e-17" rpy="0 -0 0" />
+        <mass value="1e-09" />
+        <inertia ixx="1e-09" ixy="4.23523498391e-31" ixz="2.10061832609e-30" iyy="1e-09" iyz="-7.88860905221e-31" izz="1e-09" />
+      </inertial>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_pregrasp_aim_tip'}">
+      <inertial>
+        <origin xyz="-1.81299419921e-13 1.70974345792e-14 0" rpy="0 -0 0" />
+        <mass value="1e-09" />
+        <inertia ixx="1e-09" ixy="4.23523498391e-31" ixz="2.10061832609e-30" iyy="1e-09" iyz="-7.88860905221e-31" izz="1e-09" />
+      </inertial>
+    </xacro:if>
+    <xacro:if value="${link_name == 'left_wrist_rgb_optical_frame'}">
+      <inertial>
+        <origin xyz="8.40993941154e-15 -2.02948768901e-13 -1.66533453694e-14" rpy="0 -0 0" />
+        <mass value="1e-09" />
+        <inertia ixx="1e-09" ixy="-1.25171406395e-26" ixz="-1.79499776957e-25" iyy="1e-09" iyz="-6.2526292723e-27" izz="1e-09" />
+      </inertial>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_shoulder_yaw_link'}">
+      <inertial>
+        <origin xyz="-0.0307603999095 -1.6672700009e-05 -0.0252713001104" rpy="0 -0 0" />
+        <mass value="0.100006" />
+        <inertia ixx="8.37590000137e-05" ixy="7.55523971267e-08" ixz="-1.16341964767e-06" iyy="8.10403000287e-05" iyz="1.54657760262e-07" izz="2.39782999576e-05" />
+      </inertial>
+      <visual name="mjcf_geom_84_0_visual">
+        <origin xyz="-2.58642499779e-13 -1.5959455979e-16 -4.51028103754e-17" rpy="-3.3545388689e-13 -3.5897930236e-09 1.31917046731e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_84">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_85_0_visual">
+        <origin xyz="-2.58639897693e-13 -1.2490009027e-16 -1.04083408559e-17" rpy="-3.35608339132e-13 -3.58979290442e-09 1.32290012278e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Rotation_Pitch_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_85">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_86_0_collision">
+        <origin xyz="-2.58642499779e-13 -1.5959455979e-16 -4.51028103754e-17" rpy="-3.3545388689e-13 -3.5897930236e-09 1.31917046731e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_87_0_collision">
+        <origin xyz="-2.58639897693e-13 -1.2490009027e-16 -1.04083408559e-17" rpy="-3.35608339132e-13 -3.58979290442e-09 1.32290012278e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Rotation_Pitch_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_upper_arm_link'}">
+      <inertial>
+        <origin xyz="0.000119093881519 0.13366336448 0.00941424883683" rpy="0 -0 0" />
+        <mass value="0.1185" />
+        <inertia ixx="0.000344882383932" ixy="1.26264114978e-08" ixz="-1.84558519283e-09" iyy="3.90640386182e-05" iyz="-3.22497619727e-05" izz="0.000341356582523" />
+      </inertial>
+      <visual name="mjcf_geom_88_0_visual">
+        <origin xyz="-0.000100000343804 0.0650999999996 -0.0120000000001" rpy="1.57079632679 -6.70902569611e-13 -1.57079632321" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_5cm_Sockets.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_88">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_89_0_visual">
+        <origin xyz="-0.000100000343804 0.0650999999996 -0.0120000000001" rpy="1.57079632679 -6.70858028383e-13 -1.57079632321" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_5cm_Carbon.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_89">
+          <color rgba="0.0149999996647 0.0179999992251 0.019999999553 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_90_0_visual">
+        <origin xyz="-2.89597327455e-10 0.05 -4.3832992791e-14" rpy="-6.70993330038e-13 2.63712662818e-14 3.589792896e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_90">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_91_0_collision">
+        <origin xyz="-0.000100000343803 0.0650999999996 -0.0120000000001" rpy="1.57079632679 -6.71155839238e-13 -1.57079632321" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_5cm.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_92_0_collision">
+        <origin xyz="-2.89597327455e-10 0.05 -4.3832992791e-14" rpy="-6.70993330038e-13 2.63712662818e-14 3.589792896e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Upper_Arm_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_lower_arm_link'}">
+      <inertial>
+        <origin xyz="-0.000705378867631 0.00322236118616 0.133834080356" rpy="0 -0 0" />
+        <mass value="0.093" />
+        <inertia ixx="0.000317919847402" ixy="-2.45304027389e-07" ixz="-4.4274594195e-06" iyy="0.000326130407595" iyz="-1.12862334396e-05" izz="1.82344853665e-05" />
+      </inertial>
+      <visual name="mjcf_geom_93_0_visual">
+        <origin xyz="-0.00250000092704 0.0320000000001 0.064999999991" rpy="0 1.57079632321 1.35121948353e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_5cm_Sockets.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_93">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_94_0_visual">
+        <origin xyz="-0.00250000092704 0.0320000000001 0.064999999991" rpy="0 1.57079632321 1.31561428418e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_5cm_Carbon.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_94">
+          <color rgba="0.0149999996647 0.0179999992251 0.019999999553 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_95_0_visual">
+        <origin xyz="-8.73189226654e-10 1.36059566391e-13 0.05" rpy="-3.35384399272e-13 -3.58979304269e-09 1.3471843864e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_95">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_96_0_collision">
+        <origin xyz="-0.00250000092704 0.0320000000001 0.064999999991" rpy="0 1.57079632321 1.31376029847e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_5cm.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_97_0_collision">
+        <origin xyz="-8.73189226654e-10 1.36059566391e-13 0.05" rpy="-3.35384399272e-13 -3.58979304269e-09 1.3471843864e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Lower_Arm_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_wrist_pitch_link'}">
+      <inertial>
+        <origin xyz="-0.00010331349607 -0.0386142999996 0.0281156000002" rpy="0 -0 0" />
+        <mass value="0.079" />
+        <inertia ixx="3.68262999999e-05" ixy="1.78929762921e-08" ixz="-5.28128176359e-08" iyy="2.53909999998e-05" iyz="3.64120000015e-06" izz="2.10000000003e-05" />
+      </inertial>
+      <visual name="mjcf_geom_98_0_visual">
+        <origin xyz="-1.35745237707e-09 1.73749903354e-14 1.81328422329e-13" rpy="1.62630325873e-17 5.48606299278e-17 -3.58979312942e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_98">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_99_0_visual">
+        <origin xyz="-1.35745236753e-09 1.73819292293e-14 1.81325653127e-13" rpy="-4.23516473627e-22 -1.52033649196e-30 -3.5897930184e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_99">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_100_0_collision">
+        <origin xyz="-1.35745237707e-09 1.73749903354e-14 1.81328422329e-13" rpy="1.62630325873e-17 5.48606299278e-17 -3.58979312942e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_101_0_collision">
+        <origin xyz="-1.35745236753e-09 1.73819292293e-14 1.81325653127e-13" rpy="-4.23516473627e-22 -1.52033649196e-30 -3.5897930184e-09" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_gripper_frame'}">
+      <inertial>
+        <origin xyz="0.000213626999833 0.000245138090433 -0.0251870015723" rpy="0 -0 0" />
+        <mass value="0.087" />
+        <inertia ixx="2.75086999999e-05" ixy="-3.35240977479e-07" ixz="-5.73520000103e-06" iyy="4.33657000006e-05" iyz="-5.17846741437e-08" izz="3.45058999995e-05" />
+      </inertial>
+      <visual name="mjcf_geom_102_0_visual">
+        <origin xyz="-1.75479422659e-13 1.71668235183e-14 -1.57319892476e-09" rpy="3.58979306307e-09 -3.35445863794e-13 1.29896093881e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_102">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_103_0_visual">
+        <origin xyz="-1.75451667084e-13 1.72466207982e-14 -1.57319893348e-09" rpy="3.58979298692e-09 -3.3556837864e-13 1.31342831277e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_Motor.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_103">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_104_0_collision">
+        <origin xyz="-1.75492433085e-13 1.71772318591e-14 -1.57319893063e-09" rpy="3.58979317055e-09 -3.35534912368e-13 1.32416268892e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_part1.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_105_0_collision">
+        <origin xyz="-1.75422176785e-13 1.72362124573e-14 -1.57319894449e-09" rpy="3.5897928935e-09 -3.35687722194e-13 1.3211653993e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_part2.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_110_0_visual">
+        <origin xyz="5.50979259921e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.676795793e-06 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_110">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_111_0_visual">
+        <origin xyz="5.50979259431e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.67679579317e-06 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_111">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_moving_jaw_link'}">
+      <inertial>
+        <origin xyz="0.00958317954451 -0.0284973047311 0.0192757962228" rpy="0 -0 0" />
+        <mass value="0.012" />
+        <inertia ixx="6.19352465287e-06" ixy="1.38305127625e-06" ixz="3.49497725184e-08" iyy="2.31106318605e-06" iyz="-1.04373842409e-07" izz="5.28738216108e-06" />
+      </inertial>
+      <visual name="mjcf_geom_106_0_visual">
+        <origin xyz="1.69211866741e-13 5.37070388162e-14 1.66079666136e-09" rpy="-9.68735509717e-06 2.35302012328e-06 0.37680999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Moving_Jaw.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_106">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_107_0_collision">
+        <origin xyz="1.69207529932e-13 5.37382638388e-14 1.66079667713e-09" rpy="-9.68735509711e-06 2.35302012331e-06 0.37680999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Moving_Jaw_part1.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_108_0_collision">
+        <origin xyz="1.6911645695e-13 5.38111222248e-14 1.6607966565e-09" rpy="-9.68735509711e-06 2.3530201234e-06 0.37680999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Moving_Jaw_part2.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_109_0_collision">
+        <origin xyz="1.69093905544e-13 5.37625499675e-14 1.66079665789e-09" rpy="-9.68735509713e-06 2.3530201233e-06 0.37680999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Moving_Jaw_part3.ply.convex.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_grasp_tcp'}">
+      <inertial>
+        <origin xyz="-1.74193992564e-13 1.72084568817e-14 -1.93217823685e-09" rpy="0 -0 0" />
+        <mass value="1e-09" />
+        <inertia ixx="1e-09" ixy="-6.34084127095e-35" ixz="-3.21919605116e-27" iyy="1e-09" iyz="-7.70371977755e-34" izz="1e-09" />
+      </inertial>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_pregrasp_aim_tip'}">
+      <inertial>
+        <origin xyz="-1.72306613422e-13 1.72084568817e-14 -2.43474926331e-09" rpy="0 -0 0" />
+        <mass value="1e-09" />
+        <inertia ixx="1e-09" ixy="-6.34084127095e-35" ixz="-3.21919605116e-27" iyy="1e-09" iyz="-7.70371977755e-34" izz="1e-09" />
+      </inertial>
+    </xacro:if>
+    <xacro:if value="${link_name == 'right_wrist_rgb_optical_frame'}">
+      <inertial>
+        <origin xyz="1.36827449371e-09 -7.02093938543e-12 8.95682694679e-10" rpy="0 -0 0" />
+        <mass value="1e-09" />
+        <inertia ixx="1e-09" ixy="2.61246591291e-27" ixz="-3.45647901285e-25" iyy="1e-09" iyz="-9.63783120644e-27" izz="1e-09" />
+      </inertial>
+    </xacro:if>
+    <xacro:if value="${link_name == 'top_base_link'}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 -0 0" />
+        <mass value="0.2542" />
+        <inertia ixx="0.0045" ixy="1.32679489667e-09" ixz="0" iyy="0.005" iyz="0" izz="0.0045" />
+      </inertial>
+      <visual name="mjcf_geom_112_0_visual">
+        <origin xyz="-0.440000013266 -0.00499883242047 -0.6" rpy="-1.73472347598e-18 6.93889390391e-18 -2.65358979331e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_frame/topbase1.stl" scale="1 1 1" />
+        </geometry>
+        <material name="mjcf_color_112">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_113_0_visual">
+        <origin xyz="-0.297999984077 0.00600079076974 -0.715" rpy="-5.90619133461e-17 6.93889390391e-18 3.13999734641" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/topbase2.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_113">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_114_0_collision">
+        <origin xyz="-0.1044 -0.00025 0.23595" rpy="0 -0 5.25245130592e-18" />
+        <geometry>
+          <box size="0.1504 0.12 0.3349" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'head_pan_link'}">
+      <inertial>
+        <origin xyz="3.62654350994e-13 2.73319748715e-07 0" rpy="0 -0 0" />
+        <mass value="0.2556" />
+        <inertia ixx="0.0129" ixy="-9.02220529737e-09" ixz="0" iyy="0.00950000000002" iyz="0" izz="0.0184" />
+      </inertial>
+      <visual name="mjcf_geom_115_0_visual">
+        <origin xyz="-0.335000013266 -0.00499883772765 -0.923" rpy="8.67361737988e-19 -5.55111512313e-17 -2.65358979336e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/tophead1.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_115">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_116_0_visual">
+        <origin xyz="1.16999997611 -0.00900283138028 0.262" rpy="-3.14159201945 -1.57000000101 3.14159063414" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/tophead4.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_116">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_117_0_collision">
+        <origin xyz="0.0135 1.09426068873e-19 0.093" rpy="0 -0 5.25245130592e-18" />
+        <geometry>
+          <box size="0.055 0.05 0.04" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'head_tilt_link'}">
+      <inertial>
+        <origin xyz="0.0175112723913 0.00256448669886 0.0236605848549" rpy="0 -0 0" />
+        <mass value="0.0937210745284" />
+        <inertia ixx="7.21965395048e-05" ixy="7.8031583232e-08" ixz="-5.84401504398e-06" iyy="2.26317083884e-05" iyz="1.26018823212e-09" izz="7.30131846871e-05" />
+      </inertial>
+      <visual name="mjcf_geom_118_0_visual">
+        <origin xyz="0.162649962825 -0.00600113446269 -1.16815" rpy="-6.20163642662e-17 4.55026099265e-18 -5.31076937972e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/tophead5.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_118">
+          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_119_0_visual">
+        <origin xyz="0.162649962825 -0.00600113446269 -1.16815" rpy="-3.56491214576e-17 -1.75849280414e-18 -5.31076937974e-06" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/tophead6.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+        <material name="mjcf_color_119">
+          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_120_0_collision">
+        <origin xyz="0.0101 0.0026 0.014" rpy="0 -0 7.23196730366e-18" />
+        <geometry>
+          <box size="0.045 0.099 0.05" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'front_right_wheel_link'}">
+      <inertial>
+        <origin xyz="2.16840434497e-19 0 -2.16840434497e-19" rpy="0 -0 0" />
+        <mass value="0.5" />
+        <inertia ixx="0.000519805262729" ixy="-2.11758236814e-22" ixz="1.69406589451e-21" iyy="0.000860834251868" iyz="3.48342299558e-20" izz="0.000519805262729" />
+      </inertial>
+      <visual name="mjcf_geom_136_0_visual">
+        <origin xyz="0 -0.0235 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.05" length="0.004" />
+        </geometry>
+        <material name="mjcf_color_136">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_137_0_visual">
+        <origin xyz="0 0.0235 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.05" length="0.004" />
+        </geometry>
+        <material name="mjcf_color_137">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_138_0_visual">
+        <origin xyz="0 0 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.024" length="0.051" />
+        </geometry>
+        <material name="mjcf_color_138">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_139_0_visual">
+        <origin xyz="0.0555 0 0" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_139">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_139_1_visual">
+        <origin xyz="0.0555 0.0106066017178 0.0106066017178" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_139">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_139_2_visual">
+        <origin xyz="0.0555 -0.0106066017178 -0.0106066017178" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_139">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_139_0_collision">
+        <origin xyz="0.0555 0 0" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_139_1_collision">
+        <origin xyz="0.0555 0.0106066017178 0.0106066017178" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_139_2_collision">
+        <origin xyz="0.0555 -0.0106066017178 -0.0106066017178" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_140_0_visual">
+        <origin xyz="0.048064 0 -0.02775" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_140">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_140_1_visual">
+        <origin xyz="0.0533672963268 0.0106066076536 -0.018564417702" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_140">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_140_2_visual">
+        <origin xyz="0.0427607036732 -0.0106066076536 -0.036935582298" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_140">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_140_0_collision">
+        <origin xyz="0.048064 0 -0.02775" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_140_1_collision">
+        <origin xyz="0.0533672963268 0.0106066076536 -0.018564417702" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_140_2_collision">
+        <origin xyz="0.0427607036732 -0.0106066076536 -0.036935582298" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_141_0_visual">
+        <origin xyz="0.02775 0 -0.048064" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_141">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_141_1_visual">
+        <origin xyz="0.036935582298 0.0106066076536 -0.0427607036732" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_141">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_141_2_visual">
+        <origin xyz="0.018564417702 -0.0106066076536 -0.0533672963268" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_141">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_141_0_collision">
+        <origin xyz="0.02775 0 -0.048064" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_141_1_collision">
+        <origin xyz="0.036935582298 0.0106066076536 -0.0427607036732" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_141_2_collision">
+        <origin xyz="0.018564417702 -0.0106066076536 -0.0533672963268" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_142_0_visual">
+        <origin xyz="0 0 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_142">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_142_1_visual">
+        <origin xyz="0.0106066017178 0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_142">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_142_2_visual">
+        <origin xyz="-0.0106066017178 -0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_142">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_142_0_collision">
+        <origin xyz="0 0 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_142_1_collision">
+        <origin xyz="0.0106066017178 0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_142_2_collision">
+        <origin xyz="-0.0106066017178 -0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_143_0_visual">
+        <origin xyz="-0.02775 0 -0.048064" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_143">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_143_1_visual">
+        <origin xyz="-0.018564417702 0.0106066076536 -0.0533672963268" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_143">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_143_2_visual">
+        <origin xyz="-0.036935582298 -0.0106066076536 -0.0427607036732" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_143">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_143_0_collision">
+        <origin xyz="-0.02775 0 -0.048064" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_143_1_collision">
+        <origin xyz="-0.018564417702 0.0106066076536 -0.0533672963268" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_143_2_collision">
+        <origin xyz="-0.036935582298 -0.0106066076536 -0.0427607036732" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_144_0_visual">
+        <origin xyz="-0.048064 0 -0.02775" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_144">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_144_1_visual">
+        <origin xyz="-0.0427607036732 0.0106066076536 -0.036935582298" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_144">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_144_2_visual">
+        <origin xyz="-0.0533672963268 -0.0106066076536 -0.018564417702" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_144">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_144_0_collision">
+        <origin xyz="-0.048064 0 -0.02775" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_144_1_collision">
+        <origin xyz="-0.0427607036732 0.0106066076536 -0.036935582298" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_144_2_collision">
+        <origin xyz="-0.0533672963268 -0.0106066076536 -0.018564417702" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_145_0_visual">
+        <origin xyz="-0.0555 0 0" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_145">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_145_1_visual">
+        <origin xyz="-0.0555 0.0106066017178 -0.0106066017178" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_145">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_145_2_visual">
+        <origin xyz="-0.0555 -0.0106066017178 0.0106066017178" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_145">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_145_0_collision">
+        <origin xyz="-0.0555 0 0" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_145_1_collision">
+        <origin xyz="-0.0555 0.0106066017178 -0.0106066017178" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_145_2_collision">
+        <origin xyz="-0.0555 -0.0106066017178 0.0106066017178" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_146_0_visual">
+        <origin xyz="-0.048064 0 0.02775" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_146">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_146_1_visual">
+        <origin xyz="-0.0533672963268 0.0106066076536 0.018564417702" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_146">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_146_2_visual">
+        <origin xyz="-0.0427607036732 -0.0106066076536 0.036935582298" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_146">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_146_0_collision">
+        <origin xyz="-0.048064 0 0.02775" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_146_1_collision">
+        <origin xyz="-0.0533672963268 0.0106066076536 0.018564417702" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_146_2_collision">
+        <origin xyz="-0.0427607036732 -0.0106066076536 0.036935582298" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_147_0_visual">
+        <origin xyz="-0.02775 0 0.048064" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_147">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_147_1_visual">
+        <origin xyz="-0.036935582298 0.0106066076536 0.0427607036732" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_147">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_147_2_visual">
+        <origin xyz="-0.018564417702 -0.0106066076536 0.0533672963268" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_147">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_147_0_collision">
+        <origin xyz="-0.02775 0 0.048064" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_147_1_collision">
+        <origin xyz="-0.036935582298 0.0106066076536 0.0427607036732" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_147_2_collision">
+        <origin xyz="-0.018564417702 -0.0106066076536 0.0533672963268" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_148_0_visual">
+        <origin xyz="0 0 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_148">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_148_1_visual">
+        <origin xyz="-0.0106066017178 0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_148">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_148_2_visual">
+        <origin xyz="0.0106066017178 -0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_148">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_148_0_collision">
+        <origin xyz="0 0 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_148_1_collision">
+        <origin xyz="-0.0106066017178 0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_148_2_collision">
+        <origin xyz="0.0106066017178 -0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_149_0_visual">
+        <origin xyz="0.02775 0 0.048064" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_149">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_149_1_visual">
+        <origin xyz="0.018564417702 0.0106066076536 0.0533672963268" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_149">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_149_2_visual">
+        <origin xyz="0.036935582298 -0.0106066076536 0.0427607036732" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_149">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_149_0_collision">
+        <origin xyz="0.02775 0 0.048064" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_149_1_collision">
+        <origin xyz="0.018564417702 0.0106066076536 0.0533672963268" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_149_2_collision">
+        <origin xyz="0.036935582298 -0.0106066076536 0.0427607036732" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_150_0_visual">
+        <origin xyz="0.048064 0 0.02775" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_150">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_150_1_visual">
+        <origin xyz="0.0427607036732 0.0106066076536 0.036935582298" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_150">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_150_2_visual">
+        <origin xyz="0.0533672963268 -0.0106066076536 0.018564417702" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_150">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_150_0_collision">
+        <origin xyz="0.048064 0 0.02775" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_150_1_collision">
+        <origin xyz="0.0427607036732 0.0106066076536 0.036935582298" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_150_2_collision">
+        <origin xyz="0.0533672963268 -0.0106066076536 0.018564417702" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'rear_left_wheel_link'}">
+      <inertial>
+        <origin xyz="2.16840434497e-19 0 -2.16840434497e-19" rpy="0 -0 0" />
+        <mass value="0.5" />
+        <inertia ixx="0.000519805262729" ixy="-2.11758236814e-22" ixz="1.69406589451e-21" iyy="0.000860834251868" iyz="3.48342299558e-20" izz="0.000519805262729" />
+      </inertial>
+      <visual name="mjcf_geom_151_0_visual">
+        <origin xyz="0 -0.0235 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.05" length="0.004" />
+        </geometry>
+        <material name="mjcf_color_151">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_152_0_visual">
+        <origin xyz="0 0.0235 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.05" length="0.004" />
+        </geometry>
+        <material name="mjcf_color_152">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_153_0_visual">
+        <origin xyz="0 0 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.024" length="0.051" />
+        </geometry>
+        <material name="mjcf_color_153">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_154_0_visual">
+        <origin xyz="0.0555 0 0" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_154">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_154_1_visual">
+        <origin xyz="0.0555 0.0106066017178 0.0106066017178" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_154">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_154_2_visual">
+        <origin xyz="0.0555 -0.0106066017178 -0.0106066017178" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_154">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_154_0_collision">
+        <origin xyz="0.0555 0 0" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_154_1_collision">
+        <origin xyz="0.0555 0.0106066017178 0.0106066017178" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_154_2_collision">
+        <origin xyz="0.0555 -0.0106066017178 -0.0106066017178" rpy="2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_155_0_visual">
+        <origin xyz="0.048064 0 -0.02775" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_155">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_155_1_visual">
+        <origin xyz="0.0533672963268 0.0106066076536 -0.018564417702" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_155">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_155_2_visual">
+        <origin xyz="0.0427607036732 -0.0106066076536 -0.036935582298" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_155">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_155_0_collision">
+        <origin xyz="0.048064 0 -0.02775" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_155_1_collision">
+        <origin xyz="0.0533672963268 0.0106066076536 -0.018564417702" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_155_2_collision">
+        <origin xyz="0.0427607036732 -0.0106066076536 -0.036935582298" rpy="2.71228921573 0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_156_0_visual">
+        <origin xyz="0.02775 0 -0.048064" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_156">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_156_1_visual">
+        <origin xyz="0.036935582298 0.0106066076536 -0.0427607036732" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_156">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_156_2_visual">
+        <origin xyz="0.018564417702 -0.0106066076536 -0.0533672963268" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_156">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_156_0_collision">
+        <origin xyz="0.02775 0 -0.048064" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_156_1_collision">
+        <origin xyz="0.036935582298 0.0106066076536 -0.0427607036732" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_156_2_collision">
+        <origin xyz="0.018564417702 -0.0106066076536 -0.0533672963268" rpy="-2.12346319186 0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_157_0_visual">
+        <origin xyz="0 0 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_157">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_157_1_visual">
+        <origin xyz="0.0106066017178 0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_157">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_157_2_visual">
+        <origin xyz="-0.0106066017178 -0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_157">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_157_0_collision">
+        <origin xyz="0 0 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_157_1_collision">
+        <origin xyz="0.0106066017178 0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_157_2_collision">
+        <origin xyz="-0.0106066017178 -0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_158_0_visual">
+        <origin xyz="-0.02775 0 -0.048064" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_158">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_158_1_visual">
+        <origin xyz="-0.018564417702 0.0106066076536 -0.0533672963268" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_158">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_158_2_visual">
+        <origin xyz="-0.036935582298 -0.0106066076536 -0.0427607036732" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_158">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_158_0_collision">
+        <origin xyz="-0.02775 0 -0.048064" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_158_1_collision">
+        <origin xyz="-0.018564417702 0.0106066076536 -0.0533672963268" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_158_2_collision">
+        <origin xyz="-0.036935582298 -0.0106066076536 -0.0427607036732" rpy="-1.01812946173 -0.831880167807 2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_159_0_visual">
+        <origin xyz="-0.048064 0 -0.02775" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_159">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_159_1_visual">
+        <origin xyz="-0.0427607036732 0.0106066076536 -0.036935582298" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_159">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_159_2_visual">
+        <origin xyz="-0.0533672963268 -0.0106066076536 -0.018564417702" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_159">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_159_0_collision">
+        <origin xyz="-0.048064 0 -0.02775" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_159_1_collision">
+        <origin xyz="-0.0427607036732 0.0106066076536 -0.036935582298" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_159_2_collision">
+        <origin xyz="-0.0533672963268 -0.0106066076536 -0.018564417702" rpy="0.42930343786 -0.831880167807 0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_160_0_visual">
+        <origin xyz="-0.0555 0 0" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_160">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_160_1_visual">
+        <origin xyz="-0.0555 0.0106066017178 -0.0106066017178" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_160">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_160_2_visual">
+        <origin xyz="-0.0555 -0.0106066017178 0.0106066017178" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_160">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_160_0_collision">
+        <origin xyz="-0.0555 0 0" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_160_1_collision">
+        <origin xyz="-0.0555 0.0106066017178 -0.0106066017178" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_160_2_collision">
+        <origin xyz="-0.0555 -0.0106066017178 0.0106066017178" rpy="0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_161_0_visual">
+        <origin xyz="-0.048064 0 0.02775" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_161">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_161_1_visual">
+        <origin xyz="-0.0533672963268 0.0106066076536 0.018564417702" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_161">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_161_2_visual">
+        <origin xyz="-0.0427607036732 -0.0106066076536 0.036935582298" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_161">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_161_0_collision">
+        <origin xyz="-0.048064 0 0.02775" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_161_1_collision">
+        <origin xyz="-0.0533672963268 0.0106066076536 0.018564417702" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_161_2_collision">
+        <origin xyz="-0.0427607036732 -0.0106066076536 0.036935582298" rpy="0.42930343786 0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_162_0_visual">
+        <origin xyz="-0.02775 0 0.048064" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_162">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_162_1_visual">
+        <origin xyz="-0.036935582298 0.0106066076536 0.0427607036732" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_162">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_162_2_visual">
+        <origin xyz="-0.018564417702 -0.0106066076536 0.0533672963268" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_162">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_162_0_collision">
+        <origin xyz="-0.02775 0 0.048064" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_162_1_collision">
+        <origin xyz="-0.036935582298 0.0106066076536 0.0427607036732" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_162_2_collision">
+        <origin xyz="-0.018564417702 -0.0106066076536 0.0533672963268" rpy="-1.01812946173 0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_163_0_visual">
+        <origin xyz="0 0 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_163">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_163_1_visual">
+        <origin xyz="-0.0106066017178 0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_163">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_163_2_visual">
+        <origin xyz="0.0106066017178 -0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_163">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_163_0_collision">
+        <origin xyz="0 0 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_163_1_collision">
+        <origin xyz="-0.0106066017178 0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_163_2_collision">
+        <origin xyz="0.0106066017178 -0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -2.35619449019" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_164_0_visual">
+        <origin xyz="0.02775 0 0.048064" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_164">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_164_1_visual">
+        <origin xyz="0.018564417702 0.0106066076536 0.0533672963268" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_164">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_164_2_visual">
+        <origin xyz="0.036935582298 -0.0106066076536 0.0427607036732" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_164">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_164_0_collision">
+        <origin xyz="0.02775 0 0.048064" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_164_1_collision">
+        <origin xyz="0.018564417702 0.0106066076536 0.0533672963268" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_164_2_collision">
+        <origin xyz="0.036935582298 -0.0106066076536 0.0427607036732" rpy="-2.12346319186 -0.831880167807 -2.00009976466" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_165_0_visual">
+        <origin xyz="0.048064 0 0.02775" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_165">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_165_1_visual">
+        <origin xyz="0.0427607036732 0.0106066076536 0.036935582298" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_165">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_165_2_visual">
+        <origin xyz="0.0533672963268 -0.0106066076536 0.018564417702" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_165">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_165_0_collision">
+        <origin xyz="0.048064 0 0.02775" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_165_1_collision">
+        <origin xyz="0.0427607036732 0.0106066076536 0.036935582298" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_165_2_collision">
+        <origin xyz="0.0533672963268 -0.0106066076536 0.018564417702" rpy="2.71228921573 -0.831880167807 -0.552666865063" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'front_left_wheel_link'}">
+      <inertial>
+        <origin xyz="2.16840434497e-19 0 -2.16840434497e-19" rpy="0 -0 0" />
+        <mass value="0.5" />
+        <inertia ixx="0.000519805262729" ixy="0" ixz="-1.69406589451e-21" iyy="0.000860834251868" iyz="3.4622471719e-20" izz="0.000519805262729" />
+      </inertial>
+      <visual name="mjcf_geom_121_0_visual">
+        <origin xyz="0 -0.0235 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.05" length="0.004" />
+        </geometry>
+        <material name="mjcf_color_121">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_122_0_visual">
+        <origin xyz="0 0.0235 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.05" length="0.004" />
+        </geometry>
+        <material name="mjcf_color_122">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_123_0_visual">
+        <origin xyz="0 0 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.024" length="0.051" />
+        </geometry>
+        <material name="mjcf_color_123">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_124_0_visual">
+        <origin xyz="0.0555 0 0" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_124">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_124_1_visual">
+        <origin xyz="0.0555 -0.0106066017178 0.0106066017178" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_124">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_124_2_visual">
+        <origin xyz="0.0555 0.0106066017178 -0.0106066017178" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_124">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_124_0_collision">
+        <origin xyz="0.0555 0 0" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_124_1_collision">
+        <origin xyz="0.0555 -0.0106066017178 0.0106066017178" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_124_2_collision">
+        <origin xyz="0.0555 0.0106066017178 -0.0106066017178" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_125_0_visual">
+        <origin xyz="0.048064 0 -0.02775" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_125">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_125_1_visual">
+        <origin xyz="0.0533672963268 -0.0106066076536 -0.018564417702" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_125">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_125_2_visual">
+        <origin xyz="0.0427607036732 0.0106066076536 -0.036935582298" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_125">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_125_0_collision">
+        <origin xyz="0.048064 0 -0.02775" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_125_1_collision">
+        <origin xyz="0.0533672963268 -0.0106066076536 -0.018564417702" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_125_2_collision">
+        <origin xyz="0.0427607036732 0.0106066076536 -0.036935582298" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_126_0_visual">
+        <origin xyz="0.02775 0 -0.048064" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_126">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_126_1_visual">
+        <origin xyz="0.036935582298 -0.0106066076536 -0.0427607036732" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_126">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_126_2_visual">
+        <origin xyz="0.018564417702 0.0106066076536 -0.0533672963268" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_126">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_126_0_collision">
+        <origin xyz="0.02775 0 -0.048064" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_126_1_collision">
+        <origin xyz="0.036935582298 -0.0106066076536 -0.0427607036732" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_126_2_collision">
+        <origin xyz="0.018564417702 0.0106066076536 -0.0533672963268" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_127_0_visual">
+        <origin xyz="0 0 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_127">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_127_1_visual">
+        <origin xyz="0.0106066017178 -0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_127">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_127_2_visual">
+        <origin xyz="-0.0106066017178 0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_127">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_127_0_collision">
+        <origin xyz="0 0 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_127_1_collision">
+        <origin xyz="0.0106066017178 -0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_127_2_collision">
+        <origin xyz="-0.0106066017178 0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_128_0_visual">
+        <origin xyz="-0.02775 0 -0.048064" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_128">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_128_1_visual">
+        <origin xyz="-0.018564417702 -0.0106066076536 -0.0533672963268" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_128">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_128_2_visual">
+        <origin xyz="-0.036935582298 0.0106066076536 -0.0427607036732" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_128">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_128_0_collision">
+        <origin xyz="-0.02775 0 -0.048064" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_128_1_collision">
+        <origin xyz="-0.018564417702 -0.0106066076536 -0.0533672963268" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_128_2_collision">
+        <origin xyz="-0.036935582298 0.0106066076536 -0.0427607036732" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_129_0_visual">
+        <origin xyz="-0.048064 0 -0.02775" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_129">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_129_1_visual">
+        <origin xyz="-0.0427607036732 -0.0106066076536 -0.036935582298" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_129">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_129_2_visual">
+        <origin xyz="-0.0533672963268 0.0106066076536 -0.018564417702" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_129">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_129_0_collision">
+        <origin xyz="-0.048064 0 -0.02775" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_129_1_collision">
+        <origin xyz="-0.0427607036732 -0.0106066076536 -0.036935582298" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_129_2_collision">
+        <origin xyz="-0.0533672963268 0.0106066076536 -0.018564417702" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_130_0_visual">
+        <origin xyz="-0.0555 0 0" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_130">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_130_1_visual">
+        <origin xyz="-0.0555 -0.0106066017178 -0.0106066017178" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_130">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_130_2_visual">
+        <origin xyz="-0.0555 0.0106066017178 0.0106066017178" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_130">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_130_0_collision">
+        <origin xyz="-0.0555 0 0" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_130_1_collision">
+        <origin xyz="-0.0555 -0.0106066017178 -0.0106066017178" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_130_2_collision">
+        <origin xyz="-0.0555 0.0106066017178 0.0106066017178" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_131_0_visual">
+        <origin xyz="-0.048064 0 0.02775" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_131">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_131_1_visual">
+        <origin xyz="-0.0533672963268 -0.0106066076536 0.018564417702" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_131">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_131_2_visual">
+        <origin xyz="-0.0427607036732 0.0106066076536 0.036935582298" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_131">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_131_0_collision">
+        <origin xyz="-0.048064 0 0.02775" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_131_1_collision">
+        <origin xyz="-0.0533672963268 -0.0106066076536 0.018564417702" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_131_2_collision">
+        <origin xyz="-0.0427607036732 0.0106066076536 0.036935582298" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_132_0_visual">
+        <origin xyz="-0.02775 0 0.048064" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_132">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_132_1_visual">
+        <origin xyz="-0.036935582298 -0.0106066076536 0.0427607036732" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_132">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_132_2_visual">
+        <origin xyz="-0.018564417702 0.0106066076536 0.0533672963268" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_132">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_132_0_collision">
+        <origin xyz="-0.02775 0 0.048064" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_132_1_collision">
+        <origin xyz="-0.036935582298 -0.0106066076536 0.0427607036732" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_132_2_collision">
+        <origin xyz="-0.018564417702 0.0106066076536 0.0533672963268" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_133_0_visual">
+        <origin xyz="0 0 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_133">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_133_1_visual">
+        <origin xyz="-0.0106066017178 -0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_133">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_133_2_visual">
+        <origin xyz="0.0106066017178 0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_133">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_133_0_collision">
+        <origin xyz="0 0 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_133_1_collision">
+        <origin xyz="-0.0106066017178 -0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_133_2_collision">
+        <origin xyz="0.0106066017178 0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_134_0_visual">
+        <origin xyz="0.02775 0 0.048064" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_134">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_134_1_visual">
+        <origin xyz="0.018564417702 -0.0106066076536 0.0533672963268" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_134">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_134_2_visual">
+        <origin xyz="0.036935582298 0.0106066076536 0.0427607036732" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_134">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_134_0_collision">
+        <origin xyz="0.02775 0 0.048064" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_134_1_collision">
+        <origin xyz="0.018564417702 -0.0106066076536 0.0533672963268" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_134_2_collision">
+        <origin xyz="0.036935582298 0.0106066076536 0.0427607036732" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_135_0_visual">
+        <origin xyz="0.048064 0 0.02775" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_135">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_135_1_visual">
+        <origin xyz="0.0427607036732 -0.0106066076536 0.036935582298" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_135">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_135_2_visual">
+        <origin xyz="0.0533672963268 0.0106066076536 0.018564417702" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_135">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_135_0_collision">
+        <origin xyz="0.048064 0 0.02775" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_135_1_collision">
+        <origin xyz="0.0427607036732 -0.0106066076536 0.036935582298" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_135_2_collision">
+        <origin xyz="0.0533672963268 0.0106066076536 0.018564417702" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+    </xacro:if>
+    <xacro:if value="${link_name == 'rear_right_wheel_link'}">
+      <inertial>
+        <origin xyz="2.16840434497e-19 0 -2.16840434497e-19" rpy="0 -0 0" />
+        <mass value="0.5" />
+        <inertia ixx="0.000519805262729" ixy="0" ixz="-1.69406589451e-21" iyy="0.000860834251868" iyz="3.4622471719e-20" izz="0.000519805262729" />
+      </inertial>
+      <visual name="mjcf_geom_166_0_visual">
+        <origin xyz="0 -0.0235 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.05" length="0.004" />
+        </geometry>
+        <material name="mjcf_color_166">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_167_0_visual">
+        <origin xyz="0 0.0235 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.05" length="0.004" />
+        </geometry>
+        <material name="mjcf_color_167">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_168_0_visual">
+        <origin xyz="0 0 0" rpy="-1.57079632679 -0 0" />
+        <geometry>
+          <cylinder radius="0.024" length="0.051" />
+        </geometry>
+        <material name="mjcf_color_168">
+          <color rgba="0.620000004768 0.639999985695 0.680000007153 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_169_0_visual">
+        <origin xyz="0.0555 0 0" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_169">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_169_1_visual">
+        <origin xyz="0.0555 -0.0106066017178 0.0106066017178" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_169">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_169_2_visual">
+        <origin xyz="0.0555 0.0106066017178 -0.0106066017178" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_169">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_169_0_collision">
+        <origin xyz="0.0555 0 0" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_169_1_collision">
+        <origin xyz="0.0555 -0.0106066017178 0.0106066017178" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_169_2_collision">
+        <origin xyz="0.0555 0.0106066017178 -0.0106066017178" rpy="-2.35619449019 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_170_0_visual">
+        <origin xyz="0.048064 0 -0.02775" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_170">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_170_1_visual">
+        <origin xyz="0.0533672963268 -0.0106066076536 -0.018564417702" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_170">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_170_2_visual">
+        <origin xyz="0.0427607036732 0.0106066076536 -0.036935582298" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_170">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_170_0_collision">
+        <origin xyz="0.048064 0 -0.02775" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_170_1_collision">
+        <origin xyz="0.0533672963268 -0.0106066076536 -0.018564417702" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_170_2_collision">
+        <origin xyz="0.0427607036732 0.0106066076536 -0.036935582298" rpy="-2.23617535102 0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_171_0_visual">
+        <origin xyz="0.02775 0 -0.048064" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_171">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_171_1_visual">
+        <origin xyz="0.036935582298 -0.0106066076536 -0.0427607036732" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_171">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_171_2_visual">
+        <origin xyz="0.018564417702 0.0106066076536 -0.0533672963268" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_171">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_171_0_collision">
+        <origin xyz="0.02775 0 -0.048064" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_171_1_collision">
+        <origin xyz="0.036935582298 -0.0106066076536 -0.0427607036732" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_171_2_collision">
+        <origin xyz="0.018564417702 0.0106066076536 -0.0533672963268" rpy="-1.93524185185 0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_172_0_visual">
+        <origin xyz="0 0 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_172">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_172_1_visual">
+        <origin xyz="0.0106066017178 -0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_172">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_172_2_visual">
+        <origin xyz="-0.0106066017178 0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_172">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_172_0_collision">
+        <origin xyz="0 0 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_172_1_collision">
+        <origin xyz="0.0106066017178 -0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_172_2_collision">
+        <origin xyz="-0.0106066017178 0.0106066017178 -0.0555" rpy="-1.57079632679 -1.11022302463e-16 0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_173_0_visual">
+        <origin xyz="-0.02775 0 -0.048064" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_173">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_173_1_visual">
+        <origin xyz="-0.018564417702 -0.0106066076536 -0.0533672963268" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_173">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_173_2_visual">
+        <origin xyz="-0.036935582298 0.0106066076536 -0.0427607036732" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_173">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_173_0_collision">
+        <origin xyz="-0.02775 0 -0.048064" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_173_1_collision">
+        <origin xyz="-0.018564417702 -0.0106066076536 -0.0533672963268" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_173_2_collision">
+        <origin xyz="-0.036935582298 0.0106066076536 -0.0427607036732" rpy="-1.20635080174 -0.127168770735 0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_174_0_visual">
+        <origin xyz="-0.048064 0 -0.02775" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_174">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_174_1_visual">
+        <origin xyz="-0.0427607036732 -0.0106066076536 -0.036935582298" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_174">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_174_2_visual">
+        <origin xyz="-0.0533672963268 0.0106066076536 -0.018564417702" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_174">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_174_0_collision">
+        <origin xyz="-0.048064 0 -0.02775" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_174_1_collision">
+        <origin xyz="-0.0427607036732 -0.0106066076536 -0.036935582298" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_174_2_collision">
+        <origin xyz="-0.0533672963268 0.0106066076536 -0.018564417702" rpy="-0.905417302565 -0.127168770735 0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_175_0_visual">
+        <origin xyz="-0.0555 0 0" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_175">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_175_1_visual">
+        <origin xyz="-0.0555 -0.0106066017178 -0.0106066017178" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_175">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_175_2_visual">
+        <origin xyz="-0.0555 0.0106066017178 0.0106066017178" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_175">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_175_0_collision">
+        <origin xyz="-0.0555 0 0" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_175_1_collision">
+        <origin xyz="-0.0555 -0.0106066017178 -0.0106066017178" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_175_2_collision">
+        <origin xyz="-0.0555 0.0106066017178 0.0106066017178" rpy="-0.785398163397 -0 0" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_176_0_visual">
+        <origin xyz="-0.048064 0 0.02775" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_176">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_176_1_visual">
+        <origin xyz="-0.0533672963268 -0.0106066076536 0.018564417702" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_176">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_176_2_visual">
+        <origin xyz="-0.0427607036732 0.0106066076536 0.036935582298" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_176">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_176_0_collision">
+        <origin xyz="-0.048064 0 0.02775" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_176_1_collision">
+        <origin xyz="-0.0533672963268 -0.0106066076536 0.018564417702" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_176_2_collision">
+        <origin xyz="-0.0427607036732 0.0106066076536 0.036935582298" rpy="-0.905417302565 0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_177_0_visual">
+        <origin xyz="-0.02775 0 0.048064" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_177">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_177_1_visual">
+        <origin xyz="-0.036935582298 -0.0106066076536 0.0427607036732" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_177">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_177_2_visual">
+        <origin xyz="-0.018564417702 0.0106066076536 0.0533672963268" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_177">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_177_0_collision">
+        <origin xyz="-0.02775 0 0.048064" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_177_1_collision">
+        <origin xyz="-0.036935582298 -0.0106066076536 0.0427607036732" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_177_2_collision">
+        <origin xyz="-0.018564417702 0.0106066076536 0.0533672963268" rpy="-1.20635080174 0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_178_0_visual">
+        <origin xyz="0 0 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_178">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_178_1_visual">
+        <origin xyz="-0.0106066017178 -0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_178">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_178_2_visual">
+        <origin xyz="0.0106066017178 0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_178">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_178_0_collision">
+        <origin xyz="0 0 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_178_1_collision">
+        <origin xyz="-0.0106066017178 -0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_178_2_collision">
+        <origin xyz="0.0106066017178 0.0106066017178 0.0555" rpy="-1.57079632679 1.11022302463e-16 -0.785398163397" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_179_0_visual">
+        <origin xyz="0.02775 0 0.048064" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_179">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_179_1_visual">
+        <origin xyz="0.018564417702 -0.0106066076536 0.0533672963268" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_179">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_179_2_visual">
+        <origin xyz="0.036935582298 0.0106066076536 0.0427607036732" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_179">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_179_0_collision">
+        <origin xyz="0.02775 0 0.048064" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_179_1_collision">
+        <origin xyz="0.018564417702 -0.0106066076536 0.0533672963268" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_179_2_collision">
+        <origin xyz="0.036935582298 0.0106066076536 0.0427607036732" rpy="-1.93524185185 -0.127168770735 -0.665379024229" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <visual name="mjcf_geom_180_0_visual">
+        <origin xyz="0.048064 0 0.02775" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+        <material name="mjcf_color_180">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_180_1_visual">
+        <origin xyz="0.0427607036732 -0.0106066076536 0.036935582298" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_180">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <visual name="mjcf_geom_180_2_visual">
+        <origin xyz="0.0533672963268 0.0106066076536 0.018564417702" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+        <material name="mjcf_color_180">
+          <color rgba="0.0599999986589 0.0599999986589 0.070000000298 1" />
+        </material>
+      </visual>
+      <collision name="mjcf_geom_180_0_collision">
+        <origin xyz="0.048064 0 0.02775" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <cylinder radius="0.008" length="0.03" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_180_1_collision">
+        <origin xyz="0.0427607036732 -0.0106066076536 0.036935582298" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+      <collision name="mjcf_geom_180_2_collision">
+        <origin xyz="0.0533672963268 0.0106066076536 0.018564417702" rpy="-2.23617535102 -0.127168770735 -0.364445525056" />
+        <geometry>
+          <sphere radius="0.008" />
+        </geometry>
+      </collision>
+    </xacro:if>
+  </xacro:macro>
+</robot>

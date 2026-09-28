@@ -26,8 +26,9 @@ stop_process() {
 run_one() {
   local algorithm=$1
   local height=$2
-  local input="$input_root/input_${height}cm_trial1"
-  local output="$run_root/$algorithm/${height}cm"
+  local noise_profile=$3
+  local input="$input_root/$noise_profile/input_${height}cm_trial1"
+  local output="$run_root/$noise_profile/$algorithm/${height}cm"
   local launch_pid="" recorder_pid=""
   local algorithm_domain height_domain
 
@@ -41,11 +42,22 @@ run_one() {
   case "$height" in
     16p5) height_domain=1 ;;
     26) height_domain=2 ;;
+    30) height_domain=5 ;;
     45) height_domain=3 ;;
     70) height_domain=4 ;;
     *) echo "unknown height: $height" >&2; return 2 ;;
   esac
+  case "$noise_profile" in
+    measured) ;;
+    stress) algorithm_domain=$((algorithm_domain + 20)) ;;
+    *) echo "unknown LiDAR noise profile: $noise_profile" >&2; return 2 ;;
+  esac
   export ROS_DOMAIN_ID=$((algorithm_domain + height_domain))
+
+  if [[ ! -f "$input/metadata.yaml" ]]; then
+    echo "missing input bag: $input" >&2
+    return 1
+  fi
 
   if [[ -f "$output/run_complete" ]]; then
     echo "skip completed $algorithm ${height}cm"
@@ -84,11 +96,15 @@ run_one() {
   sleep 4
   kill -0 "$launch_pid"
 
-  setsid ros2 bag record -o "$output/result_bag" \
-    --topics /map /map_metadata /tf /tracked_pose /submap_list \
+  setsid ros2 bag record -o "$output/result_bag" --storage sqlite3 \
+    /map /map_metadata /tf /tracked_pose /submap_list \
     >"$output/recorder.log" 2>&1 &
   recorder_pid=$!
-  sleep 1
+  sleep 2
+  if ! kill -0 "$recorder_pid" 2>/dev/null; then
+    echo "rosbag recorder failed to start; see $output/recorder.log" >&2
+    return 1
+  fi
 
   local topics=(/scan /odom /ground_truth/odom /tf_static /clock)
   if [[ "$algorithm" == cartographer_imu ]]; then
@@ -142,19 +158,25 @@ path = Path(sys.argv[1])
 Image.open(path).save(path.with_suffix('.png'))
 PY
   date --iso-8601=seconds >"$output/run_complete"
-  echo "completed $algorithm ${height}cm"
+  echo "completed $noise_profile $algorithm ${height}cm"
 }
 
-algorithms=(slam_toolbox cartographer cartographer_imu rtabmap)
-heights=(16p5 26 45 70)
+algorithms=(slam_toolbox cartographer)
+heights=(16p5 30 45)
+noise_profiles=(measured stress)
 if [[ $# -ge 1 ]]; then
-  algorithms=($1)
+  algorithms=("$1")
 fi
 if [[ $# -ge 2 ]]; then
-  heights=($2)
+  heights=("$2")
 fi
-for algorithm in "${algorithms[@]}"; do
-  for height in "${heights[@]}"; do
-    run_one "$algorithm" "$height"
+if [[ $# -ge 3 ]]; then
+  noise_profiles=("$3")
+fi
+for noise_profile in "${noise_profiles[@]}"; do
+  for algorithm in "${algorithms[@]}"; do
+    for height in "${heights[@]}"; do
+      run_one "$algorithm" "$height" "$noise_profile"
+    done
   done
 done

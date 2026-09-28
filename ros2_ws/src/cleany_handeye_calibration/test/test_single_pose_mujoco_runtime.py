@@ -29,22 +29,48 @@ LEFT_JOINTS = (
 )
 RIGHT_JOINTS = tuple(name.replace('left_', 'right_') for name in LEFT_JOINTS)
 EXPECTED_RESOLVED = (
-    -1.5767935884419453,
-    0.7221886746271129,
-    0.35912286260054327,
-    0.9498367845587643,
-    -1.1053229792363208,
+    -1.6155992940406487,
+    0.8737810790755131,
+    0.6275511587329343,
+    0.8898767172677139,
+    -1.113934963863734,
 )
+# Re-measured with the CAD-frame model and the MuJoCo 3.4 control scene.
+# The legacy arm-mount fixture no longer has matching FK or valid clearance.
 TARGET_POSITION_M = (
-    0.48213565748783654,
-    0.15284906255858033,
-    0.6377038732895058,
+    0.4984751801049542,
+    0.16798377190965666,
+    0.6710205234095147,
 )
-OBSERVED_TARGET_CLEARANCE_M = 0.1286505425794566
+OBSERVED_TARGET_CLEARANCE_M = 0.14608839152681105
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_single_pose_fixture_matches_current_model_evidence() -> None:
+    from cleany_handeye_calibration.models import JointPose
+    from cleany_handeye_calibration.mujoco_pose_evidence import (
+        MujocoPoseEvidenceEvaluator,
+    )
+    from cleany_mujoco_sim.scene_loader import materialize_control_scene
+
+    scene = materialize_control_scene(
+        REPOSITORY_ROOT / 'ros2_ws/src/cleany_mujoco_sim/scenes/handeye.xml.in'
+    )
+    evaluator = MujocoPoseEvidenceEvaluator(
+        scene, minimum_camera_depth_m=0.05, image_border_fraction=0.05,
+    )
+    evidence = evaluator.evaluate(JointPose(LEFT_JOINTS, EXPECTED_RESOLVED))
+    assert evidence.base_gripper_position_m == pytest.approx(
+        TARGET_POSITION_M, abs=1.0e-6,
+    )
+    assert evidence.minimum_collision_distance_m == pytest.approx(
+        OBSERVED_TARGET_CLEARANCE_M, abs=1.0e-6,
+    )
+    assert evidence.minimum_collision_distance_m >= 0.10
+    assert evidence.target_visible
 
 
 def _config(artifact_root: Path, run_id: str) -> dict:
