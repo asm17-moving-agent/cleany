@@ -50,6 +50,19 @@ def test_sorting_wrapper_uses_yoloe_seg_gemini_without_sam2_or_wrist():
         assert arguments[name] == 'false'
 
 
+def test_study_cafe_simulation_defaults_to_fine_tuned_yoloe(runtime):
+    _, context = runtime
+    assert context.launch_configurations['yoloe_model_path'] == (
+        'yoloe/study_cafe_sim_yoloe26s_seg.pt'
+    )
+    assert context.launch_configurations[
+        'perception_minimum_detection_confidence'
+    ] == '0.08'
+    assert context.launch_configurations['yoloe_class_confidence_thresholds'] == (
+        '[0.25, 0.25, 0.25, 0.08]'
+    )
+
+
 @pytest.mark.parametrize('simulator,sorting,known', [
     ('true', 'true', True), ('false', 'true', False),
     ('true', 'false', False), ('false', 'false', False),
@@ -196,7 +209,7 @@ def test_default_yoloe_gemini_preflight_does_not_need_sam2_assets(runtime, tmp_p
     monkeypatch.setenv('GEMINI_API_KEY', 'unit-test-placeholder-not-a-real-key')
     model_dir = tmp_path / 'yoloe'
     model_dir.mkdir()
-    (model_dir / 'yoloe-26s-seg.pt').touch()
+    (model_dir / 'study_cafe_sim_yoloe26s_seg.pt').touch()
     (model_dir / 'mobileclip2_b.ts').touch()
     context.launch_configurations['model_directory'] = str(tmp_path)
     assert module._preflight(context) == []

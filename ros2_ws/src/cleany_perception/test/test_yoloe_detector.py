@@ -110,6 +110,22 @@ def test_yoloe_detector_reports_missing_assets(tmp_path):
     assert raised.value.kind == FailureKind.DETECTOR_API
 
 
+def test_yoloe_detector_applies_class_confidence_thresholds(tmp_path):
+    checkpoint, encoder_directory = _model_files(tmp_path)
+    detector = YoloeDetector(
+        str(checkpoint), ['cup', 'wallet'], device='cpu',
+        confidence_threshold=0.08,
+        class_confidence_thresholds=(0.25, 0.9),
+        text_encoder_directory=str(encoder_directory),
+        model_factory=lambda _path: _Model(),
+    )
+    assert detector.detect(np.zeros((20, 30, 3), dtype=np.uint8), '') == ()
+
+    with pytest.raises(ValueError, match='must match classes'):
+        YoloeDetector(str(checkpoint), ['cup', 'wallet'],
+                      class_confidence_thresholds=(0.25,))
+
+
 def test_yoloe_detector_rejects_invalid_image(tmp_path):
     checkpoint, encoder_directory = _model_files(tmp_path)
     detector = YoloeDetector(

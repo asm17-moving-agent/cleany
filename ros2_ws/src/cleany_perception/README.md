@@ -315,6 +315,46 @@ colcon test-result --verbose
 `test_reference_service.py`는 reference 관측, `test_sam2_reference_tracker.py`는 연속
 tracking을 함께 검사한다. DDS 설정 검사는 `test_learned_launch_profile.py`에 둔다.
 
+## 스터디카페 MuJoCo 전용 YOLOE-seg 학습
+
+기본 YOLOE-26s-seg의 범용 text prompt는 현재 MuJoCo 종이컵·마우스·휴지·레고를
+안정적으로 검출하지 못했다. `tools/study_cafe_yoloe_dataset.py`는 동일한 study-cafe
+scene의 head RGB 영상을 여러 물체 위치·회전과 밝기 값으로 생성하고, **오프라인 학습
+라벨에만** MuJoCo segmentation geom ID를 쓴다. 실행 중 인식 노드는 RGB-D 픽셀과
+YOLOE 출력만 읽으며 geom ID나 물체 pose를 사용하지 않는다. 생성 데이터와 모델은
+저장소 밖의 모델 디렉터리에 둔다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+export MUJOCO_GL=egl
+export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4
+python3 ros2_ws/src/cleany_perception/tools/study_cafe_yoloe_dataset.py \
+  --output ~/models/yoloe/study_cafe_sim_v1_dataset \
+  --train-count 64 --val-count 16
+python3 ros2_ws/src/cleany_perception/tools/finetune_study_cafe_yoloe.py \
+  --dataset ~/models/yoloe/study_cafe_sim_v1_dataset/dataset.yaml \
+  --checkpoint ~/models/yoloe/yoloe-26s-seg.pt \
+  --text-encoder-directory ~/models/yoloe \
+  --project ~/models/yoloe/study_cafe_sim_v1_training \
+  --epochs 8 --batch 4 --device cpu
+python3 ros2_ws/src/cleany_perception/tools/evaluate_study_cafe_yoloe.py \
+  --dataset ~/models/yoloe/study_cafe_sim_v1_dataset/dataset.yaml \
+  --checkpoint ~/models/yoloe/study_cafe_sim_v1_training/fit/weights/best.pt \
+  --text-encoder-directory ~/models/yoloe \
+  --confidence 0.08 --class-thresholds 0.25 0.25 0.25 0.08
+cp ~/models/yoloe/study_cafe_sim_v1_training/fit/weights/best.pt \
+  ~/models/yoloe/study_cafe_sim_yoloe26s_seg.pt
+```
+
+실행 기본값은 YOLOE 추론 confidence 0.08과 클래스별 컵/마우스/휴지 0.25,
+레고 0.08이다. 클래스별 문턱값은 모델 출력 뒤, Gemini 분류 전에 적용한다.
+마스크 평가는 IoU 0.5를 사용한다. 학습에 쓰지 않은 별도 난수 시드 20장(80개 물체)에서
+범용 모델은 6개, 이 모델과 설정은 71개를 맞췄다. 클래스별로 컵 20/20,
+마우스 18/20, 휴지 18/20, 레고 15/20이었다. 모델 출력 중 GT mask와 IoU 0.5로
+매칭되지 않은 검출은 21개였다. 검증 영상도 같은 scene의 다른 무작위 배치이므로
+실물 인식 성능의 근거로 사용할 수 없다.
+
 ## YOLOE-s + SAM2-tiny 공통 실행 프로필
 
 설치되는 `config/fastdds_rgbd.xml`은 Fast DDS 2.6/Humble용 UDP + participant별

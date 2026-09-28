@@ -48,6 +48,7 @@ class YoloeDetector:
         text_encoder_directory: str = '',
         model_factory: ModelFactory | None = None,
         require_masks: bool = False,
+        class_confidence_thresholds: Sequence[float] = (),
     ) -> None:
         normalized_classes = tuple(item.strip() for item in classes)
         if not model_path:
@@ -68,6 +69,17 @@ class YoloeDetector:
             raise ValueError('YOLOE IoU threshold must be in [0, 1]')
         if maximum_detections <= 0:
             raise ValueError('YOLOE maximum detections must be positive')
+        if (class_confidence_thresholds
+                and len(class_confidence_thresholds) != len(normalized_classes)):
+            raise ValueError(
+                'YOLOE class confidence thresholds must match classes'
+            )
+        if any(not confidence_threshold <= value <= 1.0
+               for value in class_confidence_thresholds):
+            raise ValueError(
+                'YOLOE class confidence thresholds must be in '
+                '[global threshold, 1]'
+            )
 
         self._model_path = str(Path(model_path).expanduser().resolve())
         self._classes = normalized_classes
@@ -81,6 +93,9 @@ class YoloeDetector:
         )
         self._model_factory = model_factory
         self._require_masks = require_masks
+        self._class_confidence_thresholds = dict(zip(
+            normalized_classes, class_confidence_thresholds
+        ))
         self._model = None
 
     def prepare(self) -> None:
@@ -148,6 +163,11 @@ class YoloeDetector:
                     label = names[class_id]
                 else:
                     label = names[class_id]
+                minimum = self._class_confidence_thresholds.get(
+                    label, self._confidence_threshold
+                )
+                if confidence < minimum:
+                    continue
                 x_min, y_min, x_max, y_max = (
                     float(value) for value in coordinates
                 )

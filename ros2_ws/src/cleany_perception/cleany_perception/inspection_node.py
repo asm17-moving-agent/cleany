@@ -234,6 +234,11 @@ class InspectionNode(Node):
                         ).value
                     ),
                     require_masks=segmenter_type == 'yoloe_seg',
+                    class_confidence_thresholds=tuple(
+                        self.get_parameter(
+                            'yoloe_class_confidence_thresholds'
+                        ).value or ()
+                    ),
                 )
                 if detector_type == 'yoloe_gemini':
                     detector = YoloeGeminiDetector(yoloe, GeminiClassifier(
@@ -485,6 +490,9 @@ class InspectionNode(Node):
         self.declare_parameter('yoloe_device', 'cuda')
         self.declare_parameter('yoloe_image_size', 640)
         self.declare_parameter('yoloe_iou_threshold', 0.5)
+        self.declare_parameter(
+            'yoloe_class_confidence_thresholds', Parameter.Type.DOUBLE_ARRAY
+        )
         self.declare_parameter('yoloe_text_encoder_directory', '')
         self.declare_parameter('snapshot_timeout_seconds', 2.0)
         self.declare_parameter('depth_16u_scale_m', 0.001)

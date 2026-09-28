@@ -175,6 +175,13 @@ def generate_launch_description() -> LaunchDescription:
     profile.update(load_model_profile(
         perception_share / 'config' / 'gemini_flash_lite_sam2_tiny.yaml'))
     profile.update(detector_type='yoloe_gemini', segmenter_type='yoloe_seg')
+    # This study-cafe simulation uses a checkpoint fine-tuned on its camera
+    # renders. The shared YOLOE profile keeps the general-purpose checkpoint.
+    profile.update(
+        yoloe_model_path='yoloe/study_cafe_sim_yoloe26s_seg.pt',
+        minimum_detection_confidence=0.08,
+        yoloe_class_confidence_thresholds=[0.25, 0.25, 0.25, 0.08],
+    )
 
     backend = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -317,6 +324,10 @@ def generate_launch_description() -> LaunchDescription:
                 'yoloe_classes': ParameterValue(
                     yoloe_classes,
                     value_type=list[str],
+                ),
+                'yoloe_class_confidence_thresholds': ParameterValue(
+                    LaunchConfiguration('yoloe_class_confidence_thresholds'),
+                    value_type=list[float],
                 ),
                 'yoloe_device': perception_device,
                 'yoloe_image_size': ParameterValue(
@@ -747,6 +758,10 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'yoloe_classes',
                 default_value=str(profile['yoloe_classes']),
+            ),
+            DeclareLaunchArgument(
+                'yoloe_class_confidence_thresholds',
+                default_value=str(profile['yoloe_class_confidence_thresholds']),
             ),
             DeclareLaunchArgument(
                 'yoloe_text_encoder_directory',

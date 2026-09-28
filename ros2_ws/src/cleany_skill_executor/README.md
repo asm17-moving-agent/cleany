@@ -400,6 +400,15 @@ ros2 launch cleany_skill_executor study_cafe_nearest_grasp_demo.launch.py
 
 기본값은 YOLOE-seg instance mask + Gemini 3.1 Flash-Lite 상세 분류 설정이다. 기존 color adapter는
 과거 머그컵/휴대폰/지우개 fixture 전용이며 현재 종이컵/레고/휴지에 대응하지 않는다.
+이 study-cafe MuJoCo launch의 YOLOE 기본 체크포인트는
+`~/models/yoloe/study_cafe_sim_yoloe26s_seg.pt`다. 현재 시뮬레이션 head 영상으로
+fine-tune한 파일이며, 생성·학습·평가 절차는
+[`cleany_perception/README.md`](../cleany_perception/README.md#스터디카페-mujoco-전용-yoloe-seg-학습)에 있다.
+학습 결과의 `best.pt`를 이 경로로 복사해 사용한다. 실제 카메라 영상에 대한 성능은
+검증하지 않았으며, 실물 실행에는 별도 검증된 checkpoint를 `yoloe_model_path`로 지정한다.
+YOLOE 추론의 최소 confidence는 0.08이고, 클래스별로 컵·마우스·휴지는 0.25,
+레고는 0.08을 적용한다. 다른 클래스 목록이나 모델로 바꿀 때는
+`yoloe_class_confidence_thresholds`도 같은 순서로 조정해야 한다.
 다른 YOLOE checkpoint와 SAM2.1 tiny mask 실행은 다음처럼 선택한다. Headless에서도 MuJoCo
 camera에는 유효한 X11/Xvfb context가 필요하다.
 
