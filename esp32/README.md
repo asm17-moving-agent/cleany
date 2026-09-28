@@ -13,6 +13,10 @@ template. `platformio.ini` and `sdkconfig.defaults` supply the N32R16V memory
 overrides. The `dout` image-header mode is intentional: the ESP32-S3
 bootloader switches the detected octal flash to OPI mode.
 
+The directory keeps firmware in `src/`, PlatformIO hardware tests in `test/`,
+host-only C++ tests in `host_tests/`, and the KiCad project with its local
+libraries in `pcb/`. PlatformIO's default `test/` layout is intentional.
+
 ## Motor web interface
 
 The normal firmware creates the `Cleany` Wi-Fi access point with password
@@ -100,10 +104,10 @@ payload bytes from being misinterpreted as manual commands.
 Build and upload the non-test firmware with PlatformIO isolated by `uv`:
 
 ```bash
-uvx --with pip --from platformio pio run -d motor_controller
-uvx --with pip --from platformio pio run -d motor_controller --target upload \
+uvx --with pip --from platformio pio run -d esp32
+uvx --with pip --from platformio pio run -d esp32 --target upload \
   --upload-port /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5:B1:D5:3F:34-if00
-uvx --with pip --from platformio pio device monitor -d motor_controller \
+uvx --with pip --from platformio pio device monitor -d esp32 \
   --port /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5:B1:D5:3F:34-if00 \
   --baud 115200
 ```
@@ -124,8 +128,8 @@ Run the host-side command-filter check without attached hardware:
 
 ```bash
 c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
-  -Imotor_controller/src \
-  motor_controller/tests/motor_command_filter_test.cpp \
+  -Iesp32/src \
+  esp32/host_tests/motor_command_filter_test.cpp \
   -o /tmp/motor_command_filter_test &&
   /tmp/motor_command_filter_test
 ```
@@ -134,8 +138,8 @@ Run the host-side velocity-controller check:
 
 ```bash
 c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
-  -Imotor_controller/src \
-  motor_controller/tests/wheel_velocity_controller_test.cpp \
+  -Iesp32/src \
+  esp32/host_tests/wheel_velocity_controller_test.cpp \
   -o /tmp/wheel_velocity_controller_test &&
   /tmp/wheel_velocity_controller_test
 ```
@@ -144,8 +148,8 @@ Run the host-side binary protocol codec check:
 
 ```bash
 c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
-  -Imotor_controller/src \
-  motor_controller/tests/serial_protocol_test.cpp \
+  -Iesp32/src \
+  esp32/host_tests/serial_protocol_test.cpp \
   -o /tmp/serial_protocol_test &&
   /tmp/serial_protocol_test
 ```
@@ -155,7 +159,7 @@ c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
 Run both suites in sequence with PlatformIO port auto-detection:
 
 ```bash
-uvx --with pip --from platformio pio test -d motor_controller \
+uvx --with pip --from platformio pio test -d esp32 \
   -e esp32-s3-devkitc-1-n32r16v
 ```
 
@@ -173,7 +177,7 @@ CLEANY_ESP_PORT=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5
 Run only the motor test:
 
 ```bash
-uvx --with pip --from platformio pio test -d motor_controller \
+uvx --with pip --from platformio pio test -d esp32 \
   -e esp32-s3-devkitc-1-n32r16v -f test_motor \
   --upload-port "$CLEANY_ESP_PORT" --test-port "$CLEANY_ESP_PORT"
 ```
@@ -187,7 +191,7 @@ ground.
 Run only the MPU6050 test:
 
 ```bash
-uvx --with pip --from platformio pio test -d motor_controller \
+uvx --with pip --from platformio pio test -d esp32 \
   -e esp32-s3-devkitc-1-n32r16v -f test_imu \
   --upload-port "$CLEANY_ESP_PORT" --test-port "$CLEANY_ESP_PORT"
 ```
@@ -208,4 +212,4 @@ project-local library tables register Espressif's official
 ESP32-S3-DevKitC symbol and footprint as
 `PCM_Espressif:ESP32-S3-DevKitC`. The vendored source revision, mechanical
 drawing used for verification, and license are recorded in
-[`libraries/README.md`](libraries/README.md).
+[`pcb/libraries/README.md`](pcb/libraries/README.md).
