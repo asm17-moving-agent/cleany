@@ -256,6 +256,12 @@ subscriber discovery 지연을 흡수하기 위해 live topic에는 기본 0.25�
 snapshot을 제한 재발행한다. 횟수와 간격은 `debug_republish_count`와
 `debug_republish_period_seconds`로 조정한다. latched topic은 마지막 성공 결과 한 장만
 보관한다. detector 또는 SAM2 단계에서 실패하면 이전 결과를 재발행하지 않는다.
+`debug_republish_count=0`이면 RGB-D와 손목 debug 이미지 생성·발행을 생략한다.
+RGB-D snapshot은 메시지 payload를 읽기 전용 NumPy view로 참조하고, reference
+PIN은 이 읽기 전용 snapshot을 공유해 불필요한 전체 프레임 복사를 줄인다.
+손목 HANDOFF 이후에는 선택하지 않은 팔의 임시 frame cache를 비우고 새 frame을
+보관하지 않는다. HANDOFF 전에는 정확한 timestamp 동기화를 위해 두 팔의 짧은
+buffer를 유지한다.
 
 MuJoCo 통합 데모는 `detector_type=simulation_color`,
 `segmenter_type=simulation_color`로 시뮬레이션 전용 adapter를 선택한다. 이 adapter는
@@ -398,6 +404,9 @@ YOLOE checkpoint와 text prompt를 선택 장치에 준비하고 SAM2 predictor�
 투영한다. 환경 물체 pose, 크기, MuJoCo mesh/정답 상태는 읽지 않는다.
 설정은 `config/depth_scene.yaml`이다. 기본값은 0.1–2.0 m, pixel stride 2,
 2 Hz이며, 1초보다 오래되거나 미래 timestamp인 depth는 발행하지 않는다.
+cloud 구독자가 없으면 depth 투영 자체를 건너뛰며, 구독자가 생기면 다음 새 depth부터 발행한다.
+현재 정렬 실행에서는 MoveIt의 OctoMap 최신성 검증 때문에 장면 cloud를 계속 갱신한다.
+작업 단계별 생성 중단은 최신성 계약과 함께 재설계해야 하므로 적용하지 않았다.
 0/NaN/Inf depth를 빈 공간이나 임의 표면으로 채우지 않는다.
 
 입력은 **정류된 depth와 그 영상에 맞는 CameraInfo**여야 한다. RGB로

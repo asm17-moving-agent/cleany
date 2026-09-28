@@ -97,6 +97,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self.declare_parameter('sorting_exit_on_finish', True)
         self.declare_parameter('sorting_test_only_label', '')
         self._wrist_enabled = self.declare_parameter('sorting_use_wrist_camera', False).value
+        self._adaptive_camera_rate = self.declare_parameter(
+            'sorting_adaptive_head_rate', False).value
         self._async_carry = self.declare_parameter('sorting_async_carry_monitor', False).value
         if self._async_carry and not self._wrist_enabled:
             raise ValueError('Asynchronous carry monitoring requires the wrist camera')
@@ -1156,12 +1158,18 @@ class SortingCoordinator(NearestPregraspCoordinator):
             self._pinned_reference = None
 
     def _next_sorting_detection(self):
+        if getattr(self, '_adaptive_camera_rate', False):
+            self._set_head_high_rate(True)
         pending = getattr(self, '_return_detection', None)
         self._return_detection = None
-        if pending is None:
-            return self._detect_objects()
-        self.get_logger().info('Using scene detection requested during return')
-        return self._finish_object_detection(pending)
+        try:
+            if pending is None:
+                return self._detect_objects()
+            self.get_logger().info('Using scene detection requested during return')
+            return self._finish_object_detection(pending)
+        finally:
+            if getattr(self, '_adaptive_camera_rate', False):
+                self._set_head_high_rate(False)
 
     def retreat(self, held: HeldObject, destination: str):
         arm = held.selected.selected_arm
@@ -1197,6 +1205,18 @@ class SortingCoordinator(NearestPregraspCoordinator):
         if len(response.results)!=1 or not response.results[0].successful:
             raise RuntimeError('Camera source/rate change rejected')
         self.get_logger().info(f'Active inspection camera={camera}; head runs at configured background rate during wrist use')
+        if camera == 'head':
+            self._set_head_high_rate(True)
+
+    def _set_head_high_rate(self, enabled: bool) -> None:
+        if not getattr(self, '_adaptive_camera_rate', False):
+            return
+        request = SetParameters.Request(parameters=[
+            Parameter('head_high_rate', value=enabled).to_parameter_msg()])
+        response = self._future(self._camera_client.call_async(request), 3.,
+                                'head camera rate change')
+        if len(response.results) != 1 or not response.results[0].successful:
+            raise RuntimeError('Head camera rate change rejected')
 
     def _observe_wrist(self, selected, operation, *, held=False):
         candidate = selected.selected_candidate

@@ -181,7 +181,7 @@ def _rgb_array(message: Image) -> np.ndarray:
     row_bytes = int(message.width) * 3
     if message.step < row_bytes:
         raise ValueError('Color image step is smaller than one row')
-    raw = np.frombuffer(bytes(message.data), dtype=np.uint8)
+    raw = np.frombuffer(message.data, dtype=np.uint8)
     expected_bytes = int(message.height) * int(message.step)
     if raw.size != expected_bytes:
         raise ValueError('Color image data length does not match metadata')
@@ -193,7 +193,9 @@ def _rgb_array(message: Image) -> np.ndarray:
     )
     if message.encoding == 'bgr8':
         rgb = rgb[:, :, ::-1]
-    return np.ascontiguousarray(rgb)
+    result = np.ascontiguousarray(rgb)
+    result.flags.writeable = False
+    return result
 
 
 def _depth_array(message: Image, depth_16u_scale_m: float) -> np.ndarray:
@@ -212,7 +214,7 @@ def _depth_array(message: Image, depth_16u_scale_m: float) -> np.ndarray:
     row_bytes = int(message.width) * bytes_per_pixel
     if message.step < row_bytes:
         raise ValueError('Depth image step is smaller than one row')
-    raw_bytes = bytes(message.data)
+    raw_bytes = memoryview(message.data)
     expected_bytes = int(message.height) * int(message.step)
     if len(raw_bytes) != expected_bytes:
         raise ValueError('Depth image data length does not match metadata')
@@ -222,7 +224,12 @@ def _depth_array(message: Image, depth_16u_scale_m: float) -> np.ndarray:
     )
     packed = np.ascontiguousarray(rows[:, :row_bytes])
     depth = packed.view(dtype).reshape(int(message.height), int(message.width))
-    return depth.astype(np.float32) * np.float32(scale)
+    if dtype == np.dtype('<f4') and scale == 1.0:
+        depth.flags.writeable = False
+        return depth
+    result = depth.astype(np.float32) * np.float32(scale)
+    result.flags.writeable = False
+    return result
 
 
 def _validate_camera_info(info: CameraInfo, image: Image) -> None:

@@ -235,6 +235,17 @@ def test_wrist_history_is_bounded_and_bridges_only_selected_arm_frames(service):
     assert not s.history
 
 
+def test_handoff_drops_opposite_wrist_cache(service):
+    s, req = service
+    assert s.execute(req, Service.Response()).success
+    image = deepcopy(s.images['left'][2_000_000_000])
+    image.header.frame_id = 'right_wrist_rgb_optical_frame'
+    image.header.stamp.sec = 4
+    s.receive(s.images['right'], image)
+    assert not s.images['right']
+    assert not s.infos['right']
+
+
 @pytest.mark.parametrize('invalid_mask', [False, True])
 def test_continuous_check_uses_post_request_result_without_batch_replay(service, monkeypatch, invalid_mask):
     from cleany_perception.core.continuous_tracking import TrackingFrame, TrackingResult

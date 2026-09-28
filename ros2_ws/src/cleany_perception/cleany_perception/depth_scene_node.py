@@ -54,6 +54,8 @@ class DepthSceneNode(Node):
         self._info = message
 
     def _publish(self) -> None:
+        if self._publisher.get_subscription_count() == 0:
+            return
         if self._depth is None or self._info is None:
             return
         stamp = self._depth.header.stamp

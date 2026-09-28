@@ -320,6 +320,9 @@ def generate_launch_description() -> LaunchDescription:
                 'yoloe_image_size': ParameterValue(
                     LaunchConfiguration('yoloe_image_size'), value_type=int
                 ),
+                'debug_republish_count': ParameterValue(PythonExpression([
+                    "5 if '", use_image_view, "' == 'true' else 0",
+                ]), value_type=int),
                 'yoloe_text_encoder_directory': (
                     yoloe_text_encoder_directory
                 ),
@@ -549,7 +552,13 @@ def generate_launch_description() -> LaunchDescription:
                 'lift_hold_sec': 3.0,
                 'count_retreat_as_lift': ParameterValue(sorting_mode, value_type=bool),
                 'lift_min_center_z_m': 0.38,
-                'grasp_debug_republish_period_sec': 0.5,
+                'grasp_debug_republish_period_sec': ParameterValue(PythonExpression([
+                    "0.5 if '", use_image_view, "' == 'true' else 0.0",
+                ]), value_type=float),
+                'publish_grasp_debug_overlay': ParameterValue(
+                    use_image_view, value_type=bool),
+                'sorting_adaptive_head_rate': ParameterValue(
+                    sorting_mode, value_type=bool),
                 'keep_debug_image_alive_on_failure': True,
             },
         ],

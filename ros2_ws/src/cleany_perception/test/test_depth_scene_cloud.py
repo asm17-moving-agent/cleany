@@ -87,10 +87,24 @@ def test_node_does_not_republish_future_or_stale_depth(age):
         get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(
             nanoseconds=int((10 + age) * 1e9))),
         get_parameter=lambda name: SimpleNamespace(value=1.0),
-        _publisher=SimpleNamespace(publish=published.append),
+        _publisher=SimpleNamespace(publish=published.append,
+                                   get_subscription_count=lambda: 1),
     )
     DepthSceneNode._publish(node)
     assert published == []
+
+
+def test_node_skips_projection_without_cloud_subscriber(monkeypatch):
+    depth, info = messages([[1]])
+    monkeypatch.setattr(
+        'cleany_perception.depth_scene_node.depth_scene_cloud',
+        lambda *args: pytest.fail('Projected depth without a subscriber'),
+    )
+    node = SimpleNamespace(
+        _depth=depth, _info=info,
+        _publisher=SimpleNamespace(get_subscription_count=lambda: 0),
+    )
+    DepthSceneNode._publish(node)
 
 
 def cloud():

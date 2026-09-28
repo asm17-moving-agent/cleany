@@ -7,6 +7,8 @@ sorting의 `scheduled_cameras=true`에서는 원래 공통 카메라 renderer의
 센서 토픽에 노출하지 않는다. `/sorting_cameras`의 `active_camera` ROS parameter를
 `head`, `left`, `right`로 변경하면 **렌더링 자체의 주기**를 전환한다.
 헤드 기본 10 Hz / 손목 사용 중 헤드 2 Hz / 선택 손목 10 Hz, 비선택 손목은 0 Hz다.
+`head_high_rate=false`를 설정하면 head가 선택된 동안에도 2 Hz로 낮춘다.
+sorting은 새 장면 검출과 head 재선택 시 10 Hz로 올리고, 검출 완료 후 2 Hz로 내린다.
 시작 파라미터는 `head_rate_hz`, `head_idle_rate_hz`, `wrist_rate_hz`이며
 실행 중 rate 수정은 거부한다. 별도 boolean `head_depth_boost`(기본 false)를
 true로 설정하면 선택 손목 카메라를 유지하면서 헤드를 `head_rate_hz`로 촬영한다.
@@ -23,6 +25,8 @@ GLFW는 backend thread 시작 전에 동기 초기화한다. FPS는 simulation t
 촬영 기한을 먼저 확인하고, 촬영할 카메라가 있을 때만 mutex 보호 `get_data` snapshot을
 복사한다. 같은 scheduling pass에 촬영하는 head/wrist 카메라는 하나의 일관된 snapshot을
 공유한다.
+카메라별 ROS Image/CameraInfo payload와 depth 변환 배열을 재사용하며,
+depth는 640픽셀 행 버퍼에서 환산한 뒤 각 메시지 행에 복사한다.
 
 MuJoCo 분리 수거 시뮬레이션의 결과를 독립적으로 평가하는 read-only 관측기다.
 `cleany_mujoco_observer/ObservedMujocoSystem`은 설치된

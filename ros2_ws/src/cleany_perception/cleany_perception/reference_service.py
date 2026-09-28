@@ -55,11 +55,14 @@ class ReferenceService:
                 cached = self._cache.get(request.source_snapshot_id)
                 if cached is None or not 1 <= request.source_object_id <= len(cached.detections):
                     raise ValueError('Source snapshot expired or object ID is invalid')
-                # Own just one reference independently of the detector's bounded
-                # cache; later fresh detector requests cannot evict this seed.
-                snapshot = replace(cached.snapshot, rgb=cached.snapshot.rgb.copy(),
-                                   depth_m=cached.snapshot.depth_m.copy())
-                snapshot.rgb.flags.writeable = snapshot.depth_m.flags.writeable = False
+                # Keep the immutable source snapshot alive after cache eviction.
+                # Sensor conversion already owns or borrows stable ROS message
+                # storage, so pinning does not need two full-frame copies.
+                snapshot = cached.snapshot
+                if snapshot.rgb.flags.writeable or snapshot.depth_m.flags.writeable:
+                    snapshot = replace(snapshot, rgb=snapshot.rgb.copy(),
+                                       depth_m=snapshot.depth_m.copy())
+                    snapshot.rgb.flags.writeable = snapshot.depth_m.flags.writeable = False
                 self._reference = PinnedReference(
                     uuid4().hex, request.source_snapshot_id, request.source_object_id,
                     replace(cached, snapshot=snapshot), self._clock())

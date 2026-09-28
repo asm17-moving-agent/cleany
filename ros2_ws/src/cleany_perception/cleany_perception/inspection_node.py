@@ -150,8 +150,8 @@ class InspectionNode(Node):
         self._debug_republish_period_seconds = float(
             self.get_parameter('debug_republish_period_seconds').value
         )
-        if self._debug_republish_count < 1:
-            raise ValueError('Debug republish count must be at least one')
+        if self._debug_republish_count < 0:
+            raise ValueError('Debug republish count must be nonnegative')
         if self._debug_republish_period_seconds <= 0.0:
             raise ValueError('Debug republish period must be positive')
         target_frame = str(self.get_parameter('target_frame').value)
@@ -345,9 +345,12 @@ class InspectionNode(Node):
         self._debug_lock = threading.Lock()
         self._debug_message = None
         self._debug_republishes_remaining = 0
-        self._debug_timer = self.create_timer(
-            self._debug_republish_period_seconds,
-            self._republish_debug_image,
+        self._debug_timer = (
+            self.create_timer(
+                self._debug_republish_period_seconds,
+                self._republish_debug_image,
+            )
+            if self._debug_republish_count > 1 else None
         )
         self._busy_lock = threading.Lock()
         self._busy = False
@@ -701,18 +704,12 @@ class InspectionNode(Node):
             )
             result.detections = detections_message
             self._detections_publisher.publish(detections_message)
-            debug_rgb = render_debug_image(
-                snapshot.rgb,
-                detections,
-                (),
-            )
-            self._publish_debug_image(
-                debug_image_message(
-                    debug_rgb,
-                    snapshot.stamp_ns,
+            if self._debug_republish_count:
+                debug_rgb = render_debug_image(snapshot.rgb, detections, ())
+                self._publish_debug_image(debug_image_message(
+                    debug_rgb, snapshot.stamp_ns,
                     messages.color.header.frame_id,
-                ),
-            )
+                ))
             goal_handle.succeed()
             return result
         except InspectionFailure as error:
@@ -819,19 +816,14 @@ class InspectionNode(Node):
         result.target_cloud = target_cloud
         result.context_cloud = context_cloud
         self._objects_publisher.publish(objects_message)
-        debug_rgb = render_debug_image(
-            cached.snapshot.rgb,
-            output.detections,
-            output.masks,
-            object_ids=(selected_id,),
-        )
-        self._publish_debug_image(
-            debug_image_message(
-                debug_rgb,
-                cached.snapshot.stamp_ns,
-                cached.color_frame,
+        if self._debug_republish_count:
+            debug_rgb = render_debug_image(
+                cached.snapshot.rgb, output.detections, output.masks,
+                object_ids=(selected_id,),
             )
-        )
+            self._publish_debug_image(debug_image_message(
+                debug_rgb, cached.snapshot.stamp_ns, cached.color_frame,
+            ))
         goal_handle.succeed()
         return result
 
@@ -896,6 +888,8 @@ class InspectionNode(Node):
         )
 
     def _publish_debug_image(self, message: Image) -> None:
+        if self._debug_republish_count == 0:
+            return
         self._debug_publisher.publish(message)
         self._latched_debug_publisher.publish(message)
         with self._debug_lock:

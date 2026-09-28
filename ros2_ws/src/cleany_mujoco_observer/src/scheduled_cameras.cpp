@@ -1,5 +1,6 @@
 #include "cleany_mujoco_observer/scheduled_cameras.hpp"
 #include "cleany_mujoco_observer/camera_rates.hpp"
+#include "cleany_mujoco_observer/depth_conversion.hpp"
 #include <GLFW/glfw3.h>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
@@ -19,6 +20,8 @@ struct ScheduledCameras::Impl {
     double next = 0, last = -1;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr rgb, depth;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr info;
+    sensor_msgs::msg::Image rgb_message, depth_message;
+    sensor_msgs::msg::CameraInfo info_message;
   };
   mjModel* model;
   Snapshot snapshot;
@@ -34,6 +37,7 @@ struct ScheduledCameras::Impl {
     node = std::make_shared<rclcpp::Node>("sorting_cameras");
     node->declare_parameter("active_camera", "head");
     node->declare_parameter("head_depth_boost", false);
+    node->declare_parameter("head_high_rate", true);
     rates.head_active = node->declare_parameter("head_rate_hz", 10.0);
     rates.head_idle = node->declare_parameter("head_idle_rate_hz", 2.0);
     rates.wrist_active = node->declare_parameter("wrist_rate_hz", 10.0);
@@ -45,9 +49,10 @@ struct ScheduledCameras::Impl {
       for (const auto& p: ps) {
         if (p.get_name() == "use_sim_time") continue;
         if (p.get_name() == "head_depth_boost" && p.get_type() == rclcpp::ParameterType::PARAMETER_BOOL) continue;
+        if (p.get_name() == "head_high_rate" && p.get_type() == rclcpp::ParameterType::PARAMETER_BOOL) continue;
         if (p.get_name() != "active_camera" || p.get_type() != rclcpp::ParameterType::PARAMETER_STRING ||
             (p.as_string() != "head" && p.as_string() != "left" && p.as_string() != "right")) {
-          out.successful = false; out.reason = "Only active_camera=head/left/right and boolean head_depth_boost are mutable";
+          out.successful = false; out.reason = "Only active_camera=head/left/right and boolean head_depth_boost/head_high_rate are mutable";
         }
       }
       return out;
@@ -63,6 +68,24 @@ struct ScheduledCameras::Impl {
       c.rgb=node->create_publisher<sensor_msgs::msg::Image>(prefix+(i==0 ? "/color/image_raw" : "/image_raw"), rclcpp::SensorDataQoS());
       c.info=node->create_publisher<sensor_msgs::msg::CameraInfo>(prefix+(i==0 ? "/color/camera_info" : "/camera_info"), rclcpp::SensorDataQoS());
       if (i==0) c.depth=node->create_publisher<sensor_msgs::msg::Image>("/camera/aligned_depth_to_color/image_raw", rclcpp::SensorDataQoS());
+      c.rgb_message.width=640; c.rgb_message.height=480;
+      c.rgb_message.encoding="rgb8"; c.rgb_message.step=640*3;
+      c.rgb_message.header.frame_id=c.frame;
+      c.rgb_message.data.resize(640*480*3);
+      c.info_message.width=640; c.info_message.height=480;
+      c.info_message.distortion_model="plumb_bob";
+      c.info_message.d={0,0,0,0,0};
+      const double f=240/std::tan(model->cam_fovy[c.id]*std::acos(-1)/360);
+      c.info_message.k={f,0,319.5,0,f,239.5,0,0,1};
+      c.info_message.r={1,0,0,0,1,0,0,0,1};
+      c.info_message.p={f,0,319.5,0,0,f,239.5,0,0,0,1,0};
+      if(c.depth) {
+        c.depth_message.width=640; c.depth_message.height=480;
+        c.depth_message.encoding="32FC1";
+        c.depth_message.step=640*sizeof(float);
+        c.depth_message.header.frame_id=c.frame;
+        c.depth_message.data.resize(480*c.depth_message.step);
+      }
     }
     worker=std::thread([this] { run(); });
   }
@@ -87,15 +110,17 @@ struct ScheduledCameras::Impl {
       mjvCamera view; mjv_defaultCamera(&view); view.type=mjCAMERA_FIXED;
       std::vector<uint8_t> rgb(640*480*3);
       std::vector<float> depth(640*480);
+      std::vector<float> depth_row(640);
       while(!stop && rclcpp::ok()) {
         rclcpp::spin_some(node);
         const auto active=node->get_parameter("active_camera").as_string();
         const bool boost=node->get_parameter("head_depth_boost").as_bool();
+        const bool head_high_rate=node->get_parameter("head_high_rate").as_bool();
         const double schedule_time=simulation_time();
         bool capture_due=false;
         for(const auto& c:cameras) {
           capture_due = capture_due || camera_is_due(
-            schedule_time,c.last,c.next,rates.rate(active,c.key,boost));
+            schedule_time,c.last,c.next,rates.rate(active,c.key,boost,head_high_rate));
         }
         if(!capture_due) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -107,7 +132,7 @@ struct ScheduledCameras::Impl {
         snapshot(data);
         if(!data) throw std::runtime_error("camera snapshot unavailable");
         for(auto& c:cameras) {
-          const double rate=rates.rate(active,c.key,boost);
+          const double rate=rates.rate(active,c.key,boost,head_high_rate);
           if(!camera_is_due(data->time,c.last,c.next,rate)) continue;
           if (c.depth && data->time > 1.0) {
             const int tilt = mj_name2id(model, mjOBJ_JOINT, "head_tilt_joint");
@@ -120,24 +145,20 @@ struct ScheduledCameras::Impl {
           mjv_updateScene(model,data,&opt,nullptr,&view,mjCAT_ALL,&scene);
           mjrRect rect{0,0,640,480}; mjr_render(rect,&scene,&context);
           mjr_readPixels(rgb.data(),c.depth ? depth.data() : nullptr,rect,&context);
-          sensor_msgs::msg::Image image;
-          image.header.stamp=rclcpp::Time(static_cast<int64_t>(std::llround(data->time*1e9)));
-          image.header.frame_id=c.frame; image.width=640; image.height=480;
-          image.encoding="rgb8"; image.step=640*3; image.data.resize(rgb.size());
-          for(size_t y=0;y<480;++y) std::memcpy(image.data.data()+y*image.step,rgb.data()+(479-y)*image.step,image.step);
-          sensor_msgs::msg::CameraInfo info;
-          info.header=image.header; info.width=640; info.height=480; info.distortion_model="plumb_bob"; info.d={0,0,0,0,0};
-          const double f=240/std::tan(model->cam_fovy[c.id]*std::acos(-1)/360);
-          info.k={f,0,319.5,0,f,239.5,0,0,1}; info.r={1,0,0,0,1,0,0,0,1}; info.p={f,0,319.5,0,0,f,239.5,0,0,0,1,0};
-          c.rgb->publish(image); c.info->publish(info);
+          c.rgb_message.header.stamp=rclcpp::Time(static_cast<int64_t>(std::llround(data->time*1e9)));
+          for(size_t y=0;y<480;++y) std::memcpy(c.rgb_message.data.data()+y*c.rgb_message.step,rgb.data()+(479-y)*c.rgb_message.step,c.rgb_message.step);
+          c.info_message.header=c.rgb_message.header;
+          c.rgb->publish(c.rgb_message); c.info->publish(c.info_message);
           if(c.depth) {
-            image.encoding="32FC1"; image.step=640*sizeof(float); image.data.resize(480*image.step);
-            const double near=model->vis.map.znear*model->stat.extent, far=model->vis.map.zfar*model->stat.extent;
-            for(size_t y=0;y<480;++y) for(size_t x=0;x<640;++x) {
-              float value=near/(1-depth[(479-y)*640+x]*(1-near/far));
-              std::memcpy(image.data.data()+(y*640+x)*sizeof(float),&value,sizeof(float));
+            c.depth_message.header.stamp=c.rgb_message.header.stamp;
+            const float near=model->vis.map.znear*model->stat.extent;
+            const float far=model->vis.map.zfar*model->stat.extent;
+            for(size_t y=0;y<480;++y) {
+              convert_depth_row(depth.data()+y*640,depth_row.data(),640,near,far);
+              std::memcpy(c.depth_message.data.data()+(479-y)*c.depth_message.step,
+                          depth_row.data(),c.depth_message.step);
             }
-            c.depth->publish(image);
+            c.depth->publish(c.depth_message);
           }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

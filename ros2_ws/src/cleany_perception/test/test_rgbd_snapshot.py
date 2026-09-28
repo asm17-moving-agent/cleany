@@ -61,6 +61,15 @@ def test_snapshot_conversion_supports_meter_and_scaled_depth(encoding):
     assert snapshot.source_frame == 'camera'
 
 
+def test_packed_rgb_and_float_depth_borrow_immutable_message_storage():
+    messages = _messages()
+    snapshot = snapshot_from_messages(messages)
+    assert not snapshot.rgb.flags.writeable
+    assert not snapshot.depth_m.flags.writeable
+    assert np.shares_memory(snapshot.rgb, np.frombuffer(messages.color.data, np.uint8))
+    assert np.shares_memory(snapshot.depth_m, np.frombuffer(messages.depth.data, np.uint8))
+
+
 def test_snapshot_conversion_rejects_mismatched_intrinsics():
     messages = _messages()
     messages.depth_info.k[0] = 99.0

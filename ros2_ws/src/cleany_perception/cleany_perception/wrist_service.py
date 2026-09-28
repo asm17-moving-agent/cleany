@@ -56,10 +56,12 @@ class WristService:
         if key <= 0:
             return
         with self.lock:
+            ref = self.reference
+            if ref is not None and cache is not self.images[ref['arm']] and cache is not self.infos[ref['arm']]:
+                return
             cache[key] = message
             while len(cache) > 4:
                 cache.popitem(last=False)
-            ref = self.reference
             if (not self.continuous_tracking and ref is not None and cache is self.images[ref['arm']] and key > ref['stamp']
                     and message.header.frame_id == f"{ref['arm']}_wrist_rgb_optical_frame"):
                 previous = next(reversed(self.history), ref['stamp'])
@@ -222,7 +224,8 @@ class WristService:
             rgb = self._rgb(msg, info, req.arm)
         expected_frame = f'{req.arm}_wrist_rgb_optical_frame'
         # Show the active sensor even if association/inference subsequently fails.
-        if hasattr(self.node, '_publish_debug_image'):
+        if (getattr(self.node, '_debug_republish_count', 1) > 0
+                and hasattr(self.node, '_publish_debug_image')):
             debug=deepcopy(msg); debug.encoding='rgb8'; debug.step=msg.width*3
             debug.data=rgb.tobytes(); self.node._publish_debug_image(debug)
         pose = req.expected_pose.pose
@@ -281,6 +284,9 @@ class WristService:
                 self.reference = dict(id=uuid4().hex,arm=req.arm,source=req.source_snapshot_id,
                     object=req.source_object_id,created=time.monotonic(),stamp=stamp,
                     rgb=rgb,mask=np.array(mask, copy=True),detection=detection,k=tuple(info.k))
+                other = 'right' if req.arm == 'left' else 'left'
+                self.images[other].clear()
+                self.infos[other].clear()
             if self.continuous_tracking:
                 self._start_tracking(self.reference)
         out.reference_id = self.reference['id']
@@ -290,10 +296,11 @@ class WristService:
         out.mask.encoding='mono8'; out.mask.step=msg.width
         out.mask.data=(np.asarray(mask,dtype=np.uint8)*255).tobytes()
         out.message='Wrist RGB target consistency passed; original head label retained, no fresh depth or measured 3D pose'
-        debug=deepcopy(msg); debug.encoding='rgb8'
-        overlay=rgb.copy(); overlay[mask]=(overlay[mask]*0.5+np.array((0,255,0))*0.5).astype(np.uint8)
-        debug.step=msg.width*3; debug.data=overlay.tobytes()
-        if hasattr(self.node, '_publish_debug_image'):
-            self.node._publish_debug_image(debug)
-        else:
-            self.node._debug_publisher.publish(debug)
+        if getattr(self.node, '_debug_republish_count', 1) > 0:
+            debug=deepcopy(msg); debug.encoding='rgb8'
+            overlay=rgb.copy(); overlay[mask]=(overlay[mask]*0.5+np.array((0,255,0))*0.5).astype(np.uint8)
+            debug.step=msg.width*3; debug.data=overlay.tobytes()
+            if hasattr(self.node, '_publish_debug_image'):
+                self.node._publish_debug_image(debug)
+            else:
+                self.node._debug_publisher.publish(debug)

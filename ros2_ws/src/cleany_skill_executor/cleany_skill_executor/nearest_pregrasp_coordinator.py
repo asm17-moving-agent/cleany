@@ -210,6 +210,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
             'grasp_debug_image_topic', '/grasp/debug_image_latched'
         )
         self.declare_parameter('grasp_debug_republish_period_sec', 0.5)
+        self.declare_parameter('publish_grasp_debug_overlay', True)
         self.declare_parameter('keep_debug_image_alive_on_failure', False)
         self.declare_parameter('plan_only', False)
         self.declare_parameter('require_sensor_scene', False)
@@ -317,17 +318,13 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
             latched_qos,
         )
         self._grasp_debug_clock = Clock(clock_type=ClockType.STEADY_TIME)
-        self._grasp_debug_timer = self.create_timer(
-            max(
-                0.05,
-                float(
-                    self.get_parameter(
-                        'grasp_debug_republish_period_sec'
-                    ).value
-                ),
-            ),
-            self._republish_grasp_debug_image,
-            clock=self._grasp_debug_clock,
+        debug_period = float(self.get_parameter('grasp_debug_republish_period_sec').value)
+        self._grasp_debug_timer = (
+            self.create_timer(
+                max(0.05, debug_period),
+                self._republish_grasp_debug_image,
+                clock=self._grasp_debug_clock,
+            ) if debug_period > 0 else None
         )
         self.create_subscription(
             Image,
@@ -447,6 +444,8 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         selected_arm: str = '',
     ) -> None:
         """Publish candidate pre-grasp and grasp TCP points over the RGB view."""
+        if not self.get_parameter('publish_grasp_debug_overlay').value:
+            return
         source = self._debug_image
         camera_info = self._camera_info
         if source is None or camera_info is None:

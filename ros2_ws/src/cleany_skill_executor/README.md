@@ -759,14 +759,18 @@ MoveIt trajectory execution도 꺼진다. 센서가 보지 못한 공간의 안�
 ```bash
 make sim-mujoco-sorting
 
+# 기본 sorting 실행은 headless이며 RViz/image_view를 시작하지 않는다.
+
 # 수거 완료/실패 후에도 시뮬레이터와 GUI 유지 (수거 동작을 자동 재시도하지 않음)
-make sim-mujoco-sorting SORTING_ARGS='headless:=false use_rviz:=true shutdown_on_sorting_exit:=false'
+make sim-mujoco-sorting SORTING_ARGS='headless:=false use_rviz:=true use_image_view:=true shutdown_on_sorting_exit:=false'
 # 같은 실행에서 GUI 창만 생략 (vendor 카메라 렌더링에는 DISPLAY 필요)
 make sim-mujoco-sorting SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'
 ```
 
 `study_cafe_sorting.launch.py`는 Gemini Flash-Lite bbox + SAM2 RGB-D 인식/MoveIt
 경로에 `sorting_coordinator`를 연결한다. 현재 구현은 시뮬레이션 전용이며
+GUI를 요청하지 않은 경우에는 디버그 이미지 오버레이와 주기적 재발행도 끈다.
+head 카메라는 새 장면 검출과 재선택 시 10 Hz, 검출 완료 후 2 Hz로 전환한다.
 실제 두 분류의 집기·놓기 통합 성공은 아직 검증 중이다. 기존
 `make sim-mujoco-pipeline`의 plan-only 기본값은 유지한다.
 개별 물체 배치 성공 기록과 연속 전체 정리 성공은 구분한다. 날짜별 CAD·장면·
