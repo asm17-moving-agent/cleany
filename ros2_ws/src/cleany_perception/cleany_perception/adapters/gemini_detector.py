@@ -5,10 +5,12 @@ import json
 import math
 import os
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from typing import Any
 
 import numpy as np
 from PIL import Image as PilImage
+from PIL import ImageDraw
 
 from cleany_perception.core.models import (
     BoundingBox2D,
@@ -66,6 +68,74 @@ _INTERACTION_RESPONSE_SCHEMA: dict[str, Any] = {
         'required': ['label', 'confidence', 'y', 'x', 'y2', 'x2', 'sorting_category', 'sorting_reason'],
     },
 }
+
+_CLASSIFICATION_SCHEMA: dict[str, Any] = {
+    'type': 'OBJECT',
+    'properties': {'objects': {'type': 'ARRAY', 'items': {
+        'type': 'OBJECT',
+        'properties': {
+            'id': {'type': 'INTEGER'},
+            'label': {'type': 'STRING'},
+            'sorting_category': {'type': 'STRING', 'enum': ['trash', 'lost_item', 'review']},
+            'sorting_reason': {'type': 'STRING'},
+        },
+        'required': ['id', 'label', 'sorting_category', 'sorting_reason'],
+    }}},
+    'required': ['objects'],
+}
+
+_CLASSIFICATION_INTERACTION_SCHEMA: dict[str, Any] = {
+    'type': 'object',
+    'properties': {'objects': {'type': 'array', 'items': {
+        'type': 'object',
+        'properties': {
+            'id': {'type': 'integer'},
+            'label': {'type': 'string'},
+            'sorting_category': {'type': 'string', 'enum': ['trash', 'lost_item', 'review']},
+            'sorting_reason': {'type': 'string'},
+        },
+        'required': ['id', 'label', 'sorting_category', 'sorting_reason'],
+    }}},
+    'required': ['objects'],
+}
+
+
+def parse_gemini_classifications(
+    response_text: str, detections: Sequence[Detection2D],
+) -> tuple[Detection2D, ...]:
+    """Attach semantics by exact YOLOE instance ID; never replace geometry."""
+    try:
+        payload = json.loads(response_text)
+        items = payload['objects']
+    except (TypeError, ValueError, KeyError) as error:
+        raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
+                                f'Gemini classification is invalid JSON: {error}') from error
+    if not isinstance(items, list) or len(items) != len(detections):
+        raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
+                                'Gemini must classify every YOLOE instance exactly once')
+    by_id = {}
+    for item in items:
+        if not isinstance(item, dict):
+            raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
+                                    'Gemini classification entry must be an object')
+        identifier = item.get('id')
+        label = item.get('label')
+        category = item.get('sorting_category')
+        reason = item.get('sorting_reason')
+        if (type(identifier) is not int or identifier < 1 or identifier > len(detections)
+                or identifier in by_id or not isinstance(label, str) or not label.strip()
+                or category not in ('trash', 'lost_item', 'review')
+                or not isinstance(reason, str) or not reason.strip()):
+            raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
+                                    'Gemini returned missing, duplicate, or invalid instance semantics')
+        by_id[identifier] = (label.strip(), category, reason.strip())
+    if len(by_id) != len(detections):
+        raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
+                                'Gemini classification omitted a YOLOE instance')
+    return tuple(replace(detection, label=by_id[index][0],
+                         sorting_category=by_id[index][1],
+                         sorting_reason=by_id[index][2])
+                 for index, detection in enumerate(detections, 1))
 
 
 def parse_gemini_detections(
@@ -255,7 +325,9 @@ class GeminiDetector:
             height=image.shape[0],
         )
 
-    def _request(self, image_bytes: bytes, prompt: str) -> str:
+    def _request(self, image_bytes: bytes, prompt: str,
+                 schema: dict[str, Any] = _RESPONSE_SCHEMA,
+                 interaction_schema: dict[str, Any] = _INTERACTION_RESPONSE_SCHEMA) -> str:
         api_key = os.environ.get(self._api_key_environment, '')
         if not api_key:
             raise InspectionFailure(
@@ -264,8 +336,9 @@ class GeminiDetector:
             )
         client = self._get_client(api_key)
         if self._model.startswith('gemini-robotics-er-'):
-            return self._request_interaction(client, image_bytes, prompt)
-        return self._request_generate_content(client, image_bytes, prompt)
+            return self._request_interaction(client, image_bytes, prompt,
+                                             interaction_schema)
+        return self._request_generate_content(client, image_bytes, prompt, schema)
 
     def _get_client(self, api_key: str):
         if self._client is not None:
@@ -298,6 +371,7 @@ class GeminiDetector:
         client: Any,
         image_bytes: bytes,
         prompt: str,
+        schema: dict[str, Any] = _RESPONSE_SCHEMA,
     ) -> str:
         if self._types is None:
             from google.genai import types
@@ -316,7 +390,7 @@ class GeminiDetector:
             config=types.GenerateContentConfig(
                 temperature=0.0,
                 response_mime_type='application/json',
-                response_schema=_RESPONSE_SCHEMA,
+                response_schema=schema,
             ),
         )
         response_text = getattr(response, 'text', None)
@@ -332,6 +406,7 @@ class GeminiDetector:
         client: Any,
         image_bytes: bytes,
         prompt: str,
+        schema: dict[str, Any] = _INTERACTION_RESPONSE_SCHEMA,
     ) -> str:
         image_file = io.BytesIO(image_bytes)
         image_file.name = 'cleany_rgb_snapshot.png'
@@ -361,7 +436,7 @@ class GeminiDetector:
                 response_format={
                     'type': 'text',
                     'mime_type': 'application/json',
-                    'schema': _INTERACTION_RESPONSE_SCHEMA,
+                    'schema': schema,
                 },
             )
             response_text = getattr(interaction, 'output_text', None)
@@ -378,3 +453,56 @@ class GeminiDetector:
                     client.files.delete(name=uploaded_name)
                 except Exception:
                     pass
+
+
+class GeminiClassifier(GeminiDetector):
+    """Classify numbered YOLOE instances without re-detecting their geometry."""
+
+    def classify(self, rgb: RgbArray, detections: Sequence[Detection2D],
+                 query: str = '') -> tuple[Detection2D, ...]:
+        if not detections:
+            return ()
+        image = np.asarray(rgb)
+        if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
+            raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
+                                    'Gemini classifier requires an HxWx3 uint8 RGB image')
+        annotated = PilImage.fromarray(image, mode='RGB')
+        draw = ImageDraw.Draw(annotated)
+        for index, detection in enumerate(detections, 1):
+            box = detection.bbox
+            draw.rectangle((box.x_min, box.y_min, box.x_max, box.y_max),
+                           outline=(255, 255, 0), width=3)
+            draw.text((box.x_min, max(0, box.y_min - 12)), str(index),
+                      fill=(255, 255, 0), stroke_width=2, stroke_fill=(0, 0, 0))
+        buffer = io.BytesIO()
+        annotated.save(buffer, format='PNG')
+        candidates = '; '.join(
+            f'{index}: {detection.label}'
+            for index, detection in enumerate(detections, 1))
+        prompt = (
+            (f'{query.strip()}\n' if query.strip() else '')
+            + 'The image contains numbered YOLOE instance boxes. Classify only '
+            'these numbered objects; do not detect new objects or return boxes. '
+            'For each ID return a specific visible-object label. Include the YOLOE '
+            'candidate class phrase in the label when visual evidence confirms it; '
+            'otherwise name the visible object accurately. Return sorting_category '
+            '(trash, lost_item, or review), and a brief sorting_reason grounded '
+            'in visual evidence. Discarded disposable material is trash; reusable '
+            'personal belongings are lost_item. Use review for uncertainty, '
+            'hazardous objects, or unclear disposability. Do not infer ownership '
+            f'as fact. YOLOE coarse candidates: {candidates}.'
+        )
+        try:
+            if self._response_provider is not None:
+                response_text = self._response_provider(
+                    buffer.getvalue(), prompt, _CLASSIFICATION_SCHEMA)
+            else:
+                response_text = self._request(
+                    buffer.getvalue(), prompt, _CLASSIFICATION_SCHEMA,
+                    _CLASSIFICATION_INTERACTION_SCHEMA)
+        except InspectionFailure:
+            raise
+        except Exception as error:
+            raise InspectionFailure(FailureKind.DETECTOR_API,
+                                    f'Gemini classification failed: {error}') from error
+        return parse_gemini_classifications(response_text, detections)

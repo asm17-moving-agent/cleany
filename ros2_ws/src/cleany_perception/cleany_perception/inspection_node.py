@@ -38,7 +38,7 @@ from rclpy.qos import (
 from rclpy.time import Time
 from sensor_msgs.msg import CameraInfo, Image
 
-from cleany_perception.adapters.gemini_detector import GeminiDetector
+from cleany_perception.adapters.gemini_detector import GeminiClassifier, GeminiDetector
 from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
 from cleany_perception.adapters.sam2_reference_tracker import Sam2ReferenceTracker
 from cleany_perception.adapters.sam2_runtime import Sam2SharedPredictors
@@ -49,7 +49,8 @@ from cleany_perception.adapters.simulation_color import (
     SimulationColorSegmenter,
 )
 from cleany_perception.adapters.tf2_transform import Tf2TransformAdapter
-from cleany_perception.adapters.yoloe_detector import YoloeDetector
+from cleany_perception.adapters.yoloe_detector import YoloeDetector, YoloeMaskSegmenter
+from cleany_perception.adapters.yoloe_gemini import YoloeGeminiDetector
 from cleany_perception.model_runtime import (
     resolve_device, resolve_model_assets,
 )
@@ -159,10 +160,12 @@ class InspectionNode(Node):
 
         detector_type = str(self.get_parameter('detector_type').value)
         segmenter_type = str(self.get_parameter('segmenter_type').value)
+        if detector_type == 'yoloe_gemini' and segmenter_type != 'yoloe_seg':
+            raise ValueError('YOLOE+Gemini classification requires YOLOE segmentation')
         for kind, supplied in ((detector_type, detector),
                                (segmenter_type, segmenter)):
-            if supplied is None and kind in ('yoloe', 'sam2'):
-                self._resolve_local_model(kind)
+            if supplied is None and kind in ('yoloe', 'yoloe_gemini', 'sam2'):
+                self._resolve_local_model('yoloe' if kind == 'yoloe_gemini' else kind)
         shared_sam2 = None
         if (
             segmenter is None
@@ -202,8 +205,8 @@ class InspectionNode(Node):
                         ).value
                     ),
                 )
-            elif detector_type == 'yoloe':
-                detector = YoloeDetector(
+            elif detector_type in ('yoloe', 'yoloe_gemini'):
+                yoloe = YoloeDetector(
                     model_path=str(
                         self.get_parameter('yoloe_model_path').value
                     ),
@@ -230,7 +233,18 @@ class InspectionNode(Node):
                             'yoloe_text_encoder_directory'
                         ).value
                     ),
+                    require_masks=segmenter_type == 'yoloe_seg',
                 )
+                if detector_type == 'yoloe_gemini':
+                    detector = YoloeGeminiDetector(yoloe, GeminiClassifier(
+                        model=str(self.get_parameter('gemini_model').value),
+                        api_key_environment=str(self.get_parameter(
+                            'gemini_api_key_environment').value),
+                        timeout_seconds=float(self.get_parameter(
+                            'detector_timeout_seconds').value),
+                    ))
+                else:
+                    detector = yoloe
             else:
                 raise ValueError(f'Unsupported detector_type: {detector_type}')
         if segmenter is None:
@@ -253,6 +267,10 @@ class InspectionNode(Node):
                         ).value
                     )
                 )
+            elif segmenter_type == 'yoloe_seg':
+                if detector_type not in ('yoloe', 'yoloe_gemini'):
+                    raise ValueError('YOLOE masks require a YOLOE detector')
+                segmenter = YoloeMaskSegmenter()
             else:
                 raise ValueError(
                     f'Unsupported segmenter_type: {segmenter_type}'
@@ -268,7 +286,8 @@ class InspectionNode(Node):
             detector_device = (
                 f"remote API: {self.get_parameter('gemini_model').value}; access not yet verified"
                 if detector_type == 'gemini' else self.get_parameter('yoloe_device').value)
-            segmenter_device = self.get_parameter('sam2_device').value
+            segmenter_device = (self.get_parameter('sam2_device').value
+                                if segmenter_type == 'sam2' else 'same YOLOE inference')
             self.get_logger().info(
                 'PERCEPTION MODELS READY: '
                 f'{detector_type} ({detector_device}) + '

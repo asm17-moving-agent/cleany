@@ -129,7 +129,8 @@ def test_confirmation_rejects_invalid_box_geometry(extent):
 
 @pytest.mark.parametrize('reachable', [True, False])
 @pytest.mark.parametrize('compatible', [True, False])
-def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compatible):
+@pytest.mark.parametrize('reworded', [True, False])
+def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compatible, reworded):
     events = []
     candidate = SimpleNamespace(snapshot_id='new')
     incompatible = SimpleNamespace(snapshot_id='bad')
@@ -137,7 +138,7 @@ def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compat
         selected_arm='left', selected_candidate=candidate,
         selected_candidate_index=0,
     )
-    detection = SimpleNamespace(object_id=1, label='cup', confidence=0.8,
+    detection = SimpleNamespace(object_id=1, label='paper cup' if reworded else 'cup', confidence=0.8,
                                 distance_valid=True, distance_m=0.5,
                                 sorting_category='trash', sorting_reason='disposable cup')
     pose = Pose()
@@ -171,14 +172,16 @@ def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compat
             allow_contacts_for=lambda _: events.append('allow'),
         ),
     )
-    attempt = ObjectAttempt(1, 'cup', 0.8, 0.5)
+    attempt = ObjectAttempt(1, 'cup', 0.8, 0.5,
+                            sorting_category='trash' if reworded else '')
     if not compatible:
         with pytest.raises(RuntimeError, match='no continuity-compatible'):
-            NearestPregraspCoordinator._refresh_selected_grasp(node, selected, attempt)
+            NearestPregraspCoordinator._refresh_selected_grasp(
+                node, selected, attempt, match_label=not reworded)
         assert events == []
     elif reachable:
         result, refreshed = NearestPregraspCoordinator._refresh_selected_grasp(
-            node, selected, attempt)
+            node, selected, attempt, match_label=not reworded)
         assert result is selected
         assert refreshed.sorting_category == 'trash'
         assert refreshed.sorting_reason == 'disposable cup'
@@ -186,7 +189,7 @@ def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compat
     else:
         with pytest.raises(RuntimeError, match='not reachable'):
             NearestPregraspCoordinator._refresh_selected_grasp(
-                node, selected, attempt)
+                node, selected, attempt, match_label=not reworded)
         assert events == ['restore', 'select']
 
 

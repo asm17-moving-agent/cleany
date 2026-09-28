@@ -26,6 +26,17 @@ def test_depth_correction_is_scoped_to_configured_labels(label, expected):
         ['mouse', 'computer mouse', 'wireless mouse'], .014) == pytest.approx(expected)
 
 
+def test_depth_correction_matches_specific_class_inside_gemini_detail_label():
+    labels = ['mouse', 'computer mouse', 'cup']
+    offsets = [.004, .014, .002]
+    assert approach_offset_for_label('black wireless computer mouse', .016,
+                                     labels, offsets) == pytest.approx(.030)
+    assert approach_offset_for_label('blue paper cup', .016,
+                                     labels, offsets) == pytest.approx(.018)
+    assert approach_offset_for_label('cupboard', .016,
+                                     labels, offsets) == pytest.approx(.016)
+
+
 def test_tissue_depth_does_not_change_cup_mouse_or_lego():
     labels = ['mouse', 'lego brick', 'crumpled tissue', 'tissue', 'crumpled paper']
     offsets = [.014, .004, .004, .004, .004]

@@ -997,13 +997,15 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         self,
         previous,
         attempt: ObjectAttempt,
+        *,
+        match_label: bool = True,
     ):
         arm = previous.selected_arm
         self._wait_arm_stationary(arm)
         detected = self._detect_objects()
         reconstructions = []
         for detection in detected.detections.detections:
-            if detection.label != attempt.label or not detection.distance_valid:
+            if (match_label and detection.label != attempt.label) or not detection.distance_valid:
                 continue
             refreshed_attempt = ObjectAttempt(
                 object_id=int(detection.object_id),
@@ -1039,6 +1041,9 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
             for pair in reconstructions
             if pair[0].object_id == associated.key
         )
+        if (not match_label and refreshed_attempt.sorting_category
+                != attempt.sorting_category):
+            raise RuntimeError('refreshed object sorting category changed')
         planned = self._plan_grasps(inspected, refreshed_attempt)
         if planned is None:
             raise RuntimeError('refreshed object produced no grasp candidates')

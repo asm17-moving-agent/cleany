@@ -34,6 +34,7 @@ from std_msgs.msg import String
 from cleany_mujoco_sim.sorting_scene import load_bins, load_shelf_boxes
 from cleany_skill_executor.core.can_rgbd import CameraProjection, rotation_matrix_from_quaternion
 from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
+from cleany_skill_executor.core.nearest_object import ObjectAttempt
 from cleany_skill_executor.core.sorting import (
     Category, execute_sort, load_sorting_policy, table_placement_slots, bin_release_region,
 )
@@ -94,6 +95,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self.declare_parameter('sorting_empty_confirmations', 2)
         self._placement_verification_enabled = self.declare_parameter(
             'sorting_verify_placement', True).value
+        self._geometry_association_lift = self.declare_parameter(
+            'sorting_geometry_association_lift', False).value
         self.declare_parameter('sorting_exit_on_finish', True)
         self.declare_parameter('sorting_test_only_label', '')
         self._wrist_enabled = self.declare_parameter('sorting_use_wrist_camera', False).value
@@ -669,7 +672,11 @@ class SortingCoordinator(NearestPregraspCoordinator):
             # Preserve the original head 3D estimate. RGB consistency is not new depth.
             self._execution_scene.allow_contacts_for(selected.selected_arm)
         else:
-            selected, attempt = self._refresh_selected_grasp(target.selected, target.attempt)
+            if getattr(self, '_geometry_association_lift', False):
+                selected, attempt = self._refresh_selected_grasp(
+                    target.selected, target.attempt, match_label=False)
+            else:
+                selected, attempt = self._refresh_selected_grasp(target.selected, target.attempt)
         if not getattr(self, '_wrist_enabled', False) and self.get_parameter('sorting_use_reference_observation').value:
             candidate = selected.selected_candidate
             self._pinned_reference = self._reference_request(ObserveObjectReference.Request(
@@ -789,7 +796,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
                                    'height is kinematic, not an independent depth measurement')
             return result
         use_reference = bool(self.get_parameter('sorting_use_reference_observation').value)
-        verify = self._verify_reference_height if use_reference else super()._verify_lift_height
+        verify = (self._verify_reference_height if use_reference else
+                  self._verify_head_redetection if getattr(self, '_geometry_association_lift', False)
+                  else super()._verify_lift_height)
         try:
             inspected = verify(
                 attempt, minimum_center_z_m=minimum_center_z_m)
@@ -818,6 +827,53 @@ class SortingCoordinator(NearestPregraspCoordinator):
         error = np.linalg.norm(predicted - np.array((observed.x, observed.y, observed.z)))
         if not math.isfinite(error) or error > tolerance:
             raise RuntimeError(f'Observed lifted object does not match held geometry: {error:.4f}m')
+        return inspected
+
+    def _verify_head_redetection(self, attempt, *, minimum_center_z_m=None):
+        """Associate a new YOLOE mask by measured 3D position, not Gemini wording."""
+        held = self._held_object
+        if held is None:
+            raise RuntimeError('No attachment reference for head RGB-D reobservation')
+        minimum = float(self.get_parameter('lift_min_center_z_m').value)
+        if minimum_center_z_m is not None:
+            minimum = max(minimum, float(minimum_center_z_m))
+        tolerance = float(self.get_parameter('sorting_held_association_tolerance_m').value)
+        if not math.isfinite(minimum) or not math.isfinite(tolerance) or tolerance <= 0:
+            raise ValueError('Invalid lift height or association tolerance')
+        arm = held.selected.selected_arm
+        tcp = self._tcp_pose(arm)
+        predicted = np.array(self._pose_position(tcp)) + rotation(tcp) @ held.offset_in_tcp
+        detected = self._detect_objects()
+        matches = []
+        for item in detected.detections.detections:
+            if not item.distance_valid:
+                continue
+            candidate = ObjectAttempt(
+                object_id=int(item.object_id), label=item.label,
+                confidence=float(item.confidence), distance_m=float(item.distance_m))
+            inspected = self._inspect_selected(detected.detections.snapshot_id, candidate)
+            if inspected is None:
+                continue
+            center = inspected.objects.objects[0].obb_pose.position
+            position = np.array((center.x, center.y, center.z))
+            error = float(np.linalg.norm(predicted - position))
+            if math.isfinite(error) and error <= tolerance:
+                matches.append((inspected, error))
+        if not matches:
+            raise LiftRedetectionError(
+                f'Head RGB-D could not associate lifted {attempt.label} with the gripper')
+        if len(matches) != 1:
+            raise RuntimeError('Head RGB-D found multiple objects at the held-object position')
+        inspected, error = matches[0]
+        center_z = float(inspected.objects.objects[0].obb_pose.position.z)
+        self.get_logger().info(
+            f'Head RGB-D lift verification: source={attempt.label} '
+            f'observed={inspected.objects.objects[0].label} '
+            f'center_z={center_z:.3f}m association_error={error:.3f}m')
+        if not math.isfinite(center_z) or center_z < minimum:
+            raise RuntimeError(
+                f'{attempt.label} was not retained after lift: '
+                f'center_z={center_z:.3f}m minimum={minimum:.3f}m')
         return inspected
 
     def _reference_request(self, request):

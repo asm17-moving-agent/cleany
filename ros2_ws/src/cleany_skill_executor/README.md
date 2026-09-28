@@ -98,7 +98,7 @@ MuJoCo 장애물 점군은 `scene_cloud_pixel_stride=4`로 샘플링하여 기�
 스터디카페 grasp 후보 생성의 어깨 기준점은 migrated CAD URDF의 좌우
 shoulder origin을 사용한다. 기존 모델의 기준점을 혼용하지 않는다.
 
-### 임시 SAM2 tracking 중단 비교
+### 기존 SAM2 tracking 중단 비교 기록
 
 시뮬레이션 sorting 실행에 `sam2_tracking_enabled:=false`를 전달하면 손목 사용,
 연속 추적, reference 관측, 비동기 carry 감시의 기본값을 함께 false로 설정한다.
@@ -108,7 +108,8 @@ head reference batch tracking을 모두 끈다. 초기 SAM2 단일 이미지 분
 시각 감시는 중단되므로 실로봇 운용 설정이 아닌 시뮬레이션 비교 시험용이다.
 GUI에서도 실행할 수 있으나 headless 결과와 비교할 때 GUI 부하 차이를 고려한다.
 재검출 비용과 카메라 전환 차이도 포함하므로 순수 tracking 비용만의 A/B는 아니다.
-기본 tracking 설정은 변경하지 않는다.
+아래 설명은 과거 Gemini+SAM2 sorting 경로의 비교 기록이다. 현재 기본 수거 실행은
+YOLOE-seg+Gemini이며 SAM2 tracking을 시작하지 않는다.
 
 ```bash
 make sim-mujoco-sorting SORTING_ARGS='sam2_tracking_enabled:=false sorting_test_only_label:="lego brick"'
@@ -210,7 +211,9 @@ coordinator `starting` 기준 145.53초, `pick` 기준 114.71초였다. 가속�
 컵 안착은 검증됐지만 전체 미션은 기존처럼 `lost_item` 미검증으로 종료했다.
 실행 로그는 `artifacts/sorting_20260907/launch_attempt56_parallel.log`에 있다.
 
-sorting launch는 `sorting_use_wrist_camera=true`를 기본으로 사용한다.
+아래 손목 연속 추적 설명은 과거 Gemini+SAM2 sorting 실행 기록이다. 현재
+`study_cafe_sorting.launch.py`는 `sorting_use_wrist_camera=false`를 전달한다. 과거 실행은
+`sorting_use_wrist_camera=true`를 기본으로 사용했다.
 `wrist_continuous_tracking=true`가 기본이며 HANDOFF 이후 perception worker가
 선택 손목을 계속 추적한다. `sorting_async_carry_monitor` 기본값은 손목 사용 여부를 따른다.
 인계한 reference/arm/source/object ID와 일치하는 `/perception/wrist_tracking_status`만
@@ -395,7 +398,7 @@ Study-cafe의 네 물체를 대상으로 인식부터 접촉 집기와 후퇴까
 ros2 launch cleany_skill_executor study_cafe_nearest_grasp_demo.launch.py
 ```
 
-기본값은 아래 센서 전용 절의 Gemini 3.1 Flash-Lite + SAM2.1-tiny 설정이다. 기존 color adapter는
+기본값은 YOLOE-seg instance mask + Gemini 3.1 Flash-Lite 상세 분류 설정이다. 기존 color adapter는
 과거 머그컵/휴대폰/지우개 fixture 전용이며 현재 종이컵/레고/휴지에 대응하지 않는다.
 다른 YOLOE checkpoint와 SAM2.1 tiny mask 실행은 다음처럼 선택한다. Headless에서도 MuJoCo
 camera에는 유효한 X11/Xvfb context가 필요하다.
@@ -767,8 +770,14 @@ make sim-mujoco-sorting SORTING_ARGS='headless:=false use_rviz:=true use_image_v
 make sim-mujoco-sorting SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'
 ```
 
-`study_cafe_sorting.launch.py`는 Gemini Flash-Lite bbox + SAM2 RGB-D 인식/MoveIt
-경로에 `sorting_coordinator`를 연결한다. 현재 구현은 시뮬레이션 전용이며
+`study_cafe_sorting.launch.py`는 YOLOE-seg bbox·mask + Gemini 상세 라벨·분류/MoveIt
+경로에 `sorting_coordinator`를 연결한다. 같은 YOLOE 추론 결과의 mask로 선택 물체를
+3D 복원하며 SAM2와 손목 tracking은 기본 수거 경로에서 쓰지 않는다. 파지 직전에는
+head RGB-D 재검출의 3D 위치로 물체를 다시 연결하고, 상승 후에는 그리퍼에서 예측한
+위치와 새 head RGB-D 관측을 대조한다. Gemini 분류가 파지 직전에 달라지면 중단한다.
+Gemini 상세 라벨에 기존 물체 클래스 이름이 포함되면 가장 긴 클래스 구절을 사용해
+설정된 파지 깊이 보정을 적용한다.
+현재 구현은 시뮬레이션 전용이며
 GUI를 요청하지 않은 경우에는 디버그 이미지 오버레이와 주기적 재발행도 끈다.
 head 카메라는 새 장면 검출과 재선택 시 10 Hz, 검출 완료 후 2 Hz로 전환한다.
 실제 두 분류의 집기·놓기 통합 성공은 아직 검증 중이다. 기존
@@ -1039,12 +1048,12 @@ InspectScene 검출 요청을 제출한다. 요청 수락 후 Gemini 결과를 �
 새 RGB-D는 요청 이후 촬영되지만 복귀 중 팔 가림이 없다는 보장은 없으므로 실제
 동작 영상에서 추가 검증이 필요하다. 이 변경은 객체 목록을 prompt에 주입하지 않는다.
 
-고정 수거함 모드에서는 Gemini bbox/depth 거리로 정렬한 후보를 하나씩 처리한다.
+고정 수거함 모드에서는 YOLOE-seg bbox/depth 거리로 정렬한 후보를 하나씩 처리한다.
 `fixed_jaw_clearance_m`은 고정 손가락 여유거리(수거 기본 0.003 m),
 `grasp_opening_margin_m`은 후보 벌림 여유폭(기본 0.008 m)이다. 여유거리는
 여유폭의 절반 이하여야 한다. 5 mm 시험은 각각 `0.005`, `0.010`으로 설정한다.
 벌림 여유폭은 후보 생성기와 두 TCP 보정 경로에 동일하게 전달된다.
-현재 후보에만 SAM2와 3D 복원을 수행하고 파지 가능한 팔을 찾으면 탐색을 끝낸다.
+현재 후보의 YOLOE-seg mask에만 3D 복원을 수행하고 파지 가능한 팔을 찾으면 탐색을 끝낸다.
 복원·파지 계획·양팔 도달성 검사가 실패하면 다음 후보를 복원하며, 같은 주기의
 복원 결과는 캐시한다. review 분류 후보는 정밀 복원 없이 미해결 대상으로 남긴다.
 선택되지 않은 물체도 전체 depth 기반 OctoMap의 충돌 검사에는 계속 포함된다.

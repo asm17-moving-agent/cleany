@@ -1118,6 +1118,21 @@ def recovery_node():
         header=SimpleNamespace(frame_id='base_link'), objects=[SimpleNamespace(obb_pose=pose)]))
 
 
+def test_head_redetection_associates_geometry_when_gemini_label_changes():
+    node, values, inspected = recovery_node()
+    values['lift_min_center_z_m'] = .38
+    inspected.objects.objects[0].label = 'white disposable cup'
+    node.get_logger = lambda: SimpleNamespace(info=lambda _: None)
+    node._detect_objects = lambda: SimpleNamespace(detections=SimpleNamespace(
+        snapshot_id='fresh', detections=[SimpleNamespace(
+            object_id=1, label='white disposable cup', confidence=.8,
+            distance_m=.5, distance_valid=True)]))
+    node._inspect_selected = lambda snapshot_id, candidate: inspected
+    observed = node._verify_head_redetection(
+        SimpleNamespace(label='paper cup'), minimum_center_z_m=.46)
+    assert observed is inspected
+
+
 def test_missing_detection_gets_one_move_then_same_height_verification(monkeypatch):
     node, _, inspected = recovery_node()
     events = []

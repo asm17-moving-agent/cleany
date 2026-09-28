@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 import numpy as np
@@ -66,6 +66,7 @@ class Detection2D:
     bbox: BoundingBox2D
     sorting_category: str = ''
     sorting_reason: str = ''
+    segmentation_mask: MaskArray | None = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         if self.sorting_category not in ('', 'trash', 'lost_item', 'review'):
@@ -79,6 +80,10 @@ class Detection2D:
             or not 0.0 <= self.confidence <= 1.0
         ):
             raise ValueError('Detection confidence must be in [0, 1]')
+        if self.segmentation_mask is not None:
+            mask = np.asarray(self.segmentation_mask)
+            if mask.ndim != 2 or mask.dtype != np.bool_:
+                raise ValueError('Detection segmentation mask must be a 2D boolean array')
 
 
 @dataclass(frozen=True)

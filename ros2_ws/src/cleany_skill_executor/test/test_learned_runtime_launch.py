@@ -31,6 +31,25 @@ def runtime(monkeypatch):
     return module, context
 
 
+def test_sorting_wrapper_uses_yoloe_seg_gemini_without_sam2_or_wrist():
+    from launch.actions import IncludeLaunchDescription
+
+    path = (Path(__file__).resolve().parents[1] / 'launch' /
+            'study_cafe_sorting.launch.py')
+    spec = importlib.util.spec_from_file_location('sorting_wrapper', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    include = next(entity for entity in module.generate_launch_description().entities
+                   if isinstance(entity, IncludeLaunchDescription))
+    arguments = dict(include.launch_arguments)
+    assert arguments['perception_detector_type'] == 'yoloe_gemini'
+    assert arguments['perception_segmenter_type'] == 'yoloe_seg'
+    for name in ('sam2_tracking_enabled', 'sorting_use_wrist_camera',
+                 'sorting_use_reference_observation', 'wrist_continuous_tracking',
+                 'sorting_async_carry_monitor'):
+        assert arguments[name] == 'false'
+
+
 @pytest.mark.parametrize('simulator,sorting,known', [
     ('true', 'true', True), ('false', 'true', False),
     ('true', 'false', False), ('false', 'false', False),
@@ -65,11 +84,12 @@ def test_operator_observation_and_tissue_depth_are_simulation_scoped(runtime, si
         assert context.launch_configurations[name] == expected
 
 
-def test_no_arguments_selects_learned_sensor_only_plan_mode(runtime):
+def test_no_arguments_selects_yoloe_seg_gemini_plan_mode(runtime):
     _, context = runtime
     values = context.launch_configurations
-    assert values['perception_detector_type'] == 'gemini'
-    assert values['perception_segmenter_type'] == 'sam2'
+    assert values['perception_detector_type'] == 'yoloe_gemini'
+    assert values['perception_segmenter_type'] == 'yoloe_seg'
+    assert values['sam2_tracking_enabled'] == 'false'
     assert values['sorting_contact_diagnostics'] == 'false'
     assert values['sim_performance_profile'] == 'baseline'
     assert values['sensor_scene'] == values['plan_only'] == 'true'
@@ -159,6 +179,8 @@ def test_gemini_preflight_rejects_missing_credentials(runtime, monkeypatch):
 
 def test_gemini_needs_only_sam2_local_assets(runtime, tmp_path, monkeypatch):
     module, context = runtime
+    context.launch_configurations.update(
+        perception_detector_type='gemini', perception_segmenter_type='sam2')
     monkeypatch.setenv('GEMINI_API_KEY', 'unit-test-placeholder-not-a-real-key')
     (tmp_path / 'sam2').mkdir()
     (tmp_path / 'sam2/sam2.1_t.pt').touch()
@@ -167,6 +189,17 @@ def test_gemini_needs_only_sam2_local_assets(runtime, tmp_path, monkeypatch):
     context.launch_configurations['perception_detector_type'] = 'yoloe'
     with pytest.raises(ValueError, match='yoloe_model_path not found'):
         module._preflight(context)
+
+
+def test_default_yoloe_gemini_preflight_does_not_need_sam2_assets(runtime, tmp_path, monkeypatch):
+    module, context = runtime
+    monkeypatch.setenv('GEMINI_API_KEY', 'unit-test-placeholder-not-a-real-key')
+    model_dir = tmp_path / 'yoloe'
+    model_dir.mkdir()
+    (model_dir / 'yoloe-26s-seg.pt').touch()
+    (model_dir / 'mobileclip2_b.ts').touch()
+    context.launch_configurations['model_directory'] = str(tmp_path)
+    assert module._preflight(context) == []
 
 
 @pytest.mark.parametrize('field,value', [

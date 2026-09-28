@@ -5,10 +5,14 @@ import numpy as np
 import pytest
 
 from cleany_perception.adapters.gemini_detector import (
+    GeminiClassifier,
     GeminiDetector,
+    parse_gemini_classifications,
     parse_gemini_detections,
 )
-from cleany_perception.core.models import FailureKind, InspectionFailure
+from cleany_perception.core.models import (
+    BoundingBox2D, Detection2D, FailureKind, InspectionFailure,
+)
 
 
 def test_gemini_sorting_semantics_survive_parser_and_missing_is_not_guessed():
@@ -22,6 +26,39 @@ def test_gemini_sorting_semantics_survive_parser_and_missing_is_not_guessed():
     item['sorting_category'] = 'recycle'
     with pytest.raises(InspectionFailure):
         parse_gemini_detections(json.dumps([item]), 640, 480)
+
+
+def test_gemini_classifies_yoloe_instances_without_changing_geometry():
+    mask = np.ones((20, 30), dtype=np.bool_)
+    detection = Detection2D('cup', .82, BoundingBox2D(2, 3, 12, 15),
+                            segmentation_mask=mask)
+    requests = []
+    classifier = GeminiClassifier('test-model', response_provider=lambda image, prompt, schema: (
+        requests.append((image, prompt, schema)) or json.dumps({'objects': [{
+            'id': 1, 'label': 'used paper cup', 'sorting_category': 'trash',
+            'sorting_reason': 'Disposable paper cup',
+        }]})))
+    classified = classifier.classify(np.zeros((20, 30, 3), np.uint8), (detection,))
+    assert len(requests) == 1
+    assert requests[0][0].startswith(b'\x89PNG')
+    assert requests[0][2]['required'] == ['objects']
+    assert classified[0].label == 'used paper cup'
+    assert classified[0].sorting_category == 'trash'
+    assert classified[0].confidence == .82
+    assert classified[0].bbox is detection.bbox
+    assert classified[0].segmentation_mask is mask
+
+
+@pytest.mark.parametrize('objects', [
+    [],
+    [{'id': 2, 'label': 'cup', 'sorting_category': 'trash', 'sorting_reason': 'paper'}],
+    [{'id': 1, 'label': 'cup', 'sorting_category': 'trash', 'sorting_reason': ''}],
+])
+def test_gemini_classification_rejects_unmatched_or_incomplete_ids(objects):
+    detection = Detection2D('cup', .82, BoundingBox2D(2, 3, 12, 15))
+    with pytest.raises(InspectionFailure) as raised:
+        parse_gemini_classifications(json.dumps({'objects': objects}), (detection,))
+    assert raised.value.kind == FailureKind.DETECTOR_RESPONSE
 
 
 def test_flash_lite_prepare_initializes_client_without_inference(monkeypatch):

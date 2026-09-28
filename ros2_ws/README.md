@@ -101,7 +101,7 @@ make sim
 make sim-mujoco-study-cafe
 ```
 
-Gemini Flash-Lite + 로컬 SAM2-tiny와 카메라 기반 충돌 지도를 포함한 기본 파이프라인은
+YOLOE-seg + Gemini 상세 분류와 카메라 기반 충돌 지도를 포함한 기본 파이프라인은
 레포 루트에서 `make sim-mujoco-pipeline`으로 실행한다. 모델 옵션 없이 공통
 프로필을 로딩하며, 기본은 실제 팔 명령을 내리지 않는 plan-only다. 실행 환경에
 `GEMINI_API_KEY`가 필요하고 RGB 영상은 검출 시 Google API로 전송된다.
@@ -111,10 +111,12 @@ Gemini Flash-Lite + 로컬 SAM2-tiny와 카메라 기반 충돌 지도를 포함
 로봇 내부 후면 받침판 위 좌측 분실물함/우측 쓰레기함과 분류·집기·놓기 흐름은
 `make sim-mujoco-sorting`으로 실행한다. 시뮬레이션에서만 실제 관절 명령을
 보내는 통합 검증 경로이며, 두 종류의 물리적 수거 성공은 검증 진행 중이다.
+기본 인식은 YOLOE-seg의 객체·mask와 Gemini의 상세 라벨·분류를 사용한다.
+파지 뒤 확인은 head RGB-D 재검출로 수행하며 SAM2 손목 tracking은 사용하지 않는다.
 GUI 없이 실행하려면 `DISPLAY=:0 make sim-mujoco-sorting
 SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'`를 사용한다.
 현재 vendor 카메라 렌더링은 headless에서도 사용 가능한 X display가 필요하다.
-tracking 중단은 `sam2_tracking_enabled:=false`, 외부 GPU perception 사용은
+외부 GPU perception 사용은
 `start_perception:=false`를 추가한다. 외부 노드도 같은 tracking/시계 설정으로
 실행한다. 현재 배치에는 중앙 인계 구역이 없다. 기본은 작업자 관찰 모드로
 `complete_unverified` 및 `mission_complete_unverified`를 발행한다.

@@ -13,6 +13,7 @@ from cleany_perception.core.models import (
     Detection2D,
     FailureKind,
     InspectionFailure,
+    ObjectMask,
     RgbArray,
 )
 
@@ -32,7 +33,7 @@ def _numpy(value: Any) -> np.ndarray:
 
 
 class YoloeDetector:
-    """Ultralytics YOLOE text-prompt adapter returning bbox results only."""
+    """Ultralytics YOLOE adapter with optional instance masks."""
 
     def __init__(
         self,
@@ -46,6 +47,7 @@ class YoloeDetector:
         maximum_detections: int = 10,
         text_encoder_directory: str = '',
         model_factory: ModelFactory | None = None,
+        require_masks: bool = False,
     ) -> None:
         normalized_classes = tuple(item.strip() for item in classes)
         if not model_path:
@@ -78,6 +80,7 @@ class YoloeDetector:
             Path(text_encoder_directory).expanduser().resolve()
         )
         self._model_factory = model_factory
+        self._require_masks = require_masks
         self._model = None
 
     def prepare(self) -> None:
@@ -99,9 +102,8 @@ class YoloeDetector:
 
         model = self._get_model()
         try:
-            results = model.predict(
+            options = dict(
                 # Ultralytics interprets NumPy images as BGR; our port is RGB.
-                np.ascontiguousarray(image[..., ::-1]),
                 device=self._device,
                 imgsz=self._image_size,
                 conf=self._confidence_threshold,
@@ -109,6 +111,9 @@ class YoloeDetector:
                 max_det=self._maximum_detections,
                 verbose=False,
             )
+            if self._require_masks:
+                options['retina_masks'] = True
+            results = model.predict(np.ascontiguousarray(image[..., ::-1]), **options)
         except InspectionFailure:
             raise
         except Exception as error:
@@ -124,10 +129,18 @@ class YoloeDetector:
             boxes = getattr(result, 'boxes', None)
             if boxes is None:
                 return ()
-            names = getattr(result, 'names', None) or model.names
             height, width = image.shape[:2]
+            mask_data = None
+            if self._require_masks and len(boxes):
+                masks = getattr(result, 'masks', None)
+                if masks is None:
+                    raise ValueError('YOLOE segmentation result has no masks')
+                mask_data = _numpy(masks.data)
+                if mask_data.shape != (len(boxes), height, width):
+                    raise ValueError('YOLOE mask count or image shape differs from boxes')
+            names = getattr(result, 'names', None) or model.names
             detections = []
-            for box in boxes:
+            for index, box in enumerate(boxes):
                 coordinates = _numpy(box.xyxy).reshape(-1, 4)[0]
                 class_id = int(_numpy(box.cls).reshape(-1)[0])
                 confidence = float(_numpy(box.conf).reshape(-1)[0])
@@ -142,6 +155,10 @@ class YoloeDetector:
                 y_min = min(max(y_min, 0.0), float(height))
                 x_max = min(max(x_max, 0.0), float(width))
                 y_max = min(max(y_max, 0.0), float(height))
+                mask = None
+                if mask_data is not None:
+                    mask = np.array(mask_data[index], dtype=np.bool_, copy=True)
+                    mask.flags.writeable = False
                 detections.append(
                     Detection2D(
                         label=str(label).strip(),
@@ -152,12 +169,13 @@ class YoloeDetector:
                             x_max=x_max,
                             y_max=y_max,
                         ),
+                        segmentation_mask=mask,
                     )
                 )
             return tuple(detections)
         except InspectionFailure:
             raise
-        except (IndexError, KeyError, TypeError, ValueError) as error:
+        except (AttributeError, IndexError, KeyError, TypeError, ValueError) as error:
             raise InspectionFailure(
                 FailureKind.DETECTOR_RESPONSE,
                 f'YOLOE returned invalid detections: {error}',
@@ -211,3 +229,21 @@ class YoloeDetector:
             ) from error
         self._model = model
         return model
+
+
+class YoloeMaskSegmenter:
+    """Use masks from the matching YOLOE detection, without a second model call."""
+
+    def prepare(self) -> None:
+        pass
+
+    def segment(self, rgb: RgbArray, detections: Sequence[Detection2D]) -> Sequence[ObjectMask]:
+        shape = np.asarray(rgb).shape[:2]
+        masks = []
+        for detection in detections:
+            mask = detection.segmentation_mask
+            if mask is None or mask.shape != shape or not np.any(mask):
+                raise InspectionFailure(FailureKind.MASK,
+                                        'YOLOE detection has no valid full-resolution mask')
+            masks.append(ObjectMask(detection, mask, detection.confidence))
+        return tuple(masks)

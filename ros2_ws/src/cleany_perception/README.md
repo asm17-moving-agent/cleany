@@ -74,8 +74,12 @@ CHECK는 상승 동작 완료 시각을 `after_stamp_ns`로 사용하며 그보�
 coordinator의 capture-age와 populated OctoMap 수신-age 검사도 필요하다.
 이 경로는 센서 전용 파이프라인 launch에서 함께 시작된다.
 
-동기화된 RGB-D snapshot에서 Gemini 또는 YOLOE 2D bbox를 한 번 검출하고, 사용자 또는 외부
-coordinator가 선택한 객체 하나만 SAM2와 3D reconstruction으로 정밀 검사하는 package다.
+동기화된 RGB-D snapshot에서 객체를 검출하고, 사용자 또는 외부 coordinator가 선택한
+객체 하나를 분할과 3D reconstruction으로 정밀 검사하는 package다. 기본 시뮬레이션
+sorting은 `yoloe_gemini` + `yoloe_seg`를 쓴다. YOLOE-seg가 bbox·신뢰도·instance
+mask를 한 번에 만들고, Gemini는 번호가 매겨진 후보의 상세 라벨·분류·근거만 반환한다.
+Gemini가 bbox나 mask를 변경하지 않으며 모든 후보 ID를 정확히 한 번씩 분류해야 한다.
+이 모드에서는 SAM2 모델과 손목/reference tracking 서비스를 사용하지 않는다.
 Perception은 객체와 위치
 후보만 제공하며 수거·보관 등 최종 행동을 결정하지 않는다.
 
@@ -85,7 +89,7 @@ Perception은 객체와 위치
 aligned RGB-D → capture-time TF → detector bbox + 번호
 → bbox 중앙 depth로 base_link 거리 산정 및 가까운 순 정렬
 → bounded snapshot cache → 사용자 선택
-→ selected bbox만 SAM2 → support plane → base_link 3D OBB
+→ 선택된 instance mask → support plane → base_link 3D OBB
 ```
 
 순수 NumPy core는 ROS, Gemini, YOLOE, SAM2와 MuJoCo를 import하지 않는다. `DetectorPort`,
@@ -112,15 +116,16 @@ weight는 프로세스에 한 벌만 상주하며 image/video 추론은 공유 l
 `preload_models=false`에서는 이 공유 모델도 첫 segmentation 또는 tracking 요청까지
 생성하지 않는다.
 
-기본 detector는 `gemini-robotics-er-2-preview`다. Robotics ER 계열은 공식
+`inspect_scene.launch.py`의 기존 기본 detector는 `gemini-robotics-er-2-preview`다. Robotics ER 계열은 공식
 Interactions API와 업로드된 RGB snapshot을 사용하고, 요청이 끝나면 원격 임시 파일을
 삭제한다. 그 외 Gemini model ID는 기존 `generateContent` 경로를 사용한다. Robotics ER
 API는 제한이 설정된 API key가 필요할 수 있다.
 
 YOLOE-26은 Ultralytics `8.4.0` 이상이 필요하다. 공식 배포 weight는 segmentation
 checkpoint인 `yoloe-26n-seg.pt`이며 별도 `yoloe-26n-det.pt`는 없다. YOLOE detector
-adapter는 이 checkpoint의 bbox/class/confidence만 사용하고 자체 mask는 버린다. 선택된
-bbox의 최종 mask는 항상 configured segmenter, 예를 들면 SAM2-tiny가 만든다. Text
+adapter는 `detector_type=yoloe`일 때 bbox/class/confidence만 사용하고 자체 mask는 버린다.
+`detector_type=yoloe_gemini`에서는 같은 추론의 원본 해상도 instance mask를 snapshot에
+보관해 `segmenter_type=yoloe_seg`가 재추론 없이 사용한다. Text
 prompt 경로는 checkpoint 외에 Ultralytics CLIP package와 `mobileclip2_b.ts`가 필요하다.
 `yoloe_text_encoder_directory`는 이 파일이 있는 디렉터리를 가리켜야 하며 model과
 encoder는 저장소에 commit하지 않는다.
@@ -347,7 +352,7 @@ reference 실패에 GT/color fallback은 없다. mask와 현재 point cloud는 s
 crumpled tissue/lego brick, YOLOE 입력 크기는 640, confidence 0.25다.
 이는 장면 교체에 맞춘 text prompt 설정이며 새 물체의 검출 정확도를 보증하지 않는다.
 
-현재 MuJoCo study-cafe 기본 검출기는 `config/gemini_flash_lite_sam2_tiny.yaml`의
+기존 Gemini+SAM2 비교 프로필은 `config/gemini_flash_lite_sam2_tiny.yaml`의
 `gemini-3.1-flash-lite`다. [공식 모델 ID와 이미지/구조화 출력 지원](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite)을
 기준으로 기존 Gemini `generate_content` adapter를 사용한다. RGB PNG와 prompt를 외부
 API에 보내 bbox를 받고, SAM2.1-tiny는 로컬에서 mask/추적을 담당한다. `GEMINI_API_KEY`

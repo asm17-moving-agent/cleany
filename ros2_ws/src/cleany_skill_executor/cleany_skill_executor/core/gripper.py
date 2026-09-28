@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 
 
 def approach_offset_for_label(label: str, base: float, labels: list[str], extra: float | list[float]) -> float:
@@ -14,7 +15,17 @@ def approach_offset_for_label(label: str, base: float, labels: list[str], extra:
     normalized = [value.strip().casefold() for value in labels]
     if len(set(normalized)) != len(normalized):
         raise ValueError('Approach correction labels must be unique')
-    return base + dict(zip(normalized, offsets)).get(label.strip().casefold(), 0.)
+    detailed_label = label.strip().casefold()
+    corrections = dict(zip(normalized, offsets))
+    if detailed_label in corrections:
+        return base + corrections[detailed_label]
+    # A Gemini detail label may contain the configured YOLOE class phrase.
+    # Use the longest whole phrase so "computer mouse" wins over "mouse".
+    matches = [name for name in normalized if name and re.search(
+        rf'(?<!\w){re.escape(name)}(?!\w)', detailed_label)]
+    if not matches:
+        return base
+    return base + corrections[max(matches, key=len)]
 
 
 def aperture_centering_offset(required_opening_m: float, margin_m: float,

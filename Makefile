@@ -108,7 +108,7 @@ help:
 	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-mujoco-study-cafe  Run the study cafe in MuJoCo"
-	@echo "  make sim-mujoco-pipeline  Run Gemini Flash-Lite + SAM2-tiny GUI (API key, plan-only)"
+	@echo "  make sim-mujoco-pipeline  Run YOLOE-seg + Gemini GUI (API key, plan-only)"
 	@echo "  make sim-mujoco-sorting   Run simulation rule-based pick/sort/place"
 	@echo "  make profile-mujoco-tabletop  Compare opt-in tabletop physics/render profiles"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"

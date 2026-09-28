@@ -94,18 +94,19 @@ def _preflight(context):
         # Geometry / simulation validation above still applies to the host.
         return []
     for argument, kind in (('perception_detector_type', 'yoloe'),
+                           ('perception_detector_type', 'yoloe_gemini'),
                            ('perception_segmenter_type', 'sam2')):
         if value(argument) == kind:
             keys = (
                 ('yoloe_model_path', 'yoloe_text_encoder_directory')
-                if kind == 'yoloe'
+                if kind in ('yoloe', 'yoloe_gemini')
                 else ('sam2_checkpoint', 'sam2_model_config')
             )
             resolve_model_assets(
                 {key: value(key) for key in keys},
-                value('model_directory'), kind,
+                value('model_directory'), 'yoloe' if kind == 'yoloe_gemini' else kind,
             )
-    if value('perception_detector_type') == 'gemini':
+    if value('perception_detector_type') in ('gemini', 'yoloe_gemini'):
         if not value('gemini_model').strip():
             raise RuntimeError('Gemini model must not be empty')
         key_name = value('gemini_api_key_environment')
@@ -173,6 +174,7 @@ def generate_launch_description() -> LaunchDescription:
     # does not load them or silently fall back to a local detector.
     profile.update(load_model_profile(
         perception_share / 'config' / 'gemini_flash_lite_sam2_tiny.yaml'))
+    profile.update(detector_type='yoloe_gemini', segmenter_type='yoloe_seg')
 
     backend = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -182,7 +184,7 @@ def generate_launch_description() -> LaunchDescription:
         launch_arguments={
             'sorting_bins_config': LaunchConfiguration('sorting_bins_config'),
             'sorting_contact_diagnostics': LaunchConfiguration('sorting_contact_diagnostics'),
-            'scheduled_cameras': LaunchConfiguration('sorting_use_wrist_camera'),
+            'scheduled_cameras': sorting_mode,
             'color_image_topic': LaunchConfiguration('color_image_topic'),
             'camera_info_topic': LaunchConfiguration('color_info_topic'),
             'depth_image_topic': LaunchConfiguration('depth_image_topic'),
@@ -482,6 +484,9 @@ def generate_launch_description() -> LaunchDescription:
                 'sorting_test_only_label': LaunchConfiguration('sorting_test_only_label'),
                 'sorting_use_wrist_camera': ParameterValue(LaunchConfiguration('sorting_use_wrist_camera'), value_type=bool),
                 'sorting_use_reference_observation': ParameterValue(LaunchConfiguration('sorting_use_reference_observation'), value_type=bool),
+                'sorting_geometry_association_lift': ParameterValue(PythonExpression([
+                    "'", perception_detector_type, "' == 'yoloe_gemini'",
+                ]), value_type=bool),
                 'sorting_head_reference_refresh_age_sec': ParameterValue(
                     LaunchConfiguration('sorting_head_reference_refresh_age_sec'), value_type=float),
                 'sorting_async_carry_monitor': ParameterValue(LaunchConfiguration('sorting_async_carry_monitor'), value_type=bool),
@@ -584,7 +589,7 @@ def generate_launch_description() -> LaunchDescription:
                 choices=['true', 'false'],
             ),
             DeclareLaunchArgument('start_perception', default_value='true', choices=['true', 'false']),
-            DeclareLaunchArgument('sam2_tracking_enabled', default_value='true', choices=['true', 'false']),
+            DeclareLaunchArgument('sam2_tracking_enabled', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument(
                 'use_sim_time', default_value=start_simulator,
                 choices=['true', 'false'],
