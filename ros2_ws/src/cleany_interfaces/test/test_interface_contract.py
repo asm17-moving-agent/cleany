@@ -1,4 +1,4 @@
-from cleany_interfaces.action import InspectScene, SelectReachableGrasp
+from cleany_interfaces.action import ExecuteManipulationSkill, InspectScene, SelectReachableGrasp
 from cleany_interfaces.msg import (
     DetectedObject2D,
     DetectedObject2DArray,
@@ -6,8 +6,25 @@ from cleany_interfaces.msg import (
     DetectedObject3DArray,
     GraspCandidate,
     ObservedObjectGeometry,
+    ManipulationExecutionRecord,
 )
-from cleany_interfaces.srv import PlanGrasp, VerifyPlacement
+from cleany_interfaces.srv import GetManipulationExecution, PlanGrasp, VerifyPlacement
+
+
+def test_manipulation_action_and_execution_lookup_contract() -> None:
+    goal = ExecuteManipulationSkill.Goal()
+    result = ExecuteManipulationSkill.Result()
+    feedback = ExecuteManipulationSkill.Feedback()
+    response = GetManipulationExecution.Response()
+    assert goal.execution_id == goal.skill_name == goal.snapshot_id == ''
+    assert goal.object_id == 0
+    assert result.execution_profile == result.status == result.error_code == ''
+    assert not result.stop_confirmed and not result.arm_recovered
+    assert feedback.execution_id == feedback.stage == feedback.selected_arm == ''
+    assert not response.found and isinstance(response.record, ManipulationExecutionRecord)
+    assert not response.record.has_result
+    assert not response.record.human_confirmation_required
+    assert response.record.record_state == '' and response.record.revision == 0
 
 
 def test_observed_geometry_has_explicit_identity_and_empty_default_mesh():

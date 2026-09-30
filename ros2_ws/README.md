@@ -42,6 +42,8 @@ CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복�
 
 ```bash
 make test-mission
+make test-manipulation-core
+make test-manipulation
 make test-mujoco
 make test-grasp-pregrasp
 make test-scene-mapping
@@ -49,6 +51,11 @@ make test-mujoco-observer
 make test-grasp-pregrasp-runtime
 make test-gazebo
 ```
+
+`make test-manipulation-core`는 물체 하나의 `collect_trash` core를 가짜 시계로 검사한다.
+`make test-manipulation`은 모의 Action 서버·조회·이벤트와 실제 DDS 통신,
+프로세스 강제 종료 후 복구까지 검사한다. 실행·설정은
+[`cleany_skill_executor` README](src/cleany_skill_executor/README.md#모의-manipulation-action)를 따른다.
 
 RGB-D perception부터 스터디카페 집기·분류까지 변경할 때는
 `make test-grasp-pregrasp`로 관련 unit/contract 테스트를 실행한다.

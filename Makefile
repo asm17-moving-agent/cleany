@@ -54,6 +54,7 @@ GRASP_PREGRASP_DESCRIPTION_TESTS := \
 	src/cleany_description/test/test_model_parity.py
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo profile-scene-mask profile-mujoco-tabletop \
+	build-manipulation test-manipulation-core test-manipulation \
 	build-grasp-pregrasp build-scene-mapping test-scene-mapping test \
 	build-mujoco-observer test-mujoco-observer \
 	test-mission test-mujoco test-grasp-pregrasp \
@@ -76,8 +77,11 @@ help:
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
 	@echo "  make build-grasp-pregrasp  Build RGB-D grasp/pre-grasp packages"
+	@echo "  make build-manipulation  Build mock manipulation Action packages"
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
+	@echo "  make test-manipulation-core  Run manipulation core tests with a fake clock"
+	@echo "  make test-manipulation  Build/test mock Action, DDS traffic and crash recovery"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-grasp-pregrasp  Run focused RGB-D grasp/pre-grasp tests"
 	@echo "  make test-scene-mapping  Build/test optional known-geometry OctoMap updater"
@@ -139,6 +143,24 @@ build-gazebo: check-gazebo-env
 		--build-base "$${CLEANY_BUILD_BASE}" \
 		--install-base "$${CLEANY_INSTALL_BASE}" \
 		--packages-up-to cleany_gazebo_sim
+
+build-manipulation:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon build --symlink-install --packages-select cleany_interfaces cleany_skill_executor
+
+test-manipulation-core:
+	PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH}" \
+	python3 -m pytest -q -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_core.py"
+
+test-manipulation: build-manipulation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source install/setup.bash && \
+	python3 -m pytest -q src/cleany_interfaces/test/test_interface_contract.py \
+		src/cleany_skill_executor/test/test_manipulation_core.py \
+		src/cleany_skill_executor/test/test_manipulation_runtime.py
 
 build-grasp-pregrasp:
 	source "$(ROS_SETUP)" && \

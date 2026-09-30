@@ -15,11 +15,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectedObject3DArray.msg"
   "msg/GraspCandidate.msg"
   "msg/ObservedObjectGeometry.msg"
+  "msg/ManipulationExecutionRecord.msg"
   "action/InspectScene.action"
   "action/SelectReachableGrasp.action"
+  "action/ExecuteManipulationSkill.action"
   "srv/PlanGrasp.srv"
   "srv/VerifyPlacement.srv"
   "srv/ObserveWristTarget.srv"
+  "srv/GetManipulationExecution.srv"
   DEPENDENCIES geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 

@@ -1,5 +1,28 @@
 # cleany_interfaces
 
+## Manipulation Action과 실행 기록
+
+`ExecuteManipulationSkill.action`은 승인된 `collect_trash` 물체 하나의 Goal,
+문자열 단계 Feedback과 물체·놓은 결과·팔 복귀·정지 근거를 포함한 Result다.
+`execution_profile`은 모의 결과를 구분한다(현재 구현은 `mock`).
+Goal ID는 호출자가 발급하며 snapshot_id/object_id의 조합으로 대상을 지정한다.
+상태·단계·오류 목록은 [Action 명세](../cleany_skill_executor/docs/02_execute_manipulation_skill_action_spec.md)를 따른다.
+
+`ManipulationExecutionRecord.msg`는 Goal, 최신 진행과 Result 필드,
+`record_state`, `has_result`, `human_confirmation_required`, revision과 시각을 제공한다.
+`record_state`는 `ACTIVE`, `FINISHED`, `INTERRUPTED`, `RECORDING_FAILED`다.
+`has_result=false`이면 status/error_code/failed_stage/retryable은 Result로 해석하지 않는다.
+물리 상태와 마지막 완료 단계는 중단 기록에서도 보존된다. 시각은 Unix nanoseconds이며
+deadline은 별도의 프로세스 단조 시계를 사용한다.
+
+`GetManipulationExecution.srv`는 execution_id를 받아 found/record를 반환한다.
+기본 namespace에서 Action은 `/mock/manipulation/execute_skill`, Service는
+`/mock/manipulation/get_execution`, 동일 record 타입의 이벤트 Topic은
+`/mock/manipulation/execution_events`다. 이벤트는 Reliable·Transient Local, depth 100이다.
+재시작 중단은 `INTERRUPTED`, `has_result=false`, 사람 확인 필요로 전달하며
+가짜 Action Result를 만들지 않는다. 저장 실패의 `RECORDING_FAILED`는 메모리 진단이다.
+실행 및 검증 명령은 [서버 README](../cleany_skill_executor/README.md#모의-manipulation-action)를 따른다.
+
 `ObservedObjectGeometry`는 `/grasp/collision_geometry`의 선택적 관측 형상
 인터페이스다. header의 capture stamp/frame, snapshot_id, object_id로 기존
 GraspCandidate와 연관하고, mesh_pose는 header frame 기준이며 Mesh vertices는

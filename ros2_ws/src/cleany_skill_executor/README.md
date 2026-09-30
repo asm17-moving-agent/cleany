@@ -1,11 +1,132 @@
 # cleany_skill_executor
 
-파지 후보 선택, MoveIt 계획, 시뮬레이션 집기·분류·놓기를 담당한다.
+파지 후보 선택, MoveIt 계획, 시뮬레이션 집기·분류·놓기와 모의 Manipulation Action을 담당한다.
 실물 명령을 지원하는 통합 운용 단계는 아니며 외부 로봇 경로는 plan-only다.
 
 - [분류 실행](#시뮬레이션-분리-수거-통합-검증-진행-중)
 - [분류·운반 실행 계약](#분류운반-실행-계약)
 - [설정 및 검증](#설정-및-검증)
+- [모의 Manipulation Action](#모의-manipulation-action)
+
+## 모의 Manipulation Action
+
+`manipulation_server`는 승인된 물체 하나의 `collect_trash`를 실행한다.
+ROS wrapper와 순수 Python core, 동작 port, Mock adapter, SQLite 저장소를 분리했다.
+20Hz steady-clock timer가 상태를 진행하고 Reentrant callback과 4-thread executor를
+사용한다. 수락, 취소, 진행 변경과 최종 결과는 같은 lock으로 직렬화한다.
+이번 `execution_profile`은 `mock`이며 다른 backend 설정은 시작 시 거절한다.
+실제 팔과 그리퍼 명령, Perception 호출, Mission Manager·Backend 연결과 BT.CPP 실행은
+후속 구현 대상이다. 모의 성공은 실물 수거나 안전 정지 검증 결과가 아니다.
+
+| 기본 ROS 이름 | 타입 | 용도 |
+|---|---|---|
+| `/mock/manipulation/execute_skill` | `ExecuteManipulationSkill` Action | 요청, Feedback, Result와 취소 |
+| `/mock/manipulation/get_execution` | `GetManipulationExecution` Service | execution_id로 최신 기록 조회 |
+| `/mock/manipulation/execution_events` | `ManipulationExecutionRecord` Topic | 수락, 단계, 물리 근거, 종료와 복구 이벤트 |
+
+Topic QoS는 Reliable, Transient Local, depth 100이다. 최신 100개 이벤트의
+재수신을 제공하며 전체 이력은 SQLite `execution_events`에 보존한다.
+`SUCCESS/BLOCKED`는 ROS `SUCCEEDED`, `FAILED/FATAL`은 `ABORTED`,
+정지 확인된 취소는 `CANCELED`로 반환한다. 수락 전 ID·skill 오류, 동시 실행,
+중복 execution_id와 기존 fault는 Result 없이 거절한다.
+
+레포 루트에서 빌드 후 서버를 실행한다. 테스트 시 독립 임시 DB를 사용한다.
+
+```bash
+make build-manipulation
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+mock_db_dir="$(mktemp -d)"
+ros2 launch cleany_skill_executor manipulation_mock.launch.py \
+  database_path:="$mock_db_dir/executions.sqlite3"
+```
+
+다른 터미널에서 같은 setup을 읽고 클라이언트를 실행한다. 클라이언트는 UUID4를
+발급하고 Feedback, Result 및 조회 결과를 출력한다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 run cleany_skill_executor manipulation_test_client
+ros2 run cleany_skill_executor manipulation_test_client --cancel-stage TRANSPORTING
+ros2 run cleany_skill_executor manipulation_test_client \
+  --query --execution-id '클라이언트가 출력한 UUID'
+```
+
+launch 인자는 `namespace`(기본 `mock`), `database_path`, `mock_config`, `scenario`다.
+실행 중 설정 변경은 지원하지 않으며 재시작 때 반영한다.
+[`config/manipulation_mock.yaml`](config/manipulation_mock.yaml)은 기본 snapshot의 물체
+1·2·3, 목적지 `mock_trash_bin`, 팔 `left`와 오류 시나리오를 관리한다.
+기본 단계는 0.5초, 정지 확인은 0.1초, 준비·확인 제한은 각각 5초,
+동작 제한은 단계별 10초, 정지 제한은 1초다. 모두 모의 검증용 수치다.
+자동 재시도는 0회이며 snapshot age도 모의 fixture 값이다.
+
+| `scenario` | 재현 상황 |
+|---|---|
+| `success`, `release_unobserved` | 정상 수거, 그리퍼 이탈 근거 없이 독립 확인까지 대기 |
+| `backend_not_ready`, `verification_unavailable` | 시작 준비 차단 |
+| `grasp_failure`, `grasp_lost` | 집기 실패, 운반 중 물체 상태 유실 |
+| `placement_failure`, `verification_timeout` | 확인 실패와 판단 불가 |
+| `return_failure` | 팔 복귀 실패, 독립 수거 근거 보존 |
+| `stop_failure`, `stop_timeout` | 취소·실패 정지 확인 실패와 timeout |
+| `hardware_fault`, `e_stop` | 로컬 fault와 신규 실행 차단 |
+
+없는 snapshot/object, `mock-stale-snapshot`과 잘못된 destination은 Goal 인자로
+재현한다. 오류 시나리오는 새 DB로 서버를 실행하며 `scenario:=grasp_lost`처럼 선택한다.
+취소를 받으면 다음 동작을 시작하지 않는다. 집기·들기·놓기는 현재 원자 구간을
+완료하거나 deadline에서 차단하고 정지를 확인한다. 물체를 들고 있어도 자동 놓기나
+팔 복귀를 실행하지 않는다. 실제 fault는 취소보다 우선하며 정지 확인 실패는
+`FATAL/STOP_UNCONFIRMED`다.
+
+기본 DB는 `${XDG_STATE_HOME:-~/.local/state}/cleany/manipulation_mock/executions.sqlite3`다.
+실행 ID UNIQUE 제약, DB별 파일 lock, SQLite WAL/FULL 동기화 및 snapshot·이력의
+동일 트랜잭션으로 수락·단계 시작·확인된 물리 변화·Result를 보존한다.
+프로세스 종료 후 같은 DB로 재시작하면 미완료 기록은 `INTERRUPTED`,
+`human_confirmation_required=true`, `has_result=false`로 조회·이벤트에 제공한다.
+마지막 확인 근거는 보존하고 현재 정지를 추정하지 않는다.
+fault, 중단, 물체 보유 또는 상태 불명이 남으면 신규 Goal을 차단한다.
+이번 버전에는 reset과 기록 만료가 없다. 기존 DB를 지우는 것으로 물리 복구를
+완료했다고 간주하지 않으며 모의 테스트는 처음부터 독립 DB로 분리한다.
+
+저장 실패는 `FATAL/INTERNAL_ERROR`로 처리하고 신규 실행을 차단한다.
+함께 발생한 hardware fault·e-stop·정지 확인 실패의 `FATAL` 원인은 보존한다.
+`RECORDING_FAILED` 조회·이벤트는 프로세스 메모리의 진단이며 영속 저장을 주장하지 않는다.
+디스크에 남은 마지막 활성 기록은 재시작 때 중단으로 복구된다.
+응답 유실·클라이언트 timeout 뒤에는 기존 execution_id를 조회한다.
+
+```bash
+make test-manipulation-core
+make test-manipulation
+```
+
+첫 명령은 가짜 시계 core 검사다. 두 번째는 관련 패키지 빌드 후 실제 ActionClient로
+정상·차단·실패, 모든 단계의 취소, fault, 동시·중복 요청, 저장 실패,
+프로세스 SIGKILL 후 재시작 조회와 복구 이벤트를 검사한다.
+기존 Skill Executor 회귀 검사는 native 환경에서
+`python3 -m pytest ros2_ws/src/cleany_skill_executor/test`로 실행한다.
+
+## 책상 정리 모듈 연동 설계
+
+최신 KB의 [Mission Lifecycle](../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Lifecycle.md)과
+[Task Planning and Robot Capabilities](../../../docs/cleany-docs/20_TECHNICAL/03%20-%20Task%20Planning%20and%20Robot%20Capabilities.md)를
+기준으로 본다. Mission Manager가 행동 하나를 승인하고 실행 결과를 재관찰한다.
+아래 명세는 승인된 `collect_trash` 행동 하나의 Action 계약과 후속 통합 설계를 정리한다.
+접근, 집기, 들기, 운반, 놓기와 확인은 Skill 내부에서 처리한다.
+
+읽는 순서:
+
+1. [01. 설계 안내](docs/01_manipulation_action_design.md)
+2. [02. Action 인터페이스 명세](docs/02_execute_manipulation_skill_action_spec.md)
+3. [03. 서버 동작 명세](docs/03_manipulation_server_behavior_spec.md)
+4. [04. Mission 결과 매핑](docs/04_mission_result_mapping.md)
+5. [05. 관측 데이터 명세](docs/05_initial_table_observation_spec.md)
+6. [06. BT와 Groot2 설계](docs/06_manipulation_behavior_tree_design.md)
+
+현재 `ExecuteManipulationSkill.action`과 모의 서버·기록 조회는 구현되어 있다.
+Mission Manager ROS adapter는 후속 구현 대상이다.
+Groot2 XML은 `CollectTrashSkill`의 정적 미리보기이며 BT.CPP 실행기는 없다.
+기존 simulation sorting coordinator는 전체 물체 반복을 포함하는 demo다.
+모의 서버의 실행·검증은 위 절을 따르며 실물 확인 계약은 위 명세의 미결정 범위를 유지한다.
 
 ## 작업자 관찰 모드와 파지 깊이
 
