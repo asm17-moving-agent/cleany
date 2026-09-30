@@ -9,7 +9,7 @@ public:
   YieldWait(const std::string &name, const BT::NodeConfiguration &config)
   : BtActionNode(name, "wait", config) {}
   static BT::PortsList providedPorts() {
-    return providedBasicPorts({BT::InputPort<double>("wait_duration",15.0,"Yield duration in simulation seconds")});
+    return providedBasicPorts({BT::InputPort<double>("wait_duration",15.0,"Yield duration in ROS seconds")});
   }
   void on_tick() override {
     double duration=0.;

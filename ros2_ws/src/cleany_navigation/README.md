@@ -1,31 +1,121 @@
 # cleany_navigation
 
-Cleany의 실제 로봇과 simulation에서 공통으로 사용하는 mapping, localization,
-navigation 통합 패키지입니다. 현재는 2D SLAM 설정과 launch를 제공하며 AMCL과 Nav2
-구성은 검증 후 같은 패키지에 추가합니다. SLAM 알고리즘은 외부 `slam_toolbox`와
-`cartographer_ros` 패키지가 제공하며, 이 패키지는 Cleany의 `/scan`, `/odom`, `/tf`
-계약에 맞게 기동합니다.
+SCRUM-425: 실제 로봇과 Gazebo가 공유하는 saved-map localization, Nav2 및 안전
+runtime이다. SLAM은 외부 `slam_toolbox`/`cartographer_ros`, 주행은 외부 Nav2를
+사용한다. 공통 노드는 Gazebo에 의존하지 않는다. Gazebo world/bridge, encoder,
+카메라 TF adapter, rosbag 및 평가 도구는 `cleany_gazebo_sim`에 남는다.
 
-Gazebo bridge, world, rosbag 기록과 평가 지표 계산은 이 패키지의 책임이 아닙니다.
+## Saved-map navigation
+
+```bash
+make build-navigation
+source /opt/ros/humble/setup.bash
+source ros2_ws/install-navigation/setup.bash
+ros2 launch cleany_navigation navigation.launch.py \
+  map:=/absolute/path/map.yaml \
+  robot_params_file:=/absolute/path/robot_params.yaml
+```
+
+`map`과 `robot_params_file`은 필수다. 기본은 `use_sim_time:=false`,
+`autostart:=true`, `axis_motion:=true`, pan/memory/voxel 모두 활성화다.
+`config/robot_params.template.yaml`, `config/body_profile.template.yaml`을 외부
+로봇 설정 디렉터리로 복사해 null 항목을 채운다. Footprint, STOP/SLOW polygon,
+바닥/높이, park posture와 최대 속도·반응시간·제동 감속도를 명시해야 한다.
+Body profile 경로는 robot 설정 파일의 위치를 기준으로 해석한다.
+설치된 CAD URDF의 관절 제한을 적용하며, Gazebo 관절 제한 override와 +Inf
+clearing은 실제 시간 모드에서 거부한다. Controller 속도/가속도와 depth 범위도
+backend에 맞게 조정한다. 제공된 숫자 설정은 제어 튜닝값이며 실물 안전 인증값이 아니다.
+
+AMCL은 임의의 초기 위치를 주입하지 않는다. 활성화 후 RViz의 2D Pose Estimate
+또는 `/initialpose`로 초기 자세를 제공한다. 저장된 지도에서
+`/navigate_to_pose` (`nav2_msgs/action/NavigateToPose`) 목표를 받는다.
+Single-axis DWB/Omni lattice, 경로 대기 BT와 YieldWait는 기존 동작을 공유한다.
+Humble/Jazzy별 plugin ID, progress checker, BT 포트와 Collision Monitor point
+threshold 차이는 launch에서 변환한다. STOP/SLOW의 3-point 경계는 두 환경에서 같다.
+
+## ROS 계약과 직렬 안전 경로
+
+```text
+Nav2 -> nav2/cmd_vel -> pan gate -> pan_ready/cmd_vel
+     -> Collision Monitor -> safety_2d/cmd_vel -> voxel guard -> cmd_vel
+```
+
+모든 속도는 `geometry_msgs/Twist`의 x/y/yaw다. 최종 `cmd_vel` publisher는
+voxel guard 한 개다. Backend는 아래 입력/TF를 제공한다.
+
+| 입력 | 계약 |
+| --- | --- |
+| `scan` | LaserScan, 실제 LiDAR frame과 ROS stamp |
+| `odom` | Odometry, `child_frame_id=base_link`, 실제 측정 x/y/yaw 속도 |
+| `joint_states` | head_pan_joint의 position과 velocity, 유효한 stamp |
+| `camera/head/depth/image_raw` | Rectified depth, 32FC1 m 또는 16UC1 mm; 0/NaN/-Inf는 관측 없음 |
+| `camera/head/depth/camera_info` | Image와 동일 크기/optical frame, 유효한 K 또는 monocular P, D=0 |
+| TF | Backend: odom→base_link와 base→LiDAR/head/optical; AMCL: map→odom |
+
+Depth projection은 optical Z-depth를 원래 image stamp의 TF로 output frame에
+변환한다. TF·calibration이 없으면 cloud를 발행하지 않는다. 공통 pan gate는
+`head_pan/command` Float64를 발행하고 TF를 소유하지 않는다. Backend의 head
+actuator adapter와 실제 joint feedback이 필요하다. 공통 노드의 topic/frame은
+ROS parameter로 설정 가능하며 TF edge owner는 중복되면 안 된다.
+
+Pan은 방향 정렬·정지·settle·fresh depth를 확인한다. 기본 후진은 차단하며
+`pan_motion_gate.allow_reverse`로 명시적으로 허용한다. LiDAR/depth를 Collision
+Monitor와 장애물 메모리에 전달하고, 3D voxel guard는 몸체 OBB와 예측 제동
+sweep를 검사한다. 필수 입력 단절, stale/future stamp, TF 누락, localization
+jump, voxel freeze 및 계산 시간 초과 시 최종 속도를 0으로 만든다. Pan/voxel의
+steady timer는 `/clock`이 멈춘 상황에서도 정지 출력을 유지한다.
+
+몸체 guard는 **설정된 park posture**를 가정한다. 실시간 팔 FK 감시나 팔 자세
+유지는 이 패키지에 구현되지 않았다. 관측한 voxel만 검사하며 unknown 공간을
+free로 인증하지 않는다. 물리 E-stop, 드라이버 watchdog와 실측 제동 검증은
+로봇 통합 작업에서 별도로 수행해야 한다.
+
+`obstacle_memory/grid`, `obstacle_memory/voxels`, `obstacle_memory/voxel_status`,
+`body_guard_3d/state`, `head_pan/state`를 진단에 사용한다. Memory의
+`obstacle_memory/save`, `obstacle_memory/set_enabled` 서비스를 유지한다.
+`output_directory`는 기본 빈 문자열이다. 지정했을 때만 memory/guard 로그와
+스냅샷을 각각 하위 디렉터리에 기록한다. 디스크 기록 없이도 runtime이 동작한다.
+
+`amcl_nav2_safety.launch.py`는 위 full runtime의 alias다. 안전 기능을 제외한
+기본 Nav2 실험은 `amcl_nav2.launch.py map:=...`로 명시적으로 실행한다.
+Full runtime의 `pan_enabled`, `memory_enabled`, `voxel_enabled`를 끌 수 있으나
+voxel을 사용하려면 memory가 필요하다. 비활성화한 단계에 따라 속도 경로를
+다시 구성하며, 기본값은 모든 단계 활성화다.
 
 ## Mapping
 
-실제 센서 시간을 사용할 때:
-
 ```bash
 ros2 launch cleany_navigation slam_mapping.launch.py
-```
-
-simulation 또는 rosbag의 `/clock`을 사용할 때:
-
-```bash
 ros2 launch cleany_navigation slam_mapping.launch.py use_sim_time:=true
-```
-
-Cartographer 2D는 다음과 같이 실행합니다.
-
-```bash
 ros2 launch cleany_navigation cartographer_mapping.launch.py
 ros2 launch cleany_navigation cartographer_mapping.launch.py \
   configuration_basename:=cartographer_2d_imu.lua
 ```
+
+Mapping은 주행 runtime과 별도다. 기존 scan/odom/TF 계약을 사용한다.
+
+## 검증
+
+```bash
+make test-navigation
+make test-navigation-runtime
+make test-gazebo
+make test-gazebo-nav-runtime
+make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic
+```
+
+앞의 두 명령은 Gazebo 없이 navigation과 description/axis dependency만 빌드한다.
+Unit test는 형상·depth decoding·pan·memory·voxel·parameter/BT 호환성을 검사한다.
+Opt-in runtime test는 합성 backend와 저장 지도에서 lifecycle, 목표 수락, 직렬
+속도 출력, 장애물 STOP, cancel, 입력 단절 및 clock pause를 검사한다. 합성
+backend의 설정은 테스트 fixture이며 실물 calibration이 아니다. Gazebo sensor 회귀
+테스트는 backend의 sensor/odom/TF 계약을 확인한다. Harmonic pipeline test는
+CAD backend, 실시간 depth/pan/voxel과 일치하는 방 지도에서 0.6m 직선 목표의 완료와
+주행 후 정지를 확인한다. 장거리·혼잡 환경의 성능이나 실물 검증을 대신하지 않는다.
+
+Jazzy에서는 `ROS_SETUP=/opt/ros/jazzy/setup.bash`와
+`NAVIGATION_BUILD_BASE=build-navigation-jazzy`,
+`NAVIGATION_INSTALL_BASE=install-navigation-jazzy`,
+`NAVIGATION_LOG_BASE=log-navigation-jazzy`를 make에 함께 전달해 Humble 산출물과
+분리한다. 관련 RViz 설정은 `rviz/navigation_costmap.rviz`,
+`rviz/voxel_navigation.rviz`다.

@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.8)
 project(cleany_navigation)
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+
+ament_python_install_package(${PROJECT_NAME})
+
+install(PROGRAMS
+  scripts/pan_motion_gate scripts/depth_clearance
+  scripts/obstacle_memory scripts/voxel_guard
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 install(
   DIRECTORY config launch rviz
@@ -10,10 +19,7 @@ install(
 
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
-  ament_add_pytest_test(slam_profile test/test_slam_profile.py)
-  ament_add_pytest_test(
-    cartographer_profile test/test_cartographer_profile.py
-  )
+  ament_add_pytest_test(navigation_runtime_core test)
 endif()
 
 ament_package()

@@ -1,0 +1,87 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Background Color: 35; 35; 40
+    Fixed Frame: map
+    Frame Rate: 15
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Floor at base z -0.38
+      Enabled: true
+      Cell Size: 0.1
+      Plane Cell Count: 30
+      Offset:
+        X: 0
+        Y: 0
+        Z: -0.38
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Robot mesh - green 2cm bounds - magenta old stop - red 3D risk
+      Enabled: true
+      Topic:
+        Value: /body_guard/markers
+        Depth: 1
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Depth context
+      Enabled: true
+      Alpha: 0.25
+      Color: 180; 180; 180
+      Color Transformer: FlatColor
+      Position Transformer: XYZ
+      Style: Points
+      Size (Pixels): 2
+      Topic:
+        Value: /camera/head/depth/points
+        Depth: 1
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        History Policy: Keep Last
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Accumulated 3D occupied voxels (5cm)
+      Enabled: true
+      Alpha: 0.65
+      Color Transformer: AxisColor
+      Axis: Z
+      Position Transformer: XYZ
+      Style: Boxes
+      Size (m): 0.05
+      Topic:
+        Value: /obstacle_memory/voxels
+        Depth: 1
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+    - Class: rviz_default_plugins/PointCloud2
+      Name: 3D stopping prediction - red
+      Enabled: true
+      Alpha: 1
+      Color: 255; 40; 40
+      Color Transformer: FlatColor
+      Position Transformer: XYZ
+      Style: Boxes
+      Size (m): 0.052
+      Topic:
+        Value: /body_guard_3d/risk_voxels
+        Depth: 1
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 9
+      Focal Point:
+        X: 0
+        Y: -3.5
+        Z: 0.45
+      Pitch: 0.8
+      Yaw: 0.8
+      Target Frame: map
+Window Geometry:
+  Width: 1500
+  Height: 1000

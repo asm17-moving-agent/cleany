@@ -1,0 +1,8 @@
+pan_motion_gate:
+  ros__parameters:
+    angle_tolerance: 0.04
+    settle_s: 0.2
+    source_timeout_s: 0.5
+    command_timeout_s: 0.5
+    # Rear motion policy is deliberately opt-in; the model permits pi radians.
+    allow_reverse: false
