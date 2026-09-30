@@ -14,6 +14,20 @@ trajectory는 현재 RobotState에 종속되므로 result에 포함하지 않는
 
 - [Mobile base](docs/mobile_base.md): `/cmd_vel` 차체 속도 명령
 
+## Mission Runtime 계약
+
+`OfferMission`은 `mission_id`, `mission_type=clean_desk`, `target_kind=SEAT`,
+canonical `target_id`와 `requested_by`를 전달합니다. 응답의 `accepted`, `duplicate`,
+`reason`과 선택적 `report_json`은 수락 여부이며 작업 완료는 아닙니다.
+`CancelMission`도 취소 수락 응답이며 실제 종료는 최종 결과로 확인합니다.
+`GetRuntimeSnapshot`은 현재 상태와 보존된 결과를 `snapshot_json`으로 반환합니다.
+
+`MissionStatus`는 FSM 상태, 외부 phase, BT 단계, 준비 여부 및 진단 sequence를 제공합니다.
+이 sequence는 Backend wire의 미션별 sequence와 구분합니다. `MissionResult`는 outcome,
+실패 코드, 완료·skip 작업, 사람 확인 여부, 관측 참조, 주행·복귀 결과와 전체 `report_json`을
+제공합니다. 내부 Mock 관측 ID는 실제 사진을 의미하지 않습니다.
+공개 이름과 취소·복구 규칙은 [Mission Manager README](../cleany_mission_manager/README.md)를 따릅니다.
+
 ## 객체 메시지
 
 `DetectedObject3D`는 하나의 oriented bounding box를 표현한다.
@@ -80,5 +94,5 @@ ros2 interface show cleany_interfaces/srv/PlanGrasp
 ## 관련 KB
 
 - [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
-- [System Concept](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Concept.md)
+- [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
 - [ROS 2 Software Architecture](../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)

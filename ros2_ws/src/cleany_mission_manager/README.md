@@ -1,37 +1,125 @@
 # cleany_mission_manager
 
-Mission Manager FSM과 mission lifecycle을 담당하는 ROS 2 패키지입니다.
+SCRUM-420의 단일 로봇 Mission Runtime입니다. 상위 FSM이 수락·이동·작업·복귀·보고를
+소유하고, `py_trees` Behavior Tree가 책상 작업의 반복과 완료 확인을 소유합니다.
+순수 core는 ROS 및 네트워크를 호출하지 않고 `start/poll/cancel/ready/stopped` port를 사용합니다.
 
-상세 설계는 docs submodule의 [Mission Manager FSM](../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Manager%20FSM.md)을 기준으로 봅니다. 이 패키지 README는 구현 위치와 검증 명령만 유지합니다.
+## 현재 실행 범위
 
-## 역할
+`navigation_backend:=nav2`는 Gazebo에서 실제 `NavigateToPose` action을 호출합니다.
+Perception, Planner, Executor는 항상 **명시적 Mock**입니다. 두 쓰레기 객체를 처리하고
+새 관측에서 완료를 확인하는 흐름이며 실제 카메라·LLM·팔을 호출하지 않습니다.
+`navigation_backend:=mock`는 주행도 Mock으로 바꾸는 구조 확인 모드입니다.
+실행 출처는 미션 수락 시 저장하고 최종 보고에도 보존합니다.
 
-- 외부 mission request를 받아 mission lifecycle을 시작합니다.
-- Navigator, Perception, Planner, Skill Executor를 순서대로 호출합니다.
-- 각 모듈이 반환한 `ModuleResult`를 해석해 FSM 상태, retry, report, error 전이를 결정합니다.
-- 다른 모듈이 Mission Manager의 상태를 직접 변경하지 못하게 FSM 상태 전이 권한을 한 곳에 둡니다.
+| 역할 | 구현 |
+|---|---|
+| 수락 및 상태 전이 | `core/runtime.py`, `runtime_models.py` |
+| 청소 BT | `core/cleaning.py` |
+| SQLite 중복 실행 방지 및 결과 보존 | `core/journal.py` |
+| 비동기 Nav2·TF·odom adapter | `adapters/nav2.py` |
+| 교체 가능한 책상 Mock | `mocks/desk.py` |
+| ROS service 및 steady-clock tick | `node.py` |
 
-## 제공 계약
+기존 `core/manager.py`의 동기식 prototype은 호환성을 위해 유지합니다.
+신규 ROS 실행 경로는 `MissionRuntime`을 사용합니다.
 
-- 순수 core의 `MissionRequest`, `MissionReport`, `ModuleResult`와 module port protocol을 제공합니다.
-- Navigator, Perception, Planner, Skill Executor는 결과를 반환하며, FSM 상태 전이는 이 패키지의 Manager만 수행합니다.
-- 현재 공개 ROS topic, service, action은 아직 정의하지 않았습니다. 패키지 경계 인터페이스가 추가되면 `cleany_interfaces`에서 명시합니다.
+## 실행 흐름과 소유권
 
-## 설정
-
-retry 및 mission 정책은 향후 `configs/mission/` 또는 ROS parameter로 이동할 수 있게 유지합니다. 안전·범위 정책의 확정값을 core에 하드코딩하지 않습니다.
-
-## 개발 명령
-
-repo root에서 실행합니다.
-
-```bash
-make test-mission
-make build
+```mermaid
+flowchart LR
+  D[Dashboard] --> B[Backend Queue]
+  B --> G[cleany_control_bridge]
+  G --> A{수락 검사}
+  A --> N[Nav2 좌석 이동]
+  N --> T[청소 BT]
+  T --> P{종료 정책}
+  P --> H[Nav2 home 복귀]
+  P --> W[다음 배차 대기]
+  H --> R[영속 결과 보고]
+  W --> R
+  R --> B
 ```
 
-## 관련 KB와 갱신 규칙
+Backend가 Queue와 배차를 소유합니다. Runtime은 별도 Queue를 만들지 않고, IDLE 및
+모든 port의 준비·정지 여부, 지원 좌석, 요청 유형을 검사해 하나만 수락합니다.
+동일 mission ID·동일 요청은 재실행하지 않습니다. 다른 내용으로 ID를 재사용하면 거절합니다.
 
-- 패키지 core logic은 가능하면 ROS 의존 없이 유지해 pytest로 검증합니다.
-- FSM 상태, 책임 경계, retry/report 정책을 바꾸면 docs의 Mission Manager FSM 문서도 함께 갱신합니다.
-- MVP 범위나 안전 정책이 아직 검토 중이면 [기획 KB 안내](../../../docs/cleany-docs/00_START_HERE/00%20-%20README.md)와 [Planning Questions](../../../docs/cleany-docs/10_PLANNING/99%20-%20Questions.md)를 우선 확인합니다.
+FSM은 `IDLE → NAVIGATE_TO_TARGET → WORKING → POST_MISSION → RETURN_HOME/IDLE`이며
+중단 시 `CANCELLING`, 치명적 오류 또는 정지 확인 실패 시 `ERROR`로 전이합니다.
+외부 phase는 `NAVIGATING`, `WORKING`, `RETURNING`으로 노출합니다.
+
+BT는 `ObserveBefore → [PlanNext → ValidateProposal → ExecuteOne → Reobserve → VerifyCompletion]`
+반복입니다. 한 번에 한 객체만 실행하고 이후 반드시 다시 관측합니다. snapshot ID와
+object ID, 허용 capability를 검사하며 오래된 제안과 임의 skill은 실행하지 않습니다.
+`done` 제안만으로 완료하지 않고 추가 fresh 관측에서 처리 대상이 남았는지 확인합니다.
+skip·사람 확인·실패·취소는 보고에 보존하며 무조건 SUCCESS로 바꾸지 않습니다.
+
+## ROS 계약
+
+| 이름 | 타입 | 의미 |
+|---|---|---|
+| `mission/offer` | `cleany_interfaces/srv/OfferMission` | `clean_desk`, `SEAT`, canonical `seat-*` 요청 |
+| `mission/cancel` | `cleany_interfaces/srv/CancelMission` | 비동기 취소 수락; 완료는 결과로 확인 |
+| `mission/snapshot` | `cleany_interfaces/srv/GetRuntimeSnapshot` | 현재 상태 및 보존된 최종 보고 JSON |
+| `mission/reset_error` | `std_srvs/srv/Trigger` | 정지·Nav2 준비 확인 후 명시적 오류 해제 |
+| `mission/status` | `cleany_interfaces/msg/MissionStatus` | transient-local 상태 및 BT 단계 |
+| `mission/result` | `cleany_interfaces/msg/MissionResult` | transient-local 최신 최종 보고 |
+| `robot/safety_fault` | `std_msgs/msg/String` | `E_STOP` 또는 `HARDWARE_ERROR` 알림 |
+| `robot/safety_released` | `std_msgs/msg/String` | 해당 안전 소유자의 해제 알림 |
+
+안전 알림 producer가 실제 정지를 먼저 수행해야 합니다. 이 Runtime은 물리 e-stop 구현이
+아닙니다. 안전 오류는 일치하는 release 알림과 정지 확인 후에도 별도 reset이 필요합니다.
+주행 취소는 Nav2 terminal 상태와 fresh odom의 정지를 함께 확인합니다. 취소 ACK만으로
+IDLE을 만들지 않으며 확인 시간 초과 시 ERROR를 유지합니다.
+
+SQLite journal은 수락, 실행 출처, Nav2 goal UUID, 최종 결과와 오류 상태를 저장합니다.
+재시작 당시 미완료 미션은 `INTERRUPTED`와 사람 확인 필요로 보고하고 자동 재개하지 않습니다.
+저장된 정확한 UUID에 대해 orphan goal 취소를 요청하고 정지·준비 상태를 확인합니다.
+Backend 연결 단절은 이미 수락한 미션의 실행을 중단하지 않습니다.
+
+## 설정과 실행
+
+[runtime.yaml](config/runtime.yaml)과 [좌석 pose](config/study_cafe_targets.yaml)를 설치합니다.
+기본 deadline은 주행·청소 각 180초, 단일 작업 30초, 취소 확인 5초이며 steady clock을
+사용합니다. `max_actions=30`, `max_skill_retries=2`로 반복을 제한합니다.
+설정은 시작할 때 읽습니다. 변경 후 node를 재시작해야 합니다.
+
+`post_mission:=return_home|wait_for_next`로 미결정 복귀 정책을 선택합니다. 기본은
+`return_home`이라는 **실행 옵션**이며 제품 정책 확정을 뜻하지 않습니다. `wait_for_next`는
+현재 위치에서 다음 Backend 배차를 기다립니다. 미션 간 연결 이동도 새 배차로 시작합니다.
+주행 실패는 전체 미션을 자동 재시도하지 않습니다. 일반 취소의 home 복귀 여부도 같은
+정책을 따르며, 안전 오류는 복귀하지 않습니다.
+
+좌석 YAML은 `map_id`, `frame_id`, `home`, `seats`를 명시합니다. 현재 seat-12·13 pose와
+home은 study-cafe **시뮬레이션 접근 후보**입니다. 충전 dock·팔 도달 가능성·실환경 좌표는
+검증되지 않았고, 실제 Gazebo home 복귀 시험도 실패했습니다.
+
+기존 AMCL/Nav2 실행 옆에서 시작합니다. SLAM은 동시에 시작하지 않습니다.
+
+```bash
+make build-mission-runtime
+source ros2_ws/install/setup.bash
+ros2 launch cleany_mission_manager mission_runtime.launch.py \
+  gateway_url:=ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws \
+  post_mission:=wait_for_next
+```
+
+Nav2 없이 구조를 확인할 때는 위 명령에 `navigation_backend:=mock`를 추가합니다.
+실험별 `journal_path`, `bridge_journal_path`를 사용하되 동일 미션을 복구할 때는 동일 DB를
+유지합니다. Gazebo부터 함께 시작하려면 [cleany_bringup](../cleany_bringup/README.md)을 봅니다.
+
+```bash
+make test-mission-core
+make test-mission-runtime
+# 실제 ROS transport와 fake Nav2 server를 사용하는 선택 검사
+source ros2_ws/install/setup.bash
+ROS_DOMAIN_ID=82 CLEANY_RUN_ROS_TESTS=1 make test-mission-core
+```
+
+ROS transport 검사는 Gazebo·실물 검증과 구분합니다. 시험 결과와 제한은
+[SCRUM-420 검증 기록](../../../docs/validation/scrum-420-mission-runtime.md)에 정리합니다.
+기획 근거는 KB [Mission Lifecycle](../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Lifecycle.md),
+[Robot ROS Contract](../../../docs/cleany-docs/20_TECHNICAL/10%20-%20Robot%20ROS%20Contract.md),
+[안전](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)을 따릅니다.
+KB는 이 구현 변경에서 수정하지 않습니다.
