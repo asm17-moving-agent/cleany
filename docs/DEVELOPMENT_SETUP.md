@@ -328,7 +328,74 @@ Harmonic profile은 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 �
 rendering sensor는 구독 전까지 비활성화할 수 있지만, 기본 bridge는 모든 sensor
 topic을 bridge한다.
 
-## 8. 선택 개발도구
+## 8. 모터 컨트롤러와 micro-ROS 개발환경
+
+모터 펌웨어는 `motor_controller/`의 PlatformIO ESP-IDF 프로젝트다. ROS adapter와
+odometry는 Humble workspace에서 빌드한다. ESP32-S3의 **native USB Serial/JTAG**를
+custom stream transport로 사용하며 USB-UART bridge용 UART transport를 선택하지 않는다.
+
+### 도구와 외부 소스
+
+| 항목 | 고정 기준 |
+|---|---|
+| PlatformIO Core | 6.1.19 |
+| PlatformIO platform | espressif32 6.12.0 |
+| ESP-IDF | 5.5.0 (`framework-espidf` 3.50500.0) |
+| 공식 micro-ROS ESP-IDF component | Humble, `4ddd8c26e721662319ed8af981cb7cdc9ae05382` |
+| micro-ROS Agent | Humble, `c93ee764e0d2ef4907aeb29233c68cb5f4b56976` |
+| ROS 메시지 원본 | `ros2_ws/src/cleany_base_interfaces/msg/` |
+
+전체 source revision과 Python dependency는
+[`motor_controller/micro_ros.lock.json`](../motor_controller/micro_ros.lock.json)에서
+관리한다. 외부 checkout, micro-ROS library, 생성 type support와 PlatformIO 출력은
+Git에 포함하지 않는다. 메시지 변경 후 firmware type support도 다시 빌드한다.
+기존 commissioning/COBS 환경과 micro-ROS 환경은 별도 빌드 모드다.
+
+공식 component는 ESP-IDF 5.5와 ESP32-S3를 지원하고,
+`RMW_UXRCE_TRANSPORT=custom`과 framing-enabled custom transport를 사용할 수 있다.
+Firmware 빌드는 ROS overlay 변수와 분리한 shell을 사용한다. ROS 패키지와 Agent
+빌드에서는 `/opt/ros/humble/setup.bash`를 적용한다.
+
+### Distrobox 환경
+
+Fedora 호스트에서 작업할 때는 모든 빌드와 테스트를 Ubuntu 22.04
+`ros2-humble` Distrobox 안에서 실행한다.
+
+```bash
+distrobox enter ros2-humble
+cd /home/changsu/Workspace/cleany
+source /etc/os-release
+test "$VERSION_ID" = 22.04
+source /opt/ros/humble/setup.bash
+test "$ROS_DISTRO" = humble
+python3 --version
+```
+
+2026-09-30 확인 환경은 Ubuntu 22.04.5, Python 3.10.12, GCC 11.4.0,
+CMake 3.22.1, colcon-core 0.21.0, rclpy 3.3.21, rcl 5.3.13이다.
+호스트 Python/PlatformIO를 Ubuntu의 system Python과 혼용하지 않는다.
+
+### 빌드와 장치 없는 테스트
+
+```bash
+make firmware-setup
+make test-motor-core
+make firmware-smoke
+make firmware-build
+make firmware-commissioning
+make micro-ros-agent-build
+make build-base
+make test-base
+```
+
+위 명령은 펌웨어를 upload하거나 serial device를 열지 않는다.
+Upload, Agent의 실물 serial 연결과 구동 절차는
+[`motor_controller/README.md`](../motor_controller/README.md)와
+[`cleany_base_driver/README.md`](../ros2_ws/src/cleany_base_driver/README.md)를 따른다.
+실물 geometry와 주행 제한은 `configs/robot/`의 검토된 설정을 사용해야 한다.
+합성 mock 설정은 실제 로봇의 calibration 값이 아니다.
+
+## 9. 선택 개발도구
 
 ### Helix와 Pyright
 
@@ -413,3 +480,6 @@ headless server가 OGRE2, GUI가 OGRE1을 사용한다.
 - [ROS 2 Humble 지원 플랫폼](https://docs.ros.org/en/humble/Releases/Release-Humble-Hawksbill.html)
 - [ros-apt-source](https://github.com/ros-infrastructure/ros-apt-source)
 - [Node.js 다운로드](https://nodejs.org/en/download)
+- [공식 micro-ROS ESP-IDF component (Humble)](https://github.com/micro-ROS/micro_ros_espidf_component/tree/4ddd8c26e721662319ed8af981cb7cdc9ae05382)
+- [micro-ROS Agent (Humble)](https://github.com/micro-ROS/micro-ROS-Agent/tree/c93ee764e0d2ef4907aeb29233c68cb5f4b56976)
+- [ESP-IDF 5.5 native USB Serial/JTAG 안내](https://github.com/espressif/esp-idf/blob/v5.5/docs/en/api-guides/usb-serial-jtag-console.rst)

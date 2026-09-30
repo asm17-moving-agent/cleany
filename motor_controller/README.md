@@ -13,6 +13,39 @@ template. `platformio.ini` and `sdkconfig.defaults` supply the N32R16V memory
 overrides. The `dout` image-header mode is intentional: the ESP32-S3
 bootloader switches the detected octal flash to OPI mode.
 
+## micro-ROS build integration
+
+The `esp32-s3-microros` environment uses the official Humble ESP-IDF component
+with custom XRCE-DDS stream transport. The default PlatformIO environment
+remains `esp32-s3-devkitc-1-n32r16v` (commissioning and COBS). The separate
+`microros_smoke/` project links `rclc` and both Cleany message type-support
+entrypoints without starting motors or opening a transport.
+
+From the repository root:
+
+```bash
+make firmware-setup
+make test-micro-ros-setup test-motor-core
+make firmware-smoke
+make firmware-commissioning
+make micro-ros-agent-build
+```
+
+These commands run inside Ubuntu 22.04 `ros2-humble`; Make enters that
+Distrobox when called from the host. Sources and Python tool versions are
+pinned in `micro_ros.lock.json` and `tools/micro_ros_setup.py`. The official
+component's branch-based source clones are resolved to reviewed commit IDs by
+the bootstrap Git wrapper. `make firmware-setup` creates ignored external
+checkouts and links the single message package source from
+`ros2_ws/src/cleany_base_interfaces`.
+
+Message, metadata, sdkconfig and project/environment changes invalidate
+generated type support. Changing `sdkconfig.microros.defaults` regenerates the
+derived sdkconfig; keep reviewed settings in that source file. Smoke and
+runtime builds share one component library cache and must run sequentially.
+Use `python3 tools/micro_ros_setup.py --check` inside Distrobox to verify
+external source revisions. Setup and build commands do not upload firmware.
+
 ## Motor web interface
 
 The normal firmware creates the `Cleany` Wi-Fi access point with password
@@ -151,6 +184,38 @@ c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
 ```
 
 ## Hardware tests
+
+### micro-ROS 후속 실물 인수 시험
+
+현재 단계의 빌드 및 host/mock 테스트와 아래 실물 검증은 별개다. 펌웨어 upload와
+하드웨어 시험은 운영자의 별도 명시 요청 후 진행한다. 로봇과 emergency stop이
+준비되고 아래 항목이 통과해야 Task 4의 실물 검증 및 Story 완료를 판정할 수 있다.
+
+1. **준비:** 사람 없는 통제 구역, 구역 밖 감독자, 즉시 사용할 수 있는 물리
+   emergency stop, 공통 ground, 배선 및 전원 정격을 확인한다. 휠을 들어 올린다.
+2. **MCU-only 통신:** 모터 전원을 분리한 상태에서 native USB 장치의 persistent
+   by-id path, Agent 연결, WheelState 50 Hz, boot/session 식별자와 console stream
+   분리를 확인한다. 재부팅 시 boot ID 변경과 disarmed 상태를 확인한다.
+3. **무허가 정지:** Agent 연결, launch 시작, `/cmd_vel` 단독 발행으로 PWM이
+   발생하지 않는지 확인한다. 새 session은 zero/disarmed여야 한다.
+4. **올린 상태의 방향:** 명시적 enable 후 새 저속 명령으로 FL, FR, RL, RR 순서와
+   기존 logical-forward/encoder 부호를 확인한다. ROS에서 부호를 다시 반전하지 않는다.
+   전진, 좌측 병진, 반시계 회전의 wheel pattern을 확인한다.
+5. **보호 동작:** 기존 PI + feed-forward, 최종 PWM slew limiter, encoder-confirmed
+   reversal dwell을 trace로 확인한다. STOP 및 emergency stop의 실제 전원 차단을
+   각각 확인한다. 소프트웨어 STOP/watchdog은 물리 emergency stop을 대체하지 않는다.
+6. **고장 주입:** 명령 발행 중지, driver 종료, Agent 종료, USB 분리, MCU 재부팅,
+   잘못된 session/sequence/deadline 명령에서 정지 및 watchdog을 확인한다.
+   MCU 250 ms timeout과 task 관측 지연, 실제 정지 시간을 각각 측정한다.
+7. **재연결:** 이전 이동 목표가 복원되지 않고 새 handshake, 명시적 enable,
+   enable 확인 뒤의 새 `/cmd_vel`이 있어야만 구동하는지 확인한다.
+8. **바닥 시험:** 실측 geometry와 검토된 낮은 주행 제한을 사용한다. `/joint_states`,
+   `/wheel/odom`, `/odom`, `odom -> base_link`의 publisher 소유권을 확인하고 전진,
+   횡이동, 회전을 짧게 시험한다. 실제 이동량과 odometry, slip 및 정지 거리를 기록한다.
+
+기록에는 firmware/Agent revision, 설정 파일, 전원과 하중, 표면, wheel sign,
+명령/피드백 주기, 고장별 정지 시간과 합격 여부를 포함한다. Odometry 보정과
+SLAM/Nav2 자율주행 검증은 이 인수 시험 뒤 별도 작업이다.
 
 Run both suites in sequence with PlatformIO port auto-detection:
 
