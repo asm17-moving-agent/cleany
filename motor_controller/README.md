@@ -1,5 +1,8 @@
 # ESP32-S3 motor and IMU hardware tests
 
+Build/test commands in this document run inside Ubuntu 22.04 `ros2-humble`.
+Root Make targets enter that Distrobox automatically when invoked from the host.
+
 The normal PlatformIO firmware entry point is `src/main.cpp`. Hardware checks
 are independent Unity applications under `test/`, so a test runs only when it
 is explicitly selected with `pio test`.
@@ -27,6 +30,7 @@ From the repository root:
 make firmware-setup
 make test-micro-ros-setup test-motor-core
 make firmware-smoke
+make firmware-build
 make firmware-commissioning
 make micro-ros-agent-build
 ```
@@ -46,6 +50,43 @@ runtime builds share one component library cache and must run sequentially.
 Use `python3 tools/micro_ros_setup.py --check` inside Distrobox to verify
 external source revisions. Setup and build commands do not upload firmware.
 
+### Runtime and command gate
+
+`make firmware-build` builds `esp32-s3-microros`: the native USB transport,
+`rclc` subscription/publisher and reconnect loop run in their own task. No web,
+Wi-Fi AP, text CLI or COBS receiver starts in this build. The commissioning
+environment retains those entrypoints.
+
+The subscription copies fixed-size commands to a one-item overwrite mailbox.
+STOP has a separate pending latch so it cannot be overwritten by velocity.
+The existing 5 ms motor-control task consumes the mailbox under `motorMutex`,
+checks boot/session/sequence, finite/range and MCU deadlines, then runs the
+existing feed-forward + PI and final PWM slew/reversal protection.
+Commands use logical FL, FR, RL, RR order, mapped to PCB indices `{0,1,3,2}`.
+The existing integer-percent target path rounds wheel goals to 0.1 rad/s.
+
+Only fresh accepted zero ARM or armed VELOCITY refreshes the 250 ms watchdog.
+The same control task checks active-command expiry before each PWM update;
+the earlier of the deadline and watchdog stops/disarms the motors. Rejected
+packets never refresh either boundary. STOP and reconnect discard prior goals;
+motion requires a new zero session, explicit ARM and a fresh velocity command.
+Recently retired sessions remain blocked while queued packets can be valid.
+The bounded eight-session history fails closed with a 250 ms handshake holdoff
+if rapid session churn exhausts it.
+
+Agent reachability is checked every 100 ms with a 20 ms ping timeout. Failure
+latches STOP before bounded entity teardown and a fresh connection attempt.
+State publication targets 50 Hz; device tests must measure actual USB timing.
+`make test-motor-core` covers session/deadline replay, watchdog, encoder rollover,
+wheel mapping and bounded USB I/O without opening a device.
+
+Upload is a separate, explicitly confirmed operation after hardware preparation:
+
+```bash
+make firmware-upload CLEANY_ESP_PORT=/dev/serial/by-id/<confirmed-device> \
+  CONFIRM_UPLOAD=1
+```
+
 ### Native USB stream
 
 `src/usb_stream_transport.hpp` separates bounded stream I/O from the ESP-IDF
@@ -63,7 +104,7 @@ paths with `make test-motor-core`.
 
 ## Motor web interface
 
-The normal firmware creates the `Cleany` Wi-Fi access point with password
+The commissioning firmware creates the `Cleany` Wi-Fi access point with password
 `ASM_2026`. Connect to it and open `http://192.168.4.1/`. The left side of the
 page has press-and-hold controls for forward, backward, left, right, clockwise,
 and counterclockwise motion using X-configuration mecanum mixing. It also has

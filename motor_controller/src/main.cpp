@@ -24,6 +24,22 @@
 #include "nvs_flash.h"
 #include "serial_protocol.hpp"
 #include "wheel_velocity_controller.hpp"
+#include "modular_int32.hpp"
+#ifdef CLEANY_MICROROS_ENABLED
+#include "wheel_command_gate.hpp"
+#include "usb_stream_transport.hpp"
+#include "wheel_order.hpp"
+#include "driver/usb_serial_jtag_vfs.h"
+#include "rcl/rcl.h"
+#include "rclc/rclc.h"
+#include "rclc/executor.h"
+#include "rmw_microros/rmw_microros.h"
+#include "rmw_microros/custom_transport.h"
+#include "cleany_base_interfaces/msg/wheel_command.h"
+#include "cleany_base_interfaces/msg/wheel_state.h"
+#include "cleany_base_interfaces/msg/detail/wheel_command__type_support.h"
+#include "cleany_base_interfaces/msg/detail/wheel_state__type_support.h"
+#endif
 
 namespace {
 
@@ -45,6 +61,10 @@ constexpr float kMaximumCalibrationTravelRad = 6.0F;
 constexpr float kCalibrationStoppingMarginRad = 0.25F;
 constexpr int64_t kCalibrationTimeoutUs = 5000000;
 constexpr int64_t kSerialCommandTimeoutUs = 250000;
+#ifdef CLEANY_MICROROS_ENABLED
+constexpr int64_t kMicroRosWatchdogUs = 250000;
+constexpr uint16_t kMicroRosWatchdogMs = 250;
+#endif
 
 struct Motor {
   gpio_num_t pwmPin;
@@ -105,6 +125,19 @@ uint32_t serialSessionId = 0;
 uint32_t lastSerialCommandSequence = 0;
 bool hasSerialCommandSequence = false;
 uint32_t serialFaultBits = 0;
+#ifdef CLEANY_MICROROS_ENABLED
+QueueHandle_t wheelCommandQueue;
+portMUX_TYPE microStopMux = portMUX_INITIALIZER_UNLOCKED;
+bool microStopPending = false;
+cleany::WheelCommandGate* wheelGate = nullptr;
+uint32_t microBootId = 0;
+uint32_t microStateSequence = 0;
+uint32_t microLastSequence = 0;
+uint32_t microFaultBits = 0;
+int64_t microLastAcceptedUs = 0;
+bool microArmed = false;
+uint32_t microSessionId = 0;
+#endif
 
 constexpr int8_t kEncoderTable[16] = {
     0, -1, 1, 0,
@@ -346,7 +379,8 @@ void updateEncoder(void* argument) {
   const uint8_t currentState = readEncoderState(*encoder);
   portENTER_CRITICAL_ISR(&encoderMux);
   const uint8_t tableIndex = (encoder->previousState << 2) | currentState;
-  encoder->count += kEncoderTable[tableIndex];
+  encoder->count = cleany::modularAdd(
+      encoder->count, static_cast<int32_t>(kEncoderTable[tableIndex]));
   encoder->previousState = currentState;
   portEXIT_CRITICAL_ISR(&encoderMux);
 }
@@ -558,9 +592,8 @@ void updateMotorVelocityLocked(Motor& motor, int32_t encoderCount,
   if (elapsedUs <= 0) {
     return;
   }
-  const int32_t deltaCount = static_cast<int32_t>(
-      static_cast<uint32_t>(encoderCount) -
-      static_cast<uint32_t>(motor.lastEncoderCount));
+  const int32_t deltaCount =
+      cleany::modularDifference(encoderCount, motor.lastEncoderCount);
   const float elapsedSeconds = static_cast<float>(elapsedUs) / 1000000.0F;
   const float rawVelocity =
       cleany::encoderVelocityRadPerSecond(deltaCount, elapsedSeconds);
@@ -575,23 +608,89 @@ void updateMotorVelocityLocked(Motor& motor, int32_t encoderCount,
   motor.lastEncoderUpdateUs = nowUs;
 }
 
+#ifdef CLEANY_MICROROS_ENABLED
+void stopMicroRosMotorsLocked() {
+  for (size_t i = 0; i < motors.size(); ++i) {
+    motors[i].commandFilter.forceStop();
+    motors[i].velocityController.reset();
+    motors[i].commandedVelocityRadPerSecond = 0.0F;
+    motors[i].calibrationMoveActive = false;
+    (void)applyMotorSpeedLocked(i, 0);
+  }
+}
+
+bool takeMicroRosStop() {
+  bool pending;
+  portENTER_CRITICAL(&microStopMux);
+  pending = microStopPending;
+  microStopPending = false;
+  portEXIT_CRITICAL(&microStopMux);
+  return pending;
+}
+
+void processMicroRosCommandLocked(int64_t nowUs) {
+  cleany::WheelCommand command{};
+  bool haveCommand = xQueueReceive(wheelCommandQueue, &command, 0) == pdTRUE;
+  const bool stop = takeMicroRosStop();
+  if (stop) {
+    (void)wheelGate->accept({1, 0, 0, 0, 0, cleany::WheelMode::kStop, {}},
+                            static_cast<uint64_t>(nowUs));
+    stopMicroRosMotorsLocked();
+    microArmed = false;
+    microSessionId = 0;
+  } else if (haveCommand &&
+             wheelGate->accept(command, static_cast<uint64_t>(nowUs))) {
+    microLastSequence = wheelGate->lastSequence();
+    microSessionId = wheelGate->sessionId();
+    microArmed = wheelGate->armed();
+    if (command.mode == cleany::WheelMode::kBeginSession ||
+        command.mode == cleany::WheelMode::kArm) {
+      stopMicroRosMotorsLocked();
+      microLastAcceptedUs = command.mode == cleany::WheelMode::kArm
+          ? nowUs : 0;
+      if (command.mode == cleany::WheelMode::kBeginSession)
+        microFaultBits = 0;
+    } else if (command.mode == cleany::WheelMode::kVelocity) {
+      const auto& target = wheelGate->target();
+      for (size_t wire = 0; wire < cleany::kWireToMotorIndex.size(); ++wire) {
+        const size_t i = cleany::kWireToMotorIndex[wire];
+        // One integer percent is 0.1 rad/s with the legacy 10 rad/s scale.
+        const int percent = static_cast<int>(std::lround(target[wire] * 10.0F));
+        motors[i].commandFilter.setTargetSpeed(percent);
+        motors[i].lastCommandUs = nowUs;
+        motors[i].calibrationMoveActive = false;
+      }
+      microLastAcceptedUs = nowUs;
+    }
+  }
+  if (wheelGate->watchdog(static_cast<uint64_t>(nowUs))) {
+    stopMicroRosMotorsLocked();
+    microArmed = false;
+    microSessionId = 0;
+    microFaultBits |= 1U;
+  }
+}
+#endif
+
 void motorControlTask(void*) {
   TickType_t lastWakeTime = xTaskGetTickCount();
   while (true) {
     vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(kMotorControlPeriodMs));
-    const int64_t nowUs = esp_timer_get_time();
     const auto counts = readEncoderCounts();
     if (xSemaphoreTake(motorMutex, pdMS_TO_TICKS(5)) != pdTRUE) {
       continue;
     }
+    const int64_t nowUs = esp_timer_get_time();
+#ifdef CLEANY_MICROROS_ENABLED
+    processMicroRosCommandLocked(nowUs);
+#endif
 
     for (size_t i = 0; i < motors.size(); ++i) {
       Motor& motor = motors[i];
       updateMotorVelocityLocked(motor, counts[i], nowUs);
       if (motor.calibrationMoveActive) {
-        const int32_t travelledCounts = static_cast<int32_t>(
-            static_cast<uint32_t>(counts[i]) -
-            static_cast<uint32_t>(motor.calibrationStartCount));
+        const int32_t travelledCounts =
+            cleany::modularDifference(counts[i], motor.calibrationStartCount);
         if (std::abs(travelledCounts) >= motor.calibrationMaximumCounts ||
             nowUs >= motor.calibrationDeadlineUs) {
           motor.calibrationMoveActive = false;
@@ -974,7 +1073,8 @@ int32_t logicalEncoderCount(size_t motorIndex, int32_t rawCount) {
   if (motors[motorIndex].encoderPolarity > 0) {
     return rawCount;
   }
-  return static_cast<int32_t>(0U - static_cast<uint32_t>(rawCount));
+  return cleany::signedFromModularBits(
+      0U - static_cast<uint32_t>(rawCount));
 }
 
 void writeSerialWheelTelemetry(int64_t nowUs) {
@@ -1358,7 +1458,7 @@ void serialCommandTask(void*) {
   }
 }
 
-void startSerialInterface() {
+[[maybe_unused]] void startSerialInterface() {
   usb_serial_jtag_driver_config_t config = {
       .tx_buffer_size = 2048,
       .rx_buffer_size = 256,
@@ -1374,7 +1474,272 @@ void startSerialInterface() {
       "CLEANY_READY send HELP, or NUL to enter binary protocol v1\r\n");
 }
 
-void startWebServer() {
+#ifdef CLEANY_MICROROS_ENABLED
+void ignoreRclCleanupResult(rcl_ret_t result) {
+  (void)result;  // Best-effort cleanup after a failed/disconnected session.
+}
+
+class NativeUsbPort final : public cleany::UsbStreamPort {
+ public:
+  bool open() override {
+    usb_serial_jtag_driver_config_t config = {
+        .tx_buffer_size = 2048, .rx_buffer_size = 2048};
+    return usb_serial_jtag_driver_install(&config) == ESP_OK;
+  }
+  void close() override { (void)usb_serial_jtag_driver_uninstall(); }
+  int read(uint8_t* data, size_t size, uint32_t timeoutMs) override {
+    return usb_serial_jtag_read_bytes(data, size, pdMS_TO_TICKS(timeoutMs));
+  }
+  int write(const uint8_t* data, size_t size, uint32_t timeoutMs) override {
+    return usb_serial_jtag_write_bytes(data, size, pdMS_TO_TICKS(timeoutMs));
+  }
+  uint64_t nowMs() const override {
+    return static_cast<uint64_t>(esp_timer_get_time() / 1000);
+  }
+};
+
+NativeUsbPort nativeUsbPort;
+cleany::UsbStreamTransport nativeUsbTransport(nativeUsbPort);
+
+bool microTransportOpen(uxrCustomTransport*) {
+  return nativeUsbTransport.open();
+}
+bool microTransportClose(uxrCustomTransport*) {
+  nativeUsbTransport.close();
+  return true;
+}
+size_t microTransportWrite(uxrCustomTransport* transport,
+                           const uint8_t* buffer, size_t length,
+                           uint8_t* errorCode) {
+  *errorCode = 0;
+  auto* port = static_cast<cleany::UsbStreamTransport*>(transport->args);
+  const int written = port->write(buffer, length, 50);
+  if (written < 0) { *errorCode = 1; return 0; }
+  return static_cast<size_t>(written);
+}
+size_t microTransportRead(uxrCustomTransport* transport, uint8_t* buffer,
+                          size_t length, int timeout, uint8_t* errorCode) {
+  *errorCode = 0;
+  auto* port = static_cast<cleany::UsbStreamTransport*>(transport->args);
+  const int received = port->read(buffer, length, std::max(timeout, 0));
+  if (received < 0) { *errorCode = 1; return 0; }
+  return static_cast<size_t>(received);
+}
+
+void wheelCommandCallback(const void* message) {
+  const auto* input =
+      static_cast<const cleany_base_interfaces__msg__WheelCommand*>(message);
+  if (input->mode == cleany_base_interfaces__msg__WheelCommand__STOP) {
+    portENTER_CRITICAL(&microStopMux);
+    microStopPending = true;
+    portEXIT_CRITICAL(&microStopMux);
+    return;
+  }
+  cleany::WheelCommand command{};
+  command.protocolVersion = input->protocol_version;
+  command.bootId = input->boot_id;
+  command.sessionId = input->session_id;
+  command.sequence = input->sequence;
+  command.validUntilUs = input->valid_until_us;
+  command.mode = static_cast<cleany::WheelMode>(input->mode);
+  for (size_t i = 0; i < command.velocity.size(); ++i)
+    command.velocity[i] = input->velocity_rad_s[i];
+  if (wheelCommandQueue != nullptr)
+    (void)xQueueOverwrite(wheelCommandQueue, &command);
+}
+
+bool fillWheelState(cleany_base_interfaces__msg__WheelState* state) {
+  const auto rawCounts = readEncoderCounts();
+  const int64_t nowUs = esp_timer_get_time();
+  state->protocol_version = 1;
+  state->boot_id = microBootId;
+  state->timestamp_us = static_cast<uint64_t>(nowUs);
+  state->counts_per_revolution = cleany::kEncoderCountsPerOutputRevolution;
+  state->max_velocity_rad_s = kMaximumTargetVelocityRadPerSecond;
+  state->watchdog_ms = kMicroRosWatchdogMs;
+  state->sequence = microStateSequence++;
+  if (xSemaphoreTake(motorMutex, pdMS_TO_TICKS(5)) != pdTRUE) return false;
+  state->session_id = microSessionId;
+  state->last_command_sequence = microLastSequence;
+  state->armed = microArmed;
+  state->fault_bits = microFaultBits;
+  state->command_age_ms = microLastAcceptedUs == 0
+      ? 65535
+      : static_cast<uint16_t>(std::min<int64_t>(
+            std::max<int64_t>(0, (nowUs - microLastAcceptedUs) / 1000),
+            65535));
+  bool reverse = false;
+  for (size_t wire = 0; wire < cleany::kWireToMotorIndex.size(); ++wire) {
+    const size_t index = cleany::kWireToMotorIndex[wire];
+    const Motor& motor = motors[index];
+    state->encoder_counts[wire] =
+        logicalEncoderCount(index, rawCounts[index]);
+    state->velocity_rad_s[wire] = motor.feedbackVelocityRadPerSecond;
+    state->target_rad_s[wire] =
+        static_cast<float>(motor.commandFilter.targetSpeed()) / 10.0F;
+    state->commanded_rad_s[wire] = motor.commandedVelocityRadPerSecond;
+    state->pwm_percent[wire] = static_cast<int8_t>(motor.outputSpeed);
+    reverse = reverse || motor.commandFilter.waitingForReverse();
+  }
+  if (!microArmed) {
+    state->control_mode = microFaultBits != 0
+        ? static_cast<uint8_t>(cleany_base_interfaces__msg__WheelState__WATCHDOG_STOP)
+        : static_cast<uint8_t>(cleany_base_interfaces__msg__WheelState__STOPPED);
+  } else {
+    state->control_mode = reverse
+        ? static_cast<uint8_t>(cleany_base_interfaces__msg__WheelState__REVERSE_WAIT)
+        : static_cast<uint8_t>(cleany_base_interfaces__msg__WheelState__VELOCITY);
+  }
+  xSemaphoreGive(motorMutex);
+  return true;
+}
+
+bool createMicroRosEntities(rcl_allocator_t* allocator, rclc_support_t* support,
+                            rcl_node_t* node, rcl_publisher_t* publisher,
+                            rcl_subscription_t* subscription,
+                            rclc_executor_t* executor,
+                            cleany_base_interfaces__msg__WheelCommand* command,
+                            cleany_base_interfaces__msg__WheelState* state) {
+  if (rclc_support_init(support, 0, nullptr, allocator) != RCL_RET_OK)
+    return false;
+  if (rmw_uros_set_context_entity_destroy_session_timeout(
+          rcl_context_get_rmw_context(&support->context), 0) != RMW_RET_OK) {
+    (void)rclc_support_fini(support);
+    return false;
+  }
+  if (rclc_node_init_default(node, "cleany_motor_controller", "", support)
+      != RCL_RET_OK) {
+    (void)rclc_support_fini(support);
+    return false;
+  }
+  rmw_qos_profile_t qos = rmw_qos_profile_sensor_data;
+  qos.depth = 1;
+  if (rclc_publisher_init(
+          publisher, node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(cleany_base_interfaces, msg, WheelState),
+          "base/wheel_state", &qos) != RCL_RET_OK) {
+    ignoreRclCleanupResult(rcl_node_fini(node));
+    (void)rclc_support_fini(support);
+    return false;
+  }
+  if (rclc_subscription_init(
+          subscription, node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(cleany_base_interfaces, msg, WheelCommand),
+          "base/wheel_command", &qos) != RCL_RET_OK) {
+    ignoreRclCleanupResult(rcl_publisher_fini(publisher, node));
+    ignoreRclCleanupResult(rcl_node_fini(node));
+    (void)rclc_support_fini(support);
+    return false;
+  }
+  if (rclc_executor_init(executor, &support->context, 1, allocator) !=
+      RCL_RET_OK) {
+    ignoreRclCleanupResult(rcl_subscription_fini(subscription, node));
+    ignoreRclCleanupResult(rcl_publisher_fini(publisher, node));
+    ignoreRclCleanupResult(rcl_node_fini(node));
+    (void)rclc_support_fini(support);
+    return false;
+  }
+  if (rclc_executor_add_subscription(executor, subscription, command,
+                                     wheelCommandCallback, ON_NEW_DATA) !=
+          RCL_RET_OK || state == nullptr) {
+    (void)rclc_executor_fini(executor);
+    ignoreRclCleanupResult(rcl_subscription_fini(subscription, node));
+    ignoreRclCleanupResult(rcl_publisher_fini(publisher, node));
+    ignoreRclCleanupResult(rcl_node_fini(node));
+    (void)rclc_support_fini(support);
+    return false;
+  }
+  return true;
+}
+
+void destroyMicroRosEntities(rclc_support_t* support, rcl_node_t* node,
+                              rcl_publisher_t* publisher,
+                              rcl_subscription_t* subscription,
+                              rclc_executor_t* executor) {
+  (void)rclc_executor_fini(executor);
+  ignoreRclCleanupResult(rcl_subscription_fini(subscription, node));
+  ignoreRclCleanupResult(rcl_publisher_fini(publisher, node));
+  ignoreRclCleanupResult(rcl_node_fini(node));
+  (void)rclc_support_fini(support);
+}
+
+void microRosTask(void*) {
+  rcl_allocator_t allocator = rcl_get_default_allocator();
+  cleany_base_interfaces__msg__WheelCommand command{};
+  cleany_base_interfaces__msg__WheelState state{};
+  if (rmw_uros_set_custom_transport(
+          true, &nativeUsbTransport, microTransportOpen, microTransportClose,
+          microTransportWrite, microTransportRead) != RMW_RET_OK) {
+    vTaskDelete(nullptr);
+    return;
+  }
+  while (true) {
+    if (rmw_uros_ping_agent(100, 1) != RMW_RET_OK) {
+      portENTER_CRITICAL(&microStopMux);
+      microStopPending = true;
+      portEXIT_CRITICAL(&microStopMux);
+      vTaskDelay(pdMS_TO_TICKS(500));
+      continue;
+    }
+    rclc_support_t support{};
+    rcl_node_t node = rcl_get_zero_initialized_node();
+    rcl_publisher_t publisher{};
+    rcl_subscription_t subscription{};
+    rclc_executor_t executor = rclc_executor_get_zero_initialized_executor();
+    bool connected = createMicroRosEntities(
+        &allocator, &support, &node, &publisher, &subscription, &executor,
+        &command, &state);
+    const bool entitiesReady = connected;
+    int64_t lastStateUs = 0;
+    int64_t lastAgentPingUs = esp_timer_get_time();
+    while (connected) {
+      const rcl_ret_t spinResult =
+          rclc_executor_spin_some(&executor, RCL_MS_TO_NS(2));
+      if (spinResult != RCL_RET_OK && spinResult != RCL_RET_TIMEOUT) {
+        connected = false;
+        break;
+      }
+      const int64_t nowUs = esp_timer_get_time();
+      if (nowUs - lastAgentPingUs >= 100000) {
+        if (rmw_uros_ping_agent(20, 1) != RMW_RET_OK) {
+          connected = false;
+          break;
+        }
+        lastAgentPingUs = esp_timer_get_time();
+      }
+      if (lastStateUs == 0 || nowUs - lastStateUs >= 20000) {
+        if (!fillWheelState(&state)) {
+          vTaskDelay(pdMS_TO_TICKS(2));
+          continue;
+        }
+        if (rcl_publish(&publisher, &state, nullptr) != RCL_RET_OK) {
+          connected = false;
+          break;
+        }
+        lastStateUs = nowUs;
+      }
+      vTaskDelay(pdMS_TO_TICKS(2));
+    }
+    portENTER_CRITICAL(&microStopMux);
+    microStopPending = true;
+    portEXIT_CRITICAL(&microStopMux);
+    if (entitiesReady) {
+      destroyMicroRosEntities(&support, &node, &publisher, &subscription,
+                              &executor);
+    }
+    vTaskDelay(pdMS_TO_TICKS(250));
+  }
+}
+
+void startMicroRosInterface() {
+  ESP_ERROR_CHECK(xTaskCreate(microRosTask, "micro_ros", 8192, nullptr, 4,
+                              nullptr) == pdPASS
+                      ? ESP_OK
+                      : ESP_ERR_NO_MEM);
+}
+#endif
+
+[[maybe_unused]] void startWebServer() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   httpd_handle_t server = nullptr;
   ESP_ERROR_CHECK(httpd_start(&server, &config));
@@ -1424,7 +1789,7 @@ void wifiEventHandler(void*, esp_event_base_t eventBase, int32_t eventId,
   }
 }
 
-void startWifiAccessPoint() {
+[[maybe_unused]] void startWifiAccessPoint() {
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());
   esp_netif_t* accessPoint = esp_netif_create_default_wifi_ap();
@@ -1471,6 +1836,15 @@ extern "C" void app_main() {
   ESP_ERROR_CHECK(configureMotors());
   ESP_ERROR_CHECK(configureEncoders());
   stopAll();
+#ifdef CLEANY_MICROROS_ENABLED
+  microBootId = esp_random();
+  if (microBootId == 0) microBootId = 1;
+  wheelGate = new cleany::WheelCommandGate(
+      {microBootId, static_cast<uint32_t>(kMicroRosWatchdogUs), 10.0F});
+  ESP_ERROR_CHECK(wheelGate == nullptr ? ESP_ERR_NO_MEM : ESP_OK);
+  wheelCommandQueue = xQueueCreate(1, sizeof(cleany::WheelCommand));
+  ESP_ERROR_CHECK(wheelCommandQueue == nullptr ? ESP_ERR_NO_MEM : ESP_OK);
+#endif
   ESP_ERROR_CHECK(xTaskCreate(motorControlTask, "motor_control", 3072, nullptr,
                               6, nullptr) == pdPASS
                       ? ESP_OK
@@ -1479,8 +1853,12 @@ extern "C" void app_main() {
                               5, nullptr) == pdPASS
                       ? ESP_OK
                       : ESP_ERR_NO_MEM);
+#ifdef CLEANY_MICROROS_ENABLED
+  startMicroRosInterface();
+#else
   startSerialInterface();
 
   startWifiAccessPoint();
   startWebServer();
+#endif
 }

@@ -35,6 +35,7 @@ IMU 메시지와 orientation은 현재 계약에 포함하지 않는다.
 - `valid_until_us`: MCU monotonic 명령 유효기한. Adapter는 최신 MCU stamp와
   로컬 monotonic 경과 시간을 사용해 보수적으로 계산한다. MCU는 이미 지난
   deadline이나 watchdog보다 먼 미래의 deadline을 수용하지 않는다.
+  활성 목표도 매 control tick에서 deadline을 확인하며 만료 시 정지/disarm한다.
   STOP은 deadline과 session 일치 여부에 무관하게 정지를 요청할 수 있다.
 
 ## 구동 허용 절차
@@ -49,10 +50,17 @@ IMU 메시지와 orientation은 현재 계약에 포함하지 않는다.
 6. STOP, 통신 단절, watchdog 또는 재부팅 뒤에는 이전 목표를 복원하지 않는다.
    MCU watchdog은 250 ms이며 새 유효 명령만 갱신한다. 재개에는 새 연결 절차,
    명시적 enable과 새로운 `/cmd_vel`이 필요하다.
+   deadline이 먼저 만료하면 250 ms watchdog 이전에 정지한다.
 
 ARM과 VELOCITY는 boot/session, sequence, deadline, 유한 값과 `[-10,10] rad/s`
 범위를 검증한다. BEGIN_SESSION과 ARM의 wheel 목표는 모두 0이어야 한다.
-Callback은 검증된 목표를 넘기는 역할이며 PI 계산은 독립 motor-control task가 한다.
+거부한 packet은 기존 유효 목표나 watchdog 갱신 시각을 바꾸지 않는다.
+최근 폐기한 session은 queued packet의 유효기간 동안 재사용할 수 없다.
+8개 retirement 기록이 모두 유효한 상태에서 추가 session 전환이 발생하면 새
+handshake를 250 ms 보류해 유효한 replay 기록을 밀어내지 않는다.
+같은 현재 session의 BEGIN도 허용하지 않는다.
+Callback은 latest-value mailbox와 STOP latch에 복사하고, 독립 motor-control task가
+PWM 갱신 직전에 검증과 PI 계산을 수행한다.
 
 ## 피드백 해석
 
