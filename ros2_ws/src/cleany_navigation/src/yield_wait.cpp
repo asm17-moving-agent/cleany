@@ -1,4 +1,4 @@
-#include "cleany_axis_controller/yield_wait.hpp"
+#include "cleany_navigation/yield_wait.hpp"
 // Nav2 exports BehaviorTree.CPP v3 on Humble and v4 on Jazzy.
 #if __has_include("behaviortree_cpp_v3/bt_factory.h")
 #include "behaviortree_cpp_v3/bt_factory.h"

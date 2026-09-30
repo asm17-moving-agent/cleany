@@ -1,4 +1,4 @@
-#include "cleany_axis_controller/axis_generator.hpp"
+#include "cleany_navigation/axis_generator.hpp"
 #include <cmath>
 #include <stdexcept>
 #include "pluginlib/class_list_macros.hpp"

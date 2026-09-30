@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "rclcpp_action/rclcpp_action.hpp"
-#include "cleany_axis_controller/yield_wait.hpp"
+#include "cleany_navigation/yield_wait.hpp"
 class InspectWait : public cleany_axis_controller::YieldWait {
 public:
   using YieldWait::YieldWait;

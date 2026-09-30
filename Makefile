@@ -39,7 +39,7 @@ help:
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
 	@echo "  make build-navigation  Build common navigation without Gazebo"
-	@echo "  make test-navigation  Test common navigation and axis controller"
+	@echo "  make test-navigation  Test common navigation including C++ plugins"
 	@echo "  make test-navigation-runtime  Test Nav2 serial safety with a synthetic backend"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
 	@echo "  make build-telemetry Build the ROS telemetry package"
@@ -105,7 +105,7 @@ test-navigation: build-navigation
 	colcon --log-base "$(NAVIGATION_LOG_BASE)" test \
 		--build-base "$(NAVIGATION_BUILD_BASE)" \
 		--install-base "$(NAVIGATION_INSTALL_BASE)" \
-		--packages-select cleany_navigation cleany_axis_controller \
+		--packages-select cleany_navigation \
 		--return-code-on-test-failure && \
 	colcon test-result --test-result-base "$(NAVIGATION_BUILD_BASE)" --verbose
 
@@ -188,8 +188,8 @@ test-gazebo: build-gazebo
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" \
 		src/cleany_gazebo_sim/test src/cleany_navigation/test && \
-	"$${CLEANY_BUILD_BASE}/cleany_axis_controller/test_axis_generator" && \
-	"$${CLEANY_BUILD_BASE}/cleany_axis_controller/test_yield_wait"
+	"$${CLEANY_BUILD_BASE}/cleany_navigation/test_axis_generator" && \
+	"$${CLEANY_BUILD_BASE}/cleany_navigation/test_yield_wait"
 
 test-gazebo-harmonic:
 	$(MAKE) GAZEBO_PROFILE=harmonic test-gazebo

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <set>
 #include "rcl/time.h"
-#include "cleany_axis_controller/axis_generator.hpp"
+#include "cleany_navigation/axis_generator.hpp"
 class AxisTest : public testing::Test {
 protected:
   void SetUp() override {

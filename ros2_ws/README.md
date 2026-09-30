@@ -133,7 +133,7 @@ make test-navigation-runtime
 ```
 
 위 target은 별도 `build-navigation`/`install-navigation`/`log-navigation`을 사용해
-`cleany_navigation`과 description/axis dependency만 빌드한다. Gazebo 없이 saved-map
+`cleany_navigation`과 description dependency만 빌드한다. Gazebo 없이 saved-map
 AMCL/Nav2와 pan → Collision Monitor → 3D voxel guard를 실행할 수 있다.
 실행 계약과 필수 robot 설정은
 [`cleany_navigation/README.md`](src/cleany_navigation/README.md)를 따른다.
