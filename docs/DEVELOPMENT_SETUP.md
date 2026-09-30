@@ -388,11 +388,17 @@ make build-base
 make test-base
 ```
 
+Smoke/runtime는 같은 micro-ROS library cache를 공유한다. 두 빌드는 순서대로
+실행하며, project/environment 전환 시 CMake를 다시 구성해 생성 header와 library를
+현재 target에 맞춘다.
+
 위 명령은 펌웨어를 upload하거나 serial device를 열지 않는다.
 Upload, Agent의 실물 serial 연결과 구동 절차는
 [`motor_controller/README.md`](../motor_controller/README.md)와
 [`cleany_base_driver/README.md`](../ros2_ws/src/cleany_base_driver/README.md)를 따른다.
-실물 geometry와 주행 제한은 `configs/robot/`의 검토된 설정을 사용해야 한다.
+실물 geometry는 사용자 확인 휠 직경 127 mm, 앞뒤 중심 간 350 mm, 좌우 중심 간
+610 mm를 `configs/robot/base_hardware.yaml`에 반영한다. 주행 제한은 별도 안전
+검토 후 명시해야 한다.
 합성 mock 설정은 실제 로봇의 calibration 값이 아니다.
 
 ## 9. 선택 개발도구

@@ -76,3 +76,37 @@ def test_fingerprint_changes_with_message_source(tmp_path, monkeypatch):
     (interfaces / "msg/WheelCommand.msg").write_text("uint32 changed")
     assert first != setup.component_fingerprint(controller, "runtime")
     assert first != setup.component_fingerprint(controller, "smoke")
+
+
+def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, monkeypatch):
+    import hashlib
+
+    controller = tmp_path / "motor_controller"
+    controller.mkdir()
+    interfaces = tmp_path / "ros2_ws/src/cleany_base_interfaces"
+    (interfaces / "msg").mkdir(parents=True)
+    for file in ("app-colcon.meta", "sdkconfig.microros.defaults", "platformio.ini", "lock.json"):
+        (controller / file).write_text(file)
+    for file in ("CMakeLists.txt", "package.xml", "msg/WheelCommand.msg"):
+        (interfaces / file).write_text(file)
+    output = controller / "micro_ros"
+    component = output / "micro_ros_espidf_component"
+    (component / "include").mkdir(parents=True)
+    (component / "libmicroros.a").write_text("old library")
+    (component / ".cleany-build-fingerprint").write_text("previous smoke environment")
+    cache = controller / ".pio/build/runtime/CMakeCache.txt"
+    cache.parent.mkdir(parents=True)
+    cache.write_text("previous runtime configure")
+    (controller / ".pio/cleany-sdkconfig-defaults").write_text(hashlib.sha256(
+        (controller / "sdkconfig.microros.defaults").read_bytes()).hexdigest())
+    monkeypatch.setattr(setup, "ROOT", tmp_path)
+    monkeypatch.setattr(setup, "CONTROLLER", controller)
+    monkeypatch.setattr(setup, "LOCK", controller / "lock.json")
+    monkeypatch.setattr(setup, "OUTPUT", output)
+    setup.refresh_component(controller, "runtime")
+    assert not cache.exists()
+    assert not (component / "libmicroros.a").exists()
+    assert not (component / "include").exists()
+    cache.write_text("matching runtime configure")
+    setup.refresh_component(controller, "runtime")
+    assert cache.exists()  # Matching fingerprints retain a valid build cache.

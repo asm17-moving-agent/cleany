@@ -54,6 +54,11 @@ def refresh_component(project: Path, environment: str) -> None:
     stamp = component / ".cleany-build-fingerprint"
     if stamp.exists() and stamp.read_text() == fingerprint:
         return
+    # Upstream builds libmicroros/includes during CMake configuration. A
+    # project/environment switch must rerun it even with unchanged sdkconfig.
+    cache = project / ".pio/build" / environment / "CMakeCache.txt"
+    if cache.exists():
+        cache.unlink()
     for output in ("libmicroros.a", "include", "esp32_toolchain.cmake",
                    "micro_ros_src/build", "micro_ros_src/install", "micro_ros_src/log"):
         path = component / output
