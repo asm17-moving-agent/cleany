@@ -3,6 +3,9 @@ SHELL := /bin/bash
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
+NAVIGATION_BUILD_BASE ?= build-navigation
+NAVIGATION_INSTALL_BASE ?= install-navigation
+NAVIGATION_LOG_BASE ?= log-navigation
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
 SAFETY_MODE ?= sensors
@@ -22,7 +25,7 @@ HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-gazebo-harmonic build-handeye build-telemetry test test-mission test-mujoco \
 	test-handeye test-gazebo test-gazebo-harmonic \
-	test-telemetry test-gazebo-nav-runtime test-gazebo-evaluation \
+	test-telemetry test-gazebo-nav-runtime test-gazebo-navigation-pipeline test-gazebo-evaluation \
 	test-gazebo-safety view-gazebo-costmap \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
@@ -35,6 +38,9 @@ help:
 	@echo "  make check-gazebo-env  Detect and verify Humble/Fortress or Jazzy/Harmonic"
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
+	@echo "  make build-navigation  Build common navigation without Gazebo"
+	@echo "  make test-navigation  Test common navigation and axis controller"
+	@echo "  make test-navigation-runtime  Test Nav2 serial safety with a synthetic backend"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
 	@echo "  make build-telemetry Build the ROS telemetry package"
 	@echo "  make test          Build and run all colcon tests"
@@ -46,6 +52,7 @@ help:
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
+	@echo "  make test-gazebo-navigation-pipeline  Run CAD saved-map goal with full safety (Harmonic)"
 	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
 	@echo "  make test-gazebo-safety  Run SCRUM-306 sensors/monitor/avoid evaluation"
 	@echo "  make view-gazebo-costmap  Show live costmap over saved SLAM map in RViz"
@@ -80,6 +87,34 @@ check-gazebo-env:
 	ros2 pkg prefix ros_gz_sim >/dev/null && \
 	ros2 pkg prefix ros_gz_bridge >/dev/null && \
 	echo "Gazebo profile: $${CLEANY_GAZEBO_PROFILE} ($${CLEANY_ROS_DISTRO})"
+
+.PHONY: build-navigation test-navigation test-navigation-runtime
+
+build-navigation:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(NAVIGATION_LOG_BASE)" build --symlink-install \
+		--build-base "$(NAVIGATION_BUILD_BASE)" \
+		--install-base "$(NAVIGATION_INSTALL_BASE)" \
+		--packages-up-to cleany_navigation
+
+test-navigation: build-navigation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(NAVIGATION_INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(NAVIGATION_LOG_BASE)" test \
+		--build-base "$(NAVIGATION_BUILD_BASE)" \
+		--install-base "$(NAVIGATION_INSTALL_BASE)" \
+		--packages-select cleany_navigation cleany_axis_controller \
+		--return-code-on-test-failure && \
+	colcon test-result --test-result-base "$(NAVIGATION_BUILD_BASE)" --verbose
+
+test-navigation-runtime: build-navigation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(NAVIGATION_INSTALL_BASE)/setup.bash" && \
+	CLEANY_RUN_NAVIGATION_RUNTIME=1 python3 -m pytest -s \
+		src/cleany_navigation/runtime_test/test_navigation.py
 
 build:
 	source "$(ROS_SETUP)" && \
@@ -152,7 +187,7 @@ test-gazebo: build-gazebo
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" \
-		src/cleany_gazebo_sim/test && \
+		src/cleany_gazebo_sim/test src/cleany_navigation/test && \
 	"$${CLEANY_BUILD_BASE}/cleany_axis_controller/test_axis_generator" && \
 	"$${CLEANY_BUILD_BASE}/cleany_axis_controller/test_yield_wait"
 
@@ -166,6 +201,15 @@ test-gazebo-nav-runtime: build-gazebo
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest -s \
 		src/cleany_gazebo_sim/test/test_runtime_simulation.py \
+		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}"
+
+test-gazebo-navigation-pipeline: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 -m pytest -s \
+		src/cleany_gazebo_sim/test/test_runtime_navigation_pipeline.py \
 		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}"
 
 test-gazebo-evaluation: build-gazebo

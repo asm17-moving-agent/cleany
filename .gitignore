@@ -18,6 +18,9 @@ ros2_ws/log/
 ros2_ws/build-harmonic/
 ros2_ws/install-harmonic/
 ros2_ws/log-harmonic/
+ros2_ws/build-navigation*/
+ros2_ws/install-navigation*/
+ros2_ws/log-navigation*/
 
 # Local artifacts
 *.log
