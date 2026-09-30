@@ -31,5 +31,4 @@ env["ENV"]["PATH"] = os.pathsep.join(
 env["ENV"]["PYTHONPATH"] = str(controller / ".venv/lib/python3.10/site-packages")
 env.PrependENVPath("PATH", str(controller / ".venv/bin"))
 env.PrependENVPath("PATH", str(controller / "micro_ros/bin"))
-env["ENV"]["CLEANY_MICROROS_ENABLED"] = "1"
-env["ENV"]["SDKCONFIG_DEFAULTS"] = str(controller / "sdkconfig.microros.defaults")
+env["ENV"]["SDKCONFIG_DEFAULTS"] = str(controller / "sdkconfig.defaults")

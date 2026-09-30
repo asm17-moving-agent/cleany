@@ -3,8 +3,7 @@
 실물 base의 ROS adapter와 ESP32-S3 사이에 사용하는 고정 크기 micro-ROS 메시지다.
 원본은 이 패키지의 `msg/`에만 둔다. 펌웨어 빌드는 이 패키지를 official
 ESP-IDF component의 extra package 입력으로 사용해 C type support를 생성한다.
-기존 COBS 바이너리 프로토콜과 다른 계약이며 두 transport를 같은 USB stream에서
-동시에 실행하지 않는다.
+native USB stream은 XRCE-DDS custom transport 전용으로 사용한다.
 
 ## 토픽과 단위
 

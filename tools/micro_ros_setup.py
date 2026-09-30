@@ -24,7 +24,7 @@ def component_fingerprint(project: Path, environment: str) -> str:
     digest = hashlib.sha256()
     digest.update(f"{project.resolve()}:{environment}".encode())
     files = [LOCK, CONTROLLER / "app-colcon.meta",
-             CONTROLLER / "sdkconfig.microros.defaults", project / "platformio.ini"]
+             CONTROLLER / "sdkconfig.defaults", project / "platformio.ini"]
     interfaces = ROOT / "ros2_ws/src/cleany_base_interfaces"
     files += [interfaces / "CMakeLists.txt", interfaces / "package.xml"]
     files += sorted((interfaces / "msg").glob("*.msg"))
@@ -37,7 +37,7 @@ def component_fingerprint(project: Path, environment: str) -> str:
 def refresh_component(project: Path, environment: str) -> None:
     """Regenerate derived type support when inputs or IDF build context change."""
     component = OUTPUT / "micro_ros_espidf_component"
-    defaults = hashlib.sha256((CONTROLLER / "sdkconfig.microros.defaults").read_bytes()).hexdigest()
+    defaults = hashlib.sha256((CONTROLLER / "sdkconfig.defaults").read_bytes()).hexdigest()
     defaults_stamp = project / ".pio/cleany-sdkconfig-defaults"
     if not defaults_stamp.exists() or defaults_stamp.read_text() != defaults:
         # sdkconfig.defaults only applies at initial generation, not to an
@@ -99,6 +99,17 @@ def checkout(repository: str, revision: str, destination: Path) -> None:
     ).strip()
     if actual != revision:
         raise RuntimeError(f"{destination} resolved to {actual}, expected {revision}")
+
+
+def link_generated_config(link: Path, source: Path, previous_source: Path | None = None) -> None:
+    if link.is_symlink() and link.resolve() == source.resolve():
+        return
+    if (previous_source is not None and link.is_symlink()
+            and link.resolve() == previous_source.resolve()):
+        link.unlink()
+    if link.exists() or link.is_symlink():
+        raise RuntimeError(f"unexpected generated link path: {link}")
+    link.symlink_to(source)
 
 
 def main() -> None:
@@ -164,13 +175,11 @@ def main() -> None:
         package_dir.symlink_to(ROOT / "ros2_ws/src/cleany_base_interfaces", target_is_directory=True)
     for generated_link, target in (
         (CONTROLLER / "microros_smoke" / "app-colcon.meta", CONTROLLER / "app-colcon.meta"),
-        (CONTROLLER / "microros_smoke" / "sdkconfig.defaults", CONTROLLER / "sdkconfig.microros.defaults"),
+        (CONTROLLER / "microros_smoke" / "sdkconfig.defaults", CONTROLLER / "sdkconfig.defaults"),
     ):
-        if generated_link.is_symlink() and generated_link.resolve() == target.resolve():
-            continue
-        if generated_link.exists() or generated_link.is_symlink():
-            raise RuntimeError(f"unexpected generated link path: {generated_link}")
-        generated_link.symlink_to(target)
+        previous = (CONTROLLER / "sdkconfig.microros.defaults"
+                    if generated_link.name == "sdkconfig.defaults" else None)
+        link_generated_config(generated_link, target, previous)
     if args.agent_build:
         agent = OUTPUT / "agent"
         run(str(PIO_VENV / "bin" / "colcon"), "build", "--packages-up-to",

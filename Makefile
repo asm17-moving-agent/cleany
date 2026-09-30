@@ -33,7 +33,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
 	sim-gazebo-study-cafe clean firmware-setup firmware-smoke firmware-build \
-	firmware-commissioning firmware-upload test-motor-core build-base test-base \
+	firmware-upload test-motor-core build-base test-base \
 	micro-ros-agent-build test-micro-ros-setup
 
 help:
@@ -65,7 +65,6 @@ help:
 	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 	@echo "  make firmware-setup / firmware-smoke / firmware-build"
-	@echo "  make firmware-commissioning  Build existing commissioning firmware"
 	@echo "  make test-motor-core / build-base / test-base"
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
@@ -81,9 +80,6 @@ firmware-smoke: firmware-setup
 
 firmware-build: firmware-setup
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH motor_controller/.venv/bin/platformio run -d motor_controller -e esp32-s3-microros'
-
-firmware-commissioning: firmware-setup
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH motor_controller/.venv/bin/platformio run -d motor_controller -e esp32-s3-devkitc-1-n32r16v'
 
 firmware-upload: firmware-setup
 	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)

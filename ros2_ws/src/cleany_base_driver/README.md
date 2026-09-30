@@ -53,8 +53,7 @@ Wheel 배열 순서는 FL, FR, RL, RR이며 MCU가 PCB 순서로 변환한다. J
 상세 boot/session, sequence와 MCU deadline 계약은
 [`cleany_base_interfaces`](../cleany_base_interfaces/README.md)를 따른다.
 한 시점에는 하나의 `/cmd_vel` 명령원만 사용한다. Nav2, teleop, 시험 명령의 선택은
-상위 command mux의 책임이다. MCU의 micro-ROS 빌드에서는 web/commissioning 제어를
-실행하지 않아 제어권 충돌을 차단한다.
+상위 command mux의 책임이다. MCU는 micro-ROS 단일 제어 경로를 사용한다.
 
 ### 피드백과 odometry
 

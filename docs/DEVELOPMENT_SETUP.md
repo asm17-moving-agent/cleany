@@ -349,7 +349,8 @@ custom stream transport로 사용하며 USB-UART bridge용 UART transport를 선
 [`motor_controller/micro_ros.lock.json`](../motor_controller/micro_ros.lock.json)에서
 관리한다. 외부 checkout, micro-ROS library, 생성 type support와 PlatformIO 출력은
 Git에 포함하지 않는다. 메시지 변경 후 firmware type support도 다시 빌드한다.
-기존 commissioning/COBS 환경과 micro-ROS 환경은 별도 빌드 모드다.
+펌웨어는 micro-ROS 단일 빌드 경로를 사용한다. GPIO/encoder, 모터 제어 task와
+native USB micro-ROS 통신만 포함한다.
 
 공식 component는 ESP-IDF 5.5와 ESP32-S3를 지원하고,
 `RMW_UXRCE_TRANSPORT=custom`과 framing-enabled custom transport를 사용할 수 있다.
@@ -382,7 +383,6 @@ make firmware-setup
 make test-motor-core
 make firmware-smoke
 make firmware-build
-make firmware-commissioning
 make micro-ros-agent-build
 make build-base
 make test-base

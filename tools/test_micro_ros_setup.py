@@ -65,7 +65,7 @@ def test_fingerprint_changes_with_message_source(tmp_path, monkeypatch):
     controller.mkdir()
     interfaces = root / "ros2_ws/src/cleany_base_interfaces"
     (interfaces / "msg").mkdir(parents=True)
-    for file in ("app-colcon.meta", "sdkconfig.microros.defaults", "platformio.ini", "lock.json"):
+    for file in ("app-colcon.meta", "sdkconfig.defaults", "platformio.ini", "lock.json"):
         (controller / file).write_text(file)
     for file in ("CMakeLists.txt", "package.xml", "msg/WheelCommand.msg"):
         (interfaces / file).write_text(file)
@@ -85,7 +85,7 @@ def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, mon
     controller.mkdir()
     interfaces = tmp_path / "ros2_ws/src/cleany_base_interfaces"
     (interfaces / "msg").mkdir(parents=True)
-    for file in ("app-colcon.meta", "sdkconfig.microros.defaults", "platformio.ini", "lock.json"):
+    for file in ("app-colcon.meta", "sdkconfig.defaults", "platformio.ini", "lock.json"):
         (controller / file).write_text(file)
     for file in ("CMakeLists.txt", "package.xml", "msg/WheelCommand.msg"):
         (interfaces / file).write_text(file)
@@ -98,7 +98,7 @@ def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, mon
     cache.parent.mkdir(parents=True)
     cache.write_text("previous runtime configure")
     (controller / ".pio/cleany-sdkconfig-defaults").write_text(hashlib.sha256(
-        (controller / "sdkconfig.microros.defaults").read_bytes()).hexdigest())
+        (controller / "sdkconfig.defaults").read_bytes()).hexdigest())
     monkeypatch.setattr(setup, "ROOT", tmp_path)
     monkeypatch.setattr(setup, "CONTROLLER", controller)
     monkeypatch.setattr(setup, "LOCK", controller / "lock.json")
@@ -110,3 +110,40 @@ def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, mon
     cache.write_text("matching runtime configure")
     setup.refresh_component(controller, "runtime")
     assert cache.exists()  # Matching fingerprints retain a valid build cache.
+
+
+def test_generated_sdkconfig_link_migrates_only_known_previous_source(tmp_path):
+    source = tmp_path / "sdkconfig.defaults"
+    source.write_text("CONFIG_ESP_CONSOLE_NONE=y")
+    previous = tmp_path / "previous.defaults"
+    link = tmp_path / "generated.defaults"
+    link.symlink_to(previous)  # Previous source was removed by consolidation.
+    setup.link_generated_config(link, source, previous)
+    assert link.resolve() == source
+    setup.link_generated_config(link, source, previous)  # Idempotent.
+    link.unlink()
+    link.write_text("unexpected local config")
+    with pytest.raises(RuntimeError, match="unexpected generated link"):
+        setup.link_generated_config(link, source, previous)
+
+
+def test_only_micro_ros_firmware_and_console_free_board_defaults():
+    import configparser
+
+    config = configparser.ConfigParser()
+    config.read(setup.CONTROLLER / "platformio.ini")
+    assert config.sections() == ["platformio", "env:esp32-s3-microros"]
+    assert config["platformio"]["default_envs"] == "esp32-s3-microros"
+    assert config["env:esp32-s3-microros"]["platform"] == "espressif32@6.12.0"
+    defaults = dict(
+        line.split("=", 1) for line in
+        (setup.CONTROLLER / "sdkconfig.defaults").read_text().splitlines()
+        if line and not line.startswith("#")
+    )
+    assert defaults["CONFIG_ESP_CONSOLE_NONE"] == "y"
+    assert defaults["CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG"] == "n"
+    assert defaults["CONFIG_ESP_CONSOLE_SECONDARY_NONE"] == "y"
+    assert defaults["CONFIG_MICRO_ROS_ESP_UART_TRANSPORT"] == "n"
+    assert defaults["CONFIG_FREERTOS_HZ"] == "1000"
+    assert defaults["CONFIG_ESPTOOLPY_FLASHSIZE_32MB"] == "y"
+    assert defaults["CONFIG_SPIRAM_MODE_OCT"] == "y"
