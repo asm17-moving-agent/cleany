@@ -38,24 +38,24 @@ CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복�
 `DISPLAY`를 전달하거나 CI처럼 Xvfb 환경에서 실행한다.
 `make test-mujoco`는 현재 장면과 공통 bridge의 `test/` 전체를 검사한다. 짧은 개별 검사는 아래 native pytest 명령을 사용한다.
 
-변경한 영역부터 확인할 때는 타깃 테스트를 사용한다.
+변경한 영역에 맞는 명령을 선택한다. 아래 명령은 레포 루트에서 실행한다.
 
-```bash
-make test-mission
-make test-manipulation-core
-make test-manipulation
-make test-mujoco
-make test-grasp-pregrasp
-make test-scene-mapping
-make test-mujoco-observer
-make test-grasp-pregrasp-runtime
-make test-gazebo
-```
+| 검사 대상 | 명령 |
+|---|---|
+| Manipulation core, 가짜 시계 | `make test-manipulation-core` |
+| 모의 Manipulation Action, 실제 DDS 통신·기록·재시작 복구 | `make test-manipulation` |
+| Mission Manager FSM | `make test-mission` |
+| MuJoCo 장면과 bridge | `make test-mujoco` |
+| RGB-D grasp/pre-grasp 관련 unit·contract | `make test-grasp-pregrasp` |
+| 선택형 OctoMap updater | `make test-scene-mapping` |
+| 읽기 전용 접촉 관측 | `make test-mujoco-observer` |
+| MoveIt mock 실행 | `make test-grasp-pregrasp-runtime` |
+| Gazebo | `make test-gazebo` |
 
-`make test-manipulation-core`는 물체 하나의 `collect_trash` core를 가짜 시계로 검사한다.
-`make test-manipulation`은 모의 Action 서버·조회·이벤트와 실제 DDS 통신,
-프로세스 강제 종료 후 복구까지 검사한다. 실행·설정은
-[`cleany_skill_executor` README](src/cleany_skill_executor/README.md#모의-manipulation-action)를 따른다.
+**모의 Manipulation Action을 직접 실행하려면**
+[Skill Executor의 빠른 시작](src/cleany_skill_executor/docs/manipulation_mock_usage.md#빠른-시작)을 따른다.
+서버·클라이언트 실행, 취소·조회, 실패 재현과 SQLite 기록을 순서대로 안내한다.
+빌드만 수행하는 명령은 `make build-manipulation`이다.
 
 RGB-D perception부터 스터디카페 집기·분류까지 변경할 때는
 `make test-grasp-pregrasp`로 관련 unit/contract 테스트를 실행한다.

@@ -1,27 +1,68 @@
 # cleany_interfaces
 
+Perception, grasp 계획·선택과 Manipulation 실행이 공유하는 ROS 2 인터페이스 패키지다.
+이 문서는 메시지·Action·Service와 프로젝트 공통 Topic 계약을 관리한다.
+
+| 확인할 계약 | 바로가기 |
+|---|---|
+| 물체 하나의 수거 Action과 실행 기록 | [Manipulation](#manipulation-action과-실행-기록) |
+| 선택 물체의 관측 형상 | [ObservedObjectGeometry](#관측-형상-observedobjectgeometry) |
+| 손목 RGB 관측 | [ObserveWristTarget](#손목-관측-observewristtarget) |
+| 놓은 결과 확인 | [VerifyPlacement](#verifyplacement) |
+| 객체·snapshot 메시지 | [객체 메시지](#객체-메시지) |
+| 장면 관찰과 파지 계획·선택 | [InspectScene](#scene-inspection-action), [Grasp](#grasp-planning과-선택) |
+| 빌드·계약 검증 | [설정 및 검증](#설정-및-검증) |
+
 ## Manipulation Action과 실행 기록
 
-`ExecuteManipulationSkill.action`은 승인된 `collect_trash` 물체 하나의 Goal,
-문자열 단계 Feedback과 물체·놓은 결과·팔 복귀·정지 근거를 포함한 Result다.
-`execution_profile`은 모의 결과를 구분한다(현재 구현은 `mock`).
-Goal ID는 호출자가 발급하며 snapshot_id/object_id의 조합으로 대상을 지정한다.
-상태·단계·오류 목록은 [Action 명세](../cleany_skill_executor/docs/02_execute_manipulation_skill_action_spec.md)를 따른다.
+실행·취소·조회 명령은 [Skill Executor 실행 안내](../cleany_skill_executor/docs/manipulation_mock_usage.md)를
+따른다. 이 절은 ROS 필드와 종료·기록 상태의 의미를 정리한다.
 
-`ManipulationExecutionRecord.msg`는 Goal, 최신 진행과 Result 필드,
-`record_state`, `has_result`, `human_confirmation_required`, revision과 시각을 제공한다.
-`record_state`는 `ACTIVE`, `FINISHED`, `INTERRUPTED`, `RECORDING_FAILED`다.
-`has_result=false`이면 status/error_code/failed_stage/retryable은 Result로 해석하지 않는다.
-물리 상태와 마지막 완료 단계는 중단 기록에서도 보존된다. 시각은 Unix nanoseconds이며
-deadline은 별도의 프로세스 단조 시계를 사용한다.
+### 공개 인터페이스
 
-`GetManipulationExecution.srv`는 execution_id를 받아 found/record를 반환한다.
-기본 namespace에서 Action은 `/mock/manipulation/execute_skill`, Service는
-`/mock/manipulation/get_execution`, 동일 record 타입의 이벤트 Topic은
-`/mock/manipulation/execution_events`다. 이벤트는 Reliable·Transient Local, depth 100이다.
-재시작 중단은 `INTERRUPTED`, `has_result=false`, 사람 확인 필요로 전달하며
-가짜 Action Result를 만들지 않는다. 저장 실패의 `RECORDING_FAILED`는 메모리 진단이다.
-실행 및 검증 명령은 [서버 README](../cleany_skill_executor/README.md#모의-manipulation-action)를 따른다.
+| 타입 | 기본 ROS 이름 | 역할 |
+|---|---|---|
+| `ExecuteManipulationSkill.action` | `/mock/manipulation/execute_skill` | 승인된 `collect_trash` 물체 하나의 요청·Feedback·Result·취소 |
+| `GetManipulationExecution.srv` | `/mock/manipulation/get_execution` | execution_id를 받아 found와 최신 record 반환 |
+| `ManipulationExecutionRecord.msg` | `/mock/manipulation/execution_events` | 진행·종료·재시작 중단 이벤트 |
+
+이벤트 QoS는 Reliable·Transient Local, depth 100이다.
+상태·단계·오류의 전체 목록은 [Action 명세](../cleany_skill_executor/docs/02_execute_manipulation_skill_action_spec.md)를 따른다.
+
+### Goal·Feedback·Result
+
+| 구분 | 확인할 내용 |
+|---|---|
+| Goal | 호출자가 execution_id 발급. snapshot_id/object_id 조합으로 대상 지정 |
+| Feedback | 문자열 stage와 진행 설명 |
+| Result | 종료 status, 오류, 물체·놓은 결과·팔 복귀·정지 근거 |
+| `execution_profile` | 근거를 생성한 실행 환경. 현재 구현은 `mock` |
+
+### 실행 기록 읽기
+
+`ManipulationExecutionRecord`는 Goal, 최신 진행과 Result 필드를 함께 제공한다.
+
+| 필드 | 의미 |
+|---|---|
+| `record_state` | 아래 표의 기록 상태 |
+| `has_result` | 최종 Action Result 존재 여부 |
+| `human_confirmation_required` | 물리 상태에 대한 사람 확인 필요 여부 |
+| `revision` | 기록 갱신 버전 |
+| `accepted_at_ns`, `updated_at_ns`, `evidence_at_ns` | 수락·갱신·관측 근거 시각. Unix nanoseconds |
+
+| `record_state` | 해석 |
+|---|---|
+| `ACTIVE` | 진행 중 |
+| `FINISHED` | 최종 Result 저장 완료 |
+| `INTERRUPTED` | 재시작 시 발견한 미완료 실행. 가짜 Result를 만들지 않음 |
+| `RECORDING_FAILED` | 저장 실패에 대한 메모리 진단 |
+
+`has_result=false`이면 status/error_code/failed_stage/retryable을 Result로 해석하지 않는다.
+중단 기록도 마지막 물리 상태와 완료 단계를 보존하며 사람 확인 필요를 표시한다.
+저장 실패의 메모리 진단은 영속 저장을 주장하지 않는다.
+단계 deadline은 기록 시각과 별개로 프로세스 단조 시계를 사용한다.
+
+## 관측 형상: ObservedObjectGeometry
 
 `ObservedObjectGeometry`는 `/grasp/collision_geometry`의 선택적 관측 형상
 인터페이스다. header의 capture stamp/frame, snapshot_id, object_id로 기존
@@ -30,6 +71,8 @@ mesh_pose의 local 좌표다. convex footprint를 인식된 지지면까지 돌�
 실제 숨은 형상이나 시뮬레이터 정답을 의미하지 않는다. 기존 InspectScene,
 PlanGrasp, GraspCandidate의 필드를 바꾸지 않아 기존 CDR 기록 형식은 유지한다.
 메시 타입 의존성에 shape_msgs가 포함된다.
+
+## 손목 관측: ObserveWristTarget
 
 `ObserveWristTarget.srv`는 RGB-only 손목 인계/확인 서비스다.
 HANDOFF는 head source ID, 원본 label/confidence와 예상 base-frame OBB를 전달받아
@@ -48,11 +91,6 @@ HANDOFF의 `expected_pose.header.stamp`는 원본 head 관측 시각이다.
 평가용 oracle이며 조작 코드에는 물체 정답 pose를 반환하지 않는다.
 실제 로봇에는 독립 센서 기반 검증 제공자가 필요하다.
 
-Cleany perception snapshot, grasp candidate 생성과 MoveIt 도달 가능성 검증이
-공유하는 ROS 2 interface package다. 구현 내부 model이나 provider별 응답은 wire
-contract로 노출하지 않는다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를 사용하는
-프로젝트 공통 topic 계약도 이곳에 기록한다.
-
 ## 객체 메시지
 
 `DetectedObject2D`와 `DetectedObject2DArray`는 Gemini detector가 반환한 RGB pixel
@@ -62,6 +100,10 @@ bounding box, snapshot-local 번호와 후속 선택 요청에 사용할 `snapsh
 순서로 정렬되며 depth가 불충분한 후보는 자동 조작 대상으로 선택하지 않는다.
 `DetectedObject3D`와 `DetectedObject3DArray`는 선택 객체의 OBB와 동일 snapshot 문맥을
 표현한다.
+
+`DetectedObject2D`는 모델이 반환한 `sorting_category`와 `sorting_reason`을
+포함한다. category는 `trash`, `lost_item`, `review` 또는 미제공 빈 문자열이다.
+빈 값은 이름 기반 폐기 허가가 아니다. 이 메시지 변경 후 모든 consumer를 재빌드한다.
 
 ## Scene inspection action
 
@@ -107,10 +149,6 @@ colcon test-result --verbose
 `SelectReachableGrasp`와 관련 message를 확인한다.
 
 ## 관련 KB
-
-`DetectedObject2D`는 모델이 반환한 `sorting_category`와 `sorting_reason`을
-포함한다. category는 `trash`, `lost_item`, `review` 또는 미제공 빈 문자열이다.
-빈 값은 이름 기반 폐기 허가가 아니다. 이 메시지 변경 후 모든 consumer를 재빌드한다.
 
 - [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
 - [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)

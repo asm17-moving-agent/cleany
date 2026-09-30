@@ -2,7 +2,7 @@
 
 > **모의 1차 구현과 후속 설계, 2026-09-30.** GitHub KB `main`의 `4b6816e`를 기준으로 재작성했다.
 > 기존 Mission Manager의 행동 승인과 재관찰 책임을 유지한다.
-> Action, Python 모의 서버와 SQLite 기록 조회를 구현했다. 실행은 [README](../README.md#모의-manipulation-action)를 따른다.
+> Action, Python 모의 서버와 SQLite 기록 조회를 구현했다. 실행은 [사용법](manipulation_mock_usage.md)를 따른다.
 
 ## 1. 먼저 이해할 한 문장
 

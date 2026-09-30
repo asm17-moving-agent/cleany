@@ -200,7 +200,8 @@ class ExecutionCore:
         if evidence.error != Error.NONE:
             self._fail(evidence.error, record.stage.value, evidence.message, now)
             return
-        self._persist(replace(self.record, last_completed_stage=record.stage.value))
+        self._persist(replace(self.record, last_completed_stage=record.stage.value,
+                              message=f'Stage completed: {record.stage.value}'))
         if self._cancel_stage is not None:
             self._stop(Status.CANCELED, Error.CANCELED, self._cancel_stage,
                        'Canceled after atomic checkpoint', now)
@@ -221,7 +222,7 @@ class ExecutionCore:
             'object_state', 'placement_state', 'selected_arm', 'stop_confirmed', 'arm_recovered',
         ) if getattr(evidence, name) is not None}
         self._persist(replace(self.record, **updates, evidence_at_ns=self.wall_clock_ns(),
-                              message=evidence.message))
+                              message=f'Observation received: {evidence.message}'))
 
     def _fail(self, error: Error, stage: str, message: str, now: float) -> None:
         if error in FAULTS:
@@ -249,7 +250,8 @@ class ExecutionCore:
                          f'{message}; stop command failed: {exc}')
 
     def _finish(self, status: Status, error: Error, stage: str, message: str) -> None:
-        self._persist(replace(self.record, stage=Stage.FINALIZING, message=message))
+        self._persist(replace(self.record, stage=Stage.FINALIZING,
+                              message=f'Finalizing result: {message}'))
         if self._storage_failed:
             if status != Status.FATAL:
                 error = Error.INTERNAL_ERROR
@@ -264,7 +266,8 @@ class ExecutionCore:
                         status == Status.BLOCKED and record.stop_confirmed and not attention, message)
         final = replace(record, result=result, human_confirmation_required=attention,
                         record_state=RecordState.RECORDING_FAILED if self._storage_failed
-                        else RecordState.FINISHED, message=message)
+                        else RecordState.FINISHED,
+                        message=f'Execution finished: {status.value}; {message}')
         self._persist(final)
         self.inhibited = self.inhibited or inhibits_execution(self.record)
         self._running = False

@@ -2,7 +2,7 @@
 
 > **모의 1차 구현과 후속 backend 설계.** 대상은 승인된 `collect_trash` 행동 하나다.
 > 서버는 책상 전체의 물체 선택, Planner 호출과 완료 판정을 맡지 않는다.
-> Python 모의 서버의 실행·설정·검증은 [README](../README.md#모의-manipulation-action)를 따른다.
+> Python 모의 서버의 실행·설정·검증은 [사용법](manipulation_mock_usage.md)를 따른다.
 
 ## 1. 시작과 종료 경계
 

@@ -91,6 +91,18 @@ def test_success_requires_bin_recovery_stop_and_complete_feedback_sequence(harne
     events = core.drain_events()
     stages = list(dict.fromkeys(event.stage for event in events))
     assert stages == list(NORMAL_STAGES) + [Stage.FINALIZING]
+    grasp_messages = [event.message for event in events if event.stage == Stage.GRASPING]
+    assert grasp_messages == [
+        'Starting GRASPING',
+        'Observation received: Mock contact observation',
+        'Stage completed: GRASPING',
+    ]
+    final_messages = [event.message for event in events if event.stage == Stage.FINALIZING]
+    assert final_messages == [
+        'Finalizing result: Mock collection verified',
+        'Execution finished: SUCCESS; Mock collection verified',
+    ]
+    assert result.message == 'Mock collection verified'
     assert store.get(goal().execution_id) == core.record
     assert core.get('missing') is None
     assert not core.request_cancel(goal().execution_id)
