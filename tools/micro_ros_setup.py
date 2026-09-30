@@ -28,9 +28,6 @@ def component_fingerprint(project: Path, environment: str) -> str:
     interfaces = ROOT / "ros2_ws/src/cleany_base_interfaces"
     files += [interfaces / "CMakeLists.txt", interfaces / "package.xml"]
     files += sorted((interfaces / "msg").glob("*.msg"))
-    generated_config = project / f"sdkconfig.{environment}"
-    if generated_config.exists():
-        files.append(generated_config)
     for file in files:
         digest.update(str(file).encode())
         digest.update(file.read_bytes())

@@ -46,6 +46,21 @@ runtime builds share one component library cache and must run sequentially.
 Use `python3 tools/micro_ros_setup.py --check` inside Distrobox to verify
 external source revisions. Setup and build commands do not upload firmware.
 
+### Native USB stream
+
+`src/usb_stream_transport.hpp` separates bounded stream I/O from the ESP-IDF
+device port. The custom transport uses XRCE-DDS framing (`framing=true`), not
+COBS. Reads preserve partial data and return zero on timeout; writes complete
+the requested frame bytes within their deadline or report failure. Closed
+transport use and I/O errors are rejected. The ESP-IDF port uses native
+`usb_serial_jtag_read_bytes` and `usb_serial_jtag_write_bytes`.
+
+The micro-ROS sdkconfig disables application/bootloader console output on USB.
+Do not attach a text monitor or send commissioning commands to the Agent's
+stream. The legacy environment retains its own commissioning console and COBS
+decoder. Host test doubles exercise open/close, partial I/O, timeout and error
+paths with `make test-motor-core`.
+
 ## Motor web interface
 
 The normal firmware creates the `Cleany` Wi-Fi access point with password

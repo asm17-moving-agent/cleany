@@ -7,6 +7,14 @@ deployment decisions.
 
 ## Transport and mode selection
 
+This document describes the legacy **commissioning/COBS build**, not the
+micro-ROS runtime. The micro-ROS build uses XRCE-DDS framing over a custom
+native USB Serial/JTAG transport and never feeds that stream to this decoder.
+The fixed-size ROS wheel contract is managed by
+[`cleany_base_interfaces`](../ros2_ws/src/cleany_base_interfaces/README.md).
+Select one firmware mode at build time; do not mix text, COBS, or XRCE-DDS
+clients on the same stream.
+
 - ESP32-S3 native USB Serial/JTAG; Linux must open a configured persistent
   `/dev/serial/by-id/...` path.
 - Host libraries use 115200 8-N-1. Native USB does not physically use this baud
