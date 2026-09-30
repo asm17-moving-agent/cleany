@@ -45,6 +45,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'gazebo_pan_tf_publisher = cleany_gazebo_sim.pan_tf_publisher:main',
             'pan_motion_gate = cleany_gazebo_sim.pan_motion_gate_node:main',
             'voxel_guard = cleany_gazebo_sim.voxel_guard_node:main',
             'body_guard_observer = cleany_gazebo_sim.body_guard_observer:main',

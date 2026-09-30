@@ -51,7 +51,7 @@ class BodyGuardObserver(Node):
             raise ValueError('legacy_config and output_directory are required')
         if self.p['margin_m'] < 0 or self.p['reaction_s'] < 0 or min(self.p[k] for k in ('linear_deceleration','angular_deceleration','source_timeout_s','update_period_s','sweep_step_s','min_points')) <= 0:
             raise ValueError('Invalid observer parameters')
-        self.boxes=load_body_boxes(Path(get_package_share_directory('cleany_description')),Path(self.p['profile']))
+        self.boxes=load_body_boxes(Path(get_package_share_directory('cleany_description')),Path(self.p['profile']), allow_simulation_limits=True)
         old=yaml.safe_load(Path(self.p['legacy_config']).read_text())['collision_monitor']['ros__parameters']
         self.polygon=np.array(ast.literal_eval(old['StopZone']['points']))
         self.min_z,self.max_z=old['depth']['min_height'],old['depth']['max_height']

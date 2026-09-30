@@ -868,3 +868,37 @@ pan을 π rad로 돌리고 같은 인터록을 적용한다. 전방 카메라만
 카메라 pan의 전체 회전 범위를 포함하며 기존 2cm 마진은 한 번만 적용한다.
 회전 중 촬영된 cloud도 해당 시각의 동적 TF로 지도에 투영한다.
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+
+## SCRUM-425 Navigation runtime 이관
+
+AMCL/Nav2, pan gate, depth projection, obstacle memory와 3D voxel guard의
+구현은 `cleany_navigation`이 소유한다. 기존 Python import와 executable은
+공통 구현으로 위임하며 Gazebo 카메라 TF publisher는 별도 adapter다.
+`amcl_nav2.launch.py`는 공통 basic launch, `amcl_nav2_safety.launch.py`는
+공통 full launch를 include한다. 기존 평가 YAML과 simulation 전용 park profile은
+이 패키지에 유지한다.
+
+기존 safety 평가의 기본 memory/voxel 비활성 모드를 유지한다. CAD 전체 직렬
+경로를 사용할 때는 두 옵션을 명시한다. Backend와 saved map을 먼저 준비한다.
+
+```bash
+ros2 launch cleany_gazebo_sim amcl_nav2_safety.launch.py \
+  map:=/absolute/path/map.yaml \
+  safety_params_file:=/absolute/path/cad_nav2_safety.yaml \
+  memory_enabled:=true voxel_enabled:=true
+```
+
+CAD pan metadata가 있는 safety profile은 measured pan TF와 Gazebo actuator
+bridge를 사용한다. Legacy profile은 고정 camera TF를 사용한다. Depth optical
+frame 변환은 adapter가 제공하며 공통 노드는 TF를 발행하지 않는다. 실제 로봇은
+`cleany_navigation navigation.launch.py`와 로봇 설정을 사용한다.
+명령·설정·안전 경계는 [공통 navigation README](../cleany_navigation/README.md)를
+따른다. 평가 snapshot은 이동된 공통 코드도 함께 기록한다.
+
+```bash
+make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic
+```
+
+위 opt-in 테스트는 임시로 만든 6m 방과 일치하는 지도를 사용한다. CAD 모델의 Gazebo sensor,
+wheel odom, pan/monitor/memory/voxel 전체 경로에서 0.6m 목표 완료와 정지를 검사한다.
+기존 카페 지도에서의 경로 성능 검증과는 구분한다.

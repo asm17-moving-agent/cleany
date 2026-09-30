@@ -228,7 +228,7 @@ class SafetyProbe(Node):
             upstream = [p.node_name for p in self.get_publishers_info_by_topic('/safety_2d/cmd_vel')]
             assert upstream == ['collision_monitor'], upstream
         params = {n: self.parameters('/'+n, ['odom_topic']) for n in ('controller_server', 'bt_navigator')}
-        assert all(p['odom_topic'] == '/wheel/odom' for p in params.values()), params
+        assert all(p['odom_topic'].lstrip('/') == 'odom' for p in params.values()), params
         wheel_names = ['wheel_radius_m', 'wheelbase_m', 'wheel_separation_m']
         params['wheel_odometry'] = self.parameters('/wheel_odometry', wheel_names)
         expected_wheel = yaml.safe_load((self.output/'config/wheel_odometry.yaml').read_text())['wheel_odometry']['ros__parameters']
