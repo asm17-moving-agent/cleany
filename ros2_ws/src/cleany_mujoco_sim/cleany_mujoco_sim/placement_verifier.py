@@ -40,7 +40,7 @@ class PlacementVerifier(Node):
             raise ValueError('Verifier requires unique label/body mapping')
         self._bodies = dict(zip(labels, bodies, strict=True))
         self._bins = {b.name: b for b in load_bins(
-            self.get_parameter('bins_config').value, include_staging=True)}
+            self.get_parameter('bins_config').value)}
         self._samples = defaultdict(lambda: deque(maxlen=30))
         self.create_subscription(MarkerArray,
                                  '/simulation/sorting_ground_truth',
@@ -94,11 +94,6 @@ class PlacementVerifier(Node):
             bin_.center_xy[1] + bin_.outside_size[1] / 2 - bin_.wall,
             bin_.top_z,
         ))
-        if bin_.kind == 'table_zone':
-            inside_high[2] = bin_.bottom_z + bin_.outside_size[2]
-            if not np.all(np.abs(low[:, 2] - bin_.bottom_z) <= 0.005):
-                response.message = 'Object is not resting on the table collection zone'
-                return response
         # Small contact penetration is expected from soft contact physics.
         if (not np.isfinite(sizes).all() or np.any(sizes <= 0)
                 or not np.all(low >= inside_low - 0.002)

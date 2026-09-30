@@ -1,7 +1,6 @@
 """Run nearest-first perception, grasp selection, and pre-grasp execution."""
 
 from __future__ import annotations
-from cleany_skill_executor.motion_guard import enforce_motion_guard
 
 from collections.abc import Sequence
 from copy import deepcopy
@@ -46,7 +45,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 import numpy as np
 import rclpy
 
-from cleany_skill_executor.core.can_rgbd import (
+from cleany_skill_executor.core.rgbd_projection import (
     CameraProjection,
     render_grasp_overlay,
     rotation_matrix_from_quaternion,
@@ -78,7 +77,7 @@ from cleany_skill_executor.core.grasp_pipeline import (
     associate_refreshed_grasp,
     linear_approach_error_deg,
 )
-from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo
+from cleany_skill_executor.grasp_execution import GraspExecutionNode
 from cleany_skill_executor.planning_scene import TargetSceneTransaction
 from cleany_skill_executor.collision_geometry_cache import CollisionGeometryCache, subscribe_collision_geometry
 from cleany_skill_executor.seeded_cartesian import (
@@ -91,7 +90,7 @@ class LiftRedetectionError(RuntimeError):
     """A fresh detector snapshot has no distance-valid target of the same label."""
 
 
-class NearestPregraspCoordinator(GraspExecutionDemo):
+class NearestPregraspCoordinator(GraspExecutionNode):
     """Try distance-valid objects until one reaches pre-grasp."""
 
     def __init__(self) -> None:
@@ -103,7 +102,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         self.declare_parameter('grasp_service', '/grasp/plan')
         self.declare_parameter(
             'query',
-            'Detect the box and can on the table.',
+            'Detect the paper cup, LEGO brick, crumpled tissue, and mouse on the table.',
         )
         self.declare_parameter('inspection_timeout_sec', 60.0)
         self.declare_parameter('grasp_timeout_sec', 30.0)
@@ -156,6 +155,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
             Path(get_package_share_directory('cleany_moveit_config')) / 'config' / 'joint_limits.yaml'))
         self.declare_parameter('attachment_scene_timeout_sec', 5.0)
         self._direct_vertical_lift = self.declare_parameter('direct_vertical_lift', False).value
+        self.declare_parameter('direct_vertical_lift_extra_m', 0.0)
         self.declare_parameter('corridor_orientation_tolerance_deg', 5.0)
         self.declare_parameter('corridor_time_margin', 2.0)
         self.declare_parameter('cartesian_translation_speed_m_s', 0.10)
@@ -1233,11 +1233,17 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
                 count_retreat or getattr(self, '_direct_vertical_lift', False)) else approach_start)
             remaining_lift = (max(0.0, contact_tcp_z + lift_distance - lift_pose.position.z)
                               if count_retreat else lift_distance)
+            extra_lift = (float(self.get_parameter('direct_vertical_lift_extra_m').value)
+                          if getattr(self, '_direct_vertical_lift', False) else 0.0)
+            if not math.isfinite(extra_lift) or not 0.0 <= extra_lift <= 0.05:
+                raise ValueError('direct_vertical_lift_extra_m must be in [0, 0.05]')
+            remaining_lift += extra_lift
             if not math.isfinite(remaining_lift) or not math.isfinite(lift_pose.position.z):
                 raise ValueError('lift feedback height must be finite')
             self.get_logger().info(
                 f'Lift clearance: count_retreat={count_retreat} '
                 f'remaining_tcp_rise={remaining_lift:.4f}m '
+                f'direct_extra={extra_lift:.4f}m '
                 f'required_observed_center_z={minimum_object_z}')
             if remaining_lift > 0.0:
                 lift_pose.position.z += remaining_lift
@@ -1601,7 +1607,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
                                f'wall_timeout={execution_timeout:.3f}s')
         execute_goal = ExecuteTrajectory.Goal()
         execute_goal.trajectory = trajectory
-        enforce_motion_guard(self)
+
         execute_handle = self._future(
             self._execute_trajectory.send_goal_async(execute_goal),
             10.0,
@@ -1615,7 +1621,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
         deadline = time.monotonic() + execution_timeout
         while not result_future.done() and time.monotonic() < deadline:
             rclpy.spin_once(self, timeout_sec=0.02)
-            enforce_motion_guard(self, execute_handle, result_future, label)
+
             count = self._controller_state_counts[arm]
             if contact is None or count == last_sample:
                 continue
@@ -1637,7 +1643,7 @@ class NearestPregraspCoordinator(GraspExecutionDemo):
             )
             self._future(result_future, 10.0, f'{label} timeout terminal result')
             raise RuntimeError(f'{label} trajectory execution timed out')
-        enforce_motion_guard(self, execute_handle, result_future, label)
+
         wrapped = result_future.result()
         if (
             wrapped.status != GoalStatus.STATUS_SUCCEEDED

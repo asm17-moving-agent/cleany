@@ -40,7 +40,7 @@ def main() -> None:
         sorting_bins_config=package / 'config/robot_top_bins.yaml',
         performance_profile=name,
     ))) for name in PERFORMANCE_PROFILES}
-    report = {'mujoco_version': mujoco.__version__, 'scope': 'stationary home; Python MuJoCo, no ROS/SAM2/GUI',
+    report = {'mujoco_version': mujoco.__version__, 'scope': 'stationary home; Python MuJoCo, no ROS/perception/GUI',
               'steps': args.steps, 'frames_per_camera': args.frames, 'repeats': args.repeats,
               'profiles': {}}
     baseline = models['baseline']

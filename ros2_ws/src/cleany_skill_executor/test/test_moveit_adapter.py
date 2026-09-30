@@ -79,10 +79,28 @@ def current_state():
     return state
 
 
-def test_aim_ik_response_margin_does_not_extend_solver_budget():
-    adapter = MoveItGraspAdapter(object(), config=MoveItAdapterConfig(ik_response_margin_sec=5.),
-        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
+def make_adapter(*, config=None, node=None, ik=None, fk=None, validity=None, plan=None) -> MoveItGraspAdapter:
+    adapter = MoveItGraspAdapter(
+        node if node is not None else object(),
+        config=config if config is not None else MoveItAdapterConfig(),
+        ik_client=ik if ik is not None else object(),
+        fk_client=fk if fk is not None else object(),
+        validity_client=validity if validity is not None else object(),
+        plan_client=plan if plan is not None else object(),
+    )
     adapter.set_current_state(current_state())
+    return adapter
+
+
+def successful_ik() -> ServiceClient:
+    return ServiceClient(SimpleNamespace(
+        error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
+        solution=RobotState(joint_state=current_state()),
+    ))
+
+
+def test_aim_ik_response_margin_does_not_extend_solver_budget():
+    adapter = make_adapter(config=MoveItAdapterConfig(ik_response_margin_sec=5.))
     calls = []
     adapter._call = lambda client, request, timeout: calls.append((request, timeout)) or SimpleNamespace(
         error_code=SimpleNamespace(val=MoveItErrorCodes.NO_IK_SOLUTION))
@@ -99,9 +117,8 @@ def test_analytical_roll_candidate_is_collision_checked_before_use(valid):
     pose = PoseStamped().pose
     pose.orientation.w = 1.
     checked = []
-    adapter = MoveItGraspAdapter(object(), config=MoveItAdapterConfig(
-        align_grasp_wrist_roll=True, grasp_closing_sign_invariant=False),
-        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
+    adapter = make_adapter(config=MoveItAdapterConfig(
+        align_grasp_wrist_roll=True, grasp_closing_sign_invariant=False))
     adapter._grasp_pose = lambda arm, solution: pose
     adapter.state_is_valid = lambda arm, state: checked.append(state) or valid
     original = JointSolution(ARM_JOINT_NAMES['left'], (0., 1., 2., .5, 0.))
@@ -116,9 +133,7 @@ def test_visibility_checks_complete_state_and_requires_an_evaluation_result():
     from moveit_msgs.msg import ConstraintEvalResult, VisibilityConstraint
     response = SimpleNamespace(valid=True, constraint_result=[ConstraintEvalResult(result=True)])
     client = ServiceClient(response)
-    adapter = MoveItGraspAdapter(object(), ik_client=object(), fk_client=object(),
-                                validity_client=client, plan_client=object())
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(validity=client)
     joint = JointSolution(ARM_JOINT_NAMES['left'], (0., 1., 1., 0., 0.))
     with pytest.raises(InfrastructureError, match='not configured'):
         adapter.pregrasp_is_visible('left', joint)
@@ -147,14 +162,7 @@ def test_ik_seed_is_a_complete_robot_state_and_preserves_other_arm():
         solution=solution,
     )
     ik = ServiceClient(response)
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=ik,
-        fk_client=object(),
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(ik=ik)
     seed = JointSolution(
         ARM_JOINT_NAMES['left'],
         (10.0, 11.0, 12.0, 13.0, 14.0),
@@ -189,15 +197,7 @@ def test_second_segment_has_explicit_pregrasp_start_state(response_margin):
         ),
     )
     plan = PlanClient(wrapped)
-    adapter = MoveItGraspAdapter(
-        object(),
-        config=MoveItAdapterConfig(planning_response_margin_sec=response_margin),
-        ik_client=object(),
-        fk_client=object(),
-        validity_client=object(),
-        plan_client=plan,
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(config=MoveItAdapterConfig(planning_response_margin_sec=response_margin), plan=plan)
     response_timeouts = []
     adapter._wait_future = lambda future, timeout: response_timeouts.append(timeout) or future.result()
     pregrasp = JointSolution(
@@ -234,12 +234,7 @@ def test_carry_ik_preserves_scene_attachments_and_complete_joint_feedback():
         error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
         solution=solution,
     ))
-    adapter = MoveItGraspAdapter(
-        object(), MoveItAdapterConfig(preserve_scene_attachments=True),
-        ik_client=ik, fk_client=object(), validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(config=MoveItAdapterConfig(preserve_scene_attachments=True), ik=ik)
     adapter.solve_position_ik('left', (0.2, 0.5, 0.4), None)
     state = ik.requests[0].ik_request.robot_state
     assert state.is_diff  # Empty attachment array must not detach the payload.
@@ -248,12 +243,8 @@ def test_carry_ik_preserves_scene_attachments_and_complete_joint_feedback():
 
 
 def test_grasp_search_explores_whole_arm_seeds_without_relaxing_pose(monkeypatch):
-    adapter = MoveItGraspAdapter(
-        object(), MoveItAdapterConfig(
-            pregrasp_aim_attempts=1, grasp_pose_seed_attempts=2),
-        ik_client=object(), fk_client=object(), validity_client=object(),
-        plan_client=object(),
-    )
+    adapter = make_adapter(config=MoveItAdapterConfig(
+            pregrasp_aim_attempts=1, grasp_pose_seed_attempts=2))
     seed = JointSolution(ARM_JOINT_NAMES['left'], (0., 1., 1., 0., 0.))
     alternate = JointSolution(seed.names, (0.5, 1.5, 2., 0., 0.))
     calls = []
@@ -313,25 +304,11 @@ def _grasp_fk_response(tcp):
 
 
 def test_aimed_pregrasp_uses_virtual_tip_and_accepts_matching_direction():
-    solution = RobotState()
-    solution.joint_state = current_state()
-    ik = ServiceClient(
-        SimpleNamespace(
-            error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
-            solution=solution,
-        )
-    )
+    ik = successful_ik()
     fk = ServiceClient(
         _fk_response((0.36, 0.2, 0.8), (0.5, 0.2, 0.8))
     )
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=ik,
-        fk_client=fk,
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(ik=ik, fk=fk)
     seed = JointSolution(ARM_JOINT_NAMES['left'], (1.0, 2.0, 3.0, 4.0, 5.0))
 
     result = adapter.solve_aimed_pregrasp_ik(
@@ -359,24 +336,11 @@ def test_aimed_pregrasp_uses_virtual_tip_and_accepts_matching_direction():
 
 
 def test_aimed_pregrasp_uses_current_arm_state_when_seed_ik_failed():
-    solution = RobotState()
-    solution.joint_state = current_state()
-    ik = ServiceClient(
-        SimpleNamespace(
-            error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
-            solution=solution,
-        )
-    )
+    ik = successful_ik()
     fk = ServiceClient(
         _fk_response((0.36, 0.2, 0.8), (0.5, 0.2, 0.8))
     )
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=ik,
-        fk_client=fk,
-        validity_client=object(),
-        plan_client=object(),
-    )
+    adapter = make_adapter(ik=ik, fk=fk)
     state = current_state()
     adapter.set_current_state(state)
 
@@ -405,25 +369,11 @@ def test_aimed_pregrasp_uses_current_arm_state_when_seed_ik_failed():
 
 
 def test_aimed_pregrasp_rejects_fk_direction_that_disagrees_with_candidate():
-    solution = RobotState()
-    solution.joint_state = current_state()
-    ik = ServiceClient(
-        SimpleNamespace(
-            error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
-            solution=solution,
-        )
-    )
+    ik = successful_ik()
     fk = ServiceClient(
         _fk_response((0.5, 0.34, 0.8), (0.5, 0.2, 0.8))
     )
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=ik,
-        fk_client=fk,
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(ik=ik, fk=fk)
     seed = JointSolution(ARM_JOINT_NAMES['left'], (1.0, 2.0, 3.0, 4.0, 5.0))
 
     result = adapter.solve_aimed_pregrasp_ik(
@@ -439,14 +389,7 @@ def test_aimed_pregrasp_rejects_fk_direction_that_disagrees_with_candidate():
 
 
 def test_aimed_pregrasp_rejects_ray_beyond_maximum_approach_error():
-    solution = RobotState()
-    solution.joint_state = current_state()
-    ik = ServiceClient(
-        SimpleNamespace(
-            error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
-            solution=solution,
-        )
-    )
+    ik = successful_ik()
     component = 0.14 / math.sqrt(2.0)
     fk = ServiceClient(
         _fk_response(
@@ -454,14 +397,7 @@ def test_aimed_pregrasp_rejects_ray_beyond_maximum_approach_error():
             (0.5, 0.2, 0.8),
         )
     )
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=ik,
-        fk_client=fk,
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(ik=ik, fk=fk)
     seed = JointSolution(ARM_JOINT_NAMES['left'], (1.0, 2.0, 3.0, 4.0, 5.0))
 
     result = adapter.solve_aimed_pregrasp_ik(
@@ -477,23 +413,9 @@ def test_aimed_pregrasp_rejects_ray_beyond_maximum_approach_error():
 
 
 def test_grasp_ik_is_fk_verified_against_position_and_both_axes():
-    solution = RobotState()
-    solution.joint_state = current_state()
-    ik = ServiceClient(
-        SimpleNamespace(
-            error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
-            solution=solution,
-        )
-    )
+    ik = successful_ik()
     fk = ServiceClient(_grasp_fk_response((0.5, 0.2, 0.8)))
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=ik,
-        fk_client=fk,
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(ik=ik, fk=fk)
     seed = JointSolution(ARM_JOINT_NAMES['left'], (1.0, 2.0, 3.0, 0.0, 0.0))
 
     accepted = adapter.solve_grasp_ik(
@@ -517,14 +439,7 @@ def test_grasp_ik_is_fk_verified_against_position_and_both_axes():
 
 
 def test_asymmetric_grasp_rejects_closing_axis_sign_flip() -> None:
-    solution = RobotState()
-    solution.joint_state = current_state()
-    ik = ServiceClient(
-        SimpleNamespace(
-            error_code=SimpleNamespace(val=MoveItErrorCodes.SUCCESS),
-            solution=solution,
-        )
-    )
+    ik = successful_ik()
     response = _grasp_fk_response((0.5, 0.2, 0.8))
     response.pose_stamped[0].pose.orientation.y = 1.0
     response.pose_stamped[0].pose.orientation.w = 0.0
@@ -533,23 +448,8 @@ def test_asymmetric_grasp_rejects_closing_axis_sign_flip() -> None:
         ARM_JOINT_NAMES['left'], (1.0, 2.0, 3.0, 0.0, 0.0)
     )
 
-    symmetric = MoveItGraspAdapter(
-        object(),
-        ik_client=ik,
-        fk_client=fk,
-        validity_client=object(),
-        plan_client=object(),
-    )
-    symmetric.set_current_state(current_state())
-    asymmetric = MoveItGraspAdapter(
-        object(),
-        MoveItAdapterConfig(grasp_closing_sign_invariant=False),
-        ik_client=ik,
-        fk_client=fk,
-        validity_client=object(),
-        plan_client=object(),
-    )
-    asymmetric.set_current_state(current_state())
+    symmetric = make_adapter(ik=ik, fk=fk)
+    asymmetric = make_adapter(config=MoveItAdapterConfig(grasp_closing_sign_invariant=False), ik=ik, fk=fk)
 
     args = (
         'left',
@@ -576,10 +476,7 @@ def test_asymmetric_pregrasp_also_rejects_closing_axis_sign_flip() -> None:
     fk = ServiceClient(response)
     seed = JointSolution(ARM_JOINT_NAMES['left'], (1.0, 2.0, 3.0, 0.0, 0.0))
     for symmetric in (True, False):
-        adapter = MoveItGraspAdapter(
-            object(), MoveItAdapterConfig(grasp_closing_sign_invariant=symmetric),
-            ik_client=ik, fk_client=fk, validity_client=object(), plan_client=object(),
-        )
+        adapter = make_adapter(config=MoveItAdapterConfig(grasp_closing_sign_invariant=symmetric), ik=ik, fk=fk)
         adapter.set_current_state(current_state())
         result = adapter.solve_aimed_pregrasp_ik(
             'left', (0.5, 0.2, 0.8), (0.0, -1.0, 0.0), (1.0, 0.0, 0.0),
@@ -599,14 +496,7 @@ def test_asymmetric_pregrasp_also_rejects_closing_axis_sign_flip() -> None:
 
 def test_wrist_roll_seeds_are_distributed_inside_robot_limits():
     config = MoveItAdapterConfig(pregrasp_aim_attempts=8)
-    adapter = MoveItGraspAdapter(
-        object(),
-        config,
-        ik_client=object(),
-        fk_client=object(),
-        validity_client=object(),
-        plan_client=object(),
-    )
+    adapter = make_adapter(config=config)
     seed = JointSolution(ARM_JOINT_NAMES['left'], (0.0, 0.0, 0.0, 0.0, 10.0))
 
     values = adapter._wrist_roll_seeds(seed, 8)
@@ -623,14 +513,7 @@ def test_wrist_roll_seeds_are_distributed_inside_robot_limits():
 
 
 def test_aimed_pregrasp_seeds_cover_all_arm_joints():
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=object(),
-        fk_client=object(),
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter()
     candidate_seed = JointSolution(
         ARM_JOINT_NAMES['left'],
         (0.1, 0.2, 0.3, 0.4, 0.5),
@@ -645,14 +528,7 @@ def test_aimed_pregrasp_seeds_cover_all_arm_joints():
 
 
 def test_aimed_pregrasp_prioritizes_location_seed_wrist_variants():
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=object(),
-        fk_client=object(),
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter()
     candidate_seed = JointSolution(
         ARM_JOINT_NAMES['left'],
         (0.1, 0.2, 0.3, 0.4, 0.5),
@@ -680,14 +556,7 @@ def test_aimed_pregrasp_prioritizes_location_seed_wrist_variants():
 
 
 def test_aimed_pregrasp_seeds_fill_attempts_when_initial_seeds_duplicate():
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=object(),
-        fk_client=object(),
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter()
     candidate_seed = adapter._current_arm_solution('left')
 
     seeds = adapter._aim_seed_solutions('left', candidate_seed, 16)
@@ -697,14 +566,7 @@ def test_aimed_pregrasp_seeds_fill_attempts_when_initial_seeds_duplicate():
 
 
 def test_valid_ik_solutions_prefer_normalized_motion_with_double_wrist_weight():
-    adapter = MoveItGraspAdapter(
-        object(),
-        ik_client=object(),
-        fk_client=object(),
-        validity_client=object(),
-        plan_client=object(),
-    )
-    adapter.set_current_state(current_state())
+    adapter = make_adapter()
     names = ARM_JOINT_NAMES['left']
     near = JointSolution(names, (0.01, 1.01, 2.01, 3.01, 4.05))
     wrist_far = JointSolution(names, (0.0, 1.0, 2.0, 3.0, 3.0))
@@ -719,8 +581,7 @@ def test_valid_ik_solutions_prefer_normalized_motion_with_double_wrist_weight():
 
 def test_open_clearance_query_overrides_only_selected_gripper_and_keeps_feedback():
     valid = ServiceClient(SimpleNamespace(valid=False))
-    adapter = MoveItGraspAdapter(object(), MoveItAdapterConfig(),
-        ik_client=object(), fk_client=object(), validity_client=valid, plan_client=object())
+    adapter = make_adapter(validity=valid)
     state = current_state()
     original = dict(zip(state.name, state.position))
     adapter.set_current_state(state)
@@ -736,8 +597,7 @@ def test_open_clearance_query_overrides_only_selected_gripper_and_keeps_feedback
 
 @pytest.mark.parametrize('blocked', [False, True])
 def test_closure_sweep_checks_intermediate_states_and_stops_on_collision(blocked):
-    adapter = MoveItGraspAdapter(object(), MoveItAdapterConfig(),
-        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
+    adapter = make_adapter()
     samples = []
     def check(arm, solution, position):
         samples.append(position)
@@ -755,8 +615,7 @@ def test_closure_sweep_checks_intermediate_states_and_stops_on_collision(blocked
 @pytest.mark.parametrize('opening,closing,step', [(1.4,-.4,.05), (1.4,1.5,.05),
                                                    (float('nan'),-.3,.05), (1.4,-.3,0.)])
 def test_invalid_closure_sweep_rejected(opening, closing, step):
-    adapter = MoveItGraspAdapter(object(), MoveItAdapterConfig(),
-        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
+    adapter = make_adapter()
     with pytest.raises(ValueError, match='sweep'):
         adapter.gripper_sweep_is_valid('left', object(), opening, closing, step)
 
@@ -764,9 +623,7 @@ def test_invalid_closure_sweep_rejected(opening, closing, step):
 def test_grasp_diagnostic_reports_first_ranked_solution_not_unselected_best_pose(monkeypatch):
     logs = []
     node = SimpleNamespace(get_logger=lambda: SimpleNamespace(info=logs.append))
-    adapter = MoveItGraspAdapter(node, MoveItAdapterConfig(pregrasp_aim_attempts=2),
-        ik_client=object(), fk_client=object(), validity_client=object(), plan_client=object())
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(node=node, config=MoveItAdapterConfig(pregrasp_aim_attempts=2))
     seed = adapter._current_arm_solution('left')
     near = adapter._with_wrist_roll(seed, 2.)
     far = adapter._with_wrist_roll(seed, -2.)
@@ -785,9 +642,7 @@ def test_grasp_diagnostic_reports_first_ranked_solution_not_unselected_best_pose
                                           (1.650, True), (-1.658, False), (-1.650, True)])
 def test_selection_avoids_saturated_joint_endpoints_without_relaxing_bounds(arm, value, accepted):
     valid = ServiceClient(SimpleNamespace(valid=True))
-    adapter = MoveItGraspAdapter(object(), MoveItAdapterConfig(joint_limit_margin_rad=.005),
-        ik_client=object(), fk_client=object(), validity_client=valid, plan_client=object())
-    adapter.set_current_state(current_state())
+    adapter = make_adapter(config=MoveItAdapterConfig(joint_limit_margin_rad=.005), validity=valid)
     solution = JointSolution(ARM_JOINT_NAMES[arm], (0., 1., 1., value, 0.))
     assert adapter.state_is_valid(arm, solution) == accepted
     assert bool(valid.requests) == accepted
@@ -802,13 +657,9 @@ def test_invalid_endpoint_margin_fails_closed(margin):
 @pytest.mark.parametrize('refinement', [0, 1])
 def test_grasp_does_not_inherit_loose_pregrasp_position_tolerance(refinement):
     solution = RobotState(joint_state=current_state())
-    adapter = MoveItGraspAdapter(object(), config=MoveItAdapterConfig(
+    adapter = make_adapter(config=MoveItAdapterConfig(
         pregrasp_position_tolerance_m=.020, grasp_position_tolerance_m=.0015,
-        pose_refinement_iterations=refinement, pregrasp_aim_attempts=1),
-        ik_client=ServiceClient(SimpleNamespace(error_code=SimpleNamespace(val=1), solution=solution)),
-        fk_client=ServiceClient(_grasp_fk_response((.51, .2, .8))),
-        validity_client=object(), plan_client=object())
-    adapter.set_current_state(current_state())
+        pose_refinement_iterations=refinement, pregrasp_aim_attempts=1), ik=ServiceClient(SimpleNamespace(error_code=SimpleNamespace(val=1), solution=solution)), fk=ServiceClient(_grasp_fk_response((.51, .2, .8))))
     adapter._local_fk = {'left': SimpleNamespace(pose=lambda _: (np.array((.51,.2,.8)), np.eye(3)))}
     seed = JointSolution(ARM_JOINT_NAMES['left'], (1., 2., 3., 0., 0.))
     assert adapter.solve_grasp_ik('left', (.5,.2,.8), (0.,-1.,0.), (1.,0.,0.), seed) == ()
@@ -816,12 +667,9 @@ def test_grasp_does_not_inherit_loose_pregrasp_position_tolerance(refinement):
 
 @pytest.mark.parametrize('grasp_attempts,expected', [(0, 12), (16, 16)])
 def test_refined_grasp_honors_configured_seed_budget(grasp_attempts, expected):
-    adapter = MoveItGraspAdapter(object(), config=MoveItAdapterConfig(
+    adapter = make_adapter(config=MoveItAdapterConfig(
         pose_refinement_iterations=1, pregrasp_aim_attempts=12,
-        grasp_pose_seed_attempts=grasp_attempts),
-        ik_client=object(), fk_client=ServiceClient(_grasp_fk_response((.5, .2, .8))),
-        validity_client=object(), plan_client=object())
-    adapter.set_current_state(current_state())
+        grasp_pose_seed_attempts=grasp_attempts), fk=ServiceClient(_grasp_fk_response((.5, .2, .8))))
     adapter._local_fk = {'left': SimpleNamespace(
         pose=lambda _: (np.array((.5, .2, .8)), np.eye(3)))}
     calls = []

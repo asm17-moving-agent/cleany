@@ -6,9 +6,8 @@ from cleany_interfaces.msg import (
     DetectedObject3DArray,
     GraspCandidate,
     ObservedObjectGeometry,
-    WristTrackingStatus,
 )
-from cleany_interfaces.srv import ObserveObjectReference, PlanGrasp, VerifyPlacement
+from cleany_interfaces.srv import PlanGrasp, VerifyPlacement
 
 
 def test_observed_geometry_has_explicit_identity_and_empty_default_mesh():
@@ -18,23 +17,8 @@ def test_observed_geometry_has_explicit_identity_and_empty_default_mesh():
     assert geometry.mesh.vertices == geometry.mesh.triangles == []
 
 
-def test_tracking_status_defaults_cannot_authorize_carry():
-    status = WristTrackingStatus()
-    assert not status.valid and not status.visible
-    assert status.reference_id == status.source_snapshot_id == status.arm == ''
-    assert status.source_object_id == status.mask_pixels == status.image_pixels == 0
-    assert status.header.stamp.sec == 0
 
 
-def test_reference_observation_keeps_semantic_source_separate_from_current_surface():
-    request, response = ObserveObjectReference.Request(), ObserveObjectReference.Response()
-    assert (request.PIN, request.OBSERVE, request.CLEAR) == (1, 2, 3)
-    assert request.reference_id == request.source_snapshot_id == ''
-    assert request.after_stamp_ns == 0
-    assert response.source_capture_stamp_ns == 0
-    assert response.source_confidence == 0. and not response.success
-    assert response.header.frame_id == response.mask.header.frame_id == ''
-    assert response.observed_cloud.width == 0
 
 
 def test_placement_verification_requires_post_release_evidence():

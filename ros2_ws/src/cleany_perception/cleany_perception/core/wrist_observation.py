@@ -13,7 +13,6 @@ class WristObservationConfig:
     maximum_head_prior_age_seconds: float = 60.0
     reference_ttl_seconds: float = 120.0
     minimum_detection_confidence: float = 0.25
-    minimum_segmentation_score: float = 0.8
     minimum_detection_iou: float = 0.2
     near_plane_m: float = 0.005
     minimum_box_edge_pixels: float = 8.0
@@ -21,13 +20,6 @@ class WristObservationConfig:
     minimum_mask_pixels: int = 100
     maximum_mask_fraction: float = 0.7
     minimum_mask_in_box_fraction: float = 0.65
-    history_period_seconds: float = 2.0
-    history_maximum_frames: int = 32
-    tracking_support_frames: int = 4
-    streaming_memory_frames: int = 32
-    streaming_cpu_threads: int = 4
-    tracking_check_timeout_seconds: float = 12.0
-    maximum_tracking_result_age_seconds: float = 6.0
 
     def __post_init__(self) -> None:
         for field in fields(self):
@@ -36,12 +28,6 @@ class WristObservationConfig:
                 raise ValueError(f'Invalid wrist limit: {field.name}')
             if any(part in field.name for part in ('confidence', 'score', 'iou', 'fraction')) and value > 1:
                 raise ValueError(f'Wrist fraction exceeds one: {field.name}')
-        if not 1 <= self.tracking_support_frames <= 14 or self.history_maximum_frames > 64:
-            raise ValueError('Wrist frame history exceeds bounded inference limits')
-        if not 16 <= self.streaming_memory_frames <= 64:
-            raise ValueError('Wrist streaming memory must be 16..64 frames')
-        if not isinstance(self.streaming_cpu_threads, int) or not 1 <= self.streaming_cpu_threads <= 8:
-            raise ValueError('Wrist streaming CPU threads must be 1..8')
 
 
 def project_box(center, rotation, size, transform: RigidTransform, k, width: int, height: int,

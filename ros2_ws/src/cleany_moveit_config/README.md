@@ -144,29 +144,12 @@ handling remain necessary before autonomous physical execution.
 
 Reference: [MoveIt perception pipeline](https://moveit.picknik.ai/humble/doc/examples/perception_pipeline/perception_pipeline_tutorial.html).
 
-## Fixed hand-eye collision scene
+## Configured study-cafe collision scene
 
-The fixed calibration table, target stand, and ChArUco backing are defined in
-`config/handeye_collision_objects.yaml` using the
-`cleany.moveit_collision_objects/v1` schema. Every box has a full-extent
-dimension and an explicit `primitive_pose` in `base_link`; no unused
-top-level `CollisionObject.pose` is assumed.
-
-After `move_group` is running, apply the scene once with:
-
-```bash
-ros2 launch cleany_moveit_config handeye_collision_scene.launch.py
-```
-
-The applier calls `/apply_planning_scene` and exits only after MoveIt accepts
-all three object IDs: `handeye_table`, `handeye_target_stand`, and
-`charuco_target`. The generic `move_group.launch.py` does not inject these
-hand-eye-only objects automatically.
-
-The RGB-D pick demo table is separately defined in
-`config/pick_demo_collision_objects.yaml`, with the same full size and pose as
-`rgbd_pick_demo.xml.in`. Box/can targets are registered dynamically by the
-reachable-grasp action instead of this fixed scene.
+`collision_scene.launch.py` and the `apply_collision_scene` executable apply
+an explicitly configured scene through `/apply_planning_scene`. The default
+is `config/study_cafe_grasp_collision_objects.yaml`. Calibration-table and
+box/can demo configurations were removed with their MuJoCo scenes.
 
 The legacy configured study-cafe fixture is
 `config/study_cafe_grasp_collision_objects.yaml`. Its fixed list contains the
@@ -195,7 +178,7 @@ ros2 launch cleany_moveit_config mock_planning.launch.py use_rviz:=true
 ```
 
 The mock backend is a planning/configuration test fixture only. It is not the
-MuJoCo calibration backend and must not be used as a physical robot driver.
+MuJoCo study-cafe backend and must not be used as a physical robot driver.
 
 ## Verification
 
@@ -217,4 +200,4 @@ The runtime smoke tests launch the headless mock
 stack, verifies the all-zero state is collision-free, resolves position-only
 IK for each side, confirms orientation does not change the same seeded IK
 request, plans/executes each resolved joint goal through its side-specific
-controller, and query MoveIt after applying the fixed hand-eye world objects.
+controller.

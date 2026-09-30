@@ -108,10 +108,24 @@ def _randomize_objects(
 
 
 def generate(
-    output: Path, train_count: int, val_count: int, seed: int
+    output: Path, train_count: int, val_count: int, seed: int,
+    camera: str = 'head_realsense_rgb',
+    joint_positions: dict[str, float] | None = None,
+    require_all_objects: bool = True,
+    attached_object: str | None = None,
+    attachment_site: str = 'left_grasp_tcp',
+    attachment_jitter_m: float = 0.015,
+    attachment_offset_camera_m: tuple[float, float, float] = (0., 0., 0.),
 ) -> dict:
     if train_count <= 0 or val_count <= 0:
         raise ValueError('Training and validation counts must be positive')
+    if attached_object is not None and attached_object not in OBJECT_NAMES:
+        raise ValueError(f'Unknown attached object: {attached_object}')
+    if attachment_jitter_m < 0:
+        raise ValueError('Attachment jitter must be nonnegative')
+    if (len(attachment_offset_camera_m) != 3
+            or not np.isfinite(attachment_offset_camera_m).all()):
+        raise ValueError('Camera-frame attachment offset must contain three finite values')
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(f'Dataset output must be empty: {output}')
     package = Path(__file__).resolve().parents[2] / 'cleany_mujoco_sim'
@@ -128,7 +142,14 @@ def generate(
     for _ in range(2000):
         mujoco.mj_step(model, data)
     _robot_observation_pose(model, data)
+    for name, position in (joint_positions or {}).items():
+        joint = model.joint(name)
+        data.qpos[joint.qposadr[0]] = position
+        data.qvel[joint.dofadr[0]] = 0.0
     mujoco.mj_forward(model, data)
+    model.camera(camera)
+    if attached_object is not None:
+        model.site(attachment_site)
     baseline_qpos = data.qpos.copy()
     geom_groups = _object_geom_ids(model)
     rng = np.random.default_rng(seed)
@@ -145,12 +166,23 @@ def generate(
             for index in range(count):
                 for _ in range(30):
                     _randomize_objects(model, data, baseline_qpos, rng)
+                    if attached_object is not None:
+                        joint = model.joint(
+                            f'study_cafe_{attached_object}_freejoint')
+                        origin = data.site(attachment_site).xpos.copy()
+                        camera_rotation = data.cam(camera).xmat.reshape(3, 3)
+                        offset = camera_rotation @ np.asarray(
+                            attachment_offset_camera_m)
+                        data.qpos[joint.qposadr[0]:joint.qposadr[0] + 3] = (
+                            origin + offset + rng.uniform(-attachment_jitter_m,
+                                                 attachment_jitter_m, size=3))
+                        mujoco.mj_forward(model, data)
                     renderer.disable_segmentation_rendering()
-                    renderer.update_scene(data, camera='head_realsense_rgb',
+                    renderer.update_scene(data, camera=camera,
                                           scene_option=options)
                     rgb = renderer.render()
                     renderer.enable_segmentation_rendering()
-                    renderer.update_scene(data, camera='head_realsense_rgb',
+                    renderer.update_scene(data, camera=camera,
                                           scene_option=options)
                     segmentation = renderer.render()
                     labels = []
@@ -163,11 +195,15 @@ def generate(
                         polygon = _polygon(mask)
                         if polygon is not None:
                             labels.append(f'{class_id} {polygon}')
-                    if len(labels) == len(CLASS_NAMES):
+                    target_visible = (attached_object is None or any(
+                        int(label.split()[0]) == OBJECT_NAMES.index(attached_object)
+                        for label in labels))
+                    if labels and target_visible and (not require_all_objects
+                                                      or len(labels) == len(CLASS_NAMES)):
                         break
                 else:
                     raise RuntimeError(
-                        f'Four visible objects unavailable: {split}/{index}'
+                        f'Required visible objects unavailable: {split}/{index}'
                     )
                 gain = rng.uniform(0.85, 1.15)
                 bias = rng.uniform(-10, 10)
@@ -185,6 +221,13 @@ def generate(
         yaml.safe_dump(config, sort_keys=False), encoding='utf-8'
     )
     summary = {'seed': seed, 'counts': counts, 'classes': CLASS_NAMES,
+               'camera': camera, 'joint_positions': joint_positions or {},
+               'require_all_objects': require_all_objects,
+               'attached_object': attached_object,
+               'attachment_site': attachment_site if attached_object else None,
+               'attachment_jitter_m': attachment_jitter_m if attached_object else None,
+               'attachment_offset_camera_m': attachment_offset_camera_m
+               if attached_object else None,
                'source': str(scene_template),
                'ground_truth_use': 'offline training only'}
     (output / 'manifest.json').write_text(
@@ -199,9 +242,26 @@ def main() -> None:
     parser.add_argument('--train-count', type=int, default=80)
     parser.add_argument('--val-count', type=int, default=20)
     parser.add_argument('--seed', type=int, default=20260928)
+    parser.add_argument('--camera', default='head_realsense_rgb')
+    parser.add_argument('--joint-positions-json', type=Path)
+    parser.add_argument('--allow-partial-objects', action='store_true')
+    parser.add_argument('--attached-object', choices=OBJECT_NAMES)
+    parser.add_argument('--attachment-site', default='left_grasp_tcp')
+    parser.add_argument('--attachment-jitter-m', type=float, default=0.015)
+    parser.add_argument('--attachment-offset-camera-m', type=float, nargs=3,
+                        default=(0., 0., 0.))
     args = parser.parse_args()
+    joint_positions = None
+    if args.joint_positions_json:
+        joint_positions = json.loads(
+            args.joint_positions_json.expanduser().read_text(encoding='utf-8'))
     print(json.dumps(generate(args.output.expanduser(), args.train_count,
-                              args.val_count, args.seed), indent=2))
+                              args.val_count, args.seed, args.camera,
+                              joint_positions,
+                              not args.allow_partial_objects,
+                              args.attached_object, args.attachment_site,
+                              args.attachment_jitter_m,
+                              tuple(args.attachment_offset_camera_m)), indent=2))
 
 
 if __name__ == '__main__':

@@ -9,17 +9,6 @@ ROS_SETUP := /opt/ros/humble/setup.bash
 COLCON_BUILD_ARGS ?=
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
-HANDEYE_PROFILE_DIR ?= $(REPO_ROOT)artifacts/handeye/profiles/mujoco_seed_20260810
-HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
-HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
-HANDEYE_ARTIFACT_ROOT ?= $(REPO_ROOT)artifacts/handeye/runs
-HANDEYE_RUN_ID ?= mujoco_seed_20260810
-HANDEYE_RUN_DIR ?= $(HANDEYE_ARTIFACT_ROOT)/$(HANDEYE_RUN_ID)
-HANDEYE_VALIDATION_OUTPUT ?= $(HANDEYE_RUN_DIR)/dataset_validation.json
-HANDEYE_MAX_TRANSLATION_NORM_M ?= 1.0
-HANDEYE_DATASET_MODE ?= strict
-HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
-	cleany_moveit_config cleany_handeye_calibration
 GRASP_PREGRASP_PACKAGES := cleany_interfaces cleany_description \
 	cleany_mujoco_sim cleany_mujoco_observer cleany_moveit_config cleany_perception \
 	cleany_grasping cleany_skill_executor cleany_scene_mapping
@@ -34,8 +23,7 @@ fi
 endef
 SORTING_ARGS ?=
 GRASP_PREGRASP_SKILL_TESTS := \
-	src/cleany_skill_executor/test/test_carry_guard.py \
-	src/cleany_skill_executor/test/test_motion_guard.py \
+	\
 	src/cleany_skill_executor/test/test_reobservation.py \
 	src/cleany_skill_executor/test/test_seeded_cartesian.py \
 	src/cleany_skill_executor/test/test_gripper_geometry.py \
@@ -45,8 +33,7 @@ GRASP_PREGRASP_SKILL_TESTS := \
 	src/cleany_skill_executor/test/test_sorting_coordinator.py \
 	src/cleany_skill_executor/test/test_learned_runtime_launch.py \
 	src/cleany_skill_executor/test/test_sensor_scene.py \
-	src/cleany_skill_executor/test/test_can_rgbd.py \
-	src/cleany_skill_executor/test/test_can_grasp_execution_core.py \
+	src/cleany_skill_executor/test/test_rgbd_projection.py \
 	src/cleany_skill_executor/test/test_nearest_object.py \
 	src/cleany_skill_executor/test/test_grasp_selection.py \
 	src/cleany_skill_executor/test/test_grasp_selection_node.py \
@@ -55,27 +42,24 @@ GRASP_PREGRASP_SKILL_TESTS := \
 GRASP_PREGRASP_MOVEIT_TESTS := \
 	src/cleany_moveit_config/test/test_simulation_collision.py \
 	src/cleany_moveit_config/test/test_study_cafe_collision_scene.py \
-	src/cleany_moveit_config/test/test_moveit_config.py \
-	src/cleany_moveit_config/test/test_handeye_collision_scene.py
+	src/cleany_moveit_config/test/test_moveit_config.py
 GRASP_PREGRASP_MUJOCO_TESTS := \
 	src/cleany_mujoco_sim/test/test_tabletop_performance.py \
 	src/cleany_mujoco_sim/test/test_study_cafe_scene.py \
 	src/cleany_mujoco_sim/test/test_tabletop_shapes.py \
 	src/cleany_mujoco_sim/test/test_placement_verifier.py \
 	src/cleany_mujoco_sim/test/test_sorting_scene.py \
-	src/cleany_mujoco_sim/test/test_can_grasp_execution_scene.py \
-	src/cleany_mujoco_sim/test/test_grasp_execution_scene.py \
-	src/cleany_mujoco_sim/test/test_handeye_backend_config.py
+	src/cleany_mujoco_sim/test/test_study_cafe_backend_config.py
 GRASP_PREGRASP_DESCRIPTION_TESTS := \
 	src/cleany_description/test/test_model_parity.py
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo profile-scene-mask profile-mujoco-tabletop \
-	build-handeye build-grasp-pregrasp build-scene-mapping test-scene-mapping test \
+	build-grasp-pregrasp build-scene-mapping test-scene-mapping test \
 	build-mujoco-observer test-mujoco-observer \
-	test-mission test-mujoco test-handeye test-grasp-pregrasp \
+	test-mission test-mujoco test-grasp-pregrasp \
 	test-grasp-pregrasp-runtime test-gazebo test-gazebo-nav-runtime \
-	test-gazebo-evaluation handeye-generate-mujoco \
-	handeye-validate-mujoco handeye-mujoco sim sim-gazebo \
+	test-gazebo-evaluation \
+	sim sim-gazebo \
 	sim-mujoco-study-cafe sim-gazebo-study-cafe clean \
 	sim-mujoco-pipeline sim-mujoco-sorting \
 	vision-init vision-host-setup vision-config vision-build vision-up vision-down vision-shell \
@@ -91,18 +75,14 @@ help:
 	@echo "  make check-gazebo-env  Verify ROS 2 Humble / Gazebo Fortress"
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
-	@echo "  make build-handeye Build hand-eye packages and dependencies"
 	@echo "  make build-grasp-pregrasp  Build RGB-D grasp/pre-grasp packages"
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
-	@echo "  make test-handeye  Build and test the hand-eye package boundary"
 	@echo "  make test-grasp-pregrasp  Run focused RGB-D grasp/pre-grasp tests"
 	@echo "  make test-scene-mapping  Build/test optional known-geometry OctoMap updater"
 	@echo "  make test-mujoco-observer  Build/test read-only contact observation"
-	@echo "  make test-grasp-pregrasp-runtime  Run the MuJoCo execution test"
-	@echo "  make handeye-generate-mujoco  Generate analyzed random 20+5 poses"
-	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
+	@echo "  make test-grasp-pregrasp-runtime  Run the MoveIt mock execution test"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
 	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
@@ -113,7 +93,6 @@ help:
 	@echo "  make profile-mujoco-tabletop  Compare opt-in tabletop physics/render profiles"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
-	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
 	@echo "  make vision-init   Install /etc/cleany/jetson-identity.env (sudo)"
 	@echo "  make vision-host-setup  Enable Docker bridge networking on Jetson (sudo)"
 	@echo "  make vision-build  Build the Jetson vision development image"
@@ -160,13 +139,6 @@ build-gazebo: check-gazebo-env
 		--build-base "$${CLEANY_BUILD_BASE}" \
 		--install-base "$${CLEANY_INSTALL_BASE}" \
 		--packages-up-to cleany_gazebo_sim
-
-build-handeye:
-	source "$(ROS_SETUP)" && \
-	$(use_local_moveit_perception) && \
-	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install \
-		--packages-up-to cleany_handeye_calibration
 
 build-grasp-pregrasp:
 	source "$(ROS_SETUP)" && \
@@ -225,18 +197,6 @@ test-mujoco: build
 	export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && \
 	python3 -m pytest src/cleany_mujoco_sim/test
 
-test-handeye: build-handeye
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	$(use_local_moveit_perception) && \
-	colcon test --python-testing pytest --packages-select $(HANDEYE_PACKAGES) \
-		--event-handlers console_cohesion+ && \
-	for package in $(HANDEYE_PACKAGES); do \
-		colcon test-result --test-result-base "build/$${package}" \
-			--verbose || exit 1; \
-	done
-
 profile-scene-mask: build-scene-mapping
 	source "$(ROS_SETUP)" && \
 	source "$(ROS2_WS)/install/setup.bash" && \
@@ -267,8 +227,7 @@ test-grasp-pregrasp-runtime: build-grasp-pregrasp
 	source install/setup.bash && \
 	export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && \
 	python3 -m pytest -q -s \
-		src/cleany_moveit_config/test/test_mock_planning_runtime.py \
-		src/cleany_skill_executor/test/test_nearest_pregrasp_runtime.py
+		src/cleany_moveit_config/test/test_mock_planning_runtime.py
 
 test-gazebo: build-gazebo
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
@@ -299,7 +258,7 @@ sim: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
-	ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
+	ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=true
 
 sim-mujoco-study-cafe: build
 	source "$(ROS_SETUP)" && \
@@ -330,65 +289,6 @@ sim-gazebo: build-gazebo
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	ros2 launch cleany_gazebo_sim "$${CLEANY_GAZEBO_LAUNCH}" headless:=true
-
-handeye-generate-mujoco: build-handeye
-	@test ! -e "$(HANDEYE_PROFILE_DIR)" || \
-		(echo "pose profile already exists: $(HANDEYE_PROFILE_DIR)" >&2; exit 2)
-	@mkdir -p "$(HANDEYE_ARTIFACT_ROOT)"
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	ros2 launch cleany_handeye_calibration pose_generation_mujoco.launch.py \
-		output_directory:="$(HANDEYE_PROFILE_DIR)" \
-		artifact_root:="$(HANDEYE_ARTIFACT_ROOT)" \
-		repository_root:="$(REPO_ROOT)" \
-		run_id:="$(HANDEYE_RUN_ID)" \
-		headless:=true
-
-handeye-mujoco: build-handeye
-	@test -n "$(HANDEYE_POSE_MANIFEST)" || \
-		(echo "HANDEYE_POSE_MANIFEST=/absolute/materialized_poses.yaml is required" >&2; exit 2)
-	@case "$(HANDEYE_POSE_MANIFEST)" in /*) ;; *) \
-		echo "HANDEYE_POSE_MANIFEST must be an absolute path" >&2; exit 2;; esac
-	@test -f "$(HANDEYE_POSE_MANIFEST)" || \
-		(echo "pose manifest does not exist: $(HANDEYE_POSE_MANIFEST); run 'make handeye-generate-mujoco' first" >&2; exit 2)
-	@test -n "$(HANDEYE_RUNTIME_CONFIG)" || \
-		(echo "HANDEYE_RUNTIME_CONFIG=/absolute/materialized_runtime.json is required" >&2; exit 2)
-	@case "$(HANDEYE_RUNTIME_CONFIG)" in /*) ;; *) \
-		echo "HANDEYE_RUNTIME_CONFIG must be an absolute path" >&2; exit 2;; esac
-	@test -f "$(HANDEYE_RUNTIME_CONFIG)" || \
-		(echo "runtime config does not exist: $(HANDEYE_RUNTIME_CONFIG); run 'make handeye-generate-mujoco' first" >&2; exit 2)
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
-		pose_manifest:="$(HANDEYE_POSE_MANIFEST)" \
-		runtime_config:="$(HANDEYE_RUNTIME_CONFIG)" \
-		headless:=false \
-		use_rviz:=true
-
-handeye-validate-mujoco: build-handeye
-	@test -f "$(HANDEYE_RUN_DIR)/samples.jsonl" || \
-		(echo "completed dataset does not exist: $(HANDEYE_RUN_DIR)/samples.jsonl" >&2; exit 2)
-	@test -f "$(HANDEYE_POSE_MANIFEST)" || \
-		(echo "pose manifest does not exist: $(HANDEYE_POSE_MANIFEST)" >&2; exit 2)
-	@test -f "$(HANDEYE_RUNTIME_CONFIG)" || \
-		(echo "runtime config does not exist: $(HANDEYE_RUNTIME_CONFIG)" >&2; exit 2)
-	@test -f "$(HANDEYE_PROFILE_DIR)/cleany_handeye.urdf" || \
-		(echo "materialized URDF does not exist: $(HANDEYE_PROFILE_DIR)/cleany_handeye.urdf" >&2; exit 2)
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	sim_share="$$(ros2 pkg prefix --share cleany_mujoco_sim)" && \
-	ros2 run cleany_handeye_calibration validate_handeye_dataset \
-		--samples "$(HANDEYE_RUN_DIR)/samples.jsonl" \
-		--pose-manifest "$(HANDEYE_POSE_MANIFEST)" \
-		--runtime-config "$(HANDEYE_RUNTIME_CONFIG)" \
-		--urdf "$(HANDEYE_PROFILE_DIR)/cleany_handeye.urdf" \
-		--ground-truth "$${sim_share}/config/handeye_scene.yaml" \
-		--max-translation-norm-m "$(HANDEYE_MAX_TRANSLATION_NORM_M)" \
-		--dataset-mode "$(HANDEYE_DATASET_MODE)" \
-		--output "$(HANDEYE_VALIDATION_OUTPUT)"
 
 sim-gazebo-study-cafe:
 	$(MAKE) build-gazebo

@@ -81,10 +81,6 @@ def _preflight(context):
             raise RuntimeError('Sorting requires collection bin configuration')
     if value('sorting_use_wrist_camera') == 'true' and value('sorting_mode') != 'true':
         raise RuntimeError('Wrist switching currently requires the simulation sorting backend')
-    if value('sorting_async_carry_monitor') == 'true' and (
-            value('sorting_use_wrist_camera') != 'true'
-            or value('wrist_continuous_tracking') != 'true'):
-        raise RuntimeError('Asynchronous carry monitoring requires wrist camera and continuous tracking')
     if value('sensor_scene') == 'true':
         get_package_share_directory('moveit_ros_perception')
     if value('fastdds_profiles_file') and not Path(value('fastdds_profiles_file')).is_file():
@@ -93,19 +89,50 @@ def _preflight(context):
         # External perception owns its model files, credentials and CUDA runtime.
         # Geometry / simulation validation above still applies to the host.
         return []
-    for argument, kind in (('perception_detector_type', 'yoloe'),
-                           ('perception_detector_type', 'yoloe_gemini'),
-                           ('perception_segmenter_type', 'sam2')):
-        if value(argument) == kind:
-            keys = (
-                ('yoloe_model_path', 'yoloe_text_encoder_directory')
-                if kind in ('yoloe', 'yoloe_gemini')
-                else ('sam2_checkpoint', 'sam2_model_config')
-            )
-            resolve_model_assets(
-                {key: value(key) for key in keys},
-                value('model_directory'), 'yoloe' if kind == 'yoloe_gemini' else kind,
-            )
+    if value('perception_detector_type') in ('yoloe', 'yoloe_gemini'):
+        keys = ('yoloe_model_path', 'yoloe_text_encoder_directory')
+        resolve_model_assets({key: value(key) for key in keys},
+                             value('model_directory'), 'yoloe')
+    if (value('sorting_use_wrist_camera') == 'true'
+            and value('perception_segmenter_type') == 'yoloe_seg'
+            and value('wrist_yoloe_model_path').strip()):
+        resolve_model_assets(
+            {'yoloe_model_path': value('wrist_yoloe_model_path'),
+             'yoloe_text_encoder_directory': value('yoloe_text_encoder_directory')},
+            value('model_directory'), 'yoloe',
+        )
+    if (value('sorting_use_wrist_camera') == 'true'
+            and value('perception_segmenter_type') == 'yoloe_seg'
+            and value('wrist_check_yoloe_model_path').strip()):
+        resolve_model_assets(
+            {'yoloe_model_path': value('wrist_check_yoloe_model_path'),
+             'yoloe_text_encoder_directory': value('yoloe_text_encoder_directory')},
+            value('model_directory'), 'yoloe',
+        )
+    if (value('sorting_use_wrist_camera') == 'true'
+            and value('perception_segmenter_type') == 'yoloe_seg'
+            and value('wrist_mouse_check_yoloe_model_path').strip()):
+        resolve_model_assets(
+            {'yoloe_model_path': value('wrist_mouse_check_yoloe_model_path'),
+             'yoloe_text_encoder_directory': value('yoloe_text_encoder_directory')},
+            value('model_directory'), 'yoloe',
+        )
+    if (value('sorting_use_wrist_camera') == 'true'
+            and value('perception_segmenter_type') == 'yoloe_seg'
+            and value('wrist_right_yoloe_model_path').strip()):
+        resolve_model_assets(
+            {'yoloe_model_path': value('wrist_right_yoloe_model_path'),
+             'yoloe_text_encoder_directory': value('yoloe_text_encoder_directory')},
+            value('model_directory'), 'yoloe',
+        )
+    if (value('sorting_use_wrist_camera') == 'true'
+            and value('perception_segmenter_type') == 'yoloe_seg'
+            and value('wrist_right_check_yoloe_model_path').strip()):
+        resolve_model_assets(
+            {'yoloe_model_path': value('wrist_right_check_yoloe_model_path'),
+             'yoloe_text_encoder_directory': value('yoloe_text_encoder_directory')},
+            value('model_directory'), 'yoloe',
+        )
     if value('perception_detector_type') in ('gemini', 'yoloe_gemini'):
         if not value('gemini_model').strip():
             raise RuntimeError('Gemini model must not be empty')
@@ -161,31 +188,38 @@ def generate_launch_description() -> LaunchDescription:
         'yoloe_text_encoder_directory'
     )
     perception_device = LaunchConfiguration('perception_device')
-    sam2_model_config = LaunchConfiguration('sam2_model_config')
-    sam2_checkpoint = LaunchConfiguration('sam2_checkpoint')
     mujoco_share = Path(get_package_share_directory('cleany_mujoco_sim'))
     moveit_share = Path(get_package_share_directory('cleany_moveit_config'))
     perception_share = Path(get_package_share_directory('cleany_perception'))
     grasping_share = Path(get_package_share_directory('cleany_grasping'))
     skill_share = Path(get_package_share_directory('cleany_skill_executor'))
-    profile_path = perception_share / 'config' / 'yoloe_s_sam2_tiny.yaml'
+    profile_path = perception_share / 'config' / 'yoloe_seg.yaml'
     profile = load_model_profile(profile_path)
     # Keep YOLOE asset defaults only for an explicit detector override; Gemini
     # does not load them or silently fall back to a local detector.
     profile.update(load_model_profile(
-        perception_share / 'config' / 'gemini_flash_lite_sam2_tiny.yaml'))
+        perception_share / 'config' / 'yoloe_seg_gemini.yaml'))
     profile.update(detector_type='yoloe_gemini', segmenter_type='yoloe_seg')
     # This study-cafe simulation uses a checkpoint fine-tuned on its camera
     # renders. The shared YOLOE profile keeps the general-purpose checkpoint.
     profile.update(
         yoloe_model_path='yoloe/study_cafe_sim_yoloe26s_seg.pt',
+        wrist_yoloe_model_path='yoloe/study_cafe_sim_all_views_yoloe26s_seg.pt',
+        wrist_right_yoloe_model_path='yoloe/study_cafe_sim_yoloe26s_seg.pt',
+        wrist_check_yoloe_model_path='yoloe/study_cafe_sim_held_yoloe26s_seg.pt',
+        wrist_mouse_check_yoloe_model_path=(
+            'yoloe/study_cafe_sim_left_held_mouse_v2_yoloe26s_seg.pt'),
+        wrist_right_check_yoloe_model_path=(
+            'yoloe/study_cafe_sim_right_held_cup_v2_yoloe26s_seg.pt'),
+        wrist_right_check_yoloe_class_confidence_thresholds=[0.08, 0.25, 0.25, 0.08],
         minimum_detection_confidence=0.08,
         yoloe_class_confidence_thresholds=[0.25, 0.25, 0.25, 0.08],
+        wrist_minimum_detection_confidence=0.08,
     )
 
     backend = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            _launch_file('cleany_mujoco_sim', 'handeye_backend.launch.py')
+            _launch_file('cleany_mujoco_sim', 'study_cafe_backend.launch.py')
         ),
         condition=IfCondition(start_simulator),
         launch_arguments={
@@ -201,7 +235,7 @@ def generate_launch_description() -> LaunchDescription:
                 / 'study_cafe_grasp_execution.xml.in'
             ),
             'controller_config': str(
-                mujoco_share / 'config' / 'grasp_demo_ros2_controllers.yaml'
+                mujoco_share / 'config' / 'study_cafe_ros2_controllers.yaml'
             ),
             'headless': headless,
             'sim_speed_factor': LaunchConfiguration('sim_speed_factor'),
@@ -268,7 +302,7 @@ def generate_launch_description() -> LaunchDescription:
         PythonLaunchDescriptionSource(
             _launch_file(
                 'cleany_moveit_config',
-                'handeye_collision_scene.launch.py',
+                'collision_scene.launch.py',
             )
         ),
         condition=UnlessCondition(sensor_scene),
@@ -313,14 +347,22 @@ def generate_launch_description() -> LaunchDescription:
                 'gemini_model': LaunchConfiguration('gemini_model'),
                 'gemini_api_key_environment': LaunchConfiguration('gemini_api_key_environment'),
                 'enable_wrist_observation': ParameterValue(LaunchConfiguration('sorting_use_wrist_camera'), value_type=bool),
-                'enable_reference_observation': ParameterValue(PythonExpression([
-                    "'", LaunchConfiguration('sorting_use_wrist_camera'), "' == 'true' or '",
-                    LaunchConfiguration('sorting_use_reference_observation'), "' == 'true'",
-                ]), value_type=bool),
-                'wrist_continuous_tracking': ParameterValue(LaunchConfiguration('wrist_continuous_tracking'), value_type=bool),
                 'segmenter_type': perception_segmenter_type,
                 'simulation_color_profile': 'study_cafe',
                 'yoloe_model_path': yoloe_model_path,
+                'wrist_yoloe_model_path': LaunchConfiguration('wrist_yoloe_model_path'),
+                'wrist_right_yoloe_model_path': LaunchConfiguration('wrist_right_yoloe_model_path'),
+                'wrist_check_yoloe_model_path': LaunchConfiguration('wrist_check_yoloe_model_path'),
+                'wrist_mouse_check_yoloe_model_path': LaunchConfiguration(
+                    'wrist_mouse_check_yoloe_model_path'),
+                'wrist_right_check_yoloe_model_path': LaunchConfiguration(
+                    'wrist_right_check_yoloe_model_path'),
+                'wrist_failure_image_directory': LaunchConfiguration(
+                    'wrist_failure_image_directory'),
+                'wrist_right_check_yoloe_class_confidence_thresholds': ParameterValue(
+                    LaunchConfiguration(
+                        'wrist_right_check_yoloe_class_confidence_thresholds'),
+                    value_type=list[float]),
                 'yoloe_classes': ParameterValue(
                     yoloe_classes,
                     value_type=list[str],
@@ -339,9 +381,6 @@ def generate_launch_description() -> LaunchDescription:
                 'yoloe_text_encoder_directory': (
                     yoloe_text_encoder_directory
                 ),
-                'sam2_model_config': sam2_model_config,
-                'sam2_checkpoint': sam2_checkpoint,
-                'sam2_device': perception_device,
                 'minimum_detection_confidence': ParameterValue(
                     perception_minimum_detection_confidence,
                     value_type=float,
@@ -491,16 +530,16 @@ def generate_launch_description() -> LaunchDescription:
             {
                 'use_sim_time': clock_parameter,
                 'sorting_bins_config': LaunchConfiguration('sorting_bins_config'),
+                'sorting_release_edge_margin_m': ParameterValue(
+                    LaunchConfiguration('sorting_release_edge_margin_m'), value_type=float),
                 'sorting_artifact_directory': LaunchConfiguration('sorting_artifact_directory'),
                 'sorting_test_only_label': LaunchConfiguration('sorting_test_only_label'),
                 'sorting_use_wrist_camera': ParameterValue(LaunchConfiguration('sorting_use_wrist_camera'), value_type=bool),
-                'sorting_use_reference_observation': ParameterValue(LaunchConfiguration('sorting_use_reference_observation'), value_type=bool),
                 'sorting_geometry_association_lift': ParameterValue(PythonExpression([
                     "'", perception_detector_type, "' == 'yoloe_gemini'",
                 ]), value_type=bool),
                 'sorting_head_reference_refresh_age_sec': ParameterValue(
                     LaunchConfiguration('sorting_head_reference_refresh_age_sec'), value_type=float),
-                'sorting_async_carry_monitor': ParameterValue(LaunchConfiguration('sorting_async_carry_monitor'), value_type=bool),
                 'sorting_approach_acceleration_scaling': ParameterValue(LaunchConfiguration('sorting_approach_acceleration_scaling'), value_type=float),
                 'sorting_return_gripper_position_rad': ParameterValue(LaunchConfiguration('sorting_return_gripper_position_rad'), value_type=float),
                 'velocity_scaling': ParameterValue(LaunchConfiguration('velocity_scaling'), value_type=float),
@@ -533,6 +572,8 @@ def generate_launch_description() -> LaunchDescription:
                 'gripper_force_full_close': ParameterValue(sorting_mode, value_type=bool),
                 'direct_vertical_lift': ParameterValue(
                     LaunchConfiguration('direct_vertical_lift'), value_type=bool),
+                'direct_vertical_lift_extra_m': ParameterValue(
+                    LaunchConfiguration('direct_vertical_lift_extra_m'), value_type=float),
                 'attachment_scene_timeout_sec': ParameterValue(
                     LaunchConfiguration('attachment_scene_timeout_sec'), value_type=float),
                 'grasp_use_aperture_centering': ParameterValue(sorting_mode, value_type=bool),
@@ -563,7 +604,6 @@ def generate_launch_description() -> LaunchDescription:
                 'grasp_aperture_margin_m': ParameterValue(LaunchConfiguration('grasp_opening_margin_m'), value_type=float),
                 'require_gripper_contact': True,
                 'demo_start_delay_sec': 3.0,
-                'stage_hold_sec': 1.0,
                 'grasp_settle_sec': 1.0,
                 'lift_hold_sec': 3.0,
                 'count_retreat_as_lift': ParameterValue(sorting_mode, value_type=bool),
@@ -600,7 +640,6 @@ def generate_launch_description() -> LaunchDescription:
                 choices=['true', 'false'],
             ),
             DeclareLaunchArgument('start_perception', default_value='true', choices=['true', 'false']),
-            DeclareLaunchArgument('sam2_tracking_enabled', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument(
                 'use_sim_time', default_value=start_simulator,
                 choices=['true', 'false'],
@@ -617,6 +656,7 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument('sorting_bins_config', default_value=str(
                 mujoco_share / 'config' / 'robot_top_bins.yaml')),
+            DeclareLaunchArgument('sorting_release_edge_margin_m', default_value='0.005'),
             DeclareLaunchArgument(
                 'sorting_mode', default_value='false', choices=['true', 'false']
             ),
@@ -648,14 +688,8 @@ def generate_launch_description() -> LaunchDescription:
                 "30.0 if '", start_simulator, "' == 'true' and '", sorting_mode,
                 "' == 'true' else (10.0 if '", sorting_mode, "' == 'true' else 5.0)"]),
                 description='Wall-time budget for fresh post-attachment depth; returns immediately when ready.'),
-            DeclareLaunchArgument('sorting_use_wrist_camera', default_value=PythonExpression([
-                "'true' if '", sorting_mode, "' == 'true' and '",
-                LaunchConfiguration('sam2_tracking_enabled'), "' == 'true' else 'false'",
-            ]), choices=['true','false']),
-            DeclareLaunchArgument('sorting_use_reference_observation', default_value=LaunchConfiguration('sam2_tracking_enabled'), choices=['true','false']),
+            DeclareLaunchArgument('sorting_use_wrist_camera', default_value=sorting_mode, choices=['true','false']),
             DeclareLaunchArgument('sorting_head_reference_refresh_age_sec', default_value='0.0'),
-            DeclareLaunchArgument('wrist_continuous_tracking', default_value=LaunchConfiguration('sam2_tracking_enabled'), choices=['true','false']),
-            DeclareLaunchArgument('sorting_async_carry_monitor', default_value=LaunchConfiguration('sorting_use_wrist_camera'), choices=['true','false']),
             DeclareLaunchArgument('sorting_approach_acceleration_scaling', default_value='1.0'),
             DeclareLaunchArgument('sorting_return_gripper_position_rad', default_value='-0.30'),
             DeclareLaunchArgument('sorting_wrist_cameras_config',
@@ -689,6 +723,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('gripper_open_position_rad', default_value='1.2'),
             DeclareLaunchArgument('prefer_upward_closing_axis', default_value='false'),
             DeclareLaunchArgument('direct_vertical_lift', default_value='false'),
+            DeclareLaunchArgument('direct_vertical_lift_extra_m', default_value='0.0'),
             DeclareLaunchArgument('approach_velocity_scaling', default_value=PythonExpression([
                 "'1.0' if '", sorting_mode, "' == 'true' else '0.2'",
             ])),
@@ -752,6 +787,32 @@ def generate_launch_description() -> LaunchDescription:
                 'yoloe_model_path', default_value=profile['yoloe_model_path']
             ),
             DeclareLaunchArgument(
+                'wrist_yoloe_model_path',
+                default_value=profile['wrist_yoloe_model_path'],
+            ),
+            DeclareLaunchArgument(
+                'wrist_right_yoloe_model_path',
+                default_value=profile['wrist_right_yoloe_model_path'],
+            ),
+            DeclareLaunchArgument(
+                'wrist_check_yoloe_model_path',
+                default_value=profile['wrist_check_yoloe_model_path'],
+            ),
+            DeclareLaunchArgument(
+                'wrist_mouse_check_yoloe_model_path',
+                default_value=profile['wrist_mouse_check_yoloe_model_path'],
+            ),
+            DeclareLaunchArgument(
+                'wrist_right_check_yoloe_model_path',
+                default_value=profile['wrist_right_check_yoloe_model_path'],
+            ),
+            DeclareLaunchArgument('wrist_failure_image_directory', default_value=''),
+            DeclareLaunchArgument(
+                'wrist_right_check_yoloe_class_confidence_thresholds',
+                default_value=str(profile[
+                    'wrist_right_check_yoloe_class_confidence_thresholds']),
+            ),
+            DeclareLaunchArgument(
                 'yoloe_image_size',
                 default_value=str(profile['yoloe_image_size']),
             ),
@@ -770,12 +831,6 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'perception_device',
                 default_value=profile['yoloe_device'],
-            ),
-            DeclareLaunchArgument(
-                'sam2_model_config', default_value=profile['sam2_model_config']
-            ),
-            DeclareLaunchArgument(
-                'sam2_checkpoint', default_value=profile['sam2_checkpoint']
             ),
             OpaqueFunction(function=_preflight),
             SetEnvironmentVariable(

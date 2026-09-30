@@ -13,7 +13,7 @@ from cleany_mujoco_sim.study_cafe_scene import load_study_cafe_layout
 def test_default_oracle_labels_match_learned_profile_policy_and_scene():
     source = Path(__file__).parents[2]
     perception = source / 'cleany_perception' / 'config'
-    for name in ('yoloe_s_sam2_tiny.yaml', 'inspect_scene.yaml'):
+    for name in ('yoloe_seg.yaml', 'inspect_scene.yaml'):
         parameters = yaml.safe_load((perception / name).read_text())['perception_inspector']['ros__parameters']
         assert parameters['yoloe_classes'] == ['cup', 'computer mouse', 'crumpled tissue', 'lego brick']
         assert set(parameters['yoloe_classes']) <= set(DEFAULT_LABEL_BODIES)
@@ -24,7 +24,7 @@ def test_default_oracle_labels_match_learned_profile_policy_and_scene():
     assert set(DEFAULT_LABEL_BODIES.values()) == {
         f'study_cafe_{item.name}' for item in layout.tabletop_objects
     }
-    policy = yaml.safe_load((source / 'cleany_skill_executor' / 'config' / 'sorting_policy.yaml').read_text())
+    policy = yaml.safe_load((source / 'cleany_skill_executor' / 'config' / 'table_sorting_policy.yaml').read_text())
     assert {'cup', 'crumpled tissue'} <= set(policy['rules']['trash'])
     assert {'mouse', 'computer mouse', 'wireless mouse', 'lego brick'} <= set(policy['rules']['lost_item'])
 

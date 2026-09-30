@@ -38,6 +38,18 @@ range/내부/외부 판정은 바꾸지 않는다. 작업자는 각각 upstream 
 프레임 전체를 거부한다. 1로 설정하면 분할 없이 원래 ShapeMask를 호출한다.
 전체 CPU 작업량/메모리는 감소한다는 보장이 없으며 CPU 여유에 맞춰 설정한다.
 
+병렬 작업 스레드는 worker 수 설정 시 한 번 생성하고 프레임 사이에는 condition
+variable에서 대기한다. 기본 4 worker는 호출 스레드 1개와 상주 스레드 3개로 실행한다.
+프레임마다 `std::async` 스레드를 생성·종료하지 않으며, 점군 분할 및 판정 배열도
+다음 프레임에 재사용한다. 원본 점군을 순환 분할 버퍼로 복사하는 작업 자체는 유지한다.
+버퍼는 처리한 최대 프레임 크기에 맞춰 용량을 보관하므로, 반복 할당 감소가
+프로세스 상주 메모리 감소를 의미하지는 않는다. worker 수 재설정 또는 객체 종료 시
+스레드를 종료하고 버퍼를 해제한다. 형상이 등록된 동안 worker 수 변경은 거부한다.
+
+호출 스레드 또는 작업 스레드에서 예외가 발생하면 나머지 작업자가 모두 끝날 때까지
+기다린 후 예외를 전달한다. 실패한 프레임의 일부 판정을 반환하지 않으며 다음 프레임에서
+정상 복구할 수 있다. 상위 updater의 frame/geometry 직렬화와 TF·형상 세대 검사는 유지한다.
+
 ```bash
 make test-scene-mapping
 ```
@@ -55,6 +67,17 @@ world/attached body는 이 프로파일에 포함되지 않는다. 별도 frame 
 검사가 해당 형상의 누락/cache 변경 시 거부와 정상 점군 통합을 검증한다.
 이 수치는 실제 이동 중 지연 또는 Jetson 성능을 대신하지 않는다.
 
+2026-09-29 버퍼/스레드 재사용 전후 비교는 저장된 robot-only fixture
+(76,800점, 27개 형상, 4 worker)를 사용했다. 준비 후 전후 실행 순서를 교대해
+12회 비교한 self-mask 중앙값은 365.53→363.30ms(약 0.6% 감소)였고, 모든 점의
+결과는 단일 worker 기준과 일치했다. 별도 3회 계측에서 해당 호출 안의 C++
+`operator new/new[]` 할당은 프레임당 30→0회였다. 프레임마다 만들던 스레드 3개는
+초기화 시 생성한 스레드로 대체했다. 이 fixture에서 재사용하는 분할/판정 payload는
+약 1.17MiB이며 프로세스 RSS 감소를 측정한 것은 아니다. 처리 시간 차이는 작아서
+큰 속도 향상이나 전체 파이프라인 지연 급증 해소를 주장하지 않는다. 현재 실행 로그의
+지도 전체 갱신 시간과도 측정 범위가 다르다. 전후 코드·원자료·계측 프로그램은 로컬
+`artifacts/scene_mask_reuse_20260929/`에 보관한다.
+
 ROS 2 Humble의 `moveit_ros_perception`, `moveit_ros_occupancy_map_monitor`,
 `geometric_shapes`, `octomap`이 필요하다. 로컬 MoveIt perception prefix의
 설치 조건은 루트 `docs/DEVELOPMENT_SETUP.md`를 따른다. core gtest는 내부/
@@ -64,6 +87,8 @@ ROS 2 Humble의 `moveit_ros_perception`, `moveit_ros_occupancy_map_monitor`,
 range clipping, stop/start, 동시 frame 직렬화 및 executor 지연 후 최신 프레임
 선택을 검사한다.
 이 테스트가 실제 파지·운반 성공을 증명하지는 않는다.
+`test_partitioned_shape_mask`는 worker 재사용/재설정, 큰 프레임에서 작은 프레임으로의
+전환, XYZ/XYZRGB layout 변경, 호출·작업 스레드 예외 후 전체 작업 종료와 복구도 검사한다.
 
 이전 `PointCloudOctomapUpdater::updateMask` hook은 정리를 건너뛰더라도
 base callback의 점유 갱신을 중단할 수 없었다. 지금은 `OccupancyMapUpdater`

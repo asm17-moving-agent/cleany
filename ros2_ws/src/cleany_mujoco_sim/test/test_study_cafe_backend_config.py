@@ -20,10 +20,10 @@ def _arm_joints(side: str) -> list[str]:
     return [f'{side}_{suffix}' for suffix in ARM_JOINT_SUFFIXES]
 
 
-def test_handeye_controllers_claim_disjoint_arm_joints() -> None:
+def test_study_cafe_controllers_claim_disjoint_arm_joints() -> None:
     config = yaml.safe_load(
         (
-            PACKAGE_ROOT / 'config' / 'handeye_ros2_controllers.yaml'
+            PACKAGE_ROOT / 'config' / 'study_cafe_ros2_controllers.yaml'
         ).read_text(encoding='utf-8')
     )
 
@@ -50,7 +50,7 @@ def test_handeye_controllers_claim_disjoint_arm_joints() -> None:
         assert parameters['constraints']['stopped_velocity_tolerance'] == 0.01
         for joint_name in parameters['joints']:
             assert parameters['constraints'][joint_name] == {
-                'trajectory': 0.05,
+                'trajectory': 0.12,
                 'goal': 0.01,
             }
 
@@ -73,7 +73,7 @@ def test_handeye_controllers_claim_disjoint_arm_joints() -> None:
 
 
 def test_xim_workaround_is_configurable_and_simulator_only() -> None:
-    source = (PACKAGE_ROOT / 'launch' / 'handeye_backend.launch.py').read_text()
+    source = (PACKAGE_ROOT / 'launch' / 'study_cafe_backend.launch.py').read_text()
     tree = ast.parse(source)
     overrides = []
     for call in ast.walk(tree):
@@ -91,24 +91,3 @@ def test_xim_workaround_is_configurable_and_simulator_only() -> None:
     assert ast.unparse(env.values[0]) == "LaunchConfiguration('sim_xmodifiers').perform(context)"
     assert "'sim_xmodifiers', default_value='@im=none'" in source
     assert 'SetEnvironmentVariable' not in source
-
-
-def test_grasp_demo_controller_profile_is_isolated_and_relaxes_only_arm_path() -> None:
-    handeye_path = PACKAGE_ROOT / 'config' / 'handeye_ros2_controllers.yaml'
-    grasp_path = PACKAGE_ROOT / 'config' / 'grasp_demo_ros2_controllers.yaml'
-    handeye = yaml.safe_load(handeye_path.read_text(encoding='utf-8'))
-    grasp = yaml.safe_load(grasp_path.read_text(encoding='utf-8'))
-
-    assert grasp_path != handeye_path
-    for side in ('left', 'right'):
-        controller = f'{side}_arm_controller'
-        grasp_constraints = grasp[controller]['ros__parameters']['constraints']
-        handeye_constraints = handeye[controller]['ros__parameters']['constraints']
-        for joint in _arm_joints(side):
-            assert grasp_constraints[joint] == {'trajectory': 0.12, 'goal': 0.01}
-            assert handeye_constraints[joint] == {
-                'trajectory': 0.05,
-                'goal': 0.01,
-            }
-        gripper = grasp[f'{side}_gripper_controller']['ros__parameters']
-        assert gripper['constraints']['goal_time'] == 3.0

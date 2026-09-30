@@ -11,14 +11,14 @@ def generate_launch_description() -> LaunchDescription:
     default_config = str(
         Path(get_package_share_directory('cleany_moveit_config'))
         / 'config'
-        / 'handeye_collision_objects.yaml'
+        / 'study_cafe_grasp_collision_objects.yaml'
     )
     return LaunchDescription(
         [
             DeclareLaunchArgument(
                 'scene_config',
                 default_value=default_config,
-                description='Fixed hand-eye MoveIt collision-object YAML.',
+                description='Configured study-cafe MoveIt collision-object YAML.',
             ),
             DeclareLaunchArgument(
                 'service_wait_timeout_sec',
@@ -26,7 +26,7 @@ def generate_launch_description() -> LaunchDescription:
             ),
             Node(
                 package='cleany_moveit_config',
-                executable='apply_handeye_collision_scene',
+                executable='apply_collision_scene',
                 parameters=[
                     {
                         'scene_config': LaunchConfiguration('scene_config'),

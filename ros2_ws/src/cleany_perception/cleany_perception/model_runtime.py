@@ -55,8 +55,4 @@ def resolve_model_assets(
         if not encoder.is_file():
             raise ValueError(f'YOLOE text encoder not found: {encoder}')
         return result
-    if kind == 'sam2':
-        if not values['sam2_model_config'].strip():
-            raise ValueError('sam2_model_config must not be empty')
-        return {'sam2_checkpoint': asset('sam2_checkpoint')}
     raise ValueError(f'Unsupported local model kind: {kind}')

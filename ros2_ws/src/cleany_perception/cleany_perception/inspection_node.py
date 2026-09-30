@@ -9,7 +9,6 @@ import numpy as np
 
 import rclpy
 from cleany_interfaces.action import InspectScene
-from cleany_interfaces.srv import ObserveObjectReference
 from cleany_interfaces.msg import (
     DetectedObject2D,
     DetectedObject2DArray,
@@ -39,11 +38,6 @@ from rclpy.time import Time
 from sensor_msgs.msg import CameraInfo, Image
 
 from cleany_perception.adapters.gemini_detector import GeminiClassifier, GeminiDetector
-from cleany_perception.adapters.sam2_segmenter import Sam2Segmenter
-from cleany_perception.adapters.sam2_reference_tracker import Sam2ReferenceTracker
-from cleany_perception.adapters.sam2_runtime import Sam2SharedPredictors
-from cleany_perception.core.reference_observation import ReferenceObservationConfig
-from cleany_perception.reference_service import ReferenceService
 from cleany_perception.adapters.simulation_color import (
     SimulationColorDetector,
     SimulationColorSegmenter,
@@ -76,7 +70,6 @@ from cleany_perception.core.object_ranking import (
 from cleany_perception.core.pipeline import InspectionPipeline
 from cleany_perception.core.ports import (
     DetectorPort,
-    ReferenceTrackerPort,
     SegmenterPort,
     TransformPort,
 )
@@ -133,7 +126,6 @@ class InspectionNode(Node):
         detector: DetectorPort | None = None,
         segmenter: SegmenterPort | None = None,
         transformer: TransformPort | None = None,
-        reference_tracker: ReferenceTrackerPort | None = None,
         **kwargs,
     ) -> None:
         super().__init__('perception_inspector', **kwargs)
@@ -164,23 +156,13 @@ class InspectionNode(Node):
             raise ValueError('YOLOE+Gemini classification requires YOLOE segmentation')
         for kind, supplied in ((detector_type, detector),
                                (segmenter_type, segmenter)):
-            if supplied is None and kind in ('yoloe', 'yoloe_gemini', 'sam2'):
+            if supplied is None and kind in ('yoloe', 'yoloe_gemini'):
                 self._resolve_local_model('yoloe' if kind == 'yoloe_gemini' else kind)
-        shared_sam2 = None
-        if (
-            segmenter is None
-            and reference_tracker is None
-            and segmenter_type == 'sam2'
-            and (
-                bool(self.get_parameter('enable_reference_observation').value)
-                or bool(self.get_parameter('enable_wrist_observation').value)
-            )
-        ):
-            shared_sam2 = Sam2SharedPredictors(
-                str(self.get_parameter('sam2_model_config').value),
-                str(self.get_parameter('sam2_checkpoint').value),
-                str(self.get_parameter('sam2_device').value),
-            )
+        wrist_yoloe = None
+        wrist_check_yoloe = None
+        wrist_mouse_check_yoloe = None
+        wrist_right_yoloe = None
+        wrist_right_check_yoloe = None
         if detector is None:
             if detector_type == 'gemini':
                 detector = GeminiDetector(
@@ -206,40 +188,101 @@ class InspectionNode(Node):
                     ),
                 )
             elif detector_type in ('yoloe', 'yoloe_gemini'):
-                yoloe = YoloeDetector(
-                    model_path=str(
-                        self.get_parameter('yoloe_model_path').value
-                    ),
-                    classes=tuple(
-                        self.get_parameter('yoloe_classes').value
-                    ),
-                    device=str(self.get_parameter('yoloe_device').value),
-                    image_size=int(
-                        self.get_parameter('yoloe_image_size').value
-                    ),
-                    confidence_threshold=float(
-                        self.get_parameter(
-                            'minimum_detection_confidence'
-                        ).value
-                    ),
-                    iou_threshold=float(
-                        self.get_parameter('yoloe_iou_threshold').value
-                    ),
-                    maximum_detections=int(
-                        self.get_parameter('maximum_detections').value
-                    ),
-                    text_encoder_directory=str(
-                        self.get_parameter(
-                            'yoloe_text_encoder_directory'
-                        ).value
-                    ),
-                    require_masks=segmenter_type == 'yoloe_seg',
-                    class_confidence_thresholds=tuple(
-                        self.get_parameter(
-                            'yoloe_class_confidence_thresholds'
-                        ).value or ()
-                    ),
-                )
+                def make_yoloe(
+                    model_path: str, *, class_thresholds: tuple[float, ...] | None = None,
+                ) -> YoloeDetector:
+                    return YoloeDetector(
+                        model_path=model_path,
+                        classes=tuple(self.get_parameter('yoloe_classes').value),
+                        device=str(self.get_parameter('yoloe_device').value),
+                        image_size=int(self.get_parameter('yoloe_image_size').value),
+                        confidence_threshold=float(self.get_parameter(
+                            'minimum_detection_confidence').value),
+                        iou_threshold=float(self.get_parameter('yoloe_iou_threshold').value),
+                        maximum_detections=int(self.get_parameter('maximum_detections').value),
+                        text_encoder_directory=str(self.get_parameter(
+                            'yoloe_text_encoder_directory').value),
+                        require_masks=segmenter_type == 'yoloe_seg',
+                        class_confidence_thresholds=(
+                            class_thresholds if class_thresholds is not None else
+                            tuple(self.get_parameter(
+                                'yoloe_class_confidence_thresholds').value or ())),
+                    )
+
+                yoloe = make_yoloe(str(self.get_parameter('yoloe_model_path').value))
+                wrist_yoloe = yoloe
+                if (segmenter_type == 'yoloe_seg'
+                        and bool(self.get_parameter('enable_wrist_observation').value)):
+                    def resolved_model_path(parameter_name: str) -> Path | None:
+                        raw = str(self.get_parameter(parameter_name).value).strip()
+                        if not raw:
+                            return None
+                        path = Path(raw).expanduser()
+                        if not path.is_absolute():
+                            path = Path(str(self.get_parameter(
+                                'model_directory').value)).expanduser() / path
+                        return path.resolve()
+
+                    head_path = Path(str(self.get_parameter('yoloe_model_path').value)).resolve()
+                    wrist_path = resolved_model_path('wrist_yoloe_model_path')
+                    if wrist_path is not None and wrist_path != head_path:
+                        wrist_yoloe = make_yoloe(str(wrist_path))
+                    wrist_right_yoloe = wrist_yoloe
+                    right_path = resolved_model_path('wrist_right_yoloe_model_path')
+                    if right_path == head_path:
+                        wrist_right_yoloe = yoloe
+                    elif right_path == wrist_path:
+                        wrist_right_yoloe = wrist_yoloe
+                    elif right_path is not None:
+                        wrist_right_yoloe = make_yoloe(str(right_path))
+                    wrist_check_yoloe = wrist_yoloe
+                    check_path = resolved_model_path('wrist_check_yoloe_model_path')
+                    if check_path == head_path:
+                        wrist_check_yoloe = yoloe
+                    elif check_path == wrist_path:
+                        wrist_check_yoloe = wrist_yoloe
+                    elif check_path == right_path:
+                        wrist_check_yoloe = wrist_right_yoloe
+                    elif check_path is not None:
+                        wrist_check_yoloe = make_yoloe(str(check_path))
+                    wrist_mouse_check_yoloe = wrist_check_yoloe
+                    mouse_check_path = resolved_model_path(
+                        'wrist_mouse_check_yoloe_model_path')
+                    if mouse_check_path is not None:
+                        for path, adapter in (
+                            (head_path, yoloe), (wrist_path, wrist_yoloe),
+                            (right_path, wrist_right_yoloe),
+                            (check_path, wrist_check_yoloe),
+                        ):
+                            if mouse_check_path == path:
+                                wrist_mouse_check_yoloe = adapter
+                                break
+                        else:
+                            wrist_mouse_check_yoloe = make_yoloe(
+                                str(mouse_check_path))
+                    wrist_right_check_yoloe = wrist_check_yoloe
+                    right_check_path = resolved_model_path(
+                        'wrist_right_check_yoloe_model_path')
+                    right_check_thresholds = tuple(self.get_parameter(
+                        'wrist_right_check_yoloe_class_confidence_thresholds'
+                    ).value or ())
+                    if right_check_path is not None and right_check_thresholds:
+                        wrist_right_check_yoloe = make_yoloe(
+                            str(right_check_path),
+                            class_thresholds=right_check_thresholds)
+                    else:
+                        for path, adapter in (
+                            (head_path, yoloe), (wrist_path, wrist_yoloe),
+                            (right_path, wrist_right_yoloe),
+                            (check_path, wrist_check_yoloe),
+                        ):
+                            if right_check_path is not None and right_check_path == path:
+                                wrist_right_check_yoloe = adapter
+                                break
+                        else:
+                            if right_check_path is not None:
+                                wrist_right_check_yoloe = make_yoloe(
+                                    str(right_check_path))
                 if detector_type == 'yoloe_gemini':
                     detector = YoloeGeminiDetector(yoloe, GeminiClassifier(
                         model=str(self.get_parameter('gemini_model').value),
@@ -253,18 +296,7 @@ class InspectionNode(Node):
             else:
                 raise ValueError(f'Unsupported detector_type: {detector_type}')
         if segmenter is None:
-            if segmenter_type == 'sam2':
-                segmenter = Sam2Segmenter(
-                    model_config=str(
-                        self.get_parameter('sam2_model_config').value
-                    ),
-                    checkpoint_path=str(
-                        self.get_parameter('sam2_checkpoint').value
-                    ),
-                    device=str(self.get_parameter('sam2_device').value),
-                    shared_predictors=shared_sam2,
-                )
-            elif segmenter_type == 'simulation_color':
+            if segmenter_type == 'simulation_color':
                 segmenter = SimulationColorSegmenter(
                     profile=str(
                         self.get_parameter(
@@ -282,6 +314,26 @@ class InspectionNode(Node):
                 )
         if bool(self.get_parameter('preload_models').value):
             adapters = (('detector', detector), ('segmenter', segmenter))
+            if wrist_yoloe is not None and wrist_yoloe is not yoloe:
+                adapters += (('wrist detector', wrist_yoloe),)
+            if (wrist_right_yoloe is not None
+                    and wrist_right_yoloe is not wrist_yoloe
+                    and wrist_right_yoloe is not yoloe):
+                adapters += (('right wrist detector', wrist_right_yoloe),)
+            if (wrist_check_yoloe is not None
+                    and wrist_check_yoloe is not wrist_yoloe
+                    and wrist_check_yoloe is not wrist_right_yoloe
+                    and wrist_check_yoloe is not yoloe):
+                adapters += (('wrist check detector', wrist_check_yoloe),)
+            if (wrist_right_check_yoloe is not None
+                    and wrist_right_check_yoloe not in (
+                        yoloe, wrist_yoloe, wrist_right_yoloe, wrist_check_yoloe)):
+                adapters += (('right wrist check detector', wrist_right_check_yoloe),)
+            if (wrist_mouse_check_yoloe is not None
+                    and wrist_mouse_check_yoloe not in (
+                        yoloe, wrist_yoloe, wrist_right_yoloe,
+                        wrist_check_yoloe, wrist_right_check_yoloe)):
+                adapters += (('mouse wrist check detector', wrist_mouse_check_yoloe),)
             for name, adapter in adapters:
                 prepare = getattr(adapter, 'prepare', None)
                 if not callable(prepare):
@@ -291,8 +343,8 @@ class InspectionNode(Node):
             detector_device = (
                 f"remote API: {self.get_parameter('gemini_model').value}; access not yet verified"
                 if detector_type == 'gemini' else self.get_parameter('yoloe_device').value)
-            segmenter_device = (self.get_parameter('sam2_device').value
-                                if segmenter_type == 'sam2' else 'same YOLOE inference')
+            segmenter_device = ('YOLOE instance masks' if segmenter_type == 'yoloe_seg'
+                                else 'simulation color')
             self.get_logger().info(
                 'PERCEPTION MODELS READY: '
                 f'{detector_type} ({detector_device}) + '
@@ -378,45 +430,10 @@ class InspectionNode(Node):
         )
         self._busy_lock = threading.Lock()
         self._busy = False
-        self._reference_service = None
-        if bool(self.get_parameter('enable_reference_observation').value):
-            if reference_tracker is None:
-                if segmenter_type != 'sam2' or detector_type not in ('yoloe', 'gemini'):
-                    raise ValueError('Reference observation requires YOLOE or Gemini with SAM2')
-                reference_tracker = Sam2ReferenceTracker(
-                    str(self.get_parameter('sam2_model_config').value),
-                    str(self.get_parameter('sam2_checkpoint').value),
-                    str(self.get_parameter('sam2_device').value),
-                    **(
-                        {'shared_predictors': shared_sam2}
-                        if shared_sam2 is not None
-                        else {}
-                    ))
-            if bool(self.get_parameter('preload_models').value):
-                self.get_logger().info('Loading SAM2 reference predictor before service ready')
-                reference_tracker.prepare()
-            config = ReferenceObservationConfig(
-                minimum_points=int(self.get_parameter('minimum_object_points').value),
-                maximum_mask_fraction=float(self.get_parameter('reference_maximum_mask_fraction').value),
-                minimum_valid_depth_fraction=float(self.get_parameter('reference_minimum_depth_fraction').value),
-                border_margin_px=int(self.get_parameter('reference_border_margin_px').value),
-                minimum_depth_m=float(self.get_parameter('minimum_depth_m').value),
-                maximum_depth_m=float(self.get_parameter('maximum_depth_m').value),
-                trim_fraction=float(self.get_parameter('reference_trim_fraction').value))
-            self._reference_handler = ReferenceService(
-                cache=self._snapshot_cache, buffer=self._snapshot_buffer,
-                tracker=reference_tracker, lookup_transform=self._lookup_capture_transform,
-                target_frame=self._target_frame, depth_scale=self._depth_16u_scale_m,
-                timeout_seconds=self._snapshot_timeout_seconds,
-                ttl_seconds=float(self.get_parameter('reference_ttl_seconds').value), config=config)
-            self._reference_service = self.create_service(
-                ObserveObjectReference, 'perception/observe_object_reference',
-                self._execute_reference, callback_group=self._action_callback_group)
         self._wrist_service = None
         if bool(self.get_parameter('enable_wrist_observation').value):
-            if (reference_tracker is None or detector_type not in ('yoloe', 'gemini')
-                    or segmenter_type != 'sam2'):
-                raise ValueError('Wrist observation requires learned reference models')
+            if detector_type != 'yoloe_gemini' or segmenter_type != 'yoloe_seg' or wrist_yoloe is None:
+                raise ValueError('Wrist observation requires the local YOLOE-seg detector')
             from cleany_perception.wrist_service import WristService
             from dataclasses import asdict
             from cleany_perception.core.wrist_observation import WristObservationConfig
@@ -424,10 +441,15 @@ class InspectionNode(Node):
                 name: self.declare_parameter(f'wrist_{name}', default).value
                 for name, default in asdict(WristObservationConfig()).items()
             })
-            self._wrist_service = WristService(self, detector, segmenter, reference_tracker,
-                config=wrist_config,
-                continuous_tracking=bool(self.get_parameter('wrist_continuous_tracking').value),
-                require_redetection=bool(self.get_parameter('wrist_handoff_require_redetection').value))
+            self._wrist_service = WristService(
+                self, wrist_yoloe,
+                check_detector=wrist_check_yoloe,
+                mouse_check_detector=wrist_mouse_check_yoloe,
+                right_detector=wrist_right_yoloe,
+                right_check_detector=wrist_right_check_yoloe,
+                failure_image_directory=str(self.get_parameter(
+                    'wrist_failure_image_directory').value),
+                config=wrist_config)
         self._action_server = ActionServer(
             self,
             InspectScene,
@@ -445,15 +467,7 @@ class InspectionNode(Node):
         super().destroy_node()
 
     def _declare_parameters(self) -> None:
-        self.declare_parameter('enable_reference_observation', False)
         self.declare_parameter('enable_wrist_observation', False)
-        self.declare_parameter('wrist_handoff_require_redetection', False)
-        self.declare_parameter('wrist_continuous_tracking', True)
-        self.declare_parameter('reference_ttl_seconds', 120.0)
-        self.declare_parameter('reference_maximum_mask_fraction', 0.5)
-        self.declare_parameter('reference_minimum_depth_fraction', 0.8)
-        self.declare_parameter('reference_border_margin_px', 2)
-        self.declare_parameter('reference_trim_fraction', 0.01)
         self.declare_parameter('preload_models', False)
         self.declare_parameter(
             'model_directory',
@@ -478,11 +492,20 @@ class InspectionNode(Node):
             'default_query',
             'Detect the box and can on the table.',
         )
-        self.declare_parameter('detector_type', 'gemini')
-        self.declare_parameter('segmenter_type', 'sam2')
+        self.declare_parameter('detector_type', 'yoloe_gemini')
+        self.declare_parameter('segmenter_type', 'yoloe_seg')
         self.declare_parameter('simulation_color_minimum_pixels', 100)
         self.declare_parameter('simulation_color_profile', 'legacy')
         self.declare_parameter('yoloe_model_path', '')
+        self.declare_parameter('wrist_yoloe_model_path', '')
+        self.declare_parameter('wrist_right_yoloe_model_path', '')
+        self.declare_parameter('wrist_check_yoloe_model_path', '')
+        self.declare_parameter('wrist_mouse_check_yoloe_model_path', '')
+        self.declare_parameter('wrist_right_check_yoloe_model_path', '')
+        self.declare_parameter('wrist_failure_image_directory', '')
+        self.declare_parameter(
+            'wrist_right_check_yoloe_class_confidence_thresholds',
+            Parameter.Type.DOUBLE_ARRAY)
         self.declare_parameter(
             'yoloe_classes',
             ['cup', 'wallet', 'crumpled tissue', 'lego brick'],
@@ -504,9 +527,6 @@ class InspectionNode(Node):
         )
         self.declare_parameter('gemini_api_key_environment', 'GEMINI_API_KEY')
         self.declare_parameter('detector_timeout_seconds', 30.0)
-        self.declare_parameter('sam2_model_config', '')
-        self.declare_parameter('sam2_checkpoint', '')
-        self.declare_parameter('sam2_device', 'cuda')
         self.declare_parameter('tf_timeout_seconds', 0.5)
         self.declare_parameter('tf_cache_seconds', 60.0)
         self.declare_parameter('minimum_detection_confidence', 0.25)
@@ -532,8 +552,7 @@ class InspectionNode(Node):
 
     def _resolve_local_model(self, kind: str) -> None:
         keys = (
-            ('yoloe_model_path', 'yoloe_text_encoder_directory')
-            if kind == 'yoloe' else ('sam2_checkpoint', 'sam2_model_config')
+            'yoloe_model_path', 'yoloe_text_encoder_directory'
         )
         resolved = resolve_model_assets(
             {key: str(self.get_parameter(key).value) for key in keys},
@@ -758,19 +777,6 @@ class InspectionNode(Node):
             with self._busy_lock:
                 self._busy = False
 
-    def _execute_reference(self, request, response):
-        # Image and video predictors may not execute alongside detection/actions.
-        with self._busy_lock:
-            if self._busy:
-                response.error_code = response.ERROR_BUSY
-                response.message = 'Inspector is busy'
-                return response
-            self._busy = True
-        try:
-            return self._reference_handler.execute(request, response)
-        finally:
-            with self._busy_lock:
-                self._busy = False
 
     def _execute_selection(
         self,

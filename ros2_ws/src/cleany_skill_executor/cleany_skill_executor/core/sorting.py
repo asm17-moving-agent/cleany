@@ -40,26 +40,6 @@ def bin_release_region(
     return lower, upper
 
 
-def table_placement_slots(
-    center_xy: tuple[float, float], size_xy: tuple[float, float], radius: float,
-    *, edge_margin: float = .01, step: float = .04,
-) -> list[tuple[float, float]]:
-    """Bounded interior sampling, including narrow intervals and the centerline."""
-    if (not all(math.isfinite(v) for v in (*center_xy, *size_xy, radius, edge_margin, step))
-            or min(*size_xy, radius, edge_margin, step) <= 0):
-        raise ValueError('Placement dimensions and sampling parameters must be finite and positive')
-    half = [s / 2 - radius - edge_margin for s in size_xy]
-    if min(half) < 0:
-        return []
-    axes = []
-    for center, extent in zip(center_xy, half):
-        count = min(16, max(1, math.ceil(2 * extent / step)))
-        axes.append(sorted({center, *(center - extent + 2 * extent * i / count
-                                       for i in range(count + 1))}))
-    ys = sorted(axes[1], key=lambda y: abs(y - center_xy[1]))
-    return [(x, y) for x in axes[0] for y in ys]
-
-
 @dataclass(frozen=True)
 class Decision:
     label: str
@@ -74,8 +54,8 @@ class SortingPolicy:
     lost_item_labels: frozenset[str]
     hazardous_labels: frozenset[str]
     minimum_confidence: float
-    trash_destination: str = 'trash_left'
-    lost_item_destination: str = 'lost_items_right'
+    trash_destination: str
+    lost_item_destination: str
 
     def __post_init__(self) -> None:
         if not 0.0 < self.minimum_confidence <= 1.0:
@@ -94,22 +74,6 @@ class SortingPolicy:
                 or self.trash_destination == self.lost_item_destination):
             raise ValueError('Two distinct destinations are required')
 
-    def classify(self, label: str, confidence: float) -> Decision:
-        normalized = normalize_label(label)
-        if normalized in self.hazardous_labels:
-            return Decision(label, Category.REVIEW, None, 'hazardous_label')
-        if (not math.isfinite(confidence) or confidence > 1.0
-                or confidence < self.minimum_confidence):
-            return Decision(label, Category.REVIEW, None, 'low_confidence')
-        if normalized in self.trash_labels:
-            return Decision(label, Category.TRASH,
-                            self.trash_destination, 'configured_trash_label')
-        if normalized in self.lost_item_labels:
-            return Decision(
-                label, Category.LOST_ITEM,
-                self.lost_item_destination, 'configured_lost_label',
-            )
-        return Decision(label, Category.REVIEW, None, 'unknown_label')
 
     def classify_model(self, label: str, confidence: float,
                        category: str, reason: str) -> Decision:

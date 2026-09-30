@@ -6,7 +6,6 @@ ARG ROS_APT_SOURCE_VERSION=1.2.0
 ARG MINKOWSKI_ENGINE_COMMIT=35862757e2586abc3b1528e012b6d80ce758a92c
 ARG GRASPNET_API_COMMIT=eb57dd2092d8dbe05312a29c3d0c22f3226efbfc
 ARG ANYGRASP_SDK_COMMIT=32418bc378c2e74b511d74cc4f61c5e9acacf072
-ARG SAM2_COMMIT=2b90b9f5ceec907a1c18123530e92e794ad901a4
 
 ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
@@ -75,10 +74,7 @@ RUN git clone --branch dev https://github.com/graspnet/anygrasp_sdk.git && \
       grasp_detection/gsnet_versions/aarch64/gsnet.cpython-310-aarch64-linux-gnu.so \
       /opt/anygrasp/gsnet.so
 
-RUN git clone https://github.com/facebookresearch/sam2.git && \
-    cd sam2 && \
-    git checkout "${SAM2_COMMIT}" && \
-    SAM2_BUILD_CUDA=0 python3 -m pip install --no-cache-dir --no-build-isolation -e .
+
 
 RUN python3 -m pip install --no-cache-dir google-genai==2.18.0
 

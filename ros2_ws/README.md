@@ -31,20 +31,18 @@ make test
 ```
 
 `make test`는 13개 패키지를 빌드하고 C++/Python 검사와 패키지에 등록된
-ROS runtime 검사, 개발 도구·vision container 계약 검사를 실행한다.
+MoveIt mock runtime 검사, 개발 도구·vision container 계약 검사를 실행한다.
 Python은 `pytest`를 명시적으로 선택하고 외부 플러그인 자동 로드를 차단한다.
 CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복원한다.
 카메라 runtime은 headless여도 유효한 X display가 필요하다. GUI 세션의
 `DISPLAY`를 전달하거나 CI처럼 Xvfb 환경에서 실행한다.
-`make test-mujoco`는 MuJoCo 패키지의 `test/` 전체를 검사하며 카메라·controller
-runtime도 포함한다. 짧은 개별 검사는 아래 native pytest 명령을 사용한다.
+`make test-mujoco`는 현재 장면과 공통 bridge의 `test/` 전체를 검사한다. 짧은 개별 검사는 아래 native pytest 명령을 사용한다.
 
 변경한 영역부터 확인할 때는 타깃 테스트를 사용한다.
 
 ```bash
 make test-mission
 make test-mujoco
-make test-handeye
 make test-grasp-pregrasp
 make test-scene-mapping
 make test-mujoco-observer
@@ -52,13 +50,11 @@ make test-grasp-pregrasp-runtime
 make test-gazebo
 ```
 
-RGB-D perception부터 grasp 후보 생성과 MoveIt pre-grasp까지 변경할 때는
-`make test-grasp-pregrasp`로 관련 unit/contract 테스트만 실행한다. 전체 MuJoCo,
-주행과 hand-eye calibration 테스트는 포함하지 않는다. 실제 MuJoCo controller 실행은
-시간이 더 걸리는 `make test-grasp-pregrasp-runtime`으로 별도 확인한다. runtime은
-OMPL과 Pilz LIN 동시 로딩 및 LIN FK 직선성, 가장 가까운 객체 실패 후 다음 객체
-fallback과 pre-grasp 정지를 검증한다. RGB-D 캔
-GUI 데모는 OpenGL viewer가 필요하므로 자동 runtime target에 포함하지 않는다.
+RGB-D perception부터 스터디카페 집기·분류까지 변경할 때는
+`make test-grasp-pregrasp`로 관련 unit/contract 테스트를 실행한다.
+`make test-grasp-pregrasp-runtime`은 MoveIt mock backend에서 OMPL/Pilz 계획과
+controller 실행을 검사한다. 이전 캔·박스·hand-eye 전용 MuJoCo 데모와
+runtime 테스트는 제거했다. 전체 물리 수거 성공은 이 테스트의 검증 범위가 아니다.
 
 `make test-scene-mapping`은 선택형 known-geometry OctoMap updater만 빌드하고
 C++ geometry/TF guard 및 plugin 로딩을 검사한다. 이 검사도
@@ -68,27 +64,11 @@ C++ geometry/TF guard 및 plugin 로딩을 검사한다. 이 검사도
 serial/분할 self-mask의 점 단위 일치와 처리 시간을 비교한다. fixture 계약과
 robot-only 측정 범위는 `src/cleany_scene_mapping/README.md`를 따른다.
 
-Hand-eye 패키지 경계만 빌드하려면 `make build-handeye`를 사용한다.
-`make test-handeye`는 description, MuJoCo backend, MoveIt config와 calibration
-패키지를 함께 검사하며 실제 runtime test는 자동으로 `headless:=true`를 사용한다.
+Hand-eye의 수학·ROS adapter·오프라인 dataset 검증은
+[`cleany_handeye_calibration` README](src/cleany_handeye_calibration/README.md)를 따른다.
+전용 MuJoCo calibration 실행 경로는 제거했다.
 
-MuJoCo에서 random pose 후보를 MoveIt/렌더링/PnP로 검증하고 axis parallelism과
-rotation covariance를 분석해 20+5 artifact를 생성한 뒤 실제 calibration을 실행한다.
-
-```bash
-make handeye-generate-mujoco
-make handeye-mujoco
-make handeye-validate-mujoco
-```
-
-생성 target은 준비 단계이므로 headless이고 기본 artifact 경로를 materialize한다.
-Calibration target은 operator가 motion과 target visibility를 확인할 수 있도록
-`headless:=false`를 명시하며 MuJoCo viewer를 연다. Template의 `null` 값을 그대로
-사용할 수 없고, pose preflight와 safety/timeouts 검토가 끝난 artifact만 허용한다.
-마지막 target은 25개 row/image/hash, ChArUco/PnP 재현, provenance와 150-run
-solver 결과를 `dataset_validation.json`으로 검증한다.
-
-MuJoCo 시뮬레이터를 headless 모드로 실행한다.
+스터디카페 관찰 장면을 headless 모드로 실행한다.
 
 ```bash
 make sim
@@ -112,7 +92,7 @@ YOLOE-seg + Gemini 상세 분류와 카메라 기반 충돌 지도를 포함한 
 `make sim-mujoco-sorting`으로 실행한다. 시뮬레이션에서만 실제 관절 명령을
 보내는 통합 검증 경로이며, 두 종류의 물리적 수거 성공은 검증 진행 중이다.
 기본 인식은 YOLOE-seg의 객체·mask와 Gemini의 상세 라벨·분류를 사용한다.
-파지 뒤 확인은 head RGB-D 재검출로 수행하며 SAM2 손목 tracking은 사용하지 않는다.
+파지 뒤 확인은 선택한 실행 모드의 head RGB-D 재검출 또는 YOLOE-seg 손목 CHECK로 수행한다.
 GUI 없이 실행하려면 `DISPLAY=:0 make sim-mujoco-sorting
 SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'`를 사용한다.
 현재 vendor 카메라 렌더링은 headless에서도 사용 가능한 X display가 필요하다.
@@ -164,13 +144,8 @@ source install/setup.bash
 python3 -m pytest src/cleany_mujoco_sim/test/test_scene_loader.py
 colcon test --python-testing pytest
 colcon test-result --verbose
-ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
+ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=true
 ```
-
-Hand-eye에 해당하는 native 세부 명령과 artifact schema는
-[`cleany_handeye_calibration` README](src/cleany_handeye_calibration/README.md)를
-따른다. 실제 calibration launch의 viewer 기본값은 `headless:=false`이고 테스트만
-명시적으로 headless 모드를 사용한다.
 
 `source install/setup.bash`는 build 후 같은 terminal session에서 실행한다.
 

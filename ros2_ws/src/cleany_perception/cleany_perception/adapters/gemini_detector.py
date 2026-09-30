@@ -4,6 +4,7 @@ import io
 import json
 import math
 import os
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import replace
 from typing import Any
@@ -335,10 +336,16 @@ class GeminiDetector:
                 f'{self._api_key_environment} is not set',
             )
         client = self._get_client(api_key)
-        if self._model.startswith('gemini-robotics-er-'):
-            return self._request_interaction(client, image_bytes, prompt,
-                                             interaction_schema)
-        return self._request_generate_content(client, image_bytes, prompt, schema)
+        for attempt in range(3):
+            try:
+                if self._model.startswith('gemini-robotics-er-'):
+                    return self._request_interaction(client, image_bytes, prompt,
+                                                     interaction_schema)
+                return self._request_generate_content(client, image_bytes, prompt, schema)
+            except Exception as error:
+                if getattr(error, 'code', None) != 503 or attempt == 2:
+                    raise
+                time.sleep(2 ** attempt)
 
     def _get_client(self, api_key: str):
         if self._client is not None:
@@ -492,17 +499,29 @@ class GeminiClassifier(GeminiDetector):
             'hazardous objects, or unclear disposability. Do not infer ownership '
             f'as fact. YOLOE coarse candidates: {candidates}.'
         )
-        try:
-            if self._response_provider is not None:
-                response_text = self._response_provider(
-                    buffer.getvalue(), prompt, _CLASSIFICATION_SCHEMA)
-            else:
-                response_text = self._request(
-                    buffer.getvalue(), prompt, _CLASSIFICATION_SCHEMA,
-                    _CLASSIFICATION_INTERACTION_SCHEMA)
-        except InspectionFailure:
-            raise
-        except Exception as error:
-            raise InspectionFailure(FailureKind.DETECTOR_API,
-                                    f'Gemini classification failed: {error}') from error
-        return parse_gemini_classifications(response_text, detections)
+        for attempt in range(2):
+            request_prompt = prompt
+            if attempt:
+                request_prompt += (
+                    f' Your previous response did not assign every instance. '
+                    f'Return exactly {len(detections)} entries, with each integer ID '
+                    f'from 1 through {len(detections)} used once.')
+            try:
+                if self._response_provider is not None:
+                    response_text = self._response_provider(
+                        buffer.getvalue(), request_prompt, _CLASSIFICATION_SCHEMA)
+                else:
+                    response_text = self._request(
+                        buffer.getvalue(), request_prompt, _CLASSIFICATION_SCHEMA,
+                        _CLASSIFICATION_INTERACTION_SCHEMA)
+            except InspectionFailure:
+                raise
+            except Exception as error:
+                raise InspectionFailure(FailureKind.DETECTOR_API,
+                                        f'Gemini classification failed: {error}') from error
+            try:
+                return parse_gemini_classifications(response_text, detections)
+            except InspectionFailure as error:
+                if error.kind != FailureKind.DETECTOR_RESPONSE or attempt:
+                    raise
+        raise AssertionError('Unreachable Gemini classification retry state')

@@ -7,7 +7,6 @@ nearest_pregrasp_coordinator:
     sorting_carry_wrist_tolerances_deg: [2.0, 5.0, 10.0, 20.0, 30.0]
     # Wrist joint hold does not imply a fixed TCP world orientation.
     sorting_carry_cartesian_rotation_limit_deg: 30.0
-    sorting_fixed_release_enabled: true
     sorting_fixed_release_wrist_tolerance_deg: 0.5
     # Fixed OBJECT-center destinations in base_link; not blind TCP drop commands.
     sorting_fixed_release_lost_items_left_m: [-0.075, 0.105, 0.50]
@@ -19,7 +18,7 @@ nearest_pregrasp_coordinator:
     grasp_service: /grasp/plan
     selection_action: /grasp/select_reachable
     move_group_action: /move_action
-    query: Detect the box and can on the table.
+    query: Detect the paper cup, LEGO brick, crumpled tissue, and mouse on the table.
     startup_timeout_sec: 60.0
     inspection_timeout_sec: 60.0
     grasp_timeout_sec: 30.0

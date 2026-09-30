@@ -27,14 +27,10 @@ class BinGeometry:
 
     @property
     def top_z(self) -> float:
-        if self.kind == 'table_zone':
-            return self.bottom_z
         return self.bottom_z + self.outside_size[2]
 
     def boxes(self):
         """Five collision boxes (full extents, base-frame centers), no lid."""
-        if self.kind == 'table_zone':
-            return  # Painted regions have no collision geometry.
         x, y = self.center_xy
         sx, sy, sz = self.outside_size
         t = self.wall
@@ -54,23 +50,20 @@ class BinGeometry:
             all(math.isfinite(v) for v in point)
             and abs(x - self.center_xy[0]) < sx / 2 - self.wall - margin
             and abs(y - self.center_xy[1]) < sy / 2 - self.wall - margin
-            and self.bottom_z + self.wall <= z < (
-                self.bottom_z + self.outside_size[2] if self.kind == 'table_zone' else self.top_z)
+            and self.bottom_z + self.wall <= z < self.top_z
         )
 
 
-def load_bins(path: str | Path, *, include_staging: bool = False) -> tuple[BinGeometry, ...]:
+def load_bins(path: str | Path) -> tuple[BinGeometry, ...]:
     raw = yaml.safe_load(Path(path).read_text(encoding='utf-8'))
     if raw.get('schema_version') != 1 or raw.get('frame_id') != 'base_link':
         raise ValueError('Bins require schema_version=1 and base_link frame')
+    if 'rear_shelf' in raw or 'staging_area' in raw:
+        raise ValueError('Unsupported collection fixture; use chassis bins and internal_tray')
     bins = []
     items = list(raw['bins'])
     if len(items) != 2:
         raise ValueError('Two distinct collection bins are required')
-    if include_staging and 'staging_area' in raw:
-        if raw['staging_area'].get('kind') != 'table_zone':
-            raise ValueError('Staging must be a non-colliding table zone')
-        items.append(raw['staging_area'])
     for item in items:
         geometry = BinGeometry(
             name=item['id'], label=item['label'],
@@ -88,10 +81,8 @@ def load_bins(path: str | Path, *, include_staging: bool = False) -> tuple[BinGe
                 or not all(math.isfinite(v) for v in (
                     *geometry.center_xy, geometry.bottom_z,
                     *geometry.outside_size, geometry.wall, *geometry.rgba))
-                or geometry.kind not in ('bin', 'table_zone')
-                or geometry.wall < 0.0
-                or (geometry.kind == 'bin' and geometry.wall == 0)
-                or (geometry.kind == 'table_zone' and geometry.wall != 0)
+                or geometry.kind != 'bin'
+                or geometry.wall <= 0.0
                 or min(geometry.outside_size) <= 2 * geometry.wall
                 or not all(0 <= v <= 1 for v in geometry.rgba)):
             raise ValueError('Invalid collection bin geometry')
@@ -101,7 +92,7 @@ def load_bins(path: str | Path, *, include_staging: bool = False) -> tuple[BinGe
             raise ValueError('Invalid collection bin rim color')
         bins.append(geometry)
     if len({b.name for b in bins}) != len(items):
-        raise ValueError('Distinct collection/staging identifiers are required')
+        raise ValueError('Distinct collection identifiers are required')
     return tuple(bins)
 
 
@@ -121,29 +112,11 @@ def add_sorting_bins(model_text: str, config: str | Path) -> str:
             for geom in mast.findall('geom'):
                 geom.set('contype', '0')
                 geom.set('conaffinity', '0')
-    if 'rear_shelf' in raw and 'internal_tray' in raw:
-        raise ValueError('Choose either rear_shelf or internal_tray')
     parent = chassis
-    if 'rear_shelf' in raw:
-        # Copy only the initial frame transform: furniture must not follow the robot.
-        parent = ET.SubElement(root.find('worldbody'), 'body', {
-            'name': 'rear_collection_station',
-            **{key: chassis.get(key) for key in ('pos', 'quat', 'euler', 'axisangle', 'xyaxes', 'zaxis')
-               if chassis.get(key) is not None},
-        })
-        _add_rear_shelf(parent, raw['rear_shelf'], load_bins(config))
     if 'internal_tray' in raw:
         _add_internal_tray(parent, raw['internal_tray'], load_bins(config))
     for bin_ in load_bins(config):
         body = ET.SubElement(parent, 'body', name=bin_.name)
-        if bin_.kind == 'table_zone':
-            ET.SubElement(body, 'geom', {
-                'name': f'{bin_.name}_paint', 'type': 'box',
-                'size': f'{bin_.outside_size[0]/2} {bin_.outside_size[1]/2} 0.0001',
-                'pos': f'{bin_.center_xy[0]} {bin_.center_xy[1]} {bin_.bottom_z+0.00015}',
-                'rgba': ' '.join(str(v) for v in bin_.rgba),
-                'contype': '0', 'conaffinity': '0', 'mass': '0',
-            })
         for suffix, size, center in bin_.boxes():
             trimmed_wall = bin_.rim_rgba is not None and suffix != 'floor'
             ET.SubElement(body, 'geom', {
@@ -171,11 +144,7 @@ def add_sorting_bins(model_text: str, config: str | Path) -> str:
 def load_shelf_boxes(path: str | Path) -> tuple:
     """Return shared fixture boxes for planning, in base_link coordinates."""
     raw = yaml.safe_load(Path(path).read_text(encoding='utf-8'))
-    if 'rear_shelf' in raw and 'internal_tray' in raw:
-        raise ValueError('Choose either rear_shelf or internal_tray')
     parent = ET.Element('body')
-    if 'rear_shelf' in raw:
-        _add_rear_shelf(parent, raw['rear_shelf'], load_bins(path))
     if 'internal_tray' in raw:
         _add_internal_tray(parent, raw['internal_tray'], load_bins(path))
     return tuple((geom.get('name'),
@@ -209,43 +178,6 @@ def _add_internal_tray(parent: ET.Element, config: dict,
         'contype': '1', 'conaffinity': '1', 'condim': '4',
         'friction': '1 0.005 0.0001',
     })
-
-
-def _add_rear_shelf(parent: ET.Element, config: dict, bins: tuple[BinGeometry, ...]) -> None:
-    """Static two-tier furniture in the initial base frame; all pieces collide."""
-    x, y = (float(v) for v in config['center_xy_m'])
-    sx, sy = (float(v) for v in config['size_xy_m'])
-    top, floor, thickness, leg = (float(config[key]) for key in
-        ('top_z_m', 'floor_z_m', 'board_thickness_m', 'leg_width_m'))
-    board_color = tuple(float(v) for v in config['board_rgba'])
-    frame_color = tuple(float(v) for v in config['frame_rgba'])
-    if (not all(math.isfinite(v) for v in (x, y, sx, sy, top, floor, thickness, leg))
-            or min(thickness, leg) <= 0 or min(sx, sy) <= 2*leg
-            or top-floor <= 5*thickness
-            or any(len(color) != 4 or not all(math.isfinite(v) and 0 <= v <= 1 for v in color)
-                   for color in (board_color, frame_color))):
-        raise ValueError('Invalid rear shelf geometry')
-    for bin_ in bins:
-        if (bin_.kind != 'bin' or abs(bin_.bottom_z-top) > 1e-8
-                or abs(bin_.center_xy[0]-x)+bin_.outside_size[0]/2 > sx/2
-                or abs(bin_.center_xy[1]-y)+bin_.outside_size[1]/2 > sy/2):
-            raise ValueError('Rear shelf must support the complete bin footprint')
-
-    def box(name: str, size: tuple, center: tuple, color: tuple) -> None:
-        ET.SubElement(parent, 'geom', {
-            'name': f'rear_shelf_{name}', 'type': 'box',
-            'size': ' '.join(str(v/2) for v in size),
-            'pos': ' '.join(str(v) for v in center),
-            'rgba': ' '.join(str(v) for v in color),
-            'contype': '1', 'conaffinity': '1', 'condim': '4',
-            'friction': '1 0.005 0.0001',
-        })
-    box('top', (sx, sy, thickness), (x, y, top-thickness/2), board_color)
-    box('lower', (sx, sy, thickness), (x, y, floor+3*thickness), board_color)
-    height = top-thickness-floor
-    for i, (dx, dy) in enumerate(((-1, -1), (-1, 1), (1, -1), (1, 1))):
-        box(f'leg_{i}', (leg, leg, height),
-            (x+dx*(sx-leg)/2, y+dy*(sy-leg)/2, floor+height/2), frame_color)
 
 
 def _add_bin_rim(body: ET.Element, bin_: BinGeometry) -> None:

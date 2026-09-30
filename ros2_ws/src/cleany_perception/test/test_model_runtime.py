@@ -10,26 +10,24 @@ from cleany_perception.model_runtime import (
 )
 
 
-def test_shared_profile_selects_small_yoloe_and_tiny_sam2():
+def test_shared_profile_uses_yoloe_instance_masks():
     profile = load_model_profile(
-        Path(__file__).resolve().parents[1] / 'config/yoloe_s_sam2_tiny.yaml'
+        Path(__file__).resolve().parents[1] / 'config/yoloe_seg.yaml'
     )
     assert profile['detector_type'] == 'yoloe'
-    assert profile['segmenter_type'] == 'sam2'
+    assert profile['segmenter_type'] == 'yoloe_seg'
     assert profile['yoloe_model_path'] == 'yoloe/yoloe-26s-seg.pt'
-    assert profile['sam2_checkpoint'] == 'sam2/sam2.1_t.pt'
     assert profile['preload_models'] is True
     assert profile['yoloe_image_size'] == 640
     assert profile['minimum_detection_confidence'] == 0.25
 
 
-def test_flash_lite_profile_uses_cloud_detection_and_local_tiny_masks():
+def test_flash_lite_profile_classifies_local_yoloe_masks():
     profile = load_model_profile(
-        Path(__file__).resolve().parents[1] / 'config/gemini_flash_lite_sam2_tiny.yaml')
-    assert profile['detector_type'] == 'gemini'
+        Path(__file__).resolve().parents[1] / 'config/yoloe_seg_gemini.yaml')
+    assert profile['detector_type'] == 'yoloe_gemini'
     assert profile['gemini_model'] == 'gemini-3.1-flash-lite'
-    assert profile['segmenter_type'] == 'sam2'
-    assert profile['sam2_checkpoint'] == 'sam2/sam2.1_t.pt'
+    assert profile['segmenter_type'] == 'yoloe_seg'
     assert profile['preload_models'] is True
     for label in ('cup', 'computer mouse', 'crumpled tissue', 'lego brick'):
         assert label not in profile['default_query'].lower()
@@ -49,81 +47,8 @@ def test_no_silent_device_fallback(requested):
         resolve_device(requested, False)
 
 
-@pytest.mark.parametrize('detector_type', ['gemini', 'yoloe'])
-def test_learned_detectors_initialize_reference_and_wrist_services(monkeypatch, detector_type):
-    import cleany_perception.inspection_node as module
-    events = []
-
-    class Tracker:
-        def __init__(self, *args):
-            events.append('tracker_created')
-
-    monkeypatch.setattr(module, 'Sam2ReferenceTracker', Tracker)
-    rclpy.init(args=[])
-    node = None
-    try:
-        node = InspectionNode(detector=object(), segmenter=object(), transformer=object(),
-            parameter_overrides=[
-                Parameter('detector_type', value=detector_type),
-                Parameter('segmenter_type', value='sam2'),
-                Parameter('enable_reference_observation', value=True),
-                Parameter('enable_wrist_observation', value=True),
-                Parameter('wrist_continuous_tracking', value=False),
-            ])
-        assert events == ['tracker_created']
-        assert node._reference_service is not None
-        assert node._wrist_service is not None
-    finally:
-        if node is not None:
-            node.destroy_node()
-        rclpy.shutdown()
 
 
-def test_internal_sam2_adapters_receive_the_same_shared_runtime(monkeypatch):
-    import cleany_perception.inspection_node as module
-
-    created = []
-
-    class Shared:
-        def __init__(self, *args):
-            created.append(('shared', self, args))
-
-    class Segmenter:
-        def __init__(self, **kwargs):
-            created.append(('segmenter', kwargs['shared_predictors']))
-
-    class Tracker:
-        def __init__(self, *args, **kwargs):
-            created.append(('tracker', kwargs['shared_predictors']))
-
-    monkeypatch.setattr(module, 'Sam2SharedPredictors', Shared)
-    monkeypatch.setattr(module, 'Sam2Segmenter', Segmenter)
-    monkeypatch.setattr(module, 'Sam2ReferenceTracker', Tracker)
-    monkeypatch.setattr(module.InspectionNode, '_resolve_local_model', lambda *_: None)
-    rclpy.init(args=[])
-    node = None
-    try:
-        node = InspectionNode(
-            detector=object(),
-            transformer=object(),
-            parameter_overrides=[
-                Parameter('detector_type', value='gemini'),
-                Parameter('segmenter_type', value='sam2'),
-                Parameter('enable_reference_observation', value=True),
-            ],
-        )
-        shared = created[0][1]
-        assert [entry[0] for entry in created] == [
-            'shared',
-            'segmenter',
-            'tracker',
-        ]
-        assert created[1][1] is shared
-        assert created[2][1] is shared
-    finally:
-        if node is not None:
-            node.destroy_node()
-        rclpy.shutdown()
 
 
 def test_relative_assets_resolve_against_model_directory(tmp_path):
@@ -140,8 +65,8 @@ def test_relative_assets_resolve_against_model_directory(tmp_path):
 def test_missing_assets_fail_without_download_or_substitution(tmp_path):
     with pytest.raises(ValueError, match='not found'):
         resolve_model_assets({
-            'sam2_checkpoint': 'missing.pt', 'sam2_model_config': 'config',
-        }, str(tmp_path), 'sam2')
+            'yoloe_model_path': 'missing.pt', 'yoloe_text_encoder_directory': 'yoloe',
+        }, str(tmp_path), 'yoloe')
     assert list(tmp_path.iterdir()) == []
 
 

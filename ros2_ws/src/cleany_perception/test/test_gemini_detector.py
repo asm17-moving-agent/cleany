@@ -49,6 +49,41 @@ def test_gemini_classifies_yoloe_instances_without_changing_geometry():
     assert classified[0].segmentation_mask is mask
 
 
+def test_gemini_classification_retries_one_incomplete_mapping():
+    detections = (
+        Detection2D('cup', .8, BoundingBox2D(1, 1, 9, 9)),
+        Detection2D('computer mouse', .7, BoundingBox2D(10, 1, 18, 9)),
+    )
+    prompts = []
+
+    def provider(_image, prompt, _schema):
+        prompts.append(prompt)
+        objects = [{'id': 1, 'label': 'paper cup',
+                    'sorting_category': 'trash', 'sorting_reason': 'disposable'}]
+        if len(prompts) == 2:
+            objects.append({'id': 2, 'label': 'computer mouse',
+                            'sorting_category': 'lost_item',
+                            'sorting_reason': 'reusable'})
+        return json.dumps({'objects': objects})
+
+    classifier = GeminiClassifier('test-model', response_provider=provider)
+    result = classifier.classify(np.zeros((20, 30, 3), np.uint8), detections)
+    assert len(prompts) == 2 and 'exactly 2 entries' in prompts[1]
+    assert [item.label for item in result] == ['paper cup', 'computer mouse']
+    assert result[0].bbox is detections[0].bbox
+
+
+def test_gemini_classification_stops_after_two_incomplete_mappings():
+    calls = []
+    classifier = GeminiClassifier('test-model', response_provider=lambda *_: (
+        calls.append(None) or json.dumps({'objects': []})))
+    with pytest.raises(InspectionFailure, match='every YOLOE instance'):
+        classifier.classify(
+            np.zeros((20, 30, 3), np.uint8),
+            (Detection2D('cup', .8, BoundingBox2D(1, 1, 9, 9)),))
+    assert len(calls) == 2
+
+
 @pytest.mark.parametrize('objects', [
     [],
     [{'id': 2, 'label': 'cup', 'sorting_category': 'trash', 'sorting_reason': 'paper'}],
@@ -70,6 +105,41 @@ def test_flash_lite_prepare_initializes_client_without_inference(monkeypatch):
     detector.prepare()
     detector.prepare()
     assert calls == [30.0]
+
+
+def test_gemini_retries_only_transient_503(monkeypatch):
+    monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'unit-test-placeholder')
+    delays = []
+    monkeypatch.setattr('cleany_perception.adapters.gemini_detector.time.sleep', delays.append)
+    detector = GeminiDetector('gemini-3.1-flash-lite',
+        api_key_environment='CLEANY_TEST_GEMINI_KEY',
+        client_factory=lambda key, timeout: object())
+    calls = []
+
+    def request(*args):
+        calls.append(None)
+        if len(calls) < 3:
+            error = RuntimeError('model busy')
+            error.code = 503
+            raise error
+        return '{}'
+
+    detector._request_generate_content = request
+    assert detector._request(b'png', 'classify') == '{}'
+    assert len(calls) == 3 and delays == [1, 2]
+
+    calls.clear()
+
+    def unavailable(*args):
+        calls.append(None)
+        error = RuntimeError('unavailable')
+        error.code = 404
+        raise error
+
+    detector._request_generate_content = unavailable
+    with pytest.raises(RuntimeError, match='unavailable'):
+        detector._request(b'png', 'classify')
+    assert len(calls) == 1
 
 
 def test_gemini_prepare_fails_without_key_before_advertising_ready(monkeypatch):

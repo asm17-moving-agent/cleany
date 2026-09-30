@@ -17,10 +17,9 @@ make test-grasp-pregrasp-runtime
 
 첫 target은 perception, grasp·분류 core, 접촉 피드백, MoveIt 설정, MuJoCo 장면·
 성능 프로필, URDF/MJCF 정합성과 C++ 충돌 지도·관측 검사를 실행한다.
-두 번째 target은 OMPL/Pilz 계획과 가장 가까운 객체의 inspection 실패,
-다음 객체 fallback, 열린 gripper 상태의 재검증과 MuJoCo pre-grasp controller 실행을
-한 통합 테스트로 확인한다. 전체 workspace 회귀 검증은 병합 전 `make test`에서 별도로
-수행한다. `make test`에는 vision container 계약 검사도 포함된다. Python 프레임워크는
+두 번째 target은 MoveIt mock backend에서 OMPL/Pilz 계획과 controller 실행을
+확인한다. 이전 전용 MuJoCo 데모 runtime 검사는 제거했다. 전체 workspace 회귀 검증은
+`make test`에서 별도로 수행한다. `make test`에는 vision container 계약 검사도 포함된다. Python 프레임워크는
 pytest로 고정하며 사용자 환경의 관계없는 플러그인은 자동 로드하지 않는다.
 카메라 runtime에는 headless 실행에서도 유효한 X display가 필요하다.
 

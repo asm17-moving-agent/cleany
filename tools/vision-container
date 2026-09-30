@@ -21,9 +21,7 @@ identity_keys=(
   ANYGRASP_LICENSE_FILE
   ANYGRASP_MODEL_HOST_DIR
   ANYGRASP_CHECKPOINT_PATH
-  SAM2_MODEL_HOST_DIR
-  SAM2_MODEL_CONFIG
-  SAM2_CHECKPOINT_PATH
+  YOLOE_MODEL_HOST_DIR
 )
 
 compose_environment=(env)
@@ -171,7 +169,7 @@ start_perception() {
 }
 
 run_perception() {
-  local environment_arguments=(-e CLEANY_PERCEPTION_USE_SIM_TIME -e CLEANY_SAM2_TRACKING)
+  local environment_arguments=(-e CLEANY_PERCEPTION_USE_SIM_TIME -e CLEANY_PERCEPTION_USE_WRIST_CAMERA)
   if [[ -n "${GEMINI_API_KEY:-}" ]]; then
     environment_arguments+=(-e GEMINI_API_KEY)
   fi

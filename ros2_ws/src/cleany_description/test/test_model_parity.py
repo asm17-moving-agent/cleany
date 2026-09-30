@@ -73,6 +73,14 @@ def _expand_urdf(entrypoint: str, *xacro_args: str) -> ET.Element:
     )
 
 
+def _mesh_element(link: ET.Element, kind: str, filename: str) -> ET.Element:
+    matches = [element for element in link.findall(kind)
+               if element.find('geometry/mesh') is not None
+               and element.find('geometry/mesh').get('filename') == filename]
+    assert len(matches) == 1, (link.get('name'), kind, filename)
+    return matches[0]
+
+
 def _physical_model_xml(root: ET.Element) -> tuple[bytes, ...]:
     return tuple(
         ET.tostring(node).strip()
@@ -160,19 +168,14 @@ def test_arm_motor_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
         link = urdf.find(f"./link[@name='{side}_{link_suffix}']")
         assert link is not None
         for kind in ("visual", "collision"):
-            matches = [
-                element for element in link.findall(kind)
-                if element.find("geometry/mesh") is not None
-                and element.find("geometry/mesh").get("filename")
-                == f"package://cleany_description/meshes/{mesh_file}"
-            ]
-            assert len(matches) == 1, (side, body_name, kind)
-            mesh = matches[0].find("geometry/mesh")
+            element = _mesh_element(link, kind, f"package://cleany_description/meshes/{mesh_file}")
+
+            mesh = element.find("geometry/mesh")
             assert mesh is not None
             assert np.fromstring(
                 mesh.get("scale", "1 1 1"), sep=" "
             ) == pytest.approx((1, 1, 1))
-            origin = matches[0].find("origin")
+            origin = element.find("origin")
             attributes = {} if origin is None else origin.attrib
             assert np.fromstring(
                 attributes.get("xyz", "0 0 0"), sep=" "
@@ -205,11 +208,6 @@ def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
         assert asset is not None
         assert (_source_root() / "meshes" / asset.get("file")).is_file()
         filename = f"package://cleany_description/meshes/{asset.get('file')}"
-        assert len([
-            element for element in link.findall("collision")
-            if element.find("geometry/mesh") is not None
-            and element.find("geometry/mesh").get("filename") == filename
-        ]) == 1
         assert not body.findall("./geom[@class='collision']")
         expected_position = (
             np.fromstring(body.get("pos"), sep=" ")
@@ -217,19 +215,14 @@ def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
         )
         # MuJoCo visuals also need URDF collision coverage for self filtering.
         for kind in ("visual", "collision"):
-            matches = [
-                element for element in link.findall(kind)
-                if element.find("geometry/mesh") is not None
-                and element.find("geometry/mesh").get("filename")
-                == f"package://cleany_description/meshes/{asset.get('file')}"
-            ]
-            assert len(matches) == 1, (side, geom.get("mesh"), kind)
-            mesh = matches[0].find("geometry/mesh")
+            element = _mesh_element(link, kind, filename)
+
+            mesh = element.find("geometry/mesh")
             assert mesh is not None
             assert np.fromstring(mesh.get("scale", "1 1 1"), sep=" ") == pytest.approx(
                 np.fromstring(asset.get("scale", "1 1 1"), sep=" ")
             )
-            origin = matches[0].find("origin")
+            origin = element.find("origin")
             assert origin is not None
             assert np.fromstring(origin.get("xyz"), sep=" ") == pytest.approx(
                 expected_position, abs=1e-5
@@ -255,10 +248,7 @@ def test_moving_jaw_mesh_poses_match_mjcf(entrypoint: str, side: str) -> None:
         for geom in geoms:
             asset = mjcf.find(f"./asset/mesh[@name='{geom.get('mesh')}']")
             filename = f"package://cleany_description/meshes/{asset.get('file')}"
-            matches = [element for element in link.findall(kind)
-                       if element.find('geometry/mesh').get('filename') == filename]
-            assert len(matches) == 1
-            origin = matches[0].find('origin')
+            origin = _mesh_element(link, kind, filename).find('origin')
             assert np.fromstring(geom.get('pos', '0 0 0'), sep=' ') == pytest.approx(
                 np.fromstring(origin.get('xyz', '0 0 0'), sep=' '), abs=1e-8
             )

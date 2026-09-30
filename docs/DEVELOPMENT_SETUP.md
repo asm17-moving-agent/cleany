@@ -186,25 +186,21 @@ make deps-gazebo
 제외합니다. 전체 workspace test를 실행할 환경에서는 custom rosdep 규칙을 등록한 뒤
 `make deps`를 사용합니다.
 
-### Gemini Flash-Lite + SAM2-tiny runtime
+### YOLOE-seg + Gemini runtime
 
-`make sim-mujoco-pipeline`의 기본 인식은 Gemini Flash-Lite + SAM2-tiny다.
-API 키·네트워크와 PyTorch/SAM2 checkpoint가 필요하다. Ultralytics와 아래
-YOLOE asset은 YOLOE를 명시적으로 선택할 때만 필요하다. 모델은 저장소에 포함하거나 실행 시
-자동 다운로드하지 않는다. 기본 root는 `~/models`이고 `CLEANY_MODEL_DIR`로
-바꿀 수 있다.
+`make sim-mujoco-pipeline`의 기본 인식은 YOLOE-seg + Gemini다.
+API 키·네트워크와 PyTorch/Ultralytics, 로컬 YOLOE checkpoint 및 text encoder가 필요하다.
+모델은 저장소에 포함하거나 실행 시 자동 다운로드하지 않는다. 기본 위치는
+`~/models`이며 `CLEANY_MODEL_DIR`로 변경할 수 있다. 스터디카페 전용 head/손목 모델
+파일명은 `cleany_skill_executor/README.md`의 현재 설정을 따른다.
 
 ```text
 models/
   yoloe/yoloe-26s-seg.pt
   yoloe/mobileclip2_b.ts
-  sam2/sam2.1_t.pt
 ```
 
-이 VM에서 검증한 조합은 PyTorch `2.7.1+cpu`, Ultralytics `8.4.107`,
-SAM2.1 tiny (`configs/sam2.1/sam2.1_hiera_t.yaml`)다. Jetson에는 별도의
-JetPack 호환 CUDA PyTorch가 필요하며 이 CPU 환경의 wheel을 그대로 설치하면
-안 된다. `auto` 장치 선택 결과는 로그와 ROS parameter로 확인한다.
+VM CPU PyTorch와 Jetson JetPack/CUDA PyTorch는 환경에 맞춰 별도로 설치한다.
 
 현재 VM에서는 관리자 권한 없이 공식 arm64 MoveIt perception `2.5.9` deb의
 런타임을 `~/.local/share/cleany/moveit-perception/opt/ros/humble`에 준비했다.
@@ -216,14 +212,14 @@ JetPack 호환 CUDA PyTorch가 필요하며 이 CPU 환경의 wheel을 그대로
 MoveIt 업데이트 시 호환성을 다시 검증하거나 시스템 패키지로 설치한다.
 
 선택형 `cleany_scene_mapping` C++ updater는 위 런타임 외에 배포 deb의
-header/CMake export도 필요하다. `make build`, `make build-handeye`,
+header/CMake export도 필요하다. `make build`,
 `make build-grasp-pregrasp`, `make test-scene-mapping`은 시스템 perception
 패키지가 없고 이 prefix가 존재할 때 AMENT/CMAKE/라이브러리 검색 경로에
 추가한다. 설치 파일을 자동 다운로드하거나 시스템 `/opt/ros`를 수정하지 않는다.
 일반 ROS 설치는 rosdep으로 `moveit_ros_perception`,
 `moveit_ros_occupancy_map_monitor`, `geometric_shapes`, `octomap`을 준비한다.
 
-### 선택: Gemini 및 SAM2 소스 설치
+### Gemini API 설정
 
 `make deps`는 `cleany_perception`의 Gemini adapter에 필요한 `google-genai`와 Pillow를
 설치한다. API key는 파일이나 ROS parameter에 저장하지 않고 실행 terminal의 환경변수로
@@ -232,30 +228,6 @@ header/CMake export도 필요하다. `make build`, `make build-handeye`,
 ```bash
 export GEMINI_API_KEY="<your-api-key>"
 ```
-
-SAM2는 아래 고정 commit과 별도 checkpoint가 필요하다. tracking은 해당 commit의
-video predictor 내부 state 구조에 의존한다. 컨테이너 `SAM2_COMMIT`도 같은 값이며
-변경 시 두 경로의 추적 회귀시험이 필요하다. 공식 설치 과정은
-PyTorch와 torchvision을 업그레이드할 수 있으므로 Jetson에서는 먼저 JetPack/CUDA와
-호환되는 NVIDIA PyTorch 조합을 정한 뒤 설치한다. `make deps`는 PyTorch 또는 SAM2를
-자동 설치하지 않는다.
-
-```bash
-git clone https://github.com/facebookresearch/sam2.git <external-path>/sam2
-git -C <external-path>/sam2 checkout 2b90b9f5ceec907a1c18123530e92e794ad901a4
-python3 -m pip install --user -e <external-path>/sam2
-```
-
-CUDA가 없는 Apple Silicon 기반 Ubuntu VM에서는 CUDA extension을 끄고 CPU device를
-사용한다. 예를 들어 VM 내부에 SAM2를 설치한 경우 다음과 같이 실행한다.
-
-```bash
-cd /home/ubuntu/third_party/sam2
-SAM2_BUILD_CUDA=0 python3 -m pip install --user --no-build-isolation -e .
-```
-
-checkpoint와 model config 경로는 `inspect_scene.launch.py` 인자로 전달한다. 모델
-weight와 API key는 이 저장소에 commit하지 않는다.
 
 rosdep이 Gazebo 의존성을 해석하지 못할 때만 아래 APT 패키지를 직접 확인한다.
 일반 설치에서는 package manifest를 기준으로 하는 `make deps-gazebo`를 우선한다.
@@ -277,37 +249,13 @@ make test
 ```bash
 make test-mission
 make test-mujoco
-make test-handeye
 make test-gazebo
 ```
 
-Hand-eye 개발 범위만 반복할 때는 아래 두 target을 사용한다.
-
-```bash
-make build-handeye
-make test-handeye
-```
-
-`make deps`는 hand-eye package manifest를 통해 MoveIt 2/KDL/OMPL,
-`ros2_control`, `mujoco_ros2_control`, OpenCV contrib, NumPy, PyYAML과 ROS service/action
-dependency를 설치한다. 별도 Python virtualenv에 OpenCV나 NumPy를 다시 설치하지
-않는다.
-
-MuJoCo용 random pose set을 생성하고 실제 calibration을 viewer와 함께 실행한 뒤
-완성 dataset을 검증한다.
-
-```bash
-make handeye-generate-mujoco
-make handeye-mujoco
-make handeye-validate-mujoco
-```
-
-첫 명령은 random seed와 제한된 workspace prior를 사용하되 MoveIt, collision,
-렌더링 ChArUco/PnP를 통과한 후보만 모으고 rotation axis/covariance 분석으로 20+5를
-선정한다. 두 번째 명령은 `headless:=false`를 고정해 operator 화면을 표시한다.
-마지막 명령은 row/image hash, PnP 재현과 150-run solver를 검증한다. 자동 테스트는
-`headless:=true`를 명시하므로 CI나 반복 회귀에서 viewer를 열지 않는다. Template의
-승인 전 `null` 값은 실행 입력으로 사용하지 않는다.
+Hand-eye의 수학·ROS adapter·오프라인 검증 명령은
+[`cleany_handeye_calibration` README](../ros2_ws/src/cleany_handeye_calibration/README.md)를
+따른다. 이전 MuJoCo calibration 장면과 실행 target은 제거했다.
+현재 MuJoCo 실행 경로는 스터디카페 관찰·인식·수거 시뮬레이션이다.
 
 Gazebo 재현성만 확인할 때는 환경 검사부터 실행한다. 지원 조합인 Ubuntu 22.04,
 ROS 2 Humble, Gazebo Fortress와 ROS bridge 설치 여부를 확인한다.
@@ -378,11 +326,6 @@ Make의 타깃 테스트는 이 과정을 자동으로 수행한다.
 
 VM의 3D acceleration과 display 설정을 확인한다. GUI가 필요하지 않은 검증은
 `make sim`의 headless 실행을 사용한다.
-
-`make handeye-mujoco`는 실제 calibration 관찰을 위해 viewer를 강제로 사용한다.
-VM 또는 Distrobox에서 실행한다면 `DISPLAY`가 전달됐는지와 X11/Wayland socket,
-OpenGL acceleration을 함께 확인한다. 화면이 없는 환경에서는 실제 calibration을
-진행하지 말고 `make test-handeye`로 headless runtime만 검증한다.
 
 ### `make check-gazebo-env`가 실패하는 경우
 

@@ -3,7 +3,7 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from cleany_skill_executor.core.can_rgbd import CameraProjection, rotation_matrix_from_quaternion
+from cleany_skill_executor.core.rgbd_projection import CameraProjection, rotation_matrix_from_quaternion
 from cleany_skill_executor.core.reobservation import reobservation_centers, sphere_in_view
 
 

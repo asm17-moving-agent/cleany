@@ -32,9 +32,7 @@ def identity_values() -> dict[str, str]:
         'ANYGRASP_CHECKPOINT_PATH': (
             '/models/anygrasp/checkpoint_detection.tar'
         ),
-        'SAM2_MODEL_HOST_DIR': '/var/lib/cleany/models/sam2',
-        'SAM2_MODEL_CONFIG': 'configs/sam2.1/sam2.1_hiera_s.yaml',
-        'SAM2_CHECKPOINT_PATH': '/models/sam2/sam2.1_hiera_small.pt',
+        'YOLOE_MODEL_HOST_DIR': '/var/lib/cleany/models/yoloe',
     }
 
 

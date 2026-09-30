@@ -6,58 +6,40 @@
 현재 시각으로 재표기하지 않는다.
 
 `enable_wrist_observation=true`는 `/perception/observe_wrist_target`를 추가한다.
-기존 YOLOE/SAM2 모델 및 서비스 요청 busy lock을 공유하며 손목별 RGB/CameraInfo를 exact stamp로
-짝지어 최신 frame에서 처리한다. 손목 HANDOFF는 head RGB-D에서 전달한 예상 OBB를
-capture-time TF로 투영한 box를 SAM2 prompt로 사용한다. label/confidence는 원래
-head 검출의 값이며 새로운 손목 YOLOE 검출 결과가 아니다.
-`wrist_handoff_require_redetection=true`를 명시하면 같은 label의 단일 YOLOE
-검출과 투영 box의 IoU도 요구한다. 기본값은 false다.
+현재 sorting의 `yoloe_gemini` + `yoloe_seg` 모드에서는 손목 RGB에 YOLOE-seg를
+실행한다. `wrist_yoloe_model_path`는 왼손목 바닥 위 물체의 HANDOFF,
+`wrist_right_yoloe_model_path`는 오른손목 HANDOFF,
+`wrist_check_yoloe_model_path`는 왼손목 파지 후 CHECK,
+`wrist_mouse_check_yoloe_model_path`는 왼손목 마우스 CHECK,
+`wrist_right_check_yoloe_model_path`는 오른손목 CHECK 체크포인트다. 경로를 비워 두면
+앞 단계 모델을 공유한다. Head RGB-D에서 전달한 예상 OBB를 촬영 시점 TF로 손목 영상에 투영하고,
+별도 오른손목 CHECK 모델을 지정했다면
+`wrist_right_check_yoloe_class_confidence_thresholds`로 그 모델의 클래스별 검출
+기준을 설정할 수 있다. 노드 매개변수의 빈 목록은 head와 같은 기준을 쓴다.
+스터디카페 기본 프로필은 실제 오른손목 컵 파지 자세로 만든 전용 CHECK 모델을
+사용하며 컵 기준만 0.08로 설정한다. 추가 학습한 v2 모델은 서로 다른 독립
+합성 영상 묶음에서 컵 마스크 IoU 0.5 검출이 각각 20/20이었다. 실제 파지
+영상 한 장에서도 컵 검출 신뢰도가 약 0.69였으며, 실패 시 안전하게 중단한다.
+Gemini 상세 라벨에 포함된 YOLOE 클래스, 투영 box와의 IoU, 단일 물체 여부 및 instance
+mask 위치·면적을 HANDOFF와 CHECK마다 확인한다. 손목 영상은 로컬 YOLOE-seg로 검증한다. 연속 추적 대신 두 시점의 새 영상을 독립적으로 검출하며,
+같은 위치·마스크의 중복 예측만 하나로 취급한다.
+오른손목 HANDOFF 전용 모델이 투영 위치에서 물체를 찾지 못하면, 이미 로드된
+왼손목/양손목 통합 모델로 같은 RGB를 한 번 더 검사한다. 이 경우에도 같은
+클래스·투영 box·마스크 검증을 통과해야 하며, 정상 검출 시 추가 추론은 없다.
+오른손목 CHECK 전용 모델이 놓친 경우에는 왼손목 파지 후 통합 모델로 같은
+검증을 한 번 더 수행한다. 마우스 CHECK만 별도 모델을 쓰므로, 통합 모델을
+휴지 CHECK의 추가 메모리 비용 없이 재사용한다.
+headless 인식 진단 시 `wrist_failure_image_directory`를 지정하면 YOLOE가
+예상 손목 물체를 찾지 못한 프레임만 PNG로 저장한다. 기본값은 빈 문자열이라
+영상을 저장하지 않는다.
+HANDOFF 이후 RGB·mask 이력을 보관하지 않는다. 손목 카메라는 RGB만 제공하므로
+새 3D 위치나 독립적인 물체 ID는 산출하지 않는다. 손목 모델은 현재 head 영상 학습본을
+별도 체크포인트를 쓰면 그만큼 모델 메모리가 추가된다.
 
-`wrist_continuous_tracking=true`(기본)는 HANDOFF의 **검증된 SAM2 mask**로
-한 번 초기화한 video state를 백그라운드에서 유지한다. 접근·파지·상승·운반 중
-직전 추론이 끝날 때마다 선택 손목의 최신 exact-pair RGB만 처리한다.
-입력 FIFO를 쌓지 않으며 카메라 FPS와 추론 FPS는 다르다. 새 RGB만 encoding하고
-조건부 seed와 최근 `wrist_streaming_memory_frames=32`개 결과 메모리를 유지한다.
-JPEG는 초기화에 한 장만 사용하며 이후 RGB는 메모리에서 정규화한다.
-CPU에서는 추적 세션 동안 `wrist_streaming_cpu_threads=4`로 PyTorch intra-op
-thread 수를 제한하고 종료 시 이전 값을 복원한다. 이는 perception **프로세스 전체**에
-적용되는 PyTorch 설정이며 모델/해상도 변경은 아니다. Ultralytics CPU 초기화가
-환경의 OMP thread 설정을 덮어쓸 수 있어 명시적으로 제어한다. 동시에 수행되는
-MuJoCo/제어 작업의 CPU 경합을 줄이기 위한 설정이며 GPU 모드에는 적용하지 않는다.
-백그라운드 추적과 기존 batch 추적은 adapter의 별도 모델 lock으로 직렬화한다.
-CHECK는 과거 영상을 재처리하지 않고 요청의 `after_stamp_ns`(상승 완료) 이후 촬영된 결과를 최대
-`wrist_tracking_check_timeout_seconds=12`초 기다린다. 선택 당시 frame age는 기존
-0.75초 이하이고, 계산 후 결과 age는 `wrist_maximum_tracking_result_age_seconds=6`초
-이하여야 한다(서로 다른 제한). 원본 capture timestamp, reference/source ID,
-capture-time TF 투영 및 mask 검사는 보존한다. CLEAR/교체/종료는 해당 worker를
-중단하며 실패·오래된 결과를 성공으로 대체하지 않는다.
-추론 완료마다 `/perception/wrist_tracking_status` (`WristTrackingStatus`, reliable depth 10)를
-발행한다. 원본 촬영 Header와 arm/reference/source/object ID를 보존하며,
-mask 면적이 설정 범위 안이면 `valid=true, visible=true`다. 빈/과대 mask는
-`visible=false`, worker 오류는 `valid=false`와 reason으로 발행한다(오류에 촬영 시각을
-꾸며 넣지 않는다). CLEAR 이후 이전 worker의 결과/오류는 발행하지 않는다.
-이는 RGB 면적 기반 존재 신호로 독립 ID/3D 높이/낙하 증거가 아니다.
-Sorting의 기본 비동기 carry monitor는 이 topic과 관절 접촉 추정을 이동 중 확인하여
-이상 시 active action을 취소하며, 상승 후 CHECK를 요청하지 않는다.
-기존 CHECK API와 그 freshness/TF 투영 검증은 비교 모드에서 유지한다.
-실시간 visual servo/안전 센서가 아니며 CPU 약 0.2 Hz 추론으로는 즉각 낙하 정지를 보장하지 않는다.
-
-`wrist_continuous_tracking=false`는 비교용 기존 batch 경로다. RGB를 2초 간격으로
-최대 32장 보관하고 CHECK 때 seed + 중간 최대 4장 + 현재 frame(총 최대 6장)을
-한꺼번에 추적한다. 두 경로 모두 reference box에서 물체를 다시 선택하지 않는다.
-Streaming adapter는 설치된 Meta SAM2 commit
-`2b90b9f5ceec907a1c18123530e92e794ad901a4`의 video predictor state layout을 사용한다.
-공개 append-frame API가 없으므로 이 의존은 `Sam2Stream`에 격리했고 vendor 코드는
-수정하지 않는다. SAM2 버전 변경 시 상태/전처리/메모리 보존 계약과 실모델 추적을
-다시 검증해야 한다. 고정 FPS나 Jetson 실시간 성능은 보장하지 않는다.
-RGB로 metric depth를 만들어 내지 않는다.
-손목 frame TF, 유효 시야, timestamp, calibration, reference ID 또는 mask 검증 실패는
-성공으로 처리하지 않으며 head RGB-D로 자동 fallback하지 않는다.
-`config/inspect_scene.yaml`의 `wrist_*` ROS parameters로 freshness/TTL, confidence,
-segmentation score, 투영 시야 및 mask 면적/연관성 한계를 설정한다. 기본 head prior
-최대 나이는 60초, 손목 입력 frame 최대 나이는 0.75초다. HANDOFF는 요청 시각,
-CHECK는 상승 동작 완료 시각을 `after_stamp_ns`로 사용하며 그보다 새 frame을 요구한다.
-손목 마스크는 2D 일관성 확인일 뿐 독립적 물체 ID/3D 위치나 visual-servo 보장이 아니다.
+손목 RGB와 CameraInfo는 exact timestamp로 짝지어 처리한다. 촬영 시점 TF,
+보정값, source/reference ID와 mask 검증 실패는 성공으로 처리하지 않는다.
+`wrist_*` 매개변수로 freshness/TTL, confidence, 투영 시야와 mask 면적 한계를 설정한다.
+HANDOFF와 CHECK는 `after_stamp_ns`보다 새로운 촬영 영상을 요구한다.
 
 ## 필터링 점군 수신 확인
 
@@ -74,15 +56,6 @@ CHECK는 상승 동작 완료 시각을 `after_stamp_ns`로 사용하며 그보�
 coordinator의 capture-age와 populated OctoMap 수신-age 검사도 필요하다.
 이 경로는 센서 전용 파이프라인 launch에서 함께 시작된다.
 
-동기화된 RGB-D snapshot에서 객체를 검출하고, 사용자 또는 외부 coordinator가 선택한
-객체 하나를 분할과 3D reconstruction으로 정밀 검사하는 package다. 기본 시뮬레이션
-sorting은 `yoloe_gemini` + `yoloe_seg`를 쓴다. YOLOE-seg가 bbox·신뢰도·instance
-mask를 한 번에 만들고, Gemini는 번호가 매겨진 후보의 상세 라벨·분류·근거만 반환한다.
-Gemini가 bbox나 mask를 변경하지 않으며 모든 후보 ID를 정확히 한 번씩 분류해야 한다.
-이 모드에서는 SAM2 모델과 손목/reference tracking 서비스를 사용하지 않는다.
-Perception은 객체와 위치
-후보만 제공하며 수거·보관 등 최종 행동을 결정하지 않는다.
-
 ## 처리 경계
 
 ```text
@@ -92,47 +65,13 @@ aligned RGB-D → capture-time TF → detector bbox + 번호
 → 선택된 instance mask → support plane → base_link 3D OBB
 ```
 
-순수 NumPy core는 ROS, Gemini, YOLOE, SAM2와 MuJoCo를 import하지 않는다. `DetectorPort`,
-`SegmenterPort`, `TransformPort` 뒤의 adapter를 교체하면 detector와 segmenter에
-독립적으로 기하 계산을 재사용할 수 있다. 시뮬레이션 GT topic은 입력으로 사용하지
-않는다.
-
 ## 모델 준비
 
-workspace dependency와 별도 SAM2 설치는 `docs/DEVELOPMENT_SETUP.md`를 따른다.
-
-- Gemini API key: `GEMINI_API_KEY` 환경변수
-- Gemini model ID: `gemini_model` parameter
-- YOLOE checkpoint/classes/device/text encoder directory: `yoloe_*` parameter
-- SAM2 model config/checkpoint/device: launch argument 또는 parameter
-- API key, checkpoint와 model weight는 commit하지 않는다.
-
-1차 detector-only action은 SAM2와 checkpoint를 로드하거나 호출하지 않는다. Gemini SDK
-또는 API key가 없으면 `ERROR_DETECTOR_API`를 반환한다. 2차 선택 요청에서 처음으로 SAM2를
-lazy load하며 dependency 또는 checkpoint 문제가 있으면 `ERROR_MASK`를 반환한다.
-reference 또는 wrist tracking을 함께 활성화하면 image segmenter는 별도 SAM2 모델을
-만들지 않고 video predictor의 동일한 `SAM2Base` 인스턴스를 감싸서 사용한다. 모델
-weight는 프로세스에 한 벌만 상주하며 image/video 추론은 공유 lock으로 직렬화한다.
-`preload_models=false`에서는 이 공유 모델도 첫 segmentation 또는 tracking 요청까지
-생성하지 않는다.
-
-`inspect_scene.launch.py`의 기존 기본 detector는 `gemini-robotics-er-2-preview`다. Robotics ER 계열은 공식
-Interactions API와 업로드된 RGB snapshot을 사용하고, 요청이 끝나면 원격 임시 파일을
-삭제한다. 그 외 Gemini model ID는 기존 `generateContent` 경로를 사용한다. Robotics ER
-API는 제한이 설정된 API key가 필요할 수 있다.
-
-YOLOE-26은 Ultralytics `8.4.0` 이상이 필요하다. 공식 배포 weight는 segmentation
-checkpoint인 `yoloe-26n-seg.pt`이며 별도 `yoloe-26n-det.pt`는 없다. YOLOE detector
-adapter는 `detector_type=yoloe`일 때 bbox/class/confidence만 사용하고 자체 mask는 버린다.
-`detector_type=yoloe_gemini`에서는 같은 추론의 원본 해상도 instance mask를 snapshot에
-보관해 `segmenter_type=yoloe_seg`가 재추론 없이 사용한다. Text
-prompt 경로는 checkpoint 외에 Ultralytics CLIP package와 `mobileclip2_b.ts`가 필요하다.
-`yoloe_text_encoder_directory`는 이 파일이 있는 디렉터리를 가리켜야 하며 model과
-encoder는 저장소에 commit하지 않는다.
-
-`DetectorPort`의 RGB 입력은 YOLOE adapter 내부에서 contiguous BGR로 변환한다.
-Ultralytics의 NumPy 입력은 BGR로 해석되므로 RGB를 그대로 전달하면 색 채널이 뒤바뀐다.
-반환 bbox는 원본 RGB 해상도의 픽셀 좌표다.
+의존성 설치는 `docs/DEVELOPMENT_SETUP.md`를 따른다. YOLOE checkpoint와
+`mobileclip2_b.ts` text encoder는 `CLEANY_MODEL_DIR` 또는 `~/models` 아래에 준비한다.
+모델은 저장소에 포함하거나 실행 중 자동 다운로드하지 않는다.
+Gemini 분류를 사용하는 `yoloe_gemini`는 `GEMINI_API_KEY` 환경변수가 필요하다.
+스터디카페 head/손목 전용 체크포인트는 아래 학습 절과 Skill Executor README를 따른다.
 
 ## 실행
 
@@ -141,40 +80,11 @@ MAC, license와 checkpoint는 perception container에 mount하지 않는다. 자
 [`containers/vision`](../../../containers/vision/README.md)을 따른다. 아래 명령은 native
 개발환경용이다.
 
-1차 detector-only 단계만 확인할 때는 SAM2 인자가 필요 없다.
-
 ```bash
 source /opt/ros/humble/setup.bash
 source ros2_ws/install/setup.bash
 export GEMINI_API_KEY="<your-api-key>"
 ros2 launch cleany_perception inspect_scene.launch.py
-```
-
-2차 selected-object 단계까지 실행할 때는 SAM2를 함께 설정한다.
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-export GEMINI_API_KEY="<your-api-key>"
-ros2 launch cleany_perception inspect_scene.launch.py \
-  sam2_model_config:=configs/sam2.1/sam2.1_hiera_s.yaml \
-  sam2_checkpoint:=/absolute/path/to/sam2.1_hiera_small.pt \
-  sam2_device:=cpu
-```
-
-YOLOE-26n bbox와 SAM2.1 tiny를 함께 사용할 때는 다음처럼 실행한다. `yoloe_classes`는
-ROS string array이며, 배포 환경의 대상 label에 맞춰 명시한다.
-
-```bash
-ros2 launch cleany_perception inspect_scene.launch.py \
-  detector_type:=yoloe segmenter_type:=sam2 \
-  yoloe_model_path:=/absolute/path/to/yoloe-26n-seg.pt \
-  yoloe_text_encoder_directory:=/absolute/path/to/yoloe-model-directory \
-  yoloe_classes:="[cup, computer mouse, crumpled tissue, lego brick]" \
-  yoloe_device:=cpu minimum_detection_confidence:=0.05 \
-  sam2_model_config:=configs/sam2.1/sam2.1_hiera_t.yaml \
-  sam2_checkpoint:=/absolute/path/to/sam2.1_hiera_tiny.pt \
-  sam2_device:=cpu
 ```
 
 입력 topic 기본값:
@@ -196,17 +106,6 @@ snapshot을 120초 동안 유지하며 parameter로 조정한다.
 유효 거리 오름차순, confidence 내림차순, detector 원본 순서로 번호를 부여하며,
 유효 depth가 부족한 detection은 `distance_valid=false`로 배열 뒤에 남긴다. 자동 조작
 coordinator는 `distance_valid=true`인 객체만 가까운 순서로 시도해야 한다.
-
-선택 물체의 grasp용 cloud에서는 3D 복원 때 추정한 지지 평면과의 높이가
-5 mm 미만인 점을 제외한다. SAM2 mask 경계에 섞인 책상 점이 jaw 폭과
-접근 방향을 왜곡하지 않도록 하는 처리이며, 평면도 같은 depth에서 추정한다.
-주변 context cloud와 전체 환경 cloud에서는 지지면을 지우지 않는다.
-
-`simulation_color_profile:=study_cafe`는 과거의 파란 컵/지갑/휴대폰/지우개 장면용
-결정적 회귀 fixture다. RGB 색상만 사용하며 simulator pose/ground-truth를 읽지
-않지만, 현재 종이컵/레고/휴지 장면과는 호환되지 않는다. 현재 장면은 아래의 YOLOE-s
-+ SAM2-tiny 프로필을 사용하며 색상 fallback은 없다. 기본 `legacy` color profile은
-기존 box/can 데모와 호환된다.
 
 ## ROS API
 
@@ -245,29 +144,6 @@ ros2 action send_goal \
 - `perception/detections_2d`: 번호가 부여된 `DetectedObject2DArray`
 - `perception/objects`: 후속 선택 단계에서 사용할 `DetectedObject3DArray` topic
 
-선택 객체 inspection action 결과에는 grasp 입력용 `target_cloud`와
-`context_cloud`도 포함한다. 두 `PointCloud2`는 객체 OBB와 같은 configured target
-frame(기본 `base_link`) 및 capture timestamp를 사용하고 `x`, `y`, `z`, packed `rgb`
-field를 공유한다. target은 SAM2 mask 내부이고 context는
-선택 bbox 주변 crop이며 `grasp_cloud_voxel_size_m`와 각각의 최대 점 개수 parameter로
-payload를 제한한다.
-- `perception/debug_image`: rqt용 `BEST_EFFORT`, `VOLATILE` debug image
-- `perception/debug_image_latched`: 마지막 결과를 보관하는 `RELIABLE`,
-  `TRANSIENT_LOCAL` debug image
-
-debug image는 각 단계가 성공했을 때 생성된다. 1차 결과는 모든 bbox와 번호, 2차 결과는
-선택 bbox와 SAM2 mask를 표시한다. rqt의 큰 best-effort sample 유실과
-subscriber discovery 지연을 흡수하기 위해 live topic에는 기본 0.25초 간격으로 총 5회 같은
-snapshot을 제한 재발행한다. 횟수와 간격은 `debug_republish_count`와
-`debug_republish_period_seconds`로 조정한다. latched topic은 마지막 성공 결과 한 장만
-보관한다. detector 또는 SAM2 단계에서 실패하면 이전 결과를 재발행하지 않는다.
-`debug_republish_count=0`이면 RGB-D와 손목 debug 이미지 생성·발행을 생략한다.
-RGB-D snapshot은 메시지 payload를 읽기 전용 NumPy view로 참조하고, reference
-PIN은 이 읽기 전용 snapshot을 공유해 불필요한 전체 프레임 복사를 줄인다.
-손목 HANDOFF 이후에는 선택하지 않은 팔의 임시 frame cache를 비우고 새 frame을
-보관하지 않는다. HANDOFF 전에는 정확한 timestamp 동기화를 위해 두 팔의 짧은
-buffer를 유지한다.
-
 MuJoCo 통합 데모는 `detector_type=simulation_color`,
 `segmenter_type=simulation_color`로 시뮬레이션 전용 adapter를 선택한다. 이 adapter는
 렌더링된 RGB의 빨강/파랑 픽셀에서 bbox와 mask를 계산할 뿐, 물체 pose나 합성 점을
@@ -282,17 +158,6 @@ ros2 topic echo /perception/debug_image_latched --once --field encoding \
 ```
 
 ## 실패 처리
-
-- RGB-D timeout: `ERROR_RGBD_TIMEOUT`
-- Gemini API/auth/network/timeout: `ERROR_DETECTOR_API`
-- JSON/schema/bbox 오류: `ERROR_DETECTOR_RESPONSE`
-- 잘못된 selected-object 요청: `ERROR_INVALID_SELECTION`
-- 없거나 만료된 snapshot: `ERROR_SNAPSHOT_NOT_FOUND`
-- SAM2 dependency/checkpoint/mask 오류: `ERROR_MASK`
-- depth encoding, shape 또는 유효 point 부족: `ERROR_DEPTH`
-- support plane 실패 또는 base-frame tilt 초과: `ERROR_PLANE`
-- capture timestamp TF 실패: `ERROR_TF`
-- cancel: `ERROR_CANCELLED`
 
 1차 결과의 `snapshot_id`는 후속 선택 단계가 같은 RGB-D와 촬영 시점 TF를 사용하기 위한
 opaque key다. cache 크기와 TTL을 넘긴 snapshot은 후속 단계에서 사용할 수 없다.
@@ -310,11 +175,6 @@ colcon test --packages-select cleany_perception
 colcon test-result --verbose
 ```
 
-작은 검사는 관련 기능의 suite에 포함한다. `test_geometry.py`는 point cloud 변환,
-`test_depth_scene_cloud.py`는 cloud 수신 시각, `test_rgbd_snapshot.py`는 snapshot cache,
-`test_reference_service.py`는 reference 관측, `test_sam2_reference_tracker.py`는 연속
-tracking을 함께 검사한다. DDS 설정 검사는 `test_learned_launch_profile.py`에 둔다.
-
 ## 스터디카페 MuJoCo 전용 YOLOE-seg 학습
 
 기본 YOLOE-26s-seg의 범용 text prompt는 현재 MuJoCo 종이컵·마우스·휴지·레고를
@@ -323,6 +183,20 @@ scene의 head RGB 영상을 여러 물체 위치·회전과 밝기 값으로 생
 라벨에만** MuJoCo segmentation geom ID를 쓴다. 실행 중 인식 노드는 RGB-D 픽셀과
 YOLOE 출력만 읽으며 geom ID나 물체 pose를 사용하지 않는다. 생성 데이터와 모델은
 저장소 밖의 모델 디렉터리에 둔다.
+
+손목 시점 학습에는 `--camera left_wrist_rgb` 또는 `right_wrist_rgb`와
+`--joint-positions-json`으로 실제 pregrasp의 관절값을 전달할 수 있다. 손목 시야에
+네 물체가 모두 들어오지 않으면 `--allow-partial-objects`를 사용해 보이는 물체만
+라벨링한다. 서로 다른 카메라 데이터는 같은 클래스 순서로 합쳐 학습하고, 별도 seed의
+holdout 영상으로 head와 양손목 성능을 각각 평가한다. 이 geom ID와 관절값은 오프라인
+학습에만 쓰며 실행 중 인식에는 전달하지 않는다.
+`tools/combine_study_cafe_yoloe_datasets.py`는 클래스 순서를 검사하고 이미지·라벨을
+복사하지 않고 심볼릭 링크로 합친다. 예를 들어 head와 두 손목의 `dataset.yaml`을
+`--source head=... --source left_wrist=... --source right_wrist=...`로 전달한다.
+파지 후 시점을 학습할 때는 `--attached-object lego --attachment-site left_grasp_tcp`처럼
+오프라인 장면의 물체를 TCP 부근에 배치할 수 있다. `--attachment-jitter-m`으로 위치를
+흔들며, 렌더링한 물체 geom에서만 학습 라벨을 만든다. 이는 실제 런타임 물체 위치를
+읽는 기능이 아니며, 생성 자세 밖의 손목 시점 성능을 보장하지 않는다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -355,92 +229,25 @@ cp ~/models/yoloe/study_cafe_sim_v1_training/fit/weights/best.pt \
 매칭되지 않은 검출은 21개였다. 검증 영상도 같은 scene의 다른 무작위 배치이므로
 실물 인식 성능의 근거로 사용할 수 없다.
 
-## YOLOE-s + SAM2-tiny 공통 실행 프로필
+## YOLOE-seg 공통 실행 프로필
 
-설치되는 `config/fastdds_rgbd.xml`은 Fast DDS 2.6/Humble용 UDP + participant별
-16 MiB 공유 메모리 설정이다. 큰 RGB-D/PointCloud2의 동일 호스트 전달 실험에서 사용했다.
-Study-cafe 전체 launch가 모든 child에 적용하며, 별도 프로세스들은
-`FASTRTPS_DEFAULT_PROFILES_FILE`에 이 파일 경로를 지정한다. `learned_rgbd.launch.py`
-단독 실행은 외부 카메라/MoveIt의 middleware 환경을 변경하지 않는다. QoS나 2초 지도
-freshness 검증을 완화하는 설정이 아니며 Jetson에서도 무손실이라는 보장은 없다.
-
-공통 프로필은 `enable_reference_observation=true`로
-`/perception/observe_object_reference`도 제공한다. 집기 전 YOLOE snapshot/object를
-`PIN`으로 고정한 뒤, `OBSERVE`에서 새 동기화 RGB-D를 받아 capture TF를 먼저 확보하고
-SAM2 video predictor로 기준/현재 두 영상만 처리한다. 검출 cache(max 2)와 별도로
-한 reference만 보존하며 TTL은 120초(단조 시계), 해제는 `CLEAR`다. inspector action과
-service는 상호 배타적이며 busy면 실패한다. 일반 inspector 기본값은 비활성화다.
-
-공식 SAM2 video API에 맞춰 두 RGB를 private 임시 디렉터리의 JPEG quality=100,
-subsampling=0으로 변환한다(무손실 raw 입력이라고 주장하지 않음). 디렉터리는 요청 후
-자동 정리하며 checkpoint를 바꾸거나 추가 학습하지 않는다. preload 시 image/video
-predictor를 각각 준비하므로 기존보다 메모리가 늘어난다. Jetson 메모리/속도는 미검증이다.
-
-현재 mask는 최소 30점, 이미지 최대 50%, border margin 2px, 유효 depth 비율 80%를
-검증한다. 설정은 `minimum_object_points`, `reference_maximum_mask_fraction`,
-`reference_border_margin_px`, `reference_minimum_depth_fraction`이다. 기존 depth 범위를
-유지하며 current depth를 deproject/transform한 표면의 축별 1–99% bounds를 반환한다
-(`reference_trim_fraction=0.01`). **탁자 평면으로 바닥을 채우지 않으며 완전한 물체 OBB로
-취급하지 않는다.** 원래 검출 confidence는 `source_confidence`에만 보존한다.
-reference 실패에 GT/color fallback은 없다. mask와 현재 point cloud는 service 결과에
-포함되어 실행 artifact로 저장할 수 있다. 테스트는 `test_reference_service.py`,
-`test_sam2_reference_tracker.py`와 `make test-grasp-pregrasp`에 포함된다.
-
-`config/yoloe_s_sam2_tiny.yaml`은 MuJoCo 파이프라인과 일반 RGB-D 실행에서
-명시적으로 YOLOE를 선택할 때 사용하는 로컬 모델 프로필이다. YOLOE-26s segmentation checkpoint의 bbox만
-검출 결과로 사용하고 마스크는 SAM2.1 tiny로 만든다. 클래스는 cup/computer mouse/
-crumpled tissue/lego brick, YOLOE 입력 크기는 640, confidence 0.25다.
-이는 장면 교체에 맞춘 text prompt 설정이며 새 물체의 검출 정확도를 보증하지 않는다.
-
-기존 Gemini+SAM2 비교 프로필은 `config/gemini_flash_lite_sam2_tiny.yaml`의
-`gemini-3.1-flash-lite`다. [공식 모델 ID와 이미지/구조화 출력 지원](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite)을
-기준으로 기존 Gemini `generate_content` adapter를 사용한다. RGB PNG와 prompt를 외부
-API에 보내 bbox를 받고, SAM2.1-tiny는 로컬에서 mask/추적을 담당한다. `GEMINI_API_KEY`
-환경 변수가 필요하며 키 자체는 ROS parameter/로그/레포에 저장하지 않는다. `prepare()`는
-API 호출 없이 인증 값의 존재와 client 생성만 확인한다. API 접근 권한·quota·bbox 정확도는
-실제 요청에서 별도로 확인해야 하며, 실패 시 YOLOE나 색상 검출기로 자동 대체하지 않는다.
-Gemini confidence는 자기 보고 점수로 YOLOE confidence와 직접 동등 비교할 수 없다.
-Gemini 기본 query는 책상 위의 이동 가능한 물체를 일반적으로 검출하도록 요청한다.
-특정 물체 목록, 고정 label, 수거 완료/잔여 물체 목록은 prompt에 넣지 않는다.
-보이는 외형에 따라 자유롭게 label을 생성하며, 정체가 불분명하면 구체적인 종류를
-추측하는 대신 일반적인 외형 설명을 사용하도록 요청한다. 책상·고정 설비·로봇 부품은
-제외하고, 물체가 없으면 빈 검출 목록을 요청한다. 이는 오탐 방지를 보장하지 않으며
-객체 ID 유지나 프레임 간 일관성 검증을 추가하는 기능은 아니다.
-일반 `learned_rgbd.launch.py`도 `gemini_flash_lite_sam2_tiny.yaml`을 기본으로
-사용한다. `model_profile:=<yaml>`로 대체 프로필을 명시할 수 있다.
-SAM2 reference/wrist service의 시작 조건은 YOLOE와 Gemini 검출기를 모두 지원한다.
-Gemini도 같은 RGB snapshot의 bbox/label을 reference seed로 전달하며 이후 연속 추적은
-로컬 SAM2가 담당한다. reference가 없는 모드나 색상 검출기를 이 경로로 허용하지 않는다.
+`config/yoloe_seg.yaml`은 로컬 YOLOE 검출의 instance mask를 선택 객체 분할에
+그대로 사용한다. `config/yoloe_seg_gemini.yaml`은 같은 마스크에 Gemini의
+label/category/reason을 결합하며 `learned_rgbd.launch.py`의 기본 프로필이다.
+`model_profile:=<yaml>`로 명시적으로 다른 프로필을 선택할 수 있다.
+`enable_wrist_observation:=true`로 YOLOE-seg 손목 HANDOFF/CHECK 서비스를 켠다.
+모델 생성 시 로컬 파일과 장치를 검사하고 `preload_models=true`는 action 공개 전에
+모델을 준비한다. 실패하면 다른 검출기나 색상 fixture로 자동 대체하지 않는다.
 
 ```bash
-ros2 launch cleany_perception learned_rgbd.launch.py
-# 다른 모델 저장 위치 / 장치
 ros2 launch cleany_perception learned_rgbd.launch.py \
-  model_directory:=/models device:=cuda:0
-# MuJoCo 연결 + tracking 중단 (단일 이미지 segmentation 유지)
-ros2 launch cleany_perception learned_rgbd.launch.py \
-  model_directory:=/models device:=cuda:0 use_sim_time:=true sam2_tracking_enabled:=false
+  model_directory:=/models device:=cuda:0 use_sim_time:=true
 ```
 
-이 launch는 카메라/로봇 driver를 시작하지 않는다. 기본 camera 입력은
-`/camera/color/image_raw`, `/camera/color/camera_info`,
-`/camera/aligned_depth_to_color/image_raw`이며 실제 토픽은 인자로 변경한다.
-정류·정합 RGB-D와 CameraInfo의 frame/크기/intrinsics/timestamp 계약을
-맞춰야 한다. 현재 snapshot buffer는 exact timestamp sync이고 실제 D435
-driver 조합의 동기화/보정 검증을 대체하지 않는다.
-
-모델 파일 경로는 `model_directory`(기본 `CLEANY_MODEL_DIR` 또는 `~/models`)
-기준이며 절대 경로도 허용한다. detector/segmenter 생성 시 asset 존재와
-device를 확인한다. `auto`만 CUDA/CPU를 선택하고, 명시한 CUDA가 없으면
-실패한다. `preload_models=true`는 action server 공개 전에 두 모델을 로딩한다.
-YOLOE checkpoint와 text prompt를 선택 장치에 준비하고 SAM2 predictor를
-생성한다. 첫 이미지 추론까지 실행하는 warmup과는 다르다. load 실패 시
-색상 fixture나 다른 모델로 대체하지 않는다.
-
-기존 `inspect_scene.launch.py`의 Gemini/테스트용 선택 기능은 유지한다.
-실로봇 지향 실행은 `learned_rgbd.launch.py` 또는 skill executor의 기본
-파이프라인을 사용해야 한다. 모델 dependency 설치 기준은
-`docs/DEVELOPMENT_SETUP.md`를 따른다.
+카메라와 로봇 driver는 별도로 실행한다. 기본 입력은 `/camera/color/image_raw`,
+`/camera/color/camera_info`, `/camera/aligned_depth_to_color/image_raw`이며
+RGB-D와 CameraInfo의 크기·frame·intrinsics·exact timestamp 계약이 필요하다.
+`auto`는 CUDA/CPU를 선택하고 명시한 CUDA를 사용할 수 없으면 실패한다.
 
 ## 전체 depth 환경 포인트클라우드
 
@@ -480,11 +287,6 @@ Gemini structured response에 `sorting_category`(trash/lost_item/review),
 응답은 파싱 가능하지만 category는 빈 값이며 sorting 실행에서 검토 대상으로
 처리한다. 위험하거나 용도가 불확실한 물체는 review를 요청한다. 소유권 판단은
 확정 사실이 아니며 현재 정책은 감독하의 시뮬레이션 검증용이다.
-
-연속 손목 tracking의 120초 참조 TTL은 마지막으로 유효한 새 관측 이후의 유휴
-시간이다. fresh/visible/증가하는 capture timestamp가 모두 만족할 때만 갱신한다.
-오래된 결과 재발행, 빈 mask, 카메라 정지로는 갱신하지 않으며 CLEAR 시 종료한다.
-따라서 CPU 시뮬레이션에서 한 동작이 오래 걸려도 정상 추적을 임의로 만료시키지 않는다.
 
 - [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
 - [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)

@@ -17,13 +17,6 @@ CHECK는 같은 arm/source/reference의 새 RGB mask를 반환한다. CLEAR는 �
 HANDOFF의 `expected_pose.header.stamp`는 원본 head 관측 시각이다.
 `after_stamp_ns`보다 새로운 손목 image/CameraInfo 쌍만 처리한다.
 
-`WristTrackingStatus.msg`는 백그라운드 SAM2 추적의 원본 촬영 Header,
-arm/reference/source snapshot/object ID, 처리 유효성(`valid`), mask 면적 범위 기반
-가시성(`visible`), mask/image pixel 수와 reason을 전달한다.
-`/perception/wrist_tracking_status`는 reliable depth 10이며 새 추론 결과/오류에만 발행한다.
-오류에는 `valid=false`를 사용하며 촬영 시각을 임의 생성하지 않는다.
-`visible=false`는 가림/시야 이탈/추적 실패일 수도 있어 확정 낙하 판정이 아니다.
-
 ## VerifyPlacement
 
 `srv/VerifyPlacement.srv`는 label, destination_id, release 이후 기준
@@ -50,20 +43,11 @@ bounding box, snapshot-local 번호와 후속 선택 요청에 사용할 `snapsh
 ## Scene inspection action
 
 `InspectScene` 1차 단계는 동기화된 RGB-D snapshot에서 2D detection만 수행하고,
-2차 단계는 `snapshot_id`와 `selected_object_id`로 선택한 객체 하나만 SAM2 및 3D
+2차 단계는 `snapshot_id`와 `selected_object_id`로 선택한 객체 하나의 YOLOE instance mask로 3D
 복원한다. 성공한 2차 결과는 같은 configured target frame과 capture timestamp의
 `target_cloud`, `context_cloud`와 선택 객체 OBB를 반환한다.
 
 ## Grasp planning과 선택
-
-`ObserveObjectReference` service는 검출 재실행과 구분된 관측 계약이다.
-`PIN(1)`은 기존 `source_snapshot_id/source_object_id`를 단일 reference로 보존하고,
-`OBSERVE(2)`는 reference ID로 요청 시점 이후의 RGB-D + capture TF를 관측한다.
-`CLEAR(3)`은 명시적으로 해제한다. 유효기간은 inspector 설정이며 만료 시 실패한다.
-`source_*`는 최초 detector의 의미·신뢰도·촬영 시각이다. `header`, `mask`,
-`observed_cloud`, `observed_center/extent`는 **현재 관측된 표면**이다. center/extent는
-완성된 OBB나 숨겨진 부피가 아니며 SAM2 확률 또는 새 YOLOE confidence를 만들지 않는다.
-현재 RGB-D 유실, TF 실패, 잘린 mask, 부족한 depth와 busy 요청은 성공으로 처리하지 않는다.
 
 `PlanGrasp`는 score 내림차순 `GraspCandidate[] candidates`를 반환한다.
 `SelectReachableGrasp` action은 같은 snapshot/object/frame/OBB 후보를 받아 양팔 IK,
@@ -106,5 +90,5 @@ colcon test-result --verbose
 빈 값은 이름 기반 폐기 허가가 아니다. 이 메시지 변경 후 모든 consumer를 재빌드한다.
 
 - [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
-- [System Concept](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Concept.md)
+- [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
 - [ROS 2 Software Architecture](../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)

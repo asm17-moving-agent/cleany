@@ -3,8 +3,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 from launch import LaunchContext
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch_ros.parameter_descriptions import ParameterValue
+from launch.actions import DeclareLaunchArgument
 import pytest
 import yaml
 
@@ -12,8 +11,8 @@ import yaml
 """Launch contract checks without starting ROS nodes or loading model weights."""
 
 
-@pytest.mark.parametrize('tracking', ['true', 'false'])
-def test_standalone_uses_shared_profile_and_tracking_settings(monkeypatch, tracking):
+@pytest.mark.parametrize('wrist', ['true', 'false'])
+def test_standalone_uses_shared_yoloe_profile(monkeypatch, wrist):
     package = Path(__file__).parents[1]
     spec = importlib.util.spec_from_file_location('learned_launch', package / 'launch/learned_rgbd.launch.py')
     module = importlib.util.module_from_spec(spec)
@@ -28,42 +27,24 @@ def test_standalone_uses_shared_profile_and_tracking_settings(monkeypatch, track
 
     monkeypatch.setattr(module, 'Node', node)
     context = LaunchContext()
-    context.launch_configurations.update(sam2_tracking_enabled=tracking, use_sim_time='true', device='cuda:0')
+    context.launch_configurations.update(use_sim_time='true', device='cuda:0',
+                                        enable_wrist_observation=wrist)
     description = module.generate_launch_description()
     for entity in description.entities:
         if isinstance(entity, DeclareLaunchArgument):
             entity.execute(context)
-        elif isinstance(entity, OpaqueFunction):
-            for argument in entity.execute(context):
-                argument.execute(context)
     profile = Path(context.launch_configurations['model_profile'])
     settings = yaml.safe_load(profile.read_text())['perception_inspector']['ros__parameters']
-    assert profile.name == 'gemini_flash_lite_sam2_tiny.yaml'
+    assert profile.name == 'yoloe_seg_gemini.yaml'
     assert settings['gemini_model'] == 'gemini-3.1-flash-lite'
-    assert context.launch_configurations['sam2_checkpoint'] == settings['sam2_checkpoint']
-    assert context.launch_configurations['sam2_model_config'] == settings['sam2_model_config']
     values = captured[0]['parameters'][-1]
-    for key in ('enable_reference_observation', 'enable_wrist_observation', 'wrist_continuous_tracking'):
-        assert isinstance(values[key], ParameterValue)
-        assert values[key].evaluate(context) is (tracking == 'true')
     assert values['use_sim_time'].evaluate(context) is True
-    assert values['sam2_device'].perform(context) == 'cuda:0'
+    assert values['enable_wrist_observation'].evaluate(context) is (wrist == 'true')
+    assert settings['detector_type'] == 'yoloe_gemini'
+    assert settings['segmenter_type'] == 'yoloe_seg'
+    assert values['yoloe_device'].perform(context) == 'cuda:0'
 
 
-def test_selected_profile_checkpoint_is_not_overridden_by_tiny_defaults(tmp_path):
-    package = Path(__file__).parents[1]
-    spec = importlib.util.spec_from_file_location('custom_learned_launch', package / 'launch/learned_rgbd.launch.py')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    profile = tmp_path / 'profile.yaml'
-    profile.write_text(yaml.safe_dump({'perception_inspector': {'ros__parameters': {
-        'sam2_checkpoint': 'custom/model.pt', 'sam2_model_config': 'custom/config.yaml'}}}))
-    context = LaunchContext()
-    context.launch_configurations['model_profile'] = str(profile)
-    for argument in module._profile_defaults(context):
-        argument.execute(context)
-    assert context.launch_configurations['sam2_checkpoint'] == 'custom/model.pt'
-    assert context.launch_configurations['sam2_model_config'] == 'custom/config.yaml'
 
 
 def test_large_rgbd_profile_keeps_udp_and_bounded_shared_memory_without_qos_override():

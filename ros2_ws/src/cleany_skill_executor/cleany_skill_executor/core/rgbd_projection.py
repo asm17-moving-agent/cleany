@@ -1,4 +1,4 @@
-"""Pure RGB-D red-can segmentation and projection for the MuJoCo demo."""
+"""Camera projection and grasp overlays shared by study-cafe manipulation."""
 
 from __future__ import annotations
 
@@ -36,14 +36,6 @@ class CameraProjection:
             raise ValueError('camera rotation must be orthonormal')
 
 
-@dataclass(frozen=True, slots=True)
-class SegmentedCanCloud:
-    target_points: np.ndarray
-    target_colors: np.ndarray
-    context_points: np.ndarray
-    context_colors: np.ndarray
-
-
 def rotation_matrix_from_quaternion(
     x: float,
     y: float,
@@ -75,103 +67,6 @@ def rotation_matrix_from_quaternion(
             ),
         ),
         dtype=float,
-    )
-
-
-def _project(
-    rows: np.ndarray,
-    columns: np.ndarray,
-    depth: np.ndarray,
-    camera: CameraProjection,
-) -> np.ndarray:
-    z = depth[rows, columns]
-    optical = np.column_stack(
-        (
-            (columns - camera.cx) * z / camera.fx,
-            (rows - camera.cy) * z / camera.fy,
-            z,
-        )
-    )
-    rotation = np.asarray(camera.rotation_base_from_optical).reshape((3, 3))
-    translation = np.asarray(camera.translation_base)
-    return optical @ rotation.T + translation
-
-
-def _limited_indices(count: int, maximum: int) -> np.ndarray:
-    if count <= maximum:
-        return np.arange(count)
-    return np.linspace(0, count - 1, maximum, dtype=int)
-
-
-def segment_red_can(
-    rgb: np.ndarray,
-    depth_m: np.ndarray,
-    camera: CameraProjection,
-    *,
-    context_margin_pixels: int = 80,
-    minimum_target_pixels: int = 100,
-    target_maximum_points: int = 12000,
-    context_maximum_points: int = 30000,
-) -> SegmentedCanCloud:
-    """Segment rendered red can and reconstruct aligned base-frame clouds."""
-
-    if rgb.ndim != 3 or rgb.shape[2] != 3:
-        raise ValueError('RGB image must have shape HxWx3')
-    if depth_m.shape != rgb.shape[:2]:
-        raise ValueError('depth image shape must match RGB')
-    if context_margin_pixels < 0:
-        raise ValueError('context margin must be non-negative')
-    if minimum_target_pixels <= 0:
-        raise ValueError('minimum target pixels must be positive')
-    if target_maximum_points <= 0 or context_maximum_points <= 0:
-        raise ValueError('point-cloud limits must be positive')
-    finite = np.isfinite(depth_m) & (depth_m > 0.1) & (depth_m < 3.0)
-    red = rgb[:, :, 0].astype(float)
-    green = rgb[:, :, 1].astype(float)
-    blue = rgb[:, :, 2].astype(float)
-    target_mask = (
-        finite
-        & (red > 140.0)
-        & (red > 1.55 * green)
-        & (red > 1.70 * blue)
-    )
-    target_rows, target_columns = np.nonzero(target_mask)
-    if target_rows.size < minimum_target_pixels:
-        raise ValueError(
-            f'red can segmentation found only {target_rows.size} pixels'
-        )
-
-    row_min = max(0, int(target_rows.min()) - context_margin_pixels)
-    row_max = min(
-        rgb.shape[0], int(target_rows.max()) + context_margin_pixels + 1
-    )
-    column_min = max(0, int(target_columns.min()) - context_margin_pixels)
-    column_max = min(
-        rgb.shape[1], int(target_columns.max()) + context_margin_pixels + 1
-    )
-    context_mask = np.zeros_like(finite)
-    context_mask[row_min:row_max, column_min:column_max] = True
-    context_rows, context_columns = np.nonzero(context_mask & finite)
-
-    target_selection = _limited_indices(
-        target_rows.size, target_maximum_points
-    )
-    context_selection = _limited_indices(
-        context_rows.size, context_maximum_points
-    )
-    target_rows = target_rows[target_selection]
-    target_columns = target_columns[target_selection]
-    context_rows = context_rows[context_selection]
-    context_columns = context_columns[context_selection]
-    return SegmentedCanCloud(
-        target_points=_project(
-            target_rows, target_columns, depth_m, camera
-        ),
-        target_colors=rgb[target_rows, target_columns],
-        context_points=_project(
-            context_rows, context_columns, depth_m, camera
-        ),
-        context_colors=rgb[context_rows, context_columns],
     )
 
 

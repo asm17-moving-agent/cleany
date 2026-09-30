@@ -36,17 +36,14 @@ def generate_launch_description() -> LaunchDescription:
                     LaunchConfiguration('minimum_detection_confidence'),
                     value_type=float,
                 ),
-                'sam2_model_config': LaunchConfiguration('sam2_model_config'),
-                'sam2_checkpoint': LaunchConfiguration('sam2_checkpoint'),
-                'sam2_device': LaunchConfiguration('sam2_device'),
                 'target_frame': LaunchConfiguration('target_frame'),
             },
         ],
     )
     return LaunchDescription(
         [
-            DeclareLaunchArgument('detector_type', default_value='gemini'),
-            DeclareLaunchArgument('segmenter_type', default_value='sam2'),
+            DeclareLaunchArgument('detector_type', default_value='yoloe_gemini'),
+            DeclareLaunchArgument('segmenter_type', default_value='yoloe_seg'),
             DeclareLaunchArgument(
                 'gemini_model',
                 default_value='gemini-robotics-er-2-preview',
@@ -63,9 +60,6 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'minimum_detection_confidence', default_value='0.25'
             ),
-            DeclareLaunchArgument('sam2_model_config', default_value=''),
-            DeclareLaunchArgument('sam2_checkpoint', default_value=''),
-            DeclareLaunchArgument('sam2_device', default_value='cuda'),
             DeclareLaunchArgument('target_frame', default_value='base_link'),
             node,
         ]

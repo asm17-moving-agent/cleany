@@ -127,8 +127,8 @@ def test_confirmation_rejects_invalid_box_geometry(extent):
         NearestPregraspCoordinator._obb_corners(box)
 
 
-@pytest.mark.parametrize('reachable', [True, False])
-@pytest.mark.parametrize('compatible', [True, False])
+# Reachability is never queried for an incompatible candidate.
+@pytest.mark.parametrize('reachable,compatible', [(True, True), (False, True), (False, False)])
 @pytest.mark.parametrize('reworded', [True, False])
 def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compatible, reworded):
     events = []
@@ -364,11 +364,19 @@ def test_controller_contact_uses_reference_minus_feedback():
     assert sample.tcp_distance_m == 0.0
 
 
-@pytest.mark.parametrize('sensor_ready', [True, False])
-@pytest.mark.parametrize('count_retreat', [True, False])
-@pytest.mark.parametrize('retreat_rise', [0.0, 0.14])
-@pytest.mark.parametrize('direct_vertical', [False, True])
-def test_post_refresh_order_is_approach_grip_retreat_then_lift(sensor_ready, count_retreat, retreat_rise, direct_vertical):
+# A failed attachment barrier stops before either lift mode. Extra lift is
+# read only in direct mode; keep all successful combinations that use it.
+@pytest.mark.parametrize('sensor_ready,count_retreat,retreat_rise,direct_vertical,direct_extra', [
+    (False, True, 0.0, False, 0.0),
+    (False, False, 0.0, True, 0.02),
+] + [
+    (True, count, rise, False, 0.0)
+    for count in (True, False) for rise in (0.0, 0.14)
+] + [
+    (True, count, rise, True, extra)
+    for count in (True, False) for rise in (0.0, 0.14) for extra in (0.0, 0.02)
+])
+def test_post_refresh_order_is_approach_grip_retreat_then_lift(sensor_ready, count_retreat, retreat_rise, direct_vertical, direct_extra):
     events = []
     start = Pose()
     start.orientation.w = 1.0
@@ -386,6 +394,7 @@ def test_post_refresh_order_is_approach_grip_retreat_then_lift(sensor_ready, cou
         'approach_velocity_scaling': 0.2,
         'retreat_velocity_scaling': 0.4,
         'lift_distance_m': 0.06,
+        'direct_vertical_lift_extra_m': direct_extra,
         'count_retreat_as_lift': count_retreat,
         'require_sensor_scene': True,
         'attachment_scene_timeout_sec': 5.0,
@@ -459,8 +468,9 @@ def test_post_refresh_order_is_approach_grip_retreat_then_lift(sensor_ready, cou
     if needs_vertical:
         lift_event = next(e for e in events if e[0] == 'vertical grasp lift')
         assert lift_event[1] == 0.4
-        assert lift_event[2] == pytest.approx(0.06 + (
-            0.0 if count_retreat or direct_vertical else retreat_rise))
+        assert lift_event[2] == pytest.approx(
+            0.06 + (0.0 if count_retreat or direct_vertical else retreat_rise)
+            + (direct_extra if direct_vertical else 0.0))
     assert events[-1][1] == ({'minimum_center_z_m': 0.06} if count_retreat else {})
 
 

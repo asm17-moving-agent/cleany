@@ -18,53 +18,8 @@ procedural_assets:
   crumpled_tissue:
     description: Original deterministic folded surface, not an imported paper model.
     collision: convex hull of the rendered mesh; no paper deformation
-# Old mesh files/provenance below are retained for historical reproducibility.
-downloaded_on: '2026-09-04'
-source_catalog: https://poly.pizza/
-conversion:
-  tool: trimesh 4.8.3
-  transform: glTF Y-up to MuJoCo Z-up, centered in XY with bottom at Z=0
-  materials: source materials removed; MJCF supplies the display color
+# Imported mesh used by the current scene.
 assets:
-  cup:
-    active: false
-    title: Coffee Mug
-    author: Michael Fuchs
-    source_page: https://poly.pizza/m/eYH-QqBybgU
-    source_file: https://static.poly.pizza/72ca337a-b7a7-4e17-82d8-3b28164cf6f6.glb
-    license: CC-BY-3.0
-    license_url: https://creativecommons.org/licenses/by/3.0/
-    source_sha256: f51974486eab1d86a719d60a81b88f53774998d1d09c6bb7584454cc962f1550
-    imported_file: study_cafe_cup.obj
-    imported_sha256: 9cde74003691625bdb2822477bd7dad7605e68f1cc559b4dcdb86377aac5f8f6
-    normalized_extent_m: [0.120, 0.085, 0.095]
-  phone:
-    active: false
-    title: Smartphone
-    author: smallbigsquare
-    source_page: https://poly.pizza/m/4DRZmTs3jq
-    source_file: https://static.poly.pizza/68a8586b-e540-431c-b42e-e3c6bc691e11.glb
-    license: CC0-1.0
-    license_url: https://creativecommons.org/publicdomain/zero/1.0/
-    source_sha256: 868e2d7b191defae7b7c8e2908d3cd41d1c7be1a940945737010590e89b35e90
-    imported_file: study_cafe_phone.obj
-    imported_sha256: 1e21885664d15d75685a32e0461d16b6e0a226a3efa368bf9f004971aff9d715
-    normalized_extent_m: [0.0675, 0.135, 0.0072]
-  wallet:
-    active: false
-    title: A Wallet (closed, thicker adaptation)
-    author: senior design
-    source_page: https://poly.pizza/m/898ojWnA41a
-    source_file: https://static.poly.pizza/89b00f66-3ee6-4312-b779-208dba883b1d.glb
-    license: CC-BY-3.0
-    license_url: https://creativecommons.org/licenses/by/3.0/
-    source_sha256: bc58f3dd4b241162d1c11fdbe92e8ba0d8826eb1b042d5fd4a0f97e418fecd99
-    imported_file: study_cafe_wallet.obj
-    imported_sha256: ecc3e50ce87bf3d7a3d8f2498f9e3a49d0550c006cd6e1ed5c4bf7be85e1695b
-    normalized_extent_m: [0.110, 0.085, 0.030]
-    downloaded_on: '2026-09-11'
-    conversion_tool: tools/convert_closed_wallet.py (NumPy, GLB accessors)
-    modifications: Retain brown mat20 shell; remove bills/cards; principal-axis alignment; split at spine and fold 180 degrees; scale to 110x85x30mm; MJCF uniform brown color. Interior layers may overlap; collision uses convex hull.
   mouse:
     active: true
     title: Computer Mouse

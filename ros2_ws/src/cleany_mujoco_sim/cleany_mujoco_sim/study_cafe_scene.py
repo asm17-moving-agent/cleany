@@ -147,7 +147,7 @@ def _tabletop_objects(
             raise ValueError(f'{context}.rgba values must be within [0, 1]')
         collision = _mapping(raw.get('collision'), f'{context}.collision')
         visual_type = raw.get('visual_type', 'mesh')
-        if visual_type not in {'mesh', 'primitive', 'eraser', 'paper_cup', 'lego_brick', 'crumpled_tissue'}:
+        if visual_type not in {'mesh', 'primitive', 'paper_cup', 'lego_brick', 'crumpled_tissue'}:
             raise ValueError(
                 f'{context}.visual_type is unsupported'
             )
@@ -656,38 +656,7 @@ def _add_tabletop_object(
             {'type': 'mesh', 'mesh': f'{body_name}_mesh'}
         )
         ET.SubElement(body, 'geom', visual_attributes)
-    elif item.visual_type == 'eraser':
-        visual_attributes.update(
-            {
-                'type': 'box',
-                'size': _values(geom_size),
-                'pos': _values((0.0, 0.0, height / 2.0)),
-            }
-        )
-        ET.SubElement(body, 'geom', visual_attributes)
-        # A slightly oversized, visual-only paper sleeve covers the middle
-        # of the eraser while leaving both coloured rubber ends exposed.
-        ET.SubElement(
-            body,
-            'geom',
-            {
-                'name': f'{body_name}_sleeve_visual',
-                'type': 'box',
-                'size': _values(
-                    (
-                        geom_size[0] * 0.58,
-                        geom_size[1] + 0.0006,
-                        geom_size[2] + 0.0006,
-                    )
-                ),
-                'pos': _values((0.0, 0.0, height / 2.0)),
-                'rgba': '0.12 0.25 0.68 1',
-                'contype': '0',
-                'conaffinity': '0',
-                'density': '0',
-                'group': '2',
-            },
-        )
+
     else:
         visual_attributes.update(
             {

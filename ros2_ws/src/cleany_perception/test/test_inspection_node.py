@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 import time
 from dataclasses import replace
+from contextlib import contextmanager
 
 import pytest
 import rclpy
@@ -146,15 +147,38 @@ def _make_node(scene, events=None, segmenter=None, detector=None):
     )
 
 
+@contextmanager
+def inspection_runtime(scene, *args):
+    rclpy.init(args=[])
+    node = client_node = executor = spin_thread = action_client = None
+    try:
+        node = _make_node(scene, *args)
+        client_node = rclpy.create_node('inspection_test_client')
+        action_client = ActionClient(client_node, InspectScene, '/perception/inspect_scene')
+        executor = MultiThreadedExecutor(num_threads=4)
+        executor.add_node(node)
+        executor.add_node(client_node)
+        spin_thread = threading.Thread(target=executor.spin, daemon=True)
+        spin_thread.start()
+        assert action_client.wait_for_server(timeout_sec=2.0)
+        yield node, client_node, action_client
+    finally:
+        if executor is not None:
+            executor.shutdown()
+        if spin_thread is not None:
+            spin_thread.join(timeout=2.0)
+        if action_client is not None:
+            action_client.destroy()
+        if client_node is not None:
+            client_node.destroy_node()
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
 def test_inspection_actions_detect_all_then_inspect_only_selection(
     synthetic_scene,
 ):
-    rclpy.init(args=[])
-    node = None
-    client_node = None
-    executor = None
-    spin_thread = None
-    action_client = None
     events = []
     segmenter = _Segmenter(synthetic_scene['mask'])
     can_detection = replace(
@@ -166,19 +190,12 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         (synthetic_scene['detection'], can_detection),
         events,
     )
-    try:
-        node = _make_node(
-            synthetic_scene,
-            events,
-            segmenter,
-            detector,
-        )
-        client_node = rclpy.create_node('inspection_test_client')
-        action_client = ActionClient(
-            client_node,
-            InspectScene,
-            '/perception/inspect_scene',
-        )
+    with inspection_runtime(
+        synthetic_scene,
+        events,
+        segmenter,
+        detector,
+    ) as (node, client_node, action_client):
         objects = []
         detection_arrays = []
         live_debug_images = []
@@ -220,18 +237,10 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
             '/camera/depth/camera_info',
             qos_profile_sensor_data,
         )
-
-        executor = MultiThreadedExecutor(num_threads=4)
-        executor.add_node(node)
-        executor.add_node(client_node)
-        spin_thread = threading.Thread(target=executor.spin, daemon=True)
-        spin_thread.start()
-        assert action_client.wait_for_server(timeout_sec=2.0)
         assert _wait_until(
             lambda: color_publisher.get_subscription_count() == 1
             and depth_publisher.get_subscription_count() == 1
         )
-
         feedback_messages = []
         goal = InspectScene.Goal()
         goal.query = 'find box'
@@ -245,18 +254,15 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         goal_handle = send_future.result()
         assert goal_handle.accepted
         assert _wait_until(lambda: bool(feedback_messages))
-
         sensor_messages = _sensor_messages(synthetic_scene, 2_000_000_000)
         color_publisher.publish(sensor_messages[0])
         color_info_publisher.publish(sensor_messages[1])
         depth_publisher.publish(sensor_messages[2])
         depth_info_publisher.publish(sensor_messages[3])
-
         result_future = goal_handle.get_result_async()
         assert _wait_until(result_future.done)
         wrapped_result = result_future.result()
         result = wrapped_result.result
-
         assert wrapped_result.status == GoalStatus.STATUS_SUCCEEDED
         assert result.success
         assert result.error_code == InspectScene.Result.ERROR_NONE
@@ -294,7 +300,6 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         )
         assert _wait_until(lambda: bool(latched_debug_images))
         assert latched_debug_images[0].encoding == 'rgb8'
-
         assert _wait_until(lambda: len(live_debug_images) >= 2)
         assert live_debug_images[0].encoding == 'rgb8'
         assert _wait_until(lambda: len(feedback_messages) == 3)
@@ -315,7 +320,6 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
             cached.detection_distances_m[1]
         )
         assert cached.capture_transform is synthetic_scene['transform']
-
         invalid_goal = InspectScene.Goal()
         invalid_goal.snapshot_id = result.detections.snapshot_id
         invalid_goal.selected_object_id = 3
@@ -332,7 +336,6 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
             == InspectScene.Result.ERROR_INVALID_SELECTION
         )
         assert segmenter.calls == 0
-
         selection_feedback = []
         selection_goal = InspectScene.Goal()
         selection_goal.snapshot_id = result.detections.snapshot_id
@@ -350,7 +353,6 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert _wait_until(selection_result_future.done)
         selection_wrapped = selection_result_future.result()
         selection_result = selection_wrapped.result
-
         assert selection_wrapped.status == GoalStatus.STATUS_SUCCEEDED
         assert selection_result.success
         assert (
@@ -374,44 +376,12 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert selection_feedback[-1].objects_3d == 1
         assert events == ['tf', 'detect']
         assert segmenter.calls == 1
-    finally:
-        if executor is not None:
-            executor.shutdown()
-        if spin_thread is not None:
-            spin_thread.join(timeout=2.0)
-        if action_client is not None:
-            action_client.destroy()
-        if client_node is not None:
-            client_node.destroy_node()
-        if node is not None:
-            node.destroy_node()
-        rclpy.shutdown()
 
 
 def test_inspection_action_rejects_incomplete_selection_request(
     synthetic_scene,
 ):
-    rclpy.init(args=[])
-    node = None
-    client_node = None
-    executor = None
-    spin_thread = None
-    action_client = None
-    try:
-        node = _make_node(synthetic_scene)
-        client_node = rclpy.create_node('selection_not_ready_client')
-        action_client = ActionClient(
-            client_node,
-            InspectScene,
-            '/perception/inspect_scene',
-        )
-        executor = MultiThreadedExecutor(num_threads=3)
-        executor.add_node(node)
-        executor.add_node(client_node)
-        spin_thread = threading.Thread(target=executor.spin, daemon=True)
-        spin_thread.start()
-        assert action_client.wait_for_server(timeout_sec=2.0)
-
+    with inspection_runtime(synthetic_scene) as (node, client_node, action_client):
         goal = InspectScene.Goal()
         goal.snapshot_id = 'rgbd-existing'
         send_future = action_client.send_goal_async(goal)
@@ -420,14 +390,12 @@ def test_inspection_action_rejects_incomplete_selection_request(
         result_future = goal_handle.get_result_async()
         assert _wait_until(result_future.done)
         wrapped_result = result_future.result()
-
         assert wrapped_result.status == GoalStatus.STATUS_ABORTED
         assert not wrapped_result.result.success
         assert (
             wrapped_result.result.error_code
             == InspectScene.Result.ERROR_INVALID_SELECTION
         )
-
         missing_goal = InspectScene.Goal()
         missing_goal.snapshot_id = 'rgbd-missing'
         missing_goal.selected_object_id = 1
@@ -442,44 +410,12 @@ def test_inspection_action_rejects_incomplete_selection_request(
             missing_result.result.error_code
             == InspectScene.Result.ERROR_SNAPSHOT_NOT_FOUND
         )
-    finally:
-        if executor is not None:
-            executor.shutdown()
-        if spin_thread is not None:
-            spin_thread.join(timeout=2.0)
-        if action_client is not None:
-            action_client.destroy()
-        if client_node is not None:
-            client_node.destroy_node()
-        if node is not None:
-            node.destroy_node()
-        rclpy.shutdown()
 
 
 def test_inspection_action_honors_cancel_while_waiting_for_rgbd(
     synthetic_scene,
 ):
-    rclpy.init(args=[])
-    node = None
-    client_node = None
-    executor = None
-    spin_thread = None
-    action_client = None
-    try:
-        node = _make_node(synthetic_scene)
-        client_node = rclpy.create_node('inspection_cancel_client')
-        action_client = ActionClient(
-            client_node,
-            InspectScene,
-            '/perception/inspect_scene',
-        )
-        executor = MultiThreadedExecutor(num_threads=3)
-        executor.add_node(node)
-        executor.add_node(client_node)
-        spin_thread = threading.Thread(target=executor.spin, daemon=True)
-        spin_thread.start()
-        assert action_client.wait_for_server(timeout_sec=2.0)
-
+    with inspection_runtime(synthetic_scene) as (node, client_node, action_client):
         feedback = []
         send_future = action_client.send_goal_async(
             InspectScene.Goal(),
@@ -495,22 +431,9 @@ def test_inspection_action_honors_cancel_while_waiting_for_rgbd(
         result_future = goal_handle.get_result_async()
         assert _wait_until(result_future.done)
         wrapped_result = result_future.result()
-
         assert wrapped_result.status == GoalStatus.STATUS_CANCELED
         assert not wrapped_result.result.success
         assert (
             wrapped_result.result.error_code
             == InspectScene.Result.ERROR_CANCELLED
         )
-    finally:
-        if executor is not None:
-            executor.shutdown()
-        if spin_thread is not None:
-            spin_thread.join(timeout=2.0)
-        if action_client is not None:
-            action_client.destroy()
-        if client_node is not None:
-            client_node.destroy_node()
-        if node is not None:
-            node.destroy_node()
-        rclpy.shutdown()

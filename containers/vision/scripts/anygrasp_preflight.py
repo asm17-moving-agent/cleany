@@ -38,9 +38,7 @@ REQUIRED_IDENTITY_KEYS = frozenset(
         'ANYGRASP_LICENSE_FILE',
         'ANYGRASP_MODEL_HOST_DIR',
         'ANYGRASP_CHECKPOINT_PATH',
-        'SAM2_MODEL_HOST_DIR',
-        'SAM2_MODEL_CONFIG',
-        'SAM2_CHECKPOINT_PATH',
+        'YOLOE_MODEL_HOST_DIR',
     }
 )
 
@@ -194,8 +192,7 @@ def validate_identity_values(values: Mapping[str, str]) -> None:
         'ANYGRASP_LICENSE_HOST_DIR',
         'ANYGRASP_MODEL_HOST_DIR',
         'ANYGRASP_CHECKPOINT_PATH',
-        'SAM2_MODEL_HOST_DIR',
-        'SAM2_CHECKPOINT_PATH',
+        'YOLOE_MODEL_HOST_DIR',
     ):
         if not Path(values[key]).is_absolute():
             raise PreflightError(f'{key} must be an absolute path')

@@ -79,7 +79,10 @@ def test_tabletop_asset_files_match_provenance_manifest() -> None:
     manifest = yaml.safe_load(ASSET_MANIFEST.read_text(encoding='utf-8'))
 
     assert manifest['schema_version'] == 1
-    assert set(manifest['assets']) == {'cup', 'phone', 'wallet', 'mouse'}
+    assert set(manifest['assets']) == {'mouse'}
+    assert {p.name for p in (PACKAGE_ROOT / 'assets').glob('*.obj')} == {
+        item['imported_file'] for item in manifest['assets'].values()
+    }
     for item in manifest['assets'].values():
         asset_path = PACKAGE_ROOT / 'assets' / item['imported_file']
         assert asset_path.is_file()

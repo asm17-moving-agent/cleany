@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 
-from cleany_skill_executor.core.can_rgbd import CameraProjection
+from cleany_skill_executor.core.rgbd_projection import CameraProjection
 
 
 def sphere_in_view(center: np.ndarray, radius: float, camera: CameraProjection,

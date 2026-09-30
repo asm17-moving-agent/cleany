@@ -22,13 +22,12 @@ def test_perception_entrypoint_uses_current_profile_and_explicit_clock():
     assert 'learned_rgbd.launch.py' in script
     assert 'inspect_scene.launch.py' not in script
     assert 'use_sim_time:="${perception_sim_time}"' in script
-    assert 'sam2_tracking_enabled:="${perception_tracking}"' in script
+    assert 'enable_wrist_observation:="${perception_wrist}"' in script
     assert 'device:=cuda' in script
     identity = IDENTITY_EXAMPLE.read_text()
-    assert 'SAM2_MODEL_CONFIG=configs/sam2.1/sam2.1_hiera_t.yaml' in identity
-    assert 'SAM2_CHECKPOINT_PATH=/models/sam2/sam2.1_t.pt' in identity
     wrapper = (VISION_DIR.parents[1] / 'tools/vision-container').read_text()
-    assert '-e CLEANY_PERCEPTION_USE_SIM_TIME -e CLEANY_SAM2_TRACKING' in wrapper
+    assert '-e CLEANY_PERCEPTION_USE_SIM_TIME' in wrapper
+    assert '-e CLEANY_PERCEPTION_USE_WRIST_CAMERA' in wrapper
 
 
 def test_dockerfile_uses_pinned_jetson_l4t_base() -> None:
@@ -134,7 +133,7 @@ def test_compose_separates_anygrasp_assets_and_reserves_gpu_addresses(
     assert anygrasp_volumes['/models/anygrasp']['read_only'] is True
     assert '/opt/anygrasp/license' not in perception_volumes
     assert '/models/anygrasp' not in perception_volumes
-    assert perception_volumes['/models/sam2']['read_only'] is True
+    assert perception_volumes['/models/yoloe']['read_only'] is True
     assert 'ANYGRASP_EXPECTED_FEATURE_ID' not in perception['environment']
 
     network = configuration['networks'][network_name]['ipam']['config'][0]

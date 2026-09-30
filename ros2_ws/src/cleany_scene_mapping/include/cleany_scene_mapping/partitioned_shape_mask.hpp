@@ -1,7 +1,11 @@
 #pragma once
 
 #include <moveit/point_containment_filter/shape_mask.h>
+#include <condition_variable>
+#include <exception>
 #include <memory>
+#include <mutex>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -14,6 +18,7 @@ class PartitionedShapeMask
 public:
   using Mask = point_containment_filter::ShapeMask;
   explicit PartitionedShapeMask(std::size_t workers = 1);
+  ~PartitionedShapeMask();
   void setWorkerCount(std::size_t workers);
   void setTransformCallback(const Mask::TransformCallback& callback);
   unsigned int addShape(const shapes::ShapeConstPtr& shape, double scale, double padding);
@@ -36,5 +41,20 @@ private:
   Mask::TransformCallback transform_;
   std::vector<std::unique_ptr<Worker>> workers_;
   std::unordered_set<unsigned int> handles_;
+  // High-water-mark storage, reused only after every worker has finished.
+  std::vector<sensor_msgs::msg::PointCloud2> partitions_;
+  std::vector<std::vector<int>> masks_;
+  std::vector<std::thread> threads_;
+  std::mutex work_mutex_;
+  std::condition_variable work_ready_, work_done_;
+  bool stopping_ = false;
+  std::size_t generation_ = 0, active_workers_ = 0, pending_workers_ = 0;
+  Eigen::Vector3d origin_ = Eigen::Vector3d::Zero();
+  double minimum_ = 0, maximum_ = 0;
+  std::exception_ptr worker_error_;
+
+  void stopWorkers();
+  void workerLoop(std::size_t index);
+  void classify(std::size_t index);
 };
 }  // namespace cleany_scene_mapping

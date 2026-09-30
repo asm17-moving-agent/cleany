@@ -14,6 +14,7 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
+find_package(Threads REQUIRED)
 
 add_library(known_geometry_core SHARED src/known_geometry.cpp)
 target_compile_features(known_geometry_core PUBLIC cxx_std_17)
@@ -25,7 +26,7 @@ ament_target_dependencies(known_geometry_core geometric_shapes octomap)
 add_library(known_geometry_octomap_updater SHARED src/known_geometry_updater.cpp src/partitioned_shape_mask.cpp)
 target_compile_features(known_geometry_octomap_updater PUBLIC cxx_std_17)
 target_link_libraries(known_geometry_octomap_updater known_geometry_core
-  moveit_ros_perception::moveit_point_containment_filter)
+  moveit_ros_perception::moveit_point_containment_filter Threads::Threads)
 ament_target_dependencies(known_geometry_octomap_updater
   moveit_ros_occupancy_map_monitor pluginlib rclcpp sensor_msgs tf2_eigen)
 pluginlib_export_plugin_description_file(moveit_ros_occupancy_map_monitor plugins.xml)
@@ -54,5 +55,5 @@ install(DIRECTORY include/ DESTINATION include)
 install(FILES README.md DESTINATION share/${PROJECT_NAME})
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(geometric_shapes octomap moveit_ros_perception
-  moveit_ros_occupancy_map_monitor pluginlib rclcpp sensor_msgs tf2_eigen)
+  moveit_ros_occupancy_map_monitor pluginlib rclcpp sensor_msgs tf2_eigen Threads)
 ament_package()

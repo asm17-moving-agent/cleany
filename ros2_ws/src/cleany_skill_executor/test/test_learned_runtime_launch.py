@@ -31,7 +31,7 @@ def runtime(monkeypatch):
     return module, context
 
 
-def test_sorting_wrapper_uses_yoloe_seg_gemini_without_sam2_or_wrist():
+def test_sorting_wrapper_uses_yoloe_seg_gemini_with_wrist():
     from launch.actions import IncludeLaunchDescription
 
     path = (Path(__file__).resolve().parents[1] / 'launch' /
@@ -44,10 +44,7 @@ def test_sorting_wrapper_uses_yoloe_seg_gemini_without_sam2_or_wrist():
     arguments = dict(include.launch_arguments)
     assert arguments['perception_detector_type'] == 'yoloe_gemini'
     assert arguments['perception_segmenter_type'] == 'yoloe_seg'
-    for name in ('sam2_tracking_enabled', 'sorting_use_wrist_camera',
-                 'sorting_use_reference_observation', 'wrist_continuous_tracking',
-                 'sorting_async_carry_monitor'):
-        assert arguments[name] == 'false'
+    assert arguments['sorting_use_wrist_camera'] == 'true'
 
 
 def test_study_cafe_simulation_defaults_to_fine_tuned_yoloe(runtime):
@@ -55,6 +52,24 @@ def test_study_cafe_simulation_defaults_to_fine_tuned_yoloe(runtime):
     assert context.launch_configurations['yoloe_model_path'] == (
         'yoloe/study_cafe_sim_yoloe26s_seg.pt'
     )
+    assert context.launch_configurations['wrist_yoloe_model_path'] == (
+        'yoloe/study_cafe_sim_all_views_yoloe26s_seg.pt'
+    )
+    assert context.launch_configurations['wrist_right_yoloe_model_path'] == (
+        'yoloe/study_cafe_sim_yoloe26s_seg.pt'
+    )
+    assert context.launch_configurations['wrist_check_yoloe_model_path'] == (
+        'yoloe/study_cafe_sim_held_yoloe26s_seg.pt'
+    )
+    assert context.launch_configurations['wrist_mouse_check_yoloe_model_path'] == (
+        'yoloe/study_cafe_sim_left_held_mouse_v2_yoloe26s_seg.pt'
+    )
+    assert context.launch_configurations['wrist_right_check_yoloe_model_path'] == (
+        'yoloe/study_cafe_sim_right_held_cup_v2_yoloe26s_seg.pt')
+    assert context.launch_configurations['sorting_release_edge_margin_m'] == '0.005'
+    assert context.launch_configurations[
+        'wrist_right_check_yoloe_class_confidence_thresholds'] == (
+            '[0.08, 0.25, 0.25, 0.08]')
     assert context.launch_configurations[
         'perception_minimum_detection_confidence'
     ] == '0.08'
@@ -102,7 +117,6 @@ def test_no_arguments_selects_yoloe_seg_gemini_plan_mode(runtime):
     values = context.launch_configurations
     assert values['perception_detector_type'] == 'yoloe_gemini'
     assert values['perception_segmenter_type'] == 'yoloe_seg'
-    assert values['sam2_tracking_enabled'] == 'false'
     assert values['sorting_contact_diagnostics'] == 'false'
     assert values['sim_performance_profile'] == 'baseline'
     assert values['sensor_scene'] == values['plan_only'] == 'true'
@@ -115,24 +129,12 @@ def test_no_arguments_selects_yoloe_seg_gemini_plan_mode(runtime):
     )
 
 
-@pytest.mark.parametrize('tracking', ['true', 'false'])
-def test_single_tracking_switch_sets_all_sorting_defaults(runtime, tracking):
-    module, context = runtime
-    context.launch_configurations.update(sorting_mode='true', sam2_tracking_enabled=tracking)
-    names = ('sorting_use_wrist_camera', 'sorting_use_reference_observation',
-             'wrist_continuous_tracking', 'sorting_async_carry_monitor')
-    for name in names:
-        context.launch_configurations.pop(name)
-    for entity in module.generate_launch_description().entities:
-        if isinstance(entity, DeclareLaunchArgument) and entity.name in names:
-            entity.execute(context)
-    assert all(context.launch_configurations[name] == tracking for name in names)
 
 
 def test_external_perception_skips_only_local_models_and_credentials(runtime, monkeypatch):
     from launch_ros.actions import Node
     module, context = runtime
-    context.launch_configurations.update(start_perception='false', sam2_checkpoint='/missing/model.pt')
+    context.launch_configurations.update(start_perception='false', yoloe_model_path='/missing/model.pt')
     monkeypatch.delenv('GEMINI_API_KEY', raising=False)
     assert module._preflight(context) == []
     nodes = [item for item in module.generate_launch_description().entities
@@ -190,21 +192,9 @@ def test_gemini_preflight_rejects_missing_credentials(runtime, monkeypatch):
         module._preflight(context)
 
 
-def test_gemini_needs_only_sam2_local_assets(runtime, tmp_path, monkeypatch):
-    module, context = runtime
-    context.launch_configurations.update(
-        perception_detector_type='gemini', perception_segmenter_type='sam2')
-    monkeypatch.setenv('GEMINI_API_KEY', 'unit-test-placeholder-not-a-real-key')
-    (tmp_path / 'sam2').mkdir()
-    (tmp_path / 'sam2/sam2.1_t.pt').touch()
-    context.launch_configurations['model_directory'] = str(tmp_path)
-    assert module._preflight(context) == []
-    context.launch_configurations['perception_detector_type'] = 'yoloe'
-    with pytest.raises(ValueError, match='yoloe_model_path not found'):
-        module._preflight(context)
 
 
-def test_default_yoloe_gemini_preflight_does_not_need_sam2_assets(runtime, tmp_path, monkeypatch):
+def test_default_yoloe_gemini_preflight_uses_local_yoloe_assets(runtime, tmp_path, monkeypatch):
     module, context = runtime
     monkeypatch.setenv('GEMINI_API_KEY', 'unit-test-placeholder-not-a-real-key')
     model_dir = tmp_path / 'yoloe'
@@ -212,6 +202,26 @@ def test_default_yoloe_gemini_preflight_does_not_need_sam2_assets(runtime, tmp_p
     (model_dir / 'study_cafe_sim_yoloe26s_seg.pt').touch()
     (model_dir / 'mobileclip2_b.ts').touch()
     context.launch_configurations['model_directory'] = str(tmp_path)
+    assert module._preflight(context) == []
+
+
+def test_sorting_preflight_requires_separate_wrist_yoloe_checkpoint(runtime, tmp_path, monkeypatch):
+    module, context = runtime
+    monkeypatch.setenv('GEMINI_API_KEY', 'unit-test-placeholder-not-a-real-key')
+    model_dir = tmp_path / 'yoloe'
+    model_dir.mkdir()
+    (model_dir / 'study_cafe_sim_yoloe26s_seg.pt').touch()
+    (model_dir / 'mobileclip2_b.ts').touch()
+    context.launch_configurations.update(model_directory=str(tmp_path),
+        sorting_mode='true', plan_only='false', sorting_use_wrist_camera='true')
+    with pytest.raises(ValueError, match='yoloe_model_path not found'):
+        module._preflight(context)
+    (model_dir / 'study_cafe_sim_all_views_yoloe26s_seg.pt').touch()
+    with pytest.raises(ValueError, match='yoloe_model_path not found'):
+        module._preflight(context)
+    (model_dir / 'study_cafe_sim_held_yoloe26s_seg.pt').touch()
+    (model_dir / 'study_cafe_sim_right_held_cup_v2_yoloe26s_seg.pt').touch()
+    (model_dir / 'study_cafe_sim_left_held_mouse_v2_yoloe26s_seg.pt').touch()
     assert module._preflight(context) == []
 
 
@@ -244,15 +254,6 @@ def test_sorting_requires_execution_and_explicit_bins(runtime):
         module._preflight(context)
 
 
-@pytest.mark.parametrize('wrist,tracking', [('false', 'true'), ('true', 'false')])
-def test_async_monitor_requires_enabled_wrist_stream(runtime, wrist, tracking):
-    module, context = runtime
-    context.launch_configurations.update(sorting_mode='true', plan_only='false',
-        sorting_bins_config=str(Path(__file__).parents[2] / 'cleany_mujoco_sim/config/robot_top_bins.yaml'),
-        sorting_async_carry_monitor='true', sorting_use_wrist_camera=wrist,
-        wrist_continuous_tracking=tracking)
-    with pytest.raises(RuntimeError, match='requires wrist camera and continuous tracking'):
-        module._preflight(context)
 
 
 @pytest.mark.parametrize('simulator,sorting,expected', [

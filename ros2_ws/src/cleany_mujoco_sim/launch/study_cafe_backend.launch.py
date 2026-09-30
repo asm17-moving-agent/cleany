@@ -14,10 +14,8 @@ import xacro
 
 from cleany_mujoco_sim.scene_loader import resolve_control_scene_path
 from cleany_mujoco_sim.tabletop_performance import PERFORMANCE_PROFILES
-from cleany_mujoco_sim.scene_manifest import (
-    default_manifest_path,
-    load_handeye_scene_manifest,
-    preflight_manifest,
+from cleany_mujoco_sim.camera_contract import (
+    load_camera_contract,
 )
 
 
@@ -67,10 +65,8 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         sorting_bins_config=Path(bins_path) if bins_path else None,
         performance_profile=LaunchConfiguration('sim_performance_profile').perform(context),
     )
-    manifest_path = default_manifest_path().resolve()
-    manifest = load_handeye_scene_manifest(manifest_path)
-    preflight_manifest(manifest, profile='simulation')
-    camera = manifest.camera_contract
+    camera_config = Path(LaunchConfiguration('camera_config').perform(context))
+    camera = load_camera_contract(camera_config)
 
     description_share = Path(
         get_package_share_directory('cleany_description')
@@ -157,7 +153,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
             LaunchConfiguration('enable_camera_contract_adapter')
         ),
         parameters=[
-            {'use_sim_time': True, 'manifest_path': str(manifest_path)},
+            {'use_sim_time': True, 'camera_config': str(camera_config)},
         ],
         output='screen',
     )
@@ -209,12 +205,19 @@ def generate_launch_description() -> LaunchDescription:
                 description='MuJoCo-only XIM selection; @im=none avoids IBus startup hangs.',
             ),
             DeclareLaunchArgument(
+                'camera_config',
+                default_value=PathJoinSubstitution([
+                    FindPackageShare('cleany_mujoco_sim'), 'config', 'wrist_camera.yaml',
+                ]),
+                description='Wrist renderer camera intrinsics and topic contract.',
+            ),
+            DeclareLaunchArgument(
                 'scene_path',
                 default_value=PathJoinSubstitution(
                     [
                         FindPackageShare('cleany_mujoco_sim'),
                         'scenes',
-                        'handeye.xml.in',
+                        'study_cafe_grasp_execution.xml.in',
                     ]
                 ),
                 description=(
@@ -228,7 +231,7 @@ def generate_launch_description() -> LaunchDescription:
                     [
                         FindPackageShare('cleany_mujoco_sim'),
                         'config',
-                        'handeye_ros2_controllers.yaml',
+                        'study_cafe_ros2_controllers.yaml',
                     ]
                 ),
                 description='ros2_control YAML for this simulation workflow.',
@@ -259,7 +262,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('sorting_contact_diagnostics', default_value='false'),
             DeclareLaunchArgument(
                 'enable_camera_contract_adapter',
-                default_value='true',
+                default_value='false',
                 description='Publish the calibrated left-wrist RGB contract.',
             ),
             DeclareLaunchArgument(

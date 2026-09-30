@@ -35,12 +35,18 @@ def parse_shape(kind: str, raw: object, collision: str, size: tuple[float, ...])
     }[kind]
     try:
         parameters = {key: float(raw[key]) for key in keys}
+        if kind == 'paper_cup':
+            parameters['collision_bottom_clearance_m'] = float(raw.get(
+                'collision_bottom_clearance_m', 0.0))
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError(f'{kind} requires numeric geometry parameters: {keys}') from error
-    if not all(math.isfinite(v) and v > 0 for v in parameters.values()):
+    dimensions = {key: value for key, value in parameters.items()
+                  if key != 'collision_bottom_clearance_m'}
+    if not all(math.isfinite(v) and v > 0 for v in dimensions.values()):
         raise ValueError(f'{kind} geometry parameters must be finite and positive')
     shape = TabletopShape(kind, parameters)
-    integer_keys = {'segments', 'studs_x', 'studs_y', 'latitude_segments', 'longitude_segments'} & parameters.keys()
+    integer_keys = {'segments', 'studs_x', 'studs_y',
+                    'latitude_segments', 'longitude_segments'} & parameters.keys()
     if any(not parameters[key].is_integer() or parameters[key] > 128 for key in integer_keys):
         raise ValueError('Geometry counts must be positive integers no greater than 128')
     if kind == 'paper_cup':
@@ -49,6 +55,9 @@ def parse_shape(kind: str, raw: object, collision: str, size: tuple[float, ...])
             raise ValueError('Paper cup needs a hollow tapered compound collision')
         if parameters['segments'] < 12:
             raise ValueError('Paper cup needs at least 12 wall segments')
+        clearance = parameters['collision_bottom_clearance_m']
+        if not math.isfinite(clearance) or not 0 <= clearance <= wall:
+            raise ValueError('Cup collision bottom clearance must be finite and within bottom thickness')
     elif kind == 'lego_brick':
         if collision != 'compound' or len(size) != 3:
             raise ValueError('LEGO brick needs body dimensions and compound collision')
@@ -69,11 +78,20 @@ def _mesh(asset: ET.Element, name: str, vertices: Sequence[Vertex],
         face=' '.join(str(i) for face in faces for i in face))
 
 
-def cup_vertices(size: tuple[float, ...], shape: TabletopShape) -> MeshData:
+def cup_vertices(size: tuple[float, ...], shape: TabletopShape, *,
+                 collision: bool = False) -> MeshData:
     radius, height = size[0]/2, size[1]
     bottom, wall = shape.number('bottom_diameter_m')/2, shape.number('wall_thickness_m')
     count = int(shape.number('segments'))
-    rings = ((bottom, 0.), (radius, height), (radius-wall, height), (bottom-wall, wall))
+    clearance = 0.0
+    if collision:
+        clearance = shape.parameters.get('collision_bottom_clearance_m', 0.0)
+    # Let the bottom disk support an upright cup instead of generating a
+    # coplanar support contact on every wall panel. Keep the tapered side at
+    # the same radius above this sub-millimetre clearance and retain the base.
+    lower_radius = bottom + (radius-bottom)*clearance/height
+    rings = ((lower_radius, clearance), (radius, height),
+             (radius-wall, height), (bottom-wall, wall))
     vertices = [(r*math.cos(2*math.pi*i/count), r*math.sin(2*math.pi*i/count), z)
                 for r, z in rings for i in range(count)]
     faces = []
@@ -118,7 +136,8 @@ def add_shape_assets(asset: ET.Element, name: str, size: tuple[float, ...], shap
     if shape.kind == 'paper_cup':
         vertices, faces = cup_vertices(size, shape)
         _mesh(asset, f'{name}_mesh', vertices, faces)
-        count = int(shape.number('segments'))
+        vertices, _ = cup_vertices(size, shape, collision=True)
+        count = len(vertices)//4
         for i in range(count):
             # Each convex wall panel is separate, preserving the open interior.
             panel = [vertices[ring*count+j] for ring in range(4) for j in (i, (i+1) % count)]

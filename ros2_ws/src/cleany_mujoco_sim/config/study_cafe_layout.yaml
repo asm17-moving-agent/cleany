@@ -27,6 +27,9 @@ mujoco:
         bottom_diameter_m: 0.0396
         wall_thickness_m: 0.000504
         segments: 32
+        # Let the bottom disk support the cup; avoid 32 coplanar wall contacts.
+        # Collision only: keep the RGB mesh and the upper gripping surface.
+        collision_bottom_clearance_m: 0.00025
       collision:
         type: compound
         # Additional 0.9x scaling (0.72x original); retain mass/friction.

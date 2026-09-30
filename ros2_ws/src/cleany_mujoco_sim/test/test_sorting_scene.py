@@ -74,9 +74,9 @@ def test_bin_layout_is_left_lost_right_trash_with_open_tops():
         assert not bin_.contains((*bin_.center_xy, bin_.top_z + 0.01))
 
 
-@pytest.mark.parametrize('config', [CONFIG])
 @pytest.mark.parametrize('index', [0, 1])
-def test_bins_physically_retain_released_object_without_weld(index, config):
+def test_bins_physically_retain_released_object_without_weld(index):
+    config = CONFIG
     bin_ = load_bins(config)[index]
     root = ET.fromstring(add_sorting_bins(
         '<mujoco><option timestep="0.002"/>'
@@ -188,7 +188,7 @@ def test_internal_and_external_support_are_mutually_exclusive(tmp_path):
     config.write_text(yaml.safe_dump(raw))
     for operation in (load_shelf_boxes, lambda path: add_sorting_bins(
             '<mujoco><worldbody><body name="chassis"/></worldbody></mujoco>', path)):
-        with pytest.raises(ValueError, match='either'):
+        with pytest.raises(ValueError, match='Unsupported collection fixture'):
             operation(config)
 
 

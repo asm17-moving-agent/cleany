@@ -71,15 +71,13 @@ services:
     environment:
       <<: *runtime-environment
       CLEANY_WORKSPACE_ROLE: perception
-      SAM2_MODEL_CONFIG: "${SAM2_MODEL_CONFIG:?set SAM2_MODEL_CONFIG in the root-owned Jetson identity file}"
-      SAM2_CHECKPOINT_PATH: "${SAM2_CHECKPOINT_PATH:?set SAM2_CHECKPOINT_PATH in the root-owned Jetson identity file}"
     volumes:
       - type: bind
         source: ../..
         target: /workspace/cleany
       - type: bind
-        source: "${SAM2_MODEL_HOST_DIR:?set SAM2_MODEL_HOST_DIR in the root-owned Jetson identity file}"
-        target: /models/sam2
+        source: "${YOLOE_MODEL_HOST_DIR:?set YOLOE_MODEL_HOST_DIR in the root-owned Jetson identity file}"
+        target: /models/yoloe
         read_only: true
         bind:
           create_host_path: false

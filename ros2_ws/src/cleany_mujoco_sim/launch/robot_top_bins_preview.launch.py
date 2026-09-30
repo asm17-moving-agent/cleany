@@ -11,7 +11,7 @@ def generate_launch_description() -> LaunchDescription:
     arguments = {
         'scene_path': PathJoinSubstitution([share, 'scenes', 'study_cafe_grasp_execution.xml.in']),
         'sorting_bins_config': PathJoinSubstitution([share, 'config', 'robot_top_bins.yaml']),
-        'controller_config': PathJoinSubstitution([share, 'config', 'grasp_demo_ros2_controllers.yaml']),
+        'controller_config': PathJoinSubstitution([share, 'config', 'study_cafe_ros2_controllers.yaml']),
         'headless': LaunchConfiguration('headless'),
         'sim_speed_factor': '1.0',
         'camera_name': 'head_realsense_rgb',
@@ -29,7 +29,7 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription([
         DeclareLaunchArgument('headless', default_value='false'),
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(PathJoinSubstitution([share, 'launch', 'handeye_backend.launch.py'])),
+            PythonLaunchDescriptionSource(PathJoinSubstitution([share, 'launch', 'study_cafe_backend.launch.py'])),
             launch_arguments=arguments.items(),
         ),
     ])

@@ -11,12 +11,12 @@ from sensor_msgs.msg import JointState
 
 from cleany_interfaces.action import InspectScene
 from cleany_interfaces.msg import GraspCandidate
-from cleany_interfaces.srv import ObserveObjectReference, ObserveWristTarget
+from cleany_interfaces.srv import ObserveWristTarget
 from cleany_mujoco_sim.sorting_scene import load_bins
 from cleany_skill_executor.core.grasp_selection import ARM_JOINT_NAMES
 from cleany_skill_executor.core.nearest_object import ObjectAttempt
 from cleany_skill_executor.core.sorting import Category, load_sorting_policy
-from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo
+from cleany_skill_executor.grasp_execution import GraspExecutionNode
 from cleany_skill_executor.nearest_pregrasp_coordinator import (
     LiftRedetectionError,
     NearestPregraspCoordinator,
@@ -145,30 +145,6 @@ def test_direct_vertical_lift_uses_verified_joint_endpoint(monkeypatch, angle, v
         assert not calls
 
 
-@pytest.mark.parametrize('destination', ['zone', 'handoff_center'])
-def test_table_transport_uses_separate_lower_release_clearance(destination):
-    centers = []
-    obj = SimpleNamespace(obb_size=SimpleNamespace(x=.08, y=.08, z=.095),
-                          obb_pose=SimpleNamespace(position=SimpleNamespace(x=.5, y=0.)))
-    held = SimpleNamespace(selected=SimpleNamespace(selected_arm='left',
-                           selected_candidate=SimpleNamespace(target_object=obj)))
-    zone = SimpleNamespace(kind='table_zone', center_xy=(.5, .45),
-                           outside_size=(.7, .3, .3), top_z=.34)
-    values = {'sorting_release_clearance_m': .06, 'sorting_table_release_clearance_m': .015}
-    node = SimpleNamespace(_require_held_contact=lambda _: None, _bins={destination: zone},
-        get_parameter=lambda name: SimpleNamespace(value=values[name]),
-        _placed_footprints=[], _observed_footprints=[], _current={},
-        _held_center_joints=lambda _, center, tolerance: centers.append(center) or object(),
-        _move_to=lambda *args: None, _verify_feedback=lambda _: None)
-    SortingCoordinator.transport(node, held, destination)
-    assert centers[0][2] == pytest.approx(.34 + (.08**2+.08**2+.095**2)**.5/2 + .015)
-    if destination == 'handoff_center':
-        assert centers[0][:2] == pytest.approx(zone.center_xy)
-    values['sorting_table_release_clearance_m'] = .01
-    with pytest.raises(ValueError, match='10mm'):
-        SortingCoordinator.transport(node, held, destination)
-
-
 @pytest.mark.parametrize('old_stamp,fresh_stamp,category,error,refresh', [
     (90, 99, 'lost_item', None, False),
     (10, 99, 'lost_item', None, True),
@@ -282,7 +258,7 @@ def test_return_scaling_caps_only_return_and_rejects_invalid(monkeypatch, reques
         goal.request.max_velocity_scaling_factor = .30
         goal.request.max_acceleration_scaling_factor = .50
         return goal
-    monkeypatch.setattr(GraspExecutionDemo, '_execution_goal', base)
+    monkeypatch.setattr(GraspExecutionNode, '_execution_goal', base)
     node = object.__new__(SortingCoordinator)
     node._held_object = None
     node.get_parameter = lambda name: SimpleNamespace(value=requested)
@@ -326,10 +302,10 @@ def test_pregrasp_opens_only_selected_gripper_in_same_checked_motion(monkeypatch
 def sorting_loop(attempts=(), *, maximum=2, stage=None, **overrides):
     """One loop harness; each scenario supplies only its observations and effects."""
     root = Path(__file__).parents[2]
-    values = dict(sorting_use_reference_observation=False, sorting_maximum_objects=maximum,
+    values = dict(sorting_maximum_objects=maximum,
                   sorting_required_categories=[], sorting_empty_confirmations=2)
     node = SimpleNamespace(
-        _wrist_enabled=False, _completed=[], _pending_handoffs=[],
+        _wrist_enabled=False, _completed=[],
         _stage=stage or (lambda *_: None), _wait_for_pipeline=lambda: None,
         _verification=SimpleNamespace(wait_for_service=lambda **_: True),
         _register_bins=lambda: None, _arm_joint_state=lambda _: JointState(),
@@ -345,15 +321,9 @@ def sorting_loop(attempts=(), *, maximum=2, stage=None, **overrides):
     return node
 
 
-@pytest.mark.parametrize('pending', [[], ['lego brick']])
-def test_sorting_start_does_not_send_initial_gripper_commands(pending):
+def test_sorting_start_does_not_send_initial_gripper_commands():
     events = []
-    node = sorting_loop(stage=events.append, _pending_handoffs=pending)
-    if pending:
-        with pytest.raises(RuntimeError,match='Pending handoff'):
-            SortingCoordinator.run(node)
-        assert events == ['starting','search']
-        return
+    node = sorting_loop(stage=events.append)
     SortingCoordinator.run(node)
     assert events == ['starting', 'search', 'empty_confirmation', 'empty_confirmation', 'mission_complete']
 
@@ -473,7 +443,7 @@ def test_combined_pregrasp_goal_contains_arm_and_jaw_without_relaxing_limits(mon
         goal.request.max_velocity_scaling_factor = .08
         goal.request.max_acceleration_scaling_factor = .08
         return goal
-    monkeypatch.setattr(GraspExecutionDemo, '_execution_goal', base)
+    monkeypatch.setattr(GraspExecutionNode, '_execution_goal', base)
     node = object.__new__(SortingCoordinator)
     node.get_parameter = lambda name: SimpleNamespace(value=.12)
     node._held_object = None
@@ -487,8 +457,7 @@ def test_combined_pregrasp_goal_contains_arm_and_jaw_without_relaxing_limits(mon
         SortingCoordinator._execution_goal(node, arm, joints, label)
 
 
-@pytest.mark.parametrize('reference_enabled', [False, True])
-def test_pick_does_not_reopen_prepared_gripper(reference_enabled):
+def test_pick_does_not_reopen_prepared_gripper():
     events = []
     candidate = SimpleNamespace(snapshot_id='fresh', target_object=SimpleNamespace(object_id=1))
     selected = SimpleNamespace(selected_arm='left', selected_candidate=candidate)
@@ -499,12 +468,6 @@ def test_pick_does_not_reopen_prepared_gripper(reference_enabled):
         events.append('refresh')
         return selected, target.attempt
 
-    def pin(request):
-        assert request.operation == ObserveObjectReference.Request.PIN
-        assert request.source_snapshot_id == 'fresh'
-        events.append('pin')
-        return object()
-
     def execute(*_):
         events.append('grasp_and_lift')
         node._held_object = held
@@ -513,14 +476,11 @@ def test_pick_does_not_reopen_prepared_gripper(reference_enabled):
         _execute_pregrasp=lambda *_: events.append('pregrasp'),
         _open_gripper=lambda *_: pytest.fail('duplicate gripper opening'),
         _refresh_selected_grasp=refresh,
-        get_parameter=lambda _: SimpleNamespace(value=reference_enabled),
-        _reference_request=pin,
         _execute_grasp_and_lift=execute,
     )
     assert SortingCoordinator.pick(node, target) is held
     assert held.target is target
-    assert events == ['pregrasp', 'refresh'] + (
-        ['pin'] if reference_enabled else []) + ['grasp_and_lift']
+    assert events == ['pregrasp', 'refresh', 'grasp_and_lift']
 
 
 @pytest.mark.parametrize('arm', ['left', 'right'])
@@ -637,85 +597,6 @@ def test_wrist_retreat_starts_detection_before_motion(arm, fails):
     assert len(home.name) == 5
 
 
-@pytest.mark.parametrize('arm,y,destination', [
-    ('left', .49, 'trash_left'), ('right', -.49, 'lost_items_right')])
-@pytest.mark.parametrize('use_waypoint', [False, True])
-def test_transport_uses_fixed_base_bin_without_camera_inference(arm, y, destination, use_waypoint):
-    size = SimpleNamespace(x=.04, y=.04, z=.04)
-    held = SimpleNamespace(offset_in_tcp=np.zeros(3), selected=SimpleNamespace(selected_arm=arm,
-        selected_candidate=SimpleNamespace(target_object=SimpleNamespace(obb_size=size))))
-    center = np.array([.08, y, .26 + np.linalg.norm([.04]*3)/2 + .06])
-    pose = Pose()
-    pose.position.x, pose.position.y, pose.position.z = map(float, center)
-    pose.orientation.w = 1.
-    events = []
-    def solve(selected_arm, low, high, offset, **kwargs):
-        assert selected_arm == arm
-        assert low[2] == pytest.approx(center[2])
-        assert high[2] > low[2]
-        np.testing.assert_allclose(offset, held.offset_in_tcp)
-        events.append('ik')
-        return SimpleNamespace(names=(f'{arm}_shoulder_yaw_joint',), positions=(0.,))
-    node = SimpleNamespace(
-        _bins={destination: SimpleNamespace(center_xy=(.08, y), top_z=.26, kind='bin',
-                                           outside_size=(.18,.17,.12), wall=.008)},
-        _require_held_contact=lambda *_: events.append('contact'),
-        get_parameter=lambda name: SimpleNamespace(value={
-            'sorting_release_clearance_m': .06, 'sorting_release_maximum_clearance_m': .21,
-            'sorting_release_edge_margin_m': .005, 'sorting_release_ik_attempts': 16,
-            'sorting_release_ik_iterations': 80}[name]),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None),
-        _tcp_pose=lambda *_: pose, _feedback_state=lambda: object(),
-        _pose_position=NearestPregraspCoordinator._pose_position,
-        _transport_adapter=SimpleNamespace(set_current_state=lambda *_: None,
-            solve_held_region_ik=solve, state_is_valid=lambda *_: True),
-        _move_to=lambda *_: events.append('move'),
-        _verify_feedback=lambda *_: events.append('feedback'),
-        _camera_info=None,
-        _observe_wrist=lambda *_: pytest.fail('Transport must not wait for bin image'),
-        _inspect_selected=lambda *_: pytest.fail('Transport must not redetect the bin'))
-    if use_waypoint:
-        node._common_waypoint = np.array([-.35, 0., .6])
-        node._common_waypoint_joints = lambda _: events.append('waypoint_ik') or object()
-        node._stage = lambda stage: events.append(stage)
-        node.get_logger = lambda: SimpleNamespace(info=lambda _: None)
-    SortingCoordinator.transport(node, held, destination)
-    prefix = (['waypoint_ik', 'common_waypoint', 'move', 'feedback', 'contact']
-              if use_waypoint else [])
-    assert events == ['contact'] + prefix + ['ik', 'move', 'feedback', 'contact']
-
-
-@pytest.mark.parametrize('failure', ['ik', 'collision', 'fk', None])
-def test_common_waypoint_requires_ik_collision_and_fk_checks(failure):
-    pose = Pose()
-    pose.position.x, pose.position.y, pose.position.z = -.35, 0., .6
-    if failure == 'fk':
-        pose.position.x += .02
-    solution = SimpleNamespace(names=['right_shoulder_yaw_joint'], positions=[0.])
-    node = SimpleNamespace(_common_waypoint=np.array([-.35, 0., .6]),
-        _feedback_state=lambda: object(), _tcp_pose=lambda *_: pose,
-        _pose_position=NearestPregraspCoordinator._pose_position,
-        _transport_adapter=SimpleNamespace(set_current_state=lambda _: None,
-            solve_position_ik=lambda *_: None if failure == 'ik' else solution,
-            state_is_valid=lambda *_: failure != 'collision'))
-    if failure:
-        with pytest.raises(RuntimeError):
-            SortingCoordinator._common_waypoint_joints(node, 'right')
-    else:
-        assert SortingCoordinator._common_waypoint_joints(node, 'right').name == solution.names
-
-
-def test_common_waypoint_preflight_failure_prevents_pick_motion():
-    def reject(_):
-        raise RuntimeError('No common waypoint IK')
-    node = SimpleNamespace(_common_waypoint=np.array([-.35, 0., .6]),
-        _common_waypoint_joints=reject,
-        _execute_pregrasp=lambda *_: pytest.fail('Must not start pick after failed preflight'))
-    target = SimpleNamespace(selected=SimpleNamespace(selected_arm='right'))
-    with pytest.raises(RuntimeError, match='No common waypoint IK'):
-        SortingCoordinator.pick(node, target)
-
-
 def test_contact_offset_uses_actual_tcp_not_commanded_endpoint():
     tcp = Pose()
     tcp.orientation.w = 1.
@@ -736,34 +617,10 @@ def test_contact_offset_uses_actual_tcp_not_commanded_endpoint():
     assert node._carry_wrist_tolerance == pytest.approx(np.deg2rad(2.))
 
 
-@pytest.mark.parametrize('succeed_at', [2., 10., None])
-def test_carry_wrist_ik_relaxes_only_to_configured_bound(succeed_at):
-    calls = []
-    def solve(*args, **kwargs):
-        low, high = kwargs['joint_bounds']['right_wrist_roll_joint']
-        assert (low+high)/2 == pytest.approx(.4)
-        calls.append(np.rad2deg((high-low)/2))
-        return object() if succeed_at is not None and calls[-1] >= succeed_at-1e-6 else None
-    params = {'sorting_carry_wrist_tolerances_deg': [2., 5., 10., 20., 30.],
-              'sorting_release_ik_attempts': 16, 'sorting_release_ik_iterations': 80}
-    node = SimpleNamespace(
-        _carry_wrist_reference={'right_wrist_roll_joint': .4}, _carry_wrist_tolerance=np.deg2rad(2.),
-        _feedback_state=lambda: None, get_parameter=lambda key: SimpleNamespace(value=params[key]),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None),
-        _transport_adapter=SimpleNamespace(set_current_state=lambda _: None, solve_held_region_ik=solve))
-    if succeed_at is None:
-        with pytest.raises(RuntimeError, match='No carry IK'):
-            SortingCoordinator._carry_region_ik(node, 'right', (0,0,0), (1,1,1), np.zeros(3))
-        assert calls == pytest.approx([2.,5.,10.,20.,30.])
-    else:
-        assert SortingCoordinator._carry_region_ik(node, 'right', (0,0,0), (1,1,1), np.zeros(3))
-        assert calls[-1] == pytest.approx(succeed_at)
-
-
 @pytest.mark.parametrize('held', [True, False])
 def test_carry_wrist_constraints_only_while_holding(monkeypatch, held):
-    from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo
-    monkeypatch.setattr(GraspExecutionDemo, '_execution_goal', lambda *args: MoveGroup.Goal())
+    from cleany_skill_executor.grasp_execution import GraspExecutionNode
+    monkeypatch.setattr(GraspExecutionNode, '_execution_goal', lambda *args: MoveGroup.Goal())
     node = object.__new__(SortingCoordinator)
     node._held_object = object() if held else None
     node._carry_wrist_reference = {'right_wrist_roll_joint': .4}
@@ -808,7 +665,6 @@ def test_carry_replans_endpoint_and_retries_only_plan_failures(monkeypatch, fail
               'corridor_orientation_tolerance_deg': 5., 'sorting_carry_cartesian_rotation_limit_deg': 30.}
     node.get_parameter = lambda name: SimpleNamespace(value=params[name])
     node._wait_arm_stationary = lambda _: None
-    node._check_motion_guard = lambda: None
     node._feedback_state = lambda: None
     node.get_logger = lambda: SimpleNamespace(info=lambda _: None)
     node._transport_adapter = SimpleNamespace(set_current_state=lambda _: None,
@@ -882,7 +738,7 @@ def test_direct_release_ik_failure_prevents_motion():
         _wait_arm_stationary=lambda _: None,
         _arm_joint_state=lambda _: JointState(name=['left_wrist_pitch_joint', 'left_wrist_roll_joint'], position=[.3,.4]),
         _fixed_release_ik=lambda *a: None,
-        _common_waypoint=np.array([-.35,0.,.6]), _carry_wrist_tolerance=np.deg2rad(2.),
+        _carry_wrist_tolerance=np.deg2rad(2.),
         _carry_wrist_reference={'left_wrist_pitch_joint': .3, 'left_wrist_roll_joint': .4},
         _feedback_state=lambda: None, _require_held_contact=lambda _: None,
         get_parameter=lambda key: SimpleNamespace(value=params[key]),
@@ -895,20 +751,9 @@ def test_direct_release_ik_failure_prevents_motion():
         SortingCoordinator._transport_fixed_release(node, held, 'trash', .04)
 
 
-def test_direct_mode_skips_waypoint_preflight_before_pick():
-    def begin(*args):
-        raise RuntimeError('pregrasp reached')
-    node = SimpleNamespace(_fixed_release_enabled=True, _common_waypoint=np.array([-.35,0.,.6]),
-        _common_waypoint_joints=lambda *_: pytest.fail('No waypoint preflight in direct mode'),
-        _execute_pregrasp=begin)
-    target = SimpleNamespace(selected=SimpleNamespace(selected_arm='right'), attempt=object())
-    with pytest.raises(RuntimeError, match='pregrasp reached'):
-        SortingCoordinator.pick(node, target)
-
-
 def test_fixed_release_goal_holds_post_lift_wrist_without_relaxation(monkeypatch):
-    from cleany_skill_executor.grasp_execution_demo import GraspExecutionDemo
-    monkeypatch.setattr(GraspExecutionDemo, '_execution_goal', lambda *args: MoveGroup.Goal())
+    from cleany_skill_executor.grasp_execution import GraspExecutionNode
+    monkeypatch.setattr(GraspExecutionNode, '_execution_goal', lambda *args: MoveGroup.Goal())
     node = object.__new__(SortingCoordinator)
     node._held_object = object()
     node._carry_wrist_reference = {'right_wrist_roll_joint': .4}
@@ -941,7 +786,7 @@ def test_fixed_transfer_goes_directly_to_classified_bin_without_waypoint():
     node = SimpleNamespace(
         _bins={'lost': SimpleNamespace(center_xy=(-.405,.105), outside_size=(.18,.17,.12), wall=.008, top_z=.3)},
         _fixed_release_points={'lost': np.array([-.395,.105,.52])}, _fixed_release_cache={},
-        _common_waypoint=np.array([-.35,0.,.6]), _carry_wrist_tolerance=np.deg2rad(2.),
+        _carry_wrist_tolerance=np.deg2rad(2.),
         _carry_wrist_reference=dict(zip(names, drop.positions)),
         _feedback_state=lambda: None, _require_held_contact=lambda _: None,
         get_parameter=lambda key: SimpleNamespace(value=params[key]),
@@ -951,8 +796,11 @@ def test_fixed_transfer_goes_directly_to_classified_bin_without_waypoint():
         _stage=lambda _: pytest.fail('Must not enter common waypoint stage'), _verify_feedback=lambda _: None,
         _wait_arm_stationary=lambda _: None,
         _arm_joint_state=lambda _: JointState(name=names, position=[.301,.399]), _fixed_release_ik=final)
-    held = SimpleNamespace(selected=SimpleNamespace(selected_arm=arm), offset_in_tcp=np.zeros(3))
-    SortingCoordinator._transport_fixed_release(node, held, 'lost', .04)
+    candidate = SimpleNamespace(target_object=SimpleNamespace(obb_size=SimpleNamespace(x=.04, y=.04, z=.04)))
+    held = SimpleNamespace(selected=SimpleNamespace(selected_arm=arm, selected_candidate=candidate), offset_in_tcp=np.zeros(3))
+    node._transport_fixed_release = lambda held, destination, radius: SortingCoordinator._transport_fixed_release(
+        node, held, destination, radius)
+    SortingCoordinator.transport(node, held, 'lost')
     assert events == ['measured wrist recheck', 'transport to lost']
 
 
@@ -969,18 +817,6 @@ def test_acceleration_increase_is_only_for_empty_grasp_approach(monkeypatch, lab
     assert goal.request.max_acceleration_scaling_factor == acceleration
 
 
-def test_async_lift_hold_is_removed_but_other_holds_remain(monkeypatch):
-    events = []
-    monkeypatch.setattr(NearestPregraspCoordinator, '_hold', lambda _, p: events.append(p))
-    node = object.__new__(SortingCoordinator)
-    node._async_carry = True
-    node._check_motion_guard = lambda: events.append('guard')
-    node.get_logger = lambda: SimpleNamespace(info=lambda _: None)
-    node._hold('lift_hold_sec')
-    node._hold('grasp_settle_sec')
-    assert events == ['guard', 'grasp_settle_sec']
-
-
 def test_return_cannot_close_jaw_before_release_completed():
     node = SimpleNamespace(_held_object=object())
     held = SimpleNamespace(selected=SimpleNamespace(selected_arm='left'))
@@ -988,40 +824,7 @@ def test_return_cannot_close_jaw_before_release_completed():
         SortingCoordinator.retreat(node, held, 'trash_left')
 
 
-def test_guarded_payload_disables_moveit_internal_restart(monkeypatch):
-    def base(*_):
-        goal = MoveGroup.Goal()
-        goal.planning_options.replan = True
-        goal.request.max_velocity_scaling_factor = .08
-        goal.request.max_acceleration_scaling_factor = .08
-        return goal
-    monkeypatch.setattr(GraspExecutionDemo, '_execution_goal', base)
-    node = object.__new__(SortingCoordinator)
-    node._async_carry, node._held_object = True, object()
-    node.get_parameter = lambda _: SimpleNamespace(value=.02)
-    goal = node._execution_goal('left', JointState(name=list(ARM_JOINT_NAMES['left']), position=[0.]*5), 'carry')
-    assert not goal.planning_options.replan
-    assert goal.request.max_acceleration_scaling_factor == .02
-
-
-def test_async_lift_keeps_geometry_and_contact_but_never_calls_wrist_check():
-    events = []
-    pose = Pose()
-    pose.orientation.w, pose.position.z = 1., .5
-    held = SimpleNamespace(selected=SimpleNamespace(selected_arm='left'), offset_in_tcp=np.zeros(3))
-    node = SimpleNamespace(_wrist_enabled=True, _async_carry=True, _held_object=held,
-        _require_held_contact=lambda _: events.append('contact'),
-        _tcp_pose=lambda _: pose, _pose_position=NearestPregraspCoordinator._pose_position,
-        _check_motion_guard=lambda: events.append('guard'),
-        _observe_wrist=lambda *a, **k: pytest.fail('No blocking CHECK in async carry'),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None))
-    SortingCoordinator._verify_lift_height(node, object(), minimum_center_z_m=.4)
-    assert events == ['contact', 'guard']
-    with pytest.raises(RuntimeError, match='clearance'):
-        SortingCoordinator._verify_lift_height(node, object(), minimum_center_z_m=.6)
-
-
-def test_expected_release_disarms_only_after_bin_and_guard_checks():
+def test_release_opens_only_after_bin_geometry_checks():
     events = []
     pose = Pose()
     pose.orientation.w, pose.position.y, pose.position.z = 1., .49, .4
@@ -1032,15 +835,13 @@ def test_expected_release_disarms_only_after_bin_and_guard_checks():
         _pinned_reference=None, _tcp_pose=lambda _: pose,
         _pose_position=NearestPregraspCoordinator._pose_position,
         _bins={'bin': SimpleNamespace(center_xy=(0., .49), outside_size=(.26, .24, .22), wall=.008, top_z=.26, kind='bin')},
-        _check_motion_guard=lambda: events.append('guard'),
-        _carry_guard=SimpleNamespace(disarm=lambda: events.append('disarm')),
         _open_gripper=lambda _: events.append('open'),
         _hold=lambda _: events.append('settle'),
         _execution_scene=SimpleNamespace(restore=lambda: events.append('detach')),
         get_clock=lambda: SimpleNamespace(now=lambda: Time(seconds=10)),
         get_logger=lambda: SimpleNamespace(info=lambda _: None))
     SortingCoordinator.release(node, held, 'bin')
-    assert events == ['guard', 'disarm', 'open', 'settle', 'detach']
+    assert events == ['open', 'settle', 'detach']
     assert node._held_object is None
     events.clear()
     pose.position.z = .2
@@ -1049,8 +850,8 @@ def test_expected_release_disarms_only_after_bin_and_guard_checks():
     assert events == []
 
 
-@pytest.mark.parametrize('axis', ['x', 'y', 'z'])
-@pytest.mark.parametrize('value', [float('nan'), float('inf'), -float('inf')])
+# The same vector-wide finite check covers every axis and nonfinite kind.
+@pytest.mark.parametrize('axis,value', [('x', float('nan')), ('y', float('inf')), ('z', -float('inf'))])
 def test_release_rejects_nonfinite_center_before_opening_or_disarming(axis, value):
     pose = Pose()
     pose.orientation.w = 1.0
@@ -1079,33 +880,9 @@ def test_release_rejects_invalid_payload_radius(monkeypatch, radius):
         SortingCoordinator.release(node, held, 'bin')
 
 
-@pytest.mark.parametrize('age', [.2, 2.])
-def test_carry_monitor_requires_fresh_gripper_feedback_without_waiting(monkeypatch, age):
-    events = []
-    monkeypatch.setattr('cleany_skill_executor.sorting_coordinator.time.monotonic', lambda: 20.)
-    values = dict(sorting_joint_feedback_max_age_sec=1., gripper_open_position_rad=1.4)
-    node = SimpleNamespace(_async_carry=True,
-        _carry_guard=SimpleNamespace(armed=True, check=lambda *a: events.append('tracking')),
-        _held_object=SimpleNamespace(selected=SimpleNamespace(selected_arm='left', selected_candidate=None)),
-        _carry_joint_received={'left_gripper_joint': 20.-age},
-        get_clock=lambda: SimpleNamespace(now=lambda: Time(seconds=10)),
-        get_parameter=lambda key: SimpleNamespace(value=values[key]),
-        _candidate_close_position=lambda _: .6,
-        _gripper_contact_stalled=lambda *a, allow_closing_motion: allow_closing_motion,
-        _contact_loss_guard=SimpleNamespace(check=lambda *a: events.append('contact')))
-    if age < 1.:
-        SortingCoordinator._check_motion_guard(node)
-        assert events == ['tracking', 'contact']
-    else:
-        with pytest.raises(RuntimeError, match='feedback stale'):
-            SortingCoordinator._check_motion_guard(node)
-        assert events == ['tracking']
-
-
 def recovery_node():
     node = object.__new__(SortingCoordinator)
-    values = dict(sorting_reobserve_after_lift=True, sorting_held_association_tolerance_m=.03,
-                  sorting_use_reference_observation=False)
+    values = dict(sorting_reobserve_after_lift=True, sorting_held_association_tolerance_m=.03)
     node.get_parameter = lambda name: SimpleNamespace(value=values[name])
     pose = Pose()
     pose.orientation.w = 1.
@@ -1147,64 +924,6 @@ def test_missing_detection_gets_one_move_then_same_height_verification(monkeypat
     assert events == [('verify', .46), ('move', .46), ('verify', .46)]
 
 
-@pytest.mark.parametrize('fault', ['', 'identity', 'stale', 'height', 'contact', 'confidence'])
-def test_reference_height_keeps_provenance_height_and_contact_gates(fault):
-    node, values, _ = recovery_node()
-    values['lift_min_center_z_m'] = .38
-    response = ObserveObjectReference.Response(success=True, reference_id='pinned',
-        source_snapshot_id='source', source_object_id=1, source_capture_stamp_ns=100,
-        source_label='cup', source_confidence=.315, valid_depth_points=300)
-    response.header.stamp = Time(nanoseconds=300).to_msg()
-    response.header.frame_id = 'base_link'
-    response.observed_center.z = .5
-    node._pinned_reference = ObserveObjectReference.Response(success=True, reference_id='pinned',
-        source_snapshot_id='source', source_object_id=1, source_capture_stamp_ns=100,
-        source_label='cup', source_confidence=.315)
-    if fault == 'identity':
-        response.source_object_id = 2
-    elif fault == 'stale':
-        response.header.stamp = Time(nanoseconds=200).to_msg()
-    elif fault == 'height':
-        response.observed_center.z = .4
-    elif fault == 'confidence':
-        response.source_confidence = .9
-    events = []
-    node._wait_arm_stationary = lambda arm: events.append('stationary')
-    node.get_clock = lambda: SimpleNamespace(now=lambda: Time(nanoseconds=200))
-    node.get_logger = lambda: SimpleNamespace(info=lambda message: None)
-    def request(message):
-        assert message.operation == message.OBSERVE and message.reference_id == 'pinned'
-        assert message.after_stamp_ns == 200
-        events.append('observe')
-        return response
-    node._reference_request = request
-    def contact(held):
-        events.append('contact')
-        if fault == 'contact':
-            raise RuntimeError('lost contact')
-    node._require_held_contact = contact
-    if fault:
-        with pytest.raises(RuntimeError):
-            node._verify_reference_height(SimpleNamespace(label='cup'), minimum_center_z_m=.46)
-    else:
-        assert node._verify_reference_height(SimpleNamespace(label='cup'), minimum_center_z_m=.46) is response
-        assert events == ['stationary', 'observe', 'contact']
-
-
-def test_reference_mask_failure_gets_only_one_physical_reobservation():
-    node, values, _ = recovery_node()
-    values['sorting_use_reference_observation'] = True
-    calls = []
-    def missing(*args, **kwargs):
-        calls.append('observe')
-        raise LiftRedetectionError('clipped mask')
-    node._verify_reference_height = missing
-    node._reobserve_held_object = lambda minimum: calls.append(('move', minimum))
-    with pytest.raises(LiftRedetectionError):
-        node._verify_lift_height(SimpleNamespace(label='cup'), minimum_center_z_m=.46)
-    assert calls == ['observe', ('move', .46), 'observe']
-
-
 @pytest.mark.parametrize('failure', [RuntimeError('object fell'), ValueError('invalid height')])
 def test_recovery_does_not_swallow_non_detection_failures(monkeypatch, failure):
     node, _, _ = recovery_node()
@@ -1240,8 +959,8 @@ def test_distant_same_label_observation_is_not_proof_of_held_object(monkeypatch)
         node._verify_lift_height(object(), minimum_center_z_m=.46)
 
 
-@pytest.mark.parametrize('valid_ik', [True, False])
-@pytest.mark.parametrize('contact_after', [True, False])
+# Failed IK stops before the second contact check.
+@pytest.mark.parametrize('valid_ik,contact_after', [(True, True), (True, False), (False, True)])
 def test_reobservation_checks_scene_ik_execution_and_contact(valid_ik, contact_after):
     node, values, _ = recovery_node()
     values.update(sorting_reobserve_geometry_padding_m=.01, lift_min_center_z_m=.38,
@@ -1300,7 +1019,7 @@ def test_payload_scaling_only_tightens_joint_transit_and_preserves_goal(monkeypa
         goal.request.max_acceleration_scaling_factor = .05
         goal.request.start_state.is_diff = True
         return goal
-    monkeypatch.setattr(GraspExecutionDemo, '_execution_goal', base)
+    monkeypatch.setattr(GraspExecutionNode, '_execution_goal', base)
     goal = node._execution_goal('left', JointState(), 'payload move')
     assert goal.request.group_name == 'left_grasp_arm'
     assert goal.request.start_state.is_diff
@@ -1314,6 +1033,6 @@ def test_invalid_payload_scaling_cannot_reach_execution(monkeypatch, requested):
     node, values, _ = recovery_node()
     values.update(sorting_payload_velocity_scaling=requested,
                   sorting_payload_acceleration_scaling=.01)
-    monkeypatch.setattr(GraspExecutionDemo, '_execution_goal', lambda *_: MoveGroup.Goal())
+    monkeypatch.setattr(GraspExecutionNode, '_execution_goal', lambda *_: MoveGroup.Goal())
     with pytest.raises(ValueError, match='Payload motion scaling'):
         node._execution_goal('left', JointState(), 'payload move')
