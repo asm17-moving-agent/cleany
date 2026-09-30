@@ -4,6 +4,13 @@ MoveIt 2 configuration shared by Cleany's left and right arms. The package
 uses the authoritative URDF from `cleany_description`; it does not copy robot
 geometry, link names, joint names, or hard limits.
 
+The description now includes the CAD chassis, battery proxy, and wheel
+collision geometry. The real-backend expansion disables head and movable
+wheel joints (`include_head_camera:=false include_wheel_joints:=false`),
+retaining wheel geometry while preserving the 12-joint arm/gripper state
+contract. Arm anchors follow the CAD dimensions; named poses and external
+collision scenes must be revalidated for the new geometry.
+
 ## Planning contract
 
 | Group | Chain | Controller |

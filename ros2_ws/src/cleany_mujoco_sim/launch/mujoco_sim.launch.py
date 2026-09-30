@@ -53,12 +53,12 @@ def generate_launch_description() -> LaunchDescription:
     )
     wheelbase_length_arg = DeclareLaunchArgument(
         'wheelbase_length',
-        default_value='0.30',
+        default_value='0.35',
         description='Distance between front and rear wheel centers in meters.',
     )
     track_width_arg = DeclareLaunchArgument(
         'track_width',
-        default_value='0.51',
+        default_value='0.6038',
         description='Distance between left and right wheel centers in meters.',
     )
     max_wheel_speed_arg = DeclareLaunchArgument(
