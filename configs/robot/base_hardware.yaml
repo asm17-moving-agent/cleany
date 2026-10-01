@@ -1,5 +1,6 @@
 # User-supplied geometry: 127 mm wheel diameter; 350 mm front/rear and 610 mm
 # left/right wheel-center distances (center-to-center).
+# Initial lifted-wheel test profile, not a validated floor-driving limit.
 mode: hardware
 geometry:
   # 127 mm diameter -> 63.5 mm radius.
@@ -7,11 +8,14 @@ geometry:
   wheelbase_m: 0.350
   wheel_separation_m: 0.610
 limits:
-  linear_x_mps: null
-  linear_y_mps: null
-  angular_z_rad_s: null
-  wheel_rad_s: null
-  command_timeout_s: null
+  # Input-axis ceilings; proportional wheel scaling still limits the targets.
+  linear_x_mps: 0.5
+  linear_y_mps: 0.5
+  angular_z_rad_s: 1.0
+  # Independent wheel ceiling, matching the MCU protocol maximum.
+  wheel_rad_s: 10.0
+  # Host cmd_vel freshness limit, separate from the MCU command deadline.
+  command_timeout_s: 0.3
 protocol:
   counts_per_revolution: 3172
   watchdog_ms: 250

@@ -75,7 +75,7 @@ def test_mock_expiry_precedes_velocity_and_stop_watermark_never_rewinds(monkeypa
 
 
 @pytest.fixture
-def peers(monkeypatch):
+def peers(monkeypatch, request):
     """Exercise real callbacks with a deterministic clock and no executor."""
     rclpy.init()
     params = {
@@ -84,6 +84,7 @@ def peers(monkeypatch):
         'limits.linear_y_mps': .4, 'limits.angular_z_rad_s': .5,
         'limits.wheel_rad_s': 10., 'limits.command_timeout_s': .4,
     }
+    params.update(getattr(request, 'param', {}))
     driver = BaseDriver(parameter_overrides=[Parameter(k, value=v) for k, v in params.items()])
     mock = MockMcu()
     now, commands, states = [10.], [], []
@@ -169,6 +170,37 @@ def test_driver_enable_delivery_expiry_does_not_renew_permission(peers):
     now[0] += .02
     feedback()
     assert mock.enabled and driver.pending_enable is None
+
+
+@pytest.mark.parametrize('peers', [{'limits.command_timeout_s': .3}], indirect=True)
+def test_three_tenths_input_timeout_keeps_mcu_deadlines_bounded(peers):
+    driver, mock, now, commands, feedback = peers
+    _enable(driver)
+    assert commands[-1].valid_until_us == driver.latest.timestamp_us + 200000
+    mock.command(commands[-1])
+    now[0] += .02
+    feedback()
+    assert driver.pending_enable is None
+    twist = Twist()
+    twist.linear.x = .1
+    driver.on_twist(twist)
+    receipt = now[0]
+    for tick in range(15):
+        now[0] = receipt + tick * .02
+        feedback()
+        driver.tick()
+        msg = commands[-1]
+        assert driver.enabled and msg.mode == WheelCommand.VELOCITY
+        assert msg.valid_until_us == driver.latest.timestamp_us + 200000
+        mock.command(msg)
+        assert mock.enabled and mock.target[0] > 0.
+    now[0] = receipt + .32
+    feedback()
+    driver.tick()
+    assert not driver.enabled and commands[-1].mode == WheelCommand.STOP
+    assert driver.diagnostic_error == 'cmd_vel timeout'
+    mock.command(commands[-1])
+    assert not mock.enabled and mock.target == [0.] * 4
 
 
 def test_driver_fault_recovery_input_timeout_and_feedback_validation(peers):

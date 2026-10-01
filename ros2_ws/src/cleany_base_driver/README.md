@@ -78,7 +78,8 @@ ROS 수신 시각으로 stamp를 붙인다. Signed int32 encoder rollover는 mod
 
 - `base_hardware.yaml`: `mode: hardware`. 사용자가 확인한 휠 직경 127 mm,
   앞뒤 중심 간 거리 350 mm, 좌우 중심 간 거리 610 mm를 사용한다.
-  주행 제한은 `null`인 검토 전 상태이며 안전 검토된 값을 명시해야 launch할 수 있다.
+  아래 제한값은 바퀴를 띄운 초기 시험용이다. 바닥 주행에는 하중과 정지 성능을
+  검증한 별도 제한값을 사용한다.
 - `base_synthetic.yaml`: `mode: synthetic`, 장치 없는 mock 전용 합성값이다.
   `mock:=false`와 함께 사용할 수 없다. 실물 calibration 또는 주행 허용값이 아니다.
 
@@ -87,6 +88,26 @@ Geometry는 wheel radius, wheelbase, wheel separation의 양의 유한 meter 값
 휠 중심 간 거리이며, 휠의 127 mm는 반지름이 아닌 직경이다.
 Limits는 x/y m/s, yaw rad/s, wheel rad/s와 command timeout seconds다.
 Wheel 제한은 MCU 계약인 10 rad/s 이하여야 한다.
+
+| 실물 초기 시험 설정 | 값 |
+|---|---|
+| x/y 입력 속도 상한 | 각각 0.5 m/s |
+| yaw 입력 속도 상한 | 1.0 rad/s |
+| 각 휠 목표 속도 상한 | 10.0 rad/s |
+| `cmd_vel` timeout | 0.3초 |
+
+x/y, yaw와 휠 상한은 각각 지정된 값이다. 휠 반지름 `r = 0.0635 m`에서
+순수 전후 또는 좌우 0.5 m/s 명령은 driver 기준 약 7.874 rad/s 휠 목표가 된다.
+메카넘 회전 계수 `(wheelbase + wheel_separation) / 2 = 0.480 m`에서
+제자리 회전 1 rad/s 명령은 약 7.559 rad/s 휠 목표가 된다.
+대각선 이동이나 회전과 병진이 섞여 휠 10 rad/s를 넘으면 모든 휠을 같은 비율로
+줄인다. MCU는 휠 목표를 0.1 rad/s 단위로 반올림한다.
+실제 이동 속도는 하중, 슬립과 제어 응답을 측정해 확인한다.
+
+`cmd_vel` 수신이 0.3초를 넘게 끊기면 host가 STOP한다. 그동안 driver는 마지막
+목표를 50 Hz로 전송하며, 각 MCU 명령 deadline은 추정 MCU 시각에서 최대 200 ms다.
+MCU watchdog 상한 250 ms와 host 피드백 stale 기준 250 ms는 별도 동작한다.
+Launch는 누락된 제한값과 양수가 아닌 값, NaN/Inf 및 휠 10 rad/s 초과를 거부한다.
 
 ## 장치 없는 실행과 검증
 
@@ -126,12 +147,15 @@ Mock 결과는 실제 PI 응답, USB 장치 동작 또는 물리 정지 거리�
 ## 실물 실행 절차
 
 Upload와 하드웨어 시험은 별도 명시 요청 후 수행한다. 로봇 연결과 emergency stop
-준비, 검토된 hardware profile 및 wheel sign 확인이 선행 조건이다.
+준비, 시험 조건에 맞는 hardware profile 및 wheel sign 확인이 선행 조건이다.
+레포의 초기 profile을 사용할 때는 로봇을 지지대에 고정하고 모든 바퀴가 바닥과
+접촉하지 않는 상태에서 시험한다.
 
 1. [`esp32`](../../../esp32/README.md)의 명시적 upload 절차로
    micro-ROS firmware를 선택한다. Native USB persistent by-id path를 확인한다.
 2. 고정 Agent overlay를 적용한 terminal에서 serial Agent를 실행한다.
-3. ROS overlay를 적용한 다른 terminal에서 검토된 hardware profile로 launch한다.
+3. ROS overlay를 적용한 다른 terminal에서 시험 조건에 맞는 hardware profile로
+   launch한다. 아래 예시는 레포 루트에서 바퀴를 띄운 초기 시험용 profile을 선택한다.
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -145,7 +169,7 @@ source /opt/ros/humble/setup.bash
 source ros2_ws/install/setup.bash
 export ROS_DOMAIN_ID=0
 ros2 launch cleany_base_driver base_driver.launch.py \
-  mock:=false config:=/absolute/reviewed_base_hardware.yaml
+  mock:=false config:="$(pwd)/configs/robot/base_hardware.yaml"
 ```
 
 Native USB의 baud 값은 Agent serial 설정값이며 USB-UART bridge를 뜻하지 않는다.
