@@ -9,10 +9,14 @@ detection and PnP. It also provides a failure-isolated OpenCV hand-eye solver,
 evaluation metrics, bounded joint-feedback synchronization, a MoveIt
 feedback-FK adapter, position-only IK/state-validity/motion adapters, a pure
 feedback settle gate, exact wrist-camera acquisition, a recoverable dataset
-writer, an exact nine-stage single-pose orchestrator, and MoveIt/MuJoCo
-launches. A deterministic pose generator and fresh-run 20-calibration plus
+writer and an exact nine-stage single-pose orchestrator. A pure deterministic pose generator and fresh-run 20-calibration plus
 5-held-out runner complete the collection workflow. It does not publish
 calibration TF; generated transforms remain review-only artifacts.
+
+The former MuJoCo calibration scenes, launches, rendered pose-generation
+adapter, and their runtime tests were removed. Mathematical calibration,
+ROS camera/motion adapters, dataset validation, and offline evaluation remain.
+Simulation execution is maintained in the study-cafe packages.
 
 ## Transform convention
 
@@ -279,181 +283,19 @@ pose, hashes, versions, soft limits, clearance evidence, right-park tolerance,
 and all stage timeouts have been supplied. The artifact root must be absolute
 and should be outside the source tree.
 
-`single_pose_mujoco.launch.py` starts the fixed-base calibration scene, both
-controllers, MoveIt, the three required collision objects, and the
-orchestrator. The node waits for complete fresh 12-joint feedback and verifies
-that `handeye_table`, `handeye_target_stand`, and `charuco_target` are present
-before IK. It records the first exact Image/CameraInfo pair strictly after
-settle, interpolates feedback at that image stamp, obtains feedback FK, and
-atomically stores the row and PNG.
+## Pose sets and dataset validation
 
-Operator-observed calibration shows the MuJoCo viewer by default:
+`pose_generation.py` retains deterministic selection with caller-supplied
+candidate evidence; `pose_manifest.py` and `pose_run.py` retain strict pose-set
+and run contracts. The old MuJoCo pose-generation profile and adapter are removed.
+The single- and multi-pose ROS nodes remain available for separately configured
+camera and motion backends; this package supplies no simulator launch.
 
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 launch cleany_handeye_calibration single_pose_mujoco.launch.py \
-  request_file:=/absolute/path/to/materialized_request.json \
-  headless:=false
-```
-
-Automated tests explicitly override `headless:=true`. Their temporary
-MuJoCo-only profile has at least 0.128 m target/arm clearance under simulated
-feedback sag, uses a 0.100 m required margin, yields at least 16 corners in all
-four quadrants, and produces a non-ambiguous IPPE result. Ground truth is not
-published to TF and is not used by detection, PnP, or stored solver inputs.
-
-## Materialized pose sets and fresh runs
-
-`PoseGenerationConfig` samples target positions and complete five-joint IK
-seeds with a recorded `numpy.random.PCG64` seed and a hard generation-attempt
-cap. A caller-supplied `PoseCandidateEvaluator` must resolve position IK and
-return explicit FK, soft-limit, collision-distance, planning, visibility, and
-camera-front evidence. The MuJoCo profile also renders the exact 640 x 480
-wrist-camera image for every accepted seed and requires the production
-ChArUco detector and non-ambiguous IPPE PnP result. Rejected candidates are not
-backfilled after the cap.
-The selector minimizes maximum absolute rotation-axis parallelism first and
-maximizes regularized rotation-vector covariance log-determinant second. It
-then fixes exactly 20 calibration poses and 5 held-out poses; run time never
-generates a replacement pose.
-
-`config/pose_generation.mujoco.yaml` is the simulation-only materialized
-generation profile. It uses PCG64 seed `20260810`, a bounded random joint
-workspace prior, and a local random Cartesian target around each seed FK.
-Every resulting pose still passes MoveIt IK/state validity/plan-only, fixture
-clearance, analytical FOV, exact rendered detection, and PnP independently.
-Generate the analyzed pose set from the repository root:
-
-```bash
-make handeye-generate-mujoco
-```
-
-The preparation pass is headless and writes the default manifest, matching
-runtime config, and materialized URDF below
-`artifacts/handeye/profiles/mujoco_seed_20260810/`. It refuses to overwrite an
-existing profile directory. Override `HANDEYE_PROFILE_DIR`,
-`HANDEYE_ARTIFACT_ROOT`, and `HANDEYE_RUN_ID` together when generating another
-reviewed run.
-
-The installed `config/pose_generation.template.yaml` is deliberately not a
-runnable pose manifest. Unapproved workspace, soft-limit, collision,
-duplicate, diversity-tolerance, timeout, seed, and generator values remain
-`null`. A materialized YAML also records every target/seed, resolved joint
-vector, feedback-FK pose, validation evidence, selection objective, and source
-candidate ID. Preflight rejects the wrong arm or joint order, a split other
-than 20+5, duplicates, unsafe evidence, fewer than five pairwise non-parallel
-axes, or calibration rotation-covariance rank below three.
-
-```bash
-ros2 run cleany_handeye_calibration pose_manifest_preflight \
-  /absolute/path/to/materialized_poses.yaml
-```
-
-`MultiPoseRunOrchestrator` writes split, attempt, failure category, and reason
-to the durable `pose_run.jsonl`. IK, planning, settle, image acquisition, and
-target detection permit the initial attempt plus exactly 3 retries. Limit,
-collision, controller, e-stop, hardware, and data-integrity failures abort
-immediately. Exhausting a retryable pose leaves a partial run and continues to
-the next fixed pose. `/handeye/cancel_run` requests cancellation between stage
-attempts and prevents the next pose from starting; controller timeout handling
-remains owned by the bounded motion adapter.
-
-Every compatible wrist-camera frame acquired after the settle gate is archived
-before ChArUco detection under `attempt_images/`, including frames from failed
-detection/PnP attempts and later retries. Each PNG has an adjacent JSON file
-with pose ID, attempt number, ROS stamp, camera-calibration hash, raw-source
-hash, and encoded PNG hash. Successful samples are still committed separately
-under `images/` and `samples.jsonl`; corrupt committed rows are never hidden by
-the diagnostic attempt archive.
-
-The multi-pose runtime profile uses the single-pose JSON schema and must be
-anchored to the manifest's first pose. Its recorded pose-manifest SHA-256,
-random seed, safety values, right-arm park tolerance, and every adapter and
-orchestration timeout must match the YAML exactly. For the reviewed MuJoCo
-profile, keep the 0.010 rad plan/controller goal region and use the explicit
-0.015 rad post-execution feedback settle threshold documented above.
-
-An operator-observed calibration run opens the MuJoCo viewer by default:
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
-  pose_manifest:=/absolute/path/to/materialized_poses.yaml \
-  runtime_config:=/absolute/path/to/materialized_runtime.json \
-  headless:=false \
-  use_rviz:=true
-```
-
-Automated tests explicitly pass `headless:=true`; actual calibration launch
-defaults keep both the MuJoCo viewer and MoveIt RViz visible. RViz is launched
-with `use_sim_time:=true`, so its current-state robot and planned trajectory
-share the controller's MuJoCo clock instead of lagging on wall time. Set
-`use_rviz:=false` only for non-interactive runs.
-
-From the repository root, the equivalent reviewed operator workflow is:
-
-```bash
-make test-handeye
-make handeye-mujoco
-```
-
-The target uses the generated default profile paths and explicitly launches
-with `headless:=false use_rviz:=true`, so the operator sees the MuJoCo viewer
-and clock-synchronized RViz throughout motion and capture. It fails with a
-`make handeye-generate-mujoco` instruction when either artifact is absent.
-Alternate reviewed artifacts can still be selected with absolute
-`HANDEYE_POSE_MANIFEST` and `HANDEYE_RUNTIME_CONFIG` values.
-
-Each execution requires a fresh `run_id`. If `samples.jsonl` already contains
-rows or `pose_run.jsonl` already exists, startup fails before motion and asks
-for a new run ID. Failed-run artifacts remain untouched for inspection; the
-runtime does not resume or create a recovery cycle.
-
-## Stationary dataset validation
-
-After all 25 samples are committed, run the standalone stationary validation:
-
-```bash
-make handeye-validate-mujoco
-```
-
-This reopens `DatasetWriter` to replay any crash journal and verify every row,
-PNG, and hash; checks dataset/pose/runtime/URDF provenance; reproduces the
-saved ChArUco correspondences and clean IPPE PnP from every PNG; and executes
-the 5 methods x 3 noise conditions x 10 seeds solver experiment. The default
-simulation translation validity bound is an explicit, overridable
-`HANDEYE_MAX_TRANSLATION_NORM_M=1.0`.
-
-The atomic output is
-`artifacts/handeye/runs/mujoco_seed_20260810/dataset_validation.json`. A valid
-dataset and an automatically selected calibration are separate decisions:
-image/provenance validation can report `dataset_status: valid` while the
-solver selection remains `review_required` under the 0.95 valid-result-rate
-and Pareto rules. The report is validation-only and never applies a transform.
-
-Strict validation remains the default and requires the complete 20+5 set. To
-solve after excluding poses that exhausted runtime retries and therefore were
-never committed to `samples.jsonl`, explicitly select partial mode:
-
-```bash
-make handeye-validate-mujoco \
-  HANDEYE_DATASET_MODE=partial \
-  HANDEYE_PROFILE_DIR=/absolute/profile/directory \
-  HANDEYE_RUN_ID=the_matching_run_id
-```
-
-Partial mode accepts 5..20 calibration and 1..5 held-out committed rows,
-requires every row to remain a manifest subset, and reruns image/hash/PnP
-validation without silently dropping corrupt committed rows. It recomputes
-rotation covariance rank and the non-parallel-axis witness from the committed
-calibration feedback before executing the same 150 solver runs. The report is
-marked `dataset_status: valid_partial`, lists `omitted_manifest_poses`, and is
-always review-only. `solver_experiment.review_candidates` records all five
-ideal/seed-zero transforms and their calibration and held-out errors even when
-the automatic 0.95-rate selector returns `review_required`; no ad-hoc analysis
-script is needed to inspect the solved transforms.
+Existing datasets can be checked with `validate_handeye_dataset`. Run
+`ros2 run cleany_handeye_calibration validate_handeye_dataset --help` for the
+required sample, pose-manifest, runtime-config, URDF, evaluation ground-truth,
+translation-bound and output arguments. Evaluation remains review-only and
+does not apply a calibration transform.
 
 ## Offline solver and timestamp evaluation
 
@@ -499,12 +341,11 @@ materialize it and run:
 ```bash
 source /opt/ros/humble/setup.bash
 source ros2_ws/install/setup.bash
-cleany_mujoco_share="$(ros2 pkg prefix --share cleany_mujoco_sim)"
 ros2 run cleany_handeye_calibration evaluate_handeye \
   --samples /absolute/run/samples.jsonl \
   --continuous-log /absolute/run/continuous_trajectory.jsonl \
   --urdf /absolute/run/cleany.urdf \
-  --ground-truth "${cleany_mujoco_share}/config/handeye_scene.yaml" \
+  --ground-truth /absolute/run/evaluation-only-ground-truth.yaml \
   --config /absolute/run/evaluation.yaml \
   --output-directory /absolute/run/evaluation
 ```
@@ -519,56 +360,6 @@ promotion always requires human review. Ground truth is accepted only by this
 offline evaluator and remains absent from solver, detector, PnP, ROS TF, and
 collection interfaces.
 
-## Motion-only MoveIt/MuJoCo integration
-
-`handeye_mujoco.launch.py` composes the `cleany_moveit_config` move group with
-the `cleany_mujoco_sim` ros2_control backend. The backend owns the sole
-`robot_state_publisher`, both side-specific trajectory controllers, and the
-complete arm/gripper `/joint_states` feedback. This launch does not start the
-legacy custom `mujoco_sim_node`, Gazebo, a calibration orchestrator, or a
-calibration scene.
-
-```bash
-source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
-ros2 launch cleany_handeye_calibration handeye_mujoco.launch.py \
-  headless:=true sim_speed_factor:=1.0
-```
-
-On ROS 2 Humble, planning and execution use separate action boundaries:
-`/move_action` with `planning_options.plan_only=true`, followed by
-`/execute_trajectory` with the returned trajectory. A left-arm calibration
-motion therefore reaches only
-`/left_arm_controller/follow_joint_trajectory`; the right controller continues
-publishing feedback but receives no goal.
-
-The installed Humble MoveIt `ExecuteTrajectory` capability does not service an
-action cancel request while its execution callback is blocking. The timeout
-compatibility path consequently sends the standard `CancelGoal` request
-directly to the active side's `FollowJointTrajectory` action. The expected
-terminal contract is controller `CANCELED`, then `/execute_trajectory`
-`ABORTED` with `MoveItErrorCodes.PREEMPTED`. This is a documented direct
-controller fallback, not a claim that Humble propagates an
-`/execute_trajectory` cancel request downstream.
-
-Run the focused runtime integration test after building the participating
-packages:
-
-```bash
-cd ros2_ws
-colcon build --symlink-install --packages-up-to \
-  cleany_handeye_calibration
-source install/setup.bash
-python3 -m pytest -q -s \
-  src/cleany_handeye_calibration/test/test_handeye_mujoco_runtime.py \
-  src/cleany_handeye_calibration/test/test_single_pose_mujoco_runtime.py
-```
-
-The test verifies separate per-arm plan and execute success, left-only
-controller routing, complete feedback-backed MoveIt current state, direct
-controller cancel response and terminal statuses, cancel hold, launch liveness,
-and process-group cleanup.
-
 ## Dependencies
 
 The transform conversion functions use the Ubuntu/ROS system installations of
@@ -578,11 +369,9 @@ and `python3-yaml` rosdep keys.
 The mathematical, synchronization, configuration, and settle core does not
 import `rclpy`. The FK, IK, validity, and motion adapters use `rclpy`,
 `action_msgs`, `moveit_msgs`, and `sensor_msgs`, but their focused tests use fake
-clients, goal handles, and futures without a running ROS graph. The motion-only
-single-pose, and multi-pose launches depend on the MoveIt and MuJoCo ROS
-packages. The multi-pose node exposes its run-cancel request through
-`std_srvs/Trigger`; runtime integration tests use the standard ROS
-action/message packages declared in the manifest.
+clients, goal handles, and futures without a running ROS graph. The single-
+and multi-pose nodes use the standard ROS action/message packages declared
+in the manifest. The multi-pose node exposes run cancellation through `std_srvs/Trigger`.
 
 ## Verification
 
@@ -611,7 +400,8 @@ python3 -m pytest test
 cd ../..
 colcon build --symlink-install --packages-select cleany_handeye_calibration
 source install/setup.bash
-colcon test --packages-select cleany_handeye_calibration
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon test --python-testing pytest \
+  --packages-select cleany_handeye_calibration
 colcon test-result \
   --test-result-base build/cleany_handeye_calibration --verbose
 ```

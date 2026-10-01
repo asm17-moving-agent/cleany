@@ -12,7 +12,7 @@ def generate_launch_description() -> LaunchDescription:
             [
                 FindPackageShare('cleany_mujoco_sim'),
                 'scenes',
-                'default.xml.in',
+                'study_cafe.xml.in',
             ]
         ),
         description='Path to a MuJoCo scene XML or XML template.',

@@ -629,6 +629,12 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_71_0_self_filter_collision">
+        <origin xyz="4.08954814457e-12 1.5600333525e-12 -1.16272394365e-06" rpy="2.65358979332e-06 -3.35582256428e-13 9.74717818498e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
       <collision name="mjcf_geom_72_0_collision">
         <origin xyz="4.08954944561e-12 1.56000906637e-12 -1.16272394366e-06" rpy="2.6535897933e-06 -3.35547845291e-13 9.74717868076e-12" />
         <geometry>
@@ -650,6 +656,12 @@
           <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_78_0_self_filter_collision">
+        <origin xyz="5.51022591132e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.32679579342e-06 -1.57079999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+      </collision>
       <visual name="mjcf_geom_79_0_visual">
         <origin xyz="5.51022591513e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.3267957937e-06 -1.57079999999" />
         <geometry>
@@ -659,6 +671,12 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_79_0_self_filter_collision">
+        <origin xyz="5.51022591513e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.3267957937e-06 -1.57079999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+      </collision>
     </xacro:if>
     <xacro:if value="${link_name == 'left_moving_jaw_link'}">
       <inertial>
@@ -905,6 +923,12 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_103_0_self_filter_collision">
+        <origin xyz="-1.75451667084e-13 1.72466207982e-14 -1.57319893348e-09" rpy="3.58979298692e-09 -3.3556837864e-13 1.31342831277e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
       <collision name="mjcf_geom_104_0_collision">
         <origin xyz="-1.75492433085e-13 1.71772318591e-14 -1.57319893063e-09" rpy="3.58979317055e-09 -3.35534912368e-13 1.32416268892e-14" />
         <geometry>
@@ -926,6 +950,12 @@
           <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_110_0_self_filter_collision">
+        <origin xyz="5.50979259921e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.676795793e-06 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+      </collision>
       <visual name="mjcf_geom_111_0_visual">
         <origin xyz="5.50979259431e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.67679579317e-06 -1.5708" />
         <geometry>
@@ -935,6 +965,12 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_111_0_self_filter_collision">
+        <origin xyz="5.50979259431e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.67679579317e-06 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+      </collision>
     </xacro:if>
     <xacro:if value="${link_name == 'right_moving_jaw_link'}">
       <inertial>

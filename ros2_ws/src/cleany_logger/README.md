@@ -23,5 +23,5 @@ failure code가 재현 가능한 형식으로 기록되는지 검증한다.
 
 ## 관련 KB
 
-- [Data and Evaluation](../../../docs/cleany-docs/20_TECHNICAL/07%20-%20Data%20and%20Evaluation.md)
+- [Verification and Simulation Strategy](../../../docs/cleany-docs/20_TECHNICAL/13%20-%20Verification%20and%20Simulation%20Strategy.md)
 - [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)

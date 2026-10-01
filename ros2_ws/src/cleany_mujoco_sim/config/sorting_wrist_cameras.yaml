@@ -1,0 +1,13 @@
+# Nominal MuJoCo CAD mounting geometry, NOT measured real-robot calibration.
+# No target/object ground-truth pose is part of this configuration.
+source: simulation_nominal_cad
+left:
+  parent_frame: left_gripper_frame
+  child_frame: left_wrist_rgb_optical_frame
+  translation_m: [-0.0038719694021754573, -0.013670040655146537, 0.06494003059774991]
+  quaternion_xyzw: [0.5949693893311951, 0.5978595213511846, -0.37757544425913087, 0.3821154307027095]
+right:
+  parent_frame: right_gripper_frame
+  child_frame: right_wrist_rgb_optical_frame
+  translation_m: [-0.0038719694021754573, -0.012670040655146537, 0.06494003059774991]
+  quaternion_xyzw: [0.5949693893311951, 0.5978595213511846, -0.37757544425913087, 0.3821154307027095]

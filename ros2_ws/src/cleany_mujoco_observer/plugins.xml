@@ -1,0 +1,7 @@
+<library path="observed_mujoco_system">
+  <class name="cleany_mujoco_observer/ObservedMujocoSystem"
+         type="cleany_mujoco_observer::ObservedMujocoSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>Installed MuJoCo backend with synchronized read-only evaluation snapshots.</description>
+  </class>
+</library>

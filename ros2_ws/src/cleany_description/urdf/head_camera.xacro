@@ -1,5 +1,5 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="cleany_head_camera">
+  <xacro:macro name="cleany_head_mount">
     <link name="top_base_link">
       <xacro:cleany_link_properties link_name="top_base_link" />
     </link>
@@ -8,6 +8,8 @@
       <child link="top_base_link" />
       <origin xyz="0 0 0.35" rpy="0 0 3.14159265359" />
     </joint>
+  </xacro:macro>
+  <xacro:macro name="cleany_head_camera">
     <link name="head_pan_link">
       <xacro:cleany_link_properties link_name="head_pan_link" />
     </link>

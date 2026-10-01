@@ -1,0 +1,8 @@
+# Verification port. Simulation uses an independent physics oracle; a real
+# robot needs a sensor-based implementation of the same outcome contract.
+string label
+string destination_id
+int64 after_stamp_ns
+---
+bool success
+string message

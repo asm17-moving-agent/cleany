@@ -1,0 +1,108 @@
+name: cleany-vision
+
+x-vision-image: &vision-image
+  image: cleany-vision:jp6.2
+  build:
+    context: ../..
+    dockerfile: containers/vision/Dockerfile
+    # This affects image build only. AnyGrasp runtime rejects host networking.
+    network: host
+
+x-runtime-environment: &runtime-environment
+  ROS_DOMAIN_ID: "${ROS_DOMAIN_ID:?set ROS_DOMAIN_ID in the root-owned Jetson identity file}"
+  RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+  CYCLONEDDS_URI: file:///etc/cleany/cyclonedds.xml
+
+services:
+  anygrasp:
+    <<: *vision-image
+    init: true
+    runtime: nvidia
+    working_dir: /workspace/cleany
+    entrypoint:
+      - /workspace/cleany/containers/vision/scripts/anygrasp-service-entrypoint
+    command: ["sleep", "infinity"]
+    environment:
+      <<: *runtime-environment
+      CLEANY_WORKSPACE_ROLE: anygrasp
+      ANYGRASP_MAC_ADDRESS: "${ANYGRASP_MAC_ADDRESS:?set ANYGRASP_MAC_ADDRESS in the root-owned Jetson identity file}"
+      ANYGRASP_IPV4_ADDRESS: "${ANYGRASP_IPV4_ADDRESS:?set ANYGRASP_IPV4_ADDRESS in the root-owned Jetson identity file}"
+      ANYGRASP_EXPECTED_FEATURE_ID: "${ANYGRASP_EXPECTED_FEATURE_ID:?set ANYGRASP_EXPECTED_FEATURE_ID in the root-owned Jetson identity file}"
+      # The licensed SDK resolves license/licenseCfg.json relative to gsnet.so.
+      ANYGRASP_LICENSE_DIR: /opt/anygrasp/license
+      ANYGRASP_LICENSE_FILE: "${ANYGRASP_LICENSE_FILE:?set ANYGRASP_LICENSE_FILE in the root-owned Jetson identity file}"
+      ANYGRASP_CHECKPOINT_PATH: "${ANYGRASP_CHECKPOINT_PATH:?set ANYGRASP_CHECKPOINT_PATH in the root-owned Jetson identity file}"
+    volumes:
+      - type: bind
+        source: ../..
+        target: /workspace/cleany
+      - type: bind
+        source: "${CLEANY_JETSON_IDENTITY_FILE:?use tools/vision-container so the identity path cannot be omitted}"
+        target: /etc/cleany/jetson-identity.env
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${ANYGRASP_LICENSE_HOST_DIR:?set ANYGRASP_LICENSE_HOST_DIR in the root-owned Jetson identity file}"
+        target: /opt/anygrasp/license
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${ANYGRASP_MODEL_HOST_DIR:?set ANYGRASP_MODEL_HOST_DIR in the root-owned Jetson identity file}"
+        target: /models/anygrasp
+        read_only: true
+        bind:
+          create_host_path: false
+      - anygrasp-build:/workspace/cleany/ros2_ws/build-anygrasp
+      - anygrasp-install:/workspace/cleany/ros2_ws/install-anygrasp
+      - anygrasp-log:/workspace/cleany/ros2_ws/log-anygrasp
+    networks:
+      hybrid:
+        ipv4_address: "${ANYGRASP_IPV4_ADDRESS:?set ANYGRASP_IPV4_ADDRESS in the root-owned Jetson identity file}"
+        mac_address: "${ANYGRASP_MAC_ADDRESS:?set ANYGRASP_MAC_ADDRESS in the root-owned Jetson identity file}"
+
+  perception:
+    <<: *vision-image
+    init: true
+    runtime: nvidia
+    working_dir: /workspace/cleany
+    command: ["sleep", "infinity"]
+    environment:
+      <<: *runtime-environment
+      CLEANY_WORKSPACE_ROLE: perception
+    volumes:
+      - type: bind
+        source: ../..
+        target: /workspace/cleany
+      - type: bind
+        source: "${YOLOE_MODEL_HOST_DIR:?set YOLOE_MODEL_HOST_DIR in the root-owned Jetson identity file}"
+        target: /models/yoloe
+        read_only: true
+        bind:
+          create_host_path: false
+      - perception-build:/workspace/cleany/ros2_ws/build-perception
+      - perception-install:/workspace/cleany/ros2_ws/install-perception
+      - perception-log:/workspace/cleany/ros2_ws/log-perception
+    networks:
+      hybrid:
+        ipv4_address: "${PERCEPTION_IPV4_ADDRESS:?set PERCEPTION_IPV4_ADDRESS in the root-owned Jetson identity file}"
+
+networks:
+  hybrid:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${HYBRID_SUBNET:?set HYBRID_SUBNET in the root-owned Jetson identity file}"
+          gateway: "${HYBRID_GATEWAY:?set HYBRID_GATEWAY in the root-owned Jetson identity file}"
+          aux_addresses:
+            vlm: "${VLM_IPV4_ADDRESS:?set VLM_IPV4_ADDRESS in the root-owned Jetson identity file}"
+            motion: "${MOTION_IPV4_ADDRESS:?set MOTION_IPV4_ADDRESS in the root-owned Jetson identity file}"
+
+volumes:
+  anygrasp-build:
+  anygrasp-install:
+  anygrasp-log:
+  perception-build:
+  perception-install:
+  perception-log:
