@@ -39,21 +39,23 @@ Wheel 배열 순서는 FL, FR, RL, RR이며 MCU가 PCB 순서로 변환한다. J
   비율로 줄인다. 역기구학의 wheel 비율을 개별 clipping으로 바꾸지 않는다.
 - 명령 timeout과 통신 피드백 감시는 monotonic time을 사용한다. 안전 timer도
   steady clock을 사용하므로 ROS clock 변경에 구동 timeout을 의존하지 않는다.
-- 시작, 재부팅, 피드백 중단과 재연결 시 driver는 disarmed다. Agent 연결이나
+- 시작, 재부팅, 피드백 중단과 재연결 시 driver는 구동 비허가 상태다. Agent 연결이나
   `/cmd_vel` 발행만으로 구동 허가를 얻지 않는다.
-- 새 zero session handshake 뒤 `/base/enable` true 요청으로 zero ARM을 보낸다.
-  MCU의 armed 확인 **뒤 수신한 새 `/cmd_vel`**만 구동 목표가 될 수 있다.
-- STOP, MCU watchdog/fault 또는 연결 손실 뒤 cached 이동 목표를 복원하지 않는다.
-  다시 구동하려면 새 handshake, 명시적 enable과 새 명령이 필요하다.
-- BEGIN/ARM packet 손실은 새 sequence/deadline으로 재시도한다. ARM 확인은 250 ms
-  이내여야 하며, 확인 뒤 250 ms 동안 새 `/cmd_vel`이 없으면 정지한다.
-  이전 telemetry는 enable의 근거가 될 수 없다. Fault 진단은 즉시 발행하고,
-  정상 새 session 확인 뒤 현재 feedback 상태로 복구한다.
+- `/base/enable` true 요청으로 zero ENABLE을 보내며 이전 목표를 버린다.
+  세션 협상과 토큰은 없다. MCU의 enabled 확인 뒤 요청 이후 수신한 새 목표를
+  전송하며, 아직 목표가 없으면 zero VELOCITY로 대기한다.
+- ENABLE 전달 중 손실은 **동일 sequence/deadline**의 패킷으로 재시도한다.
+  원래 유효기한을 연장하지 않는다. 이미 허가된 상태에서 enable 요청은 멱등적이다.
+- STOP, MCU 명령 만료, 연결 손실과 재부팅 뒤 cached 이동 목표를 복원하지 않는다.
+  다시 구동하려면 명시적 enable과 새 명령이 필요하다.
+- 피드백 sequence 검사는 수신 경계에서 한 번 수행한다. 중복과 역순은 무시하고
+  누락 개수가 아닌 실제 수신 지연으로 연결 상태를 판단한다.
 
-상세 boot/session, sequence와 MCU deadline 계약은
+Protocol v2의 ENABLE/STOP, sequence와 MCU deadline 계약은
 [`cleany_base_interfaces`](../cleany_base_interfaces/README.md)를 따른다.
 한 시점에는 하나의 `/cmd_vel` 명령원만 사용한다. Nav2, teleop, 시험 명령의 선택은
-상위 command mux의 책임이다. MCU는 micro-ROS 단일 제어 경로를 사용한다.
+상위 command mux의 책임이다. 한 MCU의 wheel-command publisher는 하나의 driver가
+소유하며 MCU는 micro-ROS 단일 제어 경로를 사용한다.
 
 ### 피드백과 odometry
 
@@ -113,10 +115,10 @@ ros2 service call /base/enable std_srvs/srv/SetBool '{data: false}'
 ```
 
 Mock는 `mock/reboot` (`std_srvs/Trigger`)와 `mock/transport` (`std_srvs/SetBool`)
-고장 주입 service를 제공한다. `mock/drop_next_begin`, `mock/drop_next_arm`,
-`mock/force_disarm`, `mock/change_session` (`std_srvs/Trigger`)으로 handshake와
-session 장애도 주입할 수 있다. Mock는 MCU와 같은 deadline/watchdog 및 최근
-session retirement 검증을 사용하고, 이상적인 wheel 속도에서 encoder를 적분한다.
+고장 주입 service를 제공한다. `mock/drop_next_enable`과 `mock/force_disarm`
+(`std_srvs/Trigger`)으로 ENABLE 손실과 구동 허가 해제를 주입할 수 있다.
+Mock는 MCU와 같은 ENABLE/STOP, 순번과 단일 deadline 검증을 사용하고,
+이상적인 wheel 속도에서 encoder를 적분한다.
 Core test와 ROS graph test는 명령 검증, 구동 허가,
 timeout, 재부팅, 피드백 중단, encoder rollover와 odometry/TF 소유권을 검사한다.
 Mock 결과는 실제 PI 응답, USB 장치 동작 또는 물리 정지 거리의 검증이 아니다.
@@ -149,5 +151,5 @@ ros2 launch cleany_base_driver base_driver.launch.py \
 Native USB의 baud 값은 Agent serial 설정값이며 USB-UART bridge를 뜻하지 않는다.
 현재 MCU의 DDS domain은 0이다. Mock의 domain 173 설정을 실물 terminal에 남기지 않는다.
 상태/diagnostics, `/wheel/odom`, `/odom`과 TF publisher 소유권을 확인하고
-[`motor_controller`의 실물 인수 체크리스트](../../../../motor_controller/README.md#micro-ros-후속-실물-인수-시험)를
+[`motor_controller`의 실물 인수 체크리스트](../../../../motor_controller/README.md#robot-acceptance)를
 수행한다. 실물 검증 통과가 Task 4와 전체 Story 완료 판단의 조건이다.

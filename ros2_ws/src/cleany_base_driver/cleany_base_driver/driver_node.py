@@ -1,7 +1,6 @@
 """ROS adapter for the fixed-size micro-ROS wheel transport."""
 from __future__ import annotations
 
-import secrets
 import time
 from math import isfinite
 
@@ -17,30 +16,24 @@ from rclpy.signals import SignalHandlerOptions
 from sensor_msgs.msg import JointState
 from std_srvs.srv import SetBool
 
-from .core import (
-    EncoderAdapter, Geometry, Limits, SessionGate, finite_twist_axes,
-    wheel_speeds,
-)
+from .core import EncoderAdapter, Geometry, Limits, finite_twist_axes, newer, wheel_speeds
 
 
 class BaseDriver(Node):
     def __init__(self, parameter_overrides=None) -> None:
         super().__init__('cleany_base_driver', parameter_overrides=parameter_overrides or [])
         self.declare_parameter('mock', False)
-        self.declare_parameter('geometry.wheel_radius_m', 0.0)
-        self.declare_parameter('geometry.wheelbase_m', 0.0)
-        self.declare_parameter('geometry.wheel_separation_m', 0.0)
-        for key in ('linear_x_mps', 'linear_y_mps', 'angular_z_rad_s',
-                    'wheel_rad_s', 'command_timeout_s'):
-            self.declare_parameter('limits.' + key, 0.0)
+        for key, default in (('geometry.wheel_radius_m', 0.), ('geometry.wheelbase_m', 0.),
+                             ('geometry.wheel_separation_m', 0.)):
+            self.declare_parameter(key, default)
+        for key in ('linear_x_mps', 'linear_y_mps', 'angular_z_rad_s', 'wheel_rad_s', 'command_timeout_s'):
+            self.declare_parameter('limits.' + key, 0.)
         self.declare_parameter('counts_per_revolution', 3172)
-        mock = bool(self.get_parameter('mock').value)
         self.geometry = Geometry(*(float(self.get_parameter('geometry.' + p).value)
-            for p in ('wheel_radius_m', 'wheelbase_m', 'wheel_separation_m')))
+                                   for p in ('wheel_radius_m', 'wheelbase_m', 'wheel_separation_m')))
         self.limits = Limits(*(float(self.get_parameter('limits.' + p).value)
-            for p in ('linear_x_mps', 'linear_y_mps', 'angular_z_rad_s',
-                      'wheel_rad_s', 'command_timeout_s')))
-        self.gate = SessionGate()
+                               for p in ('linear_x_mps', 'linear_y_mps', 'angular_z_rad_s',
+                                         'wheel_rad_s', 'command_timeout_s')))
         self.encoder = EncoderAdapter(int(self.get_parameter('counts_per_revolution').value))
         self.command_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT,
                                        durability=DurabilityPolicy.VOLATILE)
@@ -50,277 +43,175 @@ class BaseDriver(Node):
         self.create_subscription(WheelState, 'base/wheel_state', self.on_state, self.command_qos)
         self.create_subscription(Twist, 'cmd_vel', self.on_twist, 10)
         self.create_service(SetBool, 'base/enable', self.on_enable)
-        self.latest = None
-        self.latest_receipt = None
-        self.last_cmd_receipt = None
-        self.last_state_receipt = None
-        self.last_state_sequence = None
-        self.last_mcu_timestamp = None
+        self.enabled = False
+        self.latest = self.latest_receipt = self.last_state_receipt = None
+        self.last_cmd_receipt = self.last_state_sequence = self.last_mcu_timestamp = None
+        self.latest_twist = None
+        self.boot_id = None
+        self.command_sequence = None
+        self.pending_enable = None
         self.diagnostic_error = ''
-        self.command_sequence = 0
-        self.session = 0
-        self._started = False
-        self.session_confirmed = False
-        self.begin_command = None
         self._stop_sent = False
-        self.arm_sent = False
-        self.arm_started = None
-        self.armed_since = None
-        self.mock = mock
         self.create_timer(.02, self.tick, clock=Clock(clock_type=ClockType.STEADY_TIME))
         self.create_timer(.1, self.publish_diagnostics, clock=Clock(clock_type=ClockType.STEADY_TIME))
 
-    def _send(self, mode: int, values=(0., 0., 0., 0.)) -> None:
+    def _deadline(self) -> int:
+        return self._mcu_now() + min(200000, int(self.limits.timeout_s * 1e6))
+
+    def _mcu_now(self) -> int:
+        return self.latest.timestamp_us + max(0, int((time.monotonic() - self.latest_receipt) * 1e6))
+
+    def _send(self, mode: int, values=(0., 0., 0., 0.), sequence=None, deadline=0) -> WheelCommand:
         msg = WheelCommand()
-        msg.protocol_version = 1
-        msg.boot_id = self.gate.boot or 0
-        msg.session_id = self.session
-        msg.sequence = self.command_sequence
-        self.command_sequence = (self.command_sequence + 1) & 0xffffffff
-        msg.mode = mode
+        msg.protocol_version = 2
+        if sequence is None:
+            self.command_sequence = ((self.command_sequence or 0) + 1) & 0xffffffff
+            sequence = self.command_sequence
+        msg.sequence, msg.mode = sequence, mode
         msg.velocity_rad_s = list(values)
-        if mode:
-            stamp, receipt = self.latest.timestamp_us, self.latest_receipt
-            elapsed_us = max(0, int((time.monotonic() - receipt) * 1e6))
-            msg.valid_until_us = stamp + elapsed_us + min(200000, int(self.limits.timeout_s * 1e6))
+        msg.valid_until_us = deadline
         self.publisher.publish(msg)
+        return msg
 
-    def _begin(self) -> None:
-        if self.latest is None or not self.last_state_receipt or \
-                time.monotonic() - self.last_state_receipt > .25:
-            return
-        self.session = secrets.randbits(32) or 1
-        self.gate.begin(self.latest.boot_id, self.session)
-        self.command_sequence = 0
-        self._send(WheelCommand.BEGIN_SESSION)
-        self.begin_command = WheelCommand()
-        self.begin_command.protocol_version = 1
-        self.begin_command.boot_id = self.latest.boot_id
-        self.begin_command.session_id = self.session
-        self.begin_command.sequence = 0
-        self.begin_command.mode = WheelCommand.BEGIN_SESSION
-        self.begin_command.velocity_rad_s = [0.] * 4
-        self.begin_command.valid_until_us = (
-            self.latest.timestamp_us
-            + max(0, int((time.monotonic() - self.latest_receipt) * 1e6))
-            + min(200000, int(self.limits.timeout_s * 1e6))
-        )
-        self._started = True
-        self.session_confirmed = False
-        self._stop_sent = False
-
-    def _invalidate(self, reason: str, *, send_stop: bool = True) -> None:
-        """Drop all command authority and feedback that could authorize ARM."""
+    def _disable(self, reason: str, send_stop=True) -> None:
+        self.enabled = False
+        self.pending_enable = None
+        self.last_cmd_receipt = None
+        self.latest_twist = None
         self.diagnostic_error = reason
         if send_stop and not self._stop_sent:
             self._send(WheelCommand.STOP)
             self._stop_sent = True
-        boot = self.gate.boot
-        self.gate.reset(boot)
-        self.session = 0
-        self._started = False
-        self.session_confirmed = False
-        self.begin_command = None
-        self.arm_sent = False
-        self.arm_started = None
-        self.armed_since = None
-        self.last_cmd_receipt = None
-        self.latest = self.latest_receipt = None
-        self.last_state_receipt = None
-        self.encoder.rebase()
-        self.publish_diagnostics()
 
     def on_enable(self, request, response):
-        if request.data:
-            if (self.latest is None or self.last_state_receipt is None or
-                    time.monotonic() - self.last_state_receipt > .25 or
-                    not self.session_confirmed or
-                    self.latest.session_id != self.session or
-                    self.latest.fault_bits):
-                response.success, response.message = False, 'no fresh matching disarmed session feedback'
-                return response
-            self.gate.request_enable()
-            self.last_cmd_receipt = None
-            self.arm_sent = False
-            self.arm_started = time.monotonic()
-            if self.latest.session_id == self.session:
-                self._send(WheelCommand.ARM)
-                self.arm_sent = True
-            response.success, response.message = True, 'ARM sent; awaiting matching armed feedback'
-        else:
-            self._stop_session()
+        if not request.data:
+            self._disable('stopped by request')
             response.success, response.message = True, 'STOP sent'
+            return response
+        if self.enabled:
+            response.success, response.message = True, 'already enabled'
+            return response
+        if self.latest is None or self.last_state_receipt is None or time.monotonic() - self.last_state_receipt > .25:
+            response.success, response.message = False, 'no fresh wheel feedback'
+            return response
+        if self.command_sequence is None:
+            self.command_sequence = self.latest.last_command_sequence
+        elif newer(self.latest.last_command_sequence, self.command_sequence):
+            self.command_sequence = self.latest.last_command_sequence
+        self.command_sequence = (self.command_sequence + 1) & 0xffffffff
+        deadline = self._deadline()
+        self.pending_enable = (self.command_sequence, deadline)
+        self.enabled = True
+        self._stop_sent = False
+        self.last_cmd_receipt = None
+        self.latest_twist = None
+        self._send(WheelCommand.ENABLE, sequence=self.command_sequence, deadline=deadline)
+        response.success, response.message = True, 'ENABLE sent; awaiting MCU acknowledgement'
         return response
 
-    def _stop_session(self) -> None:
-        self._invalidate('stopped by request')
-
     def on_twist(self, msg: Twist) -> None:
-        axes = (msg.linear.x, msg.linear.y, msg.linear.z,
-                msg.angular.x, msg.angular.y, msg.angular.z)
+        axes = (msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z)
         if not finite_twist_axes(*axes):
-            if self.gate.enabled or self.gate.armed:
-                self._invalidate('non-finite cmd_vel')
+            if self.enabled:
+                self._disable('non-finite cmd_vel')
             return
-        if any(v != 0 for v in (msg.linear.z, msg.angular.x, msg.angular.y)):
-            self.get_logger().warning('unsupported cmd_vel axes ignored', throttle_duration_sec=2)
-        # Never retain input received before matching armed feedback. The
-        # first command accepted here must therefore be a post-ARM cmd_vel.
-        if not self.gate.enabled or not self.gate.armed:
+        if not self.enabled:
             return
         self.last_cmd_receipt = time.monotonic()
-        wheels = wheel_speeds(msg.linear.x, msg.linear.y, msg.angular.z, self.geometry, self.limits)
-        self.gate.command(wheels)
+        self.latest_twist = (msg.linear.x, msg.linear.y, msg.angular.z)
+        if any(v != 0 for v in (msg.linear.z, msg.angular.x, msg.angular.y)):
+            self.get_logger().warning('unsupported cmd_vel axes ignored', throttle_duration_sec=2)
 
     def on_state(self, msg: WheelState) -> None:
         now = time.monotonic()
-        if msg.protocol_version != 1 or msg.boot_id == 0 or \
-                msg.counts_per_revolution != self.encoder.scale or \
+        if msg.protocol_version != 2 or msg.boot_id == 0 or msg.counts_per_revolution != self.encoder.scale or \
                 msg.max_velocity_rad_s != 10.0 or msg.watchdog_ms != 250:
-            self.get_logger().error('WheelState contract mismatch; disarming')
-            self._invalidate('WheelState contract mismatch')
+            self._disable('WheelState contract mismatch')
             return
-        if self.gate.boot == msg.boot_id and self.last_mcu_timestamp is not None \
-                and msg.timestamp_us <= self.last_mcu_timestamp:
-            self._invalidate('non-increasing MCU timestamp')
+        if self.boot_id == msg.boot_id and self.last_state_sequence is not None and \
+                not newer(msg.sequence, self.last_state_sequence):
             return
-        float_fields = (*msg.velocity_rad_s, *msg.target_rad_s, *msg.commanded_rad_s)
-        if not all(isfinite(float(v)) for v in float_fields):
-            self._invalidate('non-finite wheel feedback')
+        if self.boot_id == msg.boot_id and self.last_mcu_timestamp is not None and \
+                msg.timestamp_us <= self.last_mcu_timestamp:
             return
-        if self.gate.boot is not None and msg.boot_id != self.gate.boot:
-            self._invalidate('MCU reboot detected')
-            self.gate.reset(msg.boot_id)
-            self.last_state_sequence = None
-            self.last_mcu_timestamp = None
+        reboot = self.boot_id is not None and self.boot_id != msg.boot_id
+        if reboot:
+            self.command_sequence = msg.last_command_sequence
+            self._stop_sent = False
+            self._disable('MCU reboot detected')
+            self.last_state_sequence = self.last_mcu_timestamp = None
             self.encoder.rebase()
-        elif self.last_state_sequence is not None:
-            delta = (msg.sequence - self.last_state_sequence) & 0xffffffff
-            if delta == 0 or delta >= 0x80000000:
-                return
-            if delta > 4:
-                self.last_state_sequence = msg.sequence
-                self._invalidate('wheel feedback sequence gap')
-                return
-        if self.session_confirmed and msg.session_id != self.session:
-            self._invalidate('MCU session changed unexpectedly')
+        if not all(isfinite(float(v)) for v in (*msg.velocity_rad_s, *msg.target_rad_s, *msg.commanded_rad_s)):
+            self._disable('non-finite wheel feedback')
             return
-        if self.gate.armed and not msg.armed:
-            self._invalidate('MCU unexpectedly disarmed')
-            return
-        if msg.armed and not self.gate.enabled:
-            self._invalidate('MCU armed without host enable')
-            return
-        self.gate.boot = msg.boot_id
-        if msg.fault_bits:
-            if self.gate.enabled or self.gate.armed or self.session_confirmed:
-                self._invalidate(f'MCU fault bits: {msg.fault_bits:#x}')
-            self.gate.boot = msg.boot_id
-            self.gate.last_state = msg.sequence
-            self.last_state_sequence = msg.sequence
-            self.latest, self.latest_receipt = msg, now
-            self.last_state_receipt, self.last_mcu_timestamp = now, msg.timestamp_us
-            if self.session == 0 and not self._started:
-                self._begin()
-            return
-        was_armed = self.gate.armed
-        fresh = self.gate.accept_state(msg.boot_id, msg.session_id, msg.sequence,
-                                       msg.armed, 0)
-        if not fresh:
-            return
-        self.latest, self.latest_receipt = msg, now
-        self.last_state_receipt = now
+        self.boot_id = msg.boot_id
         self.last_state_sequence = msg.sequence
         self.last_mcu_timestamp = msg.timestamp_us
-        self._stop_sent = False
-        if self.session != 0 and self._started and msg.session_id == self.session:
-            self.session_confirmed = True
-            self.begin_command = None
-            self.diagnostic_error = ''
-        if self.gate.armed and not was_armed:
-            self.arm_sent = False
-            self.arm_started = None
-            self.armed_since = now
-            self.last_cmd_receipt = None
-            self.gate.pending_velocity = None
-        if self.session_confirmed and self.gate.enabled and not self.gate.armed and not self.arm_sent:
-            self._send(WheelCommand.ARM)
-            self.arm_sent = True
-            self.arm_started = now
-        positions = self.encoder.update(msg.boot_id, msg.sequence, tuple(msg.encoder_counts))
+        self.latest, self.latest_receipt = msg, now
+        self.last_state_receipt = now
+        if self.command_sequence is None or newer(msg.last_command_sequence, self.command_sequence):
+            self.command_sequence = msg.last_command_sequence
+        if self.pending_enable is not None:
+            seq, _ = self.pending_enable
+            if msg.last_command_sequence == seq and msg.enabled:
+                self.pending_enable = None
+                self.diagnostic_error = ''
+        if self.enabled and not msg.enabled and self.pending_enable is None:
+            self._disable('MCU unexpectedly disabled')
+        elif not self.enabled and msg.enabled:
+            self._disable('MCU enabled without host permission')
+        if msg.fault_bits:
+            if self.pending_enable is None:
+                self._disable(f'MCU fault bits: {msg.fault_bits:#x}')
+        positions = self.encoder.update(msg.boot_id, tuple(msg.encoder_counts))
         if positions is not None:
             out = JointState()
             out.header.stamp = self.get_clock().now().to_msg()
             out.name = ['front_left_wheel_joint', 'front_right_wheel_joint',
                         'rear_left_wheel_joint', 'rear_right_wheel_joint']
-            out.position = list(positions)
-            out.velocity = [float(v) for v in msg.velocity_rad_s]
+            out.position, out.velocity = list(positions), [float(v) for v in msg.velocity_rad_s]
             self.joints.publish(out)
-        if self.session == 0 and not self._started:
-            self._begin()
 
     def tick(self) -> None:
         now = time.monotonic()
         if self.last_state_receipt is None or now - self.last_state_receipt > .25:
-            if self.latest is not None or self.session != 0 or not self._stop_sent:
-                self._invalidate('stale wheel feedback')
+            if self.enabled:
+                self._disable('stale wheel feedback')
+            if self.latest is not None:
+                self.latest = self.latest_receipt = self.last_state_receipt = None
+                self.encoder.rebase()
             return
-        if not self.session_confirmed:
-            if self.begin_command is not None:
-                self.begin_command.sequence = self.command_sequence
-                self.command_sequence = (self.command_sequence + 1) & 0xffffffff
-                self.begin_command.valid_until_us = (
-                    self.latest.timestamp_us
-                    + max(0, int((now - self.latest_receipt) * 1e6))
-                    + min(200000, int(self.limits.timeout_s * 1e6))
-                )
-                self.publisher.publish(self.begin_command)
-            elif self.session == 0:
-                self._begin()
+        if not self.enabled:
             return
-        # Do not cancel an ARM in flight. The first command after its matching
-        # armed feedback is the only command allowed to establish motion.
-        if self.gate.enabled and not self.gate.armed:
-            if self.arm_started is None:
-                self.arm_started = now
-            elif now - self.arm_started > .25:
-                self._invalidate('ARM acknowledgement timeout')
+        if self.last_cmd_receipt is not None and now - self.last_cmd_receipt > self.limits.timeout_s:
+            self._disable('cmd_vel timeout')
+            return
+        if self.pending_enable is not None:
+            seq, deadline = self.pending_enable
+            if self._mcu_now() >= deadline:
+                self._disable('ENABLE acknowledgement timeout')
                 return
-            self._send(WheelCommand.ARM)
-            self.arm_sent = True
+            self._send(WheelCommand.ENABLE, sequence=seq, deadline=deadline)
             return
-        if self.gate.armed:
-            if self.last_cmd_receipt is None:
-                if self.armed_since is not None and now - self.armed_since > .25:
-                    self._invalidate('no fresh cmd_vel after ARM')
-                return
-            if now - self.last_cmd_receipt > self.limits.timeout_s:
-                self._stop_session()
-                return
-        if not self.gate.enabled:
+        if not self.latest.enabled:
             return
-        wheels = self.gate.pending_velocity if self.gate.pending_velocity is not None else (0.,) * 4
-        self._send(WheelCommand.VELOCITY, wheels)
+        twist = self.latest_twist
+        wheels = (0.,) * 4 if twist is None else wheel_speeds(*twist, self.geometry, self.limits)
+        self._send(WheelCommand.VELOCITY, wheels, deadline=self._deadline())
 
     def publish_diagnostics(self) -> None:
         status = DiagnosticStatus()
+        age = float('inf') if self.last_state_receipt is None else time.monotonic() - self.last_state_receipt
         status.name, status.hardware_id = 'base_driver', 'micro_ros_base'
-        age = float('inf') if self.last_state_receipt is None else time.monotonic()-self.last_state_receipt
-        fault = self.diagnostic_error
-        status.level = DiagnosticStatus.ERROR if age > .25 or fault else DiagnosticStatus.OK
-        status.message = fault or ('stale wheel feedback' if age > .25 else 'feedback current')
-        status.values = [KeyValue(key='armed', value=str(self.gate.armed)),
-                         KeyValue(key='session_id', value=str(self.session)),
-                         KeyValue(key='feedback_age_s', value=str(age))]
+        status.level = DiagnosticStatus.ERROR if age > .25 or self.diagnostic_error else DiagnosticStatus.OK
+        status.message = self.diagnostic_error or ('stale wheel feedback' if age > .25 else 'feedback current')
+        status.values = [KeyValue(key='enabled', value=str(self.enabled)), KeyValue(key='feedback_age_s', value=str(age))]
         arr = DiagnosticArray()
-        arr.header.stamp = self.get_clock().now().to_msg()
-        arr.status = [status]
+        arr.header.stamp, arr.status = self.get_clock().now().to_msg(), [status]
         self.diags.publish(arr)
 
 
 def main(args=None):
-    # Keep the ROS context valid until the SIGINT/KeyboardInterrupt STOP has
-    # been published. rclpy's default signal handler shuts it down first.
     rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
     node = BaseDriver()
     try:
@@ -329,9 +220,7 @@ def main(args=None):
         pass
     finally:
         if rclpy.ok():
-            node._invalidate('driver shutdown')
-        else:
-            node.gate.reset(node.gate.boot)
+            node._disable('driver shutdown')
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

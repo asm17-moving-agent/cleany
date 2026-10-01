@@ -40,7 +40,6 @@ constexpr uint32_t kMotorControlPeriodMs = 5;
 constexpr int kOutputSlewStepPercent = 1;
 constexpr float kVelocityFilterTimeConstantSeconds = 0.05F;
 constexpr float kMaximumTargetVelocityRadPerSecond = 10.0F;
-constexpr int64_t kMicroRosWatchdogUs = 250000;
 constexpr uint16_t kMicroRosWatchdogMs = 250;
 
 struct Motor {
@@ -79,12 +78,10 @@ portMUX_TYPE encoderMux = portMUX_INITIALIZER_UNLOCKED;
 QueueHandle_t wheelCommandQueue;
 portMUX_TYPE microStopMux = portMUX_INITIALIZER_UNLOCKED;
 bool microStopPending = false;
+uint32_t microStopSequence = 0;
+bool microStopHasSequence = false;
 cleany::WheelCommandGate* wheelGate = nullptr;
-uint32_t microBootId = 0, microStateSequence = 0, microLastSequence = 0;
-uint32_t microFaultBits = 0;
-int64_t microLastAcceptedUs = 0;
-bool microArmed = false;
-uint32_t microSessionId = 0;
+uint32_t microBootId = 0, microStateSequence = 0;
 
 constexpr int8_t kEncoderTable[16] = {
     0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0,
@@ -205,33 +202,50 @@ void stopMicroRosMotorsLocked() {
     (void)applyMotorSpeedLocked(i, 0);
   }
 }
-bool takeMicroRosStop() {
+bool sequenceNewer(uint32_t value, uint32_t reference) {
+  const uint32_t delta = value - reference;
+  return delta != 0 && delta < 0x80000000U;
+}
+void requestMicroRosStop(bool sequenced, uint32_t sequence = 0) {
+  portENTER_CRITICAL(&microStopMux);
+  microStopPending = true;
+  if (sequenced && (!microStopHasSequence ||
+                    sequenceNewer(sequence, microStopSequence))) {
+    microStopSequence = sequence;
+    microStopHasSequence = true;
+  }
+  portEXIT_CRITICAL(&microStopMux);
+}
+bool takeMicroRosStop(bool& sequenced, uint32_t& sequence) {
   portENTER_CRITICAL(&microStopMux);
   const bool pending = microStopPending;
+  sequenced = microStopHasSequence;
+  sequence = microStopSequence;
   microStopPending = false;
+  microStopHasSequence = false;
   portEXIT_CRITICAL(&microStopMux);
   return pending;
 }
 void processMicroRosCommandLocked(int64_t nowUs) {
+  if (wheelGate->expire(static_cast<uint64_t>(nowUs))) {
+    stopMicroRosMotorsLocked();
+  }
   cleany::WheelCommand command{};
   const bool haveCommand = xQueueReceive(wheelCommandQueue, &command, 0) == pdTRUE;
-  const bool stop = takeMicroRosStop();
+  uint32_t stopSequence = 0;
+  bool sequencedStop = false;
+  const bool stop = takeMicroRosStop(sequencedStop, stopSequence);
   if (stop) {
-    (void)wheelGate->accept({1, 0, 0, 0, 0, cleany::WheelMode::kStop, {}},
-                            static_cast<uint64_t>(nowUs));
+    xQueueReset(wheelCommandQueue);
+    if (sequencedStop)
+      (void)wheelGate->accept({2, stopSequence, 0, cleany::WheelMode::kStop, {}},
+                              static_cast<uint64_t>(nowUs));
+    else wheelGate->disconnect();
     stopMicroRosMotorsLocked();
-    microArmed = false;
-    microSessionId = 0;
   } else if (haveCommand &&
              wheelGate->accept(command, static_cast<uint64_t>(nowUs))) {
-    microLastSequence = wheelGate->lastSequence();
-    microSessionId = wheelGate->sessionId();
-    microArmed = wheelGate->armed();
-    if (command.mode == cleany::WheelMode::kBeginSession ||
-        command.mode == cleany::WheelMode::kArm) {
+    if (command.mode == cleany::WheelMode::kEnable) {
       stopMicroRosMotorsLocked();
-      microLastAcceptedUs = command.mode == cleany::WheelMode::kArm ? nowUs : 0;
-      if (command.mode == cleany::WheelMode::kBeginSession) microFaultBits = 0;
     } else if (command.mode == cleany::WheelMode::kVelocity) {
       const auto& target = wheelGate->target();
       for (size_t wire = 0; wire < cleany::kWireToMotorIndex.size(); ++wire) {
@@ -239,14 +253,7 @@ void processMicroRosCommandLocked(int64_t nowUs) {
         const int percent = static_cast<int>(std::lround(target[wire] * 10.0F));
         motors[i].commandFilter.setTargetSpeed(percent);
       }
-      microLastAcceptedUs = nowUs;
     }
-  }
-  if (wheelGate->watchdog(static_cast<uint64_t>(nowUs))) {
-    stopMicroRosMotorsLocked();
-    microArmed = false;
-    microSessionId = 0;
-    microFaultBits |= 1U;
   }
 }
 void motorControlTask(void*) {
@@ -313,14 +320,12 @@ size_t microTransportRead(uxrCustomTransport* t, uint8_t* b, size_t n, int timeo
 void wheelCommandCallback(const void* msg) {
   const auto* in = static_cast<const cleany_base_interfaces__msg__WheelCommand*>(msg);
   if (in->mode == cleany_base_interfaces__msg__WheelCommand__STOP) {
-    portENTER_CRITICAL(&microStopMux);
-    microStopPending = true;
-    portEXIT_CRITICAL(&microStopMux);
+    requestMicroRosStop(true, in->sequence);
     return;
   }
   cleany::WheelCommand c{};
-  c.protocolVersion = in->protocol_version; c.bootId = in->boot_id;
-  c.sessionId = in->session_id; c.sequence = in->sequence;
+  c.protocolVersion = in->protocol_version;
+  c.sequence = in->sequence;
   c.validUntilUs = in->valid_until_us; c.mode = static_cast<cleany::WheelMode>(in->mode);
   for (size_t i = 0; i < c.velocity.size(); ++i) c.velocity[i] = in->velocity_rad_s[i];
   (void)xQueueOverwrite(wheelCommandQueue, &c);
@@ -328,16 +333,20 @@ void wheelCommandCallback(const void* msg) {
 bool fillWheelState(cleany_base_interfaces__msg__WheelState* s) {
   const auto counts = readEncoderCounts();
   const int64_t now = esp_timer_get_time();
-  s->protocol_version = 1; s->boot_id = microBootId;
+  s->protocol_version = 2; s->boot_id = microBootId;
   s->timestamp_us = static_cast<uint64_t>(now);
   s->counts_per_revolution = cleany::kEncoderCountsPerOutputRevolution;
   s->max_velocity_rad_s = kMaximumTargetVelocityRadPerSecond;
   s->watchdog_ms = kMicroRosWatchdogMs; s->sequence = microStateSequence++;
   if (xSemaphoreTake(motorMutex, pdMS_TO_TICKS(5)) != pdTRUE) return false;
-  s->session_id = microSessionId; s->last_command_sequence = microLastSequence;
-  s->armed = microArmed; s->fault_bits = microFaultBits;
-  s->command_age_ms = microLastAcceptedUs == 0 ? 65535 :
-      static_cast<uint16_t>(std::min<int64_t>(std::max<int64_t>(0, (now-microLastAcceptedUs)/1000),65535));
+  s->last_command_sequence = wheelGate->lastSequence();
+  s->enabled = wheelGate->enabled();
+  s->fault_bits = wheelGate->timedOut()
+      ? cleany_base_interfaces__msg__WheelState__FAULT_COMMAND_TIMEOUT : 0;
+  const uint64_t acceptedAt = wheelGate->lastAcceptedUs();
+  s->command_age_ms = acceptedAt == 0 ? 65535 :
+      static_cast<uint16_t>(std::min<int64_t>(
+          std::max<int64_t>(0, now - static_cast<int64_t>(acceptedAt)) / 1000, 65534));
   bool reverse = false;
   for (size_t wire = 0; wire < cleany::kWireToMotorIndex.size(); ++wire) {
     const size_t i = cleany::kWireToMotorIndex[wire];
@@ -349,9 +358,9 @@ bool fillWheelState(cleany_base_interfaces__msg__WheelState* s) {
     s->pwm_percent[wire] = static_cast<int8_t>(m.outputSpeed);
     reverse = reverse || m.commandFilter.waitingForReverse();
   }
-  if (!microArmed)
-    s->control_mode = microFaultBits
-        ? static_cast<uint8_t>(cleany_base_interfaces__msg__WheelState__WATCHDOG_STOP)
+  if (!wheelGate->enabled())
+    s->control_mode = wheelGate->timedOut()
+        ? static_cast<uint8_t>(cleany_base_interfaces__msg__WheelState__TIMEOUT_STOP)
         : static_cast<uint8_t>(cleany_base_interfaces__msg__WheelState__STOPPED);
   else
     s->control_mode = reverse
@@ -412,7 +421,7 @@ void microRosTask(void*) {
   }
   while (true) {
     if (rmw_uros_ping_agent(100, 1) != RMW_RET_OK) {
-      portENTER_CRITICAL(&microStopMux); microStopPending = true; portEXIT_CRITICAL(&microStopMux);
+      requestMicroRosStop(false);
       vTaskDelay(pdMS_TO_TICKS(500)); continue;
     }
     rclc_support_t support{}; rcl_node_t node = rcl_get_zero_initialized_node();
@@ -435,7 +444,7 @@ void microRosTask(void*) {
       }
       vTaskDelay(pdMS_TO_TICKS(2));
     }
-    portENTER_CRITICAL(&microStopMux); microStopPending = true; portEXIT_CRITICAL(&microStopMux);
+    requestMicroRosStop(false);
     if (ready) destroyMicroRosEntities(&support,&node,&pub,&sub,&ex);
     vTaskDelay(pdMS_TO_TICKS(250));
   }
@@ -449,8 +458,7 @@ extern "C" void app_main() {
   ESP_ERROR_CHECK(configureEncoders());
   microBootId = esp_random();
   if (microBootId == 0) microBootId = 1;
-  wheelGate = new cleany::WheelCommandGate(
-      {microBootId, static_cast<uint32_t>(kMicroRosWatchdogUs), 10.0F});
+  wheelGate = new cleany::WheelCommandGate({250000, 10.0F});
   ESP_ERROR_CHECK(wheelGate == nullptr ? ESP_ERR_NO_MEM : ESP_OK);
   wheelCommandQueue = xQueueCreate(1, sizeof(cleany::WheelCommand));
   ESP_ERROR_CHECK(wheelCommandQueue == nullptr ? ESP_ERR_NO_MEM : ESP_OK);

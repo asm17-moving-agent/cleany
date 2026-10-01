@@ -70,81 +70,19 @@ class EncoderAdapter:
         self.boot: int | None = None
         self.previous: tuple[int, ...] | None = None
         self.totals = [0, 0, 0, 0]
-        self.last_sequence: int | None = None
 
     def rebase(self) -> None:
         """Discard the next delta while retaining accumulated wheel angles."""
         self.previous = None
-        self.last_sequence = None
 
-    def update(self, boot: int, sequence: int, counts: tuple[int, ...]) -> tuple[float, ...] | None:
+    def update(self, boot: int, counts: tuple[int, ...]) -> tuple[float, ...] | None:
         if len(counts) != 4 or any(not -0x80000000 <= c <= 0x7fffffff for c in counts):
             raise ValueError('expected four signed int32 encoder counts')
-        if self.boot == boot and self.last_sequence is not None and not newer(sequence, self.last_sequence):
-            return None
         if self.boot != boot:
             self.boot, self.previous = boot, counts
         elif self.previous is not None:
             for i, (cur, prev) in enumerate(zip(counts, self.previous)):
                 delta = ((cur - prev + 0x80000000) & UINT32) - 0x80000000
                 self.totals[i] += delta
-        self.previous, self.last_sequence = counts, sequence
+        self.previous = counts
         return tuple(v * 6.283185307179586 / self.scale for v in self.totals)
-
-
-class SessionGate:
-    """Host-side command gate: feedback authorizes, never cached commands."""
-    def __init__(self) -> None:
-        self.boot: int | None = None
-        self.session: int | None = None
-        self.armed = False
-        self.enabled = False
-        self.last_state: int | None = None
-        self.last_command: int | None = None
-        self.pending_velocity: tuple[float, ...] | None = None
-
-    def reset(self, boot: int | None = None) -> None:
-        self.boot, self.session = boot, None
-        self.armed = self.enabled = False
-        self.last_state = self.last_command = None
-        self.pending_velocity = None
-
-    def accept_state(self, boot: int, session: int, sequence: int,
-                     armed: bool, faults: int, healthy: bool = True) -> bool:
-        if self.boot is not None and self.boot != boot:
-            self.reset(boot)
-            return False
-        if self.last_state is not None and not newer(sequence, self.last_state):
-            return False
-        if self.last_state is not None and ((sequence - self.last_state) & UINT32) > 4:
-            self.reset(boot)
-            return False
-        self.boot, self.last_state = boot, sequence
-        if not healthy or faults:
-            self.reset(boot)
-            return False
-        if self.session is None or session != self.session:
-            self.armed = False
-        else:
-            self.armed = bool(armed) and self.enabled
-        return True
-
-    def begin(self, boot: int, session: int) -> None:
-        self.reset(boot)
-        self.session = session
-
-    def request_enable(self) -> None:
-        self.enabled = True
-        self.armed = False
-        self.pending_velocity = None
-
-    def disable(self) -> None:
-        self.enabled = self.armed = False
-        self.pending_velocity = None
-
-    def command(self, wheel_values: tuple[float, ...]) -> tuple[float, ...]:
-        if not self.enabled or not self.armed:
-            self.pending_velocity = None
-            return (0.,) * 4
-        self.pending_velocity = wheel_values
-        return wheel_values

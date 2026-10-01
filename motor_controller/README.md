@@ -8,7 +8,7 @@ GPIO assignments are documented in [`PINMAP.md`](PINMAP.md).
 
 ```text
 base/wheel_command → USB XRCE-DDS / rclc callback → latest-value mailbox
-                  → motor task: gate / watchdog / PI + feed-forward / PWM
+                  → motor task: ENABLE / deadline / PI + feed-forward / PWM
 encoders → motor task → base/wheel_state → ROS base driver / odometry
 ```
 
@@ -19,22 +19,22 @@ callback does not calculate PI or write PWM.
 
 ### Commands and protection
 
-- Startup is zero/disarmed. Connection alone never authorizes movement.
-- A new zero `BEGIN_SESSION`, explicit zero `ARM` and fresh `VELOCITY` are
-  required. Boot/session, modular sequence, finite/range and MCU deadline
-  validation reject stale commands without refreshing the watchdog.
-- STOP uses a separate latch so a queued velocity cannot overwrite it.
-- Active-command expiry and the 250 ms watchdog are checked before PWM updates.
-  The earlier boundary stops/disarms; reconnect never restores an old target.
-- Recent retired sessions remain blocked while queued packets can be valid.
-  Eight live retirement records trigger a 250 ms handshake holdoff rather
-  than evicting replay protection.
+- Startup is zero/disabled. An explicit zero `ENABLE` permits `VELOCITY`;
+  session negotiation and command authorization tokens are not used.
+- Commands validate protocol v2, modular sequence, finite/range and MCU deadline.
+  The sequence high-water survives STOP and reconnect. Rejected commands and
+  repeated ENABLE packets do not renew the deadline or reset a moving target.
+- STOP has a separate priority latch and discards queued commands. Its forward
+  sequence blocks older delayed ENABLE packets.
+- A single deadline, bounded to at most 250 ms from receipt, is checked before
+  command processing and PWM updates. Expiry disables the controller; later
+  velocities cannot re-enable it. Reconnect requires a new explicit ENABLE.
 - Feed-forward plus PI retains `Kp=6`, `Ki=6`, 11 rad/s feed-forward scale
   and the 10 rad/s firmware target ceiling. The existing integer-percent
   command path rounds targets to 0.1 rad/s.
 - Final PWM changes by at most 1% per 5 ms tick. Reversal ramps to zero and
   requires measured speed below 0.5 rad/s for 50 ms before changing DIR.
-  STOP/expiry/watchdog reset the filters/controllers and request PWM zero.
+  STOP/expiry/disconnect reset the filters/controllers and request PWM zero.
 
 Wire arrays use **FL, FR, RL, RR**; PCB motors are M1 FL, M2 FR, M3 RR, M4 RL.
 Both commands and telemetry use the `{0,1,3,2}` mapping. Existing motor direction
@@ -46,7 +46,10 @@ and encoder polarity are applied once, on the MCU. The encoder scale is
 `base/wheel_command` and `base/wheel_state` use fixed-size
 [`cleany_base_interfaces`](../ros2_ws/src/cleany_base_interfaces/README.md)
 messages with best-effort, volatile, keep-last-1 QoS. State publication targets
-50 Hz. MCU microseconds are monotonic, not ROS epoch time.
+50 Hz. MCU microseconds are monotonic, not ROS epoch time. Protocol v2 changes
+both message layouts; rebuild ROS interfaces/driver and firmware together.
+Telemetry boot ID identifies encoder baselines across reboots, not command
+authority.
 
 `src/usb_stream_transport.hpp` separates bounded stream I/O from the ESP-IDF
 port. XRCE-DDS framing is enabled; partial I/O, timeout and error paths have
@@ -88,7 +91,7 @@ run sequentially. Project/environment changes rerun CMake; interface and
 metadata changes regenerate type support.
 
 The six C++ tests cover command/PWM protection, PI/feed-forward, modular
-encoders, wheel mapping, session/deadline/watchdog and bounded USB transport.
+encoders, wheel mapping, ENABLE/STOP/deadline and bounded USB transport.
 They do not open hardware. ROS graph tests use the isolated synthetic mock.
 
 For clangd, run the pinned PlatformIO executable inside Distrobox:
@@ -121,7 +124,7 @@ ros2 topic echo /base/wheel_state --qos-reliability best_effort
 ```
 
 Bare-MCU checks require no enable or movement command. Observe a nonzero
-boot ID, increasing state sequence/MCU timestamps, session 0, disarmed,
+boot ID, increasing state sequence/MCU timestamps, `enabled=false`,
 zero targets/PWM and no fault. Motor/encoder GPIO configuration does not
 require connected external devices.
 
@@ -137,14 +140,14 @@ not automatically to later builds.
 
 Robot checks require an explicit request, a people-free controlled area,
 supervision, reviewed hardware limits and an accessible physical emergency
-stop. Software STOP/watchdog do not replace it.
+stop. Software STOP/command expiry do not replace it.
 
-1. Lift the wheels; verify startup/disarmed/connection-only zero PWM and each
+1. Lift the wheels; verify startup/disabled/connection-only zero PWM and each
    wheel's logical direction and encoder sign.
 2. After explicit enable and a new low-speed command, verify forward/left/yaw
    patterns, PI response, final PWM slew and encoder-confirmed reversal dwell.
-3. Measure STOP, command deadline/watchdog, driver/Agent exit, USB loss and MCU
-   reboot behavior. Reconnect must require new handshake, enable and command.
+3. Measure STOP, command deadline, driver/Agent exit, USB loss and MCU reboot
+   behavior. Reconnect must require new enable and command.
 4. With confirmed geometry and reviewed driving limits, verify actual motion,
    odometry and single canonical odom/TF ownership using
    [`cleany_base_driver`](../ros2_ws/src/cleany_base_driver/README.md).

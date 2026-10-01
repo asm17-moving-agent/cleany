@@ -7,128 +7,100 @@ using cleany::WheelCommand;
 using cleany::WheelCommandGate;
 using cleany::WheelMode;
 
-static WheelCommand command(WheelMode mode, uint32_t seq, uint64_t now,
-                            uint32_t session = 7) {
+static WheelCommand command(WheelMode mode, uint32_t seq, uint64_t deadline) {
   WheelCommand c;
-  c.bootId = 42;
-  c.sessionId = session;
   c.sequence = seq;
-  c.validUntilUs = now + 250000;
+  c.validUntilUs = deadline;
   c.mode = mode;
   return c;
 }
 
-static void arm(WheelCommandGate& gate, uint64_t now, uint32_t session = 7) {
-  assert(gate.accept(command(WheelMode::kBeginSession, 0, now, session), now));
-  assert(!gate.armed() && gate.target()[0] == 0);
-  assert(gate.accept(command(WheelMode::kArm, 1, now + 1, session), now + 1));
-  assert(gate.armed() && gate.target()[0] == 0);
-}
-
-static void validation() {
-  WheelCommandGate gate({42, 250000, 10.0F});
-  auto begin = command(WheelMode::kBeginSession, 0, 100);
-  auto bad = begin;
-  bad.bootId = 41;
+static void validationAndReplay() {
+  WheelCommandGate gate({250000, 10.0F});
+  auto enable = command(WheelMode::kEnable, 10, 350);
+  assert(!gate.accept(command(WheelMode::kVelocity, 11, 350), 100));
+  enable.velocity[0] = 1;
+  assert(!gate.accept(enable, 100));
+  enable.velocity.fill(0);
+  auto bad = enable;
+  bad.protocolVersion = 1;
   assert(!gate.accept(bad, 100));
-  bad = begin; bad.protocolVersion = 2;
+  bad = enable; bad.validUntilUs = 100;
   assert(!gate.accept(bad, 100));
-  bad = begin; bad.sessionId = 0;
+  bad = enable; bad.validUntilUs = 350101;
   assert(!gate.accept(bad, 100));
-  bad = begin; bad.validUntilUs = 100;
-  assert(!gate.accept(bad, 100));  // Equality is expired.
-  bad = begin; bad.validUntilUs = 250101;
-  assert(!gate.accept(bad, 100));  // Future horizon is bounded.
-  bad = begin; bad.velocity[0] = 1;
+  bad = enable; bad.velocity[0] = std::numeric_limits<float>::quiet_NaN();
   assert(!gate.accept(bad, 100));
-  assert(gate.accept(begin, 100));
-  auto velocity = command(WheelMode::kVelocity, 1, 101);
-  assert(!gate.accept(velocity, 101));  // Explicit ARM is mandatory.
-  auto a = command(WheelMode::kArm, 1, 102);
-  a.velocity[0] = 1;
-  assert(!gate.accept(a, 102));
-  a.velocity.fill(0);
-  assert(gate.accept(a, 102));
-  velocity = command(WheelMode::kVelocity, 2, 103);
+  bad = command(static_cast<WheelMode>(255), 10, 350);
+  assert(!gate.accept(bad, 100));
+  assert(gate.lastSequence() == 0 && gate.target()[0] == 0);
+  assert(gate.accept(enable, 100));
+  const auto deadline = enable.validUntilUs;
+  const auto targetBefore = gate.target();
+  assert(!gate.accept(enable, 101));  // Duplicate cannot refresh.
+  assert(!gate.accept(command(WheelMode::kEnable, 11, 400), 101));
+  auto velocity = command(WheelMode::kVelocity, 11, 350);
   velocity.velocity = {1, 2, 3, 4};
-  assert(gate.accept(velocity, 103));
+  assert(gate.accept(velocity, 110));
   const auto target = gate.target();
-  const auto accepted = gate.lastAcceptedUs();
-  assert(!gate.accept(velocity, 104));  // Duplicates cannot refresh watchdog.
-  for (float invalid : {10.1F, std::numeric_limits<float>::quiet_NaN(),
-                        std::numeric_limits<float>::infinity(),
-                        -std::numeric_limits<float>::infinity()}) {
-    bad = command(WheelMode::kVelocity, 3, 105);
-    bad.velocity[0] = invalid;
-    assert(!gate.accept(bad, 105));
-    assert(gate.lastAcceptedUs() == accepted && gate.target() == target);
+  const auto acceptedAt = gate.lastAcceptedUs();
+  for (float v : {11.0F, -11.0F, std::numeric_limits<float>::quiet_NaN(),
+                  std::numeric_limits<float>::infinity(),
+                  -std::numeric_limits<float>::infinity()}) {
+    bad = command(WheelMode::kVelocity, 12, 550);
+    bad.velocity[0] = v;
+    assert(!gate.accept(bad, 111));
+    assert(gate.lastSequence() == 11);
+    assert(gate.target() == target && gate.lastAcceptedUs() == acceptedAt);
   }
-  bad = command(WheelMode::kVelocity, 3, 105);
-  bad.mode = static_cast<WheelMode>(255);
-  assert(!gate.accept(bad, 105));
-  bad = command(WheelMode::kVelocity, 3, 105, 8);
-  assert(!gate.accept(bad, 105));
-  bad = command(WheelMode::kVelocity, 0x80000002U, 105);
-  assert(!gate.accept(bad, 105));
-  assert(!gate.watchdog(250102));
-  assert(gate.watchdog(250103));
-  assert(!gate.armed() && gate.sessionId() == 0 && gate.target()[0] == 0);
-  assert(!gate.watchdog(250104));  // Idle/disarmed is not a timeout event.
-  assert(!gate.accept(command(WheelMode::kBeginSession, 4, 250104), 250104));
-  assert(!gate.accept(command(WheelMode::kArm, 4, 250104), 250104));
-  assert(!gate.accept(command(WheelMode::kVelocity, 4, 250104), 250104));
+  assert(!gate.accept(command(WheelMode::kEnable, 12, 550), 111));
+  assert(gate.target() == target && gate.lastAcceptedUs() == acceptedAt);
+  assert(gate.lastAcceptedUs() >= 100 && deadline == 350 && targetBefore[0] == 0);
+  auto halfRange = command(WheelMode::kVelocity, 11U + 0x80000000U, 350);
+  assert(!gate.accept(halfRange, 111));
+  assert(!gate.expire(349));
+  assert(gate.expire(350));
+  assert(!gate.enabled() && gate.target()[0] == 0 && gate.timedOut() &&
+         gate.lastAcceptedUs() == 0);
+  assert(!gate.accept(velocity, 350));  // Permission is not renewed by motion.
+  auto replay = command(WheelMode::kEnable, 10, 600);
+  assert(!gate.accept(replay, 351));  // Replaying sequence with a new deadline is stale.
+  auto freshVelocity = command(WheelMode::kVelocity, 12, 600);
+  freshVelocity.velocity = {1, 2, 3, 4};
+  assert(!gate.accept(freshVelocity, 351));  // Must explicitly enable again.
+  auto fresh = command(WheelMode::kEnable, 12, 600);
+  assert(gate.accept(fresh, 351));
+  assert(!gate.timedOut());
 }
 
-static void deadlineAndStop() {
-  WheelCommandGate gate({42, 250000, 10.0F});
-  arm(gate, 100);
-  auto v = command(WheelMode::kVelocity, 2, 110);
-  v.validUntilUs = 140;
-  v.velocity = {1, 2, 3, 4};
-  assert(gate.accept(v, 110));
-  assert(!gate.watchdog(139));
-  assert(gate.watchdog(140));  // Deadline is rechecked at each control tick.
-  assert(!gate.accept(command(WheelMode::kBeginSession, 3, 141), 141));
-  arm(gate, 150, 8);
-  auto stop = command(WheelMode::kStop, 0, 160);
-  stop.bootId = stop.sessionId = 0;
-  stop.protocolVersion = 255;
-  stop.validUntilUs = 0;
-  stop.velocity[0] = std::numeric_limits<float>::quiet_NaN();
-  assert(gate.accept(stop, 160));  // STOP ignores all metadata.
-  assert(!gate.armed() && gate.sessionId() == 0);
-  assert(!gate.accept(command(WheelMode::kBeginSession, 4, 161, 8), 161));
-  assert(!gate.accept(command(WheelMode::kBeginSession, 4, 161, 7), 161));
-  arm(gate, 170, 9);
-  gate.disconnect(172);
-  assert(!gate.armed() && gate.target()[0] == 0);
-  assert(!gate.accept(command(WheelMode::kBeginSession, 2, 173, 9), 173));
-}
+static void stopSequenceAndReconnect() {
+  WheelCommandGate gate({250000, 10.0F});
+  assert(gate.accept(command(WheelMode::kEnable, 0xfffffffeU, 1100), 1000));
+  auto stop = command(WheelMode::kStop, 0xffffffffU, 0);
+  assert(gate.accept(stop, 1001));
+  assert(!gate.enabled() && gate.lastSequence() == 0xffffffffU);
+  assert(!gate.accept(command(WheelMode::kEnable, 0xfffffffeU, 1200), 1002));
+  assert(gate.accept(command(WheelMode::kEnable, 0, 1200), 1002));
+  gate.disconnect();
+  assert(!gate.enabled());
+  assert(!gate.accept(command(WheelMode::kEnable, 0, 1200), 1003));
+  assert(gate.accept(command(WheelMode::kEnable, 1, 1200), 1003));
+  gate.disconnect();
+  assert(gate.lastSequence() == 1);
+  auto oldStop = command(WheelMode::kStop, 0, 0);
+  oldStop.protocolVersion = 99;
+  oldStop.velocity[0] = std::numeric_limits<float>::quiet_NaN();
+  assert(gate.accept(oldStop, 1004));  // Output stop unconditional, sequence stays high.
+  assert(gate.lastSequence() == 1);
 
-static void wrapAndRetirementCapacity() {
-  WheelCommandGate wrap({42, 250000, 10.0F});
-  assert(wrap.accept(command(WheelMode::kBeginSession, 0xfffffffeU, 100), 100));
-  assert(wrap.accept(command(WheelMode::kArm, 0xffffffffU, 101), 101));
-  assert(wrap.accept(command(WheelMode::kVelocity, 0, 102), 102));
-  assert(!wrap.accept(command(WheelMode::kVelocity, 0x80000000U, 103), 103));
-  assert(!wrap.accept(command(WheelMode::kBeginSession, 1, 104), 104));
-  assert(wrap.armed());  // A replayed BEGIN cannot change the active controller.
-
-  WheelCommandGate gate({42, 250000, 10.0F});
-  for (uint32_t session = 1; session <= 9; ++session) {
-    const uint64_t now = 100 + session * 10;
-    assert(gate.accept(command(WheelMode::kBeginSession, 0, now, session), now));
-  }
-  assert(!gate.accept(command(WheelMode::kBeginSession, 1, 200, 1), 200));
-  assert(!gate.accept(command(WheelMode::kBeginSession, 1, 200, 10), 200));
-  assert(gate.sessionId() == 9);  // Saturation never evicts live retirement records.
-  assert(gate.accept(command(WheelMode::kStop, 0, 201), 201));
-  assert(!gate.accept(command(WheelMode::kBeginSession, 1, 202, 10), 202));
-  assert(gate.accept(command(WheelMode::kBeginSession, 1, 250201, 10), 250201));
+  WheelCommandGate wrap({250000, 10.0F});
+  assert(wrap.accept(command(WheelMode::kEnable, 0xffffffffU, 1200), 1000));
+  wrap.disconnect();
+  assert(wrap.lastSequence() == 0xffffffffU);
+  assert(wrap.accept(command(WheelMode::kEnable, 0, 1200), 1001));
 }
 
 int main() {
-  validation();
-  deadlineAndStop();
-  wrapAndRetirementCapacity();
+  validationAndReplay();
+  stopSequenceAndReconnect();
 }

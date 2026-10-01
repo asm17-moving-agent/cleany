@@ -73,7 +73,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest \
 실물 geometry와 주행 제한은 `configs/robot/`에서 명시적으로 설정한다.
 장치 없는 테스트는 합성 설정과 mock MCU를 사용한다. Launch, enable 절차와
 odometry/TF 소유권은 [`cleany_base_driver` README](src/cleany_base_driver/README.md),
-wheel 순서와 session 계약은
+wheel 순서와 ENABLE/STOP 계약은
 [`cleany_base_interfaces` README](src/cleany_base_interfaces/README.md)를 따른다.
 
 Hand-eye 패키지 경계만 빌드하려면 `make build-handeye`를 사용한다.
