@@ -401,6 +401,26 @@ Upload, Agent의 실물 serial 연결과 구동 절차는
 
 ## 9. 선택 개발도구
 
+### Base plot과 diagnostics
+
+Base 관찰 GUI는 `rqt_gui`, `rqt_plot`, `rqt_robot_monitor`를 사용한다. 의존성은
+`cleany_base_driver/package.xml`에 선언되어 `make deps`로 설치된다.
+Base 도구만 준비하려면 Ubuntu 22.04 ROS 환경에서 다음을 실행한다.
+Fedora 호스트에서는 `ros2-humble` Distrobox 안에서 설치한다.
+
+```bash
+sudo apt update
+sudo apt install -y ros-humble-rqt-gui ros-humble-rqt-plot ros-humble-rqt-robot-monitor
+source /opt/ros/humble/setup.bash
+ros2 pkg prefix rqt_plot
+ros2 pkg prefix rqt_robot_monitor
+ros2 pkg prefix rqt_gui
+```
+
+GUI 실행에는 desktop display가 필요하다. Agent와 driver를 먼저 실행한 뒤
+[`cleany_base_driver`의 plot 실행 절차](../ros2_ws/src/cleany_base_driver/README.md#plot과-diagnostics)를
+따른다.
+
 ### Helix와 Pyright
 
 레포의 Helix 설정은 native `pyright-langserver`를 사용한다. Helix에서 Python

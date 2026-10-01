@@ -177,3 +177,67 @@ Native USB의 baud 값은 Agent serial 설정값이며 USB-UART bridge를 뜻하
 상태/diagnostics, `/wheel/odom`, `/odom`과 TF publisher 소유권을 확인하고
 [`esp32`의 실물 인수 체크리스트](../../../esp32/README.md#robot-acceptance)를
 수행한다.
+
+## Plot과 diagnostics
+
+`base_monitor.launch.py preset:=true`는 저장된 rqt Perspective를 불러와 한 창에
+속도 MatPlot, PWM MatPlot, Robot Monitor를 연다.
+실행 중인 Agent와 base driver의 데이터를 관찰하며 구동 허가나 명령을
+발행하지 않는다. GUI를 닫아도 별도 실행 중인 driver와 Agent는 종료되지 않는다.
+
+GUI 의존성 설치는
+[개발환경 가이드](../../../docs/DEVELOPMENT_SETUP.md#base-plot과-diagnostics)를
+따른다. `make build-base` 후 위 실물 실행 절차의 Agent와 driver를 먼저 실행한다.
+별도 terminal에서 같은 overlay와 domain을 적용하고 상태 수신을 확인한 뒤 GUI를 연다.
+Fedora 호스트에서는 이 terminal도 `ros2-humble` Distrobox 안에서 실행한다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+export ROS_DOMAIN_ID=0
+ros2 topic echo /base/wheel_state --once --qos-reliability best_effort
+ros2 launch cleany_base_driver base_monitor.launch.py preset:=true
+```
+
+프리셋은 네 휠을 함께 표시한다. 배열 순서는 FL, FR, RL, RR이다.
+속도 Y축은 -15~15 rad/s, PWM Y축은 -100~100%, 시간창은 10초이며
+자동 스크롤을 켜 새 데이터를 계속 표시한다.
+속도는 왼쪽, PWM과 diagnostics는 오른쪽 위·아래에 배치한다.
+
+개별 휠을 별도 창으로 보려면 `preset:=false wheel:=fl`을 사용한다.
+이 모드의 기본 선택은 `fl`이며 `fr`, `rl`, `rr`, `all`도 선택할 수 있다.
+
+| 창 | 표시 내용 |
+|---|---|
+| 속도 plot | `target_rad_s` 목표, `commanded_rad_s` slew/reversal 처리 후 목표, `velocity_rad_s` 엔코더 측정 속도; 단위 rad/s |
+| PWM plot | `pwm_percent`; 단위 %, MCU 보고값 |
+| diagnostics | `/diagnostics`의 `base_driver` 상태, `enabled`, `feedback_age_s`; 항목을 더블클릭하면 세부값 표시 |
+
+속도와 PWM은 단위가 달라 별도 plot으로 표시한다. Diagnostics viewer의 기본
+`/diagnostics_agg` 입력은 `/diagnostics`로 remap한다. 프리셋은 저장된 토픽과
+축 범위를 복원하며, 개별 휠 모드는 지정된 곡선만 연다.
+Plot은 실행 중인 MCU publisher를 보고 best-effort QoS를 선택한다.
+상태 publisher가 준비되기 전에 GUI를 열었다면 상태 수신을 확인한 뒤 GUI를 다시 연다.
+엔코더 없는 보드에서는 실제 모터 속도 응답을 측정하지 않는다.
+구동 비허가 상태에서는 목표와 PWM이 0이다.
+
+### 프리셋 저장과 공유
+
+프리셋은 [`config/base_monitor.perspective`](config/base_monitor.perspective)에
+관리하며 package share의 `config/`에 설치한다.
+다른 개발환경에서도 같은 파일을 사용한다. Sway 설정이나 화면 좌표는 포함하지 않는다.
+Launch 없이 직접 불러올 수도 있다.
+
+```bash
+rqt --perspective-file \
+  "$(ros2 pkg prefix cleany_base_driver)/share/cleany_base_driver/config/base_monitor.perspective" \
+  --ros-args -r /diagnostics_agg:=/diagnostics
+```
+
+GUI에서 토픽·축·내부 배치를 조정한 뒤
+**Perspectives → Create Perspective**에서 현재 구성을 복제하고
+**Perspectives → Export**로 `.perspective` 파일을 저장한다.
+레포 프리셋을 교체했다면 `make build-base`로 다시 설치한다.
+다른 화면으로 옮길 프리셋은 export 파일의 `mainwindow/geometry` 항목을 제외하고
+내부 배치인 `mainwindow/state`만 유지한다.
+표준 절차는 [rqt dashboard 가이드](https://docs.clearpathrobotics.com/docs/ros1noetic/ros/ros/tutorials/ros101/intermediate/creating_rqt_dashboard)를 참고한다.

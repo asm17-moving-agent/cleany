@@ -1,0 +1,88 @@
+{
+  "keys": {},
+  "groups": {
+    "mainwindow": {
+      "keys": {
+        "state": {
+          "type": "repr(QByteArray.hex)",
+          "repr(QByteArray.hex)": "b'000000ff00000000fd00000002000000000000031d00000320fc0200000001fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0031005f005f00440061007400610050006c006f00740057006900640067006500740100000000000003200000001b00ffffff000000010000018d00000320fc0200000002fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0032005f005f00440061007400610050006c006f00740057006900640067006500740100000000000001bf0000001b00fffffffb00000062007200710074005f0072006f0062006f0074005f006d006f006e00690074006f0072005f005f0052006f0062006f0074004d006f006e00690074006f0072005f005f0031005f005f0052006f0062006f00740020004d006f006e00690074006f007201000001c50000015b0000001b00ffffff000000000000032000000004000000040000000800000008fc00000000'"
+        }
+      },
+      "groups": {}
+    },
+    "pluginmanager": {
+      "keys": {
+        "running-plugins": {
+          "type": "repr",
+          "repr": "{'rqt_plot/Plot': [1, 2], 'rqt_robot_monitor/RobotMonitor': [1]}"
+        }
+      },
+      "groups": {
+        "plugin__rqt_plot__Plot__1": {
+          "keys": {},
+          "groups": {
+            "plugin": {
+              "keys": {
+                "autoscroll": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "plot_type": {
+                  "type": "repr",
+                  "repr": "1"
+                },
+                "topics": {
+                  "type": "repr",
+                  "repr": "['/base/wheel_state/target_rad_s[0]', '/base/wheel_state/commanded_rad_s[0]', '/base/wheel_state/velocity_rad_s[0]', '/base/wheel_state/target_rad_s[1]', '/base/wheel_state/commanded_rad_s[1]', '/base/wheel_state/velocity_rad_s[1]', '/base/wheel_state/target_rad_s[2]', '/base/wheel_state/commanded_rad_s[2]', '/base/wheel_state/velocity_rad_s[2]', '/base/wheel_state/target_rad_s[3]', '/base/wheel_state/commanded_rad_s[3]', '/base/wheel_state/velocity_rad_s[3]']"
+                },
+                "x_limits": {
+                  "type": "repr",
+                  "repr": "['0', '10']"
+                },
+                "y_limits": {
+                  "type": "repr",
+                  "repr": "['-15', '15']"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_plot__Plot__2": {
+          "keys": {},
+          "groups": {
+            "plugin": {
+              "keys": {
+                "autoscroll": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "plot_type": {
+                  "type": "repr",
+                  "repr": "1"
+                },
+                "topics": {
+                  "type": "repr",
+                  "repr": "['/base/wheel_state/pwm_percent[0]', '/base/wheel_state/pwm_percent[1]', '/base/wheel_state/pwm_percent[2]', '/base/wheel_state/pwm_percent[3]']"
+                },
+                "x_limits": {
+                  "type": "repr",
+                  "repr": "['0', '10']"
+                },
+                "y_limits": {
+                  "type": "repr",
+                  "repr": "['-100', '100']"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_robot_monitor__RobotMonitor__1": {
+          "keys": {},
+          "groups": {}
+        }
+      }
+    }
+  }
+}

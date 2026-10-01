@@ -16,6 +16,9 @@
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>cleany_base_odometry</exec_depend>
+  <exec_depend>rqt_gui</exec_depend>
+  <exec_depend>rqt_plot</exec_depend>
+  <exec_depend>rqt_robot_monitor</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <test_depend>python3-pytest</test_depend>
   <test_depend>tf2_msgs</test_depend>
