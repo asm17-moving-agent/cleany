@@ -43,7 +43,7 @@ and endpoint.
 
 `cleany_base_interfaces`는 MCU용 고정 크기 메시지 원본,
 `cleany_base_driver`는 `/cmd_vel` 검증, 역기구학과 wheel feedback adapter를 관리한다.
-`cleany_base_odometry`의 기존 wheel odometry를 재사용한다.
+`cleany_base_odometry`의 wheel odometry를 연결한다.
 
 ```bash
 make build-base

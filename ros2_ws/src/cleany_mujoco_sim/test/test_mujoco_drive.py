@@ -72,7 +72,9 @@ def test_drive_tracks_forward_targets_and_stops(
     target = WheelSpeeds(4.0, 4.0, 4.0, 4.0)
     peak_voltage = 0.0
 
-    for _ in range(1000):
+    # The CAD mass/COM model settles more slowly than the old ballast model.
+    # Keep the same error, voltage and braking limits; allow 3 s to accelerate.
+    for _ in range(round(3.0 / model.opt.timestep)):
         voltages = drive.apply_control(data, target, model.opt.timestep)
         peak_voltage = max(
             peak_voltage,

@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENT = ROOT / "motor_controller/micro_ros/micro_ros_espidf_component"
+COMPONENT = ROOT / "esp32/micro_ros/micro_ros_espidf_component"
 
 
 def clone_spec(args: list[str], sources: dict) -> tuple[str, str, str] | None:
@@ -30,7 +30,7 @@ def main() -> None:
     args = sys.argv[1:]
     if COMPONENT.resolve() not in Path.cwd().resolve().parents:
         os.execv("/usr/bin/git", ["git", *args])
-    sources = json.loads((ROOT / "motor_controller/micro_ros.lock.json").read_text())["component_sources"]
+    sources = json.loads((ROOT / "esp32/micro_ros.lock.json").read_text())["component_sources"]
     spec = clone_spec(args, sources)
     if spec is None:
         os.execv("/usr/bin/git", ["git", *args])

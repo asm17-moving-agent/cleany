@@ -1,7 +1,7 @@
 # cleany_base_driver
 
 `/cmd_vel`을 메카넘 wheel 목표로 변환하고, micro-ROS WheelState를 wheel
-JointState와 diagnostics로 변환하는 Humble driver다. 기존 `cleany_base_odometry`를
+JointState와 diagnostics로 변환하는 Humble driver다. `cleany_base_odometry`를
 연결해 기본 wheel odometry를 발행한다.
 
 ```text
@@ -22,7 +22,7 @@ MCU → base/wheel_state → joint_states → wheel/odom → odom 및 TF relay
 | `/base/enable` | `std_srvs/srv/SetBool` | 명시적 구동 허가 / 소프트웨어 STOP |
 | `/joint_states` | `sensor_msgs/msg/JointState` | 누적 wheel rad, 측정 rad/s |
 | `/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | 피드백 stale, fault, 구동 허가 |
-| `/wheel/odom` | `nav_msgs/msg/Odometry` | 기존 wheel odometry node 출력 |
+| `/wheel/odom` | `nav_msgs/msg/Odometry` | wheel odometry node 출력 |
 | `/odom` | `nav_msgs/msg/Odometry` | canonical odometry relay 출력 |
 | `/tf` | `tf2_msgs/msg/TFMessage` | relay의 `odom → base_link` |
 
@@ -42,7 +42,7 @@ Wheel 배열 순서는 FL, FR, RL, RR이며 MCU가 PCB 순서로 변환한다. J
 - 시작, 재부팅, 피드백 중단과 재연결 시 driver는 구동 비허가 상태다. Agent 연결이나
   `/cmd_vel` 발행만으로 구동 허가를 얻지 않는다.
 - `/base/enable` true 요청으로 zero ENABLE을 보내며 이전 목표를 버린다.
-  세션 협상과 토큰은 없다. MCU의 enabled 확인 뒤 요청 이후 수신한 새 목표를
+  MCU의 enabled 확인 뒤 요청 이후 수신한 새 목표를
   전송하며, 아직 목표가 없으면 zero VELOCITY로 대기한다.
 - ENABLE 전달 중 손실은 **동일 sequence/deadline**의 패킷으로 재시도한다.
   원래 유효기한을 연장하지 않는다. 이미 허가된 상태에서 enable 요청은 멱등적이다.
@@ -128,14 +128,14 @@ Mock 결과는 실제 PI 응답, USB 장치 동작 또는 물리 정지 거리�
 Upload와 하드웨어 시험은 별도 명시 요청 후 수행한다. 로봇 연결과 emergency stop
 준비, 검토된 hardware profile 및 wheel sign 확인이 선행 조건이다.
 
-1. [`motor_controller`](../../../../motor_controller/README.md)의 명시적 upload 절차로
+1. [`esp32`](../../../esp32/README.md)의 명시적 upload 절차로
    micro-ROS firmware를 선택한다. Native USB persistent by-id path를 확인한다.
 2. 고정 Agent overlay를 적용한 terminal에서 serial Agent를 실행한다.
 3. ROS overlay를 적용한 다른 terminal에서 검토된 hardware profile로 launch한다.
 
 ```bash
 source /opt/ros/humble/setup.bash
-source motor_controller/micro_ros/agent/install/local_setup.bash
+source esp32/micro_ros/agent/install/local_setup.bash
 export ROS_DOMAIN_ID=0
 ros2 run micro_ros_agent micro_ros_agent serial \
   --dev "$CLEANY_ESP_PORT" -b 115200
@@ -151,5 +151,5 @@ ros2 launch cleany_base_driver base_driver.launch.py \
 Native USB의 baud 값은 Agent serial 설정값이며 USB-UART bridge를 뜻하지 않는다.
 현재 MCU의 DDS domain은 0이다. Mock의 domain 173 설정을 실물 terminal에 남기지 않는다.
 상태/diagnostics, `/wheel/odom`, `/odom`과 TF publisher 소유권을 확인하고
-[`motor_controller`의 실물 인수 체크리스트](../../../../motor_controller/README.md#robot-acceptance)를
-수행한다. 실물 검증 통과가 Task 4와 전체 Story 완료 판단의 조건이다.
+[`esp32`의 실물 인수 체크리스트](../../../esp32/README.md#robot-acceptance)를
+수행한다.

@@ -21,7 +21,7 @@ PWM은 signed percent다. 출력축 1회전은 3172 counts다.
 ## 명령 계약 v2
 
 `WheelCommand`는 `protocol_version`, `sequence`, `valid_until_us`, `mode`,
-`velocity_rad_s[4]`로 구성한다. 세션이나 제어 토큰은 사용하지 않는다.
+`velocity_rad_s[4]`로 구성한다.
 
 | mode | 값 | 동작 |
 |---|---:|---|
@@ -29,8 +29,8 @@ PWM은 signed percent다. 출력축 1회전은 3172 counts다.
 | ENABLE | 1 | 목표 0으로 구동 허가 설정 |
 | VELOCITY | 2 | 구동 허가 상태에서 바퀴 목표 적용 |
 
-- `protocol_version`은 2다. v1과 메시지 구조가 다르므로 ROS interfaces,
-  driver와 MCU firmware를 함께 다시 빌드하고 같은 버전으로 실행한다.
+- `protocol_version`은 2다. ROS interfaces, driver와 MCU firmware를
+  같은 revision으로 빌드해 실행한다.
 - `sequence`는 unsigned uint32 증가 번호다.
   `0 < (new - old) mod 2^32 < 2^31`인 명령만 새 명령이다. MCU는 정지와
   연결 단절 뒤에도 마지막 번호를 유지한다. Driver는 새 피드백의
@@ -83,5 +83,5 @@ make firmware-smoke firmware-build
 ```
 
 펌웨어와 Agent 준비는
-[`motor_controller/README.md`](../../../../motor_controller/README.md)와
-[`docs/DEVELOPMENT_SETUP.md`](../../../../docs/DEVELOPMENT_SETUP.md)를 따른다.
+[`esp32/README.md`](../../../esp32/README.md)와
+[`docs/DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 따른다.

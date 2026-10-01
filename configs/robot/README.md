@@ -11,5 +11,5 @@
   사용하며 실물 설정의 기본값으로 복사하지 않는다.
 
 두 profile 원본은 `cleany_base_driver` package share에 설치된다. 같은 geometry를
-driver 역기구학과 기존 wheel odometry에 전달한다. 필드, launch와 검증 방법은
+driver 역기구학과 wheel odometry에 전달한다. 필드, launch와 검증 방법은
 [`cleany_base_driver` README](../../ros2_ws/src/cleany_base_driver/README.md)를 따른다.

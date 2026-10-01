@@ -61,7 +61,7 @@ def test_clone_wrapper_replaces_branch_with_immutable_source():
 
 def test_fingerprint_changes_with_message_source(tmp_path, monkeypatch):
     root = tmp_path
-    controller = root / "motor_controller"
+    controller = root / "esp32"
     controller.mkdir()
     interfaces = root / "ros2_ws/src/cleany_base_interfaces"
     (interfaces / "msg").mkdir(parents=True)
@@ -81,7 +81,7 @@ def test_fingerprint_changes_with_message_source(tmp_path, monkeypatch):
 def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, monkeypatch):
     import hashlib
 
-    controller = tmp_path / "motor_controller"
+    controller = tmp_path / "esp32"
     controller.mkdir()
     interfaces = tmp_path / "ros2_ws/src/cleany_base_interfaces"
     (interfaces / "msg").mkdir(parents=True)

@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTROLLER = ROOT / "motor_controller"
+CONTROLLER = ROOT / "esp32"
 LOCK = CONTROLLER / "micro_ros.lock.json"
 OUTPUT = CONTROLLER / "micro_ros"  # ignored bootstrap output
 PIO_VENV = CONTROLLER / ".venv"

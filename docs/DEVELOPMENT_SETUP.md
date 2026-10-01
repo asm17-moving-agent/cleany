@@ -330,7 +330,7 @@ topic을 bridge한다.
 
 ## 8. 모터 컨트롤러와 micro-ROS 개발환경
 
-모터 펌웨어는 `motor_controller/`의 PlatformIO ESP-IDF 프로젝트다. ROS adapter와
+모터 펌웨어는 `esp32/`의 PlatformIO ESP-IDF 프로젝트다. ROS adapter와
 odometry는 Humble workspace에서 빌드한다. ESP32-S3의 **native USB Serial/JTAG**를
 custom stream transport로 사용하며 USB-UART bridge용 UART transport를 선택하지 않는다.
 
@@ -346,7 +346,7 @@ custom stream transport로 사용하며 USB-UART bridge용 UART transport를 선
 | ROS 메시지 원본 | `ros2_ws/src/cleany_base_interfaces/msg/` |
 
 전체 source revision과 Python dependency는
-[`motor_controller/micro_ros.lock.json`](../motor_controller/micro_ros.lock.json)에서
+[`esp32/micro_ros.lock.json`](../esp32/micro_ros.lock.json)에서
 관리한다. 외부 checkout, micro-ROS library, 생성 type support와 PlatformIO 출력은
 Git에 포함하지 않는다. 메시지 변경 후 firmware type support도 다시 빌드한다.
 펌웨어는 micro-ROS 단일 빌드 경로를 사용한다. GPIO/encoder, 모터 제어 task와
@@ -372,8 +372,6 @@ test "$ROS_DISTRO" = humble
 python3 --version
 ```
 
-2026-09-30 확인 환경은 Ubuntu 22.04.5, Python 3.10.12, GCC 11.4.0,
-CMake 3.22.1, colcon-core 0.21.0, rclpy 3.3.21, rcl 5.3.13이다.
 호스트 Python/PlatformIO를 Ubuntu의 system Python과 혼용하지 않는다.
 
 ### 빌드와 장치 없는 테스트
@@ -394,7 +392,7 @@ Smoke/runtime는 같은 micro-ROS library cache를 공유한다. 두 빌드는 �
 
 위 명령은 펌웨어를 upload하거나 serial device를 열지 않는다.
 Upload, Agent의 실물 serial 연결과 구동 절차는
-[`motor_controller/README.md`](../motor_controller/README.md)와
+[`esp32/README.md`](../esp32/README.md)와
 [`cleany_base_driver/README.md`](../ros2_ws/src/cleany_base_driver/README.md)를 따른다.
 실물 geometry는 사용자 확인 휠 직경 127 mm, 앞뒤 중심 간 350 mm, 좌우 중심 간
 610 mm를 `configs/robot/base_hardware.yaml`에 반영한다. 주행 제한은 별도 안전
