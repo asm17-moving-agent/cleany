@@ -35,8 +35,13 @@ under `motorMutex`.
   blocks older delayed ENABLE packets.
 - A single deadline, at most 250 ms from receipt, is checked before command
   processing. Expiry and disconnect disable output; resuming needs a new ENABLE.
-- Feed-forward plus PI uses `Kp=6`, `Ki=6`, an 11 rad/s feed-forward scale, and a
-  10 rad/s target ceiling. Targets are rounded to 0.1 rad/s.
+- Feed-forward plus PI has separate FL/FR/RL/RR settings in `src/main.cpp`:
+  `kFlControllerConfig`, `kFrControllerConfig`, `kRlControllerConfig`, and
+  `kRrControllerConfig`. Current initial calibration values are listed below.
+  The aggregate field order is
+  **FF scale, Kp, Ki, PWM limit**; FF is `target / FF scale * PWM limit`.
+  Edit the relevant wheel's setting, rebuild, and upload to apply it.
+  The command target ceiling remains 10 rad/s, with targets rounded to 0.1 rad/s.
 - PWM runs at 20 kHz and changes by at most 1 percentage point per 5 ms tick.
   Reversal waits for measured speed at or below 0.5 rad/s for 50 ms before
   changing DIR. STOP/expiry/disconnect reset the controllers and request PWM zero.
@@ -54,6 +59,30 @@ across reboots. Use protocol 2 interfaces and firmware from the same revision.
 USB carries framed XRCE-DDS traffic exclusively for the Agent. Agent reachability
 is checked every 100 ms with a 20 ms ping timeout. Failure latches STOP before
 entity teardown and reconnect.
+
+## 휠별 초기 PI + FF 보정값
+
+2026-10-02, 네 바퀴를 공중에 띄운 상태에서 **네 바퀴를 동시에** 정·역방향으로
+PWM 0→100% 스윕했다. PI를 끄고 5% 간격으로 각 단계 1.5초 동안 측정한
+실제 PWM·encoder 속도로 FF와 PI 초기값을 추정했다.
+
+| 휠 | FF scale (rad/s) | Kp | Ki | PWM 상한 (%) |
+|---|---:|---:|---:|---:|
+| FL | 12.4261 | 4.655 | 9.309 | 100 |
+| FR | 12.1178 | 4.711 | 9.421 | 100 |
+| RL | 11.6403 | 4.864 | 9.728 | 100 |
+| RR | 11.8128 | 4.783 | 9.566 | 100 |
+
+FF는 기존 단일 기울기 식을 유지한다. 전 구간의 `PWM ≈ k × 속도` 적합으로
+`FF scale = 100/k`를 계산하며, 마찰에 따른 잔여 오차는 PI가 보정한다.
+PI 초기값은 PWM→속도 모델의 gain `K`, time constant `τ`, delay `L`에서
+`Kp = clamp(0.6/K, 2, 8)`, `Ki = Kp / max(0.5, 4(τ+L))`로 계산했다.
+이 모델의 시간 응답에는 기존 50 ms 속도 필터가 포함된다.
+
+보정값을 업로드한 뒤 네 바퀴 동시 정·역방향 **0.5, 2, 5, 10 rad/s** 명령을
+각각 5초 동안 검증했다. 마지막 0.5초 평균 속도 오차는 모든 휠에서 4.5% 이내였다.
+최종 상태는 구동 비허가, PWM 0, fault 0이다.
+이 값은 해당 전원·공중 무부하 조건의 초기 보정값이며, 지면 하중에서는 별도로 검증한다.
 
 ## Build and device-free verification
 

@@ -63,11 +63,26 @@ struct Encoder {
   volatile uint8_t previousState = 0;
 };
 
+// Per-wheel PI + FF settings: FF scale (rad/s), Kp, Ki, PWM limit (%).
+// The FF scale is not the command velocity ceiling (10 rad/s).
+constexpr cleany::WheelVelocityControllerConfig kFlControllerConfig{
+    12.4261F, 4.655F, 9.309F, 100.0F};
+constexpr cleany::WheelVelocityControllerConfig kFrControllerConfig{
+    12.1178F, 4.711F, 9.421F, 100.0F};
+constexpr cleany::WheelVelocityControllerConfig kRlControllerConfig{
+    11.6403F, 4.864F, 9.728F, 100.0F};
+constexpr cleany::WheelVelocityControllerConfig kRrControllerConfig{
+    11.8128F, 4.783F, 9.566F, 100.0F};
+
 std::array<Motor, 4> motors = {{
-    {GPIO_NUM_2, GPIO_NUM_1, LEDC_CHANNEL_0, -1, 1, {}, {}},    // M1 FL
-    {GPIO_NUM_12, GPIO_NUM_11, LEDC_CHANNEL_1, 1, -1, {}, {}},  // M2 FR
-    {GPIO_NUM_5, GPIO_NUM_6, LEDC_CHANNEL_2, 1, -1, {}, {}},    // M3 RR
-    {GPIO_NUM_16, GPIO_NUM_17, LEDC_CHANNEL_3, -1, 1, {}, {}},  // M4 RL
+    {GPIO_NUM_2, GPIO_NUM_1, LEDC_CHANNEL_0, -1, 1, {},
+     cleany::WheelVelocityController{kFlControllerConfig}},   // M1 FL
+    {GPIO_NUM_12, GPIO_NUM_11, LEDC_CHANNEL_1, 1, -1, {},
+     cleany::WheelVelocityController{kFrControllerConfig}},   // M2 FR
+    {GPIO_NUM_5, GPIO_NUM_6, LEDC_CHANNEL_2, 1, -1, {},
+     cleany::WheelVelocityController{kRrControllerConfig}},   // M3 RR
+    {GPIO_NUM_16, GPIO_NUM_17, LEDC_CHANNEL_3, -1, 1, {},
+     cleany::WheelVelocityController{kRlControllerConfig}},   // M4 RL
 }};
 std::array<Encoder, 4> encoders = {{
     {GPIO_NUM_10, GPIO_NUM_9}, {GPIO_NUM_14, GPIO_NUM_13},
