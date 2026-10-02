@@ -337,6 +337,8 @@ make test-mujoco
 이 이름은 vendor plugin 호환을 위해 유지하는 내부 keyframe 식별자다.
 
 스터디카페 통합 launch는 head RGB-D와 nominal 손목 TF를 연결한다.
+센서 촬영은 `cleany_mujoco_observer`의 scheduled renderer 또는 선택한 vendor
+renderer가 담당한다. 이전 Python RGB-D renderer와 ground-truth bridge는 제거했다.
 선택형 `camera_contract_adapter`는 `config/wrist_camera.yaml`에서 왼손목 camera
 intrinsics와 topic 계약만 읽는다. 보정판·이전 hand-eye 장면에는 의존하지 않는다.
 RGB-D의 원본 촬영 시각을 보존하며 실제 카메라 보정값을 의미하지 않는다.

@@ -1,5 +1,9 @@
 # cleany_grasping
 
+`GraspNode`가 target cloud의 workspace를 계산해 predictor를 호출하고,
+`core.selector.rank_grasps()`로 폭·접촉 위치·중복 후보를 걸러 순서대로 반환한다.
+이전 단일 후보용 `select_grasp()` wrapper는 제거했다.
+
 길이 방향 접촉 후보는 동일 품질일 때 관측된 체적 중심에 가까운 후보를 먼저
 검사한다. 마우스처럼 끝으로 갈수록 얇아지는 물체에서 가까운 끝부분을 먼저
 집어 손가락이 윗면을 스치는 문제를 줄이기 위한 순서다. 끝부분 후보도 남겨

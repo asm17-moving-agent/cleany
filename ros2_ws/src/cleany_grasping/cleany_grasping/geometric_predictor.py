@@ -158,10 +158,6 @@ def _fit_support_plane(
     return normal / np.linalg.norm(normal), plane_center
 
 
-def _fit_support_normal(target_points, context_points, config) -> np.ndarray:
-    return _fit_support_plane(target_points, context_points, config)[0]
-
-
 def _tangent_axes(points: np.ndarray, normal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     centered = points - np.median(points, axis=0)
     tangent = centered - np.outer(centered @ normal, normal)

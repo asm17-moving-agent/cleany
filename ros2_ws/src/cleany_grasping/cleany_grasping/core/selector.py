@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from cleany_grasping.core.models import GraspPose, PointCloud, RawGrasp
-from cleany_grasping.core.ports import GraspPredictor
 
 
 @dataclass(frozen=True)
@@ -111,26 +110,3 @@ def rank_grasps(
             )
         )
     return tuple(ranked)
-
-
-def select_grasp(
-    predictor: GraspPredictor,
-    target_cloud: PointCloud,
-    context_cloud: PointCloud,
-    config: GraspConfig | None = None,
-) -> GraspPose | None:
-    settings = config or GraspConfig()
-    if target_cloud.points.shape[0] == 0 or context_cloud.points.shape[0] == 0:
-        raise ValueError('Target and context clouds must not be empty')
-    target_min = target_cloud.points.min(axis=0)
-    target_max = target_cloud.points.max(axis=0)
-    workspace_min = target_min - settings.workspace_margin_m
-    workspace_max = target_max + settings.workspace_margin_m
-    # AnyGrasp SDK order: xmin, xmax, ymin, ymax, zmin, zmax.
-    workspace = np.column_stack((workspace_min, workspace_max)).reshape(-1)
-    ranked = rank_grasps(
-        predictor.predict(target_cloud, context_cloud, workspace),
-        target_cloud,
-        settings,
-    )
-    return ranked[0] if ranked else None

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <type_traits>
 #include <GLFW/glfw3.h>
 #include <mujoco/mujoco.h>
 #include <rclcpp/rclcpp.hpp>
@@ -32,19 +33,16 @@ public:
       const bool shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
         glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
       if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-        mjv_moveCamera(self.model_, shift ? mjMOUSE_ROTATE_H : mjMOUSE_ROTATE_V,
-                       dx, dy, self.scene_, &self.camera_);
+        self.move_camera(shift ? mjMOUSE_ROTATE_H : mjMOUSE_ROTATE_V, dx, dy);
       } else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-        mjv_moveCamera(self.model_, shift ? mjMOUSE_MOVE_H : mjMOUSE_MOVE_V,
-                       dx, dy, self.scene_, &self.camera_);
+        self.move_camera(shift ? mjMOUSE_MOVE_H : mjMOUSE_MOVE_V, dx, dy);
       } else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
-        mjv_moveCamera(self.model_, mjMOUSE_ZOOM, dx, dy, self.scene_, &self.camera_);
+        self.move_camera(mjMOUSE_ZOOM, dx, dy);
       }
     });
     glfwSetScrollCallback(window_, [](GLFWwindow* window, double, double offset) {
       auto& self = *static_cast<EfficientViewer*>(glfwGetWindowUserPointer(window));
-      mjv_moveCamera(self.model_, mjMOUSE_ZOOM, 0, -0.05 * offset,
-                     self.scene_, &self.camera_);
+      self.move_camera(mjMOUSE_ZOOM, 0, -0.05 * offset);
     });
     glfwSetKeyCallback(window_, [](GLFWwindow* window, int key, int, int action, int) {
       if (action != GLFW_PRESS) {return;}
@@ -85,6 +83,19 @@ public:
   }
 
 private:
+  template <typename MoveCamera = decltype(&mjv_moveCamera)>
+  void move_camera(int action, mjtNum dx, mjtNum dy) {
+    // MuJoCo headers differ in whether camera movement takes a scene argument.
+    // Select from the installed signature rather than assuming a vendor version.
+    MoveCamera move = &mjv_moveCamera;
+    if constexpr (std::is_invocable_v<MoveCamera, const mjModel*, int,
+                                     mjtNum, mjtNum, mjvScene*, mjvCamera*>) {
+      move(model_, action, dx, dy, scene_, &camera_);
+    } else {
+      move(model_, action, dx, dy, &camera_);
+    }
+  }
+
   GLFWwindow* window_;
   const mjModel* model_;
   mjvScene* scene_;

@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 import yaml
 
-from cleany_mujoco_sim.rgbd import RgbdSensorConfig
 from cleany_mujoco_sim.scene_loader import (
     materialize_control_scene,
     materialize_scene,
@@ -280,30 +279,31 @@ def test_mouse_collision_reuses_visible_mesh_without_hidden_box(
     assert model.geom_friction[collision] == pytest.approx((1.5, .08, .02))
 
 
-def test_tabletop_objects_fit_head_camera_at_one_radian(
-    study_cafe_model: mujoco.MjModel,
-) -> None:
-    data = mujoco.MjData(study_cafe_model)
+def test_tabletop_objects_fit_head_camera_at_one_radian() -> None:
+    scene_path = materialize_control_scene(GRASP_SCENE_TEMPLATE)
+    model = mujoco.MjModel.from_xml_path(str(scene_path))
+    data = mujoco.MjData(model)
     head_tilt = mujoco.mj_name2id(
-        study_cafe_model,
+        model,
         mujoco.mjtObj.mjOBJ_JOINT,
         'head_tilt_joint',
     )
-    data.qpos[study_cafe_model.jnt_qposadr[head_tilt]] = 1.0
-    mujoco.mj_forward(study_cafe_model, data)
+    data.qpos[model.jnt_qposadr[head_tilt]] = 1.0
+    mujoco.mj_forward(model, data)
 
-    camera_config = RgbdSensorConfig()
     camera = mujoco.mj_name2id(
-        study_cafe_model,
+        model,
         mujoco.mjtObj.mjOBJ_CAMERA,
-        camera_config.camera_name,
+        'head_realsense_rgb',
     )
+    assert camera >= 0
     camera_rotation = data.cam_xmat[camera].reshape(3, 3)
-    half_fovy = math.radians(study_cafe_model.cam_fovy[camera]) / 2.0
-    aspect_ratio = camera_config.width / camera_config.height
+    half_fovy = math.radians(model.cam_fovy[camera]) / 2.0
+    width, height = model.cam_resolution[camera]
+    aspect_ratio = width / height
 
     for name in ('cup', 'mouse', 'tissue', 'lego'):
-        body = _body_id(study_cafe_model, f'study_cafe_{name}')
+        body = _body_id(model, f'study_cafe_{name}')
         if name in ('cup', 'tissue', 'lego'):
             half_x, half_y, height = {
                 'cup': (.0306, .0306, .0684),

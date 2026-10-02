@@ -24,7 +24,6 @@ def test_perception_entrypoint_uses_current_profile_and_explicit_clock():
     assert 'use_sim_time:="${perception_sim_time}"' in script
     assert 'enable_wrist_observation:="${perception_wrist}"' in script
     assert 'device:=cuda' in script
-    identity = IDENTITY_EXAMPLE.read_text()
     wrapper = (VISION_DIR.parents[1] / 'tools/vision-container').read_text()
     assert '-e CLEANY_PERCEPTION_USE_SIM_TIME' in wrapper
     assert '-e CLEANY_PERCEPTION_USE_WRIST_CAMERA' in wrapper

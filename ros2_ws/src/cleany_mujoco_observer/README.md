@@ -46,6 +46,8 @@ pause service를 호출하고 Backspace는 reset service를 호출한다. Escape
 GUI를 숨기며 센서·physics는 계속 실행한다. 전체 종료는 실행 터미널의 Ctrl+C다.
 전체 MuJoCo 디버깅 UI가 필요하면 `sim_viewer:=native`를 선택한다.
 headless에서도 현재 GLFW renderer에는 유효한 DISPLAY가 필요하다.
+마우스 이동은 설치된 MuJoCo 헤더의 `mjv_moveCamera` 함수 형식에 따라
+scene 인자가 있는 6인자 API 또는 scene 인자가 없는 5인자 API를 빌드 시 선택한다.
 
 MuJoCo 분리 수거 시뮬레이션의 결과를 독립적으로 평가하는 read-only 관측기다.
 `cleany_mujoco_observer/ObservedMujocoSystem`은 설치된
