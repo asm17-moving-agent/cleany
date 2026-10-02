@@ -181,3 +181,9 @@ python3 -m pytest -s \
 - Fortress odometry fallback은 wheel drift와 slip을 모사하지 않습니다.
 - GPU LiDAR와 camera는 headless 실행에서도 OpenGL rendering context가
   필요합니다.
+
+## 경로 접근 속도 설정
+
+`ground_truth_route_follower`의 `position_gain` parameter는 목표점까지 남은
+거리와 곱해 접근 속도를 정한다. 기본값 1.0은 기존 동작을 유지하며 낮은 값은
+최대 속도 제한 안에서 목표점에 더 천천히 접근하게 한다. 양의 유한값만 허용한다.
