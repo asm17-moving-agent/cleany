@@ -50,3 +50,10 @@ def test_depth_decoding_preserves_units_endianness_and_padding(encoding, dtype, 
         decode_depth_image(data[:-1], 2, 2, stride, encoding)
     with pytest.raises(ValueError, match='Expected'):
         decode_depth_image(data, 2, 2, stride, 'rgb8')
+
+
+def test_floor_is_not_marked_but_low_obstacles_are_retained():
+    from cleany_navigation.depth_clearance import obstacle_height_mask
+    points = np.array([[1., 0., -.38], [1., 0., -.33], [1., 0., -.32], [1., 0., 1.7]])
+    np.testing.assert_array_equal(obstacle_height_mask(points, -.33, 1.62), [False, True, True, False])
+    np.testing.assert_array_equal(points[:, 2], [-.38, -.33, -.32, 1.7])

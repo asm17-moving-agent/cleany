@@ -923,3 +923,10 @@ wheel odom, pan/monitor/memory/voxel 전체 경로에서 전진, 후진, 90도 �
 정확한 spawn과 ideal odometry, 초기 pose 표준편차 5mm/0.5도,
 목표 허용 오차 5cm/0.08rad를 사용하는 동작 정책 검사다. 기본 runtime 허용 오차는 변경하지 않는다.
 기존 카페 지도에서의 경로 성능과 실제 localization 정밀도 검증과는 구분한다.
+
+Depth 바닥 제외: `/camera/head/depth/points`는 바닥을 포함한 관측 ray를 유지하고,
+`/camera/head/depth/obstacle_points`는 `base_link` 기준 `marking_min_z`–`marking_max_z`
+안의 점만 제공합니다. VoxelLayer는 전자를 clearing 전용, 후자를 marking 전용으로
+사용합니다. 기본 시뮬레이션 바닥은 z=-0.38 m이고 marking 최소 높이는 -0.33 m입니다.
+CAD 카메라 주행 자세는 수평에서 아래로 20°입니다. 실물 높이 기준은 로봇 parameter로
+맞춰야 합니다.

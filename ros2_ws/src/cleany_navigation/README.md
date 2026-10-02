@@ -181,3 +181,10 @@ Jazzy에서는 `ROS_SETUP=/opt/ros/jazzy/setup.bash`와
 `NAVIGATION_LOG_BASE=log-navigation-jazzy`를 make에 함께 전달해 Humble 산출물과
 분리한다. 관련 RViz 설정은 `rviz/navigation_costmap.rviz`,
 `rviz/voxel_navigation.rviz`다.
+
+Depth 바닥 제외: `/camera/head/depth/points`는 바닥을 포함한 관측 ray를 유지하고,
+`/camera/head/depth/obstacle_points`는 `base_link` 기준 `marking_min_z`–`marking_max_z`
+안의 점만 제공합니다. VoxelLayer는 전자를 clearing 전용, 후자를 marking 전용으로
+사용합니다. 기본 시뮬레이션 바닥은 z=-0.38 m이고 marking 최소 높이는 -0.33 m입니다.
+CAD 카메라 주행 자세는 수평에서 아래로 20°입니다. 실물 높이 기준은 로봇 parameter로
+맞춰야 합니다.

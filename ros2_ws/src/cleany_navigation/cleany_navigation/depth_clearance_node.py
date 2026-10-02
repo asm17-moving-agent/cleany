@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from ament_index_python.packages import get_package_share_directory
 from rclpy.time import Time
@@ -15,7 +16,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
 
-from cleany_navigation.depth_clearance import project_depth_image, decode_depth_image
+from cleany_navigation.depth_clearance import project_depth_image, decode_depth_image, obstacle_height_mask
 
 
 class DepthClearanceNode(Node):
@@ -23,12 +24,15 @@ class DepthClearanceNode(Node):
         super().__init__('depth_clearance')
         for name, default in [('input_topic', 'camera/head/depth/image_raw'),
                               ('output_topic', 'camera/head/depth/points'),
+                              ('obstacle_topic', 'camera/head/depth/obstacle_points'),
+                              ('marking_min_z', -.33), ('marking_max_z', 1.62),
                               ('camera_info_topic', 'camera/head/depth/camera_info'),
                               ('camera_frame', 'head_camera_depth_frame'),
                               ('optical_frame', 'head_camera_depth_optical_frame'),
                               ('self_filter_profile', ''), ('self_filter_margin_m', .001), ('allow_simulation_limits', False), ('base_frame', 'base_link'), ('pixel_stride', 4), ('positive_infinity_is_free', False),
                               ('clearing_distance', 5.0), ('marking_max_range', 4.0), ('sensor_far_clip', 10.0)]:
             self.declare_parameter(name, default)
+        obstacle_height_mask(np.empty((0, 3)), self.get_parameter('marking_min_z').value, self.get_parameter('marking_max_z').value)
         self.stride = self.get_parameter('pixel_stride').value
         self.clearing_distance = self.get_parameter('clearing_distance').value
         if self.stride < 1 or not (self.get_parameter('marking_max_range').value < self.clearing_distance < self.get_parameter('sensor_far_clip').value):
@@ -48,6 +52,7 @@ class DepthClearanceNode(Node):
         self.create_subscription(CameraInfo, self.get_parameter('camera_info_topic').value, self.on_info, qos_profile_sensor_data)
         self.create_subscription(Image, self.get_parameter('input_topic').value, self.on_depth,
                                  QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
+        self.obstacles = self.create_publisher(PointCloud2, self.get_parameter('obstacle_topic').value, qos_profile_sensor_data)
         self.publisher = self.create_publisher(PointCloud2, self.get_parameter('output_topic').value, qos_profile_sensor_data)
 
     def on_info(self, msg: CameraInfo) -> None:
@@ -89,19 +94,19 @@ class DepthClearanceNode(Node):
             points = np.ascontiguousarray(points, dtype='<f4')
         except (TransformException, ValueError):
             return
-        if self.self_boxes:
-            try:
-                pose = self.buffer.lookup_transform(self.get_parameter('base_frame').value, self.get_parameter('camera_frame').value,
-                                                    Time.from_msg(msg.header.stamp)).transform
-            except TransformException:
-                return  # Never label a cloud with a guessed camera orientation.
-            body_points = transform(points, pose)
-            keep = np.ones(len(points), dtype=bool)
-            for box in self.self_boxes:
-                local = (body_points-box.center)@box.rotation
-                keep &= ~np.all(np.abs(local) <= box.half_size+self.self_filter_margin, axis=1)
-            # Occluded self rays are discarded, never converted to free-space rays.
-            points = np.ascontiguousarray(points[keep])
+        try:
+            pose = self.buffer.lookup_transform(self.get_parameter('base_frame').value, self.get_parameter('camera_frame').value,
+                                                Time.from_msg(msg.header.stamp)).transform
+        except TransformException:
+            return  # Never label a cloud with a guessed camera orientation.
+        body_points = transform(points, pose)
+        keep = np.ones(len(points), dtype=bool)
+        for box in self.self_boxes:
+            local = (body_points-box.center)@box.rotation
+            keep &= ~np.all(np.abs(local) <= box.half_size+self.self_filter_margin, axis=1)
+        # Occluded self rays are discarded, never converted to free-space rays.
+        points = np.ascontiguousarray(points[keep])
+        body_points = body_points[keep]
         output = PointCloud2()
         output.header.stamp = msg.header.stamp
         output.header.frame_id = self.get_parameter('camera_frame').value
@@ -112,6 +117,14 @@ class DepthClearanceNode(Node):
         output.is_dense = True
         output.data = points.tobytes()
         self.publisher.publish(output)
+        # Marking cloud excludes floor/ceiling; the full cloud remains available
+        # to clear occupied space along the actually observed rays.
+        marked = deepcopy(output)
+        hits = np.ascontiguousarray(points[obstacle_height_mask(body_points,
+            self.get_parameter('marking_min_z').value, self.get_parameter('marking_max_z').value)])
+        marked.width = len(hits); marked.row_step = marked.width * marked.point_step
+        marked.data = hits.tobytes()
+        self.obstacles.publish(marked)
 
 
 def main(args: list[str] | None = None) -> None:

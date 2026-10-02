@@ -44,8 +44,8 @@ def test_clearing_rays_cannot_be_marked_and_fit_the_actual_camera_clip():
     assert projection['marking_max_range'] == layer['depth']['obstacle_max_range']
     assert layer['depth']['obstacle_max_range'] < projection['clearing_distance'] < projection['sensor_far_clip']
     assert layer['depth']['raytrace_max_range'] >= projection['clearing_distance']
-    assert layer['depth']['min_obstacle_height'] < layer['min_obstacle_height']
-    assert layer['depth']['max_obstacle_height'] > layer['max_obstacle_height']
+    assert layer['depth_clear']['min_obstacle_height'] < layer['depth']['min_obstacle_height']
+    assert layer['depth_clear']['max_obstacle_height'] > layer['depth']['max_obstacle_height']
     assert layer['origin_z'] < layer['min_obstacle_height'] < layer['max_obstacle_height'] < layer['origin_z']+layer['z_resolution']*layer['z_voxels']
 
 

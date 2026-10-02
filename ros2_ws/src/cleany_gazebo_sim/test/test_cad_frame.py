@@ -61,7 +61,7 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path, b
     assert max(abs(low[1]), abs(high[1])) < 0.40
     assert high[1]-low[1] > 0.60
     assert high[1]-low[1] == pytest.approx(.6548, abs=1e-6)
-    angle = np.deg2rad(30)
+    angle = np.deg2rad(20)
     np.testing.assert_allclose(meta['depth_camera_tf']['rotation_rpy'], [0, angle, 0], atol=1e-9)
     expected = [0.102+0.025*np.cos(angle)+0.03*np.sin(angle), -0.002,
                 0.77115-0.025*np.sin(angle)+0.03*np.cos(angle)]

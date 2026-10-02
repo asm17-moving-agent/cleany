@@ -77,3 +77,10 @@ def prepare_depth_points(
         xyz[no_return] = endpoints[no_return]
     valid = np.isfinite(xyz).all(axis=2) & (xyz[:, :, 0] > 0)
     return np.ascontiguousarray(xyz[valid], dtype='<f4')
+
+
+def obstacle_height_mask(body_points: np.ndarray, min_z: float, max_z: float) -> np.ndarray:
+    """Select obstacle hits in base_link while retaining original clearing rays."""
+    if not math.isfinite(min_z) or not math.isfinite(max_z) or min_z >= max_z:
+        raise ValueError('Require finite ordered obstacle height bounds')
+    return np.isfinite(body_points).all(axis=1) & (body_points[:, 2] >= min_z) & (body_points[:, 2] <= max_z)
