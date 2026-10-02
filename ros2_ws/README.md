@@ -111,3 +111,11 @@ Pyright를 사용하려면 [개발환경 설치 가이드](../docs/DEVELOPMENT_S
 개발도구 절을 따른다.
 
 패키지별 topic, launch parameter, 추가 검증 명령은 각 패키지 `README.md`를 따른다.
+
+### 전체 18층 시설 시뮬레이션
+
+`make sim-gazebo-facility GAZEBO_GUI_RENDER_ENGINE=ogre2`로 전체 시설 벽체와
+82석, D-HUB ROLY 참고 의자 모델을 실행한다. 기존 D-HUB 단독 실행은
+`make sim-gazebo-study-cafe`를 사용한다. 모델 선택·도면 좌표·추정 치수와
+Gazebo 이미지/scan/동선 검증은
+[Gazebo package README](src/cleany_gazebo_sim/README.md#전체-18층-시설과-roly-의자)를 따른다.

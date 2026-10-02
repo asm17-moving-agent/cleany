@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from math import asin, atan2, cos, isfinite, pi, sin, sqrt
 from pathlib import Path
 from tempfile import gettempdir
@@ -18,6 +20,33 @@ _ROLLER_RADIUS = 0.008
 _ROLLER_LENGTH = 0.03
 _ROLLER_CENTER_RADIUS = 0.0555
 _ROBOT_VISIBILITY_FLAGS = '0x02'
+_FOLDED_ARM_LINKS = (
+    'left_arm_base',
+    'left_rotation_pitch',
+    'left_upper_arm',
+    'left_lower_arm',
+    'left_wrist_pitch',
+    'left_fixed_jaw',
+    'left_moving_jaw',
+    'right_arm_base',
+    'right_rotation_pitch',
+    'right_upper_arm',
+    'right_lower_arm',
+    'right_wrist_pitch',
+    'right_fixed_jaw',
+    'right_moving_jaw',
+)
+_FOLDED_ARM_COLLISION_COUNT = 30
+_UPPER_BODY_ENVELOPE_SIZE = (0.55, 0.52, 0.70)
+_UPPER_BODY_ENVELOPE_CENTER = (0.0, 0.0, 0.35)
+_PHYSICAL_LINKS = {
+    'base_link',
+    'rear_left_wheel',
+    'rear_right_wheel',
+    'front_left_wheel',
+    'front_right_wheel',
+}
+_COLLAPSED_FIXED_LINK_COUNT = 22
 _FOLDED_ARM_LINK_POSES = {
     'left_shoulder_yaw_joint': ('left_rotation_pitch', '0 0 0 0 -1.5708 0'),
     'left_shoulder_pitch_joint': ('left_upper_arm', '0 0 0 -3.0 0 0'),
@@ -101,7 +130,111 @@ def _freeze_folded_arms(robot: ElementTree.Element) -> None:
         robot.remove(controllers[joint_name])
 
 
-def materialize_mecanum_wheel_world(template_path: Path) -> Path:
+def _collapse_fixed_upper_body(
+    robot: ElementTree.Element,
+) -> None:
+    """Keep upper-body frames and visuals without separate physics bodies."""
+    removed = 0
+    for link_name in _FOLDED_ARM_LINKS:
+        link = robot.find(f"link[@name='{link_name}']")
+        if link is None:
+            raise ValueError(f'folded-arm link is missing: {link_name}')
+        collisions = link.findall('collision')
+        removed += len(collisions)
+        for collision in collisions:
+            link.remove(collision)
+    if removed != _FOLDED_ARM_COLLISION_COUNT:
+        raise ValueError(
+            'robot template folded-arm collision count changed: '
+            f'expected {_FOLDED_ARM_COLLISION_COUNT}, found {removed}'
+        )
+
+    base_link = robot.find("link[@name='base_link']")
+    if base_link is None:
+        raise ValueError('robot template is missing base_link')
+    _add_box_collision(
+        base_link,
+        'folded_upper_body_envelope_collision',
+        _UPPER_BODY_ENVELOPE_SIZE,
+        _UPPER_BODY_ENVELOPE_CENTER,
+    )
+
+    collapsed_links = [
+        link for link in robot.findall('link')
+        if link.get('name') not in _PHYSICAL_LINKS
+    ]
+    if len(collapsed_links) != _COLLAPSED_FIXED_LINK_COUNT:
+        raise ValueError(
+            'robot template fixed-link count changed: '
+            f'expected {_COLLAPSED_FIXED_LINK_COUNT}, '
+            f'found {len(collapsed_links)}'
+        )
+    collapsed_names = {link.get('name', '') for link in collapsed_links}
+    collapsed_joints = [
+        joint for joint in robot.findall('joint')
+        if joint.findtext('child') in collapsed_names
+    ]
+    if len(collapsed_joints) != _COLLAPSED_FIXED_LINK_COUNT:
+        raise ValueError('each collapsed link must have one fixed joint')
+    if any(joint.get('type') != 'fixed' for joint in collapsed_joints):
+        raise ValueError('all collapsed upper-body joints must be fixed')
+
+    for joint in collapsed_joints:
+        joint_name = joint.get('name')
+        parent_name = joint.findtext('parent')
+        pose = joint.find('pose')
+        if not joint_name or not parent_name or pose is None:
+            raise ValueError('collapsed joint is missing its frame contract')
+        frame = ElementTree.Element(
+            'frame', {'name': joint_name, 'attached_to': parent_name}
+        )
+        frame.append(pose)
+        robot.append(frame)
+
+    for link in collapsed_links:
+        link_name = link.get('name')
+        pose = link.find('pose')
+        if not link_name or pose is None:
+            raise ValueError('collapsed link is missing its frame pose')
+        attached_to = pose.get('relative_to')
+        if not attached_to:
+            raise ValueError(
+                f'collapsed link pose has no relative frame: {link_name}'
+            )
+        frame = ElementTree.Element(
+            'frame', {'name': link_name, 'attached_to': attached_to}
+        )
+        frame.append(pose)
+        robot.append(frame)
+
+        for element_name in ('visual', 'sensor'):
+            for element in link.findall(element_name):
+                element_pose = element.find('pose')
+                if element_pose is None:
+                    element_pose = ElementTree.Element(
+                        'pose', {'relative_to': link_name}
+                    )
+                    element_pose.text = '0 0 0 0 0 0'
+                    element.insert(0, element_pose)
+                elif element_pose.get('relative_to') is None:
+                    element_pose.set('relative_to', link_name)
+                if element_name == 'visual':
+                    element.set(
+                        'name', f'{link_name}_{element.get("name", "visual")}'
+                    )
+                link.remove(element)
+                base_link.append(element)
+
+    for joint in collapsed_joints:
+        robot.remove(joint)
+    for link in collapsed_links:
+        robot.remove(link)
+
+
+
+def materialize_mecanum_wheel_world(
+    template_path: Path, target_path: Path | None = None, *, robot_model: str = 'legacy',
+) -> Path:
     """Materialize compact mecanum visuals without exposing roller joints."""
     template = template_path.read_text(encoding='utf-8')
     world = template
@@ -121,6 +254,19 @@ def materialize_mecanum_wheel_world(template_path: Path) -> Path:
     if robot is None:
         raise ValueError('world template is missing cleany_mecanum')
     _freeze_folded_arms(robot)
+    metadata = None
+    if robot_model == 'cad_frame':
+        from ament_index_python.packages import get_package_share_directory
+        from cleany_gazebo_sim.world.cad_frame import adapt_cad_frame
+        _collapse_fixed_upper_body(robot)
+        new_robot, metadata = adapt_cad_frame(
+            robot, Path(get_package_share_directory('cleany_description')),
+            template_path.parent.parent / 'config/cad_frame.yaml')
+        root.find('world').remove(robot)
+        root.find('world').append(new_robot)
+        robot = new_robot
+    elif robot_model != 'legacy':
+        raise ValueError(f'Unknown robot model: {robot_model}')
     for visual in robot.findall('.//visual'):
         flags = visual.find('visibility_flags')
         if flags is None:
@@ -132,13 +278,16 @@ def materialize_mecanum_wheel_world(template_path: Path) -> Path:
             visual.insert(insert_at, flags)
         flags.text = _ROBOT_VISIBILITY_FLAGS
 
-    target = Path(gettempdir()) / 'cleany_mecanum_fixed_roller_visuals.sdf'
+    target = target_path or Path(gettempdir()) / 'cleany_mecanum_fixed_roller_visuals.sdf'
+    target.parent.mkdir(parents=True, exist_ok=True)
     ElementTree.register_namespace(
         'gz', 'http://gazebosim.org/schema'
     )
     ElementTree.ElementTree(root).write(
         target, encoding='unicode', xml_declaration=True
     )
+    if metadata is not None:
+        target.with_suffix('.model.json').write_text(json.dumps(metadata, indent=2) + '\n')
     return target
 
 
@@ -670,6 +819,9 @@ def materialize_study_cafe_world(
     real_time_factor: float = 1.0,
     layout_path: Path | None = None,
     lidar_translation: tuple[float, float, float] | None = None,
+    robot_model: str = 'legacy',
+    chair_model: str = 'legacy',
+    chair_config_path: Path | None = None,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
@@ -683,8 +835,17 @@ def materialize_study_cafe_world(
         / 'study_cafe'
         / 'study_cafe_layout.yaml'
     )
+    from cleany_gazebo_sim.world.roly import add_roly_chair, load_roly_config
+
+    if chair_model not in ('legacy', 'roly'):
+        raise ValueError('chair_model must be legacy or roly')
+    chair_config = load_roly_config(
+        chair_config_path or robot_template_path.parent.parent
+        / 'config/furniture/roly_p1g210m.yaml'
+    ) if chair_model == 'roly' else None
+    target = target_path or Path(gettempdir()) / 'cleany_study_cafe.sdf'
     generated_robot_world = materialize_mecanum_wheel_world(
-        robot_template_path
+        robot_template_path, target.with_suffix('.robot.sdf'), robot_model=robot_model
     )
     root = ElementTree.parse(generated_robot_world).getroot()
     world = root.find('world')
@@ -720,18 +881,20 @@ def materialize_study_cafe_world(
     if pose is None:
         raise ValueError('cleany_mecanum is missing its world pose')
     pose.text = ' '.join(map(str, layout.robot_spawn_pose))
+    if robot_model == 'cad_frame':
+        generated_robot_world.with_suffix('.model.json').replace(target.with_suffix('.model.json'))
     if lidar_translation is not None:
         if len(lidar_translation) != 3 or not all(
             isfinite(value) for value in lidar_translation
         ):
             raise ValueError('LiDAR translation must contain three finite values')
-        lidar_mount = robot.find("joint[@name='lidar_mount']")
+        lidar_mount = robot.find("frame[@name='lidar_mount']") if robot_model == 'cad_frame' else robot.find("joint[@name='lidar_mount']")
         lidar_pose = lidar_mount.find('pose') if lidar_mount is not None else None
         if lidar_mount is None or lidar_pose is None:
             raise ValueError('robot template is missing the lidar_mount pose')
-        if lidar_mount.findtext('parent') != 'base_link':
+        if (lidar_mount.get('attached_to') if robot_model == 'cad_frame' else lidar_mount.findtext('parent')) != 'base_link':
             raise ValueError('lidar_mount must be fixed to base_link')
-        if lidar_mount.findtext('child') != 'lidar_link':
+        if robot_model == 'legacy' and lidar_mount.findtext('child') != 'lidar_link':
             raise ValueError('lidar_mount must have lidar_link as its child')
         lidar_pose.text = ' '.join(
             str(value) for value in (*lidar_translation, 0.0, 0.0, 0.0)
@@ -832,15 +995,13 @@ def materialize_study_cafe_world(
                     front_sign=front_sign,
                 )
                 chair_xy = (desk_x, desk_y + chair_offset)
-                _add_office_chair(
-                    world, chair_name,
-                    _chair_pose_toward(chair_xy, (desk_x, desk_y)),
-                )
+                chair_pose = _chair_pose_toward(chair_xy, (desk_x, desk_y))
+                if chair_config is None:
+                    _add_office_chair(world, chair_name, chair_pose)
+                else:
+                    add_roly_chair(world, chair_name, chair_pose, chair_config, target.parent / 'roly_meshes')
                 desk_index += 1
 
-    target = target_path or (
-        Path(gettempdir()) / 'cleany_study_cafe.sdf'
-    )
     target.parent.mkdir(parents=True, exist_ok=True)
     ElementTree.ElementTree(root).write(
         target, encoding='unicode', xml_declaration=True
