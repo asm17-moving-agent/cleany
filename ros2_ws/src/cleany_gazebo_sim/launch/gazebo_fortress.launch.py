@@ -1,11 +1,12 @@
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
+from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
     ExecuteProcess,
+    OpaqueFunction,
 )
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
@@ -16,6 +17,14 @@ from cleany_gazebo_sim.sensor_profile_launch import (
     sensor_profile_bridges,
 )
 from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
+
+
+def _headless_server(context: LaunchContext):
+    command = ['ign', 'gazebo', '-r', '-s', '--render-engine-server', 'ogre2']
+    if LaunchConfiguration('headless_rendering').perform(context) == 'true':
+        command.append('--headless-rendering')
+    command.append(LaunchConfiguration('world').perform(context))
+    return [ExecuteProcess(cmd=command, output='screen')]
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -39,6 +48,10 @@ def generate_launch_description() -> LaunchDescription:
         'sensor_config', default_value=str(base_config)
     )
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
+    headless_rendering_arg = DeclareLaunchArgument(
+        'headless_rendering', default_value='false', choices=['true', 'false'],
+        description='Use EGL rendering for the headless server without X11.',
+    )
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
     )
@@ -52,18 +65,9 @@ def generate_launch_description() -> LaunchDescription:
     )
     sensor_profile_arg = declare_sensor_profile_argument()
 
-    server = ExecuteProcess(
-        cmd=[
-            'ign',
-            'gazebo',
-            '-r',
-            '-s',
-            '--render-engine-server',
-            'ogre2',
-            LaunchConfiguration('world'),
-        ],
+    server = OpaqueFunction(
+        function=_headless_server,
         condition=IfCondition(LaunchConfiguration('headless')),
-        output='screen',
     )
     gui = ExecuteProcess(
         cmd=[
@@ -120,6 +124,7 @@ def generate_launch_description() -> LaunchDescription:
             bridge_config_arg,
             sensor_config_arg,
             headless_arg,
+            headless_rendering_arg,
             use_sim_time_arg,
             gui_render_engine_arg,
             sensor_profile_arg,
