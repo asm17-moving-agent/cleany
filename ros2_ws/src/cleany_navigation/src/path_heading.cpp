@@ -17,6 +17,8 @@ void PathHeadingCritic::onInit() {
   };
   lookahead_=parameter("lookahead_m", .3);
   tolerance_=parameter("heading_tolerance", .12);
+  release_tolerance_=parameter("heading_release_tolerance", .18);
+  if (release_tolerance_ < tolerance_) throw std::invalid_argument("heading release tolerance");
   reverse_threshold_=parameter("reverse_angle_threshold", .75*M_PI);
   if (reverse_threshold_>M_PI) throw std::invalid_argument("reverse_angle_threshold must be <= pi");
   if (node->has_parameter(dwb_plugin_name_+".xy_goal_tolerance"))
@@ -28,7 +30,7 @@ bool PathHeadingCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
     const nav_2d_msgs::msg::Twist2D &, const geometry_msgs::msg::Pose2D &goal,
     const nav_2d_msgs::msg::Path2D &path) {
   active_=enabled_ && std::hypot(goal.x-pose.x, goal.y-pose.y)>goal_tolerance_;
-  if (!active_) return true;  // RotateToGoal owns the final heading.
+  if (!active_) {aligned_=false;return true;}  // RotateToGoal owns the final heading.
   if (path.poses.empty()) return false;
   size_t nearest=0; double distance=std::numeric_limits<double>::infinity();
   for (size_t i=0;i<path.poses.size();++i) {
@@ -45,14 +47,20 @@ bool PathHeadingCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
   reverse_=std::abs(wrap(target_-pose.theta))>reverse_threshold_;
   if (reverse_) target_=wrap(target_+M_PI);
   initial_error_=std::abs(wrap(target_-pose.theta));
+  if (initial_error_ > release_tolerance_) aligned_=false;
+  else if (initial_error_ <= tolerance_) aligned_=true;
   return true;
 }
 double PathHeadingCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &trajectory) {
   if (!active_) return 0.;
   if (trajectory.poses.empty()) throw dwb_core::IllegalTrajectoryException(name_, "Empty trajectory");
   const auto x=trajectory.velocity.x;
-  if (std::abs(x)>1e-6 && (initial_error_>tolerance_ || (x<0)!=reverse_))
+  if (std::abs(x)>1e-6 && (!aligned_ || (x<0)!=reverse_))
     throw dwb_core::IllegalTrajectoryException(name_, "Align heading before longitudinal travel");
+  // Stay on a longitudinal segment once aligned; rotate again only outside
+  // the release band. This prevents tiny heading improvements winning forever.
+  if (aligned_ && std::abs(trajectory.velocity.theta)>1e-6)
+    throw dwb_core::IllegalTrajectoryException(name_, "Keep aligned segment heading");
   return std::abs(wrap(target_-trajectory.poses.back().theta));
 }
 }

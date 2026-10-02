@@ -11,6 +11,7 @@ public:
 private:
   double lookahead_{.3}, tolerance_{.12}, goal_tolerance_{.12}, target_{0.}, initial_error_{0.};
   double reverse_threshold_{2.356194490192345};
-  bool enabled_{true}, active_{false}, reverse_{false};
+  double release_tolerance_{.18};
+  bool enabled_{true}, active_{false}, reverse_{false}, aligned_{false};
 };
 }

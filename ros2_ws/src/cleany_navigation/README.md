@@ -96,9 +96,11 @@ voxel을 사용하려면 memory가 필요하다. 비활성화한 단계에 따�
 DWB `trajectory_generator_name: cleany_axis_controller::AxisGenerator`로 사용한다.
 기본적으로 전후 X 또는 제자리 회전 속도만 가진 후보와 정지 후보를
 컨트롤러 안에서 생성한다. 출력 이후 임의로 축을 자르지 않는다.
-`PathHeadingCritic`은 경로의 0.3m 앞 방향에 몸체를 먼저 정렬시킨다.
-방향 오차가 0.12rad를 넘으면 병진 후보를 거부하고, 회전 후보에는 연속적인
-각도 오차 비용을 준다. 경로 방향이 몸체 전방에서 135도를 초과해 벗어날 때 후진을
+`PathHeadingCritic`은 경로의 1.2m 앞 방향에 몸체를 먼저 정렬시킨다.
+방향 오차가 0.025rad 이하가 되면 병진 구간을 유지하고, 0.06rad를 넘으면 다시
+정렬한다. 정렬된 구간에서는 작은 각도 개선만을 위한 회전 후보를 거부한다.
+미정렬 회전 후보에는 연속적인 각도 오차 비용을 준다. `vtheta_samples: 31`로
+작은 방향 오차에서도 정지보다 나은 회전 후보를 제공한다. 경로 방향이 몸체 전방에서 135도를 초과해 벗어날 때 후진을
 선택한다. 측면 목표는 몸체를 돌려 전진하므로 90도 경계의 작은 각도 오차 때문에
 전진/후진 선택이 뒤집히지 않는다. `reverse_angle_threshold`로 설정한다. 목표 XY 허용 범위
 안에서는 `RotateToGoal`에 최종 yaw 정렬을 맡긴다. 횡이동 확장에서는 이 critic을
@@ -108,7 +110,8 @@ DWB의 footprint 비용 평가와 가속·감속 rollout을 사용하며,
 
 움직이는 동안은 측정된 현재 축과 정지 후보만 허용한다. 다른 축을
 사용하려면 controller의 canonical `odom` 속도가 선형 0.01m/s, 회전 0.02rad/s 이하로
-0.3초 연속 유지되어야 한다. 혼합 축 움직임이나 비정상 측정은 정지만
+0.3초 연속 유지되어야 한다. 같은 축 재출발은 기다리지 않으며, 경로 갱신이
+측정된 정지 이력을 초기화하지 않는다. 시계 역행과 비정상 피드백은 이력을 무효화한다. 혼합 축 움직임이나 비정상 측정은 정지만
 허용한다. `axis_linear_stopped`, `axis_angular_stopped`, `axis_settle_s`로
 임계값을 설정한다. 물리적 관성·접촉·양자화로 실제 속도가 완벽하게
 단일 축일 것을 보장하지 않으며 실제 하드웨어 안전 인증은 아니다.
@@ -116,6 +119,11 @@ DWB의 footprint 비용 평가와 가속·감속 rollout을 사용하며,
 Gazebo 없이 `make build-navigation`, `make test-navigation`으로 빌드·검증한다.
 `cleany_navigation/config/nav2_axis_motion.yaml`이 공통 설정을 소유한다.
 기본 Y 속도 범위는 0, 샘플 수는 1이며 `axis_allow_lateral: false`이다.
+`cleany_navigation::StraightFirstPlanner`는 시작/목표의 제자리 회전과 직선 이동을
+map 해상도의 절반 간격으로 검사한다. 현재 global costmap의 padded footprint 경계와
+내부에 lethal/unknown 셀이 있거나 중심이 inscribed 셀에 들어가면 직선 계획을 거부하고
+Smac으로 우회한다. 뒤쪽 목표도 후진 몸체 방향을 보존하도록 Smac에 위임한다.
+검사 도중 취소도 처리한다. 안전 노드는 기존대로 최종 속도를 검사한다.
 Smac은 설치된 diff lattice에서 직선과 제자리 회전 primitive만 선택한
 임시 lattice와 후진 확장을 사용한다. 곡선 analytic shortcut도 비활성화한다. AMCL은 실제 Mecanum
 odometry의 횡방향 오차를 모델링하도록 OmniMotionModel을 유지한다.
@@ -188,3 +196,11 @@ Depth 바닥 제외: `/camera/head/depth/points`는 바닥을 포함한 관측 r
 사용합니다. 기본 시뮬레이션 바닥은 z=-0.38 m이고 marking 최소 높이는 -0.33 m입니다.
 CAD 카메라 주행 자세는 수평에서 아래로 20°입니다. 실물 높이 기준은 로봇 parameter로
 맞춰야 합니다.
+
+BT는 100ms 주기로 앞 1.5m 경로를 검사하며, FollowPath에는 원본 경로를 전달한다.
+이동에 따른 앞부분 제거는 DWB가 수행하므로 매 pruning마다 새 목표/정지 이력을 만들지 않는다.
+경로 실패 시 최대 15초 기다린 후 재계획하는 정책은 유지한다.
+
+Depth는 최대 `tf_wait_timeout_s`(기본 0.15초) 동안 최신 한 프레임만 보관하며
+비동기 재시도로 원래 시각의 TF를 기다린다. TF를 추정하거나 latest TF로 대체하지 않고,
+대기 만료 시 버린다. marking은 obstacle_points, clearing은 전체 points를 사용한다.

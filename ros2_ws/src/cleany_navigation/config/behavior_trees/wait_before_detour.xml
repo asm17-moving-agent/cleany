@@ -2,7 +2,7 @@
      invalid upcoming 1.5 m path segments stop control and wait up to 15 simulation seconds before
      replanning; a valid path interrupts the wait and resumes following.
      YieldWait is deliberate yielding and does not increment recovery count.
-     The reactive sequence halts FollowPath while the path check is running.
+     An invalid or failed path check halts FollowPath before yielding.
      Controller failure also waits before replanning. No obstacle-map clearing. -->
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
@@ -20,8 +20,7 @@
               <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" error_code_id="{compute_path_error_code}"/>
             </Sequence>
           </ReactiveFallback>
-          <TruncatePathLocal input_path="{path}" output_path="{remaining_path}" distance_forward="1000.0" distance_backward="0.0"/>
-          <FollowPath path="{remaining_path}" controller_id="FollowPath" error_code_id="{follow_path_error_code}"/>
+          <FollowPath path="{path}" controller_id="FollowPath" error_code_id="{follow_path_error_code}"/>
         </ReactiveSequence>
         <Sequence name="ControllerFailurePatience">
           <Wait wait_duration="15.0"/>

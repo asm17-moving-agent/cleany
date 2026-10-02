@@ -10,6 +10,8 @@ from tf2_ros import Buffer, TransformListener, TransformException
 from cleany_navigation.body_geometry import load_body_boxes
 from cleany_navigation.transforms import transform
 import numpy as np
+import time
+from rclpy.clock import Clock, ClockType
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -25,7 +27,7 @@ class DepthClearanceNode(Node):
         for name, default in [('input_topic', 'camera/head/depth/image_raw'),
                               ('output_topic', 'camera/head/depth/points'),
                               ('obstacle_topic', 'camera/head/depth/obstacle_points'),
-                              ('marking_min_z', -.33), ('marking_max_z', 1.62),
+                              ('tf_wait_timeout_s', .15), ('marking_min_z', -.33), ('marking_max_z', 1.62),
                               ('camera_info_topic', 'camera/head/depth/camera_info'),
                               ('camera_frame', 'head_camera_depth_frame'),
                               ('optical_frame', 'head_camera_depth_optical_frame'),
@@ -49,6 +51,12 @@ class DepthClearanceNode(Node):
                 if b.name.startswith(('left_', 'right_', 'base_link/', 'top_base_link/'))]
         self.buffer = Buffer(); self.listener = TransformListener(self.buffer, self)
         self.camera = None
+        self.pending = None
+        self.pending_since = 0.
+        self.tf_wait_timeout = self.get_parameter('tf_wait_timeout_s').value
+        if not np.isfinite(self.tf_wait_timeout) or self.tf_wait_timeout <= 0:
+            raise ValueError('tf_wait_timeout_s must be positive')
+        self.create_timer(.01, self.retry_depth, clock=Clock(clock_type=ClockType.STEADY_TIME))
         self.create_subscription(CameraInfo, self.get_parameter('camera_info_topic').value, self.on_info, qos_profile_sensor_data)
         self.create_subscription(Image, self.get_parameter('input_topic').value, self.on_depth,
                                  QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
@@ -59,6 +67,28 @@ class DepthClearanceNode(Node):
         self.camera = msg
 
     def on_depth(self, msg: Image) -> None:
+        self.pending, self.pending_since = msg, time.monotonic()
+        self.retry_depth()
+
+    def retry_depth(self) -> None:
+        msg = self.pending
+        if msg is None:
+            return
+        if time.monotonic()-self.pending_since > self.tf_wait_timeout:
+            self.pending = None
+            self.get_logger().warning('Depth TF wait expired; frame discarded', throttle_duration_sec=2)
+            return
+        when = Time.from_msg(msg.header.stamp)
+        camera = self.get_parameter('camera_frame').value
+        base = self.get_parameter('base_frame').value
+        if self.camera is None or not self.buffer.can_transform(camera, msg.header.frame_id, when) or not self.buffer.can_transform(base, camera, when):
+            return
+        # Nonblocking retry lets this executor receive TF. Keep the original
+        # image stamp and never substitute a latest or guessed transform.
+        self.pending = None
+        self.process_depth(msg)
+
+    def process_depth(self, msg: Image) -> None:
         if self.camera is None:
             return
         camera = self.camera

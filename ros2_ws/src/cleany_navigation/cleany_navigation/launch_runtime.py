@@ -92,7 +92,11 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
         monitor['depth']['topic'] = projection.get('output_topic', 'camera/head/depth/points')
         depth_layer = parameters['local_costmap']['local_costmap']['ros__parameters']['depth_layer']['depth']
         topic = projection.get('output_topic', 'camera/head/depth/points')
-        depth_layer.update(topic='/'+topic.lstrip('/'), sensor_frame=projection['camera_frame'])
+        depth_layer.update(topic='/'+projection.get('obstacle_topic', 'camera/head/depth/obstacle_points').lstrip('/'),
+                           sensor_frame=projection['camera_frame'])
+        clearing = parameters['local_costmap']['local_costmap']['ros__parameters']['depth_layer'].get('depth_clear')
+        if clearing is not None:
+            clearing.update(topic='/'+topic.lstrip('/'), sensor_frame=projection['camera_frame'])
         if not sim_time and (projection.get('positive_infinity_is_free', False)
             or projection.get('allow_simulation_limits', False) or guard.get('allow_simulation_limits', False)):
             raise ValueError('Simulation-only overrides cannot be used with real sensor time')

@@ -19,6 +19,7 @@ void AxisGenerator::initialize(const nav2_util::LifecycleNode::SharedPtr &node, 
   const auto lateral = name + ".axis_allow_lateral";
   if (!node->has_parameter(lateral)) node->declare_parameter(lateral, false);
   allow_lateral_ = node->get_parameter(lateral).as_bool();
+  quiet_since_.reset(); last_time_.reset(); last_axis_=-1;
   reset();
 }
 void AxisGenerator::startNewIteration(const nav_2d_msgs::msg::Twist2D &current) {
@@ -27,20 +28,24 @@ void AxisGenerator::startNewIteration(const nav_2d_msgs::msg::Twist2D &current) 
   candidates_.emplace_back();
   const double now = clock_->now().seconds();
   if (!std::isfinite(current.x) || !std::isfinite(current.y) || !std::isfinite(current.theta)) {
-    quiet_since_.reset(); return;
+    quiet_since_.reset(); last_axis_=-1; return;
   }
-  if (last_time_ && now < *last_time_) quiet_since_.reset();
+  if (last_time_ && now < *last_time_) {quiet_since_.reset(); last_axis_=-1;}
   last_time_ = now;
   const bool moving[] = {std::abs(current.x) > linear_stopped_, std::abs(current.y) > linear_stopped_, std::abs(current.theta) > angular_stopped_};
   const int count = int(moving[0]) + int(moving[1]) + int(moving[2]);
   int permitted = -1;
   if (count > 0) {
     quiet_since_.reset();
-    if (count > 1) return;  // Mixed residual motion: brake before choosing a new axis.
+    if (count > 1) {last_axis_=-1; return;}  // Mixed residual motion: brake before choosing a new axis.
     for (int i=0;i<3;++i) if (moving[i]) permitted=i;
+    last_axis_=permitted;
   } else {
     if (!quiet_since_) quiet_since_=now;
-    if (now-*quiet_since_ < settle_s_) return;
+    if (now-*quiet_since_ < settle_s_) {
+      if (last_axis_ < 0) return;
+      permitted=last_axis_;  // Same-axis resumption is safe; other axes still wait.
+    }
   }
   StandardTrajectoryGenerator::startNewIteration(current);
   while (StandardTrajectoryGenerator::hasMoreTwists()) {

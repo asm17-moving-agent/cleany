@@ -28,7 +28,7 @@ controller_server:
       decel_lim_theta: -0.6
       vx_samples: 11
       vy_samples: 1
-      vtheta_samples: 11
+      vtheta_samples: 31
       sim_time: 2.0
       discretize_by_time: true
       time_granularity: 0.05
@@ -50,8 +50,9 @@ controller_server:
       ObstacleFootprint.scale: 0.05
       PathHeading.class: cleany_axis_controller::PathHeadingCritic
       PathHeading.scale: 32.0
-      PathHeading.lookahead_m: 0.3
-      PathHeading.heading_tolerance: 0.12
+      PathHeading.lookahead_m: 1.2
+      PathHeading.heading_tolerance: 0.025
+      PathHeading.heading_release_tolerance: 0.06
       PathHeading.reverse_angle_threshold: 2.356194490192345
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
@@ -62,7 +63,7 @@ controller_server:
 planner_server:
   ros__parameters:
     GridBased:
-      plugin: nav2_smac_planner::SmacPlannerLattice
+      plugin: cleany_navigation::StraightFirstPlanner
       tolerance: 0.12
       allow_unknown: false
       smooth_path: false

@@ -36,9 +36,9 @@ TEST_F(AxisTest, DefaultCandidatesOnlyTranslateLongitudinallyOrRotate) {
 TEST_F(AxisTest, AxisSwitchRequiresContinuousSettlingAndMixedMotionOnlyBrakes) {
   nav_2d_msgs::msg::Twist2D v;v.x=.08;time(1);
   for(auto t:gen.getTwists(v)){EXPECT_EQ(t.y,0);EXPECT_EQ(t.theta,0);}
-  time(1.1);EXPECT_EQ(gen.getTwists(nav_2d_msgs::msg::Twist2D()).size(),1u);
-  time(1.2);gen.getTwists(v);time(1.3);EXPECT_EQ(gen.getTwists(nav_2d_msgs::msg::Twist2D()).size(),1u);
-  time(1.5);EXPECT_EQ(gen.getTwists(nav_2d_msgs::msg::Twist2D()).size(),1u);
+  time(1.1);for (auto t:gen.getTwists(nav_2d_msgs::msg::Twist2D())) {EXPECT_EQ(t.y,0);EXPECT_EQ(t.theta,0);}
+  time(1.2);gen.getTwists(v);time(1.3);for (auto t:gen.getTwists(nav_2d_msgs::msg::Twist2D())) EXPECT_EQ(t.theta,0);
+  time(1.5);for (auto t:gen.getTwists(nav_2d_msgs::msg::Twist2D())) EXPECT_EQ(t.theta,0);
   time(1.7);EXPECT_GT(gen.getTwists(nav_2d_msgs::msg::Twist2D()).size(),1u);
   v.y=.08;EXPECT_EQ(gen.getTwists(v).size(),1u);
   v.x=NAN;EXPECT_EQ(gen.getTwists(v).size(),1u);
@@ -97,4 +97,46 @@ TEST_F(AxisTest, SideGoalPrefersTurningForwardDespiteSmallHeadingError) {
   dwb_msgs::msg::Trajectory2D turning;turning.poses={pose};turning.velocity.theta=.3;
   turning.poses.back().theta=.5;const auto forward=critic.scoreTrajectory(turning);
   turning.poses.back().theta=-.5;EXPECT_LT(forward,critic.scoreTrajectory(turning));
+}
+
+TEST_F(AxisTest, PlanUpdatesPreserveStopHistoryAndClockRewindInvalidatesIt) {
+  nav_2d_msgs::msg::Twist2D v;v.x=.08;time(1);gen.getTwists(v);
+  time(1.1);gen.getTwists(nav_2d_msgs::msg::Twist2D());gen.reset();
+  time(1.2);auto same=gen.getTwists(nav_2d_msgs::msg::Twist2D());
+  ASSERT_GT(same.size(),1u);for (auto t:same) EXPECT_EQ(t.theta,0);
+  time(1.5);auto switched=gen.getTwists(nav_2d_msgs::msg::Twist2D());
+  bool rotate=false;for (auto t:switched) rotate|=t.theta!=0;EXPECT_TRUE(rotate);
+  time(.5);EXPECT_EQ(gen.getTwists(nav_2d_msgs::msg::Twist2D()).size(),1u);
+}
+TEST_F(AxisTest, HeadingHysteresisKeepsAlignedTranslationWithoutRotationChatter) {
+  cleany_axis_controller::PathHeadingCritic critic;critic.initialize(node,"PathHeading","FollowPath",nullptr);
+  geometry_msgs::msg::Pose2D pose,goal;goal.x=2;nav_2d_msgs::msg::Path2D path;path.poses={pose,goal};
+  dwb_msgs::msg::Trajectory2D move;move.velocity.x=.1;move.poses={pose};
+  auto turn=move;turn.velocity.x=0;turn.velocity.theta=.06;
+  critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
+  EXPECT_NO_THROW(critic.scoreTrajectory(move));EXPECT_THROW(critic.scoreTrajectory(turn),dwb_core::IllegalTrajectoryException);
+  pose.theta=.15;critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
+  EXPECT_NO_THROW(critic.scoreTrajectory(move));
+  pose.theta=.2;critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
+  EXPECT_THROW(critic.scoreTrajectory(move),dwb_core::IllegalTrajectoryException);
+}
+
+TEST_F(AxisTest, FineHeadingAlignmentHasAUsefulRotationCandidate) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.vtheta_samples",31));
+  gen.initialize(node,"FollowPath");
+  node->declare_parameter("FollowPath.PathHeading.heading_tolerance",.025);
+  node->declare_parameter("FollowPath.PathHeading.heading_release_tolerance",.06);
+  cleany_axis_controller::PathHeadingCritic critic;critic.initialize(node,"PathHeading","FollowPath",nullptr);
+  geometry_msgs::msg::Pose2D pose,goal;pose.theta=.04;goal.x=2;
+  nav_2d_msgs::msg::Path2D path;path.poses={pose,goal};
+  critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
+  time(1);gen.getTwists(nav_2d_msgs::msg::Twist2D());time(1.4);
+  dwb_msgs::msg::Trajectory2D stopped;stopped.poses={pose};
+  double best=critic.scoreTrajectory(stopped);bool improving=false;
+  for (auto cmd:gen.getTwists(nav_2d_msgs::msg::Twist2D())) {
+    if (!cmd.theta) continue;
+    auto trajectory=gen.generateTrajectory(pose,nav_2d_msgs::msg::Twist2D(),cmd);
+    improving |= critic.scoreTrajectory(trajectory)<best;
+  }
+  EXPECT_TRUE(improving);
 }

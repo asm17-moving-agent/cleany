@@ -31,7 +31,9 @@
   <exec_depend>dwb_critics</exec_depend>
   <exec_depend>rclpy</exec_depend>
   <depend>geometry_msgs</depend>
-  <exec_depend>nav_msgs</exec_depend>
+  <depend>nav_msgs</depend>
+  <depend>nav2_core</depend>
+  <depend>nav2_costmap_2d</depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>std_srvs</exec_depend>

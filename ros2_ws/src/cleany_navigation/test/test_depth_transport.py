@@ -41,7 +41,12 @@ def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch,
         tf.transform.rotation.z, tf.transform.rotation.w = -.5, .5
         tf.transform.translation.x = .1
         node.buffer.set_transform_static(tf, 'test_backend')
-        node.on_depth(image)
+        body = TransformStamped()
+        body.header.frame_id, body.child_frame_id = 'base_link', 'head_camera_depth_frame'
+        body.transform.rotation.w = 1.
+        node.buffer.set_transform_static(body, 'test_backend')
+        assert node.pending is image
+        node.retry_depth()  # Original frame survives while matching TF arrives.
         assert len(outputs) == 1
         np.testing.assert_allclose(cloud_xyz(outputs[-1]), [[2.1, 0., 0.], [2.1, -1., 0.]])
         assert outputs[-1].header.frame_id == 'head_camera_depth_frame'
@@ -65,6 +70,9 @@ def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch,
         image.header.frame_id = 'wrong_frame'
         node.on_depth(image)
         assert len(outputs) == 2
+        node.pending_since -= node.tf_wait_timeout + 1.
+        node.retry_depth()
+        assert node.pending is None and len(outputs) == 2
     finally:
         if node is not None:
             node.destroy_node()
