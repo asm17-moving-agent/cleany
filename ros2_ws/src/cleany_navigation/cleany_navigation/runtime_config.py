@@ -222,3 +222,20 @@ def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled
         for node in ('obstacle_memory', 'voxel_guard'):
             params(node)['output_directory'] = str(Path(output_directory).resolve()/node)
     return result
+
+
+def longitudinal_lattice(source: dict) -> dict:
+    """Keep Nav2 diff primitives that translate straight or rotate in place."""
+    result = deepcopy(source)
+    result['primitives'] = [p for p in result['primitives'] if p['arc_length'] == 0.]
+    for index, primitive in enumerate(result['primitives']):
+        primitive['trajectory_id'] = index
+    headings = result['lattice_metadata']['num_of_headings']
+    for heading in range(headings):
+        candidates = [p for p in result['primitives'] if p['start_angle_index'] == heading]
+        if not any(p['straight_length'] > 0 for p in candidates) or not any(
+                p['trajectory_length'] == 0 and p['start_angle_index'] != p['end_angle_index']
+                for p in candidates):
+            raise ValueError(f'Missing longitudinal/rotation primitives for heading {heading}')
+    result['lattice_metadata']['number_of_trajectories'] = len(result['primitives'])
+    return result

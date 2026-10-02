@@ -12,6 +12,7 @@ public:
   void reset() override {quiet_since_.reset(); last_time_.reset();}
 private:
   rclcpp::Clock::SharedPtr clock_;
+  bool allow_lateral_{false};
   double linear_stopped_, angular_stopped_, settle_s_;
   std::optional<double> quiet_since_, last_time_;
   std::vector<nav_2d_msgs::msg::Twist2D> candidates_;

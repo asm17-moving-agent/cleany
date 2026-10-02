@@ -53,16 +53,22 @@ voxel guard 한 개다. Backend는 아래 입력/TF를 제공한다.
 | TF | Backend: odom→base_link와 base→LiDAR/head/optical; AMCL: map→odom |
 
 Depth projection은 optical Z-depth를 원래 image stamp의 TF로 output frame에
-변환한다. TF·calibration이 없으면 cloud를 발행하지 않는다. Park posture의 팔 형상으로
-자기 관측점을 제거하며, `depth_clearance.self_filter_margin_m`의 기본 1mm
+변환한다. TF·calibration이 없으면 cloud를 발행하지 않는다. Park posture의 팔과 고정 몸체·카메라 기둥 형상으로
+자기 관측점을 제거한다. 회전하는 head 부품은 정적 자기 필터에 포함하지 않으며,
+몸체에 가린 ray를 free-space로 바꾸지 않는다. `depth_clearance.self_filter_margin_m`의 기본 1mm
 여유는 depth/CAD 표면의 수치 오차를 처리한다. 실제 로봇에서는 보정 오차에
 맞게 검증해야 한다. 공통 pan gate는
 `head_pan/command` Float64를 발행하고 TF를 소유하지 않는다. Backend의 head
 actuator adapter와 실제 joint feedback이 필요하다. 공통 노드의 topic/frame은
 ROS parameter로 설정 가능하며 TF edge owner는 중복되면 안 된다.
 
-Pan은 방향 정렬·정지·settle·fresh depth를 확인한다. 기본 후진은 차단하며
-`pan_motion_gate.allow_reverse`로 명시적으로 허용한다. LiDAR/depth를 Collision
+기본 주행은 전진·후진과 제자리 회전이다. 횡이동은 기본 차단한다.
+PoseProgressChecker는 XY 0.15m 이동 또는 yaw 0.25rad 회전을 진행으로 인정하며,
+20초 동안 둘 다 없으면 실패로 처리한다.
+Pan은 방향 정렬·정지·settle·fresh depth를 확인한다. 후진 시 카메라를
+뒤쪽(π rad)으로 돌리고 정지 후 새 depth를 받아야 속도를 통과시킨다.
+뒤쪽 시야가 확보되었다는 물리 검증은 별도로 필요하며, 후진을 제외하려면
+`pan_motion_gate.allow_reverse: false`로 설정한다. LiDAR/depth를 Collision
 Monitor와 장애물 메모리에 전달하고, 3D voxel guard는 몸체 OBB와 예측 제동
 sweep를 검사한다. 필수 입력 단절, stale/future stamp, TF 누락, localization
 jump, voxel freeze 및 계산 시간 초과 시 최종 속도를 0으로 만든다. Pan/voxel의
@@ -88,8 +94,15 @@ voxel을 사용하려면 memory가 필요하다. 비활성화한 단계에 따�
 ## C++ navigation plugins
 
 DWB `trajectory_generator_name: cleany_axis_controller::AxisGenerator`로 사용한다.
-전후 X, 좌우 Y, 제자리 회전 중 하나의 속도만 가진 후보와 정지 후보를
+기본적으로 전후 X 또는 제자리 회전 속도만 가진 후보와 정지 후보를
 컨트롤러 안에서 생성한다. 출력 이후 임의로 축을 자르지 않는다.
+`PathHeadingCritic`은 경로의 0.3m 앞 방향에 몸체를 먼저 정렬시킨다.
+방향 오차가 0.12rad를 넘으면 병진 후보를 거부하고, 회전 후보에는 연속적인
+각도 오차 비용을 준다. 경로 방향이 몸체 전방에서 135도를 초과해 벗어날 때 후진을
+선택한다. 측면 목표는 몸체를 돌려 전진하므로 90도 경계의 작은 각도 오차 때문에
+전진/후진 선택이 뒤집히지 않는다. `reverse_angle_threshold`로 설정한다. 목표 XY 허용 범위
+안에서는 `RotateToGoal`에 최종 yaw 정렬을 맡긴다. 횡이동 확장에서는 이 critic을
+비활성화한다. lookahead와 방향 허용 오차는 `FollowPath.PathHeading`에서 설정한다.
 DWB의 footprint 비용 평가와 가속·감속 rollout을 사용하며,
 `discretize_by_time: true`, `time_granularity: 0.05`로 제동 궤적을 샘플링한다.
 
@@ -102,9 +115,22 @@ DWB의 footprint 비용 평가와 가속·감속 rollout을 사용하며,
 
 Gazebo 없이 `make build-navigation`, `make test-navigation`으로 빌드·검증한다.
 `cleany_navigation/config/nav2_axis_motion.yaml`이 공통 설정을 소유한다.
+기본 Y 속도 범위는 0, 샘플 수는 1이며 `axis_allow_lateral: false`이다.
+Smac은 설치된 diff lattice에서 직선과 제자리 회전 primitive만 선택한
+임시 lattice와 후진 확장을 사용한다. 곡선 analytic shortcut도 비활성화한다. AMCL은 실제 Mecanum
+odometry의 횡방향 오차를 모델링하도록 OmniMotionModel을 유지한다.
+횡이동 확장은 별도 설정 파일에서 `FollowPath.axis_allow_lateral: true`,
+Y 속도 범위와 샘플 수, `pan_motion_gate.allow_lateral: true`를 함께 지정한다.
+이때 launch는 Omni lattice를 선택하며, 명시한 `lattice_filepath`가 있으면
+그 파일을 우선 사용한다. 기본 주행과 확장 주행 모두 이동과 회전을 혼합하지 않는다.
 `make build-gazebo`에도 포함된다. 활성 프로필의 install 환경을 source한 뒤
 `ros2_ws/build-harmonic/cleany_navigation/test_axis_generator`로
-단일 축 후보, 정지 후 축 전환, 혼합 입력 제동 및 제동 궤적을 검증한다.
+기본 횡이동 차단, 확장 시 횡이동 후보, 정지 후 축 전환, 혼합 입력 제동 및 제동 궤적을 검증한다.
+`make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic`은 일치하는 방/지도에서
+전진, 후진, 90도 방향 전환 후 이동의 목표 완료와 모든 속도 단계의 Y=0을 검사한다.
+이 fixture는 정확한 spawn, ideal odometry와 초기 pose 표준편차 5mm/0.5도,
+목표 허용 오차 5cm/0.08rad를 사용한다. 기본 runtime 목표 허용 오차는 12cm/0.15rad다.
+실제 로봇의 localization 정밀도를 검증하는 시험은 아니다.
 
 `cleany_yield_wait_bt_node` 라이브러리는 Nav2 Wait action을 사용하는
 `YieldWait` BT 노드를 제공한다. `wait_duration`은 양의 유한 초 단위이며
@@ -113,7 +139,7 @@ Nav2 BtActionNode를 사용한다. navigator의 `plugin_lib_names`에 등록한�
 플러그인 등록 헤더는 Nav2가 제공하는 Humble의 BehaviorTree.CPP v3 경로와
 Jazzy의 v4 경로를 지원한다. factory 헤더는 등록 구현 파일에서만 포함한다.
 
-AxisGenerator와 YieldWait는 이 패키지에서 C++ 공유 라이브러리로 빌드한다.
+AxisGenerator, PathHeadingCritic과 YieldWait는 이 패키지에서 C++ 공유 라이브러리로 빌드한다.
 기존 설정 호환을 위해 `cleany_axis_controller` C++ namespace와 플러그인
 식별자는 유지하지만, 별도의 ROS 패키지는 필요하지 않다. 헤더는
 `include/cleany_navigation/`에 설치한다.

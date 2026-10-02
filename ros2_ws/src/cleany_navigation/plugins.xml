@@ -2,4 +2,7 @@
   <class name="cleany_axis_controller::AxisGenerator" type="cleany_axis_controller::AxisGenerator" base_class_type="dwb_core::TrajectoryGenerator">
     <description>Single-axis commands, acceleration-aware rollout and stop-before-switch.</description>
   </class>
+  <class name="cleany_axis_controller::PathHeadingCritic" type="cleany_axis_controller::PathHeadingCritic" base_class_type="dwb_core::TrajectoryCritic">
+    <description>Align heading before forward or reverse translation.</description>
+  </class>
 </library>

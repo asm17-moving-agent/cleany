@@ -140,3 +140,24 @@ def test_shared_fk_preserves_input_and_enforces_real_joint_limits():
     assert ET.tostring(robot) == before
     with pytest.raises(ValueError, match='outside limits'):
         forward_kinematics(robot, {'arm': -2})
+
+
+def test_longitudinal_lattice_removes_curves_and_requires_each_heading():
+    from cleany_navigation.runtime_config import longitudinal_lattice
+    source = {'lattice_metadata': {'num_of_headings': 2, 'number_of_trajectories': 6},
+              'primitives': []}
+    for heading in range(2):
+        for end, length, arc, straight in [(heading, .15, 0., .15),
+                                          (1-heading, 0., 0., 0.),
+                                          (1-heading, .4, .3, .1)]:
+            source['primitives'].append(dict(trajectory_id=len(source['primitives']),
+                start_angle_index=heading, end_angle_index=end, trajectory_length=length,
+                arc_length=arc, straight_length=straight))
+    result = longitudinal_lattice(source)
+    assert result['lattice_metadata']['number_of_trajectories'] == 4
+    assert [p['trajectory_id'] for p in result['primitives']] == list(range(4))
+    assert all(p['arc_length'] == 0. for p in result['primitives'])
+    assert len(source['primitives']) == 6
+    source['primitives'] = source['primitives'][:3]
+    with pytest.raises(ValueError, match='heading 1'):
+        longitudinal_lattice(source)

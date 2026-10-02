@@ -29,7 +29,7 @@ def velocity(msg) -> tuple[float, float, float]:
 class PanMotionGate(Node):
     def __init__(self) -> None:
         super().__init__('pan_motion_gate')
-        defaults = dict(allow_reverse=False, angle_tolerance=.04, settle_s=.2,
+        defaults = dict(allow_reverse=True, allow_lateral=False, angle_tolerance=.04, settle_s=.2,
                         source_timeout_s=.5, command_timeout_s=.5,
                         linear_stopped=.01, angular_stopped=.02,
                         pan_stopped=.05, update_period_s=.05,
@@ -47,7 +47,7 @@ class PanMotionGate(Node):
                 raise ValueError(f'Invalid {key}')
         if p['command_topic'] == p['output_topic']:
             raise ValueError('Distinct input/output command topics required')
-        self.gate = PanGate(**{key: p[key] for key in ('allow_reverse', 'angle_tolerance',
+        self.gate = PanGate(**{key: p[key] for key in ('allow_reverse', 'allow_lateral', 'angle_tolerance',
             'settle_s', 'source_timeout_s', 'linear_stopped', 'angular_stopped', 'pan_stopped')})
         self.command = self.measured = (0., 0., 0.)
         self.command_wall = self.joint_wall = self.odom_wall = self.depth_wall = -math.inf

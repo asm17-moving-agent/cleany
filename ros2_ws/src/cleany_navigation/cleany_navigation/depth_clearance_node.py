@@ -41,7 +41,8 @@ class DepthClearanceNode(Node):
         if profile:
             self.self_boxes = [b for b in load_body_boxes(
                 Path(get_package_share_directory('cleany_description')), Path(profile), merge=False, allow_simulation_limits=self.get_parameter('allow_simulation_limits').value)
-                if b.name.startswith(('left_', 'right_'))]
+                # Parked arms and fixed frame/pole; rotating head parts are excluded.
+                if b.name.startswith(('left_', 'right_', 'base_link/', 'top_base_link/'))]
         self.buffer = Buffer(); self.listener = TransformListener(self.buffer, self)
         self.camera = None
         self.create_subscription(CameraInfo, self.get_parameter('camera_info_topic').value, self.on_info, qos_profile_sensor_data)

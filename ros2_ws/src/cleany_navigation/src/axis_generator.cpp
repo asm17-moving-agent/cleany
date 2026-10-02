@@ -16,6 +16,9 @@ void AxisGenerator::initialize(const nav2_util::LifecycleNode::SharedPtr &node, 
   linear_stopped_ = parameter("axis_linear_stopped", .01);
   angular_stopped_ = parameter("axis_angular_stopped", .02);
   settle_s_ = parameter("axis_settle_s", .30);
+  const auto lateral = name + ".axis_allow_lateral";
+  if (!node->has_parameter(lateral)) node->declare_parameter(lateral, false);
+  allow_lateral_ = node->get_parameter(lateral).as_bool();
   reset();
 }
 void AxisGenerator::startNewIteration(const nav_2d_msgs::msg::Twist2D &current) {
@@ -48,7 +51,7 @@ void AxisGenerator::startNewIteration(const nav_2d_msgs::msg::Twist2D &current) 
       if (std::abs(*values[i]) <= 1e-9) *values[i]=0.;
       else {++active; axis=i;}
     }
-    if (active == 1 && (permitted < 0 || permitted == axis)) candidates_.push_back(cmd);
+    if (active == 1 && (allow_lateral_ || axis != 1) && (permitted < 0 || permitted == axis)) candidates_.push_back(cmd);
   }
 }
 }

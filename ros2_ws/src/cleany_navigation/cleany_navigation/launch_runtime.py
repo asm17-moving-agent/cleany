@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 from tempfile import mkdtemp
 from xml.etree import ElementTree as ET
@@ -15,7 +16,7 @@ import yaml
 import xacro
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
-    load_parameters, merge_parameters, set_sim_time, validate_robot_parameters)
+    load_parameters, merge_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice)
 from cleany_navigation.urdf_geometry import forward_kinematics
 
 
@@ -39,6 +40,7 @@ def nav2_nodes(parameters: str, map_yaml: str, use_sim_time: bool, autostart: bo
 
 def _launch(context: LaunchContext, *, safety: bool) -> list:
     share = Path(get_package_share_directory('cleany_navigation'))
+    directory = Path(mkdtemp(prefix='cleany-navigation-'))
     def argument(name: str) -> str:
         return LaunchConfiguration(name).perform(context)
     def flag(name: str) -> bool:
@@ -97,16 +99,21 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
         parameters['bt_navigator']['ros__parameters']['default_nav_to_pose_bt_xml'] = str(share/'config/behavior_trees/wait_before_detour.xml')
         planner = parameters['planner_server']['ros__parameters']['GridBased']
         if flag('axis_motion') and not planner.get('lattice_filepath'):
-            lattice = Path(get_package_share_directory('nav2_smac_planner'))/'sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json'
+            lateral = parameters['controller_server']['ros__parameters']['FollowPath'].get('axis_allow_lateral', False)
+            model = 'omni' if lateral else 'diff'
+            lattice = Path(get_package_share_directory('nav2_smac_planner'))/f'sample_primitives/5cm_resolution/0.5m_turning_radius/{model}/output.json'
             if not lattice.is_file():
-                raise ValueError(f'Installed Omni lattice not found: {lattice}; set lattice_filepath')
+                raise ValueError(f'Installed {model} lattice not found: {lattice}; set lattice_filepath')
+            if not lateral:
+                primitives = longitudinal_lattice(json.loads(lattice.read_text()))
+                lattice = directory/'longitudinal_lattice.json'
+                lattice.write_text(json.dumps(primitives))
             planner['lattice_filepath'] = str(lattice)
     # Lifecycle children and costmaps read the same clock settings from YAML.
     for name in ('bt_navigator_navigate_to_pose_rclcpp_node', 'bt_navigator_navigate_through_poses_rclcpp_node'):
         parameters.setdefault(name, {'ros__parameters': {}})
     set_sim_time(parameters, sim_time)
     parameters = adapt_nav2_parameters(parameters, os.environ.get('ROS_DISTRO', ''))
-    directory = Path(mkdtemp(prefix='cleany-navigation-'))
     if safety:
         tree = directory/'wait_before_detour.xml'
         tree.write_text(adapt_behavior_tree((share/'config/behavior_trees/wait_before_detour.xml').read_text(),

@@ -1,0 +1,59 @@
+#include "cleany_navigation/path_heading.hpp"
+#include <cmath>
+#include <limits>
+#include <stdexcept>
+#include "dwb_core/exceptions.hpp"
+#include "pluginlib/class_list_macros.hpp"
+namespace cleany_axis_controller {
+namespace {double wrap(double a) {return std::atan2(std::sin(a), std::cos(a));}}
+void PathHeadingCritic::onInit() {
+  auto node=node_.lock();
+  auto parameter=[&](const std::string &key, double fallback) {
+    const auto full=dwb_plugin_name_+"."+name_+"."+key;
+    if (!node->has_parameter(full)) node->declare_parameter(full, fallback);
+    auto value=node->get_parameter(full).as_double();
+    if (!std::isfinite(value) || value <= 0) throw std::invalid_argument(full);
+    return value;
+  };
+  lookahead_=parameter("lookahead_m", .3);
+  tolerance_=parameter("heading_tolerance", .12);
+  reverse_threshold_=parameter("reverse_angle_threshold", .75*M_PI);
+  if (reverse_threshold_>M_PI) throw std::invalid_argument("reverse_angle_threshold must be <= pi");
+  if (node->has_parameter(dwb_plugin_name_+".xy_goal_tolerance"))
+    goal_tolerance_=node->get_parameter(dwb_plugin_name_+".xy_goal_tolerance").as_double();
+  if (node->has_parameter(dwb_plugin_name_+".axis_allow_lateral"))
+    enabled_=!node->get_parameter(dwb_plugin_name_+".axis_allow_lateral").as_bool();
+}
+bool PathHeadingCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
+    const nav_2d_msgs::msg::Twist2D &, const geometry_msgs::msg::Pose2D &goal,
+    const nav_2d_msgs::msg::Path2D &path) {
+  active_=enabled_ && std::hypot(goal.x-pose.x, goal.y-pose.y)>goal_tolerance_;
+  if (!active_) return true;  // RotateToGoal owns the final heading.
+  if (path.poses.empty()) return false;
+  size_t nearest=0; double distance=std::numeric_limits<double>::infinity();
+  for (size_t i=0;i<path.poses.size();++i) {
+    const auto &p=path.poses[i];const auto d=std::hypot(p.x-pose.x,p.y-pose.y);
+    if (d<distance) {distance=d;nearest=i;}
+  }
+  auto target=path.poses.back();
+  for (size_t i=nearest;i<path.poses.size();++i) {
+    const auto &p=path.poses[i];
+    if (std::hypot(p.x-pose.x,p.y-pose.y)>=lookahead_) {target=p;break;}
+  }
+  if (std::hypot(target.x-pose.x,target.y-pose.y)<1e-6) {active_=false;return true;}
+  target_=std::atan2(target.y-pose.y,target.x-pose.x);
+  reverse_=std::abs(wrap(target_-pose.theta))>reverse_threshold_;
+  if (reverse_) target_=wrap(target_+M_PI);
+  initial_error_=std::abs(wrap(target_-pose.theta));
+  return true;
+}
+double PathHeadingCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &trajectory) {
+  if (!active_) return 0.;
+  if (trajectory.poses.empty()) throw dwb_core::IllegalTrajectoryException(name_, "Empty trajectory");
+  const auto x=trajectory.velocity.x;
+  if (std::abs(x)>1e-6 && (initial_error_>tolerance_ || (x<0)!=reverse_))
+    throw dwb_core::IllegalTrajectoryException(name_, "Align heading before longitudinal travel");
+  return std::abs(wrap(target_-trajectory.poses.back().theta));
+}
+}
+PLUGINLIB_EXPORT_CLASS(cleany_axis_controller::PathHeadingCritic, dwb_core::TrajectoryCritic)

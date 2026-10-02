@@ -11,7 +11,8 @@ class PanGate:
     linear_stopped: float = .01
     angular_stopped: float = .02
     pan_stopped: float = .05
-    allow_reverse: bool = False
+    allow_reverse: bool = True
+    allow_lateral: bool = False
     target: float = 0.
     aligned_since: float | None = None
     last_time: float = -math.inf
@@ -33,6 +34,8 @@ class PanGate:
         x, y, w = command
         if sum(abs(v) > 1e-6 for v in command) > 1:
             return self.target, zero, 'MIXED_AXIS'
+        if abs(y) > 1e-6 and not self.allow_lateral:
+            return self.target, zero, 'LATERAL_NOT_ENABLED'
         if x < -1e-6 and not self.allow_reverse:
             return self.target, zero, 'REVERSE_NOT_ENABLED'
         desired = (math.copysign(math.pi/2, y) if abs(y) > 1e-6 else

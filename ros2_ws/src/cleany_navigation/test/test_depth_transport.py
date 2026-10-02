@@ -69,3 +69,21 @@ def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch,
         if node is not None:
             node.destroy_node()
         rclpy.shutdown()
+
+
+def test_self_filter_includes_fixed_frame_and_pole_but_excludes_moving_head(monkeypatch):
+    import cleany_navigation.depth_clearance_node as module
+    names = ['left_arm/visual', 'right_arm/visual', 'base_link/visual/1',
+             'top_base_link/visual/1', 'head_pan_link/visual/1', 'front_left_wheel_link/visual/1']
+    boxes = [BodyBox(name, np.zeros(3), np.eye(3), np.ones(3)*.1) for name in names]
+    monkeypatch.setattr(module, 'load_body_boxes', lambda *args, **kwargs: boxes)
+    monkeypatch.setenv('ROS_DOMAIN_ID', '223')
+    rclpy.init(args=['--ros-args', '-p', 'self_filter_profile:=test_profile.yaml'])
+    node = None
+    try:
+        node = DepthClearanceNode()
+        assert [box.name for box in node.self_boxes] == names[:4]
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
