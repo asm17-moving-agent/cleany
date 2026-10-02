@@ -1,3 +1,4 @@
+#include <array>
 #include <cassert>
 #include <cmath>
 
@@ -45,6 +46,33 @@ void testOutputCannotOpposeTargetDirection() {
   assert(controller.integralError() == 0.0F);
 }
 
+void testPerWheelConfigsAreIndependent() {
+  const std::array<cleany::WheelVelocityControllerConfig, 4> configs{{
+      {11.0F, 6.0F, 6.0F, 100.0F},
+      {10.0F, 7.0F, 8.0F, 90.0F},
+      {12.0F, 4.0F, 3.0F, 100.0F},
+      {9.0F, 2.0F, 1.0F, 80.0F},
+  }};
+  std::array<cleany::WheelVelocityController, 4> controllers{
+      cleany::WheelVelocityController{configs[0]},
+      cleany::WheelVelocityController{configs[1]},
+      cleany::WheelVelocityController{configs[2]},
+      cleany::WheelVelocityController{configs[3]},
+  };
+  for (size_t i = 0; i < controllers.size(); ++i) {
+    const auto& config = configs[i];
+    const float expected = 2.0F / config.maximumTargetRadPerSecond *
+        config.outputLimitPercent + config.proportionalGain +
+        config.integralGain * 0.01F;
+    assert(std::fabs(controllers[i].update(2.0F, 1.0F, 0.01F) - expected) < 0.001F);
+  }
+  controllers[0].update(2.0F, 1.0F, 0.01F);
+  assert(std::fabs(controllers[0].integralError() - 0.02F) < 0.0001F);
+  for (size_t i = 1; i < controllers.size(); ++i) {
+    assert(std::fabs(controllers[i].integralError() - 0.01F) < 0.0001F);
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -53,4 +81,5 @@ int main() {
   testSaturationDoesNotWindUpIntegral();
   testStopResetsController();
   testOutputCannotOpposeTargetDirection();
+  testPerWheelConfigsAreIndependent();
 }
