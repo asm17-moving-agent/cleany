@@ -43,6 +43,9 @@ Harmonic의 GUI 기본값은 `ogre2`입니다. GPU가 사용 가능한 환경에
 `LIBGL_ALWAYS_SOFTWARE=1`을 설정하지 않습니다. 렌더링 문제를 진단할 때만
 소프트웨어 렌더링을 별도로 선택합니다.
 
+CAD 모델 변환은 설치된 `gz sdf` 또는 `ign sdf`를 사용하며, head pan 제어
+플러그인은 선택한 Harmonic/Fortress world의 namespace를 따릅니다.
+
 ```bash
 source ros2_ws/install/setup.bash
 ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
