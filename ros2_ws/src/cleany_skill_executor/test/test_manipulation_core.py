@@ -15,6 +15,7 @@ from cleany_skill_executor.manipulation.models import (
 from cleany_skill_executor.manipulation.store import (
     DuplicateExecution, ExecutionStore, StoreError, default_database_path,
 )
+from cleany_skill_executor.manipulation.steps import STAGE_STEPS
 
 
 CONFIG_PATH = Path(__file__).parents[1] / 'config/manipulation_mock.yaml'
@@ -94,6 +95,7 @@ def test_success_requires_bin_recovery_stop_and_complete_feedback_sequence(harne
     grasp_messages = [event.message for event in events if event.stage == Stage.GRASPING]
     assert grasp_messages == [
         'Starting GRASPING',
+        'Substage completed: GraspObject; starting ConfirmGrasp',
         'Observation received: Mock contact observation',
         'Stage completed: GRASPING',
     ]
@@ -103,10 +105,47 @@ def test_success_requires_bin_recovery_stop_and_complete_feedback_sequence(harne
         'Execution finished: SUCCESS; Mock collection verified',
     ]
     assert result.message == 'Mock collection verified'
+    assert core.record.completed_substages == tuple(
+        step.node for steps in STAGE_STEPS.values() for step in steps)
     assert store.get(goal().execution_id) == core.record
     assert core.get('missing') is None
     assert not core.request_cancel(goal().execution_id)
     assert core.accept(goal('execution-2'))[0]
+
+
+def test_gripper_command_completion_does_not_claim_held_state(harness):
+    core, port, store, clock = harness()
+    core.accept(goal())
+    reach(core, port, clock, Stage.GRASPING)
+    until(core, clock, lambda: core.record.substage == 'ConfirmGrasp')
+    record = store.get(goal().execution_id)
+    assert 'GraspObject' in record.completed_substages
+    assert 'ConfirmGrasp' not in record.completed_substages
+    assert record.object_state == ObjectState.NOT_TOUCHED
+    assert record.last_completed_stage == Stage.APPROACHING.value
+    until(core, clock, lambda: core.record.last_completed_stage == Stage.GRASPING.value)
+    assert core.record.object_state == ObjectState.HELD
+
+
+def test_substage_failure_stops_remaining_operations_and_survives_lookup(harness):
+    config = replace(MockConfig(), scenarios={
+        'success': {'substage_errors': {'GraspObject': 'GRASP_FAILED'}}})
+    core, port, store, clock = harness(config=config)
+    core.accept(goal())
+    result = finish(core, clock)
+    assert result.status == Status.FAILED and result.failed_substage == 'GraspObject'
+    assert 'GraspObject' not in core.record.completed_substages
+    assert 'ConfirmGrasp' not in core.record.completed_substages
+    assert Stage.LIFTING not in port.commands
+    assert store.get(goal().execution_id).result.failed_substage == 'GraspObject'
+
+
+def test_legacy_record_without_substages_can_still_be_loaded():
+    record = Record(goal())
+    data = record.to_dict()
+    for name in ('substage', 'completed_substages', 'failed_substage'):
+        data.pop(name)
+    assert Record.from_dict(data) == record
 
 
 @pytest.mark.parametrize('changes', [
@@ -134,6 +173,8 @@ def test_target_preparation_blocks_without_motion(harness, input_goal, error):
     assert result.last_completed_stage == Stage.VALIDATING.value
     assert result.placement_state == Placement.NOT_CHECKED
     assert port.commands == [Stage.VALIDATING, Stage.PREPARING_TARGET]
+    assert core.record.failed_substage == 'PrepareTarget'
+    assert 'ReconstructTarget' not in core.record.completed_substages
 
 
 @pytest.mark.parametrize('scenario,error,stop', [
@@ -182,6 +223,8 @@ def test_release_command_alone_is_unknown_until_independent_observation(harness)
     reach(core, port, clock, Stage.RETURNING_ARM)
     assert store.get(goal().execution_id).object_state == ObjectState.UNKNOWN
     assert store.get(goal().execution_id).placement_state == Placement.NOT_CHECKED
+    assert 'OpenGripperAtDestination' in core.record.completed_substages
+    assert 'ConfirmRelease' not in core.record.completed_substages
     assert finish(core, clock).status == Status.SUCCESS
 
 
@@ -306,6 +349,8 @@ def test_recovery_has_no_action_result_and_keeps_last_confirmed_evidence(harness
     assert not record.stop_confirmed
     assert record.object_state == before.object_state
     assert record.stage == before.stage and record.last_completed_stage == before.last_completed_stage
+    assert record.substage == before.substage
+    assert record.completed_substages == before.completed_substages
     assert record.evidence_at_ns == before.evidence_at_ns
     assert restarted.drain_events() == [record]
     assert not restarted.accept(goal('new'))[0]

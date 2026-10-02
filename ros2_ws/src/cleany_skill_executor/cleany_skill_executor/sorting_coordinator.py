@@ -175,7 +175,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
                 fk_timeout_sec=float(self.get_parameter('tcp_fk_timeout_sec').value),
                 state_validity_timeout_sec=float(self.get_parameter('tcp_fk_timeout_sec').value),
                 ik_response_margin_sec=float(self.get_parameter('tcp_fk_timeout_sec').value)),
-            spin_once=lambda t: rclpy.spin_once(self, timeout_sec=t))
+            spin_once=lambda t: self._spin_once(timeout_sec=t))
         self._transport_description_subscription = self.create_subscription(
             String, '/robot_description',
             lambda message: self._transport_adapter.set_robot_description(message.data),
@@ -867,7 +867,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             f'{bin_.outside_size[1] / 2 - bin_.wall:.4f})m')
         self._transport_fixed_release(held, destination, radius)
 
-    def release(self, held: HeldObject, destination: str):
+    def check_release_target(self, held: HeldObject, destination: str) -> None:
         arm = held.selected.selected_arm
         pose = self._tcp_pose(arm)
         center = (np.array(self._pose_position(pose))
@@ -891,8 +891,18 @@ class SortingCoordinator(NearestPregraspCoordinator):
                 >= bin_.outside_size[i] / 2 - bin_.wall for i in range(2))
                 or center[2] - radius <= bin_.top_z):
             raise RuntimeError('Object is not safely above the bin opening')
-        self._open_gripper(arm)
+
+    def release(self, held: HeldObject, destination: str):
+        self.check_release_target(held, destination)
+        self.open_at_destination(held)
+        self.finish_release(held)
+
+    def open_at_destination(self, held: HeldObject) -> None:
+        self._open_gripper(held.selected.selected_arm)
         self._release_stamp_ns = self.get_clock().now().nanoseconds
+
+    def finish_release(self, held: HeldObject) -> None:
+        arm = held.selected.selected_arm
         self._hold('grasp_settle_sec')
         self._execution_scene.restore()
         self._held_object = None
@@ -922,7 +932,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if getattr(self, '_adaptive_camera_rate', False):
                 self._set_head_high_rate(False)
 
-    def retreat(self, held: HeldObject, destination: str):
+    def retreat(self, held: HeldObject, destination: str, *, prefetch: bool = True):
         arm = held.selected.selected_arm
         if self._held_object is not None:
             raise RuntimeError('Cannot close the returning gripper before release completes')
@@ -937,15 +947,17 @@ class SortingCoordinator(NearestPregraspCoordinator):
             self._switch_camera('head')
         # InspectScene waits for a new RGB-D frame after accepting the goal.
         # Inference proceeds in the perception node while this node executes return.
-        self._return_detection = self._begin_object_detection()
-        self.get_logger().info('Next scene detection submitted before return motion')
+        if prefetch:
+            self._return_detection = self._begin_object_detection()
+            self.get_logger().info('Next scene detection submitted before return motion')
         self.get_logger().info(f'Return with simultaneous {arm} gripper closing')
         try:
             self._move_to(arm, joints, f'return from {destination}')
             self._verify_feedback(joints)
         except Exception:
-            self._return_detection[0].cancel_goal_async()
-            self._return_detection = None
+            if self._return_detection is not None:
+                self._return_detection[0].cancel_goal_async()
+                self._return_detection = None
             raise
 
     def _switch_camera(self, camera: str):
@@ -1022,7 +1034,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if response.success:
                 self.get_logger().info(response.message)
                 return True
-            rclpy.spin_once(self, timeout_sec=0.1)
+            self._spin_once(timeout_sec=0.1)
         return False
 
     def _register_bins(self):

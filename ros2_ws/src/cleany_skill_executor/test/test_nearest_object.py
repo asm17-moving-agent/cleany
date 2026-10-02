@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
+from types import SimpleNamespace, MethodType
 
 from control_msgs.msg import JointTrajectoryControllerState
 from geometry_msgs.msg import Pose
@@ -19,6 +19,13 @@ from cleany_skill_executor.core.grasp_pipeline import (
 )
 from cleany_skill_executor.core.nearest_object import ObjectAttempt, rank_object_attempts
 from cleany_skill_executor.nearest_pregrasp_coordinator import NearestPregraspCoordinator
+
+
+def _bind_pick_operations(node):
+    for name in ('_approach_grasp', '_close_grasp', '_confirm_grasp_contact',
+                 '_lift_grasp', '_confirm_held_grasp'):
+        setattr(node, name, MethodType(getattr(NearestPregraspCoordinator, name), node))
+    return node
 
 
 def _attempt(
@@ -271,7 +278,7 @@ def test_transient_gripper_contact_does_not_attach_or_lift():
     node._retry_gripper_contact = lambda *args: NearestPregraspCoordinator._retry_gripper_contact(node, *args)
     with pytest.raises(RuntimeError, match='did not persist'):
         NearestPregraspCoordinator._execute_grasp_and_lift(
-            node, selected, ObjectAttempt(1, 'cup', 0.8, 0.5))
+            _bind_pick_operations(node), selected, ObjectAttempt(1, 'cup', 0.8, 0.5))
     assert events == ['approach', 'settle', 'restore']
 
 
@@ -443,11 +450,11 @@ def test_post_refresh_order_is_approach_grip_retreat_then_lift(sensor_ready, cou
 
     if not sensor_ready:
         with pytest.raises(RuntimeError, match='No new depth'):
-            NearestPregraspCoordinator._execute_grasp_and_lift(coordinator, selected, attempt)
+            NearestPregraspCoordinator._execute_grasp_and_lift(_bind_pick_operations(coordinator), selected, attempt)
         assert [event[0] for event in events] == [
             'refreshed grasp approach', 'gripper', 'hold', 'contact_reference', 'attach', 'scene_barrier']
         return
-    NearestPregraspCoordinator._execute_grasp_and_lift(coordinator, selected, attempt)
+    NearestPregraspCoordinator._execute_grasp_and_lift(_bind_pick_operations(coordinator), selected, attempt)
 
     needs_vertical = direct_vertical or not count_retreat or retreat_rise < 0.06
     assert [event[0] for event in events] == [

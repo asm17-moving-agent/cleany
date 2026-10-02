@@ -86,6 +86,7 @@ from cleany_perception.snapshot_cache import (
     CachedDetectionSnapshot,
     DetectionSnapshotCache,
 )
+from cleany_interfaces.srv import GetSceneSnapshot
 
 
 _FAILURE_CODES = {
@@ -450,6 +451,9 @@ class InspectionNode(Node):
                 failure_image_directory=str(self.get_parameter(
                     'wrist_failure_image_directory').value),
                 config=wrist_config)
+        self._snapshot_service = self.create_service(
+            GetSceneSnapshot, 'perception/get_scene_snapshot',
+            self._get_scene_snapshot, callback_group=self._action_callback_group)
         self._action_server = ActionServer(
             self,
             InspectScene,
@@ -459,6 +463,17 @@ class InspectionNode(Node):
             goal_callback=self._goal_callback,
             cancel_callback=self._cancel_callback,
         )
+
+    def _get_scene_snapshot(self, request, response):
+        cached = self._snapshot_cache.get(request.snapshot_id)
+        response.found = cached is not None
+        response.message = 'Snapshot missing or expired'
+        if cached is not None:
+            response.detections = self._detections_message(
+                cached.detections, cached.snapshot.stamp_ns, cached.color_frame,
+                request.snapshot_id, cached.detection_distances_m)
+            response.message = 'Cached snapshot; capture time and TTL unchanged'
+        return response
 
     def destroy_node(self) -> None:
         if self._wrist_service is not None:

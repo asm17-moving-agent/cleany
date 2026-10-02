@@ -163,3 +163,11 @@ Pyright를 사용하려면 [개발환경 설치 가이드](../docs/DEVELOPMENT_S
 개발도구 절을 따른다.
 
 패키지별 topic, launch parameter, 추가 검증 명령은 각 패키지 `README.md`를 따른다.
+
+## 승인된 물체 하나의 MuJoCo BT Action
+
+실제 BehaviorTree.CPP 4/pybind11 실행기는 `cleany_manipulation_bt`에 있다.
+루트에서 `make build-manipulation-bt`, `make test-manipulation-bt`,
+`make sim-mujoco-manipulation`을 사용한다. 기존 mock build/test 명령은 유지한다.
+모델/API 준비와 실제 snapshot 요청, `/sim` 클라이언트, 정지 증거 및 DB/모니터 계약은
+[패키지 README](src/cleany_manipulation_bt/README.md)를 따른다.

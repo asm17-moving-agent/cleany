@@ -10,6 +10,7 @@ from typing import Callable
 from .models import Error, Goal, ObjectState, Placement, Record, RecordState, Result, Stage, Status
 from .ports import Evidence, ManipulationPort
 from .store import DuplicateExecution, ExecutionStore, StoreError, inhibits_execution
+from .steps import STAGE_STEPS
 
 
 NORMAL_STAGES = tuple(stage for stage in Stage if stage not in (Stage.STOPPING, Stage.FINALIZING))
@@ -171,6 +172,7 @@ class ExecutionCore:
             stage, self._next_stage = self._next_stage, None
             motion = stage in MOTION_STAGES
             if not self._persist(replace(record, stage=stage,
+                                         substage=STAGE_STEPS[stage][0].node,
                                          stop_confirmed=False if motion else record.stop_confirmed,
                                          arm_recovered=False if motion else record.arm_recovered,
                                          message=f'Starting {stage.value}')):
@@ -190,6 +192,12 @@ class ExecutionCore:
             self._fail(error, record.stage.value, 'Stage deadline exceeded', now)
             return
         if evidence is None:
+            return
+        if not evidence.stage_complete:
+            if evidence.error != Error.NONE:
+                raise ValueError('Intermediate progress cannot report a terminal error')
+            self._persist(replace(self.record, **self._substage_updates(evidence),
+                                  message=evidence.message))
             return
         # A poll outcome ends the current operation, even if storing its evidence fails.
         # Keep that fresh physical evidence when entering the stop path.
@@ -221,10 +229,26 @@ class ExecutionCore:
         updates = {name: getattr(evidence, name) for name in (
             'object_state', 'placement_state', 'selected_arm', 'stop_confirmed', 'arm_recovered',
         ) if getattr(evidence, name) is not None}
+        updates.update(self._substage_updates(evidence))
         self._persist(replace(self.record, **updates, evidence_at_ns=self.wall_clock_ns(),
                               message=f'Observation received: {evidence.message}'))
 
+    def _substage_updates(self, evidence: Evidence) -> dict[str, str | tuple[str, ...]]:
+        allowed = {step.node for step in STAGE_STEPS.get(self.record.stage, ())}
+        if any(step and step not in allowed for step in (
+                evidence.substage, evidence.completed_substage)):
+            raise ValueError('Substage progress does not belong to the active stage')
+        updates = {}
+        if evidence.substage:
+            updates['substage'] = evidence.substage
+        if evidence.completed_substage:
+            updates['completed_substages'] = tuple(dict.fromkeys((
+                *self.record.completed_substages, evidence.completed_substage)))
+        return updates
+
     def _fail(self, error: Error, stage: str, message: str, now: float) -> None:
+        self._persist(replace(self.record, failed_substage=self.record.substage,
+                              message=f'Substage failed: {self.record.substage}; {message}'))
         if error in FAULTS:
             self._stop(Status.FATAL, error, stage, message, now)
         elif self.record.stage in (Stage.VALIDATING, Stage.PREPARING_TARGET):
@@ -241,6 +265,8 @@ class ExecutionCore:
         if status == Status.FATAL:
             self.inhibited = True
         self._persist(replace(self.record, stage=Stage.STOPPING, stop_confirmed=False,
+                              failed_substage=(self.record.failed_substage or self.record.substage)
+                              if status != Status.CANCELED else '', substage='',
                               message=message, human_confirmation_required=self.inhibited))
         self._started_at, self._running = now, True
         try:
@@ -251,6 +277,7 @@ class ExecutionCore:
 
     def _finish(self, status: Status, error: Error, stage: str, message: str) -> None:
         self._persist(replace(self.record, stage=Stage.FINALIZING,
+                              substage='',
                               message=f'Finalizing result: {message}'))
         if self._storage_failed:
             if status != Status.FATAL:
@@ -263,7 +290,8 @@ class ExecutionCore:
         result = Result(record.goal.execution_id, record.execution_profile, status, error, stage,
                         record.last_completed_stage, record.object_state, record.placement_state,
                         record.selected_arm, record.stop_confirmed, record.arm_recovered,
-                        status == Status.BLOCKED and record.stop_confirmed and not attention, message)
+                        status == Status.BLOCKED and record.stop_confirmed and not attention, message,
+                        record.failed_substage)
         final = replace(record, result=result, human_confirmation_required=attention,
                         record_state=RecordState.RECORDING_FAILED if self._storage_failed
                         else RecordState.FINISHED,

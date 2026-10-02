@@ -133,6 +133,7 @@ class ManipulationNode(Node):
             if self._handle is not None and record.goal.execution_id == self._handle.request.execution_id:
                 self._handle.publish_feedback(ExecuteManipulationSkill.Feedback(
                     execution_id=record.goal.execution_id, stage=record.stage.value,
+                    substage=record.substage,
                     selected_arm=record.selected_arm, message=record.message))
 
     def _tick(self) -> None:

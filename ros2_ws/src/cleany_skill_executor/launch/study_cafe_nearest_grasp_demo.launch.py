@@ -1,5 +1,6 @@
 from pathlib import Path
 import math
+import os
 import yaml
 
 from ament_index_python.packages import get_package_share_directory
@@ -520,15 +521,22 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
     )
     coordinator = Node(
-        package='cleany_skill_executor',
+        package=PythonExpression([
+            "'cleany_manipulation_bt' if '", LaunchConfiguration('manipulation_bt'),
+            "' == 'true' else 'cleany_skill_executor'",
+        ]),
         executable=PythonExpression([
-            "'sorting_coordinator' if '", sorting_mode,
-            "' == 'true' else 'nearest_pregrasp_coordinator'",
+            "'manipulation_mujoco_server' if '", LaunchConfiguration('manipulation_bt'),
+            "' == 'true' else ('sorting_coordinator' if '", sorting_mode,
+            "' == 'true' else 'nearest_pregrasp_coordinator')",
         ]),
         parameters=[
             str(skill_share / 'config' / 'nearest_pregrasp.yaml'),
+            LaunchConfiguration('coordinator_parameters'),
             {
                 'use_sim_time': clock_parameter,
+                'database_path': ParameterValue(LaunchConfiguration('bt_database_path'), value_type=str),
+                'monitor_port': ParameterValue(LaunchConfiguration('bt_monitor_port'), value_type=int),
                 'sorting_bins_config': LaunchConfiguration('sorting_bins_config'),
                 'sorting_release_edge_margin_m': ParameterValue(
                     LaunchConfiguration('sorting_release_edge_margin_m'), value_type=float),
@@ -657,6 +665,13 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('sorting_bins_config', default_value=str(
                 mujoco_share / 'config' / 'robot_top_bins.yaml')),
             DeclareLaunchArgument('sorting_release_edge_margin_m', default_value='0.005'),
+            DeclareLaunchArgument('coordinator_parameters', default_value=str(
+                skill_share / 'config/nearest_pregrasp.yaml')),
+            DeclareLaunchArgument('manipulation_bt', default_value='false', choices=['true', 'false']),
+            DeclareLaunchArgument('bt_database_path', default_value=str(
+                Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state')
+                / 'cleany/manipulation_mujoco/executions.sqlite3')),
+            DeclareLaunchArgument('bt_monitor_port', default_value='1667'),
             DeclareLaunchArgument(
                 'sorting_mode', default_value='false', choices=['true', 'false']
             ),

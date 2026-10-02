@@ -65,6 +65,12 @@ flowchart TD
 기록하면 집거나 놓은 뒤 실패한 사실을 잃는다. `last_completed_stage`는 성공 근거가
 있는 단계만 갱신한다. 그리퍼 명령 완료만으로 물체 수거를 완료 처리하지 않는다.
 
+모의 구현은 기존 `stage` 안에 `substage`를 추가해 세부 진행을 기록한다.
+예를 들어 `GRASPING`은 그리퍼 닫기와 파지 확인을 구분하며, 확인 전에는
+`HELD`로 갱신하지 않는다. `completed_substages`는 완료된 세부 단계만 보존하고,
+실패한 세부 단계는 `failed_substage`로 반환한다. 재시작 시 이 진행도 유지한다.
+세부 단계가 늘어나도 기존 단계 timeout과 원자 구간 취소 경계는 유지한다.
+
 ## 4. InspectScene은 무엇인가
 
 **기존 Perception Action의 이름이다. 선택 물체를 잡기 위해 필요한 정보도 제공한다.**

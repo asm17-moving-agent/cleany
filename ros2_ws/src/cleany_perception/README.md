@@ -41,6 +41,13 @@ HANDOFF 이후 RGB·mask 이력을 보관하지 않는다. 손목 카메라는 R
 `wrist_*` 매개변수로 freshness/TTL, confidence, 투영 시야와 mask 면적 한계를 설정한다.
 HANDOFF와 CHECK는 `after_stamp_ns`보다 새로운 촬영 영상을 요구한다.
 
+## 기존 snapshot 조회
+
+`/perception/get_scene_snapshot` (`cleany_interfaces/srv/GetSceneSnapshot`)은
+`snapshot_id`의 캐시된 2D 관측을 읽는다. `found`, `detections`, `message`를 반환하고,
+TTL과 촬영 시각을 갱신하거나 새 모델 추론을 시작하지 않는다. 누락/만료는 `found=false`다.
+동일 cache를 `InspectScene` 선택 물체 복원에서도 사용한다.
+
 ## 필터링 점군 수신 확인
 
 `scene_cloud_receipt_node`는 MoveIt의 `/perception/scene_cloud_filtered`를

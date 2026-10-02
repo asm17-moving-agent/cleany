@@ -53,7 +53,8 @@ def main(args=None) -> int:
     def feedback(message):
         nonlocal cancel_future, reached_cancel_stage
         data = message.feedback
-        print(f'{data.execution_id} {data.stage} {data.message}', flush=True)
+        step = f'/{data.substage}' if data.substage else ''
+        print(f'{data.execution_id} {data.stage}{step} {data.message}', flush=True)
         if data.stage == options.cancel_stage:
             reached_cancel_stage = True
         if reached_cancel_stage and handle is not None and cancel_future is None:

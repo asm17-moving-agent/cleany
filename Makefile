@@ -13,6 +13,14 @@ GRASP_PREGRASP_PACKAGES := cleany_interfaces cleany_description \
 	cleany_mujoco_sim cleany_mujoco_observer cleany_moveit_config cleany_perception \
 	cleany_grasping cleany_skill_executor cleany_scene_mapping
 CLEANY_ROS_PERCEPTION_PREFIX ?= $(HOME)/.local/share/cleany/moveit-perception/opt/ros/humble
+CLEANY_BT_PREFIX ?= $(HOME)/.local/share/cleany/behaviortree-cpp/opt/ros/humble
+define use_local_behaviortree
+if test -d "$(CLEANY_BT_PREFIX)/share/behaviortree_cpp"; then \
+  export AMENT_PREFIX_PATH="$(CLEANY_BT_PREFIX):$${AMENT_PREFIX_PATH}"; \
+  export CMAKE_PREFIX_PATH="$(CLEANY_BT_PREFIX):$${CMAKE_PREFIX_PATH}"; \
+  export LD_LIBRARY_PATH="$(CLEANY_BT_PREFIX)/lib:$${LD_LIBRARY_PATH}"; \
+fi
+endef
 define use_local_moveit_perception
 if ! ros2 pkg prefix moveit_ros_perception >/dev/null 2>&1 && \
     test -d "$(CLEANY_ROS_PERCEPTION_PREFIX)/share/moveit_ros_perception"; then \
@@ -54,6 +62,7 @@ GRASP_PREGRASP_DESCRIPTION_TESTS := \
 	src/cleany_description/test/test_model_parity.py
 
 .PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo profile-scene-mask profile-mujoco-tabletop \
+	build-manipulation-bt test-manipulation-bt sim-mujoco-manipulation \
 	build-manipulation test-manipulation-core test-manipulation \
 	build-grasp-pregrasp build-scene-mapping test-scene-mapping test \
 	build-mujoco-observer test-mujoco-observer \
@@ -78,6 +87,9 @@ help:
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
 	@echo "  make build-grasp-pregrasp  Build RGB-D grasp/pre-grasp packages"
 	@echo "  make build-manipulation  Build mock manipulation Action packages"
+	@echo "  make build-manipulation-bt  Build native BT and MuJoCo Action packages"
+	@echo "  make test-manipulation-bt  Test real BT with fake operations and ROS boundaries"
+	@echo "  make sim-mujoco-manipulation  Run single-object MuJoCo BT Action stack"
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make test-manipulation-core  Run manipulation core tests with a fake clock"
@@ -132,6 +144,7 @@ check-gazebo-env:
 build:
 	source "$(ROS_SETUP)" && \
 	$(use_local_moveit_perception) && \
+	$(use_local_behaviortree) && \
 	cd "$(ROS2_WS)" && \
 	colcon build --symlink-install $(COLCON_BUILD_ARGS)
 
@@ -149,10 +162,37 @@ build-manipulation:
 	cd "$(ROS2_WS)" && \
 	colcon build --symlink-install --packages-select cleany_interfaces cleany_skill_executor
 
+build-manipulation-bt:
+	source "$(ROS_SETUP)" && \
+	$(use_local_moveit_perception) && \
+	$(use_local_behaviortree) && \
+	cd "$(ROS2_WS)" && \
+	colcon build --symlink-install --packages-up-to cleany_manipulation_bt $(COLCON_BUILD_ARGS)
+
+test-manipulation-bt: build-manipulation-bt
+	source "$(ROS_SETUP)" && \
+	$(use_local_behaviortree) && \
+	cd "$(ROS2_WS)" && \
+	source install/setup.bash && \
+	python3 -m pytest -q src/cleany_manipulation_bt/test \
+		src/cleany_perception/test/test_inspection_node.py \
+		src/cleany_skill_executor/test/test_sorting_coordinator.py \
+		src/cleany_skill_executor/test/test_nearest_object.py \
+		src/cleany_skill_executor/test/test_learned_runtime_launch.py
+
+sim-mujoco-manipulation: build-manipulation-bt
+	source "$(ROS_SETUP)" && \
+	$(use_local_moveit_perception) && \
+	$(use_local_behaviortree) && \
+	cd "$(ROS2_WS)" && \
+	source install/setup.bash && \
+	ros2 launch cleany_manipulation_bt manipulation_mujoco.launch.py $(SORTING_ARGS)
+
 test-manipulation-core:
 	PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH}" \
 	python3 -m pytest -q -p no:cacheprovider \
-		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_core.py"
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_core.py" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_monitor.py"
 
 test-manipulation: build-manipulation
 	source "$(ROS_SETUP)" && \
@@ -160,7 +200,9 @@ test-manipulation: build-manipulation
 	source install/setup.bash && \
 	python3 -m pytest -q src/cleany_interfaces/test/test_interface_contract.py \
 		src/cleany_skill_executor/test/test_manipulation_core.py \
-		src/cleany_skill_executor/test/test_manipulation_runtime.py
+		src/cleany_skill_executor/test/test_manipulation_runtime.py \
+		src/cleany_skill_executor/test/test_manipulation_monitor.py \
+		src/cleany_skill_executor/test/test_manipulation_monitor_runtime.py
 
 build-grasp-pregrasp:
 	source "$(ROS_SETUP)" && \
@@ -198,6 +240,7 @@ test-mujoco-observer: build-mujoco-observer
 test: COLCON_BUILD_ARGS += --cmake-force-configure
 test: build
 	source "$(ROS_SETUP)" && \
+	$(use_local_behaviortree) && \
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
 	$(use_local_moveit_perception) && \

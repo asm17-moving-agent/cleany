@@ -13,6 +13,12 @@ Perception, grasp 계획·선택과 Manipulation 실행이 공유하는 ROS 2 �
 | 장면 관찰과 파지 계획·선택 | [InspectScene](#scene-inspection-action), [Grasp](#grasp-planning과-선택) |
 | 빌드·계약 검증 | [설정 및 검증](#설정-및-검증) |
 
+## 읽기 전용 snapshot 조회
+
+`GetSceneSnapshot.srv`는 `/perception/get_scene_snapshot`에서 `snapshot_id`를 받아
+`found`, `DetectedObject2DArray detections`, `message`를 반환한다. 기존 cache만 조회하고
+TTL, 촬영 시각과 객체 번호를 갱신하지 않는다. 누락/만료는 `found=false`다.
+
 ## Manipulation Action과 실행 기록
 
 실행·취소·조회 명령은 [Skill Executor 실행 안내](../cleany_skill_executor/docs/manipulation_mock_usage.md)를
@@ -26,6 +32,8 @@ Perception, grasp 계획·선택과 Manipulation 실행이 공유하는 ROS 2 �
 | `GetManipulationExecution.srv` | `/mock/manipulation/get_execution` | execution_id를 받아 found와 최신 record 반환 |
 | `ManipulationExecutionRecord.msg` | `/mock/manipulation/execution_events` | 진행·종료·재시작 중단 이벤트 |
 
+[MuJoCo BT 서버](../cleany_manipulation_bt/README.md)는 같은 계약을 `/sim/manipulation`에서 제공한다.
+
 이벤트 QoS는 Reliable·Transient Local, depth 100이다.
 상태·단계·오류의 전체 목록은 [Action 명세](../cleany_skill_executor/docs/02_execute_manipulation_skill_action_spec.md)를 따른다.
 
@@ -35,8 +43,14 @@ Perception, grasp 계획·선택과 Manipulation 실행이 공유하는 ROS 2 �
 |---|---|
 | Goal | 호출자가 execution_id 발급. snapshot_id/object_id 조합으로 대상 지정 |
 | Feedback | 문자열 stage와 진행 설명 |
+| `substage` | Feedback·기록의 현재 세부 동작. 큰 단계 `stage`의 취소·timeout 계약은 유지 |
+| `completed_substages` | 기록에 저장된 완료 세부 동작 목록. 명령 완료와 물체 상태 확인을 구분 |
+| `failed_substage` | Result·기록의 실패 세부 동작. 기존 기록에는 빈 값일 수 있음 |
 | Result | 종료 status, 오류, 물체·놓은 결과·팔 복귀·정지 근거 |
-| `execution_profile` | 근거를 생성한 실행 환경. 현재 구현은 `mock` |
+| `execution_profile` | 근거를 생성한 실행 환경. 모의 서버는 `mock`, BT MuJoCo 서버는 `mujoco` |
+
+세부 진행 필드 추가 후 서버·클라이언트·모니터를 함께 재빌드하고 재시작한다.
+이전 SQLite JSON 기록은 세부 진행 필드가 없어도 읽으며 빈 값으로 취급한다.
 
 ### 실행 기록 읽기
 

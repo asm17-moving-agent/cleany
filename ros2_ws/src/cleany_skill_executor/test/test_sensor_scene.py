@@ -23,6 +23,7 @@ def test_attachment_barrier_waits_for_a_new_processed_capture(monkeypatch):
         spins.append(True)
         node._scene_cloud_stamp_ns = 21
     monkeypatch.setattr(module.rclpy, 'spin_once', update)
+    node._spin_once = lambda timeout_sec: module.GraspExecutionNode._spin_once(node, timeout_sec)
     NearestPregraspCoordinator._wait_for_sensor_scene(node, 1., after_stamp_ns=20)
     assert len(spins) == 1
 

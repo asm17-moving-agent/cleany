@@ -1,5 +1,5 @@
 from pathlib import Path
-from types import SimpleNamespace
+from types import SimpleNamespace, MethodType
 
 from geometry_msgs.msg import Pose
 from moveit_msgs.action import MoveGroup
@@ -22,6 +22,12 @@ from cleany_skill_executor.nearest_pregrasp_coordinator import (
     NearestPregraspCoordinator,
 )
 from cleany_skill_executor.sorting_coordinator import SortingCoordinator
+
+
+def _bind_release_operations(node):
+    for name in ('check_release_target', 'open_at_destination', 'finish_release'):
+        setattr(node, name, MethodType(getattr(SortingCoordinator, name), node))
+    return node
 
 
 @pytest.mark.parametrize('wrist', [True, False])
@@ -840,13 +846,13 @@ def test_release_opens_only_after_bin_geometry_checks():
         _execution_scene=SimpleNamespace(restore=lambda: events.append('detach')),
         get_clock=lambda: SimpleNamespace(now=lambda: Time(seconds=10)),
         get_logger=lambda: SimpleNamespace(info=lambda _: None))
-    SortingCoordinator.release(node, held, 'bin')
+    SortingCoordinator.release(_bind_release_operations(node), held, 'bin')
     assert events == ['open', 'settle', 'detach']
     assert node._held_object is None
     events.clear()
     pose.position.z = .2
     with pytest.raises(RuntimeError, match='bin opening'):
-        SortingCoordinator.release(node, held, 'bin')
+        SortingCoordinator.release(_bind_release_operations(node), held, 'bin')
     assert events == []
 
 
@@ -862,7 +868,7 @@ def test_release_rejects_nonfinite_center_before_opening_or_disarming(axis, valu
                           _pose_position=NearestPregraspCoordinator._pose_position,
                           _open_gripper=lambda _: pytest.fail('Invalid release must not open'))
     with pytest.raises(RuntimeError, match='center must be finite'):
-        SortingCoordinator.release(node, held, 'bin')
+        SortingCoordinator.release(_bind_release_operations(node), held, 'bin')
 
 
 @pytest.mark.parametrize('radius', [float('nan'), float('inf'), 0.0, -0.01])
@@ -877,7 +883,7 @@ def test_release_rejects_invalid_payload_radius(monkeypatch, radius):
     monkeypatch.setattr('cleany_skill_executor.sorting_coordinator.held_bounding_radius',
                         lambda *args: radius)
     with pytest.raises(RuntimeError, match='radius must be positive and finite'):
-        SortingCoordinator.release(node, held, 'bin')
+        SortingCoordinator.release(_bind_release_operations(node), held, 'bin')
 
 
 def recovery_node():

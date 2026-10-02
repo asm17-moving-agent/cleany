@@ -9,6 +9,7 @@
 | 하려는 일 | 읽을 문서 |
 |---|---|
 | 모의 Action 실행·취소·조회, 실패 재현, SQLite 이해 | [모의 Manipulation Action 사용법](docs/manipulation_mock_usage.md) |
+| VS Code에서 모의 Action 진행 상태 보기 | [로컬 트리 모니터링](docs/manipulation_mock_usage.md#vs-code에서-로컬-트리-모니터링) |
 | grasp 후보 선택과 가까운 물체의 pre-grasp 실행 | [Grasp 선택과 pre-grasp](docs/grasp_selection_and_pregrasp.md) |
 | 스터디카페 파이프라인·분류 실행과 진단 | [스터디카페 실행과 진단](docs/study_cafe_sorting_usage.md) |
 | 파지 깊이·속도·카메라·timeout 설정과 실험 기록 | [수거 설정과 실험 기록](docs/study_cafe_sorting_configuration.md) |
@@ -41,11 +42,19 @@ ros2 run cleany_skill_executor manipulation_test_client
 ```
 
 실행 단계 Feedback, 최종 Result와 저장 기록이 출력된다.
+Feedback은 `stage/substage`로 큰 단계와 세부 동작을 함께 표시한다.
+예를 들어 `GRASPING/GraspObject`는 그리퍼 닫기, `GRASPING/ConfirmGrasp`는 파지 확인이다.
 Feedback 문구는 단계 시작(`Starting`), 관측 결과 수신(`Observation received`),
 단계 완료(`Stage completed`), 결과 확정(`Finalizing result`), 실행 종료(`Execution finished`)를 구분한다.
 정상 결과는 `SUCCESS`, `placement_state=CONFIRMED`,
 `arm_recovered=true`, `stop_confirmed=true`다.
 취소·조회·실패 재현과 DB 복구는 [사용법](docs/manipulation_mock_usage.md)을 따른다.
+
+VS Code **BehaviorTree Viewer 0.1.2**에서 진행 상태를 보려면 서버 launch에
+`monitor:=true`를 추가한다. `manipulation_monitor`가 모의 실행 이벤트를 읽어
+`127.0.0.1:1666`에서 XML과 노드 상태를 제공한다. 뷰어의 **Monitor** 버튼으로
+연결한 뒤 터미널 B의 클라이언트를 실행한다. 모니터는 표시 전용이며 BT를 실행하지 않는다.
+실패와 취소는 트리의 FAILURE로 표시되며 정확한 Action 결과는 Feedback·Result에서 확인한다.
 
 ## 다른 실행 경로
 
@@ -57,6 +66,7 @@ Feedback 문구는 단계 시작(`Starting`), 관측 결과 수신(`Observation 
 | MoveIt plan-only grasp 선택 | `ros2 launch cleany_skill_executor grasp_selection.launch.py` | [Grasp 선택](docs/grasp_selection_and_pregrasp.md#설정-및-검증) |
 | 가까운 물체의 pre-grasp | `ros2 launch cleany_skill_executor nearest_pregrasp.launch.py` | [Pre-grasp](docs/grasp_selection_and_pregrasp.md#가까운-객체-자동-pre-grasp) |
 | 스터디카페 인식·계획 파이프라인 | `make sim-mujoco-pipeline` | [실행 준비](docs/study_cafe_sorting_usage.md#센서-전용-study-cafe-검증) |
+| 승인된 물체 하나의 실제 BT Action | `make sim-mujoco-manipulation` | [MuJoCo BT 서버](../cleany_manipulation_bt/README.md) |
 | MuJoCo 분류·수거 | `make sim-mujoco-sorting` | [분리 수거](docs/study_cafe_sorting_usage.md#시뮬레이션-분리-수거-통합-검증-진행-중) |
 
 시뮬레이션 분류는 기본 관찰 모드에서 `complete_unverified`를 기록한다.
@@ -88,8 +98,16 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest ros2_ws/src/cleany_skill_exec
 
 Mission Manager는 행동 승인·재관찰·미션 상태 전이를 담당하고,
 Skill Executor는 승인된 행동을 실행해 결과를 반환한다.
-Mission Manager ROS adapter, 실물 backend·verifier와 BT.CPP 실행기는 후속 구현 대상이다.
+실제 BT.CPP MuJoCo Action 실행기는 [cleany_manipulation_bt](../cleany_manipulation_bt/README.md)에 있다.
+기존 grasp/수거 동작을 단계별로 공유하며 자동 sorting의 기존 실행 순서는 유지한다.
+Mission Manager ROS adapter와 실물 backend·verifier는 후속 구현 대상이다.
 Groot2 XML은 정적 설계 미리보기다.
+정상 경로는 준비·물체 잡기·물체 놓기·확인과 종료의 네 그룹으로 표시한다.
+준비에는 모델과 실행 준비 확인, 대상 관측 확인, 선택 물체 3D 복원과 파지 준비를 표시한다.
+서버 시작과 모델 로딩은 Goal 이전의 서비스 준비 과정이고, 책상 전체 최초 인식과
+대상 선택은 상위 미션 흐름에 속한다. mock 경로의 인식과 준비 확인은 모의 처리다.
+모니터 브리지는 세부 단계뿐 아니라 각 그룹의 진행·완료·실패도 표시한다.
+로컬 모니터는 이 XML에 모의 서버 이벤트를 투영하며 BT.CPP tick loop를 구현하지 않는다.
 
 | 문서 | 내용 |
 |---|---|

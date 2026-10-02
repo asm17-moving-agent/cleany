@@ -103,6 +103,7 @@ class Result:
     arm_recovered: bool
     retryable: bool
     message: str
+    failed_substage: str = ''
 
 
 @dataclass(frozen=True)
@@ -124,6 +125,9 @@ class Record:
     evidence_at_ns: int = 0
     message: str = ''
     result: Result | None = None
+    substage: str = ''
+    completed_substages: tuple[str, ...] = ()
+    failed_substage: str = ''
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -131,6 +135,7 @@ class Record:
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> Record:
         data = dict(value)
+        data['completed_substages'] = tuple(data.get('completed_substages', ()))
         data['goal'] = Goal(**data['goal'])
         for name, enum in (
             ('record_state', RecordState), ('stage', Stage),

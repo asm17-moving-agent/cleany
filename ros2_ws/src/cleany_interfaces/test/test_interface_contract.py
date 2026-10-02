@@ -21,10 +21,13 @@ def test_manipulation_action_and_execution_lookup_contract() -> None:
     assert result.execution_profile == result.status == result.error_code == ''
     assert not result.stop_confirmed and not result.arm_recovered
     assert feedback.execution_id == feedback.stage == feedback.selected_arm == ''
+    assert feedback.substage == result.failed_substage == ''
     assert not response.found and isinstance(response.record, ManipulationExecutionRecord)
     assert not response.record.has_result
     assert not response.record.human_confirmation_required
     assert response.record.record_state == '' and response.record.revision == 0
+    assert response.record.substage == response.record.failed_substage == ''
+    assert response.record.completed_substages == []
 
 
 def test_observed_geometry_has_explicit_identity_and_empty_default_mesh():
@@ -155,3 +158,11 @@ def test_select_reachable_grasp_contract() -> None:
     assert isinstance(result.selected_candidate, GraspCandidate)
     assert feedback.STAGE_PREGRASP_IK == 1
     assert feedback.STAGE_PLAN_GRASP == 5
+
+
+def test_read_only_scene_snapshot_contract():
+    from cleany_interfaces.srv import GetSceneSnapshot
+    request, response = GetSceneSnapshot.Request(), GetSceneSnapshot.Response()
+    assert request.snapshot_id == ''
+    assert not response.found and isinstance(response.detections, DetectedObject2DArray)
+    assert response.message == ''

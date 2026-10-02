@@ -133,10 +133,12 @@ def test_real_ros_success_feedback_lookup_and_retained_event(ros):
     eventually(lambda: any(item.stage == 'FINALIZING' for item in harness.feedback))
     stages = list(dict.fromkeys(item.stage for item in harness.feedback))
     assert stages == [stage.value for stage in NORMAL_STAGES] + ['FINALIZING']
+    assert {'GraspObject', 'ConfirmGrasp'} <= {item.substage for item in harness.feedback}
     record = harness.query(message.execution_id)
     assert record.found and record.record.has_result and record.record.status == 'SUCCESS'
     assert record.record.last_completed_stage == 'VERIFYING_PLACEMENT'
     assert record.record.object_state == 'LEFT_GRIPPER' and record.record.placement_state == 'CONFIRMED'
+    assert {'GraspObject', 'ConfirmGrasp', 'ConfirmRelease'} <= set(record.record.completed_substages)
     assert not harness.query('missing').found
     late_events = []
     subscriber = harness.node.create_subscription(ManipulationExecutionRecord,

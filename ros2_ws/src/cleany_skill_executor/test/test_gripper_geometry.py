@@ -86,6 +86,7 @@ def run(monkeypatch, readings):
             node._joint_velocities['left_gripper_joint'] = velocity
     monkeypatch.setattr(module.time, 'monotonic', lambda: now[0])
     monkeypatch.setattr(module.rclpy, 'spin_once', spin)
+    node._spin_once = lambda timeout_sec: module.GraspExecutionNode._spin_once(node, timeout_sec)
     return module.NearestPregraspCoordinator._wait_for_gripper_contact(node, 'left', 1.2, -.3)
 
 

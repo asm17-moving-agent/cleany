@@ -17,6 +17,9 @@ class Evidence:
     stop_confirmed: bool | None = None
     arm_recovered: bool | None = None
     message: str = ''
+    substage: str = ''
+    completed_substage: str = ''
+    stage_complete: bool = True
 
 
 class ManipulationPort(Protocol):

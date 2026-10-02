@@ -71,18 +71,89 @@ VALIDATING → PREPARING_TARGET → APPROACHING → GRASPING → LIFTING
 조회 결과는 `found=true`, `record_state=FINISHED`, `has_result=true`다.
 
 같은 단계에서도 시작, 관측 결과 수신, 단계 완료를 각각 Feedback으로 알린다.
-예를 들어 집기는 다음과 같이 출력된다. 동작을 세 번 실행한 뜻은 아니다.
+클라이언트는 `stage/substage`로 세부 동작을 표시한다. 예를 들어 집기는 다음과 같다.
 
 ```text
-GRASPING Starting GRASPING
-GRASPING Observation received: Mock contact observation
-GRASPING Stage completed: GRASPING
+GRASPING/GraspObject Starting GRASPING
+GRASPING/ConfirmGrasp Substage completed: GraspObject; starting ConfirmGrasp
+GRASPING/ConfirmGrasp Observation received: Mock contact observation
+GRASPING/ConfirmGrasp Stage completed: GRASPING
 FINALIZING Finalizing result: Mock collection verified
 FINALIZING Execution finished: SUCCESS; Mock collection verified
 ```
 
 `Finalizing result`는 결과 확정 시작, `Execution finished`는 실행 종료를 알린다.
 `revision`도 작업 횟수가 아니라 기록 갱신 번호다.
+
+기록의 `completed_substages`는 실제 완료한 모의 세부 단계이며, 실패 시 Result의
+`failed_substage`로 그리퍼 명령 실패와 파지 확인 실패 등을 구분한다.
+그리퍼 닫기 완료만으로 물체 보유를 확정하지 않는다.
+
+**세부 단계를 천천히 관찰하기**
+
+기존 서버를 종료하고 터미널 A에서 아래 명령을 실행한다. 별도 임시 설정 파일 없이
+각 세부 단계를 약 3초, 전체 정상 흐름을 약 51초 동안 확인할 수 있다.
+
+```bash
+mock_db_dir="$(mktemp -d)"
+ros2 launch cleany_skill_executor manipulation_mock.launch.py \
+  database_path:="$mock_db_dir/executions.sqlite3" monitor:=true \
+  mock_config:="$PWD/ros2_ws/src/cleany_skill_executor/config/manipulation_mock_slow.yaml"
+```
+
+이 설정의 시나리오는 `success`만 제공한다. 원래 설정의 `stage_duration_sec`는 큰 단계
+전체 시간이며 세부 단계 수에 나눠 적용한다. 느린 설정은 단계별 시간과 timeout을 함께 늘렸다.
+
+## VS Code에서 로컬 트리 모니터링
+
+설치된 **BehaviorTree Viewer** 확장(NicholasJamesBell, 0.1.2)의 Monitor 기능으로
+모의 Action의 단계별 진행을 표시한다. Python 이벤트 브리지가 `FULLTREE`·`STATUS`
+ZMQ 요청에 응답하는 로컬 테스트 기능이며 BT.CPP 실행기나 Groot2 전체 프로토콜 구현은 아니다.
+
+1. 빠른 시작의 터미널 A에서 launch에 `monitor:=true`를 추가한다.
+
+   ```bash
+   mock_db_dir="$(mktemp -d)"
+   ros2 launch cleany_skill_executor manipulation_mock.launch.py \
+     database_path:="$mock_db_dir/executions.sqlite3" monitor:=true
+   ```
+
+2. VS Code에서 이 패키지의 `docs/groot2_table_cleanup.xml`을 열고
+   `BehaviorTree: Open Behavior Tree Viewer`를 실행한다. 뷰어에서 **Monitor**를 누른다.
+   확장 설정은 `behaviortreeViewer.monitorHost=127.0.0.1`,
+   `behaviortreeViewer.monitorPort=1666`을 사용한다. 레포 workspace 설정은 MuJoCo용
+   1667이므로 mock을 모니터링할 때는 1666으로 바꾼다.
+3. 터미널 B에서 `ros2 run cleany_skill_executor manipulation_test_client`를 실행한다.
+   실행 중 파란색, 완료 초록색, 실패 빨간색으로 바뀐다. 끝난 상태는 다음 Goal까지 유지된다.
+   같은 명령을 다시 실행해 새로운 실행을 볼 수 있다.
+4. 실패를 보려면 서버를 종료한 뒤 새 임시 DB와 `scenario:=grasp_failure`로 시작한다.
+   뷰어를 다시 연결하고 클라이언트를 실행하면 집기 노드가 실패하고 뒤의 동작은 미실행으로 남는다.
+
+서버가 별도로 실행 중이면 같은 namespace에서 브리지만 시작할 수도 있다.
+
+```bash
+ros2 run cleany_skill_executor manipulation_monitor --ros-args -r __ns:=/mock
+```
+
+| 항목 | 동작 |
+|---|---|
+| 입력 | namespace 내 `manipulation/execution_events`, Reliable·Transient Local |
+| 연결 | loopback `127.0.0.1:1666`, launch의 `monitor_port`로 변경 가능 |
+| 표시 범위 | 최신 `execution_profile=mock` 실행 하나. revision으로 중복·오래된 기록 제외 |
+| 표시 근거 | `stage`, `last_completed_stage`, Result. 단계 시작만으로 성공 처리하지 않음 |
+| 실패·취소 | BT 상태는 FAILURE로 투영. `BLOCKED`·`CANCELED`·`FATAL` 구분은 Action Result 확인 |
+| 미지원 | blackboard 실제 값, breakpoint, fault injection, 로봇 제어, 실행 이력 replay |
+
+XML은 서버가 실행하는 코드가 아니라 이벤트를 표시하는 도식이다. 특히 종료 경로는
+Result를 화면에 투영한 것으로, XML의 각 노드를 실제로 tick했다는 의미가 아니다.
+서버 재시작으로 `INTERRUPTED`가 된 기록은 성공한 정지·종료 처리로 표시하지 않는다.
+연결 직후 최근 보존 이벤트를 읽으며 전체 과거 기록을 재생하지는 않는다.
+
+브리지는 `python3-zmq`가 필요하다([개발환경 안내](../../../../docs/DEVELOPMENT_SETUP.md#로컬-action-트리-모니터-의존성)).
+확장에 **native zeromq binary unavailable**이 나오면 모니터링용 네이티브 의존성이
+설치되지 않은 것이다. 정적 미리보기와 별개이며 해당 플랫폼의 zeromq 바이너리를 준비한 뒤
+VS Code의 `Developer: Reload Window`를 실행한다. Remote SSH에서는 확장도 원격 VM에 설치한다.
+PC의 로컬 확장에서 VM 브리지에 연결한다면 SSH로 1666 포트를 전달해야 한다.
 
 ## 취소와 기록 조회
 

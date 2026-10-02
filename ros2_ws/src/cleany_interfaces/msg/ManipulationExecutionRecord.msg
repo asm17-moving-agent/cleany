@@ -17,6 +17,9 @@ int64 accepted_at_ns
 int64 updated_at_ns
 int64 evidence_at_ns
 string stage
+string substage
+string[] completed_substages
+string failed_substage
 string status
 string error_code
 string failed_stage

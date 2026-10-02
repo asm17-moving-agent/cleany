@@ -20,8 +20,10 @@ bool stop_confirmed
 bool arm_recovered
 bool retryable
 string message
+string failed_substage
 ---
 string execution_id
 string stage
+string substage
 string selected_arm
 string message

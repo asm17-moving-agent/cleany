@@ -4,6 +4,10 @@
 > XML과 포트는 제안이다. BT.CPP factory와 tick loop는 후속 구현 대상이다.
 > 현재 ROS Action wrapper는 Python 모의 core를 실행하며 이 XML을 실행하지 않는다.
 
+로컬 테스트에서는 [VS Code 모니터 브리지](manipulation_mock_usage.md#vs-code에서-로컬-트리-모니터링)로
+모의 core의 실행 이벤트를 XML 노드 상태에 투영할 수 있다. 이 표시는 BT.CPP 실행기 채택이나
+XML tick 실행을 의미하지 않는다.
+
 ## 1. 무엇을 트리로 보여주는가
 
 **이번 트리는 `collect_trash` 행동 하나의 내부 순서를 보여준다.**
@@ -16,7 +20,29 @@
 여러 물체는 바깥 흐름에서 Goal을 다시 승인해 처리한다. XML 안에 전체 책상
 scan 반복이나 Planner 호출을 넣지 않는다.
 
+| 준비 또는 인식 과정 | 실행 위치 |
+|---|---|
+| Action 서버 시작, 모델 로딩과 워밍업 | 서비스 시작 과정. 수거 Goal마다 다시 실행하지 않음 |
+| 책상 전체 최초 관찰, 대상 선택과 승인 | 상위 Mission Manager 및 Perception 흐름 |
+| 모델과 실행 backend 준비 여부 확인 | 수거 트리의 `ValidateGoal` |
+| 전달받은 관측 확인, 선택 물체 3D 복원과 파지 준비 | 수거 트리의 `PREPARING_TARGET` 세부 단계 |
+
+현재 준비 확인과 인식 관련 세부 단계도 모의 결과다. 모델을 실제로 로딩하거나
+Perception을 호출하는 backend는 아직 연결하지 않았다.
+
 ## 2. 정상 경로와 실패 경로
+
+XML의 정상 경로는 네 개의 Sequence 그룹으로 묶는다. 세부 실행 순서는 유지한다.
+
+| 그룹 | 세부 단계 |
+|---|---|
+| 준비 | 모델과 실행 준비 확인, 대상 관측 확인, 선택 물체 3D 복원, 파지 후보 생성, 팔과 경로 결정 |
+| 물체 잡기 | 잡기 전 위치 이동, 물체 접근, 그리퍼 닫기, 파지 확인, 물체 들어 올리기, 보유 상태 확인 |
+| 물체 놓기 | 수거함 이동, 놓을 위치 확인, 그리퍼 열기, 물체 이탈 확인, 팔 복귀 |
+| 확인과 종료 | 놓은 결과 확인, 성공 결과 보관 |
+
+VS Code 모니터에서는 그룹도 자식 단계의 진행·완료·실패를 표시한다.
+XML을 변경한 뒤에는 브리지를 재시작하고 뷰어의 Monitor를 다시 연결한다.
 
 ```mermaid
 flowchart TD
@@ -45,13 +71,21 @@ BT의 SUCCESS와 FAILURE는 실행 순서 제어용 값이며 ROS Action의 최�
 
 | 노드 | 동작 | 대응 Feedback |
 |---|---|---|
-| `ValidateGoal` | 준비, 승인 입력과 이전 실행 검사 | `VALIDATING` |
-| `PrepareTarget` | 대상 좌표, grasp와 경로 준비 | `PREPARING_TARGET` |
-| `ApproachObject` | 빈 팔 이동과 접근 | `APPROACHING` |
-| `GraspObject` | 그리퍼 닫기와 접촉 확인 | `GRASPING` |
-| `LiftObject` | 들기와 잡은 상태 확인 | `LIFTING` |
+| `ValidateGoal` | 모델과 실행 준비 확인 | `VALIDATING` |
+| `PrepareTarget` | 전달받은 대상 관측 확인 | `PREPARING_TARGET` |
+| `ReconstructTarget` | 선택 물체 3D 복원 | `PREPARING_TARGET` |
+| `GenerateGrasp` | 파지 후보 생성 | `PREPARING_TARGET` |
+| `SelectArmAndPath` | 팔과 경로 결정 | `PREPARING_TARGET` |
+| `MoveToPregrasp` | 잡기 전 위치 이동 | `APPROACHING` |
+| `ApproachObject` | 물체 접근 | `APPROACHING` |
+| `GraspObject` | 그리퍼 닫기 | `GRASPING` |
+| `ConfirmGrasp` | 파지 확인 | `GRASPING` |
+| `LiftObject` | 물체 들어 올리기 | `LIFTING` |
+| `ConfirmHeld` | 보유 상태 확인 | `LIFTING` |
 | `CarryObject` | 물체를 든 채 목적지 이동 | `TRANSPORTING` |
-| `OpenGripperAtDestination` | 목적지 재확인과 그리퍼 열기 | `PLACING` |
+| `CheckPlacementTarget` | 놓을 위치 확인 | `PLACING` |
+| `OpenGripperAtDestination` | 그리퍼 열기 | `PLACING` |
+| `ConfirmRelease` | 물체 이탈 확인 | `PLACING` |
 | `ReturnArm` | 지정 안전 위치 복귀 | `RETURNING_ARM` |
 | `VerifyPlacedObject` | 놓은 뒤 수거함 내부 확인 | `VERIFYING_PLACEMENT` |
 | `FinalizeSuccess` | 성공 조건과 기록 확인, Result 생성 | `FINALIZING` |
@@ -61,6 +95,12 @@ BT의 SUCCESS와 FAILURE는 실행 순서 제어용 값이며 ROS Action의 최�
 동작 노드는 명령 전과 물리 근거를 얻은 직후 진행을 기록한다. 집기와 그리퍼 열기
 기록을 트리 끝의 Finalize에만 맡기지 않는다. 물체를 놓은 뒤 검증이 실패해도 놓기
 명령과 실제 물체 상태를 보존한다.
+
+모의 서버는 큰 `stage` 안의 현재 `substage`와 `completed_substages`를 기록한다.
+브리지는 완료 이벤트가 있는 세부 단계만 초록색으로 표시한다. 그리퍼 닫기 완료는
+물체 보유 근거가 아니며, 이탈 근거가 없는 `release_unobserved` 시나리오에서는
+`ConfirmRelease`를 완료로 표시하지 않는다. 이후 독립 수거함 확인으로 성공할 수 있다.
+세부 단계 추가가 기존 집기, 들기와 놓기의 원자 구간 취소 규칙을 바꾸지는 않는다.
 
 `VerifyPlacedObject`는 이번 verified Action에서 생략하지 않는다. 확인 기능이 없으면
 시작 검증에서 차단한다. 기존 GUI simulation의 확인 생략 경로는 별도 demo다.

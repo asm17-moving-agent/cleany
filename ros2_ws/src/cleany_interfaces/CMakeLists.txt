@@ -23,6 +23,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/VerifyPlacement.srv"
   "srv/ObserveWristTarget.srv"
   "srv/GetManipulationExecution.srv"
+  "srv/GetSceneSnapshot.srv"
   DEPENDENCIES geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 

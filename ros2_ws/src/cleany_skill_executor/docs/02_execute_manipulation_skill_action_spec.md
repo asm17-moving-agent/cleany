@@ -111,6 +111,11 @@ SQLite 기록과 함께 제공하고 Backend 전달은 후속 Mission Manager ad
 Feedback은 진행 안내다. `PLACING`을 받았다고 물체가 수거된 것은 아니다.
 첫 이미지 전달, 책상 재관찰과 베이스 복귀는 이 Action의 단계가 아니다.
 
+모의 구현의 Feedback은 `substage`도 제공한다. 예를 들어 `GRASPING/GraspObject`는
+그리퍼 닫기, `GRASPING/ConfirmGrasp`는 파지 확인이다. Result의 `failed_substage`는
+실패 세부 동작을 식별하고, 조회 기록의 `completed_substages`는 완료한 세부 동작만
+보존한다. 큰 단계의 취소 및 timeout 계약은 유지한다.
+
 ## 5. Result: 이번 행동이 어떻게 끝났는지
 
 ### 구현 필드
@@ -225,10 +230,12 @@ bool stop_confirmed
 bool arm_recovered
 bool retryable
 string message
+string failed_substage
 ---
 # Feedback
 string execution_id
 string stage
+string substage
 string selected_arm
 string message
 ```

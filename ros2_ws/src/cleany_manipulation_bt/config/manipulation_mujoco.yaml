@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+    bt_operation_timeout_sec: 180.0
+    bt_verification_timeout_sec: 10.0
+    bt_stop_timeout_sec: 10.0
+    bt_feedback_max_age_sec: 2.0
+    # The current placement evaluator identifies one body by label.
+    # collect_trash does not accept lost_item, review, or duplicate labels.
+    bt_supported_trash_labels: [cup, paper cup, disposable paper cup, crumpled tissue]
+    # Reinspection/reassociation is permitted; a recovery move after losing
+    # visual retention is not part of this Action's first scope.
+    sorting_reobserve_after_lift: false
