@@ -14,8 +14,8 @@ controller_server:
       trajectory_generator_name: cleany_axis_controller::AxisGenerator
       min_vel_x: -0.15
       max_vel_x: 0.15
-      min_vel_y: 0.0
-      max_vel_y: 0.0
+      min_vel_y: -0.0265
+      max_vel_y: 0.0265
       max_vel_theta: 0.3
       min_speed_xy: 0.0
       max_speed_xy: 0.15
@@ -40,6 +40,7 @@ controller_server:
       forward_prune_distance: 2.0
       shorten_transformed_plan: true
       axis_allow_lateral: false
+      axis_translation_angle_deg: 10.0
       axis_linear_stopped: 0.01
       axis_angular_stopped: 0.02
       axis_settle_s: 0.3

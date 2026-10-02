@@ -202,6 +202,7 @@ def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled
     def params(name):
         return result.setdefault(name, {}).setdefault('ros__parameters', {})
     pan = params('pan_motion_gate')
+    pan['translation_angle_deg'] = result.get('controller_server', {}).get('ros__parameters', {}).get('FollowPath', {}).get('axis_translation_angle_deg', 0.)
     pan.update(command_topic='nav2/cmd_vel', output_topic='pan_ready/cmd_vel')
     monitor = params('collision_monitor')
     monitor.update(cmd_vel_in_topic='pan_ready/cmd_vel' if pan_enabled else 'nav2/cmd_vel',

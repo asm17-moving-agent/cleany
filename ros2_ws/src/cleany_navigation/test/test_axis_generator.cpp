@@ -140,3 +140,28 @@ TEST_F(AxisTest, FineHeadingAlignmentHasAUsefulRotationCandidate) {
   }
   EXPECT_TRUE(improving);
 }
+
+TEST_F(AxisTest, BoundedDiagonalCandidatesAndMeasuredTranslationPreserveRotationInterlock) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.axis_translation_angle_deg",10.));
+  gen.initialize(node,"FollowPath");time(1);gen.getTwists(nav_2d_msgs::msg::Twist2D());time(1.4);
+  bool forward=false,reverse=false;
+  for(auto t:gen.getTwists(nav_2d_msgs::msg::Twist2D())) {
+    if(t.y) {EXPECT_NE(t.x,0);EXPECT_EQ(t.theta,0);EXPECT_LE(std::abs(t.y),std::abs(t.x)*std::tan(M_PI/18)+1e-9);forward|=t.x>0;reverse|=t.x<0;}
+  }
+  EXPECT_TRUE(forward);EXPECT_TRUE(reverse);
+  nav_2d_msgs::msg::Twist2D v;v.x=.08;v.y=.01;time(2);
+  EXPECT_GT(gen.getTwists(v).size(),1u);for(auto t:gen.getTwists(v))EXPECT_EQ(t.theta,0);
+  v.theta=.1;EXPECT_EQ(gen.getTwists(v).size(),1u);
+  v.theta=0;v.y=.08;EXPECT_EQ(gen.getTwists(v).size(),1u);
+}
+TEST_F(AxisTest, BoundedDiagonalHeadingScoresTravelDirectionInForwardAndReverse) {
+  node->set_parameter(rclcpp::Parameter("FollowPath.axis_translation_angle_deg",10.));
+  cleany_axis_controller::PathHeadingCritic critic;critic.initialize(node,"PathHeading","FollowPath",nullptr);
+  for(double sign : {-1.,1.}) {
+    geometry_msgs::msg::Pose2D pose,goal;goal.x=sign*2;goal.y=sign*2*std::tan(.1);
+    nav_2d_msgs::msg::Path2D path;path.poses={pose,goal};critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
+    dwb_msgs::msg::Trajectory2D t;t.poses={pose};t.velocity.x=sign*.1;
+    const auto straight=critic.scoreTrajectory(t);t.velocity.y=sign*.1*std::tan(.1);
+    EXPECT_LT(critic.scoreTrajectory(t),straight);EXPECT_NEAR(critic.scoreTrajectory(t),0,1e-9);
+  }
+}

@@ -21,6 +21,10 @@ void PathHeadingCritic::onInit() {
   if (release_tolerance_ < tolerance_) throw std::invalid_argument("heading release tolerance");
   reverse_threshold_=parameter("reverse_angle_threshold", .75*M_PI);
   if (reverse_threshold_>M_PI) throw std::invalid_argument("reverse_angle_threshold must be <= pi");
+  if (node->has_parameter(dwb_plugin_name_+".axis_translation_angle_deg"))
+    translation_angle_=node->get_parameter(dwb_plugin_name_+".axis_translation_angle_deg").as_double()*M_PI/180.;
+  if (!std::isfinite(translation_angle_) || translation_angle_<0 || translation_angle_>M_PI/18+1e-12)
+    throw std::invalid_argument("axis_translation_angle_deg");
   if (node->has_parameter(dwb_plugin_name_+".xy_goal_tolerance"))
     goal_tolerance_=node->get_parameter(dwb_plugin_name_+".xy_goal_tolerance").as_double();
   if (node->has_parameter(dwb_plugin_name_+".axis_allow_lateral"))
@@ -47,8 +51,8 @@ bool PathHeadingCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
   reverse_=std::abs(wrap(target_-pose.theta))>reverse_threshold_;
   if (reverse_) target_=wrap(target_+M_PI);
   initial_error_=std::abs(wrap(target_-pose.theta));
-  if (initial_error_ > release_tolerance_) aligned_=false;
-  else if (initial_error_ <= tolerance_) aligned_=true;
+  if (initial_error_ > translation_angle_+release_tolerance_) aligned_=false;
+  else if (initial_error_ <= translation_angle_+tolerance_) aligned_=true;
   return true;
 }
 double PathHeadingCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &trajectory) {
@@ -61,7 +65,8 @@ double PathHeadingCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &tra
   // the release band. This prevents tiny heading improvements winning forever.
   if (aligned_ && std::abs(trajectory.velocity.theta)>1e-6)
     throw dwb_core::IllegalTrajectoryException(name_, "Keep aligned segment heading");
-  return std::abs(wrap(target_-trajectory.poses.back().theta));
+  const double offset=std::abs(x)>1e-6 ? std::atan2(trajectory.velocity.y*(x<0?-1:1),std::abs(x)) : 0.;
+  return std::abs(wrap(target_-trajectory.poses.back().theta-offset));
 }
 }
 PLUGINLIB_EXPORT_CLASS(cleany_axis_controller::PathHeadingCritic, dwb_core::TrajectoryCritic)

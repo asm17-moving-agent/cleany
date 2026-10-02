@@ -14,6 +14,7 @@ public:
 private:
   rclcpp::Clock::SharedPtr clock_;
   bool allow_lateral_{false};
+  double translation_angle_{0.};
   double linear_stopped_, angular_stopped_, settle_s_;
   std::optional<double> quiet_since_, last_time_;
   std::vector<nav_2d_msgs::msg::Twist2D> candidates_;

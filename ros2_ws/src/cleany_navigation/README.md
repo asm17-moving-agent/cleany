@@ -94,10 +94,10 @@ voxel을 사용하려면 memory가 필요하다. 비활성화한 단계에 따�
 ## C++ navigation plugins
 
 DWB `trajectory_generator_name: cleany_axis_controller::AxisGenerator`로 사용한다.
-기본적으로 전후 X 또는 제자리 회전 속도만 가진 후보와 정지 후보를
+플러그인 기본값은 전후 X 또는 제자리 회전 속도만 가진 후보와 정지 후보를
 컨트롤러 안에서 생성한다. 출력 이후 임의로 축을 자르지 않는다.
 `PathHeadingCritic`은 경로의 1.2m 앞 방향에 몸체를 먼저 정렬시킨다.
-방향 오차가 0.025rad 이하가 되면 병진 구간을 유지하고, 0.06rad를 넘으면 다시
+대각선 보정이 꺼져 있을 때 방향 오차가 0.025rad 이하가 되면 병진 구간을 유지하고, 0.06rad를 넘으면 다시
 정렬한다. 정렬된 구간에서는 작은 각도 개선만을 위한 회전 후보를 거부한다.
 미정렬 회전 후보에는 연속적인 각도 오차 비용을 준다. `vtheta_samples: 31`로
 작은 방향 오차에서도 정지보다 나은 회전 후보를 제공한다. 경로 방향이 몸체 전방에서 135도를 초과해 벗어날 때 후진을
@@ -111,14 +111,23 @@ DWB의 footprint 비용 평가와 가속·감속 rollout을 사용하며,
 움직이는 동안은 측정된 현재 축과 정지 후보만 허용한다. 다른 축을
 사용하려면 controller의 canonical `odom` 속도가 선형 0.01m/s, 회전 0.02rad/s 이하로
 0.3초 연속 유지되어야 한다. 같은 축 재출발은 기다리지 않으며, 경로 갱신이
-측정된 정지 이력을 초기화하지 않는다. 시계 역행과 비정상 피드백은 이력을 무효화한다. 혼합 축 움직임이나 비정상 측정은 정지만
-허용한다. `axis_linear_stopped`, `axis_angular_stopped`, `axis_settle_s`로
+측정된 정지 이력을 초기화하지 않는다. 시계 역행과 비정상 피드백은 이력을 무효화한다. 병진과 회전이 섞인 움직임이나 비정상 측정은 정지만
+허용한다. 제한 내 대각선 병진은 병진 동작으로 취급한다. `axis_linear_stopped`, `axis_angular_stopped`, `axis_settle_s`로
 임계값을 설정한다. 물리적 관성·접촉·양자화로 실제 속도가 완벽하게
 단일 축일 것을 보장하지 않으며 실제 하드웨어 안전 인증은 아니다.
 
 Gazebo 없이 `make build-navigation`, `make test-navigation`으로 빌드·검증한다.
 `cleany_navigation/config/nav2_axis_motion.yaml`이 공통 설정을 소유한다.
-기본 Y 속도 범위는 0, 샘플 수는 1이며 `axis_allow_lateral: false`이다.
+공통 설정은 `axis_translation_angle_deg: 10.0`, Y 범위 ±0.0265m/s,
+`axis_allow_lateral: false`로 전후 방향에서 ±10° 대각선 보정을 허용한다.
+정지, 제자리 회전, 전후 병진(0°, ±5°, ±10°)을 후보로 평가한다.
+순수 횡이동과 병진 중 회전은 허용하지 않는다. 합성 속도와 Y 한계를 함께 검사한다.
+`axis_translation_angle_deg: 0.0`이면 기존 전후진 전용 동작으로 복귀한다.
+PathHeading은 보정 각도만큼 정렬 허용대를 확장하고 병진 후보의 실제 이동 방향을
+평가한다. launch는 같은 제한을 pan gate에 전달한다. 작은 대각선 보정 중 카메라는
+전방/후방을 유지하며, 후진 전환의 정지·settle·fresh depth 조건은 동일하다.
+측정된 대각선 병진은 하나의 병진 동작으로 취급하고 회전 전환은 기존 정착 대기를 유지한다.
+이는 simulation 설정이며 실제 카메라 가림과 횡방향 slip/제동 검증은 별도로 필요하다.
 `cleany_navigation::StraightFirstPlanner`는 시작/목표의 제자리 회전과 직선 이동을
 map 해상도의 절반 간격으로 검사한다. 현재 global costmap의 padded footprint 경계와
 내부에 lethal/unknown 셀이 있거나 중심이 inscribed 셀에 들어가면 직선 계획을 거부하고

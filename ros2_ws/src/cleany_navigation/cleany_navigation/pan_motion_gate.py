@@ -13,9 +13,16 @@ class PanGate:
     pan_stopped: float = .05
     allow_reverse: bool = True
     allow_lateral: bool = False
+    translation_angle_deg: float = 0.
     target: float = 0.
     aligned_since: float | None = None
     last_time: float = -math.inf
+
+    def __post_init__(self) -> None:
+        if not math.isfinite(self.translation_angle_deg) or not 0 <= self.translation_angle_deg <= 10:
+            raise ValueError('translation_angle_deg must be in [0, 10]')
+        if self.allow_lateral and self.translation_angle_deg:
+            raise ValueError('Choose lateral or bounded diagonal motion')
 
     def step(self, now: float, command: tuple[float, float, float],
              measured: tuple[float, float, float], pan: float, pan_speed: float,
@@ -32,13 +39,15 @@ class PanGate:
             self.aligned_since = None
             return self.target, zero, 'STALE_FEEDBACK'
         x, y, w = command
-        if sum(abs(v) > 1e-6 for v in command) > 1:
+        diagonal = (self.translation_angle_deg > 0 and abs(x) > 1e-6 and abs(w) <= 1e-6
+                    and abs(y) <= abs(x)*math.tan(math.radians(self.translation_angle_deg))+1e-12)
+        if sum(abs(v) > 1e-6 for v in command) > 1 and not diagonal:
             return self.target, zero, 'MIXED_AXIS'
-        if abs(y) > 1e-6 and not self.allow_lateral:
+        if abs(y) > 1e-6 and not self.allow_lateral and not diagonal:
             return self.target, zero, 'LATERAL_NOT_ENABLED'
         if x < -1e-6 and not self.allow_reverse:
             return self.target, zero, 'REVERSE_NOT_ENABLED'
-        desired = (math.copysign(math.pi/2, y) if abs(y) > 1e-6 else
+        desired = (math.copysign(math.pi/2, y) if abs(y) > 1e-6 and not diagonal else
                    math.pi if x < -1e-6 else 0. if x > 1e-6 else self.target)
         stopped = math.hypot(*measured[:2]) <= self.linear_stopped and abs(measured[2]) <= self.angular_stopped
         if desired != self.target:
