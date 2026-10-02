@@ -72,6 +72,10 @@ def generate_launch_description() -> LaunchDescription:
         'use_sim_time', default_value='true'
     )
     sensor_profile_arg = declare_sensor_profile_argument()
+    gui_render_engine_arg = DeclareLaunchArgument(
+        'gui_render_engine', default_value='ogre2', choices=['ogre', 'ogre2'],
+        description='Rendering engine used by the Gazebo GUI.',
+    )
 
     server = ExecuteProcess(
         cmd=[
@@ -95,7 +99,7 @@ def generate_launch_description() -> LaunchDescription:
             '--render-engine-server',
             'ogre2',
             '--render-engine-gui',
-            'ogre',
+            LaunchConfiguration('gui_render_engine'),
             LaunchConfiguration('world'),
         ],
         condition=UnlessCondition(LaunchConfiguration('headless')),
@@ -192,6 +196,7 @@ def generate_launch_description() -> LaunchDescription:
             headless_arg,
             use_sim_time_arg,
             sensor_profile_arg,
+            gui_render_engine_arg,
             AppendEnvironmentVariable(
                 'GZ_SIM_RESOURCE_PATH', str(description_share)
             ),

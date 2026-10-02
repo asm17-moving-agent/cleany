@@ -39,6 +39,10 @@ GAZEBO_GUI_RENDER_ENGINE=ogre2 make sim-gazebo-study-cafe
 
 직접 launch할 때는 `gui_render_engine:=ogre|ogre2`를 지정합니다.
 
+Harmonic의 GUI 기본값은 `ogre2`입니다. GPU가 사용 가능한 환경에서는
+`LIBGL_ALWAYS_SOFTWARE=1`을 설정하지 않습니다. 렌더링 문제를 진단할 때만
+소프트웨어 렌더링을 별도로 선택합니다.
+
 ```bash
 source ros2_ws/install/setup.bash
 ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
