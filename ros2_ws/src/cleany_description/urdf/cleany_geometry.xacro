@@ -1,24 +1,51 @@
-<?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find cleany_description)/urdf/dual_arm.xacro"/>
-
-  <!-- Backend-neutral physical model shared by all top-level descriptions. -->
-  <xacro:macro name="cleany_robot_geometry" params="">
+  <xacro:include filename="$(find cleany_description)/urdf/physical_properties.xacro" />
+  <xacro:include filename="$(find cleany_description)/urdf/dual_arm.xacro" />
+  <xacro:macro name="cleany_robot_geometry" params="include_wheel_joints:=false">
     <link name="base_link">
-      <visual>
-        <origin xyz="0 0 0"/>
-        <geometry><box size="0.6 0.64 0.76"/></geometry>
-        <material name="cleany_white"/>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0"/>
-        <geometry><box size="0.6 0.64 0.76"/></geometry>
-      </collision>
+      <xacro:cleany_link_properties link_name="base_link" />
     </link>
-
-    <!-- base_link +X is front and physical +Y is left. -->
-    <xacro:cleany_arm side="left" side_sign="1" base_y="0.1552" base_yaw="3.14159265359"/>
-    <!-- base_link +X is front and physical -Y is right. -->
-    <xacro:cleany_arm side="right" side_sign="-1" base_y="-0.1552" base_yaw="0"/>
+    <xacro:cleany_arm side="left" side_sign="1" base_xyz="0.1163 0.185117 0.447797" base_yaw="3.14159265359" />
+    <xacro:cleany_arm side="right" side_sign="-1" base_xyz="0.116101 -0.185063 0.447797" base_yaw="0" />
+    <link name="rear_left_wheel_link">
+      <xacro:cleany_link_properties link_name="rear_left_wheel_link" />
+    </link>
+    <joint name="rear_left_wheel_joint" type="${'continuous' if include_wheel_joints else 'fixed'}">
+      <origin xyz="-0.175025 0.301927 -0.316497" rpy="0 -0 0" />
+      <parent link="base_link" />
+      <child link="rear_left_wheel_link" />
+      <axis xyz="0 1 0" />
+      <limit effort="2.646" velocity="12.017" />
+    </joint>
+    <link name="rear_right_wheel_link">
+      <xacro:cleany_link_properties link_name="rear_right_wheel_link" />
+    </link>
+    <joint name="rear_right_wheel_joint" type="${'continuous' if include_wheel_joints else 'fixed'}">
+      <origin xyz="-0.175025 -0.301873 -0.316497" rpy="0 -0 0" />
+      <parent link="base_link" />
+      <child link="rear_right_wheel_link" />
+      <axis xyz="0 1 0" />
+      <limit effort="2.646" velocity="12.017" />
+    </joint>
+    <link name="front_left_wheel_link">
+      <xacro:cleany_link_properties link_name="front_left_wheel_link" />
+    </link>
+    <joint name="front_left_wheel_joint" type="${'continuous' if include_wheel_joints else 'fixed'}">
+      <origin xyz="0.174975 0.301927 -0.316497" rpy="0 -0 0" />
+      <parent link="base_link" />
+      <child link="front_left_wheel_link" />
+      <axis xyz="0 1 0" />
+      <limit effort="2.646" velocity="12.017" />
+    </joint>
+    <link name="front_right_wheel_link">
+      <xacro:cleany_link_properties link_name="front_right_wheel_link" />
+    </link>
+    <joint name="front_right_wheel_joint" type="${'continuous' if include_wheel_joints else 'fixed'}">
+      <origin xyz="0.174975 -0.301873 -0.316497" rpy="0 -0 0" />
+      <parent link="base_link" />
+      <child link="front_right_wheel_link" />
+      <axis xyz="0 1 0" />
+      <limit effort="2.646" velocity="12.017" />
+    </joint>
   </xacro:macro>
 </robot>

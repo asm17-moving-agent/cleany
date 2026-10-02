@@ -56,16 +56,28 @@ def _physical_model_xml(root: ET.Element) -> tuple[bytes, ...]:
 
 
 def test_description_entrypoints_share_canonical_geometry() -> None:
-    roots = tuple(_expand_urdf(entrypoint) for entrypoint in URDF_ENTRYPOINTS)
+    roots = (
+        _expand_urdf("cleany.urdf.xacro", "include_wheel_joints:=false"),
+        _expand_urdf("cleany_control.urdf.xacro"),
+        _expand_urdf(
+            "cleany.urdf.xacro",
+            "include_head_camera:=false",
+            "include_wheel_joints:=false",
+        ),
+    )
     # The plugin-free perception description adds the nominal head RGB-D tree;
     # the arm-control entrypoint deliberately keeps the 12-joint MoveIt state.
     assert set(_physical_model_xml(roots[1])) <= set(_physical_model_xml(roots[0]))
+    assert _physical_model_xml(roots[2]) == _physical_model_xml(roots[1])
+    for root in roots[1:]:
+        assert {
+            joint.get("name") for joint in root.findall("joint")
+            if joint.get("type") != "fixed"
+        } == set(CANONICAL_LIMITS)
 
-    for index, root in enumerate(roots):
+    for index, root in enumerate(roots[:2]):
         links = root.findall("./link")
         joints = root.findall("./joint")
-        assert len(links) == (25 if index == 0 else 17)
-        assert len(joints) == (24 if index == 0 else 16)
         joint_names = {joint.attrib["name"] for joint in joints}
         assert set(CANONICAL_LIMITS) <= joint_names
         assert {
@@ -92,10 +104,70 @@ def test_description_entrypoints_share_canonical_geometry() -> None:
             ) == pytest.approx(CANONICAL_LIMITS[joint.attrib["name"]])
 
 
-def test_basic_description_does_not_select_a_control_backend() -> None:
+def test_full_description_wheel_contract() -> None:
+    full = _expand_urdf("cleany.urdf.xacro")
+    assert full.find("./ros2_control") is None
+    assert full.find(".//hardware/plugin") is None
+    positions = {}
+    for corner in ("front_left", "front_right", "rear_left", "rear_right"):
+        name = f"{corner}_wheel_joint"
+        joint = full.find(f"joint[@name='{name}']")
+        assert joint.get("type") == "continuous"
+        assert joint.find("axis").get("xyz") == "0 1 0"
+        positions[corner] = np.fromstring(joint.find("origin").get("xyz"), sep=" ")
+        assert float(full.find(
+            f"link[@name='{corner}_wheel_link']/inertial/mass"
+        ).get("value")) == pytest.approx(0.5)
+    assert positions["front_left"][0] - positions["rear_left"][0] == pytest.approx(0.35)
+    assert positions["front_left"][1] - positions["front_right"][1] == pytest.approx(0.6038)
+
+
+def test_urdf_geometry_and_mass_match_mjcf() -> None:
+    """Compile both backends independently, including mesh recentering/scaling."""
     root = _expand_urdf("cleany.urdf.xacro")
-    assert root.find("./ros2_control") is None
-    assert root.find(".//hardware/plugin") is None
+    for mesh in root.findall(".//mesh"):
+        filename = mesh.get("filename")
+        assert filename.startswith("package://cleany_description/")
+        path = _source_root() / filename.removeprefix("package://cleany_description/")
+        assert path.is_file()
+        mesh.set("filename", str(path))
+    extension = ET.SubElement(root, "mujoco")
+    ET.SubElement(extension, "compiler", discardvisual="false", fusestatic="false")
+    urdf_model = mujoco.MjModel.from_xml_string(ET.tostring(root, encoding="unicode"))
+    source = mujoco.MjModel.from_xml_path(str(_source_root() / "mjcf/cleany.xml"))
+    urdf_data, source_data = mujoco.MjData(urdf_model), mujoco.MjData(source)
+    mujoco.mj_forward(urdf_model, urdf_data)
+    mujoco.mj_forward(source, source_data)
+    scene = mujoco.MjvScene(source, maxgeom=1000)
+    option = mujoco.MjvOption()
+    option.geomgroup[:] = 1
+    mujoco.mjv_updateScene(
+        source, source_data, option, None, mujoco.MjvCamera(),
+        mujoco.mjtCatBit.mjCAT_ALL, scene,
+    )
+    colors = {
+        geom.objid: geom.rgba.copy() for geom in scene.geoms[:scene.ngeom]
+        if geom.objtype == mujoco.mjtObj.mjOBJ_GEOM
+    }
+    assert urdf_model.body_mass.sum() == pytest.approx(source.body_mass.sum(), abs=1e-8)
+    base = source_data.body("chassis")
+    rotation = base.xmat.reshape(3, 3)
+    compared = set()
+    for index in range(urdf_model.ngeom):
+        name = urdf_model.geom(index).name
+        assert name.startswith("mjcf_geom_")
+        source_index, piece = (int(value) for value in name.split("_")[2:4])
+        if name.endswith("_visual"):
+            assert urdf_model.geom_rgba[index] == pytest.approx(colors[source_index])
+        if piece:  # capsule end spheres; the central cylinder is checked below
+            continue
+        compared.add(source_index)
+        expected_pos = rotation.T @ (source_data.geom_xpos[source_index] - base.xpos)
+        expected_rot = rotation.T @ source_data.geom_xmat[source_index].reshape(3, 3)
+        assert urdf_data.geom_xpos[index] == pytest.approx(expected_pos, abs=1e-5)
+        assert urdf_data.geom_xmat[index].reshape(3, 3) == pytest.approx(expected_rot, abs=3e-5)
+        assert urdf_model.geom_size[index] == pytest.approx(source.geom_size[source_index], abs=1e-8)
+    assert compared == set(range(source.ngeom))
 
 
 def test_control_description_exposes_arm_and_gripper_interfaces() -> None:
@@ -380,8 +452,8 @@ def test_mjcf_mounts_arms_at_canonical_sides() -> None:
     right_position = base_rotation.T @ (
         data.xpos[right_base_id] - data.xpos[base_id]
     )
-    assert left_position[:2] == pytest.approx((0.09, 0.11), abs=1e-6)
-    assert right_position[:2] == pytest.approx((0.09, -0.11), abs=1e-6)
+    assert left_position[:2] == pytest.approx((0.1163, 0.139917), abs=1e-6)
+    assert right_position[:2] == pytest.approx((0.116101, -0.139863), abs=1e-6)
 
 
 def test_nominal_grasp_tcp_offsets_match() -> None:
