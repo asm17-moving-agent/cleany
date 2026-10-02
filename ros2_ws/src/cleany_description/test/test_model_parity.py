@@ -691,7 +691,9 @@ def test_arm_base_fasteners_align_with_cad_mounts(
 
 
 def test_base_inertia_matches_fixed_mjcf_assembly() -> None:
-    model = mujoco.MjModel.from_xml_path(str(_source_root() / 'mjcf/cleany.xml'))
+    model_path = _source_root() / 'mjcf/cleany.xml'
+    source = ET.parse(model_path).getroot()
+    model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     chassis = data.body('chassis')
@@ -699,11 +701,20 @@ def test_base_inertia_matches_fixed_mjcf_assembly() -> None:
     masses, centers, tensors = [], [], []
     for name in ('chassis', 'Base', 'Base_2'):
         body = data.body(name)
-        masses.append(model.body(name).mass[0])
-        centers.append(rotation.T @ (body.xipos - chassis.xpos))
-        inertia_rotation = rotation.T @ body.ximat.reshape(3, 3)
-        tensors.append(inertia_rotation @ np.diag(model.body(name).inertia)
-                       @ inertia_rotation.T)
+        inertial = source.find(f".//body[@name='{name}']/inertial")
+        assert inertial is not None
+        masses.append(float(inertial.get('mass')))
+        body_rotation = body.xmat.reshape(3, 3)
+        local_center = np.fromstring(inertial.get('pos'), sep=' ')
+        centers.append(rotation.T @ (
+            body.xpos + body_rotation @ local_center - chassis.xpos
+        ))
+        # Compose the authored tensors directly. MuJoCo's principal-axis
+        # decomposition changes numerical precision between engine versions.
+        ixx, iyy, izz, ixy, ixz, iyz = np.fromstring(inertial.get('fullinertia'), sep=' ')
+        body_tensor = np.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]])
+        inertia_rotation = rotation.T @ body_rotation
+        tensors.append(inertia_rotation @ body_tensor @ inertia_rotation.T)
     mass = sum(masses)
     center = np.average(centers, axis=0, weights=masses)
     tensor = np.zeros((3, 3))

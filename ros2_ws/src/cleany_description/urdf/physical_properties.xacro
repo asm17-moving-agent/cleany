@@ -1,11 +1,11 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:macro name="cleany_link_properties" params="link_name">
     <xacro:if value="${link_name == 'base_link'}">
-      <!-- Combined chassis and fixed arm-base inertia at the aligned mounts. -->
+      <!-- Combined source MJCF fullinertia tensors at the aligned arm mounts. -->
       <inertial>
         <origin xyz="0.00644073126036 2.68998835469e-05 -0.141372186369" rpy="0 -0 0" />
         <mass value="12.3513377764" />
-        <inertia ixx="0.933542754865" ixy="0.000607852427179" ixz="-0.0463142424415" iyy="0.865629751875" iyz="-4.37794203494e-08" izz="0.487782920537" />
+        <inertia ixx="0.933542754865" ixy="0.000607854672282" ixz="-0.0463142424415" iyy="0.865629751875" iyz="-1.47964742646e-08" izz="0.487782920537" />
       </inertial>
       <visual name="mjcf_geom_0_0_visual">
         <origin xyz="-0.0154995 -0.0745144 -0.317538" rpy="-5.55160000426e-08 -7.33800005229e-09 1.5708" />
