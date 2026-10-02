@@ -254,6 +254,16 @@ ros2 launch cleany_gazebo_sim amcl_nav2_safety.launch.py \
 | `/cmd_vel` | Collision Monitor가 내보내는 Twist; 기존 command guard가 받아 Gazebo로 전달 |
 | `/collision_monitor_state` | `StopZone`, `SlowZone`, `invalid source` 등 제한 사유 |
 
+헤드 카메라는 RealSense D435의 명목 화각을 모델링합니다. Depth는 VGA 모드의
+75°×62°, RGB는 69°×42°이며, SDF `lens/intrinsics`와 `lens/projection`의 수평·수직 초점 거리를 각각 지정해
+수평·수직 화각을 함께 맞춥니다. 두 센서는 부하를 제한하기 위해 640×480,
+15 Hz로 동작합니다. Depth clip은 0.2–10 m이며, 이는 렌더링 범위로서
+실물의 전 구간 정확도를 보장하지 않습니다. 실제 센서의 보정값과 스테레오 오차,
+반사·무늬에 따른 depth 누락은 현재 모델에 포함하지 않습니다.
+명목 화각의 근거는 [D435 데이터시트](https://dev.realsenseai.com/download/42003/)의
+Depth Camera SKU Properties입니다. 실물 `CameraInfo`를 확보하면 그 보정값으로
+대체해야 합니다.
+
 `config/nav2_safety.yaml`의 수치는 **시뮬레이션 평가값**입니다. KB의 안전
 기준은 아직 draft이며 이 프로필은 물리 로봇의 승인된 안전 설정이 아닙니다.
 기본 StopZone은 base 기준 앞뒤 0.48 m·좌우 0.40 m, SlowZone은 앞뒤
