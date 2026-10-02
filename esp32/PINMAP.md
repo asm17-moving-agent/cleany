@@ -97,6 +97,3 @@ not defined by the PCB.
 | 25, 26 | GPIO19 / USB D-, GPIO20 / USB D+ | Not connected |
 | 28–35 | GPIO47, GPIO48, GPIO45, GPIO0, GPIO35–GPIO38 | Not connected |
 | 42, 43 | GPIO44 / U0RXD, GPIO43 / U0TXD | Not connected |
-
-The current standalone hardware tests described in `README.md` use temporary
-bench-wiring GPIO assignments. They do not represent this PCB pin map.

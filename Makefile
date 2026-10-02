@@ -77,6 +77,17 @@ GRASP_PREGRASP_DESCRIPTION_TESTS := \
 	test-gazebo-harmonic test-gazebo-safety view-gazebo-costmap \
 	sim-gazebo-harmonic sim-gazebo-office
 
+ROS2_CONTAINER ?= ros2-humble
+BASE_TEST_ROS_DOMAIN_ID ?= 173
+# Run natively inside the Ubuntu Distrobox, enter it when invoked from the host.
+BASE_EXEC ?= $(shell . /etc/os-release; \
+	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
+		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
+
+.PHONY: firmware-setup firmware-smoke firmware-build \
+	firmware-upload test-motor-core build-base test-base \
+	micro-ros-agent-build test-micro-ros-setup
+
 help:
 	@echo "Cleany native ROS 2 commands"
 	@echo "  make deps          Install workspace dependencies with rosdep"
@@ -117,6 +128,39 @@ help:
 	@echo "  make hybrid-up/down     Start/stop all implemented GPU services"
 	@echo "  make vision-feature-id Verify the pinned AnyGrasp ID (compatibility alias)"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
+	@echo "  make firmware-setup / firmware-smoke / firmware-build"
+	@echo "  make test-motor-core / build-base / test-base"
+	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
+	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
+
+firmware-setup:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py'
+
+test-micro-ros-setup:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/test_micro_ros_setup.py'
+
+firmware-smoke: firmware-setup
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/microros_smoke -e esp32-s3-microros-smoke'
+
+firmware-build: firmware-setup
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32 -e esp32-s3-microros'
+
+firmware-upload: firmware-setup
+	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)
+	@test "$(CONFIRM_UPLOAD)" = 1 || (echo "CONFIRM_UPLOAD=1 is required" >&2; exit 2)
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32 -e esp32-s3-microros -t upload --upload-port "$(CLEANY_ESP_PORT)"'
+
+test-motor-core:
+	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; for f in esp32/host_tests/*.cpp; do g++ -std=c++17 -Wall -Wextra -Werror -pedantic -Iesp32/src "$$f" -o "/tmp/$$(basename "$$f" .cpp)"; "/tmp/$$(basename "$$f" .cpp)"; done'
+
+build-base:
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon build --symlink-install --packages-up-to cleany_base_driver cleany_base_odometry'
+
+test-base: build-base
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source install/setup.bash && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon test --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon test-result --test-result-base "build/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+
+micro-ros-agent-build:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'
 
 deps:
 	source "$(ROS_SETUP)" && \

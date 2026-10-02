@@ -1,215 +1,157 @@
-# ESP32-S3 motor and IMU hardware tests
+# ESP32-S3 micro-ROS motor controller
 
-The normal PlatformIO firmware entry point is `src/main.cpp`. Hardware checks
-are independent Unity applications under `test/`, so a test runs only when it
-is explicitly selected with `pio test`.
+ESP-IDF firmware controls four wheels through native USB micro-ROS, encoder
+feedback, and PWM/DIR outputs. The PlatformIO environment is
+`esp32-s3-microros`, targeting ESP32-S3 N32R16V with 32 MB octal flash and
+16 MB octal PSRAM. GPIO assignments are in [`PINMAP.md`](PINMAP.md).
 
-The PlatformIO environment targets the ESP32-S3-DevKitC-1-N32R16V with 32 MB
-octal flash and 16 MB octal PSRAM. Firmware and hardware tests use ESP-IDF;
-the Arduino framework is not required.
+## Layout
 
-The environment uses PlatformIO's official `esp32-s3-devkitc-1` board
-template. `platformio.ini` and `sdkconfig.defaults` supply the N32R16V memory
-overrides. The `dout` image-header mode is intentional: the ESP32-S3
-bootloader switches the detected octal flash to OPI mode.
+| Path | Contents |
+|---|---|
+| `src/` | Firmware and motor-control core |
+| `host_tests/` | Device-free C++ tests |
+| `microros_smoke/` | micro-ROS/type-support link check |
+| `pcb/` | KiCad project and project-local libraries |
+| `micro_ros/`, `.venv/` | Generated dependencies and build tools |
 
-The directory keeps firmware in `src/`, PlatformIO hardware tests in `test/`,
-host-only C++ tests in `host_tests/`, and the KiCad project with its local
-libraries in `pcb/`. PlatformIO's default `test/` layout is intentional.
-
-## Motor web interface
-
-The normal firmware creates the `Cleany` Wi-Fi access point with password
-`ASM_2026`. Connect to it and open `http://192.168.4.1/`. The left side of the
-page has press-and-hold controls for forward, backward, left, right, clockwise,
-and counterclockwise motion using X-configuration mecanum mixing. It also has
-signed PWM controls for each motor. The right side graphs live quadrature
-counts from encoders 1–4. The board layout is:
+## Runtime
 
 ```text
-          FRONT
-    M1 FL       M2 FR
-    M4 RL       M3 RR
+base/wheel_command → USB XRCE-DDS / rclc callback → latest-value mailbox
+                  → motor task: ENABLE / deadline / PI + feed-forward / PWM
+encoders → motor task → base/wheel_state → ROS base driver / odometry
 ```
 
-Motor numbering proceeds clockwise from M1 at front-left. M1 and M4 direction
-polarity is inverted in firmware to match the installed wheel orientation;
-M2 and M3 use normal polarity. Encoder polarity is calibrated separately so
-positive measured velocity matches a positive logical wheel command. Verify
-all wheel directions and measured velocity signs with the robot lifted before
-driving it. Each active motor must receive the browser's 250 ms heartbeat and
-is stopped by the firmware after 750 ms without a command.
-Motor commands pass through a 5 ms, 1%-per-tick slew-rate limiter, taking about
-500 ms from 0 to 100%. This limiter is applied to the final PI-controlled PWM
-output, so feedback correction cannot bypass the motor-protection rate limit.
-A direction change ramps to zero and waits until
-encoder feedback remains below 0.5 rad/s for 50 ms before changing `DIR`.
-Releasing a drive button uses this controlled stop. The `STOP ALL` button,
-command watchdog, and Wi-Fi disconnect retain an immediate electrical brake for
-fail-safe operation. GPIO assignments come from [`PINMAP.md`](PINMAP.md).
+The communication task owns the USB stream, ROS entities, and Agent reconnect
+lifecycle. The independent 5 ms motor task validates commands and updates PWM
+under `motorMutex`.
 
-Each ramped percentage command is mapped to a target output-shaft velocity,
-where 100% currently means 10 rad/s. A per-wheel feed-forward plus PI loop
-uses an 11 rad/s measured no-load feed-forward scale and encoder feedback to
-produce the applied PWM percentage. The initial
-controller values (`Kp=6`, `Ki=6`) are hardware response-calibrated baseline
-gains, not a substitute for loaded-floor validation. Verify encoder polarity
-with the robot lifted before loaded driving.
+- Startup is PWM zero and disabled. Zero `ENABLE` permits `VELOCITY`.
+- Commands validate protocol 2, modular sequence, finite/range, and MCU deadline.
+  The sequence high-water survives STOP and reconnect. Rejected commands and
+  repeated ENABLE packets do not renew the deadline or reset a moving target.
+- STOP has a priority latch and discards queued commands. Its forward sequence
+  blocks older delayed ENABLE packets.
+- A single deadline, at most 250 ms from receipt, is checked before command
+  processing. Expiry and disconnect disable output; resuming needs a new ENABLE.
+- Feed-forward plus PI has separate FL/FR/RL/RR settings in `src/main.cpp`:
+  `kFlControllerConfig`, `kFrControllerConfig`, `kRlControllerConfig`, and
+  `kRrControllerConfig`. Current initial calibration values are listed below.
+  The aggregate field order is
+  **FF scale, Kp, Ki, PWM limit**; FF is `target / FF scale * PWM limit`.
+  Edit the relevant wheel's setting, rebuild, and upload to apply it.
+  The command target ceiling remains 10 rad/s, with targets rounded to 0.1 rad/s.
+- PWM runs at 20 kHz and changes by at most 1 percentage point per 5 ms tick.
+  Reversal waits for measured speed at or below 0.5 rad/s for 50 ms before
+  changing DIR. STOP/expiry/disconnect reset the controllers and request PWM zero.
 
-The web debug panel displays a selectable motor's requested, rate-limited, and
-measured velocity response over the latest 20 seconds. Its table also shows
-encoder counts, tracking error, final PWM, and controller state for every
-motor.
-The same values are available from `/api/status` as `encoders`, `target`,
-`applied`, `target_rad_s`, `commanded_rad_s`, `omega_rad_s`, and
-`reverse_waiting`. Velocity conversion uses 3172 quadrature counts per output
-revolution (13 PPR, 4x decoding, 61:1 reduction).
+Wire arrays use **FL, FR, RL, RR**. PCB motors are M1 FL, M2 FR, M3 RR, M4 RL;
+the mapping is `{0,1,3,2}`. Motor and encoder polarity are applied on the MCU.
+The encoder scale is 3172 quadrature counts per output revolution.
 
-## USB serial control and calibration
+`base/wheel_command` and `base/wheel_state` use fixed-size
+[`cleany_base_interfaces`](../ros2_ws/src/cleany_base_interfaces/README.md)
+messages with best-effort, volatile, keep-last-1 QoS. State publication targets
+50 Hz. MCU microseconds are monotonic; boot ID identifies encoder baselines
+across reboots. Use protocol 2 interfaces and firmware from the same revision.
 
-The USB Serial/JTAG port provides motor control and telemetry without changing
-the host's network connection. The COBS-framed, CRC-protected binary Jetson
-interface, including wheel telemetry and the reserved MPU6050 frame, is specified in
-[`SERIAL_PROTOCOL.md`](SERIAL_PROTOCOL.md). The following newline-terminated
-commands remain available for manual commissioning only:
+USB carries framed XRCE-DDS traffic exclusively for the Agent. Agent reachability
+is checked every 100 ms with a 20 ms ping timeout. Failure latches STOP before
+entity teardown and reconnect.
 
-```text
-HELP
-STATUS
-MOTOR <1-4> <-100..100 percent>
-VELOCITY <1-4> <-10..10 rad/s>
-MOVE <1-4> <-10..10 rad/s> <0.5..6 rad>
-MOVE ALL <-10..10 rad/s> <0.5..6 rad>
-TRACE <1-4> <20..1000 ms>
-TRACE ALL <50..1000 ms>
-TRACE STOP
-STOP
-```
+## 휠별 초기 PI + FF 보정값
 
-`MOVE` is intended for response calibration. `MOVE ALL` drives all wheels in
-the same logical direction to avoid the wheel slip caused by running one wheel
-against three stationary wheels. Each wheel commands an immediate electrical
-stop at its encoder threshold or after five seconds. Firmware places that
-threshold 0.25 rad before the requested limit to reserve room for control-loop
-and mechanical stopping latency; physical coasting still depends on load and
-surface and is not a position-control guarantee. `TRACE` emits CSV-like
-`CLEANY_TRACE` records containing timestamp, motor, encoder count, requested
-velocity, rate-limited velocity, measured velocity, PWM, and bounded-move
-state. `STOP` remains an immediate stop.
+2026-10-02, 네 바퀴를 공중에 띄운 상태에서 **네 바퀴를 동시에** 정·역방향으로
+PWM 0→100% 스윕했다. PI를 끄고 5% 간격으로 각 단계 1.5초 동안 측정한
+실제 PWM·encoder 속도로 FF와 PI 초기값을 추정했다.
 
-Firmware boots in manual commissioning mode. A binary frame's leading NUL byte
-switches the serial receiver into binary mode until reboot, preventing binary
-payload bytes from being misinterpreted as manual commands.
+| 휠 | FF scale (rad/s) | Kp | Ki | PWM 상한 (%) |
+|---|---:|---:|---:|---:|
+| FL | 12.4261 | 4.655 | 9.309 | 100 |
+| FR | 12.1178 | 4.711 | 9.421 | 100 |
+| RL | 11.6403 | 4.864 | 9.728 | 100 |
+| RR | 11.8128 | 4.783 | 9.566 | 100 |
 
-Build and upload the non-test firmware with PlatformIO isolated by `uv`:
+FF는 기존 단일 기울기 식을 유지한다. 전 구간의 `PWM ≈ k × 속도` 적합으로
+`FF scale = 100/k`를 계산하며, 마찰에 따른 잔여 오차는 PI가 보정한다.
+PI 초기값은 PWM→속도 모델의 gain `K`, time constant `τ`, delay `L`에서
+`Kp = clamp(0.6/K, 2, 8)`, `Ki = Kp / max(0.5, 4(τ+L))`로 계산했다.
+이 모델의 시간 응답에는 기존 50 ms 속도 필터가 포함된다.
+
+보정값을 업로드한 뒤 네 바퀴 동시 정·역방향 **0.5, 2, 5, 10 rad/s** 명령을
+각각 5초 동안 검증했다. 마지막 0.5초 평균 속도 오차는 모든 휠에서 4.5% 이내였다.
+최종 상태는 구동 비허가, PWM 0, fault 0이다.
+이 값은 해당 전원·공중 무부하 조건의 초기 보정값이며, 지면 하중에서는 별도로 검증한다.
+
+## Build and device-free verification
+
+From the repository root:
 
 ```bash
-uvx --with pip --from platformio pio run -d esp32
-uvx --with pip --from platformio pio run -d esp32 --target upload \
-  --upload-port /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5:B1:D5:3F:34-if00
-uvx --with pip --from platformio pio device monitor -d esp32 \
-  --port /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5:B1:D5:3F:34-if00 \
-  --baud 115200
+make firmware-setup
+make test-micro-ros-setup test-motor-core
+make firmware-smoke
+make firmware-build
+make build-base test-base
+make micro-ros-agent-build
 ```
 
-## Editor tooling
+Make uses Ubuntu 22.04 `ros2-humble` Distrobox when invoked from the host.
+Sources and tool versions are pinned in `micro_ros.lock.json`. Interfaces are
+generated from `ros2_ws/src/cleany_base_interfaces`.
 
-Generate the clangd compilation database after dependencies or build flags
-change:
+Smoke and runtime share a library cache and build sequentially. Changes to
+interfaces, metadata, or build environment regenerate type support.
+`sdkconfig.defaults` configures octal memory, a 1000 Hz FreeRTOS tick, and the
+USB transport. The DOUT image header lets the bootloader enable OPI.
+
+For clangd, run inside Distrobox:
 
 ```bash
-pio run -e esp32-s3-devkitc-1-n32r16v -t compiledb
+esp32/.venv/bin/platformio run -d esp32 -e esp32-s3-microros -t compiledb
 ```
 
-The project-local `.clangd` configuration and compilation database provide
-ESP32-S3 completion and diagnostics without editor-specific configuration.
+## Upload and communication
 
-Run the host-side command-filter check without attached hardware:
+Select the device and confirm upload:
 
 ```bash
-c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
-  -Iesp32/src \
-  esp32/host_tests/motor_command_filter_test.cpp \
-  -o /tmp/motor_command_filter_test &&
-  /tmp/motor_command_filter_test
+make firmware-upload CLEANY_ESP_PORT=/dev/serial/by-id/<device> CONFIRM_UPLOAD=1
 ```
 
-Run the host-side velocity-controller check:
+Apply the ROS and Agent overlays and use DDS domain 0:
 
 ```bash
-c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
-  -Iesp32/src \
-  esp32/host_tests/wheel_velocity_controller_test.cpp \
-  -o /tmp/wheel_velocity_controller_test &&
-  /tmp/wheel_velocity_controller_test
+source /opt/ros/humble/setup.bash
+source esp32/micro_ros/agent/install/local_setup.bash
+source ros2_ws/install/local_setup.bash
+export ROS_DOMAIN_ID=0
+ros2 run micro_ros_agent micro_ros_agent serial --dev "$CLEANY_ESP_PORT" -b 115200
+# Another terminal with the same overlays/domain:
+ros2 topic echo /base/wheel_state --qos-reliability best_effort
 ```
 
-Run the host-side binary protocol codec check:
+On a bare MCU, check a nonzero boot ID, increasing sequence/timestamps,
+`enabled=false`, zero targets/PWM, and no fault.
 
-```bash
-c++ -std=c++17 -Wall -Wextra -Werror -pedantic \
-  -Iesp32/src \
-  esp32/host_tests/serial_protocol_test.cpp \
-  -o /tmp/serial_protocol_test &&
-  /tmp/serial_protocol_test
-```
+## Robot acceptance
 
-## Hardware tests
+Use a supervised, people-free area, reviewed hardware limits, and an accessible
+physical emergency stop.
 
-Run both suites in sequence with PlatformIO port auto-detection:
+1. Lift the wheels; check startup zero PWM, wheel directions, and encoder signs.
+2. Enable and send a new low-speed command; check forward/left/yaw patterns,
+   PI response, PWM slew, and encoder-confirmed reversal dwell.
+3. Measure STOP, command expiry, driver/Agent exit, USB loss, and MCU reboot
+   behavior. Reconnect requires a new enable and command.
+4. Verify motion, odometry, and single odom/TF ownership with
+   [`cleany_base_driver`](../ros2_ws/src/cleany_base_driver/README.md).
 
-```bash
-uvx --with pip --from platformio pio test -d esp32 \
-  -e esp32-s3-devkitc-1-n32r16v
-```
+Record revisions, settings, load/surface, wheel signs, rates, and stop times.
 
-If the board was left disconnected by an older test build, perform the
-BOOT/RESET upload sequence once before running this command. Test builds from
-this project keep the USB Serial/JTAG console active between suites, so
-subsequent uploads should not require that sequence.
+## KiCad project
 
-Set the connected board port once:
-
-```bash
-CLEANY_ESP_PORT=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5:B1:D5:3F:34-if00
-```
-
-Run only the motor test:
-
-```bash
-uvx --with pip --from platformio pio test -d esp32 \
-  -e esp32-s3-devkitc-1-n32r16v -f test_motor \
-  --upload-port "$CLEANY_ESP_PORT" --test-port "$CLEANY_ESP_PORT"
-```
-
-The motor test uses encoder A on GPIO4, encoder B on GPIO3, direction on
-GPIO10, and PWM on GPIO11. It ramps to 50% duty, runs for at most three
-seconds, and ramps down before reporting whether 793 encoder counts were
-reached. The motor supply, driver, encoder, and development board must share
-ground.
-
-Run only the MPU6050 test:
-
-```bash
-uvx --with pip --from platformio pio test -d esp32 \
-  -e esp32-s3-devkitc-1-n32r16v -f test_imu \
-  --upload-port "$CLEANY_ESP_PORT" --test-port "$CLEANY_ESP_PORT"
-```
-
-Connect MPU6050 VCC to 3V3, GND to GND, SDA to GPIO8, and SCL to GPIO9. The
-test accepts address `0x68` or `0x69`, checks `WHO_AM_I`, wakes the device,
-and reads a complete accelerometer, temperature, and gyroscope frame.
-
-The project-local `test/unity_config.h` leaves the ESP-IDF USB Serial/JTAG
-console active after `UNITY_END()`. This allows PlatformIO to upload the next
-test suite without another manual BOOT/RESET sequence.
-
-## KiCad symbol and footprint
-
-The KiCad project is
-[`pcb/motor_controller.kicad_pro`](pcb/motor_controller.kicad_pro). Its
-project-local library tables register Espressif's official
-ESP32-S3-DevKitC symbol and footprint as
-`PCM_Espressif:ESP32-S3-DevKitC`. The vendored source revision, mechanical
-drawing used for verification, and license are recorded in
+[`pcb/motor_controller.kicad_pro`](pcb/motor_controller.kicad_pro) uses project-local
+symbol and footprint tables. The Espressif assets and license are documented in
 [`pcb/libraries/README.md`](pcb/libraries/README.md).

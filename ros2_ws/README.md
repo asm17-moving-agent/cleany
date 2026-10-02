@@ -73,6 +73,45 @@ Hand-eye의 수학·ROS adapter·오프라인 dataset 검증은
 [`cleany_handeye_calibration` README](src/cleany_handeye_calibration/README.md)를 따른다.
 전용 MuJoCo calibration 실행 경로는 제거했다.
 
+## 실제 메카넘 base
+
+`cleany_base_interfaces`는 MCU용 고정 크기 메시지 원본,
+`cleany_base_driver`는 `/cmd_vel` 검증, 역기구학과 wheel feedback adapter를 관리한다.
+`cleany_base_odometry`의 wheel odometry를 연결한다.
+
+```bash
+make build-base
+make test-base
+make test-motor-core
+make firmware-smoke
+make firmware-build
+```
+
+Base target은 Ubuntu 22.04 `ros2-humble` Distrobox에서 실행한다. 호스트에서
+호출하면 Make가 Distrobox에 진입한다. Firmware와 Agent 준비는
+[개발환경 설치 가이드](../docs/DEVELOPMENT_SETUP.md#8-모터-컨트롤러와-micro-ros-개발환경)를
+따른다.
+
+ROS의 native 세부 명령은 다음과 같다.
+
+```bash
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon build --symlink-install \
+  --packages-up-to cleany_base_driver cleany_base_odometry
+source install/setup.bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest \
+  src/cleany_base_driver/test src/cleany_base_odometry/test
+```
+
+실물 geometry와 주행 제한은 `configs/robot/`에서 명시적으로 설정한다.
+장치 없는 테스트는 합성 설정과 mock MCU를 사용한다. Launch, enable 절차와
+odometry/TF 소유권은 [`cleany_base_driver` README](src/cleany_base_driver/README.md),
+wheel 순서와 ENABLE/STOP 계약은
+[`cleany_base_interfaces` README](src/cleany_base_interfaces/README.md)를 따른다.
+
+## MuJoCo 시뮬레이션
+
 스터디카페 관찰 장면을 headless 모드로 실행한다.
 
 ```bash
