@@ -21,8 +21,8 @@ desk_layout:
   row_pair_centers_y_m: [3.17, 0.0, -3.17]
   rows:
     - desk_y_offset_m: 0.385
-      chair_y_offset_from_desk_m: 0.385
+      chair_y_offset_from_desk_m: 0.285
     - desk_y_offset_m: -0.385
-      chair_y_offset_from_desk_m: -0.385
+      chair_y_offset_from_desk_m: -0.285
   partition_center_z_m: 0.62
   monitor_y_offset_from_desk_center_m: 0.285

@@ -956,3 +956,9 @@ Fortress/Harmonic 실행기는 외부 world도 임시 복사본으로 정규화�
 문자열 이름으로 조회하므로 `ns0:expressed_in`으로 바뀌면 차체 기준 마찰 방향이
 무시되어 대각선 명령이 불필요한 회전과 odometry 불일치를 만들 수 있다.
 원본 world와 mesh는 변경하지 않는다.
+
+Study-cafe chairs are positioned 0.285 m from their assigned desk centers
+on either side (10 cm farther under each desk than the previous layout).
+Both visual and collision geometry move together. Previously saved SLAM maps
+retain the old furniture positions and must be refreshed before navigation
+validation against this layout.
