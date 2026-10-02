@@ -900,5 +900,9 @@ make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic
 ```
 
 위 opt-in 테스트는 임시로 만든 6m 방과 일치하는 지도를 사용한다. CAD 모델의 Gazebo sensor,
-wheel odom, pan/monitor/memory/voxel 전체 경로에서 0.6m 목표 완료와 정지를 검사한다.
-기존 카페 지도에서의 경로 성능 검증과는 구분한다.
+wheel odom, pan/monitor/memory/voxel 전체 경로에서 전진, 후진, 90도 방향 전환 후 이동과
+정지를 검사한다. 모든 속도 단계의 Y 명령이 0이고 병진과 회전이 혼합되지 않는지도 확인한다.
+기본 주행은 전·후진과 제자리 회전이며, 횡이동은 공통 navigation 설정의 확장 옵션이다.
+정확한 spawn과 ideal odometry, 초기 pose 표준편차 5mm/0.5도,
+목표 허용 오차 5cm/0.08rad를 사용하는 동작 정책 검사다. 기본 runtime 허용 오차는 변경하지 않는다.
+기존 카페 지도에서의 경로 성능과 실제 localization 정밀도 검증과는 구분한다.

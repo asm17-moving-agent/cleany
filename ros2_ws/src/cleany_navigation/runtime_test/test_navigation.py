@@ -143,7 +143,8 @@ def near_origin_clear(grid):
 def test_goal_serial_guard_obstacle_cancel_and_missing_sources(tmp_path, monkeypatch, simulated_clock):
     # Separate cases so DDS discovery from a just-shut-down lifecycle server
     # cannot answer the next case's identically named service clients.
-    monkeypatch.setenv('ROS_DOMAIN_ID', '189' if simulated_clock else '187')
+    base_domain = int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_BASE', '187'))
+    monkeypatch.setenv('ROS_DOMAIN_ID', str(base_domain+2 if simulated_clock else base_domain))
     monkeypatch.setenv('ROS_LOCALHOST_ONLY', '1')
     root = Path(__file__).resolve().parents[1]
     pixels = np.full((124, 124), 254, dtype=np.uint8)

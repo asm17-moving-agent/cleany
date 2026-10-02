@@ -73,10 +73,14 @@ class SafetyProbe(Node):
         self.fixture_xy = None
         self.sampled_cloud = self.create_publisher(PointCloud2, '/evaluation/depth_points', qos_profile_sensor_data)
         for topic, kind in [('/scan', LaserScan), ('/camera/head/depth/points', PointCloud2),
-                            ('/ground_truth/odom', Odometry), ('/amcl_pose', PoseWithCovarianceStamped),
+                            ('/ground_truth/odom', Odometry),
                             ('/cmd_vel', Twist), ('/nav2/cmd_vel', Twist),
                             ('/collision_monitor_state', CollisionMonitorState)]:
             self.create_subscription(kind, topic, lambda msg, topic=topic: self.receive(topic, msg), qos_profile_sensor_data)
+        # AMCL may publish only once while stationary; retain its initial pose.
+        self.create_subscription(PoseWithCovarianceStamped, '/amcl_pose',
+            lambda msg: self.receive('/amcl_pose', msg),
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
         for topic in ['/map', '/local_costmap/costmap', '/global_costmap/costmap']:
             self.create_subscription(OccupancyGrid, topic, lambda msg, topic=topic: self.receive(topic, msg),
                                      QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
@@ -192,7 +196,7 @@ class SafetyProbe(Node):
 
     def initialize(self) -> None:
         deadline = time.monotonic() + 120
-        required = ['/scan', '/camera/head/depth/points', '/ground_truth/odom', '/amcl_pose', '/local_costmap/costmap']
+        required = ['/scan', '/camera/head/depth/points', '/ground_truth/odom']
         while not all(k in self.latest for k in required):
             self.tick()
             if time.monotonic() > deadline:
@@ -205,12 +209,16 @@ class SafetyProbe(Node):
         initial.pose.pose.position.y = y
         initial.pose.pose.orientation.z = math.sin(initial_yaw/2)
         initial.pose.pose.orientation.w = math.cos(initial_yaw/2)
-        initial.pose.covariance[0] = initial.pose.covariance[7] = 0.25**2
-        initial.pose.covariance[35] = math.radians(15)**2
+        covariance = self.scenario.get('initial_pose_covariance', [0.25**2, 0.25**2, math.radians(15)**2])
+        initial.pose.covariance[0], initial.pose.covariance[7], initial.pose.covariance[35] = covariance
         self.initial.publish(initial)
         for _ in range(5):
             self.service(Empty, '/request_nomotion_update', Empty.Request())
             self.wait(1.0)
+        while not all(k in self.latest for k in ('/amcl_pose', '/local_costmap/costmap')):
+            self.tick()
+            if time.monotonic() > deadline:
+                raise TimeoutError('Missing localization/costmap after initial pose: '+str(self.counts))
         names = ['map_server', 'amcl', 'controller_server', 'planner_server', 'behavior_server', 'bt_navigator',
                  'collision_monitor', 'local_costmap/local_costmap', 'global_costmap/global_costmap']
         lifecycle_deadline = time.monotonic()+30

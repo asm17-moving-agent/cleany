@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 import hashlib
 import os
 from pathlib import Path
@@ -56,11 +57,21 @@ def test_cad_gazebo_full_pipeline_reaches_saved_map_goal(runtime_test_options, t
     (tmp_path/'map.yaml').write_text(yaml.safe_dump(dict(image='map.pgm', resolution=.05,
         origin=[-3.1, -3.1, 0.], negate=0, occupied_thresh=.65, free_thresh=.2)))
     scenario['spawn_pose'] = spawn
+    # Known exact spawn and ideal odometry isolate motion policy from relocalization.
+    scenario['initial_pose_covariance'] = [.005**2, .005**2, math.radians(.5)**2]
     scenario['map_source'] = 'test fixture: matched 6m open room'
     scenario['map_sha256'] = hashlib.sha256((tmp_path/'map.pgm').read_bytes()).hexdigest()
     (tmp_path/'scenario.json').write_text(json.dumps(scenario, indent=2))
+    # Use a tighter goal checker so pose-estimator drift does not consume the
+    # ground-truth progress bound while exercising each motion direction.
+    axis_file = tmp_path/'config/nav2_axis_motion.yaml'
+    axis = yaml.safe_load(axis_file.read_text())
+    controller = axis['controller_server']['ros__parameters']
+    controller['goal_checker'] = {'xy_goal_tolerance': .05, 'yaw_goal_tolerance': .08}
+    controller['FollowPath']['xy_goal_tolerance'] = .05
+    axis_file.write_text(yaml.safe_dump(axis))
     scenario['evaluation']['avoid']['goal'] = [.6, 0., 0.]
-    scenario['evaluation']['avoid']['timeout_wall_s'] = 60.
+    scenario['evaluation']['avoid']['timeout_wall_s'] = 120.
     process = node = None
     rclpy.init()
     try:
@@ -69,11 +80,31 @@ def test_cad_gazebo_full_pipeline_reaches_saved_map_goal(runtime_test_options, t
                 stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
             node = SafetyProbe(tmp_path, scenario)
             node.initialize()
-            result = node.run_avoid(inject_obstacle=False)
-            (tmp_path/'result.json').write_text(json.dumps(result, indent=2))
-            assert result['checks']['nav2_succeeded'], result
-            assert result['checks']['real_progress'], result
-            assert result['final_truth'][0] > .3, result
+            results = []
+            commands = {topic: [] for topic in ('/nav2/cmd_vel', '/pan_ready/cmd_vel',
+                                                '/safety_2d/cmd_vel', '/cmd_vel')}
+            from geometry_msgs.msg import Twist
+            for topic in commands:
+                node.create_subscription(Twist, topic, lambda msg, topic=topic:
+                    commands[topic].append((msg.linear.x, msg.linear.y, msg.angular.z)), 10)
+            for goal in ([.6, 0., 0.], [0., 0., 0.], [0., .6, math.pi/2]):
+                scenario['evaluation']['avoid']['goal'] = goal
+                result = node.run_avoid(inject_obstacle=False)
+                results.append(dict(goal=goal, **result))
+                (tmp_path/'result.json').write_text(json.dumps(results, indent=2))
+                assert result['checks']['nav2_succeeded'], result
+                # Physical fixture error includes AMCL offset as well as goal tolerance.
+                assert math.dist(result['final_truth'][:2], goal[:2]) < .2, result
+                yaw_error = result['final_truth'][2]-goal[2]
+                assert abs(math.atan2(math.sin(yaw_error), math.cos(yaw_error))) < .2, result
+            for topic, samples in commands.items():
+                assert samples, topic
+                assert all(abs(y) < 1e-6 and not (abs(x) > 1e-6 and abs(w) > 1e-6)
+                           for x, y, w in samples), (topic, samples)
+                assert any(x > .01 for x, _, _ in samples), topic
+                assert any(x < -.01 for x, _, _ in samples), topic
+                assert any(abs(w) > .01 for _, _, w in samples), topic
+            (tmp_path/'commands.json').write_text(json.dumps(commands))
             node.wait(1.)
             output = node.latest.get('/cmd_vel')
             assert output is not None
@@ -85,7 +116,8 @@ def test_cad_gazebo_full_pipeline_reaches_saved_map_goal(runtime_test_options, t
         if node is not None:
             node.save()
             node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
         if process is not None and process.poll() is None:
             process.send_signal(signal.SIGINT)
             try:
