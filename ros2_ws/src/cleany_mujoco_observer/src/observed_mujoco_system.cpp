@@ -24,6 +24,12 @@ public:
     auto backend_info = info;
     const bool scheduled = info.hardware_parameters.count("scheduled_cameras") &&
       info.hardware_parameters.at("scheduled_cameras") == "true";
+    const bool show_viewer = info.hardware_parameters.count("efficient_viewer") &&
+      info.hardware_parameters.at("efficient_viewer") == "true";
+    if (show_viewer && !scheduled) {
+      RCLCPP_ERROR(get_logger(), "Efficient viewer requires scheduled cameras");
+      return hardware_interface::CallbackReturn::ERROR;
+    }
     if (scheduled) {
       // Initialize GLFW synchronously before the backend starts its rendering
       // threads. Concurrent glfwInit calls race inside GLFW's global mutexes.
@@ -71,7 +77,7 @@ public:
         get_data(data);
         if (data) {simulation_time_seconds_.store(data->time, std::memory_order_relaxed);}
       },
-      [this]() {return simulation_time_seconds_.load(std::memory_order_relaxed);});
+      [this]() {return simulation_time_seconds_.load(std::memory_order_relaxed);}, show_viewer);
     return result;
   }
 

@@ -24,7 +24,7 @@
     params="mujoco_model headless sim_speed_factor camera_publish_rate camera_name camera_frame_name enable_gripper_command
             left_shoulder_yaw_initial left_shoulder_pitch_initial left_elbow_pitch_initial left_wrist_pitch_initial left_wrist_roll_initial left_gripper_initial
             right_shoulder_yaw_initial right_shoulder_pitch_initial right_elbow_pitch_initial right_wrist_pitch_initial right_wrist_roll_initial right_gripper_initial
-            hardware_plugin:=mujoco_ros2_control/MujocoSystemInterface scheduled_cameras:=false">
+            hardware_plugin:=mujoco_ros2_control/MujocoSystemInterface scheduled_cameras:=false efficient_viewer:=false">
     <ros2_control name="MujocoSystem" type="system">
       <hardware>
         <plugin>${hardware_plugin}</plugin>
@@ -32,6 +32,7 @@
         <param name="headless">${headless}</param>
         <param name="sim_speed_factor">${sim_speed_factor}</param>
         <param name="camera_publish_rate">${camera_publish_rate}</param>
+        <param name="efficient_viewer">${str(efficient_viewer).lower()}</param>
         <xacro:if value="${scheduled_cameras}">
           <param name="scheduled_cameras">true</param>
         </xacro:if>

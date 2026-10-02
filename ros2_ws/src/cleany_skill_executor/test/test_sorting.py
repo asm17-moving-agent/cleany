@@ -124,13 +124,3 @@ def test_review_does_not_command_robot():
     assert not execute_sort('target', decision, port, stages.append)
     assert stages == ['review']
     assert port.calls == []
-def test_bin_release_region_keeps_whole_payload_inside_opening():
-    from cleany_skill_executor.core.sorting import bin_release_region
-    low, high = bin_release_region((-.405, .105), (.18, .17, .12), .008, .30,
-                                   .04, .06, .21, .005)
-    assert low == pytest.approx((-.442, .073, .40))
-    assert high == pytest.approx((-.368, .137, .55))
-    for radius in (.08, float('nan')):
-        with pytest.raises(ValueError):
-            bin_release_region((-.405, .105), (.18, .17, .12), .008, .30,
-                               radius, .06, .21, .005)

@@ -14,6 +14,12 @@ geometry_msgs/PoseStamped expected_pose
 geometry_msgs/Vector3 size
 int64 after_stamp_ns
 ---
+# NOT_DETECTED means a valid, fresh observation had no associated target.
+# ERROR covers unavailable sensors, invalid contracts and ambiguous observations.
+uint8 ERROR=0
+uint8 OK=1
+uint8 NOT_DETECTED=2
+uint8 status
 bool success
 string message
 string reference_id

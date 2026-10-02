@@ -9,6 +9,7 @@
   <depend>mujoco_ros2_control_plugins</depend>
   <depend>mujoco_vendor</depend>
   <depend>mujoco_ros2_control</depend>
+  <depend>mujoco_ros2_control_msgs</depend>
   <depend>hardware_interface</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>

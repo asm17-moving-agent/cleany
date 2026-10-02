@@ -1,5 +1,6 @@
 #include "cleany_scene_mapping/known_geometry_updater.hpp"
 #include <gtest/gtest.h>
+#include <geometric_shapes/mesh_operations.h>
 #include <moveit/occupancy_map_monitor/occupancy_map_monitor.h>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <future>
@@ -163,6 +164,28 @@ TEST_F(FrameIntegration, NormalFrameMasksRobotAndPreservesUnrelatedObstacle)
   EXPECT_TRUE(tree->isNodeOccupied(tree->search(1.005, 0.005, 0.005)));
   EXPECT_TRUE(tree->isNodeOccupied(tree->search(0.005, 0.805, 0.005)));
   EXPECT_EQ(updates, 1U);
+}
+
+TEST_F(FrameIntegration, MeshFacePaddingClearsStaleAndNewReturnsWithoutErasingOutside)
+{
+  node->set_parameter(rclcpp::Parameter("depth_cloud.padding_offset", 0.015));
+  ASSERT_TRUE(updater->setParams("depth_cloud"));
+  const shapes::Box shape(0.4, 0.04, 0.04);
+  shapes::ShapeConstPtr mesh(shapes::createMeshFromShape(shape));
+  setBoxCache(updater->excludeShape(mesh));
+  auto tree = monitor->getOcTreePtr();
+  // Both side voxels fit the 15 mm face padding, but not radial mesh padding.
+  tree->updateNode(0.505, -0.025, 0.005, true);
+  tree->updateNode(0.005, 0.805, 0.005, true);
+  const auto message = cloud({{0.505F, 0.035F, 0.005F}, {1.005F, 0.005F, 0.005F}});
+  for (unsigned int frame = 0; frame < 3; ++frame)
+  {
+    ASSERT_TRUE(updater->processCloud(message));
+    EXPECT_FALSE(tree->isNodeOccupied(tree->search(0.505, -0.025, 0.005)));
+    EXPECT_FALSE(tree->isNodeOccupied(tree->search(0.505, 0.035, 0.005)));
+    EXPECT_TRUE(tree->isNodeOccupied(tree->search(1.005, 0.005, 0.005)));
+    EXPECT_TRUE(tree->isNodeOccupied(tree->search(0.005, 0.805, 0.005)));
+  }
 }
 
 TEST_F(FrameIntegration, RaysStartAtCameraAndRangeUsesCloudCoordinates)

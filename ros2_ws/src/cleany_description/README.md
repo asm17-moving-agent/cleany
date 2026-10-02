@@ -9,6 +9,22 @@
 스터디카페 접촉 pair 호환성을 위해 양팔 jaw collision geom 이름을 유지한다.
 정합성 검사는 새 CAD 모델의 팔·TCP·그리퍼·헤드 카메라 좌표를 기준으로 한다.
 모델 정합성 통과가 물체 파지나 전체 수거 성공을 보장하지는 않는다.
+
+양팔 하단 `Base.stl`의 장착 위치는 원형 마운트
+`cad_frame/035armbase_step__êäèë4.stl`의 체결 구멍 4개에 맞춘다.
+기존 배치 대비 `base_link` 기준 이동량은 왼쪽
+`(-0.099657, +11.114727, 0)` mm, 오른쪽
+`(+0.099838, -11.114072, 0)` mm다. 팔 하단과 모터의 visual/collision,
+어깨 관절 원점, MJCF의 전체 팔 body에 같은 이동량을 적용하고,
+URDF에 합쳐진 고정 팔 하단의 질량 중심과 관성도 다시 계산했다.
+수정 후 어깨 원점은 왼쪽 `(0.116200343, 0.196231727, 0.447797)` m,
+오른쪽 `(0.116200838, -0.196177072, 0.447797)` m다.
+이 수치는 기존 CAD 메시의 XY 체결 정렬값이며 실물 보정값이 아니다.
+높이와 회전은 기존 값을 유지한다.
+`test_arm_base_fasteners_align_with_cad_mounts`는 메시 좌표계에서 측정한
+구멍 축을 각 배치로 변환해 XY 오차가 0.01 mm 이내인지 검사한다.
+URDF/MJCF의 같은 오배치가 단순 모델 일치 검사를 통과하는 문제를 방지한다.
+
 `include_head_camera:=false`로 카메라 관절을 제외해도 고정 기둥
 `top_base_link`/`top_base_joint`는 유지한다. MoveIt의 팔 전용 모델에서 기둥이
 누락되어 복귀 중 팔이 실제 기둥에 부딪히던 문제를 방지한다.
@@ -20,8 +36,11 @@ MJCF의 거친 head mount box가 pan joint를 사이에 둔 tilt housing과 겹�
 기본 description의 바퀴 관절은 continuous이며 고정 미리보기에서는
 `include_wheel_joints:=false`로 확장할 수 있다.
 
-control xacro의 `scheduled_cameras`(기본 false)는 sorting 전용 hardware에
-카메라별 촬영 스케줄러 사용 여부를 전달한다. 로봇 mesh/카메라 장착 형상은 변경하지 않는다.
+control xacro의 `scheduled_cameras`(기본 false)는 observer hardware에 카메라별
+촬영 스케줄러 사용 여부를 전달한다. `efficient_viewer`(기본 false)는 같은 worker에서
+GUI도 그릴지 지정한다. launch가 이 GUI를 선택하면 vendor `headless=true`를 함께
+전달한다. `efficient_viewer`는 hardware parser에 맞춰 소문자 true/false로 출력한다.
+로봇 mesh/카메라 장착 형상은 변경하지 않는다.
 
 Sorting의 analytical wrist-roll 후보 보정은 `wrist_roll_joint`의 local -Y
 축과 `grasp_tcp_joint`의 `(0, -0.100, 0)` offset이 공선이라는 현재 모델

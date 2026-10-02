@@ -346,6 +346,13 @@ def test_sorting_observer_override_preserves_control_interfaces() -> None:
     assert ET.tostring(actual) == ET.tostring(expected)
 
 
+@pytest.mark.parametrize('enabled', ['true', 'false'])
+def test_efficient_viewer_flag_uses_hardware_boolean_spelling(enabled) -> None:
+    root = _expand_urdf('cleany_control.urdf.xacro', f'efficient_viewer:={enabled}')
+    parameter = root.find('./ros2_control/hardware/param[@name="efficient_viewer"]')
+    assert parameter.text == enabled
+
+
 def test_control_description_exposes_arm_and_gripper_interfaces() -> None:
     root = _expand_urdf(
         "cleany_control.urdf.xacro",
@@ -644,6 +651,79 @@ def test_mjcf_uses_rep103_camera_optical_axes() -> None:
         )
 
 
+@pytest.mark.parametrize("entrypoint", URDF_ENTRYPOINTS)
+@pytest.mark.parametrize("mount_index,base_index", ((2, 48), (0, 80)))
+def test_arm_base_fasteners_align_with_cad_mounts(
+    entrypoint: str, mount_index: int, base_index: int,
+) -> None:
+    # Four corresponding bore axes measured in the original STL coordinates:
+    # 035armbase_step__êäèë4.stl (1.7 mm bore) and Base.stl (2.5 mm recess).
+    # These mesh-local datums are independent of the robot's placement origins.
+    mount_holes = np.array([
+        (-0.13873814, -0.15947649, 0.74864125),
+        (-0.13873814, -0.10392350, 0.74864125),
+        (-0.06896315, -0.16345000, 0.74864125),
+        (-0.06896315, -0.09995000, 0.74864125),
+    ])
+    base_holes = np.array([
+        (0.0277765, -0.062275, 0.013),
+        (-0.0277765, -0.062275, 0.013),
+        (0.03175, 0.0075, 0.013),
+        (-0.03175, 0.0075, 0.013),
+    ])
+    base = _expand_urdf(entrypoint).find("link[@name='base_link']")
+
+    def placed_holes(element: ET.Element, points: np.ndarray) -> np.ndarray:
+        origin = element.find('origin')
+        mesh = element.find('geometry/mesh')
+        scale = np.fromstring(mesh.get('scale', '1 1 1'), sep=' ')
+        rotation = _rpy(np.fromstring(origin.get('rpy', '0 0 0'), sep=' '))
+        translation = np.fromstring(origin.get('xyz'), sep=' ')
+        return (points * scale) @ rotation.T + translation
+
+    mount = base.find(f"visual[@name='mjcf_geom_{mount_index}_0_visual']")
+    expected = placed_holes(mount, mount_holes)
+    for kind, index in (('visual', base_index), ('collision', base_index + 2)):
+        arm_base = base.find(f"{kind}[@name='mjcf_geom_{index}_0_{kind}']")
+        actual = placed_holes(arm_base, base_holes)
+        # Compare the vertical bore axes in XY, not the different face heights.
+        np.testing.assert_allclose(actual[:, :2], expected[:, :2], atol=1e-5, rtol=0)
+
+
+def test_base_inertia_matches_fixed_mjcf_assembly() -> None:
+    model = mujoco.MjModel.from_xml_path(str(_source_root() / 'mjcf/cleany.xml'))
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    chassis = data.body('chassis')
+    rotation = chassis.xmat.reshape(3, 3)
+    masses, centers, tensors = [], [], []
+    for name in ('chassis', 'Base', 'Base_2'):
+        body = data.body(name)
+        masses.append(model.body(name).mass[0])
+        centers.append(rotation.T @ (body.xipos - chassis.xpos))
+        inertia_rotation = rotation.T @ body.ximat.reshape(3, 3)
+        tensors.append(inertia_rotation @ np.diag(model.body(name).inertia)
+                       @ inertia_rotation.T)
+    mass = sum(masses)
+    center = np.average(centers, axis=0, weights=masses)
+    tensor = np.zeros((3, 3))
+    for body_mass, body_center, body_tensor in zip(masses, centers, tensors):
+        offset = body_center - center
+        tensor += body_tensor + body_mass * (
+            (offset @ offset) * np.eye(3) - np.outer(offset, offset)
+        )
+    inertial = _expand_urdf('cleany.urdf.xacro').find("link[@name='base_link']/inertial")
+    assert float(inertial.find('mass').get('value')) == pytest.approx(mass)
+    origin = inertial.find('origin')
+    np.testing.assert_allclose(np.fromstring(origin.get('xyz'), sep=' '), center, atol=1e-9)
+    values = inertial.find('inertia').attrib
+    urdf_tensor = np.array([[float(values['i' + a + b if a <= b else 'i' + b + a])
+                             for b in 'xyz'] for a in 'xyz'])
+    inertia_rotation = _rpy(np.fromstring(origin.get('rpy', '0 0 0'), sep=' '))
+    np.testing.assert_allclose(inertia_rotation @ urdf_tensor @ inertia_rotation.T,
+                               tensor, atol=1e-9, rtol=0)
+
+
 def test_mjcf_mounts_arms_at_canonical_sides() -> None:
     model = mujoco.MjModel.from_xml_path(
         str(_source_root() / "mjcf" / "cleany.xml")
@@ -665,8 +745,8 @@ def test_mjcf_mounts_arms_at_canonical_sides() -> None:
     right_position = base_rotation.T @ (
         data.xpos[right_base_id] - data.xpos[base_id]
     )
-    assert left_position[:2] == pytest.approx((0.1163, 0.139917), abs=1e-6)
-    assert right_position[:2] == pytest.approx((0.116101, -0.139863), abs=1e-6)
+    assert left_position[:2] == pytest.approx((0.116200343, 0.151031727), abs=1e-6)
+    assert right_position[:2] == pytest.approx((0.116200838, -0.150977072), abs=1e-6)
 
 
 def test_nominal_grasp_tcp_offsets_match() -> None:

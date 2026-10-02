@@ -47,11 +47,13 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         LaunchConfiguration('head_tilt_initial').perform(context)
     )
     bins_path = LaunchConfiguration('sorting_bins_config').perform(context)
-    if LaunchConfiguration('scheduled_cameras').perform(context)=='true' and not bins_path:
-        raise ValueError('Scheduled cameras require the sorting hardware backend')
+    scheduled = LaunchConfiguration('scheduled_cameras').perform(context) == 'true'
+    headless = LaunchConfiguration('headless').perform(context) == 'true'
+    efficient_viewer = (scheduled and not headless and
+                        LaunchConfiguration('sim_viewer').perform(context) == 'efficient')
     observer_parameters = {}
     hardware_plugin = 'mujoco_ros2_control/MujocoSystemInterface'
-    if bins_path:
+    if bins_path or scheduled:
         get_package_share_directory('cleany_mujoco_observer')
         hardware_plugin = 'cleany_mujoco_observer/ObservedMujocoSystem'
         observer_parameters = {
@@ -86,12 +88,13 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         mappings={
             'mujoco_model': str(control_scene),
             'mujoco_hardware_plugin': hardware_plugin,
-            'headless': LaunchConfiguration('headless').perform(context),
+            'headless': 'true' if headless or efficient_viewer else 'false',
             'sim_speed_factor': LaunchConfiguration(
                 'sim_speed_factor'
             ).perform(context),
             'camera_publish_rate': f'{camera.publish_rate_hz:g}',
             'scheduled_cameras': LaunchConfiguration('scheduled_cameras').perform(context),
+            'efficient_viewer': 'true' if efficient_viewer else 'false',
             'camera_name': camera_name,
             'camera_frame_name': LaunchConfiguration(
                 'camera_frame_name'
@@ -200,6 +203,9 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('sim_performance_profile', default_value='baseline',
                                   choices=list(PERFORMANCE_PROFILES)),
             DeclareLaunchArgument('scheduled_cameras', default_value='false'),
+            DeclareLaunchArgument('sim_viewer', default_value='efficient',
+                                  choices=['efficient', 'native'],
+                                  description='Efficient snapshot viewer or full native MuJoCo UI.'),
             DeclareLaunchArgument(
                 'sim_xmodifiers', default_value='@im=none',
                 description='MuJoCo-only XIM selection; @im=none avoids IBus startup hangs.',

@@ -1,10 +1,11 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:macro name="cleany_link_properties" params="link_name">
     <xacro:if value="${link_name == 'base_link'}">
+      <!-- Combined chassis and fixed arm-base inertia at the aligned mounts. -->
       <inertial>
-        <origin xyz="0.00644072910811 2.68920880351e-05 -0.141372186369" rpy="0 -0 0" />
+        <origin xyz="0.00644073126036 2.68998835469e-05 -0.141372186369" rpy="0 -0 0" />
         <mass value="12.3513377764" />
-        <inertia ixx="0.932591878949" ixy="0.0005589332157" ixz="-0.046314226328" iyy="0.865628944375" iyz="1.45840680831e-08" izz="0.486831237121" />
+        <inertia ixx="0.933542754865" ixy="0.000607852427179" ixz="-0.0463142424415" iyy="0.865629751875" iyz="-4.37794203494e-08" izz="0.487782920537" />
       </inertial>
       <visual name="mjcf_geom_0_0_visual">
         <origin xyz="-0.0154995 -0.0745144 -0.317538" rpy="-5.55160000426e-08 -7.33800005229e-09 1.5708" />
@@ -378,8 +379,9 @@
           <box size="0.195 0.165 0.175" />
         </geometry>
       </collision>
+      <!-- Base/Motor visual and collision poses share the CAD mounting-hole fit. -->
       <visual name="mjcf_geom_48_0_visual">
-        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
         </geometry>
@@ -388,7 +390,7 @@
         </material>
       </visual>
       <visual name="mjcf_geom_49_0_visual">
-        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
         </geometry>
@@ -397,19 +399,19 @@
         </material>
       </visual>
       <collision name="mjcf_geom_50_0_collision">
-        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_51_0_collision">
-        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <visual name="mjcf_geom_80_0_visual">
-        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
+        <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
         </geometry>
@@ -418,7 +420,7 @@
         </material>
       </visual>
       <visual name="mjcf_geom_81_0_visual">
-        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -0 -3.58979302984e-09" />
+        <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -0 -3.58979302984e-09" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
         </geometry>
@@ -427,13 +429,13 @@
         </material>
       </visual>
       <collision name="mjcf_geom_82_0_collision">
-        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
+        <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_83_0_collision">
-        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -0 -3.58979302984e-09" />
+        <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -0 -3.58979302984e-09" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
         </geometry>

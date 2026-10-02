@@ -81,6 +81,8 @@ def _preflight(context):
             raise RuntimeError('Sorting requires collection bin configuration')
     if value('sorting_use_wrist_camera') == 'true' and value('sorting_mode') != 'true':
         raise RuntimeError('Wrist switching currently requires the simulation sorting backend')
+    if value('sorting_use_wrist_camera') == 'true' and value('scheduled_cameras') != 'true':
+        raise RuntimeError('Wrist switching requires scheduled_cameras=true')
     if value('sensor_scene') == 'true':
         get_package_share_directory('moveit_ros_perception')
     if value('fastdds_profiles_file') and not Path(value('fastdds_profiles_file')).is_file():
@@ -225,7 +227,8 @@ def generate_launch_description() -> LaunchDescription:
         launch_arguments={
             'sorting_bins_config': LaunchConfiguration('sorting_bins_config'),
             'sorting_contact_diagnostics': LaunchConfiguration('sorting_contact_diagnostics'),
-            'scheduled_cameras': sorting_mode,
+            'scheduled_cameras': LaunchConfiguration('scheduled_cameras'),
+            'sim_viewer': LaunchConfiguration('sim_viewer'),
             'color_image_topic': LaunchConfiguration('color_image_topic'),
             'camera_info_topic': LaunchConfiguration('color_info_topic'),
             'depth_image_topic': LaunchConfiguration('depth_image_topic'),
@@ -415,7 +418,7 @@ def generate_launch_description() -> LaunchDescription:
                 'geometric.prefer_upward_closing_axis': ParameterValue(
                     LaunchConfiguration('prefer_upward_closing_axis'), value_type=bool),
                 # Nominal base_link shoulder origins from cleany_geometry.xacro.
-                'geometric.approach_reference_positions': [0.1163, 0.185117, 0.447797, 0.116101, -0.185063, 0.447797],
+                'geometric.approach_reference_positions': [0.116200343, 0.196231727, 0.447797, 0.116200838, -0.196177072, 0.447797],
                 'geometric.search_approach_tilts': ParameterValue(
                     PythonExpression(["'", sorting_mode, "' == 'true' and '",
                                       LaunchConfiguration('topdown_only'), "' != 'true'"]), value_type=bool
@@ -530,8 +533,6 @@ def generate_launch_description() -> LaunchDescription:
             {
                 'use_sim_time': clock_parameter,
                 'sorting_bins_config': LaunchConfiguration('sorting_bins_config'),
-                'sorting_release_edge_margin_m': ParameterValue(
-                    LaunchConfiguration('sorting_release_edge_margin_m'), value_type=float),
                 'sorting_artifact_directory': LaunchConfiguration('sorting_artifact_directory'),
                 'sorting_test_only_label': LaunchConfiguration('sorting_test_only_label'),
                 'sorting_use_wrist_camera': ParameterValue(LaunchConfiguration('sorting_use_wrist_camera'), value_type=bool),
@@ -656,7 +657,6 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument('sorting_bins_config', default_value=str(
                 mujoco_share / 'config' / 'robot_top_bins.yaml')),
-            DeclareLaunchArgument('sorting_release_edge_margin_m', default_value='0.005'),
             DeclareLaunchArgument(
                 'sorting_mode', default_value='false', choices=['true', 'false']
             ),
@@ -675,6 +675,10 @@ def generate_launch_description() -> LaunchDescription:
                 default_value=LaunchConfiguration('color_info_topic'),
             ),
             DeclareLaunchArgument('headless', default_value='false'),
+            DeclareLaunchArgument('scheduled_cameras', default_value='true',
+                                 choices=['true', 'false']),
+            DeclareLaunchArgument('sim_viewer', default_value='efficient',
+                                 choices=['efficient', 'native']),
             DeclareLaunchArgument('topdown_only', default_value='false',
                 description='Use only support-plane-normal grasp approaches; no tilted fallback.'),
             DeclareLaunchArgument('sim_speed_factor', default_value='1.0'),

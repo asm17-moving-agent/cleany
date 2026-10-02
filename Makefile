@@ -24,6 +24,8 @@ if ! ros2 pkg prefix moveit_ros_perception >/dev/null 2>&1 && \
 fi
 endef
 SORTING_ARGS ?=
+PIPELINE_ARGS ?=
+SIM_ARGS ?=
 GRASP_PREGRASP_SKILL_TESTS := \
 	\
 	src/cleany_skill_executor/test/test_reobservation.py \
@@ -33,6 +35,7 @@ GRASP_PREGRASP_SKILL_TESTS := \
 	src/cleany_skill_executor/test/test_service_trace.py \
 	src/cleany_skill_executor/test/test_sorting.py \
 	src/cleany_skill_executor/test/test_sorting_coordinator.py \
+	src/cleany_skill_executor/test/test_wrist_recovery.py \
 	src/cleany_skill_executor/test/test_learned_runtime_launch.py \
 	src/cleany_skill_executor/test/test_sensor_scene.py \
 	src/cleany_skill_executor/test/test_rgbd_projection.py \
@@ -55,7 +58,7 @@ GRASP_PREGRASP_MUJOCO_TESTS := \
 GRASP_PREGRASP_DESCRIPTION_TESTS := \
 	src/cleany_description/test/test_model_parity.py
 
-.PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo profile-scene-mask profile-mujoco-tabletop \
+.PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo profile-scene-mask profile-mujoco-tabletop profile-mujoco-runtime \
 	build-grasp-pregrasp build-scene-mapping test-scene-mapping test \
 	build-mujoco-observer test-mujoco-observer \
 	test-mission test-mujoco test-grasp-pregrasp \
@@ -102,6 +105,7 @@ help:
 	@echo "  make sim-mujoco-pipeline  Run YOLOE-seg + Gemini GUI (API key, plan-only)"
 	@echo "  make sim-mujoco-sorting   Run simulation rule-based pick/sort/place"
 	@echo "  make profile-mujoco-tabletop  Compare opt-in tabletop physics/render profiles"
+	@echo "  make profile-mujoco-runtime   Measure pipeline clock/RGB-D/CPU, then stop it"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
@@ -310,18 +314,26 @@ sim: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
-	ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=true
+	ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=true $(SIM_ARGS)
 
 sim-mujoco-study-cafe: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
-	ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=false
+	ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=false $(SIM_ARGS)
 
 profile-mujoco-tabletop: build-grasp-pregrasp
 	source "$(ROS_SETUP)" && \
 	source "$(ROS2_WS)/install/setup.bash" && \
 	python3 "$(ROS2_WS)/src/cleany_mujoco_sim/tools/benchmark_tabletop.py" $(BENCHMARK_ARGS)
+
+profile-mujoco-runtime: build-grasp-pregrasp
+	source "$(ROS_SETUP)" && \
+	source "$(ROS2_WS)/install/setup.bash" && \
+	$(use_local_moveit_perception) && \
+	python3 "$(ROS2_WS)/src/cleany_mujoco_sim/tools/benchmark_runtime.py" \
+		$(BENCHMARK_ARGS) -- ros2 launch cleany_skill_executor \
+		study_cafe_nearest_grasp_demo.launch.py $(PIPELINE_ARGS)
 
 sim-mujoco-sorting sim-mujoco-pipeline: build-grasp-pregrasp
 	source "$(ROS_SETUP)" && \
@@ -333,7 +345,7 @@ sim-mujoco-sorting sim-mujoco-pipeline: build-grasp-pregrasp
 		export LD_LIBRARY_PATH="$(CLEANY_ROS_PERCEPTION_PREFIX)/lib:$${LD_LIBRARY_PATH}"; \
 	fi && \
 	ros2 launch cleany_skill_executor \
-		$(if $(filter sim-mujoco-sorting,$@),study_cafe_sorting.launch.py $(SORTING_ARGS),study_cafe_nearest_grasp_demo.launch.py)
+		$(if $(filter sim-mujoco-sorting,$@),study_cafe_sorting.launch.py $(SORTING_ARGS),study_cafe_nearest_grasp_demo.launch.py $(PIPELINE_ARGS))
 
 sim-gazebo: build-gazebo
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \

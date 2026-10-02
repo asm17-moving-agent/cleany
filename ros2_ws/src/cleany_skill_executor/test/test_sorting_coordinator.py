@@ -528,7 +528,8 @@ def test_wrist_response_must_preserve_source_arm_and_fresh_timestamp(fault, oper
     candidate.target_object.label = 'cup'
     candidate.target_object.confidence = .8
     selected = SimpleNamespace(selected_arm='right', selected_candidate=candidate)
-    response = ObserveWristTarget.Response(success=True, reference_id='wrist-1',
+    response = ObserveWristTarget.Response(status=ObserveWristTarget.Response.OK,
+        success=True, reference_id='wrist-1',
         source_snapshot_id='head-1', source_object_id=1)
     response.header.frame_id = 'right_wrist_rgb_optical_frame'
     response.header.stamp.sec = 3
@@ -539,6 +540,7 @@ def test_wrist_response_must_preserve_source_arm_and_fresh_timestamp(fault, oper
     def request(req):
         assert req.expected_pose.header == candidate.header
         assert req.after_stamp_ns == 2_000_000_000 and req.arm == 'right'
+        node.get_clock = lambda: SimpleNamespace(now=lambda: Time(seconds=5))
         return response
     node = SimpleNamespace(_wrist_reference=(None if operation == 0 else SimpleNamespace(reference_id='wrist-1')),
         _lift_completion_stamp_ns=2_000_000_000,
@@ -729,8 +731,7 @@ def test_fixed_release_cache_always_rechecks_current_scene(valid):
 
 
 def test_direct_release_ik_failure_prevents_motion():
-    params = {'sorting_release_clearance_m': .06, 'sorting_release_maximum_clearance_m': .21,
-              'sorting_release_edge_margin_m': .005, 'sorting_carry_wrist_tolerances_deg': [2.,5.],
+    params = {'sorting_carry_wrist_tolerances_deg': [2.,5.],
               'sorting_release_ik_attempts': 16, 'sorting_release_ik_iterations': 80}
     node = SimpleNamespace(
         _bins={'trash': SimpleNamespace(center_xy=(-.405,-.105), outside_size=(.18,.17,.12), wall=.008, top_z=.3)},
@@ -748,7 +749,7 @@ def test_direct_release_ik_failure_prevents_motion():
         _stage=lambda *a: pytest.fail('No waypoint stage before destination preflight'))
     held = SimpleNamespace(selected=SimpleNamespace(selected_arm='left'), offset_in_tcp=np.zeros(3))
     with pytest.raises(RuntimeError, match='Direct fixed release unreachable'):
-        SortingCoordinator._transport_fixed_release(node, held, 'trash', .04)
+        SortingCoordinator._transport_fixed_release(node, held, 'trash')
 
 
 def test_fixed_release_goal_holds_post_lift_wrist_without_relaxation(monkeypatch):
@@ -769,12 +770,12 @@ def test_fixed_release_goal_holds_post_lift_wrist_without_relaxation(monkeypatch
         assert constraint.tolerance_above == pytest.approx(np.deg2rad(.5))
 
 
-def test_fixed_transfer_goes_directly_to_classified_bin_without_waypoint():
+@pytest.mark.parametrize('size', [(.04, .04, .04), (.1117, .0701, .0684), (.2, .2, .2)])
+def test_fixed_transfer_goes_directly_to_classified_bin_regardless_of_opening_fit(size):
     arm = 'right'
     names = [f'{arm}_wrist_pitch_joint', f'{arm}_wrist_roll_joint']
     drop = SimpleNamespace(names=names, positions=(.3, .4))
-    params = {'sorting_release_clearance_m': .06, 'sorting_release_maximum_clearance_m': .21,
-              'sorting_release_edge_margin_m': .005, 'sorting_carry_wrist_tolerances_deg': [2.,5.],
+    params = {'sorting_carry_wrist_tolerances_deg': [2.,5.],
               'sorting_release_ik_attempts': 16, 'sorting_release_ik_iterations': 80}
     events = []
     def solve(*args, **kwargs):
@@ -796,10 +797,11 @@ def test_fixed_transfer_goes_directly_to_classified_bin_without_waypoint():
         _stage=lambda _: pytest.fail('Must not enter common waypoint stage'), _verify_feedback=lambda _: None,
         _wait_arm_stationary=lambda _: None,
         _arm_joint_state=lambda _: JointState(name=names, position=[.301,.399]), _fixed_release_ik=final)
-    candidate = SimpleNamespace(target_object=SimpleNamespace(obb_size=SimpleNamespace(x=.04, y=.04, z=.04)))
+    candidate = SimpleNamespace(target_object=SimpleNamespace(
+        obb_size=SimpleNamespace(x=size[0], y=size[1], z=size[2])))
     held = SimpleNamespace(selected=SimpleNamespace(selected_arm=arm, selected_candidate=candidate), offset_in_tcp=np.zeros(3))
-    node._transport_fixed_release = lambda held, destination, radius: SortingCoordinator._transport_fixed_release(
-        node, held, destination, radius)
+    node._transport_fixed_release = lambda held, destination: SortingCoordinator._transport_fixed_release(
+        node, held, destination)
     SortingCoordinator.transport(node, held, 'lost')
     assert events == ['measured wrist recheck', 'transport to lost']
 
@@ -824,30 +826,43 @@ def test_return_cannot_close_jaw_before_release_completed():
         SortingCoordinator.retreat(node, held, 'trash_left')
 
 
-def test_release_opens_only_after_bin_geometry_checks():
+@pytest.mark.parametrize('size', [(.04, .04, .04), (.1117, .0701, .0684), (.2, .2, .2)])
+@pytest.mark.parametrize('feedback_error', [None, 'position', 'wrist'])
+def test_release_uses_fixed_point_and_wrist_feedback_regardless_of_opening_fit(size, feedback_error):
     events = []
     pose = Pose()
-    pose.orientation.w, pose.position.y, pose.position.z = 1., .49, .4
+    pose.orientation.w = 1.
+    point = np.array([-.075, -.105, .50])
+    pose.position.x, pose.position.y, pose.position.z = point
+    if feedback_error == 'position':
+        pose.position.x += .02
+    wrist_name = 'left_wrist_roll_joint'
+    wrist_position = .4 if feedback_error == 'wrist' else .3
     held = SimpleNamespace(offset_in_tcp=np.zeros(3), selected=SimpleNamespace(selected_arm='left',
         selected_candidate=SimpleNamespace(target_object=SimpleNamespace(
-            obb_size=SimpleNamespace(x=.04, y=.04, z=.04)))))
+            obb_size=SimpleNamespace(x=size[0], y=size[1], z=size[2])))))
     node = SimpleNamespace(_async_carry=True, _wrist_enabled=False, _held_object=held,
         _pinned_reference=None, _tcp_pose=lambda _: pose,
         _pose_position=NearestPregraspCoordinator._pose_position,
-        _bins={'bin': SimpleNamespace(center_xy=(0., .49), outside_size=(.26, .24, .22), wall=.008, top_z=.26, kind='bin')},
+        _fixed_release_points={'bin': point}, _fixed_release_wrist={wrist_name: .3},
+        _fixed_release_hold_tolerance=np.deg2rad(.5),
+        _arm_joint_state=lambda _: JointState(name=[wrist_name], position=[wrist_position]),
+        _bins={'bin': SimpleNamespace(center_xy=(-.075, -.105), outside_size=(.18, .17, .12), wall=.008, top_z=.34)},
         _open_gripper=lambda _: events.append('open'),
         _hold=lambda _: events.append('settle'),
         _execution_scene=SimpleNamespace(restore=lambda: events.append('detach')),
         get_clock=lambda: SimpleNamespace(now=lambda: Time(seconds=10)),
         get_logger=lambda: SimpleNamespace(info=lambda _: None))
-    SortingCoordinator.release(node, held, 'bin')
-    assert events == ['open', 'settle', 'detach']
-    assert node._held_object is None
-    events.clear()
-    pose.position.z = .2
-    with pytest.raises(RuntimeError, match='bin opening'):
+    if feedback_error:
+        message = 'has not reached' if feedback_error == 'position' else 'outside hold tolerance'
+        with pytest.raises(RuntimeError, match=message):
+            SortingCoordinator.release(node, held, 'bin')
+        assert events == []
+        assert node._held_object is held
+    else:
         SortingCoordinator.release(node, held, 'bin')
-    assert events == []
+        assert events == ['open', 'settle', 'detach']
+        assert node._held_object is None
 
 
 # The same vector-wide finite check covers every axis and nonfinite kind.
@@ -862,21 +877,6 @@ def test_release_rejects_nonfinite_center_before_opening_or_disarming(axis, valu
                           _pose_position=NearestPregraspCoordinator._pose_position,
                           _open_gripper=lambda _: pytest.fail('Invalid release must not open'))
     with pytest.raises(RuntimeError, match='center must be finite'):
-        SortingCoordinator.release(node, held, 'bin')
-
-
-@pytest.mark.parametrize('radius', [float('nan'), float('inf'), 0.0, -0.01])
-def test_release_rejects_invalid_payload_radius(monkeypatch, radius):
-    pose = Pose()
-    pose.orientation.w = 1.0
-    held = SimpleNamespace(offset_in_tcp=np.zeros(3),
-                           selected=SimpleNamespace(selected_arm='left'))
-    node = SimpleNamespace(_tcp_pose=lambda _: pose,
-                          _pose_position=NearestPregraspCoordinator._pose_position,
-                          _bins={'bin': object()})
-    monkeypatch.setattr('cleany_skill_executor.sorting_coordinator.held_bounding_radius',
-                        lambda *args: radius)
-    with pytest.raises(RuntimeError, match='radius must be positive and finite'):
         SortingCoordinator.release(node, held, 'bin')
 
 

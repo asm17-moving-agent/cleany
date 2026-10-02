@@ -1,6 +1,7 @@
 #include "cleany_scene_mapping/known_geometry.hpp"
 
 #include <geometric_shapes/body_operations.h>
+#include <geometric_shapes/mesh_operations.h>
 #include <gtest/gtest.h>
 
 #include <limits>
@@ -105,6 +106,51 @@ TEST(KnownGeometry, UsesActualLeafSizeForPrunedCells)
   EXPECT_EQ(clearContainedOccupancy(tree, {partial.get()}, 100).cleared, 0U);
   auto full = box({0.03, 0.03, 0.03}, {0.01, 0.01, 0.01});
   EXPECT_EQ(clearContainedOccupancy(tree, {full.get()}, 100).cleared, 1U);
+}
+
+TEST(KnownGeometry, MeshFacePaddingMatchesPrimitiveAcrossScalePoseAndLocalOffset)
+{
+  const shapes::Box shape(0.12, 0.04, 0.04);
+  std::unique_ptr<shapes::Mesh> shape_mesh(shapes::createMeshFromShape(shape));
+  const Eigen::Vector3d local_offset(0.2, -0.3, 0.1);
+  for (unsigned int i = 0; i < shape_mesh->vertex_count; ++i)
+    for (unsigned int axis = 0; axis < 3; ++axis)
+      shape_mesh->vertices[3 * i + axis] += local_offset[axis];
+  for (double scale : {1.0, 1.25})
+    for (double yaw : {0.0, 0.37})
+    {
+      auto pose = Eigen::Isometry3d::Identity();
+      pose.linear() = Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix();
+      pose.translation() = Eigen::Vector3d(0.505, 0.005, 0.005) - pose.linear() * local_offset;
+      std::unique_ptr<bodies::Body> mesh(bodies::createBodyFromShape(shape_mesh.get()));
+      mesh->setScale(scale);
+      mesh->setPadding(0.015);
+      // Frame integration clears using a clone of the capture-time body.
+      auto placed_mesh = mesh->cloneAt(pose);
+      auto primitive = box({0.12, 0.04, 0.04}, pose * local_offset, yaw);
+      primitive->setScale(scale);
+      primitive->setPadding(0.015);
+      octomap::OcTree mesh_tree(0.01), primitive_tree(0.01);
+      for (int x = -10; x <= 10; ++x)
+        for (int y = -8; y <= 8; ++y)
+          for (int z = -5; z <= 5; ++z)
+          {
+            mesh_tree.updateNode(0.505 + x * 0.01, 0.005 + y * 0.01, 0.005 + z * 0.01, true);
+            primitive_tree.updateNode(0.505 + x * 0.01, 0.005 + y * 0.01, 0.005 + z * 0.01, true);
+          }
+      const auto expected = clearContainedOccupancy(primitive_tree, {primitive.get()}, 10000);
+      const auto actual = clearContainedOccupancy(mesh_tree, {placed_mesh.get()}, 10000);
+      ASSERT_GT(expected.cleared, 0U);
+      EXPECT_EQ(actual.cleared, expected.cleared) << "scale=" << scale << " yaw=" << yaw;
+      for (auto it = primitive_tree.begin_leafs(); it != primitive_tree.end_leafs(); ++it)
+      {
+        const auto* node = mesh_tree.search(it.getKey());
+        ASSERT_NE(node, nullptr);
+        EXPECT_EQ(mesh_tree.isNodeOccupied(node), primitive_tree.isNodeOccupied(*it));
+      }
+      // An occupied cell beyond the configured padding is preserved.
+      EXPECT_TRUE(mesh_tree.isNodeOccupied(mesh_tree.search(0.505, 0.085, 0.005)));
+    }
 }
 
 TEST(KnownGeometry, MissingOrNonfiniteTransformsLeaveAllBodiesUnchanged)

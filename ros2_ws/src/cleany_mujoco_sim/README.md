@@ -53,10 +53,34 @@ MoveIt에 등록한다. 함의 탈착·체결부 강도·배선 여유는 모델
 추가하지 않는다. 물리 형상은 기존 바닥과 네 벽으로 유지한다.
 
 `study_cafe_backend.launch.py scheduled_cameras:=true`는 sorting observer hardware의
-카메라별 촬영 주기 제어를 켠다. sorting_bins_config가 있어야 해당 hardware를 사용한다.
-직접 backend를 실행할 때 기본값은 false다.
+카메라별 촬영 주기 제어를 켠다. 수거함 설정 없이도 observer hardware를 선택할 수 있다.
+직접 backend의 기본값은 false이며, 통합 인식·수거 launch는 true를 기본으로 사용한다.
+`headless:=false sim_viewer:=efficient`는 최대 20Hz의 960×720 snapshot GUI를
+사용한다. 센서 RGB-D는 640×480과 원래 그림자를 유지한다. 전체 native MuJoCo UI는
+`sim_viewer:=native`로 선택한다. 설정·조작법은
+[`cleany_mujoco_observer`](../cleany_mujoco_observer/README.md#gui-렌더링)를 따른다.
 `config/sorting_wrist_cameras.yaml`은 양팔 RGB optical frame의 nominal CAD 장착값이다.
 수거 launch의 TF 입력이며 실제 로봇에서 측정한 hand-eye calibration이 아니다.
+
+전체 ROS runtime의 clock 진행률·RGB-D 수신 빈도·process tree CPU는 다음으로 측정한다.
+측정기는 warmup 이후 JSON과 별도 launch log를 저장하고, 완료·실패·중단 시 자신이
+시작한 process group과 추적한 자식 프로세스를 종료한다. `psutil`이 필요하다.
+기본 출력은 `/tmp/cleany-runtime.json` 및 같은 이름의 `.log`다.
+probe에도 동일한 Fast DDS profile을 적용해 큰 센서 메시지의 SHM 손실을 피한다.
+CPU 지표는 사용한 코어 수에 해당하며 전체 수거 성공 여부는 stage artifact로 확인한다.
+
+```bash
+DISPLAY=:0 make profile-mujoco-runtime \
+  BENCHMARK_ARGS='--duration 35 --warmup 5 --output /tmp/runtime-headless.json' \
+  PIPELINE_ARGS='headless:=true use_rviz:=false use_image_view:=false'
+DISPLAY=:0 make profile-mujoco-runtime \
+  BENCHMARK_ARGS='--duration 35 --warmup 5 --output /tmp/runtime-gui.json' \
+  PIPELINE_ARGS='headless:=false use_rviz:=false use_image_view:=false'
+```
+
+`tools/benchmark_runtime.py --output <file> -- ros2 launch ...`로 다른 launch도 측정한다.
+2026-10-02 VM의 비교 수치와 실제 수거 중단 지점은
+[성능 측정 기록](../../../docs/MUJOCO_PERFORMANCE_20261002.md)을 따른다.
 
 `scenes/study_cafe_grasp_execution.xml.in`에는 컵–양손 그리퍼의 10개 접촉쌍을
 명시해 미끄럼 마찰을 기존 접촉값 3에서 6으로 높인 시험 설정을 둔다.
@@ -352,6 +376,10 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 ## 실행 인자
 
 `mujoco_study_cafe.launch.py`는 `headless`를 제공하며 기본은 false다.
+관찰용 Python bridge의 `viewer_rate_hz` 기본은 20.0(1–60Hz)이고,
+`viewer_shadows` 기본은 false다. viewer sync만 wall time으로 제한하며 physics·ROS
+발행 주기는 유지한다. `SIM_ARGS='viewer_rate_hz:=60.0 viewer_shadows:=true'`로
+기존 GUI 설정을 선택할 수 있다.
 공통 custom bridge인 `mujoco_sim.launch.py`의 `scene_path` 기본값도
 `scenes/study_cafe.xml.in`이다. 주행 관련 bridge parameter는 이 관찰 backend의
 공통 기능으로 유지한다.
@@ -361,7 +389,7 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 - `scene_path`: 기본 `scenes/study_cafe_grasp_execution.xml.in`.
 - `controller_config`: 기본 `config/study_cafe_ros2_controllers.yaml`.
 - `camera_config`: 기본 `config/wrist_camera.yaml`.
-- `headless`, `sim_speed_factor`, `sim_xmodifiers`: viewer·속도·XIM 설정.
+- `headless`, `sim_viewer`, `sim_speed_factor`, `sim_xmodifiers`: viewer·속도·XIM 설정.
 - `sorting_bins_config`, `scheduled_cameras`, `sorting_contact_diagnostics`: 수거함·카메라 스케줄·관측 설정.
 - `camera_name`, `camera_frame_name`, `color_image_topic`, `camera_info_topic`, `depth_image_topic`: renderer 연결.
 - `enable_camera_contract_adapter`: 기본 false. 통합 launch는 head camera topic을 직접 연결한다.

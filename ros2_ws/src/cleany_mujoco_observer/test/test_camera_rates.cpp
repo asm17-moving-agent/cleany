@@ -59,6 +59,23 @@ TEST(CameraRates, InvalidScheduleValuesAreRejected) {
   EXPECT_THROW(camera_is_due(0.0, -1.0, 0.0, -1.0), std::invalid_argument);
 }
 
+TEST(CameraRates, LateFramesKeepTheCapturePhaseWithoutCatchupBursts) {
+  double next = 0.1;
+  for (int frame = 1; frame <= 100; ++frame) {
+    const double capture = frame * 0.1 + 0.008;
+    ASSERT_TRUE(camera_is_due(capture, capture - 0.1, next, 10.0));
+    next = cleany_mujoco_observer::next_camera_deadline(next, capture, 10.0);
+    EXPECT_NEAR(next, (frame + 1) * 0.1, 1e-9);
+  }
+  EXPECT_NEAR(cleany_mujoco_observer::next_camera_deadline(0.1, 0.45, 10.0), 0.5, 1e-9);
+  EXPECT_FALSE(camera_is_due(0.45, 0.45, 0.5, 10.0));
+}
+
+TEST(CameraRates, ClockResetMakesTheCameraDueAgain) {
+  EXPECT_TRUE(camera_is_due(0.01, 100.0, 100.1, 10.0));
+  EXPECT_FALSE(camera_is_due(0.01, 100.0, 100.1, 0.0));
+}
+
 TEST(CameraRates, DepthRowConversionMatchesProjection) {
   const float source[]{0.0f, 0.5f, 1.0f};
   float result[3]{};

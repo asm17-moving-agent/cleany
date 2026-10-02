@@ -17,6 +17,16 @@ CHECK는 같은 arm/source/reference의 새 RGB mask를 반환한다. CLEAR는 �
 HANDOFF의 `expected_pose.header.stamp`는 원본 head 관측 시각이다.
 `after_stamp_ns`보다 새로운 손목 image/CameraInfo 쌍만 처리한다.
 
+응답 `status`는 `ERROR=0`, `OK=1`, `NOT_DETECTED=2`를 구분한다.
+`OK`만 `success=true`다. `NOT_DETECTED`는 정상적인 새 RGB/CameraInfo와 TF로
+투영을 확인했지만 대응 물체가 검출되지 않은 경우다. CHECK 미검출에도 기존
+reference/source ID와 실제 촬영 header를 반환하며 mask는 비어 있다.
+호출자는 이 촬영 시각 이후의 프레임으로 재시도할 수 있다. 센서·TF·추론 오류,
+참조 불일치, 중복 후보와 잘못된 mask는 `ERROR`이며 미검출로 취급하지 않는다.
+HANDOFF 미검출은 파지 진행을 허용하는 참조를 만들지 않는다.
+이 status 필드 추가로 wire/CDR 형식이 바뀌므로 제공자와 호출자를 함께 재빌드하고
+재시작해야 한다. 이전 ObserveWristTarget CDR 기록은 이전 인터페이스로 읽는다.
+
 ## VerifyPlacement
 
 `srv/VerifyPlacement.srv`는 label, destination_id, release 이후 기준

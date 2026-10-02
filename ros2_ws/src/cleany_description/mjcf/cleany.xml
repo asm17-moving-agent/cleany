@@ -150,7 +150,9 @@
       <geom name="base_link_collision_18" class="collision" type="box" size="0.055 0.055 0.006" pos="0.116 0.175 0.425" />
       <geom name="base_link_collision_19" class="collision" type="box" size="0.055 0.055 0.006" pos="0.116 -0.175 0.425" />
       <body name="upper_structure" pos="0 0 0" quat="0 0 0 1">
-        <body name="Base" pos="-0.1163 -0.139917 0.431297">
+        <!-- Arm bases align with all four CAD mount holes. upper_structure
+             rotates base_link XY by pi; keep URDF placements in sync. -->
+        <body name="Base" pos="-0.116200343 -0.151031727 0.431297">
           <inertial pos="0.0137179 -5.19711e-05 0.0334843" mass="0.147" fullinertia="0.000114686 0.000136117 0.000130364 -4.59787e-07 4.97151e-06 9.75275e-08" />
           <body name="Rotation_Pitch" pos="0 -0.0452 0.0165" quat="0.707105482511 0.707108079859 0 0">
             <inertial pos="-0.0307604 -1.66727e-05 -0.0252713" mass="0.100006" fullinertia="8.3759e-05 8.10403e-05 2.39783e-05 7.55525e-08 -1.16342e-06 1.54663e-07" />
@@ -223,7 +225,7 @@
           <geom type="mesh" mesh="canonical_Base" class="collision" />
           <geom type="mesh" mesh="canonical_Base_Motor" class="collision" />
         </body>
-        <body name="Base_2" pos="-0.116101000162 0.139863 0.431297" quat="1.79489651492e-09 0 0 1">
+        <body name="Base_2" pos="-0.116200838 0.150977072 0.431297" quat="1.79489651492e-09 0 0 1">
           <inertial pos="0.0137179 -5.19711e-05 0.0334843" mass="0.147" fullinertia="0.000114686 0.000136117 0.000130364 -4.59787e-07 4.97151e-06 9.75275e-08" />
           <body name="Rotation_Pitch_2" pos="0 -0.0452 0.0165" quat="0.707105482511 0.707108079859 0 0">
             <inertial pos="-0.0307604 -1.66727e-05 -0.0252713" mass="0.100006" fullinertia="8.3759e-05 8.10403e-05 2.39783e-05 7.55525e-08 -1.16342e-06 1.54663e-07" />

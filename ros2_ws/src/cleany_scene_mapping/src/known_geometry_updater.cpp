@@ -306,7 +306,6 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   ClearResult result;
   {
     auto tree_lock = tree_->writing();
-    result = clearContainedOccupancy(*tree_, placed, static_cast<std::size_t>(maximum_examined_));
     for (const auto& key : free)
       tree_->updateNode(key, false);
     for (const auto& key : occupied)
@@ -314,6 +313,10 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     const float clear_log_odds = tree_->getClampingThresMinLog() - tree_->getClampingThresMaxLog();
     for (const auto& key : model)
       tree_->updateNode(key, clear_log_odds);
+    // Clear after integration: upstream mesh self-masking uses radial vertex
+    // padding and can classify returns inside our face-offset volume as outside.
+    // Such endpoints must not immediately recreate a fully contained voxel.
+    result = clearContainedOccupancy(*tree_, placed, static_cast<std::size_t>(maximum_examined_));
   }
   const auto tree_done = std::chrono::steady_clock::now();
   last_update_ns_ = now;

@@ -8,6 +8,10 @@ nearest_pregrasp_coordinator:
     # Wrist joint hold does not imply a fixed TCP world orientation.
     sorting_carry_cartesian_rotation_limit_deg: 30.0
     sorting_fixed_release_wrist_tolerance_deg: 0.5
+    # Retry only valid wrist frames with no target; confirm motor contact each time.
+    sorting_wrist_check_attempts: 1
+    sorting_wrist_contact_confirmation_sec: 0.3
+    sorting_gripper_feedback_max_age_sec: 0.5
     # Fixed OBJECT-center destinations in base_link; not blind TCP drop commands.
     sorting_fixed_release_lost_items_left_m: [-0.075, 0.105, 0.50]
     sorting_fixed_release_trash_right_m: [-0.075, -0.105, 0.50]

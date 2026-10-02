@@ -1,3 +1,10 @@
+sorting_cameras:
+  ros__parameters:
+    viewer_rate_hz: 20.0
+    viewer_width: 960
+    viewer_height: 720
+    viewer_shadows: false
+
 controller_manager:
   ros__parameters:
     update_rate: 100

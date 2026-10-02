@@ -1,6 +1,6 @@
 # cleany_mujoco_observer
 
-sorting의 `scheduled_cameras=true`에서는 원래 공통 카메라 renderer의 반복 촬영을
+인식·수거 pipeline의 `scheduled_cameras=true`에서는 원래 공통 카메라 renderer의 반복 촬영을
 끄고 private snapshot 기반 센서 renderer를 사용한다. vendor의 0 Hz 설정에서도
 발생하는 초기 1회 frame은 `/cleany/internal/disabled_vendor/*`로 격리한다.
 공개 센서 토픽은 scheduled renderer만 발행한다. 물체 좌표/segmentation ID는
@@ -27,6 +27,25 @@ GLFW는 backend thread 시작 전에 동기 초기화한다. FPS는 simulation t
 공유한다.
 카메라별 ROS Image/CameraInfo payload와 depth 변환 배열을 재사용하며,
 depth는 640픽셀 행 버퍼에서 환산한 뒤 각 메시지 행에 복사한다.
+늦게 촬영한 프레임은 원래 촬영 주기를 유지하면서 놓친 기한을 건너뛴다.
+simulation clock reset 뒤에는 새로운 시각에서 촬영을 재개한다.
+
+## GUI 렌더링
+
+`scheduled_cameras:=true headless:=false sim_viewer:=efficient`는 센서 worker의
+private snapshot과 OpenGL context를 공유하는 GUI를 사용한다. vendor의 별도
+fullscreen renderer는 시작하지 않는다. 창을 그리는 동안 physics mutex를 잡지 않는다.
+`config/study_cafe_ros2_controllers.yaml`의 `sorting_cameras`에서 시작 설정을 관리한다:
+`viewer_rate_hz=20.0`, `viewer_width=960`, `viewer_height=720`, `viewer_shadows=false`.
+GUI 갱신은 wall time 기준 최대 빈도이며 최소화/창 닫기 후에는 GUI 렌더링을 생략한다.
+센서 촬영에는 기존 그림자를 복원하므로 GUI 설정이 RGB-D 픽셀에 영향을 주지 않는다.
+
+마우스 왼쪽 버튼으로 회전, 오른쪽으로 이동, 가운데 버튼/휠로 확대한다.
+Shift는 수평 이동/회전을 선택하고 Home은 시점을 초기화한다. Space는 backend의
+pause service를 호출하고 Backspace는 reset service를 호출한다. Escape/창 닫기는
+GUI를 숨기며 센서·physics는 계속 실행한다. 전체 종료는 실행 터미널의 Ctrl+C다.
+전체 MuJoCo 디버깅 UI가 필요하면 `sim_viewer:=native`를 선택한다.
+headless에서도 현재 GLFW renderer에는 유효한 DISPLAY가 필요하다.
 
 MuJoCo 분리 수거 시뮬레이션의 결과를 독립적으로 평가하는 read-only 관측기다.
 `cleany_mujoco_observer/ObservedMujocoSystem`은 설치된
@@ -78,12 +97,16 @@ tangential force magnitude(N)를 key/value로 제공한다. normal force는 명�
 
 ```bash
 make test-mujoco-observer
+# 실제 OpenGL RGB-D 회귀 검사 포함 (DISPLAY 없으면 해당 검사만 skip)
+DISPLAY=:0 make test-mujoco-observer
 ```
 
 회전된 base-frame 위치 변환, 접촉 힘 조회, 읽기 전후 integration state 및
 applied force 불변, 검사 상한/잘못된 snapshot 거부를 작은 MuJoCo 모델로
 검사한다. 원본 arena 초기화 뒤에도 private copy의 접촉/힘이 유지되는지,
 wrapper library가 hardware plugin으로 로드되는지도 검사한다.
+실제 렌더러 검사는 GUI draw 이후에도 headless와 RGB/depth 픽셀이 같고,
+640×480 해상도·optical frame·촬영 timestamp·CameraInfo가 일치하는지 확인한다.
 실제 전체 분리 수거 성공을 입증하는 테스트는 아니다.
 
 참고: [설치 버전 plugin/snapshot 처리](https://github.com/ros-controls/mujoco_ros2_control/blob/0.0.3/mujoco_ros2_control/src/mujoco_system_interface.cpp),

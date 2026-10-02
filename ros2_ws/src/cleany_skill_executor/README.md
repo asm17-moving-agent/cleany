@@ -96,7 +96,11 @@ MuJoCo 장애물 점군은 `scene_cloud_pixel_stride=4`로 샘플링하여 기�
 카메라 노드도 함께 빌드해야 하며 boost 설정 거부 시 이동을 시작하지 않는다.
 
 스터디카페 grasp 후보 생성의 어깨 기준점은 migrated CAD URDF의 좌우
-shoulder origin을 사용한다. 기존 모델의 기준점을 혼용하지 않는다.
+shoulder origin을 사용한다. 원형 마운트 체결 정렬 후 기준점은 왼쪽
+`(0.116200343, 0.196231727, 0.447797)` m, 오른쪽
+`(0.116200838, -0.196177072, 0.447797)` m다 (`base_link` 기준).
+`test_learned_runtime_launch.py`에서 실제 grasp 서버 parameter와 확장한 URDF의
+어깨 원점이 일치하는지 검사한다.
 
 ## Sorting 속도 설정 (2026-09-08 변경)
 
@@ -361,6 +365,19 @@ make sim-mujoco-pipeline
 make sim-mujoco-sorting
 ```
 
+인식·수거 launch의 `scheduled_cameras` 기본은 true다. 일반 인식은 head RGB-D만
+10Hz로 촬영하며, 수거는 선택한 손목 카메라와 head 촬영 빈도를 전환한다.
+손목 전환을 사용하는 수거는 `scheduled_cameras:=false`를 허용하지 않는다.
+GUI 기본은 `sim_viewer:=efficient`이며 센서 snapshot을 공유하는 최대 20Hz 창이다.
+센서 해상도·그림자는 유지하고 GUI 그림자만 기본으로 끈다. 전체 MuJoCo UI는
+`sim_viewer:=native`로 선택한다. backend 설정은 observer README를 따른다.
+
+```bash
+make sim-mujoco-pipeline PIPELINE_ARGS='headless:=true use_rviz:=false use_image_view:=false'
+make sim-mujoco-pipeline PIPELINE_ARGS='headless:=false use_rviz:=false use_image_view:=false'
+make sim-mujoco-pipeline PIPELINE_ARGS='headless:=false sim_viewer:=native'
+```
+
 ## 시뮬레이션 분리 수거 (통합 검증 진행 중)
 
 분리 수거 모드는 selector의 `require_pregrasp_visibility=true`를 사용한다.
@@ -455,7 +472,7 @@ category/reason 미제공 결과는 review로 남기고 조작하지 않는다.
 
 분류 → 물체에 가까운 팔의 후보를 먼저 검사하고 실패하면 반대 팔 검사 → 재인식/집기/후퇴/들기 →
 부착 물체를 포함한 MoveIt 운반 → 수거함 개구부 확인 → 열기 → 복귀 →
-선택적 놓기 검증 순서다. 운반 실패 또는 비정상 물체 중심·반경이면 그리퍼를 열지 않는다.
+선택적 놓기 검증 순서다. 운반 실패 또는 비정상 물체 중심이면 그리퍼를 열지 않는다.
 sorting 모드에서는 다각도 grasp 후보와 전체 팔 IK seed를 추가로 탐색하되
 기존 pose/충돌 허용 기준은 유지한다. 운반 IK에는 전체 joint feedback과
 `RobotState.is_diff=true`를 보내 부착한 OBB가 검사에서 빠지지 않도록 한다.
@@ -608,6 +625,29 @@ penetration depth를 오류에 기록해 주변 물체/지지면/잔상 원인 �
 기존 ROS clock 기준 만료 검사와 재인식·위치 연관·동일 팔 재계획을 다시 활성화한다.
 손목 서비스 자체의 관측 유효성 검사는 유지하며 관측 timestamp를 갱신하지 않는다.
 
+파지 후 손목 CHECK의 단순 미검출(`ObserveWristTarget.NOT_DETECTED`)은 즉시
+종료하지 않는다. `sorting_wrist_check_attempts`는 기본 1회이며, 미검출이어도
+아래 그리퍼 확인을 통과하면 추가 카메라 요청 없이 운반으로 진행한다.
+1~5회로 설정할 수 있으며, 첫 요청은 lift 완료 시각, 추가 요청은 직전 응답의
+실제 촬영 시각보다 새로운 프레임을 요구한다. 실패 응답도 source/reference ID,
+선택한 팔의 frame, 촬영 시각을 확인한 뒤에만 보완 경로로 처리한다.
+HANDOFF는 성공해야 접근하며 CHECK의 센서·통신·TF·추론·참조 오류나 모호한
+검출은 이 보완 경로에 포함되지 않는다.
+
+각 CHECK 전후에는 요청 이후 도착한 그리퍼 위치·속도가 기존 접촉 조건을
+연속 만족해야 한다. 최소 3개의 서로 다른 샘플이
+`sorting_wrist_contact_confirmation_sec`(기본 0.3초)의 ROS 시간 구간을
+채워야 하며, 피드백 나이와 샘플 간격은
+`sorting_gripper_feedback_max_age_sec`(기본 0.5초) 이하여야 한다.
+대기 상한은 `gripper_contact_feedback_timeout_sec`(기본 wall time 5초)다.
+오래된 값·중복 시각·피드백 단절·빈손 완전 닫힘·접촉 상실은 성공 근거로 쓰지 않는다.
+관절 메시지가 `/clock`보다 먼저 도착하면 시계가 따라올 때까지 그 값을 세지 않고
+기다린다. 미래 시각이 계속되거나 시계가 멈추면 대기 상한에서 실패한다.
+모든 새 영상에서 미검출이어도 이 모터 확인을 통과하면 운반으로 진행한다.
+로그에는 시각적 파지 확인이 없고 그리퍼 피드백으로 진행했다는 사실을 남긴다.
+물체 중심의 lift 높이는 기존처럼 FK와 파지 offset으로 계산하며, 별도 실제 높이
+측정 또는 물체 식별 성공으로 표현하지 않는다. 전류·토크는 현재 판정에 사용하지 않는다.
+
 고정 수거함 모드에서는 YOLOE-seg bbox/depth 거리로 정렬한 후보를 하나씩 처리한다.
 `fixed_jaw_clearance_m`은 고정 손가락 여유거리(수거 기본 0.003 m),
 `grasp_opening_margin_m`은 후보 벌림 여유폭(기본 0.008 m)이다. 여유거리는
@@ -674,9 +714,6 @@ opening margin의 절반 이하여야 한다. 기존 비-sorting 기본값은 0�
 `direct_vertical_lift_extra_m`(기본 0, 허용 범위 0~0.05m)은 이 진단 경로의
 TCP 상승 거리에만 추가된다. 물체 중심의 기존 최소 상승 높이 검사와 경로
 충돌 검사는 그대로 적용되며, 높이가 부족하면 예측/요구 중심 높이를 오류에 남긴다.
-`sorting_release_edge_margin_m`(기본 0.005m)은 수거함 입구 안쪽의 추가
-가장자리 여유를 조절하는 진단용 launch 인자다. 물체의 관측 bounding sphere가
-실제 입구 안에 들어가는 검사와 MoveIt 충돌 검사는 그대로 유지된다.
 sorting에서는 끝점 position IK/FK를 확인하고 기존 seeded 위치 corridor로 계획한다.
 기존 corridor 자세 한도(5°)를 넘는 끝점은 거절하고, 전체 경로의 FK/충돌/자세
 변화를 검사한다. 정확한 자세 고정 LIN으로 표현하지 않는다. 파지/손목 감시는
@@ -710,7 +747,7 @@ MoveIt의 기둥–로봇 링크 충돌을 제외한다. 외형 및 self-filter�
 
 분류 → 파지 → 안전한 들어 올리기 → 선택된 수거함 위 고정 투하점 → 놓기 → 복귀 순서다.
 기본 모드에서는 파지 전 공통 경유점 IK 검사, 공동 손목 endpoint 검사 및 경유점 이동을
-모두 생략한다. 물체 크기/그리퍼 안의 실제 추정 offset을 반영한 최종 투하 자세만 구한다.
+모두 생략한다. 그리퍼 안의 실제 추정 물체 중심 offset을 반영한 최종 투하 자세만 구한다.
 도달 가능한 자세가 없으면 물체를 놓지 않고 중단한다. 직접 이동도 MoveIt의 현재
 부착 물체/장애물 충돌 검사를 거친 경로로 실행하며 무검증 직선 명령이 아니다.
 
@@ -718,7 +755,7 @@ MoveIt의 기둥–로봇 링크 충돌을 제외한다. 외형 및 self-filter�
 제외하고 어깨 yaw/pitch·팔꿈치·손목 pitch의 네 관절을 푼다. 손목을 위아래로 꺾는
 pitch는 고정하지 않는다. 실행 경로의 roll tracking 허용
 오차는 `sorting_fixed_release_wrist_tolerance_deg`(기본 0.5도)이며 자동 확대하지 않는다.
-고정 투하점에서 물체 중심·손목 feedback·함 입구를 확인한 뒤에만 그리퍼를 연다.
+고정 투하점에서 물체 중심 도착과 손목 feedback을 확인한 뒤 그리퍼를 연다.
 물체 중심 도착 허용 오차는 1cm이고, IK의 위치 허용 오차는 축별 0.5mm다.
 
 검증된 최종 자세는 프로세스 내 캐시에 저장하며 동일 팔/손목 각도/물체 offset/투하점일 때
@@ -753,14 +790,13 @@ MoveIt 이동에는 같은 관절 path constraint를 전달하고, 직접 생성
 그리퍼를 열고 scene attachment를 해제한 뒤에는 손목 제한을 해제해 복귀한다.
 손목 변화 최소화의 전역 최적해나 물체의 수평 자세 유지는 보장하지 않는다.
 
-고정 투하 위치도 물체의 bounding sphere가 수거함 입구 내부에 들어가는지 검사한다.
-벽 두께와 `sorting_release_edge_margin_m`(기본 0.005m)을 제외하고,
-물체 아래쪽 높이는 테두리보다 `sorting_release_clearance_m`(기본 0.06m)에서
-`sorting_release_maximum_clearance_m`(기본 0.21m) 사이여야 한다.
-위치가 이 범위에 맞지 않으면 이동하지 않고 중단한다. 놓기 직전에도 실제
-feedback으로 물체 중심·손목·함 입구를 다시 검사한다.
+운반 전과 놓기 직전의 수거함 입구 크기·bounding sphere 적합성 검사는 제거했다.
+분류된 수거함의 설정된 고정 투하점으로 이동하고, 물체 중심·손목 feedback으로
+도착을 확인한 뒤 놓는다. 별도 입구 여유 및 투하 높이 범위 검사에 사용하던
+`sorting_release_edge_margin_m`, `sorting_release_clearance_m`,
+`sorting_release_maximum_clearance_m` 설정도 제거했다.
 
 SAM 분할·기준 mask 추적·중앙 인계 상태는 제거했다. 현재 손목 검증은 YOLOE-seg의
-HANDOFF/CHECK 재검출이며 이동 전후 접촉·충돌·수거함 개구부 검사는 유지한다.
+HANDOFF/CHECK 재검출이며 이동 전후 접촉·충돌 검사는 유지한다.
 
 예전 라벨 allowlist 정책, 테이블 배치 구역, 경유점/영역 탐색 운반은 제거했다.

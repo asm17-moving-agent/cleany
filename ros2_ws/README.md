@@ -111,6 +111,12 @@ SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'`를 사용�
 [`cleany_skill_executor` README](src/cleany_skill_executor/README.md)를 따른다.
 
 고정 베이스 성능 비교는 `make profile-mujoco-tabletop`을 사용한다.
+인식·수거 pipeline은 카메라별 scheduler와 `sim_viewer:=efficient`를 기본으로 사용한다.
+`make sim-mujoco-pipeline PIPELINE_ARGS='headless:=false use_rviz:=false use_image_view:=false'`
+또는 `headless:=true`로 GUI 유무를 비교한다. 전체 native UI는 `sim_viewer:=native`다.
+관찰용 GUI는 `SIM_ARGS='viewer_rate_hz:=60.0 viewer_shadows:=true'`로 기존 설정을
+선택할 수 있다. 구현과 실측 범위는 각 패키지 README 및
+[성능 측정 기록](../docs/MUJOCO_PERFORMANCE_20261002.md)을 따른다.
 `sim_performance_profile:=tabletop_fast`는 선택형이며 기본은 `baseline`이다.
 프로필은 먼 정적 배경 충돌·그림자 설정만 바꾸고 주행에는 사용하지 않는다.
 

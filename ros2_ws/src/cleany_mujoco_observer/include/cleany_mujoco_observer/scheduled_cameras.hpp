@@ -10,7 +10,8 @@ class ScheduledCameras {
 public:
   using Snapshot = std::function<void(mjData*&)>;
   using SimulationTime = std::function<double()>;
-  ScheduledCameras(mjModel* model, Snapshot snapshot, SimulationTime simulation_time);
+  ScheduledCameras(mjModel* model, Snapshot snapshot, SimulationTime simulation_time,
+                   bool show_viewer = false);
   ~ScheduledCameras();
 private:
   struct Impl;

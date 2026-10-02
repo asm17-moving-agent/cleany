@@ -22,6 +22,10 @@ from cleany_perception.core.wrist_observation import (
 from cleany_perception.core.ports import DetectorPort
 
 
+class WristTargetNotDetected(ValueError):
+    """A valid captured frame contains no associated target detection."""
+
+
 class WristService:
     def __init__(self, node, detector: DetectorPort, *,
                  check_detector: DetectorPort | None = None,
@@ -102,6 +106,8 @@ class WristService:
         detections = active_detector.detect(rgb, '')
         expected_label = label.casefold().strip()
         def associated(items):
+            if any(not np.isfinite(d.confidence) or not 0 <= d.confidence <= 1 for d in items):
+                raise ValueError('Invalid wrist detection confidence')
             return [d for d in items
                     if f' {d.label.casefold().strip()} ' in f' {expected_label} '
                     and self.config.minimum_detection_confidence <= d.confidence <= 1
@@ -126,7 +132,7 @@ class WristService:
             strongest = max(
                 ((d.confidence, bbox_iou(d.bbox, box)) for d in matching_labels),
                 default=None)
-            raise ValueError(
+            raise WristTargetNotDetected(
                 f'Wrist YOLOE needs one projected {label}; found 0 '
                 f'(class_detections={len(matching_labels)}, '
                 f'best_confidence_iou={strongest})'
@@ -150,14 +156,21 @@ class WristService:
     def execute(self, request, response):
         with self.node._busy_lock:
             if self.node._busy:
+                response.status = response.ERROR
                 response.message = 'Perception busy'
                 return response
             self.node._busy = True
         try:
             self.process(request, response)
             response.success = True
+            response.status = response.OK
+        except WristTargetNotDetected as error:
+            response.success = False
+            response.status = response.NOT_DETECTED
+            response.message = str(error)
         except Exception as error:
             response.success = False
+            response.status = response.ERROR
             response.message = str(error)
         finally:
             with self.node._busy_lock:
@@ -206,6 +219,11 @@ class WristService:
         box = project_box((pose.position.x,pose.position.y,pose.position.z),rotation,
             (req.size.x,req.size.y,req.size.z),transform,np.array(info.k).reshape(3,3),
             msg.width,msg.height,self.config)
+        # A missing target still carries the validated observation's provenance.
+        # Consumers can retry after this capture without inventing a detection.
+        out.source_snapshot_id = req.source_snapshot_id
+        out.source_object_id = req.source_object_id
+        out.header = deepcopy(msg.header)
         if req.operation == req.HANDOFF:
             mask = self._yoloe_mask(rgb, box, req.label,
                 detector=self.right_detector if req.arm == 'right' else self.detector,
@@ -214,6 +232,8 @@ class WristService:
             if (tuple(info.k) != ref['k'] or rgb.shape != ref['shape']
                     or stamp <= ref['stamp']):
                 raise ValueError('Wrist calibration/shape/timestamp changed')
+            out.reference_id = ref['id']
+            ref['stamp'] = stamp  # Consume failed checks too; retries need a new frame.
             mask = self._yoloe_mask(
                 rgb, box, req.label,
                 detector=(self.right_check_detector if req.arm == 'right'

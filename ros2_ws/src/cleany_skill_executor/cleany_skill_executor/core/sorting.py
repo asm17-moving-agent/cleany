@@ -20,26 +20,6 @@ class Category(str, Enum):
     REVIEW = 'review'
 
 
-def bin_release_region(
-    center_xy: tuple[float, float], outside_size: tuple[float, float, float],
-    wall: float, top_z: float, radius: float, minimum_clearance: float,
-    maximum_clearance: float, edge_margin: float,
-) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
-    """Object-center bounds: the entire bounding sphere stays inside the opening."""
-    values = (*center_xy, *outside_size[:2], wall, top_z, radius,
-              minimum_clearance, maximum_clearance, edge_margin)
-    if (not all(math.isfinite(v) for v in values)
-            or min(*outside_size[:2], wall, radius, minimum_clearance, edge_margin) <= 0
-            or maximum_clearance < minimum_clearance):
-        raise ValueError('Invalid bin release region dimensions or clearances')
-    half = [s / 2 - wall - radius - edge_margin for s in outside_size[:2]]
-    if min(half) <= 0:
-        raise ValueError('Payload bounding sphere does not fit inside bin opening')
-    lower = (center_xy[0]-half[0], center_xy[1]-half[1], top_z+radius+minimum_clearance)
-    upper = (center_xy[0]+half[0], center_xy[1]+half[1], top_z+radius+maximum_clearance)
-    return lower, upper
-
-
 @dataclass(frozen=True)
 class Decision:
     label: str

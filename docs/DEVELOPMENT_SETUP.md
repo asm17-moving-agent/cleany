@@ -434,6 +434,17 @@ Make의 타깃 테스트는 이 과정을 자동으로 수행한다.
 VM의 3D acceleration과 display 설정을 확인한다. GUI가 필요하지 않은 검증은
 `make sim`의 headless 실행을 사용한다.
 
+인식·수거의 `sim_viewer:=efficient`는 최대 20Hz의 snapshot 창이며,
+`sim_viewer:=native`는 전체 MuJoCo UI다. headless 센서도 현재 GLFW backend에서
+유효한 DISPLAY가 필요하다. 이 VM에서는 `DISPLAY=:0`으로 실행한다.
+관찰용 bridge는 `viewer_rate_hz:=20.0 viewer_shadows:=false`를 기본으로 사용한다.
+실제 제어·sensor 주기는 viewer rate와 별개다.
+
+`make profile-mujoco-runtime`의 선택형 runtime 측정 도구에는 `psutil`이 필요하다.
+없으면 `sudo apt install python3-psutil`로 설치한다. 센서/clock 메시지와 ROS 환경은
+기존 workspace 설치를 사용한다. 도구는 자신이 시작한 테스트 process를 종료하며,
+사용법과 측정 범위는 `cleany_mujoco_sim/README.md`를 따른다.
+
 ### `make check-gazebo-env`가 실패하는 경우
 
 다음 명령으로 어떤 기준이 맞지 않는지 확인한다.

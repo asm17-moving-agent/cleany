@@ -7,7 +7,13 @@ from cleany_interfaces.msg import (
     GraspCandidate,
     ObservedObjectGeometry,
 )
-from cleany_interfaces.srv import PlanGrasp, VerifyPlacement
+from cleany_interfaces.srv import ObserveWristTarget, PlanGrasp, VerifyPlacement
+
+
+def test_wrist_observation_distinguishes_missing_target_from_service_failure():
+    response = ObserveWristTarget.Response()
+    assert not response.success and response.status == response.ERROR
+    assert (response.ERROR, response.OK, response.NOT_DETECTED) == (0, 1, 2)
 
 
 def test_observed_geometry_has_explicit_identity_and_empty_default_mesh():

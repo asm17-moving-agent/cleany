@@ -19,7 +19,7 @@
 스터디카페 기본 프로필은 실제 오른손목 컵 파지 자세로 만든 전용 CHECK 모델을
 사용하며 컵 기준만 0.08로 설정한다. 추가 학습한 v2 모델은 서로 다른 독립
 합성 영상 묶음에서 컵 마스크 IoU 0.5 검출이 각각 20/20이었다. 실제 파지
-영상 한 장에서도 컵 검출 신뢰도가 약 0.69였으며, 실패 시 안전하게 중단한다.
+영상 한 장에서도 컵 검출 신뢰도가 약 0.69였다. 미검출과 관측 오류는 아래 응답 상태로 구분한다.
 Gemini 상세 라벨에 포함된 YOLOE 클래스, 투영 box와의 IoU, 단일 물체 여부 및 instance
 mask 위치·면적을 HANDOFF와 CHECK마다 확인한다. 손목 영상은 로컬 YOLOE-seg로 검증한다. 연속 추적 대신 두 시점의 새 영상을 독립적으로 검출하며,
 같은 위치·마스크의 중복 예측만 하나로 취급한다.
@@ -40,6 +40,12 @@ HANDOFF 이후 RGB·mask 이력을 보관하지 않는다. 손목 카메라는 R
 보정값, source/reference ID와 mask 검증 실패는 성공으로 처리하지 않는다.
 `wrist_*` 매개변수로 freshness/TTL, confidence, 투영 시야와 mask 면적 한계를 설정한다.
 HANDOFF와 CHECK는 `after_stamp_ns`보다 새로운 촬영 영상을 요구한다.
+`ObserveWristTarget` 응답은 `OK`, `NOT_DETECTED`, `ERROR`를 구분한다.
+정상 프레임에서 대응 후보가 없으면 `NOT_DETECTED`이며 `success=false`다.
+CHECK 미검출도 실제 촬영 시각과 기존 reference/source ID를 반환하고,
+그 프레임을 다시 CHECK에 사용하면 거부한다. 새 프레임 재시도와 그리퍼 피드백을
+이용한 진행 여부는 skill executor가 판단한다. 센서·TF·모델 오류, 후보 모호성,
+잘못된 mask 및 비정상 confidence는 `ERROR`로 반환하며 미검출로 숨기지 않는다.
 
 ## 필터링 점군 수신 확인
 

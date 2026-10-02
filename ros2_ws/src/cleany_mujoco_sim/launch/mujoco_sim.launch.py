@@ -19,6 +19,8 @@ def generate_launch_description() -> LaunchDescription:
     )
     publish_rate_arg = DeclareLaunchArgument('publish_rate_hz', default_value='60.0')
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
+    viewer_rate_arg = DeclareLaunchArgument('viewer_rate_hz', default_value='20.0')
+    viewer_shadows_arg = DeclareLaunchArgument('viewer_shadows', default_value='false')
     scan_rate_arg = DeclareLaunchArgument('scan_rate_hz', default_value='5.5')
     scan_samples_arg = DeclareLaunchArgument('scan_samples', default_value='0')
     max_linear_x_arg = DeclareLaunchArgument(
@@ -106,6 +108,8 @@ def generate_launch_description() -> LaunchDescription:
                 'scene_path': LaunchConfiguration('scene_path'),
                 'publish_rate_hz': LaunchConfiguration('publish_rate_hz'),
                 'headless': LaunchConfiguration('headless'),
+                'viewer_rate_hz': LaunchConfiguration('viewer_rate_hz'),
+                'viewer_shadows': LaunchConfiguration('viewer_shadows'),
                 'scan_rate_hz': LaunchConfiguration('scan_rate_hz'),
                 'scan_samples': LaunchConfiguration('scan_samples'),
                 'max_linear_x': LaunchConfiguration('max_linear_x'),
@@ -136,6 +140,8 @@ def generate_launch_description() -> LaunchDescription:
         scene_path_arg,
         publish_rate_arg,
         headless_arg,
+        viewer_rate_arg,
+        viewer_shadows_arg,
         scan_rate_arg,
         scan_samples_arg,
         max_linear_x_arg,

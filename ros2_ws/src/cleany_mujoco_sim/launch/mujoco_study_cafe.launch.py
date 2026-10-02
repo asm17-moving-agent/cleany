@@ -16,6 +16,8 @@ def generate_launch_description() -> LaunchDescription:
                 default_value='false',
                 description='Run without the MuJoCo viewer.',
             ),
+            DeclareLaunchArgument('viewer_rate_hz', default_value='20.0'),
+            DeclareLaunchArgument('viewer_shadows', default_value='false'),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     PathJoinSubstitution(
@@ -27,6 +29,8 @@ def generate_launch_description() -> LaunchDescription:
                         [package_share, 'scenes', 'study_cafe.xml.in']
                     ),
                     'headless': headless,
+                    'viewer_rate_hz': LaunchConfiguration('viewer_rate_hz'),
+                    'viewer_shadows': LaunchConfiguration('viewer_shadows'),
                 }.items(),
             ),
         ]

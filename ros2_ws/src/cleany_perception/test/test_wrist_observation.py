@@ -86,6 +86,7 @@ def test_rgb_only_handoff_preserves_source_and_stamped_mask(service):
     s,req=service
     out=s.execute(req,Service.Response())
     assert out.success and out.reference_id
+    assert out.status == out.OK
     assert out.source_snapshot_id=='head-1' and out.source_object_id==1
     assert out.header.stamp.sec==2 and out.mask.encoding=='mono8'
     assert not hasattr(out,'observed_center')
@@ -140,6 +141,52 @@ def test_yoloe_missing_wrist_target_can_save_diagnostic_rgb(service, tmp_path):
     files = list(tmp_path.glob('wrist_missing_*.png'))
     assert not result.success and len(files) == 1
     assert PilImage.open(files[0]).size == (100, 100)
+
+
+def test_missing_check_preserves_provenance_and_requires_new_frame_for_recovery(service):
+    s, req = service
+    handoff = s.execute(req, Service.Response())
+    prepare_check(s, req, handoff)
+    s.check_detector = SimpleNamespace(detect=lambda *args: ())
+    missing = s.execute(req, Service.Response())
+    assert not missing.success and missing.status == missing.NOT_DETECTED
+    assert missing.reference_id == handoff.reference_id
+    assert (missing.source_snapshot_id, missing.source_object_id) == ('head-1', 1)
+    assert missing.header.stamp.sec == 3 and missing.header.frame_id == 'left_wrist_rgb_optical_frame'
+    assert not missing.mask.data
+    reused = s.execute(req, Service.Response())
+    assert not reused.success and reused.status == reused.ERROR
+    assert 'timestamp changed' in reused.message
+    receive_frame(s, req.arm, 4)
+    req.after_stamp_ns = 3 * 10**9
+    s.check_detector = SimpleNamespace(detect=lambda *args: (instance(),))
+    recovered = s.execute(req, Service.Response())
+    assert recovered.success and recovered.status == recovered.OK
+    assert recovered.reference_id == handoff.reference_id and recovered.header.stamp.sec == 4
+
+
+@pytest.mark.parametrize('fault', ['busy', 'capture', 'model', 'calibration', 'ambiguous', 'confidence'])
+def test_check_sensor_and_contract_errors_are_not_missing_detections(service, fault):
+    s, req = service
+    handoff = s.execute(req, Service.Response())
+    prepare_check(s, req, handoff)
+
+    def failed(*args):
+        raise RuntimeError('sensor/model unavailable')
+
+    if fault == 'busy': s.node._busy = True
+    if fault == 'capture': s.capture = failed
+    if fault == 'model': s.check_detector = SimpleNamespace(detect=failed)
+    if fault == 'calibration': s.infos['left'][3 * 10**9].k[0] = 0.
+    if fault == 'ambiguous':
+        a = instance()
+        b = Detection2D('cup', .7, a.bbox,
+                        segmentation_mask=np.roll(a.segmentation_mask, 5, axis=1))
+        s.check_detector = SimpleNamespace(detect=lambda *args: (a, b))
+    if fault == 'confidence':
+        s.check_detector = SimpleNamespace(detect=lambda *args: (SimpleNamespace(confidence=float('nan')),))
+    result = s.execute(req, Service.Response())
+    assert not result.success and result.status == result.ERROR
 
 
 def test_yoloe_wrist_collapses_identical_instance_predictions(service):

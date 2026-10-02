@@ -27,6 +27,8 @@ bool placeKnownBodies(KnownBodies& bodies, const Eigen::Isometry3d& map_from_clo
 
 // Caller owns the tree write lock. Does not create cells or clear partial overlap.
 // All eight corners must belong to ONE convex body, not a union across bodies.
+// Mesh padding is applied along convex face normals, bounded by its padded box;
+// primitive bodies retain their native containment/padding semantics.
 ClearResult clearContainedOccupancy(octomap::OcTree& tree,
                                    const std::vector<const bodies::Body*>& bodies,
                                    std::size_t maximum_examined);
