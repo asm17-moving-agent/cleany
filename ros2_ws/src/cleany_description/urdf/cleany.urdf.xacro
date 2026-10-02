@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
 <robot name="cleany" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:arg name="include_head_camera" default="true"/>
+  <xacro:arg name="include_wheel_joints" default="true"/>
   <xacro:include filename="$(find cleany_description)/urdf/materials.xacro"/>
   <xacro:include filename="$(find cleany_description)/urdf/cleany_geometry.xacro"/>
   <xacro:include filename="$(find cleany_description)/urdf/head_camera.xacro"/>
 
-  <xacro:cleany_robot_geometry/>
+  <xacro:cleany_robot_geometry include_wheel_joints="$(arg include_wheel_joints)"/>
   <xacro:if value="$(arg include_head_camera)">
     <xacro:cleany_head_camera/>
   </xacro:if>
