@@ -9,6 +9,7 @@ from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import CameraInfo, Image
 from cleany_navigation.depth_clearance_node import DepthClearanceNode
 from cleany_navigation.point_cloud import cloud_xyz
+from cleany_navigation.body_geometry import BodyBox
 
 
 @pytest.mark.parametrize('encoding,dtype,scale', [('32FC1', '<f4', 1.), ('16UC1', '<u2', 1000.)])
@@ -46,13 +47,24 @@ def test_optical_tf_units_stamp_and_missing_calibration_fail_closed(monkeypatch,
         assert outputs[-1].header.frame_id == 'head_camera_depth_frame'
         assert outputs[-1].header.stamp == image.header.stamp
         assert image.header.frame_id == info.header.frame_id  # Input message is not mutated.
+        # A raycast surface 0.15 mm outside the CAD box must be recognized as
+        # self geometry; a separate point one meter to the side stays observed.
+        node.self_boxes = [BodyBox('left_arm/visual', np.array([2., 0., 0.]),
+                                   np.eye(3), np.array([.09985, .1, .1]))]
+        base = TransformStamped()
+        base.header.frame_id, base.child_frame_id = 'base_link', 'head_camera_depth_frame'
+        base.transform.rotation.w = 1.
+        node.buffer.set_transform_static(base, 'test_backend')
+        node.on_depth(image)
+        assert len(outputs) == 2
+        np.testing.assert_allclose(cloud_xyz(outputs[-1]), [[2.1, -1., 0.]])
         info.d = [float('nan')]
         node.on_depth(image)
-        assert len(outputs) == 1
+        assert len(outputs) == 2
         info.d = []
         image.header.frame_id = 'wrong_frame'
         node.on_depth(image)
-        assert len(outputs) == 1
+        assert len(outputs) == 2
     finally:
         if node is not None:
             node.destroy_node()

@@ -26,7 +26,7 @@ class DepthClearanceNode(Node):
                               ('camera_info_topic', 'camera/head/depth/camera_info'),
                               ('camera_frame', 'head_camera_depth_frame'),
                               ('optical_frame', 'head_camera_depth_optical_frame'),
-                              ('self_filter_profile', ''), ('allow_simulation_limits', False), ('base_frame', 'base_link'), ('pixel_stride', 4), ('positive_infinity_is_free', False),
+                              ('self_filter_profile', ''), ('self_filter_margin_m', .001), ('allow_simulation_limits', False), ('base_frame', 'base_link'), ('pixel_stride', 4), ('positive_infinity_is_free', False),
                               ('clearing_distance', 5.0), ('marking_max_range', 4.0), ('sensor_far_clip', 10.0)]:
             self.declare_parameter(name, default)
         self.stride = self.get_parameter('pixel_stride').value
@@ -34,6 +34,9 @@ class DepthClearanceNode(Node):
         if self.stride < 1 or not (self.get_parameter('marking_max_range').value < self.clearing_distance < self.get_parameter('sensor_far_clip').value):
             raise ValueError('Require stride >= 1 and marking range < clearing distance < far clip')
         profile = self.get_parameter('self_filter_profile').value
+        self.self_filter_margin = self.get_parameter('self_filter_margin_m').value
+        if not np.isfinite(self.self_filter_margin) or self.self_filter_margin < 0:
+            raise ValueError('self_filter_margin_m must be finite and nonnegative')
         self.self_boxes = []
         if profile:
             self.self_boxes = [b for b in load_body_boxes(
@@ -95,7 +98,7 @@ class DepthClearanceNode(Node):
             keep = np.ones(len(points), dtype=bool)
             for box in self.self_boxes:
                 local = (body_points-box.center)@box.rotation
-                keep &= ~np.all(np.abs(local) <= box.half_size+1e-5, axis=1)
+                keep &= ~np.all(np.abs(local) <= box.half_size+self.self_filter_margin, axis=1)
             # Occluded self rays are discarded, never converted to free-space rays.
             points = np.ascontiguousarray(points[keep])
         output = PointCloud2()

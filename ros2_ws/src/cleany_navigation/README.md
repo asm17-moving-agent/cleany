@@ -53,7 +53,10 @@ voxel guard 한 개다. Backend는 아래 입력/TF를 제공한다.
 | TF | Backend: odom→base_link와 base→LiDAR/head/optical; AMCL: map→odom |
 
 Depth projection은 optical Z-depth를 원래 image stamp의 TF로 output frame에
-변환한다. TF·calibration이 없으면 cloud를 발행하지 않는다. 공통 pan gate는
+변환한다. TF·calibration이 없으면 cloud를 발행하지 않는다. Park posture의 팔 형상으로
+자기 관측점을 제거하며, `depth_clearance.self_filter_margin_m`의 기본 1mm
+여유는 depth/CAD 표면의 수치 오차를 처리한다. 실제 로봇에서는 보정 오차에
+맞게 검증해야 한다. 공통 pan gate는
 `head_pan/command` Float64를 발행하고 TF를 소유하지 않는다. Backend의 head
 actuator adapter와 실제 joint feedback이 필요하다. 공통 노드의 topic/frame은
 ROS parameter로 설정 가능하며 TF edge owner는 중복되면 안 된다.
