@@ -948,3 +948,11 @@ Fortress 센서 서버의 `server_gallium_thread` 기본값은 0이다. Adreno/F
 서버 프로세스의 `GALLIUM_THREAD`만 설정한다. GPU 렌더링·센서 해상도는 유지한다.
 기존 환경의 `GALLIUM_THREAD` 또는 launch의 `server_gallium_thread:=1`로 변경 가능하다.
 GUI 및 다른 실행 세션의 드라이버 설정은 변경하지 않는다.
+
+### 메카넘 마찰 방향의 XML namespace
+
+World 저장 시 `ignition:expressed_in` / `gz:expressed_in` 접두사를 보존한다.
+Fortress/Harmonic 실행기는 외부 world도 임시 복사본으로 정규화한다. DART가 이 속성을
+문자열 이름으로 조회하므로 `ns0:expressed_in`으로 바뀌면 차체 기준 마찰 방향이
+무시되어 대각선 명령이 불필요한 회전과 odometry 불일치를 만들 수 있다.
+원본 world와 mesh는 변경하지 않는다.

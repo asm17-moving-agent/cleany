@@ -6,6 +6,8 @@ from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
     ExecuteProcess,
+    OpaqueFunction,
+    SetLaunchConfiguration,
 )
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
@@ -15,7 +17,13 @@ from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     declare_sensor_profile_argument,
     sensor_profile_bridges,
 )
+from cleany_gazebo_sim.world.sdf import materialize_friction_frames
 from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
+
+
+def _normalize_world(context):
+    source = Path(LaunchConfiguration('world').perform(context))
+    return [SetLaunchConfiguration('world', str(materialize_friction_frames(source, harmonic=True)))]
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -200,6 +208,7 @@ def generate_launch_description() -> LaunchDescription:
             AppendEnvironmentVariable(
                 'GZ_SIM_RESOURCE_PATH', str(description_share)
             ),
+            OpaqueFunction(function=_normalize_world),
             server,
             gui,
             bridges,

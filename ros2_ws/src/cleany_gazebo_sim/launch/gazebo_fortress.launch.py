@@ -21,6 +21,7 @@ from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     sensor_profile_bridges,
 )
 from cleany_gazebo_sim.lidar_noise import load_lidar_noise_profile
+from cleany_gazebo_sim.world.sdf import materialize_friction_frames
 from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
@@ -153,6 +154,8 @@ def _launch_setup(
         profile_name = LaunchConfiguration('lidar_noise_profile').perform(context)
         profile = load_lidar_noise_profile(noise_profiles, profile_name)
         world = str(materialize_mecanum_wheel_world(world_template, profile))
+
+    world = str(materialize_friction_frames(Path(world)))
 
     server = ExecuteProcess(
         cmd=[

@@ -8,6 +8,7 @@ from tempfile import mkdtemp
 from xml.etree import ElementTree
 
 from cleany_gazebo_sim.lidar_noise import LidarNoiseProfile
+from cleany_gazebo_sim.world.sdf import write_world
 from cleany_gazebo_sim.world.layout import load_study_cafe_layout
 
 
@@ -339,12 +340,7 @@ def materialize_mecanum_wheel_world(
         f'cleany-mecanum-{suffix}-', 'world.sdf'
     )
     target.parent.mkdir(parents=True, exist_ok=True)
-    ElementTree.register_namespace(
-        'gz', 'http://gazebosim.org/schema'
-    )
-    ElementTree.ElementTree(root).write(
-        target, encoding='unicode', xml_declaration=True
-    )
+    write_world(ElementTree.ElementTree(root), target)
     if model_metadata is not None:
         target.with_suffix('.model.json').write_text(json.dumps(model_metadata, indent=2))
     return target
@@ -1107,7 +1103,5 @@ def materialize_study_cafe_world(
                 )
                 desk_index += 1
 
-    ElementTree.ElementTree(root).write(
-        target, encoding='unicode', xml_declaration=True
-    )
+    write_world(ElementTree.ElementTree(root), target)
     return target

@@ -89,7 +89,8 @@ def prepare(output: Path, map_yaml: Path, robot_model: str = 'legacy', initial_p
             ET.SubElement(box, 'size').text = ' '.join(map(str, fixture['size']))
             if kind == 'visual':
                 ET.SubElement(ET.SubElement(element, 'material'), 'diffuse').text = '0.9 0.15 0.1 1'
-    tree.write(world, encoding='unicode', xml_declaration=True)
+    from cleany_gazebo_sim.world.sdf import write_world
+    write_world(tree, world)
     nav = yaml.safe_load((config/'nav2_amcl.yaml').read_text())
     costmap = nav['local_costmap']['local_costmap']['ros__parameters']
     footprint = ast.literal_eval(costmap['footprint'])
