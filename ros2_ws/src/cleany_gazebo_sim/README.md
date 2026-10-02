@@ -930,3 +930,21 @@ Depth 바닥 제외: `/camera/head/depth/points`는 바닥을 포함한 관측 r
 사용합니다. 기본 시뮬레이션 바닥은 z=-0.38 m이고 marking 최소 높이는 -0.33 m입니다.
 CAD 카메라 주행 자세는 수평에서 아래로 20°입니다. 실물 높이 기준은 로봇 parameter로
 맞춰야 합니다.
+
+SCRUM-425 직선 주행은 공통 `StraightFirstPlanner`의 전체 footprint 검사 후 직선 우선,
+장애물 구간은 기존 Smac lattice를 사용한다. 이동·회전 동시 명령은 금지하고, 같은 축 재출발과
+경로 갱신이 불필요한 settle을 만들지 않도록 공통 제어기를 사용한다. BT 경로 검사는 100ms 주기다.
+
+Fortress GUI 실행도 서버를 `ign gazebo -r -s`로 독립 실행하고 GUI는
+`ign gazebo -g`로 같은 partition에 연결한다. GUI를 닫아도 서버 physics는 별도로 유지된다.
+
+기본 sensor profile의 core bridge는 `/gazebo/raw_clock`, `/gazebo/raw_joint_states`를
+`gazebo_feedback_sampler`로 전달한다. 샘플러의 `publish_period_s` 기본 0.02초(50Hz)로
+clock 및 해당 clock보다 미래가 아닌 관절 피드백을 전달한다. 원래 stamp는 보존하며
+시뮬 정지 시 같은 데이터를 재발행해 신선한 것처럼 만들지 않는다.
+명시적인 bridge_config override는 이 기본 샘플링을 적용하지 않는다.
+Fortress 센서 서버의 `server_gallium_thread` 기본값은 0이다. Adreno/Freedreno에서
+비동기 GL 결과를 기다리며 LiDAR readback과 physics가 멈추는 현상을 완화하기 위해
+서버 프로세스의 `GALLIUM_THREAD`만 설정한다. GPU 렌더링·센서 해상도는 유지한다.
+기존 환경의 `GALLIUM_THREAD` 또는 launch의 `server_gallium_thread:=1`로 변경 가능하다.
+GUI 및 다른 실행 세션의 드라이버 설정은 변경하지 않는다.

@@ -8,7 +8,7 @@ from launch.actions import (
     ExecuteProcess,
     OpaqueFunction,
 )
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import UnlessCondition
 from launch.substitutions import (
     EnvironmentVariable,
     LaunchConfiguration,
@@ -99,6 +99,12 @@ def generate_launch_description() -> LaunchDescription:
         choices=['ogre', 'ogre2'],
         description='Rendering engine used by the Gazebo server.',
     )
+    server_gallium_thread_arg = DeclareLaunchArgument(
+        'server_gallium_thread',
+        default_value=EnvironmentVariable('GALLIUM_THREAD', default_value='0'),
+        choices=['0', '1'],
+        description='Mesa threaded context for sensor rendering; 0 avoids Freedreno readback stalls.',
+    )
     sensor_profile_arg = declare_sensor_profile_argument()
 
     return LaunchDescription(
@@ -115,6 +121,7 @@ def generate_launch_description() -> LaunchDescription:
             use_sim_time_arg,
             gui_render_engine_arg,
             server_render_engine_arg,
+            server_gallium_thread_arg,
             sensor_profile_arg,
             OpaqueFunction(
                 function=_launch_setup,
@@ -157,19 +164,16 @@ def _launch_setup(
             LaunchConfiguration('server_render_engine'),
             world,
         ],
-        condition=IfCondition(LaunchConfiguration('headless')),
+        additional_env={'GALLIUM_THREAD': LaunchConfiguration('server_gallium_thread')},
         output='screen',
     )
     gui = ExecuteProcess(
         cmd=[
             'ign',
             'gazebo',
-            '-r',
-            '--render-engine-server',
-            LaunchConfiguration('server_render_engine'),
+            '-g',
             '--render-engine-gui',
             LaunchConfiguration('gui_render_engine'),
-            world,
         ],
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',

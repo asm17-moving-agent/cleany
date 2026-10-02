@@ -84,10 +84,14 @@ def _sensor_bridge_nodes(
                     )
                 }
             ],
+            remappings=[('/clock', '/gazebo/raw_clock'),
+                        ('/joint_states', '/gazebo/raw_joint_states')] if group == 'core' else [],
             output='screen',
         )
         for group in sensor_profile_bridge_groups(profile)
-    ]
+    ] + [Node(package='cleany_gazebo_sim', executable='gazebo_feedback_sampler',
+              name='gazebo_feedback_sampler', parameters=[{'publish_period_s': .02}],
+              output='screen')]
 
 
 def sensor_profile_bridges(
