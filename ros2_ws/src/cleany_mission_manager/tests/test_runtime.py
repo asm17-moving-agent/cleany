@@ -296,3 +296,21 @@ def test_restart_report_keeps_the_execution_profile_from_admission(tmp_path):
     restarted, _, _, _ = make_runtime(journal=journal)
     assert restarted.last_report.execution_profile["navigation"] == "sim"
     assert restarted.execution_profile["navigation"] == "mock"
+
+
+def test_debug_events_retain_short_lived_bt_checks_without_changing_mission():
+    runtime, _, nav, clock = make_runtime()
+    runtime.offer(request())
+    drive(runtime, clock)
+    events = list(runtime.debug_events)
+    assert runtime.last_report.outcome == 'SUCCESS'
+    assert nav.commands == ['seat-12', 'home']
+    assert any(e['kind'] == 'bt_tick' and e['data'] == {
+        'node_id': 'ValidateProposal', 'status': 'SUCCESS'} for e in events)
+    assert any(e['kind'] == 'transition' and e['data']['to'] == 'POST_MISSION' for e in events)
+    assert any(e['kind'] == 'action_start' and e['task_id'] and e['execution_id'] for e in events)
+    assert [e['sequence'] for e in events] == list(range(1, len(events)+1))
+    snapshot = runtime.debug_snapshot()
+    assert snapshot['safe_to_drive']
+    assert len(snapshot['bt_nodes']) == 9
+    assert all(e['boot_id'] == snapshot['boot_id'] for e in events)

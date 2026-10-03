@@ -113,3 +113,17 @@ ros2 interface show cleany_interfaces/srv/PlanGrasp
 
 이 세 interface는 팀원 브랜치 `feat/manipulation-action-server`의
 `46efa012cddb4ef0ff3f4dadb785550591bb6073`과 동일합니다. 서버 내부 BT 구조는 이 계약에 포함하지 않습니다.
+
+### 개발 관측 인터페이스
+
+`RuntimeDebugSnapshot` (`mission/debug_snapshot`, reliable/transient-local depth 1)은
+header, boot ID, 마지막 event sequence, mission ID, FSM state, ready/reason,
+`DebugBTNode[]`, schema version 1의 `snapshot_json`을 전달한다. JSON에는 FSM 정의,
+모듈별 ready/stopped/reason, 실행 profile, 현재 proposal, 조작 결과, navigation 진단이
+포함된다. `DebugBTNode`는 id/parent/kind/status/visited/operation_id로 구성된다.
+
+`RuntimeEvent` (`mission/runtime_events`, reliable/transient-local depth 2048)은
+header, boot ID, 연속 sequence, mission/task/execution ID, kind, `data_json`을 전달한다.
+kind는 transition, bt_tick, action_start, action_result, action_cancel_requested,
+cancel_requested, mission_result다. 관측 데이터이며 명령 인터페이스가 아니다.
+기존 `MissionStatus`, `MissionResult`, 미션 service 계약은 변경하지 않는다.

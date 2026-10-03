@@ -55,6 +55,9 @@ class OperationLeaf(py_trees.behaviour.Behaviour):
             if command is None:
                 return py_trees.common.Status.SUCCESS
             self.operation_id = self.port.start(command)
+            if self.tree.observer:
+                self.tree.observer("action_start", {"node_id": self.name,
+                                   "operation_id": self.operation_id})
         result = self.port.poll(self.operation_id)
         if result is None:
             if self.tree.clock() - self.started_at > self.tree.policy.operation_timeout:
@@ -65,12 +68,19 @@ class OperationLeaf(py_trees.behaviour.Behaviour):
                 return py_trees.common.Status.FAILURE
             return py_trees.common.Status.RUNNING
         self.consumed = True
+        if self.tree.observer:
+            self.tree.observer("action_result", {"node_id": self.name,
+                               "operation_id": self.operation_id, "status": result.status.value,
+                               "message": result.message})
         return (py_trees.common.Status.SUCCESS if self.consume(result)
                 else py_trees.common.Status.FAILURE)
 
     def terminate(self, new_status: py_trees.common.Status) -> None:
         if new_status == py_trees.common.Status.INVALID and self.operation_id:
             self.port.cancel(self.operation_id)
+            if self.tree.observer:
+                self.tree.observer("action_cancel_requested", {"node_id": self.name,
+                                   "operation_id": self.operation_id})
 
 
 class CheckLeaf(py_trees.behaviour.Behaviour):
@@ -100,8 +110,10 @@ class UntilVerified(py_trees.decorators.Decorator):
 class CleaningTree:
     def __init__(self, *, perception: OperationPort, planner: OperationPort,
                  executor: OperationPort, clock: Callable[[], float], policy: RuntimePolicy,
-                 mission_id: str, mode: str = "mock") -> None:
+                 mission_id: str, mode: str = "mock", observer=None) -> None:
         self.context = CleaningContext()
+        self.observer = observer
+        self.visited: set[str] = set()
         self.clock, self.policy, self.mode = clock, policy, mode
         self.mission_id = mission_id
         self.ports = (perception, planner, executor)
@@ -120,8 +132,20 @@ class CleaningTree:
         ])
 
     def tick(self) -> py_trees.common.Status:
-        self.root.tick_once()
+        self.visited.clear()
+        # Observe each yielded node before decorators reset successful children.
+        for node in self.root.tick():
+            self.visited.add(node.name)
+            if self.observer:
+                self.observer("bt_tick", {"node_id": node.name, "status": node.status.value})
         return self.root.status
+
+    def debug_nodes(self) -> list[dict]:
+        return [{"id": node.name, "parent": node.parent.name if node.parent else "",
+                 "kind": type(node).__name__, "status": node.status.value,
+                 "visited": node.name in self.visited,
+                 "operation_id": getattr(node, "operation_id", None) or ""}
+                for node in self.root.iterate()]
 
     def halt(self) -> None:
         self.root.stop(py_trees.common.Status.INVALID)

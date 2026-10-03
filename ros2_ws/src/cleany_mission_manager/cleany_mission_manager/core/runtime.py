@@ -1,6 +1,7 @@
 """Single-owner FSM. tick() never waits for ROS actions or network I/O."""
 
-from dataclasses import asdict, replace
+from dataclasses import asdict, replace, is_dataclass
+from collections import deque
 from typing import Callable
 from uuid import uuid4
 
@@ -34,6 +35,8 @@ class MissionRuntime:
         self.on_accept = on_accept
         self.request: RuntimeRequest | None = None
         self.boot_id = str(uuid4())
+        self.debug_sequence = 0
+        self.debug_events: deque[dict] = deque(maxlen=2048)
         self.external_phase = "ACCEPTED"
         self.cleaning: CleaningTree | None = None
         self.operation_id: str | None = None
@@ -229,6 +232,9 @@ class MissionRuntime:
                 self.operation_id = self.navigator.start(
                     "home" if returning else self.request.target_id
                 )
+                self.observe("action_start", {"module": "navigation",
+                             "operation_id": self.operation_id,
+                             "target": "home" if returning else self.request.target_id})
             result = self.navigator.poll(self.operation_id)
             if result is None:
                 if self.clock() - self.started_at >= self.policy.navigation_timeout:
@@ -236,6 +242,8 @@ class MissionRuntime:
                         FailureCode.TIMEOUT, message="Navigation timed out."
                     ))
                 return
+            self.observe("action_result", {"module": "navigation",
+                         "operation_id": self.operation_id, "status": result.status.value})
             if returning:
                 self.return_result = result.status.value
             else:
@@ -252,7 +260,7 @@ class MissionRuntime:
                 self.cleaning = CleaningTree(
                     perception=self.desk_ports[0], planner=self.desk_ports[1],
                     executor=self.desk_ports[2], clock=self.clock, policy=self.policy,
-                    mission_id=self.request.mission_id,
+                    mission_id=self.request.mission_id, observer=self.observe,
                 )
                 self._enter(RuntimeState.WORKING)
         elif self.state == RuntimeState.WORKING:
@@ -277,6 +285,8 @@ class MissionRuntime:
 
     def _begin_stop(self, result: ModuleResult) -> None:
         self.stop_result = result
+        self.observe("cancel_requested", {"operation_id": self.operation_id,
+                                         "reason": result.message})
         if self.state != RuntimeState.CANCELLING:
             self._enter(RuntimeState.CANCELLING)
         for halt in (
@@ -304,7 +314,10 @@ class MissionRuntime:
             return False, "MANIPULATION_STATE_UNAVAILABLE"
 
     def _enter(self, state: RuntimeState) -> None:
+        previous = self.state.value
         self.state = state
+        self.observe("transition", {"from": previous, "to": state.value,
+                                   "active_request": asdict(self.request) if self.request else None})
         self.external_phase = {
             RuntimeState.NAVIGATE_TO_TARGET: "NAVIGATING", RuntimeState.WORKING: "WORKING",
             RuntimeState.POST_MISSION: "WORKING", RuntimeState.RETURN_HOME: "RETURNING",
@@ -339,6 +352,7 @@ class MissionRuntime:
         )
         self.journal.finish(report)
         self.last_report = report
+        self.observe("mission_result", report.to_dict())
         fatal = force_error or result is not None and result.status == ResultStatus.FATAL
         self.error_code = report.failure_code or "ERROR" if fatal else ""
         self.journal.set("error_code", self.error_code)
@@ -355,7 +369,7 @@ class MissionRuntime:
             self.event_id = str(uuid4())
             self._last_status = signature
 
-    def snapshot(self) -> dict:
+    def snapshot(self, *, include_completed: bool = True) -> dict:
         self._refresh_status()
         ready, reason = self.readiness()
         phase = self.external_phase if self.request else "TERMINAL"
@@ -370,7 +384,54 @@ class MissionRuntime:
             "before_observation": self.cleaning.context.before if self.cleaning else "",
             "active_request": asdict(self.request) if self.request else None,
             "last_result": self.last_report.to_dict() if self.last_report else None,
-            "completed_reports": [report.to_dict() for report in self.journal.reports()],
+            "completed_reports": [report.to_dict() for report in self.journal.reports()] if include_completed else [],
             "supported_seat_ids": sorted(self.targets),
             "execution_profile": dict(self.execution_profile),
         }
+
+    def observe(self, kind: str, data: dict) -> None:
+        """Bounded in-memory observation; no I/O or mission control from consumers."""
+        self.debug_sequence += 1
+        proposal = self.cleaning.context.proposal if self.cleaning else None
+        self.debug_events.append({
+            "boot_id": self.boot_id, "sequence": self.debug_sequence,
+            "monotonic_time": self.clock(), "kind": kind,
+            "mission_id": self.request.mission_id if self.request else
+                          self.last_report.request.mission_id if self.last_report else "",
+            "task_id": proposal.task_id if proposal else "",
+            "execution_id": proposal.execution_id if proposal else "", "data": data,
+        })
+
+    def debug_snapshot(self) -> dict:
+        snapshot = self.snapshot(include_completed=False)
+        snapshot.pop("completed_reports", None)
+        modules = {}
+        for name, port in zip(("navigation", "perception", "planning", "execution"),
+                              (self.navigator, *self.desk_ports)):
+            try:
+                ready, reason = port.ready()
+                modules[name] = {"ready": ready, "reason": reason, "stopped": port.stopped()}
+            except Exception as exc:
+                modules[name] = {"ready": None, "stopped": None, "reason": str(exc)}
+        safe, reason = self._safe_to_drive()
+        proposal = self.cleaning.context.proposal if self.cleaning else None
+        outcome = getattr(self.executor, "outcome", None)
+        snapshot.update({"event_sequence": self.debug_sequence,
+            "fsm_states": [state.value for state in RuntimeState],
+            "fsm_edges": [[a, b] for a, b in (
+                ("IDLE", "NAVIGATE_TO_TARGET"), ("NAVIGATE_TO_TARGET", "WORKING"),
+                ("WORKING", "POST_MISSION"), ("POST_MISSION", "RETURN_HOME"),
+                ("POST_MISSION", "IDLE"), ("RETURN_HOME", "IDLE"),
+                ("NAVIGATE_TO_TARGET", "CANCELLING"), ("WORKING", "CANCELLING"),
+                ("RETURN_HOME", "CANCELLING"), ("POST_MISSION", "CANCELLING"),
+                ("CANCELLING", "RETURN_HOME"), ("CANCELLING", "IDLE"),
+                ("CANCELLING", "ERROR"), ("IDLE", "ERROR"), ("ERROR", "IDLE"))],
+            "bt_nodes": self.cleaning.debug_nodes() if self.cleaning else [],
+            "modules": modules, "safe_to_drive": safe, "drive_block_reason": reason,
+            "proposal": asdict(proposal) if proposal else None,
+            "manipulation": asdict(outcome) if is_dataclass(outcome) else None,
+            "navigation": {"operation_id": self.operation_id,
+                "target": "home" if self.navigation_is_home else
+                          self.request.target_id if self.request else None},
+        })
+        return snapshot

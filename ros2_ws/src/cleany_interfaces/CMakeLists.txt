@@ -12,6 +12,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectedObject3DArray.msg"
   "msg/GraspCandidate.msg"
   "msg/MissionStatus.msg"
+  "msg/DebugBTNode.msg"
+  "msg/RuntimeDebugSnapshot.msg"
+  "msg/RuntimeEvent.msg"
+
   "msg/MissionResult.msg"
   "msg/ManipulationExecutionRecord.msg"
   "action/ExecuteManipulationSkill.action"

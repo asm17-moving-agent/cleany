@@ -200,3 +200,14 @@ ROS_DOMAIN_ID=185 CLEANY_RUN_ROS_TESTS=1 CLEANY_RUN_MANIPULATION_TESTS=1 make te
 ```
 
 이 검사는 mock 조작과 ROS 통신의 증거이며 Gazebo 재검증이나 실제 팔 청소 증거가 아닙니다.
+
+### 개발용 FSM/BT 관측
+
+`mission/debug_snapshot`을 최대 2 Hz로, `mission/runtime_events`를 FSM tick 뒤에 발행한다.
+짧게 SUCCESS가 된 뒤 같은 tick 안에서 INVALID로 초기화되는 BT 노드도 `bt_tick`
+이벤트로 남긴다. core는 I/O 없이 최대 2,048개 이벤트만 보존한다. debug 발행 실패가
+기존 status/result 발행을 막지 않도록 ROS shell에서 분리한다.
+
+`cleany_dev_monitor`는 이 정보와 ROS graph/TF/토픽을 읽어 개발 화면을 제공한다.
+자세한 실행과 관측 의미는 [개발 관제보드 README](../cleany_dev_monitor/README.md)를 본다.
+`safe_to_drive`는 기존 executor의 판단을 보여주며 관제보드가 새로 안전 판단을 하지 않는다.

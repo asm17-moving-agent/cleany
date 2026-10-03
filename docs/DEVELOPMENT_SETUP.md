@@ -507,3 +507,16 @@ headless server가 OGRE2, GUI가 OGRE1을 사용한다.
 - [공식 micro-ROS ESP-IDF component (Humble)](https://github.com/micro-ROS/micro_ros_espidf_component/tree/4ddd8c26e721662319ed8af981cb7cdc9ae05382)
 - [micro-ROS Agent (Humble)](https://github.com/micro-ROS/micro-ROS-Agent/tree/c93ee764e0d2ef4907aeb29233c68cb5f4b56976)
 - [ESP-IDF 5.5 native USB Serial/JTAG 안내](https://github.com/espressif/esp-idf/blob/v5.5/docs/en/api-guides/usb-serial-jtag-console.rst)
+
+## 개발 관제보드 선택 의존성
+
+`cleany_dev_monitor`는 ROS 2 환경의 `python3-aiohttp`, `python3-pil`, `sensor_msgs`, `rclpy`, `tf2_ros`,
+`rosidl_runtime_py`와 workspace 메시지 overlay를 사용한다. `package.xml`에 선언되어
+있으므로 해당 패키지에 `rosdep install --from-paths ... --ignore-src -r -y`를 적용한다.
+Humble/Ubuntu 22.04에서는 `python3-aiohttp` 배포 패키지로 실행한다.
+
+웹 빌드는 Node.js 22 이상과 pnpm 11을 사용한다. 의존 버전은
+`ros2_ws/src/cleany_dev_monitor/web/pnpm-lock.yaml`에 고정되어 있다. esbuild의 로컬
+설치 스크립트만 `pnpm-workspace.yaml`에서 허용한다. ROS 프로세스에는 Node.js가 필요하지
+않으며, 다른 환경에서 빌드한 `web/dist`를 ROS 패키지 설치에 포함할 수 있다.
+Playwright 브라우저는 개발 검증용 선택 의존성이며 로봇 런타임 의존성이 아니다.

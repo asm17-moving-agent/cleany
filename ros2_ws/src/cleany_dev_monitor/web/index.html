@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta name="theme-color" content="#101d2b" />
+    <script>
+      (() => {
+        let saved;
+        try {
+          saved = localStorage.getItem("cleany-monitor-theme");
+        } catch {}
+        document.documentElement.classList.toggle(
+          "dark",
+          saved === "dark" ||
+            (saved !== "light" &&
+              matchMedia("(prefers-color-scheme: dark)").matches),
+        );
+      })();
+    </script>
+    <title>Cleany · Dev Monitor</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
