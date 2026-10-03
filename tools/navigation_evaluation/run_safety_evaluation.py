@@ -29,7 +29,10 @@ from safety_probe import SafetyProbe
 
 
 def prepare(output: Path, map_yaml: Path, robot_model: str = 'legacy', initial_pose: list[float] | None = None,
-            obstacle_memory: bool = False, memory_restore: Path | None = None, guard_3d: bool = False) -> dict:
+            obstacle_memory: bool = False, memory_restore: Path | None = None, guard_3d: bool = False,
+            gazebo_profile: str = 'harmonic', real_time_factor: float = 1.0) -> dict:
+    if gazebo_profile not in ('fortress', 'harmonic'):
+        raise ValueError('Unsupported Gazebo profile')
     if guard_3d and (not obstacle_memory or robot_model != 'cad_frame'):
         raise ValueError('3D guard requires CAD model and obstacle memory')
     share = Path(get_package_share_directory('cleany_gazebo_sim'))
@@ -47,7 +50,8 @@ def prepare(output: Path, map_yaml: Path, robot_model: str = 'legacy', initial_p
     (output/'map.yaml').write_text(yaml.safe_dump(metadata))
     profile = load_mount_profiles(share/'config/lidar_mount_profiles.yaml')['floor_30cm']
     world = materialize_study_cafe_world(
-        share/'worlds/cleany_mecanum_harmonic.sdf', target_path=output/'world.sdf',
+        share/f'worlds/cleany_mecanum_{gazebo_profile}.sdf', target_path=output/'world.sdf',
+        real_time_factor=real_time_factor,
         lidar_translation=profile.transform.translation,
         lidar_noise=load_lidar_noise_profile(share/'config/lidar_noise_profiles.yaml', 'measured'),
         robot_model=robot_model,
@@ -170,6 +174,7 @@ def generate_launch_description():
                               **({'voxel_params_file':str(p/'config/voxel_guard.yaml')} if (p/'config/voxel_guard.yaml').exists() else {})}.items()),
     ])
 '''
+    launch_source = launch_source.replace('gazebo_harmonic.launch.py', f'gazebo_{gazebo_profile}.launch.py')
     (output/'run.launch.py').write_text(launch_source)
     scripts = output/'scripts'
     scripts.mkdir()

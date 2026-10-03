@@ -52,6 +52,49 @@ ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
   headless:=false gui_render_engine:=ogre2
 ```
 
+## 저장 지도 자율주행 회귀 테스트
+
+Humble/Fortress에서 GUI 없이 다음 두 목표를 각각 새 시뮬레이션으로 실행한다.
+
+```bash
+make test-gazebo-navigation-goals
+# 출력 경로는 새 디렉터리여야 한다. 배속 기본값은 2.
+make test-gazebo-navigation-goals \
+  NAVIGATION_GOAL_OUTPUT="$PWD/artifacts/my-navigation-goals" NAVIGATION_GOAL_RTF=2
+```
+
+- `distant`: 시작 world `(-1.865, -4.705)`에서 먼 목표 `(1.865, 4.7)`까지 주행.
+- `chair_gap`: 의자 29·37 사이 world `(0.60, -1.585)`까지 주행. 최종 명령의
+  횡속도 0.05m/s 초과, 실제 횡변위 2m 초과, 카메라 관절 회전 1rad 초과도 검사한다.
+
+두 테스트 모두 Nav2 action 성공, Gazebo 실제 위치 오차 0.2m 미만,
+실제 최종 yaw 오차 0.2rad 미만 및 도착 후 정지를 검사한다. 초기화에서
+Nav2 lifecycle, depth 입력, 직렬 안전 단계와 `/cmd_vel`의 단일 publisher도 검사한다.
+카메라 센서, 5cm 복셀, pan gate, 2D collision monitor와 3D voxel guard를 유지한다.
+CAD의 simulation 전용 팔 제외 설정과 ideal wheel odometry를 사용하는
+시뮬 회귀 시험이며 실제 로봇 주행 검증은 아니다.
+
+`test/fixtures/navigation_goals/`의 지도는 의자를 책상 쪽으로 10cm 이동한
+현재 레이아웃을 30cm 높이 GPU LiDAR의 알려진 위치 106개로 측량한 참조 지도다.
+SLAM 결과가 아니다. 지도와 레이아웃 SHA256을 검사하며 레이아웃 변경 시
+지도 fixture도 함께 검토해야 한다. 월드는 매 실행 현재 소스로 생성한다.
+이전 `artifacts`나 절대 설치 경로에 의존하지 않는다.
+
+각 케이스 아래 `result.json`, `trajectory.csv`, `samples.csv`, `events.json`,
+`runtime_verified.json`, `launch.log`와 사용한 지도/월드/설정을 보존한다.
+실패 시 pytest/CLI가 비정상 종료하고 소유한 simulation process를 정리한다.
+현재 Humble planner의 종료 중 `double free or corruption`은 주행 판정과 분리해
+`planner_shutdown_allocator_error`에 기록한다. 종료 오류의 해결은 아직 남아 있다.
+배속은 요청값이며 실제 배속은 `achieved_rtf`에 기록한다. 현재 하드웨어에서
+2배속 요청은 약 1.58배속이었고, 3배속 이상은 센서 지연 정지가 늘었다.
+
+한 케이스만 실행하려면 활성 install 환경을 source한 뒤 실행한다.
+
+```bash
+python3 tools/navigation_evaluation/run_goal_regression.py \
+  --case chair_gap --output artifacts/chair-gap-new --profile fortress --rtf 2
+```
+
 ## LiDAR noise profile
 
 `gazebo_fortress.launch.py`는 기본 world를 생성할 때 RPLIDAR A1M8 Gaussian

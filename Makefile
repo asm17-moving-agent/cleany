@@ -36,7 +36,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	build-gazebo-harmonic build-handeye build-telemetry test test-mission test-mujoco \
 	test-handeye test-gazebo test-gazebo-harmonic \
 	test-telemetry test-gazebo-nav-runtime test-gazebo-navigation-pipeline test-gazebo-evaluation \
-	test-gazebo-safety view-gazebo-costmap \
+	test-gazebo-safety test-gazebo-navigation-goals view-gazebo-costmap \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
 	sim-gazebo-study-cafe sim-gazebo-facility clean firmware-setup firmware-smoke firmware-build \
@@ -70,6 +70,7 @@ help:
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
+	@echo "  make test-gazebo-navigation-goals  Run distant and chair-gap goals headlessly (Fortress)"
 	@echo "  make test-gazebo-navigation-pipeline  Run CAD saved-map goal with full safety (Harmonic)"
 	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
 	@echo "  make test-gazebo-safety  Run SCRUM-306 sensors/monitor/avoid evaluation"
@@ -447,3 +448,17 @@ run-dev-monitor:
 test-scenario-tools:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -c /dev/null --rootdir="$(REPO_ROOT)" -q \
 		"$(REPO_ROOT)"tools/scenario_validation/test_*.py
+
+# Goal evidence is retained outside pytest temporary directories.
+NAVIGATION_GOAL_OUTPUT ?= $(REPO_ROOT)artifacts/navigation-goals-$(shell date +%Y%m%d-%H%M%S)
+NAVIGATION_GOAL_RTF ?= 2
+
+test-gazebo-navigation-goals: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	test "$${CLEANY_GAZEBO_PROFILE}" = fortress && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 -m pytest -s src/cleany_gazebo_sim/test/test_runtime_navigation_goals.py \
+		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}" \
+		--navigation-output="$(NAVIGATION_GOAL_OUTPUT)" --navigation-rtf="$(NAVIGATION_GOAL_RTF)"

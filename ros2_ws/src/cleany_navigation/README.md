@@ -343,7 +343,7 @@ Gazebo 주행 전용 profile의 `simulation_excluded_link_roots`는 양쪽 어�
 
 The omni profile explicitly enables `GridBased.holonomic_direct_path`. Direct candidates translate at the existing body yaw and turn at the destination, or turn first and translate at the goal yaw. Rear and lateral translation are allowed only in this profile. Both strategies pass the complete continuous padded-footprint sweep; blocked candidates still fall back to the conservative lattice. Axis profiles retain heading-aligned direct paths. No costmap obstacle, body geometry or guard threshold is removed.
 
-The omni controller and DWB RotateToGoal use the same .05 m XY tolerance, with goal yaw .10 rad and planner endpoint tolerance .05 m. The mission navigator additionally checks the original requested pose. DWB's `Twirling` critic (scale 1.0) discourages unnecessary yaw when a safe non-rotating holonomic trajectory exists. It does not prohibit rotations needed to avoid obstacles or align at the goal. Hardware precision and manipulation reach remain uncalibrated.
+The omni controller and DWB RotateToGoal use the same .03 m XY tolerance, with goal yaw .10 rad and planner endpoint tolerance .05 m. The mission navigator additionally checks the original requested pose. DWB's `Twirling` critic (scale 1.0) discourages unnecessary yaw when a safe non-rotating holonomic trajectory exists. It does not prohibit rotations needed to avoid obstacles or align at the goal. Hardware precision and manipulation reach remain uncalibrated.
 
 A `/map` content reload with identical frame, origin, resolution and extent updates obstacle memory's map identity and saved snapshot while preserving all observed evidence. A geometry change freezes mapping and publishes disabled voxel status; enabling recording cannot override that fault. Restart with the correct new map geometry before motion. Changing a static map does not erase evidence of a removed chair; clearing must be supported by sensor rays or an explicit simulation-fixture reset.
 
@@ -592,3 +592,11 @@ overlay다. 기본값은 비어 있으며 motion/safety 설정은 받지 않는�
 Omni motion의 goal checker와 FollowPath는 동일한 3 cm 위치 허용 오차를 사용한다.
 Mission Runtime의 8 cm 원래 목표 검사, freshness/정지/속도 및 deadline은 유지한다.
 지도 양자화·localization 편향과 controller 종료 오차를 구분해 실측해야 한다.
+
+기존 headless 회귀 작업은 `Twirling.scale=64`, `RotateToGoal.scale=128` 설정에서
+의자 사이 회전 진입을 검토했다. 통합에서는 이후 도입한 CommandBearing,
+PathOrientation 및 현재 회전 비용 설정을 유지한다. 과거 회귀 결과를 현재 설정의
+재실행 결과로 해석하지 않는다.
+`make test-gazebo-navigation-goals`는 Humble/Fortress에서 먼 목표와 의자 사이
+횡이동 목표를 GUI 없이 각각 검증한다. 설정과 판정 기준은
+[`cleany_gazebo_sim/README.md`](../cleany_gazebo_sim/README.md)의 저장 지도 회귀 테스트를 따른다.

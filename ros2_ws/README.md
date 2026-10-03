@@ -221,3 +221,11 @@ AMCL/Nav2와 pan → Collision Monitor → 3D voxel guard를 실행할 수 있�
 
 통합 브랜치의 충돌 처리와 검증 범위는
 [Runtime 통합 검증](../docs/validation/runtime-integration.md)을 따른다.
+
+
+저장 지도 기반 먼 거리/의자 사이 횡이동 회귀는 저장소 루트에서
+`make test-gazebo-navigation-goals`로 실행한다(Humble/Fortress, GUI 없음,
+설정 배속 2). `NAVIGATION_GOAL_OUTPUT`으로 새 증거 디렉터리,
+`NAVIGATION_GOAL_RTF`로 배속을 지정한다. 두 케이스는 순차 실행한다.
+자세한 fixture 및 판정 기준은
+[`cleany_gazebo_sim/README.md`](src/cleany_gazebo_sim/README.md)를 따른다.

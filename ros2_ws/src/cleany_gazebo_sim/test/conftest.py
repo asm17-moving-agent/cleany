@@ -45,6 +45,10 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default='all_cameras',
         help='Sensor workload used by the runtime test (default: all_cameras).',
     )
+    group.addoption('--navigation-output', default='artifacts/navigation-goals',
+                    help='New parent evidence directory for distant/chair_gap regressions.')
+    group.addoption('--navigation-rtf', type=float, default=None,
+                    help='Override fixture real-time factor (default: 2).')
     group.addoption('--warmup-sec', type=float, default=10.0)
     group.addoption('--measure-sec', type=float, default=30.0)
     group.addoption('--startup-timeout-sec', type=float, default=60.0)
