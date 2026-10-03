@@ -59,3 +59,13 @@ Foxglove 앱/문서 링크를 추가했다. Bridge 설치 또는 실시간 연�
 - 같은 환경에서 `make test-dev-monitor`: 8 passed, 2 ROS opt-in skipped.
 - TypeScript/Vite build와 Playwright UI 검사 4개 통과. ROS/Gazebo UI 검사 2개는 명시 URL이 없어 건너뛰었다.
 - 실제 제공 화면의 저장 기록 재생으로 연결선·텍스트를 확인했다. Gazebo 및 물리 로봇 동작은 추가 실행하지 않았다.
+
+## 2026-10-03 ROS 연결 그래프 갱신 개선
+
+- 고정 Publisher/Topic/Subscriber 3열 대신 연결된 노드끼리 모이는 결정적인 정적 배치를 적용했다.
+- 동일 ROS 노드는 발행·구독 역할에 관계없이 하나로 표시하고 양방향 연결 포트를 분리했다.
+- 수신 Hz·시각·QoS·endpoint 순서 변경 시 그래프 DOM 변경이 없고 확대 위치가 유지되는지 검증했다.
+- 실제 endpoint 추가는 그래프에 반영되며, fixture의 노드 박스 겹침이 없는지 확인했다.
+- Playwright: 5 passed, 2 ROS/Gazebo opt-in skipped. TypeScript/Vite production build 통과.
+- 다른 통합 워크트리의 8768 서버를 읽는 Vite 4175 미리보기에서 실제 ROS 연결 화면을 확인했다.
+- ROS 명령·로봇 주행은 추가 실행하지 않았다.

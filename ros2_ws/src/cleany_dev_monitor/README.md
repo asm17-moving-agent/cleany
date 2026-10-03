@@ -288,3 +288,4 @@ FSM 활성 강조는 관측된 상태를 순서대로 최소 500ms씩 표시한�
 설정은 `state_directory/recording-settings.json`에 저장하고 변경 시점을 `recording_policy`로 녹화합니다. 일시정지 중에는 설정·녹화 상태만 기록합니다. 재생은 당시 정책으로 비활성 자료를 제외하고 미녹화·미수신·입력 중단·저장 오류를 구분합니다. 원본은 세션 내보내기(SQLite)에 포함되며 재생 시각 직전 원본 1건도 내려받을 수 있습니다. 3D 원본 및 카메라 영상의 직접 재생 뷰어는 아직 제공하지 않습니다. 기존 schema 1/2 기록은 그대로 읽고, 새 schema 3 기록은 원본 테이블을 추가합니다.
 
 로컬 녹화 API: `GET/PUT /api/recording/settings`, `POST /api/recording/session`, `GET /api/recordings/{session}/raw?category=point_cloud&at=<wall-seconds>`. 설정 변경은 동일 출처에서만 허용하며 ROS 명령이나 로봇 설정을 변경하지 않습니다.
+ROS 연결 그래프는 토픽·노드 연결에 따라 결정적인 정적 배치를 계산한다. Publisher/Subscriber 역할을 가진 동일 노드는 하나로 표시한다. 수신 주기·시각·QoS와 endpoint 순서가 갱신되어도 연결 관계가 같으면 그래프 DOM·배치·확대 위치를 유지한다. 선택 토픽이나 실제 연결 관계가 변경되면 배치를 다시 계산한다.

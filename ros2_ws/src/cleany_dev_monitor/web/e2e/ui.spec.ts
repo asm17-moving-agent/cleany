@@ -307,3 +307,119 @@ test("FSM highlight holds each observed state for 500ms without delaying actual 
   await expect(active("IDLE")).toHaveAttribute("aria-label", "IDLE (활성)");
   await expect(page.locator(".fsm-playback-note")).toHaveCount(0);
 });
+
+test("ROS graph keeps shared nodes and viewport stable through discovery refresh", async ({
+  page,
+}) => {
+  const topics = [
+    {
+      name: "/scan",
+      publishers: ["/lidar"],
+      subscribers: ["/localizer", "/planner"],
+    },
+    {
+      name: "/odom",
+      publishers: ["/base"],
+      subscribers: ["/localizer", "/planner"],
+    },
+    { name: "/pose", publishers: ["/localizer"], subscribers: ["/planner"] },
+    { name: "/cmd_vel", publishers: ["/planner"], subscribers: ["/base"] },
+  ];
+  let send: (sequence: number, extra?: boolean) => void = () => {};
+  await page.routeWebSocket("**/ws", (ws) => {
+    send = (sequence, extra = false) =>
+      ws.send(
+        JSON.stringify({
+          boot_id: "ros-layout",
+          sequence,
+          rows: [
+            {
+              seq: sequence,
+              kind: "graph",
+              key: "ros",
+              received_at: Date.now() / 1000,
+              data: {
+                topics: [...topics]
+                  .reverse()
+                  .map((t) => ({
+                    name: t.name,
+                    types: ["std_msgs/msg/String"],
+                    state: "receiving",
+                    received_hz: sequence,
+                    publishers: [...t.publishers]
+                      .reverse()
+                      .map((node) => ({ node, qos: { depth: sequence } })),
+                    subscribers: [
+                      ...t.subscribers,
+                      ...(extra && t.name === "/pose" ? ["/dashboard"] : []),
+                    ]
+                      .reverse()
+                      .map((node) => ({ node })),
+                  })),
+              },
+            },
+          ],
+        }),
+      );
+    send(1);
+  });
+  await page.goto("/#ros");
+  await page.getByRole("tab", { name: "연결 그래프", exact: true }).click();
+  const graph = page.locator(".ros-connections");
+  await expect(graph.locator(".react-flow__node")).toHaveCount(8);
+  // /base publishes odom and consumes cmd_vel, but appears only once.
+  await expect(graph.locator('[data-id="node:/base"]')).toHaveCount(1);
+  await page.waitForTimeout(250);
+  await graph.getByRole("button", { name: /zoom in/i }).click();
+  const viewport = await graph
+    .locator(".react-flow__viewport")
+    .getAttribute("style");
+  await graph.evaluate((el) => {
+    const target = el as HTMLElement & { changes: number };
+    target.changes = 0;
+    new MutationObserver((records) => {
+      target.changes += records.length;
+    }).observe(el, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  });
+  for (let seq = 2; seq < 8; seq++) {
+    send(seq);
+    await page.waitForTimeout(100);
+  }
+  expect(
+    await graph.evaluate(
+      (el) => (el as HTMLElement & { changes: number }).changes,
+    ),
+  ).toBe(0);
+  expect(
+    await graph.locator(".react-flow__viewport").getAttribute("style"),
+  ).toBe(viewport);
+  await graph.getByRole("button", { name: /fit view/i }).click();
+  const boxes = await graph.locator(".react-flow__node").evaluateAll((nodes) =>
+    nodes.map((n) => {
+      const r = n.getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height };
+    }),
+  );
+  for (let i = 0; i < boxes.length; i++)
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i],
+        b = boxes[j];
+      expect(
+        a.x + a.w <= b.x ||
+          b.x + b.w <= a.x ||
+          a.y + a.h <= b.y ||
+          b.y + b.h <= a.y,
+      ).toBe(true);
+    }
+  await page.screenshot({
+    path: "test-results/ros-flexible-graph.png",
+    fullPage: true,
+  });
+  send(8, true);
+  await expect(graph.locator('[data-id="node:/dashboard"]')).toBeVisible();
+});
