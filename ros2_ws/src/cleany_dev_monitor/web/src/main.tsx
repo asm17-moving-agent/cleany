@@ -11,12 +11,12 @@ import {
   Controls,
   MarkerType,
   Position,
-  useReactFlow,
-  useStore,
   type Node,
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { RosGraph } from "@/components/ros-graph";
+import { FitGraphToViewport } from "@/components/fit-graph-to-viewport";
 import { CameraView } from "@/components/camera-view";
 import { ThemeToggle } from "@/components/theme-toggle";
 import "./theme.css";
@@ -159,22 +159,6 @@ function Panel({
       <CardContent className="panel-content">{children}</CardContent>
     </Card>
   );
-}
-
-function FitGraphToViewport({ topology = "" }: { topology?: string }) {
-  const { fitView } = useReactFlow();
-  const fit = useRef(fitView);
-  fit.current = fitView;
-  const width = useStore((state) => state.width);
-  const height = useStore((state) => state.height);
-  useEffect(() => {
-    const timer = setTimeout(
-      () => void fit.current({ padding: 0.18, maxZoom: 1, duration: 0 }),
-      100,
-    );
-    return () => clearTimeout(timer);
-  }, [width, height, topology]);
-  return null;
 }
 
 // Presentation only: never delay runtime readiness, results, or safety indicators.
@@ -805,55 +789,23 @@ function RosView({
   const topics: Data[] = graph.topics || [];
   const item = topics.find((t) => t.name === topic);
   const sample = rows.find((r) => r.key === topic && r.kind === "sample");
-  const connections = useMemo(() => {
-    const chosen = topic
+  // Rates, timestamps, QoS refreshes and endpoint discovery order are not topology.
+  const graphSpec = JSON.stringify(
+    (topic
       ? topics.filter((t) => t.name === topic)
-      : topics.slice(0, 12);
-    const nodes: Node[] = [];
-    const edges: Edge[] = [];
-    const names = new Map<string, string>();
-    chosen.forEach((t, i) => {
-      nodes.push({
-        id: t.name,
-        position: { x: 340, y: i * 100 },
-        data: { label: t.name },
-        style: { background: "var(--info-bg)" },
-        initialWidth: 180,
-        initialHeight: 58,
-      });
-      for (const [kind, endpoints] of [
-        ["pub", t.publishers],
-        ["sub", t.subscribers],
-      ] as [string, Data[]][]) {
-        endpoints.forEach((ep) => {
-          const key = kind + ep.node;
-          if (!names.has(key)) {
-            names.set(key, key);
-            nodes.push({
-              id: key,
-              position: {
-                x: kind === "pub" ? 0 : 700,
-                y:
-                  [...names.keys()].filter((k) => k.startsWith(kind)).length *
-                    100 -
-                  100,
-              },
-              data: { label: ep.node },
-              initialWidth: 180,
-              initialHeight: 58,
-            });
-          }
-          edges.push({
-            id: key + t.name,
-            source: kind === "pub" ? key : t.name,
-            target: kind === "pub" ? t.name : key,
-            markerEnd: { type: MarkerType.ArrowClosed },
-          });
-        });
-      }
-    });
-    return { nodes, edges };
-  }, [graph, topic]);
+      : [...topics].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 12)
+    )
+      .map((t) => ({
+        name: t.name,
+        publishers: [
+          ...new Set<string>((t.publishers || []).map((ep: Data) => ep.node)),
+        ].sort(),
+        subscribers: [
+          ...new Set<string>((t.subscribers || []).map((ep: Data) => ep.node)),
+        ].sort(),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  );
   return (
     <>
       <Tabs value={view} onValueChange={setView} className="subtabs">
@@ -987,17 +939,7 @@ function RosView({
             </span>
           }
         >
-          <div className="flow large">
-            <ReactFlow
-              {...connections}
-              fitView
-              nodesDraggable={false}
-              nodesConnectable={false}
-            >
-              <Background color="var(--graph-dot)" />
-              <Controls showInteractive={false} />
-            </ReactFlow>
-          </div>
+          <RosGraph spec={graphSpec} />
         </Panel>
       ) : (
         <Panel title={view}>
