@@ -56,16 +56,16 @@ def test_bounded_diagonal_keeps_front_camera_and_rejects_rotation_and_wide_angle
 def test_holonomic_camera_tracks_bearing_without_stopping_for_small_corrections():
     gate = PanGate(allow_lateral=True, allow_mixed_motion=True)
     command = (.1, .1, .1)
-    def step(t, cmd, pan, measured=(0., 0., 0.), depth=None):
-        return gate.step(t, cmd, measured, pan, 0., t, t, t if depth is None else depth)
+    def step(t, cmd, pan, measured=(0., 0., 0.), depth=None, pan_speed=0.):
+        return gate.step(t, cmd, measured, pan, pan_speed, t, t, t if depth is None else depth)
     assert step(1., command, 0.)[2] == 'TURNING_PAN'
     assert gate.target == math.pi/4
-    assert step(2., command, math.pi/4)[2] == 'SETTLING'
-    assert step(2.3, command, math.pi/4, depth=2.1)[2] == 'WAIT_FRESH_DEPTH'
-    assert step(2.4, command, math.pi/4)[1] == command
+    assert step(2., command, math.pi/4, command, depth=1.9, pan_speed=.4)[2] == 'WAIT_FRESH_DEPTH'
+    assert step(2.05, command, math.pi/4, command, pan_speed=.4)[1] == command
     corrected = (.1, .102, .1)
-    assert step(2.5, corrected, math.pi/4, command)[1] == corrected
+    assert step(2.1, corrected, math.pi/4, command, pan_speed=.4)[1] == corrected
     assert gate.target == math.atan2(corrected[1], corrected[0])
+    assert step(2.2, corrected, math.pi/4, command, depth=1.9)[2] == 'WAIT_FRESH_DEPTH'
     assert step(2.6, (0., -.1, .1), math.pi/4, corrected)[1] == (0., 0., 0.)
-    assert step(3., (0., -.1, .1), -math.pi/2)[2] == 'SETTLING'
-    assert step(3.3, (0., -.1, .1), -math.pi/2)[2] == 'PASS'
+    assert step(3., (0., -.1, .1), -math.pi/2, corrected, depth=2.9)[2] == 'WAIT_FRESH_DEPTH'
+    assert step(3.05, (0., -.1, .1), -math.pi/2, corrected, pan_speed=.4)[2] == 'PASS'

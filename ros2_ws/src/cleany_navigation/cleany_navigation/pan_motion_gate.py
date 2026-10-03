@@ -1,4 +1,4 @@
-"""Stop, look, then move. Pure backend-independent interlock state machine."""
+"""Camera-direction interlock for continuous tracking or legacy stop/look/move."""
 from dataclasses import dataclass
 import math
 
@@ -61,12 +61,11 @@ class PanGate:
                 self.aligned_since = None
                 return self.target, zero, 'TURNING_PAN'
             if self.aligned_since is None:
-                if not stopped or abs(pan_speed) > self.pan_stopped:
-                    return self.target, zero, 'WAIT_FOR_STOP'
                 self.aligned_since = now
-            if now-self.aligned_since < self.settle_s:
-                return self.target, zero, 'SETTLING'
-            if not (self.aligned_since+self.settle_s <= depth_stamp <= now
+            # Exact-stamped TF already compensates for camera/body motion.
+            # Require an observation after alignment, not mechanical standstill
+            # or an arbitrary stabilization delay in holonomic tracking mode.
+            if not (self.aligned_since <= depth_stamp <= now
                     and now-depth_stamp <= self.source_timeout_s):
                 return self.target, zero, 'WAIT_FRESH_DEPTH'
             return self.target, command, 'PASS'

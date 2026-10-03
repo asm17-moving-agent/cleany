@@ -20,7 +20,9 @@ def test_bt_compatibility_preserves_control_flow_and_humble_ports():
     assert [node.tag for node in humble.iter()] == [node.tag for node in jazzy.iter()]
     assert 'error_code_id' not in humble.find('.//ComputePathToPose').attrib
     assert 'error_code_id' in jazzy.find('.//ComputePathToPose').attrib
-    assert humble.find('.//YieldWait').get('wait_duration') == '15.0'
+    branch = humble.find(".//ReactiveFallback[@name='PathClearOrReplan']")
+    assert branch[-1].tag == 'ComputePathToPose'
+    assert float(humble.find('.//YieldWait').get('wait_duration')) <= .2
 
 
 def parameters():

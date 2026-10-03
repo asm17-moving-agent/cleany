@@ -29,7 +29,7 @@ backend에 맞게 조정한다. 제공된 숫자 설정은 제어 튜닝값이�
 AMCL은 임의의 초기 위치를 주입하지 않는다. 활성화 후 RViz의 2D Pose Estimate
 또는 `/initialpose`로 초기 자세를 제공한다. 저장된 지도에서
 `/navigate_to_pose` (`nav2_msgs/action/NavigateToPose`) 목표를 받는다.
-Omni DWB/lattice와 경로 대기 BT 및 YieldWait를 사용한다.
+Omni DWB/lattice와 경로 검사·즉시 재계획 BT를 사용한다.
 Humble/Jazzy별 plugin ID, progress checker, BT 포트와 Collision Monitor point
 threshold 차이는 launch에서 변환한다. STOP/SLOW의 3-point 경계는 두 환경에서 같다.
 
@@ -65,7 +65,7 @@ ROS parameter로 설정 가능하며 TF edge owner는 중복되면 안 된다.
 기본 주행은 전진·후진과 제자리 회전이다. 횡이동은 기본 차단한다.
 PoseProgressChecker는 XY 0.15m 이동 또는 yaw 0.25rad 회전을 진행으로 인정하며,
 20초 동안 둘 다 없으면 실패로 처리한다.
-Pan은 방향 정렬·정지·settle·fresh depth를 확인한다. 후진 시 카메라를
+Pan은 자유 이동 모드에서 방향 정렬과 정렬 후 fresh depth를 확인한다. 축 제한 모드에서는 정지·settle도 확인한다. 후진 시 카메라를
 뒤쪽(π rad)으로 돌리고 정지 후 새 depth를 받아야 속도를 통과시킨다.
 뒤쪽 시야가 확보되었다는 물리 검증은 별도로 필요하며, 후진을 제외하려면
 `pan_motion_gate.allow_reverse: false`로 설정한다. LiDAR/depth를 Collision
@@ -212,7 +212,7 @@ CAD 카메라 주행 자세는 수평에서 아래로 20°입니다. 실물 높�
 
 BT는 100ms 주기로 앞 1.5m 경로를 검사하며, FollowPath에는 원본 경로를 전달한다.
 이동에 따른 앞부분 제거는 DWB가 수행하므로 매 pruning마다 새 목표/정지 이력을 만들지 않는다.
-경로 실패 시 최대 15초 기다린 후 재계획하는 정책은 유지한다.
+앞으로 1.5m 경로가 무효화되면 고정 대기 없이 즉시 재계획한다. Planner/controller 실패 시에만 0.2초 backoff 후 재시도하며, 장애물 지도를 지우지 않는다.
 
 Depth는 최대 `tf_wait_timeout_s`(기본 0.15초) 동안 최신 한 프레임만 보관하며
 비동기 재시도로 원래 시각의 TF를 기다린다. TF를 추정하거나 latest TF로 대체하지 않고,
@@ -245,8 +245,10 @@ DWB의 `StandardTrajectoryGenerator`가 전후·횡·대각선 이동과 회전�
 
 카메라 게이트의 `allow_mixed_motion: true`는 `atan2(vy, vx)` 방향으로 pan을
 추적한다. 카메라가 이동 방향과 맞지 않으면 속도 명령을 차단하고,
-정렬·안정화 후 새 depth가 도착해야 이동한다. 이미 관측한 방향에서의
-작은 방향 보정은 매번 정지·안정화를 다시 요구하지 않는다. 회전만 할 때는
+정렬 후 새 depth가 도착해야 이동한다. 자유 이동 모드는 몸체·카메라의 정지와
+고정 0.2초 안정화 대기를 요구하지 않는다. Cloud는 획득 시각의 TF로 변환하므로
+카메라가 움직이는 동안에도 사용할 수 있다. 이미 관측한 방향에서의
+작은 방향 보정은 계속 이동하며 수행한다. 회전만 할 때는
 pan 방향을 유지한다. 명령 timeout과 2D·3D 충돌 검사는 그대로 적용된다.
 
 Gazebo 주행 전용 profile의 `simulation_excluded_link_roots`는 양쪽 어깨부터

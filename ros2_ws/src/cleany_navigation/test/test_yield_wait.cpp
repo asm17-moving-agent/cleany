@@ -5,6 +5,7 @@ class InspectWait : public cleany_axis_controller::YieldWait {
 public:
   using YieldWait::YieldWait;
   int seconds() {return goal_.time.sec;}
+  unsigned nanoseconds() {return goal_.time.nanosec;}
 };
 TEST(YieldWait, IntentionalWaitPreservesExistingRecoveryCountAndRejectsInvalidDuration) {
   if (!rclcpp::ok()) rclcpp::init(0,nullptr);
@@ -24,6 +25,10 @@ TEST(YieldWait, IntentionalWaitPreservesExistingRecoveryCountAndRejectsInvalidDu
   InspectWait wait("yield",config);wait.on_tick();wait.on_tick();
   EXPECT_EQ(wait.seconds(),15);
   EXPECT_EQ(config.blackboard->get<int>("number_recoveries"),7);
+  config.input_ports["wait_duration"]="0.2";
+  InspectWait short_wait("retry_backoff",config);short_wait.on_tick();
+  EXPECT_EQ(short_wait.seconds(),0);
+  EXPECT_EQ(short_wait.nanoseconds(),200000000u);
   config.input_ports["wait_duration"]="-1.0";
   InspectWait bad("invalid_yield",config);
   EXPECT_THROW(bad.on_tick(),BT::RuntimeError);
