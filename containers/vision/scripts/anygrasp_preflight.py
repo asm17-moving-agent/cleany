@@ -16,12 +16,12 @@ from typing import Mapping, Sequence
 
 
 IDENTITY_PATH = Path('/etc/cleany/jetson-identity.env')
-PINNED_ANYGRASP_MAC = '02:42:ac:1e:00:0a'
+# License-bound MAC and feature ID live only in the root-owned identity file.
+# Runtime checks compare the container and SDK against that file.
 PINNED_ANYGRASP_IP = '172.30.0.10'
 PINNED_PERCEPTION_IP = '172.30.0.11'
 PINNED_VLM_IP = '172.30.0.12'
 PINNED_MOTION_IP = '172.30.0.13'
-PINNED_FEATURE_ID = 'N11176336906968411287'
 
 REQUIRED_IDENTITY_KEYS = frozenset(
     {
@@ -131,9 +131,7 @@ def validate_identity_file(
 
 def validate_identity_values(values: Mapping[str, str]) -> None:
     pinned = {
-        'ANYGRASP_MAC_ADDRESS': PINNED_ANYGRASP_MAC,
         'ANYGRASP_IPV4_ADDRESS': PINNED_ANYGRASP_IP,
-        'ANYGRASP_EXPECTED_FEATURE_ID': PINNED_FEATURE_ID,
         'PERCEPTION_IPV4_ADDRESS': PINNED_PERCEPTION_IP,
         'VLM_IPV4_ADDRESS': PINNED_VLM_IP,
         'MOTION_IPV4_ADDRESS': PINNED_MOTION_IP,

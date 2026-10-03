@@ -7,7 +7,7 @@ binary는 기존 것을 그대로 공유하지만 runtime service와 mount는 �
 | 위치/service | 책임 | 고정 주소 |
 |---|---|---|
 | Native | Mission Manager, Skill Executor, Robot Interface, `ros2_control`, hardware driver, Nav2, safety watchdog, AI 결과 검증 | host |
-| `anygrasp` | `grasp/plan` (`PlanGrasp.srv`) | `172.30.0.10`, `02:42:ac:1e:00:0a` |
+| `anygrasp` | `grasp/plan` (`PlanGrasp.srv`) | `172.30.0.10`, license에 묶인 고정 MAC |
 | `perception` | YOLOE-seg, depth, 3D reconstruction와 `perception/inspect_scene` (`InspectScene.action`) | `172.30.0.11` |
 | `vlm` | Qwen/VLM service 예약; 아직 Compose service 없음 | `172.30.0.12` 예약 |
 | `motion` | cuRobo/cuMotion service 예약; 아직 Compose service 없음 | `172.30.0.13` 예약 |
@@ -27,14 +27,10 @@ sudoedit /etc/cleany/jetson-identity.env
 make hybrid-config
 ```
 
-실제 license/model host 경로만 확인한다. 아래 세 값과 service network는 일반 개발 변경
-대상이 아니며, 변경하려면 별도 AnyGrasp license migration과 코드 검토가 필요하다.
-
-```text
-ANYGRASP_MAC_ADDRESS=02:42:ac:1e:00:0a
-ANYGRASP_IPV4_ADDRESS=172.30.0.10
-ANYGRASP_EXPECTED_FEATURE_ID=N11176336906968411287
-```
+template의 `ANYGRASP_MAC_ADDRESS`, `ANYGRASP_EXPECTED_FEATURE_ID`,
+`ANYGRASP_LICENSE_FILE`은 placeholder다. Jetson에서 발급받은 license 기준 값으로
+바꾸고, 실제 값은 저장소에 커밋하지 않는다. 이 값과 service network는 일반 개발 변경
+대상이 아니며, 변경하려면 별도 AnyGrasp license migration이 필요하다.
 
 identity 파일이 없거나 root 소유가 아니거나 group/other writable이면 모든 Compose 명령이
 실패한다. 호출 shell의 동명 환경변수는 wrapper가 제거하므로 identity를 덮어쓸 수 없다.
@@ -74,9 +70,9 @@ license와 checkpoint는 image에 넣지 않는다. 예시 identity 기준 host 
 ```text
 /home/cleany/.local/share/cleany/anygrasp/license/
   licenseCfg.json
-  JeongHyeonLee.lic
-  JeongHyeonLee.public_key
-  JeongHyeonLee.signature
+  <license-name>.lic
+  <license-name>.public_key
+  <license-name>.signature
 /home/cleany/models/anygrasp/checkpoint_detection.tar
 /home/cleany/models/yoloe/yoloe-26s-seg.pt
 ```
@@ -122,8 +118,8 @@ container와 새 `anygrasp`가 같은 MAC으로 동시에 실행 중이면 시�
 
 - root-owned identity가 read-only mount인지
 - 비-loopback interface가 `eth0` 하나뿐인지
-- `eth0` MAC/IP가 `02:42:ac:1e:00:0a`, `172.30.0.10`인지
-- SDK feature ID가 정확히 `N11176336906968411287`인지
+- `eth0` MAC/IP가 identity의 `ANYGRASP_MAC_ADDRESS`, `172.30.0.10`인지
+- SDK feature ID가 identity의 `ANYGRASP_EXPECTED_FEATURE_ID`와 정확히 같은지
 - license directory와 checkpoint 경로가 read-only mount에 포함되는지
 
 호스트 wrapper도 Docker inspect로 `network_mode: host`, 둘 이상의 network, MAC/IP 변경을
@@ -138,7 +134,7 @@ make vision-feature-id
 make vision-license-check
 ```
 
-첫 명령은 값을 출력만 하는 것이 아니라 pinned ID와 일치해야 성공한다. 두 번째 명령은
+첫 명령은 값을 출력만 하는 것이 아니라 identity의 feature ID와 일치해야 성공한다. 두 번째 명령은
 SDK license validation 뒤 checkpoint를 읽어 detector까지 생성한다. 실제 CUDA inference
 warm-up은 유효한 RGB-D point cloud로 `grasp/plan`을 한 번 호출해 확인한다.
 
@@ -159,7 +155,7 @@ for attempt in 1 2 3; do
 done
 ```
 
-네 출력은 모두 `N11176336906968411287`이어야 한다. 이어서 Docker daemon 재시작과 Jetson
+네 출력은 모두 identity의 `ANYGRASP_EXPECTED_FEATURE_ID`와 같아야 한다. 이어서 Docker daemon 재시작과 Jetson
 재부팅 뒤에도 같은 명령을 반복한다. 새 license 설치 뒤에는 다음을 확인한다.
 
 ```bash
@@ -171,7 +167,8 @@ make anygrasp-run
 다음 negative test도 Jetson 인수검사에 포함한다.
 
 - identity 파일 누락/권한 변경: Compose 단계에서 실패
-- identity의 MAC/IP/Feature ID 변경: migration-controlled 값 검사에서 실패
+- identity의 IP 변경: migration-controlled 값 검사에서 실패
+- identity의 MAC/Feature ID가 실제 container MAC 또는 SDK feature ID와 다름: runtime 검사에서 실패
 - `network_mode: host`, MAC override: host inspect 또는 container IP/MAC 검사에서 실패
 - `docker network connect`로 추가 network 연결 후 `anygrasp-run`: interface 검사에서 실패
 - license/model mount를 read-write로 변경: mount 검사에서 실패

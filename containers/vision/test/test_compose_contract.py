@@ -118,7 +118,7 @@ def test_compose_separates_anygrasp_assets_and_reserves_gpu_addresses(
     anygrasp_network = anygrasp['networks'][network_name]
     perception_network = perception['networks'][network_name]
     assert anygrasp_network['ipv4_address'] == '172.30.0.10'
-    assert anygrasp_network['mac_address'] == '02:42:ac:1e:00:0a'
+    assert anygrasp_network['mac_address'] == '02:00:00:00:00:01'
     assert perception_network['ipv4_address'] == '172.30.0.11'
     assert anygrasp.get('network_mode') != 'host'
 

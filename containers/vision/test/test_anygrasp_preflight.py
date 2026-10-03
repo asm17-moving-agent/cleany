@@ -17,9 +17,9 @@ SPEC.loader.exec_module(preflight)
 
 def identity_values() -> dict[str, str]:
     return {
-        'ANYGRASP_MAC_ADDRESS': '02:42:ac:1e:00:0a',
+        'ANYGRASP_MAC_ADDRESS': '02:00:00:00:00:01',
         'ANYGRASP_IPV4_ADDRESS': '172.30.0.10',
-        'ANYGRASP_EXPECTED_FEATURE_ID': 'N11176336906968411287',
+        'ANYGRASP_EXPECTED_FEATURE_ID': 'N00000000000000000001',
         'PERCEPTION_IPV4_ADDRESS': '172.30.0.11',
         'VLM_IPV4_ADDRESS': '172.30.0.12',
         'MOTION_IPV4_ADDRESS': '172.30.0.13',
@@ -55,9 +55,7 @@ def test_valid_identity_is_strictly_parsed(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ('key', 'value'),
     (
-        ('ANYGRASP_MAC_ADDRESS', '02:42:ac:1e:00:0b'),
         ('ANYGRASP_IPV4_ADDRESS', '172.30.0.99'),
-        ('ANYGRASP_EXPECTED_FEATURE_ID', 'N00000000000000000000'),
         ('PERCEPTION_IPV4_ADDRESS', '172.30.0.12'),
     ),
 )
@@ -72,6 +70,29 @@ def test_migration_controlled_identity_change_is_rejected(
     write_identity(path, values)
 
     with pytest.raises(preflight.PreflightError, match='migration-controlled'):
+        preflight.validate_identity_file(path, require_root=False)
+
+
+@pytest.mark.parametrize(
+    ('key', 'value', 'message'),
+    (
+        ('ANYGRASP_MAC_ADDRESS', '02:00:00:00:00', 'ANYGRASP_MAC_ADDRESS'),
+        ('ANYGRASP_EXPECTED_FEATURE_ID', 'X00000000000000000001',
+         'ANYGRASP_EXPECTED_FEATURE_ID'),
+    ),
+)
+def test_malformed_license_identity_is_rejected(
+    tmp_path: Path,
+    key: str,
+    value: str,
+    message: str,
+) -> None:
+    path = tmp_path / 'identity.env'
+    values = identity_values()
+    values[key] = value
+    write_identity(path, values)
+
+    with pytest.raises(preflight.PreflightError, match=message):
         preflight.validate_identity_file(path, require_root=False)
 
 
@@ -106,7 +127,7 @@ def test_writable_or_symlink_identity_file_is_rejected(tmp_path: Path) -> None:
 def test_environment_override_is_rejected() -> None:
     values = identity_values()
     environment = dict(values)
-    environment['ANYGRASP_MAC_ADDRESS'] = '02:42:ac:1e:00:0b'
+    environment['ANYGRASP_MAC_ADDRESS'] = '02:00:00:00:00:02'
 
     with pytest.raises(preflight.PreflightError, match='environment override'):
         preflight.validate_environment(values, environment)
@@ -116,14 +137,14 @@ def test_sdk_feature_id_mismatch_is_rejected() -> None:
     with pytest.raises(preflight.PreflightError, match='SDK feature ID'):
         preflight.validate_feature_id(
             'N00000000000000000000',
-            'N11176336906968411287',
+            'N00000000000000000001',
         )
 
 
 def test_exact_eth0_identity_is_required() -> None:
     valid = preflight.NetworkInterface(
         'eth0',
-        '02:42:ac:1e:00:0a',
+        '02:00:00:00:00:01',
         ('172.30.0.10',),
     )
     preflight.validate_interfaces(
@@ -135,7 +156,7 @@ def test_exact_eth0_identity_is_required() -> None:
             ),
             valid,
         ),
-        expected_mac='02:42:ac:1e:00:0a',
+        expected_mac='02:00:00:00:00:01',
         expected_ipv4='172.30.0.10',
     )
 
@@ -145,11 +166,11 @@ def test_exact_eth0_identity_is_required() -> None:
                 valid,
                 preflight.NetworkInterface(
                     'eth1',
-                    '02:42:ac:1e:00:0b',
+                    '02:00:00:00:00:02',
                     (),
                 ),
             ),
-            expected_mac='02:42:ac:1e:00:0a',
+            expected_mac='02:00:00:00:00:01',
             expected_ipv4='172.30.0.10',
         )
 
@@ -159,12 +180,12 @@ def test_exact_eth0_identity_is_required() -> None:
     (
         preflight.NetworkInterface(
             'eth0',
-            '02:42:ac:1e:00:0b',
+            '02:00:00:00:00:02',
             ('172.30.0.10',),
         ),
         preflight.NetworkInterface(
             'eth0',
-            '02:42:ac:1e:00:0a',
+            '02:00:00:00:00:01',
             ('172.30.0.99',),
         ),
     ),
@@ -173,7 +194,7 @@ def test_mac_or_ip_override_is_rejected(interface) -> None:
     with pytest.raises(preflight.PreflightError, match='Unexpected eth0'):
         preflight.validate_interfaces(
             (interface,),
-            expected_mac='02:42:ac:1e:00:0a',
+            expected_mac='02:00:00:00:00:01',
             expected_ipv4='172.30.0.10',
         )
 

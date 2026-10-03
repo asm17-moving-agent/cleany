@@ -38,6 +38,6 @@ containers/vision/state/
 containers/vision/license/
 containers/vision/models/
 **/licenseCfg.json
-**/JeongHyeonLee.lic
-**/JeongHyeonLee.public_key
-**/JeongHyeonLee.signature
+**/*.lic
+**/*.public_key
+**/*.signature

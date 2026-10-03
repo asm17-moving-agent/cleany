@@ -790,11 +790,11 @@ MoveIt 이동에는 같은 관절 path constraint를 전달하고, 직접 생성
 그리퍼를 열고 scene attachment를 해제한 뒤에는 손목 제한을 해제해 복귀한다.
 손목 변화 최소화의 전역 최적해나 물체의 수평 자세 유지는 보장하지 않는다.
 
-운반 전과 놓기 직전의 수거함 입구 크기·bounding sphere 적합성 검사는 제거했다.
+운반 전과 놓기 직전의 수거함 입구 크기·bounding sphere 적합성 검사는 현재 구현되어
+있지 않으며 추후 개발 예정이다 (코드의 `TODO(bin-opening-fit)`).
 분류된 수거함의 설정된 고정 투하점으로 이동하고, 물체 중심·손목 feedback으로
-도착을 확인한 뒤 놓는다. 별도 입구 여유 및 투하 높이 범위 검사에 사용하던
-`sorting_release_edge_margin_m`, `sorting_release_clearance_m`,
-`sorting_release_maximum_clearance_m` 설정도 제거했다.
+도착을 확인한 뒤 놓는다. 따라서 큰 물체나 OBB가 과대 추정된 물체가 입구 벽이나
+모서리에 걸칠 수 있는지는 현재 확인하지 않는다.
 
 SAM 분할·기준 mask 추적·중앙 인계 상태는 제거했다. 현재 손목 검증은 YOLOE-seg의
 HANDOFF/CHECK 재검출이며 이동 전후 접촉·충돌 검사는 유지한다.

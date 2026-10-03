@@ -913,6 +913,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
 
     def transport(self, held: HeldObject, destination: str):
         self._require_held_contact(held)
+        # TODO(bin-opening-fit): check that the held object's bounding sphere
+        # fits the bin opening before transport. Planned for later development.
         self._transport_fixed_release(held, destination)
 
     def release(self, held: HeldObject, destination: str):
@@ -931,6 +933,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
                    or abs(feedback[name]-value) > self._fixed_release_hold_tolerance+1e-6
                    for name, value in self._fixed_release_wrist.items()):
                 raise RuntimeError('Fixed release wrist feedback is outside hold tolerance')
+        # TODO(bin-opening-fit): before opening, check that the object is inside
+        # the bin opening and above its rim. Planned for later development.
         self._open_gripper(arm)
         self._release_stamp_ns = self.get_clock().now().nanoseconds
         self._hold('grasp_settle_sec')

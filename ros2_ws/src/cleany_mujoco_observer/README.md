@@ -46,6 +46,13 @@ pause service를 호출하고 Backspace는 reset service를 호출한다. Escape
 GUI를 숨기며 센서·physics는 계속 실행한다. 전체 종료는 실행 터미널의 Ctrl+C다.
 전체 MuJoCo 디버깅 UI가 필요하면 `sim_viewer:=native`를 선택한다.
 headless에서도 현재 GLFW renderer에는 유효한 DISPLAY가 필요하다.
+
+GUI 사용 시 주의: efficient viewer는 보이는 창 생성과 입력 처리(`glfwPollEvents`)를
+메인 스레드가 아닌 센서 worker 스레드에서 수행한다. GLFW는 이 동작을 메인 스레드
+전용으로 규정하므로 현재는 Ubuntu 22.04 VM의 `DISPLAY=:0` 환경에서만 확인했다.
+다른 환경에서 GUI 창이 멈추거나 GUI 실행 중 카메라 토픽이 끊기면
+`sim_viewer:=native`를 사용한다. 창과 센서가 같은 스레드를 쓰므로 창 문제는 센서
+정지로 이어질 수 있다.
 마우스 이동은 설치된 MuJoCo 헤더의 `mjv_moveCamera` 함수 형식에 따라
 scene 인자가 있는 6인자 API 또는 scene 인자가 없는 5인자 API를 빌드 시 선택한다.
 
