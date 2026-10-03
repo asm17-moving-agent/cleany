@@ -4,6 +4,11 @@
 시뮬레이션은 Gazebo `/joint_states`를 사용하고, 실제 로봇은 MCU encoder adapter가
 같은 joint-state 계약을 제공하는 구성을 전제로 합니다.
 
+실물 micro-ROS 연동에서는 `cleany_base_driver`가 encoder rollover와 reboot baseline을
+처리해 같은 wheel joint 이름의 연속 누적 position을 제공합니다.
+`cleany_base_driver` launch는 하나의 명시적 profile geometry를 driver와 이 노드에
+함께 전달합니다. 실물 실행에 이 패키지의 시뮬레이션용 기본 geometry를 채택하지 않습니다.
+
 ## ROS 계약
 
 - 입력: `/joint_states` (`sensor_msgs/msg/JointState`)
@@ -37,6 +42,12 @@ error node가 이를 `/wheel/odom`으로 변환합니다. 독립 실행과 실�
 기본 `odometry_source:=wheel`은 최종 `/wheel/odom`으로 canonical `/odom`과
 `odom -> base_link` TF를 발행합니다. 해당 TF와 `/odom`의 publisher 소유권은
 `cleany_gazebo_sim`에 남아 있습니다.
+
+실물 및 mock base launch에서는 이 노드가 `/wheel/odom`만 발행하고
+`cleany_base_driver`의 `base_odom_relay`가 canonical `/odom`과
+`odom -> base_link` TF를 소유합니다. 추후 다른 estimator를 선택하면
+`relay_odom:=false`로 relay를 끕니다. 실행 및 설정은
+[`cleany_base_driver` README](../cleany_base_driver/README.md)를 따릅니다.
 
 Gazebo에서 합성 odometry parameter 오차를 선택하려면 `wheel_odometry_config`에
 `config/wheel_odometry_synthetic_error.yaml`을 지정합니다. encoder 합성 profile과
