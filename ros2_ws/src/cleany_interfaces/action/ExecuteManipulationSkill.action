@@ -1,0 +1,27 @@
+# One approved object, one attempt. execution_id is issued by the client.
+string mission_id
+string task_id
+string execution_id
+string skill_name
+string snapshot_id
+uint32 object_id
+string destination_id
+---
+string execution_id
+string execution_profile
+string status
+string error_code
+string failed_stage
+string last_completed_stage
+string object_state
+string placement_state
+string selected_arm
+bool stop_confirmed
+bool arm_recovered
+bool retryable
+string message
+---
+string execution_id
+string stage
+string selected_arm
+string message

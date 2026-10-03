@@ -1,0 +1,3 @@
+---
+# Current status, boot ID, active request and most recent durable terminal report.
+string snapshot_json
