@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
+from launch import LaunchContext, LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
@@ -82,6 +82,10 @@ def generate_launch_description() -> LaunchDescription:
         description='Source republished as /odom and odom -> base_link TF.',
     )
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
+    headless_rendering_arg = DeclareLaunchArgument(
+        'headless_rendering', default_value='false', choices=['true', 'false'],
+        description='Use EGL rendering for the headless server without X11.',
+    )
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
     )
@@ -112,6 +116,7 @@ def generate_launch_description() -> LaunchDescription:
             odometry_error_config_arg,
             odometry_source_arg,
             headless_arg,
+            headless_rendering_arg,
             use_sim_time_arg,
             gui_render_engine_arg,
             server_render_engine_arg,
@@ -147,16 +152,15 @@ def _launch_setup(
         profile = load_lidar_noise_profile(noise_profiles, profile_name)
         world = str(materialize_mecanum_wheel_world(world_template, profile))
 
+    server_command = [
+        'ign', 'gazebo', '-r', '-s', '--render-engine-server',
+        LaunchConfiguration('server_render_engine'),
+    ]
+    if LaunchConfiguration('headless_rendering').perform(context) == 'true':
+        server_command.append('--headless-rendering')
+    server_command.append(world)
     server = ExecuteProcess(
-        cmd=[
-            'ign',
-            'gazebo',
-            '-r',
-            '-s',
-            '--render-engine-server',
-            LaunchConfiguration('server_render_engine'),
-            world,
-        ],
+        cmd=server_command,
         condition=IfCondition(LaunchConfiguration('headless')),
         output='screen',
     )
