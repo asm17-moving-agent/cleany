@@ -31,6 +31,7 @@ MVP에서는 운영자·대시보드의 요청을 받아 지정 구역으로 이
 |---|---|---|
 | 제품 범위, 현재 상태, 미해결 질문, 주요 결정 | [기획 KB README](docs/cleany-docs/README.md) | 기획 또는 의사결정이 바뀔 때 |
 | Ubuntu·ROS·Python 개발환경 설치 | [개발환경 설치 가이드](docs/DEVELOPMENT_SETUP.md) | 지원 환경 또는 설치 절차가 바뀔 때 |
+| 로봇 입문 개념과 실제 코드 학습 순서 | [Cleany로 배우는 로봇 소프트웨어](docs/guide/README.md) · [HTML 뷰어](docs/guide/index.html) | 설명 대상 코드 또는 실습이 바뀔 때 |
 | 패키지 책임, ROS 인터페이스, 설정, 실행·검증 방법 | 각 ROS 2 패키지의 `README.md` | 해당 코드 또는 인터페이스를 바꿀 때 |
 | 공통 개발 규칙과 문서 수정 규칙 | [AGENTS.md](AGENTS.md) | 작업 전 확인 |
 
