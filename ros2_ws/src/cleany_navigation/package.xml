@@ -50,7 +50,7 @@
   <exec_depend>nav2_map_server</exec_depend>
   <exec_depend>nav2_mppi_controller</exec_depend>
   <exec_depend>nav2_navfn_planner</exec_depend>
-  <exec_depend>nav2_smac_planner</exec_depend>
+  <depend>nav2_smac_planner</depend>
   <exec_depend>nav2_planner</exec_depend>
 
   <test_depend>python3-pytest</test_depend>

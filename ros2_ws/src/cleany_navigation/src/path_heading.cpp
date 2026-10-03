@@ -15,6 +15,10 @@ void PathHeadingCritic::onInit() {
     if (!std::isfinite(value) || value <= 0) throw std::invalid_argument(full);
     return value;
   };
+  const auto orientation_key=dwb_plugin_name_+"."+name_+".respect_path_orientation";
+  if (!node->has_parameter(orientation_key)) node->declare_parameter(orientation_key,false);
+  respect_path_orientation_=node->get_parameter(orientation_key).as_bool();
+  rotation_position_tolerance_=parameter("rotation_position_tolerance_m", .025);
   lookahead_=parameter("lookahead_m", .3);
   tolerance_=parameter("heading_tolerance", .12);
   release_tolerance_=parameter("heading_release_tolerance", .18);
@@ -50,9 +54,27 @@ bool PathHeadingCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
   target_=std::atan2(target.y-pose.y,target.x-pose.x);
   reverse_=std::abs(wrap(target_-pose.theta))>reverse_threshold_;
   if (reverse_) target_=wrap(target_+M_PI);
+  travel_target_=target_;
+  if (respect_path_orientation_) {
+    travel_target_=std::atan2(target.y-pose.y,target.x-pose.x);
+    target_=path.poses[nearest].theta;
+    // Duplicate XY poses encode an explicit in-place rotation. Execute the
+    // final heading of that group only after arriving at its position.
+    for (size_t i=nearest;i+1<path.poses.size();++i) {
+      const auto &p=path.poses[i];
+      if (std::hypot(p.x-pose.x,p.y-pose.y)>lookahead_) break;
+      size_t end=i;
+      while (end+1<path.poses.size() && std::hypot(path.poses[end+1].x-p.x,path.poses[end+1].y-p.y)<1e-6) ++end;
+      if (end>i && std::hypot(p.x-pose.x,p.y-pose.y)<=rotation_position_tolerance_) {target_=path.poses[end].theta;break;}
+      i=end;
+    }
+    reverse_=std::abs(wrap(travel_target_-target_))>M_PI/2;
+    if (reverse_) travel_target_=wrap(travel_target_+M_PI);
+  }
   initial_error_=std::abs(wrap(target_-pose.theta));
-  if (initial_error_ > translation_angle_+release_tolerance_) aligned_=false;
-  else if (initial_error_ <= translation_angle_+tolerance_) aligned_=true;
+  const double cone=respect_path_orientation_ ? 0. : translation_angle_;
+  if (initial_error_ > cone+release_tolerance_) aligned_=false;
+  else if (initial_error_ <= cone+tolerance_) aligned_=true;
   return true;
 }
 double PathHeadingCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &trajectory) {
@@ -66,6 +88,9 @@ double PathHeadingCritic::scoreTrajectory(const dwb_msgs::msg::Trajectory2D &tra
   if (aligned_ && std::abs(trajectory.velocity.theta)>1e-6)
     throw dwb_core::IllegalTrajectoryException(name_, "Keep aligned segment heading");
   const double offset=std::abs(x)>1e-6 ? std::atan2(trajectory.velocity.y*(x<0?-1:1),std::abs(x)) : 0.;
+  const double body_error=std::abs(wrap(target_-trajectory.poses.back().theta));
+  if (respect_path_orientation_)
+    return body_error+(aligned_ ? std::abs(wrap(travel_target_-trajectory.poses.back().theta-offset)) : 0.);
   return std::abs(wrap(target_-trajectory.poses.back().theta-offset));
 }
 }

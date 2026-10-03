@@ -41,7 +41,11 @@ def test_serial_velocity_route_has_exactly_one_final_stage(pan, memory, voxel):
         assert result['voxel_guard']['ros__parameters']['output_topic'] == 'cmd_vel'
         assert result['obstacle_memory']['ros__parameters']['publish_3d'] is True
     if memory:
-        assert result['global_costmap']['global_costmap']['ros__parameters']['memory_layer']['map_topic'] == '/obstacle_memory/grid'
+        for name in ('global_costmap', 'local_costmap'):
+            costmap = result[name][name]['ros__parameters']
+            assert costmap['memory_layer']['map_topic'] == '/obstacle_memory/grid'
+            assert costmap['use_maximum'] is True
+            assert costmap['plugins'].index('memory_layer') < costmap['plugins'].index('inflation_layer')
 
 
 def test_voxel_without_observation_memory_is_rejected():

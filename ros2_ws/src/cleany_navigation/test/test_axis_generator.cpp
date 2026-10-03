@@ -165,3 +165,35 @@ TEST_F(AxisTest, BoundedDiagonalHeadingScoresTravelDirectionInForwardAndReverse)
     EXPECT_LT(critic.scoreTrajectory(t),straight);EXPECT_NEAR(critic.scoreTrajectory(t),0,1e-9);
   }
 }
+
+TEST_F(AxisTest, PlannedBodyHeadingIsRequiredDespiteDiagonalTravelAllowance) {
+  node->declare_parameter("FollowPath.PathHeading.respect_path_orientation",true);
+  node->declare_parameter("FollowPath.PathHeading.heading_tolerance",.025);
+  node->declare_parameter("FollowPath.PathHeading.heading_release_tolerance",.06);
+  node->set_parameter(rclcpp::Parameter("FollowPath.axis_translation_angle_deg",10.));
+  cleany_axis_controller::PathHeadingCritic critic;critic.initialize(node,"PathHeading","FollowPath",nullptr);
+  geometry_msgs::msg::Pose2D pose,goal;pose.theta=-.14;goal.x=2.;
+  auto reference=pose;reference.theta=0.;nav_2d_msgs::msg::Path2D path;path.poses={reference,goal};
+  critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
+  dwb_msgs::msg::Trajectory2D moving;moving.poses={pose};moving.velocity.x=.1;
+  EXPECT_THROW(critic.scoreTrajectory(moving),dwb_core::IllegalTrajectoryException);
+  auto turning=moving;turning.velocity.x=0.;turning.velocity.theta=.1;turning.poses.back().theta=0.;
+  auto stopped=turning;stopped.poses.back()=pose;
+  EXPECT_LT(critic.scoreTrajectory(turning),critic.scoreTrajectory(stopped));
+  pose.theta=0.;critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);moving.poses={pose};
+  EXPECT_NO_THROW(critic.scoreTrajectory(moving));
+  // At an explicit rotation waypoint, use its final body orientation.
+  reference=pose;auto rotated=reference;rotated.theta=-M_PI/2;goal.y=-2.;goal.x=0.;goal.theta=-M_PI/2;
+  path.poses={reference,rotated,goal};critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
+  EXPECT_THROW(critic.scoreTrajectory(moving),dwb_core::IllegalTrajectoryException);
+}
+
+TEST_F(AxisTest, PlannedHeadingScoresStoppedTravelErrorAlongsideDiagonalCorrection) {
+  node->declare_parameter("FollowPath.PathHeading.respect_path_orientation",true);
+  node->set_parameter(rclcpp::Parameter("FollowPath.axis_translation_angle_deg",10.));
+  cleany_axis_controller::PathHeadingCritic critic;critic.initialize(node,"PathHeading","FollowPath",nullptr);
+  geometry_msgs::msg::Pose2D pose,goal;goal.x=2.;goal.y=.2;
+  nav_2d_msgs::msg::Path2D path;path.poses={pose,goal};critic.prepare(pose,nav_2d_msgs::msg::Twist2D(),goal,path);
+  dwb_msgs::msg::Trajectory2D stopped;stopped.poses={pose};auto moving=stopped;moving.velocity.x=.1;moving.velocity.y=.01;
+  EXPECT_LT(critic.scoreTrajectory(moving),critic.scoreTrajectory(stopped));
+}

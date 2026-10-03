@@ -213,12 +213,14 @@ def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled
     if voxel_enabled:
         memory.update(publish_3d=True, mark_all_depth_points=True)
     if memory_enabled:
-        global_map = result['global_costmap']['global_costmap']['ros__parameters']
-        if 'memory_layer' not in global_map['plugins']:
-            global_map['plugins'].insert(1, 'memory_layer')
-        global_map['use_maximum'] = True
-        global_map['memory_layer'] = dict(plugin='nav2_costmap_2d::StaticLayer',
-            map_topic='/obstacle_memory/grid', map_subscribe_transient_local=True, subscribe_to_updates=False)
+        for name in ('global_costmap', 'local_costmap'):
+            costmap = result[name][name]['ros__parameters']
+            if 'memory_layer' not in costmap['plugins']:
+                costmap['plugins'].insert(1, 'memory_layer')
+            costmap['use_maximum'] = True
+            costmap['memory_layer'] = dict(plugin='nav2_costmap_2d::StaticLayer',
+                map_topic='/obstacle_memory/grid', map_subscribe_transient_local=True,
+                subscribe_to_updates=False)
     if output_directory:
         for node in ('obstacle_memory', 'voxel_guard'):
             params(node)['output_directory'] = str(Path(output_directory).resolve()/node)

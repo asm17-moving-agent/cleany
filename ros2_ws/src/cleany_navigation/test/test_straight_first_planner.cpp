@@ -30,3 +30,20 @@ TEST(StraightFirstPlanner, InitialRotationAndCancellationAreChecked) {
   EXPECT_TRUE(cleany_navigation::checkedStraightPath(a,b,map,footprint).poses.empty());
   EXPECT_TRUE(cleany_navigation::checkedStraightPath(a,b,map,footprint,[] {return true;}).poses.empty());
 }
+TEST(StraightFirstPlanner, SparseLatticePathChecksBetweenTranslationAndRotationSamples) {
+  nav2_costmap_2d::Costmap2D map(100,100,.05,-2.5,-2.5,0);
+  std::vector<geometry_msgs::msg::Point> footprint;
+  for(auto xy:std::vector<std::pair<double,double>>{{-.1,-.5},{.1,-.5},{.1,.5},{-.1,.5}}) {
+    geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;footprint.push_back(p);
+  }
+  geometry_msgs::msg::PoseStamped a,b;a.pose.orientation.w=b.pose.orientation.w=1.;b.pose.position.x=1.;
+  nav_msgs::msg::Path path;path.poses={a,b};
+  EXPECT_TRUE(cleany_navigation::pathCollisionFree(path,map,footprint));
+  unsigned int x,y;map.worldToMap(.5,0.,x,y);map.setCost(x,y,254);
+  EXPECT_FALSE(cleany_navigation::pathCollisionFree(path,map,footprint));map.setCost(x,y,0);
+  b=a;b.pose.orientation.z=std::sin(M_PI/4);b.pose.orientation.w=std::cos(M_PI/4);path.poses={a,b};
+  map.worldToMap(-.32,.32,x,y);map.setCost(x,y,254);
+  EXPECT_FALSE(cleany_navigation::pathCollisionFree(path,map,footprint));map.setCost(x,y,0);
+  EXPECT_TRUE(cleany_navigation::pathCollisionFree(path,map,footprint));
+  EXPECT_FALSE(cleany_navigation::pathCollisionFree(path,map,footprint,[] {return true;}));
+}

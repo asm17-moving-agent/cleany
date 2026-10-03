@@ -79,6 +79,9 @@ steady timer는 `/clock`이 멈춘 상황에서도 정지 출력을 유지한다
 free로 인증하지 않는다. 물리 E-stop, 드라이버 watchdog와 실측 제동 검증은
 로봇 통합 작업에서 별도로 수행해야 한다.
 
+Global/local costmap 모두 `obstacle_memory/grid`를 max 병합하여 planner와
+controller가 동일한 누적 장애물을 검사한다.
+
 `obstacle_memory/grid`, `obstacle_memory/voxels`, `obstacle_memory/voxel_status`,
 `body_guard_3d/state`, `head_pan/state`를 진단에 사용한다. Memory의
 `obstacle_memory/save`, `obstacle_memory/set_enabled` 서비스를 유지한다.
@@ -213,3 +216,21 @@ BT는 100ms 주기로 앞 1.5m 경로를 검사하며, FollowPath에는 원본 �
 Depth는 최대 `tf_wait_timeout_s`(기본 0.15초) 동안 최신 한 프레임만 보관하며
 비동기 재시도로 원래 시각의 TF를 기다린다. TF를 추정하거나 latest TF로 대체하지 않고,
 대기 만료 시 버린다. marking은 obstacle_points, clearing은 전체 points를 사용한다.
+
+The axis controller follows the body orientation stored in the lattice path
+(`PathHeading.respect_path_orientation`). Bounded diagonal compensation does
+not expand the tolerance for the body's planned heading. Repeated XY poses
+represent an in-place rotation; the last orientation in that group is used
+within `PathHeading.rotation_position_tolerance_m` of its position. This keeps
+the executed rectangular footprint aligned with the shape checked by the planner.
+
+The lattice fallback uses Nav2 Smac search with a private footprint padded by
+`GridBased.lattice_collision_padding` (default 0.05 m), 0.5-degree collision
+orientation bins, and full footprint checks. When that additional margin cannot
+yield a valid path, search retries with half a cell less extra margin, then
+with the configured robot footprint alone. The mandatory costmap footprint
+padding remains in every attempt. The returned path is checked
+through translation and rotation between poses at at most half a costmap cell
+of swept distance, including obstacles inside the footprint. Invalid sweeps
+are rejected. This search margin is separate from costmap/voxel resolution.
+`GridBased.cost_penalty` is 5.0 to prefer room around obstacles.

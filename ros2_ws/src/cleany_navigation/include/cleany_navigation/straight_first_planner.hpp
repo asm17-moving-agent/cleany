@@ -1,8 +1,10 @@
 #pragma once
 #include <functional>
 #include "nav2_core/global_planner.hpp"
-#include "pluginlib/class_loader.hpp"
 namespace cleany_navigation {
+bool pathCollisionFree(const nav_msgs::msg::Path &path, nav2_costmap_2d::Costmap2D &map,
+  const std::vector<geometry_msgs::msg::Point> &footprint,
+  const std::function<bool()> &cancel = [] {return false;});
 nav_msgs::msg::Path checkedStraightPath(
   const geometry_msgs::msg::PoseStamped &start,
   const geometry_msgs::msg::PoseStamped &goal,
@@ -23,7 +25,6 @@ public:
     const geometry_msgs::msg::PoseStamped &) override;
 #endif
 private:
-  pluginlib::ClassLoader<nav2_core::GlobalPlanner> loader_{"nav2_core", "nav2_core::GlobalPlanner"};
   nav2_core::GlobalPlanner::Ptr fallback_;
   std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_;
 };

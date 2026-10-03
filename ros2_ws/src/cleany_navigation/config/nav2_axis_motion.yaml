@@ -52,6 +52,8 @@ controller_server:
       PathHeading.class: cleany_axis_controller::PathHeadingCritic
       PathHeading.scale: 32.0
       PathHeading.lookahead_m: 1.2
+      PathHeading.respect_path_orientation: true
+      PathHeading.rotation_position_tolerance_m: 0.025
       PathHeading.heading_tolerance: 0.025
       PathHeading.heading_release_tolerance: 0.06
       PathHeading.reverse_angle_threshold: 2.356194490192345
@@ -75,7 +77,8 @@ planner_server:
       lattice_filepath: ""
       # Disable curved analytic shortcuts for the stop/rotate/translate policy.
       analytic_expansion_max_length: 0.0
-      cost_penalty: 2.0
+      cost_penalty: 5.0
+      lattice_collision_padding: 0.05
 bt_navigator:
   ros__parameters:
     plugin_lib_names: [cleany_yield_wait_bt_node]
