@@ -35,6 +35,7 @@ class RouteLimits:
     position_tolerance: float
     heading_tolerance: float
     turn_in_place_threshold: float
+    position_gain: float = 1.0
 
     def __post_init__(self) -> None:
         values = (
@@ -45,6 +46,7 @@ class RouteLimits:
             self.position_tolerance,
             self.heading_tolerance,
             self.turn_in_place_threshold,
+            self.position_gain,
         )
         if not all(math.isfinite(value) and value > 0.0 for value in values):
             raise ValueError('route limits must be positive and finite')
@@ -142,6 +144,6 @@ class RouteTracker:
         if self._turning:
             linear = 0.0
         else:
-            linear = min(self._limits.max_linear_speed, distance)
+            linear = min(self._limits.max_linear_speed, distance * self._limits.position_gain)
             linear *= max(0.25, math.cos(heading_error))
         return RouteCommand(linear, angular, self._index, False)

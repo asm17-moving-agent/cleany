@@ -32,7 +32,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	test-gazebo-safety view-gazebo-costmap \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
-	sim-gazebo-study-cafe clean firmware-setup firmware-smoke firmware-build \
+	sim-gazebo-study-cafe sim-gazebo-facility clean firmware-setup firmware-smoke firmware-build \
 	firmware-upload test-motor-core build-base test-base \
 	micro-ros-agent-build test-micro-ros-setup
 
@@ -61,6 +61,7 @@ help:
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
+	@echo "  make sim-gazebo-facility  Run the full 18F facility with ROLY chairs"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
 	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
@@ -327,6 +328,14 @@ sim-gazebo-study-cafe:
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+		headless:=false gui_render_engine:="$(GAZEBO_GUI_RENDER_ENGINE)"
+
+sim-gazebo-facility: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	ros2 launch cleany_gazebo_sim gazebo_facility_18f.launch.py \
 		headless:=false gui_render_engine:="$(GAZEBO_GUI_RENDER_ENGINE)"
 
 clean:

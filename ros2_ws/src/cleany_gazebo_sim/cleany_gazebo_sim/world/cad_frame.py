@@ -5,6 +5,7 @@ from copy import deepcopy
 from itertools import product
 from pathlib import Path
 import subprocess
+import shutil
 from tempfile import TemporaryDirectory
 from xml.etree import ElementTree as ET
 
@@ -158,7 +159,10 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
     with TemporaryDirectory(prefix='cleany-cad-') as directory:
         source = Path(directory)/'robot.urdf'
         ET.ElementTree(urdf).write(source, encoding='unicode')
-        converted = subprocess.run(['gz', 'sdf', '-p', str(source)], check=True, capture_output=True, text=True)
+        sdf_cli = shutil.which('gz') or shutil.which('ign')
+        if sdf_cli is None:
+            raise RuntimeError('CAD conversion requires Gazebo gz sdf or ign sdf')
+        converted = subprocess.run([sdf_cli, 'sdf', '-p', str(source)], check=True, capture_output=True, text=True)
     model = ET.fromstring(converted.stdout).find('model')
     if model is None or len(model.findall('link')) != 5 + int(pan_enabled) or len(model.findall('joint')) != 4 + int(pan_enabled):
         raise ValueError('CAD navigation model must have base plus four driven wheels')
@@ -202,8 +206,11 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
                 plugin.find(key).text = str(profile[key])
         model.append(plugin)
     if pan_enabled:
-        plugin = ET.SubElement(model, 'plugin', filename='gz-sim-joint-position-controller-system',
-                               name='gz::sim::systems::JointPositionController')
+        fortress = any(p.get('name', '').startswith('ignition::') for p in legacy.findall('plugin'))
+        filename = 'ignition-gazebo-joint-position-controller-system' if fortress else 'gz-sim-joint-position-controller-system'
+        namespace = 'ignition::gazebo' if fortress else 'gz::sim'
+        plugin = ET.SubElement(model, 'plugin', filename=filename,
+                               name=namespace+'::systems::JointPositionController')
         for key, value in dict(joint_name='head_pan_joint', initial_position='0',
                 use_velocity_commands='true', cmd_max=str(profile.get('pan_speed_rad_s', 1.0)),
                 topic='/model/cleany_mecanum/head_pan/cmd_pos').items():

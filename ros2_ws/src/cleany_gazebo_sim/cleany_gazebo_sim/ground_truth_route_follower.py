@@ -27,6 +27,7 @@ class GroundTruthRouteFollower(Node):
         self.declare_parameter('max_linear_acceleration', 0.2)
         self.declare_parameter('heading_gain', 1.2)
         self.declare_parameter('position_tolerance', 0.09)
+        self.declare_parameter('position_gain', 1.0)
         self.declare_parameter('heading_tolerance', 0.08)
         self.declare_parameter('turn_in_place_threshold', 0.15)
         self.declare_parameter('control_rate_hz', 20.0)
@@ -38,6 +39,7 @@ class GroundTruthRouteFollower(Node):
         self._tracker = RouteTracker(
             waypoints,
             RouteLimits(
+                position_gain=float(self.get_parameter('position_gain').value),
                 max_linear_speed=float(
                     self.get_parameter('max_linear_speed').value
                 ),
