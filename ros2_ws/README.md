@@ -146,3 +146,16 @@ Pyright를 사용하려면 [개발환경 설치 가이드](../docs/DEVELOPMENT_S
 개발도구 절을 따른다.
 
 패키지별 topic, launch parameter, 추가 검증 명령은 각 패키지 `README.md`를 따른다.
+
+## 개발용 로봇 관제보드
+
+저장소 루트에서 `make build-dev-monitor`로 웹 자산과 ROS 패키지를 함께 설치하고,
+`ROS_DOMAIN_ID=<robot-domain> make run-dev-monitor`로 읽기 전용 관측 서버를 실행한다.
+접속 주소는 `http://127.0.0.1:8768`이다. Gazebo는
+`MONITOR_ROS_ARGS='-p use_sim_time:=true'`를 추가한다.
+
+분리 빌드는 `make build-dev-monitor-web`, `make build-dev-monitor-ros`, core/API 검사는
+`make test-dev-monitor`를 사용한다. `MISSION_BUILD_BASE`, `MISSION_INSTALL_BASE`,
+`MISSION_LOG_BASE`로 별도 overlay 경로를 지정할 수 있다. 실행 명령의 절대 install 경로도
+지원한다. 인터페이스, 토픽/QoS, 기록 재생과 브라우저 검사는
+[cleany_dev_monitor README](src/cleany_dev_monitor/README.md)를 따른다.

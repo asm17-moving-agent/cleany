@@ -413,3 +413,16 @@ headless server가 OGRE2, GUI가 OGRE1을 사용한다.
 - [ROS 2 Humble 지원 플랫폼](https://docs.ros.org/en/humble/Releases/Release-Humble-Hawksbill.html)
 - [ros-apt-source](https://github.com/ros-infrastructure/ros-apt-source)
 - [Node.js 다운로드](https://nodejs.org/en/download)
+
+## 개발 관제보드 선택 의존성
+
+`cleany_dev_monitor`는 ROS 2 환경의 `python3-aiohttp`, `python3-pil`, `sensor_msgs`, `rclpy`, `tf2_ros`,
+`rosidl_runtime_py`와 workspace 메시지 overlay를 사용한다. `package.xml`에 선언되어
+있으므로 해당 패키지에 `rosdep install --from-paths ... --ignore-src -r -y`를 적용한다.
+Humble/Ubuntu 22.04에서는 `python3-aiohttp` 배포 패키지로 실행한다.
+
+웹 빌드는 Node.js 22 이상과 pnpm 11을 사용한다. 의존 버전은
+`ros2_ws/src/cleany_dev_monitor/web/pnpm-lock.yaml`에 고정되어 있다. esbuild의 로컬
+설치 스크립트만 `pnpm-workspace.yaml`에서 허용한다. ROS 프로세스에는 Node.js가 필요하지
+않으며, 다른 환경에서 빌드한 `web/dist`를 ROS 패키지 설치에 포함할 수 있다.
+Playwright 브라우저는 개발 검증용 선택 의존성이며 로봇 런타임 의존성이 아니다.
