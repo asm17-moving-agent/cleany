@@ -18,7 +18,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
 
-from cleany_navigation.depth_clearance import project_depth_image, decode_depth_image, obstacle_height_mask
+from cleany_navigation.depth_clearance import project_depth_image, decode_depth_image, obstacle_height_mask, self_observation_mask
 
 
 class DepthClearanceNode(Node):
@@ -130,10 +130,8 @@ class DepthClearanceNode(Node):
         except TransformException:
             return  # Never label a cloud with a guessed camera orientation.
         body_points = transform(points, pose)
-        keep = np.ones(len(points), dtype=bool)
-        for box in self.self_boxes:
-            local = (body_points-box.center)@box.rotation
-            keep &= ~np.all(np.abs(local) <= box.half_size+self.self_filter_margin, axis=1)
+        sensor_origin = np.array([pose.translation.x, pose.translation.y, pose.translation.z])
+        keep = self_observation_mask(body_points, sensor_origin, self.self_boxes, self.self_filter_margin)
         # Occluded self rays are discarded, never converted to free-space rays.
         points = np.ascontiguousarray(points[keep])
         body_points = body_points[keep]

@@ -51,6 +51,35 @@ Playwright는 설치된 Chromium headless shell 경로를 환경변수로 지정
 corner 검출 부족이다. 이전 실행에서는 MoveIt trajectory가 실패했고 해당 항목의
 분리 실행은 통과했다. hand-eye 구현이나 성공 기준은 이번 통합에서 변경하지 않았다.
 
-시설 전체 Gazebo 주행, 통합 미션의 실제 시설 Nav2 이동 및 실물 로봇 검증은
-수행하지 않았다. synthetic backend, mock ROS 및 정적 world 생성 결과를
-실제 시설/하드웨어의 주행 완료 근거로 해석하지 않는다.
+위 초기 통합 검증에서는 시설 전체 Gazebo 주행과 실물 로봇 검증을 수행하지 않았다.
+synthetic backend, mock ROS 및 정적 world 생성 결과는 하드웨어 주행 완료 근거가 아니다.
+
+## GUI 통합 및 자기 관측 필터 수정 (2026-10-03)
+
+Control-plane `feat/robot-gateway` (`0919d38`)를 gateway 모드로 실행하고 운영/개발
+대시보드, 전체 시설 Gazebo, 지도/voxel RViz, rqt 그래프/RGB 뷰어를 열었다.
+검증용 정적 지도는 CAD collision geometry를 5cm로 rasterize했으며 SLAM 결과가 아니다.
+Navigation=sim, perception/planning/execution=mock이다.
+
+첫 44번 좌석 미션은 도착 후 복귀 중 실패했다. 당시 깊이 센서 누적 voxel 두 개가
+로봇 footprint 내부에 남았고 하나는 상단 왼쪽 레일의 CAD 영역과 겹쳤다.
+현재 sensor hit의 끝점만 제거하던 self-filter를 sensor→hit 선분과 고정 몸체 OBB의
+교차 검사로 바꿨다. 몸체를 통과해 뒤로 튀는 hit와 clearing ray를 함께 버리고,
+가리지 않은 외부 장애물 및 기존 안전 게이트를 유지한다.
+
+- 관련 depth core/ROS transport: 17 passed. Navigation package: 87 tests, 0 failures.
+- description/navigation build: 2 packages 성공.
+- 별도 domain 224에서 새 누적 지도로 재검증. 이전 오염 지도/DB는 보존했다.
+  부분 재시작 때 DDS discovery/시계/서비스 연결 문제가 발생해 이번 navigation 프로세스에만
+  UDP transport XML을 적용했다. 시스템 DDS 설정은 바꾸지 않았다.
+- 미션 `a7f360dd-2b33-40b6-b76f-500dfd398a20`: 대시보드 요청 → 좌석 도착 → 모의 청소
+  → 홈 복귀 → `SUCCESS`. `navigation_result=OK`, `return_result=OK`.
+  Gateway `mission.result` 및 fresh IDLE, 최종 /cmd_vel과 ground-truth 속도 0 확인.
+- 반복 미션 `d731fb97-8be6-4831-b150-81c04cf6bcd4`도 14:13:55 UTC에 `SUCCESS`.
+  좌석 도착/모의 청소/홈 복귀가 두 번 연속 성공했고 이후 fresh IDLE을 확인했다.
+- 복귀 구간 누적 voxel의 footprint 내부 점: 0. 이전 오염 두 voxel의 depth evidence는
+  각각 양수 4/3에서 새 지도에서 -3/-3으로 관측됐다.
+
+증거는 `artifacts/gui-integration-20261003/`의 `fixed-*.json`,
+`self-fixed-observations.json`, `ros-fixed-terminal.json`, `navigation-udp.log`,
+`*-fixed-evidence.db` 및 화면 PNG에 보관한다. 물리 로봇/실제 청소 검증은 수행하지 않았다.

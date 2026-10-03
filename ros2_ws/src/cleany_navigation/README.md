@@ -54,7 +54,9 @@ voxel guard 한 개다. Backend는 아래 입력/TF를 제공한다.
 
 Depth projection은 optical Z-depth를 원래 image stamp의 TF로 output frame에
 변환한다. TF·calibration이 없으면 cloud를 발행하지 않는다. Park posture의 팔과 고정 몸체·카메라 기둥 형상으로
-자기 관측점을 제거한다. 회전하는 head 부품은 정적 자기 필터에 포함하지 않으며,
+센서 원점부터 hit까지의 선분이 몸체를 통과하는 ray를 제거한다. 레일 뒤로 튀는
+depth 경계 픽셀도 제거하며, 몸체에 가리지 않은 외부 장애물은 유지한다.
+회전하는 head 부품은 정적 자기 필터에 포함하지 않으며,
 몸체에 가린 ray를 free-space로 바꾸지 않는다. `depth_clearance.self_filter_margin_m`의 기본 1mm
 여유는 depth/CAD 표면의 수치 오차를 처리한다. 실제 로봇에서는 보정 오차에
 맞게 검증해야 한다. 공통 pan gate는

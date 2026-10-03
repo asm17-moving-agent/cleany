@@ -6,6 +6,35 @@ import math
 
 import numpy as np
 
+from cleany_navigation.body_geometry import BodyBox
+
+
+def self_observation_mask(points: np.ndarray, sensor_origin: np.ndarray,
+                          boxes: list[BodyBox], margin: float) -> np.ndarray:
+    """Keep rays whose finite segment does not intersect fixed self geometry.
+
+    A mixed edge pixel can report a hit behind a rail. Checking only the hit
+    position misses this self occlusion. Discard the ray instead of certifying
+    any space behind the robot as free.
+    """
+    if not math.isfinite(margin) or margin < 0:
+        raise ValueError('Self-filter margin must be finite and nonnegative')
+    keep = np.isfinite(points).all(axis=1)
+    for box in boxes:
+        origin = (sensor_origin-box.center)@box.rotation
+        direction = (points-sensor_origin)@box.rotation
+        half = box.half_size+margin
+        parallel = np.abs(direction) < 1e-12
+        outside = np.any(parallel & (np.abs(origin) > half), axis=1)
+        low = np.full_like(direction, -np.inf)
+        high = np.full_like(direction, np.inf)
+        np.divide(-half-origin, direction, out=low, where=~parallel)
+        np.divide(half-origin, direction, out=high, where=~parallel)
+        enter = np.maximum(np.minimum(low, high).max(axis=1), 0.)
+        leave = np.minimum(np.maximum(low, high).min(axis=1), 1.)
+        keep &= outside | (enter > leave)
+    return keep
+
 
 def decode_depth_image(data: bytes, width: int, height: int, step: int,
                        encoding: str, is_bigendian: bool = False) -> np.ndarray:

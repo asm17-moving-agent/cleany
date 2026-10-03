@@ -4,6 +4,24 @@ import pytest
 from cleany_navigation.depth_clearance import prepare_depth_points, project_depth_image
 
 
+def test_self_occlusion_discards_hits_behind_rail_without_erasing_visible_obstacles():
+    from cleany_navigation.body_geometry import BodyBox
+    from cleany_navigation.depth_clearance import self_observation_mask
+    rail = BodyBox('rail', np.array([1., 0., 0.]), np.eye(3), np.array([.01, .1, .1]))
+    points = np.array([[1., 0., 0.], [1.06, 0., 0.], [2., .5, 0.], [.8, 0., 0.]])
+    np.testing.assert_array_equal(self_observation_mask(points, np.zeros(3), [rail], .001),
+                                  [False, False, True, True])
+
+
+def test_self_occlusion_uses_rotated_box_and_parallel_ray_bounds():
+    from cleany_navigation.body_geometry import BodyBox
+    from cleany_navigation.depth_clearance import self_observation_mask
+    rotation = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+    box = BodyBox('rail', np.array([0., 1., 0.]), rotation, np.array([.01, .1, .1]))
+    points = np.array([[0., 2., 0.], [.5, 2., 0.], [0., .5, 0.]])
+    np.testing.assert_array_equal(self_observation_mask(points, np.zeros(3), [box], 0.), [False, True, True])
+
+
 def test_optical_depth_projects_to_x_forward_camera_axes():
     depth = np.array([[2., 2., 2.], [2., 2., 2.]])
     actual = project_depth_image(depth, (2, 4, 1, 1), pixel_stride=1)
