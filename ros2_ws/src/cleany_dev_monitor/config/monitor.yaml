@@ -1,0 +1,20 @@
+cleany_dev_monitor:
+  ros__parameters:
+    host: 127.0.0.1
+    port: 8768
+    runtime_namespace: ""
+    manipulation_events_topic: mock/manipulation/execution_events
+    map_frame: map
+    base_frame: base_link
+    map_topic: /map
+    path_topic: /plan
+    local_costmap_topic: /local_costmap/costmap
+    global_costmap_topic: /global_costmap/costmap
+    velocity_topics: [/nav2/cmd_vel, /safety_2d/cmd_vel, /cmd_vel]
+    max_grid_cells: 262144
+    max_selected_topics: 16
+    camera_max_streams: 2
+    camera_fps: 5.0
+    state_directory: ~/.local/state/cleany/dev-monitor
+    session_limit_bytes: 104857600
+    total_limit_bytes: 1073741824

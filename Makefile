@@ -3,6 +3,10 @@ SHELL := /bin/bash
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
+MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
+MISSION_BUILD_BASE ?= build
+MISSION_INSTALL_BASE ?= install
+MISSION_LOG_BASE ?= log
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
 SAFETY_MODE ?= sensors
@@ -25,7 +29,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
 		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
 
-.PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
+.PHONY: test-mission-core build-mission-runtime build-mission-sim test-mission-runtime help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-gazebo-harmonic build-handeye build-telemetry test test-mission test-mujoco \
 	test-handeye test-gazebo test-gazebo-harmonic \
 	test-telemetry test-gazebo-nav-runtime test-gazebo-evaluation \
@@ -47,6 +51,12 @@ help:
 	@echo "  make build-telemetry Build the ROS telemetry package"
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
+	@echo "  make build-dev-monitor / run-dev-monitor  Build or serve the read-only robot monitor"
+	@echo "  make test-dev-monitor  Test bounded recording, HTTP API and ROS observation"
+	@echo "  make test-mission-core  Run ROS-independent FSM, BT and bridge tests"
+	@echo "  make build-mission-runtime  Build interfaces, FSM and Backend bridge"
+	@echo "  make build-mission-sim  Build Gazebo + navigation + runtime + pose relay"
+	@echo "  make test-mission-runtime  Build and test mission ROS packages"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-handeye  Build and test the hand-eye package boundary"
 	@echo "  make test-telemetry Test the ROS telemetry package"
@@ -164,11 +174,35 @@ test: build
 	colcon test-result --verbose && \
 	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py"
 
-test-mission: build
+test-mission-core:
+	PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_control_bridge:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_mission_manager/tests" \
+		"$(ROS2_WS)/src/cleany_control_bridge/test"
+
+build-mission-runtime:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	python3 -m pytest src/cleany_mission_manager/tests/test_mission_flow.py
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-select $(MISSION_PACKAGES)
+
+build-mission-sim:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-up-to cleany_bringup
+
+test-mission-runtime: build-mission-runtime
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" test --build-base "$(MISSION_BUILD_BASE)" \
+		--install-base "$(MISSION_INSTALL_BASE)" --packages-select $(MISSION_PACKAGES) && \
+	colcon test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
+
+test-mission: test-mission-core
 
 test-mujoco: build
 	source "$(ROS_SETUP)" && \
@@ -331,3 +365,27 @@ sim-gazebo-study-cafe:
 
 clean:
 	"$(REPO_ROOT)tools/ros2-clean"
+
+DEV_MONITOR_WEB := $(ROS2_WS)/src/cleany_dev_monitor/web
+.PHONY: build-dev-monitor-web build-dev-monitor-ros build-dev-monitor test-dev-monitor run-dev-monitor
+build-dev-monitor-web:
+	pnpm --dir "$(DEV_MONITOR_WEB)" install --frozen-lockfile
+	pnpm --dir "$(DEV_MONITOR_WEB)" build
+
+build-dev-monitor-ros:
+	@test -f "$(DEV_MONITOR_WEB)/dist/index.html" || (echo "Run make build-dev-monitor-web first" >&2; exit 2)
+	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_dev_monitor
+
+build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
+
+test-dev-monitor:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+
+run-dev-monitor:
+	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
+	ros2 run cleany_dev_monitor dev_monitor --ros-args \
+		--params-file "$(ROS2_WS)/src/cleany_dev_monitor/config/monitor.yaml" $(MONITOR_ROS_ARGS)
