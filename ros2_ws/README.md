@@ -218,3 +218,6 @@ AMCL/Nav2와 pan → Collision Monitor → 3D voxel guard를 실행할 수 있�
 `MISSION_LOG_BASE`로 별도 overlay 경로를 지정할 수 있다. 실행 명령의 절대 install 경로도
 지원한다. 인터페이스, 토픽/QoS, 기록 재생과 브라우저 검사는
 [cleany_dev_monitor README](src/cleany_dev_monitor/README.md)를 따른다.
+
+통합 브랜치의 충돌 처리와 검증 범위는
+[Runtime 통합 검증](../docs/validation/runtime-integration.md)을 따른다.

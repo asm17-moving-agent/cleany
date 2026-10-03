@@ -246,5 +246,6 @@ def test_fortress_gui_renderer_is_machine_selectable() -> None:
     assert "choices=['ogre', 'ogre2']" in launch
     assert "'server_render_engine'" in launch
     gui_command = launch.split("gui = ExecuteProcess(", 1)[1]
-    assert "LaunchConfiguration('server_render_engine')" in gui_command
+    server_command = launch.split("server_command = [", 1)[1].split("gui = ExecuteProcess(", 1)[0]
+    assert "LaunchConfiguration('server_render_engine')" in server_command
     assert "LaunchConfiguration('gui_render_engine')" in gui_command

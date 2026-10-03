@@ -203,7 +203,7 @@ def materialize_facility_world(
                 )
     target.parent.mkdir(parents=True, exist_ok=True)
     ET.indent(root)
-    write_world(root, target)
+    write_world(ET.ElementTree(root), target)
     target.with_suffix(".seats.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )

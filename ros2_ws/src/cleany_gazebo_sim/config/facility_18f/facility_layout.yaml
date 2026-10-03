@@ -128,8 +128,10 @@ room_furniture:
 route_control:
   max_linear_speed: 0.15
   max_angular_speed: 0.25
+  max_linear_acceleration: 0.2
   heading_gain: 0.5
   position_tolerance: 0.09
+  heading_tolerance: 0.08
   turn_in_place_threshold: 0.12
   position_gain: 0.4
 route_xy:
