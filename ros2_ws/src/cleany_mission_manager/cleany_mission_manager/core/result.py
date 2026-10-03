@@ -11,6 +11,7 @@ class ResultStatus(str, Enum):
     BLOCKED = "BLOCKED"
     FAILED = "FAILED"
     FATAL = "FATAL"
+    CANCELLED = "CANCELLED"
 
 
 class FailureCode(str, Enum):

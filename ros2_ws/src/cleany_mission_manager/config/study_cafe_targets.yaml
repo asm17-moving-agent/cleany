@@ -1,0 +1,11 @@
+schema_version: 1
+map_id: study_cafe_26cm
+frame_id: map
+# Simulation approach candidates derived from the study-cafe spawn and row-2 desks.
+# A simulation standby location in the aisle; this is not a calibrated charging dock.
+# Runtime planning from seat-12 to the spawn origin failed; this aisle pose had a valid path.
+# Arm reach is not validated by navigation success.
+home: [3.0, -1.2, 0.0]
+seats:
+  seat-12: [6.3, -1.265, 0.0]
+  seat-13: [6.3, -2.465, 0.0]

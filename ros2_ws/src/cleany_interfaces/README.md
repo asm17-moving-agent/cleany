@@ -14,6 +14,20 @@ trajectory는 현재 RobotState에 종속되므로 result에 포함하지 않는
 
 - [Mobile base](docs/mobile_base.md): `/cmd_vel` 차체 속도 명령
 
+## Mission Runtime 계약
+
+`OfferMission`은 `mission_id`, `mission_type=clean_desk`, `target_kind=SEAT`,
+canonical `target_id`와 `requested_by`를 전달합니다. 응답의 `accepted`, `duplicate`,
+`reason`과 선택적 `report_json`은 수락 여부이며 작업 완료는 아닙니다.
+`CancelMission`도 취소 수락 응답이며 실제 종료는 최종 결과로 확인합니다.
+`GetRuntimeSnapshot`은 현재 상태와 보존된 결과를 `snapshot_json`으로 반환합니다.
+
+`MissionStatus`는 FSM 상태, 외부 phase, BT 단계, 준비 여부 및 진단 sequence를 제공합니다.
+이 sequence는 Backend wire의 미션별 sequence와 구분합니다. `MissionResult`는 outcome,
+실패 코드, 완료·skip 작업, 사람 확인 여부, 관측 참조, 주행·복귀 결과와 전체 `report_json`을
+제공합니다. 내부 Mock 관측 ID는 실제 사진을 의미하지 않습니다.
+공개 이름과 취소·복구 규칙은 [Mission Manager README](../cleany_mission_manager/README.md)를 따릅니다.
+
 ## 객체 메시지
 
 `DetectedObject3D`는 하나의 oriented bounding box를 표현한다.
@@ -80,5 +94,22 @@ ros2 interface show cleany_interfaces/srv/PlanGrasp
 ## 관련 KB
 
 - [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
-- [System Concept](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Concept.md)
+- [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
 - [ROS 2 Software Architecture](../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)
+
+## 단일 물체 Manipulation action
+
+`ExecuteManipulationSkill`은 승인된 물체 하나를 목적지로 옮기는 실행 계약입니다.
+요청은 mission/task/execution ID, skill, snapshot ID, snapshot 범위의 uint32 object ID와
+목적지 ID를 포함합니다. execution ID는 호출자가 발급하고 전송 전에 영속 저장합니다.
+결과는 status/error, 실패·완료 stage, 물체·placement 상태, 선택한 팔,
+정지 확인, 팔 복귀, retryable과 설명을 포함합니다. feedback stage는 완료 증거가 아닙니다.
+
+`ManipulationExecutionRecord`는 동일 요청 및 영속 진행/결과와 revision, timestamp,
+사람 확인 필요 여부를 전달합니다. `GetManipulationExecution`은 execution ID로 이 기록을
+조회합니다. 현재 `found=false`는 서버 저장 오류와도 구분되지 않으므로 실행되지 않았다는
+증거로 사용하지 않습니다. 상세 수락·성공·취소와 주행 gate는
+[Mission Manager 계약](../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따릅니다.
+
+이 세 interface는 팀원 브랜치 `feat/manipulation-action-server`의
+`46efa012cddb4ef0ff3f4dadb785550591bb6073`과 동일합니다. 서버 내부 BT 구조는 이 계약에 포함하지 않습니다.
