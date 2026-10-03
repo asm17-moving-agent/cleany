@@ -17,7 +17,7 @@ import xacro
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
     load_parameters, merge_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice)
-from cleany_navigation.urdf_geometry import forward_kinematics
+from cleany_navigation.urdf_geometry import forward_kinematics, apply_simulation_geometry
 
 
 def nav2_nodes(parameters: str, map_yaml: str, use_sim_time: bool, autostart: bool) -> list:
@@ -57,8 +57,8 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
     if safety:
         for filename in ('safety_params_file', 'pan_params_file', 'voxel_params_file', 'memory_params_file'):
             merge_parameters(parameters, load_parameters(Path(argument(filename))))
-        if flag('axis_motion'):
-            merge_parameters(parameters, load_parameters(Path(argument('axis_params_file'))))
+        motion_file = 'axis_params_file' if flag('axis_motion') else 'omni_params_file'
+        merge_parameters(parameters, load_parameters(Path(argument(motion_file))))
         if not robot_path:
             raise ValueError('robot_params_file is required for navigation safety')
     if robot_path:
@@ -70,6 +70,7 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
             body = load_parameters(Path(guard['profile']))
             description = Path(get_package_share_directory('cleany_description'))/'urdf/cleany.urdf.xacro'
             urdf = ET.fromstring(xacro.process_file(str(description)).toxml())
+            body = apply_simulation_geometry(urdf, body, allowed=sim_time and guard.get('allow_simulation_limits', False))
             forward_kinematics(urdf, body['park_joints'],
                 body.get('simulation_park_limits') if guard.get('allow_simulation_limits', False) else None)
         merge_parameters(parameters, robot)
@@ -102,8 +103,8 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
             raise ValueError('Simulation-only overrides cannot be used with real sensor time')
         parameters['bt_navigator']['ros__parameters']['default_nav_to_pose_bt_xml'] = str(share/'config/behavior_trees/wait_before_detour.xml')
         planner = parameters['planner_server']['ros__parameters']['GridBased']
-        if flag('axis_motion') and not planner.get('lattice_filepath'):
-            lateral = parameters['controller_server']['ros__parameters']['FollowPath'].get('axis_allow_lateral', False)
+        if planner.get('plugin') == 'cleany_navigation::StraightFirstPlanner' and not planner.get('lattice_filepath'):
+            lateral = not flag('axis_motion') or parameters['controller_server']['ros__parameters']['FollowPath'].get('axis_allow_lateral', False)
             model = 'omni' if lateral else 'diff'
             lattice = Path(get_package_share_directory('nav2_smac_planner'))/f'sample_primitives/5cm_resolution/0.5m_turning_radius/{model}/output.json'
             if not lattice.is_file():
@@ -154,9 +155,9 @@ def navigation_launch_description(*, safety: bool = True) -> LaunchDescription:
     if safety:
         for name, filename in [('safety_params_file', 'nav2_safety.yaml'), ('axis_params_file', 'nav2_axis_motion.yaml'),
             ('pan_params_file', 'pan_motion_gate.yaml'), ('voxel_params_file', 'voxel_guard.yaml'),
-            ('memory_params_file', 'obstacle_memory.yaml')]:
+            ('memory_params_file', 'obstacle_memory.yaml'), ('omni_params_file', 'nav2_omni_motion.yaml')]:
             arguments.append(DeclareLaunchArgument(name, default_value=str(share/'config'/filename)))
         for name in ('axis_motion', 'pan_enabled', 'memory_enabled', 'voxel_enabled'):
-            arguments.append(DeclareLaunchArgument(name, default_value='true'))
+            arguments.append(DeclareLaunchArgument(name, default_value='false' if name == 'axis_motion' else 'true'))
         arguments.append(DeclareLaunchArgument('output_directory', default_value=''))
     return LaunchDescription([*arguments, OpaqueFunction(function=lambda context: _launch(context, safety=safety))])

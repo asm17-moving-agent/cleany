@@ -49,7 +49,9 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path, b
         assert float(contact.findtext('geometry/cylinder/radius')) == pytest.approx(.0635)
     assert model.find("joint[@name='head_pan_joint']").get('type') == 'revolute'
     assert model.find("link[@name='head_pan_link']/sensor[@name='head_realsense_depth']") is not None
-    assert len(model.findall('.//sensor')) == 6
+    assert len(model.findall('.//sensor')) == 4
+    assert not any('Upper_Arm_5cm_Sockets.stl' in uri.text for uri in model.findall('.//mesh/uri'))
+    assert not any('wrist' in n.get('name', '') for n in model.findall('frame'))
     names = {n.get('name') for n in model if n.tag in ('link', 'frame', 'joint')}
     for sensor in model.findall('.//sensor'):
         assert sensor.find('pose').get('relative_to') in names

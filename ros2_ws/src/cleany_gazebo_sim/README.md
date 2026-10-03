@@ -962,3 +962,12 @@ on either side (10 cm farther under each desk than the previous layout).
 Both visual and collision geometry move together. Previously saved SLAM maps
 retain the old furniture positions and must be refreshed before navigation
 validation against this layout.
+
+
+자율주행 우선 검증을 위해 CAD Gazebo profile(`config/cad_frame.yaml`)은
+`simulation_excluded_link_roots`로 양쪽 팔 subtree를 제외한다. 시각·물리
+형상과 손목 카메라를 함께 제거하며, 같은 profile을 voxel guard 및 depth
+자기 몸체 필터에 전달한다. 생성된 model metadata의 bounds로 주행 footprint와
+Stop/Slow polygon을 갱신해야 한다. 실제 URDF와 하드웨어의 팔은 유지된다.
+기본 Nav2는 `axis_motion:=false`의 자유로운 omni 이동과 이동 방향 camera pan을
+사용한다. 이 결과는 팔 없는 Gazebo 자율주행 검증에 한정한다.

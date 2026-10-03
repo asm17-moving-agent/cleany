@@ -183,6 +183,8 @@ def validate_robot_parameters(robot: dict, directory: Path, *, use_sim_time: boo
     if not all(isinstance(value, (int, float)) and math.isfinite(value)
                for value in body['park_joints'].values()):
         raise ValueError('Body park_joints must contain finite joint angles')
+    if not use_sim_time and body.get('simulation_excluded_link_roots'):
+        raise ValueError('Simulation link exclusions are forbidden for real-time navigation')
     if not use_sim_time and body.get('simulation_park_limits'):
         raise ValueError('Simulation joint limit overrides are forbidden for real-time navigation')
     guard['profile'] = str(profile.resolve())

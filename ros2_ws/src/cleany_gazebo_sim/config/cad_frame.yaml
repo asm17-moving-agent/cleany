@@ -34,3 +34,6 @@ park_joints:
 # Simulation: measured pan joint drives camera TF and pre-motion interlock.
 dynamic_pan: true
 pan_speed_rad_s: 1.0
+
+# Navigation-only simulation: omit both arms, including grippers and wrist sensors.
+simulation_excluded_link_roots: [left_shoulder_yaw_link, right_shoulder_yaw_link]

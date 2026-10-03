@@ -39,9 +39,9 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
     """
     import xacro
     import yaml
-    from cleany_navigation.urdf_geometry import forward_kinematics, origin
+    from cleany_navigation.urdf_geometry import forward_kinematics, origin, apply_simulation_geometry
     urdf = ET.fromstring(xacro.process_file(str(description/'urdf/cleany.urdf.xacro')).toxml())
-    config = yaml.safe_load(profile.read_text())
+    config = apply_simulation_geometry(urdf, yaml.safe_load(profile.read_text()), allowed=allow_simulation_limits)
     transforms = forward_kinematics(urdf, config['park_joints'], config.get('simulation_park_limits') if allow_simulation_limits else None)
     result = []
     frame_names: set[str] = set()

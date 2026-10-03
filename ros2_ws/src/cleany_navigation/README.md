@@ -17,7 +17,7 @@ ros2 launch cleany_navigation navigation.launch.py \
 ```
 
 `map`과 `robot_params_file`은 필수다. 기본은 `use_sim_time:=false`,
-`autostart:=true`, `axis_motion:=true`, pan/memory/voxel 모두 활성화다.
+`autostart:=true`, `axis_motion:=false`, pan/memory/voxel 모두 활성화다.
 `config/robot_params.template.yaml`, `config/body_profile.template.yaml`을 외부
 로봇 설정 디렉터리로 복사해 null 항목을 채운다. Footprint, STOP/SLOW polygon,
 바닥/높이, park posture와 최대 속도·반응시간·제동 감속도를 명시해야 한다.
@@ -29,7 +29,7 @@ backend에 맞게 조정한다. 제공된 숫자 설정은 제어 튜닝값이�
 AMCL은 임의의 초기 위치를 주입하지 않는다. 활성화 후 RViz의 2D Pose Estimate
 또는 `/initialpose`로 초기 자세를 제공한다. 저장된 지도에서
 `/navigate_to_pose` (`nav2_msgs/action/NavigateToPose`) 목표를 받는다.
-Single-axis DWB/Omni lattice, 경로 대기 BT와 YieldWait는 기존 동작을 공유한다.
+Omni DWB/lattice와 경로 대기 BT 및 YieldWait를 사용한다.
 Humble/Jazzy별 plugin ID, progress checker, BT 포트와 Collision Monitor point
 threshold 차이는 launch에서 변환한다. STOP/SLOW의 3-point 경계는 두 환경에서 같다.
 
@@ -96,6 +96,7 @@ voxel을 사용하려면 memory가 필요하다. 비활성화한 단계에 따�
 
 ## C++ navigation plugins
 
+아래 축 제한 설명은 `axis_motion:=true` 호환 모드에만 적용된다.
 DWB `trajectory_generator_name: cleany_axis_controller::AxisGenerator`로 사용한다.
 플러그인 기본값은 전후 X 또는 제자리 회전 속도만 가진 후보와 정지 후보를
 컨트롤러 안에서 생성한다. 출력 이후 임의로 축을 자르지 않는다.
@@ -120,14 +121,14 @@ DWB의 footprint 비용 평가와 가속·감속 rollout을 사용하며,
 단일 축일 것을 보장하지 않으며 실제 하드웨어 안전 인증은 아니다.
 
 Gazebo 없이 `make build-navigation`, `make test-navigation`으로 빌드·검증한다.
-`cleany_navigation/config/nav2_axis_motion.yaml`이 공통 설정을 소유한다.
+`axis_motion:=true` 호환 모드에서는 `cleany_navigation/config/nav2_axis_motion.yaml`을 사용한다.
 공통 설정은 `axis_translation_angle_deg: 10.0`, Y 범위 ±0.0265m/s,
 `axis_allow_lateral: false`로 전후 방향에서 ±10° 대각선 보정을 허용한다.
 정지, 제자리 회전, 전후 병진(0°, ±5°, ±10°)을 후보로 평가한다.
 순수 횡이동과 병진 중 회전은 허용하지 않는다. 합성 속도와 Y 한계를 함께 검사한다.
 `axis_translation_angle_deg: 0.0`이면 기존 전후진 전용 동작으로 복귀한다.
-PathHeading은 보정 각도만큼 정렬 허용대를 확장하고 병진 후보의 실제 이동 방향을
-평가한다. launch는 같은 제한을 pan gate에 전달한다. 작은 대각선 보정 중 카메라는
+`respect_path_orientation: true`에서는 lattice의 몸체 방향 허용대를 유지하며, 병진 후보의 실제 이동 방향을
+별도로 평가한다. launch는 같은 제한을 pan gate에 전달한다. 작은 대각선 보정 중 카메라는
 전방/후방을 유지하며, 후진 전환의 정지·settle·fresh depth 조건은 동일하다.
 측정된 대각선 병진은 하나의 병진 동작으로 취급하고 회전 전환은 기존 정착 대기를 유지한다.
 이는 simulation 설정이며 실제 카메라 가림과 횡방향 slip/제동 검증은 별도로 필요하다.
@@ -234,3 +235,21 @@ through translation and rotation between poses at at most half a costmap cell
 of swept distance, including obstacles inside the footprint. Invalid sweeps
 are rejected. This search margin is separate from costmap/voxel resolution.
 `GridBased.cost_penalty` is 5.0 to prefer room around obstacles.
+
+
+기본 주행은 `axis_motion:=false`와 `config/nav2_omni_motion.yaml`을 사용한다.
+DWB의 `StandardTrajectoryGenerator`가 전후·횡·대각선 이동과 회전을 동시에
+평가하며 ±10° 제한과 사용자 정의 `PathHeadingCritic`을 적용하지 않는다.
+최대 병진 속도는 0.15 m/s이며 planner는 전체 omni lattice를 사용한다.
+`axis_motion:=true`는 기존 제한 모드를 재현할 때만 선택한다.
+
+카메라 게이트의 `allow_mixed_motion: true`는 `atan2(vy, vx)` 방향으로 pan을
+추적한다. 카메라가 이동 방향과 맞지 않으면 속도 명령을 차단하고,
+정렬·안정화 후 새 depth가 도착해야 이동한다. 이미 관측한 방향에서의
+작은 방향 보정은 매번 정지·안정화를 다시 요구하지 않는다. 회전만 할 때는
+pan 방향을 유지한다. 명령 timeout과 2D·3D 충돌 검사는 그대로 적용된다.
+
+Gazebo 주행 전용 profile의 `simulation_excluded_link_roots`는 양쪽 어깨부터
+팔·gripper·손목 카메라 subtree를 제외한다. 동일 profile을 모델 변환, 몸체
+충돌 형상 및 depth 자기 몸체 필터에 사용해야 한다. 실시간 로봇 설정에서는
+이 옵션을 거부한다. 팔 없는 시뮬레이션 결과는 실제 팔 장착 로봇의 검증이 아니다.

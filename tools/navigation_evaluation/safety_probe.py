@@ -245,8 +245,11 @@ class SafetyProbe(Node):
         controller_names = ['FollowPath.plugin']
         if controller_plugin == 'dwb_core::DWBLocalPlanner':
             controller_names += ['FollowPath.'+name for name in (
-                'trajectory_generator_name', 'max_vel_x', 'max_vel_y', 'max_vel_theta',
-                'axis_linear_stopped', 'axis_angular_stopped', 'axis_settle_s')]
+                'trajectory_generator_name', 'max_vel_x', 'max_vel_y', 'max_vel_theta')]
+            generator = self.parameters('/controller_server', ['FollowPath.trajectory_generator_name'])['FollowPath.trajectory_generator_name']
+            if generator == 'cleany_axis_controller::AxisGenerator':
+                controller_names += ['FollowPath.'+name for name in (
+                    'axis_linear_stopped', 'axis_angular_stopped', 'axis_settle_s')]
         else:
             controller_names += ['FollowPath.'+name for name in (
                 'time_steps', 'model_dt', 'vx_max', 'PathAlignCritic.cost_weight',

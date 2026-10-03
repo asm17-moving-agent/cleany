@@ -27,6 +27,36 @@ def origin(element: ET.Element | None) -> np.ndarray:
     return result
 
 
+def apply_simulation_geometry(urdf: ET.Element, profile: dict, *, allowed: bool) -> dict:
+    """Remove explicitly selected simulation subtrees and their park entries."""
+    result = deepcopy(profile)
+    roots = result.get('simulation_excluded_link_roots', [])
+    if not roots:
+        return result
+    if not allowed:
+        raise ValueError('Simulation link exclusions are forbidden for physical robots')
+    names = {link.get('name') for link in urdf.findall('link')}
+    if not isinstance(roots, list) or not all(isinstance(r, str) for r in roots) or not set(roots) <= names or 'base_link' in roots:
+        raise ValueError('Invalid simulation excluded link roots')
+    removed = set(roots)
+    joints = urdf.findall('joint')
+    while True:
+        descendants = {j.find('child').get('link') for j in joints
+                       if j.find('parent').get('link') in removed}
+        if descendants <= removed:
+            break
+        removed.update(descendants)
+    for link in urdf.findall('link'):
+        if link.get('name') in removed:
+            urdf.remove(link)
+    for joint in joints:
+        if joint.find('child').get('link') in removed:
+            urdf.remove(joint)
+            for key in ('park_joints', 'simulation_park_limits'):
+                result.get(key, {}).pop(joint.get('name'), None)
+    return result
+
+
 def freeze(urdf: ET.Element, joints: dict[str, float],
            simulation_limits: dict[str, list[float]] | None = None,
            keep_pan: bool = False) -> dict[str, np.ndarray]:

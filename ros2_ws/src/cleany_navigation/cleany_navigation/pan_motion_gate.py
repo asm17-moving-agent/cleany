@@ -13,6 +13,7 @@ class PanGate:
     pan_stopped: float = .05
     allow_reverse: bool = True
     allow_lateral: bool = False
+    allow_mixed_motion: bool = False
     translation_angle_deg: float = 0.
     target: float = 0.
     aligned_since: float | None = None
@@ -41,15 +42,34 @@ class PanGate:
         x, y, w = command
         diagonal = (self.translation_angle_deg > 0 and abs(x) > 1e-6 and abs(w) <= 1e-6
                     and abs(y) <= abs(x)*math.tan(math.radians(self.translation_angle_deg))+1e-12)
-        if sum(abs(v) > 1e-6 for v in command) > 1 and not diagonal:
+        if sum(abs(v) > 1e-6 for v in command) > 1 and not diagonal and not self.allow_mixed_motion:
             return self.target, zero, 'MIXED_AXIS'
         if abs(y) > 1e-6 and not self.allow_lateral and not diagonal:
             return self.target, zero, 'LATERAL_NOT_ENABLED'
         if x < -1e-6 and not self.allow_reverse:
             return self.target, zero, 'REVERSE_NOT_ENABLED'
-        desired = (math.copysign(math.pi/2, y) if abs(y) > 1e-6 and not diagonal else
+        desired = (math.atan2(y, x) if self.allow_mixed_motion and math.hypot(x, y) > 1e-6 else
+                   math.copysign(math.pi/2, y) if abs(y) > 1e-6 and not diagonal else
                    math.pi if x < -1e-6 else 0. if x > 1e-6 else self.target)
         stopped = math.hypot(*measured[:2]) <= self.linear_stopped and abs(measured[2]) <= self.angular_stopped
+        if self.allow_mixed_motion:
+            # Track a continuous body-frame travel bearing. Tiny DWB corrections
+            # must not restart settling or require a complete chassis stop.
+            self.target = desired
+            error = math.atan2(math.sin(pan-self.target), math.cos(pan-self.target))
+            if abs(error) > self.angle_tolerance:
+                self.aligned_since = None
+                return self.target, zero, 'TURNING_PAN'
+            if self.aligned_since is None:
+                if not stopped or abs(pan_speed) > self.pan_stopped:
+                    return self.target, zero, 'WAIT_FOR_STOP'
+                self.aligned_since = now
+            if now-self.aligned_since < self.settle_s:
+                return self.target, zero, 'SETTLING'
+            if not (self.aligned_since+self.settle_s <= depth_stamp <= now
+                    and now-depth_stamp <= self.source_timeout_s):
+                return self.target, zero, 'WAIT_FRESH_DEPTH'
+            return self.target, command, 'PASS'
         if desired != self.target:
             self.aligned_since = None
             if not stopped:

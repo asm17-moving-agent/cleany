@@ -132,6 +132,10 @@ def test_simulation_depth_and_joint_overrides_cannot_enter_real_profile(tmp_path
                                   'simulation_park_limits': {'head_pan_joint': [-4, 4]}}))
     with pytest.raises(ValueError, match='joint limit'):
         validate_robot_parameters(robot, tmp_path, use_sim_time=False)
+    body.write_text(yaml.safe_dump({'park_joints': {'head_pan_joint': 0.},
+                                  'simulation_excluded_link_roots': ['left_shoulder_yaw_link']}))
+    with pytest.raises(ValueError, match='link exclusions'):
+        validate_robot_parameters(robot, tmp_path, use_sim_time=False)
 
 
 def test_shared_fk_preserves_input_and_enforces_real_joint_limits():
@@ -165,3 +169,18 @@ def test_longitudinal_lattice_removes_curves_and_requires_each_heading():
     source['primitives'] = source['primitives'][:3]
     with pytest.raises(ValueError, match='heading 1'):
         longitudinal_lattice(source)
+
+
+def test_simulation_geometry_removes_descendants_and_rejects_physical_use():
+    from cleany_navigation.urdf_geometry import apply_simulation_geometry
+    from xml.etree import ElementTree as ET
+    source = '<robot><link name="base_link"/><link name="arm"/><link name="wrist"/><link name="head"/><joint name="shoulder"><parent link="base_link"/><child link="arm"/></joint><joint name="wrist_joint"><parent link="arm"/><child link="wrist"/></joint><joint name="head_joint"><parent link="base_link"/><child link="head"/></joint></robot>'
+    profile = dict(simulation_excluded_link_roots=['arm'], park_joints=dict(shoulder=0., wrist_joint=0., head_joint=0.), simulation_park_limits=dict(wrist_joint=[-2, 2]))
+    with pytest.raises(ValueError, match='physical robots'):
+        apply_simulation_geometry(ET.fromstring(source), profile, allowed=False)
+    urdf = ET.fromstring(source)
+    filtered = apply_simulation_geometry(urdf, profile, allowed=True)
+    assert {l.get('name') for l in urdf.findall('link')} == {'base_link', 'head'}
+    assert filtered['park_joints'] == {'head_joint': 0.}
+    assert filtered['simulation_park_limits'] == {}
+    assert 'shoulder' in profile['park_joints']
