@@ -96,3 +96,34 @@ ros2 interface show cleany_interfaces/srv/PlanGrasp
 - [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
 - [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
 - [ROS 2 Software Architecture](../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)
+
+## 단일 물체 Manipulation action
+
+`ExecuteManipulationSkill`은 승인된 물체 하나를 목적지로 옮기는 실행 계약입니다.
+요청은 mission/task/execution ID, skill, snapshot ID, snapshot 범위의 uint32 object ID와
+목적지 ID를 포함합니다. execution ID는 호출자가 발급하고 전송 전에 영속 저장합니다.
+결과는 status/error, 실패·완료 stage, 물체·placement 상태, 선택한 팔,
+정지 확인, 팔 복귀, retryable과 설명을 포함합니다. feedback stage는 완료 증거가 아닙니다.
+
+`ManipulationExecutionRecord`는 동일 요청 및 영속 진행/결과와 revision, timestamp,
+사람 확인 필요 여부를 전달합니다. `GetManipulationExecution`은 execution ID로 이 기록을
+조회합니다. 현재 `found=false`는 서버 저장 오류와도 구분되지 않으므로 실행되지 않았다는
+증거로 사용하지 않습니다. 상세 수락·성공·취소와 주행 gate는
+[Mission Manager 계약](../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따릅니다.
+
+이 세 interface는 팀원 브랜치 `feat/manipulation-action-server`의
+`46efa012cddb4ef0ff3f4dadb785550591bb6073`과 동일합니다. 서버 내부 BT 구조는 이 계약에 포함하지 않습니다.
+
+### 개발 관측 인터페이스
+
+`RuntimeDebugSnapshot` (`mission/debug_snapshot`, reliable/transient-local depth 1)은
+header, boot ID, 마지막 event sequence, mission ID, FSM state, ready/reason,
+`DebugBTNode[]`, schema version 1의 `snapshot_json`을 전달한다. JSON에는 FSM 정의,
+모듈별 ready/stopped/reason, 실행 profile, 현재 proposal, 조작 결과, navigation 진단이
+포함된다. `DebugBTNode`는 id/parent/kind/status/visited/operation_id로 구성된다.
+
+`RuntimeEvent` (`mission/runtime_events`, reliable/transient-local depth 2048)은
+header, boot ID, 연속 sequence, mission/task/execution ID, kind, `data_json`을 전달한다.
+kind는 transition, bt_tick, action_start, action_result, action_cancel_requested,
+cancel_requested, mission_result다. 관측 데이터이며 명령 인터페이스가 아니다.
+기존 `MissionStatus`, `MissionResult`, 미션 service 계약은 변경하지 않는다.

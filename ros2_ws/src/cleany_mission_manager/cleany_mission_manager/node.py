@@ -1,25 +1,30 @@
 """ROS shell for the FSM: short services and a steady-clock nonblocking tick."""
 
 import json
+from dataclasses import asdict
 import time
 from math import isfinite
 
 import rclpy
 from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
+from rclpy.time import Time
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
 
-from cleany_interfaces.msg import MissionResult, MissionStatus
+from cleany_interfaces.msg import (MissionResult, MissionStatus, DebugBTNode,
+                                    RuntimeDebugSnapshot, RuntimeEvent)
 from cleany_interfaces.srv import CancelMission, GetRuntimeSnapshot, OfferMission
 from cleany_mission_manager.adapters.config import load_targets
 from cleany_mission_manager.adapters.nav2 import Nav2Navigator
+from cleany_mission_manager.adapters.manipulation import ROSManipulationTransport
+from cleany_mission_manager.core.manipulation import ManipulationPort, validate_backend
 from cleany_mission_manager.core.journal import MissionJournal
 from cleany_mission_manager.core.operations import DeferredPort
 from cleany_mission_manager.core.result import FailureCode, ModuleResult
 from cleany_mission_manager.core.runtime import MissionRuntime
-from cleany_mission_manager.core.runtime_models import RuntimePolicy, RuntimeRequest
+from cleany_mission_manager.core.runtime_models import RuntimePolicy, RuntimeRequest, SceneObject
 from cleany_mission_manager.mocks.desk import MockDesk
 
 
@@ -36,13 +41,35 @@ class MissionRuntimeNode(Node):
             "stopped_linear_speed": 0.03, "stopped_angular_speed": 0.05,
             "navigation_settle_timeout": 3.0,
             "lifecycle_timeout": 3.0,
+            "manipulation_backend": "mock", "manipulation_action": "mock/manipulation/execute_skill",
+            "manipulation_query": "mock/manipulation/get_execution",
+            "manipulation_initial_mock_safe": False,
+            "manipulation_destination": "mock_trash_bin",
+            "manipulation_mock_snapshot_ids": ["mock-snapshot-001", "mock-snapshot-002",
+                                               "mock-snapshot-003", "mock-snapshot-004"],
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
         self.targets = load_targets(value("targets_file"))
         self.journal = MissionJournal(value("journal_path"))
-        self.desk = MockDesk(time.monotonic, polls=value("mock_operation_polls"))
+        manipulation_backend = value("manipulation_backend")
+        validate_backend(manipulation_backend, self.journal)
+        snapshots = tuple(value("manipulation_mock_snapshot_ids")) if manipulation_backend == "action_mock" else ()
+        if manipulation_backend == "action_mock" and (len(snapshots) < 4 or len(set(snapshots)) != len(snapshots)):
+            raise ValueError("action_mock requires at least four distinct registered snapshot IDs")
+        self.desk = MockDesk(
+            time.monotonic, polls=value("mock_operation_polls"),
+            destination_id=value("manipulation_destination"), snapshot_ids=snapshots,
+            objects=(SceneObject("trash-1", wire_object_id=1), SceneObject("trash-2", wire_object_id=2))
+                    if manipulation_backend == "action_mock" else None,
+        )
+        self.manipulation = (ManipulationPort(
+            ROSManipulationTransport(self, value("manipulation_action"), value("manipulation_query")),
+            self.journal, time.monotonic,
+            initial_mock_safe=value("manipulation_initial_mock_safe"),
+            on_success=self.desk.manipulation_succeeded,
+        ) if manipulation_backend == "action_mock" else self.desk.executor)
         backend = value("navigation_backend")
         if backend not in ("nav2", "mock"):
             raise ValueError("navigation_backend must be nav2 or mock")
@@ -50,10 +77,11 @@ class MissionRuntimeNode(Node):
                           else DeferredPort(lambda _: ModuleResult.success(), polls=10))
         self.runtime = MissionRuntime(
             navigator=self.navigator, perception=self.desk.perception, planner=self.desk.planner,
-            executor=self.desk.executor, clock=time.monotonic,
+            executor=self.manipulation, clock=time.monotonic,
             supported_targets=set(self.targets.seats), journal=self.journal,
             on_accept=self.desk.begin, navigation_mode="sim" if backend == "nav2" else "mock",
-            policy=RuntimePolicy(**{name: value(name) for name in (
+            policy=RuntimePolicy(manipulation_destinations=(value("manipulation_destination"),),
+                                 **{name: value(name) for name in (
                 "post_mission", "navigation_timeout", "cleaning_timeout", "operation_timeout",
                 "cancel_timeout", "max_actions", "max_skill_retries",
             )}),
@@ -68,6 +96,11 @@ class MissionRuntimeNode(Node):
         # Notification only: the backend producing this signal owns physical stop first.
         self.create_subscription(String, "robot/safety_fault", self._fault, 10)
         self.create_subscription(String, "robot/safety_released", self._released, 10)
+        self.debug_pub = self.create_publisher(RuntimeDebugSnapshot, "mission/debug_snapshot", qos)
+        self.event_pub = self.create_publisher(RuntimeEvent, "mission/runtime_events",
+            QoSProfile(depth=2048, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+        self.last_debug_at = 0.0
+        self.last_debug_event = 0
         self.last_sequence = -1
         self.last_result = ""
         tick_hz = float(value("tick_hz"))
@@ -117,6 +150,11 @@ class MissionRuntimeNode(Node):
         if isinstance(self.navigator, Nav2Navigator):
             self.navigator.maintain()
         self.runtime.tick()
+        try:
+            self._publish_debug()
+        except Exception as exc:
+            # Diagnostic serialization must never prevent status/result publication.
+            self.get_logger().warning(f"Debug publication failed: {exc}", throttle_duration_sec=10)
         snapshot = self.runtime.snapshot()
         if snapshot["sequence"] != self.last_sequence:
             request = snapshot["active_request"]
@@ -140,6 +178,55 @@ class MissionRuntimeNode(Node):
                 cleaning_mode=report.cleaning_mode, report_json=json.dumps(report.to_dict()),
             ))
             self.last_result = report.request.mission_id
+
+    def _publish_debug(self):
+        stamp = self.get_clock().now().to_msg()
+        for event in self.runtime.debug_events:
+            if event["sequence"] <= self.last_debug_event:
+                continue
+            message = RuntimeEvent(boot_id=event["boot_id"], sequence=event["sequence"],
+                mission_id=event["mission_id"], task_id=event["task_id"],
+                execution_id=event["execution_id"], kind=event["kind"],
+                data_json=json.dumps(event["data"]))
+            message.header.stamp = stamp
+            self.event_pub.publish(message)
+            self.last_debug_event = event["sequence"]
+        if time.monotonic() - self.last_debug_at < 0.5:
+            return
+        self.last_debug_at = time.monotonic()
+        data = self.runtime.debug_snapshot()
+        data["modules"]["navigation"].update({
+            "topics": ["/" + self.get_parameter("odom_topic").value.lstrip("/"), "/tf", "/cmd_vel"],
+            "actions": ["navigate_to_pose"] if isinstance(self.navigator, Nav2Navigator) else [],
+        })
+        data["modules"]["execution"].update({
+            "topics": [], "actions": [self.get_parameter("manipulation_action").value]
+                if self.get_parameter("manipulation_backend").value == "action_mock" else [],
+        })
+        target = data["navigation"]["target"]
+        pose = self.targets.home if target == "home" else self.targets.seats.get(target)
+        data["navigation"].update({"goal_pose": asdict(pose) if pose else None,
+                                   "frame": self.targets.frame_id})
+        nav = self.navigator
+        if isinstance(nav, Nav2Navigator):
+            now = time.monotonic()
+            data["navigation"].update({"lifecycle": nav.active_nodes,
+                "odom_age": now - nav.odom_received,
+                "lifecycle_age": {key: now - stamp for key, stamp in nav.state_received.items()}})
+            try:
+                tf = nav.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
+                data["navigation"]["tf_age"] = (self.get_clock().now().nanoseconds / 1e9
+                    - tf.header.stamp.sec - tf.header.stamp.nanosec / 1e9)
+            except Exception as exc:
+                data["navigation"]["tf_error"] = str(exc)
+        message = RuntimeDebugSnapshot(boot_id=data["boot_id"],
+            event_sequence=data["event_sequence"], state=data["state"], ready=data["ready"],
+            reason=data["reason"], schema_version=1,
+            mission_id=data["active_request"]["mission_id"] if data["active_request"] else "",
+            bt_nodes=[DebugBTNode(**node) for node in data["bt_nodes"]],
+            snapshot_json=json.dumps(data))
+        message.header.stamp = stamp
+        self.debug_pub.publish(message)
 
     def destroy_node(self):
         if self.runtime.request:

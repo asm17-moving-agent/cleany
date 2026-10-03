@@ -136,3 +136,62 @@ ERROR 기대 시험은 `--expected-robot-state ERROR`를 지정한다.
 실환경 Perception/Planner/Executor adapter, 검증된 좌석 접근·home pose 및 home 주행 안정화는
 후속 작업이다. 현재 코드로 물리 청소나 실제 charging dock 복귀 완료를 주장하지 않는다.
 활성 미션 중 Backend 재시작에 대한 실제 Gazebo 재연결 시험도 아직 확인하지 않았다.
+
+## 2026-10-02 단일 물체 Manipulation 계약 연결
+
+기존 `2fc4b43` 이후 변경으로, 원격 `feat/manipulation-action-server`의
+`46efa012cddb4ef0ff3f4dadb785550591bb6073`에서 action/message/service 세 interface를
+동일하게 가져왔다. 서버 내부 BT와 나머지 원격 브랜치는 병합하지 않았다.
+우리 청소 BT가 관찰 → 제안 검증 → 물체 하나의 요청 → 새 관찰을 소유하고,
+팀원 Executor는 해당 물체의 접근·집기·운반·투입 및 결과를 소유한다.
+
+- 요청: snapshot에 연결된 numeric object ID, destination, mission/task/execution ID.
+  destination allowlist와 관측의 numeric ID를 검증하고 UUID 및 전체 요청을 전송 전에 저장한다.
+- 성공: ROS terminal status와 payload를 구분하고, placement 확인·팔 복귀·정지 증거를 확인한다.
+  `report_json.actions`에 요청 식별자와 전체 물리 상태 결과를 보존한다.
+- 취소: 실제 action 결과를 기다린다. 정지 확인과 주행 가능 조건을 분리하여
+  HELD/UNKNOWN, 미복귀 팔, 사람 확인 필요 상태는 home·다음 미션·오류 reset을 차단한다.
+- 불확실한 전송·재시작: 동일 UUID 취소 및 조회만 수행한다. `found=false`를 미실행 증거로
+  취급하지 않고 새 execution ID로 자동 재전송하지 않는다.
+
+### 확인한 결과
+
+Humble container에서 별도 `/tmp/cleany-420-manipulation` build/install을 사용했다.
+팀원 서버는 위 SHA의 read-only snapshot을 별도 overlay로 빌드했고 코드를 수정하지 않았다.
+DDS domain 185에서 실제 ROS action/service 통신으로 아래를 확인했다.
+
+| 검사 | 결과 |
+|---|---|
+| 두 물체 요청 → 각각 placement 확인 → mock home | SUCCESS, 두 서로 다른 execution ID와 결과 보존 |
+| TRANSPORTING 중 취소 | CANCELLED, HELD 및 stop_confirmed 보존, ERROR·사람 확인 필요, home·reset·다음 미션 차단 |
+| 서버 ROS SUCCEEDED + BLOCKED payload | BLOCKED 보존, 완료 물체 없음, 팔 복귀 미확인으로 ERROR 유지 |
+| 전체 Mission/Bridge pytest 및 opt-in ROS 검사 | **65 passed** (기존 Nav2 ROS 검사 3개와 신규 조작 ROS 검사 3개 포함) |
+| 관련 3 ROS package build 및 colcon test | build 성공; **71 tests, 0 errors, 0 failures, 6 skipped** |
+
+첫 BLOCKED 시험에서는 `BACKEND_NOT_READY`로 `stop_confirmed=false`까지 반환하도록 설정했다.
+Runtime은 이 payload를 actions에 BLOCKED로 보존했고, 정지 확인 15초 초과 후 전체 미션을
+FAILED/TIMEOUT 및 ERROR로 종료했다. 이는 기대한 안전 동작이며, payload BLOCKED만으로
+전체 미션이 BLOCKED 종료될 것이라는 시험의 기대값이 잘못되었다. 최종 BLOCKED 시험은
+정지를 확인하지만 팔 복귀는 확인하지 않는 `VERIFICATION_UNAVAILABLE`로 구성했다.
+
+영속 증거는 다음 디렉터리에 저장했다.
+
+`/home/ehdrms/.local/state/cleany/scrum-420/20261002-manipulation/`
+
+`tests.log`, `build-colcon.log`, success/cancel/blocked 각각의 `*-report.json`,
+`*-missions.db`, `*-executions.db`를 보존했다. DB는 SQLite backup API로 복사하고
+`integrity_check=ok`를 확인했다. `implementation-sha256.json`은 변경 파일의 내용 hash를 기록한다.
+
+### 적용 범위와 남은 경계
+
+기본 로컬 mock 경로를 유지하고, `action_mock` 설정에서 외부 팀원 mock server에 연결한다.
+실제 Perception·Planner·팔 backend를 연결한 검증은 아니다. 신규 시험의 주행은 mock이며
+기존 Gazebo 주행 증거와 구분한다. Gazebo home 또는 실제 청소가 성공했다는 증거를 추가하지 않는다.
+
+최초 팔 안전 상태는 새 mock DB에서만 명시 설정으로 가정한다. 저장된 위험/진행 상태를
+이 설정으로 덮어쓰지 않는다. 실제 팔 도입에는 최신 readiness 및 수동 복구 완료 계약이
+필요하다. 현재 peer service의 저장 오류/기록 없음 구분도 추가 확장 대상이며, 지금 adapter는
+두 경우 모두 보수적으로 주행을 차단한다. KB는 수정하지 않았다.
+
+설정 및 팀원 서버 실행 절차는
+[Mission Manager README](../../ros2_ws/src/cleany_mission_manager/README.md#단일-물체-manipulation-연결)를 따른다.

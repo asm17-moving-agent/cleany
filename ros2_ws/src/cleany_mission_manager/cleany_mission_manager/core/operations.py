@@ -14,6 +14,13 @@ class OperationPort(Protocol):
     def stopped(self) -> bool: ...
 
 
+class ExecutorPort(OperationPort, Protocol):
+    """Physical stop and permission to move the base are different facts."""
+
+    def safe_to_drive(self) -> tuple[bool, str]: ...
+    def maintain(self) -> None: ...
+
+
 class DeferredPort:
     """Deterministic asynchronous adapter for tests and explicitly mock desk work."""
 
@@ -53,3 +60,9 @@ class DeferredPort:
 
     def stopped(self) -> bool:
         return not self.pending
+
+    def safe_to_drive(self) -> tuple[bool, str]:
+        return self.stopped(), "" if self.stopped() else "OPERATION_RUNNING"
+
+    def maintain(self) -> None:
+        pass

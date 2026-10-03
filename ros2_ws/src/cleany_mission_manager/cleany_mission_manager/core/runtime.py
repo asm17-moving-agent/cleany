@@ -1,6 +1,7 @@
 """Single-owner FSM. tick() never waits for ROS actions or network I/O."""
 
-from dataclasses import asdict, replace
+from dataclasses import asdict, replace, is_dataclass
+from collections import deque
 from typing import Callable
 from uuid import uuid4
 
@@ -8,14 +9,14 @@ import py_trees
 
 from .cleaning import CleaningTree
 from .journal import MissionJournal
-from .operations import OperationPort
+from .operations import ExecutorPort, OperationPort
 from .result import FailureCode, ModuleResult, ResultStatus
 from .runtime_models import Admission, RuntimePolicy, RuntimeReport, RuntimeRequest, RuntimeState
 
 
 class MissionRuntime:
     def __init__(self, *, navigator: OperationPort, perception: OperationPort,
-                 planner: OperationPort, executor: OperationPort, clock: Callable[[], float],
+                 planner: OperationPort, executor: ExecutorPort, clock: Callable[[], float],
                  supported_targets: set[str], policy: RuntimePolicy | None = None,
                  journal: MissionJournal | None = None,
                  on_accept: Callable[[], None] | None = None,
@@ -26,6 +27,7 @@ class MissionRuntime:
                                   "planning": "mock", "execution": "mock"}
         self.navigator = navigator
         self.desk_ports = (perception, planner, executor)
+        self.executor = executor
         self.clock = clock
         self.targets = supported_targets
         self.policy = policy or RuntimePolicy()
@@ -33,6 +35,8 @@ class MissionRuntime:
         self.on_accept = on_accept
         self.request: RuntimeRequest | None = None
         self.boot_id = str(uuid4())
+        self.debug_sequence = 0
+        self.debug_events: deque[dict] = deque(maxlen=2048)
         self.external_phase = "ACCEPTED"
         self.cleaning: CleaningTree | None = None
         self.operation_id: str | None = None
@@ -64,6 +68,9 @@ class MissionRuntime:
             return False, self.error_code or "ERROR"
         if self.state != RuntimeState.IDLE:
             return False, "BUSY"
+        safe, reason = self._safe_to_drive()
+        if not safe:
+            return False, reason
         for port in (self.navigator, *self.desk_ports):
             try:
                 ready, reason = port.ready()
@@ -125,6 +132,9 @@ class MissionRuntime:
             return Admission(False, "HARDWARE_RELEASE_REQUIRED")
         if not self._stopped():
             return Admission(False, "NOT_STOPPED")
+        safe, reason = self._safe_to_drive()
+        if not safe:
+            return Admission(False, reason)
         ready, reason = self.navigator.ready()
         if not ready:
             return Admission(False, reason)
@@ -177,6 +187,9 @@ class MissionRuntime:
         self._refresh_status()
 
     def _tick(self) -> None:
+        self.executor.maintain()
+        if self.cleaning and self.state in (RuntimeState.CANCELLING, RuntimeState.ERROR):
+            self.cleaning.settle()
         if self.state == RuntimeState.ERROR and self.operation_id:
             self.navigator.poll(self.operation_id)
         if self.state in (RuntimeState.IDLE, RuntimeState.ERROR):
@@ -193,7 +206,10 @@ class MissionRuntime:
                         self.navigation_result = result.status.value
             if self._stopped():
                 self.operation_id = None
-                if self.return_after_cancel and self.navigator.ready()[0]:
+                safe, _ = self._safe_to_drive()
+                if not safe:
+                    self._finish(self.stop_result, force_error=True)
+                elif self.return_after_cancel and self.navigator.ready()[0]:
                     self.return_after_cancel = False
                     self._enter(RuntimeState.RETURN_HOME)
                 else:
@@ -208,10 +224,17 @@ class MissionRuntime:
         if self.state in (RuntimeState.NAVIGATE_TO_TARGET, RuntimeState.RETURN_HOME):
             returning = self.state == RuntimeState.RETURN_HOME
             if self.operation_id is None:
+                safe, reason = self._safe_to_drive()
+                if not safe:
+                    self._begin_stop(ModuleResult.blocked(FailureCode.SKILL_FAIL, message=reason))
+                    return
                 self.navigation_is_home = returning
                 self.operation_id = self.navigator.start(
                     "home" if returning else self.request.target_id
                 )
+                self.observe("action_start", {"module": "navigation",
+                             "operation_id": self.operation_id,
+                             "target": "home" if returning else self.request.target_id})
             result = self.navigator.poll(self.operation_id)
             if result is None:
                 if self.clock() - self.started_at >= self.policy.navigation_timeout:
@@ -219,6 +242,8 @@ class MissionRuntime:
                         FailureCode.TIMEOUT, message="Navigation timed out."
                     ))
                 return
+            self.observe("action_result", {"module": "navigation",
+                         "operation_id": self.operation_id, "status": result.status.value})
             if returning:
                 self.return_result = result.status.value
             else:
@@ -235,7 +260,7 @@ class MissionRuntime:
                 self.cleaning = CleaningTree(
                     perception=self.desk_ports[0], planner=self.desk_ports[1],
                     executor=self.desk_ports[2], clock=self.clock, policy=self.policy,
-                    mission_id=self.request.mission_id,
+                    mission_id=self.request.mission_id, observer=self.observe,
                 )
                 self._enter(RuntimeState.WORKING)
         elif self.state == RuntimeState.WORKING:
@@ -260,6 +285,8 @@ class MissionRuntime:
 
     def _begin_stop(self, result: ModuleResult) -> None:
         self.stop_result = result
+        self.observe("cancel_requested", {"operation_id": self.operation_id,
+                                         "reason": result.message})
         if self.state != RuntimeState.CANCELLING:
             self._enter(RuntimeState.CANCELLING)
         for halt in (
@@ -280,8 +307,17 @@ class MissionRuntime:
         except Exception:
             return False
 
+    def _safe_to_drive(self) -> tuple[bool, str]:
+        try:
+            return self.executor.safe_to_drive()
+        except Exception:
+            return False, "MANIPULATION_STATE_UNAVAILABLE"
+
     def _enter(self, state: RuntimeState) -> None:
+        previous = self.state.value
         self.state = state
+        self.observe("transition", {"from": previous, "to": state.value,
+                                   "active_request": asdict(self.request) if self.request else None})
         self.external_phase = {
             RuntimeState.NAVIGATE_TO_TARGET: "NAVIGATING", RuntimeState.WORKING: "WORKING",
             RuntimeState.POST_MISSION: "WORKING", RuntimeState.RETURN_HOME: "RETURNING",
@@ -292,6 +328,7 @@ class MissionRuntime:
     def _finish(self, result: ModuleResult | None = None, force_error: bool = False) -> None:
         assert self.request is not None
         context = self.cleaning.context if self.cleaning else None
+        force_error |= not self._safe_to_drive()[0]
         if result:
             outcome = ("CANCELLED" if result.status == ResultStatus.CANCELLED else
                        "BLOCKED" if result.status == ResultStatus.BLOCKED else "FAILED")
@@ -300,7 +337,8 @@ class MissionRuntime:
                        "PARTIAL_SUCCESS" if context and context.skipped else "SUCCESS")
         report = RuntimeReport(
             self.request, outcome, result.message if result else "Mission flow completed.",
-            failure_code=result.failure_code.value if result and result.failure_code else "",
+            failure_code=(result.failure_code.value if result and result.failure_code else
+                          "MANIPULATION_UNSAFE" if not self._safe_to_drive()[0] else ""),
             completed_tasks=list(context.completed) if context else [],
             skipped_tasks=list(context.skipped) if context else [],
             failed_task=(context.proposal.object_id if context and context.proposal and result else ""),
@@ -314,6 +352,7 @@ class MissionRuntime:
         )
         self.journal.finish(report)
         self.last_report = report
+        self.observe("mission_result", report.to_dict())
         fatal = force_error or result is not None and result.status == ResultStatus.FATAL
         self.error_code = report.failure_code or "ERROR" if fatal else ""
         self.journal.set("error_code", self.error_code)
@@ -330,7 +369,7 @@ class MissionRuntime:
             self.event_id = str(uuid4())
             self._last_status = signature
 
-    def snapshot(self) -> dict:
+    def snapshot(self, *, include_completed: bool = True) -> dict:
         self._refresh_status()
         ready, reason = self.readiness()
         phase = self.external_phase if self.request else "TERMINAL"
@@ -345,7 +384,54 @@ class MissionRuntime:
             "before_observation": self.cleaning.context.before if self.cleaning else "",
             "active_request": asdict(self.request) if self.request else None,
             "last_result": self.last_report.to_dict() if self.last_report else None,
-            "completed_reports": [report.to_dict() for report in self.journal.reports()],
+            "completed_reports": [report.to_dict() for report in self.journal.reports()] if include_completed else [],
             "supported_seat_ids": sorted(self.targets),
             "execution_profile": dict(self.execution_profile),
         }
+
+    def observe(self, kind: str, data: dict) -> None:
+        """Bounded in-memory observation; no I/O or mission control from consumers."""
+        self.debug_sequence += 1
+        proposal = self.cleaning.context.proposal if self.cleaning else None
+        self.debug_events.append({
+            "boot_id": self.boot_id, "sequence": self.debug_sequence,
+            "monotonic_time": self.clock(), "kind": kind,
+            "mission_id": self.request.mission_id if self.request else
+                          self.last_report.request.mission_id if self.last_report else "",
+            "task_id": proposal.task_id if proposal else "",
+            "execution_id": proposal.execution_id if proposal else "", "data": data,
+        })
+
+    def debug_snapshot(self) -> dict:
+        snapshot = self.snapshot(include_completed=False)
+        snapshot.pop("completed_reports", None)
+        modules = {}
+        for name, port in zip(("navigation", "perception", "planning", "execution"),
+                              (self.navigator, *self.desk_ports)):
+            try:
+                ready, reason = port.ready()
+                modules[name] = {"ready": ready, "reason": reason, "stopped": port.stopped()}
+            except Exception as exc:
+                modules[name] = {"ready": None, "stopped": None, "reason": str(exc)}
+        safe, reason = self._safe_to_drive()
+        proposal = self.cleaning.context.proposal if self.cleaning else None
+        outcome = getattr(self.executor, "outcome", None)
+        snapshot.update({"event_sequence": self.debug_sequence,
+            "fsm_states": [state.value for state in RuntimeState],
+            "fsm_edges": [[a, b] for a, b in (
+                ("IDLE", "NAVIGATE_TO_TARGET"), ("NAVIGATE_TO_TARGET", "WORKING"),
+                ("WORKING", "POST_MISSION"), ("POST_MISSION", "RETURN_HOME"),
+                ("POST_MISSION", "IDLE"), ("RETURN_HOME", "IDLE"),
+                ("NAVIGATE_TO_TARGET", "CANCELLING"), ("WORKING", "CANCELLING"),
+                ("RETURN_HOME", "CANCELLING"), ("POST_MISSION", "CANCELLING"),
+                ("CANCELLING", "RETURN_HOME"), ("CANCELLING", "IDLE"),
+                ("CANCELLING", "ERROR"), ("IDLE", "ERROR"), ("ERROR", "IDLE"))],
+            "bt_nodes": self.cleaning.debug_nodes() if self.cleaning else [],
+            "modules": modules, "safe_to_drive": safe, "drive_block_reason": reason,
+            "proposal": asdict(proposal) if proposal else None,
+            "manipulation": asdict(outcome) if is_dataclass(outcome) else None,
+            "navigation": {"operation_id": self.operation_id,
+                "target": "home" if self.navigation_is_home else
+                          self.request.target_id if self.request else None},
+        })
+        return snapshot
