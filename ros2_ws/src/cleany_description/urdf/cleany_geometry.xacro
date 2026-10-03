@@ -1,12 +1,17 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:include filename="$(find cleany_description)/urdf/physical_properties.xacro" />
   <xacro:include filename="$(find cleany_description)/urdf/dual_arm.xacro" />
+  <xacro:include filename="$(find cleany_description)/urdf/head_camera.xacro" />
   <xacro:macro name="cleany_robot_geometry" params="include_wheel_joints:=false">
+    <!-- Fixed mast belongs to every model, including the controller's TF tree. -->
+    <xacro:cleany_head_mount/>
     <link name="base_link">
       <xacro:cleany_link_properties link_name="base_link" />
     </link>
-    <xacro:cleany_arm side="left" side_sign="1" base_xyz="0.1163 0.185117 0.447797" base_yaw="3.14159265359" />
-    <xacro:cleany_arm side="right" side_sign="-1" base_xyz="0.116101 -0.185063 0.447797" base_yaw="0" />
+    <!-- Shoulder origins follow the CAD fastener-aligned Base placements in
+         physical_properties.xacro and mjcf/cleany.xml (see README). -->
+    <xacro:cleany_arm side="left" side_sign="1" base_xyz="0.116200343 0.196231727 0.447797" base_yaw="3.14159265359" />
+    <xacro:cleany_arm side="right" side_sign="-1" base_xyz="0.116200838 -0.196177072 0.447797" base_yaw="0" />
     <link name="rear_left_wheel_link">
       <xacro:cleany_link_properties link_name="rear_left_wheel_link" />
     </link>

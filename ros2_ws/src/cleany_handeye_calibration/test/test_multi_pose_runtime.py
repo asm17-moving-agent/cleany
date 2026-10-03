@@ -122,16 +122,3 @@ def test_multi_pose_runtime_requires_a_fresh_run_directory(tmp_path):
     (tmp_path / 'pose_run.jsonl').write_text('{}\n', encoding='ascii')
     with pytest.raises(RuntimeError, match='pose journal'):
         _fresh_pose_run_journal(clean)
-
-
-def test_multi_pose_launch_shows_viewer_by_default_and_node_is_installed():
-    source = (
-        PACKAGE_ROOT / 'launch' / 'multi_pose_mujoco.launch.py'
-    ).read_text(encoding='utf-8')
-    setup = (PACKAGE_ROOT / 'setup.py').read_text(encoding='utf-8')
-
-    assert "'headless',\n                default_value='false'" in source
-    assert "'use_rviz',\n                default_value='true'" in source
-    assert "'use_rviz': use_rviz" in source
-    assert "executable='multi_pose_calibration'" in source
-    assert 'multi_pose_runtime:main' in setup

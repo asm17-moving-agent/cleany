@@ -7,6 +7,8 @@ request_adapters: >-
   default_planner_request_adapters/FixStartStateCollision
   default_planner_request_adapters/FixStartStatePathConstraints
 start_state_max_bounds_error: 0.1
+# Joint-space rounding bound; this is not a Cartesian clearance guarantee.
+path_tolerance: 0.0001
 
 planner_configs:
   RRTConnectkConfigDefault:
@@ -21,14 +23,32 @@ right_arm:
   planner_configs:
     - RRTConnectkConfigDefault
 left_grasp_arm:
+  longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
 right_grasp_arm:
+  longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
 left_pregrasp_aim_arm:
   planner_configs:
     - RRTConnectkConfigDefault
 right_pregrasp_aim_arm:
+  planner_configs:
+    - RRTConnectkConfigDefault
+left_pregrasp_open:
+  longest_valid_segment_fraction: 0.001
+  planner_configs:
+    - RRTConnectkConfigDefault
+right_pregrasp_open:
+  longest_valid_segment_fraction: 0.001
+  planner_configs:
+    - RRTConnectkConfigDefault
+left_return_close:
+  longest_valid_segment_fraction: 0.001
+  planner_configs:
+    - RRTConnectkConfigDefault
+right_return_close:
+  longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault

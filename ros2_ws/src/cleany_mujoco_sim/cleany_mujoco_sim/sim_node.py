@@ -40,7 +40,6 @@ from cleany_mujoco_sim.state import (
     laser_scan_msg,
     odometry_msg,
     scan_sample_count,
-    initialize_joint_positions,
     static_site_transform_msg,
     steps_per_tick,
     transform_msg,
@@ -63,6 +62,8 @@ class MujocoSimNode(Node):
         self.declare_parameter('scene_path', '')
         self.declare_parameter('publish_rate_hz', 60.0)
         self.declare_parameter('headless', True)
+        self.declare_parameter('viewer_rate_hz', 20.0)
+        self.declare_parameter('viewer_shadows', False)
         self.declare_parameter('base_body_name', 'chassis')
         self.declare_parameter('lidar_site_name', 'lidar_site')
         self.declare_parameter('odom_frame_id', 'odom')
@@ -97,6 +98,7 @@ class MujocoSimNode(Node):
         scene_path = Path(scene_path_value) if scene_path_value else default_scene_path()
         publish_rate_hz = self.get_parameter('publish_rate_hz').get_parameter_value().double_value
         self._headless = self.get_parameter('headless').get_parameter_value().bool_value
+        self._viewer_rate_hz = float(self.get_parameter('viewer_rate_hz').value)
         self._base_body_name = self.get_parameter('base_body_name').get_parameter_value().string_value
         self._lidar_site_name = self.get_parameter('lidar_site_name').get_parameter_value().string_value
         self._odom_frame_id = self.get_parameter('odom_frame_id').get_parameter_value().string_value
@@ -159,6 +161,9 @@ class MujocoSimNode(Node):
 
         if publish_rate_hz <= 0:
             raise ValueError('publish_rate_hz must be positive')
+        if (not are_finite_values((self._viewer_rate_hz,))
+                or not 1.0 <= self._viewer_rate_hz <= 60.0):
+            raise ValueError('viewer_rate_hz must be finite and in [1, 60]')
         if self._scan_enabled and self._scan_rate_hz <= 0:
             raise ValueError('scan_rate_hz must be positive')
         if self._scan_enabled and self._scan_range_min >= self._scan_range_max:
@@ -239,10 +244,14 @@ class MujocoSimNode(Node):
             )
 
         self._viewer = None
+        self._next_viewer_sync = 0.0
         if not self._headless:
             import mujoco.viewer as mujoco_viewer
 
             self._viewer = mujoco_viewer.launch_passive(self._model, self._data)
+            self._viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = bool(
+                self.get_parameter('viewer_shadows').value
+            )
 
     def destroy_node(self) -> None:
         if self._viewer is not None:
@@ -326,13 +335,6 @@ class MujocoSimNode(Node):
         if self._mujoco_drive is not None:
             self._mujoco_drive.reset()
 
-    @property
-    def simulation_context(self) -> MujocoSimulationContext:
-        return self._simulation_context
-
-    def add_step_observer(self, observer: StepObserver) -> None:
-        self._step_observers.append(observer)
-
     def _on_timer(self) -> None:
         for _ in range(self._steps_per_tick):
             if self._mujoco_drive is not None:
@@ -386,8 +388,9 @@ class MujocoSimNode(Node):
                 )
             )
             self._sim_time_at_last_scan = self._data.time
-        if self._viewer is not None:
+        if self._viewer is not None and time.monotonic() >= self._next_viewer_sync:
             self._viewer.sync()
+            self._next_viewer_sync = time.monotonic() + 1.0 / self._viewer_rate_hz
 
 
 def main(args: list[str] | None = None) -> None:
