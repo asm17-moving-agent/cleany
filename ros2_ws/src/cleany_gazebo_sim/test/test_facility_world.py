@@ -40,7 +40,8 @@ def test_default_facility_uses_canonical_cad_with_drive_and_sensors(tmp_path):
         sensor.get('type') for sensor in robot.findall('.//sensor')
     }
     metadata = json.loads(path.with_suffix('.model.json').read_text())
-    assert metadata['source_commit'] == '71f8d6c'
+    assert metadata['source_commit'] == yaml.safe_load(
+        (PACKAGE / 'config/cad_frame.yaml').read_text())['source_commit']
     assert metadata['collision_bounds'][1][1] > 0.3
     assert len(json.loads(path.with_suffix('.seats.json').read_text())) == 82
 
@@ -218,7 +219,7 @@ def test_legacy_chair_profile_and_lidar_override(tmp_path):
     world = ET.parse(path).getroot().find('world')
     assert len(world.findall("model/link/visual[@name='office_chair_visual']")) == 82
     assert (
-        world.findtext("model[@name='cleany_mecanum']/joint[@name='lidar_mount']/pose")
+        world.findtext("model[@name='cleany_mecanum']/frame[@name='lidar_mount']/pose")
         == '0.16 0.0 0.32 0.0 0.0 0.0'
     )
 

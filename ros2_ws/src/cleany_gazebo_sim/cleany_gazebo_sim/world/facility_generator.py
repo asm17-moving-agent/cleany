@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from math import atan2, cos, hypot, radians, sin
 from pathlib import Path
-from tempfile import gettempdir
 from xml.etree import ElementTree as ET
 
+from cleany_gazebo_sim.lidar_noise import LidarNoiseProfile
 from cleany_gazebo_sim.world.facility_layout import load_facility_layout
 from cleany_gazebo_sim.world.felt_floor import apply_felt_floor
 from cleany_gazebo_sim.world.facility_architecture import (
@@ -16,6 +16,7 @@ from cleany_gazebo_sim.world.facility_architecture import (
     add_glazing,
 )
 from cleany_gazebo_sim.world.generator import (
+    _unique_runtime_target,
     _add_box_model,
     _add_box_part,
     _add_office_chair,
@@ -35,12 +36,15 @@ def materialize_facility_world(
     max_step_size: float = 0.001,
     real_time_factor: float = 1.0,
     lidar_translation: tuple[float, float, float] | None = None,
+    lidar_noise: LidarNoiseProfile | None = None,
+    sensor_render_engine: str = 'ogre2',
+    robot_spawn_pose: tuple[float, ...] | None = None,
 ) -> Path:
     package = robot_template_path.parent.parent
     layout = load_facility_layout(
         facility_layout_path or package / "config/facility_18f/facility_layout.yaml"
     )
-    target = target_path or Path(gettempdir()) / "cleany_facility_18f/world.sdf"
+    target = target_path or _unique_runtime_target('cleany-facility-18f-', 'world.sdf')
     base = materialize_study_cafe_world(
         robot_template_path,
         target.with_suffix(".study.sdf"),
@@ -48,6 +52,9 @@ def materialize_facility_world(
         real_time_factor=real_time_factor,
         layout_path=layout_path,
         lidar_translation=lidar_translation,
+        lidar_noise=lidar_noise,
+        sensor_render_engine=sensor_render_engine,
+        robot_spawn_pose=robot_spawn_pose,
         chair_model=chair_model,
         robot_model=robot_model,
         chair_config_path=chair_config_path,
@@ -60,7 +67,7 @@ def materialize_facility_world(
     for name in ("wall_north", "wall_south", "wall_east", "wall_west"):
         world.remove(world.find(f"model[@name='{name}']"))
     world.find("model[@name='cleany_mecanum']/pose").text = " ".join(
-        map(str, layout.raw["spawn_pose"])
+        map(str, robot_spawn_pose or layout.raw["spawn_pose"])
     )
     bounds = layout.raw["floor_bounds"]
     west, north = layout.world(bounds[:2])
