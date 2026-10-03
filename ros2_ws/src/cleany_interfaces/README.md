@@ -96,3 +96,20 @@ ros2 interface show cleany_interfaces/srv/PlanGrasp
 - [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
 - [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
 - [ROS 2 Software Architecture](../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)
+
+## 단일 물체 Manipulation action
+
+`ExecuteManipulationSkill`은 승인된 물체 하나를 목적지로 옮기는 실행 계약입니다.
+요청은 mission/task/execution ID, skill, snapshot ID, snapshot 범위의 uint32 object ID와
+목적지 ID를 포함합니다. execution ID는 호출자가 발급하고 전송 전에 영속 저장합니다.
+결과는 status/error, 실패·완료 stage, 물체·placement 상태, 선택한 팔,
+정지 확인, 팔 복귀, retryable과 설명을 포함합니다. feedback stage는 완료 증거가 아닙니다.
+
+`ManipulationExecutionRecord`는 동일 요청 및 영속 진행/결과와 revision, timestamp,
+사람 확인 필요 여부를 전달합니다. `GetManipulationExecution`은 execution ID로 이 기록을
+조회합니다. 현재 `found=false`는 서버 저장 오류와도 구분되지 않으므로 실행되지 않았다는
+증거로 사용하지 않습니다. 상세 수락·성공·취소와 주행 gate는
+[Mission Manager 계약](../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따릅니다.
+
+이 세 interface는 팀원 브랜치 `feat/manipulation-action-server`의
+`46efa012cddb4ef0ff3f4dadb785550591bb6073`과 동일합니다. 서버 내부 BT 구조는 이 계약에 포함하지 않습니다.

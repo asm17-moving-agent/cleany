@@ -15,11 +15,13 @@ from cleany_interfaces.msg import MissionResult, MissionStatus
 from cleany_interfaces.srv import CancelMission, GetRuntimeSnapshot, OfferMission
 from cleany_mission_manager.adapters.config import load_targets
 from cleany_mission_manager.adapters.nav2 import Nav2Navigator
+from cleany_mission_manager.adapters.manipulation import ROSManipulationTransport
+from cleany_mission_manager.core.manipulation import ManipulationPort, validate_backend
 from cleany_mission_manager.core.journal import MissionJournal
 from cleany_mission_manager.core.operations import DeferredPort
 from cleany_mission_manager.core.result import FailureCode, ModuleResult
 from cleany_mission_manager.core.runtime import MissionRuntime
-from cleany_mission_manager.core.runtime_models import RuntimePolicy, RuntimeRequest
+from cleany_mission_manager.core.runtime_models import RuntimePolicy, RuntimeRequest, SceneObject
 from cleany_mission_manager.mocks.desk import MockDesk
 
 
@@ -36,13 +38,35 @@ class MissionRuntimeNode(Node):
             "stopped_linear_speed": 0.03, "stopped_angular_speed": 0.05,
             "navigation_settle_timeout": 3.0,
             "lifecycle_timeout": 3.0,
+            "manipulation_backend": "mock", "manipulation_action": "mock/manipulation/execute_skill",
+            "manipulation_query": "mock/manipulation/get_execution",
+            "manipulation_initial_mock_safe": False,
+            "manipulation_destination": "mock_trash_bin",
+            "manipulation_mock_snapshot_ids": ["mock-snapshot-001", "mock-snapshot-002",
+                                               "mock-snapshot-003", "mock-snapshot-004"],
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
         self.targets = load_targets(value("targets_file"))
         self.journal = MissionJournal(value("journal_path"))
-        self.desk = MockDesk(time.monotonic, polls=value("mock_operation_polls"))
+        manipulation_backend = value("manipulation_backend")
+        validate_backend(manipulation_backend, self.journal)
+        snapshots = tuple(value("manipulation_mock_snapshot_ids")) if manipulation_backend == "action_mock" else ()
+        if manipulation_backend == "action_mock" and (len(snapshots) < 4 or len(set(snapshots)) != len(snapshots)):
+            raise ValueError("action_mock requires at least four distinct registered snapshot IDs")
+        self.desk = MockDesk(
+            time.monotonic, polls=value("mock_operation_polls"),
+            destination_id=value("manipulation_destination"), snapshot_ids=snapshots,
+            objects=(SceneObject("trash-1", wire_object_id=1), SceneObject("trash-2", wire_object_id=2))
+                    if manipulation_backend == "action_mock" else None,
+        )
+        self.manipulation = (ManipulationPort(
+            ROSManipulationTransport(self, value("manipulation_action"), value("manipulation_query")),
+            self.journal, time.monotonic,
+            initial_mock_safe=value("manipulation_initial_mock_safe"),
+            on_success=self.desk.manipulation_succeeded,
+        ) if manipulation_backend == "action_mock" else self.desk.executor)
         backend = value("navigation_backend")
         if backend not in ("nav2", "mock"):
             raise ValueError("navigation_backend must be nav2 or mock")
@@ -50,10 +74,11 @@ class MissionRuntimeNode(Node):
                           else DeferredPort(lambda _: ModuleResult.success(), polls=10))
         self.runtime = MissionRuntime(
             navigator=self.navigator, perception=self.desk.perception, planner=self.desk.planner,
-            executor=self.desk.executor, clock=time.monotonic,
+            executor=self.manipulation, clock=time.monotonic,
             supported_targets=set(self.targets.seats), journal=self.journal,
             on_accept=self.desk.begin, navigation_mode="sim" if backend == "nav2" else "mock",
-            policy=RuntimePolicy(**{name: value(name) for name in (
+            policy=RuntimePolicy(manipulation_destinations=(value("manipulation_destination"),),
+                                 **{name: value(name) for name in (
                 "post_mission", "navigation_timeout", "cleaning_timeout", "operation_timeout",
                 "cancel_timeout", "max_actions", "max_skill_retries",
             )}),

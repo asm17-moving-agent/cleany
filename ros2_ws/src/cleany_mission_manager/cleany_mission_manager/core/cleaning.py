@@ -1,13 +1,15 @@
 """Desk BT: one proposal, one operation, then a fresh observation."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from uuid import uuid4
 from typing import Callable
 
 import py_trees
 
 from .operations import OperationPort
 from .result import FailureCode, ModuleResult, ResultStatus
-from .runtime_models import ActionRecord, RuntimePolicy, SceneSnapshot, TaskProposal
+from .runtime_models import (ActionRecord, ManipulationOutcome, RuntimePolicy, SceneSnapshot,
+                             TaskProposal)
 
 
 @dataclass
@@ -39,10 +41,12 @@ class OperationLeaf(py_trees.behaviour.Behaviour):
         self.consume = consume
         self.operation_id: str | None = None
         self.started_at = 0.0
+        self.consumed = False
 
     def initialise(self) -> None:
         self.operation_id = None
         self.started_at = self.tree.clock()
+        self.consumed = False
 
     def update(self) -> py_trees.common.Status:
         self.tree.context.stage = self.name
@@ -60,6 +64,7 @@ class OperationLeaf(py_trees.behaviour.Behaviour):
                 )
                 return py_trees.common.Status.FAILURE
             return py_trees.common.Status.RUNNING
+        self.consumed = True
         return (py_trees.common.Status.SUCCESS if self.consume(result)
                 else py_trees.common.Status.FAILURE)
 
@@ -98,6 +103,7 @@ class CleaningTree:
                  mission_id: str, mode: str = "mock") -> None:
         self.context = CleaningContext()
         self.clock, self.policy, self.mode = clock, policy, mode
+        self.mission_id = mission_id
         self.ports = (perception, planner, executor)
         observe = lambda: mission_id
         cycle = py_trees.composites.Sequence(name="ActionCheckpoint", memory=True, children=[
@@ -119,6 +125,16 @@ class CleaningTree:
 
     def halt(self) -> None:
         self.root.stop(py_trees.common.Status.INVALID)
+
+    def settle(self) -> None:
+        # halt() invalidates the tree, but the action result still belongs in the report.
+        for leaf in self.root.iterate():
+            if (isinstance(leaf, OperationLeaf) and leaf.name == "ExecuteOne"
+                    and leaf.operation_id and not leaf.consumed):
+                result = leaf.port.poll(leaf.operation_id)
+                if result is not None:
+                    leaf.consumed = True
+                    self._executed(result)
 
     def stopped(self) -> bool:
         return all(port.stopped() for port in self.ports)
@@ -170,6 +186,11 @@ class CleaningTree:
             return self._reject(FailureCode.PLAN_BLOCKED, "object is unavailable")
         if proposal.action == "collect_trash" and obj.disposition != "collect_trash":
             return self._reject(FailureCode.PLAN_BLOCKED, "object is not permitted for collection")
+        if proposal.action == "collect_trash":
+            if proposal.destination_id not in self.policy.manipulation_destinations:
+                return self._reject(FailureCode.PLAN_BLOCKED, "destination is not allowed")
+            if proposal.wire_object_id != obj.wire_object_id:
+                return self._reject(FailureCode.PLAN_BLOCKED, "numeric target does not match scene")
         if self.context.actions >= self.policy.max_actions:
             return self._reject(FailureCode.TIMEOUT, "cleaning action budget exhausted")
         return True
@@ -187,6 +208,9 @@ class CleaningTree:
                 proposal.object_id, proposal.action, proposal.snapshot_id, "SKIPPED"
             ))
             return None
+        proposal = replace(proposal, mission_id=self.mission_id,
+                           task_id=str(uuid4()), execution_id=str(uuid4()))
+        self.context.proposal = proposal
         return proposal
 
     def _executed(self, result: ModuleResult) -> bool:
@@ -194,8 +218,14 @@ class CleaningTree:
         assert proposal is not None
         self.context.records.append(ActionRecord(
             proposal.object_id, proposal.action, proposal.snapshot_id,
-            result.status.value, result.message,
+            result.status.value, result.message, proposal.task_id, proposal.execution_id,
+            proposal.destination_id,
+            result.data if isinstance(result.data, ManipulationOutcome) else None,
         ))
+        if isinstance(result.data, ManipulationOutcome) and not result.data.safe_to_drive:
+            self.context.needs_review = True
+            self.context.failure = result
+            return False
         if result.status == ResultStatus.OK:
             self.context.completed.append(proposal.object_id)
             return True

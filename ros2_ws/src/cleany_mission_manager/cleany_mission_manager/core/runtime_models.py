@@ -33,8 +33,11 @@ class RuntimePolicy:
     cancel_timeout: float = 5.0
     max_actions: int = 30
     max_skill_retries: int = 2
+    manipulation_destinations: tuple[str, ...] = ("mock_trash_bin",)
 
     def __post_init__(self) -> None:
+        if not self.manipulation_destinations or any(not item.strip() for item in self.manipulation_destinations):
+            raise ValueError("manipulation destinations must be explicitly allowed")
         if self.post_mission not in ("return_home", "wait_for_next"):
             raise ValueError("post_mission must be return_home or wait_for_next")
         if any(not isfinite(value) or value <= 0 for value in (
@@ -48,6 +51,7 @@ class RuntimePolicy:
 class SceneObject:
     object_id: str
     disposition: str = "collect_trash"
+    wire_object_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -64,6 +68,34 @@ class TaskProposal:
     action: str
     snapshot_id: str
     object_id: str = ""
+    destination_id: str = ""
+    wire_object_id: int | None = None
+    mission_id: str = ""
+    task_id: str = ""
+    execution_id: str = ""
+
+
+@dataclass(frozen=True)
+class ManipulationOutcome:
+    execution_id: str
+    execution_profile: str
+    status: str
+    error_code: str
+    failed_stage: str
+    last_completed_stage: str
+    object_state: str
+    placement_state: str
+    selected_arm: str
+    stop_confirmed: bool
+    arm_recovered: bool
+    retryable: bool
+    message: str
+
+    @property
+    def safe_to_drive(self) -> bool:
+        return (self.stop_confirmed and self.arm_recovered
+                and self.object_state in ("NOT_TOUCHED", "LEFT_GRIPPER")
+                and self.status != "FATAL")
 
 
 @dataclass(frozen=True)
@@ -73,6 +105,10 @@ class ActionRecord:
     snapshot_id: str
     status: str
     message: str = ""
+    task_id: str = ""
+    execution_id: str = ""
+    destination_id: str = ""
+    manipulation: ManipulationOutcome | None = None
 
 
 @dataclass
@@ -100,7 +136,12 @@ class RuntimeReport:
     def from_dict(cls, value: dict) -> "RuntimeReport":
         data = dict(value)
         data["request"] = RuntimeRequest(**data["request"])
-        data["actions"] = [ActionRecord(**item) for item in data.get("actions", [])]
+        data["actions"] = []
+        for item in value.get("actions", []):
+            action = dict(item)
+            if action.get("manipulation") is not None:
+                action["manipulation"] = ManipulationOutcome(**action["manipulation"])
+            data["actions"].append(ActionRecord(**action))
         return cls(**data)
 
 

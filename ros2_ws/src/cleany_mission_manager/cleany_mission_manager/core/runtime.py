@@ -8,14 +8,14 @@ import py_trees
 
 from .cleaning import CleaningTree
 from .journal import MissionJournal
-from .operations import OperationPort
+from .operations import ExecutorPort, OperationPort
 from .result import FailureCode, ModuleResult, ResultStatus
 from .runtime_models import Admission, RuntimePolicy, RuntimeReport, RuntimeRequest, RuntimeState
 
 
 class MissionRuntime:
     def __init__(self, *, navigator: OperationPort, perception: OperationPort,
-                 planner: OperationPort, executor: OperationPort, clock: Callable[[], float],
+                 planner: OperationPort, executor: ExecutorPort, clock: Callable[[], float],
                  supported_targets: set[str], policy: RuntimePolicy | None = None,
                  journal: MissionJournal | None = None,
                  on_accept: Callable[[], None] | None = None,
@@ -26,6 +26,7 @@ class MissionRuntime:
                                   "planning": "mock", "execution": "mock"}
         self.navigator = navigator
         self.desk_ports = (perception, planner, executor)
+        self.executor = executor
         self.clock = clock
         self.targets = supported_targets
         self.policy = policy or RuntimePolicy()
@@ -64,6 +65,9 @@ class MissionRuntime:
             return False, self.error_code or "ERROR"
         if self.state != RuntimeState.IDLE:
             return False, "BUSY"
+        safe, reason = self._safe_to_drive()
+        if not safe:
+            return False, reason
         for port in (self.navigator, *self.desk_ports):
             try:
                 ready, reason = port.ready()
@@ -125,6 +129,9 @@ class MissionRuntime:
             return Admission(False, "HARDWARE_RELEASE_REQUIRED")
         if not self._stopped():
             return Admission(False, "NOT_STOPPED")
+        safe, reason = self._safe_to_drive()
+        if not safe:
+            return Admission(False, reason)
         ready, reason = self.navigator.ready()
         if not ready:
             return Admission(False, reason)
@@ -177,6 +184,9 @@ class MissionRuntime:
         self._refresh_status()
 
     def _tick(self) -> None:
+        self.executor.maintain()
+        if self.cleaning and self.state in (RuntimeState.CANCELLING, RuntimeState.ERROR):
+            self.cleaning.settle()
         if self.state == RuntimeState.ERROR and self.operation_id:
             self.navigator.poll(self.operation_id)
         if self.state in (RuntimeState.IDLE, RuntimeState.ERROR):
@@ -193,7 +203,10 @@ class MissionRuntime:
                         self.navigation_result = result.status.value
             if self._stopped():
                 self.operation_id = None
-                if self.return_after_cancel and self.navigator.ready()[0]:
+                safe, _ = self._safe_to_drive()
+                if not safe:
+                    self._finish(self.stop_result, force_error=True)
+                elif self.return_after_cancel and self.navigator.ready()[0]:
                     self.return_after_cancel = False
                     self._enter(RuntimeState.RETURN_HOME)
                 else:
@@ -208,6 +221,10 @@ class MissionRuntime:
         if self.state in (RuntimeState.NAVIGATE_TO_TARGET, RuntimeState.RETURN_HOME):
             returning = self.state == RuntimeState.RETURN_HOME
             if self.operation_id is None:
+                safe, reason = self._safe_to_drive()
+                if not safe:
+                    self._begin_stop(ModuleResult.blocked(FailureCode.SKILL_FAIL, message=reason))
+                    return
                 self.navigation_is_home = returning
                 self.operation_id = self.navigator.start(
                     "home" if returning else self.request.target_id
@@ -280,6 +297,12 @@ class MissionRuntime:
         except Exception:
             return False
 
+    def _safe_to_drive(self) -> tuple[bool, str]:
+        try:
+            return self.executor.safe_to_drive()
+        except Exception:
+            return False, "MANIPULATION_STATE_UNAVAILABLE"
+
     def _enter(self, state: RuntimeState) -> None:
         self.state = state
         self.external_phase = {
@@ -292,6 +315,7 @@ class MissionRuntime:
     def _finish(self, result: ModuleResult | None = None, force_error: bool = False) -> None:
         assert self.request is not None
         context = self.cleaning.context if self.cleaning else None
+        force_error |= not self._safe_to_drive()[0]
         if result:
             outcome = ("CANCELLED" if result.status == ResultStatus.CANCELLED else
                        "BLOCKED" if result.status == ResultStatus.BLOCKED else "FAILED")
@@ -300,7 +324,8 @@ class MissionRuntime:
                        "PARTIAL_SUCCESS" if context and context.skipped else "SUCCESS")
         report = RuntimeReport(
             self.request, outcome, result.message if result else "Mission flow completed.",
-            failure_code=result.failure_code.value if result and result.failure_code else "",
+            failure_code=(result.failure_code.value if result and result.failure_code else
+                          "MANIPULATION_UNSAFE" if not self._safe_to_drive()[0] else ""),
             completed_tasks=list(context.completed) if context else [],
             skipped_tasks=list(context.skipped) if context else [],
             failed_task=(context.proposal.object_id if context and context.proposal and result else ""),
