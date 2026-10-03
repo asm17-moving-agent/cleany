@@ -8,6 +8,8 @@ from pathlib import Path
 from tempfile import gettempdir
 from xml.etree import ElementTree as ET
 
+from cleany_gazebo_sim.lidar_noise import LidarNoiseProfile
+from cleany_gazebo_sim.world.sdf import write_world
 from cleany_gazebo_sim.world.facility_layout import load_facility_layout
 from cleany_gazebo_sim.world.felt_floor import apply_felt_floor
 from cleany_gazebo_sim.world.facility_architecture import (
@@ -35,6 +37,9 @@ def materialize_facility_world(
     max_step_size: float = 0.001,
     real_time_factor: float = 1.0,
     lidar_translation: tuple[float, float, float] | None = None,
+    lidar_noise: LidarNoiseProfile | None = None,
+    sensor_render_engine: str = 'ogre2',
+    robot_spawn_pose: tuple[float, float, float, float, float, float] | None = None,
 ) -> Path:
     package = robot_template_path.parent.parent
     layout = load_facility_layout(
@@ -48,6 +53,9 @@ def materialize_facility_world(
         real_time_factor=real_time_factor,
         layout_path=layout_path,
         lidar_translation=lidar_translation,
+        lidar_noise=lidar_noise,
+        sensor_render_engine=sensor_render_engine,
+        robot_spawn_pose=robot_spawn_pose or tuple(layout.raw['spawn_pose']),
         chair_model=chair_model,
         robot_model=robot_model,
         chair_config_path=chair_config_path,
@@ -59,9 +67,6 @@ def materialize_facility_world(
     world.set("name", "cleany_facility_18f")
     for name in ("wall_north", "wall_south", "wall_east", "wall_west"):
         world.remove(world.find(f"model[@name='{name}']"))
-    world.find("model[@name='cleany_mecanum']/pose").text = " ".join(
-        map(str, layout.raw["spawn_pose"])
-    )
     bounds = layout.raw["floor_bounds"]
     west, north = layout.world(bounds[:2])
     east, south = layout.world(bounds[2:])
@@ -198,7 +203,7 @@ def materialize_facility_world(
                 )
     target.parent.mkdir(parents=True, exist_ok=True)
     ET.indent(root)
-    ET.ElementTree(root).write(target, encoding="unicode", xml_declaration=True)
+    write_world(root, target)
     target.with_suffix(".seats.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )

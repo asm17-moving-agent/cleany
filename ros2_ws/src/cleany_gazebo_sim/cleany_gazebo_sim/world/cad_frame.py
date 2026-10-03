@@ -13,7 +13,7 @@ import numpy as np
 import yaml
 
 
-from cleany_gazebo_sim.world.urdf_geometry import rpy, origin, freeze
+from cleany_navigation.urdf_geometry import rotation, rpy, origin, freeze, apply_simulation_geometry
 
 
 def collision_bounds(urdf: ET.Element, transforms: dict[str, np.ndarray]) -> list[list[float]]:
@@ -68,6 +68,7 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
         if not path.is_file():
             raise FileNotFoundError(path)
         mesh.set('filename', str(path.resolve()))
+    profile = apply_simulation_geometry(urdf, profile, allowed=True)
     pan_enabled = profile.get('dynamic_pan', False)
     transforms = freeze(urdf, profile['park_joints'], profile.get('simulation_park_limits'), keep_pan=pan_enabled)
     bounds = collision_bounds(urdf, transforms)
@@ -111,6 +112,8 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
     for frame in legacy.findall('frame'):
         name = frame.get('name')
         if name.startswith(('lidar_', 'imu_', 'left_wrist_camera_', 'right_wrist_camera_')):
+            if 'wrist_camera' in name and name.split('_')[0]+'_gripper_frame' not in transforms:
+                continue
             frame = deepcopy(frame)
             for side in ('left', 'right'):
                 old, new = side+'_fixed_jaw', side+'_gripper_frame'
@@ -121,6 +124,8 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
             model.append(frame)
     for sensor in legacy.findall('.//sensor'):
         sensor = deepcopy(sensor)
+        if sensor.get('name', '').startswith(('left_wrist', 'right_wrist')) and sensor.find('pose').get('relative_to') not in {f.get('name') for f in model.findall('frame')}:
+            continue
         if pan_enabled and sensor.get('name', '').startswith('head_realsense'):
             model.find("link[@name='head_pan_link']").append(sensor)
         else:
@@ -142,7 +147,7 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
                 topic='/model/cleany_mecanum/head_pan/cmd_pos').items():
             ET.SubElement(plugin, key).text = value
     camera = transforms['head_camera_depth_frame']
-    metadata = dict(source_commit=profile['source_commit'], collision_bounds=bounds,
+    metadata = dict(simulation_excluded_link_roots=profile.get('simulation_excluded_link_roots', []), source_commit=profile['source_commit'], collision_bounds=bounds,
                     navigation_margins=profile['navigation_margins'],
                     depth_camera_tf=dict(translation=camera[:3, 3].tolist(), rotation_rpy=rpy(camera[:3, :3])),
                     wheelbase=profile['wheelbase'], wheel_separation=profile['wheel_separation'],

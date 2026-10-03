@@ -6,6 +6,8 @@ from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
     ExecuteProcess,
+    OpaqueFunction,
+    SetLaunchConfiguration,
 )
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
@@ -15,7 +17,13 @@ from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     declare_sensor_profile_argument,
     sensor_profile_bridges,
 )
+from cleany_gazebo_sim.world.sdf import materialize_friction_frames
 from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
+
+
+def _normalize_world(context):
+    source = Path(LaunchConfiguration('world').perform(context))
+    return [SetLaunchConfiguration('world', str(materialize_friction_frames(source, harmonic=True)))]
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -72,6 +80,10 @@ def generate_launch_description() -> LaunchDescription:
         'use_sim_time', default_value='true'
     )
     sensor_profile_arg = declare_sensor_profile_argument()
+    gui_render_engine_arg = DeclareLaunchArgument(
+        'gui_render_engine', default_value='ogre2', choices=['ogre', 'ogre2'],
+        description='Rendering engine used by the Gazebo GUI.',
+    )
 
     server = ExecuteProcess(
         cmd=[
@@ -95,7 +107,7 @@ def generate_launch_description() -> LaunchDescription:
             '--render-engine-server',
             'ogre2',
             '--render-engine-gui',
-            'ogre',
+            LaunchConfiguration('gui_render_engine'),
             LaunchConfiguration('world'),
         ],
         condition=UnlessCondition(LaunchConfiguration('headless')),
@@ -192,9 +204,11 @@ def generate_launch_description() -> LaunchDescription:
             headless_arg,
             use_sim_time_arg,
             sensor_profile_arg,
+            gui_render_engine_arg,
             AppendEnvironmentVariable(
                 'GZ_SIM_RESOURCE_PATH', str(description_share)
             ),
+            OpaqueFunction(function=_normalize_world),
             server,
             gui,
             bridges,

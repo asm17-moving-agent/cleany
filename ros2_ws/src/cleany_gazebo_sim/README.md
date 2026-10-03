@@ -39,6 +39,13 @@ GAZEBO_GUI_RENDER_ENGINE=ogre2 make sim-gazebo-study-cafe
 
 직접 launch할 때는 `gui_render_engine:=ogre|ogre2`를 지정합니다.
 
+Harmonic의 GUI 기본값은 `ogre2`입니다. GPU가 사용 가능한 환경에서는
+`LIBGL_ALWAYS_SOFTWARE=1`을 설정하지 않습니다. 렌더링 문제를 진단할 때만
+소프트웨어 렌더링을 별도로 선택합니다.
+
+CAD 모델 변환은 설치된 `gz sdf` 또는 `ign sdf`를 사용하며, head pan 제어
+플러그인은 선택한 Harmonic/Fortress world의 namespace를 따릅니다.
+
 ```bash
 source ros2_ws/install/setup.bash
 ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
@@ -246,6 +253,16 @@ ros2 launch cleany_gazebo_sim amcl_nav2_safety.launch.py \
 | `/nav2/cmd_vel` | controller/behavior가 Collision Monitor에 보내는 Twist |
 | `/cmd_vel` | Collision Monitor가 내보내는 Twist; 기존 command guard가 받아 Gazebo로 전달 |
 | `/collision_monitor_state` | `StopZone`, `SlowZone`, `invalid source` 등 제한 사유 |
+
+헤드 카메라는 RealSense D435의 명목 화각을 모델링합니다. Depth는 VGA 모드의
+75°×62°, RGB는 69°×42°이며, SDF `lens/intrinsics`와 `lens/projection`의 수평·수직 초점 거리를 각각 지정해
+수평·수직 화각을 함께 맞춥니다. 두 센서는 부하를 제한하기 위해 640×480,
+15 Hz로 동작합니다. Depth clip은 0.2–10 m이며, 이는 렌더링 범위로서
+실물의 전 구간 정확도를 보장하지 않습니다. 실제 센서의 보정값과 스테레오 오차,
+반사·무늬에 따른 depth 누락은 현재 모델에 포함하지 않습니다.
+명목 화각의 근거는 [D435 데이터시트](https://dev.realsenseai.com/download/42003/)의
+Depth Camera SKU Properties입니다. 실물 `CameraInfo`를 확보하면 그 보정값으로
+대체해야 합니다.
 
 `config/nav2_safety.yaml`의 수치는 **시뮬레이션 평가값**입니다. KB의 안전
 기준은 아직 draft이며 이 프로필은 물리 로봇의 승인된 안전 설정이 아닙니다.
@@ -1040,3 +1057,102 @@ CAD 시설에서 package build, 렌더링, LiDAR·odometry·관절 상태 발행
 이번 변경은 build 및 53개 테스트(선택 runtime 2개 제외)와 실제 Fortress
 렌더링/scan·odometry·관절 상태 발행으로 확인했다.
 근거는 `artifacts/facility/glass-table-ceiling/`이다. 변경 후 전체 동선 주행은 미검증이다.
+
+## SCRUM-425 Navigation runtime 이관
+
+AMCL/Nav2, pan gate, depth projection, obstacle memory와 3D voxel guard의
+구현은 `cleany_navigation`이 소유한다. 기존 Python import와 executable은
+공통 구현으로 위임하며 Gazebo 카메라 TF publisher는 별도 adapter다.
+`amcl_nav2.launch.py`는 공통 basic launch, `amcl_nav2_safety.launch.py`는
+공통 full launch를 include한다. 기존 평가 YAML과 simulation 전용 park profile은
+이 패키지에 유지한다.
+
+기존 safety 평가의 기본 memory/voxel 비활성 모드를 유지한다. CAD 전체 직렬
+경로를 사용할 때는 두 옵션을 명시한다. Backend와 saved map을 먼저 준비한다.
+
+```bash
+ros2 launch cleany_gazebo_sim amcl_nav2_safety.launch.py \
+  map:=/absolute/path/map.yaml \
+  safety_params_file:=/absolute/path/cad_nav2_safety.yaml \
+  memory_enabled:=true voxel_enabled:=true
+```
+
+CAD pan metadata가 있는 safety profile은 measured pan TF와 Gazebo actuator
+bridge를 사용한다. Legacy profile은 고정 camera TF를 사용한다. Depth optical
+frame 변환은 adapter가 제공하며 공통 노드는 TF를 발행하지 않는다. 실제 로봇은
+`cleany_navigation navigation.launch.py`와 로봇 설정을 사용한다.
+명령·설정·안전 경계는 [공통 navigation README](../cleany_navigation/README.md)를
+따른다. 평가 snapshot은 이동된 공통 코드도 함께 기록한다.
+
+```bash
+make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic
+```
+
+위 opt-in 테스트는 임시로 만든 6m 방과 일치하는 지도를 사용한다. CAD 모델의 Gazebo sensor,
+wheel odom, pan/monitor/memory/voxel 전체 경로에서 전진, 후진, 90도 방향 전환 후 이동과
+정지를 검사한다. 모든 속도 단계의 Y 명령이 0이고 병진과 회전이 혼합되지 않는지도 확인한다.
+기본 주행은 전·후진과 제자리 회전이며, 횡이동은 공통 navigation 설정의 확장 옵션이다.
+정확한 spawn과 ideal odometry, 초기 pose 표준편차 5mm/0.5도,
+목표 허용 오차 5cm/0.08rad를 사용하는 동작 정책 검사다. 기본 runtime 허용 오차는 변경하지 않는다.
+기존 카페 지도에서의 경로 성능과 실제 localization 정밀도 검증과는 구분한다.
+
+Depth 바닥 제외: `/camera/head/depth/points`는 바닥을 포함한 관측 ray를 유지하고,
+`/camera/head/depth/obstacle_points`는 `base_link` 기준 `marking_min_z`–`marking_max_z`
+안의 점만 제공합니다. VoxelLayer는 전자를 clearing 전용, 후자를 marking 전용으로
+사용합니다. 기본 시뮬레이션 바닥은 z=-0.38 m이고 marking 최소 높이는 -0.33 m입니다.
+CAD 카메라 주행 자세는 수평에서 아래로 20°입니다. 실물 높이 기준은 로봇 parameter로
+맞춰야 합니다.
+
+SCRUM-425 직선 주행은 공통 `StraightFirstPlanner`의 전체 footprint 검사 후 직선 우선,
+장애물 구간은 기존 Smac lattice를 사용한다. 이동·회전 동시 명령은 금지하고, 같은 축 재출발과
+경로 갱신이 불필요한 settle을 만들지 않도록 공통 제어기를 사용한다. BT 경로 검사는 100ms 주기다.
+
+Fortress GUI 실행도 서버를 `ign gazebo -r -s`로 독립 실행하고 GUI는
+`ign gazebo -g`로 같은 partition에 연결한다. GUI를 닫아도 서버 physics는 별도로 유지된다.
+
+기본 sensor profile의 core bridge는 `/gazebo/raw_clock`, `/gazebo/raw_joint_states`를
+`gazebo_feedback_sampler`로 전달한다. 샘플러의 `publish_period_s` 기본 0.02초(50Hz)로
+clock 및 해당 clock보다 미래가 아닌 관절 피드백을 전달한다. 원래 stamp는 보존하며
+시뮬 정지 시 같은 데이터를 재발행해 신선한 것처럼 만들지 않는다.
+명시적인 bridge_config override는 이 기본 샘플링을 적용하지 않는다.
+Fortress 센서 서버의 `server_gallium_thread` 기본값은 0이다. Adreno/Freedreno에서
+비동기 GL 결과를 기다리며 LiDAR readback과 physics가 멈추는 현상을 완화하기 위해
+서버 프로세스의 `GALLIUM_THREAD`만 설정한다. GPU 렌더링·센서 해상도는 유지한다.
+기존 환경의 `GALLIUM_THREAD` 또는 launch의 `server_gallium_thread:=1`로 변경 가능하다.
+GUI 및 다른 실행 세션의 드라이버 설정은 변경하지 않는다.
+
+### 메카넘 마찰 방향의 XML namespace
+
+World 저장 시 `ignition:expressed_in` / `gz:expressed_in` 접두사를 보존한다.
+Fortress/Harmonic 실행기는 외부 world도 임시 복사본으로 정규화한다. DART가 이 속성을
+문자열 이름으로 조회하므로 `ns0:expressed_in`으로 바뀌면 차체 기준 마찰 방향이
+무시되어 대각선 명령이 불필요한 회전과 odometry 불일치를 만들 수 있다.
+원본 world와 mesh는 변경하지 않는다.
+
+Study-cafe chairs are positioned 0.285 m from their assigned desk centers
+on either side (10 cm farther under each desk than the previous layout).
+Both visual and collision geometry move together. Previously saved SLAM maps
+retain the old furniture positions and must be refreshed before navigation
+validation against this layout.
+
+
+자율주행 우선 검증을 위해 CAD Gazebo profile(`config/cad_frame.yaml`)은
+`simulation_excluded_link_roots`로 양쪽 팔 subtree를 제외한다. 시각·물리
+형상과 손목 카메라를 함께 제거하며, 같은 profile을 voxel guard 및 depth
+자기 몸체 필터에 전달한다. 생성된 model metadata의 bounds로 주행 footprint와
+Stop/Slow polygon을 갱신해야 한다. 실제 URDF와 하드웨어의 팔은 유지된다.
+기본 Nav2는 `axis_motion:=false`의 자유로운 omni 이동과 이동 방향 camera pan을
+사용한다. 이 결과는 팔 없는 Gazebo 자율주행 검증에 한정한다.
+
+### 통합 runtime의 시설 launch
+
+시설과 D-HUB launch는 `launch_helpers.study_cafe`를 공유한다. 시설도 최신
+wheel odometry, LiDAR noise, sensor profile과 Fortress feedback sampler를 사용한다.
+`robot_spawn_pose`로 시설 기본 spawn을 덮어쓸 수 있으며 `headless_rendering`과
+`server_gallium_thread`를 Fortress 서버로 전달한다. `world_output`을 지정하지 않은
+D-HUB 실행은 실행별 임시 디렉터리를 사용한다.
+
+시설의 CAD 모델도 현재 `cad_frame.yaml`을 사용하므로 navigation 브랜치의
+팔 제외 설정과 20도 카메라 기울기가 적용된다. 위 시설 브랜치의 과거 CAD 렌더링 및
+주행 기록은 통합 모델의 검증 결과가 아니다. 시설 SDF 저장 시 메카넘 마찰 방향의
+XML namespace를 보존한다.

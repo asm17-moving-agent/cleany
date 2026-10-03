@@ -168,3 +168,18 @@ Pyright를 사용하려면 [개발환경 설치 가이드](../docs/DEVELOPMENT_S
 `make sim-gazebo-study-cafe`를 사용한다. 모델 선택·도면 좌표·추정 치수와
 Gazebo 이미지/scan/동선 검증은
 [Gazebo package README](src/cleany_gazebo_sim/README.md#전체-18층-시설과-roly-의자)를 따른다.
+
+## 공통 Navigation runtime (SCRUM-425)
+
+```bash
+make build-navigation
+make test-navigation
+make test-navigation-runtime
+```
+
+위 target은 별도 `build-navigation`/`install-navigation`/`log-navigation`을 사용해
+`cleany_navigation`과 description dependency만 빌드한다. Gazebo 없이 saved-map
+AMCL/Nav2와 pan → Collision Monitor → 3D voxel guard를 실행할 수 있다.
+실행 계약과 필수 robot 설정은
+[`cleany_navigation/README.md`](src/cleany_navigation/README.md)를 따른다.
+기존 Gazebo Nav2 launch는 공통 runtime에 simulation adapter를 붙인다.

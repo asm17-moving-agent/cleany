@@ -92,27 +92,17 @@ def test_saved_map_metadata_references_installed_pgm() -> None:
         assert stream.readline().strip() == b'222 249'
 
 
-def test_launch_starts_minimal_amcl_nav2_stack() -> None:
+def test_launch_delegates_amcl_nav2_to_common_package() -> None:
     source = NAV2_LAUNCH.read_text(encoding='utf-8')
     ast.parse(source)
-
-    for package in (
-        'nav2_map_server',
-        'nav2_amcl',
-        'nav2_controller',
-        'nav2_planner',
-        'nav2_behaviors',
-        'nav2_bt_navigator',
-        'nav2_lifecycle_manager',
-    ):
-        assert f"package='{package}'" in source
-    assert "'node_names': ['map_server', 'amcl']" in source
-    assert "'controller_server'" in source
-    assert "'bt_navigator'" in source
+    assert "get_package_share_directory('cleany_navigation')" in source
+    assert 'IncludeLaunchDescription' in source
+    assert 'amcl_nav2.launch.py' in source
+    assert "default_value='true'" in source
 
 
 def test_package_declares_nav2_runtime_dependencies() -> None:
-    root = ET.parse(PACKAGE_XML).getroot()
+    root = ET.parse(PACKAGE_ROOT.parent/'cleany_navigation/package.xml').getroot()
     dependencies = {
         element.text
         for tag in ('depend', 'exec_depend')
