@@ -4,6 +4,10 @@ from __future__ import annotations
 import numpy as np
 
 
+def stamp(msg) -> float:
+    return (msg.sec*1_000_000_000+msg.nanosec)/1e9
+
+
 def transform(points: np.ndarray, pose) -> np.ndarray:
     q, t = pose.rotation, pose.translation
     values = np.array([q.x, q.y, q.z, q.w, t.x, t.y, t.z], dtype=float)

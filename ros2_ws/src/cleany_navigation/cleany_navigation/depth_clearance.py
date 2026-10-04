@@ -59,6 +59,15 @@ def decode_depth_image(data: bytes, width: int, height: int, step: int,
     return np.asarray(array, dtype=np.float32) * scale
 
 
+def rectified_intrinsics(k, p) -> tuple[float, float, float, float] | None:
+    """fx, fy, cx, cy from a monocular rectified P when published, else K; None for an invalid P."""
+    if not any(p):
+        return k[0], k[4], k[2], k[5]
+    if not np.isfinite(p).all() or abs(p[3])+abs(p[7]) > 1e-9:
+        return None
+    return p[0], p[5], p[2], p[6]
+
+
 def project_depth_image(
     depth: np.ndarray,
     intrinsics: tuple[float, float, float, float],

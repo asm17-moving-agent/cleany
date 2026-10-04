@@ -26,6 +26,27 @@ bool inside(double x, double y, const std::vector<geometry_msgs::msg::Point> &f)
       x<(f[j].x-f[i].x)*(y-f[i].y)/(f[j].y-f[i].y)+f[i].x) result=!result;
   return result;
 }
+// Nav2's boundary checker alone can miss a small obstacle inside the body.
+bool footprintPoseFree(nav2_costmap_2d::Costmap2D &map,
+  nav2_costmap_2d::FootprintCollisionChecker<nav2_costmap_2d::Costmap2D*> &checker,
+  const std::vector<geometry_msgs::msg::Point> &footprint,double x,double y,double theta) {
+  unsigned int mx,my;
+  if(!std::isfinite(x+y+theta) || !map.worldToMap(x,y,mx,my) ||
+    map.getCost(mx,my)>=nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE)return false;
+  const auto cost=checker.footprintCostAtPose(x,y,theta,footprint);
+  if(cost<0 || cost>=nav2_costmap_2d::LETHAL_OBSTACLE)return false;
+  std::vector<geometry_msgs::msg::Point> oriented;nav2_costmap_2d::transformFootprint(x,y,theta,footprint,oriented);
+  unsigned int minx=map.getSizeInCellsX(),miny=map.getSizeInCellsY(),maxx=0,maxy=0;
+  for(const auto &p:oriented) {
+    if(!map.worldToMap(p.x,p.y,mx,my))return false;
+    minx=std::min(minx,mx);maxx=std::max(maxx,mx);miny=std::min(miny,my);maxy=std::max(maxy,my);
+  }
+  for(unsigned int i=minx;i<=maxx;++i)for(unsigned int j=miny;j<=maxy;++j) {
+    double wx,wy;map.mapToWorld(i,j,wx,wy);
+    if(inside(wx,wy,oriented) && map.getCost(i,j)>=nav2_costmap_2d::LETHAL_OBSTACLE)return false;
+  }
+  return true;
+}
 bool validSweptInput(const nav_msgs::msg::Path &route,
   const std::vector<geometry_msgs::msg::Point> &footprint,const std::function<bool()> &cancel) {
   if(route.header.frame_id.empty() || route.poses.empty() || footprint.size()<3 || cancel())return false;
@@ -44,12 +65,11 @@ bool sweptPathCollisionFree(const nav_msgs::msg::Path &route,
   const std::function<bool()> &cancel) {
   if(!validSweptInput(route,footprint,cancel))return false;
   std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> lock(*map.getMutex());
-  const auto &path=route;
-  auto previous=path.poses.front().pose;
+  auto previous=route.poses.front().pose;
   geometry_msgs::msg::Pose2D a;a.x=previous.position.x;a.y=previous.position.y;
   a.theta=yaw(previous.orientation);
   if(!sweptFootprintFree(map,footprint,a,a))return false;
-  for(const auto &p:path.poses) {
+  for(const auto &p:route.poses) {
     if(cancel())return false;
     geometry_msgs::msg::Pose2D b;b.x=p.pose.position.x;b.y=p.pose.position.y;
     b.theta=a.theta+wrap(yaw(p.pose.orientation)-a.theta);
@@ -86,21 +106,7 @@ bool pathCollisionFree(const nav_msgs::msg::Path &path, nav2_costmap_2d::Costmap
   nav2_costmap_2d::FootprintCollisionChecker<nav2_costmap_2d::Costmap2D*> checker(&map);
   double radius=0.;for(const auto &p:footprint)radius=std::max(radius,std::hypot(p.x,p.y));
   auto valid=[&](double x,double y,double theta) {
-    unsigned int mx,my;
-    if(cancel() || !std::isfinite(x+y+theta) || !map.worldToMap(x,y,mx,my) || map.getCost(mx,my)>=253) return false;
-    const auto cost=checker.footprintCostAtPose(x,y,theta,footprint);
-    if(cost<0 || cost>=254)return false;
-    std::vector<geometry_msgs::msg::Point> oriented;nav2_costmap_2d::transformFootprint(x,y,theta,footprint,oriented);
-    unsigned int minx=map.getSizeInCellsX(),miny=map.getSizeInCellsY(),maxx=0,maxy=0;
-    for(const auto &p:oriented) {
-      if(!map.worldToMap(p.x,p.y,mx,my))return false;
-      minx=std::min(minx,mx);maxx=std::max(maxx,mx);miny=std::min(miny,my);maxy=std::max(maxy,my);
-    }
-    for(unsigned int i=minx;i<=maxx;++i)for(unsigned int j=miny;j<=maxy;++j) {
-      double wx,wy;map.mapToWorld(i,j,wx,wy);
-      if(inside(wx,wy,oriented) && map.getCost(i,j)>=254)return false;
-    }
-    return true;
+    return !cancel() && footprintPoseFree(map,checker,footprint,x,y,theta);
   };
   auto previous=path.poses.front().pose;
   if(!valid(previous.position.x,previous.position.y,yaw(previous.orientation)))return false;
@@ -371,23 +377,7 @@ nav_msgs::msg::Path checkedStraightPath(
   for (const auto &p:footprint) radius=std::max(radius,std::hypot(p.x,p.y));
   const double step=map.getResolution()/2;
   auto append=[&](double x,double y,double theta) {
-    if (cancel() || !std::isfinite(x+y+theta)) return false;
-    unsigned int mx,my;
-    if (!map.worldToMap(x,y,mx,my) || map.getCost(mx,my)>=nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) return false;
-    auto cost=checker.footprintCostAtPose(x,y,theta,footprint);
-    if (cost<0 || cost>=nav2_costmap_2d::LETHAL_OBSTACLE) return false;
-    // Nav2's boundary checker alone can miss a small obstacle inside the body.
-    std::vector<geometry_msgs::msg::Point> oriented;
-    nav2_costmap_2d::transformFootprint(x,y,theta,footprint,oriented);
-    unsigned int minx=map.getSizeInCellsX(),miny=map.getSizeInCellsY(),maxx=0,maxy=0;
-    for (const auto &p:oriented) {
-      if (!map.worldToMap(p.x,p.y,mx,my)) return false;
-      minx=std::min(minx,mx);maxx=std::max(maxx,mx);miny=std::min(miny,my);maxy=std::max(maxy,my);
-    }
-    for (unsigned int i=minx;i<=maxx;++i) for (unsigned int j=miny;j<=maxy;++j) {
-      double wx,wy;map.mapToWorld(i,j,wx,wy);
-      if (inside(wx,wy,oriented) && map.getCost(i,j)>=nav2_costmap_2d::LETHAL_OBSTACLE) return false;
-    }
+    if (cancel() || !footprintPoseFree(map,checker,footprint,x,y,theta)) return false;
     auto p=start;p.pose.position.x=x;p.pose.position.y=y;
     p.pose.orientation=geometry_msgs::msg::Quaternion();p.pose.orientation.z=std::sin(theta/2);p.pose.orientation.w=std::cos(theta/2);
     path.poses.push_back(p);return true;

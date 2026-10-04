@@ -7,6 +7,31 @@
 #include <nlohmann/json.hpp>
 #include "pluginlib/class_list_macros.hpp"
 namespace cleany_navigation {
+namespace {
+// Offer one direction at several speeds, clamped to the velocity box.
+void addDirectionCandidates(std::vector<nav_2d_msgs::msg::Twist2D> &candidates,
+  double ux,double uy,double speed,dwb_plugins::KinematicParameters limits) {
+  const double unit[]={ux,uy},lower[]={limits.getMinX(),limits.getMinY()},
+    upper[]={limits.getMaxX(),limits.getMaxY()};
+  for(int i=0;i<2;++i) {
+    if(unit[i]>1e-12)speed=std::min(speed,upper[i]/unit[i]);
+    else if(unit[i]<-1e-12)speed=std::min(speed,lower[i]/unit[i]);
+  }
+  // Stay inside the mathematical cap after division/multiplication
+  // round-off. Otherwise a legal max-speed vector can round one ULP above
+  // max_speed_xy and disappear, changing the candidate set discontinuously.
+  // Keep the strict bound checks below; do not widen any velocity limit.
+  speed=std::nextafter(std::nextafter(speed,0.),0.);
+  if(!std::isfinite(speed) || speed<=0.)return;
+  for(double fraction:{.25,.5,1.}) {
+    nav_2d_msgs::msg::Twist2D cmd;cmd.x=ux*speed*fraction;cmd.y=uy*speed*fraction;
+    const double magnitude=std::hypot(cmd.x,cmd.y);
+    if(cmd.x<lower[0] || cmd.x>upper[0] || cmd.y<lower[1] || cmd.y>upper[1] ||
+       magnitude<limits.getMinSpeedXY() || magnitude>limits.getMaxSpeedXY())continue;
+    candidates.push_back(cmd);
+  }
+}
+}
 HolonomicGenerator::~HolonomicGenerator() {
   if(timing_trace_file_.empty())return;
   try {
@@ -120,21 +145,7 @@ void HolonomicGenerator::startNewIteration(const nav_2d_msgs::msg::Twist2D &curr
       const double length=std::hypot(direction.x,direction.y);
       if(!std::isfinite(length) || length<=1e-6)continue;
       const double ux=direction.x/length,uy=direction.y/length;
-      double speed=limits.getMaxSpeedXY();
-      const double unit[]={ux,uy},low[]={limits.getMinX(),limits.getMinY()},
-        high[]={limits.getMaxX(),limits.getMaxY()};
-      for(int i=0;i<2;++i) {
-        if(unit[i]>1e-12)speed=std::min(speed,high[i]/unit[i]);
-        else if(unit[i]<-1e-12)speed=std::min(speed,low[i]/unit[i]);
-      }
-      speed=std::nextafter(std::nextafter(speed,0.),0.);
-      for(double fraction:{.25,.5,1.}) {
-        nav_2d_msgs::msg::Twist2D cmd;cmd.x=ux*speed*fraction;cmd.y=uy*speed*fraction;
-        if(speed<=0. || cmd.x<low[0] || cmd.x>high[0] || cmd.y<low[1] || cmd.y>high[1] ||
-           std::hypot(cmd.x,cmd.y)<limits.getMinSpeedXY() ||
-           std::hypot(cmd.x,cmd.y)>limits.getMaxSpeedXY())continue;
-        candidates_.push_back(cmd);
-      }
+      addDirectionCandidates(candidates_,ux,uy,limits.getMaxSpeedXY(),limits);
     }
   }
   if(goal_context && goal_directed_radius_>0.) {
@@ -146,26 +157,7 @@ void HolonomicGenerator::startNewIteration(const nav_2d_msgs::msg::Twist2D &curr
       // targets only: inherited rollout and every critic still evaluate them.
       const double ux=(std::cos(pose.theta)*dx+std::sin(pose.theta)*dy)/distance;
       const double uy=(-std::sin(pose.theta)*dx+std::cos(pose.theta)*dy)/distance;
-      double speed=std::min(limits.getMaxSpeedXY(),distance/sim_time_);
-      const double unit[]={ux,uy},lower[]={limits.getMinX(),limits.getMinY()},
-        upper[]={limits.getMaxX(),limits.getMaxY()};
-      for(int i=0;i<2;++i) {
-        if(unit[i]>1e-12)speed=std::min(speed,upper[i]/unit[i]);
-        else if(unit[i]<-1e-12)speed=std::min(speed,lower[i]/unit[i]);
-      }
-      // Stay inside the mathematical cap after division/multiplication
-      // round-off. Otherwise a legal max-speed vector can round one ULP above
-      // max_speed_xy and disappear, changing the candidate set discontinuously.
-      // Keep the strict bound checks below; do not widen any velocity limit.
-      speed=std::nextafter(std::nextafter(speed,0.),0.);
-      if(std::isfinite(speed) && speed>0.)for(double fraction:{.25,.5,1.}) {
-        nav_2d_msgs::msg::Twist2D cmd;cmd.x=ux*speed*fraction;cmd.y=uy*speed*fraction;
-        const double magnitude=std::hypot(cmd.x,cmd.y);
-        if(cmd.x<limits.getMinX() || cmd.x>limits.getMaxX() ||
-           cmd.y<limits.getMinY() || cmd.y>limits.getMaxY() ||
-           magnitude<limits.getMinSpeedXY() || magnitude>limits.getMaxSpeedXY())continue;
-        candidates_.push_back(cmd);
-      }
+      addDirectionCandidates(candidates_,ux,uy,std::min(limits.getMaxSpeedXY(),distance/sim_time_),limits);
     }
   }
 }

@@ -16,7 +16,7 @@ from sensor_msgs.msg import CameraInfo, Image
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformListener, TransformException
 from cleany_navigation.body_geometry import load_body_boxes
-from cleany_navigation.depth_clearance import decode_depth_image
+from cleany_navigation.depth_clearance import decode_depth_image, rectified_intrinsics
 from cleany_navigation.depth_coverage import DepthView, SweptDepthCoverage
 from cleany_navigation.voxel_guard import GuardConfig
 from cleany_navigation.voxel_guard_node import pose_matrix, twist_vector
@@ -97,11 +97,9 @@ class DepthCoverageNode(Node):
                         raise ValueError('CAMERA_MISMATCH')
                     if not np.isfinite(camera.d).all() or any(abs(v) > 1e-9 for v in camera.d):
                         raise ValueError('UNRECTIFIED_DEPTH')
-                    intrinsics = (camera.k[0], camera.k[4], camera.k[2], camera.k[5])
-                    if any(camera.p):
-                        if not np.isfinite(camera.p).all() or abs(camera.p[3])+abs(camera.p[7]) > 1e-9:
-                            raise ValueError('INVALID_PROJECTION')
-                        intrinsics = (camera.p[0], camera.p[5], camera.p[2], camera.p[6])
+                    intrinsics = rectified_intrinsics(camera.k, camera.p)
+                    if intrinsics is None:
+                        raise ValueError('INVALID_PROJECTION')
                     pose = self.buffer.lookup_transform(self.p['fixed_frame'], msg.header.frame_id, when)
                     self.coverage.observe(DepthView(when.nanoseconds/1e9,
                         decode_depth_image(msg.data, msg.width, msg.height, msg.step, msg.encoding, msg.is_bigendian),

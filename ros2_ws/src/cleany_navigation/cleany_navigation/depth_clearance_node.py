@@ -1,9 +1,6 @@
 """Project rectified depth images to hits and bounded costmap clearing rays."""
 
 from __future__ import annotations
-from array import array
-
-from copy import deepcopy
 from pathlib import Path
 from ament_index_python.packages import get_package_share_directory
 from rclpy.time import Time
@@ -17,9 +14,10 @@ import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
-from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
+from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 
-from cleany_navigation.depth_clearance import project_depth_image, decode_depth_image, obstacle_height_mask, self_observation_mask
+from cleany_navigation.depth_clearance import project_depth_image, decode_depth_image, obstacle_height_mask, rectified_intrinsics, self_observation_mask
+from cleany_navigation.point_cloud import xyz_cloud
 
 
 class DepthClearanceNode(Node):
@@ -99,11 +97,9 @@ class DepthClearanceNode(Node):
             return
         try:
             depth = decode_depth_image(msg.data, msg.width, msg.height, msg.step, msg.encoding, msg.is_bigendian)
-            intrinsics = (camera.k[0], camera.k[4], camera.k[2], camera.k[5])
-            if any(camera.p):
-                if not np.isfinite(camera.p).all() or abs(camera.p[3])+abs(camera.p[7]) > 1e-9:
-                    raise ValueError('Expected a finite monocular rectified projection matrix')
-                intrinsics = (camera.p[0], camera.p[5], camera.p[2], camera.p[6])
+            intrinsics = rectified_intrinsics(camera.k, camera.p)
+            if intrinsics is None:
+                raise ValueError('Expected a finite monocular rectified projection matrix')
             points = project_depth_image(depth, intrinsics,
                                           pixel_stride=self.stride,
                                           positive_infinity_is_free=self.get_parameter('positive_infinity_is_free').value,
@@ -135,26 +131,14 @@ class DepthClearanceNode(Node):
         sensor_origin = np.array([pose.translation.x, pose.translation.y, pose.translation.z])
         keep = self_observation_mask(body_points, sensor_origin, self.self_boxes, self.self_filter_margin)
         # Occluded self rays are discarded, never converted to free-space rays.
-        points = np.ascontiguousarray(points[keep])
+        points = points[keep]
         body_points = body_points[keep]
-        output = PointCloud2()
-        output.header.stamp = msg.header.stamp
-        output.header.frame_id = self.get_parameter('camera_frame').value
-        output.height, output.width = 1, len(points)
-        output.fields = [PointField(name=n, offset=i*4, datatype=PointField.FLOAT32, count=1) for i, n in enumerate(('x', 'y', 'z'))]
-        output.point_step = 12
-        output.row_step = output.width*12
-        output.is_dense = True
-        output.data = array('B', points.tobytes())
-        self.publisher.publish(output)
+        self.publisher.publish(xyz_cloud(points, output_frame, msg.header.stamp))
         # Marking cloud excludes floor/ceiling; the full cloud remains available
         # to clear occupied space along the actually observed rays.
-        marked = deepcopy(output)
-        hits = np.ascontiguousarray(points[obstacle_height_mask(body_points,
-            self.get_parameter('marking_min_z').value, self.get_parameter('marking_max_z').value)])
-        marked.width = len(hits); marked.row_step = marked.width * marked.point_step
-        marked.data = array('B', hits.tobytes())
-        self.obstacles.publish(marked)
+        hits = points[obstacle_height_mask(body_points,
+            self.get_parameter('marking_min_z').value, self.get_parameter('marking_max_z').value)]
+        self.obstacles.publish(xyz_cloud(hits, output_frame, msg.header.stamp))
 
 
 def main(args: list[str] | None = None) -> None:

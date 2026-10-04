@@ -42,6 +42,13 @@ def pose_matrix(pose) -> np.ndarray:
     return matrix
 
 
+def localization_jumped(previous: np.ndarray | None, current: np.ndarray, max_m: float, max_rad: float) -> bool:
+    if previous is None:
+        return False
+    change = np.linalg.inv(previous)@current
+    return bool(np.linalg.norm(change[:2, 3]) > max_m or abs(np.arctan2(change[1, 0], change[0, 0])) > max_rad)
+
+
 class VoxelGuardNode(Node):
     def __init__(self):
         super().__init__('voxel_guard')
@@ -151,11 +158,9 @@ class VoxelGuardNode(Node):
         if not np.isfinite(pose).all() or np.linalg.norm(pose[:2, 2]) > .05:
             raise ValueError('Non-planar base pose')
         map_odom = pose_matrix(self.buffer.lookup_transform(self.p['map_frame'], self.p['odom_frame'], Time()).transform)
-        if self.previous_map_odom is not None:
-            change = np.linalg.inv(self.previous_map_odom)@map_odom
-            if np.linalg.norm(change[:2, 3]) > self.p['localization_jump_m'] or abs(np.arctan2(change[1, 0], change[0, 0])) > self.p['localization_jump_rad']:
-                self.fault = 'Localization jumped; rebuild voxel map before restarting guard'
-                raise ValueError(self.fault)
+        if localization_jumped(self.previous_map_odom, map_odom, self.p['localization_jump_m'], self.p['localization_jump_rad']):
+            self.fault = 'Localization jumped; rebuild voxel map before restarting guard'
+            raise ValueError(self.fault)
         self.previous_map_odom = map_odom
         size = np.asarray(self.status['voxel_size'], dtype=float)
         if size.shape != (3,) or not np.isfinite(size).all() or np.any(size <= 0):

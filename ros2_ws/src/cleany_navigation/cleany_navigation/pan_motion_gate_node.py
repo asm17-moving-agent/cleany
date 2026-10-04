@@ -17,10 +17,7 @@ from std_msgs.msg import Float64, String
 
 from cleany_navigation.pan_motion_gate import PanGate, PanTracker
 from cleany_navigation.point_cloud import cloud_xyz
-
-
-def stamp(msg) -> float:
-    return (msg.sec * 1_000_000_000 + msg.nanosec) / 1e9
+from cleany_navigation.transforms import stamp
 
 
 def velocity(msg) -> tuple[float, float, float]:

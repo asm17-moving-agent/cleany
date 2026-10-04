@@ -1,7 +1,6 @@
 """Final command owner using direct LiDAR/depth and a steady-clock watchdog."""
 from __future__ import annotations
 
-from itertools import product
 import json
 from pathlib import Path
 import time
@@ -22,13 +21,9 @@ from tf2_ros import Buffer, TransformListener, TransformException
 from cleany_navigation.body_geometry import load_body_boxes
 from cleany_navigation.point_cloud import cloud_xyz
 from cleany_navigation.reactive_guard import InputWatchdog, PlanarBrakingGuard
-from cleany_navigation.transforms import transform
+from cleany_navigation.transforms import stamp, transform
 from cleany_navigation.voxel_guard import GuardConfig
-from cleany_navigation.voxel_guard_node import pose_matrix, twist_vector
-
-
-def stamp(msg) -> float:
-    return (msg.sec*1_000_000_000+msg.nanosec)/1e9
+from cleany_navigation.voxel_guard_node import localization_jumped, pose_matrix, twist_vector
 
 
 class ReactiveGuardNode(Node):
@@ -55,8 +50,7 @@ class ReactiveGuardNode(Node):
             raise ValueError('Distinct command topics, body profile and height interval required')
         boxes = load_body_boxes(Path(get_package_share_directory('cleany_description')), Path(p['profile']),
                                 allow_simulation_limits=p['allow_simulation_limits'])
-        signs = np.array(list(product((-1., 1.), repeat=3)))
-        corners = np.concatenate([(signs*b.half_size)@b.rotation.T+b.center for b in boxes])
+        corners = np.concatenate([b.corners() for b in boxes])
         self.guard = PlanarBrakingGuard(corners[:, :2].min(axis=0), corners[:, :2].max(axis=0),
                                        GuardConfig(**{k: p[k] for k in vars(GuardConfig())}))
         self.watchdog = InputWatchdog(p['source_timeout_s'], p['command_timeout_s'])
@@ -140,11 +134,8 @@ class ReactiveGuardNode(Node):
         if np.linalg.norm(pose[:2, 2]) > .05:
             raise ValueError('NON_PLANAR_BASE')
         map_odom = pose_matrix(self.buffer.lookup_transform(self.p['map_frame'], self.p['odom_frame'], Time()).transform)
-        if self.previous_map_odom is not None:
-            change = np.linalg.inv(self.previous_map_odom)@map_odom
-            if (np.linalg.norm(change[:2, 3]) > self.p['localization_jump_m']
-                    or abs(np.arctan2(change[1, 0], change[0, 0])) > self.p['localization_jump_rad']):
-                self.watchdog.fault = 'LOCALIZATION_JUMP_RESTART_REQUIRED'
+        if localization_jumped(self.previous_map_odom, map_odom, self.p['localization_jump_m'], self.p['localization_jump_rad']):
+            self.watchdog.fault = 'LOCALIZATION_JUMP_RESTART_REQUIRED'
         self.previous_map_odom = map_odom
         points = np.concatenate([self.observations.get(k, np.empty((0, 3))) for k in ('scan', 'depth')])
         points = (points-pose[:3, 3])@pose[:3, :3]

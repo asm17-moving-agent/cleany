@@ -8,6 +8,8 @@ from xml.etree import ElementTree as ET
 
 import numpy as np
 
+_SIGNS = np.array(list(product((-1., 1.), repeat=3)))
+
 
 @dataclass(frozen=True)
 class BodyBox:
@@ -25,6 +27,9 @@ class BodyBox:
             object.__setattr__(self, name, value)
         if (self.half_size < 0).any() or not np.allclose(self.rotation.T@self.rotation, np.eye(3)) or not np.isclose(np.linalg.det(self.rotation), 1.):
             raise ValueError('Invalid body extent or rotation')
+
+    def corners(self) -> np.ndarray:
+        return (_SIGNS*self.half_size)@self.rotation.T+self.center
 
     def distances(self, points: np.ndarray) -> np.ndarray:
         local = (points-self.center)@self.rotation
@@ -88,11 +93,10 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
         return result
     if config.get('dynamic_pan', False):
         pivot = transforms['head_pan_link'][:3, 3]
-        signs = np.array(list(product((-1., 1.), repeat=3)))
         expanded = []
         for box in result:
             if box.name.startswith(('head_pan_link/', 'head_tilt_link/', 'head_camera')):
-                corners = (signs*box.half_size)@box.rotation.T+box.center
+                corners = box.corners()
                 radius = np.linalg.norm(corners[:, :2]-pivot[:2], axis=1).max()
                 low, high = corners[:, 2].min(), corners[:, 2].max()
                 box = BodyBox(box.name, np.array([*pivot[:2], (low+high)/2]),
@@ -102,12 +106,10 @@ def load_body_boxes(description: Path, profile: Path, *, merge: bool = True, all
     if frame_names:
         frame_box = merge_body_boxes([b for b in result if b.name in frame_names],
                                      np.eye(4), 'profile_frame/merged')
-        signs = np.array(list(product((-1., 1.), repeat=3)))
         # Interior fixed parts already covered by the frame envelope are redundant.
         for b in result:
             if b.name.startswith('base_link/'):
-                corners = (signs*b.half_size)@b.rotation.T+b.center
-                if np.all(frame_box.distances(corners) <= 1e-10):
+                if np.all(frame_box.distances(b.corners()) <= 1e-10):
                     frame_names.add(b.name)
         result = [b for b in result if b.name not in frame_names]+[frame_box]
     # All rollers, hub visuals and collision elements of a wheel share one OBB.
@@ -154,8 +156,7 @@ def merge_body_boxes(boxes: list[BodyBox], frame: np.ndarray, name: str) -> Body
     """
     if not boxes:
         raise ValueError('Cannot merge empty body geometry')
-    signs = np.array(list(product((-1., 1.), repeat=3)))
-    corners = np.concatenate([(signs*b.half_size)@b.rotation.T+b.center for b in boxes])
+    corners = np.concatenate([b.corners() for b in boxes])
     local = (corners-frame[:3, 3])@frame[:3, :3]
     low, high = local.min(axis=0), local.max(axis=0)
     return BodyBox(name, frame[:3, :3]@((low+high)/2)+frame[:3, 3],
