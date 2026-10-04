@@ -90,33 +90,19 @@ class MecanumOdometry:
         previous_stamp_s = self._previous_stamp_s
         self._previous_positions = positions
         self._previous_stamp_s = stamp_s
-        if previous_positions is None or previous_stamp_s is None:
+        if (
+            previous_positions is None
+            or previous_stamp_s is None
+            or stamp_s <= previous_stamp_s
+        ):
             self._velocity_history.clear()
             self._velocity_history.append((stamp_s, positions))
             return None
 
         dt_s = stamp_s - previous_stamp_s
-        if dt_s <= 0.0:
-            self._velocity_history.clear()
-            self._velocity_history.append((stamp_s, positions))
-            return None
-
-        current = positions.as_tuple()
-        previous = previous_positions.as_tuple()
-        front_left, front_right, rear_left, rear_right = (
-            current[index] - previous[index] for index in range(4)
+        forward_m, lateral_m, yaw_delta_rad = self._body_delta(
+            positions, previous_positions
         )
-
-        radius_scale = self._geometry.wheel_radius_m / 4.0
-        forward_m = radius_scale * (
-            front_left + front_right + rear_left + rear_right
-        )
-        lateral_m = radius_scale * (
-            -front_left + front_right + rear_left - rear_right
-        )
-        yaw_delta_rad = radius_scale * (
-            -front_left + front_right - rear_left + rear_right
-        ) / self._geometry.center_to_wheel_sum_m
 
         midpoint_yaw = self._yaw_rad + yaw_delta_rad / 2.0
         self._x_m += (
@@ -150,15 +136,7 @@ class MecanumOdometry:
                 # After startup/clock reset/data gap, do not label an
                 # unobservable velocity as a fresh measured zero.
                 return None
-            fl, fr, rl, rr = (
-                current[index] - old_positions.as_tuple()[index]
-                for index in range(4)
-            )
-            velocity_delta = (
-                radius_scale * (fl + fr + rl + rr),
-                radius_scale * (-fl + fr + rl - rr),
-                radius_scale * (-fl + fr - rl + rr) / self._geometry.center_to_wheel_sum_m,
-            )
+            velocity_delta = self._body_delta(positions, old_positions)
 
         return OdometryEstimate(
             x_m=self._x_m,
@@ -167,4 +145,21 @@ class MecanumOdometry:
             linear_x_mps=velocity_delta[0] / velocity_dt,
             linear_y_mps=velocity_delta[1] / velocity_dt,
             angular_z_rps=velocity_delta[2] / velocity_dt,
+        )
+
+    def _body_delta(
+        self, current: WheelPositions, previous: WheelPositions
+    ) -> tuple[float, float, float]:
+        """Forward, lateral and yaw displacement between two wheel samples."""
+        front_left, front_right, rear_left, rear_right = (
+            now - before
+            for now, before in zip(current.as_tuple(), previous.as_tuple())
+        )
+        radius_scale = self._geometry.wheel_radius_m / 4.0
+        return (
+            radius_scale * (front_left + front_right + rear_left + rear_right),
+            radius_scale * (-front_left + front_right + rear_left - rear_right),
+            radius_scale
+            * (-front_left + front_right - rear_left + rear_right)
+            / self._geometry.center_to_wheel_sum_m,
         )

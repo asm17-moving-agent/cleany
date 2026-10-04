@@ -6,6 +6,10 @@ from xml.etree import ElementTree
 
 import pytest
 import yaml
+from launch.launch_description_sources import (
+    get_launch_description_from_python_launch_file,
+)
+from launch.substitutions import LaunchConfiguration
 
 from cleany_gazebo_sim.gazebo_slam_experiment import (
     load_mount_profiles,
@@ -13,6 +17,7 @@ from cleany_gazebo_sim.gazebo_slam_experiment import (
     record_result,
     validate_result,
 )
+from cleany_gazebo_sim.launch_helpers.robot_nodes import robot_runtime_nodes
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
@@ -222,19 +227,37 @@ def test_result_validation_rejects_invalid_ratio() -> None:
         )
 
 
+def _launch_configurations(value) -> set[str]:
+    """Names of every LaunchConfiguration reachable from node parameters."""
+    if isinstance(value, LaunchConfiguration):
+        return {''.join(part.text for part in value.variable_name)}
+    if isinstance(value, dict):
+        value = list(value.values())
+    elif hasattr(value, 'param_file'):
+        value = value.param_file
+    if isinstance(value, (list, tuple)):
+        return set().union(*map(_launch_configurations, value))
+    return set()
+
+
 def test_launch_profiles_accept_materialized_sensor_config() -> None:
     for launch_name in (
         'gazebo_fortress.launch.py',
         'gazebo_harmonic.launch.py',
     ):
-        launch = (PACKAGE_ROOT / 'launch' / launch_name).read_text(
-            encoding='utf-8'
+        description = get_launch_description_from_python_launch_file(
+            str(PACKAGE_ROOT / 'launch' / launch_name)
         )
-        assert "DeclareLaunchArgument(\n        'sensor_config'" in launch
-        sensor_node = launch.split(
-            "executable='gazebo_sensor_tf_publisher'", 1
-        )[1]
-        assert "LaunchConfiguration('sensor_config')" in sensor_node
+        assert 'sensor_config' in {
+            argument.name for argument in description.get_launch_arguments()
+        }
+    sensor_node = next(
+        node for node in robot_runtime_nodes(PACKAGE_ROOT / 'config' / 'base.yaml')
+        if node.node_executable == 'gazebo_sensor_tf_publisher'
+    )
+    assert 'sensor_config' in _launch_configurations(
+        sensor_node._Node__parameters
+    )
 
 
 def test_fortress_gui_renderer_is_machine_selectable() -> None:

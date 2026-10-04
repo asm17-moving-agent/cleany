@@ -44,7 +44,7 @@ class MockMcu(Node):
             if not self.have_command_sequence or newer(command.sequence, self.last_accepted_seq):
                 self.last_accepted_seq = command.sequence
                 self.have_command_sequence = True
-            self.enabled, self.target, self.last_command, self.valid_until_us = False, [0.] * 4, None, 0
+            self._disarm()
             return
         if not self.connected or command.protocol_version != 2:
             return
@@ -72,9 +72,12 @@ class MockMcu(Node):
         self.last_accepted_seq = command.sequence
         self.have_command_sequence = True
 
+    def _disarm(self):
+        self.enabled, self.target, self.last_command, self.valid_until_us = False, [0.] * 4, None, 0
+
     def _expire(self, now_us):
         if self.enabled and self.valid_until_us and now_us >= self.valid_until_us:
-            self.enabled, self.target, self.last_command, self.valid_until_us = False, [0.] * 4, None, 0
+            self._disarm()
             self.faults |= WheelState.FAULT_COMMAND_TIMEOUT
 
     def publish(self):
@@ -108,8 +111,8 @@ class MockMcu(Node):
         self.boot = (self.boot + 1) & 0xffffffff or 1
         self.sequence, self.last_accepted_seq = 0, 0
         self.have_command_sequence = False
-        self.enabled, self.target, self.last_command, self.faults = False, [0.] * 4, None, 0
-        self.valid_until_us = 0
+        self._disarm()
+        self.faults = 0
         self.encoder_counts, self.encoder_integers = [0.] * 4, [0] * 4
         response.success, response.message = True, 'mock MCU rebooted'
         return response
@@ -117,7 +120,7 @@ class MockMcu(Node):
     def transport(self, request, response):
         self.connected = request.data
         if not request.data:
-            self.enabled, self.target, self.last_command, self.valid_until_us = False, [0.] * 4, None, 0
+            self._disarm()
         response.success, response.message = True, 'feedback connected' if request.data else 'feedback disconnected'
         return response
 
@@ -127,7 +130,7 @@ class MockMcu(Node):
         return response
 
     def force_disarm(self, request, response):
-        self.enabled, self.target, self.last_command, self.valid_until_us = False, [0.] * 4, None, 0
+        self._disarm()
         response.success, response.message = True, 'mock MCU disabled'
         return response
 
