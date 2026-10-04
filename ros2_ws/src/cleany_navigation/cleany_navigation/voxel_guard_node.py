@@ -223,7 +223,8 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
-        node.velocity.publish(Twist())
+        if rclpy.ok():
+            node.velocity.publish(Twist())
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

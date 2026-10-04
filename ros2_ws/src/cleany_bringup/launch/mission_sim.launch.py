@@ -20,10 +20,7 @@ def _start(context):
     targets = load_targets(arg("targets_file"))
     if Path(arg("map")).stem != targets.map_id:
         raise ValueError("map filename and targets map_id must match; provide a matching targets_file")
-    # SCRUM navigation extraction can replace the legacy launch without copying its nodes here.
     navigation = Path(get_package_share_directory("cleany_navigation")) / "launch/amcl_nav2.launch.py"
-    if not navigation.is_file():
-        navigation = sim / "launch/amcl_nav2.launch.py"
     nodes = [
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(sim / "launch" / (
             "gazebo_study_cafe_fortress.launch.py" if arg("profile") == "fortress"

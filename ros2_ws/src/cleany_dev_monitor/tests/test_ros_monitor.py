@@ -130,7 +130,7 @@ def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, mo
     import rclpy
     from cleany_dev_monitor.node import MonitorNode
     from cleany_interfaces.msg import RuntimeDebugSnapshot
-    from geometry_msgs.msg import Twist
+    from geometry_msgs.msg import Point32, PolygonStamped, PoseWithCovarianceStamped, Twist
     from nav_msgs.msg import Odometry
     from nav2_msgs.msg import BehaviorTreeLog, BehaviorTreeStatusChange
     from dwb_msgs.msg import LocalPlanEvaluation, TrajectoryScore, CriticScore
@@ -224,6 +224,25 @@ def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, mo
         odom.child_frame_id = "world"
         monitor.navigation_receive("/wheel/odom", odom, 10.)
         assert "odometry" not in monitor.navigation.observations
+        # Non-finite covariance or polygon vertices must not make the snapshot unrecordable.
+        amcl = PoseWithCovarianceStamped()
+        amcl.header.frame_id = "map"
+        amcl.pose.pose.orientation.w = 1.
+        amcl.pose.covariance[0] = float("nan")
+        monitor.navigation_receive(monitor.config["amcl_pose_topic"], amcl, 10.)
+        zone = PolygonStamped()
+        zone.header.frame_id = "map"
+        zone.polygon.points = [Point32(x=1., y=0., z=0.), Point32(x=float("inf"), y=0., z=0.)]
+        monitor.navigation_receive(monitor.config["stop_polygon_topic"], zone, 10.)
+        observed = {(r["kind"],r["key"]):r["data"] for r in monitor.hub.snapshot()["rows"]}
+        assert observed[("navigation","amcl_pose")]["pose"] == [0., 0., 0.]
+        assert observed[("navigation","stop_polygon")]["points"] == [[1., 0., 0.]]
+        json.dumps(monitor.hub.snapshot(), allow_nan=False)
+        # A decode error is cleared by the next valid message on the same topic.
+        monitor.receive("/clock", String())
+        assert "/clock" in monitor.errors
+        monitor.receive("/clock", Clock(clock=stamp))
+        assert "/clock" not in monitor.errors
         published = monitor.get_publisher_names_and_types_by_node(monitor.get_name(),monitor.get_namespace())
         assert all(name in ("/rosout", "/parameter_events") for name,_ in published)
     finally:

@@ -252,4 +252,6 @@ def serve(hub, config, stop):
             {"kind": "server_error", "message": str(exc)},
             critical=True,
         )
-        print(f"Dev monitor HTTP worker failed: {exc}", flush=True)
+        from rclpy.logging import get_logger
+
+        get_logger("cleany_dev_monitor").error(f"HTTP worker failed: {exc}")

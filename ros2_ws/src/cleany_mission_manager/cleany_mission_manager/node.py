@@ -161,7 +161,7 @@ class MissionRuntimeNode(Node):
         except Exception as exc:
             # Diagnostic serialization must never prevent status/result publication.
             self.get_logger().warning(f"Debug publication failed: {exc}", throttle_duration_sec=10)
-        snapshot = self.runtime.snapshot()
+        snapshot = self.runtime.snapshot(include_completed=False)
         if snapshot["sequence"] != self.last_sequence:
             request = snapshot["active_request"]
             self.status_pub.publish(MissionStatus(

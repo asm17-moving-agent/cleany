@@ -96,8 +96,8 @@ class MonitorNode(Node):
             self.config["navigation_freshness_s"], self.config["stationary_speed_mps"],
             self.config["creep_speed_mps"], self.config["map_frame"])
         self.navigation_keys = {self.config[key+"_topic"]: key for key in (
-            "odometry", "ground_truth", "amcl_pose", "pan_state", "reactive_guard",
-            "voxel_guard", "collision_state", "coverage", "nav2_bt", "controller_evaluation",
+            "odometry", "ground_truth", "amcl_pose", "reactive_guard",
+            "voxel_guard", "coverage", "nav2_bt", "controller_evaluation",
             "scan", "depth_points", "risk_points", "footprint", "stop_polygon", "slow_polygon")}
         self.navigation_keys.update({self.config["pan_state_topic"]: "pan",
                                      self.config["collision_state_topic"]: "collision"})
@@ -452,6 +452,8 @@ class MonitorNode(Node):
                         self.navigation_receive(topic, message, ros_time)
         except (TypeError, AttributeError, ValueError, OverflowError) as exc:
             self.errors[topic] = f"Decode/transform: {exc}"
+        else:
+            self.errors.pop(topic, None)
 
     def transform(self, frame, stamp=None):
         target = self.config["map_frame"]
@@ -558,7 +560,7 @@ class MonitorNode(Node):
             elif key in ("odometry", "ground_truth", "amcl_pose"):
                 pose = message.pose.pose
                 data.update(pose=[pose.position.x, pose.position.y, yaw(pose.orientation)],
-                            covariance=list(message.pose.covariance), source_frame=message.header.frame_id)
+                            covariance=preview(list(message.pose.covariance)), source_frame=message.header.frame_id)
                 if key != "amcl_pose":
                     data["velocity"] = vector(message)
                     data["child_frame"] = message.child_frame_id
@@ -623,7 +625,8 @@ class MonitorNode(Node):
                     points, count = cloud_points(message, limit)
                 else:
                     count = len(message.polygon.points)
-                    points = [[p.x,p.y,p.z] for p in message.polygon.points[:limit]]
+                    points = [[p.x,p.y,p.z] for p in message.polygon.points[:limit]
+                              if all(math.isfinite(v) for v in (p.x,p.y,p.z))]
                 frame = message.header.frame_id
                 if not frame:
                     raise ValueError("Empty sensor frame")

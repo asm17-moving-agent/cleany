@@ -123,13 +123,16 @@ class DepthClearanceNode(Node):
                                                     Time.from_msg(msg.header.stamp)).transform
                 points = transform(optical_points, pose)
             points = np.ascontiguousarray(points, dtype='<f4')
-        except (TransformException, ValueError):
+        except (TransformException, ValueError) as error:
+            self.get_logger().warning(f'Depth frame discarded: {error}', throttle_duration_sec=2)
             return
         try:
             pose = self.buffer.lookup_transform(self.get_parameter('base_frame').value, self.get_parameter('camera_frame').value,
                                                 Time.from_msg(msg.header.stamp)).transform
-        except TransformException:
-            return  # Never label a cloud with a guessed camera orientation.
+        except TransformException as error:
+            # Never label a cloud with a guessed camera orientation.
+            self.get_logger().warning(f'Depth frame discarded: {error}', throttle_duration_sec=2)
+            return
         body_points = transform(points, pose)
         sensor_origin = np.array([pose.translation.x, pose.translation.y, pose.translation.z])
         keep = self_observation_mask(body_points, sensor_origin, self.self_boxes, self.self_filter_margin)
