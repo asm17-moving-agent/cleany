@@ -123,3 +123,111 @@ def test_camera_best_effort_subscription_and_expiry(tmp_path, monkeypatch):
         source.destroy_node()
         executor.shutdown()
         rclpy.shutdown()
+
+
+def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, monkeypatch):
+    import json
+    import rclpy
+    from cleany_dev_monitor.node import MonitorNode
+    from cleany_interfaces.msg import RuntimeDebugSnapshot
+    from geometry_msgs.msg import Twist
+    from nav_msgs.msg import Odometry
+    from nav2_msgs.msg import BehaviorTreeLog, BehaviorTreeStatusChange
+    from dwb_msgs.msg import LocalPlanEvaluation, TrajectoryScore, CriticScore
+    from geometry_msgs.msg import Pose2D
+    from sensor_msgs.msg import LaserScan
+    from std_msgs.msg import String
+    from rosgraph_msgs.msg import Clock
+    from rclpy.executors import SingleThreadedExecutor
+    from rclpy.parameter import Parameter
+    from rclpy.qos import qos_profile_sensor_data
+
+    monkeypatch.setattr("cleany_dev_monitor.node.serve", lambda *args: None)
+    rclpy.init()
+    monitor = MonitorNode(parameter_overrides=[Parameter("use_sim_time", value=True)])
+    source = rclpy.create_node("navigation_observation_source")
+    executor = SingleThreadedExecutor()
+    executor.add_node(monitor)
+    executor.add_node(source)
+    types = {"/clock": Clock, "/wheel/odom": Odometry, "/head_pan/state": String,
+             "/reactive_guard/state": String, "/scan": LaserScan, "/evaluation": LocalPlanEvaluation,
+             "/behavior_tree_log": BehaviorTreeLog, "/mission/debug_snapshot": RuntimeDebugSnapshot,
+             **{t: Twist for t in monitor.config["velocity_topics"]}}
+    publishers = {topic: source.create_publisher(cls, topic, qos_profile_sensor_data) for topic, cls in types.items()}
+    monitor.hub.select("navigation-test", ["/scan", "/evaluation"])
+    started = time.monotonic()
+    try:
+        deadline = started + 7
+        while time.monotonic() < deadline:
+            stamp = Clock().clock
+            stamp.sec = 10
+            publishers["/clock"].publish(Clock(clock=stamp))
+            odom = Odometry(child_frame_id="base_link")
+            odom.header.frame_id = "map"
+            odom.header.stamp = stamp
+            odom.pose.pose.orientation.w = 1.
+            odom.twist.twist.linear.x = .01
+            publishers["/wheel/odom"].publish(odom)
+            command = Twist()
+            command.linear.x = .02
+            for topic in monitor.config["velocity_topics"]:
+                publishers[topic].publish(command)
+            publishers["/head_pan/state"].publish(String(data=json.dumps({"pan":.5,"target":.4,"reason":"PAN_TARGET_OUT_OF_RANGE","motion_authority":False})))
+            publishers["/reactive_guard/state"].publish(String(data=json.dumps({"decision":"PASS","requested":[.02,0,0],"output":[.02,0,0],"processing_s":.002})))
+            scan = LaserScan(angle_min=0.,angle_increment=.1,range_min=.1,range_max=6.,ranges=[2.]*1024)
+            scan.header.frame_id = "map"
+            scan.header.stamp = stamp
+            publishers["/scan"].publish(scan)
+            evaluation = LocalPlanEvaluation(best_index=1)
+            evaluation.header.frame_id = "map"
+            evaluation.header.stamp = stamp
+            for i in range(25):
+                trajectory = TrajectoryScore(total=float(i))
+                trajectory.traj.poses = [Pose2D(x=float(i),y=0.,theta=0.)]
+                trajectory.scores = [CriticScore(name="PathDist",raw_score=float(i),scale=2.)]
+                evaluation.twists.append(trajectory)
+            publishers["/evaluation"].publish(evaluation)
+            bt = BehaviorTreeLog(event_log=[BehaviorTreeStatusChange(node_name="FollowPath",previous_status="IDLE",current_status="RUNNING")])
+            publishers["/behavior_tree_log"].publish(bt)
+            runtime = RuntimeDebugSnapshot(schema_version=1,boot_id="navigation-test",snapshot_json=json.dumps({"state":"NAVIGATE_TO_TARGET","navigation":{"operation_id":"op13","target":"13","frame":"map","goal_pose":{"x":1.,"y":0.,"yaw":0.}}}))
+            publishers["/mission/debug_snapshot"].publish(runtime)
+            for _ in range(5):
+                executor.spin_once(timeout_sec=.02)
+            observed = {(r["kind"],r["key"]):r["data"] for r in monitor.hub.snapshot()["rows"]}
+            if (("navigation","summary") in observed and observed[("navigation","summary")]["motion"]=="CREEPING"
+                    and ("navigation","scan") in observed and ("navigation","controller_evaluation") in observed
+                    and observed[("navigation","summary")]["bt_status"].get("FollowPath")=="RUNNING"):
+                break
+        assert observed[("navigation","summary")]["motion"] == "CREEPING"
+        assert observed[("navigation","summary")]["reason_source"] is None
+        assert observed[("navigation","pan")]["motion_authority"] is False
+        assert len(observed[("navigation","scan")]["points"]) <= 512
+        assert observed[("navigation","scan")]["sampled"]
+        assert any(t["selected"] and t["index"]==1 for t in observed[("navigation","controller_evaluation")]["trajectories"])
+        assert observed[("navigation","controller_evaluation")]["count"] == 25
+        json.dumps(monitor.hub.snapshot(), allow_nan=False)
+        # Repeated successful condition ticks are bounded; first failure is immediate.
+        condition = BehaviorTreeLog(event_log=[BehaviorTreeStatusChange(node_name="IsPathValid", previous_status="IDLE", current_status="SUCCESS")])
+        for _ in range(10):
+            monitor.navigation_receive("/behavior_tree_log", condition, None)
+        hits = [r for r in monitor.hub.snapshot()["rows"] if r["kind"] == "event" and r["data"].get("kind") == "nav2_bt" and r["data"]["data"]["node"] == "IsPathValid"]
+        assert len(hits) == 1
+        condition.event_log[0].current_status = "FAILURE"
+        monitor.navigation_receive("/behavior_tree_log", condition, None)
+        assert any(r["kind"] == "event" and r["data"].get("kind") == "nav2_bt" and r["data"]["data"]["status"] == "FAILURE" for r in monitor.hub.snapshot()["rows"])
+        # Unsubscribe large geometry while fixed diagnostics remain active.
+        monitor.hub.release("navigation-test")
+        monitor.discover()
+        assert "/scan" not in monitor.subs and "/evaluation" not in monitor.subs
+        assert "/wheel/odom" in monitor.subs
+        # Invalid measured frame cannot remain a fresh velocity source.
+        odom.child_frame_id = "world"
+        monitor.navigation_receive("/wheel/odom", odom, 10.)
+        assert "odometry" not in monitor.navigation.observations
+        published = monitor.get_publisher_names_and_types_by_node(monitor.get_name(),monitor.get_namespace())
+        assert all(name in ("/rosout", "/parameter_events") for name,_ in published)
+    finally:
+        monitor.destroy_node()
+        source.destroy_node()
+        executor.shutdown()
+        rclpy.shutdown()

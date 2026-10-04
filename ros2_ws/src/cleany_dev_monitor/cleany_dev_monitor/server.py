@@ -43,6 +43,9 @@ def create_app(hub, config, recorder, assets):
             }
         )
 
+    async def navigation_runs(request):
+        return web.json_response({"runs": recorder.navigation_runs()})
+
     async def replay(request):
         at = float(request.query.get("at", "0"))
         if not math.isfinite(at):
@@ -205,6 +208,7 @@ def create_app(hub, config, recorder, assets):
     app.router.add_get("/api/camera", camera)
     app.router.add_get("/api/snapshot", snapshot)
     app.router.add_get("/api/recordings", sessions)
+    app.router.add_get("/api/navigation/runs", navigation_runs)
     app.router.add_get("/api/recordings/{session}/replay", replay)
     app.router.add_get("/api/recordings/{session}/export", export)
     app.router.add_get("/ws", websocket)

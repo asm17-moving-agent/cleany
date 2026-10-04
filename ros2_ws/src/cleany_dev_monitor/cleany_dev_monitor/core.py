@@ -287,6 +287,25 @@ class Recorder:
             "metadata": meta,
         }
 
+    def navigation_runs(self) -> list[dict]:
+        """Bounded summaries only; never scan/deserialize every recorded sample."""
+        runs = []
+        for session in self.sessions()[:50]:
+            with sqlite3.connect(f"file:{self.resolve(session['id'])}?mode=ro", uri=True) as db:
+                row = db.execute("SELECT payload FROM records WHERE kind='navigation' AND key='summary' ORDER BY seq DESC LIMIT 1").fetchone()
+                config = db.execute("SELECT payload FROM records WHERE kind='config' ORDER BY seq DESC LIMIT 1").fetchone()
+            if not row:
+                continue
+            data = decode_record(row[0])["data"]
+            settings = decode_record(config[0])["data"] if config else {}
+            context = {key: settings.get(key) for key in (
+                "run_label", "source_revision", "requested_rtf", "stationary_speed_mps",
+                "creep_speed_mps", "navigation_freshness_s", "map_frame", "velocity_topics")}
+            for run in data.get("runs", []):
+                runs.append({**run, "session_id": session["id"], "configuration": context,
+                             "recording_gap": session["metadata"].get("gap")})
+        return runs
+
 
 def decode_record(payload: bytes | str) -> dict:
     """Version 1 was plain JSON; version 2 stores zlib-compressed UTF-8 JSON."""
