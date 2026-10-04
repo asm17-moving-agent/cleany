@@ -8,9 +8,6 @@ import numpy as np
 from cleany_navigation.voxel_guard import GuardConfig, twist_pose
 
 
-ZERO = (0., 0., 0.)
-
-
 @dataclass
 class InputWatchdog:
     source_timeout_s: float = .5

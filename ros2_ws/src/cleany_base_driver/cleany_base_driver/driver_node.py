@@ -164,13 +164,12 @@ class BaseDriver(Node):
             if self.pending_enable is None:
                 self._disable(f'MCU fault bits: {msg.fault_bits:#x}')
         positions = self.encoder.update(msg.boot_id, tuple(msg.encoder_counts))
-        if positions is not None:
-            out = JointState()
-            out.header.stamp = self.get_clock().now().to_msg()
-            out.name = ['front_left_wheel_joint', 'front_right_wheel_joint',
-                        'rear_left_wheel_joint', 'rear_right_wheel_joint']
-            out.position, out.velocity = list(positions), [float(v) for v in msg.velocity_rad_s]
-            self.joints.publish(out)
+        out = JointState()
+        out.header.stamp = self.get_clock().now().to_msg()
+        out.name = ['front_left_wheel_joint', 'front_right_wheel_joint',
+                    'rear_left_wheel_joint', 'rear_right_wheel_joint']
+        out.position, out.velocity = list(positions), [float(v) for v in msg.velocity_rad_s]
+        self.joints.publish(out)
 
     def tick(self) -> None:
         now = time.monotonic()

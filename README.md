@@ -62,7 +62,7 @@ Physical Skill Executor → navigate / pick / collect / store
                     Sim / Real Robot
 ```
 
-FSM: `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS → RETURN_HOME → REPORT` (any state → `ERROR`)
+FSM: `IDLE → NAVIGATE_TO_TARGET → WORKING → POST_MISSION → RETURN_HOME/IDLE` (중단 시 `CANCELLING`, 치명적 오류 시 `ERROR`)
 
 ## 검토 중인 기술 구성
 
@@ -120,7 +120,7 @@ cleany/
 초기 MVP는 Dashboard 요청부터 전후 결과 표시까지의 end-to-end 흐름을 우선 구현한다.
 
 1. Dashboard와 Backend에서 대상 구역 요청을 만들고 Mission Queue로 전달
-2. `cleany_mission_manager`에서 `IDLE → NAVIGATE_TO_TARGET → PERCEIVE → PLAN_TASKS → EXECUTE_TASKS → RETURN_HOME → REPORT` FSM 구현
+2. `cleany_mission_manager`에서 `IDLE → NAVIGATE_TO_TARGET → WORKING → POST_MISSION → RETURN_HOME/IDLE` FSM 구현
 3. Perception, Agentic VLA, Rule Guard가 쓰레기·분실물 후보·사람 검토 task를 구분
 4. `cleany_skill_executor`에서 `navigate`, `pick`, `collect`, `store` skill을 실행
 5. `cleany_robot_interface`에서 Mock / Sim / Real 공통 인터페이스 정의

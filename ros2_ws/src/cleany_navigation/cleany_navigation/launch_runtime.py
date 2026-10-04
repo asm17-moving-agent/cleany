@@ -120,7 +120,6 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
         if not sim_time and (projection.get('positive_infinity_is_free', False)
             or projection.get('allow_simulation_limits', False) or guard.get('allow_simulation_limits', False)):
             raise ValueError('Simulation-only overrides cannot be used with real sensor time')
-        parameters['bt_navigator']['ros__parameters']['default_nav_to_pose_bt_xml'] = str(share/'config/behavior_trees/wait_before_detour.xml')
         planner = parameters['planner_server']['ros__parameters']['GridBased']
         if planner.get('plugin') == 'cleany_navigation::StraightFirstPlanner' and not planner.get('lattice_filepath'):
             lateral = not flag('axis_motion') or parameters['controller_server']['ros__parameters']['FollowPath'].get('axis_allow_lateral', False)

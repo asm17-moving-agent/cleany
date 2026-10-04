@@ -26,13 +26,13 @@ from cleany_mission_manager.core.arrival import arrival_error
 @dataclass
 class NavigationOperation:
     operation_id: str
+    target: TargetPose
     handle: object = None
     result_future: object = None
     cancelled: bool = False
     result: ModuleResult | None = None
     result_received_at: float = 0.0
     terminal_known: bool = False
-    target: TargetPose | None = None
 
 
 class Nav2Navigator:
@@ -245,8 +245,6 @@ class Nav2Navigator:
                     raise ValueError("invalid arrival orientation")
                 theta = math.atan2(2*(q.w*q.z+q.x*q.y), 1-2*(q.y*q.y+q.z*q.z))
                 target = operation.target
-                if target is None:
-                    raise ValueError("missing original navigation target")
                 error = arrival_error((target.x, target.y, target.yaw),
                                       (tf.transform.translation.x, tf.transform.translation.y, theta))
                 if not error.within(self.arrival_position_tolerance, self.arrival_yaw_tolerance):

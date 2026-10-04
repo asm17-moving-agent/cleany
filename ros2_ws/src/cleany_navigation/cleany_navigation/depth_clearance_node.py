@@ -90,8 +90,6 @@ class DepthClearanceNode(Node):
         self.process_depth(msg)
 
     def process_depth(self, msg: Image) -> None:
-        if self.camera is None:
-            return
         camera = self.camera
         if (msg.width, msg.height) != (camera.width, camera.height) or msg.header.frame_id != self.get_parameter('optical_frame').value or camera.header.frame_id != msg.header.frame_id:
             self.get_logger().error('Depth image dimensions/frame do not match the configured camera', throttle_duration_sec=2)

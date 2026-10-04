@@ -1362,7 +1362,6 @@ function App() {
   const [navigationTopics, setNavigationTopics] = useState<string[]>([]);
   const socket = useRef<WebSocket | null>(null);
   const lastBoot = useRef("");
-  const lastSequence = useRef(0);
   const [recording, setRecording] = useState<Data>({});
   const [sessions, setSessions] = useState<Data[]>([]);
   const [replayId, setReplayId] = useState("");
@@ -1431,10 +1430,7 @@ function App() {
               : "Monitor 재시작",
           );
         }
-        if (p.boot_id !== lastBoot.current) {
-          live.current = [];
-          lastSequence.current = 0;
-        }
+        if (p.boot_id !== lastBoot.current) live.current = [];
         lastBoot.current = p.boot_id || "";
         const merged = p.initial ? [...p.rows] : [...live.current, ...p.rows];
         const latest = new Map<string, Row>();
@@ -1458,7 +1454,6 @@ function App() {
           ...latest.values(),
           ...[...events.values()].sort((a, b) => a.seq - b.seq).slice(-500),
         ];
-        lastSequence.current = p.sequence || 0;
         if (!replayRef.current) setRows(applyRuntimeEvents(live.current));
         if (p.recording) setRecording(p.recording);
       };

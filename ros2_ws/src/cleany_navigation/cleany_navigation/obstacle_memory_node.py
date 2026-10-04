@@ -14,7 +14,7 @@ from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, qos_profile_sensor_data
 from rclpy.time import Time
 from nav_msgs.msg import OccupancyGrid
-from sensor_msgs.msg import LaserScan, PointCloud2, PointField
+from sensor_msgs.msg import LaserScan, PointCloud2
 from std_srvs.srv import SetBool, Trigger
 from std_msgs.msg import String
 from cleany_navigation.point_cloud import cloud_xyz, xyz_cloud

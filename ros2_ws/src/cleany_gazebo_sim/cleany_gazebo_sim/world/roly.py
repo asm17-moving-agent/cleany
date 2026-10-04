@@ -140,7 +140,6 @@ def add_roly_chair(
             (x / 2, y / 2, (hub + tip) / 2, 0.0, atan2(hub - tip, radius), angle),
             frame,
         )
-        rod(f'caster_stem_{i}', (x, y, wheel), (x, y, tip), 0.012)
         for side in (-1, 1):
             offset = side * (c.number('caster_width_m') + c.number('caster_gap_m')) / 2
             _add_cylinder_part(
@@ -224,11 +223,6 @@ def add_roly_chair(
     _add_box_collision(
         link, 'tilt_housing', (0.22, 0.17, 0.09), (-0.045, 0.0, bottom - 0.094)
     )
-    # Thin back-rim/stem visuals are already covered by the broad back panels
-    # and caster/spoke contact shapes. Avoid redundant static physics shapes.
-    for collision in list(link.findall('collision')):
-        if collision.get('name', '').startswith(('back_rim_', 'caster_stem_')):
-            link.remove(collision)
     # Detailed smooth surfaces are independent of the simple physics proxies.
     for visual in list(link.findall('visual')):
         link.remove(visual)

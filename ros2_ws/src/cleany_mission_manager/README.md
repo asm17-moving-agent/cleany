@@ -23,8 +23,7 @@ Perception과 Planner는 **명시적 Mock**입니다. Executor는 기본 로컬 
 | 교체 가능한 책상 Mock | `mocks/desk.py` |
 | ROS service 및 steady-clock tick | `node.py` |
 
-기존 `core/manager.py`의 동기식 prototype은 호환성을 위해 유지합니다.
-신규 ROS 실행 경로는 `MissionRuntime`을 사용합니다.
+ROS 실행 경로는 `MissionRuntime`을 사용합니다.
 
 ## 실행 흐름과 소유권
 

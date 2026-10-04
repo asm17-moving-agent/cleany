@@ -1,5 +1,4 @@
 """The sole canonical /odom and odom->base_link TF publisher."""
-import math
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
