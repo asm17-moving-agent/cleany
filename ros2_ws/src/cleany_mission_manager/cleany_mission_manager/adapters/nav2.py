@@ -19,7 +19,8 @@ from unique_identifier_msgs.msg import UUID as GoalUUID
 from cleany_mission_manager.core.journal import MissionJournal
 from cleany_mission_manager.core.result import FailureCode, ModuleResult, ResultStatus
 
-from .config import TargetMap
+from .config import TargetMap, TargetPose
+from cleany_mission_manager.core.arrival import arrival_error
 
 
 @dataclass
@@ -31,6 +32,7 @@ class NavigationOperation:
     result: ModuleResult | None = None
     result_received_at: float = 0.0
     terminal_known: bool = False
+    target: TargetPose | None = None
 
 
 class Nav2Navigator:
@@ -47,9 +49,13 @@ class Nav2Navigator:
         self.state_received = {}
         self.query_started = {}
         self.state_queries = {}
+        required_nodes = node.get_parameter("required_navigation_lifecycle_nodes").value
+        if (not required_nodes or any(not isinstance(name, str) or not name.strip() for name in required_nodes)
+                or len(set(required_nodes)) != len(required_nodes)):
+            raise ValueError("required_navigation_lifecycle_nodes must be non-empty unique node names")
         self.state_clients = {
             name: node.create_client(GetState, name + "/get_state") for name in
-            ("map_server", "amcl", "planner_server", "controller_server", "bt_navigator")
+            required_nodes
         }
         self.last_query = 0.0
         self.recovery_future = None
@@ -61,8 +67,12 @@ class Nav2Navigator:
         self.stop_angular = float(node.get_parameter("stopped_angular_speed").value)
         self.settle_timeout = float(node.get_parameter("navigation_settle_timeout").value)
         self.lifecycle_timeout = float(node.get_parameter("lifecycle_timeout").value)
+        self.arrival_position_tolerance = float(node.get_parameter("arrival_position_tolerance").value)
+        self.arrival_yaw_tolerance = float(node.get_parameter("arrival_yaw_tolerance").value)
+        self.arrival_pose_timeout = float(node.get_parameter("arrival_pose_timeout").value)
         if (any(not math.isfinite(v) or v <= 0 for v in (
                 self.input_timeout, self.settle_timeout, self.lifecycle_timeout,
+                self.arrival_position_tolerance, self.arrival_yaw_tolerance, self.arrival_pose_timeout,
         )) or any(not math.isfinite(v) or v < 0 for v in (self.stop_linear, self.stop_angular))):
             raise ValueError("navigation freshness/stopped parameters must be finite and bounded")
         node.create_subscription(Odometry, self.odom_topic, self._odom, qos_profile_sensor_data)
@@ -163,7 +173,7 @@ class Nav2Navigator:
         goal.pose.pose.position.x, goal.pose.pose.position.y = pose.x, pose.y
         goal.pose.pose.orientation.z = math.sin(pose.yaw / 2)
         goal.pose.pose.orientation.w = math.cos(pose.yaw / 2)
-        operation = NavigationOperation(str(uuid4()))
+        operation = NavigationOperation(str(uuid4()), target=pose)
         self.operation = operation
         # The goal UUID is durable before it reaches Nav2. On restart cancel only this goal.
         self.journal.set("nav_goal_uuid", operation.operation_id)
@@ -221,6 +231,33 @@ class Nav2Navigator:
                 return ModuleResult.fatal(FailureCode.NAVIGATION_FAIL,
                                           message="Navigation ended without fresh stopped feedback.")
             return None
+        if operation.result.ok:
+            # Nav2 may stop near a tolerance-shifted path endpoint. Verify the
+            # original requested pose independently before desk work can start.
+            try:
+                tf = self.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
+                age = self.node.get_clock().now().nanoseconds*1e-9 - Time.from_msg(tf.header.stamp).nanoseconds*1e-9
+                if not math.isfinite(age) or not -.02 <= age <= self.arrival_pose_timeout:
+                    raise ValueError("arrival localization is stale or future")
+                q = tf.transform.rotation
+                norm = math.sqrt(sum(v*v for v in (q.x, q.y, q.z, q.w)))
+                if not math.isfinite(norm) or abs(norm-1) > .001:
+                    raise ValueError("invalid arrival orientation")
+                theta = math.atan2(2*(q.w*q.z+q.x*q.y), 1-2*(q.y*q.y+q.z*q.z))
+                target = operation.target
+                if target is None:
+                    raise ValueError("missing original navigation target")
+                error = arrival_error((target.x, target.y, target.yaw),
+                                      (tf.transform.translation.x, tf.transform.translation.y, theta))
+                if not error.within(self.arrival_position_tolerance, self.arrival_yaw_tolerance):
+                    raise ValueError(f"arrival outside requested pose: {error.position_m:.3f} m, {error.yaw_rad:.3f} rad")
+                operation.result = ModuleResult.success(
+                    data={"arrival_position_error_m": error.position_m, "arrival_yaw_error_rad": error.yaw_rad},
+                    message="Nav2 arrived; original goal pose verified.")
+            except Exception as exc:
+                if time.monotonic()-operation.result_received_at < self.settle_timeout:
+                    return None
+                operation.result = ModuleResult.failed(FailureCode.NAVIGATION_FAIL, message=str(exc))
         self.journal.set("nav_goal_uuid", "")
         return operation.result
 
@@ -238,6 +275,9 @@ class Nav2Navigator:
         if self.latest_odom is None or time.monotonic() - self.odom_received > self.input_timeout:
             return False
         twist = self.latest_odom.twist.twist
+        age = self.node.get_clock().now().nanoseconds*1e-9 - Time.from_msg(self.latest_odom.header.stamp).nanoseconds*1e-9
+        if not math.isfinite(age) or not -.02 <= age <= self.input_timeout:
+            return False
         return (math.isfinite(twist.linear.x) and math.isfinite(twist.linear.y)
                 and math.isfinite(twist.angular.z)
                 and math.hypot(twist.linear.x, twist.linear.y) <= self.stop_linear

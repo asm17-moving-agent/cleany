@@ -15,4 +15,14 @@ mission_runtime:
     stopped_linear_speed: 0.03
     stopped_angular_speed: 0.05
     navigation_settle_timeout: 3.0
+    arrival_position_tolerance: 0.08
+    arrival_yaw_tolerance: 0.15
+    arrival_pose_timeout: 0.5
     lifecycle_timeout: 3.0
+    required_navigation_lifecycle_nodes:
+    - map_server
+    - amcl
+    - planner_server
+    - controller_server
+    - bt_navigator
+    - collision_monitor
