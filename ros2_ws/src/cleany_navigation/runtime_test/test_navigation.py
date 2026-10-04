@@ -35,6 +35,37 @@ from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
 from cleany_navigation.runtime_config import load_parameters
 
 
+def test_map_reload_preserves_evidence_and_geometry_fault_cannot_be_enabled(monkeypatch):
+    from std_srvs.srv import SetBool
+    from cleany_navigation.obstacle_memory_node import ObstacleMemoryNode
+    monkeypatch.setenv('ROS_DOMAIN_ID', str(int(os.environ.get('CLEANY_TEST_ROS_DOMAIN_BASE', '187'))+4))
+    rclpy.init()
+    node = ObstacleMemoryNode()
+    states=[]
+    node.create_subscription(String,'obstacle_memory/voxel_status',
+        lambda m:states.append(json.loads(m.data)),QoSProfile(depth=1,durability=DurabilityPolicy.TRANSIENT_LOCAL))
+    try:
+        msg = OccupancyGrid();msg.header.frame_id='map';msg.info.width=msg.info.height=4
+        msg.info.resolution=.1;msg.info.origin.orientation.w=1.;msg.data=[0]*16
+        node.on_map(msg)
+        node.memory.observe('depth', np.array([.05,.05,.15]), np.array([[.15,.15,.15]]), np.array([True]), 100.)
+        before=node.memory.evidence.copy();old_geometry=node.memory.geometry
+        msg.data[0]=100;node.on_map(msg)
+        assert node.memory.geometry.map_id!=old_geometry.map_id
+        np.testing.assert_array_equal(node.memory.evidence,before)
+        msg.info.origin.position.x=.1;node.on_map(msg)
+        assert not node.enabled and node.map_fault
+        response=node.set_enabled(SetBool.Request(data=True), SetBool.Response())
+        assert not response.success and not node.enabled
+        deadline=time.monotonic()+3
+        while not states and time.monotonic()<deadline:rclpy.spin_once(node,timeout_sec=.05)
+        assert states and not states[-1]['enabled'] and states[-1]['map_fault']
+        np.testing.assert_array_equal(node.memory.evidence,before)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
 class Backend(Node):
     def __init__(self, simulated_clock=False):
         super().__init__('synthetic_navigation_backend')
@@ -65,7 +96,9 @@ class Backend(Node):
         transforms = []
         for child, z, quaternion, parent in [
             ('laser_frame', 0., (0., 0., 0., 1.), 'base_link'),
-            ('head_camera_depth_frame', .6, (0., 0., 0., 1.), 'base_link'),
+            # Fixture mount must be outside the CAD frame. At z=.6 every
+            # synthetic ray was correctly rejected by the self-occlusion mask.
+            ('head_camera_depth_frame', 1.0, (0., 0., 0., 1.), 'base_link'),
             ('head_camera_depth_optical_frame', 0., (-.5, .5, -.5, .5), 'head_camera_depth_frame')]:
             tf = TransformStamped()
             tf.header.frame_id, tf.child_frame_id = parent, child

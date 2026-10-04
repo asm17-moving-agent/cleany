@@ -1,5 +1,6 @@
 """XYZ PointCloud2 transport shared by voxel mapping and the body guard."""
 from __future__ import annotations
+from array import array
 import numpy as np
 from sensor_msgs.msg import PointCloud2, PointField
 from std_msgs.msg import Header
@@ -11,7 +12,7 @@ def xyz_cloud(points: np.ndarray, frame: str, stamp) -> PointCloud2:
                       is_bigendian=False, is_dense=True, point_step=12, row_step=12*len(points))
     msg.fields = [PointField(name=name, offset=i*4, datatype=PointField.FLOAT32, count=1)
                   for i, name in enumerate(('x', 'y', 'z'))]
-    msg.data = points.tobytes()
+    msg.data = array('B', points.tobytes())
     return msg
 
 

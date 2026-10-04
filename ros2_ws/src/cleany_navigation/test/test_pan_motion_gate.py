@@ -1,4 +1,5 @@
 import math
+import pytest
 from cleany_navigation.pan_motion_gate import PanGate
 
 
@@ -69,3 +70,46 @@ def test_holonomic_camera_tracks_bearing_without_stopping_for_small_corrections(
     assert step(2.6, (0., -.1, .1), math.pi/4, corrected)[1] == (0., 0., 0.)
     assert step(3., (0., -.1, .1), -math.pi/2, corrected, depth=2.9)[2] == 'WAIT_FRESH_DEPTH'
     assert step(3.05, (0., -.1, .1), -math.pi/2, corrected, pan_speed=.4)[2] == 'PASS'
+
+
+def test_rear_bearing_uses_short_equivalent_position_within_actual_joint_limits():
+    gate = PanGate(allow_mixed_motion=True, allow_lateral=True,
+                   pan_min_position_rad=-3.2, pan_max_position_rad=3.2)
+    command = (-.1, -.002, 0.)
+    def step(t, pan, depth):
+        return gate.step(t, command, (0., 0., 0.), pan, 0., t, t, depth)
+    target, output, reason = step(1., math.pi, .9)
+    assert math.pi < target < 3.2
+    assert target == pytest.approx(math.atan2(command[1], command[0])+2*math.pi)
+    assert reason == 'WAIT_FRESH_DEPTH' and output == (0., 0., 0.)
+    assert step(1.1, math.pi, 1.1)[1] == command
+    # An actual 0.1 rad pointing error still stops; choosing a representation
+    # cannot authorize stale data or relax the alignment tolerance.
+    assert step(1.2, target-.1, 1.2)[2] == 'TURNING_PAN'
+    assert step(1.3, target, 1.2)[2] == 'WAIT_FRESH_DEPTH'
+    assert step(1.4, target, 1.4)[2] == 'PASS'
+    # The equivalent positive target is outside the finite mechanical range.
+    # A real long rotation is then necessary; never wrap through the stop.
+    wide = (-.1, -.02, 0.)
+    target, output, reason = gate.step(2., wide, (0., 0., 0.), math.pi, 0., 2., 2., 2.)
+    assert target == math.atan2(wide[1], wide[0])
+    assert -3.2 <= target <= 3.2 and reason == 'TURNING_PAN'
+    assert output == (0., 0., 0.)
+
+
+def test_rear_target_keeps_negative_position_branch_and_unreachable_bearing_stops():
+    gate = PanGate(allow_mixed_motion=True, allow_lateral=True,
+                   pan_min_position_rad=-3.2, pan_max_position_rad=3.2)
+    command = (-.1, .002, 0.)
+    target, _, _ = gate.step(1., command, (0., 0., 0.), -math.pi, 0., 1., 1., 1.)
+    assert -3.2 < target < -math.pi
+    assert target == pytest.approx(math.atan2(command[1], command[0])-2*math.pi)
+    gate = PanGate(allow_mixed_motion=True, pan_min_position_rad=-1., pan_max_position_rad=1.)
+    target, output, reason = gate.step(1., (-.1, 0., 0.), (0., 0., 0.), 0., 0., 1., 1., 1.)
+    assert target == 0. and output == (0., 0., 0.) and reason == 'PAN_TARGET_OUT_OF_RANGE'
+
+
+@pytest.mark.parametrize('limits', [(1., 2.), (2., -2.), (0., 0.), (-math.inf, 3.2), (-3.2, math.nan)])
+def test_invalid_pan_position_limits_are_rejected(limits):
+    with pytest.raises(ValueError):
+        PanGate(pan_min_position_rad=limits[0], pan_max_position_rad=limits[1])

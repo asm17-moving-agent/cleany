@@ -1,11 +1,14 @@
 <!-- Replan immediately when the upcoming 1.5 m path becomes invalid.
      FollowPath is halted while the replacement path is computed.
-     A failed planner/controller receives a short 0.2 s retry backoff.
+     Initial planning and a failed planner/controller receive a short 0.2 s retry backoff.
      No obstacle-map clearing and no fixed wait before a feasible detour. -->
 <root BTCPP_format="4" main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <Sequence name="PlanThenNavigate">
-      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" error_code_id="{compute_path_error_code}"/>
+      <RecoveryNode number_of_retries="3" name="InitialPlanWithPatience">
+        <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" error_code_id="{compute_path_error_code}"/>
+        <YieldWait wait_duration="0.2"/>
+      </RecoveryNode>
       <RecoveryNode number_of_retries="3" name="NavigateWithPatience">
         <ReactiveSequence name="CheckBeforeFollowing">
           <ReactiveFallback name="PathClearOrReplan">

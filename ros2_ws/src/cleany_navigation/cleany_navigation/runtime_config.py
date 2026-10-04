@@ -197,7 +197,11 @@ def validate_robot_parameters(robot: dict, directory: Path, *, use_sim_time: boo
 
 
 def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled: bool = True,
-                     voxel_enabled: bool = True, output_directory: str = '') -> dict:
+                     voxel_enabled: bool = True, safety_mode: str = 'serial', output_directory: str = '') -> dict:
+    if safety_mode not in ('serial', 'reactive'):
+        raise ValueError('safety_mode must be serial or reactive')
+    if safety_mode == 'reactive' and voxel_enabled:
+        raise ValueError('reactive mode replaces the serial voxel guard; set voxel_enabled:=false')
     if voxel_enabled and not memory_enabled:
         raise ValueError('voxel_guard requires obstacle_memory')
     result = deepcopy(document)
@@ -211,6 +215,22 @@ def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled
                    cmd_vel_out_topic='safety_2d/cmd_vel' if voxel_enabled else 'cmd_vel')
     guard = params('voxel_guard')
     guard.update(command_topic='safety_2d/cmd_vel', output_topic='cmd_vel')
+    pan['observation_only'] = safety_mode == 'reactive'
+    if safety_mode == 'reactive':
+        monitor.update(cmd_vel_in_topic='nav2/cmd_vel', cmd_vel_out_topic='safety_2d/cmd_vel')
+        reactive = params('reactive_guard')
+        for key in ('profile', 'allow_simulation_limits', 'margin', 'reaction_s', 'linear_deceleration',
+                    'angular_deceleration', 'step_s', 'slowdown_lookahead_s', 'slowdown_ratio',
+                    'max_speed', 'max_yaw_rate', 'processing_budget_s', 'localization_jump_m',
+                    'localization_jump_rad'):
+            if key in guard:
+                reactive[key] = guard[key]
+        reactive.update(command_topic='safety_2d/cmd_vel', raw_command_topic='nav2/cmd_vel', output_topic='cmd_vel',
+                        require_pan_feedback=pan_enabled,
+                        source_timeout_s=pan.get('source_timeout_s', .5),
+                        command_timeout_s=pan.get('command_timeout_s', .5))
+        # Preserve the costmap's observation density and clearing history.
+        # Optional voxel publication is diagnostic; it has no motion authority.
     memory = params('obstacle_memory')
     if voxel_enabled:
         memory.update(publish_3d=True, mark_all_depth_points=True)
@@ -224,6 +244,11 @@ def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled
                 map_topic='/obstacle_memory/grid', map_subscribe_transient_local=True,
                 subscribe_to_updates=False)
     if output_directory:
+        params('controller_server').setdefault('FollowPath', {})[
+            'ObstacleFootprint.failure_snapshot_directory'] = str(
+                Path(output_directory).resolve()/'controller_failures')
+        params('planner_server').setdefault('GridBased', {})['failure_snapshot_directory'] = str(
+            Path(output_directory).resolve()/'planner_failures')
         for node in ('obstacle_memory', 'voxel_guard'):
             params(node)['output_directory'] = str(Path(output_directory).resolve()/node)
     return result

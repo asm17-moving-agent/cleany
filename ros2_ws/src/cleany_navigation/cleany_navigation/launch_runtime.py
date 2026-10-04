@@ -76,11 +76,25 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
         merge_parameters(parameters, robot)
     if safety:
         pan, memory, voxel = flag('pan_enabled'), flag('memory_enabled'), flag('voxel_enabled')
+        safety_mode = argument('safety_mode')
+        if safety_mode == 'reactive' and not sim_time:
+            raise ValueError('Reactive mode currently requires simulation; physical braking and sensor coverage are unvalidated')
         parameters = configure_safety(parameters, pan_enabled=pan, memory_enabled=memory,
-            voxel_enabled=voxel, output_directory=argument('output_directory'))
+            voxel_enabled=voxel, safety_mode=safety_mode, output_directory=argument('output_directory'))
         projection = parameters['depth_clearance']['ros__parameters']
         guard = parameters['voxel_guard']['ros__parameters']
-        if voxel and not projection.get('self_filter_profile'):
+        coverage_enabled = parameters.get('depth_coverage', {}).get('ros__parameters', {}).get('enabled', False)
+        if coverage_enabled:
+            coverage = parameters['depth_coverage']['ros__parameters']
+            for key in ('profile', 'allow_simulation_limits', 'margin', 'reaction_s',
+                        'linear_deceleration', 'angular_deceleration', 'step_s', 'max_speed', 'max_yaw_rate'):
+                if key in guard:
+                    coverage[key] = guard[key]
+            for key in ('input_topic', 'camera_info_topic', 'optical_frame', 'base_frame'):
+                if key in projection:
+                    coverage[key] = projection[key]
+            coverage['source_timeout_s'] = parameters['pan_motion_gate']['ros__parameters']['source_timeout_s']
+        if (voxel or safety_mode == 'reactive') and not projection.get('self_filter_profile'):
             projection['self_filter_profile'] = guard['profile']
         # All consumers agree on the backend's canonical odometry and depth.
         for name in ('controller_server', 'bt_navigator', 'pan_motion_gate', 'voxel_guard'):
@@ -91,6 +105,11 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
         parameters['obstacle_memory']['ros__parameters']['depth_topic'] = projection.get('output_topic', 'camera/head/depth/points')
         monitor = parameters['collision_monitor']['ros__parameters']
         monitor['depth']['topic'] = projection.get('output_topic', 'camera/head/depth/points')
+        if safety_mode == 'reactive':
+            parameters['reactive_guard']['ros__parameters'].update(odom_topic='odom',
+                scan_topic=monitor['scan']['topic'], depth_topic=monitor['depth']['topic'],
+                depth_frame=projection['camera_frame'], min_height=monitor['depth']['min_height'],
+                max_height=monitor['depth']['max_height'])
         depth_layer = parameters['local_costmap']['local_costmap']['ros__parameters']['depth_layer']['depth']
         topic = projection.get('output_topic', 'camera/head/depth/points')
         depth_layer.update(topic='/'+projection.get('obstacle_topic', 'camera/head/depth/obstacle_points').lstrip('/'),
@@ -131,7 +150,9 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
         return nodes
     result = [GroupAction([SetRemap(src='cmd_vel', dst='nav2/cmd_vel'), *nodes])]
     for executable, enabled in [('depth_clearance', True), ('pan_motion_gate', pan),
-                                ('obstacle_memory', memory), ('voxel_guard', voxel)]:
+                                ('obstacle_memory', memory), ('voxel_guard', voxel),
+                                ('reactive_guard', safety_mode == 'reactive'),
+                                ('depth_coverage', coverage_enabled)]:
         if enabled:
             result.append(Node(package='cleany_navigation', executable=executable, name=executable,
                 output='screen', parameters=[str(merged), {'use_sim_time': sim_time}]))
@@ -160,4 +181,5 @@ def navigation_launch_description(*, safety: bool = True) -> LaunchDescription:
         for name in ('axis_motion', 'pan_enabled', 'memory_enabled', 'voxel_enabled'):
             arguments.append(DeclareLaunchArgument(name, default_value='false' if name == 'axis_motion' else 'true'))
         arguments.append(DeclareLaunchArgument('output_directory', default_value=''))
+        arguments.append(DeclareLaunchArgument('safety_mode', default_value='serial', choices=['serial', 'reactive']))
     return LaunchDescription([*arguments, OpaqueFunction(function=lambda context: _launch(context, safety=safety))])

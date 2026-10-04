@@ -1,6 +1,7 @@
 """Persistent obstacle observations in the saved SLAM map, without inflation."""
 from __future__ import annotations
 
+from array import array
 from copy import deepcopy
 import hashlib
 import json
@@ -9,7 +10,6 @@ import time
 
 import numpy as np
 import rclpy
-from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, qos_profile_sensor_data
 from rclpy.time import Time
@@ -58,6 +58,7 @@ class ObstacleMemoryNode(Node):
         self.previous_grid = None
         self.restored = False
         self.enabled = True
+        self.map_fault = ''
         self.buffer = Buffer()
         self.listener = TransformListener(self.buffer, self)
         durable = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
@@ -76,6 +77,10 @@ class ObstacleMemoryNode(Node):
         self.create_service(SetBool, 'obstacle_memory/set_enabled', self.set_enabled)
 
     def set_enabled(self, request, response):
+        if request.data and self.map_fault:
+            response.success = False
+            response.message = self.map_fault
+            return response
         self.enabled = request.data
         response.success = True
         response.message = 'Recording enabled' if self.enabled else 'Recording frozen'
@@ -85,8 +90,6 @@ class ObstacleMemoryNode(Node):
         return response
 
     def on_map(self, msg):
-        if self.memory is not None:
-            return
         q = msg.info.origin.orientation
         if msg.header.frame_id != self.map_frame or max(abs(q.x), abs(q.y), abs(q.z)) > 1e-8:
             raise ValueError('Obstacle memory requires an axis-aligned saved map')
@@ -96,6 +99,22 @@ class ObstacleMemoryNode(Node):
                                   msg.info.origin.position.x, msg.info.origin.position.y,
                                   v['floor_z']+v['min_height'], v['floor_z']+v['max_height'],
                                   v['z_resolution'], hashlib.sha256(np.array(msg.data, dtype=np.int8).tobytes()).hexdigest())
+        if self.memory is not None:
+            if geometry == self.memory.geometry:
+                return
+            try:
+                self.memory.rebind_map(geometry)
+            except ValueError as exc:
+                # Retain the evidence with its original coordinate system.
+                # A durable disabled status makes the downstream guard stop.
+                self.enabled = False
+                self.map_fault = str(exc)
+                self.get_logger().error(str(exc))
+                self.publish_voxels()
+                return
+            self.publish()
+            self.save()
+            return
         self.memory = (ObstacleMemory.restore(Path(v['restore_path']), geometry)
                        if v['restore_path'] else ObstacleMemory(geometry))
         self.restored = bool(v['restore_path'])
@@ -111,10 +130,21 @@ class ObstacleMemoryNode(Node):
         if self.processed.get(source) == stamp:
             return
         try:
-            pose = self.buffer.lookup_transform(self.map_frame, msg.header.frame_id, Time.from_msg(msg.header.stamp),
-                                                timeout=Duration(seconds=0.03)).transform
-        except TransformException:
+            # This node and TransformListener share a single-threaded executor.
+            # Waiting here prevents the very TF callback that could satisfy the
+            # lookup from running. At accelerated sim rates two 30 ms waits per
+            # update can starve TF/subscriptions and keep the safety guard stopped.
+            # Retry from the next update with the original sensor stamp; never
+            # substitute a latest transform or increase the source age limit.
+            pose = self.buffer.lookup_transform(
+                self.map_frame, msg.header.frame_id,
+                Time.from_msg(msg.header.stamp)).transform
+        except TransformException as error:
             self.counts['tf_waits'] += 1
+            if now-self.source_stamps.get(source, 0.) > self.values['source_timeout_s']:
+                self.get_logger().warning(
+                    f'{source} observation TF unavailable at {stamp_s:.6f} '
+                    f'(now {now:.6f}): {error}', throttle_duration_sec=2.)
             return
         v = self.values
         full_hits = None
@@ -170,7 +200,9 @@ class ObstacleMemoryNode(Node):
             msg.header.frame_id = self.map_frame
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.info = self.info
-            msg.data = grid.ravel().tolist()
+            # int8 storage preserves unknown (-1), free (0), and occupied (100)
+            # cells without Python element-by-element ROS sequence validation.
+            msg.data = array('b', grid.tobytes())
             publisher.publish(msg)
             if name == 'grid':
                 fused = grid.ravel()
@@ -186,7 +218,7 @@ class ObstacleMemoryNode(Node):
         stamp = self.get_clock().now().to_msg()
         points = self.memory.occupied_centers()
         self.voxel_publisher.publish(xyz_cloud(points, self.map_frame, stamp))
-        status = dict(enabled=self.enabled, revision=self.voxel_revision,
+        status = dict(enabled=self.enabled, map_fault=self.map_fault, revision=self.voxel_revision,
                       stamp_s=Time.from_msg(stamp).nanoseconds/1e9, source_stamps=self.source_stamps,
                       voxel_size=[g.resolution, g.resolution, g.z_resolution],
                       occupied_voxels=len(points), map_id=g.map_id,

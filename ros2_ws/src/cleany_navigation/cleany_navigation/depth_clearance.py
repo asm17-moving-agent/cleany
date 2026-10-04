@@ -20,18 +20,27 @@ def self_observation_mask(points: np.ndarray, sensor_origin: np.ndarray,
     if not math.isfinite(margin) or margin < 0:
         raise ValueError('Self-filter margin must be finite and nonnegative')
     keep = np.isfinite(points).all(axis=1)
+    rays = points-sensor_origin
     for box in boxes:
         origin = (sensor_origin-box.center)@box.rotation
-        direction = (points-sensor_origin)@box.rotation
+        direction = rays@box.rotation
         half = box.half_size+margin
-        parallel = np.abs(direction) < 1e-12
-        outside = np.any(parallel & (np.abs(origin) > half), axis=1)
-        low = np.full_like(direction, -np.inf)
-        high = np.full_like(direction, np.inf)
-        np.divide(-half-origin, direction, out=low, where=~parallel)
-        np.divide(half-origin, direction, out=high, where=~parallel)
-        enter = np.maximum(np.minimum(low, high).max(axis=1), 0.)
-        leave = np.minimum(np.maximum(low, high).min(axis=1), 1.)
+        # Accumulate the same closed-segment slab intersection by axis. This
+        # avoids allocating/reducing several N x 3 temporary arrays per box;
+        # parallel rays and boundary contact keep their conservative semantics.
+        outside = np.zeros(len(points), dtype=bool)
+        enter = np.zeros(len(points), dtype=direction.dtype)
+        leave = np.ones(len(points), dtype=direction.dtype)
+        for axis in range(3):
+            component = direction[:, axis]
+            parallel = np.abs(component) < 1e-12
+            outside |= parallel & (abs(origin[axis]) > half[axis])
+            low = np.full(len(points), -np.inf, dtype=direction.dtype)
+            high = np.full(len(points), np.inf, dtype=direction.dtype)
+            np.divide(-half[axis]-origin[axis], component, out=low, where=~parallel)
+            np.divide(half[axis]-origin[axis], component, out=high, where=~parallel)
+            np.maximum(enter, np.minimum(low, high), out=enter)
+            np.minimum(leave, np.maximum(low, high), out=leave)
         keep &= outside | (enter > leave)
     return keep
 

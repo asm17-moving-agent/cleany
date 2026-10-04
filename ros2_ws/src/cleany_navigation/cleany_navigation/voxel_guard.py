@@ -20,17 +20,23 @@ def voxel_box_hits(centers: np.ndarray, voxel_size: np.ndarray, box: BodyBox,
         raise ValueError('Invalid voxel size')
     if not np.isfinite(centers).all() or not np.isfinite(margin) or margin < 0:
         raise ValueError('Invalid collision input')
-    half = box.half_size+margin
-    delta = centers-box.center
+    return _box_hits(centers, size, box.center, box.rotation, box.half_size+margin)
+
+
+def _box_hits(centers: np.ndarray, size: np.ndarray, center: np.ndarray,
+              rotation: np.ndarray, half: np.ndarray) -> np.ndarray:
+    """SAT on already validated geometry; avoid rebuilding BodyBox per pose."""
+    delta = centers-center
     # Cheap map-axis broad phase before the remaining separating axes.
-    active = np.flatnonzero((np.abs(delta) <= np.abs(box.rotation)@half+size/2+1e-10).all(axis=1))
+    active = np.flatnonzero((np.abs(delta) <= np.abs(rotation)@half+size/2+1e-10).all(axis=1))
     result = np.zeros(len(centers), dtype=bool)
     if not len(active):
         return result
-    axes = [*np.eye(3), *box.rotation.T]
-    axes.extend(np.cross(a, b) for a in np.eye(3) for b in box.rotation.T)
-    axes = np.array([axis for axis in axes if np.linalg.norm(axis) > 1e-10])
-    radius = np.abs(axes)@(size/2)+np.abs(axes@box.rotation)@half
+    identity = np.eye(3)
+    cross = np.cross(identity[:, None, :], rotation.T[None, :, :]).reshape(-1, 3)
+    axes = np.concatenate((identity, rotation.T, cross))
+    axes = axes[np.linalg.norm(axes, axis=1) > 1e-10]
+    radius = np.abs(axes)@(size/2)+np.abs(axes@rotation)@half
     result[active] = (np.abs(delta[active]@axes.T) <= radius+1e-10).all(axis=1)
     return result
 
@@ -87,6 +93,14 @@ class VoxelGuard:
         obstacles. Those assumptions require separate real-robot validation.
         """
         c = self.config
+        centers = np.asarray(centers, dtype=float).reshape(-1, 3)
+        size, base_in_map, velocity = (np.asarray(a, dtype=float) for a in (size, base_in_map, velocity))
+        if (size.shape != (3,) or (size <= 0).any() or base_in_map.shape != (4, 4)
+                or velocity.shape != (3,)
+                or any(not np.isfinite(a).all() for a in (centers, size, base_in_map, velocity))
+                or not np.allclose(base_in_map[:3, :3].T@base_in_map[:3, :3], np.eye(3))
+                or not np.isclose(np.linalg.det(base_in_map[:3, :3]), 1.)):
+            raise ValueError('Invalid sweep geometry or motion')
         speed = float(np.linalg.norm(velocity[:2]))
         horizon = c.reaction_s+max(speed/c.linear_deceleration, abs(velocity[2])/c.angular_deceleration)+extra_s
         if not np.isfinite(horizon) or horizon > 5 or horizon < 0:
@@ -98,9 +112,8 @@ class VoxelGuard:
         for seconds in times:
             pose = base_in_map@twist_pose(velocity, seconds)
             for box in self.boxes:
-                moved = BodyBox(box.name, pose[:3, :3]@box.center+pose[:3, 3],
-                                pose[:3, :3]@box.rotation, box.half_size)
-                hits |= voxel_box_hits(centers, size, moved, c.margin+padding)
+                hits |= _box_hits(centers, size, pose[:3, :3]@box.center+pose[:3, 3],
+                                  pose[:3, :3]@box.rotation, box.half_size+(c.margin+padding))
         return hits
 
     def evaluate(self, centers: np.ndarray, size: np.ndarray, base_in_map: np.ndarray,
@@ -115,7 +128,8 @@ class VoxelGuard:
         command[:2] *= min(1., c.max_speed/max(np.linalg.norm(command[:2]), 1e-12))
         command[2] = np.clip(command[2], -c.max_yaw_rate, c.max_yaw_rate)
         near = self.sweep(centers, size, base_in_map, measured)
-        near |= self.sweep(centers, size, base_in_map, command)
+        if not np.array_equal(measured, command):
+            near |= self.sweep(centers, size, base_in_map, command)
         far = np.zeros(len(centers), dtype=bool)
         if near.any():
             output, decision = np.zeros(3), 'STOP_OBSTACLE'

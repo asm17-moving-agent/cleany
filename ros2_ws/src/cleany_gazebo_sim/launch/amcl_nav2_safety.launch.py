@@ -72,7 +72,7 @@ def _launch(context: LaunchContext) -> list:
             # Gazebo metadata YAML become the common ROS parameter overlay.
             'safety_params_file': str(navigation/'config/nav2_safety.yaml'),
             'pan_enabled': str(dynamic_pan).lower(), 'memory_enabled': value('memory_enabled'),
-            'voxel_enabled': value('voxel_enabled'), 'output_directory': value('output_directory'),
+            'voxel_enabled': value('voxel_enabled'), 'safety_mode': value('safety_mode'), 'output_directory': value('output_directory'),
             'memory_params_file': value('memory_params_file'),
         }.items())]
 
@@ -92,7 +92,8 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('voxel_params_file', default_value=str(navigation/'config/voxel_guard.yaml')),
         DeclareLaunchArgument('memory_params_file', default_value=str(navigation/'config/obstacle_memory.yaml')),
         DeclareLaunchArgument('body_profile', default_value=str(share/'config/cad_frame.yaml')),
-        # Preserve legacy evaluation modes; the common navigation entrypoint enables all stages.
+        # Reactive evaluation decouples camera observation from driving.
+        DeclareLaunchArgument('safety_mode', default_value='reactive', choices=['serial', 'reactive']),
         DeclareLaunchArgument('memory_enabled', default_value='false'),
         DeclareLaunchArgument('voxel_enabled', default_value='false'),
         DeclareLaunchArgument('output_directory', default_value=''),

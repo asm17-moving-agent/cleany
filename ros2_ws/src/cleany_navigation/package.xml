@@ -20,6 +20,7 @@
   <exec_depend>cleany_description</exec_depend>
   <depend>dwb_msgs</depend>
   <depend>dwb_core</depend>
+  <depend>nav_2d_utils</depend>
   <depend>dwb_plugins</depend>
   <depend>nav2_util</depend>
   <depend>nav_2d_msgs</depend>
@@ -28,7 +29,7 @@
   <depend>rclcpp_action</depend>
   <depend>nav2_behavior_tree</depend>
   <depend>nav2_msgs</depend>
-  <exec_depend>dwb_critics</exec_depend>
+  <depend>dwb_critics</depend>
   <exec_depend>rclpy</exec_depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
@@ -51,6 +52,7 @@
   <exec_depend>nav2_mppi_controller</exec_depend>
   <exec_depend>nav2_navfn_planner</exec_depend>
   <depend>nav2_smac_planner</depend>
+  <depend>nlohmann-json-dev</depend>
   <exec_depend>nav2_planner</exec_depend>
 
   <test_depend>python3-pytest</test_depend>

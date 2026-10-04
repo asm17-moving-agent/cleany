@@ -22,6 +22,62 @@ def test_self_occlusion_uses_rotated_box_and_parallel_ray_bounds():
     np.testing.assert_array_equal(self_observation_mask(points, np.zeros(3), [box], 0.), [False, True, True])
 
 
+def test_self_filter_matches_scalar_closed_segment_intersection():
+    """Self hits/occluded rays must never become free-space observations."""
+    from cleany_navigation.body_geometry import BodyBox
+    from cleany_navigation.depth_clearance import self_observation_mask
+    rng = np.random.default_rng(43)
+    origin = np.array([.13, -.002, .79])
+    boxes = []
+    for i in range(6):
+        rotation, _ = np.linalg.qr(rng.normal(size=(3, 3)))
+        if np.linalg.det(rotation) < 0:
+            rotation[:, 0] *= -1
+        boxes.append(BodyBox(str(i), rng.uniform(-1, 1, 3), rotation,
+                             rng.uniform(.01, .4, 3)))
+    points = rng.uniform(-3, 3, (500, 3))
+    points = np.vstack((points, origin, [np.nan, 0, 0], [np.inf, 0, 0]))
+
+    def visible(point):
+        if not np.isfinite(point).all():
+            return False
+        for box in boxes:
+            start = (origin-box.center)@box.rotation
+            delta = (point-origin)@box.rotation
+            enter, leave = 0., 1.
+            for axis in range(3):
+                half = box.half_size[axis]+.001
+                if abs(delta[axis]) < 1e-12:
+                    if abs(start[axis]) > half:
+                        break
+                else:
+                    a, b = sorted(((-half-start[axis])/delta[axis],
+                                   (half-start[axis])/delta[axis]))
+                    enter, leave = max(enter, a), min(leave, b)
+                if enter > leave:
+                    break
+            else:
+                return False
+        return True
+
+    with np.errstate(invalid='ignore'):
+        actual = self_observation_mask(points, origin, boxes, .001)
+    np.testing.assert_array_equal(actual, [visible(p) for p in points])
+    assert self_observation_mask(np.empty((0, 3)), origin, boxes, .001).size == 0
+
+
+def test_self_filter_boundary_contact_and_sensor_inside_are_occluded():
+    from cleany_navigation.body_geometry import BodyBox
+    from cleany_navigation.depth_clearance import self_observation_mask
+    box = BodyBox('rail', np.array([1., 0., 0.]), np.eye(3), np.full(3, .1))
+    points = np.array([[.9, 0, 0], [.9-1e-10, 0, 0], [2, .2, 0],
+                       [2, .2+1e-8, 0], [0, 0, 0]])
+    np.testing.assert_array_equal(self_observation_mask(points, np.zeros(3), [box], 0.),
+                                  [False, True, False, False, True])
+    np.testing.assert_array_equal(self_observation_mask(points, box.center, [box], 0.),
+                                  np.zeros(len(points), dtype=bool))
+
+
 def test_optical_depth_projects_to_x_forward_camera_axes():
     depth = np.array([[2., 2., 2.], [2., 2., 2.]])
     actual = project_depth_image(depth, (2, 4, 1, 1), pixel_stride=1)

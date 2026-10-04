@@ -1,6 +1,7 @@
 """Project rectified depth images to hits and bounded costmap clearing rays."""
 
 from __future__ import annotations
+from array import array
 
 from copy import deepcopy
 from pathlib import Path
@@ -143,7 +144,7 @@ class DepthClearanceNode(Node):
         output.point_step = 12
         output.row_step = output.width*12
         output.is_dense = True
-        output.data = points.tobytes()
+        output.data = array('B', points.tobytes())
         self.publisher.publish(output)
         # Marking cloud excludes floor/ceiling; the full cloud remains available
         # to clear occupied space along the actually observed rays.
@@ -151,7 +152,7 @@ class DepthClearanceNode(Node):
         hits = np.ascontiguousarray(points[obstacle_height_mask(body_points,
             self.get_parameter('marking_min_z').value, self.get_parameter('marking_max_z').value)])
         marked.width = len(hits); marked.row_step = marked.width * marked.point_step
-        marked.data = hits.tobytes()
+        marked.data = array('B', hits.tobytes())
         self.obstacles.publish(marked)
 
 

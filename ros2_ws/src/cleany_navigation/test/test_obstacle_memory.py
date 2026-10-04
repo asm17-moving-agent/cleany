@@ -67,6 +67,21 @@ def test_snapshot_restores_all_evidence_and_rejects_other_map(memory, tmp_path):
         ObstacleMemory.restore(path, replace(memory.geometry, map_id='map-b'))
 
 
+def test_map_reload_retains_obstacles_but_updates_snapshot_identity(memory, tmp_path):
+    observe(memory)
+    expected = memory.evidence.copy()
+    new = replace(memory.geometry, map_id='chair-removed-map')
+    memory.rebind_map(new)
+    np.testing.assert_array_equal(memory.evidence, expected)
+    path = tmp_path/'reloaded.npz'
+    memory.save(path)
+    restored = ObstacleMemory.restore(path, new)
+    np.testing.assert_array_equal(restored.evidence, expected)
+    with pytest.raises(ValueError, match='geometry changed'):
+        memory.rebind_map(replace(new, origin_x=-1.))
+    assert memory.geometry == new
+
+
 def test_voxel_centers_preserve_two_heights_and_source_specific_clearing(memory):
     observe(memory, endpoint=(1.05, .05, .35), sensor=(.05, .05, .35))
     observe(memory, endpoint=(1.05, .05, 1.35), sensor=(.05, .05, 1.35))

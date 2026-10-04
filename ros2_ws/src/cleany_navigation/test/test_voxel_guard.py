@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
+from itertools import product
 from cleany_navigation.body_geometry import BodyBox
-from cleany_navigation.voxel_guard import GuardConfig, VoxelGuard, planar_pose, voxel_box_hits
+from cleany_navigation.voxel_guard import GuardConfig, VoxelGuard, planar_pose, twist_pose, voxel_box_hits
 
 
 def body(center=(0., 0., .5), half=(.1, .1, .1), rotation=None):
@@ -44,3 +45,49 @@ def test_nonfinite_input_and_invalid_size_rejected():
         guard.evaluate(np.array([[np.nan, 0, 0]]), np.ones(3), np.eye(4), np.zeros(3), np.zeros(3))
     with pytest.raises(ValueError):
         voxel_box_hits(np.zeros((1, 3)), np.zeros(3), body())
+
+
+@pytest.mark.parametrize('velocity', [(0., 0., 0.), (.15, -.04, .3), (-.1, .06, -.2)])
+def test_optimized_sweep_matches_corner_projection_sat(velocity):
+    """An independent corner-projection oracle protects the swept body volume."""
+    rng = np.random.default_rng(28)
+    signs = np.array(list(product((-1., 1.), repeat=3)))
+    roll = .31
+    rotation = np.array([[1, 0, 0], [0, np.cos(roll), -np.sin(roll)],
+                         [0, np.sin(roll), np.cos(roll)]])
+    boxes = [body(half=(.3, .07, .12), rotation=rotation), body(center=(.4, -.1, .3))]
+    guard = VoxelGuard(boxes, GuardConfig())
+    points = rng.uniform([-.6, -.6, .1], [.9, .6, .9], (160, 3))
+    size = np.array([.04, .06, .08])
+    base = planar_pose(.1, -.1, .47)
+    velocity = np.array(velocity)
+    speed = np.linalg.norm(velocity[:2])
+    extra = .5
+    horizon = guard.config.reaction_s+max(speed/.4, abs(velocity[2])/.6)+extra
+    times = [0.] if np.all(velocity == 0) else np.linspace(0, horizon, int(np.ceil(horizon/.05))+1)
+    padding = guard.config.margin+(speed+abs(velocity[2])*guard.radius)*.05/2
+    expected = np.zeros(len(points), dtype=bool)
+    voxel_corners = points[:, None, :]+signs*(size/2)
+    for seconds in times:
+        pose = base@twist_pose(velocity, seconds)
+        for box in boxes:
+            r = pose[:3, :3]@box.rotation
+            center = pose[:3, :3]@box.center+pose[:3, 3]
+            corners = (signs*(box.half_size+padding))@r.T+center
+            axes = [*np.eye(3), *r.T, *(np.cross(a, b) for a in np.eye(3) for b in r.T)]
+            overlap = np.ones(len(points), dtype=bool)
+            for axis in axes:
+                if np.linalg.norm(axis) <= 1e-10:
+                    continue
+                a, b = corners@axis, voxel_corners@axis
+                overlap &= (b.max(axis=1) >= a.min()-1e-10) & (b.min(axis=1) <= a.max()+1e-10)
+            expected |= overlap
+    np.testing.assert_array_equal(guard.sweep(points, size, base, velocity, extra), expected)
+
+
+def test_sweep_rejects_invalid_base_rotation():
+    guard = VoxelGuard([body()], GuardConfig())
+    base = np.eye(4)
+    base[0, 0] = 2
+    with pytest.raises(ValueError):
+        guard.sweep(np.zeros((1, 3)), np.ones(3), base, np.zeros(3))

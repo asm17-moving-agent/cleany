@@ -55,6 +55,22 @@ def test_voxel_without_observation_memory_is_rejected():
         configure_safety(parameters(), memory_enabled=False)
 
 
+def test_reactive_route_keeps_monitor_and_one_final_owner_without_voxel_dependency():
+    source = parameters()
+    before = deepcopy(source['collision_monitor']['ros__parameters'])
+    result = configure_safety(source, safety_mode='reactive', voxel_enabled=False, memory_enabled=False)
+    assert result['pan_motion_gate']['ros__parameters']['observation_only'] is True
+    monitor = result['collision_monitor']['ros__parameters']
+    assert monitor['cmd_vel_in_topic'] == 'nav2/cmd_vel'
+    assert monitor['cmd_vel_out_topic'] == result['reactive_guard']['ros__parameters']['command_topic']
+    assert result['reactive_guard']['ros__parameters']['output_topic'] == 'cmd_vel'
+    for key in ('StopZone', 'SlowZone', 'source_timeout', 'observation_sources'):
+        assert monitor[key] == before[key]
+    assert result['obstacle_memory']['ros__parameters'] == source.get('obstacle_memory', {}).get('ros__parameters', {})
+    with pytest.raises(ValueError, match='replaces the serial voxel'):
+        configure_safety(source, safety_mode='reactive', voxel_enabled=True)
+
+
 def test_humble_preserves_three_point_stop_boundary_and_bt_registration():
     source = parameters()
     before = deepcopy(source)

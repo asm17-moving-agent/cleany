@@ -165,6 +165,7 @@ def generate_launch_description():
                               **({'body_profile':str(p/'config/cad_frame.yaml')} if (p/'config/cad_frame.yaml').exists() else {}),
                               'memory_enabled':str((p/'config/obstacle_memory.yaml').exists()).lower(),
                               'voxel_enabled':str((p/'config/voxel_guard.yaml').exists()).lower(),
+                              'safety_mode':'serial',
                               **({'memory_params_file':str(p/'config/obstacle_memory.yaml')} if (p/'config/obstacle_memory.yaml').exists() else {}),
                               **({'voxel_params_file':str(p/'config/voxel_guard.yaml')} if (p/'config/voxel_guard.yaml').exists() else {})}.items()),
     ])

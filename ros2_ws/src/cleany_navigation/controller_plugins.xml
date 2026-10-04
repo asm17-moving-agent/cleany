@@ -1,0 +1,5 @@
+<library path="axis_generator">
+  <class name="cleany_navigation::GoalDirectedController" type="cleany_navigation::GoalDirectedController" base_class_type="nav2_core::Controller">
+    <description>DWB scoring with same-cycle goal context for bounded near-goal holonomic candidates.</description>
+  </class>
+</library>

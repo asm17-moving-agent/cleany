@@ -38,6 +38,18 @@ class ObstacleMemory:
         self.last_seen = np.zeros((2, geometry.height, geometry.width), dtype=np.float64)
         self.hit_count = np.zeros_like(self.last_seen, dtype=np.uint32)
 
+    def rebind_map(self, geometry: MemoryGeometry) -> None:
+        """Refresh a static-map identity without forgetting observed obstacles.
+
+        A new origin/resolution/extent cannot reuse existing voxel indices. The
+        caller must stop mapping rather than silently reinterpret evidence.
+        """
+        old, new = asdict(self.geometry), asdict(geometry)
+        old.pop('map_id');new.pop('map_id')
+        if old != new:
+            raise ValueError('Map geometry changed; restart mapping with the new frame geometry')
+        self.geometry = geometry
+
     def indices(self, points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         g = self.geometry
         ijk = np.floor((points-[g.origin_x, g.origin_y, g.min_z])/[g.resolution, g.resolution, g.z_resolution]).astype(np.int64)

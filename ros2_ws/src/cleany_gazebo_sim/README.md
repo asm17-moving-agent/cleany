@@ -1067,14 +1067,17 @@ AMCL/Nav2, pan gate, depth projection, obstacle memory와 3D voxel guard의
 공통 full launch를 include한다. 기존 평가 YAML과 simulation 전용 park profile은
 이 패키지에 유지한다.
 
-기존 safety 평가의 기본 memory/voxel 비활성 모드를 유지한다. CAD 전체 직렬
-경로를 사용할 때는 두 옵션을 명시한다. Backend와 saved map을 먼저 준비한다.
+Gazebo safety wrapper는 `safety_mode:=reactive`, `voxel_enabled:=false`가 기본이다.
+카메라는 비동기로 관찰하며 Collision Monitor와 직접 센서 기반 planar 제동 guard가
+속도를 감시한다. Costmap의 depth VoxelLayer는 유지한다. 기존 CAD 전체 직렬
+경로를 재현하려면 `safety_mode:=serial`과 아래 두 옵션을 명시한다.
+Backend와 saved map을 먼저 준비한다.
 
 ```bash
 ros2 launch cleany_gazebo_sim amcl_nav2_safety.launch.py \
   map:=/absolute/path/map.yaml \
   safety_params_file:=/absolute/path/cad_nav2_safety.yaml \
-  memory_enabled:=true voxel_enabled:=true
+  safety_mode:=serial memory_enabled:=true voxel_enabled:=true
 ```
 
 CAD pan metadata가 있는 safety profile은 measured pan TF와 Gazebo actuator
