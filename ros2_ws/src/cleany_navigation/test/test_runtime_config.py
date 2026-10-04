@@ -77,8 +77,9 @@ def test_humble_preserves_three_point_stop_boundary_and_bt_registration():
     result = adapt_nav2_parameters(source, 'humble')
     zone = result['collision_monitor']['ros__parameters']['StopZone']
     assert len(zone['points']) == 8
-    assert zone['max_points'] == 2
-    assert [n > zone['max_points'] for n in (2, 3, 4)] == [False, True, True]
+    # Jazzy triggers at points >= min_points, Humble at points > max_points.
+    assert 'min_points' not in zone
+    assert zone['max_points'] == before['collision_monitor']['ros__parameters']['StopZone']['min_points'] - 1 == 2
     assert result['planner_server']['ros__parameters']['GridBased']['plugin'] == 'nav2_navfn_planner/NavfnPlanner'
     assert result['controller_server']['ros__parameters']['progress_checker_plugin'] == 'progress_checker'
     assert {'nav2_follow_path_action_bt_node', 'nav2_truncate_path_local_action_bt_node',
