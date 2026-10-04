@@ -11,6 +11,7 @@ from launch_ros.actions import Node
 SENSOR_PROFILES = (
     'lidar_nav',
     'lidar_depth_nav',
+    'lidar_rgbd_nav',
     'head_rgbd',
     'left_wrist',
     'right_wrist',
@@ -20,6 +21,7 @@ SENSOR_PROFILES = (
 _PROFILE_BRIDGES = {
     'lidar_nav': ('lidar',),
     'lidar_depth_nav': ('lidar', 'head_depth'),
+    'lidar_rgbd_nav': ('lidar', 'head_rgbd'),
     'head_rgbd': ('head_rgbd',),
     'left_wrist': ('left_wrist',),
     'right_wrist': ('right_wrist',),

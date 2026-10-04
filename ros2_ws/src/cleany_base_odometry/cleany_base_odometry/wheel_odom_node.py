@@ -25,6 +25,7 @@ class WheelOdometryNode(Node):
         self.declare_parameter('output_topic', 'wheel/odom')
         self.declare_parameter('odom_frame_id', 'odom')
         self.declare_parameter('base_frame_id', 'base_link')
+        self.declare_parameter('velocity_window_s', 0.0)
         self.declare_parameter('wheel_radius_m', 0.0635)
         self.declare_parameter('wheelbase_m', 0.30)
         self.declare_parameter('wheel_separation_m', 0.51)
@@ -44,7 +45,10 @@ class WheelOdometryNode(Node):
                 self.get_parameter('wheel_separation_m').value
             ),
         )
-        self._odometry = MecanumOdometry(geometry)
+        self._odometry = MecanumOdometry(
+            geometry,
+            velocity_window_s=float(self.get_parameter('velocity_window_s').value),
+        )
         self._odom_frame_id = str(self.get_parameter('odom_frame_id').value)
         self._base_frame_id = str(self.get_parameter('base_frame_id').value)
         self._joint_names = {

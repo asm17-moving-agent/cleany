@@ -47,6 +47,14 @@ def generate_launch_description() -> LaunchDescription:
         default_value='measured',
         description='LiDAR Gaussian noise profile: measured or stress.',
     )
+    physics_step_arg = DeclareLaunchArgument(
+        'physics_max_step_size', default_value='',
+        description='Optional physics step in seconds (0, 0.01]; empty preserves the input SDF.',
+    )
+    physics_factor_arg = DeclareLaunchArgument(
+        'physics_real_time_factor', default_value='',
+        description='Requested simulation/wall speed; empty preserves SDF. Measure /clock to verify achieved speed.',
+    )
     bridge_config_arg = DeclareLaunchArgument(
         'bridge_config',
         default_value='',
@@ -115,6 +123,8 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             world_arg,
+            physics_step_arg,
+            physics_factor_arg,
             lidar_noise_profile_arg,
             bridge_config_arg,
             sensor_config_arg,
@@ -160,7 +170,12 @@ def _launch_setup(
         profile = load_lidar_noise_profile(noise_profiles, profile_name)
         world = str(materialize_mecanum_wheel_world(world_template, profile))
 
-    world = str(materialize_friction_frames(Path(world)))
+    step = LaunchConfiguration('physics_max_step_size').perform(context).strip()
+    factor = LaunchConfiguration('physics_real_time_factor').perform(context).strip()
+    world = str(materialize_friction_frames(
+        Path(world), max_step_size=float(step) if step else None,
+        real_time_factor=float(factor) if factor else None,
+    ))
     server_command = [
         'ign', 'gazebo', '-r', '-s', '--render-engine-server',
         LaunchConfiguration('server_render_engine'),

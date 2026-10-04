@@ -884,7 +884,7 @@ pan을 π rad로 돌리고 같은 인터록을 적용한다. 전방 카메라만
 카메라 TF는 `/joint_states` 측정값 및 측정 시각으로 발행한다. 상부 OBB 하나는
 카메라 pan의 전체 회전 범위를 포함하며 기존 2cm 마진은 한 번만 적용한다.
 회전 중 촬영된 cloud도 해당 시각의 동적 TF로 지도에 투영한다.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+
 
 ## 경로 접근 속도 설정
 
@@ -1157,3 +1157,58 @@ D-HUB 실행은 실행별 임시 디렉터리를 사용한다.
 주행 기록은 통합 모델의 검증 결과가 아니다. 시설 SDF 저장 시 메카넘 마찰 방향의
 XML namespace를 보존한다. 시설의 검증 동선 설정은 최대 선가속도
 0.2 m/s²와 방향 오차 0.08 rad를 명시한다. 이 값은 실물 성능 실측값이 아니다.
+
+
+### Complete RGB-D navigation sensor profile
+
+Use `sensor_profile:=lidar_rgbd_nav` for navigation plus head RGB-D observation.
+It starts the core, LiDAR and head RGB-D bridges, including depth CameraInfo,
+with one publisher per ROS topic. `head_rgbd` remains a camera-only workload.
+No supplemental LiDAR/CameraInfo bridge is needed for the combined profile.
+The corresponding Fortress and Harmonic bridge configurations share the ROS
+contract; simulation runtime validation here uses Fortress/Humble.
+
+
+### Optional physics step for loaded-world performance experiments
+
+Fortress and Harmonic accept `physics_max_step_size:=0.002`. An empty default preserves the supplied SDF step. A nonempty value must be finite and in `(0, 0.01]`; launch materializes a copy, preserving the source file, world/model geometry, sensors and `real_time_factor`. This option changes physics integration fidelity and is not a faster-controller setting. Measure actual real-time factor, stationary drift, contact/pose stability and mission outcomes before choosing a value. Do not interpret the requested real-time factor as achieved speed or loosen mission wall-time deadlines to conceal slow simulation. The existing generated study-cafe/facility launch also exposes its own physics step argument.
+
+
+### Ideal wheel odometry의 twist 보존
+
+`odometry_error_ideal.yaml`을 사용하는 adapter는 입력 `/wheel/odom_raw`의 twist를
+그대로 보존한다. 누적 엔코더 pose를 다시 짧은 간격으로 차분해서 upstream의
+`cleany_base_odometry.velocity_window_s` 관측 구간을 무효화하지 않는다.
+비이상 오차 profile은 주입된 pose 변화에서 twist를 계산하는 기존 동작을 유지한다.
+125ms 관측 구간은 run-local wheel odometry config로 실제 주행 검증 중인 값이며,
+physical calibration이나 완료된 전체 미션 성능으로 주장하지 않는다.
+
+
+### 요청 배속과 실제 배속 검증
+
+Fortress/Harmonic 기본 launch의 `physics_real_time_factor`는 입력 SDF를 보존한
+실행 사본의 목표 배속만 지정한다. 비어 있으면 원래 값을 유지하며, 0 이하나
+유한하지 않은 값은 실행 전에 거부한다. 예를 들어 `physics_real_time_factor:=2.0`
+은 목표 2배속을 요청한다. 물리 적분 간격은 별도 `physics_max_step_size`로
+지정하며 배속 요청만으로 바뀌지 않는다.
+
+달성 배속은 준비 완료 이후 같은 구간의 `/clock` 차이를 `time.monotonic()`
+차이로 나누어 측정한다. 물리 설정값이나 Gazebo 실행 성공만으로 달성 배속을
+보고하지 않는다. 도착과 복귀 각각의 실제 시간, 시뮬레이션 시간, Nav2/미션
+종료 상태, ground-truth 위치 오차, 종료 명령을 함께 기록한다. 배속 확보를
+위해 freshness, 충돌 형상/여유, 속도/가속도, 도착 오차 또는 미션 제한을
+완화하지 않는다. 적분 간격을 바꾼 시험은 같은 물리 fidelity라고 단정하지
+않고 원래 간격의 결과와 구분한다.
+
+`lidar_rgbd_nav`/`head_rgbd`의 RGB bridge는 ROS 구독자가 있을 때만 Gazebo에
+구독한다. 화면이나 인식 노드가 RGB를 구독하면 기존 640×480, 15Hz 영상이
+활성화된다. 구독자 없는 RGB의 불필요한 렌더링을 줄이는 설정이며, 주행에
+필수인 depth image/CameraInfo와 LiDAR는 eager bridge를 유지한다. RGB 소비자가
+있는 실행과 없는 실행의 처리 부하는 별도로 보고한다.
+
+2026-10-04 전체 시설의 홈→43→홈→13→홈 시험에서는 Ogre2, 적분 간격
+0.006666667s, 요청 RTF4로 미션 실측 1.53/1.48배를 얻었다. 두 왕복은
+SUCCESS였지만 **실측 2배속 목표는 미달**이며 13 홈 GT 오차는 13.1cm였다.
+Ogre1의 빠른 측정은 LiDAR 관측 이상으로 유효한 주행 검증에서 제외했다.
+가속 profile은 기본값으로 채택하지 않았다. 조건·전후 결과·잔여 한계는
+[자율주행 검토](../../../docs/NAVIGATION_REVIEW.md)를 참고한다.

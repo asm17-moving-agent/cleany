@@ -25,6 +25,7 @@ EXPECTED_GROUP_TOPICS = {
     'head_rgbd': {
         '/camera/head/color/image_raw',
         '/camera/head/depth/image_raw',
+        '/camera/head/depth/camera_info',
     },
     'left_wrist': {'/camera/left_wrist/color/image_raw'},
     'right_wrist': {'/camera/right_wrist/color/image_raw'},
@@ -70,6 +71,7 @@ def test_sensor_profiles_select_only_their_bridge_groups() -> None:
     assert SENSOR_PROFILES == (
         'lidar_nav',
         'lidar_depth_nav',
+        'lidar_rgbd_nav',
         'head_rgbd',
         'left_wrist',
         'right_wrist',
@@ -78,6 +80,7 @@ def test_sensor_profiles_select_only_their_bridge_groups() -> None:
     assert sensor_profile_bridge_groups('lidar_nav') == ('core', 'lidar')
     assert sensor_profile_bridge_groups('lidar_depth_nav') == ('core', 'lidar', 'head_depth')
     assert sensor_profile_bridge_groups('head_rgbd') == ('core', 'head_rgbd')
+    assert sensor_profile_bridge_groups('lidar_rgbd_nav') == ('core', 'lidar', 'head_rgbd')
     assert sensor_profile_bridge_groups('left_wrist') == ('core', 'left_wrist')
     assert sensor_profile_bridge_groups('right_wrist') == (
         'core',
@@ -91,6 +94,22 @@ def test_sensor_profiles_select_only_their_bridge_groups() -> None:
     )
     with pytest.raises(ValueError, match='unknown sensor profile'):
         sensor_profile_bridge_groups('all_sensors')
+
+
+@pytest.mark.parametrize('suffix', ['', '_harmonic'])
+def test_rgbd_navigation_profile_has_all_inputs_without_duplicate_publishers(suffix):
+    entries = [entry for group in sensor_profile_bridge_groups('lidar_rgbd_nav')
+               for entry in _entries(CONFIG_ROOT / f'{group}_bridge{suffix}.yaml')]
+    topics = [entry['ros_topic_name'] for entry in entries]
+    assert len(topics) == len(set(topics))
+    assert NAVIGATION_TOPICS | {'/camera/head/color/image_raw', '/camera/head/depth/image_raw',
+                                '/camera/head/depth/camera_info'} <= set(topics)
+    # RGB work starts on demand; safety depth inputs stay eager even before
+    # downstream lifecycle activation so readiness cannot depend on a viewer.
+    by_topic = {entry['ros_topic_name']: entry for entry in entries}
+    assert by_topic['/camera/head/color/image_raw'].get('lazy') is True
+    for topic in ('/camera/head/depth/image_raw', '/camera/head/depth/camera_info'):
+        assert not by_topic[topic].get('lazy', False)
 
 
 @pytest.mark.parametrize(

@@ -23,7 +23,12 @@ from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 def _normalize_world(context):
     source = Path(LaunchConfiguration('world').perform(context))
-    return [SetLaunchConfiguration('world', str(materialize_friction_frames(source, harmonic=True)))]
+    step = LaunchConfiguration('physics_max_step_size').perform(context).strip()
+    factor = LaunchConfiguration('physics_real_time_factor').perform(context).strip()
+    return [SetLaunchConfiguration('world', str(materialize_friction_frames(
+        source, harmonic=True, max_step_size=float(step) if step else None,
+        real_time_factor=float(factor) if factor else None,
+    )))]
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -45,6 +50,14 @@ def generate_launch_description() -> LaunchDescription:
 
     world_arg = DeclareLaunchArgument(
         'world', default_value=str(default_world)
+    )
+    physics_step_arg = DeclareLaunchArgument(
+        'physics_max_step_size', default_value='',
+        description='Optional physics step in seconds (0, 0.01]; empty preserves the input SDF.',
+    )
+    physics_factor_arg = DeclareLaunchArgument(
+        'physics_real_time_factor', default_value='',
+        description='Requested simulation/wall speed; empty preserves SDF. Measure /clock to verify achieved speed.',
     )
     bridge_config_arg = DeclareLaunchArgument(
         'bridge_config',
@@ -195,6 +208,8 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             world_arg,
+            physics_step_arg,
+            physics_factor_arg,
             bridge_config_arg,
             sensor_config_arg,
             encoder_config_arg,

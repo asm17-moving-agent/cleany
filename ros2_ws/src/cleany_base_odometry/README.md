@@ -59,3 +59,21 @@ Gazebo에서 합성 odometry parameter 오차를 선택하려면 `wheel_odometry
 python3 -m pytest \
   ros2_ws/src/cleany_base_odometry/test/test_mecanum_odometry.py
 ```
+
+## 엔코더 속도 관측 구간
+
+`velocity_window_s`는 누적 wheel position으로 twist를 계산할 최소 관측 구간입니다.
+기본값 0은 기존 샘플 간 차분이며, 양수이면 최근 관측 구간의 누적 휠 회전각을
+사용합니다. Pose는 매 입력 샘플을 계속 적분하고, 구간이 준비된 뒤에는 기존
+입력 cadence로 최신 pose와 구간 평균 twist를 발행합니다. 시작·시간 역행·구간보다
+긴 데이터 공백 후에는 구간이 다시 준비되기 전까지 발행하지 않습니다. 이때
+관측할 수 없는 속도를 측정된 0으로 보고하지 않습니다.
+
+3,172 tick 가상 엔코더를 짧은 간격으로 차분하면 실제 순수 lateral motion에도
+X 속도 spike가 생길 수 있습니다. 125ms 구간은 기록한 시뮬레이션 데이터에서
+이 양자화 영향을 줄인 실험 설정이며 실물의 보정값이나 즉시 속도 보장이 아닙니다.
+평균 속도에는 지연이 있으므로 실제 가속·제동·최종 도착과 안전 체인을 재검증해야 합니다.
+값은 유한한 0 이상이어야 합니다. 가상 엔코더 자체나 GT 속도로 입력을 대체하지 않습니다.
+Gazebo의 ideal odometry-error adapter는 이 입력 twist를 보존합니다. 비이상 오차
+profile은 주입한 pose 차이로 twist를 재계산하므로 해당 profile의 속도 관측 구간은
+별도 검증이 필요합니다. 실물 기본 profile은 변경하지 않았습니다.

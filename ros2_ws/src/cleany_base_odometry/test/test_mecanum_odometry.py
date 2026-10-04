@@ -1,4 +1,5 @@
-from math import isclose
+from math import isclose, pi, sqrt
+import pytest
 from unittest import TestCase
 
 from cleany_base_odometry.mecanum_odometry import (
@@ -78,3 +79,57 @@ class MecanumOdometryTest(TestCase):
         self.assertIsNotNone(estimate)
         assert estimate is not None
         self.assertTrue(isclose(estimate.x_m, GEOMETRY.wheel_radius_m))
+
+
+def test_count_window_reduces_lateral_encoder_alias_without_losing_pose():
+    instant = MecanumOdometry(GEOMETRY)
+    windowed = MecanumOdometry(GEOMETRY, velocity_window_s=.125)
+    quantum = 2*pi/3172
+    phases = (.23, .71, .41, .89)
+    instantaneous_x, windowed_x, windowed_y = [], [], []
+    for index in range(1001):
+        stamp = 1. + index*.001
+        positions = WheelPositions(*(
+            round(phase + sign*.008/GEOMETRY.wheel_radius_m*(stamp-1.)/quantum)*quantum
+            for phase, sign in zip(phases, (-1., 1., 1., -1.))
+        ))
+        raw = instant.update(positions, stamp)
+        filtered = windowed.update(positions, stamp)
+        if filtered:
+            assert raw is not None
+            instantaneous_x.append(raw.linear_x_mps)
+            windowed_x.append(filtered.linear_x_mps)
+            windowed_y.append(filtered.linear_y_mps)
+            # Count integration and pose publication are independent of twist
+            # averaging after warmup; no encoder motion is discarded.
+            assert (filtered.x_m, filtered.y_m, filtered.yaw_rad) == (raw.x_m, raw.y_m, raw.yaw_rad)
+    rms = lambda values: sqrt(sum(v*v for v in values)/len(values))
+    assert len(windowed_x) > 850  # publish every input after warmup, not once per window
+    assert rms(windowed_x) < rms(instantaneous_x)/10
+    assert abs(sum(windowed_y)/len(windowed_y)-.008) < .0001
+    assert filtered is not None and abs(filtered.y_m-.008) < .0002
+
+
+def test_window_requires_observable_velocity_after_clock_reset_and_data_gap():
+    odometry = MecanumOdometry(GEOMETRY, velocity_window_s=.125)
+    assert odometry.update(ZERO, 1.) is None
+    assert odometry.update(WheelPositions(.1, .1, .1, .1), 1.05) is None
+    estimate = odometry.update(WheelPositions(.2, .2, .2, .2), 1.125)
+    assert estimate is not None
+    assert isclose(estimate.x_m, GEOMETRY.wheel_radius_m*.2)
+    assert odometry.update(ZERO, .5) is None
+    assert odometry.update(ZERO, .55) is None
+    assert odometry.update(ZERO, .625) is not None
+    assert odometry.update(ZERO, 2.) is None
+    assert odometry.update(ZERO, 2.05) is None
+    assert odometry.update(ZERO, 2.125) is not None
+    # Once stopped for the full window, a moving historical sample cannot
+    # survive and report motion indefinitely.
+    stopped = odometry.update(ZERO, 2.2)
+    assert stopped is not None and stopped.linear_x_mps == 0.
+
+
+@pytest.mark.parametrize('window', [-1., float('nan'), float('inf')])
+def test_invalid_velocity_window_is_rejected(window):
+    with pytest.raises(ValueError):
+        MecanumOdometry(GEOMETRY, velocity_window_s=window)
