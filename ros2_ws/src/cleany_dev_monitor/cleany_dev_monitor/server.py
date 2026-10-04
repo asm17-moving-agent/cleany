@@ -120,14 +120,7 @@ def create_app(hub, config, recorder, assets):
                     )
                     continue
                 topics = data.get("topics")
-                graph = next(
-                    (
-                        row["data"]
-                        for row in hub.snapshot()["rows"]
-                        if row["kind"] == "graph"
-                    ),
-                    {},
-                )
+                graph = hub.latest_data("graph", "ros")
                 available = {item["name"] for item in graph.get("topics", [])}
                 if (
                     not isinstance(topics, list)
@@ -157,10 +150,7 @@ def create_app(hub, config, recorder, assets):
 
     async def camera(request):
         topic = request.query.get("topic", "")
-        graph = next(
-            (row["data"] for row in hub.snapshot()["rows"] if row["kind"] == "graph"),
-            {},
-        )
+        graph = hub.latest_data("graph", "ros")
         item = next(
             (item for item in graph.get("topics", []) if item["name"] == topic), None
         )

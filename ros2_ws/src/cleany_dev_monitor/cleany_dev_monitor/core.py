@@ -122,6 +122,11 @@ class Hub:
                 ),
             }
 
+    def latest_data(self, kind: str, key: str) -> dict:
+        with self.lock:
+            row = self.latest.get((kind, key))
+            return row["data"] if row else {}
+
     def forget(self, kind, key):
         with self.lock:
             self.latest.pop((kind, key), None)

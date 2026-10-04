@@ -5,8 +5,9 @@ import time
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
-from action_msgs.msg import GoalStatus, GoalInfo, GoalStatusArray
+from action_msgs.msg import GoalStatus, GoalStatusArray
 from action_msgs.srv import CancelGoal
+from lifecycle_msgs.msg import State
 from lifecycle_msgs.srv import GetState
 from nav_msgs.msg import Odometry
 from nav2_msgs.action import NavigateToPose
@@ -14,12 +15,12 @@ from rclpy.action import ActionClient
 from rclpy.qos import qos_profile_sensor_data, qos_profile_action_status_default
 from rclpy.time import Time
 from tf2_ros import Buffer, TransformListener
-from unique_identifier_msgs.msg import UUID as GoalUUID
 
 from cleany_mission_manager.core.journal import MissionJournal
 from cleany_mission_manager.core.result import FailureCode, ModuleResult, ResultStatus
 
 from .config import TargetMap, TargetPose
+from .goals import cancel_request, goal_uuid
 from cleany_mission_manager.core.arrival import arrival_error
 
 
@@ -110,8 +111,7 @@ class Nav2Navigator:
                 else:
                     self.active_nodes[name] = False
         if self.recovery_goal and self.recovery_future is None and self.cancel_client.service_is_ready():
-            goal = GoalInfo(goal_id=GoalUUID(uuid=list(UUID(self.recovery_goal).bytes)))
-            self.recovery_future = self.cancel_client.call_async(CancelGoal.Request(goal_info=goal))
+            self.recovery_future = self.cancel_client.call_async(cancel_request(self.recovery_goal))
             self.recovery_started = now
         if (self.recovery_future and not self.recovery_future.done()
                 and now - self.recovery_started > self.lifecycle_timeout):
@@ -136,10 +136,15 @@ class Nav2Navigator:
         if self.state_queries.get(name) is not future:
             return
         try:
-            self.active_nodes[name] = future.result().current_state.id == 3
+            self.active_nodes[name] = future.result().current_state.id == State.PRIMARY_STATE_ACTIVE
             self.state_received[name] = time.monotonic()
         except Exception:
             self.active_nodes[name] = False
+
+    def base_transform(self):
+        """Latest base pose in the target frame and its age in seconds."""
+        tf = self.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
+        return tf, self.node.get_clock().now().nanoseconds*1e-9 - Time.from_msg(tf.header.stamp).nanoseconds*1e-9
 
     def ready(self) -> tuple[bool, str]:
         if self.recovery_goal:
@@ -152,10 +157,7 @@ class Nav2Navigator:
         if time.monotonic() - self.odom_received > self.input_timeout:
             return False, "ODOMETRY_STALE"
         try:
-            transform = self.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
-            stamp = transform.header.stamp
-            age = self.node.get_clock().now().nanoseconds * 1e-9 - (stamp.sec + stamp.nanosec * 1e-9)
-            if abs(age) > self.input_timeout:
+            if abs(self.base_transform()[1]) > self.input_timeout:
                 return False, "LOCALIZATION_STALE"
         except Exception:
             return False, "LOCALIZATION_UNAVAILABLE"
@@ -177,9 +179,7 @@ class Nav2Navigator:
         self.operation = operation
         # The goal UUID is durable before it reaches Nav2. On restart cancel only this goal.
         self.journal.set("nav_goal_uuid", operation.operation_id)
-        future = self.client.send_goal_async(
-            goal, goal_uuid=GoalUUID(uuid=list(UUID(operation.operation_id).bytes))
-        )
+        future = self.client.send_goal_async(goal, goal_uuid=goal_uuid(operation.operation_id))
         future.add_done_callback(lambda f: self._accepted(operation, f))
         return operation.operation_id
 
@@ -235,8 +235,7 @@ class Nav2Navigator:
             # Nav2 may stop near a tolerance-shifted path endpoint. Verify the
             # original requested pose independently before desk work can start.
             try:
-                tf = self.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
-                age = self.node.get_clock().now().nanoseconds*1e-9 - Time.from_msg(tf.header.stamp).nanoseconds*1e-9
+                tf, age = self.base_transform()
                 if not math.isfinite(age) or not -.02 <= age <= self.arrival_pose_timeout:
                     raise ValueError("arrival localization is stale or future")
                 q = tf.transform.rotation
@@ -266,8 +265,7 @@ class Nav2Navigator:
             if operation.handle and operation.handle.accepted and operation.result is None:
                 operation.handle.cancel_goal_async()
             elif self.cancel_client.service_is_ready():
-                goal = GoalInfo(goal_id=GoalUUID(uuid=list(UUID(operation_id).bytes)))
-                self.cancel_client.call_async(CancelGoal.Request(goal_info=goal))
+                self.cancel_client.call_async(cancel_request(operation_id))
 
     def _base_stopped(self) -> bool:
         if self.latest_odom is None or time.monotonic() - self.odom_received > self.input_timeout:

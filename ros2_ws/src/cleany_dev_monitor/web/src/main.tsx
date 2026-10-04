@@ -24,7 +24,6 @@ import "./theme.css";
 import "./style.css";
 import { Button } from "@/components/ui/button";
 import { Badge as UiBadge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -45,16 +44,9 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { FoxglovePanel } from "@/components/foxglove-panel";
+import { Panel } from "@/components/panel";
+import { type Data, type Row, time } from "@/lib/monitor";
 
-type Data = Record<string, any>;
-type Row = {
-  seq: number;
-  kind: string;
-  key: string;
-  data: Data;
-  received_at: number;
-  ros_time: number | null;
-};
 type Packet = {
   rows: Row[];
   boot_id?: string;
@@ -103,8 +95,6 @@ const tabs = [
   ["recordings", "기록 & 재생", "05"],
   ["camera", "카메라", "06"],
 ];
-const time = (t: number) =>
-  new Date(t * 1000).toLocaleTimeString("ko-KR", { hour12: false });
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);
 const statusColor = (s: string) =>
   s === "RUNNING"
@@ -136,29 +126,6 @@ function Badge({
     <UiBadge variant="secondary" className={"badge " + tone}>
       {children}
     </UiBadge>
-  );
-}
-function Panel({
-  title,
-  aside,
-  children,
-  className = "",
-}: {
-  title: string;
-  aside?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <Card className={"panel " + className}>
-      <CardHeader className="panel-title">
-        <CardTitle>
-          <h2>{title}</h2>
-        </CardTitle>
-        {aside}
-      </CardHeader>
-      <CardContent className="panel-content">{children}</CardContent>
-    </Card>
   );
 }
 

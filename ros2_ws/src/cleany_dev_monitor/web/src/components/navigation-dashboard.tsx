@@ -1,19 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Panel } from "@/components/panel";
+import { type Data, type Row, time as stamp } from "@/lib/monitor";
 import "./navigation.css";
 
-type Data = Record<string, any>;
-type Row = {
-  seq: number;
-  kind: string;
-  key: string;
-  data: Data;
-  received_at: number;
-  ros_time: number | null;
-};
 type Props = {
   rows: Row[];
   config: Data;
@@ -52,32 +44,7 @@ const angle = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value)
     ? `${((value * 180) / Math.PI).toFixed(1)}°`
     : "—";
-const stamp = (t: number) =>
-  new Date(t * 1000).toLocaleTimeString("ko-KR", { hour12: false });
 const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
-function Panel({
-  title,
-  children,
-  aside,
-  className = "",
-}: {
-  title: string;
-  children: ReactNode;
-  aside?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <Card className={`panel ${className}`}>
-      <CardHeader className="panel-title">
-        <CardTitle>
-          <h2>{title}</h2>
-        </CardTitle>
-        {aside}
-      </CardHeader>
-      <CardContent className="panel-content">{children}</CardContent>
-    </Card>
-  );
-}
 function Tag({
   children,
   tone = "neutral",

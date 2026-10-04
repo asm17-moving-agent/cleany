@@ -324,6 +324,17 @@ class MonitorNode(Node):
         graph["missing_fixed_topics"] = sorted(self.fixed - topics.keys())
         self.hub.put("graph", "ros", graph)
 
+    def runtime_booted(self, boot_id):
+        if self.runtime_boot == boot_id:
+            return
+        self.hub.put(
+            "event",
+            "connection",
+            {"kind": "runtime_boot", "boot_id": boot_id, "previous_boot": self.runtime_boot},
+            critical=True,
+        )
+        self.runtime_boot, self.runtime_seq = boot_id, None
+
     def receive(self, topic, message):
         now = time.monotonic()
         self.rates.setdefault(topic, deque(maxlen=1000)).append(now)
@@ -339,32 +350,10 @@ class MonitorNode(Node):
                     raise ValueError("Unsupported/oversized Runtime debug snapshot")
                 data = json.loads(message.snapshot_json)
                 self.runtime_data, self.runtime_received = data, now
-                if self.runtime_boot != message.boot_id:
-                    self.hub.put(
-                        "event",
-                        "connection",
-                        {
-                            "kind": "runtime_boot",
-                            "boot_id": message.boot_id,
-                            "previous_boot": self.runtime_boot,
-                        },
-                        critical=True,
-                    )
-                    self.runtime_boot, self.runtime_seq = message.boot_id, None
+                self.runtime_booted(message.boot_id)
                 self.hub.put("runtime", topic, data, ros_time=ros_time)
             elif topic.endswith("/mission/runtime_events"):
-                if self.runtime_boot != message.boot_id:
-                    self.hub.put(
-                        "event",
-                        "connection",
-                        {
-                            "kind": "runtime_boot",
-                            "boot_id": message.boot_id,
-                            "previous_boot": self.runtime_boot,
-                        },
-                        critical=True,
-                    )
-                    self.runtime_seq = None
+                self.runtime_booted(message.boot_id)
                 if message.sequence != (self.runtime_seq or 0) + 1:
                     self.hub.put(
                         "event",
@@ -376,7 +365,7 @@ class MonitorNode(Node):
                         },
                         critical=True,
                     )
-                self.runtime_boot, self.runtime_seq = message.boot_id, message.sequence
+                self.runtime_seq = message.sequence
                 event_data = json.loads(message.data_json)
                 if event_data.get("module") == "navigation":
                     self.navigation.note(message.kind, event_data, time.time())
@@ -539,11 +528,9 @@ class MonitorNode(Node):
                 data.update(preview(parsed))
                 decision = data.get("decision", data.get("reason"))
                 if decision != self.navigation_previous.get(key):
-                    self.navigation.note("navigation_decision", {"source": key, "decision": decision,
-                        "motion_authority": data.get("motion_authority")}, time.time())
-                    self.hub.put("event", topic, {"kind": "navigation_decision",
-                        "data": {"source": key, "decision": decision,
-                                 "motion_authority": data.get("motion_authority")}}, critical=True, ros_time=ros_time)
+                    change = {"source": key, "decision": decision, "motion_authority": data.get("motion_authority")}
+                    self.navigation.note("navigation_decision", change, time.time())
+                    self.hub.put("event", topic, {"kind": "navigation_decision", "data": change}, critical=True, ros_time=ros_time)
                     self.navigation_previous[key] = decision
             elif key == "collision":
                 data.update(preview(message))
@@ -552,10 +539,9 @@ class MonitorNode(Node):
                     if action is not None and action == getattr(message, name, object()):
                         data["decision"] = f"{name}:{getattr(message, 'polygon_name', '')}"
                 if data.get("decision") != self.navigation_previous.get(key):
-                    self.navigation.note("navigation_decision", {"source": key,
-                        "decision": data.get("decision", "NO_INTERVENTION")}, time.time())
-                    self.hub.put("event", topic, {"kind": "navigation_decision", "data": {
-                        "source": key, "decision": data.get("decision", "NO_INTERVENTION")}}, critical=True, ros_time=ros_time)
+                    change = {"source": key, "decision": data.get("decision", "NO_INTERVENTION")}
+                    self.navigation.note("navigation_decision", change, time.time())
+                    self.hub.put("event", topic, {"kind": "navigation_decision", "data": change}, critical=True, ros_time=ros_time)
                     self.navigation_previous[key] = data.get("decision")
             elif key in ("odometry", "ground_truth", "amcl_pose"):
                 pose = message.pose.pose
@@ -646,8 +632,7 @@ class MonitorNode(Node):
 
     def navigation_tick(self):
         wall, monotonic = time.time(), time.monotonic()
-        rows = self.hub.snapshot()["rows"]
-        robot = next((r["data"] for r in rows if r["kind"] == "pose"), {})
+        robot = self.hub.latest_data("pose", "robot")
         summary, events = self.navigation.snapshot(wall, monotonic, self.last_clock,
             robot.get("pose") if robot.get("valid") else None, self.runtime_data,
             monotonic-self.runtime_received <= 3., self.get_clock().now().nanoseconds/1e9)

@@ -8,7 +8,6 @@ from math import isfinite
 import rclpy
 from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
-from rclpy.time import Time
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
@@ -220,9 +219,7 @@ class MissionRuntimeNode(Node):
                 "odom_age": now - nav.odom_received,
                 "lifecycle_age": {key: now - stamp for key, stamp in nav.state_received.items()}})
             try:
-                tf = nav.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
-                data["navigation"]["tf_age"] = (self.get_clock().now().nanoseconds / 1e9
-                    - tf.header.stamp.sec - tf.header.stamp.nanosec / 1e9)
+                data["navigation"]["tf_age"] = nav.base_transform()[1]
             except Exception as exc:
                 data["navigation"]["tf_error"] = str(exc)
         message = RuntimeDebugSnapshot(boot_id=data["boot_id"],
