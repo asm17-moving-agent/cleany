@@ -17,9 +17,15 @@
 
 ## 모의 Manipulation Action
 
-`manipulation_server`는 지정된 물체 하나의 `collect_trash`를 실행한다.
+`manipulation_server`는 지정된 물체 하나의 `collect_trash` 또는 `collect_lost_item`을 실행한다.
 현재 `execution_profile=mock`이며 동작과 확인 근거를 모의로 생성한다.
 기본 namespace는 `/mock`이다.
+
+모의 설정의 `destination_id`는 쓰레기 목적지, `lost_item_destination_id`는 분실물
+목적지다. 기본값은 각각 `mock_trash_bin`, `mock_lost_item_bin`이며 잘못된 skill–목적지
+조합은 준비 단계에서 차단한다. 테스트 클라이언트에서 분실물을 요청하려면
+`--skill-name collect_lost_item --destination-id mock_lost_item_bin`을 지정한다.
+실제 분류와 목적지 검사는 [BT 실행기](../cleany_manipulation_bt/README.md)가 담당한다.
 
 **터미널 A — 레포 루트에서 빌드·서버 실행**
 
@@ -41,14 +47,25 @@ source ros2_ws/install/setup.bash
 ros2 run cleany_skill_executor manipulation_test_client
 ```
 
-실행 단계 Feedback, 최종 Result와 저장 기록이 출력된다.
+실행 단계 Feedback, 최종 Result와 최신 실행 기록이 출력된다.
 Feedback은 `stage/substage`로 큰 단계와 세부 동작을 함께 표시한다.
 예를 들어 `GRASPING/GraspObject`는 그리퍼 닫기, `GRASPING/ConfirmGrasp`는 파지 확인이다.
 Feedback 문구는 단계 시작(`Starting`), 관측 결과 수신(`Observation received`),
 단계 완료(`Stage completed`), 결과 확정(`Finalizing result`), 실행 종료(`Execution finished`)를 구분한다.
 정상 결과는 `SUCCESS`, `placement_state=CONFIRMED`,
 `arm_recovered=true`, `stop_confirmed=true`다.
+실행 기록 저장 실패는 경고로 남기고 실제 동작의 status와 error_code를 유지한다.
+진행과 결과는 서버 메모리에도 보관하므로 같은 프로세스의 조회는 최신 결과를 반환한다.
+저장 실패만으로 동작이나 후속 Goal을 차단하지 않으며, 실제 fault·정지 미확인·
+물체 보유·상태 불명에 따른 차단은 유지한다. 메모리의 미저장 기록은 재시작 후 복구할 수 없다.
 취소·조회·실패 재현과 DB 복구는 [사용법](docs/manipulation_mock_usage.md)을 따른다.
+
+취소 모드는 `CHECKPOINT`(현재 단계와 확인을 완료하고 정지), `IMMEDIATE`(완료 대기 없이
+정지), `RETURN_ARM`(현재 작업 중단, 정지 확인, 잡고 있는 물체를 그 자리에서 놓고 팔 복귀)다.
+`manipulation/cancel` 서비스나 테스트 클라이언트의 `--cancel-mode`로 선택한다.
+일반 Action cancel은 `CHECKPOINT`다. `RETURN_ARM`의 현재 위치 놓기는 수거함 확인을
+수행하지 않으며 추가 놓기 위치 정책은 후속 검토 대상으로 둔다. 기존 정지 확인,
+controller 실패와 timeout 처리는 유지한다. Mission Manager의 취소 adapter는 아직 없다.
 
 VS Code **BehaviorTree Viewer 0.1.2**에서 진행 상태를 보려면 서버 launch에
 `monitor:=true`를 추가한다. `manipulation_monitor`가 모의 실행 이벤트를 읽어
@@ -72,6 +89,19 @@ VS Code **BehaviorTree Viewer 0.1.2**에서 진행 상태를 보려면 서버 la
 시뮬레이션 분류는 기본 관찰 모드에서 `complete_unverified`를 기록한다.
 모의 Action의 성공, 시뮬레이션의 개별 물체 배치와 전체 물리 수거 성공은 각각의
 검증 범위를 따른다. 전체 물리 수거 성공은 검증 진행 중이다.
+
+## MuJoCo 실행 로그
+
+`study_cafe_nearest_grasp_demo.launch.py`와 이를 포함하는 수거·BT launch는
+`log_level:=info`, `backend_log_level:=warn`을 기본으로 사용한다.
+`log_level:=debug`로 후보별 IK·경로 평가, 그리퍼 수치와 손목 RPC 타이밍을
+확인할 수 있다. 최종 후보 선택과 주요 작업 단계는 `INFO`로 남는다.
+Action feedback과 ROS 상태 토픽·파일 기록은 로그 수준과 무관하게 유지한다.
+수거 단계의 기본 로그는 단계·대상·목적지·완료 개수만 요약한다. 전체 상태 JSON은
+`DEBUG`와 기존 상태 토픽·파일에서 확인한다.
+외부 MuJoCo·MoveIt·TF의 상세 출력은 `backend_log_level:=info`로 켠다.
+`log_level`은 끌리니 노드의 지정 로거에만 적용한다. `debug`에서도 ROS 내부
+대기 루프·통신 계층은 전역 `DEBUG`로 바꾸지 않는다.
 
 ## 설정 및 검증
 

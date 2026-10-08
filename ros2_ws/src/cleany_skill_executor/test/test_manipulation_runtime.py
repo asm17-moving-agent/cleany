@@ -10,7 +10,7 @@ import uuid
 from action_msgs.msg import GoalStatus
 from cleany_interfaces.action import ExecuteManipulationSkill
 from cleany_interfaces.msg import ManipulationExecutionRecord
-from cleany_interfaces.srv import GetManipulationExecution
+from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution
 import pytest
 import rclpy
 from rclpy.action import ActionClient
@@ -211,6 +211,68 @@ def test_real_ros_stage_cancellation_stops_before_next_stage(ros, stage):
     assert not any(item.stage in forbidden for item in harness.feedback)
 
 
+@pytest.mark.parametrize('mode', ['IMMEDIATE', 'CHECKPOINT', 'RETURN_ARM'])
+def test_real_ros_cancel_mode_service_keeps_action_state_and_recovery_evidence(ros, mode):
+    harness = ros(slow=True)
+    message = goal()
+    handle = harness.send(message)
+    eventually(lambda: any(item.stage == 'TRANSPORTING' for item in harness.feedback))
+    service = harness.node.create_client(CancelManipulation, 'manipulation/cancel')
+    assert service.wait_for_service(timeout_sec=5.)
+    canceled = response(service.call_async(CancelManipulation.Request(execution_id=message.execution_id, mode=mode)))
+    assert canceled.accepted, canceled.message
+    result = response(handle.get_result_async())
+    assert result.status == GoalStatus.STATUS_CANCELED
+    assert result.result.status == 'CANCELED' and result.result.cancel_mode == mode
+    assert result.result.stop_confirmed
+    assert result.result.arm_recovered == (mode == 'RETURN_ARM')
+    assert result.result.object_state == ('LEFT_GRIPPER' if mode == 'RETURN_ARM' else 'HELD')
+    assert result.result.placement_state == 'NOT_CHECKED'
+    assert harness.query(message.execution_id).record.cancel_mode == mode
+
+
+def test_real_ros_immediate_escalation_interrupts_requested_arm_return(ros):
+    harness = ros(slow=True)
+    message = goal()
+    handle = harness.send(message)
+    eventually(lambda: any(item.stage == 'TRANSPORTING' for item in harness.feedback))
+    service = harness.node.create_client(CancelManipulation, 'manipulation/cancel')
+    assert service.wait_for_service(timeout_sec=5.)
+    assert response(service.call_async(CancelManipulation.Request(
+        execution_id=message.execution_id, mode='RETURN_ARM'))).accepted
+    eventually(lambda: any(item.stage == 'RECOVERING_ARM' for item in harness.feedback))
+    assert response(service.call_async(CancelManipulation.Request(
+        execution_id=message.execution_id, mode='IMMEDIATE'))).accepted
+    result = response(handle.get_result_async())
+    assert result.status == GoalStatus.STATUS_CANCELED
+    assert result.result.cancel_mode == 'IMMEDIATE' and not result.result.arm_recovered
+
+
+@pytest.mark.parametrize('wrong_id,mode', [(False, 'invalid'), (True, 'RETURN_ARM')])
+def test_real_ros_invalid_mode_request_does_not_cancel_execution(ros, wrong_id, mode):
+    harness = ros(slow=True)
+    message = goal()
+    handle = harness.send(message)
+    service = harness.node.create_client(CancelManipulation, 'manipulation/cancel')
+    assert service.wait_for_service(timeout_sec=5.)
+    rejected = response(service.call_async(CancelManipulation.Request(
+        execution_id='wrong' if wrong_id else message.execution_id, mode=mode)))
+    assert not rejected.accepted
+    assert response(handle.get_result_async()).status == GoalStatus.STATUS_SUCCEEDED
+
+
+def test_cli_return_cancel_uses_mode_service_and_prints_recovery_result(ros):
+    harness = ros(slow=True)
+    completed = subprocess.run(
+        ['ros2', 'run', 'cleany_skill_executor', 'manipulation_test_client',
+         '--namespace', harness.namespace, '--cancel-stage', 'TRANSPORTING',
+         '--cancel-mode', 'RETURN_ARM'], capture_output=True, text=True, timeout=15.)
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert '"cancel_mode": "RETURN_ARM"' in completed.stdout
+    assert '"arm_recovered": true' in completed.stdout
+    assert '"status": "CANCELED"' in completed.stdout
+
+
 @pytest.mark.parametrize('scenario,error,cancel', [
     ('stop_failure', 'STOP_UNCONFIRMED', True),
     ('stop_timeout', 'STOP_UNCONFIRMED', True),
@@ -244,7 +306,7 @@ def test_real_ros_concurrent_goal_and_duplicate_id_run_once(ros):
     assert not harness.query(messages[1 - index].execution_id).found
 
 
-def test_real_ros_record_failure_aborts_and_query_does_not_claim_durability(ros, monkeypatch):
+def test_real_ros_record_failure_preserves_result_query_and_followup(ros, monkeypatch):
     harness = ros()
     save = harness.server.store.save
 
@@ -257,12 +319,16 @@ def test_real_ros_record_failure_aborts_and_query_does_not_claim_durability(ros,
     message = goal()
     handle = harness.send(message)
     result = response(handle.get_result_async())
-    assert result.status == GoalStatus.STATUS_ABORTED
-    assert result.result.status == 'FATAL' and result.result.error_code == 'INTERNAL_ERROR'
+    assert result.status == GoalStatus.STATUS_SUCCEEDED
+    assert result.result.status == 'SUCCESS' and result.result.error_code == 'NONE'
     record = harness.query(message.execution_id).record
-    assert record.record_state == 'RECORDING_FAILED' and record.human_confirmation_required
-    assert not harness.send(goal()).accepted
-    assert all(item.status != 'SUCCESS' for item in harness.events)
+    assert record.record_state == 'FINISHED' and not record.human_confirmation_required
+    assert record.has_result and record.status == 'SUCCESS'
+    assert harness.server.store.get(message.execution_id).result is None
+    followup = harness.send(goal())
+    assert followup.accepted
+    assert response(followup.get_result_async()).result.status == 'SUCCESS'
+    assert harness.query(message.execution_id).record.status == 'SUCCESS'
 
 
 def test_process_kill_restart_reports_interruption_without_action_result(ros, tmp_path):

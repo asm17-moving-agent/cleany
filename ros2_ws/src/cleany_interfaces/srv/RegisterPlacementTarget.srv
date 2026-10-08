@@ -1,0 +1,9 @@
+# Register before any physical motion; observation must use base_link.
+string execution_id
+string destination_id
+std_msgs/Header header
+DetectedObject3D target
+---
+bool success
+string verification_id
+string message

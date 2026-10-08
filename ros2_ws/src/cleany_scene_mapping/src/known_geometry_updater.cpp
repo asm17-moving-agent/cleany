@@ -64,6 +64,8 @@ KnownGeometryOctomapUpdater::~KnownGeometryOctomapUpdater()
 bool KnownGeometryOctomapUpdater::initialize(const rclcpp::Node::SharedPtr& node)
 {
   node_ = node;
+  if (node_)
+    logger_ = node_->get_logger().get_child("scene_mapping");
   return bool(node_);
 }
 
@@ -104,7 +106,7 @@ void KnownGeometryOctomapUpdater::start()
         if (active_)
           processCloud(*cloud);
       }, options);
-  RCLCPP_INFO(node_->get_logger(), "Generation-consistent depth updater listening to %s (mask_workers=%ld)",
+  RCLCPP_INFO(logger_, "Generation-consistent depth updater listening to %s (mask_workers=%ld)",
               cloud_topic_.c_str(), static_cast<long>(mask_workers_));
 }
 
@@ -149,7 +151,7 @@ bool KnownGeometryOctomapUpdater::processCloud(const sensor_msgs::msg::PointClou
 {
   const auto entered = std::chrono::steady_clock::now();
   const auto capture_ns = std::int64_t(cloud.header.stamp.sec) * 1000000000 + cloud.header.stamp.nanosec;
-  RCLCPP_INFO_THROTTLE(node_->get_logger(), diagnostic_clock_, 1000,
+  RCLCPP_DEBUG_THROTTLE(logger_, diagnostic_clock_, 1000,
       "Depth callback entered: capture_ns=%ld node_now_ns=%ld points=%zu",
       static_cast<long>(capture_ns), static_cast<long>(node_->now().nanoseconds()),
       std::size_t(cloud.width) * cloud.height);
@@ -163,12 +165,12 @@ bool KnownGeometryOctomapUpdater::processCloud(const sensor_msgs::msg::PointClou
   }
   catch (const std::exception& error)
   {
-    RCLCPP_ERROR_THROTTLE(node_->get_logger(), diagnostic_clock_, 5000,
+    RCLCPP_ERROR_THROTTLE(logger_, diagnostic_clock_, 5000,
                           "Depth frame processing failed at %s: %s", stage, error.what());
   }
   const double elapsed_ms = std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now()-entered).count();
-  RCLCPP_INFO_THROTTLE(node_->get_logger(), diagnostic_clock_, 1000,
+  RCLCPP_DEBUG_THROTTLE(logger_, diagnostic_clock_, 1000,
       "Depth callback finished: integrated=%d stage=%s capture_ns=%ld node_now_ns=%ld "
       "last_update_ns=%ld wall_ms=%.2f", integrated, stage, static_cast<long>(capture_ns),
       static_cast<long>(node_->now().nanoseconds()), static_cast<long>(last_update_ns_), elapsed_ms);
@@ -200,7 +202,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   stage = "transform_cache";
   if (!updateTransformCache(cloud.header.frame_id, cloud.header.stamp))
   {
-    RCLCPP_WARN_THROTTLE(node_->get_logger(), diagnostic_clock_, 2000,
+    RCLCPP_WARN_THROTTLE(logger_, diagnostic_clock_, 2000,
         "Depth transform cache unavailable: capture_ns=%ld node_now_ns=%ld wall_ms=%.2f",
         static_cast<long>(std::int64_t(cloud.header.stamp.sec)*1000000000+cloud.header.stamp.nanosec),
         static_cast<long>(node_->now().nanoseconds()),
@@ -233,7 +235,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
         });
     if (!complete)
     {
-      RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 5000,
+      RCLCPP_WARN_THROTTLE(logger_, *node_->get_clock(), 5000,
                            "Rejecting depth frame before integration: shape generation/cache mismatch "
                            "(generation=%lu current=%lu known=%zu cached=%zu)",
                            static_cast<unsigned long>(generation), static_cast<unsigned long>(generation_),
@@ -337,7 +339,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   };
   const double elapsed_ms = elapsed(begin, std::chrono::steady_clock::now());
   const auto capture_ns = std::int64_t(cloud.header.stamp.sec) * 1000000000 + cloud.header.stamp.nanosec;
-  RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
+  RCLCPP_DEBUG_THROTTLE(logger_, diagnostic_clock_, 2000,
                        "Consistent depth frame: cleared=%zu examined=%zu occupied=%zu elapsed_ms=%.2f "
                        "transforms_ms=%.2f mask_ms=%.2f rays_ms=%.2f tree_ms=%.2f "
                        "receipt_ms=%.2f input_age_sec=%.3f output_age_sec=%.3f",
@@ -347,7 +349,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
                        elapsed(tree_done, std::chrono::steady_clock::now()),
                        (now - capture_ns) * 1e-9, (node_->now().nanoseconds() - capture_ns) * 1e-9);
   if (result.budget_exhausted)
-    RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 5000,
+    RCLCPP_WARN_THROTTLE(logger_, *node_->get_clock(), 5000,
                          "Known-volume exclusion scan budget exhausted at %zu leaves", result.examined);
   stage = "integrated";
   return true;

@@ -25,6 +25,7 @@ class MockConfig:
     observation_max_age_sec: float = 30.0
     selected_arm: str = 'left'
     destination_id: str = 'mock_trash_bin'
+    lost_item_destination_id: str = 'mock_lost_item_bin'
     snapshots: dict[str, Any] = field(default_factory=lambda: {
         'mock-snapshot-001': {'age_sec': 0.0, 'object_ids': [1, 2, 3]},
     })
@@ -39,7 +40,9 @@ class MockConfig:
             value = getattr(self, name)
             if not math.isfinite(value) or value <= 0:
                 raise ValueError(f'{name} must be finite and positive')
-        if not self.selected_arm.strip() or not self.destination_id.strip():
+        if (not self.selected_arm.strip() or not self.destination_id.strip()
+                or not self.lost_item_destination_id.strip()
+                or self.destination_id == self.lost_item_destination_id):
             raise ValueError('mock arm and destination IDs are required')
         for snapshot in self.snapshots.values():
             if not math.isfinite(float(snapshot['age_sec'])) or snapshot['age_sec'] < 0:
@@ -159,7 +162,8 @@ class MockAdapter:
                     error = Error.TARGET_UNAVAILABLE
                 elif snapshot['age_sec'] + now - self.started_at > self.config.observation_max_age_sec:
                     error = Error.STALE_TARGET
-                elif self.goal.destination_id != self.config.destination_id:
+                elif self.goal.destination_id != (self.config.destination_id
+                        if self.goal.skill_name == 'collect_trash' else self.config.lost_item_destination_id):
                     error = Error.DESTINATION_UNAVAILABLE
             return Evidence(error=error, selected_arm=self.config.selected_arm if error == Error.NONE
                             else None, message='Mock target and path preparation')
@@ -173,7 +177,10 @@ class MockAdapter:
             released = self.scenario.get('release_evidence', True) and error == Error.NONE
             return Evidence(error=error, object_state=ObjectState.LEFT_GRIPPER if released
                             else ObjectState.UNKNOWN, message='Mock post-release observation')
-        if self.stage == Stage.RETURNING_ARM:
+        if self.stage == Stage.RELEASING_IN_PLACE:
+            return Evidence(error=error, object_state=ObjectState.LEFT_GRIPPER if error == Error.NONE
+                            else ObjectState.UNKNOWN, message='Mock release at cancellation position')
+        if self.stage in (Stage.RETURNING_ARM, Stage.RECOVERING_ARM):
             verified = error != Error.NONE and self.scenario.get('independent_placement', False)
             return Evidence(error=error, arm_recovered=error == Error.NONE,
                             stop_confirmed=error == Error.NONE,

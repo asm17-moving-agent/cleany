@@ -44,6 +44,7 @@ class RankedDetection:
     detection: Detection2D
     distance_m: float | None
     source_index: int
+    position: tuple[float, float, float] | None = None
 
     def __post_init__(self) -> None:
         if self.source_index < 0:
@@ -126,17 +127,20 @@ def rank_detections_by_distance(
             config,
         )
         distance_m = None
+        position = None
         if source_point is not None:
             target_point = (
                 capture_transform.rotation @ source_point
                 + capture_transform.translation
             )
             distance_m = float(np.linalg.norm(target_point))
+            position = tuple(float(v) for v in target_point)
         ranked.append(
             RankedDetection(
                 detection=detection,
                 distance_m=distance_m,
                 source_index=source_index,
+                position=position,
             )
         )
     ranked.sort(

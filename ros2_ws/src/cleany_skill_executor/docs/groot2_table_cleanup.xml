@@ -33,6 +33,8 @@
       </Sequence>
       <Sequence name="차단과 실패 종료">
         <StopAndAssess name="동작 종료와 실제 상태 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error_in="{error}" error_out="{error}" />
+        <ReleaseInPlace name="현재 위치에서 그리퍼 열기" />
+        <ReturnArmAfterCancel name="취소 후 팔 복귀" />
         <FinalizeFailure name="진행과 실패 결과 보관" goal="{goal}" context_in="{execution}" error="{error}" result="{result}" />
         <AlwaysFailure name="정상 경로 미완료" />
       </Sequence>
@@ -112,6 +114,8 @@
       <input_port name="error" type="SkillError" />
       <output_port name="result" type="SkillResult" />
     </Action>
+    <Action ID="ReleaseInPlace" />
+    <Action ID="ReturnArmAfterCancel" />
     <Action ID="ReconstructTarget">
       <input_port name="goal" type="SkillGoal" />
       <input_port name="context_in" type="SkillContext" />

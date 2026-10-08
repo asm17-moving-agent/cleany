@@ -17,7 +17,7 @@ def test_attachment_barrier_waits_for_a_new_processed_capture(monkeypatch):
     import cleany_skill_executor.nearest_pregrasp_coordinator as module
     node = SimpleNamespace(_scene_cloud_stamp_ns=10,
                            _check_sensor_scene=lambda: None,
-                           get_logger=lambda: SimpleNamespace(info=lambda _: None))
+                           get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None))
     spins = []
     def update(*_, **__):
         spins.append(True)
@@ -31,7 +31,7 @@ def test_attachment_barrier_waits_for_a_new_processed_capture(monkeypatch):
 def test_fresh_but_pre_attachment_capture_cannot_pass_barrier(monkeypatch):
     node = SimpleNamespace(_scene_cloud_stamp_ns=20,
                            _check_sensor_scene=lambda: None,
-                           get_logger=lambda: SimpleNamespace(info=lambda _: None))
+                           get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None))
     with pytest.raises(RuntimeError, match='after the attachment'):
         NearestPregraspCoordinator._wait_for_sensor_scene(node, 0., after_stamp_ns=20)
 
@@ -78,7 +78,7 @@ def test_plan_only_never_executes_even_with_reachable_candidate():
     )
     node = SimpleNamespace(
         get_parameter=lambda key: SimpleNamespace(value=values[key]),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None),
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None),
         _inspection=service, _grasp=service, _selection=service,
         _move_group=service, _wait_for_joint_state=lambda _: None,
         _hold=lambda _: None,
@@ -106,7 +106,7 @@ def test_map_failure_prevents_perception_and_motion():
             'startup_timeout_sec': 1., 'execute_grasp_and_lift': False,
             'require_sensor_scene': True,
         }[key]),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None),
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None),
         _wait_for_joint_state=lambda _: None, _hold=lambda _: None,
         _detect_objects=lambda: pytest.fail('Perception bypassed gate'),
     )

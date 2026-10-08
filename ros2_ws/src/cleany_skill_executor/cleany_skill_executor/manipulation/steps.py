@@ -35,6 +35,8 @@ STAGE_STEPS: dict[Stage, tuple[Step, ...]] = {
     ),
     Stage.RETURNING_ARM: (Step('ReturnArm', '팔 복귀'),),
     Stage.VERIFYING_PLACEMENT: (Step('VerifyPlacedObject', '수거함 내부 확인'),),
+    Stage.RELEASING_IN_PLACE: (Step('ReleaseInPlace', '현재 위치에서 그리퍼 열기'),),
+    Stage.RECOVERING_ARM: (Step('ReturnArmAfterCancel', '취소 후 팔 복귀'),),
 }
 
 STEP_BY_ID = {step.node: step for steps in STAGE_STEPS.values() for step in steps}

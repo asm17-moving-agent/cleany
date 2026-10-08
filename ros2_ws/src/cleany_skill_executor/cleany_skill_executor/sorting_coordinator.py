@@ -348,7 +348,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
                     except CartesianPlanningError as error:
                         reason = str(error)
                     else:
-                        self.get_logger().info(
+                        self.get_logger().debug(
                             f'Carry Cartesian plan verified: {label} wrist=+/-{degrees:.1f}deg')
                         return trajectory
             failures.append(f'{degrees:.1f}deg: {reason}')
@@ -380,7 +380,12 @@ class SortingCoordinator(NearestPregraspCoordinator):
             with (self._artifact_directory / 'stages.jsonl').open('a') as stream:
                 stream.write(json.dumps(dict(wall_time=time.time(), **payload))+'\n')
         self._status.publish(String(data=json.dumps(payload)))
-        self.get_logger().info(f'SORTING {json.dumps(payload)}')
+        self.get_logger().debug(f'SORTING {json.dumps(payload)}')
+        summary = (f'SORTING stage={stage} label={self._current.get("label", "")} '
+                   f'destination={self._current.get("destination", "")} completed={len(self._completed)}')
+        if error is not None:
+            summary += f' error={error}'
+        self.get_logger().info(summary)
 
     def run(self):
         self._stage('starting')
@@ -564,7 +569,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         response = self._future(self._camera_client.call_async(request), 3., 'head depth refresh')
         if len(response.results) != 1 or not response.results[0].successful:
             raise RuntimeError('Head depth refresh request rejected')
-        self.get_logger().info(f'Head depth boost={enabled}; wrist camera selection unchanged')
+        self.get_logger().debug(f'Head depth boost={enabled}; wrist camera selection unchanged')
 
     def _ensure_fresh_head_before_wrist(self, selected, attempt):
         maximum = float(self.get_parameter('sorting_head_reference_refresh_age_sec').value)
@@ -705,7 +710,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             raise RuntimeError('Head RGB-D found multiple objects at the held-object position')
         inspected, error = matches[0]
         center_z = float(inspected.objects.objects[0].obb_pose.position.z)
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Head RGB-D lift verification: source={attempt.label} '
             f'observed={inspected.objects.objects[0].label} '
             f'center_z={center_z:.3f}m association_error={error:.3f}m')
@@ -727,7 +732,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             solution = self._transport_adapter.solve_position_ik(
                 arm, tuple(float(v) for v in target), solution)
             if solution is None:
-                self.get_logger().info(f'Held-center IK unavailable: target={target.tolist()}')
+                self.get_logger().debug(f'Held-center IK unavailable: target={target.tolist()}')
                 return None
             joints = JointState(name=list(solution.names), position=list(solution.positions))
             pose = self._tcp_pose(arm, joints)
@@ -735,9 +740,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if np.linalg.norm(predicted-center) < tolerance_m:
                 valid = self._transport_adapter.state_is_valid(arm, solution)
                 if not valid:
-                    self.get_logger().info('Held-center IK rejected by collision check')
+                    self.get_logger().debug('Held-center IK rejected by collision check')
                 return joints if valid else None
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Held-center fixed-point IK did not converge: error_m={np.linalg.norm(predicted-center):.5f}')
         return None
 
@@ -777,7 +782,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             maximum_translation_m=float(self.get_parameter('sorting_reobserve_max_translation_m').value),
             maximum_lowering_m=float(self.get_parameter('sorting_reobserve_max_lowering_m').value),
             height_clearance_m=float(self.get_parameter('sorting_reobserve_height_clearance_m').value))
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Held reobservation: predicted_center={center.tolist()} radius={radius:.4f}m '
             f'frustum_candidates={[c.tolist() for c in centers]}')
         if bool(self.get_parameter('require_sensor_scene').value):
@@ -785,7 +790,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         for candidate in centers:
             joints = self._held_center_joints(held, candidate, 0.005)
             if joints is None:
-                self.get_logger().info(f'Reobservation IK rejected: {candidate.tolist()}')
+                self.get_logger().debug(f'Reobservation IK rejected: {candidate.tolist()}')
                 continue
             self._move_to(arm, joints, 'held-object camera reobservation')
             self._verify_feedback(joints)
@@ -814,7 +819,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if (np.max(np.abs(center-point)) <= .001
                     and all(values.get(name) == value for name, value in wrist.items())
                     and self._transport_adapter.state_is_valid(arm, solution)):
-                self.get_logger().info('Reusing fixed release IK after fresh FK/collision checks')
+                self.get_logger().debug('Reusing fixed release IK after fresh FK/collision checks')
                 return solution
             self._fixed_release_cache.pop(key)
         solution = self._transport_adapter.solve_held_region_ik(
@@ -859,7 +864,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         # Bounding sphere accounts for object rotation during transport.
         radius = held_bounding_radius(self, held)
         size = held.selected.selected_candidate.target_object.obb_size
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Release fit: destination={destination} '
             f'observed_obb=({size.x:.4f}, {size.y:.4f}, {size.z:.4f})m '
             f'bounding_radius={radius:.4f}m '
@@ -967,7 +972,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         response = self._future(self._camera_client.call_async(request), 3., 'camera source/rate change')
         if len(response.results)!=1 or not response.results[0].successful:
             raise RuntimeError('Camera source/rate change rejected')
-        self.get_logger().info(f'Active inspection camera={camera}; head runs at configured background rate during wrist use')
+        self.get_logger().debug(f'Active inspection camera={camera}; head runs at configured background rate during wrist use')
         if camera == 'head':
             self._set_head_high_rate(True)
 
@@ -1008,7 +1013,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self._record_pipeline_message('wrist_request', request)
         started = time.monotonic()
         response = self._future(self._wrist_client.call_async(request), 30., 'wrist RGB verification')
-        self.get_logger().info(f'WRIST RPC operation={operation} elapsed_sec={time.monotonic()-started:.3f} '
+        self.get_logger().debug(f'WRIST RPC operation={operation} elapsed_sec={time.monotonic()-started:.3f} '
                                f'after_ns={request.after_stamp_ns}')
         self._record_pipeline_message('wrist_response', response)
         if (not response.success or response.source_snapshot_id != candidate.snapshot_id

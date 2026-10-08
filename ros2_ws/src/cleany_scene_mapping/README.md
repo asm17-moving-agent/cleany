@@ -22,10 +22,12 @@ cache 조회 중 형상이 추가·제거됐으면 **그 프레임 전체를 거
 로봇/OBB/TF가 틀린 경우 실제 장애물이 잘못
 제외될 위험은 남으므로 이 기능이 인식 오류나 충돌 안전을 보증하지 않는다.
 
+## 설정
+
 `depth_cloud.known_geometry_clear_max_leaves`는 메시지당 검사하는 leaf 수의
 상한이며 기본 200000이다. 초과하면 나머지를 건드리지 않고 경고한다.
 free cell도 검사 예산에 포함한다. 정리 수/검사 수/소요 시간은 throttled
-log로 기록한다. 정상 프레임의 raycast는 이 추가 검사 예산과 무관하게 수행한다.
+`DEBUG` log로 기록한다. 정상 프레임의 raycast는 이 추가 검사 예산과 무관하게 수행한다.
 이 패키지는 미지정 시 `RelWithDebInfo`로 빌드한다. 점유 leaf 순회와
 convex body 검사는 CPU 경로이므로 디버그 무최적화 실행 시간과 구분한다.
 
@@ -49,6 +51,8 @@ variable에서 대기한다. 기본 4 worker는 호출 스레드 1개와 상주 
 호출 스레드 또는 작업 스레드에서 예외가 발생하면 나머지 작업자가 모두 끝날 때까지
 기다린 후 예외를 전달한다. 실패한 프레임의 일부 판정을 반환하지 않으며 다음 프레임에서
 정상 복구할 수 있다. 상위 updater의 frame/geometry 직렬화와 TF·형상 세대 검사는 유지한다.
+
+## 빌드와 검증
 
 ```bash
 make test-scene-mapping
@@ -90,6 +94,8 @@ range clipping, stop/start, 동시 frame 직렬화 및 executor 지연 후 최�
 `test_partitioned_shape_mask`는 worker 재사용/재설정, 큰 프레임에서 작은 프레임으로의
 전환, XYZ/XYZRGB layout 변경, 호출·작업 스레드 예외 후 전체 작업 종료와 복구도 검사한다.
 
+## 프레임 처리 계약
+
 이전 `PointCloudOctomapUpdater::updateMask` hook은 정리를 건너뛰더라도
 base callback의 점유 갱신을 중단할 수 없었다. 지금은 `OccupancyMapUpdater`
 plugin으로 프레임 callback 전체를 소유한다. 한 mutex로 callback을 직렬화하고,
@@ -122,3 +128,11 @@ history는 `KEEP_LAST(1)`이다. 처리 중 새 입력이 쌓이면 과거 영�
 참고한 [MoveIt 2.5.9 updater](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/perception/pointcloud_octomap_updater/src/pointcloud_octomap_updater.cpp)와
 [transform cache provider](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/planning/planning_scene_monitor/src/planning_scene_monitor.cpp)의
 동작을 기준으로 한다. 시스템 전체의 실제 충돌 안전을 검증한 것은 아니다.
+
+## 로그 수준
+
+준비 완료와 실패·TF cache 누락·검사 예산 초과는 기본 출력에 남는다.
+정상 프레임의 입장·종료와 `Consistent depth frame` 통계는 throttled `DEBUG`
+로그이며 `move_group.scene_mapping` 로거를 사용한다. 상위 MuJoCo launch의
+`log_level:=debug` 또는 standalone MoveIt의 같은 옵션으로 확인한다.
+기본 `INFO`에서는 대기 중 정상 프레임 진단을 계속 출력하지 않는다.

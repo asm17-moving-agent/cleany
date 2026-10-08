@@ -8,6 +8,7 @@ stop_timeout_sec: 1.0
 observation_max_age_sec: 30.0
 selected_arm: left
 destination_id: mock_trash_bin
+lost_item_destination_id: mock_lost_item_bin
 snapshots:
   mock-snapshot-001:
     age_sec: 0.0

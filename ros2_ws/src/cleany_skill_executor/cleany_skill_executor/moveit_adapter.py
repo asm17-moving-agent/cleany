@@ -602,7 +602,7 @@ class MoveItGraspAdapter:
             if (position_error <= position_limit
                     and angle <= self._config.pregrasp_approach_tolerance_deg
                     and closing_error <= closing_limit and self.state_is_valid(arm,result)):
-                self._node.get_logger().info(f'Refined pose: arm={arm} position_error={position_error:.4f}m approach={angle:.2f}deg closing={closing_error:.2f}deg')
+                self._node.get_logger().debug(f'Refined pose: arm={arm} position_error={position_error:.4f}m approach={angle:.2f}deg closing={closing_error:.2f}deg')
                 return (result,)
         return ()
 
@@ -800,7 +800,7 @@ class MoveItGraspAdapter:
             aim_error,
             distance_error,
         ) = result
-        self._node.get_logger().info(
+        self._node.get_logger().debug(
             f'{disposition}: '
             f'approach_error={angle_deg:.2f}deg '
             f'tcp_error={tcp_error:.4f}m aim_error={aim_error:.4f}m '

@@ -1,5 +1,16 @@
 # cleany_mujoco_sim
 
+스터디카페 관찰 장면과 고정 베이스 수거용 MuJoCo backend를 제공한다.
+
+| 하려는 일 | 안내 |
+|---|---|
+| 장면 실행·테스트 | [실행과 테스트](#실행과-테스트) |
+| 수거함 배치 확인 | [후면 수거함 미리보기](#로봇-후면-수거함-배치-미리보기) |
+| backend 설정·로그 | [실행 인자](#실행-인자), [Backend 로그](#backend-터미널-로그) |
+| 두 컵과 개체별 배치 확인 | [두 컵 설정](#두-컵과-개체별-배치-확인) |
+
+## 시뮬레이션 기본 설정
+
 수거 시뮬레이션은 `robot_top_bins.yaml`의
 `simulation_ignore_mast_collision: true`를 기본으로 사용한다.
 고정 기둥(`top_base_link`) 외형은 남기되 MuJoCo 접촉을 끄고, MoveIt에서도
@@ -88,8 +99,6 @@ grasp/경로의 입력으로 쓰지 않는다. 동작 연결은 skill executor�
 현재 vendor renderer는 headless여도 GLFW 연결을 필요로 한다. 이 VM에서는
 유효한 `DISPLAY=:0`을 전달해야 RGB-D가 발행된다. GUI 창을 켜야 한다는
 뜻은 아니며 display가 없으면 모델 준비 완료 뒤에도 RGB-D timeout이 난다.
-
-XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한다.
 
 ## 상태와 책임
 
@@ -235,7 +244,7 @@ make test-mujoco
 
 휴지와 마우스 강체 proxy도 각각 양쪽 jaw와의 10개 pair에 같은 강성을 적용한다. 기본 혼합
 마찰 `(3, 3, .2, .1, .1)`과 질량/형상/모터 한도는 유지한다. 부드러운 접촉에서
-관측된 휴지 약 18mm, 지갑 약 2.1mm 메시 관통을 줄이기 위한 설정이며
+이전 휴지·지갑 proxy에서 관측된 약 18mm·2.1mm 메시 관통을 줄이기 위해 도입했으며
 실제 휴지나 마우스의 변형 모델은 아니다.
 마우스는 시각 메시를 collision mesh에도 공유한다(MuJoCo convex hull).
 오목한 버튼 장식까지 충돌 분해한 모델은 아니다.
@@ -360,6 +369,14 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 수거 전체의 초기 자세와 센서 연결은 `cleany_skill_executor`의
 `study_cafe_sorting.launch.py` 및 `study_cafe_nearest_grasp_demo.launch.py`를 따른다.
 
+## Backend 터미널 로그
+
+`study_cafe_backend.launch.py`는 `backend_log_level:=warn`으로 관절 등록,
+링크 나열과 renderer 초기화 상세를 줄인다. 경고·오류와 controller spawner의
+준비 완료는 기본 출력에 남는다. 상세 초기화는 `backend_log_level:=info`로
+확인한다. `log_level:=info`는 spawner와 camera contract adapter에 적용하며
+`debug`로 조정할 수 있다. 상위 센서·수거·BT launch도 두 옵션을 전달한다.
+
 ## 시뮬레이션 확장 API
 
 같은 process의 sensor adapter는 `MujocoSimNode.simulation_context`에서
@@ -417,3 +434,27 @@ MoveIt 지도를 포함하는 plan-only GUI 실행이다. 장면만 띄우는
 발행 topic, launch parameter, 시뮬레이션 모델 가정 또는 테스트 명령이 바뀌면 이
 README도 갱신한다. 시뮬레이션 하드웨어 파라미터를 관련 KB 결정 없이 확정된 실제
 하드웨어 사양으로 표현하지 않는다.
+
+## 두 컵과 개체별 배치 확인
+
+`config/study_cafe_two_cups.yaml`은 기존 물체와 별도의 자유 물체 `cup_b`를 둔다.
+`study_cafe_backend.launch.py`의 `study_cafe_layout_config`로 선택하며 기존 기본 배치는
+유지한다. materialize API도 같은 선택적 Path 인자를 받는다. 기존 cup/lego/tissue/mouse를
+유지하면서 고유 이름의 추가 procedural 물체를 허용한다. asset·mesh를 재생성하지 않는다.
+
+독립 `placement_verifier`는 `/sorting/register_placement_target`에서 관측된 OBB·종류와
+execution ID로 기하학적으로 유일한 simulator body를 내부에 고정한다. 이후 verification
+ID의 개체에만 release 이후 새 샘플·수거함 내부·안정을 검사한다. 다른 컵이 안에 있어도
+등록된 컵의 성공으로 판단하지 않는다. label/body 배열은 같은 종류의 여러 body를 허용하되
+label-only 확인은 그 종류에 body가 하나일 때만 가능하다. 등록 응답은 body 정답을 노출하지 않는다.
+
+`placement_verifier.yaml`과 `placement_verifier_two_cups.yaml`의 5cm 거리·1cm 후보 차이·
+8cm 크기 오차는 관측 OBB와 충돌 AABB를 대응시키는 시뮬레이션 초기값이다. 실물 기준이
+아니며 넓은 크기 허용은 위치의 유일성 검사를 대체하지 않는다. 등록은 기본 600초·128건,
+관측 최대 나이 120초다. 재시작·시각 역행으로 등록을 복구하지 않고 잘못된 ID에는 fallback하지 않는다.
+
+분실물 확인은 `mouse`, `computer mouse`, `wireless mouse`, `lego brick`의 개체 등록과
+`lost_items_left` 목적지를 지원한다. 검사에서 다른 개체나 잘못된 수거함은 성공 근거가
+되지 않는다. MuJoCo physics에서 레고의 정상 배치는 확인된다. 기존 observer가 마우스
+mesh의 회전된 local AABB를 변환하면 실제 물체가 내부에 안정되어도 바닥 경계를 벗어나는
+경우가 있어 보수적으로 거부한다. 이 제한을 테스트로 보존하며 허용 오차는 완화하지 않는다.

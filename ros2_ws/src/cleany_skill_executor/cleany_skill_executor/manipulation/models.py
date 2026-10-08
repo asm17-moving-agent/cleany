@@ -17,6 +17,8 @@ class Stage(str, Enum):
     PLACING = 'PLACING'
     RETURNING_ARM = 'RETURNING_ARM'
     VERIFYING_PLACEMENT = 'VERIFYING_PLACEMENT'
+    RELEASING_IN_PLACE = 'RELEASING_IN_PLACE'
+    RECOVERING_ARM = 'RECOVERING_ARM'
     STOPPING = 'STOPPING'
     FINALIZING = 'FINALIZING'
 
@@ -27,6 +29,22 @@ class Status(str, Enum):
     FAILED = 'FAILED'
     CANCELED = 'CANCELED'
     FATAL = 'FATAL'
+
+
+class CancelMode(str, Enum):
+    IMMEDIATE = 'IMMEDIATE'
+    CHECKPOINT = 'CHECKPOINT'
+    RETURN_ARM = 'RETURN_ARM'
+
+
+def resolve_cancel_mode(current: str, requested: CancelMode | str | None) -> CancelMode:
+    """Repeated requests are idempotent; only immediate stop may change a mode."""
+    mode = CancelMode(requested) if requested is not None else CancelMode(current or 'CHECKPOINT')
+    if current == CancelMode.IMMEDIATE:
+        return CancelMode.IMMEDIATE
+    if current and mode != current and mode != CancelMode.IMMEDIATE:
+        raise ValueError('Cancellation already requested; only IMMEDIATE can override it')
+    return mode
 
 
 class Error(str, Enum):
@@ -85,7 +103,7 @@ class Goal:
         return (all(value.strip() for value in (
             self.mission_id, self.task_id, self.execution_id, self.snapshot_id,
             self.destination_id,
-        )) and self.skill_name == 'collect_trash' and 0 < self.object_id <= 0xffffffff)
+        )) and self.skill_name in ('collect_trash', 'collect_lost_item') and 0 < self.object_id <= 0xffffffff)
 
 
 @dataclass(frozen=True)
@@ -104,6 +122,7 @@ class Result:
     retryable: bool
     message: str
     failed_substage: str = ''
+    cancel_mode: str = ''
 
 
 @dataclass(frozen=True)
@@ -128,6 +147,7 @@ class Record:
     substage: str = ''
     completed_substages: tuple[str, ...] = ()
     failed_substage: str = ''
+    cancel_mode: str = ''
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

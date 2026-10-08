@@ -9,3 +9,6 @@ float32 confidence
 # Both fields use the enclosing DetectedObject3DArray header frame.
 geometry_msgs/Pose obb_pose
 geometry_msgs/Vector3 obb_size
+
+string track_id
+string tracking_state

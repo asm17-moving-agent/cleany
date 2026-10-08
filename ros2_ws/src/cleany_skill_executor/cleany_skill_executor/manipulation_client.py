@@ -8,12 +8,12 @@ import time
 import uuid
 
 from cleany_interfaces.action import ExecuteManipulationSkill
-from cleany_interfaces.srv import GetManipulationExecution
+from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 
-from .manipulation.models import Stage
+from .manipulation.models import CancelMode, Stage
 
 
 def wait(node: Node, future, timeout: float):
@@ -33,8 +33,10 @@ def main(args=None) -> int:
     parser.add_argument('--task-id', default='mock-task')
     parser.add_argument('--snapshot-id', default='mock-snapshot-001')
     parser.add_argument('--object-id', type=int, default=1)
+    parser.add_argument('--skill-name', choices=['collect_trash', 'collect_lost_item'], default='collect_trash')
     parser.add_argument('--destination-id', default='mock_trash_bin')
     parser.add_argument('--cancel-stage', choices=[stage.value for stage in Stage])
+    parser.add_argument('--cancel-mode', choices=[mode.value for mode in CancelMode], default='CHECKPOINT')
     parser.add_argument('--query', action='store_true', help='Only query --execution-id')
     parser.add_argument('--timeout', type=float, default=120.0)
     options, ros_args = parser.parse_known_args(args)
@@ -46,9 +48,16 @@ def main(args=None) -> int:
     prefix = options.namespace.rstrip('/')
     client = ActionClient(node, ExecuteManipulationSkill, prefix + '/manipulation/execute_skill')
     service = node.create_client(GetManipulationExecution, prefix + '/manipulation/get_execution')
+    cancel_service = node.create_client(CancelManipulation, prefix + '/manipulation/cancel')
     handle = None
     cancel_future = None
     reached_cancel_stage = False
+
+    def request_cancel():
+        if options.cancel_mode == 'CHECKPOINT':
+            return handle.cancel_goal_async()
+        return cancel_service.call_async(CancelManipulation.Request(
+            execution_id=execution_id, mode=options.cancel_mode))
 
     def feedback(message):
         nonlocal cancel_future, reached_cancel_stage
@@ -58,16 +67,19 @@ def main(args=None) -> int:
         if data.stage == options.cancel_stage:
             reached_cancel_stage = True
         if reached_cancel_stage and handle is not None and cancel_future is None:
-            cancel_future = handle.cancel_goal_async()
+            cancel_future = request_cancel()
 
     try:
         print(f'execution_id={execution_id}', flush=True)
         if not options.query:
             if not client.wait_for_server(timeout_sec=10.0):
                 raise TimeoutError('Action server unavailable')
+            if (options.cancel_stage and options.cancel_mode != 'CHECKPOINT'
+                    and not cancel_service.wait_for_service(timeout_sec=10.0)):
+                raise TimeoutError('Cancellation mode service unavailable')
             goal = ExecuteManipulationSkill.Goal(
                 mission_id=options.mission_id, task_id=options.task_id,
-                execution_id=execution_id, skill_name='collect_trash',
+                execution_id=execution_id, skill_name=options.skill_name,
                 snapshot_id=options.snapshot_id, object_id=options.object_id,
                 destination_id=options.destination_id)
             handle = wait(node, client.send_goal_async(goal, feedback_callback=feedback), 10.0)
@@ -75,7 +87,7 @@ def main(args=None) -> int:
                 print('Goal rejected; inspecting execution record', flush=True)
             else:
                 if reached_cancel_stage and cancel_future is None:
-                    cancel_future = handle.cancel_goal_async()
+                    cancel_future = request_cancel()
                 response = wait(node, handle.get_result_async(), options.timeout)
                 result = response.result
                 print(json.dumps({name: getattr(result, name) for name in result.get_fields_and_field_types()},

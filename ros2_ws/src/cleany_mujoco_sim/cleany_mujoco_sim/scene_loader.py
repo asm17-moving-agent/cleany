@@ -63,8 +63,9 @@ def resolve_scene_path(scene_path: Path) -> Path:
     return scene_path
 
 
-def materialize_scene(template_path: Path) -> Path:
-    return _materialize_scene(template_path, control_compatible=False)
+def materialize_scene(template_path: Path, *, study_cafe_layout_config: Path | None = None) -> Path:
+    return _materialize_scene(template_path, control_compatible=False,
+                              study_cafe_layout_config=study_cafe_layout_config)
 
 
 def materialize_control_scene(
@@ -73,6 +74,7 @@ def materialize_control_scene(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    study_cafe_layout_config: Path | None = None,
 ) -> Path:
     """Materialize a MuJoCo 3.4-compatible arm-control scene.
 
@@ -91,6 +93,7 @@ def materialize_control_scene(
         initial_joint_positions=initial_joint_positions,
         sorting_bins_config=sorting_bins_config,
         performance_profile=performance_profile,
+        study_cafe_layout_config=study_cafe_layout_config,
     )
 
 
@@ -100,6 +103,7 @@ def resolve_control_scene_path(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    study_cafe_layout_config: Path | None = None,
 ) -> Path:
     if scene_path.suffix == '.in':
         return materialize_control_scene(
@@ -107,7 +111,10 @@ def resolve_control_scene_path(
             initial_joint_positions=initial_joint_positions,
             sorting_bins_config=sorting_bins_config,
             performance_profile=performance_profile,
+            study_cafe_layout_config=study_cafe_layout_config,
         )
+    if study_cafe_layout_config is not None:
+        raise ValueError('Layout configuration requires a materialized scene template')
     if performance_profile != 'baseline':
         raise ValueError('Performance profiles require a materialized scene template')
     if sorting_bins_config is not None:
@@ -127,6 +134,7 @@ def _materialize_scene(
     initial_joint_positions: dict[str, float] | None = None,
     sorting_bins_config: Path | None = None,
     performance_profile: str = 'baseline',
+    study_cafe_layout_config: Path | None = None,
 ) -> Path:
     if not template_path.is_file():
         raise FileNotFoundError(
@@ -198,7 +206,7 @@ def _materialize_scene(
             expected_fovy=42.0,
         )
     if STUDY_CAFE_ENVIRONMENT_TOKEN in scene_text:
-        study_cafe_layout = (
+        study_cafe_layout = study_cafe_layout_config or (
             _package_share('cleany_mujoco_sim')
             / 'config'
             / 'study_cafe_layout.yaml'

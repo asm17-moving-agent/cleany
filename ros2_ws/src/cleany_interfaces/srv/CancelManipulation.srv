@@ -1,0 +1,9 @@
+# Request a mode for an active execution. Normal Action cancel uses CHECKPOINT.
+string IMMEDIATE=IMMEDIATE
+string CHECKPOINT=CHECKPOINT
+string RETURN_ARM=RETURN_ARM
+string execution_id
+string mode
+---
+bool accepted
+string message

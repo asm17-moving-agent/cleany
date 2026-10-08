@@ -4,9 +4,15 @@
     bt_verification_timeout_sec: 10.0
     bt_stop_timeout_sec: 10.0
     bt_feedback_max_age_sec: 2.0
-    # The current placement evaluator identifies one body by label.
-    # collect_trash does not accept lost_item, review, or duplicate labels.
+    # Simulation stop evidence: each joint must be fresh throughout the window.
+    bt_stop_feedback_max_age_sec: 0.5
+    bt_stationary_duration_sec: 0.25
+    arm_stationary_velocity_rad_s: 0.02
+    arm_stationary_samples: 5
+    # Individual geometry registration pins the placement evaluator before motion.
+    # Duplicate types require a valid tracking session; review is blocked.
     bt_supported_trash_labels: [cup, paper cup, disposable paper cup, crumpled tissue]
+    bt_supported_lost_item_labels: [mouse, computer mouse, wireless mouse, lego brick]
     # Reinspection/reassociation is permitted; a recovery move after losing
     # visual retention is not part of this Action's first scope.
     sorting_reobserve_after_lift: false

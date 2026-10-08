@@ -68,6 +68,7 @@ class MujocoManipulationNode(ManipulationNode):
                                     execute_callback=self._execute, goal_callback=self._goal,
                                     handle_accepted_callback=self._accepted, cancel_callback=self._cancel,
                                     callback_group=group)
+        self._setup_cancel_service(group)
         self.monitor = LiveMonitor()
         # Even the idle tree is a real native tree. It is never ticked or used
         # for motion until an accepted execution creates its own context.
@@ -77,6 +78,7 @@ class MujocoManipulationNode(ManipulationNode):
         self.socket.setsockopt(zmq.LINGER, 0)
         self.socket.bind(f'tcp://127.0.0.1:{port}')
         self._monitor_execution = ''
+        self._monitor_failed_execution = ''
         self._timer = self.create_timer(0.05, self._tick, callback_group=group,
                                        clock=Clock(clock_type=ClockType.STEADY_TIME))
         self._publish_events()
@@ -89,8 +91,14 @@ class MujocoManipulationNode(ManipulationNode):
                 super()._tick()
             if self.core.tree is not None:
                 execution = self.core.record.goal.execution_id
-                self.monitor.update(self.core.tree.snapshot(), new_execution=execution != self._monitor_execution)
-                self._monitor_execution = execution
+                if execution != self._monitor_failed_execution:
+                    try:
+                        self.monitor.update(self.core.tree.snapshot(), new_execution=execution != self._monitor_execution)
+                    except Exception as error:
+                        self._monitor_failed_execution = execution
+                        self.get_logger().warning(f'BT monitor unavailable for {execution}: {error}')
+                    else:
+                        self._monitor_execution = execution
                 for event in self.core.transitions:
                     self._bt_events.publish(String(data=json.dumps(dict(execution_id=execution, **event))))
                 self.core.transitions.clear()

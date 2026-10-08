@@ -7,3 +7,11 @@ std_msgs/Header header
 string snapshot_id
 
 DetectedObject2D[] detections
+
+string tracking_session_id
+string tracking_epoch
+# Frame of representative_position, independent of RGB header.frame_id.
+string representative_frame
+# Previously tracked objects absent from this observation, including their
+# last snapshot-local reference. Removal is interpreted using execution history.
+TrackedObjectReference[] missing_objects

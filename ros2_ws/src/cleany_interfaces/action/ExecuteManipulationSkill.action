@@ -2,6 +2,7 @@
 string mission_id
 string task_id
 string execution_id
+# collect_trash or collect_lost_item; executor checks model category and destination.
 string skill_name
 string snapshot_id
 uint32 object_id
@@ -21,6 +22,7 @@ bool arm_recovered
 bool retryable
 string message
 string failed_substage
+string cancel_mode
 ---
 string execution_id
 string stage

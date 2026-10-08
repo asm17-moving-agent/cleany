@@ -40,7 +40,8 @@ public:
       "ValidateGoal", "PrepareTarget", "ReconstructTarget", "GenerateGrasp", "SelectArmAndPath",
       "MoveToPregrasp", "ApproachObject", "GraspObject", "ConfirmGrasp", "LiftObject", "ConfirmHeld",
       "CarryObject", "CheckPlacementTarget", "OpenGripperAtDestination", "ConfirmRelease", "ReturnArm",
-      "VerifyPlacedObject", "FinalizeSuccess", "StopAndAssess", "FinalizeFailure"};
+      "VerifyPlacedObject", "FinalizeSuccess", "StopAndAssess", "FinalizeFailure",
+      "ReleaseInPlace", "ReturnArmAfterCancel", "StopAfterRecovery"};
     for (const auto& id : ids) {
       factory_.registerBuilder<Operation>(id, [backend, id](const std::string& name, const BT::NodeConfig& cfg) {
         return std::make_unique<Operation>(name, cfg, backend, id);

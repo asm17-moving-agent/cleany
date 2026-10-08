@@ -44,6 +44,11 @@ if(BUILD_TESTING)
     test/test_mock_planning_runtime.py
     TIMEOUT 240
   )
+  ament_add_pytest_test(
+    move_group_shutdown_runtime
+    test/test_move_group_shutdown.py
+    TIMEOUT 90
+  )
 endif()
 
 ament_package()

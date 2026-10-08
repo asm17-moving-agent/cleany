@@ -1,24 +1,29 @@
 """Sensor/MoveIt operations for one approved object, on a dedicated ROS worker node."""
 from __future__ import annotations
 
+from copy import deepcopy
+
 import math
 import time
 from typing import Any
 from action_msgs.msg import GoalStatus
 
-from cleany_interfaces.srv import GetSceneSnapshot, ObserveWristTarget, VerifyPlacement
+from cleany_interfaces.srv import GetSceneSnapshot, ObserveWristTarget, RegisterPlacementTarget, VerifyPlacement
 from controller_manager_msgs.srv import ListControllers
-from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
+from cleany_skill_executor.core.grasp_selection import InfrastructureError, REQUIRED_JOINT_NAMES
 from cleany_skill_executor.core.nearest_object import ObjectAttempt
-from cleany_skill_executor.core.sorting import Category, bin_release_region
+from cleany_skill_executor.core.sorting import COLLECTION_SKILLS, bin_release_region, normalize_label
 from cleany_skill_executor.collision_geometry_cache import candidate_bounding_radius
 from cleany_skill_executor.manipulation.models import Error, ObjectState, Placement
+from cleany_skill_executor.nearest_pregrasp_coordinator import LiftRedetectionError
 from cleany_skill_executor.pick_operations import GraspProgress
+from cleany_skill_executor.seeded_cartesian import CartesianPlanningError
 from cleany_skill_executor.sorting_coordinator import SortTarget, SortingCoordinator
 import rclpy
 
 from .backend import ExecutionContext, Observation, OperationError
-from .target_identity import VERIFICATION_LABELS, label_key
+from .joint_feedback import JointFeedback, StationaryWindow
+from .target_identity import LOST_ITEM_LABELS, TRASH_LABELS, VERIFICATION_LABELS, label_key
 
 
 class TrackedClient:
@@ -51,6 +56,7 @@ class TrackedClient:
 class MujocoOperations(SortingCoordinator):
     """Reuse calibrated sorting motion without invoking run(), pick() or execute_sort()."""
     def __init__(self) -> None:
+        self._joint_feedback = JointFeedback(REQUIRED_JOINT_NAMES)
         super().__init__()
         self._controller_retry_enabled = False
         self._require_unique_target_label = True
@@ -58,16 +64,20 @@ class MujocoOperations(SortingCoordinator):
         self.execution_context: ExecutionContext | None = None
         self.current_node = ''
         self.deadline = math.inf
-        self._last_joint_wall = 0.0
-        self._joint_stamp_ns = 0
         self._clock_value = 0
         self._clock_progress_wall = time.monotonic()
         self.declare_parameter('bt_feedback_max_age_sec', 2.0)
         self.declare_parameter('bt_operation_timeout_sec', 180.0)
         self.declare_parameter('bt_verification_timeout_sec', 10.0)
         self.declare_parameter('bt_stop_timeout_sec', 10.0)
-        self.declare_parameter('bt_supported_trash_labels', list(VERIFICATION_LABELS))
+        self.declare_parameter('bt_stop_feedback_max_age_sec', 0.5)
+        self.declare_parameter('bt_stationary_duration_sec', 0.25)
+        self.declare_parameter('bt_supported_trash_labels', list(TRASH_LABELS))
+        self.declare_parameter('bt_supported_lost_item_labels', list(LOST_ITEM_LABELS))
         self._target_label_key = label_key
+        self._tracking_session_id = ''
+        self._approved_tracking = None
+        self._placement_registration = self.create_client(RegisterPlacementTarget, '/sorting/register_placement_target')
         self._snapshot = self.create_client(GetSceneSnapshot, '/perception/get_scene_snapshot')
         self._controllers = self.create_client(ListControllers, '/controller_manager/list_controllers')
         self.submissions: list[Any] = []
@@ -79,8 +89,8 @@ class MujocoOperations(SortingCoordinator):
 
     def _on_joints(self, message) -> None:
         super()._on_joints(message)
-        self._last_joint_wall = time.monotonic()
-        self._joint_stamp_ns = message.header.stamp.sec * 10**9 + message.header.stamp.nanosec
+        self._joint_feedback.update(message.name, message.velocity,
+            message.header.stamp.sec * 10**9 + message.header.stamp.nanosec, time.monotonic())
 
     def quiescent(self) -> bool:
         def valid(future):
@@ -110,29 +120,31 @@ class MujocoOperations(SortingCoordinator):
             raise OperationError(Error.TIMEOUT, 'Operation wall-clock deadline exceeded')
         motion = self.current_node in (
             'MoveToPregrasp', 'ApproachObject', 'GraspObject', 'ConfirmGrasp', 'LiftObject',
-            'ConfirmHeld', 'CarryObject', 'CheckPlacementTarget', 'OpenGripperAtDestination', 'ReturnArm')
+            'ConfirmHeld', 'CarryObject', 'CheckPlacementTarget', 'OpenGripperAtDestination', 'ReturnArm',
+            'ReleaseInPlace', 'ReturnArmAfterCancel')
         if motion:
             maximum = float(self.get_parameter('bt_feedback_max_age_sec').value)
             now = self.get_clock().now().nanoseconds
+            wall = time.monotonic()
             if now != self._clock_value:
-                self._clock_value, self._clock_progress_wall = now, time.monotonic()
-            if (time.monotonic() - self._last_joint_wall > maximum
-                    or time.monotonic() - self._clock_progress_wall > maximum
-                    or self._joint_stamp_ns <= 0 or abs(now-self._joint_stamp_ns)/1e9 > maximum):
+                self._clock_value, self._clock_progress_wall = now, wall
+            invalid = self._joint_feedback.invalid_joints(wall, now, maximum)
+            if invalid or wall - self._clock_progress_wall > maximum:
                 # /clock and /joint_states arrive independently. A small newer
                 # joint stamp is possible before the next clock callback; large
                 # skew, a stopped clock or stale receipt still fails closed.
                 raise OperationError(Error.HARDWARE_ERROR,
                     'Joint feedback or simulation clock is stale: '
-                    f'receipt_age={time.monotonic()-self._last_joint_wall:.3f}s '
-                    f'clock_idle={time.monotonic()-self._clock_progress_wall:.3f}s '
-                    f'stamp_skew={(now-self._joint_stamp_ns)/1e9:.3f}s')
+                    f'invalid_joints={list(invalid)} '
+                    f'clock_idle={wall-self._clock_progress_wall:.3f}s')
         if self.current_node in ('LiftObject', 'ConfirmHeld', 'CarryObject', 'CheckPlacementTarget'):
             if self._held_object is None:
                 raise OperationError(Error.GRASP_LOST, 'Missing held object')
             try:
                 self._require_held_contact(self._held_object)
             except RuntimeError as error:
+                if type(error) is not RuntimeError:
+                    raise
                 raise OperationError(Error.GRASP_LOST, str(error)) from error
 
     def _spin_once(self, timeout_sec: float) -> None:
@@ -174,6 +186,8 @@ class MujocoOperations(SortingCoordinator):
             'CheckPlacementTarget': self.check_placement, 'OpenGripperAtDestination': self.open,
             'ConfirmRelease': self.confirm_release, 'ReturnArm': self.return_arm,
             'VerifyPlacedObject': self.verify, 'StopAndAssess': self.stop,
+            'ReleaseInPlace': self.release_in_place, 'ReturnArmAfterCancel': self.return_after_cancel,
+            'StopAfterRecovery': self.stop_after_recovery,
         }
         try:
             self._guard()
@@ -181,8 +195,16 @@ class MujocoOperations(SortingCoordinator):
         except OperationError:
             raise
         except Exception as error:
+            # Legacy operations report expected failures with these types.
+            # RuntimeError subclasses such as NotImplementedError and
+            # RecursionError must not become ordinary motion/grasp failures.
+            expected = (type(error) in (RuntimeError, ValueError)
+                        or isinstance(error, (InfrastructureError, CartesianPlanningError, LiftRedetectionError)))
+            if not expected:
+                raise OperationError(Error.INTERNAL_ERROR,
+                    f'{node}: {type(error).__name__}: {error}') from error
             code = (Error.BACKEND_NOT_READY if node == 'ValidateGoal' else
-                    Error.STALE_TARGET if node == 'ApproachObject' and isinstance(error, ValueError) else
+                    Error.STALE_TARGET if node in ('MoveToPregrasp', 'ApproachObject') and isinstance(error, ValueError) else
                     Error.GRASP_FAILED if node in ('GraspObject', 'ConfirmGrasp') else
                     Error.GRASP_LOST if node == 'ConfirmHeld' else Error.MOTION_FAILED)
             raise OperationError(code, str(error)) from error
@@ -195,7 +217,7 @@ class MujocoOperations(SortingCoordinator):
             self._spin_once(timeout_sec=0.05)
             if (all(client.server_is_ready() for client in clients)
                     and all(client.service_is_ready() for client in
-                            (self._snapshot, self._grasp, self._verification, self._controllers))
+                            (self._snapshot, self._grasp, self._verification, self._placement_registration, self._controllers))
                     and set(REQUIRED_JOINT_NAMES) <= self._joint_positions.keys()):
                 break
         else:
@@ -231,19 +253,36 @@ class MujocoOperations(SortingCoordinator):
         if len(matches) != 1 or response.detections.snapshot_id != goal.snapshot_id:
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Approved object is absent or ambiguous')
         detection = matches[0]
-        supported = self.get_parameter('bt_supported_trash_labels').value
-        if (detection.label not in supported or detection.label not in VERIFICATION_LABELS
-                or sum(label_key(d.label) == label_key(detection.label)
-                       for d in response.detections.detections) != 1):
-            raise OperationError(Error.TARGET_UNAVAILABLE, 'Verifier requires a supported, unique label')
+        expected_category = {skill: category for category, skill in COLLECTION_SKILLS.items()}.get(goal.skill_name)
+        if expected_category is None:
+            raise OperationError(Error.INVALID_ARGUMENT, 'Unsupported collection skill')
+        supported = self.get_parameter('bt_supported_' + expected_category + '_labels').value
+        tracked = bool(response.detections.tracking_session_id)
+        if tracked:
+            if (not response.detections.tracking_epoch or not detection.track_id
+                    or detection.tracking_state != 'TRACKED' or not detection.position_valid
+                    or response.detections.representative_frame != 'base_link'
+                    or sum(d.track_id == detection.track_id for d in response.detections.detections) != 1):
+                raise OperationError(Error.TARGET_UNAVAILABLE, 'Approved tracking identity is invalid or ambiguous')
+            self._approved_tracking = (response.detections.tracking_session_id,
+                                       response.detections.tracking_epoch, detection.track_id)
+            self._tracking_session_id = response.detections.tracking_session_id
+        else:
+            self._approved_tracking, self._tracking_session_id = None, ''
+        self._require_unique_target_label = not tracked
+        self._geometry_association_lift = tracked
+        if (normalize_label(detection.label) not in supported or normalize_label(detection.label) not in VERIFICATION_LABELS
+                or (not tracked and sum(label_key(d.label) == label_key(detection.label)
+                        for d in response.detections.detections) != 1)):
+            raise OperationError(Error.TARGET_UNAVAILABLE, 'Verifier requires a supported type and valid individual identity')
         if not detection.distance_valid:
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Target has no valid sensor depth')
         decision = self._policy.classify_model(detection.label, detection.confidence,
                                               detection.sorting_category, detection.sorting_reason)
-        if decision.category != Category.TRASH:
-            raise OperationError(Error.TARGET_UNAVAILABLE, 'Target is not approved trash by model and policy')
+        if decision.category.value != expected_category:
+            raise OperationError(Error.TARGET_UNAVAILABLE, 'Target classification does not match approved skill')
         if goal.destination_id != decision.destination or goal.destination_id not in self._bins:
-            raise OperationError(Error.DESTINATION_UNAVAILABLE, 'Destination does not match trash policy')
+            raise OperationError(Error.DESTINATION_UNAVAILABLE, 'Destination does not match collection policy')
         context.attempt = ObjectAttempt(detection.object_id, detection.label, detection.confidence,
                                         detection.distance_m, detection.sorting_category, detection.sorting_reason)
         return Observation(message=f'Approved {goal.snapshot_id}/{goal.object_id}: {detection.label}')
@@ -256,7 +295,21 @@ class MujocoOperations(SortingCoordinator):
         if (context.inspected.objects.snapshot_id != context.goal.snapshot_id
                 or obj.object_id != context.goal.object_id or obj.label != context.attempt.label):
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Reconstructed identity mismatch')
-        return Observation(message='Selected object reconstructed from cached RGB-D')
+        if self._approved_tracking is not None:
+            array = context.inspected.objects
+            if ((array.tracking_session_id, array.tracking_epoch, obj.track_id) != self._approved_tracking
+                    or obj.tracking_state != 'TRACKED'):
+                raise OperationError(Error.STALE_TARGET, 'Reconstructed tracking identity mismatch')
+        # Pin the independent evaluator before pregrasp or any other motion.
+        verification_target = deepcopy(obj)
+        verification_target.label = label_key(obj.label)
+        response = self._future(self._placement_registration.call_async(RegisterPlacementTarget.Request(
+            execution_id=context.goal.execution_id, destination_id=context.goal.destination_id,
+            header=context.inspected.objects.header, target=verification_target)), 3., 'individual placement registration')
+        if not response.success or not response.verification_id:
+            raise OperationError(Error.VERIFICATION_UNAVAILABLE, response.message)
+        context.verification_id = response.verification_id
+        return Observation(message='Selected object reconstructed and individual verification registered')
 
     def generate(self, context: ExecutionContext) -> Observation:
         context.grasps = self._plan_grasps(context.inspected, context.attempt)
@@ -295,10 +348,12 @@ class MujocoOperations(SortingCoordinator):
             raise OperationError(Error.DESTINATION_UNAVAILABLE, str(error)) from error
 
     def pregrasp(self, context: ExecutionContext) -> Observation:
+        # Revalidate before the first arm motion and again before the approach.
+        MujocoOperations.refresh_approved(self, context)
         self._execute_pregrasp(context.selected, context.attempt)
         return Observation()
 
-    def approach(self, context: ExecutionContext) -> Observation:
+    def refresh_approved(self, context: ExecutionContext) -> None:
         # Reobserve ONLY the approved label, with existing geometric continuity
         # and ambiguity gates; never use geometry-only automatic reassignment.
         self._switch_camera('head') if self._wrist_enabled else None
@@ -307,11 +362,20 @@ class MujocoOperations(SortingCoordinator):
                                          context.attempt.sorting_category, context.attempt.sorting_reason)
         new = self._policy.classify_model(attempt.label, attempt.confidence,
                                          attempt.sorting_category, attempt.sorting_reason)
-        if new.category != old.category or new.destination != old.destination or new.category != Category.TRASH:
+        if (new.category != old.category or new.destination != old.destination
+                or COLLECTION_SKILLS.get(new.category.value) != context.goal.skill_name
+                or new.destination != context.goal.destination_id):
             raise OperationError(Error.STALE_TARGET, 'Approved-object classification changed')
+        supported = self.get_parameter('bt_supported_' + new.category.value + '_labels').value
+        if normalize_label(attempt.label) not in supported:
+            raise OperationError(Error.STALE_TARGET, 'Refreshed type is unsupported')
         context.selected, context.attempt = selected, attempt
         self.check_payload_fit(context)
         context.target = SortTarget(attempt, selected)
+
+    def approach(self, context: ExecutionContext) -> Observation:
+        MujocoOperations.refresh_approved(self, context)
+        selected, attempt = context.selected, context.attempt
         if self._wrist_enabled:
             self._switch_camera(selected.selected_arm)
             self._wrist_reference = self._observe_wrist(selected, ObserveWristTarget.Request.HANDOFF)
@@ -320,6 +384,7 @@ class MujocoOperations(SortingCoordinator):
         return Observation(message='Approved-object continuity and approach confirmed')
 
     def grasp(self, context: ExecutionContext) -> Observation:
+        context.gripper_engaged = True
         self._close_grasp(context.selected, context.attempt, context.grasp_progress, retry=False)
         return Observation()
 
@@ -354,8 +419,12 @@ class MujocoOperations(SortingCoordinator):
         return Observation(message='Gripper opening confirmed by controller and joint feedback')
 
     def _verify_after(self, context: ExecutionContext, after_ns: int) -> Observation:
+        if not context.verification_id:
+            return Observation(False, Error.VERIFICATION_UNAVAILABLE, 'No individual placement registration',
+                               placement_state=Placement.UNKNOWN)
         request = VerifyPlacement.Request(label=label_key(context.target.attempt.label),
-            destination_id=context.goal.destination_id, after_stamp_ns=after_ns)
+            destination_id=context.goal.destination_id, after_stamp_ns=after_ns,
+            verification_id=context.verification_id)
         deadline = time.monotonic() + float(self.get_parameter('bt_verification_timeout_sec').value)
         while time.monotonic() < deadline:
             response = self._future(self._verification.call_async(request), 2., 'independent placement verification')
@@ -371,6 +440,7 @@ class MujocoOperations(SortingCoordinator):
             return observation
         self.finish_release(context.held)
         context.release_confirmed = True
+        context.gripper_engaged = False
         return Observation(object_state=ObjectState.LEFT_GRIPPER, placement_state=Placement.CONFIRMED,
                            message=observation.message)
 
@@ -380,6 +450,38 @@ class MujocoOperations(SortingCoordinator):
         self.retreat(context.held, context.goal.destination_id, prefetch=False)
         context.arm_recovered = True
         return Observation(arm_recovered=True)
+
+    def release_in_place(self, context: ExecutionContext) -> Observation:
+        """Initial RETURN_ARM policy: open where stopped, without bin verification."""
+        arm = context.selected.selected_arm
+        engaged = context.gripper_engaged or context.held is not None or self._held_object is not None
+        if engaged:
+            self._open_gripper(arm)
+            self._hold('grasp_settle_sec')
+        self._execution_scene.restore()
+        self._held_object = None
+        self._carry_wrist_reference = {}
+        self._fixed_release_wrist = {}
+        self._wrist_reference = None
+        context.held = None
+        context.gripper_engaged = False
+        return Observation(object_state=ObjectState.LEFT_GRIPPER if engaged else None,
+                           message='Released at cancellation position' if engaged else 'No held object to release')
+
+    def return_after_cancel(self, context: ExecutionContext) -> Observation:
+        # Destination release/verification belongs to the normal path. Recovery
+        # plans from current feedback to the arm posture captured at startup.
+        arm = context.selected.selected_arm
+        joints = deepcopy(self._home[arm])
+        self._move_to(arm, joints, 'return from cancellation')
+        self._verify_feedback(joints)
+        context.arm_recovered = True
+        return Observation(arm_recovered=True, message='Arm returned after cancellation')
+
+    def stop_after_recovery(self, context: ExecutionContext) -> Observation:
+        confirmed = self._assess_stationary(context, cancel=False)
+        return Observation(stop_confirmed=confirmed, message='Post-recovery stationary feedback confirmed'
+                           if confirmed else 'Post-recovery stop could not be confirmed')
 
     def verify(self, context: ExecutionContext) -> Observation:
         observation = self._verify_after(context, self.get_clock().now().nanoseconds)
@@ -391,13 +493,16 @@ class MujocoOperations(SortingCoordinator):
                            message=observation.message if settled else 'Final stationary feedback unavailable')
 
     def _assess_stationary(self, context: ExecutionContext, *, cancel: bool) -> bool:
-        deadline = time.monotonic() + float(self.get_parameter('bt_stop_timeout_sec').value)
-        barrier = self.get_clock().now().nanoseconds
+        started_at = time.monotonic()
+        deadline = started_at + float(self.get_parameter('bt_stop_timeout_sec').value)
+        context.stop_confirmed = False
+        window = StationaryWindow(
+            barrier_ns=self.get_clock().now().nanoseconds, started_at=started_at,
+            max_age_sec=float(self.get_parameter('bt_stop_feedback_max_age_sec').value),
+            maximum_velocity=float(self.get_parameter('arm_stationary_velocity_rad_s').value),
+            required_samples=int(self.get_parameter('arm_stationary_samples').value),
+            minimum_duration_sec=float(self.get_parameter('bt_stationary_duration_sec').value))
         canceled: set[int] = set()
-        previous_stamp = 0
-        samples = 0
-        required = int(self.get_parameter('arm_stationary_samples').value)
-        maximum = float(self.get_parameter('arm_stationary_velocity_rad_s').value)
         while time.monotonic() < deadline:
             # Assessment bypasses the abort guard, but still has its own deadline.
             rclpy.spin_once(self, timeout_sec=0.02)
@@ -406,18 +511,13 @@ class MujocoOperations(SortingCoordinator):
                     if not terminal.done() and id(handle) not in canceled:
                         handle.cancel_goal_async()
                         canceled.add(id(handle))
-            terminal = self.quiescent()
-            stamp = self._joint_stamp_ns
-            fresh = (stamp > barrier and stamp > previous_stamp
-                     and time.monotonic() - self._last_joint_wall < 0.5)
-            if fresh:
-                previous_stamp = stamp
-                stationary = all(math.isfinite(self._joint_velocities.get(n, math.nan))
-                                 and abs(self._joint_velocities[n]) <= maximum for n in REQUIRED_JOINT_NAMES)
-                samples = samples + 1 if stationary and terminal else 0
-                if samples >= required:
-                    context.stop_confirmed = True
-                    return True
+            wall = time.monotonic()
+            if wall >= deadline:
+                break
+            if window.observe(self._joint_feedback, now=wall,
+                              clock_ns=self.get_clock().now().nanoseconds, terminal=self.quiescent()):
+                context.stop_confirmed = True
+                return True
         return False
 
     def stop(self, context: ExecutionContext) -> Observation:

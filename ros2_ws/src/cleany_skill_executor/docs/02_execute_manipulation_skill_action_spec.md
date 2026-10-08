@@ -6,19 +6,19 @@
 
 ## 1. Goal 하나가 하는 일
 
-**현재 제안의 지원 행동은 `collect_trash` 하나다.** Mission Manager가 승인한 물체
+**지원 행동은 `collect_trash`와 `collect_lost_item`이다.** 호출자가 승인한 물체
 하나를 지정 수거함에 옮기고 결과를 확인한다. 접근, 집기와 운반은 서버 내부 단계다.
 다음 물체를 제안하려면 이번 행동 결과와 새 Scene이 필요하다.
 
 | 범위 | 처리 |
 |---|---|
 | 승인된 쓰레기 후보 하나 수거 | 이번 Action 제안의 범위 |
-| 분실물 보관 또는 인계 | KB에서 미정. 제품 Action의 지원 행동으로 등록하지 않음 |
+| 승인된 분실물 하나의 전용 탑재 보관함 보관 | `collect_lost_item`. 사용자 요청으로 구현하며 KB의 MVP 범위 불일치는 별도 기록 |
 | 책상 전체 반복 | Mission Manager와 Planner의 책임 |
 | 인식만 수행 | 독립 Perception interface 사용 |
 
-시뮬레이션 sorting의 분실물 경로, staging과 handoff는 기존 데모 기능이다.
-이를 쓰레기 수거 완료나 제품 분실물 정책으로 자동 변환하지 않는다.
+모델 분류–skill–목적지는 각각 검사한다. 두 분류의 수거 동작은 공통 BT를 사용하고
+책상 반복과 재관찰은 호출자가 담당한다. staging과 handoff는 이 계약에 추가하지 않는다.
 
 ## 2. Goal: 무엇을 실행할지
 
@@ -27,7 +27,7 @@
 | `mission_id` | `string` | 어떤 미션인가 | `mission-001` |
 | `task_id` | `string` | 어떤 승인된 행동인가 | `task-003` |
 | `execution_id` | `string` | 이번 실행 시도의 고유 번호 | UUID |
-| `skill_name` | `string` | 승인된 행동 이름 | `collect_trash` |
+| `skill_name` | `string` | 승인된 행동 이름 | `collect_trash` 또는 `collect_lost_item` |
 | `snapshot_id` | `string` | 대상이 확인된 관찰 | `snapshot-010` |
 | `object_id` | `uint32` | 그 관찰 안의 물체 번호 | `3` |
 | `destination_id` | `string` | 설정에 등록된 수거 목적지 | 예: `onboard_trash_bin` |
@@ -91,6 +91,7 @@ SQLite 기록과 함께 제공하고 Backend 전달은 후속 Mission Manager ad
 |---|---|---|
 | `execution_id` | `string` | 이번 실행 시도 |
 | `stage` | `string` | 아래 단계 |
+| `substage` | `string` | 현재 세부 동작. 예: `GraspObject`, `ConfirmGrasp` |
 | `selected_arm` | `string` | 선택 전 빈 값, 선택 후 등록된 팔 ID |
 | `message` | `string` | 사람이 읽는 설명 |
 
@@ -105,6 +106,8 @@ SQLite 기록과 함께 제공하고 Backend 전달은 후속 Mission Manager ad
 | `PLACING` | 목적지에서 그리퍼를 열어 놓기 |
 | `RETURNING_ARM` | 팔을 지정된 안전 위치로 복귀 |
 | `VERIFYING_PLACEMENT` | 수거함 내부 위치 확인 |
+| `RELEASING_IN_PLACE` | 취소 후 현재 위치에서 그리퍼 열기 |
+| `RECOVERING_ARM` | 취소 후 팔 복귀 |
 | `STOPPING` | 취소 또는 실패 후 동작 종료와 정지 확인 |
 | `FINALIZING` | 실제 진행과 종료 결과 기록 |
 
@@ -125,8 +128,10 @@ Feedback은 진행 안내다. `PLACING`을 받았다고 물체가 수거된 것�
 | `execution_id` | `string` | 어떤 시도 결과인가 |
 | `execution_profile` | `string` | 이번 구현은 `mock`. 모의 근거와 실물 근거 구분 |
 | `status` | `string` | 성공, 차단, 실패, 취소 또는 치명 오류 |
+| `cancel_mode` | `string` | 취소 요청이 없으면 빈 값. `IMMEDIATE`, `CHECKPOINT`, `RETURN_ARM` |
 | `error_code` | `string` | 원인. 정상 성공은 `NONE` |
 | `failed_stage` | `string` | 문제가 난 단계. 성공은 빈 값 |
+| `failed_substage` | `string` | 실패한 세부 동작. 없으면 빈 값 |
 | `last_completed_stage` | `string` | 근거를 확인하고 끝낸 마지막 단계. 없으면 빈 값 |
 | `object_state` | `string` | 물체를 건드리지 않았는지, 들고 있는지 등 |
 | `placement_state` | `string` | 수거함 내부 위치를 확인했는지 |
@@ -146,7 +151,7 @@ Feedback은 진행 안내다. `PLACING`을 받았다고 물체가 수거된 것�
 | `SUCCESS` | 수거, 놓은 결과 확인과 팔 복귀 완료 | `SUCCEEDED` |
 | `BLOCKED` | 움직임 전에 필요한 조건을 통과하지 못함 | `SUCCEEDED`, payload 확인 필요 |
 | `FAILED` | 실행을 시작했으나 요구한 결과를 얻지 못함 | `ABORTED` |
-| `CANCELED` | 취소 후 checkpoint에서 종료하고 정지를 확인 | `CANCELED` |
+| `CANCELED` | 선택한 취소 정책을 마치고 정지를 확인 | `CANCELED` |
 | `FATAL` | e-stop, hardware fault 또는 정지 확인 불가 | `ABORTED` |
 
 취소 수락과 취소 완료는 다르다. 정지가 확인되지 않으면 `FATAL`을 반환한다.
@@ -154,6 +159,18 @@ Feedback은 진행 안내다. `PLACING`을 받았다고 물체가 수거된 것�
 정상 종료와 취소 요청이 동시에 오면 종료 상태 변경을 직렬화한다. Result가 이미
 확정된 Goal의 취소는 수락하지 않고 기존 결과를 유지한다. 취소를 먼저 수락했다면
 최종 물리 진행을 보존하면서 취소 경로를 완료한다. 실제 fault는 취소보다 우선한다.
+
+### 취소 방식과 서비스
+
+`manipulation/cancel`의 `CancelManipulation` 서비스는 활성 `execution_id`와 `mode`를
+받고 `accepted/message`를 반환한다. `accepted=true`는 요청 수락이며 정지 완료가 아니다.
+기본 ROS Action cancel은 `CHECKPOINT`다.
+`IMMEDIATE`는 현재 완료를 기다리지 않고 정지를 요청한다. `CHECKPOINT`는 현재 동작과
+필요한 확인까지만 완료한다. `RETURN_ARM`은 현재 작업 중단과 정지 확인 뒤 잡고 있는
+물체를 그 자리에서 놓고 팔을 복귀한다. 초기 정책에서는 현재 위치 놓기의 별도 안착
+검증을 추가하지 않는다. MuJoCo의 이 경로는 그리퍼 열림 완료를 근거로 하며 독립적인
+물체 이탈 확인도 제공하지 않는다. 모드는 진행과 Result에 보존하며 `IMMEDIATE`로 선점할 수 있다.
+놓기·복귀 실패는 `FAILED`, 정지 확인 실패는 `FATAL/STOP_UNCONFIRMED`로 반환한다.
 
 ### 물체 상태와 놓은 결과
 
@@ -171,7 +188,7 @@ Feedback은 진행 안내다. `PLACING`을 받았다고 물체가 수거된 것�
 | `NOT_CONFIRMED` | 확인 기능의 성공 조건을 만족하지 못함 |
 | `UNKNOWN` | 확인 timeout 또는 센서 문제로 판단 불가 |
 
-`LEFT_GRIPPER`는 그리퍼 열기 명령 성공만으로 기록하지 않는다. 추가 근거가 없으면
+정상 수거 경로에서 `LEFT_GRIPPER`는 그리퍼 열기 명령 성공만으로 기록하지 않는다. 추가 근거가 없으면
 `UNKNOWN`이다. 수거함 내부 검증이 성공하면 `LEFT_GRIPPER/CONFIRMED`로 갱신할 수 있다.
 기존 `VerifyPlacement.srv`의 false는 명시적인 수거함 밖 판정이 아니다.
 false는 `NOT_CONFIRMED`, 호출 불가와 timeout은 `UNKNOWN`으로 구분하는 adapter 제안이다.
@@ -231,6 +248,7 @@ bool arm_recovered
 bool retryable
 string message
 string failed_substage
+string cancel_mode
 ---
 # Feedback
 string execution_id
@@ -251,8 +269,10 @@ string message
 반환 단계와 adapter 대응은 [서버 명세](03_manipulation_server_behavior_spec.md)와
 [Mission 결과 매핑](04_mission_result_mapping.md)에 정리한다.
 클라이언트는 execution_id를 발급하며 테스트 클라이언트는 UUID4를 사용한다.
-저장 실패는 `FATAL/INTERNAL_ERROR`, 신규 Goal 차단과 `RECORDING_FAILED` 메모리 진단으로 전달한다.
-함께 발생한 hardware fault·e-stop·정지 미확인의 `FATAL` 원인은 보존한다.
+실행 기록 저장 실패는 경고 로그로 전달하며 실제 실행의 status와 error_code를 유지한다.
+저장 실패만으로 동작이나 신규 Goal을 차단하지 않는다. 함께 발생한 hardware fault·e-stop·
+정지 미확인의 `FATAL`과 물리 상태에 따른 차단은 유지한다.
+조회는 서버 메모리의 최신 기록을 반환하며 저장 성공을 보장하지 않는다.
 `ManipulationExecutionRecord`는 Goal과 최신 진행·Result, `record_state`, `has_result`,
 `human_confirmation_required`, revision과 Unix nanoseconds 시각을 제공한다.
 `has_result=false`인 중단 기록에는 가짜 status/error_code를 채우지 않는다.

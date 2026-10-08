@@ -1,0 +1,164 @@
+# Simulation validation layout: two distinct free paper cups.
+schema_version: 1
+scene:
+  ambient_rgba:
+  - 0.65
+  - 0.65
+  - 0.65
+  - 1.0
+  background_rgba:
+  - 0.82
+  - 0.83
+  - 0.84
+  - 1.0
+robot:
+  spawn_pose:
+  - -1.865
+  - -4.705
+  - 0.38
+  - 0.0
+  - 0.0
+  - 1.5708
+mujoco:
+  robot_center_rearward_offset_m: 0.22
+  tabletop_objects:
+  - name: cup
+    xy_offset_from_desk_center_m:
+    - 0.12
+    - -0.175
+    yaw_rad: 0.2
+    mass_kg: 0.008
+    rgba:
+    - 0.92
+    - 0.87
+    - 0.74
+    - 1.0
+    visual_type: paper_cup
+    geometry:
+      bottom_diameter_m: 0.0396
+      wall_thickness_m: 0.000504
+      segments: 32
+      collision_bottom_clearance_m: 0.00025
+    collision:
+      type: compound
+      size_m:
+      - 0.0612
+      - 0.0684
+  - name: mouse
+    xy_offset_from_desk_center_m:
+    - -0.14
+    - -0.095
+    yaw_rad: -0.18
+    mass_kg: 0.12
+    rgba:
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    collision:
+      type: mesh
+      size_m:
+      - 0.11
+      - 0.065
+      - 0.035
+  - name: tissue
+    xy_offset_from_desk_center_m:
+    - 0.11
+    - -0.07
+    yaw_rad: 0.12
+    mass_kg: 0.001
+    rgba:
+    - 0.96
+    - 0.96
+    - 0.94
+    - 1.0
+    visual_type: crumpled_tissue
+    geometry:
+      latitude_segments: 10
+      longitude_segments: 24
+      wrinkle_amplitude: 0.24
+    collision:
+      type: mesh
+      size_m:
+      - 0.06
+      - 0.05
+      - 0.045
+  - name: lego
+    xy_offset_from_desk_center_m:
+    - -0.16
+    - -0.205
+    yaw_rad: -0.25
+    mass_kg: 0.0023
+    rgba:
+    - 0.92
+    - 0.035
+    - 0.025
+    - 1.0
+    visual_type: lego_brick
+    geometry:
+      studs_x: 4
+      studs_y: 2
+      stud_pitch_m: 0.016
+      stud_diameter_m: 0.0096
+      stud_height_m: 0.00396
+    collision:
+      type: compound
+      size_m:
+      - 0.0636
+      - 0.0316
+      - 0.02112
+  - name: cup_b
+    xy_offset_from_desk_center_m:
+    - 0.02
+    - -0.18
+    yaw_rad: 0.2
+    mass_kg: 0.008
+    rgba:
+    - 0.92
+    - 0.87
+    - 0.74
+    - 1.0
+    visual_type: paper_cup
+    geometry:
+      bottom_diameter_m: 0.0396
+      wall_thickness_m: 0.000504
+      segments: 32
+      collision_bottom_clearance_m: 0.00025
+    collision:
+      type: compound
+      size_m:
+      - 0.0612
+      - 0.0684
+room:
+  inside_size_m:
+  - 12.26
+  - 10.94
+  wall_thickness_m: 0.16
+  wall_height_m: 2.5
+  wall_rgba:
+  - 0.97
+  - 0.97
+  - 0.96
+  - 1.0
+  wall_roughness: 0.92
+desk_layout:
+  x_positions_m:
+  - -5.53
+  - -4.33
+  - -3.13
+  - -0.6
+  - 0.6
+  - 3.13
+  - 4.33
+  - 5.53
+  row_pair_centers_y_m:
+  - 3.17
+  - 0.0
+  - -3.17
+  rows:
+  - desk_y_offset_m: 0.385
+    chair_y_offset_from_desk_m: 0.385
+  - desk_y_offset_m: -0.385
+    chair_y_offset_from_desk_m: -0.385
+  partition_center_z_m: 0.66
+  monitor_y_offset_from_desk_center_m: 0.285

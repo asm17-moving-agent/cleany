@@ -1,5 +1,18 @@
 # cleany_perception
 
+RGB-D 장면 인식, 선택 물체의 3D 복원, 관찰 간 추적과 손목 RGB 확인을 제공한다.
+전체 depth 점군은 MoveIt 충돌지도 입력으로 별도 발행한다.
+
+| 확인할 내용 | 안내 |
+|---|---|
+| 모델 준비와 실행 | [모델 준비](#모델-준비), [실행](#실행) |
+| 관찰 요청·결과 | [ROS API](#ros-api), [snapshot 조회](#기존-snapshot-조회) |
+| 관찰 간 물체 ID 유지 | [물체 추적](#고정-베이스-책상-물체-추적) |
+| 충돌지도 입력·수신 확인 | [전체 depth 점군](#전체-depth-환경-포인트클라우드), [수신 확인](#필터링-점군-수신-확인) |
+| 테스트와 로그 | [검증](#검증), [모델 로딩 로그](#모델-로딩-로그) |
+
+## 입력과 손목 관찰
+
 `depth_scene_node`의 Depth/CameraInfo 구독은 best-effort KEEP_LAST(1)이다.
 부하가 높을 때 과거 입력을 순차 처리하지 않고 최신 수신 프레임을 사용한다.
 촬영 timestamp와 `maximum_depth_age_sec` 검사는 유지하며 오래된 Depth를
@@ -33,8 +46,8 @@ headless 인식 진단 시 `wrist_failure_image_directory`를 지정하면 YOLOE
 예상 손목 물체를 찾지 못한 프레임만 PNG로 저장한다. 기본값은 빈 문자열이라
 영상을 저장하지 않는다.
 HANDOFF 이후 RGB·mask 이력을 보관하지 않는다. 손목 카메라는 RGB만 제공하므로
-새 3D 위치나 독립적인 물체 ID는 산출하지 않는다. 손목 모델은 현재 head 영상 학습본을
-별도 체크포인트를 쓰면 그만큼 모델 메모리가 추가된다.
+새 3D 위치나 독립적인 물체 ID는 산출하지 않는다. Head 모델과 다른 손목
+체크포인트를 지정하면 그만큼 모델 메모리가 추가된다.
 
 손목 RGB와 CameraInfo는 exact timestamp로 짝지어 처리한다. 촬영 시점 TF,
 보정값, source/reference ID와 mask 검증 실패는 성공으로 처리하지 않는다.
@@ -132,7 +145,7 @@ ros2 action info /perception/inspect_scene
 ros2 action send_goal \
   /perception/inspect_scene \
   cleany_interfaces/action/InspectScene \
-  "{query: 'Detect the box and can on the table.', snapshot_id: '', selected_object_id: 0}" \
+  "{query: 'Detect objects on the table.', snapshot_id: '', selected_object_id: 0}" \
   --feedback
 ```
 
@@ -151,8 +164,8 @@ ros2 action send_goal \
 - `perception/detections_2d`: 번호가 부여된 `DetectedObject2DArray`
 - `perception/objects`: 후속 선택 단계에서 사용할 `DetectedObject3DArray` topic
 
-MuJoCo 통합 데모는 `detector_type=simulation_color`,
-`segmenter_type=simulation_color`로 시뮬레이션 전용 adapter를 선택한다. 이 adapter는
+`detector_type=simulation_color`, `segmenter_type=simulation_color`는
+시뮬레이션 색상 fixture용 adapter를 선택한다. 이 adapter는
 렌더링된 RGB의 빨강/파랑 픽셀에서 bbox와 mask를 계산할 뿐, 물체 pose나 합성 점을
 주입하지 않는다. 거리와 3D geometry는 운영 경로와 동일하게 실제 depth image,
 CameraInfo 및 촬영 시점 TF에서 계산한다. 색상 규칙은 통합 검증용이므로 실제 배포
@@ -168,6 +181,17 @@ ros2 topic echo /perception/debug_image_latched --once --field encoding \
 
 1차 결과의 `snapshot_id`는 후속 선택 단계가 같은 RGB-D와 촬영 시점 TF를 사용하기 위한
 opaque key다. cache 크기와 TTL을 넘긴 snapshot은 후속 단계에서 사용할 수 없다.
+
+## 모델 로딩 로그
+
+기본 `INFO` 출력은 모델 로딩 시작과 준비 완료·사용 장치를 알린다.
+개별 detector 로딩과 모델·text encoder 경로는 `DEBUG`에서 확인한다.
+MuJoCo 수거·BT launch에서는 `log_level:=debug`, 단독 노드 실행에서는
+`--ros-args --log-level perception_inspector:=debug`로 상세 로그를 켠다.
+
+깊이 점군과 receipt 노드는 ROS context 종료에 따른 executor 중단과 점군 변환
+중단을 정상 종료로 처리한다. ROS가 실행 중일 때의 `RuntimeError`는 다시
+발생시켜 실제 변환 실패가 숨겨지지 않게 한다.
 
 ## 검증
 
@@ -285,15 +309,33 @@ ros2 run cleany_perception depth_scene_node --ros-args \
 표면 제거는 MoveIt의 URDF/TF 기반 self-filter가 담당한다. 검출되지 않은
 물체도 depth가 관측되면 포함되지만, 가려진 표면은 복원하지 않는다.
 
-## 관련 KB
-
-### Gemini 분류 메타데이터 (2026-09-08)
+## Gemini 분류 메타데이터
 
 Gemini structured response에 `sorting_category`(trash/lost_item/review),
 `sorting_reason`을 추가해 `DetectedObject2D`까지 보존한다. 기존 bbox만 있는
 응답은 파싱 가능하지만 category는 빈 값이며 sorting 실행에서 검토 대상으로
 처리한다. 위험하거나 용도가 불확실한 물체는 review를 요청한다. 소유권 판단은
 확정 사실이 아니며 현재 정책은 감독하의 시뮬레이션 검증용이다.
+
+## 고정 베이스 책상 물체 추적
+
+`InspectScene.Goal.tracking_session_id`를 지정하면 새 관찰 성공 시 `core/tracking.py`가
+같은 종류·촬영 TF의 `base_link` 대표 위치로 물체를 연결한다. 거리 계산에 사용한 3D
+위치를 함께 보존하며 `position_valid`, `track_id`, `tracking_state`를 반환한다.
+RGB header frame과 대표 위치의 `representative_frame`은 서로 구분한다. 유일한 양방향
+대응만 `TRACKED`이며 모호한 위치·큰 이동·깊이 실패는 새 ID로 우회하지 않는다.
+사라진 물체의 마지막 참조는 `missing_objects`에 남는다. 최초부터 불확실했던 물체는
+빈 track ID 참조로 남을 수 있다. 빈 장면이 불확실한 대상을 없던 것으로 만들지 않는다.
+
+`inspect_scene.yaml`의 위치 차이 3cm·후보 차이 1cm, alias, 최대 32세션·TTL 600초는
+조정 가능한 시뮬레이션 초기값이다. 컵 별칭과 `computer mouse`, `wireless mouse`를
+각각 `cup`, `mouse`로 연결하며 레고는 `lego brick`을 유지한다. 별칭은 종류만 연결하고
+쓰레기·분실물 분류를 결정하지 않는다. 실물 기준이 아니다. 세션 메모리 재생성·만료마다
+epoch가 바뀌며 베이스 이동 시 호출자가 새 세션을 시작해야 한다. TF 실패·취소 관찰은
+갱신하지 않는다. cache 조회·선택 복원은 기존 ID·epoch를 그대로 반환하고 TTL을 유지한다.
+기존 빈 세션 호출은 `UNTRACKED`다.
+
+## 관련 KB
 
 - [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
 - [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)

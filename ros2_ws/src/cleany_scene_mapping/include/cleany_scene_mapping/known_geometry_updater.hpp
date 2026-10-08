@@ -30,6 +30,7 @@ public:
 private:
   bool processFrame(const sensor_msgs::msg::PointCloud2& cloud, const char*& stage);
   rclcpp::Node::SharedPtr node_;
+  rclcpp::Logger logger_{rclcpp::get_logger("cleany_scene_mapping")};
   // Diagnostics must remain visible even if this node's ROS clock stops.
   rclcpp::Clock diagnostic_clock_{RCL_STEADY_TIME};
   rclcpp::CallbackGroup::SharedPtr callback_group_;

@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import fcntl
 import json
+import logging
 import os
 from pathlib import Path
 import sqlite3
 from dataclasses import replace
 
 from .models import ObjectState, Record, RecordState, Status
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class StoreError(RuntimeError):
@@ -94,6 +98,70 @@ class ExecutionStore:
                 'SELECT payload FROM executions ORDER BY rowid')]
         except (sqlite3.Error, ValueError, KeyError, TypeError) as exc:
             raise StoreError(str(exc)) from exc
+
+    def recover(self, now_ns: int) -> list[Record]:
+        recovered = []
+        for record in self.all_records():
+            if record.record_state == RecordState.ACTIVE:
+                record = replace(record, record_state=RecordState.INTERRUPTED,
+                                 human_confirmation_required=True, stop_confirmed=False,
+                                 result=None, revision=record.revision + 1,
+                                 updated_at_ns=now_ns,
+                                 message='Process interrupted; physical state needs human confirmation')
+                self.save(record)
+                recovered.append(record)
+        return recovered
+
+
+class ExecutionJournal:
+    """Keep runtime state in memory; persistence errors are diagnostic only.
+
+    Loading existing history remains mandatory at startup so an interrupted
+    physical execution cannot be silently forgotten.
+    """
+
+    def __init__(self, store: ExecutionStore) -> None:
+        self._store = store
+        self._records = {record.goal.execution_id: record for record in store.all_records()}
+        self._persisted = set(self._records)
+        self.write_errors: dict[str, str] = {}
+
+    def get(self, execution_id: str) -> Record | None:
+        return self._records.get(execution_id)
+
+    def all_records(self) -> list[Record]:
+        return list(self._records.values())
+
+    def _write_failed(self, kind: str, error: Exception) -> None:
+        message = str(error)
+        if self.write_errors.get(kind) != message:
+            LOGGER.warning('%s recording failed; execution state is retained in memory: %s',
+                           kind, error)
+        self.write_errors[kind] = message
+
+    def _write_succeeded(self, kind: str) -> None:
+        if self.write_errors.pop(kind, None) is not None:
+            LOGGER.info('%s recording resumed', kind)
+
+    def save(self, record: Record, *, create: bool = False) -> None:
+        execution_id = record.goal.execution_id
+        if create and execution_id in self._records:
+            raise DuplicateExecution(execution_id)
+        self._records[execution_id] = record
+        try:
+            self._store.save(record, create=execution_id not in self._persisted)
+        except DuplicateExecution as error:
+            if create:
+                # A conflicting durable ID is an invalid request, not a write outage.
+                del self._records[execution_id]
+                raise
+            self._write_failed('execution', error)
+        except Exception as error:
+            # Serialization and closed-connection errors must not become robot faults.
+            self._write_failed('execution', error)
+        else:
+            self._persisted.add(execution_id)
+            self._write_succeeded('execution')
 
     def recover(self, now_ns: int) -> list[Record]:
         recovered = []

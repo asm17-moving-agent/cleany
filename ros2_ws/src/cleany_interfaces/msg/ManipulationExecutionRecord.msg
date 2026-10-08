@@ -20,6 +20,7 @@ string stage
 string substage
 string[] completed_substages
 string failed_substage
+string cancel_mode
 string status
 string error_code
 string failed_stage

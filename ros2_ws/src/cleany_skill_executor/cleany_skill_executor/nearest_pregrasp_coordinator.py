@@ -554,7 +554,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             if selected_index is None
             else f'selected={selected_index} arm={selected_arm}'
         )
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Published grasp RGB overlay: count={len(candidates)} {state}'
         )
 
@@ -741,7 +741,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                         self._scene_cloud_stamp_ns is None or self._scene_cloud_stamp_ns <= after_stamp_ns):
                     raise RuntimeError('No processed depth capture after the attachment scene update')
                 if after_stamp_ns is not None:
-                    self.get_logger().info(
+                    self.get_logger().debug(
                         f'Post-attachment depth ready: wait_wall_sec={time.monotonic()-started:.3f} '
                         f'capture_after_attachment_sec={(self._scene_cloud_stamp_ns-after_stamp_ns)/1e9:.3f}')
                 return
@@ -757,6 +757,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         """Submit detection and return its handle/future without waiting for inference."""
         goal = InspectScene.Goal()
         goal.query = str(self.get_parameter('query').value)
+        goal.tracking_session_id = getattr(self, '_tracking_session_id', '')
         handle = self._future(
             self._inspection.send_goal_async(goal),
             10.0,
@@ -808,6 +809,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
     ):
         goal = InspectScene.Goal()
         goal.snapshot_id = snapshot_id
+        goal.tracking_session_id = getattr(self, '_tracking_session_id', '')
         goal.selected_object_id = attempt.object_id
         handle = self._future(
             self._inspection.send_goal_async(goal),
@@ -991,6 +993,19 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             ),
         )
 
+    def _validate_approved_tracking(self, observation) -> None:
+        approved = getattr(self, '_approved_tracking', None)
+        if approved is None:
+            return
+        if ((observation.tracking_session_id, observation.tracking_epoch) != approved[:2]
+                or sum(d.track_id == approved[2] and d.tracking_state == 'TRACKED'
+                       for d in observation.detections) != 1):
+            raise ValueError('Approved track is missing, ambiguous or its epoch changed')
+
+    def _matches_approved_tracking(self, detection) -> bool:
+        approved = getattr(self, '_approved_tracking', None)
+        return approved is None or (detection.track_id == approved[2] and detection.tracking_state == 'TRACKED')
+
     def _refresh_selected_grasp(
         self,
         previous,
@@ -1001,6 +1016,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         arm = previous.selected_arm
         self._wait_arm_stationary(arm)
         detected = self._detect_objects()
+        if getattr(self, '_approved_tracking', None) is not None:
+            self._validate_approved_tracking(detected.detections)
         reconstructions = []
         label_key = getattr(self, '_target_label_key', lambda label: label)
         if (getattr(self, '_require_unique_target_label', False)
@@ -1008,6 +1025,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                         for d in detected.detections.detections) != 1):
             raise ValueError('Approved object type is missing or duplicated in refreshed snapshot')
         for detection in detected.detections.detections:
+            if getattr(self, '_approved_tracking', None) is not None and not self._matches_approved_tracking(detection):
+                continue
             if (match_label and label_key(detection.label) != label_key(attempt.label)) or not detection.distance_valid:
                 continue
             refreshed_attempt = ObjectAttempt(
@@ -1171,7 +1190,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 f'LIN approach is misaligned by {alignment:.2f}deg '
                 f'(maximum {maximum_alignment:.2f}deg)'
             )
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Cartesian approach alignment={alignment:.2f}deg '
             f'maximum={maximum_alignment:.2f}deg'
         )
@@ -1274,7 +1293,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         remaining_lift += extra_lift
         if not math.isfinite(remaining_lift) or not math.isfinite(lift_pose.position.z):
             raise ValueError('lift feedback height must be finite')
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Lift clearance: count_retreat={count_retreat} '
             f'remaining_tcp_rise={remaining_lift:.4f}m '
             f'direct_extra={extra_lift:.4f}m '
@@ -1337,6 +1356,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         after_stamp = self.get_clock().now().nanoseconds
         self._wait_arm_stationary(selected.selected_arm)
         detected = self._detect_objects()
+        if getattr(self, '_approved_tracking', None) is not None:
+            self._validate_approved_tracking(detected.detections)
         previous = self._obb_corners(selected.selected_candidate.target_object)
         tolerance = float(self.get_parameter('preapproach_maximum_geometry_shift_m').value)
         if not math.isfinite(tolerance) or tolerance <= 0:
@@ -1347,6 +1368,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         label_count = sum(label_key(d.label) == label_key(attempt.label)
                           for d in detected.detections.detections)
         for detection in detected.detections.detections:
+            if getattr(self, '_approved_tracking', None) is not None and not self._matches_approved_tracking(detection):
+                continue
             if label_key(detection.label) != label_key(attempt.label) or not detection.distance_valid:
                 continue
             fresh_attempt = ObjectAttempt(
@@ -1506,7 +1529,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                     samples, self._cartesian_pose(start), self._cartesian_pose(target),
                     position_limit, math.radians(float(self.get_parameter(
                         'corridor_orientation_tolerance_deg').value)), orientation_limit)
-                self.get_logger().info(f'{label} FK corridor verified: lateral={lateral:.6f}m '
+                self.get_logger().debug(f'{label} FK corridor verified: lateral={lateral:.6f}m '
                                        f'orientation={math.degrees(angle):.3f}deg samples={len(samples)}')
             else:
                 # Position-only KDL can report success while ignoring the
@@ -1533,7 +1556,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             point.time_from_start = Duration(nanoseconds=round(stamp * factor * 1e9)).to_msg()
             point.velocities = [x/factor for x in point.velocities]
             point.accelerations = [x/factor**2 for x in point.accelerations]
-        self.get_logger().info(f'Corridor uniform time scale={factor:.3f} '
+        self.get_logger().debug(f'Corridor uniform time scale={factor:.3f} '
                                f'duration={times[-1]*factor:.3f}s; geometry unchanged')
 
     def _pose_constraint(
@@ -1644,7 +1667,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             float(self.get_parameter('cartesian_execution_wall_timeout_factor').value),
             float(self.get_parameter('cartesian_execution_wall_timeout_margin_sec').value),
             float(self.get_parameter('cartesian_execution_wall_timeout_minimum_sec').value))
-        self.get_logger().info(f'{label} execution deadline: trajectory={planned_duration:.3f}s '
+        self.get_logger().debug(f'{label} execution deadline: trajectory={planned_duration:.3f}s '
                                f'wall_timeout={execution_timeout:.3f}s')
         execute_goal = ExecuteTrajectory.Goal()
         execute_goal.trajectory = trajectory
@@ -1820,7 +1843,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 f'lift verification could not reconstruct {attempt.label}'
             )
         center_z = float(inspected.objects.objects[0].obb_pose.position.z)
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Lift verification: label={attempt.label} '
             f'center_z={center_z:.3f}m minimum={minimum:.3f}m'
         )
@@ -1891,7 +1914,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         while time.monotonic() < deadline:
             self._spin_once(timeout_sec=0.05)
         actual = self._joint_positions.get(joint, math.inf)
-        self.get_logger().info(f'GRIPPER FEEDBACK arm={arm} operation={command} start={start:.5f} '
+        self.get_logger().debug(f'GRIPPER FEEDBACK arm={arm} operation={command} start={start:.5f} '
             f'actual={actual:.5f} command={position:.5f} residual={actual-position:.5f} '
             f'velocity={self._joint_velocities.get(joint, math.nan):.5f}')
         succeeded = (
@@ -1942,7 +1965,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                     stable_since = stamp
                 samples += 1
                 if samples >= 3 and (stamp - stable_since) / 1e9 >= duration:
-                    self.get_logger().info(
+                    self.get_logger().debug(
                         f'{arm} gripper stable contact: samples={samples} '
                         f'wait_wall_sec={time.monotonic()-started:.3f}')
                     return True

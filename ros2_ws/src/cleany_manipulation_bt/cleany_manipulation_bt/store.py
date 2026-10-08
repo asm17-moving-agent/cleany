@@ -1,7 +1,7 @@
 """MuJoCo journal extension for actual native node transitions."""
 import sqlite3
 import time
-from cleany_skill_executor.manipulation.store import ExecutionStore, StoreError
+from cleany_skill_executor.manipulation.store import ExecutionJournal, ExecutionStore, StoreError
 
 
 class BTExecutionStore(ExecutionStore):
@@ -26,3 +26,17 @@ class BTExecutionStore(ExecutionStore):
                      for t in transitions])
         except sqlite3.Error as error:
             raise StoreError(str(error)) from error
+
+
+class BTExecutionJournal(ExecutionJournal):
+    def __init__(self, store: BTExecutionStore) -> None:
+        super().__init__(store)
+        self._transition_store = store
+
+    def save_transitions(self, execution_id: str, transitions: list[dict]) -> None:
+        try:
+            self._transition_store.save_transitions(execution_id, transitions)
+        except Exception as error:
+            self._write_failed('BT transition', error)
+        else:
+            self._write_succeeded('BT transition')

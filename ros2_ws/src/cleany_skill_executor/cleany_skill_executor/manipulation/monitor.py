@@ -26,6 +26,8 @@ STAGE_NODES = {
     Stage.PLACING.value: 'OpenGripperAtDestination',
     Stage.RETURNING_ARM.value: 'ReturnArm',
     Stage.VERIFYING_PLACEMENT.value: 'VerifyPlacedObject',
+    Stage.RELEASING_IN_PLACE.value: 'ReleaseInPlace',
+    Stage.RECOVERING_ARM.value: 'ReturnArmAfterCancel',
 }
 IDLE, RUNNING, SUCCESS, FAILURE = range(4)
 
@@ -46,6 +48,7 @@ class Progress:
     substage: str = ''
     completed_substages: tuple[str, ...] = ()
     failed_substage: str = ''
+    cancel_mode: str = ''
 
 
 class MonitorProjection:
@@ -128,13 +131,16 @@ class MonitorProjection:
             self._set('StopAndAssess', RUNNING)
         elif event.stage == Stage.FINALIZING.value:
             # The Result has not arrived yet; do not claim success.
-            if event.last_completed_stage == Stage.VERIFYING_PLACEMENT.value:
+            if event.last_completed_stage == Stage.VERIFYING_PLACEMENT.value and not event.cancel_mode:
                 self._set('FinalizeSuccess', RUNNING)
             else:
                 self.statuses[normal] = FAILURE
                 self.statuses[failure] = RUNNING
                 self._set('FinalizeFailure', RUNNING)
         elif event.stage in STAGE_NODES:
+            if event.stage in (Stage.RELEASING_IN_PLACE.value, Stage.RECOVERING_ARM.value):
+                self.statuses[normal] = FAILURE
+                self.statuses[failure] = RUNNING
             if event.substage in STEP_BY_ID:
                 if event.substage not in event.completed_substages:
                     self._set(event.substage, RUNNING)

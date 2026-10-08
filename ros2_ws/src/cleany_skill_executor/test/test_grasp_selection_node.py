@@ -57,7 +57,7 @@ def test_visibility_uses_camera_tf_and_rejects_stale_dynamic_transforms(stamp, a
         _visibility_tf=SimpleNamespace(lookup_transform=lookup),
         get_parameter=lambda name: SimpleNamespace(value=parameters[name]),
         get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=10_000_000_000)),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None))
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None))
     if not accepted:
         with pytest.raises(InfrastructureError, match='stale'):
             GraspSelectionNode._visibility_constraint(node, _candidate())
@@ -108,7 +108,7 @@ class _Selector:
 
 
 def test_restore_failure_overrides_success_and_aborts_action():
-    logger = SimpleNamespace(error=lambda _message: None, info=lambda _message: None)
+    logger = SimpleNamespace(error=lambda _message: None, info=lambda _message: None, debug=lambda _message: None)
     node = SimpleNamespace(
         _current_joint_state=lambda: JointState(),
         _adapter=SimpleNamespace(
@@ -155,7 +155,7 @@ def test_invalid_required_arm_returns_invalid_input():
         def select(self, _candidates, *, required_arm, **_kwargs):
             raise ValueError(f'invalid required_arm: {required_arm}')
 
-    logger = SimpleNamespace(error=lambda _message: None, info=lambda _message: None)
+    logger = SimpleNamespace(error=lambda _message: None, info=lambda _message: None, debug=lambda _message: None)
     node = SimpleNamespace(
         _current_joint_state=lambda: JointState(),
         _adapter=SimpleNamespace(

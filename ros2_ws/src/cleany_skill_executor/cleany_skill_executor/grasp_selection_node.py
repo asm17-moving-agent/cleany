@@ -362,7 +362,7 @@ class GraspSelectionNode(Node):
         message.sensor_pose.pose.position.x, message.sensor_pose.pose.position.y, message.sensor_pose.pose.position.z = cone.camera
         message.sensor_pose.pose.orientation.w = 1.
         message.weight = 1.
-        self.get_logger().info(f'Pregrasp visibility envelope radius={cone.radius_m:.4f}m camera={camera_frame}')
+        self.get_logger().debug(f'Pregrasp visibility envelope radius={cone.radius_m:.4f}m camera={camera_frame}')
         return message
 
     def _execute(self, goal_handle):
@@ -452,7 +452,7 @@ class GraspSelectionNode(Node):
                     update.stage = STAGE_CONSTANT[stage]
                     update.message = message
                     goal_handle.publish_feedback(update)
-                    self.get_logger().info(
+                    self.get_logger().debug(
                         f'candidate={index} arm={arm} '
                         f'stage={stage.value}: {message}'
                     )
@@ -471,7 +471,10 @@ class GraspSelectionNode(Node):
                         result.ERROR_NO_REACHABLE_GRASP,
                         'No candidate-arm pair passed IK, validity, and both plans',
                     )
+                    self.get_logger().info('No reachable grasp selected')
                 else:
+                    self.get_logger().info(
+                        f'Selected reachable grasp: candidate={selection.candidate_index} arm={selection.arm}')
                     result.success = True
                     result.error_code = result.ERROR_NONE
                     result.message = 'Selected reachable grasp (plan-only)'

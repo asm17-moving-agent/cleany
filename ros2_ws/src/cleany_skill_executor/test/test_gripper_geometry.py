@@ -72,7 +72,7 @@ def run(monkeypatch, readings):
         _joint_positions={'left_gripper_joint': -.02},
         _joint_velocities={'left_gripper_joint': .257},
         get_parameter=lambda key: SimpleNamespace(value=values[key]),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None))
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None))
     node._gripper_contact_stalled = lambda *_: (
         abs(node._joint_velocities['left_gripper_joint']) <= .05
         and abs(node._joint_positions['left_gripper_joint'] + .3) > .05)

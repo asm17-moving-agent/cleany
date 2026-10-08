@@ -32,6 +32,7 @@ class OperationError(RuntimeError):
 class ExecutionContext:
     goal: Goal
     abort: Event = field(default_factory=Event)
+    verification_id: str = ''
     snapshot: Any = None
     attempt: Any = None
     inspected: Any = None
@@ -44,6 +45,7 @@ class ExecutionContext:
     release_confirmed: bool = False
     arm_recovered: bool = False
     stop_confirmed: bool = False
+    gripper_engaged: bool = False
 
 
 class Backend(Protocol):
@@ -52,6 +54,7 @@ class Backend(Protocol):
     def start(self, node_id: str, execution_id: str) -> str: ...
     def poll(self, operation_id: str) -> Observation | None: ...
     def cancel(self, operation_id: str) -> None: ...
+    def abort(self) -> None: ...
 
 
 class WorkerBackend:
@@ -76,6 +79,11 @@ class WorkerBackend:
         context = self.context
         if context is None or context.goal.execution_id != execution_id:
             raise RuntimeError('Execution identity mismatch')
+        if node_id == 'ReleaseInPlace':
+            # The core only starts recovery after StopAndAssess. Clear the old
+            # operation's abort before submission, so a later IMMEDIATE request
+            # can still set it and interrupt this new operation.
+            context.abort.clear()
         token = uuid4().hex
         self.pending[token] = (self.worker.submit(self.operation, node_id, context), context)
         return token
@@ -96,6 +104,11 @@ class WorkerBackend:
         # unwinds through the guarded ROS boundary; StopAndAssess observes it.
         _, context = self.pending[operation_id]
         context.abort.set()
+
+    def abort(self) -> None:
+        """Interrupt the context even if operation submission lost its token."""
+        if self.context is not None:
+            self.context.abort.set()
 
     def close(self) -> None:
         if self.context is not None:

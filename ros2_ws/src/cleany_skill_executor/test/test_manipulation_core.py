@@ -10,7 +10,7 @@ import pytest
 from cleany_skill_executor.manipulation.core import ATOMIC_STAGES, NORMAL_STAGES, ExecutionCore
 from cleany_skill_executor.manipulation.mock import MockAdapter, MockConfig
 from cleany_skill_executor.manipulation.models import (
-    Error, Goal, ObjectState, Placement, Record, RecordState, Stage, Status,
+    CancelMode, Error, Goal, ObjectState, Placement, Record, RecordState, Stage, Status,
 )
 from cleany_skill_executor.manipulation.store import (
     DuplicateExecution, ExecutionStore, StoreError, default_database_path,
@@ -34,6 +34,17 @@ class FakeClock:
 def goal(execution_id='execution-1', **kwargs):
     return replace(Goal('mission', 'task', execution_id, 'collect_trash',
                         'mock-snapshot-001', 1, 'mock_trash_bin'), **kwargs)
+
+
+@pytest.mark.parametrize('destination,expected', [
+    ('mock_lost_item_bin', Error.NONE), ('mock_trash_bin', Error.DESTINATION_UNAVAILABLE),
+])
+def test_lost_item_goal_and_mock_destination_contract(destination, expected):
+    approved = goal(skill_name='collect_lost_item', destination_id=destination)
+    assert approved.valid()
+    port = MockAdapter(MockConfig())
+    port.begin(Stage.PREPARING_TARGET, approved, 0.)
+    assert port._stage_evidence(1.).error == expected
 
 
 @pytest.fixture
@@ -106,7 +117,7 @@ def test_success_requires_bin_recovery_stop_and_complete_feedback_sequence(harne
     ]
     assert result.message == 'Mock collection verified'
     assert core.record.completed_substages == tuple(
-        step.node for steps in STAGE_STEPS.values() for step in steps)
+        step.node for stage in NORMAL_STAGES for step in STAGE_STEPS[stage])
     assert store.get(goal().execution_id) == core.record
     assert core.get('missing') is None
     assert not core.request_cancel(goal().execution_id)
@@ -253,6 +264,82 @@ def test_cancel_every_stage_prevents_next_motion_and_preserves_checkpoint(harnes
         assert not core.accept(goal('new'))[0]
 
 
+@pytest.mark.parametrize('stage', [Stage.GRASPING, Stage.TRANSPORTING, Stage.APPROACHING])
+def test_return_cancel_releases_in_place_then_recovers_without_bin_verification(harness, stage):
+    core, port, store, clock = harness()
+    core.accept(goal())
+    reach(core, port, clock, stage)
+    count = len(port.commands)
+    assert core.request_cancel(goal().execution_id, CancelMode.RETURN_ARM)
+    result = finish(core, clock)
+    release = [] if stage == Stage.APPROACHING else [Stage.RELEASING_IN_PLACE]
+    assert port.commands[count:] == [Stage.STOPPING, *release, Stage.RECOVERING_ARM, Stage.STOPPING]
+    assert result.status == Status.CANCELED and result.cancel_mode == 'RETURN_ARM'
+    assert result.arm_recovered and result.stop_confirmed
+    assert result.object_state == (ObjectState.NOT_TOUCHED if not release else ObjectState.LEFT_GRIPPER)
+    assert result.placement_state == Placement.NOT_CHECKED
+    assert store.get(goal().execution_id).result == result
+    assert core.accept(goal('new'))[0]
+
+
+def test_immediate_cancel_does_not_wait_for_atomic_completion(harness):
+    core, port, _, clock = harness()
+    core.accept(goal())
+    reach(core, port, clock, Stage.GRASPING)
+    assert core.request_cancel(goal().execution_id, CancelMode.IMMEDIATE)
+    core.tick()
+    assert port.stage == Stage.STOPPING
+    result = finish(core, clock)
+    assert result.cancel_mode == 'IMMEDIATE' and result.status == Status.CANCELED
+    assert result.object_state == ObjectState.UNKNOWN and not result.arm_recovered
+    assert Stage.LIFTING not in port.commands
+
+
+def test_checkpoint_cancel_completes_current_transport_before_stopping(harness):
+    core, port, _, clock = harness()
+    core.accept(goal())
+    reach(core, port, clock, Stage.TRANSPORTING)
+    assert core.request_cancel(goal().execution_id, CancelMode.CHECKPOINT)
+    core.tick()
+    assert port.stage == Stage.TRANSPORTING
+    result = finish(core, clock)
+    assert result.last_completed_stage == Stage.TRANSPORTING.value
+    assert result.object_state == ObjectState.HELD and result.cancel_mode == 'CHECKPOINT'
+    assert Stage.PLACING not in port.commands
+
+
+def test_immediate_cancel_preempts_return_without_downgrade(harness):
+    core, port, _, clock = harness()
+    core.accept(goal())
+    reach(core, port, clock, Stage.TRANSPORTING)
+    core.request_cancel(goal().execution_id, CancelMode.RETURN_ARM)
+    reach(core, port, clock, Stage.RECOVERING_ARM)
+    assert core.request_cancel(goal().execution_id, CancelMode.IMMEDIATE)
+    assert core.request_cancel(goal().execution_id, CancelMode.RETURN_ARM)
+    result = finish(core, clock)
+    assert result.cancel_mode == 'IMMEDIATE' and not result.arm_recovered
+    assert result.object_state == ObjectState.LEFT_GRIPPER and result.stop_confirmed
+
+
+def test_failed_release_does_not_report_successful_return_cancel(harness):
+    core, port, _, clock = harness()
+    port.scenario = {'stage_errors': {'RELEASING_IN_PLACE': 'MOTION_FAILED'}}
+    core.accept(goal())
+    reach(core, port, clock, Stage.TRANSPORTING)
+    core.request_cancel(goal().execution_id, CancelMode.RETURN_ARM)
+    result = finish(core, clock)
+    assert result.status == Status.FAILED and result.error_code == Error.MOTION_FAILED
+    assert result.cancel_mode == 'RETURN_ARM' and not result.arm_recovered
+    assert Stage.RECOVERING_ARM not in port.commands
+
+
+def test_invalid_cancel_mode_is_rejected_without_canceling(harness):
+    core, _, _, clock = harness()
+    core.accept(goal())
+    assert not core.request_cancel(goal().execution_id, 'unsupported')
+    assert finish(core, clock).status == Status.SUCCESS
+
+
 @pytest.mark.parametrize('scenario', ['stop_failure', 'stop_timeout'])
 def test_stop_failure_is_fatal_and_remains_inhibited_after_restart(harness, scenario):
     core, port, store, clock = harness(scenario)
@@ -358,39 +445,42 @@ def test_recovery_has_no_action_result_and_keeps_last_confirmed_evidence(harness
     assert recovered_store.get(goal().execution_id) == record
 
 
-@pytest.mark.parametrize('failure_point', ['accept', 'stage_start', 'contact', 'final'])
-def test_record_failure_never_reports_success_and_stops_new_motion(harness, monkeypatch, failure_point):
+@pytest.mark.parametrize('failure_point', ['stage_start', 'contact', 'final', 'all', 'serialization'])
+def test_record_failure_preserves_success_motion_and_runtime_lookup(harness, monkeypatch, failure_point):
     core, port, store, clock = harness()
     save = store.save
 
     def fail(record, **kwargs):
         selected = (
-            failure_point == 'accept'
+            failure_point in ('all', 'serialization')
             or (failure_point == 'stage_start' and record.stage == Stage.APPROACHING)
             or (failure_point == 'contact' and record.object_state == ObjectState.HELD)
             or (failure_point == 'final' and record.result is not None)
         )
         if selected:
+            if failure_point == 'serialization':
+                raise TypeError('injected serialization failure')
             raise StoreError('injected disk failure')
         save(record, **kwargs)
 
     monkeypatch.setattr(store, 'save', fail)
-    accepted, _ = core.accept(goal())
-    if failure_point == 'accept':
-        assert not accepted and port.commands == []
-    else:
-        result = finish(core, clock)
-        assert result.status == Status.FATAL and result.error_code == Error.INTERNAL_ERROR
-        assert core.record.record_state == RecordState.RECORDING_FAILED
-        assert core.record.human_confirmation_required
-        assert all(event.result is None or event.result.status != Status.SUCCESS
-                   for event in core.drain_events())
-        if failure_point == 'stage_start':
-            assert Stage.APPROACHING not in port.commands
-        if failure_point == 'contact':
-            assert Stage.LIFTING not in port.commands
-            assert result.object_state == ObjectState.HELD
-    assert not core.accept(goal('new'))[0]
+    assert core.accept(goal())[0]
+    result = finish(core, clock)
+    assert result.status == Status.SUCCESS and result.error_code == Error.NONE
+    assert result.stop_confirmed and result.arm_recovered
+    assert result.object_state == ObjectState.LEFT_GRIPPER
+    assert result.placement_state == Placement.CONFIRMED
+    assert core.record.record_state == RecordState.FINISHED
+    assert not core.record.human_confirmation_required and not core.inhibited
+    assert port.commands == list(NORMAL_STAGES)
+    assert core.get(goal().execution_id).result == result
+    assert not core.accept(goal())[0]
+    if failure_point == 'final':
+        assert store.get(goal().execution_id).result is None
+    assert core.accept(goal('new'))[0]
+    assert finish(core, clock).status == Status.SUCCESS
+    # The previous result stays queryable after another Goal replaces core.record.
+    assert core.get(goal().execution_id).result == result
 
 
 def test_stop_failure_remains_explicit_when_recording_also_fails(harness, monkeypatch):
@@ -404,12 +494,58 @@ def test_stop_failure_remains_explicit_when_recording_also_fails(harness, monkey
 
     monkeypatch.setattr(store, 'save', fail_contact)
     core.accept(goal())
+    reach(core, port, clock, Stage.TRANSPORTING)
+    assert core.request_cancel(goal().execution_id)
     result = finish(core, clock)
     assert result.status == Status.FATAL and result.error_code == Error.STOP_UNCONFIRMED
     assert not result.stop_confirmed and result.object_state == ObjectState.HELD
-    assert core.record.record_state == RecordState.RECORDING_FAILED
-    assert Stage.LIFTING not in port.commands
+    assert core.record.record_state == RecordState.FINISHED
+    assert Stage.LIFTING in port.commands
     assert not core.accept(goal('new'))[0]
+
+
+@pytest.mark.parametrize('scenario,status,error', [
+    ('backend_not_ready', Status.BLOCKED, Error.BACKEND_NOT_READY),
+    ('grasp_failure', Status.FAILED, Error.GRASP_FAILED),
+])
+def test_record_failure_does_not_replace_physical_failure(harness, monkeypatch, scenario, status, error):
+    core, _, store, clock = harness(scenario)
+    def fail(*args, **kwargs):
+        raise StoreError('injected persistent write outage')
+    monkeypatch.setattr(store, 'save', fail)
+    assert core.accept(goal())[0]
+    result = finish(core, clock)
+    assert (result.status, result.error_code) == (status, error)
+    assert core.get(goal().execution_id).result == result
+
+
+def test_record_failure_preserves_cancel_and_stop_confirmation(harness, monkeypatch):
+    core, port, store, clock = harness()
+    def fail(*args, **kwargs):
+        raise StoreError('injected persistent write outage')
+    monkeypatch.setattr(store, 'save', fail)
+    assert core.accept(goal())[0]
+    reach(core, port, clock, Stage.APPROACHING)
+    assert core.request_cancel(goal().execution_id)
+    result = finish(core, clock)
+    assert result.status == Status.CANCELED and result.error_code == Error.CANCELED
+    assert result.stop_confirmed
+
+
+def test_initial_record_write_is_retried_without_reexecuting_motion(harness, monkeypatch):
+    core, port, store, clock = harness()
+    save = store.save
+    def fail_initial(record, **kwargs):
+        if record.revision == 0:
+            raise StoreError('injected initial write failure')
+        save(record, **kwargs)
+    monkeypatch.setattr(store, 'save', fail_initial)
+    assert core.accept(goal())[0]
+    assert store.get(goal().execution_id) is None
+    result = finish(core, clock)
+    assert result.status == Status.SUCCESS
+    assert store.get(goal().execution_id).result == result
+    assert port.commands == list(NORMAL_STAGES)
 
 
 def test_success_cannot_be_created_without_stop_evidence(harness, monkeypatch):

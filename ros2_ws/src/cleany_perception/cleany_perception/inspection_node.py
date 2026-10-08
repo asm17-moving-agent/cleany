@@ -82,6 +82,9 @@ from cleany_perception.rgbd_snapshot import (
     snapshot_from_messages,
 )
 from cleany_perception.point_cloud_message import colored_point_cloud_message
+from cleany_perception.core.tracking import ObjectTracker, TrackingConfig, TrackingOutput
+from cleany_interfaces.msg import TrackedObjectReference
+
 from cleany_perception.snapshot_cache import (
     CachedDetectionSnapshot,
     DetectionSnapshotCache,
@@ -314,6 +317,7 @@ class InspectionNode(Node):
                     f'Unsupported segmenter_type: {segmenter_type}'
                 )
         if bool(self.get_parameter('preload_models').value):
+            self.get_logger().info('Loading perception models')
             adapters = (('detector', detector), ('segmenter', segmenter))
             if wrist_yoloe is not None and wrist_yoloe is not yoloe:
                 adapters += (('wrist detector', wrist_yoloe),)
@@ -339,7 +343,7 @@ class InspectionNode(Node):
                 prepare = getattr(adapter, 'prepare', None)
                 if not callable(prepare):
                     raise ValueError(f'{name} cannot preload models')
-                self.get_logger().info(f'Loading {name} before action ready')
+                self.get_logger().debug(f'Loading {name} before action ready')
                 prepare()
             detector_device = (
                 f"remote API: {self.get_parameter('gemini_model').value}; access not yet verified"
@@ -386,6 +390,14 @@ class InspectionNode(Node):
                 self.get_parameter('maximum_depth_m').value
             ),
         )
+        self._tracker = ObjectTracker(TrackingConfig(
+            maximum_distance_m=float(self.get_parameter('tracking_maximum_distance_m').value),
+            ambiguity_margin_m=float(self.get_parameter('tracking_ambiguity_margin_m').value),
+            session_ttl_seconds=float(self.get_parameter('tracking_session_ttl_seconds').value),
+            maximum_sessions=int(self.get_parameter('tracking_maximum_sessions').value),
+            label_aliases=tuple(tuple(item.split('=', 1)) for item in
+                                self.get_parameter('tracking_label_aliases').value),
+        ))
         self._snapshot_cache = DetectionSnapshotCache(
             maximum_entries=int(
                 self.get_parameter('snapshot_cache_max_entries').value
@@ -471,7 +483,8 @@ class InspectionNode(Node):
         if cached is not None:
             response.detections = self._detections_message(
                 cached.detections, cached.snapshot.stamp_ns, cached.color_frame,
-                request.snapshot_id, cached.detection_distances_m)
+                request.snapshot_id, cached.detection_distances_m,
+                cached.tracking, cached.representative_frame)
             response.message = 'Cached snapshot; capture time and TTL unchanged'
         return response
 
@@ -534,6 +547,12 @@ class InspectionNode(Node):
         self.declare_parameter('yoloe_text_encoder_directory', '')
         self.declare_parameter('snapshot_timeout_seconds', 2.0)
         self.declare_parameter('depth_16u_scale_m', 0.001)
+        self.declare_parameter('tracking_maximum_distance_m', 0.03)
+        self.declare_parameter('tracking_ambiguity_margin_m', 0.01)
+        self.declare_parameter('tracking_session_ttl_seconds', 600.0)
+        self.declare_parameter('tracking_maximum_sessions', 32)
+        self.declare_parameter('tracking_label_aliases',
+                               [f'{alias}={label}' for alias, label in TrackingConfig().label_aliases])
         self.declare_parameter('snapshot_cache_max_entries', 2)
         self.declare_parameter('snapshot_cache_ttl_seconds', 120.0)
         self.declare_parameter(
@@ -582,7 +601,7 @@ class InspectionNode(Node):
         )
         for key, value in resolved.items():
             self.set_parameters([Parameter(key, value=value)])
-            self.get_logger().info(f'Perception runtime: {key}={value}')
+            self.get_logger().debug(f'Perception runtime: {key}={value}')
 
     def _pipeline_config(self) -> PipelineConfig:
         return PipelineConfig(
@@ -739,6 +758,15 @@ class InspectionNode(Node):
                 snapshot.stamp_ns,
                 messages.sequence,
             )
+            session_id = goal_handle.request.tracking_session_id
+            if session_id and self._target_frame != 'base_link':
+                raise InspectionFailure(FailureKind.TF, 'Tracking requires base_link and a fixed base')
+            if goal_handle.is_cancel_requested:
+                raise InspectionFailure(FailureKind.CANCELLED, 'Observation canceled before tracking update')
+            tracking = self._tracker.update(
+                session_id, snapshot_id, [d.label for d in detections],
+                [item.position for item in ranked_detections],
+            )
             self._snapshot_cache.put(
                 snapshot_id,
                 CachedDetectionSnapshot(
@@ -747,6 +775,8 @@ class InspectionNode(Node):
                     detection_distances_m=detection_distances_m,
                     capture_transform=capture_transform,
                     color_frame=messages.color.header.frame_id,
+                    tracking=tracking,
+                    representative_frame=self._target_frame,
                 ),
             )
             detections_message = self._detections_message(
@@ -755,6 +785,7 @@ class InspectionNode(Node):
                 messages.color.header.frame_id,
                 snapshot_id,
                 detection_distances_m,
+                tracking, self._target_frame,
             )
             result.success = True
             result.error_code = InspectScene.Result.ERROR_NONE
@@ -806,6 +837,12 @@ class InspectionNode(Node):
             result.message = f'Snapshot not found or expired: {snapshot_id}'
             goal_handle.abort()
             return result
+        requested_session = goal_handle.request.tracking_session_id
+        if requested_session and (cached.tracking is None or cached.tracking.session_id != requested_session):
+            result.error_code = InspectScene.Result.ERROR_INVALID_SELECTION
+            result.message = 'Tracking session does not match the cached observation'
+            goal_handle.abort()
+            return result
         selected_id = int(goal_handle.request.selected_object_id)
         if selected_id < 1 or selected_id > len(cached.detections):
             result.success = False
@@ -839,6 +876,7 @@ class InspectionNode(Node):
             cached.color_frame,
             snapshot_id,
             cached.detection_distances_m,
+            cached.tracking, cached.representative_frame,
         )
         objects_message = self._objects_message(
             output,
@@ -846,6 +884,12 @@ class InspectionNode(Node):
             snapshot_id,
             (selected_id,),
         )
+        if cached.tracking is not None:
+            objects_message.tracking_session_id = cached.tracking.session_id
+            objects_message.tracking_epoch = cached.tracking.epoch
+            for obj in objects_message.objects:
+                tracked = cached.tracking.detections[obj.object_id - 1]
+                obj.track_id, obj.tracking_state = tracked.track_id, tracked.state.value
         target_cloud, context_cloud = self._selected_cloud_messages(
             cached.snapshot,
             output.masks[0].mask,
@@ -1009,6 +1053,8 @@ class InspectionNode(Node):
         frame_id: str,
         snapshot_id: str,
         detection_distances_m: Sequence[float | None],
+        tracking: TrackingOutput | None = None,
+        representative_frame: str = 'base_link',
     ) -> DetectedObject2DArray:
         if len(detections) != len(detection_distances_m):
             raise ValueError('Detection distances must match detections')
@@ -1016,6 +1062,10 @@ class InspectionNode(Node):
         message.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
         message.header.frame_id = frame_id
         message.snapshot_id = snapshot_id
+        message.representative_frame = representative_frame
+        if tracking is not None:
+            message.tracking_session_id, message.tracking_epoch = tracking.session_id, tracking.epoch
+            message.missing_objects = [TrackedObjectReference(**vars(ref)) for ref in tracking.missing]
         for object_id, (detection, distance_m) in enumerate(
             zip(detections, detection_distances_m, strict=True),
             start=1,
@@ -1028,6 +1078,13 @@ class InspectionNode(Node):
             detected.sorting_reason = detection.sorting_reason
             detected.distance_valid = distance_m is not None
             detected.distance_m = 0.0 if distance_m is None else distance_m
+            if tracking is not None:
+                tracked = tracking.detections[object_id - 1]
+                detected.track_id, detected.tracking_state = tracked.track_id, tracked.state.value
+                detected.position_valid = tracked.position is not None
+                if tracked.position is not None:
+                    (detected.representative_position.x, detected.representative_position.y,
+                     detected.representative_position.z) = tracked.position
             detected.x_min = detection.bbox.x_min
             detected.y_min = detection.bbox.y_min
             detected.x_max = detection.bbox.x_max

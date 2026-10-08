@@ -149,6 +149,7 @@ flowchart LR
 | 새 Manipulation Action | `.action`, Python 모의 서버·테스트 클라이언트·SQLite 기록·조회·복구 이벤트 구현. Mission Manager adapter는 후속 구현 |
 | 행동별 재관찰과 Planner 승인 반복 | 목표 KB 흐름. 현재 Mission Manager core에 추가 통합 필요 |
 | 원본 snapshot 조회와 관측 이벤트 | 새 조회 및 전달 계약 구현 필요 |
-| BT.CPP 실행기와 Groot2 실시간 연결 | 없음. XML은 정적 설계 미리보기 |
+| MuJoCo BT.CPP 실행기 | [cleany_manipulation_bt](../../cleany_manipulation_bt/README.md)에 구현. 별도의 실행 XML과 실제 인식·MoveIt 경로 사용 |
+| Groot2 설계 XML과 모의 모니터 | 정적 미리보기와 이벤트 투영. Groot2Publisher 실시간 연결은 후속 구현 |
 
 모의 서버는 실제 팔 명령을 내리지 않으며 미션 FSM 통합은 후속 단계다. 남은 제품 판단은 각 명세에 표시한다.

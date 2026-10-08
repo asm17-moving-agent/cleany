@@ -9,7 +9,14 @@ VERIFICATION_LABELS = {
     'paper cup': 'cup',
     'disposable paper cup': 'cup',
     'crumpled tissue': 'crumpled tissue',
+    'mouse': 'mouse',
+    'computer mouse': 'mouse',
+    'wireless mouse': 'mouse',
+    'lego brick': 'lego brick',
 }
+
+TRASH_LABELS = ('cup', 'paper cup', 'disposable paper cup', 'crumpled tissue')
+LOST_ITEM_LABELS = ('mouse', 'computer mouse', 'wireless mouse', 'lego brick')
 
 
 def label_key(label: str) -> str:

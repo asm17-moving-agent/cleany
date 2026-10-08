@@ -1,15 +1,18 @@
 """Simulation-only outcome oracle, deliberately separate from perception."""
 from collections import defaultdict, deque
 from pathlib import Path
+import time
+from uuid import uuid4
 
 from ament_index_python.packages import get_package_share_directory
-from cleany_interfaces.srv import VerifyPlacement
+from cleany_interfaces.srv import RegisterPlacementTarget, VerifyPlacement
 import numpy as np
 import rclpy
 from rclpy.node import Node
 from visualization_msgs.msg import MarkerArray
 
 from cleany_mujoco_sim.sorting_scene import load_bins
+from cleany_mujoco_sim.placement_identity import BodyGeometry, associate_body
 
 
 DEFAULT_LABEL_BODIES = {
@@ -36,15 +39,30 @@ class PlacementVerifier(Node):
         self.declare_parameter('bodies', list(DEFAULT_LABEL_BODIES.values()))
         labels = self.get_parameter('labels').value
         bodies = self.get_parameter('bodies').value
-        if len(labels) != len(bodies) or len(set(labels)) != len(labels):
-            raise ValueError('Verifier requires unique label/body mapping')
-        self._bodies = dict(zip(labels, bodies, strict=True))
+        if len(labels) != len(bodies) or len(set(zip(labels, bodies))) != len(labels):
+            raise ValueError('Verifier requires distinct label/body pairs')
+        self._body_candidates = defaultdict(set)
+        for label, body in zip(labels, bodies):
+            self._body_candidates[label].add(body)
+        # Label-only compatibility is allowed only for a single configured body.
+        self._bodies = {label: next(iter(values)) for label, values in self._body_candidates.items()
+                        if len(values) == 1}
+        self.declare_parameter('registration_maximum_distance_m', 0.05)
+        self.declare_parameter('registration_ambiguity_margin_m', 0.01)
+        self.declare_parameter('registration_maximum_size_error_m', 0.08)
+        self.declare_parameter('registration_observation_maximum_age_sec', 120.0)
+        self.declare_parameter('registration_ttl_sec', 600.0)
+        self.declare_parameter('registration_maximum_entries', 128)
+        self._registrations = {}
+        self._execution_registrations = {}
         self._bins = {b.name: b for b in load_bins(
             self.get_parameter('bins_config').value)}
         self._samples = defaultdict(lambda: deque(maxlen=30))
         self.create_subscription(MarkerArray,
                                  '/simulation/sorting_ground_truth',
                                  self._observe, 10)
+        self.create_service(RegisterPlacementTarget, '/sorting/register_placement_target',
+                            self._register)
         self.create_service(VerifyPlacement, '/sorting/verify_placement',
                             self._verify)
 
@@ -58,12 +76,78 @@ class PlacementVerifier(Node):
             s = marker.scale
             samples = self._samples[marker.text]
             if samples and stamp < samples[-1][0]:
-                samples.clear()
+                self._samples.clear()
+                self._registrations.clear()
+                self._execution_registrations.clear()
+                samples = self._samples[marker.text]
             if not samples or stamp > samples[-1][0]:
                 samples.append((stamp, (p.x, p.y, p.z), (s.x, s.y, s.z)))
 
+    def _register(self, request, response):
+        response.message = 'Invalid placement registration'
+        now = self.get_clock().now().nanoseconds
+        stamp = request.header.stamp.sec * 10**9 + request.header.stamp.nanosec
+        obj = request.target
+        center, size = obj.obb_pose.position, obj.obb_size
+        position, extents = (center.x, center.y, center.z), (size.x, size.y, size.z)
+        signature = (request.destination_id, obj.label, obj.object_id, obj.track_id, stamp, position, extents)
+        wall = time.monotonic()
+        ttl = float(self.get_parameter('registration_ttl_sec').value)
+        expired = [key for key, value in self._registrations.items() if wall - value[3] >= ttl]
+        for key in expired:
+            execution = self._registrations.pop(key)[4]
+            self._execution_registrations.pop(execution, None)
+        existing = self._execution_registrations.get(request.execution_id)
+        if existing is not None:
+            entry = self._registrations[existing]
+            if signature != entry[2]:
+                response.message = 'Execution ID already registered to another observation'
+                return response
+            response.success, response.verification_id = True, existing
+            response.message = 'Existing individual registration'
+            return response
+        if (not request.execution_id or request.destination_id not in self._bins
+                or request.header.frame_id != 'base_link' or obj.object_id <= 0
+                or stamp <= 0 or not 0 <= (now - stamp) / 1e9 <= float(
+                    self.get_parameter('registration_observation_maximum_age_sec').value)):
+            return response
+        candidates = []
+        for body in self._body_candidates.get(obj.label, ()):
+            samples = self._samples[body]
+            if not samples:
+                continue
+            sample_stamp, point, dimensions = samples[-1]
+            if not 0 <= (now-sample_stamp)/1e9 <= float(self.get_parameter('maximum_age_sec').value):
+                continue
+            candidates.append(BodyGeometry(body, point, dimensions))
+        try:
+            body = associate_body(position, extents, candidates,
+                maximum_distance_m=float(self.get_parameter('registration_maximum_distance_m').value),
+                ambiguity_margin_m=float(self.get_parameter('registration_ambiguity_margin_m').value),
+                maximum_size_error_m=float(self.get_parameter('registration_maximum_size_error_m').value))
+        except ValueError as error:
+            response.message = str(error)
+            return response
+        if len(self._registrations) >= int(self.get_parameter('registration_maximum_entries').value):
+            response.message = 'Placement registration capacity reached'
+            return response
+        key = uuid4().hex
+        self._registrations[key] = (body, request.destination_id, signature, wall, request.execution_id)
+        self._execution_registrations[request.execution_id] = key
+        response.success, response.verification_id = True, key
+        # Simulator identity is private to this evaluator.
+        response.message = 'Individual placement target registered'
+        return response
+
     def _verify(self, request, response):
         body = self._bodies.get(request.label)
+        if request.verification_id:
+            registration = self._registrations.get(request.verification_id)
+            if (registration is None or registration[1] != request.destination_id
+                    or time.monotonic() - registration[3] >= float(self.get_parameter('registration_ttl_sec').value)):
+                response.message = 'Unknown, expired or mismatched individual registration'
+                return response
+            body = registration[0]
         bin_ = self._bins.get(request.destination_id)
         response.message = 'Awaiting fresh, settled placement evidence'
         if body is None or bin_ is None or request.after_stamp_ns <= 0:
@@ -106,7 +190,7 @@ class PlacementVerifier(Node):
             return response
         response.success = True
         response.message = (
-            f'SIMULATION VERIFIED {body} in {bin_.name}: '
+            f'SIMULATION VERIFIED individual in {bin_.name}: '
             f'center={points[-1].round(4).tolist()}'
         )
         return response

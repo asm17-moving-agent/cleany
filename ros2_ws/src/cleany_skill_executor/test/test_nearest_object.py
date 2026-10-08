@@ -54,7 +54,7 @@ def test_refreshed_pregrasp_is_executed_and_reobserved_before_contact(already_al
         _pose_position=NearestPregraspCoordinator._pose_position,
         _observed_grasp=lambda *args: SimpleNamespace(approach=(0., 0., -1.)),
         get_parameter=lambda _: SimpleNamespace(value=10.),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None),
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None),
         _execution_scene=SimpleNamespace(
             disallow_target_contacts=lambda: events.append('disallow'),
             allow_contacts_for=lambda arm: events.append('allow')),
@@ -262,7 +262,7 @@ def test_transient_gripper_contact_does_not_attach_or_lift():
         get_parameter=lambda name: SimpleNamespace(value=10. if
                                                    name == 'lin_alignment_tolerance_deg'
                                                    else 0.2),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None),
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None),
         _execute_linear=lambda *args, **kwargs: events.append('approach'),
         _joint_positions={'left_gripper_joint': 1.2},
         _candidate_close_position=lambda _: 0.5,
@@ -437,7 +437,7 @@ def test_post_refresh_order_is_approach_grip_retreat_then_lift(sensor_ready, cou
         _on_grasp_contact=lambda *_: events.append(('contact_reference',)),
         _on_lift_motion_complete=lambda: events.append(('lift_complete',)),
         _verify_lift_height=lambda _attempt, **kwargs: events.append(('verify', kwargs)),
-        get_logger=lambda: SimpleNamespace(info=lambda _message: None),
+        get_logger=lambda: SimpleNamespace(info=lambda _message: None, debug=lambda _message: None),
     )
     selected = SimpleNamespace(
         selected_arm='left',
@@ -492,7 +492,7 @@ def test_relative_lift_verification_requires_object_rise_not_just_tcp_motion(obs
         _detect_objects=lambda: SimpleNamespace(detections=SimpleNamespace(
             detections=[detection], snapshot_id='fresh')),
         _inspect_selected=lambda *_: inspected,
-        get_logger=lambda: SimpleNamespace(info=lambda _: None))
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None))
     attempt = ObjectAttempt(1, 'cup', 0.8, 0.5)
     if observed_z < 0.46:
         with pytest.raises(RuntimeError, match='was not retained'):

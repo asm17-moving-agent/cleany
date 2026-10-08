@@ -11,6 +11,7 @@ Perception, grasp 계획·선택과 Manipulation 실행이 공유하는 ROS 2 �
 | 놓은 결과 확인 | [VerifyPlacement](#verifyplacement) |
 | 객체·snapshot 메시지 | [객체 메시지](#객체-메시지) |
 | 장면 관찰과 파지 계획·선택 | [InspectScene](#scene-inspection-action), [Grasp](#grasp-planning과-선택) |
+| 대상 추적·개체별 배치 확인 | [관찰 간 추적](#관찰-간-추적), [개체별 확인](#개체별-배치-확인) |
 | 빌드·계약 검증 | [설정 및 검증](#설정-및-검증) |
 
 ## 읽기 전용 snapshot 조회
@@ -28,8 +29,9 @@ TTL, 촬영 시각과 객체 번호를 갱신하지 않는다. 누락/만료는 
 
 | 타입 | 기본 ROS 이름 | 역할 |
 |---|---|---|
-| `ExecuteManipulationSkill.action` | `/mock/manipulation/execute_skill` | 승인된 `collect_trash` 물체 하나의 요청·Feedback·Result·취소 |
+| `ExecuteManipulationSkill.action` | `/mock/manipulation/execute_skill` | 승인된 `collect_trash` 또는 `collect_lost_item` 물체 하나의 요청·Feedback·Result·취소 |
 | `GetManipulationExecution.srv` | `/mock/manipulation/get_execution` | execution_id를 받아 found와 최신 record 반환 |
+| `CancelManipulation.srv` | `/mock/manipulation/cancel` | 활성 execution_id와 취소 mode를 받아 accepted와 message 반환 |
 | `ManipulationExecutionRecord.msg` | `/mock/manipulation/execution_events` | 진행·종료·재시작 중단 이벤트 |
 
 [MuJoCo BT 서버](../cleany_manipulation_bt/README.md)는 같은 계약을 `/sim/manipulation`에서 제공한다.
@@ -46,11 +48,17 @@ TTL, 촬영 시각과 객체 번호를 갱신하지 않는다. 누락/만료는 
 | `substage` | Feedback·기록의 현재 세부 동작. 큰 단계 `stage`의 취소·timeout 계약은 유지 |
 | `completed_substages` | 기록에 저장된 완료 세부 동작 목록. 명령 완료와 물체 상태 확인을 구분 |
 | `failed_substage` | Result·기록의 실패 세부 동작. 기존 기록에는 빈 값일 수 있음 |
+| `cancel_mode` | Result·기록의 취소 정책. `IMMEDIATE`, `CHECKPOINT`, `RETURN_ARM`; 취소 요청이 없으면 빈 값 |
 | Result | 종료 status, 오류, 물체·놓은 결과·팔 복귀·정지 근거 |
 | `execution_profile` | 근거를 생성한 실행 환경. 모의 서버는 `mock`, BT MuJoCo 서버는 `mujoco` |
 
 세부 진행 필드 추가 후 서버·클라이언트·모니터를 함께 재빌드하고 재시작한다.
 이전 SQLite JSON 기록은 세부 진행 필드가 없어도 읽으며 빈 값으로 취급한다.
+
+`CancelManipulation`은 기본 Action 취소를 내부에서 전달해 ROS 상태도 `CANCELING`으로
+전환한다. 일반 Action cancel의 기본 정책은 `CHECKPOINT`다. 활성 실행 중 모드 선택은
+멱등이며, 이미 요청한 모드를 변경하려면 `IMMEDIATE`로 선점한다. 즉시 정지는 이후
+요청으로 완화되지 않는다. 잘못된 ID와 mode, 종료된 실행은 거절한다.
 
 ### 실행 기록 읽기
 
@@ -67,13 +75,14 @@ TTL, 촬영 시각과 객체 번호를 갱신하지 않는다. 누락/만료는 
 | `record_state` | 해석 |
 |---|---|
 | `ACTIVE` | 진행 중 |
-| `FINISHED` | 최종 Result 저장 완료 |
+| `FINISHED` | 실행 종료와 최종 Result 확정. 디스크 저장 완료를 보장하지 않음 |
 | `INTERRUPTED` | 재시작 시 발견한 미완료 실행. 가짜 Result를 만들지 않음 |
-| `RECORDING_FAILED` | 저장 실패에 대한 메모리 진단 |
+| `RECORDING_FAILED` | 이전 구현의 저장 실패 진단. 현재 서버는 새 기록에 사용하지 않음 |
 
 `has_result=false`이면 status/error_code/failed_stage/retryable을 Result로 해석하지 않는다.
 중단 기록도 마지막 물리 상태와 완료 단계를 보존하며 사람 확인 필요를 표시한다.
-저장 실패의 메모리 진단은 영속 저장을 주장하지 않는다.
+현재 서버의 조회는 메모리의 최신 기록을 반환한다. 실행 기록 저장 실패는 경고로 남기고
+실제 실행의 status와 error_code를 유지하며, 조회 성공이 디스크 저장 완료를 보장하지 않는다.
 단계 deadline은 기록 시각과 별개로 프로세스 단조 시계를 사용한다.
 
 ## 관측 형상: ObservedObjectGeometry
@@ -82,9 +91,9 @@ TTL, 촬영 시각과 객체 번호를 갱신하지 않는다. 누락/만료는 
 인터페이스다. header의 capture stamp/frame, snapshot_id, object_id로 기존
 GraspCandidate와 연관하고, mesh_pose는 header frame 기준이며 Mesh vertices는
 mesh_pose의 local 좌표다. convex footprint를 인식된 지지면까지 돌출한 형상으로,
-실제 숨은 형상이나 시뮬레이터 정답을 의미하지 않는다. 기존 InspectScene,
-PlanGrasp, GraspCandidate의 필드를 바꾸지 않아 기존 CDR 기록 형식은 유지한다.
-메시 타입 의존성에 shape_msgs가 포함된다.
+실제 숨은 형상이나 시뮬레이터 정답을 의미하지 않는다. 별도 mesh 메시지이며
+메시 타입 의존성에 shape_msgs가 포함된다. 다른 인터페이스의 필드 변경과
+호환성은 각각의 계약을 확인한다.
 
 ## 손목 관측: ObserveWristTarget
 
@@ -107,7 +116,7 @@ HANDOFF의 `expected_pose.header.stamp`는 원본 head 관측 시각이다.
 
 ## 객체 메시지
 
-`DetectedObject2D`와 `DetectedObject2DArray`는 Gemini detector가 반환한 RGB pixel
+`DetectedObject2D`와 `DetectedObject2DArray`는 인식 노드가 반환한 RGB pixel
 bounding box, snapshot-local 번호와 후속 선택 요청에 사용할 `snapshot_id`를 표현한다.
 각 detection은 촬영 시점 depth와 TF로 계산한 configured target-frame 원점 기준
 `distance_m`과 유효 여부를 포함한다. 유효한 후보는 거리, confidence, detector 원본
@@ -140,6 +149,24 @@ trajectory는 현재 RobotState에 종속되므로 result에 포함하지 않는
 gripper 명령과 실제 trajectory 실행은 별도 Skill Executor coordinator가 담당한다.
 초기 `nearest_pregrasp_coordinator`는 `DetectedObject2D.distance_valid`와 `distance_m`을
 사용해 가까운 객체부터 시도한다.
+
+## 관찰 간 추적
+
+`InspectScene.Goal.tracking_session_id`는 같은 고정 베이스 책상 작업에 재사용한다.
+2D 메시지의 `track_id`, `tracking_state`, `position_valid`, `representative_position`은
+관찰 간 연결에 쓰이며 3D 대표 위치 frame은 배열의 `representative_frame`에 명시한다.
+배열은 session/epoch와 마지막 참조를 보존한 `missing_objects`를 포함한다. 최초부터
+불확실한 대상의 missing 참조에는 빈 track ID가 있을 수 있다. 선택 3D 결과에도 같은
+track/session/epoch를 전달한다. RGB header frame·snapshot-local 번호와 구분한다.
+세션을 비우면 추적을 사용하지 않는다. snapshot 조회·선택 복원은 저장된 ID를 유지한다.
+
+## 개체별 배치 확인
+
+`RegisterPlacementTarget.srv`는 `/sorting/register_placement_target`에서 execution ID,
+목적지, 촬영 header와 관측 OBB·종류로 개체를 고정하고 불투명 `verification_id`를 반환한다.
+`VerifyPlacement.verification_id`가 있으면 그 개체만 확인한다. 미등록·만료 ID는 실패하고
+label로 fallback하지 않는다. 빈 ID의 label-only 경로는 종류당 물체 하나인 기존 장면에
+유지한다. 종류 중복 장면은 등록 경로가 필요하다. 인터페이스 변경 후 consumer를 모두 재빌드한다.
 
 ## Contracts
 

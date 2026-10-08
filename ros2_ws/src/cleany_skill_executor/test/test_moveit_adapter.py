@@ -622,7 +622,7 @@ def test_invalid_closure_sweep_rejected(opening, closing, step):
 
 def test_grasp_diagnostic_reports_first_ranked_solution_not_unselected_best_pose(monkeypatch):
     logs = []
-    node = SimpleNamespace(get_logger=lambda: SimpleNamespace(info=logs.append))
+    node = SimpleNamespace(get_logger=lambda: SimpleNamespace(info=logs.append, debug=logs.append))
     adapter = make_adapter(node=node, config=MoveItAdapterConfig(pregrasp_aim_attempts=2))
     seed = adapter._current_arm_solution('left')
     near = adapter._with_wrist_roll(seed, 2.)

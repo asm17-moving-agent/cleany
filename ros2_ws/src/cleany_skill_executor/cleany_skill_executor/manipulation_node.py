@@ -6,9 +6,10 @@ from dataclasses import asdict, fields
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
+from action_msgs.srv import CancelGoal
 from cleany_interfaces.action import ExecuteManipulationSkill
 from cleany_interfaces.msg import ManipulationExecutionRecord
-from cleany_interfaces.srv import GetManipulationExecution
+from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution
 import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -20,7 +21,7 @@ from rclpy.task import Future
 
 from .manipulation.core import ExecutionCore
 from .manipulation.mock import MockAdapter, MockConfig
-from .manipulation.models import Goal, Record, Status
+from .manipulation.models import Goal, Record, Stage, Status, resolve_cancel_mode
 from .manipulation.store import ExecutionStore, StoreError, default_database_path
 
 
@@ -76,6 +77,7 @@ class ManipulationNode(Node):
             execute_callback=self._execute, goal_callback=self._goal,
             handle_accepted_callback=self._accepted, cancel_callback=self._cancel,
             callback_group=group)
+        self._setup_cancel_service(group)
         # Steady clock also works when ROS use_sim_time is paused or unset.
         self._timer = self.create_timer(0.05, self._tick, callback_group=group,
                                        clock=Clock(clock_type=ClockType.STEADY_TIME))
@@ -111,8 +113,54 @@ class ManipulationNode(Node):
 
     def _cancel(self, handle) -> CancelResponse:
         with self.core.lock:
-            accepted = self.core.request_cancel(handle.request.execution_id)
+            execution_id = handle.request.execution_id
+            mode = self._cancel_modes.pop(execution_id, None)
+            accepted = self.core.request_cancel(execution_id, mode)
             return CancelResponse.ACCEPT if accepted else CancelResponse.REJECT
+
+    def _setup_cancel_service(self, group: ReentrantCallbackGroup) -> None:
+        self._cancel_modes: dict[str, str] = {}
+        self._cancel_client = self.create_client(
+            CancelGoal, 'manipulation/execute_skill/_action/cancel_goal', callback_group=group)
+        self._cancel_service = self.create_service(
+            CancelManipulation, 'manipulation/cancel', self._request_cancel, callback_group=group)
+
+    async def _request_cancel(self, request: CancelManipulation.Request,
+                              response: CancelManipulation.Response) -> CancelManipulation.Response:
+        # Forward through the standard Action service so the goal really enters
+        # CANCELING before we report its terminal ROS status. Never set that
+        # state through rclpy's private GoalHandle API.
+        with self.core.lock:
+            handle, record = self._handle, self.core.record
+            if (handle is None or record is None or record.result is not None
+                    or record.stage == Stage.FINALIZING
+                    or record.goal.execution_id != request.execution_id):
+                response.message = 'No matching active execution'
+                return response
+            try:
+                mode = resolve_cancel_mode(
+                    record.cancel_mode or self._cancel_modes.get(request.execution_id, ''), request.mode)
+            except ValueError as error:
+                response.message = str(error)
+                return response
+            if handle.is_cancel_requested:
+                response.accepted = self.core.request_cancel(request.execution_id, mode)
+                response.message = f'Cancellation mode: {mode.value}'
+                return response
+            self._cancel_modes[request.execution_id] = mode.value
+            forwarded = CancelGoal.Request()
+            forwarded.goal_info.goal_id = handle.goal_id
+            future = self._cancel_client.call_async(forwarded)
+        reply = await future
+        with self.core.lock:
+            response.accepted = bool(reply is not None and reply.goals_canceling)
+            if not response.accepted and self._handle is handle and handle.is_cancel_requested:
+                # A concurrent request may have performed the ROS transition.
+                response.accepted = self.core.request_cancel(request.execution_id, mode)
+            self._cancel_modes.pop(request.execution_id, None)
+            response.message = (f'Cancellation mode: {mode.value}' if response.accepted
+                                else 'Action cancellation was rejected')
+        return response
 
     def _get(self, request, response):
         with self.core.lock:

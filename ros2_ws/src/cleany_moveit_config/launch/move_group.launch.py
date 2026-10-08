@@ -2,6 +2,7 @@ from pathlib import Path
 import yaml
 
 from cleany_moveit_config.simulation_collision import ignore_simulation_mast
+from cleany_moveit_config.controller_plugin import controller_plugin_environment
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -88,7 +89,22 @@ def _launch_setup(context):
     move_group = Node(
         package='moveit_ros_move_group',
         executable='move_group',
-        output='screen',
+        ros_arguments=[
+            '--log-level', LaunchConfiguration('backend_log_level'),
+            '--log-level', ['move_group.scene_mapping:=', LaunchConfiguration('log_level')],
+        ],
+        # MoveIt also prints capability banners directly to stdout. Keep those
+        # in the launch log in quiet mode; ROS warnings/errors use stderr.
+        output=({'stdout': 'log', 'stderr': ['screen', 'log']}
+                if LaunchConfiguration('backend_log_level').perform(context) in ('warn', 'error', 'fatal')
+                else 'both'),
+        additional_env={
+            'RCUTILS_LOGGING_USE_STDOUT': '0',
+            **controller_plugin_environment(
+                moveit_config.trajectory_execution['moveit_controller_manager'],
+                keep_loaded=LaunchConfiguration('keep_controller_plugin_loaded').perform(context) == 'true',
+            ),
+        },
         on_exit=Shutdown(reason='MoveIt planning process stopped'),
         parameters=[
             moveit_config.to_dict(),
@@ -141,6 +157,13 @@ def _launch_setup(context):
 def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
+            DeclareLaunchArgument('log_level', default_value='info',
+                                 choices=['debug', 'info', 'warn', 'error', 'fatal']),
+            DeclareLaunchArgument('backend_log_level', default_value='info',
+                                 choices=['debug', 'info', 'warn', 'error', 'fatal']),
+            DeclareLaunchArgument('keep_controller_plugin_loaded', default_value='true',
+                                 choices=['true', 'false'],
+                                 description='Keep the Humble controller plugin mapped through node teardown.'),
             DeclareLaunchArgument('use_rviz', default_value='false'),
             DeclareLaunchArgument('use_sim_time', default_value='false'),
             DeclareLaunchArgument('simulation_bins_config', default_value=''),

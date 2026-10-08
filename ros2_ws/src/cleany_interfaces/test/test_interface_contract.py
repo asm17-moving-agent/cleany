@@ -8,7 +8,7 @@ from cleany_interfaces.msg import (
     ObservedObjectGeometry,
     ManipulationExecutionRecord,
 )
-from cleany_interfaces.srv import GetManipulationExecution, PlanGrasp, VerifyPlacement
+from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution, PlanGrasp, VerifyPlacement
 
 
 def test_manipulation_action_and_execution_lookup_contract() -> None:
@@ -28,6 +28,11 @@ def test_manipulation_action_and_execution_lookup_contract() -> None:
     assert response.record.record_state == '' and response.record.revision == 0
     assert response.record.substage == response.record.failed_substage == ''
     assert response.record.completed_substages == []
+    assert result.cancel_mode == response.record.cancel_mode == ''
+    cancel = CancelManipulation.Request()
+    assert (cancel.IMMEDIATE, cancel.CHECKPOINT, cancel.RETURN_ARM) == ('IMMEDIATE', 'CHECKPOINT', 'RETURN_ARM')
+    assert cancel.execution_id == cancel.mode == ''
+    assert not CancelManipulation.Response().accepted
 
 
 def test_observed_geometry_has_explicit_identity_and_empty_default_mesh():
@@ -166,3 +171,15 @@ def test_read_only_scene_snapshot_contract():
     assert request.snapshot_id == ''
     assert not response.found and isinstance(response.detections, DetectedObject2DArray)
     assert response.message == ''
+
+
+def test_tracking_and_individual_verification_contract():
+    from cleany_interfaces.srv import RegisterPlacementTarget
+
+    assert InspectScene.Goal().tracking_session_id == ''
+    assert DetectedObject2DArray().tracking_epoch == ''
+    assert DetectedObject2DArray().missing_objects == []
+    assert not DetectedObject2D().position_valid
+    assert RegisterPlacementTarget.Request().execution_id == ''
+    assert RegisterPlacementTarget.Response().verification_id == ''
+    assert VerifyPlacement.Request().verification_id == ''

@@ -2,6 +2,9 @@
 # Phase 2 uses the cached detections and ignores this field.
 string query
 
+# Same fixed-base desk task uses the same session. Empty disables tracking.
+string tracking_session_id
+
 # Both fields are empty/zero for detector-only phase 1. Phase 2 supplies the
 # snapshot ID returned by phase 1 and one of its object IDs.
 string snapshot_id

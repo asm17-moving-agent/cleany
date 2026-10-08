@@ -1,8 +1,8 @@
 # 06. Manipulation 행동 내부의 Behavior Tree와 Groot2
 
-> **정적 설계 미리보기.** BT.CPP를 실행기로 채택한 결정이나 동작 코드가 아니다.
-> XML과 포트는 제안이다. BT.CPP factory와 tick loop는 후속 구현 대상이다.
+> **모의 서버용 정적 설계 미리보기.** 이 XML과 포트는 표시·설계 자료다.
 > 현재 ROS Action wrapper는 Python 모의 core를 실행하며 이 XML을 실행하지 않는다.
+> 실제 MuJoCo BT.CPP 실행기는 [cleany_manipulation_bt](../../cleany_manipulation_bt/README.md)에 별도 구현되어 있다.
 
 로컬 테스트에서는 [VS Code 모니터 브리지](manipulation_mock_usage.md#vs-code에서-로컬-트리-모니터링)로
 모의 core의 실행 이벤트를 XML 노드 상태에 투영할 수 있다. 이 표시는 BT.CPP 실행기 채택이나
@@ -27,8 +27,8 @@ scan 반복이나 Planner 호출을 넣지 않는다.
 | 모델과 실행 backend 준비 여부 확인 | 수거 트리의 `ValidateGoal` |
 | 전달받은 관측 확인, 선택 물체 3D 복원과 파지 준비 | 수거 트리의 `PREPARING_TARGET` 세부 단계 |
 
-현재 준비 확인과 인식 관련 세부 단계도 모의 결과다. 모델을 실제로 로딩하거나
-Perception을 호출하는 backend는 아직 연결하지 않았다.
+이 문서의 모의 경로에서 준비 확인과 인식 관련 세부 단계는 모의 결과다.
+MuJoCo BT 경로는 실제 모델과 Perception을 사용하며 위 링크의 실행 계약을 따른다.
 
 ## 2. 정상 경로와 실패 경로
 
@@ -90,7 +90,11 @@ BT의 SUCCESS와 FAILURE는 실행 순서 제어용 값이며 ROS Action의 최�
 | `VerifyPlacedObject` | 놓은 뒤 수거함 내부 확인 | `VERIFYING_PLACEMENT` |
 | `FinalizeSuccess` | 성공 조건과 기록 확인, Result 생성 | `FINALIZING` |
 | `StopAndAssess` | 하위 goal 종료, 정지와 물체 상태 확인 | `STOPPING` |
+| `ReleaseInPlace` | `RETURN_ARM` 취소 중 현재 위치에서 그리퍼 열기 | `RELEASING_IN_PLACE` |
+| `ReturnArmAfterCancel` | `RETURN_ARM` 취소 중 팔 복귀 | `RECOVERING_ARM` |
 | `FinalizeFailure` | 차단, 실패, 취소 또는 fault Result 보관 | `FINALIZING` |
+| `ReleaseInPlace` | 취소 후 잡고 있는 물체를 현재 위치에서 놓기 | `RELEASING_IN_PLACE` |
+| `ReturnArmAfterCancel` | 취소 후 현재 상태에서 팔 복귀 | `RECOVERING_ARM` |
 
 동작 노드는 명령 전과 물리 근거를 얻은 직후 진행을 기록한다. 집기와 그리퍼 열기
 기록을 트리 끝의 Finalize에만 맡기지 않는다. 물체를 놓은 뒤 검증이 실패해도 놓기
@@ -101,6 +105,10 @@ BT의 SUCCESS와 FAILURE는 실행 순서 제어용 값이며 ROS Action의 최�
 물체 보유 근거가 아니며, 이탈 근거가 없는 `release_unobserved` 시나리오에서는
 `ConfirmRelease`를 완료로 표시하지 않는다. 이후 독립 수거함 확인으로 성공할 수 있다.
 세부 단계 추가가 기존 집기, 들기와 놓기의 원자 구간 취소 규칙을 바꾸지는 않는다.
+
+기본 `CHECKPOINT` 외의 취소 방식과 복귀 경로의 제한은
+[취소 계약](02_execute_manipulation_skill_action_spec.md#취소-방식과-서비스)을 따른다.
+모의 XML의 복귀 노드는 이벤트 표시용이며 수거함 배치 성공을 나타내지 않는다.
 
 `VerifyPlacedObject`는 이번 verified Action에서 생략하지 않는다. 확인 기능이 없으면
 시작 검증에서 차단한다. 기존 GUI simulation의 확인 생략 경로는 별도 demo다.
@@ -129,13 +137,20 @@ Groot2에서 포트와 연결 이름을 볼 수 있지만 정적 XML에 센서 �
 
 ## 5. 실패, 취소와 halt 처리 계약
 
+기본 취소는 `CHECKPOINT`다. 현재 노드를 마치고, 잡기·들기·놓기에서는 원자 구간의
+확인까지 완료한다. `IMMEDIATE`는 현재 완료를 기다리지 않고 중단한다. `RETURN_ARM`은
+현재 작업 중단과 정지 확인 뒤 물체를 잡고 있으면 그 자리에서 놓고 팔을 복귀한다.
+현재 위치 놓기의 별도 안착 검증은 초기 정책에 포함하지 않는다. native MuJoCo 트리는
+복귀 뒤 정지를 다시 확인하고 복귀 실패 시 정지 평가로 연결한다.
+[native BT 구현](../../cleany_manipulation_bt/README.md)의 실패 경로를 따른다.
+
 | 상황 | 처리 후보 |
 |---|---|
 | 일반 node FAILURE | Fallback의 StopAndAssess와 FinalizeFailure 실행 |
 | 정지 근거 없음 | 종료 분석 context에 `stop_confirmed=false`, FATAL 원인 기록 |
 | `halt()` 또는 예외 | 실행 host가 try/finally로 동일한 종료 및 보관 port 실행 |
 | 비상 정지 | controller 및 hardware 안전 경로 우선, tree tick을 기다리지 않음 |
-| 기록 실패 | 신규 Goal 차단, fault 전달. 기록됐다고 주장하지 않음 |
+| 기록 실패 | 경고 전달, 실제 실행 상태 유지. 저장 실패만으로 동작·신규 Goal을 차단하지 않음 |
 
 `StopAndAssess`의 SUCCESS는 **분석을 마쳤다**는 제어 값이다. 정지가 성공했다는
 뜻으로 사용하지 않는다. 정지 미확인도 context와 error에 담아 FinalizeFailure까지
@@ -173,7 +188,10 @@ tools/groot2/install-local.sh /path/to/matching-Groot2.AppImage
 기존 설치 스크립트의 version과 checksum을 이 문서에서 새로 고정하지 않는다.
 다른 architecture의 설치는 별도 환경 설정이 필요하다.
 
-## 7. 실시간 연결에 필요한 것
+## 7. Groot2 실시간 연결의 후속 작업
+
+아래는 이 정적 XML을 Groot2와 실제 실행기로 연결할 때의 작업이다.
+현재 MuJoCo 실행기는 별도 XML과 VS Code용 모니터를 사용한다.
 
 1. 사용자 정의 node와 typed port를 실제 BT.CPP factory에 등록한다.
 2. Goal마다 context를 생성하고 tick, feedback, cancel과 halt를 연결한다.

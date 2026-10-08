@@ -91,6 +91,19 @@ def test_finalizing_failure_does_not_flash_success_path():
     assert state(view, 'FinalizeSuccess') == IDLE
 
 
+def test_return_cancel_projection_shows_recovery_and_never_flashes_success():
+    view = MonitorProjection(XML)
+    view.update(Progress('a', 10, 4, 'RECOVERING_ARM', 'LIFTING',
+                         substage='ReturnArmAfterCancel', completed_substages=('ReleaseInPlace',),
+                         cancel_mode='RETURN_ARM'))
+    assert state(view, 'ReleaseInPlace') == SUCCESS
+    assert state(view, 'ReturnArmAfterCancel') == RUNNING
+    assert view.statuses[view.controls[1]] == FAILURE
+    view.update(Progress('a', 10, 5, 'FINALIZING', 'VERIFYING_PLACEMENT', cancel_mode='CHECKPOINT'))
+    assert state(view, 'FinalizeFailure') == RUNNING
+    assert state(view, 'FinalizeSuccess') == IDLE
+
+
 def test_cancel_after_atomic_stage_preserves_completed_stage():
     view = MonitorProjection(XML)
     view.update(Progress('a', 10, 6, 'FINALIZING', 'GRASPING', True,

@@ -1,6 +1,6 @@
 # 03. Manipulation 서버 동작 명세
 
-> **모의 1차 구현과 후속 backend 설계.** 대상은 승인된 `collect_trash` 행동 하나다.
+> **모의 구현과 BT backend 계약.** 대상은 승인된 `collect_trash` 또는 `collect_lost_item` 물체 하나다.
 > 서버는 책상 전체의 물체 선택, Planner 호출과 완료 판정을 맡지 않는다.
 > Python 모의 서버의 실행·설정·검증은 [사용법](manipulation_mock_usage.md)를 따른다.
 
@@ -19,14 +19,14 @@ e-stop과 hardware fault의 실제 정지는 ROS Result와 Planner 응답을 기
 
 | 확인 | 통과 조건 | 실패 처리 후보 |
 |---|---|---|
-| 지원 행동 | 승인 경로를 거친 `collect_trash` | 구조상 오류는 Goal 거절 |
+| 지원 행동 | 승인 경로를 거친 `collect_trash`, `collect_lost_item` | 구조상 오류는 Goal 거절, 분류–skill–목적지 불일치는 이동 전 차단 |
 | backend | mock, 검증 가능한 simulation 또는 준비된 real adapter | `BLOCKED/BACKEND_NOT_READY` |
 | 베이스 상태 | 접근 위치 도착, 베이스 정지와 위치 조건 유효 | `BLOCKED/BACKEND_NOT_READY` |
 | 팔과 그리퍼 | 새 feedback으로 상태와 정지를 확인, 이전 held 또는 fault 없음 | 준비 불가 또는 기존 fault는 실행 차단 |
 | snapshot | 지정 관찰 존재, 기간과 대상 유효 | `BLOCKED/TARGET_UNAVAILABLE` 또는 `STALE_TARGET` |
 | 목적지 | 등록된 수거 목적지, 해당 물체의 크기와 경로 유효 | `BLOCKED/DESTINATION_UNAVAILABLE` |
 | 확인 기능 | 놓은 결과를 검증할 port 준비 | `BLOCKED/VERIFICATION_UNAVAILABLE` |
-| 실행 기록 | ID와 인자가 충돌하지 않고 시작 기록을 보관 가능 | 움직임 전에 차단 |
+| 실행 기록 | ID·인자 충돌과 기존 실행 상태 확인, 시작 기록을 메모리에 반영 | 충돌·미완료 실행은 차단. SQLite 쓰기 실패만으로는 차단하지 않음 |
 
 베이스 정지 기준, snapshot age와 실물 확인 수단은 아직 정해야 한다.
 준비 전 움직임이 없고 초기 feedback이 부족하면 `BLOCKED`로 끝낼 수 있지만
@@ -142,20 +142,23 @@ false를 “수거함 밖에 있는 것을 봤다”로 확대하지 않는다. 
 
 ## 7. 취소는 어떻게 처리하는가
 
-**취소 요청을 받으면 다음 단계 시작을 막고, 현재 동작을 허용된 checkpoint에서 끝내거나
-차단한 뒤 정지와 물체 상태를 확인한다.** 새로운 대상이나 행동을 시작하지 않는다.
+**취소 요청을 받으면 다음 정상 단계 시작을 막고, 선택한 취소 모드로 종료한다.**
+새로운 대상이나 수거 행동을 시작하지 않는다. 기본 Action cancel은 `CHECKPOINT`이고,
+`manipulation/cancel` 서비스는 `execution_id/mode`를 받는다.
 
-| 취소 시점 | 서버 처리 | 종료 때 주의점 |
+| mode | 서버 처리 | 종료 때 주의점 |
 |---|---|---|
-| 대상 준비 중 | 진행 중 조회 취소, 움직임 시작하지 않음 | 초기 정지와 실제 변경 유무 확인 |
-| 빈 팔 접근 중 | 해당 controller goal 중단, 정지 확인 | 물체를 건드리지 않았는지 검사 |
-| 집기 또는 들기 중 | 사전에 정한 짧은 원자 구간을 종료 또는 차단 | 안정된 잡은 상태와 정지 확인. 무조건 그리퍼 열지 않음 |
-| 물체 운반 중 | 경로 중단, 물체를 잡은 채 정지 | `HELD`면 베이스 자동 복귀 금지 |
-| 그리퍼를 여는 중 | 현재 transaction을 완료 또는 차단 | 명령 완료와 물체 상태를 구분 |
-| 팔 복귀 또는 확인 중 | 새 조작 금지, 현재 동작 종료와 정지 확인 | 이미 놓은 사실과 확인 근거 보존 |
+| `IMMEDIATE` | 현재 노드와 원자 구간 완료 대기 없이 중단 요청, 실제 정지 확인 | 팔 복귀나 그리퍼 열기 없음 |
+| `CHECKPOINT` | 현재 동작과 완료 확인까지만 수행한 뒤 정지 | 잡기·들기·놓기는 현재 원자 구간까지, 다음 단계 금지 |
+| `RETURN_ARM` | 현재 동작 중단, 정지 확인, 물체를 잡고 있으면 현재 위치에서 놓고 팔 복귀 | 수거함 배치 성공으로 기록하지 않음 |
+
+`RETURN_ARM`의 현재 위치 놓기는 그리퍼 열기 완료에 근거한 초기 구현 정책이다.
+놓기 위치 선택과 별도 이탈 관찰은 후속 검토 대상으로 둔다. 빈 팔은 놓기 동작 없이
+복귀하고, 팔 선택 전이면 정지 후 종료한다. 놓기와 복귀 중에도 `IMMEDIATE`로 선점한다.
+놓기·복귀 실패는 다시 정지 후 실패로 반환하며, 실제 정지 미확인은 기존 FATAL 경로다.
 
 집기, 들기 원자 구간의 범위와 제한 시간은 backend별로 정의해야 한다. 제한 없이
-취소를 지연하거나, 취소를 받은 뒤 승인되지 않은 운반과 놓기를 새로 시작하지 않는다.
+취소를 지연하거나, 선택한 취소 정책 밖의 운반과 놓기를 새로 시작하지 않는다.
 e-stop과 hardware fault는 이 checkpoint 대기를 우회하는 독립 정지 경로다.
 
 ### 정지 확인에 필요한 근거
@@ -167,7 +170,8 @@ e-stop과 hardware fault는 이 checkpoint 대기를 우회하는 독립 정지 
 
 같은 feedback을 여러 번 읽은 것을 연속 새 표본으로 세지 않는다. 제한 시간은
 프로세스의 단조 시계, sensor freshness는 해당 stamp 및 clock 계약으로 따로 관리한다.
-현재 controller stop 경로와 일부 속도 검사는 존재하지만 이 전체 계약은 추가 구현 대상이다.
+MuJoCo BT 서버의 Action 종료·새 관절 표본 검사는 [BT README](../../cleany_manipulation_bt/README.md#계약과-증거)를
+따른다. 실물 backend의 정지 기준과 해당 계약의 검증은 후속 구현 대상이다.
 
 ## 8. 기록, fault와 profile
 
@@ -185,7 +189,9 @@ e-stop과 hardware fault는 이 checkpoint 대기를 우회하는 독립 정지 
 
 이번 모의 구현은 SQLite에 최신 기록과 단계별 이력을 동일 트랜잭션으로 저장한다.
 execution_id UNIQUE 제약과 DB별 파일 lock을 사용하며 수락 기록과 단계 시작을
-동작 전에 저장한다. 조회 Service와 복구 이벤트는 Action 명세 및 README를 따른다.
+동작 전에 메모리에 반영하고 SQLite 저장을 시도한다. 저장 실패는 실제 동작을 중단하지 않는다.
+같은 프로세스의 중복 검사와 조회는 메모리 기록을 사용한다.
+조회 Service와 복구 이벤트는 Action 명세 및 README를 따른다.
 
 ### 재시작 시 서버와 Mission Manager가 처리할 일
 
@@ -242,16 +248,19 @@ sample count와 지속 시간, 표본 freshness를 함께 검증하는 계약으
 ## 10. 모의 서버의 구현 경계
 
 정상 단계는 3절의 순서로 진행한다. core는 비동기 port를 poll하며 ROS timer는
-20Hz steady clock을 사용한다. 집기·들기·놓기 취소는 bounded atomic checkpoint,
-그 외 단계는 현재 동작 중단 후 정지 확인으로 처리한다. fault는 checkpoint 대기를
+20Hz steady clock을 사용한다. `CHECKPOINT`는 현재 단계를 완료하고,
+`IMMEDIATE/RETURN_ARM`은 현재 동작을 중단한 뒤 정지 확인으로 처리한다. fault는 checkpoint 대기를
 우회하고 `FATAL`로 신규 실행을 차단한다. 취소와 Result 확정은 하나의 lock으로 직렬화한다.
 
 재시작 시 활성 기록은 `INTERRUPTED`, 사람 확인 필요로 전환하고 마지막 물리 근거를
 보존한다. Action Result를 생성하거나 이전 Goal을 자동 재개하지 않는다.
 fault·중단·물체 보유·상태 불명은 신규 Goal을 차단하며 reset은 없다.
-저장 실패는 성공으로 보고하지 않고 정지 경로와 `FATAL/INTERNAL_ERROR`로 처리한다.
-함께 발생한 hardware fault·e-stop·정지 미확인의 치명 원인은 보존한다.
-메모리 진단은 `RECORDING_FAILED`로 명시한다.
+실행 기록 저장 실패는 경고 로그로 남기고 실제 실행의 status와 error_code를 유지한다.
+저장 실패만으로 동작이나 신규 Goal을 차단하지 않는다. 함께 발생한 hardware fault·e-stop·
+정지 미확인과 물체 보유·상태 불명에 따른 차단은 유지한다.
+메모리 기록의 `FINISHED`는 실행 종료를 뜻하며 디스크 저장 완료를 보장하지 않는다.
+기동 시 DB 초기화와 기존 이력 읽기는 필수다. 재시작 복구와 재시작 이후 중복 검사는
+디스크 기록만 사용하며 미저장 메모리 기록은 유실된다.
 
 Mock adapter는 실제 제어기 feedback, VLA, 실물 verifier 또는 베이스 readiness를
 검증하지 않는다. 해당 backend와 권한·복구·원격 전달 계약은 별도로 구현해야 한다.
