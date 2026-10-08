@@ -1,0 +1,67 @@
+schema_version: cleany.pose_generation_mujoco/v1
+generator:
+  random_seed: 20260810
+  candidate_pool_size: 30
+  max_generation_attempts: 9000
+  multistart_count: 8
+  log_det_epsilon: 1.0e-9
+  target_seed_local_radius_m: [0.015, 0.015, 0.015]
+  # Random workspace prior only; every resolved pose is still independently
+  # checked by MoveIt, MuJoCo clearance, and rendered ChArUco detection.
+  seed_sampling_limits_rad:
+    left_shoulder_yaw_joint: [-1.75, -1.40]
+    left_shoulder_pitch_joint: [1.2, 2.1]
+    left_elbow_pitch_joint: [1.5, 2.4]
+    left_wrist_pitch_joint: [-0.3, 0.2]
+    left_wrist_roll_joint: [-2.65, 2.75]
+  target_position_bounds_m:
+    x: [-0.05, 0.48]
+    y: [0.05, 0.40]
+    z: [0.30, 0.82]
+run_config:
+  max_retries: 3
+  stage_timeouts_sec:
+    ik_sec: 0.15
+    state_validity_sec: 1.0
+    plan_sec: 4.0
+    execute_sec: 12.0
+    cancel_sec: 1.0
+    settle_sec: 4.0
+    image_acquisition_sec: 2.0
+    target_detection_sec: 2.0
+    feedback_fk_sec: 1.0
+    record_sample_sec: 1.0
+  right_park_position_tolerance_rad: 0.02
+  soft_joint_limits_rad:
+    left_shoulder_yaw_joint: [-2.1, 2.1]
+    left_shoulder_pitch_joint: [-0.15, 3.3]
+    left_elbow_pitch_joint: [-0.15, 3.05]
+    left_wrist_pitch_joint: [-1.55, 1.55]
+    left_wrist_roll_joint: [-2.65, 2.75]
+  collision_margin_m: 0.01
+  target_position_tolerance_m: 0.0005
+  duplicate_target_position_tolerance_m: 0.0001
+  duplicate_ik_seed_tolerance_rad: 0.0001
+  duplicate_resolved_joint_tolerance_rad: 0.001
+  axis_parallelism_tolerance: 0.01
+  covariance_rank_tolerance: 1.0e-8
+motion:
+  current_state_max_age_sec: 0.5
+  max_velocity_scaling_factor: 0.1
+  max_acceleration_scaling_factor: 0.1
+  controller_path_tolerance_rad: 0.05
+  controller_goal_tolerance_rad: 0.01
+  settle_position_tolerance_rad: 0.015
+  settle_velocity_tolerance_rad_s: 0.01
+  settle_duration_sec: 1.0
+  planning_attempts: 1
+visibility:
+  minimum_camera_depth_m: 0.15
+  image_border_fraction: 0.03
+feedback_buffer:
+  capacity: 512
+  max_sample_distance_ns: 80000000
+  clock_reset_threshold_ns: 500000000
+  startup_state_timeout_sec: 30.0
+  startup_planning_scene_timeout_sec: 30.0
+expected_resolved_match_tolerance_rad: 0.002

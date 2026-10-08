@@ -1,0 +1,18 @@
+schema_version: cleany.moveit_collision_objects/v1
+planning_frame: base_link
+apply_service: /apply_planning_scene
+objects:
+  - id: pick_demo_table
+    primitives:
+      - type: box
+        dimensions_m: [0.77, 1.20, 0.03]
+        pose:
+          translation_m: [0.700, -0.002, 0.330]
+          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
+  - id: can_demo_route_obstacle
+    primitives:
+      - type: box
+        dimensions_m: [0.10, 0.10, 0.25]
+        pose:
+          translation_m: [0.350, 0.420, 0.470]
+          quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]

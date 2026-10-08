@@ -1,0 +1,20 @@
+simulated_odometry_error:
+  ros__parameters:
+    input_topic: wheel/odom_raw
+    output_topic: wheel/odom
+    # Synthetic robustness-test values. These are not measured hardware data.
+    forward_scale: 1.01
+    lateral_scale: 0.95
+    rotation_scale: 1.02
+    forward_noise_stddev_per_sqrt_m: 0.002
+    lateral_noise_stddev_per_sqrt_m: 0.008
+    rotation_noise_stddev_per_sqrt_rad: 0.01
+    yaw_bias_walk_stddev_per_sqrt_m: 0.002
+    max_abs_yaw_bias_rad_per_m: 0.02
+    yaw_drift_rad_per_forward_m: 0.005
+    slip_events_per_second: 0.08
+    slip_duration_min_sec: 0.2
+    slip_duration_max_sec: 0.8
+    slip_gain_min: 1.05
+    slip_gain_max: 1.15
+    random_seed: 42

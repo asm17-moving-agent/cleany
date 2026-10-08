@@ -1,9 +1,12 @@
+import math
+from pathlib import Path
+
 import mujoco
 import pytest
 
 from cleany_mujoco_sim.mecanum_kinematics import WheelSpeeds
 from cleany_mujoco_sim.mujoco_drive import MujocoMecanumDrive
-from cleany_mujoco_sim.scene_loader import load_model
+from cleany_mujoco_sim.scene_loader import load_model, materialize_scene
 from cleany_mujoco_sim.wheel_speed_controller import (
     PidGains,
     VelocityControllerConfig,
@@ -20,8 +23,23 @@ def controller_config() -> VelocityControllerConfig:
 
 
 @pytest.fixture
-def xlerobot_model_data(cleany_scene_path):
-    return load_model(cleany_scene_path)
+def xlerobot_model_data(tmp_path: Path):
+    # Wheel dynamics need an unobstructed floor. The shared study-cafe scene
+    # places the robot beside furniture and is intended for tabletop actions.
+    template = tmp_path / 'mobile_base.xml.in'
+    template.write_text('''<mujoco model="mobile_base_test">
+  <include file="@CLEANY_MJCF_PATH@"/>
+  <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"
+          noslip_iterations="5">
+    <flag multiccd="enable"/>
+  </option>
+  <worldbody>
+    <geom name="floor" size="0 0 0.05" type="plane"
+          contype="1" conaffinity="1"/>
+  </worldbody>
+</mujoco>
+''')
+    return load_model(materialize_scene(template))
 
 
 def test_drive_maps_each_wheel_to_its_motor(
@@ -55,6 +73,100 @@ def test_drive_maps_each_wheel_to_its_motor(
         assert data.ctrl[actuator_id] == pytest.approx(
             getattr(voltages, wheel_name)
         )
+
+
+def test_drive_tracks_forward_targets_and_stops(
+    xlerobot_model_data,
+    controller_config: VelocityControllerConfig,
+):
+    model, data = xlerobot_model_data
+    drive = MujocoMecanumDrive(model, controller_config)
+    chassis_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_BODY,
+        'chassis',
+    )
+    target = WheelSpeeds(4.0, 4.0, 4.0, 4.0)
+    peak_voltage = 0.0
+
+    # The CAD mass/COM model settles more slowly than the old ballast model.
+    # Keep the same error, voltage and braking limits; allow 3 s to accelerate.
+    for _ in range(round(3.0 / model.opt.timestep)):
+        voltages = drive.apply_control(data, target, model.opt.timestep)
+        peak_voltage = max(
+            peak_voltage,
+            abs(voltages.front_left),
+            abs(voltages.front_right),
+            abs(voltages.rear_left),
+            abs(voltages.rear_right),
+        )
+        mujoco.mj_step(model, data)
+
+    measured = drive.measured_speeds(data)
+    assert (
+        measured.front_left,
+        measured.front_right,
+        measured.rear_left,
+        measured.rear_right,
+    ) == pytest.approx((4.0, 4.0, 4.0, 4.0), abs=0.2)
+    assert data.xpos[chassis_id, 0] > 0.4
+    assert peak_voltage <= controller_config.voltage_limit
+
+    drive.reset()
+    stopped = WheelSpeeds(0.0, 0.0, 0.0, 0.0)
+    for _ in range(500):
+        drive.apply_control(data, stopped, model.opt.timestep)
+        mujoco.mj_step(model, data)
+
+    measured = drive.measured_speeds(data)
+    assert max(
+        abs(measured.front_left),
+        abs(measured.front_right),
+        abs(measured.rear_left),
+        abs(measured.rear_right),
+    ) < 0.05
+
+
+@pytest.mark.parametrize(
+    ('target', 'motion'),
+    [
+        (WheelSpeeds(-4.0, 4.0, 4.0, -4.0), 'left'),
+        (WheelSpeeds(-3.0, 3.0, -3.0, 3.0), 'counterclockwise'),
+    ],
+)
+def test_drive_preserves_mecanum_motion_directions(
+    xlerobot_model_data,
+    controller_config: VelocityControllerConfig,
+    target: WheelSpeeds,
+    motion: str,
+):
+    model, data = xlerobot_model_data
+    drive = MujocoMecanumDrive(model, controller_config)
+    chassis_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_BODY,
+        'chassis',
+    )
+
+    for _ in range(500):
+        drive.apply_control(data, target, model.opt.timestep)
+        mujoco.mj_step(model, data)
+
+    if motion == 'left':
+        assert data.xpos[chassis_id, 1] > 0.1
+    else:
+        quaternion = data.xquat[chassis_id]
+        yaw = math.atan2(
+            2.0 * (
+                quaternion[0] * quaternion[3]
+                + quaternion[1] * quaternion[2]
+            ),
+            1.0 - 2.0 * (
+                quaternion[2] ** 2
+                + quaternion[3] ** 2
+            ),
+        )
+        assert yaw > 0.2
 
 
 def test_drive_rejects_model_without_expected_wheels(

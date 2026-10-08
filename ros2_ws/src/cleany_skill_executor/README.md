@@ -150,3 +150,18 @@ Groot2 XML은 정적 설계 미리보기다.
 
 제품 기준은 KB의 [Mission Lifecycle](../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Lifecycle.md)과
 [Task Planning and Robot Capabilities](../../../docs/cleany-docs/20_TECHNICAL/03%20-%20Task%20Planning%20and%20Robot%20Capabilities.md)를 따른다.
+
+## 기존 파지 데모 실행
+
+기존 `grasp_execution_demo.launch.py`와 `can_grasp_execution_demo.launch.py`를
+유지한다. 두 데모의 실행 파일과 전용 MuJoCo 장면은 새 Action 서버와 별도로
+실행할 수 있다. 빌드 후 ROS 환경을 불러온 터미널에서 실행한다.
+
+```bash
+ros2 launch cleany_skill_executor grasp_execution_demo.launch.py
+ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
+```
+
+도달 데모는 기존 목표 위치를 유지하며, 현재 CAD 팔 모델에서 접근 방향과
+TCP 자세가 일치하는 후보를 사용한다. 새 파지 선택기의 접근·충돌 검사를
+그대로 적용하고, 첫 번째 도달 불가 후보에서 정상 후보로 넘어가는 동작도 유지한다.

@@ -87,8 +87,12 @@ class NavigationMeasurements:
 
 def _launch_command(profile: str, world_path: Path) -> list[str]:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    launch_file = 'gazebo_fortress.launch.py'
-    bridge_file = 'navigation_bridge.yaml'
+    if profile == 'fortress':
+        launch_file = 'gazebo_fortress.launch.py'
+        bridge_file = 'navigation_bridge.yaml'
+    else:
+        launch_file = 'gazebo_harmonic.launch.py'
+        bridge_file = 'navigation_bridge_harmonic.yaml'
     bridge_path = package_share / 'config' / 'bridge' / bridge_file
     return [
         'ros2',
@@ -142,7 +146,11 @@ def _validation_scene_sdf() -> str:
 
 def _write_validation_world(profile: str, output_path: Path) -> None:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    world_name = 'cleany_mecanum_fortress.sdf'
+    world_name = (
+        'cleany_mecanum_fortress.sdf'
+        if profile == 'fortress'
+        else 'cleany_mecanum_harmonic.sdf'
+    )
     materialized_world = materialize_mecanum_wheel_world(
         package_share / 'worlds' / world_name
     ).read_text(encoding='utf-8')
@@ -158,7 +166,7 @@ def _write_validation_world(profile: str, output_path: Path) -> None:
 
 
 def _assert_profile_environment(profile: str) -> None:
-    expected_ros_distro = 'humble'
+    expected_ros_distro = 'humble' if profile == 'fortress' else 'jazzy'
     actual_ros_distro = os.environ.get('ROS_DISTRO')
     if actual_ros_distro != expected_ros_distro:
         pytest.fail(
@@ -460,7 +468,10 @@ def test_navigation_sensor_tf_runtime(
 
     monkeypatch.setenv('ROS_DOMAIN_ID', str(100 + os.getpid() % 100))
     partition = f'cleany_navigation_test_{uuid4().hex}'
-    monkeypatch.setenv('IGN_PARTITION', partition)
+    partition_variable = (
+        'IGN_PARTITION' if options.profile == 'fortress' else 'GZ_PARTITION'
+    )
+    monkeypatch.setenv(partition_variable, partition)
     launch_environment = os.environ.copy()
 
     rclpy.init()

@@ -316,8 +316,10 @@ def load_study_cafe_layout(path: Path) -> StudyCafeLayout:
             row_pair_centers_y_m=row_pair_centers,
             rows=rows,
             partition_center_z_m=_positive(
-                desks_raw.get('partition_center_z_m'),
-                'desk_layout.partition_center_z_m',
+                mujoco_raw.get(
+                    'partition_center_z_m', desks_raw.get('partition_center_z_m')
+                ),
+                'mujoco.partition_center_z_m or desk_layout.partition_center_z_m',
             ),
             monitor_y_offset_from_desk_center_m=_positive(
                 desks_raw.get('monitor_y_offset_from_desk_center_m'),

@@ -32,6 +32,11 @@ setup(
             'manipulation_monitor = cleany_skill_executor.manipulation_monitor_node:main',
             'manipulation_test_client = cleany_skill_executor.manipulation_client:main',
             'grasp_selection_server = cleany_skill_executor.grasp_selection_node:main',
+            'grasp_execution_demo = cleany_skill_executor.grasp_execution_demo:main',
+            (
+                'can_grasp_execution_demo = '
+                'cleany_skill_executor.can_grasp_execution_demo:main'
+            ),
             'sorting_coordinator = cleany_skill_executor.sorting_coordinator:main',
             (
                 'nearest_pregrasp_coordinator = '

@@ -379,3 +379,18 @@ def test_depth_octomap_and_rviz_share_sensor_cloud_contract() -> None:
     assert 'moveit_ros_perception' in {
         dependency.text for dependency in manifest.findall('exec_depend')
     }
+
+
+def test_optional_rviz_uses_the_moveit_model_and_selected_clock() -> None:
+    source = (PACKAGE_ROOT / 'launch' / 'move_group.launch.py').read_text(
+        encoding='utf-8'
+    )
+
+    assert "DeclareLaunchArgument('use_rviz', default_value='false')" in source
+    assert "'include_head_camera': 'false'" in source
+    assert "'include_wheel_joints': 'false'" in source
+    assert "condition=IfCondition(use_rviz)" in source
+    assert 'moveit_config.robot_description,' in source
+    assert 'moveit_config.robot_description_semantic,' in source
+    assert 'moveit_config.robot_description_kinematics,' in source
+    assert "'use_sim_time': ParameterValue(" in source

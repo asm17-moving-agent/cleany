@@ -22,6 +22,13 @@ MoveIt 2 configuration shared by Cleany's left and right arms. The package
 uses the authoritative URDF from `cleany_description`; it does not copy robot
 geometry, link names, joint names, or hard limits.
 
+The description now includes the CAD chassis, battery proxy, and wheel
+collision geometry. The real-backend expansion disables head and movable
+wheel joints (`include_head_camera:=false include_wheel_joints:=false`),
+retaining wheel geometry while preserving the 12-joint arm/gripper state
+contract. Arm anchors follow the CAD dimensions; named poses and external
+collision scenes must be revalidated for the new geometry.
+
 ## Planning contract
 
 | Group | Chain | Controller |
@@ -236,3 +243,12 @@ The runtime smoke tests launch the headless mock stack, verify that the all-zero
 state is collision-free, and resolve position-only IK for each side. They check
 that orientation does not change the same seeded IK request, then plan and
 execute each resolved joint goal through its side-specific controller.
+
+## 기존 보정 장면 호환성
+
+카메라 보정 launch는 기존 `handeye_collision_scene.launch.py`와
+`config/handeye_collision_objects.yaml`을 계속 사용한다. 실행 파일
+`apply_handeye_collision_scene`도 기존 보정 설정을 기본값으로 사용하며,
+충돌 장면 적용 코드는 공용 실행기와 공유한다.
+스터디 카페 Action은 `collision_scene.launch.py`에서 전용 설정을 전달한다.
+기존 RGB-D 파지 데모의 `pick_demo_collision_objects.yaml`도 유지한다.

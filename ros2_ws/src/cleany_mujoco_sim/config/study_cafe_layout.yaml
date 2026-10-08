@@ -9,6 +9,8 @@ robot:
   spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
 
 mujoco:
+  # Retain the existing MuJoCo partition height as a simulation override.
+  partition_center_z_m: 0.66
   # Migrated CAD front uprights require 0.20 m setback from the chair center.
   # Add 0.02 m clearance; the desk and rear collection station stay unchanged.
   robot_center_rearward_offset_m: 0.22
@@ -92,5 +94,5 @@ desk_layout:
       chair_y_offset_from_desk_m: 0.385
     - desk_y_offset_m: -0.385
       chair_y_offset_from_desk_m: -0.385
-  partition_center_z_m: 0.66
+  partition_center_z_m: 0.62
   monitor_y_offset_from_desk_center_m: 0.285

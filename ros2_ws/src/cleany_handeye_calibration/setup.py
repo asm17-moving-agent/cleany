@@ -18,6 +18,10 @@ setup(
         ),
         (f'share/{package_name}', ['package.xml']),
         (
+            os.path.join('share', package_name, 'launch'),
+            glob('launch/*.launch.py'),
+        ),
+        (
             os.path.join('share', package_name, 'config'),
             glob('config/*'),
         ),
@@ -31,7 +35,7 @@ setup(
         'adapters, staged orchestration, and offline evaluation.'
     ),
     license='Apache-2.0',
-    extras_require={'test': ['pytest']},
+    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'single_pose_calibration = '
@@ -40,6 +44,8 @@ setup(
             'cleany_handeye_calibration.multi_pose_runtime:main',
             'pose_manifest_preflight = '
             'cleany_handeye_calibration.pose_manifest_cli:main',
+            'generate_pose_manifest = '
+            'cleany_handeye_calibration.pose_generation_runtime:main',
             'validate_handeye_dataset = '
             'cleany_handeye_calibration.dataset_validation:main',
             'evaluate_handeye = '

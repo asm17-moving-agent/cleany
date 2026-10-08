@@ -13,6 +13,9 @@ from sensor_msgs.msg import CameraInfo, Image
 from cleany_mujoco_sim.camera_contract import (
     CameraContract, default_camera_contract_path, load_camera_contract,
 )
+from cleany_mujoco_sim.scene_manifest import (
+    load_handeye_scene_manifest, preflight_manifest,
+)
 
 
 MessageT = TypeVar('MessageT', Image, CameraInfo)
@@ -39,9 +42,16 @@ class CameraContractAdapter(Node):
 
     def __init__(self) -> None:
         super().__init__('left_wrist_camera_contract_adapter')
+        self.declare_parameter('manifest_path', '')
         self.declare_parameter('camera_config', str(default_camera_contract_path()))
-        camera_config = Path(self.get_parameter('camera_config').value)
-        self._contract = load_camera_contract(camera_config)
+        manifest_path = str(self.get_parameter('manifest_path').value)
+        if manifest_path:
+            manifest = load_handeye_scene_manifest(Path(manifest_path))
+            preflight_manifest(manifest, profile='simulation')
+            self._contract = manifest.camera_contract
+        else:
+            camera_config = Path(self.get_parameter('camera_config').value)
+            self._contract = load_camera_contract(camera_config)
 
         self._image_publisher = self.create_publisher(
             Image,

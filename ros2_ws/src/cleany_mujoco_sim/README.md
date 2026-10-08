@@ -102,19 +102,45 @@ grasp/경로의 입력으로 쓰지 않는다. 동작 연결은 skill executor�
 
 ## 상태와 책임
 
-유지하는 장면은 스터디카페 두 가지다.
+스터디카페 실행에는 다음 두 장면을 사용한다.
 
 - `scenes/study_cafe.xml.in`: 방·책상·물체 배치를 확인하는 관찰 장면.
 - `scenes/study_cafe_grasp_execution.xml.in`: 고정 베이스에서 집기·분류·놓기를 실행하는 장면.
 
 `mujoco_study_cafe.launch.py`는 custom bridge를 통해 관찰 장면을 실행한다.
 `study_cafe_backend.launch.py`는 `mujoco_ros2_control`과 팔·그리퍼 controller를
-실행한다. 공통 기본 장면도 스터디카페이며, 두 backend를 동시에 실행하지 않는다.
-캔·박스·RGB-D pick·hand-eye 전용 시뮬레이션과 비활성 OBJ는 제거했다.
+실행한다. 두 backend를 동시에 실행하지 않는다. 기본 주행 장면과 기존
+RGB-D pick·hand-eye 데모도 유지한다.
 현재 물체는 종이컵·레고·휴지·마우스이며 외부 OBJ/texture는 마우스만 사용한다.
 로봇 CAD mesh는 공통 모델에 필요한 `cleany_description`에서 관리한다.
 
+주행 기본값은 wheelbase **0.35 m**, track **0.6038 m**, wheel radius
+**0.0635 m**이며 launch/ROS parameter로 변경할 수 있다. CAD 치수이며 실측
+odometry 보정값은 아니다. 기존 액추에이터와 MuJoCo 3.4 제어 호환 경로를
+유지한다. 물성 추정과 모델 계약은
+[cleany_description](../cleany_description/README.md)을 참고한다.
+
 ## 실행과 테스트
+
+### 기존 주행·RGB-D 데모와 카메라 보정
+
+`make sim`과 `mujoco_sim.launch.py`는 기존 평면 주행 장면을 사용한다.
+스터디카페 관찰은 `make sim-mujoco-study-cafe` 또는
+`mujoco_study_cafe.launch.py`로 명시적으로 선택한다.
+
+```bash
+ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
+ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
+```
+
+`handeye_backend.launch.py`, `config/handeye_scene.yaml`과 보정판 asset은
+카메라 보정용 MuJoCo 실행을 위해 유지한다. 장면 사전검사
+`handeye_scene_preflight`와 RGB-D 노드 `mujoco_rgbd_sim_node`도 설치한다.
+기존 보정판 카메라 해상도·시야각과 ChArUco texture 처리는 해당 장면에만
+적용하며, 스터디카페의 head camera·초기 관절·배치·성능 설정은 유지한다.
+단일 자세와 20+5 자세 생성·수집·검증 명령은
+[카메라 보정 패키지 README](../cleany_handeye_calibration/README.md)를 따른다.
+
 
 ### 되돌릴 수 있는 고정 책상 최적화
 
@@ -300,8 +326,8 @@ make test-mujoco
 ```
 
 `make test-mujoco`는 현재 장면과 custom bridge의 전체 단위 테스트를 검사한다.
-이전 데모와 빈 방의 MuJoCo 주행 runtime 검사는 제거했다. 공통 명령 검증·timeout·
-휠 매핑 단위 테스트는 유지하며 전체 물리 수거 성공은 별도 검증 대상이다.
+기존 데모와 장애물 없는 바닥의 주행 검사, 공통 명령 검증·timeout·휠 매핑 검사도
+포함한다. 전체 물리 수거 성공은 별도 검증 대상이다.
 
 ## ROS contract
 
@@ -351,8 +377,8 @@ joint force 한계에는 최대 정지 토크의 90%를 적용한다. 전류, �
 ## 실행 인자
 
 `mujoco_study_cafe.launch.py`는 `headless`를 제공하며 기본은 false다.
-공통 custom bridge인 `mujoco_sim.launch.py`의 `scene_path` 기본값도
-`scenes/study_cafe.xml.in`이다. 주행 관련 bridge parameter는 이 관찰 backend의
+공통 custom bridge인 `mujoco_sim.launch.py`의 `scene_path` 기본값은
+기존 `scenes/default.xml.in`이다. 주행 관련 bridge parameter는 이 관찰 backend의
 공통 기능으로 유지한다.
 
 `study_cafe_backend.launch.py`의 주요 인자:
@@ -458,3 +484,10 @@ label-only 확인은 그 종류에 body가 하나일 때만 가능하다. 등록
 되지 않는다. MuJoCo physics에서 레고의 정상 배치는 확인된다. 기존 observer가 마우스
 mesh의 회전된 local AABB를 변환하면 실제 물체가 내부에 안정되어도 바닥 경계를 벗어나는
 경우가 있어 보수적으로 거부한다. 이 제한을 테스트로 보존하며 허용 오차는 완화하지 않는다.
+
+공통 방·책상 배치는 `main`의 Gazebo 설정을 따른다. MuJoCo에서 사용하던 칸막이 높이는 `mujoco.partition_center_z_m`에서 별도로 지정하므로,
+Gazebo의 공통 배치값을 바꾸지 않고 기존 Action 장면 높이를 유지한다.
+
+카메라 adapter는 보정 launch의 기존 `manifest_path`가 지정되면 해당 manifest의
+시뮬레이션 preflight와 카메라 계약을 적용한다. 일반 Action launch는
+`camera_config`로 지정한 카메라 계약을 사용한다.

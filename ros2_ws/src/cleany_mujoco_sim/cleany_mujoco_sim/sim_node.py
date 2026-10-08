@@ -82,8 +82,8 @@ class MujocoSimNode(Node):
         self.declare_parameter('cmd_vel_timeout_sec', 0.5)
         self.declare_parameter('timeout_check_rate_hz', 20.0)
         self.declare_parameter('wheel_radius', 0.0635)
-        self.declare_parameter('wheelbase_length', 0.30)
-        self.declare_parameter('track_width', 0.51)
+        self.declare_parameter('wheelbase_length', 0.35)
+        self.declare_parameter('track_width', 0.6038)
         self.declare_parameter('max_wheel_speed', 10.815)
         self.declare_parameter('base_drive_enabled', True)
         self.declare_parameter('wheel_kp', 1.0)
@@ -324,6 +324,24 @@ class MujocoSimNode(Node):
         self._last_cmd_vel_time = None
         if self._mujoco_drive is not None:
             self._mujoco_drive.reset()
+
+    @property
+    def simulation_context(self) -> MujocoSimulationContext:
+        return self._simulation_context
+
+
+    def add_step_observer(self, observer: StepObserver) -> None:
+        self._step_observers.append(observer)
+
+
+    @property
+    def simulation_context(self) -> MujocoSimulationContext:
+        return self._simulation_context
+
+
+    def add_step_observer(self, observer: StepObserver) -> None:
+        self._step_observers.append(observer)
+
 
     def _on_timer(self) -> None:
         for _ in range(self._steps_per_tick):

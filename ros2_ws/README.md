@@ -30,7 +30,7 @@ make build
 make test
 ```
 
-`make test`는 13개 패키지를 빌드하고 C++/Python 검사와 패키지에 등록된
+`make test`는 workspace 패키지를 빌드하고 C++/Python 검사와 패키지에 등록된
 MoveIt mock runtime 검사, 개발 도구·vision container 계약 검사를 실행한다.
 Python은 `pytest`를 명시적으로 선택하고 외부 플러그인 자동 로드를 차단한다.
 CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복원한다.
@@ -52,6 +52,52 @@ CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복�
 | MoveIt mock 실행 | `make test-grasp-pregrasp-runtime` |
 | Gazebo | `make test-gazebo` |
 
+Telemetry-only checks use `make build-telemetry` and `make test-telemetry`.
+The `cleany_telemetry` package relays latest-only finite `/odom` `x`/`y`
+and optional yaw over the configured WebSocket; see its README for parameters
+and endpoint.
+
+## 실제 메카넘 base
+
+`cleany_base_interfaces`는 MCU용 고정 크기 메시지 원본,
+`cleany_base_driver`는 `/cmd_vel` 검증, 역기구학과 wheel feedback adapter를 관리한다.
+`cleany_base_odometry`의 wheel odometry를 연결한다.
+
+```bash
+make build-base
+make test-base
+make test-motor-core
+make firmware-smoke
+make firmware-build
+```
+
+Base target은 Ubuntu 22.04 `ros2-humble` Distrobox에서 실행한다. 호스트에서
+호출하면 Make가 Distrobox에 진입한다. Firmware와 Agent 준비는
+[개발환경 설치 가이드](../docs/DEVELOPMENT_SETUP.md#8-모터-컨트롤러와-micro-ros-개발환경)를
+따른다.
+
+ROS의 native 세부 명령은 다음과 같다.
+
+```bash
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon build --symlink-install \
+  --packages-up-to cleany_base_driver cleany_base_odometry
+source install/setup.bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest \
+  src/cleany_base_driver/test src/cleany_base_odometry/test
+```
+
+실물 geometry와 주행 제한은 `configs/robot/`에서 명시적으로 설정한다.
+장치 없는 테스트는 합성 설정과 mock MCU를 사용한다. Launch, enable 절차와
+odometry/TF 소유권은 [`cleany_base_driver` README](src/cleany_base_driver/README.md),
+wheel 순서와 ENABLE/STOP 계약은
+[`cleany_base_interfaces` README](src/cleany_base_interfaces/README.md)를 따른다.
+
+Hand-eye 패키지 경계만 빌드하려면 `make build-handeye`를 사용한다.
+`make test-handeye`는 description, MuJoCo backend, MoveIt config와 calibration
+패키지를 함께 검사하며 실제 runtime test는 자동으로 `headless:=true`를 사용한다.
+
 **모의 Manipulation Action을 직접 실행하려면**
 [Skill Executor의 빠른 시작](src/cleany_skill_executor/docs/manipulation_mock_usage.md#빠른-시작)을 따른다.
 서버·클라이언트 실행, 취소·조회, 실패 재현과 SQLite 기록을 순서대로 안내한다.
@@ -60,8 +106,8 @@ CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복�
 RGB-D perception부터 스터디카페 집기·분류까지 변경할 때는
 `make test-grasp-pregrasp`로 관련 unit/contract 테스트를 실행한다.
 `make test-grasp-pregrasp-runtime`은 MoveIt mock backend에서 OMPL/Pilz 계획과
-controller 실행을 검사한다. 이전 캔·박스·hand-eye 전용 MuJoCo 데모와
-runtime 테스트는 제거했다. 전체 물리 수거 성공은 이 테스트의 검증 범위가 아니다.
+controller 실행을 검사한다. 기존 캔·물체 집기·hand-eye MuJoCo 데모도 유지한다.
+전체 물리 수거 성공은 이 테스트의 검증 범위가 아니다.
 
 `make test-scene-mapping`은 선택형 known-geometry OctoMap updater만 빌드하고
 C++ geometry/TF guard 및 plugin 로딩을 검사한다. 이 검사도
@@ -73,9 +119,10 @@ robot-only 측정 범위는 `src/cleany_scene_mapping/README.md`를 따른다.
 
 Hand-eye의 수학·ROS adapter·오프라인 dataset 검증은
 [`cleany_handeye_calibration` README](src/cleany_handeye_calibration/README.md)를 따른다.
-전용 MuJoCo calibration 실행 경로는 제거했다.
+전용 MuJoCo calibration 실행과 자세 생성은 `make build-handeye`,
+`make handeye-generate-mujoco`, `make handeye-mujoco`로 실행한다.
 
-스터디카페 관찰 장면을 headless 모드로 실행한다.
+기존 기본 주행 장면을 headless 모드로 실행한다.
 
 ```bash
 make sim
@@ -116,7 +163,7 @@ SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'`를 사용�
 `sim_performance_profile:=tabletop_fast`는 선택형이며 기본은 `baseline`이다.
 프로필은 먼 정적 배경 충돌·그림자 설정만 바꾸고 주행에는 사용하지 않는다.
 
-Gazebo Fortress 시뮬레이터는 `make sim-gazebo`로 실행한다.
+Gazebo 시뮬레이터는 `make sim-gazebo`로 실행한다.
 
 Gazebo만 새 환경에서 재현할 때는 아래 순서로 의존성, 기준 환경, 패키지 테스트,
 headless 실행을 확인한다.
@@ -128,11 +175,18 @@ make test-gazebo
 make sim-gazebo
 ```
 
-Gazebo Make target은 지원 환경인 Ubuntu 22.04, ROS 2 Humble과 Gazebo Fortress를
-검사한다.
-`make build-gazebo`와 `make test-gazebo`는 `cleany_gazebo_sim` 및 그 dependency까지만
+Gazebo Make target은 활성 `ROS_DISTRO`와 Gazebo major version을 함께 검사해
+Humble/Fortress 또는 Jazzy/Harmonic profile을 선택한다. `make build-gazebo`와
+`make test-gazebo`는 선택된 profile로 `cleany_gazebo_sim` 및 그 dependency까지만
 빌드한다. 성공 판정 topic과 GUI 실행법은
 [`cleany_gazebo_sim` README](src/cleany_gazebo_sim/README.md)를 따른다.
+
+ROS 2 Jazzy / Gazebo Harmonic 호환 환경은 팀 표준과 분리한다. 환경 준비는
+[개발환경 설치 가이드](../docs/DEVELOPMENT_SETUP.md#7-선택-ros-2-jazzy--gazebo-harmonic-호환-환경)를
+따른다. 두 profile 모두 `make test-gazebo`와 `make sim-gazebo`를 사용하며 Harmonic은
+자동으로 전용 output을 사용한다. 자동 판정이 불가능하면
+`GAZEBO_PROFILE=fortress|harmonic`으로 명시할 수 있다. 활성 `ROS_DISTRO`와 충돌하는
+override는 오류로 종료한다.
 
 지원하는 전체 작업은 `make help`로 확인한다.
 
@@ -151,7 +205,7 @@ source install/setup.bash
 python3 -m pytest src/cleany_mujoco_sim/test/test_scene_loader.py
 colcon test --python-testing pytest
 colcon test-result --verbose
-ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=true
+ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
 ```
 
 `source install/setup.bash`는 build 후 같은 terminal session에서 실행한다.
