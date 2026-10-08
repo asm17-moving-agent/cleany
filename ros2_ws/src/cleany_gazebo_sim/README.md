@@ -1226,3 +1226,9 @@ plugin/sensor/joint/frame, 명시적 pose frame, 방향성 마찰 또는 외부 
 있는 model은 묶지 않는다. 묶인 물체의 model/link 이름은 바뀌므로 개별 물체를
 이름으로 이동·삭제하거나 조회해야 하는 실행에서는 이 옵션을 사용하지 않는다.
 성능은 전체 scene과 ROS workload에 따라 달라지며 `/clock`/wall time으로 측정한다.
+
+`amcl_nav2.launch.py`와 `amcl_nav2_safety.launch.py`의
+`localization_params_file`은 공통 navigation launch로 전달한다. 기본값은 비어 있다.
+추가 odometry error가 없는 wheel 시뮬레이션에서는
+`cleany_navigation/config/amcl_sim_ideal_wheels.yaml`을 명시해 보정 프로파일을
+사용할 수 있다. 실물 또는 noise/stress odometry 설정에는 그대로 적용하지 않는다.

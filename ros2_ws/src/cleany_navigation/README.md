@@ -579,3 +579,16 @@ float64 연속 buffer로 전달하며, 형상 변환과 margin은 같은 값을 
 3D 중심점을 이 index에서 생성한다. 채널별 evidence, clearing 횟수, timestamp,
 snapshot 형식과 발행 주기는 유지하며 restore 시 index를 다시 구성한다.
 이 최적화는 3D 발행 옵션과 입력 freshness/sampling 설정을 바꾸지 않는다.
+
+### Localization 보정 프로파일과 정밀 도착
+
+`localization_params_file:=<AMCL YAML>`은 선택적인 `amcl.ros__parameters`
+overlay다. 기본값은 비어 있으며 motion/safety 설정은 받지 않는다.
+`config/amcl_sim_ideal_wheels.yaml`은 추가 odometry error가 없는 quantized wheel
+시뮬레이션, 5 cm LiDAR-plane 지도 및 measured-noise LiDAR의 보정 후보다.
+실물 odometry나 stress error 실행에는 측정 없이 사용하지 않는다. GT는 관측
+및 검증에만 쓰고 AMCL 입력, goal 또는 controller 피드백으로 넣지 않는다.
+
+Omni motion의 goal checker와 FollowPath는 동일한 3 cm 위치 허용 오차를 사용한다.
+Mission Runtime의 8 cm 원래 목표 검사, freshness/정지/속도 및 deadline은 유지한다.
+지도 양자화·localization 편향과 controller 종료 오차를 구분해 실측해야 한다.

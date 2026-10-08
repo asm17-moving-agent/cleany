@@ -13,9 +13,10 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('map', default_value=str(share/'maps/study_cafe_26cm.yaml')),
         DeclareLaunchArgument('params_file', default_value=str(share/'config/nav2_amcl.yaml')),
+        DeclareLaunchArgument('localization_params_file', default_value=''),
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument('autostart', default_value='true'),
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(navigation/'launch/amcl_nav2.launch.py')),
             launch_arguments={name: LaunchConfiguration(name)
-                              for name in ('map', 'params_file', 'use_sim_time', 'autostart')}.items()),
+                              for name in ('map', 'params_file', 'localization_params_file', 'use_sim_time', 'autostart')}.items()),
     ])

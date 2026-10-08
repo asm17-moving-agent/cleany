@@ -42,6 +42,16 @@ def merge_parameters(target: dict, overlay: dict) -> None:
             target[key] = deepcopy(value)
 
 
+def merge_localization_parameters(target: dict, overlay: dict) -> None:
+    """Keep a localization calibration separate from motion/safety overrides."""
+    amcl = overlay.get('amcl')
+    if (set(overlay) != {'amcl'} or not isinstance(amcl, dict)
+            or set(amcl) != {'ros__parameters'}
+            or not isinstance(amcl['ros__parameters'], dict)):
+        raise ValueError('localization overlay must contain only amcl.ros__parameters')
+    merge_parameters(target, overlay)
+
+
 def set_sim_time(document: dict, use_sim_time: bool) -> None:
     for key, value in document.items():
         if key == 'ros__parameters':
