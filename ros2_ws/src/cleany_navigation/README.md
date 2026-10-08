@@ -609,6 +609,9 @@ Weighted A* retains the configured cost penalty but does not guarantee the
 minimum-cost path. Every endpoint, grid connector, translation and rotation
 uses the configured full footprint with continuous cell/sweep checks;
 unknown cells and newly observed live obstacles reject the route.
+Start and exact-goal grid connectors explicitly separate translation and
+rotation; both pieces must pass the same full sweep, so the motion gate can
+follow the encoded turn before entering a translation segment.
 Sparse explored-state storage avoids allocating one full costmap per heading.
 This attempt receives at most one quarter of the existing shared planning
 budget; it never extends that budget or changes arrival/sensor/velocity guards.

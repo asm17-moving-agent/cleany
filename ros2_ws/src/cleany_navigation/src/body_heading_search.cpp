@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <queue>
+#include <optional>
 #include <unordered_map>
 namespace cleany_navigation {
 nav_msgs::msg::Path checkedBodyHeadingGridPath(
@@ -33,6 +34,18 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
   const auto index=[&](size_t x,size_t y,size_t a){return a*cells+y*width+x;};
   const auto center=[&](size_t n){geometry_msgs::msg::Pose2D p;map.mapToWorld(n%width,(n/width)%height,p.x,p.y);p.theta=(n/cells)*angle_step;return p;};
   const auto connection=[&](const auto &a,auto b){b.theta=a.theta+std::atan2(std::sin(b.theta-a.theta),std::cos(b.theta-a.theta));return sweptPoseConnectionFree(map,footprint,a,b,cancel);};
+  // The motion gate issues translation and rotation separately. A swept
+  // simultaneous connector can be safe geometrically but cannot be followed
+  // by that gate. Retain a safe intermediate pose as part of the actual path.
+  const auto split_connection=[&](const auto &a,auto b)->std::optional<geometry_msgs::msg::Pose2D> {
+    b.theta=a.theta+std::atan2(std::sin(b.theta-a.theta),std::cos(b.theta-a.theta));
+    auto middle=a;middle.theta=b.theta;
+    if(connection(a,middle) && connection(middle,b))return middle;
+    middle=a;middle.x=b.x;middle.y=b.y;
+    if(connection(a,middle) && connection(middle,b))return middle;
+    return std::nullopt;
+  };
+  std::unordered_map<size_t,geometry_msgs::msg::Pose2D> seed_middle;
   struct State {double distance=std::numeric_limits<double>::infinity();size_t parent=std::numeric_limits<size_t>::max();int8_t valid=-1;bool closed=false;};
   // Store explored states only; facility dimensions do not allocate bins full maps.
   std::unordered_map<size_t,State> states;
@@ -46,11 +59,12 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
     const int64_t x=int64_t(sx)+dx,y=int64_t(sy)+dy;
     if(x<0 || y<0 || x>=int64_t(width) || y>=int64_t(height))continue;
     const auto n=index(x,y,a);const auto p=center(n);
-    if(!safe(n) || !connection(first,p))continue;
+    if(!safe(n))continue;
+    const auto middle=split_connection(first,p);if(!middle)continue;seed_middle[n]=*middle;
     const double cost=std::hypot(first.x-p.x,first.y-p.y)+radius*std::abs(std::atan2(std::sin(p.theta-first.theta),std::cos(p.theta-first.theta)));
     states[n].distance=cost;open.push({cost+heuristic(p),cost,n});
   }
-  size_t found=none;
+  size_t found=none;geometry_msgs::msg::Pose2D goal_middle;
   while(!open.empty()){
     if(cancel())return empty;
     const auto entry=open.top();open.pop();auto &current=states[entry.index];
@@ -59,7 +73,9 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
     // Copy before insertions can rehash the sparse state table.
     const double distance=current.distance;const auto p=center(entry.index);
     const int64_t x=entry.index%width,y=(entry.index/width)%height,a=entry.index/cells;
-    if(std::abs(x-int64_t(gx))<=1 && std::abs(y-int64_t(gy))<=1 && connection(p,last)){found=entry.index;break;}
+    if(std::abs(x-int64_t(gx))<=1 && std::abs(y-int64_t(gy))<=1){
+      const auto middle=split_connection(p,last);if(middle){found=entry.index;goal_middle=*middle;break;}
+    }
     const auto consider=[&](int64_t xx,int64_t yy,int64_t aa,double step){
       if(cancel() || xx<0 || yy<0 || xx>=int64_t(width) || yy>=int64_t(height))return;
       aa=(aa+bins)%bins;const auto n=index(xx,yy,aa);
@@ -75,8 +91,10 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
   std::vector<size_t> route;
   for(auto n=found;n!=none;n=states.at(n).parent){if(cancel())return empty;route.push_back(n);}
   std::reverse(route.begin(),route.end());auto path=empty;path.poses.push_back(start);
-  for(auto n:route){if(cancel())return empty;const auto p=center(n);auto z=start;z.pose.position.x=p.x;z.pose.position.y=p.y;z.pose.orientation={};z.pose.orientation.z=std::sin(p.theta/2.);z.pose.orientation.w=std::cos(p.theta/2.);path.poses.push_back(z);}
-  path.poses.push_back(goal);
+  const auto append=[&](const auto &p){auto z=start;z.pose.position.x=p.x;z.pose.position.y=p.y;z.pose.orientation={};z.pose.orientation.z=std::sin(p.theta/2.);z.pose.orientation.w=std::cos(p.theta/2.);path.poses.push_back(z);};
+  append(seed_middle.at(route.front()));
+  for(auto n:route){if(cancel())return empty;append(center(n));}
+  append(goal_middle);path.poses.push_back(goal);
   return sweptPathCollisionFree(path,map,footprint,cancel)?path:empty;
 }
 }

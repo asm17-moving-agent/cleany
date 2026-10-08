@@ -414,6 +414,13 @@ TEST(BodyHeadingGrid, NarrowElbowRequiresBodyRotationAndKeepsExactEndpoints) {
   ASSERT_FALSE(path.poses.empty());
   EXPECT_EQ(path.poses.front().pose,a.pose);EXPECT_EQ(path.poses.back().pose,b.pose);
   EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(path,map,footprint));
+  for(size_t i=1;i<path.poses.size();++i) {
+    const auto &a=path.poses[i-1].pose,&b=path.poses[i].pose;
+    const double ya=2.*std::atan2(a.orientation.z,a.orientation.w),yb=2.*std::atan2(b.orientation.z,b.orientation.w);
+    const bool translating=std::hypot(a.position.x-b.position.x,a.position.y-b.position.y)>1e-8;
+    const bool rotating=std::abs(std::atan2(std::sin(yb-ya),std::cos(yb-ya)))>1e-8;
+    EXPECT_FALSE(translating && rotating);
+  }
   int calls=0;EXPECT_TRUE(cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.,[&]{return ++calls>100;}).poses.empty());
   // A complete barrier cannot be bypassed by changing body yaw.
   for(unsigned int x=0;x<120;++x)for(unsigned int y=50;y<52;++y)map.setCost(x,y,254);
