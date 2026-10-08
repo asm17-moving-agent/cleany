@@ -406,8 +406,10 @@ TEST(BodyHeadingGrid, NarrowElbowRequiresBodyRotationAndKeepsExactEndpoints) {
     geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;footprint.push_back(p);
   }
   geometry_msgs::msg::PoseStamped a,b;a.header.frame_id=b.header.frame_id="map";
-  a.pose.position.x=1.2;a.pose.position.y=1.;a.pose.orientation.w=1.;
-  b.pose.position.x=4.;b.pose.position.y=5.;b.pose.orientation.z=b.pose.orientation.w=std::sqrt(.5);
+  a.pose.position.x=1.2;a.pose.position.y=1.;
+  a.pose.orientation.z=std::sin(.03/2.);a.pose.orientation.w=std::cos(.03/2.);
+  b.pose.position.x=4.;b.pose.position.y=5.;
+  b.pose.orientation.z=std::sin((M_PI/2.-.03)/2.);b.pose.orientation.w=std::cos((M_PI/2.-.03)/2.);
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,footprint,0.,5.).poses.empty());
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,footprint,M_PI/2.,5.).poses.empty());
   auto path=cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.);
