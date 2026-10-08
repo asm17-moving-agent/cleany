@@ -176,3 +176,46 @@ COMMAND_TIMEOUT을 기록했다. 이 실패는 controller 경로 추종의 추�
 이산화의 실패이며 연속 공간의 불가능성 증명은 아니다. 초기 desktop snapshot과
 비교하면 lethal/unknown 셀이 1,163개 추가됐고 51개 제거됐다. 실제 가구 관측과
 잘못된 검출을 구분하려면 원본 센서/obstacle-memory 근거를 추가 확인해야 한다.
+
+### 노트북 비정상 반복 최종 집계 및 controller 진단
+
+노트북 7종 × fresh 5회가 모두 종료됐다. 입력 35개와 status 35개가 정확히 일치하며
+모든 infrastructure exit은 0이다. 각 미션의 실제 terminal/정지/launch 종료를 별도
+판정한 `artifacts/scenarios/laptop_repeat_verdicts.json`은 30개 통과, 5개 미통과다.
+
+| 조건 | 반복 | 기대 판정 통과 |
+| --- | --- | --- |
+| outbound cancel | 5 | 5 |
+| return cancel | 5 | 5 |
+| synthetic safety stop | 5 | 5 |
+| depth-clearance adapter loss | 5 | 0 |
+| inserted obstacle | 5 | 5 |
+| planner process loss | 5 | 5 |
+| blocked target | 5 | 5 |
+
+깊이 안전 입력 유실은 5회 모두 STALE_DEPTH 후 실제 정지(0.404–0.419 wall seconds)를
+관찰했다. raw depth camera는 계속 실행되며 물리 D435 유실을 검증한 것은 아니다.
+cleanup cancel 후 return 실패로 terminal FAILED가 되어 기존 기대 판정을 통과하지
+못했다. 정상 perception/planning/manipulation은 계속 mock이며 물리 로봇 E2E 증거가 아니다.
+
+DWB 진단 구독을 추가한 v3 room-a4-01 재실행은 TIMEOUT이었다(180.38 wall seconds).
+`controller-evidence.jsonl`에는 정체 구간에서 zero command가 반복 선택되고
+PathOrientation score가 0인 기록이 있다. 같은 frame의 실제 transformed path에서는
+현재 pose와 다른 XY/yaw를 가진 첫 grid connector가 관찰됐다. 해당 기록은
+원인 후보를 좁히는 근거이며 단일 원인을 확정하는 동기화된 전체 replay가 아니다.
+진단 구독의 RTF는 성능 비교에 사용하지 않는다.
+
+`5b7e087`은 body-heading grid의 시작/목표 connector를 회전 후 이동 또는 이동 후
+회전으로 명시한다. 두 부분 모두 기존 sweep을 통과해야 하고, 최종 경로의 이동과
+회전이 동시에 바뀌지 않는 단위 검증을 추가했다. 독립 v4 overlay에서 171 tests가
+통과했다. 실제 v4 첫 Gazebo 실행은 시작점 부근 정체 후 NAVIGATION_FAIL
+(67.23 wall seconds, RTF 1.427), 별도 진단 실행은 이동 후 TIMEOUT
+(180.36 wall seconds)으로 실패했다. 두 실행 모두 실제 정지와 launch 종료가 통과했다.
+connector 표현 개선만으로 왕복이 해결된 것은 아니다. 정체 당시 DWB/local costmap을
+함께 수집하려던 진단은 해당 snapshot을 얻지 못했고, 종료된 domain의 read-only
+observer는 종료했다. v4의 13/43 회귀 검증과 desktop 대표 반복은 아직 진행 중이다.
+
+SCRUM-426의 현재 완료 조건도 다시 읽었다: Gazebo 좌석 이동/대기 위치 복귀 시나리오의
+성공 또는 실패를 재현 가능하게 남기는 것이다. issue는 In Review이며 변경하지 않았다.
+이 issue 조건과 별도로 이번 계획의 전체 좌석 조사, 대표 fresh/continuous 반복 및
+이상 상황 반복 범위를 유지한다. 모든 좌석 성공을 달성한 것으로 해석하지 않는다.
