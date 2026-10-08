@@ -62,6 +62,10 @@ group 밖에 유지해 Gazebo create/remove service로 이전 의자를 복원�
 종료 시 기록된 PID가 현재도 해당 실행 경로의 프로세스인지 다시 확인한다.
 
 도구의 최소 관련 검사는 ROS를 시작하지 않고 `make test-scenario-tools`로 실행한다.
+planner 수정 재검증에는 `--navigation-overlay ROOT/ros2_ws/install-navigation/setup.bash`로
+해당 워크트리에서 빌드·테스트한 navigation을 기준 runtime 위에 적용한다. 지정하지
+않으면 기존 baseline을 사용한다. 결과에는 실제 선택된 navigation install prefix와
+공유 라이브러리 SHA-256도 남겨 원래 실패와 수정 후 실행을 구분한다.
 월드 보존, 미션 결과와 정지 판정, 불완전한 반복 거부, 처리량 중앙값 선택,
 현재 프로세스 소유권 검사를 확인한다. 이는 실제 Gazebo 시나리오 검증과 별개다.
 

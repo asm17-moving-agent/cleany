@@ -22,6 +22,8 @@ def main() -> None:
     parser.add_argument('--scenario',default='normal')
     parser.add_argument('--repeats',type=int,default=1)
     parser.add_argument('--container',default='cleany-ros-humble-cdi')
+    parser.add_argument('--navigation-overlay',type=Path,
+                        help='Source a tested navigation overlay after the baseline runtime overlay')
     args=parser.parse_args()
     if not 1<=args.count<=20:parser.error('count must be 1..20')
     if args.repeats<1:parser.error('repeats must be positive')
@@ -39,6 +41,8 @@ def main() -> None:
             cmd=['python3',str(root/'tools/scenario_validation/instance.py'),'--root',str(root),'--fixture',str(root/'artifacts/scenarios/fixture'),'--output',str(output),'--seat',seats[i],'--domain',str(80+i),'--partition',f'cleany_{args.name}_{i}','--gate',str(gate),'--repeats',str(args.repeats),'--scenario',args.scenario]
             if args.sequence:cmd.extend(['--sequence',args.sequence])
             shell=f'source /opt/ros/humble/setup.bash; source {shlex.quote(str(amcl))}; source {shlex.quote(str(overlay))}; exec '+shlex.join(cmd)
+            if args.navigation_overlay:
+                shell=f'source /opt/ros/humble/setup.bash && source {shlex.quote(str(amcl))} && source {shlex.quote(str(overlay))} && source {shlex.quote(str(args.navigation_overlay))} && exec '+shlex.join(cmd)
             log=(out/f'worker-{i:02d}.log').open('w');logs.append(log)
             p=subprocess.Popen(['podman','exec',args.container,'bash','-c',shell],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
             workers.append((p,output))

@@ -52,7 +52,13 @@ manifest['sha256']=hashlib.sha256((run/'world.sdf').read_bytes()).hexdigest()
 input_paths=[fixture/'world.sdf',fixture/'world.study.sdf',fixture/'facility_integration.yaml',fixture/'facility_integration.pgm',fixture/'targets.yaml',fixture/'config/nav2_calibrated.yaml',fixture/'config/nav2_safety.yaml',fixture/'config/cad_frame.yaml',fixture/'config/sensor_tf.yaml',fixture/'config/wheel_odometry.yaml',root/'ros2_ws/src/cleany_mission_manager/config/runtime.yaml',root/'ros2_ws/src/cleany_navigation/config/amcl_sim_ideal_wheels.yaml']
 input_hashes={str(path):hashlib.sha256(path.read_bytes()).hexdigest() for path in input_paths}
 tool_hashes={path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in Path(__file__).parent.glob('*.py') if not path.name.startswith('test_')}
+from ament_index_python.packages import get_package_prefix
+navigation_prefix=Path(get_package_prefix('cleany_navigation'))
+navigation_binary_hashes={str(path):hashlib.sha256(path.read_bytes()).hexdigest()
+ for path in (navigation_prefix/'lib').glob('*.so')}
 children=[];result={'base_commit':'076b893','branch':'test/scrum-426-scenarios','scenario':args.scenario,'domain':args.domain,'partition':args.partition,'world_manifest':manifest,'input_hashes':input_hashes,'tool_hashes':tool_hashes,'requested_rtf':4,'max_step_size':float(os.environ.get('CLEANY_PHYSICS_STEP','0.0066667')),'compact_static_scene':True,'localization_profile':str(root/'ros2_ws/src/cleany_navigation/config/amcl_sim_ideal_wheels.yaml'),'observer_sample_period':.2,'runtime_config':'committed default, navigation_timeout 180','expected_mission_count':len(sequence)*args.repeats,'missions':[]}; streams=[]
+result.update(navigation_install_prefix=str(navigation_prefix),
+              navigation_binary_hashes=navigation_binary_hashes)
 def launch(name,args):
  f=(run/(name+'.log')).open('w');streams.append(f); p=subprocess.Popen(['ros2','launch',*args],stdout=f,stderr=subprocess.STDOUT,start_new_session=True);children.append((name,p));(run/'children.json').write_text(json.dumps([(name,p.pid) for name,p in children]));print('launched',name,p.pid,flush=True)
 import rclpy

@@ -42,6 +42,27 @@ GPU 최대 사용률은 16% 이내이고 5개에서도 MemAvailable은 약 31 Gi
 
 ## 검증 상태와 남은 작업
 
+### 전체 좌석 조사 중 확인한 회전 경로 거부
+
+원래 코드로 조사 중인 첫 21개 결과는 SUCCESS 9개, FAILED 12개다. 첫 6개는
+출발점에서 이동 없이 약 10.7초에 NAVIGATION_FAIL로 종료됐다. 1번의 planner
+failure.json/search.bin/live.bin에서 시작과 목표 footprint 자체는 충돌하지 않았다.
+180도 회전을 하나의 conservative sweep으로 검사하면 arc padding이 약 0.67m까지
+커져 실제 회전 궤적 밖의 벽/책상 셀도 포함한다. 각도 구간별 연속 sweep으로 같은
+회전을 검사하면 충돌하지 않는다. 원래 실패 로그는 보존했다.
+
+planner endpoint 회전과 live path 검증을 각 모서리의 각도 이동이 지도 해상도의
+절반 이하인 구간으로 나눴다. 각 구간은 기존 full-cell SAT/arc bound를 유지하며
+실제 회전 중 접촉, unknown, padding과 cancellation은 계속 거부한다. Controller
+rollout 검사는 바꾸지 않았다. 로컬 ROS Humble container에서 `make test-navigation`:
+170 tests, 0 errors/failures/skipped. `make test-scenario-tools`: 21 passed.
+
+`artifacts/scenarios/planner-replay/`에 원래 1번 snapshot, 임시 C++ replay 코드와
+replay_result.json을 저장했다. 수정 라이브러리로 같은 snapshot에서 goal/start heading
+두 경로 모두 261 poses, 약 0.019/0.018초에 반환되고 전체 sweep을 통과했다. 이는
+저장 비용지도 재검증이며 실제 Gazebo 왕복 성공 증거는 아니다. 기존 조사와 smoke가
+종료된 뒤 독립 navigation overlay를 빌드하고 원래 실패 좌석을 재검증한다.
+
 - 월드 보존, 잘못된 terminal mission ID, 실제로 움직이는 최종 상태,
   sensor-loss 취소 이전 정지 판정의 관련 테스트와 순서/소유권/움직임 방향/전체 좌석 coverage 검사: 18 passed (`make test-scenario-tools`).
 - 82개 좌석별 의자 대응과 제거 검사: 통과.
