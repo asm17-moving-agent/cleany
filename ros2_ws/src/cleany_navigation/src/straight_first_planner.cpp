@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <cstdint>
 #include <numeric>
+#include <limits>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include "nav2_costmap_2d/footprint_collision_checker.hpp"
@@ -60,6 +61,34 @@ bool validSweptInput(const nav_msgs::msg::Path &route,
   return true;
 }
 }
+bool sweptPoseConnectionFree(const nav2_costmap_2d::Costmap2D &map,
+  const std::vector<geometry_msgs::msg::Point> &footprint,
+  const geometry_msgs::msg::Pose2D &a,const geometry_msgs::msg::Pose2D &b,
+  const std::function<bool()> &cancel) {
+  if(cancel() || footprint.size()<3 || !std::isfinite(a.theta) ||
+    !std::isfinite(b.theta) || !std::isfinite(map.getResolution()) || map.getResolution()<=0.)return false;
+  double radius=0.;
+  for(const auto &p:footprint) {
+    if(!std::isfinite(p.x) || !std::isfinite(p.y))return false;
+    radius=std::max(radius,std::hypot(p.x,p.y));
+  }
+  // Each interval retains the full-cell SAT and arc-deviation bound. This
+  // tightens that bound for large rotations; it does not sample away motion
+  // between endpoints or change the required footprint.
+  const double steps=std::ceil(radius*std::abs(b.theta-a.theta)/(map.getResolution()/2.));
+  if(!std::isfinite(steps) || steps>std::numeric_limits<unsigned int>::max())return false;
+  const auto count=std::max(1u,static_cast<unsigned int>(steps));
+  auto previous=a;
+  for(unsigned int i=0;i<count;++i) {
+    if(cancel())return false;
+    const double f=double(i+1)/count;
+    geometry_msgs::msg::Pose2D next;
+    next.x=a.x+f*(b.x-a.x);next.y=a.y+f*(b.y-a.y);next.theta=a.theta+f*(b.theta-a.theta);
+    if(!sweptFootprintFree(map,footprint,previous,next))return false;
+    previous=next;
+  }
+  return !cancel();
+}
 bool sweptPathCollisionFree(const nav_msgs::msg::Path &route,
   nav2_costmap_2d::Costmap2D &map,const std::vector<geometry_msgs::msg::Point> &footprint,
   const std::function<bool()> &cancel) {
@@ -73,7 +102,7 @@ bool sweptPathCollisionFree(const nav_msgs::msg::Path &route,
     if(cancel())return false;
     geometry_msgs::msg::Pose2D b;b.x=p.pose.position.x;b.y=p.pose.position.y;
     b.theta=a.theta+wrap(yaw(p.pose.orientation)-a.theta);
-    if(!sweptFootprintFree(map,footprint,a,b))return false;
+    if(!sweptPoseConnectionFree(map,footprint,a,b,cancel))return false;
     a=b;
   }
   return !cancel();

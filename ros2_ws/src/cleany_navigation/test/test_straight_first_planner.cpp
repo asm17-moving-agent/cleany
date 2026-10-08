@@ -194,6 +194,30 @@ TEST(StraightFirstPlanner, FixedHeadingGridSearchFindsBodySafeDetourAndChecksEnd
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,body,M_PI/2,5.).poses.empty());
 }
 
+TEST(StraightFirstPlanner, HalfTurnUsesContinuousSubintervalsAndStillRejectsCornerCollision) {
+  nav2_costmap_2d::Costmap2D map(100,100,.05,-2.5,-2.5,0);
+  std::vector<geometry_msgs::msg::Point> body;
+  for(auto xy:std::vector<std::pair<double,double>>{{-.2,-.4},{.2,-.4},{.2,.4},{-.2,.4}}) {
+    geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;body.push_back(p);
+  }
+  geometry_msgs::msg::PoseStamped start,goal;start.header.frame_id=goal.header.frame_id="map";
+  start.pose.orientation.w=1.;goal.pose.orientation.z=1.;goal.pose.orientation.w=0.;goal.pose.position.x=1.;
+  unsigned int x,y;ASSERT_TRUE(map.worldToMap(.675,.675,x,y));map.setCost(x,y,254);
+  auto path=cleany_navigation::checkedFixedHeadingGridPath(start,goal,map,body,M_PI,5.);
+  ASSERT_FALSE(path.poses.empty());
+  EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(path,map,body));
+  int polls=0;
+  EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(start,goal,map,body,M_PI,5.,
+    [&]{return ++polls>4;}).poses.empty());
+  // Both endpoint orientations are free, but the rotating corner contacts
+  // this cell between them. Continuous subintervals must retain that veto.
+  ASSERT_TRUE(map.worldToMap(.375,.125,x,y));map.setCost(x,y,254);
+  nav_msgs::msg::Path turn;turn.header=start.header;turn.poses={start,start};
+  turn.poses.back().pose.orientation.z=1.;turn.poses.back().pose.orientation.w=0.;
+  EXPECT_FALSE(cleany_navigation::sweptPathCollisionFree(turn,map,body));
+  EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(start,goal,map,body,M_PI,5.).poses.empty());
+}
+
 TEST(StraightFirstPlanner, FixedHeadingGridSearchHandlesWrappedYawAndInvalidInputs) {
   nav2_costmap_2d::Costmap2D map(80,80,.05,-2,-2,0);
   std::vector<geometry_msgs::msg::Point> body;

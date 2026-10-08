@@ -462,7 +462,12 @@ replan. This searches for clearance for the chosen body
 orientation instead of simply reorienting a tangent-yaw lattice route that
 hugs a corner. Eight-neighbor edges, exact start/goal connections and endpoint
 rotations use the full-cell swept-footprint model, with the configured robot
-footprint and safety padding. Lethal/unknown cells and map boundaries veto
+footprint and safety padding unchanged. Large endpoint turns are divided into angular intervals
+whose corner travel is at most half a map cell. Every interval retains the
+conservative continuous arc bound and full-cell collision check; this avoids
+rejecting a clear half-turn because its single-interval bound is too broad.
+Cancellation is checked between intervals. The controller rollout sweep is
+unchanged. Lethal/unknown cells and map boundaries veto
 sweeps; inflated center costs also penalize search via `GridBased.cost_penalty`.
 The search uses the private map snapshot. A returned route must independently
 pass the same swept check on the latest locked live map. Live verification

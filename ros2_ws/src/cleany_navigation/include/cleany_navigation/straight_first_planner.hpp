@@ -1,7 +1,14 @@
 #pragma once
 #include <functional>
+#include "geometry_msgs/msg/pose2_d.hpp"
 #include "nav2_core/global_planner.hpp"
 namespace cleany_navigation {
+// Certify the entire linear center/yaw connection with conservative sweeps
+// on short angular intervals. The caller holds the costmap mutex.
+bool sweptPoseConnectionFree(const nav2_costmap_2d::Costmap2D &,
+  const std::vector<geometry_msgs::msg::Point> &,
+  const geometry_msgs::msg::Pose2D &,const geometry_msgs::msg::Pose2D &,
+  const std::function<bool()> &cancel = [] {return false;});
 // Validate the exact supplied poses, without choosing another yaw strategy.
 bool sweptPathCollisionFree(const nav_msgs::msg::Path &,
   nav2_costmap_2d::Costmap2D &,const std::vector<geometry_msgs::msg::Point> &,
