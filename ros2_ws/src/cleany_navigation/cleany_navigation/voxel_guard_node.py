@@ -25,7 +25,7 @@ from tf2_ros import Buffer, TransformListener, TransformException
 from cleany_navigation.body_geometry import load_body_boxes
 from cleany_navigation.transforms import transform
 from cleany_navigation.point_cloud import cloud_xyz, xyz_cloud
-from cleany_navigation.voxel_guard import GuardConfig, VoxelGuard
+from cleany_navigation.voxel_guard import GuardConfig, VoxelGuard, local_window_covers
 
 
 def twist_vector(msg: Twist) -> np.ndarray:
@@ -193,6 +193,11 @@ class VoxelGuardNode(Node):
             max_yaw = max(abs(requested[2]), abs(measured[2]))
             horizon = config.reaction_s+max(max_speed/config.linear_deceleration, max_yaw/config.angular_deceleration)+config.slowdown_lookahead_s
             radius = self.guard.radius+config.margin+max_speed*horizon+np.linalg.norm(size)
+            if self.p['voxel_topic'].endswith('local_voxels'):
+                if not local_window_covers(self.status.get('local_center'),
+                    float(self.status.get('local_radius', 0)), float(self.status.get('near_radius', 0)),
+                    pose[:2, 3], radius, self.cloud[0], self.status['stamp_s']):
+                    raise ValueError('Local voxel window does not cover the braking sweep')
             nearby = points[np.linalg.norm(points[:, :2]-pose[:2, 3], axis=1) <= radius]
             output, collision = self.guard.evaluate(nearby, size, pose, requested, measured)
             risk_points = nearby[collision.pop('hit_indices')]

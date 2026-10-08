@@ -139,3 +139,17 @@ class VoxelGuard:
             decision = 'SLOW_OBSTACLE' if far.any() else 'PASS_OBSERVED_SPACE'
         return output, dict(decision=decision, stop_voxels=int(near.sum()),
                             slow_voxels=int(far.sum()), hit_indices=np.flatnonzero(near|far).tolist())
+
+
+def local_window_covers(center: np.ndarray, local_radius: float, near_radius: float,
+                        robot_xy: np.ndarray, sweep_radius: float,
+                        cloud_stamp: float, status_stamp: float) -> bool:
+    """A cropped cloud is usable only with matching metadata and a full sweep."""
+    center = np.asarray(center, dtype=float)
+    if center.shape != (2,) or not np.isfinite(center).all():
+        return False
+    values = [local_radius, near_radius, sweep_radius, cloud_stamp, status_stamp]
+    if not np.isfinite(values).all() or min(local_radius, near_radius, sweep_radius) <= 0:
+        return False
+    return bool(abs(cloud_stamp-status_stamp) <= 1e-6 and
+                sweep_radius+np.linalg.norm(center-robot_xy) <= min(local_radius, near_radius))

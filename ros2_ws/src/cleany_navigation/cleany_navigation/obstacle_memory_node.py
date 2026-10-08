@@ -20,7 +20,7 @@ from std_msgs.msg import String
 from cleany_navigation.point_cloud import cloud_xyz, xyz_cloud
 from tf2_ros import Buffer, TransformException, TransformListener
 
-from cleany_navigation.obstacle_memory import MemoryGeometry, ObstacleMemory
+from cleany_navigation.obstacle_memory import MemoryGeometry, ObstacleMemory, local_observation
 
 
 from cleany_navigation.transforms import transform
@@ -35,16 +35,34 @@ class ObstacleMemoryNode(Node):
                             ('max_height', 2.0), ('z_resolution', 0.10), ('update_period', 0.5),
                             ('save_period', 5.0), ('mark_range', 4.0), ('clear_range', 5.0),
                             ('scan_stride', 2), ('max_depth_rays', 1200), ('publish_3d', False),
-                            ('mark_all_depth_points', False), ('source_timeout_s', .8)]:
+                            ('mark_all_depth_points', False), ('source_timeout_s', .8),
+                            ('shared_voxel_costmap', False), ('base_frame', 'base_link'), ('near_radius', 3.0), ('local_radius', 4.0),
+                            ('far_update_period', 1.0), ('world_publish_period', 1.0),
+                            ('expiry_period', 1.0), ('memory_ttl_s', 300.0),
+                            ('projection_min_z', -100.0), ('projection_max_z', 100.0)]:
             self.declare_parameter(name, value)
         self.values = {name: self.get_parameter(name).value for name in (
             'output_directory', 'restore_path', 'floor_z', 'min_height', 'max_height', 'z_resolution',
             'update_period', 'save_period', 'mark_range', 'clear_range', 'scan_stride', 'max_depth_rays',
-            'publish_3d', 'mark_all_depth_points', 'source_timeout_s')}
+            'publish_3d', 'mark_all_depth_points', 'source_timeout_s', 'base_frame',
+            'near_radius', 'local_radius', 'far_update_period', 'world_publish_period',
+            'expiry_period', 'memory_ttl_s', 'projection_min_z', 'projection_max_z')}
         if min(self.values[k] for k in ('update_period', 'save_period', 'scan_stride', 'max_depth_rays', 'mark_range')) <= 0:
             raise ValueError('Periods, sampling counts and marking range must be positive')
         if self.values['clear_range'] < self.values['mark_range']:
             raise ValueError('Clearing range must cover marking range')
+        for key in ('near_radius', 'local_radius', 'far_update_period', 'world_publish_period', 'expiry_period'):
+            if not np.isfinite(self.values[key]) or self.values[key] <= 0:
+                raise ValueError(f'Invalid {key}')
+        if not np.isfinite(self.values['memory_ttl_s']) or self.values['memory_ttl_s'] < 0:
+            raise ValueError('Invalid memory_ttl_s')
+        if self.values['projection_min_z'] >= self.values['projection_max_z']:
+            raise ValueError('Invalid projection height range')
+        self.center = None
+        self.last_far: dict[str, float] = {}
+        self.last_world = self.last_expiry = -float('inf')
+        self.last_update = None
+        self.expired_count = 0
         self.directory = Path(self.values['output_directory']) if self.values['output_directory'] else None
         if self.directory is not None:
             self.directory.mkdir(parents=True, exist_ok=True)
@@ -63,9 +81,10 @@ class ObstacleMemoryNode(Node):
         self.listener = TransformListener(self.buffer, self)
         durable = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.voxel_publisher = self.create_publisher(PointCloud2, 'obstacle_memory/voxels', durable)
+        self.local_publisher = self.create_publisher(PointCloud2, 'obstacle_memory/local_voxels', durable)
         self.voxel_status = self.create_publisher(String, 'obstacle_memory/voxel_status', durable)
         self.grid_publishers = {key: self.create_publisher(OccupancyGrid, 'obstacle_memory/'+key, durable)
-                           for key in ('grid', 'lidar', 'depth')}
+                           for key in ('grid', 'lidar', 'depth', 'navigation_grid')}
         self.create_subscription(OccupancyGrid, self.get_parameter('map_topic').value, self.on_map, durable)
         self.create_subscription(LaserScan, self.get_parameter('scan_topic').value,
                                  lambda m: self.latest.update(lidar=m), qos_profile_sensor_data)
@@ -176,8 +195,13 @@ class ObstacleMemoryNode(Node):
         sensor = np.array([pose.translation.x, pose.translation.y, pose.translation.z])
         if not len(points):
             return
-        self.memory.observe(source, sensor, transform(points, pose), hits, time.time(),
-                            transform(full_hits, pose) if full_hits is not None else None)
+        points = transform(points, pose)
+        full_hits = transform(full_hits, pose) if full_hits is not None else None
+        if self.center is not None and now-self.last_far.get(source, -float('inf')) < v['far_update_period']:
+            points, hits, full_hits = local_observation(sensor, points, hits, full_hits, self.center, v['near_radius']+np.linalg.norm([self.info.resolution, self.info.resolution, v['z_resolution']]))
+        else:
+            self.last_far[source] = now
+        self.memory.observe(source, sensor, points, hits, stamp_s, full_hits)
         self.source_stamps[source] = stamp_s
         self.voxel_revision += 1
         self.processed[source] = stamp
@@ -186,6 +210,23 @@ class ObstacleMemoryNode(Node):
     def update(self):
         if self.memory is None or not self.enabled:
             return
+        now = self.get_clock().now().nanoseconds/1e9
+        if self.last_update is not None and now < self.last_update:
+            self.enabled = False
+            self.map_fault = 'ROS clock reset; restart mapping'
+            self.publish_voxels()
+            return
+        self.last_update = now
+        try:
+            pose = self.buffer.lookup_transform(self.map_frame, self.values['base_frame'], Time())
+            if not 0 <= now-Time.from_msg(pose.header.stamp).nanoseconds/1e9 <= self.values['source_timeout_s']:
+                return
+            self.center = np.array([pose.transform.translation.x, pose.transform.translation.y])
+        except TransformException:
+            return
+        if now-self.last_expiry >= self.values['expiry_period']:
+            self.expired_count += self.memory.expire(now, self.values['memory_ttl_s'])
+            self.last_expiry = now
         for source, msg in list(self.latest.items()):
             self.observe(source, msg)
         self.publish()
@@ -194,8 +235,15 @@ class ObstacleMemoryNode(Node):
         if self.values['publish_3d']:
             self.publish_voxels()
         fused = None
+        diagnostic_due = not hasattr(self, 'last_diagnostic') or self.get_clock().now().nanoseconds/1e9-self.last_diagnostic >= self.values['world_publish_period']
         for name, publisher in self.grid_publishers.items():
-            grid = self.memory.grid(None if name == 'grid' else name)
+            if name != 'navigation_grid' and not diagnostic_due:
+                continue
+            navigation = name == 'navigation_grid'
+            grid = self.memory.grid(None if name in ('grid', 'navigation_grid') else name,
+                min_z=self.values['projection_min_z'] if navigation else None,
+                max_z=self.values['projection_max_z'] if navigation else None,
+                block_expired=navigation)
             msg = OccupancyGrid()
             msg.header.frame_id = self.map_frame
             msg.header.stamp = self.get_clock().now().to_msg()
@@ -206,6 +254,9 @@ class ObstacleMemoryNode(Node):
             publisher.publish(msg)
             if name == 'grid':
                 fused = grid.ravel()
+        if fused is None:
+            return
+        self.last_diagnostic = self.get_clock().now().nanoseconds/1e9
         changed = np.arange(len(fused)) if self.previous_grid is None else np.flatnonzero(fused != self.previous_grid)
         if len(changed) and self.directory is not None:
             with (self.directory/'changes.jsonl').open('a') as stream:
@@ -216,12 +267,24 @@ class ObstacleMemoryNode(Node):
     def publish_voxels(self):
         g = self.memory.geometry
         stamp = self.get_clock().now().to_msg()
-        points = self.memory.occupied_centers()
-        self.voxel_publisher.publish(xyz_cloud(points, self.map_frame, stamp))
+        now = Time.from_msg(stamp).nanoseconds/1e9
+        # Full-world transport is diagnostic and runs slower than the local gate.
+        if now-self.last_world >= self.values['world_publish_period']:
+            points = self.memory.occupied_centers()
+            self.voxel_publisher.publish(xyz_cloud(points, self.map_frame, stamp))
+            self.last_world = now
+        local_count = 0
+        if self.center is not None:
+            nearby = self.memory.occupied_centers(center=self.center, radius=self.values['local_radius'], include_expired=True)
+            self.local_publisher.publish(xyz_cloud(nearby, self.map_frame, stamp))
+            local_count = len(nearby)
         status = dict(enabled=self.enabled, map_fault=self.map_fault, revision=self.voxel_revision,
                       stamp_s=Time.from_msg(stamp).nanoseconds/1e9, source_stamps=self.source_stamps,
                       voxel_size=[g.resolution, g.resolution, g.z_resolution],
-                      occupied_voxels=len(points), map_id=g.map_id,
+                      occupied_voxels=len(self.memory.occupied_at[0].keys() | self.memory.occupied_at[1].keys()), map_id=g.map_id,
+                      local_voxels=local_count, local_center=self.center.tolist() if self.center is not None else None,
+                      local_radius=self.values['local_radius'], near_radius=self.values['near_radius'], expired_voxels=sum(len(s) for s in self.memory.expired),
+                      memory_ttl_s=self.values['memory_ttl_s'], expired_total=self.expired_count,
                       min_xyz=[g.origin_x, g.origin_y, g.min_z],
                       max_xyz=[g.origin_x+g.width*g.resolution, g.origin_y+g.height*g.resolution, g.max_z])
         self.voxel_status.publish(String(data=json.dumps(status)))

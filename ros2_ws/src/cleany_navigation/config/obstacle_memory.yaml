@@ -8,3 +8,11 @@ obstacle_memory:
     source_timeout_s: 0.8
     output_directory: ''
     restore_path: ''
+    # Prototype tuning values: validate against the actual body/braking envelope.
+    shared_voxel_costmap: true
+    near_radius: 3.0
+    local_radius: 4.0
+    far_update_period: 1.0
+    world_publish_period: 1.0
+    memory_ttl_s: 300.0
+    expiry_period: 1.0
