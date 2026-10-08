@@ -17,6 +17,7 @@ import xacro
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
     load_parameters, merge_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice)
+from cleany_navigation.bt_trace import describe_tree
 from cleany_navigation.urdf_geometry import forward_kinematics, apply_simulation_geometry
 
 
@@ -139,15 +140,22 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
     parameters = adapt_nav2_parameters(parameters, os.environ.get('ROS_DISTRO', ''))
     if safety:
         tree = directory/'wait_before_detour.xml'
-        tree.write_text(adapt_behavior_tree((share/'config/behavior_trees/wait_before_detour.xml').read_text(),
-                                           os.environ.get('ROS_DISTRO', '')))
+        runtime_xml, manifest = describe_tree(adapt_behavior_tree(
+            (share/'config/behavior_trees/wait_before_detour.xml').read_text(),
+            os.environ.get('ROS_DISTRO', '')), str(tree))
+        tree.write_text(runtime_xml)
+        manifest_file = directory/'bt_manifest.json'
+        manifest_file.write_text(json.dumps(manifest, ensure_ascii=False))
         parameters['bt_navigator']['ros__parameters']['default_nav_to_pose_bt_xml'] = str(tree)
     merged = directory/'parameters.yaml'
     merged.write_text(yaml.safe_dump(parameters, sort_keys=False))
     nodes = nav2_nodes(str(merged), str(map_yaml), sim_time, autostart)
     if not safety:
         return nodes
-    result = [GroupAction([SetRemap(src='cmd_vel', dst='nav2/cmd_vel'), *nodes])]
+    result = [GroupAction([SetRemap(src='cmd_vel', dst='nav2/cmd_vel'), *nodes]),
+        Node(package='cleany_navigation', executable='nav2_bt_trace', name='nav2_bt_trace',
+             output='screen', parameters=[{'use_sim_time': sim_time,
+                 'manifest_file': str(manifest_file), 'xml_file': str(tree)}])]
     for executable, enabled in [('depth_clearance', True), ('pan_motion_gate', pan),
                                 ('obstacle_memory', memory), ('voxel_guard', voxel),
                                 ('reactive_guard', safety_mode == 'reactive'),

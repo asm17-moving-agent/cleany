@@ -1,0 +1,63 @@
+.recording-options {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.recording-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+.recording-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.recording-toolbar input[type="number"],
+.recording-source input[type="number"] {
+  width: 90px;
+}
+.recording-options input:not([type="checkbox"]),
+.recording-options select {
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.recording-options td label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.recording-options td small,
+.recording-replay small {
+  display: block;
+  color: var(--muted-foreground);
+}
+.recording-source {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.recording-source > input {
+  min-width: 220px;
+  max-width: 100%;
+  flex: 1;
+}
+.recording-table {
+  overflow-x: auto;
+}
+.recording-replay {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.recording-replay > div {
+  margin: 8px 0;
+}

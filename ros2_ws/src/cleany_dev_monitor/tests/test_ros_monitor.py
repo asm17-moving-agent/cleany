@@ -250,3 +250,93 @@ def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, mo
         source.destroy_node()
         executor.shutdown()
         rclpy.shutdown()
+
+
+def test_bt_snapshot_latched_discovery_preserves_full_tree(tmp_path, monkeypatch):
+    import json
+    import rclpy
+    from cleany_dev_monitor.node import MonitorNode
+    from rclpy.executors import SingleThreadedExecutor
+    from rclpy.qos import DurabilityPolicy, QoSProfile
+    from std_msgs.msg import String
+
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda *args: None)
+    rclpy.init()
+    source = rclpy.create_node('bt_tree_source')
+    pub = source.create_publisher(String, '/navigation/bt_trace',
+                                  QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+    data = {'schema': 1, 'nodes': [{'id': str(i), 'parent': None, 'ports': {'path': '{path}'}} for i in range(40)],
+            'states': {str(i): 'UNKNOWN' for i in range(40)}, 'history': [], 'xml_sha256': 'recorded'}
+    pub.publish(String(data=json.dumps(data)))
+    monitor = MonitorNode()
+    executor = SingleThreadedExecutor()
+    executor.add_node(source)
+    executor.add_node(monitor)
+    try:
+        deadline = time.monotonic()+6
+        found = []
+        while time.monotonic() < deadline:
+            executor.spin_once(timeout_sec=.05)
+            found = [r for r in monitor.hub.snapshot()['rows'] if r['kind'] == 'nav2_bt_tree']
+            if found:
+                break
+        assert found and found[0]['data'] == data
+    finally:
+        monitor.destroy_node()
+        source.destroy_node()
+        executor.shutdown()
+        rclpy.shutdown()
+
+
+@pytest.mark.parametrize('key', ['point_cloud','voxel_layer','voxel_world','camera','lidar'])
+def test_raw_point_cloud_recording_without_browser_and_off_release(tmp_path, monkeypatch, key):
+    import rclpy
+    from rclpy.serialization import deserialize_message
+    from rclpy.qos import qos_profile_sensor_data
+    from rclpy.executors import SingleThreadedExecutor
+    from sensor_msgs.msg import PointCloud2, Image, LaserScan
+    from nav2_msgs.msg import VoxelGrid
+    from cleany_dev_monitor.node import MonitorNode
+    from cleany_dev_monitor.core import Recorder
+    from cleany_dev_monitor.recording import defaults
+    import zlib
+
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda *args: None)
+    rclpy.init()
+    monitor = MonitorNode()
+    source = rclpy.create_node('raw_recording_source')
+    executor = SingleThreadedExecutor()
+    executor.add_node(monitor)
+    executor.add_node(source)
+    settings = defaults()
+    settings['enabled'][key] = True
+    monitor.hub.recording.configure(settings)
+    message = (VoxelGrid(size_x=1,size_y=1,size_z=2,data=[1]) if key=='voxel_layer' else
+               Image(height=2,width=2,encoding='rgb8',step=6,data=b'\x7f'*12) if key=='camera' else
+               LaserScan(ranges=[1.,2.,3.]) if key=='lidar' else
+               PointCloud2(height=1,width=10000,point_step=4,row_step=40000,data=b'\x00'*40000))
+    topic = settings['topics'][key]
+    pub = source.create_publisher(type(message), topic, qos_profile_sensor_data)
+    recorder = Recorder(tmp_path, controls=monitor.hub.recording)
+    try:
+        deadline=time.monotonic()+6
+        found=None
+        while time.monotonic()<deadline:
+            pub.publish(message)
+            executor.spin_once(timeout_sec=.03)
+            recorder.append_raw()
+            found=recorder.db.execute("SELECT payload FROM raw_messages WHERE category=?", (key,)).fetchone()
+            if found:
+                break
+        assert found and deserialize_message(zlib.decompress(found[0]), type(message)) == message
+        assert not monitor.hub.selections() and not monitor.hub.cameras.selected()
+        monitor.hub.recording.configure(defaults())
+        monitor.discover()
+        assert topic not in monitor.subs
+        assert not monitor.hub.recording.reserve(topic)
+    finally:
+        recorder.close()
+        monitor.destroy_node()
+        source.destroy_node()
+        executor.shutdown()
+        rclpy.shutdown()

@@ -9,6 +9,7 @@ import time
 from collections import deque
 
 import rclpy
+from rclpy.serialization import serialize_message
 from rclpy.action import (
     get_action_client_names_and_types_by_node,
     get_action_names_and_types,
@@ -58,6 +59,7 @@ class MonitorNode(Node):
             "collision_state_topic": "/collision_monitor_state",
             "coverage_topic": "/head_pan/coverage",
             "nav2_bt_topic": "/behavior_tree_log",
+            "nav2_bt_trace_topic": "/navigation/bt_trace",
             "controller_evaluation_topic": "/evaluation",
             "scan_topic": "/scan",
             "depth_points_topic": "/camera/head/depth/obstacle_points",
@@ -139,6 +141,7 @@ class MonitorNode(Node):
             self.config["local_costmap_topic"]: "local_costmap",
             self.config["global_costmap_topic"]: "global_costmap",
         }
+        self.fixed.add(self.config["nav2_bt_trace_topic"])
         self.fixed.update(self.layers)
         self.fixed.update(self.config[key+"_topic"] for key in (
             "odometry", "ground_truth", "amcl_pose", "pan_state", "reactive_guard",
@@ -185,7 +188,8 @@ class MonitorNode(Node):
         }
         topics = dict(self.get_topic_names_and_types())
         selected = self.hub.selections()
-        wanted = self.fixed | selected | self.hub.cameras.selected()
+        self.hub.recording.discover(topics)
+        wanted = self.fixed | selected | self.hub.cameras.selected() | self.hub.recording.topics()
         # Action status/feedback are read-only public topics, not goal/result services.
         wanted.update(
             sorted(
@@ -341,6 +345,10 @@ class MonitorNode(Node):
         stamp = getattr(getattr(message, "header", None), "stamp", None)
         ros_time = stamp.sec + stamp.nanosec / 1e9 if stamp else None
         try:
+            ticket = self.hub.recording.reserve(topic)
+            if ticket:
+                message_type = self.subs[topic][1][0][0]
+                self.hub.recording.offer(ticket, topic, message_type, serialize_message(message), ros_time)
             if hasattr(message, "encoding") or (
                 hasattr(message, "format") and hasattr(message, "data")
             ):
@@ -427,6 +435,13 @@ class MonitorNode(Node):
                         {"time": value, "unchanged_for": now - self.last_clock_changed},
                     )
                     self.last_ui[topic] = now
+            elif topic == self.config["nav2_bt_trace_topic"]:
+                if len(message.data.encode()) > 262144:
+                    raise ValueError("BT snapshot exceeds observation limit")
+                data = json.loads(message.data)
+                if data.get("schema") != 1 or not isinstance(data.get("nodes"), list) or len(data["nodes"]) > 256:
+                    raise ValueError("Unsupported BT snapshot")
+                self.hub.put("nav2_bt_tree", topic, data, ros_time=ros_time)
             elif topic == self.config["nav2_bt_topic"]:
                 self.navigation_receive(topic, message, ros_time)
             elif now - self.last_ui.get(topic, 0) >= (0.5 if topic in self.navigation_keys and self.navigation_keys[topic] in ("scan", "depth_points", "risk_points", "controller_evaluation") else 0.1):

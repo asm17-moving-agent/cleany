@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel } from "@/components/panel";
 import { type Data, type Row, time as stamp } from "@/lib/monitor";
 import "./navigation.css";
+import { Nav2BtTree } from "./nav2-bt-tree";
 
 type Props = {
   rows: Row[];
@@ -414,6 +415,7 @@ export function NavigationDashboard(p: Props) {
   const { rows, config, graph, timeAt, replay, tab, setTab } = p;
   const observation = (key: string) =>
     rows.find((r) => r.kind === "navigation" && r.key === key);
+  const treeRow = p.rows.find((row) => row.kind === "nav2_bt_tree");
   const summaryRow = observation("summary");
   const summary = summaryRow?.data || {};
   const runtimeRow = rows.find((r) => r.kind === "runtime");
@@ -967,17 +969,31 @@ export function NavigationDashboard(p: Props) {
             </div>
             <SpeedPlot summary={summary} />
           </Panel>
-          <div className="nav-overview">
+          <div className="nav-overview nav-control-flow">
             {p.map}
             <Panel
-              title="Nav2 BT · 관측된 노드 상태"
+              title="Nav2 BT · 실행 트리"
               aside={
-                <Tag tone={fresh(observation("nav2_bt")) ? "good" : "warn"}>
-                  {observation("nav2_bt") ? "이벤트 기반" : "미수신"}
+                <Tag
+                  tone={
+                    treeRow && timeAt - treeRow.received_at < 2
+                      ? "good"
+                      : "warn"
+                  }
+                >
+                  {treeRow
+                    ? timeAt - treeRow.received_at < 2
+                      ? "구조·상태 수신"
+                      : "관측 지연"
+                    : observation("nav2_bt")
+                      ? "이벤트 기반"
+                      : "미수신"}
                 </Tag>
               }
             >
-              {Object.keys(summary.bt_status || {}).length ? (
+              {treeRow ? (
+                <Nav2BtTree row={treeRow} timeAt={timeAt} replay={p.replay} />
+              ) : Object.keys(summary.bt_status || {}).length ? (
                 <div className="nav-bt-nodes">
                   {Object.entries(summary.bt_status).map(([name, status]) => (
                     <div key={name}>
@@ -1011,8 +1027,8 @@ export function NavigationDashboard(p: Props) {
                 {config.nav2_bt_topic || "/behavior_tree_log"}
               </button>
               <small>
-                실제 이벤트의 노드 이름·상태를 표시합니다. 부모 관계가 없는
-                이벤트로 트리 연결을 추측하지 않습니다.
+                실행 XML의 구조와 이벤트에서 관측한 상태를 표시합니다. 구조
+                정보가 미수신이면 관측된 노드 목록만 표시합니다.
               </small>
               <Facts
                 items={[

@@ -17,6 +17,10 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import {
+  RecordingControls,
+  RecordingReplayNotice,
+} from "@/components/recording-controls";
 import { NavigationDashboard } from "@/components/navigation-dashboard";
 import { CameraView } from "@/components/camera-view";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -1720,6 +1724,13 @@ function App() {
               </Button>
             </div>
           )}
+          {replayId && (
+            <RecordingReplayNotice
+              rows={rows}
+              sessionId={replayId}
+              timeAt={at}
+            />
+          )}
           {tab === "execution" &&
             (!runtimeRow ? (
               <div className="runtime-wait">
@@ -2011,6 +2022,7 @@ function App() {
           )}
           {tab === "recordings" && (
             <>
+              <RecordingControls replay={!!replayId} />
               <Panel
                 title="저장된 관측 세션"
                 aside={

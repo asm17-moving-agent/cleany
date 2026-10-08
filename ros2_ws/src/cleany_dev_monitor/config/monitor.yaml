@@ -19,6 +19,7 @@ cleany_dev_monitor:
     voxel_guard_topic: /body_guard_3d/state
     collision_state_topic: /collision_monitor_state
     coverage_topic: /head_pan/coverage
+    nav2_bt_trace_topic: /navigation/bt_trace
     nav2_bt_topic: /behavior_tree_log
     controller_evaluation_topic: /evaluation
     scan_topic: /scan

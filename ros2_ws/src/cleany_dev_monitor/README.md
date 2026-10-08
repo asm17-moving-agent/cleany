@@ -13,12 +13,12 @@
 | 자율주행 | 주행 개요, 장애물·안전, 계획·제어, 센서·위치, 주행 비교의 5개 하위 탭. 지도/실제 궤적, 단계별 명령/실측 속도, guard/pan/BT 진단과 공통 타임라인 |
 | 카메라 | Image / CompressedImage 토픽 선택, 실시간 JPEG 미리보기, 일시정지, 수신 지연 표시 |
 | 로그 | `/rosout`, FSM/BT/action 이벤트와 결과를 수신 시각순으로 조회. 노드/미션/문자열 및 로그 수준 필터 |
-| 기록 & 재생 | SQLite 세션 선택, 시간 이동/재생, 위 화면들을 같은 기록 시각으로 조회, SQLite 내보내기 |
+| 기록 & 재생 | 항목별 ON/OFF·프리셋·원본 주기·용량 제한, SQLite 세션 선택 및 재생·내보내기 |
 
 청소 BT는 Runtime이 실제로 생성한 트리다. 책상 도착 전에는 트리 생성 대기 상태로
 표시한다. Nav2 또는 팀원 조작 서버의 내부 트리를 추측해서 그리지 않는다.
-자율주행의 Nav2 BT 화면은 `BehaviorTreeLog`로 관측한 노드 상태/전이만 표시하며,
-부모 관계가 없는 로그에서 트리 연결을 만들지 않는다.
+자율주행의 Nav2 BT 화면은 최종 기본 XML에서 전달한 구조와 `BehaviorTreeLog`의 관측 상태를 표시한다.
+구조가 없는 환경에서는 관측된 노드 목록만 제공하며 로그에서 부모 관계를 추측하지 않는다.
 Nav2/조작 action의 status와 feedback은 ROS 탐색기로 확인하며, goal/result는 Runtime이나
 조작 실행 이벤트에서 실제 제공한 것만 보여준다. 모듈의 mock/sim 표시는 Runtime의
 `execution_profile`에서 가져온다. 현재 Runtime은 물리 로봇 실행을 지원하지 않는다.
@@ -135,7 +135,7 @@ ROS_DOMAIN_ID=187 make run-dev-monitor
   서로 다른 환경의 두 실행을 자동으로 개선 판정하지 않는다.
 - 타임라인 선택은 해당 수신 시각의 SQLite 기록으로 이동한다. 기록이 중단되거나
   아직 저장되지 않은 시각은 오류를 표시한다. 큰 데이터는 당시 실제로 구독한 경우에만 재생된다.
-  영상은 기존 카메라 탭에서 확인하며 영상 원본은 이 기록에 포함되지 않는다.
+  영상은 기존 카메라 탭에서 확인하며 카메라 원본은 녹화 설정에서 선택한 경우에만 별도 원본 테이블에 포함된다.
 
 `config/monitor.yaml`의 각 `*_topic`을 실제 remapping에 맞춘다. DWB 기본 평가
 토픽은 `/evaluation`이다. 실제 발행이 없거나 메시지 타입을 import하지 못하면 ROS
@@ -222,7 +222,7 @@ pnpm test:e2e
   메뉴 이동·일시정지·탭 숨김·기록 재생 시 영상 요청을 중단한다.
   마지막 요청 후 3초가 지나면 lease와 이미지 캐시를 제거하고, 다음 ROS discovery에서
   다른 관측자가 필요로 하지 않는 구독을 해제한다.
-- 영상은 SQLite/WS telemetry에 넣지 않는다. 기록 재생 중에는 실시간 카메라를 표시하지 않는다.
+- 미리보기 JPEG는 SQLite/WS telemetry에 넣지 않는다. 녹화 설정에서 카메라 원본을 선택하면 전체 ROS 메시지를 SQLite `raw_messages`에 저장한다. 기록 재생 중에는 실시간 카메라를 표시하지 않는다.
   ROS 탐색기에서 따로 선택한 영상 토픽은 기존처럼 제한된 메시지 미리보기만 기록한다.
 - 카메라 드라이버나 Gazebo는 자동 실행하지 않는다. 카메라 토픽이 없으면 해당 상태를 표시한다.
 
@@ -272,3 +272,19 @@ MONITOR_URL=http://127.0.0.1:8768 NAV_MONITOR_URL=http://127.0.0.1:8769 pnpm tes
 [검증 기록](../../../docs/validation/dev-monitor.md)에 정리한다.
 
 FSM 활성 강조는 관측된 상태를 순서대로 최소 500ms씩 표시한다. 빠른 전이는 화면에서 지연될 수 있으며 이때 실제 상태를 함께 표시한다. 상단 상태·안전 정보와 실제 Runtime 동작에는 지연을 적용하지 않는다. 재생 시각 탐색·세션 변경·Runtime 재시작 시 표시 대기열을 초기화한다. 수신 전에 지나간 상태는 복원하지 않는다.
+
+### Nav2 BT 시각화 및 재생
+
+자율주행 → 계획·제어의 Nav2 BT 패널은 `/navigation/bt_trace`에서 수신한 최종 실행 XML의 구조를 표시합니다. 노드를 선택하면 역할 설명, instance ID, 입력·출력 포트와 최근 상태 전이를 확인합니다. 세 ComputePathToPose 인스턴스를 독립적으로 표시하며 UNKNOWN은 미관측입니다. 2초 이상 스냅샷이 없으면 연결 끊김과 마지막 관측 상태를 표시합니다. 구조가 미수신이면 기존 BehaviorTreeLog 노드 목록을 제공합니다.
+
+구조·상태·XML SHA256·목표 문맥을 기존 SQLite 녹화에 함께 저장합니다. 재생은 해당 시점의 기록된 트리를 사용하며 현재 XML을 읽지 않습니다. 목표 연결은 수신 시점 기준이고, 누락 탐지는 연속 상태 불일치에 한정됩니다. 모니터는 기존처럼 읽기 전용이며 BT를 실행하거나 주행 명령을 보내지 않습니다.
+
+### 녹화 항목 선택과 원본 저장
+
+`기록 & 재생 → 녹화 설정`에서 기본 주행 / 장애물 분석 / 사용자 지정 프리셋과 항목별 ON/OFF를 선택합니다. 위치·속도·미션, 경로, costmap, Nav2 BT, 안전 진단, 로그를 독립적으로 선택하며 청소 BT는 미션 runtime snapshot에 포함됩니다. LiDAR, depth point cloud, Nav2 voxel layer, voxel world, 카메라 원본은 기본 OFF입니다. 화면 표시 및 카메라 preview lease와 녹화 구독은 독립적입니다. 센서별 토픽과 0.1~10Hz 주기, 세션 10~1024MiB 제한을 설정할 수 있습니다. 용량 제한은 이전 기록을 지우지 않고 중단하며 `새 녹화 시작`으로 새 세션을 만듭니다. 전체 저장 한도는 기존 `total_limit_bytes`를 따릅니다.
+
+원본은 ROS 직렬화 CDR 전체 메시지로 SQLite `raw_messages`에 저장합니다. 공간 점/픽셀을 자르지 않으며 시간축에서 설정 주기로 표본화합니다. 원본 활성 시 `/tf`, `/tf_static`도 최대 30Hz로 함께 저장합니다. 메시지 최대 8MiB, 대기 큐 최대 32MiB/128건으로 제한하며 초과는 저장 오류·유실 건수 및 `raw_gap` metadata로 남깁니다. 원본 압축/쓰기 작업은 HTTP worker에서 수행합니다. 원본 구독은 토픽 발견 시 QoS에 맞춰 생성되고 OFF 시 해제되지만 화면 또는 다른 관측 목적의 구독은 유지됩니다. 현재 voxel world 기본 토픽은 `/obstacle_memory/voxels`, Nav2 voxel layer는 `/local_costmap/voxel_grid`이며 발행되지 않으면 미수신으로 표시합니다.
+
+설정은 `state_directory/recording-settings.json`에 저장하고 변경 시점을 `recording_policy`로 녹화합니다. 일시정지 중에는 설정·녹화 상태만 기록합니다. 재생은 당시 정책으로 비활성 자료를 제외하고 미녹화·미수신·입력 중단·저장 오류를 구분합니다. 원본은 세션 내보내기(SQLite)에 포함되며 재생 시각 직전 원본 1건도 내려받을 수 있습니다. 3D 원본 및 카메라 영상의 직접 재생 뷰어는 아직 제공하지 않습니다. 기존 schema 1/2 기록은 그대로 읽고, 새 schema 3 기록은 원본 테이블을 추가합니다.
+
+로컬 녹화 API: `GET/PUT /api/recording/settings`, `POST /api/recording/session`, `GET /api/recordings/{session}/raw?category=point_cloud&at=<wall-seconds>`. 설정 변경은 동일 출처에서만 허용하며 ROS 명령이나 로봇 설정을 변경하지 않습니다.

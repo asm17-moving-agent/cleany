@@ -31,6 +31,7 @@
   <depend>nav2_msgs</depend>
   <depend>dwb_critics</depend>
   <exec_depend>rclpy</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>nav2_core</depend>

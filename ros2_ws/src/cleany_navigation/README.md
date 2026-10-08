@@ -560,3 +560,9 @@ GT 속도 기준 정지는 평균 29.0→12.9초였다. 모든 미션이 도착�
 추가 작은 GUI 실행에서는 SlowZone과 DWB 명령의 상호작용으로 약 0.01m/s
 creep가 관측됐다. 검증 범위와 원본 근거는
 `artifacts/navigation-reactive-20261004/RESULTS.md`를 참고한다.
+
+### Nav2 실행 트리 관측
+
+안전 주행 launch는 distro별 변환을 마친 `wait_before_detour.xml`의 각 노드에 고유한 instance name을 부여합니다. 노드 순서·포트·재시도·안전 정책은 유지합니다. 같은 디렉터리의 `bt_manifest.json`에 부모 관계, 순서, 타입, 포트와 최종 XML SHA256을 기록합니다. 이 경로의 기본 NavigateToPose 트리만 지원하며 SubTree/include 확장은 지원하지 않습니다.
+
+`nav2_bt_trace`는 BehaviorTreeLog, navigator lifecycle, NavigateToPose 상태를 구독하고 `/navigation/bt_trace` (`std_msgs/String`, reliable/transient-local)에 4Hz 전체 스냅샷을 발행합니다. 최대 256개 노드와 128개 최근 전이를 유지합니다. 새 목표·lifecycle 전환·ROS 시계 역행에서 초기화하며 미관측 상태는 UNKNOWN입니다. 전이의 previous/current 불일치는 누락 가능성으로 표시합니다. 이벤트에 sequence/goal UUID가 없으므로 모든 누락을 검출하거나 목표 소속을 증명할 수는 없습니다. 목표 ID는 수신 시점 문맥입니다. 외부 XML의 알 수 없는 노드는 구조 불일치로 표시합니다.

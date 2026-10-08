@@ -105,6 +105,56 @@ function rows(now: number, replay = false) {
   });
   return [
     row("config", "monitor", config),
+    row("nav2_bt_tree", "/navigation/bt_trace", {
+      schema: 1,
+      xml_sha256: replay ? "recorded-tree" : "live-tree",
+      source: "/runtime/tree.xml",
+      boot_id: "trace-fixture",
+      epoch: 1,
+      active: true,
+      observed: true,
+      goal_status: 2,
+      nodes: [
+        {
+          id: "root",
+          parent: null,
+          order: 0,
+          type: "Sequence",
+          label: "PlanThenNavigate",
+          ports: {},
+        },
+        {
+          id: "initial",
+          parent: "root",
+          order: 0,
+          type: "ComputePathToPose",
+          label: "InitialPlan",
+          ports: { planner_id: "GridBased" },
+        },
+        {
+          id: "replan",
+          parent: "root",
+          order: 1,
+          type: "ComputePathToPose",
+          label: "Replan",
+          ports: { path: "{path}" },
+        },
+      ],
+      states: {
+        root: "RUNNING",
+        initial: "SUCCESS",
+        replan: replay ? "FAILURE" : "RUNNING",
+      },
+      history: [
+        {
+          sequence: 1,
+          node: "replan",
+          previous: "IDLE",
+          status: replay ? "FAILURE" : "RUNNING",
+          received_at: now,
+        },
+      ],
+    }),
     row("runtime", "runtime", {
       state: "NAVIGATE_TO_TARGET",
       boot_id: "nav-fixture",
@@ -427,7 +477,11 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
   ).toBeVisible();
   await expect(page.locator(".nav-event")).toHaveCount(1);
   await expect(page.locator(".nav-event").first()).toContainText("FollowPath");
-  await expect(page.getByText("FollowPath", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Nav2 실행 트리" })
+      .getByText("ComputePathToPose", { exact: true }),
+  ).toHaveCount(2);
   await expect(page.getByText("선택 #1", { exact: true })).toBeVisible();
   await expect.poll(() => messages.at(-1)?.topics).toContain("/evaluation");
   await expect
@@ -450,6 +504,18 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
   await page.getByRole("tab", { name: "주행 개요", exact: true }).click();
   await page.locator(".nav-event").first().click();
   await expect(page.locator(".header-status")).toContainText("REPLAY");
+  await page.getByRole("tab", { name: "계획·제어", exact: true }).click();
+  await expect(
+    page.getByRole("region", { name: "Nav2 실행 트리" }),
+  ).toContainText("FAILURE");
+  await page
+    .getByRole("region", { name: "Nav2 실행 트리" })
+    .getByText("실행 XML 정보", { exact: true })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Nav2 실행 트리" }),
+  ).toContainText("recorded-tree");
+  await page.getByRole("tab", { name: "주행 개요", exact: true }).click();
   await expect(page.locator(".nav-summary-strip")).toContainText("정지");
   await expect.poll(() => messages.at(-1)?.topics).toEqual([]);
   await page.getByRole("button", { name: "실시간으로", exact: true }).click();
@@ -492,6 +558,31 @@ test("stale navigation never shows fresh motion; narrow layout stays within view
   await page.getByRole("tab", { name: "주행 개요", exact: true }).click();
   await page.screenshot({
     path: "test-results/navigation-mobile.png",
+    fullPage: true,
+  });
+});
+
+test("Nav2 tree selects separate instances and shows ports, failures and stale state", async ({
+  page,
+}) => {
+  await fixture(page, true);
+  await page.goto("/#navigation");
+  await page.getByRole("tab", { name: "계획·제어", exact: true }).click();
+  const tree = page.getByRole("region", { name: "Nav2 실행 트리" });
+  await expect(tree).toContainText("연결 끊김 · 마지막 관측");
+  await expect(tree.locator(".react-flow__node")).toHaveCount(3);
+  await page.screenshot({ path: "test-results/bt-debug.png", fullPage: true });
+  await tree
+    .locator(".react-flow__node")
+    .filter({ hasText: "InitialPlan" })
+    .click();
+  await expect(tree.locator(".nav2-tree-detail")).toContainText("GridBased");
+  await tree.locator(".react-flow__node").filter({ hasText: "Replan" }).click();
+  await expect(tree.locator(".nav2-tree-detail")).toContainText("{path}");
+  await tree.getByText("최근 상태 전이 · 선택한 노드", { exact: true }).click();
+  await expect(tree).toContainText("IDLE → RUNNING");
+  await page.screenshot({
+    path: "test-results/nav2-bt-tree.png",
     fullPage: true,
   });
 });
