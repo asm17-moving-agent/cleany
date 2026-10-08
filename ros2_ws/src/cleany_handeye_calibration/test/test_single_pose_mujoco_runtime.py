@@ -29,20 +29,20 @@ LEFT_JOINTS = (
 )
 RIGHT_JOINTS = tuple(name.replace('left_', 'right_') for name in LEFT_JOINTS)
 EXPECTED_RESOLVED = (
-    -1.6155992940406487,
-    0.8737810790755131,
-    0.6275511587329343,
-    0.8898767172677139,
-    -1.113934963863734,
+    -1.541639232293834,
+    0.8001842785144663,
+    0.6419643460478309,
+    0.8550789031635186,
+    -1.4073577002804945,
 )
-# Re-measured with the CAD-frame model and the MuJoCo 3.4 control scene.
-# The legacy arm-mount fixture no longer has matching FK or valid clearance.
+# Measured from the CAD-frame MuJoCo 3.4 control scene. This pose keeps
+# all four board quadrants observable under measured gravity-loaded error.
 TARGET_POSITION_M = (
-    0.4984751801049542,
-    0.16798377190965666,
-    0.6710205234095147,
+    0.507925212933939,
+    0.1965396077414892,
+    0.6431291005300094,
 )
-OBSERVED_TARGET_CLEARANCE_M = 0.14608839152681105
+OBSERVED_TARGET_CLEARANCE_M = 0.11611144450324129
 
 
 def _sha256(path: Path) -> str:

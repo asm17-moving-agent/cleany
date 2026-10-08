@@ -38,6 +38,65 @@ FIXTURE_GEOM_NAMES = (
 )
 
 
+def convex_separation_lower_bound(
+    model: mujoco.MjModel, data: mujoco.MjData, first: int, second: int,
+) -> float:
+    """Certify separation of compiled box/mesh/sphere geometry in metres.
+
+    A gap between full support intervals along a unit direction is a lower
+    bound on Euclidean clearance. Unsupported shapes and overlap return zero.
+    Sampled directions affect tightness, never the validity of the bound.
+    """
+    centers = [np.asarray(data.geom_xpos[i]) for i in (first, second)]
+    rotations = [np.asarray(data.geom_xmat[i]).reshape(3, 3)
+                 for i in (first, second)]
+    axes = np.vstack((np.eye(3), rotations[0].T, rotations[1].T,
+                      centers[0] - centers[1]))
+    lengths = np.linalg.norm(axes, axis=1)
+    axes = axes[np.isfinite(lengths) & (lengths > 1e-12)]
+    lengths = np.linalg.norm(axes, axis=1)
+    if not len(axes):
+        return 0.0
+    axes = axes / lengths[:, None]
+    intervals = []
+    for geom, center, rotation in zip((first, second), centers, rotations):
+        local_axes = axes @ rotation
+        projected_center = axes @ center
+        shape = model.geom_type[geom]
+        if shape == mujoco.mjtGeom.mjGEOM_BOX:
+            radius = np.abs(local_axes) @ model.geom_size[geom]
+            low, high = projected_center - radius, projected_center + radius
+        elif shape == mujoco.mjtGeom.mjGEOM_SPHERE:
+            radius = float(model.geom_size[geom, 0])
+            low, high = projected_center - radius, projected_center + radius
+        elif shape == mujoco.mjtGeom.mjGEOM_MESH:
+            mesh = int(model.geom_dataid[geom])
+            start = int(model.mesh_vertadr[mesh])
+            count = int(model.mesh_vertnum[mesh])
+            if count == 0:
+                return 0.0
+            vertices = np.asarray(model.mesh_vert[start:start + count],
+                                  dtype=np.float64)
+            projections = vertices @ local_axes.T + projected_center
+            low, high = projections.min(axis=0), projections.max(axis=0)
+        else:
+            return 0.0
+        if not np.isfinite(low).all() or not np.isfinite(high).all():
+            return 0.0
+        intervals.append((low, high))
+    (low_a, high_a), (low_b, high_b) = intervals
+    gap = float(np.max(np.maximum(low_a - high_b, low_b - high_a)))
+    scale = max(1.0, *(float(np.max(np.abs(v)))
+                       for interval in intervals for v in interval))
+    roundoff = 32.0 * np.finfo(np.float64).eps * scale
+    margins = np.asarray([model.geom_margin[first], model.geom_margin[second]])
+    if not np.isfinite(margins).all():
+        return 0.0
+    # Negative contact margins must never enlarge a geometry clearance proof.
+    margin = float(np.maximum(margins, 0.0).sum())
+    return max(0.0, gap - margin - roundoff)
+
+
 @dataclass(frozen=True, slots=True)
 class MujocoPoseEvidence:
     minimum_collision_distance_m: float
@@ -274,7 +333,7 @@ class MujocoPoseEvidenceEvaluator:
 
     def _geom_distance(self, first: int, second: int) -> float:
         from_to = np.zeros(6, dtype=np.float64)
-        return float(
+        distance = float(
             mujoco.mj_geomDistance(
                 self._model,
                 self._data,
@@ -284,6 +343,16 @@ class MujocoPoseEvidenceEvaluator:
                 from_to,
             )
         )
+        if not math.isfinite(distance):
+            return 0.0
+        if distance > 0.0:
+            return distance
+        # mj_geomDistance can report zero for separated convex geoms. Only
+        # replace it with an independently certified *lower* bound, never a
+        # witness-segment length or a collision-envelope approximation.
+        return max(distance, convex_separation_lower_bound(
+            self._model, self._data, first, second,
+        ))
 
     def _visibility(self) -> tuple[bool, bool, float]:
         target_position = np.asarray(
