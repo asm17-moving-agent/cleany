@@ -597,3 +597,20 @@ overlay다. 기본값은 비어 있으며 motion/safety 설정은 받지 않는�
 Omni motion의 goal checker와 FollowPath는 동일한 3 cm 위치 허용 오차를 사용한다.
 Mission Runtime의 8 cm 원래 목표 검사, freshness/정지/속도 및 deadline은 유지한다.
 지도 양자화·localization 편향과 controller 종료 오차를 구분해 실측해야 한다.
+
+### Omni body-heading grid fallback
+
+When `holonomic_direct_path` is enabled, failed fixed-heading XY searches can
+try map-resolution translations and in-place rotations before Smac lattice.
+`GridBased.body_heading_grid_search` defaults to true,
+`body_heading_grid_bins` to 32 (4–128), and
+`body_heading_grid_heuristic_weight` to 8 (finite, at least 1).
+Weighted A* retains the configured cost penalty but does not guarantee the
+minimum-cost path. Every endpoint, grid connector, translation and rotation
+uses the configured full footprint with continuous cell/sweep checks;
+unknown cells and newly observed live obstacles reject the route.
+Sparse explored-state storage avoids allocating one full costmap per heading.
+This attempt receives at most one quarter of the existing shared planning
+budget; it never extends that budget or changes arrival/sensor/velocity guards.
+A stored-map replay is diagnostic evidence. Actual Gazebo arrival and return
+must be verified separately before claiming the failed seat is fixed.

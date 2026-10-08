@@ -392,3 +392,30 @@ TEST(StraightFirstPlanner, BlockedSearchSharesDeadlineAndDoesNotBlockLiveMapUpda
   },
     ::testing::ExitedWithCode(0),"");
 }
+
+TEST(BodyHeadingGrid, NarrowElbowRequiresBodyRotationAndKeepsExactEndpoints) {
+  nav2_costmap_2d::Costmap2D map(120,120,.05,0.,0.,254);
+  for(unsigned int x=0;x<120;++x)for(unsigned int y=0;y<120;++y) {
+    double wx,wy;map.mapToWorld(x,y,wx,wy);
+    if((wx>.5 && wx<4.3 && wy>.7 && wy<1.3) ||
+       (wx>3.7 && wx<4.3 && wy>.7 && wy<5.5) ||
+       (wx>3.1 && wx<4.9 && wy>.1 && wy<1.9))map.setCost(x,y,0);
+  }
+  std::vector<geometry_msgs::msg::Point> footprint;
+  for(auto xy:std::vector<std::pair<double,double>>{{-.4,-.25},{.4,-.25},{.4,.25},{-.4,.25}}) {
+    geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;footprint.push_back(p);
+  }
+  geometry_msgs::msg::PoseStamped a,b;a.header.frame_id=b.header.frame_id="map";
+  a.pose.position.x=1.2;a.pose.position.y=1.;a.pose.orientation.w=1.;
+  b.pose.position.x=4.;b.pose.position.y=5.;b.pose.orientation.z=b.pose.orientation.w=std::sqrt(.5);
+  EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,footprint,0.,5.).poses.empty());
+  EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,footprint,M_PI/2.,5.).poses.empty());
+  auto path=cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.);
+  ASSERT_FALSE(path.poses.empty());
+  EXPECT_EQ(path.poses.front().pose,a.pose);EXPECT_EQ(path.poses.back().pose,b.pose);
+  EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(path,map,footprint));
+  int calls=0;EXPECT_TRUE(cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.,[&]{return ++calls>100;}).poses.empty());
+  // A complete barrier cannot be bypassed by changing body yaw.
+  for(unsigned int x=0;x<120;++x)for(unsigned int y=50;y<52;++y)map.setCost(x,y,254);
+  EXPECT_TRUE(cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.).poses.empty());
+}

@@ -168,6 +168,18 @@ public:
     const auto holonomic_key=name+".holonomic_direct_path";
     if(!node->has_parameter(holonomic_key))node->declare_parameter(holonomic_key,false);
     holonomic_=node->get_parameter(holonomic_key).as_bool();
+    const auto body_key=name+".body_heading_grid_search";
+    const auto bins_key=name+".body_heading_grid_bins";
+    const auto weight_key=name+".body_heading_grid_heuristic_weight";
+    if(!node->has_parameter(body_key))node->declare_parameter(body_key,true);
+    if(!node->has_parameter(bins_key))node->declare_parameter(bins_key,32);
+    if(!node->has_parameter(weight_key))node->declare_parameter(weight_key,8.0);
+    body_heading_grid_=node->get_parameter(body_key).as_bool();
+    const auto bins=node->get_parameter(bins_key).as_int();
+    body_heading_weight_=node->get_parameter(weight_key).as_double();
+    if(bins<4 || bins>128 || !std::isfinite(body_heading_weight_) || body_heading_weight_<1.)
+      throw std::invalid_argument("Invalid body-heading grid configuration");
+    body_heading_bins_=static_cast<unsigned int>(bins);
     fixed_heading_cost_penalty_=node->get_parameter(name+".cost_penalty").as_double();
     const auto evidence_key=name+".failure_snapshot_directory";
     if(!node->has_parameter(evidence_key))node->declare_parameter(evidence_key,std::string{});
@@ -263,6 +275,18 @@ public:
           RCLCPP_INFO(_logger,"Using collision-checked fixed-heading XY search (%zu poses)",candidate.poses.size());
           return candidate;
         }
+      }
+    }
+    if(holonomic_ && body_heading_grid_ && !expired()) {
+      const auto body_deadline=std::min(deadline,std::chrono::steady_clock::now()+
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+          std::chrono::duration<double>(_max_planning_time/4.)));
+      const auto body_expired=[&] {return expired() || std::chrono::steady_clock::now()>=body_deadline;};
+      auto candidate=checkedBodyHeadingGridPath(start,goal,*_costmap,footprint,
+        body_heading_bins_,fixed_heading_cost_penalty_,body_heading_weight_,body_expired);
+      if(!candidate.poses.empty() && sweptPathCollisionFree(candidate,*live_costmap_,footprint,expired)) {
+        RCLCPP_INFO(_logger,"Using continuous-footprint body-heading grid route (%zu poses)",candidate.poses.size());
+        return candidate;
       }
     }
     // Additional search clearance is optional. The robot footprint and its
@@ -389,6 +413,9 @@ private:
   double padding_{.05};
   bool exact_goal_{false};
   bool holonomic_{false};
+  bool body_heading_grid_{true};
+  unsigned int body_heading_bins_{32};
+  double body_heading_weight_{8.};
   double fixed_heading_cost_penalty_{5.};
   nav2_costmap_2d::Costmap2D *live_costmap_{nullptr};
   std::unique_ptr<nav2_costmap_2d::Costmap2D> snapshot_;
