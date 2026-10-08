@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from cleany_grasping.core.models import PointCloud, RawGrasp
 from cleany_grasping.core.selector import GraspConfig, select_grasp
@@ -77,3 +78,24 @@ def test_nms_keeps_best_of_near_duplicate_candidates() -> None:
     )
     result = select_grasp(predictor, target, target)
     assert result is not None and result.score == 0.9
+
+
+def test_reflection_cannot_be_used_as_a_tcp_rotation():
+    with pytest.raises(ValueError, match='right-handed'):
+        GraspConfig(canonical_to_tcp_rotation=np.diag([-1., 1., 1.]))
+
+
+def test_tcp_configuration_is_isolated_from_mutating_input_arrays():
+    conversion = np.eye(3)
+    axis = np.array([1., 0., 0.])
+    config = GraspConfig(canonical_to_tcp_rotation=conversion, tcp_approach_axis=axis)
+    conversion[:] = 0.
+    axis[:] = [0., 0., 1.]
+    target = cloud(((-.02, -.02, .5), (.02, .02, .55)))
+    result = select_grasp(FakePredictor([grasp((0., 0., .52), .8)]), target, target, config)
+    np.testing.assert_allclose(result.rotation, np.eye(3))
+    np.testing.assert_allclose(result.approach_direction, [1., 0., 0.])
+    with pytest.raises(ValueError):
+        config.canonical_to_tcp_rotation[0, 0] = -1.
+    with pytest.raises(ValueError):
+        config.tcp_approach_axis[0] = 0.

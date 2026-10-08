@@ -22,12 +22,14 @@ class GraspConfig:
     )
 
     def __post_init__(self) -> None:
-        conversion = np.asarray(self.canonical_to_tcp_rotation, dtype=float)
-        approach = np.asarray(self.tcp_approach_axis, dtype=float)
+        conversion = np.asarray(self.canonical_to_tcp_rotation, dtype=float).copy()
+        approach = np.asarray(self.tcp_approach_axis, dtype=float).copy()
         if conversion.shape != (3, 3) or not np.allclose(
             conversion.T @ conversion, np.eye(3), atol=1e-5
         ):
             raise ValueError('Canonical-to-TCP rotation must be orthonormal')
+        if not math.isclose(float(np.linalg.det(conversion)), 1.0, abs_tol=1e-5):
+            raise ValueError('Canonical-to-TCP rotation must be right-handed')
         if approach.shape != (3,) or not np.isfinite(approach).all():
             raise ValueError('TCP approach axis must be a finite 3-vector')
         if np.linalg.norm(approach) <= 1e-12:
@@ -41,6 +43,8 @@ class GraspConfig:
         )
         if not all(math.isfinite(value) and value > 0.0 for value in limits):
             raise ValueError('Grasp limits must be finite and positive')
+        conversion.setflags(write=False)
+        approach.setflags(write=False)
         object.__setattr__(self, 'canonical_to_tcp_rotation', conversion)
         object.__setattr__(self, 'tcp_approach_axis', approach)
 
