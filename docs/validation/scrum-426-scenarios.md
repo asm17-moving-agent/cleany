@@ -60,7 +60,12 @@ NVIDIA EGL vendor 강제를 제거하고 현재 Mesa 설정을 유지했다. NVI
 
 데스크탑 baseline 전체 82개 좌석의 terminal coverage가 확인됐다:
 27개 SUCCESS, 55개 실패. 수정 코드 재검증과 전체 좌석 성공으로 해석하지 않는다.
-두 호스트에서 7개 비정상 조건 smoke를 실행 중이다. 데스크탑의 센서 입력 유실은
+두 호스트에서 7개 비정상 조건 smoke가 종료됐으며 각각 기존 판정 6/7을 통과했다.
+노트북에서 7종 × fresh 5회의 35회 반복을 실행 중이다. 중간 점검에서 13회가
+종료됐고 깊이 안전 입력 유실 2회는 모두 미통과였다. 다른 완료 조건은 기대 판정을
+통과했다. 이는 전체 반복의 최종 결과가 아니다. 이 유실은 raw depth camera가 아니라
+depth clearance adapter 중단이며 물리 센서 분리 시험과 구분한다.
+데스크탑의 센서 입력 유실은
 STALE_DEPTH와 약 0.40초의 실제 정지를 관찰했지만, cleanup cancel 후 복귀가 실패해
 최종 결과가 FAILED였다. 기존 판정에서는 통과하지 않았고 원래 결과를 보존했다.
 단순히 기대 결과를 변경해 통과시키지 않고 취소/복귀 정책과 센서 유실 조건을 분석한다.
@@ -68,14 +73,35 @@ STALE_DEPTH와 약 0.40초의 실제 정지를 관찰했지만, cleanup cancel �
 연속 시험의 의자 전환은 Gazebo scene/info의 실제 top-level 모델 목록과 82개 의자
 inventory를 매 미션 전에 비교한다. 정확히 대상 하나만 없을 때 진행하며 원본 응답을
 저장한다. 모델 생성/삭제 ACK와 실제 배치 확인을 구분한다. 원래 Gazebo의 실제 응답
-(immutable profile의 모델 2개)에서도 protobuf parser를 확인했다. 의자를 개별 유지한
-연속 profile에서의 실제 전환 검증은 아직 실행 전이다. 관련 도구 테스트는 32 passed.
+(immutable profile의 모델 2개)에서도 protobuf parser를 확인했다. 데스크탑의
+`representative-v2-continuous-smoke`에서 44→16 왕복 두 미션이 모두 성공했고,
+각 미션의 실제 scene에서 81개 의자와 해당 대상 하나의 부재를 확인했다.
+chair_sequence_verified, 최종 정지와 launch 종료 판정이 모두 통과했다.
+실측 RTF는 2.018/2.033이다. 관련 도구 테스트는 32 passed.
 
 수정 재검증 종료 뒤, 실패 시도를 보존한 전체 좌석의 마지막 결과로 대표 6개를 골라
 좌석별 fresh 10회와 한 인스턴스의 전체 sequence 10회 반복을 실행하는 driver를
 준비했다. 좌석 전환 smoke는 먼저 확인하고, 실패하면 연속 반복을 시작하지 않는다.
 fresh는 3개 이하 병렬, continuous는 개별 의자 모델을 유지하는 1개이며 성능 profile이
-다르다. 비정상 조건의 5회 반복과 남는 정상 실패의 원인 분석은 별도 후속 작업이다.
+다르다. 데스크탑 재검증이 종료됐으며 기존 실패 55개 중 17/22 두 좌석이 추가 성공했다.
+대표는 44/16/17/20/09/35로 선정됐고 fresh 반복이 시작됐다. 대표 반복 driver와
+노트북 비정상 조건 반복 queue가 동시에 실행 중이다. 남는 정상 실패의 원인 분석과 최종 반복 결과는 아직 완료되지 않았다.
+
+### 이동 후 재계획 실패의 추가 조사
+
+노트북 1번 실패 지도에서 실제 시작 footprint와 목표 footprint가 안전하고,
+시작 근처 3×3 격자 연결도 기존 연속 sweep을 통과했다. 목표/시작 방향을 고정한
+XY 탐색은 모두 경로를 찾지 못했다. 추가 고정 방향 7개도 경로를 반환하지 않았다.
+room-a4-01의 저장 지도에서도 추가 고정 방향이 경로를 반환하지 않았다.
+따라서 격자 시작점 연결이나 고정 방향 추가만으로 해결된다고 판단하지 않는다.
+
+두 저장 지도의 lattice fallback을 별도 offline process에서 재생했다. 기존 2초/100,000
+iteration과 진단용 10초/1,000,000 iteration 모두 경로를 반환하지 않았다.
+진단용 설정은 실제 runtime에 적용하지 않았다. 재생 map은 plugins 없이 저장 bytes를
+불러와 inflation heuristic 가속이 없으므로 실행 시간은 실제 runtime과 직접 비교하지
+않는다. 이 결과만으로 연속 공간에서 경로가 불가능하다고 결론 내리지 않는다.
+재생 코드/결과/log는 `artifacts/scenarios/planner-replay/full_replay*`,
+`full-case*.json`, `full-case*.log`에 보존했다.
 
 ### 전체 좌석 조사 중 확인한 회전 경로 거부
 
@@ -124,3 +150,29 @@ sensor나 팔의 3D 충돌 측정으로 표시하지 않는다. E_STOP 알림은
 Raw 근거: 데스크탑 `artifacts/scenarios/capacity-*`의 trace/result/shutdown,
 resources.json, fixture/seat_inventory.json. 실행 방법과 자동 판정은
 [검증 도구 README](../../tools/scenario_validation/README.md)를 따른다.
+
+### Body-heading grid 추가와 실제 재검증
+
+`5d5c01b`는 Omni 고정 방향 탐색이 실패한 뒤 지도 해상도 XY 이동과 32개 방향의
+제자리 회전을 탐색한다. 기존 cost penalty 5를 유지하며 weighted A*의 기본
+heuristic weight 8은 설정 가능하다. 비용 최적성 보장은 없으며 모든 pose/edge와
+실제 live map을 전체 연속 footprint로 검사한다. sparse state 저장을 사용하고
+기존 공유 2초 예산 중 최대 1/4만 쓰므로 deadline이나 안전 footprint를 완화하지 않았다.
+독립 `build-navigation-v3`/`install-navigation-v3`에서 `make test-navigation`:
+171 tests, 0 errors/failures/skipped. 좁은 직각 통로에서 방향 전환이 필요한 경로,
+정확한 시작/목표, 전체 sweep, cancellation 및 완전한 장애물 barrier를 검증했다.
+
+room-a4-01의 기존 snapshot에서 실제 v3 Omni planner는 539 poses를 0.378초에
+반환하고 전체 sweep을 통과했다. 노트북 Gazebo의
+`laptop-navigation-v3-room-a4-01-r1`에서는 실제 body-heading grid 경로를 여러 번
+반환하고 이동했지만 controller `Failed to make progress`로 NAVIGATION_FAIL로
+종료됐다(117.71 wall seconds, RTF 1.666). 정지와 launch 종료는 통과했다.
+따라서 경로 탐색 개선과 실제 왕복 성공을 구분하며 해당 좌석이 해결됐다고 주장하지 않는다.
+최종 GT는 약 (-5.394,-5.173,0.196rad)이고 guard trace는 PASS/STOP_COMMAND/
+COMMAND_TIMEOUT을 기록했다. 이 실패는 controller 경로 추종의 추가 진단 대상이다.
+
+노트북 1번의 이동 후 snapshot은 32방향 탐색에서도 경로가 없었다. 목표에서
+역방향으로 탐색해도 76,670 states를 모두 소진해 연결되지 않았다. 이는 해당
+이산화의 실패이며 연속 공간의 불가능성 증명은 아니다. 초기 desktop snapshot과
+비교하면 lethal/unknown 셀이 1,163개 추가됐고 51개 제거됐다. 실제 가구 관측과
+잘못된 검출을 구분하려면 원본 센서/obstacle-memory 근거를 추가 확인해야 한다.
