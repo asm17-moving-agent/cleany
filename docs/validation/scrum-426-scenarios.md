@@ -5,6 +5,39 @@
 feat-navigation-runtime의 소스는 수정하지 않았다. Jira task는 In Review이며
 좌석 왕복, 장애물, 경로 실패, 취소와 정지 결과의 재현 가능한 기록을 요구한다.
 
+## 현재 완료 범위 점검 (2026-10-09)
+
+아래는 종료된 queue/status/result/shutdown을 다시 읽은 집계다. 아래의 초기 측정과
+진단 기록은 당시 결과이며 현재 진행 상태는 이 표를 우선한다.
+
+| 계획 항목 | 현재 근거 | 판정 |
+| --- | --- | --- |
+| 독립 worktree/domain/partition/DB/log | local/desktop 별도 root, worker별 metadata | 구현·실행 확인 |
+| 데스크탑 병렬 한계 | 4-worker 긴 왕복 3회(12/12 성공), 5-worker 3회(15/15 TIMEOUT), 6-worker 실패 | 완료; 13/43 기준 경로 한정 |
+| 처리량 기준 선택 | 2/3 workers 각각 3회 중앙값 63.65/73.25 성공 왕복/시간 | 3-worker 선택 완료 |
+| 전체 82개 좌석 | 28 survey batches, 정확한 mission/seat matching과 clean shutdown | 82/82 terminal; baseline 27 성공/55 실패 |
+| 실패 좌석 수정 후 재검증 | 실패 55개 + 별도 01 + 13/43 대조, 21 batches/58 missions | 완료; 17/22 추가 성공, latest 29/82 |
+| 대표 6개 fresh × 10 | 20 batches/60 missions, 44/16/09/35 각 10 성공, 17/20 각 2 성공/8 실패 | 완료; 44 성공/16 실패 |
+| 한 인스턴스 6-seat sequence × 10 | `representative-v2-continuous`, live PID 301654 | 진행 중; 60회 완료 미입증 |
+| 7종 이상 상황 smoke | desktop/local 각각 7개 terminal | 각각 6/7 기대 판정 통과 |
+| 7종 이상 상황 fresh × 5 | laptop 35 jobs/status/result/shutdown 일치 | 완료; 30/35 통과, sensor-loss 5 미통과 |
+| 실패 보존·재생·수정 및 회귀 | rotation/grid/controller 점수 변경, 저장-map 재생, v5 175 tests 및 13/43 왕복 성공 | 부분 개선 확인; 어려운 좌석 왕복은 미해결 |
+| 전체 결과 동기화와 최종 종료 감사 | 종료된 JSON/log/bin 증거 local 복사; live continuous는 그대로 유지 | 최종 continuous 종료 후 남음 |
+
+`capacity_report.json`을 다시 생성해 종료된 19개 batch를 반영했다. 초기 configure 실패
+`capacity-2-r1`은 terminal report가 없는 중단 사례로 남으며 성공 batch로 집계하지 않는다.
+`laptop_scenario_repeat_jobs.json`의 35개 입력과 status를 정확히 대조하고 모든
+observer/launch 종료를 확인했다. v5 13/43은 final stopped와 clean shutdown도 통과했다.
+구현 관련 test-result를 현재 install의 build 결과에서 읽어 175/0/0/0을 다시 확인했다.
+`artifacts/scenarios/plan_completion_audit.json`에 7개 완료 queue의 각 result hash와
+verdict를 저장했다. terminal mission/target ID를 직접 대조했고 정상 기대 결과를 제외한
+infrastructure/정지/종료 검사 실패는 0개였다. 정상 미션 실패와 예상 fault 결과는 구분한다.
+
+전체 성공률과 raw 정상 실패를 그대로 남긴다. SCRUM-426의 재현 가능한 성공/실패
+기록 조건을 전체 좌석 성공 보장으로 바꾸지 않으며, 별도로 합의한 반복 범위도 줄이지 않는다.
+Navigation/sensors는 Gazebo 실측이고 perception/planning/manipulation은 mock이다.
+안전 입력의 STALE_DEPTH 정지 관찰은 물리 센서/e-stop 검증을 대신하지 않는다.
+
 ## 입력과 의자 조건
 
 전체 설정의 82개 좌석과 82개 의자 대응을 검사했다. 기존 facility fixture에서
@@ -276,3 +309,17 @@ upcoming-path 재계획의 원인인지 아직 입증하지 않았고 IsPathVali
 MemAvailable 최저 13.55 GiB였다. Ogre2 log의 renderer는 freedreno/Adreno X2-90이다.
 NVIDIA monitor가 없으므로 GPU utilization은 None(미측정)이며 0%로 해석하지 않는다.
 이 어려운 좌석 3개 실행의 RTF/실패만으로 최대 병렬 수나 CPU 단일 병목을 확정하지 않는다.
+
+
+### v5 20번 복귀 실패 저장 지도 재생
+
+`worker-02/navigation/planner_failures/failure.json`과 각 720×420 bytes의 search/live
+snapshot 크기를 확인한 뒤 원래 geometry replay를 수행했다. 시작과 목표 footprint는
+각각 안전했지만 시작점의 목표 방향 회전은 불가했고 fixed-heading 두 경로는 실패했다.
+같은 search map의 32방향 SE2 weighted search(weight 8, 기존 cost penalty 5)는
+129,456 states를 0.473초에 소진해 연결되지 않았다(timeout=false). 재생 입력은
+`laptop-navigation-v5-hard-seats-r1/worker-02/navigation/planner_failures`, 결과는
+`planner-replay/v5-seat20-return-geometry.json`와 `v5-seat20-return-se2.json`이다.
+이는 시작 footprint 자체의 충돌이나 runtime 2초 예산 소진으로 설명되지 않는
+저장 지도/이산 탐색의 실패다. 센서가 실제 가구를 반영했는지, 관측 오차가 연결을
+끊었는지와 연속 공간의 실제 통행 가능성은 이 결과만으로 확정하지 않는다.
