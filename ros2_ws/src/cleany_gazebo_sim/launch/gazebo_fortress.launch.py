@@ -18,6 +18,7 @@ from cleany_gazebo_sim.launch_helpers.sensor_profile import (
 )
 from cleany_gazebo_sim.lidar_noise import load_lidar_noise_profile
 from cleany_gazebo_sim.world.sdf import materialize_friction_frames
+from cleany_gazebo_sim.world.static_scene import materialize_static_scene
 from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
@@ -119,6 +120,10 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             world_arg,
+            DeclareLaunchArgument(
+                'compact_static_scene', default_value='false', choices=['true', 'false'],
+                description='Group simple static geometry in a temporary SDF; model identities change.',
+            ),
             physics_step_arg,
             physics_factor_arg,
             lidar_noise_profile_arg,
@@ -165,6 +170,9 @@ def _launch_setup(
         profile_name = LaunchConfiguration('lidar_noise_profile').perform(context)
         profile = load_lidar_noise_profile(noise_profiles, profile_name)
         world = str(materialize_mecanum_wheel_world(world_template, profile))
+
+    if LaunchConfiguration('compact_static_scene').perform(context) == 'true':
+        world = str(materialize_static_scene(Path(world)))
 
     step = LaunchConfiguration('physics_max_step_size').perform(context).strip()
     factor = LaunchConfiguration('physics_real_time_factor').perform(context).strip()
