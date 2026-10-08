@@ -80,3 +80,10 @@ terminal 기록을 확인하고, 전체 좌석 inventory와 raw 실행 결과를
 성공으로 집계하지 않고 좌석별로 남긴다. 그 다음 7개 smoke 입력을 순서대로 실행하고
 실제 자극, 미션 결과 및 정지 증거를 판정한다. smoke에서 기대와 다른 결과가 있으면
 원인을 분석한 뒤 반복 입력을 구성한다. 현재 자동화 자체는 goal 완료를 선언하지 않는다.
+
+`after_smoke_recheck.py --root ROOT --wait-pid PID`는 실제 baseline smoke driver의
+종료를 기다리고 전체 좌석 coverage와 smoke queue/observer/launch 종료를 확인한다.
+그 뒤 `make test-navigation`으로 독립 overlay를 빌드·검증하고, 1번 단일 실행,
+원래 실패한 전체 좌석의 3개 이하 병렬 실행, 13/43번 대조 왕복을 수행한다.
+기존 baseline 실행 및 결과는 유지하며 수정 후 결과를 별도 디렉터리에 남긴다.
+이 단계도 정상 실패를 성공으로 바꾸거나 전체 반복 검증 완료를 선언하지 않는다.

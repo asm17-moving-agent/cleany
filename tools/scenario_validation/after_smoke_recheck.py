@@ -11,6 +11,23 @@ from audit import assess
 from survey import process_identity
 
 
+def require_completed_smoke(directory: Path, jobs: list[dict]) -> None:
+    records=json.loads((directory/'scenario_smoke_jobs.status.json').read_text())
+    if len(records)!=len(jobs) or any(
+        r.get('job')!=job or r.get('exit_code')!=0 or 'end' not in r
+        for r,job in zip(records,jobs)):
+        raise RuntimeError('Baseline smoke queue is incomplete; inspect before starting another stack')
+    for job in jobs:
+        batch=directory/job['name']
+        report=json.loads((batch/'batch.json').read_text())
+        if len(report['exit_codes'])!=job['count'] or any(report['exit_codes']):
+            raise RuntimeError('Baseline smoke observers did not all exit cleanly')
+        for index in range(job['count']):
+            shutdown=json.loads((batch/f'worker-{index:02d}'/'shutdown.json').read_text())
+            if not shutdown or any(shutdown.values()):
+                raise RuntimeError('Baseline smoke launch shutdown is incomplete')
+
+
 def main() -> None:
     parser=argparse.ArgumentParser()
     parser.add_argument('--root',type=Path,required=True)
@@ -27,9 +44,7 @@ def main() -> None:
     while process_identity(args.wait_pid)==identity:time.sleep(10)
     coverage=survey_coverage(directory)
     smoke=json.loads((root/'tools/scenario_validation/scenario_smoke_jobs.json').read_text())
-    records=json.loads((directory/'scenario_smoke_jobs.status.json').read_text())
-    if len(records)!=len(smoke) or any(r.get('exit_code')!=0 or 'end' not in r for r in records):
-        raise RuntimeError('Baseline smoke queue is incomplete; inspect before starting another stack')
+    require_completed_smoke(directory,smoke)
     # Build only after the reference runs have ended, so compiler CPU cannot
     # contaminate their capacity or mission timing. The baseline install stays intact.
     build_log=directory/'navigation_recheck_build.log'
