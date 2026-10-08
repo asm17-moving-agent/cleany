@@ -2,7 +2,7 @@ import os,json,time,signal,subprocess,math,uuid
 from pathlib import Path
 import argparse
 from worlds import prepare,restored_tree,chair_name
-from stimuli import add_obstacle,move_obstacle,switch_chair
+from stimuli import add_obstacle,move_obstacle,switch_chair,obstacle_ahead
 parser=argparse.ArgumentParser()
 parser.add_argument('--root',type=Path,required=True)
 parser.add_argument('--fixture',type=Path,required=True)
@@ -160,7 +160,7 @@ try:
   req=OfferMission.Request(mission_id=str(uuid.uuid4()),mission_type='clean_desk',target_kind='SEAT',target_id=seat,requested_by='desktop-validation')
   response=call(offer,req);m={'seat':seat,'mission_id':req.mission_id,'accepted':response.accepted,'reason':response.reason};result['missions'].append(m)
   if not response.accepted:break
-  stimulus_at=None;stimulus_done=False;m['events']=[]
+  stimulus_at=None;stimulus_done=False;previous_gt=None;m['events']=[]
   start=time.monotonic();clock0=latest['clock'];m['wall_start']=start;m['clock_start']=clock0;deadline=start+600;previous=''
   while time.monotonic()<deadline:
    spin(.2);s=snap();write_trace(s);state=s['state']+' '+s['bt_stage']
@@ -170,13 +170,16 @@ try:
     gt=latest['ground_truth'];moving=math.hypot(*gt['twist'][:2])>.05
     trigger=(s['state']=='NAVIGATE_TO_TARGET' and moving and time.monotonic()-start>2)
     if args.scenario=='cancel_return':trigger=s['state']=='RETURN_HOME' and moving
+    if args.scenario=='obstacle':
+     trigger=trigger and previous_gt is not None and math.hypot(gt['x']-previous_gt['x'],gt['y']-previous_gt['y'])>.001
     if args.scenario not in ('normal','blocked') and trigger:
      stimulus_at=time.monotonic();event={'wall':stimulus_at,'clock':latest['clock'],'ground_truth':gt,'scenario':args.scenario,'state':s['state']}
      if args.scenario.startswith('cancel'):
       response=call(cancel,CancelMission.Request(mission_id=req.mission_id));event['accepted']=response.accepted;event['reason']=response.reason
      elif args.scenario=='safety_stop':fault.publish(String(data='E_STOP'))
      elif args.scenario=='obstacle':
-      event['obstacle_pose']=[gt['x']+.95*math.cos(gt['yaw']),gt['y']+.95*math.sin(gt['yaw']),gt['yaw']]
+      event['obstacle_pose']=obstacle_ahead(gt,previous_gt,.95)
+      event['motion_direction_world_rad']=event['obstacle_pose'][2]
       event.update(move_obstacle(stimulus_world,*event['obstacle_pose']))
      elif args.scenario in ('sensor_loss','path_failure'):
       import re
@@ -204,6 +207,7 @@ try:
      m['stopped_after_stimulus']={'wall_seconds':time.monotonic()-stimulus_at,'ground_truth':gt,'cmd_vel':cmd,'guard':latest.get('guard')}
    if args.scenario=='sensor_loss' and stimulus_at and time.monotonic()-stimulus_at>4 and not m.get('cleanup_cancel'):
     response=call(cancel,CancelMission.Request(mission_id=req.mission_id));m['cleanup_cancel']={'accepted':response.accepted,'wall':time.monotonic()}
+   previous_gt=latest.get('ground_truth')
    if state!=previous:print(seat,state,s['reason'],flush=True);previous=state
    if s.get('last_result',{} ) and s['last_result'].get('request',{}).get('mission_id')==req.mission_id:break
   m['matched_terminal']=bool(s.get('last_result') and s['last_result'].get('request',{}).get('mission_id')==req.mission_id)

@@ -64,3 +64,9 @@ group 밖에 유지해 Gazebo create/remove service로 이전 의자를 복원�
 도구의 최소 관련 검사는 ROS를 시작하지 않고 `make test-scenario-tools`로 실행한다.
 월드 보존, 미션 결과와 정지 판정, 불완전한 반복 거부, 처리량 중앙값 선택,
 현재 프로세스 소유권 검사를 확인한다. 이는 실제 Gazebo 시나리오 검증과 별개다.
+
+`scenario_smoke_jobs.json`는 각 비정상 조건의 실제 실행을 한 번씩 확인할 입력이다.
+정상 좌석 inventory 조사와 별도로 실행하고, smoke의 raw 판정이 기대와 다르면 먼저
+원인을 고친 뒤 같은 조건의 반복 검증을 수행한다. 우회 장애물은 몸체 yaw가 아니라
+직전 ground-truth 이동 방향에 배치한다. Mecanum의 측방 이동에서도 실제 진행 경로를
+막는 자극을 만들기 위한 조건이다.

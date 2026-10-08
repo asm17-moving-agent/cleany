@@ -47,3 +47,12 @@ def switch_chair(world: str, restored_model: ET.Element, remove_name: str) -> li
                            'sdf: '+json.dumps(ET.tostring(sdf,encoding='unicode'))+' allow_renaming: false')
     remove=entity_request(world,'remove','ignition.msgs.Entity',f'name: "{remove_name}" type: MODEL')
     return [restore,remove]
+
+
+def obstacle_ahead(current: dict, previous: dict, distance: float) -> list[float]:
+    """Use observed world displacement; omni travel need not follow body yaw."""
+    dx=current['x']-previous['x'];dy=current['y']-previous['y']
+    if not all(math.isfinite(v) for v in (current['x'],current['y'],dx,dy,distance)) or distance<=0 or math.hypot(dx,dy)<=.001:
+        raise ValueError('A finite observed motion direction is required')
+    angle=math.atan2(dy,dx)
+    return [current['x']+distance*math.cos(angle),current['y']+distance*math.sin(angle),angle]
