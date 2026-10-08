@@ -221,3 +221,36 @@ SCRUM-426의 현재 완료 조건도 다시 읽었다: Gazebo 좌석 이동/대�
 성공 또는 실패를 재현 가능하게 남기는 것이다. issue는 In Review이며 변경하지 않았다.
 이 issue 조건과 별도로 이번 계획의 전체 좌석 조사, 대표 fresh/continuous 반복 및
 이상 상황 반복 범위를 유지한다. 모든 좌석 성공을 달성한 것으로 해석하지 않는다.
+
+### Reactive mode 구분과 연속 경로 진행 점수
+
+이전 controller 진단에서 pan gate의 이동/회전 분리 규칙을 이 실행의 원인처럼
+설명한 것은 맞지 않았다. `runtime_config.configure_safety`는 reactive mode에서
+pan node를 observation_only로 설정하고 `/nav2/cmd_vel`을 직접 reactive safety
+pipeline에 연결한다. v4의 분리된 connector는 명시적인 경로 표현이며, 이 모드에서
+혼합 chassis 명령을 gate가 막는다는 증거가 아니다. 구현 README와 코드 주석도 수정했다.
+
+`laptop-navigation-v4-room-controller-context2.json`에 wheel 정지 구간의 DWB 평가,
+actual local costmap GetCostmap 응답, 경로와 TF를 저장했다. map은 평가 이후 수집됐으며
+원자적인 동시 snapshot으로 취급하지 않는다. 평가의 523개 후보는 모두 legal이고
+520개에 nonzero issued velocity가 있었다. 선택된 정지 후보의 점수는 24.052453995,
+PathDist 0, GoalDist 39였다. 전진 후보 여러 개도 전체 7개 critic 점수와 total이
+같았다. Nav2 1.1.20 DWB는 total이 엄격히 낮을 때만 best를 교체하므로 이 plateau에서
+먼저 나온 정지가 유지될 수 있다. `progress-replay-result.json`은 완전히 평가된
+33개 후보의 기하 점수만 재생했고 새 점수에서 전진을 선호했다. 이는 전체 동기화된
+controller replay나 실제 도착 증거가 아니다.
+
+`cabd0ea`는 Omni profile에 PathProgressCritic을 추가한다. 남은 local path 길이를
+연속적인 metre 단위로 평가해 grid potential이 같은 후보의 경로 전진을 구분한다.
+교차점에서 가장 이른 projection을 유지하고 실제 rollout 이동 거리보다 큰 arc
+advance를 인정하지 않으며 in-place turn에 병진 전진을 부여하지 않는다. 기존
+PathDist/GoalDist/PathOrientation weights와 모든 safety/arrival/deadline guard는
+유지했다. 새 critic은 경로 선호 점수이며 안전 허용 조건을 대체하지 않는다.
+별도 v5 overlay의 `make test-navigation`: 175 tests, 0 errors/failures/skipped.
+plugin registry/config 변경의 package build도 완료했다.
+
+노트북에서 v5의 room-a4-01/17/20 세 시뮬레이션을 동시에 실행 중이다.
+기존 desktop v2 반복은 중간에 빌드나 source를 교체하지 않고 계속한다.
+별도 저장-map 실험에서는 전체 SAT sweep을 통과한 v3 room 경로의 한 pose가
+stock FootprintCollisionChecker에서는 lethal로 판정됐다(index 199). 이것이 현재
+upcoming-path 재계획의 원인인지 아직 입증하지 않았고 IsPathValid를 우회하지 않았다.
