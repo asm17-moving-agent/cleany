@@ -34,9 +34,9 @@ nav_msgs::msg::Path checkedBodyHeadingGridPath(
   const auto index=[&](size_t x,size_t y,size_t a){return a*cells+y*width+x;};
   const auto center=[&](size_t n){geometry_msgs::msg::Pose2D p;map.mapToWorld(n%width,(n/width)%height,p.x,p.y);p.theta=(n/cells)*angle_step;return p;};
   const auto connection=[&](const auto &a,auto b){b.theta=a.theta+std::atan2(std::sin(b.theta-a.theta),std::cos(b.theta-a.theta));return sweptPoseConnectionFree(map,footprint,a,b,cancel);};
-  // The motion gate issues translation and rotation separately. A swept
-  // simultaneous connector can be safe geometrically but cannot be followed
-  // by that gate. Retain a safe intermediate pose as part of the actual path.
+  // Explicit intermediate headings expose an endpoint turn to consumers
+  // which follow the nearest positional path sample. Retain both certified
+  // pieces instead of hiding the intended yaw in a moving grid connector.
   const auto split_connection=[&](const auto &a,auto b)->std::optional<geometry_msgs::msg::Pose2D> {
     b.theta=a.theta+std::atan2(std::sin(b.theta-a.theta),std::cos(b.theta-a.theta));
     auto middle=a;middle.theta=b.theta;

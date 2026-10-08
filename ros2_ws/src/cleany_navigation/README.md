@@ -610,10 +610,20 @@ minimum-cost path. Every endpoint, grid connector, translation and rotation
 uses the configured full footprint with continuous cell/sweep checks;
 unknown cells and newly observed live obstacles reject the route.
 Start and exact-goal grid connectors explicitly separate translation and
-rotation; both pieces must pass the same full sweep, so the motion gate can
-follow the encoded turn before entering a translation segment.
+rotation; both pieces must pass the same full sweep. This makes the intended
+endpoint turn visible to nearest-position orientation consumers. In reactive
+safety mode, the pan node has observation authority only; it does not enforce
+separate chassis translation and rotation.
 Sparse explored-state storage avoids allocating one full costmap per heading.
 This attempt receives at most one quarter of the existing shared planning
 budget; it never extends that budget or changes arrival/sensor/velocity guards.
 A stored-map replay is diagnostic evidence. Actual Gazebo arrival and return
 must be verified separately before claiming the failed seat is fixed.
+
+`PathProgressCritic` adds continuous remaining local-path length in metres,
+with `PathProgress.scale: 1.0` in the Omni profile. This distinguishes safe
+forward and stopped candidates when the stock grid potentials tie. It retains
+the earliest projection at crossings and limits projected advance by the
+trajectory's actual travel length. In-place rotations create no translational
+progress. Collision, velocity, freshness, arrival and timeout guards retain
+their existing acceptance rules; this critic supplies a path-following score.
