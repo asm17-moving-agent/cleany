@@ -61,7 +61,7 @@ def main() -> None:
         results=[json.loads((output/'result.json').read_text()) if (output/'result.json').exists() else {'error':'missing result'} for _,output in workers]
         report={'count':args.count,'seats':seats,'mission_start_wall':released,'repeats':args.repeats,'results':results,'elapsed_wall':time.monotonic()-started,'exit_codes':[p.returncode for p,_ in workers]}
         (out/'batch.json').write_text(json.dumps(report,indent=2))
-        print('DONE',args.name,[(r.get('error'),[(m['seat'],m['final'].get('last_result',{}).get('outcome'),round(m['measured_rtf'],3)) for m in r['missions']]) for r in results],flush=True)
+        print('DONE',args.name,[(r.get('error'),[(m.get('seat'),(m.get('final',{}).get('last_result') or {}).get('outcome',m.get('reason','NO_TERMINAL')),round(m['measured_rtf'],3) if m.get('measured_rtf') is not None else None) for m in r.get('missions',[])]) for r in results],flush=True)
     finally:
         for p,output in workers:
             if p.poll() is None:
