@@ -249,8 +249,30 @@ PathDist/GoalDist/PathOrientation weights와 모든 safety/arrival/deadline guar
 별도 v5 overlay의 `make test-navigation`: 175 tests, 0 errors/failures/skipped.
 plugin registry/config 변경의 package build도 완료했다.
 
-노트북에서 v5의 room-a4-01/17/20 세 시뮬레이션을 동시에 실행 중이다.
+노트북 v5의 room-a4-01/17/20 세 시뮬레이션 병렬 실행은 모두 terminal FAILED였다.
+실측 RTF는 각각 1.320/1.325/1.347, wall time은 132.154/127.191/132.129초였다.
+room-a4-01과 17은 outbound에서 실패했고, 20은 target navigation OK 및 mock 작업
+완료 후 return에서 NAVIGATION_FAIL이었다. 세 실행 모두 final stopped와 launch
+종료 판정이 통과했다. 새 진행 점수만으로 왕복을 해결하지 못했다. v5의 13/43
+대조 왕복은 별도 2개 병렬 실행에서 모두 SUCCESS였다(실측 RTF 1.883/1.701).
+두 미션 모두 final stopped와 launch 종료를 포함한 전체 기대 판정을 통과했다.
 기존 desktop v2 반복은 중간에 빌드나 source를 교체하지 않고 계속한다.
 별도 저장-map 실험에서는 전체 SAT sweep을 통과한 v3 room 경로의 한 pose가
 stock FootprintCollisionChecker에서는 lethal로 판정됐다(index 199). 이것이 현재
 upcoming-path 재계획의 원인인지 아직 입증하지 않았고 IsPathValid를 우회하지 않았다.
+
+
+### 두 호스트 병렬 실행 진행 결과
+
+노트북 35회 이상 상황 반복은 모두 종료되어 30/35 기대 판정을 통과했다.
+깊이 안전 입력 유실 5회의 terminal 불일치와 실패 증거를 그대로 유지한다.
+데스크탑의 대표 좌석 fresh 반복은 60/60회 수행 완료, SUCCESS 44회/FAILED 16회다.
+44/16/09/35는 각각 10/10 SUCCESS, 17/20은 각각 2/10 SUCCESS와 8/10 FAILED였다.
+이는 v2 결과이며 노트북의 v5 변경과 섞어 개선 효과로 해석하지 않는다.
+한 인스턴스에서 6개 좌석 순서 × 10회 연속 실행은 별도로 진행 중이다.
+전체 계획 완료는 아직 선언하지 않는다.
+
+노트북 v5 3-worker 실행의 호스트 전체 CPU delta 평균은 60.9%(최대 71.4%),
+MemAvailable 최저 13.55 GiB였다. Ogre2 log의 renderer는 freedreno/Adreno X2-90이다.
+NVIDIA monitor가 없으므로 GPU utilization은 None(미측정)이며 0%로 해석하지 않는다.
+이 어려운 좌석 3개 실행의 RTF/실패만으로 최대 병렬 수나 CPU 단일 병목을 확정하지 않는다.
