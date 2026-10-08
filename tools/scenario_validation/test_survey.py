@@ -8,7 +8,7 @@ def batch(directory: Path,count: int,seconds: float,success=True,repeat=1) -> No
     (folder/'batch.json').write_text(json.dumps({'elapsed_wall':seconds,'exit_codes':[0]*count}))
     for i in range(count):
         worker=folder/f'worker-{i:02d}';worker.mkdir()
-        result={'scenario':'normal','expected_mission_count':1,'final_latest':{'cmd_vel':[0,0,0],'ground_truth':{'twist':[0,0,0]}},'missions':[{'mission_id':'a','accepted':True,'final':{'last_result':{'request':{'mission_id':'a'},'outcome':'SUCCESS' if success else 'FAILED'}}}]}
+        result={'scenario':'normal','expected_mission_count':1,'final_latest':{'cmd_vel':[0,0,0],'ground_truth':{'twist':[0,0,0]}},'missions':[{'seat':'seat-43','mission_id':'a','accepted':True,'final':{'last_result':{'request':{'mission_id':'a','target_id':'seat-43'},'outcome':'SUCCESS' if success else 'FAILED'}}}]}
         (worker/'result.json').write_text(json.dumps(result));(worker/'shutdown.json').write_text(json.dumps({'sim':0,'navigation':0,'mission':0}))
 
 

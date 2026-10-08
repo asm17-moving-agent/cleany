@@ -70,3 +70,9 @@ group 밖에 유지해 Gazebo create/remove service로 이전 의자를 복원�
 원인을 고친 뒤 같은 조건의 반복 검증을 수행한다. 우회 장애물은 몸체 yaw가 아니라
 직전 ground-truth 이동 방향에 배치한다. Mecanum의 측방 이동에서도 실제 진행 경로를
 막는 자극을 만들기 위한 조건이다.
+
+`after_survey.py --root ROOT --wait-pid PID`는 실제 survey process 종료와 모든 batch의
+terminal 기록을 확인하고, 전체 좌석 inventory와 raw 실행 결과를 대조한다. 정상 실패는
+성공으로 집계하지 않고 좌석별로 남긴다. 그 다음 7개 smoke 입력을 순서대로 실행하고
+실제 자극, 미션 결과 및 정지 증거를 판정한다. smoke에서 기대와 다른 결과가 있으면
+원인을 분석한 뒤 반복 입력을 구성한다. 현재 자동화 자체는 goal 완료를 선언하지 않는다.

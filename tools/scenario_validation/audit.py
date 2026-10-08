@@ -24,7 +24,9 @@ def assess(result: dict, shutdown: dict) -> dict:
     missions=[]
     for m in result.get('missions',[]):
         terminal=m.get('final',{}).get('last_result') or {}
-        matched=terminal.get('request',{}).get('mission_id')==m.get('mission_id')
+        matched=(terminal.get('request',{}).get('mission_id')==m.get('mission_id')
+                 and isinstance(m.get('seat'),str)
+                 and terminal.get('request',{}).get('target_id')==m['seat'])
         outcome=terminal.get('outcome')
         expected=(outcome=='SUCCESS' if scenario=='normal' else outcome=='CANCELLED' if scenario.startswith('cancel') or scenario=='sensor_loss' else outcome!='SUCCESS' and bool(outcome) if scenario in ('safety_stop','blocked','path_failure') else outcome in ('SUCCESS','FAILED','BLOCKED'))
         passed=bool(m.get('accepted') and matched and expected)
@@ -34,6 +36,8 @@ def assess(result: dict, shutdown: dict) -> dict:
             passed=passed and all(e.get('accepted') for e in m.get('events',[]))
         if scenario=='safety_stop':
             passed=passed and terminal.get('failure_code')=='E_STOP'
+        if scenario=='path_failure':
+            passed=passed and any(e.get('stopped_node',{}).get('name')=='planner_server' for e in m.get('events',[]))
         if scenario=='blocked':
             passed=passed and 'target_ground_truth' not in m
         if scenario=='obstacle':

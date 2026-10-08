@@ -2,7 +2,7 @@ from audit import assess
 
 
 def result(outcome='SUCCESS', mission='a', scenario='normal'):
-    return {'scenario':scenario,'final_latest':{'cmd_vel':[0,0,0],'ground_truth':{'twist':[0,0,0]}},'missions':[{'accepted':True,'mission_id':'a','final':{'last_result':{'request':{'mission_id':mission},'outcome':outcome}}}]}
+    return {'scenario':scenario,'final_latest':{'cmd_vel':[0,0,0],'ground_truth':{'twist':[0,0,0]}},'missions':[{'seat':'seat-43','accepted':True,'mission_id':'a','final':{'last_result':{'request':{'mission_id':mission,'target_id':'seat-43'},'outcome':outcome}}}]}
 
 
 def test_success_requires_matching_terminal_result_and_observed_stop():
@@ -27,4 +27,16 @@ def test_sensor_loss_requires_stop_before_cleanup_cancel():
 
 def test_partial_repeat_series_does_not_pass():
     r=result();r['expected_mission_count']=5
+    assert not assess(r,{'sim':0})['passed']
+
+
+def test_path_failure_requires_actual_planner_loss_stimulus():
+    r=result(outcome='FAILED',scenario='path_failure')
+    assert not assess(r,{'sim':0})['passed']
+    r['missions'][0]['events']=[{'stopped_node':{'name':'planner_server','pid':1}}]
+    assert assess(r,{'sim':0})['passed']
+
+
+def test_terminal_target_must_match_the_worlds_requested_seat():
+    r=result();r['missions'][0]['final']['last_result']['request']['target_id']='seat-13'
     assert not assess(r,{'sim':0})['passed']
