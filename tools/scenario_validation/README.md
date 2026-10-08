@@ -45,6 +45,9 @@ runtime/Nav2 정지 전달을 검사하며 물리 e-stop producer를 검증하�
 `--sequence seat-43,seat-13`은 재시작 없이 좌석을 바꾼다. 이 경우 의자 모델을 static
 group 밖에 유지해 Gazebo create/remove service로 이전 의자를 복원하고 다음 대상
 의자를 제거한다. 이 profile의 자원 사용량은 immutable scene benchmark와 구분한다.
+연속 시험은 매 미션 전에 실제 `/world/.../scene/info` 응답에서 전체 의자 모델을
+대조한다. 이전 의자는 존재하고 대상 의자만 없어야 진행하며, 원본 protobuf 응답과
+해시를 `chair-scenes/`와 결과에 남긴다. 생성/삭제 service ACK만으로 전환을 인정하지 않는다.
 
 `inventory.py FIXTURE`는 모든 좌석의 의자 조건을 검사한다. `audit.py OUTPUT`은
 최종 mission ID, 예상 결과, 실제 cmd_vel/GT 정지와 shutdown을 확인한다.
@@ -87,3 +90,13 @@ terminal 기록을 확인하고, 전체 좌석 inventory와 raw 실행 결과를
 원래 실패한 전체 좌석의 3개 이하 병렬 실행, 13/43번 대조 왕복을 수행한다.
 기존 baseline 실행 및 결과는 유지하며 수정 후 결과를 별도 디렉터리에 남긴다.
 이 단계도 정상 실패를 성공으로 바꾸거나 전체 반복 검증 완료를 선언하지 않는다.
+
+`repeat_representatives.py --root ROOT --wait-pid PID --runs 10`은 navigation 재검증의
+실제 종료와 모든 observer/launch 종료를 확인한 뒤 시작한다. baseline과 수정 후 시도는
+모두 보존하고 명시된 correction queue 순서의 마지막 좌석 결과로 대표 6개를 고른다.
+2개 좌석 전환 smoke 후 각 대표 좌석을 새 인스턴스에서 10회씩 검증하고, smoke가
+통과하면 한 인스턴스에서 6개 좌석 순서를 10회 반복한다. 새 인스턴스 시험은 최대
+3개 병렬, 연속 시험은 의자 모델을 개별 유지하는 1개 인스턴스다. 두 profile의 RTF와
+처리량을 동일한 자원 조건의 인과 비교로 해석하지 않는다. 연속 smoke 실패 시 fresh
+결과를 보존하고 연속 반복은 원인 분석 전까지 시작하지 않는다. 비정상 시나리오의
+5회 반복은 별도이며, 이 driver가 목표 완료를 선언하지 않는다.

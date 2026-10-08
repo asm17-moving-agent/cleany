@@ -2,7 +2,7 @@ import os,json,time,signal,subprocess,math,uuid
 from pathlib import Path
 import argparse
 from worlds import prepare,restored_tree,chair_name
-from stimuli import add_obstacle,move_obstacle,switch_chair,obstacle_ahead
+from stimuli import add_obstacle,move_obstacle,switch_chair,obstacle_ahead,verify_chair_models
 parser=argparse.ArgumentParser()
 parser.add_argument('--root',type=Path,required=True)
 parser.add_argument('--fixture',type=Path,required=True)
@@ -35,6 +35,7 @@ if args.sequence:
  reference_models=restored_tree(fixture/'world.sdf',fixture/'world.study.sdf').getroot().find('world')
  manifest['mutable_chair_entities']=True
  transition_world=world.get('name')
+ all_chairs={chair_name(seat) for seat in json.loads((fixture/'seat_inventory.json').read_text())['seats']}
 if args.scenario=='blocked':
  import yaml,xml.etree.ElementTree as ET
  target=yaml.safe_load((fixture/'targets.yaml').read_text())['seats'][args.seat]
@@ -59,6 +60,8 @@ navigation_binary_hashes={str(path):hashlib.sha256(path.read_bytes()).hexdigest(
 children=[];result={'base_commit':'076b893','branch':'test/scrum-426-scenarios','scenario':args.scenario,'domain':args.domain,'partition':args.partition,'world_manifest':manifest,'input_hashes':input_hashes,'tool_hashes':tool_hashes,'requested_rtf':4,'max_step_size':float(os.environ.get('CLEANY_PHYSICS_STEP','0.0066667')),'compact_static_scene':True,'localization_profile':str(root/'ros2_ws/src/cleany_navigation/config/amcl_sim_ideal_wheels.yaml'),'observer_sample_period':.2,'runtime_config':'committed default, navigation_timeout 180','expected_mission_count':len(sequence)*args.repeats,'missions':[]}; streams=[]
 result.update(navigation_install_prefix=str(navigation_prefix),
               navigation_binary_hashes=navigation_binary_hashes)
+if args.sequence:
+ result.update(chair_fixture_sequence=sequence*args.repeats,chair_inventory=sorted(all_chairs))
 def launch(name,args):
  f=(run/(name+'.log')).open('w');streams.append(f); p=subprocess.Popen(['ros2','launch',*args],stdout=f,stderr=subprocess.STDOUT,start_new_session=True);children.append((name,p));(run/'children.json').write_text(json.dumps([(name,p.pid) for name,p in children]));print('launched',name,p.pid,flush=True)
 import rclpy
@@ -163,6 +166,10 @@ try:
    result.setdefault('chair_transitions',[]).append({'restored':chair_name(previous_seat),'removed':chair_name(seat),'clock':latest['clock'],'requests':transition})
    previous_seat=seat;spin(2)
 
+  if args.sequence:
+   evidence=verify_chair_models(transition_world,all_chairs,chair_name(seat),
+     run/'chair-scenes'/f'{len(result.get("chair_scene_evidence",[])):03d}.pbtxt')
+   result.setdefault('chair_scene_evidence',[]).append({'seat':seat,'clock':latest['clock'],**evidence})
   req=OfferMission.Request(mission_id=str(uuid.uuid4()),mission_type='clean_desk',target_kind='SEAT',target_id=seat,requested_by='desktop-validation')
   response=call(offer,req);m={'seat':seat,'mission_id':req.mission_id,'accepted':response.accepted,'reason':response.reason};result['missions'].append(m)
   if not response.accepted:break

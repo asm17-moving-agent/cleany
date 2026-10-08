@@ -29,6 +29,13 @@ def select_cases(rows: list[dict], count: int=6) -> list[dict]:
     return chosen
 
 
+def latest_attempts(rows: list[dict]) -> list[dict]:
+    """Use explicit baseline/correction order while retaining all attempts."""
+    latest={}
+    for row in rows:latest[row['seat']]=row
+    return list(latest.values())
+
+
 class MapClearance:
     def __init__(self, map_file: Path):
         self.meta=yaml.safe_load(map_file.read_text());image=np.asarray(Image.open(map_file.parent/self.meta['image']).convert('L'))
@@ -46,10 +53,13 @@ class MapClearance:
 
 
 def main() -> None:
-    parser=argparse.ArgumentParser();parser.add_argument('directory',type=Path);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('directory',type=Path)
+    parser.add_argument('--corrections',type=Path,help='Completed correction jobs, in authoritative queue order')
+    args=parser.parse_args()
     directory=args.directory;fixture=directory/'fixture';targets=yaml.safe_load((fixture/'targets.yaml').read_text())
     clearance=MapClearance(fixture/'facility_integration.yaml');home=targets['home'];rows=[]
     jobs=json.loads((directory/'survey_jobs.json').read_text())
+    if args.corrections:jobs+=json.loads(args.corrections.read_text())
     for job in jobs:
         for worker in sorted((directory/job['name']).glob('worker-*')):
             if not worker.is_dir():continue
@@ -68,10 +78,14 @@ def main() -> None:
               'target_gt_error_m':math.hypot(pose['x']-goal[0],pose['y']-goal[1]) if pose else None,
               'guard_intervention_fraction':sum(d not in ('PASS','STOP_COMMAND') for d in decisions)/len(decisions) if decisions else None,
               'wall_seconds':mission.get('wall_seconds'),'rtf':mission.get('measured_rtf')})
+    attempts=rows;rows=latest_attempts(attempts)
+    inventory=json.loads((fixture/'seat_inventory.json').read_text())
+    if {r['seat'] for r in rows}!=set(inventory['seats']):raise RuntimeError('Representative input lacks full seat coverage')
     selected=select_cases(rows)
     output={'selection':'six unique passing routes from complete survey, ranked by observed route descriptors',
       'map_clearance_scope':'sampled base centre to known mapped obstacle/unknown; excludes unrepresented live chairs; not footprint/contact certification',
-      'selected':selected,'all_seats':rows,'failed_seats':[r['seat'] for r in rows if not r['passed']]}
+      'selected':selected,'all_seats':rows,'attempts':attempts,
+      'failed_seats':[r['seat'] for r in rows if not r['passed']]}
     (directory/'representatives.json').write_text(json.dumps(output,indent=2))
     print([(r['role'],r['seat']) for r in selected])
 

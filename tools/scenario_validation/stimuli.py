@@ -2,6 +2,8 @@
 from __future__ import annotations
 import math
 import json
+import hashlib
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -47,6 +49,47 @@ def switch_chair(world: str, restored_model: ET.Element, remove_name: str) -> li
                            'sdf: '+json.dumps(ET.tostring(sdf,encoding='unicode'))+' allow_renaming: false')
     remove=entity_request(world,'remove','ignition.msgs.Entity',f'name: "{remove_name}" type: MODEL')
     return [restore,remove]
+
+
+def scene_model_names(text: str) -> set[str]:
+    """Read top-level model names from transport's protobuf text response."""
+    tokens=re.findall(r'"(?:\\.|[^"\\])*"|[A-Za-z_][A-Za-z_0-9]*|[{}:]',text)
+    stack=[];names=set();models=0
+    for index,token in enumerate(tokens):
+        if token=='{':
+            if index==0:raise ValueError('Malformed scene response')
+            stack.append(tokens[index-1])
+            if stack==['model']:models+=1
+        elif token=='}':
+            if not stack:raise ValueError('Malformed scene response')
+            stack.pop()
+        elif stack==['model'] and token=='name':
+            if tokens[index+1:index+2]!=[':'] or index+2>=len(tokens):
+                raise ValueError('Missing model name')
+            name=json.loads(tokens[index+2])
+            if not isinstance(name,str) or name in names:raise ValueError('Invalid or duplicate model name')
+            names.add(name)
+    if stack or not names or models!=len(names):raise ValueError('Incomplete scene response')
+    return names
+
+
+def verify_chair_models(world: str, all_chairs: set[str], removed: str,
+                        output: Path | None=None) -> dict:
+    command=['ign','service','-s',f'/world/{world}/scene/info',
+             '--reqtype','ignition.msgs.Empty','--reptype','ignition.msgs.Scene',
+             '--timeout','3000','--req','']
+    response=subprocess.run(command,text=True,capture_output=True,timeout=6)
+    if response.returncode:raise RuntimeError('Gazebo scene query failed: '+response.stderr)
+    if output:
+        output.parent.mkdir(parents=True,exist_ok=True)
+        with output.open('x') as stream:stream.write(response.stdout)
+    models=scene_model_names(response.stdout)
+    observed=models & all_chairs;expected=all_chairs-{removed}
+    if observed!=expected:
+        raise RuntimeError(f'Gazebo chair mismatch: missing={sorted(expected-observed)}, extra={sorted(observed-expected)}')
+    return {'removed':removed,'observed_chairs':sorted(observed),'scene_file':str(output) if output else None,
+            'model_count':len(models),'command':command,
+            'scene_sha256':hashlib.sha256(response.stdout.encode()).hexdigest()}
 
 
 def obstacle_ahead(current: dict, previous: dict, distance: float) -> list[float]:

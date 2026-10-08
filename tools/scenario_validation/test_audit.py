@@ -40,3 +40,14 @@ def test_path_failure_requires_actual_planner_loss_stimulus():
 def test_terminal_target_must_match_the_worlds_requested_seat():
     r=result();r['missions'][0]['final']['last_result']['request']['target_id']='seat-13'
     assert not assess(r,{'sim':0})['passed']
+
+
+def test_sequence_success_needs_observed_all_other_chairs():
+    r=result();r.update(chair_fixture_sequence=['seat-43'],
+      chair_inventory=['office_chair_13','office_chair_43'],
+      chair_scene_evidence=[{'seat':'seat-43','removed':'office_chair_43','observed_chairs':['office_chair_13']}])
+    assert assess(r,{'sim':0})['passed']
+    r['chair_scene_evidence'][0]['observed_chairs']=[]
+    assert not assess(r,{'sim':0})['passed']
+    r['chair_scene_evidence'][0]['observed_chairs']=['office_chair_43']
+    assert not assess(r,{'sim':0})['passed']

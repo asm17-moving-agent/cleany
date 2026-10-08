@@ -11,8 +11,8 @@ from audit import assess
 from survey import process_identity
 
 
-def require_completed_smoke(directory: Path, jobs: list[dict]) -> None:
-    records=json.loads((directory/'scenario_smoke_jobs.status.json').read_text())
+def require_completed_queue(directory: Path, jobs: list[dict], status_name: str) -> None:
+    records=json.loads((directory/status_name).read_text())
     if len(records)!=len(jobs) or any(
         r.get('job')!=job or r.get('exit_code')!=0 or 'end' not in r
         for r,job in zip(records,jobs)):
@@ -26,6 +26,10 @@ def require_completed_smoke(directory: Path, jobs: list[dict]) -> None:
             shutdown=json.loads((batch/f'worker-{index:02d}'/'shutdown.json').read_text())
             if not shutdown or any(shutdown.values()):
                 raise RuntimeError('Baseline smoke launch shutdown is incomplete')
+
+
+def require_completed_smoke(directory: Path, jobs: list[dict]) -> None:
+    require_completed_queue(directory,jobs,'scenario_smoke_jobs.status.json')
 
 
 def main() -> None:
