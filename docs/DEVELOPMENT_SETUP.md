@@ -124,6 +124,9 @@ rosdep update
 make deps
 ```
 
+`cleany_navigation`의 native depth self-filter를 빌드하려면 Python 개발 헤더가
+필요하다. manifest의 `python3-dev` 의존성을 `make deps`가 설치한다.
+
 `cleany_moveit_config` 패키지를 빌드하면 package manifest에 따라 ROS 2
 Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, `ros2_control` 및
 `joint_trajectory_controller`도 `make deps`가 함께 설치한다. MuJoCo hand-eye
