@@ -91,3 +91,15 @@ def test_sweep_rejects_invalid_base_rotation():
     base[0, 0] = 2
     with pytest.raises(ValueError):
         guard.sweep(np.zeros((1, 3)), np.ones(3), base, np.zeros(3))
+
+
+@pytest.mark.parametrize('center,local,near,sweep,cloud,metadata,expected', [
+    ([0., 0.], 4., 3., 2., 10., 10., True),
+    ([1.5, 0.], 4., 3., 2., 10., 10., False),
+    ([0., 0.], 1., 3., 2., 10., 10., False),
+    ([0., 0.], 4., 3., 2., 10., 10.2, False),
+    ([float('nan'), 0.], 4., 3., 2., 10., 10., False),
+])
+def test_cropped_voxel_window_requires_complete_fresh_sweep(center, local, near, sweep, cloud, metadata, expected):
+    from cleany_navigation.voxel_guard import local_window_covers
+    assert local_window_covers(center, local, near, np.zeros(2), sweep, cloud, metadata) is expected

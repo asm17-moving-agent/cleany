@@ -152,7 +152,8 @@ depth, odom, 동적 pan feedback의 손실/잘못된 입력, 명령 또는 monit
 Voxel map/status 및 pan alignment는 최종 guard 입력이 아니다. 장애물 메모리는
 선택적으로 costmap에 계속 사용한다. 기존 3D cube 진단 발행과 depth marking/
 clearing 밀도·이력도 유지하며, 그 발행이 속도 허가 조건은 아니다.
-Costmap의 depth VoxelLayer와 장애물 marking/clearing은 유지한다.
+장애물 marking/clearing은 유지한다. `shared_voxel_costmap: true`이면 depth
+VoxelLayer를 공유 world 투영으로 대체하며, false일 때만 기존 VoxelLayer를 사용한다.
 `reactive_guard/state`에서 decision, source age, 처리 시간, 요청/출력 속도를 기록한다.
 관측한 표면에 대한 감시이므로, 카메라 밖의 낮은 물체·돌출물·낙차나 동적 장애물을
 전부 보장하지 않는다. 아직 없는 ToF를 보호 수단으로 계산하지 않는다. 사람이 없는
@@ -288,7 +289,7 @@ Jazzy에서는 `ROS_SETUP=/opt/ros/jazzy/setup.bash`와
 
 Depth 바닥 제외: `/camera/head/depth/points`는 바닥을 포함한 관측 ray를 유지하고,
 `/camera/head/depth/obstacle_points`는 `base_link` 기준 `marking_min_z`–`marking_max_z`
-안의 점만 제공합니다. VoxelLayer는 전자를 clearing 전용, 후자를 marking 전용으로
+안의 점만 제공합니다. `shared_voxel_costmap: false`의 VoxelLayer는 전자를 clearing 전용, 후자를 marking 전용으로
 사용합니다. 기본 시뮬레이션 바닥은 z=-0.38 m이고 marking 최소 높이는 -0.33 m입니다.
 CAD 카메라 주행 자세는 수평에서 아래로 20°입니다. 실물 높이 기준은 로봇 parameter로
 맞춰야 합니다.
@@ -299,7 +300,9 @@ BT는 100ms 주기로 앞 1.5m 경로를 검사하며, FollowPath에는 원본 �
 
 Depth는 최대 `tf_wait_timeout_s`(기본 0.15초) 동안 최신 한 프레임만 보관하며
 비동기 재시도로 원래 시각의 TF를 기다린다. TF를 추정하거나 latest TF로 대체하지 않고,
-대기 만료 시 버린다. marking은 obstacle_points, clearing은 전체 points를 사용한다.
+대기 만료 시 버린다. 기존 VoxelLayer 경로에서는 marking에 obstacle_points,
+clearing에 전체 points를 사용한다. 공유 world 경로에서는 self-filtered 전체 points를
+voxel memory에서 처리한다.
 
 The axis controller follows the body orientation stored in the lattice path
 (`PathHeading.respect_path_orientation`). Bounded diagonal compensation does
@@ -577,7 +580,8 @@ float64 연속 buffer로 전달하며, 형상 변환과 margin은 같은 값을 
 
 장애물 메모리는 관측으로 바뀐 voxel의 occupied index를 관리하고 2D 격자와
 3D 중심점을 이 index에서 생성한다. 채널별 evidence, clearing 횟수, timestamp,
-snapshot 형식과 발행 주기는 유지하며 restore 시 index를 다시 구성한다.
+관측 만료·재시작 시 미확인 상태는 공유 voxel 경로의 schema 2 규칙을 따른다.
+점유 voxel의 sparse timestamp key를 2D·3D 투영에 재사용해 전체 volume 스캔을 피한다.
 이 최적화는 3D 발행 옵션과 입력 freshness/sampling 설정을 바꾸지 않는다.
 
 ### Localization 보정 프로파일과 정밀 도착
@@ -600,3 +604,42 @@ PathOrientation 및 현재 회전 비용 설정을 유지한다. 과거 회귀 �
 `make test-gazebo-navigation-goals`는 Humble/Fortress에서 먼 목표와 의자 사이
 횡이동 목표를 GUI 없이 각각 검증한다. 설정과 판정 기준은
 [`cleany_gazebo_sim/README.md`](../cleany_gazebo_sim/README.md)의 저장 지도 회귀 테스트를 따른다.
+
+
+### Voxel world 공유와 관측 만료
+
+`config/obstacle_memory.yaml`의 `shared_voxel_costmap: true`는 기존 센서별
+voxel world를 local/global costmap과 serial 3D 충돌 검증에 공유하는 실험 설정이다.
+LiDAR obstacle layer와 정적 지도, inflation, 기존 Collision Monitor는 유지하며,
+중복 depth VoxelLayer는 costmap plugin 목록에서 제외한다. `false`로 되돌리면
+기존 depth VoxelLayer와 `/obstacle_memory/grid` 결합 경로를 사용한다.
+serial guard는 어느 모드에서도 빠른 local_voxels를 사용한다.
+높이 저장 범위는 기존 바닥 위 0.05~2m를 유지한다. 투영 높이는 robot 설정의
+`depth_layer.min_obstacle_height/max_obstacle_height`를 따른다.
+
+- `/obstacle_memory/navigation_grid`: 5Hz 주행용 높이 투영. 만료된 장애물 위치는
+  내부적으로 미확인이지만 Nav2에는 재관측 전까지 occupied로 전달한다.
+  unknown을 무시하는 StaticLayer 결합에서 빈 통로로 바뀌는 것을 방지한다.
+- `/obstacle_memory/local_voxels`: 5Hz 로봇 주변 3D 점군. 점유 voxel과 만료된
+  미확인 voxel을 함께 전달하고 serial guard가 기존 제동 sweep으로 검사한다.
+  cloud/status 시각과 주변 범위가 맞지 않거나 sweep을 포함하지 못하면 정지한다.
+- `/obstacle_memory/voxels`, `/grid`, `/lidar`, `/depth`: 전체 지도 진단은
+  `world_publish_period`(기본 1초)마다 발행한다. 전체 높이는 보존한다.
+- `near_radius`(3m) 안은 `update_period`(0.2초)로 처리하고, 그 밖은
+  `far_update_period`(1초)로 처리한다. 먼 점의 광선도 가까운 구간에서는 계속
+  clearing에 사용한다. 로봇 자세 TF와 기존 센서 신선도 제한은 유지한다.
+- `memory_ttl_s`(300초)는 ROS 시간 기준 voxel별 마지막 **장애물 관측**의
+  만료 시간이다. 0이면 만료를 끈다. 한 센서의 만료/clearing은 다른 센서의
+  유효한 증거나 미확인 증거를 지우지 않는다. 미확인은 같은 센서의 실제 광선이
+  해당 voxel을 통과하거나 다시 장애물을 관측해야 해제된다. 정적 지도는 만료하지 않는다.
+- snapshot schema 2는 schema 1도 읽는다. 재시작 시 과거 관측은 미확인으로
+  복원하고 현재 시각으로 갱신하지 않는다. ROS clock 역행 시 mapping을 차단한다.
+
+거리, 주기, TTL은 하드웨어에서 확정한 안전값이 아닌 검증용 설정이다.
+만료는 통로를 자동으로 열어주는 정책이 아니며, 재관측할 수 없는 장애물의 위치는
+계속 차단될 수 있다. RAM의 기본 dense 배열은 유지하고, voxel별 관측 시각과
+미확인 상태는 점유/만료 voxel의 sparse 자료로 추가 관리한다.
+
+검증: `make test-navigation` 및 `make test-navigation-runtime`.
+Gazebo 43/13 왕복, CPU/RSS, 실제 RTF, 센서 나이, 도착 오차와 최종 속도는 별도
+실행 결과로 확인한다. core 처리 시간 측정은 전체 스택/실물 성능을 보증하지 않는다.

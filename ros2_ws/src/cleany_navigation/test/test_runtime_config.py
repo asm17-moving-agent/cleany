@@ -41,6 +41,7 @@ def test_serial_velocity_route_has_exactly_one_final_stage(pan, memory, voxel):
     if voxel:
         assert result['voxel_guard']['ros__parameters']['command_topic'] == monitor['cmd_vel_out_topic']
         assert result['voxel_guard']['ros__parameters']['output_topic'] == 'cmd_vel'
+        assert result['voxel_guard']['ros__parameters']['voxel_topic'] == 'obstacle_memory/local_voxels'
         assert result['obstacle_memory']['ros__parameters']['publish_3d'] is True
     if memory:
         for name in ('global_costmap', 'local_costmap'):
@@ -226,3 +227,21 @@ def test_localization_profile_cannot_silently_replace_control_or_malformed_param
     from cleany_navigation.runtime_config import merge_localization_parameters
     with pytest.raises(ValueError, match='localization overlay'):
         merge_localization_parameters(parameters(), overlay)
+
+
+def test_shared_map_replaces_depth_voxel_build_but_preserves_lidar_and_static_map():
+    source = parameters()
+    merge_parameters(source, load_parameters(PACKAGE/'config/obstacle_memory.yaml'))
+    before = deepcopy(source)
+    result = configure_safety(source)
+    assert result['voxel_guard']['ros__parameters']['voxel_topic'] == 'obstacle_memory/local_voxels'
+    for name in ('local_costmap', 'global_costmap'):
+        cm = result[name][name]['ros__parameters']
+        assert 'depth_layer' not in cm['plugins']
+        assert 'obstacle_layer' in cm['plugins']
+        assert cm['memory_layer']['map_topic'] == '/obstacle_memory/navigation_grid'
+        assert cm['obstacle_layer'] == before[name][name]['ros__parameters']['obstacle_layer']
+    assert source == before
+    assert result['obstacle_memory']['ros__parameters']['projection_max_z'] == before['local_costmap']['local_costmap']['ros__parameters']['depth_layer']['max_obstacle_height']
+    disabled = configure_safety(source, memory_enabled=False, voxel_enabled=False)
+    assert 'depth_layer' in disabled['local_costmap']['local_costmap']['ros__parameters']['plugins']

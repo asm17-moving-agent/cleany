@@ -68,6 +68,11 @@ def test_memory_retries_exact_sensor_tf_and_preserves_signed_grid(monkeypatch):
         scan.range_min, scan.range_max = .01, 5.
         scan.ranges = [1.]
         node.latest['lidar'] = scan
+        base = TransformStamped()
+        base.header.frame_id, base.child_frame_id = 'map', 'base_link'
+        base.header.stamp = scan.header.stamp
+        base.transform.rotation.w = 1.
+        node.buffer.set_transform(base, 'base_pose')
         node.update()
         assert node.counts['lidar'] == 0 and node.source_stamps == {}
         tf = TransformStamped()
@@ -78,7 +83,7 @@ def test_memory_retries_exact_sensor_tf_and_preserves_signed_grid(monkeypatch):
         tf.transform.translation.z = .15
         node.buffer.set_transform(tf, 'delayed_sensor_tf')
         outputs = []
-        node.grid_publishers['grid'] = SimpleNamespace(publish=outputs.append)
+        node.grid_publishers['navigation_grid'] = SimpleNamespace(publish=outputs.append)
         node.update()
         assert node.counts['lidar'] == 1
         assert node.processed['lidar'] == (scan.header.stamp.sec, scan.header.stamp.nanosec)
@@ -90,6 +95,41 @@ def test_memory_retries_exact_sensor_tf_and_preserves_signed_grid(monkeypatch):
         node.buffer.set_transform(tf, 'stale_sensor_tf')
         node.update()
         assert node.counts['lidar'] == 1
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+def test_expired_evidence_is_unknown_in_diagnostics_but_blocks_shared_navigation(monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.setenv('ROS_DOMAIN_ID', '222')
+    rclpy.init(args=['--ros-args', '-p', 'publish_3d:=true'])
+    node = ObstacleMemoryNode()
+    try:
+        grid = OccupancyGrid()
+        grid.header.frame_id = 'map'
+        grid.info.width = grid.info.height = 20
+        grid.info.resolution = .1
+        grid.info.origin.orientation.w = 1.
+        grid.data = [0]*400
+        node.on_map(grid)
+        node.center = np.array([0., 0.])
+        node.memory.observe('depth', np.array([.15, .15, .5]),
+            np.array([[1.05, .15, .5]]), np.array([True]), 100.)
+        assert node.memory.expire(111., 10.) == 1
+        outputs, clouds = [], []
+        node.grid_publishers['navigation_grid'] = SimpleNamespace(publish=outputs.append)
+        node.local_publisher = SimpleNamespace(publish=clouds.append)
+        node.publish()
+        transported = deserialize_message(serialize_message(outputs[-1]), OccupancyGrid)
+        assert transported.data[30] == 100
+        assert node.memory.grid()[1, 10] == -1
+        assert cloud_xyz(clouds[-1]).shape == (1, 3)
+        node.memory.observe('depth', np.array([.15, .15, .5]),
+            np.array([[1.5, .15, .5]]), np.array([False]), 112.)
+        node.publish()
+        assert outputs[-1].data[30] == 0
+        assert cloud_xyz(clouds[-1]).shape == (0, 3)
     finally:
         node.destroy_node()
         rclpy.shutdown()

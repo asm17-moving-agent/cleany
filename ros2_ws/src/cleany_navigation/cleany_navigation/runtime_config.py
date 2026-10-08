@@ -244,15 +244,26 @@ def configure_safety(document: dict, *, pan_enabled: bool = True, memory_enabled
     memory = params('obstacle_memory')
     if voxel_enabled:
         memory.update(publish_3d=True, mark_all_depth_points=True)
+        guard['voxel_topic'] = 'obstacle_memory/local_voxels'
+    shared = memory_enabled and memory.get('shared_voxel_costmap', False)
+    if shared:
+        # A single map produces height-filtered planning cells and local 3-D voxels.
+        depth = result['local_costmap']['local_costmap']['ros__parameters']['depth_layer']
+        memory.update(projection_min_z=depth['min_obstacle_height'],
+                      projection_max_z=depth['max_obstacle_height'], publish_3d=True)
+        guard['voxel_topic'] = 'obstacle_memory/local_voxels'
     if memory_enabled:
         for name in ('global_costmap', 'local_costmap'):
             costmap = result[name][name]['ros__parameters']
+            if shared:
+                costmap['plugins'] = [p for p in costmap['plugins'] if p != 'depth_layer']
             if 'memory_layer' not in costmap['plugins']:
                 costmap['plugins'].insert(1, 'memory_layer')
             costmap['use_maximum'] = True
             costmap['memory_layer'] = dict(plugin='nav2_costmap_2d::StaticLayer',
-                map_topic='/obstacle_memory/grid', map_subscribe_transient_local=True,
-                subscribe_to_updates=False)
+                map_topic='/obstacle_memory/navigation_grid' if shared else '/obstacle_memory/grid',
+                map_subscribe_transient_local=True, subscribe_to_updates=False,
+                use_maximum=True)
     if output_directory:
         params('controller_server').setdefault('FollowPath', {})[
             'ObstacleFootprint.failure_snapshot_directory'] = str(
