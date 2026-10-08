@@ -146,6 +146,20 @@ class Nav2Navigator:
         tf = self.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
         return tf, self.node.get_clock().now().nanoseconds*1e-9 - Time.from_msg(tf.header.stamp).nanoseconds*1e-9
 
+    def localization_snapshot(self) -> dict:
+        """Expose the same estimated pose used for arrival, never ground truth."""
+        tf, age = self.base_transform()
+        q = tf.transform.rotation
+        norm = math.sqrt(sum(v*v for v in (q.x, q.y, q.z, q.w)))
+        if not math.isfinite(norm) or abs(norm-1) > .001:
+            raise ValueError("invalid arrival orientation")
+        theta = math.atan2(2*(q.w*q.z+q.x*q.y), 1-2*(q.y*q.y+q.z*q.z))
+        pose = (tf.transform.translation.x, tf.transform.translation.y, theta)
+        if not all(math.isfinite(v) for v in pose):
+            raise ValueError("arrival pose must be finite")
+        return {"pose": dict(zip(("x", "y", "yaw"), pose)), "age_s": age,
+                "frame": self.targets.frame_id, "source": "localization_tf"}
+
     def ready(self) -> tuple[bool, str]:
         if self.recovery_goal:
             return False, "INTERRUPTED_NAVIGATION"
@@ -235,21 +249,19 @@ class Nav2Navigator:
             # Nav2 may stop near a tolerance-shifted path endpoint. Verify the
             # original requested pose independently before desk work can start.
             try:
-                tf, age = self.base_transform()
+                measurement = self.localization_snapshot()
+                age = measurement["age_s"]
                 if not math.isfinite(age) or not -.02 <= age <= self.arrival_pose_timeout:
                     raise ValueError("arrival localization is stale or future")
-                q = tf.transform.rotation
-                norm = math.sqrt(sum(v*v for v in (q.x, q.y, q.z, q.w)))
-                if not math.isfinite(norm) or abs(norm-1) > .001:
-                    raise ValueError("invalid arrival orientation")
-                theta = math.atan2(2*(q.w*q.z+q.x*q.y), 1-2*(q.y*q.y+q.z*q.z))
                 target = operation.target
+                pose = measurement["pose"]
                 error = arrival_error((target.x, target.y, target.yaw),
-                                      (tf.transform.translation.x, tf.transform.translation.y, theta))
+                                      (pose["x"], pose["y"], pose["yaw"]))
                 if not error.within(self.arrival_position_tolerance, self.arrival_yaw_tolerance):
                     raise ValueError(f"arrival outside requested pose: {error.position_m:.3f} m, {error.yaw_rad:.3f} rad")
                 operation.result = ModuleResult.success(
-                    data={"arrival_position_error_m": error.position_m, "arrival_yaw_error_rad": error.yaw_rad},
+                    data={"arrival_position_error_m": error.position_m, "arrival_yaw_error_rad": error.yaw_rad,
+                          "arrival_localization": measurement},
                     message="Nav2 arrived; original goal pose verified.")
             except Exception as exc:
                 if time.monotonic()-operation.result_received_at < self.settle_timeout:

@@ -158,6 +158,17 @@ def test_nav2_transport_offer_result_and_duplicate(ros_runtime):
     assert runtime.runtime.last_report.outcome == "SUCCESS"
     assert runtime.runtime.last_report.navigation_result == "OK"
     assert runtime.runtime.last_report.completed_tasks == ["trash-1", "trash-2"]
+    arrival_events = [event["data"]["data"] for event in runtime.runtime.debug_events
+                      if event["kind"] == "action_result"
+                      and event["data"].get("module") == "navigation"]
+    assert len(arrival_events) == 2
+    for evidence, goal in zip(arrival_events, nav.goals):
+        measured = evidence["arrival_localization"]
+        assert measured["source"] == "localization_tf" and measured["frame"] == "map"
+        assert measured["pose"]["x"] == pytest.approx(goal.pose.position.x)
+        assert measured["pose"]["y"] == pytest.approx(goal.pose.position.y)
+        assert evidence["arrival_position_error_m"] <= runtime.navigator.arrival_position_tolerance
+        assert -.02 <= measured["age_s"] <= runtime.navigator.arrival_pose_timeout
     assert len(nav.goals) == 2
     assert nav.goals[0].header.frame_id == "map"
     assert nav.goals[0].pose.position.x == 6.3
