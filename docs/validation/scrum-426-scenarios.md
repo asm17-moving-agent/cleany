@@ -1,6 +1,6 @@
 # SCRUM-426 시나리오 반복 검증 — 진행 중
 
-2026-10-09, `test/scrum-426-scenarios`, 구현 기준 `076b893`, 검증 도구 `0f40fa4`.
+2026-10-09, `test/scrum-426-scenarios`, 구현 기준 `076b893`, 초기 검증 도구 `0f40fa4`, 회전 수정 `3d6604d`, 재검증 driver `b9f90d6`.
 로컬과 데스크탑에 별도 워크트리를 만들었다. 기존 runtime-accuracy-review와
 feat-navigation-runtime의 소스는 수정하지 않았다. Jira task는 In Review이며
 좌석 왕복, 장애물, 경로 실패, 취소와 정지 결과의 재현 가능한 기록을 요구한다.
@@ -55,7 +55,7 @@ planner endpoint 회전과 live path 검증을 각 모서리의 각도 이동이
 절반 이하인 구간으로 나눴다. 각 구간은 기존 full-cell SAT/arc bound를 유지하며
 실제 회전 중 접촉, unknown, padding과 cancellation은 계속 거부한다. Controller
 rollout 검사는 바꾸지 않았다. 로컬 ROS Humble container에서 `make test-navigation`:
-170 tests, 0 errors/failures/skipped. `make test-scenario-tools`: 21 passed.
+170 tests, 0 errors/failures/skipped. `make test-scenario-tools`: 로컬/데스크탑 모두 24 passed.
 
 `artifacts/scenarios/planner-replay/`에 원래 1번 snapshot, 임시 C++ replay 코드와
 replay_result.json을 저장했다. 수정 라이브러리로 같은 snapshot에서 goal/start heading
@@ -64,7 +64,7 @@ replay_result.json을 저장했다. 수정 라이브러리로 같은 snapshot에
 종료된 뒤 독립 navigation overlay를 빌드하고 원래 실패 좌석을 재검증한다.
 
 - 월드 보존, 잘못된 terminal mission ID, 실제로 움직이는 최종 상태,
-  sensor-loss 취소 이전 정지 판정의 관련 테스트와 순서/소유권/움직임 방향/전체 좌석 coverage 검사: 18 passed (`make test-scenario-tools`).
+  sensor-loss 취소 이전 정지 판정의 관련 테스트와 순서/소유권/움직임 방향/전체 좌석 coverage 및 선행 smoke 종료 검사: 24 passed (`make test-scenario-tools`).
 - 82개 좌석별 의자 대응과 제거 검사: 통과.
 - 4개 성공/5개 실패 경계의 3회 반복 및 6개 대조: 완료.
   4개에서는 총 12개 긴 왕복 SUCCESS, 5개에서는 총 15개 TIMEOUT,
