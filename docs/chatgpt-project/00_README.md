@@ -1,6 +1,6 @@
 # Cleany — ChatGPT 프로젝트 안내
 
-기준일: 2026-10-08. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `3f86ecb`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
+기준일: 2026-10-09. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `c082d1d`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 10/09 accuracy review·SCRUM-426 도구·ROS 그래프 개선·navigation 회귀 도구·공유 voxel 변경도 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
 
 이 폴더의 Markdown 6개를 모두 ChatGPT 프로젝트에 업로드한다. 본문 안에 제품 목표, 기술 구조, 하드웨어, 실제 구현, 기존 검증과 미결정 사항을 담았다. 저장소나 로컬 파일을 추가로 열지 않아도 기본적인 프로젝트 논의를 시작할 수 있다.
 

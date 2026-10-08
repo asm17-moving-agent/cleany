@@ -1,6 +1,6 @@
 # Cleany — 제품 맥락과 하드웨어
 
-기준일: 2026-10-08. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `3f86ecb`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
+기준일: 2026-10-09. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `c082d1d`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 10/09 accuracy review·SCRUM-426 도구·ROS 그래프 개선·navigation 회귀 도구·공유 voxel 변경도 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
 
 ## 사용자 문제와 기대 가치
 
@@ -83,6 +83,6 @@ ROS driver가 `/cmd_vel`의 x/y/yaw를 wheel 목표로 바꾸고 micro-ROS Agent
 
 ## 현재 체크아웃의 의미
 
-로봇 코드의 기준은 `feat/runtime-integration` 소스 commit `3f86ecb`다. runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능도 통합했다. facility·navigation-runtime·mission-runtime·dev-monitor의 커밋된 작업을 합친 통합 브랜치이며, 주행 성능·안전 관측·최종 도착 검사가 추가됐다. 원격 main 반영·현재 PR·배포 상태를 확인한 것은 아니다.
+로봇 코드의 기준은 `feat/runtime-integration` 소스 commit `c082d1d`다. runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능도 통합했다. facility·navigation-runtime·mission-runtime·dev-monitor의 커밋된 작업을 합친 통합 브랜치이며, 주행 성능·안전 관측·최종 도착 검사가 추가됐다. 원격 main 반영·현재 PR·배포 상태를 확인한 것은 아니다.
 
 운영 Dashboard와 Backend는 별도 `cleany-control-plane` 저장소다. 이번에 경계를 확인한 상대 체크아웃은 `feat/robot-gateway` HEAD `0919d38`이며 다른 브랜치의 계정 기능·인증을 이 기준의 완료 상태로 포함하지 않았다. KB 기준은 submodule `9931007`이다.

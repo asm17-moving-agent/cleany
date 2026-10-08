@@ -1,6 +1,6 @@
 # Cleany — 미결정 사항과 다음 작업
 
-기준일: 2026-10-08. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `3f86ecb`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
+기준일: 2026-10-09. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `c082d1d`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 10/09 accuracy review·SCRUM-426 도구·ROS 그래프 개선·navigation 회귀 도구·공유 voxel 변경도 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
 
 ## 확정하지 말아야 할 제품 질문
 

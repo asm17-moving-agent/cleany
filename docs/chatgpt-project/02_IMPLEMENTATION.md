@@ -1,6 +1,6 @@
 # Cleany — 시스템 구조와 현재 구현
 
-기준일: 2026-10-08. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `3f86ecb`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
+기준일: 2026-10-09. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `c082d1d`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 10/09 accuracy review·SCRUM-426 도구·ROS 그래프 개선·navigation 회귀 도구·공유 voxel 변경도 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
 
 ## 목표 구조와 실제 연결
 
@@ -105,3 +105,11 @@ Nav2가 실제 사용하는 최종 BT XML의 노드 인스턴스와 포트, 관�
 기록은 범주별 활성화·rate·일시정지·새 session과 export/download를 지원한다. 선택한 ROS 메시지의 raw CDR을 SQLite에 저장해 원본 stamp와 TF를 보존한다. 카메라 등 대용량 항목은 설정에 따라 기록한다. 모니터는 로봇 동작을 지시하지 않으며 기록 설정 제어만 제공한다.
 
 cleanup은 미사용 FSM/mock/world 생성 경로를 제거하고 geometry·transport·mission·monitor·sim/base 공통 처리를 묶었다. shutdown·sticky error·실패 전달을 보강했으며 안전 기준이나 도착 허용치를 낮추지 않았다.
+
+## 2026-10-09 추가 통합
+
+공유 voxel 경로는 obstacle memory의 주행용 높이 투영을 local/global costmap에 연결하고 serial 3D guard에 로봇 주변 점군을 제공한다. LiDAR·정적 지도·Collision Monitor를 유지하며 중복 depth VoxelLayer를 대체한다. 관측 만료는 장애물을 빈 공간으로 바꾸지 않고 미확인으로 보존한다. 재시작의 과거 관측도 미확인으로 복원하며 ROS clock 역행은 mapping을 차단한다. sparse 점유 index 대신 voxel별 timestamp key를 투영에 재사용해 전체 volume 스캔을 피한다.
+
+ideal quantized wheel 시뮬용 AMCL 보정 profile과 controller의 3cm 목표 허용 오차를 통합했다. Mission의 원래 목표 8cm 검사와 안전·freshness·deadline은 유지한다. 실물 보정값으로 해석하지 않는다. 이전 navigation 회귀 브랜치의 Twirling 64/RotateToGoal 128은 현재 critic 설정으로 덮어쓰지 않았다. 회귀 실행 도구를 통합했지만 새 전체 주행 결과는 별도 시험이 필요하다.
+
+SCRUM-426 도구는 격리 Gazebo instance·좌석 inventory·병렬 처리 capacity·전체 survey coverage·후속 자극 시험 및 실측 대표 좌석 선정을 제공한다. 원격 survey/후속 시험이 진행 중이며 통합 자체가 전체 좌석 검증 완료를 뜻하지 않는다.

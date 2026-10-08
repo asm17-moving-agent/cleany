@@ -1,6 +1,6 @@
 # Cleany — 구현 수준과 기존 검증 결과
 
-기준일: 2026-10-08. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `3f86ecb`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
+기준일: 2026-10-09. 로봇 구현 브랜치 `feat/runtime-integration`, 소스 기준 `c082d1d`, KB commit `9931007`. 초기 문서 기준 `16504ee`에 runtime cleanup 6개 커밋과 Nav2 BT 추적·설정형 기록 기능을 통합했다. 10/09 accuracy review·SCRUM-426 도구·ROS 그래프 개선·navigation 회귀 도구·공유 voxel 변경도 통합했다. 기존 주행 기록과 이번 통합 검사를 구분한다.
 
 ## 현재 구현 수준을 먼저 구분하기
 
@@ -100,3 +100,9 @@ Grasp selector·MuJoCo box/can 접근 데모와 hand-eye 기록/solver 코드는
 소스 `3f86ecb`를 통합하기 전 ROS 2 Humble Distrobox에서 monitor core 24개, mission core 51개, BT trace/runtime 설정 24개가 통과했다. 일반 실행에서 ROS opt-in 항목은 각 suite에서 skip되며, monitor의 실제 DDS/QoS·raw 기록·BT 통신 검사는 별도로 활성화해 9개 모두 통과했다.
 
 관련 navigation·monitor 패키지 build/test가 성공했다. colcon 결과는 navigation 160개 오류·실패·skip 0, monitor 33개 중 9개 opt-in skip이며 이 9개는 위 별도 실행으로 확인했다. 웹 production build와 Playwright 8개가 통과했고 실제 실행 모니터 URL이 필요한 웹 2개는 skip됐다. 브라우저 검사는 fixture 기반이며 이번 통합 작업에서 새 Gazebo 주행이나 실물 시험을 수행하지 않았다. 최신 소스의 전체 workspace test 통과를 주장하지 않는다.
+
+## 2026-10-09 통합 검사
+
+소스 `c082d1d`에서 관련 navigation/geometry/grasp/hand-eye Python 검사 157개, mission core 51개, monitor core 24개, scenario 도구 21개가 통과했다. mission·monitor 일반 suite의 ROS opt-in 검사는 각각 9개 skip이며 이번에 별도로 재실행하지 않았다. 웹 build와 fixture 기반 브라우저 검사 9개가 통과하고 live monitor URL이 필요한 2개는 skip됐다. ROS 14개 패키지 build가 성공했다.
+
+원격 SCRUM-426 survey 및 후속 실행은 계속 유지했다. 이번 통합 검사에서 새 Gazebo 왕복·전체 82좌석·실물 시험을 수행하지 않았으며, 관련 과거 결과는 runtime accuracy/scenario 검증 문서의 각 실행 범위로 읽는다. 전체 workspace test 통과를 주장하지 않는다.
