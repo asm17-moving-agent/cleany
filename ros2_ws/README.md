@@ -34,6 +34,13 @@ make test-handeye
 make test-gazebo
 ```
 
+Gazebo와 mission 반복 검증을 다른 호스트에서 독립 설치할 때는
+`make build-scenario-runtime`을 사용한다. Gazebo, navigation, mission manager,
+control bridge와 wheel odometry를 `build-scenario-runtime`/`install-scenario-runtime`/
+`log-scenario-runtime`에 빌드한다. `SCENARIO_BUILD_BASE`, `SCENARIO_INSTALL_BASE`,
+`SCENARIO_LOG_BASE`로 output을 바꿀 수 있다. 실제 실행과 호스트별 분리는
+[시나리오 도구](../tools/scenario_validation/README.md)를 따른다.
+
 Telemetry-only checks use `make build-telemetry` and `make test-telemetry`.
 The `cleany_telemetry` package relays latest-only finite `/odom` `x`/`y`
 and optional yaw over the configured WebSocket; see its README for parameters

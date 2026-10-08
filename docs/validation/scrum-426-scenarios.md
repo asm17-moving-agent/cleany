@@ -42,6 +42,29 @@ GPU 최대 사용률은 16% 이내이고 5개에서도 MemAvailable은 약 31 Gi
 
 ## 검증 상태와 남은 작업
 
+### 노트북과 데스크탑 동시 실행
+
+사용자 요청으로 로컬 `ros2-humble`에서도 별도 runtime install을 빌드했다.
+미설치였던 ros-humble-ros-gz-sim을 설치했고 7개 관련 패키지 빌드와 도구 32 tests가
+통과했다. domain 120/121, 독립 Gazebo partition/DB/log로 데스크탑과 동시에 실행한다.
+로컬 Ogre2 로그의 GL_VENDOR는 freedreno, GL_RENDERER는 Adreno (TM) X2-90이다.
+NVIDIA EGL vendor 강제를 제거하고 현재 Mesa 설정을 유지했다. NVIDIA utilization은
+이 호스트에서 측정하지 않으며 실제 host/architecture/install prefix를 결과에 남긴다.
+
+`laptop-v2-reference-1343-r1`: 2개 동시 미션 13번/43번 왕복 모두 SUCCESS,
+실측 RTF 1.851/1.733, 최종 cmd/GT 정지 및 launch 종료 판정 모두 통과했다.
+이 값은 개별 미션 구간 평균이며 한 worker가 먼저 끝난 뒤의 구간도 포함한다.
+`laptop-v2-seat01-r1`은 첫 경로 생성과 실제 이동 후 재계획에 실패했다
+(NAVIGATION_FAIL, RTF 1.919). 출발 위치의 최초 경로 거부 수정과 전체 왕복 성공을
+구분한다. 이 실패의 바뀐 start pose/costmap도 별도로 보존했다.
+
+데스크탑 baseline 전체 82개 좌석의 terminal coverage가 확인됐다:
+27개 SUCCESS, 55개 실패. 수정 코드 재검증과 전체 좌석 성공으로 해석하지 않는다.
+두 호스트에서 7개 비정상 조건 smoke를 실행 중이다. 데스크탑의 센서 입력 유실은
+STALE_DEPTH와 약 0.40초의 실제 정지를 관찰했지만, cleanup cancel 후 복귀가 실패해
+최종 결과가 FAILED였다. 기존 판정에서는 통과하지 않았고 원래 결과를 보존했다.
+단순히 기대 결과를 변경해 통과시키지 않고 취소/복귀 정책과 센서 유실 조건을 분석한다.
+
 연속 시험의 의자 전환은 Gazebo scene/info의 실제 top-level 모델 목록과 82개 의자
 inventory를 매 미션 전에 비교한다. 정확히 대상 하나만 없을 때 진행하며 원본 응답을
 저장한다. 모델 생성/삭제 ACK와 실제 배치 확인을 구분한다. 원래 Gazebo의 실제 응답

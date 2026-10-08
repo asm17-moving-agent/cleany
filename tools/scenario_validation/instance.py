@@ -19,11 +19,13 @@ if args.repeats<1:parser.error('repeats must be positive')
 sequence=args.sequence.split(',') if args.sequence else [args.seat]
 if sequence[0]!=args.seat:parser.error('sequence must begin with seat')
 for item in sequence:chair_name(item)
-os.environ.update(ROS_DOMAIN_ID=str(args.domain),ROS_LOCALHOST_ONLY='1',IGN_IP='127.0.0.1',GZ_IP='127.0.0.1',IGN_PARTITION=args.partition,GZ_PARTITION=args.partition,__EGL_VENDOR_LIBRARY_FILENAMES='/usr/share/glvnd/egl_vendor.d/10_nvidia.json')
+os.environ.update(ROS_DOMAIN_ID=str(args.domain),ROS_LOCALHOST_ONLY='1',IGN_IP='127.0.0.1',GZ_IP='127.0.0.1',IGN_PARTITION=args.partition,GZ_PARTITION=args.partition)
+nvidia_vendor=Path('/usr/share/glvnd/egl_vendor.d/10_nvidia.json')
+if nvidia_vendor.exists():os.environ.setdefault('__EGL_VENDOR_LIBRARY_FILENAMES',str(nvidia_vendor))
 root=args.root.resolve();fixture=args.fixture.resolve();run=args.output.resolve();run.mkdir(parents=True,exist_ok=False)
 (run/'observer.json').write_text(json.dumps({'pid':os.getpid()}))
 manifest=prepare(fixture/'world.sdf',fixture/'world.study.sdf',args.seat,run/'world.sdf')
-txt=(run/'world.sdf').read_text().replace('/home/ehdrms/workspace/cleany/feat-runtime-integration/artifacts/gui-integration-20261003',str(fixture)).replace('/home/ehdrms/workspace/cleany/feat-runtime-integration','/home/donglee/workspace/cleany/runtime-accuracy-review')
+txt=(run/'world.sdf').read_text().replace('/home/ehdrms/workspace/cleany/feat-runtime-integration/artifacts/gui-integration-20261003',str(fixture)).replace('/home/ehdrms/workspace/cleany/feat-runtime-integration',str(root))
 (run/'world.sdf').write_text(txt)
 if args.sequence:
  import xml.etree.ElementTree as ET
@@ -59,7 +61,10 @@ navigation_binary_hashes={str(path):hashlib.sha256(path.read_bytes()).hexdigest(
  for path in (navigation_prefix/'lib').glob('*.so')}
 children=[];result={'base_commit':'076b893','branch':'test/scrum-426-scenarios','scenario':args.scenario,'domain':args.domain,'partition':args.partition,'world_manifest':manifest,'input_hashes':input_hashes,'tool_hashes':tool_hashes,'requested_rtf':4,'max_step_size':float(os.environ.get('CLEANY_PHYSICS_STEP','0.0066667')),'compact_static_scene':True,'localization_profile':str(root/'ros2_ws/src/cleany_navigation/config/amcl_sim_ideal_wheels.yaml'),'observer_sample_period':.2,'runtime_config':'committed default, navigation_timeout 180','expected_mission_count':len(sequence)*args.repeats,'missions':[]}; streams=[]
 result.update(navigation_install_prefix=str(navigation_prefix),
-              navigation_binary_hashes=navigation_binary_hashes)
+              navigation_binary_hashes=navigation_binary_hashes,
+              host=os.uname().nodename,architecture=os.uname().machine,
+              egl_vendor=os.environ.get('__EGL_VENDOR_LIBRARY_FILENAMES','automatic'),
+              amcl_install_prefix=get_package_prefix('nav2_amcl'))
 if args.sequence:
  result.update(chair_fixture_sequence=sequence*args.repeats,chair_inventory=sorted(all_chairs))
 def launch(name,args):

@@ -21,6 +21,9 @@ ros2_ws/log-harmonic/
 ros2_ws/build-navigation*/
 ros2_ws/install-navigation*/
 ros2_ws/log-navigation*/
+ros2_ws/build-scenario-runtime*/
+ros2_ws/install-scenario-runtime*/
+ros2_ws/log-scenario-runtime*/
 
 # Local artifacts
 *.log

@@ -100,3 +100,12 @@ terminal 기록을 확인하고, 전체 좌석 inventory와 raw 실행 결과를
 처리량을 동일한 자원 조건의 인과 비교로 해석하지 않는다. 연속 smoke 실패 시 fresh
 결과를 보존하고 연속 반복은 원인 분석 전까지 시작하지 않는다. 비정상 시나리오의
 5회 반복은 별도이며, 이 driver가 목표 완료를 선언하지 않는다.
+
+다른 호스트에서는 `make build-scenario-runtime`으로 Gazebo/mission/odometry를 별도
+`ros2_ws/install-scenario-runtime`에 빌드한 뒤 `parallel.py --container ros2-humble
+--runtime-overlay ROOT/ros2_ws/install-scenario-runtime/setup.bash --domain-base 120`을
+사용한다. custom AMCL이 필요하면 `--amcl-overlay`로 명시한다. 없으면 system AMCL을
+사용하므로 실제 package prefix와 호스트/architecture를 결과에 기록한다. NVIDIA EGL
+vendor 파일은 존재할 때만 선택하고 Mesa는 해당 환경의 설정을 유지한다. NVIDIA
+utilization monitor가 없는 호스트의 GPU 자원 값은 미측정으로 남긴다. 호스트별
+처리량/RTF는 분리하며 local/desktop의 값으로 같은 하드웨어 비교를 만들지 않는다.
