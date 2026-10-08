@@ -1,6 +1,6 @@
 # SCRUM-426 시나리오 반복 검증 — 진행 중
 
-2026-10-09, `test/scrum-426-scenarios`, 구현 기준 `076b893`, 검증 도구 `ff19368`.
+2026-10-09, `test/scrum-426-scenarios`, 구현 기준 `076b893`, 검증 도구 `0f40fa4`.
 로컬과 데스크탑에 별도 워크트리를 만들었다. 기존 runtime-accuracy-review와
 feat-navigation-runtime의 소스는 수정하지 않았다. Jira task는 In Review이며
 좌석 왕복, 장애물, 경로 실패, 취소와 정지 결과의 재현 가능한 기록을 요구한다.
@@ -43,17 +43,21 @@ GPU 최대 사용률은 16% 이내이고 5개에서도 MemAvailable은 약 31 Gi
 ## 검증 상태와 남은 작업
 
 - 월드 보존, 잘못된 terminal mission ID, 실제로 움직이는 최종 상태,
-  sensor-loss 취소 이전 정지 판정의 관련 테스트와 순서/소유권/움직임 방향 검사: 14 passed (`make test-scenario-tools`).
+  sensor-loss 취소 이전 정지 판정의 관련 테스트와 순서/소유권/움직임 방향/전체 좌석 coverage 검사: 18 passed (`make test-scenario-tools`).
 - 82개 좌석별 의자 대응과 제거 검사: 통과.
-- 4개 성공/5개 실패 경계의 3회 반복 및 6개 대조: 실행 대기열 진행 중.
-- 4/5개 경계의 두 번째 측정도 각각 전원 SUCCESS / 전원 TIMEOUT. 세 번째 측정 진행 중.
+- 4개 성공/5개 실패 경계의 3회 반복 및 6개 대조: 완료.
+  4개에서는 총 12개 긴 왕복 SUCCESS, 5개에서는 총 15개 TIMEOUT,
+  6개 대조도 전원 실패이고 개별 RTF는 0.335–0.343이었다.
+- 4/5개 경계는 세 번 모두 같은 성공/실패 결과를 보였다. 이 결론은 두 기준 경로와
+  현재 profile/deadline에 한정하며 전체 좌석의 성공 한도를 뜻하지 않는다.
 - 긴 기준 경로의 첫 batch 처리량: 1개 38.7, 2개 63.6, 3개 65.2, 4개 60.9 성공 왕복/시간.
   2/3개 차이가 작아 각각 3회 측정의 중앙값으로 선택한다.
 - 실제 capacity queue process 종료와 terminal status 확인 후 처리량 반복 및 전체
   82개 좌석을 수행하는 survey driver가 실행 중이다.
 - 전체 82개 좌석 실제 왕복, 대표 좌석 반복, 연속 좌석 전환: 미완료.
 - 장애물, 차단, planner 유실, 이동/복귀 취소, safety fault, sensor 유실:
-  실행 도구 구현, 실제 시나리오 smoke 및 반복은 미완료.
+  실행 도구 구현, 전체 좌석 terminal coverage 확인 후 smoke를 시작하는 driver 실행 중.
+  실제 smoke 및 반복 결과는 아직 미완료.
 
 정상 실패를 성공으로 바꾸지 않는다. sensor, freshness, 속도, 8 cm runtime 도착
 게이트 및 180초 navigation timeout은 원래 설정을 사용한다. 동적 장애물의
