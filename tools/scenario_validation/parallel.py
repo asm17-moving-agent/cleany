@@ -8,6 +8,7 @@ import shlex
 import signal
 import subprocess
 import time
+from processes import signal_owned
 
 
 def main() -> None:
@@ -23,6 +24,8 @@ def main() -> None:
     parser.add_argument('--container',default='cleany-ros-humble-cdi')
     args=parser.parse_args()
     if not 1<=args.count<=20:parser.error('count must be 1..20')
+    if args.repeats<1:parser.error('repeats must be positive')
+    mission_count=args.repeats*(len(args.sequence.split(',')) if args.sequence else 1)
     seats=args.seats.split(',') if args.seats else [args.seat]*args.count
     if len(seats)!=args.count:parser.error('seats length must equal count')
     root=args.root.resolve();out=root/'artifacts/scenarios'/args.name
@@ -49,7 +52,7 @@ def main() -> None:
                     gate.write_text(str(now));released=now
                     print('START',args.name,'count',args.count,flush=True)
                 elif now-started>330:raise TimeoutError('Readiness barrier')
-            if now-started>330+args.repeats*600:raise TimeoutError('Batch orchestration deadline')
+            if now-started>330+mission_count*600:raise TimeoutError('Batch orchestration deadline')
             sample={'wall':now,'cpu':Path('/proc/stat').read_text().splitlines()[0],'memory':Path('/proc/meminfo').read_text()}
             gpu=subprocess.run(['nvidia-smi','--query-gpu=utilization.gpu,memory.used,power.draw','--format=csv,noheader,nounits'],text=True,capture_output=True,timeout=10)
             sample['gpu']=gpu.stdout.strip();samples.append(sample)
@@ -65,13 +68,11 @@ def main() -> None:
                 # Kill only process groups whose ownership was recorded by this instance.
                 observer=output/'observer.json'
                 if observer.exists():
-                    try:os.kill(json.loads(observer.read_text())['pid'],signal.SIGINT)
-                    except ProcessLookupError:pass
+                    signal_owned(json.loads(observer.read_text())['pid'],output,b'instance.py')
                 ready=output/'children.json'
                 if ready.exists():
                     for _,pid in json.loads(ready.read_text()):
-                        try:os.killpg(pid,signal.SIGINT)
-                        except ProcessLookupError:pass
+                        signal_owned(pid,output,b'ros2',group=True)
                 try:p.wait(timeout=75)
                 except subprocess.TimeoutExpired:
                     os.killpg(p.pid,signal.SIGTERM)

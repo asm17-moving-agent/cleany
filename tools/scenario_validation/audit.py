@@ -18,6 +18,7 @@ def assess(result: dict, shutdown: dict) -> dict:
     scenario=result.get('scenario','normal')
     checks={'no_harness_error':not result.get('error'),
             'has_missions':bool(result.get('missions')),
+            'complete_mission_count':len(result.get('missions',[]))==result.get('expected_mission_count',len(result.get('missions',[]))),
             'final_stopped':stopped(result.get('final_latest',{})),
             'clean_shutdown':bool(shutdown) and all(v==0 for v in shutdown.values())}
     missions=[]

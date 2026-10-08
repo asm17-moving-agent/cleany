@@ -11,7 +11,8 @@ import time
 def main() -> None:
     parser=argparse.ArgumentParser();parser.add_argument('--root',type=Path,required=True);parser.add_argument('--jobs',type=Path,required=True);args=parser.parse_args()
     jobs=json.loads(args.jobs.read_text());records=[]
-    status=args.jobs.with_suffix('.status.json')
+    status=args.root/'artifacts/scenarios'/(args.jobs.stem+'.status.json')
+    status.parent.mkdir(parents=True,exist_ok=True)
     for job in jobs:
         name=job['name']
         if (args.root/'artifacts/scenarios'/name).exists():

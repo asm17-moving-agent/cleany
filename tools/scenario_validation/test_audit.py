@@ -23,3 +23,8 @@ def test_sensor_loss_requires_stop_before_cleanup_cancel():
     assert not assess(r,{'sim':0})['passed']
     m['stopped_after_stimulus']['wall_seconds']=1
     assert assess(r,{'sim':0})['passed']
+
+
+def test_partial_repeat_series_does_not_pass():
+    r=result();r['expected_mission_count']=5
+    assert not assess(r,{'sim':0})['passed']

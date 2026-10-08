@@ -50,3 +50,17 @@ group 밖에 유지해 Gazebo create/remove service로 이전 의자를 복원�
 최종 mission ID, 예상 결과, 실제 cmd_vel/GT 정지와 shutdown을 확인한다.
 기대된 실패 시나리오의 통과와 정상 미션 성공은 다른 결과다. 정상 성공 판정에서
 다른 미션의 오래된 결과나 명령만 0이고 실제로 움직이는 상태는 거부한다.
+
+`survey.py --root ROOT --wait-pid PID`가 기존 capacity queue의 실제 프로세스 identity를
+확인하고 종료를 기다린다. 모든 선행 작업의 terminal status를 확인한 뒤 2/3개 구성의
+긴 왕복을 각각 총 3회 비교한다. 정상 완료 횟수 / batch 전체 시간의 중앙값이 높은
+안정 구성을 선택하고, inventory의 모든 좌석을 빠짐없이 독립 월드에서 검사한다.
+처리량에는 준비와 종료 비용도 포함한다. survey 선택 근거와 전체 job 목록을 저장한다.
+
+자동 판정은 요청한 미션 개수까지 확인한다. 연속 좌석 시나리오의 harness 관찰 제한은
+전체 요청 수에 비례하며 개별 runtime navigation deadline은 그대로 유지한다.
+종료 시 기록된 PID가 현재도 해당 실행 경로의 프로세스인지 다시 확인한다.
+
+도구의 최소 관련 검사는 ROS를 시작하지 않고 `make test-scenario-tools`로 실행한다.
+월드 보존, 미션 결과와 정지 판정, 불완전한 반복 거부, 처리량 중앙값 선택,
+현재 프로세스 소유권 검사를 확인한다. 이는 실제 Gazebo 시나리오 검증과 별개다.
