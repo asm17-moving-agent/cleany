@@ -131,3 +131,32 @@ def test_floor_is_not_marked_but_low_obstacles_are_retained():
     points = np.array([[1., 0., -.38], [1., 0., -.33], [1., 0., -.32], [1., 0., 1.7]])
     np.testing.assert_array_equal(obstacle_height_mask(points, -.33, 1.62), [False, True, True, False])
     np.testing.assert_array_equal(points[:, 2], [-.38, -.33, -.32, 1.7])
+
+
+@pytest.mark.parametrize('dtype', [np.float32, np.float64])
+def test_native_and_python_self_filters_agree_with_rotations_and_invalid_returns(dtype):
+    from cleany_navigation.body_geometry import BodyBox
+    from cleany_navigation.depth_clearance import self_observation_mask, _self_observation_mask_python
+    rng = np.random.default_rng(71)
+    boxes = []
+    for i in range(20):
+        rotation, _ = np.linalg.qr(rng.normal(size=(3, 3)))
+        boxes.append(BodyBox(str(i), rng.uniform(-1, 1, 3), rotation, rng.uniform(.01, .3, 3)))
+    points = rng.uniform(-3, 3, (2000, 3)).astype(dtype)
+    points[0] = [np.nan, 0, 0]
+    points[1] = [np.inf, 0, 0]
+    origin = np.array([.13, -.01, .8], dtype=dtype)
+    np.testing.assert_array_equal(self_observation_mask(points, origin, boxes, .001),
+                                  _self_observation_mask_python(points, origin, boxes, .001))
+
+
+def test_native_filter_rejects_inconsistent_buffer_dimensions():
+    native = pytest.importorskip('_cleany_depth_filter')
+    origins = np.zeros((1, 3))
+    rotations = np.eye(3)[None, :, :]
+    halves = np.ones((1, 3))
+    visible = np.ones(1, dtype=bool)
+    with pytest.raises(ValueError):
+        native.filter(np.zeros((1, 4)), origins, rotations, halves, visible)
+    with pytest.raises(ValueError):
+        native.filter(np.zeros((1, 3)), origins, rotations, halves, np.ones(2, dtype=bool))

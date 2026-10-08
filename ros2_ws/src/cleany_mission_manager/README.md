@@ -269,3 +269,12 @@ is rejected. Overrides are checked with the same uncertainty-expanded
 footprint and may need a greater desk standoff. Recheck the actual Nav2 path
 and final pose after accumulated observations; nominal static-map clearance
 alone is insufficient.
+
+### 도착 위치 추정 근거
+
+`/mission/debug_snapshot`의 `navigation.localization`은 도착 검사와 같은
+`map ← base_link` TF의 x/y/yaw, frame, age_s 및 `source: localization_tf`를
+포함한다. 실제 위치 또는 ground truth를 뜻하지 않는다. Navigation
+`action_result` debug event의 data에는 성공 검사 시 사용한
+`arrival_localization`과 위치·yaw 오차를 남겨 짧은 도착 전이를 추적한다.
+기존 도착·freshness·정지 조건과 목표 좌표는 유지한다.

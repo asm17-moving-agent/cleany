@@ -8,8 +8,33 @@ import numpy as np
 
 from cleany_navigation.body_geometry import BodyBox
 
+try:
+    from _cleany_depth_filter import filter as _native_filter
+except ImportError:
+    _native_filter = None
+
 
 def self_observation_mask(points: np.ndarray, sensor_origin: np.ndarray,
+                          boxes: list[BodyBox], margin: float) -> np.ndarray:
+    """Keep rays whose finite segment does not intersect fixed self geometry.
+
+    A mixed edge pixel can report a hit behind a rail. Checking only the hit
+    position misses this self occlusion. Discard the ray instead of certifying
+    any space behind the robot as free.
+    """
+    if not math.isfinite(margin) or margin < 0:
+        raise ValueError('Self-filter margin must be finite and nonnegative')
+    if _native_filter is not None and boxes:
+        rays = np.ascontiguousarray(points-sensor_origin, dtype=np.float64)
+        origins = np.ascontiguousarray([(sensor_origin-b.center)@b.rotation for b in boxes])
+        rotations = np.ascontiguousarray([b.rotation for b in boxes], dtype=np.float64)
+        halves = np.ascontiguousarray([b.half_size+margin for b in boxes], dtype=np.float64)
+        visible = np.isfinite(points).all(axis=1)
+        return np.frombuffer(_native_filter(rays, origins, rotations, halves, visible), dtype=bool).copy()
+    return _self_observation_mask_python(points, sensor_origin, boxes, margin)
+
+
+def _self_observation_mask_python(points: np.ndarray, sensor_origin: np.ndarray,
                           boxes: list[BodyBox], margin: float) -> np.ndarray:
     """Keep rays whose finite segment does not intersect fixed self geometry.
 

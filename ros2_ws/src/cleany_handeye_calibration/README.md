@@ -615,3 +615,19 @@ colcon test --packages-select cleany_handeye_calibration
 colcon test-result \
   --test-result-base build/cleany_handeye_calibration --verbose
 ```
+
+### Simulation clearance and camera evidence
+
+The MuJoCo pose evaluator supplements a nonpositive convex distance only when
+full compiled box/mesh/sphere support intervals prove a positive separating
+plane gap. The gap is a conservative Euclidean clearance lower bound, with
+geometry margins and floating-point allowance subtracted. A witness segment
+alone does not prove clearance. Overlap, unsupported shapes and nonfinite
+results remain closed; the configured collision margin is unchanged. This
+addresses reproduced MuJoCo zero-distance results for separated CAD geometry.
+
+The single-pose runtime fixture also checks the current CAD/control-scene FK
+and clearance. Its camera pose was selected using the production ChArUco
+and PnP gates under measured gravity-loaded feedback perturbations. Geometric
+visibility alone is insufficient evidence of corner detection. Rendering and
+runtime sample evidence are simulation results, not physical calibration.

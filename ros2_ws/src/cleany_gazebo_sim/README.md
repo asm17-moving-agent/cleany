@@ -1215,3 +1215,20 @@ SUCCESS였지만 **실측 2배속 목표는 미달**이며 13 홈 GT 오차는 1
 Ogre1의 빠른 측정은 LiDAR 관측 이상으로 유효한 주행 검증에서 제외했다.
 가속 profile은 기본값으로 채택하지 않았다. 조건·전후 결과·잔여 한계는
 [자율주행 검토](../../../docs/NAVIGATION_REVIEW.md)를 참고한다.
+
+### 고정 장면 계층 최적화 (Fortress, 선택 옵션)
+
+`gazebo_fortress.launch.py compact_static_scene:=true`는 단일 link를 가진 단순한
+static model의 visual/collision을 하나의 static model로 묶은 임시 SDF를 사용한다.
+원본 SDF와 mesh, geometry, surface, material 및 world 좌표는 보존한다.
+기본값은 `false`이며 센서 주기, 물리 step, RTF 요청값 및 안전 설정을 변경하지 않는다.
+plugin/sensor/joint/frame, 명시적 pose frame, 방향성 마찰 또는 외부 frame 참조가
+있는 model은 묶지 않는다. 묶인 물체의 model/link 이름은 바뀌므로 개별 물체를
+이름으로 이동·삭제하거나 조회해야 하는 실행에서는 이 옵션을 사용하지 않는다.
+성능은 전체 scene과 ROS workload에 따라 달라지며 `/clock`/wall time으로 측정한다.
+
+`amcl_nav2.launch.py`와 `amcl_nav2_safety.launch.py`의
+`localization_params_file`은 공통 navigation launch로 전달한다. 기본값은 비어 있다.
+추가 odometry error가 없는 wheel 시뮬레이션에서는
+`cleany_navigation/config/amcl_sim_ideal_wheels.yaml`을 명시해 보정 프로파일을
+사용할 수 있다. 실물 또는 noise/stress odometry 설정에는 그대로 적용하지 않는다.

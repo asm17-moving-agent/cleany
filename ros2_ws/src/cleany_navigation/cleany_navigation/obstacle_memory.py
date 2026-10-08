@@ -37,6 +37,7 @@ class ObstacleMemory:
         self.evidence = np.zeros((2, *geometry.shape), dtype=np.int8)
         self.last_seen = np.zeros((2, geometry.height, geometry.width), dtype=np.float64)
         self.hit_count = np.zeros_like(self.last_seen, dtype=np.uint32)
+        self._occupied = [np.empty(0, dtype=np.int64) for _ in self.sources]
 
     def rebind_map(self, geometry: MemoryGeometry) -> None:
         """Refresh a static-map identity without forgetting observed obstacles.
@@ -92,23 +93,36 @@ class ObstacleMemory:
         scores = self.evidence[channel].reshape(-1)
         scores[free] = np.maximum(-3, scores[free]-1)
         scores[occupied] = np.minimum(5, np.maximum(scores[occupied], 0)+2)
-        xy = np.unique(np.concatenate((free, occupied)) % (g.width*g.height))
+        touched = np.union1d(free, occupied)
+        # Only observed voxels can cross the occupied threshold. Keep a sorted
+        # index for exact sparse projections instead of scanning the full volume.
+        self._occupied[channel] = np.union1d(
+            np.setdiff1d(self._occupied[channel], touched, assume_unique=True),
+            touched[scores[touched] > 0])
+        xy = np.unique(touched % (g.width*g.height))
         self.last_seen[channel].reshape(-1)[xy] = timestamp
         occupied_xy = np.unique(occupied % (g.width*g.height))
         counts = self.hit_count[channel].reshape(-1)
         counts[occupied_xy] = np.minimum(counts[occupied_xy].astype(np.uint64)+1, np.iinfo(np.uint32).max)
 
     def grid(self, source: str | None = None) -> np.ndarray:
-        channels = [self.sources.index(source)] if source else [0, 1]
-        seen = np.any(self.last_seen[channels] > 0, axis=0)
-        occupied = np.any(self.evidence[channels] > 0, axis=(0, 1))
-        return np.where(occupied, 100, np.where(seen, 0, -1)).astype(np.int8)
+        if source:
+            channel = self.sources.index(source)
+            seen = self.last_seen[channel] > 0
+            indices = self._occupied[channel]
+        else:
+            seen = (self.last_seen[0] > 0) | (self.last_seen[1] > 0)
+            indices = np.union1d(*self._occupied)
+        result = np.where(seen, 0, -1).astype(np.int8)
+        result.reshape(-1)[indices % (self.geometry.width*self.geometry.height)] = 100
+        return result
 
     def occupied_centers(self, source: str | None = None) -> np.ndarray:
-        """Return occupied 3-D voxel centers; free evidence from another source cannot erase them."""
-        channels = [self.sources.index(source)] if source else [0, 1]
-        z, y, x = np.nonzero(np.any(self.evidence[channels] > 0, axis=0))
+        """Return occupied centers without weakening source-specific evidence."""
+        indices = self._occupied[self.sources.index(source)] if source else np.union1d(*self._occupied)
         g = self.geometry
+        z, xy = np.divmod(indices, g.width*g.height)
+        y, x = np.divmod(xy, g.width)
         return np.column_stack((g.origin_x+(x+.5)*g.resolution,
                                 g.origin_y+(y+.5)*g.resolution,
                                 g.min_z+(z+.5)*g.z_resolution)).astype(np.float32)
@@ -132,4 +146,5 @@ class ObstacleMemory:
                 if actual.shape != expected.shape or actual.dtype != expected.dtype:
                     raise ValueError(f'Invalid snapshot array: {key}')
                 setattr(result, key, actual.copy())
+            result._occupied = [np.flatnonzero(channel.reshape(-1) > 0) for channel in result.evidence]
             return result

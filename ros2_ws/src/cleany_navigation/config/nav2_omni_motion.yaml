@@ -5,7 +5,7 @@ controller_server:
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
     goal_checker:
-      xy_goal_tolerance: 0.05
+      xy_goal_tolerance: 0.03
       yaw_goal_tolerance: 0.10
     progress_checker:
       plugin: nav2_controller::PoseProgressChecker
@@ -52,7 +52,7 @@ controller_server:
       forward_prune_distance: 2.0
       shorten_transformed_plan: true
       stateful: true
-      xy_goal_tolerance: 0.05
+      xy_goal_tolerance: 0.03
       trans_stopped_velocity: 0.01
       critics:
       - ObstacleFootprint

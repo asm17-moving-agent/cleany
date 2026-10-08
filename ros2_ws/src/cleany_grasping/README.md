@@ -85,3 +85,18 @@ colcon test-result --verbose
 ros2 run cleany_grasping grasp_server --ros-args \
   --params-file src/cleany_grasping/config/anygrasp.yaml
 ```
+
+TCP의 `canonical_to_tcp_rotation`은 determinant +1인 오른손 좌표계의 회전만
+허용한다. 반사 행렬은 quaternion 변환 전에 설정 오류로 거부한다. 회전과
+접근 축은 입력 배열에서 복사한 읽기 전용 값으로 보관하여 설정 검증 뒤
+외부 배열 변경이 계획 결과를 바꾸지 않게 한다. 이는 기하 계약 검사이며
+실물 grasp 성공 또는 충돌 안전을 보증하지 않는다.
+
+Target/context cloud의 촬영 timestamp는 같고 0이 아니어야 한다. TF에서
+0은 촬영 시각이 아니라 최신 transform을 뜻하므로, 미지정 시각으로 현재
+TF를 사용해 과거 cloud를 계획하지 않도록 요청을 거부한다.
+
+XYZRGB cloud는 단일 float32 XYZ 및 packed float32/uint32 RGB field가
+point_step 안에 들어가고 row_step과 data 길이가 전체 행을 담을 때만 해석한다.
+다른 datatype이나 다음 point를 읽는 offset, 잘린 행은 서비스 실패로 반환한다.
+정상적인 organized cloud의 행 padding 및 packed RGB 바이트는 유지한다.

@@ -219,7 +219,9 @@ class MissionRuntimeNode(Node):
                 "odom_age": now - nav.odom_received,
                 "lifecycle_age": {key: now - stamp for key, stamp in nav.state_received.items()}})
             try:
-                data["navigation"]["tf_age"] = nav.base_transform()[1]
+                measurement = nav.localization_snapshot()
+                data["navigation"]["tf_age"] = measurement["age_s"]
+                data["navigation"]["localization"] = measurement
             except Exception as exc:
                 data["navigation"]["tf_error"] = str(exc)
         message = RuntimeDebugSnapshot(boot_id=data["boot_id"],

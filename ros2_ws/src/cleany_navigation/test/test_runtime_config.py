@@ -203,3 +203,26 @@ def test_simulation_geometry_removes_descendants_and_rejects_physical_use():
     assert filtered['park_joints'] == {'head_joint': 0.}
     assert filtered['simulation_park_limits'] == {}
     assert 'shoulder' in profile['park_joints']
+
+
+def test_localization_calibration_preserves_motion_and_safety_and_is_isolated():
+    from cleany_navigation.runtime_config import merge_localization_parameters
+    target = parameters()
+    prior = deepcopy(target)
+    overlay = {'amcl': {'ros__parameters': {'sigma_hit': .04, 'alpha3': .002}}}
+    merge_localization_parameters(target, overlay)
+    for node, value in prior.items():
+        if node != 'amcl':
+            assert target[node] == value
+    assert target['amcl']['ros__parameters']['initial_pose'] == prior['amcl']['ros__parameters']['initial_pose']
+    overlay['amcl']['ros__parameters']['sigma_hit'] = .4
+    assert target['amcl']['ros__parameters']['sigma_hit'] == .04
+
+
+@pytest.mark.parametrize('overlay', [{}, {'controller_server': {'ros__parameters': {}}},
+                                    {'amcl': {'ros__parameters': []}},
+                                    {'amcl': {'ros__parameters': {}, 'other': {}}}])
+def test_localization_profile_cannot_silently_replace_control_or_malformed_parameters(overlay):
+    from cleany_navigation.runtime_config import merge_localization_parameters
+    with pytest.raises(ValueError, match='localization overlay'):
+        merge_localization_parameters(parameters(), overlay)

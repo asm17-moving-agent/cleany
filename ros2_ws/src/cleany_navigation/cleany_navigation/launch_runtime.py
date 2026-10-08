@@ -16,7 +16,7 @@ import yaml
 import xacro
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
-    load_parameters, merge_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice)
+    load_parameters, merge_parameters, merge_localization_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice)
 from cleany_navigation.bt_trace import describe_tree
 from cleany_navigation.urdf_geometry import forward_kinematics, apply_simulation_geometry
 
@@ -54,6 +54,9 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
         raise ValueError(f'Map YAML not found: {map_yaml}')
     sim_time, autostart = flag('use_sim_time'), flag('autostart')
     parameters = load_parameters(Path(argument('params_file')))
+    localization_file = argument('localization_params_file')
+    if localization_file:
+        merge_localization_parameters(parameters, load_parameters(Path(localization_file)))
     robot_path = argument('robot_params_file')
     if safety:
         for filename in ('safety_params_file', 'pan_params_file', 'voxel_params_file', 'memory_params_file'):
@@ -179,7 +182,9 @@ def navigation_launch_description(*, safety: bool = True) -> LaunchDescription:
         DeclareLaunchArgument('robot_params_file', default_value='', description='Robot geometry, frames and braking parameters.'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('autostart', default_value='true'),
-        DeclareLaunchArgument('params_file', default_value=str(share/'config/nav2_amcl.yaml'))]
+        DeclareLaunchArgument('params_file', default_value=str(share/'config/nav2_amcl.yaml')),
+        DeclareLaunchArgument('localization_params_file', default_value='',
+                             description='Optional AMCL-only calibration overlay; does not change safety/motion.')]
     if safety:
         for name, filename in [('safety_params_file', 'nav2_safety.yaml'), ('axis_params_file', 'nav2_axis_motion.yaml'),
             ('pan_params_file', 'pan_motion_gate.yaml'), ('voxel_params_file', 'voxel_guard.yaml'),

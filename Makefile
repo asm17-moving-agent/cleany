@@ -442,3 +442,8 @@ run-dev-monitor:
 	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
 	ros2 run cleany_dev_monitor dev_monitor --ros-args \
 		--params-file "$(ROS2_WS)/src/cleany_dev_monitor/config/monitor.yaml" $(MONITOR_ROS_ARGS)
+
+.PHONY: test-scenario-tools
+test-scenario-tools:
+	PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -c /dev/null --rootdir="$(REPO_ROOT)" -q \
+		"$(REPO_ROOT)"tools/scenario_validation/test_*.py
