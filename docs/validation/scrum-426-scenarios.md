@@ -213,7 +213,9 @@ PathOrientation score가 0인 기록이 있다. 같은 frame의 실제 transform
 (180.36 wall seconds)으로 실패했다. 두 실행 모두 실제 정지와 launch 종료가 통과했다.
 connector 표현 개선만으로 왕복이 해결된 것은 아니다. 정체 당시 DWB/local costmap을
 함께 수집하려던 진단은 해당 snapshot을 얻지 못했고, 종료된 domain의 read-only
-observer는 종료했다. v4의 13/43 회귀 검증과 desktop 대표 반복은 아직 진행 중이다.
+observer는 종료했다. v4의 13/43 동시 왕복 회귀 검증은 두 미션 모두 SUCCESS로
+정지 및 launch 종료 판정까지 통과했다(실측 RTF 1.843/1.691). desktop 대표 반복은
+아직 진행 중이다.
 
 SCRUM-426의 현재 완료 조건도 다시 읽었다: Gazebo 좌석 이동/대기 위치 복귀 시나리오의
 성공 또는 실패를 재현 가능하게 남기는 것이다. issue는 In Review이며 변경하지 않았다.
