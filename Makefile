@@ -252,7 +252,7 @@ test: build
 	cd "$(ROS2_WS)" && \
 	source install/setup.bash && \
 	$(use_local_moveit_perception) && \
-	colcon test --python-testing pytest && \
+	colcon test --python-testing pytest --event-handlers console_cohesion+ && \
 	colcon test-result --verbose && \
 	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" \
 		"$(REPO_ROOT)containers/vision/test"

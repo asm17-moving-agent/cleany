@@ -88,6 +88,10 @@ class RosHarness:
             assert self.client.wait_for_server(timeout_sec=10.0)
 
     def send(self, message):
+        # Action services can be discovered before the volatile feedback topic.
+        eventually(lambda: self.node.count_publishers(
+            'manipulation/execute_skill/_action/feedback') > 0,
+            description='Action feedback publisher discovery')
         return response(self.client.send_goal_async(
             message, feedback_callback=lambda item: self.feedback.append(item.feedback)))
 
@@ -337,6 +341,11 @@ def test_real_ros_record_failure_preserves_result_query_and_followup(ros, monkey
 
 def test_process_kill_restart_reports_interruption_without_action_result(ros, tmp_path):
     harness = ros(start=False, slow=True)
+    # Keep the mock in LIFTING until killed; DDS feedback arrival is asynchronous.
+    config = yaml.safe_load(harness.config.read_text())
+    config['scenarios']['success']['stage_durations_sec'] = {'LIFTING': 30.0}
+    config['motion_timeout_sec'] = 60.0
+    harness.config.write_text(yaml.safe_dump(config))
     command = [sys.executable, '-c',
                'from cleany_skill_executor.manipulation_node import main; main()',
                '--ros-args', '-r', '__ns:=' + harness.namespace,
