@@ -50,8 +50,11 @@ navigation은 Gazebo, 책상 작업은 mock이다. 통합 브랜치에서 60회 
 요약 감사 결과는 `artifacts/integration-20261010-scrum426/integration-audit.json`,
 원본은 `artifacts/scenarios/integration-20261010-command-hold-smoke-r3/worker-00/`에 있다.
 빌드·테스트 로그, 실행 전 소스 hash, parameter readback, 기존 작업 백업도 요약과
-같은 디렉터리에 보존했다. 원래 60회 캠페인의 대용량 원본은
-`../scrum-426-scenarios/artifacts/scenarios/`에 그대로 두었다.
+같은 디렉터리에 보존했다. 원래 60회 캠페인의 대용량 원본은 워크트리 정리 때
+`artifacts/archive/scrum-426-scenarios-20261010/worktree.tar.zst`에 압축 보존했다.
+이 압축본에는 426의 소스, 검증 원본, untracked/ignored 파일이 포함된다.
+삭제 전 원본 전체와 tar 비교가 통과했고 SHA-256은 같은 디렉터리의
+`archive-verification.json`에 기록했다. 이전 JSON·로그의 경로는 당시 기록을 유지한다.
 
 새 overlay는 `ros2_ws/install-scenario-integration-20261010/setup.bash`다.
 관련 Make 변수의 build/install/log base를 각각 `build-scenario-integration-20261010`,
@@ -67,3 +70,9 @@ python3 tools/scenario_validation/parallel.py \
   --name NEW_UNIQUE_RUN --count 1 --seat seat-44 \
   --sequence seat-44,seat-16 --repeats 1 --stop-on-failure --domain-base 208
 ```
+
+2026-10-10 후속 정리에서 기존 미커밋 3개 파일을 `b73aabc`로 커밋했다.
+426 끝 커밋 `a065bcb`가 통합 브랜치의 조상임을 확인한 뒤
+`test/scrum-426-scenarios` 로컬 브랜치와 워크트리를 삭제했다.
+위 fixture의 426 참조 링크 16개는 내용 hash가 같은 독립 파일 21개로 교체했고,
+장면 자산 39개가 삭제된 경로 없이 로딩 가능한지 사전 검사했다.
