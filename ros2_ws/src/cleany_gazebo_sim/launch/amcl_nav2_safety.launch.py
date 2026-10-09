@@ -96,7 +96,7 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('body_profile', default_value=str(share/'config/cad_frame.yaml')),
         # Reactive evaluation decouples camera observation from driving.
         DeclareLaunchArgument('safety_mode', default_value='reactive', choices=['serial', 'reactive']),
-        DeclareLaunchArgument('memory_enabled', default_value='false'),
+        DeclareLaunchArgument('memory_enabled', default_value='true'),
         DeclareLaunchArgument('voxel_enabled', default_value='false'),
         DeclareLaunchArgument('output_directory', default_value=''),
         OpaqueFunction(function=_launch),

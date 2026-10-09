@@ -1280,3 +1280,7 @@ plugin/sensor/joint/frame, 명시적 pose frame, 방향성 마찰 또는 외부 
 추가 odometry error가 없는 wheel 시뮬레이션에서는
 `cleany_navigation/config/amcl_sim_ideal_wheels.yaml`을 명시해 보정 프로파일을
 사용할 수 있다. 실물 또는 noise/stress odometry 설정에는 그대로 적용하지 않는다.
+
+Reactive safety 기본 실행은 `memory_enabled:=true voxel_enabled:=false`다.
+카메라는 비동기로 추적하고 최종 충돌 검사는 직접 point cloud·LiDAR를 사용하는
+reactive_guard가 담당한다. costmap용 공유 voxel world는 유지한다.

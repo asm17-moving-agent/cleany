@@ -114,7 +114,7 @@ voxel을 사용하려면 memory가 필요하다. 비활성화한 단계에 따�
 
 ## 카메라 관찰과 주행 분리: reactive 시뮬레이션 모드
 
-`safety_mode:=reactive voxel_enabled:=false use_sim_time:=true`는 다음 경로를 사용한다.
+`safety_mode:=reactive memory_enabled:=true voxel_enabled:=false use_sim_time:=true`는 다음 경로를 사용한다.
 Gazebo safety wrapper의 기본 모드다. 공통 실제 로봇 entrypoint는 기존 `serial`을
 유지하며, 실물 제동·관측 범위가 검증되지 않은 reactive 실제 시간 실행은 거부한다.
 
@@ -149,8 +149,9 @@ depth, odom, 동적 pan feedback의 손실/잘못된 입력, 명령 또는 monit
 재시작까지 정지한다. raw 정지 명령을 늦은 monitor 출력이 되살리지 않는다.
 물리 드라이버 watchdog/E-stop은 여전히 별도 계층이다.
 
-Voxel map/status 및 pan alignment는 최종 guard 입력이 아니다. 장애물 메모리는
-선택적으로 costmap에 계속 사용한다. 기존 3D cube 진단 발행과 depth marking/
+Voxel map/status 및 pan alignment는 최종 guard 입력이 아니다. Gazebo 기본 실행에서는
+장애물 메모리를 켜고 costmap에 공유 voxel world 투영을 사용한다. 기존 3D cube
+진단 발행과 depth marking/
 clearing 밀도·이력도 유지하며, 그 발행이 속도 허가 조건은 아니다.
 장애물 marking/clearing은 유지한다. `shared_voxel_costmap: true`이면 depth
 VoxelLayer를 공유 world 투영으로 대체하며, false일 때만 기존 VoxelLayer를 사용한다.
