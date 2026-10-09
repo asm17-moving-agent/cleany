@@ -65,10 +65,14 @@ class OdometryEstimate:
 class MecanumOdometry:
     """Integrate cumulative wheel positions into a planar odometry estimate."""
 
-    def __init__(self, geometry: MecanumGeometry, *, velocity_window_s: float = 0.0) -> None:
+    def __init__(self, geometry: MecanumGeometry, *, velocity_window_s: float = 0.0,
+                 yaw_scale: float = 1.0) -> None:
         if not isfinite(velocity_window_s) or velocity_window_s < 0.0:
             raise ValueError('Velocity window must be finite and non-negative')
+        if not isfinite(yaw_scale) or yaw_scale <= 0.0:
+            raise ValueError('Yaw scale must be positive and finite')
         self._geometry = geometry
+        self._yaw_scale = yaw_scale
         self._velocity_window_s = velocity_window_s
         self._velocity_history: deque[tuple[float, WheelPositions]] = deque()
         self._previous_positions: WheelPositions | None = None
@@ -161,5 +165,5 @@ class MecanumOdometry:
             radius_scale * (-front_left + front_right + rear_left - rear_right),
             radius_scale
             * (-front_left + front_right - rear_left + rear_right)
-            / self._geometry.center_to_wheel_sum_m,
+            / self._geometry.center_to_wheel_sum_m * self._yaw_scale,
         )

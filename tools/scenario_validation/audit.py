@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 from pathlib import Path
+from worlds import chair_name
 
 
 def stopped(latest: dict) -> bool:
@@ -22,6 +23,14 @@ def assess(result: dict, shutdown: dict) -> dict:
             'final_stopped':stopped(result.get('final_latest',{})),
             'clean_shutdown':bool(shutdown) and all(v==0 for v in shutdown.values())}
     missions=[]
+    if result.get('chair_fixture_sequence'):
+        sequence=result['chair_fixture_sequence'];evidence=result.get('chair_scene_evidence',[])
+        chairs=set(result.get('chair_inventory',[]))
+        checks['chair_sequence_verified']=bool(chairs) and sequence==[m.get('seat') for m in result.get('missions',[])] and len(evidence)==len(sequence) and all(
+            e.get('seat')==seat and e.get('removed')==chair_name(seat)
+            and len(e.get('observed_chairs',[]))==len(chairs)-1
+            and set(e.get('observed_chairs',[]))==chairs-{chair_name(seat)}
+            for e,seat in zip(evidence,sequence))
     for m in result.get('missions',[]):
         terminal=m.get('final',{}).get('last_result') or {}
         matched=(terminal.get('request',{}).get('mission_id')==m.get('mission_id')

@@ -1,6 +1,6 @@
 import math
 import pytest
-from representatives import cumulative_turn,select_cases
+from representatives import cumulative_turn,select_cases,latest_attempts
 
 
 def test_turn_metric_does_not_count_angle_wrap_as_a_full_rotation():
@@ -19,3 +19,10 @@ def test_selection_keeps_unique_cases_and_does_not_hide_failed_survey_rows():
 
 def test_missing_measurements_do_not_generate_a_fabricated_representative():
     with pytest.raises(RuntimeError):select_cases([])
+
+
+def test_latest_correction_can_fail_and_original_attempt_is_retained():
+    rows=[{'seat':'seat-01','passed':True},{'seat':'seat-02','passed':False},
+          {'seat':'seat-01','passed':False}]
+    assert latest_attempts(rows)==[rows[2],rows[1]]
+    assert len(rows)==3

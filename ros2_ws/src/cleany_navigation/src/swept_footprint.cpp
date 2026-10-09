@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 namespace cleany_navigation {
 namespace {
 struct Point {double x,y;};
@@ -122,6 +123,21 @@ bool sweptFootprintFree(const nav2_costmap_2d::Costmap2D &map,
   const geometry_msgs::msg::Pose2D &a,const geometry_msgs::msg::Pose2D &b) {
   return sweepFree(map,footprint,a,b,nullptr);
 }
+void SweptFootprintCritic::onInit() {
+  ObservedFootprintCritic::onInit();
+  auto node=node_.lock();
+  const auto prefix=dwb_plugin_name_+"."+name_+".";
+  if(!node->has_parameter(prefix+"command_hold_time"))
+    node->declare_parameter(prefix+"command_hold_time",0.);
+  if(!node->has_parameter(prefix+"command_hold_step"))
+    node->declare_parameter(prefix+"command_hold_step",.01);
+  node->get_parameter(prefix+"command_hold_time",command_hold_time_);
+  node->get_parameter(prefix+"command_hold_step",command_hold_step_);
+  if(!std::isfinite(command_hold_time_) || command_hold_time_<0. ||
+     !std::isfinite(command_hold_step_) || command_hold_step_<=0. ||
+     command_hold_time_/command_hold_step_>10000.)
+    throw std::invalid_argument(prefix+"command_hold_time/command_hold_step");
+}
 bool SweptFootprintCritic::prepare(const geometry_msgs::msg::Pose2D &pose,
   const nav_2d_msgs::msg::Twist2D &velocity,const geometry_msgs::msg::Pose2D &goal,
   const nav_2d_msgs::msg::Path2D &path) {
@@ -150,6 +166,35 @@ double SweptFootprintCritic::scoreFootprintTrajectory(const dwb_msgs::msg::Traje
   for(size_t i=1;i<trajectory.poses.size();++i) {
     if(!sweepFree(*costmap_,footprint_spec_,trajectory.poses[i-1],trajectory.poses[i],&occupancy_prefix_))
       throw dwb_core::IllegalTrajectoryException(name_,"Swept footprint intersects obstacle, unknown or map boundary");
+  }
+  if(command_hold_time_>0.) {
+    const auto &v=trajectory.velocity;
+    if(!std::isfinite(v.x) || !std::isfinite(v.y) || !std::isfinite(v.theta))
+      throw dwb_core::IllegalTrajectoryException(name_,"Non-finite issued command");
+    // The nominal rollout continues accelerating toward its sampled target.
+    // Only its first velocity is published. Check that velocity independently
+    // during a bounded hold, without assuming the next control update arrives.
+    const auto &start=trajectory.poses.front();
+    dwb_msgs::msg::Trajectory2D held;held.velocity=v;held.poses.push_back(start);
+    const auto count=static_cast<size_t>(std::ceil(command_hold_time_/command_hold_step_));
+    held.poses.reserve(count+1);
+    for(size_t i=1;i<=count;++i) {
+      const double t=command_hold_time_*static_cast<double>(i)/count;
+      const double half=v.theta*t/2.,mid=start.theta+half;
+      const double distance=std::abs(half)<1e-9 ? t : t*std::sin(half)/half;
+      auto pose=start;pose.theta+=v.theta*t;
+      pose.x+=distance*(v.x*std::cos(mid)-v.y*std::sin(mid));
+      pose.y+=distance*(v.x*std::sin(mid)+v.y*std::cos(mid));
+      held.poses.push_back(pose);
+    }
+    // Retain stock raster-cell checks as well as full-cell continuous geometry.
+    // The additional hold check changes admissibility, not the soft score.
+    try {ObservedFootprintCritic::scoreFootprintTrajectory(held);}
+    catch(const dwb_core::IllegalTrajectoryException &error) {
+      throw dwb_core::IllegalTrajectoryException(name_,std::string("Held command: ")+error.what());
+    }
+    if(!sweepFree(*costmap_,footprint_spec_,start,held.poses.back(),&occupancy_prefix_))
+      throw dwb_core::IllegalTrajectoryException(name_,"Held command sweep intersects obstacle, unknown or map boundary");
   }
   return score;
 }

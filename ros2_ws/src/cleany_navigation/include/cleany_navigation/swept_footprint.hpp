@@ -8,12 +8,18 @@ bool sweptFootprintFree(const nav2_costmap_2d::Costmap2D &,
   const geometry_msgs::msg::Pose2D &, const geometry_msgs::msg::Pose2D &);
 class SweptFootprintCritic : public ObservedFootprintCritic {
 public:
+  void onInit() override;
   bool prepare(const geometry_msgs::msg::Pose2D &,const nav_2d_msgs::msg::Twist2D &,
     const geometry_msgs::msg::Pose2D &,const nav_2d_msgs::msg::Path2D &) override;
 protected:
   double scoreFootprintTrajectory(const dwb_msgs::msg::Trajectory2D &) override;
-  std::string collisionModel() const override {return "swept_convex_cell_intersection";}
+  std::string collisionModel() const override {
+    return command_hold_time_>0. ? "swept_convex_cell_intersection_with_command_hold" :
+      "swept_convex_cell_intersection";
+  }
 private:
   std::vector<uint32_t> occupancy_prefix_;
+  double command_hold_time_{0.};
+  double command_hold_step_{.01};
 };
 }

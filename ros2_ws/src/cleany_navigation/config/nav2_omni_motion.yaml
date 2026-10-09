@@ -58,6 +58,7 @@ controller_server:
       - ObstacleFootprint
       - CommandBearing
       - PathOrientation
+      - PathProgress
       - PathDist
       - GoalDist
       - RotateToGoal
@@ -72,6 +73,8 @@ controller_server:
       CommandBearing.free_goal_distance: 0.1
       PathOrientation.class: cleany_navigation::PathOrientationCritic
       PathOrientation.scale: 8.0
+      PathProgress.class: cleany_navigation::PathProgressCritic
+      PathProgress.scale: 1.0
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
       GoalDist.class: cleany_navigation::PreciseGoalDistCritic

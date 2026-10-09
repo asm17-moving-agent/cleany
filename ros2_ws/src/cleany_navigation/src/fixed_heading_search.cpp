@@ -43,10 +43,10 @@ nav_msgs::msg::Path checkedFixedHeadingGridPath(
   real_goal.x=goal.pose.position.x;real_goal.y=goal.pose.position.y;real_goal.theta=heading+wrapped(poseYaw(goal.pose.orientation)-heading);
   auto fixed_start=real_start;fixed_start.theta=real_start.theta+wrapped(heading-real_start.theta);
   auto fixed_goal=real_goal;fixed_goal.theta=heading;
-  if(!sweptFootprintFree(map,footprint,real_start,fixed_start) ||
+  if(!sweptPoseConnectionFree(map,footprint,real_start,fixed_start,cancel) ||
     !sweptFootprintFree(map,footprint,fixed_start,center(first)) ||
     !sweptFootprintFree(map,footprint,center(last),fixed_goal) ||
-    !sweptFootprintFree(map,footprint,fixed_goal,real_goal) || cancel())return empty;
+    !sweptPoseConnectionFree(map,footprint,fixed_goal,real_goal,cancel) || cancel())return empty;
   std::vector<int8_t> valid(count,-1);
   const auto traversable=[&](size_t index) {
     if(valid[index]<0) {

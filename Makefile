@@ -6,6 +6,9 @@ ROS_SETUP := /opt/ros/humble/setup.bash
 NAVIGATION_BUILD_BASE ?= build-navigation
 NAVIGATION_INSTALL_BASE ?= install-navigation
 NAVIGATION_LOG_BASE ?= log-navigation
+SCENARIO_BUILD_BASE ?= build-scenario-runtime
+SCENARIO_INSTALL_BASE ?= install-scenario-runtime
+SCENARIO_LOG_BASE ?= log-scenario-runtime
 MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
 MISSION_BUILD_BASE ?= build
 MISSION_INSTALL_BASE ?= install
@@ -51,6 +54,7 @@ help:
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
 	@echo "  make build-navigation  Build common navigation without Gazebo"
+	@echo "  make build-scenario-runtime  Build isolated Gazebo/mission runtime for scenario workers"
 	@echo "  make test-navigation  Test common navigation including C++ plugins"
 	@echo "  make test-navigation-runtime  Test Nav2 serial safety with a synthetic backend"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
@@ -173,6 +177,15 @@ build:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	colcon build --symlink-install
+
+.PHONY: build-scenario-runtime
+build-scenario-runtime:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(SCENARIO_LOG_BASE)" build --symlink-install \
+		--build-base "$(SCENARIO_BUILD_BASE)" \
+		--install-base "$(SCENARIO_INSTALL_BASE)" \
+		--packages-up-to cleany_gazebo_sim cleany_mission_manager cleany_control_bridge cleany_base_odometry
 
 build-gazebo: check-gazebo-env
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \

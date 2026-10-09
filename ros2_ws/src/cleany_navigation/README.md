@@ -465,7 +465,12 @@ replan. This searches for clearance for the chosen body
 orientation instead of simply reorienting a tangent-yaw lattice route that
 hugs a corner. Eight-neighbor edges, exact start/goal connections and endpoint
 rotations use the full-cell swept-footprint model, with the configured robot
-footprint and safety padding. Lethal/unknown cells and map boundaries veto
+footprint and safety padding unchanged. Large endpoint turns are divided into angular intervals
+whose corner travel is at most half a map cell. Every interval retains the
+conservative continuous arc bound and full-cell collision check; this avoids
+rejecting a clear half-turn because its single-interval bound is too broad.
+Cancellation is checked between intervals. The controller rollout sweep is
+unchanged. Lethal/unknown cells and map boundaries veto
 sweeps; inflated center costs also penalize search via `GridBased.cost_penalty`.
 The search uses the private map snapshot. A returned route must independently
 pass the same swept check on the latest locked live map. Live verification
@@ -643,3 +648,52 @@ serial guard는 어느 모드에서도 빠른 local_voxels를 사용한다.
 검증: `make test-navigation` 및 `make test-navigation-runtime`.
 Gazebo 43/13 왕복, CPU/RSS, 실제 RTF, 센서 나이, 도착 오차와 최종 속도는 별도
 실행 결과로 확인한다. core 처리 시간 측정은 전체 스택/실물 성능을 보증하지 않는다.
+
+### Omni body-heading grid fallback
+
+When `holonomic_direct_path` is enabled, failed fixed-heading XY searches can
+try map-resolution translations and in-place rotations before Smac lattice.
+`GridBased.body_heading_grid_search` defaults to true,
+`body_heading_grid_bins` to 32 (4–128), and
+`body_heading_grid_heuristic_weight` to 8 (finite, at least 1).
+Weighted A* retains the configured cost penalty but does not guarantee the
+minimum-cost path. Every endpoint, grid connector, translation and rotation
+uses the configured full footprint with continuous cell/sweep checks;
+unknown cells and newly observed live obstacles reject the route.
+Start and exact-goal grid connectors explicitly separate translation and
+rotation; both pieces must pass the same full sweep. This makes the intended
+endpoint turn visible to nearest-position orientation consumers. In reactive
+safety mode, the pan node has observation authority only; it does not enforce
+separate chassis translation and rotation.
+Sparse explored-state storage avoids allocating one full costmap per heading.
+This attempt receives at most one quarter of the existing shared planning
+budget; it never extends that budget or changes arrival/sensor/velocity guards.
+A stored-map replay is diagnostic evidence. Actual Gazebo arrival and return
+must be verified separately before claiming the failed seat is fixed.
+
+`PathProgressCritic` adds continuous remaining local-path length in metres,
+with `PathProgress.scale: 1.0` in the Omni profile. This distinguishes safe
+forward and stopped candidates when the stock grid potentials tie. It retains
+the earliest projection at crossings and limits projected advance by the
+trajectory's actual travel length. In-place rotations create no translational
+progress. Collision, velocity, freshness, arrival and timeout guards retain
+their existing acceptance rules; this critic supplies a path-following score.
+
+### Issued-command hold validation
+
+`SweptFootprintCritic` accepts optional `command_hold_time` (default 0, disabled) and
+`command_hold_step` (default 0.01 s). A positive hold time additionally checks the
+first published trajectory velocity as a constant body-frame twist for that duration.
+The constant-twist poses use exact SE(2) integration, stock raster-cell tests, and
+the existing continuous cell-area sweep. The original accelerating rollout and all
+its collision checks still run; legal candidates keep their original soft score.
+The time must be finite and nonnegative, the step finite and positive, and the
+requested hold must contain at most 10,000 sample intervals.
+
+The simulation-only `cad_fortress_command_hold.yaml` candidate enables a 0.2 s hold.
+A recorded pre-failure command passed its accelerating rollout but hit a lethal
+raster cell after a 0.125 s hold. `test/data/command_hold_alias.json` retains the
+pose, velocity, footprint and one sufficient obstacle cell from that cycle.
+This check supplies a configured delay margin; it does not measure pose age, prove
+physical stopping dynamics, or certify delays beyond the chosen hold time.
+Continuous-60 simulation success remains a separate validation requirement.

@@ -194,6 +194,30 @@ TEST(StraightFirstPlanner, FixedHeadingGridSearchFindsBodySafeDetourAndChecksEnd
   EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,body,M_PI/2,5.).poses.empty());
 }
 
+TEST(StraightFirstPlanner, HalfTurnUsesContinuousSubintervalsAndStillRejectsCornerCollision) {
+  nav2_costmap_2d::Costmap2D map(100,100,.05,-2.5,-2.5,0);
+  std::vector<geometry_msgs::msg::Point> body;
+  for(auto xy:std::vector<std::pair<double,double>>{{-.2,-.4},{.2,-.4},{.2,.4},{-.2,.4}}) {
+    geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;body.push_back(p);
+  }
+  geometry_msgs::msg::PoseStamped start,goal;start.header.frame_id=goal.header.frame_id="map";
+  start.pose.orientation.w=1.;goal.pose.orientation.z=1.;goal.pose.orientation.w=0.;goal.pose.position.x=1.;
+  unsigned int x,y;ASSERT_TRUE(map.worldToMap(.675,.675,x,y));map.setCost(x,y,254);
+  auto path=cleany_navigation::checkedFixedHeadingGridPath(start,goal,map,body,M_PI,5.);
+  ASSERT_FALSE(path.poses.empty());
+  EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(path,map,body));
+  int polls=0;
+  EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(start,goal,map,body,M_PI,5.,
+    [&]{return ++polls>4;}).poses.empty());
+  // Both endpoint orientations are free, but the rotating corner contacts
+  // this cell between them. Continuous subintervals must retain that veto.
+  ASSERT_TRUE(map.worldToMap(.375,.125,x,y));map.setCost(x,y,254);
+  nav_msgs::msg::Path turn;turn.header=start.header;turn.poses={start,start};
+  turn.poses.back().pose.orientation.z=1.;turn.poses.back().pose.orientation.w=0.;
+  EXPECT_FALSE(cleany_navigation::sweptPathCollisionFree(turn,map,body));
+  EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(start,goal,map,body,M_PI,5.).poses.empty());
+}
+
 TEST(StraightFirstPlanner, FixedHeadingGridSearchHandlesWrappedYawAndInvalidInputs) {
   nav2_costmap_2d::Costmap2D map(80,80,.05,-2,-2,0);
   std::vector<geometry_msgs::msg::Point> body;
@@ -367,4 +391,40 @@ TEST(StraightFirstPlanner, BlockedSearchSharesDeadlineAndDoesNotBlockLiveMapUpda
     std::exit(blockedSearchReleasesLiveMapAndSharesBudget()?0:1);
   },
     ::testing::ExitedWithCode(0),"");
+}
+
+TEST(BodyHeadingGrid, NarrowElbowRequiresBodyRotationAndKeepsExactEndpoints) {
+  nav2_costmap_2d::Costmap2D map(120,120,.05,0.,0.,254);
+  for(unsigned int x=0;x<120;++x)for(unsigned int y=0;y<120;++y) {
+    double wx,wy;map.mapToWorld(x,y,wx,wy);
+    if((wx>.5 && wx<4.3 && wy>.7 && wy<1.3) ||
+       (wx>3.7 && wx<4.3 && wy>.7 && wy<5.5) ||
+       (wx>3.1 && wx<4.9 && wy>.1 && wy<1.9))map.setCost(x,y,0);
+  }
+  std::vector<geometry_msgs::msg::Point> footprint;
+  for(auto xy:std::vector<std::pair<double,double>>{{-.4,-.25},{.4,-.25},{.4,.25},{-.4,.25}}) {
+    geometry_msgs::msg::Point p;p.x=xy.first;p.y=xy.second;footprint.push_back(p);
+  }
+  geometry_msgs::msg::PoseStamped a,b;a.header.frame_id=b.header.frame_id="map";
+  a.pose.position.x=1.2;a.pose.position.y=1.;
+  a.pose.orientation.z=std::sin(.03/2.);a.pose.orientation.w=std::cos(.03/2.);
+  b.pose.position.x=4.;b.pose.position.y=5.;
+  b.pose.orientation.z=std::sin((M_PI/2.-.03)/2.);b.pose.orientation.w=std::cos((M_PI/2.-.03)/2.);
+  EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,footprint,0.,5.).poses.empty());
+  EXPECT_TRUE(cleany_navigation::checkedFixedHeadingGridPath(a,b,map,footprint,M_PI/2.,5.).poses.empty());
+  auto path=cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.);
+  ASSERT_FALSE(path.poses.empty());
+  EXPECT_EQ(path.poses.front().pose,a.pose);EXPECT_EQ(path.poses.back().pose,b.pose);
+  EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(path,map,footprint));
+  for(size_t i=1;i<path.poses.size();++i) {
+    const auto &a=path.poses[i-1].pose,&b=path.poses[i].pose;
+    const double ya=2.*std::atan2(a.orientation.z,a.orientation.w),yb=2.*std::atan2(b.orientation.z,b.orientation.w);
+    const bool translating=std::hypot(a.position.x-b.position.x,a.position.y-b.position.y)>1e-8;
+    const bool rotating=std::abs(std::atan2(std::sin(yb-ya),std::cos(yb-ya)))>1e-8;
+    EXPECT_FALSE(translating && rotating);
+  }
+  int calls=0;EXPECT_TRUE(cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.,[&]{return ++calls>100;}).poses.empty());
+  // A complete barrier cannot be bypassed by changing body yaw.
+  for(unsigned int x=0;x<120;++x)for(unsigned int y=50;y<52;++y)map.setCost(x,y,254);
+  EXPECT_TRUE(cleany_navigation::checkedBodyHeadingGridPath(a,b,map,footprint,32,5.,8.).poses.empty());
 }
