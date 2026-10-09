@@ -30,6 +30,27 @@ world.sdf, world.study.sdf, facility_integration 지도, targets.yaml, config이
 외부 assets 경로는 기존 검증 fixture를 이식한 실행 환경 경로이며 결과 월드와 manifest에
 남긴다. 도구 이식 시 설치 overlay 및 fixture 준비가 필요하다.
 
+현재 연속 60회 검증 후보는 `profiles/cad_fortress_command_hold.yaml`에 보존했다.
+CAD Fortress 전용 wheel yaw 보정과 DWB 경로 진행/중앙 장애물 비용에 더해,
+실제 발행 명령을 0.2초 유지하는 경우의 충돌 검사도 적용한다.
+물리 로봇 보정값으로 사용하지 않는다. 기본 fixture로부터 다음처럼 재현한다.
+
+```bash
+python3 tools/scenario_validation/prepare_profile.py \
+  artifacts/scenarios/fixture artifacts/scenarios/cad-fortress-command-hold \
+  --profile tools/scenario_validation/profiles/cad_fortress_command_hold.yaml
+```
+
+생성한 경로를 `parallel.py --fixture`에 전달하고, yaw 보정을 지원하는 odometry와
+현재 navigation overlay를 지정한다. `prepare_profile.py`는 기존 결과를 덮어쓰지 않는다.
+준비 단계와 worker 시작 시 실제 mesh/material/texture 파일을 검사하고 SHA-256을
+기록한다. Fuel 모델은 기존 로컬 캐시의 파일로 고정한다. 누락·빈 파일·지원하지 않는
+URI 또는 Gazebo 시작 로그의 geometry 로딩 오류가 있으면 미션을 시작하지 않는다.
+두 설정 파일은 새 파일로 만들고 지도·월드·나머지 설정은 원본을 가리키는 symlink로
+공유한다. 원본 fixture는 실행 중 고정해야 하며 profile/config 해시는 manifest에 남긴다.
+이 프로필의 정상 왕복 성공률은 `docs/validation/scrum-426-scenarios.md`의 실행 결과로
+판정한다. fixture 생성이나 도구 테스트 통과만으로 50/60 달성을 인정하지 않는다.
+
 결과 디렉터리에는 batch.json, 자원 시계열 resources.json, 인스턴스별 world manifest,
 trace.jsonl, mission result.json, shutdown.json과 ROS/Gazebo 로그를 저장한다.
 자원 포화/준비 실패/미션 실패를 성공한 실행과 따로 보고하며 최초 실패를 보존한다.
@@ -48,6 +69,25 @@ group 밖에 유지해 Gazebo create/remove service로 이전 의자를 복원�
 연속 시험은 매 미션 전에 실제 `/world/.../scene/info` 응답에서 전체 의자 모델을
 대조한다. 이전 의자는 존재하고 대상 의자만 없어야 진행하며, 원본 protobuf 응답과
 해시를 `chair-scenes/`와 결과에 남긴다. 생성/삭제 service ACK만으로 전환을 인정하지 않는다.
+전환 전후에는 전체 모델 이름도 대조한다. 서비스 응답이 유실되면 실제 장면을 읽어
+이미 적용된 작업은 반복하지 않고, 미적용된 작업만 최대 세 번 재시도한다.
+각 요청의 3초 transport timeout과 6초 CLI 제한은 그대로다. 장면 읽기도 최대 세 번이며,
+읽을 수 없거나 다른 모델이 바뀌면 미션을 시작하지 않는다. 모든 시도와 원본 장면은
+`chair-transitions/`에 남긴다. 이는 미션 사이의 fixture 전환이며 navigation deadline,
+충돌·도착·freshness 기준이나 미션 실패 판정은 변경하지 않는다.
+
+개선 중에는 `--stop-on-failure`로 첫 정상 미션 실패에서 순서를 중단한다.
+요청 개수는 그대로 기록하고 `stopped_on_failure`에 실패 위치를 남기므로,
+조기 중단된 시험을 전체 순서 통과로 판정하지 않는다. `--fixture`로 별도 비교 입력,
+`--diagnostic-overlay`로 관측용 overlay를 선택할 수 있다. 지정 경로는 container
+실행 전 절대 경로로 바꾸며 기존 fixture를 덮어쓰지 않는다. wheel odometry의
+실제 Python 소스 hash도 결과에 기록한다.
+완료한 각 미션은 `progress.json`에 원자적으로 기록하며 종료 후 `result.json`과
+`shutdown.json`을 최종 근거로 사용한다. 60회 승인 시험에서는 `--failure-limit 11`로
+50회 성공이 불가능해지는 시점에 중단할 수 있다. 첫 실패 중단 옵션이 우선한다.
+`continuous_verdict.py WORKER --output FILE`은 원래 6좌석 × 10 순서, 의자 전환,
+미션 ID, 목적지/복귀 결과와 정지/종료를 대조하고 50/60 목표를 판정한다.
+실패 목록은 보존하며 50건만 실행한 부분 결과는 통과시키지 않는다.
 
 `inventory.py FIXTURE`는 모든 좌석의 의자 조건을 검사한다. `audit.py OUTPUT`은
 최종 mission ID, 예상 결과, 실제 cmd_vel/GT 정지와 shutdown을 확인한다.

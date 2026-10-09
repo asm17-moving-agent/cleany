@@ -2,6 +2,7 @@ import os,json,time,signal,subprocess,math,uuid
 from pathlib import Path
 import argparse
 from worlds import prepare,restored_tree,chair_name
+from assets import localize_and_hash
 from stimuli import add_obstacle,move_obstacle,switch_chair,obstacle_ahead,verify_chair_models
 parser=argparse.ArgumentParser()
 parser.add_argument('--root',type=Path,required=True)
@@ -14,8 +15,12 @@ parser.add_argument('--gate',type=Path)
 parser.add_argument('--scenario',default='normal',choices=['normal','cancel_outbound','cancel_return','safety_stop','sensor_loss','obstacle','path_failure','blocked'])
 parser.add_argument('--sequence',help='Comma-separated seats; switch only chairs between missions')
 parser.add_argument('--repeats',type=int,default=1)
+parser.add_argument('--stop-on-failure',action='store_true',help='End the sequence after the first unsuccessful mission; preserve all evidence')
+parser.add_argument('--failure-limit',type=int,help='Stop after this many unsuccessful missions')
 args=parser.parse_args()
 if args.repeats<1:parser.error('repeats must be positive')
+if args.failure_limit is not None and args.failure_limit<1:parser.error('failure-limit must be positive')
+failure_limit=1 if args.stop_on_failure else args.failure_limit
 sequence=args.sequence.split(',') if args.sequence else [args.seat]
 if sequence[0]!=args.seat:parser.error('sequence must begin with seat')
 for item in sequence:chair_name(item)
@@ -25,8 +30,10 @@ if nvidia_vendor.exists():os.environ.setdefault('__EGL_VENDOR_LIBRARY_FILENAMES'
 root=args.root.resolve();fixture=args.fixture.resolve();run=args.output.resolve();run.mkdir(parents=True,exist_ok=False)
 (run/'observer.json').write_text(json.dumps({'pid':os.getpid()}))
 manifest=prepare(fixture/'world.sdf',fixture/'world.study.sdf',args.seat,run/'world.sdf')
-txt=(run/'world.sdf').read_text().replace('/home/ehdrms/workspace/cleany/feat-runtime-integration/artifacts/gui-integration-20261003',str(fixture)).replace('/home/ehdrms/workspace/cleany/feat-runtime-integration',str(root))
-(run/'world.sdf').write_text(txt)
+import xml.etree.ElementTree as ET
+tree=ET.parse(run/'world.sdf')
+asset_hashes=localize_and_hash(tree,fixture,root,run/'assets')
+tree.write(run/'world.sdf',encoding='utf-8',xml_declaration=True)
 if args.sequence:
  import xml.etree.ElementTree as ET
  tree=ET.parse(run/'world.sdf');world=tree.getroot().find('world')
@@ -34,7 +41,9 @@ if args.sequence:
   if 'chair' in model.get('name',''):
    ET.SubElement(world,'frame',name='validation_'+model.get('name'),attached_to=model.get('name'))
  tree.write(run/'world.sdf',encoding='utf-8',xml_declaration=True)
- reference_models=restored_tree(fixture/'world.sdf',fixture/'world.study.sdf').getroot().find('world')
+ reference_tree=restored_tree(fixture/'world.sdf',fixture/'world.study.sdf')
+ asset_hashes.update(localize_and_hash(reference_tree,fixture,root,run/'assets'))
+ reference_models=reference_tree.getroot().find('world')
  manifest['mutable_chair_entities']=True
  transition_world=world.get('name')
  all_chairs={chair_name(seat) for seat in json.loads((fixture/'seat_inventory.json').read_text())['seats']}
@@ -56,11 +65,15 @@ input_paths=[fixture/'world.sdf',fixture/'world.study.sdf',fixture/'facility_int
 input_hashes={str(path):hashlib.sha256(path.read_bytes()).hexdigest() for path in input_paths}
 tool_hashes={path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in Path(__file__).parent.glob('*.py') if not path.name.startswith('test_')}
 from ament_index_python.packages import get_package_prefix
+from cleany_base_odometry import mecanum_odometry, wheel_odom_node
 navigation_prefix=Path(get_package_prefix('cleany_navigation'))
+odometry_source_hashes={str(Path(module.__file__).resolve()):hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
+ for module in (mecanum_odometry,wheel_odom_node)}
 navigation_binary_hashes={str(path):hashlib.sha256(path.read_bytes()).hexdigest()
  for path in (navigation_prefix/'lib').glob('*.so')}
 children=[];result={'base_commit':'076b893','branch':'test/scrum-426-scenarios','scenario':args.scenario,'domain':args.domain,'partition':args.partition,'world_manifest':manifest,'input_hashes':input_hashes,'tool_hashes':tool_hashes,'requested_rtf':4,'max_step_size':float(os.environ.get('CLEANY_PHYSICS_STEP','0.0066667')),'compact_static_scene':True,'localization_profile':str(root/'ros2_ws/src/cleany_navigation/config/amcl_sim_ideal_wheels.yaml'),'observer_sample_period':.2,'runtime_config':'committed default, navigation_timeout 180','expected_mission_count':len(sequence)*args.repeats,'missions':[]}; streams=[]
-result.update(navigation_install_prefix=str(navigation_prefix),
+result.update(asset_hashes=asset_hashes,navigation_install_prefix=str(navigation_prefix),
+              odometry_source_hashes=odometry_source_hashes,
               navigation_binary_hashes=navigation_binary_hashes,
               host=os.uname().nodename,architecture=os.uname().machine,
               egl_vendor=os.environ.get('__EGL_VENDOR_LIBRARY_FILENAMES','automatic'),
@@ -154,6 +167,12 @@ try:
    if s['ready']:break
  else:raise RuntimeError('readiness timeout: '+json.dumps(s))
  result['ready_snapshot']=s;result['cmd_vel_publishers']=[{'node':i.node_name,'type':i.topic_type} for i in n.get_publishers_info_by_topic('/cmd_vel')];print('READY',result['cmd_vel_publishers'],flush=True)
+ # Existence checks cannot establish that Fortress actually loaded a mesh.
+ mesh_errors=[line for line in (run/'sim.log').read_text(errors='replace').splitlines()
+              if any(marker in line for marker in ('Unable to find file', 'Cannot load null mesh',
+                      'Failed to load geometry', 'Mesh manager can\'t find mesh'))]
+ result['startup_mesh_errors']=mesh_errors
+ if mesh_errors:raise RuntimeError('Gazebo reported missing scene geometry; mission start refused')
  (run/'ready.json').write_text(json.dumps({'wall':time.monotonic(),'children':[(name,p.pid) for name,p in children]}))
  if args.gate:
   deadline=time.monotonic()+300
@@ -165,9 +184,8 @@ try:
   if seat!=previous_seat:
    import copy
    model=copy.deepcopy(reference_models.find(f"model[@name='{chair_name(previous_seat)}']"))
-   for element in model.iter('uri'):
-    if element.text:element.text=element.text.replace('/home/ehdrms/workspace/cleany/feat-runtime-integration/artifacts/gui-integration-20261003',str(fixture))
-   transition=switch_chair(transition_world,model,chair_name(seat))
+   transition=switch_chair(transition_world,model,chair_name(seat),all_chairs,
+     run/'chair-transitions'/f'{len(result["missions"]):03d}')
    result.setdefault('chair_transitions',[]).append({'restored':chair_name(previous_seat),'removed':chair_name(seat),'clock':latest['clock'],'requests':transition})
    previous_seat=seat;spin(2)
 
@@ -231,13 +249,20 @@ try:
   m['matched_terminal']=bool(s.get('last_result') and s['last_result'].get('request',{}).get('mission_id')==req.mission_id)
   m['wall_end']=time.monotonic();m['clock_end']=latest['clock']
   m.update(wall_seconds=time.monotonic()-start,sim_seconds=latest['clock']-clock0,final=s,ground_truth=latest.get('ground_truth'),cmd_vel=latest.get('cmd_vel'));m['measured_rtf']=m['sim_seconds']/m['wall_seconds'];m['terminal_scan_age']=latest['clock']-latest.get('scan_stamp',0);m['terminal_depth_age']=latest['clock']-latest.get('depth_stamp',0);print('RESULT',seat,m['final'].get('last_result',{}).get('outcome'),round(m['measured_rtf'],3),flush=True)
+  checkpoint=run/'progress.json.tmp';checkpoint.write_text(json.dumps(result,indent=2));checkpoint.replace(run/'progress.json')
+  failed_count=sum(not done.get('matched_terminal') or (done.get('final',{}).get('last_result') or {}).get('outcome')!='SUCCESS' for done in result['missions'])
+  if failure_limit is not None and failed_count>=failure_limit:
+   result['stopped_on_failure']={'mission_index':len(result['missions'])-1,'seat':seat,'outcome':(s.get('last_result') or {}).get('outcome'),'matched_terminal':m['matched_terminal'],'failure_count':failed_count,'failure_limit':failure_limit}
+   break
   if s['state']=='ERROR':break
  spin(2);write_trace(snap());result['final_latest']=latest;result['counts']=counts
 except (Exception, KeyboardInterrupt) as e:result['error']=repr(e);print('ERROR',repr(e),flush=True)
 finally:
  (run/'result.json').write_text(json.dumps(result,indent=2));trace.close()
  for name,p in reversed(children):
-  if p.poll() is None:os.killpg(p.pid,signal.SIGINT)
+  # ros2 launch forwards SIGINT to its children. Signalling the whole group
+  # also interrupts Python children a second time during their cleanup.
+  if p.poll() is None:p.send_signal(signal.SIGINT)
  for name,p in reversed(children):
   try:p.wait(timeout=18)
   except subprocess.TimeoutExpired:os.killpg(p.pid,signal.SIGKILL);p.wait()

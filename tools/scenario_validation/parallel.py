@@ -22,6 +22,10 @@ def main() -> None:
     parser.add_argument('--sequence')
     parser.add_argument('--scenario',default='normal')
     parser.add_argument('--repeats',type=int,default=1)
+    parser.add_argument('--stop-on-failure',action='store_true')
+    parser.add_argument('--failure-limit',type=int)
+    parser.add_argument('--fixture',type=Path,help='Explicit diagnostic fixture; defaults to the baseline fixture')
+    parser.add_argument('--diagnostic-overlay',type=Path,help='Optional instrumentation overlay, sourced last')
     parser.add_argument('--container',default='cleany-ros-humble-cdi')
     parser.add_argument('--navigation-overlay',type=Path,
                         help='Source a tested navigation overlay after the baseline runtime overlay')
@@ -29,8 +33,15 @@ def main() -> None:
     parser.add_argument('--amcl-overlay',type=Path,help='Optional custom AMCL overlay; otherwise host/system AMCL')
     parser.add_argument('--domain-base',type=int,default=80)
     args=parser.parse_args()
+    for name in ('runtime_overlay','navigation_overlay','amcl_overlay','diagnostic_overlay','fixture'):
+        value=getattr(args,name)
+        if value is not None:
+            value=value.resolve()
+            if not value.exists():parser.error(f'{name} is missing: {value}')
+            setattr(args,name,value)
     if not 1<=args.count<=20:parser.error('count must be 1..20')
     if args.repeats<1:parser.error('repeats must be positive')
+    if args.failure_limit is not None and args.failure_limit<1:parser.error('failure-limit must be positive')
     if not 0<=args.domain_base<=232-args.count:parser.error('ROS domain range is invalid')
     if args.amcl_overlay and not args.amcl_overlay.exists():parser.error('Explicit AMCL overlay is missing')
     if args.runtime_overlay and not args.runtime_overlay.exists():parser.error('Explicit runtime overlay is missing')
@@ -46,12 +57,15 @@ def main() -> None:
     try:
         for i in range(args.count):
             output=out/f'worker-{i:02d}'
-            cmd=['python3',str(root/'tools/scenario_validation/instance.py'),'--root',str(root),'--fixture',str(root/'artifacts/scenarios/fixture'),'--output',str(output),'--seat',seats[i],'--domain',str(args.domain_base+i),'--partition',f'cleany_{args.name}_{i}','--gate',str(gate),'--repeats',str(args.repeats),'--scenario',args.scenario]
+            cmd=['python3',str(root/'tools/scenario_validation/instance.py'),'--root',str(root),'--fixture',str(args.fixture or root/'artifacts/scenarios/fixture'),'--output',str(output),'--seat',seats[i],'--domain',str(args.domain_base+i),'--partition',f'cleany_{args.name}_{i}','--gate',str(gate),'--repeats',str(args.repeats),'--scenario',args.scenario]
             if args.sequence:cmd.extend(['--sequence',args.sequence])
+            if args.stop_on_failure:cmd.append('--stop-on-failure')
+            if args.failure_limit is not None:cmd.extend(['--failure-limit',str(args.failure_limit)])
             setups=[Path('/opt/ros/humble/setup.bash')]
             if amcl:setups.append(amcl)
             setups.append(overlay)
             if args.navigation_overlay:setups.append(args.navigation_overlay)
+            if args.diagnostic_overlay:setups.append(args.diagnostic_overlay)
             shell=' && '.join('source '+shlex.quote(str(p)) for p in setups)+' && exec '+shlex.join(cmd)
             log=(out/f'worker-{i:02d}.log').open('w');logs.append(log)
             p=subprocess.Popen(['podman','exec',args.container,'bash','-c',shell],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
