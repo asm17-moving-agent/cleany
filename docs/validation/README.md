@@ -42,3 +42,25 @@ transitive asset hash가 같은지 대조한 기록을 fixture의 `relocation-ma
 현재 실행법과 판정 계약은 [시나리오 도구](../../tools/scenario_validation/README.md),
 [Workspace](../../ros2_ws/README.md), 각 패키지 README를 따른다.
 KB submodule, runtime mesh/legacy 모델 선택, 안전 회귀 검사와 최종 command-hold profile은 유지한다.
+
+## 2026-10-10 이관 후 확인
+
+코드 기준 `b863202`: 외부 경로에서 전체 17개 패키지 build, colcon 집계 803건 중
+실패/오류 0건·23건 skip을 확인했다(집계에는 CTest wrapper 포함).
+초기 hand-eye 2건은 container Git 2.34의 `relativeWorktrees` 미지원으로 실패했고,
+외부 cache의 Git 2.55를 해당 검사 PATH에만 지정해 관련 274건을 재검사해 통과했다.
+시나리오 도구 48건, 빌드 경로·정리 도구 9건도 통과했다.
+
+`runs/scenarios/external-data-20261010-smoke/`에서 같은 인스턴스로 44 → 16 왕복
+2/2 SUCCESS, 실측 RTF 1.895 / 1.819를 기록했다. 목적지 오차 3.16 / 1.04 cm,
+home 오차 3.77 / 5.72 cm이며 기존 8 cm·0.15 rad 기준을 통과했다.
+원래 설정 배속 4와 안전/freshness/deadline 기준은 유지했다.
+미션 journal 2건, 입력/자산 hash, 실제 적용 parameter, 최종 정지 및 자식 30개
+정상 종료를 `migrations/20261010-repository-cleanup/gazebo-audit.json`에서 대조했다.
+이 결과는 이관 smoke이며 60회 반복 시험을 다시 수행한 결과는 아니다.
+
+Git에서 제외한 51개 파일은 `tracked-removals-verification.json`에 원래 commit과
+외부 사본의 동일 hash를 기록했다. 기존 build/install과 웹 의존성 cache는 정리했고,
+이전 build 로그는 `runs/build-logs/20261010/`, UI 시험 결과는
+`runs/ui-tests/legacy-20261010/`에 보존했다. 현재 monitor 설치에 필요한 `web/dist`
+생성물은 유지한다. 이관 후 컨테이너 안에서 새 overlay의 링크와 import도 확인했다.
