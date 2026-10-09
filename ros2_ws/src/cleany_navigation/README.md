@@ -627,3 +627,22 @@ the earliest projection at crossings and limits projected advance by the
 trajectory's actual travel length. In-place rotations create no translational
 progress. Collision, velocity, freshness, arrival and timeout guards retain
 their existing acceptance rules; this critic supplies a path-following score.
+
+### Issued-command hold validation
+
+`SweptFootprintCritic` accepts optional `command_hold_time` (default 0, disabled) and
+`command_hold_step` (default 0.01 s). A positive hold time additionally checks the
+first published trajectory velocity as a constant body-frame twist for that duration.
+The constant-twist poses use exact SE(2) integration, stock raster-cell tests, and
+the existing continuous cell-area sweep. The original accelerating rollout and all
+its collision checks still run; legal candidates keep their original soft score.
+The time must be finite and nonnegative, the step finite and positive, and the
+requested hold must contain at most 10,000 sample intervals.
+
+The simulation-only `cad_fortress_command_hold.yaml` candidate enables a 0.2 s hold.
+A recorded pre-failure command passed its accelerating rollout but hit a lethal
+raster cell after a 0.125 s hold. `test/data/command_hold_alias.json` retains the
+pose, velocity, footprint and one sufficient obstacle cell from that cycle.
+This check supplies a configured delay margin; it does not measure pose age, prove
+physical stopping dynamics, or certify delays beyond the chosen hold time.
+Continuous-60 simulation success remains a separate validation requirement.

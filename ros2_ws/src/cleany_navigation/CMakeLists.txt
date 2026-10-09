@@ -85,7 +85,8 @@ if(BUILD_TESTING)
   target_link_libraries(test_swept_footprint axis_generator nlohmann_json::nlohmann_json)
   ament_target_dependencies(test_swept_footprint dwb_critics nav2_costmap_2d nav2_util rclcpp)
   target_compile_definitions(test_swept_footprint PRIVATE
-    CLEANY_SWEPT_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/test/data/return_sweep_alias.json")
+    CLEANY_SWEPT_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/test/data/return_sweep_alias.json"
+    CLEANY_HOLD_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/test/data/command_hold_alias.json")
   target_link_libraries(test_precise_goal_dist axis_generator)
   ament_target_dependencies(test_precise_goal_dist dwb_critics nav2_costmap_2d nav2_util rclcpp)
   target_link_libraries(test_observed_footprint axis_generator nlohmann_json::nlohmann_json)

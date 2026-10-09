@@ -91,3 +91,62 @@ TEST(SweptFootprint, RecordedReturnCommandMissedByStockSamples) {
   ASSERT_EXIT({const bool ok=recordedCommandRejectedUnderSweptCellModel();::_exit(ok?0:1);},
     testing::ExitedWithCode(0),"");
 }
+
+static bool recordedFirstCommandHoldIsRejected() {
+  rclcpp::init(0,nullptr);nlohmann::json data;std::ifstream(CLEANY_HOLD_FIXTURE)>>data;
+  auto node=std::make_shared<nav2_util::LifecycleNode>("command_hold_regression");
+  for(const auto &[key,value]:std::vector<std::pair<std::string,double>>{
+    {"min_vel_x",-.15},{"max_vel_x",.15},{"min_vel_y",-.15},{"max_vel_y",.15},
+    {"max_vel_theta",.3},{"max_speed_xy",.15},{"min_speed_xy",0.},{"min_speed_theta",0.},
+    {"acc_lim_x",.4},{"acc_lim_y",.4},{"acc_lim_theta",.6},
+    {"decel_lim_x",-.4},{"decel_lim_y",-.4},{"decel_lim_theta",-.6},
+    {"sim_time",2.},{"time_granularity",.05}})node->declare_parameter("FollowPath."+key,value);
+  node->declare_parameter("FollowPath.discretize_by_time",true);
+  node->declare_parameter("FollowPath.limit_vel_cmd_in_traj",true);
+  node->declare_parameter("FollowPath.use_elapsed_command_time",false); // recorded first command used the full .05 s step
+  node->declare_parameter("FollowPath.preserve_translation_direction",true);
+  node->declare_parameter("FollowPath.Held.command_hold_time",.2);
+  node->declare_parameter("FollowPath.Held.command_hold_step",.01);
+  const auto options=rclcpp::NodeOptions().use_global_arguments(false).parameter_overrides({
+    rclcpp::Parameter("plugins",std::vector<std::string>{}),rclcpp::Parameter("global_frame","odom"),
+    rclcpp::Parameter("robot_base_frame","base_link"),rclcpp::Parameter("footprint",data["footprint"].dump()),
+    rclcpp::Parameter("footprint_padding",0.0)});
+  auto ros=std::make_shared<nav2_costmap_2d::Costmap2DROS>(options);ros->configure();
+  auto map=ros->getCostmap();map->resizeMap(data["size"][0],data["size"][1],data["resolution"],data["origin"][0],data["origin"][1]);
+  const auto cells=static_cast<size_t>(map->getSizeInCellsX())*map->getSizeInCellsY();
+  std::fill(map->getCharMap(),map->getCharMap()+cells,0);
+  for(const auto &cell:data["occupied"])map->setCost(cell[0],cell[1],cell[2]);
+  auto pose=[](const auto &p){geometry_msgs::msg::Pose2D v;v.x=p[0];v.y=p[1];v.theta=p[2];return v;};
+  auto twist=[](const auto &p){nav_2d_msgs::msg::Twist2D v;v.x=p[0];v.y=p[1];v.theta=p[2];return v;};
+  auto position=pose(data["pose"]),goal=position;auto velocity=twist(data["velocity"]);
+  nav_2d_msgs::msg::Path2D path;path.poses={position};
+  cleany_navigation::SweptFootprintCritic original,held;
+  original.initialize(node,"Original","FollowPath",ros);held.initialize(node,"Held","FollowPath",ros);
+  original.prepare(position,velocity,goal,path);held.prepare(position,velocity,goal,path);
+  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
+  const auto trajectory=generator.generateTrajectory(position,velocity,twist(data["target"]));
+  const auto issued=twist(data["issued_command"]);
+  bool ok=std::abs(trajectory.velocity.x-issued.x)<1e-9 &&
+    std::abs(trajectory.velocity.y-issued.y)<1e-9 && std::abs(trajectory.velocity.theta-issued.theta)<1e-9;
+  try {original.scoreTrajectory(trajectory);}catch(...) {ok=false;}
+  try {held.scoreTrajectory(trajectory);ok=false;}
+  catch(const dwb_core::IllegalTrajectoryException &e) {ok &= std::string(e.what()).find("Held command")!=std::string::npos;}
+  // The stationary start itself stays admissible; the extra check does not
+  // authorize an occupied-start escape or need a special reset/recovery path.
+  dwb_msgs::msg::Trajectory2D stopped;stopped.poses={position};
+  try {ok &= held.scoreTrajectory(stopped)==original.scoreTrajectory(stopped);}catch(...) {ok=false;}
+  // Existing collision requirements still apply when the new hold is free.
+  unsigned int x,y;map->worldToMap(position.x,position.y,x,y);map->setCost(x,y,255);
+  held.prepare(position,velocity,goal,path);
+  try {held.scoreTrajectory(stopped);ok=false;}catch(const dwb_core::IllegalTrajectoryException &) {}
+  std::fill(map->getCharMap(),map->getCharMap()+cells,0);
+  original.prepare(position,velocity,goal,path);held.prepare(position,velocity,goal,path);
+  try {ok &= held.scoreTrajectory(trajectory)==original.scoreTrajectory(trajectory);}catch(...) {ok=false;}
+  auto invalid=trajectory;invalid.velocity.x=std::numeric_limits<double>::quiet_NaN();
+  try {held.scoreTrajectory(invalid);ok=false;}catch(const dwb_core::IllegalTrajectoryException &) {}
+  return ok;
+}
+TEST(SweptFootprint, RecordedFirstCommandMustRemainSafeDuringHold) {
+  ASSERT_EXIT({const bool ok=recordedFirstCommandHoldIsRejected();::_exit(ok?0:1);},
+    testing::ExitedWithCode(0),"");
+}
