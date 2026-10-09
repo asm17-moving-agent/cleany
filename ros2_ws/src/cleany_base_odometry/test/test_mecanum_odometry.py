@@ -133,3 +133,31 @@ def test_window_requires_observable_velocity_after_clock_reset_and_data_gap():
 def test_invalid_velocity_window_is_rejected(window):
     with pytest.raises(ValueError):
         MecanumOdometry(GEOMETRY, velocity_window_s=window)
+
+
+@pytest.mark.parametrize('window', [0.0, 0.125])
+def test_yaw_calibration_preserves_encoder_translation_and_rotates_later_motion(window):
+    from math import cos, sin
+    odometry = MecanumOdometry(GEOMETRY, velocity_window_s=window, yaw_scale=1.2)
+    odometry.update(ZERO, 1.0)
+    for step in range(1, 21):
+        t = step / 20
+        result = odometry.update(WheelPositions(-t, t, -t, t), 1.+t)
+    expected = 1.2 * GEOMETRY.wheel_radius_m / GEOMETRY.center_to_wheel_sum_m
+    assert result.yaw_rad == pytest.approx(expected)
+    assert result.angular_z_rps == pytest.approx(expected)
+    assert result.x_m == pytest.approx(0.)
+    assert result.y_m == pytest.approx(0.)
+    for step in range(1, 21):
+        t = step / 20
+        result = odometry.update(WheelPositions(-1.+t, 1.+t, -1.+t, 1.+t), 2.+t)
+    assert result.x_m == pytest.approx(GEOMETRY.wheel_radius_m*cos(expected))
+    assert result.y_m == pytest.approx(GEOMETRY.wheel_radius_m*sin(expected))
+    assert result.linear_x_mps == pytest.approx(GEOMETRY.wheel_radius_m)
+    assert result.angular_z_rps == pytest.approx(0.)
+
+
+@pytest.mark.parametrize('scale', [0., -1., float('nan'), float('inf')])
+def test_invalid_yaw_calibration_is_rejected(scale):
+    with pytest.raises(ValueError, match='Yaw scale'):
+        MecanumOdometry(GEOMETRY, yaw_scale=scale)

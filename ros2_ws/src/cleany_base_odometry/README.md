@@ -21,6 +21,18 @@
 필수 입력이 아닙니다. 휠 이름과 반경·wheelbase·wheel separation은
 `config/wheel_odometry.yaml`에서 설정합니다.
 
+`yaw_scale`(기본 1.0)은 별도 측정으로 확인한 회전 오차의 보정 계수입니다.
+wheel delta에서 얻은 회전량과 관측 구간의 각속도에 같은 계수를 적용하며,
+보정된 heading으로 이후 XY 이동을 적분합니다. 유한한 양수만 허용합니다.
+GT나 다른 pose topic을 입력으로 쓰지 않으며 물리 geometry를 바꾸지 않습니다.
+시뮬레이션에서 얻은 계수는 해당 월드/physics profile에 한정해 사용하고,
+실물에는 독립 보정 없이 적용하지 않습니다.
+`config/wheel_odometry_cad_fortress.yaml`은 CAD-frame Fortress 시설 검증용
+geometry, 125ms 속도 관측 구간과 `yaw_scale: 1.047`을 담습니다.
+0.0066667초 physics step의 독립 실행 두 건에서 얻은 회전 gain은
+1.0465/1.0469였으며, 보정 후 20번과 17번 단독 왕복을 확인했습니다.
+전체 연속 시험의 성공률은 별도 검증 대상입니다.
+
 Gazebo launch는 가상 encoder를 통해 tick 양자화와 선택적인 휠별 scale 및 tick
 편차를 적용할 수 있습니다. `wheel_odometry_synthetic_error.yaml`은 nominal 값에서
 휠 반경을 +1%, wheelbase와 wheel separation을 -1%로 둔 미보정 합성 profile입니다.
