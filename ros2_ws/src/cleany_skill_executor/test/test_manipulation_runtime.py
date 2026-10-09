@@ -30,13 +30,13 @@ from cleany_skill_executor.manipulation_node import ManipulationNode
 CONFIG_PATH = Path(__file__).parents[1] / 'config/manipulation_mock.yaml'
 
 
-def eventually(predicate, timeout=10.0):
+def eventually(predicate, timeout=10.0, *, description='ROS condition'):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if predicate():
             return
         time.sleep(0.01)
-    raise AssertionError('Timed out waiting for ROS condition')
+    raise AssertionError(f'Timed out waiting for {description}')
 
 
 def response(future, timeout=10.0):
@@ -130,7 +130,8 @@ def test_real_ros_success_feedback_lookup_and_retained_event(ros):
     assert result.status == GoalStatus.STATUS_SUCCEEDED
     assert result.result.status == 'SUCCESS' and result.result.execution_profile == 'mock'
     assert result.result.stop_confirmed and result.result.arm_recovered
-    eventually(lambda: any(item.stage == 'FINALIZING' for item in harness.feedback))
+    eventually(lambda: any(item.stage == 'FINALIZING' for item in harness.feedback),
+               description='FINALIZING Action feedback')
     stages = list(dict.fromkeys(item.stage for item in harness.feedback))
     assert stages == [stage.value for stage in NORMAL_STAGES] + ['FINALIZING']
     assert {'GraspObject', 'ConfirmGrasp'} <= {item.substage for item in harness.feedback}
@@ -140,12 +141,15 @@ def test_real_ros_success_feedback_lookup_and_retained_event(ros):
     assert record.record.object_state == 'LEFT_GRIPPER' and record.record.placement_state == 'CONFIRMED'
     assert {'GraspObject', 'ConfirmGrasp', 'ConfirmRelease'} <= set(record.record.completed_substages)
     assert not harness.query('missing').found
+    # A fresh ROS context represents a monitor joining after the Action ended.
+    observer = ros(start=False)
     late_events = []
-    subscriber = harness.node.create_subscription(ManipulationExecutionRecord,
-        'manipulation/execution_events', late_events.append, harness.qos)
-    eventually(lambda: any(item.has_result for item in late_events))
+    subscriber = observer.node.create_subscription(ManipulationExecutionRecord,
+        harness.namespace + '/manipulation/execution_events', late_events.append, observer.qos)
+    eventually(lambda: any(item.has_result for item in late_events),
+               description='retained result in the late monitor')
     assert any(item.execution_id == message.execution_id and item.status == 'SUCCESS' for item in late_events)
-    harness.node.destroy_subscription(subscriber)
+    observer.node.destroy_subscription(subscriber)
     assert not response(handle.cancel_goal_async()).goals_canceling
 
 

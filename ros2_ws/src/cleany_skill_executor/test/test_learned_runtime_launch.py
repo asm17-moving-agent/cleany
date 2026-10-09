@@ -185,8 +185,13 @@ def test_preflight_rejects_missing_models_before_backend(runtime, tmp_path):
         module._preflight(context)
 
 
-def test_gemini_preflight_rejects_missing_credentials(runtime, monkeypatch):
+def test_gemini_preflight_rejects_missing_credentials(runtime, tmp_path, monkeypatch):
     module, context = runtime
+    model_dir = tmp_path / 'yoloe'
+    model_dir.mkdir()
+    (model_dir / 'study_cafe_sim_yoloe26s_seg.pt').touch()
+    (model_dir / 'mobileclip2_b.ts').touch()
+    context.launch_configurations['model_directory'] = str(tmp_path)
     monkeypatch.delenv('GEMINI_API_KEY', raising=False)
     with pytest.raises(RuntimeError, match='GEMINI_API_KEY must be set'):
         module._preflight(context)

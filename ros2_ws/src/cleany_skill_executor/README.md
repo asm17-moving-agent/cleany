@@ -124,6 +124,9 @@ Action feedback과 ROS 상태 토픽·파일 기록은 로그 수준과 무관�
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest ros2_ws/src/cleany_skill_executor/test
 ```
 
+launch 사전 검증 테스트는 임시 모델 파일을 사용해 로컬 모델 설치 상태와 분리한다.
+Action 완료 후 보관 메시지 수신은 별도 ROS context에서 늦게 접속한 구독자로 검사한다.
+
 ## 책상 정리 모듈 연동 설계
 
 Mission Manager는 행동 승인·재관찰·미션 상태 전이를 담당하고,
