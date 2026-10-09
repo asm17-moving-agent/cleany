@@ -9,6 +9,12 @@ ament_python_install_package(${PROJECT_NAME})
 install(
   PROGRAMS cleany_moveit_config/apply_collision_scene.py
   DESTINATION lib/${PROJECT_NAME}
+  RENAME apply_collision_scene
+)
+
+install(
+  PROGRAMS cleany_moveit_config/apply_handeye_collision_scene.py
+  DESTINATION lib/${PROJECT_NAME}
   RENAME apply_handeye_collision_scene
 )
 
@@ -36,14 +42,27 @@ if(BUILD_TESTING)
     test/test_handeye_collision_scene.py
   )
   ament_add_pytest_test(
+    handeye_collision_scene_runtime
+    test/test_handeye_collision_scene_runtime.py
+    TIMEOUT 240
+  )
+  ament_add_pytest_test(
+    simulation_collision_contract
+    test/test_simulation_collision.py
+  )
+  ament_add_pytest_test(
+    study_cafe_collision_scene_contract
+    test/test_study_cafe_collision_scene.py
+  )
+  ament_add_pytest_test(
     mock_planning_runtime
     test/test_mock_planning_runtime.py
     TIMEOUT 240
   )
   ament_add_pytest_test(
-    handeye_collision_scene_runtime
-    test/test_handeye_collision_scene_runtime.py
-    TIMEOUT 240
+    move_group_shutdown_runtime
+    test/test_move_group_shutdown.py
+    TIMEOUT 90
   )
 endif()
 

@@ -20,7 +20,7 @@ from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
 
-from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
+from cleany_skill_executor.core.grasp_selection import Candidate, REQUIRED_JOINT_NAMES
 
 
 class GraspExecutionDemo(Node):
@@ -39,7 +39,16 @@ class GraspExecutionDemo(Node):
         self.declare_parameter('acceleration_scaling', 0.12)
         self.declare_parameter('target_position', [0.09, 0.6696, 0.6158])
         self.declare_parameter('target_size', [0.03, 0.03, 0.03])
-        self.declare_parameter('approach_direction', [0.0, -0.186, 0.983])
+        # A feasible approach for the current CAD arm at the fixed demo target.
+        self.declare_parameter(
+            'approach_direction',
+            [-0.053124442129452575, 0.9786257153017577, -0.19866933079506122],
+        )
+        self.declare_parameter(
+            'target_orientation',
+            [0.7052307146812502, -0.05149115953141366,
+             -0.70140038194986, 0.08964264476728875],
+        )
         self._selection = ActionClient(
             self,
             SelectReachableGrasp,
@@ -150,7 +159,13 @@ class GraspExecutionDemo(Node):
             (target, approach, 0.8),
         )
         candidates: list[GraspCandidate] = []
-        for position, direction, score in definitions:
+        for index, (position, direction, score) in enumerate(definitions):
+            orientation = (
+                tuple(float(v) for v in self.get_parameter('target_orientation').value)
+                if index == 1 else None
+            )
+            geometry = Candidate(position, direction, score, orientation=orientation)
+            assert geometry.orientation is not None
             candidate = GraspCandidate()
             candidate.header.frame_id = 'base_link'
             candidate.snapshot_id = 'mujoco-grasp-execution-demo'
@@ -158,10 +173,15 @@ class GraspExecutionDemo(Node):
             candidate.tcp_pose.position.x = position[0]
             candidate.tcp_pose.position.y = position[1]
             candidate.tcp_pose.position.z = position[2]
-            candidate.tcp_pose.orientation.w = 1.0
-            candidate.approach_direction.x = direction[0]
-            candidate.approach_direction.y = direction[1]
-            candidate.approach_direction.z = direction[2]
+            (
+                candidate.tcp_pose.orientation.x,
+                candidate.tcp_pose.orientation.y,
+                candidate.tcp_pose.orientation.z,
+                candidate.tcp_pose.orientation.w,
+            ) = geometry.orientation
+            candidate.approach_direction.x = geometry.approach_direction[0]
+            candidate.approach_direction.y = geometry.approach_direction[1]
+            candidate.approach_direction.z = geometry.approach_direction[2]
             candidate.required_opening_m = 0.03
             candidate.grasp_depth_m = 0.015
             candidate.score = score
@@ -180,9 +200,14 @@ class GraspExecutionDemo(Node):
 
     def _selection_feedback(self, message: Any) -> None:
         feedback = message.feedback
+        stages = {
+            getattr(SelectReachableGrasp.Feedback, f'STAGE_{name}'): name
+            for name in ('PREGRASP_IK', 'GRASP_IK', 'STATE_VALIDITY',
+                         'PLAN_PREGRASP', 'PLAN_GRASP')
+        }
         self.get_logger().info(
             f'candidate={feedback.candidate_index} arm={feedback.arm} '
-            f'stage={feedback.stage}: {feedback.message}'
+            f'stage={stages.get(feedback.stage, str(feedback.stage))}: {feedback.message}'
         )
 
     def _move_to(self, arm: str, joint_state: JointState, label: str) -> None:

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>cleany_mujoco_observer</name>
+  <version>0.1.0</version>
+  <description>Read-only simulation outcome oracle for sorting evaluation.</description>
+  <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>mujoco_ros2_control_plugins</depend>
+  <depend>mujoco_vendor</depend>
+  <depend>mujoco_ros2_control</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>visualization_msgs</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>libglfw3-dev</depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

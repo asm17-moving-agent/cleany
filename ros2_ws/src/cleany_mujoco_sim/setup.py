@@ -26,18 +26,17 @@ setup(
     maintainer_email='sw292ljh@gmail.com',
     description='MuJoCo simulation node for the Cleany XLeRobot platform.',
     license='Apache-2.0',
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'mujoco_sim_node = cleany_mujoco_sim.sim_node:main',
-            (
-                'handeye_scene_preflight = '
-                'cleany_mujoco_sim.scene_manifest:main'
-            ),
+            'handeye_scene_preflight = cleany_mujoco_sim.scene_manifest:main',
+            'mujoco_rgbd_sim_node = cleany_mujoco_sim.rgbd_sim_node:main',
             (
                 'camera_contract_adapter = '
                 'cleany_mujoco_sim.camera_contract_adapter:main'
             ),
-            'mujoco_rgbd_sim_node = cleany_mujoco_sim.rgbd_sim_node:main',
+            'placement_verifier = cleany_mujoco_sim.placement_verifier:main',
         ],
     },
 )

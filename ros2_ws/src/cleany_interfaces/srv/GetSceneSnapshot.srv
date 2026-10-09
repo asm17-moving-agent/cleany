@@ -1,0 +1,6 @@
+# Read-only lookup. Does not refresh cache TTL or capture time.
+string snapshot_id
+---
+bool found
+DetectedObject2DArray detections
+string message

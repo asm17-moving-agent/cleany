@@ -267,9 +267,10 @@ and MoveIt state-validity success. There are deliberately no production
 defaults for the still-unapproved safety values.
 
 The single-pose runtime test uses a CAD-frame simulation fixture. Its target
-position and 0.146088 m fixture clearance were re-measured with the MuJoCo 3.4
+position and 0.128595 m fixture clearance were re-measured with the MuJoCo 3.4
 control scene; a regression test checks both against the current model before
-the runtime integration test. The required 0.10 m margin and 1e-4 rad resolved
+the runtime integration test. The camera view also passes corner detection and
+PnP for all 32 combinations of the permitted ±0.015 rad joint errors. The required 0.10 m margin and 1e-4 rad resolved
 pose match tolerance remain unchanged. This is simulation evidence only.
 
 The installed `config/single_pose_request.template.json` keeps unresolved
@@ -611,7 +612,11 @@ python3 -m pytest test
 cd ../..
 colcon build --symlink-install --packages-select cleany_handeye_calibration
 source install/setup.bash
-colcon test --packages-select cleany_handeye_calibration
+colcon test --python-testing pytest --packages-select cleany_handeye_calibration
 colcon test-result \
   --test-result-base build/cleany_handeye_calibration --verbose
 ```
+
+단일 자세 MuJoCo 회귀 검사는 현재 모델의 FK·충돌 여유와 실제 보정판 검출을
+함께 확인한다. 시뮬레이션 자세 기준은 허용된 관절 정지 오차에서도 보정판의
+네 구역과 최소 코너 수를 만족하도록 재검증하며, 검출 기준은 완화하지 않는다.

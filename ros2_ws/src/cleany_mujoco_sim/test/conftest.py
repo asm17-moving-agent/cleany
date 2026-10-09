@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-# The RGB-D launch selects EGL before importing MuJoCo. Mirror that contract
+# Use EGL for the study-cafe renderer before importing MuJoCo. Mirror that contract
 # for direct pytest and headless CI runs, which do not execute the launch file.
 os.environ.setdefault('MUJOCO_GL', 'egl')
 

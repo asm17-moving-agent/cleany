@@ -1,4 +1,5 @@
 import math
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -8,8 +9,44 @@ import pytest
 from cleany_mujoco_sim.scene_loader import (
     load_model,
     materialize_control_scene,
+    materialize_scene,
 )
 from cleany_mujoco_sim.state import actuated_joint_names
+
+
+def test_sorting_startup_wrist_camera_mounts_have_matching_orientation():
+    package = Path(__file__).parents[1]
+    launch = (package.parent / 'cleany_skill_executor/launch/study_cafe_nearest_grasp_demo.launch.py').read_text()
+    initial = {f'{arm}_{joint}_joint': float(value) for arm, joint, value in re.findall(
+        r"'(left|right)_(\w+)_initial': '(-?[0-9.]+)'", launch)}
+    assert initial['left_wrist_roll_joint'] == initial['right_wrist_roll_joint'] == 1.58
+    path = materialize_control_scene(package / 'scenes/study_cafe_grasp_execution.xml.in',
+                                     initial_joint_positions=initial)
+    model = mujoco.MjModel.from_xml_path(str(path))
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
+    mujoco.mj_forward(model, data)
+    left = data.cam_xmat[model.camera('left_wrist_rgb').id].reshape(3, 3)
+    right = data.cam_xmat[model.camera('right_wrist_rgb').id].reshape(3, 3)
+    # Shoulder yaw differs; compare vertical components of all camera axes.
+    assert left[2] == pytest.approx(right[2], abs=1e-4)
+    for arm in ('left', 'right'):
+        assert data.ctrl[model.actuator(f'{arm}_wrist_roll_joint').id] == pytest.approx(1.58)
+
+
+def test_initial_head_position_uses_actuator_transmission_not_actuator_name():
+    package = Path(__file__).parents[1]
+    path = materialize_control_scene(
+        package / 'scenes/study_cafe_grasp_execution.xml.in',
+        initial_joint_positions={'head_tilt_joint': 1.0},
+    )
+    model = mujoco.MjModel.from_xml_path(str(path))
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key('handeye_ros2_control_home').id)
+    assert data.ctrl[model.actuator('head_tilt').id] == pytest.approx(1.0)
+    assert data.qpos[model.joint('head_tilt_joint').qposadr[0]] == pytest.approx(1.0)
+    mujoco.mj_step(model, data, nstep=1000)
+    assert data.qpos[model.joint('head_tilt_joint').qposadr[0]] == pytest.approx(1.0, abs=.02)
 
 
 def test_load_model_from_xml_path(scene_path: Path):
@@ -38,9 +75,12 @@ def test_cleany_scene_uses_description_model(cleany_scene_path: Path):
     assert legacy_joint_id < 0
 
 
-def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy():
+@pytest.mark.parametrize('template_name', [
+    'handeye.xml.in', 'study_cafe_grasp_execution.xml.in',
+])
+def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy(template_name):
     package_root = Path(__file__).parents[1]
-    template_path = package_root / 'scenes' / 'default.xml.in'
+    template_path = package_root / 'scenes' / template_name
     canonical_path = (
         package_root.parent / 'cleany_description' / 'mjcf' / 'cleany.xml'
     )
@@ -94,6 +134,48 @@ def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy():
     assert all(math.isfinite(value) for value in model.key_ctrl[key_id])
     assert canonical_path.read_text(encoding='utf-8') == canonical_text_before
     assert '<dcmotor class="pg42_drive"' in canonical_text_before
+
+
+@pytest.mark.parametrize('initial', [None, {
+    'left_shoulder_yaw_joint': -1.53,
+    'left_shoulder_pitch_joint': 3.35,
+    'left_elbow_pitch_joint': 3.12,
+    'left_wrist_pitch_joint': -1.63,
+    'left_wrist_roll_joint': 1.58,
+    'left_gripper_joint': -0.35,
+    'right_shoulder_yaw_joint': 1.58,
+    'right_shoulder_pitch_joint': 3.35,
+    'right_elbow_pitch_joint': 3.12,
+    'right_wrist_pitch_joint': -1.63,
+    'right_wrist_roll_joint': 1.58,
+    'right_gripper_joint': -0.35,
+}])
+def test_control_scene_keyframe_preserves_joint_and_dynamic_object_pose(initial):
+    package_root = Path(__file__).parents[1]
+    expected = initial or {}
+    scene = materialize_control_scene(
+        package_root / 'scenes' / 'study_cafe_grasp_execution.xml.in',
+        initial_joint_positions=initial,
+    )
+    model, data = load_model(scene)
+    key_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_KEY, 'handeye_ros2_control_home'
+    )
+    mujoco.mj_resetDataKeyframe(model, data, key_id)
+    mujoco.mj_forward(model, data)
+
+    for name, value in expected.items():
+        joint_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_JOINT, name
+        )
+        assert data.qpos[model.jnt_qposadr[joint_id]] == pytest.approx(value)
+    for name in ('cup', 'mouse', 'tissue', 'lego'):
+        body = model.body(f'study_cafe_{name}')
+        joint = model.joint(int(model.body_jntadr[body.id]))
+        address = int(joint.qposadr[0])
+        assert data.qpos[address:address + 7] == pytest.approx(
+            model.qpos0[address:address + 7]
+        )
 
 
 def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
@@ -191,91 +273,6 @@ def test_cleany_scene_keeps_passive_mecanum_rollers_internal(
         0.0, abs=1e-6
     )
 
-    mujoco.mj_resetData(model, data)
-    chassis_id = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
-    )
-    assert chassis_id >= 0
-
-    strafe_voltage = {
-        'rear_left_drive': 1.0,
-        'rear_right_drive': -1.0,
-        'front_left_drive': -1.0,
-        'front_right_drive': 1.0,
-    }
-    for actuator_name, voltage in strafe_voltage.items():
-        actuator_id = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
-        )
-        data.ctrl[actuator_id] = voltage
-    for _ in range(250):
-        mujoco.mj_step(model, data)
-
-    assert abs(data.xpos[chassis_id, 1]) > 0.01
-
-
-def test_positive_drive_voltage_moves_toward_camera_front(
-    cleany_scene_path: Path,
-):
-    model, data = load_model(cleany_scene_path)
-    chassis_id = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
-    )
-    camera_id = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_CAMERA, 'head_realsense_rgb'
-    )
-    mujoco.mj_forward(model, data)
-    initial_position = data.xpos[chassis_id].copy()
-    camera_forward = -data.cam_xmat[camera_id].reshape(3, 3)[:, 2].copy()
-
-    for actuator_name in (
-        'rear_left_drive',
-        'rear_right_drive',
-        'front_left_drive',
-        'front_right_drive',
-    ):
-        actuator_id = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
-        )
-        data.ctrl[actuator_id] = 10.0
-
-    for _ in range(500):
-        mujoco.mj_step(model, data)
-
-    displacement = data.xpos[chassis_id] - initial_position
-    assert displacement @ camera_forward > 0.1
-    assert displacement[0] > abs(displacement[1])
-
-
-def test_positive_yaw_voltage_pattern_turns_counter_clockwise(
-    cleany_scene_path: Path,
-):
-    model, data = load_model(cleany_scene_path)
-    yaw_voltage = {
-        'rear_left_drive': -2.0,
-        'front_left_drive': -2.0,
-        'rear_right_drive': 2.0,
-        'front_right_drive': 2.0,
-    }
-    for actuator_name, voltage in yaw_voltage.items():
-        actuator_id = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
-        )
-        data.ctrl[actuator_id] = voltage
-
-    for _ in range(500):
-        mujoco.mj_step(model, data)
-
-    chassis_id = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
-    )
-    w, x, y, z = data.xquat[chassis_id]
-    yaw = math.atan2(
-        2.0 * (w * z + x * y),
-        1.0 - 2.0 * (y * y + z * z),
-    )
-    assert yaw > 0.1
-
 
 def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
     cleany_scene_path: Path,
@@ -343,6 +340,69 @@ def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
             assert modeled_no_load_speed == pytest.approx(
                 no_load_speed, rel=1e-6
             )
+
+
+def test_positive_drive_voltage_moves_toward_camera_front(
+    cleany_scene_path: Path,
+):
+    model, data = load_model(cleany_scene_path)
+    chassis_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
+    )
+    camera_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_CAMERA, 'head_realsense_rgb'
+    )
+    mujoco.mj_forward(model, data)
+    initial_position = data.xpos[chassis_id].copy()
+    camera_forward = -data.cam_xmat[camera_id].reshape(3, 3)[:, 2].copy()
+
+    for actuator_name in (
+        'rear_left_drive',
+        'rear_right_drive',
+        'front_left_drive',
+        'front_right_drive',
+    ):
+        actuator_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
+        )
+        data.ctrl[actuator_id] = 10.0
+
+    for _ in range(500):
+        mujoco.mj_step(model, data)
+
+    displacement = data.xpos[chassis_id] - initial_position
+    assert displacement @ camera_forward > 0.1
+    assert displacement[0] > abs(displacement[1])
+
+
+def test_positive_yaw_voltage_pattern_turns_counter_clockwise(
+    cleany_scene_path: Path,
+):
+    model, data = load_model(cleany_scene_path)
+    yaw_voltage = {
+        'rear_left_drive': -2.0,
+        'front_left_drive': -2.0,
+        'rear_right_drive': 2.0,
+        'front_right_drive': 2.0,
+    }
+    for actuator_name, voltage in yaw_voltage.items():
+        actuator_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
+        )
+        data.ctrl[actuator_id] = voltage
+
+    for _ in range(500):
+        mujoco.mj_step(model, data)
+
+    chassis_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
+    )
+    w, x, y, z = data.xquat[chassis_id]
+    yaw = math.atan2(
+        2.0 * (w * z + x * y),
+        1.0 - 2.0 * (y * y + z * z),
+    )
+    assert yaw > 0.1
 
 
 def test_rgbd_pick_scene_has_fixed_table_and_targets(

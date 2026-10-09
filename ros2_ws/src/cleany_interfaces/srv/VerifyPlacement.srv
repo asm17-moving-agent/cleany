@@ -1,0 +1,10 @@
+# Verification port. Simulation uses an independent physics oracle; a real
+# robot needs a sensor-based implementation of the same outcome contract.
+string label
+# Nonempty pins a registered individual; unknown IDs never fall back to label.
+string verification_id
+string destination_id
+int64 after_stamp_ns
+---
+bool success
+string message

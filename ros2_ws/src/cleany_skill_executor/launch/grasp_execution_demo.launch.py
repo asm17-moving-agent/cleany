@@ -51,7 +51,12 @@ def generate_launch_description() -> LaunchDescription:
     selector = Node(
         package='cleany_skill_executor',
         executable='grasp_selection_server',
-        parameters=[config, {'use_sim_time': True}],
+        parameters=[config, {
+            'use_sim_time': True,
+            'pose_refinement_iterations': 80,
+            'grasp_pose_seed_attempts': 8,
+            'align_grasp_wrist_roll': True,
+        }],
         output='screen',
     )
     demo = Node(

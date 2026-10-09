@@ -1,0 +1,34 @@
+schema_version: cleany.camera_contract/v1
+
+camera_rendering:
+  width: 640
+  height: 480
+  camera_name: left_wrist_rgb
+  fovy_deg: 93.0
+  publish_rate_hz: 10.0
+  implementation:
+    ros_package: mujoco_ros2_control
+    release_version: 0.0.3
+    release_api: mujoco_ros2_control::MujocoCameras
+    camera_plugin_available: false
+    registration_source: ros2_control_hardware_info_sensor
+  model:
+    frame_id: left_wrist_rgb_optical_frame
+    distortion_model: plumb_bob
+    focal_length_formula: "fy=(height/2)/tan(fovy_deg*pi/360); fx=fy; cx=(width-1)/2; cy=(height-1)/2"
+    D: [0.0, 0.0, 0.0, 0.0, 0.0]
+    K: [227.751496, 0.0, 319.5, 0.0, 227.751496, 239.5, 0.0, 0.0, 1.0]
+    R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    P: [227.751496, 0.0, 319.5, 0.0, 0.0, 227.751496, 239.5, 0.0, 0.0, 0.0, 1.0, 0.0]
+  topics:
+    vendor:
+      image: /left_wrist_rgb/color
+      camera_info: /left_wrist_rgb/camera_info
+      depth: /left_wrist_rgb/depth
+    internal:
+      image: /cleany/internal/mujoco/left_wrist_camera/image_raw
+      camera_info: /cleany/internal/mujoco/left_wrist_camera/camera_info
+      depth: /cleany/internal/mujoco/left_wrist_camera/depth
+    public:
+      image: /left_wrist_camera/image_raw
+      camera_info: /left_wrist_camera/camera_info

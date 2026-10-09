@@ -31,6 +31,19 @@ lsb_release -ds
 python3 --version
 ```
 
+### 로컬 Action 트리 모니터 의존성
+
+모의 Manipulation Action의 VS Code 트리 모니터는 `python3-zmq`를 사용한다.
+패키지 manifest에 등록되어 있어 rosdep 설치에 포함된다. 개별 설치는 다음과 같다.
+
+```bash
+sudo apt install python3-zmq
+```
+
+관리자 권한 없이 현재 PC에서만 테스트할 때는 Ubuntu 기본 Python으로
+`python3 -m pip install --user pyzmq`를 사용할 수 있다. ROS Python을 가상환경으로 대체하지 않는다.
+VS Code BehaviorTree Viewer의 네이티브 zeromq 의존성은 확장 쪽에 별도로 필요하다.
+
 ## 1. Ubuntu 기본 설정
 
 UTF-8 locale과 ROS 저장소 등록에 필요한 도구를 준비한다.
@@ -64,7 +77,11 @@ sudo dpkg -i /tmp/ros2-apt-source.deb
 ```bash
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y ros-humble-desktop ros-dev-tools python3-pip git make
+sudo apt install -y \
+  ros-humble-desktop \
+  ros-humble-rmw-cyclonedds-cpp \
+  ros-dev-tools \
+  python3-pip git make
 ```
 
 현재 terminal에서 ROS 환경을 적용한다.
@@ -85,10 +102,32 @@ source /opt/ros/humble/setup.bash
 test "${ROS_DISTRO}" = "humble"
 python3 --version
 command -v ros2 colcon rosdep
+ros2 pkg prefix rmw_cyclonedds_cpp
 ros2 doctor --report
 ```
 
 Python은 `3.10.x`, `ROS_DISTRO`는 `humble`이어야 한다.
+
+### 선택: Jetson vision container
+
+일반 ROS package, mission, safety, navigation과 hardware control의 기본은 계속 native
+환경이다. Jetson에서는 CUDA model만 container로 격리하며 AnyGrasp와 perception은 서로
+다른 service로 실행한다.
+
+```bash
+make vision-init
+make vision-config
+make vision-build
+make anygrasp-up
+make vision-feature-id
+make perception-up
+```
+
+`vision-init`은 Git의 `.env` 대신 root-owned
+`/etc/cleany/jetson-identity.env`를 설치한다. AnyGrasp license는 host가 아니라 고정
+MAC container에서 출력하고 pinned 값과 검증된 feature ID로 신청한다. 상세한
+model/license mount, fail-closed 검사, 재부팅 검증과 ROS 2 DDS 설정은
+[`containers/vision/README.md`](../containers/vision/README.md)를 따른다.
 
 ## 4. 레포지토리 준비
 
@@ -125,7 +164,8 @@ make deps
 ```
 
 `cleany_moveit_config` 패키지를 빌드하면 package manifest에 따라 ROS 2
-Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, `ros2_control` 및
+Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, Pilz industrial
+motion planner, `ros2_control` 및
 `joint_trajectory_controller`도 `make deps`가 함께 설치한다. MuJoCo hand-eye
 backend를 포함한 전체 workspace 설치에서는 Humble용 `mujoco_ros2_control`도
 `cleany_mujoco_sim` manifest를 통해 설치한다. 설치 후 다음으로 필수 runtime
@@ -133,12 +173,20 @@ package를 확인할 수 있다.
 
 ```bash
 ros2 pkg prefix moveit_ros_move_group
+ros2 pkg prefix moveit_ros_perception
 ros2 pkg prefix moveit_kinematics
 ros2 pkg prefix moveit_planners_ompl
+ros2 pkg prefix pilz_industrial_motion_planner
 ros2 pkg prefix controller_manager
 ros2 pkg prefix joint_trajectory_controller
 ros2 pkg prefix mujoco_ros2_control
 ```
+
+센서 기반 MoveIt 충돌 지도에는 `moveit_ros_perception`의
+`PointCloudOctomapUpdater`가 필요하다. 기존 환경에 없으면
+`sudo apt-get install ros-humble-moveit-ros-perception`으로 설치한다.
+플러그인 없이 포인트클라우드가 RViz에 보이는 것만으로는 충돌 검사 연결을
+검증한 것이 아니다.
 
 Gazebo 패키지만 재현할 때는 MuJoCo 등 다른 workspace 의존성을 제외하고 설치할 수
 있다.
@@ -150,6 +198,69 @@ make deps-gazebo
 이 target은 `cleany_description`의 MuJoCo parity test에만 필요한 `mujoco` rosdep key를
 제외합니다. 전체 workspace test를 실행할 환경에서는 custom rosdep 규칙을 등록한 뒤
 `make deps`를 사용합니다.
+
+### YOLOE-seg + Gemini runtime
+
+`make sim-mujoco-pipeline`의 기본 인식은 YOLOE-seg + Gemini다.
+API 키·네트워크와 PyTorch/Ultralytics, 로컬 YOLOE checkpoint 및 text encoder가 필요하다.
+모델은 저장소에 포함하거나 실행 시 자동 다운로드하지 않는다. 기본 위치는
+`~/models`이며 `CLEANY_MODEL_DIR`로 변경할 수 있다. 스터디카페 전용 head/손목 모델
+파일명은 `cleany_skill_executor/README.md`의 현재 설정을 따른다.
+
+```text
+models/
+  yoloe/yoloe-26s-seg.pt
+  yoloe/mobileclip2_b.ts
+```
+
+VM CPU PyTorch와 Jetson JetPack/CUDA PyTorch는 환경에 맞춰 별도로 설치한다.
+
+현재 VM에서는 관리자 권한 없이 공식 arm64 MoveIt perception `2.5.9` deb의
+런타임을 `~/.local/share/cleany/moveit-perception/opt/ros/humble`에 준비했다.
+`make sim-mujoco-pipeline`은 시스템 `moveit_ros_perception`이 없을 때만
+이 사용자 전용 prefix를 사용하고 로그에 알린다. 다른 위치는
+`CLEANY_ROS_PERCEPTION_PREFIX` Make 변수로 지정한다. 다른 머신에 자동
+설치되는 것은 아니며 일반 설치는 `make deps` 또는 위의 apt 명령을 따른다.
+이 overlay는 현재 시스템 MoveIt/OctoMap ABI 조합에서만 검증했다. 시스템
+MoveIt 업데이트 시 호환성을 다시 검증하거나 시스템 패키지로 설치한다.
+
+선택형 `cleany_scene_mapping` C++ updater는 위 런타임 외에 배포 deb의
+header/CMake export도 필요하다. `make build`,
+`make build-grasp-pregrasp`, `make test-scene-mapping`은 시스템 perception
+패키지가 없고 이 prefix가 존재할 때 AMENT/CMAKE/라이브러리 검색 경로에
+추가한다. 설치 파일을 자동 다운로드하거나 시스템 `/opt/ros`를 수정하지 않는다.
+일반 ROS 설치는 rosdep으로 `moveit_ros_perception`,
+`moveit_ros_occupancy_map_monitor`, `geometric_shapes`, `octomap`을 준비한다.
+
+### 실제 BehaviorTree.CPP 실행기
+
+`cleany_manipulation_bt`는 BehaviorTree.CPP **4.x**와 pybind11을 사용한다.
+ROS Humble의 `behaviortree_cpp_v3`로 대체할 수 없다.
+
+```bash
+sudo apt install ros-humble-behaviortree-cpp ros-humble-pybind11-vendor python3-dev
+make build-manipulation-bt
+```
+
+이 VM은 관리자 설치 권한이 없어 공식 arm64 `ros-humble-behaviortree-cpp` 4.10.0 deb를
+`~/.local/share/cleany/behaviortree-cpp/opt/ros/humble`에 풀어 사용했다.
+루트 Make의 전체 build/test와 BT target은 이 prefix가 존재하면 검색 경로에 추가한다.
+다른 위치는 `CLEANY_BT_PREFIX` Make 변수로 지정한다. 자동 다운로드는 하지 않는다.
+다른 머신은 rosdep/apt로 같은 major 버전을 준비한다.
+
+### Gemini API 설정
+
+`make deps`는 `cleany_perception`의 Gemini adapter에 필요한 `google-genai`와 Pillow를
+설치한다. API key는 파일이나 ROS parameter에 저장하지 않고 실행 terminal의 환경변수로
+제공한다.
+
+```bash
+export GEMINI_API_KEY="<your-api-key>"
+```
+
+로컬 비공개 파일로 보관하려면 `~/.config/cleany/gemini.env`에 위 `export` 한 줄을
+넣고 파일 권한을 `600`으로 지정한다. 실행 터미널에서 `source ~/.config/cleany/gemini.env`
+후 `make sim-mujoco-manipulation`을 실행한다. 실제 키는 채팅, Git과 로그에 넣지 않는다.
 
 rosdep이 Gazebo 의존성을 해석하지 못할 때만 아래 APT 패키지를 직접 확인한다.
 일반 설치에서는 package manifest를 기준으로 하는 `make deps-gazebo`를 우선한다.
@@ -171,37 +282,13 @@ make test
 ```bash
 make test-mission
 make test-mujoco
-make test-handeye
 make test-gazebo
 ```
 
-Hand-eye 개발 범위만 반복할 때는 아래 두 target을 사용한다.
-
-```bash
-make build-handeye
-make test-handeye
-```
-
-`make deps`는 hand-eye package manifest를 통해 MoveIt 2/KDL/OMPL,
-`ros2_control`, `mujoco_ros2_control`, OpenCV contrib, NumPy, PyYAML과 ROS service/action
-dependency를 설치한다. 별도 Python virtualenv에 OpenCV나 NumPy를 다시 설치하지
-않는다.
-
-MuJoCo용 random pose set을 생성하고 실제 calibration을 viewer와 함께 실행한 뒤
-완성 dataset을 검증한다.
-
-```bash
-make handeye-generate-mujoco
-make handeye-mujoco
-make handeye-validate-mujoco
-```
-
-첫 명령은 random seed와 제한된 workspace prior를 사용하되 MoveIt, collision,
-렌더링 ChArUco/PnP를 통과한 후보만 모으고 rotation axis/covariance 분석으로 20+5를
-선정한다. 두 번째 명령은 `headless:=false`를 고정해 operator 화면을 표시한다.
-마지막 명령은 row/image hash, PnP 재현과 150-run solver를 검증한다. 자동 테스트는
-`headless:=true`를 명시하므로 CI나 반복 회귀에서 viewer를 열지 않는다. Template의
-승인 전 `null` 값은 실행 입력으로 사용하지 않는다.
+Hand-eye의 수학·ROS adapter·오프라인 검증 명령은
+[`cleany_handeye_calibration` README](../ros2_ws/src/cleany_handeye_calibration/README.md)를
+따른다. 이전 MuJoCo calibration 장면과 실행 target은 제거했다.
+현재 MuJoCo 실행 경로는 스터디카페 관찰·인식·수거 시뮬레이션이다.
 
 Gazebo 재현성만 확인할 때는 환경 검사부터 실행한다. 활성 `ROS_DISTRO`와 Gazebo major
 version으로 Humble/Fortress 또는 Jazzy/Harmonic profile을 선택한 뒤, profile에 맞는
@@ -421,6 +508,23 @@ GUI 실행에는 desktop display가 필요하다. Agent와 driver를 먼저 실�
 [`cleany_base_driver`의 plot 실행 절차](../ros2_ws/src/cleany_base_driver/README.md#plot과-diagnostics)를
 따른다.
 
+### Python 정적 검사
+
+미사용 import·중복 정의·정의되지 않은 이름·문법 오류는 다음처럼 확인한다.
+
+```bash
+sudo apt install -y python3-flake8
+python3 -m flake8 ros2_ws/src tools containers/vision --select F,E9
+```
+
+Make 테스트는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 사용자 site-package의
+관계없는 pytest 플러그인 충돌을 방지한다. `colcon test --python-testing pytest`로
+실행 프레임워크를 명시하며 `setup.py`의 test extra도 pytest로 선언한다.
+구버전 `tests_require`가 무시되어 `Ran 0 tests`로 끝나는 것을 통과로 해석하지 않는다.
+`make test`는 CMake 재설정도 포함해 pytest가 빠진 이전 등록 상태를 갱신한다.
+카메라를 포함한 전체 검사는 GUI 세션에서 `DISPLAY`를 전달하거나
+CI와 같이 `xvfb-run --auto-servernum make test`로 실행한다(Xvfb/xauth 설치 필요).
+
 ### Helix와 Pyright
 
 레포의 Helix 설정은 native `pyright-langserver`를 사용한다. Helix에서 Python
@@ -453,11 +557,6 @@ Make의 타깃 테스트는 이 과정을 자동으로 수행한다.
 
 VM의 3D acceleration과 display 설정을 확인한다. GUI가 필요하지 않은 검증은
 `make sim`의 headless 실행을 사용한다.
-
-`make handeye-mujoco`는 실제 calibration 관찰을 위해 viewer를 강제로 사용한다.
-VM 또는 Distrobox에서 실행한다면 `DISPLAY`가 전달됐는지와 X11/Wayland socket,
-OpenGL acceleration을 함께 확인한다. 화면이 없는 환경에서는 실제 calibration을
-진행하지 말고 `make test-handeye`로 headless runtime만 검증한다.
 
 ### `make check-gazebo-env`가 실패하는 경우
 

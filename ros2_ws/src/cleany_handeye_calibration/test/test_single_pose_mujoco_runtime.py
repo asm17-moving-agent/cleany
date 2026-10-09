@@ -29,20 +29,21 @@ LEFT_JOINTS = (
 )
 RIGHT_JOINTS = tuple(name.replace('left_', 'right_') for name in LEFT_JOINTS)
 EXPECTED_RESOLVED = (
-    -1.6155992940406487,
-    0.8737810790755131,
-    0.6275511587329343,
-    0.8898767172677139,
-    -1.113934963863734,
+    -1.5187718442765308,
+    0.9300230845615933,
+    0.8437118559549966,
+    0.7048999377612923,
+    -1.1740216080790764,
 )
 # Re-measured with the CAD-frame model and the MuJoCo 3.4 control scene.
-# The legacy arm-mount fixture no longer has matching FK or valid clearance.
+# The nominal view detects 22 board corners. All 32 combinations of joint
+# errors at +/-0.015 rad retain at least 18 corners and all four quadrants.
 TARGET_POSITION_M = (
-    0.4984751801049542,
-    0.16798377190965666,
-    0.6710205234095147,
+    0.4987417965711652,
+    0.20503204941338873,
+    0.6501480667018763,
 )
-OBSERVED_TARGET_CLEARANCE_M = 0.14608839152681105
+OBSERVED_TARGET_CLEARANCE_M = 0.12859477931880067
 
 
 def _sha256(path: Path) -> str:
@@ -71,6 +72,33 @@ def test_single_pose_fixture_matches_current_model_evidence() -> None:
     )
     assert evidence.minimum_collision_distance_m >= 0.10
     assert evidence.target_visible
+
+
+def test_single_pose_fixture_remains_detectable_with_settle_error() -> None:
+    from itertools import product
+
+    from cleany_handeye_calibration.models import JointPose
+    from cleany_handeye_calibration.mujoco_pose_evidence import (
+        MujocoRenderedTargetEvaluator,
+    )
+    from cleany_mujoco_sim.scene_loader import materialize_control_scene
+
+    scene = materialize_control_scene(
+        REPOSITORY_ROOT / 'ros2_ws/src/cleany_mujoco_sim/scenes/handeye.xml.in'
+    )
+    evaluator = MujocoRenderedTargetEvaluator(scene)
+    try:
+        for errors in product((-0.015, 0.015), repeat=len(LEFT_JOINTS)):
+            positions = tuple(
+                position + error
+                for position, error in zip(EXPECTED_RESOLVED, errors, strict=True)
+            )
+            evidence = evaluator.evaluate(JointPose(LEFT_JOINTS, positions))
+            assert evidence.detected, (errors, evidence)
+            assert evidence.corner_count >= 18
+            assert evidence.pnp_valid
+    finally:
+        evaluator.close()
 
 
 def _config(artifact_root: Path, run_id: str) -> dict:

@@ -7,12 +7,13 @@ import pytest
 from cleany_mujoco_sim.scene_loader import materialize_control_scene
 
 
+# Recomputed FK reference for the current CAD arm model; the scene target is unchanged.
 GRASP_REFERENCE = {
-    'left_wrist_roll_joint': 0.006049299996331839,
-    'left_elbow_pitch_joint': -0.21746874264317992,
-    'left_shoulder_yaw_joint': -7.989818370025162e-05,
-    'left_wrist_pitch_joint': -0.21802369933238078,
-    'left_shoulder_pitch_joint': 0.03420987692493107,
+    'left_shoulder_yaw_joint': 0.0542315110039202,
+    'left_shoulder_pitch_joint': -0.06648975369022148,
+    'left_elbow_pitch_joint': 0.02859223591811388,
+    'left_wrist_pitch_joint': -0.9111132128970967,
+    'left_wrist_roll_joint': -0.3417096158448789,
 }
 
 

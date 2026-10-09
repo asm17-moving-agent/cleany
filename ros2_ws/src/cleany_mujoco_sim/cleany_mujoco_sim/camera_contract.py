@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+from pathlib import Path
+
+import yaml
 from typing import Any, Mapping, Sequence
 
 
@@ -258,3 +261,20 @@ def validate_camera_contract(contract: CameraContract) -> None:
     _assert_close(contract.k, CAMERA_K, 'camera K', tolerance=5.0e-7)
     _assert_close(contract.r, CAMERA_R, 'camera R')
     _assert_close(contract.p, CAMERA_P, 'camera P', tolerance=5.0e-7)
+
+
+def default_camera_contract_path() -> Path:
+    from cleany_mujoco_sim.scene_loader import _package_share
+
+    return _package_share('cleany_mujoco_sim') / 'config' / 'wrist_camera.yaml'
+
+
+def load_camera_contract(path: Path) -> CameraContract:
+    """Load renderer intrinsics and topics without a calibration scene."""
+    try:
+        data = _mapping(yaml.safe_load(path.read_text(encoding='utf-8')), 'camera config')
+    except (OSError, yaml.YAMLError) as error:
+        raise CameraContractError(f'cannot read camera config {path}: {error}') from error
+    if data.get('schema_version') != 'cleany.camera_contract/v1':
+        raise CameraContractError(f'unsupported camera schema: {data.get("schema_version")!r}')
+    return camera_contract_from_scene(data)

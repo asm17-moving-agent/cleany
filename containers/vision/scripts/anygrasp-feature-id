@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec /workspace/cleany/containers/vision/scripts/anygrasp_preflight.py \
+  --print-feature-id

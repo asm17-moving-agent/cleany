@@ -1,3 +1,4 @@
+import os
 from glob import glob
 
 from setuptools import find_packages, setup
@@ -11,23 +12,35 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/config', ['config/grasp_selection.yaml']),
+        (
+            os.path.join('share', package_name, 'config'),
+            glob('config/*.yaml'),
+        ),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
+        ('share/' + package_name + '/docs', ['docs/groot2_table_cleanup.xml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='이정현',
     maintainer_email='sw292ljh@gmail.com',
-    description='Reachable grasp selection and simulation execution demo.',
+    description='Reachable grasp selection and nearest pre-grasp execution.',
     license='Apache-2.0',
-    extras_require={'test': ['pytest']},
+    extras_require={'test': ['pytest'], 'monitor': ['pyzmq']},
     entry_points={
         'console_scripts': [
+            'manipulation_server = cleany_skill_executor.manipulation_node:main',
+            'manipulation_monitor = cleany_skill_executor.manipulation_monitor_node:main',
+            'manipulation_test_client = cleany_skill_executor.manipulation_client:main',
             'grasp_selection_server = cleany_skill_executor.grasp_selection_node:main',
             'grasp_execution_demo = cleany_skill_executor.grasp_execution_demo:main',
             (
                 'can_grasp_execution_demo = '
                 'cleany_skill_executor.can_grasp_execution_demo:main'
+            ),
+            'sorting_coordinator = cleany_skill_executor.sorting_coordinator:main',
+            (
+                'nearest_pregrasp_coordinator = '
+                'cleany_skill_executor.nearest_pregrasp_coordinator:main'
             ),
         ],
     },

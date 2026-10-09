@@ -1,0 +1,98 @@
+schema_version: 1
+
+scene:
+  ambient_rgba: [0.65, 0.65, 0.65, 1.0]
+  background_rgba: [0.82, 0.83, 0.84, 1.0]
+
+robot:
+  # x, y, z, roll, pitch, yaw in the world frame.
+  spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
+
+mujoco:
+  # Retain the existing MuJoCo partition height as a simulation override.
+  partition_center_z_m: 0.66
+  # Migrated CAD front uprights require 0.20 m setback from the chair center.
+  # Add 0.02 m clearance; the desk and rear collection station stay unchanged.
+  robot_center_rearward_offset_m: 0.22
+  # Keep all four objects within the 640x480 head RGB camera at 1.00 rad tilt.
+  # At this robot spawn yaw, desk -X is robot-left: lost items left, trash right.
+  # Test arrangement only; classification and arm selection still use perception.
+  tabletop_objects:
+    - name: cup
+      xy_offset_from_desk_center_m: [0.12, -0.175]
+      yaw_rad: 0.20
+      # Empty paper cup; mass is a simulation assumption, not a measured sample.
+      mass_kg: 0.008
+      rgba: [0.92, 0.87, 0.74, 1.0]
+      visual_type: paper_cup
+      geometry:
+        bottom_diameter_m: 0.0396
+        wall_thickness_m: 0.000504
+        segments: 32
+        # Let the bottom disk support the cup; avoid 32 coplanar wall contacts.
+        # Collision only: keep the RGB mesh and the upper gripping surface.
+        collision_bottom_clearance_m: 0.00025
+      collision:
+        type: compound
+        # Additional 0.9x scaling (0.72x original); retain mass/friction.
+        # top diameter, height; open hollow tapered walls plus bottom
+        size_m: [0.0612, 0.0684]
+    - name: mouse
+      # Move 8 cm toward the robot while retaining the left-side placement.
+      xy_offset_from_desk_center_m: [-0.14, -0.095]
+      yaw_rad: -0.18
+      mass_kg: 0.12
+      rgba: [1.0, 1.0, 1.0, 1.0]
+      collision:
+        # Wireless mouse; convex hull of the imported visual mesh.
+        type: mesh
+        size_m: [0.110, 0.065, 0.035]
+    - name: tissue
+      xy_offset_from_desk_center_m: [0.11, -0.070]
+      yaw_rad: 0.12
+      mass_kg: 0.001
+      rgba: [0.96, 0.96, 0.94, 1.0]
+      visual_type: crumpled_tissue
+      geometry:
+        latitude_segments: 10
+        longitude_segments: 24
+        wrinkle_amplitude: 0.24
+      collision:
+        type: mesh
+        size_m: [0.060, 0.050, 0.045]
+    - name: lego
+      xy_offset_from_desk_center_m: [-0.16, -0.205]
+      yaw_rad: -0.25
+      mass_kg: 0.0023
+      rgba: [0.92, 0.035, 0.025, 1.0]
+      visual_type: lego_brick
+      geometry:
+        studs_x: 4
+        studs_y: 2
+        stud_pitch_m: 0.016
+        stud_diameter_m: 0.0096
+        stud_height_m: 0.00396
+      collision:
+        type: compound
+        # 2x standard 2x4 footprint, with height increased by 10%; 25.08 mm including studs.
+        # Keep mass unchanged to isolate geometry in the grasp comparison.
+        size_m: [0.0636, 0.0316, 0.02112]
+
+room:
+  inside_size_m: [12.26, 10.94]
+  wall_thickness_m: 0.16
+  wall_height_m: 2.5
+  wall_rgba: [0.97, 0.97, 0.96, 1.0]
+  wall_roughness: 0.92
+
+desk_layout:
+  # Eight columns form the measured 3-2-3 blocks.
+  x_positions_m: [-5.53, -4.33, -3.13, -0.60, 0.60, 3.13, 4.33, 5.53]
+  row_pair_centers_y_m: [3.17, 0.0, -3.17]
+  rows:
+    - desk_y_offset_m: 0.385
+      chair_y_offset_from_desk_m: 0.385
+    - desk_y_offset_m: -0.385
+      chair_y_offset_from_desk_m: -0.385
+  partition_center_z_m: 0.62
+  monitor_y_offset_from_desk_center_m: 0.285
