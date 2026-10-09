@@ -130,12 +130,14 @@ def test_real_ros_success_feedback_lookup_and_retained_event(ros):
     message = goal()
     handle = harness.send(message)
     assert handle.accepted
+    # Humble removes the feedback callback when the result response arrives.
+    # Keep it registered until the full feedback sequence has been observed.
+    eventually(lambda: any(item.stage == 'FINALIZING' for item in harness.feedback),
+               description='FINALIZING Action feedback')
     result = response(handle.get_result_async())
     assert result.status == GoalStatus.STATUS_SUCCEEDED
     assert result.result.status == 'SUCCESS' and result.result.execution_profile == 'mock'
     assert result.result.stop_confirmed and result.result.arm_recovered
-    eventually(lambda: any(item.stage == 'FINALIZING' for item in harness.feedback),
-               description='FINALIZING Action feedback')
     stages = list(dict.fromkeys(item.stage for item in harness.feedback))
     assert stages == [stage.value for stage in NORMAL_STAGES] + ['FINALIZING']
     assert {'GraspObject', 'ConfirmGrasp'} <= {item.substage for item in harness.feedback}

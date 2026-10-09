@@ -126,6 +126,7 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest ros2_ws/src/cleany_skill_exec
 
 launch 사전 검증 테스트는 임시 모델 파일을 사용해 로컬 모델 설치 상태와 분리한다.
 ROS 통신 테스트는 feedback 토픽 발견을 확인한 뒤 Goal을 전송한다.
+전체 진행 순서를 검사하는 경로는 마지막 feedback을 수신한 뒤 Result를 조회한다.
 Action 완료 후 보관 메시지 수신은 별도 ROS context에서 늦게 접속한 구독자로 검사한다.
 
 ## 책상 정리 모듈 연동 설계
