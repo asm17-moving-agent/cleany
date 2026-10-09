@@ -26,7 +26,7 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image as ImageMessage, LaserScan, JointState
 
-from cleany_gazebo_sim.gazebo_slam_experiment import (
+from cleany_gazebo_sim.sensor_mounts import (
     load_mount_profiles,
     write_sensor_tf_config,
 )

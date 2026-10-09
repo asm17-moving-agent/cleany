@@ -22,7 +22,7 @@ from ament_index_python.packages import get_package_share_directory
 import rclpy
 import yaml
 
-from cleany_gazebo_sim.gazebo_slam_experiment import load_mount_profiles, write_sensor_tf_config
+from cleany_gazebo_sim.sensor_mounts import load_mount_profiles, write_sensor_tf_config
 from cleany_gazebo_sim.lidar_noise import load_lidar_noise_profile
 from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
 from safety_probe import SafetyProbe

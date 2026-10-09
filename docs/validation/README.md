@@ -64,3 +64,10 @@ Git에서 제외한 51개 파일은 `tracked-removals-verification.json`에 원�
 이전 build 로그는 `runs/build-logs/20261010/`, UI 시험 결과는
 `runs/ui-tests/legacy-20261010/`에 보존했다. 현재 monitor 설치에 필요한 `web/dist`
 생성물은 유지한다. 이관 후 컨테이너 안에서 새 overlay의 링크와 import도 확인했다.
+
+
+## 레거시 runtime 코드 정리 원본
+
+`experiments/legacy-runtime-cleanup-b3ca816/manifest.json`은 정리 전 Gazebo 패키지와
+관련 테스트의 원래 commit/파일 hash를 보존한다. 재생·진단 도구는 이 사본에서
+기록된 commit 기준으로 복원한다. 현행 센서 설정 함수와 안전/주행 코드는 저장소에 둔다.

@@ -15,7 +15,7 @@ from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 
-from cleany_gazebo_sim.gazebo_slam_experiment import (
+from cleany_gazebo_sim.sensor_mounts import (
     load_mount_profiles,
     write_sensor_tf_config,
 )

@@ -267,8 +267,8 @@ LiDAR 높이별 bag 기록, slam_toolbox·Cartographer·RTAB-Map 비교,
 의자 이동 localization 실험은
 외부 `$CLEANY_DATA_ROOT/experiments/legacy-20261010/tools/slam_evaluation/`에
 당시 스크립트와 README를 보관했습니다. 과거 경로를 포함한 원본 보존 사본이며
-현재 checkout에서 실행하는 target이 아닙니다. 패키지의 simulation/evaluation 기능과
-관련 회귀 검사는 유지합니다. 자료 위치는
+현재 checkout에서 실행하는 target이 아닙니다. 현재 simulation 공통 기능과 관련 회귀 검사는 유지합니다.
+이전 비교용 package CLI/launch는 아래 레거시 코드 정리 절의 보관 위치를 따릅니다. 자료 위치는
 [데이터 보관 색인](../../../docs/validation/README.md)을 참고합니다.
 
 ## AMCL / Nav2 study-cafe evaluation
@@ -709,7 +709,7 @@ python3 -m pytest -s \
 - `launch/amcl_nav2.launch.py`: AMCL/Nav2 evaluation stack
 - `launch/gazebo_fortress.launch.py`: core Fortress backend
 - `launch/gazebo_study_cafe.launch.py`: study-cafe scenario
-- `launch/evaluation_*.launch.py`: SLAM replay·visualization·route 평가
+- `cleany_gazebo_sim/sensor_mounts.py`: 시설·study-cafe의 LiDAR mount/TF 설정
 - `test/evaluation/`: 실험 전용 계약 테스트
 
 ## Known limitations
@@ -723,62 +723,12 @@ python3 -m pytest -s \
 - GPU LiDAR와 camera는 headless 실행에서도 OpenGL rendering context가
   필요합니다.
 
-### 부품별 3D StopZone 비교 관찰
+### 고정 CAD park 자세와 이전 비교 도구
 
-`body_guard_observer`는 현재 CAD 모델의 **고정 park 자세**에서 각 visual/collision
-요소의 로컬 경계 상자(OBB)를 `base_link`로 변환한다. 전체 로봇을 하나의
-직육면체로 채우지 않으므로 부품 사이의 빈 공간과 높이를 구분한다. 각 요소
-내부의 오목한 부분은 여전히 채워지며, 실제 mesh 충돌 검사나 실시간 관절
-자세 추적은 아니다. 실행 중인 시뮬레이션과 동일한 `cad_frame.yaml`을 사용한다.
-
-```bash
-ros2 run cleany_gazebo_sim body_guard_observer --ros-args \
-  -p use_sim_time:=true \
-  -p profile:=/absolute/run/config/cad_frame.yaml \
-  -p legacy_config:=/absolute/run/config/nav2_safety.yaml \
-  -p output_directory:=/absolute/run/body_guard_comparison
-rviz2 -d ros2_ws/src/cleany_gazebo_sim/config/rviz/body_guard_comparison.rviz \
-  --ros-args -p use_sim_time:=true
-```
-
-기존 세션에 연결할 때는 동일한 `ROS_DOMAIN_ID`를 설정한다. 기존 주행 창을
-종료하지 않고 별도 RViz로 관찰할 수 있다. `/body_guard/markers`는 원본 visual mesh와 primitive를 원래 재질 색으로 표시한다.
-녹색 얇은 선은 margin을 포함하는 부품별 경계 상자, 자홍색은 기존 사각 StopZone에
-들어온 점, 빨간색은 새 3D 정지 범위에 들어온 점이다. 녹색 윤곽선은 Euclidean
-margin의 시각화용 외접 상자라 모서리에서 실제 판정보다 넓다.
-
-`/scan`, `/camera/head/depth/points`를 센서 시각의 TF와 odom으로 현재
-`base_link`에 옮긴다. 기존 depth 높이 필터를 적용하며 4m 이상 depth 점은
-clearing 반환값과 혼동하지 않도록 제외한다. 기존 StopZone은 사각형을 전제로
-비교한다. 관측 점에서 가장 가까운 부품까지 거리, 기존/신규 영역의 점 개수,
-판정을 `/body_guard/state`, 출력 디렉터리 `latest.json`과 `changes.jsonl`에
-남긴다. `geometry.json`과 센서별 `*_latest.npz`는 오프라인 재검증용이다.
-
-기본 margin 0.02m, 반응시간 0.15s, 선감속 0.4m/s², 각감속 0.6rad/s²는
-**평가용 가정이며 실측 제동 성능이 아니다**. `/nav2/cmd_vel`의 요청 속도로
-반응시간 + 제동시간 동안의 일정한 곡률 경로를 샘플링하며, 샘플 사이 이동량
-상한을 margin에 추가한다. 감속 중 곡률 유지 가정에서 경로 길이를 늘려
-검사하는 방식이고, 축별 감속 차이·미끄러짐·움직이는 장애물까지 보장하지
-않는다. 명령이 오래되면 정지 상태 비교로 돌아가므로 실측 속도 기반의 실제
-정지 제어기로 사용할 수 없다. 후방/측방 미관측 공간도 안전하다고 판정하지
-않는다. 센서/TF 누락은 `STOP_UNAVAILABLE`, 정상 관측 중 위험 점이 3개 이상이면
-`STOP`, 그 외는 `NO_OBSERVED_COLLISION`이다.
-
-이 노드는 **비교 기록 전용(shadow)**이며 속도 토픽을 발행하지 않는다.
-실제 `/cmd_vel` 정지는 기존 Collision Monitor가 계속 담당한다. 실기 적용에는
-실시간 자세, 실측 속도와 제동 특성, 센서 사각지대 대응 및 별도 검증이 필요하다.
-
-이전 8cm 비교 실행의 정지 장면 `chair_surface_full_route_20260910_02/body_guard_comparison`의
-실행 관측에서는 기존 사각 영역 depth 점 8개, 3D 부품 + 8cm 영역 점 0개,
-최소 부품 경계 거리 0.09143m였다. 센서 점 9,510개를 보존한 오프라인 비교에서
-당시 요청 각속도 +0.3rad/s의 정지 예상 범위에는 0개, 반대 방향 -0.3rad/s에는
-316개가 들어왔다. 실제 로봇을 움직인 결과가 아니며 제동 가정을 포함한다.
-이 프로토타입의 해당 회전 검사에는 약 1.2초가 걸렸으므로 실시간 제어에
-연결하기 전에 충돌 계산 최적화와 실제 처리 지연 반영이 필요하다.
-
-2cm는 시뮬레이션 비교용 시험값이다. 실제 mesh 표시는 판정 방식 변경을 뜻하지
-않으며, 판정은 계속 visual/collision 요소의 OBB 거리로 수행한다. 기존 Collision
-Monitor의 8cm 설정은 이 관찰 노드의 margin과 별개이며 변경하지 않는다.
+이전 `body_guard_observer`와 비교용 RViz 설정은 외부
+`$CLEANY_DATA_ROOT/experiments/legacy-runtime-cleanup-b3ca816/`에 원본 그대로 보관했다.
+현재 설치에는 포함하지 않는다. 속도 제어용 guard와 CAD 형상 계산은
+`cleany_navigation`에서 계속 관리한다. 보관 사본은 기록된 commit에서 재현한다.
 
 사진을 참고한 기본 양팔 park 자세는 좌우 shoulder pitch 3.06rad, elbow pitch
 3.14rad, wrist pitch -2.0rad, wrist roll 0rad, gripper 0rad이다. 어깨 yaw는
@@ -862,8 +812,8 @@ margin도 실제 센서/로봇의 보장 오차가 아니다.
 판정·입출력 속도·처리 시간을 기록한다. 충돌 예상 voxel은
 `/body_guard_3d/risk_voxels`로 발행한다. `config/rviz/voxel_navigation.rviz`에서
 높이별 누적 3D voxel과 빨간 위험 셀, `/body_guard/markers`의 로봇 형상을
-겹쳐 볼 수 있다. 로봇 형상 표시는 같은 세션 profile의 `body_guard_observer`를
-별도로 실행하면 된다.
+겹쳐 볼 수 있다. `/body_guard/markers`를 만들던 옛 비교 도구는 현재 설치에서
+제외했다. 당시 비교를 재현하려면 외부 보관 사본과 기록된 commit을 함께 복원한다.
 
 이 기능은 **관측된 voxel에 대한 시뮬레이션 추가 가드**다. 미관측 공간을
 자유 공간으로 입증하지 않으며, 후방/측방 3D 가시성이나 팔 자세 변경을
@@ -871,23 +821,19 @@ margin도 실제 센서/로봇의 보장 오차가 아니다.
 의한 보수적 정지가 여전히 가능하다. 고정 park 자세의 확인과 시뮬레이션
 검증을 위한 단계이며 실물 안전 제어기로 검증된 것은 아니다.
 
-### 단일 목적지 실험: 우회 전 15초 대기
+### 현재 단일 목적지 정책
 
-`config/behavior_trees/wait_before_detour.xml`을 `NavigateToPose.Goal.behavior_tree`에
-설치된 절대 경로로 지정하면 최초 경로는 즉시 계획하고, 이후 경로가
-`IsPathValid` 검사에서 막혔을 때 제어를 취소하고 최대 15초(sim time) 기다린다.
-대기 중 경로가 유효해지면 조기에 재개하며, 계속 막혀 있으면 15초 후 재계획한다.
-컨트롤러 실패도 15초 대기 후 재계획하며 최대 3회 재시도한다.
-지도 강제 초기화나 즉시 회전·후진 복구는 하지 않는다.
-이 정책은 단일 목적지 시뮬레이션용이며 사람 추적·통과시간 예측은 포함하지 않는다.
-3D 가드만 막히고 2D 경로는 유효하면 컨트롤러 실패를 통해 대기에 진입하므로,
-가드 정지 시점부터 정확히 15초라는 의미는 아니다. 기존 기본 BT는 유지한다.
+공통 `cleany_navigation/config/behavior_trees/wait_before_detour.xml`을 사용한다.
+앞쪽 경로가 유효하지 않으면 즉시 재계획하고, 초기 계획·제어 실패에는 0.2초 재시도
+대기를 적용한다. Gazebo에 남아 있던 15초 대기 정책 사본은 외부에 보관했다.
+현재 정책과 판정은 [Navigation README](../cleany_navigation/README.md)를 따른다.
 
 ### 전후·좌우·회전 분리 주행
 
-`amcl_nav2_safety.launch.py`는 기본 `axis_motion:=true`로
-`config/nav2_axis_motion.yaml`을 병합해 DWB와 `cleany_axis_controller::AxisGenerator`를
-사용한다. `axis_motion:=false`면 기존 MPPI 설정을 사용한다.
+`amcl_nav2_safety.launch.py`의 기본값은 `axis_motion:=false`이며 공통 omni 설정을
+사용한다. 명시적으로 `axis_motion:=true`를 주면
+`cleany_navigation/config/nav2_axis_motion.yaml`을 병합해 DWB와
+`cleany_axis_controller::AxisGenerator`를 사용하는 호환 모드로 실행한다.
 `axis_params_file`로 별도 단일 축 파라미터 파일을 지정할 수 있다.
 평가 실행은 사용한 YAML을 결과 폴더에 복사한다.
 단일 축 후보를 계획 단계에서 평가하고, 축 전환은 wheel odom 정지를
@@ -928,7 +874,7 @@ collision_monitor → 기존 3D guard` 순서로 연결한다. 횡이동은 좌 
 그 이후에 촬영된 새 depth cloud를 받아야 속도 명령을 통과시킨다. 오래된 입력과
 복합 축 명령은 차단한다. `/head_pan/state`에서 목표/측정 각도와 차단 사유를 본다.
 
-`pan_motion_gate.yaml`의 `allow_reverse`는 기본 false다. true이면 후진 전에
+`cleany_navigation/config/pan_motion_gate.yaml`의 `allow_reverse`는 기본 false다. true이면 후진 전에
 pan을 π rad로 돌리고 같은 인터록을 적용한다. 전방 카메라만으로 회전 중 전체
 차체 주변이나 미관측 공간이 안전하다고 보장하지 않으며 기존 가드를 유지한다.
 카메라 TF는 `/joint_states` 측정값 및 측정 시각으로 발행한다. 상부 OBB 하나는
@@ -1286,3 +1232,17 @@ plugin/sensor/joint/frame, 명시적 pose frame, 방향성 마찰 또는 외부 
 Reactive safety 기본 실행은 `memory_enabled:=true voxel_enabled:=false`다.
 카메라는 비동기로 추적하고 최종 충돌 검사는 직접 point cloud·LiDAR를 사용하는
 reactive_guard가 담당한다. costmap용 공유 voxel world는 유지한다.
+
+## 레거시 코드 정리 후 실행 경계
+
+Gazebo의 navigation 호환 import 10개와 옛 console 이름은 제거했다.
+`pan_motion_gate`, `voxel_guard`, `obstacle_memory`, `depth_clearance` 실행은
+`ros2 run cleany_navigation NODE`를 사용한다. 시뮬레이션 조합 launch인
+`amcl_nav2_safety.launch.py`는 계속 사용하며 센서·TF adapter를 제공한다.
+시설 launch는 `launch_helpers.study_cafe`를 직접 import한다.
+
+SLAM 비교 orchestrator, `evaluation_*.launch.py`, occupancy marker 및 전용 검사는
+외부 `experiments/legacy-runtime-cleanup-b3ca816/`에 원래 경로·hash·commit과 함께 보관했다.
+시설에서 쓰는 LiDAR profile/TF 생성은 `sensor_mounts.py`로 분리했고 일반 테스트에서
+검사한다. `ground_truth_route_follower`, `run_route`, sensor/odometry profile,
+Fortress/Harmonic, legacy/CAD 모델과 주행 safety 설정은 유지한다.
