@@ -1,5 +1,8 @@
 SHELL := /bin/bash
 
+# Keep unrelated site-package pytest plugins out of ROS test discovery and runs.
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD := 1
+
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
@@ -241,6 +244,8 @@ test-telemetry: build-telemetry
 	source install/setup.bash && \
 	python3 -m pytest src/cleany_telemetry/test
 
+# Re-register CMake tests that an earlier broken pytest environment omitted.
+test: COLCON_BUILD_ARGS += --cmake-force-configure
 test: build
 	source "$(ROS_SETUP)" && \
 	$(use_local_behaviortree) && \
@@ -500,7 +505,6 @@ test-mujoco-observer: build-mujoco-observer
 	colcon test --packages-select cleany_mujoco_observer --event-handlers console_direct+ && \
 	colcon test-result --test-result-base build/cleany_mujoco_observer --verbose
 
-test: COLCON_BUILD_ARGS += --cmake-force-configure
 profile-scene-mask: build-scene-mapping
 	source "$(ROS_SETUP)" && \
 	source "$(ROS2_WS)/install/setup.bash" && \

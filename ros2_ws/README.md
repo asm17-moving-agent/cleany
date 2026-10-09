@@ -32,8 +32,9 @@ make test
 
 `make test`는 workspace 패키지를 빌드하고 C++/Python 검사와 패키지에 등록된
 MoveIt mock runtime 검사, 개발 도구·vision container 계약 검사를 실행한다.
-Python은 `pytest`를 명시적으로 선택하고 외부 플러그인 자동 로드를 차단한다.
-CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복원한다.
+Python은 `pytest`를 명시적으로 선택한다. Make는 빌드와 테스트에
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`을 전달해 외부 플러그인 충돌을 방지한다.
+`make test`는 CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복원한다.
 카메라 runtime은 headless여도 유효한 X display가 필요하다. GUI 세션의
 `DISPLAY`를 전달하거나 CI처럼 Xvfb 환경에서 실행한다.
 `make test-mujoco`는 현재 장면과 공통 bridge의 `test/` 전체를 검사한다. 짧은 개별 검사는 아래 native pytest 명령을 사용한다.
