@@ -71,3 +71,39 @@ Git에서 제외한 51개 파일은 `tracked-removals-verification.json`에 원�
 `experiments/legacy-runtime-cleanup-b3ca816/manifest.json`은 정리 전 Gazebo 패키지와
 관련 테스트의 원래 commit/파일 hash를 보존한다. 재생·진단 도구는 이 사본에서
 기록된 commit 기준으로 복원한다. 현행 센서 설정 함수와 안전/주행 코드는 저장소에 둔다.
+
+### 별도 레거시 정리 브랜치 검증
+
+`refactor/legacy-runtime-cleanup`, 코드 commit `4b54ef7`에서 확인했다.
+Gazebo 호환 import/entry point·중복 설정·옛 replay/비교 도구 등 28개 파일을 제외하고,
+시설과 평가 도구가 공통으로 쓰는 mount/TF 생성은 `sensor_mounts.py`로 분리했다.
+원본 154개 파일의 hash는 위 보관 manifest와 일치한다.
+
+- 새 worktree 전용 overlay로 17개 패키지 build 완료.
+- 최종 colcon 집계: 802건, 오류/실패 0건, 선택 검사 23건 skip(CTest wrapper 포함).
+- Gazebo 선택 evaluation 포함 165 passed / 5 skipped, 시나리오 도구 48 passed,
+  빌드 도구 9 passed. 이 숫자는 colcon 집계와 겹치므로 합산하지 않는다.
+- 최초 전체 검사에서 DISPLAY 미설정으로 GLFW가 카메라 발행을 중지해 hand-eye
+  1건이 실패했다. 디스플레이가 설정된 login shell에서 관련 274건을 재검사해 통과했다.
+- 최초 smoke는 홈 Fuel cache 부재로 시작 전 preflight에서 중단했다.
+  휴지통의 의자 OBJ/MTL/PNG 3개를 기존 검증 SHA-256과 대조해 별도 fixture에 복사했다.
+  원래 fixture는 유지했으며, 모든 mesh/material/texture 바이트는 이전 검증과 동일하다.
+  `fixtures/cad-fortress-command-hold-portable/portable-assets.json`에 변환 근거를 기록했다.
+- 재실행 `runs/scenarios/legacy-cleanup-20261010-smoke-r2/`: 44 → 16 왕복 2/2 SUCCESS,
+  실측 RTF 1.731 / 1.716. 목표 오차 3.03 / 2.13 cm, home 오차 3.39 / 5.48 cm.
+  기존 8 cm·0.15 rad·freshness·정지 기준과 deadline을 유지했다.
+- journal·실제 설정·입력/자산 hash·의자 전환·최종 정지 및 자식 30개 정상 종료 통과.
+  상세 근거는 `migrations/legacy-runtime-cleanup-b3ca816/gazebo-audit.json`에 있다.
+
+재실행은 ROS Humble 환경에서 `make build-scenario-runtime` 후 호스트의 저장소 루트에서:
+
+```bash
+data_root="${CLEANY_DATA_ROOT:-$(dirname "$PWD")/cleany-data}"
+python3 tools/scenario_validation/parallel.py --root "$PWD" \
+  --fixture "$data_root/fixtures/cad-fortress-command-hold-portable" \
+  --count 1 --name NEW_UNIQUE_RUN --seat seat-44 --sequence seat-44,seat-16 \
+  --stop-on-failure --domain-base 217
+```
+
+당시 domain은 실행 종료 후 비웠다. 다른 실행과 겹치면 빈 domain을 지정한다.
+이 결과는 시뮬레이션 smoke이며 60회 반복 승인·실물·실제 책상 작업 검증은 아니다.
