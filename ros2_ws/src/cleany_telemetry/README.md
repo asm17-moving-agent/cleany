@@ -25,7 +25,7 @@ From the repository root, install the standard rosdep dependency
 source /opt/ros/humble/setup.bash
 rosdep install --from-paths ros2_ws/src/cleany_telemetry --ignore-src -r -y
 make build-telemetry
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 run cleany_telemetry telemetry_node
 ros2 run cleany_telemetry telemetry_node --ros-args \
   -p odom_topic:=/ground_truth/odom \

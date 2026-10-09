@@ -8,9 +8,6 @@ import shutil
 from urllib.parse import unquote, urlparse
 import xml.etree.ElementTree as ET
 
-LEGACY_ROOT = '/home/ehdrms/workspace/cleany/feat-runtime-integration'
-LEGACY_FIXTURE = LEGACY_ROOT + '/artifacts/gui-integration-20261003'
-
 
 def localize_and_hash(tree: ET.ElementTree, fixture: Path, root: Path,
                       alias_directory: Path | None = None) -> dict[str, str]:
@@ -22,7 +19,13 @@ def localize_and_hash(tree: ET.ElementTree, fixture: Path, root: Path,
     hashes: dict[str, str] = {}
 
     def resolve(uri: str, relative_to: Path) -> Path:
-        uri = uri.replace(LEGACY_FIXTURE, str(fixture)).replace(LEGACY_ROOT, str(root))
+        # Portable fixtures use explicit source/fixture schemes, never host-specific rewrites.
+        for prefix, base in (('repo://', root), ('fixture://', fixture)):
+            if uri.startswith(prefix):
+                relative = Path(unquote(uri[len(prefix):]))
+                if relative.is_absolute() or '..' in relative.parts:
+                    raise ValueError(f'Asset escapes {prefix}: {uri}')
+                return (base/relative).resolve()
         parsed = urlparse(uri)
         if parsed.scheme in ('http', 'https'):
             parts = parsed.path.strip('/').split('/')

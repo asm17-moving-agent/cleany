@@ -13,22 +13,35 @@ obstacle memory, 실제 센서 및 wheel odometry로 좌석 왕복을 수행한�
 배정한다. 모든 인스턴스의 준비를 확인한 뒤 같은 파일 barrier로 미션을 시작한다.
 Nav2의 세 lifecycle manager는 discovery 후 순서대로 STARTUP을 요청한다.
 
-현재 데스크탑 환경에서 실행:
+저장소 루트에서 ROS Humble 환경으로 `make build-scenario-runtime`을 실행한 다음,
+호스트에서 실행한다(container는 동일한 소스·데이터 절대 경로를 볼 수 있어야 한다).
 
 ```bash
 python3 tools/scenario_validation/parallel.py \
-  --root /home/donglee/workspace/cleany/scrum-426-scenarios \
-  --count 2 --name capacity-2-r2 --seat seat-43
+  --root "$PWD" --container ros2-humble \
+  --count 1 --name smoke-001 --seat seat-44 --sequence seat-44,seat-16 \
+  --stop-on-failure --domain-base 120
 ```
 
-`--seats seat-01,seat-a1-01`로 서로 다른 대상 월드를 지정하고, `--repeats N`으로 같은
-인스턴스와 의자 조건에서 연속 왕복한다. 기존 결과 경로는 덮어쓰지 않는다.
+`--data-root` 또는 `CLEANY_DATA_ROOT`의 기본값은 worktree 옆 `cleany-data`다.
+출력은 `runs/scenarios/<name>`, 기본 fixture는 `fixtures/cad-fortress-command-hold`,
+runtime overlay는 `builds/<worktree-name>/install-scenario-runtime/setup.bash`다.
+`CLEANY_BUILD_ROOT`, `--runtime-overlay`, `--fixture`, `--output-root`로 각각 변경한다.
+기존 출력은 덮어쓰지 않고 fixture/overlay가 없으면 실행 전에 오류로 종료한다.
+`--amcl-overlay`를 생략하면 system AMCL을 사용한다. 실제 commit/branch/dirty 상태,
+설치 prefix, 소스·입력·바이너리 해시를 결과에 기록한다. Git identity는 호스트에서
+`source.json`으로 고정하고 worker에 전달하므로 container Git 버전에 의존하지 않는다.
 
-데스크탑의 `cleany-ros-humble-cdi` container와 정확도 개선 commit 076b893의 설치 overlay,
-Nav2 AMCL 1.1.20 overlay를 사용한다. 기준 입력은 `artifacts/scenarios/fixture`의
-world.sdf, world.study.sdf, facility_integration 지도, targets.yaml, config이다.
-외부 assets 경로는 기존 검증 fixture를 이식한 실행 환경 경로이며 결과 월드와 manifest에
-남긴다. 도구 이식 시 설치 overlay 및 fixture 준비가 필요하다.
+`--seats seat-01,seat-a1-01`로 서로 다른 대상 월드를 지정하고, `--repeats N`으로 같은
+인스턴스와 의자 조건에서 연속 왕복한다. container는 호출자 UID/GID로 실행해 결과를
+호스트에서 읽을 수 있게 한다. 해당 UID가 container에서도 유효해야 한다.
+`queue.py --root "$PWD" --jobs JOBS.json`도 같은 데이터·출력 옵션을 받는다.
+이름/count/seat 등 `parallel.py` 옵션을 JSON 객체 배열로 전달하며 boolean 옵션도 지원한다.
+
+fixture의 `repo://ros2_ws/...`는 현재 checkout, `fixture://...`는 선택한 fixture를 기준으로
+해석한다. 상대 file 경로와 이미 캐시된 Fuel도 지원한다. 과거 호스트 경로를 추측해서
+치환하지 않는다. 이관한 활성 fixture는 외부에 별도 URI 변환 manifest를 갖고,
+과거 검증 원본과 원래 hash는 변경하지 않는다.
 
 현재 연속 60회 검증 후보는 `profiles/cad_fortress_command_hold.yaml`에 보존했다.
 CAD Fortress 전용 wheel yaw 보정과 DWB 경로 진행/중앙 장애물 비용에 더해,
@@ -37,7 +50,7 @@ CAD Fortress 전용 wheel yaw 보정과 DWB 경로 진행/중앙 장애물 비�
 
 ```bash
 python3 tools/scenario_validation/prepare_profile.py \
-  artifacts/scenarios/fixture artifacts/scenarios/cad-fortress-command-hold \
+  /path/to/cleany-data/fixtures/baseline /path/to/cleany-data/fixtures/candidate \
   --profile tools/scenario_validation/profiles/cad_fortress_command_hold.yaml
 ```
 
@@ -48,7 +61,7 @@ python3 tools/scenario_validation/prepare_profile.py \
 URI 또는 Gazebo 시작 로그의 geometry 로딩 오류가 있으면 미션을 시작하지 않는다.
 두 설정 파일은 새 파일로 만들고 지도·월드·나머지 설정은 원본을 가리키는 symlink로
 공유한다. 원본 fixture는 실행 중 고정해야 하며 profile/config 해시는 manifest에 남긴다.
-이 프로필의 정상 왕복 성공률은 `docs/validation/scrum-426-scenarios.md`의 실행 결과로
+이 프로필의 정상 왕복 성공률은 [검증 색인](../../docs/validation/README.md)에 안내한 실행 원본로
 판정한다. fixture 생성이나 도구 테스트 통과만으로 50/60 달성을 인정하지 않는다.
 
 결과 디렉터리에는 batch.json, 자원 시계열 resources.json, 인스턴스별 world manifest,
@@ -94,58 +107,27 @@ group 밖에 유지해 Gazebo create/remove service로 이전 의자를 복원�
 기대된 실패 시나리오의 통과와 정상 미션 성공은 다른 결과다. 정상 성공 판정에서
 다른 미션의 오래된 결과나 명령만 0이고 실제로 움직이는 상태는 거부한다.
 
-`survey.py --root ROOT --wait-pid PID`가 기존 capacity queue의 실제 프로세스 identity를
-확인하고 종료를 기다린다. 모든 선행 작업의 terminal status를 확인한 뒤 2/3개 구성의
-긴 왕복을 각각 총 3회 비교한다. 정상 완료 횟수 / batch 전체 시간의 중앙값이 높은
-안정 구성을 선택하고, inventory의 모든 좌석을 빠짐없이 독립 월드에서 검사한다.
-처리량에는 준비와 종료 비용도 포함한다. survey 선택 근거와 전체 job 목록을 저장한다.
-
 자동 판정은 요청한 미션 개수까지 확인한다. 연속 좌석 시나리오의 harness 관찰 제한은
 전체 요청 수에 비례하며 개별 runtime navigation deadline은 그대로 유지한다.
 종료 시 기록된 PID가 현재도 해당 실행 경로의 프로세스인지 다시 확인한다.
 
 도구의 최소 관련 검사는 ROS를 시작하지 않고 `make test-scenario-tools`로 실행한다.
-planner 수정 재검증에는 `--navigation-overlay ROOT/ros2_ws/install-navigation/setup.bash`로
+planner 수정 재검증에는 `--navigation-overlay "$(make -s print-navigation-install-base)/setup.bash"`로
 해당 워크트리에서 빌드·테스트한 navigation을 기준 runtime 위에 적용한다. 지정하지
 않으면 기존 baseline을 사용한다. 결과에는 실제 선택된 navigation install prefix와
 공유 라이브러리 SHA-256도 남겨 원래 실패와 수정 후 실행을 구분한다.
 월드 보존, 미션 결과와 정지 판정, 불완전한 반복 거부, 처리량 중앙값 선택,
 현재 프로세스 소유권 검사를 확인한다. 이는 실제 Gazebo 시나리오 검증과 별개다.
 
-`scenario_smoke_jobs.json`는 각 비정상 조건의 실제 실행을 한 번씩 확인할 입력이다.
-정상 좌석 inventory 조사와 별도로 실행하고, smoke의 raw 판정이 기대와 다르면 먼저
-원인을 고친 뒤 같은 조건의 반복 검증을 수행한다. 우회 장애물은 몸체 yaw가 아니라
-직전 ground-truth 이동 방향에 배치한다. Mecanum의 측방 이동에서도 실제 진행 경로를
-막는 자극을 만들기 위한 조건이다.
+과거 survey/after_survey/after_smoke_recheck/repeat_representatives driver,
+고정 job 목록과 이전 accuracy 후보는 `$CLEANY_DATA_ROOT/experiments/legacy-20261010/`에
+당시 공통 모듈·테스트와 함께 보관했다. 현재 반복 검증에는 위 queue/parallel과
+명시적인 job 파일을 사용한다. 보관 사본은 과거 절대 경로를 포함하므로 그대로 재실행하지 않는다.
 
-`after_survey.py --root ROOT --wait-pid PID`는 실제 survey process 종료와 모든 batch의
-terminal 기록을 확인하고, 전체 좌석 inventory와 raw 실행 결과를 대조한다. 정상 실패는
-성공으로 집계하지 않고 좌석별로 남긴다. 그 다음 7개 smoke 입력을 순서대로 실행하고
-실제 자극, 미션 결과 및 정지 증거를 판정한다. smoke에서 기대와 다른 결과가 있으면
-원인을 분석한 뒤 반복 입력을 구성한다. 현재 자동화 자체는 goal 완료를 선언하지 않는다.
+NVIDIA EGL vendor 파일은 존재할 때만 선택하고 Mesa는 실행 환경 설정을 유지한다.
+NVIDIA utilization 도구가 없는 호스트의 GPU 자원 값은 미측정으로 남긴다.
+호스트별 처리량/RTF와 fresh/continuous 결과는 분리한다.
 
-`after_smoke_recheck.py --root ROOT --wait-pid PID`는 실제 baseline smoke driver의
-종료를 기다리고 전체 좌석 coverage와 smoke queue/observer/launch 종료를 확인한다.
-그 뒤 `make test-navigation`으로 독립 overlay를 빌드·검증하고, 1번 단일 실행,
-원래 실패한 전체 좌석의 3개 이하 병렬 실행, 13/43번 대조 왕복을 수행한다.
-기존 baseline 실행 및 결과는 유지하며 수정 후 결과를 별도 디렉터리에 남긴다.
-이 단계도 정상 실패를 성공으로 바꾸거나 전체 반복 검증 완료를 선언하지 않는다.
-
-`repeat_representatives.py --root ROOT --wait-pid PID --runs 10`은 navigation 재검증의
-실제 종료와 모든 observer/launch 종료를 확인한 뒤 시작한다. baseline과 수정 후 시도는
-모두 보존하고 명시된 correction queue 순서의 마지막 좌석 결과로 대표 6개를 고른다.
-2개 좌석 전환 smoke 후 각 대표 좌석을 새 인스턴스에서 10회씩 검증하고, smoke가
-통과하면 한 인스턴스에서 6개 좌석 순서를 10회 반복한다. 새 인스턴스 시험은 최대
-3개 병렬, 연속 시험은 의자 모델을 개별 유지하는 1개 인스턴스다. 두 profile의 RTF와
-처리량을 동일한 자원 조건의 인과 비교로 해석하지 않는다. 연속 smoke 실패 시 fresh
-결과를 보존하고 연속 반복은 원인 분석 전까지 시작하지 않는다. 비정상 시나리오의
-5회 반복은 별도이며, 이 driver가 목표 완료를 선언하지 않는다.
-
-다른 호스트에서는 `make build-scenario-runtime`으로 Gazebo/mission/odometry를 별도
-`ros2_ws/install-scenario-runtime`에 빌드한 뒤 `parallel.py --container ros2-humble
---runtime-overlay ROOT/ros2_ws/install-scenario-runtime/setup.bash --domain-base 120`을
-사용한다. custom AMCL이 필요하면 `--amcl-overlay`로 명시한다. 없으면 system AMCL을
-사용하므로 실제 package prefix와 호스트/architecture를 결과에 기록한다. NVIDIA EGL
-vendor 파일은 존재할 때만 선택하고 Mesa는 해당 환경의 설정을 유지한다. NVIDIA
-utilization monitor가 없는 호스트의 GPU 자원 값은 미측정으로 남긴다. 호스트별
-처리량/RTF는 분리하며 local/desktop의 값으로 같은 하드웨어 비교를 만들지 않는다.
+`representatives.py RUNS --fixture FIXTURE --jobs JOBS.json`은 외부 fixture와
+명시한 전체 좌석 조사 순서에서 대표 좌석을 고른다. 보정 시도는 `--corrections`로
+추가하며 원래 시도도 보존한다.

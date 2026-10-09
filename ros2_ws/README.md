@@ -15,6 +15,22 @@ Cleany의 로봇 엣지 시스템 코드가 들어가는 ROS 2 workspace다.
 MuJoCo용 custom rosdep 규칙을 처음 등록하는 방법은
 [rosdep 규칙 안내](rosdep/README.md)를 따른다.
 
+## 외부 데이터와 빌드 경로
+
+Make target의 기본 출력은 소스 worktree 옆 `../cleany-data`다.
+`CLEANY_DATA_ROOT`로 데이터 위치, `CLEANY_BUILD_ROOT`로 빌드 위치를 바꿀 수 있다.
+기본 빌드 루트는 `$CLEANY_DATA_ROOT/builds/<worktree-directory>`이며, 서로 다른
+worktree의 overlay를 공유하지 않는다. container에서도 같은 절대 경로가 보여야 한다.
+일반 build/install/log와 navigation/scenario/Harmonic 전용 디렉터리가 이 아래에 생긴다.
+
+저장소 루트에서 `source "$(make -s print-install-base)/setup.bash"`로 설치를 읽는다.
+navigation/scenario는 각각 `print-navigation-install-base`, `print-scenario-install-base`를
+사용한다. 사용자 지정 Make 변수는 빌드와 경로 출력에 동일하게 전달한다.
+`make clean`은 이 외부 빌드 루트의 표준 출력만 지운다. 실행 원본·fixture·보고서는 유지한다.
+경로를 바꿀 때 기존 colcon install을 이동하지 말고 새 경로에서 다시 빌드한다.
+
+[데이터 보관 및 검증 색인](../docs/validation/README.md)에 과거 자료와 활성 입력 위치를 정리했다.
+
 ## 빠른 시작
 
 아래 명령은 레포지토리 루트에서 실행한다.
@@ -52,7 +68,7 @@ Mission FSM·BT와 Backend 연동만 검사할 때는 다음을 사용한다.
 make test-mission-core
 make test-mission-runtime
 make build-mission-sim
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_bringup mission_sim.launch.py post_mission:=wait_for_next
 ```
 
@@ -63,7 +79,7 @@ ros2 launch cleany_bringup mission_sim.launch.py post_mission:=wait_for_next
 Gazebo 주행 성공의 증거와 구분한다.
 
 별도 ROS distro나 실험 output은 `ROS_SETUP`, `MISSION_BUILD_BASE`,
-`MISSION_INSTALL_BASE`, `MISSION_LOG_BASE` Make 변수로 지정한다. 기본 output은 workspace의
+`MISSION_INSTALL_BASE`, `MISSION_LOG_BASE` Make 변수로 지정한다. 기본 output은 위 외부 빌드 루트의
 `build`, `install`, `log`다. 실제 설정·Mock 경계·오류 복구는
 [Mission Manager](src/cleany_mission_manager/README.md),
 [Control Bridge](src/cleany_control_bridge/README.md),
@@ -161,7 +177,8 @@ override는 오류로 종료한다.
 
 ## Native 표준 명령
 
-Makefile은 아래 native 명령을 짧게 제공할 뿐 `colcon`, `pytest`, `ros2`를 대체하지
+아래 직접 colcon 예제는 workspace 내부 output을 명시적으로 사용하는 경우다.
+기본 외부 출력 관리에는 위 Make target을 사용한다. Makefile은 native 명령을 짧게 제공할 뿐 `colcon`, `pytest`, `ros2`를 대체하지
 않는다. 직접 실행하거나 문제를 진단할 때는 다음 흐름을 사용한다.
 
 ```bash
@@ -227,7 +244,7 @@ AMCL/Nav2와 pan → Collision Monitor → 3D voxel guard를 실행할 수 있�
 [cleany_dev_monitor README](src/cleany_dev_monitor/README.md)를 따른다.
 
 통합 브랜치의 충돌 처리와 검증 범위는
-[Runtime 통합 검증](../docs/validation/runtime-integration.md)을 따른다.
+[검증 및 원본 색인](../docs/validation/README.md)을 따른다.
 
 
 저장 지도 기반 먼 거리/의자 사이 횡이동 회귀는 저장소 루트에서

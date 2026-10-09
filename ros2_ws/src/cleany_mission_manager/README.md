@@ -100,7 +100,7 @@ home은 study-cafe **시뮬레이션 접근 후보**입니다. 충전 dock·팔 
 
 ```bash
 make build-mission-runtime
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_mission_manager mission_runtime.launch.py \
   gateway_url:=ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws \
   post_mission:=wait_for_next
@@ -114,12 +114,12 @@ Nav2 없이 구조를 확인할 때는 위 명령에 `navigation_backend:=mock`�
 make test-mission-core
 make test-mission-runtime
 # 실제 ROS transport와 fake Nav2 server를 사용하는 선택 검사
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ROS_DOMAIN_ID=82 CLEANY_RUN_ROS_TESTS=1 make test-mission-core
 ```
 
 ROS transport 검사는 Gazebo·실물 검증과 구분합니다. 시험 결과와 제한은
-[SCRUM-420 검증 기록](../../../docs/validation/scrum-420-mission-runtime.md)에 정리합니다.
+[SCRUM-420 검증 기록](../../../docs/validation/README.md)에 정리합니다.
 기획 근거는 KB [Mission Lifecycle](../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Lifecycle.md),
 [Robot ROS Contract](../../../docs/cleany-docs/20_TECHNICAL/10%20-%20Robot%20ROS%20Contract.md),
 [안전](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)을 따릅니다.

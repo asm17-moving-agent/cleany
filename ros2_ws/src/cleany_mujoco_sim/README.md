@@ -32,7 +32,7 @@ MuJoCo viewer가 필요하면 build 후 실행한다.
 ```bash
 make build
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 ```
 
@@ -52,7 +52,7 @@ Hand-eye arm controller backend는 별도로 실행한다. 이 launch는 기존
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_mujoco_sim handeye_backend.launch.py \
   headless:=true sim_speed_factor:=1.0
 ```
@@ -63,7 +63,7 @@ laser scan으로 별도 노드를 실행한다.
 ```bash
 make build
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
 ```
 

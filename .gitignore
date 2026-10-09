@@ -31,3 +31,9 @@ ros2_ws/log-scenario-runtime*/
 /artifacts/
 calibration_data/
 ros2_ws/slam_results/
+
+# Optional local overrides; generated data defaults to ../cleany-data.
+/cleany-data/
+ros2_ws/build-*/
+ros2_ws/install-*/
+ros2_ws/log-*/

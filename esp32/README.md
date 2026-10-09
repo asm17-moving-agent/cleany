@@ -125,7 +125,7 @@ Apply the ROS and Agent overlays and use DDS domain 0:
 ```bash
 source /opt/ros/humble/setup.bash
 source esp32/micro_ros/agent/install/local_setup.bash
-source ros2_ws/install/local_setup.bash
+source "$(make -s print-install-base)/local_setup.bash"
 export ROS_DOMAIN_ID=0
 ros2 run micro_ros_agent micro_ros_agent serial --dev "$CLEANY_ESP_PORT" -b 115200
 # Another terminal with the same overlays/domain:

@@ -269,7 +269,7 @@ MONITOR_URL=http://127.0.0.1:8768 NAV_MONITOR_URL=http://127.0.0.1:8769 pnpm tes
 `NAV_MONITOR_URL`은 지도/경로/두 costmap을 수신 중인 Gazebo monitor일 때만 지정한다.
 검사 대상 미션/지도가 없는 빈 monitor에서는 브라우저 검사 사전조건이 충족되지 않는다.
 물리 로봇에는 smoke 시나리오를 연결하지 않는다. 실제 수행한 검증과 제한은
-[검증 기록](../../../docs/validation/dev-monitor.md)에 정리한다.
+[검증 기록](../../../docs/validation/README.md)에 정리한다.
 
 FSM 활성 강조는 관측된 상태를 순서대로 최소 500ms씩 표시한다. 빠른 전이는 화면에서 지연될 수 있으며 이때 실제 상태를 함께 표시한다. 상단 상태·안전 정보와 실제 Runtime 동작에는 지연을 적용하지 않는다. 재생 시각 탐색·세션 변경·Runtime 재시작 시 표시 대기열을 초기화한다. 수신 전에 지나간 상태는 복원하지 않는다.
 

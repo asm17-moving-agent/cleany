@@ -117,7 +117,7 @@ Ubuntu 22.04 `ros2-humble` Distrobox에서 레포 루트 기준:
 make build-base
 make test-base
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 export ROS_DOMAIN_ID=173
 ros2 launch cleany_base_driver base_driver.launch.py mock:=true
 ```
@@ -166,7 +166,7 @@ ros2 run micro_ros_agent micro_ros_agent serial \
 
 # 별도 terminal
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 export ROS_DOMAIN_ID=0
 ros2 launch cleany_base_driver base_driver.launch.py \
   mock:=false config:="$(pwd)/configs/robot/base_hardware.yaml"
@@ -193,7 +193,7 @@ Fedora 호스트에서는 이 terminal도 `ros2-humble` Distrobox 안에서 실�
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 export ROS_DOMAIN_ID=0
 ros2 topic echo /base/wheel_state --once --qos-reliability best_effort
 ros2 launch cleany_base_driver base_monitor.launch.py preset:=true

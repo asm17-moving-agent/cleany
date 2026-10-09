@@ -54,8 +54,18 @@ def test_gazebo_major_must_match_profile() -> None:
         validate_gazebo(PROFILES['harmonic'], lambda _profile: 7)
 
 
-def test_shell_environment_keeps_build_outputs_isolated() -> None:
+def test_shell_environment_keeps_build_outputs_isolated(monkeypatch) -> None:
+    monkeypatch.delenv('CLEANY_BUILD_ROOT', raising=False)
     output = shell_environment(PROFILES['harmonic'])
     assert 'CLEANY_GAZEBO_PROFILE=harmonic' in output
     assert 'CLEANY_BUILD_BASE=build-harmonic' in output
     assert 'CLEANY_INSTALL_BASE=install-harmonic' in output
+
+
+def test_external_build_paths_survive_shell_quoting(tmp_path, monkeypatch):
+    import subprocess
+    build_root = tmp_path/'build outputs'
+    monkeypatch.setenv('CLEANY_BUILD_ROOT', str(build_root))
+    environment = shell_environment(PROFILES['harmonic'])
+    result = subprocess.check_output(['bash', '-c', environment + '\nprintf "%s\\n" "$CLEANY_BUILD_BASE" "$CLEANY_INSTALL_BASE" "$CLEANY_LOG_BASE"'], text=True)
+    assert result.splitlines() == [str(build_root/name) for name in ('build-harmonic', 'install-harmonic', 'log-harmonic')]

@@ -54,11 +54,13 @@ class MapClearance:
 
 def main() -> None:
     parser=argparse.ArgumentParser();parser.add_argument('directory',type=Path)
+    parser.add_argument('--fixture',type=Path,required=True,help='Input fixture, separate from run outputs')
+    parser.add_argument('--jobs',type=Path,required=True,help='Completed survey jobs in authoritative order')
     parser.add_argument('--corrections',type=Path,help='Completed correction jobs, in authoritative queue order')
     args=parser.parse_args()
-    directory=args.directory;fixture=directory/'fixture';targets=yaml.safe_load((fixture/'targets.yaml').read_text())
+    directory=args.directory;fixture=args.fixture;targets=yaml.safe_load((fixture/'targets.yaml').read_text())
     clearance=MapClearance(fixture/'facility_integration.yaml');home=targets['home'];rows=[]
-    jobs=json.loads((directory/'survey_jobs.json').read_text())
+    jobs=json.loads(args.jobs.read_text())
     if args.corrections:jobs+=json.loads(args.corrections.read_text())
     for job in jobs:
         for worker in sorted((directory/job['name']).glob('worker-*')):

@@ -6,19 +6,26 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+from paths import data_root, batch_directory
 
 
 def main() -> None:
-    parser=argparse.ArgumentParser();parser.add_argument('--root',type=Path,required=True);parser.add_argument('--jobs',type=Path,required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--root',type=Path,required=True);parser.add_argument('--jobs',type=Path,required=True);parser.add_argument('--data-root',type=Path);parser.add_argument('--output-root',type=Path);args=parser.parse_args()
     jobs=json.loads(args.jobs.read_text());records=[]
-    status=args.root/'artifacts/scenarios'/(args.jobs.stem+'.status.json')
+    data=data_root(args.root,args.data_root)
+    directory=args.output_root.resolve() if args.output_root else data/'runs/scenarios'
+    status=directory/(args.jobs.stem+'.status.json')
+    if status.exists():raise FileExistsError(f'Refusing to overwrite queue status: {status}')
     status.parent.mkdir(parents=True,exist_ok=True)
     for job in jobs:
         name=job['name']
-        if (args.root/'artifacts/scenarios'/name).exists():
+        if batch_directory(directory,name).exists():
             raise RuntimeError(f'Refusing to overwrite or restart existing job: {name}')
-        cmd=[sys.executable,str(Path(__file__).parent/'parallel.py'),'--root',str(args.root)]
-        for key,value in job.items():cmd.extend(['--'+key.replace('_','-'),str(value)])
+        cmd=[sys.executable,str(Path(__file__).parent/'parallel.py'),'--root',str(args.root),'--data-root',str(data),'--output-root',str(directory)]
+        for key,value in job.items():
+            option='--'+key.replace('_','-')
+            if value is True:cmd.append(option)
+            elif value is not False and value is not None:cmd.extend([option,str(value)])
         record={'job':job,'command':cmd,'start':time.time()};records.append(record)
         status.write_text(json.dumps(records,indent=2))
         print('JOB',name,flush=True)

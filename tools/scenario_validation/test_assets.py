@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from assets import LEGACY_FIXTURE, localize_and_hash
+from assets import localize_and_hash
 
 
 def scene(uri):
@@ -11,7 +11,7 @@ def scene(uri):
 
 
 def test_missing_mesh_or_texture_prevents_scene_acceptance(tmp_path: Path):
-    tree = scene(LEGACY_FIXTURE+'/chair.obj')
+    tree = scene('fixture://chair.obj')
     with pytest.raises(FileNotFoundError):
         localize_and_hash(tree, tmp_path, tmp_path)
     (tmp_path/'chair.obj').write_text('mtllib chair.mtl\nv 1 2 3\n')
@@ -56,3 +56,13 @@ def test_fortress_receives_byte_identical_ascii_mesh_path(tmp_path: Path):
     assert Path(target).read_bytes() == mesh.read_bytes()
     assert hashes[target] == hashes[str(mesh)]
     assert str(mesh) in hashes
+
+
+def test_repo_assets_relocate_and_cannot_escape_root(tmp_path):
+    repo = tmp_path/'checkout'
+    repo.mkdir()
+    (repo/'robot.stl').write_bytes(b'solid robot\nendsolid robot')
+    hashes = localize_and_hash(scene('repo://robot.stl'), tmp_path, repo)
+    assert str(repo/'robot.stl') in hashes
+    with pytest.raises(ValueError, match='escapes'):
+        localize_and_hash(scene('repo://../outside.stl'), tmp_path, repo)

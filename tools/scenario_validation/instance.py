@@ -3,9 +3,11 @@ from pathlib import Path
 import argparse
 from worlds import prepare,restored_tree,chair_name
 from assets import localize_and_hash
+from paths import source_identity
 from stimuli import add_obstacle,move_obstacle,switch_chair,obstacle_ahead,verify_chair_models
 parser=argparse.ArgumentParser()
 parser.add_argument('--root',type=Path,required=True)
+parser.add_argument('--source-identity',type=Path,help='Host Git identity captured by the launcher')
 parser.add_argument('--fixture',type=Path,required=True)
 parser.add_argument('--output',type=Path,required=True)
 parser.add_argument('--seat',required=True)
@@ -71,7 +73,7 @@ odometry_source_hashes={str(Path(module.__file__).resolve()):hashlib.sha256(Path
  for module in (mecanum_odometry,wheel_odom_node)}
 navigation_binary_hashes={str(path):hashlib.sha256(path.read_bytes()).hexdigest()
  for path in (navigation_prefix/'lib').glob('*.so')}
-children=[];result={'base_commit':'076b893','branch':'test/scrum-426-scenarios','scenario':args.scenario,'domain':args.domain,'partition':args.partition,'world_manifest':manifest,'input_hashes':input_hashes,'tool_hashes':tool_hashes,'requested_rtf':4,'max_step_size':float(os.environ.get('CLEANY_PHYSICS_STEP','0.0066667')),'compact_static_scene':True,'localization_profile':str(root/'ros2_ws/src/cleany_navigation/config/amcl_sim_ideal_wheels.yaml'),'observer_sample_period':.2,'runtime_config':'committed default, navigation_timeout 180','expected_mission_count':len(sequence)*args.repeats,'missions':[]}; streams=[]
+children=[];result={**(json.loads(args.source_identity.read_text()) if args.source_identity else source_identity(root)),'scenario':args.scenario,'domain':args.domain,'partition':args.partition,'world_manifest':manifest,'input_hashes':input_hashes,'tool_hashes':tool_hashes,'requested_rtf':4,'max_step_size':float(os.environ.get('CLEANY_PHYSICS_STEP','0.0066667')),'compact_static_scene':True,'localization_profile':str(root/'ros2_ws/src/cleany_navigation/config/amcl_sim_ideal_wheels.yaml'),'observer_sample_period':.2,'runtime_config':'committed default, navigation_timeout 180','expected_mission_count':len(sequence)*args.repeats,'missions':[]}; streams=[]
 result.update(asset_hashes=asset_hashes,navigation_install_prefix=str(navigation_prefix),
               odometry_source_hashes=odometry_source_hashes,
               navigation_binary_hashes=navigation_binary_hashes,

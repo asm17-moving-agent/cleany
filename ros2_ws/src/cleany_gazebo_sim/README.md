@@ -47,7 +47,7 @@ CAD 모델 변환은 설치된 `gz sdf` 또는 `ign sdf`를 사용하며, head p
 플러그인은 선택한 Harmonic/Fortress world의 namespace를 따릅니다.
 
 ```bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
   headless:=false gui_render_engine:=ogre2
 ```
@@ -265,9 +265,11 @@ self-hit를 방지합니다.
 
 LiDAR 높이별 bag 기록, slam_toolbox·Cartographer·RTAB-Map 비교,
 의자 이동 localization 실험은
-[`tools/slam_evaluation/README.md`](../../../tools/slam_evaluation/README.md)를
-참고합니다. 실험 생성물은 `ros2_ws/slam_results/`에 저장하며
-커밋하지 않습니다.
+외부 `$CLEANY_DATA_ROOT/experiments/legacy-20261010/tools/slam_evaluation/`에
+당시 스크립트와 README를 보관했습니다. 과거 경로를 포함한 원본 보존 사본이며
+현재 checkout에서 실행하는 target이 아닙니다. 패키지의 simulation/evaluation 기능과
+관련 회귀 검사는 유지합니다. 자료 위치는
+[데이터 보관 색인](../../../docs/validation/README.md)을 참고합니다.
 
 ## AMCL / Nav2 study-cafe evaluation
 
@@ -1262,7 +1264,7 @@ Fortress/Harmonic 기본 launch의 `physics_real_time_factor`는 입력 SDF를 �
 SUCCESS였지만 **실측 2배속 목표는 미달**이며 13 홈 GT 오차는 13.1cm였다.
 Ogre1의 빠른 측정은 LiDAR 관측 이상으로 유효한 주행 검증에서 제외했다.
 가속 profile은 기본값으로 채택하지 않았다. 조건·전후 결과·잔여 한계는
-[자율주행 검토](../../../docs/NAVIGATION_REVIEW.md)를 참고한다.
+[자율주행 검토](../../../docs/validation/README.md)를 참고한다.
 
 ### 고정 장면 계층 최적화 (Fortress, 선택 옵션)
 

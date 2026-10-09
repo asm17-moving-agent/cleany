@@ -3,24 +3,31 @@ SHELL := /bin/bash
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
-NAVIGATION_BUILD_BASE ?= build-navigation
-NAVIGATION_INSTALL_BASE ?= install-navigation
-NAVIGATION_LOG_BASE ?= log-navigation
-SCENARIO_BUILD_BASE ?= build-scenario-runtime
-SCENARIO_INSTALL_BASE ?= install-scenario-runtime
-SCENARIO_LOG_BASE ?= log-scenario-runtime
+# Keep data and generated outputs outside the source worktree.
+CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
+CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
+export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT
+BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
+INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
+LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
+NAVIGATION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-navigation
+NAVIGATION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-navigation
+NAVIGATION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-navigation
+SCENARIO_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-scenario-runtime
+SCENARIO_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-scenario-runtime
+SCENARIO_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-scenario-runtime
 MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
-MISSION_BUILD_BASE ?= build
-MISSION_INSTALL_BASE ?= install
-MISSION_LOG_BASE ?= log
+MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
+MISSION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
+MISSION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
 SAFETY_MODE ?= sensors
 ROBOT_MODEL ?= cad_frame
-HANDEYE_PROFILE_DIR ?= $(REPO_ROOT)artifacts/handeye/profiles/mujoco_seed_20260810
+HANDEYE_PROFILE_DIR ?= $(CLEANY_DATA_ROOT)/fixtures/handeye/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
-HANDEYE_ARTIFACT_ROOT ?= $(REPO_ROOT)artifacts/handeye/runs
+HANDEYE_ARTIFACT_ROOT ?= $(CLEANY_DATA_ROOT)/runs/handeye
 HANDEYE_RUN_ID ?= mujoco_seed_20260810
 HANDEYE_RUN_DIR ?= $(HANDEYE_ARTIFACT_ROOT)/$(HANDEYE_RUN_ID)
 HANDEYE_VALIDATION_OUTPUT ?= $(HANDEYE_RUN_DIR)/dataset_validation.json
@@ -113,10 +120,10 @@ test-motor-core:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; for f in esp32/host_tests/*.cpp; do g++ -std=c++17 -Wall -Wextra -Werror -pedantic -Iesp32/src "$$f" -o "/tmp/$$(basename "$$f" .cpp)"; "/tmp/$$(basename "$$f" .cpp)"; done'
 
 build-base:
-	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon build --symlink-install --packages-up-to cleany_base_driver cleany_base_odometry'
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_base_driver cleany_base_odometry'
 
 test-base: build-base
-	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source install/setup.bash && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon test --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon test-result --test-result-base "build/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
 
 micro-ros-agent-build:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'
@@ -176,7 +183,7 @@ test-navigation-runtime: build-navigation
 build:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)"
 
 .PHONY: build-scenario-runtime
 build-scenario-runtime:
@@ -202,26 +209,26 @@ build-gazebo-harmonic:
 build-handeye:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install \
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
 		--packages-up-to cleany_handeye_calibration
 
 build-telemetry:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install --packages-select cleany_telemetry
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_telemetry
 
 test-telemetry: build-telemetry
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest src/cleany_telemetry/test
 
 test: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	colcon test && \
-	colcon test-result --verbose && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure && \
+	colcon test-result --test-result-base "$(BUILD_BASE)" --verbose && \
 	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py"
 
 test-mission-core:
@@ -257,17 +264,17 @@ test-mission: test-mission-core
 test-mujoco: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest src/cleany_mujoco_sim/test/test_scene_loader.py
 
 test-handeye: build-handeye
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	colcon test --packages-select $(HANDEYE_PACKAGES) \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select $(HANDEYE_PACKAGES) \
 		--event-handlers console_cohesion+ && \
 	for package in $(HANDEYE_PACKAGES); do \
-		colcon test-result --test-result-base "build/$${package}" \
+		colcon test-result --test-result-base "$(BUILD_BASE)/$${package}" \
 			--verbose || exit 1; \
 	done
 
@@ -333,7 +340,7 @@ view-gazebo-costmap: build-gazebo
 sim: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
 
 sim-gazebo: build-gazebo
@@ -352,7 +359,7 @@ handeye-generate-mujoco: build-handeye
 	@mkdir -p "$(HANDEYE_ARTIFACT_ROOT)"
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	ros2 launch cleany_handeye_calibration pose_generation_mujoco.launch.py \
 		output_directory:="$(HANDEYE_PROFILE_DIR)" \
 		artifact_root:="$(HANDEYE_ARTIFACT_ROOT)" \
@@ -375,7 +382,7 @@ handeye-mujoco: build-handeye
 		(echo "runtime config does not exist: $(HANDEYE_RUNTIME_CONFIG); run 'make handeye-generate-mujoco' first" >&2; exit 2)
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
 		pose_manifest:="$(HANDEYE_POSE_MANIFEST)" \
 		runtime_config:="$(HANDEYE_RUNTIME_CONFIG)" \
@@ -393,7 +400,7 @@ handeye-validate-mujoco: build-handeye
 		(echo "materialized URDF does not exist: $(HANDEYE_PROFILE_DIR)/cleany_handeye.urdf" >&2; exit 2)
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	sim_share="$$(ros2 pkg prefix --share cleany_mujoco_sim)" && \
 	ros2 run cleany_handeye_calibration validate_handeye_dataset \
 		--samples "$(HANDEYE_RUN_DIR)/samples.jsonl" \
@@ -463,7 +470,7 @@ test-scenario-tools:
 		"$(REPO_ROOT)"tools/scenario_validation/test_*.py
 
 # Goal evidence is retained outside pytest temporary directories.
-NAVIGATION_GOAL_OUTPUT ?= $(REPO_ROOT)artifacts/navigation-goals-$(shell date +%Y%m%d-%H%M%S)
+NAVIGATION_GOAL_OUTPUT ?= $(CLEANY_DATA_ROOT)/runs/navigation-goals-$(shell date +%Y%m%d-%H%M%S)
 NAVIGATION_GOAL_RTF ?= 2
 
 test-gazebo-navigation-goals: build-gazebo
@@ -475,3 +482,11 @@ test-gazebo-navigation-goals: build-gazebo
 	python3 -m pytest -s src/cleany_gazebo_sim/test/test_runtime_navigation_goals.py \
 		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}" \
 		--navigation-output="$(NAVIGATION_GOAL_OUTPUT)" --navigation-rtf="$(NAVIGATION_GOAL_RTF)"
+
+.PHONY: print-install-base print-navigation-install-base print-scenario-install-base
+print-install-base:
+	@printf '%s\n' '$(INSTALL_BASE)'
+print-navigation-install-base:
+	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
+print-scenario-install-base:
+	@printf '%s\n' '$(SCENARIO_INSTALL_BASE)'

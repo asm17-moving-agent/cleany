@@ -43,7 +43,7 @@ demo coordinator를 함께 시작한다. 기본값은 MuJoCo native viewer와 RV
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_skill_executor grasp_execution_demo.launch.py
 ```
 
@@ -85,7 +85,7 @@ TCP는 can에서 0.14 m 떨어져 있고, 그리퍼의 접근축은 can을 향�
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
 ```
 

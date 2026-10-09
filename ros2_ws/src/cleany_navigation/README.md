@@ -10,7 +10,7 @@ runtime이다. SLAM은 외부 `slam_toolbox`/`cartographer_ros`, 주행은 외�
 ```bash
 make build-navigation
 source /opt/ros/humble/setup.bash
-source ros2_ws/install-navigation/setup.bash
+source "$(make -s print-navigation-install-base)/setup.bash"
 ros2 launch cleany_navigation navigation.launch.py \
   map:=/absolute/path/map.yaml \
   robot_params_file:=/absolute/path/robot_params.yaml
