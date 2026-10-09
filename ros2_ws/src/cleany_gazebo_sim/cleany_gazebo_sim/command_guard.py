@@ -6,6 +6,7 @@ import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.signals import SignalHandlerOptions
 
 from cleany_gazebo_sim.command_limits import (
     ChassisCommand,
@@ -102,7 +103,9 @@ class GazeboCommandGuard(Node):
 
 
 def main(args: list[str] | None = None) -> None:
-    rclpy.init(args=args)
+    # Let Python interrupt spin before destroying the ROS context. Humble's
+    # asynchronous SIGINT shutdown can race with take_message conversion.
+    rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.SIGTERM)
     node = GazeboCommandGuard()
     try:
         rclpy.spin(node)

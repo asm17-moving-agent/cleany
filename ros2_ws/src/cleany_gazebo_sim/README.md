@@ -594,6 +594,11 @@ AMCL은 Mecanum odometry를 반영하는 `OmniMotionModel`, controller는 latera
 생성할 수 있는 MPPI `Omni` model을 사용합니다. Nav2가 발행한 `/cmd_vel`은 기존
 `gazebo_command_guard`를 거쳐 simulator에 전달됩니다.
 
+Command guard는 SIGINT에서 Python의 `KeyboardInterrupt`로 spin을 먼저 끝낸 뒤
+노드와 ROS context를 정리합니다. Humble의 비동기 context 종료가 메시지 수신과
+겹치는 오류를 피하며, SIGTERM은 기존 rclpy 처리를 유지합니다. 실제 ROS 명령을
+수신하는 중의 SIGINT 종료는 `test/test_command_guard_shutdown.py`로 검증합니다.
+
 선택 지도 `maps/study_cafe_30cm.yaml`은
 `odometry_noise_wheel_raw/runs/cartographer/level0/map_final.*`에서 복사한
 30 cm measured-LiDAR 지도입니다. L0는 추가 odometry 오차를 적용하지 않은
