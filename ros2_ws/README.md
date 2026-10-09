@@ -28,6 +28,9 @@ navigation/scenario는 각각 `print-navigation-install-base`, `print-scenario-i
 사용한다. 사용자 지정 Make 변수는 빌드와 경로 출력에 동일하게 전달한다.
 `make clean`은 이 외부 빌드 루트의 표준 출력만 지운다. 실행 원본·fixture·보고서는 유지한다.
 경로를 바꿀 때 기존 colcon install을 이동하지 말고 새 경로에서 다시 빌드한다.
+호스트가 Git `relativeWorktrees` 확장을 쓰는 경우 container의 Git도 이 형식을
+지원해야 한다. `git rev-parse HEAD`가 실패하면 compatible Git을 PATH에 지정한 뒤
+provenance를 읽는 hand-eye 검사를 실행한다. 시나리오 launcher는 호스트 Git을 사용한다.
 
 [데이터 보관 및 검증 색인](../docs/validation/README.md)에 과거 자료와 활성 입력 위치를 정리했다.
 

@@ -123,7 +123,7 @@ build-base:
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_base_driver cleany_base_odometry'
 
 test-base: build-base
-	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
 
 micro-ros-agent-build:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'
@@ -171,7 +171,7 @@ test-navigation: build-navigation
 		--install-base "$(NAVIGATION_INSTALL_BASE)" \
 		--packages-select cleany_navigation \
 		--return-code-on-test-failure && \
-	colcon test-result --test-result-base "$(NAVIGATION_BUILD_BASE)" --verbose
+	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(NAVIGATION_BUILD_BASE)" --verbose
 
 test-navigation-runtime: build-navigation
 	source "$(ROS_SETUP)" && \
@@ -228,8 +228,8 @@ test: build
 	cd "$(ROS2_WS)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
 	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure && \
-	colcon test-result --test-result-base "$(BUILD_BASE)" --verbose && \
-	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py"
+	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose && \
+	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" "$(REPO_ROOT)tools/test_ros2_clean.py"
 
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \
@@ -257,7 +257,7 @@ test-mission-runtime: build-mission-runtime
 	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
 	colcon --log-base "$(MISSION_LOG_BASE)" test --build-base "$(MISSION_BUILD_BASE)" \
 		--install-base "$(MISSION_INSTALL_BASE)" --packages-select $(MISSION_PACKAGES) && \
-	colcon test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
+	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
 
 test-mission: test-mission-core
 
@@ -274,7 +274,7 @@ test-handeye: build-handeye
 	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select $(HANDEYE_PACKAGES) \
 		--event-handlers console_cohesion+ && \
 	for package in $(HANDEYE_PACKAGES); do \
-		colcon test-result --test-result-base "$(BUILD_BASE)/$${package}" \
+		colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$${package}" \
 			--verbose || exit 1; \
 	done
 
