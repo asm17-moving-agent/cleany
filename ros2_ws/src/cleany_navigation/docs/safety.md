@@ -1,10 +1,19 @@
 # Navigation 안전 계약
 
 
-```text
-Nav2 -> nav2/cmd_vel -> pan gate -> pan_ready/cmd_vel
-     -> Collision Monitor -> safety_2d/cmd_vel -> voxel guard -> cmd_vel
+```mermaid
+flowchart TB
+    Nav["Nav2 · nav2/cmd_vel"] --> Pan["Pan gate · 시야 정렬과 fresh depth"]
+    Pan -->|"pan_ready/cmd_vel"| Collision["Collision Monitor · 2D 장애물"]
+    Collision -->|"safety_2d/cmd_vel"| Voxel["Voxel guard · 몸체와 제동 sweep"]
+    Voxel -->|"cmd_vel · 최종 publisher"| Base["활성 base backend"]
+    Inputs["sensor / odom / TF / localization"] -. "freshness와 유효성" .-> Pan
+    Inputs -.-> Collision
+    Inputs -.-> Voxel
+    Voxel -->|"필수 입력 단절 / stale / 계산 초과"| Zero["최종 속도 0"]
 ```
+
+기본 full runtime의 직렬 경로다. 단계별 비활성화 옵션은 아래 계약을 따른다.
 
 모든 속도는 `geometry_msgs/Twist`의 x/y/yaw다. 최종 `cmd_vel` publisher는
 voxel guard 한 개다. Backend는 아래 입력/TF를 제공한다.

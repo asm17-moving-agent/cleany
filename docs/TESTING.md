@@ -5,6 +5,25 @@
 
 ## 검사 선택
 
+```mermaid
+flowchart TB
+    Change{"바뀐 경계"}
+    Change -->|"순수 logic / 도구"| Unit["해당 core / host test"]
+    Change -->|"ROS type / manifest / launch"| Package["관련 package build + test"]
+    Change -->|"여러 package 연결"| ROS["합성 ROS runtime 검사"]
+    Change -->|"센서 / 주행 / 조작"| Sim["해당 simulator runtime 검사"]
+    Change -->|"UI"| UI["served app + refresh / reconnect / replay"]
+    Change -->|"문서"| Docs["링크 / 경로 / Make dry-run / KB 무결성"]
+    Unit --> Evidence["실행 조건과 결과 원본 보존"]
+    Package --> Evidence
+    ROS --> Evidence
+    Sim --> Evidence
+    UI --> Evidence
+    Docs --> Evidence
+```
+
+구체 명령은 아래 표에서 선택한다. Simulator·mock 통과를 실물 검증으로 승격하지 않는다.
+
 | 변경 범위 | 명령 | 확인 범위 |
 |---|---|---|
 | 전체 ROS workspace | `make test` | build, colcon package test와 출력 정리 도구 |

@@ -4,6 +4,29 @@ Cleany 로봇의 ROS 2 구현, Gazebo·MuJoCo 시뮬레이션과 ESP32 펌웨어
 제품 목표·범위·설계 결정은 [기획 KB](docs/cleany-docs/README.md)에서 관리한다.
 현재 작업 브랜치의 구현이 제품 전체 완료를 뜻하지는 않는다.
 
+## 문서 지도
+
+```mermaid
+flowchart TB
+    KB["KB · 제품 목표와 설계 결정"]
+    Entry["README · 작업 선택"]
+    Setup["DEVELOPMENT_SETUP · 환경과 빌드"]
+    Run["RUNNING · 실행"]
+    Test["TESTING · 검증"]
+    Cal["CALIBRATION · 수집과 평가"]
+    Contract["INTEGRATION · 연결과 계약 위치"]
+    Ref["코드 옆 docs · 단위와 안전 규약"]
+    Evidence["EVIDENCE · 과거 원본 위치"]
+    KB -. "제품 기준" .-> Entry
+    Entry --> Setup
+    Setup --> Run
+    Run --> Test
+    Run --> Cal
+    Entry --> Contract
+    Contract --> Ref
+    Test --> Evidence
+```
+
 ## 개발 시작
 
 기준 환경은 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Gazebo Fortress 6이다.

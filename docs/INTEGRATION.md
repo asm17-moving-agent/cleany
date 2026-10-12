@@ -5,16 +5,58 @@
 
 ## 연결 흐름
 
-```text
-Backend Gateway ↔ control_bridge ↔ Mission Runtime
-                                  ├─ Navigator / Nav2 → 안전 경로 → 활성 base backend
-                                  └─ Manipulation transport → 외부 skill server
-RGB-D → Scene/Grasp 계약 → 후보 생성 → MoveIt plan-only 선택
+```mermaid
+flowchart TB
+    subgraph Cloud["외부 control-plane"]
+        Gateway["Backend Gateway<br/>대기열과 배차"]
+    end
+    subgraph Runtime["현재 Mission 실행 경로"]
+        Bridge["control_bridge<br/>WebSocket ↔ ROS"]
+        Mission["Mission Runtime<br/>수락 · 실행<br/>영속 결과"]
+        Nav["Navigator adapter<br/>Nav2"]
+        Safety["직렬 안전 경로"]
+        Base["활성 base backend"]
+        Manip["Manipulation transport"]
+    end
+    Peer["외부 조작 실행 서버"]
+    Gateway <-->|"요청 / 상태 / 결과"| Bridge
+    Bridge <--> Mission
+    Mission --> Nav --> Safety --> Base
+    Mission --> Manip --> Peer
+    subgraph Grasp["별도 Scene / Grasp 경로"]
+        RGBD["RGB-D snapshot"] --> Scene["Scene / OBB"]
+        Scene --> Candidates["Grasp 후보 생성"]
+        Candidates --> Select["MoveIt 도달성 선택<br/>plan-only"]
+    end
 ```
+
+실선은 현재 연결 경로다. Scene/Grasp의 후보 선택은 trajectory 실행·물체 수거 완료를 뜻하지 않는다.
 
 Mission은 lifecycle과 최종 결과, Backend는 대기열·배차를 소유한다.
 `grasp/select_reachable`는 plan-only다. 외부 `ExecuteManipulationSkill` 실행 서버와
 MuJoCo 접근 데모를 같은 구현으로 취급하지 않는다.
+
+## Robot interface의 예정 경계
+
+```mermaid
+flowchart TB
+    subgraph Goal["설계 목표 · cleany_robot_interface adapter는 아직 미구현"]
+        Consumer["Mission / Skill<br/>공통 robot port"]
+        Interface["robot_interface 경계"]
+        Mock["Mock adapter"]
+        Sim["Sim adapter"]
+        Real["Real adapter"]
+        Consumer -.-> Interface
+        Interface -.-> Mock
+        Interface -.-> Sim
+        Interface -.-> Real
+    end
+```
+
+점선은 예정된 공통 adapter 구조다. 현재 Mission의 구체 adapter는
+[`cleany_mission_manager/adapters/`](../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/)에 있다.
+하드웨어 좌표계·안전 한계는 adapter와 설정이 소유한다.
+이 설계 경계의 KB 근거는 [ROS 2 Software Architecture](<cleany-docs/20_TECHNICAL/11 - ROS 2 Software Architecture.md>)다.
 
 ## 계약 원본
 

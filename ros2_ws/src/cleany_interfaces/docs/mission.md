@@ -2,7 +2,7 @@
 
 필드 원본은 `../msg`, `../srv`다. 설정은 `cleany_mission_manager/config/runtime.yaml`이다.
 Backend는 queue·배차, Mission Runtime은 수락 이후 실행과 영속 결과를 소유한다.
-Runtime은 별도 queue 없이 IDLE·모든 port의 준비/정지·지원 좌석·유형을 검사해 하나만 수락한다.
+Runtime은 별도 queue 없이 한 번에 하나만 수락한다.
 
 | 상대 이름 | 의미 |
 |---|---|
@@ -15,6 +15,33 @@ Runtime은 별도 queue 없이 IDLE·모든 port의 준비/정지·지원 좌석
 
 Offer/Cancel 응답의 accepted는 완료 증거가 아니다. 동일 mission ID·동일 요청은 재실행하지 않고,
 다른 내용으로 ID를 재사용하면 거절한다. Status 진단 sequence와 Backend wire의 미션별 sequence는 별개다.
+
+## 수락과 완료의 구분
+
+```mermaid
+sequenceDiagram
+    participant B as Backend
+    participant G as Gateway bridge
+    participant M as Mission Runtime
+    participant J as SQLite journal
+    B->>G: mission.offer
+    G->>M: OfferMission
+    M->>M: 준비 / 요청 / 중복 검사
+    alt 새 요청 수락
+        M->>J: 수락 기록 영속 저장
+        M-->>G: accepted
+        G-->>B: mission.accepted
+        M->>M: 주행 / 작업 / 종료 정책 실행
+        M->>J: 최종 결과 영속 저장
+        M-->>G: MissionResult
+        G-->>B: mission.result
+    else 거절 또는 중복
+        M-->>G: 사유 또는 보존된 결과
+        G-->>B: 응답 / 상태 동기화
+    end
+```
+
+수신 ACK, 실행 수락, 최종 결과는 서로 다른 시점이다.
 
 ## 실행·취소·복구
 

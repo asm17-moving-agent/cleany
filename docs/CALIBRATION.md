@@ -4,6 +4,24 @@
 결과 transform은 검토용 artifact이며 자동으로 TF에 적용하지 않는다.
 실물 calibration·grasp 성공으로 해석하지 않는다.
 
+## 작업 흐름
+
+```mermaid
+flowchart TB
+    Setup["의존성 준비 + build / test"] --> Generate["새 profile · 후보 생성"]
+    Generate --> Gate{"IK / collision / 렌더링 / PnP 통과?"}
+    Gate -->|"예"| Freeze["20 calibration + 5 held-out 고정"]
+    Gate -->|"아니오 / 후보 한도 초과"| Fail["실패와 근거 보존"]
+    Freeze --> Collect["viewer 관찰 + settle 이후 수집"]
+    Collect --> Data["image + journal + JSONL + hash"]
+    Data --> Validate["PnP 재현 + solver별 평가"]
+    Validate --> Review["dataset_validation.json 검토"]
+    Review -. "별도 검토와 명시적 적용" .-> TF["실물 TF 적용"]
+```
+
+실선은 현재 MuJoCo 수집·평가 흐름이다. TF 적용은 자동 단계가 아니다.
+실패 표본을 새 pose로 대체하지 않는다.
+
 ## 준비
 
 [개발환경](DEVELOPMENT_SETUP.md)의 MoveIt·ros2_control·OpenCV 의존성을 준비한다.
@@ -31,9 +49,7 @@ make handeye-generate-mujoco \
   HANDEYE_RUN_ID=my-run
 ```
 
-headless 준비 단계에서 후보를 생성하고 MoveIt IK·state validity·plan-only·fixture 여유·
-렌더링 ChArUco·비모호 PnP를 통과한 20개 calibration + 5개 held-out pose를 고정한다.
-후보 cap을 넘기면 실패이며 runtime에서 새 pose로 빈 항목을 채우지 않는다.
+후보 생성은 headless로 실행한다. 후보 cap을 넘기면 실패하며 runtime에서 새 pose로 빈 항목을 채우지 않는다.
 `materialized_poses.yaml`, `materialized_runtime.json`, materialized URDF와 분석을 확인한다.
 
 ## 수집

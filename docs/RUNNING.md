@@ -12,6 +12,26 @@ source "$(make -s print-install-base)/setup.bash"
 `print-navigation-install-base`, `print-scenario-install-base`는 각각 전용 빌드의 overlay다.
 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달한다.
 
+## 실행 선택과 준비 순서
+
+```mermaid
+flowchart TB
+    Env["Humble 환경 + worktree별 build"] --> Mode{"실행 목적"}
+    Mode -->|"주행 / Mission"| Sensors["Gazebo 또는 실물 sensor / odom / TF"]
+    Sensors --> Nav["지도 + Nav2 + 안전 경로 준비"]
+    Nav --> Mission["Mission Runtime + Gateway bridge"]
+    Mode -->|"조작 / calibration"| Mujoco["MuJoCo backend 하나 선택"]
+    Mujoco --> MoveIt["MoveIt / controller 준비"]
+    MoveIt --> Task["데모 또는 calibration 실행"]
+    Mode -->|"base 단독 검사"| Base["mock 또는 실물 Agent + driver"]
+    Mission -. "관측" .-> Monitor["Monitor · 동일 domain과 overlay"]
+    Task -. "관측" .-> Monitor
+    Base -. "관측" .-> Monitor
+```
+
+`mission_sim.launch.py`는 주행/Mission 구성을 함께 띄운다. 이미 sensor·Nav2가 준비돼 있으면
+`mission_runtime.launch.py`만 붙인다. 실행별 명령은 아래에서 선택한다.
+
 ## Gazebo
 
 ```bash
