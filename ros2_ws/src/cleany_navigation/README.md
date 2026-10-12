@@ -230,7 +230,7 @@ Y 속도 범위와 샘플 수, `pan_motion_gate.allow_lateral: true`를 함께 �
 `make build-gazebo`에도 포함된다. 활성 프로필의 install 환경을 source한 뒤
 `ros2_ws/build-harmonic/cleany_navigation/test_axis_generator`로
 기본 횡이동 차단, 확장 시 횡이동 후보, 정지 후 축 전환, 혼합 입력 제동 및 제동 궤적을 검증한다.
-`make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic`은 일치하는 방/지도에서
+`make test-gazebo-navigation-pipeline`은 일치하는 방/지도에서
 전진, 후진, 90도 방향 전환 후 이동의 목표 완료와 모든 속도 단계의 Y=0을 검사한다.
 이 fixture는 정확한 spawn, ideal odometry와 초기 pose 표준편차 5mm/0.5도,
 목표 허용 오차 5cm/0.08rad를 사용한다. 기본 runtime 목표 허용 오차는 12cm/0.15rad다.
@@ -267,7 +267,7 @@ make test-navigation
 make test-navigation-runtime
 make test-gazebo
 make test-gazebo-nav-runtime
-make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic
+make test-gazebo-navigation-pipeline
 ```
 
 앞의 두 명령은 Gazebo 없이 navigation과 description dependency만 빌드한다.

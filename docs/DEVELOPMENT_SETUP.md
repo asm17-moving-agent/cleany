@@ -367,9 +367,7 @@ make test-gazebo
 make sim-gazebo
 ```
 
-ROS 환경을 source하지 않았고 여러 배포판이 설치돼 있어 자동 판정이 불가능하면
-`GAZEBO_PROFILE=harmonic make test-gazebo`처럼 profile을 명시한다. 활성
-`ROS_DISTRO`와 충돌하는 profile은 허용하지 않는다.
+Gazebo 환경은 ROS 2 Humble / Gazebo Fortress 6 기반으로 실행 및 검증된다.
 
 `make sim-gazebo`는 GUI 없이 server를 실행한다. GUI까지 실행하려면 build 후
 다음 명령을 사용한다.

@@ -169,12 +169,8 @@ Humble/Fortress 또는 Jazzy/Harmonic profile을 선택한다. `make build-gazeb
 빌드한다. 성공 판정 topic과 GUI 실행법은
 [`cleany_gazebo_sim` README](src/cleany_gazebo_sim/README.md)를 따른다.
 
-ROS 2 Jazzy / Gazebo Harmonic 호환 환경은 팀 표준과 분리한다. 환경 준비는
-[개발환경 설치 가이드](../docs/DEVELOPMENT_SETUP.md#7-선택-ros-2-jazzy--gazebo-harmonic-호환-환경)를
-따른다. 두 profile 모두 `make test-gazebo`와 `make sim-gazebo`를 사용하며 Harmonic은
-자동으로 전용 output을 사용한다. 자동 판정이 불가능하면
-`GAZEBO_PROFILE=fortress|harmonic`으로 명시할 수 있다. 활성 `ROS_DISTRO`와 충돌하는
-override는 오류로 종료한다.
+Gazebo 시뮬레이션 환경은 Ubuntu 22.04 / ROS 2 Humble / Gazebo Fortress 6으로 단일화되어 있으며,
+`make check-gazebo-env`, `make test-gazebo`, `make sim-gazebo`로 빌드 및 실행을 관리한다.
 
 지원하는 전체 작업은 `make help`로 확인한다.
 

@@ -1084,7 +1084,7 @@ frame 변환은 adapter가 제공하며 공통 노드는 TF를 발행하지 않�
 따른다. 평가 snapshot은 이동된 공통 코드도 함께 기록한다.
 
 ```bash
-make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic
+make test-gazebo-navigation-pipeline
 ```
 
 위 opt-in 테스트는 임시로 만든 6m 방과 일치하는 지도를 사용한다. CAD 모델의 Gazebo sensor,

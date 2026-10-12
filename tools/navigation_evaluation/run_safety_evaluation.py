@@ -30,7 +30,7 @@ from safety_probe import SafetyProbe
 
 def prepare(output: Path, map_yaml: Path, robot_model: str = 'legacy', initial_pose: list[float] | None = None,
             obstacle_memory: bool = False, memory_restore: Path | None = None, guard_3d: bool = False,
-            gazebo_profile: str = 'harmonic', real_time_factor: float = 1.0) -> dict:
+            gazebo_profile: str = 'fortress', real_time_factor: float = 1.0) -> dict:
     if gazebo_profile not in ('fortress', 'harmonic'):
         raise ValueError('Unsupported Gazebo profile')
     if guard_3d and (not obstacle_memory or robot_model != 'cad_frame'):
@@ -215,7 +215,9 @@ def main() -> None:
     output.mkdir(parents=True, exist_ok=False)
     os.environ['ROS_DOMAIN_ID'] = str(args.domain_id)
     os.environ['ROS_LOCALHOST_ONLY'] = '1'
-    os.environ['GZ_PARTITION'] = 'cleany_safety_'+uuid.uuid4().hex[:12]
+    partition = 'cleany_safety_' + uuid.uuid4().hex[:12]
+    os.environ['IGN_PARTITION'] = partition
+    os.environ['GZ_PARTITION'] = partition
     scenario = prepare(output, args.map.resolve(), robot_model=args.robot_model)
     metadata = dict(mode=args.mode, started=time.strftime('%Y-%m-%dT%H:%M:%S%z'),
                     ros_domain_id=args.domain_id, gz_partition=os.environ['GZ_PARTITION'])
