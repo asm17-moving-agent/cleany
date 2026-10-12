@@ -80,3 +80,5 @@ flowchart TB
 실물/mock과 Gazebo는 대체 실행 경로다. Canonical odom/TF 소유자는 실행마다 하나만 둔다. 외부 estimator를 사용할 때는 `relay_odom:=false`로 중복 publisher를 제거한다.
 
 관련 안내: [ESP32](../../../../esp32/README.md), [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md).
+
+노드별 통신 목록: [인터페이스 표](interfaces.md).

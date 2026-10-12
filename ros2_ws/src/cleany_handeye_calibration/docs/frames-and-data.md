@@ -66,3 +66,5 @@ Materialized profile은 pose/runtime/URDF, camera K/D/R/P, source hash를 고정
 Tsai, Park, Horaud, Andreff, Daniilidis solver를 평가하고 method별 예외를 분리한다. GT 평가는 simulation 한정이며 held-out, solver 실패도 결과에 남긴다.
 
 Offset, 품질 gate는 명시한 실행 정책을 사용한다. 결과 생성은 자동 TF 게시나 실물 calibration 완료를 의미하지 않는다.
+
+노드별 통신 목록: [인터페이스 표](interfaces.md).

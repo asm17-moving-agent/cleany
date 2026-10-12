@@ -14,6 +14,7 @@ flowchart TB
     Cal["CALIBRATION / 수집과 평가"]
     Contract["INTEGRATION / 연결과 계약 위치"]
     Ref["코드 옆 docs / 단위와 안전 규약"]
+    API["ROS_INTERFACES / 노드별 통신 목록"]
     Evidence["EVIDENCE / 과거 원본 위치"]
     KB -. "제품 기준" .-> Entry
     Entry --> Setup
@@ -22,6 +23,8 @@ flowchart TB
     Run --> Cal
     Entry --> Contract
     Contract --> Ref
+    Entry --> API
+    API --> Ref
     Test --> Evidence
 ```
 
@@ -47,6 +50,7 @@ make sim-gazebo
 | 시뮬레이션, Mission Runtime, Monitor 실행 | [실행](docs/RUNNING.md) |
 | 변경 검증, runtime 시험, 결과 저장 | [테스트](docs/TESTING.md) |
 | hand-eye 데이터 수집과 검토 | [Calibration](docs/CALIBRATION.md) |
+| 노드별 토픽, 서비스, 액션 찾기 | [ROS 인터페이스 색인](docs/ROS_INTERFACES.md) |
 | Backend, ROS, MCU 연동 | [연동과 계약](docs/INTEGRATION.md) |
 | 펌웨어 빌드, 업로드, 장치 확인 | [ESP32](esp32/README.md), [배선](esp32/PINMAP.md) |
 | 과거 보고서와 실행 원본 찾기 | [근거 색인](docs/EVIDENCE.md) |

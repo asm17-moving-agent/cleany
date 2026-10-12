@@ -54,3 +54,5 @@ ROS stamp와 수신 wall/monotonic 시각을 함께 저장하며 재생 축은 �
 선택 기록은 전체 rosbag을 대체하지 않으며 camera는 별도 경로다. HTTP 경로, 허용 항목은 server 구현과 monitor.yaml을 따른다. 기록은 외부 cleany-data에 두고 web/dist, ROS install은 생성물로 취급한다.
 
 관련 안내: [실행](../../../../docs/RUNNING.md), [환경](../../../../docs/DEVELOPMENT_SETUP.md).
+
+노드별 통신 목록: [인터페이스 표](interfaces.md).

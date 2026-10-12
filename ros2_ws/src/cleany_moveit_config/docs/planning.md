@@ -49,3 +49,5 @@ Applier는 /apply_planning_scene이 handeye_table, handeye_target_stand, charuco
 Pick-demo table은 config/pick_demo_collision_objects.yaml에 있으며 rgbd_pick_demo.xml.in과 크기, pose가 일치한다. Box/can target은 reachable-grasp action에서 동적으로 등록한다.
 
 관련 안내: [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md).
+
+노드별 통신 목록: [인터페이스 표](interfaces.md).

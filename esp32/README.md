@@ -13,6 +13,17 @@ Native USB micro-ROS와 encoder, PWM/DIR로 4륜을 제어하는 펌웨어입니
 
 도구 이동 후에는 `make firmware-setup`으로 Git wrapper 링크를 갱신합니다. Wrapper는 component root와 하위 폴더 clone 모두 revision을 고정합니다.
 
+## ROS 인터페이스
+
+노드 이름은 `cleany_motor_controller`, namespace는 기본 root입니다. [main.cpp](src/main.cpp)의 rclc entity 초기화를 기준으로 기록합니다.
+
+| 종류 / 방향 | 기본 이름 | ROS 타입 | QoS와 주기 |
+|---|---|---|---|
+| 토픽 구독 | `base/wheel_command` | `cleany_base_interfaces/msg/WheelCommand` | Best-effort, volatile, keep-last 1 |
+| 토픽 발행 | `base/wheel_state` | `cleany_base_interfaces/msg/WheelState` | Best-effort, volatile, keep-last 1; 50 Hz |
+
+MCU에 서비스와 액션은 없습니다. 구동 허가는 WheelCommand의 ENABLE/STOP으로 처리하고, ROS `base/enable` 서비스는 [base driver](../ros2_ws/src/cleany_base_driver/docs/interfaces.md)가 제공합니다. 전체 노드는 [ROS 인터페이스 색인](../docs/ROS_INTERFACES.md)에서 찾습니다.
+
 ## Runtime
 
 ```mermaid

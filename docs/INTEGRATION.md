@@ -54,6 +54,10 @@ flowchart TB
 
 설계 경계의 근거는 KB의 [ROS 2 Software Architecture](<cleany-docs/20_TECHNICAL/11 - ROS 2 Software Architecture.md>)에서 확인합니다.
 
+## 노드별 통신 목록
+
+발행, 구독, 서비스와 액션의 방향, 타입, QoS와 조건은 [ROS 인터페이스 색인](ROS_INTERFACES.md)에서 찾습니다. 각 패키지의 `docs/interfaces.md`가 노드별 표를 관리합니다. 아래 계약 원본은 통신의 의미와 안전 규칙을 설명합니다.
+
 ## 계약 원본
 
 | 경계 | 문서와 원본 |
