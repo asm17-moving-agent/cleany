@@ -10,13 +10,14 @@ feedback, and PWM/DIR outputs. The PlatformIO environment is
 | Path | Contents |
 |---|---|
 | `src/` | Firmware and motor-control core |
-| `host_tests/` | Device-free C++ tests |
+| `host_tests/` | Device-free C++ and Python tests |
+| `scripts/` | PlatformIO helpers and pinned micro-ROS dependency bootstrap |
 | `microros_smoke/` | micro-ROS/type-support link check |
 | `pcb/` | KiCad project and project-local libraries |
 | `micro_ros/`, `.venv/` | Generated dependencies and build tools |
 
-Dependency bootstrap lives in [`tools/micro_ros/`](../tools/micro_ros/),
-with unit tests in [`tests/micro_ros/`](../tests/micro_ros/).
+Dependency bootstrap lives in [`scripts/`](scripts/),
+with unit tests in [`host_tests/`](host_tests/).
 After a tools layout update, rerun `make firmware-setup` to refresh the generated
 Git wrapper link before building firmware. The wrapper pins clones made both
 from the component root and from its subdirectories.

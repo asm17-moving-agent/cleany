@@ -5,11 +5,9 @@
 
 | 폴더 | 역할 |
 |---|---|
-| `micro_ros/` | ESP32 micro-ROS 의존성 준비와 고정 revision Git wrapper |
 | `ros2/` | ROS 2 빌드 출력 정리 |
 
-저장소 루트에서 micro-ROS 준비·검사는 `make firmware-setup`,
-`make test-micro-ros-setup`을 사용한다. `make clean`은
+저장소 루트에서 `make clean`은
 `ros2/ros2-clean`을 실행하며 삭제 전 확인을 받는다.
 
 도구의 단위 테스트만 실행하려면:
@@ -21,7 +19,8 @@ make test-tools
 시설 asset·목표 생성 도구는 [`cleany_gazebo_sim/scripts/`](../ros2_ws/src/cleany_gazebo_sim/scripts/)에서 관리한다.
 
 정리 도구는 빌드 경로가 홈·저장소·데이터 루트 또는 그 상위 경로인 경우 실행을 거부한다.
-micro-ROS Git wrapper는 컴포넌트 루트와 그 하위에서 고정 커밋 처리를 적용한다.
 
-기존 micro-ROS Git wrapper 링크는 `make firmware-setup`을 다시 실행하면
-새 경로로 갱신된다.
+ESP32 micro-ROS 준비 도구는 [`esp32/scripts/`](../esp32/scripts/),
+관련 테스트는 `esp32/host_tests/`에서 관리한다. 준비·검사는
+`make firmware-setup`, `make test-micro-ros-setup`을 사용한다.
+기존 Git wrapper 링크는 `make firmware-setup`으로 새 경로로 갱신한다.

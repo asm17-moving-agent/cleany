@@ -2,7 +2,7 @@ import importlib.util
 from pathlib import Path
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[2] / "tools/micro_ros/micro_ros_setup.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts/micro_ros_setup.py"
 SPEC = importlib.util.spec_from_file_location("micro_ros_setup", SCRIPT)
 assert SPEC and SPEC.loader
 setup = importlib.util.module_from_spec(SPEC)
@@ -163,6 +163,29 @@ def test_generated_sdkconfig_link_migrates_only_known_previous_source(tmp_path):
     link.write_text("unexpected local config")
     with pytest.raises(RuntimeError, match="unexpected generated link"):
         setup.link_generated_config(link, source, previous)
+
+
+@pytest.mark.parametrize('old_path', ['tools/micro_ros_git.py', 'tools/micro_ros/micro_ros_git.py'])
+def test_git_wrapper_migrates_known_old_paths(tmp_path, monkeypatch, old_path):
+    monkeypatch.setattr(setup, 'ROOT', tmp_path)
+    wrapper = tmp_path/'git'
+    wrapper.symlink_to(tmp_path/old_path)
+    setup.link_git_wrapper(wrapper)
+    assert wrapper.resolve() == SCRIPT.with_name('micro_ros_git.py').resolve()
+    setup.link_git_wrapper(wrapper)
+    assert wrapper.resolve() == SCRIPT.with_name('micro_ros_git.py').resolve()
+
+
+def test_git_wrapper_creates_link_and_preserves_unknown_target(tmp_path):
+    wrapper = tmp_path/'git'
+    setup.link_git_wrapper(wrapper)
+    assert wrapper.resolve() == SCRIPT.with_name('micro_ros_git.py').resolve()
+    wrapper.unlink()
+    unknown = tmp_path/'custom-git'
+    wrapper.symlink_to(unknown)
+    with pytest.raises(RuntimeError, match='unexpected generated link'):
+        setup.link_git_wrapper(wrapper)
+    assert wrapper.readlink() == unknown
 
 
 def test_only_micro_ros_firmware_and_console_free_board_defaults():

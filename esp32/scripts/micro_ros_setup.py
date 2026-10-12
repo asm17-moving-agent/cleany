@@ -112,6 +112,17 @@ def link_generated_config(link: Path, source: Path, previous_source: Path | None
     link.symlink_to(source)
 
 
+def link_git_wrapper(link: Path) -> None:
+    """Migrate only the two known repository layouts to the firmware helper."""
+    source = Path(__file__).with_name("micro_ros_git.py")
+    for previous in (ROOT / "tools/micro_ros_git.py",
+                     ROOT / "tools/micro_ros/micro_ros_git.py"):
+        if link.is_symlink() and link.resolve() == previous.resolve():
+            link_generated_config(link, source, previous)
+            return
+    link_generated_config(link, source)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="verify existing pinned checkouts")
@@ -155,10 +166,7 @@ def main() -> None:
     git_bin = OUTPUT / "bin"
     git_bin.mkdir(exist_ok=True)
     wrapper = git_bin / "git"
-    link_generated_config(
-        wrapper, Path(__file__).with_name("micro_ros_git.py"),
-        ROOT / "tools/micro_ros_git.py",
-    )
+    link_git_wrapper(wrapper)
     if not (PIO_VENV / "bin" / "python").exists():
         venv.EnvBuilder(with_pip=True).create(PIO_VENV)
     run(str(PIO_VENV / "bin" / "pip"), "install", "platformio==6.1.19",

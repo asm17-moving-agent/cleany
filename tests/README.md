@@ -8,7 +8,6 @@ ROS 2 패키지 내부 단위 테스트는 각 패키지의 `test/` 또는 `test
 | 폴더 | 역할 |
 |---|---|
 | `facility/` | 시설 시뮬레이션 검증 |
-| `micro_ros/` | micro-ROS 준비 도구 단위 테스트 |
 | `ros2/` | 빌드 출력 정리 도구 단위 테스트 |
 | `dev_monitor/` | 개발 모니터 ROS·Gazebo smoke 검사 |
 | `mission_runtime/` | Backend API mission lifecycle 검사 |
@@ -19,7 +18,7 @@ ROS 2 패키지 내부 단위 테스트는 각 패키지의 `test/` 또는 `test
 저장소 루트에서 도구 단위 테스트는 `make test-tools`, 시나리오 core 검사는
 `make test-scenario-tools`를 사용한다. 두 명령은 로봇이나 Gazebo를 구동하지 않는다.
 시설 목표 생성 로직의 단위 테스트는 Gazebo 패키지의 `test/test_mission_targets.py`에 있으며
-`make test-gazebo-facility-tools`로 실행한다. micro-ROS 검사는 `make test-micro-ros-setup`으로 따로 실행할 수도 있다.
+`make test-gazebo-facility-tools`로 실행한다. micro-ROS 준비 테스트는 `esp32/host_tests/`에 있으며 `make test-micro-ros-setup`으로 실행한다.
 
 런타임 스크립트는 pytest로 자동 실행되지 않는다. ROS 환경과 필요한 build overlay를
 준비한 뒤 명시적으로 실행한다. 시나리오는
