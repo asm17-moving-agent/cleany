@@ -1,16 +1,13 @@
 # 실행 가이드
 
-- 명령은 저장소 루트의 Ubuntu 22.04 / Humble 터미널 기준
-- [환경과 출력 경로](DEVELOPMENT_SETUP.md), [연동 계약](INTEGRATION.md)을 먼저 확인
-- 각 터미널에서 같은 DDS domain과 같은 worktree overlay를 사용
+명령은 저장소 루트의 Ubuntu 22.04 / Humble 터미널에서 실행합니다. [환경과 출력 경로](DEVELOPMENT_SETUP.md), [연동 계약](INTEGRATION.md)을 확인한 뒤, 각 터미널에 같은 DDS domain과 같은 worktree overlay를 적용합니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
 source "$(make -s print-install-base)/setup.bash"
 ```
 
-- `print-navigation-install-base`, `print-scenario-install-base`는 각각 전용 빌드의 overlay다
-- 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달
+Navigation과 시나리오 전용 빌드는 각각 `print-navigation-install-base`, `print-scenario-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
 ## 실행 선택과 준비 순서
 
@@ -29,11 +26,12 @@ flowchart TB
     Base -. "관측" .-> Monitor
 ```
 
-- `mission_sim.launch.py`는 주행/Mission 구성을 함께 띄운다
-- 이미 sensor·Nav2가 준비돼 있으면 `mission_runtime.launch.py`만 붙인다
-- 실행별 명령은 아래에서 선택
+`mission_sim.launch.py`는 주행과 Mission 구성을 함께 띄웁니다. Sensor와 Nav2가 이미 준비돼 있다면 `mission_runtime.launch.py`만 붙입니다. 아래에서 실행 목적에 맞는 절차를 선택합니다.
 
 ## Gazebo
+
+1. 의존성과 실행 환경을 확인합니다.
+2. Headless base, study-cafe GUI, 전체 시설 GUI 중 하나를 실행합니다.
 
 ```bash
 make deps-gazebo
@@ -43,12 +41,9 @@ make sim-gazebo-study-cafe      # study-cafe GUI; 위 실행과 별도로 사용
 make sim-gazebo-facility        # 전체 시설 GUI; 위 실행과 별도로 사용
 ```
 
-- GUI renderer는 `GAZEBO_GUI_RENDER_ENGINE=ogre|ogre2`로 선택
-- 센서 서버는 OGRE2를 사용
-- GPU LiDAR·camera는 headless에서도 OpenGL context가 필요하다
-- 지원 환경은 Fortress/Humble이며 이전 Harmonic 실험 기록은 [근거 색인](EVIDENCE.md)에서 찾는다
+GUI renderer는 `GAZEBO_GUI_RENDER_ENGINE=ogre|ogre2`로 선택합니다. 센서 서버는 OGRE2를 사용하므로 GPU LiDAR와 camera는 headless에서도 OpenGL context가 필요합니다. 지원 환경은 Fortress/Humble이며, 이전 Harmonic 실험 기록은 [근거 색인](EVIDENCE.md)에 있습니다.
 
-- 같은 overlay/domain의 별도 터미널에서 상태를 확인
+3. 같은 overlay/domain의 별도 터미널에서 sensor와 odometry를 확인합니다.
 
 ```bash
 ros2 topic hz /clock
@@ -57,12 +52,13 @@ ros2 topic echo /odom --once
 ros2 run tf2_ros tf2_echo odom base_link
 ```
 
-- topic 등록만으로 sensor 발행·이동·정지가 확인된 것은 아님
-- 실행별 sensor와 odometry 소유권은 [연동 가이드](INTEGRATION.md)를 기준
+Topic 등록 이후 실제 발행·이동·정지를 각각 확인합니다. 실행별 sensor와 odometry 소유권은 [연동 가이드](INTEGRATION.md)를 따릅니다.
 
 ## Mission Runtime과 Backend
 
-- Gazebo·Nav2·Runtime·Gateway를 함께 실행할 때:
+### 주행 구성을 함께 실행
+
+빌드와 overlay 적용 후 Gazebo·Nav2·Runtime·Gateway를 함께 실행합니다.
 
 ```bash
 make build-mission-sim
@@ -72,11 +68,11 @@ ros2 launch cleany_bringup mission_sim.launch.py \
   post_mission:=wait_for_next
 ```
 
-- Backend는 별도 `cleany-control-plane` 저장소에서 실행
-- 같은 robot에 Runtime·bridge· canonical odometry producer를 중복 실행하지 않음
-- 책상 작업은 기본 mock이며 관측 ID는 사진이 아님
+Backend는 별도 `cleany-control-plane` 저장소에서 실행합니다. 같은 robot에 Runtime, bridge, canonical odometry producer를 중복 실행하지 않습니다. 책상 작업은 기본 mock이며 관측 ID에는 실제 사진이 포함되지 않습니다.
 
-- 이미 AMCL/Nav2를 실행 중이면 simulator를 다시 시작하지 않고 Runtime만 붙인다
+### 기존 주행 구성에 Runtime 연결
+
+AMCL/Nav2가 이미 실행 중이면 아래 명령으로 Runtime을 연결합니다.
 
 ```bash
 make build-mission-runtime
@@ -86,10 +82,14 @@ ros2 launch cleany_mission_manager mission_runtime.launch.py \
   post_mission:=wait_for_next
 ```
 
-- Nav2 없이 구조를 확인하려면 `navigation_backend:=mock`을 추가
-- `post_mission:=return_home|wait_for_next`는 실행 옵션이며 제품 복귀 정책의 확정이 아님
-- 재연결·중복·취소·재시작 계약은 [Mission 계약](../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따른다
-- 실험에는 별도 `journal_path`, `bridge_journal_path`를 사용하고 동일 미션 복구에는 기존 DB를 유지
+| 실행 조건 | 설정·동작 |
+|---|---|
+| Nav2 없이 구조 확인 | `navigation_backend:=mock` 추가 |
+| 완료 후 동작 선택 | `post_mission:=return_home\|wait_for_next`; 제품 복귀 정책은 별도 결정 |
+| 독립 실험 | 별도 `journal_path`, `bridge_journal_path` 사용 |
+| 동일 미션 복구 | 기존 journal DB 유지 |
+
+재연결·중복·취소·재시작 동작은 [Mission 계약](../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따릅니다.
 
 ## 저장 지도 Navigation
 
@@ -99,10 +99,9 @@ source "$(make -s print-navigation-install-base)/setup.bash"
 ros2 launch cleany_navigation navigation.launch.py --show-args
 ```
 
-- [launch](../ros2_ws/src/cleany_navigation/launch/navigation.launch.py)에서 지도·backend·sensor 옵션을 확인
-- Mapping과 AMCL을 같은 `map → odom` 소유자로 함께 실행하지 않음
-- 주행 명령은 Mission의 Navigator/Nav2가 맡고 Runtime은 `/cmd_vel`을 직접 만들지 않는다
-- 안전 경로와 sensor 만료 규칙은 [Navigation reference](../ros2_ws/src/cleany_navigation/docs/safety.md)를 기준
+[Launch](../ros2_ws/src/cleany_navigation/launch/navigation.launch.py)에서 지도·backend·sensor 옵션을 확인합니다. `map → odom`의 소유자는 하나만 선택하므로 Mapping과 AMCL을 함께 실행하지 않습니다.
+
+주행 명령은 Mission의 Navigator/Nav2가 생성합니다. Runtime은 `/cmd_vel`을 직접 만들지 않으며, 안전 경로와 sensor 만료 규칙은 [Navigation reference](../ros2_ws/src/cleany_navigation/docs/safety.md)를 따릅니다.
 
 ## MuJoCo와 조작 데모
 
@@ -113,10 +112,11 @@ ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
 ```
 
-- 위 두 실행과 `handeye_backend.launch.py`는 배타적인 backend다
-- RGB-D scene 출력은 grasp/skill 연동용이며 물체 수거의 완료 증거가 아님
+위 두 실행과 `handeye_backend.launch.py` 중 backend 하나만 실행합니다. RGB-D scene 출력은 grasp/skill 입력으로 사용하며, 수거 완료는 별도로 확인해야 합니다.
 
-- MoveIt plan-only 후보 선택:
+### Plan-only 후보 선택
+
+MoveIt을 준비한 뒤 같은 overlay의 별도 터미널에서 후보 선택을 실행합니다.
 
 ```bash
 ros2 launch cleany_moveit_config mock_planning.launch.py
@@ -124,18 +124,21 @@ ros2 launch cleany_moveit_config mock_planning.launch.py
 ros2 launch cleany_skill_executor grasp_selection.launch.py
 ```
 
-- MuJoCo controller까지 연결한 접근 데모는 각각 별도 실행
+### MuJoCo 접근 데모
+
+아래 데모는 MuJoCo controller까지 연결합니다. 두 launch는 각각 별도로 실행합니다.
 
 ```bash
 ros2 launch cleany_skill_executor grasp_execution_demo.launch.py
 ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
 ```
 
-- 기본 grasp 데모는 후보 선택·두 trajectory 실행·최종 joint 수렴을 확인
-- can 데모는 RGB-D 검출·후보 생성·충돌 검사·그리퍼 개방·방향 보정 pre-grasp 접근까지다
-- 둘 다 gripper close, attach, lift와 실제 수거를 증명하지 않음
-- can 데모는 viewer/OpenGL이 필요하며 `headless:=true`를 지원하지 않음
-- plan-only action과 데모의 차이는 [Manipulation 계약](../ros2_ws/src/cleany_interfaces/docs/manipulation.md)을 기준
+| 데모 | 확인 범위 | 실행 조건 |
+|---|---|---|
+| 기본 grasp | 후보 선택, 두 trajectory 실행, 최종 joint 수렴 | MuJoCo controller 연결 |
+| can grasp | RGB-D 검출, 후보 생성, 충돌 검사, 그리퍼 개방, 방향 보정 pre-grasp 접근 | Viewer/OpenGL 필요; `headless:=true` 미지원 |
+
+두 데모 모두 gripper close, attach, lift와 실제 수거는 검증하지 않습니다. Plan-only action과 데모의 차이는 [Manipulation 계약](../ros2_ws/src/cleany_interfaces/docs/manipulation.md)을 따릅니다.
 
 ## 개발 Monitor
 
@@ -144,16 +147,15 @@ make build-dev-monitor
 make run-dev-monitor
 ```
 
-- 브라우저에서 `http://127.0.0.1:8768`을 연다
-- Monitor는 관측 전용이며 robot 명령을 보내지 않는다
-- 같은 DDS domain과 같은 메시지 overlay가 필요하다
-- Frontend 환경은 [개발환경](DEVELOPMENT_SETUP.md)을 따른다
-- [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 입력·기록을 설정
-- 기록 DB·재생·stale 표시의 의미는 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)을 기준
+브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](DEVELOPMENT_SETUP.md)을 따릅니다.
+
+입력과 기록은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 설정합니다. 기록 DB·재생·stale 표시의 의미는 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)에 있습니다.
 
 ## Base와 plot
 
-- 장치 없는 mock는 별도 domain에서 실행
+### 장치 없는 mock
+
+별도 domain에서 빌드한 mock를 실행합니다.
 
 ```bash
 make build-base
@@ -162,9 +164,11 @@ source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_base_driver base_driver.launch.py mock:=true
 ```
 
-- Mock domain에는 실물 MCU/Agent를 연결하지 않음
-- 고장 주입 service는 mock node와 테스트가 관리
-- 실물은 Agent와 driver 양쪽에 domain 0을 적용하고, 검토한 hardware config를 선택
+Mock domain에는 실물 MCU/Agent를 연결하지 않습니다. 고장 주입 service는 mock node와 테스트가 관리합니다.
+
+### 실물 base와 관측 GUI
+
+Agent와 driver 양쪽에 domain 0을 적용하고 검토한 hardware config를 선택합니다.
 
 ```bash
 export ROS_DOMAIN_ID=0
@@ -174,18 +178,13 @@ ros2 launch cleany_base_driver base_driver.launch.py \
 ros2 launch cleany_base_driver base_monitor.launch.py preset:=true
 ```
 
-- 초기 hardware config는 바퀴를 띄운 시험용
-- 이 launch만으로 구동 허가하지 않음
-- Plot은 목표·slew/reversal 이후 목표·encoder 속도(rad/s)와 PWM(%)·diagnostics를 표시
-- GUI 종료는 별도로 실행한 driver/Agent를 종료하지 않음
-- `preset:=false wheel:=fl|fr|rl|rr|all`로 관측 범위를 바꾼다
+초기 hardware config는 바퀴를 띄운 시험용입니다. Launch 이후 구동 허가는 별도 절차로 수행하며, mock domain과 실제 MCU domain을 혼용하지 않습니다. 실물 시험은 [ESP32 가이드](../esp32/README.md)와 [base 계약](../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md)을 따릅니다.
 
-- 실물 base와 plot은 [ESP32 가이드](../esp32/README.md)와 [base 계약](../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md)을 따른다
-- mock domain과 실제 MCU domain을 혼용하지 않음
+Plot은 목표, slew/reversal 이후 목표, encoder 속도(rad/s), PWM(%), diagnostics를 표시합니다. `preset:=false wheel:=fl|fr|rl|rr|all`로 관측 범위를 바꿀 수 있습니다. GUI를 종료해도 별도로 실행한 driver/Agent는 계속 실행됩니다.
 
 ## 시설 생성 도구와 종료
 
-- `ros2 run cleany_gazebo_sim <스크립트명> --help`로 입력을 확인
+`ros2 run cleany_gazebo_sim <스크립트명> --help`로 각 도구의 입력을 확인합니다.
 
 | CLI | 출력 |
 |---|---|
@@ -194,10 +193,6 @@ ros2 launch cleany_base_driver base_monitor.launch.py preset:=true
 | `generate_felt_texture.py` | 명시한 PNG 경로에 펠트 질감 |
 | `generate_roly_textures.py` | 명시한 폴더에 seat/back PNG |
 
-- 시설 reference 이미지와 입력 fixture는 clone에 포함되지 않을 수 있음
-- [근거 색인](EVIDENCE.md)에서 위치를 확인
-- 목표 생성은 정적 footprint 여유 검사이며 전체 경로·팔 도달성을 증명하지 않음
+시설 reference 이미지와 입력 fixture는 clone에 포함되지 않을 수 있으므로 [근거 색인](EVIDENCE.md)에서 위치를 확인합니다. 목표 생성은 정적 footprint 여유를 검사하며, 전체 경로와 팔 도달성은 별도 검증이 필요합니다.
 
-- launch는 `Ctrl-C`로 종료
-- 센서·명령 발행 중단과 해당 실행의 자식 종료를 확인
-- 시나리오 runner의 실패·cleanup 판정은 [테스트 가이드](TESTING.md)를 기준
+Launch는 `Ctrl-C`로 종료한 뒤 센서·명령 발행 중단과 해당 실행의 자식 종료를 확인합니다. 시나리오 runner의 실패·cleanup 판정은 [테스트 가이드](TESTING.md)를 따릅니다.

@@ -1,8 +1,6 @@
 # Cleany 로봇 런타임
 
-- 구현: ROS 2 runtime·Gazebo/MuJoCo·ESP32
-- 제품 목표·설계 결정: [KB](docs/cleany-docs/README.md)
-- 구현 상태 ≠ 제품 전체 완료
+Cleany 로봇의 ROS 2 runtime, Gazebo/MuJoCo 시뮬레이션, ESP32 펌웨어를 관리하는 저장소입니다. 제품 목표와 설계 결정은 [KB](docs/cleany-docs/README.md)에서 확인합니다. 각 구현과 시험의 상태는 제품 전체의 완료 여부와 구분합니다.
 
 ## 문서 지도
 
@@ -29,9 +27,7 @@ flowchart TB
 
 ## 개발 시작
 
-- 기준 환경은 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Gazebo Fortress 6
-- 새 환경은 [개발환경 설치](docs/DEVELOPMENT_SETUP.md)를 먼저 따른다
-- 아래 명령은 저장소 루트의 Humble 터미널에서 실행
+기준 환경은 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Gazebo Fortress 6입니다. 새 환경은 [개발환경 설치](docs/DEVELOPMENT_SETUP.md)를 먼저 따릅니다. 아래 명령은 저장소 루트의 Humble 터미널에서 실행합니다.
 
 ```bash
 git submodule update --init --recursive docs/cleany-docs
@@ -41,8 +37,7 @@ make test-gazebo
 make sim-gazebo
 ```
 
-- 전체 workspace는 `make deps`, `make build`, `make test`를 사용
-- 정적·단위 검사와 시뮬레이션·실물 검증의 차이는 [테스트 가이드](docs/TESTING.md)를 기준
+전체 workspace는 `make deps`, `make build`, `make test`를 사용합니다. 각 검사의 범위와 시뮬레이션·실물 검증의 차이는 [테스트 가이드](docs/TESTING.md)에서 확인합니다.
 
 ## 필요한 문서
 
@@ -67,6 +62,4 @@ make sim-gazebo
 | `tests/` | 패키지 경계를 넘는 검사, 시뮬레이션 평가와 실행 보조 코드 |
 | `tools/ros2/` | 해당 worktree의 외부 빌드 출력 정리 |
 
-- 생성물과 실행 원본은 기본적으로 worktree 옆 `../cleany-data/`에 둔다
-- `make help`는 사용 가능한 명령, Makefile·launch·config는 실제 옵션의 기준
-- 문서 변경은 기존 설명을 갱신하며 날짜별 구현 일지를 README에 추가하지 않음
+생성물과 실행 원본은 기본적으로 worktree 옆 `../cleany-data/`에 둡니다. 사용 가능한 명령은 `make help`, 실제 옵션은 Makefile·launch·config에서 확인합니다. 문서 변경은 기존 설명에 반영하며, README에는 날짜별 구현 일지를 추가하지 않습니다.

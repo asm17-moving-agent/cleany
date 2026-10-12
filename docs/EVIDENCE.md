@@ -1,9 +1,8 @@
 # 실행 원본 색인
 
-- 현행 사용법: [실행](RUNNING.md), [테스트](TESTING.md), [연동](INTEGRATION.md)
-- Data root: ../cleany-data, 변경: CLEANY_DATA_ROOT
-- 외부 fixture·asset: clone에 미포함. 별도 전달·hash 확인
-- 과거 pass 수·RTF·결과: 현재 검증으로 재사용 금지
+현행 사용법은 [실행](RUNNING.md), [테스트](TESTING.md), [연동](INTEGRATION.md) 가이드를 따릅니다. 실행 원본의 기본 데이터 루트는 `../cleany-data`이며 `CLEANY_DATA_ROOT`로 변경합니다. Clone에 포함되지 않은 외부 fixture·asset은 별도로 전달받고 hash를 확인합니다.
+
+과거 pass 수·RTF·결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
 | 데이터 루트 아래 경로 | 내용 |
 |---|---|
@@ -23,9 +22,6 @@
 
 ## 재현·보존
 
-- 문서 보관 source: fbe5854. Commit·dirty·SHA-256: 보관 manifest
-- 과거 경로 대응: relocation-manifest.json
-- 절대 경로·원본 hash: 일괄 치환 금지
-- 재현: 기록된 commit의 별도 checkout + 해당 환경·입력
-- Fixture 현재 위치와 profile-manifest의 과거 provenance 구분
-- 타 브랜치 자료: 해당 버전의 근거. 제품 결정은 KB 검토·Decision 절차
+문서 개편 전 사본의 source commit은 `fbe5854`입니다. Commit·dirty 상태·SHA-256은 보관 manifest, 과거 경로 대응은 `relocation-manifest.json`에서 확인합니다. 원본의 절대 경로와 hash는 보존하고, fixture의 현재 위치와 profile-manifest의 과거 provenance를 구분합니다.
+
+재현할 때는 기록된 commit의 별도 checkout과 해당 환경·입력을 사용합니다. 다른 브랜치의 자료는 해당 버전의 근거로 취급하며, 제품 결정은 KB 검토·Decision 절차를 따릅니다.
