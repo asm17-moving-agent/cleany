@@ -1,8 +1,8 @@
 # Motor controller pin map
 
-[Schematic](pcb/motor_controller.kicad_sch)과 [PCB](pcb/motor_controller.kicad_pcb)의 배선·pad net을 기준으로 정리한 pin map입니다. Connector 번호는 KiCad symbol/pad 기준입니다.
+[Schematic](pcb/motor_controller.kicad_sch)과 [PCB](pcb/motor_controller.kicad_pcb)의 배선, pad net을 기준으로 정리한 pin map입니다. Connector 번호는 KiCad symbol/pad 기준입니다.
 
-Pin 1은 round-rectangle pad, 나머지는 oval pad입니다. Cable을 제작할 때 pin-1 mark를 확인하고 mating side에서 좌우 순서가 반전되는 점을 고려합니다. Logic·encoder 전원은 3.3 V이며, `J_MOTOR`는 PWM/DIR 신호용으로 모터 phase current를 전달하지 않습니다.
+Pin 1은 round-rectangle pad, 나머지는 oval pad입니다. Cable을 제작할 때 pin-1 mark를 확인하고 mating side에서 좌우 순서가 반전되는 점을 고려합니다. Logic, encoder 전원은 3.3 V이며, `J_MOTOR`는 PWM/DIR 신호용으로 모터 phase current를 전달하지 않습니다.
 
 ## ESP32-S3 signal assignment
 

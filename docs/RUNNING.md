@@ -21,7 +21,7 @@ flowchart TB
     Mujoco --> MoveIt["MoveIt / controller 준비"]
     MoveIt --> Task["데모 또는 calibration 실행"]
     Mode -->|"base 단독 검사"| Base["mock 또는 실물 Agent + driver"]
-    Mission -. "관측" .-> Monitor["Monitor · 동일 domain과 overlay"]
+    Mission -. "관측" .-> Monitor["Monitor / 동일 domain과 overlay"]
     Task -. "관측" .-> Monitor
     Base -. "관측" .-> Monitor
 ```
@@ -52,13 +52,13 @@ ros2 topic echo /odom --once
 ros2 run tf2_ros tf2_echo odom base_link
 ```
 
-Topic 등록 이후 실제 발행·이동·정지를 각각 확인합니다. 실행별 sensor와 odometry 소유권은 [연동 가이드](INTEGRATION.md)를 따릅니다.
+Topic 등록 이후 실제 발행, 이동, 정지를 각각 확인합니다. 실행별 sensor와 odometry 소유권은 [연동 가이드](INTEGRATION.md)를 따릅니다.
 
 ## Mission Runtime과 Backend
 
 ### 주행 구성을 함께 실행
 
-빌드와 overlay 적용 후 Gazebo·Nav2·Runtime·Gateway를 함께 실행합니다.
+빌드와 overlay 적용 후 Gazebo, Nav2, Runtime, Gateway를 함께 실행합니다.
 
 ```bash
 make build-mission-sim
@@ -82,14 +82,14 @@ ros2 launch cleany_mission_manager mission_runtime.launch.py \
   post_mission:=wait_for_next
 ```
 
-| 실행 조건 | 설정·동작 |
+| 실행 조건 | 설정과 동작 |
 |---|---|
 | Nav2 없이 구조 확인 | `navigation_backend:=mock` 추가 |
 | 완료 후 동작 선택 | `post_mission:=return_home\|wait_for_next`; 제품 복귀 정책은 별도 결정 |
 | 독립 실험 | 별도 `journal_path`, `bridge_journal_path` 사용 |
 | 동일 미션 복구 | 기존 journal DB 유지 |
 
-재연결·중복·취소·재시작 동작은 [Mission 계약](../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따릅니다.
+재연결, 중복, 취소, 재시작 동작은 [Mission 계약](../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따릅니다.
 
 ## 저장 지도 Navigation
 
@@ -99,7 +99,7 @@ source "$(make -s print-navigation-install-base)/setup.bash"
 ros2 launch cleany_navigation navigation.launch.py --show-args
 ```
 
-[Launch](../ros2_ws/src/cleany_navigation/launch/navigation.launch.py)에서 지도·backend·sensor 옵션을 확인합니다. `map → odom`의 소유자는 하나만 선택하므로 Mapping과 AMCL을 함께 실행하지 않습니다.
+[Launch](../ros2_ws/src/cleany_navigation/launch/navigation.launch.py)에서 지도, backend, sensor 옵션을 확인합니다. `map → odom`의 소유자는 하나만 선택하므로 Mapping과 AMCL을 함께 실행하지 않습니다.
 
 주행 명령은 Mission의 Navigator/Nav2가 생성합니다. Runtime은 `/cmd_vel`을 직접 만들지 않으며, 안전 경로와 sensor 만료 규칙은 [Navigation reference](../ros2_ws/src/cleany_navigation/docs/safety.md)를 따릅니다.
 
@@ -149,7 +149,7 @@ make run-dev-monitor
 
 브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](DEVELOPMENT_SETUP.md)을 따릅니다.
 
-입력과 기록은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 설정합니다. 기록 DB·재생·stale 표시의 의미는 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)에 있습니다.
+입력과 기록은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 설정합니다. 기록 DB, 재생, stale 표시의 의미는 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)에 있습니다.
 
 ## Base와 plot
 
@@ -189,10 +189,10 @@ Plot은 목표, slew/reversal 이후 목표, encoder 속도(rad/s), PWM(%), diag
 | CLI | 출력 |
 |---|---|
 | `generate_mission_targets.py` | 접근 목표 YAML과 검증 JSON |
-| `render_layout_overlay.py` | 명시한 layout·reference image로 배치 SVG |
+| `render_layout_overlay.py` | 명시한 layout, reference image로 배치 SVG |
 | `generate_felt_texture.py` | 명시한 PNG 경로에 펠트 질감 |
 | `generate_roly_textures.py` | 명시한 폴더에 seat/back PNG |
 
 시설 reference 이미지와 입력 fixture는 clone에 포함되지 않을 수 있으므로 [근거 색인](EVIDENCE.md)에서 위치를 확인합니다. 목표 생성은 정적 footprint 여유를 검사하며, 전체 경로와 팔 도달성은 별도 검증이 필요합니다.
 
-Launch는 `Ctrl-C`로 종료한 뒤 센서·명령 발행 중단과 해당 실행의 자식 종료를 확인합니다. 시나리오 runner의 실패·cleanup 판정은 [테스트 가이드](TESTING.md)를 따릅니다.
+Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 실행의 자식 종료를 확인합니다. 시나리오 runner의 실패, cleanup 판정은 [테스트 가이드](TESTING.md)를 따릅니다.

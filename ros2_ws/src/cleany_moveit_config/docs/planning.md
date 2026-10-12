@@ -1,8 +1,21 @@
 # MoveIt planning 계약
 
-MoveIt은 팔별 5관절을 계획하며 gripper·base는 planning group에서 제외한다. Grasp group은 같은 팔 관절을 사용하고 fixed TCP joint까지 chain을 확장한다.
+MoveIt은 팔별 5관절을 계획하며 gripper, base는 planning group에서 제외한다. Grasp group은 같은 팔 관절을 사용하고 fixed TCP joint까지 chain을 확장한다.
 
 ## Group과 controller
+
+```mermaid
+flowchart TB
+    Backend["활성 backend 하나"] -->|"팔 / gripper joint_states"| State["RobotState"]
+    Model["URDF / SRDF / KDL 설정"] --> MoveIt["MoveIt / move_group"]
+    State --> MoveIt
+    Scene["Collision scene<br/>고정 형상 / 동적 대상"] --> MoveIt
+    MoveIt --> Arm["left_arm / right_arm<br/>계획 trajectory"]
+    Arm -->|"FollowJointTrajectory"| Controller["좌우 arm controller"]
+    Controller --> Backend
+    MoveIt --> Grasp["left_grasp_arm / right_grasp_arm<br/>fixed TCP / plan-only"]
+    Grasp --> Result["도달성 검사 결과<br/>controller 실행과 별개"]
+```
 
 | Group | Chain | Controller |
 |---|---|---|
@@ -17,9 +30,9 @@ MoveIt은 팔별 5관절을 계획하며 gripper·base는 planning group에서 �
 | Home | left_home/right_home의 팔 5관절 모두 0 rad |
 | Controller 타입 | control_msgs/action/FollowJointTrajectory |
 | Action 이름 | /left_arm_controller/follow_joint_trajectory, /right_arm_controller/follow_joint_trajectory |
-| Backend 상태 | 팔·gripper 전체 /joint_states 발행 필수 |
+| Backend 상태 | 팔, gripper 전체 /joint_states 발행 필수 |
 
-Position-only IK는 목표 orientation을 제약하지 않는다. SRDF는 직접 parent/child만 충돌 검사에서 제외하며, 비인접·좌우 cross-arm 검사는 유지한다.
+Position-only IK는 목표 orientation을 제약하지 않는다. SRDF는 직접 parent/child만 충돌 검사에서 제외하며, 비인접, 좌우 cross-arm 검사는 유지한다.
 
 ## 고정 collision scene
 
@@ -33,6 +46,6 @@ ros2 launch cleany_moveit_config handeye_collision_scene.launch.py
 
 Applier는 /apply_planning_scene이 handeye_table, handeye_target_stand, charuco_target을 수락한 뒤 종료한다. 일반 move_group launch는 이 scene을 자동 주입하지 않는다.
 
-Pick-demo table은 config/pick_demo_collision_objects.yaml에 있으며 rgbd_pick_demo.xml.in과 크기·pose가 일치한다. Box/can target은 reachable-grasp action에서 동적으로 등록한다.
+Pick-demo table은 config/pick_demo_collision_objects.yaml에 있으며 rgbd_pick_demo.xml.in과 크기, pose가 일치한다. Box/can target은 reachable-grasp action에서 동적으로 등록한다.
 
 관련 안내: [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md).

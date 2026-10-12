@@ -1,6 +1,6 @@
 # Robot model 계약
 
-CAD 모델은 ROS 좌표·팔 chain·시뮬레이션 형상을 공유한다. Geometry·질량·센서 TF에는 명목값과 추정값이 포함되므로 실물 검증값으로 취급하지 않는다.
+CAD 모델은 ROS 좌표, 팔 chain, 시뮬레이션 형상을 공유한다. Geometry, 질량, 센서 TF에는 명목값과 추정값이 포함되므로 실물 검증값으로 취급하지 않는다.
 
 ## 좌표와 형상
 
@@ -16,7 +16,7 @@ CAD 모델은 ROS 좌표·팔 chain·시뮬레이션 형상을 공유한다. Geo
 
 ## 제어 범위
 
-Control entrypoint는 팔 10관절을 명령하고 gripper 2관절을 관측한다. Gripper 명령은 enable_gripper_command=true일 때만 허용하며 base·head·roller는 이 계약 밖이다.
+Control entrypoint는 팔 10관절을 명령하고 gripper 2관절을 관측한다. Gripper 명령은 enable_gripper_command=true일 때만 허용하며 base, head, roller는 이 계약 밖이다.
 
 Arm-only MoveIt은 include_head_camera=false, include_wheel_joints=false를 사용한다. Full description에서는 둘 다 기본 true이며, wheel false여도 fixed geometry는 유지한다.
 
@@ -30,6 +30,6 @@ Arm-only MoveIt은 include_head_camera=false, include_wheel_joints=false를 사�
 | 배터리 | 5.20 kg, 195×165×175 mm |
 | PG42 motor | 각 0.8 kg |
 
-Gazebo navigation은 park 팔·head를 고정하고 wheel joint·센서를 부착한다. 이 설정은 실물 관성·센서 보정을 증명하지 않는다.
+Gazebo navigation은 park 팔, head를 고정하고 wheel joint, 센서를 부착한다. 이 설정은 실물 관성, 센서 보정을 증명하지 않는다.
 
 관련 안내: [MuJoCo backend](../../cleany_mujoco_sim/docs/backends.md).

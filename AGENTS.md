@@ -22,10 +22,10 @@ git submodule update --init --recursive docs/cleany-docs
 
 ### 구현 문서 갱신
 
-- 실행·테스트·캘리브레이션 절차는 `docs/RUNNING.md`, `docs/TESTING.md`, `docs/CALIBRATION.md`가 관리한다. 인터페이스·단위·멱등성·안전·데이터 규약은 `docs/INTEGRATION.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
-- 구현 문서는 내용에 맞는 서술 형식을 선택한다. 역할과 정상 동작은 짧은 완전한 문장으로 설명하고, 흐름은 도식, 인터페이스·단위·조건은 표, 실행 절차는 번호와 명령 블록으로 정리한다. 목록은 독립적인 확인 항목에 사용한다. 고정 템플릿의 빈 항목, 코드 해설·작업 일지·중복 설명은 추가하지 않는다.
-- 폴더마다 README를 만들지 않는다. 독립 배포·사용 절차가 필요한 도구, 펌웨어와 asset 출처·라이선스처럼 고유한 역할이 있는 경우만 둔다. 파일 목록·코드 요약·현재 테스트 점수·작업 일지를 README에 복제하지 않는다.
-- 과거 실행 근거는 `docs/EVIDENCE.md`에서 찾고 새 결과에는 commit·환경·입력·실패·원본 위치를 남긴다.
+- 실행, 테스트, 캘리브레이션 절차는 `docs/RUNNING.md`, `docs/TESTING.md`, `docs/CALIBRATION.md`가 관리한다. 인터페이스, 단위, 멱등성, 안전, 데이터 규약은 `docs/INTEGRATION.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
+- 구현 문서는 내용에 맞는 서술 형식을 선택한다. 역할과 정상 동작은 짧은 완전한 문장으로 설명하고, 흐름은 도식, 인터페이스, 단위와 조건은 표, 실행 절차는 번호와 명령 블록으로 정리한다. 목록은 독립적인 확인 항목에 사용한다. 나열에는 쉼표나 자연스러운 접속 표현을 사용하고 가운뎃점으로 단어를 연결하지 않는다. 고정 템플릿의 빈 항목, 코드 해설, 작업 일지, 중복 설명은 추가하지 않는다.
+- 폴더마다 README를 만들지 않는다. 독립 배포, 사용 절차가 필요한 도구, 펌웨어와 asset 출처와 라이선스처럼 고유한 역할이 있는 경우만 둔다. 파일 목록, 코드 요약, 현재 테스트 점수, 작업 일지를 README에 복제하지 않는다.
+- 과거 실행 근거는 `docs/EVIDENCE.md`에서 찾고 새 결과에는 commit, 환경, 입력, 실패, 원본 위치를 남긴다.
 - 개발환경 설치와 system dependency 기준은 `docs/DEVELOPMENT_SETUP.md`에서 관리한다.
 - KB에서 아직 검토 중인 전제는 코드나 구현 문서에서 확정 사실처럼 표현하거나 하드코딩하지 않는다.
 
@@ -44,7 +44,7 @@ git submodule update --init --recursive docs/cleany-docs
 - FSM/core logic 변경: 해당 패키지 pytest를 우선 실행한다.
 - ROS package manifest, launch, install data 변경: 관련 패키지 또는 workspace build를 실행한다.
 - 여러 패키지 경계나 ROS interface를 바꿨으면 전체 workspace test까지 고려한다.
-- 반복 빌드·테스트는 루트 Makefile을 사용하고, 세부 옵션은 해당 launch의 `--show-args`와 Makefile을 따른다.
+- 반복 빌드와 테스트는 루트 Makefile을 사용하고, 세부 옵션은 해당 launch의 `--show-args`와 Makefile을 따른다.
 - 공통 빌드는 `docs/DEVELOPMENT_SETUP.md`, 실행은 `docs/RUNNING.md`, 검증은 `docs/TESTING.md`를 따른다.
 - 검증을 실행하지 못했으면 최종 응답에 이유와 대신 확인한 내용을 적는다.
 

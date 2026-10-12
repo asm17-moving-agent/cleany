@@ -1,6 +1,6 @@
 # Mobile base 계약
 
-MuJoCo·Gazebo·실물 base는 차체 속도를 같은 ROS 계약으로 받는다. `/cmd_vel`은 연속 명령 스트림이며 성공 응답을 반환하지 않는다. 실제 이동은 `/odom` 등의 상태로 확인한다.
+MuJoCo, Gazebo, 실물 base는 차체 속도를 같은 ROS 계약으로 받는다. `/cmd_vel`은 연속 명령 스트림이며 성공 응답을 반환하지 않는다. 실제 이동은 `/odom` 등의 상태로 확인한다.
 
 ## 인터페이스
 
@@ -26,6 +26,6 @@ Twist에는 stamp가 없으므로 timeout은 수신 monotonic 시각으로 판�
 
 ## 소유권
 
-한 시점에 명령원 하나만 cmd_vel을 제어한다. Nav2·teleop·시험 명령의 선택은 별도 mux가 담당한다. Mission Manager는 cmd_vel을 직접 발행하지 않고 Navigator/Nav2에 주행을 위임한다.
+한 시점에 명령원 하나만 cmd_vel을 제어한다. Nav2, teleop, 시험 명령의 선택은 별도 mux가 담당한다. Mission Manager는 cmd_vel을 직접 발행하지 않고 Navigator/Nav2에 주행을 위임한다.
 
-이 계약은 차체 Twist까지만 정의한다. Wheel 목표·MCU 통신·encoder·PID·PWM은 backend 내부 계약이다.
+이 계약은 차체 Twist까지만 정의한다. Wheel 목표, MCU 통신, encoder, PID, PWM은 backend 내부 계약이다.

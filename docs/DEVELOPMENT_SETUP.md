@@ -123,7 +123,7 @@ make deps
 | 기능 | `make deps`로 설치하는 의존성 |
 |---|---|
 | Native depth self-filter | Manifest의 `python3-dev` 개발 헤더 |
-| 계획·제어 | MoveIt 2, KDL, OMPL, ros2_control, joint_trajectory_controller |
+| 계획, 제어 | MoveIt 2, KDL, OMPL, ros2_control, joint_trajectory_controller |
 | Hand-eye backend | cleany_mujoco_sim manifest의 mujoco_ros2_control |
 
 아래 명령으로 runtime package 설치를 확인합니다.
@@ -143,7 +143,7 @@ Gazebo만 준비할 때는 다음 target을 사용합니다.
 make deps-gazebo
 ```
 
-시설 CLI는 `cleany_gazebo_sim`에 포함됩니다. NumPy·SciPy·Pillow·PyYAML은 manifest와 rosdep으로 설치하며, 빌드 후 `ros2 run cleany_gazebo_sim`으로 실행합니다.
+시설 CLI는 `cleany_gazebo_sim`에 포함됩니다. NumPy, SciPy, Pillow, PyYAML은 manifest와 rosdep으로 설치하며, 빌드 후 `ros2 run cleany_gazebo_sim`으로 실행합니다.
 
 `deps-gazebo`는 MuJoCo parity-test용 `mujoco` key를 제외합니다. 전체 테스트에는 custom 규칙 등록과 `make deps`가 필요합니다.
 
@@ -162,7 +162,7 @@ source "$(make -s print-install-base)/setup.bash"
 make test
 ```
 
-Gazebo·Navigation·시나리오 전용 빌드는 Makefile이 선택하는 별도 출력을 사용합니다. Navigation과 시나리오 overlay는 `make -s print-navigation-install-base`, `make -s print-scenario-install-base`로 조회합니다. 빌드와 조회에는 같은 Make 변수를 전달합니다.
+Gazebo, Navigation, 시나리오 전용 빌드는 Makefile이 선택하는 별도 출력을 사용합니다. Navigation과 시나리오 overlay는 `make -s print-navigation-install-base`, `make -s print-scenario-install-base`로 조회합니다. 빌드와 조회에는 같은 Make 변수를 전달합니다.
 
 다른 ROS 배포판의 build/install/log는 재사용하지 않습니다. 출력은 Makefile의 clean target으로 정리하며, 실행 중인 overlay는 보존합니다.
 
@@ -176,7 +176,7 @@ Ubuntu 22.04 Distrobox `ros2-humble` 안에 위 의존성을 준비합니다. �
 
 ### ESP32
 
-모터 펌웨어와 micro-ROS 준비는 [ESP32](../esp32/README.md) 가이드를 따릅니다. 고정 버전은 [micro_ros.lock.json](../esp32/micro_ros.lock.json)이 관리하며, firmware와 ROS/Agent의 shell 환경은 분리합니다. 장치 없는 빌드 이후 upload·serial 연결·모터 구동은 각각 별도로 확인합니다.
+모터 펌웨어와 micro-ROS 준비는 [ESP32](../esp32/README.md) 가이드를 따릅니다. 고정 버전은 [micro_ros.lock.json](../esp32/micro_ros.lock.json)이 관리하며, firmware와 ROS/Agent의 shell 환경은 분리합니다. 장치 없는 빌드 이후 upload, serial 연결, 모터 구동은 각각 별도로 확인합니다.
 
 ### Monitor 웹
 
@@ -188,11 +188,11 @@ pnpm install --frozen-lockfile
 pnpm build
 ```
 
-`pnpm-lock.yaml`이 웹 dependency를 고정합니다. 빌드된 `web/dist`를 package 설치에 포함하므로 ROS 런타임에는 Node.js가 필요하지 않습니다. Playwright browser는 개발 검증 시 설치하며, ROS 쪽 aiohttp·Pillow 등은 package.xml과 rosdep으로 설치합니다.
+`pnpm-lock.yaml`이 웹 dependency를 고정합니다. 빌드된 `web/dist`를 package 설치에 포함하므로 ROS 런타임에는 Node.js가 필요하지 않습니다. Playwright browser는 개발 검증 시 설치하며, ROS 쪽 aiohttp, Pillow 등은 package.xml과 rosdep으로 설치합니다.
 
 ## 문제 해결
 
-| 증상 | 확인·조치 |
+| 증상 | 확인과 조치 |
 |---|---|
 | Python import 오류 | 같은 worktree를 빌드하고 해당 install overlay를 source |
 | Rosdep의 mujoco key 오류 | Custom 규칙의 절대 경로를 갱신한 뒤 `rosdep update` |
@@ -200,4 +200,4 @@ pnpm build
 | Headless camera/GPU LiDAR 실패 | Server의 rendering context와 display/OpenGL 확인. `LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo`는 저속 진단용 fallback |
 | Viewer 실패 | VM 3D acceleration과 DISPLAY/socket 확인. Hand-eye 수집에는 viewer 필요; 화면 없는 환경에서는 `test-handeye`의 headless 검사 사용 |
 
-설치 기준은 [ROS Humble 공식 문서](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)를 따릅니다. 저장소의 재현 기준은 package.xml·rosdep 규칙·lock 파일과 [CI](../.github/workflows/ci.yml)가 관리합니다.
+설치 기준은 [ROS Humble 공식 문서](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)를 따릅니다. 저장소의 재현 기준은 package.xml, rosdep 규칙, lock 파일과 [CI](../.github/workflows/ci.yml)가 관리합니다.
