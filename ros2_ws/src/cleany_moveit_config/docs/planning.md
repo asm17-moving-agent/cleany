@@ -1,60 +1,38 @@
 # MoveIt planning 계약
 
-
 | Group | Chain | Controller |
 |---|---|---|
-| `left_arm` | `base_link` -> `left_gripper_frame` | `left_arm_controller` |
-| `right_arm` | `base_link` -> `right_gripper_frame` | `right_arm_controller` |
-| `left_grasp_arm` | `base_link` -> `left_grasp_tcp` | plan-only |
-| `right_grasp_arm` | `base_link` -> `right_grasp_tcp` | plan-only |
+| left_arm | base_link → left_gripper_frame | left_arm_controller |
+| right_arm | base_link → right_gripper_frame | right_arm_controller |
+| left_grasp_arm | base_link → left_grasp_tcp | plan-only |
+| right_grasp_arm | base_link → right_grasp_tcp | plan-only |
 
-Each group contains only its five arm joints. Gripper joints and the mobile
-base are not planning-group joints. Both groups use
-`kdl_kinematics_plugin/KDLKinematicsPlugin` with `position_only_ik: true`, so
-the target position and the complete arm seed determine the resolved joint
-configuration; target orientation is not constrained by IK.
+## 관절·충돌
 
-Grasp groups share the same five active joints as their corresponding arm
-group and extend the chain only through the fixed `*_grasp_tcp_joint`.
+- Group: 팔 5관절만 포함. Gripper·base 제외
+- Grasp group: 같은 팔 5관절 + fixed TCP joint
+- IK: KDL, position_only_ik=true. 목표 위치·전체 arm seed 사용; orientation 미제약
+- Home: left_home/right_home 각 팔 5관절=0 rad
+- SRDF: 직접 parent/child만 충돌 제외. 비인접·좌우 cross-arm 충돌 검사 유지
 
-The named states `left_home` and `right_home` set all five corresponding arm
-joints to `0.0 rad`. The SRDF collision matrix disables only direct
-parent/child pairs. Non-adjacent arm/base pairs and all left/right cross-arm
-pairs remain collision checked.
+## Controller
 
-The production controller contract is:
+- 타입: control_msgs/action/FollowJointTrajectory
+- 이름: `/left_arm_controller/follow_joint_trajectory`, `/right_arm_controller/follow_joint_trajectory`
+- Backend: 팔·gripper 전체 `/joint_states` 발행 필수
 
-```text
-/left_arm_controller/follow_joint_trajectory
-/right_arm_controller/follow_joint_trajectory
-```
+## 고정 collision scene
 
-Both actions use `control_msgs/action/FollowJointTrajectory`. An active robot
-backend must also publish all arm and gripper state on `/joint_states`.
-
-## Fixed hand-eye collision scene
-
-The fixed calibration table, target stand, and ChArUco backing are defined in
-`config/handeye_collision_objects.yaml` using the
-`cleany.moveit_collision_objects/v1` schema. Every box has a full-extent
-dimension and an explicit `primitive_pose` in `base_link`; no unused
-top-level `CollisionObject.pose` is assumed.
-
-After `move_group` is running, apply the scene once with:
+- Hand-eye 원본: config/handeye_collision_objects.yaml, schema cleany.moveit_collision_objects/v1
+- Box: 전체 길이 + base_link 기준 primitive_pose. Top-level CollisionObject.pose 의존 없음
+- 적용: move_group 실행 후 한 번
 
 ```bash
 ros2 launch cleany_moveit_config handeye_collision_scene.launch.py
 ```
 
-The applier calls `/apply_planning_scene` and exits only after MoveIt accepts
-all three object IDs: `handeye_table`, `handeye_target_stand`, and
-`charuco_target`. The generic `move_group.launch.py` does not inject these
-hand-eye-only objects automatically.
-
-The RGB-D pick demo table is separately defined in
-`config/pick_demo_collision_objects.yaml`, with the same full size and pose as
-`rgbd_pick_demo.xml.in`. Box/can targets are registered dynamically by the
-reachable-grasp action instead of this fixed scene.
-
-
-실행·검증은 [RUNNING](../../../../docs/RUNNING.md), [TESTING](../../../../docs/TESTING.md)를 따른다.
+- Apply: /apply_planning_scene에서 handeye_table / handeye_target_stand / charuco_target 수락 후 종료
+- 일반 move_group launch: hand-eye scene 자동 주입 없음
+- Pick-demo table: config/pick_demo_collision_objects.yaml, rgbd_pick_demo.xml.in과 크기·pose 일치
+- Box/can target: reachable-grasp action에서 동적 등록
+- 안내: [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md)

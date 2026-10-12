@@ -1,32 +1,37 @@
 # Scene와 Grasp 계약
 
-필드 원본은 이 패키지의 msg/action/srv다. 좌표는 m, 회전은 오른손 좌표계다.
-DetectedObject3DArray의 header가 모든 객체의 capture stamp와 frame을 소유한다.
-object_id는 snapshot 안의 1부터 시작하는 선택 번호, snapshot_id는 opaque identifier다.
-OBB pose는 중심·방향, size는 OBB local X/Y/Z의 **전체 길이**다. confidence는 [0,1]이다.
+- 원본: 패키지 msg/action/srv
+- 좌표: m, 오른손 좌표계
 
-InspectScene은 동기화한 RGB-D에 detector → segmenter → 3D reconstruction → TF 변환을 한 번 수행하는 cancel 가능한 action이다.
-빈 query는 node 기본 prompt다. 정상 빈 장면은 success=true, ERROR_NONE, 빈 objects다.
-RGB-D timeout·API·JSON·mask·depth·plane·TF·cancel·internal 오류를 구분한다.
+## Snapshot·객체
 
-## 후보 생성
+- Array header: 전체 객체의 capture stamp·frame
+- object_id: snapshot 내 1부터 시작하는 선택 번호
+- snapshot_id: opaque identifier
+- OBB: pose=중심·방향, size=local X/Y/Z 전체 길이
+- confidence: [0,1]
+- InspectScene: 동기 RGB-D → detector → segmenter → 3D reconstruction → TF; 취소 가능
+- 빈 query: 기본 prompt. 정상 빈 장면: success=true / ERROR_NONE / objects=[]
+- 오류: timeout·API·JSON·mask·depth·plane·TF·cancel·internal 구분
 
-PlanGrasp는 snapshot/object ID, target/context cloud와 OBB를 직접 전달한다. 숨은 perception cache를 참조하지 않는다.
-Cloud는 동일한 nonzero capture stamp와 frame을 가져야 한다. TF는 capture 시각을 사용하며 latest로 대체하지 않는다.
-PointCloud2의 XYZ float32와 packed RGB(float32 또는 uint32 저장), point_step/row_step/payload를 검증하고 organized/padded row를 처리한다.
-후보는 score 내림차순이다. 후보 없음은 실패이며 가짜 pose를 만들지 않는다.
-TCP 회전은 rigid rotation(det +1)이어야 하며 reflection은 거절한다.
-Provider·approach 설정은 cleany_grasping/config가 관리한다.
+## Grasp 후보
 
-## 도달 가능 후보 선택
+- PlanGrasp 입력: snapshot/object ID, target/context cloud, OBB. 숨은 cache 의존 없음
+- Cloud: 같은 nonzero capture stamp·frame
+- TF: capture 시각 사용. Latest 대체 금지
+- PointCloud2: XYZ float32, packed RGB float32/uint32; step·payload 검사, padded row 지원
+- 후보: score 내림차순. 후보 없음은 실패; 가짜 pose 금지
+- TCP: rigid rotation, det +1. Reflection 거절
+- Provider·approach 설정: cleany_grasping/config
 
-SelectReachableGrasp는 같은 snapshot/object/frame/OBB의 후보를 받는다.
-양팔 IK·state validity·pregrasp/grasp 2구간 **plan-only** 검증을 수행한다.
-완전하고 fresh한 12관절 RobotState를 사용하고 한 번에 goal 하나만 처리한다.
-임시 ACM은 terminal 결과 전에 복원해야 한다. 복원 실패는 성공이 아니다.
-성공 결과는 후보 index·arm·candidate·endpoint joint state다.
-Trajectory는 현재 RobotState에 종속되어 결과에 포함하지 않는다.
-현재 position-only IK는 목표 orientation 도달을 검증하지 않는다.
-MuJoCo 접근 데모는 gripper close·attach·lift의 물리 성공을 증명하지 않는다.
+## 도달성 선택
 
-[Planning](../../cleany_moveit_config/docs/planning.md), [실행](../../../../docs/RUNNING.md).
+- SelectReachableGrasp: 같은 snapshot/object/frame/OBB 후보 사용
+- 검사: 양팔 IK·state validity·pregrasp/grasp 2구간 plan-only
+- RobotState: 완전하고 fresh한 12관절. Goal 하나씩 처리
+- 임시 ACM: terminal 전 복원 필수. 복원 실패는 성공 아님
+- 결과: candidate index·arm·candidate·endpoint joint state
+- Trajectory 미반환: 현재 RobotState에 종속
+- Position-only IK: 목표 orientation 도달 미검증
+- MuJoCo 접근 데모: gripper close·attach·lift 성공 증거 아님
+- 안내: [Planning](../../cleany_moveit_config/docs/planning.md), [실행](../../../../docs/RUNNING.md)
