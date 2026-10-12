@@ -13,7 +13,7 @@ RGB-D timeout·API·JSON·mask·depth·plane·TF·cancel·internal 오류를 구
 
 PlanGrasp는 snapshot/object ID, target/context cloud와 OBB를 직접 전달한다. 숨은 perception cache를 참조하지 않는다.
 Cloud는 동일한 nonzero capture stamp와 frame을 가져야 한다. TF는 capture 시각을 사용하며 latest로 대체하지 않는다.
-PointCloud2의 XYZ float32와 packed RGB, point_step/row_step/payload를 검증하고 organized/padded row를 처리한다.
+PointCloud2의 XYZ float32와 packed RGB(float32 또는 uint32 저장), point_step/row_step/payload를 검증하고 organized/padded row를 처리한다.
 후보는 score 내림차순이다. 후보 없음은 실패이며 가짜 pose를 만들지 않는다.
 TCP 회전은 rigid rotation(det +1)이어야 하며 reflection은 거절한다.
 Provider·approach 설정은 cleany_grasping/config가 관리한다.

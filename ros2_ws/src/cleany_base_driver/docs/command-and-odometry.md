@@ -20,11 +20,17 @@ MCU monotonic timestamp를 ROS epoch로 변환하지 않는다. JointState stamp
 
 ## Wheel odometry와 TF 소유권
 
-cleany_base_odometry는 wheel joint의 각도·속도를 받아 `/wheel/odom`을 발행하고 TF를 발행하지 않는다.
-초기 상태·reboot·단절 후 encoder baseline을 다시 잡는다. count rollover는 modular delta로 처리한다.
-속도 관측 구간과 covariance는 해당 config와 구현을 따른다. Wheel odometry는 slip과 바닥 오차를 보정하지 않는다.
-Bringup relay가 canonical `/odom` 및 odom→base_link를 소유한다.
+cleany_base_odometry는 wheel joint position의 차이를 적분해 `/wheel/odom`을 발행하고 TF를 발행하지 않는다.
+실물 driver가 reboot·feedback 단절 후 encoder baseline과 rollover를 처리해 연속 position을 제공한다.
+velocity 필드는 필수 입력이 아니다.
+`velocity_window_s`는 twist 계산의 최소 관측 구간이다. 0은 샘플 간 차분, 양수는 구간 평균이다.
+시작·시간 역행·구간보다 긴 공백 이후 구간이 준비되기 전까지 발행하지 않는다.
+관측하지 못한 속도를 측정된 0으로 보고하지 않는다. 평균 속도에는 지연이 있으므로 제동·도착 검증이 필요하다.
+`yaw_scale`은 유한한 양수의 회전 보정 계수이며 geometry를 바꾸지 않는다.
+시뮬레이션 보정값을 독립 검증 없이 실물에 적용하지 않는다. Covariance는 해당 config와 구현을 따른다. Wheel odometry는 slip과 바닥 오차를 보정하지 않는다.
+실물·mock driver의 base_odom_relay가 canonical `/odom` 및 odom→base_link를 소유한다.
 외부 estimator를 연결할 때 `relay_odom:=false`로 중복 TF publisher를 막는다.
+Gazebo는 wheel_odom_raw → simulation error adapter → wheel_odom 경로와 canonical odom/TF를 자체 소유한다.
 AMCL은 map→odom, robot_state_publisher는 robot fixed/joint TF를 소유한다.
 
 실물 연결·upload는 [ESP32](../../../../esp32/README.md),

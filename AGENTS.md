@@ -33,7 +33,7 @@ git submodule update --init --recursive docs/cleany-docs
 - Python 코드는 type hint, 작은 dataclass/model, 명확한 port/interface를 선호한다.
 - ROS 2 node와 순수 core logic을 가능하면 분리해 core logic은 pytest로 빠르게 검증 가능하게 한다.
 - 패키지 경계를 넘는 의존은 명시적 interface/message/config를 통해 연결한다.
-- 설정값은 코드에 숨겨 하드코딩하지 말고 `configs/mission/`, `configs/robot/` 또는 ROS parameter로 이동할 수 있게 작성한다.
+- 설정값은 코드에 숨겨 하드코딩하지 말고 패키지 `config/`, `configs/robot/` 또는 ROS parameter로 이동할 수 있게 작성한다.
 - ROS 패키지 dependency를 추가하면 `package.xml`, `setup.py`/`setup.cfg`, 필요 시 `ros2_ws/rosdep/cleany.yaml`을 함께 갱신한다.
 - 생성 파일, 대용량 asset, mesh 파일은 명시 요청 없이 재생성하거나 포맷하지 않는다.
 
