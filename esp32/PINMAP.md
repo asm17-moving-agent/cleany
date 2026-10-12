@@ -1,21 +1,15 @@
 # Motor controller pin map
 
-This pin map is derived from the electrical connections in
-[`pcb/motor_controller.kicad_sch`](pcb/motor_controller.kicad_sch) and cross-checked
-against the pad nets in
-[`pcb/motor_controller.kicad_pcb`](pcb/motor_controller.kicad_pcb). The schematic and
-PCB assignments match. Connector pin numbers are KiCad symbol/pad numbers. On
-the PCB, pin 1 has a round-rectangle pad; the remaining connector pads are
-oval. Verify the pin-1 mark before making a cable, since the order appears
-reversed when a connector is viewed from its mating side.
-
-All connector logic and encoder power rails are 3.3 V. The `J_MOTOR*`
-connectors carry PWM and direction control signals, not motor phase current.
+- 원본: [schematic](pcb/motor_controller.kicad_sch), [PCB](pcb/motor_controller.kicad_pcb); 배선·pad net 일치
+- Connector 번호: KiCad symbol/pad 기준
+- Pin 1: round-rectangle pad. 나머지: oval
+- Cable 제작: pin-1 mark 확인; mating side에서 좌우 순서 반전
+- Logic·encoder 전원: 3.3 V
+- J_MOTOR: PWM/DIR 신호용. 모터 phase current 아님
 
 ## ESP32-S3 signal assignment
 
-Motor placement, viewed from above with the robot front facing forward, is
-M1 front-left, M2 front-right, M3 rear-right, and M4 rear-left.
+- Motor placement, viewed from above with the robot front facing forward, is M1 front-left, M2 front-right, M3 rear-right, and M4 rear-left
 
 | Function | ESP32-S3 GPIO | U1 pad | Connector pin |
 |---|---:|---:|---|
@@ -46,7 +40,7 @@ M1 front-left, M2 front-right, M3 rear-right, and M4 rear-left.
 
 ### Motor control
 
-All four motor-control headers use the same order.
+- All four motor-control headers use the same order
 
 | Connector | Pin 1 | Pin 2 | Pin 3 |
 |---|---|---|---|
@@ -71,8 +65,8 @@ All four motor-control headers use the same order.
 | `J_I2C1` | +3V3 | GND | SCL / GPIO42 | SDA / GPIO41 |
 | `J_I2C2` | +3V3 | GND | SCL / GPIO21 | SDA / GPIO4 |
 
-The PCB contains no discrete I2C pull-up resistors. Use pull-ups provided by
-the attached module or add appropriate external pull-ups.
+- The PCB contains no discrete I2C pull-up resistors
+- Use pull-ups provided by the attached module or add appropriate external pull-ups
 
 ### Other headers
 
@@ -81,8 +75,7 @@ the attached module or add appropriate external pull-ups.
 | `J1` | GPIO40, unnamed net | GPIO39, unnamed net |
 | `J2` | +3V3 | GND |
 
-`J1` has no functional net labels in the design, so its intended protocol is
-not defined by the PCB.
+- `J1` has no functional net labels in the design, so its intended protocol is not defined by the PCB
 
 ## U1 power and unused pins
 

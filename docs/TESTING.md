@@ -1,7 +1,8 @@
 # 테스트 가이드
 
-기준 환경은 Humble/Fortress다. 명령은 저장소 루트에서 실행한다.
-변경 범위의 작은 검사부터 선택하며 Make target의 실제 동작은 [Makefile](../Makefile)을 따른다.
+- 기준 환경은 Humble/Fortress다
+- 명령은 저장소 루트에서 실행
+- 변경 범위의 작은 검사부터 선택하며 Make target의 실제 동작은 [Makefile](../Makefile)을 기준
 
 ## 검사 선택
 
@@ -22,7 +23,8 @@ flowchart TB
     Docs --> Evidence
 ```
 
-구체 명령은 아래 표에서 선택한다. Simulator·mock 통과를 실물 검증으로 승격하지 않는다.
+- 구체 명령은 아래 표에서 선택
+- Simulator·mock 통과를 실물 검증으로 승격하지 않음
 
 | 변경 범위 | 명령 | 확인 범위 |
 |---|---|---|
@@ -44,13 +46,13 @@ flowchart TB
 | 시나리오 보조 코드 | `make test-scenario-tools` | fixture·process 소유권·결과 판정 |
 | 빌드 정리 도구 | `make test-tools` | 선택 출력 삭제와 보호 경로 거부 |
 
-Fedora에서는 `make test-scenario-tools` 등 native target도 Humble Distrobox에서 실행한다.
-`test-micro-ros-setup`, `test-motor-core`, `test-tools`는 Makefile의 `BASE_EXEC`가 환경을 선택한다.
+- Fedora에서는 `make test-scenario-tools` 등 native target도 Humble Distrobox에서 실행
+- `test-micro-ros-setup`, `test-motor-core`, `test-tools`는 Makefile의 `BASE_EXEC`가 환경을 선택
 
 ## 선택 runtime과 UI
 
-Gazebo package의 `--run-sim-runtime`, `--run-evaluation-tests`와
-Mission core의 `CLEANY_RUN_ROS_TESTS=1`은 별도 선택 검사다. skip은 성공 증거가 아니다.
+- Gazebo package의 `--run-sim-runtime`, `--run-evaluation-tests`와 Mission core의 `CLEANY_RUN_ROS_TESTS=1`은 별도 선택 검사다
+- skip은 성공 증거가 아님
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -58,7 +60,7 @@ source "$(make -s print-install-base)/setup.bash"
 ROS_DOMAIN_ID=82 CLEANY_RUN_ROS_TESTS=1 make test-mission-core
 ```
 
-Monitor smoke는 Monitor가 같은 domain에서 먼저 실행 중이어야 한다.
+- Monitor smoke는 Monitor가 같은 domain에서 먼저 실행 중이어야
 
 ```bash
 ROS_DOMAIN_ID=187 python3 tests/dev_monitor/smoke.py --output /absolute/new-run
@@ -66,20 +68,20 @@ ROS_DOMAIN_ID=187 python3 tests/dev_monitor/smoke.py --output /absolute/new-run
 cat ros2_ws/src/cleany_dev_monitor/web/package.json
 ```
 
-UI 변경은 실제 served app의 새로고침·재연결·기록 재생도 확인한다.
-Playwright browser가 없으면 configured browser를 설치한 뒤 다시 실행한다.
-Mission Gateway smoke와 navigation smoke는 `tests/mission_runtime/`, `tests/dev_monitor/`에 있다.
-실제 Backend·ROS·Gazebo 입력 조건을 갖춘 경우에만 명시적으로 실행한다.
+- UI 변경은 실제 served app의 새로고침·재연결·기록 재생도 확인
+- Playwright browser가 없으면 configured browser를 설치한 뒤 다시 실행
+- Mission Gateway smoke와 navigation smoke는 `tests/mission_runtime/`, `tests/dev_monitor/`에 있음
+- 실제 Backend·ROS·Gazebo 입력 조건을 갖춘 경우에만 명시적으로 실행
 
 ## 반복 시나리오
 
-[시나리오 실행법과 판정](../tests/scenario_validation/README.md)을 따른다.
-단일 smoke 후 반복 범위를 늘리고 sensor freshness, 정지·도착·deadline 기준을 유지한다.
-fixture와 overlay, ROS domain, Gazebo partition, DB, 출력 디렉터리를 실행별로 분리한다.
+- [시나리오 실행법과 판정](../tests/scenario_validation/README.md)을 따른다
+- 단일 smoke 후 반복 범위를 늘리고 sensor freshness, 정지·도착·deadline 기준을 유지
+- fixture와 overlay, ROS domain, Gazebo partition, DB, 출력 디렉터리를 실행별로 분리
 
-성공은 프로세스 exit나 action terminal만으로 판정하지 않는다. 요청 좌석, terminal 결과,
-도착 근거, 최종 정지, 반복 완전성과 child cleanup을 함께 확인한다.
-원래 campaign과 fresh 재시험은 합산하지 않는다.
+- 성공은 프로세스 exit나 action terminal만으로 판정하지 않음
+- 요청 좌석, terminal 결과, 도착 근거, 최종 정지, 반복 완전성과 child cleanup을 함께 확인
+- 원래 campaign과 fresh 재시험은 합산하지 않음
 
 ## 결과와 증거
 
@@ -91,13 +93,12 @@ fixture와 overlay, ROS domain, Gazebo partition, DB, 출력 디렉터리를 실
 | 장치 통신 | 실제 USB·UART·DDS 등 확인한 계층 |
 | 물리 시험 | 실제 sensor·actuator·정지·시나리오 결과 |
 
-결과에는 code commit와 dirty 상태, 환경·overlay, 입력·config·asset hash,
-요청 범위와 실제 완료 범위, 실패·skip·중단, 로그와 출력 위치를 남긴다.
-CTest wrapper와 pytest 집계가 겹치면 합산하지 않는다.
-실행 원본은 `CLEANY_DATA_ROOT/runs/`, 과거 보고서는 [근거 색인](EVIDENCE.md)에 둔다.
+- 결과에는 code commit와 dirty 상태, 환경·overlay, 입력·config·asset hash, 요청 범위와 실제 완료 범위, 실패·skip·중단, 로그와 출력 위치를 남긴다
+- CTest wrapper와 pytest 집계가 겹치면 합산하지 않음
+- 실행 원본은 `CLEANY_DATA_ROOT/runs/`, 과거 보고서는 [근거 색인](EVIDENCE.md)에 둔다
 
 ## 문서 변경 검사
 
-내부 파일 링크·anchor, 코드·설정·launch 경로, Make target의 존재와 native dry-run을 확인한다.
-실제 로봇을 움직이거나 새 calibration을 수행하는 명령은 문서 검증만을 위해 실행하지 않는다.
-KB 변경에는 KB의 `kb-quality-checks`를 사용하며 통과와 내용 승인을 구분한다.
+- 내부 파일 링크·anchor, 코드·설정·launch 경로, Make target의 존재와 native dry-run을 확인
+- 실제 로봇을 움직이거나 새 calibration을 수행하는 명령은 문서 검증만을 위해 실행하지 않음
+- KB 변경에는 KB의 `kb-quality-checks`를 사용하며 통과와 내용 승인을 구분

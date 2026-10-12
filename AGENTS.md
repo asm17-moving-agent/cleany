@@ -23,6 +23,7 @@ git submodule update --init --recursive docs/cleany-docs
 ### 구현 문서 갱신
 
 - 실행·테스트·캘리브레이션 절차는 `docs/RUNNING.md`, `docs/TESTING.md`, `docs/CALIBRATION.md`가 관리한다. 인터페이스·단위·멱등성·안전·데이터 규약은 `docs/INTEGRATION.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
+- 구현 문서 본문은 짧은 개조식으로 작성한다. 도식·명령·표를 우선하고, 항목당 조건·동작 하나만 기록한다. 코드 해설·작업 일지·중복 설명은 추가하지 않는다.
 - 폴더마다 README를 만들지 않는다. 독립 배포·사용 절차가 필요한 도구, 펌웨어와 asset 출처·라이선스처럼 고유한 역할이 있는 경우만 둔다. 파일 목록·코드 요약·현재 테스트 점수·작업 일지를 README에 복제하지 않는다.
 - 과거 실행 근거는 `docs/EVIDENCE.md`에서 찾고 새 결과에는 commit·환경·입력·실패·원본 위치를 남긴다.
 - 개발환경 설치와 system dependency 기준은 `docs/DEVELOPMENT_SETUP.md`에서 관리한다.
