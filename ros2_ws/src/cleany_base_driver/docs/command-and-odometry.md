@@ -1,45 +1,49 @@
 # Base 명령과 odometry
 
-- 계약: [Twist](../../cleany_interfaces/docs/mobile_base.md), [MCU v2](../../cleany_base_interfaces/docs/protocol.md)
+Base driver는 차체 Twist를 wheel 명령으로 변환하고 MCU feedback을 ROS 상태로 제공한다. 차체 명령은 [Mobile base](../../cleany_interfaces/docs/mobile_base.md), MCU 통신은 [protocol v2](../../cleany_base_interfaces/docs/protocol.md)를 따른다.
 
-## 명령
+## 명령과 구동 허가
 
-- 여섯 축 중 nonfinite 포함: STOP
-- 지원 밖 축: 경고 후 무시
-- Wheel limit 초과: 네 바퀴를 같은 비율로 축소
-- Enable true: 기존 cmd_vel 삭제 → zero ENABLE → fresh enabled 확인 → 새 목표만 전송
-- ENABLE 손실: 같은 sequence·deadline으로 재시도
-- 새 목표 없음: zero VELOCITY
-- STOP·단절·만료·reboot: 새 ENABLE + 새 cmd_vel 필요. 재연결만으로 재개 금지
+Driver는 enable 요청을 받으면 기존 cmd_vel을 버리고 목표가 0인 ENABLE을 보낸다. Fresh feedback에서 MCU의 구동 허가를 확인한 뒤, enable 요청 이후에 수신한 새 목표만 전송한다. 새 목표가 없으면 zero VELOCITY를 유지한다.
+
+Mecanum 변환 후 wheel limit을 넘으면 네 바퀴를 같은 비율로 축소해 이동 방향을 보존한다.
+
+| 조건 | 처리 |
+|---|---|
+| 여섯 축 중 nonfinite 포함 | STOP |
+| 지원하지 않는 축 | 경고 후 무시 |
+| ENABLE 전달 손실 | 같은 sequence·deadline으로 재시도 |
+| STOP·단절·만료·reboot | 새 ENABLE과 새 cmd_vel 필요; 재연결만으로 재개 금지 |
 
 ## 설정과 시간
 
-- 원본: `configs/robot/base_hardware.yaml`, `base_synthetic.yaml`
-- 실물 geometry: radius 0.0635 m / wheelbase 0.350 m / separation 0.610 m
-- 초기 제한: 바퀴를 띄운 시험용. 바닥 주행 승인 아님
-- Mock: 합성 geometry. 실물 보정값으로 사용 금지
-- Driver deadline·cmd_vel timeout: 설정값 사용
-- MCU timestamp: monotonic. ROS epoch 아님
-- JointState stamp: ROS 수신 시각. 단절 중 이동량 미관측
+| 항목 | 기준 |
+|---|---|
+| 설정 원본 | configs/robot/base_hardware.yaml, base_synthetic.yaml |
+| 실물 geometry | radius 0.0635 m / wheelbase 0.350 m / separation 0.610 m |
+| MCU timestamp | MCU monotonic; ROS epoch 아님 |
+| JointState stamp | ROS 수신 시각 |
+| Driver deadline·cmd_vel timeout | 해당 설정값 사용 |
 
-## Odometry와 TF
+실물 초기 속도 제한은 바퀴를 띄운 시험용이며 바닥 주행 승인값이 아니다. Mock geometry는 합성값이므로 실물 보정값으로 사용하지 않는다. Feedback 단절 중 이동량은 관측할 수 없다.
 
-- Wheel odometry: joint position 차이 적분 → `/wheel/odom`; TF 미발행
-- 실물 driver: reboot/단절 baseline·rollover 처리 → 연속 position 제공
-- Joint velocity: 필수 입력 아님
-- `velocity_window_s`: 0=샘플 차분, 양수=구간 평균 twist
-- 시작·시간 역행·긴 공백: 구간 준비 전 미발행; 미관측 속도를 0으로 보고 금지
-- 구간 평균: 지연 존재. 제동·도착 별도 검증
-- `yaw_scale`: 유한한 양수의 회전 보정; geometry 변경 없음
-- Sim 보정값: 독립 검증 없이 실물 적용 금지
-- Covariance: config/구현 기준. Slip·바닥 오차 보정 없음
+## Wheel odometry
+
+Wheel odometry는 joint position 차이를 적분해 `/wheel/odom`을 발행하며 TF는 발행하지 않는다. Joint velocity는 필수 입력이 아니다. 실물 driver가 reboot·단절 baseline과 encoder rollover를 처리해 연속 position을 제공한다.
+
+`velocity_window_s=0`은 샘플 간 차분, 양수는 구간 평균 twist를 사용한다. 시작·시간 역행·긴 공백 뒤에는 관측 구간이 준비될 때까지 발행하지 않으며, 미관측 속도를 0으로 보고하지 않는다. 평균 속도의 지연은 제동·도착 검증에 반영해야 한다.
+
+`yaw_scale`은 유한한 양수의 회전 보정 계수이며 geometry를 바꾸지 않는다. Sim 보정값은 독립 검증 없이 실물에 적용하지 않는다. Covariance는 config/구현을 따르며 wheel odometry는 slip·바닥 오차를 보정하지 않는다.
+
+## TF 소유권
 
 | TF / 출력 | 소유자 |
 |---|---|
-| 실물·mock `/odom`, odom→base_link | base_odom_relay |
+| 실물·mock /odom, odom→base_link | base_odom_relay |
 | Gazebo wheel_odom_raw→error adapter→wheel_odom 및 canonical odom/TF | simulator |
 | map→odom | AMCL |
-| robot fixed/joint TF | robot_state_publisher |
+| Robot fixed/joint TF | robot_state_publisher |
 
-- 외부 estimator 사용: `relay_odom:=false`, 중복 publisher 제거
-- 안내: [ESP32](../../../../esp32/README.md), [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md)
+외부 estimator를 사용할 때는 `relay_odom:=false`로 중복 publisher를 제거한다.
+
+관련 안내: [ESP32](../../../../esp32/README.md), [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md).
