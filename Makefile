@@ -142,7 +142,7 @@ deps-gazebo:
 	cd "$(ROS2_WS)" && \
 	rosdep install --from-paths src/cleany_description src/cleany_navigation \
 		src/cleany_gazebo_sim \
-		--ignore-src --skip-keys mujoco --rosdistro humble -r -y
+		--ignore-src --skip-keys python3-mujoco-pip --rosdistro humble -r -y
 
 check-gazebo-env:
 	source /etc/os-release && \

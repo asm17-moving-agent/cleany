@@ -105,12 +105,12 @@ sudo rosdep init
 rosdep update
 ```
 
-저장소 루트에서 custom rosdep 규칙을 machine에 등록합니다. 레포지토리 경로를 변경하면 절대 경로가 달라지므로 규칙을 다시 등록합니다.
+의존성은 공식 rosdep 규칙을 사용합니다. MuJoCo Python 패키지는 `python3-mujoco-pip` 키로 설치합니다.
+
+이전 설정에서 custom 규칙을 등록했다면 아래 항목을 제거한 뒤 DB를 갱신합니다.
 
 ```bash
-CLEANY_REPO_ROOT="$(git rev-parse --show-toplevel)"
-echo "yaml file://${CLEANY_REPO_ROOT}/ros2_ws/rosdep/cleany.yaml" \
-  | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list
+sudo rm -f /etc/ros/rosdep/sources.list.d/10-cleany.list
 rosdep update
 ```
 
@@ -145,7 +145,7 @@ make deps-gazebo
 
 시설 CLI는 `cleany_gazebo_sim`에 포함됩니다. NumPy, SciPy, Pillow, PyYAML은 manifest와 rosdep으로 설치하며, 빌드 후 `ros2 run cleany_gazebo_sim`으로 실행합니다.
 
-`deps-gazebo`는 MuJoCo parity-test용 `mujoco` key를 제외합니다. 전체 테스트에는 custom 규칙 등록과 `make deps`가 필요합니다.
+`deps-gazebo`는 MuJoCo parity-test용 `python3-mujoco-pip` 키를 제외합니다. 전체 테스트를 준비할 때는 `make deps`를 사용합니다.
 
 일반 설치는 manifest 기반의 `make deps-gazebo`를 사용합니다. Rosdep이 Gazebo 의존성을 해석하지 못할 때는 아래 APT 패키지를 직접 확인합니다.
 
@@ -195,9 +195,9 @@ pnpm build
 | 증상 | 확인과 조치 |
 |---|---|
 | Python import 오류 | 같은 worktree를 빌드하고 해당 install overlay를 source |
-| Rosdep의 mujoco key 오류 | Custom 규칙의 절대 경로를 갱신한 뒤 `rosdep update` |
+| Rosdep의 `python3-mujoco-pip` 키 오류 | `rosdep update`로 공식 규칙을 갱신 |
 | Gazebo 환경 검사 실패 | Ubuntu 22.04, Python 3.10, ROS humble, Ignition Gazebo major 6, ros_gz package 확인 |
 | Headless camera/GPU LiDAR 실패 | Server의 rendering context와 display/OpenGL 확인. `LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo`는 저속 진단용 fallback |
 | Viewer 실패 | VM 3D acceleration과 DISPLAY/socket 확인. Hand-eye 수집에는 viewer 필요; 화면 없는 환경에서는 `test-handeye`의 headless 검사 사용 |
 
-설치 기준은 [ROS Humble 공식 문서](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)를 따릅니다. 저장소의 재현 기준은 package.xml, rosdep 규칙, lock 파일과 [CI](../.github/workflows/ci.yml)가 관리합니다.
+설치 기준은 [ROS Humble 공식 문서](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)를 따릅니다. 저장소의 재현 기준은 package.xml, 공식 rosdep 규칙, lock 파일과 [CI](../.github/workflows/ci.yml)가 관리합니다.
