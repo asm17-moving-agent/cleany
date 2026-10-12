@@ -22,9 +22,11 @@ git submodule update --init --recursive docs/cleany-docs
 
 ### 구현 문서 갱신
 
-- 구현 사실, ROS 인터페이스, 설정, 실행 및 검증 방법은 해당 패키지의 `README.md`가 관리한다. 이 내용이 코드 변경으로 달라지면 README를 같은 변경에 포함한다.
+- 실행·테스트·캘리브레이션 절차는 `docs/RUNNING.md`, `docs/TESTING.md`, `docs/CALIBRATION.md`가 관리한다. 인터페이스·단위·멱등성·안전·데이터 규약은 `docs/INTEGRATION.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
+- 폴더마다 README를 만들지 않는다. 독립 배포·사용 절차가 필요한 도구, 펌웨어와 asset 출처·라이선스처럼 고유한 역할이 있는 경우만 둔다. 파일 목록·코드 요약·현재 테스트 점수·작업 일지를 README에 복제하지 않는다.
+- 과거 실행 근거는 `docs/EVIDENCE.md`에서 찾고 새 결과에는 commit·환경·입력·실패·원본 위치를 남긴다.
 - 개발환경 설치와 system dependency 기준은 `docs/DEVELOPMENT_SETUP.md`에서 관리한다.
-- KB에서 아직 검토 중인 전제는 코드나 구현 README에서 확정 사실처럼 표현하거나 하드코딩하지 않는다.
+- KB에서 아직 검토 중인 전제는 코드나 구현 문서에서 확정 사실처럼 표현하거나 하드코딩하지 않는다.
 
 ## 3. 코드 작성 규칙
 
@@ -41,8 +43,8 @@ git submodule update --init --recursive docs/cleany-docs
 - FSM/core logic 변경: 해당 패키지 pytest를 우선 실행한다.
 - ROS package manifest, launch, install data 변경: 관련 패키지 또는 workspace build를 실행한다.
 - 여러 패키지 경계나 ROS interface를 바꿨으면 전체 workspace test까지 고려한다.
-- 반복 빌드·테스트는 루트 Makefile을 사용하고, 세부 옵션이 필요하면 `ros2_ws/README.md`의 native 명령을 따른다.
-- 공통 빌드·테스트·실행 명령은 `ros2_ws/README.md`, 패키지별 명령은 해당 패키지 `README.md`를 따른다.
+- 반복 빌드·테스트는 루트 Makefile을 사용하고, 세부 옵션은 해당 launch의 `--show-args`와 Makefile을 따른다.
+- 공통 빌드는 `docs/DEVELOPMENT_SETUP.md`, 실행은 `docs/RUNNING.md`, 검증은 `docs/TESTING.md`를 따른다.
 - 검증을 실행하지 못했으면 최종 응답에 이유와 대신 확인한 내용을 적는다.
 
 ## 5. KB 관련 판단

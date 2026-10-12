@@ -129,7 +129,7 @@ performance, navigation, or successful object retention.
 - Fourteen legacy servo position actuators and four PG42 voltage actuators
   remain active. New servo DC-motor defaults are commented out pending the
   separate MuJoCo/ros2_control upgrade. The 3.4 backend removes only wheel
-  actuators from its temporary scene; see [simulation setup](../cleany_mujoco_sim/README.md).
+  actuators from its temporary scene; see [simulation setup](../../cleany_mujoco_sim/README.md).
 
 Mass properties are estimates: total **15.933871 kg**,
 including a provisional **5.20 kg, 195×165×175 mm battery**, **0.8 kg per PG42
@@ -163,7 +163,7 @@ Model-parity checks compare geometry and FK; they do not validate every existing
 motion fixture after a CAD migration. Run `make test` with a working X display
 for controller, planning and hand-eye regressions as well. Current findings and
 fixture migration results and remaining dynamics issues are recorded in the
-[quality review](../../../docs/QUALITY_REVIEW_20260914.md).
+[quality review](../../../../docs/QUALITY_REVIEW_20260914.md).
 
 Run geometry, color, mass, joint-contract, and randomized FK checks from `ros2_ws`:
 

@@ -61,7 +61,7 @@ python3 tests/scenario_validation/prepare_profile.py \
 URI 또는 Gazebo 시작 로그의 geometry 로딩 오류가 있으면 미션을 시작하지 않는다.
 두 설정 파일은 새 파일로 만들고 지도·월드·나머지 설정은 원본을 가리키는 symlink로
 공유한다. 원본 fixture는 실행 중 고정해야 하며 profile/config 해시는 manifest에 남긴다.
-이 프로필의 정상 왕복 성공률은 [검증 색인](../../docs/validation/README.md)에 안내한 실행 원본로
+이 프로필의 정상 왕복 성공률은 [검증 색인](../../docs/EVIDENCE.md)에 안내한 실행 원본로
 판정한다. fixture 생성이나 도구 테스트 통과만으로 50/60 달성을 인정하지 않는다.
 
 결과 디렉터리에는 batch.json, 자원 시계열 resources.json, 인스턴스별 world manifest,

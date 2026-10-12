@@ -74,7 +74,7 @@ gripper 명령과 실제 trajectory 실행은 별도 Skill Executor coordinator�
 
 ## Contracts
 
-- [Mobile base](docs/mobile_base.md): `/cmd_vel` 차체 속도 명령
+- [Mobile base](../docs/mobile_base.md): `/cmd_vel` 차체 속도 명령
 
 ## Mission Runtime 계약
 
@@ -88,7 +88,7 @@ canonical `target_id`와 `requested_by`를 전달합니다. 응답의 `accepted`
 이 sequence는 Backend wire의 미션별 sequence와 구분합니다. `MissionResult`는 outcome,
 실패 코드, 완료·skip 작업, 사람 확인 여부, 관측 참조, 주행·복귀 결과와 전체 `report_json`을
 제공합니다. 내부 Mock 관측 ID는 실제 사진을 의미하지 않습니다.
-공개 이름과 취소·복구 규칙은 [Mission Manager README](../cleany_mission_manager/README.md)를 따릅니다.
+공개 이름과 취소·복구 규칙은 [Mission Manager README](../../cleany_mission_manager/README.md)를 따릅니다.
 
 
 ## 설정 및 검증
@@ -114,9 +114,9 @@ colcon test-result --verbose
 포함한다. category는 `trash`, `lost_item`, `review` 또는 미제공 빈 문자열이다.
 빈 값은 이름 기반 폐기 허가가 아니다. 이 메시지 변경 후 모든 consumer를 재빌드한다.
 
-- [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
-- [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
-- [ROS 2 Software Architecture](../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)
+- [Technical Overview](../../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
+- [System Context](../../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
+- [ROS 2 Software Architecture](../../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)
 
 ## 단일 물체 Manipulation action
 
@@ -130,7 +130,7 @@ colcon test-result --verbose
 사람 확인 필요 여부를 전달합니다. `GetManipulationExecution`은 execution ID로 이 기록을
 조회합니다. 현재 `found=false`는 서버 저장 오류와도 구분되지 않으므로 실행되지 않았다는
 증거로 사용하지 않습니다. 상세 수락·성공·취소와 주행 gate는
-[Mission Manager 계약](../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따릅니다.
+[Mission Manager 계약](../../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따릅니다.
 
 이 세 interface는 팀원 브랜치 `feat/manipulation-action-server`의
 `46efa012cddb4ef0ff3f4dadb785550591bb6073`과 동일합니다. 서버 내부 BT 구조는 이 계약에 포함하지 않습니다.

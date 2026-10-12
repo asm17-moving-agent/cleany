@@ -150,7 +150,7 @@ Orin NX에서 별도 확인해야 한다.
 
 SDK와 license는 이 저장소에 vendor하지 않는다. 검증하지 않은 Jetson 호환성을 구현
 사실로 간주하지 않는다. AnyGrasp 전용 고정 MAC service와 license 신청 절차는
-[`containers/vision`](../../../containers/vision/README.md)을 따른다. host-native feature ID와
+[`containers/vision`](../../../../containers/vision/README.md)을 따른다. host-native feature ID와
 container feature ID는 서로 다르므로 실제 배포 container 안에서 검증한다. 배포 기준
 ID는 root-owned identity 파일에만 두며, 다르면 node 시작을 거부한다.
 

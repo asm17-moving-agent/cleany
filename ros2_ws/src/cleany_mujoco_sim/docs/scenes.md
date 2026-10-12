@@ -23,7 +23,7 @@ joint 이름으로 찾는다. 따라서 `head_tilt` / `head_tilt_joint`처럼 �
 jaw collision geom을 참조한다. `robot_top_bins_preview.launch.py`는 모델 배치
 확인용이며 자동 집기·수거를 실행하지 않는다. 전체 수거 성공은 별도 검증 대상이다.
 
-날짜별 CAD 이관·수거 실행 결과는 [실행 기록](../../../docs/SORTING_PIPELINE_TRIALS_20260909.md)을
+날짜별 CAD 이관·수거 실행 결과는 [실행 기록](../../../../docs/SORTING_PIPELINE_TRIALS_20260909.md)을
 따른다. 단위 테스트 통과는 전체 물리 수거 성공률을 나타내지 않는다.
 `make test-mujoco`는 현재 장면과 공통 bridge의 전체 단위 테스트를 실행한다. Python bridge의 시뮬레이션 context와 step observer는 단일 정의로 관리한다.
 주행 회귀 검사는 같은 CAD 로봇을 원점의 장애물 없는 평면 fixture에 배치해
@@ -58,7 +58,7 @@ MoveIt에 등록한다. 함의 탈착·체결부 강도·배선 여유는 모델
 `headless:=false sim_viewer:=efficient`는 최대 20Hz의 960×720 snapshot GUI를
 사용한다. 센서 RGB-D는 640×480과 원래 그림자를 유지한다. 전체 native MuJoCo UI는
 `sim_viewer:=native`로 선택한다. 설정·조작법은
-[`cleany_mujoco_observer`](../cleany_mujoco_observer/README.md#gui-렌더링)를 따른다.
+[`cleany_mujoco_observer`](../../cleany_mujoco_observer/README.md#gui-렌더링)를 따른다.
 `config/sorting_wrist_cameras.yaml`은 양팔 RGB optical frame의 nominal CAD 장착값이다.
 수거 launch의 TF 입력이며 실제 로봇에서 측정한 hand-eye calibration이 아니다.
 
@@ -80,7 +80,7 @@ DISPLAY=:0 make profile-mujoco-runtime \
 
 `tools/benchmark_runtime.py --output <file> -- ros2 launch ...`로 다른 launch도 측정한다.
 2026-10-02 VM의 비교 수치와 실제 수거 중단 지점은
-[성능 측정 기록](../../../docs/MUJOCO_PERFORMANCE_20261002.md)을 따른다.
+[성능 측정 기록](../../../../docs/MUJOCO_PERFORMANCE_20261002.md)을 따른다.
 
 `scenes/study_cafe_grasp_execution.xml.in`에는 컵–양손 그리퍼의 10개 접촉쌍을
 명시해 미끄럼 마찰을 기존 접촉값 3에서 6으로 높인 시험 설정을 둔다.
@@ -137,7 +137,7 @@ XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한�
 **0.0635 m**이며 launch/ROS parameter로 변경할 수 있다. CAD 치수이며 실측
 odometry 보정값은 아니다. 기존 액추에이터와 MuJoCo 3.4 제어 호환 경로를
 유지한다. 물성 추정과 모델 계약은
-[cleany_description](../cleany_description/README.md)을 참고한다.
+[cleany_description](../../cleany_description/README.md)을 참고한다.
 
 ## 실행과 테스트
 
@@ -450,9 +450,9 @@ MoveIt 지도를 포함하는 plan-only GUI 실행이다. 장면만 띄우는
 
 ## 관련 KB와 문서 갱신
 
-- [Robot Platform XLeRobot](../../../docs/cleany-docs/20_TECHNICAL/04%20-%20Robot%20Platform%20XLeRobot.md)
-- [Navigation and Mapping](../../../docs/cleany-docs/20_TECHNICAL/05%20-%20Navigation%20and%20Mapping.md)
-- [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
+- [Robot Platform XLeRobot](../../../../docs/cleany-docs/20_TECHNICAL/04%20-%20Robot%20Platform%20XLeRobot.md)
+- [Navigation and Mapping](../../../../docs/cleany-docs/20_TECHNICAL/05%20-%20Navigation%20and%20Mapping.md)
+- [Safety and Risk](../../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
 
 발행 topic, launch parameter, 시뮬레이션 모델 가정 또는 테스트 명령이 바뀌면 이
 README도 갱신한다. 시뮬레이션 하드웨어 파라미터를 관련 KB 결정 없이 확정된 실제

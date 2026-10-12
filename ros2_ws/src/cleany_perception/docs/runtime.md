@@ -83,7 +83,7 @@ Gemini 분류를 사용하는 `yoloe_gemini`는 `GEMINI_API_KEY` 환경변수가
 
 Jetson에서는 perception을 `172.30.0.11` 전용 GPU service로 실행한다. AnyGrasp의 고정
 MAC, license와 checkpoint는 perception container에 mount하지 않는다. 자세한 절차는
-[`containers/vision`](../../../containers/vision/README.md)을 따른다. 아래 명령은 native
+[`containers/vision`](../../../../containers/vision/README.md)을 따른다. 아래 명령은 native
 개발환경용이다.
 
 ```bash
@@ -294,5 +294,5 @@ Gemini structured response에 `sorting_category`(trash/lost_item/review),
 처리한다. 위험하거나 용도가 불확실한 물체는 review를 요청한다. 소유권 판단은
 확정 사실이 아니며 현재 정책은 감독하의 시뮬레이션 검증용이다.
 
-- [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
-- [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
+- [Technical Overview](../../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
+- [Safety and Risk](../../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)

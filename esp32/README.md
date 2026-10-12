@@ -58,7 +58,7 @@ the mapping is `{0,1,3,2}`. Motor and encoder polarity are applied on the MCU.
 The encoder scale is 3172 quadrature counts per output revolution.
 
 `base/wheel_command` and `base/wheel_state` use fixed-size
-[`cleany_base_interfaces`](../ros2_ws/src/cleany_base_interfaces/README.md)
+[`cleany_base_interfaces`](../ros2_ws/src/cleany_base_interfaces/docs/protocol.md)
 messages with best-effort, volatile, keep-last-1 QoS. State publication targets
 50 Hz. MCU microseconds are monotonic; boot ID identifies encoder baselines
 across reboots. Use protocol 2 interfaces and firmware from the same revision.
@@ -153,7 +153,7 @@ physical emergency stop.
 3. Measure STOP, command expiry, driver/Agent exit, USB loss, and MCU reboot
    behavior. Reconnect requires a new enable and command.
 4. Verify motion, odometry, and single odom/TF ownership with
-   [`cleany_base_driver`](../ros2_ws/src/cleany_base_driver/README.md).
+   [`cleany_base_driver`](../ros2_ws/src/cleany_base_driver/docs/command-and-odometry.md).
 
 Record revisions, settings, load/surface, wheel signs, rates, and stop times.
 
