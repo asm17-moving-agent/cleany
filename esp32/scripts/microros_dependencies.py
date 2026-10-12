@@ -11,7 +11,7 @@ if not component.is_dir():
     raise RuntimeError("Run `make firmware-setup` before building micro-ROS firmware")
 
 spec = importlib.util.spec_from_file_location(
-    "micro_ros_setup", controller.parent / "tools/micro_ros_setup.py"
+    "micro_ros_setup", controller.parent / "tools/micro_ros/micro_ros_setup.py"
 )
 setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(setup)

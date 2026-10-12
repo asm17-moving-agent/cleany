@@ -257,9 +257,9 @@ make test-mission-core test-dev-monitor
 # ROS overlay source 후, 다른 실행과 분리된 domain
 ROS_DOMAIN_ID=188 CLEANY_RUN_ROS_TESTS=1 make test-dev-monitor
 # 정상 mock Runtime을 실제 ROS/HTTP로 검증 (같은 domain의 Monitor가 먼저 실행 중이어야 함)
-ROS_DOMAIN_ID=187 python3 tools/dev_monitor/smoke.py --output /absolute/new-directory
+ROS_DOMAIN_ID=187 python3 tests/dev_monitor/smoke.py --output /absolute/new-directory
 # 팀원 cleany_skill_executor overlay까지 source한 경우, HELD 취소 검증
-ROS_DOMAIN_ID=187 python3 tools/dev_monitor/smoke.py --held --output /absolute/new-held-directory
+ROS_DOMAIN_ID=187 python3 tests/dev_monitor/smoke.py --held --output /absolute/new-held-directory
 # 동작 중인 Monitor의 관측 데이터로 브라우저 통합 검사
 cd ros2_ws/src/cleany_dev_monitor/web
 pnpm exec playwright install chromium

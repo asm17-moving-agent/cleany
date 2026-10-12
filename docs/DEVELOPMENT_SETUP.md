@@ -185,6 +185,11 @@ Gazebo 패키지만 재현할 때는 MuJoCo 등 다른 workspace 의존성을 �
 make deps-gazebo
 ```
 
+시설 생성 도구도 `cleany_gazebo_sim`에 포함된다. NumPy·SciPy·Pillow·PyYAML은
+패키지 manifest의 `python3-numpy`, `python3-scipy`, `python3-pil`, `python3-yaml`로
+선언하며 위 rosdep target으로 설치한다. CLI는 build 후
+`ros2 run cleany_gazebo_sim <스크립트명>`으로 실행한다.
+
 이 target은 `cleany_description`의 MuJoCo parity test에만 필요한 `mujoco` rosdep key를
 제외합니다. 전체 workspace test를 실행할 환경에서는 custom rosdep 규칙을 등록한 뒤
 `make deps`를 사용합니다.

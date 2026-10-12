@@ -1,11 +1,7 @@
 """Regression coverage for facility/model IDs crossing the gateway boundary."""
-from pathlib import Path
-import sys
-
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / 'facility'))
-from generate_mission_targets import canonical_seat_id, generate
+from cleany_gazebo_sim.world.mission_targets import canonical_seat_id, generate
 
 
 @pytest.mark.parametrize(('seat', 'expected'), [

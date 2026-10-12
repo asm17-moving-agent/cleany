@@ -41,7 +41,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
 		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
 
-.PHONY: test-mission-core build-mission-runtime build-mission-sim test-mission-runtime help deps deps-gazebo check-gazebo-env build build-gazebo \
+.PHONY: test-gazebo-facility-tools test-tools test-mission-core build-mission-runtime build-mission-sim test-mission-runtime help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-handeye build-telemetry test test-mission test-mujoco \
 	test-handeye test-gazebo \
 	test-telemetry test-gazebo-nav-runtime test-gazebo-navigation-pipeline test-gazebo-evaluation \
@@ -66,6 +66,7 @@ help:
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
 	@echo "  make build-telemetry Build the ROS telemetry package"
 	@echo "  make test          Build and run all colcon tests"
+	@echo "  make test-tools    Run development tool unit tests without ROS runtime"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make build-dev-monitor / run-dev-monitor  Build or serve the read-only robot monitor"
 	@echo "  make test-dev-monitor  Test bounded recording, HTTP API and ROS observation"
@@ -97,10 +98,16 @@ help:
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
 
 firmware-setup:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py'
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros/micro_ros_setup.py'
 
 test-micro-ros-setup:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/test_micro_ros_setup.py'
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tests/micro_ros/test_micro_ros_setup.py'
+
+test-tools:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/micro_ros/test_micro_ros_setup.py tests/ros2/test_ros2_clean.py'
+
+test-gazebo-facility-tools:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_gazebo_sim:$${PYTHONPATH:-}" /usr/bin/python3 -m pytest -p no:cacheprovider -q ros2_ws/src/cleany_gazebo_sim/test/test_mission_targets.py'
 
 firmware-smoke: firmware-setup
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/microros_smoke -e esp32-s3-microros-smoke'
@@ -123,7 +130,7 @@ test-base: build-base
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
 
 micro-ros-agent-build:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'
 
 deps:
 	source "$(ROS_SETUP)" && \
@@ -221,7 +228,7 @@ test: build
 	source "$(INSTALL_BASE)/setup.bash" && \
 	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure && \
 	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose && \
-	python3 -m pytest "$(REPO_ROOT)tools/test_ros2_clean.py"
+	python3 -m pytest "$(REPO_ROOT)tests/ros2/test_ros2_clean.py"
 
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \
@@ -307,7 +314,7 @@ test-gazebo-safety: build-gazebo
 		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 "$(REPO_ROOT)tools/navigation_evaluation/run_safety_evaluation.py" \
+	python3 "$(REPO_ROOT)tests/navigation_evaluation/run_safety_evaluation.py" \
 		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --mode "$(SAFETY_MODE)" --robot-model "$(ROBOT_MODEL)"
 
 view-gazebo-costmap: build-gazebo
@@ -315,7 +322,7 @@ view-gazebo-costmap: build-gazebo
 		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 "$(REPO_ROOT)tools/navigation_evaluation/live_costmap.py" \
+	python3 "$(REPO_ROOT)tests/navigation_evaluation/live_costmap.py" \
 		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --robot-model "$(ROBOT_MODEL)" $(if $(filter 1,$(SAFETY_DRIVE)),--drive,)
 
 sim: build
@@ -404,7 +411,7 @@ sim-gazebo-facility: build-gazebo
 		headless:=false gui_render_engine:="$(GAZEBO_GUI_RENDER_ENGINE)"
 
 clean:
-	"$(REPO_ROOT)tools/ros2-clean"
+	"$(REPO_ROOT)tools/ros2/ros2-clean"
 
 DEV_MONITOR_WEB := $(ROS2_WS)/src/cleany_dev_monitor/web
 .PHONY: build-dev-monitor-web build-dev-monitor-ros build-dev-monitor test-dev-monitor run-dev-monitor
@@ -433,7 +440,7 @@ run-dev-monitor:
 .PHONY: test-scenario-tools
 test-scenario-tools:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -c /dev/null --rootdir="$(REPO_ROOT)" -q \
-		"$(REPO_ROOT)"tools/scenario_validation/test_*.py
+		"$(REPO_ROOT)"tests/scenario_validation/test_*.py
 
 # Goal evidence is retained outside pytest temporary directories.
 NAVIGATION_GOAL_OUTPUT ?= $(CLEANY_DATA_ROOT)/runs/navigation-goals-$(shell date +%Y%m%d-%H%M%S)

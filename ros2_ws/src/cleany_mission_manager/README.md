@@ -224,7 +224,7 @@ establish arm reach or cleaning access.
 Regenerate for the materialized SDF and its static reference map inside Humble:
 
 ```bash
-python3 tools/facility/generate_mission_targets.py \
+ros2 run cleany_gazebo_sim generate_mission_targets.py \
   --world artifacts/gui-integration-20261003/world.sdf \
   --map artifacts/gui-integration-20261003/facility_integration.yaml \
   --chair-mesh-root "$HOME/.ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1" \

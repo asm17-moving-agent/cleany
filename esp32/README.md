@@ -15,6 +15,12 @@ feedback, and PWM/DIR outputs. The PlatformIO environment is
 | `pcb/` | KiCad project and project-local libraries |
 | `micro_ros/`, `.venv/` | Generated dependencies and build tools |
 
+Dependency bootstrap lives in [`tools/micro_ros/`](../tools/micro_ros/),
+with unit tests in [`tests/micro_ros/`](../tests/micro_ros/).
+After a tools layout update, rerun `make firmware-setup` to refresh the generated
+Git wrapper link before building firmware. The wrapper pins clones made both
+from the component root and from its subdirectories.
+
 ## Runtime
 
 ```text

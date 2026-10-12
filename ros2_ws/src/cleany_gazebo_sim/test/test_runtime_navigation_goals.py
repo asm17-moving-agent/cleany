@@ -8,7 +8,7 @@ def test_saved_map_navigation_goal(case, runtime_test_options, request, monkeypa
     if runtime_test_options.profile != 'fortress':
         pytest.skip('These study-cafe goal regressions are validated on Humble/Fortress')
     root = Path(__file__).resolve().parents[4]
-    monkeypatch.syspath_prepend(str(root / 'tools/navigation_evaluation'))
+    monkeypatch.syspath_prepend(str(root / 'tests/navigation_evaluation'))
     from run_goal_regression import run_goal
     output = Path(request.config.getoption('--navigation-output')).resolve() / case
     result = run_goal(output, case, runtime_test_options.profile,

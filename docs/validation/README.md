@@ -39,7 +39,7 @@ transitive asset hash가 같은지 대조한 기록을 fixture의 `relocation-ma
   새 run과 migration 검증 기록으로 구분한다. 시뮬레이션 주행이며 책상 작업은 mock이다.
   실제 로봇·팔·Backend 전체 E2E를 증명하지 않는다.
 
-현재 실행법과 판정 계약은 [시나리오 도구](../../tools/scenario_validation/README.md),
+현재 실행법과 판정 계약은 [시나리오 도구](../../tests/scenario_validation/README.md),
 [Workspace](../../ros2_ws/README.md), 각 패키지 README를 따른다.
 KB submodule, runtime mesh/legacy 모델 선택, 안전 회귀 검사와 최종 command-hold profile은 유지한다.
 
@@ -99,7 +99,7 @@ Gazebo 호환 import/entry point·중복 설정·옛 replay/비교 도구 등 28
 
 ```bash
 data_root="${CLEANY_DATA_ROOT:-$(dirname "$PWD")/cleany-data}"
-python3 tools/scenario_validation/parallel.py --root "$PWD" \
+python3 tests/scenario_validation/parallel.py --root "$PWD" \
   --fixture "$data_root/fixtures/cad-fortress-command-hold-portable" \
   --count 1 --name NEW_UNIQUE_RUN --seat seat-44 --sequence seat-44,seat-16 \
   --stop-on-failure --domain-base 217

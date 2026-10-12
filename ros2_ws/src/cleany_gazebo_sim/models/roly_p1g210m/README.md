@@ -18,7 +18,7 @@
 
 smooth normal과 UV를 포함한 6개 COLLADA mesh를 재질별로 합쳐 생성한다.
 설정과 소스 hash로 캐시를 구분하고 48개 의자가 동일한 mesh를 공유한다.
-`tools/facility/generate_roly_textures.py`는 로컬의 좌판·등판 직물 질감을 재생성한다.
+`ros2 run cleany_gazebo_sim generate_roly_textures.py --output <출력 폴더>`는 로컬의 좌판·등판 직물 질감을 재생성한다.
 새 모델 생성에 Blender나 외부 서비스는 필요하지 않다.
 
 충돌은 좌판 box·등판 5개 panel·다리·캐스터·프레임의 단순 근사다. 바닥을 막는
@@ -26,5 +26,5 @@ smooth normal과 UV를 포함한 6개 COLLADA mesh를 재질별로 합쳐 생성
 등판의 작은 망 구멍은 질감으로 표현하며 광학 투과, 리클라이닝과 3D 모션,
 캐스터 회전·탄성은 재현하지 않는다.
 
-단품 확인은 `tools/facility/validate_runtime.py --scene chair`로 수행한다.
+단품 확인은 `tests/facility/validate_runtime.py --scene chair`로 수행한다.
 정면(face)·사선(front)·측면(side)·후면(rear)·상부(top) PNG와 실제 scan을 저장한다.

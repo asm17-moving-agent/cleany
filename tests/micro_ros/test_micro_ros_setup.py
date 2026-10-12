@@ -2,7 +2,7 @@ import importlib.util
 from pathlib import Path
 import pytest
 
-SCRIPT = Path(__file__).with_name("micro_ros_setup.py")
+SCRIPT = Path(__file__).resolve().parents[2] / "tools/micro_ros/micro_ros_setup.py"
 SPEC = importlib.util.spec_from_file_location("micro_ros_setup", SCRIPT)
 assert SPEC and SPEC.loader
 setup = importlib.util.module_from_spec(SPEC)
@@ -57,6 +57,44 @@ def test_clone_wrapper_replaces_branch_with_immutable_source():
     with pytest.raises((KeyError, ValueError)):
         module.clone_spec(["clone", "-b", "humble", "https://evil/rclc", "src/rclc"],
                           {"rclc": ["https://github.com/ros2/rclc", "a" * 40]})
+
+
+@pytest.mark.parametrize('location', ['component', 'child', 'outside'])
+def test_git_wrapper_applies_pins_at_component_root_and_children(tmp_path, monkeypatch, location):
+    import json
+
+    spec = importlib.util.spec_from_file_location("micro_ros_git", SCRIPT.with_name("micro_ros_git.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    component = tmp_path/'esp32/micro_ros/micro_ros_espidf_component'
+    child = component/'build'
+    child.mkdir(parents=True)
+    (tmp_path/'esp32/micro_ros.lock.json').write_text(json.dumps({
+        'component_sources': {'rclc': ['https://github.com/ros2/rclc', 'a'*40]}}))
+    monkeypatch.setattr(module, 'ROOT', tmp_path)
+    monkeypatch.setattr(module, 'COMPONENT', component)
+    monkeypatch.chdir({'component': component, 'child': child, 'outside': tmp_path}[location])
+    monkeypatch.setattr(module.sys, 'argv', ['git', 'clone', '-b', 'humble',
+                                           'https://github.com/ros2/rclc', 'src/rclc'])
+    calls = []
+    monkeypatch.setattr(module.subprocess, 'run', lambda args, **kwargs: calls.append(args))
+
+    class Delegated(Exception):
+        pass
+
+    def delegate(*args):
+        raise Delegated()
+
+    monkeypatch.setattr(module.os, 'execv', delegate)
+    if location == 'outside':
+        with pytest.raises(Delegated):
+            module.main()
+        assert not calls
+    else:
+        module.main()
+        assert calls[0][2] == '--no-checkout'
+        assert calls[1][-1] == 'a'*40
+        assert calls[2][-2:] == ['--detach', 'a'*40]
 
 
 def test_fingerprint_changes_with_message_source(tmp_path, monkeypatch):

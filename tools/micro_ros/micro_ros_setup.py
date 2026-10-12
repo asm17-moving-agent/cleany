@@ -12,7 +12,7 @@ import venv
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 CONTROLLER = ROOT / "esp32"
 LOCK = CONTROLLER / "micro_ros.lock.json"
 OUTPUT = CONTROLLER / "micro_ros"  # ignored bootstrap output
@@ -155,8 +155,10 @@ def main() -> None:
     git_bin = OUTPUT / "bin"
     git_bin.mkdir(exist_ok=True)
     wrapper = git_bin / "git"
-    if not wrapper.exists():
-        wrapper.symlink_to(ROOT / "tools/micro_ros_git.py")
+    link_generated_config(
+        wrapper, Path(__file__).with_name("micro_ros_git.py"),
+        ROOT / "tools/micro_ros_git.py",
+    )
     if not (PIO_VENV / "bin" / "python").exists():
         venv.EnvBuilder(with_pip=True).create(PIO_VENV)
     run(str(PIO_VENV / "bin" / "pip"), "install", "platformio==6.1.19",

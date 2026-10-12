@@ -1,34 +1,28 @@
 # tests
 
-테스트 명령과 범위를 안내한다. 이 디렉터리에는 아직 실행 가능한 테스트가 없다.
+패키지 경계를 넘는 통합·E2E 검사, 시뮬레이션 평가와 실행 보조 모듈,
+개발 도구의 단위 테스트를 둔다. 생성·환경 관리 도구는 [`tools/`](../tools/README.md)에 둔다.
 
 ROS 2 패키지 내부 단위 테스트는 각 패키지의 `test/` 또는 `tests/`에 둔다.
-같은 기능의 작은 검사는 관련 suite에 모으고 공통 준비 코드는 재사용한다. 소스 문자열이나
-기본값을 반복 확인하는 검사보다 입력에 따른 결과·실패 처리·설정 전달을 검증한다.
-실제 controller 실행과 접촉·충돌·취소·오래된 관측 차단 검사는 유지한다.
 
-RGB-D grasp/pre-grasp 브랜치의 집중 검증은 레포지토리 루트에서 다음 두 target으로
-실행한다.
+| 폴더 | 역할 |
+|---|---|
+| `facility/` | 시설 시뮬레이션 검증 |
+| `micro_ros/` | micro-ROS 준비 도구 단위 테스트 |
+| `ros2/` | 빌드 출력 정리 도구 단위 테스트 |
+| `dev_monitor/` | 개발 모니터 ROS·Gazebo smoke 검사 |
+| `mission_runtime/` | Backend API mission lifecycle 검사 |
+| `navigation_evaluation/` | 주행 회귀·안전성 평가, 관찰·보고와 실행 보조 모듈 |
+| `scenario_validation/` | 시나리오 준비·실행·자극·판정과 단위 테스트 |
+| `integration/` | 통합 테스트 안내 |
 
-```bash
-make test-grasp-pregrasp
-make test-grasp-pregrasp-runtime
-```
+저장소 루트에서 도구 단위 테스트는 `make test-tools`, 시나리오 core 검사는
+`make test-scenario-tools`를 사용한다. 두 명령은 로봇이나 Gazebo를 구동하지 않는다.
+시설 목표 생성 로직의 단위 테스트는 Gazebo 패키지의 `test/test_mission_targets.py`에 있으며
+`make test-gazebo-facility-tools`로 실행한다. micro-ROS 검사는 `make test-micro-ros-setup`으로 따로 실행할 수도 있다.
 
-첫 target은 perception, grasp·분류 core, 접촉 피드백, MoveIt 설정, MuJoCo 장면·
-성능 프로필, URDF/MJCF 정합성과 C++ 충돌 지도·관측 검사를 실행한다.
-두 번째 target은 MoveIt mock backend에서 OMPL/Pilz 계획과 controller 실행을
-확인한다. 이전 전용 MuJoCo 데모 runtime 검사는 제거했다. 전체 workspace 회귀 검증은
-`make test`에서 별도로 수행한다. `make test`에는 vision container 계약 검사도 포함된다. Python 프레임워크는
-pytest로 고정하며 사용자 환경의 관계없는 플러그인은 자동 로드하지 않는다.
-카메라 runtime에는 headless 실행에서도 유효한 X display가 필요하다.
-
-Jetson container의 identity, network, read-only mount fail-closed 정책은 SDK 없이 다음처럼
-검사한다.
-
-```bash
-python3 -m pytest -q containers/vision/test
-```
-
-Feature ID, NVIDIA runtime, license와 실제 model warm-up은 Jetson 인수검사 항목이며
-[`containers/vision` README](../containers/vision/README.md)를 따른다.
+런타임 스크립트는 pytest로 자동 실행되지 않는다. ROS 환경과 필요한 build overlay를
+준비한 뒤 명시적으로 실행한다. 시나리오는
+[`scenario_validation/README.md`](scenario_validation/README.md), 시설·주행 검증은
+[`cleany_gazebo_sim/README.md`](../ros2_ws/src/cleany_gazebo_sim/README.md),
+모니터 smoke는 [`cleany_dev_monitor/README.md`](../ros2_ws/src/cleany_dev_monitor/README.md)를 따른다.

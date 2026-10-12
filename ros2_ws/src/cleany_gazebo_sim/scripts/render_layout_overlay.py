@@ -6,22 +6,17 @@ from __future__ import annotations
 import argparse
 import base64
 from pathlib import Path
-import sys
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'ros2_ws/src/cleany_gazebo_sim'))
 from cleany_gazebo_sim.world.facility_layout import load_facility_layout
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--output', type=Path, default=ROOT / 'artifacts/facility/layout_overlay.svg'
-    )
+    parser.add_argument('--layout', type=Path, required=True, help='Facility layout YAML')
+    parser.add_argument('--reference', type=Path, required=True, help='Reference floor-plan image')
+    parser.add_argument('--output', type=Path, required=True, help='Output SVG path')
     args = parser.parse_args()
-    layout = load_facility_layout(
-        ROOT / 'ros2_ws/src/cleany_gazebo_sim/config/facility_18f/facility_layout.yaml'
-    )
+    layout = load_facility_layout(args.layout)
     source = layout.raw['source']
     pixels, maps = source['reference_pixel_anchors'], source['reference_map_anchors']
     sx = (pixels[1][0] - pixels[0][0]) / (maps[1][0] - maps[0][0])
@@ -35,7 +30,7 @@ def main():
 
     from PIL import Image
 
-    reference = ROOT / source['image']
+    reference = args.reference
     width, height = Image.open(reference).size
     image = base64.b64encode(reference.read_bytes()).decode()
     svg = [

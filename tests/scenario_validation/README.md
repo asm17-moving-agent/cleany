@@ -17,7 +17,7 @@ Nav2의 세 lifecycle manager는 discovery 후 순서대로 STARTUP을 요청한
 호스트에서 실행한다(container는 동일한 소스·데이터 절대 경로를 볼 수 있어야 한다).
 
 ```bash
-python3 tools/scenario_validation/parallel.py \
+python3 tests/scenario_validation/parallel.py \
   --root "$PWD" --container ros2-humble \
   --count 1 --name smoke-001 --seat seat-44 --sequence seat-44,seat-16 \
   --stop-on-failure --domain-base 120
@@ -49,9 +49,9 @@ CAD Fortress 전용 wheel yaw 보정과 DWB 경로 진행/중앙 장애물 비�
 물리 로봇 보정값으로 사용하지 않는다. 기본 fixture로부터 다음처럼 재현한다.
 
 ```bash
-python3 tools/scenario_validation/prepare_profile.py \
+python3 tests/scenario_validation/prepare_profile.py \
   /path/to/cleany-data/fixtures/baseline /path/to/cleany-data/fixtures/candidate \
-  --profile tools/scenario_validation/profiles/cad_fortress_command_hold.yaml
+  --profile tests/scenario_validation/profiles/cad_fortress_command_hold.yaml
 ```
 
 생성한 경로를 `parallel.py --fixture`에 전달하고, yaw 보정을 지원하는 odometry와

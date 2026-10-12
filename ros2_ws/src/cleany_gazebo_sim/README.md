@@ -91,7 +91,7 @@ SLAM 결과가 아니다. 지도와 레이아웃 SHA256을 검사하며 레이�
 한 케이스만 실행하려면 활성 install 환경을 source한 뒤 실행한다.
 
 ```bash
-python3 tools/navigation_evaluation/run_goal_regression.py \
+python3 tests/navigation_evaluation/run_goal_regression.py \
   --case chair_gap --output artifacts/chair-gap-new --profile fortress --rtf 2
 ```
 
@@ -380,7 +380,7 @@ snapshot, `samples.csv`, 센서/속도/costmap bag, 센서별 NPZ를 남깁니�
 세 모드의 결과를 모아 그림과 JSON으로 렌더링할 수 있습니다.
 
 ```bash
-python3 tools/navigation_evaluation/render_safety_report.py \
+python3 tests/navigation_evaluation/render_safety_report.py \
   --sensors /absolute/path/to/sensors-run \
   --monitor /absolute/path/to/monitor-run \
   --avoid /absolute/path/to/avoid-run \
@@ -473,7 +473,7 @@ rviz2 -d ros2_ws/src/cleany_gazebo_sim/config/rviz/navigation_costmap.rviz \
 
 ### 전역 장애물 관측 기록
 
-맵 전체 순회는 `tools/navigation_evaluation/live_costmap.py --full-map-route --map <지도.yaml>
+맵 전체 순회는 `tests/navigation_evaluation/live_costmap.py --full-map-route --map <지도.yaml>
 --output <새 디렉터리>`로 실행합니다. `study_cafe_route.yaml`의 17개 경유점(원본 94.3 m)을
 기존 `ground_truth_route_follower`로 추종합니다. 시험용 장애물은 투입하지 않습니다.
 `--route-end-inset 0.30`은 양 끝 X 경유점을 30 cm 안쪽으로 옮겨 회전 여유를 확보하며,
@@ -490,7 +490,7 @@ Collision Monitor를 통과합니다. AMCL과 코스트맵의 odometry는 계속
 실제 로봇의 localization 신뢰도 추정 기능은 아닙니다. 누적 동결/재개 서비스는
 `/obstacle_memory/set_enabled` (`std_srvs/SetBool`)입니다.
 
-`tools/navigation_evaluation/live_costmap.py --drive --no-test-obstacle`은 시험용 장애물을
+`tests/navigation_evaluation/live_costmap.py --drive --no-test-obstacle`은 시험용 장애물을
 투입하지 않고 같은 목표까지 주행합니다. 기존 가구는 유지하며, 이 모드에서는 횡방향
 회피량과 시험용 장애물까지의 이격 거리를 성공 조건으로 검사하지 않습니다.
 `--restore-memory`를 생략하면 누적 기록도 새로 시작합니다.
@@ -764,7 +764,7 @@ collision box를 합쳐 `profile_frame/merged` 직육면체 하나로 처리한�
 
 ### 3D 누적 voxel 지도와 직렬 속도 가드 (시뮬레이션)
 
-`tools/navigation_evaluation/live_costmap.py --guard-3d --idle --robot-model cad_frame
+`tests/navigation_evaluation/live_costmap.py --guard-3d --idle --robot-model cad_frame
 --map /absolute/map.yaml --output /absolute/new-run`으로 활성화한다. 지도 좌표계는
 저장 지도와 같은 `map`, odometry는 `/wheel/odom`이다. 기본 실행에는 영향을
 주지 않으며 3D 가드는 CAD 모델 + 장애물 기록이 있는 실행에만 연결된다.
@@ -961,11 +961,15 @@ flag `0x01`로 관측 가능하며 로봇의 기존 self-filter `0x02`는 유지
 
 ```bash
 make test-gazebo
-python3 tools/facility/render_layout_overlay.py
+# make build-gazebo 후 ROS overlay를 source하고 저장소 루트에서 실행한다.
+ros2 run cleany_gazebo_sim render_layout_overlay.py \
+  --layout ros2_ws/src/cleany_gazebo_sim/config/facility_18f/facility_layout.yaml \
+  --reference docs/assets/facility/facility-18f-reference.png \
+  --output /absolute/output/layout_overlay.svg
 # 아래는 저장소 루트에서 ROS overlay를 source한 뒤 실행한다.
-python3 tools/facility/validate_runtime.py --scene chair --chair-model roly \
+python3 tests/facility/validate_runtime.py --scene chair --chair-model roly \
   --output "$PWD/artifacts/facility/roly-26cm"
-python3 tools/facility/validate_runtime.py --scene facility --gui --route \
+python3 tests/facility/validate_runtime.py --scene facility --gui --route \
   --timeout 3600 --output "$PWD/artifacts/facility/full-route"
 ```
 
@@ -1246,3 +1250,20 @@ SLAM 비교 orchestrator, `evaluation_*.launch.py`, occupancy marker 및 전용 
 시설에서 쓰는 LiDAR profile/TF 생성은 `sensor_mounts.py`로 분리했고 일반 테스트에서
 검사한다. `ground_truth_route_follower`, `run_route`, sensor/odometry profile,
 Fortress/Harmonic, legacy/CAD 모델과 주행 safety 설정은 유지한다.
+
+### 시설 생성 도구
+
+시설 생성 CLI는 패키지의 `scripts/`에 설치되며 `ros2 run cleany_gazebo_sim <파일명>`으로 실행한다.
+순수 목표 생성 로직은 `cleany_gazebo_sim/world/mission_targets.py`, 단위 테스트는
+`test/test_mission_targets.py`에 둔다. `make test-gazebo-facility-tools`는 simulator 없이 검사한다.
+
+| 실행 파일 | 입력·출력 |
+|---|---|
+| `generate_mission_targets.py` | `--world`, `--map`, `--chair-mesh-root`, `--output`: 접근 목표 YAML과 인접 검증 JSON |
+| `render_layout_overlay.py` | `--layout`, `--reference`, `--output`: 평면도 위 배치 SVG |
+| `generate_felt_texture.py` | `--output <PNG 경로>`: 회색 펠트 질감 |
+| `generate_roly_textures.py` | `--output <폴더>`: `seat.png`, `back.png` 질감 |
+
+출력 경로를 명시하며 설치된 asset을 자동으로 덮어쓰지 않는다. 텍스처는 시각적 근사다.
+목표 생성은 시뮬레이션의 정적 footprint 여유 검사이며 실제 팔 도달성이나 전체 주행 성공을 증명하지 않는다.
+NumPy·SciPy·Pillow·PyYAML은 `package.xml`의 system dependency로 관리한다.

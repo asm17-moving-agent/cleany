@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 COMPONENT = ROOT / "esp32/micro_ros/micro_ros_espidf_component"
 
 
@@ -28,7 +28,9 @@ def clone_spec(args: list[str], sources: dict) -> tuple[str, str, str] | None:
 
 def main() -> None:
     args = sys.argv[1:]
-    if COMPONENT.resolve() not in Path.cwd().resolve().parents:
+    working_directory = Path.cwd().resolve()
+    component = COMPONENT.resolve()
+    if working_directory != component and component not in working_directory.parents:
         os.execv("/usr/bin/git", ["git", *args])
     sources = json.loads((ROOT / "esp32/micro_ros.lock.json").read_text())["component_sources"]
     spec = clone_spec(args, sources)
