@@ -46,6 +46,9 @@ class GraspExecutionNode(Node):
         self._joint_positions: dict[str, float] = {}
         self.create_subscription(JointState, '/joint_states', self._on_joints, 20)
 
+    def _spin_once(self, timeout_sec: float) -> None:
+        rclpy.spin_once(self, timeout_sec=timeout_sec)
+
     def _on_joints(self, message: JointState) -> None:
         self._joint_positions.update(
             zip(message.name, message.position, strict=True)
@@ -58,7 +61,7 @@ class GraspExecutionNode(Node):
             not set(REQUIRED_JOINT_NAMES) <= self._joint_positions.keys()
             and time.monotonic() < deadline
         ):
-            rclpy.spin_once(self, timeout_sec=0.05)
+            self._spin_once(timeout_sec=0.05)
         missing = set(REQUIRED_JOINT_NAMES) - self._joint_positions.keys()
         if missing:
             self.get_logger().error(
@@ -82,11 +85,11 @@ class GraspExecutionNode(Node):
         *,
         accept_control_failure: Callable[[], bool] | None = None,
     ) -> bool:
-        for execution_attempt in (1, 2):
-
+        attempts = (1, 2) if getattr(self, '_controller_retry_enabled', True) else (1,)
+        for execution_attempt in attempts:
             goal = self._execution_goal(arm, joint_state, label)
             self.get_logger().info(
-                f'MoveIt plan-and-execute: {label} attempt={execution_attempt}/2'
+                f'MoveIt plan-and-execute: {label} attempt={execution_attempt}/{len(attempts)}'
             )
             handle = self._future(
                 self._move_group.send_goal_async(goal),
@@ -114,7 +117,7 @@ class GraspExecutionNode(Node):
                     'skipping endpoint retry'
                 )
                 return False
-            if execution_attempt == 1 and code == MoveItErrorCodes.CONTROL_FAILED:
+            if execution_attempt < len(attempts) and code == MoveItErrorCodes.CONTROL_FAILED:
                 self.get_logger().warning(
                     f'{label} controller failed; replanning once from current state'
                 )
@@ -195,7 +198,7 @@ class GraspExecutionNode(Node):
     def _verify_feedback(self, goal: JointState) -> None:
         deadline = time.monotonic() + 5.0
         while time.monotonic() < deadline:
-            rclpy.spin_once(self, timeout_sec=0.05)
+            self._spin_once(timeout_sec=0.05)
             if all(
                 abs(self._joint_positions.get(name, math.inf) - position) < 0.03
                 for name, position in zip(goal.name, goal.position, strict=True)
@@ -206,7 +209,7 @@ class GraspExecutionNode(Node):
     def _future(self, future: Any, timeout: float, label: str) -> Any:
         deadline = time.monotonic() + timeout
         while not future.done() and time.monotonic() < deadline:
-            rclpy.spin_once(self, timeout_sec=0.05)
+            self._spin_once(timeout_sec=0.05)
         if not future.done():
             future.cancel()
             raise RuntimeError(f'timed out waiting for {label}')
@@ -220,4 +223,4 @@ class GraspExecutionNode(Node):
             self.get_parameter(parameter_name).value
         )
         while time.monotonic() < deadline:
-            rclpy.spin_once(self, timeout_sec=0.05)
+            self._spin_once(timeout_sec=0.05)

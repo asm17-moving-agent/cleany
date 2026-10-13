@@ -13,6 +13,12 @@ install(
 )
 
 install(
+  PROGRAMS cleany_moveit_config/apply_handeye_collision_scene.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME apply_handeye_collision_scene
+)
+
+install(
   DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}
   PATTERN "__pycache__" EXCLUDE
@@ -32,6 +38,15 @@ if(BUILD_TESTING)
     test/test_moveit_config.py
   )
   ament_add_pytest_test(
+    handeye_collision_scene_contract
+    test/test_handeye_collision_scene.py
+  )
+  ament_add_pytest_test(
+    handeye_collision_scene_runtime
+    test/test_handeye_collision_scene_runtime.py
+    TIMEOUT 240
+  )
+  ament_add_pytest_test(
     simulation_collision_contract
     test/test_simulation_collision.py
   )
@@ -43,6 +58,11 @@ if(BUILD_TESTING)
     mock_planning_runtime
     test/test_mock_planning_runtime.py
     TIMEOUT 240
+  )
+  ament_add_pytest_test(
+    move_group_shutdown_runtime
+    test/test_move_group_shutdown.py
+    TIMEOUT 90
   )
 endif()
 

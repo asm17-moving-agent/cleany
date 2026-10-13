@@ -33,7 +33,7 @@ from cleany_skill_executor.core.rgbd_projection import CameraProjection, rotatio
 from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
 from cleany_skill_executor.core.nearest_object import ObjectAttempt
 from cleany_skill_executor.core.sorting import (
-    Category, execute_sort, load_sorting_policy,
+    Category, execute_sort, load_sorting_policy, bin_release_region,
 )
 from cleany_skill_executor.core.reobservation import reobservation_centers
 from cleany_skill_executor.moveit_adapter import (
@@ -55,12 +55,6 @@ class HeldObject:
     target: SortTarget
     selected: object
     offset_in_tcp: np.ndarray
-
-
-class WristTargetNotDetected(RuntimeError):
-    def __init__(self, message: str, stamp_ns: int):
-        super().__init__(message)
-        self.stamp_ns = stamp_ns
 
 
 def held_bounding_radius(node, held: HeldObject) -> float:
@@ -103,9 +97,6 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self.declare_parameter('sorting_exit_on_finish', True)
         self.declare_parameter('sorting_test_only_label', '')
         self._wrist_enabled = self.declare_parameter('sorting_use_wrist_camera', False).value
-        self.declare_parameter('sorting_wrist_check_attempts', 1)
-        self.declare_parameter('sorting_wrist_contact_confirmation_sec', 0.3)
-        self.declare_parameter('sorting_gripper_feedback_max_age_sec', 0.5)
         self._adaptive_camera_rate = self.declare_parameter(
             'sorting_adaptive_head_rate', False).value
         self.declare_parameter('sorting_approach_acceleration_scaling', 1.0)
@@ -124,6 +115,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self._wrist_client = self.create_client(ObserveWristTarget, '/perception/observe_wrist_target')
         self._camera_client = self.create_client(SetParameters, '/sorting_cameras/set_parameters')
         self._wrist_reference = None
+        self.declare_parameter('sorting_release_clearance_m', 0.06)
+        self.declare_parameter('sorting_release_maximum_clearance_m', 0.21)
+        self.declare_parameter('sorting_release_edge_margin_m', 0.005)
         self.declare_parameter('sorting_release_ik_attempts', 16)
         self.declare_parameter('sorting_release_ik_iterations', 80)
         self.declare_parameter('sorting_head_reference_refresh_age_sec', 0.0)
@@ -181,7 +175,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
                 fk_timeout_sec=float(self.get_parameter('tcp_fk_timeout_sec').value),
                 state_validity_timeout_sec=float(self.get_parameter('tcp_fk_timeout_sec').value),
                 ik_response_margin_sec=float(self.get_parameter('tcp_fk_timeout_sec').value)),
-            spin_once=lambda t: rclpy.spin_once(self, timeout_sec=t))
+            spin_once=lambda t: self._spin_once(timeout_sec=t))
         self._transport_description_subscription = self.create_subscription(
             String, '/robot_description',
             lambda message: self._transport_adapter.set_robot_description(message.data),
@@ -354,7 +348,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
                     except CartesianPlanningError as error:
                         reason = str(error)
                     else:
-                        self.get_logger().info(
+                        self.get_logger().debug(
                             f'Carry Cartesian plan verified: {label} wrist=+/-{degrees:.1f}deg')
                         return trajectory
             failures.append(f'{degrees:.1f}deg: {reason}')
@@ -386,7 +380,12 @@ class SortingCoordinator(NearestPregraspCoordinator):
             with (self._artifact_directory / 'stages.jsonl').open('a') as stream:
                 stream.write(json.dumps(dict(wall_time=time.time(), **payload))+'\n')
         self._status.publish(String(data=json.dumps(payload)))
-        self.get_logger().info(f'SORTING {json.dumps(payload)}')
+        self.get_logger().debug(f'SORTING {json.dumps(payload)}')
+        summary = (f'SORTING stage={stage} label={self._current.get("label", "")} '
+                   f'destination={self._current.get("destination", "")} completed={len(self._completed)}')
+        if error is not None:
+            summary += f' error={error}'
+        self.get_logger().info(summary)
 
     def run(self):
         self._stage('starting')
@@ -570,7 +569,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         response = self._future(self._camera_client.call_async(request), 3., 'head depth refresh')
         if len(response.results) != 1 or not response.results[0].successful:
             raise RuntimeError('Head depth refresh request rejected')
-        self.get_logger().info(f'Head depth boost={enabled}; wrist camera selection unchanged')
+        self.get_logger().debug(f'Head depth boost={enabled}; wrist camera selection unchanged')
 
     def _ensure_fresh_head_before_wrist(self, selected, attempt):
         maximum = float(self.get_parameter('sorting_head_reference_refresh_age_sec').value)
@@ -638,7 +637,11 @@ class SortingCoordinator(NearestPregraspCoordinator):
                     'Kinematic lift clearance below required height: '
                     f'predicted_center_z={predicted[2]:.4f}m '
                     f'required_center_z={minimum_center_z_m:.4f}m')
-            return self._verify_wrist_or_contact(held)
+            result = self._observe_wrist(held.selected, ObserveWristTarget.Request.CHECK, held=True)
+            self._require_held_contact(held)
+            self.get_logger().info('Wrist RGB + gripper contact consistent after lift; '
+                                   'height is kinematic, not an independent depth measurement')
+            return result
         verify = (self._verify_head_redetection if getattr(self, '_geometry_association_lift', False)
                   else super()._verify_lift_height)
         try:
@@ -707,7 +710,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             raise RuntimeError('Head RGB-D found multiple objects at the held-object position')
         inspected, error = matches[0]
         center_z = float(inspected.objects.objects[0].obb_pose.position.z)
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Head RGB-D lift verification: source={attempt.label} '
             f'observed={inspected.objects.objects[0].label} '
             f'center_z={center_z:.3f}m association_error={error:.3f}m')
@@ -729,7 +732,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             solution = self._transport_adapter.solve_position_ik(
                 arm, tuple(float(v) for v in target), solution)
             if solution is None:
-                self.get_logger().info(f'Held-center IK unavailable: target={target.tolist()}')
+                self.get_logger().debug(f'Held-center IK unavailable: target={target.tolist()}')
                 return None
             joints = JointState(name=list(solution.names), position=list(solution.positions))
             pose = self._tcp_pose(arm, joints)
@@ -737,9 +740,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if np.linalg.norm(predicted-center) < tolerance_m:
                 valid = self._transport_adapter.state_is_valid(arm, solution)
                 if not valid:
-                    self.get_logger().info('Held-center IK rejected by collision check')
+                    self.get_logger().debug('Held-center IK rejected by collision check')
                 return joints if valid else None
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Held-center fixed-point IK did not converge: error_m={np.linalg.norm(predicted-center):.5f}')
         return None
 
@@ -749,69 +752,6 @@ class SortingCoordinator(NearestPregraspCoordinator):
                 float(self.get_parameter('gripper_open_position_rad').value),
                 self._candidate_close_position(held.selected.selected_candidate)):
             raise RuntimeError('Held-object reobservation lost settled gripper contact')
-
-    def _confirm_held_contact(self, held: HeldObject) -> None:
-        """Require consecutive post-request motor feedback while the arm is held."""
-        duration = float(self.get_parameter('sorting_wrist_contact_confirmation_sec').value)
-        timeout = float(self.get_parameter('gripper_contact_feedback_timeout_sec').value)
-        maximum_age = float(self.get_parameter('sorting_gripper_feedback_max_age_sec').value)
-        if (not all(math.isfinite(v) and v > 0 for v in (duration, timeout, maximum_age))
-                or duration > timeout):
-            raise ValueError('Invalid held-contact confirmation timing')
-        joint = f'{held.selected.selected_arm}_gripper_joint'
-        previous = self.get_clock().now().nanoseconds
-        first = None
-        samples = 0
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            rclpy.spin_once(self, timeout_sec=0.05)
-            stamp = self._gripper_feedback_stamps.get(joint, 0)
-            if stamp <= previous:
-                continue
-            now = self.get_clock().now().nanoseconds
-            # /joint_states and /clock have separate subscriptions. A joint
-            # update can arrive first; leave it uncounted until the clock catches
-            # up. A stopped clock or persistently future stamp still times out.
-            if stamp > now:
-                continue
-            if (now - stamp) / 1e9 > maximum_age:
-                raise RuntimeError('Held-gripper feedback is stale')
-            if first is not None and (stamp - previous) / 1e9 > maximum_age:
-                raise RuntimeError('Held-gripper feedback continuity was lost')
-            self._require_held_contact(held)
-            previous = stamp
-            first = stamp if first is None else first
-            samples += 1
-            if samples >= 3 and (stamp - first) / 1e9 >= duration:
-                return
-        raise RuntimeError('No fresh sustained held-gripper feedback before timeout')
-
-    def _verify_wrist_or_contact(self, held: HeldObject):
-        attempts = int(self.get_parameter('sorting_wrist_check_attempts').value)
-        if not 1 <= attempts <= 5:
-            raise ValueError('Wrist check attempts must be within [1, 5]')
-        after_stamp_ns = None
-        for attempt in range(1, attempts + 1):
-            self._confirm_held_contact(held)
-            try:
-                result = self._observe_wrist(
-                    held.selected, ObserveWristTarget.Request.CHECK, held=True,
-                    after_stamp_ns=after_stamp_ns)
-            except WristTargetNotDetected as error:
-                self._confirm_held_contact(held)
-                after_stamp_ns = error.stamp_ns
-                self.get_logger().warning(
-                    f'Wrist target not detected ({attempt}/{attempts}); '
-                    f'fresh gripper contact remains stable: {error}')
-            else:
-                self._confirm_held_contact(held)
-                self.get_logger().info('Wrist RGB + gripper contact consistent after lift; '
-                                       'height is kinematic, not an independent depth measurement')
-                return result
-        self.get_logger().warning(
-            f'Continuing after {attempts} fresh wrist misses with sustained gripper feedback; '
-            'visual grasp confirmation unavailable, lift height remains kinematic')
-        return None
 
     def _reobserve_held_object(self, minimum_center_z_m: float | None) -> None:
         held, info = self._held_object, self._camera_info
@@ -842,7 +782,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             maximum_translation_m=float(self.get_parameter('sorting_reobserve_max_translation_m').value),
             maximum_lowering_m=float(self.get_parameter('sorting_reobserve_max_lowering_m').value),
             height_clearance_m=float(self.get_parameter('sorting_reobserve_height_clearance_m').value))
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Held reobservation: predicted_center={center.tolist()} radius={radius:.4f}m '
             f'frustum_candidates={[c.tolist() for c in centers]}')
         if bool(self.get_parameter('require_sensor_scene').value):
@@ -850,7 +790,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         for candidate in centers:
             joints = self._held_center_joints(held, candidate, 0.005)
             if joints is None:
-                self.get_logger().info(f'Reobservation IK rejected: {candidate.tolist()}')
+                self.get_logger().debug(f'Reobservation IK rejected: {candidate.tolist()}')
                 continue
             self._move_to(arm, joints, 'held-object camera reobservation')
             self._verify_feedback(joints)
@@ -879,7 +819,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if (np.max(np.abs(center-point)) <= .001
                     and all(values.get(name) == value for name, value in wrist.items())
                     and self._transport_adapter.state_is_valid(arm, solution)):
-                self.get_logger().info('Reusing fixed release IK after fresh FK/collision checks')
+                self.get_logger().debug('Reusing fixed release IK after fresh FK/collision checks')
                 return solution
             self._fixed_release_cache.pop(key)
         solution = self._transport_adapter.solve_held_region_ik(
@@ -892,9 +832,16 @@ class SortingCoordinator(NearestPregraspCoordinator):
             self._fixed_release_cache[key] = solution
         return solution
 
-    def _transport_fixed_release(self, held, destination):
-        arm = held.selected.selected_arm
+    def _transport_fixed_release(self, held, destination, radius):
+        arm, bin_ = held.selected.selected_arm, self._bins[destination]
         point = self._fixed_release_points[destination]
+        low, high = bin_release_region(
+            bin_.center_xy, bin_.outside_size, bin_.wall, bin_.top_z, radius,
+            float(self.get_parameter('sorting_release_clearance_m').value),
+            float(self.get_parameter('sorting_release_maximum_clearance_m').value),
+            float(self.get_parameter('sorting_release_edge_margin_m').value))
+        if np.any(point-.001 < low) or np.any(point+.001 > high):
+            raise RuntimeError(f'Fixed release point does not fit payload in {destination}: {point.tolist()}')
         # Classification already selected the destination before pick. Hold the
         # post-lift wrist and plan directly to that bin, with no shared waypoint.
         self._wait_arm_stationary(arm)
@@ -913,11 +860,19 @@ class SortingCoordinator(NearestPregraspCoordinator):
 
     def transport(self, held: HeldObject, destination: str):
         self._require_held_contact(held)
-        # TODO(bin-opening-fit): check that the held object's bounding sphere
-        # fits the bin opening before transport. Planned for later development.
-        self._transport_fixed_release(held, destination)
+        bin_ = self._bins[destination]
+        # Bounding sphere accounts for object rotation during transport.
+        radius = held_bounding_radius(self, held)
+        size = held.selected.selected_candidate.target_object.obb_size
+        self.get_logger().debug(
+            f'Release fit: destination={destination} '
+            f'observed_obb=({size.x:.4f}, {size.y:.4f}, {size.z:.4f})m '
+            f'bounding_radius={radius:.4f}m '
+            f'opening_half=({bin_.outside_size[0] / 2 - bin_.wall:.4f}, '
+            f'{bin_.outside_size[1] / 2 - bin_.wall:.4f})m')
+        self._transport_fixed_release(held, destination, radius)
 
-    def release(self, held: HeldObject, destination: str):
+    def check_release_target(self, held: HeldObject, destination: str) -> None:
         arm = held.selected.selected_arm
         pose = self._tcp_pose(arm)
         center = (np.array(self._pose_position(pose))
@@ -933,10 +888,26 @@ class SortingCoordinator(NearestPregraspCoordinator):
                    or abs(feedback[name]-value) > self._fixed_release_hold_tolerance+1e-6
                    for name, value in self._fixed_release_wrist.items()):
                 raise RuntimeError('Fixed release wrist feedback is outside hold tolerance')
-        # TODO(bin-opening-fit): before opening, check that the object is inside
-        # the bin opening and above its rim. Planned for later development.
-        self._open_gripper(arm)
+        bin_ = self._bins[destination]
+        radius = held_bounding_radius(self, held)
+        if not math.isfinite(radius) or radius <= 0:
+            raise RuntimeError('Release payload radius must be positive and finite')
+        if (any(abs(center[i] - bin_.center_xy[i]) + radius
+                >= bin_.outside_size[i] / 2 - bin_.wall for i in range(2))
+                or center[2] - radius <= bin_.top_z):
+            raise RuntimeError('Object is not safely above the bin opening')
+
+    def release(self, held: HeldObject, destination: str):
+        self.check_release_target(held, destination)
+        self.open_at_destination(held)
+        self.finish_release(held)
+
+    def open_at_destination(self, held: HeldObject) -> None:
+        self._open_gripper(held.selected.selected_arm)
         self._release_stamp_ns = self.get_clock().now().nanoseconds
+
+    def finish_release(self, held: HeldObject) -> None:
+        arm = held.selected.selected_arm
         self._hold('grasp_settle_sec')
         self._execution_scene.restore()
         self._held_object = None
@@ -966,7 +937,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if getattr(self, '_adaptive_camera_rate', False):
                 self._set_head_high_rate(False)
 
-    def retreat(self, held: HeldObject, destination: str):
+    def retreat(self, held: HeldObject, destination: str, *, prefetch: bool = True):
         arm = held.selected.selected_arm
         if self._held_object is not None:
             raise RuntimeError('Cannot close the returning gripper before release completes')
@@ -981,15 +952,17 @@ class SortingCoordinator(NearestPregraspCoordinator):
             self._switch_camera('head')
         # InspectScene waits for a new RGB-D frame after accepting the goal.
         # Inference proceeds in the perception node while this node executes return.
-        self._return_detection = self._begin_object_detection()
-        self.get_logger().info('Next scene detection submitted before return motion')
+        if prefetch:
+            self._return_detection = self._begin_object_detection()
+            self.get_logger().info('Next scene detection submitted before return motion')
         self.get_logger().info(f'Return with simultaneous {arm} gripper closing')
         try:
             self._move_to(arm, joints, f'return from {destination}')
             self._verify_feedback(joints)
         except Exception:
-            self._return_detection[0].cancel_goal_async()
-            self._return_detection = None
+            if self._return_detection is not None:
+                self._return_detection[0].cancel_goal_async()
+                self._return_detection = None
             raise
 
     def _switch_camera(self, camera: str):
@@ -999,7 +972,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         response = self._future(self._camera_client.call_async(request), 3., 'camera source/rate change')
         if len(response.results)!=1 or not response.results[0].successful:
             raise RuntimeError('Camera source/rate change rejected')
-        self.get_logger().info(f'Active inspection camera={camera}; head runs at configured background rate during wrist use')
+        self.get_logger().debug(f'Active inspection camera={camera}; head runs at configured background rate during wrist use')
         if camera == 'head':
             self._set_head_high_rate(True)
 
@@ -1013,7 +986,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         if len(response.results) != 1 or not response.results[0].successful:
             raise RuntimeError('Head camera rate change rejected')
 
-    def _observe_wrist(self, selected, operation, *, held=False, after_stamp_ns=None):
+    def _observe_wrist(self, selected, operation, *, held=False):
         candidate = selected.selected_candidate
         obj = candidate.target_object
         request = ObserveWristTarget.Request(operation=operation, arm=selected.selected_arm,
@@ -1027,7 +1000,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
                 raise RuntimeError('Missing or invalid lift completion freshness barrier')
             # Results captured during the existing stabilization hold are valid
             # post-lift evidence. Do not force another full frame after the hold.
-            request.after_stamp_ns = max(completed, after_stamp_ns or 0)
+            request.after_stamp_ns = completed
         request.expected_pose.header=deepcopy(candidate.header)
         request.expected_pose.pose=deepcopy(obj.obb_pose)
         if held:
@@ -1040,24 +1013,18 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self._record_pipeline_message('wrist_request', request)
         started = time.monotonic()
         response = self._future(self._wrist_client.call_async(request), 30., 'wrist RGB verification')
-        self.get_logger().info(f'WRIST RPC operation={operation} elapsed_sec={time.monotonic()-started:.3f} '
+        self.get_logger().debug(f'WRIST RPC operation={operation} elapsed_sec={time.monotonic()-started:.3f} '
                                f'after_ns={request.after_stamp_ns}')
         self._record_pipeline_message('wrist_response', response)
-        missing = (not response.success and response.status == response.NOT_DETECTED
-                   and operation == ObserveWristTarget.Request.CHECK)
-        if not missing and (not response.success or response.status != response.OK):
+        if (not response.success or response.source_snapshot_id != candidate.snapshot_id
+                or response.source_object_id != obj.object_id):
             raise RuntimeError(f'Wrist RGB verification failed: {response.message}')
         stamp=response.header.stamp.sec*10**9+response.header.stamp.nanosec
-        if (response.source_snapshot_id != candidate.snapshot_id
-                or response.source_object_id != obj.object_id
-                or response.header.frame_id != f'{selected.selected_arm}_wrist_rgb_optical_frame'
-                or not request.after_stamp_ns < stamp <= self.get_clock().now().nanoseconds
-                or not response.reference_id
+        if (response.header.frame_id != f'{selected.selected_arm}_wrist_rgb_optical_frame'
+                or stamp <= request.after_stamp_ns or not response.reference_id
                 or (operation==ObserveWristTarget.Request.CHECK and
                     response.reference_id != request.reference_id)):
             raise RuntimeError('Wrist response source/frame/timestamp mismatch')
-        if missing:
-            raise WristTargetNotDetected(response.message, stamp)
         return response
 
     def verify_placement(self, target: SortTarget, destination: str) -> bool:
@@ -1072,7 +1039,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             if response.success:
                 self.get_logger().info(response.message)
                 return True
-            rclpy.spin_once(self, timeout_sec=0.1)
+            self._spin_once(timeout_sec=0.1)
         return False
 
     def _register_bins(self):

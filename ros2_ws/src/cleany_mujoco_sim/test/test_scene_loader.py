@@ -9,6 +9,7 @@ import pytest
 from cleany_mujoco_sim.scene_loader import (
     load_model,
     materialize_control_scene,
+    materialize_scene,
 )
 from cleany_mujoco_sim.state import actuated_joint_names
 
@@ -74,9 +75,12 @@ def test_cleany_scene_uses_description_model(cleany_scene_path: Path):
     assert legacy_joint_id < 0
 
 
-def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy():
+@pytest.mark.parametrize('template_name', [
+    'handeye.xml.in', 'study_cafe_grasp_execution.xml.in',
+])
+def test_control_scene_removes_only_wheel_dcmotors_from_temporary_copy(template_name):
     package_root = Path(__file__).parents[1]
-    template_path = package_root / 'scenes' / 'study_cafe_grasp_execution.xml.in'
+    template_path = package_root / 'scenes' / template_name
     canonical_path = (
         package_root.parent / 'cleany_description' / 'mjcf' / 'cleany.xml'
     )
@@ -336,3 +340,130 @@ def test_cleany_arm_uses_feetech_servo_limits_and_speeds(
             assert modeled_no_load_speed == pytest.approx(
                 no_load_speed, rel=1e-6
             )
+
+
+def test_positive_drive_voltage_moves_toward_camera_front(
+    cleany_scene_path: Path,
+):
+    model, data = load_model(cleany_scene_path)
+    chassis_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
+    )
+    camera_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_CAMERA, 'head_realsense_rgb'
+    )
+    mujoco.mj_forward(model, data)
+    initial_position = data.xpos[chassis_id].copy()
+    camera_forward = -data.cam_xmat[camera_id].reshape(3, 3)[:, 2].copy()
+
+    for actuator_name in (
+        'rear_left_drive',
+        'rear_right_drive',
+        'front_left_drive',
+        'front_right_drive',
+    ):
+        actuator_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
+        )
+        data.ctrl[actuator_id] = 10.0
+
+    for _ in range(500):
+        mujoco.mj_step(model, data)
+
+    displacement = data.xpos[chassis_id] - initial_position
+    assert displacement @ camera_forward > 0.1
+    assert displacement[0] > abs(displacement[1])
+
+
+def test_positive_yaw_voltage_pattern_turns_counter_clockwise(
+    cleany_scene_path: Path,
+):
+    model, data = load_model(cleany_scene_path)
+    yaw_voltage = {
+        'rear_left_drive': -2.0,
+        'front_left_drive': -2.0,
+        'rear_right_drive': 2.0,
+        'front_right_drive': 2.0,
+    }
+    for actuator_name, voltage in yaw_voltage.items():
+        actuator_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
+        )
+        data.ctrl[actuator_id] = voltage
+
+    for _ in range(500):
+        mujoco.mj_step(model, data)
+
+    chassis_id = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_BODY, 'chassis'
+    )
+    w, x, y, z = data.xquat[chassis_id]
+    yaw = math.atan2(
+        2.0 * (w * z + x * y),
+        1.0 - 2.0 * (y * y + z * z),
+    )
+    assert yaw > 0.1
+
+
+def test_rgbd_pick_scene_has_fixed_table_and_targets(
+    rgbd_pick_scene_path: Path,
+):
+    model, data = load_model(rgbd_pick_scene_path)
+    mujoco.mj_forward(model, data)
+
+    assert model.vis.quality.offsamples == 1
+
+    table_geom_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_GEOM,
+        'pick_tabletop',
+    )
+    box_geom_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_GEOM,
+        'pick_box_geom',
+    )
+    can_geom_id = mujoco.mj_name2id(
+        model,
+        mujoco.mjtObj.mjOBJ_GEOM,
+        'pick_can_geom',
+    )
+
+    assert data.geom_xpos[table_geom_id] == pytest.approx(
+        (0.635, -0.002, 0.710)
+    )
+    assert model.geom_size[table_geom_id] == pytest.approx(
+        (0.385, 0.600, 0.015)
+    )
+    assert data.geom_xpos[table_geom_id, 2] + model.geom_size[
+        table_geom_id, 2
+    ] == pytest.approx(0.725)
+    assert data.geom_xpos[table_geom_id, 0] - model.geom_size[
+        table_geom_id, 0
+    ] == pytest.approx(0.250)
+    assert data.geom_xpos[table_geom_id, 1] - model.geom_size[
+        table_geom_id, 1
+    ] == pytest.approx(-0.602)
+
+    assert model.geom_type[box_geom_id] == mujoco.mjtGeom.mjGEOM_BOX
+    assert data.geom_xpos[box_geom_id] == pytest.approx(
+        (0.560, -0.160, 0.765)
+    )
+    assert model.geom_size[box_geom_id] == pytest.approx(
+        (0.050, 0.040, 0.040)
+    )
+
+    assert model.geom_type[can_geom_id] == mujoco.mjtGeom.mjGEOM_CYLINDER
+    assert data.geom_xpos[can_geom_id] == pytest.approx(
+        (0.540, 0.160, 0.775)
+    )
+    assert model.geom_size[can_geom_id, :2] == pytest.approx((0.035, 0.050))
+
+    for body_name in ('pick_table', 'pick_box', 'pick_can'):
+        body_id = mujoco.mj_name2id(
+            model,
+            mujoco.mjtObj.mjOBJ_BODY,
+            body_name,
+        )
+        assert body_id >= 0
+        assert model.body_jntnum[body_id] == 0

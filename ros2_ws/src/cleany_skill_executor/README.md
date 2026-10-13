@@ -1,307 +1,170 @@
 # cleany_skill_executor
 
-파지 후보 선택, MoveIt 계획, 시뮬레이션 집기·분류·놓기를 담당한다.
+파지 후보의 MoveIt 도달성 검증, pre-grasp 실행, MuJoCo 분류·수거와
+물체 하나의 모의 Manipulation Action을 담당한다.
 실물 명령을 지원하는 통합 운용 단계는 아니며 외부 로봇 경로는 plan-only다.
 
-- [분류 실행](#시뮬레이션-분리-수거-통합-검증-진행-중)
-- [분류·운반 실행 계약](#분류운반-실행-계약)
-- [설정 및 검증](#설정-및-검증)
+## 문서 안내
 
-## 작업자 관찰 모드와 파지 깊이
+| 하려는 일 | 읽을 문서 |
+|---|---|
+| 모의 Action 실행·취소·조회, 실패 재현, SQLite 이해 | [모의 Manipulation Action 사용법](docs/manipulation_mock_usage.md) |
+| VS Code에서 모의 Action 진행 상태 보기 | [로컬 트리 모니터링](docs/manipulation_mock_usage.md#vs-code에서-로컬-트리-모니터링) |
+| grasp 후보 선택과 가까운 물체의 pre-grasp 실행 | [Grasp 선택과 pre-grasp](docs/grasp_selection_and_pregrasp.md) |
+| 스터디카페 파이프라인·분류 실행과 진단 | [스터디카페 실행과 진단](docs/study_cafe_sorting_usage.md) |
+| 파지 깊이·속도·카메라·timeout 설정과 실험 기록 | [수거 설정과 실험 기록](docs/study_cafe_sorting_configuration.md) |
+| 분류·접촉·충돌·수거함 운반·손목 제약 계약 | [분류·운반 실행 계약](docs/study_cafe_sorting_contract.md) |
 
-시뮬레이터를 시작하는 수거 launch는 `sorting_verify_placement:=false`가
-기본이다. 물체를 놓고 팔이 복귀하면 `VerifyPlacement` 서비스 호출/대기 없이
-다음 물체 탐색으로 넘어간다. 시작 시 해당 서비스 준비도 기다리지 않는다.
-결과는 `complete_unverified`, `placement_verified: false`로 기록하며 자동
-안착 검증 성공으로 취급하지 않는다. 정상 종료 단계도 `mission_complete_unverified`
-이다. 실제 안착 여부는 작업자가 GUI로 확인한다.
-기존 자동 검증은 `sorting_verify_placement:=true`로 복원한다.
-이 변경은 운반 중 접촉 이탈 감시, 안전 정지, 충돌 검사, 다음 물체를 찾는
-카메라 인식 및 최종 작업 영역 비움 판정을 제거하지 않는다.
+## 모의 Manipulation Action
 
-휴지(`crumpled tissue`, `tissue`, `crumpled paper`)는 시뮬레이션 수거에서만
-`tissue_grasp_extra_depth_m:=0.004`를 더해 총 접근 보정량 22mm를 사용한다.
-시뮬레이션 수거의 공통 `grasp_approach_offset_m`는 18mm로, 이전 16mm보다
-접근 방향으로 2mm 더 깊게 잡는다. Selector IK와 실행 목표는 launch의 공통 보정 설정을 공유한다.
-pregrasp 기준 위치와 물체별 추가량(마우스 +14mm, 레고/휴지 +4mm)은 유지한다.
-공통 깊이만 원복하려면 `grasp_approach_offset_m:=0.016`을 사용한다.
-휴지 변경만 원복하려면 `tissue_grasp_extra_depth_m:=0.0`으로 실행한다.
-새 기본값은 다음 launch부터 적용되며 이미 떠 있는 GUI의 파라미터를 소급 변경하지 않는다.
+`manipulation_server`는 지정된 물체 하나의 `collect_trash` 또는 `collect_lost_item`을 실행한다.
+현재 `execution_profile=mock`이며 동작과 확인 근거를 모의로 생성한다.
+기본 namespace는 `/mock`이다.
 
-## 선택형 시뮬레이션 최적화와 원복
+모의 설정의 `destination_id`는 쓰레기 목적지, `lost_item_destination_id`는 분실물
+목적지다. 기본값은 각각 `mock_trash_bin`, `mock_lost_item_bin`이며 잘못된 skill–목적지
+조합은 준비 단계에서 차단한다. 테스트 클라이언트에서 분실물을 요청하려면
+`--skill-name collect_lost_item --destination-id mock_lost_item_bin`을 지정한다.
+실제 분류와 목적지 검사는 [BT 실행기](../cleany_manipulation_bt/README.md)가 담당한다.
 
-수거 launch에 `sim_performance_profile:=tabletop_fast`를 추가하면 먼 정적
-배경 충돌을 비활성화하고 그림자 맵만 2048로 낮춘다. 기본값 `baseline`으로
-재시작하면 기존 설정으로 돌아온다. 그림자 4096을 유지하는
-`tabletop_collision`도 제공한다. 파지 깊이·물체 물리·관절 속도·YOLOE-seg·
-MoveIt 충돌 검사와 완료 판정은 바꾸지 않는다.
-적용 범위, 실행 예제와 비교 측정은
-[`cleany_mujoco_sim/README.md`](../cleany_mujoco_sim/README.md#되돌릴-수-있는-고정-책상-최적화)를 따른다.
+**터미널 A — 레포 루트에서 빌드·서버 실행**
 
-MuJoCo sorting의 마우스는 `mouse_grasp_extra_depth_m=0.014`를 기본 적용한다.
-`mouse`, `computer mouse`, `wireless mouse` 라벨에만 기본 접근 0.018m에
-14mm를 더해 옆면을 잡는다. Selector와 executor가 같은 보정을 사용하며
-pregrasp 위치, 다른 물체의 깊이, 충돌·접촉 유지 검사는 유지한다.
-레고는 `lego_grasp_extra_depth_m=0.004`로 4mm만 추가한다(총 접근 22mm).
-추가량은 설정된 라벨과 정확히 일치할 때만 적용된다. 예를 들어
-`red building block`은 현재 레고 추가량 매칭 대상이 아니므로 공통 18mm를 사용한다.
-실물/비sorting 기본 보정은 0이다. 일반 ROS 설정에서는 `deeper_grasp_labels`와
-같은 길이의 `deeper_grasp_offsets_m` 배열을 selector/executor 양쪽에 동일하게 설정한다.
-마우스 크기와 모양이 달라지면 재검증해야 하는 시뮬레이션 보정값이다.
+```bash
+make build-manipulation
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
 
-그리퍼 닫기 명령 성공 후 접촉 판정은 새 joint-state 촬영 시각으로 확인한다.
-기존 접촉 속도/잔차 기준을 연속 3개 이상, ROS 시간 기준 0.10초 이상 만족하면
-즉시 진행한다. 튀는 속도는 안정 구간을 초기화한다. 실제 시간 최대 5초
-(`gripper_contact_feedback_timeout_sec`) 동안 확인하며, 새 피드백이 없거나
-안정되지 않으면 실패한다. `gripper_contact_stable_duration_sec`로 안정 구간을
-조절한다. 확인 중 추가 닫기 명령을 보내지 않으며 controller 실패도 통과시키지 않는다.
+mock_db_dir="$(mktemp -d)"
+ros2 launch cleany_skill_executor manipulation_mock.launch.py \
+  database_path:="$mock_db_dir/executions.sqlite3"
+```
 
-현재 스터디카페의 분실물 대상은 레고와 마우스다. Gemini/YOLOE 프로필은
-`computer mouse` 라벨을 사용하며 분류 정책은 `mouse`, `computer mouse`,
-`wireless mouse`를 분실물로 처리한다. 시뮬레이션 배치 검증도 같은 별칭을 지원한다.
+**터미널 B — 레포 루트에서 요청**
 
-Top-down 비교 시험은 `make sim-mujoco-sorting SORTING_ARGS="topdown_only:=true"`로
-실행한다. support plane 법선 아래 방향의 후보만 만들며 기울어진 접근 후보 탐색을
-끄고, 수평 성분 잡음에 민감한 로봇 반대쪽 접근 필터도 이 모드에서만 끈다.
-기존 IK/충돌 허용 기준은 유지한다. 평면 추정과 IK에는 기존 오차 허용이 있으므로
-수학적으로 완벽한 수직 고정 제어는 아니다. 기본은 false이며 자동으로 사선 접근으로
-되돌아가지 않는다. GUI 유지가 필요하면 `shutdown_on_sorting_exit:=false`를 추가한다.
+```bash
+source /opt/ros/humble/setup.bash
+source ros2_ws/install/setup.bash
+ros2 run cleany_skill_executor manipulation_test_client
+```
 
-Study-cafe 파이프라인의 초기 손목 roll은 양팔 모두 `+1.58 rad`이다.
-오른손 카메라 장착부가 왼손과 같은 방향으로 시작하도록 하며, MuJoCo 초기
-keyframe의 관절값과 actuator 유지 목표에 함께 적용된다. 카메라 TF/장착 형상이나
-실물 모터 캘리브레이션은 변경하지 않는다. 실행 중 파지 이후 손목 제한과는 별개다.
+실행 단계 Feedback, 최종 Result와 최신 실행 기록이 출력된다.
+Feedback은 `stage/substage`로 큰 단계와 세부 동작을 함께 표시한다.
+예를 들어 `GRASPING/GraspObject`는 그리퍼 닫기, `GRASPING/ConfirmGrasp`는 파지 확인이다.
+Feedback 문구는 단계 시작(`Starting`), 관측 결과 수신(`Observation received`),
+단계 완료(`Stage completed`), 결과 확정(`Finalizing result`), 실행 종료(`Execution finished`)를 구분한다.
+정상 결과는 `SUCCESS`, `placement_state=CONFIRMED`,
+`arm_recovered=true`, `stop_confirmed=true`다.
+실행 기록 저장 실패는 경고로 남기고 실제 동작의 status와 error_code를 유지한다.
+진행과 결과는 서버 메모리에도 보관하므로 같은 프로세스의 조회는 최신 결과를 반환한다.
+저장 실패만으로 동작이나 후속 Goal을 차단하지 않으며, 실제 fault·정지 미확인·
+물체 보유·상태 불명에 따른 차단은 유지한다. 메모리의 미저장 기록은 재시작 후 복구할 수 없다.
+취소·조회·실패 재현과 DB 복구는 [사용법](docs/manipulation_mock_usage.md)을 따른다.
 
-### 파지 후 Depth 최신성
+취소 모드는 `CHECKPOINT`(현재 단계와 확인을 완료하고 정지), `IMMEDIATE`(완료 대기 없이
+정지), `RETURN_ARM`(현재 작업 중단, 정지 확인, 잡고 있는 물체를 그 자리에서 놓고 팔 복귀)다.
+`manipulation/cancel` 서비스나 테스트 클라이언트의 `--cancel-mode`로 선택한다.
+일반 Action cancel은 `CHECKPOINT`다. `RETURN_ARM`의 현재 위치 놓기는 수거함 확인을
+수행하지 않으며 추가 놓기 위치 정책은 후속 검토 대상으로 둔다. 기존 정지 확인,
+controller 실패와 timeout 처리는 유지한다. Mission Manager의 취소 adapter는 아직 없다.
 
-MuJoCo sorting은 `cleany_scene_mapping/KnownGeometryOctomapUpdater`를 기본으로
-사용한다. 가려진 파지 대상 내부의 이전 OctoMap 점유를 정리하여, 들기 시작점에서
-잡은 물체와 자기 잔상 사이의 충돌로 중단되는 것을 줄인다. 관측에서 등록한 형상
-내부에 완전히 포함된 셀만 정리하며, 주변 장애물과 부분 겹침 셀은 유지한다.
-실물 및 sorting 이외 실행은 기존 updater를 유지한다. `depth_octomap_plugin`으로
-명시 변경할 수 있다. 로봇/물체 형상 오차가 있는 환경의 안전성을 보증하지 않는다.
+VS Code **BehaviorTree Viewer 0.1.2**에서 진행 상태를 보려면 서버 launch에
+`monitor:=true`를 추가한다. `manipulation_monitor`가 모의 실행 이벤트를 읽어
+`127.0.0.1:1666`에서 XML과 노드 상태를 제공한다. 뷰어의 **Monitor** 버튼으로
+연결한 뒤 터미널 B의 클라이언트를 실행한다. 모니터는 표시 전용이며 BT를 실행하지 않는다.
+실패와 취소는 트리의 FAILURE로 표시되며 정확한 Action 결과는 Feedback·Result에서 확인한다.
 
-손목 카메라 사용 시 접근·그리퍼 닫기·들어올리기 구간에
-`/sorting_cameras`의 `head_depth_boost=true`를 설정한다. 손목 선택과 YOLOE-seg
-추적은 유지하며, 구간 종료(실패 포함)에 false로 복원한다. 물체 attachment 이후
-촬영된 Depth 및 최신 OctoMap 확인은 생략하지 않는다. 최신성 허용값 2초와
-실물 sorting의 attachment 대기 상한 10초는 유지한다. MuJoCo sorting은
-GUI·추적 부하로 시뮬레이션 진행이 느려지는 경우를 위해 실제 시간 기준 상한을
-30초로 둔다. `attachment_scene_timeout_sec` 실행 인수로 조절한다.
-최신 데이터가 도착하면 즉시 진행하므로 고정 30초 대기가 아니다.
-MuJoCo 장애물 점군은 `scene_cloud_pixel_stride=4`로 샘플링하여 기존 stride 2
-대비 최대 점 수를 1/4로 줄인다(640×480 기준 76,800 → 19,200).
-인식·YOLOE-seg 입력 해상도는 유지한다. 작은 장애물의 점 밀도가 줄어드는 절충이
-있으며, 비교 시 `scene_cloud_pixel_stride:=2`로 복원할 수 있다. 실물 기본은 2다.
-카메라 노드도 함께 빌드해야 하며 boost 설정 거부 시 이동을 시작하지 않는다.
+## 다른 실행 경로
 
-스터디카페 grasp 후보 생성의 어깨 기준점은 migrated CAD URDF의 좌우
-shoulder origin을 사용한다. 원형 마운트 체결 정렬 후 기준점은 왼쪽
-`(0.116200343, 0.196231727, 0.447797)` m, 오른쪽
-`(0.116200838, -0.196177072, 0.447797)` m다 (`base_link` 기준).
-`test_learned_runtime_launch.py`에서 실제 grasp 서버 parameter와 확장한 URDF의
-어깨 원점이 일치하는지 검사한다.
+아래 Make 명령은 레포 루트에서 실행한다. 모델·API key·ROS 노드 등 준비 조건은
+각 실행 안내에서 확인한다.
 
-## Sorting 속도 설정 (2026-09-08 변경)
+| 목적 | 주요 명령 | 안내 |
+|---|---|---|
+| MoveIt plan-only grasp 선택 | `ros2 launch cleany_skill_executor grasp_selection.launch.py` | [Grasp 선택](docs/grasp_selection_and_pregrasp.md#설정-및-검증) |
+| 가까운 물체의 pre-grasp | `ros2 launch cleany_skill_executor nearest_pregrasp.launch.py` | [Pre-grasp](docs/grasp_selection_and_pregrasp.md#가까운-객체-자동-pre-grasp) |
+| 스터디카페 인식·계획 파이프라인 | `make sim-mujoco-pipeline` | [실행 준비](docs/study_cafe_sorting_usage.md#센서-전용-study-cafe-검증) |
+| 승인된 물체 하나의 실제 BT Action | `make sim-mujoco-manipulation` | [MuJoCo BT 서버](../cleany_manipulation_bt/README.md) |
+| MuJoCo 분류·수거 | `make sim-mujoco-sorting` | [분리 수거](docs/study_cafe_sorting_usage.md#시뮬레이션-분리-수거-통합-검증-진행-중) |
 
-Simulation sorting launch의 감속 기본값을 상향했다. 일반 demo와 실제 로봇의
-하드웨어 한계는 변경하지 않는다. 각 이름은 launch argument 및 ROS parameter다.
+시뮬레이션 분류는 기본 관찰 모드에서 `complete_unverified`를 기록한다.
+모의 Action의 성공, 시뮬레이션의 개별 물체 배치와 전체 물리 수거 성공은 각각의
+검증 범위를 따른다. 전체 물리 수거 성공은 검증 진행 중이다.
 
-| 설정 | 이전 | 현재 |
-|---|---:|---:|
-| `velocity_scaling` / `acceleration_scaling` | 0.08 / 0.08 | 0.30 / 0.50 |
-| `sorting_payload_velocity_scaling` / `sorting_payload_acceleration_scaling` | 0.04 / 0.02 | 0.24 / 0.20 |
-| `cartesian_translation_speed_m_s` | 0.10 | 0.30 |
-| `approach_velocity_scaling` / `retreat_velocity_scaling` | 0.7 / 0.6 | 1.0 / 0.8 |
-| `cartesian_translation_acceleration_m_s2` | 0.20 | 0.80 |
-| `cartesian_joint_acceleration_rad_s2` | 1.0 | 4.0 |
-| `cartesian_rotation_speed_rad_s` | 0.50 | 1.50 |
-| `lin_acceleration_scaling` | 0.4 | 0.8 |
-| `corridor_time_margin` | 1.25 | 1.05 |
-| `gripper_motion_sec` (별도 닫기/놓기 명령) | 8.0 | 2.0 |
+## MuJoCo 실행 로그
 
-접근 가속도 배율 `sorting_approach_acceleration_scaling=1.0`은 유지한다.
-pregrasp와 그리퍼 열기는 기존 6관절 동시 계획을 유지하며, 별도 2초 대기를
-추가하지 않는다. 운반은 기본 이동 배율과 payload 배율의 최솟값을 적용한다.
-위 Cartesian 속도는 retiming 상한이지 실제 일정 속도를 보장하는 값이 아니다.
-충돌/FK/관절 위치·속도 한계, 추적·접촉 감시, timeout 취소는 유지한다.
-시험 runner의 강제 0.5배속도 제거해 launch 기본과 동일한 1.0배속을 사용한다.
-CPU 시뮬레이션의 실측 RTF는 여전히 1 미만일 수 있다. 새 설정의 실제 3배
-단축과 파지 유지 성공은 별도 실행으로 검증해야 하며 하드웨어 검증값이 아니다.
-
-sorting launch의 `use_observed_collision_geometry=true`는 grasp 서버가 발행한
-`/grasp/collision_geometry`를 target collision/attachment에 사용한다. 일반
-기본 false는 기존 OBB 경로다. 64개 bounded cache에서 snapshot/object ID,
-capture header와 OBB pose가 정확히 일치하는 mesh만 사용한다. finite/closed/
-outward/convex 검사와 vertex/triangle 상한을 통과해야 하며, 활성화 상태에서
-mesh가 없으면 timeout 후 실패하고 OBB로 조용히 대체하지 않는다. support patch,
-전체 로봇 open/closure 검사는 유지한다. 운반/재관측/놓기 반경은 OBB 반대각선과
-관측 mesh의 최대 local vertex 거리 중 큰 값이다. trimmed OBB 바깥 관측점도
-포함하며 mesh 사용 모드에서 정확히 일치하는 geometry가 없으면 실패한다.
-관측 프리즘은 숨은 실제 형상의 보장이 아니며, geometry cache는 identity 검사다.
-시간 신선도 검사는 기존 sensor-scene/wrist 경로가 별도로 수행한다.
-sorting artifact에는 수신한 `collision_geometry` CDR도 함께 기록한다.
-헤드 재관측 후에는 기존 중심/방향 연속성 제한을 만족하는 후보만 동일 팔
-reachability selector에 전달한다. 새 후보의 점수 순위 변화로 방향이 크게
-다른 후보를 먼저 선택한 뒤 전체 작업을 중단하지 않도록 한다. 제한 자체는
-완화하지 않으며 호환 후보가 없으면 이동 전에 실패한다.
-Launch argument `sorting_head_reference_refresh_age_sec` 기본값은 0초(비활성)다.
-양수 값으로 설정하면 단독 진단에서도 헤드 재관측 경로를 검증할 수 있다.
-활성화 시 simulation clock 기준 새 관측+재계획도 같은 신선도 상한을
-만족해야 하며, 설정값은 30초를 초과할 수 없다.
-
-`planning_scene_timeout_sec`는 응답 대기 상한이다. 일반 selector/executor는
-각각 1/2초, CPU sorting launch는 5초다. 고정 대기를 추가하지 않으며 timeout
-발생 시 해당 작업은 실패한다. 충돌 조건이나 관측 신선도 상한과는 별개다.
-selector의 `state_validity_timeout_sec`도 CPU sorting launch에서 5초로 설정한다
-(일반 기본값 1초). 이는 `/check_state_validity` 응답 상한이며 충돌 검사를
-생략하거나 실패 결과를 허용하지 않는다.
-`fk_timeout_sec`도 sorting에서 5초다. `ik_response_margin_sec`와
-`planning_response_margin_sec`는 각각 IK/MoveGroup 계산 예산 뒤에 더하는
-응답 여유이며 일반 1초, sorting 5초다. aim IK에도 같은 IK 응답 여유를 쓴다.
-IK 계산 예산 0.15초, aim IK 1초, MoveGroup 계획 예산 4초 자체는 늘리지 않는다.
-Cartesian 실행 wall deadline은 `max(minimum_sec, trajectory_duration * factor +
-margin_sec)`이다. `cartesian_execution_wall_timeout_` 접두사의 `minimum_sec`는
-60초, `margin_sec`는 10초, `factor`는 일반 2/sorting CPU simulation 10이다.
-이는 고정 대기나 동작 감속이 아니며 완료 결과가 도착하면 즉시 진행한다.
-기존 접촉/추적 감시와 timeout 시 취소·종료 확인은 유지한다. 느린 시뮬레이션의
-13.9초 궤적이 wall time 60초를 넘는 경우에도 고정 60초로 잘리지 않게 한다.
-
-Sorting은 초기 양손 그리퍼 열기 단계를 실행하지 않는다. 선택된 팔만
-`*_pregrasp_open` 6관절 MoveIt group으로 pregrasp 이동과 열기를 함께 계획·실행한다.
-팔과 그리퍼를 별도 비동기 명령으로 겹치지 않고, 열린 jaw를 포함한 전체 경로를
-충돌 검사한다. Target contact 허용은 여전히 grasp 접근 단계에서만 적용한다.
-MoveIt이 기존 팔/그리퍼 controller에 궤적을 분배하며, 양쪽 action의 완료와
-선택한 6관절 feedback를 확인하기 전에는 손목 인계/접근으로 넘어가지 않는다.
-반대 팔 그리퍼는 움직이지 않는다. Grasp/retreat IK는 기존 5관절 계약을 유지한다.
-투입 완료 후에는 `*_return_close` 6관절 group으로 저장된 원래 팔 자세로 복귀하면서
-선택 그리퍼를 `sorting_return_gripper_position_rad=-0.30` rad로 함께 닫는다.
-의도한 release가 완료되고 attachment가 해제된 빈 팔에서만 허용하며,
-이 경로도 jaw를 포함해 충돌 검사하고 두 controller의 완료를 확인한다.
-`gripper_open_position_rad`는 동시 이동의 최종 열림 위치다. 기존
-`gripper_motion_sec=8`은 별도 파지/놓기 명령에만 적용하며 동시 이동 시간은
-MoveIt의 속도·가속도 제한 및 경로가 결정한다. 시작 상태 표시는 `search`다.
-
-2026-09-07 headless attempt56에서는 왼팔/왼쪽 그리퍼 controller의 첫 goal 수신
-간격이 2.06 ms였고 두 controller가 같은 시점에 성공했다(동시 이동 약 9.65초).
-오른쪽 그리퍼 goal과 초기 `prepare_grippers` 단계는 없었다. 컵 투입·복귀 확인은
-coordinator `starting` 기준 145.53초, `pick` 기준 114.71초였다. 가속도 설정은
-변경하지 않았다. 이전 headless attempt54의 152.44초보다 총 6.91초 짧았으나
-인식/계획 시간 변동이 포함된 단회 비교이며 제거된 초기 열기 대기 시간과 같지는 않다.
-컵 안착은 검증됐지만 전체 미션은 기존처럼 `lost_item` 미검증으로 종료했다.
-실행 로그는 `artifacts/sorting_20260907/launch_attempt56_parallel.log`에 있다.
-
-head RGB-D로 물체/3D grasp를 선택하고 pregrasp에 도착하면 해당 손목 RGB로
-인계한다. 이때 head renderer는 10→2 Hz, 선택 손목은 10 Hz가 된다.
-기존 3D 추정과 경로를 보존하고 손목 RGB로 대상 일관성을 검사하며,
-이 분기에서 head 재검출/3D 재계산과 head 시야 복구 이동을 수행하지 않는다.
-RGB 인계가 실패하면 중단하며 이전 3D 위치를 새 측정값으로 포장하지 않는다.
-lift는 손목 mask·그리퍼 관절 feedback 기반 접촉 추정·kinematic clearance로 확인한다.
-접촉 추정은 닫힘 명령 대비 정지한 관절 상태를 사용하며 독립 힘 센서 측정이 아니다. 이것은 독립적인
-depth 상승량 검증이 아니다. 수거함은 `robot_top_bins.yaml`의 초기 base_link 기준 위치를
-사용하고 운반 전후 접촉과 충돌·개구부 검사는 유지한다. 복귀 시작 전 head 활성 빈도로 복원한다.
-시뮬레이션 손목 TF는 nominal CAD mount이며 실제 로봇에서는 측정한 양팔 hand-eye
-calibration이 필요하다. `sorting_wrist_cameras_config`로 simulation nominal YAML을
-지정하며 기본은 `cleany_mujoco_sim/config/sorting_wrist_cameras.yaml`이다.
-외부 로봇 실행은 아직 지원하지 않는다. 손목 영상 기반 연속 위치 보정(visual servo)은
-구현하지 않았으며 접근/운반 경로는 기존 head 3D 추정 및 관절 feedback에 의존한다.
-기존 head-only 비교 시험은 `sorting_use_wrist_camera:=false`로 실행한다.
-
-연속 추적 적용 전인 2026-09-07 headless attempt54에서는 batch 손목 확인으로 컵을 `trash_left`에 투입하고
-복귀했다(pick 시작부터 안착 확인까지 110.60초, CPU 손목 확인 RPC 19.16초 포함).
-현재 전체 미션은 `lost_item` 미검증으로 종료한다. 성공 1회는 연속 수거/반복 성공률
-검증이 아니며 손목 영상 기반 실시간 위치 보정이 완성됐다는 의미도 아니다.
-
-이전 캔·박스·무작위 pregrasp 데모는 제거했다. 스터디카페가 재사용하던
-MoveIt 실행·joint feedback helper는 `grasp_execution.py`의 `GraspExecutionNode`,
-카메라 투영·시각화 helper는 `core/rgbd_projection.py`로 분리했다.
-현재 launch와 테스트는 이 공통 코드를 사용한다.
-
-## 상태
-
-점수순 grasp 후보를 양팔 MoveIt plan-only 검증으로 평가한다. 운영 action은 실제
-trajectory와 gripper 명령을 실행하지 않는다. 스터디카페 수거 시뮬레이션에서 선택 결과를
-MuJoCo arm controller로 실행할 수 있다. `nearest_pregrasp_coordinator`는 perception이
-제공한 거리 유효 객체를 가까운 순서로 시도한다. 기본
-`execute_grasp_and_lift=false`에서는 첫 reachable grasp의 pre-grasp까지만 실행하고,
-옵션을 켜면 재인식과 Pilz LIN 기반 접촉 파지·후퇴·상승까지 수행한다.
-
-## Reachable grasp action
-
-`grasp/select_reachable` (`SelectReachableGrasp`)는 가까운 팔부터 IK, state validity,
-current→pre-grasp와 pre-grasp→grasp plan을 검사한다. pre-grasp는 접근 벡터 반대 방향
-0.14 m다. 5축 position-only IK의 방향 손실을 막기 위해 먼저 TCP 위치 IK로 seed를 만든
-뒤, TCP의 실제 `-Y` 접근축 앞 0.14 m에 있는 가상 aim tip을 grasp point에 맞춘다. 이로써
-물리 gripper가 선택 객체를 바라보는 것은 강제된다. 위치 seed가 실패하면 현재 joint
-state에서도 계속 시도하며, 전체 arm joint limit 안에 분산한 팔당 8개 seed에서 허용
-오차를 만족하는 해는 현재 상태 대비 joint-limit 정규화 이동량으로 정렬하고 wrist
-roll에는 2배 가중치를 둔다. 자세 오차는 동률 해의 tie-break로만 사용한다. 5축 기구가 정확한
-후보 방향을 만들 수 없는 경우에는 접근축 최대 15도, parallel-jaw 대칭을 고려한 closing
-축 최대 30도 안에서 가장 가까운 실행 가능 방향을 허용한다. 그보다 큰 오차는 다음 arm
-또는 후보로 fallback한다. grasp 위치에서도 TCP 위치·접근축·closing 축을 FK로 다시
-검사한다. 한 해의 validity 또는 planning이 실패하면 같은 팔의 다음 grasp/pre-grasp
-해를 먼저 시도한 뒤 반대 팔과 다음 후보로 넘어간다. 선택 오차는 selector 로그에 남긴다.
-
-## 제공 계약
-
-실행 결과는 Mission Manager가 상태 전이에 사용할 수 있는 성공·실패·차단 결과로 반환한다.
-Skill Executor는 Mission Manager의 FSM 상태를 직접 변경하지 않는다.
+`study_cafe_nearest_grasp_demo.launch.py`와 이를 포함하는 수거·BT launch는
+`log_level:=info`, `backend_log_level:=warn`을 기본으로 사용한다.
+`log_level:=debug`로 후보별 IK·경로 평가, 그리퍼 수치와 손목 RPC 타이밍을
+확인할 수 있다. 최종 후보 선택과 주요 작업 단계는 `INFO`로 남는다.
+Action feedback과 ROS 상태 토픽·파일 기록은 로그 수준과 무관하게 유지한다.
+수거 단계의 기본 로그는 단계·대상·목적지·완료 개수만 요약한다. 전체 상태 JSON은
+`DEBUG`와 기존 상태 토픽·파일에서 확인한다.
+외부 MuJoCo·MoveIt·TF의 상세 출력은 `backend_log_level:=info`로 켠다.
+`log_level`은 끌리니 노드의 지정 로거에만 적용한다. `debug`에서도 ROS 내부
+대기 루프·통신 계층은 전역 `DEBUG`로 바꾸지 않는다.
 
 ## 설정 및 검증
 
-입력 후보는 snapshot/object/frame/target OBB가 같고 frame은 설정된 `planning_frame`과
-일치해야 한다. 현재 12개 arm/gripper joint는 완전하고 0.5초 이내여야 한다. action
-동안 target OBB와 ACM은 임시 변경되고, 복원에 성공한 뒤에만 최종 성공·실패·취소
-상태를 확정한다. 복원 실패는 planning-scene 오류로 반환한다. 한 번에 goal 하나만
-처리한다.
+| 설정 파일 | 대상 |
+|---|---|
+| [manipulation_mock.yaml](config/manipulation_mock.yaml) | 모의 대상·시나리오·제한 시간 |
+| [grasp_selection.yaml](config/grasp_selection.yaml) | MoveIt grasp 선택 |
+| [nearest_pregrasp.yaml](config/nearest_pregrasp.yaml) | pre-grasp·수거 동작 설정 |
+
+| 검사 | 레포 루트에서 실행할 명령 |
+|---|---|
+| 모의 core, 가짜 시계 | `make test-manipulation-core` |
+| 모의 Action의 실제 ROS 통신·기록·재시작 복구 | `make test-manipulation` |
+| RGB-D grasp/pre-grasp 관련 검사 | `make test-grasp-pregrasp` |
+| MoveIt mock 실행 | `make test-grasp-pregrasp-runtime` |
+
+패키지 전체 pytest는 ROS setup을 읽은 터미널에서 실행한다.
 
 ```bash
-ros2 launch cleany_moveit_config mock_planning.launch.py
-ros2 launch cleany_skill_executor grasp_selection.launch.py
-pytest -q ros2_ws/src/cleany_skill_executor/test
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest ros2_ws/src/cleany_skill_executor/test
 ```
 
-테스트는 기능별로 묶는다. `test_seeded_cartesian.py`는 경로 보간·자세 보정·URDF FK,
-`test_gripper_geometry.py`는 폭 보정·접촉 판정·피드백 안정화,
+launch 사전 검증 테스트는 임시 모델 파일을 사용해 로컬 모델 설치 상태와 분리한다.
+ROS 통신 테스트는 feedback 토픽 발견을 확인한 뒤 Goal을 전송한다.
+전체 진행 순서를 검사하는 경로는 마지막 feedback을 수신한 뒤 Result를 조회한다.
+Action 완료 후 보관 메시지 수신은 별도 ROS context에서 늦게 접속한 구독자로 검사한다.
 
+## 책상 정리 모듈 연동 설계
 
-planning frame, timeout, planning attempt/scaling, 최대 후보 수는
-`config/grasp_selection.yaml`의 ROS parameter로 설정한다. timeout/cancel은 각 IK,
-state-validity와 planning 단계 전후에 확인한다.
+Mission Manager는 행동 승인·재관찰·미션 상태 전이를 담당하고,
+Skill Executor는 승인된 행동을 실행해 결과를 반환한다.
+실제 BT.CPP MuJoCo Action 실행기는 [cleany_manipulation_bt](../cleany_manipulation_bt/README.md)에 있다.
+기존 grasp/수거 동작을 단계별로 공유하며 자동 sorting의 기존 실행 순서는 유지한다.
+Mission Manager ROS adapter와 실물 backend·verifier는 후속 구현 대상이다.
+Groot2 XML은 정적 설계 미리보기다.
+정상 경로는 준비·물체 잡기·물체 놓기·확인과 종료의 네 그룹으로 표시한다.
+준비에는 모델과 실행 준비 확인, 대상 관측 확인, 선택 물체 3D 복원과 파지 준비를 표시한다.
+서버 시작과 모델 로딩은 Goal 이전의 서비스 준비 과정이고, 책상 전체 최초 인식과
+대상 선택은 상위 미션 흐름에 속한다. mock 경로의 인식과 준비 확인은 모의 처리다.
+모니터 브리지는 세부 단계뿐 아니라 각 그룹의 진행·완료·실패도 표시한다.
+로컬 모니터는 이 XML에 모의 서버 이벤트를 투영하며 BT.CPP tick loop를 구현하지 않는다.
 
-simulation 실행은 planning attempts 3, velocity/acceleration scaling 0.08,
-MoveGroup replan 2회와 0.25초 delay를 사용한다. controller 실패 시 joint별 tracking
-error를 기록하고 현재 상태에서 한 번만 같은 joint goal로 안전 재계획한다.
+| 문서 | 내용 |
+|---|---|
+| [01. 설계 안내](docs/01_manipulation_action_design.md) | 전체 흐름과 책임 경계 |
+| [02. Action 명세](docs/02_execute_manipulation_skill_action_spec.md) | Goal·Feedback·Result 계약 |
+| [03. 서버 동작 명세](docs/03_manipulation_server_behavior_spec.md) | 단계·실패·취소·기록 |
+| [04. Mission 결과 매핑](docs/04_mission_result_mapping.md) | Mission Manager 후속 통합 |
+| [05. 관측 데이터 명세](docs/05_initial_table_observation_spec.md) | 이미지·객체·snapshot 전달 |
+| [06. BT와 Groot2 설계](docs/06_manipulation_behavior_tree_design.md) | 행동 내부 트리와 실행기 경계 |
 
-## 가까운 객체 자동 pre-grasp
+제품 기준은 KB의 [Mission Lifecycle](../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Lifecycle.md)과
+[Task Planning and Robot Capabilities](../../../docs/cleany-docs/20_TECHNICAL/03%20-%20Task%20Planning%20and%20Robot%20Capabilities.md)를 따른다.
 
-`nearest_pregrasp_coordinator`는 다음 순서로 한 번의 작업을 수행한다.
+## 기존 파지 데모 실행
 
-```text
-InspectScene 1차 detection
-→ distance_valid 후보를 base_link 거리순 정렬
-→ selected-object inspection
-→ PlanGrasp
-→ SelectReachableGrasp
-→ target OBB를 충돌물로 유지하며 pre-grasp 실행
-→ (execute_grasp_and_lift=true) 새 RGB-D 재인식과 동일 arm 재선택
-→ Pilz LIN 접근 → gripper 접촉 → LIN 역접근 → LIN 수직 상승
-```
-
-양쪽 gripper는 object evaluation 전에 open한다. 따라서 MoveIt 후보 검증과 실제 실행이
-동일한 gripper joint state 및 collision geometry를 사용한다.
-
-가장 가까운 객체가 segmentation, grasp 생성 또는 양팔 도달성 검사에서 실패하면 다음
-가까운 객체로 fallback한다. depth가 불충분해 `distance_valid=false`인 detection은
-자동 조작에서 제외한다. infrastructure, MoveIt 또는 controller 실패는 다른 객체로
-넘기지 않고 전체 작업을 실패시킨다.
-
-RGB-D camera, `perception/inspect_scene`, `grasp/plan`,
-`grasp/select_reachable`, MoveGroup과 arm/gripper controller를 먼저 실행한 뒤 coordinator를
-시작한다.
+기존 `grasp_execution_demo.launch.py`와 `can_grasp_execution_demo.launch.py`를
+유지한다. 두 데모의 실행 파일과 전용 MuJoCo 장면은 새 Action 서버와 별도로
+실행할 수 있다. 빌드 후 ROS 환경을 불러온 터미널에서 실행한다.
 
 ```bash
-ros2 launch cleany_skill_executor nearest_pregrasp.launch.py
+ros2 launch cleany_skill_executor grasp_execution_demo.launch.py
+ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
 ```
 
 query, timeout, 속도/가속도 scaling과 gripper open 위치는

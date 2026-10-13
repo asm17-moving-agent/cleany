@@ -6,20 +6,13 @@
 명시 선택할 수 있다. 실제 하드웨어 안전 검증을 완료한 기능이 아니다.
 
 MoveIt의 `ShapeMask`로 점군 self-mask를 계산하고, sensor ray의 free/occupied/
-model/clip 셀을 갱신한 뒤, MoveIt이 제외 대상으로 전달한 collision shape의
-제외 영역에 완전히 포함되는 **관측된 점유 leaf**를 free로 바꾼다. 로봇 URDF,
-관측에서 구한 target mesh/OBB, 명시적으로 등록한 수거함이 shape의 출처다. MuJoCo GT나
+model/clip 셀을 갱신한다. MoveIt이 제외 대상으로 전달한 collision shape 안에
+완전히 포함되는 **기존 점유 leaf**를 free로 바꾼다. 로봇 URDF, 관측에서
+구한 target OBB, 명시적으로 등록한 수거함이 shape의 출처다. MuJoCo GT나
 물체 이름/정답 위치는 읽지 않으며 planning scene의 충돌 형상을 삭제하지 않는다.
 
 가려져 현재 depth ray가 도달하지 않는 내부 잔상을 다루는 목적이다.
-표준 updater와 같은 `padding_scale` / `padding_offset` 설정을 사용한다.
-점군 self-mask는 upstream 판정을 유지한다. 내부 점유 정리에서는 mesh의
-convex face를 법선 방향으로 `padding_offset`만큼 확장하고, 확장한 local
-bounding box로도 제한한다. `padding_scale`은 hull vertex 평균을 중심으로 적용한다.
-primitive의 내부 판정은 기존과 같다. upstream의 mesh vertex 방사 방향 padding은
-긴 형상의 옆면에 설정값보다 작은 여유를 주므로, 컵과 겹치는 1cm 셀의 일부
-모서리를 놓쳐 잔상이 남을 수 있었다. 정리는 점유 갱신 **후** 수행해 같은
-프레임의 depth endpoint가 해당 셀을 다시 점유 상태로 만들지 않게 한다.
+표준 updater와 같은 `padding_scale` / `padding_offset`을 사용한다.
 한 convex body 안에 셀의 8개 모서리가 모두 포함되어야 한다. 일부만 겹치는
 셀, 여러 형상 사이의 틈, 바깥 장애물, 아직 관측하지 않은 셀은 비우지 않는다.
 TF는 점군 촬영 시점의 cache를 사용한다. 하나라도 누락되거나 비정상이거나,
@@ -29,10 +22,12 @@ cache 조회 중 형상이 추가·제거됐으면 **그 프레임 전체를 거
 로봇/OBB/TF가 틀린 경우 실제 장애물이 잘못
 제외될 위험은 남으므로 이 기능이 인식 오류나 충돌 안전을 보증하지 않는다.
 
+## 설정
+
 `depth_cloud.known_geometry_clear_max_leaves`는 메시지당 검사하는 leaf 수의
 상한이며 기본 200000이다. 초과하면 나머지를 건드리지 않고 경고한다.
 free cell도 검사 예산에 포함한다. 정리 수/검사 수/소요 시간은 throttled
-log로 기록한다. 정상 프레임의 raycast는 이 추가 검사 예산과 무관하게 수행한다.
+`DEBUG` log로 기록한다. 정상 프레임의 raycast는 이 추가 검사 예산과 무관하게 수행한다.
 이 패키지는 미지정 시 `RelWithDebInfo`로 빌드한다. 점유 leaf 순회와
 convex body 검사는 CPU 경로이므로 디버그 무최적화 실행 시간과 구분한다.
 
@@ -56,6 +51,8 @@ variable에서 대기한다. 기본 4 worker는 호출 스레드 1개와 상주 
 호출 스레드 또는 작업 스레드에서 예외가 발생하면 나머지 작업자가 모두 끝날 때까지
 기다린 후 예외를 전달한다. 실패한 프레임의 일부 판정을 반환하지 않으며 다음 프레임에서
 정상 복구할 수 있다. 상위 updater의 frame/geometry 직렬화와 TF·형상 세대 검사는 유지한다.
+
+## 빌드와 검증
 
 ```bash
 make test-scene-mapping
@@ -89,10 +86,6 @@ ROS 2 Humble의 `moveit_ros_perception`, `moveit_ros_occupancy_map_monitor`,
 `geometric_shapes`, `octomap`이 필요하다. 로컬 MoveIt perception prefix의
 설치 조건은 루트 `docs/DEVELOPMENT_SETUP.md`를 따른다. core gtest는 내부/
 외부/경계/분리 형상/회전/가변 leaf 크기/예산/TF 누락을 검사한다.
-mesh face padding은 같은 box의 primitive 표현과 비교하며, scale·회전·local
-vertex offset·capture-time clone에서 일치하는지 확인한다. 통합 검사에서는
-mesh 옆면의 과거 잔상과 새 endpoint가 반복 프레임에서도 제거되고, 주변의
-기존 장애물과 새 장애물은 유지되는지 확인한다.
 통합 gtest는 형상 세대 변경, 누락·비정상 cache, 거부 프레임의 tree/receipt
 미갱신, 정상 self-mask와 주변 장애물 보존, 카메라 원점, 잘못된 점군 layout,
 range clipping, stop/start, 동시 frame 직렬화 및 executor 지연 후 최신 프레임
@@ -100,6 +93,8 @@ range clipping, stop/start, 동시 frame 직렬화 및 executor 지연 후 최�
 이 테스트가 실제 파지·운반 성공을 증명하지는 않는다.
 `test_partitioned_shape_mask`는 worker 재사용/재설정, 큰 프레임에서 작은 프레임으로의
 전환, XYZ/XYZRGB layout 변경, 호출·작업 스레드 예외 후 전체 작업 종료와 복구도 검사한다.
+
+## 프레임 처리 계약
 
 이전 `PointCloudOctomapUpdater::updateMask` hook은 정리를 건너뛰더라도
 base callback의 점유 갱신을 중단할 수 없었다. 지금은 `OccupancyMapUpdater`
@@ -133,3 +128,11 @@ history는 `KEEP_LAST(1)`이다. 처리 중 새 입력이 쌓이면 과거 영�
 참고한 [MoveIt 2.5.9 updater](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/perception/pointcloud_octomap_updater/src/pointcloud_octomap_updater.cpp)와
 [transform cache provider](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/planning/planning_scene_monitor/src/planning_scene_monitor.cpp)의
 동작을 기준으로 한다. 시스템 전체의 실제 충돌 안전을 검증한 것은 아니다.
+
+## 로그 수준
+
+준비 완료와 실패·TF cache 누락·검사 예산 초과는 기본 출력에 남는다.
+정상 프레임의 입장·종료와 `Consistent depth frame` 통계는 throttled `DEBUG`
+로그이며 `move_group.scene_mapping` 로거를 사용한다. 상위 MuJoCo launch의
+`log_level:=debug` 또는 standalone MoveIt의 같은 옵션으로 확인한다.
+기본 `INFO`에서는 대기 중 정상 프레임 진단을 계속 출력하지 않는다.

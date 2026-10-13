@@ -24,6 +24,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MissionResult.msg"
   "msg/ManipulationExecutionRecord.msg"
   "action/ExecuteManipulationSkill.action"
+
+  "msg/TrackedObjectReference.msg"
+  "srv/RegisterPlacementTarget.srv"
   "action/InspectScene.action"
   "action/SelectReachableGrasp.action"
   "srv/PlanGrasp.srv"
@@ -33,6 +36,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/CancelMission.srv"
   "srv/GetRuntimeSnapshot.srv"
   "srv/GetManipulationExecution.srv"
+
+  "srv/CancelManipulation.srv"
+  "srv/GetSceneSnapshot.srv"
   DEPENDENCIES geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 

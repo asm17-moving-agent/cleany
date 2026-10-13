@@ -6,15 +6,17 @@
 
 ## 역할
 
-Perception의 world state를 바탕으로 `collect`, `skip`, `store_lost_item`,
-`human_review` 같은 high-level task와 skill sequence를 만든다. grasp pose, IK,
-trajectory, gripper 제어는 담당하지 않는다.
+Perception의 최신 Scene State와 이전 실행 결과를 바탕으로 다음 high-level 행동,
+보류 또는 완료를 제안한다. Mission Manager가 허용 Capability와 인자를 검증한다.
+분실물 후보의 물리적 처리 행동은 아직 미정이다. grasp pose, IK, trajectory와
+gripper 제어는 Skill Executor 및 실행 backend가 담당한다.
 
 ## 제공 계약
 
-초기에는 `RuleBasedPlanner`를 구현하고, 이후 `VLMPlanner` 또는 `VLAPlanner` adapter를
-같은 인터페이스 뒤에 둘 수 있게 한다. Planner 결과는 Mission Manager가 해석할 수 있는
-명시적 결과 계약으로 반환한다.
+초기에는 `RuleBasedPlanner`로 E2E 계약을 검증하고, 로컬 VLM 또는 API VLM adapter를
+같은 고수준 제안 경계에서 비교한다. 최종 adapter는 미정이다. Planner 결과는 Mission
+Manager가 검증할 수 있는 명시적 계약으로 반환한다. VLA policy는 Manipulation Skill
+내부의 물리 실행 후보이며 고수준 Planner와 구분한다.
 
 ## 설정 및 검증
 
@@ -23,5 +25,5 @@ ROS 의존 없이 단위 테스트할 수 있게 유지한다.
 
 ## 관련 KB
 
-- [Rule-based VLA Architecture](../../../docs/cleany-docs/20_TECHNICAL/03%20-%20Rule-based%20VLA%20Architecture.md)
+- [Task Planning and Robot Capabilities](../../../docs/cleany-docs/20_TECHNICAL/03%20-%20Task%20Planning%20and%20Robot%20Capabilities.md)
 - [Safety and Risk](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)

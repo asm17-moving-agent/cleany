@@ -90,9 +90,9 @@ make sim-mujoco-sorting SORTING_ARGS='sorting_verify_placement:=true'
 
 | 경로 | 내용 |
 | --- | --- |
-| `ros2_ws/src/` | ROS 패키지와 설계 scaffold |
+| `ros2_ws/src/` | 13개 ROS 패키지와 3개 설계 scaffold |
 | `configs/` | 공통 mission·robot 설정 영역 |
-| `esp32/` | MCU 펌웨어와 회로·하드웨어 시험 |
+| `motor_controller/` | MCU 펌웨어와 회로·하드웨어 시험 |
 | `containers/vision/` | Jetson vision 실행 환경 |
 | `tools/` | 개발·SLAM 평가 도구 |
 | `tests/` | 테스트 진입 안내; 실행 가능한 검사는 패키지별 `test/`·`tests/`에 위치 |

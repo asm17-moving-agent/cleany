@@ -1,0 +1,49 @@
+<mujoco model="cleany_grasp_execution_demo">
+  <!-- Camera materialization contract: @CLEANY_HANDEYE_CAMERA_CONTRACT@ -->
+  <include file="@CLEANY_MJCF_PATH@"/>
+
+  <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"
+          noslip_iterations="5">
+    <flag multiccd="enable"/>
+  </option>
+
+  <statistic center="0.10 0.30 0.65" extent="1.0"/>
+
+  <visual>
+    <rgba haze="0.12 0.16 0.20 1"/>
+    <global azimuth="145" elevation="-20" offwidth="640" offheight="480"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.34 0.40 0.48"
+             rgb2="0.08 0.10 0.14" width="512" height="3072"/>
+    <material name="demo_target_material" rgba="0.10 0.85 0.25 1"
+              specular="0.15" shininess="0.2"/>
+    <material name="demo_floor_material" rgba="0.18 0.20 0.22 1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.2 0.2 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="demo_floor" type="plane" size="0 0 0.05"
+          material="demo_floor_material" contype="1" conaffinity="1"/>
+
+    <!--
+      The candidate is expressed in ROS base_link at (0.09, 0.6696, 0.6158).
+      MuJoCo's chassis/base origin starts at world Z=0.38, so this fixed world
+      body applies that translation and appears at the same physical point.
+      Contact is render-only in this reach demo: MoveIt checks the matching
+      target OBB, while gripper actuation/force closure is not implemented yet.
+    -->
+    <body name="demo_grasp_target" pos="0.09 0.6696 0.9958">
+      <geom name="demo_grasp_target_geom" type="box"
+            size="0.015 0.015 0.015" material="demo_target_material"
+            contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+
+  <equality>
+    <!-- The arm demo must not move the mobile base. -->
+    <weld name="grasp_demo_chassis_world_weld" body1="chassis"
+          solref="0.002 1"/>
+  </equality>
+</mujoco>

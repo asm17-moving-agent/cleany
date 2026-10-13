@@ -131,7 +131,7 @@ KB는 이 구현 변경에서 수정하지 않습니다.
 청소 BT가 관찰과 Planner 제안을 검증한 뒤 물체 하나의 action을 보냅니다.
 Executor 내부의 BT/XML이나 접근·집기 단계 순서는 Mission Manager가 소유하지 않습니다.
 원격 `feat/manipulation-action-server`의 `46efa012cddb4ef0ff3f4dadb785550591bb6073`에서
-아래 세 interface만 동일하게 가져왔으며 서버 코드와 나머지 브랜치는 병합하지 않았습니다.
+조작 계약을 연결했습니다. 현재 통합 checkout에는 mock 서버와 MuJoCo BT 서버도 포함합니다.
 
 | 상대 이름 기본값 | 타입 | 의미 |
 |---|---|---|
@@ -165,8 +165,7 @@ ROS SUCCEEDED로 반환합니다. payload의 SUCCESS와 일치하는 execution I
 
 ### 팀원 mock server와 함께 실행
 
-팀원 브랜치의 서버 패키지를 별도 checkout/overlay에서 빌드해 사용합니다.
-이 브랜치의 기존 Skill Executor 패키지에는 해당 서버가 없습니다.
+통합 checkout의 `cleany_skill_executor`에서 mock 서버를 빌드해 사용합니다.
 양쪽에서 동일한 `cleany_interfaces`를 빌드·source해야 합니다.
 공유 mock 입력은 [server fixture](config/manipulation_server_fixture.yaml),
 Runtime 설정은 [runtime_manipulation_mock.yaml](config/runtime_manipulation_mock.yaml)입니다.

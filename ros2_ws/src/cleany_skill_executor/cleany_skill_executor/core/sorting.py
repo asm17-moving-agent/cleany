@@ -20,6 +20,43 @@ class Category(str, Enum):
     REVIEW = 'review'
 
 
+COLLECTION_SKILLS = {'trash': 'collect_trash', 'lost_item': 'collect_lost_item'}
+
+
+def classify_model(label: str, confidence: float, category: str, reason: str, *,
+                   hazardous_labels: frozenset[str], minimum_confidence: float,
+                   trash_destination: str, lost_item_destination: str) -> Decision:
+    """Shared semantic gates; labels may veto safety, never grant permission."""
+    if normalize_label(label) in hazardous_labels:
+        return Decision(label, Category.REVIEW, None, 'hazardous_label')
+    if not math.isfinite(confidence) or not minimum_confidence <= confidence <= 1:
+        return Decision(label, Category.REVIEW, None, 'low_confidence')
+    if category not in COLLECTION_SKILLS or not isinstance(reason, str) or not reason.strip():
+        return Decision(label, Category.REVIEW, None, 'missing_or_uncertain_model_classification')
+    destination = trash_destination if category == 'trash' else lost_item_destination
+    return Decision(label, Category(category), destination or None, 'gemini: ' + reason.strip())
+
+
+def bin_release_region(
+    center_xy: tuple[float, float], outside_size: tuple[float, float, float],
+    wall: float, top_z: float, radius: float, minimum_clearance: float,
+    maximum_clearance: float, edge_margin: float,
+) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    """Object-center bounds: the entire bounding sphere stays inside the opening."""
+    values = (*center_xy, *outside_size[:2], wall, top_z, radius,
+              minimum_clearance, maximum_clearance, edge_margin)
+    if (not all(math.isfinite(v) for v in values)
+            or min(*outside_size[:2], wall, radius, minimum_clearance, edge_margin) <= 0
+            or maximum_clearance < minimum_clearance):
+        raise ValueError('Invalid bin release region dimensions or clearances')
+    half = [s / 2 - wall - radius - edge_margin for s in outside_size[:2]]
+    if min(half) <= 0:
+        raise ValueError('Payload bounding sphere does not fit inside bin opening')
+    lower = (center_xy[0]-half[0], center_xy[1]-half[1], top_z+radius+minimum_clearance)
+    upper = (center_xy[0]+half[0], center_xy[1]+half[1], top_z+radius+maximum_clearance)
+    return lower, upper
+
+
 @dataclass(frozen=True)
 class Decision:
     label: str
@@ -58,14 +95,9 @@ class SortingPolicy:
     def classify_model(self, label: str, confidence: float,
                        category: str, reason: str) -> Decision:
         """Consume model semantics, retaining conservative safety vetoes only."""
-        if normalize_label(label) in self.hazardous_labels:
-            return Decision(label, Category.REVIEW, None, 'hazardous_label')
-        if not math.isfinite(confidence) or not self.minimum_confidence <= confidence <= 1:
-            return Decision(label, Category.REVIEW, None, 'low_confidence')
-        if category not in ('trash', 'lost_item') or not isinstance(reason, str) or not reason.strip():
-            return Decision(label, Category.REVIEW, None, 'missing_or_uncertain_model_classification')
-        destination = self.trash_destination if category == 'trash' else self.lost_item_destination
-        return Decision(label, Category(category), destination, 'gemini: ' + reason.strip())
+        return classify_model(label, confidence, category, reason,
+            hazardous_labels=self.hazardous_labels, minimum_confidence=self.minimum_confidence,
+            trash_destination=self.trash_destination, lost_item_destination=self.lost_item_destination)
 
 
 def normalize_label(label: str) -> str:

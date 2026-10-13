@@ -353,7 +353,7 @@ def test_study_cafe_entity_positions_match_gazebo_layout(
 ) -> None:
     expected_positions = {
         'wall_north': (0.0, 5.55, 1.25),
-        'desk_partition_01': (-5.53, 3.17, 0.62),
+        'desk_partition_01': (-5.53, 3.17, 0.66),
         'demo_desk_01': (-5.53, 3.555, 0.0),
         'desk_monitor_01': (-5.53, 3.27, 0.0),
     }

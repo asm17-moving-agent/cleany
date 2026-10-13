@@ -32,29 +32,26 @@ make test
 
 `make test`는 workspace 패키지를 빌드하고 C++/Python 검사와 패키지에 등록된
 MoveIt mock runtime 검사, 개발 도구·vision container 계약 검사를 실행한다.
-Python은 `pytest`를 명시적으로 선택하고 외부 플러그인 자동 로드를 차단한다.
-CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복원한다.
+Python은 `pytest`를 명시적으로 선택한다. Make는 빌드와 테스트에
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`을 전달해 외부 플러그인 충돌을 방지한다.
+`make test`는 CMake도 다시 configure해 이전 환경에서 빠졌던 pytest 등록을 복원한다.
 카메라 runtime은 headless여도 유효한 X display가 필요하다. GUI 세션의
 `DISPLAY`를 전달하거나 CI처럼 Xvfb 환경에서 실행한다.
 `make test-mujoco`는 현재 장면과 공통 bridge의 `test/` 전체를 검사한다. 짧은 개별 검사는 아래 native pytest 명령을 사용한다.
 
-변경한 영역부터 확인할 때는 타깃 테스트를 사용한다.
+변경한 영역에 맞는 명령을 선택한다. 아래 명령은 레포 루트에서 실행한다.
 
-```bash
-make test-mission
-make test-mujoco
-make test-grasp-pregrasp
-make test-scene-mapping
-make test-mujoco-observer
-make test-grasp-pregrasp-runtime
-make test-gazebo
-```
-
-RGB-D perception부터 스터디카페 집기·분류까지 변경할 때는
-`make test-grasp-pregrasp`로 관련 unit/contract 테스트를 실행한다.
-`make test-grasp-pregrasp-runtime`은 MoveIt mock backend에서 OMPL/Pilz 계획과
-controller 실행을 검사한다. 이전 캔·박스·hand-eye 전용 MuJoCo 데모와
-runtime 테스트는 제거했다. 전체 물리 수거 성공은 이 테스트의 검증 범위가 아니다.
+| 검사 대상 | 명령 |
+|---|---|
+| Manipulation core, 가짜 시계 | `make test-manipulation-core` |
+| 모의 Manipulation Action, 실제 DDS 통신·기록·재시작 복구 | `make test-manipulation` |
+| Mission Manager FSM | `make test-mission` |
+| MuJoCo 장면과 bridge | `make test-mujoco` |
+| RGB-D grasp/pre-grasp 관련 unit·contract | `make test-grasp-pregrasp` |
+| 선택형 OctoMap updater | `make test-scene-mapping` |
+| 읽기 전용 접촉 관측 | `make test-mujoco-observer` |
+| MoveIt mock 실행 | `make test-grasp-pregrasp-runtime` |
+| Gazebo | `make test-gazebo` |
 
 Telemetry-only checks use `make build-telemetry` and `make test-telemetry`.
 The `cleany_telemetry` package relays latest-only finite `/odom` `x`/`y`
@@ -69,9 +66,8 @@ C++ geometry/TF guard 및 plugin 로딩을 검사한다. 이 검사도
 serial/분할 self-mask의 점 단위 일치와 처리 시간을 비교한다. fixture 계약과
 robot-only 측정 범위는 `src/cleany_scene_mapping/README.md`를 따른다.
 
-Hand-eye의 수학·ROS adapter·오프라인 dataset 검증은
+Hand-eye의 수학·ROS adapter·오프라인 dataset 검증과 MuJoCo calibration 실행법은
 [`cleany_handeye_calibration` README](src/cleany_handeye_calibration/README.md)를 따른다.
-전용 MuJoCo calibration 실행 경로는 제거했다.
 
 Mission FSM·BT와 Backend 연동만 검사할 때는 다음을 사용한다.
 
@@ -95,6 +91,7 @@ Gazebo 주행 성공의 증거와 구분한다.
 [Mission Manager](src/cleany_mission_manager/README.md),
 [Control Bridge](src/cleany_control_bridge/README.md),
 [Gazebo composition](src/cleany_bringup/README.md)을 따른다.
+
 
 ## 실제 메카넘 base
 
@@ -133,9 +130,35 @@ odometry/TF 소유권은 [`cleany_base_driver` README](src/cleany_base_driver/RE
 wheel 순서와 ENABLE/STOP 계약은
 [`cleany_base_interfaces` README](src/cleany_base_interfaces/README.md)를 따른다.
 
-## MuJoCo 시뮬레이션
+Hand-eye 패키지 경계만 빌드하려면 `make build-handeye`를 사용한다.
+`make test-handeye`는 description, MuJoCo backend, MoveIt config와 calibration
+패키지를 함께 검사하며 실제 runtime test는 자동으로 `headless:=true`를 사용한다.
 
-스터디카페 관찰 장면을 headless 모드로 실행한다.
+**모의 Manipulation Action을 직접 실행하려면**
+[Skill Executor의 빠른 시작](src/cleany_skill_executor/docs/manipulation_mock_usage.md#빠른-시작)을 따른다.
+서버·클라이언트 실행, 취소·조회, 실패 재현과 SQLite 기록을 순서대로 안내한다.
+빌드만 수행하는 명령은 `make build-manipulation`이다.
+
+RGB-D perception부터 스터디카페 집기·분류까지 변경할 때는
+`make test-grasp-pregrasp`로 관련 unit/contract 테스트를 실행한다.
+`make test-grasp-pregrasp-runtime`은 MoveIt mock backend에서 OMPL/Pilz 계획과
+controller 실행을 검사한다. 기존 캔·물체 집기·hand-eye MuJoCo 데모도 유지한다.
+전체 물리 수거 성공은 이 테스트의 검증 범위가 아니다.
+
+`make test-scene-mapping`은 선택형 known-geometry OctoMap updater만 빌드하고
+C++ geometry/TF guard 및 plugin 로딩을 검사한다. 이 검사도
+`make test-grasp-pregrasp`에 포함된다. 실제 물체 집기/분리 수거 완료 검사는 아니다.
+저장한 정지 상태 RGB-D/URDF fixture가 있으면
+`make profile-scene-mask MASK_FIXTURE=/absolute/path/to/fixture`로 ROS node 없이
+serial/분할 self-mask의 점 단위 일치와 처리 시간을 비교한다. fixture 계약과
+robot-only 측정 범위는 `src/cleany_scene_mapping/README.md`를 따른다.
+
+Hand-eye의 수학·ROS adapter·오프라인 dataset 검증은
+[`cleany_handeye_calibration` README](src/cleany_handeye_calibration/README.md)를 따른다.
+전용 MuJoCo calibration 실행과 자세 생성은 `make build-handeye`,
+`make handeye-generate-mujoco`, `make handeye-mujoco`로 실행한다.
+
+기존 기본 주행 장면을 headless 모드로 실행한다.
 
 ```bash
 make sim
@@ -173,16 +196,10 @@ SORTING_ARGS='headless:=true use_rviz:=false use_image_view:=false'`를 사용�
 [`cleany_skill_executor` README](src/cleany_skill_executor/README.md)를 따른다.
 
 고정 베이스 성능 비교는 `make profile-mujoco-tabletop`을 사용한다.
-인식·수거 pipeline은 카메라별 scheduler와 `sim_viewer:=efficient`를 기본으로 사용한다.
-`make sim-mujoco-pipeline PIPELINE_ARGS='headless:=false use_rviz:=false use_image_view:=false'`
-또는 `headless:=true`로 GUI 유무를 비교한다. 전체 native UI는 `sim_viewer:=native`다.
-관찰용 GUI는 `SIM_ARGS='viewer_rate_hz:=60.0 viewer_shadows:=true'`로 기존 설정을
-선택할 수 있다. 구현과 실측 범위는 각 패키지 README 및
-[성능 측정 기록](../docs/MUJOCO_PERFORMANCE_20261002.md)을 따른다.
 `sim_performance_profile:=tabletop_fast`는 선택형이며 기본은 `baseline`이다.
 프로필은 먼 정적 배경 충돌·그림자 설정만 바꾸고 주행에는 사용하지 않는다.
 
-Gazebo 시뮬레이터는 선택한 profile에 따라 `make sim-gazebo`로 실행한다.
+Gazebo 시뮬레이터는 `make sim-gazebo`로 실행한다.
 
 Gazebo만 새 환경에서 재현할 때는 아래 순서로 의존성, 기준 환경, 패키지 테스트,
 headless 실행을 확인한다.
@@ -224,7 +241,7 @@ source install/setup.bash
 python3 -m pytest src/cleany_mujoco_sim/test/test_scene_loader.py
 colcon test --python-testing pytest
 colcon test-result --verbose
-ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=true
+ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
 ```
 
 `source install/setup.bash`는 build 후 같은 terminal session에서 실행한다.
@@ -257,3 +274,11 @@ Gazebo 이미지/scan/동선 검증은
 `MISSION_LOG_BASE`로 별도 overlay 경로를 지정할 수 있다. 실행 명령의 절대 install 경로도
 지원한다. 인터페이스, 토픽/QoS, 기록 재생과 브라우저 검사는
 [cleany_dev_monitor README](src/cleany_dev_monitor/README.md)를 따른다.
+
+## 승인된 물체 하나의 MuJoCo BT Action
+
+실제 BehaviorTree.CPP 4/pybind11 실행기는 `cleany_manipulation_bt`에 있다.
+루트에서 `make build-manipulation-bt`, `make test-manipulation-bt`,
+`make sim-mujoco-manipulation`을 사용한다. 기존 mock build/test 명령은 유지한다.
+모델/API 준비와 실제 snapshot 요청, `/sim` 클라이언트, 정지 증거 및 DB/모니터 계약은
+[패키지 README](src/cleany_manipulation_bt/README.md)를 따른다.

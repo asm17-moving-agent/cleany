@@ -24,20 +24,21 @@ def controller_config() -> VelocityControllerConfig:
 
 @pytest.fixture
 def xlerobot_model_data(tmp_path: Path):
-    # Drive directions are measured in the world frame from an unobstructed
-    # origin. The study-cafe fixture parks a rotated robot next to a desk.
-    template = tmp_path / 'drive.xml.in'
-    template.write_text(
-        '<mujoco model="drive_regression">'
-        '<include file="@CLEANY_MJCF_PATH@"/>'
-        '<option timestep="0.002" gravity="0 0 -9.80665" '
-        'integrator="implicitfast" noslip_iterations="5">'
-        '<flag multiccd="enable"/>'
-        '</option>'
-        '<worldbody><geom name="floor" type="plane" size="0 0 0.05" '
-        'contype="1" conaffinity="1"/></worldbody>'
-        '</mujoco>'
-    )
+    # Wheel dynamics need an unobstructed floor. The shared study-cafe scene
+    # places the robot beside furniture and is intended for tabletop actions.
+    template = tmp_path / 'mobile_base.xml.in'
+    template.write_text('''<mujoco model="mobile_base_test">
+  <include file="@CLEANY_MJCF_PATH@"/>
+  <option timestep="0.002" gravity="0 0 -9.80665" integrator="implicitfast"
+          noslip_iterations="5">
+    <flag multiccd="enable"/>
+  </option>
+  <worldbody>
+    <geom name="floor" size="0 0 0.05" type="plane"
+          contype="1" conaffinity="1"/>
+  </worldbody>
+</mujoco>
+''')
     return load_model(materialize_scene(template))
 
 

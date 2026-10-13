@@ -26,9 +26,11 @@ def _default_config_path() -> str:
 
 
 class CollisionSceneApplier(Node):
-    def __init__(self) -> None:
+    def __init__(self, scene_config_default: str | None = None) -> None:
         super().__init__('collision_scene_applier')
-        self.declare_parameter('scene_config', _default_config_path())
+        self.declare_parameter(
+            'scene_config', scene_config_default or _default_config_path()
+        )
         self.declare_parameter('service_wait_timeout_sec', 60.0)
 
     def apply(self) -> bool:
@@ -69,9 +71,13 @@ class CollisionSceneApplier(Node):
         return True
 
 
-def main(args: Sequence[str] | None = None) -> None:
+def main(
+    args: Sequence[str] | None = None,
+    *,
+    scene_config_default: str | None = None,
+) -> None:
     rclpy.init(args=args)
-    node = CollisionSceneApplier()
+    node = CollisionSceneApplier(scene_config_default)
     try:
         succeeded = node.apply()
     finally:

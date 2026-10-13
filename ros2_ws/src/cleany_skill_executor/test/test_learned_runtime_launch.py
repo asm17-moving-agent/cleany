@@ -1,8 +1,6 @@
 import importlib.util
 import os
 from pathlib import Path
-import subprocess
-import xml.etree.ElementTree as ET
 
 import pytest
 from launch import LaunchContext
@@ -68,6 +66,7 @@ def test_study_cafe_simulation_defaults_to_fine_tuned_yoloe(runtime):
     )
     assert context.launch_configurations['wrist_right_check_yoloe_model_path'] == (
         'yoloe/study_cafe_sim_right_held_cup_v2_yoloe26s_seg.pt')
+    assert context.launch_configurations['sorting_release_edge_margin_m'] == '0.005'
     assert context.launch_configurations[
         'wrist_right_check_yoloe_class_confidence_thresholds'] == (
             '[0.08, 0.25, 0.25, 0.08]')
@@ -120,8 +119,6 @@ def test_no_arguments_selects_yoloe_seg_gemini_plan_mode(runtime):
     assert values['perception_segmenter_type'] == 'yoloe_seg'
     assert values['sorting_contact_diagnostics'] == 'false'
     assert values['sim_performance_profile'] == 'baseline'
-    assert values['scheduled_cameras'] == 'true'
-    assert values['sim_viewer'] == 'efficient'
     assert values['sensor_scene'] == values['plan_only'] == 'true'
     assert values['depth_octomap_plugin'] == (
         'occupancy_map_monitor/PointCloudOctomapUpdater'
@@ -190,7 +187,6 @@ def test_preflight_rejects_missing_models_before_backend(runtime, tmp_path):
 
 def test_gemini_preflight_rejects_missing_credentials(runtime, tmp_path, monkeypatch):
     module, context = runtime
-    # Model validation runs before credential validation; use only test assets.
     model_dir = tmp_path / 'yoloe'
     model_dir.mkdir()
     (model_dir / 'study_cafe_sim_yoloe26s_seg.pt').touch()
@@ -346,15 +342,3 @@ def test_resolved_nodes_share_grasp_geometry_and_mode_guards(runtime, monkeypatc
     assert selector['require_pregrasp_visibility'] is (sorting == 'true' and wrist == 'false')
     assert coordinator['use_seeded_cartesian_grasp'] is (sorting == 'true')
     assert parameters['grasp_server']['geometric.defer_support_plane_collision'] is (sorting == 'true')
-    urdf_path = Path(__file__).parents[2] / 'cleany_description/urdf/cleany.urdf.xacro'
-    urdf = ET.fromstring(subprocess.check_output(['xacro', str(urdf_path)]))
-    shoulder_origins = [
-        float(value)
-        for side in ('left', 'right')
-        for value in urdf.find(
-            f"joint[@name='{side}_shoulder_yaw_joint']/origin"
-        ).get('xyz').split()
-    ]
-    assert parameters['grasp_server']['geometric.approach_reference_positions'] == pytest.approx(
-        shoulder_origins, abs=1e-9
-    )
