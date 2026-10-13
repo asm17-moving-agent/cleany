@@ -17,6 +17,63 @@ from cleany_skill_executor.sorting_coordinator import SortingCoordinator
 
 
 @pytest.fixture
+def joint_receiver(monkeypatch):
+    from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
+    from sensor_msgs.msg import JointState
+
+    node = object.__new__(MujocoOperations)
+    node._joint_positions, node._joint_velocities = {}, {}
+    node._joint_feedback = JointFeedback(REQUIRED_JOINT_NAMES)
+    wall = [10.0]
+    monkeypatch.setattr('cleany_manipulation_bt.ros_operations.time.monotonic', lambda: wall[0])
+    message = JointState(name=list(REQUIRED_JOINT_NAMES),
+                         position=[0.] * len(REQUIRED_JOINT_NAMES),
+                         velocity=[0.] * len(REQUIRED_JOINT_NAMES))
+    message.header.stamp.sec = 1
+    node._on_joints(message)
+    return node, message, wall
+
+
+def test_identical_joint_delivery_keeps_original_freshness_and_stationary_count(joint_receiver):
+    from copy import deepcopy
+    from cleany_manipulation_bt.joint_feedback import StationaryWindow
+
+    node, message, wall = joint_receiver
+    previous = dict(node._joint_feedback.samples)
+    window = StationaryWindow(barrier_ns=1, started_at=9., max_age_sec=.5,
+        maximum_velocity=.02, required_samples=3, minimum_duration_sec=.25)
+    assert not window.observe(node._joint_feedback, now=wall[0], clock_ns=10**9, terminal=True)
+    for instant in (10.1, 10.2, 10.3):
+        wall[0] = instant
+        node._on_joints(deepcopy(message))
+        assert node._joint_feedback.samples == previous
+        assert not node._joint_feedback.invalid_joints(instant, 10**9, .5)
+        assert not window.observe(node._joint_feedback, now=instant, clock_ns=10**9, terminal=True)
+    assert window.samples == 1
+    assert set(node._joint_feedback.invalid_joints(10.6, 10**9, .5)) == set(message.name)
+
+
+@pytest.mark.parametrize('fault', ['position', 'velocity', 'backward', 'missing_velocity'])
+def test_conflicting_or_invalid_joint_delivery_still_invalidates_feedback(joint_receiver, fault):
+    from copy import deepcopy
+
+    node, original, wall = joint_receiver
+    message = deepcopy(original)
+    if fault == 'position':
+        message.position[0] = .1
+    elif fault == 'velocity':
+        message.velocity[0] = .1
+    elif fault == 'backward':
+        message.header.stamp.sec = 0
+        message.header.stamp.nanosec = 900_000_000
+    else:
+        message.velocity = []
+    wall[0] += .1
+    node._on_joints(message)
+    assert set(node._joint_feedback.invalid_joints(wall[0], 10**9, .5)) == set(message.name)
+
+
+@pytest.fixture
 def release_target():
     node = object.__new__(MujocoOperations)
     pose = Pose()

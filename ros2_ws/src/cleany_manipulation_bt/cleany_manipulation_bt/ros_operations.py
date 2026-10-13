@@ -94,6 +94,14 @@ class MujocoOperations(SortingCoordinator):
         self._transport_adapter._spin_once = lambda t: self._spin_once(timeout_sec=t)
 
     def _on_joints(self, message) -> None:
+        signature = (message.header.stamp.sec, message.header.stamp.nanosec,
+                     message.header.frame_id, tuple(message.name), tuple(message.position),
+                     tuple(message.velocity), tuple(message.effort))
+        if signature == getattr(self, '_previous_joint_message', None):
+            # Repeated delivery is not new feedback or a new stationary sample.
+            # Keep the original receipt time so frozen streams still expire.
+            return
+        self._previous_joint_message = signature
         super()._on_joints(message)
         self._joint_feedback.update(message.name, message.velocity,
             message.header.stamp.sec * 10**9 + message.header.stamp.nanosec, time.monotonic())
