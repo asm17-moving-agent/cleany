@@ -738,42 +738,6 @@ footer {
   padding: 7px;
   overflow-wrap: anywhere;
 }
-.foxglove-panel {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 20px;
-  background: var(--card);
-}
-.integration-icon {
-  padding: 10px;
-  background: var(--muted);
-  border-radius: 9px;
-  color: var(--muted-foreground);
-}
-.integration-copy {
-  flex: 1;
-}
-.integration-copy strong {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 600;
-}
-.integration-copy p {
-  font-size: 11px;
-  color: var(--muted-foreground);
-  line-height: 1.8;
-  margin-top: 7px;
-}
-.integration-copy summary {
-  font-size: 11px;
-  padding: 10px 0 0;
-}
 .sidebar-collapsed {
   --sidebar-width: 76px;
 }
@@ -876,12 +840,6 @@ footer {
   }
   .connection-banner > .badge {
     display: none;
-  }
-  .foxglove-panel {
-    flex-wrap: wrap;
-  }
-  .integration-copy strong {
-    flex-wrap: wrap;
   }
   .log-row {
     grid-template-columns: 65px 85px 1fr;

@@ -1,4 +1,4 @@
-"""ROS reader. Only subscriptions, graph introspection and TF buffer lookups."""
+"""ROS reader. Subscriptions, TF lookups and the allowlisted read-only SubmapQuery."""
 
 import json
 import math
@@ -28,6 +28,7 @@ from rclpy.time import Time
 from rosidl_runtime_py.utilities import get_message
 from tf2_ros import Buffer, TransformException, TransformListener
 
+from .slam_reader import SlamReader
 from .camera import IMAGE_TYPES
 from .core import Hub, grid_origin, preview, transform_point, yaw
 from .sources import routes, resolved, SCHEMA, source_roles
@@ -93,6 +94,18 @@ class MonitorNode(Node):
             "map_frame": "map",
             "base_frame": "base_link",
             "map_topic": "/map",
+            "slam_submaps_topic": "/submap_list",
+            "slam_trajectory_topic": "/trajectory_node_list",
+            "slam_constraints_topic": "/constraint_list",
+            "slam_matched_points_topic": "/scan_matched_points2",
+            "slam_submap_query_service": "/submap_query",
+            "slam_submap_limit": 64,
+            "slam_texture_pixel_limit": 262144,
+            "slam_texture_cache_bytes": 16777216,
+            "slam_marker_point_limit": 4096,
+            "slam_query_timeout_s": 2.0,
+            "slam_adjustment_m": .05,
+            "slam_adjustment_rad": .02,
             "path_topic": "/plan",
             "local_costmap_topic": "/local_costmap/costmap",
             "global_costmap_topic": "/global_costmap/costmap",
@@ -141,6 +154,14 @@ class MonitorNode(Node):
                 or not .1 <= self.config["bt_event_repeat_interval_s"] <= 10
                 or not 0 <= self.config["stationary_speed_mps"] < self.config["creep_speed_mps"]):
             raise ValueError("Invalid navigation observation limits")
+        if (not 1 <= self.config['slam_submap_limit'] <= 128
+                or not 1 <= self.config['slam_texture_pixel_limit'] <= 524288
+                or not 1048576 <= self.config['slam_texture_cache_bytes'] <= 67108864
+                or not 2 <= self.config['slam_marker_point_limit'] <= 8192
+                or not .25 <= self.config['slam_query_timeout_s'] <= 10
+                or not .001 <= self.config['slam_adjustment_m'] <= 10
+                or not .001 <= self.config['slam_adjustment_rad'] <= math.pi):
+            raise ValueError('Invalid SLAM observation limits')
         self.config.update(resolved(self.config))
         self.base_config = dict(self.config)
         self.source_settings = {}
@@ -177,6 +198,7 @@ class MonitorNode(Node):
         self.manipulation_events = self.config['manipulation_events_topic']
         self.hub.source_roles = source_roles(self.config)
         self.hub.source_categories = {topic: SCHEMA[key]['group'] for key, value in resolved(self.config).items() for topic in (value if isinstance(value, list) else [value])}
+        self.slam = SlamReader(self)
         self.subs, self.rates, self.last_ui, self.errors = {}, {}, {}, {}
         self.last_clock = None
         self.last_clock_changed = time.monotonic()
@@ -193,6 +215,7 @@ class MonitorNode(Node):
             },
         )
         steady = Clock(clock_type=ClockType.STEADY_TIME)
+        self.create_timer(.25, lambda: self.slam.tick(), clock=steady)
         self.create_timer(1.0, self.discover, clock=steady)
         self.create_timer(0.1, self.pose, clock=steady)
         self.create_timer(0.2, self.navigation_tick, clock=steady)
@@ -226,6 +249,8 @@ class MonitorNode(Node):
         self.bt_event_received.clear()
         self.bt_event_repeated.clear()
         self.navigation = NavigationObserver(self.config['velocity_topics'], self.config['navigation_freshness_s'], self.config['stationary_speed_mps'], self.config['creep_speed_mps'], self.config['map_frame'])
+        self.slam.close()
+        self.slam = SlamReader(self)
         self.hub.reset_sources(self.config, self.topic_revision)
         self.hub.put('event', 'observation_sources', {'kind': 'observation_sources_changed', 'topic_revision': self.topic_revision}, critical=True)
 
@@ -404,7 +429,11 @@ class MonitorNode(Node):
                 hasattr(message, "format") and hasattr(message, "data")
             ):
                 self.hub.cameras.receive(topic, message)
-            if topic == self.config["runtime_debug_topic"]:
+            if topic in self.slam.topics:
+                if now-self.last_ui.get(topic, 0) >= .5:
+                    self.last_ui[topic] = now
+                    self.slam.receive(topic, message, ros_time)
+            elif topic == self.config["runtime_debug_topic"]:
                 if message.schema_version != 1 or len(message.snapshot_json) > 1048576:
                     raise ValueError("Unsupported/oversized Runtime debug snapshot")
                 data = json.loads(message.snapshot_json)
@@ -470,6 +499,7 @@ class MonitorNode(Node):
             elif topic == self.config["clock_topic"]:
                 value = message.clock.sec + message.clock.nanosec / 1e9
                 if self.last_clock is not None and value < self.last_clock:
+                    self.slam.reset()
                     self.hub.put(
                         "event",
                         "clock",
@@ -744,6 +774,7 @@ class MonitorNode(Node):
             self.hub.put("pose", "robot", {"valid": False, "reason": str(exc)})
 
     def destroy_node(self):
+        self.slam.close()
         self.stop_event.set()
         self.worker.join(timeout=5)
         return super().destroy_node()

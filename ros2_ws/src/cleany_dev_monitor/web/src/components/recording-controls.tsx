@@ -7,6 +7,7 @@ import "./recording-controls.css";
 
 const labels: Record<string, string> = {
   resources: "호스트 리소스",
+  slam: "SLAM 서브맵·스캔·그래프",
   motion: "위치·속도·미션",
   paths: "계획·제어 경로",
   costmaps: "Costmap",

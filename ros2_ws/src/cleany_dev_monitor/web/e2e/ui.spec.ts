@@ -122,10 +122,13 @@ test("console navigation and diagnostics work at desktop and narrow widths", asy
     "true",
   );
   await page.getByRole("button", { name: "자율주행", exact: true }).click();
-  await expect(page.getByRole("link", { name: "연결 가이드" })).toHaveAttribute(
-    "href",
-    /docs.foxglove.dev/,
-  );
+  await page.getByRole("button", { name: "SLAM 분석", exact: true }).click();
+  await expect(
+    page.getByRole("region", { name: "SLAM 분석 화면" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("tab", { name: "SLAM 분석", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: "사이드바 펼치기" }).click();
   await page.getByRole("button", { name: "실행 흐름", exact: true }).click();
   await page.screenshot({

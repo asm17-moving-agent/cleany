@@ -7,7 +7,7 @@ import threading
 import time
 from .sources import validate_sources, validate_source_enabled, SCHEMA, raw_maximum_references
 
-LABELS = {'resources': '호스트 리소스', 'motion': '위치·속도·미션', 'paths': '계획·제어 경로', 'costmaps': 'Costmap',
+LABELS = {'slam': 'SLAM 서브맵·스캔·그래프', 'resources': '호스트 리소스', 'motion': '위치·속도·미션', 'paths': '계획·제어 경로', 'costmaps': 'Costmap',
           'bt': 'Nav2 BT', 'safety': '안전 판단', 'logs': '로그',
           'lidar': 'LiDAR 원본', 'point_cloud': 'Depth point cloud 원본',
           'voxel_layer': 'Nav2 voxel layer 원본', 'voxel_world': 'Voxel world·장애물 메모리',
@@ -26,6 +26,7 @@ def observation_policies(config):
     interval = config.get('resource_interval_s', 1.0)
     repeat = config.get('bt_event_repeat_interval_s', 1.0)
     return {
+        'slam': {'summary': 'SLAM 레이어 최대 2 Hz · 서브맵 버전별 이미지 보존', 'detail': '서브맵 이미지와 위치를 함께 기록합니다. 버전·위치 metadata와 이미지는 재생 일관성을 위해 주기 제한 없이 저장합니다.'},
         'resources': {'summary': f'수집 설정 {interval:g}초 ({1 / interval:g} Hz)',
                       'detail': '새 호스트 표본을 저장합니다. 실제 간격에는 수집 소요시간이 더해집니다.'},
         'motion': {'summary': '위치 최대 10 Hz · 주행 요약 5 Hz',
@@ -147,6 +148,7 @@ def _version_three_rate_profiles(resource_interval_s=1.):
 # At 0.2 m/s, 2 Hz poses resolve roughly 10 cm; 10 Hz resolves 2 cm.
 # Slow geometry and maps do not gain useful detail from control-loop frequencies.
 SEMANTIC_RATES = {
+    **{f'slam_{key}_topic': (1., 2., 2.) for key in ('submaps', 'trajectory', 'constraints', 'matched_points')},
     'runtime_debug_topic': (.5, 1., 2.),
     'odometry_topic': (2., 5., 10.), 'ground_truth_topic': (2., 5., 10.),
     'amcl_pose_topic': (1., 2., 5.), 'clock_topic': (1., 2., 5.),
@@ -244,6 +246,9 @@ def validate(value):
         if hz is not None and (type(hz) not in (float, int) or not math.isfinite(hz) or not .1 <= hz <= 1000):
             raise ValueError('토픽 기록 주기는 0.1~1000 Hz 범위입니다.')
     value['enabled'].setdefault('resources', True)
+    value['enabled'].setdefault('slam', True)
+    if set(value['hz']) != set(RAW):
+        value['hz'].setdefault('slam', 2.)
     if set(value['enabled']) != set(LABELS) or any(type(v) is not bool for v in value['enabled'].values()):
         raise ValueError('녹화 항목을 모두 지정해야 합니다.')
     # Migrate the prior raw-only schema without overwriting its configured rates.
@@ -270,6 +275,8 @@ def category(row):
     kind, key = row['kind'], row['key']
     if kind in ('config', 'graph', 'recording_policy', 'recording_status') or (kind == 'layer' and key == 'map'):
         return None  # Context is always retained.
+    if kind in ('slam', 'slam_texture') or (kind == 'event' and str(row['data'].get('kind', '')).startswith('slam_')):
+        return 'slam'
     if kind == 'resources':
         return 'resources'
     if kind == 'log':

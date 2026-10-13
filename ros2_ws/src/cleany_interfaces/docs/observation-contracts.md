@@ -91,6 +91,12 @@ canonical `target_id`와 `requested_by`를 전달합니다. 응답의 `accepted`
 공개 이름과 취소·복구 규칙은 [Mission Manager README](mission.md)를 따릅니다.
 
 
+## 개발 관측 메시지
+
+`DebugBTNode`는 노드 ID, 부모, 종류, 상태, 이번 tick 방문 여부와 operation ID를 전달한다. `RuntimeDebugSnapshot`은 header, boot/event sequence, mission/state/ready/reason, BT 노드와 versioned `snapshot_json`을 전달한다. `RuntimeEvent`는 boot/sequence, mission/task/execution 식별자와 kind, `data_json`을 전달한다.
+
+기본 토픽은 `/mission/debug_snapshot`과 `/mission/runtime_events`다. 메시지는 명령 의미를 갖지 않는다. 이 패키지의 빌드만으로 producer가 실행되지는 않으며 발행이 없는 환경에서는 미수신으로 표시한다.
+
 ## 설정 및 검증
 
 인터페이스를 추가하거나 변경할 때는 해당 의존 패키지, `package.xml`, 빌드 및 메시지

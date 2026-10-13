@@ -8,6 +8,7 @@ FIELDS = {
     'costmaps': {'map_topic': ('정적 지도', '/map'), 'local_costmap_topic': ('Local costmap', '/local_costmap/costmap'), 'global_costmap_topic': ('Global costmap', '/global_costmap/costmap')},
     'bt': {'nav2_bt_topic': ('BT 상태 이벤트', '/behavior_tree_log'), 'nav2_bt_trace_topic': ('BT 트리 구조·상태', '/navigation/bt_trace')},
     'safety': {'pan_state_topic': ('Pan 상태', '/head_pan/state'), 'reactive_guard_topic': ('Reactive guard', '/reactive_guard/state'), 'voxel_guard_topic': ('Voxel guard', '/body_guard_3d/state'), 'collision_state_topic': ('Collision monitor', '/collision_monitor_state'), 'coverage_topic': ('센서 Coverage', '/head_pan/coverage'), 'scan_topic': ('LiDAR 관측 요약', '/scan'), 'depth_points_topic': ('Depth 관측 요약', '/camera/head/depth/obstacle_points'), 'risk_points_topic': ('위험 점 관측 요약', '/body_guard_3d/risk_voxels'), 'footprint_topic': ('Footprint', '/local_costmap/published_footprint'), 'stop_polygon_topic': ('정지 영역', '/safety/stop_zone'), 'slow_polygon_topic': ('감속 영역', '/safety/slow_zone'), 'obstacle_memory_topic': ('장애물 메모리', '/obstacle_memory/grid'), 'lidar_memory_topic': ('LiDAR 메모리', '/obstacle_memory/lidar'), 'depth_memory_topic': ('Depth 메모리', '/obstacle_memory/depth')},
+    'slam': {'slam_submaps_topic': ('SLAM 서브맵', '/submap_list'), 'slam_trajectory_topic': ('SLAM 궤적', '/trajectory_node_list'), 'slam_constraints_topic': ('SLAM 제약선', '/constraint_list'), 'slam_matched_points_topic': ('SLAM 매칭 점군', '/scan_matched_points2')},
     'logs': {'rosout_topic': ('ROS 로그', '/rosout')},
 }
 SCHEMA = {key: dict(group=group, label=label, multiple=isinstance(default, list)) for group, fields in FIELDS.items() for key,(label,default) in fields.items()}
@@ -50,6 +51,7 @@ def routes(config):
     navigation.update({c['pan_state_topic']: 'pan', c['collision_state_topic']: 'collision'})
     layers = {c[key+'_topic']: key for key in ('map', 'path', 'local_costmap', 'global_costmap')}
     fixed = set(layers) | {c[key] for key in ('runtime_debug_topic', 'runtime_events_topic', 'runtime_result_topic', 'rosout_topic', 'clock_topic', 'manipulation_events_topic', 'nav2_bt_trace_topic')} | set(c['velocity_topics'])
+    fixed.update(c['slam_'+key+'_topic'] for key in ('submaps', 'trajectory', 'constraints', 'matched_points'))
     fixed.update(c[key+'_topic'] for key in ('odometry', 'ground_truth', 'amcl_pose', 'pan_state', 'reactive_guard', 'voxel_guard', 'collision_state', 'coverage', 'nav2_bt'))
     layers.update({c[key+'_topic']: key for key in ('obstacle_memory', 'lidar_memory', 'depth_memory', 'local_path')})
     return c, fixed, layers, navigation
@@ -73,6 +75,7 @@ def validate_source_enabled(value):
 # Recording bounds follow the monitor's observation cadence and payload cost.
 # None preserves received event records without an additional time-based filter.
 SOURCE_DEFAULT_HZ = {
+    'slam_submaps_topic': 2., 'slam_trajectory_topic': 2., 'slam_constraints_topic': 2., 'slam_matched_points_topic': 2.,
     'runtime_debug_topic': 1.0,
     'runtime_events_topic': None,
     'runtime_result_topic': None,
@@ -115,6 +118,7 @@ for key, spec in SCHEMA.items():
 # Publisher reference bounds, separate from recording and UI processing limits.
 # Event/input-driven topics have planning estimates, not physical hard limits.
 SOURCE_MAX_HZ = {
+    **{f'slam_{key}_topic': (5., 'estimate', 'Cartographer 발행 설정 의존; 관측 처리 최대 2 Hz') for key in ('submaps', 'trajectory', 'constraints', 'matched_points')},
     'runtime_debug_topic': (2., 'code', 'mission_manager/node.py: debug snapshot 최소 간격 0.5초'),
     'runtime_events_topic': (100., 'estimate', '이벤트 burst 기준 추정; 고정 발행 상한 없음'),
     'runtime_result_topic': (10., 'estimate', '미션 결과 burst 기준 추정; 완료 시 발행'),

@@ -89,6 +89,12 @@ def test_read_failure_is_unknown_and_recovers(monkeypatch):
 
 def test_unreadable_container_temperature_does_not_stop_other_metrics(monkeypatch):
     sampler = ResourceSampler()
+    # Two immediate reads can share a kernel CPU tick in a container. Advance
+    # counters explicitly so this test isolates temperature failure/recovery.
+    from collections import namedtuple
+    CpuTimes = namedtuple("CpuTimes", "user system idle")
+    counters = iter([CpuTimes(10, 5, 85), CpuTimes(12, 6, 92)])
+    monkeypatch.setattr(psutil, "cpu_times", lambda percpu=True: [next(counters)])
 
     def unavailable():
         raise AttributeError("'NoneType' object has no attribute 'strip'")

@@ -54,7 +54,6 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { ResourceDashboard } from "@/components/resource-dashboard";
-import { FoxglovePanel } from "@/components/foxglove-panel";
 import { Panel } from "@/components/panel";
 import { type Data, type Row, time } from "@/lib/monitor";
 
@@ -1278,7 +1277,18 @@ function Logs({
 
 function App() {
   const [graphTab, setGraphTab] = useState("fsm");
-  const [navigationTab, setNavigationTab] = useState("overview");
+  const [navigationTab, setNavigationTab] = useState(() => {
+    const stored = sessionStorage.getItem("cleany.navigation.tab");
+    return stored &&
+      ["overview", "safety", "control", "sensors", "compare", "slam"].includes(
+        stored,
+      )
+      ? stored
+      : "overview";
+  });
+  useEffect(() => {
+    sessionStorage.setItem("cleany.navigation.tab", navigationTab);
+  }, [navigationTab]);
   const [collapsed, setCollapsed] = useState(false);
   const [tab, setTab] = useState(location.hash.slice(1) || "execution");
   const [rows, setRows] = useState<Row[]>([]);
@@ -1374,6 +1384,21 @@ function App() {
         for (const r of merged) {
           if (critical.has(r.kind)) events.set(r.seq, r);
           else latest.set(r.kind + ":" + r.key, r);
+        }
+        const slamList = latest.get("slam:submaps")?.data;
+        for (const [key, row] of latest) {
+          if (
+            row.kind === "slam_texture" &&
+            (!slamList?.valid ||
+              row.data.epoch !== slamList.epoch ||
+              !slamList.submaps?.some(
+                (s: Data) => s.id === row.key && s.version >= row.data.version,
+              ) ||
+              latest
+                .get("slam:status")
+                ?.data.omitted_textures?.includes(row.key))
+          )
+            latest.delete(key);
         }
         const topicGraph = latest.get("graph:ros")?.data.topics || [];
         for (const [key, row] of latest) {
@@ -1680,16 +1705,14 @@ function App() {
               <h1>{tabs.find((t) => t[0] === tab)?.[1]}</h1>
             </div>
             <div className="page-actions">
-              <Button variant="outline" asChild>
-                <a
-                  href="https://app.foxglove.dev"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Activity size={16} />
-                  Foxglove
-                  <ArrowUpRight size={14} />
-                </a>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setNavigationTab("slam");
+                  go("navigation");
+                }}
+              >
+                <Activity size={16} /> SLAM 분석
               </Button>
             </div>
           </div>
@@ -1975,7 +1998,6 @@ function App() {
           )}
           {tab === "navigation" && (
             <>
-              <FoxglovePanel />
               <NavigationDashboard
                 rows={rows}
                 config={config}

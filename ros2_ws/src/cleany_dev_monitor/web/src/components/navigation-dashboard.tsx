@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel } from "@/components/panel";
 import { type Data, type Row, time as stamp } from "@/lib/monitor";
 import "./navigation.css";
+import { SlamView } from "./slam-view";
 import { Nav2BtTree } from "./nav2-bt-tree";
 
 type Props = {
@@ -29,6 +30,7 @@ const names: Record<string, string> = {
   safety: "장애물·안전",
   control: "계획·제어",
   sensors: "센서·위치",
+  slam: "SLAM 분석",
   compare: "주행 비교",
 };
 const motions: Record<string, string> = {
@@ -464,7 +466,9 @@ export function NavigationDashboard(p: Props) {
             ? ["controller_evaluation", "local_path", "footprint"]
             : tab === "sensors"
               ? ["scan", "depth_points"]
-              : [];
+              : tab === "slam"
+                ? ["scan"]
+                : [];
     const known = new Set<string>(JSON.parse(available));
     p.observe(
       keys.map((k) => config[k + "_topic"]).filter((t) => t && known.has(t)),
@@ -592,6 +596,7 @@ export function NavigationDashboard(p: Props) {
                 control: "경로 선택과 제어 출력",
                 sensors: "관측 신뢰도와 위치 추정",
                 compare: "주행 결과 비교",
+                slam: "SLAM 지도와 위치 보정",
               } as Record<string, string>
             )[tab]
           }
@@ -606,11 +611,22 @@ export function NavigationDashboard(p: Props) {
                   "Nav2의 실행 상태, 선택한 궤적과 속도 출력을 비교합니다.",
                 sensors: "센서 수신 지연과 위치 추정 오차를 확인합니다.",
                 compare: "같은 대상과 관측 기준의 실행 결과를 비교합니다.",
+                slam: "서브맵, 스캔과 궤적을 겹쳐 보고 상단 타임라인으로 보정 전후를 재생합니다.",
               } as Record<string, string>
             )[tab]
           }
         </p>
       </div>
+      {tab === "slam" && (
+        <SlamView
+          rows={rows}
+          config={config}
+          timeAt={timeAt}
+          replay={replay}
+          sessionId={p.sessionId}
+          seek={p.seek}
+        />
+      )}
       {tab === "overview" && (
         <div className="nav-summary-strip">
           <div>
@@ -1242,77 +1258,79 @@ export function NavigationDashboard(p: Props) {
           )}
         </>
       )}
-      <Panel
-        title={
-          tab === "safety"
-            ? "감시 판단과 정지 이력"
-            : tab === "control"
-              ? "BT 전이와 주행 작업 이력"
-              : "주행 타임라인"
-        }
-        aside={
-          <div className="inline">
-            <select
-              aria-label="주행 이벤트 필터"
-              value={eventFilter}
-              onChange={(e) => setEventFilter(e.target.value)}
-            >
-              <option value="all">이 화면의 이벤트</option>
-              {tab !== "control" && <option value="motion">이동·정지</option>}
-              {tab !== "overview" && tab !== "control" && (
-                <option value="decision">감시 판단</option>
-              )}
-              {tab !== "overview" && tab !== "safety" && (
-                <option value="bt">Nav2 BT</option>
-              )}
-            </select>
-            <Button variant="outline" onClick={p.openLogs}>
-              전체 로그
-            </Button>
-          </div>
-        }
-      >
-        <div className="nav-timeline">
-          {scopedEvents
-            .filter(
-              (r) =>
-                eventFilter === "all" ||
-                (eventFilter === "motion" &&
-                  r.data.kind === "navigation_motion") ||
-                (eventFilter === "decision" &&
-                  r.data.kind === "navigation_decision") ||
-                (eventFilter === "bt" && r.data.kind === "nav2_bt"),
-            )
-            .slice(0, 80)
-            .map((r) => (
-              <button
-                key={r.seq}
-                className="nav-event"
-                onClick={() => p.seek(r.received_at)}
-                title="이 시각의 기록으로 이동"
+      {tab !== "slam" && (
+        <Panel
+          title={
+            tab === "safety"
+              ? "감시 판단과 정지 이력"
+              : tab === "control"
+                ? "BT 전이와 주행 작업 이력"
+                : "주행 타임라인"
+          }
+          aside={
+            <div className="inline">
+              <select
+                aria-label="주행 이벤트 필터"
+                value={eventFilter}
+                onChange={(e) => setEventFilter(e.target.value)}
               >
-                <time>{stamp(r.received_at)}</time>
-                <Tag>{r.data.kind}</Tag>
-                <span>
-                  {r.data.data?.node
-                    ? `${r.data.data.node}: ${r.data.data.previous} → ${r.data.data.status}`
-                    : r.data.data?.motion
-                      ? `${motions[r.data.data.motion]} · ${r.data.data.reason}`
-                      : r.data.data?.decision
-                        ? `${r.data.data.source}: ${r.data.data.decision}`
-                        : JSON.stringify(r.data.data || r.data)}
-                </span>
-              </button>
-            ))}
-        </div>
-        {!scopedEvents.length && (
-          <Empty>이 화면에 해당하는 주행 이벤트 없음</Empty>
-        )}
-        <small>
-          이벤트를 선택하면 해당 수신 시각의 기록으로 이동합니다. 큰 센서
-          데이터는 해당 화면에서 관측했던 구간만 재생할 수 있습니다.
-        </small>
-      </Panel>
+                <option value="all">이 화면의 이벤트</option>
+                {tab !== "control" && <option value="motion">이동·정지</option>}
+                {tab !== "overview" && tab !== "control" && (
+                  <option value="decision">감시 판단</option>
+                )}
+                {tab !== "overview" && tab !== "safety" && (
+                  <option value="bt">Nav2 BT</option>
+                )}
+              </select>
+              <Button variant="outline" onClick={p.openLogs}>
+                전체 로그
+              </Button>
+            </div>
+          }
+        >
+          <div className="nav-timeline">
+            {scopedEvents
+              .filter(
+                (r) =>
+                  eventFilter === "all" ||
+                  (eventFilter === "motion" &&
+                    r.data.kind === "navigation_motion") ||
+                  (eventFilter === "decision" &&
+                    r.data.kind === "navigation_decision") ||
+                  (eventFilter === "bt" && r.data.kind === "nav2_bt"),
+              )
+              .slice(0, 80)
+              .map((r) => (
+                <button
+                  key={r.seq}
+                  className="nav-event"
+                  onClick={() => p.seek(r.received_at)}
+                  title="이 시각의 기록으로 이동"
+                >
+                  <time>{stamp(r.received_at)}</time>
+                  <Tag>{r.data.kind}</Tag>
+                  <span>
+                    {r.data.data?.node
+                      ? `${r.data.data.node}: ${r.data.data.previous} → ${r.data.data.status}`
+                      : r.data.data?.motion
+                        ? `${motions[r.data.data.motion]} · ${r.data.data.reason}`
+                        : r.data.data?.decision
+                          ? `${r.data.data.source}: ${r.data.data.decision}`
+                          : JSON.stringify(r.data.data || r.data)}
+                  </span>
+                </button>
+              ))}
+          </div>
+          {!scopedEvents.length && (
+            <Empty>이 화면에 해당하는 주행 이벤트 없음</Empty>
+          )}
+          <small>
+            이벤트를 선택하면 해당 수신 시각의 기록으로 이동합니다. 큰 센서
+            데이터는 해당 화면에서 관측했던 구간만 재생할 수 있습니다.
+          </small>
+        </Panel>
+      )}
     </div>
   );
 }

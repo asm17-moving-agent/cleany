@@ -243,7 +243,7 @@ class Recorder:
             sample_time = row.get('received_monotonic', row['received_at'])
             identity = row.get('source_id')
             rate = (settings['source_hz'].get(identity) if identity else settings['hz'].get(category(row))) if settings else None
-            context = row['kind'] in ('config', 'graph', 'recording_policy', 'recording_status') or (row['kind'] == 'event' and row['data'].get('kind') == 'navigation_decision')
+            context = row['kind'] == 'slam_texture' or (row['kind'] == 'slam' and row['key'] == 'submaps') or row['kind'] in ('config', 'graph', 'recording_policy', 'recording_status') or (row['kind'] == 'event' and row['data'].get('kind') == 'navigation_decision')
             limited = rate is not None and not context and (bool(identity) or (row['kind'] not in ('event', 'log', 'result') and category(row) is not None))
             previous = self.sampled_at.get(key)
             if limited and previous is not None and 0 <= sample_time-previous < 1/rate:
