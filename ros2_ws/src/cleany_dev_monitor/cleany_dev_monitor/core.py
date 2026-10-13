@@ -15,6 +15,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from .camera import Cameras
+from .recording import RecordingControls, allowed, category
 
 
 def preview(value: Any, *, budget: int = 2048, depth: int = 10) -> Any:
@@ -74,6 +75,7 @@ class Hub:
 
     def __init__(self, event_limit=2048):
         self.cameras = Cameras()
+        self.recording = RecordingControls()
         self.lock = threading.Lock()
         self.latest = {}
         self.events = deque(maxlen=event_limit)
@@ -122,6 +124,11 @@ class Hub:
                 ),
             }
 
+    def latest_data(self, kind: str, key: str) -> dict:
+        with self.lock:
+            row = self.latest.get((kind, key))
+            return row["data"] if row else {}
+
     def forget(self, kind, key):
         with self.lock:
             self.latest.pop((kind, key), None)
@@ -148,7 +155,8 @@ class Hub:
 class Recorder:
     """Owned by HTTP worker. Never touches MissionJournal or deletes evidence."""
 
-    def __init__(self, directory, session_limit=100 * 1024**2, total_limit=1024**3):
+    def __init__(self, directory, session_limit=100 * 1024**2, total_limit=1024**3, controls=None):
+        self.controls = controls
         self.directory = Path(directory).expanduser()
         self.session_limit, self.total_limit = session_limit, total_limit
         self.session_id = str(uuid4())
@@ -169,8 +177,10 @@ class Recorder:
             )
             self.db.execute("CREATE INDEX records_time ON records(received)")
             self.db.execute("CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT)")
+            self.db.execute("CREATE TABLE raw_messages(id INTEGER PRIMARY KEY, category TEXT, topic TEXT, type TEXT, received REAL, ros_time REAL, payload BLOB)")
+            self.db.execute("CREATE INDEX raw_time ON raw_messages(received)")
             self.db.execute(
-                "INSERT INTO metadata VALUES (?, ?)", ("schema_version", "2")
+                "INSERT INTO metadata VALUES (?, ?)", ("schema_version", "3")
             )
             self.db.commit()
         except (OSError, sqlite3.Error) as exc:
@@ -191,7 +201,10 @@ class Recorder:
                 "INSERT OR REPLACE INTO metadata VALUES (?, ?)",
                 ("gap", "Event ring overflow; recording is incomplete"),
             )
+        settings = self.controls.view()["settings"] if self.controls else None
         for row in rows:
+            if settings and not allowed(row, settings):
+                continue
             payload = zlib.compress(
                 json.dumps(row, ensure_ascii=False, allow_nan=False).encode(), level=3
             )
@@ -218,9 +231,35 @@ class Recorder:
                 (row["seq"], row["received_at"], row["kind"], row["key"], payload),
             )
             self.bytes += size
+            if self.controls and category(row):
+                self.controls.saved(category(row))
             self.hashes[key] = digest
         self.db.commit()
         self.last = snapshot["sequence"]
+
+    def append_raw(self):
+        if not self.controls:
+            return
+        batch = self.controls.drain()
+        if self.db:
+            loss = {key:value for key,value in self.controls.view()['status'].items() if value.get('dropped')}
+            if loss:
+                self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?,?)', ('raw_gap', json.dumps(loss)))
+                self.db.commit()
+        if self.reason or self.db is None:
+            return
+        for key, topic, message_type, received, ros_time, raw in batch:
+            payload = zlib.compress(raw, level=1)
+            if (max(self.path.stat().st_size, self.bytes)+len(payload)+16384 > self.session_limit
+                    or self.disk_bytes()+len(payload)+16384 > self.total_limit):
+                self.reason = 'Recording size limit reached; evidence retained.'
+                self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?, ?)', ('stopped_reason', self.reason))
+                break
+            self.db.execute('INSERT INTO raw_messages(category,topic,type,received,ros_time,payload) VALUES (?,?,?,?,?,?)',
+                            (key, topic, message_type, received, ros_time, payload))
+            self.bytes += len(payload)
+            self.controls.saved(key)
+        self.db.commit()
 
     def close(self):
         if self.db:
@@ -281,11 +320,38 @@ class Recorder:
                 )
             ]
             meta = dict(db.execute("SELECT key,value FROM metadata"))
+            if db.execute("SELECT name FROM sqlite_master WHERE name='raw_messages'").fetchone():
+                raw = [dict(category=k, count=count, last_received=last, topic=topic, message_type=typ)
+                       for k,count,last,topic,typ in db.execute("SELECT category,count(*),max(received),topic,type FROM raw_messages WHERE received<=? GROUP BY category,topic,type", (at,))]
+                if raw:
+                    rows.append(dict(seq=0, kind='recording_raw', key='archive', data={'items':raw}, received_at=at, ros_time=None))
+        policy = next((r['data'] for r in rows if r['kind'] == 'recording_policy'), None)
+        if policy:
+            rows = [r for r in rows if r['kind'] in ('recording_raw', 'recording_policy') or allowed(r, policy)]
         return {
             "rows": sorted(rows, key=lambda r: r["seq"]),
             "replay": True,
             "metadata": meta,
         }
+
+    def navigation_runs(self) -> list[dict]:
+        """Bounded summaries only; never scan/deserialize every recorded sample."""
+        runs = []
+        for session in self.sessions()[:50]:
+            with sqlite3.connect(f"file:{self.resolve(session['id'])}?mode=ro", uri=True) as db:
+                row = db.execute("SELECT payload FROM records WHERE kind='navigation' AND key='summary' ORDER BY seq DESC LIMIT 1").fetchone()
+                config = db.execute("SELECT payload FROM records WHERE kind='config' ORDER BY seq DESC LIMIT 1").fetchone()
+            if not row:
+                continue
+            data = decode_record(row[0])["data"]
+            settings = decode_record(config[0])["data"] if config else {}
+            context = {key: settings.get(key) for key in (
+                "run_label", "source_revision", "requested_rtf", "stationary_speed_mps",
+                "creep_speed_mps", "navigation_freshness_s", "map_frame", "velocity_topics")}
+            for run in data.get("runs", []):
+                runs.append({**run, "session_id": session["id"], "configuration": context,
+                             "recording_gap": session["metadata"].get("gap")})
+        return runs
 
 
 def decode_record(payload: bytes | str) -> dict:

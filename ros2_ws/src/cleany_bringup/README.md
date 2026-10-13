@@ -11,7 +11,7 @@ FSM 패키지 자체에는 Gazebo 의존성을 추가하지 않습니다. 주행
 
 ```bash
 make build-mission-sim
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ROS_DOMAIN_ID=83 ros2 launch cleany_bringup mission_sim.launch.py \
   profile:=fortress headless:=true post_mission:=wait_for_next \
   gateway_url:=ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws \

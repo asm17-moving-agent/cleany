@@ -8,19 +8,17 @@ from launch.actions import (
     ExecuteProcess,
     OpaqueFunction,
 )
-from launch.conditions import IfCondition, UnlessCondition
-from launch.substitutions import (
-    EnvironmentVariable,
-    LaunchConfiguration,
-    PythonExpression,
-)
-from launch_ros.actions import Node
+from launch.conditions import UnlessCondition
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 
+from cleany_gazebo_sim.launch_helpers.robot_nodes import robot_runtime_nodes
 from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     declare_sensor_profile_argument,
     sensor_profile_bridges,
 )
 from cleany_gazebo_sim.lidar_noise import load_lidar_noise_profile
+from cleany_gazebo_sim.world.sdf import materialize_friction_frames
+from cleany_gazebo_sim.world.static_scene import materialize_static_scene
 from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
 
 
@@ -45,6 +43,14 @@ def generate_launch_description() -> LaunchDescription:
         'lidar_noise_profile',
         default_value='measured',
         description='LiDAR Gaussian noise profile: measured or stress.',
+    )
+    physics_step_arg = DeclareLaunchArgument(
+        'physics_max_step_size', default_value='',
+        description='Optional physics step in seconds (0, 0.01]; empty preserves the input SDF.',
+    )
+    physics_factor_arg = DeclareLaunchArgument(
+        'physics_real_time_factor', default_value='',
+        description='Requested simulation/wall speed; empty preserves SDF. Measure /clock to verify achieved speed.',
     )
     bridge_config_arg = DeclareLaunchArgument(
         'bridge_config',
@@ -82,6 +88,10 @@ def generate_launch_description() -> LaunchDescription:
         description='Source republished as /odom and odom -> base_link TF.',
     )
     headless_arg = DeclareLaunchArgument('headless', default_value='true')
+    headless_rendering_arg = DeclareLaunchArgument(
+        'headless_rendering', default_value='false', choices=['true', 'false'],
+        description='Use EGL rendering for the headless server without X11.',
+    )
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time', default_value='true'
     )
@@ -99,13 +109,23 @@ def generate_launch_description() -> LaunchDescription:
         choices=['ogre', 'ogre2'],
         description='Rendering engine used by the Gazebo server.',
     )
-    headless_rendering_arg = DeclareLaunchArgument(
-        'headless_rendering', default_value='false', choices=['true', 'false'])
+    server_gallium_thread_arg = DeclareLaunchArgument(
+        'server_gallium_thread',
+        default_value=EnvironmentVariable('GALLIUM_THREAD', default_value='0'),
+        choices=['0', '1'],
+        description='Mesa threaded context for sensor rendering; 0 avoids Freedreno readback stalls.',
+    )
     sensor_profile_arg = declare_sensor_profile_argument()
 
     return LaunchDescription(
         [
             world_arg,
+            DeclareLaunchArgument(
+                'compact_static_scene', default_value='false', choices=['true', 'false'],
+                description='Group simple static geometry in a temporary SDF; model identities change.',
+            ),
+            physics_step_arg,
+            physics_factor_arg,
             lidar_noise_profile_arg,
             bridge_config_arg,
             sensor_config_arg,
@@ -118,6 +138,7 @@ def generate_launch_description() -> LaunchDescription:
             use_sim_time_arg,
             gui_render_engine_arg,
             server_render_engine_arg,
+            server_gallium_thread_arg,
             sensor_profile_arg,
             OpaqueFunction(
                 function=_launch_setup,
@@ -150,31 +171,34 @@ def _launch_setup(
         profile = load_lidar_noise_profile(noise_profiles, profile_name)
         world = str(materialize_mecanum_wheel_world(world_template, profile))
 
+    if LaunchConfiguration('compact_static_scene').perform(context) == 'true':
+        world = str(materialize_static_scene(Path(world)))
+
+    step = LaunchConfiguration('physics_max_step_size').perform(context).strip()
+    factor = LaunchConfiguration('physics_real_time_factor').perform(context).strip()
+    world = str(materialize_friction_frames(
+        Path(world), max_step_size=float(step) if step else None,
+        real_time_factor=float(factor) if factor else None,
+    ))
+    server_command = [
+        'ign', 'gazebo', '-r', '-s', '--render-engine-server',
+        LaunchConfiguration('server_render_engine'),
+    ]
+    if LaunchConfiguration('headless_rendering').perform(context) == 'true':
+        server_command.append('--headless-rendering')
+    server_command.append(world)
     server = ExecuteProcess(
-        cmd=[
-            'ign',
-            'gazebo',
-            '-r',
-            '-s',
-            *(['--headless-rendering'] if LaunchConfiguration(
-                'headless_rendering').perform(context) == 'true' else []),
-            '--render-engine-server',
-            LaunchConfiguration('server_render_engine'),
-            world,
-        ],
-        condition=IfCondition(LaunchConfiguration('headless')),
+        cmd=server_command,
+        additional_env={'GALLIUM_THREAD': LaunchConfiguration('server_gallium_thread')},
         output='screen',
     )
     gui = ExecuteProcess(
         cmd=[
             'ign',
             'gazebo',
-            '-r',
-            '--render-engine-server',
-            LaunchConfiguration('server_render_engine'),
+            '-g',
             '--render-engine-gui',
             LaunchConfiguration('gui_render_engine'),
-            world,
         ],
         condition=UnlessCondition(LaunchConfiguration('headless')),
         output='screen',
@@ -183,79 +207,6 @@ def _launch_setup(
         package_share,
         harmonic=False,
         bridge_config=LaunchConfiguration('bridge_config'),
-    )
-    command_guard = Node(
-        package='cleany_gazebo_sim',
-        executable='gazebo_command_guard',
-        name='gazebo_command_guard',
-        parameters=[
-            base_config,
-            {'use_sim_time': LaunchConfiguration('use_sim_time')},
-        ],
-        output='screen',
-    )
-    odom_tf = Node(
-        package='cleany_gazebo_sim',
-        executable='gazebo_odom_tf_publisher',
-        name='gazebo_odom_tf_publisher',
-        parameters=[
-            base_config,
-            {
-                'input_topic': PythonExpression(
-                    [
-                        "'wheel/odom' if '",
-                        LaunchConfiguration('odometry_source'),
-                        "' == 'wheel' else 'gazebo_odom'",
-                    ]
-                ),
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-            },
-        ],
-        output='screen',
-    )
-    wheel_odometry = Node(
-        package='cleany_base_odometry',
-        executable='wheel_odometry_node',
-        name='wheel_odometry',
-        parameters=[
-            LaunchConfiguration('wheel_odometry_config'),
-            {
-                'input_topic': 'wheel_encoder/joint_states',
-                'output_topic': 'wheel/odom_raw',
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-            },
-        ],
-        output='screen',
-    )
-    simulated_encoder = Node(
-        package='cleany_gazebo_sim',
-        executable='simulated_encoder_node',
-        name='simulated_encoder',
-        parameters=[
-            LaunchConfiguration('encoder_config'),
-            {'use_sim_time': LaunchConfiguration('use_sim_time')},
-        ],
-        output='screen',
-    )
-    simulated_odometry_error = Node(
-        package='cleany_gazebo_sim',
-        executable='simulated_odometry_error_node',
-        name='simulated_odometry_error',
-        parameters=[
-            LaunchConfiguration('odometry_error_config'),
-            {'use_sim_time': LaunchConfiguration('use_sim_time')},
-        ],
-        output='screen',
-    )
-    sensor_tf = Node(
-        package='cleany_gazebo_sim',
-        executable='gazebo_sensor_tf_publisher',
-        name='gazebo_sensor_tf_publisher',
-        parameters=[
-            LaunchConfiguration('sensor_config'),
-            {'use_sim_time': LaunchConfiguration('use_sim_time')},
-        ],
-        output='screen',
     )
 
     return [
@@ -267,10 +218,5 @@ def _launch_setup(
         server,
         gui,
         bridges,
-        command_guard,
-        odom_tf,
-        simulated_encoder,
-        wheel_odometry,
-        simulated_odometry_error,
-        sensor_tf,
+        *robot_runtime_nodes(base_config),
     ]

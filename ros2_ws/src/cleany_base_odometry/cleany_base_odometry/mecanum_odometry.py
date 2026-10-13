@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections import deque
 from math import atan2, cos, isfinite, sin
 
 
@@ -64,8 +65,16 @@ class OdometryEstimate:
 class MecanumOdometry:
     """Integrate cumulative wheel positions into a planar odometry estimate."""
 
-    def __init__(self, geometry: MecanumGeometry) -> None:
+    def __init__(self, geometry: MecanumGeometry, *, velocity_window_s: float = 0.0,
+                 yaw_scale: float = 1.0) -> None:
+        if not isfinite(velocity_window_s) or velocity_window_s < 0.0:
+            raise ValueError('Velocity window must be finite and non-negative')
+        if not isfinite(yaw_scale) or yaw_scale <= 0.0:
+            raise ValueError('Yaw scale must be positive and finite')
         self._geometry = geometry
+        self._yaw_scale = yaw_scale
+        self._velocity_window_s = velocity_window_s
+        self._velocity_history: deque[tuple[float, WheelPositions]] = deque()
         self._previous_positions: WheelPositions | None = None
         self._previous_stamp_s: float | None = None
         self._x_m = 0.0
@@ -85,29 +94,19 @@ class MecanumOdometry:
         previous_stamp_s = self._previous_stamp_s
         self._previous_positions = positions
         self._previous_stamp_s = stamp_s
-        if previous_positions is None or previous_stamp_s is None:
+        if (
+            previous_positions is None
+            or previous_stamp_s is None
+            or stamp_s <= previous_stamp_s
+        ):
+            self._velocity_history.clear()
+            self._velocity_history.append((stamp_s, positions))
             return None
 
         dt_s = stamp_s - previous_stamp_s
-        if dt_s <= 0.0:
-            return None
-
-        current = positions.as_tuple()
-        previous = previous_positions.as_tuple()
-        front_left, front_right, rear_left, rear_right = (
-            current[index] - previous[index] for index in range(4)
+        forward_m, lateral_m, yaw_delta_rad = self._body_delta(
+            positions, previous_positions
         )
-
-        radius_scale = self._geometry.wheel_radius_m / 4.0
-        forward_m = radius_scale * (
-            front_left + front_right + rear_left + rear_right
-        )
-        lateral_m = radius_scale * (
-            -front_left + front_right + rear_left - rear_right
-        )
-        yaw_delta_rad = radius_scale * (
-            -front_left + front_right - rear_left + rear_right
-        ) / self._geometry.center_to_wheel_sum_m
 
         midpoint_yaw = self._yaw_rad + yaw_delta_rad / 2.0
         self._x_m += (
@@ -123,11 +122,48 @@ class MecanumOdometry:
             cos(self._yaw_rad + yaw_delta_rad),
         )
 
+        velocity_delta = (forward_m, lateral_m, yaw_delta_rad)
+        velocity_dt = dt_s
+        if self._velocity_window_s:
+            # Pose still integrates every received encoder sample. Only twist
+            # uses cumulative counts over a longer observation interval; tick
+            # quantization must not become alternating instantaneous speeds.
+            if dt_s > self._velocity_window_s:
+                self._velocity_history.clear()
+            self._velocity_history.append((stamp_s, positions))
+            cutoff = stamp_s - self._velocity_window_s
+            while len(self._velocity_history) > 1 and self._velocity_history[1][0] <= cutoff:
+                self._velocity_history.popleft()
+            old_stamp, old_positions = self._velocity_history[0]
+            velocity_dt = stamp_s - old_stamp
+            if velocity_dt + 1e-9 < self._velocity_window_s:
+                # After startup/clock reset/data gap, do not label an
+                # unobservable velocity as a fresh measured zero.
+                return None
+            velocity_delta = self._body_delta(positions, old_positions)
+
         return OdometryEstimate(
             x_m=self._x_m,
             y_m=self._y_m,
             yaw_rad=self._yaw_rad,
-            linear_x_mps=forward_m / dt_s,
-            linear_y_mps=lateral_m / dt_s,
-            angular_z_rps=yaw_delta_rad / dt_s,
+            linear_x_mps=velocity_delta[0] / velocity_dt,
+            linear_y_mps=velocity_delta[1] / velocity_dt,
+            angular_z_rps=velocity_delta[2] / velocity_dt,
+        )
+
+    def _body_delta(
+        self, current: WheelPositions, previous: WheelPositions
+    ) -> tuple[float, float, float]:
+        """Forward, lateral and yaw displacement between two wheel samples."""
+        front_left, front_right, rear_left, rear_right = (
+            now - before
+            for now, before in zip(current.as_tuple(), previous.as_tuple())
+        )
+        radius_scale = self._geometry.wheel_radius_m / 4.0
+        return (
+            radius_scale * (front_left + front_right + rear_left + rear_right),
+            radius_scale * (-front_left + front_right + rear_left - rear_right),
+            radius_scale
+            * (-front_left + front_right - rear_left + rear_right)
+            / self._geometry.center_to_wheel_sum_m * self._yaw_scale,
         )

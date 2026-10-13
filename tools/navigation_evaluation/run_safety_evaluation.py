@@ -29,14 +29,19 @@ from safety_probe import SafetyProbe
 
 
 def prepare(output: Path, map_yaml: Path, robot_model: str = 'legacy', initial_pose: list[float] | None = None,
-            obstacle_memory: bool = False, memory_restore: Path | None = None, guard_3d: bool = False) -> dict:
+            obstacle_memory: bool = False, memory_restore: Path | None = None, guard_3d: bool = False,
+            gazebo_profile: str = 'harmonic', real_time_factor: float = 1.0) -> dict:
+    if gazebo_profile not in ('fortress', 'harmonic'):
+        raise ValueError('Unsupported Gazebo profile')
     if guard_3d and (not obstacle_memory or robot_model != 'cad_frame'):
         raise ValueError('3D guard requires CAD model and obstacle memory')
     share = Path(get_package_share_directory('cleany_gazebo_sim'))
+    navigation = Path(get_package_share_directory('cleany_navigation'))
     config = output / 'config'
     config.mkdir()
-    for name in ('nav2_amcl.yaml', 'nav2_safety.yaml', 'nav2_safety_evaluation.yaml', 'odometry_error_ideal.yaml', 'nav2_axis_motion.yaml'):
+    for name in ('nav2_amcl.yaml', 'nav2_safety.yaml', 'nav2_safety_evaluation.yaml', 'odometry_error_ideal.yaml'):
         shutil.copy2(share/'config'/name, config/name)
+    shutil.copy2(navigation/'config/nav2_axis_motion.yaml', config/'nav2_axis_motion.yaml')
     shutil.copy2(share/'config/study_cafe/study_cafe_layout.yaml', config/'study_cafe_layout.yaml')
     metadata = yaml.safe_load(map_yaml.read_text())
     image_path = (map_yaml.parent / metadata['image']).resolve()
@@ -45,7 +50,8 @@ def prepare(output: Path, map_yaml: Path, robot_model: str = 'legacy', initial_p
     (output/'map.yaml').write_text(yaml.safe_dump(metadata))
     profile = load_mount_profiles(share/'config/lidar_mount_profiles.yaml')['floor_30cm']
     world = materialize_study_cafe_world(
-        share/'worlds/cleany_mecanum_harmonic.sdf', target_path=output/'world.sdf',
+        share/f'worlds/cleany_mecanum_{gazebo_profile}.sdf', target_path=output/'world.sdf',
+        real_time_factor=real_time_factor,
         lidar_translation=profile.transform.translation,
         lidar_noise=load_lidar_noise_profile(share/'config/lidar_noise_profiles.yaml', 'measured'),
         robot_model=robot_model,
@@ -87,7 +93,8 @@ def prepare(output: Path, map_yaml: Path, robot_model: str = 'legacy', initial_p
             ET.SubElement(box, 'size').text = ' '.join(map(str, fixture['size']))
             if kind == 'visual':
                 ET.SubElement(ET.SubElement(element, 'material'), 'diffuse').text = '0.9 0.15 0.1 1'
-    tree.write(world, encoding='unicode', xml_declaration=True)
+    from cleany_gazebo_sim.world.sdf import write_world
+    write_world(tree, world)
     nav = yaml.safe_load((config/'nav2_amcl.yaml').read_text())
     costmap = nav['local_costmap']['local_costmap']['ros__parameters']
     footprint = ast.literal_eval(costmap['footprint'])
@@ -125,7 +132,7 @@ def prepare(output: Path, map_yaml: Path, robot_model: str = 'legacy', initial_p
         safety = yaml.safe_load((config/'nav2_safety.yaml').read_text())
         safety['collision_monitor']['ros__parameters']['cmd_vel_out_topic'] = '/safety_2d/cmd_vel'
         (config/'nav2_safety.yaml').write_text(yaml.safe_dump(safety, sort_keys=False))
-        guard = yaml.safe_load((share/'config/voxel_guard.yaml').read_text())
+        guard = yaml.safe_load((navigation/'config/voxel_guard.yaml').read_text())
         guard['voxel_guard']['ros__parameters'].update(profile=str(config/'cad_frame.yaml'),
             output_directory=str(output/'voxel_guard'))
         (config/'voxel_guard.yaml').write_text(yaml.safe_dump(guard))
@@ -149,11 +156,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     p = Path(__file__).resolve().parent
     share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    memory = [Node(package='cleany_gazebo_sim', executable='obstacle_memory', name='obstacle_memory',
-                   parameters=[str(p/'config/obstacle_memory.yaml')], output='screen')] if (p/'config/obstacle_memory.yaml').exists() else []
-    guard = [Node(package='cleany_gazebo_sim', executable='voxel_guard', name='voxel_guard',
-                  parameters=[str(p/'config/voxel_guard.yaml')], output='screen')] if (p/'config/voxel_guard.yaml').exists() else []
-    return LaunchDescription(memory+guard+[
+    return LaunchDescription([
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(share/'launch/gazebo_harmonic.launch.py')),
             launch_arguments={'world':str(p/'world.sdf'), 'headless':'true', 'use_sim_time':'true',
                               'sensor_profile':'lidar_depth_nav', 'sensor_config':str(p/'config/sensor_tf.yaml'),
@@ -162,9 +165,16 @@ def generate_launch_description():
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(share/'launch/amcl_nav2_safety.launch.py')),
             launch_arguments={'map':str(p/'map.yaml'), 'params_file':str(p/'config/nav2_amcl.yaml'),
                               'safety_params_file':str(p/'config/nav2_safety.yaml'),
-                              'axis_params_file':str(p/'config/nav2_axis_motion.yaml')}.items()),
+                              'axis_params_file':str(p/'config/nav2_axis_motion.yaml'),
+                              **({'body_profile':str(p/'config/cad_frame.yaml')} if (p/'config/cad_frame.yaml').exists() else {}),
+                              'memory_enabled':str((p/'config/obstacle_memory.yaml').exists()).lower(),
+                              'voxel_enabled':str((p/'config/voxel_guard.yaml').exists()).lower(),
+                              'safety_mode':'serial',
+                              **({'memory_params_file':str(p/'config/obstacle_memory.yaml')} if (p/'config/obstacle_memory.yaml').exists() else {}),
+                              **({'voxel_params_file':str(p/'config/voxel_guard.yaml')} if (p/'config/voxel_guard.yaml').exists() else {})}.items()),
     ])
 '''
+    launch_source = launch_source.replace('gazebo_harmonic.launch.py', f'gazebo_{gazebo_profile}.launch.py')
     (output/'run.launch.py').write_text(launch_source)
     scripts = output/'scripts'
     scripts.mkdir()
@@ -174,8 +184,10 @@ def generate_launch_description():
     code.mkdir()
     for name in ('depth_clearance', 'depth_clearance_node', 'navigation_safety_metrics',
                  'obstacle_memory', 'obstacle_memory_node', 'world.cad_frame', 'body_geometry',
-                 'point_cloud', 'voxel_guard', 'voxel_guard_node'):
-        source = Path(importlib.import_module('cleany_gazebo_sim.'+name).__file__)
+                 'point_cloud', 'voxel_guard', 'voxel_guard_node', 'urdf_geometry', 'transforms',
+                 'pan_motion_gate', 'pan_motion_gate_node', 'runtime_config', 'launch_runtime'):
+        package = 'cleany_gazebo_sim' if name in ('navigation_safety_metrics', 'world.cad_frame') else 'cleany_navigation'
+        source = Path(importlib.import_module(package+'.'+name).__file__)
         shutil.copy2(source, code/source.name)
     return scenario
 

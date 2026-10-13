@@ -75,11 +75,11 @@ class EncoderAdapter:
         """Discard the next delta while retaining accumulated wheel angles."""
         self.previous = None
 
-    def update(self, boot: int, counts: tuple[int, ...]) -> tuple[float, ...] | None:
+    def update(self, boot: int, counts: tuple[int, ...]) -> tuple[float, ...]:
         if len(counts) != 4 or any(not -0x80000000 <= c <= 0x7fffffff for c in counts):
             raise ValueError('expected four signed int32 encoder counts')
         if self.boot != boot:
-            self.boot, self.previous = boot, counts
+            self.boot = boot
         elif self.previous is not None:
             for i, (cur, prev) in enumerate(zip(counts, self.previous)):
                 delta = ((cur - prev + 0x80000000) & UINT32) - 0x80000000

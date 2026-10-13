@@ -1,12 +1,15 @@
 """One-object action boundary, independent of the executor's internal BT."""
 
 import json
+import logging
 from dataclasses import asdict
 from typing import Any, Callable, Protocol
 
 from .journal import MissionJournal
 from .result import FailureCode, ModuleResult, ResultStatus
 from .runtime_models import ManipulationOutcome, TaskProposal
+
+logger = logging.getLogger(__name__)
 
 
 class Future(Protocol):
@@ -126,8 +129,9 @@ class ManipulationPort:
         self._save()  # If this fails, no actuator request has been sent.
         try:
             self.send_future = self.transport.send(goal)
-        except Exception:
+        except Exception as exc:
             # Sending may already have crossed the boundary; query this exact ID.
+            logger.warning("Manipulation send failed: %s", exc)
             self.cancel_requested = True
         return goal["execution_id"]
 
@@ -151,14 +155,16 @@ class ManipulationPort:
                     self.result_future = handle.get_result_async()
                 else:
                     self.cancel_requested = True  # Could be a duplicate execution.
-            except Exception:
+            except Exception as exc:
+                logger.warning("Manipulation goal response failed: %s", exc)
                 self.cancel_requested = True
         if self.result_future and self.result_future.done():
             future, self.result_future = self.result_future, None
             try:
                 response = future.result()
                 self._complete(ManipulationOutcome(**response["result"]), response["status"])
-            except Exception:
+            except Exception as exc:
+                logger.warning("Manipulation result rejected: %s", exc)
                 self.outcome = None
                 self.cancel_requested = True
         if self.outcome is not None:
@@ -172,8 +178,8 @@ class ManipulationPort:
                 self.last_cancel = self.cancel_started = now
                 try:
                     self.cancel_future = self.transport.cancel(self.goal["execution_id"])
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning("Manipulation cancel request failed: %s", exc)
         if self.lookup_future and self.lookup_future.done():
             future, self.lookup_future = self.lookup_future, None
             try:
@@ -183,7 +189,8 @@ class ManipulationPort:
                     outcome = ManipulationOutcome(**{k: record[k]
                                                      for k in ManipulationOutcome.__dataclass_fields__})
                     self._complete(outcome, human_review=record.get("human_confirmation_required", True))
-            except Exception:
+            except Exception as exc:
+                logger.warning("Manipulation execution record rejected: %s", exc)
                 self.outcome = None
         if self.outcome is not None:
             return
@@ -194,8 +201,8 @@ class ManipulationPort:
             self.last_query = self.query_started = now
             try:
                 self.lookup_future = self.transport.lookup(self.goal["execution_id"])
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("Manipulation execution lookup failed: %s", exc)
 
     def poll(self, operation_id: str) -> ModuleResult | None:
         self.maintain()

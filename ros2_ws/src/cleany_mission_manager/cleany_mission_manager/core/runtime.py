@@ -243,7 +243,8 @@ class MissionRuntime:
                     ))
                 return
             self.observe("action_result", {"module": "navigation",
-                         "operation_id": self.operation_id, "status": result.status.value})
+                         "operation_id": self.operation_id, "status": result.status.value,
+                         "data": result.data, "message": result.message})
             if returning:
                 self.return_result = result.status.value
             else:

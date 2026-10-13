@@ -89,7 +89,7 @@ def test_camera_http_staleness_leases_and_no_recorded_frames(tmp_path):
             assert {
                 r["kind"]
                 for r in recorder.replay(recorder.session_id, float("inf"))["rows"]
-            } == {"graph"}
+            } == {"graph", "recording_policy"}
             now[0] = 6
             assert hub.cameras.selected() == set()
             assert not hub.cameras.frames

@@ -39,10 +39,60 @@ GAZEBO_GUI_RENDER_ENGINE=ogre2 make sim-gazebo-study-cafe
 
 직접 launch할 때는 `gui_render_engine:=ogre|ogre2`를 지정합니다.
 
+Harmonic의 GUI 기본값은 `ogre2`입니다. GPU가 사용 가능한 환경에서는
+`LIBGL_ALWAYS_SOFTWARE=1`을 설정하지 않습니다. 렌더링 문제를 진단할 때만
+소프트웨어 렌더링을 별도로 선택합니다.
+
+CAD 모델 변환은 설치된 `gz sdf` 또는 `ign sdf`를 사용하며, head pan 제어
+플러그인은 선택한 Harmonic/Fortress world의 namespace를 따릅니다.
+
 ```bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
   headless:=false gui_render_engine:=ogre2
+```
+
+## 저장 지도 자율주행 회귀 테스트
+
+Humble/Fortress에서 GUI 없이 다음 두 목표를 각각 새 시뮬레이션으로 실행한다.
+
+```bash
+make test-gazebo-navigation-goals
+# 출력 경로는 새 디렉터리여야 한다. 배속 기본값은 2.
+make test-gazebo-navigation-goals \
+  NAVIGATION_GOAL_OUTPUT="$PWD/artifacts/my-navigation-goals" NAVIGATION_GOAL_RTF=2
+```
+
+- `distant`: 시작 world `(-1.865, -4.705)`에서 먼 목표 `(1.865, 4.7)`까지 주행.
+- `chair_gap`: 의자 29·37 사이 world `(0.60, -1.585)`까지 주행. 최종 명령의
+  횡속도 0.05m/s 초과, 실제 횡변위 2m 초과, 카메라 관절 회전 1rad 초과도 검사한다.
+
+두 테스트 모두 Nav2 action 성공, Gazebo 실제 위치 오차 0.2m 미만,
+실제 최종 yaw 오차 0.2rad 미만 및 도착 후 정지를 검사한다. 초기화에서
+Nav2 lifecycle, depth 입력, 직렬 안전 단계와 `/cmd_vel`의 단일 publisher도 검사한다.
+카메라 센서, 5cm 복셀, pan gate, 2D collision monitor와 3D voxel guard를 유지한다.
+CAD의 simulation 전용 팔 제외 설정과 ideal wheel odometry를 사용하는
+시뮬 회귀 시험이며 실제 로봇 주행 검증은 아니다.
+
+`test/fixtures/navigation_goals/`의 지도는 의자를 책상 쪽으로 10cm 이동한
+현재 레이아웃을 30cm 높이 GPU LiDAR의 알려진 위치 106개로 측량한 참조 지도다.
+SLAM 결과가 아니다. 지도와 레이아웃 SHA256을 검사하며 레이아웃 변경 시
+지도 fixture도 함께 검토해야 한다. 월드는 매 실행 현재 소스로 생성한다.
+이전 `artifacts`나 절대 설치 경로에 의존하지 않는다.
+
+각 케이스 아래 `result.json`, `trajectory.csv`, `samples.csv`, `events.json`,
+`runtime_verified.json`, `launch.log`와 사용한 지도/월드/설정을 보존한다.
+실패 시 pytest/CLI가 비정상 종료하고 소유한 simulation process를 정리한다.
+현재 Humble planner의 종료 중 `double free or corruption`은 주행 판정과 분리해
+`planner_shutdown_allocator_error`에 기록한다. 종료 오류의 해결은 아직 남아 있다.
+배속은 요청값이며 실제 배속은 `achieved_rtf`에 기록한다. 현재 하드웨어에서
+2배속 요청은 약 1.58배속이었고, 3배속 이상은 센서 지연 정지가 늘었다.
+
+한 케이스만 실행하려면 활성 install 환경을 source한 뒤 실행한다.
+
+```bash
+python3 tools/navigation_evaluation/run_goal_regression.py \
+  --case chair_gap --output artifacts/chair-gap-new --profile fortress --rtf 2
 ```
 
 ## LiDAR noise profile
@@ -215,9 +265,11 @@ self-hit를 방지합니다.
 
 LiDAR 높이별 bag 기록, slam_toolbox·Cartographer·RTAB-Map 비교,
 의자 이동 localization 실험은
-[`tools/slam_evaluation/README.md`](../../../tools/slam_evaluation/README.md)를
-참고합니다. 실험 생성물은 `ros2_ws/slam_results/`에 저장하며
-커밋하지 않습니다.
+외부 `$CLEANY_DATA_ROOT/experiments/legacy-20261010/tools/slam_evaluation/`에
+당시 스크립트와 README를 보관했습니다. 과거 경로를 포함한 원본 보존 사본이며
+현재 checkout에서 실행하는 target이 아닙니다. 패키지의 simulation/evaluation 기능과
+관련 회귀 검사는 유지합니다. 자료 위치는
+[데이터 보관 색인](../../../docs/validation/README.md)을 참고합니다.
 
 ## AMCL / Nav2 study-cafe evaluation
 
@@ -246,6 +298,16 @@ ros2 launch cleany_gazebo_sim amcl_nav2_safety.launch.py \
 | `/nav2/cmd_vel` | controller/behavior가 Collision Monitor에 보내는 Twist |
 | `/cmd_vel` | Collision Monitor가 내보내는 Twist; 기존 command guard가 받아 Gazebo로 전달 |
 | `/collision_monitor_state` | `StopZone`, `SlowZone`, `invalid source` 등 제한 사유 |
+
+헤드 카메라는 RealSense D435의 명목 화각을 모델링합니다. Depth는 VGA 모드의
+75°×62°, RGB는 69°×42°이며, SDF `lens/intrinsics`와 `lens/projection`의 수평·수직 초점 거리를 각각 지정해
+수평·수직 화각을 함께 맞춥니다. 두 센서는 부하를 제한하기 위해 640×480,
+15 Hz로 동작합니다. Depth clip은 0.2–10 m이며, 이는 렌더링 범위로서
+실물의 전 구간 정확도를 보장하지 않습니다. 실제 센서의 보정값과 스테레오 오차,
+반사·무늬에 따른 depth 누락은 현재 모델에 포함하지 않습니다.
+명목 화각의 근거는 [D435 데이터시트](https://dev.realsenseai.com/download/42003/)의
+Depth Camera SKU Properties입니다. 실물 `CameraInfo`를 확보하면 그 보정값으로
+대체해야 합니다.
 
 `config/nav2_safety.yaml`의 수치는 **시뮬레이션 평가값**입니다. KB의 안전
 기준은 아직 draft이며 이 프로필은 물리 로봇의 승인된 안전 설정이 아닙니다.
@@ -533,6 +595,11 @@ AMCL, map server, planner, controller, recovery behavior, BT navigator를 실행
 AMCL은 Mecanum odometry를 반영하는 `OmniMotionModel`, controller는 lateral velocity를
 생성할 수 있는 MPPI `Omni` model을 사용합니다. Nav2가 발행한 `/cmd_vel`은 기존
 `gazebo_command_guard`를 거쳐 simulator에 전달됩니다.
+
+Command guard는 SIGINT에서 Python의 `KeyboardInterrupt`로 spin을 먼저 끝낸 뒤
+노드와 ROS context를 정리합니다. Humble의 비동기 context 종료가 메시지 수신과
+겹치는 오류를 피하며, SIGTERM은 기존 rclpy 처리를 유지합니다. 실제 ROS 명령을
+수신하는 중의 SIGINT 종료는 `test/test_command_guard_shutdown.py`로 검증합니다.
 
 선택 지도 `maps/study_cafe_30cm.yaml`은
 `odometry_noise_wheel_raw/runs/cartographer/level0/map_final.*`에서 복사한
@@ -868,6 +935,7 @@ pan을 π rad로 돌리고 같은 인터록을 적용한다. 전방 카메라만
 카메라 pan의 전체 회전 범위를 포함하며 기존 2cm 마진은 한 번만 적용한다.
 회전 중 촬영된 cloud도 해당 시각의 동적 TF로 지도에 투영한다.
 
+
 ## 경로 접근 속도 설정
 
 `ground_truth_route_follower`의 `position_gain` parameter는 목표점까지 남은
@@ -1001,7 +1069,7 @@ python3 tools/facility/validate_runtime.py --scene facility --gui --route \
 ### 시설 시뮬레이터의 CAD 로봇
 
 전체 시설 launch의 `robot_model` 기본값은 `cad_frame`이다. `feat-navigation-runtime`
-main과 병합한 canonical `cleany_description` CAD mesh와 URDF를 사용한다.
+커밋 `71f8d6c`의 canonical `cleany_description` CAD mesh와 URDF를 사용한다.
 기존 D-HUB launch의 기본값은 `legacy`이며 시설에서도 `robot_model:=legacy`로
 이전 모델을 선택할 수 있다. 모델의 출처, 외형을 포함한 collision bounds와
 카메라 변환은 생성된 world 옆 `.model.json`에 기록한다.
@@ -1010,9 +1078,8 @@ Fortress 어댑터는 URDF의 팔을 설정된 주차 자세로 고정하고, he
 메카넘 구동 관절을 유지한다. 주차 자세의 wrist limit override는
 `config/cad_frame.yaml`의 시뮬레이션 설정이며 실제 로봇 URDF limit을 변경하지 않는다.
 LiDAR, IMU, 손목/헤드 카메라와 기존 구동·odometry topic을 연결한다.
-main의 CAD 어댑터와 `launch_helpers/study_cafe.py` 구성을 재사용한다.
-Fortress/Harmonic에 맞는 SDF 변환 CLI와 head pan plugin을 선택한다.
-main의 휠 odometry·LiDAR noise·센서 렌더링 설정과 경로 가속도 제한을 유지한다.
+URDF 변환 helper는 이 패키지 내부에 두어 navigation 패키지 전체의 변경 없이
+CAD 모델을 사용할 수 있게 했다.
 
 CAD 시설에서 package build, 렌더링, LiDAR·odometry·관절 상태 발행을 확인했다.
 근거는 `artifacts/facility/cad-facility/`에 있다. 새 모델의 폭과 충돌 형상이
@@ -1041,9 +1108,181 @@ CAD 시설에서 package build, 렌더링, LiDAR·odometry·관절 상태 발행
 렌더링/scan·odometry·관절 상태 발행으로 확인했다.
 근거는 `artifacts/facility/glass-table-ceiling/`이다. 변경 후 전체 동선 주행은 미검증이다.
 
-PR 병합 후 native colcon으로 관련 5개 package build가 통과했다.
-pytest 155개와 AxisGenerator/YieldWait C++ 테스트 4개가 통과했고 선택 항목 3개는 제외됐다.
-전체 시설 launch 및 상부·THE GROUND·천장 렌더링과 scan·odometry·관절 상태 발행을
-다시 확인했다. 근거는 PR worktree의 `artifacts/facility/merge-*`에 있다.
-이 컨테이너에 `ros_gz_sim` package가 없어 Makefile 환경 검사는 사용할 수 없었고,
-native colcon/pytest와 실제 Fortress launch로 검증했다.
+## SCRUM-425 Navigation runtime 이관
+
+AMCL/Nav2, pan gate, depth projection, obstacle memory와 3D voxel guard의
+구현은 `cleany_navigation`이 소유한다. 기존 Python import와 executable은
+공통 구현으로 위임하며 Gazebo 카메라 TF publisher는 별도 adapter다.
+`amcl_nav2.launch.py`는 공통 basic launch, `amcl_nav2_safety.launch.py`는
+공통 full launch를 include한다. 기존 평가 YAML과 simulation 전용 park profile은
+이 패키지에 유지한다.
+
+Gazebo safety wrapper는 `safety_mode:=reactive`, `voxel_enabled:=false`가 기본이다.
+카메라는 비동기로 관찰하며 Collision Monitor와 직접 센서 기반 planar 제동 guard가
+속도를 감시한다. Costmap의 depth VoxelLayer는 유지한다. 기존 CAD 전체 직렬
+경로를 재현하려면 `safety_mode:=serial`과 아래 두 옵션을 명시한다.
+Backend와 saved map을 먼저 준비한다.
+
+```bash
+ros2 launch cleany_gazebo_sim amcl_nav2_safety.launch.py \
+  map:=/absolute/path/map.yaml \
+  safety_params_file:=/absolute/path/cad_nav2_safety.yaml \
+  safety_mode:=serial memory_enabled:=true voxel_enabled:=true
+```
+
+CAD pan metadata가 있는 safety profile은 measured pan TF와 Gazebo actuator
+bridge를 사용한다. Legacy profile은 고정 camera TF를 사용한다. Depth optical
+frame 변환은 adapter가 제공하며 공통 노드는 TF를 발행하지 않는다. 실제 로봇은
+`cleany_navigation navigation.launch.py`와 로봇 설정을 사용한다.
+명령·설정·안전 경계는 [공통 navigation README](../cleany_navigation/README.md)를
+따른다. 평가 snapshot은 이동된 공통 코드도 함께 기록한다.
+
+```bash
+make test-gazebo-navigation-pipeline GAZEBO_PROFILE=harmonic
+```
+
+위 opt-in 테스트는 임시로 만든 6m 방과 일치하는 지도를 사용한다. CAD 모델의 Gazebo sensor,
+wheel odom, pan/monitor/memory/voxel 전체 경로에서 전진, 후진, 90도 방향 전환 후 이동과
+정지를 검사한다. 모든 속도 단계의 Y 명령이 0이고 병진과 회전이 혼합되지 않는지도 확인한다.
+기본 주행은 전·후진과 제자리 회전이며, 횡이동은 공통 navigation 설정의 확장 옵션이다.
+정확한 spawn과 ideal odometry, 초기 pose 표준편차 5mm/0.5도,
+목표 허용 오차 5cm/0.08rad를 사용하는 동작 정책 검사다. 기본 runtime 허용 오차는 변경하지 않는다.
+기존 카페 지도에서의 경로 성능과 실제 localization 정밀도 검증과는 구분한다.
+
+Depth 바닥 제외: `/camera/head/depth/points`는 바닥을 포함한 관측 ray를 유지하고,
+`/camera/head/depth/obstacle_points`는 `base_link` 기준 `marking_min_z`–`marking_max_z`
+안의 점만 제공합니다. VoxelLayer는 전자를 clearing 전용, 후자를 marking 전용으로
+사용합니다. 기본 시뮬레이션 바닥은 z=-0.38 m이고 marking 최소 높이는 -0.33 m입니다.
+CAD 카메라 주행 자세는 수평에서 아래로 20°입니다. 실물 높이 기준은 로봇 parameter로
+맞춰야 합니다.
+
+SCRUM-425 직선 주행은 공통 `StraightFirstPlanner`의 전체 footprint 검사 후 직선 우선,
+장애물 구간은 기존 Smac lattice를 사용한다. 이동·회전 동시 명령은 금지하고, 같은 축 재출발과
+경로 갱신이 불필요한 settle을 만들지 않도록 공통 제어기를 사용한다. BT 경로 검사는 100ms 주기다.
+
+Fortress GUI 실행도 서버를 `ign gazebo -r -s`로 독립 실행하고 GUI는
+`ign gazebo -g`로 같은 partition에 연결한다. GUI를 닫아도 서버 physics는 별도로 유지된다.
+
+기본 sensor profile의 core bridge는 `/gazebo/raw_clock`, `/gazebo/raw_joint_states`를
+`gazebo_feedback_sampler`로 전달한다. 샘플러의 `publish_period_s` 기본 0.02초(50Hz)로
+clock 및 해당 clock보다 미래가 아닌 관절 피드백을 전달한다. 원래 stamp는 보존하며
+시뮬 정지 시 같은 데이터를 재발행해 신선한 것처럼 만들지 않는다.
+명시적인 bridge_config override는 이 기본 샘플링을 적용하지 않는다.
+Fortress 센서 서버의 `server_gallium_thread` 기본값은 0이다. Adreno/Freedreno에서
+비동기 GL 결과를 기다리며 LiDAR readback과 physics가 멈추는 현상을 완화하기 위해
+서버 프로세스의 `GALLIUM_THREAD`만 설정한다. GPU 렌더링·센서 해상도는 유지한다.
+기존 환경의 `GALLIUM_THREAD` 또는 launch의 `server_gallium_thread:=1`로 변경 가능하다.
+GUI 및 다른 실행 세션의 드라이버 설정은 변경하지 않는다.
+
+### 메카넘 마찰 방향의 XML namespace
+
+World 저장 시 `ignition:expressed_in` / `gz:expressed_in` 접두사를 보존한다.
+Fortress/Harmonic 실행기는 외부 world도 임시 복사본으로 정규화한다. DART가 이 속성을
+문자열 이름으로 조회하므로 `ns0:expressed_in`으로 바뀌면 차체 기준 마찰 방향이
+무시되어 대각선 명령이 불필요한 회전과 odometry 불일치를 만들 수 있다.
+원본 world와 mesh는 변경하지 않는다.
+
+Study-cafe chairs are positioned 0.285 m from their assigned desk centers
+on either side (10 cm farther under each desk than the previous layout).
+Both visual and collision geometry move together. Previously saved SLAM maps
+retain the old furniture positions and must be refreshed before navigation
+validation against this layout.
+
+
+자율주행 우선 검증을 위해 CAD Gazebo profile(`config/cad_frame.yaml`)은
+`simulation_excluded_link_roots`로 양쪽 팔 subtree를 제외한다. 시각·물리
+형상과 손목 카메라를 함께 제거하며, 같은 profile을 voxel guard 및 depth
+자기 몸체 필터에 전달한다. 생성된 model metadata의 bounds로 주행 footprint와
+Stop/Slow polygon을 갱신해야 한다. 실제 URDF와 하드웨어의 팔은 유지된다.
+기본 Nav2는 `axis_motion:=false`의 자유로운 omni 이동과 이동 방향 camera pan을
+사용한다. 이 결과는 팔 없는 Gazebo 자율주행 검증에 한정한다.
+
+### 통합 runtime의 시설 launch
+
+시설과 D-HUB launch는 `launch_helpers.study_cafe`를 공유한다. 시설도 최신
+wheel odometry, LiDAR noise, sensor profile과 Fortress feedback sampler를 사용한다.
+`robot_spawn_pose`로 시설 기본 spawn을 덮어쓸 수 있으며 `headless_rendering`과
+`server_gallium_thread`를 Fortress 서버로 전달한다. `world_output`을 지정하지 않은
+D-HUB 실행은 실행별 임시 디렉터리를 사용한다.
+
+시설의 CAD 모델도 현재 `cad_frame.yaml`을 사용하므로 navigation 브랜치의
+팔 제외 설정과 20도 카메라 기울기가 적용된다. 위 시설 브랜치의 과거 CAD 렌더링 및
+주행 기록은 통합 모델의 검증 결과가 아니다. 시설 SDF 저장 시 메카넘 마찰 방향의
+XML namespace를 보존한다. 시설의 검증 동선 설정은 최대 선가속도
+0.2 m/s²와 방향 오차 0.08 rad를 명시한다. 이 값은 실물 성능 실측값이 아니다.
+
+
+### Complete RGB-D navigation sensor profile
+
+Use `sensor_profile:=lidar_rgbd_nav` for navigation plus head RGB-D observation.
+It starts the core, LiDAR and head RGB-D bridges, including depth CameraInfo,
+with one publisher per ROS topic. `head_rgbd` remains a camera-only workload.
+No supplemental LiDAR/CameraInfo bridge is needed for the combined profile.
+The corresponding Fortress and Harmonic bridge configurations share the ROS
+contract; simulation runtime validation here uses Fortress/Humble.
+
+
+### Optional physics step for loaded-world performance experiments
+
+Fortress and Harmonic accept `physics_max_step_size:=0.002`. An empty default preserves the supplied SDF step. A nonempty value must be finite and in `(0, 0.01]`; launch materializes a copy, preserving the source file, world/model geometry, sensors and `real_time_factor`. This option changes physics integration fidelity and is not a faster-controller setting. Measure actual real-time factor, stationary drift, contact/pose stability and mission outcomes before choosing a value. Do not interpret the requested real-time factor as achieved speed or loosen mission wall-time deadlines to conceal slow simulation. The existing generated study-cafe/facility launch also exposes its own physics step argument.
+
+
+### Ideal wheel odometry의 twist 보존
+
+`odometry_error_ideal.yaml`을 사용하는 adapter는 입력 `/wheel/odom_raw`의 twist를
+그대로 보존한다. 누적 엔코더 pose를 다시 짧은 간격으로 차분해서 upstream의
+`cleany_base_odometry.velocity_window_s` 관측 구간을 무효화하지 않는다.
+비이상 오차 profile은 주입된 pose 변화에서 twist를 계산하는 기존 동작을 유지한다.
+125ms 관측 구간은 run-local wheel odometry config로 실제 주행 검증 중인 값이며,
+physical calibration이나 완료된 전체 미션 성능으로 주장하지 않는다.
+
+
+### 요청 배속과 실제 배속 검증
+
+Fortress/Harmonic 기본 launch의 `physics_real_time_factor`는 입력 SDF를 보존한
+실행 사본의 목표 배속만 지정한다. 비어 있으면 원래 값을 유지하며, 0 이하나
+유한하지 않은 값은 실행 전에 거부한다. 예를 들어 `physics_real_time_factor:=2.0`
+은 목표 2배속을 요청한다. 물리 적분 간격은 별도 `physics_max_step_size`로
+지정하며 배속 요청만으로 바뀌지 않는다.
+
+달성 배속은 준비 완료 이후 같은 구간의 `/clock` 차이를 `time.monotonic()`
+차이로 나누어 측정한다. 물리 설정값이나 Gazebo 실행 성공만으로 달성 배속을
+보고하지 않는다. 도착과 복귀 각각의 실제 시간, 시뮬레이션 시간, Nav2/미션
+종료 상태, ground-truth 위치 오차, 종료 명령을 함께 기록한다. 배속 확보를
+위해 freshness, 충돌 형상/여유, 속도/가속도, 도착 오차 또는 미션 제한을
+완화하지 않는다. 적분 간격을 바꾼 시험은 같은 물리 fidelity라고 단정하지
+않고 원래 간격의 결과와 구분한다.
+
+`lidar_rgbd_nav`/`head_rgbd`의 RGB bridge는 ROS 구독자가 있을 때만 Gazebo에
+구독한다. 화면이나 인식 노드가 RGB를 구독하면 기존 640×480, 15Hz 영상이
+활성화된다. 구독자 없는 RGB의 불필요한 렌더링을 줄이는 설정이며, 주행에
+필수인 depth image/CameraInfo와 LiDAR는 eager bridge를 유지한다. RGB 소비자가
+있는 실행과 없는 실행의 처리 부하는 별도로 보고한다.
+
+2026-10-04 전체 시설의 홈→43→홈→13→홈 시험에서는 Ogre2, 적분 간격
+0.006666667s, 요청 RTF4로 미션 실측 1.53/1.48배를 얻었다. 두 왕복은
+SUCCESS였지만 **실측 2배속 목표는 미달**이며 13 홈 GT 오차는 13.1cm였다.
+Ogre1의 빠른 측정은 LiDAR 관측 이상으로 유효한 주행 검증에서 제외했다.
+가속 profile은 기본값으로 채택하지 않았다. 조건·전후 결과·잔여 한계는
+[자율주행 검토](../../../docs/validation/README.md)를 참고한다.
+
+### 고정 장면 계층 최적화 (Fortress, 선택 옵션)
+
+`gazebo_fortress.launch.py compact_static_scene:=true`는 단일 link를 가진 단순한
+static model의 visual/collision을 하나의 static model로 묶은 임시 SDF를 사용한다.
+원본 SDF와 mesh, geometry, surface, material 및 world 좌표는 보존한다.
+기본값은 `false`이며 센서 주기, 물리 step, RTF 요청값 및 안전 설정을 변경하지 않는다.
+plugin/sensor/joint/frame, 명시적 pose frame, 방향성 마찰 또는 외부 frame 참조가
+있는 model은 묶지 않는다. 묶인 물체의 model/link 이름은 바뀌므로 개별 물체를
+이름으로 이동·삭제하거나 조회해야 하는 실행에서는 이 옵션을 사용하지 않는다.
+성능은 전체 scene과 ROS workload에 따라 달라지며 `/clock`/wall time으로 측정한다.
+
+`amcl_nav2.launch.py`와 `amcl_nav2_safety.launch.py`의
+`localization_params_file`은 공통 navigation launch로 전달한다. 기본값은 비어 있다.
+추가 odometry error가 없는 wheel 시뮬레이션에서는
+`cleany_navigation/config/amcl_sim_ideal_wheels.yaml`을 명시해 보정 프로파일을
+사용할 수 있다. 실물 또는 noise/stress odometry 설정에는 그대로 적용하지 않는다.
+
+Reactive safety 기본 실행은 `memory_enabled:=true voxel_enabled:=false`다.
+카메라는 비동기로 추적하고 최종 충돌 검사는 직접 point cloud·LiDAR를 사용하는
+reactive_guard가 담당한다. costmap용 공유 voxel world는 유지한다.

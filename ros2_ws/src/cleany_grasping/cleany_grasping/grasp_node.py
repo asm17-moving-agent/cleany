@@ -14,7 +14,7 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
-from sensor_msgs.msg import Image, PointCloud2
+from sensor_msgs.msg import Image, PointCloud2, PointField
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from cleany_grasping.anygrasp_adapter import AnyGraspPredictor, ModelUnavailableError
@@ -102,9 +102,19 @@ def observed_geometry_message(points, target_object, header, snapshot_id, object
 
 
 def point_cloud_from_message(message: PointCloud2) -> PointCloud:
-    fields = {field.name: field.offset for field in message.fields}
-    if not {'x', 'y', 'z', 'rgb'} <= fields.keys() or message.point_step <= 0:
+    descriptors = {field.name: field for field in message.fields}
+    if not {'x', 'y', 'z', 'rgb'} <= descriptors.keys() or message.point_step <= 0:
         raise ValueError('PointCloud2 must contain x, y, z, and rgb fields')
+    for name in ('x', 'y', 'z', 'rgb'):
+        field = descriptors[name]
+        types = (PointField.FLOAT32, PointField.UINT32) if name == 'rgb' else (PointField.FLOAT32,)
+        if (field.count != 1 or field.datatype not in types
+                or field.offset + 4 > message.point_step):
+            raise ValueError('PointCloud2 fields must fit one point with float32 XYZ and packed RGB')
+    if (message.row_step < message.width * message.point_step
+            or len(message.data) < message.height * message.row_step):
+        raise ValueError('PointCloud2 rows or data are truncated')
+    fields = {name: field.offset for name, field in descriptors.items()}
     endian = '>' if message.is_bigendian else '<'
     points, colors = [], []
     payload = bytes(message.data)
@@ -475,6 +485,11 @@ class GraspNode(Node):
         )
         if not math.isclose(quaternion_norm, 1.0, abs_tol=1e-4):
             raise ValueError('target OBB quaternion must be normalized')
+        if left.stamp.sec == 0 and left.stamp.nanosec == 0:
+            # TF interprets Time(0) as latest, never as capture at epoch zero.
+            raise ValueError('cloud capture timestamp must be nonzero')
+        if not 0 <= left.stamp.nanosec < 1_000_000_000:
+            raise ValueError('cloud capture timestamp has invalid nanoseconds')
 
     def _planning_transform(self, cloud_message):
         target_frame = str(self.get_parameter('planning_frame').value)

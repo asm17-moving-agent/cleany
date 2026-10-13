@@ -7,6 +7,7 @@ from math import isfinite
 
 import rclpy
 import websocket
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 
 from cleany_interfaces.srv import CancelMission, GetRuntimeSnapshot, OfferMission
@@ -179,7 +180,7 @@ def main(args=None):
     node = ControlBridge()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

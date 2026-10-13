@@ -35,19 +35,25 @@ def ros_runtime(tmp_path, request):
             self.running = []
             self.hold = False
             self.publish_feedback = True
+            self.move_to_goal = True
+            self.pose = None
+            self.odom_stamp_offset = 0
+            self.lifecycle_state = {}
             group = ReentrantCallbackGroup()
             self.server = ActionServer(self, NavigateToPose, "navigate_to_pose", self.execute,
                                        cancel_callback=lambda _: CancelResponse.ACCEPT,
                                        callback_group=group)
-            self.lifecycle_services = [self.create_service(GetState, name + "/get_state", self.state)
+            self.lifecycle_services = [self.create_service(GetState, name + "/get_state",
+                                         lambda request, response, key=name: self.state(key, request, response))
                              for name in ("map_server", "amcl", "planner_server",
-                                          "controller_server", "bt_navigator")]
+                                          "controller_server", "bt_navigator", "collision_monitor")]
             self.odom = self.create_publisher(Odometry, "wheel/odom", 10)
             self.tf = TransformBroadcaster(self)
             self.timer = self.create_timer(.02, self.update, callback_group=group)
 
-        def state(self, _, response):
-            response.current_state = State(id=3, label="active")
+        def state(self, name, _, response):
+            state = self.lifecycle_state.get(name, 3)
+            response.current_state = State(id=state, label="active" if state == 3 else "inactive")
             return response
 
         async def execute(self, handle):
@@ -60,17 +66,24 @@ def ros_runtime(tmp_path, request):
             if self.publish_feedback:
                 message = Odometry()
                 message.header.stamp = self.get_clock().now().to_msg()
+                message.header.stamp.sec -= self.odom_stamp_offset
                 self.odom.publish(message)
                 transform = TransformStamped()
-                transform.header.stamp = message.header.stamp
+                transform.header.stamp = self.get_clock().now().to_msg()
                 transform.header.frame_id = "map"
                 transform.child_frame_id = "base_link"
                 transform.transform.rotation.w = 1.0
+                if self.pose is not None:
+                    transform.transform.translation.x = self.pose.position.x
+                    transform.transform.translation.y = self.pose.position.y
+                    transform.transform.rotation = self.pose.orientation
                 self.tf.sendTransform(transform)
             for handle, future, started in list(self.running):
                 if handle.is_cancel_requested:
                     handle.canceled()
                 elif not self.hold and time.monotonic() - started > .1:
+                    if self.move_to_goal:
+                        self.pose = handle.request.pose.pose
                     handle.succeed()
                 else:
                     continue
@@ -113,6 +126,23 @@ def ros_runtime(tmp_path, request):
     rclpy.shutdown()
 
 
+def test_inactive_collision_monitor_blocks_offer_before_nav2_goal(ros_runtime):
+    from cleany_mission_manager.core.runtime_models import RuntimeRequest
+    runtime, nav, spin = ros_runtime
+    nav.lifecycle_state["collision_monitor"] = 2
+    spin(lambda: runtime.navigator.active_nodes.get("collision_monitor") is False)
+    assert all(active for name, active in runtime.navigator.active_nodes.items() if name != "collision_monitor")
+    request = RuntimeRequest(str(uuid4()), "seat-12", "integration-test")
+    reply = runtime.runtime.offer(request)
+    assert not reply.accepted and reply.reason == "NAV2_NOT_READY"
+    assert not nav.goals
+    nav.lifecycle_state["collision_monitor"] = 3
+    spin(lambda: runtime.runtime.readiness()[0])
+    assert runtime.runtime.offer(request).accepted
+    spin(lambda: runtime.runtime.last_report is not None)
+    assert runtime.runtime.last_report.outcome == "SUCCESS"
+
+
 def test_nav2_transport_offer_result_and_duplicate(ros_runtime):
     from cleany_interfaces.srv import GetRuntimeSnapshot, OfferMission
     runtime, nav, spin = ros_runtime
@@ -128,6 +158,17 @@ def test_nav2_transport_offer_result_and_duplicate(ros_runtime):
     assert runtime.runtime.last_report.outcome == "SUCCESS"
     assert runtime.runtime.last_report.navigation_result == "OK"
     assert runtime.runtime.last_report.completed_tasks == ["trash-1", "trash-2"]
+    arrival_events = [event["data"]["data"] for event in runtime.runtime.debug_events
+                      if event["kind"] == "action_result"
+                      and event["data"].get("module") == "navigation"]
+    assert len(arrival_events) == 2
+    for evidence, goal in zip(arrival_events, nav.goals):
+        measured = evidence["arrival_localization"]
+        assert measured["source"] == "localization_tf" and measured["frame"] == "map"
+        assert measured["pose"]["x"] == pytest.approx(goal.pose.position.x)
+        assert measured["pose"]["y"] == pytest.approx(goal.pose.position.y)
+        assert evidence["arrival_position_error_m"] <= runtime.navigator.arrival_position_tolerance
+        assert -.02 <= measured["age_s"] <= runtime.navigator.arrival_pose_timeout
     assert len(nav.goals) == 2
     assert nav.goals[0].header.frame_id == "map"
     assert nav.goals[0].pose.position.x == 6.3
@@ -142,6 +183,30 @@ def test_nav2_transport_offer_result_and_duplicate(ros_runtime):
     future = snapshot.call_async(GetRuntimeSnapshot.Request())
     spin(future.done)
     assert '"navigation": "sim"' in future.result().snapshot_json
+
+
+def test_nav2_success_at_wrong_pose_cannot_start_desk_work(ros_runtime):
+    from cleany_mission_manager.core.runtime_models import RuntimeRequest
+    runtime, nav, spin = ros_runtime
+    nav.move_to_goal = False
+    request = RuntimeRequest(str(uuid4()), "seat-12", "integration-test")
+    assert runtime.runtime.offer(request).accepted
+    spin(lambda: runtime.runtime.last_report is not None)
+    report = runtime.runtime.last_report
+    assert report.outcome == "FAILED"
+    assert report.navigation_result == "FAILED"
+    assert report.completed_tasks == []
+    assert len(nav.goals) == 1
+    assert "arrival outside requested pose" in report.summary
+
+
+def test_old_odom_republished_now_is_not_stopped_feedback(ros_runtime):
+    runtime, nav, spin = ros_runtime
+    assert runtime.navigator._base_stopped()
+    nav.odom_stamp_offset = 5
+    spin(lambda: runtime.navigator.latest_odom.header.stamp.sec < nav.get_clock().now().to_msg().sec-3)
+    assert time.monotonic()-runtime.navigator.odom_received < runtime.navigator.input_timeout
+    assert not runtime.navigator._base_stopped()
 
 
 def test_cancel_waits_for_actual_nav2_result_and_stale_feedback_rejects_offer(ros_runtime):

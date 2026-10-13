@@ -29,6 +29,7 @@ class GroundTruthRouteFollower(Node):
         self.declare_parameter('position_tolerance', 0.09)
         self.declare_parameter('position_gain', 1.0)
         self.declare_parameter('heading_tolerance', 0.08)
+        self.declare_parameter('position_gain', 1.0)
         self.declare_parameter('turn_in_place_threshold', 0.15)
         self.declare_parameter('control_rate_hz', 20.0)
         self.declare_parameter('odom_timeout_sec', 0.5)

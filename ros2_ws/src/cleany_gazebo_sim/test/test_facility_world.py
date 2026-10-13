@@ -40,8 +40,11 @@ def test_default_facility_uses_canonical_cad_with_drive_and_sensors(tmp_path):
         sensor.get('type') for sensor in robot.findall('.//sensor')
     }
     metadata = json.loads(path.with_suffix('.model.json').read_text())
-    assert metadata['source_commit'] == yaml.safe_load(
-        (PACKAGE / 'config/cad_frame.yaml').read_text())['source_commit']
+    profile = yaml.safe_load((PACKAGE / 'config/cad_frame.yaml').read_text())
+    assert metadata['source_commit'] == profile['source_commit']
+    assert not any('Upper_Arm_5cm_Sockets.stl' in mesh for mesh in meshes)
+    # DART looks up literal namespace prefixes when applying body-fixed friction.
+    assert 'ignition:expressed_in="base_link"' in path.read_text()
     assert metadata['collision_bounds'][1][1] > 0.3
     assert len(json.loads(path.with_suffix('.seats.json').read_text())) == 82
 

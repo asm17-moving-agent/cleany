@@ -10,13 +10,15 @@
 |---|---|
 | 실행 흐름 | Mission FSM, 현재 상태와 전이 이벤트, 청소 py_trees 구조/상태/이번 tick 방문 노드, 모듈 준비/정지 보고, 주행 차단 이유, 작업 대상/목적지, 조작 결과 |
 | ROS 탐색기 | topic/node/service/action 목록, 선택 토픽의 publisher→topic→subscriber 그래프, endpoint QoS, 수신 Hz, 메시지 미리보기 |
-| 자율주행 | OccupancyGrid 지도와 local/global costmap, TF 기반 위치/방향, Path, Runtime의 미션 목표, 설정된 속도 토픽 |
+| 자율주행 | 주행 개요, 장애물·안전, 계획·제어, 센서·위치, 주행 비교의 5개 하위 탭. 지도/실제 궤적, 단계별 명령/실측 속도, guard/pan/BT 진단과 공통 타임라인 |
 | 카메라 | Image / CompressedImage 토픽 선택, 실시간 JPEG 미리보기, 일시정지, 수신 지연 표시 |
 | 로그 | `/rosout`, FSM/BT/action 이벤트와 결과를 수신 시각순으로 조회. 노드/미션/문자열 및 로그 수준 필터 |
-| 기록 & 재생 | SQLite 세션 선택, 시간 이동/재생, 위 화면들을 같은 기록 시각으로 조회, SQLite 내보내기 |
+| 기록 & 재생 | 항목별 ON/OFF·프리셋·원본 주기·용량 제한, SQLite 세션 선택 및 재생·내보내기 |
 
 청소 BT는 Runtime이 실제로 생성한 트리다. 책상 도착 전에는 트리 생성 대기 상태로
 표시한다. Nav2 또는 팀원 조작 서버의 내부 트리를 추측해서 그리지 않는다.
+자율주행의 Nav2 BT 화면은 최종 기본 XML에서 전달한 구조와 `BehaviorTreeLog`의 관측 상태를 표시한다.
+구조가 없는 환경에서는 관측된 노드 목록만 제공하며 로그에서 부모 관계를 추측하지 않는다.
 Nav2/조작 action의 status와 feedback은 ROS 탐색기로 확인하며, goal/result는 Runtime이나
 조작 실행 이벤트에서 실제 제공한 것만 보여준다. 모듈의 mock/sim 표시는 Runtime의
 `execution_profile`에서 가져온다. 현재 Runtime은 물리 로봇 실행을 지원하지 않는다.
@@ -47,7 +49,7 @@ ROS graph / selected topics / rosout / TF ────────────�
 - 메시지를 JSON으로 전부 펼친 뒤 자르지 않는다. 미리보기는 총 2,048개 항목,
   배열당 256개 항목, 깊이 10, 문자열당 4,096자 한도로 변환한다. `truncated`를 표시한다.
   PointCloud 원본 보기와 rosbag 전체 데이터 저장을 대체하지 않는다. 카메라 영상은 별도 경로로 제공한다.
-- 지도는 기본 최대 262,144셀, 경로는 최대 4,096점이다. 초과 지도는 거절 사유를
+- 지도는 기본 최대 524,288셀, 경로는 최대 4,096점이다. 초과 지도는 거절 사유를
   표시한다. 경로는 잘린 여부를 데이터에 남긴다. `max_grid_cells` 상한은 1,048,576이다.
 - 2D 레이어는 메시지 시각의 TF를 이용해 `map_frame`으로 변환한다. 회전된 지도
   origin도 반영한다. TF가 없으면 레이어를 표시하지 않는다. 로봇 위치는 최신 TF를
@@ -82,6 +84,63 @@ ROS_DOMAIN_ID=187 make run-dev-monitor
 저장 위치와 용량을 설정한다. 토픽 이름은 실제 launch의 remapping과 맞춰야 한다.
 예를 들어 safety chain 중간 토픽이 추가되면 `velocity_topics`에 관측 순서대로 추가한다.
 기본값 자체가 특정 로봇의 실제 안전 체인을 확정하지 않는다.
+
+## 자율주행 관측
+
+| 하위 탭 | 제공 정보 |
+|---|---|
+| 주행 개요 | 전체 지도, 계획 경로와 실제 위치 궤적, 목표와 진행 상태, 실측 이동·저속·정지 및 배속, 현재 구간 경과 시간과 마지막 관측 목표 거리. 원인/명령 상세로 이동 |
+| 장애물·안전 | 정지·감속 판단 요약, 로봇 주변 local costmap과 LiDAR/depth 표면 표본, 정지/감속 polygon과 위험점, 메모리 grid, reactive/voxel/collision/coverage 진단 및 감시·정지 이력 |
+| 계획·제어 | 단계별 속도 명령과 실측 속도 그래프, 주변 계획/제어 경로와 DWB 선택·후보 궤적, Nav2 BT 노드 상태와 전이 이력, lifecycle 진단, 후보의 critic 점수 |
+| 센서·위치 | 수신 주기/경과 시간/ROS stamp 나이, TF 지연, AMCL 위치와 covariance, odometry와 Gazebo ground truth 비교, 차체·이동 방향과 pan 역할, 카메라 화면 이동 |
+| 주행 비교 | Runtime 작업 ID별 도착/복귀 관측 시간, 실측 RTF, 추정 위치 궤적 길이, 정지/저속/분류 불가 시간, 마지막 관측 목표 오차, 관측 설정과 코드 버전, 세션 간 전후 비교 |
+
+- 개요 지도는 전체 시설을, 안전/제어 지도는 현재 로봇 또는 유효한 local costmap 주변을 표시한다. 주변 범위를 결정할 수 없으면 전체 지도와 안내를 표시한다. 각 화면의 레이어 선택은 독립적이며 숨겨진 다른 화면의 레이어는 그리지 않는다. 지도 수신 출처는 펼쳐서 확인한다.
+- 작은 주행 진단과 odometry/AMCL/BT는 기본 수집한다. 큰 scan/depth/risk point,
+  후보 궤적, 추가 grid/local path는 해당 하위 탭에서만 관측 선택을 요청한다.
+  화면 이탈/재생 전환 시 자동 선택을 해제한다. 명시 선택 및 다른 브라우저가 같은
+  토픽을 보고 있으면 공유 구독은 유지된다. 최대 선택 토픽 한도는 그대로 적용된다.
+- 점군은 최대 `navigation_point_limit`개(기본 512, 상한 2048)를 직접 표본 추출하며,
+  scan/점군/후보 변환은 최대 2 Hz다. 원본 수량/표본 여부를 남긴다. 화면의 표본은
+  충돌 검증을 대체하지 않으며 미관측 공간을 빈 공간으로 인증하지 않는다.
+- 주행 요약은 5 Hz, 속도 그래프는 최근 180개, 실제 궤적은 최근 600개,
+  작업 요약은 최근 64개로 제한한다. 정지/guard/action 이벤트는 주행 요약에도 최근 128개를 별도로 보존한다.
+  BT 상태는 모든 수신 이벤트로 갱신하며, 반복 조건 노드의 동일 상태 이벤트는
+  `bt_event_repeat_interval_s`(기본 1초) 단위로 요약하고 반복 횟수를 남긴다.
+  실패/ComputePath/FollowPath/Wait 전이는 즉시 이벤트로 기록한다.
+- 속도 그래프 축은 관측값의 95백분위에 여유를 두어 정한다. 상한 밖의 표본은
+  선을 끊고 상단 마커/실제 최대값으로 표시한다. 기록과 집계의 원본 값은 유지한다.
+- 실측 속도는 fresh한 Gazebo ground truth를 우선하고, 없으면 wheel odometry를 쓴다.
+  Twist의 `child_frame_id`가 설정된 `base_frame`과 다르면 실측으로 사용하지 않는다.
+  명령만 수신된 상황을 이동/정지 실측으로 바꾸지 않는다. 도중에 출처가 바뀌면 `MIXED`로 남긴다.
+- `stationary_speed_mps` 기본 0.005, `creep_speed_mps` 기본 0.03 및
+  회전 0.02 rad/s는 관측 분류 기준이며 주행/안전 설정을 바꾸지 않는다.
+  동일한 상태를 연속 관측한 구간만 정지/저속 시간에 넣는다. 0.5초보다 긴
+  관측 공백 및 상태 전환 사이 시간은 분류 불가로 남긴다. 도착 후 작업/대기는
+  주행 구간 집계에서 제외한다. 구간 끝은 실제 Runtime action_result를 우선한다.
+  결과 이벤트를 못 받으면 `OBSERVATION_ENDED` 등으로 표시하며 성공을 추정하지 않는다.
+- RTF는 `/clock` 증가량/steady wall 증가량의 실측이다. 요청 배속은
+  `requested_rtf`를 명시한 경우만 표시한다. `/clock`이 없으면 실측 RTF도 미제공이다.
+  clock 역행은 현재 구간을 불완전한 기록으로 종료하고 그래프를 초기화한다.
+- stamped 입력은 ROS 시각과 수신 시각 모두의 freshness를 검사한다.
+  `navigation_freshness_s`(기본 0.75초)는 보드 관측 기준이다. 실제 guard의
+  safety timeout과 다르며 보드의 정상 표시가 주행 허가를 의미하지 않는다.
+- 단계별 unstamped Twist는 같은 명령 ID가 없어 수신 시각 차이가 0.2초 이하일 때만
+  감소 관측을 표시한다. 정확한 원인은 해당 모듈의 진단과 함께 확인한다.
+  guard 비활성, 토픽 미수신, 오래된 진단, PASS를 서로 같은 상태로 취급하지 않는다.
+  reactive guard가 현재 제공하지 않는 위험점/최소 거리/제동 영역은 미제공으로 표시한다.
+- 주행 비교는 대상/단계/실측 출처/관측 분류 기준/map frame이 같을 때만 차이를 계산한다.
+  `run_label`, `source_revision`, `requested_rtf`는 실행자가 명시한 값이다.
+  보드 설정은 기록하지만 전체 Nav2/물리/guard 파라미터를 자동 수집하지 않는다.
+  서로 다른 환경의 두 실행을 자동으로 개선 판정하지 않는다.
+- 타임라인 선택은 해당 수신 시각의 SQLite 기록으로 이동한다. 기록이 중단되거나
+  아직 저장되지 않은 시각은 오류를 표시한다. 큰 데이터는 당시 실제로 구독한 경우에만 재생된다.
+  영상은 기존 카메라 탭에서 확인하며 카메라 원본은 녹화 설정에서 선택한 경우에만 별도 원본 테이블에 포함된다.
+
+`config/monitor.yaml`의 각 `*_topic`을 실제 remapping에 맞춘다. DWB 기본 평가
+토픽은 `/evaluation`이다. 실제 발행이 없거나 메시지 타입을 import하지 못하면 ROS
+탐색기의 발행/오류 상태를 확인한다. 비교 요약은 읽기 전용 `GET /api/navigation/runs`로
+최근 50개 세션의 마지막 작업 요약을 조회하며, 재생 화면은 해당 기록 시각의 요약만 사용한다.
 
 ```bash
 # Gazebo/ROS clock을 사용하는 경우
@@ -163,7 +222,7 @@ pnpm test:e2e
   메뉴 이동·일시정지·탭 숨김·기록 재생 시 영상 요청을 중단한다.
   마지막 요청 후 3초가 지나면 lease와 이미지 캐시를 제거하고, 다음 ROS discovery에서
   다른 관측자가 필요로 하지 않는 구독을 해제한다.
-- 영상은 SQLite/WS telemetry에 넣지 않는다. 기록 재생 중에는 실시간 카메라를 표시하지 않는다.
+- 미리보기 JPEG는 SQLite/WS telemetry에 넣지 않는다. 녹화 설정에서 카메라 원본을 선택하면 전체 ROS 메시지를 SQLite `raw_messages`에 저장한다. 기록 재생 중에는 실시간 카메라를 표시하지 않는다.
   ROS 탐색기에서 따로 선택한 영상 토픽은 기존처럼 제한된 메시지 미리보기만 기록한다.
 - 카메라 드라이버나 Gazebo는 자동 실행하지 않는다. 카메라 토픽이 없으면 해당 상태를 표시한다.
 
@@ -210,8 +269,23 @@ MONITOR_URL=http://127.0.0.1:8768 NAV_MONITOR_URL=http://127.0.0.1:8769 pnpm tes
 `NAV_MONITOR_URL`은 지도/경로/두 costmap을 수신 중인 Gazebo monitor일 때만 지정한다.
 검사 대상 미션/지도가 없는 빈 monitor에서는 브라우저 검사 사전조건이 충족되지 않는다.
 물리 로봇에는 smoke 시나리오를 연결하지 않는다. 실제 수행한 검증과 제한은
-[검증 기록](../../../docs/validation/dev-monitor.md)에 정리한다.
+[검증 기록](../../../docs/validation/README.md)에 정리한다.
 
 FSM 활성 강조는 관측된 상태를 순서대로 최소 500ms씩 표시한다. 빠른 전이는 화면에서 지연될 수 있으며 이때 실제 상태를 함께 표시한다. 상단 상태·안전 정보와 실제 Runtime 동작에는 지연을 적용하지 않는다. 재생 시각 탐색·세션 변경·Runtime 재시작 시 표시 대기열을 초기화한다. 수신 전에 지나간 상태는 복원하지 않는다.
 
+### Nav2 BT 시각화 및 재생
+
+자율주행 → 계획·제어의 Nav2 BT 패널은 `/navigation/bt_trace`에서 수신한 최종 실행 XML의 구조를 표시합니다. 노드를 선택하면 역할 설명, instance ID, 입력·출력 포트와 최근 상태 전이를 확인합니다. 세 ComputePathToPose 인스턴스를 독립적으로 표시하며 UNKNOWN은 미관측입니다. 2초 이상 스냅샷이 없으면 연결 끊김과 마지막 관측 상태를 표시합니다. 구조가 미수신이면 기존 BehaviorTreeLog 노드 목록을 제공합니다.
+
+구조·상태·XML SHA256·목표 문맥을 기존 SQLite 녹화에 함께 저장합니다. 재생은 해당 시점의 기록된 트리를 사용하며 현재 XML을 읽지 않습니다. 목표 연결은 수신 시점 기준이고, 누락 탐지는 연속 상태 불일치에 한정됩니다. 모니터는 기존처럼 읽기 전용이며 BT를 실행하거나 주행 명령을 보내지 않습니다.
+
+### 녹화 항목 선택과 원본 저장
+
+`기록 & 재생 → 녹화 설정`에서 기본 주행 / 장애물 분석 / 사용자 지정 프리셋과 항목별 ON/OFF를 선택합니다. 위치·속도·미션, 경로, costmap, Nav2 BT, 안전 진단, 로그를 독립적으로 선택하며 청소 BT는 미션 runtime snapshot에 포함됩니다. LiDAR, depth point cloud, Nav2 voxel layer, voxel world, 카메라 원본은 기본 OFF입니다. 화면 표시 및 카메라 preview lease와 녹화 구독은 독립적입니다. 센서별 토픽과 0.1~10Hz 주기, 세션 10~1024MiB 제한을 설정할 수 있습니다. 용량 제한은 이전 기록을 지우지 않고 중단하며 `새 녹화 시작`으로 새 세션을 만듭니다. 전체 저장 한도는 기존 `total_limit_bytes`를 따릅니다.
+
+원본은 ROS 직렬화 CDR 전체 메시지로 SQLite `raw_messages`에 저장합니다. 공간 점/픽셀을 자르지 않으며 시간축에서 설정 주기로 표본화합니다. 원본 활성 시 `/tf`, `/tf_static`도 최대 30Hz로 함께 저장합니다. 메시지 최대 8MiB, 대기 큐 최대 32MiB/128건으로 제한하며 초과는 저장 오류·유실 건수 및 `raw_gap` metadata로 남깁니다. 원본 압축/쓰기 작업은 HTTP worker에서 수행합니다. 원본 구독은 토픽 발견 시 QoS에 맞춰 생성되고 OFF 시 해제되지만 화면 또는 다른 관측 목적의 구독은 유지됩니다. 현재 voxel world 기본 토픽은 `/obstacle_memory/voxels`, Nav2 voxel layer는 `/local_costmap/voxel_grid`이며 발행되지 않으면 미수신으로 표시합니다.
+
+설정은 `state_directory/recording-settings.json`에 저장하고 변경 시점을 `recording_policy`로 녹화합니다. 일시정지 중에는 설정·녹화 상태만 기록합니다. 재생은 당시 정책으로 비활성 자료를 제외하고 미녹화·미수신·입력 중단·저장 오류를 구분합니다. 원본은 세션 내보내기(SQLite)에 포함되며 재생 시각 직전 원본 1건도 내려받을 수 있습니다. 3D 원본 및 카메라 영상의 직접 재생 뷰어는 아직 제공하지 않습니다. 기존 schema 1/2 기록은 그대로 읽고, 새 schema 3 기록은 원본 테이블을 추가합니다.
+
+로컬 녹화 API: `GET/PUT /api/recording/settings`, `POST /api/recording/session`, `GET /api/recordings/{session}/raw?category=point_cloud&at=<wall-seconds>`. 설정 변경은 동일 출처에서만 허용하며 ROS 명령이나 로봇 설정을 변경하지 않습니다.
 ROS 연결 그래프는 토픽·노드 연결에 따라 결정적인 정적 배치를 계산한다. Publisher/Subscriber 역할을 가진 동일 노드는 하나로 표시한다. 수신 주기·시각·QoS와 endpoint 순서가 갱신되어도 연결 관계가 같으면 그래프 DOM·배치·확대 위치를 유지한다. 선택 토픽이나 실제 연결 관계가 변경되면 배치를 다시 계산한다.

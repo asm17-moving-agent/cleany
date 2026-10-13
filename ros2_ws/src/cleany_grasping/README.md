@@ -194,3 +194,14 @@ Demo launch의 `grasp_maximum_top_contact_depth_m` argument로 같은 값을 전
 로봇 TCP 보정과 충돌 검사, 관절/파지 허용오차는 별도로 그대로 적용한다.
 현재 컵에서는 움직이는 jaw가 빈 내부 공간으로 들어가 접촉하지 않아 이 실험 설정을
 채택하지 않았다. 단순히 높게 잡는 것이 파지 신뢰성을 높이는 것은 아니다.
+
+## 요청 검증과 설정 불변성
+
+TCP 회전과 접근 축은 입력 배열에서 복사한 읽기 전용 값으로 보관한다.
+설정 검증 뒤 외부 배열 변경이 계획 결과를 바꾸지 않게 하며, 반사 행렬은
+quaternion 변환 전에 거부한다. 기존 Cleany local -Y 접근 축 계약은 유지한다.
+
+Target/context cloud의 촬영 timestamp는 같고 0이 아니어야 한다. 미지정 시각으로
+최신 TF를 사용해 과거 cloud를 계획하지 않도록 요청을 거부한다.
+XYZRGB cloud는 지원되는 field datatype, offset, point/row step 및 전체 data
+길이를 검사한다. 정상적인 organized cloud의 행 padding과 packed RGB는 유지한다.
