@@ -10,11 +10,8 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import CameraInfo, Image
 
-from cleany_mujoco_sim.camera_contract import CameraContract
-from cleany_mujoco_sim.scene_manifest import (
-    default_manifest_path,
-    load_handeye_scene_manifest,
-    preflight_manifest,
+from cleany_mujoco_sim.camera_contract import (
+    CameraContract, default_camera_contract_path, load_camera_contract,
 )
 
 
@@ -42,16 +39,9 @@ class CameraContractAdapter(Node):
 
     def __init__(self) -> None:
         super().__init__('left_wrist_camera_contract_adapter')
-        self.declare_parameter('manifest_path', str(default_manifest_path()))
-        manifest_parameter = self.get_parameter(
-            'manifest_path'
-        ).get_parameter_value()
-        manifest_path = Path(
-            manifest_parameter.string_value
-        )
-        manifest = load_handeye_scene_manifest(manifest_path)
-        preflight_manifest(manifest, profile='simulation')
-        self._contract = manifest.camera_contract
+        self.declare_parameter('camera_config', str(default_camera_contract_path()))
+        camera_config = Path(self.get_parameter('camera_config').value)
+        self._contract = load_camera_contract(camera_config)
 
         self._image_publisher = self.create_publisher(
             Image,

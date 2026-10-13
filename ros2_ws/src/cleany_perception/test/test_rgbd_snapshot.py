@@ -1,0 +1,162 @@
+import numpy as np
+import pytest
+from rclpy.time import Time
+from sensor_msgs.msg import CameraInfo, Image
+
+from cleany_perception.core.models import FailureKind, InspectionFailure
+from cleany_perception.rgbd_snapshot import (
+    RgbdSnapshotBuffer,
+    SynchronizedRgbdMessages,
+    snapshot_from_messages,
+)
+from cleany_perception.snapshot_cache import CachedDetectionSnapshot, DetectionSnapshotCache
+
+
+def _image(width, height, encoding, array, frame='camera', stamp_ns=1):
+    message = Image()
+    message.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
+    message.header.frame_id = frame
+    message.width = width
+    message.height = height
+    message.encoding = encoding
+    message.is_bigendian = False
+    message.step = len(array.tobytes()) // height
+    message.data = array.tobytes()
+    return message
+
+
+def _info(width, height, frame='camera', stamp_ns=1):
+    message = CameraInfo()
+    message.header.stamp = Time(nanoseconds=stamp_ns).to_msg()
+    message.header.frame_id = frame
+    message.width = width
+    message.height = height
+    message.k = [100.0, 0.0, 1.5, 0.0, 100.0, 0.5, 0.0, 0.0, 1.0]
+    return message
+
+
+def _messages(depth_encoding='32FC1', stamp_ns=1):
+    rgb = np.arange(24, dtype=np.uint8).reshape(2, 4, 3)
+    if depth_encoding == '32FC1':
+        depth = np.full((2, 4), 0.75, dtype='<f4')
+    else:
+        depth = np.full((2, 4), 750, dtype='<u2')
+    return SynchronizedRgbdMessages(
+        sequence=1,
+        stamp_ns=stamp_ns,
+        color=_image(4, 2, 'rgb8', rgb, stamp_ns=stamp_ns),
+        color_info=_info(4, 2, stamp_ns=stamp_ns),
+        depth=_image(4, 2, depth_encoding, depth, stamp_ns=stamp_ns),
+        depth_info=_info(4, 2, stamp_ns=stamp_ns),
+    )
+
+
+@pytest.mark.parametrize('encoding', ['32FC1', '16UC1'])
+def test_snapshot_conversion_supports_meter_and_scaled_depth(encoding):
+    snapshot = snapshot_from_messages(_messages(encoding))
+
+    assert snapshot.rgb.shape == (2, 4, 3)
+    assert snapshot.depth_m == pytest.approx(np.full((2, 4), 0.75))
+    assert snapshot.intrinsics.fx == pytest.approx(100.0)
+    assert snapshot.source_frame == 'camera'
+
+
+def test_packed_rgb_and_float_depth_borrow_immutable_message_storage():
+    messages = _messages()
+    snapshot = snapshot_from_messages(messages)
+    assert not snapshot.rgb.flags.writeable
+    assert not snapshot.depth_m.flags.writeable
+    assert np.shares_memory(snapshot.rgb, np.frombuffer(messages.color.data, np.uint8))
+    assert np.shares_memory(snapshot.depth_m, np.frombuffer(messages.depth.data, np.uint8))
+
+
+def test_snapshot_conversion_rejects_mismatched_intrinsics():
+    messages = _messages()
+    messages.depth_info.k[0] = 99.0
+
+    with pytest.raises(InspectionFailure) as raised:
+        snapshot_from_messages(messages)
+
+    assert raised.value.kind == FailureKind.DEPTH
+
+
+def test_snapshot_rejects_unregistered_depth_frame():
+    messages = _messages()
+    messages.depth.header.frame_id = 'unregistered_depth_optical'
+    messages.depth_info.header.frame_id = 'unregistered_depth_optical'
+    with pytest.raises(InspectionFailure, match='optical frames differ'):
+        snapshot_from_messages(messages)
+
+
+def test_snapshot_buffer_only_releases_exact_timestamp_bundle():
+    buffer = RgbdSnapshotBuffer()
+    first = _messages(stamp_ns=10)
+    second = _messages(stamp_ns=20)
+
+    buffer.add_color(first.color)
+    buffer.add_color_info(first.color_info)
+    buffer.add_depth(first.depth)
+    buffer.add_depth_info(second.depth_info)
+    assert buffer.sequence == 0
+
+    buffer.add_depth_info(first.depth_info)
+    synchronized = buffer.wait_for_new(0, timeout_seconds=0.1)
+
+    assert synchronized.stamp_ns == 10
+    assert synchronized.sequence == 1
+
+    buffer.add_color(first.color)
+    buffer.add_color_info(first.color_info)
+    buffer.add_depth(first.depth)
+    buffer.add_depth_info(first.depth_info)
+    assert buffer.sequence == 1
+
+
+def test_snapshot_buffer_reports_timeout_and_cancel():
+    buffer = RgbdSnapshotBuffer()
+
+    with pytest.raises(InspectionFailure) as timed_out:
+        buffer.wait_for_new(0, timeout_seconds=0.01)
+    assert timed_out.value.kind == FailureKind.RGBD_TIMEOUT
+
+    with pytest.raises(InspectionFailure) as cancelled:
+        buffer.wait_for_new(0, timeout_seconds=0.1, cancelled=lambda: True)
+    assert cancelled.value.kind == FailureKind.CANCELLED
+
+
+def _cached_scene(synthetic_scene):
+    return CachedDetectionSnapshot(
+        snapshot=synthetic_scene['snapshot'],
+        detections=(synthetic_scene['detection'],),
+        detection_distances_m=(0.2,),
+        capture_transform=synthetic_scene['transform'],
+        color_frame='rgb_optical_frame',
+    )
+
+
+def test_snapshot_cache_expires_entries(synthetic_scene):
+    now = [10.0]
+    cache = DetectionSnapshotCache(
+        ttl_seconds=2.0,
+        clock=lambda: now[0],
+    )
+    cached = _cached_scene(synthetic_scene)
+    cache.put('first', cached)
+
+    assert cache.get('first') is cached
+    now[0] = 12.0
+    assert cache.get('first') is None
+    assert len(cache) == 0
+
+
+def test_snapshot_cache_evicts_oldest_entry(synthetic_scene):
+    cache = DetectionSnapshotCache(maximum_entries=2)
+    cached = _cached_scene(synthetic_scene)
+
+    cache.put('first', cached)
+    cache.put('second', cached)
+    cache.put('third', cached)
+
+    assert cache.get('first') is None
+    assert cache.get('second') is cached
+    assert cache.get('third') is cached

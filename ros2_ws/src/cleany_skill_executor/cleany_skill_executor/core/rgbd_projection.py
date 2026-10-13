@@ -1,0 +1,196 @@
+"""Camera projection and grasp overlays shared by study-cafe manipulation."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import math
+
+import numpy as np
+from PIL import Image as PilImage
+from PIL import ImageDraw
+
+
+@dataclass(frozen=True, slots=True)
+class CameraProjection:
+    fx: float
+    fy: float
+    cx: float
+    cy: float
+    translation_base: tuple[float, float, float]
+    rotation_base_from_optical: tuple[float, ...]
+
+    def __post_init__(self) -> None:
+        intrinsics = (self.fx, self.fy, self.cx, self.cy)
+        if not all(math.isfinite(value) for value in intrinsics):
+            raise ValueError('camera intrinsics must be finite')
+        if self.fx <= 0.0 or self.fy <= 0.0:
+            raise ValueError('camera focal lengths must be positive')
+        translation = np.asarray(self.translation_base, dtype=float)
+        if translation.shape != (3,) or not np.isfinite(translation).all():
+            raise ValueError('camera translation must contain three finite values')
+        rotation = np.asarray(self.rotation_base_from_optical, dtype=float)
+        if rotation.shape != (9,) or not np.isfinite(rotation).all():
+            raise ValueError('camera rotation must contain nine finite values')
+        matrix = rotation.reshape((3, 3))
+        if not np.allclose(matrix.T @ matrix, np.eye(3), atol=1.0e-6):
+            raise ValueError('camera rotation must be orthonormal')
+
+
+def rotation_matrix_from_quaternion(
+    x: float,
+    y: float,
+    z: float,
+    w: float,
+) -> np.ndarray:
+    """Return a normalized 3x3 rotation matrix for an xyzw quaternion."""
+    quaternion = np.asarray((x, y, z, w), dtype=float)
+    norm = float(np.linalg.norm(quaternion))
+    if not np.isfinite(quaternion).all() or norm <= 1.0e-12:
+        raise ValueError('quaternion must be finite and non-zero')
+    x, y, z, w = quaternion / norm
+    return np.asarray(
+        (
+            (
+                1.0 - 2.0 * (y * y + z * z),
+                2.0 * (x * y - z * w),
+                2.0 * (x * z + y * w),
+            ),
+            (
+                2.0 * (x * y + z * w),
+                1.0 - 2.0 * (x * x + z * z),
+                2.0 * (y * z - x * w),
+            ),
+            (
+                2.0 * (x * z - y * w),
+                2.0 * (y * z + x * w),
+                1.0 - 2.0 * (x * x + y * y),
+            ),
+        ),
+        dtype=float,
+    )
+
+
+def render_grasp_overlay(
+    rgb: np.ndarray,
+    camera: CameraProjection,
+    tcp_positions: np.ndarray,
+    approach_directions: np.ndarray,
+    scores: np.ndarray,
+    openings_m: np.ndarray,
+    *,
+    selected_index: int | None = None,
+    selected_arm: str = '',
+    pregrasp_offset_m: float = 0.08,
+    title: str = 'CAN GRASP',
+) -> np.ndarray:
+    """Draw grasp directions and numeric angles over the rendered RGB image."""
+
+    positions = np.asarray(tcp_positions, dtype=float)
+    approaches = np.asarray(approach_directions, dtype=float)
+    count = len(positions)
+    if rgb.ndim != 3 or rgb.shape[2] != 3:
+        raise ValueError('RGB image must have shape HxWx3')
+    if positions.shape != (count, 3) or approaches.shape != (count, 3):
+        raise ValueError('grasp positions and approaches must have shape Nx3')
+    if (
+        np.asarray(scores).shape != (count,)
+        or np.asarray(openings_m).shape != (count,)
+    ):
+        raise ValueError(
+            'scores and openings must contain one value per grasp'
+        )
+    if selected_index is not None and not 0 <= selected_index < count:
+        raise ValueError('selected grasp index is outside the candidate list')
+    if not math.isfinite(pregrasp_offset_m) or pregrasp_offset_m <= 0.0:
+        raise ValueError('pregrasp offset must be positive and finite')
+    if not title:
+        raise ValueError('grasp overlay title must not be empty')
+
+    norms = np.linalg.norm(approaches, axis=1)
+    if np.any(~np.isfinite(norms)) or np.any(norms <= 1.0e-9):
+        raise ValueError('grasp approaches must be finite non-zero vectors')
+    unit = approaches / norms[:, None]
+    pregrasp = positions - pregrasp_offset_m * unit
+    base_points = np.vstack((pregrasp, positions))
+    rotation = np.asarray(camera.rotation_base_from_optical).reshape((3, 3))
+    optical = (base_points - np.asarray(camera.translation_base)) @ rotation
+    pixels = np.column_stack(
+        (
+            camera.fx * optical[:, 0] / optical[:, 2] + camera.cx,
+            camera.fy * optical[:, 1] / optical[:, 2] + camera.cy,
+        )
+    )
+    pre_pixels, tcp_pixels = pixels[:count], pixels[count:]
+
+    canvas = PilImage.fromarray(np.ascontiguousarray(rgb, dtype=np.uint8))
+    draw = ImageDraw.Draw(canvas)
+    for index in reversed(range(count)):
+        selected = index == selected_index
+        color = (40, 255, 80) if selected else (20, 210, 255)
+        width = 6 if selected else 3
+        start = tuple(float(value) for value in pre_pixels[index])
+        end = tuple(float(value) for value in tcp_pixels[index])
+        draw.line((start, end), fill=color, width=width)
+        pre_x, pre_y = pre_pixels[index]
+        draw.rectangle(
+            (pre_x - 6, pre_y - 6, pre_x + 6, pre_y + 6),
+            outline=color,
+            width=width,
+        )
+        draw.text(
+            (pre_x + 9, pre_y - 16),
+            f'PG{index}',
+            fill=color,
+            stroke_width=2,
+            stroke_fill=(0, 0, 0),
+        )
+        direction = pre_pixels[index] - tcp_pixels[index]
+        length = float(np.linalg.norm(direction))
+        if length > 1.0:
+            direction /= length
+            normal = np.array((-direction[1], direction[0]))
+            tip = tcp_pixels[index]
+            wing_a = tip + 13.0 * direction + 7.0 * normal
+            wing_b = tip + 13.0 * direction - 7.0 * normal
+            draw.polygon(
+                (tuple(tip), tuple(wing_a), tuple(wing_b)), fill=color
+            )
+        x, y = tcp_pixels[index]
+        draw.ellipse((x - 7, y - 7, x + 7, y + 7), outline=color, width=width)
+        draw.text(
+            (x + 9, y - 16),
+            f'G{index}',
+            fill=color,
+            stroke_width=2,
+            stroke_fill=(0, 0, 0),
+        )
+        azimuth = math.degrees(math.atan2(unit[index, 1], unit[index, 0]))
+        elevation = math.degrees(
+            math.atan2(
+                unit[index, 2],
+                math.hypot(unit[index, 0], unit[index, 1]),
+            )
+        )
+        draw.text(
+            (x + 10, y + 7),
+            (
+                f'C{index} score={float(scores[index]):.2f} '
+                f'az={azimuth:+.1f} el={elevation:+.1f} '
+                f'open={float(openings_m[index]) * 1000.0:.0f}mm'
+            ),
+            fill=color,
+            stroke_width=2,
+            stroke_fill=(0, 0, 0),
+        )
+
+    draw.rectangle((8, 8, min(rgb.shape[1] - 8, 525), 72), fill=(8, 10, 13))
+    legend = f'{title}: square=pre-grasp  circle=grasp'
+    draw.text((18, 16), legend, fill=(240, 244, 248))
+    state = 'evaluating MoveIt reachability'
+    if selected_index is not None:
+        state = (
+            f'SELECTED C{selected_index} / {selected_arm.upper()} / '
+            f'collision-checked pregrasp={pregrasp_offset_m * 1000:.0f}mm'
+        )
+    draw.text((18, 42), state, fill=(90, 255, 120))
+    return np.asarray(canvas, dtype=np.uint8)

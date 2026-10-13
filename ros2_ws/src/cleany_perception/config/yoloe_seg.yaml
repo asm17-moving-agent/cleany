@@ -1,0 +1,19 @@
+# Local YOLOE instance segmentation for aligned RGB-D.
+perception_inspector:
+  ros__parameters:
+    detector_type: yoloe
+    segmenter_type: yoloe_seg
+    preload_models: true
+    yoloe_model_path: yoloe/yoloe-26s-seg.pt
+    yoloe_text_encoder_directory: yoloe
+    yoloe_classes:
+    - cup
+    - computer mouse
+    - crumpled tissue
+    - lego brick
+    yoloe_device: auto
+    yoloe_image_size: 640
+    yoloe_iou_threshold: 0.5
+    minimum_detection_confidence: 0.25
+    default_query: Detect the paper cup, computer mouse, crumpled tissue, and LEGO
+      brick.

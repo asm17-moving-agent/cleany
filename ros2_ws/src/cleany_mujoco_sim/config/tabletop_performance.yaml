@@ -1,0 +1,9 @@
+# Opt-in, fixed-base study-cafe manipulation only. Never a navigation profile.
+schema_version: 1
+profiles:
+  tabletop_collision:
+    collision_keep_radius_m: 2.0
+    shadow_map_size: 4096
+  tabletop_fast:
+    collision_keep_radius_m: 2.0
+    shadow_map_size: 2048

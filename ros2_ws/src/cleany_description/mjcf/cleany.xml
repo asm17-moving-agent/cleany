@@ -150,7 +150,9 @@
       <geom name="base_link_collision_18" class="collision" type="box" size="0.055 0.055 0.006" pos="0.116 0.175 0.425" />
       <geom name="base_link_collision_19" class="collision" type="box" size="0.055 0.055 0.006" pos="0.116 -0.175 0.425" />
       <body name="upper_structure" pos="0 0 0" quat="0 0 0 1">
-        <body name="Base" pos="-0.1163 -0.139917 0.431297">
+        <!-- Arm bases align with all four CAD mount holes. upper_structure
+             rotates base_link XY by pi; keep URDF placements in sync. -->
+        <body name="Base" pos="-0.116200343 -0.151031727 0.431297">
           <inertial pos="0.0137179 -5.19711e-05 0.0334843" mass="0.147" fullinertia="0.000114686 0.000136117 0.000130364 -4.59787e-07 4.97151e-06 9.75275e-08" />
           <body name="Rotation_Pitch" pos="0 -0.0452 0.0165" quat="0.707105482511 0.707108079859 0 0">
             <inertial pos="-0.0307604 -1.66727e-05 -0.0252713" mass="0.100006" fullinertia="8.3759e-05 8.10403e-05 2.39783e-05 7.55525e-08 -1.16342e-06 1.54663e-07" />
@@ -167,13 +169,13 @@
                   <body name="Fixed_Jaw" pos="0 -0.0601 0" quat="0.707105482511 0 0.707108079859 0">
                     <inertial pos="0.000213627 0.000245138 -0.025187" mass="0.087" fullinertia="2.75087e-05 4.33657e-05 3.45059e-05 -3.35241e-07 -5.7352e-06 -5.17847e-08" />
                     <joint name="left_wrist_roll_joint" type="hinge" axis="0 -1 0" range="-2.7438472969992493 2.841206309382605" class="sts3215" />
-                    <body name="Moving_Jaw" pos="-0.0202 -0.0244 0" quat="3.45517843564e-07 -0.0940644025695 -0.995566114407 -3.65691853218e-06">
-                      <inertial pos="-0.00157495 -0.0300244 0.0192755" mass="0.012" fullinertia="6.61427e-06 1.89032e-06 5.28738e-06 -3.19807e-07 -5.90717e-09 -1.09945e-07" />
+                    <body name="Moving_Jaw" pos="-0.0202 -0.0244 0" quat="9.72734600401e-15 -0.0940644025702 0.995566114414 -1.02953038558e-13">
+                      <inertial pos="0.00958316997262 -0.0284972545503 0.0192771009713" mass="0.012" fullinertia="6.19352461821e-06 2.31106264266e-06 5.28738273914e-06 1.38305141899e-06 3.49466220217e-08 -1.04365408296e-07" />
                       <joint name="left_gripper_joint" type="hinge" axis="0 0 1" range="-0.37453297762778586 1.7453291995659765" class="sts3215" />
-                      <geom type="mesh" mesh="canonical_Moving_Jaw" material="white" class="visual" />
-                      <geom type="mesh" mesh="canonical_Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6" />
-                      <geom type="mesh" mesh="canonical_Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6" />
-                      <geom type="mesh" mesh="canonical_Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6" />
+                      <geom type="mesh" mesh="canonical_Moving_Jaw" material="white" class="visual" pos="-4.52233216153e-12 3.87018542214e-12 1.22747154143e-06" quat="0.982304215787 -6.30331622053e-06 2.48510109946e-07 0.187292358647" />
+                      <geom name="left_moving_jaw_contact_1" type="mesh" mesh="canonical_Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6" pos="-4.52224152223e-12 3.87021664716e-12 1.22747154141e-06" quat="0.982304215787 -6.30331622048e-06 2.4851010995e-07 0.187292358647" />
+                      <geom name="left_moving_jaw_contact_2" type="mesh" mesh="canonical_Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6" pos="-4.52220379199e-12 3.87002235813e-12 1.2274715414e-06" quat="0.982304215787 -6.30331622053e-06 2.48510109956e-07 0.187292358647" />
+                      <geom name="left_moving_jaw_contact_3" type="mesh" mesh="canonical_Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6" pos="-4.52242410187e-12 3.87008480818e-12 1.2274715414e-06" quat="0.982304215787 -6.30331622053e-06 2.48510109951e-07 0.187292358647" />
                     </body>
                     <body name="left_grasp_tcp" pos="0 -0.1 0">
                       <inertial mass="1e-09" fullinertia="1e-09 1e-09 1e-09 -4.23522244606e-31 -4.25331005726e-30 1.57772168441e-30" pos="-5.24560504311e-12 1.89459559191e-12 1.428082923e-06" />
@@ -193,8 +195,8 @@
                     <site name="left_grasp_tcp" pos="0 -0.100 0" size="0.005" rgba="0 0.8 1 0.4" />
                     <geom type="mesh" mesh="canonical_Fixed_Jaw" material="white" class="visual" />
                     <geom type="mesh" mesh="canonical_Fixed_Jaw_Motor" material="motor" class="visual" />
-                    <geom type="mesh" mesh="canonical_Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6" />
-                    <geom type="mesh" mesh="canonical_Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6" />
+                    <geom name="left_fixed_jaw_contact_1" type="mesh" mesh="canonical_Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6" />
+                    <geom name="left_fixed_jaw_contact_2" type="mesh" mesh="canonical_Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6" />
                   </body>
                   <geom type="mesh" mesh="canonical_Wrist_Pitch_Roll" material="white" class="visual" />
                   <geom type="mesh" mesh="canonical_Wrist_Pitch_Roll_Motor" material="motor" class="visual" />
@@ -223,7 +225,7 @@
           <geom type="mesh" mesh="canonical_Base" class="collision" />
           <geom type="mesh" mesh="canonical_Base_Motor" class="collision" />
         </body>
-        <body name="Base_2" pos="-0.116101000162 0.139863 0.431297" quat="1.79489651492e-09 0 0 1">
+        <body name="Base_2" pos="-0.116200838 0.150977072 0.431297" quat="1.79489651492e-09 0 0 1">
           <inertial pos="0.0137179 -5.19711e-05 0.0334843" mass="0.147" fullinertia="0.000114686 0.000136117 0.000130364 -4.59787e-07 4.97151e-06 9.75275e-08" />
           <body name="Rotation_Pitch_2" pos="0 -0.0452 0.0165" quat="0.707105482511 0.707108079859 0 0">
             <inertial pos="-0.0307604 -1.66727e-05 -0.0252713" mass="0.100006" fullinertia="8.3759e-05 8.10403e-05 2.39783e-05 7.55525e-08 -1.16342e-06 1.54663e-07" />
@@ -240,13 +242,13 @@
                   <body name="Fixed_Jaw_2" pos="0 -0.0601 0" quat="0.707105482511 0 0.707108079859 0">
                     <inertial pos="0.000213627 0.000245138 -0.025187" mass="0.087" fullinertia="2.75087e-05 4.33657e-05 3.45059e-05 -3.35241e-07 -5.7352e-06 -5.17847e-08" />
                     <joint name="right_wrist_roll_joint" type="hinge" axis="0 -1 0" range="-2.7438472969992493 2.841206309382605" class="sts3215" />
-                    <body name="Moving_Jaw_2" pos="-0.0202 -0.0244 0" quat="3.45517843564e-07 -0.0940644025695 -0.995566114407 -3.65691853218e-06">
-                      <inertial pos="-0.00157495 -0.0300244 0.0192755" mass="0.012" fullinertia="6.61427e-06 1.89032e-06 5.28738e-06 -3.19807e-07 -5.90717e-09 -1.09945e-07" />
+                    <body name="Moving_Jaw_2" pos="-0.0202 -0.0244 0" quat="9.72734600401e-15 -0.0940644025702 0.995566114414 -1.02953038558e-13">
+                      <inertial pos="0.00958317954451 -0.0284973047311 0.0192757962228" mass="0.012" fullinertia="6.19352465287e-06 2.31106318605e-06 5.28738216108e-06 1.38305127625e-06 3.49497725184e-08 -1.04373842409e-07" />
                       <joint name="right_gripper_joint" type="hinge" axis="0 0 1" range="-0.37453297762778586 1.7453291995659765" class="sts3215" />
-                      <geom type="mesh" mesh="canonical_Moving_Jaw" material="white" class="visual" />
-                      <geom type="mesh" mesh="canonical_Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6" />
-                      <geom type="mesh" mesh="canonical_Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6" />
-                      <geom type="mesh" mesh="canonical_Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6" />
+                      <geom type="mesh" mesh="canonical_Moving_Jaw" material="white" class="visual" pos="1.69211866741e-13 5.37070388162e-14 1.66079666136e-09" quat="0.982304215793 -4.97831622038e-06 2.48507000864e-07 0.187292358653" />
+                      <geom name="right_moving_jaw_contact_1" type="mesh" mesh="canonical_Moving_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6" pos="1.69207529932e-13 5.37382638388e-14 1.66079667713e-09" quat="0.982304215793 -4.97831622035e-06 2.48507000885e-07 0.187292358653" />
+                      <geom name="right_moving_jaw_contact_2" type="mesh" mesh="canonical_Moving_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6" pos="1.6911645695e-13 5.38111222248e-14 1.6607966565e-09" quat="0.982304215793 -4.97831622036e-06 2.48507000929e-07 0.187292358653" />
+                      <geom name="right_moving_jaw_contact_3" type="mesh" mesh="canonical_Moving_Jaw_part3" class="collision" friction="3 0.2 0.1" condim="6" pos="1.69093905544e-13 5.37625499675e-14 1.66079665789e-09" quat="0.982304215793 -4.97831622036e-06 2.48507000878e-07 0.187292358653" />
                     </body>
                     <body name="right_grasp_tcp" pos="0 -0.1 0">
                       <inertial mass="1e-09" fullinertia="1e-09 1e-09 1e-09 -6.13231448667e-39 -4.28249991409e-30 1.54074395554e-33" pos="-7.04575654835e-15 5.9957624125e-17 1.93191960234e-09" />
@@ -266,8 +268,8 @@
                     <site name="right_grasp_tcp" pos="0 -0.100 0" size="0.005" rgba="0 0.8 1 0.4" />
                     <geom type="mesh" mesh="canonical_Fixed_Jaw" material="white" class="visual" />
                     <geom type="mesh" mesh="canonical_Fixed_Jaw_Motor" material="motor" class="visual" />
-                    <geom type="mesh" mesh="canonical_Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6" />
-                    <geom type="mesh" mesh="canonical_Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6" />
+                    <geom name="right_fixed_jaw_contact_1" type="mesh" mesh="canonical_Fixed_Jaw_part1" class="collision" friction="3 0.2 0.1" condim="6" />
+                    <geom name="right_fixed_jaw_contact_2" type="mesh" mesh="canonical_Fixed_Jaw_part2" class="collision" friction="3 0.2 0.1" condim="6" />
                   </body>
                   <geom type="mesh" mesh="canonical_Wrist_Pitch_Roll" material="white" class="visual" />
                   <geom type="mesh" mesh="canonical_Wrist_Pitch_Roll_Motor" material="motor" class="visual" />
@@ -557,6 +559,10 @@
     </body>
   </worldbody>
   <contact>
+    <!-- The coarse fixed head-mount box overlaps the tilt housing across the
+         intervening pan joint. Treat these mechanically connected housings as
+         one assembly; retain all head-vs-environment collision checks. -->
+    <exclude body1="top_base_link" body2="head_tilt_link" />
     <exclude body1="Base" body2="Rotation_Pitch" />
     <exclude body1="Rotation_Pitch" body2="Upper_Arm" />
     <exclude body1="Upper_Arm" body2="Lower_Arm" />

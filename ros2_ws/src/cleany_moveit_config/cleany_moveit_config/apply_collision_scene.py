@@ -21,13 +21,13 @@ def _default_config_path() -> str:
     return str(
         Path(get_package_share_directory('cleany_moveit_config'))
         / 'config'
-        / 'handeye_collision_objects.yaml'
+        / 'study_cafe_grasp_collision_objects.yaml'
     )
 
 
 class CollisionSceneApplier(Node):
     def __init__(self) -> None:
-        super().__init__('handeye_collision_scene_applier')
+        super().__init__('collision_scene_applier')
         self.declare_parameter('scene_config', _default_config_path())
         self.declare_parameter('service_wait_timeout_sec', 60.0)
 
@@ -60,10 +60,10 @@ class CollisionSceneApplier(Node):
             return False
         response = future.result()
         if response is None or not response.success:
-            self.get_logger().error('MoveIt rejected hand-eye collision objects')
+            self.get_logger().error('MoveIt rejected collision objects')
             return False
         self.get_logger().info(
-            'Applied hand-eye collision objects: '
+            'Applied collision objects: '
             + ', '.join(item.id for item in spec.objects)
         )
         return True

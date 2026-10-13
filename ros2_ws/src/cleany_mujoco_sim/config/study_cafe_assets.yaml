@@ -1,0 +1,39 @@
+schema_version: 1
+active_scene_assets: [paper_cup, lego_brick, crumpled_tissue, mouse]
+procedural_assets:
+  generator: cleany_mujoco_sim/tabletop_shapes.py
+  configuration: study_cafe_layout.yaml
+  units: metres
+  paper_cup:
+    description: Original handleless hollow tapered cup, not the archived Coffee Mug mesh.
+    collision: bottom plus 32 convex wall panels; no solid cap across the opening
+  lego_brick:
+    description: Original 2x4 studded brick approximation, without brand lettering.
+    body_extent_m: [0.0318, 0.0158, 0.0096]
+    total_height_m: 0.0114
+    dimension_sources:
+      - https://ldraw.org/article/218.html
+      - https://www.cailliau.org/Alphabetical/L/Lego/Dimensions/More%20Dimensions/BBEditPreviewTemp.html
+    collision: solid body and eight studs; underside clutch tubes not simulated
+  crumpled_tissue:
+    description: Original deterministic folded surface, not an imported paper model.
+    collision: convex hull of the rendered mesh; no paper deformation
+# Imported mesh used by the current scene.
+assets:
+  mouse:
+    active: true
+    title: Computer Mouse
+    author: CreativeTrio
+    source_page: https://poly.pizza/m/V2Ebx3pvo4
+    source_file: https://static.poly.pizza/c0123ed1-38d1-4532-a711-3fccdc42fe25.glb
+    license: CC0-1.0
+    license_url: https://creativecommons.org/publicdomain/zero/1.0/
+    source_sha256: 75ed200f645b00c86ab4580aecf9d8c72af924e306c4c987bb8426e6d043b8ed
+    imported_file: study_cafe_mouse.obj
+    imported_sha256: 9c4e6340ceefe5d170c796fd25968e22dbe518cd90f5a5ffc6c418a03e0ce651
+    texture_file: study_cafe_mouse.png
+    texture_sha256: ef89e695b8f33c051f023772aa1b150ed8be26f141cb1818b35ed2df2bd59a67
+    normalized_extent_m: [0.110, 0.065, 0.035]
+    downloaded_on: '2026-09-11'
+    conversion_tool: tools/convert_computer_mouse.py
+    modifications: Y-up to Z-up; scaled to 110x65x35mm; original UV texture retained; convex hull collision.

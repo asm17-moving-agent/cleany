@@ -21,6 +21,25 @@ ARM_JOINT_SUFFIXES = (
 SIDES = ('left', 'right')
 
 
+def test_canonical_mast_exception_only_covers_its_fixed_mount():
+    mast = ET.parse(DESCRIPTION_ROOT / 'urdf' / 'head_camera.xacro').getroot()
+    joint = mast.find(".//joint[@name='top_base_joint']")
+    assert joint.get('type') == 'fixed'
+    assert joint.find('parent').get('link') == 'base_link'
+    assert joint.find('child').get('link') == 'top_base_link'
+    semantic = ET.parse(CONFIG_ROOT / 'cleany.srdf').getroot()
+    pairs = [entry.attrib for entry in semantic.findall('disable_collisions')
+             if 'top_base_link' in (entry.get('link1'), entry.get('link2'))]
+    assert pairs == [{'link1': 'base_link', 'link2': 'top_base_link', 'reason': 'Adjacent'}]
+
+
+def test_grasp_corridors_use_fine_collision_resolution_and_bounded_rounding():
+    config = _load_yaml('ompl_planning.yaml')
+    assert config['path_tolerance'] == 0.0001
+    for side in SIDES:
+        assert config[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .001
+
+
 def _arm_joints(side: str) -> tuple[str, ...]:
     return tuple(f'{side}_{suffix}' for suffix in ARM_JOINT_SUFFIXES)
 
@@ -85,9 +104,17 @@ def test_srdf_has_arm_and_grasp_tcp_chains() -> None:
     assert set(groups) == {
         'left_arm', 'right_arm', 'left_grasp_arm', 'right_grasp_arm',
         'left_pregrasp_aim_arm', 'right_pregrasp_aim_arm',
+        'left_pregrasp_open', 'right_pregrasp_open',
+        'left_return_close', 'right_return_close',
     }
 
     for side in SIDES:
+        combined = groups[f'{side}_pregrasp_open']
+        assert combined.find('group').attrib == {'name': f'{side}_grasp_arm'}
+        assert combined.find('joint').attrib == {'name': f'{side}_gripper_joint'}
+        returning = groups[f'{side}_return_close']
+        assert returning.find('group').attrib == {'name': f'{side}_grasp_arm'}
+        assert returning.find('joint').attrib == {'name': f'{side}_gripper_joint'}
         group = groups[f'{side}_arm']
         children = list(group)
         assert len(children) == 1
@@ -162,7 +189,7 @@ def test_self_collision_matrix_only_disables_adjacent_links() -> None:
         for entry in root.findall('disable_collisions')
     )
 
-    expected: set[frozenset[str]] = set()
+    expected: set[frozenset[str]] = {frozenset(('base_link', 'top_base_link'))}
     for side in SIDES:
         links = (
             'base_link',
@@ -239,6 +266,27 @@ def test_ompl_is_configured_for_each_arm() -> None:
         assert ompl[group]['planner_configs'] == ['RRTConnectkConfigDefault']
 
 
+def test_pilz_lin_and_cartesian_limits_are_configured() -> None:
+    pilz = _load_yaml('pilz_industrial_motion_planner_planning.yaml')
+    limits = _load_yaml('pilz_cartesian_limits.yaml')['cartesian_limits']
+    assert pilz['planning_plugin'] == (
+        'pilz_industrial_motion_planner/CommandPlanner'
+    )
+    assert limits == {
+        'max_trans_vel': 0.10,
+        'max_trans_acc': 0.20,
+        'max_trans_dec': -0.20,
+        'max_rot_vel': 0.50,
+    }
+
+
+@pytest.mark.parametrize('launch_name', ['move_group.launch.py', 'mock_planning.launch.py'])
+def test_ompl_remains_default_with_pilz_available(launch_name: str) -> None:
+    source = (PACKAGE_ROOT / 'launch' / launch_name).read_text(encoding='utf-8')
+    assert "default_planning_pipeline='ompl'" in source
+    assert "['ompl', 'pilz_industrial_motion_planner']" in source
+
+
 def test_moveit_controllers_claim_disjoint_side_joints() -> None:
     config = _load_yaml('moveit_controllers.yaml')
     assert config['moveit_controller_manager'] == (
@@ -260,6 +308,21 @@ def test_moveit_controllers_claim_disjoint_side_joints() -> None:
         assert f'{side}_gripper_joint' not in controller['joints']
         claimed.append(set(controller['joints']))
     assert claimed[0].isdisjoint(claimed[1])
+
+
+def test_sorting_controller_profile_adds_disjoint_grippers_only():
+    base = _load_yaml('moveit_controllers.yaml')['moveit_simple_controller_manager']
+    combined = _load_yaml('sorting_moveit_controllers.yaml')['moveit_simple_controller_manager']
+    claimed = set()
+    for name in combined['controller_names']:
+        joints = set(combined[name]['joints'])
+        assert not joints & claimed
+        claimed |= joints
+    for arm in SIDES:
+        assert combined[f'{arm}_arm_controller'] == base[f'{arm}_arm_controller']
+        assert combined[f'{arm}_gripper_controller']['joints'] == [f'{arm}_gripper_joint']
+        assert _load_yaml('ompl_planning.yaml')[f'{arm}_pregrasp_open']['longest_valid_segment_fraction'] == .001
+        assert _load_yaml('ompl_planning.yaml')[f'{arm}_return_close']['longest_valid_segment_fraction'] == .001
 
 
 def test_mock_ros2_control_matches_moveit_controller_contract() -> None:
@@ -292,6 +355,30 @@ def test_mock_ros2_control_matches_moveit_controller_contract() -> None:
         and 'joint_name' in element.attrib
     }
     assert configured_mock_joints == _all_modeled_joints()
+
+
+def test_depth_octomap_and_rviz_share_sensor_cloud_contract() -> None:
+    config = _load_yaml('depth_octomap.yaml')['/**']['ros__parameters']
+    assert config['octomap_frame'] == 'base_link'
+    assert config['octomap_resolution'] == 0.01
+    sensor = config['depth_cloud']
+    assert sensor['sensor_plugin'] == (
+        'occupancy_map_monitor/PointCloudOctomapUpdater'
+    )
+    assert sensor['point_cloud_topic'] == '/perception/scene_cloud'
+    assert sensor['filtered_cloud_topic'] == '/perception/scene_cloud_filtered'
+    # Self-filter margin must cover a voxel half-diagonal plus model error.
+    assert sensor['padding_offset'] >= (
+        3 ** 0.5 * config['octomap_resolution'] / 2 + 0.005
+    )
+    displays = _load_yaml('moveit.rviz')['Visualization Manager']['Displays']
+    cloud = next(d for d in displays
+                 if d['Class'] == 'rviz_default_plugins/PointCloud2')
+    assert cloud['Topic']['Value'] == sensor['point_cloud_topic']
+    manifest = ET.parse(PACKAGE_ROOT / 'package.xml').getroot()
+    assert 'moveit_ros_perception' in {
+        dependency.text for dependency in manifest.findall('exec_depend')
+    }
 
 
 def test_optional_rviz_uses_the_moveit_model_and_selected_clock() -> None:
