@@ -356,6 +356,9 @@ class MujocoOperations(SortingCoordinator):
     def pregrasp(self, context: ExecutionContext) -> Observation:
         # Revalidate before the first arm motion and again before the approach.
         MujocoOperations.refresh_approved(self, context)
+        # Refresh prepares a contact-enabled scene for the later approach.
+        # Pregrasp registers its own target and forbids contact during motion.
+        self._execution_scene.restore()
         self._execute_pregrasp(context.selected, context.attempt)
         return Observation()
 

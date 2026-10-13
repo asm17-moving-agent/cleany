@@ -217,6 +217,63 @@ def test_first_motion_is_blocked_when_reobserved_approval_changes(preparation, c
     assert commands == []
 
 
+def test_first_pregrasp_hands_off_refreshed_scene_before_combined_motion(preparation):
+    from sensor_msgs.msg import JointState
+    from cleany_skill_executor.core.grasp_selection import ARM_JOINT_NAMES
+    from cleany_skill_executor.core.nearest_object import ObjectAttempt
+
+    fixture, context, _ = preparation
+    node = object.__new__(MujocoOperations)
+    node._policy = fixture._policy
+    node._wrist_enabled = False
+    node.get_parameter = lambda name: NS(value=['cup'] if name.startswith('bt_supported_') else 1.2)
+    node.get_logger = lambda: NS(info=lambda _: None)
+    context.attempt = ObjectAttempt(1, 'cup', .9, .7, 'trash', 'Disposable cup')
+    candidate = NS(snapshot_id='refreshed')
+    selected = NS(selected_arm='right', selected_candidate=candidate,
+                  pregrasp_joint_state=JointState(name=list(ARM_JOINT_NAMES['right']), position=[0.] * 5))
+    context.selected = selected
+    state = NS(active=False, contacts=False)
+    events = []
+
+    def begin(*_):
+        if state.active:
+            raise RuntimeError('planning-scene transaction is already active')
+        state.active = True
+        events.append('begin')
+
+    def restore():
+        state.active = state.contacts = False
+        events.append('restore')
+
+    def contacts(allowed):
+        state.contacts = allowed
+        events.append('allow' if allowed else 'forbid')
+
+    node._execution_scene = NS(begin=begin, restore=restore,
+        allow_contacts_for=lambda _: contacts(True), disallow_target_contacts=lambda: contacts(False))
+
+    def refresh(*_, **kwargs):
+        assert kwargs['match_label']
+        begin()
+        contacts(True)
+        return selected, context.attempt
+
+    def move(arm, joints, label):
+        assert state.active and not state.contacts
+        assert arm == 'right' and joints.name[-1] == 'right_gripper_joint'
+        assert joints.position[-1] == 1.2
+        events.append('move')
+
+    node._refresh_selected_grasp = refresh
+    node.check_payload_fit = lambda _: events.append('fit')
+    node._move_to = move
+    node._verify_feedback = lambda _: events.append('verify')
+    assert node.pregrasp(context).success
+    assert events == ['begin', 'allow', 'fit', 'restore', 'begin', 'forbid', 'move', 'verify']
+    assert selected.pregrasp_joint_state.name == list(ARM_JOINT_NAMES['right'])
+
+
 def test_worker_quiescence_blocks_next_context_and_late_response_is_scoped():
     entered, release = Event(), Event()
     contexts = []
