@@ -20,6 +20,25 @@ native에 남는다. 이는 공통 native 개발환경을 대체하지 않으며
 MuJoCo용 custom rosdep 규칙을 처음 등록하는 방법은
 [rosdep 규칙 안내](rosdep/README.md)를 따른다.
 
+## 외부 데이터와 빌드 경로
+
+Make target의 기본 출력은 소스 worktree 옆 `../cleany-data`다.
+`CLEANY_DATA_ROOT`로 데이터 위치, `CLEANY_BUILD_ROOT`로 빌드 위치를 바꿀 수 있다.
+기본 빌드 루트는 `$CLEANY_DATA_ROOT/builds/<worktree-directory>`이며, 서로 다른
+worktree의 overlay를 공유하지 않는다. container에서도 같은 절대 경로가 보여야 한다.
+일반 build/install/log와 navigation/scenario/Harmonic 전용 디렉터리가 이 아래에 생긴다.
+
+저장소 루트에서 `source "$(make -s print-install-base)/setup.bash"`로 설치를 읽는다.
+navigation/scenario는 각각 `print-navigation-install-base`, `print-scenario-install-base`를
+사용한다. 사용자 지정 Make 변수는 빌드와 경로 출력에 동일하게 전달한다.
+`make clean`은 이 외부 빌드 루트의 표준 출력만 지운다. 실행 원본·fixture·보고서는 유지한다.
+경로를 바꿀 때 기존 colcon install을 이동하지 말고 새 경로에서 다시 빌드한다.
+호스트가 Git `relativeWorktrees` 확장을 쓰는 경우 container의 Git도 이 형식을
+지원해야 한다. `git rev-parse HEAD`가 실패하면 compatible Git을 PATH에 지정한 뒤
+provenance를 읽는 hand-eye 검사를 실행한다. 시나리오 launcher는 호스트 Git을 사용한다.
+
+[데이터 보관 및 검증 색인](../docs/validation/README.md)에 과거 자료와 활성 입력 위치를 정리했다.
+
 ## 빠른 시작
 
 아래 명령은 레포지토리 루트에서 실행한다.
@@ -53,6 +72,13 @@ Python은 `pytest`를 명시적으로 선택한다. Make는 빌드와 테스트�
 | MoveIt mock 실행 | `make test-grasp-pregrasp-runtime` |
 | Gazebo | `make test-gazebo` |
 
+Gazebo와 mission 반복 검증을 다른 호스트에서 독립 설치할 때는
+`make build-scenario-runtime`을 사용한다. Gazebo, navigation, mission manager,
+control bridge와 wheel odometry를 `build-scenario-runtime`/`install-scenario-runtime`/
+`log-scenario-runtime`에 빌드한다. `SCENARIO_BUILD_BASE`, `SCENARIO_INSTALL_BASE`,
+`SCENARIO_LOG_BASE`로 output을 바꿀 수 있다. 실제 실행과 호스트별 분리는
+[시나리오 도구](../tools/scenario_validation/README.md)를 따른다.
+
 Telemetry-only checks use `make build-telemetry` and `make test-telemetry`.
 The `cleany_telemetry` package relays latest-only finite `/odom` `x`/`y`
 and optional yaw over the configured WebSocket; see its README for parameters
@@ -75,7 +101,7 @@ Mission FSM·BT와 Backend 연동만 검사할 때는 다음을 사용한다.
 make test-mission-core
 make test-mission-runtime
 make build-mission-sim
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_bringup mission_sim.launch.py post_mission:=wait_for_next
 ```
 
@@ -86,7 +112,7 @@ ros2 launch cleany_bringup mission_sim.launch.py post_mission:=wait_for_next
 Gazebo 주행 성공의 증거와 구분한다.
 
 별도 ROS distro나 실험 output은 `ROS_SETUP`, `MISSION_BUILD_BASE`,
-`MISSION_INSTALL_BASE`, `MISSION_LOG_BASE` Make 변수로 지정한다. 기본 output은 workspace의
+`MISSION_INSTALL_BASE`, `MISSION_LOG_BASE` Make 변수로 지정한다. 기본 output은 위 외부 빌드 루트의
 `build`, `install`, `log`다. 실제 설정·Mock 경계·오류 복구는
 [Mission Manager](src/cleany_mission_manager/README.md),
 [Control Bridge](src/cleany_control_bridge/README.md),
@@ -228,7 +254,8 @@ override는 오류로 종료한다.
 
 ## Native 표준 명령
 
-Makefile은 아래 native 명령을 짧게 제공할 뿐 `colcon`, `pytest`, `ros2`를 대체하지
+아래 직접 colcon 예제는 workspace 내부 output을 명시적으로 사용하는 경우다.
+기본 외부 출력 관리에는 위 Make target을 사용한다. Makefile은 native 명령을 짧게 제공할 뿐 `colcon`, `pytest`, `ros2`를 대체하지
 않는다. 직접 실행하거나 문제를 진단할 때는 다음 흐름을 사용한다.
 
 ```bash
@@ -262,6 +289,21 @@ Pyright를 사용하려면 [개발환경 설치 가이드](../docs/DEVELOPMENT_S
 Gazebo 이미지/scan/동선 검증은
 [Gazebo package README](src/cleany_gazebo_sim/README.md#전체-18층-시설과-roly-의자)를 따른다.
 
+
+## 공통 Navigation runtime (SCRUM-425)
+
+```bash
+make build-navigation
+make test-navigation
+make test-navigation-runtime
+```
+
+위 target은 별도 `build-navigation`/`install-navigation`/`log-navigation`을 사용해
+`cleany_navigation`과 description dependency만 빌드한다. Gazebo 없이 saved-map
+AMCL/Nav2와 pan → Collision Monitor → 3D voxel guard를 실행할 수 있다.
+실행 계약과 필수 robot 설정은
+[`cleany_navigation/README.md`](src/cleany_navigation/README.md)를 따른다.
+기존 Gazebo Nav2 launch는 공통 runtime에 simulation adapter를 붙인다.
 ## 개발용 로봇 관제보드
 
 저장소 루트에서 `make build-dev-monitor`로 웹 자산과 ROS 패키지를 함께 설치하고,
@@ -282,3 +324,14 @@ Gazebo 이미지/scan/동선 검증은
 `make sim-mujoco-manipulation`을 사용한다. 기존 mock build/test 명령은 유지한다.
 모델/API 준비와 실제 snapshot 요청, `/sim` 클라이언트, 정지 증거 및 DB/모니터 계약은
 [패키지 README](src/cleany_manipulation_bt/README.md)를 따른다.
+
+통합 브랜치의 충돌 처리와 검증 범위는
+[검증 및 원본 색인](../docs/validation/README.md)을 따른다.
+
+
+저장 지도 기반 먼 거리/의자 사이 횡이동 회귀는 저장소 루트에서
+`make test-gazebo-navigation-goals`로 실행한다(Humble/Fortress, GUI 없음,
+설정 배속 2). `NAVIGATION_GOAL_OUTPUT`으로 새 증거 디렉터리,
+`NAVIGATION_GOAL_RTF`로 배속을 지정한다. 두 케이스는 순차 실행한다.
+자세한 fixture 및 판정 기준은
+[`cleany_gazebo_sim/README.md`](src/cleany_gazebo_sim/README.md)를 따른다.

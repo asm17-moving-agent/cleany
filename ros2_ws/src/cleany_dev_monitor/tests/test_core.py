@@ -141,3 +141,19 @@ def test_storage_unavailable_does_not_break_observation(tmp_path):
     hub.select("one", ["/a", "/b"], limit=2)
     assert hub.select("one", ["/b", "/c"], limit=2)
     assert not hub.select("two", ["/d"], limit=2)
+
+
+def test_bt_replay_keeps_recorded_topology_and_state_before_replacement(tmp_path):
+    hub, recorder = Hub(), Recorder(tmp_path)
+    first = hub.put('nav2_bt_tree', '/navigation/bt_trace', {
+        'xml_sha256': 'old', 'nodes': [{'id': 'first'}], 'states': {'first': 'RUNNING'}, 'epoch': 1,
+    })
+    recorder.append(hub.snapshot())
+    hub.put('nav2_bt_tree', '/navigation/bt_trace', {
+        'xml_sha256': 'new', 'nodes': [{'id': 'replacement'}], 'states': {'replacement': 'UNKNOWN'}, 'epoch': 2,
+    })
+    recorder.append(hub.snapshot(recorder.last))
+    old = recorder.replay(recorder.session_id, first['received_at'])['rows'][0]['data']
+    assert old['xml_sha256'] == 'old' and old['states'] == {'first': 'RUNNING'}
+    assert recorder.replay(recorder.session_id, float('inf'))['rows'][0]['data']['xml_sha256'] == 'new'
+    recorder.close()

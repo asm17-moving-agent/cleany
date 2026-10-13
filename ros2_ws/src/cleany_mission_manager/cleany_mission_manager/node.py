@@ -8,7 +8,6 @@ from math import isfinite
 import rclpy
 from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
-from rclpy.time import Time
 from rclpy.qos import DurabilityPolicy, QoSProfile
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
@@ -40,7 +39,13 @@ class MissionRuntimeNode(Node):
             "odom_topic": "odom", "input_timeout": 1.5,
             "stopped_linear_speed": 0.03, "stopped_angular_speed": 0.05,
             "navigation_settle_timeout": 3.0,
+            "arrival_position_tolerance": 0.08, "arrival_yaw_tolerance": 0.15,
+            "arrival_pose_timeout": 0.5,
             "lifecycle_timeout": 3.0,
+            "required_navigation_lifecycle_nodes": [
+                "map_server", "amcl", "planner_server", "controller_server",
+                "bt_navigator", "collision_monitor",
+            ],
             "manipulation_backend": "mock", "manipulation_action": "mock/manipulation/execute_skill",
             "manipulation_query": "mock/manipulation/get_execution",
             "manipulation_initial_mock_safe": False,
@@ -155,7 +160,7 @@ class MissionRuntimeNode(Node):
         except Exception as exc:
             # Diagnostic serialization must never prevent status/result publication.
             self.get_logger().warning(f"Debug publication failed: {exc}", throttle_duration_sec=10)
-        snapshot = self.runtime.snapshot()
+        snapshot = self.runtime.snapshot(include_completed=False)
         if snapshot["sequence"] != self.last_sequence:
             request = snapshot["active_request"]
             self.status_pub.publish(MissionStatus(
@@ -214,9 +219,9 @@ class MissionRuntimeNode(Node):
                 "odom_age": now - nav.odom_received,
                 "lifecycle_age": {key: now - stamp for key, stamp in nav.state_received.items()}})
             try:
-                tf = nav.buffer.lookup_transform(self.targets.frame_id, "base_link", Time())
-                data["navigation"]["tf_age"] = (self.get_clock().now().nanoseconds / 1e9
-                    - tf.header.stamp.sec - tf.header.stamp.nanosec / 1e9)
+                measurement = nav.localization_snapshot()
+                data["navigation"]["tf_age"] = measurement["age_s"]
+                data["navigation"]["localization"] = measurement
             except Exception as exc:
                 data["navigation"]["tf_error"] = str(exc)
         message = RuntimeDebugSnapshot(boot_id=data["boot_id"],

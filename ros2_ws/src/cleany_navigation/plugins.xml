@@ -1,0 +1,29 @@
+<library path="axis_generator">
+  <class name="cleany_navigation::SweptFootprintCritic" type="cleany_navigation::SweptFootprintCritic" base_class_type="dwb_core::TrajectoryCritic">
+    <description>Stock scoring with conservative continuous footprint sweeps and coherent failure evidence.</description>
+  </class>
+  <class name="cleany_navigation::PreciseGoalDistCritic" type="cleany_navigation::PreciseGoalDistCritic" base_class_type="dwb_core::TrajectoryCritic">
+    <description>Stock goal grid guidance with continuous endpoint distance near arrival.</description>
+  </class>
+  <class name="cleany_navigation::CommandBearingCritic" type="cleany_navigation::CommandBearingCritic" base_class_type="dwb_core::TrajectoryCritic">
+    <description>Soft translation-bearing continuity with reduced penalty near the goal.</description>
+  </class>
+  <class name="cleany_navigation::ObservedFootprintCritic" type="cleany_navigation::ObservedFootprintCritic" base_class_type="dwb_core::TrajectoryCritic">
+    <description>Nav2 footprint scoring with a coherent first failed-cycle snapshot.</description>
+  </class>
+  <class name="cleany_navigation::HolonomicGenerator" type="cleany_navigation::HolonomicGenerator" base_class_type="dwb_core::TrajectoryGenerator">
+    <description>Standard acceleration-aware holonomic rollout plus fine zero-yaw translations.</description>
+  </class>
+  <class name="cleany_navigation::PathOrientationCritic" type="cleany_navigation::PathOrientationCritic" base_class_type="dwb_core::TrajectoryCritic">
+    <description>Track planned body yaw independently of holonomic translation direction.</description>
+  </class>
+  <class name="cleany_axis_controller::AxisGenerator" type="cleany_axis_controller::AxisGenerator" base_class_type="dwb_core::TrajectoryGenerator">
+    <description>Single-axis commands, acceleration-aware rollout and stop-before-switch.</description>
+  </class>
+  <class name="cleany_axis_controller::PathHeadingCritic" type="cleany_axis_controller::PathHeadingCritic" base_class_type="dwb_core::TrajectoryCritic">
+    <description>Align heading before forward or reverse translation.</description>
+  </class>
+  <class name="cleany_navigation::PathProgressCritic" type="cleany_navigation::PathProgressCritic" base_class_type="dwb_core::TrajectoryCritic">
+    <description>Continuous remaining path length to resolve grid potential plateaus.</description>
+  </class>
+</library>

@@ -15,6 +15,11 @@ import {
   type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import {
+  RecordingControls,
+  RecordingReplayNotice,
+} from "@/components/recording-controls";
+import { NavigationDashboard } from "@/components/navigation-dashboard";
 import { RosGraph } from "@/components/ros-graph";
 import { FitGraphToViewport } from "@/components/fit-graph-to-viewport";
 import { CameraView } from "@/components/camera-view";
@@ -23,7 +28,6 @@ import "./theme.css";
 import "./style.css";
 import { Button } from "@/components/ui/button";
 import { Badge as UiBadge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -44,16 +48,9 @@ import {
   PanelLeftOpen,
 } from "lucide-react";
 import { FoxglovePanel } from "@/components/foxglove-panel";
+import { Panel } from "@/components/panel";
+import { type Data, type Row, time } from "@/lib/monitor";
 
-type Data = Record<string, any>;
-type Row = {
-  seq: number;
-  kind: string;
-  key: string;
-  data: Data;
-  received_at: number;
-  ros_time: number | null;
-};
 type Packet = {
   rows: Row[];
   boot_id?: string;
@@ -102,8 +99,6 @@ const tabs = [
   ["recordings", "기록 & 재생", "05"],
   ["camera", "카메라", "06"],
 ];
-const time = (t: number) =>
-  new Date(t * 1000).toLocaleTimeString("ko-KR", { hour12: false });
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);
 const statusColor = (s: string) =>
   s === "RUNNING"
@@ -135,29 +130,6 @@ function Badge({
     <UiBadge variant="secondary" className={"badge " + tone}>
       {children}
     </UiBadge>
-  );
-}
-function Panel({
-  title,
-  aside,
-  children,
-  className = "",
-}: {
-  title: string;
-  aside?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <Card className={"panel " + className}>
-      <CardHeader className="panel-title">
-        <CardTitle>
-          <h2>{title}</h2>
-        </CardTitle>
-        {aside}
-      </CardHeader>
-      <CardContent className="panel-content">{children}</CardContent>
-    </Card>
   );
 }
 
@@ -508,22 +480,75 @@ const MemoDiagram = React.memo(function Diagram({
   );
 });
 
-function Navigation({
+function NavigationMap({
   rows,
   config,
   timeAt,
+  mode = "overview",
 }: {
   rows: Row[];
   config: Data;
   timeAt: number;
+  mode?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const [enabled, setEnabled] = useState<Record<string, boolean>>({
-    map: true,
-    local_costmap: true,
-    global_costmap: true,
-    path: true,
-  });
+  const projection = useRef({ ox: 0, oy: 0, scale: 1 });
+  const [picked, setPicked] = useState<number[] | null>(null);
+  const mapViews: Record<
+    string,
+    { title: string; layers: string[]; defaults: string[] }
+  > = {
+    overview: {
+      title: "전체 경로와 주행 진행",
+      layers: ["map", "path", "trail", "footprint"],
+      defaults: ["map", "path", "trail", "footprint"],
+    },
+    safety: {
+      title: "주변 장애물과 안전 영역",
+      layers: [
+        "map",
+        "local_costmap",
+        "scan",
+        "depth_points",
+        "footprint",
+        "stop_polygon",
+        "slow_polygon",
+        "risk_points",
+        "obstacle_memory",
+        "lidar_memory",
+        "depth_memory",
+      ],
+      defaults: [
+        "map",
+        "local_costmap",
+        "scan",
+        "depth_points",
+        "footprint",
+        "stop_polygon",
+        "slow_polygon",
+        "risk_points",
+      ],
+    },
+    control: {
+      title: "계획 경로와 후보 궤적",
+      layers: [
+        "map",
+        "path",
+        "local_path",
+        "local_costmap",
+        "global_costmap",
+        "footprint",
+        "trail",
+      ],
+      defaults: ["map", "path", "local_path", "local_costmap", "footprint"],
+    },
+  };
+  const view = mapViews[mode] || mapViews.overview;
+  const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      view.layers.map((key) => [key, view.defaults.includes(key)]),
+    ),
+  );
   const [zoom, setZoom] = useState(1);
   const navigation = rows.find((r) => r.kind === "runtime")?.data.navigation;
   const layers = rows.filter((r) => r.kind === "layer");
@@ -553,7 +578,41 @@ function Navigation({
       o[0] + Math.cos(o[2]) * x - Math.sin(o[2]) * y,
       o[1] + Math.sin(o[2]) * x + Math.cos(o[2]) * y,
     ];
-    if (map)
+    const nearby = mode === "safety" || mode === "control";
+    const localBounds = layers.find(
+      (r) => r.key === "local_costmap" && r.data.valid,
+    )?.data;
+    if (nearby && robot?.valid) {
+      const radius = localBounds
+        ? Math.max(
+            1,
+            Math.min(
+              4,
+              (Math.max(localBounds.width, localBounds.height) *
+                localBounds.resolution) /
+                2,
+            ),
+          )
+        : 2.5;
+      points.push(
+        [robot.pose[0] - radius, robot.pose[1] - radius],
+        [robot.pose[0] + radius, robot.pose[1] + radius],
+      );
+    } else if (nearby && localBounds) {
+      for (const [x, y] of [
+        [0, 0],
+        [localBounds.width, 0],
+        [0, localBounds.height],
+        [localBounds.width, localBounds.height],
+      ])
+        points.push(
+          world(
+            x * localBounds.resolution,
+            y * localBounds.resolution,
+            localBounds.origin,
+          ),
+        );
+    } else if (map)
       for (const [x, y] of [
         [0, 0],
         [map.width, 0],
@@ -573,8 +632,16 @@ function Navigation({
       ) * zoom;
     const ox = width / 2 - ((minX + maxX) / 2) * scale,
       oy = height / 2 + ((minY + maxY) / 2) * scale;
+    projection.current = { ox, oy, scale };
     const screen = (x: number, y: number) => [ox + x * scale, oy - y * scale];
-    for (const name of ["map", "global_costmap", "local_costmap"]) {
+    for (const name of [
+      "map",
+      "obstacle_memory",
+      "lidar_memory",
+      "depth_memory",
+      "global_costmap",
+      "local_costmap",
+    ]) {
       const layer = layers.find((r) => r.key === name)?.data;
       if (!enabled[name] || !layer?.valid) continue;
       const off = document.createElement("canvas");
@@ -635,8 +702,78 @@ function Navigation({
       ctx.arc(x, y, 8, 0, Math.PI * 2);
       ctx.stroke();
     }
+    const summary = rows.find(
+      (r) => r.kind === "navigation" && r.key === "summary",
+    )?.data;
+    const drawLine = (points: number[][], color: string, closed = false) => {
+      if (!points.length) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      points.forEach(([x, y], i) => {
+        const [a, b] = screen(x, y);
+        i ? ctx.lineTo(a, b) : ctx.moveTo(a, b);
+      });
+      if (closed) ctx.closePath();
+      ctx.stroke();
+    };
+    if (enabled.trail && Array.isArray(summary?.trail))
+      drawLine(
+        summary.trail.map((p: number[]) => p.slice(1, 3)),
+        "#80aaff",
+      );
+    const local = layers.find((r) => r.key === "local_path")?.data;
+    if (enabled.local_path && local?.valid && Array.isArray(local.points))
+      drawLine(local.points, "#ffb85c");
+    const colors: Record<string, string> = {
+      scan: "#5ed7ee",
+      depth_points: "#bf95ef",
+      risk_points: "#ff5252",
+      footprint: "#f8f8f8",
+      stop_polygon: "#ff7272",
+      slow_polygon: "#ffce70",
+    };
+    for (const key of Object.keys(colors)) {
+      const row = rows.find((r) => r.kind === "navigation" && r.key === key);
+      const d = row?.data;
+      if (
+        !enabled[key] ||
+        !d?.valid ||
+        !Array.isArray(d.points) ||
+        !row ||
+        timeAt - row.received_at > 2
+      )
+        continue;
+      if (["footprint", "stop_polygon", "slow_polygon"].includes(key))
+        drawLine(d.points, colors[key], true);
+      else {
+        ctx.fillStyle = colors[key];
+        for (const [x, y] of d.points) {
+          const [a, b] = screen(x, y);
+          ctx.fillRect(a - 1, b - 1, 3, 3);
+        }
+      }
+    }
+    if (mode === "control") {
+      const evaluation = rows.find(
+        (r) => r.kind === "navigation" && r.key === "controller_evaluation",
+      );
+      const e = evaluation?.data;
+      if (
+        evaluation &&
+        timeAt - evaluation.received_at <= 2 &&
+        Array.isArray(e?.trajectories) &&
+        e?.transform
+      )
+        for (const t of e.trajectories)
+          if (Array.isArray(t.points))
+            drawLine(
+              t.points.map((p: number[]) => world(p[0], p[1], e.transform)),
+              t.selected ? "#4ae7ba" : "#737c87",
+            );
+    }
     const goal = navigation?.goal_pose;
-    if (goal && navigation.frame === config.map_frame) {
+    if (mode !== "safety" && goal && navigation.frame === config.map_frame) {
       const [x, y] = screen(goal.x, goal.y);
       ctx.strokeStyle = "#ffd584";
       ctx.lineWidth = 2;
@@ -667,6 +804,41 @@ function Navigation({
       ctx.fill();
       ctx.stroke();
       ctx.restore();
+      const arrow = (angle: number, color: string, length: number) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(-angle);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(length, 0);
+        ctx.lineTo(length - 7, -4);
+        ctx.moveTo(length, 0);
+        ctx.lineTo(length - 7, 4);
+        ctx.stroke();
+        ctx.restore();
+      };
+      const panRow = rows.find(
+        (r) => r.kind === "navigation" && r.key === "pan",
+      );
+      if (
+        mode === "safety" &&
+        panRow &&
+        timeAt - panRow.received_at <= 2 &&
+        Number.isFinite(panRow.data.pan)
+      )
+        arrow(robot.pose[2] + panRow.data.pan, "#d69aff", 45);
+      if (
+        summary?.measured &&
+        Math.hypot(...(summary.measured.slice(0, 2) as [number, number])) >
+          0.005
+      )
+        arrow(
+          robot.pose[2] + Math.atan2(summary.measured[1], summary.measured[0]),
+          "#5ed7ee",
+          35,
+        );
     }
     ctx.fillStyle = "#b8b8b8";
     ctx.font = "13px monospace";
@@ -675,11 +847,11 @@ function Navigation({
       20,
       height - 20,
     );
-  }, [rows, enabled, zoom, Math.floor(poseAge)]);
+  }, [rows, enabled, zoom, Math.floor(poseAge), timeAt, mode]);
   return (
     <>
       <Panel
-        title="2D Navigation"
+        title={view.title}
         aside={
           <div className="inline">
             <Button
@@ -698,7 +870,7 @@ function Navigation({
         }
       >
         <div className="map-tools">
-          {Object.keys(enabled).map((k) => (
+          {view.layers.map((k) => (
             <label key={k}>
               <input
                 type="checkbox"
@@ -707,62 +879,138 @@ function Navigation({
                   setEnabled({ ...enabled, [k]: e.target.checked })
                 }
               />
-              {k}
+              {(
+                {
+                  map: "지도",
+                  path: "계획 경로",
+                  local_costmap: "local costmap",
+                  global_costmap: "global costmap",
+                  local_path: "제어 경로",
+                  scan: "LiDAR",
+                  depth_points: "Depth 장애물",
+                  footprint: "로봇 외곽",
+                  trail: "실제 궤적",
+                  stop_polygon: "정지 영역",
+                  slow_polygon: "감속 영역",
+                  risk_points: "위험점",
+                  obstacle_memory: "합성 메모리",
+                  lidar_memory: "LiDAR 메모리",
+                  depth_memory: "Depth 메모리",
+                } as Record<string, string>
+              )[k] || k}
             </label>
           ))}
-          <span>△ 로봇 · ＋ 미션 목표 · ○ 경로 끝점</span>
+          <span>
+            {mode === "safety"
+              ? "△ 차체 · 빨강 정지 영역 · 노랑 감속 영역 · 보라 카메라"
+              : mode === "control"
+                ? "△ 차체 · 청록 선택 후보 · 회색 다른 후보 · 주황 제어 경로"
+                : "△ 차체 · ＋ 목표 · 파랑 실제 궤적 · 초록 계획 경로"}
+          </span>
         </div>
+        {(mode === "safety" || mode === "control") &&
+          !robot?.valid &&
+          !layers.some((r) => r.key === "local_costmap" && r.data.valid) && (
+            <small>
+              주변 범위를 결정할 위치·local costmap이 없어 전체 지도를
+              표시합니다.
+            </small>
+          )}
+        {!layers.some((r) => r.key === "map" && r.data.valid) && (
+          <p className="nav-map-unavailable">
+            배경 지도 표시 불가 ·{" "}
+            {layers.find((r) => r.key === "map")?.data.reason ||
+              "지도 토픽 미수신"}
+          </p>
+        )}
         <canvas
           ref={canvas}
           aria-label="ROS 2D navigation map"
           className="map"
+          onClick={(event) => {
+            const c = canvas.current;
+            if (!c) return;
+            const rect = c.getBoundingClientRect();
+            const { ox, oy, scale } = projection.current;
+            setPicked([
+              (((event.clientX - rect.left) * c.width) / rect.width - ox) /
+                scale,
+              (oy - ((event.clientY - rect.top) * c.height) / rect.height) /
+                scale,
+            ]);
+          }}
         />
-        <div className="layer-status">
-          {["map", "path", "local_costmap", "global_costmap"].map((k) => {
-            const l = layers.find((r) => r.key === k);
-            return (
-              <div key={k}>
-                <b>{k}</b>
-                <Badge tone={l?.data.valid ? "good" : "warn"}>
-                  {l?.data.valid ? "수신" : "표시 불가"}
-                </Badge>
-                <small>{l?.data.reason || l?.data.topic || "토픽 대기"}</small>
-              </div>
-            );
-          })}
-          <div>
-            <b>robot TF</b>
-            <Badge tone={robot?.valid ? "good" : "warn"}>
-              {robot?.valid ? "수신" : "표시 불가"}
-            </Badge>
-            <small>
-              {robot?.reason || `age ${robot?.age?.toFixed(2) ?? "—"}s`}
-            </small>
+        {picked && (
+          <div className="map-tools" aria-label="선택한 지도 셀">
+            <span>
+              map ({picked[0].toFixed(2)}, {picked[1].toFixed(2)}) · 게시
+              OccupancyGrid 값
+            </span>
+            {layers
+              .filter((r) => r.data.valid && r.data.cells && enabled[r.key])
+              .map((r) => {
+                const g = r.data,
+                  dx = picked[0] - g.origin[0],
+                  dy = picked[1] - g.origin[1];
+                const x = Math.floor(
+                  (Math.cos(g.origin[2]) * dx + Math.sin(g.origin[2]) * dy) /
+                    g.resolution,
+                );
+                const y = Math.floor(
+                  (-Math.sin(g.origin[2]) * dx + Math.cos(g.origin[2]) * dy) /
+                    g.resolution,
+                );
+                const value =
+                  x >= 0 && y >= 0 && x < g.width && y < g.height
+                    ? g.cells[y * g.width + x]
+                    : null;
+                return (
+                  <span key={r.key}>
+                    {r.key}:{" "}
+                    {value === null ? "영역 밖" : value < 0 ? "미관측" : value}
+                  </span>
+                );
+              })}
           </div>
-        </div>
-      </Panel>
-      <Panel title="속도 명령 관측">
-        <div className="velocity">
-          {(config.velocity_topics || []).map((topic: string) => {
-            const sample = rows.find(
-              (r) => r.key === topic && r.kind === "sample",
-            );
-            return (
-              <div key={topic}>
-                <code>{topic}</code>
-                <small>
-                  {sample
-                    ? `마지막 수신 ${Math.max(0, timeAt - sample.received_at).toFixed(1)}초 전`
-                    : "미수신"}
-                </small>
-                {sample && timeAt - sample.received_at > 2 && (
-                  <Badge tone="warn">오래된 명령</Badge>
-                )}
-                <Json value={sample?.data || "수신 대기"} />
-              </div>
-            );
-          })}
-        </div>
+        )}
+        <details className="nav-map-sources">
+          <summary>지도 수신 상태와 출처</summary>
+          <div className="layer-status">
+            {view.layers
+              .filter((k) =>
+                [
+                  "map",
+                  "path",
+                  "local_path",
+                  "local_costmap",
+                  "global_costmap",
+                ].includes(k),
+              )
+              .map((k) => {
+                const l = layers.find((r) => r.key === k);
+                return (
+                  <div key={k}>
+                    <b>{k}</b>
+                    <Badge tone={l?.data.valid ? "good" : "warn"}>
+                      {l?.data.valid ? "수신" : "표시 불가"}
+                    </Badge>
+                    <small>
+                      {l?.data.reason || l?.data.topic || "토픽 대기"}
+                    </small>
+                  </div>
+                );
+              })}
+            <div>
+              <b>robot TF</b>
+              <Badge tone={robot?.valid ? "good" : "warn"}>
+                {robot?.valid ? "수신" : "표시 불가"}
+              </Badge>
+              <small>
+                {robot?.reason || `age ${robot?.age?.toFixed(2) ?? "—"}s`}
+              </small>
+            </div>
+          </div>
+        </details>
       </Panel>
     </>
   );
@@ -1013,6 +1261,7 @@ function Logs({
 
 function App() {
   const [graphTab, setGraphTab] = useState("fsm");
+  const [navigationTab, setNavigationTab] = useState("overview");
   const [collapsed, setCollapsed] = useState(false);
   const [tab, setTab] = useState(location.hash.slice(1) || "execution");
   const [rows, setRows] = useState<Row[]>([]);
@@ -1022,9 +1271,10 @@ function App() {
   const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const selectedRef = useRef<string[]>([]);
+  const navigationTopicsRef = useRef<string[]>([]);
+  const [navigationTopics, setNavigationTopics] = useState<string[]>([]);
   const socket = useRef<WebSocket | null>(null);
   const lastBoot = useRef("");
-  const lastSequence = useRef(0);
   const [recording, setRecording] = useState<Data>({});
   const [sessions, setSessions] = useState<Data[]>([]);
   const [replayId, setReplayId] = useState("");
@@ -1047,9 +1297,20 @@ function App() {
       socket.current = ws;
       ws.onopen = () => {
         setConnected(true);
-        if (selectedRef.current.length)
+        if (
+          !replayRef.current &&
+          (selectedRef.current.length || navigationTopicsRef.current.length)
+        )
           ws.send(
-            JSON.stringify({ op: "select", topics: selectedRef.current }),
+            JSON.stringify({
+              op: "select",
+              topics: [
+                ...new Set([
+                  ...selectedRef.current,
+                  ...navigationTopicsRef.current,
+                ]),
+              ],
+            }),
           );
       };
       ws.onclose = () => {
@@ -1063,8 +1324,13 @@ function App() {
           return;
         }
         if (p.selection) {
-          selectedRef.current = p.selection;
-          setSelected(p.selection);
+          const manual = p.selection.filter(
+            (t) =>
+              selectedRef.current.includes(t) ||
+              !navigationTopicsRef.current.includes(t),
+          );
+          selectedRef.current = manual;
+          setSelected(manual);
           setError("");
           return;
         }
@@ -1077,10 +1343,7 @@ function App() {
               : "Monitor 재시작",
           );
         }
-        if (p.boot_id !== lastBoot.current) {
-          live.current = [];
-          lastSequence.current = 0;
-        }
+        if (p.boot_id !== lastBoot.current) live.current = [];
         lastBoot.current = p.boot_id || "";
         const merged = p.initial ? [...p.rows] : [...live.current, ...p.rows];
         const latest = new Map<string, Row>();
@@ -1104,7 +1367,6 @@ function App() {
           ...latest.values(),
           ...[...events.values()].sort((a, b) => a.seq - b.seq).slice(-500),
         ];
-        lastSequence.current = p.sequence || 0;
         if (!replayRef.current) setRows(applyRuntimeEvents(live.current));
         if (p.recording) setRecording(p.recording);
       };
@@ -1185,9 +1447,64 @@ function App() {
     ? Math.max(0, (replayId ? at : now) - runtimeRow.received_at)
     : null;
   const fresh = age !== null && age < 3 && (!!replayId || connected);
+  const selectionLimit = Number(config.max_selected_topics) || 16;
   const select = (topics: string[]) => {
+    if (topics.length > selectionLimit) {
+      setError(`선택 토픽 한도 ${selectionLimit}개를 초과했습니다.`);
+      return;
+    }
+    selectedRef.current = topics;
+    setSelected(topics);
+    const auto = tab === "navigation" && !replayId ? navigationTopics : [];
+    const merged = [...new Set([...topics, ...auto])].slice(0, selectionLimit);
+    navigationTopicsRef.current = auto.filter((t) => merged.includes(t));
+    if (!replayId && socket.current?.readyState === WebSocket.OPEN)
+      socket.current.send(JSON.stringify({ op: "select", topics: merged }));
+  };
+  const navigationSelection =
+    tab === "navigation" && !replayId ? navigationTopics : [];
+  const navigationSelectionKey = JSON.stringify(navigationSelection);
+  useEffect(() => {
+    const topics: string[] = JSON.parse(navigationSelectionKey);
+    const merged = [...new Set([...selectedRef.current, ...topics])].slice(
+      0,
+      selectionLimit,
+    );
+    const automatic = topics.filter((t) => merged.includes(t));
+    if (automatic.length < topics.length)
+      setNotice("선택 토픽 한도 때문에 일부 주행 레이어 구독을 생략했습니다.");
+    if (
+      JSON.stringify(navigationTopicsRef.current) === JSON.stringify(automatic)
+    )
+      return;
+    navigationTopicsRef.current = automatic;
     if (socket.current?.readyState === WebSocket.OPEN)
-      socket.current.send(JSON.stringify({ op: "select", topics }));
+      socket.current.send(JSON.stringify({ op: "select", topics: merged }));
+  }, [navigationSelectionKey, selectionLimit]);
+  const openNavigationMoment = async (moment: number) => {
+    setPlaying(false);
+    if (replayId) {
+      seekPending.current = true;
+      setAt(moment);
+      return;
+    }
+    try {
+      const response = await fetch("/api/recordings");
+      const data = await response.json();
+      const source = data.sessions.find(
+        (s: Data) => s.id === (data.active || recording.id),
+      );
+      if (!source || moment < source.start || moment > source.end)
+        throw Error(
+          "해당 시점이 아직 기록되지 않았거나 기록이 중단되었습니다.",
+        );
+      setSessions(data.sessions);
+      setReplayId(source.id);
+      setAt(moment);
+      seekPending.current = true;
+    } catch (e) {
+      setError(String(e));
+    }
   };
   const [focusTopic, setFocusTopic] = useState("");
   const moduleName =
@@ -1348,6 +1665,13 @@ function App() {
                 실시간으로
               </Button>
             </div>
+          )}
+          {replayId && (
+            <RecordingReplayNotice
+              rows={rows}
+              sessionId={replayId}
+              timeAt={at}
+            />
           )}
           {tab === "execution" &&
             (!runtimeRow ? (
@@ -1594,10 +1918,44 @@ function App() {
           {tab === "navigation" && (
             <>
               <FoxglovePanel />
-              <Navigation
+              <NavigationDashboard
                 rows={rows}
                 config={config}
+                graph={graph}
                 timeAt={replayId ? at : now}
+                replay={!!replayId}
+                sessionId={replayId || recording.id || "current"}
+                tab={navigationTab}
+                setTab={setNavigationTab}
+                map={
+                  <NavigationMap
+                    key={navigationTab}
+                    rows={rows}
+                    config={config}
+                    timeAt={replayId ? at : now}
+                    mode={navigationTab}
+                  />
+                }
+                observe={setNavigationTopics}
+                openTopic={(topic) => {
+                  setFocusTopic(topic);
+                  go("ros");
+                }}
+                openCamera={() => go("camera")}
+                openLogs={() => go("logs")}
+                seek={openNavigationMoment}
+                openRun={async (run) => {
+                  if (!run.session_id) {
+                    await openNavigationMoment(run.start);
+                    return;
+                  }
+                  const data = await (await fetch("/api/recordings")).json();
+                  setSessions(data.sessions);
+                  setPlaying(false);
+                  setReplayId(run.session_id);
+                  setAt(run.start);
+                  seekPending.current = true;
+                }}
               />
             </>
           )}
@@ -1606,6 +1964,7 @@ function App() {
           )}
           {tab === "recordings" && (
             <>
+              <RecordingControls replay={!!replayId} />
               <Panel
                 title="저장된 관측 세션"
                 aside={

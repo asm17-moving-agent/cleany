@@ -126,9 +126,10 @@ class SimulatedOdometryErrorNode(Node):
         output.pose.pose.orientation.y = 0.0
         output.pose.pose.orientation.z = sin(estimate.pose.yaw_rad / 2.0)
         output.pose.pose.orientation.w = cos(estimate.pose.yaw_rad / 2.0)
-        output.twist.twist.linear.x = estimate.linear_x_mps
-        output.twist.twist.linear.y = estimate.linear_y_mps
-        output.twist.twist.angular.z = estimate.angular_z_rps
+        if not self._model.is_ideal:
+            output.twist.twist.linear.x = estimate.linear_x_mps
+            output.twist.twist.linear.y = estimate.linear_y_mps
+            output.twist.twist.angular.z = estimate.angular_z_rps
         self._publisher.publish(output)
 
 

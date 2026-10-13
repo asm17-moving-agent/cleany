@@ -6,6 +6,7 @@ import math
 
 import rclpy
 from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 
@@ -52,11 +53,14 @@ class TelemetryNode(Node):
         return super().destroy_node()
 
 
-def main() -> None:
-    rclpy.init()
+def main(args: list[str] | None = None) -> None:
+    rclpy.init(args=args)
     node = TelemetryNode()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()

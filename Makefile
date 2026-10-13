@@ -1,26 +1,33 @@
 SHELL := /bin/bash
 
-# Keep unrelated site-package pytest plugins out of ROS test discovery and runs.
-export PYTEST_DISABLE_PLUGIN_AUTOLOAD := 1
-
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
-COLCON_BUILD_ARGS ?=
-
+# Keep data and generated outputs outside the source worktree.
+CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
+CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
+export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT
+BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
+INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
+LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
+NAVIGATION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-navigation
+NAVIGATION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-navigation
+NAVIGATION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-navigation
+SCENARIO_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-scenario-runtime
+SCENARIO_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-scenario-runtime
+SCENARIO_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-scenario-runtime
 MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
-MISSION_BUILD_BASE ?= build
-MISSION_INSTALL_BASE ?= install
-MISSION_LOG_BASE ?= log
-
+MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
+MISSION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
+MISSION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 GAZEBO_PROFILE_TOOL := $(REPO_ROOT)tools/gazebo_profile.py
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
 SAFETY_MODE ?= sensors
 ROBOT_MODEL ?= cad_frame
-HANDEYE_PROFILE_DIR ?= $(REPO_ROOT)artifacts/handeye/profiles/mujoco_seed_20260810
+HANDEYE_PROFILE_DIR ?= $(CLEANY_DATA_ROOT)/fixtures/handeye/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
-HANDEYE_ARTIFACT_ROOT ?= $(REPO_ROOT)artifacts/handeye/runs
+HANDEYE_ARTIFACT_ROOT ?= $(CLEANY_DATA_ROOT)/runs/handeye
 HANDEYE_RUN_ID ?= mujoco_seed_20260810
 HANDEYE_RUN_DIR ?= $(HANDEYE_ARTIFACT_ROOT)/$(HANDEYE_RUN_ID)
 HANDEYE_VALIDATION_OUTPUT ?= $(HANDEYE_RUN_DIR)/dataset_validation.json
@@ -35,114 +42,16 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
 		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
 
-GRASP_PREGRASP_PACKAGES := cleany_interfaces cleany_description \
-	cleany_mujoco_sim cleany_mujoco_observer cleany_moveit_config cleany_perception \
-	cleany_grasping cleany_skill_executor cleany_scene_mapping
-CLEANY_ROS_PERCEPTION_PREFIX ?= $(HOME)/.local/share/cleany/moveit-perception/opt/ros/humble
-CLEANY_BT_PREFIX ?= $(HOME)/.local/share/cleany/behaviortree-cpp/opt/ros/humble
-define use_local_behaviortree
-if test -d "$(CLEANY_BT_PREFIX)/share/behaviortree_cpp"; then \
-  export AMENT_PREFIX_PATH="$(CLEANY_BT_PREFIX):$${AMENT_PREFIX_PATH}"; \
-  export CMAKE_PREFIX_PATH="$(CLEANY_BT_PREFIX):$${CMAKE_PREFIX_PATH}"; \
-  export LD_LIBRARY_PATH="$(CLEANY_BT_PREFIX)/lib:$${LD_LIBRARY_PATH}"; \
-fi
-endef
-define use_local_moveit_perception
-if ! ros2 pkg prefix moveit_ros_perception >/dev/null 2>&1 && \
-    test -d "$(CLEANY_ROS_PERCEPTION_PREFIX)/share/moveit_ros_perception"; then \
-  export AMENT_PREFIX_PATH="$(CLEANY_ROS_PERCEPTION_PREFIX):$${AMENT_PREFIX_PATH}"; \
-  export CMAKE_PREFIX_PATH="$(CLEANY_ROS_PERCEPTION_PREFIX):$${CMAKE_PREFIX_PATH}"; \
-  export LD_LIBRARY_PATH="$(CLEANY_ROS_PERCEPTION_PREFIX)/lib:$${LD_LIBRARY_PATH}"; \
-fi
-endef
-SORTING_ARGS ?=
-GRASP_PREGRASP_SKILL_TESTS := \
-	src/cleany_skill_executor/test/test_can_rgbd.py \
-	src/cleany_skill_executor/test/test_grasp_execution_demo_contract.py \
-	src/cleany_skill_executor/test/test_reobservation.py \
-	src/cleany_skill_executor/test/test_seeded_cartesian.py \
-	src/cleany_skill_executor/test/test_gripper_geometry.py \
-	src/cleany_skill_executor/test/test_cartesian.py \
-	src/cleany_skill_executor/test/test_service_trace.py \
-	src/cleany_skill_executor/test/test_sorting.py \
-	src/cleany_skill_executor/test/test_sorting_coordinator.py \
-	src/cleany_skill_executor/test/test_learned_runtime_launch.py \
-	src/cleany_skill_executor/test/test_sensor_scene.py \
-	src/cleany_skill_executor/test/test_rgbd_projection.py \
-	src/cleany_skill_executor/test/test_nearest_object.py \
-	src/cleany_skill_executor/test/test_grasp_selection.py \
-	src/cleany_skill_executor/test/test_grasp_selection_node.py \
-	src/cleany_skill_executor/test/test_moveit_adapter.py \
-	src/cleany_skill_executor/test/test_planning_scene.py
-GRASP_PREGRASP_MOVEIT_TESTS := \
-	src/cleany_moveit_config/test/test_simulation_collision.py \
-	src/cleany_moveit_config/test/test_study_cafe_collision_scene.py \
-	src/cleany_moveit_config/test/test_moveit_config.py
-GRASP_PREGRASP_MUJOCO_TESTS := \
-	src/cleany_mujoco_sim/test/test_tabletop_performance.py \
-	src/cleany_mujoco_sim/test/test_study_cafe_scene.py \
-	src/cleany_mujoco_sim/test/test_tabletop_shapes.py \
-	src/cleany_mujoco_sim/test/test_placement_verifier.py \
-	src/cleany_mujoco_sim/test/test_sorting_scene.py \
-	src/cleany_mujoco_sim/test/test_study_cafe_backend_config.py
-GRASP_PREGRASP_DESCRIPTION_TESTS := \
-	src/cleany_description/test/test_model_parity.py
-
-.PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo profile-scene-mask profile-mujoco-tabletop profile-mujoco-runtime \
-	build-grasp-pregrasp build-scene-mapping test-scene-mapping test \
-	build-mujoco-observer test-mujoco-observer \
-	test-mission test-mujoco test-grasp-pregrasp \
-	test-grasp-pregrasp-runtime test-gazebo test-gazebo-nav-runtime \
-	test-gazebo-evaluation \
-	sim sim-gazebo \
-	sim-mujoco-study-cafe sim-gazebo-study-cafe clean \
-	sim-mujoco-pipeline sim-mujoco-sorting \
-	vision-init vision-host-setup vision-config vision-build vision-up vision-down vision-shell \
-	vision-feature-id vision-license-check vision-run \
-	anygrasp-up anygrasp-run anygrasp-shell anygrasp-feature-id anygrasp-license-check \
-	perception-up perception-run perception-shell \
-	hybrid-config hybrid-up hybrid-run hybrid-down
-
-.PHONY: build-gazebo-harmonic build-telemetry test-telemetry \
-	test-gazebo-harmonic test-gazebo-safety view-gazebo-costmap \
-	sim-gazebo-harmonic sim-gazebo-office
-
-ROS2_CONTAINER ?= ros2-humble
-BASE_TEST_ROS_DOMAIN_ID ?= 173
-# Run natively inside the Ubuntu Distrobox, enter it when invoked from the host.
-BASE_EXEC ?= $(shell . /etc/os-release; \
-	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
-		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
-
 .PHONY: test-mission-core build-mission-runtime build-mission-sim test-mission-runtime help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-gazebo-harmonic build-handeye build-telemetry test test-mission test-mujoco \
 	test-handeye test-gazebo test-gazebo-harmonic \
-	test-telemetry test-gazebo-nav-runtime test-gazebo-evaluation \
-	test-gazebo-safety view-gazebo-costmap \
+	test-telemetry test-gazebo-nav-runtime test-gazebo-navigation-pipeline test-gazebo-evaluation \
+	test-gazebo-safety test-gazebo-navigation-goals view-gazebo-costmap \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
 	sim-gazebo-study-cafe sim-gazebo-facility clean firmware-setup firmware-smoke firmware-build \
 	firmware-upload test-motor-core build-base test-base \
 	micro-ros-agent-build test-micro-ros-setup
-
-.PHONY: anygrasp-feature-id anygrasp-license-check anygrasp-run anygrasp-shell anygrasp-up \
-	build build-base build-gazebo build-gazebo-harmonic build-grasp-pregrasp \
-	build-handeye build-manipulation build-manipulation-bt build-mujoco-observer \
-	build-scene-mapping build-telemetry check-gazebo-env clean deps deps-gazebo \
-	firmware-build firmware-setup firmware-smoke firmware-upload \
-	handeye-generate-mujoco handeye-mujoco handeye-validate-mujoco help hybrid-config \
-	hybrid-down hybrid-run hybrid-up micro-ros-agent-build perception-run \
-	perception-shell perception-up profile-mujoco-tabletop profile-scene-mask sim \
-	sim-gazebo sim-gazebo-harmonic sim-gazebo-office sim-gazebo-study-cafe \
-	sim-mujoco-manipulation sim-mujoco-pipeline sim-mujoco-sorting \
-	sim-mujoco-study-cafe test test-base test-gazebo test-gazebo-evaluation \
-	test-gazebo-harmonic test-gazebo-nav-runtime test-gazebo-safety \
-	test-grasp-pregrasp test-grasp-pregrasp-runtime test-handeye test-manipulation \
-	test-manipulation-bt test-manipulation-core test-micro-ros-setup test-mission \
-	test-motor-core test-mujoco test-mujoco-observer test-scene-mapping test-telemetry \
-	view-gazebo-costmap vision-build vision-config vision-down vision-feature-id \
-	vision-host-setup vision-init vision-license-check vision-run vision-shell \
-	vision-up
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -151,6 +60,10 @@ help:
 	@echo "  make check-gazebo-env  Detect and verify Humble/Fortress or Jazzy/Harmonic"
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build the detected Gazebo profile"
+	@echo "  make build-navigation  Build common navigation without Gazebo"
+	@echo "  make build-scenario-runtime  Build isolated Gazebo/mission runtime for scenario workers"
+	@echo "  make test-navigation  Test common navigation including C++ plugins"
+	@echo "  make test-navigation-runtime  Test Nav2 serial safety with a synthetic backend"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
 	@echo "  make build-telemetry Build the ROS telemetry package"
 	@echo "  make test          Build and run all colcon tests"
@@ -168,6 +81,8 @@ help:
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test the detected Gazebo profile"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
+	@echo "  make test-gazebo-navigation-goals  Run distant and chair-gap goals headlessly (Fortress)"
+	@echo "  make test-gazebo-navigation-pipeline  Run CAD saved-map goal with full safety (Harmonic)"
 	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
 	@echo "  make test-gazebo-safety  Run SCRUM-306 sensors/monitor/avoid evaluation"
 	@echo "  make view-gazebo-costmap  Show live costmap over saved SLAM map in RViz"
@@ -176,40 +91,13 @@ help:
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
+	@echo "  make sim-gazebo-facility  Run the full 18F facility with ROLY chairs"
 	@echo "  make handeye-mujoco  Run reviewed 20+5 calibration with viewer"
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 	@echo "  make firmware-setup / firmware-smoke / firmware-build"
 	@echo "  make test-motor-core / build-base / test-base"
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
-	@echo "  make build-grasp-pregrasp  Build RGB-D grasp/pre-grasp packages"
-	@echo "  make build-manipulation  Build mock manipulation Action packages"
-	@echo "  make build-manipulation-bt  Build native BT and MuJoCo Action packages"
-	@echo "  make test-manipulation-bt  Test real BT with fake operations and ROS boundaries"
-	@echo "  make sim-mujoco-manipulation  Run single-object MuJoCo BT Action stack"
-	@echo "  make test-manipulation-core  Run manipulation core tests with a fake clock"
-	@echo "  make test-manipulation  Build/test mock Action, DDS traffic and crash recovery"
-	@echo "  make test-grasp-pregrasp  Run focused RGB-D grasp/pre-grasp tests"
-	@echo "  make test-scene-mapping  Build/test optional known-geometry OctoMap updater"
-	@echo "  make test-mujoco-observer  Build/test read-only contact observation"
-	@echo "  make test-grasp-pregrasp-runtime  Run the MoveIt mock execution test"
-	@echo "  make sim-mujoco-study-cafe  Run the study cafe in MuJoCo"
-	@echo "  make sim-mujoco-pipeline  Run YOLOE-seg + Gemini GUI (API key, plan-only)"
-	@echo "  make sim-mujoco-sorting   Run simulation rule-based pick/sort/place"
-	@echo "  make profile-mujoco-tabletop  Compare opt-in tabletop physics/render profiles"
-	@echo "  make profile-mujoco-runtime   Measure pipeline clock/RGB-D/CPU, then stop it"
-	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
-	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
-	@echo "  make sim-gazebo-facility  Run the full 18F facility with ROLY chairs"
-	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
-
-	@echo "  make vision-init   Install /etc/cleany/jetson-identity.env (sudo)"
-	@echo "  make vision-host-setup  Enable Docker bridge networking on Jetson (sudo)"
-	@echo "  make vision-build  Build the Jetson vision development image"
-	@echo "  make anygrasp-up/run    Start/run the isolated AnyGrasp service"
-	@echo "  make perception-up/run Start/run the perception service"
-	@echo "  make hybrid-up/down     Start/stop all implemented GPU services"
-	@echo "  make vision-feature-id Verify the pinned AnyGrasp ID (compatibility alias)"
 
 firmware-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py'
@@ -232,10 +120,10 @@ test-motor-core:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; for f in esp32/host_tests/*.cpp; do g++ -std=c++17 -Wall -Wextra -Werror -pedantic -Iesp32/src "$$f" -o "/tmp/$$(basename "$$f" .cpp)"; "/tmp/$$(basename "$$f" .cpp)"; done'
 
 build-base:
-	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon build --symlink-install --packages-up-to cleany_base_driver cleany_base_odometry'
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS) --packages-up-to cleany_base_driver cleany_base_odometry'
 
 test-base: build-base
-	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source install/setup.bash && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon test --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon test-result --test-result-base "build/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
 
 micro-ros-agent-build:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'
@@ -264,12 +152,49 @@ check-gazebo-env:
 	ros2 pkg prefix ros_gz_bridge >/dev/null && \
 	echo "Gazebo profile: $${CLEANY_GAZEBO_PROFILE} ($${CLEANY_ROS_DISTRO})"
 
+.PHONY: build-navigation test-navigation test-navigation-runtime
+
+build-navigation:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(NAVIGATION_LOG_BASE)" build --symlink-install \
+		--build-base "$(NAVIGATION_BUILD_BASE)" \
+		--install-base "$(NAVIGATION_INSTALL_BASE)" \
+		--packages-up-to cleany_navigation
+
+test-navigation: build-navigation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(NAVIGATION_INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(NAVIGATION_LOG_BASE)" test \
+		--build-base "$(NAVIGATION_BUILD_BASE)" \
+		--install-base "$(NAVIGATION_INSTALL_BASE)" \
+		--packages-select cleany_navigation \
+		--return-code-on-test-failure && \
+	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(NAVIGATION_BUILD_BASE)" --verbose
+
+test-navigation-runtime: build-navigation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(NAVIGATION_INSTALL_BASE)/setup.bash" && \
+	CLEANY_RUN_NAVIGATION_RUNTIME=1 python3 -m pytest -s \
+		src/cleany_navigation/runtime_test/test_navigation.py
+
 build:
 	source "$(ROS_SETUP)" && \
 	$(use_local_moveit_perception) && \
 	$(use_local_behaviortree) && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install $(COLCON_BUILD_ARGS)
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS)
+
+.PHONY: build-scenario-runtime
+build-scenario-runtime:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(SCENARIO_LOG_BASE)" build --symlink-install \
+		--build-base "$(SCENARIO_BUILD_BASE)" \
+		--install-base "$(SCENARIO_INSTALL_BASE)" \
+		--packages-up-to cleany_gazebo_sim cleany_mission_manager cleany_control_bridge cleany_base_odometry
 
 build-gazebo: check-gazebo-env
 	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
@@ -286,22 +211,31 @@ build-gazebo-harmonic:
 build-handeye:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install \
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS) \
 		--packages-up-to cleany_handeye_calibration
 
 build-telemetry:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install --packages-select cleany_telemetry
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS) --packages-select cleany_telemetry
 
 test-telemetry: build-telemetry
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest src/cleany_telemetry/test
 
-# Re-register CMake tests that an earlier broken pytest environment omitted.
 test: COLCON_BUILD_ARGS += --cmake-force-configure
+test: build
+	source "$(ROS_SETUP)" && \
+	$(use_local_moveit_perception) && \
+	$(use_local_behaviortree) && \
+	cd "$(ROS2_WS)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure && \
+	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose && \
+	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" "$(REPO_ROOT)tools/test_ros2_clean.py"
+
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONPATH="$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_control_bridge:$${PYTHONPATH:-}" \
@@ -328,25 +262,24 @@ test-mission-runtime: build-mission-runtime
 	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
 	colcon --log-base "$(MISSION_LOG_BASE)" test --build-base "$(MISSION_BUILD_BASE)" \
 		--install-base "$(MISSION_INSTALL_BASE)" --packages-select $(MISSION_PACKAGES) && \
-	colcon test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
+	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
 
 test-mission: test-mission-core
 
 test-mujoco: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && \
-	python3 -m pytest src/cleany_mujoco_sim/test
+	source "$(INSTALL_BASE)/setup.bash" && \
+	python3 -m pytest src/cleany_mujoco_sim/test/test_scene_loader.py
 
 test-handeye: build-handeye
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	colcon test --python-testing pytest --packages-select $(HANDEYE_PACKAGES) \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select $(HANDEYE_PACKAGES) \
 		--event-handlers console_cohesion+ && \
 	for package in $(HANDEYE_PACKAGES); do \
-		colcon test-result --test-result-base "build/$${package}" \
+		colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$${package}" \
 			--verbose || exit 1; \
 	done
 
@@ -356,9 +289,9 @@ test-gazebo: build-gazebo
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest "$(REPO_ROOT)tools/test_gazebo_profile.py" \
-		src/cleany_gazebo_sim/test && \
-	"$${CLEANY_BUILD_BASE}/cleany_axis_controller/test_axis_generator" && \
-	"$${CLEANY_BUILD_BASE}/cleany_axis_controller/test_yield_wait"
+		src/cleany_gazebo_sim/test src/cleany_navigation/test && \
+	"$${CLEANY_BUILD_BASE}/cleany_navigation/test_axis_generator" && \
+	"$${CLEANY_BUILD_BASE}/cleany_navigation/test_yield_wait"
 
 test-gazebo-harmonic:
 	$(MAKE) GAZEBO_PROFILE=harmonic test-gazebo
@@ -370,6 +303,15 @@ test-gazebo-nav-runtime: build-gazebo
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	python3 -m pytest -s \
 		src/cleany_gazebo_sim/test/test_runtime_simulation.py \
+		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}"
+
+test-gazebo-navigation-pipeline: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 -m pytest -s \
+		src/cleany_gazebo_sim/test/test_runtime_navigation_pipeline.py \
 		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}"
 
 test-gazebo-evaluation: build-gazebo
@@ -403,7 +345,7 @@ view-gazebo-costmap: build-gazebo
 sim: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=true
 
 sim-gazebo: build-gazebo
@@ -422,7 +364,7 @@ handeye-generate-mujoco: build-handeye
 	@mkdir -p "$(HANDEYE_ARTIFACT_ROOT)"
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	ros2 launch cleany_handeye_calibration pose_generation_mujoco.launch.py \
 		output_directory:="$(HANDEYE_PROFILE_DIR)" \
 		artifact_root:="$(HANDEYE_ARTIFACT_ROOT)" \
@@ -445,7 +387,7 @@ handeye-mujoco: build-handeye
 		(echo "runtime config does not exist: $(HANDEYE_RUNTIME_CONFIG); run 'make handeye-generate-mujoco' first" >&2; exit 2)
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
 		pose_manifest:="$(HANDEYE_POSE_MANIFEST)" \
 		runtime_config:="$(HANDEYE_RUNTIME_CONFIG)" \
@@ -463,7 +405,7 @@ handeye-validate-mujoco: build-handeye
 		(echo "materialized URDF does not exist: $(HANDEYE_PROFILE_DIR)/cleany_handeye.urdf" >&2; exit 2)
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	sim_share="$$(ros2 pkg prefix --share cleany_mujoco_sim)" && \
 	ros2 run cleany_handeye_calibration validate_handeye_dataset \
 		--samples "$(HANDEYE_RUN_DIR)/samples.jsonl" \
@@ -502,23 +444,87 @@ sim-gazebo-facility: build-gazebo
 
 clean:
 	"$(REPO_ROOT)tools/ros2-clean"
+
+DEV_MONITOR_WEB := $(ROS2_WS)/src/cleany_dev_monitor/web
+.PHONY: build-dev-monitor-web build-dev-monitor-ros build-dev-monitor test-dev-monitor run-dev-monitor
+build-dev-monitor-web:
+	pnpm --dir "$(DEV_MONITOR_WEB)" install --frozen-lockfile
+	pnpm --dir "$(DEV_MONITOR_WEB)" build
+
+build-dev-monitor-ros:
+	@test -f "$(DEV_MONITOR_WEB)/dist/index.html" || (echo "Run make build-dev-monitor-web first" >&2; exit 2)
+	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_dev_monitor
+
+build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
+
+test-dev-monitor:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+
+run-dev-monitor:
+	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
+	ros2 run cleany_dev_monitor dev_monitor --ros-args \
+		--params-file "$(ROS2_WS)/src/cleany_dev_monitor/config/monitor.yaml" $(MONITOR_ROS_ARGS)
+
+.PHONY: test-scenario-tools
+test-scenario-tools:
+	PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -c /dev/null --rootdir="$(REPO_ROOT)" -q \
+		"$(REPO_ROOT)"tools/scenario_validation/test_*.py
+
+# Goal evidence is retained outside pytest temporary directories.
+NAVIGATION_GOAL_OUTPUT ?= $(CLEANY_DATA_ROOT)/runs/navigation-goals-$(shell date +%Y%m%d-%H%M%S)
+NAVIGATION_GOAL_RTF ?= 2
+
+test-gazebo-navigation-goals: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	test "$${CLEANY_GAZEBO_PROFILE}" = fortress && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	python3 -m pytest -s src/cleany_gazebo_sim/test/test_runtime_navigation_goals.py \
+		--run-sim-runtime --sim-profile="$${CLEANY_GAZEBO_PROFILE}" \
+		--navigation-output="$(NAVIGATION_GOAL_OUTPUT)" --navigation-rtf="$(NAVIGATION_GOAL_RTF)"
+
+.PHONY: print-install-base print-navigation-install-base print-scenario-install-base
+print-install-base:
+	@printf '%s\n' '$(INSTALL_BASE)'
+print-navigation-install-base:
+	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
+print-scenario-install-base:
+	@printf '%s\n' '$(SCENARIO_INSTALL_BASE)'
+
+COLCON_BUILD_ARGS ?=
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD ?= 1
+CLEANY_BT_PREFIX ?= $(HOME)/.local/share/cleany/behaviortree-cpp/opt/ros/humble
+define use_local_behaviortree
+if test -d "$(CLEANY_BT_PREFIX)/share/behaviortree_cpp"; then \
+  export AMENT_PREFIX_PATH="$(CLEANY_BT_PREFIX):$${AMENT_PREFIX_PATH}"; \
+  export CMAKE_PREFIX_PATH="$(CLEANY_BT_PREFIX):$${CMAKE_PREFIX_PATH}"; \
+  export LD_LIBRARY_PATH="$(CLEANY_BT_PREFIX)/lib:$${LD_LIBRARY_PATH}"; \
+fi
+endef
+.PHONY: build-manipulation build-manipulation-bt test-manipulation-bt sim-mujoco-manipulation test-manipulation-core test-manipulation build-grasp-pregrasp build-scene-mapping test-scene-mapping build-mujoco-observer test-mujoco-observer profile-scene-mask test-grasp-pregrasp test-grasp-pregrasp-runtime sim-mujoco-study-cafe profile-mujoco-tabletop sim-mujoco-sorting sim-mujoco-pipeline vision-init vision-host-setup vision-config vision-build vision-up vision-down vision-shell vision-feature-id vision-license-check vision-run anygrasp-up anygrasp-run anygrasp-shell anygrasp-feature-id anygrasp-license-check perception-up perception-run perception-shell hybrid-config hybrid-up hybrid-run hybrid-down
+
 build-manipulation:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install --packages-select cleany_interfaces cleany_skill_executor
+	colcon --log-base "$(LOG_BASE)" build --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --symlink-install --packages-select cleany_interfaces cleany_skill_executor
 
 build-manipulation-bt:
 	source "$(ROS_SETUP)" && \
 	$(use_local_moveit_perception) && \
 	$(use_local_behaviortree) && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install --packages-up-to cleany_manipulation_bt $(COLCON_BUILD_ARGS)
+	colcon --log-base "$(LOG_BASE)" build --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --symlink-install --packages-up-to cleany_manipulation_bt $(COLCON_BUILD_ARGS)
 
 test-manipulation-bt: build-manipulation-bt
 	source "$(ROS_SETUP)" && \
 	$(use_local_behaviortree) && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest -q src/cleany_manipulation_bt/test \
 		src/cleany_perception/test/test_inspection_node.py \
 		src/cleany_skill_executor/test/test_sorting_coordinator.py \
@@ -530,7 +536,7 @@ sim-mujoco-manipulation: build-manipulation-bt
 	$(use_local_moveit_perception) && \
 	$(use_local_behaviortree) && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	ros2 launch cleany_manipulation_bt manipulation_mujoco.launch.py $(SORTING_ARGS)
 
 test-manipulation-core:
@@ -542,7 +548,7 @@ test-manipulation-core:
 test-manipulation: build-manipulation
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest -q src/cleany_interfaces/test/test_interface_contract.py \
 		src/cleany_skill_executor/test/test_manipulation_core.py \
 		src/cleany_skill_executor/test/test_manipulation_runtime.py \
@@ -553,50 +559,50 @@ build-grasp-pregrasp:
 	source "$(ROS_SETUP)" && \
 	$(use_local_moveit_perception) && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install \
+	colcon --log-base "$(LOG_BASE)" build --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --symlink-install \
 		--packages-up-to $(GRASP_PREGRASP_PACKAGES)
 
 build-scene-mapping:
 	source "$(ROS_SETUP)" && \
 	$(use_local_moveit_perception) && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install --packages-select cleany_scene_mapping
+	colcon --log-base "$(LOG_BASE)" build --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --symlink-install --packages-select cleany_scene_mapping
 
 test-scene-mapping: build-scene-mapping
 	source "$(ROS_SETUP)" && \
 	$(use_local_moveit_perception) && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	colcon test --packages-select cleany_scene_mapping --event-handlers console_direct+ && \
-	colcon test-result --test-result-base build/cleany_scene_mapping --verbose
+	source "$(INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_scene_mapping --event-handlers console_direct+ && \
+	colcon test-result --test-result-base "$(BUILD_BASE)/cleany_scene_mapping" --verbose
 
 build-mujoco-observer:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon build --symlink-install --packages-select cleany_mujoco_observer
+	colcon --log-base "$(LOG_BASE)" build --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --symlink-install --packages-select cleany_mujoco_observer
 
 test-mujoco-observer: build-mujoco-observer
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
-	colcon test --packages-select cleany_mujoco_observer --event-handlers console_direct+ && \
-	colcon test-result --test-result-base build/cleany_mujoco_observer --verbose
+	source "$(INSTALL_BASE)/setup.bash" && \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_mujoco_observer --event-handlers console_direct+ && \
+	colcon test-result --test-result-base "$(BUILD_BASE)/cleany_mujoco_observer" --verbose
 
 profile-scene-mask: build-scene-mapping
 	source "$(ROS_SETUP)" && \
 	source "$(ROS2_WS)/install/setup.bash" && \
 	$(use_local_moveit_perception) && \
-	"$(ROS2_WS)/build/cleany_scene_mapping/profile_mask" "$(MASK_FIXTURE)"
+	"$(BUILD_BASE)/cleany_scene_mapping/profile_mask" "$(MASK_FIXTURE)"
 
 test-grasp-pregrasp: build-grasp-pregrasp
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	$(use_local_moveit_perception) && \
 	export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && \
-	colcon test --packages-select cleany_scene_mapping cleany_mujoco_observer --event-handlers console_cohesion+ && \
-	colcon test-result --test-result-base build/cleany_scene_mapping --verbose && \
-	colcon test-result --test-result-base build/cleany_mujoco_observer --verbose && \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_scene_mapping cleany_mujoco_observer --event-handlers console_cohesion+ && \
+	colcon test-result --test-result-base "$(BUILD_BASE)/cleany_scene_mapping" --verbose && \
+	colcon test-result --test-result-base "$(BUILD_BASE)/cleany_mujoco_observer" --verbose && \
 	python3 -m pytest -q \
 		src/cleany_interfaces/test/test_interface_contract.py && \
 	python3 -m pytest -q src/cleany_perception/test && \
@@ -609,7 +615,7 @@ test-grasp-pregrasp: build-grasp-pregrasp
 test-grasp-pregrasp-runtime: build-grasp-pregrasp
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && \
 	python3 -m pytest -q -s \
 		src/cleany_moveit_config/test/test_mock_planning_runtime.py
@@ -617,7 +623,7 @@ test-grasp-pregrasp-runtime: build-grasp-pregrasp
 sim-mujoco-study-cafe: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	source install/setup.bash && \
+	source "$(INSTALL_BASE)/setup.bash" && \
 	ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=false
 
 profile-mujoco-tabletop: build-grasp-pregrasp
@@ -703,24 +709,47 @@ hybrid-run:
 hybrid-down:
 	"$(REPO_ROOT)tools/vision-container" hybrid-down
 
-build-dev-monitor-web:
-	pnpm --dir "$(DEV_MONITOR_WEB)" install --frozen-lockfile
-	pnpm --dir "$(DEV_MONITOR_WEB)" build
-
-build-dev-monitor-ros:
-	@test -f "$(DEV_MONITOR_WEB)/dist/index.html" || (echo "Run make build-dev-monitor-web first" >&2; exit 2)
-	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
-	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
-		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
-		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_dev_monitor
-
-build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
-
-test-dev-monitor:
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
-	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
-
-run-dev-monitor:
-	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
-	ros2 run cleany_dev_monitor dev_monitor --ros-args \
-		--params-file "$(ROS2_WS)/src/cleany_dev_monitor/config/monitor.yaml" $(MONITOR_ROS_ARGS)
+GRASP_PREGRASP_PACKAGES := cleany_interfaces cleany_description \
+	cleany_mujoco_sim cleany_mujoco_observer cleany_moveit_config cleany_perception \
+	cleany_grasping cleany_skill_executor cleany_scene_mapping
+CLEANY_ROS_PERCEPTION_PREFIX ?= $(HOME)/.local/share/cleany/moveit-perception/opt/ros/humble
+SORTING_ARGS ?=
+GRASP_PREGRASP_SKILL_TESTS := \
+	src/cleany_skill_executor/test/test_can_rgbd.py \
+	src/cleany_skill_executor/test/test_grasp_execution_demo_contract.py \
+	src/cleany_skill_executor/test/test_reobservation.py \
+	src/cleany_skill_executor/test/test_seeded_cartesian.py \
+	src/cleany_skill_executor/test/test_gripper_geometry.py \
+	src/cleany_skill_executor/test/test_cartesian.py \
+	src/cleany_skill_executor/test/test_service_trace.py \
+	src/cleany_skill_executor/test/test_sorting.py \
+	src/cleany_skill_executor/test/test_sorting_coordinator.py \
+	src/cleany_skill_executor/test/test_learned_runtime_launch.py \
+	src/cleany_skill_executor/test/test_sensor_scene.py \
+	src/cleany_skill_executor/test/test_rgbd_projection.py \
+	src/cleany_skill_executor/test/test_nearest_object.py \
+	src/cleany_skill_executor/test/test_grasp_selection.py \
+	src/cleany_skill_executor/test/test_grasp_selection_node.py \
+	src/cleany_skill_executor/test/test_moveit_adapter.py \
+	src/cleany_skill_executor/test/test_planning_scene.py
+GRASP_PREGRASP_MOVEIT_TESTS := \
+	src/cleany_moveit_config/test/test_simulation_collision.py \
+	src/cleany_moveit_config/test/test_study_cafe_collision_scene.py \
+	src/cleany_moveit_config/test/test_moveit_config.py
+GRASP_PREGRASP_MUJOCO_TESTS := \
+	src/cleany_mujoco_sim/test/test_tabletop_performance.py \
+	src/cleany_mujoco_sim/test/test_study_cafe_scene.py \
+	src/cleany_mujoco_sim/test/test_tabletop_shapes.py \
+	src/cleany_mujoco_sim/test/test_placement_verifier.py \
+	src/cleany_mujoco_sim/test/test_sorting_scene.py \
+	src/cleany_mujoco_sim/test/test_study_cafe_backend_config.py
+GRASP_PREGRASP_DESCRIPTION_TESTS := \
+	src/cleany_description/test/test_model_parity.py
+define use_local_moveit_perception
+if ! ros2 pkg prefix moveit_ros_perception >/dev/null 2>&1 && \
+    test -d "$(CLEANY_ROS_PERCEPTION_PREFIX)/share/moveit_ros_perception"; then \
+  export AMENT_PREFIX_PATH="$(CLEANY_ROS_PERCEPTION_PREFIX):$${AMENT_PREFIX_PATH}"; \
+  export CMAKE_PREFIX_PATH="$(CLEANY_ROS_PERCEPTION_PREFIX):$${CMAKE_PREFIX_PATH}"; \
+  export LD_LIBRARY_PATH="$(CLEANY_ROS_PERCEPTION_PREFIX)/lib:$${LD_LIBRARY_PATH}"; \
+fi
+endef

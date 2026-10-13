@@ -167,6 +167,10 @@ def shell_environment(profile: GazeboProfile) -> str:
         'CLEANY_UBUNTU_VERSION': profile.ubuntu_version,
         'CLEANY_PYTHON_VERSION': profile.python_version,
     }
+    build_root = os.environ.get('CLEANY_BUILD_ROOT')
+    if build_root:
+        for name in ('CLEANY_BUILD_BASE', 'CLEANY_INSTALL_BASE', 'CLEANY_LOG_BASE'):
+            values[name] = str(Path(build_root).expanduser().resolve() / values[name])
     return '\n'.join(
         f'{name}={shlex.quote(value)}' for name, value in values.items()
     )

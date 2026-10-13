@@ -32,7 +32,7 @@ INTERRUPTED를 보고합니다. 동일 mission ID를 새 실행으로 처리하�
 
 ```bash
 make build-mission-runtime
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 run cleany_control_bridge control_bridge --ros-args \
   -p url:=ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws \
   -p journal_path:=/tmp/cleany-lab-bridge.db

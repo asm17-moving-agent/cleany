@@ -313,7 +313,10 @@ sorting의 기존 50 mm 최소 파지 후보 폭보다 작으므로 자동 집�
 직접 launch할 수도 있다.
 
 ```bash
-ros2 launch cleany_mujoco_sim mujoco_study_cafe.launch.py headless:=false
+make build
+source /opt/ros/humble/setup.bash
+source "$(make -s print-install-base)/setup.bash"
+ros2 launch cleany_mujoco_sim mujoco_sim.launch.py headless:=false
 ```
 
 전체 수거와 인식 파이프라인은 레포지토리 루트에서 실행한다.
@@ -325,9 +328,92 @@ make test-grasp-pregrasp
 make test-mujoco
 ```
 
-`make test-mujoco`는 현재 장면과 custom bridge의 전체 단위 테스트를 검사한다.
-기존 데모와 장애물 없는 바닥의 주행 검사, 공통 명령 검증·timeout·휠 매핑 검사도
-포함한다. 전체 물리 수거 성공은 별도 검증 대상이다.
+이 장면의 table은 `1.20 x 0.77 x 0.03 m`, 중심은
+`(0.635, -0.002, 0.710) m`이며 고정 box/can과 정렬된 RGB-D 및 평가용 OBB를
+발행한다. 물체 동역학이나 실제 파지 실행을 검증하는 장면은 아니다.
+
+Hand-eye arm controller backend는 별도로 실행한다. 이 launch는 기존
+`mujoco_sim_node`를 include하거나 시작하지 않는다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source "$(make -s print-install-base)/setup.bash"
+ros2 launch cleany_mujoco_sim handeye_backend.launch.py \
+  headless:=true sim_speed_factor:=1.0
+```
+
+RGB-D pick-demo 장면은 EGL renderer, 아래로 `0.8 rad` 기울인 head, 비활성화된
+laser scan으로 별도 노드를 실행한다.
+
+```bash
+make build
+source /opt/ros/humble/setup.bash
+source "$(make -s print-install-base)/setup.bash"
+ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
+```
+
+장면의 상판은 `1.20 x 0.77 x 0.03 m`, 중심은
+`(0.635, -0.002, 0.710) m`, 상면은 world `Z=0.725 m`다. 평가 대상은 고정된
+파란 상자와 빨간 캔이다. 이 첫 장면은 perception과 위치 기반 IK를 반복 가능하게
+평가하기 위한 것으로 물체 동역학이나 실제 파지 동작을 검증하지 않는다.
+
+`scenes/grasp_execution_demo.xml.in`은 같은 backend에서 MoveIt-selected trajectory를
+육안 확인하기 위한 전용 장면이다. chassis를 world에 고정하고, 기본 demo grasp/OBB와
+동일한 `base_link` 중심 `(0.09, 0.6696, 0.6158) m`, 크기 `0.03 m`의 초록색
+고정 box를 둔다. MuJoCo world에서는 초기 chassis 원점 Z=0.38 m를 더한
+`(0.09, 0.6696, 0.9958) m`에 배치되어 RViz/MoveIt target과 물리 위치가 일치한다.
+이 box는 아직 gripper command/force closure가 없는 reach 데모에서 controller 접촉
+오차를 만들지 않도록 MuJoCo에서는 render-only다. 동일 OBB의 collision 검사는
+MoveIt planning scene에서 수행한다. 통합 실행은 `cleany_skill_executor`의
+`grasp_execution_demo.launch.py`를 사용한다.
+
+`scenes/can_grasp_execution_demo.xml.in`은 실제 렌더 RGB-D 기반 grasp 통합 장면이다.
+chassis 기준 table 중심은 `(0.700, -0.002, 0.330) m`, 빨간 can 중심은
+`(0.540, 0.160, 0.395) m`이고 `pick_demo_rgbd` 카메라는 640×480, vertical FOV
+42°다. table과 can은 모두 MuJoCo 물리 충돌체다. 검출 OBB는 후보 검증 중 MoveIt에
+등록하고, pre-grasp 실제 실행 중에는 can cylinder를 contact permission 없이
+유지한다. 선택된 gripper를 연 뒤 can 접촉 전 0.14 m pre-grasp에서 멈춘다.
+통합 실행은 `cleany_skill_executor`의 `can_grasp_execution_demo.launch.py`를 사용한다.
+
+이 backend의 기본값은 `scenes/handeye.xml.in`이다. 전용 scene은 canonical MJCF를
+그대로 include하고 `chassis`를 world에 weld하며, 고정 table/stand와
+7×5 ChArUco target을 추가한다. 기존 `mujoco_sim.launch.py`와 custom simulator의
+기본 `scenes/default.xml.in` 경로는 그대로 유지된다.
+
+Scene 계약과 printable board provenance는
+`config/handeye_scene.yaml` (`cleany.handeye_scene/v1`)에 기록한다. Simulation은
+30 mm square/15 mm marker nominal 값을 사용한다. Physical profile의 실측값은 현재
+`not_measured`/`null`이며 임의 수치로 대체하지 않는다. 실제 인쇄물을 100% scale,
+page fitting 비활성화로 출력하고 실측 provenance를 채우기 전에는 physical
+preflight가 실패한다.
+
+같은 manifest는 wrist camera render/public contract도 고정한다. 640×480,
+vertical FOV 93°에서
+`f=(height/2)/tan(fovy/2)=227.751496 px`, `cx=319.5`, `cy=239.5`를 사용한다.
+Public `CameraInfo`는 `plumb_bob`, 5개 zero `D`, identity `R`, manifest의 exact
+`K/P`를 사용한다. Width/height/FOV/formula/K/D/R/P 중 하나라도 바뀌면 simulation
+preflight가 실패하고 adapter가 collection message를 발행하지 않는다.
+
+```bash
+ros2 run cleany_mujoco_sim handeye_scene_preflight --profile simulation
+# 실측값 기록 전에는 의도적으로 exit 2
+ros2 run cleany_mujoco_sim handeye_scene_preflight --profile physical
+```
+
+Printable SVG/PDF는 OpenCV 4.5.4 `CharucoBoard`의 7×5,
+`DICT_5X5_100`, marker IDs 0–16 패턴을 같은 lossless vector run으로 표현한다.
+파일별 SHA-256과 210×150 mm media 크기는 manifest에 고정되어 있다. Target GT는
+OpenCV 4.5 object frame(인쇄면 좌하단 원점, +X 오른쪽, +Y 위, +Z 인쇄면 밖)의
+`base_T_target`이며 평가 전용이다. PnP 후보 선택이나 solver 입력에는 사용하지 않는다.
+
+전용 raw action/runtime 계약은 다음으로 검증한다.
+
+```bash
+cd ros2_ws
+pytest -q -s \
+  src/cleany_mujoco_sim/test/test_handeye_backend_runtime.py \
+  src/cleany_mujoco_sim/test/test_handeye_camera_runtime.py
+```
 
 ## ROS contract
 

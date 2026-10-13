@@ -1,16 +1,14 @@
 """ROS transport only; executor BT/stage order is not part of Mission control."""
 
-from uuid import UUID
-
-from action_msgs.msg import GoalInfo
 from action_msgs.srv import CancelGoal
 from rclpy.action import ActionClient
 from rclpy.task import Future
-from unique_identifier_msgs.msg import UUID as GoalUUID
 
 from cleany_interfaces.action import ExecuteManipulationSkill
 from cleany_interfaces.srv import GetManipulationExecution
 from cleany_mission_manager.core.runtime_models import ManipulationOutcome
+
+from .goals import cancel_request, goal_uuid
 
 
 def translated(future, convert, cancel_source=None):
@@ -59,11 +57,10 @@ class ROSManipulationTransport:
     def send(self, goal: dict):
         request = ExecuteManipulationSkill.Goal(**goal)
         return translated(self.client.send_goal_async(
-            request, goal_uuid=GoalUUID(uuid=list(UUID(goal["execution_id"]).bytes))), GoalHandle)
+            request, goal_uuid=goal_uuid(goal["execution_id"])), GoalHandle)
 
     def cancel(self, execution_id: str):
-        goal = GoalInfo(goal_id=GoalUUID(uuid=list(UUID(execution_id).bytes)))
-        future = self.cancel_client.call_async(CancelGoal.Request(goal_info=goal))
+        future = self.cancel_client.call_async(cancel_request(execution_id))
         return translated(future, lambda response: response, self.cancel_client.remove_pending_request)
 
     def lookup(self, execution_id: str):

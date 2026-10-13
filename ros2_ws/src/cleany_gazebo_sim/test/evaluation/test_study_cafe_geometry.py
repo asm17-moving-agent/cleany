@@ -369,7 +369,7 @@ def test_desks_follow_3_2_3_wall_touching_layout(tmp_path: Path) -> None:
     assert round((ys[0] - 0.385) - (-5.47), 2) == 1.53
 
 
-def test_chairs_overlap_tabletop_edge_by_23_cm(
+def test_chairs_overlap_tabletop_edge_by_33_cm(
     tmp_path: Path,
 ) -> None:
     world = _world(tmp_path)
@@ -381,7 +381,7 @@ def test_chairs_overlap_tabletop_edge_by_23_cm(
         round(float(chair.findtext('pose', '').split()[1]), 2)
         for chair in chairs
     })
-    assert chair_ys == [-3.94, -2.4, -0.77, 0.77, 2.4, 3.94]
+    assert chair_ys == [-3.84, -2.5, -0.67, 0.67, 2.5, 3.84]
 
     for chair in chairs:
         suffix = chair.get('name', '').removeprefix('office_chair_')
@@ -393,7 +393,7 @@ def test_chairs_overlap_tabletop_edge_by_23_cm(
         # 0.23 m forward from its origin after accounting for its -0.03 m
         # local offset and 0.52 m front-to-back collision size.
         edge_to_seat_front = abs(chair_y - desk_y) - 0.385 - 0.23
-        assert round(edge_to_seat_front, 2) == -0.23
+        assert round(edge_to_seat_front, 2) == -0.33
 
     # Backrests extend 0.40 m away from the chair origin.
     chair_back_extent = 0.40
@@ -407,8 +407,8 @@ def test_chairs_overlap_tabletop_edge_by_23_cm(
         chair_ys[0] - chair_back_extent - (-5.47),
         5.47 - (chair_ys[-1] + chair_back_extent),
     )
-    assert tuple(round(width, 2) for width in cross_aisles) == (0.83, 0.83)
-    assert tuple(round(width, 2) for width in perimeter_aisles) == (1.13, 1.13)
+    assert tuple(round(width, 2) for width in cross_aisles) == (1.03, 1.03)
+    assert tuple(round(width, 2) for width in perimeter_aisles) == (1.23, 1.23)
 
 
 def test_every_chair_faces_its_assigned_desk(tmp_path: Path) -> None:

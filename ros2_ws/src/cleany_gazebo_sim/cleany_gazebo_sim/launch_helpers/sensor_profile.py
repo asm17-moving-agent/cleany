@@ -11,6 +11,7 @@ from launch_ros.actions import Node
 SENSOR_PROFILES = (
     'lidar_nav',
     'lidar_depth_nav',
+    'lidar_rgbd_nav',
     'head_rgbd',
     'left_wrist',
     'right_wrist',
@@ -20,6 +21,7 @@ SENSOR_PROFILES = (
 _PROFILE_BRIDGES = {
     'lidar_nav': ('lidar',),
     'lidar_depth_nav': ('lidar', 'head_depth'),
+    'lidar_rgbd_nav': ('lidar', 'head_rgbd'),
     'head_rgbd': ('head_rgbd',),
     'left_wrist': ('left_wrist',),
     'right_wrist': ('right_wrist',),
@@ -84,10 +86,14 @@ def _sensor_bridge_nodes(
                     )
                 }
             ],
+            remappings=[('/clock', '/gazebo/raw_clock'),
+                        ('/joint_states', '/gazebo/raw_joint_states')] if group == 'core' else [],
             output='screen',
         )
         for group in sensor_profile_bridge_groups(profile)
-    ]
+    ] + [Node(package='cleany_gazebo_sim', executable='gazebo_feedback_sampler',
+              name='gazebo_feedback_sampler', parameters=[{'publish_period_s': .02}],
+              output='screen')]
 
 
 def sensor_profile_bridges(

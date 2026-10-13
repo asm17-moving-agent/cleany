@@ -44,7 +44,7 @@ class BaseDriver(Node):
         self.create_subscription(Twist, 'cmd_vel', self.on_twist, 10)
         self.create_service(SetBool, 'base/enable', self.on_enable)
         self.enabled = False
-        self.latest = self.latest_receipt = self.last_state_receipt = None
+        self.latest = self.last_state_receipt = None
         self.last_cmd_receipt = self.last_state_sequence = self.last_mcu_timestamp = None
         self.latest_twist = None
         self.boot_id = None
@@ -59,7 +59,7 @@ class BaseDriver(Node):
         return self._mcu_now() + min(200000, int(self.limits.timeout_s * 1e6))
 
     def _mcu_now(self) -> int:
-        return self.latest.timestamp_us + max(0, int((time.monotonic() - self.latest_receipt) * 1e6))
+        return self.latest.timestamp_us + max(0, int((time.monotonic() - self.last_state_receipt) * 1e6))
 
     def _send(self, mode: int, values=(0., 0., 0., 0.), sequence=None, deadline=0) -> WheelCommand:
         msg = WheelCommand()
@@ -147,8 +147,7 @@ class BaseDriver(Node):
         self.boot_id = msg.boot_id
         self.last_state_sequence = msg.sequence
         self.last_mcu_timestamp = msg.timestamp_us
-        self.latest, self.latest_receipt = msg, now
-        self.last_state_receipt = now
+        self.latest, self.last_state_receipt = msg, now
         if self.command_sequence is None or newer(msg.last_command_sequence, self.command_sequence):
             self.command_sequence = msg.last_command_sequence
         if self.pending_enable is not None:
@@ -164,13 +163,12 @@ class BaseDriver(Node):
             if self.pending_enable is None:
                 self._disable(f'MCU fault bits: {msg.fault_bits:#x}')
         positions = self.encoder.update(msg.boot_id, tuple(msg.encoder_counts))
-        if positions is not None:
-            out = JointState()
-            out.header.stamp = self.get_clock().now().to_msg()
-            out.name = ['front_left_wheel_joint', 'front_right_wheel_joint',
-                        'rear_left_wheel_joint', 'rear_right_wheel_joint']
-            out.position, out.velocity = list(positions), [float(v) for v in msg.velocity_rad_s]
-            self.joints.publish(out)
+        out = JointState()
+        out.header.stamp = self.get_clock().now().to_msg()
+        out.name = ['front_left_wheel_joint', 'front_right_wheel_joint',
+                    'rear_left_wheel_joint', 'rear_right_wheel_joint']
+        out.position, out.velocity = list(positions), [float(v) for v in msg.velocity_rad_s]
+        self.joints.publish(out)
 
     def tick(self) -> None:
         now = time.monotonic()
@@ -178,7 +176,7 @@ class BaseDriver(Node):
             if self.enabled:
                 self._disable('stale wheel feedback')
             if self.latest is not None:
-                self.latest = self.latest_receipt = self.last_state_receipt = None
+                self.latest = self.last_state_receipt = None
                 self.encoder.rebase()
             return
         if not self.enabled:

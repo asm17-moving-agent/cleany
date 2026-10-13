@@ -23,8 +23,7 @@ Perception과 Planner는 **명시적 Mock**입니다. Executor는 기본 로컬 
 | 교체 가능한 책상 Mock | `mocks/desk.py` |
 | ROS service 및 steady-clock tick | `node.py` |
 
-기존 `core/manager.py`의 동기식 prototype은 호환성을 위해 유지합니다.
-신규 ROS 실행 경로는 `MissionRuntime`을 사용합니다.
+ROS 실행 경로는 `MissionRuntime`을 사용합니다.
 
 ## 실행 흐름과 소유권
 
@@ -44,7 +43,7 @@ flowchart LR
 ```
 
 Backend가 Queue와 배차를 소유합니다. Runtime은 별도 Queue를 만들지 않고, IDLE 및
-모든 port의 준비·정지 여부, 지원 좌석, 요청 유형을 검사해 하나만 수락합니다.
+모든 port의 준비·정지 여부, 지원 좌석, 요청 유형을 검사해 하나만 수락합니다. Nav2의 준비 검사는 `required_navigation_lifecycle_nodes`의 모든 노드가 active이고 lifecycle 응답이 `lifecycle_timeout` 이내인지 확인합니다. 기본 목록은 map_server, amcl, planner_server, controller_server, bt_navigator, collision_monitor입니다. Nav2 action server만 켜져 있고 collision monitor 초기화가 끝나지 않은 상태에서는 `NAV2_NOT_READY`로 요청을 거절하며 주행 goal을 보내지 않습니다. 다른 실행 profile의 목록은 ROS parameter로 명시하되, 필요한 안전 체인이 준비됐다는 확인을 대신하지 않습니다.
 동일 mission ID·동일 요청은 재실행하지 않습니다. 다른 내용으로 ID를 재사용하면 거절합니다.
 
 FSM은 `IDLE → NAVIGATE_TO_TARGET → WORKING → POST_MISSION → RETURN_HOME/IDLE`이며
@@ -101,7 +100,7 @@ home은 study-cafe **시뮬레이션 접근 후보**입니다. 충전 dock·팔 
 
 ```bash
 make build-mission-runtime
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_mission_manager mission_runtime.launch.py \
   gateway_url:=ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws \
   post_mission:=wait_for_next
@@ -115,12 +114,12 @@ Nav2 없이 구조를 확인할 때는 위 명령에 `navigation_backend:=mock`�
 make test-mission-core
 make test-mission-runtime
 # 실제 ROS transport와 fake Nav2 server를 사용하는 선택 검사
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ROS_DOMAIN_ID=82 CLEANY_RUN_ROS_TESTS=1 make test-mission-core
 ```
 
 ROS transport 검사는 Gazebo·실물 검증과 구분합니다. 시험 결과와 제한은
-[SCRUM-420 검증 기록](../../../docs/validation/scrum-420-mission-runtime.md)에 정리합니다.
+[SCRUM-420 검증 기록](../../../docs/validation/README.md)에 정리합니다.
 기획 근거는 KB [Mission Lifecycle](../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Lifecycle.md),
 [Robot ROS Contract](../../../docs/cleany-docs/20_TECHNICAL/10%20-%20Robot%20ROS%20Contract.md),
 [안전](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)을 따릅니다.
@@ -207,6 +206,7 @@ ROS_DOMAIN_ID=185 CLEANY_RUN_ROS_TESTS=1 CLEANY_RUN_MANIPULATION_TESTS=1 make te
   KB와 충돌하는 정책은 임의 확정하지 않으며 KB 수정은 명시 요청이 있을 때 수행합니다.
 - MVP 범위나 안전 정책이 아직 검토 중이면 [기획 KB 안내](../../../docs/cleany-docs/00_START_HERE/00%20-%20README.md)와 [Planning Questions](../../../docs/cleany-docs/10_PLANNING/99%20-%20Questions.md)를 우선 확인합니다.
 
+
 ### 개발용 FSM/BT 관측
 
 `mission/debug_snapshot`을 최대 2 Hz로, `mission/runtime_events`를 FSM tick 뒤에 발행한다.
@@ -217,3 +217,72 @@ ROS_DOMAIN_ID=185 CLEANY_RUN_ROS_TESTS=1 CLEANY_RUN_MANIPULATION_TESTS=1 make te
 `cleany_dev_monitor`는 이 정보와 ROS graph/TF/토픽을 읽어 개발 화면을 제공한다.
 자세한 실행과 관측 의미는 [개발 관제보드 README](../cleany_dev_monitor/README.md)를 본다.
 `safe_to_drive`는 기존 executor의 판단을 보여주며 관제보드가 새로 안전 판단을 하지 않는다.
+
+
+### Full-facility simulation approach map
+
+`config/full_facility_targets.yaml` maps all 82 facility seats into the
+`facility_integration` reference-map frame. These are approximate navigation
+approaches, not calibrated manipulation poses. Desk fronts are inferred from
+chair placement; chairs remain in the scene. Tight A rooms use corner approaches,
+and A23/A24 (`seat-a2-03` / `seat-a2-04`) use the opposite side because the chair side cannot fit this robot.
+Some targets are shared or offset along the row; navigation success does not
+establish arm reach or cleaning access.
+
+Regenerate for the materialized SDF and its static reference map inside Humble:
+
+```bash
+python3 tools/facility/generate_mission_targets.py \
+  --world artifacts/gui-integration-20261003/world.sdf \
+  --map artifacts/gui-integration-20261003/facility_integration.yaml \
+  --chair-mesh-root "$HOME/.ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1" \
+  --output ros2_ws/src/cleany_mission_manager/config/full_facility_targets.yaml \
+  --override seat-08 5.075 4.775 -1.570796
+```
+
+The generator checks the padded CAD footprint against the reference map and
+conservative mesh-chair XY bounds. It also checks membership in the home's
+static free-space component; this is not proof that the whole path fits the
+oriented footprint. Verify with the running Nav2 planner before mission use.
+The adjacent `.validation.json` records front/side offsets for review. The tool
+requires NumPy, SciPy, Pillow and PyYAML.
+
+Facility model IDs (for example `A41`) are converted to gateway IDs
+(`seat-a4-01`); D-HUB IDs remain `seat-01` through `seat-48`. The 08 override
+moves its goal toward the front corner after live planner review.
+
+Select this map explicitly (keep the study-cafe default for its separate world):
+
+```bash
+ros2 launch cleany_mission_manager mission_runtime.launch.py \
+  targets_file:=$PWD/ros2_ws/src/cleany_mission_manager/config/full_facility_targets.yaml
+```
+
+The gateway advertises the registry's seat IDs to the dashboard after runtime
+startup. Restart the mission runtime while IDLE to apply a changed registry.
+
+### Independent navigation arrival check
+
+A successful Nav2 action is insufficient to start desk work. After terminal action status and fresh stopped wheel odometry, the navigator checks a fresh map-to-base transform against the original requested pose. `arrival_position_tolerance` (default .08 m), `arrival_yaw_tolerance` (.15 rad), and `arrival_pose_timeout` (.5 s) are runtime parameters. A missing, stale, invalid or out-of-bounds pose after `navigation_settle_timeout` becomes `NAVIGATION_FAIL`; no observation or cleaning phase starts. Planner endpoint tolerance and controller goal tolerance therefore cannot accumulate silently. Successful adapter data includes the estimated arrival position and yaw error. These checks validate localization-frame arrival, not physical desk/arm reach or true-pose accuracy.
+
+Stopped feedback checks both reception age and its ROS timestamp. ROS transport tests include a fixture that reports Nav2 success without moving; it must fail before desk work.
+
+The facility target generator takes `--localization-margin` (default .10 m)
+in addition to CAD padding and half-cell diagonal raster margin. This is an
+explicit simulation uncertainty allowance, not a measured hardware covariance
+bound. If a chair was removed from the world, supply `--reference-world` with
+the original layout; only the original front direction is reused, and the
+absent chair contributes no collisions. A missing chair without that reference
+is rejected. Overrides are checked with the same uncertainty-expanded
+footprint and may need a greater desk standoff. Recheck the actual Nav2 path
+and final pose after accumulated observations; nominal static-map clearance
+alone is insufficient.
+
+### 도착 위치 추정 근거
+
+`/mission/debug_snapshot`의 `navigation.localization`은 도착 검사와 같은
+`map ← base_link` TF의 x/y/yaw, frame, age_s 및 `source: localization_tf`를
+포함한다. 실제 위치 또는 ground truth를 뜻하지 않는다. Navigation
+`action_result` debug event의 data에는 성공 검사 시 사용한
+`arrival_localization`과 위치·yaw 오차를 남겨 짧은 도착 전이를 추적한다.
+기존 도착·freshness·정지 조건과 목표 좌표는 유지한다.

@@ -163,7 +163,50 @@ Groot2 XML은 정적 설계 미리보기다.
 실행할 수 있다. 빌드 후 ROS 환경을 불러온 터미널에서 실행한다.
 
 ```bash
+source /opt/ros/humble/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_skill_executor grasp_execution_demo.launch.py
+```
+
+데모는 의도적으로 최고 점수의 도달 불가 후보를 먼저 검사한 뒤, 초록색 MuJoCo box와
+정렬된 두 번째 후보를 왼팔로 선택한다. 선택 action에서 position-only IK, 두 endpoint의
+collision/state validity, 두 구간 OMPL plan-only를 통과해야만 demo coordinator가
+`left_arm_controller`로 pre-grasp와 grasp trajectory를 차례로 실행한다. 마지막에는
+실제 `/joint_states`가 선택 결과에 수렴했는지도 검사한다. Gripper close, attach, lift는
+아직 실행하지 않는다.
+
+RViz의 `Grasp Candidates` display에서 구/화살표/상태 문구를 보고,
+`MotionPlanning` display에서는 계획 궤적과 실제 joint state를 확인한다. MuJoCo 창의
+초록색 box가 target이며 왼팔이 먼저 pre-grasp에서 멈춘 다음 box까지 접근한다. 창이
+준비될 시간을 위해 평가 전 5초, 각 실행 구간 사이 3초를 기본 대기한다. 빠른 headless
+회귀 검증은 다음처럼 실행한다.
+
+```bash
+ros2 launch cleany_skill_executor grasp_execution_demo.launch.py \
+  headless:=true use_rviz:=false \
+  demo_start_delay_sec:=0.1 stage_hold_sec:=0.1
+```
+
+로그의 `Selected candidate=1 arm=left`, 두 개의
+`MoveIt execution succeeded`, `DEMO COMPLETE`가 전체 성공 기준이다. 데모는 완료
+자세와 marker를 유지하므로 종료는 `Ctrl-C`, 다시 보기는 launch 재실행으로 한다.
+
+### 실제 RGB-D can 검출·이동 데모
+
+다음 launch는 table, 파란 box, 빨간 can, 노란 경로 장애물과 고정 RGB-D 카메라가 있는
+`mujoco_ros2_control` 장면을 연다. 시뮬레이터가 렌더링한 RGB-D에서 빨간 can을
+분할하고 `base_link` 점군으로 투영한 뒤, geometric grasp 후보 생성과 MoveIt
+양팔 검증을 거쳐 그리퍼를 열고 선택된 pre-grasp 자세까지 실제 controller로
+실행한다. 5축 position-only IK가 TCP quaternion을 무시하는 문제를 피하기 위해
+그리퍼 전방 0.14 m의 collision-free 가상 조준점을 grasp point에 맞춘다. 따라서 실제
+TCP는 can에서 0.14 m 떨어져 있고, 그리퍼의 접근축은 can을 향한 자세에서 멈춘다.
+이 보정은 can 데모의 실행 직전에 적용된다. 운영 `SelectReachableGrasp` action 자체는
+계속 position-only 후보 검증 계약을 유지하므로, action 결과만으로 TCP 방향까지
+검증됐다고 해석하면 안 된다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_skill_executor can_grasp_execution_demo.launch.py
 ```
 

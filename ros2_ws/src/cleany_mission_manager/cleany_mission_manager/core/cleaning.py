@@ -116,7 +116,6 @@ class CleaningTree:
         self.visited: set[str] = set()
         self.clock, self.policy, self.mode = clock, policy, mode
         self.mission_id = mission_id
-        self.ports = (perception, planner, executor)
         observe = lambda: mission_id
         cycle = py_trees.composites.Sequence(name="ActionCheckpoint", memory=True, children=[
             OperationLeaf("PlanNext", self, planner,
@@ -159,9 +158,6 @@ class CleaningTree:
                 if result is not None:
                     leaf.consumed = True
                     self._executed(result)
-
-    def stopped(self) -> bool:
-        return all(port.stopped() for port in self.ports)
 
     def _reject(self, code: FailureCode, message: str) -> bool:
         self.context.failure = ModuleResult.blocked(code, message=message)

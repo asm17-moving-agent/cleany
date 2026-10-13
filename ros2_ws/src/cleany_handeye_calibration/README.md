@@ -292,7 +292,7 @@ Operator-observed calibration shows the MuJoCo viewer by default:
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_handeye_calibration single_pose_mujoco.launch.py \
   request_file:=/absolute/path/to/materialized_request.json \
   headless:=false
@@ -379,7 +379,7 @@ An operator-observed calibration run opens the MuJoCo viewer by default:
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_handeye_calibration multi_pose_mujoco.launch.py \
   pose_manifest:=/absolute/path/to/materialized_poses.yaml \
   runtime_config:=/absolute/path/to/materialized_runtime.json \
@@ -499,7 +499,7 @@ materialize it and run:
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 cleany_mujoco_share="$(ros2 pkg prefix --share cleany_mujoco_sim)"
 ros2 run cleany_handeye_calibration evaluate_handeye \
   --samples /absolute/run/samples.jsonl \
@@ -531,7 +531,7 @@ calibration scene.
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 launch cleany_handeye_calibration handeye_mujoco.launch.py \
   headless:=true sim_speed_factor:=1.0
 ```
