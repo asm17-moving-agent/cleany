@@ -6,7 +6,7 @@
 
 설계 파일의 센서 위치는 실제 조립 위치와 조금 다를 수 있습니다. **보정**(calibration)은 측정을 사용해 모델의 관계나 파라미터를 추정하는 과정입니다. 손목과 카메라 사이 관계를 찾는 작업이 **hand-eye calibration**입니다.
 
-앞 장의 고정 카메라 캔 데모와 이번 장의 카메라는 다릅니다. [cleany_handeye_calibration](../../../ros2_ws/src/cleany_handeye_calibration/README.md)은 **왼팔 손목 카메라**의 eye-in-hand 경로를 다룹니다. 팔이 움직이면 카메라도 움직이고 관측 보드는 고정되어 있습니다.
+앞 장의 고정 카메라 캔 데모와 이번 장의 카메라는 다릅니다. [cleany_handeye_calibration](../../../ros2_ws/src/cleany_handeye_calibration/docs/offline-tools.md)은 **왼팔 손목 카메라**의 eye-in-hand 경로를 다룹니다. 팔이 움직이면 카메라도 움직이고 관측 보드는 고정되어 있습니다.
 
 ```mermaid
 flowchart TD

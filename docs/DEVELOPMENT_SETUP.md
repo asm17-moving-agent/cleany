@@ -107,10 +107,10 @@ rosdep update
 
 의존성은 공식 rosdep 규칙을 사용합니다. MuJoCo Python 패키지는 `python3-mujoco-pip` 키로 설치합니다.
 
-이전 설정에서 custom 규칙을 등록했다면 아래 항목을 제거한 뒤 DB를 갱신합니다.
+새 인식 경로의 `google-genai`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
 
 ```bash
-sudo rm -f /etc/ros/rosdep/sources.list.d/10-cleany.list
+printf 'yaml file://%s/ros2_ws/rosdep/cleany.yaml\n' "$PWD" | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list
 rosdep update
 ```
 

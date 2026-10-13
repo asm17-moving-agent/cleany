@@ -137,7 +137,7 @@ XLeRobot MuJoCo 시뮬레이션을 ROS 2 `ament_python` 패키지로 연결한�
 **0.0635 m**이며 launch/ROS parameter로 변경할 수 있다. CAD 치수이며 실측
 odometry 보정값은 아니다. 기존 액추에이터와 MuJoCo 3.4 제어 호환 경로를
 유지한다. 물성 추정과 모델 계약은
-[cleany_description](../../cleany_description/README.md)을 참고한다.
+[cleany_description](../../cleany_description/docs/model.md)을 참고한다.
 
 ## 실행과 테스트
 

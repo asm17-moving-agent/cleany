@@ -64,7 +64,7 @@ Python 패키지의 [setup.py](../../../ros2_ws/src/cleany_mission_manager/setup
 
 반면 [grasping setup.py](../../../ros2_ws/src/cleany_grasping/setup.py)는 `grasp_server`라는 실행 이름을 `grasp_node:main`에 연결합니다. 따라서 코드를 읽을 때는 **패키지 이름 → 실행 이름 → main 함수 → node의 callback → core** 순으로 좁히면 됩니다. 3장에서 이 경로를 실제 서비스와 연결합니다.
 
-공통 개발 명령은 [Makefile](../../../Makefile)과 [workspace README](../../../ros2_ws/README.md)가 관리합니다. 개별 파일의 존재만 보고 실행 명령을 추측하지 않습니다.
+공통 개발 명령은 [Makefile](../../../Makefile)과 [workspace README](../../DEVELOPMENT_SETUP.md)가 관리합니다. 개별 파일의 존재만 보고 실행 명령을 추측하지 않습니다.
 
 ## 01.4 Core와 Port 경계
 
@@ -101,7 +101,7 @@ class Planner(Protocol):
 
 “캔 후보가 만들어졌지만 팔이 움직이지 않는다”는 질문의 시작점은 Mission 상태만은 아닙니다. 이 커밋에는 별도 조작 데모가 있으므로 다음 순서로 확인합니다.
 
-1. [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/README.md)에서 사용한 실행 경로를 찾습니다.
+1. [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)에서 사용한 실행 경로를 찾습니다.
 2. 후보 **선택** action과 **실행** demo coordinator의 파일을 구분합니다.
 3. 후보 생성·팔 평가·실행 각각의 출력이 무엇인지 적습니다.
 

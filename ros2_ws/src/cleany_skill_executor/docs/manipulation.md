@@ -36,7 +36,7 @@ pregrasp 기준 위치와 물체별 추가량(마우스 +14mm, 레고/휴지 +4m
 `tabletop_collision`도 제공한다. 파지 깊이·물체 물리·관절 속도·YOLOE-seg·
 MoveIt 충돌 검사와 완료 판정은 바꾸지 않는다.
 적용 범위, 실행 예제와 비교 측정은
-[`cleany_mujoco_sim/README.md`](../../cleany_mujoco_sim/README.md#되돌릴-수-있는-고정-책상-최적화)를 따른다.
+[`cleany_mujoco_sim/README.md`](../../cleany_mujoco_sim/docs/scenes.md#되돌릴-수-있는-고정-책상-최적화)를 따른다.
 
 MuJoCo sorting의 마우스는 `mouse_grasp_extra_depth_m=0.014`를 기본 적용한다.
 `mouse`, `computer mouse`, `wireless mouse` 라벨에만 기본 접근 0.018m에
@@ -321,7 +321,7 @@ ros2 launch cleany_skill_executor study_cafe_nearest_grasp_demo.launch.py
 이 study-cafe MuJoCo launch의 YOLOE 기본 체크포인트는
 `~/models/yoloe/study_cafe_sim_yoloe26s_seg.pt`다. 현재 시뮬레이션 head 영상으로
 fine-tune한 파일이며, 생성·학습·평가 절차는
-[`cleany_perception/README.md`](../../cleany_perception/README.md#스터디카페-mujoco-전용-yoloe-seg-학습)에 있다.
+[`cleany_perception/README.md`](../../cleany_perception/docs/runtime.md#스터디카페-mujoco-전용-yoloe-seg-학습)에 있다.
 손목 HANDOFF는 별도 `~/models/yoloe/study_cafe_sim_all_views_yoloe26s_seg.pt`를
 `wrist_yoloe_model_path`로 로드한다. 오른손목 HANDOFF는 head 체크포인트를
 `wrist_right_yoloe_model_path`로 재사용한다. 실제 컵 pregrasp 오른손목 프레임에서
@@ -460,7 +460,7 @@ category/reason 미제공 결과는 review로 남기고 조작하지 않는다.
 `cup`, `computer mouse`, `crumpled tissue`, `lego brick`이며 Gemini는 고정 목록 없이
 외형에 따른 자유 라벨을 생성한다. 모델 출력 category/reason으로 분류하고 위험·저신뢰
 결과는 review로 남긴다. 장면의 형상·크기와 평가용 body mapping은
-[MuJoCo README](../../cleany_mujoco_sim/README.md)를 따른다.
+[MuJoCo README](../../cleany_mujoco_sim/docs/scenes.md)를 따른다.
 
 수거 위치는 로봇 뒤쪽 +Y(좌측)의 `lost_items_left`, -Y(우측)의
 `trash_right`다. `cleany_mujoco_sim/config/robot_top_bins.yaml`은

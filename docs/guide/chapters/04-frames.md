@@ -25,7 +25,7 @@ ROS의 길이는 m, 각도는 rad입니다. 예를 들어 `linear.y=0.2`는 로�
 
 **URDF**는 로봇 부품인 `link`와 부품 사이 관계인 `joint`를 설명합니다. `fixed` 관절은 고정된 장착 관계이고, `revolute` 관절은 한 축을 중심으로 회전합니다. **Xacro**는 반복되는 모델을 macro로 묶고 옵션에 따라 펼쳐 URDF를 만드는 도구입니다.
 
-Cleany의 공통 모델 위치는 [cleany_description README](../../../ros2_ws/src/cleany_description/README.md)에 정리되어 있습니다.
+Cleany의 공통 모델 위치는 [cleany_description README](../../../ros2_ws/src/cleany_description/docs/model.md)에 정리되어 있습니다.
 
 | 파일 | 담당하는 내용 |
 | --- | --- |

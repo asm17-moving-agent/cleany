@@ -58,7 +58,7 @@ python3 docs/guide/build_standalone.py
 | --- | --- |
 | [기획 KB](../cleany-docs/README.md) | 목표, 설계, 결정 이유 |
 | [개발환경 설치](../DEVELOPMENT_SETUP.md) | Ubuntu와 ROS 설치 |
-| [ROS workspace 안내](../../ros2_ws/README.md), 패키지 README | 현재 설정, 실행 조건, 검증 명령 |
+| [ROS workspace 안내](../DEVELOPMENT_SETUP.md), 패키지 README | 현재 설정, 실행 조건, 검증 명령 |
 | 이 가이드 | 개념의 의미와 구현을 따라 읽는 순서 |
 
 본문의 **구현**은 소스가 있다는 뜻입니다. **모의 실습**은 정해진 응답으로 순수 코드를 실행한다는 뜻입니다. **시뮬레이션 데모**는 가상 로봇 실행 경로가 있다는 뜻입니다. 어느 것도 그 자체로 실물 수거 성공을 뜻하지 않습니다. 실제 로봇 실행은 이 입문서의 실습 범위에 포함하지 않습니다.

@@ -129,7 +129,7 @@ performance, navigation, or successful object retention.
 - Fourteen legacy servo position actuators and four PG42 voltage actuators
   remain active. New servo DC-motor defaults are commented out pending the
   separate MuJoCo/ros2_control upgrade. The 3.4 backend removes only wheel
-  actuators from its temporary scene; see [simulation setup](../../cleany_mujoco_sim/README.md).
+  actuators from its temporary scene; see [simulation setup](../../cleany_mujoco_sim/docs/scenes.md).
 
 Mass properties are estimates: total **15.933871 kg**,
 including a provisional **5.20 kg, 195×165×175 mm battery**, **0.8 kg per PG42

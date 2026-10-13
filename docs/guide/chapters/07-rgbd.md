@@ -20,7 +20,7 @@
 
 | 경로 | 실제 책임 |
 | --- | --- |
-| [cleany_interfaces](../../../ros2_ws/src/cleany_interfaces/README.md) | 인식 결과·snapshot·파지 요청의 메시지 계약 |
+| [cleany_interfaces](../../../ros2_ws/src/cleany_interfaces/docs/observation-contracts.md) | 인식 결과·snapshot·파지 요청의 메시지 계약 |
 | [can_grasp_execution_demo.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/can_grasp_execution_demo.py) | MuJoCo 영상 수신, 변환, 서비스 요청을 연결 |
 | [core/can_rgbd.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/core/can_rgbd.py) | ROS 없이 빨간 캔 분할과 점군 투영 |
 
@@ -129,4 +129,4 @@ _on_camera() → _wait_for_rgbd()
 
 </details>
 
-데모의 실행 전제와 현재 범위는 [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/README.md)에서 확인합니다.
+데모의 실행 전제와 현재 범위는 [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)에서 확인합니다.

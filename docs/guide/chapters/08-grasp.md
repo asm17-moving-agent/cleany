@@ -27,7 +27,7 @@
 
 형상 기반 predictor는 context 점군에서 지지 평면을 추정하고 target의 접선 방향과 폭을 살펴 위에서 접근하는 평행 그리퍼 후보를 만듭니다. `GeometricGraspConfig`에는 폭 한계, 손가락 크기, 충돌 여유, 탐색 각도와 후보 수가 있습니다. 이 점군 수준 검사가 로봇 팔 전체의 MoveIt 충돌 검사를 대신하지는 않습니다.
 
-AnyGrasp 연결도 [anygrasp_adapter.py](../../../ros2_ws/src/cleany_grasping/cleany_grasping/anygrasp_adapter.py)에 있지만 실제 backend와 필요한 SDK 조건은 [Grasping README](../../../ros2_ws/src/cleany_grasping/README.md)를 확인해야 합니다. 데모의 형상 기반 후보와 학습 모델 출력을 동일한 것으로 읽지 마세요.
+AnyGrasp 연결도 [anygrasp_adapter.py](../../../ros2_ws/src/cleany_grasping/cleany_grasping/anygrasp_adapter.py)에 있지만 실제 backend와 필요한 SDK 조건은 [Grasping README](../../../ros2_ws/src/cleany_grasping/docs/predictors.md)를 확인해야 합니다. 데모의 형상 기반 후보와 학습 모델 출력을 동일한 것으로 읽지 마세요.
 
 ## 08.3 후보 필터와 TCP 변환
 

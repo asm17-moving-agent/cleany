@@ -33,7 +33,7 @@ SLAM은 scan이 관측된 시각에 로봇과 LiDAR가 어디 있었는지 알�
 
 ## 06.3 slam_toolbox 설정과 Lifecycle
 
-[cleany_navigation](../../../ros2_ws/src/cleany_navigation/README.md)은 SLAM 알고리즘을 새로 구현하기보다 외부 노드를 실행하는 launch와 설정을 제공합니다. [slam_mapping.launch.py](../../../ros2_ws/src/cleany_navigation/launch/slam_mapping.launch.py)는 `async_slam_toolbox_node`를 `LifecycleNode`로 만들고 설정 파일과 launch 인자를 전달합니다.
+[cleany_navigation](../../../ros2_ws/src/cleany_navigation/docs/safety.md)은 SLAM 알고리즘을 새로 구현하기보다 외부 노드를 실행하는 launch와 설정을 제공합니다. [slam_mapping.launch.py](../../../ros2_ws/src/cleany_navigation/launch/slam_mapping.launch.py)는 `async_slam_toolbox_node`를 `LifecycleNode`로 만들고 설정 파일과 launch 인자를 전달합니다.
 
 [slam_toolbox.yaml](../../../ros2_ws/src/cleany_navigation/config/slam/slam_toolbox.yaml)의 실제 입력 계약은 다음과 같습니다.
 
@@ -109,7 +109,7 @@ Gazebo의 [ground_truth_route_follower.py](../../../ros2_ws/src/cleany_gazebo_si
 
 ## 06.6 SLAM 관찰 실습
 
-ROS Humble 설치와 package 빌드가 필요합니다. 준비 과정은 [workspace README](../../../ros2_ws/README.md)와 [Gazebo README](../../../ros2_ws/src/cleany_gazebo_sim/README.md)를 따릅니다. 실제 로봇과 연결하지 않은 독립된 시뮬레이션 환경에서 수행하세요.
+ROS Humble 설치와 package 빌드가 필요합니다. 준비 과정은 [workspace README](../../DEVELOPMENT_SETUP.md)와 [Gazebo README](../../../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md)를 따릅니다. 실제 로봇과 연결하지 않은 독립된 시뮬레이션 환경에서 수행하세요.
 
 첫 터미널에서 센서가 있는 가상 공간을 실행합니다.
 
