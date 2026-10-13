@@ -20,6 +20,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/PlanGrasp.srv"
   "srv/VerifyPlacement.srv"
   "srv/ObserveWristTarget.srv"
+  "msg/MissionStatus.msg"
+  "msg/MissionResult.msg"
+  "msg/ManipulationExecutionRecord.msg"
+  "action/ExecuteManipulationSkill.action"
+  "srv/OfferMission.srv"
+  "srv/CancelMission.srv"
+  "srv/GetRuntimeSnapshot.srv"
+  "srv/GetManipulationExecution.srv"
   DEPENDENCIES geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 

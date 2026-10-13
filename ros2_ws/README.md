@@ -73,6 +73,29 @@ Hand-eye의 수학·ROS adapter·오프라인 dataset 검증은
 [`cleany_handeye_calibration` README](src/cleany_handeye_calibration/README.md)를 따른다.
 전용 MuJoCo calibration 실행 경로는 제거했다.
 
+Mission FSM·BT와 Backend 연동만 검사할 때는 다음을 사용한다.
+
+```bash
+make test-mission-core
+make test-mission-runtime
+make build-mission-sim
+source ros2_ws/install/setup.bash
+ros2 launch cleany_bringup mission_sim.launch.py post_mission:=wait_for_next
+```
+
+`test-mission-core`는 ROS 없이 실행하며 `py_trees`, PyYAML, pytest가 필요하다.
+`test-mission-runtime`은 interfaces, manager, bridge를 빌드하고 colcon test를 실행한다.
+실제 ROS transport 검사는 `CLEANY_RUN_ROS_TESTS=1`과 분리한 `ROS_DOMAIN_ID`를 지정해
+설치 환경에서 `make test-mission-core`로 실행한다. fake Nav2 server를 사용하므로
+Gazebo 주행 성공의 증거와 구분한다.
+
+별도 ROS distro나 실험 output은 `ROS_SETUP`, `MISSION_BUILD_BASE`,
+`MISSION_INSTALL_BASE`, `MISSION_LOG_BASE` Make 변수로 지정한다. 기본 output은 workspace의
+`build`, `install`, `log`다. 실제 설정·Mock 경계·오류 복구는
+[Mission Manager](src/cleany_mission_manager/README.md),
+[Control Bridge](src/cleany_control_bridge/README.md),
+[Gazebo composition](src/cleany_bringup/README.md)을 따른다.
+
 ## 실제 메카넘 base
 
 `cleany_base_interfaces`는 MCU용 고정 크기 메시지 원본,

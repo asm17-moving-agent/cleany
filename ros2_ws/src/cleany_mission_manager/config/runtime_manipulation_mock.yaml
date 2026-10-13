@@ -1,0 +1,25 @@
+mission_runtime:
+  ros__parameters:
+    navigation_backend: mock
+    post_mission: return_home
+    tick_hz: 10.0
+    navigation_timeout: 180.0
+    cleaning_timeout: 300.0
+    operation_timeout: 120.0
+    cancel_timeout: 15.0
+    max_actions: 30
+    max_skill_retries: 2
+    mock_operation_polls: 2
+    odom_topic: wheel/odom
+    input_timeout: 1.5
+    stopped_linear_speed: 0.03
+    stopped_angular_speed: 0.05
+    navigation_settle_timeout: 3.0
+    lifecycle_timeout: 3.0
+    # Only the teammate's mock action server is enabled by this fixture.
+    manipulation_backend: action_mock
+    manipulation_action: mock/manipulation/execute_skill
+    manipulation_query: mock/manipulation/get_execution
+    manipulation_initial_mock_safe: true
+    manipulation_destination: mock_trash_bin
+    manipulation_mock_snapshot_ids: [mock-snapshot-001, mock-snapshot-002, mock-snapshot-003, mock-snapshot-004]
