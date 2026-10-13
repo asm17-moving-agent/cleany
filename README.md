@@ -98,6 +98,7 @@ make sim-mujoco-sorting SORTING_ARGS='sorting_verify_placement:=true'
 | `tests/` | 테스트 진입 안내; 실행 가능한 검사는 패키지별 `test/`·`tests/`에 위치 |
 | `docs/cleany-docs/` | 제품·기획·예비설계 KB submodule |
 | `docs/` | 개발환경, 날짜별 구현 실행·품질 점검 기록 |
+| `docs/guide/` | [Cleany로 배우는 로봇 소프트웨어](docs/guide/README.md) · [오프라인 HTML 뷰어](docs/guide/index.html) |
 | `artifacts/`, `output/` | 로컬 실행 증거·발표 원본 및 출력물. Git 제외 |
 
 패키지 책임·ROS 인터페이스·설정·실행법은 해당 패키지 README를 코드와 함께 갱신한다.

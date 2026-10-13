@@ -1,0 +1,370 @@
+{
+  "pages": [
+    {
+      "id": "start",
+      "file": "README.md",
+      "title": "이 책을 읽는 방법",
+      "part": "시작하기",
+      "keywords": "목차 설치 실행 소개"
+    },
+    {
+      "id": "code-map",
+      "file": "chapters/01-code-map.md",
+      "title": "01. 시스템 아키텍처",
+      "part": "1부 · 구조와 ROS 2",
+      "keywords": "구조 패키지 모듈 scaffold",
+      "sections": [
+        {
+          "id": "011-시스템-구성과-책임",
+          "title": "01.1 시스템 구성과 책임"
+        },
+        {
+          "id": "012-저장소와-패키지-구조",
+          "title": "01.2 저장소와 패키지 구조"
+        },
+        {
+          "id": "013-ros-패키지와-실행-진입점",
+          "title": "01.3 ROS 패키지와 실행 진입점"
+        },
+        {
+          "id": "014-core와-port-경계",
+          "title": "01.4 Core와 Port 경계"
+        },
+        {
+          "id": "015-현재-구현과-통합-경계",
+          "title": "01.5 현재 구현과 통합 경계"
+        },
+        {
+          "id": "016-시스템-코드-추적-실습",
+          "title": "01.6 시스템 코드 추적 실습"
+        }
+      ]
+    },
+    {
+      "id": "first-mission",
+      "file": "chapters/02-first-mission.md",
+      "title": "02. Mission Core와 Mock",
+      "part": "1부 · 구조와 ROS 2",
+      "keywords": "Python mock 모의 첫 실행",
+      "sections": [
+        {
+          "id": "021-mock-기반-실행",
+          "title": "02.1 Mock 기반 실행"
+        },
+        {
+          "id": "022-missionrequest와-missioncontext",
+          "title": "02.2 MissionRequest와 MissionContext"
+        },
+        {
+          "id": "023-port-주입과-모의-응답",
+          "title": "02.3 Port 주입과 모의 응답"
+        },
+        {
+          "id": "024-step과-데이터-전달",
+          "title": "02.4 step과 데이터 전달"
+        },
+        {
+          "id": "025-skillsequence와-완료-기록",
+          "title": "02.5 skill_sequence와 완료 기록"
+        },
+        {
+          "id": "026-상태-추적-실습",
+          "title": "02.6 상태 추적 실습"
+        }
+      ]
+    },
+    {
+      "id": "ros-basics",
+      "file": "chapters/03-ros-basics.md",
+      "title": "03. ROS 2 통신과 인터페이스",
+      "part": "1부 · 구조와 ROS 2",
+      "keywords": "ROS 노드 topic service action launch parameter 콜백",
+      "sections": [
+        {
+          "id": "031-노드와-ros-그래프",
+          "title": "03.1 노드와 ROS 그래프"
+        },
+        {
+          "id": "032-topicserviceaction",
+          "title": "03.2 Topic·Service·Action"
+        },
+        {
+          "id": "033-객체-메시지와-header",
+          "title": "03.3 객체 메시지와 Header"
+        },
+        {
+          "id": "034-plangrasp-요청과-응답",
+          "title": "03.4 PlanGrasp 요청과 응답"
+        },
+        {
+          "id": "035-graspserver-실행과-콜백",
+          "title": "03.5 grasp_server 실행과 콜백"
+        },
+        {
+          "id": "036-인터페이스-추적-실습",
+          "title": "03.6 인터페이스 추적 실습"
+        }
+      ]
+    },
+    {
+      "id": "frames",
+      "file": "chapters/04-frames.md",
+      "title": "04. URDF와 TF",
+      "part": "2부 · 모델과 주행",
+      "keywords": "좌표계 TF URDF map odom base_link optical",
+      "sections": [
+        {
+          "id": "041-좌표계와-ros-축-규약",
+          "title": "04.1 좌표계와 ROS 축 규약"
+        },
+        {
+          "id": "042-urdf의-link와-joint",
+          "title": "04.2 URDF의 Link와 Joint"
+        },
+        {
+          "id": "043-head-camera-모델-읽기",
+          "title": "04.3 Head Camera 모델 읽기"
+        },
+        {
+          "id": "044-tf-발행-주체와-시간",
+          "title": "04.4 TF 발행 주체와 시간"
+        },
+        {
+          "id": "045-tf-오류-추적-실습",
+          "title": "04.5 TF 오류 추적 실습"
+        }
+      ]
+    },
+    {
+      "id": "mobile-base",
+      "file": "chapters/05-mobile-base.md",
+      "title": "05. 메카넘 베이스 제어",
+      "part": "2부 · 모델과 주행",
+      "keywords": "메카넘 ESP32 PWM PI encoder cmd_vel",
+      "sections": [
+        {
+          "id": "051-twist와-차체-속도",
+          "title": "05.1 Twist와 차체 속도"
+        },
+        {
+          "id": "052-명령-제한과-gazebo-경로",
+          "title": "05.2 명령 제한과 Gazebo 경로"
+        },
+        {
+          "id": "053-메카넘-역기구학과-속도-제한",
+          "title": "05.3 메카넘 역기구학과 속도 제한"
+        },
+        {
+          "id": "054-encoder와-pi-제어",
+          "title": "05.4 Encoder와 PI 제어"
+        },
+        {
+          "id": "055-ros와-mcu-통신-경계",
+          "title": "05.5 ROS와 MCU 통신 경계"
+        },
+        {
+          "id": "056-역기구학-계산-실습",
+          "title": "05.6 역기구학 계산 실습"
+        }
+      ]
+    },
+    {
+      "id": "mapping",
+      "file": "chapters/06-mapping.md",
+      "title": "06. SLAM과 Navigation",
+      "part": "2부 · 모델과 주행",
+      "keywords": "SLAM localization Nav2 LiDAR Gazebo 시뮬레이션",
+      "sections": [
+        {
+          "id": "061-slam과-점유-격자",
+          "title": "06.1 SLAM과 점유 격자"
+        },
+        {
+          "id": "062-gazebo-센서-입력과-tf-계약",
+          "title": "06.2 Gazebo 센서 입력과 TF 계약"
+        },
+        {
+          "id": "063-slamtoolbox-설정과-lifecycle",
+          "title": "06.3 slam_toolbox 설정과 Lifecycle"
+        },
+        {
+          "id": "064-cartographer의-submap과-출력",
+          "title": "06.4 Cartographer의 Submap과 출력"
+        },
+        {
+          "id": "065-slam-출력과-navigation-경계",
+          "title": "06.5 SLAM 출력과 Navigation 경계"
+        },
+        {
+          "id": "066-slam-관찰-실습",
+          "title": "06.6 SLAM 관찰 실습"
+        }
+      ]
+    },
+    {
+      "id": "rgbd",
+      "file": "chapters/07-rgbd.md",
+      "title": "07. RGB-D와 점군",
+      "part": "3부 · 인식과 조작",
+      "keywords": "인식 RGB-D depth segmentation 점군 perception",
+      "sections": [
+        {
+          "id": "071-rgb-d-입력",
+          "title": "07.1 RGB-D 입력"
+        },
+        {
+          "id": "072-cleany의-인식-경로",
+          "title": "07.2 Cleany의 인식 경로"
+        },
+        {
+          "id": "073-분할과-유효-깊이",
+          "title": "07.3 분할과 유효 깊이"
+        },
+        {
+          "id": "074-카메라-투영과-좌표-변환",
+          "title": "07.4 카메라 투영과 좌표 변환"
+        },
+        {
+          "id": "075-frametimestampsnapshot-계약",
+          "title": "07.5 Frame·timestamp·snapshot 계약"
+        },
+        {
+          "id": "076-점군에서-파지-요청까지-추적",
+          "title": "07.6 점군에서 파지 요청까지 추적"
+        }
+      ]
+    },
+    {
+      "id": "grasp",
+      "file": "chapters/08-grasp.md",
+      "title": "08. Grasp와 MoveIt",
+      "part": "3부 · 인식과 조작",
+      "keywords": "파지 grasp IK MoveIt TCP planning trajectory",
+      "sections": [
+        {
+          "id": "081-grasptcpik",
+          "title": "08.1 Grasp·TCP·IK"
+        },
+        {
+          "id": "082-후보-생성과-데이터-모델",
+          "title": "08.2 후보 생성과 데이터 모델"
+        },
+        {
+          "id": "083-후보-필터와-tcp-변환",
+          "title": "08.3 후보 필터와 TCP 변환"
+        },
+        {
+          "id": "084-양팔-선택과-moveit-호출",
+          "title": "08.4 양팔 선택과 MoveIt 호출"
+        },
+        {
+          "id": "085-계획실행실패-경계",
+          "title": "08.5 계획·실행·실패 경계"
+        },
+        {
+          "id": "086-파지-파이프라인-추적",
+          "title": "08.6 파지 파이프라인 추적"
+        }
+      ]
+    },
+    {
+      "id": "calibration",
+      "file": "chapters/09-calibration.md",
+      "title": "09. Hand-eye Calibration",
+      "part": "3부 · 인식과 조작",
+      "keywords": "보정 calibration hand-eye FK PnP ChArUco",
+      "sections": [
+        {
+          "id": "091-eye-in-hand-구성",
+          "title": "09.1 Eye-in-hand 구성"
+        },
+        {
+          "id": "092-변환과-데이터-모델",
+          "title": "09.2 변환과 데이터 모델"
+        },
+        {
+          "id": "093-관절-피드백과-영상-동기화",
+          "title": "09.3 관절 피드백과 영상 동기화"
+        },
+        {
+          "id": "094-보드-검출과-pnp",
+          "title": "09.4 보드 검출과 PnP"
+        },
+        {
+          "id": "095-hand-eye-solver와-독립-평가",
+          "title": "09.5 Hand-eye solver와 독립 평가"
+        },
+        {
+          "id": "096-보정-데이터-추적-실습",
+          "title": "09.6 보정 데이터 추적 실습"
+        }
+      ]
+    },
+    {
+      "id": "mission",
+      "file": "chapters/10-mission.md",
+      "title": "10. Mission FSM과 실패 처리",
+      "part": "4부 · 미션과 검증",
+      "keywords": "FSM 상태 retry Protocol BLOCKED FATAL 보고",
+      "sections": [
+        {
+          "id": "101-상태-전이와-책임",
+          "title": "10.1 상태 전이와 책임"
+        },
+        {
+          "id": "102-moduleresult와-오류-분류",
+          "title": "10.2 ModuleResult와 오류 분류"
+        },
+        {
+          "id": "103-재시도와-skill-진행-상태",
+          "title": "10.3 재시도와 skill 진행 상태"
+        },
+        {
+          "id": "104-blocked와-fatal-경로",
+          "title": "10.4 BLOCKED와 FATAL 경로"
+        },
+        {
+          "id": "105-부분-완료와-missionreport",
+          "title": "10.5 부분 완료와 MissionReport"
+        },
+        {
+          "id": "106-모듈-결과부터-보고서까지-추적",
+          "title": "10.6 모듈 결과부터 보고서까지 추적"
+        }
+      ]
+    },
+    {
+      "id": "debugging",
+      "file": "chapters/11-debugging.md",
+      "title": "11. 테스트와 디버깅",
+      "part": "4부 · 미션과 검증",
+      "keywords": "디버깅 테스트 협업 공부 로그 agent",
+      "sections": [
+        {
+          "id": "111-데이터-경계와-증상-분리",
+          "title": "11.1 데이터 경계와 증상 분리"
+        },
+        {
+          "id": "112-rgb-d부터-후보-선택까지-추적",
+          "title": "11.2 RGB-D부터 후보 선택까지 추적"
+        },
+        {
+          "id": "113-테스트로-필터의-의도-읽기",
+          "title": "11.3 테스트로 필터의 의도 읽기"
+        },
+        {
+          "id": "114-plan-only와-로그-판독",
+          "title": "11.4 Plan-only와 로그 판독"
+        },
+        {
+          "id": "115-mission-실패와-검증-범위",
+          "title": "11.5 Mission 실패와 검증 범위"
+        },
+        {
+          "id": "116-팀-코드-리뷰-실습",
+          "title": "11.6 팀 코드 리뷰 실습"
+        }
+      ]
+    }
+  ]
+}
