@@ -12,6 +12,7 @@
 | 터미널 출력 조정 | [로그 설정](#터미널-로그) |
 | 실행 검증·취소 | [계약과 증거](#계약과-증거), [취소 방식](#취소) |
 | 결과 조회·모니터 이해 | [기록과 모니터](#기록과-모니터) |
+| 최근 물리 연동 결과 | [2026-10-14 검증 기록](#검증-기록-2026-10-14) |
 | 물리 연동의 기존 검증 범위 | [2026-10-01 검증 기록](#검증-기록-2026-10-01) |
 
 ## 빌드와 검증
@@ -76,11 +77,16 @@ BT의 RUNNING 전환을 보려면
 source /opt/ros/humble/setup.bash
 source ros2_ws/install/setup.bash
 ros2 action send_goal /perception/inspect_scene cleany_interfaces/action/InspectScene \
-  "{query: 'Detect objects on the table.', snapshot_id: '', selected_object_id: 0}"
+  "{query: 'Detect objects on the table.', tracking_session_id: 'desk-validation-1', snapshot_id: '', selected_object_id: 0}"
 ```
 
 반환된 실제 snapshot과 쓰레기 object ID를 지정한다. snapshot cache의 기본 TTL은
 120초이고 최근 두 장만 남는다. 만료됐으면 새 관찰을 요청해야 한다.
+
+같은 고정 베이스 책상 작업에는 같은 `tracking_session_id`를 사용한다. BT는 승인된
+snapshot의 session/epoch/track ID를 재관측에서도 확인한다. 베이스 이동 후에는 새 세션을
+시작한다. 자세한 조건은 [인식 패키지의 물체 추적](../cleany_perception/README.md#고정-베이스-책상-물체-추적)을 따른다.
+빈 세션은 추적을 끄는 호환 경로이며, 재관측에서 같은 종류가 여러 개면 수거를 중단한다.
 
 ```bash
 ros2 run cleany_skill_executor manipulation_test_client \
@@ -200,6 +206,30 @@ MuJoCo 포트는 `bt_monitor_port`로 변경한다. 뷰어의 기본 포트는 1
 동작 상한(180초), 단계별 안착 확인(10초), 정지 평가(10초), 피드백/시계 신선도(2초)와
 지원 label을 조정한다. 이 수치는 첫 시뮬레이션 구현의 조정 가능한 기본값이다.
 전체 물체 수거 성공률이나 실제 하드웨어에 대한 보장을 뜻하지 않는다.
+
+## 검증 기록 (2026-10-14)
+
+최신 main을 기반으로 정리한 브랜치에서 실제 MuJoCo/MoveIt, CPU YOLOE와 Gemini API로
+컵 한 개 수거를 다시 실행했다. 실행마다 새 장면과 별도 SQLite DB를 사용했다.
+정상 수거 완료는 확인하지 못했으며, 2026-10-01 성공 기록을 현재 브랜치의 성공 근거로
+사용하지 않는다.
+
+| 관찰 결과 | 상태와 조치 |
+|---|---|
+| 첫 팔 이동에서 충돌 장면을 이중 등록 | `MOTION_FAILED`. 재관찰 장면을 정리한 뒤 pregrasp 장면을 등록하도록 수정하고 회귀 검사 추가 |
+| 관절 피드백 시각 중복 | 내용까지 같은 메시지는 수신 시각·정지 확인 횟수를 갱신하지 않도록 수정. 같은 시각에 값이 달라지는 수신은 여전히 `HARDWARE_ERROR`로 중단되며 해결 필요 |
+| 추적 없는 경로의 컵 재관측 | 대상 종류가 없거나 두 개 검출되면 수거 중단. 마지막 두 개 검출 사례는 `FAILED / MOTION_FAILED`, `NOT_TOUCHED` |
+| 개별 추적 ID를 사용하는 컵 수거 | 접근 전까지 같은 track ID 유지. 관절 피드백 문제로 `FATAL / HARDWARE_ERROR`, `NOT_TOUCHED`, `arm_recovered=false` |
+
+마지막 실행 ID는 `743a9d90-7acf-43b2-8dc0-607149664648`이다. 모든 실행에서
+`stop_confirmed=true`였고, 별도 관절 속도 관찰과 Action/조회 결과 일치도 확인했다.
+마지막 실패 시 피드백 수신 지연은 약 0.9 ms였으며, 같은 timestamp의 메시지 두 개에서
+position/velocity가 달랐다. 스트림 지연과 시각 중복에 따른 무효 판정을 구분할 필요가 있다.
+보고서와 전환 이력은 로컬 `artifacts/manipulation-validation-20261014-*`에 보존했다.
+
+관련 10개 패키지 빌드와 `make test-manipulation-bt` 523개 검사는 통과했다.
+자동 검사 통과는 위 물리 연동 실패가 해결됐다는 뜻이 아니다. 이번 실행은 고정 베이스의
+단일 컵 수거이며 Mission Manager나 모바일 베이스와의 통합 검증은 포함하지 않는다.
 
 ## 검증 기록 (2026-10-01)
 
