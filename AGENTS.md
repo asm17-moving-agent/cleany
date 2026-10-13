@@ -41,6 +41,8 @@ git submodule update --init --recursive docs/cleany-docs
 
 ## 4. 검증 규칙
 
+- 패키지 전용 자동 검사는 해당 패키지 `test/` 또는 `tests/`, 명시 실행 검사는 `runtime_test/`에 둔다. 루트 `tests/tools/`는 저장소 도구의 자동 검사, `tests/integration/`은 패키지를 연결하는 검사에 사용한다. 시나리오 실행, 관찰, 보고 코드는 `tools/validation/`에 두고 자체 단위 테스트와 분리한다.
+
 - 코드를 바꿨으면 가장 작은 관련 테스트를 먼저 실행한다.
 - FSM/core logic 변경: 해당 패키지 pytest를 우선 실행한다.
 - ROS package manifest, launch, install data 변경: 관련 패키지 또는 workspace build를 실행한다.

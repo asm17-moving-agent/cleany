@@ -24,4 +24,4 @@ Smooth normal과 UV를 포함한 6개 COLLADA mesh를 재질별로 생성합니�
 
 Collision은 좌판 box, 등판 5개 panel, 다리, 캐스터, 프레임을 단순 근사하며 바닥을 막는 원판은 없습니다. `gpu_lidar`는 상세 visual geometry를 관측합니다. 망 구멍은 질감으로 표현하므로 광학 투과, 리클라이닝, 3D 모션, 캐스터 회전, 탄성은 재현하지 않습니다.
 
-단품 확인은 `tests/facility/validate_runtime.py --scene chair`로 수행합니다. 정면(face), 사선(front), 측면(side), 후면(rear), 상부(top) PNG와 실제 scan을 저장합니다.
+단품 확인은 `ros2_ws/src/cleany_gazebo_sim/runtime_test/validate_facility.py --scene chair`로 수행합니다. 정면(face), 사선(front), 측면(side), 후면(rear), 상부(top) PNG와 실제 scan을 저장합니다.

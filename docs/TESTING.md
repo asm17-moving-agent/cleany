@@ -2,6 +2,21 @@
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
+## 테스트와 도구 위치
+
+테스트는 검사 대상을 소유한 위치에 둡니다. 루트 `tests/`에는 저장소 도구의 자동 검사와 패키지를 연결하는 통합 검사만 둡니다. 실행, 관찰과 보고 코드는 검증 도구로 분리합니다.
+
+| 위치 | 책임 |
+|---|---|
+| `ros2_ws/src/<package>/test/`, `tests/` | 패키지 기능과 계약의 자동 검사 |
+| `ros2_ws/src/<package>/runtime_test/` | 해당 패키지의 명시 실행 smoke와 runtime 검사 |
+| `tests/tools/` | 저장소 개발 도구와 시나리오 도구의 단위 테스트 |
+| `tests/integration/` | Backend, Mission 등 여러 구성 요소의 연동 검사 |
+| `tools/validation/navigation/` | 주행 실행, 관찰과 보고 |
+| `tools/validation/scenarios/` | 반복 시나리오 준비, 실행, 자극과 판정 |
+
+패키지 내부에도 통합 검사가 있을 수 있습니다. 파일의 책임과 실행 조건으로 위치를 정하며, runtime CLI를 `tests/`에 넣었다고 pytest가 자동 실행하는 것은 아닙니다.
+
 ## 검사 선택
 
 ```mermaid
@@ -41,9 +56,9 @@ flowchart TB
 | Monitor | `make test-dev-monitor` | 수집, 저장, HTTP와 UI 데이터 경계 |
 | Telemetry | `make test-telemetry` | odom relay |
 | 시나리오 보조 코드 | `make test-scenario-tools` | fixture, process 소유권, 결과 판정 |
-| 빌드 정리 도구 | `make test-tools` | 선택 출력 삭제와 보호 경로 거부 |
+| 저장소 도구 | `make test-tools` | 빌드 정리, 시나리오 준비와 결과 판정 |
 
-Fedora에서는 `make test-scenario-tools` 등 native target도 Humble Distrobox에서 실행합니다. `test-micro-ros-setup`, `test-motor-core`, `test-tools`는 Makefile의 `BASE_EXEC`가 환경을 선택합니다.
+Fedora에서는 native ROS target을 Humble Distrobox에서 실행합니다. `test-micro-ros-setup`, `test-motor-core`, `test-tools`, `test-scenario-tools`는 Makefile의 `BASE_EXEC`가 환경을 선택합니다.
 
 ## 선택 runtime과 UI
 
@@ -58,18 +73,18 @@ ROS_DOMAIN_ID=82 CLEANY_RUN_ROS_TESTS=1 make test-mission-core
 Monitor smoke는 같은 domain에서 Monitor를 먼저 실행한 뒤 호출합니다.
 
 ```bash
-ROS_DOMAIN_ID=187 python3 tests/dev_monitor/smoke.py --output /absolute/new-run
+ROS_DOMAIN_ID=187 python3 ros2_ws/src/cleany_dev_monitor/runtime_test/smoke.py --output /absolute/new-run
 # frontend의 현재 Playwright 설정과 package scripts:
 cat ros2_ws/src/cleany_dev_monitor/web/package.json
 ```
 
 UI 변경은 실제 served app에서 새로고침, 재연결, 기록 재생까지 확인합니다. Playwright browser가 없으면 configured browser를 설치한 뒤 다시 실행합니다.
 
-Mission Gateway smoke와 navigation smoke는 `tests/mission_runtime/`, `tests/dev_monitor/`에 있습니다. 실제 Backend, ROS, Gazebo 입력 조건을 준비한 경우에 명시적으로 실행합니다.
+Mission Gateway smoke는 `tests/integration/mission_runtime/`, Monitor smoke는 `ros2_ws/src/cleany_dev_monitor/runtime_test/`에 있습니다. 실제 Backend, ROS, Gazebo 입력 조건을 준비한 경우에 명시적으로 실행합니다.
 
 ## 반복 시나리오
 
-1. [시나리오 실행법과 판정](../tests/scenario_validation/README.md)에 따라 단일 smoke를 실행합니다.
+1. [시나리오 실행법과 판정](../tools/validation/scenarios/README.md)에 따라 단일 smoke를 실행합니다.
 2. Sensor freshness, 정지, 도착, deadline 기준을 유지하며 반복 범위를 늘립니다.
 3. Fixture와 overlay, ROS domain, Gazebo partition, DB, 출력 디렉터리를 실행별로 분리합니다.
 

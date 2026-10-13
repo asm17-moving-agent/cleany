@@ -104,7 +104,7 @@ test-micro-ros-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q esp32/host_tests/test_micro_ros_setup.py'
 
 test-tools:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/ros2/test_ros2_clean.py'
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/tools'
 
 test-gazebo-facility-tools:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_gazebo_sim:$${PYTHONPATH:-}" /usr/bin/python3 -m pytest -p no:cacheprovider -q ros2_ws/src/cleany_gazebo_sim/test/test_mission_targets.py'
@@ -228,7 +228,7 @@ test: build
 	source "$(INSTALL_BASE)/setup.bash" && \
 	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure && \
 	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose && \
-	python3 -m pytest "$(REPO_ROOT)tests/ros2/test_ros2_clean.py"
+	python3 -m pytest "$(REPO_ROOT)tests/tools"
 
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \
@@ -314,7 +314,7 @@ test-gazebo-safety: build-gazebo
 		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 "$(REPO_ROOT)tests/navigation_evaluation/run_safety_evaluation.py" \
+	python3 "$(REPO_ROOT)tools/validation/navigation/run_safety_evaluation.py" \
 		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --mode "$(SAFETY_MODE)" --robot-model "$(ROBOT_MODEL)"
 
 view-gazebo-costmap: build-gazebo
@@ -322,7 +322,7 @@ view-gazebo-costmap: build-gazebo
 		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 "$(REPO_ROOT)tests/navigation_evaluation/live_costmap.py" \
+	python3 "$(REPO_ROOT)tools/validation/navigation/live_costmap.py" \
 		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --robot-model "$(ROBOT_MODEL)" $(if $(filter 1,$(SAFETY_DRIVE)),--drive,)
 
 sim: build
@@ -439,8 +439,7 @@ run-dev-monitor:
 
 .PHONY: test-scenario-tools
 test-scenario-tools:
-	PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -c /dev/null --rootdir="$(REPO_ROOT)" -q \
-		"$(REPO_ROOT)"tests/scenario_validation/test_*.py
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/tools/scenarios'
 
 # Goal evidence is retained outside pytest temporary directories.
 NAVIGATION_GOAL_OUTPUT ?= $(CLEANY_DATA_ROOT)/runs/navigation-goals-$(shell date +%Y%m%d-%H%M%S)

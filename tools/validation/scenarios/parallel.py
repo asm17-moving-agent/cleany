@@ -68,7 +68,7 @@ def main() -> None:
     try:
         for i in range(args.count):
             output=out/f'worker-{i:02d}'
-            cmd=['python3',str(root/'tests/scenario_validation/instance.py'),'--root',str(root),'--source-identity',str(identity_path),'--fixture',str(fixture),'--output',str(output),'--seat',seats[i],'--domain',str(args.domain_base+i),'--partition',f'cleany_{args.name}_{i}','--gate',str(gate),'--repeats',str(args.repeats),'--scenario',args.scenario]
+            cmd=['python3',str(root/'tools/validation/scenarios/instance.py'),'--root',str(root),'--source-identity',str(identity_path),'--fixture',str(fixture),'--output',str(output),'--seat',seats[i],'--domain',str(args.domain_base+i),'--partition',f'cleany_{args.name}_{i}','--gate',str(gate),'--repeats',str(args.repeats),'--scenario',args.scenario]
             if args.sequence:cmd.extend(['--sequence',args.sequence])
             if args.stop_on_failure:cmd.append('--stop-on-failure')
             if args.failure_limit is not None:cmd.extend(['--failure-limit',str(args.failure_limit)])

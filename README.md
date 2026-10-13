@@ -65,7 +65,7 @@ make sim-gazebo
 | `ros2_ws/src/` | ROS 패키지, 순수 core, launch와 package 설정 |
 | `esp32/` | micro-ROS 펌웨어, 빌드 보조 도구, 장치 없는 검사와 PCB |
 | `configs/robot/` | 실제 base 초기 시험 설정과 mock 전용 설정 |
-| `tests/` | 패키지 경계를 넘는 검사, 시뮬레이션 평가와 실행 보조 코드 |
-| `tools/ros2/` | 해당 worktree의 외부 빌드 출력 정리 |
+| `tests/` | 저장소 도구의 단위 테스트와 패키지 경계를 넘는 통합 검사 |
+| `tools/` | 빌드 정리, vision 환경과 시나리오 실행, 관찰, 보고 도구 |
 
 생성물과 실행 원본은 기본적으로 worktree 옆 `../cleany-data/`에 둡니다. 사용 가능한 명령은 `make help`, 실제 옵션은 Makefile, launch, config에서 확인합니다. 문서 변경은 기존 설명에 반영하며, README에는 날짜별 구현 일지를 추가하지 않습니다.

@@ -23,7 +23,7 @@ import yaml
 from run_safety_evaluation import prepare, stop
 from safety_probe import SafetyProbe
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 FIXTURE = ROOT / 'ros2_ws/src/cleany_gazebo_sim/test/fixtures/navigation_goals'
 
 

@@ -22,7 +22,7 @@ def test_cad_gazebo_full_pipeline_reaches_saved_map_goal(runtime_test_options, t
         pytest.skip('The saved-map CAD evaluation fixture currently targets Harmonic')
     from ament_index_python.packages import get_package_share_directory
     import rclpy
-    tools = Path(__file__).resolve().parents[4]/'tests/navigation_evaluation'
+    tools = Path(__file__).resolve().parents[4]/'tools/validation/navigation'
     monkeypatch.syspath_prepend(str(tools))
     from run_safety_evaluation import prepare
     from safety_probe import SafetyProbe

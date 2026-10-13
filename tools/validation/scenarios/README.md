@@ -35,7 +35,7 @@ flowchart TB
 Humble에서 `make build-scenario-runtime`을 실행한 뒤 아래 명령을 호스트에서 호출합니다. Container에서도 동일한 소스, 데이터 절대 경로에 접근할 수 있어야 합니다.
 
 ```bash
-python3 tests/scenario_validation/parallel.py \
+python3 tools/validation/scenarios/parallel.py \
   --root "$PWD" --container ros2-humble \
   --count 1 --name smoke-001 --seat seat-44 --sequence seat-44,seat-16 \
   --stop-on-failure --domain-base 120
@@ -70,9 +70,9 @@ URI의 `repo://`는 checkout, `fixture://`는 선택한 fixture를 가리킵니�
 후보 profile `profiles/cad_fortress_command_hold.yaml`은 CAD Fortress yaw 보정, DWB 비용, 발행 명령의 0.2초 hold 충돌 검사를 설정합니다. 실물 보정값으로 사용하지 않습니다.
 
 ```bash
-python3 tests/scenario_validation/prepare_profile.py \
+python3 tools/validation/scenarios/prepare_profile.py \
   /path/to/cleany-data/fixtures/baseline /path/to/cleany-data/fixtures/candidate \
-  --profile tests/scenario_validation/profiles/cad_fortress_command_hold.yaml
+  --profile tools/validation/scenarios/profiles/cad_fortress_command_hold.yaml
 ```
 
 생성 결과는 `--fixture`, yaw 보정을 지원하는 odometry, 현재 navigation overlay와 함께 실행합니다. 기존 결과는 덮어쓰지 않습니다. 설정 두 개를 새로 생성하고 나머지는 원본 symlink로 연결합니다.
@@ -132,4 +132,6 @@ Navigation overlay를 재검증할 때는 `--navigation-overlay "$(make -s print
 | 보정 시도 | `--corrections`; 원래 시도도 보존 |
 | 과거 driver/job/profile | `CLEANY_DATA_ROOT/experiments/legacy-20261010`; 그대로 재실행 금지 |
 
-GPU는 NVIDIA EGL 파일이 존재할 때만 선택하고 Mesa 설정은 유지합니다. GPU 도구가 없으면 미측정으로 기록합니다. 호스트별 처리량, RTF와 fresh, continuous 결과를 구분합니다. 원본 위치는 [EVIDENCE](../../docs/EVIDENCE.md)에서 확인합니다.
+GPU는 NVIDIA EGL 파일이 존재할 때만 선택하고 Mesa 설정은 유지합니다. GPU 도구가 없으면 미측정으로 기록합니다. 호스트별 처리량, RTF와 fresh, continuous 결과를 구분합니다. 원본 위치는 [EVIDENCE](../../../docs/EVIDENCE.md)에서 확인합니다.
+
+실행 코드는 이 폴더에 두고, 장치 없는 단위 테스트는 `tests/tools/scenarios/`에서 관리합니다. `make test-scenario-tools`는 fixture 준비와 판정 로직을 검사하며 시뮬레이터를 시작하지 않습니다.

@@ -56,7 +56,7 @@ def prepare(base: Path, output: Path, profile: Path) -> dict:
         configs[name] = {'source_sha256': digest(raw), 'prepared_sha256': digest(encoded)}
     tree = (restored_tree(base/'world.sdf', base/'world.study.sdf')
             if (base/'world.study.sdf').exists() else ET.parse(base/'world.sdf'))
-    assets = localize_and_hash(tree, base, Path(__file__).resolve().parents[2])
+    assets = localize_and_hash(tree, base, Path(__file__).resolve().parents[3])
     output.mkdir(parents=True, exist_ok=False)
     (output/'config').mkdir()
     for entry in base.iterdir():

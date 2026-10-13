@@ -23,7 +23,7 @@ parser.add_argument("--linger", type=float, default=0)
 parser.add_argument("--url", default="http://127.0.0.1:8768")
 parser.add_argument("--output", required=True)
 args = parser.parse_args()
-root = Path(__file__).resolve().parents[2]
+root = Path(__file__).resolve().parents[4]
 output = Path(args.output).expanduser()
 output.mkdir(parents=True, exist_ok=False)
 rclpy.init()
