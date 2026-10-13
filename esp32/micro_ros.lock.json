@@ -1,0 +1,43 @@
+{
+  "component": {
+    "repository": "https://github.com/micro-ROS/micro_ros_espidf_component.git",
+    "revision": "4ddd8c26e721662319ed8af981cb7cdc9ae05382"
+  },
+  "agent": {
+    "repository": "https://github.com/micro-ROS/micro-ROS-Agent.git",
+    "revision": "c93ee764e0d2ef4907aeb29233c68cb5f4b56976"
+  },
+  "micro_ros_msgs": {
+    "repository": "https://github.com/micro-ROS/micro_ros_msgs.git",
+    "revision": "c9062eb3860d16c1bff1423923de3b0956fd4734"
+  },
+  "component_sources": {
+    "ament_cmake": ["https://github.com/ament/ament_cmake", "8289d61973f27e66930e0b656e67e12fa1d394cb"],
+    "ament_lint": ["https://github.com/ament/ament_lint", "a8b535a6d073233fc95b87c3ac4bcb1913a3b046"],
+    "ament_package": ["https://github.com/ament/ament_package", "3c8a92b4dda05be83f6e8e879c70f219180e1384"],
+    "googletest": ["https://github.com/ament/googletest", "083afd688a0d14239a831e1734e66a15664389c1"],
+    "ament_cmake_ros": ["https://github.com/ros2/ament_cmake_ros", "8ca65783d089348f9138574fb1eff4e20026eea5"],
+    "ament_index": ["https://github.com/ament/ament_index", "ae673e815cae9413cfbf4cab6e91a9c1c73c84ef"],
+    "Micro-XRCE-DDS-Client": ["https://github.com/eProsima/Micro-XRCE-DDS-Client", "83f129a80770a09aac9e823896ecbf6a0eddf0fc"],
+    "rmw_microxrcedds": ["https://github.com/micro-ROS/rmw_microxrcedds", "3a9856694f6a0273ee6c31e46b4991b424e1a183"],
+    "micro-CDR": ["https://github.com/eProsima/micro-CDR", "ed4fd513a24a53b93d548d342cb7aa0a18716f04"],
+    "rcl": ["https://github.com/micro-ROS/rcl", "600a79c43c028b3659394f12620d67d03915724a"],
+    "rclc": ["https://github.com/ros2/rclc", "10eadcc6444a3af3b21e7fb80a626f8c391450e0"],
+    "rcutils": ["https://github.com/micro-ROS/rcutils", "99316ef43d7eda04cec129b73435f8e4487f1615"],
+    "micro_ros_msgs": ["https://github.com/micro-ROS/micro_ros_msgs", "c9062eb3860d16c1bff1423923de3b0956fd4734"],
+    "rosidl_typesupport": ["https://github.com/micro-ROS/rosidl_typesupport", "520d9243f17e0cfe53c658b8051ebe2f89ad7c68"],
+    "rosidl_typesupport_microxrcedds": ["https://github.com/micro-ROS/rosidl_typesupport_microxrcedds", "68b96291bca436243c9f3f9b054e5e117e58f8f7"],
+    "rosidl": ["https://github.com/ros2/rosidl", "5621b26eff54596a356ad8abd72c06e7650d21f7"],
+    "rmw": ["https://github.com/ros2/rmw", "566d17a97e87bc5336ce33fb025ce8e952a3326a"],
+    "rcl_interfaces": ["https://github.com/ros2/rcl_interfaces", "82776fc9068d1e0cd4af11c2e2700195994b2eb1"],
+    "rosidl_defaults": ["https://github.com/ros2/rosidl_defaults", "8266f1c0f062d405595570209cfb0ed3f71684ae"],
+    "unique_identifier_msgs": ["https://github.com/ros2/unique_identifier_msgs", "27767cefcf8a80da44641dc208c57722c28aa11c"],
+    "common_interfaces": ["https://github.com/ros2/common_interfaces", "08434490d3e4abd37ccc5462cdde69b88853b5b8"],
+    "example_interfaces": ["https://github.com/ros2/example_interfaces", "ae3df08ac12cea293f53520c7c7dc67cb0cf5355"],
+    "test_interface_files": ["https://github.com/ros2/test_interface_files", "a0c8f5e338490ddf8b98238dce35c06810115e8b"],
+    "rmw_implementation": ["https://github.com/ros2/rmw_implementation", "0fd2967b217afef2d45fbab550b598c70444a0aa"],
+    "rcl_logging": ["https://github.com/ros2/rcl_logging", "5bab8cf7a19c466de77aee35fa55778298563c57"],
+    "ros2_tracing": ["https://gitlab.com/ros-tracing/ros2_tracing", "548634dd2837d65c043436c8186614e924be5c6c"],
+    "micro_ros_utilities": ["https://github.com/micro-ROS/micro_ros_utilities", "74fbd3ed2e451e50aea49e45d143905e496c8f10"]
+  }
+}

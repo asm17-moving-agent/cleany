@@ -1,0 +1,7 @@
+<library path="known_geometry_octomap_updater">
+  <class name="cleany_scene_mapping/KnownGeometryOctomapUpdater"
+         type="cleany_scene_mapping::KnownGeometryOctomapUpdater"
+         base_class_type="occupancy_map_monitor::OccupancyMapUpdater">
+    <description>Point-cloud updater with fully-contained known-volume exclusion.</description>
+  </class>
+</library>

@@ -1,0 +1,11 @@
+depth_scene_node:
+  ros__parameters:
+    depth_image_topic: /camera/depth/image_rect_raw
+    depth_info_topic: /camera/depth/camera_info
+    cloud_topic: /perception/scene_cloud
+    minimum_depth_m: 0.1
+    maximum_depth_m: 2.0
+    pixel_stride: 2
+    publish_rate_hz: 2.0
+    maximum_depth_age_sec: 1.0
+    depth_16u_scale_m: 0.001

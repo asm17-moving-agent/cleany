@@ -1,0 +1,36 @@
+# Gazebo navigation evaluation pose, not an arm controller or calibration.
+source_commit: e718ac57e861f3d34b6e0e10b0d18d87a348bf51
+wheel_radius: 0.0635
+wheel_width: 0.051
+# Evaluation margins, separate from the model's physical outer bounds.
+navigation_margins:
+  stop: 0.08
+  planning_padding: 0.02
+  slowdown: 0.20
+wheelbase: 0.35
+wheel_separation: 0.6038
+# User-requested simulation-only wrist extension; original URDF limits retained.
+simulation_park_limits:
+  left_wrist_pitch_joint: [-2.0, 1.65806272933]
+  right_wrist_pitch_joint: [-2.0, 1.65806272933]
+park_joints:
+  # Elbow fully folded; grippers lean about 20 degrees toward the elbows.
+  left_shoulder_yaw_joint: -1.57079632679
+  right_shoulder_yaw_joint: 1.57079632679
+  left_shoulder_pitch_joint: 3.06
+  right_shoulder_pitch_joint: 3.06
+  left_elbow_pitch_joint: 3.14
+  right_elbow_pitch_joint: 3.14
+  left_wrist_pitch_joint: -2.0
+  right_wrist_pitch_joint: -2.0
+  left_wrist_roll_joint: 0.0
+  right_wrist_roll_joint: 0.0
+  left_gripper_joint: 0.0
+  right_gripper_joint: 0.0
+  head_pan_joint: 0.0
+  # Positive +Y rotation points the forward-facing camera down by 30 degrees.
+  head_tilt_joint: 0.5235987755982988
+
+# Simulation: measured pan joint drives camera TF and pre-motion interlock.
+dynamic_pan: true
+pan_speed_rad_s: 1.0

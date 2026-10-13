@@ -1,0 +1,15 @@
+# Uncalibrated values for device-free mock mode only.
+mode: synthetic
+geometry:
+  wheel_radius_m: 0.05
+  wheelbase_m: 0.30
+  wheel_separation_m: 0.30
+limits:
+  linear_x_mps: 0.5
+  linear_y_mps: 0.5
+  angular_z_rad_s: 1.0
+  wheel_rad_s: 10.0
+  command_timeout_s: 0.25
+protocol:
+  counts_per_revolution: 3172
+  watchdog_ms: 250

@@ -23,7 +23,8 @@ def _mock_moveit_config():
             moveit_manage_controllers=False,
         )
         .planning_pipelines(
-            default_planning_pipeline='ompl', pipelines=['ompl']
+            default_planning_pipeline='ompl',
+            pipelines=['ompl', 'pilz_industrial_motion_planner'],
         )
         .planning_scene_monitor()
         .to_moveit_configs()

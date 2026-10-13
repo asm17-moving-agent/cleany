@@ -31,6 +31,19 @@ Visualization Manager:
         Scene Alpha: 0.9
       Scene Robot:
         Robot Alpha: 0.5
+    - Class: rviz_default_plugins/PointCloud2
+      Enabled: true
+      Name: Observed Depth Surface
+      Topic:
+        Value: /perception/scene_cloud
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        Depth: 1
+      Style: Points
+      Size (Pixels): 2
+      Color Transformer: AxisColor
+      Position Transformer: XYZ
+      Decay Time: 0
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Marker Topic: /grasp_demo/markers

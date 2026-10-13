@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    octomap_frame: base_link
+    octomap_resolution: 0.01
+    depth_cloud:
+      sensor_plugin: occupancy_map_monitor/PointCloudOctomapUpdater
+      point_cloud_topic: /perception/scene_cloud
+      max_range: 2.0
+      point_subsample: 1
+      # Cover the 1 cm voxel half-diagonal (8.7 mm) plus 5 mm sensor/model
+      # allowance. Otherwise a visible jaw edge becomes a colliding voxel.
+      padding_offset: 0.015
+      padding_scale: 1.0
+      max_update_rate: 2.0
+      filtered_cloud_topic: /perception/scene_cloud_filtered

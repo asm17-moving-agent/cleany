@@ -14,6 +14,10 @@ profiles:
     description: Scan center 0.26 m above the world floor and canonical SLAM input.
     translation: [0.16, 0.0, -0.12]
     rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
+  floor_30cm:
+    description: Scan center 0.30 m above the world floor.
+    translation: [0.16, 0.0, -0.08]
+    rotation_xyzw: [0.0, 0.0, 0.0, 1.0]
   floor_45cm:
     description: Scan center 0.45 m above the world floor.
     translation: [0.16, 0.0, 0.07]

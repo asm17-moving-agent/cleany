@@ -9,7 +9,28 @@ from cleany_grasping.grasp_node import (
     GraspNode,
     _rotation_from_quaternion,
     _transform_target_object,
+    observed_geometry_message,
 )
+
+
+def test_observed_mesh_message_roundtrips_with_frame_pose_and_capture_identity():
+    from cleany_interfaces.msg import ObservedObjectGeometry
+    from rclpy.serialization import serialize_message, deserialize_message
+    from std_msgs.msg import Header
+    target = DetectedObject3D(object_id=7)
+    target.obb_size.z = .04
+    target.obb_pose.position.x = .5
+    target.obb_pose.position.z = .36
+    header = Header(frame_id='base_link')
+    header.stamp.sec = 3
+    points = np.array([(x,y,.38) for x in (.48,.52) for y in (-.02,.02)])
+    message = observed_geometry_message(points, target, header, 'snapshot', 7)
+    decoded = deserialize_message(serialize_message(message), ObservedObjectGeometry)
+    assert decoded == message
+    assert decoded.header == header and decoded.mesh_pose == target.obb_pose
+    assert decoded.snapshot_id == 'snapshot' and decoded.object_id == 7
+    assert min(p.z for p in decoded.mesh.vertices) == pytest.approx(-.02)
+    assert max(p.x for p in decoded.mesh.vertices) == pytest.approx(.02)
 
 
 def test_target_obb_pose_is_transformed_with_candidate_frame():

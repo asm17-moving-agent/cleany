@@ -1,10 +1,12 @@
 ground_truth_route_follower:
   ros__parameters:
-    max_linear_speed: 0.25
-    max_angular_speed: 0.5
+    max_linear_speed: 0.20
+    max_angular_speed: 0.30
+    max_linear_acceleration: 0.20
     heading_gain: 1.2
     position_tolerance: 0.09
-    turn_in_place_threshold: 0.45
+    heading_tolerance: 0.08
+    turn_in_place_threshold: 0.15
     control_rate_hz: 20.0
     odom_timeout_sec: 0.5
     # Measured 48-seat demo-room route. It sweeps the four horizontal

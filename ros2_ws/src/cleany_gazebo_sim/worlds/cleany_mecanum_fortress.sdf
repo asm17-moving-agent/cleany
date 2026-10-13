@@ -277,7 +277,9 @@
         <odom_publish_frequency>50</odom_publish_frequency>
         <odom_topic>/model/cleany_mecanum/ground_truth</odom_topic>
       </plugin>
-      <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher"/>
+      <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher">
+        <topic>/model/cleany_mecanum/joint_state</topic>
+      </plugin>
     </model>
   </world>
 </sdf>
