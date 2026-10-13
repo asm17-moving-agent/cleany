@@ -178,6 +178,63 @@ Native USB의 baud 값은 Agent serial 설정값이며 USB-UART bridge를 뜻하
 [`esp32`의 실물 인수 체크리스트](../../../esp32/README.md#robot-acceptance)를
 수행한다.
 
+## Sway ROS 2 쇼케이스
+
+[`tools/base_showcase.sh`](../../../tools/base_showcase.sh)는 `Cleany sweep`
+workspace에 Kitty 터미널과 저장된 rqt 대시보드를 연다. 터미널은 Agent, driver,
+odom, Commands 탭으로 구성하고, 대시보드는 왼쪽 약 65%에 배치한다.
+ROS 2 경로가 native 환경에 없으면 `ros2-humble` Distrobox를 사용한다.
+Sway와 Kitty가 있는 데스크톱에서 실행하며, 기존 `/base/enable` service 또는
+`/base/wheel_command`, `/cmd_vel` publisher가 있으면 중복 실행을 거부한다.
+선택한 workspace가 사용 중이면 `--workspace`로 빈 이름을 지정한다.
+
+펌웨어 업로드를 완료한 뒤 레포 루트에서 실행한다. 실물은 위 절차와 동일하게
+모든 바퀴를 띄우고 로봇을 고정하며 물리 emergency stop을 준비한다.
+
+```bash
+make build-base
+make micro-ros-agent-build
+ls -l /dev/serial/by-id/
+bash tools/base_showcase.sh --port /dev/serial/by-id/<native-USB-device>
+
+# 장치 없이 같은 화면과 ROS 경로 확인: 별도 domain 173, Agent 없음
+bash tools/base_showcase.sh --mock
+
+# 창과 ROS를 실행하지 않고 계획만 확인
+bash tools/base_showcase.sh --mock --dry-run
+```
+
+시작은 구동 비허가 상태다. **Commands** 탭에서 다음 명령을 입력한다.
+
+| 명령 | 동작 |
+|---|---|
+| `forward`, `backward` | x ±0.05 m/s |
+| `left`, `right` | y ±0.05 m/s |
+| `yaw_left`, `yaw_right` | yaw ±0.1 rad/s |
+| `demo` | 전진 → 후진 → 좌측 → 좌회전, 단계 사이 1초 정지 |
+| `stop` | `/base/enable` false |
+| `status` | WheelState 한 건 확인 |
+| `quit` | STOP 후 Commands 탭 종료 |
+
+이동 명령마다 명시적으로 enable하고 약 3초 동안 50 Hz `/cmd_vel`을 발행한 뒤
+STOP한다. Enable 실패 시 이동 명령을 발행하지 않는다. `demo`도 단계마다 같은
+절차를 사용하며 실패하면 다음 단계로 넘어가지 않는다. 진행 중인 시연은
+Commands 탭의 Ctrl+C로 중단한다. Odom 탭은 `/odom`을 표시하며, 바퀴를 띄운
+상태의 값은 실제 차체 이동이 아닌 엔코더 기반 계산값이다.
+
+스크립트를 실행한 터미널의 Ctrl+C, Kitty 창 닫기 또는 대시보드 닫기는
+STOP을 요청한 뒤 이 세션의 ROS 프로세스를 종료한다.
+세션 경로와 GUI·종료 로그는 `~/.cache/cleany-base-showcase.*`에 남는다
+(`XDG_CACHE_HOME` 설정 시 해당 경로 사용).
+장치 없는 스크립트 검증은 다음 명령으로 실행한다.
+
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tools/test_base_showcase.py
+```
+
+정적 검사는 `bash -n tools/base_showcase.sh`와
+`shellcheck tools/base_showcase.sh`로 실행한다.
+
 ## Plot과 diagnostics
 
 `base_monitor.launch.py preset:=true`는 저장된 rqt Perspective를 불러와 한 창에
