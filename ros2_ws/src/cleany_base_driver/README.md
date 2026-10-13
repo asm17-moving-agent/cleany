@@ -84,8 +84,9 @@ ROS 수신 시각으로 stamp를 붙인다. Signed int32 encoder rollover는 mod
   `mock:=false`와 함께 사용할 수 없다. 실물 calibration 또는 주행 허용값이 아니다.
 
 Geometry는 wheel radius, wheelbase, wheel separation의 양의 유한 meter 값이다.
-실물 profile은 각각 `0.0635`, `0.350`, `0.610 m`다. 프레임 외곽 치수가 아니라
-휠 중심 간 거리이며, 휠의 127 mm는 반지름이 아닌 직경이다.
+실측 기구 치수는 좌우 휠 중심 간 거리 `0.610 m`(앞뒤 `0.350 m`, 휠 반지름 `0.0635 m`)이며,
+바닥 주행 및 360° 제자리 회전 보정에서 메카넘 롤러 접촉점 오프셋과 슬립을 반영한
+유효 kinematic separation은 `0.590 m`를 사용한다 (`configs/robot/base_hardware.yaml`).
 Limits는 x/y m/s, yaw rad/s, wheel rad/s와 command timeout seconds다.
 Wheel 제한은 MCU 계약인 10 rad/s 이하여야 한다.
 
@@ -98,8 +99,8 @@ Wheel 제한은 MCU 계약인 10 rad/s 이하여야 한다.
 
 x/y, yaw와 휠 상한은 각각 지정된 값이다. 휠 반지름 `r = 0.0635 m`에서
 순수 전후 또는 좌우 0.5 m/s 명령은 driver 기준 약 7.874 rad/s 휠 목표가 된다.
-메카넘 회전 계수 `(wheelbase + wheel_separation) / 2 = 0.480 m`에서
-제자리 회전 1 rad/s 명령은 약 7.559 rad/s 휠 목표가 된다.
+유효 separation 기준 메카넘 회전 계수 `(wheelbase + wheel_separation) / 2 = 0.470 m`에서
+제자리 회전 1 rad/s 명령은 약 7.402 rad/s 휠 목표가 된다.
 대각선 이동이나 회전과 병진이 섞여 휠 10 rad/s를 넘으면 모든 휠을 같은 비율로
 줄인다. MCU는 휠 목표를 0.1 rad/s 단위로 반올림한다.
 실제 이동 속도는 하중, 슬립과 제어 응답을 측정해 확인한다.

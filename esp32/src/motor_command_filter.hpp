@@ -10,8 +10,10 @@ constexpr float kTwoPi = 6.28318530717958647692F;
 
 struct MotorFilterConfig {
   int slewStepPercent = 1;
+  int64_t slewStepIntervalUs = 0;
   float zeroSpeedThresholdRadPerSecond = 0.5F;
   int64_t zeroSpeedDwellUs = 50000;
+  int decelSlewStepPercent = 0;
 };
 
 inline int speedSign(int speed) {
@@ -54,6 +56,7 @@ class MotorCommandFilter {
     targetSpeed_ = 0;
     appliedSpeed_ = 0;
     zeroSpeedSinceUs_ = -1;
+    lastSlewUpdateUs_ = -1;
     waitingForReverse_ = false;
   }
 
@@ -64,14 +67,24 @@ class MotorCommandFilter {
     if (appliedSign != 0) {
       lastDriveSign_ = appliedSign;
       zeroSpeedSinceUs_ = -1;
+      const int decelStep = (config_.decelSlewStepPercent > 0)
+                                ? config_.decelSlewStepPercent
+                                : config_.slewStepPercent;
       if (targetSign != 0 && targetSign != appliedSign) {
         waitingForReverse_ = true;
-        appliedSpeed_ =
-            moveToward(appliedSpeed_, 0, config_.slewStepPercent);
+        if (canAdvanceSlew(nowUs)) {
+          appliedSpeed_ =
+              moveToward(appliedSpeed_, 0, decelStep);
+          lastSlewUpdateUs_ = nowUs;
+        }
       } else {
         waitingForReverse_ = false;
-        appliedSpeed_ = moveToward(appliedSpeed_, targetSpeed_,
-                                   config_.slewStepPercent);
+        if (canAdvanceSlew(nowUs)) {
+          const bool isDecel = std::abs(targetSpeed_) < std::abs(appliedSpeed_);
+          const int stepAmount = isDecel ? decelStep : config_.slewStepPercent;
+          appliedSpeed_ = moveToward(appliedSpeed_, targetSpeed_, stepAmount);
+          lastSlewUpdateUs_ = nowUs;
+        }
       }
       return appliedSpeed_;
     }
@@ -95,8 +108,11 @@ class MotorCommandFilter {
     waitingForReverse_ = false;
     lastDriveSign_ = targetSign;
     zeroSpeedSinceUs_ = -1;
-    appliedSpeed_ =
-        moveToward(0, targetSpeed_, config_.slewStepPercent);
+    if (canAdvanceSlew(nowUs)) {
+      appliedSpeed_ =
+          moveToward(0, targetSpeed_, config_.slewStepPercent);
+      lastSlewUpdateUs_ = nowUs;
+    }
     return appliedSpeed_;
   }
 
@@ -113,6 +129,14 @@ class MotorCommandFilter {
   }
 
  private:
+  bool canAdvanceSlew(int64_t nowUs) const {
+    if (config_.slewStepIntervalUs <= 0) {
+      return true;
+    }
+    return lastSlewUpdateUs_ < 0 ||
+           (nowUs - lastSlewUpdateUs_) >= config_.slewStepIntervalUs;
+  }
+
   void observeStoppedSpeed(float feedbackVelocityRadPerSecond, int64_t nowUs) {
     if (std::fabs(feedbackVelocityRadPerSecond) <=
         config_.zeroSpeedThresholdRadPerSecond) {
@@ -134,6 +158,7 @@ class MotorCommandFilter {
   int appliedSpeed_ = 0;
   int lastDriveSign_ = 0;
   int64_t zeroSpeedSinceUs_ = -1;
+  int64_t lastSlewUpdateUs_ = -1;
   bool waitingForReverse_ = false;
 };
 
