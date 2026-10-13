@@ -915,6 +915,8 @@ def materialize_study_cafe_world(
     robot_spawn_pose: tuple[float, float, float, float, float, float]
     | None = None,
     robot_model: str = 'legacy',
+    chair_model: str = 'legacy',
+    chair_config_path: Path | None = None,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
@@ -928,6 +930,13 @@ def materialize_study_cafe_world(
         / 'study_cafe'
         / 'study_cafe_layout.yaml'
     )
+    if chair_model not in ('legacy', 'roly'):
+        raise ValueError(f'Unknown chair model: {chair_model}')
+    if chair_model == 'roly':
+        from cleany_gazebo_sim.world.roly import add_roly_chair, load_roly_config
+        chair_config = load_roly_config(
+            chair_config_path or robot_template_path.parent.parent
+            / 'config/furniture/roly_p1g210m.yaml')
     target = target_path or _unique_runtime_target(
         'cleany-study-cafe-', 'world.sdf'
     )
@@ -1101,10 +1110,12 @@ def materialize_study_cafe_world(
                     front_sign=front_sign,
                 )
                 chair_xy = (desk_x, desk_y + chair_offset)
-                _add_office_chair(
-                    world, chair_name,
-                    _chair_pose_toward(chair_xy, (desk_x, desk_y)),
-                )
+                chair_pose = _chair_pose_toward(chair_xy, (desk_x, desk_y))
+                if chair_model == 'legacy':
+                    _add_office_chair(world, chair_name, chair_pose)
+                else:
+                    add_roly_chair(world, chair_name, chair_pose, chair_config,
+                                   target.parent / 'roly_meshes')
                 desk_index += 1
 
     ElementTree.ElementTree(root).write(

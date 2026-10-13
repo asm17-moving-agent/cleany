@@ -99,6 +99,8 @@ def generate_launch_description() -> LaunchDescription:
         choices=['ogre', 'ogre2'],
         description='Rendering engine used by the Gazebo server.',
     )
+    headless_rendering_arg = DeclareLaunchArgument(
+        'headless_rendering', default_value='false', choices=['true', 'false'])
     sensor_profile_arg = declare_sensor_profile_argument()
 
     return LaunchDescription(
@@ -112,6 +114,7 @@ def generate_launch_description() -> LaunchDescription:
             odometry_error_config_arg,
             odometry_source_arg,
             headless_arg,
+            headless_rendering_arg,
             use_sim_time_arg,
             gui_render_engine_arg,
             server_render_engine_arg,
@@ -153,6 +156,8 @@ def _launch_setup(
             'gazebo',
             '-r',
             '-s',
+            *(['--headless-rendering'] if LaunchConfiguration(
+                'headless_rendering').perform(context) == 'true' else []),
             '--render-engine-server',
             LaunchConfiguration('server_render_engine'),
             world,

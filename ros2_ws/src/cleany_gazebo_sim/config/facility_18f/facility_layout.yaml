@@ -1,0 +1,149 @@
+schema_version: 1
+source:
+  image: docs/assets/facility/facility-18f-reference.png
+  sha256: 5e6965ebdc179cad75fced8ba7e9535ff732bfb7bc696a3b5670aaf4a2ebe8cb
+  coordinates: dashboard landscape viewBox 0 0 1160 670
+  dimensions: inferred_from_existing_d_hub_not_surveyed
+  # Screenshot pixels corresponding to map coordinates. Includes its border.
+  reference_pixel_anchors: [[824, 13], [1394, 13], [824, 522]]
+  reference_map_anchors: [[576, 8], [976, 8], [576, 364.93311582381725]]
+transform:
+  units_per_meter: 32.62642740619902 # 400 / 12.26
+  origin_map: [776, 186.46655791190862]
+wall:
+  thickness_m: 0.16
+  height_m: 2.7
+  color: [0.93, 0.94, 0.93, 1.0]
+floor_bounds: [8, 8, 1154, 662]
+floor:
+  material: grey_felt
+  texture_tile_m: 0.5 # visual approximation; not a measured fibre scale
+glass:
+  thickness_m: 0.012
+  transparency: 0.72
+  color: [0.65, 0.84, 0.88, 1.0]
+  frame_width_m: 0.035
+  frame_color: [0.35, 0.39, 0.40, 1.0]
+central_table:
+  bounds: [461, 235, 491, 368]
+  height_m: 0.80 # user supplied approximate height
+  color: [0.72, 0.60, 0.44, 1.0]
+ceiling:
+  height_m: 2.7 # user selected ceiling height
+  thickness_m: 0.08
+  color: [0.92, 0.92, 0.90, 1.0]
+spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
+# Polylines describe wall centers in dashboard map coordinates. D-HUB's
+# outer faces are offset away from the existing furniture by half a wall.
+walls:
+  - {id: outer_north, points: [[8, 8], [1154, 8]], offset_m: [0, 0.08]}
+  - {id: outer_west, points: [[8, 8], [8, 662]]}
+  - {id: outer_east, points: [[1154, 8], [1154, 662]]}
+  - {id: outer_south, points: [[8, 662], [1154, 662]]}
+  - {id: storage_top, points: [[74, 8], [74, 90], [54, 90]]}
+  - {id: storage_top_stub, points: [[8, 90], [25, 90]]}
+  - {id: a3_diagonal, points: [[74, 90], [145, 157]]}
+  - {id: a3_front_upper, material: glass, points: [[145, 157], [145, 182]]}
+  - {id: a4_stub, material: glass, points: [[145, 157], [160, 157]]}
+  - {id: a4_m1, points: [[192, 8], [192, 157]]}
+  - {id: m1_front_stub, material: glass, points: [[192, 157], [205, 157]]}
+  - {id: m1_m2, points: [[320, 8], [320, 157]]}
+  - {id: m2_m3, points: [[449, 8], [449, 157]]}
+  - {id: m1_south, material: glass, points: [[230, 157], [335, 157]]}
+  - {id: m2_south, material: glass, points: [[362, 157], [461, 157]]}
+  - {id: m3_south, material: glass, points: [[489, 157], [576, 157]]}
+  - {id: a3_south, points: [[8, 213], [145, 213]]}
+  - {id: a2_front_upper, material: glass, points: [[145, 213], [145, 272]]}
+  - {id: a2_south, points: [[8, 310], [145, 310]]}
+  - {id: a2_door_stub, material: glass, points: [[145, 299], [145, 322]]}
+  - {id: a1_south, material: glass, points: [[8, 408], [145, 408], [145, 345]]}
+  - {id: dhub_west, points: [[576, 8], [576, 364.93311582381725]], offset_m: [-0.08, 0]}
+  - {id: dhub_south_stub, points: [[576, 364.93311582381725], [586, 364.93311582381725]], offset_m: [0, -0.08]}
+  - {id: dhub_south, points: [[618, 364.93311582381725], [908, 364.93311582381725]], offset_m: [0, -0.08]}
+  - {id: dhub_corner_stub, points: [[936, 364.93311582381725], [940, 364.93311582381725]], offset_m: [0, -0.08]}
+  - {id: dhub_east, points: [[976, 8], [976, 328.93311582381725]], offset_m: [0.08, 0]}
+  - {id: relax_divider, points: [[1005, 207], [1154, 207]]}
+  - {id: relax_entry, points: [[1031, 207], [1031, 388], [1081, 388], [1081, 411], [1115, 411]]}
+  - {id: stairs_left_north, points: [[69, 477], [69, 461], [211, 461]]}
+  - {id: stairs_left_east, points: [[204, 461], [204, 662]]}
+  - {id: stairs_left_west, points: [[69, 512], [69, 662]]}
+  - {id: stairs_left_mid, points: [[69, 566], [204, 566]]}
+  - {id: stairs_left_inner, points: [[145, 503], [145, 566]]}
+  - {id: storage_bottom_stub, points: [[8, 522], [20, 522]]}
+  - {id: storage_bottom_entry, points: [[47, 522], [69, 522]]}
+  - {id: lift_left, points: [[250, 662], [250, 458], [337, 458], [337, 504]]}
+  - {id: lift_left_mid, points: [[250, 569], [337, 569]]}
+  - {id: lift_left_entry, points: [[337, 539], [337, 603]]}
+  - {id: lift_left_bottom, points: [[337, 635], [337, 662]]}
+  - {id: lift_right_top, points: [[434, 504], [434, 458], [718, 458], [718, 569], [434, 569]]}
+  - {id: lift_right_entry, points: [[434, 539], [434, 603]]}
+  - {id: lift_right_bottom, points: [[434, 635], [434, 662]]}
+  - {id: lift_right_divider, points: [[526, 458], [526, 662]]}
+  - {id: lift_emergency_top, points: [[601, 569], [601, 598]]}
+  - {id: lift_emergency_bottom, points: [[601, 630], [601, 662]]}
+  - {id: lift_bottom_obstacle, points: [[655, 662], [655, 620], [716, 620], [716, 662]]}
+  - {id: restroom_top, points: [[764, 481], [764, 458], [1115, 458]]}
+  - {id: restroom_left, points: [[764, 511], [764, 623]]}
+  - {id: restroom_bottom, points: [[764, 566], [1094, 566], [1094, 542], [1114, 542]]}
+  - {id: restroom_divider, points: [[943, 458], [943, 566]]}
+  - {id: restroom_entry_top, points: [[1094, 458], [1094, 510]]}
+  - {id: storage_right_stub, points: [[1142, 542], [1154, 542]]}
+  - {id: storage_right_west, points: [[1094, 566], [1094, 662]]}
+  - {id: stairs_right_west, points: [[835, 566], [835, 623]]}
+  - {id: stairs_right_east, points: [[943, 566], [943, 662]]}
+arcs:
+  - id: dhub_rounded_corner
+    center: [940, 328.93311582381725]
+    radius_units: 36
+    start_deg: 0
+    end_deg: 90
+    segments: 12
+    outward_offset_m: 0.08
+doors:
+  - {id: dhub_west_exit, points: [[586, 364.93311582381725], [618, 364.93311582381725]]}
+  - {id: dhub_east_exit, points: [[908, 364.93311582381725], [936, 364.93311582381725]]}
+  - {id: a4_entry, material: glass, open_angle_deg: 90, points: [[160, 157], [192, 157]]}
+  - {id: m1_entry, material: glass, open_angle_deg: 90, points: [[205, 157], [230, 157]]}
+  - {id: m2_entry, material: glass, open_angle_deg: 90, points: [[335, 157], [362, 157]]}
+  - {id: m3_entry, material: glass, open_angle_deg: 90, points: [[461, 157], [489, 157]]}
+  - {id: a3_entry, material: glass, open_angle_deg: -90, points: [[145, 182], [145, 213]]}
+  - {id: a2_entry, material: glass, open_angle_deg: -90, points: [[145, 272], [145, 299]]}
+  - {id: a1_entry, material: glass, open_angle_deg: -90, points: [[145, 322], [145, 345]]}
+rooms:
+  - {id: space-a4, label: A4, center: [150.85, 75], columns: 2, rotation_deg: 0}
+  - {id: space-m1, label: M1, center: [262.85, 75], columns: 3, rotation_deg: 0}
+  - {id: space-m2, label: M2, center: [391.85, 75], columns: 3, rotation_deg: 0}
+  - {id: space-m3, label: M3, center: [519.85, 75], columns: 3, rotation_deg: 0}
+  - {id: space-a3, label: A3, center: [68, 173], columns: 2, rotation_deg: 90}
+  - {id: space-a2, label: A2, center: [68, 268], columns: 2, rotation_deg: 90}
+  - {id: space-a1, label: A1, center: [68, 368], columns: 2, rotation_deg: 90}
+room_furniture:
+  desk_size_units: [32.3, 23.8]
+  column_spacing_units: 34
+  row_offset_units: 13.6
+  desk_top_m: 0.72
+  chair_offset_m: 0.38
+# World coordinates: starts at the existing spawn, exits west door, then follows
+# the open corridor west of D-HUB to M3 and through THE GROND to A2's doorway.
+route_control:
+  max_linear_speed: 0.15
+  max_angular_speed: 0.25
+  max_linear_acceleration: 0.2
+  heading_tolerance: 0.08
+  heading_gain: 0.5
+  position_tolerance: 0.09
+  turn_in_place_threshold: 0.12
+  position_gain: 0.4
+route_xy:
+  - [-1.865, -4.705]
+  - [-1.865, -4.93]
+  - [-5.3331, -4.93]
+  - [-5.3331, -6.5]
+  - [-7.2, -6.5]
+  - [-7.2, 0.0]
+  - [-9.2256, 0.0]
+  - [-9.2256, 1.5]
+  - [-9.2256, 0.0]
+  - [-12.0, 0.0]
+  - [-12.0, -3.0369]
+  - [-18.4, -3.0369]

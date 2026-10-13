@@ -22,6 +22,7 @@ from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     declare_sensor_profile_argument,
 )
 from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
+from cleany_gazebo_sim.world.facility_generator import materialize_facility_world
 
 
 def _optional_spawn_pose(value: str) -> tuple[float, ...] | None:
@@ -47,7 +48,7 @@ _BACKEND_LAUNCH = {
 
 
 def _launch_simulation(
-    context: LaunchContext, *, package_share: Path, simulator: str
+    context: LaunchContext, *, package_share: Path, simulator: str, facility: bool = False
 ) -> list[IncludeLaunchDescription]:
     profiles_path = Path(
         LaunchConfiguration('lidar_profiles_config').perform(context)
@@ -68,7 +69,8 @@ def _launch_simulation(
     if profile.transform.rotation_xyzw != (0.0, 0.0, 0.0, 1.0):
         raise ValueError('study-cafe LiDAR profiles must be level mounts')
 
-    world = materialize_study_cafe_world(
+    generator = materialize_facility_world if facility else materialize_study_cafe_world
+    world = generator(
         package_share / 'worlds' / f'cleany_mecanum_{simulator}.sdf',
         max_step_size=float(
             LaunchConfiguration('physics_max_step_size').perform(context)
@@ -87,6 +89,10 @@ def _launch_simulation(
         sensor_render_engine=LaunchConfiguration(
             'sensor_render_engine'
         ).perform(context),
+        robot_model=LaunchConfiguration('robot_model').perform(context),
+        chair_model=LaunchConfiguration('chair_model').perform(context),
+        **({'facility_layout_path': Path(LaunchConfiguration(
+            'facility_layout_config').perform(context))} if facility else {}),
         robot_spawn_pose=_optional_spawn_pose(
             LaunchConfiguration('robot_spawn_pose').perform(context)
         ),
@@ -100,6 +106,7 @@ def _launch_simulation(
         launch_arguments={
             'world': str(world),
             'headless': LaunchConfiguration('headless'),
+            'headless_rendering': LaunchConfiguration('headless_rendering'),
             'use_sim_time': LaunchConfiguration('use_sim_time'),
             'bridge_config': LaunchConfiguration('bridge_config'),
             'sensor_config': str(sensor_config),
@@ -130,7 +137,7 @@ def _launch_simulation(
 
 
 def study_cafe_launch_description(
-    simulator: str = 'fortress',
+    simulator: str = 'fortress', *, facility: bool = False,
 ) -> LaunchDescription:
     """Build a profile-specific study-cafe scenario launch description."""
     if simulator not in _BACKEND_LAUNCH:
@@ -231,7 +238,7 @@ def study_cafe_launch_description(
         ),
     )
     physics_step_arg = DeclareLaunchArgument(
-        'physics_max_step_size', default_value='0.002'
+        'physics_max_step_size', default_value='0.001' if facility else '0.002'
     )
     real_time_factor_arg = DeclareLaunchArgument(
         'physics_real_time_factor', default_value='1.0'
@@ -239,11 +246,18 @@ def study_cafe_launch_description(
     sensor_profile_arg = declare_sensor_profile_argument()
     simulation = OpaqueFunction(
         function=_launch_simulation,
-        kwargs={'package_share': package_share, 'simulator': simulator},
+        kwargs={'package_share': package_share, 'simulator': simulator, 'facility': facility},
     )
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument('robot_model', default_value='cad_frame' if facility else 'legacy',
+                                  choices=['legacy', 'cad_frame']),
+            DeclareLaunchArgument('chair_model', default_value='roly' if facility else 'legacy',
+                                  choices=['legacy', 'roly']),
+            DeclareLaunchArgument('facility_layout_config', default_value=str(
+                package_share / 'config/facility_18f/facility_layout.yaml')),
+            DeclareLaunchArgument('headless_rendering', default_value='false', choices=['true', 'false']),
             headless_arg,
             use_sim_time_arg,
             gui_render_engine_arg,

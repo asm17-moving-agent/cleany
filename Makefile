@@ -84,7 +84,14 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
 		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
 
-.PHONY: firmware-setup firmware-smoke firmware-build \
+.PHONY: help deps deps-gazebo check-gazebo-env build build-gazebo \
+	build-gazebo-harmonic build-handeye build-telemetry test test-mission test-mujoco \
+	test-handeye test-gazebo test-gazebo-harmonic \
+	test-telemetry test-gazebo-nav-runtime test-gazebo-evaluation \
+	test-gazebo-safety view-gazebo-costmap \
+	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
+	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
+	sim-gazebo-study-cafe sim-gazebo-facility clean firmware-setup firmware-smoke firmware-build \
 	firmware-upload test-motor-core build-base test-base \
 	micro-ros-agent-build test-micro-ros-setup
 
@@ -119,6 +126,7 @@ help:
 	@echo "  make profile-mujoco-runtime   Measure pipeline clock/RGB-D/CPU, then stop it"
 	@echo "  make sim-gazebo    Build and run the detected Gazebo profile"
 	@echo "  make sim-gazebo-harmonic  Compatibility alias selecting Harmonic"
+	@echo "  make sim-gazebo-facility  Run the full 18F facility with ROLY chairs"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
 	@echo "  make vision-init   Install /etc/cleany/jetson-identity.env (sudo)"
 	@echo "  make vision-host-setup  Enable Docker bridge networking on Jetson (sudo)"
@@ -416,6 +424,14 @@ sim-gazebo-study-cafe:
 	cd "$(ROS2_WS)" && \
 	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
 	ros2 launch cleany_gazebo_sim gazebo_study_cafe.launch.py \
+		headless:=false gui_render_engine:="$(GAZEBO_GUI_RENDER_ENGINE)"
+
+sim-gazebo-facility: build-gazebo
+	eval "$$(python3 "$(GAZEBO_PROFILE_TOOL)" --shell)" && \
+	source "$${CLEANY_ROS_SETUP}" && \
+	cd "$(ROS2_WS)" && \
+	source "$${CLEANY_INSTALL_BASE}/setup.bash" && \
+	ros2 launch cleany_gazebo_sim gazebo_facility_18f.launch.py \
 		headless:=false gui_render_engine:="$(GAZEBO_GUI_RENDER_ENGINE)"
 
 vision-init:
