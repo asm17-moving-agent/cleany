@@ -4,6 +4,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import PointCloud2
@@ -43,8 +44,13 @@ def main(args: list[str] | None = None) -> None:
     node = SceneCloudReceiptNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
+    except RuntimeError:
+        # Humble can interrupt take_message while converting a cloud during
+        # context shutdown. Keep runtime failures visible while ROS is active.
+        if rclpy.ok():
+            raise
     finally:
         node.destroy_node()
         if rclpy.ok():

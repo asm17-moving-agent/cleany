@@ -7,6 +7,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 import math
 
+from cleany_perception.core.tracking import TrackingOutput
+
 from cleany_perception.core.models import (
     Detection2D,
     RgbdSnapshot,
@@ -21,6 +23,8 @@ class CachedDetectionSnapshot:
     detection_distances_m: tuple[float | None, ...]
     capture_transform: RigidTransform
     color_frame: str
+    tracking: TrackingOutput | None = None
+    representative_frame: str = 'base_link'
 
     def __post_init__(self) -> None:
         if len(self.detections) != len(self.detection_distances_m):

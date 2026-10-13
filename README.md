@@ -15,10 +15,11 @@ AI·SW마에스트로 제17기 | 팀명: AI 에이전트는 움직이고 싶어
 | Mission lifecycle | [Mission Manager](ros2_ws/src/cleany_mission_manager/README.md)의 순수 Python FSM·port·단위 테스트. 외부 mission ROS API는 아직 없음 |
 | RGB-D 인식 | [Perception](ros2_ws/src/cleany_perception/README.md)의 YOLOE-seg 검출·선택 객체 분할·3D 복원과 Gemini 분류 |
 | 파지·조작 | [Grasping](ros2_ws/src/cleany_grasping/README.md)의 기하/AnyGrasp 후보와 [Skill Executor](ros2_ws/src/cleany_skill_executor/README.md)의 IK·pregrasp·접촉 기반 집기·분류·놓기 |
+| 물체 하나의 Action 실행 | [Mock 서버](ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md)의 모의 실행·취소·조회와 [MuJoCo BT 서버](ros2_ws/src/cleany_manipulation_bt/README.md)의 실제 인식·MoveIt 연동 |
 | 계획·충돌 지도 | [MoveIt 설정](ros2_ws/src/cleany_moveit_config/README.md), [선택형 OctoMap updater](ros2_ws/src/cleany_scene_mapping/README.md) |
 | 로봇 모델·시뮬레이션 | [URDF/MJCF](ros2_ws/src/cleany_description/README.md), [MuJoCo](ros2_ws/src/cleany_mujoco_sim/README.md), [관측·카메라 스케줄러](ros2_ws/src/cleany_mujoco_observer/README.md) |
 | 주행·보정 | [Gazebo](ros2_ws/src/cleany_gazebo_sim/README.md)의 Mecanum·센서·SLAM 시험, [Navigation](ros2_ws/src/cleany_navigation/README.md) 설정, [Hand-eye calibration](ros2_ws/src/cleany_handeye_calibration/README.md) |
-| Jetson·모터 | [Vision container](containers/vision/README.md)의 분리된 perception/AnyGrasp 실행 환경, [Motor controller](motor_controller/README.md)의 펌웨어·회로·하드웨어 시험 자료 |
+| Jetson·모터 | [Vision container](containers/vision/README.md)의 분리된 perception/AnyGrasp 실행 환경, [Motor controller](esp32/README.md)의 펌웨어·회로·하드웨어 시험 자료 |
 | 미구현 경계 | `cleany_planner`, `cleany_robot_interface`, `cleany_logger`는 README scaffold. Dashboard/Backend부터 실물 수거까지의 통합 시스템은 아직 아님 |
 
 현재 분류 시뮬레이션의 흐름은 다음과 같다. Mission Manager의 FSM과 이 데모의
@@ -55,6 +56,8 @@ make test
 make test-grasp-pregrasp          # 인식·파지·분류·모델·충돌 지도 집중 검사
 make test-grasp-pregrasp-runtime  # MoveIt mock controller 실행
 make test-mujoco                 # MuJoCo 패키지 전체 테스트
+make test-manipulation-core      # 모의 Action core와 모니터 검사
+make test-manipulation-bt        # native BT와 Action·취소·조회 검사
 ```
 
 전체 명령과 native 실행 방법은 [ROS 2 workspace 안내](ros2_ws/README.md) 및
@@ -68,11 +71,12 @@ make sim                        # 스터디카페 MuJoCo headless 실행
 make sim-mujoco-study-cafe       # 스터디카페 viewer
 make sim-mujoco-pipeline         # 인식·계획, 기본 plan-only
 make sim-mujoco-sorting          # 시뮬레이션 집기·운반·놓기
+make sim-mujoco-manipulation     # 승인된 물체 하나의 MuJoCo BT Action
 ```
 
 인식 파이프라인은 로컬 YOLOE-seg 모델과 `GEMINI_API_KEY`가 필요하며 RGB 영상을
 Google API로 전송한다. 기본 pipeline은 외부 RGB-D 입력을 기다린다.
-시뮬레이터를 함께 구동하는 통합 데모는 sorting target이다.
+전체 수거 데모는 sorting target, 승인된 물체 하나의 Action 실행은 manipulation target을 사용한다.
 
 Sorting 기본값은 작업자가 GUI로 안착을 확인하는 `sorting_verify_placement:=false`다.
 완료 단계 `mission_complete_unverified`는 자동 배치 검증 성공을 뜻하지 않는다.
