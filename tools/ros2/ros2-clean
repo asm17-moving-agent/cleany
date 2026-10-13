@@ -6,10 +6,13 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DATA_ROOT="${CLEANY_DATA_ROOT:-$(dirname "${REPO_ROOT}")/cleany-data}"
 BUILD_ROOT="${CLEANY_BUILD_ROOT:-${DATA_ROOT}/builds/$(basename "${REPO_ROOT}")}"
 BUILD_ROOT="$(realpath -m "${BUILD_ROOT}")"
+# 빌드 경로가 보호 대상의 상위이면 삭제를 거부한다.
 for protected in "${HOME}" "${REPO_ROOT}" "${DATA_ROOT}"; do
   protected="$(realpath -m "${protected}")"
   case "${protected}/" in "${BUILD_ROOT%/}/"*)
-    echo "Refusing unsafe build root: ${BUILD_ROOT}" >&2; exit 2 ;;
+    echo "Refusing unsafe build root: ${BUILD_ROOT}" >&2
+    exit 2
+    ;;
   esac
 done
 
@@ -18,10 +21,14 @@ if [[ "${1:-}" != "--yes" && "${1:-}" != "-y" ]]; then
   read -r answer
   case "${answer}" in
     y|Y|yes|YES) ;;
-    *) echo "aborted" >&2; exit 1 ;;
+    *)
+      echo "aborted" >&2
+      exit 1
+      ;;
   esac
 fi
 
+# 이 worktree의 각 빌드 profile에서 생성한 출력만 정리한다.
 for suffix in "" -harmonic -navigation -scenario-runtime; do
   rm -rf -- "${BUILD_ROOT}/build${suffix}" "${BUILD_ROOT}/install${suffix}" "${BUILD_ROOT}/log${suffix}"
 done
