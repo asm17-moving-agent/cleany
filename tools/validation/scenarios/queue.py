@@ -49,7 +49,6 @@ def main() -> None:
                 cmd.extend([option, str(value)])
         record = {"job": job, "command": cmd, "start": time.time()}
         records.append(record)
-        # 실행 전에 상태를 저장해 중단된 job도 흔적이 남도록 한다.
         status.write_text(json.dumps(records, indent=2))
         print("JOB", name, flush=True)
         result = subprocess.run(cmd)

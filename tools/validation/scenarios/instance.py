@@ -1,4 +1,4 @@
-"""격리된 Gazebo/ROS 환경에서 미션을 실행하고 관측 근거를 보존한다."""
+"""Run isolated Gazebo/ROS missions while retaining inputs and failure evidence."""
 
 import os
 import json
@@ -20,7 +20,6 @@ from stimuli import (
     verify_chair_models,
 )
 
-# 실행 입력을 먼저 검사해 잘못된 요청으로 출력 폴더를 만들지 않는다.
 parser = argparse.ArgumentParser()
 parser.add_argument("--root", type=Path, required=True)
 parser.add_argument(
@@ -70,7 +69,7 @@ if sequence[0] != args.seat:
 for item in sequence:
     chair_name(item)
 
-# 동시에 실행되는 worker끼리 ROS discovery와 Gazebo transport를 분리한다.
+# Isolate both ROS discovery and Gazebo transport between workers.
 os.environ.update(
     ROS_DOMAIN_ID=str(args.domain),
     ROS_LOCALHOST_ONLY="1",
@@ -88,7 +87,6 @@ run = args.output.resolve()
 run.mkdir(parents=True, exist_ok=False)
 (run / "observer.json").write_text(json.dumps({"pid": os.getpid()}))
 
-# 원본 fixture는 유지하고 이 실행에서 사용할 월드와 리소스만 준비한다.
 manifest = prepare(
     fixture / "world.sdf", fixture / "world.study.sdf", args.seat, run / "world.sdf"
 )
@@ -98,7 +96,7 @@ tree = ET.parse(run / "world.sdf")
 asset_hashes = localize_and_hash(tree, fixture, root, run / "assets")
 tree.write(run / "world.sdf", encoding="utf-8", xml_declaration=True)
 if args.sequence:
-    # 의자를 static scene에 합치지 않아야 다음 미션에서 개별 교체할 수 있다.
+    # Chairs must remain separate entities so later missions can replace them.
     import xml.etree.ElementTree as ET
 
     tree = ET.parse(run / "world.sdf")
@@ -155,7 +153,6 @@ import hashlib
 manifest["sha256"] = hashlib.sha256((run / "world.sdf").read_bytes()).hexdigest()
 (run / "world.manifest.json").write_text(json.dumps(manifest, indent=2))
 
-# checkout뿐 아니라 실제 입력과 설치된 코드도 hash로 고정한다.
 input_paths = [
     fixture / "world.sdf",
     fixture / "world.study.sdf",
@@ -235,7 +232,6 @@ if args.sequence:
 
 
 def launch(name, args):
-    """Launch 로그와 PID를 남겨 이 실행의 자식 프로세스를 추적한다."""
     f = (run / (name + ".log")).open("w")
     streams.append(f)
     p = subprocess.Popen(
@@ -277,7 +273,6 @@ body_center = [(a + b) / 2 for a, b in zip(body_low, body_high)]
 body_half = [(b - a) / 2 for a, b in zip(body_low, body_high)]
 from cleany_interfaces.msg import RuntimeDebugSnapshot
 
-# 관측값은 런타임 상태와 분리해 명령과 실제 움직임을 대조한다.
 rclpy.init()
 n = rclpy.create_node("desktop_integration_observer")
 latest = {}
@@ -289,7 +284,6 @@ subscriptions = []
 
 
 def record(key, data):
-    """토픽의 최신 값과 수신 횟수를 함께 보관한다."""
     latest[key] = data
     counts[key] = counts.get(key, 0) + 1
 
@@ -422,14 +416,14 @@ offer = n.create_client(OfferMission, "/mission/offer")
 
 
 def spin(seconds):
-    """벽시계 기준으로 기다리는 동안 ROS 콜백을 계속 처리한다."""
+    """Keep processing ROS callbacks during a wall-clock wait."""
     end = time.monotonic() + seconds
     while time.monotonic() < end:
         rclpy.spin_once(n, timeout_sec=0.1)
 
 
 def call(client, req, timeout=8):
-    """응답을 기다리면서 관측을 유지하고, 무응답은 timeout으로 기록한다."""
+    """Keep observations live while waiting for a service, raising on timeout."""
     f = client.call_async(req)
     end = time.monotonic() + timeout
     while not f.done() and time.monotonic() < end:
@@ -440,12 +434,11 @@ def call(client, req, timeout=8):
 
 
 def snap():
-    """미션 런타임의 현재 상태를 JSON으로 읽는다."""
     return json.loads(call(snapshot, GetRuntimeSnapshot.Request()).snapshot_json)
 
 
 def write_trace(s):
-    """런타임 상태와 관측값을 같은 행에 기록해 사후 대조에 사용한다."""
+    """Record runtime state alongside independent observations for later comparison."""
     try:
         t = tf_buffer.lookup_transform("map", "base_link", Time())
         q = t.transform.rotation
@@ -595,7 +588,7 @@ try:
             }
         )
     )
-    # 모든 worker의 준비가 끝날 때까지 미션 시작을 보류한다.
+    # Release missions only after the launcher confirms every worker is ready.
     if args.gate:
         deadline = time.monotonic() + 300
         while not args.gate.exists():
@@ -603,7 +596,6 @@ try:
                 raise TimeoutError("start barrier")
             spin(0.2)
     previous_seat = args.seat
-    # 미션마다 대상 의자 조건을 확인하고 결과를 checkpoint로 남긴다.
     for seat in sequence * args.repeats:
         if seat != previous_seat:
             import copy
@@ -656,7 +648,6 @@ try:
             "reason": response.reason,
         }
         result["missions"].append(m)
-        # 거부된 요청도 결과에 남기고 더 이상 미션을 진행하지 않는다.
         if not response.accepted:
             break
         stimulus_at = None
@@ -839,7 +830,7 @@ try:
             round(m["measured_rtf"], 3),
             flush=True,
         )
-        # 중간 종료 시에도 마지막 완료 결과를 읽을 수 있도록 원자적으로 교체한다.
+        # Atomic replacement leaves the last complete checkpoint readable after interruption.
         checkpoint = run / "progress.json.tmp"
         checkpoint.write_text(json.dumps(result, indent=2))
         checkpoint.replace(run / "progress.json")
@@ -869,7 +860,6 @@ except (Exception, KeyboardInterrupt) as e:
     result["error"] = repr(e)
     print("ERROR", repr(e), flush=True)
 finally:
-    # 실패한 경우에도 관측 결과를 먼저 저장한 뒤 자식 프로세스를 정리한다.
     (run / "result.json").write_text(json.dumps(result, indent=2))
     trace.close()
     for name, p in reversed(children):

@@ -187,7 +187,7 @@ def run_goal(
         )
         checks = result["checks"]
         result.update(truth_goal_error_m=error, truth_yaw_error_rad=yaw_error)
-        # Nav2 성공 응답과 별개로 실제 위치와 최종 방향을 검사한다.
+        # Check simulator ground-truth arrival independently of the Nav2 result.
         checks.update(
             real_progress=error < limits["max_truth_error_m"],
             final_heading=yaw_error < limits["max_truth_yaw_error_rad"],

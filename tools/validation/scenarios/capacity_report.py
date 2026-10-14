@@ -8,14 +8,14 @@ from audit import assess
 
 
 def resources(samples: list[dict]) -> dict:
-    """호스트 전체 CPU 사용률과 배치 동안의 GPU, 가용 메모리를 집계한다."""
+    """Summarize whole-host utilization, including batch startup and shutdown."""
     cpu = []
     gpu = []
     available = []
     for a, b in zip(samples, samples[1:]):
         before = list(map(int, a["cpu"].split()[1:9]))
         after = list(map(int, b["cpu"].split()[1:9]))
-        # /proc/stat은 누적값이므로 인접 샘플의 차이에서 idle과 iowait를 뺀다.
+        # CPU counters are cumulative; exclude idle and iowait from each interval.
         delta = [y - x for x, y in zip(before, after)]
         total = sum(delta)
         if total > 0:

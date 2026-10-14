@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 def add_obstacle(world_file: Path) -> str:
-    """장애물을 경로 밖에 생성하고 나중에 이동할 수 있도록 유지한다."""
+    """Stage an obstacle off-route while keeping it movable as a separate entity."""
     tree = ET.parse(world_file)
     world = tree.getroot().find("world")
     name = "validation_obstacle"
@@ -31,7 +31,6 @@ def add_obstacle(world_file: Path) -> str:
 
 
 def move_obstacle(world: str, x: float, y: float, yaw: float) -> dict:
-    """준비된 장애물을 지정한 월드 좌표와 방향으로 이동한다."""
     req = f'name: "validation_obstacle" position: {{x: {x} y: {y} z: .4}} orientation: {{z: {math.sin(yaw/2)} w: {math.cos(yaw/2)}}}'
     command = [
         "ign",
@@ -56,7 +55,6 @@ def move_obstacle(world: str, x: float, y: float, yaw: float) -> dict:
 
 
 def entity_request(world: str, service: str, request_type: str, request: str) -> dict:
-    """Gazebo 변경 요청의 transport 응답과 ACK 여부를 기록한다."""
     command = [
         "ign",
         "service",
@@ -79,7 +77,7 @@ def entity_request(world: str, service: str, request_type: str, request: str) ->
 
 
 def transport_request(command: list[str]) -> dict:
-    """응답 유실과 CLI timeout도 원본 출력과 함께 반환한다."""
+    """Retain partial output and timeout evidence without retrying a mutation."""
     start = time.monotonic()
     try:
         response = subprocess.run(command, text=True, capture_output=True, timeout=6)
@@ -281,7 +279,7 @@ def read_scene(world: str, output: Path | None = None) -> tuple[set[str], dict]:
 def verify_chair_models(
     world: str, all_chairs: set[str], removed: str, output: Path | None = None
 ) -> dict:
-    """대상 의자만 없는지 실제 Gazebo 장면의 의자 목록과 대조한다."""
+    """Verify that only the requested chair is absent from the live scene."""
     models, evidence = read_scene(world, output)
     observed = models & all_chairs
     expected = all_chairs - {removed}

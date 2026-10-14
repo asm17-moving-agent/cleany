@@ -9,7 +9,7 @@ from pathlib import Path
 
 import matplotlib
 
-# 화면 없이 저장된 실행 근거에서 보고서 이미지를 생성한다.
+# Reports must render from saved evidence without a display server.
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon, Rectangle
@@ -19,13 +19,11 @@ import yaml
 
 
 def rows(path):
-    """보존된 CSV 측정값을 읽는다."""
     with path.open() as stream:
         return list(csv.DictReader(stream))
 
 
 def column(data, name):
-    """차트에 사용할 측정 열을 수치 배열로 변환한다."""
     return np.array([float(row[name]) for row in data])
 
 

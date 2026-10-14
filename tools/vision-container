@@ -24,7 +24,7 @@ identity_keys=(
   YOLOE_MODEL_HOST_DIR
 )
 
-# 호출자 환경이 root 소유 identity 파일의 값을 덮어쓰지 않도록 제거한다.
+# Do not let the caller environment override the root-owned identity file.
 compose_environment=(env)
 for key in "${identity_keys[@]}" CLEANY_JETSON_IDENTITY_FILE; do
   compose_environment+=(-u "${key}")
@@ -88,7 +88,7 @@ identity_value() {
   ' "${identity_file}"
 }
 
-# 라이선스에 고정된 MAC을 다른 실행 중인 container와 공유하지 않는다.
+# The licensed MAC must not be shared by another running container.
 guard_unique_anygrasp_mac() {
   local expected_mac current_id container_id container_name actual_mac
   expected_mac="$(identity_value ANYGRASP_MAC_ADDRESS)"
@@ -109,7 +109,6 @@ guard_unique_anygrasp_mac() {
   done < <(docker ps -q)
 }
 
-# Compose 설정뿐 아니라 생성된 container의 실제 네트워크 값을 대조한다.
 assert_anygrasp_docker_identity() {
   local container_id network_mode network_count expected_ip expected_mac actual_ip actual_mac
   container_id="$("${compose[@]}" ps -q anygrasp)"
@@ -158,7 +157,6 @@ wait_for_anygrasp_preflight() {
   return 1
 }
 
-# 네트워크와 preflight 검사가 실패하면 시작한 서비스를 다시 정지한다.
 start_anygrasp() {
   guard_unique_anygrasp_mac
   "${compose[@]}" up -d anygrasp

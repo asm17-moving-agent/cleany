@@ -7,7 +7,7 @@ import signal
 
 
 def signal_owned(pid: int, output: Path, marker: bytes, *, group: bool = False) -> bool:
-    """현재 PID의 실행 경로를 대조한 뒤 이 실험 소유 프로세스만 종료한다."""
+    """Recheck the live command line before signaling a recorded process or group."""
     try:
         command = Path(f"/proc/{pid}/cmdline").read_bytes()
         if str(output).encode() not in command or marker not in command:

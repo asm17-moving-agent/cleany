@@ -13,7 +13,7 @@ from audit import assess
 
 
 def cumulative_turn(angles: list[float]) -> float:
-    """각도를 -π~π로 접어 경계를 넘는 회전량도 올바르게 합산한다."""
+    """Sum shortest angular changes so crossing +/-pi does not add a full turn."""
     return sum(
         abs(math.atan2(math.sin(b - a), math.cos(b - a)))
         for a, b in zip(angles, angles[1:])
@@ -21,7 +21,7 @@ def cumulative_turn(angles: list[float]) -> float:
 
 
 def select_cases(rows: list[dict], count: int = 6) -> list[dict]:
-    """통과한 실측 사례에서 역할별로 서로 다른 좌석을 선택한다."""
+    """Choose distinct passing seats for each measured route characteristic."""
     roles = [
         ("near", "distance_home_m", False),
         ("far", "distance_home_m", True),
@@ -55,7 +55,7 @@ def latest_attempts(rows: list[dict]) -> list[dict]:
 
 
 class MapClearance:
-    """지도에서 확인된 자유 공간의 장애물 거리 값을 조회한다."""
+    """Query distance to mapped obstacles or unknown space, not footprint clearance."""
 
     def __init__(self, map_file: Path):
         self.meta = yaml.safe_load(map_file.read_text())
@@ -64,7 +64,7 @@ class MapClearance:
         )
         occupancy = image / 255 if self.meta["negate"] else (255 - image) / 255
         known_free = occupancy < self.meta["free_thresh"]
-        # 미확인 공간도 경계로 취급한다. 실제 로봇 footprint의 여유 거리는 아니다.
+        # Unknown space bounds the free region; this is not a robot-body clearance test.
         self.distance = distance_transform_edt(known_free) * self.meta["resolution"]
         self.height, self.width = image.shape
 

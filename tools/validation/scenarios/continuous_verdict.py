@@ -6,12 +6,12 @@ import json
 from pathlib import Path
 from audit import assess, stopped
 
-# 특정 연속 실행 실험의 순서이며 프로젝트 공통 합격 기준은 아니다.
+# This sequence belongs to one experiment, not a project-wide acceptance rule.
 SEATS = ["seat-44", "seat-16", "seat-17", "seat-20", "seat-09", "seat-35"]
 
 
 def assess_campaign(result: dict, shutdown: dict) -> dict:
-    """고정된 60회 실험의 완주 여부와 유효 성공 50회 기준을 검사한다."""
+    """Require the fixed sixty-attempt sequence and at least fifty valid successes."""
     base = assess(result, shutdown)
     missions = result.get("missions", [])
     expected = SEATS * 10

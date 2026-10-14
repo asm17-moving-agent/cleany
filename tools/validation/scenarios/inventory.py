@@ -25,7 +25,6 @@ def main() -> None:
     if any(models.count(name) != 1 for name in expected):
         raise ValueError("Missing or duplicate chair")
     manifests = []
-    # 모든 좌석의 월드를 임시 생성해 대상 외 의자가 유지되는지 검사한다.
     with tempfile.TemporaryDirectory(prefix="cleany-seat-audit-") as temp:
         for seat in seats:
             output = Path(temp) / (seat + ".sdf")

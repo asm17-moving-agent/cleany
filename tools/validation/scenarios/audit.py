@@ -9,7 +9,7 @@ from worlds import chair_name
 
 
 def stopped(latest: dict) -> bool:
-    """정지 명령과 실제 이동 속도가 모두 정지 기준을 만족하는지 확인한다."""
+    """Require both a zero command and measured velocity within stop tolerances."""
     cmd = latest.get("cmd_vel")
     gt = latest.get("ground_truth", {})
     twist = gt.get("twist")
@@ -23,7 +23,7 @@ def stopped(latest: dict) -> bool:
 
 
 def assess(result: dict, shutdown: dict) -> dict:
-    """실행 완료, 미션 식별자, 시나리오별 결과와 종료 근거를 대조한다."""
+    """Check requested mission coverage, matching results and shutdown evidence."""
     scenario = result.get("scenario", "normal")
     checks = {
         "no_harness_error": not result.get("error"),
@@ -52,14 +52,14 @@ def assess(result: dict, shutdown: dict) -> dict:
         )
     for m in result.get("missions", []):
         terminal = m.get("final", {}).get("last_result") or {}
-        # 이전 미션의 마지막 결과를 현재 요청의 결과로 오인하지 않는다.
+        # A cached result from another mission is not evidence for this request.
         matched = (
             terminal.get("request", {}).get("mission_id") == m.get("mission_id")
             and isinstance(m.get("seat"), str)
             and terminal.get("request", {}).get("target_id") == m["seat"]
         )
         outcome = terminal.get("outcome")
-        # 기대한 실패 시나리오의 통과와 정상 미션 성공은 구분한다.
+        # Passing an expected-failure scenario is distinct from mission success.
         if scenario == "normal":
             expected = outcome == "SUCCESS"
         elif scenario.startswith("cancel") or scenario == "sensor_loss":
@@ -104,7 +104,7 @@ def assess(result: dict, shutdown: dict) -> dict:
             stop = m.get("stopped_after_stimulus", {}).get("wall_seconds", float("inf"))
             cleanup = m.get("cleanup_cancel", {}).get("wall", 0)
             event = m.get("events", [{}])[0].get("wall", 0)
-            # 후처리 취소가 아니라 센서 유실 자체로 정지했는지 확인한다.
+            # The sensor fault must stop motion before cleanup cancellation can affect it.
             passed = passed and bool(cleanup) and event + stop < cleanup
         missions.append(
             {

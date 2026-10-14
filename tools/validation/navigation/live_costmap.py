@@ -398,7 +398,7 @@ def main() -> None:
                             probe.now() - last_movement > 30
                             or time.monotonic() > deadline
                         )
-                        # 위치 추정이 지속적으로 틀리면 follower를 멈추고 지도 오염을 막는다.
+                        # Freeze memory when localization is lost to avoid storing misplaced obstacles.
                         if completed or stalled or localization_lost:
                             stop(follower)
                             follower = None

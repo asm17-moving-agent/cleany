@@ -17,7 +17,7 @@ CONFIG_FILES = {"config/wheel_odometry.yaml", "config/nav2_safety.yaml"}
 
 
 def merge(base: dict, overlay: dict) -> dict:
-    """원본을 보존하면서 지정된 설정만 재귀적으로 덮어쓴다."""
+    """Recursively override selected values without mutating either input."""
     result = copy.deepcopy(base)
     for key, value in overlay.items():
         if isinstance(value, dict):
@@ -35,7 +35,7 @@ def digest(data: bytes) -> str:
 
 
 def prepare(base: Path, output: Path, profile: Path) -> dict:
-    """수정 설정은 새 파일로 만들고 나머지 입력은 원본에 연결한다."""
+    """Write changed configs as regular files and link unchanged fixture inputs."""
     base, output, profile = base.resolve(), output.absolute(), profile.resolve()
     if not base.is_dir() or output.resolve().is_relative_to(base):
         raise ValueError("Output must be separate from an existing source fixture")

@@ -104,7 +104,7 @@ def main() -> None:
         )
     if not fixture.is_dir():
         parser.error(f"Fixture is missing: {fixture}; supply --fixture")
-    # 호스트에서 확인한 Git 상태를 모든 worker에 동일하게 전달한다.
+    # Every worker receives the same Git identity captured on the host.
     identity = source_identity(root)
     out.mkdir(parents=True, exist_ok=False)
     identity_path = out / "source.json"
@@ -185,7 +185,7 @@ def main() -> None:
             if released is None:
                 if any(p.poll() is not None for p, _ in workers):
                     raise RuntimeError("Worker exited before barrier; preserve logs")
-                # 파일 barrier는 준비된 worker들의 미션 시작 시점을 맞춘다.
+                # A shared file barrier aligns mission starts after all workers are ready.
                 if all((output / "ready.json").exists() for _, output in workers):
                     gate.write_text(str(now))
                     released = now

@@ -11,7 +11,6 @@ import xml.etree.ElementTree as ET
 
 
 def chair_name(seat: str) -> str:
-    """좌석 ID를 해당 fixture의 Gazebo 의자 모델 이름으로 변환한다."""
     if re.fullmatch(r"seat-\d{2}", seat):
         return "office_chair_" + seat[5:]
     match = re.fullmatch(r"seat-([am]\d)-(\d{2})", seat)
@@ -22,7 +21,7 @@ def chair_name(seat: str) -> str:
 
 
 def restored_tree(source: Path, reference: Path) -> ET.ElementTree:
-    """기준 월드에서 빠진 의자를 복원해 좌석별 실행의 출발점을 맞춘다."""
+    """Restore missing reference chairs before deriving a seat-specific world."""
     tree = ET.parse(source)
     world = tree.getroot().find("world")
     original = ET.parse(reference).getroot().find("world")
@@ -39,7 +38,7 @@ def restored_tree(source: Path, reference: Path) -> ET.ElementTree:
 
 
 def prepare(source: Path, reference: Path, seat: str, output: Path) -> dict:
-    """대상 의자 하나만 제거하고 다른 모델이 바뀌지 않았는지 확인한다."""
+    """Remove exactly one target chair and reject changes to any other model."""
     tree = restored_tree(source, reference)
     world = tree.getroot().find("world")
     name = chair_name(seat)

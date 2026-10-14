@@ -39,7 +39,7 @@ def prepare(
     gazebo_profile: str = "fortress",
     real_time_factor: float = 1.0,
 ) -> dict:
-    """설치된 모델과 설정으로 별도 실행 폴더와 재현용 launch를 생성한다."""
+    """Prepare an isolated run with copied configuration and reproducible launch inputs."""
     if gazebo_profile not in ("fortress", "harmonic"):
         raise ValueError("Unsupported Gazebo profile")
     if guard_3d and (not obstacle_memory or robot_model != "cad_frame"):
@@ -194,7 +194,7 @@ def prepare(
             yaml.safe_dump({"obstacle_memory": {"ros__parameters": memory_params}})
         )
     if guard_3d:
-        # 2D monitor 출력을 3D gate로 연결해 최종 cmd_vel 발행 경로를 맞춘다.
+        # Route the 2D monitor through the 3D gate before publishing final velocity.
         safety = yaml.safe_load((config / "nav2_safety.yaml").read_text())
         safety["collision_monitor"]["ros__parameters"][
             "cmd_vel_out_topic"
@@ -303,7 +303,7 @@ def generate_launch_description():
 
 
 def stop(process: subprocess.Popen | None) -> None:
-    """정상 종료를 먼저 요청하고 응답이 없으면 생성한 process group을 종료한다."""
+    """Request graceful shutdown, then terminate the owned process group on timeout."""
     if process is None or process.poll() is not None:
         return
     process.send_signal(signal.SIGINT)

@@ -38,7 +38,6 @@ def yaw(q) -> float:
 
 
 def transform_points(points: np.ndarray, transform) -> np.ndarray:
-    """센서 좌표의 점들을 TF가 가리키는 좌표계로 변환한다."""
     q = transform.rotation
     x, y, z, w = q.x, q.y, q.z, q.w
     rotation = np.array(
@@ -53,7 +52,40 @@ def transform_points(points: np.ndarray, transform) -> np.ndarray:
 
 
 class SafetyProbe(Node):
-    """시뮬레이션 관측, 명시적 입력 주입과 결과 기록을 담당한다."""
+    """Observe safety evidence and apply explicit simulation test stimuli.
+
+    Subscriptions:
+        /scan (sensor_msgs/msg/LaserScan), /camera/head/depth/points
+            (sensor_msgs/msg/PointCloud2), /ground_truth/odom (nav_msgs/msg/Odometry):
+            Sensor and simulator measurements, using sensor_data.
+        /cmd_vel and /nav2/cmd_vel (geometry_msgs/msg/Twist): Command stages.
+        /collision_monitor_state (nav2_msgs/msg/CollisionMonitorState): Gate decision.
+        /amcl_pose (geometry_msgs/msg/PoseWithCovarianceStamped): Localization.
+        /map, /local_costmap/costmap, /global_costmap/costmap
+            (nav_msgs/msg/OccupancyGrid): Map state. These four inputs are transient local.
+
+    Publishers:
+        /evaluation/depth_points (sensor_msgs/msg/PointCloud2): Sampled recording cloud.
+        /initialpose (geometry_msgs/msg/PoseWithCovarianceStamped): Localization seed.
+        /nav2/cmd_vel (geometry_msgs/msg/Twist): Explicit monitor-test stimulus only.
+
+    Services:
+        Lifecycle GetState and node GetParameters: Verify runtime configuration.
+        /request_nomotion_update (std_srvs/srv/Empty): AMCL settling.
+        /local_costmap/local_costmap/set_parameters (rcl_interfaces/srv/SetParameters)
+        and /local_costmap/clear_entirely_local_costmap
+            (nav2_msgs/srv/ClearEntireCostmap): Isolate sensor contributions.
+
+    Actions:
+        /navigate_to_pose (nav2_msgs/action/NavigateToPose): Avoidance-test client.
+
+    TF:
+        Reads sensor and map/base transforms for evidence alignment.
+
+    Notes:
+        Fixture movement uses Gazebo transport. CSV, events and sensor snapshots
+        are written to the output directory; observations do not certify hardware.
+    """
 
     def __init__(self, output: Path, scenario: dict):
         super().__init__(
@@ -118,7 +150,7 @@ class SafetyProbe(Node):
         self.nav = ActionClient(self, NavigateToPose, "/navigate_to_pose")
 
     def receive(self, topic: str, msg) -> None:
-        """원본 토픽은 유지하고 보고용 depth cloud만 간격을 두고 축소한다."""
+        """Downsample only the recording cloud; navigation keeps the full source input."""
         self.latest[topic] = msg
         self.counts[topic] = self.counts.get(topic, 0) + 1
         if topic != "/camera/head/depth/points":
@@ -166,7 +198,7 @@ class SafetyProbe(Node):
         return self.get_clock().now().nanoseconds * 1e-9
 
     def truth(self) -> list[float]:
-        """Gazebo 월드의 실제 pose를 spawn 기준 지도 좌표로 변환한다."""
+        """Express simulator ground truth in the spawn-relative map frame."""
         p = self.latest["/ground_truth/odom"].pose.pose
         dx, dy = p.position.x - self.spawn[0], p.position.y - self.spawn[1]
         c, s = math.cos(self.spawn[5]), math.sin(self.spawn[5])
@@ -180,7 +212,6 @@ class SafetyProbe(Node):
         ]
 
     def tick(self) -> None:
-        """ROS 콜백, 시험 명령 발행과 관측 샘플 기록을 진행한다."""
         rclpy.spin_once(self, timeout_sec=0.005)
         now = self.now()
         if self.command is not None and now - self.last_command >= 0.05:
@@ -241,7 +272,7 @@ class SafetyProbe(Node):
         )
 
     def wait(self, seconds: float) -> None:
-        """시뮬레이션 시간으로 기다리되 clock 정지는 벽시계 timeout으로 감지한다."""
+        """Wait in simulation time with a wall-clock deadline for stalled clocks."""
         start = self.now()
         deadline = time.monotonic() + max(30, seconds * 8)
         while self.now() - start < seconds:
@@ -280,7 +311,6 @@ class SafetyProbe(Node):
         return dict(zip(names, [parameter_value_to_python(p) for p in response.values]))
 
     def initialize(self) -> None:
-        """센서, localization, lifecycle과 실제 설치 설정을 확인한다."""
         deadline = time.monotonic() + 120
         required = ["/scan", "/camera/head/depth/points", "/ground_truth/odom"]
         while not all(k in self.latest for k in required):
@@ -537,7 +567,7 @@ class SafetyProbe(Node):
         (self.output / "events.json").write_text(json.dumps(self.events, indent=2))
 
     def sensor_snapshot(self, name: str, center: tuple[float, float]) -> dict:
-        """센서 점과 costmap을 지도 좌표로 맞춰 장애물 주변을 비교한다."""
+        """Compare sensor points and costmap cells in a common map-frame region."""
         cloud_tf = self.buffer.lookup_transform(
             "map", self.point_header.frame_id, Time.from_msg(self.point_header.stamp)
         ).transform
@@ -600,7 +630,6 @@ class SafetyProbe(Node):
         return report
 
     def run_sensors(self) -> dict:
-        """센서별 장애물 검출과 제거 후 costmap 복구를 확인한다."""
         results = {}
         durations = self.evaluation["sensor_durations_s"]
         lidar_center = tuple(
@@ -691,7 +720,7 @@ class SafetyProbe(Node):
         return results
 
     def run_monitor(self) -> dict:
-        """시험 속도를 safety 입력에 보내 감속, 실제 정지와 재출발을 관측한다."""
+        """Inject monitor-input velocity and measure slowdown, actual stop and resume."""
         config = self.evaluation["monitor"]
         self.move_fixture("tall", config["fixture_initial_x"], 0.0)
         self.wait(2.0)
@@ -792,7 +821,6 @@ class SafetyProbe(Node):
         keep_running: Callable[[], bool] | None = None,
         inject_obstacle: bool = True,
     ) -> dict:
-        """Nav2 경로 실행 중 장애물을 주입하고 결과와 실제 경로를 비교한다."""
         config = self.evaluation["avoid"]
         assert self.nav.wait_for_server(timeout_sec=20)
         request = NavigateToPose.Goal()
@@ -909,7 +937,6 @@ class SafetyProbe(Node):
         return result
 
     def finish(self) -> None:
-        """진행 중인 goal을 취소하고 시험 속도 발행을 정지한다."""
         if self.active_goal is not None:
             self.future(self.active_goal.cancel_goal_async(), timeout=10)
         if self.command is not None:
