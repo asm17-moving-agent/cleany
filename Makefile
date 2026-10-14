@@ -34,7 +34,8 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
 	sim-gazebo-study-cafe clean firmware-setup firmware-smoke firmware-build \
 	firmware-upload test-motor-core build-base test-base \
-	micro-ros-agent-build test-micro-ros-setup
+	micro-ros-agent-build test-micro-ros-setup imu-calibration-build \
+	imu-calibration-upload
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -68,6 +69,8 @@ help:
 	@echo "  make test-motor-core / build-base / test-base"
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
+	@echo "  make imu-calibration-build"
+	@echo "  make imu-calibration-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
 
 firmware-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py'
@@ -88,6 +91,14 @@ firmware-upload: firmware-setup
 
 test-motor-core:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; for f in esp32/host_tests/*.cpp; do g++ -std=c++17 -Wall -Wextra -Werror -pedantic -Iesp32/src "$$f" -o "/tmp/$$(basename "$$f" .cpp)"; "/tmp/$$(basename "$$f" .cpp)"; done'
+
+imu-calibration-build:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration'
+
+imu-calibration-upload:
+	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)
+	@test "$(CONFIRM_UPLOAD)" = 1 || (echo "CONFIRM_UPLOAD=1 is required" >&2; exit 2)
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration -t upload --upload-port "$(CLEANY_ESP_PORT)"'
 
 build-base:
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon build --symlink-install --packages-up-to cleany_base_driver cleany_base_odometry'
