@@ -46,6 +46,10 @@ simulation clock reset 뒤에는 새로운 시각에서 촬영을 재개한다.
 
 제어 중 read 지연, 중복 시각, 멈춘 시계, 밀린 주기와 시각 역행을
 `test_control_cycle`에서 검사한다. 실제 수거 성공은 별도 MuJoCo 시나리오로 확인한다.
+2026-10-14에는 실제 컵 수거의 안착·팔 복귀·정지를 확인했고, 관절 메시지 8,162개의
+시각 중복·역행은 없었다. MoveIt 이동 요청 직후 physics를 일시 정지하면 새 피드백이 끊기고 BT가
+`FATAL / STOP_UNCONFIRMED`로 종료하는 것도 확인했다.
+상세 범위는 [BT 검증 기록](../cleany_manipulation_bt/README.md#검증-기록-2026-10-14)을 따른다.
 
 ## GUI 렌더링
 

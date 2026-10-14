@@ -214,15 +214,38 @@ MuJoCo 포트는 `bt_monitor_port`로 변경한다. 뷰어의 기본 포트는 1
 
 ## 검증 기록 (2026-10-14)
 
+### 제어 주기 수정 후
+
+로컬 제어 실행기에 한 주기의 시각을 고정하고 새 시뮬레이션 시각에서만 다음 실행을
+허용한 뒤, 같은 환경의 실제 MuJoCo/MoveIt 컵 수거를 다시 검증했다.
+
+| 실제 시험 | 결과 |
+|---|---|
+| 개별 추적 ID를 사용하는 컵 한 개 수거 | `SUCCESS / NONE`, `LEFT_GRIPPER / CONFIRMED`, `arm_recovered=true`, `stop_confirmed=true` |
+| 첫 MoveIt 이동 요청 직후 physics 일시 정지 | 수신 만료와 시계 정지 감지. `FATAL / STOP_UNCONFIRMED`, `stop_confirmed=false`; 조회 후 physics를 재개해 피드백 복구 확인 |
+
+성공 실행 ID는 `7076b0e7-88d8-4991-96de-155c6e15e8aa`이다. DB에 BT 전환 72개가
+남았고, 독립 안착 평가·관절 속도 관찰·원래 팔 자세 복귀와 Action/조회 결과 일치를
+확인했다. 마지막 관찰 구간은 약 0.50초이며 팔 관절 복귀 오차는 최대 약 0.00042 rad였다.
+worker가 받은 관절 메시지 8,162개에서 timestamp 중복·역행은 0개였고 최소 간격은
+설정 주기인 10 ms였다. 일시 정지 실행 ID는 `94b25e6c-c1f6-43ac-bc62-62e13eb6c633`이다.
+
+관련 10개 패키지 빌드, `make test-manipulation-bt` 528개 검사와 제어 주기 회귀 검사
+5개가 통과했다. 보고서는 로컬 `artifacts/manipulation-validation-20261014-201912/`와
+`artifacts/manipulation-validation-20261014-202326/`에 보존했다. 이 결과는 고정 베이스의
+단일 컵과 시계 정지 시험이며 전체 물체 수거 성공률·실물·Mission Manager·모바일 베이스
+통합을 검증한 것은 아니다.
+
+### 수정 전 기록
+
 최신 main을 기반으로 정리한 브랜치에서 실제 MuJoCo/MoveIt, CPU YOLOE와 Gemini API로
-컵 한 개 수거를 다시 실행했다. 실행마다 새 장면과 별도 SQLite DB를 사용했다.
-정상 수거 완료는 확인하지 못했으며, 2026-10-01 성공 기록을 현재 브랜치의 성공 근거로
-사용하지 않는다.
+컵 한 개 수거를 6회 실행했다. 실행마다 새 장면과 별도 SQLite DB를 사용했다.
+당시에는 정상 수거 완료를 확인하지 못했다. 다음 표와 실행 ID는 수정 전 실패 이력이다.
 
 | 관찰 결과 | 상태와 조치 |
 |---|---|
 | 첫 팔 이동에서 충돌 장면을 이중 등록 | `MOTION_FAILED`. 재관찰 장면을 정리한 뒤 pregrasp 장면을 등록하도록 수정하고 회귀 검사 추가 |
-| 관절 피드백 시각 중복 | 내용까지 같은 메시지는 수신 시각·정지 확인 횟수를 갱신하지 않도록 수정. 같은 시각에 값이 달라지는 수신은 여전히 `HARDWARE_ERROR`로 중단되며 해결 필요 |
+| 관절 피드백 시각 중복 | 내용까지 같은 메시지는 새 관측으로 세지 않도록 수정했으나, 같은 시각에 값이 달라지는 수신은 `HARDWARE_ERROR`로 중단됨. 이후 위 제어 주기 수정 적용 |
 | 추적 없는 경로의 컵 재관측 | 대상 종류가 없거나 두 개 검출되면 수거 중단. 마지막 두 개 검출 사례는 `FAILED / MOTION_FAILED`, `NOT_TOUCHED` |
 | 개별 추적 ID를 사용하는 컵 수거 | 접근 전까지 같은 track ID 유지. 관절 피드백 문제로 `FATAL / HARDWARE_ERROR`, `NOT_TOUCHED`, `arm_recovered=false` |
 
@@ -232,9 +255,8 @@ MuJoCo 포트는 `bt_monitor_port`로 변경한다. 뷰어의 기본 포트는 1
 position/velocity가 달랐다. 스트림 지연과 시각 중복에 따른 무효 판정을 구분할 필요가 있다.
 보고서와 전환 이력은 로컬 `artifacts/manipulation-validation-20261014-*`에 보존했다.
 
-관련 10개 패키지 빌드와 `make test-manipulation-bt` 523개 검사는 통과했다.
-자동 검사 통과는 위 물리 연동 실패가 해결됐다는 뜻이 아니다. 이번 실행은 고정 베이스의
-단일 컵 수거이며 Mission Manager나 모바일 베이스와의 통합 검증은 포함하지 않는다.
+수정 전에도 관련 10개 패키지 빌드와 `make test-manipulation-bt` 523개 검사는
+통과했지만 실제 수거는 중단됐다. 자동 검사와 실제 수거 시나리오를 별도로 검증한다.
 
 ## 검증 기록 (2026-10-01)
 
