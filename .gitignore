@@ -23,5 +23,7 @@ ros2_ws/log-harmonic/
 *.log
 *.tmp
 /artifacts/
+/.memory/
+/.vscode/
 calibration_data/
 ros2_ws/slam_results/
