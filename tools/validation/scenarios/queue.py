@@ -49,6 +49,7 @@ def main() -> None:
                 cmd.extend([option, str(value)])
         record = {"job": job, "command": cmd, "start": time.time()}
         records.append(record)
+        # Persist before launch so interrupted jobs remain in the run history.
         status.write_text(json.dumps(records, indent=2))
         print("JOB", name, flush=True)
         result = subprocess.run(cmd)
