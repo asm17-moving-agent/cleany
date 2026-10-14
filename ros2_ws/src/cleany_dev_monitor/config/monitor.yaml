@@ -4,6 +4,8 @@ cleany_dev_monitor:
     port: 8768
     runtime_namespace: ""
     manipulation_events_topic: mock/manipulation/execution_events
+    manipulation_execution_limit: 20
+    manipulation_interval_limit: 64
     map_frame: map
     base_frame: base_link
     map_topic: /map

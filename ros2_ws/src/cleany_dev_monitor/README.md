@@ -11,6 +11,7 @@
 | 실행 흐름 | Mission FSM, 현재 상태와 전이 이벤트, 청소 py_trees 구조/상태/이번 tick 방문 노드, 모듈 준비/정지 보고, 주행 차단 이유, 작업 대상/목적지, 조작 결과 |
 | ROS 탐색기 | topic/node/service/action 목록, 선택 토픽의 publisher→topic→subscriber 그래프, endpoint QoS, 수신 Hz, 메시지 미리보기 |
 | 자율주행 | 주행 개요, 장애물·안전, 계획·제어, 센서·위치, 주행 비교의 5개 하위 탭. 지도/실제 궤적, 단계별 명령/실측 속도, guard/pan/BT 진단과 공통 타임라인 |
+| 매니퓰레이션 | 조작 개요, 단계 진행, 실행 타임라인, 취소·주행 조건, 실행 비교. 물체·목적지·선택 팔, Action의 단계·세부 동작·결과, 관측 소요 시간과 Runtime 주행 차단 근거 |
 | 카메라 | Image / CompressedImage 토픽 선택, 실시간 JPEG 미리보기, 일시정지, 수신 지연 표시 |
 | 로그 | `/rosout`, FSM/BT/action 이벤트와 결과를 수신 시각순으로 조회. 노드/미션/문자열 및 로그 수준 필터 |
 | 기록 & 재생 | 항목별 ON/OFF·프리셋·원본 주기·용량 제한, SQLite 세션 선택 및 재생·내보내기 |
@@ -25,6 +26,35 @@ Nav2/조작 action의 status와 feedback은 ROS 탐색기로 확인하며, goal/
 청소 BT 화면에는 Runtime의 `manipulation_feedback`에 있는 조작 단계와 세부 동작을
 별도로 표시한다. `ExecuteOne`의 내부 진행을 읽기만 하며 BT 노드를 추가하거나
 완료·주행 조건을 판정하지 않는다. 오래된 정보에는 마지막 조작 관측임을 표시한다.
+
+### 매니퓰레이션 전용 화면
+
+`/mock/manipulation/execution_events`의 `ManipulationExecutionRecord`를 읽어
+실행 ID별 최근 기록과 관측 구간을 유지한다. 토픽은 `manipulation_events_topic`으로
+설정하며 절대 경로는 그대로, 상대 경로는 `runtime_namespace` 아래에서 구독한다.
+서버 단계도는 Action 프로토콜의 9개 정상 단계와 17개 세부 동작을 표시한다.
+실제 Executor의 내부 BT를 추측하거나 Mission 청소 BT를 변경하지 않는다.
+
+- 완료 동작은 `completed_substages`, 실패 위치는 `failed_stage/failed_substage`,
+  최종 결과는 `has_result/status`를 사용한다. 시간 경과만으로 성공을 표시하지 않는다.
+- 기본 최근 실행 20개, 실행별 관측 구간 64개를 별도 요약으로 보관한다.
+  `manipulation_execution_limit`(1..50), `manipulation_interval_limit`(1..128)로 조정한다.
+  BT 로그가 일반 이벤트 ring에서 밀려나도 조작 요약은 남는다. Monitor 재시작 시
+  메모리 목록은 새로 시작하며 서버의 retained 이벤트로 확인한 범위만 복원한다.
+- 서버 기록은 revision으로 중복·역순 수신을 무시한다. 늦은 접속, revision 누락과
+  보관 한도 초과는 일부 구간 미관측으로 표시한다. 서버 시각 역행 시 소요 시간을
+  표시하지 않는다. 상세 단계 시간은 관측된 전환 사이의 구간이다.
+- 완료·중단 실행의 시간은 기록된 서버 시각으로 고정한다. 진행 중 경과 시간은
+  최신 Runtime·graph와 같은 미션/실행의 Feedback이 연결된 경우에만 갱신한다.
+  오래된 기록이나 연결이 끊긴 상태를 현재 실행으로 표시하지 않는다.
+- 조작 기준 `safe_to_drive`, 주행 모듈 준비·베이스 정지와 미션 수락 준비를 구분한다.
+  선택한 과거 실행의 팔 복귀·정지 결과가 현재 Runtime 주행 판단을 대체하지 않는다.
+- 실행 타임라인의 ‘시점 보기’는 해당 수신 시각의 관측 기록을 연다. 재생에서는
+  해당 시점에 저장된 조작 요약만 사용하며 미래 결과나 실시간 데이터와 합치지 않는다.
+  과거 Monitor 기록에 조작 요약이 없으면 실행 기록 대기로 표시한다.
+
+Mock의 단계·안착·팔 복귀는 서버의 모의 보고다. 실물 관절·그리퍼 센서나
+Gazebo 팔 애니메이션의 증거로 표시하지 않는다. 원본 기록과 ROS 탐색기 링크도 제공한다.
 
 ## 구조와 데이터 계약
 
@@ -300,9 +330,11 @@ ROS_DOMAIN_ID=188 CLEANY_RUN_ROS_TESTS=1 make test-dev-monitor
 ROS_DOMAIN_ID=187 python3 tools/dev_monitor/smoke.py --output /absolute/new-directory
 # 팀원 cleany_skill_executor overlay까지 source한 경우, HELD 취소 검증
 ROS_DOMAIN_ID=187 python3 tools/dev_monitor/smoke.py --held --output /absolute/new-held-directory
-# 동작 중인 Monitor의 관측 데이터로 브라우저 통합 검사
+# ROS 서버 없이 웹 표시·재생 회귀 검사
 cd ros2_ws/src/cleany_dev_monitor/web
 pnpm exec playwright install chromium
+pnpm test:e2e
+# 동작 중인 Monitor의 관측 데이터로 브라우저 통합 검사
 MONITOR_URL=http://127.0.0.1:8768 NAV_MONITOR_URL=http://127.0.0.1:8769 pnpm test:e2e
 ```
 
@@ -310,6 +342,14 @@ MONITOR_URL=http://127.0.0.1:8768 NAV_MONITOR_URL=http://127.0.0.1:8769 pnpm tes
 검사 대상 미션/지도가 없는 빈 monitor에서는 브라우저 검사 사전조건이 충족되지 않는다.
 물리 로봇에는 smoke 시나리오를 연결하지 않는다. 실제 수행한 검증과 제한은
 [검증 기록](../../../docs/validation/README.md)에 정리한다.
+
+2026-10-15 매니퓰레이션 탭 추가 검증: Monitor core·ROS 41개, 웹 회귀 13개 통과
+(별도 관측 시나리오가 필요한 기존 2개는 건너뜀). Gazebo + Mock 미션을 139.49초와
+138.44초에 각각 통과했고 실제 웹에서 두 물체의 SUCCESS, 각 17개 완료 동작과 약 40.5초 실행 시간을 확인했다.
+단계 기록 누락·브라우저 page error는 없었다. 해당 실행의 DB·로그·단계/타임라인/비교 화면과
+`monitor-evidence.json`은 `cleany-data/runs/manipulation-dashboard-20261015-m9VBmk/`에 보존했다.
+타임라인의 ‘시점 보기’도 실제 저장 기록에서 5.1초의 `MoveToPregrasp`를 재생했고,
+해당 화면과 마지막 두 실행 요약은 `bookmark-replay.png`, `replay-evidence.json`에 보존했다.
 
 FSM 활성 강조는 관측된 상태를 순서대로 최소 500ms씩 표시한다. 빠른 전이는 화면에서 지연될 수 있으며 이때 실제 상태를 함께 표시한다. 상단 상태·안전 정보와 실제 Runtime 동작에는 지연을 적용하지 않는다. 재생 시각 탐색·세션 변경·Runtime 재시작 시 표시 대기열을 초기화한다. 수신 전에 지나간 상태는 복원하지 않는다.
 

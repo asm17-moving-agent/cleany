@@ -1,0 +1,199 @@
+.manipulation-dashboard {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.manip-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+.manip-tabs {
+  height: auto !important;
+  flex-wrap: wrap;
+  justify-content: flex-start !important;
+}
+.manip-tabs [role="tab"] {
+  min-height: 36px;
+  font-size: 12px;
+}
+.manip-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  padding: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.manip-summary label {
+  display: grid;
+  gap: 8px;
+  flex: 1 1 240px;
+  min-width: 0;
+  font-size: 12px;
+}
+.manip-summary select {
+  width: 100%;
+}
+.manip-summary > div {
+  display: grid;
+  gap: 5px;
+  min-width: 120px;
+}
+.manip-summary strong {
+  font-size: 16px;
+}
+.manip-summary code {
+  font-size: 11px;
+}
+.manip-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.manip-two > * {
+  min-width: 0;
+}
+.manip-note {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.manip-gate {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.manip-gate p {
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.manip-stages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+  margin: 16px 0 0;
+}
+.manip-stages > li {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 14px;
+  min-width: 0;
+}
+.manip-stages > li.active {
+  border-color: var(--info-text);
+  background: var(--info-bg);
+}
+.manip-stages > li.completed {
+  border-color: var(--good-text);
+}
+.manip-stages > li.failed {
+  border-color: var(--bad-text);
+  background: var(--bad-bg);
+}
+.manip-stage-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+.manip-stage-title strong {
+  flex: 1 0 100%;
+  font-size: 13px;
+}
+.manip-stages code {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.manip-stages ul {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.manip-stages ul li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 6px;
+  font-size: 12px;
+}
+.manip-stages ul code {
+  grid-column: 1;
+}
+.manip-stages ul .badge {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.manip-bars {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+.manip-bars > div {
+  display: grid;
+  grid-template-columns: 145px minmax(0, 1fr) 75px;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+.manip-bars > div > div {
+  background: var(--muted);
+  border-radius: 4px;
+  height: 18px;
+  overflow: hidden;
+}
+.manip-bars i {
+  display: block;
+  background: var(--info-text);
+  height: 100%;
+  border-radius: 4px;
+}
+.manip-table {
+  max-width: 100%;
+  overflow: auto;
+  margin-top: 16px;
+}
+.manip-table table {
+  min-width: 700px;
+  font-size: 11px;
+}
+.manip-table td {
+  overflow-wrap: anywhere;
+  max-width: 260px;
+}
+.manip-selected {
+  background: var(--muted);
+}
+@media (max-width: 1100px) {
+  .manip-stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .manip-two,
+  .manip-stages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .manip-summary {
+    padding: 12px;
+    gap: 12px;
+  }
+  .manip-bars > div {
+    grid-template-columns: 110px minmax(0, 1fr) 60px;
+    gap: 8px;
+    font-size: 11px;
+  }
+}

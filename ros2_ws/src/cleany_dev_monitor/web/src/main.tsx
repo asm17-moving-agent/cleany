@@ -20,6 +20,7 @@ import {
   RecordingReplayNotice,
 } from "@/components/recording-controls";
 import { NavigationDashboard } from "@/components/navigation-dashboard";
+import { ManipulationDashboard } from "@/components/manipulation-dashboard";
 import { RosGraph } from "@/components/ros-graph";
 import { FitGraphToViewport } from "@/components/fit-graph-to-viewport";
 import { CameraView } from "@/components/camera-view";
@@ -38,6 +39,7 @@ import {
   GitBranch,
   Network,
   Navigation2,
+  Hand,
   Logs as LogsIcon,
   History,
   Bot,
@@ -90,14 +92,23 @@ function applyRuntimeEvents(rows: Row[]): Row[] {
   return rows.map((r) => (r === base ? { ...base, data } : r));
 }
 const critical = new Set(["event", "log", "result"]);
-const navIcons = [GitBranch, Network, Navigation2, LogsIcon, History, Camera];
+const navIcons = [
+  GitBranch,
+  Network,
+  Navigation2,
+  Hand,
+  LogsIcon,
+  History,
+  Camera,
+];
 const tabs = [
   ["execution", "실행 흐름", "01"],
   ["ros", "ROS 탐색기", "02"],
   ["navigation", "자율주행", "03"],
-  ["logs", "로그", "04"],
-  ["recordings", "기록 & 재생", "05"],
-  ["camera", "카메라", "06"],
+  ["manipulation", "매니퓰레이션", "04"],
+  ["logs", "로그", "05"],
+  ["recordings", "기록 & 재생", "06"],
+  ["camera", "카메라", "07"],
 ];
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);
 const statusColor = (s: string) =>
@@ -1996,6 +2007,19 @@ function App() {
                 }}
               />
             </>
+          )}
+          {tab === "manipulation" && (
+            <ManipulationDashboard
+              rows={rows}
+              timeAt={replayId ? at : now}
+              replay={!!replayId}
+              connected={connected}
+              seek={openNavigationMoment}
+              openTopic={(topic) => {
+                setFocusTopic(topic);
+                go("ros");
+              }}
+            />
           )}
           {tab === "logs" && (
             <Logs rows={rows} filter={filter} setFilter={setFilter} />
