@@ -21,6 +21,22 @@ def receipt_for_cloud(cloud: PointCloud2) -> Header | None:
 
 
 class SceneCloudReceiptNode(Node):
+    """Acknowledge reception of complete filtered clouds without copying their data.
+
+    Subscriptions:
+        /perception/scene_cloud_filtered (sensor_msgs/msg/PointCloud2): Mapping output.
+
+    Publishers:
+        /perception/scene_cloud_receipt (std_msgs/msg/Header): Unchanged capture
+            stamp and frame of a structurally valid, nonempty cloud.
+
+    QoS:
+        Input uses best-effort depth 1; receipt output uses reliable depth 1.
+
+    Notes:
+        Topic names are configurable defaults. Receipt proves message reception,
+        not that MoveIt has committed the cloud to its planning scene.
+    """
     def __init__(self) -> None:
         super().__init__('scene_cloud_receipt')
         self.declare_parameter('filtered_cloud_topic', '/perception/scene_cloud_filtered')

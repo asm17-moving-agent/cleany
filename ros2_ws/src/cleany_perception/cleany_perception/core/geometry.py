@@ -50,6 +50,18 @@ def fit_plane_ransac(
     minimum_inlier_ratio: float,
     random_seed: int = 0,
 ) -> Plane:
+    """Fit a support plane and orient its normal toward the camera origin.
+
+    Args:
+        points: Finite Nx3 camera-frame coordinates in metres.
+        distance_threshold_m: Maximum point-to-plane distance for an inlier.
+
+    Returns:
+        The SVD-refined plane after RANSAC consensus selection.
+
+    Raises:
+        ValueError: Samples or the resulting consensus fail the configured limits.
+    """
     cloud = np.asarray(points, dtype=np.float64)
     if cloud.ndim != 2 or cloud.shape[1] != 3:
         raise ValueError('Plane point cloud must have shape Nx3')
@@ -120,6 +132,18 @@ def reconstruct_supported_obb(
     minimum_extent_m: float,
     minimum_points: int,
 ) -> OrientedBox3D:
+    """Fit an oriented box with its bottom constrained to the support plane.
+
+    Project above-plane points onto the support plane and use their principal
+    axes for the footprint. Coordinates and distance limits are in metres.
+
+    Returns:
+        A box in the input frame, with its third rotation axis along the plane
+        normal and height spanning the retained points above the plane.
+
+    Raises:
+        ValueError: Too few valid points or a degenerate extent prevents a box.
+    """
     cloud = np.asarray(points, dtype=np.float64)
     if cloud.ndim != 2 or cloud.shape[1] != 3:
         raise ValueError('Object point cloud must have shape Nx3')

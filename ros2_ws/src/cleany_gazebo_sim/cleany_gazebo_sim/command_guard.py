@@ -17,6 +17,19 @@ from cleany_gazebo_sim.command_limits import (
 
 
 class GazeboCommandGuard(Node):
+    """Bound planar commands before they reach Gazebo.
+
+    Subscriptions:
+        cmd_vel (geometry_msgs/msg/Twist): Body-frame planar velocity request.
+
+    Publishers:
+        gazebo_cmd_vel (geometry_msgs/msg/Twist): Limited command, or zero on
+            invalid input or command timeout.
+
+    Notes:
+        Unsupported axes are ignored. Command age uses monotonic time, but
+        timeout callbacks run on the node timer and depend on its clock advancing.
+    """
     def __init__(self) -> None:
         super().__init__('gazebo_command_guard')
         self.declare_parameter('max_linear_x', 0.3)

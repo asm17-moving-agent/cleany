@@ -26,6 +26,16 @@ def _default_config_path() -> str:
 
 
 class CollisionSceneApplier(Node):
+    """Apply a configured collision scene once MoveIt becomes available.
+
+    Services:
+        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene): Client;
+            default service path from scene_config, which can override it.
+
+    Notes:
+        Scene geometry and frame come from the validated scene specification.
+        apply() waits within service_wait_timeout_sec and checks the response.
+    """
     def __init__(self) -> None:
         super().__init__('collision_scene_applier')
         self.declare_parameter('scene_config', _default_config_path())

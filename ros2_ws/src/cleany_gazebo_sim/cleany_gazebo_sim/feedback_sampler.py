@@ -9,6 +9,24 @@ from sensor_msgs.msg import JointState
 
 
 class FeedbackSampler(Node):
+    """Throttle Gazebo feedback without inventing fresh samples.
+
+    Subscriptions:
+        /gazebo/raw_clock (rosgraph_msgs/msg/Clock): Simulator time.
+        /gazebo/raw_joint_states (sensor_msgs/msg/JointState): Simulator joints.
+
+    Publishers:
+        /clock (rosgraph_msgs/msg/Clock): Latest changed simulator time.
+        /joint_states (sensor_msgs/msg/JointState): Latest joint sample no newer
+            than the published clock.
+
+    QoS:
+        Raw inputs and joint output use sensor_data; clock output is reliable.
+
+    Notes:
+        A steady timer bounds publication rate. Original stamps are preserved;
+        unchanged simulation data is not republished as fresh feedback.
+    """
     def __init__(self) -> None:
         super().__init__('gazebo_feedback_sampler')
         self.declare_parameter('publish_period_s', .02)

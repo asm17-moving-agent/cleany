@@ -1,7 +1,7 @@
 #pragma once
 #include "dwb_critics/goal_dist.hpp"
 namespace cleany_navigation {
-// Preserve stock grid guidance and failures, resolving its final-cell plateau.
+/// Preserve stock grid guidance and failures, resolving its final-cell plateau.
 class PreciseGoalDistCritic : public dwb_critics::GoalDistCritic {
 public:
   void onInit() override;

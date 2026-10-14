@@ -35,6 +35,44 @@ from .navigation import NavigationObserver, cloud_points, transform_xyz, vector
 
 
 class MonitorNode(Node):
+    """Expose bounded ROS observations through the local monitor server.
+
+    Subscriptions:
+        /mission/debug_snapshot (cleany_interfaces/msg/RuntimeDebugSnapshot),
+        /mission/runtime_events (cleany_interfaces/msg/RuntimeEvent) and
+        /mission/result (cleany_interfaces/msg/MissionResult): Runtime evidence;
+            runtime_namespace changes this prefix.
+        /map, /local_costmap/costmap, /global_costmap/costmap
+            (nav_msgs/msg/OccupancyGrid): Map layers; configurable defaults.
+        /plan (nav_msgs/msg/Path), /wheel/odom and /ground_truth/odom
+            (nav_msgs/msg/Odometry): Planned and measured motion.
+        /nav2/cmd_vel, /safety_2d/cmd_vel, /cmd_vel (geometry_msgs/msg/Twist):
+            Command stages, configurable through velocity_topics.
+        /amcl_pose (geometry_msgs/msg/PoseWithCovarianceStamped): Localization.
+        /head_pan/state, /head_pan/coverage, /reactive_guard/state,
+        /body_guard_3d/state and /navigation/bt_trace (std_msgs/msg/String):
+            JSON navigation evidence; configurable defaults.
+        /collision_monitor_state (nav2_msgs/msg/CollisionMonitorState) and
+        /behavior_tree_log (nav2_msgs/msg/BehaviorTreeLog): Navigation decisions.
+        /rosout (rcl_interfaces/msg/Log), /clock (rosgraph_msgs/msg/Clock):
+            Logs and simulation-clock health.
+        mock/manipulation/execution_events: Configurable execution evidence;
+            type resolved from the graph, relative to runtime_namespace.
+        Other configured, UI-selected, camera and recording topics are resolved
+            from the ROS graph at discovery time, including action feedback.
+
+    TF:
+        Reads map -> base_link and sensor transforms; frame defaults are configurable.
+
+    QoS:
+        Discovery chooses reliability and durability from advertised publishers
+        and records compatibility; message types are resolved from the graph.
+
+    Notes:
+        The HTTP worker consumes a shared hub. This node creates no command
+        publishers or action/service clients. Large geometry is subscribed on
+        demand, and camera, topic and recording limits bound retained data.
+    """
     def __init__(self, **kwargs):
         super().__init__("cleany_dev_monitor", **kwargs)
         defaults = {

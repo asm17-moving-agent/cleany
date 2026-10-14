@@ -37,6 +37,12 @@ class NavigationOperation:
 
 
 class Nav2Navigator:
+    """Adapt asynchronous Nav2 goals to the runtime's polled operation contract.
+
+    Call maintain() to refresh lifecycle state and cancel journaled goals after
+    a restart. Goal results, fresh stopped odometry and localized arrival are
+    separate checks; a successful action result alone does not certify arrival.
+    """
     def __init__(self, node, targets: TargetMap, journal: MissionJournal) -> None:
         self.node, self.targets, self.journal = node, targets, journal
         self.client = ActionClient(node, NavigateToPose, "navigate_to_pose")

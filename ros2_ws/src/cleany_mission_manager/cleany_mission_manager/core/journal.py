@@ -9,6 +9,11 @@ from .runtime_models import RuntimeReport, RuntimeRequest
 
 
 class MissionJournal:
+    """Persist admissions and one terminal outcome per mission in SQLite.
+
+    Use from the creating thread. Mutations commit synchronously; filesystem
+    and database errors propagate to the caller.
+    """
     def __init__(self, path: str = ":memory:") -> None:
         if path != ":memory:":
             Path(path).expanduser().parent.mkdir(parents=True, exist_ok=True)
@@ -32,6 +37,11 @@ class MissionJournal:
         )
 
     def accept(self, request: RuntimeRequest, profile: dict | None = None) -> None:
+        """Atomically store a new request and its execution profile.
+
+        Raises:
+            sqlite3.IntegrityError: The mission ID has already been admitted.
+        """
         with self.db:
             self.db.execute("INSERT INTO missions VALUES(?,?,NULL)", (
                 request.mission_id, json.dumps(asdict(request)),
@@ -44,6 +54,11 @@ class MissionJournal:
         return json.loads(self.value("profile:" + mission_id, "{}"))
 
     def finish(self, report: RuntimeReport) -> None:
+        """Commit the first terminal report for an admitted mission.
+
+        Raises:
+            RuntimeError: The mission is unknown or already has a terminal outcome.
+        """
         with self.db:
             updated = self.db.execute(
                 "UPDATE missions SET report=? WHERE mission_id=? AND report IS NULL",

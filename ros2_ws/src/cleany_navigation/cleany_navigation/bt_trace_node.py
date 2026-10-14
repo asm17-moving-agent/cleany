@@ -16,6 +16,23 @@ from .bt_trace import TreeTrace
 
 
 class BtTraceNode(Node):
+    """Reconcile Nav2 behavior-tree events with a versioned tree descriptor.
+
+    Subscriptions:
+        behavior_tree_log (nav2_msgs/msg/BehaviorTreeLog): Node transitions.
+        bt_navigator/transition_event (lifecycle_msgs/msg/TransitionEvent): Lifecycle.
+        navigate_to_pose/_action/status (action_msgs/msg/GoalStatusArray): Goal state.
+
+    Publishers:
+        navigation/bt_trace (std_msgs/msg/String): JSON tree state for observers.
+
+    QoS:
+        Action status and trace use reliable, transient-local depth 1.
+
+    Notes:
+        Endpoint names are parameter defaults. Startup requires matching XML and
+        manifest hashes; the trace does not control the navigator.
+    """
     def __init__(self):
         super().__init__('nav2_bt_trace')
         for key, value in {'manifest_file': '', 'xml_file': '', 'output_topic': 'navigation/bt_trace',

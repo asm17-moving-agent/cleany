@@ -95,6 +95,21 @@ def stop(process):
 
 
 class Observer(Node):
+    """Collect facility simulation evidence and provide a test command publisher.
+
+    Subscriptions:
+        /ground_truth/odom (nav_msgs/msg/Odometry): Actual pose.
+        /scan (sensor_msgs/msg/LaserScan) and /joint_states
+            (sensor_msgs/msg/JointState): Sensor-data QoS feedback.
+        /review/{name} (sensor_msgs/msg/Image): First frame from each requested camera.
+
+    Publishers:
+        /cmd_vel (geometry_msgs/msg/Twist): Explicit commands from the review driver.
+
+    Notes:
+        Saves camera PNGs and sampled pose traces under the supplied output path.
+        This fixture is an active simulation test, not a passive production observer.
+    """
     def __init__(self, names, output):
         super().__init__('facility_runtime_review')
         self.output = output

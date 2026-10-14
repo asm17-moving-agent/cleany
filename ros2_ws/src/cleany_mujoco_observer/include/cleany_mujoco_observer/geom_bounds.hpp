@@ -13,8 +13,8 @@ struct GeomBounds
   std::array<double, 3> low, high;
 };
 
-// Evaluation only. A transformed local box is not a tight bound for a tilted
-// mesh/cylinder and can falsely put a resting object's bottom below the table.
+/// Evaluation only. A transformed local box is not a tight bound for a tilted
+/// mesh/cylinder and can falsely put a resting object's bottom below the table.
 inline GeomBounds geomBoundsInBase(const mjModel* model, const mjData* data, int g, int base)
 {
   mjtNum delta[3], center[3], relative[9];

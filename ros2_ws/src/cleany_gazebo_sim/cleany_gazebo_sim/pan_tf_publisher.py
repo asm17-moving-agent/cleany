@@ -20,6 +20,22 @@ def quaternion(matrix: np.ndarray) -> tuple[float, float, float, float]:
 
 
 class GazeboPanTfPublisher(Node):
+    """Publish the simulated camera mount transform from measured head pan.
+
+    Subscriptions:
+        joint_states (sensor_msgs/msg/JointState): head_pan_joint angle in radians.
+
+    TF:
+        Broadcasts base_link -> head_camera_depth_frame at the joint timestamp,
+        rotating configured mount geometry about pan_pivot.
+
+    QoS:
+        Joint input uses sensor_data.
+
+    Notes:
+        Missing or non-finite pan positions are ignored. Use only when this node
+        owns the camera transform instead of a robot-state publisher.
+    """
     def __init__(self) -> None:
         super().__init__('gazebo_pan_tf_publisher')
         for name, value in dict(translation=[0., 0., 0.], rotation_rpy=[0., 0., 0.],

@@ -57,6 +57,12 @@ def support_patch_from_obb(candidate: Any, object_id: str, margin: float) -> Col
 
 
 class TargetSceneTransaction:
+    """Manage temporary target geometry and allowed contacts in MoveIt's scene.
+
+    Methods mutate the shared planning scene. The caller must invoke restore()
+    in its cleanup path; this object does not automatically roll back on error.
+    The saved collision matrix is restored, and temporary geometry is removed.
+    """
     def __init__(
         self,
         node: Any,
@@ -254,6 +260,14 @@ class TargetSceneTransaction:
         return self._call(self._apply_client, request)
 
     def restore(self) -> None:
+        """Remove temporary geometry and restore the saved allowed-collision matrix.
+
+        An attached object is detached before removing its resulting world copy.
+        On failure, retain transaction identity so the caller can retry cleanup.
+
+        Raises:
+            InfrastructureError: MoveIt cannot confirm a required scene update.
+        """
         if not self._object_id:
             return
         scene = PlanningScene()

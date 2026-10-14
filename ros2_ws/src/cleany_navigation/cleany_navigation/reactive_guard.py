@@ -10,6 +10,11 @@ from cleany_navigation.voxel_guard import GuardConfig, twist_pose
 
 @dataclass
 class InputWatchdog:
+    """Check source stamps and receive ages in separate ROS and monotonic clocks.
+
+    All times use seconds. A ROS rewind beyond 10 ms latches a fault for this
+    instance; stalled ROS time is detected from monotonic elapsed time.
+    """
     source_timeout_s: float = .5
     command_timeout_s: float = .5
     last_ros: float | None = None
@@ -83,6 +88,22 @@ class PlanarBrakingGuard:
 
     def evaluate(self, points: np.ndarray, command: np.ndarray, measured: np.ndarray,
                  source_age: float) -> tuple[np.ndarray, str]:
+        """Limit the requested twist and test commanded and measured braking sweeps.
+
+        Args:
+            points: Observed Nx2 surface points in the current base frame, in metres.
+            command: Requested body-frame vx, vy in m/s and yaw rate in rad/s.
+            measured: Measured twist in the same frame and units, without command limiting.
+            source_age: Age of the observations in seconds, added to reaction time.
+
+        Returns:
+            A bounded, slowed or zero twist and the corresponding decision code.
+            Empty observations may pass; the caller must enforce sensor freshness
+            and coverage before interpreting this as permission to move.
+
+        Raises:
+            ValueError: Inputs are invalid or the braking horizon is unbounded.
+        """
         points, command, measured = [np.asarray(a, dtype=float) for a in (points, command, measured)]
         if (points.ndim != 2 or points.shape[1] != 2 or command.shape != (3,)
                 or measured.shape != (3,) or not math.isfinite(source_age) or source_age < 0
