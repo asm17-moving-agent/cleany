@@ -17,6 +17,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("use_sim_time", default_value="true"),
         DeclareLaunchArgument("runtime_config", default_value=str(share / "config/runtime.yaml")),
+        DeclareLaunchArgument("manipulation_mock_fixture", default_value=""),
         DeclareLaunchArgument("targets_file", default_value=str(share / "config/study_cafe_targets.yaml")),
         DeclareLaunchArgument("navigation_backend", default_value="nav2", choices=["nav2", "mock"]),
         DeclareLaunchArgument("post_mission", default_value="return_home",
@@ -30,6 +31,7 @@ def generate_launch_description():
                  "use_sim_time": ParameterValue(arg("use_sim_time"), value_type=bool),
                  "targets_file": arg("targets_file"), "journal_path": arg("journal_path"),
                  "navigation_backend": arg("navigation_backend"), "post_mission": arg("post_mission"),
+                 "manipulation_mock_fixture": arg("manipulation_mock_fixture"),
              }]),
         Node(package="cleany_control_bridge", executable="control_bridge", output="screen",
              condition=IfCondition(arg("enable_bridge")), parameters=[{

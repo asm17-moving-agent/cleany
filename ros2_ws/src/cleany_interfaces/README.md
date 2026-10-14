@@ -132,8 +132,13 @@ colcon test-result --verbose
 증거로 사용하지 않습니다. 상세 수락·성공·취소와 주행 gate는
 [Mission Manager 계약](../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따릅니다.
 
-이 세 interface는 팀원 브랜치 `feat/manipulation-action-server`의
-`46efa012cddb4ef0ff3f4dadb785550591bb6073`과 동일합니다. 서버 내부 BT 구조는 이 계약에 포함하지 않습니다.
+조작 Action과 Record는 PR #55의 `86a6d85` 정의를 사용합니다. Result에
+`failed_substage`, `cancel_mode`, Feedback에 `substage`, Record에 `completed_substages`를
+포함합니다. `CancelManipulation` service도 서버용으로 등록하지만 Mission은 기존
+ROS Action cancel을 사용하며 기본 CHECKPOINT를 유지합니다.
+Mission·관제 메시지는 PR #54 정의를 유지하고, 모든 consumer를 하나의 install prefix에서
+재빌드합니다. Mission의 `ManipulationOutcome`과 보고 JSON에는 새 진단 필드를 추가하지 않습니다.
+서버 내부 BT 구조는 이 계약에 포함하지 않습니다.
 
 ### 개발 관측 인터페이스
 
@@ -148,3 +153,5 @@ header, boot ID, 연속 sequence, mission/task/execution ID, kind, `data_json`�
 kind는 transition, bt_tick, action_start, action_result, action_cancel_requested,
 cancel_requested, mission_result다. 관측 데이터이며 명령 인터페이스가 아니다.
 기존 `MissionStatus`, `MissionResult`, 미션 service 계약은 변경하지 않는다.
+Action Mock 사용 시 JSON의 선택적 `manipulation_feedback`, `manipulation_details`에
+최신 Feedback과 세부 단계·취소 진단을 표시한다. 주행 허가와 완료 증거로 사용하지 않는다.

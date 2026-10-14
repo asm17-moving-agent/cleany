@@ -24,6 +24,8 @@ worktree의 overlay를 공유하지 않는다. container에서도 같은 절대 
 일반 build/install/log와 navigation/scenario/Harmonic 전용 디렉터리가 이 아래에 생긴다.
 
 저장소 루트에서 `source "$(make -s print-install-base)/setup.bash"`로 설치를 읽는다.
+source 명령은 Bash 기준이다. zsh에서는 `/opt/ros/humble/setup.zsh`와
+`source "$(make -s print-install-base)/setup.zsh"`를 사용한다. Makefile 자체의 실행 셸은 Bash다.
 navigation/scenario는 각각 `print-navigation-install-base`, `print-scenario-install-base`를
 사용한다. 사용자 지정 Make 변수는 빌드와 경로 출력에 동일하게 전달한다.
 `make clean`은 이 외부 빌드 루트의 표준 출력만 지운다. 실행 원본·fixture·보고서는 유지한다.
@@ -77,6 +79,13 @@ ros2 launch cleany_bringup mission_sim.launch.py post_mission:=wait_for_next
 
 `test-mission-core`는 ROS 없이 실행하며 `py_trees`, PyYAML, pytest가 필요하다.
 `test-mission-runtime`은 interfaces, manager, bridge를 빌드하고 colcon test를 실행한다.
+외부 Python Mock 조작을 함께 검증할 때는 `make test-manipulation-core`,
+`make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=185`를 사용한다. Mission·서버·interfaces를
+같은 install prefix에서 빌드하며 기존 Skill Executor 의존 패키지도 빌드한다.
+이 의존 빌드는 MuJoCo 서버나 native BT를 실행하지 않는다. 필요한 시스템 dependency는
+`make deps`와 개발환경 문서를 따른다.
+Gazebo/Nav2까지 포함하는 검사는 `make test-gazebo-manipulation`을 사용한다.
+기본은 `wait_for_next`, 별도 home 시험은 `CLEANY_GAZEBO_POST_MISSION=return_home`을 지정한다.
 실제 ROS transport 검사는 `CLEANY_RUN_ROS_TESTS=1`과 분리한 `ROS_DOMAIN_ID`를 지정해
 설치 환경에서 `make test-mission-core`로 실행한다. fake Nav2 server를 사용하므로
 Gazebo 주행 성공의 증거와 구분한다.

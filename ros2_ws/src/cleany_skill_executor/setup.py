@@ -27,6 +27,7 @@ setup(
     extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
+            'manipulation_server = cleany_skill_executor.manipulation_node:main',
             'grasp_selection_server = cleany_skill_executor.grasp_selection_node:main',
             'sorting_coordinator = cleany_skill_executor.sorting_coordinator:main',
             (

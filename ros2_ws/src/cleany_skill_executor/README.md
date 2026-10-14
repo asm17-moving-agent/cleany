@@ -7,6 +7,49 @@
 - [분류·운반 실행 계약](#분류운반-실행-계약)
 - [설정 및 검증](#설정-및-검증)
 
+## Python Mock Manipulation 서버
+
+PR #55의 `86a6d85`에서 Python 서버와 순수 실행 core/model/mock/port/단계/SQLite 저장소만
+선별 포함했다. 기존 실행 등록과 패키지 의존성은 유지한다. native BT, 모니터,
+MuJoCo 제어 실행기와 인식·MoveIt 리팩터링은 이 연결에 포함하지 않는다.
+
+`manipulation_server`는 `/mock` namespace에서 Action `manipulation/execute_skill`,
+조회 `manipulation/get_execution`, 취소 `manipulation/cancel`과 진단
+`manipulation/execution_events`를 제공한다. 기본 backend는 `mock`만 허용한다.
+시뮬레이터·controller를 시작하거나 clock, TF, odom, 카메라, joint_states를 발행하지 않는다.
+실행·정지는 steady clock으로 처리하며 ROS sim time이 멈춰도 취소를 처리한다.
+
+```bash
+make build-mission-mock
+source "$(make -s print-install-base)/setup.bash"
+ros2 launch cleany_skill_executor manipulation_mock.launch.py \
+  mock_config:=$PWD/ros2_ws/src/cleany_mission_manager/config/manipulation_server_fixture.yaml \
+  database_path:=$HOME/.local/state/cleany/mission-mock/manipulation.sqlite3
+```
+
+단독 서버 기본 설정은 `config/manipulation_mock.yaml`이다. Mission과 연결할 때는 위의
+공유 두 물체·네 snapshot fixture를 사용한다. 실행 중에도 같은 execution ID를 재수락하지
+않으며, 재시작 시 ACTIVE 기록을 INTERRUPTED로 보존하고 자동 재개하지 않는다.
+추가 JSON 필드가 없는 과거 기록은 기본값으로 읽고, 손상된 기존 DB는 시작 오류로 처리한다.
+자동 DB 초기화나 팔 상태 해제는 제공하지 않는다. Mission DB와 서버 DB를 분리해 보존한다.
+
+공유 fixture의 정상 수거 시간은 물체 하나당 약 40초다. 준비와 확인보다 팔 이동에
+더 긴 시간을 배정한 관찰용 가정이며 실물 측정값이나 제어 속도 제한이 아니다.
+각 세부 단계는 최소 1초 동안 유지된다. 시간표와 변경 후 실행 방법은
+[Mission README](../cleany_mission_manager/README.md#mock-조작의-관찰-시간)를 따른다.
+설정의 `stage_durations_sec`는 모든 scenario에 적용되며, scenario 안의 같은 설정이
+이를 덮어쓴다. 미지정 단계는 `stage_duration_sec`, 정지는 `stop_duration_sec`를 사용한다.
+단독 서버 기본 fixture는 빠른 계약 검증을 위해 기존 0.5초 설정을 유지한다.
+
+```bash
+make test-manipulation-core
+make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=185
+```
+
+두 번째 명령은 공통 interfaces와 Mission·Bridge·서버를 함께 빌드한 뒤 실제 DDS Action,
+Feedback, 조회, 취소와 프로세스 재시작을 검사한다. Gazebo 검증과 연결 계약은
+[Mission 통합 문서](../cleany_mission_manager/docs/manipulation_mock_integration.md)를 따른다.
+
 ## 작업자 관찰 모드와 파지 깊이
 
 시뮬레이터를 시작하는 수거 launch는 `sorting_verify_placement:=false`가

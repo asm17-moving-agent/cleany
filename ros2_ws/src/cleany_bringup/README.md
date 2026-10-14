@@ -8,6 +8,9 @@ FSM 패키지 자체에는 Gazebo 의존성을 추가하지 않습니다. 주행
 ## 실행
 
 팀 표준은 Humble/Fortress입니다. Jazzy/Harmonic은 별도 호환 환경입니다.
+아래 source 명령은 Bash 기준입니다. zsh에서는 ROS와 install의 `setup.zsh`를 사용합니다.
+이 VM의 Mock 통합 환경은 zsh에서
+`source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh`로 읽습니다.
 
 ```bash
 make build-mission-sim
@@ -35,10 +38,15 @@ Jazzy에서는 `make ROS_SETUP=/opt/ros/jazzy/setup.bash build-mission-sim`과
 | `enable_bridge`, `enable_telemetry` | 기본 `true` |
 | `pose_url` | 빈 값이면 Gateway URL에서 같은 host의 `/pose/ws`를 파생 |
 | `sim_partition` | `cleany-mission`; Gazebo transport 격리 |
+| `start_manipulation_mock` | `false`; `action_mock` 설정에서만 통합 Mock 서버 시작 |
+| `manipulation_scenario` | `success`; 공유 fixture의 시나리오 |
+| `manipulation_mock_fixture` | Mission의 `manipulation_server_fixture.yaml`; Runtime과 서버에 함께 전달 |
+| `manipulation_database_path` | `~/.local/state/cleany/mission-mock/manipulation.sqlite3`; Mission/Bridge DB와 분리 |
 
 지도 filename stem과 targets의 `map_id`가 다르면 시작을 거절합니다. home과 좌석은
 시뮬레이션 접근 후보이며 실환경 접근점·충전 dock·팔 도달성 검증 결과가 아닙니다.
-현재 실제 home 복귀 시험은 실패했으므로 완료 결과를 보장하는 설정으로 해석하지 않습니다.
+기본 로컬 Mock 구성의 과거 home 복귀 시험은 실패했습니다. 새 action_mock 구성의
+study-cafe home 시험은 아래 검증에서 별도로 통과했으며 다른 지도·좌석의 성공을 보장하지 않습니다.
 `wait_for_next`에서는 현재 위치에 대기하고 Backend가 다음 mission을 배차합니다.
 
 기존 Nav2/Gazebo가 실행 중이면 이 launch를 중복 실행하지 말고
@@ -46,3 +54,40 @@ Jazzy에서는 `make ROS_SETUP=/opt/ros/jazzy/setup.bash build-mission-sim`과
 pose relay도 기존 producer가 있으면 `enable_telemetry:=false`를 지정합니다.
 지도 표시용 `/ground_truth/odom` relay는 simulator world 위치이며 wheel odometry나
 AMCL 정확도의 증거가 아닙니다. 청소 단계는 현재 Mock입니다.
+
+## Gazebo 주행과 외부 Mock 조작
+
+```bash
+make build-mission-sim
+source "$(make -s print-install-base)/setup.bash"
+ROS_DOMAIN_ID=186 ros2 launch cleany_bringup mission_sim.launch.py \
+  runtime_config:=$PWD/ros2_ws/src/cleany_mission_manager/config/runtime_gazebo_manipulation_mock.yaml \
+  start_manipulation_mock:=true manipulation_scenario:=success \
+  post_mission:=wait_for_next enable_bridge:=false enable_telemetry:=false \
+  journal_path:=$HOME/.local/state/cleany/mission-mock/missions.db
+```
+
+`mock`/서버 미시작은 기존 동작, `action_mock`/서버 미시작은 별도로 실행한 서버에 연결한다.
+서버가 준비되지 않으면 미션을 수락하지 않는다. `mock`/서버 시작 조합은 시작 오류다.
+backend, 네 snapshot의 wire ID 목록, 목적지, scenario와 전체 서버 설정을 Gazebo 시작 전에
+검사한다. 서버는 `/mock`에서 실행하며 물리 상태를 발행하지 않는다.
+`action_mock` 구성에서는 기존 Runtime의 필수 readiness인 collision_monitor도 기존
+시뮬레이터 `nav2_safety.yaml`으로 시작하고 Nav2 cmd_vel을 해당 monitor로 전달한다.
+이 구성은 Gazebo의 `lidar_depth_nav` 센서 profile을 사용하고 monitor polygon은 기존
+Nav2 Humble/Jazzy 변환 함수를 적용한다.
+주행은 기존 `nav2_omni_motion.yaml`의 mecanum controller를 적용한다. 3cm controller
+도착 검사가 기존 Mission의 8cm 검사를 충족하도록 구성하고 costmap footprint도 기존
+monitor envelope와 맞춘다. 기존 Navfn planner는 유지한다.
+기본 로컬 Mock 구성과 종료 정책은 유지한다. AMCL 활성화 뒤 알려진 시뮬레이션
+초기 위치를 `/initialpose`로 설정해야 한다. 이 설정은 실물 안전 기준이 아니다.
+
+```bash
+make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186
+# home 복귀는 별도 주행 시험
+CLEANY_GAZEBO_POST_MISSION=return_home make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186
+```
+
+시험은 기존 study-cafe 지도·seat-12, 새 분리 DB, Gateway 없는 `mission/offer`를 사용한다.
+기존 simulator AMCL 설정의 지도 기준 초기 pose로 localization을 지정하고 단일 clock publisher,
+Nav2 도착·정지, 두 Action과 추가 빈 관측, 기존 보고 형태를 확인한다.
+자세한 책임과 실패·재시작 조건은 [통합 문서](../cleany_mission_manager/docs/manipulation_mock_integration.md)를 따른다.

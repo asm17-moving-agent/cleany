@@ -22,6 +22,9 @@
 Nav2/조작 action의 status와 feedback은 ROS 탐색기로 확인하며, goal/result는 Runtime이나
 조작 실행 이벤트에서 실제 제공한 것만 보여준다. 모듈의 mock/sim 표시는 Runtime의
 `execution_profile`에서 가져온다. 현재 Runtime은 물리 로봇 실행을 지원하지 않는다.
+청소 BT 화면에는 Runtime의 `manipulation_feedback`에 있는 조작 단계와 세부 동작을
+별도로 표시한다. `ExecuteOne`의 내부 진행을 읽기만 하며 BT 노드를 추가하거나
+완료·주행 조건을 판정하지 않는다. 오래된 정보에는 마지막 조작 관측임을 표시한다.
 
 ## 구조와 데이터 계약
 
@@ -79,6 +82,43 @@ ROS_DOMAIN_ID=187 make run-dev-monitor
 
 브라우저에서 <http://127.0.0.1:8768>을 연다. 원격 ROS 호스트는 기본 localhost bind를
 유지하고 `ssh -L 8768:127.0.0.1:8768 robot-host`로 전달한다. 공개 배포용 인증 서버는 아니다.
+
+### Mission Mock 통합 VM에서 확인
+
+`cleany-mission-manipulation-mock` 작업트리의 통합 install에 웹과 monitor를 포함해 빌드했다.
+이 VM에서는 `cleany-mission-mock-monitor.service` 사용자 서비스가 domain 185,
+`127.0.0.1:8768`에서 실행된다. 터미널을 닫아도 유지된다.
+
+```bash
+systemctl --user status cleany-mission-mock-monitor.service
+journalctl --user -u cleany-mission-mock-monitor.service -n 30 --no-pager
+# 관제보드 종료
+systemctl --user stop cleany-mission-mock-monitor.service
+```
+
+서비스가 종료·회수되었거나 VM을 재시작했다면 다음 명령으로 다시 실행한다.
+
+```bash
+systemd-run --user --unit=cleany-mission-mock-monitor --collect \
+  /usr/bin/bash /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/start-monitor.bash
+```
+
+웹이 `Runtime 대기`를 표시하면 monitor 연결은 정상이고 같은 domain의 Runtime을 기다리는 상태다.
+zsh 터미널에서 다음 시험을 실행하고 웹의 `실행 흐름 → 청소 BT`를 본다.
+
+```zsh
+cd /home/ubuntu/Documents/cleany-mission-manipulation-mock
+source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh
+make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=185
+```
+
+시험은 종료 후 simulator와 Runtime을 닫는다. monitor가 미리 실행 중이었다면
+`기록 & 재생`에서 해당 미션을 다시 볼 수 있다. 지금부터 수신한 데이터를 기록하며
+monitor를 시작하기 전에 종료된 미션의 상태를 재구성하지 않는다.
+상단 `LIVE`는 웹 관제보드 연결 상태다. Runtime 수신이 3초 이상 끊기면 현재 주행은
+`확인 불가`로 표시하고 FSM/BT에는 마지막 관측임을 명시한다. 남아 있는 BT의 SUCCESS는
+당시 실행 결과이며 현재 주행 준비 여부를 보장하지 않는다. 미션 종료 뒤 새 상태가
+수신되는 경우에도 청소 BT는 `마지막 청소 결과`로 구분한다.
 
 `config/monitor.yaml`에서 runtime namespace, map/base frame, 지도/경로/costmap/속도 토픽,
 저장 위치와 용량을 설정한다. 토픽 이름은 실제 launch의 remapping과 맞춰야 한다.

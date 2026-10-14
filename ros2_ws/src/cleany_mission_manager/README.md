@@ -129,8 +129,9 @@ KB는 이 구현 변경에서 수정하지 않습니다.
 
 청소 BT가 관찰과 Planner 제안을 검증한 뒤 물체 하나의 action을 보냅니다.
 Executor 내부의 BT/XML이나 접근·집기 단계 순서는 Mission Manager가 소유하지 않습니다.
-원격 `feat/manipulation-action-server`의 `46efa012cddb4ef0ff3f4dadb785550591bb6073`에서
-아래 세 interface만 동일하게 가져왔으며 서버 코드와 나머지 브랜치는 병합하지 않았습니다.
+PR #54의 FSM·BT·보고 계약을 유지하며 PR #55 `86a6d85`의 Python Mock 서버에 연결합니다.
+공통 조작 interface와 필요한 서버 의존 코드만 선별 포함했습니다. 전체 PR 병합이나
+MuJoCo 실행기 연결은 하지 않았습니다. [통합 문서](docs/manipulation_mock_integration.md)를 참고합니다.
 
 | 상대 이름 기본값 | 타입 | 의미 |
 |---|---|---|
@@ -161,24 +162,30 @@ ROS SUCCEEDED로 반환합니다. payload의 SUCCESS와 일치하는 execution I
 이 응답은 미실행·정지 증거가 아닙니다. 진행 중·INTERRUPTED·불일치 결과도 gate를 해제하지 않습니다.
 재시작 후에는 저장한 UUID 취소와 조회만 수행하고 미션은 자동 재개하지 않습니다.
 이 진단 상태는 journal의 `manipulation_boundary` metadata에도 보존합니다.
+새 `failed_substage`, `cancel_mode`와 조회의 `substage`, `completed_substages`는
+선택적 `details` metadata로 분리합니다. 과거 metadata에 이 항목이 없으면 빈 값입니다.
+`ManipulationOutcome`, `RuntimeReport.actions`, MissionResult와 Gateway payload 형태는 유지합니다.
+Feedback은 실행 ID를 대조해 최신 값 하나만 보존하고, 종료된 실행과 이전 실행의 늦은
+메시지를 무시합니다. 진단 오류는 제어 흐름에 영향을 주지 않습니다.
 
-### 팀원 mock server와 함께 실행
+### 통합 Mock 서버와 함께 실행
 
-팀원 브랜치의 서버 패키지를 별도 checkout/overlay에서 빌드해 사용합니다.
-이 브랜치의 기존 Skill Executor 패키지에는 해당 서버가 없습니다.
-양쪽에서 동일한 `cleany_interfaces`를 빌드·source해야 합니다.
+Mission과 서버를 한 install prefix에서 빌드·source합니다.
+PR #54 Runtime overlay와 PR #55 서버 overlay를 따로 겹치지 않습니다.
 공유 mock 입력은 [server fixture](config/manipulation_server_fixture.yaml),
 Runtime 설정은 [runtime_manipulation_mock.yaml](config/runtime_manipulation_mock.yaml)입니다.
 실제 카메라 대신 순서가 정해진 네 snapshot을 사용하고, 서버의 성공 결과에 따라
 mock 책상 목록에서 해당 물체를 제거합니다. 설정한 snapshot이 소진되면 실패합니다.
 
 ```bash
-# 팀원의 server overlay를 source한 terminal
+make build-mission-mock
+source "$(make -s print-install-base)/setup.bash"
+# 두 terminal에서 같은 install prefix를 source
 ros2 run cleany_skill_executor manipulation_server --ros-args -r __ns:=/mock \
   -p database_path:=/tmp/cleany-manipulation-server.db \
   -p mock_config:=$PWD/ros2_ws/src/cleany_mission_manager/config/manipulation_server_fixture.yaml
 
-# 이 브랜치 Runtime overlay를 source한 별도 terminal
+# 같은 install prefix를 source한 별도 terminal; 이 설정의 주행도 Mock
 ros2 run cleany_mission_manager mission_runtime --ros-args \
   --params-file ros2_ws/src/cleany_mission_manager/config/runtime_manipulation_mock.yaml \
   -p targets_file:=$PWD/ros2_ws/src/cleany_mission_manager/config/study_cafe_targets.yaml \
@@ -194,11 +201,45 @@ fixture timeout은 작업 120초, 취소 15초로, 서버의 최대 10초 atomic
 시간을 포함합니다. 기본 로컬 mock의 30초/5초 설정과 구분합니다.
 
 ```bash
-# 팀원 mock overlay + Runtime overlay를 source한 뒤, 격리된 DDS domain에서
-ROS_DOMAIN_ID=185 CLEANY_RUN_ROS_TESTS=1 CLEANY_RUN_MANIPULATION_TESTS=1 make test-mission-core
+make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=185
+make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186
 ```
 
-이 검사는 mock 조작과 ROS 통신의 증거이며 Gazebo 재검증이나 실제 팔 청소 증거가 아닙니다.
+첫 검사는 Mock 주행과 실제 ROS 조작 통신, 두 번째는 Gazebo/Nav2 주행을 사용합니다.
+Gazebo용 설정은 [runtime_gazebo_manipulation_mock.yaml](config/runtime_gazebo_manipulation_mock.yaml)이며
+통합 launch와 `/initialpose` 및 직접 `mission/offer` 방법은
+[bringup README](../cleany_bringup/README.md#gazebo-주행과-외부-mock-조작)를 따릅니다.
+Mock의 논리적 물체 목록만 갱신하며 실제 팔·물체 애니메이션이나 물리 수거의 증거가 아닙니다.
+
+### Mock 조작의 관찰 시간
+
+공유 [server fixture](config/manipulation_server_fixture.yaml)는 정상 수거를 물체 하나당
+40초로 설정합니다. 팔 이동에 준비·검증보다 긴 시간을 배정해 진행을 관찰하기 위한
+가정입니다. 실물 팔의 경로, 하중과 속도 설정을 측정해 산출한 예상 시간은 아닙니다.
+
+| 단계 | 시간 |
+|---|---:|
+| 실행 준비 확인 `VALIDATING` | 1초 |
+| 대상 확인·파지 계획 `PREPARING_TARGET` | 4초 |
+| 물체 접근 `APPROACHING` | 7초 |
+| 그리퍼 닫기·파지 확인 `GRASPING` | 3초 |
+| 들어 올리기·보유 확인 `LIFTING` | 3초 |
+| 수거함 운반 `TRANSPORTING` | 8초 |
+| 놓기·이탈 확인 `PLACING` | 5초 |
+| 팔 복귀 `RETURNING_ARM` | 7초 |
+| 안착 확인 `VERIFYING_PLACEMENT` | 2초 |
+
+두 물체는 통신·관측 시간을 더해 약 80초 이상 걸립니다. 단계 안의 세부 동작은
+해당 시간을 나누어 쓰며 각각 최소 1초입니다. 청소 BT의 `ExecuteOne`을 실행하는 동안
+`mission/debug_snapshot`의 `manipulation_feedback`과
+`/mock/manipulation/execution_events`에서 세부 진행을 확인할 수 있습니다.
+웹 관제보드의 실행 흐름 → 청소 BT에서도 조작 단계와 세부 동작이 표시됩니다.
+
+`stage_durations_sec`는 모든 scenario의 기본 시간이고, scenario별 값이 우선합니다.
+설정을 바꾸면 Mock 서버를 다시 실행해야 합니다. 이미 진행 중인 실행의 DB는 보존합니다.
+작업 120초·취소 15초·청소 300초와 기존 안전 판정은 유지합니다.
+ROS 계약 회귀 검사는 동일한 논리 fixture에 빠른 시간을 적용하고,
+`make test-gazebo-manipulation`은 위 관찰 시간을 그대로 사용합니다.
 
 ### 개발용 FSM/BT 관측
 
@@ -206,6 +247,8 @@ ROS_DOMAIN_ID=185 CLEANY_RUN_ROS_TESTS=1 CLEANY_RUN_MANIPULATION_TESTS=1 make te
 짧게 SUCCESS가 된 뒤 같은 tick 안에서 INVALID로 초기화되는 BT 노드도 `bt_tick`
 이벤트로 남긴다. core는 I/O 없이 최대 2,048개 이벤트만 보존한다. debug 발행 실패가
 기존 status/result 발행을 막지 않도록 ROS shell에서 분리한다.
+Action Mock에서는 debug JSON에 선택적 `manipulation_feedback`, `manipulation_details`를 추가한다.
+`bt_stage`와 청소 BT 노드 이름·실행 순서는 유지하며 서버의 세부 단계는 관측에만 사용한다.
 
 `cleany_dev_monitor`는 이 정보와 ROS graph/TF/토픽을 읽어 개발 화면을 제공한다.
 자세한 실행과 관측 의미는 [개발 관제보드 README](../cleany_dev_monitor/README.md)를 본다.

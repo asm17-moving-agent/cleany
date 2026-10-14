@@ -92,6 +92,58 @@ test("stale observations never imply drive readiness; replay remains isolated", 
   expect(errors).toEqual([]);
 });
 
+test("cleaning BT shows manipulation feedback and marks a stale observation", async ({
+  page,
+}) => {
+  const commands: unknown[] = [];
+  let sendFeedback: (stage: string, substage: string) => void = () => {};
+  await page.routeWebSocket("**/ws", (ws) => {
+    sendFeedback = (stage, substage) =>
+      ws.send(
+        JSON.stringify({
+          initial: true,
+          boot_id: "fixture",
+          rows: [
+            {
+              seq: 1,
+              kind: "runtime",
+              key: "runtime",
+              received_at: Date.now() / 1000,
+              data: {
+                ...runtime,
+                state: "WORKING",
+                active_request: { mission_id: "mission-1" },
+                manipulation_feedback: {
+                  execution_id: "execution-1",
+                  stage,
+                  substage,
+                },
+              },
+            },
+          ],
+        }),
+      );
+    sendFeedback("APPROACHING", "MoveToPregrasp");
+    ws.onMessage((message) => commands.push(JSON.parse(String(message))));
+  });
+  await page.goto("/");
+  await page.getByRole("tab", { name: "청소 BT", exact: true }).click();
+  const observation = page.getByRole("region", { name: "조작 단계 관측" });
+  await expect(observation).toContainText("APPROACHING");
+  await expect(observation).toContainText("MoveToPregrasp");
+  await expect(observation).toContainText("진행 중");
+  sendFeedback("GRASPING", "GraspObject");
+  await expect(observation).toContainText("GRASPING");
+  await expect(observation).toContainText("GraspObject");
+  await expect(page.locator(".react-flow__node")).toHaveCount(
+    runtime.bt_nodes.length,
+  );
+  await expect(observation).toContainText("마지막 조작 관측 · 상태 미확인", {
+    timeout: 6000,
+  });
+  expect(commands).toEqual([]);
+});
+
 test("console navigation and diagnostics work at desktop and narrow widths", async ({
   page,
 }) => {
@@ -339,23 +391,21 @@ test("ROS graph keeps shared nodes and viewport stable through discovery refresh
               key: "ros",
               received_at: Date.now() / 1000,
               data: {
-                topics: [...topics]
-                  .reverse()
-                  .map((t) => ({
-                    name: t.name,
-                    types: ["std_msgs/msg/String"],
-                    state: "receiving",
-                    received_hz: sequence,
-                    publishers: [...t.publishers]
-                      .reverse()
-                      .map((node) => ({ node, qos: { depth: sequence } })),
-                    subscribers: [
-                      ...t.subscribers,
-                      ...(extra && t.name === "/pose" ? ["/dashboard"] : []),
-                    ]
-                      .reverse()
-                      .map((node) => ({ node })),
-                  })),
+                topics: [...topics].reverse().map((t) => ({
+                  name: t.name,
+                  types: ["std_msgs/msg/String"],
+                  state: "receiving",
+                  received_hz: sequence,
+                  publishers: [...t.publishers]
+                    .reverse()
+                    .map((node) => ({ node, qos: { depth: sequence } })),
+                  subscribers: [
+                    ...t.subscribers,
+                    ...(extra && t.name === "/pose" ? ["/dashboard"] : []),
+                  ]
+                    .reverse()
+                    .map((node) => ({ node })),
+                })),
               },
             },
           ],

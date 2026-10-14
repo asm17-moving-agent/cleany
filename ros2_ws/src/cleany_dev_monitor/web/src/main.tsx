@@ -1447,6 +1447,7 @@ function App() {
     ? Math.max(0, (replayId ? at : now) - runtimeRow.received_at)
     : null;
   const fresh = age !== null && age < 3 && (!!replayId || connected);
+  const completedBT = !runtime.active_request && !!runtime.last_result;
   const selectionLimit = Number(config.max_selected_topics) || 16;
   const select = (topics: string[]) => {
     if (topics.length > selectionLimit) {
@@ -1579,9 +1580,11 @@ function App() {
           <div className="breadcrumb">읽기 전용</div>
           <div className="header-status">
             <ThemeToggle />
-            <Badge tone={replayId ? "info" : connected ? "good" : "bad"}>
-              {replayId ? "REPLAY" : connected ? "LIVE" : "연결 끊김"}
-            </Badge>
+            <span title="웹 관제보드 연결 상태입니다. Runtime 상태의 최신 여부는 실행 그래프에서 확인합니다.">
+              <Badge tone={replayId ? "info" : connected ? "good" : "bad"}>
+                {replayId ? "REPLAY" : connected ? "LIVE" : "연결 끊김"}
+              </Badge>
+            </span>
             <span>Domain {config.domain ?? "—"}</span>
             {clockRow && (
               <span title="ROS clock">
@@ -1732,10 +1735,41 @@ function App() {
                 {(!fresh || runtime.drive_block_reason || runtime.reason) && (
                   <p className="execution-reason">
                     {!fresh
-                      ? `상태 미확인 · ${age?.toFixed(1) ?? "—"}초 전`
+                      ? `상태 미확인 · 마지막 Runtime 수신 ${age?.toFixed(1) ?? "—"}초 전. 아래 FSM/BT는 마지막 관측이며, SUCCESS는 당시 실행 결과입니다.`
                       : runtime.drive_block_reason || runtime.reason}
                   </p>
                 )}
+                {graphTab === "bt" &&
+                  runtime.manipulation_feedback?.execution_id && (
+                    <section
+                      className="execution-summary"
+                      aria-label="조작 단계 관측"
+                    >
+                      <div>
+                        <span>조작 관측</span>
+                        <Badge tone={!fresh ? "warn" : "info"}>
+                          {!fresh
+                            ? "마지막 조작 관측 · 상태 미확인"
+                            : runtime.active_request &&
+                                runtime.bt_stage === "ExecuteOne"
+                              ? "진행 중"
+                              : "마지막 조작 관측"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <span>조작 단계</span>
+                        <strong>
+                          {runtime.manipulation_feedback.stage || "—"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>세부 동작</span>
+                        <strong>
+                          {runtime.manipulation_feedback.substage || "—"}
+                        </strong>
+                      </div>
+                    </section>
+                  )}
                 <div
                   className={
                     "execution-workspace " + (node ? "with-detail" : "")
@@ -1760,10 +1794,14 @@ function App() {
                       </Tabs>
                       <Badge tone={!fresh ? "warn" : ""}>
                         {!fresh
-                          ? "상태 미확인"
+                          ? graphTab === "bt"
+                            ? "마지막 BT 관측 · 상태 미확인"
+                            : "마지막 FSM 관측 · 상태 미확인"
                           : replayId
                             ? "기록 시점"
-                            : "LIVE"}
+                            : graphTab === "bt" && completedBT
+                              ? "마지막 청소 결과"
+                              : "LIVE"}
                       </Badge>
                     </div>
                     <h2 className="sr-only">
