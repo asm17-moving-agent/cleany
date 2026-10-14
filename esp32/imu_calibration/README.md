@@ -74,26 +74,20 @@ completed windows shorter than 90% of nominal elapsed time fail the attempt.
 The covariance is sample measurement covariance, not covariance of the
 estimated mean; filtered samples are temporally correlated.
 
-## Build, tests, and upload
+## Build and tests
 
 Use the existing PlatformIO installation prepared by `make firmware-setup`.
 From the repository root:
 
 ```bash
-make test-motor-core
+make test-imu-calibration
 make imu-calibration-build
-export CLEANY_ESP_PORT=/dev/serial/by-id/<native-USB-device>
-make imu-calibration-upload CLEANY_ESP_PORT="$CLEANY_ESP_PORT" CONFIRM_UPLOAD=1
 ```
 
-Make uses the Ubuntu 22.04 `ros2-humble` Distrobox from the host.
-Device-free C++ tests cover sensor decoding, calibration statistics, and
-rejection/reset behavior. Upload replaces the motor-controller application.
-
-Calibration starts once at boot. A native USB client can send newline-terminated
-`status` to query progress or the retained terminal result, and `calibrate`
-to start a new attempt. Serial control-line transitions can reset the MCU;
-use a client that avoids intermediate DTR/RTS reset states.
+Make uses the Ubuntu 22.04 `ros2-humble` Distrobox from the host. This standalone
+project does not generate or link micro-ROS type support.
+Host tests cover decoding, calibration statistics and failure modes, fake
+serial capture, strict accepted-result validation, and configuration refresh.
 
 ## Configure measured acceptance limits
 
@@ -126,10 +120,49 @@ their combined temperature span must pass, and every absolute corrected
 validation mean must pass. Missing/nonpositive reviewed limits cause
 `invalid_config`. Failed runs never expose an accepted bias.
 
+## Upload and capture
+
+Upload replaces the motor-controller application. Select the exact device and
+explicitly confirm upload after completing hardware preparation:
+
+```bash
+export CLEANY_ESP_PORT=/dev/serial/by-id/<native-USB-device>
+make imu-calibration-upload CLEANY_ESP_PORT="$CLEANY_ESP_PORT" CONFIRM_UPLOAD=1
+make imu-calibration-capture CLEANY_ESP_PORT="$CLEANY_ESP_PORT" \
+  IMU_CALIBRATION_OUTPUT=artifacts/imu_calibration/run1.json
+```
+
+Calibration starts once at boot. `status` returns progress or the retained
+terminal result, so attaching after completion works. To restart a stationary
+attempt explicitly:
+
+```bash
+make imu-calibration-capture CLEANY_ESP_PORT="$CLEANY_ESP_PORT" \
+  IMU_CALIBRATION_ARGS=--calibrate \
+  IMU_CALIBRATION_OUTPUT=artifacts/imu_calibration/run2.json
+```
+
+Capture uses exclusive POSIX serial access and atomically deasserts DTR/RTS
+during opening. Sequential pySerial control-line updates caused MCU resets on
+the bench ESP32-S3; atomic updates preserved its run ID and monotonic timebase.
+`--calibrate` sends one command and
+waits for that command's run acknowledgement. Periodic `status` queries recover
+a retained result if its automatic transmission was missed.
+Each host restart carries a random request nonce; old buffered command
+acknowledgements/results cannot satisfy a new capture.
+Read/write operations and the overall capture are bounded; the default
+overall timeout is 60 seconds, configurable with `IMU_CALIBRATION_TIMEOUT`.
+Increase it for longer configured settling/windows.
+
+Exit codes: **0** accepted report, **2** captured rejected/unreviewed report,
+**1** capture/serial/protocol error. Exit 2 still saves the report; Make returns
+nonzero for that measurement-only default. Output is atomically written.
+
 ## USB protocol and results
 
 Commands are newline-terminated `status`, `calibrate`, or
-`calibrate <16-lowercase-hex-digit-request-id>`. Messages use
+`calibrate <16-lowercase-hex-digit-request-id>`. Capture uses the nonce form.
+Messages use
 `schema="cleany.imu_calibration/v1"`:
 
 - `started`: `trigger` (`boot` or `command`), new `run_id`, and `request_id`
@@ -157,7 +190,7 @@ run; verify rejection, then a fresh stationary retry. Check PWM/DIR levels
 physically with motor-driver power disconnected. These hardware acceptance
 checks are separate from host tests and successful firmware compilation.
 
-Close the USB serial client before restoring the motor firmware:
+Close capture before restoring the motor firmware:
 
 ```bash
 make firmware-upload CLEANY_ESP_PORT="$CLEANY_ESP_PORT" CONFIRM_UPLOAD=1
@@ -165,3 +198,21 @@ make firmware-upload CLEANY_ESP_PORT="$CLEANY_ESP_PORT" CONFIRM_UPLOAD=1
 
 Apply the normal [motor firmware acceptance procedure](../README.md#robot-acceptance)
 before restoring motor-driver power and enabling motion.
+
+## Bench measurement record
+
+On 2026-10-14, six diagnostic acquisitions on ESP32-S3
+`90:e5:b1:d5:3f:34` completed with 1,000 calibration and 500 validation samples
+each, `WHO_AM_I=0x68`, and no reported I2C/timing failure. Local JSON reports,
+upload evidence, and detailed findings are under
+`artifacts/imu_calibration/bench_20261014T142933Z/`.
+
+The latest candidate bias was `[0.00145129, 0.02294135, -0.02154442]` rad/s
+(sensor X/Y/Z); its independent corrected validation mean was
+`[0.00001079, 0.00000826, 0.00002465]` rad/s at 27.824–27.901 °C.
+These remain unreviewed candidate measurements, not persisted calibration.
+Across the session, bias varied and mean acceleration magnitude was
+approximately 0.904–0.907g; verify accelerometer offsets/scales separately.
+
+Atomic host control-line updates preserved the MCU timebase across two
+consecutive acquisitions and two subsequent serial reconnects.

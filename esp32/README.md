@@ -12,6 +12,7 @@ feedback, and PWM/DIR outputs. The PlatformIO environment is
 | `src/` | Firmware and motor-control core |
 | `host_tests/` | Device-free C++ tests |
 | `microros_smoke/` | micro-ROS/type-support link check |
+| `imu_calibration/` | Standalone MPU6050 gyro calibration and USB JSON reports |
 | `pcb/` | KiCad project and project-local libraries |
 | `micro_ros/`, `.venv/` | Generated dependencies and build tools |
 
@@ -135,6 +136,11 @@ esp32/.venv/bin/platformio run -d esp32 -e esp32-s3-microros -t compiledb
 ```
 
 ## Upload and communication
+
+For stationary gyro calibration on `J_I2C1`, use the separate
+[MPU6050 calibration diagnostic](imu_calibration/README.md).
+It provides a calibration-only image, retained USB results, measured-limit
+configuration, and the motor-firmware restoration procedure.
 
 Select the device and confirm upload:
 

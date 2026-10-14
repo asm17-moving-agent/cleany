@@ -20,6 +20,9 @@ HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 	cleany_moveit_config cleany_handeye_calibration
 ROS2_CONTAINER ?= ros2-humble
 BASE_TEST_ROS_DOMAIN_ID ?= 173
+IMU_CALIBRATION_OUTPUT ?= $(REPO_ROOT)artifacts/imu_calibration/result.json
+IMU_CALIBRATION_TIMEOUT ?= 60
+IMU_CALIBRATION_ARGS ?=
 # Run natively inside the Ubuntu Distrobox, enter it when invoked from the host.
 BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
@@ -35,7 +38,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	sim-gazebo-study-cafe clean firmware-setup firmware-smoke firmware-build \
 	firmware-upload test-motor-core build-base test-base \
 	micro-ros-agent-build test-micro-ros-setup imu-calibration-build \
-	imu-calibration-upload
+	imu-calibration-upload imu-calibration-capture test-imu-calibration
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -69,8 +72,9 @@ help:
 	@echo "  make test-motor-core / build-base / test-base"
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
-	@echo "  make imu-calibration-build"
+	@echo "  make imu-calibration-build / test-imu-calibration"
 	@echo "  make imu-calibration-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
+	@echo "  make imu-calibration-capture CLEANY_ESP_PORT=/dev/... [IMU_CALIBRATION_ARGS=--calibrate]"
 
 firmware-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py'
@@ -99,6 +103,13 @@ imu-calibration-upload:
 	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)
 	@test "$(CONFIRM_UPLOAD)" = 1 || (echo "CONFIRM_UPLOAD=1 is required" >&2; exit 2)
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration -t upload --upload-port "$(CLEANY_ESP_PORT)"'
+
+imu-calibration-capture:
+	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && esp32/.venv/bin/python tools/imu_calibration/capture.py --port "$(CLEANY_ESP_PORT)" --output "$(IMU_CALIBRATION_OUTPUT)" --timeout "$(IMU_CALIBRATION_TIMEOUT)" $(IMU_CALIBRATION_ARGS)'
+
+test-imu-calibration: test-motor-core
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/imu_calibration'
 
 build-base:
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon build --symlink-install --packages-up-to cleany_base_driver cleany_base_odometry'
