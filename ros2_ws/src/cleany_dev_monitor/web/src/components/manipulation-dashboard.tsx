@@ -4,6 +4,30 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel } from "@/components/panel";
 import { type Data, type Row, time } from "@/lib/monitor";
+import {
+  Activity,
+  ArrowRight,
+  Box,
+  Check,
+  CheckCircle2,
+  CircleDot,
+  Clock3,
+  Crosshair,
+  FileClock,
+  Hand,
+  Layers3,
+  ListChecks,
+  PackageCheck,
+  Radio,
+  ScanSearch,
+  ShieldCheck,
+  Timer,
+  Trash2,
+  TriangleAlert,
+  Undo2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import "./manipulation.css";
 
 type Interval = {
@@ -92,6 +116,89 @@ const extra: Record<string, string> = {
 };
 const stageLabel = (id: string) =>
   stages.find(([key]) => key === id)?.[1] || extra[id] || id || "—";
+const stageIcons: Record<string, LucideIcon> = {
+  VALIDATING: ShieldCheck,
+  PREPARING_TARGET: ScanSearch,
+  APPROACHING: Crosshair,
+  GRASPING: Hand,
+  LIFTING: Box,
+  TRANSPORTING: Trash2,
+  PLACING: PackageCheck,
+  RETURNING_ARM: Undo2,
+  VERIFYING_PLACEMENT: CheckCircle2,
+};
+const resultLabels: Record<string, string> = {
+  SUCCESS: "수거 완료",
+  CANCELED: "수거 취소",
+  BLOCKED: "실행 차단",
+  FAILED: "조작 실패",
+  FATAL: "안전 오류",
+};
+const objectLabels: Record<string, string> = {
+  NOT_TOUCHED: "접촉 전",
+  HELD: "보유 중",
+  LEFT_GRIPPER: "그리퍼 이탈",
+  UNKNOWN: "미확인",
+};
+const placementLabels: Record<string, string> = {
+  CONFIRMED: "안착 확인",
+  NOT_CHECKED: "검증 전",
+  NOT_CONFIRMED: "안착 미확인",
+  UNKNOWN: "미확인",
+};
+function StateValue({
+  value,
+  labels,
+}: {
+  value?: string;
+  labels: Record<string, string>;
+}) {
+  return (
+    <span className="manip-state-value">
+      <span>{value ? labels[value] || value : "미확인"}</span>
+      {value && <code>{value}</code>}
+    </span>
+  );
+}
+function StageIcon({ stage, size = 20 }: { stage: string; size?: number }) {
+  const Icon = stageIcons[stage] || Activity;
+  return <Icon size={size} strokeWidth={1.8} aria-hidden="true" />;
+}
+function ProgressRing({
+  completed,
+  total,
+}: {
+  completed: number;
+  total: number;
+}) {
+  const percent = Math.round((completed / total) * 100);
+  return (
+    <div
+      className="manip-progress-ring"
+      role="progressbar"
+      aria-label="서버가 확인한 동작 진행률"
+      aria-valuenow={completed}
+      aria-valuemin={0}
+      aria-valuemax={total}
+    >
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="ring-track" cx="50" cy="50" r="42" />
+        <circle
+          className="ring-value"
+          cx="50"
+          cy="50"
+          r="42"
+          pathLength="100"
+          strokeDasharray={`${percent} 100`}
+        />
+      </svg>
+      <strong>
+        {percent}
+        <span>%</span>
+      </strong>
+    </div>
+  );
+}
 const seconds = (value: number | null) =>
   value === null ? "—" : `${value.toFixed(1)}초`;
 const confirmed = (value: unknown) =>
@@ -112,7 +219,7 @@ function Tag({ children, kind = "" }: { children: ReactNode; kind?: string }) {
 }
 function Facts({ items }: { items: [string, ReactNode][] }) {
   return (
-    <dl className="facts">
+    <dl className="facts manip-facts">
       {items.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
@@ -196,7 +303,8 @@ export function ManipulationDashboard({
     0,
   );
   const normalIds = stages.flatMap(([, , steps]) => steps.map(([id]) => id));
-  const doneCount = completed.filter((id) => normalIds.includes(id)).length;
+  const doneCount = new Set(completed.filter((id) => normalIds.includes(id)))
+    .size;
   const unknownSteps = completed.filter((id) => !normalIds.includes(id));
   const gate = !runtimeFresh
     ? "미확인"
@@ -224,19 +332,72 @@ export function ManipulationDashboard({
         (totals.get(interval.stage) || 0) + (stop - interval.start_ns) / 1e9,
       );
   }
+  const observationLabel = record.has_result
+    ? "완료된 실행"
+    : current
+      ? record.cancel_mode
+        ? "취소 처리 중"
+        : replay
+          ? "기록 시점 진행"
+          : "진행 중"
+      : "진행 상태 미확인";
+  const visualTone = record.has_result
+    ? tone(record.status)
+    : current
+      ? "info"
+      : "neutral";
+  const activeStepLabel = stages
+    .flatMap(([, , steps]) => steps)
+    .find(([id]) => id === record.substage)?.[1];
+  const stageState = (id: string, steps: [string, string][]) =>
+    record.failed_stage === id
+      ? "failed"
+      : current && record.stage === id
+        ? "active"
+        : steps.every(([node]) => completed.includes(node))
+          ? "completed"
+          : "pending";
 
   const targetPanel = (
-    <Panel title="대상과 실행 결과">
+    <Panel
+      title="대상과 실행 결과"
+      className="manip-target-panel"
+      aside={<PackageCheck size={18} aria-hidden="true" />}
+    >
+      <div className="manip-object-route">
+        <div>
+          <span className="manip-route-icon">
+            <Box size={22} aria-hidden="true" />
+          </span>
+          <small>수거 대상</small>
+          <strong>물체 {record.object_id ?? "—"}</strong>
+        </div>
+        <ArrowRight size={20} aria-hidden="true" />
+        <div>
+          <span className="manip-route-icon">
+            <Trash2 size={22} aria-hidden="true" />
+          </span>
+          <small>목적지</small>
+          <strong>{record.destination_id || "—"}</strong>
+        </div>
+      </div>
       <Facts
         items={[
-          ["미션", record.mission_id || "—"],
-          ["실행 ID", <code>{record.execution_id || "—"}</code>],
-          ["물체 ID", record.object_id ?? "—"],
-          ["관측 snapshot", record.snapshot_id || "—"],
-          ["목적지", record.destination_id || "—"],
-          ["선택한 팔", record.selected_arm || "미결정"],
-          ["조작 출처", record.execution_profile || "미확인"],
-          ["안착 상태", record.placement_state || "미확인"],
+          [
+            "선택한 팔",
+            record.selected_arm === "left"
+              ? "왼팔"
+              : record.selected_arm === "right"
+                ? "오른팔"
+                : record.selected_arm || "미결정",
+          ],
+          [
+            "안착 상태",
+            <StateValue
+              value={record.placement_state}
+              labels={placementLabels}
+            />,
+          ],
           [
             "최종 결과",
             record.has_result ? (
@@ -246,42 +407,76 @@ export function ManipulationDashboard({
             ),
           ],
           [
-            "오류",
-            record.error_code && record.error_code !== "NONE"
-              ? record.error_code
-              : "—",
+            "물체 상태",
+            <StateValue value={record.object_state} labels={objectLabels} />,
           ],
-          [
-            "실패 단계",
-            record.failed_stage ? stageLabel(record.failed_stage) : "—",
-          ],
-          ["실패 세부 동작", record.failed_substage || "—"],
         ]}
       />
-      {record.message && <p className="manip-note">{record.message}</p>}
+      <div className="manip-proof-strip" aria-label="선택한 실행의 확인 결과">
+        <span data-confirmed={record.arm_recovered === true}>
+          <ShieldCheck size={15} aria-hidden="true" />팔 복귀{" "}
+          {confirmed(record.arm_recovered)}
+        </span>
+        <span data-confirmed={record.stop_confirmed === true}>
+          <CheckCircle2 size={15} aria-hidden="true" />
+          정지 {confirmed(record.stop_confirmed)}
+        </span>
+      </div>
+      {record.error_code && record.error_code !== "NONE" && (
+        <div className="manip-failure-note">
+          <TriangleAlert size={17} aria-hidden="true" />
+          <span>
+            <strong>{record.error_code}</strong>
+            {record.failed_stage && <> · {stageLabel(record.failed_stage)}</>}
+            {record.failed_substage && <code>{record.failed_substage}</code>}
+          </span>
+        </div>
+      )}
+      {record.cancel_mode && (
+        <p className="manip-note">
+          취소 방식 <Tag kind="warn">{record.cancel_mode}</Tag>
+        </p>
+      )}
+      <details className="manip-metadata">
+        <summary>실행 정보와 메시지</summary>
+        <Facts
+          items={[
+            ["미션", <code>{record.mission_id || "—"}</code>],
+            ["실행 ID", <code>{record.execution_id || "—"}</code>],
+            ["관측 snapshot", record.snapshot_id || "—"],
+            ["서버 메시지", record.message || "—"],
+          ]}
+        />
+      </details>
     </Panel>
   );
   const safetyPanel = (
-    <Panel title="취소·주행 차단 근거">
+    <Panel
+      title="현재 주행 조건"
+      className="manip-safety-panel"
+      aside={<ShieldCheck size={18} aria-hidden="true" />}
+    >
       <section className="manip-gate" aria-label="현재 Runtime 주행 판단">
-        <Tag
-          kind={
-            runtimeFresh && runtime.safe_to_drive === true ? "good" : "warn"
-          }
-        >
-          {gate}
-        </Tag>
-        <p>{gateReason}</p>
+        <span className="manip-gate-icon">
+          {runtimeFresh && runtime.safe_to_drive === true ? (
+            <ShieldCheck size={22} aria-hidden="true" />
+          ) : (
+            <Radio size={22} aria-hidden="true" />
+          )}
+        </span>
+        <div>
+          <Tag
+            kind={
+              runtimeFresh && runtime.safe_to_drive === true ? "good" : "warn"
+            }
+          >
+            {gate}
+          </Tag>
+          <p>{gateReason}</p>
+        </div>
       </section>
       <Facts
         items={[
-          ["현재 Runtime 상태", runtimeFresh ? runtime.state || "—" : "미확인"],
-          [
-            "현재 주행 출처",
-            runtimeFresh
-              ? runtime.execution_profile?.navigation || "미확인"
-              : "미확인",
-          ],
           [
             "현재 주행 모듈 준비",
             runtimeFresh
@@ -308,10 +503,6 @@ export function ManipulationDashboard({
                   : "정보 없음"
               : "미확인",
           ],
-          ["선택 실행의 물체 상태", record.object_state || "정보 없음"],
-          ["선택 실행의 팔 복귀", confirmed(record.arm_recovered)],
-          ["선택 실행의 정지", confirmed(record.stop_confirmed)],
-          ["취소 방식", record.cancel_mode || "요청 없음"],
           [
             "사람 확인 필요",
             record.human_confirmation_required === true
@@ -321,9 +512,26 @@ export function ManipulationDashboard({
         ]}
       />
       <p className="manip-note">
-        조작 기준 주행 조건과 Nav2 준비는 현재 Runtime의 서로 다른 보고입니다.
-        선택한 과거 실행의 성공이나 정지 결과로 현재 주행을 허용하지 않습니다.
+        현재 Runtime의 보고입니다. 과거 실행의 성공이 현재 주행을 허용하지는
+        않습니다.
       </p>
+      <details className="manip-metadata">
+        <summary>Runtime 진단 정보</summary>
+        <Facts
+          items={[
+            [
+              "현재 Runtime 상태",
+              runtimeFresh ? runtime.state || "—" : "미확인",
+            ],
+            [
+              "현재 주행 출처",
+              runtimeFresh
+                ? runtime.execution_profile?.navigation || "미확인"
+                : "미확인",
+            ],
+          ]}
+        />
+      </details>
     </Panel>
   );
 
@@ -334,6 +542,17 @@ export function ManipulationDashboard({
           <TabsList className="manip-tabs">
             {Object.entries(tabs).map(([id, name]) => (
               <TabsTrigger key={id} value={id}>
+                {id === "overview" ? (
+                  <Layers3 size={15} aria-hidden="true" />
+                ) : id === "stages" ? (
+                  <ListChecks size={15} aria-hidden="true" />
+                ) : id === "timeline" ? (
+                  <Clock3 size={15} aria-hidden="true" />
+                ) : id === "safety" ? (
+                  <ShieldCheck size={15} aria-hidden="true" />
+                ) : (
+                  <FileClock size={15} aria-hidden="true" />
+                )}
                 {name}
               </TabsTrigger>
             ))}
@@ -352,68 +571,127 @@ export function ManipulationDashboard({
         </Panel>
       ) : (
         <>
-          <div className="manip-summary">
-            <label>
-              선택 실행
-              <select
-                aria-label="조작 실행 선택"
-                value={record.execution_id}
-                onChange={(event) => setSelected(event.target.value)}
-              >
-                {runs.map((run) => (
-                  <option
-                    key={run.record.execution_id}
-                    value={run.record.execution_id}
-                  >
-                    물체 {run.record.object_id} · {run.record.execution_id} ·{" "}
-                    {run.record.has_result
-                      ? run.record.status
-                      : run.record.record_state}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div>
-              <small>실행 관측</small>
-              <Tag
-                kind={
-                  current
-                    ? "info"
-                    : record.has_result
-                      ? tone(record.status)
-                      : "warn"
-                }
-              >
-                {record.has_result
-                  ? "완료된 실행"
-                  : current
-                    ? record.cancel_mode
-                      ? "취소 처리 중"
-                      : replay
-                        ? "기록 시점 진행"
-                        : "진행 중"
-                    : "진행 상태 미확인"}
-              </Tag>
+          <section
+            className="manip-summary"
+            data-tone={visualTone}
+            aria-label="선택 실행 요약"
+          >
+            <div className="manip-hero-main">
+              <div className="manip-hero-meta">
+                <Tag
+                  kind={
+                    current
+                      ? "info"
+                      : record.has_result
+                        ? tone(record.status)
+                        : "warn"
+                  }
+                >
+                  {observationLabel}
+                </Tag>
+                <span className="manip-source-label">
+                  {record.execution_profile === "mock"
+                    ? "Mock"
+                    : record.execution_profile || "출처 미확인"}
+                </span>
+                <span>물체 {record.object_id ?? "—"}</span>
+              </div>
+              <div className="manip-hero-heading">
+                <span className="manip-hero-icon">
+                  {record.has_result ? (
+                    record.status === "SUCCESS" ? (
+                      <CheckCircle2 size={28} aria-hidden="true" />
+                    ) : record.status === "CANCELED" ? (
+                      <Hand size={28} aria-hidden="true" />
+                    ) : (
+                      <TriangleAlert size={28} aria-hidden="true" />
+                    )
+                  ) : (
+                    <StageIcon stage={record.stage} size={28} />
+                  )}
+                </span>
+                <div>
+                  <small>
+                    {record.has_result
+                      ? "마지막 실행 결과"
+                      : current
+                        ? replay
+                          ? "기록 시점의 동작"
+                          : "현재 동작"
+                        : "마지막 관측 동작"}
+                  </small>
+                  <h2>
+                    {record.has_result
+                      ? resultLabels[record.status] || "결과 미확인"
+                      : stageLabel(record.stage)}
+                  </h2>
+                  <p className="manip-current-step">
+                    {activeStepLabel && <span>{activeStepLabel}</span>}
+                    <code>
+                      {record.substage || record.status || record.stage || "—"}
+                    </code>
+                  </p>
+                </div>
+              </div>
+              <label className="manip-execution-picker">
+                <span>실행 기록</span>
+                <select
+                  aria-label="조작 실행 선택"
+                  value={record.execution_id}
+                  onChange={(event) => setSelected(event.target.value)}
+                >
+                  {runs.map((run) => (
+                    <option
+                      key={run.record.execution_id}
+                      value={run.record.execution_id}
+                    >
+                      물체 {run.record.object_id} ·{" "}
+                      {run.record.has_result
+                        ? resultLabels[run.record.status] || run.record.status
+                        : run.record.record_state}{" "}
+                      · {run.record.execution_id.slice(0, 12)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-            <div>
-              <small>출처</small>
-              <strong>
-                {record.execution_profile === "mock"
-                  ? "Mock"
-                  : record.execution_profile || "미확인"}
-              </strong>
+            <div className="manip-hero-metrics">
+              <div className="manip-completion">
+                <ProgressRing completed={doneCount} total={totalSteps} />
+                <div>
+                  <small>확인된 동작</small>
+                  <strong>
+                    {doneCount}
+                    <span> / {totalSteps}</span>
+                  </strong>
+                  <span>
+                    {doneCount}/{totalSteps}개 동작 완료
+                  </span>
+                </div>
+              </div>
+              <div className="manip-time-metric">
+                <span className="manip-metric-icon">
+                  <Timer size={19} aria-hidden="true" />
+                </span>
+                <div>
+                  <small>
+                    {current ? "관측 경과 시간" : "기록된 경과 시간"}
+                  </small>
+                  <strong>{seconds(elapsed(selectedRun, end))}</strong>
+                </div>
+              </div>
             </div>
-            <div>
-              <small>현재 / 마지막 단계</small>
-              <strong>{stageLabel(record.stage)}</strong>
-              <code>{record.substage || "—"}</code>
-            </div>
-            <div>
-              <small>{current ? "관측 경과 시간" : "기록된 경과 시간"}</small>
-              <strong>{seconds(elapsed(selectedRun, end))}</strong>
-            </div>
-          </div>
-          <p className="manip-note">
+          </section>
+          <p
+            className={`manip-note manip-observation ${selectedRun.partial || selectedRun.clock_regressed ? "is-warning" : ""}`}
+          >
+            {replay ? (
+              <FileClock size={14} aria-hidden="true" />
+            ) : current ? (
+              <Radio size={14} aria-hidden="true" />
+            ) : (
+              <Clock3 size={14} aria-hidden="true" />
+            )}
             {replay
               ? "기록 시점의 관측"
               : current
@@ -428,18 +706,54 @@ export function ManipulationDashboard({
               ? " · 서버 시각 역행으로 소요 시간을 표시하지 않습니다."
               : ""}
           </p>
+          {tab === "overview" && (
+            <Panel
+              title="실행 흐름"
+              className="manip-flow-panel"
+              aside={
+                <span className="manip-panel-caption">서버가 보고한 9단계</span>
+              }
+            >
+              <ol className="manip-stage-rail" aria-label="전체 조작 단계">
+                {stages.map(([id, label, steps], index) => {
+                  const state = stageState(id, steps);
+                  return (
+                    <li
+                      key={id}
+                      data-state={state}
+                      aria-current={state === "active" ? "step" : undefined}
+                    >
+                      <span className="manip-rail-node">
+                        {state === "completed" ? (
+                          <Check size={17} aria-hidden="true" />
+                        ) : state === "failed" ? (
+                          <X size={17} aria-hidden="true" />
+                        ) : (
+                          <StageIcon stage={id} size={17} />
+                        )}
+                      </span>
+                      <span className="manip-rail-index">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <strong>{label}</strong>
+                    </li>
+                  );
+                })}
+              </ol>
+            </Panel>
+          )}
           {(tab === "overview" || tab === "safety") && (
             <div className="manip-two">
               {targetPanel}
               {safetyPanel}
             </div>
           )}
-          {(tab === "overview" || tab === "stages") && (
+          {tab === "stages" && (
             <Panel
               title="서버 단계 진행"
               aside={
                 <Tag>
-                  {doneCount}/{totalSteps}개 동작 완료
+                  {doneCount} / {totalSteps} 동작 확인
                 </Tag>
               }
             >
@@ -448,7 +762,7 @@ export function ManipulationDashboard({
                 표시는 서버의 completed_substages를 사용합니다.
               </p>
               <ol className="manip-stages">
-                {stages.map(([id, label, steps]) => {
+                {stages.map(([id, label, steps], index) => {
                   const finished = steps.every(([node]) =>
                     completed.includes(node),
                   );
@@ -468,8 +782,15 @@ export function ManipulationDashboard({
                       }
                     >
                       <div className="manip-stage-title">
-                        <strong>{label}</strong>
-                        <code>{id}</code>
+                        <span className="manip-stage-icon">
+                          <StageIcon stage={id} />
+                        </span>
+                        <span className="manip-stage-name">
+                          <small>
+                            STEP {String(index + 1).padStart(2, "0")}
+                          </small>
+                          <strong>{label}</strong>
+                        </span>
                         <Tag
                           kind={
                             failed
@@ -492,10 +813,26 @@ export function ManipulationDashboard({
                                   : "미관측"}
                         </Tag>
                       </div>
+                      <div className="manip-stage-track" aria-hidden="true">
+                        <i
+                          style={{
+                            width: `${(steps.filter(([node]) => completed.includes(node)).length / steps.length) * 100}%`,
+                          }}
+                        />
+                      </div>
                       <ul>
                         {steps.map(([node, name]) => (
                           <li key={node}>
-                            <span>{name}</span>
+                            <span className="manip-step-name">
+                              {record.failed_substage === node ? (
+                                <X size={14} aria-hidden="true" />
+                              ) : completed.includes(node) ? (
+                                <CheckCircle2 size={14} aria-hidden="true" />
+                              ) : (
+                                <CircleDot size={14} aria-hidden="true" />
+                              )}
+                              {name}
+                            </span>
                             <code>{node}</code>
                             <Tag
                               kind={

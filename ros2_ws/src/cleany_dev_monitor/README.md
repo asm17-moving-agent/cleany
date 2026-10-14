@@ -29,6 +29,13 @@ Nav2/조작 action의 status와 feedback은 ROS 탐색기로 확인하며, goal/
 
 ### 매니퓰레이션 전용 화면
 
+개요 상단에는 현재/마지막 동작, 서버가 확인한 동작 수와 진행률 링, 경과 시간을
+크게 표시한다. 진행률은 `completed_substages`의 완료 개수이며 시간에 따라 추정하지 않는다.
+9단계 흐름에서 현재·완료·실패 위치를 아이콘과 색으로 함께 구분한다.
+‘단계 진행’ 탭은 단계별 세부 동작과 완료 막대를 표시한다. 미션/실행 UUID와
+Runtime 진단은 펼침 영역에서 확인하며, 대상·결과와 현재 주행 조건은 별도 카드다.
+상태는 한국어 설명과 원본 코드를 함께 제공하고 밝은/어두운 테마·모바일 배치를 지원한다.
+
 `/mock/manipulation/execution_events`의 `ManipulationExecutionRecord`를 읽어
 실행 ID별 최근 기록과 관측 구간을 유지한다. 토픽은 `manipulation_events_topic`으로
 설정하며 절대 경로는 그대로, 상대 경로는 `runtime_namespace` 아래에서 구독한다.

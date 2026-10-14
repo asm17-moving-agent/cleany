@@ -127,10 +127,13 @@ async function transport(page: Page, initial = rows()) {
   const commands: unknown[] = [];
   let send = (_rows: ReturnType<typeof rows>) => {};
   await page.routeWebSocket("**/ws", (ws) => {
-    send = (values) =>
+    let first = true;
+    send = (values) => {
       ws.send(
-        JSON.stringify({ initial: true, boot_id: "fixture", rows: values }),
+        JSON.stringify({ initial: first, boot_id: "fixture", rows: values }),
       );
+      first = false;
+    };
     send(initial);
     ws.onMessage((message) => commands.push(JSON.parse(String(message))));
   });
@@ -154,8 +157,32 @@ test("active manipulation shows reported substages, timing and current drive gat
     page.getByText("11/17개 동작 완료", { exact: true }),
   ).toBeVisible();
   await expect(
+    page.getByRole("progressbar", { name: "서버가 확인한 동작 진행률" }),
+  ).toHaveAttribute("aria-valuenow", "11");
+  await expect(
+    page
+      .getByRole("list", { name: "전체 조작 단계" })
+      .locator('[aria-current="step"]'),
+  ).toContainText("수거함 운반");
+  await expect(
     page.getByRole("region", { name: "현재 Runtime 주행 판단" }),
   ).toContainText("주행 차단");
+  if (process.env.MANIPULATION_VISUAL_DIR) {
+    await page.screenshot({
+      path: process.env.MANIPULATION_VISUAL_DIR + "/active-light.png",
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.getByRole("button", { name: "다크 모드로 전환" }).click();
+    transportFixture.update(rows());
+    await page.screenshot({
+      path: process.env.MANIPULATION_VISUAL_DIR + "/active-dark.png",
+      fullPage: true,
+      animations: "disabled",
+    });
+    await page.getByRole("button", { name: "라이트 모드로 전환" }).click();
+    transportFixture.update(rows());
+  }
   await page.getByRole("tab", { name: "실행 타임라인", exact: true }).click();
   await expect(page.getByRole("table")).toContainText("GraspObject");
   await expect(page.getByRole("table")).toContainText("3.0초");
@@ -164,6 +191,9 @@ test("active manipulation shows reported substages, timing and current drive gat
   await page.getByRole("tab", { name: "조작 개요", exact: true }).click();
   await expect(page.locator(".manip-summary")).toContainText("완료된 실행");
   await expect(page.locator(".manip-summary")).toContainText("40.0초");
+  await expect(
+    page.getByRole("progressbar", { name: "서버가 확인한 동작 진행률" }),
+  ).toHaveAttribute("aria-valuenow", "17");
   await expect(
     page.getByRole("region", { name: "현재 Runtime 주행 판단" }),
   ).toContainText("미확인");
@@ -192,7 +222,13 @@ test("cancellation and incomplete observations survive execution comparison on n
     error_code: "GRASP_FAILED",
     failed_stage: "GRASPING",
     failed_substage: "GraspObject",
+    completed_substages: beforeCarry.slice(0, 7),
+    object_state: "UNKNOWN",
+    placement_state: "NOT_CHECKED",
+    arm_recovered: false,
+    updated_at_ns: 113e9,
   });
+  failed.intervals = failed.intervals.slice(0, 1);
   failed.partial = true;
   await transport(page, rows([cancelled, failed]));
   await page.goto("/#manipulation");
@@ -220,6 +256,13 @@ test("cancellation and incomplete observations survive execution comparison on n
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  if (process.env.MANIPULATION_VISUAL_DIR) {
+    await page.screenshot({
+      path: process.env.MANIPULATION_VISUAL_DIR + "/failed-mobile.png",
+      fullPage: true,
+      animations: "disabled",
+    });
+  }
 });
 
 test("manipulation replay uses the selected past snapshot and never a live success", async ({
