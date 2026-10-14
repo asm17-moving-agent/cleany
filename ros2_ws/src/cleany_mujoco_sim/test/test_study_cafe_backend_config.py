@@ -85,6 +85,7 @@ def test_xim_workaround_is_configurable_and_simulator_only() -> None:
                 overrides.append(keywords)
     assert len(overrides) == 1
     assert ast.literal_eval(overrides[0]['executable']) == 'ros2_control_node'
+    assert ast.literal_eval(overrides[0]['package']) == 'cleany_mujoco_observer'
     env = overrides[0]['additional_env']
     assert isinstance(env, ast.Dict)
     assert [ast.literal_eval(key) for key in env.keys] == ['XMODIFIERS']

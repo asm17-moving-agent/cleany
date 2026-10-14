@@ -1,5 +1,6 @@
 from pathlib import Path
 import math
+import os
 import yaml
 
 from ament_index_python.packages import get_package_share_directory
@@ -33,6 +34,15 @@ def _launch_file(package: str, filename: str) -> str:
     )
 
 
+def _application_log_arguments(*logger_names: str) -> list:
+    # A global DEBUG level also enables rcl's high-frequency wait-set trace.
+    # Keep middleware at INFO and enable only the application loggers requested.
+    arguments = ['--log-level', 'info']
+    for name in logger_names:
+        arguments.extend(['--log-level', [name + ':=', LaunchConfiguration('log_level')]])
+    return arguments
+
+
 def _wrist_camera_transforms(context):
     if LaunchConfiguration('sorting_use_wrist_camera').perform(context) != 'true':
         return []
@@ -57,7 +67,9 @@ def _wrist_camera_transforms(context):
         for key, value in zip(('x', 'y', 'z', 'qx', 'qy', 'qz', 'qw'), [*xyz, *quaternion]):
             arguments.extend((f'--{key}', str(value)))
         arguments.extend(('--frame-id', mount['parent_frame'], '--child-frame-id', mount['child_frame']))
-        nodes.append(Node(package='tf2_ros', executable='static_transform_publisher',
+        nodes.append(Node(package='tf2_ros',
+            executable='static_transform_publisher',
+            ros_arguments=['--log-level', LaunchConfiguration('backend_log_level')],
             name=f'{arm}_nominal_wrist_tf', arguments=arguments,
             parameters=[{'use_sim_time': ParameterValue(LaunchConfiguration('use_sim_time'), value_type=bool)}],
             output='log'))
@@ -225,7 +237,10 @@ def generate_launch_description() -> LaunchDescription:
         ),
         condition=IfCondition(start_simulator),
         launch_arguments={
+            'log_level': LaunchConfiguration('log_level'),
+            'backend_log_level': LaunchConfiguration('backend_log_level'),
             'sorting_bins_config': LaunchConfiguration('sorting_bins_config'),
+            'study_cafe_layout_config': LaunchConfiguration('study_cafe_layout_config'),
             'sorting_contact_diagnostics': LaunchConfiguration('sorting_contact_diagnostics'),
             'scheduled_cameras': LaunchConfiguration('scheduled_cameras'),
             'sim_viewer': LaunchConfiguration('sim_viewer'),
@@ -264,6 +279,7 @@ def generate_launch_description() -> LaunchDescription:
     )
     camera_tf = Node(
         package='tf2_ros',
+        ros_arguments=['--log-level', LaunchConfiguration('backend_log_level')],
         executable='static_transform_publisher',
         arguments=[
             '--x', '0.140751687191',
@@ -285,6 +301,9 @@ def generate_launch_description() -> LaunchDescription:
             _launch_file('cleany_moveit_config', 'move_group.launch.py')
         ),
         launch_arguments={
+            'log_level': LaunchConfiguration('log_level'),
+            'backend_log_level': LaunchConfiguration('backend_log_level'),
+            'keep_controller_plugin_loaded': LaunchConfiguration('keep_controller_plugin_loaded'),
             'use_sim_time': use_sim_time,
             'use_rviz': use_rviz,
             'enable_gripper_execution': sorting_mode,
@@ -319,6 +338,7 @@ def generate_launch_description() -> LaunchDescription:
     )
     depth_scene = Node(
         package='cleany_perception',
+        ros_arguments=_application_log_arguments('depth_scene_node'),
         executable='depth_scene_node',
         condition=IfCondition(sensor_scene),
         parameters=[
@@ -335,6 +355,7 @@ def generate_launch_description() -> LaunchDescription:
     )
     perception = Node(
         package='cleany_perception',
+        ros_arguments=_application_log_arguments('perception_inspector'),
         executable='inspection_node',
         condition=IfCondition(LaunchConfiguration('start_perception')),
         parameters=[
@@ -400,6 +421,7 @@ def generate_launch_description() -> LaunchDescription:
     )
     grasp_server = Node(
         package='cleany_grasping',
+        ros_arguments=_application_log_arguments('grasp_server'),
         executable='grasp_server',
         parameters=[
             str(grasping_share / 'config' / 'anygrasp.yaml'),
@@ -457,6 +479,7 @@ def generate_launch_description() -> LaunchDescription:
     )
     selector = Node(
         package='cleany_skill_executor',
+        ros_arguments=_application_log_arguments('grasp_selection_server'),
         executable='grasp_selection_server',
         parameters=[
             str(skill_share / 'config' / 'grasp_selection.yaml'),
@@ -523,15 +546,24 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
     )
     coordinator = Node(
-        package='cleany_skill_executor',
+        package=PythonExpression([
+            "'cleany_manipulation_bt' if '", LaunchConfiguration('manipulation_bt'),
+            "' == 'true' else 'cleany_skill_executor'",
+        ]),
+        ros_arguments=_application_log_arguments(
+            'nearest_pregrasp_coordinator', 'sim.manipulation_mujoco_server'),
         executable=PythonExpression([
-            "'sorting_coordinator' if '", sorting_mode,
-            "' == 'true' else 'nearest_pregrasp_coordinator'",
+            "'manipulation_mujoco_server' if '", LaunchConfiguration('manipulation_bt'),
+            "' == 'true' else ('sorting_coordinator' if '", sorting_mode,
+            "' == 'true' else 'nearest_pregrasp_coordinator')",
         ]),
         parameters=[
             str(skill_share / 'config' / 'nearest_pregrasp.yaml'),
+            LaunchConfiguration('coordinator_parameters'),
             {
                 'use_sim_time': clock_parameter,
+                'database_path': ParameterValue(LaunchConfiguration('bt_database_path'), value_type=str),
+                'monitor_port': ParameterValue(LaunchConfiguration('bt_monitor_port'), value_type=int),
                 'sorting_bins_config': LaunchConfiguration('sorting_bins_config'),
                 'sorting_artifact_directory': LaunchConfiguration('sorting_artifact_directory'),
                 'sorting_test_only_label': LaunchConfiguration('sorting_test_only_label'),
@@ -623,6 +655,7 @@ def generate_launch_description() -> LaunchDescription:
     )
     image_view = Node(
         package='rqt_image_view',
+        ros_arguments=['--log-level', LaunchConfiguration('backend_log_level')],
         executable='rqt_image_view',
         arguments=[
             '--clear-config',
@@ -636,6 +669,12 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [
             SetEnvironmentVariable('MUJOCO_GL', 'egl'),
+            DeclareLaunchArgument('log_level', default_value='info',
+                                 choices=['debug', 'info', 'warn', 'error', 'fatal']),
+            DeclareLaunchArgument('backend_log_level', default_value='warn',
+                                 choices=['debug', 'info', 'warn', 'error', 'fatal']),
+            DeclareLaunchArgument('keep_controller_plugin_loaded', default_value='true',
+                                 choices=['true', 'false']),
             DeclareLaunchArgument(
                 'start_simulator', default_value='true',
                 choices=['true', 'false'],
@@ -655,8 +694,19 @@ def generate_launch_description() -> LaunchDescription:
                 'preload_models', default_value='true',
                 choices=['true', 'false'],
             ),
+            DeclareLaunchArgument('study_cafe_layout_config', default_value=''),
+            DeclareLaunchArgument('placement_verifier_parameters', default_value=str(
+                mujoco_share / 'config/placement_verifier.yaml')),
             DeclareLaunchArgument('sorting_bins_config', default_value=str(
                 mujoco_share / 'config' / 'robot_top_bins.yaml')),
+            DeclareLaunchArgument('sorting_release_edge_margin_m', default_value='0.005'),
+            DeclareLaunchArgument('coordinator_parameters', default_value=str(
+                skill_share / 'config/nearest_pregrasp.yaml')),
+            DeclareLaunchArgument('manipulation_bt', default_value='false', choices=['true', 'false']),
+            DeclareLaunchArgument('bt_database_path', default_value=str(
+                Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state')
+                / 'cleany/manipulation_mujoco/executions.sqlite3')),
+            DeclareLaunchArgument('bt_monitor_port', default_value='1667'),
             DeclareLaunchArgument(
                 'sorting_mode', default_value='false', choices=['true', 'false']
             ),
@@ -856,7 +906,9 @@ def generate_launch_description() -> LaunchDescription:
             collision_scene,
             depth_scene,
             Node(
-                package='cleany_perception', executable='scene_cloud_receipt_node',
+                package='cleany_perception',
+                executable='scene_cloud_receipt_node',
+                ros_arguments=_application_log_arguments('scene_cloud_receipt'),
                 condition=IfCondition(sensor_scene),
                 parameters=[{'use_sim_time': clock_parameter}], output='screen',
             ),
@@ -864,9 +916,11 @@ def generate_launch_description() -> LaunchDescription:
             grasp_server,
             selector,
             Node(
-                package='cleany_mujoco_sim', executable='placement_verifier',
+                package='cleany_mujoco_sim',
+                executable='placement_verifier',
+                ros_arguments=_application_log_arguments('simulation_placement_verifier'),
                 condition=IfCondition(sorting_mode),
-                parameters=[{
+                parameters=[LaunchConfiguration('placement_verifier_parameters'), {
                     'use_sim_time': clock_parameter,
                     'bins_config': LaunchConfiguration('sorting_bins_config'),
                 }], output='screen',

@@ -31,6 +31,19 @@ lsb_release -ds
 python3 --version
 ```
 
+### 로컬 Action 트리 모니터 의존성
+
+모의 Manipulation Action의 VS Code 트리 모니터는 `python3-zmq`를 사용한다.
+패키지 manifest에 등록되어 있어 rosdep 설치에 포함된다. 개별 설치는 다음과 같다.
+
+```bash
+sudo apt install python3-zmq
+```
+
+관리자 권한 없이 현재 PC에서만 테스트할 때는 Ubuntu 기본 Python으로
+`python3 -m pip install --user pyzmq`를 사용할 수 있다. ROS Python을 가상환경으로 대체하지 않는다.
+VS Code BehaviorTree Viewer의 네이티브 zeromq 의존성은 확장 쪽에 별도로 필요하다.
+
 ## 1. Ubuntu 기본 설정
 
 UTF-8 locale과 ROS 저장소 등록에 필요한 도구를 준비한다.
@@ -219,6 +232,22 @@ header/CMake export도 필요하다. `make build`,
 일반 ROS 설치는 rosdep으로 `moveit_ros_perception`,
 `moveit_ros_occupancy_map_monitor`, `geometric_shapes`, `octomap`을 준비한다.
 
+### 실제 BehaviorTree.CPP 실행기
+
+`cleany_manipulation_bt`는 BehaviorTree.CPP **4.x**와 pybind11을 사용한다.
+ROS Humble의 `behaviortree_cpp_v3`로 대체할 수 없다.
+
+```bash
+sudo apt install ros-humble-behaviortree-cpp ros-humble-pybind11-vendor python3-dev
+make build-manipulation-bt
+```
+
+이 VM은 관리자 설치 권한이 없어 공식 arm64 `ros-humble-behaviortree-cpp` 4.10.0 deb를
+`~/.local/share/cleany/behaviortree-cpp/opt/ros/humble`에 풀어 사용했다.
+루트 Make의 전체 build/test와 BT target은 이 prefix가 존재하면 검색 경로에 추가한다.
+다른 위치는 `CLEANY_BT_PREFIX` Make 변수로 지정한다. 자동 다운로드는 하지 않는다.
+다른 머신은 rosdep/apt로 같은 major 버전을 준비한다.
+
 ### Gemini API 설정
 
 `make deps`는 `cleany_perception`의 Gemini adapter에 필요한 `google-genai`와 Pillow를
@@ -228,6 +257,10 @@ header/CMake export도 필요하다. `make build`,
 ```bash
 export GEMINI_API_KEY="<your-api-key>"
 ```
+
+로컬 비공개 파일로 보관하려면 `~/.config/cleany/gemini.env`에 위 `export` 한 줄을
+넣고 파일 권한을 `600`으로 지정한다. 실행 터미널에서 `source ~/.config/cleany/gemini.env`
+후 `make sim-mujoco-manipulation`을 실행한다. 실제 키는 채팅, Git과 로그에 넣지 않는다.
 
 rosdep이 Gazebo 의존성을 해석하지 못할 때만 아래 APT 패키지를 직접 확인한다.
 일반 설치에서는 package manifest를 기준으로 하는 `make deps-gazebo`를 우선한다.

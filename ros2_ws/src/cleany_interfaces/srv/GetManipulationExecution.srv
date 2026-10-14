@@ -1,0 +1,4 @@
+string execution_id
+---
+bool found
+cleany_interfaces/ManipulationExecutionRecord record

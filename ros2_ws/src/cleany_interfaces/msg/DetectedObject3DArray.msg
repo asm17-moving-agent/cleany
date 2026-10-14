@@ -5,3 +5,6 @@ std_msgs/Header header
 string snapshot_id
 
 DetectedObject3D[] objects
+
+string tracking_session_id
+string tracking_epoch

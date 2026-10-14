@@ -42,6 +42,12 @@ perception_inspector:
     yoloe_text_encoder_directory: ''
     snapshot_timeout_seconds: 2.0
     depth_16u_scale_m: 0.001
+    # Simulation starting values, not calibrated real-robot identity limits.
+    tracking_maximum_distance_m: 0.03
+    tracking_ambiguity_margin_m: 0.01
+    tracking_session_ttl_seconds: 600.0
+    tracking_maximum_sessions: 32
+    tracking_label_aliases: [paper cup=cup, disposable paper cup=cup, computer mouse=mouse, wireless mouse=mouse]
     snapshot_cache_max_entries: 2
     snapshot_cache_ttl_seconds: 120.0
     gemini_model: gemini-robotics-er-2-preview
