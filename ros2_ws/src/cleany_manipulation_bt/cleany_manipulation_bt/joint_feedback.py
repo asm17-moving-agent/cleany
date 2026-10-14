@@ -12,13 +12,30 @@ class JointSample:
     stamp_ns: int
     received_at: float
     velocity: float
+    invalid_reason: str = ''
+
+    def failure_reason(self, now: float, clock_ns: int, max_age_sec: float,
+                       *, after_ns: int = 0, after_wall: float = -math.inf) -> str:
+        if self.invalid_reason:
+            return self.invalid_reason
+        if not math.isfinite(self.velocity):
+            return 'non_finite_velocity'
+        if not self.stamp_ns > after_ns:
+            return 'pre_command_stamp'
+        if not self.received_at > after_wall:
+            return 'pre_command_receipt'
+        if now < self.received_at:
+            return 'receipt_clock_regression'
+        if not 0.0 <= now - self.received_at < max_age_sec:
+            return 'stale_receipt'
+        if not abs(clock_ns - self.stamp_ns) / 1e9 < max_age_sec:
+            return 'clock_skew'
+        return ''
 
     def fresh(self, now: float, clock_ns: int, max_age_sec: float,
               *, after_ns: int = 0, after_wall: float = -math.inf) -> bool:
-        return (math.isfinite(self.velocity) and self.stamp_ns > after_ns
-                and self.received_at > after_wall
-                and 0.0 <= now - self.received_at < max_age_sec
-                and abs(clock_ns - self.stamp_ns) / 1e9 < max_age_sec)
+        return not self.failure_reason(now, clock_ns, max_age_sec,
+                                       after_ns=after_ns, after_wall=after_wall)
 
 
 class JointFeedback:
@@ -34,19 +51,33 @@ class JointFeedback:
             if name not in self.required_names:
                 continue
             velocity = velocities[index] if complete_velocities and counts[name] == 1 else math.nan
+            reason = ('missing_velocity' if not complete_velocities else
+                      'duplicate_joint' if counts[name] != 1 else
+                      'non_finite_velocity' if not math.isfinite(velocity) else '')
             previous = self.samples.get(name)
             if previous is not None and stamp_ns <= previous.stamp_ns:
                 # Replayed or out-of-order feedback cannot refresh its receipt
                 # time, overwrite motion with an old zero, or count as a sample.
-                self.samples[name] = JointSample(previous.stamp_ns, previous.received_at, math.nan)
+                reason = 'repeated_stamp' if stamp_ns == previous.stamp_ns else 'backward_stamp'
+                self.samples[name] = JointSample(previous.stamp_ns, previous.received_at, math.nan, reason)
             else:
-                self.samples[name] = JointSample(stamp_ns, received_at, velocity)
+                self.samples[name] = JointSample(stamp_ns, received_at, velocity, reason)
+
+    def invalid_reasons(self, now: float, clock_ns: int, max_age_sec: float,
+                        *, after_ns: int = 0, after_wall: float = -math.inf) -> dict[str, str]:
+        reasons = {}
+        for name in self.required_names:
+            sample = self.samples.get(name)
+            reason = ('missing_joint' if sample is None else sample.failure_reason(
+                now, clock_ns, max_age_sec, after_ns=after_ns, after_wall=after_wall))
+            if reason:
+                reasons[name] = reason
+        return reasons
 
     def invalid_joints(self, now: float, clock_ns: int, max_age_sec: float,
                        *, after_ns: int = 0, after_wall: float = -math.inf) -> tuple[str, ...]:
-        return tuple(name for name in self.required_names
-                     if name not in self.samples or not self.samples[name].fresh(
-                         now, clock_ns, max_age_sec, after_ns=after_ns, after_wall=after_wall))
+        return tuple(self.invalid_reasons(now, clock_ns, max_age_sec,
+                                         after_ns=after_ns, after_wall=after_wall))
 
 
 class StationaryWindow:

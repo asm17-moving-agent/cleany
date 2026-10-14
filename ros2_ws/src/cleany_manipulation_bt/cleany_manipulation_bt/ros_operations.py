@@ -142,15 +142,17 @@ class MujocoOperations(SortingCoordinator):
             wall = time.monotonic()
             if now != self._clock_value:
                 self._clock_value, self._clock_progress_wall = now, wall
-            invalid = self._joint_feedback.invalid_joints(wall, now, maximum)
-            if invalid or wall - self._clock_progress_wall > maximum:
+            reasons = self._joint_feedback.invalid_reasons(wall, now, maximum)
+            clock_stopped = wall - self._clock_progress_wall > maximum
+            if reasons or clock_stopped:
                 # /clock and /joint_states arrive independently. A small newer
                 # joint stamp is possible before the next clock callback; large
                 # skew, a stopped clock or stale receipt still fails closed.
                 raise OperationError(Error.HARDWARE_ERROR,
-                    'Joint feedback or simulation clock is stale: '
-                    f'invalid_joints={list(invalid)} '
-                    f'clock_idle={wall-self._clock_progress_wall:.3f}s')
+                    'Joint feedback or simulation clock is stale or invalid: '
+                    f'invalid_joints={list(reasons)} invalid_reasons={reasons} '
+                    f'clock_idle={wall-self._clock_progress_wall:.3f}s '
+                    f'clock_stopped={clock_stopped}')
         if self.current_node in ('LiftObject', 'ConfirmHeld', 'CarryObject', 'CheckPlacementTarget'):
             if self._held_object is None:
                 raise OperationError(Error.GRASP_LOST, 'Missing held object')

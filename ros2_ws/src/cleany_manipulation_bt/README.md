@@ -137,6 +137,11 @@ MoveIt 2.5.9의 종료 시 controller plugin unload 문제를 피하기 위해
 관절 메시지의 시각과 내용이 모두 같은 연속 중복 수신은 새 관측으로 세지 않는다.
 기존 수신 시각을 유지하므로 멈춘 스트림은 만료되고, 같은 시각에 내용이 달라지거나
 시각이 역행하는 메시지는 기존 무효 판정을 따른다. 중복만으로 정지를 확인하지 않는다.
+스터디카페 backend의 로컬 제어 실행기는 한 주기의 `read/update/write`에 같은 시각을
+사용하고 새 시뮬레이션 시각에서만 다음 주기를 실행한다. 무효 피드백 로그의
+`invalid_reasons`는 `repeated_stamp`, `backward_stamp`, `missing_velocity`,
+`stale_receipt`, `clock_skew` 등을 구분하며, `clock_stopped`는 시계 정지를 표시한다.
+피드백 만료와 정지 확인 기준은 변경하지 않는다.
 실패·취소에서도 이미 확인한 물체 상태와 놓기 결과를 보존한다.
 정지 미확인, 장치 오류, 비상정지와 내부 오류는 `FATAL`로 종료하고 후속 Goal을 차단한다.
 실제 트리 순서, 대상 검사, timeout과 늦은 응답 처리는 [상세 실행 계약](docs/execution_contract.md)을 따른다.

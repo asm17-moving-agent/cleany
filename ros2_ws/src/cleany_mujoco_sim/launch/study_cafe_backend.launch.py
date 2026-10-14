@@ -126,7 +126,7 @@ def _launch_setup(context: LaunchContext) -> list[Node]:
         output='screen',
     )
     control_node = Node(
-        package='mujoco_ros2_control',
+        package='cleany_mujoco_observer',
         executable='ros2_control_node',
         ros_arguments=['--log-level', LaunchConfiguration('backend_log_level')],
         # Keep the simulator's GLFW contexts out of the desktop IBus/XIM

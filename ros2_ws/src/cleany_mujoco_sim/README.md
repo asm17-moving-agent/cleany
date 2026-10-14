@@ -136,8 +136,10 @@ grasp/경로의 입력으로 쓰지 않는다. 동작 연결은 skill executor�
 - `scenes/study_cafe_grasp_execution.xml.in`: 고정 베이스에서 집기·분류·놓기를 실행하는 장면.
 
 `mujoco_study_cafe.launch.py`는 custom bridge를 통해 관찰 장면을 실행한다.
-`study_cafe_backend.launch.py`는 `mujoco_ros2_control`과 팔·그리퍼 controller를
-실행한다. 공통 기본 장면도 스터디카페이며, 두 backend를 동시에 실행하지 않는다.
+`study_cafe_backend.launch.py`는 로컬 `cleany_mujoco_observer/ros2_control_node`에서
+설치된 MuJoCo hardware와 팔·그리퍼 controller를 실행한다. 한 제어 주기의 시각을
+공유하고 중복 시각 발행을 방지한다. [제어 주기 설명](../cleany_mujoco_observer/README.md#제어-주기와-관절-피드백-시각)을 따른다.
+공통 기본 장면도 스터디카페이며, 두 backend를 동시에 실행하지 않는다.
 캔·박스·RGB-D pick·hand-eye 전용 시뮬레이션과 비활성 OBJ는 제거했다.
 현재 물체는 종이컵·레고·휴지·마우스이며 외부 OBJ/texture는 마우스만 사용한다.
 로봇 CAD mesh는 공통 모델에 필요한 `cleany_description`에서 관리한다.

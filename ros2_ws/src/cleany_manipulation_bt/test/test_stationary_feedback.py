@@ -7,6 +7,29 @@ from sensor_msgs.msg import JointState
 
 from cleany_manipulation_bt.backend import ExecutionContext, OperationError
 from cleany_manipulation_bt.joint_feedback import JointFeedback, StationaryWindow
+
+
+@pytest.mark.parametrize('fault,reason', [
+    ('repeated', 'repeated_stamp'), ('backward', 'backward_stamp'),
+    ('missing_velocity', 'missing_velocity'), ('nan', 'non_finite_velocity'),
+])
+def test_feedback_validation_failure_is_distinct_from_receipt_delay(fault, reason):
+    feedback = JointFeedback(('joint',))
+    feedback.update(('joint',), (0.,), 10**9, 10.)
+    stamp = 10**9 if fault == 'repeated' else 10**9 - 1 if fault == 'backward' else 1_100_000_000
+    velocities = () if fault == 'missing_velocity' else (float('nan'),) if fault == 'nan' else (.1,)
+    feedback.update(('joint',), velocities, stamp, 10.1)
+    assert feedback.invalid_reasons(10.101, 1_100_000_000, .5) == {'joint': reason}
+    assert feedback.invalid_joints(10.101, 1_100_000_000, .5) == ('joint',)
+    feedback.update(('joint',), (0.,), 1_200_000_000, 10.2)
+    assert not feedback.invalid_reasons(10.201, 1_200_000_000, .5)
+
+
+def test_feedback_diagnostics_preserve_expiry_and_missing_joint_checks():
+    feedback = JointFeedback(('a', 'b'))
+    feedback.update(('a',), (0.,), 10**9, 10.)
+    assert feedback.invalid_reasons(10.6, 10**9, .5) == {'a': 'stale_receipt', 'b': 'missing_joint'}
+    assert feedback.invalid_reasons(10.1, 2 * 10**9, .5) == {'a': 'clock_skew', 'b': 'missing_joint'}
 from cleany_manipulation_bt.ros_operations import MujocoOperations
 from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
 from cleany_skill_executor.manipulation.models import Error, Goal
