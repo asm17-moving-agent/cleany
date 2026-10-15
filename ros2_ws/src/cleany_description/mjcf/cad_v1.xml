@@ -1,6 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mujoco model="cleany">
-  <!--Exact CAD visual export; estimated dynamics. PincOpen v1.0 CC BY-SA 4.0 Pollen Robotics; XLeRobot head Apache-2.0. Use cad_home keyframe for the saved CAD folded pose.-->
   <compiler angle="radian" meshdir="../meshes/" autolimits="true" />
   <option timestep=".002" integrator="implicitfast" iterations="100" />
   <size njmax="6000" nconmax="2000" />
@@ -16,9 +15,29 @@
     <mesh name="cad_chassis_mounts" file="cad_v1/chassis_mounts.stl" />
     <mesh name="cad_front_left_wheel" file="cad_v1/front_left_wheel.stl" />
     <mesh name="cad_front_right_wheel" file="cad_v1/front_right_wheel.stl" />
+    <mesh name="cad_head_base_plastic" file="cad_v1/head_base_plastic.stl" />
+    <mesh name="cad_head_base_servo" file="cad_v1/head_base_servo.stl" />
+    <mesh name="cad_head_pan_hardware" file="cad_v1/head_pan_hardware.stl" />
+    <mesh name="cad_head_pan_plastic" file="cad_v1/head_pan_plastic.stl" />
+    <mesh name="cad_head_pan_servo" file="cad_v1/head_pan_servo.stl" />
+    <mesh name="cad_head_tilt_camera" file="cad_v1/head_tilt_camera.stl" />
+    <mesh name="cad_head_tilt_hardware" file="cad_v1/head_tilt_hardware.stl" />
+    <mesh name="cad_head_tilt_plastic" file="cad_v1/head_tilt_plastic.stl" />
+    <mesh name="cad_head_tilt_window" file="cad_v1/head_tilt_window.stl" />
+    <mesh name="cad_imuboardbolts" file="cad_v1/imuboardbolts.stl" />
+    <mesh name="cad_imuboardnuts" file="cad_v1/imuboardnuts.stl" />
+    <mesh name="cad_imuchip" file="cad_v1/imuchip.stl" />
+    <mesh name="cad_imuheader" file="cad_v1/imuheader.stl" />
+    <mesh name="cad_imumount" file="cad_v1/imumount.stl" />
+    <mesh name="cad_imupcb" file="cad_v1/imupcb.stl" />
+    <mesh name="cad_imuprofilebolts" file="cad_v1/imuprofilebolts.stl" />
     <mesh name="cad_left_base_printed" file="cad_v1/left_base_printed.stl" />
     <mesh name="cad_left_base_servo" file="cad_v1/left_base_servo.stl" />
     <mesh name="cad_left_cam" file="cad_v1/left_cam.stl" />
+    <mesh name="cad_left_camera_hardware" file="cad_v1/left_camera_hardware.stl" />
+    <mesh name="cad_left_camera_mount" file="cad_v1/left_camera_mount.stl" />
+    <mesh name="cad_left_camera_optics" file="cad_v1/left_camera_optics.stl" />
+    <mesh name="cad_left_camera_pcb" file="cad_v1/left_camera_pcb.stl" />
     <mesh name="cad_left_finger_1_distal" file="cad_v1/left_finger_1_distal.stl" />
     <mesh name="cad_left_finger_1_driving" file="cad_v1/left_finger_1_driving.stl" />
     <mesh name="cad_left_finger_1_external" file="cad_v1/left_finger_1_external.stl" />
@@ -38,6 +57,10 @@
     <mesh name="cad_left_wrist_servo" file="cad_v1/left_wrist_servo.stl" />
     <mesh name="cad_left_yaw_printed" file="cad_v1/left_yaw_printed.stl" />
     <mesh name="cad_left_yaw_servo" file="cad_v1/left_yaw_servo.stl" />
+    <mesh name="cad_lidarlowerbolts" file="cad_v1/lidarlowerbolts.stl" />
+    <mesh name="cad_lidarplate" file="cad_v1/lidarplate.stl" />
+    <mesh name="cad_lidarprofilebolts" file="cad_v1/lidarprofilebolts.stl" />
+    <mesh name="cad_lidarstandoffs" file="cad_v1/lidarstandoffs.stl" />
     <mesh name="cad_pg42_brackets" file="cad_v1/pg42_brackets.stl" />
     <mesh name="cad_pg42_motors" file="cad_v1/pg42_motors.stl" />
     <mesh name="cad_rear_left_wheel" file="cad_v1/rear_left_wheel.stl" />
@@ -45,6 +68,10 @@
     <mesh name="cad_right_base_printed" file="cad_v1/right_base_printed.stl" />
     <mesh name="cad_right_base_servo" file="cad_v1/right_base_servo.stl" />
     <mesh name="cad_right_cam" file="cad_v1/right_cam.stl" />
+    <mesh name="cad_right_camera_hardware" file="cad_v1/right_camera_hardware.stl" />
+    <mesh name="cad_right_camera_mount" file="cad_v1/right_camera_mount.stl" />
+    <mesh name="cad_right_camera_optics" file="cad_v1/right_camera_optics.stl" />
+    <mesh name="cad_right_camera_pcb" file="cad_v1/right_camera_pcb.stl" />
     <mesh name="cad_right_finger_1_distal" file="cad_v1/right_finger_1_distal.stl" />
     <mesh name="cad_right_finger_1_driving" file="cad_v1/right_finger_1_driving.stl" />
     <mesh name="cad_right_finger_1_external" file="cad_v1/right_finger_1_external.stl" />
@@ -64,6 +91,9 @@
     <mesh name="cad_right_wrist_servo" file="cad_v1/right_wrist_servo.stl" />
     <mesh name="cad_right_yaw_printed" file="cad_v1/right_yaw_printed.stl" />
     <mesh name="cad_right_yaw_servo" file="cad_v1/right_yaw_servo.stl" />
+    <mesh name="cad_rplidar_components" file="cad_v1/rplidar_components.stl" />
+    <mesh name="cad_rplidar_housing" file="cad_v1/rplidar_housing.stl" />
+    <mesh name="cad_rplidar_mechanism" file="cad_v1/rplidar_mechanism.stl" />
   </asset>
   <default>
     <geom friction="0.8 0.005 0.0001" solref=".01 1" />
@@ -382,6 +412,15 @@
                     <inertial mass="0.008" pos="0.0173205080757 -0.01 -8.67361737988e-19" fullinertia="6.02360676965e-07 1.31235886048e-06 1.82938620411e-06 0 0 0" />
                     <geom name="right_finger_2_external_visual" type="mesh" mesh="cad_right_finger_2_external" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
                   </body>
+                  <body name="right_wrist_camera_link" pos="0.066724675601 -0.0631437997693 2.53130849615e-17" quat="0.241844762648 0.664463024389 0.241844762648 -0.664463024389">
+                    <inertial mass="0.065" pos="9.19403442268e-17 -0.0231930978585 -0.00809399653274" fullinertia="6.63697488694e-05 3.78214108128e-05 5.22962223899e-05 0 0 0" />
+                    <geom name="right_camera_mount_visual" type="mesh" mesh="cad_right_camera_mount" rgba="0.18 0.52 0.65 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_camera_pcb_visual" type="mesh" mesh="cad_right_camera_pcb" rgba="0.12 0.42 0.23 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_camera_optics_visual" type="mesh" mesh="cad_right_camera_optics" rgba="0.08 0.1 0.13 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_camera_hardware_visual" type="mesh" mesh="cad_right_camera_hardware" rgba="0.7 0.73 0.77 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <site name="right_wrist_rgb_optical_frame" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+                    <camera name="right_wrist_rgb" pos="0 0 0" quat="0 1 0 0" fovy="60.59297586266491" />
+                  </body>
                   <site name="right_grasp_tcp" pos="0 -0.119132450457 0" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
                   <site name="right_pregrasp_aim_tip" pos="0 -0.259132450457 0" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
                 </body>
@@ -465,6 +504,15 @@
                     <inertial mass="0.008" pos="0.0173205080757 -0.01 -8.67361737988e-19" fullinertia="6.02360676965e-07 1.31235886048e-06 1.82938620411e-06 0 0 0" />
                     <geom name="left_finger_2_external_visual" type="mesh" mesh="cad_left_finger_2_external" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
                   </body>
+                  <body name="left_wrist_camera_link" pos="0.066724675601 -0.0631437997693 2.53130849615e-17" quat="0.241844762648 0.664463024389 0.241844762648 -0.664463024389">
+                    <inertial mass="0.065" pos="9.19403442268e-17 -0.0231930978585 -0.00809399653274" fullinertia="6.63697488694e-05 3.78214108128e-05 5.22962223899e-05 0 0 0" />
+                    <geom name="left_camera_mount_visual" type="mesh" mesh="cad_left_camera_mount" rgba="0.18 0.52 0.65 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_camera_pcb_visual" type="mesh" mesh="cad_left_camera_pcb" rgba="0.12 0.42 0.23 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_camera_optics_visual" type="mesh" mesh="cad_left_camera_optics" rgba="0.08 0.1 0.13 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_camera_hardware_visual" type="mesh" mesh="cad_left_camera_hardware" rgba="0.7 0.73 0.77 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <site name="left_wrist_rgb_optical_frame" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+                    <camera name="left_wrist_rgb" pos="0 0 0" quat="0 1 0 0" fovy="60.59297586266491" />
+                  </body>
                   <site name="left_grasp_tcp" pos="0 -0.119132450457 0" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
                   <site name="left_pregrasp_aim_tip" pos="0 -0.259132450457 0" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
                 </body>
@@ -472,6 +520,56 @@
             </body>
           </body>
         </body>
+      </body>
+      <body name="top_base_link" pos="-0.300915876239 0.00613319730702 -0.435385493097" quat="-1.83660255139e-06 -2.77579934376e-08 -3.66905102863e-09 0.999999999998">
+        <inertial mass="0.09" pos="-0.120330943693 0.0061 0.56055" fullinertia="0.009457209075 0.0098608751553 0.0004651060803 0 0 0" />
+        <geom name="head_base_plastic_visual" type="mesh" mesh="cad_head_base_plastic" rgba="0.25 0.43 0.62 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="head_base_servo_visual" type="mesh" mesh="cad_head_base_servo" rgba="0.13 0.15 0.17 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="head_pan_link" pos="-0.213473591202 0.0061 1.1169" quat="1 0 0 0">
+          <joint name="head_pan_joint" type="hinge" axis="0 0 1" range="-1.57079632679 1.57079632679" />
+          <inertial mass="0.1" pos="-0.0131 2.74086309204e-16 0.000374999999999" fullinertia="6.63880208333e-05 7.14880208333e-05 4.35e-05 0 0 0" />
+          <geom name="head_pan_plastic_visual" type="mesh" mesh="cad_head_pan_plastic" rgba="0.25 0.43 0.62 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="head_pan_hardware_visual" type="mesh" mesh="cad_head_pan_hardware" rgba="0.73 0.76 0.8 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="head_pan_servo_visual" type="mesh" mesh="cad_head_pan_servo" rgba="0.13 0.15 0.17 1" contype="0" conaffinity="0" group="2" density="0" />
+          <body name="head_tilt_link" pos="1e-05 -0.0006 0.023375" quat="1 0 0 0">
+            <joint name="head_tilt_joint" type="hinge" axis="0 1 0" range="-0.785398163397 0.785398163397" />
+            <inertial mass="0.12" pos="0.0125250000012 4.64153583145e-05 0.0171980179946" fullinertia="0.00011139401093 5.18932330354e-05 0.000101912827899 0 0 0" />
+            <geom name="head_tilt_plastic_visual" type="mesh" mesh="cad_head_tilt_plastic" rgba="0.25 0.43 0.62 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="head_tilt_camera_visual" type="mesh" mesh="cad_head_tilt_camera" rgba="0.7 0.73 0.76 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="head_tilt_window_visual" type="mesh" mesh="cad_head_tilt_window" rgba="0.035 0.05 0.07 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="head_tilt_hardware_visual" type="mesh" mesh="cad_head_tilt_hardware" rgba="0.73 0.76 0.8 1" contype="0" conaffinity="0" group="2" density="0" />
+            <site name="head_camera_link" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+            <site name="head_camera_rgb_frame" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+            <site name="head_camera_depth_frame" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+            <site name="head_camera_rgb_optical_frame" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
+            <site name="head_camera_depth_optical_frame" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
+            <camera name="head_realsense_rgb" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="0.5 0.5 -0.5 -0.5" fovy="42" />
+            <camera name="head_realsense_depth" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="0.5 0.5 -0.5 -0.5" fovy="40" />
+          </body>
+        </body>
+      </body>
+      <body name="lidar_link" pos="-0.139299541203 2.6326078806e-05 -0.092497007732" quat="0.707108079859 2.2222276294e-08 -1.70334545683e-08 -0.707105482511">
+        <inertial mass="0.25" pos="0 0.015275 -0.0240999999999" fullinertia="0.000547634166667 0.000299634166667 0.000664666666667 0 0 0" />
+        <geom name="lidarplate_visual" type="mesh" mesh="cad_lidarplate" rgba="0.239999994636 0.600000023842 0.819999992847 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="lidarstandoffs_visual" type="mesh" mesh="cad_lidarstandoffs" rgba="0.819999992847 0.680000007153 0.319999992847 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="lidarprofilebolts_visual" type="mesh" mesh="cad_lidarprofilebolts" rgba="0.699999988079 0.72000002861 0.75 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="lidarlowerbolts_visual" type="mesh" mesh="cad_lidarlowerbolts" rgba="0.699999988079 0.72000002861 0.75 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rplidar_housing_visual" type="mesh" mesh="cad_rplidar_housing" rgba="0.189999997616 0.209999993443 0.239999994636 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rplidar_mechanism_visual" type="mesh" mesh="cad_rplidar_mechanism" rgba="0.189999997616 0.209999993443 0.239999994636 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rplidar_components_visual" type="mesh" mesh="cad_rplidar_components" rgba="0.189999997616 0.209999993443 0.239999994636 1" contype="0" conaffinity="0" group="2" density="0" />
+        <site name="laser" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+        <site name="lidar_site" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+      </body>
+      <body name="imu_link" pos="-2.45388500298e-05 2.68379755866e-05 -0.134897" quat="-1.83660255139e-06 -2.77579934932e-08 -3.66905102863e-09 0.999999999998">
+        <inertial mass="0.035" pos="0 0 -0.0037" fullinertia="4.56178333333e-06 1.03367833333e-05 1.25183333333e-05 0 0 0" />
+        <geom name="imumount_visual" type="mesh" mesh="cad_imumount" rgba="0.800000011921 0.879999995232 0.939999997616 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imupcb_visual" type="mesh" mesh="cad_imupcb" rgba="0.070000000298 0.34999999404 0.75 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuheader_visual" type="mesh" mesh="cad_imuheader" rgba="0.219999998808 0.219999998808 0.239999994636 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuchip_visual" type="mesh" mesh="cad_imuchip" rgba="0.119999997318 0.119999997318 0.129999995232 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuprofilebolts_visual" type="mesh" mesh="cad_imuprofilebolts" rgba="0.699999988079 0.72000002861 0.740000009537 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuboardbolts_visual" type="mesh" mesh="cad_imuboardbolts" rgba="0.699999988079 0.72000002861 0.740000009537 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuboardnuts_visual" type="mesh" mesh="cad_imuboardnuts" rgba="0.699999988079 0.72000002861 0.740000009537 1" contype="0" conaffinity="0" group="2" density="0" />
+        <site name="imu_site" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
       </body>
     </body>
   </worldbody>
@@ -492,6 +590,8 @@
     <position name="left_wrist_roll_joint" joint="left_wrist_roll_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.743847 2.841206" />
     <position name="right_gripper_joint" joint="right_gripper_joint" kp="6.0" kv="0.15" forcerange="-1.5 1.5" ctrlrange="-1.0471975512 0" />
     <position name="left_gripper_joint" joint="left_gripper_joint" kp="6.0" kv="0.15" forcerange="-1.5 1.5" ctrlrange="-1.0471975512 0" />
+    <position name="head_pan" joint="head_pan_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-1.57079632679 1.57079632679" />
+    <position name="head_tilt" joint="head_tilt_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-0.785398163397 0.785398163397" />
   </actuator>
   <equality>
     <connect name="right_finger_1_drive_pin" body1="right_finger_1_driving" body2="right_finger_1_internal" anchor="0.003047257009 -0.0325051542612 0" solref=".005 1" solimp=".99 .999 .001" />
@@ -514,6 +614,14 @@
     <exclude body1="right_finger_2_driving" body2="right_finger_2_internal" />
   </contact>
   <keyframe>
-    <key name="cad_home" qpos="0 0 0.38 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 0 0 0 0 0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 0 0 0 0 0 0 0 0" ctrl="0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 3.13984732434 3.13984732434 0 0 0 0" />
+    <key name="cad_home" qpos="0 0 0.38 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 0 0 0 0 0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 0 0 0 0 0 0 0 0 0 0" ctrl="0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 3.13984732434 3.13984732434 0 0 0 0 0 0" />
   </keyframe>
+  <visual>
+    <headlight ambient=".45 .45 .45" diffuse=".7 .7 .7" specular=".2 .2 .2" />
+  </visual>
+  <sensor>
+    <accelerometer name="imu_accelerometer" site="imu_site" />
+    <gyro name="imu_gyro" site="imu_site" />
+    <framequat name="imu_orientation" objtype="site" objname="imu_site" />
+  </sensor>
 </mujoco>

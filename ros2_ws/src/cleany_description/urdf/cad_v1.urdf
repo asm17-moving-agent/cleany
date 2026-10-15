@@ -896,6 +896,342 @@
     <axis xyz="0 0 1" />
     <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
   </joint>
+  <link name="top_base_link">
+    <inertial>
+      <origin xyz="-0.120330943693 0.0061 0.56055" rpy="0 0 0" />
+      <mass value="0.09" />
+      <inertia ixx="0.009457209074999997" iyy="0.00986087515530008" izz="0.00046510608030008317" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="head_base_plastic">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_base_plastic.stl" />
+      </geometry>
+      <material name="head_base_plastic_color">
+        <color rgba="0.25 0.43 0.62 1" />
+      </material>
+    </visual>
+    <visual name="head_base_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_base_servo.stl" />
+      </geometry>
+      <material name="head_base_servo_color">
+        <color rgba="0.13 0.15 0.17 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="top_base_link_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="top_base_link" />
+    <origin xyz="-0.300915876239 0.00613319730702 -0.435385493097" rpy="-7.33800009645e-09 5.55160003524e-08 -3.14158898038" />
+  </joint>
+  <link name="head_pan_link">
+    <inertial>
+      <origin xyz="-0.0131 2.74086309204e-16 0.000374999999999" rpy="0 0 0" />
+      <mass value="0.1" />
+      <inertia ixx="6.638802083333476e-05" iyy="7.148802083333476e-05" izz="4.350000000000001e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="head_pan_plastic">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_pan_plastic.stl" />
+      </geometry>
+      <material name="head_pan_plastic_color">
+        <color rgba="0.25 0.43 0.62 1" />
+      </material>
+    </visual>
+    <visual name="head_pan_hardware">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_pan_hardware.stl" />
+      </geometry>
+      <material name="head_pan_hardware_color">
+        <color rgba="0.73 0.76 0.8 1" />
+      </material>
+    </visual>
+    <visual name="head_pan_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_pan_servo.stl" />
+      </geometry>
+      <material name="head_pan_servo_color">
+        <color rgba="0.13 0.15 0.17 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="head_pan_joint" type="revolute">
+    <parent link="top_base_link" />
+    <child link="head_pan_link" />
+    <origin xyz="-0.213473591202 0.0061 1.1169" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.5707963267948966" upper="1.5707963267948966" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="head_tilt_link">
+    <inertial>
+      <origin xyz="0.0125250000012 4.64153583145e-05 0.0171980179946" rpy="0 0 0" />
+      <mass value="0.12" />
+      <inertia ixx="0.00011139401092980295" iyy="5.189323303536167e-05" izz="0.00010191282789879737" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="head_tilt_plastic">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_tilt_plastic.stl" />
+      </geometry>
+      <material name="head_tilt_plastic_color">
+        <color rgba="0.25 0.43 0.62 1" />
+      </material>
+    </visual>
+    <visual name="head_tilt_camera">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_tilt_camera.stl" />
+      </geometry>
+      <material name="head_tilt_camera_color">
+        <color rgba="0.7 0.73 0.76 1" />
+      </material>
+    </visual>
+    <visual name="head_tilt_window">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_tilt_window.stl" />
+      </geometry>
+      <material name="head_tilt_window_color">
+        <color rgba="0.035 0.05 0.07 1" />
+      </material>
+    </visual>
+    <visual name="head_tilt_hardware">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/head_tilt_hardware.stl" />
+      </geometry>
+      <material name="head_tilt_hardware_color">
+        <color rgba="0.73 0.76 0.8 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="head_tilt_joint" type="revolute">
+    <parent link="head_pan_link" />
+    <child link="head_tilt_link" />
+    <origin xyz="1e-05 -0.0006 0.023375" rpy="0 -0 0" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.7853981633974483" upper="0.7853981633974483" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_wrist_camera_link">
+    <inertial>
+      <origin xyz="9.19403442268e-17 -0.0231930978585 -0.00809399653274" rpy="0 0 0" />
+      <mass value="0.065" />
+      <inertia ixx="6.636974886942173e-05" iyy="3.7821410812811635e-05" izz="5.229622238994344e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_camera_mount">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_camera_mount.stl" />
+      </geometry>
+      <material name="right_camera_mount_color">
+        <color rgba="0.18 0.52 0.65 1" />
+      </material>
+    </visual>
+    <visual name="right_camera_pcb">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_camera_pcb.stl" />
+      </geometry>
+      <material name="right_camera_pcb_color">
+        <color rgba="0.12 0.42 0.23 1" />
+      </material>
+    </visual>
+    <visual name="right_camera_optics">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_camera_optics.stl" />
+      </geometry>
+      <material name="right_camera_optics_color">
+        <color rgba="0.08 0.1 0.13 1" />
+      </material>
+    </visual>
+    <visual name="right_camera_hardware">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_camera_hardware.stl" />
+      </geometry>
+      <material name="right_camera_hardware_color">
+        <color rgba="0.7 0.73 0.77 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_wrist_camera_link_fixed" type="fixed">
+    <parent link="right_gripper_frame" />
+    <child link="right_wrist_camera_link" />
+    <origin xyz="0.066724675601 -0.0631437997693 2.53130849615e-17" rpy="0 1.57079632679 -2.44346095279" />
+  </joint>
+  <link name="left_wrist_camera_link">
+    <inertial>
+      <origin xyz="9.19403442268e-17 -0.0231930978585 -0.00809399653274" rpy="0 0 0" />
+      <mass value="0.065" />
+      <inertia ixx="6.636974886942173e-05" iyy="3.7821410812811635e-05" izz="5.229622238994344e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_camera_mount">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_camera_mount.stl" />
+      </geometry>
+      <material name="left_camera_mount_color">
+        <color rgba="0.18 0.52 0.65 1" />
+      </material>
+    </visual>
+    <visual name="left_camera_pcb">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_camera_pcb.stl" />
+      </geometry>
+      <material name="left_camera_pcb_color">
+        <color rgba="0.12 0.42 0.23 1" />
+      </material>
+    </visual>
+    <visual name="left_camera_optics">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_camera_optics.stl" />
+      </geometry>
+      <material name="left_camera_optics_color">
+        <color rgba="0.08 0.1 0.13 1" />
+      </material>
+    </visual>
+    <visual name="left_camera_hardware">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_camera_hardware.stl" />
+      </geometry>
+      <material name="left_camera_hardware_color">
+        <color rgba="0.7 0.73 0.77 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_wrist_camera_link_fixed" type="fixed">
+    <parent link="left_gripper_frame" />
+    <child link="left_wrist_camera_link" />
+    <origin xyz="0.066724675601 -0.0631437997693 2.53130849615e-17" rpy="0 1.57079632679 -2.44346095279" />
+  </joint>
+  <link name="lidar_link">
+    <inertial>
+      <origin xyz="0 0.015275 -0.0240999999999" rpy="0 0 0" />
+      <mass value="0.25" />
+      <inertia ixx="0.0005476341666673985" iyy="0.0002996341666673984" izz="0.0006646666666666668" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="lidarplate">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/lidarplate.stl" />
+      </geometry>
+      <material name="lidarplate_color">
+        <color rgba="0.239999994636 0.600000023842 0.819999992847 1" />
+      </material>
+    </visual>
+    <visual name="lidarstandoffs">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/lidarstandoffs.stl" />
+      </geometry>
+      <material name="lidarstandoffs_color">
+        <color rgba="0.819999992847 0.680000007153 0.319999992847 1" />
+      </material>
+    </visual>
+    <visual name="lidarprofilebolts">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/lidarprofilebolts.stl" />
+      </geometry>
+      <material name="lidarprofilebolts_color">
+        <color rgba="0.699999988079 0.72000002861 0.75 1" />
+      </material>
+    </visual>
+    <visual name="lidarlowerbolts">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/lidarlowerbolts.stl" />
+      </geometry>
+      <material name="lidarlowerbolts_color">
+        <color rgba="0.699999988079 0.72000002861 0.75 1" />
+      </material>
+    </visual>
+    <visual name="rplidar_housing">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/rplidar_housing.stl" />
+      </geometry>
+      <material name="rplidar_housing_color">
+        <color rgba="0.189999997616 0.209999993443 0.239999994636 1" />
+      </material>
+    </visual>
+    <visual name="rplidar_mechanism">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/rplidar_mechanism.stl" />
+      </geometry>
+      <material name="rplidar_mechanism_color">
+        <color rgba="0.189999997616 0.209999993443 0.239999994636 1" />
+      </material>
+    </visual>
+    <visual name="rplidar_components">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/rplidar_components.stl" />
+      </geometry>
+      <material name="rplidar_components_color">
+        <color rgba="0.189999997616 0.209999993443 0.239999994636 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="lidar_link_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="lidar_link" />
+    <origin xyz="-0.139299541203 2.6326078806e-05 -0.092497007732" rpy="5.55160004634e-08 7.33800009645e-09 -1.57079265359" />
+  </joint>
+  <link name="imu_link">
+    <inertial>
+      <origin xyz="0 0 -0.0037" rpy="0 0 0" />
+      <mass value="0.035" />
+      <inertia ixx="4.561783333333338e-06" iyy="1.0336783333333336e-05" izz="1.251833333333334e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="imumount">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/imumount.stl" />
+      </geometry>
+      <material name="imumount_color">
+        <color rgba="0.800000011921 0.879999995232 0.939999997616 1" />
+      </material>
+    </visual>
+    <visual name="imupcb">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/imupcb.stl" />
+      </geometry>
+      <material name="imupcb_color">
+        <color rgba="0.070000000298 0.34999999404 0.75 1" />
+      </material>
+    </visual>
+    <visual name="imuheader">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/imuheader.stl" />
+      </geometry>
+      <material name="imuheader_color">
+        <color rgba="0.219999998808 0.219999998808 0.239999994636 1" />
+      </material>
+    </visual>
+    <visual name="imuchip">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/imuchip.stl" />
+      </geometry>
+      <material name="imuchip_color">
+        <color rgba="0.119999997318 0.119999997318 0.129999995232 1" />
+      </material>
+    </visual>
+    <visual name="imuprofilebolts">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/imuprofilebolts.stl" />
+      </geometry>
+      <material name="imuprofilebolts_color">
+        <color rgba="0.699999988079 0.72000002861 0.740000009537 1" />
+      </material>
+    </visual>
+    <visual name="imuboardbolts">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/imuboardbolts.stl" />
+      </geometry>
+      <material name="imuboardbolts_color">
+        <color rgba="0.699999988079 0.72000002861 0.740000009537 1" />
+      </material>
+    </visual>
+    <visual name="imuboardnuts">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/imuboardnuts.stl" />
+      </geometry>
+      <material name="imuboardnuts_color">
+        <color rgba="0.699999988079 0.72000002861 0.740000009537 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="imu_link_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="imu_link" />
+    <origin xyz="-2.45388500298e-05 2.68379755866e-05 -0.134897" rpy="-7.33800009645e-09 5.55160004634e-08 -3.14158898038" />
+  </joint>
   <link name="right_grasp_tcp" />
   <joint name="right_grasp_tcp_fixed" type="fixed">
     <parent link="right_gripper_frame" />
@@ -919,5 +1255,65 @@
     <parent link="left_gripper_frame" />
     <child link="left_pregrasp_aim_tip" />
     <origin xyz="0 -0.259132450457 0" rpy="-1.57079632679 -0 -1.57079632679" />
+  </joint>
+  <link name="head_camera_link" />
+  <joint name="head_camera_link_fixed" type="fixed">
+    <parent link="head_tilt_link" />
+    <child link="head_camera_link" />
+    <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="2.22044604925e-16 1.11022302463e-16 2.22044604925e-16" />
+  </joint>
+  <link name="head_camera_rgb_frame" />
+  <joint name="head_camera_rgb_frame_fixed" type="fixed">
+    <parent link="head_tilt_link" />
+    <child link="head_camera_rgb_frame" />
+    <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="2.22044604925e-16 1.11022302463e-16 2.22044604925e-16" />
+  </joint>
+  <link name="head_camera_depth_frame" />
+  <joint name="head_camera_depth_frame_fixed" type="fixed">
+    <parent link="head_tilt_link" />
+    <child link="head_camera_depth_frame" />
+    <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="2.22044604925e-16 1.11022302463e-16 2.22044604925e-16" />
+  </joint>
+  <link name="head_camera_rgb_optical_frame" />
+  <joint name="head_camera_rgb_optical_frame_fixed" type="fixed">
+    <parent link="head_tilt_link" />
+    <child link="head_camera_rgb_optical_frame" />
+    <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="-1.57079632679 1.57009245868e-16 -1.57079632679" />
+  </joint>
+  <link name="head_camera_depth_optical_frame" />
+  <joint name="head_camera_depth_optical_frame_fixed" type="fixed">
+    <parent link="head_tilt_link" />
+    <child link="head_camera_depth_optical_frame" />
+    <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="-1.57079632679 1.57009245868e-16 -1.57079632679" />
+  </joint>
+  <link name="right_wrist_rgb_optical_frame" />
+  <joint name="right_wrist_rgb_optical_frame_fixed" type="fixed">
+    <parent link="right_wrist_camera_link" />
+    <child link="right_wrist_rgb_optical_frame" />
+    <origin xyz="0 0 0" rpy="0 -0 0" />
+  </joint>
+  <link name="left_wrist_rgb_optical_frame" />
+  <joint name="left_wrist_rgb_optical_frame_fixed" type="fixed">
+    <parent link="left_wrist_camera_link" />
+    <child link="left_wrist_rgb_optical_frame" />
+    <origin xyz="0 0 0" rpy="0 -0 0" />
+  </joint>
+  <link name="laser" />
+  <joint name="laser_fixed" type="fixed">
+    <parent link="lidar_link" />
+    <child link="laser" />
+    <origin xyz="0 0 0" rpy="0 -0 0" />
+  </joint>
+  <link name="lidar_site" />
+  <joint name="lidar_site_fixed" type="fixed">
+    <parent link="lidar_link" />
+    <child link="lidar_site" />
+    <origin xyz="0 0 0" rpy="0 -0 0" />
+  </joint>
+  <link name="imu_site" />
+  <joint name="imu_site_fixed" type="fixed">
+    <parent link="imu_link" />
+    <child link="imu_site" />
+    <origin xyz="0 0 0" rpy="0 -0 0" />
   </joint>
 </robot>
