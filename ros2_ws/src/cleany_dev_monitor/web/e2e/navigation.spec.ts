@@ -518,7 +518,7 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
   await page.getByRole("tab", { name: "주행 개요", exact: true }).click();
   await expect(page.locator(".nav-summary-strip")).toContainText("정지");
   await expect.poll(() => messages.at(-1)?.topics).toEqual([]);
-  await page.getByRole("button", { name: "실시간으로", exact: true }).click();
+  await page.getByRole("button", { name: "라이브", exact: true }).click();
   await expect(page.locator(".nav-summary-strip")).toContainText("저속 이동");
   await page.getByRole("button", { name: "실행 흐름", exact: true }).click();
   await expect.poll(() => messages.at(-1)?.topics).toEqual([]);

@@ -79,10 +79,24 @@ class Hub:
         self.lock = threading.Lock()
         self.latest = {}
         self.events = deque(maxlen=event_limit)
+        self.source_categories = {}
+        self.source_roles = {}
+        self.topic_revision = 0
         self.sequence = 0
         self.evicted_through = 0
         self.selected = {}
         self.boot_id = str(uuid4())
+
+    def reset_sources(self, config, revision):
+        from .sources import resolved, SCHEMA, source_roles
+        with self.lock:
+            keep = {'resources', 'recording_policy', 'recording_status'}
+            previous = self.latest.get(('config', 'monitor'), {}).get('data', {})
+            self.latest = {key: row for key,row in self.latest.items() if row['kind'] in keep}
+            self.topic_revision = revision
+            self.source_roles = source_roles(config)
+            self.source_categories = {topic: SCHEMA[key]['group'] for key,value in resolved(config).items() for topic in (value if isinstance(value,list) else [value])}
+        self.put('config', 'monitor', {**previous, **config, 'topic_revision': revision})
 
     def put(
         self,
@@ -97,6 +111,7 @@ class Hub:
             self.sequence += 1
             row = {
                 "seq": self.sequence,
+                "topic_revision": self.topic_revision,
                 "kind": kind,
                 "key": key,
                 "data": data,
@@ -104,6 +119,13 @@ class Hub:
                 "received_monotonic": time.monotonic(),
                 "ros_time": ros_time,
             }
+            source = key if key in self.source_roles else data.get('topic', key) if isinstance(data, dict) else key
+            if source in self.source_roles:
+                row['source_id'] = self.source_roles[source]
+            elif kind == 'pose' or (kind == 'navigation' and key == 'summary'):
+                row['source_id'] = '_computed_motion'
+            if source in self.source_categories and kind not in ('config', 'graph', 'recording_policy', 'recording_status') and not (kind == 'layer' and key == 'map'):
+                row["category"] = self.source_categories[source]
             if critical:
                 if len(self.events) == self.events.maxlen:
                     self.evicted_through = self.events[0]["seq"]
@@ -117,6 +139,7 @@ class Hub:
             events = [row for row in self.events if row["seq"] > since]
             return {
                 "boot_id": self.boot_id,
+                "topic_revision": self.topic_revision,
                 "sequence": self.sequence,
                 "gap": bool(since < self.evicted_through),
                 "rows": sorted(
@@ -166,6 +189,9 @@ class Recorder:
         self.last = 0
         self.bytes = 0
         self.hashes = {}
+        self.sampled_at = {}
+        self.recording_revision = None
+        self.source_revision = 0
         try:
             self.directory.mkdir(parents=True, exist_ok=True)
             if self.disk_bytes() >= total_limit:
@@ -202,8 +228,25 @@ class Recorder:
                 ("gap", "Event ring overflow; recording is incomplete"),
             )
         settings = self.controls.view()["settings"] if self.controls else None
+        if self.controls and self.recording_revision != self.controls.revision:
+            self.sampled_at.clear()
+            self.recording_revision = self.controls.revision
+        revision = next((r['data'].get('topic_revision', 0) for r in snapshot['rows'] if r['kind'] == 'config'), self.source_revision)
+        if revision != self.source_revision:
+            self.source_revision = revision
+            self.hashes.clear()
+            self.sampled_at.clear()
         for row in rows:
             if settings and not allowed(row, settings):
+                continue
+            key = (row["kind"], row["key"])
+            sample_time = row.get('received_monotonic', row['received_at'])
+            identity = row.get('source_id')
+            rate = (settings['source_hz'].get(identity) if identity else settings['hz'].get(category(row))) if settings else None
+            context = row['kind'] in ('config', 'graph', 'recording_policy', 'recording_status') or (row['kind'] == 'event' and row['data'].get('kind') == 'navigation_decision')
+            limited = rate is not None and not context and (bool(identity) or (row['kind'] not in ('event', 'log', 'result') and category(row) is not None))
+            previous = self.sampled_at.get(key)
+            if limited and previous is not None and 0 <= sample_time-previous < 1/rate:
                 continue
             payload = zlib.compress(
                 json.dumps(row, ensure_ascii=False, allow_nan=False).encode(), level=3
@@ -211,7 +254,6 @@ class Recorder:
             digest = hashlib.sha256(
                 json.dumps(row["data"], sort_keys=True).encode()
             ).hexdigest()
-            key = (row["kind"], row["key"])
             if row["kind"] == "layer" and self.hashes.get(key) == digest:
                 continue
             size = len(payload)
@@ -231,6 +273,8 @@ class Recorder:
                 (row["seq"], row["received_at"], row["kind"], row["key"], payload),
             )
             self.bytes += size
+            if limited:
+                self.sampled_at[key] = sample_time
             if self.controls and category(row):
                 self.controls.saved(category(row))
             self.hashes[key] = digest
@@ -264,6 +308,7 @@ class Recorder:
     def close(self):
         if self.db:
             self.db.close()
+            self.db = None
 
     def sessions(self) -> list[dict]:
         result = []
@@ -280,6 +325,36 @@ class Recorder:
                     "SELECT count(*),min(received) FROM records WHERE kind='runtime'"
                 ).fetchone()
                 meta = dict(db.execute("SELECT key,value FROM metadata"))
+                policies = [decode_record(r[0]) for r in db.execute(
+                    "SELECT payload FROM records WHERE kind='recording_policy' ORDER BY received,seq")]
+                has_raw = db.execute("SELECT name FROM sqlite_master WHERE name='raw_messages'").fetchone()
+                segments = []
+                def add_segment(left, right):
+                    bounds = []
+                    for table in (['records', 'raw_messages'] if has_raw else ['records']):
+                        where = "received>=? AND received<?"
+                        if table == 'records':
+                            where += " AND kind NOT IN ('config','graph','recording_policy','recording_status')"
+                        # Indexed first/last reads avoid scanning each active period every poll.
+                        first = db.execute(f"SELECT received FROM {table} WHERE {where} ORDER BY received ASC LIMIT 1", (left, right)).fetchone()
+                        last = db.execute(f"SELECT received FROM {table} WHERE {where} ORDER BY received DESC LIMIT 1", (left, right)).fetchone()
+                        if first and last:
+                            bounds.append((first[0], last[0]))
+                    if bounds:
+                        segments.append(dict(start=min(a for a, _ in bounds), end=max(b for _, b in bounds)))
+                if policies:
+                    opened = None
+                    for policy in policies:
+                        if policy['data'].get('active', True):
+                            if opened is None:
+                                opened = policy['received_at']
+                        elif opened is not None:
+                            add_segment(opened, policy['received_at'])
+                            opened = None
+                    if opened is not None:
+                        add_segment(opened, float('inf'))
+                else:
+                    add_segment(float('-inf'), float('inf'))
             result.append(
                 {
                     "id": path.stem,
@@ -290,6 +365,7 @@ class Recorder:
                     "end": end,
                     "bytes": path.stat().st_size,
                     "metadata": meta,
+                    "segments": segments,
                 }
             )
         return result
@@ -325,6 +401,8 @@ class Recorder:
                        for k,count,last,topic,typ in db.execute("SELECT category,count(*),max(received),topic,type FROM raw_messages WHERE received<=? GROUP BY category,topic,type", (at,))]
                 if raw:
                     rows.append(dict(seq=0, kind='recording_raw', key='archive', data={'items':raw}, received_at=at, ros_time=None))
+        revision = next((r['data'].get('topic_revision', 0) for r in rows if r['kind'] == 'config'), 0)
+        rows = [r for r in rows if r['kind'] in ('config','resources','recording_policy','recording_status','recording_raw','event','log','result') or r.get('topic_revision',0) == revision]
         policy = next((r['data'] for r in rows if r['kind'] == 'recording_policy'), None)
         if policy:
             rows = [r for r in rows if r['kind'] in ('recording_raw', 'recording_policy') or allowed(r, policy)]

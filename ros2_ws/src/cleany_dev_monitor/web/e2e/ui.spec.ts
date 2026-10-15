@@ -83,10 +83,14 @@ test("stale observations never imply drive readiness; replay remains isolated", 
     timeout: 6000,
   });
   await page.getByRole("button", { name: "기록 & 재생", exact: true }).click();
-  await page.getByRole("button", { name: "재생", exact: true }).click();
+  await page.getByText("기록 관리 · 내보내기", { exact: true }).first().click();
+  await page
+    .getByRole("button", { name: "시각으로 이동", exact: true })
+    .click();
   await expect(page.locator(".header-status")).toContainText("REPLAY");
+  await page.getByRole("button", { name: "실행 흐름", exact: true }).click();
   await expect(page.getByText("주행 차단", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "실시간으로" }).click();
+  await page.getByRole("button", { name: "라이브" }).click();
   await expect(page.getByText("확인 불가", { exact: true })).toBeVisible();
   expect(commands).toEqual([]);
   expect(errors).toEqual([]);
@@ -339,23 +343,21 @@ test("ROS graph keeps shared nodes and viewport stable through discovery refresh
               key: "ros",
               received_at: Date.now() / 1000,
               data: {
-                topics: [...topics]
-                  .reverse()
-                  .map((t) => ({
-                    name: t.name,
-                    types: ["std_msgs/msg/String"],
-                    state: "receiving",
-                    received_hz: sequence,
-                    publishers: [...t.publishers]
-                      .reverse()
-                      .map((node) => ({ node, qos: { depth: sequence } })),
-                    subscribers: [
-                      ...t.subscribers,
-                      ...(extra && t.name === "/pose" ? ["/dashboard"] : []),
-                    ]
-                      .reverse()
-                      .map((node) => ({ node })),
-                  })),
+                topics: [...topics].reverse().map((t) => ({
+                  name: t.name,
+                  types: ["std_msgs/msg/String"],
+                  state: "receiving",
+                  received_hz: sequence,
+                  publishers: [...t.publishers]
+                    .reverse()
+                    .map((node) => ({ node, qos: { depth: sequence } })),
+                  subscribers: [
+                    ...t.subscribers,
+                    ...(extra && t.name === "/pose" ? ["/dashboard"] : []),
+                  ]
+                    .reverse()
+                    .map((node) => ({ node })),
+                })),
               },
             },
           ],

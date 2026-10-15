@@ -38,22 +38,23 @@ test("observed FSM, topic subscription, correlated logs and recording replay", a
   ).toBeVisible();
   await page.getByRole("button", { name: "기록 & 재생" }).click();
   await expect(
-    page.getByRole("heading", { name: "저장된 관측 세션" }),
+    page.locator("summary").filter({ hasText: "기록 관리 · 내보내기" }),
   ).toBeVisible();
   const sessions = (await (await request.get("/api/recordings")).json())
     .sessions;
   const session = sessions.find((s: any) => s.count > 0);
+  await page.getByText("기록 관리 · 내보내기", { exact: true }).first().click();
   await page
     .locator("tr")
     .filter({ hasText: session.id.slice(0, 8) })
-    .getByRole("button", { name: "재생", exact: true })
+    .getByRole("button", { name: "시각으로 이동", exact: true })
     .click();
-  await expect(page.locator(".replay-bar")).toBeVisible();
-  await page.getByRole("slider", { name: "재생 시각" }).focus();
-  await page.getByRole("slider", { name: "재생 시각" }).press("End");
+  await expect(page.locator(".recording-timeline")).toBeVisible();
+  await page.getByRole("slider", { name: "재생 포인터" }).focus();
+  await page.getByRole("slider", { name: "재생 포인터" }).press("End");
   await expect(page.locator(".header-status")).toContainText("REPLAY");
-  await page.getByRole("button", { name: "실시간으로" }).click();
-  await expect(page.locator(".replay-bar")).toHaveCount(0);
+  await page.getByRole("button", { name: "라이브" }).click();
+  await expect(page.locator(".header-status")).not.toContainText("REPLAY");
   expect(errors).toEqual([]);
   await page.screenshot({ path: "test-results/execution.png", fullPage: true });
 });

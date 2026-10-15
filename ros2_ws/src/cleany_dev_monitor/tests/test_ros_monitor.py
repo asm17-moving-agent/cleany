@@ -340,3 +340,77 @@ def test_raw_point_cloud_recording_without_browser_and_off_release(tmp_path, mon
         source.destroy_node()
         executor.shutdown()
         rclpy.shutdown()
+
+
+def test_editing_base_path_topic_replaces_subscription_and_discards_old_layer(tmp_path, monkeypatch):
+    import rclpy
+    from cleany_dev_monitor.node import MonitorNode
+    from cleany_dev_monitor.recording import defaults
+    from nav_msgs.msg import Path
+    from geometry_msgs.msg import PoseStamped
+    from rclpy.executors import SingleThreadedExecutor
+    from rclpy.parameter import Parameter
+
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda hub, config, stop: None)
+    rclpy.init()
+    monitor = MonitorNode(parameter_overrides=[Parameter('state_directory', value=str(tmp_path))])
+    source = rclpy.create_node('editable_topic_test_source')
+    old = source.create_publisher(Path, '/plan', 10)
+    new = source.create_publisher(Path, '/custom/plan', 10)
+    executor = SingleThreadedExecutor()
+    executor.add_node(source)
+    executor.add_node(monitor)
+    def observe(publisher, x):
+        message = Path()
+        message.header.frame_id = 'map'
+        point = PoseStamped()
+        point.pose.position.x = x
+        message.poses = [point]
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            monitor.discover()
+            publisher.publish(message)
+            executor.spin_once(timeout_sec=.05)
+            if monitor.hub.latest_data('layer', 'path').get('points') == [[x, 0.]]:
+                return
+        raise AssertionError('Changed path topic did not arrive')
+    try:
+        observe(old, 1.)
+        settings = defaults()
+        settings['sources'] = {'path_topic': '/custom/plan'}
+        monitor.hub.recording.configure(settings)
+        monitor.discover()
+        assert '/plan' not in monitor.subs
+        assert monitor.hub.latest_data('layer', 'path') == {}
+        observe(new, 2.)
+        assert '/custom/plan' in monitor.subs
+        assert monitor.hub.latest_data('config', 'monitor')['path_topic'] == '/custom/plan'
+    finally:
+        executor.shutdown()
+        monitor.destroy_node()
+        source.destroy_node()
+        rclpy.shutdown()
+
+
+def test_short_safety_transitions_survive_state_display_throttle(tmp_path, monkeypatch):
+    import json
+    import rclpy
+    from cleany_dev_monitor.node import MonitorNode
+    from rclpy.parameter import Parameter
+    from std_msgs.msg import String
+
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda hub, config, stop: None)
+    monkeypatch.setattr('cleany_dev_monitor.node.time.monotonic', lambda: 100.)
+    rclpy.init()
+    monitor = MonitorNode(parameter_overrides=[Parameter('state_directory', value=str(tmp_path))])
+    try:
+        topic = monitor.config['reactive_guard_topic']
+        for decision in ('STOP', 'PASS', 'STOP', 'PASS'):
+            monitor.receive(topic, String(data=json.dumps({'decision': decision})))
+        events = [r['data']['data']['decision'] for r in monitor.hub.snapshot()['rows']
+                  if r['kind'] == 'event' and r['key'] == topic and r['data'].get('kind') == 'navigation_decision']
+        assert events == ['STOP', 'PASS', 'STOP', 'PASS']
+        assert monitor.hub.latest_data('navigation', 'reactive_guard')['decision'] == 'STOP'
+    finally:
+        monitor.destroy_node()
+        rclpy.shutdown()

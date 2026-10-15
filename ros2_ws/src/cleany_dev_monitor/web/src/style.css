@@ -1178,3 +1178,65 @@ footer {
 .ros-connections .react-flow__handle {
   opacity: 0;
 }
+
+.header-status {
+  margin-left: auto;
+}
+.header-status > span.header-clock {
+  display: inline;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitor-header {
+  height: auto;
+  min-height: 64px;
+  padding-block: 12px;
+  flex-wrap: wrap;
+}
+.header-timeline-controls {
+  flex: 1;
+  min-width: 0;
+}
+.header-timeline-controls .timeline-toolbar {
+  margin: 0;
+  gap: 6px;
+  color: var(--foreground);
+  font-size: 13px;
+}
+.monitor-header .header-status {
+  flex-wrap: wrap;
+}
+@media (max-width: 650px) {
+  .monitor-header {
+    padding: 10px 16px;
+    gap: 8px;
+  }
+  .header-timeline-controls {
+    flex-basis: 100%;
+    order: 2;
+  }
+  .monitor-header .header-status {
+    order: 1;
+    justify-content: flex-end;
+    width: 100%;
+  }
+}
+
+.monitor-header > .recording-timeline {
+  flex-basis: 100%;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  order: 3;
+}
+.monitor-header .timeline-fine {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+.monitor-header .timeline-fine::after {
+  top: auto;
+  bottom: 100%;
+}

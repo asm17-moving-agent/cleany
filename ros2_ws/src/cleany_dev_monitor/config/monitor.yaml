@@ -3,6 +3,11 @@ cleany_dev_monitor:
     host: 127.0.0.1
     port: 8768
     runtime_namespace: ""
+    runtime_debug_topic: ""
+    runtime_events_topic: ""
+    runtime_result_topic: ""
+    rosout_topic: /rosout
+    clock_topic: /clock
     manipulation_events_topic: mock/manipulation/execution_events
     map_frame: map
     base_frame: base_link
@@ -47,3 +52,6 @@ cleany_dev_monitor:
     state_directory: ~/.local/state/cleany/dev-monitor
     session_limit_bytes: 104857600
     total_limit_bytes: 1073741824
+    resource_interval_s: 1.0
+    resource_process_limit: 20
+    resource_history_limit: 300

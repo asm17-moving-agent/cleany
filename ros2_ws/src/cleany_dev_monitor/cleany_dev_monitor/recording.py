@@ -5,8 +5,9 @@ import math
 import re
 import threading
 import time
+from .sources import validate_sources, validate_source_enabled, SCHEMA, raw_maximum_references
 
-LABELS = {'motion': '위치·속도·미션', 'paths': '계획·제어 경로', 'costmaps': 'Costmap',
+LABELS = {'resources': '호스트 리소스', 'motion': '위치·속도·미션', 'paths': '계획·제어 경로', 'costmaps': 'Costmap',
           'bt': 'Nav2 BT', 'safety': '안전 판단', 'logs': '로그',
           'lidar': 'LiDAR 원본', 'point_cloud': 'Depth point cloud 원본',
           'voxel_layer': 'Nav2 voxel layer 원본', 'voxel_world': 'Voxel world·장애물 메모리',
@@ -20,26 +21,240 @@ TYPES = {'lidar': {'sensor_msgs/msg/LaserScan'}, 'point_cloud': {'sensor_msgs/ms
          'transforms': {'tf2_msgs/msg/TFMessage'}}
 
 
+def observation_policies(config):
+    """Observation bounds, distinct from raw CDR recording rates."""
+    interval = config.get('resource_interval_s', 1.0)
+    repeat = config.get('bt_event_repeat_interval_s', 1.0)
+    return {
+        'resources': {'summary': f'수집 설정 {interval:g}초 ({1 / interval:g} Hz)',
+                      'detail': '새 호스트 표본을 저장합니다. 실제 간격에는 수집 소요시간이 더해집니다.'},
+        'motion': {'summary': '위치 최대 10 Hz · 주행 요약 5 Hz',
+                   'detail': '미션 상태는 발행 주기에 따라 수신합니다. 전이·결과는 이벤트별로 기록합니다.'},
+        'paths': {'summary': '토픽별 최대 10 Hz · 동일 경로 중복 제외',
+                  'detail': '경로 수신 시 관측합니다. 동일한 경로 레이어는 다시 저장하지 않습니다.'},
+        'costmaps': {'summary': '토픽별 최대 10 Hz · 동일 지도 중복 제외',
+                     'detail': 'Costmap 수신 시 관측합니다. 동일한 지도 레이어는 다시 저장하지 않습니다.'},
+        'bt': {'summary': '상태 수신 시 갱신 · 전이 이벤트 기록',
+               'detail': f'동일 상태 반복 이벤트는 {repeat:g}초마다 요약합니다. 실패·ComputePath·FollowPath·Wait 전이는 즉시 기록 대기열에 넣습니다.'},
+        'safety': {'summary': '진단 최대 10 Hz · 판단 변경 시 이벤트',
+                   'detail': '안전 진단의 최신값과 정지·감속 판단의 변경 이벤트를 저장합니다.'},
+        'logs': {'summary': '/rosout 수신 이벤트별 기록',
+                 'detail': '고정 Hz로 표본화하지 않습니다. 관측한 로그를 이벤트별로 저장합니다.'},
+    }
+
+
+def source_rate_defaults():
+    return {identity: spec['default_hz'] for key, spec in SCHEMA.items()
+            for identity in ([f'{key}:{index}' for index in range(8)] if spec['multiple'] else [key])}
+
+
 def defaults():
-    return {'active': True, 'preset': 'basic', 'enabled': {k: k not in RAW for k in LABELS},
-            'hz': {k: 2. for k in RAW}, 'topics': dict(RAW), 'limit_mib': 100}
+    profile = rate_profiles()['standard']
+    return {'active': True, 'preset': 'standard', 'enabled': {k: k not in RAW for k in LABELS},
+            'hz': {**{k: 10. for k in LABELS if k != 'logs'}, **profile['hz']}, 'topics': dict(RAW), 'sources': {}, 'source_enabled': {}, 'source_hz': profile['source_hz'], 'rate_defaults_version': 4, 'limit_mib': 100}
+
+
+def _historical_source_rate_defaults():
+    # Freeze the generated v2/v3 values for migration, independent of new defaults.
+    rates = {
+        'runtime_debug_topic': 2.0,
+        'runtime_events_topic': None,
+        'runtime_result_topic': None,
+        'manipulation_events_topic': None,
+        'odometry_topic': 10.0,
+        'ground_truth_topic': 10.0,
+        'amcl_pose_topic': 5.0,
+        'clock_topic': 5.0,
+        'velocity_topics': 10.0,
+        '_computed_motion': 5.0,
+        'path_topic': 2.0,
+        'local_path_topic': 5.0,
+        'controller_evaluation_topic': 2.0,
+        'map_topic': 0.2,
+        'local_costmap_topic': 2.0,
+        'global_costmap_topic': 1.0,
+        'nav2_bt_topic': None,
+        'nav2_bt_trace_topic': 1.0,
+        'pan_state_topic': 5.0,
+        'reactive_guard_topic': 5.0,
+        'voxel_guard_topic': 5.0,
+        'collision_state_topic': 5.0,
+        'coverage_topic': 2.0,
+        'scan_topic': 2.0,
+        'depth_points_topic': 2.0,
+        'risk_points_topic': 2.0,
+        'footprint_topic': 2.0,
+        'stop_polygon_topic': 1.0,
+        'slow_polygon_topic': 1.0,
+        'obstacle_memory_topic': 1.0,
+        'lidar_memory_topic': 1.0,
+        'depth_memory_topic': 1.0,
+        'rosout_topic': None,
+    }
+    return {identity: rate for key, rate in rates.items()
+            for identity in ([f'{key}:{index}' for index in range(8)] if key == 'velocity_topics' else [key])}
+
+
+def _previous_rate_profiles():
+    standard = _historical_source_rate_defaults()
+    standard['runtime_debug_topic'] = 5.
+    low = {key: None if rate is None else {10.: 2., 5.: 1., 2.: .5, 1.: .2, .2: .1}[rate]
+           for key, rate in standard.items()}
+    precise = {key: None if rate is None else {10.: 10., 5.: 10., 2.: 5., 1.: 2., .2: 1.}[rate]
+               for key, rate in standard.items()}
+    # These summaries are generated at 2 Hz, and the combined navigation state at 5 Hz.
+    for key in ('scan_topic', 'depth_points_topic', 'risk_points_topic', 'controller_evaluation_topic'):
+        precise[key] = 2.
+    precise['_computed_motion'] = 5.
+    return {
+        'low': dict(label='저사양', source_hz=low,
+                    hz=dict(resources=.2, lidar=1., point_cloud=.5, voxel_layer=.5, voxel_world=.5, camera=.2)),
+        'standard': dict(label='기본', source_hz=standard,
+                         hz=dict(resources=1., lidar=5., point_cloud=2., voxel_layer=2., voxel_world=2., camera=1.)),
+        'precise': dict(label='정밀', source_hz=precise,
+                        hz=dict(resources=2., lidar=10., point_cloud=5., voxel_layer=5., voxel_world=5., camera=5.)),
+    }
+
+
+def _version_three_rate_profiles(resource_interval_s=1.):
+    standard = _historical_source_rate_defaults()
+    precise = {}
+    for key, rate in standard.items():
+        role = key.split(':')[0]
+        observation_max = 2. if role in ('scan_topic', 'depth_points_topic', 'risk_points_topic', 'controller_evaluation_topic') else 10.
+        bound = min(SCHEMA[role]['maximum']['hz'], observation_max)
+        standard[key] = None if rate is None else min(rate, bound)
+        precise[key] = None if rate is None else bound
+    low = {key: None if rate is None else min(rate, {10.: 2., 5.: 1., 2.: .5, 1.: .2, .2: .1}.get(rate, max(.1, rate / 5)))
+           for key, rate in standard.items()}
+    resource_max = 1 / resource_interval_s
+    raw_max = {key: reference['hz'] for key, reference in raw_maximum_references().items()}
+    profiles = {
+        'low': dict(label='저사양', source_hz=low,
+                    hz=dict(resources=min(.2, resource_max), lidar=1., point_cloud=.5, voxel_layer=.5, voxel_world=.2, camera=.2)),
+        'standard': dict(label='기본', source_hz=standard,
+                         hz=dict(resources=min(1., resource_max), lidar=5., point_cloud=2., voxel_layer=2., voxel_world=1., camera=1.)),
+        'precise': dict(label='정밀', source_hz=precise,
+                        hz=dict(resources=resource_max, **raw_max)),
+    }
+    for profile in profiles.values():
+        for key, bound in raw_max.items():
+            profile['hz'][key] = min(profile['hz'][key], bound)
+    return profiles
+
+
+# Rates express useful diagnostic resolution, independently of publisher maxima.
+# At 0.2 m/s, 2 Hz poses resolve roughly 10 cm; 10 Hz resolves 2 cm.
+# Slow geometry and maps do not gain useful detail from control-loop frequencies.
+SEMANTIC_RATES = {
+    'runtime_debug_topic': (.5, 1., 2.),
+    'odometry_topic': (2., 5., 10.), 'ground_truth_topic': (2., 5., 10.),
+    'amcl_pose_topic': (1., 2., 5.), 'clock_topic': (1., 2., 5.),
+    'velocity_topics': (2., 5., 10.), '_computed_motion': (2., 5., 10.),
+    'path_topic': (.5, 1., 2.), 'local_path_topic': (1., 2., 5.),
+    'controller_evaluation_topic': (.5, 1., 2.), 'map_topic': (.1, .2, .5),
+    'local_costmap_topic': (.5, 1., 2.), 'global_costmap_topic': (.2, .5, 1.),
+    'nav2_bt_trace_topic': (1., 2., 4.),
+    'pan_state_topic': (1., 2., 5.), 'reactive_guard_topic': (1., 2., 5.),
+    'voxel_guard_topic': (1., 2., 5.), 'collision_state_topic': (1., 2., 5.),
+    'coverage_topic': (.5, 1., 2.), 'scan_topic': (.5, 1., 2.),
+    'depth_points_topic': (.5, 1., 2.), 'risk_points_topic': (.5, 1., 2.),
+    'footprint_topic': (.5, 1., 2.), 'stop_polygon_topic': (.2, .5, 1.),
+    'slow_polygon_topic': (.2, .5, 1.), 'obstacle_memory_topic': (.2, .5, 1.),
+    'lidar_memory_topic': (.2, .5, 1.), 'depth_memory_topic': (.2, .5, 1.),
+}
+
+
+def rate_profiles(resource_interval_s=1.):
+    raw_max = raw_maximum_references()
+    profiles = {}
+    for index, (name, label) in enumerate((('low', '저사양'), ('standard', '기본'), ('precise', '정밀'))):
+        sources = {}
+        for identity, default in source_rate_defaults().items():
+            role = identity.split(':')[0]
+            if default is None:
+                sources[identity] = None
+                continue
+            observation_max = 2. if role in ('scan_topic', 'depth_points_topic', 'risk_points_topic', 'controller_evaluation_topic') else 10.
+            sources[identity] = min(SEMANTIC_RATES[role][index], SCHEMA[role]['maximum']['hz'], observation_max)
+        raw = {key: min(rates[index], raw_max[key]['hz']) for key, rates in {
+            'lidar': (1., 3., 5.5), 'point_cloud': (.5, 2., 5.),
+            'voxel_layer': (.5, 2., 5.), 'voxel_world': (.2, .5, 1.),
+            'camera': (.2, 1., 5.),
+        }.items()}
+        profiles[name] = dict(label=label, source_hz=sources,
+                              hz=dict(resources=min((.2, .5, 1.)[index], 1 / resource_interval_s), **raw))
+    return profiles
 
 
 def validate(value):
+    if isinstance(value, dict):
+        value = dict(value)
+        if value.get('preset') in ('basic', 'obstacles', 'custom'):
+            value['preset'] = 'standard'  # Preserve old selection and rates; replace only the legacy label.
+        value.setdefault('sources', {})
+        value.setdefault('source_enabled', {})
+        # Expand legacy group rates once; thereafter each source owns its rate.
+        if 'source_hz' not in value:
+            legacy_rates = value.get('hz') if isinstance(value.get('hz'), dict) else {}
+            value['source_hz'] = {identity: (legacy_rates[SCHEMA[identity.split(':')[0]]['group']]
+                                           if legacy_rates.get(SCHEMA[identity.split(':')[0]]['group'], 10.) != 10. else rate)
+                                  for identity, rate in source_rate_defaults().items()}
+        if 'rate_defaults_version' not in value:
+            # Replace the prior uniform defaults; keep differing user rates.
+            if isinstance(value['source_hz'], dict):
+                value['source_hz'] = {key: source_rate_defaults().get(key, rate) if rate == 10. else rate
+                                      for key, rate in value['source_hz'].items()}
+            if isinstance(value.get('hz'), dict):
+                value['hz'] = {key: defaults()['hz'].get(key, rate) if key in RAW and rate == 2. else rate
+                               for key, rate in value['hz'].items()}
+            value['rate_defaults_version'] = 2
     if not isinstance(value, dict) or set(value) != set(defaults()):
         raise ValueError('녹화 설정 형식이 올바르지 않습니다.')
-    if type(value['active']) is not bool or value['preset'] not in ('basic', 'obstacles', 'custom'):
+    if type(value['rate_defaults_version']) is int and value['rate_defaults_version'] == 2 and value.get('preset') in rate_profiles():
+        # Upgrade generated profile values while keeping individually edited rates.
+        previous = _previous_rate_profiles()[value['preset']]
+        updated = _version_three_rate_profiles()[value['preset']]
+        for field in ('source_hz', 'hz'):
+            if isinstance(value.get(field), dict):
+                value[field] = {key: updated[field][key] if key in previous[field] and rate == previous[field][key] else rate
+                                for key, rate in value[field].items()}
+        value['rate_defaults_version'] = 3
+    if type(value['rate_defaults_version']) is int and value['rate_defaults_version'] == 3 and value.get('preset') in rate_profiles():
+        previous = _version_three_rate_profiles()[value['preset']]
+        updated = rate_profiles()[value['preset']]
+        for field in ('source_hz', 'hz'):
+            if isinstance(value.get(field), dict):
+                value[field] = {key: updated[field][key] if key in previous[field] and rate == previous[field][key] else rate
+                                for key, rate in value[field].items()}
+        value['rate_defaults_version'] = 4
+    if type(value['rate_defaults_version']) is not int or value['rate_defaults_version'] != 4:
+        raise ValueError('지원하지 않는 기록 주기 기본값 버전입니다.')
+    if type(value['active']) is not bool or value['preset'] not in rate_profiles():
         raise ValueError('녹화 상태 또는 프리셋이 올바르지 않습니다.')
     if any(not isinstance(value[key], dict) for key in ('enabled', 'hz', 'topics')):
         raise ValueError('녹화 항목·주기·토픽 형식이 올바르지 않습니다.')
+    value = deepcopy(value)
+    value['sources'] = validate_sources(value['sources'])
+    value['source_enabled'] = validate_source_enabled(value['source_enabled'])
+    if not isinstance(value['source_hz'], dict) or not set(value['source_hz']) <= set(source_rate_defaults()):
+        raise ValueError('개별 토픽 기록 주기 형식이 올바르지 않습니다.')
+    value['source_hz'] = {**source_rate_defaults(), **value['source_hz']}
+    for hz in value['source_hz'].values():
+        if hz is not None and (type(hz) not in (float, int) or not math.isfinite(hz) or not .1 <= hz <= 1000):
+            raise ValueError('토픽 기록 주기는 0.1~1000 Hz 범위입니다.')
+    value['enabled'].setdefault('resources', True)
     if set(value['enabled']) != set(LABELS) or any(type(v) is not bool for v in value['enabled'].values()):
         raise ValueError('녹화 항목을 모두 지정해야 합니다.')
-    if set(value['hz']) != set(RAW) or set(value['topics']) != set(RAW):
-        raise ValueError('원본 녹화 설정이 누락되었습니다.')
+    # Migrate the prior raw-only schema without overwriting its configured rates.
+    if set(value['hz']) == set(RAW):
+        value['hz'] = {**defaults()['hz'], **value['hz']}
+    if set(value['hz']) != set(defaults()['hz']) or set(value['topics']) != set(RAW):
+        raise ValueError('녹화 주기 또는 원본 토픽 설정이 누락되었습니다.')
+    for hz in value['hz'].values():
+        if type(hz) not in (float, int) or not math.isfinite(hz) or not .1 <= hz <= 1000:
+            raise ValueError('기록 주기는 0.1~1000 Hz 범위입니다.')
     for key in RAW:
-        hz = value['hz'][key]
-        if type(hz) not in (float, int) or not math.isfinite(hz) or not .1 <= hz <= 10:
-            raise ValueError('기록 주기는 0.1~10 Hz 범위입니다.')
         if not isinstance(value['topics'][key], str) or not re.fullmatch(r'/[A-Za-z_][A-Za-z0-9_/]*', value['topics'][key]):
             raise ValueError('원본 토픽은 절대 ROS 토픽 이름이어야 합니다.')
     if len(set(value['topics'].values())) != len(RAW):
@@ -50,9 +265,13 @@ def validate(value):
 
 
 def category(row):
+    if 'category' in row:
+        return row['category']
     kind, key = row['kind'], row['key']
     if kind in ('config', 'graph', 'recording_policy', 'recording_status') or (kind == 'layer' and key == 'map'):
         return None  # Context is always retained.
+    if kind == 'resources':
+        return 'resources'
     if kind == 'log':
         return 'logs'
     if kind == 'nav2_bt_tree' or 'bt' in key or (row['data'].get('kind') if isinstance(row['data'], dict) else None) == 'nav2_bt':
@@ -75,7 +294,14 @@ def category(row):
 
 
 def allowed(row, settings):
-    key = next((k for k,v in settings['topics'].items() if row['key'] == v), None) or category(row)
+    identity = row.get('source_id')
+    if identity:
+        if not settings.get('source_enabled', {}).get(identity, True):
+            return False
+        group = SCHEMA[identity.split(':')[0]]['group']
+        if not settings['enabled'][group]:
+            return False
+    key = category(row) if 'category' in row else next((k for k,v in settings['topics'].items() if row['key'] == v), None) or category(row)
     return row['kind'] in ('recording_policy','recording_status') or settings['active'] and (key is None or settings['enabled'][key])
 
 
@@ -168,7 +394,7 @@ class RecordingControls:
             for key in (*LABELS, 'transforms'):
                 stat = dict(self.stats.get(key, {}))
                 is_enabled = any(s['enabled'][k] for k in RAW) if key == 'transforms' else s['enabled'][key]
-                state = '미녹화' if not is_enabled else '일시정지' if not s['active'] else '저장 중단' if reason else '저장 오류' if stat.get('error') else '기록 대기'
+                state = '미녹화' if not is_enabled else '녹화 정지' if not s['active'] else '저장 중단' if reason else '저장 오류' if stat.get('error') else '기록 대기'
                 if state == '기록 대기' and key == 'transforms':
                     state = '토픽 미수신' if not any(self.available.get(t) for t in ('/tf','/tf_static')) else '기록 중' if stat.get('count') else '수신 대기'
                 elif state == '기록 대기' and key in RAW:

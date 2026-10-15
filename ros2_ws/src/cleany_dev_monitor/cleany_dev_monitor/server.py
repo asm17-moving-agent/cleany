@@ -14,9 +14,11 @@ from uuid import uuid4
 
 from aiohttp import WSMsgType, web
 
+from .sources import resolved, SCHEMA, validate_sources, raw_maximum_references, maximum_reference
+from .resources import ResourceWorker
 from .camera import IMAGE_TYPES
 from .core import Recorder
-from .recording import validate, RAW
+from .recording import validate, RAW, observation_policies, rate_profiles
 
 
 @web.middleware
@@ -38,13 +40,16 @@ def create_app(hub, config, recorder, assets):
     settings_file = recorder.directory / 'recording-settings.json'
     if settings_file.exists():
         try:
-            controls.configure(json.loads(settings_file.read_text()))
+            loaded = validate(json.loads(settings_file.read_text()))
+            validate_sources({**resolved(config), **loaded['sources']})
+            controls.configure(loaded)
             recorder.session_limit = controls.settings["limit_mib"]*1024**2
         except (ValueError, OSError, TypeError):
             pass
     hub.put('recording_policy', 'settings', controls.view()['settings'], critical=True)
 
     def apply_settings(settings, *, new_session=False):
+        validate_sources({**resolved(config), **settings['sources']})
         recorder.append(hub.snapshot(recorder.last))
         recorder.append_raw()
         temporary = settings_file.with_suffix('.tmp')
@@ -62,21 +67,40 @@ def create_app(hub, config, recorder, assets):
             recorder.__init__(directory, settings['limit_mib']*1024**2, total_limit, controls=controls)
             controls.writer_error = recorder.reason
         hub.put('recording_policy', 'settings', settings, critical=True)
-        snapshot = hub.snapshot(recorder.last)
+        # A new session starts at this boundary. Eviction before it is not a loss
+        # in the new recording; latest state still provides its initial context.
+        snapshot = hub.snapshot(boundary if new_session else recorder.last)
         if new_session:
             snapshot['rows'] = [r for r in snapshot['rows'] if r['kind'] not in ('event','log','result','recording_policy') or r['seq']>boundary]
         recorder.append(snapshot)
+        if not settings["active"]:
+            recorder.close()
+
+    def recording_view():
+        view = controls.view(recorder.reason)
+        current = hub.latest_data('config', 'monitor') or config
+        effective = resolved(current)
+        requested = validate_sources({**resolved(config), **view['settings']['sources']})
+        view['settings']['sources'] = requested
+        return dict(view, session_id=recorder.session_id, observation=observation_policies(current),
+                    source_fields=SCHEMA, source_applied=effective, rate_profiles=rate_profiles(current.get('resource_interval_s', 1.)),
+                    rate_maximums={**raw_maximum_references(), 'resources': maximum_reference(1 / current.get('resource_interval_s', 1.), 'config', '호스트 리소스 수집 간격 기준')},
+                    source_pending=requested != effective, source_live=bool(current.get('read_only')))
+
 
     async def recording_settings(request):
         if request.method == 'PUT':
-            apply_settings(validate(await request.json()))
-        return web.json_response(dict(controls.view(recorder.reason), session_id=recorder.session_id))
+            settings = validate(await request.json())
+            # Starting after a stop always creates a separate file, including older clients.
+            start = settings["active"] and not controls.settings["active"]
+            apply_settings(settings, new_session=start)
+        return web.json_response(recording_view())
 
     async def new_recording(request):
         settings = validate(await request.json())
         settings['active'] = True
         apply_settings(settings, new_session=True)
-        return web.json_response(dict(controls.view(recorder.reason), session_id=recorder.session_id))
+        return web.json_response(recording_view())
 
     async def raw_message(request):
         at = float(request.query.get('at', '0'))
@@ -148,13 +172,19 @@ def create_app(hub, config, recorder, assets):
         async def send():
             since = 0
             first = True
+            revision = hub.topic_revision
             while not ws.closed:
                 payload = hub.snapshot(since)
-                if not first:
+                changed = revision != payload["topic_revision"]
+                if changed:
+                    payload = hub.snapshot(0)
+                if not first and not changed:
                     payload["rows"] = [
                         row for row in payload["rows"] if row["seq"] > since
                     ]
-                payload["initial"] = first
+                payload["initial"] = first or changed
+                payload["sources_changed"] = changed
+                revision = payload["topic_revision"]
                 payload["recording"] = {
                     "id": recorder.session_id,
                     "reason": recorder.reason,
@@ -270,6 +300,17 @@ def create_app(hub, config, recorder, assets):
     app.router.add_get("/", index)
     if (assets / "assets").is_dir():
         app.router.add_static("/assets", assets / "assets", follow_symlinks=True)
+    worker = ResourceWorker(hub, config)
+
+    async def start_resources(app):
+        worker.thread.start()
+
+    async def stop_resources(app):
+        worker.stop.set()
+        await asyncio.to_thread(worker.thread.join)
+
+    app.on_startup.append(start_resources)
+    app.on_cleanup.append(stop_resources)
     app.on_cleanup.append(cleanup)
     return app
 

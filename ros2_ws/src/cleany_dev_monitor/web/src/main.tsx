@@ -19,6 +19,12 @@ import {
   RecordingControls,
   RecordingReplayNotice,
 } from "@/components/recording-controls";
+import {
+  type TimelineSession,
+  RecordingTimeline,
+  recordingSegments,
+  sessionAt,
+} from "@/components/recording-timeline";
 import { NavigationDashboard } from "@/components/navigation-dashboard";
 import { RosGraph } from "@/components/ros-graph";
 import { FitGraphToViewport } from "@/components/fit-graph-to-viewport";
@@ -47,6 +53,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
+import { ResourceDashboard } from "@/components/resource-dashboard";
 import { FoxglovePanel } from "@/components/foxglove-panel";
 import { Panel } from "@/components/panel";
 import { type Data, type Row, time } from "@/lib/monitor";
@@ -56,6 +63,7 @@ type Packet = {
   boot_id?: string;
   sequence?: number;
   initial?: boolean;
+  sources_changed?: boolean;
   gap?: boolean;
   recording?: Data;
   error?: string;
@@ -90,7 +98,15 @@ function applyRuntimeEvents(rows: Row[]): Row[] {
   return rows.map((r) => (r === base ? { ...base, data } : r));
 }
 const critical = new Set(["event", "log", "result"]);
-const navIcons = [GitBranch, Network, Navigation2, LogsIcon, History, Camera];
+const navIcons = [
+  GitBranch,
+  Network,
+  Navigation2,
+  LogsIcon,
+  History,
+  Camera,
+  Activity,
+];
 const tabs = [
   ["execution", "실행 흐름", "01"],
   ["ros", "ROS 탐색기", "02"],
@@ -98,6 +114,7 @@ const tabs = [
   ["logs", "로그", "04"],
   ["recordings", "기록 & 재생", "05"],
   ["camera", "카메라", "06"],
+  ["resources", "리소스", "07"],
 ];
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);
 const statusColor = (s: string) =>
@@ -1268,6 +1285,7 @@ function App() {
   const live = useRef<Row[]>([]);
   const [connected, setConnected] = useState(false);
   const [now, setNow] = useState(Date.now() / 1000);
+  const [timelineNow, setTimelineNow] = useState(Date.now() / 1000);
   const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const selectedRef = useRef<string[]>([]);
@@ -1276,13 +1294,17 @@ function App() {
   const socket = useRef<WebSocket | null>(null);
   const lastBoot = useRef("");
   const [recording, setRecording] = useState<Data>({});
-  const [sessions, setSessions] = useState<Data[]>([]);
+  const [sessions, setSessions] = useState<(Data & TimelineSession)[]>([]);
+  const [timelineControlsHost, setTimelineControlsHost] =
+    useState<HTMLElement | null>(null);
+  const [timelineFocus, setTimelineFocus] = useState<number | null>(null);
   const [replayId, setReplayId] = useState("");
   const replayRef = useRef("");
   const [at, setAt] = useState(0);
   const seekPending = useRef(false);
   const [seekRevision, setSeekRevision] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [filter, setFilter] = useState("");
   const [node, setNode] = useState("");
   const [error, setError] = useState("");
@@ -1336,7 +1358,8 @@ function App() {
         }
         if (!p.rows) return;
         if (p.gap) setNotice("이벤트 유실");
-        if (p.initial && lastBoot.current) {
+        if (p.sources_changed) setNotice("관측 토픽 변경 · 이전 관측값 초기화");
+        if (p.initial && lastBoot.current && !p.sources_changed) {
           setNotice(
             p.boot_id === lastBoot.current
               ? "재연결 · 누락 가능"
@@ -1373,10 +1396,15 @@ function App() {
     };
     connect();
     const clock = setInterval(() => setNow(Date.now() / 1000), 500);
+    const timelineClock = setInterval(
+      () => setTimelineNow(Date.now() / 1000),
+      1000,
+    );
     return () => {
       stopped = true;
       clearTimeout(retry);
       clearInterval(clock);
+      clearInterval(timelineClock);
       ws.close();
     };
   }, []);
@@ -1389,8 +1417,10 @@ function App() {
       })
       .catch((e) => setError(String(e)));
   useEffect(() => {
-    if (tab === "recordings") refreshSessions();
-  }, [tab]);
+    refreshSessions();
+    const timer = setInterval(refreshSessions, 1000);
+    return () => clearInterval(timer);
+  }, []);
   useEffect(() => {
     replayRef.current = replayId;
     if (!replayId) {
@@ -1398,43 +1428,72 @@ function App() {
       setPlaying(false);
       return;
     }
+    if (replayId === "__gap__") {
+      setRows([]);
+      return;
+    }
     const controller = new AbortController();
-    fetch(`/api/recordings/${replayId}/replay?at=${at}`, {
-      signal: controller.signal,
-    })
-      .then((r) => {
-        if (!r.ok) throw Error("기록 읽기 실패");
-        return r.json();
-      })
-      .then((p) => {
-        setRows(applyRuntimeEvents(p.rows));
-        if (seekPending.current) {
-          seekPending.current = false;
-          setSeekRevision((value) => value + 1);
-        }
-        if (p.metadata.gap) setNotice(p.metadata.gap);
-      })
-      .catch((e) => {
-        if (e.name !== "AbortError") setError(String(e));
-      });
-    return () => controller.abort();
+    const timer = setTimeout(
+      () =>
+        fetch(`/api/recordings/${replayId}/replay?at=${at}`, {
+          signal: controller.signal,
+        })
+          .then((r) => {
+            if (!r.ok) throw Error("기록 읽기 실패");
+            return r.json();
+          })
+          .then((p) => {
+            if (controller.signal.aborted) return;
+            setRows(applyRuntimeEvents(p.rows));
+            if (seekPending.current) {
+              seekPending.current = false;
+              setSeekRevision((value) => value + 1);
+            }
+            if (p.metadata.gap) setNotice(p.metadata.gap);
+          })
+          .catch((e) => {
+            if (e.name !== "AbortError") setError(String(e));
+          }),
+      60,
+    );
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [replayId, at]);
   const session = sessions.find((s) => s.id === replayId);
+  const seekAbsolute = (moment: number, available = sessions) => {
+    moment = Math.min(Date.now() / 1000, moment);
+    const id = sessionAt(available, moment) || "__gap__";
+    replayRef.current = id;
+    if (id !== replayId) setRows([]);
+    seekPending.current = true;
+    setReplayId(id);
+    setAt(moment);
+  };
+  const returnLive = () => {
+    replayRef.current = "";
+    setReplayId("");
+    setPlaying(false);
+    setNotice("");
+  };
   useEffect(() => {
-    if (!playing || !session) return;
-    const timer = setInterval(
-      () =>
-        setAt((t) => {
-          if (t + 0.2 >= session.end) {
-            setPlaying(false);
-            return session.end;
-          }
-          return t + 0.2;
-        }),
-      200,
+    if (!playing) return;
+    const last = Math.min(
+      Date.now() / 1000,
+      Math.max(...recordingSegments(sessions).map((s) => s.end)),
     );
+    if (!Number.isFinite(last)) {
+      setPlaying(false);
+      return;
+    }
+    const timer = setInterval(() => {
+      const next = Math.min(last, at + 0.2 * playbackSpeed);
+      seekAbsolute(next);
+      if (next >= last) setPlaying(false);
+    }, 200);
     return () => clearInterval(timer);
-  }, [playing, session]);
+  }, [playing, at, playbackSpeed, sessions]);
   const go = (id: string) => {
     setTab(id);
     location.hash = id;
@@ -1482,26 +1541,21 @@ function App() {
       socket.current.send(JSON.stringify({ op: "select", topics: merged }));
   }, [navigationSelectionKey, selectionLimit]);
   const openNavigationMoment = async (moment: number) => {
+    setTimelineFocus(moment);
     setPlaying(false);
     if (replayId) {
-      seekPending.current = true;
-      setAt(moment);
+      seekAbsolute(moment);
       return;
     }
     try {
       const response = await fetch("/api/recordings");
       const data = await response.json();
-      const source = data.sessions.find(
-        (s: Data) => s.id === (data.active || recording.id),
-      );
-      if (!source || moment < source.start || moment > source.end)
+      if (!sessionAt(data.sessions, moment))
         throw Error(
           "해당 시점이 아직 기록되지 않았거나 기록이 중단되었습니다.",
         );
       setSessions(data.sessions);
-      setReplayId(source.id);
-      setAt(moment);
-      seekPending.current = true;
+      seekAbsolute(moment, data.sessions);
     } catch (e) {
       setError(String(e));
     }
@@ -1575,8 +1629,11 @@ function App() {
         </div>
       </aside>
       <main>
-        <header>
-          <div className="breadcrumb">읽기 전용</div>
+        <header className="monitor-header">
+          <div
+            className="header-timeline-controls"
+            ref={setTimelineControlsHost}
+          />
           <div className="header-status">
             <ThemeToggle />
             <Badge tone={replayId ? "info" : connected ? "good" : "bad"}>
@@ -1593,8 +1650,29 @@ function App() {
               </span>
             )}
             <code>{config.runtime_namespace || "/"}</code>
-            <span>{time(now)}</span>
+            <span className="header-clock" aria-label="현재 시각">
+              {new Date(now * 1000).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false,
+              })}
+            </span>
           </div>
+          <RecordingTimeline
+            controlsHost={timelineControlsHost}
+            focusAt={timelineFocus}
+            sessions={sessions}
+            now={timelineNow}
+            at={at}
+            historical={!!replayId}
+            playing={playing}
+            speed={playbackSpeed}
+            onSpeed={setPlaybackSpeed}
+            onPlaying={setPlaying}
+            onSeek={seekAbsolute}
+            onLive={returnLive}
+          />
         </header>
         <div className="content">
           <div className="page-title">
@@ -1642,31 +1720,8 @@ function App() {
           {recording.reason && (
             <div className="notice warn">기록 중단 · {recording.reason}</div>
           )}
-          {replayId && (
-            <div className="replay-bar">
-              <strong>기록 재생</strong>
-              <span>{time(at)}</span>
-              <Button variant="outline" onClick={() => setPlaying(!playing)}>
-                {playing ? "일시정지" : "재생"}
-              </Button>
-              <input
-                aria-label="재생 시각"
-                type="range"
-                min={session?.start || 0}
-                max={session?.end || 0}
-                step="any"
-                value={at}
-                onChange={(e) => {
-                  seekPending.current = true;
-                  setAt(+e.target.value);
-                }}
-              />
-              <Button variant="outline" onClick={() => setReplayId("")}>
-                실시간으로
-              </Button>
-            </div>
-          )}
-          {replayId && (
+
+          {replayId && replayId !== "__gap__" && (
             <RecordingReplayNotice
               rows={rows}
               sessionId={replayId}
@@ -1902,6 +1957,9 @@ function App() {
                 )}
               </>
             ))}
+          {tab === "resources" && (
+            <ResourceDashboard rows={rows} replay={!!replayId} />
+          )}
           {tab === "camera" && (
             <CameraView topics={graph.topics || []} replay={!!replayId} />
           )}
@@ -1953,7 +2011,10 @@ function App() {
                   setSessions(data.sessions);
                   setPlaying(false);
                   setReplayId(run.session_id);
-                  setAt(run.start);
+                  replayRef.current = run.session_id;
+                  const moment = Math.min(Date.now() / 1000, run.start);
+                  setAt(moment);
+                  setTimelineFocus(moment);
                   seekPending.current = true;
                 }}
               />
@@ -1965,75 +2026,81 @@ function App() {
           {tab === "recordings" && (
             <>
               <RecordingControls replay={!!replayId} />
-              <Panel
-                title="저장된 관측 세션"
-                aside={
-                  <Button variant="outline" onClick={refreshSessions}>
-                    새로고침
-                  </Button>
-                }
-              >
-                <table>
-                  <thead>
-                    <tr>
-                      <th>세션</th>
-                      <th>시작 / 종료</th>
-                      <th>레코드</th>
-                      <th>FSM</th>
-                      <th>크기</th>
-                      <th>열기</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sessions.map((s) => (
-                      <tr key={s.id}>
-                        <td>
-                          <code>{s.id.slice(0, 8)}</code>{" "}
-                          {s.id === recording.id && (
-                            <Badge tone="good">
-                              기록 중{recording.reason ? "단" : ""}
-                            </Badge>
-                          )}
-                          {s.metadata.gap && (
-                            <Badge tone="warn">유실 있음</Badge>
-                          )}
-                        </td>
-                        <td>
-                          {s.start ? time(s.start) : "—"} →{" "}
-                          {s.end ? time(s.end) : "—"}
-                        </td>
-                        <td>{s.count}</td>
-                        <td>
-                          {s.runtime_count == null
-                            ? "—"
-                            : s.runtime_count > 0
-                              ? "있음"
-                              : "없음"}
-                        </td>
-                        <td>{(s.bytes / 1024 ** 2).toFixed(2)} MiB</td>
-                        <td>
-                          <Button
-                            variant="outline"
-                            disabled={!s.count}
-                            onClick={() => {
-                              setReplayId(s.id);
-                              setAt(s.runtime_start ?? s.start);
-                              setPlaying(true);
-                              go("execution");
-                            }}
-                          >
-                            재생
-                          </Button>{" "}
-                          <a href={`/api/recordings/${s.id}/export`}>
-                            내보내기 ↓
-                          </a>
-                        </td>
+              <details>
+                <summary>기록 관리 · 내보내기</summary>
+                <Panel
+                  title="기록 관리 · 내보내기"
+                  aside={
+                    <Button variant="outline" onClick={refreshSessions}>
+                      새로고침
+                    </Button>
+                  }
+                >
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>세션</th>
+                        <th>시작 / 종료</th>
+                        <th>레코드</th>
+                        <th>FSM</th>
+                        <th>크기</th>
+                        <th>열기</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!sessions.length && <Empty>기록 없음</Empty>}
-              </Panel>
+                    </thead>
+                    <tbody>
+                      {sessions.map((s) => (
+                        <tr key={s.id}>
+                          <td>
+                            <code>{s.id.slice(0, 8)}</code>{" "}
+                            {s.id === recording.id && (
+                              <Badge tone="good">
+                                기록 중{recording.reason ? "단" : ""}
+                              </Badge>
+                            )}
+                            {s.metadata.gap && (
+                              <Badge tone="warn">유실 있음</Badge>
+                            )}
+                          </td>
+                          <td>
+                            {s.start ? time(s.start) : "—"} →{" "}
+                            {s.end ? time(s.end) : "—"}
+                          </td>
+                          <td>{s.count}</td>
+                          <td>
+                            {s.runtime_count == null
+                              ? "—"
+                              : s.runtime_count > 0
+                                ? "있음"
+                                : "없음"}
+                          </td>
+                          <td>{(s.bytes / 1024 ** 2).toFixed(2)} MiB</td>
+                          <td>
+                            <Button
+                              variant="outline"
+                              disabled={!s.count}
+                              onClick={() => {
+                                const moment =
+                                  s.segments?.[0]?.start ??
+                                  s.runtime_start ??
+                                  s.start;
+                                setTimelineFocus(moment);
+                                seekAbsolute(moment);
+                                setPlaying(false);
+                              }}
+                            >
+                              시각으로 이동
+                            </Button>{" "}
+                            <a href={`/api/recordings/${s.id}/export`}>
+                              내보내기 ↓
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {!sessions.length && <Empty>기록 없음</Empty>}
+                </Panel>
+              </details>
             </>
           )}
         </div>
