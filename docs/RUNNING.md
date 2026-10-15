@@ -41,7 +41,7 @@ make sim-gazebo-study-cafe      # study-cafe GUI; 위 실행과 별도로 사용
 make sim-gazebo-facility        # 전체 시설 GUI; 위 실행과 별도로 사용
 ```
 
-GUI renderer는 `GAZEBO_GUI_RENDER_ENGINE=ogre|ogre2`로 선택합니다. 센서 서버는 OGRE2를 사용하므로 GPU LiDAR와 camera는 headless에서도 OpenGL context가 필요합니다. 지원 환경은 Fortress/Humble이며, 이전 Harmonic 실험 기록은 [근거 색인](EVIDENCE.md)에 있습니다.
+GUI renderer는 `GAZEBO_GUI_RENDER_ENGINE=ogre|ogre2`로 선택합니다. 센서 서버는 OGRE2를 사용하므로 GPU LiDAR와 camera는 headless에서도 OpenGL context가 필요합니다. 지원 환경은 Fortress/Humble입니다.
 
 3. 같은 overlay/domain의 별도 터미널에서 sensor와 odometry를 확인합니다.
 

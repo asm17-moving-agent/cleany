@@ -30,12 +30,11 @@ def test_park_rejects_out_of_limit_angle():
 
 
 @pytest.mark.skipif(not (shutil.which('gz') or shutil.which('ign')), reason='Gazebo sdformat conversion required')
-@pytest.mark.parametrize('backend', ['harmonic', 'fortress'])
-def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path, backend):
+def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     pytest.importorskip('xacro')
     package = Path(__file__).resolve().parents[1]
     world = materialize_mecanum_wheel_world(
-        package/f'worlds/cleany_mecanum_{backend}.sdf', target_path=tmp_path/'world.sdf', robot_model='cad_frame')
+        package/'worlds/cleany_mecanum_fortress.sdf', target_path=tmp_path/'world.sdf', robot_model='cad_frame')
     model = ET.parse(world).getroot().find("world/model[@name='cleany_mecanum']")
     assert len(model.findall('link')) == 6
     assert len(model.findall('joint')) == 5

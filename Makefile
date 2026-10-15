@@ -267,7 +267,7 @@ test-gazebo-nav-runtime: build-gazebo
 	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest -s \
 		src/cleany_gazebo_sim/test/test_runtime_simulation.py \
-		--run-sim-runtime --sim-profile=fortress
+		--run-sim-runtime
 
 test-gazebo-evaluation: build-gazebo
 	source "$(ROS_SETUP)" && \

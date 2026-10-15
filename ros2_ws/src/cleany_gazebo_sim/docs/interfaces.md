@@ -111,4 +111,4 @@ Pan feedback에서 head camera TF를 발행한다. Frame 이름과 장착 geomet
 
 QoS를 지정하지 않은 행은 설치된 bridge 기본값을 따른다. `/clock`과 `/joint_states`의 raw 입력은 `gazebo_feedback_sampler`가 정규 토픽으로 다시 발행한다. `bridge_config` override는 sampler와 이 remap을 사용하지 않고 지정 YAML로 단일 `gazebo_override_bridge`를 만든다.
 
-`bridge.yaml`, `navigation_bridge.yaml`은 별도 통합 설정이며 위 profile 표와 동시에 활성화되는 것은 아니다. Harmonic 실행은 같은 ROS 이름의 `*_harmonic.yaml`을 선택하며 Gazebo wire type이 달라진다. 서비스와 액션 bridge는 현재 설정에 없다.
+`bridge.yaml`, `navigation_bridge.yaml`은 별도 통합 설정이며 위 profile 표와 동시에 활성화되는 것은 아니다. Gazebo wire type은 Fortress의 `ignition.msgs`를 사용한다. 서비스와 액션 bridge는 현재 설정에 없다.

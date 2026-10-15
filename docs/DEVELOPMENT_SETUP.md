@@ -166,7 +166,7 @@ Gazebo와 Navigation 전용 빌드는 Makefile이 선택하는 출력을 사용�
 
 다른 ROS 배포판의 build/install/log는 재사용하지 않습니다. 출력은 Makefile의 clean target으로 정리하며, 실행 중인 overlay는 보존합니다.
 
-준비 후 [실행](RUNNING.md), [테스트](TESTING.md), [캘리브레이션](CALIBRATION.md) 가이드로 이동합니다. 현재 Gazebo 지원 조합은 Humble/Fortress이며, 과거 Jazzy/Harmonic 환경 기록은 [EVIDENCE](EVIDENCE.md)에 있습니다.
+준비 후 [실행](RUNNING.md), [테스트](TESTING.md), [캘리브레이션](CALIBRATION.md) 가이드로 이동합니다. Gazebo 지원 조합은 Humble/Fortress입니다.
 
 ## 7. 선택 환경
 

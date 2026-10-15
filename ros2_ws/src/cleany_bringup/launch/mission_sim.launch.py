@@ -1,6 +1,5 @@
 """Gazebo + existing AMCL/Nav2 + mission runtime. Never starts SLAM concurrently."""
 
-import os
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
@@ -22,10 +21,9 @@ def _start(context):
         raise ValueError("map filename and targets map_id must match; provide a matching targets_file")
     navigation = Path(get_package_share_directory("cleany_navigation")) / "launch/amcl_nav2.launch.py"
     nodes = [
-        IncludeLaunchDescription(PythonLaunchDescriptionSource(str(sim / "launch" / (
-            "gazebo_study_cafe_fortress.launch.py" if arg("profile") == "fortress"
-            else "gazebo_study_cafe.launch.py"
-        ))), launch_arguments={"headless": arg("headless"), "use_sim_time": "true"}.items()),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
+            sim / "launch/gazebo_study_cafe_fortress.launch.py"
+        )), launch_arguments={"headless": arg("headless"), "use_sim_time": "true"}.items()),
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(navigation)),
                                  launch_arguments={"use_sim_time": "true", "map": arg("map")}.items()),
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(mission / "launch/mission_runtime.launch.py")),
@@ -44,9 +42,7 @@ def _start(context):
 def generate_launch_description():
     sim = Path(get_package_share_directory("cleany_gazebo_sim"))
     mission = Path(get_package_share_directory("cleany_mission_manager"))
-    default_profile = "harmonic" if os.environ.get("ROS_DISTRO") == "jazzy" else "fortress"
     return LaunchDescription([
-        DeclareLaunchArgument("profile", default_value=default_profile, choices=["fortress", "harmonic"]),
         DeclareLaunchArgument("headless", default_value="true"),
         DeclareLaunchArgument("runtime_config", default_value=str(mission / "config/runtime.yaml")),
         DeclareLaunchArgument("map", default_value=str(sim / "maps/study_cafe_26cm.yaml")),
@@ -61,7 +57,6 @@ def generate_launch_description():
         DeclareLaunchArgument("pose_url", default_value="", description="Empty uses gateway host's pose endpoint."),
         # Isolate Gazebo transport from other simulations on the same host.
         DeclareLaunchArgument("sim_partition", default_value="cleany-mission"),
-        SetEnvironmentVariable("GZ_PARTITION", LaunchConfiguration("sim_partition")),
         SetEnvironmentVariable("IGN_PARTITION", LaunchConfiguration("sim_partition")),
         OpaqueFunction(function=_start),
     ])
