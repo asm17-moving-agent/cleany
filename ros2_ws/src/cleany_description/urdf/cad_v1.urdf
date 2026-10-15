@@ -128,4 +128,392 @@
     <axis xyz="0 1 0" />
     <limit effort="2.646" velocity="12.017" />
   </joint>
+  <link name="right_base_link">
+    <inertial>
+      <origin xyz="0 -0.0251 0.036" rpy="0 0 0" />
+      <mass value="0.15" />
+      <inertia ixx="0.00017014049999999954" iyy="0.00021860444531249948" izz="0.0002591449453125" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_base_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_base_printed.stl" />
+      </geometry>
+      <material name="right_base_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="right_base_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_base_servo.stl" />
+      </geometry>
+      <material name="right_base_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_base_link_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="right_base_link" />
+    <origin xyz="-0.12002401005 -0.150978005025 0.331102992634" rpy="7.33800009645e-09 -5.55160004634e-08 3.67320510257e-06" />
+  </joint>
+  <link name="right_shoulder_yaw_link">
+    <inertial>
+      <origin xyz="0.00123920281232 0.0573558519539 0.0194" rpy="0 0 0" />
+      <mass value="0.22" />
+      <inertia ixx="0.0002962057395107768" iyy="0.00012792029737945213" izz="0.0002795185702235623" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_yaw_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_yaw_printed.stl" />
+      </geometry>
+      <material name="right_yaw_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="right_yaw_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_yaw_servo.stl" />
+      </geometry>
+      <material name="right_yaw_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_shoulder_yaw_joint" type="revolute">
+    <parent link="right_base_link" />
+    <child link="right_shoulder_yaw_link" />
+    <origin xyz="0 -0.0452 0.0165" rpy="1.57079632679 -0 0" />
+    <axis xyz="0 1 0" />
+    <limit lower="-2.16" upper="2.16" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_upper_arm_link">
+    <inertial>
+      <origin xyz="0.00195 0.0841004695883 0.0129808519539" rpy="0 0 0" />
+      <mass value="0.22" />
+      <inertia ixx="0.0007231334155245809" iyy="0.00012935136279463658" izz="0.0007598560193966111" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_upper_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_upper_printed.stl" />
+      </geometry>
+      <material name="right_upper_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="right_upper_carbon">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_upper_carbon.stl" />
+      </geometry>
+      <material name="right_upper_carbon_color">
+        <color rgba="0.06 0.07 0.08 1" />
+      </material>
+    </visual>
+    <visual name="right_upper_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_upper_servo.stl" />
+      </geometry>
+      <material name="right_upper_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_shoulder_pitch_joint" type="revolute">
+    <parent link="right_shoulder_yaw_link" />
+    <child link="right_upper_arm_link" />
+    <origin xyz="0 0.1025 0.0306" rpy="1.57079632679 -0 0" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-0.22" upper="3.37" effort="4.41" velocity="4.245" />
+  </joint>
+  <link name="right_lower_arm_link">
+    <inertial>
+      <origin xyz="-0.002 -0.00344990505741 0.091518878572" rpy="0 0 0" />
+      <mass value="0.22" />
+      <inertia ixx="0.0008104186854568022" iyy="0.0008614910257041241" izz="0.00010099752641934489" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_lower_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_lower_printed.stl" />
+      </geometry>
+      <material name="right_lower_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="right_lower_carbon">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_lower_carbon.stl" />
+      </geometry>
+      <material name="right_lower_carbon_color">
+        <color rgba="0.06 0.07 0.08 1" />
+      </material>
+    </visual>
+    <visual name="right_lower_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_lower_servo.stl" />
+      </geometry>
+      <material name="right_lower_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_elbow_pitch_joint" type="revolute">
+    <parent link="right_upper_arm_link" />
+    <child link="right_lower_arm_link" />
+    <origin xyz="0 0.16257 0.028" rpy="1.57079632679 -0 3.14159265359" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-0.22" upper="3.14" effort="4.41" velocity="4.245" />
+  </joint>
+  <link name="right_wrist_pitch_link">
+    <inertial>
+      <origin xyz="-0.00476945523714 -0.0269142872585 -0.00217827154742" rpy="0 0 0" />
+      <mass value="0.22" />
+      <inertia ixx="0.00013434145937293716" iyy="9.77735866909514e-05" izz="0.00018553165865841376" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_wrist_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_wrist_printed.stl" />
+      </geometry>
+      <material name="right_wrist_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="right_wrist_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_wrist_servo.stl" />
+      </geometry>
+      <material name="right_wrist_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_wrist_pitch_joint" type="revolute">
+    <parent link="right_lower_arm_link" />
+    <child link="right_wrist_pitch_link" />
+    <origin xyz="0 -0.0052 0.1849" rpy="-1.57079632679 -0 0" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.658063" upper="1.658063" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_gripper_frame">
+    <inertial>
+      <origin xyz="0.01445 -0.068875 -6.93889390391e-18" rpy="0 0 0" />
+      <mass value="0.25" />
+      <inertia ixx="0.0005912329367332771" iyy="0.0002587110096499397" izz="0.00045810567708333763" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_tool_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_tool_printed.stl" />
+      </geometry>
+      <material name="right_tool_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="right_tool_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_tool_servo.stl" />
+      </geometry>
+      <material name="right_tool_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_wrist_roll_joint" type="revolute">
+    <parent link="right_wrist_pitch_link" />
+    <child link="right_gripper_frame" />
+    <origin xyz="-0.00152720656655 -0.05705 0" rpy="0 1.57079632679 -0" />
+    <axis xyz="0 -1 0" />
+    <limit lower="-2.743847" upper="2.841206" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_base_link">
+    <inertial>
+      <origin xyz="0 -0.0251 0.036" rpy="0 0 0" />
+      <mass value="0.15" />
+      <inertia ixx="0.00017014049999999954" iyy="0.00021860444531249948" izz="0.0002591449453125" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_base_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_base_printed.stl" />
+      </geometry>
+      <material name="left_base_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="left_base_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_base_servo.stl" />
+      </geometry>
+      <material name="left_base_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_base_link_fixed" type="fixed">
+    <parent link="base_link" />
+    <child link="left_base_link" />
+    <origin xyz="-0.12002511939 0.151030792567 0.331102994851" rpy="-7.33800009645e-09 5.55160004634e-08 -3.14158898038" />
+  </joint>
+  <link name="left_shoulder_yaw_link">
+    <inertial>
+      <origin xyz="0.00123920281232 0.0573558519539 0.0194" rpy="0 0 0" />
+      <mass value="0.22" />
+      <inertia ixx="0.0002962057395107768" iyy="0.00012792029737945213" izz="0.0002795185702235623" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_yaw_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_yaw_printed.stl" />
+      </geometry>
+      <material name="left_yaw_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="left_yaw_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_yaw_servo.stl" />
+      </geometry>
+      <material name="left_yaw_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_shoulder_yaw_joint" type="revolute">
+    <parent link="left_base_link" />
+    <child link="left_shoulder_yaw_link" />
+    <origin xyz="0 -0.0452 0.0165" rpy="1.57079632679 -0 0" />
+    <axis xyz="0 1 0" />
+    <limit lower="-2.16" upper="2.16" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_upper_arm_link">
+    <inertial>
+      <origin xyz="0.00195 0.0841004695883 0.0129808519539" rpy="0 0 0" />
+      <mass value="0.22" />
+      <inertia ixx="0.0007231334155245809" iyy="0.00012935136279463658" izz="0.0007598560193966111" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_upper_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_upper_printed.stl" />
+      </geometry>
+      <material name="left_upper_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="left_upper_carbon">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_upper_carbon.stl" />
+      </geometry>
+      <material name="left_upper_carbon_color">
+        <color rgba="0.06 0.07 0.08 1" />
+      </material>
+    </visual>
+    <visual name="left_upper_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_upper_servo.stl" />
+      </geometry>
+      <material name="left_upper_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_shoulder_pitch_joint" type="revolute">
+    <parent link="left_shoulder_yaw_link" />
+    <child link="left_upper_arm_link" />
+    <origin xyz="0 0.1025 0.0306" rpy="1.57079632679 -0 0" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-0.22" upper="3.37" effort="4.41" velocity="4.245" />
+  </joint>
+  <link name="left_lower_arm_link">
+    <inertial>
+      <origin xyz="-0.002 -0.00344990505741 0.091518878572" rpy="0 0 0" />
+      <mass value="0.22" />
+      <inertia ixx="0.0008104186854568022" iyy="0.0008614910257041241" izz="0.00010099752641934489" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_lower_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_lower_printed.stl" />
+      </geometry>
+      <material name="left_lower_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="left_lower_carbon">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_lower_carbon.stl" />
+      </geometry>
+      <material name="left_lower_carbon_color">
+        <color rgba="0.06 0.07 0.08 1" />
+      </material>
+    </visual>
+    <visual name="left_lower_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_lower_servo.stl" />
+      </geometry>
+      <material name="left_lower_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_elbow_pitch_joint" type="revolute">
+    <parent link="left_upper_arm_link" />
+    <child link="left_lower_arm_link" />
+    <origin xyz="0 0.16257 0.028" rpy="1.57079632679 -0 3.14159265359" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-0.22" upper="3.14" effort="4.41" velocity="4.245" />
+  </joint>
+  <link name="left_wrist_pitch_link">
+    <inertial>
+      <origin xyz="-0.00476945523714 -0.0269142872585 -0.00217827154742" rpy="0 0 0" />
+      <mass value="0.22" />
+      <inertia ixx="0.00013434145937293716" iyy="9.77735866909514e-05" izz="0.00018553165865841376" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_wrist_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_wrist_printed.stl" />
+      </geometry>
+      <material name="left_wrist_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="left_wrist_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_wrist_servo.stl" />
+      </geometry>
+      <material name="left_wrist_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_wrist_pitch_joint" type="revolute">
+    <parent link="left_lower_arm_link" />
+    <child link="left_wrist_pitch_link" />
+    <origin xyz="0 -0.0052 0.1849" rpy="-1.57079632679 -0 0" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.658063" upper="1.658063" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_gripper_frame">
+    <inertial>
+      <origin xyz="0.01445 -0.068875 -6.93889390391e-18" rpy="0 0 0" />
+      <mass value="0.25" />
+      <inertia ixx="0.0005912329367332771" iyy="0.0002587110096499397" izz="0.00045810567708333763" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_tool_printed">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_tool_printed.stl" />
+      </geometry>
+      <material name="left_tool_printed_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+    <visual name="left_tool_servo">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_tool_servo.stl" />
+      </geometry>
+      <material name="left_tool_servo_color">
+        <color rgba="0.1 0.12 0.15 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_wrist_roll_joint" type="revolute">
+    <parent link="left_wrist_pitch_link" />
+    <child link="left_gripper_frame" />
+    <origin xyz="-0.00152720656655 -0.05705 0" rpy="0 1.57079632679 -0" />
+    <axis xyz="0 -1 0" />
+    <limit lower="-2.743847" upper="2.841206" effort="2.65" velocity="4.245" />
+  </joint>
 </robot>

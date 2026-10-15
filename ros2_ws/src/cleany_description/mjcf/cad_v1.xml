@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mujoco model="cleany">
+  <!--Exact CAD visual export; estimated dynamics. PincOpen v1.0 CC BY-SA 4.0 Pollen Robotics; XLeRobot head Apache-2.0. Use cad_home keyframe for the saved CAD folded pose.-->
   <compiler angle="radian" meshdir="../meshes/" autolimits="true" />
   <option timestep=".002" integrator="implicitfast" iterations="100" />
   <size njmax="6000" nconmax="2000" />
@@ -15,10 +16,38 @@
     <mesh name="cad_chassis_mounts" file="cad_v1/chassis_mounts.stl" />
     <mesh name="cad_front_left_wheel" file="cad_v1/front_left_wheel.stl" />
     <mesh name="cad_front_right_wheel" file="cad_v1/front_right_wheel.stl" />
+    <mesh name="cad_left_base_printed" file="cad_v1/left_base_printed.stl" />
+    <mesh name="cad_left_base_servo" file="cad_v1/left_base_servo.stl" />
+    <mesh name="cad_left_lower_carbon" file="cad_v1/left_lower_carbon.stl" />
+    <mesh name="cad_left_lower_printed" file="cad_v1/left_lower_printed.stl" />
+    <mesh name="cad_left_lower_servo" file="cad_v1/left_lower_servo.stl" />
+    <mesh name="cad_left_tool_printed" file="cad_v1/left_tool_printed.stl" />
+    <mesh name="cad_left_tool_servo" file="cad_v1/left_tool_servo.stl" />
+    <mesh name="cad_left_upper_carbon" file="cad_v1/left_upper_carbon.stl" />
+    <mesh name="cad_left_upper_printed" file="cad_v1/left_upper_printed.stl" />
+    <mesh name="cad_left_upper_servo" file="cad_v1/left_upper_servo.stl" />
+    <mesh name="cad_left_wrist_printed" file="cad_v1/left_wrist_printed.stl" />
+    <mesh name="cad_left_wrist_servo" file="cad_v1/left_wrist_servo.stl" />
+    <mesh name="cad_left_yaw_printed" file="cad_v1/left_yaw_printed.stl" />
+    <mesh name="cad_left_yaw_servo" file="cad_v1/left_yaw_servo.stl" />
     <mesh name="cad_pg42_brackets" file="cad_v1/pg42_brackets.stl" />
     <mesh name="cad_pg42_motors" file="cad_v1/pg42_motors.stl" />
     <mesh name="cad_rear_left_wheel" file="cad_v1/rear_left_wheel.stl" />
     <mesh name="cad_rear_right_wheel" file="cad_v1/rear_right_wheel.stl" />
+    <mesh name="cad_right_base_printed" file="cad_v1/right_base_printed.stl" />
+    <mesh name="cad_right_base_servo" file="cad_v1/right_base_servo.stl" />
+    <mesh name="cad_right_lower_carbon" file="cad_v1/right_lower_carbon.stl" />
+    <mesh name="cad_right_lower_printed" file="cad_v1/right_lower_printed.stl" />
+    <mesh name="cad_right_lower_servo" file="cad_v1/right_lower_servo.stl" />
+    <mesh name="cad_right_tool_printed" file="cad_v1/right_tool_printed.stl" />
+    <mesh name="cad_right_tool_servo" file="cad_v1/right_tool_servo.stl" />
+    <mesh name="cad_right_upper_carbon" file="cad_v1/right_upper_carbon.stl" />
+    <mesh name="cad_right_upper_printed" file="cad_v1/right_upper_printed.stl" />
+    <mesh name="cad_right_upper_servo" file="cad_v1/right_upper_servo.stl" />
+    <mesh name="cad_right_wrist_printed" file="cad_v1/right_wrist_printed.stl" />
+    <mesh name="cad_right_wrist_servo" file="cad_v1/right_wrist_servo.stl" />
+    <mesh name="cad_right_yaw_printed" file="cad_v1/right_yaw_printed.stl" />
+    <mesh name="cad_right_yaw_servo" file="cad_v1/right_yaw_servo.stl" />
   </asset>
   <default>
     <geom friction="0.8 0.005 0.0001" solref=".01 1" />
@@ -262,6 +291,80 @@
           </body>
         </body>
       </body>
+      <body name="right_base_link" pos="-0.12002401005 -0.150978005025 0.331102992634" quat="0.999999999998 3.66905102863e-09 -2.77579934932e-08 1.83660255139e-06">
+        <inertial mass="0.15" pos="0 -0.0251 0.036" fullinertia="0.0001701405 0.000218604445312 0.000259144945312 0 0 0" />
+        <geom name="right_base_printed_visual" type="mesh" mesh="cad_right_base_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="right_base_servo_visual" type="mesh" mesh="cad_right_base_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="right_shoulder_yaw_link" pos="0 -0.0452 0.0165" quat="0.707106781187 0.707106781187 0 0">
+          <joint name="right_shoulder_yaw_joint" type="hinge" axis="0 1 0" range="-2.16 2.16" />
+          <inertial mass="0.22" pos="0.00123920281232 0.0573558519539 0.0194" fullinertia="0.000296205739511 0.000127920297379 0.000279518570224 0 0 0" />
+          <geom name="right_yaw_printed_visual" type="mesh" mesh="cad_right_yaw_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="right_yaw_servo_visual" type="mesh" mesh="cad_right_yaw_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+          <body name="right_upper_arm_link" pos="0 0.1025 0.0306" quat="0.707106781187 0.707106781187 0 0">
+            <joint name="right_shoulder_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.37" />
+            <inertial mass="0.22" pos="0.00195 0.0841004695883 0.0129808519539" fullinertia="0.000723133415525 0.000129351362795 0.000759856019397 0 0 0" />
+            <geom name="right_upper_printed_visual" type="mesh" mesh="cad_right_upper_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="right_upper_carbon_visual" type="mesh" mesh="cad_right_upper_carbon" rgba="0.06 0.07 0.08 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="right_upper_servo_visual" type="mesh" mesh="cad_right_upper_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+            <body name="right_lower_arm_link" pos="0 0.16257 0.028" quat="0 0 0.707106781187 0.707106781187">
+              <joint name="right_elbow_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.14" />
+              <inertial mass="0.22" pos="-0.002 -0.00344990505741 0.091518878572" fullinertia="0.000810418685457 0.000861491025704 0.000100997526419 0 0 0" />
+              <geom name="right_lower_printed_visual" type="mesh" mesh="cad_right_lower_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="right_lower_carbon_visual" type="mesh" mesh="cad_right_lower_carbon" rgba="0.06 0.07 0.08 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="right_lower_servo_visual" type="mesh" mesh="cad_right_lower_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+              <body name="right_wrist_pitch_link" pos="0 -0.0052 0.1849" quat="0.707106781187 -0.707106781187 0 0">
+                <joint name="right_wrist_pitch_joint" type="hinge" axis="1 0 0" range="-1.658063 1.658063" />
+                <inertial mass="0.22" pos="-0.00476945523714 -0.0269142872585 -0.00217827154742" fullinertia="0.000134341459373 9.7773586691e-05 0.000185531658658 0 0 0" />
+                <geom name="right_wrist_printed_visual" type="mesh" mesh="cad_right_wrist_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                <geom name="right_wrist_servo_visual" type="mesh" mesh="cad_right_wrist_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+                <body name="right_gripper_frame" pos="-0.00152720656655 -0.05705 0" quat="0.707106781187 0 0.707106781187 0">
+                  <joint name="right_wrist_roll_joint" type="hinge" axis="0 -1 0" range="-2.743847 2.841206" />
+                  <inertial mass="0.25" pos="0.01445 -0.068875 -6.93889390391e-18" fullinertia="0.000591232936733 0.00025871100965 0.000458105677083 0 0 0" />
+                  <geom name="right_tool_printed_visual" type="mesh" mesh="cad_right_tool_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                  <geom name="right_tool_servo_visual" type="mesh" mesh="cad_right_tool_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="left_base_link" pos="-0.12002511939 0.151030792567 0.331102994851" quat="-1.83660255161e-06 -2.77579934932e-08 -3.66905102863e-09 0.999999999998">
+        <inertial mass="0.15" pos="0 -0.0251 0.036" fullinertia="0.0001701405 0.000218604445312 0.000259144945312 0 0 0" />
+        <geom name="left_base_printed_visual" type="mesh" mesh="cad_left_base_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="left_base_servo_visual" type="mesh" mesh="cad_left_base_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="left_shoulder_yaw_link" pos="0 -0.0452 0.0165" quat="0.707106781187 0.707106781187 0 0">
+          <joint name="left_shoulder_yaw_joint" type="hinge" axis="0 1 0" range="-2.16 2.16" />
+          <inertial mass="0.22" pos="0.00123920281232 0.0573558519539 0.0194" fullinertia="0.000296205739511 0.000127920297379 0.000279518570224 0 0 0" />
+          <geom name="left_yaw_printed_visual" type="mesh" mesh="cad_left_yaw_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="left_yaw_servo_visual" type="mesh" mesh="cad_left_yaw_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+          <body name="left_upper_arm_link" pos="0 0.1025 0.0306" quat="0.707106781187 0.707106781187 0 0">
+            <joint name="left_shoulder_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.37" />
+            <inertial mass="0.22" pos="0.00195 0.0841004695883 0.0129808519539" fullinertia="0.000723133415525 0.000129351362795 0.000759856019397 0 0 0" />
+            <geom name="left_upper_printed_visual" type="mesh" mesh="cad_left_upper_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="left_upper_carbon_visual" type="mesh" mesh="cad_left_upper_carbon" rgba="0.06 0.07 0.08 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="left_upper_servo_visual" type="mesh" mesh="cad_left_upper_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+            <body name="left_lower_arm_link" pos="0 0.16257 0.028" quat="0 0 0.707106781187 0.707106781187">
+              <joint name="left_elbow_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.14" />
+              <inertial mass="0.22" pos="-0.002 -0.00344990505741 0.091518878572" fullinertia="0.000810418685457 0.000861491025704 0.000100997526419 0 0 0" />
+              <geom name="left_lower_printed_visual" type="mesh" mesh="cad_left_lower_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="left_lower_carbon_visual" type="mesh" mesh="cad_left_lower_carbon" rgba="0.06 0.07 0.08 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="left_lower_servo_visual" type="mesh" mesh="cad_left_lower_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+              <body name="left_wrist_pitch_link" pos="0 -0.0052 0.1849" quat="0.707106781187 -0.707106781187 0 0">
+                <joint name="left_wrist_pitch_joint" type="hinge" axis="1 0 0" range="-1.658063 1.658063" />
+                <inertial mass="0.22" pos="-0.00476945523714 -0.0269142872585 -0.00217827154742" fullinertia="0.000134341459373 9.7773586691e-05 0.000185531658658 0 0 0" />
+                <geom name="left_wrist_printed_visual" type="mesh" mesh="cad_left_wrist_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                <geom name="left_wrist_servo_visual" type="mesh" mesh="cad_left_wrist_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+                <body name="left_gripper_frame" pos="-0.00152720656655 -0.05705 0" quat="0.707106781187 0 0.707106781187 0">
+                  <joint name="left_wrist_roll_joint" type="hinge" axis="0 -1 0" range="-2.743847 2.841206" />
+                  <inertial mass="0.25" pos="0.01445 -0.068875 -6.93889390391e-18" fullinertia="0.000591232936733 0.00025871100965 0.000458105677083 0 0 0" />
+                  <geom name="left_tool_printed_visual" type="mesh" mesh="cad_left_tool_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                  <geom name="left_tool_servo_visual" type="mesh" mesh="cad_left_tool_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
     </body>
   </worldbody>
   <actuator>
@@ -269,5 +372,18 @@
     <dcmotor class="pg42_drive" name="front_right_drive" joint="front_right_wheel_joint" />
     <dcmotor class="pg42_drive" name="rear_left_drive" joint="rear_left_wheel_joint" />
     <dcmotor class="pg42_drive" name="rear_right_drive" joint="rear_right_wheel_joint" />
+    <position name="right_shoulder_yaw_joint" joint="right_shoulder_yaw_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.16 2.16" />
+    <position name="right_shoulder_pitch_joint" joint="right_shoulder_pitch_joint" kp="40" kv="2" forcerange="-4.41 4.41" ctrlrange="-0.22 3.37" />
+    <position name="right_elbow_pitch_joint" joint="right_elbow_pitch_joint" kp="40" kv="2" forcerange="-4.41 4.41" ctrlrange="-0.22 3.14" />
+    <position name="right_wrist_pitch_joint" joint="right_wrist_pitch_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-1.658063 1.658063" />
+    <position name="right_wrist_roll_joint" joint="right_wrist_roll_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.743847 2.841206" />
+    <position name="left_shoulder_yaw_joint" joint="left_shoulder_yaw_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.16 2.16" />
+    <position name="left_shoulder_pitch_joint" joint="left_shoulder_pitch_joint" kp="40" kv="2" forcerange="-4.41 4.41" ctrlrange="-0.22 3.37" />
+    <position name="left_elbow_pitch_joint" joint="left_elbow_pitch_joint" kp="40" kv="2" forcerange="-4.41 4.41" ctrlrange="-0.22 3.14" />
+    <position name="left_wrist_pitch_joint" joint="left_wrist_pitch_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-1.658063 1.658063" />
+    <position name="left_wrist_roll_joint" joint="left_wrist_roll_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.743847 2.841206" />
   </actuator>
+  <keyframe>
+    <key name="cad_home" qpos="0 0 0.38 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 3.13984732434 3.13984732434 0 0" ctrl="0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 3.13984732434 3.13984732434 0 0" />
+  </keyframe>
 </mujoco>
