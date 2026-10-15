@@ -1,74 +1,397 @@
+<?xml version='1.0' encoding='utf-8'?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="cleany_head_mount">
-    <link name="top_base_link">
-      <xacro:cleany_link_properties link_name="top_base_link" />
-    </link>
-    <joint name="top_base_joint" type="fixed">
-      <parent link="base_link" />
-      <child link="top_base_link" />
-      <origin xyz="0 0 0.35" rpy="0 0 3.14159265359" />
-    </joint>
-  </xacro:macro>
+  <!--Nominal sensor geometry, not hardware calibration. Wrist camera: 1280x720, assumed 100-degree diagonal rectilinear FOV gives 60.5929758627-degree vertical FOV. Head RGB/depth vertical FOV 42/40 degrees. CAD head optical +Z points along base -X at zero pan; no 180-degree front normalization was applied. Existing runtime camera extrinsics and intrinsics must match this model before perception use.-->
+  <!--SO-101 reference parts: TheRobotStudio/SO-ARM100 commit a758567c3978dfeefe282ede0500085a48fe8f78, https://github.com/TheRobotStudio/SO-ARM100 ; Apache-2.0. Modified by rigid CAD registration, attachment adaptation and tessellation. Apache-2.0 license copy for these parts and the XLeRobot head follows.
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+  <!--CAD source Cleany.FCStd SHA256 5fe6b78e2eb0ef183e66631eb8aef31503eb8f0b0c5902d9955affd8a7aef82e. Export units: metres and radians; visual tessellation 0.12 mm. Saved CAD folded pose is cad_home in cad_v1.xml. Public left/right follows REP-103 base +Y/-Y; CAD internal RightArm is ROS left. Positive gripper angle opens: 0 to pi/3 corresponds to source cam 0 to -60 degrees. Passive linkage joints require measured/simulated states; URDF mimic does not represent these nonlinear closed loops.-->
+  <!--PincOpen v1.0 derived meshes: Pollen Robotics, https://github.com/pollen-robotics/PincOpen/tree/v1.0, CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ . Adaptations: rigid SO-101 attachment and CAD tessellation; derived PincOpen geometry remains CC BY-SA 4.0. XLeRobot RGBD gimbal: https://github.com/Vector-Wangel/XLeRobot/tree/137865981ca9e828d0923804cf77ededd22c7816 , Apache-2.0 https://www.apache.org/licenses/LICENSE-2.0 . Other geometry: supplied Cleany CAD and its retained component provenance.-->
   <xacro:macro name="cleany_head_camera">
     <link name="head_pan_link">
-      <xacro:cleany_link_properties link_name="head_pan_link" />
+      <inertial>
+        <origin xyz="-0.0129473641481 -0.000349406990187 0.0165405579454" rpy="0 0 0" />
+        <mass value="0.08198923533545688" />
+        <inertia ixx="2.9474748310205463e-05" iyy="3.73458313873737e-05" izz="2.4308841704523983e-05" ixy="-1.4480581314982175e-07" ixz="5.512664090654822e-06" iyz="1.9004041216953387e-07" />
+      </inertial>
+      <visual name="head_pan_plastic">
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_v1/head_pan_plastic.stl" />
+        </geometry>
+        <material name="head_pan_plastic_color">
+          <color rgba="0.25 0.43 0.62 1" />
+        </material>
+      </visual>
+      <visual name="head_pan_hardware">
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_v1/head_pan_hardware.stl" />
+        </geometry>
+        <material name="head_pan_hardware_color">
+          <color rgba="0.73 0.76 0.8 1" />
+        </material>
+      </visual>
+      <visual name="head_pan_servo">
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_v1/head_pan_servo.stl" />
+        </geometry>
+        <material name="head_pan_servo_color">
+          <color rgba="0.13 0.15 0.17 1" />
+        </material>
+      </visual>
+      <collision name="head_pan_plastic_collision_0">
+        <origin xyz="-0.0131 2.72351585728e-16 0.0185" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0540000002 0.0480000002 0.0390000002" />
+        </geometry>
+      </collision>
+      <collision name="head_pan_hardware_collision_0">
+        <origin xyz="-6.68735899989e-16 -3.86843335143e-16 -0.00225000005" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0192 0.0192 0.0045000001" />
+        </geometry>
+      </collision>
+      <collision name="head_pan_hardware_collision_1">
+        <origin xyz="-6.67868538251e-16 5.55978874051e-16 -0.035575" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0192 0.0192 0.00335" />
+        </geometry>
+      </collision>
+      <collision name="head_pan_servo_collision_0">
+        <origin xyz="-0.01249000005 0.01154999995 0.023375" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0452200001 0.0141000001 0.0247200002" />
+        </geometry>
+      </collision>
+      <collision name="head_pan_servo_collision_1">
+        <origin xyz="-0.01249 -0.01225000005 0.023375" rpy="0 0 0" />
+        <geometry>
+          <box size="0.045 0.0097000001 0.0245" />
+        </geometry>
+      </collision>
+      <collision name="head_pan_servo_collision_2">
+        <origin xyz="-0.01249 -0.00144999995 0.023375" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0452234080154 0.0139000001 0.0247234080154" />
+        </geometry>
+      </collision>
     </link>
     <joint name="head_pan_joint" type="revolute">
       <parent link="top_base_link" />
       <child link="head_pan_link" />
-      <origin xyz="-0.103 0 0.323" rpy="0 0 0" />
+      <origin xyz="-0.213473591202 0.0061 1.1169" rpy="0 -0 0" />
       <axis xyz="0 0 1" />
-      <limit lower="-3.2" upper="3.2" effort="2.6477955" velocity="4.245" />
+      <limit lower="-1.5707963267948966" upper="1.5707963267948966" effort="2.65" velocity="4.245" />
     </joint>
     <link name="head_tilt_link">
-      <xacro:cleany_link_properties link_name="head_tilt_link" />
+      <inertial>
+        <origin xyz="0.0178340806343 0.000586000970593 0.0272607476443" rpy="0 0 0" />
+        <mass value="0.09733350074312185" />
+        <inertia ixx="6.490829618191402e-05" iyy="2.805779778289544e-05" izz="6.1826754283207e-05" ixy="-1.8882122207337942e-07" ixz="-8.626047923372241e-06" iyz="-1.0352075880505402e-06" />
+      </inertial>
+      <visual name="head_tilt_plastic">
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_v1/head_tilt_plastic.stl" />
+        </geometry>
+        <material name="head_tilt_plastic_color">
+          <color rgba="0.25 0.43 0.62 1" />
+        </material>
+      </visual>
+      <visual name="head_tilt_camera">
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_v1/head_tilt_camera.stl" />
+        </geometry>
+        <material name="head_tilt_camera_color">
+          <color rgba="0.7 0.73 0.76 1" />
+        </material>
+      </visual>
+      <visual name="head_tilt_window">
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_v1/head_tilt_window.stl" />
+        </geometry>
+        <material name="head_tilt_window_color">
+          <color rgba="0.035 0.05 0.07 1" />
+        </material>
+      </visual>
+      <visual name="head_tilt_hardware">
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/cad_v1/head_tilt_hardware.stl" />
+        </geometry>
+        <material name="head_tilt_hardware_color">
+          <color rgba="0.73 0.76 0.8 1" />
+        </material>
+      </visual>
+      <collision name="head_tilt_plastic_collision_0">
+        <origin xyz="-1.26634813746e-16 2.77555756156e-16 0.0144482924106" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0210000002 0.0664000002 0.0498965850212" />
+        </geometry>
+      </collision>
+      <collision name="head_tilt_camera_collision_0">
+        <origin xyz="0.0230249997526 4.75969937561e-05 0.0323960574743" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0250500006995 0.0899045062122 0.0249999590403" />
+        </geometry>
+      </collision>
+      <collision name="head_tilt_hardware_collision_0">
+        <origin xyz="-5.55111512313e-17 -0.01634999995 9.54965273525e-16" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0192 0.0045000001 0.0192" />
+        </geometry>
+      </collision>
+      <collision name="head_tilt_hardware_collision_1">
+        <origin xyz="-5.63785129692e-17 0.016975 -1.12757025938e-17" rpy="0 0 0" />
+        <geometry>
+          <box size="0.0192 0.00335 0.0192" />
+        </geometry>
+      </collision>
+      <collision name="head_tilt_hardware_collision_2">
+        <origin xyz="0.00899999999999 0.0225 0.0323960780544" rpy="0 0 0" />
+        <geometry>
+          <box size="0.011 0.0055000002 0.0055000002" />
+        </geometry>
+      </collision>
+      <collision name="head_tilt_hardware_collision_3">
+        <origin xyz="0.00899999999999 -0.0225 0.0323960780544" rpy="0 0 0" />
+        <geometry>
+          <box size="0.011 0.0055000002 0.0055000002" />
+        </geometry>
+      </collision>
     </link>
     <joint name="head_tilt_joint" type="revolute">
       <parent link="head_pan_link" />
       <child link="head_tilt_link" />
-      <origin xyz="0.001 0.002 0.09815" rpy="0 0 3.14159265359" />
+      <origin xyz="1e-05 -0.0006 0.023375" rpy="0 -0 0" />
       <axis xyz="0 1 0" />
-      <limit lower="-0.76" upper="1.45" effort="2.6477955" velocity="4.245" />
+      <limit lower="-0.7853981633974483" upper="0.7853981633974483" effort="2.65" velocity="4.245" />
     </joint>
-    <link name="head_camera_link">
-      <xacro:cleany_link_properties link_name="head_camera_link" />
-    </link>
-    <joint name="head_camera_joint" type="fixed">
+    <link name="head_camera_link" />
+    <joint name="head_camera_link_fixed" type="fixed">
       <parent link="head_tilt_link" />
       <child link="head_camera_link" />
-      <origin xyz="0.025 0 0.03" rpy="0 0 0" />
+      <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="2.22044604925e-16 1.11022302463e-16 2.22044604925e-16" />
     </joint>
-    <link name="head_camera_rgb_frame">
-      <xacro:cleany_link_properties link_name="head_camera_rgb_frame" />
-    </link>
-    <joint name="head_camera_rgb_joint" type="fixed">
-      <parent link="head_camera_link" />
+    <link name="head_camera_rgb_frame" />
+    <joint name="head_camera_rgb_frame_fixed" type="fixed">
+      <parent link="head_tilt_link" />
       <child link="head_camera_rgb_frame" />
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="2.22044604925e-16 1.11022302463e-16 2.22044604925e-16" />
     </joint>
-    <link name="head_camera_rgb_optical_frame">
-      <xacro:cleany_link_properties link_name="head_camera_rgb_optical_frame" />
-    </link>
-    <joint name="head_camera_rgb_optical_joint" type="fixed">
-      <parent link="head_camera_rgb_frame" />
-      <child link="head_camera_rgb_optical_frame" />
-      <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679" />
-    </joint>
-    <link name="head_camera_depth_frame">
-      <xacro:cleany_link_properties link_name="head_camera_depth_frame" />
-    </link>
-    <joint name="head_camera_depth_joint" type="fixed">
-      <parent link="head_camera_link" />
+    <link name="head_camera_depth_frame" />
+    <joint name="head_camera_depth_frame_fixed" type="fixed">
+      <parent link="head_tilt_link" />
       <child link="head_camera_depth_frame" />
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="2.22044604925e-16 1.11022302463e-16 2.22044604925e-16" />
     </joint>
-    <link name="head_camera_depth_optical_frame">
-      <xacro:cleany_link_properties link_name="head_camera_depth_optical_frame" />
-    </link>
-    <joint name="head_camera_depth_optical_joint" type="fixed">
-      <parent link="head_camera_depth_frame" />
+    <link name="head_camera_rgb_optical_frame" />
+    <joint name="head_camera_rgb_optical_frame_fixed" type="fixed">
+      <parent link="head_tilt_link" />
+      <child link="head_camera_rgb_optical_frame" />
+      <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="-1.57079632679 1.57009245868e-16 -1.57079632679" />
+    </joint>
+    <link name="head_camera_depth_optical_frame" />
+    <joint name="head_camera_depth_optical_frame_fixed" type="fixed">
+      <parent link="head_tilt_link" />
       <child link="head_camera_depth_optical_frame" />
-      <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679" />
+      <origin xyz="0.0355500000024 -1.86517468137e-17 0.0323960780542" rpy="-1.57079632679 1.57009245868e-16 -1.57079632679" />
     </joint>
   </xacro:macro>
 </robot>

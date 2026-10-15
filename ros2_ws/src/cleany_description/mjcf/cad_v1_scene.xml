@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<mujoco model="cleany_cad_v1_floor">
+  <!-- MuJoCo 3.7. Reset to keyframe cad_home for the saved folded CAD pose.
+       Gripper joint 0 = closed, pi/3 = open; the cam physically rotates -Z.
+       The nonlinear passive linkage is solved by the included equality constraints. -->
+  <include file="cad_v1.xml"/>
+  <visual>
+    <global offwidth="1280" offheight="960"/>
+  </visual>
+  <worldbody>
+    <light name="key_light" pos="0 -1 3" dir="0 0 -1" diffuse=".7 .7 .7"/>
+    <geom name="floor" type="plane" size="5 5 .1" rgba=".22 .24 .27 1"/>
+    <camera name="overview" pos="-2.0 -2.0 1.7" xyaxes=".707107 -.707107 0 .235702 .235702 .942809"/>
+  </worldbody>
+</mujoco>

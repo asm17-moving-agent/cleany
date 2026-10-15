@@ -1,0 +1,1233 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="cleany">
+  <!--Nominal sensor geometry, not hardware calibration. Wrist camera: 1280x720, assumed 100-degree diagonal rectilinear FOV gives 60.5929758627-degree vertical FOV. Head RGB/depth vertical FOV 42/40 degrees. CAD head optical +Z points along base -X at zero pan; no 180-degree front normalization was applied. Existing runtime camera extrinsics and intrinsics must match this model before perception use.-->
+  <!--SO-101 reference parts: TheRobotStudio/SO-ARM100 commit a758567c3978dfeefe282ede0500085a48fe8f78, https://github.com/TheRobotStudio/SO-ARM100 ; Apache-2.0. Modified by rigid CAD registration, attachment adaptation and tessellation. Apache-2.0 license copy for these parts and the XLeRobot head follows.
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+  <!--MuJoCo 3.4-compatible stationary arm-control model: wheel DC actuators removed; passive wheel/roller dynamics retained.-->
+  <!--CAD source Cleany.FCStd SHA256 5fe6b78e2eb0ef183e66631eb8aef31503eb8f0b0c5902d9955affd8a7aef82e. Export units: metres and radians; visual tessellation 0.12 mm. Saved CAD folded pose is cad_home in cad_v1.xml. Public left/right follows REP-103 base +Y/-Y; CAD internal RightArm is ROS left. Positive gripper angle opens: 0 to pi/3 corresponds to source cam 0 to -60 degrees. Passive linkage joints require measured/simulated states; URDF mimic does not represent these nonlinear closed loops.-->
+  <!--PincOpen v1.0 derived meshes: Pollen Robotics, https://github.com/pollen-robotics/PincOpen/tree/v1.0, CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ . Adaptations: rigid SO-101 attachment and CAD tessellation; derived PincOpen geometry remains CC BY-SA 4.0. XLeRobot RGBD gimbal: https://github.com/Vector-Wangel/XLeRobot/tree/137865981ca9e828d0923804cf77ededd22c7816 , Apache-2.0 https://www.apache.org/licenses/LICENSE-2.0 . Other geometry: supplied Cleany CAD and its retained component provenance.-->
+  <!--Estimated physics, not measured hardware: aluminum 2700 kg/m3; printed effective density 650 kg/m3; carbon 1550 kg/m3; steel 7800 kg/m3; mixed chassis mounts 1000 kg/m3; PG42 0.8 kg each; servo group 0.055 kg; D435 0.072 kg; RPLIDAR 0.17 kg. Total modeled mass 12.7186578946 kg. No unmodeled battery/payload. Collision uses tight per-solid envelopes and convex decomposition, not the high-resolution visuals. Internal slot envelope exclusions are limited to named PincOpen pairs. Mass and inertias for each URDF rigid wheel combine the MJCF core and twelve passive rollers.-->
+  <compiler angle="radian" meshdir="../meshes/" autolimits="true" />
+  <option timestep=".002" integrator="implicitfast" iterations="100" />
+  <size njmax="6000" nconmax="2000" />
+  <asset>
+    <material name="white" rgba="0.3 0.3 0.3 1" specular="0.1" shininess="0.1" />
+    <material name="grey" rgba="0.5 0.5 0.5 1" specular="0.1" shininess="0.1" />
+    <material name="blue" rgba="0.15 0.25 0.5 1" specular="0.1" shininess="0.1" />
+    <material name="motor" rgba="0.1 0.1 0.1 1" specular="0.1" shininess="0.1" />
+    <material name="carbon" rgba="0.015 0.018 0.02 1" specular="0.3" shininess="0.6" />
+    <material name="wheel_plate" rgba="0.62 0.64 0.68 1" specular="0.35" shininess="0.45" />
+    <material name="wheel_roller" rgba="0.06 0.06 0.07 1" specular="0.05" shininess="0.1" />
+    <mesh name="cad_chassis_frame" file="cad_v1/chassis_frame.stl" />
+    <mesh name="cad_chassis_mounts" file="cad_v1/chassis_mounts.stl" />
+    <mesh name="cad_front_left_wheel" file="cad_v1/front_left_wheel.stl" />
+    <mesh name="cad_front_right_wheel" file="cad_v1/front_right_wheel.stl" />
+    <mesh name="cad_head_base_plastic" file="cad_v1/head_base_plastic.stl" />
+    <mesh name="cad_head_base_servo" file="cad_v1/head_base_servo.stl" />
+    <mesh name="cad_head_pan_hardware" file="cad_v1/head_pan_hardware.stl" />
+    <mesh name="cad_head_pan_plastic" file="cad_v1/head_pan_plastic.stl" />
+    <mesh name="cad_head_pan_servo" file="cad_v1/head_pan_servo.stl" />
+    <mesh name="cad_head_tilt_camera" file="cad_v1/head_tilt_camera.stl" />
+    <mesh name="cad_head_tilt_hardware" file="cad_v1/head_tilt_hardware.stl" />
+    <mesh name="cad_head_tilt_plastic" file="cad_v1/head_tilt_plastic.stl" />
+    <mesh name="cad_head_tilt_window" file="cad_v1/head_tilt_window.stl" />
+    <mesh name="cad_imuboardbolts" file="cad_v1/imuboardbolts.stl" />
+    <mesh name="cad_imuboardnuts" file="cad_v1/imuboardnuts.stl" />
+    <mesh name="cad_imuchip" file="cad_v1/imuchip.stl" />
+    <mesh name="cad_imuheader" file="cad_v1/imuheader.stl" />
+    <mesh name="cad_imumount" file="cad_v1/imumount.stl" />
+    <mesh name="cad_imupcb" file="cad_v1/imupcb.stl" />
+    <mesh name="cad_imuprofilebolts" file="cad_v1/imuprofilebolts.stl" />
+    <mesh name="cad_left_base_printed" file="cad_v1/left_base_printed.stl" />
+    <mesh name="cad_left_base_servo" file="cad_v1/left_base_servo.stl" />
+    <mesh name="cad_left_cam" file="cad_v1/left_cam.stl" />
+    <mesh name="cad_left_camera_hardware" file="cad_v1/left_camera_hardware.stl" />
+    <mesh name="cad_left_camera_mount" file="cad_v1/left_camera_mount.stl" />
+    <mesh name="cad_left_camera_optics" file="cad_v1/left_camera_optics.stl" />
+    <mesh name="cad_left_camera_pcb" file="cad_v1/left_camera_pcb.stl" />
+    <mesh name="cad_left_finger_1_distal" file="cad_v1/left_finger_1_distal.stl" />
+    <mesh name="cad_left_finger_1_driving" file="cad_v1/left_finger_1_driving.stl" />
+    <mesh name="cad_left_finger_1_external" file="cad_v1/left_finger_1_external.stl" />
+    <mesh name="cad_left_finger_1_internal" file="cad_v1/left_finger_1_internal.stl" />
+    <mesh name="cad_left_finger_2_distal" file="cad_v1/left_finger_2_distal.stl" />
+    <mesh name="cad_left_finger_2_driving" file="cad_v1/left_finger_2_driving.stl" />
+    <mesh name="cad_left_finger_2_external" file="cad_v1/left_finger_2_external.stl" />
+    <mesh name="cad_left_finger_2_internal" file="cad_v1/left_finger_2_internal.stl" />
+    <mesh name="cad_left_lower_carbon" file="cad_v1/left_lower_carbon.stl" />
+    <mesh name="cad_left_lower_printed" file="cad_v1/left_lower_printed.stl" />
+    <mesh name="cad_left_lower_servo" file="cad_v1/left_lower_servo.stl" />
+    <mesh name="cad_left_palm" file="cad_v1/left_palm.stl" />
+    <mesh name="cad_left_upper_carbon" file="cad_v1/left_upper_carbon.stl" />
+    <mesh name="cad_left_upper_printed" file="cad_v1/left_upper_printed.stl" />
+    <mesh name="cad_left_upper_servo" file="cad_v1/left_upper_servo.stl" />
+    <mesh name="cad_left_wrist_printed" file="cad_v1/left_wrist_printed.stl" />
+    <mesh name="cad_left_wrist_servo" file="cad_v1/left_wrist_servo.stl" />
+    <mesh name="cad_left_yaw_printed" file="cad_v1/left_yaw_printed.stl" />
+    <mesh name="cad_left_yaw_servo" file="cad_v1/left_yaw_servo.stl" />
+    <mesh name="cad_lidarlowerbolts" file="cad_v1/lidarlowerbolts.stl" />
+    <mesh name="cad_lidarplate" file="cad_v1/lidarplate.stl" />
+    <mesh name="cad_lidarprofilebolts" file="cad_v1/lidarprofilebolts.stl" />
+    <mesh name="cad_lidarstandoffs" file="cad_v1/lidarstandoffs.stl" />
+    <mesh name="cad_pg42_brackets" file="cad_v1/pg42_brackets.stl" />
+    <mesh name="cad_pg42_motors" file="cad_v1/pg42_motors.stl" />
+    <mesh name="cad_rear_left_wheel" file="cad_v1/rear_left_wheel.stl" />
+    <mesh name="cad_rear_right_wheel" file="cad_v1/rear_right_wheel.stl" />
+    <mesh name="cad_right_base_printed" file="cad_v1/right_base_printed.stl" />
+    <mesh name="cad_right_base_servo" file="cad_v1/right_base_servo.stl" />
+    <mesh name="cad_right_cam" file="cad_v1/right_cam.stl" />
+    <mesh name="cad_right_camera_hardware" file="cad_v1/right_camera_hardware.stl" />
+    <mesh name="cad_right_camera_mount" file="cad_v1/right_camera_mount.stl" />
+    <mesh name="cad_right_camera_optics" file="cad_v1/right_camera_optics.stl" />
+    <mesh name="cad_right_camera_pcb" file="cad_v1/right_camera_pcb.stl" />
+    <mesh name="cad_right_finger_1_distal" file="cad_v1/right_finger_1_distal.stl" />
+    <mesh name="cad_right_finger_1_driving" file="cad_v1/right_finger_1_driving.stl" />
+    <mesh name="cad_right_finger_1_external" file="cad_v1/right_finger_1_external.stl" />
+    <mesh name="cad_right_finger_1_internal" file="cad_v1/right_finger_1_internal.stl" />
+    <mesh name="cad_right_finger_2_distal" file="cad_v1/right_finger_2_distal.stl" />
+    <mesh name="cad_right_finger_2_driving" file="cad_v1/right_finger_2_driving.stl" />
+    <mesh name="cad_right_finger_2_external" file="cad_v1/right_finger_2_external.stl" />
+    <mesh name="cad_right_finger_2_internal" file="cad_v1/right_finger_2_internal.stl" />
+    <mesh name="cad_right_lower_carbon" file="cad_v1/right_lower_carbon.stl" />
+    <mesh name="cad_right_lower_printed" file="cad_v1/right_lower_printed.stl" />
+    <mesh name="cad_right_lower_servo" file="cad_v1/right_lower_servo.stl" />
+    <mesh name="cad_right_palm" file="cad_v1/right_palm.stl" />
+    <mesh name="cad_right_upper_carbon" file="cad_v1/right_upper_carbon.stl" />
+    <mesh name="cad_right_upper_printed" file="cad_v1/right_upper_printed.stl" />
+    <mesh name="cad_right_upper_servo" file="cad_v1/right_upper_servo.stl" />
+    <mesh name="cad_right_wrist_printed" file="cad_v1/right_wrist_printed.stl" />
+    <mesh name="cad_right_wrist_servo" file="cad_v1/right_wrist_servo.stl" />
+    <mesh name="cad_right_yaw_printed" file="cad_v1/right_yaw_printed.stl" />
+    <mesh name="cad_right_yaw_servo" file="cad_v1/right_yaw_servo.stl" />
+    <mesh name="cad_rplidar_components" file="cad_v1/rplidar_components.stl" />
+    <mesh name="cad_rplidar_housing" file="cad_v1/rplidar_housing.stl" />
+    <mesh name="cad_rplidar_mechanism" file="cad_v1/rplidar_mechanism.stl" />
+    <mesh name="mast_collision_00" file="cad_v1/mast_collision_00.stl" />
+    <mesh name="mast_collision_01" file="cad_v1/mast_collision_01.stl" />
+    <mesh name="mast_collision_02" file="cad_v1/mast_collision_02.stl" />
+    <mesh name="mast_collision_03" file="cad_v1/mast_collision_03.stl" />
+    <mesh name="mast_collision_04" file="cad_v1/mast_collision_04.stl" />
+    <mesh name="mast_collision_05" file="cad_v1/mast_collision_05.stl" />
+    <mesh name="mast_collision_06" file="cad_v1/mast_collision_06.stl" />
+    <mesh name="mast_collision_07" file="cad_v1/mast_collision_07.stl" />
+    <mesh name="mast_collision_08" file="cad_v1/mast_collision_08.stl" />
+    <mesh name="mast_collision_09" file="cad_v1/mast_collision_09.stl" />
+    <mesh name="mast_collision_10" file="cad_v1/mast_collision_10.stl" />
+    <mesh name="mast_collision_11" file="cad_v1/mast_collision_11.stl" />
+    <mesh name="mast_collision_12" file="cad_v1/mast_collision_12.stl" />
+    <mesh name="mast_collision_13" file="cad_v1/mast_collision_13.stl" />
+    <mesh name="mast_collision_14" file="cad_v1/mast_collision_14.stl" />
+    <mesh name="mast_collision_15" file="cad_v1/mast_collision_15.stl" />
+    <mesh name="mast_collision_16" file="cad_v1/mast_collision_16.stl" />
+    <mesh name="mast_collision_17" file="cad_v1/mast_collision_17.stl" />
+    <mesh name="mast_collision_18" file="cad_v1/mast_collision_18.stl" />
+    <mesh name="mast_collision_19" file="cad_v1/mast_collision_19.stl" />
+    <mesh name="mast_collision_20" file="cad_v1/mast_collision_20.stl" />
+    <mesh name="mast_collision_21" file="cad_v1/mast_collision_21.stl" />
+    <mesh name="mast_collision_22" file="cad_v1/mast_collision_22.stl" />
+    <mesh name="mast_collision_23" file="cad_v1/mast_collision_23.stl" />
+    <mesh name="mast_collision_24" file="cad_v1/mast_collision_24.stl" />
+    <mesh name="mast_collision_25" file="cad_v1/mast_collision_25.stl" />
+    <mesh name="mast_collision_26" file="cad_v1/mast_collision_26.stl" />
+    <mesh name="mast_collision_27" file="cad_v1/mast_collision_27.stl" />
+    <mesh name="mast_collision_28" file="cad_v1/mast_collision_28.stl" />
+    <mesh name="mast_collision_29" file="cad_v1/mast_collision_29.stl" />
+    <mesh name="mast_collision_30" file="cad_v1/mast_collision_30.stl" />
+    <mesh name="mast_collision_31" file="cad_v1/mast_collision_31.stl" />
+    <mesh name="finger_1_internal_collision_00" file="cad_v1/finger_1_internal_collision_00.stl" />
+    <mesh name="finger_1_internal_collision_01" file="cad_v1/finger_1_internal_collision_01.stl" />
+    <mesh name="finger_1_internal_collision_02" file="cad_v1/finger_1_internal_collision_02.stl" />
+    <mesh name="finger_1_internal_collision_03" file="cad_v1/finger_1_internal_collision_03.stl" />
+    <mesh name="finger_1_internal_collision_04" file="cad_v1/finger_1_internal_collision_04.stl" />
+    <mesh name="finger_1_internal_collision_05" file="cad_v1/finger_1_internal_collision_05.stl" />
+    <mesh name="finger_1_internal_collision_06" file="cad_v1/finger_1_internal_collision_06.stl" />
+    <mesh name="finger_1_internal_collision_07" file="cad_v1/finger_1_internal_collision_07.stl" />
+    <mesh name="finger_1_internal_collision_08" file="cad_v1/finger_1_internal_collision_08.stl" />
+    <mesh name="finger_1_internal_collision_09" file="cad_v1/finger_1_internal_collision_09.stl" />
+    <mesh name="finger_1_internal_collision_10" file="cad_v1/finger_1_internal_collision_10.stl" />
+    <mesh name="finger_1_internal_collision_11" file="cad_v1/finger_1_internal_collision_11.stl" />
+    <mesh name="finger_2_internal_collision_00" file="cad_v1/finger_2_internal_collision_00.stl" />
+    <mesh name="finger_2_internal_collision_01" file="cad_v1/finger_2_internal_collision_01.stl" />
+    <mesh name="finger_2_internal_collision_02" file="cad_v1/finger_2_internal_collision_02.stl" />
+    <mesh name="finger_2_internal_collision_03" file="cad_v1/finger_2_internal_collision_03.stl" />
+    <mesh name="finger_2_internal_collision_04" file="cad_v1/finger_2_internal_collision_04.stl" />
+    <mesh name="finger_2_internal_collision_05" file="cad_v1/finger_2_internal_collision_05.stl" />
+    <mesh name="finger_2_internal_collision_06" file="cad_v1/finger_2_internal_collision_06.stl" />
+    <mesh name="finger_2_internal_collision_07" file="cad_v1/finger_2_internal_collision_07.stl" />
+    <mesh name="finger_2_internal_collision_08" file="cad_v1/finger_2_internal_collision_08.stl" />
+    <mesh name="finger_2_internal_collision_09" file="cad_v1/finger_2_internal_collision_09.stl" />
+    <mesh name="finger_2_internal_collision_10" file="cad_v1/finger_2_internal_collision_10.stl" />
+    <mesh name="finger_2_internal_collision_11" file="cad_v1/finger_2_internal_collision_11.stl" />
+  </asset>
+  <default>
+    <geom friction="0.8 0.005 0.0001" solref=".01 1" />
+    <joint damping=".03" armature=".0001" />
+    <default class="wheel">
+      <joint type="hinge" axis="0 0 1" damping="0" actuatorfrcrange="-2.646 2.646" />
+    </default>
+    <default class="pg42_drive">
+      </default>
+    <default class="mecanum_roller">
+      <joint type="hinge" axis="0 0 1" limited="false" damping="0.00002" frictionloss="0.0001" armature="0.000001" group="3" />
+      <geom type="capsule" size="0.008 0.015" mass="0.01" material="wheel_roller" group="2" contype="2" conaffinity="1" priority="1" condim="6" friction="1.2 0.002 0.0002" solref="0.003 1" solimp="0.95 0.99 0.001" />
+    </default>
+  </default>
+  <worldbody>
+    <body name="chassis" pos="0 0 .38">
+      <freejoint name="base_free_joint" />
+      <inertial mass="8.465515123837198" pos="-0.0116621270824 2.55710297702e-05 -0.115096742373" fullinertia="0.878804483671 0.786457744775 0.504256305468 -4.98685535262e-07 0.0457989182454 7.4486026741e-06" />
+      <geom name="chassis_frame_visual" type="mesh" mesh="cad_chassis_frame" rgba="0.65 0.68 0.72 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="chassis_mounts_visual" type="mesh" mesh="cad_chassis_mounts" rgba="0.65 0.48 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="pg42_motors_visual" type="mesh" mesh="cad_pg42_motors" rgba="0.65 0.7 0.75 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="pg42_brackets_visual" type="mesh" mesh="cad_pg42_brackets" rgba="0.3 0.48 0.72 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="chassis_frame_collision_0" type="box" pos="0.189976334368 -0.239972465217 0.0155030087869" size="0.0100000504399 0.0100000369501 0.280000000652" group="3" density="0" />
+      <geom name="chassis_frame_collision_1" type="box" pos="0.18997457123 0.240027534779 0.0155030123092" size="0.0100000504399 0.0100000369501 0.280000000652" group="3" density="0" />
+      <geom name="chassis_frame_collision_2" type="box" pos="-0.190023665629 -0.239973861035 0.0155029876908" size="0.0100000504399 0.0100000369501 0.280000000652" group="3" density="0" />
+      <geom name="chassis_frame_collision_3" type="box" pos="-0.190025428768 0.240026138961 0.0155029912131" size="0.0100000504399 0.0100000369501 0.280000000652" group="3" density="0" />
+      <geom name="chassis_frame_collision_4" type="box" pos="-2.36495307751e-05 -0.239973160998 -0.274497001761" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_5" type="box" pos="-2.54126692247e-05 0.240026838998 -0.274496998239" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_6" type="box" pos="-2.36817300397e-05 -0.239973165255 0.305502998239" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_7" type="box" pos="-2.54448684892e-05 0.240026834742 0.305503001761" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_8" type="box" pos="-2.37597269282e-05 -0.209973160999 -0.274497001541" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_9" type="box" pos="-2.53024730716e-05 0.210026838999 -0.274496998459" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_10" type="box" pos="0.189975468899 2.75369089694e-05 -0.274496989452" size="0.0100009188286 0.2500000368 0.0100000023619" group="3" density="0" />
+      <geom name="chassis_frame_collision_11" type="box" pos="-0.190024531099 2.61410910304e-05 -0.274497010548" size="0.0100009188286 0.2500000368 0.0100000023619" group="3" density="0" />
+      <geom name="chassis_frame_collision_12" type="box" pos="0.189975436699 2.7532652811e-05 0.305503010548" size="0.0100009188286 0.2500000368 0.0100000023619" group="3" density="0" />
+      <geom name="chassis_frame_collision_13" type="box" pos="-0.190024563298 2.6136834872e-05 0.305502989452" size="0.0100009188286 0.2500000368 0.0100000023619" group="3" density="0" />
+      <geom name="chassis_frame_collision_14" type="box" pos="0.0633088022329 2.70716363231e-05 -0.274496996484" size="0.0100007351684 0.2000000368 0.010000001995" group="3" density="0" />
+      <geom name="chassis_frame_collision_15" type="box" pos="-0.0633578644329 2.66063636767e-05 -0.274497003516" size="0.0100007351684 0.2000000368 0.010000001995" group="3" density="0" />
+      <geom name="chassis_frame_collision_16" type="box" pos="0.189975462237 2.75360283849e-05 -0.154496989452" size="0.0100008453645 0.2300000368 0.0100000022151" group="3" density="0" />
+      <geom name="chassis_frame_collision_17" type="box" pos="-2.36561926919e-05 -0.239973161879 -0.154497001761" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_18" type="box" pos="-0.190024537761 2.61402104459e-05 -0.154497010548" size="0.0100008453645 0.2300000368 0.0100000022151" group="3" density="0" />
+      <geom name="chassis_frame_collision_19" type="box" pos="-2.54193311415e-05 0.240026838118 -0.154496998239" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_20" type="box" pos="-2.45377619167e-05 2.68381194158e-05 -0.154497" size="0.180000037258 0.0100006612466 0.0100000100626" group="3" density="0" />
+      <geom name="chassis_frame_collision_21" type="box" pos="-2.36689613661e-05 -0.239973163567 0.0755029982389" size="0.0100000471089 0.0100000365098 0.220000000652" group="3" density="0" />
+      <geom name="chassis_frame_collision_22" type="box" pos="-2.54320998156e-05 0.24002683643 0.0755030017611" size="0.0100000471089 0.0100000365098 0.220000000652" group="3" density="0" />
+      <geom name="chassis_frame_collision_23" type="box" pos="-0.0500245632989 2.66510835863e-05 0.305502997224" size="0.0100008453645 0.2300000368 0.0100000022151" group="3" density="0" />
+      <geom name="chassis_mounts_collision_0" type="box" pos="-0.0867589682292 2.64636767852e-05 0.350982371701" size="0.0752502295471 0.0700002240591 0.0324793809074" group="3" density="0" />
+      <geom name="chassis_mounts_collision_2" type="box" pos="-0.120024563937 2.63938748399e-05 0.317002993438" size="0.080000918384 0.250000293866 0.00150000627578" group="3" density="0" />
+      <geom name="chassis_mounts_collision_3" type="box" pos="-0.120023921487 -0.174973606172 0.324802992355" size="0.0550000186436 0.0550000184027 0.00630000311052" group="3" density="0" />
+      <geom name="chassis_mounts_collision_4" type="box" pos="-0.120025207109 0.175026393826 0.324802994927" size="0.0550000186436 0.0550000184027 0.00630000311421" group="3" density="0" />
+      <geom name="pg42_motors_collision_0" type="box" pos="-0.175024710184 0.186376970615 -0.316497000579" size="0.0223001213156 0.077150044178 0.0223000003422" group="3" density="0" />
+      <geom name="pg42_motors_collision_1" type="box" pos="-0.175024710184 -0.186322970615 -0.316496999421" size="0.0223001213156 0.077150044178 0.0223000003422" group="3" density="0" />
+      <geom name="pg42_motors_collision_2" type="box" pos="0.174975289816 0.186376970615 -0.316497000579" size="0.0223001213156 0.077150044178 0.0223000003422" group="3" density="0" />
+      <geom name="pg42_motors_collision_3" type="box" pos="0.174975289816 -0.186322970615 -0.316496999421" size="0.0223001213156 0.077150044178 0.0223000003422" group="3" density="0" />
+      <geom name="pg42_brackets_collision_0" type="box" pos="-0.175024938913 0.224527086321 -0.310997014554" size="0.0250000609784 0.0255001504115 0.0264999975757" group="3" density="0" />
+      <geom name="pg42_brackets_collision_1" type="box" pos="-0.175024998981 -0.22447308632 -0.310997014554" size="0.0250000014791 0.0255000974674 0.0264999975757" group="3" density="0" />
+      <geom name="pg42_brackets_collision_2" type="box" pos="0.174975061087 0.224527086321 -0.310997014554" size="0.0250000609784 0.0255001504115 0.0264999975757" group="3" density="0" />
+      <geom name="pg42_brackets_collision_3" type="box" pos="0.174975001019 -0.22447308632 -0.310997014554" size="0.0250000014791 0.0255000974674 0.0264999975757" group="3" density="0" />
+      <body name="front_left_wheel" pos="0.174975 0.301927 -0.316497" quat="1 0 0 0">
+        <joint name="front_left_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial mass="0.38" pos="1.77354532273e-18 2.79667772888e-05 -8.37429190544e-18" fullinertia="0.000465734987432 0.000766926124131 0.000465734987432 -2.50497171379e-21 -3.75738969849e-20 -4.66020696879e-20" />
+        <geom name="front_left_wheel_visual" type="mesh" mesh="cad_front_left_wheel" rgba="0.13 0.13 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="front_left_wheel_link_roller_carrier" quat="0.707106781187 -0.707106781187 0 0">
+          <body name="front_left_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 0.707107">
+            <joint name="front_left_roller_00_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 0.707107">
+            <joint name="front_left_roller_01_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 0.707107">
+            <joint name="front_left_roller_02_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 0.707107">
+            <joint name="front_left_roller_03_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 0.707107">
+            <joint name="front_left_roller_04_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 0.707107">
+            <joint name="front_left_roller_05_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 0.707107">
+            <joint name="front_left_roller_06_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 0.707107">
+            <joint name="front_left_roller_07_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 0.707107">
+            <joint name="front_left_roller_08_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 0.707107">
+            <joint name="front_left_roller_09_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 0.707107">
+            <joint name="front_left_roller_10_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 0.707107">
+            <joint name="front_left_roller_11_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+        </body>
+      </body>
+      <body name="front_right_wheel" pos="0.174975 -0.301873 -0.316497" quat="1 0 0 0">
+        <joint name="front_right_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial mass="0.38" pos="1.77354532273e-18 2.79667772888e-05 -8.37429190544e-18" fullinertia="0.000465734987432 0.000766926124131 0.000465734987432 -2.50497171379e-21 -3.75738969849e-20 -4.66020696879e-20" />
+        <geom name="front_right_wheel_visual" type="mesh" mesh="cad_front_right_wheel" rgba="0.13 0.13 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="front_right_wheel_link_roller_carrier" quat="0.707106781187 -0.707106781187 0 0">
+          <body name="front_right_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 -0.707107">
+            <joint name="front_right_roller_00_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 -0.707107">
+            <joint name="front_right_roller_01_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 -0.707107">
+            <joint name="front_right_roller_02_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 -0.707107">
+            <joint name="front_right_roller_03_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 -0.707107">
+            <joint name="front_right_roller_04_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 -0.707107">
+            <joint name="front_right_roller_05_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 -0.707107">
+            <joint name="front_right_roller_06_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 -0.707107">
+            <joint name="front_right_roller_07_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 -0.707107">
+            <joint name="front_right_roller_08_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 -0.707107">
+            <joint name="front_right_roller_09_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 -0.707107">
+            <joint name="front_right_roller_10_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 -0.707107">
+            <joint name="front_right_roller_11_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+        </body>
+      </body>
+      <body name="rear_left_wheel" pos="-0.175025 0.301927 -0.316497" quat="1 0 0 0">
+        <joint name="rear_left_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial mass="0.38" pos="1.77354532273e-18 2.79667772888e-05 -8.37429190544e-18" fullinertia="0.000465734987432 0.000766926124131 0.000465734987432 -2.50497171379e-21 -3.75738969849e-20 -4.66020696879e-20" />
+        <geom name="rear_left_wheel_visual" type="mesh" mesh="cad_rear_left_wheel" rgba="0.13 0.13 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="rear_left_wheel_link_roller_carrier" quat="0.707106781187 -0.707106781187 0 0">
+          <body name="rear_left_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 -0.707107">
+            <joint name="rear_left_roller_00_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 -0.707107">
+            <joint name="rear_left_roller_01_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 -0.707107">
+            <joint name="rear_left_roller_02_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 -0.707107">
+            <joint name="rear_left_roller_03_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 -0.707107">
+            <joint name="rear_left_roller_04_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 -0.707107">
+            <joint name="rear_left_roller_05_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 -0.707107">
+            <joint name="rear_left_roller_06_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 -0.707107">
+            <joint name="rear_left_roller_07_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 -0.707107">
+            <joint name="rear_left_roller_08_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 -0.707107">
+            <joint name="rear_left_roller_09_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 -0.707107">
+            <joint name="rear_left_roller_10_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 -0.707107">
+            <joint name="rear_left_roller_11_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+        </body>
+      </body>
+      <body name="rear_right_wheel" pos="-0.175025 -0.301873 -0.316497" quat="1 0 0 0">
+        <joint name="rear_right_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial mass="0.38" pos="1.77354532273e-18 2.79667772888e-05 -8.37429190544e-18" fullinertia="0.000465734987432 0.000766926124131 0.000465734987432 -2.50497171379e-21 -3.75738969849e-20 -4.66020696879e-20" />
+        <geom name="rear_right_wheel_visual" type="mesh" mesh="cad_rear_right_wheel" rgba="0.13 0.13 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="rear_right_wheel_link_roller_carrier" quat="0.707106781187 -0.707106781187 0 0">
+          <body name="rear_right_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 0.707107">
+            <joint name="rear_right_roller_00_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 0.707107">
+            <joint name="rear_right_roller_01_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 0.707107">
+            <joint name="rear_right_roller_02_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 0.707107">
+            <joint name="rear_right_roller_03_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 0.707107">
+            <joint name="rear_right_roller_04_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 0.707107">
+            <joint name="rear_right_roller_05_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 0.707107">
+            <joint name="rear_right_roller_06_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 0.707107">
+            <joint name="rear_right_roller_07_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 0.707107">
+            <joint name="rear_right_roller_08_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 0.707107">
+            <joint name="rear_right_roller_09_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 0.707107">
+            <joint name="rear_right_roller_10_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 0.707107">
+            <joint name="rear_right_roller_11_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+        </body>
+      </body>
+      <body name="right_base_link" pos="-0.12002401005 -0.150978005025 0.331102992634" quat="0.999999999998 3.66905102863e-09 -2.77579934932e-08 1.83660255139e-06">
+        <inertial mass="0.1501740431517099" pos="-2.97083412568e-05 -0.0211166048815 0.0338498835467" fullinertia="0.000134911759106 0.000127431002886 0.000132176205067 3.70549994675e-07 5.61883888903e-08 -2.2914168412e-06" />
+        <geom name="right_base_printed_visual" type="mesh" mesh="cad_right_base_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="right_base_servo_visual" type="mesh" mesh="cad_right_base_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="right_base_printed_collision_0" type="box" pos="-6.93889390391e-18 -0.0275 0.036" size="0.0554625001 0.0435000001 0.0360000001" group="3" density="0" />
+        <geom name="right_base_printed_collision_1" type="box" pos="0.00147390139661 -0.01929999995 0.0538" size="0.0238239014969 0.04010000005 0.0157000001" group="3" density="0" />
+        <geom name="right_base_servo_collision_0" type="box" pos="3.03576608296e-17 -0.0327 0.0347500000006" size="0.0123600001 0.0226100001 0.00705000010063" group="3" density="0" />
+        <geom name="right_base_servo_collision_1" type="box" pos="-5.20417042793e-18 -0.0327 0.04775" size="0.0123617040077 0.0226117040077 0.0069500001" group="3" density="0" />
+        <geom name="right_base_servo_collision_2" type="box" pos="6.59194920871e-17 -0.0327 0.05855000005" size="0.0122500001 0.0225000001 0.00485000005" group="3" density="0" />
+        <body name="right_shoulder_yaw_link" pos="0 -0.0452 0.0165" quat="0.707106781187 0.707106781187 0 0">
+          <joint name="right_shoulder_yaw_joint" type="hinge" axis="0 1 0" range="-2.16 2.16" />
+          <inertial mass="0.10924200458409095" pos="-0.000247344122982 0.06782272643 0.0307405095853" fullinertia="0.000106898249758 2.57964467003e-05 0.000105630456365 1.79893018003e-07 -4.3890901464e-08 -3.06652269229e-06" />
+          <geom name="right_yaw_printed_visual" type="mesh" mesh="cad_right_yaw_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="right_yaw_servo_visual" type="mesh" mesh="cad_right_yaw_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="right_yaw_printed_collision_0" type="box" pos="5.37764277553e-17 0.0442 0.0179" size="0.0230000001 0.0421000001 0.0299000001" group="3" density="0" />
+          <geom name="right_yaw_printed_collision_1" type="box" pos="0.00124022191647 0.0723 0.0317514719126" size="0.0275402220165 0.0140000001 0.0190485281874" group="3" density="0" />
+          <geom name="right_yaw_printed_collision_2" type="box" pos="0 0.04605 -8.67361737988e-19" size="0.0096000001 0.0022500001 0.0096000001" group="3" density="0" />
+          <geom name="right_yaw_printed_collision_3" type="box" pos="-1.73472347598e-18 0.0135750011856 1.73472347598e-18" size="0.0096000001 0.00167500128555 0.0096000001" group="3" density="0" />
+          <geom name="right_yaw_servo_collision_0" type="box" pos="0.0118499999994 0.09 0.0306" size="0.00705000010063 0.0226100001 0.0123600001" group="3" density="0" />
+          <geom name="right_yaw_servo_collision_1" type="box" pos="-0.00115 0.09 0.0306" size="0.0069500001 0.0226117040077 0.0123617040077" group="3" density="0" />
+          <geom name="right_yaw_servo_collision_2" type="box" pos="-0.01195000005 0.09 0.0306" size="0.00485000005 0.0225000001 0.0122500001" group="3" density="0" />
+          <body name="right_upper_arm_link" pos="0 0.1025 0.0306" quat="0.707106781187 0.707106781187 0 0">
+            <joint name="right_shoulder_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.37" />
+            <inertial mass="0.11360422934603755" pos="-6.73245828305e-05 0.121668540708 0.0071204474328" fullinertia="0.00042052319553 3.90566146149e-05 0.000421717024488 1.43691037512e-06 -7.19297300767e-08 -3.30461374756e-05" />
+            <geom name="right_upper_printed_visual" type="mesh" mesh="cad_right_upper_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="right_upper_carbon_visual" type="mesh" mesh="cad_right_upper_carbon" rgba="0.06 0.07 0.08 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="right_upper_servo_visual" type="mesh" mesh="cad_right_upper_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="right_upper_printed_collision_0" type="box" pos="0.00195 0.02649999995 4.99998939821e-11" size="0.0336500001 0.03850000005 0.01215000005" group="3" density="0" />
+            <geom name="right_upper_printed_collision_1" type="box" pos="4.99999798509e-11 0.146084978236 0.00017500005" size="0.02500000005 0.034085 0.01232500005" group="3" density="0" />
+            <geom name="right_upper_printed_collision_2" type="box" pos="-0.01595 0 0" size="0.0022500001 0.0096000001 0.0096000001" group="3" density="0" />
+            <geom name="right_upper_printed_collision_3" type="box" pos="0.0165249988144 0 0" size="0.00167500128555 0.0096000001 0.0096000001" group="3" density="0" />
+            <geom name="right_upper_carbon_collision_0" type="box" pos="1.73472347598e-18 0.0884999891179 -9.54097911787e-18" size="0.009 0.0434999891179 0.009" group="3" density="0" />
+            <geom name="right_upper_servo_collision_0" type="box" pos="0.0119499999994 0.16257 0.0155" size="0.00705000010063 0.0123600001 0.0226100001" group="3" density="0" />
+            <geom name="right_upper_servo_collision_1" type="box" pos="-0.00105 0.16257 0.0155" size="0.0069500001 0.0123617040077 0.0226117040077" group="3" density="0" />
+            <geom name="right_upper_servo_collision_2" type="box" pos="-0.01185000005 0.16257 0.0155" size="0.00485000005 0.0122500001 0.0225000001" group="3" density="0" />
+            <body name="right_lower_arm_link" pos="0 0.16257 0.028" quat="0 0 0.707106781187 0.707106781187">
+              <joint name="right_elbow_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.14" />
+              <inertial mass="0.11506178963183422" pos="0.000226086530861 -0.00265083387763 0.128225011023" fullinertia="0.000421167342826 0.000432592605355 2.69378085104e-05 -1.16479268486e-08 1.76222359882e-06 1.29017188845e-05" />
+              <geom name="right_lower_printed_visual" type="mesh" mesh="cad_right_lower_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="right_lower_carbon_visual" type="mesh" mesh="cad_right_lower_carbon" rgba="0.06 0.07 0.08 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="right_lower_servo_visual" type="mesh" mesh="cad_right_lower_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="right_lower_printed_collision_0" type="box" pos="-0.00199548274483 -0.00345013036844 0.154699814673" size="0.0281954828448 0.0184501304684 0.0140000001" group="3" density="0" />
+              <geom name="right_lower_printed_collision_1" type="box" pos="-0.002 0 0.0268480759173" size="0.0322000001 0.01215 0.0388495940083" group="3" density="0" />
+              <geom name="right_lower_printed_collision_2" type="box" pos="0 -1.73472347598e-18 0.138199814723" size="0.0230000001 0.01215 0.03050000005" group="3" density="0" />
+              <geom name="right_lower_printed_collision_3" type="box" pos="0.01595 0 1.73472347598e-18" size="0.0022500001 0.0096000001 0.0096000001" group="3" density="0" />
+              <geom name="right_lower_printed_collision_4" type="box" pos="-0.0165249988144 0 -8.67361737988e-19" size="0.00167500128555 0.0096000001 0.0096000001" group="3" density="0" />
+              <geom name="right_lower_carbon_collision_0" type="box" pos="-7.8062556419e-18 -5.20417042793e-18 0.0866987422994" size="0.009 0.009 0.0410010723738" group="3" density="0" />
+              <geom name="right_lower_servo_collision_0" type="box" pos="-0.0119499999994 -0.0052 0.1724" size="0.00705000010063 0.0123600001 0.0226100001" group="3" density="0" />
+              <geom name="right_lower_servo_collision_1" type="box" pos="0.00105 -0.0052 0.1724" size="0.0069500001 0.0123617040077 0.0226117040077" group="3" density="0" />
+              <geom name="right_lower_servo_collision_2" type="box" pos="0.01185000005 -0.0052 0.1724" size="0.00485000005 0.0122500001 0.0225000001" group="3" density="0" />
+              <body name="right_wrist_pitch_link" pos="0 -0.0052 0.1849" quat="0.707106781187 -0.707106781187 0 0">
+                <joint name="right_wrist_pitch_joint" type="hinge" axis="1 0 0" range="-1.658063 1.658063" />
+                <inertial mass="0.07673142399116653" pos="-0.0107695492162 -0.0381083491274 -0.000102198879161" fullinertia="2.10816088303e-05 2.55251960268e-05 3.72415818987e-05 -4.79073124159e-06 6.22417769844e-08 2.0291196094e-08" />
+                <geom name="right_wrist_printed_visual" type="mesh" mesh="cad_right_wrist_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                <geom name="right_wrist_servo_visual" type="mesh" mesh="cad_right_wrist_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+                <geom name="right_wrist_printed_collision_0" type="box" pos="-0.00405 -0.026914295164 -0.00216938206608" size="0.0311500001 0.038914295264 0.0178306180339" group="3" density="0" />
+                <geom name="right_wrist_printed_collision_1" type="box" pos="0.01585 -1.73472347598e-18 -1.73472347598e-18" size="0.0022500001 0.0096000001 0.0096000001" group="3" density="0" />
+                <geom name="right_wrist_printed_collision_2" type="box" pos="-0.0164249988144 -1.73472347598e-18 1.73472347598e-18" size="0.00167500128555 0.0096000001 0.0096000001" group="3" density="0" />
+                <geom name="right_wrist_servo_collision_0" type="box" pos="-0.0140272065665 -0.0308000000006 3.55618312575e-17" size="0.0226100001 0.00705000010063 0.0123600001" group="3" density="0" />
+                <geom name="right_wrist_servo_collision_1" type="box" pos="-0.0140272065666 -0.0438 0" size="0.0226117040077 0.0069500001 0.0123617040077" group="3" density="0" />
+                <geom name="right_wrist_servo_collision_2" type="box" pos="-0.0140272065665 -0.05460000005 7.8062556419e-17" size="0.0225000001 0.00485000005 0.0122500001" group="3" density="0" />
+                <body name="right_gripper_frame" pos="-0.00152720656655 -0.05705 0" quat="0.707106781187 0 0.707106781187 0">
+                  <joint name="right_wrist_roll_joint" type="hinge" axis="0 -1 0" range="-2.743847 2.841206" />
+                  <inertial mass="0.13" pos="0.00982867679472 -0.0376059340461 5.21187858798e-06" fullinertia="9.97043738416e-05 8.33012135199e-05 6.33516410165e-05 2.17188259303e-06 1.66838658107e-08 2.00771604528e-07" />
+                  <geom name="right_palm_visual" type="mesh" mesh="cad_right_palm" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                  <geom name="right_palm_collision_0" type="box" pos="-2.60208521397e-18 -0.00225 -3.46944695195e-18" size="0.0096000001 0.0022500001 0.0096000001" group="3" density="0" />
+                  <geom name="right_palm_collision_1" type="box" pos="-0.000900020274909 -0.0423627829664 -5.0000004137e-11" size="0.0121000203749 0.0287462009823 0.04800000005" group="3" density="0" />
+                  <geom name="right_palm_collision_2" type="box" pos="0.00975 -0.0440772198595 0" size="0.0097500001 0.0304606378755 0.0480000001" group="3" density="0" />
+                  <geom name="right_palm_collision_3" type="box" pos="0 -0.00855829109205 -1.21430643318e-17" size="0.0120000001 0.00505829119205 0.0255" group="3" density="0" />
+                  <geom name="right_palm_collision_4" type="box" pos="0.0348499999994 -0.0365665820841 3.90312782095e-17" size="0.00705000010063 0.0226100001 0.0123600001" group="3" density="0" />
+                  <geom name="right_palm_collision_5" type="box" pos="0.02185 -0.0365665820841 3.46944695195e-18" size="0.0069500001 0.0226117040077 0.0123617040077" group="3" density="0" />
+                  <geom name="right_palm_collision_6" type="box" pos="0.01104999995 -0.0365665820841 8.15320033709e-17" size="0.00485000005 0.0225000001 0.0122500001" group="3" density="0" />
+                  <body name="right_gripper_cam_link" pos="0 -0.0490665820841 0" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="right_gripper_joint" type="hinge" axis="0 0 -1" range="0 1.0471975512" />
+                    <inertial mass="0.003467308184406045" pos="-7.95585726355e-06 -1.08140373939e-06 0.00165477169085" fullinertia="2.31173798138e-07 2.400353437e-07 4.29676375047e-07 3.40216572006e-09 -1.37477004267e-10 -3.59735921293e-12" />
+                    <geom name="right_cam_visual" type="mesh" mesh="cad_right_cam" rgba="0.45 0.5 0.55 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_cam_collision_0" type="box" pos="3.90529679105e-06 5.20417042793e-18 0.000725" size="0.0160039053968 0.0160000001 0.0034250001" group="3" density="0" />
+                    <geom name="right_cam_collision_1" type="box" pos="0 0 0.0064" size="0.0096000001 0.0096000001 0.0022500001" group="3" density="0" />
+                    <body name="right_finger_1_driving" pos="-0.00354167484447 -0.0104142469388 0" quat="1 0 0 0">
+                      <joint name="right_finger_1_driving_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                      <inertial mass="0.0010740527364630176" pos="-0.00151112494983 -0.0174228264212 -0.00570081698787" fullinertia="1.45923939347e-07 1.630902013e-08 1.57775259316e-07 1.5276714192e-08 3.99992571068e-12 -1.32345626393e-11" />
+                      <geom name="right_finger_1_driving_visual" type="mesh" mesh="cad_right_finger_1_driving" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                      <geom name="right_finger_1_driving_collision_0" type="box" pos="-1.29813049989e-05 -0.0162525771416 -0.00555" size="0.0080602382705 0.0212525771416 0.0026500001" group="3" density="0" />
+                    </body>
+                    <body name="right_finger_2_driving" pos="0.00330082918453 0.01049307041 0" quat="1 0 0 0">
+                      <joint name="right_finger_2_driving_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                      <inertial mass="0.0010740527364630171" pos="0.00110936634221 0.0174530136491 -0.00570081698787" fullinertia="1.4515150499e-07 1.70814544872e-08 1.57775259316e-07 1.82455572256e-08 -4.30373971036e-12 1.31389070493e-11" />
+                      <geom name="right_finger_2_driving_visual" type="mesh" mesh="cad_right_finger_2_driving" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                      <geom name="right_finger_2_driving_collision_0" type="box" pos="-0.000514785589624 0.0162131654043 -0.00555" size="0.00828046147413 0.0212131654043 0.0026500001" group="3" density="0" />
+                    </body>
+                  </body>
+                  <body name="right_finger_1_internal" pos="0 -0.0671089838486 0.0325" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="right_finger_1_internal_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                    <inertial mass="0.0036140700056098104" pos="0.0101863383513 0.00659023606517 -1.43809081829e-11" fullinertia="4.84340908483e-07 9.56746755461e-07 1.06251660262e-06 -4.42534902244e-07 1.46722094598e-14 -2.3311845409e-14" />
+                    <geom name="right_finger_1_internal_visual" type="mesh" mesh="cad_right_finger_1_internal" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <body name="right_finger_1_distal" pos="0.0346410161514 0.02 0" quat="1 0 0 0">
+                      <joint name="right_finger_1_distal_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                      <inertial mass="0.00792952677678155" pos="0.0153538158474 0.000815381112711 -4.18379937664e-06" fullinertia="6.92654136225e-07 1.17922679713e-06 1.1832183215e-06 -2.26496246812e-07 -3.33029134372e-11 -1.04579069129e-10" />
+                      <geom name="right_finger_1_distal_visual" type="mesh" mesh="cad_right_finger_1_distal" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                      <geom name="right_finger_1_distal_backing" type="box" pos="0.01562500005 -0.003125 -1.02175212735e-15" size="0.02037500005 0.013125 0.0128575579522" group="3" density="0" />
+                      <geom name="right_fixed_jaw_contact_1" type="box" friction="1.2 .02 .002" condim="4" pos="0.01743735 0.011 -0.006899105" size="0.00350755 0.001 0.005191995" group="3" density="0" />
+                      <geom name="right_fixed_jaw_contact_2" type="box" friction="1.2 .02 .002" condim="4" pos="0.01743735 0.011 0.006899105" size="0.00350755 0.001 0.005191995" group="3" density="0" />
+                    </body>
+                    <geom name="right_finger_1_internal_collision_00" type="mesh" mesh="finger_1_internal_collision_00" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_01" type="mesh" mesh="finger_1_internal_collision_01" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_02" type="mesh" mesh="finger_1_internal_collision_02" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_03" type="mesh" mesh="finger_1_internal_collision_03" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_04" type="mesh" mesh="finger_1_internal_collision_04" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_05" type="mesh" mesh="finger_1_internal_collision_05" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_06" type="mesh" mesh="finger_1_internal_collision_06" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_07" type="mesh" mesh="finger_1_internal_collision_07" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_08" type="mesh" mesh="finger_1_internal_collision_08" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_09" type="mesh" mesh="finger_1_internal_collision_09" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_10" type="mesh" mesh="finger_1_internal_collision_10" group="3" density="0" />
+                    <geom name="right_finger_1_internal_collision_11" type="mesh" mesh="finger_1_internal_collision_11" group="3" density="0" />
+                  </body>
+                  <body name="right_finger_1_external" pos="0 -0.0671089838486 0.044" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="right_finger_1_external_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                    <inertial mass="0.002110236426275736" pos="0.0173205080757 0.01 -7.0561446979e-18" fullinertia="1.1501183207e-07 2.94355803225e-07 3.86982887965e-07 -1.55316435036e-07 -1.12180890166e-22 -5.06190644955e-23" />
+                    <geom name="right_finger_1_external_visual" type="mesh" mesh="cad_right_finger_1_external" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_finger_1_external_collision_0" type="box" pos="0.0173205080757 0.01 -4.33680868994e-19" size="0.0218205080757 0.0145 0.0040000001" group="3" density="0" />
+                  </body>
+                  <body name="right_finger_2_internal" pos="0 -0.0671089838486 -0.0325" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="right_finger_2_internal_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                    <inertial mass="0.00361407000560981" pos="0.0101863383513 -0.00659023606517 1.43809021307e-11" fullinertia="4.84340908483e-07 9.56746755461e-07 1.06251660262e-06 4.42534902244e-07 -1.46722091981e-14 -2.33118455744e-14" />
+                    <geom name="right_finger_2_internal_visual" type="mesh" mesh="cad_right_finger_2_internal" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <body name="right_finger_2_distal" pos="0.0346410161514 -0.02 0" quat="1 0 0 0">
+                      <joint name="right_finger_2_distal_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                      <inertial mass="0.00792952677678155" pos="0.0153538158474 -0.000815381112712 4.18379937661e-06" fullinertia="6.92654136225e-07 1.17922679713e-06 1.1832183215e-06 2.26496246812e-07 3.33029134374e-11 -1.04579069129e-10" />
+                      <geom name="right_finger_2_distal_visual" type="mesh" mesh="cad_right_finger_2_distal" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                      <geom name="right_finger_2_distal_backing" type="box" pos="0.01562500005 0.003125 1.00267016911e-15" size="0.02037500005 0.013125 0.0128575579522" group="3" density="0" />
+                      <geom name="right_moving_jaw_contact_1" type="box" friction="1.2 .02 .002" condim="4" pos="0.01743735 -0.011 -0.006899105" size="0.00350755 0.001 0.005191995" group="3" density="0" />
+                      <geom name="right_moving_jaw_contact_2" type="box" friction="1.2 .02 .002" condim="4" pos="0.015683575 -0.011 0.006899105" size="0.001753775 0.001 0.005191995" group="3" density="0" />
+                      <geom name="right_moving_jaw_contact_3" type="box" friction="1.2 .02 .002" condim="4" pos="0.019191125 -0.011 0.006899105" size="0.001753775 0.001 0.005191995" group="3" density="0" />
+                    </body>
+                    <geom name="right_finger_2_internal_collision_00" type="mesh" mesh="finger_2_internal_collision_00" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_01" type="mesh" mesh="finger_2_internal_collision_01" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_02" type="mesh" mesh="finger_2_internal_collision_02" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_03" type="mesh" mesh="finger_2_internal_collision_03" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_04" type="mesh" mesh="finger_2_internal_collision_04" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_05" type="mesh" mesh="finger_2_internal_collision_05" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_06" type="mesh" mesh="finger_2_internal_collision_06" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_07" type="mesh" mesh="finger_2_internal_collision_07" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_08" type="mesh" mesh="finger_2_internal_collision_08" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_09" type="mesh" mesh="finger_2_internal_collision_09" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_10" type="mesh" mesh="finger_2_internal_collision_10" group="3" density="0" />
+                    <geom name="right_finger_2_internal_collision_11" type="mesh" mesh="finger_2_internal_collision_11" group="3" density="0" />
+                  </body>
+                  <body name="right_finger_2_external" pos="0 -0.0671089838486 -0.044" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="right_finger_2_external_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                    <inertial mass="0.002110236426275736" pos="0.0173205080757 -0.01 -9.54242893389e-19" fullinertia="1.1501183207e-07 2.94355803225e-07 3.86982887965e-07 1.55316435036e-07 2.29671343358e-22 -1.46204115481e-22" />
+                    <geom name="right_finger_2_external_visual" type="mesh" mesh="cad_right_finger_2_external" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_finger_2_external_collision_0" type="box" pos="0.0173205080757 -0.01 -6.93889390391e-18" size="0.0218205080757 0.0145 0.0040000001" group="3" density="0" />
+                  </body>
+                  <body name="right_wrist_camera_link" pos="0.066724675601 -0.0631437997693 2.53130849615e-17" quat="0.241844762648 0.664463024389 0.241844762648 -0.664463024389">
+                    <inertial mass="0.042546690997913146" pos="8.15711853647e-17 -0.0158010487469 -0.0171425914387" fullinertia="3.31670325685e-05 1.76975307786e-05 2.63418623285e-05 3.46973905119e-21 2.131484934e-22 1.04583580058e-05" />
+                    <geom name="right_camera_mount_visual" type="mesh" mesh="cad_right_camera_mount" rgba="0.18 0.52 0.65 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_camera_pcb_visual" type="mesh" mesh="cad_right_camera_pcb" rgba="0.12 0.42 0.23 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_camera_optics_visual" type="mesh" mesh="cad_right_camera_optics" rgba="0.08 0.1 0.13 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_camera_hardware_visual" type="mesh" mesh="cad_right_camera_hardware" rgba="0.7 0.73 0.77 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="right_camera_mount_collision_0" type="box" pos="9.19403442268e-17 -0.0231930978585 -0.00689399653274" size="0.02341 0.0431930978585 0.0334060034673" group="3" density="0" />
+                    <geom name="right_camera_pcb_collision_0" type="box" pos="7.97972798949e-17 1.11022302463e-16 -0.0235" size="0.019 0.019 0.0008" group="3" density="0" />
+                    <geom name="right_camera_optics_collision_0" type="box" pos="7.97972798949e-17 1.14491749414e-16 -0.01155" size="0.009 0.009 0.01115" group="3" density="0" />
+                    <geom name="right_camera_optics_collision_1" type="box" pos="8.19656842399e-17 1.15359111152e-16 -0.0002" size="0.00684 0.00684 0.0002" group="3" density="0" />
+                    <geom name="right_camera_optics_collision_2" type="box" pos="7.1557343384e-17 -0.017 -0.0263" size="0.004 0.002 0.002" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_0" type="box" pos="-0.014 -0.014 -0.0317" size="0.0019 0.0019 0.011" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_1" type="box" pos="-0.014 -0.014 -0.0394" size="0.00230940107676 0.002 0.0008" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_2" type="box" pos="-0.014 0.014 -0.0317" size="0.0019 0.0019 0.011" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_3" type="box" pos="-0.014 0.014 -0.0394" size="0.00230940107676 0.002 0.0008" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_4" type="box" pos="0.014 -0.014 -0.0317" size="0.0019 0.0019 0.011" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_5" type="box" pos="0.014 -0.014 -0.0394" size="0.00230940107676 0.002 0.0008" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_6" type="box" pos="0.014 0.014 -0.0317" size="0.0019 0.0019 0.011" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_7" type="box" pos="0.014 0.014 -0.0394" size="0.00230940107676 0.002 0.0008" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_8" type="box" pos="-0.01891 -0.0579047830903 0.0111113587324" size="0.00225 0.00455451582389 0.00495510053255" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_9" type="box" pos="0.01891 -0.0579047830903 0.0111113587324" size="0.00225 0.00455451582389 0.00495510053255" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_10" type="box" pos="-0.01891 -0.0464141164436 0.0207531728777" size="0.00225 0.00455451582389 0.00495510053255" group="3" density="0" />
+                    <geom name="right_camera_hardware_collision_11" type="box" pos="0.01891 -0.0464141164436 0.0207531728777" size="0.00225 0.00455451582389 0.00495510053255" group="3" density="0" />
+                    <site name="right_wrist_rgb_optical_frame" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+                    <camera name="right_wrist_rgb" pos="0 0 0" quat="0 1 0 0" fovy="60.59297586266491" />
+                  </body>
+                  <site name="right_grasp_tcp" pos="0 -0.119132450457 0" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
+                  <site name="right_pregrasp_aim_tip" pos="0 -0.259132450457 0" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="left_base_link" pos="-0.12002511939 0.151030792567 0.331102994851" quat="-1.83660255161e-06 -2.77579934932e-08 -3.66905102863e-09 0.999999999998">
+        <inertial mass="0.1501740431517099" pos="-2.97083412568e-05 -0.0211166048815 0.0338498835467" fullinertia="0.000134911759106 0.000127431002886 0.000132176205067 3.70549994675e-07 5.61883888903e-08 -2.2914168412e-06" />
+        <geom name="left_base_printed_visual" type="mesh" mesh="cad_left_base_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="left_base_servo_visual" type="mesh" mesh="cad_left_base_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="left_base_printed_collision_0" type="box" pos="-6.93889390391e-18 -0.0275 0.036" size="0.0554625001 0.0435000001 0.0360000001" group="3" density="0" />
+        <geom name="left_base_printed_collision_1" type="box" pos="0.00147390139661 -0.01929999995 0.0538" size="0.0238239014969 0.04010000005 0.0157000001" group="3" density="0" />
+        <geom name="left_base_servo_collision_0" type="box" pos="3.03576608296e-17 -0.0327 0.0347500000006" size="0.0123600001 0.0226100001 0.00705000010063" group="3" density="0" />
+        <geom name="left_base_servo_collision_1" type="box" pos="-5.20417042793e-18 -0.0327 0.04775" size="0.0123617040077 0.0226117040077 0.0069500001" group="3" density="0" />
+        <geom name="left_base_servo_collision_2" type="box" pos="6.59194920871e-17 -0.0327 0.05855000005" size="0.0122500001 0.0225000001 0.00485000005" group="3" density="0" />
+        <body name="left_shoulder_yaw_link" pos="0 -0.0452 0.0165" quat="0.707106781187 0.707106781187 0 0">
+          <joint name="left_shoulder_yaw_joint" type="hinge" axis="0 1 0" range="-2.16 2.16" />
+          <inertial mass="0.10924200458409095" pos="-0.000247344122982 0.06782272643 0.0307405095853" fullinertia="0.000106898249758 2.57964467003e-05 0.000105630456365 1.79893018003e-07 -4.3890901464e-08 -3.06652269229e-06" />
+          <geom name="left_yaw_printed_visual" type="mesh" mesh="cad_left_yaw_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="left_yaw_servo_visual" type="mesh" mesh="cad_left_yaw_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="left_yaw_printed_collision_0" type="box" pos="5.37764277553e-17 0.0442 0.0179" size="0.0230000001 0.0421000001 0.0299000001" group="3" density="0" />
+          <geom name="left_yaw_printed_collision_1" type="box" pos="0.00124022191647 0.0723 0.0317514719126" size="0.0275402220165 0.0140000001 0.0190485281874" group="3" density="0" />
+          <geom name="left_yaw_printed_collision_2" type="box" pos="0 0.04605 -8.67361737988e-19" size="0.0096000001 0.0022500001 0.0096000001" group="3" density="0" />
+          <geom name="left_yaw_printed_collision_3" type="box" pos="-1.73472347598e-18 0.0135750011856 1.73472347598e-18" size="0.0096000001 0.00167500128555 0.0096000001" group="3" density="0" />
+          <geom name="left_yaw_servo_collision_0" type="box" pos="0.0118499999994 0.09 0.0306" size="0.00705000010063 0.0226100001 0.0123600001" group="3" density="0" />
+          <geom name="left_yaw_servo_collision_1" type="box" pos="-0.00115 0.09 0.0306" size="0.0069500001 0.0226117040077 0.0123617040077" group="3" density="0" />
+          <geom name="left_yaw_servo_collision_2" type="box" pos="-0.01195000005 0.09 0.0306" size="0.00485000005 0.0225000001 0.0122500001" group="3" density="0" />
+          <body name="left_upper_arm_link" pos="0 0.1025 0.0306" quat="0.707106781187 0.707106781187 0 0">
+            <joint name="left_shoulder_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.37" />
+            <inertial mass="0.11360422934603755" pos="-6.73245828305e-05 0.121668540708 0.0071204474328" fullinertia="0.00042052319553 3.90566146149e-05 0.000421717024488 1.43691037512e-06 -7.19297300767e-08 -3.30461374756e-05" />
+            <geom name="left_upper_printed_visual" type="mesh" mesh="cad_left_upper_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="left_upper_carbon_visual" type="mesh" mesh="cad_left_upper_carbon" rgba="0.06 0.07 0.08 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="left_upper_servo_visual" type="mesh" mesh="cad_left_upper_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="left_upper_printed_collision_0" type="box" pos="0.00195 0.02649999995 4.99998939821e-11" size="0.0336500001 0.03850000005 0.01215000005" group="3" density="0" />
+            <geom name="left_upper_printed_collision_1" type="box" pos="4.99999798509e-11 0.146084978236 0.00017500005" size="0.02500000005 0.034085 0.01232500005" group="3" density="0" />
+            <geom name="left_upper_printed_collision_2" type="box" pos="-0.01595 0 0" size="0.0022500001 0.0096000001 0.0096000001" group="3" density="0" />
+            <geom name="left_upper_printed_collision_3" type="box" pos="0.0165249988144 0 0" size="0.00167500128555 0.0096000001 0.0096000001" group="3" density="0" />
+            <geom name="left_upper_carbon_collision_0" type="box" pos="1.73472347598e-18 0.0884999891179 -9.54097911787e-18" size="0.009 0.0434999891179 0.009" group="3" density="0" />
+            <geom name="left_upper_servo_collision_0" type="box" pos="0.0119499999994 0.16257 0.0155" size="0.00705000010063 0.0123600001 0.0226100001" group="3" density="0" />
+            <geom name="left_upper_servo_collision_1" type="box" pos="-0.00105 0.16257 0.0155" size="0.0069500001 0.0123617040077 0.0226117040077" group="3" density="0" />
+            <geom name="left_upper_servo_collision_2" type="box" pos="-0.01185000005 0.16257 0.0155" size="0.00485000005 0.0122500001 0.0225000001" group="3" density="0" />
+            <body name="left_lower_arm_link" pos="0 0.16257 0.028" quat="0 0 0.707106781187 0.707106781187">
+              <joint name="left_elbow_pitch_joint" type="hinge" axis="-1 0 0" range="-0.22 3.14" />
+              <inertial mass="0.11506178963183422" pos="0.000226086530861 -0.00265083387763 0.128225011023" fullinertia="0.000421167342826 0.000432592605355 2.69378085104e-05 -1.16479268486e-08 1.76222359882e-06 1.29017188845e-05" />
+              <geom name="left_lower_printed_visual" type="mesh" mesh="cad_left_lower_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="left_lower_carbon_visual" type="mesh" mesh="cad_left_lower_carbon" rgba="0.06 0.07 0.08 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="left_lower_servo_visual" type="mesh" mesh="cad_left_lower_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+              <geom name="left_lower_printed_collision_0" type="box" pos="-0.00199548274483 -0.00345013036844 0.154699814673" size="0.0281954828448 0.0184501304684 0.0140000001" group="3" density="0" />
+              <geom name="left_lower_printed_collision_1" type="box" pos="-0.002 0 0.0268480759173" size="0.0322000001 0.01215 0.0388495940083" group="3" density="0" />
+              <geom name="left_lower_printed_collision_2" type="box" pos="0 -1.73472347598e-18 0.138199814723" size="0.0230000001 0.01215 0.03050000005" group="3" density="0" />
+              <geom name="left_lower_printed_collision_3" type="box" pos="0.01595 0 1.73472347598e-18" size="0.0022500001 0.0096000001 0.0096000001" group="3" density="0" />
+              <geom name="left_lower_printed_collision_4" type="box" pos="-0.0165249988144 0 -8.67361737988e-19" size="0.00167500128555 0.0096000001 0.0096000001" group="3" density="0" />
+              <geom name="left_lower_carbon_collision_0" type="box" pos="-7.8062556419e-18 -5.20417042793e-18 0.0866987422994" size="0.009 0.009 0.0410010723738" group="3" density="0" />
+              <geom name="left_lower_servo_collision_0" type="box" pos="-0.0119499999994 -0.0052 0.1724" size="0.00705000010063 0.0123600001 0.0226100001" group="3" density="0" />
+              <geom name="left_lower_servo_collision_1" type="box" pos="0.00105 -0.0052 0.1724" size="0.0069500001 0.0123617040077 0.0226117040077" group="3" density="0" />
+              <geom name="left_lower_servo_collision_2" type="box" pos="0.01185000005 -0.0052 0.1724" size="0.00485000005 0.0122500001 0.0225000001" group="3" density="0" />
+              <body name="left_wrist_pitch_link" pos="0 -0.0052 0.1849" quat="0.707106781187 -0.707106781187 0 0">
+                <joint name="left_wrist_pitch_joint" type="hinge" axis="1 0 0" range="-1.658063 1.658063" />
+                <inertial mass="0.07673142399116653" pos="-0.0107695492162 -0.0381083491274 -0.000102198879161" fullinertia="2.10816088303e-05 2.55251960268e-05 3.72415818987e-05 -4.79073124159e-06 6.22417769844e-08 2.0291196094e-08" />
+                <geom name="left_wrist_printed_visual" type="mesh" mesh="cad_left_wrist_printed" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                <geom name="left_wrist_servo_visual" type="mesh" mesh="cad_left_wrist_servo" rgba="0.1 0.12 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+                <geom name="left_wrist_printed_collision_0" type="box" pos="-0.00405 -0.026914295164 -0.00216938206608" size="0.0311500001 0.038914295264 0.0178306180339" group="3" density="0" />
+                <geom name="left_wrist_printed_collision_1" type="box" pos="0.01585 -1.73472347598e-18 -1.73472347598e-18" size="0.0022500001 0.0096000001 0.0096000001" group="3" density="0" />
+                <geom name="left_wrist_printed_collision_2" type="box" pos="-0.0164249988144 -1.73472347598e-18 1.73472347598e-18" size="0.00167500128555 0.0096000001 0.0096000001" group="3" density="0" />
+                <geom name="left_wrist_servo_collision_0" type="box" pos="-0.0140272065665 -0.0308000000006 3.55618312575e-17" size="0.0226100001 0.00705000010063 0.0123600001" group="3" density="0" />
+                <geom name="left_wrist_servo_collision_1" type="box" pos="-0.0140272065666 -0.0438 0" size="0.0226117040077 0.0069500001 0.0123617040077" group="3" density="0" />
+                <geom name="left_wrist_servo_collision_2" type="box" pos="-0.0140272065665 -0.05460000005 7.8062556419e-17" size="0.0225000001 0.00485000005 0.0122500001" group="3" density="0" />
+                <body name="left_gripper_frame" pos="-0.00152720656655 -0.05705 0" quat="0.707106781187 0 0.707106781187 0">
+                  <joint name="left_wrist_roll_joint" type="hinge" axis="0 -1 0" range="-2.743847 2.841206" />
+                  <inertial mass="0.13" pos="0.00982867679472 -0.0376059340461 5.21187858798e-06" fullinertia="9.97043738416e-05 8.33012135199e-05 6.33516410165e-05 2.17188259303e-06 1.66838658107e-08 2.00771604528e-07" />
+                  <geom name="left_palm_visual" type="mesh" mesh="cad_left_palm" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                  <geom name="left_palm_collision_0" type="box" pos="-2.60208521397e-18 -0.00225 -3.46944695195e-18" size="0.0096000001 0.0022500001 0.0096000001" group="3" density="0" />
+                  <geom name="left_palm_collision_1" type="box" pos="-0.000900020274909 -0.0423627829664 -5.0000004137e-11" size="0.0121000203749 0.0287462009823 0.04800000005" group="3" density="0" />
+                  <geom name="left_palm_collision_2" type="box" pos="0.00975 -0.0440772198595 0" size="0.0097500001 0.0304606378755 0.0480000001" group="3" density="0" />
+                  <geom name="left_palm_collision_3" type="box" pos="0 -0.00855829109205 -1.21430643318e-17" size="0.0120000001 0.00505829119205 0.0255" group="3" density="0" />
+                  <geom name="left_palm_collision_4" type="box" pos="0.0348499999994 -0.0365665820841 3.90312782095e-17" size="0.00705000010063 0.0226100001 0.0123600001" group="3" density="0" />
+                  <geom name="left_palm_collision_5" type="box" pos="0.02185 -0.0365665820841 3.46944695195e-18" size="0.0069500001 0.0226117040077 0.0123617040077" group="3" density="0" />
+                  <geom name="left_palm_collision_6" type="box" pos="0.01104999995 -0.0365665820841 8.15320033709e-17" size="0.00485000005 0.0225000001 0.0122500001" group="3" density="0" />
+                  <body name="left_gripper_cam_link" pos="0 -0.0490665820841 0" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="left_gripper_joint" type="hinge" axis="0 0 -1" range="0 1.0471975512" />
+                    <inertial mass="0.003467308184406045" pos="-7.95585726355e-06 -1.08140373939e-06 0.00165477169085" fullinertia="2.31173798138e-07 2.400353437e-07 4.29676375047e-07 3.40216572006e-09 -1.37477004267e-10 -3.59735921293e-12" />
+                    <geom name="left_cam_visual" type="mesh" mesh="cad_left_cam" rgba="0.45 0.5 0.55 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_cam_collision_0" type="box" pos="3.90529679105e-06 5.20417042793e-18 0.000725" size="0.0160039053968 0.0160000001 0.0034250001" group="3" density="0" />
+                    <geom name="left_cam_collision_1" type="box" pos="0 0 0.0064" size="0.0096000001 0.0096000001 0.0022500001" group="3" density="0" />
+                    <body name="left_finger_1_driving" pos="-0.00354167484447 -0.0104142469388 0" quat="1 0 0 0">
+                      <joint name="left_finger_1_driving_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                      <inertial mass="0.0010740527364630176" pos="-0.00151112494983 -0.0174228264212 -0.00570081698787" fullinertia="1.45923939347e-07 1.630902013e-08 1.57775259316e-07 1.5276714192e-08 3.99992571068e-12 -1.32345626393e-11" />
+                      <geom name="left_finger_1_driving_visual" type="mesh" mesh="cad_left_finger_1_driving" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                      <geom name="left_finger_1_driving_collision_0" type="box" pos="-1.29813049989e-05 -0.0162525771416 -0.00555" size="0.0080602382705 0.0212525771416 0.0026500001" group="3" density="0" />
+                    </body>
+                    <body name="left_finger_2_driving" pos="0.00330082918453 0.01049307041 0" quat="1 0 0 0">
+                      <joint name="left_finger_2_driving_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                      <inertial mass="0.0010740527364630171" pos="0.00110936634221 0.0174530136491 -0.00570081698787" fullinertia="1.4515150499e-07 1.70814544872e-08 1.57775259316e-07 1.82455572256e-08 -4.30373971036e-12 1.31389070493e-11" />
+                      <geom name="left_finger_2_driving_visual" type="mesh" mesh="cad_left_finger_2_driving" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                      <geom name="left_finger_2_driving_collision_0" type="box" pos="-0.000514785589624 0.0162131654043 -0.00555" size="0.00828046147413 0.0212131654043 0.0026500001" group="3" density="0" />
+                    </body>
+                  </body>
+                  <body name="left_finger_1_internal" pos="0 -0.0671089838486 0.0325" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="left_finger_1_internal_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                    <inertial mass="0.0036140700056098104" pos="0.0101863383513 0.00659023606517 -1.43809081829e-11" fullinertia="4.84340908483e-07 9.56746755461e-07 1.06251660262e-06 -4.42534902244e-07 1.46722094598e-14 -2.3311845409e-14" />
+                    <geom name="left_finger_1_internal_visual" type="mesh" mesh="cad_left_finger_1_internal" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <body name="left_finger_1_distal" pos="0.0346410161514 0.02 0" quat="1 0 0 0">
+                      <joint name="left_finger_1_distal_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                      <inertial mass="0.00792952677678155" pos="0.0153538158474 0.000815381112711 -4.18379937664e-06" fullinertia="6.92654136225e-07 1.17922679713e-06 1.1832183215e-06 -2.26496246812e-07 -3.33029134372e-11 -1.04579069129e-10" />
+                      <geom name="left_finger_1_distal_visual" type="mesh" mesh="cad_left_finger_1_distal" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                      <geom name="left_finger_1_distal_backing" type="box" pos="0.01562500005 -0.003125 -1.02175212735e-15" size="0.02037500005 0.013125 0.0128575579522" group="3" density="0" />
+                      <geom name="left_fixed_jaw_contact_1" type="box" friction="1.2 .02 .002" condim="4" pos="0.01743735 0.011 -0.006899105" size="0.00350755 0.001 0.005191995" group="3" density="0" />
+                      <geom name="left_fixed_jaw_contact_2" type="box" friction="1.2 .02 .002" condim="4" pos="0.01743735 0.011 0.006899105" size="0.00350755 0.001 0.005191995" group="3" density="0" />
+                    </body>
+                    <geom name="left_finger_1_internal_collision_00" type="mesh" mesh="finger_1_internal_collision_00" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_01" type="mesh" mesh="finger_1_internal_collision_01" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_02" type="mesh" mesh="finger_1_internal_collision_02" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_03" type="mesh" mesh="finger_1_internal_collision_03" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_04" type="mesh" mesh="finger_1_internal_collision_04" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_05" type="mesh" mesh="finger_1_internal_collision_05" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_06" type="mesh" mesh="finger_1_internal_collision_06" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_07" type="mesh" mesh="finger_1_internal_collision_07" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_08" type="mesh" mesh="finger_1_internal_collision_08" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_09" type="mesh" mesh="finger_1_internal_collision_09" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_10" type="mesh" mesh="finger_1_internal_collision_10" group="3" density="0" />
+                    <geom name="left_finger_1_internal_collision_11" type="mesh" mesh="finger_1_internal_collision_11" group="3" density="0" />
+                  </body>
+                  <body name="left_finger_1_external" pos="0 -0.0671089838486 0.044" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="left_finger_1_external_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                    <inertial mass="0.002110236426275736" pos="0.0173205080757 0.01 -7.0561446979e-18" fullinertia="1.1501183207e-07 2.94355803225e-07 3.86982887965e-07 -1.55316435036e-07 -1.12180890166e-22 -5.06190644955e-23" />
+                    <geom name="left_finger_1_external_visual" type="mesh" mesh="cad_left_finger_1_external" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_finger_1_external_collision_0" type="box" pos="0.0173205080757 0.01 -4.33680868994e-19" size="0.0218205080757 0.0145 0.0040000001" group="3" density="0" />
+                  </body>
+                  <body name="left_finger_2_internal" pos="0 -0.0671089838486 -0.0325" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="left_finger_2_internal_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                    <inertial mass="0.00361407000560981" pos="0.0101863383513 -0.00659023606517 1.43809021307e-11" fullinertia="4.84340908483e-07 9.56746755461e-07 1.06251660262e-06 4.42534902244e-07 -1.46722091981e-14 -2.33118455744e-14" />
+                    <geom name="left_finger_2_internal_visual" type="mesh" mesh="cad_left_finger_2_internal" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <body name="left_finger_2_distal" pos="0.0346410161514 -0.02 0" quat="1 0 0 0">
+                      <joint name="left_finger_2_distal_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                      <inertial mass="0.00792952677678155" pos="0.0153538158474 -0.000815381112712 4.18379937661e-06" fullinertia="6.92654136225e-07 1.17922679713e-06 1.1832183215e-06 2.26496246812e-07 3.33029134374e-11 -1.04579069129e-10" />
+                      <geom name="left_finger_2_distal_visual" type="mesh" mesh="cad_left_finger_2_distal" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                      <geom name="left_finger_2_distal_backing" type="box" pos="0.01562500005 0.003125 1.00267016911e-15" size="0.02037500005 0.013125 0.0128575579522" group="3" density="0" />
+                      <geom name="left_moving_jaw_contact_1" type="box" friction="1.2 .02 .002" condim="4" pos="0.01743735 -0.011 -0.006899105" size="0.00350755 0.001 0.005191995" group="3" density="0" />
+                      <geom name="left_moving_jaw_contact_2" type="box" friction="1.2 .02 .002" condim="4" pos="0.015683575 -0.011 0.006899105" size="0.001753775 0.001 0.005191995" group="3" density="0" />
+                      <geom name="left_moving_jaw_contact_3" type="box" friction="1.2 .02 .002" condim="4" pos="0.019191125 -0.011 0.006899105" size="0.001753775 0.001 0.005191995" group="3" density="0" />
+                    </body>
+                    <geom name="left_finger_2_internal_collision_00" type="mesh" mesh="finger_2_internal_collision_00" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_01" type="mesh" mesh="finger_2_internal_collision_01" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_02" type="mesh" mesh="finger_2_internal_collision_02" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_03" type="mesh" mesh="finger_2_internal_collision_03" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_04" type="mesh" mesh="finger_2_internal_collision_04" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_05" type="mesh" mesh="finger_2_internal_collision_05" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_06" type="mesh" mesh="finger_2_internal_collision_06" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_07" type="mesh" mesh="finger_2_internal_collision_07" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_08" type="mesh" mesh="finger_2_internal_collision_08" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_09" type="mesh" mesh="finger_2_internal_collision_09" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_10" type="mesh" mesh="finger_2_internal_collision_10" group="3" density="0" />
+                    <geom name="left_finger_2_internal_collision_11" type="mesh" mesh="finger_2_internal_collision_11" group="3" density="0" />
+                  </body>
+                  <body name="left_finger_2_external" pos="0 -0.0671089838486 -0.044" quat="-0.5 0.5 -0.5 0.5">
+                    <joint name="left_finger_2_external_joint" type="hinge" axis="0 0 1" range="-3.14159265359 3.14159265359" />
+                    <inertial mass="0.002110236426275736" pos="0.0173205080757 -0.01 -9.54242893389e-19" fullinertia="1.1501183207e-07 2.94355803225e-07 3.86982887965e-07 1.55316435036e-07 2.29671343358e-22 -1.46204115481e-22" />
+                    <geom name="left_finger_2_external_visual" type="mesh" mesh="cad_left_finger_2_external" rgba="0.7 0.49 0.19 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_finger_2_external_collision_0" type="box" pos="0.0173205080757 -0.01 -6.93889390391e-18" size="0.0218205080757 0.0145 0.0040000001" group="3" density="0" />
+                  </body>
+                  <body name="left_wrist_camera_link" pos="0.066724675601 -0.0631437997693 2.53130849615e-17" quat="0.241844762648 0.664463024389 0.241844762648 -0.664463024389">
+                    <inertial mass="0.042546690997913146" pos="8.15711853647e-17 -0.0158010487469 -0.0171425914387" fullinertia="3.31670325685e-05 1.76975307786e-05 2.63418623285e-05 3.46973905119e-21 2.131484934e-22 1.04583580058e-05" />
+                    <geom name="left_camera_mount_visual" type="mesh" mesh="cad_left_camera_mount" rgba="0.18 0.52 0.65 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_camera_pcb_visual" type="mesh" mesh="cad_left_camera_pcb" rgba="0.12 0.42 0.23 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_camera_optics_visual" type="mesh" mesh="cad_left_camera_optics" rgba="0.08 0.1 0.13 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_camera_hardware_visual" type="mesh" mesh="cad_left_camera_hardware" rgba="0.7 0.73 0.77 1" contype="0" conaffinity="0" group="2" density="0" />
+                    <geom name="left_camera_mount_collision_0" type="box" pos="9.19403442268e-17 -0.0231930978585 -0.00689399653274" size="0.02341 0.0431930978585 0.0334060034673" group="3" density="0" />
+                    <geom name="left_camera_pcb_collision_0" type="box" pos="7.97972798949e-17 1.11022302463e-16 -0.0235" size="0.019 0.019 0.0008" group="3" density="0" />
+                    <geom name="left_camera_optics_collision_0" type="box" pos="7.97972798949e-17 1.14491749414e-16 -0.01155" size="0.009 0.009 0.01115" group="3" density="0" />
+                    <geom name="left_camera_optics_collision_1" type="box" pos="8.19656842399e-17 1.15359111152e-16 -0.0002" size="0.00684 0.00684 0.0002" group="3" density="0" />
+                    <geom name="left_camera_optics_collision_2" type="box" pos="7.1557343384e-17 -0.017 -0.0263" size="0.004 0.002 0.002" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_0" type="box" pos="-0.014 -0.014 -0.0317" size="0.0019 0.0019 0.011" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_1" type="box" pos="-0.014 -0.014 -0.0394" size="0.00230940107676 0.002 0.0008" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_2" type="box" pos="-0.014 0.014 -0.0317" size="0.0019 0.0019 0.011" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_3" type="box" pos="-0.014 0.014 -0.0394" size="0.00230940107676 0.002 0.0008" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_4" type="box" pos="0.014 -0.014 -0.0317" size="0.0019 0.0019 0.011" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_5" type="box" pos="0.014 -0.014 -0.0394" size="0.00230940107676 0.002 0.0008" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_6" type="box" pos="0.014 0.014 -0.0317" size="0.0019 0.0019 0.011" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_7" type="box" pos="0.014 0.014 -0.0394" size="0.00230940107676 0.002 0.0008" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_8" type="box" pos="-0.01891 -0.0579047830903 0.0111113587324" size="0.00225 0.00455451582389 0.00495510053255" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_9" type="box" pos="0.01891 -0.0579047830903 0.0111113587324" size="0.00225 0.00455451582389 0.00495510053255" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_10" type="box" pos="-0.01891 -0.0464141164436 0.0207531728777" size="0.00225 0.00455451582389 0.00495510053255" group="3" density="0" />
+                    <geom name="left_camera_hardware_collision_11" type="box" pos="0.01891 -0.0464141164436 0.0207531728777" size="0.00225 0.00455451582389 0.00495510053255" group="3" density="0" />
+                    <site name="left_wrist_rgb_optical_frame" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+                    <camera name="left_wrist_rgb" pos="0 0 0" quat="0 1 0 0" fovy="60.59297586266491" />
+                  </body>
+                  <site name="left_grasp_tcp" pos="0 -0.119132450457 0" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
+                  <site name="left_pregrasp_aim_tip" pos="0 -0.259132450457 0" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="top_base_link" pos="-0.300915876239 0.00613319730702 -0.435385493097" quat="-1.83660255139e-06 -2.77579934376e-08 -3.66905102863e-09 0.999999999998">
+        <inertial mass="0.08199726219358494" pos="-0.204170668147 0.00609920910728 1.09201132981" fullinertia="2.52599244293e-05 3.97380331239e-05 2.95334646742e-05 2.44536753103e-09 -4.90022576263e-06 -4.06251438651e-11" />
+        <geom name="head_base_plastic_visual" type="mesh" mesh="cad_head_base_plastic" rgba="0.25 0.43 0.62 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="head_base_servo_visual" type="mesh" mesh="cad_head_base_servo" rgba="0.13 0.15 0.17 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="head_base_plastic_collision_0" type="box" pos="-0.209512082443 0.0061 1.09124999995" size="0.0311501952494 0.032 0.02985000005" group="3" density="0" />
+        <geom name="head_base_servo_collision_0" type="box" pos="-0.200973591152 0.0061 1.08615" size="0.02261000005 0.0123600001 0.0070500001" group="3" density="0" />
+        <geom name="head_base_servo_collision_1" type="box" pos="-0.200973591202 0.0061 1.10995000005" size="0.0225 0.01225 0.00485000005" group="3" density="0" />
+        <geom name="head_base_servo_collision_2" type="box" pos="-0.200973591202 0.0061 1.09914999995" size="0.0226117040077 0.0123617040077 0.00695000005" group="3" density="0" />
+        <body name="head_pan_link" pos="-0.213473591202 0.0061 1.1169" quat="1 0 0 0">
+          <joint name="head_pan_joint" type="hinge" axis="0 0 1" range="-1.57079632679 1.57079632679" />
+          <inertial mass="0.08198923533545688" pos="-0.0129473641481 -0.000349406990187 0.0165405579454" fullinertia="2.94747483102e-05 3.73458313874e-05 2.43088417045e-05 -1.4480581315e-07 5.51266409065e-06 1.9004041217e-07" />
+          <geom name="head_pan_plastic_visual" type="mesh" mesh="cad_head_pan_plastic" rgba="0.25 0.43 0.62 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="head_pan_hardware_visual" type="mesh" mesh="cad_head_pan_hardware" rgba="0.73 0.76 0.8 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="head_pan_servo_visual" type="mesh" mesh="cad_head_pan_servo" rgba="0.13 0.15 0.17 1" contype="0" conaffinity="0" group="2" density="0" />
+          <geom name="head_pan_plastic_collision_0" type="box" pos="-0.0131 2.72351585728e-16 0.0185" size="0.0270000001 0.0240000001 0.0195000001" group="3" density="0" />
+          <geom name="head_pan_hardware_collision_0" type="box" pos="-6.68735899989e-16 -3.86843335143e-16 -0.00225000005" size="0.0096 0.0096 0.00225000005" group="3" density="0" />
+          <geom name="head_pan_hardware_collision_1" type="box" pos="-6.67868538251e-16 5.55978874051e-16 -0.035575" size="0.0096 0.0096 0.001675" group="3" density="0" />
+          <geom name="head_pan_servo_collision_0" type="box" pos="-0.01249000005 0.01154999995 0.023375" size="0.02261000005 0.00705000005 0.0123600001" group="3" density="0" />
+          <geom name="head_pan_servo_collision_1" type="box" pos="-0.01249 -0.01225000005 0.023375" size="0.0225 0.00485000005 0.01225" group="3" density="0" />
+          <geom name="head_pan_servo_collision_2" type="box" pos="-0.01249 -0.00144999995 0.023375" size="0.0226117040077 0.00695000005 0.0123617040077" group="3" density="0" />
+          <body name="head_tilt_link" pos="1e-05 -0.0006 0.023375" quat="1 0 0 0">
+            <joint name="head_tilt_joint" type="hinge" axis="0 1 0" range="-0.785398163397 0.785398163397" />
+            <inertial mass="0.09733350074312185" pos="0.0178340806343 0.000586000970593 0.0272607476443" fullinertia="6.49082961819e-05 2.80577977829e-05 6.18267542832e-05 -1.88821222073e-07 -8.62604792337e-06 -1.03520758805e-06" />
+            <geom name="head_tilt_plastic_visual" type="mesh" mesh="cad_head_tilt_plastic" rgba="0.25 0.43 0.62 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="head_tilt_camera_visual" type="mesh" mesh="cad_head_tilt_camera" rgba="0.7 0.73 0.76 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="head_tilt_window_visual" type="mesh" mesh="cad_head_tilt_window" rgba="0.035 0.05 0.07 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="head_tilt_hardware_visual" type="mesh" mesh="cad_head_tilt_hardware" rgba="0.73 0.76 0.8 1" contype="0" conaffinity="0" group="2" density="0" />
+            <geom name="head_tilt_plastic_collision_0" type="box" pos="-1.26634813746e-16 2.77555756156e-16 0.0144482924106" size="0.0105000001 0.0332000001 0.0249482925106" group="3" density="0" />
+            <geom name="head_tilt_camera_collision_0" type="box" pos="0.0230249997526 4.75969937561e-05 0.0323960574743" size="0.0125250003497 0.0449522531061 0.0124999795202" group="3" density="0" />
+            <geom name="head_tilt_hardware_collision_0" type="box" pos="-5.55111512313e-17 -0.01634999995 9.54965273525e-16" size="0.0096 0.00225000005 0.0096" group="3" density="0" />
+            <geom name="head_tilt_hardware_collision_1" type="box" pos="-5.63785129692e-17 0.016975 -1.12757025938e-17" size="0.0096 0.001675 0.0096" group="3" density="0" />
+            <geom name="head_tilt_hardware_collision_2" type="box" pos="0.00899999999999 0.0225 0.0323960780544" size="0.0055 0.0027500001 0.0027500001" group="3" density="0" />
+            <geom name="head_tilt_hardware_collision_3" type="box" pos="0.00899999999999 -0.0225 0.0323960780544" size="0.0055 0.0027500001 0.0027500001" group="3" density="0" />
+            <site name="head_camera_link" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+            <site name="head_camera_rgb_frame" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+            <site name="head_camera_depth_frame" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+            <site name="head_camera_rgb_optical_frame" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
+            <site name="head_camera_depth_optical_frame" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="-0.5 0.5 -0.5 0.5" size=".001" rgba="0 0 0 0" />
+            <camera name="head_realsense_rgb" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="0.5 0.5 -0.5 -0.5" fovy="42" />
+            <camera name="head_realsense_depth" pos="0.0355500000024 -1.86517468137e-17 0.0323960780542" quat="0.5 0.5 -0.5 -0.5" fovy="40" />
+          </body>
+        </body>
+      </body>
+      <body name="lidar_link" pos="-0.139299541203 2.6326078806e-05 -0.092497007732" quat="0.707108079859 2.2222276294e-08 -1.70334545683e-08 -0.707105482511">
+        <inertial mass="0.43242420154660005" pos="0.000168134776901 0.013303103613 -0.0348584172471" fullinertia="0.000743854726261 0.000405380955013 0.00085616805983 1.35111137452e-06 -2.09278393236e-06 3.17773276618e-05" />
+        <geom name="lidarplate_visual" type="mesh" mesh="cad_lidarplate" rgba="0.239999994636 0.600000023842 0.819999992847 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="lidarstandoffs_visual" type="mesh" mesh="cad_lidarstandoffs" rgba="0.819999992847 0.680000007153 0.319999992847 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="lidarprofilebolts_visual" type="mesh" mesh="cad_lidarprofilebolts" rgba="0.699999988079 0.72000002861 0.75 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="lidarlowerbolts_visual" type="mesh" mesh="cad_lidarlowerbolts" rgba="0.699999988079 0.72000002861 0.75 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rplidar_housing_visual" type="mesh" mesh="cad_rplidar_housing" rgba="0.189999997616 0.209999993443 0.239999994636 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rplidar_mechanism_visual" type="mesh" mesh="cad_rplidar_mechanism" rgba="0.189999997616 0.209999993443 0.239999994636 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="rplidar_components_visual" type="mesh" mesh="cad_rplidar_components" rgba="0.189999997616 0.209999993443 0.239999994636 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="lidarplate_collision_0" type="box" pos="0 0.015275 -0.049" size="0.05 0.074 0.003" group="3" density="0" />
+        <geom name="lidarstandoffs_collision_0" type="box" pos="-0.028 -0.028 -0.0335" size="0.00288675134595 0.0025 0.0125" group="3" density="0" />
+        <geom name="lidarstandoffs_collision_1" type="box" pos="0.028 -0.028 -0.0335" size="0.00288675134595 0.0025 0.0125" group="3" density="0" />
+        <geom name="lidarstandoffs_collision_2" type="box" pos="-0.02 0.042 -0.0335" size="0.00288675134595 0.0025 0.0125" group="3" density="0" />
+        <geom name="lidarstandoffs_collision_3" type="box" pos="0.02 0.042 -0.0335" size="0.00288675134595 0.0025 0.0125" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_0" type="box" pos="-0.04 -0.050725 -0.0512" size="0.002 0.002 0.006" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_1" type="box" pos="-0.04 -0.050725 -0.0432" size="0.0035 0.0035 0.002" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_2" type="box" pos="-0.04 -0.050725 -0.0456" size="0.0045 0.0045 0.0004" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_3" type="box" pos="0.04 -0.050725 -0.0512" size="0.002 0.002 0.006" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_4" type="box" pos="0.04 -0.050725 -0.0432" size="0.0035 0.0035 0.002" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_5" type="box" pos="0.04 -0.050725 -0.0456" size="0.0045 0.0045 0.0004" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_6" type="box" pos="0 0.075598451065 -0.0512" size="0.002 0.002 0.006" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_7" type="box" pos="0 0.075598451065 -0.0432" size="0.0035 0.0035 0.002" group="3" density="0" />
+        <geom name="lidarprofilebolts_collision_8" type="box" pos="0 0.075598451065 -0.0456" size="0.0045 0.0045 0.0004" group="3" density="0" />
+        <geom name="lidarlowerbolts_collision_0" type="box" pos="-0.028 -0.028 -0.04875" size="0.00225 0.00225 0.00625" group="3" density="0" />
+        <geom name="lidarlowerbolts_collision_1" type="box" pos="-0.028 -0.028 -0.05225" size="0.003 0.003 0.00025" group="3" density="0" />
+        <geom name="lidarlowerbolts_collision_2" type="box" pos="0.028 -0.028 -0.04875" size="0.00225 0.00225 0.00625" group="3" density="0" />
+        <geom name="lidarlowerbolts_collision_3" type="box" pos="0.028 -0.028 -0.05225" size="0.003 0.003 0.00025" group="3" density="0" />
+        <geom name="lidarlowerbolts_collision_4" type="box" pos="-0.02 0.042 -0.04875" size="0.00225 0.00225 0.00625" group="3" density="0" />
+        <geom name="lidarlowerbolts_collision_5" type="box" pos="-0.02 0.042 -0.05225" size="0.003 0.003 0.00025" group="3" density="0" />
+        <geom name="lidarlowerbolts_collision_6" type="box" pos="0.02 0.042 -0.04875" size="0.00225 0.00225 0.00625" group="3" density="0" />
+        <geom name="lidarlowerbolts_collision_7" type="box" pos="0.02 0.042 -0.05225" size="0.003 0.003 0.00025" group="3" density="0" />
+        <geom name="rplidar_housing_collision_0" type="box" pos="2.08166817117e-17 0.0132290529858 -0.0205" size="0.0351403450937 0.0483693980792 0.0065000001" group="3" density="0" />
+        <geom name="rplidar_mechanism_collision_0" type="box" pos="6.38378239159e-16 -1.17961196366e-16 -0.01205" size="0.03539 0.03539 0.0114500001" group="3" density="0" />
+        <geom name="rplidar_components_collision_0" type="box" pos="3.12250225676e-17 0 -0.01849999995" size="0.0235 0.0235 0.00350000005" group="3" density="0" />
+        <geom name="rplidar_components_collision_1" type="box" pos="-0.000124289253817 -6.75431932606e-14 -0.011" size="0.0316257107462 0.0282681803277 0.00050000000037" group="3" density="0" />
+        <geom name="rplidar_components_collision_2" type="box" pos="0.0204283037871 -0.0199105304665 -0.00125" size="0.010744442009 0.0076280461215 0.0092500001" group="3" density="0" />
+        <geom name="rplidar_components_collision_3" type="box" pos="0.0210245766472 0.015934914126 -0.0012499999999" size="0.0124854369067 0.0109292455906 0.0092500001001" group="3" density="0" />
+        <geom name="rplidar_components_collision_4" type="box" pos="-1.70002900646e-16 -1.11022302463e-16 -0.00075" size="0.035408466871 0.035408466871 0.0097500001" group="3" density="0" />
+        <geom name="rplidar_components_collision_5" type="box" pos="5.00003094484e-11 0.0455 -0.02689999995" size="0.01600000005 0.0160000001 0.01510000005" group="3" density="0" />
+        <geom name="rplidar_components_collision_6" type="box" pos="-4.99987898306e-11 0.0455 -0.01325" size="0.00900000005 0.009 0.00275" group="3" density="0" />
+        <geom name="rplidar_components_collision_7" type="box" pos="0.00693802876711 0.0171931139721 -1.99926880606e-16" size="0.00585931690749 0.00702162064063 0.007" group="3" density="0" />
+        <geom name="rplidar_components_collision_8" type="box" pos="-0.0289951824672 -0.000528577046402 -0.01335" size="0.00253786096433 0.00214521813094 0.00335" group="3" density="0" />
+        <geom name="rplidar_components_collision_9" type="box" pos="6.31439345256e-16 0.0096375 -0.0125" size="0.035725 0.0453625001 0.00100000000034" group="3" density="0" />
+        <geom name="rplidar_components_collision_10" type="box" pos="-2.7582103268e-16 0.0055 -0.0302499999998" size="0.0285 0.023 0.00425000000016" group="3" density="0" />
+        <geom name="rplidar_components_collision_11" type="box" pos="0.0026471905748 0.02410000005 -0.02935" size="0.005075 0.00210000005 0.00235" group="3" density="0" />
+        <geom name="rplidar_components_collision_12" type="box" pos="-0.00870029274619 0.02427 -0.02935" size="0.0044 0.00193 0.00235" group="3" density="0" />
+        <geom name="rplidar_components_collision_13" type="box" pos="-0.020661702599 0.02490000005 -0.02935" size="0.0019925 0.00210000005 0.00235" group="3" density="0" />
+        <geom name="rplidar_components_collision_14" type="box" pos="-0.016676702599 0.02490000005 -0.02935" size="0.0019925 0.00210000005 0.00235" group="3" density="0" />
+        <geom name="rplidar_components_collision_15" type="box" pos="-0.00589926870896 -0.00679695731188 -0.0095" size="0.002 0.002 0.001" group="3" density="0" />
+        <geom name="rplidar_components_collision_16" type="box" pos="-0.00293670334605 0.00850739522165 -0.0095" size="0.002 0.002 0.001" group="3" density="0" />
+        <geom name="rplidar_components_collision_17" type="box" pos="0.00883597205501 -0.00171043790977 -0.0095" size="0.002 0.002 0.001" group="3" density="0" />
+        <geom name="rplidar_components_collision_18" type="box" pos="0.000236625146817 -0.00108294881761 -0.00050000005" size="0.0107817677697 0.0309686043948 0.00800000005" group="3" density="0" />
+        <geom name="rplidar_components_collision_19" type="box" pos="0.00371383568471 -0.0240160040057 -6.07586897461e-16" size="0.0103276170986 0.00446718752571 0.00325000000017" group="3" density="0" />
+        <geom name="rplidar_components_collision_20" type="box" pos="-0.0117455432465 0.00541940379845 -0.000499999999996" size="0.00316258747379 0.0243933445999 0.0075" group="3" density="0" />
+        <site name="laser" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+        <site name="lidar_site" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+      </body>
+      <body name="imu_link" pos="-2.45388500298e-05 2.68379755866e-05 -0.134897" quat="-1.83660255139e-06 -2.77579934932e-08 -3.66905102863e-09 0.999999999998">
+        <inertial mass="0.018832047383362863" pos="-0.000187547361986 1.42359433697e-19 -0.00398135160464" fullinertia="1.15017012869e-06 4.38646128645e-06 4.99554519658e-06 7.66527845956e-22 -2.58021417638e-08 2.19214753295e-23" />
+        <geom name="imumount_visual" type="mesh" mesh="cad_imumount" rgba="0.800000011921 0.879999995232 0.939999997616 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imupcb_visual" type="mesh" mesh="cad_imupcb" rgba="0.070000000298 0.34999999404 0.75 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuheader_visual" type="mesh" mesh="cad_imuheader" rgba="0.219999998808 0.219999998808 0.239999994636 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuchip_visual" type="mesh" mesh="cad_imuchip" rgba="0.119999997318 0.119999997318 0.129999995232 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuprofilebolts_visual" type="mesh" mesh="cad_imuprofilebolts" rgba="0.699999988079 0.72000002861 0.740000009537 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuboardbolts_visual" type="mesh" mesh="cad_imuboardbolts" rgba="0.699999988079 0.72000002861 0.740000009537 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imuboardnuts_visual" type="mesh" mesh="cad_imuboardnuts" rgba="0.699999988079 0.72000002861 0.740000009537 1" contype="0" conaffinity="0" group="2" density="0" />
+        <geom name="imumount_collision_0" type="box" pos="0 0 -0.0056" size="0.028 0.017 0.004" group="3" density="0" />
+        <geom name="imupcb_collision_0" type="box" pos="0 0 -0.0008" size="0.0078 0.01015 0.0008" group="3" density="0" />
+        <geom name="imuheader_collision_0" type="box" pos="0.0053 -1.73472347598e-18 0.0009" size="0.00127 0.01016 0.0055" group="3" density="0" />
+        <geom name="imuchip_collision_0" type="box" pos="0 0 0.00045" size="0.002 0.002 0.00045" group="3" density="0" />
+        <geom name="imuprofilebolts_collision_0" type="box" pos="0.022 -5.63785129692e-18 -0.0042" size="0.0045 0.0045 0.0004" group="3" density="0" />
+        <geom name="imuprofilebolts_collision_1" type="box" pos="0.022 -4.77048955894e-18 -0.0068" size="0.0035 0.0035 0.007" group="3" density="0" />
+        <geom name="imuprofilebolts_collision_2" type="box" pos="-0.022 5.63785129692e-18 -0.0042" size="0.0045 0.0045 0.0004" group="3" density="0" />
+        <geom name="imuprofilebolts_collision_3" type="box" pos="-0.022 4.77048955894e-18 -0.0068" size="0.0035 0.0035 0.007" group="3" density="0" />
+        <geom name="imuboardbolts_collision_0" type="box" pos="-0.0047 -0.00762 0.00025" size="0.0028 0.0028 0.00025" group="3" density="0" />
+        <geom name="imuboardbolts_collision_1" type="box" pos="-0.0047 -0.00762 -0.0036" size="0.0023 0.0023 0.0059" group="3" density="0" />
+        <geom name="imuboardbolts_collision_2" type="box" pos="-0.0047 0.00762 0.00025" size="0.0028 0.0028 0.00025" group="3" density="0" />
+        <geom name="imuboardbolts_collision_3" type="box" pos="-0.0047 0.00762 -0.0036" size="0.0023 0.0023 0.0059" group="3" density="0" />
+        <geom name="imuboardnuts_collision_0" type="box" pos="-0.0047 -0.00762 -0.0085" size="0.0025 0.00288675134595 0.001" group="3" density="0" />
+        <geom name="imuboardnuts_collision_1" type="box" pos="-0.0047 0.00762 -0.0085" size="0.0025 0.00288675134595 0.001" group="3" density="0" />
+        <site name="imu_site" pos="0 0 0" quat="1 0 0 0" size=".001" rgba="0 0 0 0" />
+      </body>
+      <geom name="mast_collision_00" type="mesh" mesh="mast_collision_00" group="3" density="0" />
+      <geom name="mast_collision_01" type="mesh" mesh="mast_collision_01" group="3" density="0" />
+      <geom name="mast_collision_02" type="mesh" mesh="mast_collision_02" group="3" density="0" />
+      <geom name="mast_collision_03" type="mesh" mesh="mast_collision_03" group="3" density="0" />
+      <geom name="mast_collision_04" type="mesh" mesh="mast_collision_04" group="3" density="0" />
+      <geom name="mast_collision_05" type="mesh" mesh="mast_collision_05" group="3" density="0" />
+      <geom name="mast_collision_06" type="mesh" mesh="mast_collision_06" group="3" density="0" />
+      <geom name="mast_collision_07" type="mesh" mesh="mast_collision_07" group="3" density="0" />
+      <geom name="mast_collision_08" type="mesh" mesh="mast_collision_08" group="3" density="0" />
+      <geom name="mast_collision_09" type="mesh" mesh="mast_collision_09" group="3" density="0" />
+      <geom name="mast_collision_10" type="mesh" mesh="mast_collision_10" group="3" density="0" />
+      <geom name="mast_collision_11" type="mesh" mesh="mast_collision_11" group="3" density="0" />
+      <geom name="mast_collision_12" type="mesh" mesh="mast_collision_12" group="3" density="0" />
+      <geom name="mast_collision_13" type="mesh" mesh="mast_collision_13" group="3" density="0" />
+      <geom name="mast_collision_14" type="mesh" mesh="mast_collision_14" group="3" density="0" />
+      <geom name="mast_collision_15" type="mesh" mesh="mast_collision_15" group="3" density="0" />
+      <geom name="mast_collision_16" type="mesh" mesh="mast_collision_16" group="3" density="0" />
+      <geom name="mast_collision_17" type="mesh" mesh="mast_collision_17" group="3" density="0" />
+      <geom name="mast_collision_18" type="mesh" mesh="mast_collision_18" group="3" density="0" />
+      <geom name="mast_collision_19" type="mesh" mesh="mast_collision_19" group="3" density="0" />
+      <geom name="mast_collision_20" type="mesh" mesh="mast_collision_20" group="3" density="0" />
+      <geom name="mast_collision_21" type="mesh" mesh="mast_collision_21" group="3" density="0" />
+      <geom name="mast_collision_22" type="mesh" mesh="mast_collision_22" group="3" density="0" />
+      <geom name="mast_collision_23" type="mesh" mesh="mast_collision_23" group="3" density="0" />
+      <geom name="mast_collision_24" type="mesh" mesh="mast_collision_24" group="3" density="0" />
+      <geom name="mast_collision_25" type="mesh" mesh="mast_collision_25" group="3" density="0" />
+      <geom name="mast_collision_26" type="mesh" mesh="mast_collision_26" group="3" density="0" />
+      <geom name="mast_collision_27" type="mesh" mesh="mast_collision_27" group="3" density="0" />
+      <geom name="mast_collision_28" type="mesh" mesh="mast_collision_28" group="3" density="0" />
+      <geom name="mast_collision_29" type="mesh" mesh="mast_collision_29" group="3" density="0" />
+      <geom name="mast_collision_30" type="mesh" mesh="mast_collision_30" group="3" density="0" />
+      <geom name="mast_collision_31" type="mesh" mesh="mast_collision_31" group="3" density="0" />
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="right_shoulder_yaw_joint" joint="right_shoulder_yaw_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.16 2.16" />
+    <position name="right_shoulder_pitch_joint" joint="right_shoulder_pitch_joint" kp="40" kv="2" forcerange="-4.41 4.41" ctrlrange="-0.22 3.37" />
+    <position name="right_elbow_pitch_joint" joint="right_elbow_pitch_joint" kp="40" kv="2" forcerange="-4.41 4.41" ctrlrange="-0.22 3.14" />
+    <position name="right_wrist_pitch_joint" joint="right_wrist_pitch_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-1.658063 1.658063" />
+    <position name="right_wrist_roll_joint" joint="right_wrist_roll_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.743847 2.841206" />
+    <position name="left_shoulder_yaw_joint" joint="left_shoulder_yaw_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.16 2.16" />
+    <position name="left_shoulder_pitch_joint" joint="left_shoulder_pitch_joint" kp="40" kv="2" forcerange="-4.41 4.41" ctrlrange="-0.22 3.37" />
+    <position name="left_elbow_pitch_joint" joint="left_elbow_pitch_joint" kp="40" kv="2" forcerange="-4.41 4.41" ctrlrange="-0.22 3.14" />
+    <position name="left_wrist_pitch_joint" joint="left_wrist_pitch_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-1.658063 1.658063" />
+    <position name="left_wrist_roll_joint" joint="left_wrist_roll_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-2.743847 2.841206" />
+    <position name="right_gripper_joint" joint="right_gripper_joint" kp="6.0" kv="0.15" forcerange="-1.5 1.5" ctrlrange="0 1.0471975512" />
+    <position name="left_gripper_joint" joint="left_gripper_joint" kp="6.0" kv="0.15" forcerange="-1.5 1.5" ctrlrange="0 1.0471975512" />
+    <position name="head_pan" joint="head_pan_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-1.57079632679 1.57079632679" />
+    <position name="head_tilt" joint="head_tilt_joint" kp="40" kv="2" forcerange="-2.65 2.65" ctrlrange="-0.785398163397 0.785398163397" />
+  </actuator>
+  <equality>
+    <connect name="right_finger_1_drive_pin" body1="right_finger_1_driving" body2="right_finger_1_internal" anchor="0.003047257009 -0.0325051542612 0" solref=".005 1" solimp=".99 .999 .001" />
+    <connect name="right_finger_1_distal_pin" body1="right_finger_1_distal" body2="right_finger_1_external" anchor="0 -0.0115 0" solref=".005 1" solimp=".99 .999 .001" />
+    <connect name="right_finger_2_drive_pin" body1="right_finger_2_driving" body2="right_finger_2_internal" anchor="-0.00379524702 0.03242633079 0" solref=".005 1" solimp=".99 .999 .001" />
+    <connect name="right_finger_2_distal_pin" body1="right_finger_2_distal" body2="right_finger_2_external" anchor="0 0.0115 0" solref=".005 1" solimp=".99 .999 .001" />
+    <connect name="left_finger_1_drive_pin" body1="left_finger_1_driving" body2="left_finger_1_internal" anchor="0.003047257009 -0.0325051542612 0" solref=".005 1" solimp=".99 .999 .001" />
+    <connect name="left_finger_1_distal_pin" body1="left_finger_1_distal" body2="left_finger_1_external" anchor="0 -0.0115 0" solref=".005 1" solimp=".99 .999 .001" />
+    <connect name="left_finger_2_drive_pin" body1="left_finger_2_driving" body2="left_finger_2_internal" anchor="-0.00379524702 0.03242633079 0" solref=".005 1" solimp=".99 .999 .001" />
+    <connect name="left_finger_2_distal_pin" body1="left_finger_2_distal" body2="left_finger_2_external" anchor="0 0.0115 0" solref=".005 1" solimp=".99 .999 .001" />
+  </equality>
+  <contact>
+    <exclude body1="left_finger_1_distal" body2="left_finger_1_external" />
+    <exclude body1="left_finger_1_driving" body2="left_finger_1_internal" />
+    <exclude body1="left_finger_1_internal" body2="left_finger_1_external" />
+    <exclude body1="left_finger_2_distal" body2="left_finger_2_external" />
+    <exclude body1="left_finger_2_driving" body2="left_finger_2_internal" />
+    <exclude body1="left_finger_2_internal" body2="left_finger_2_external" />
+    <exclude body1="left_gripper_cam_link" body2="left_finger_1_internal" />
+    <exclude body1="left_gripper_cam_link" body2="left_finger_2_internal" />
+    <exclude body1="left_gripper_frame" body2="left_finger_1_driving" />
+    <exclude body1="left_gripper_frame" body2="left_finger_2_driving" />
+    <exclude body1="right_finger_1_distal" body2="right_finger_1_external" />
+    <exclude body1="right_finger_1_driving" body2="right_finger_1_internal" />
+    <exclude body1="right_finger_1_internal" body2="right_finger_1_external" />
+    <exclude body1="right_finger_2_distal" body2="right_finger_2_external" />
+    <exclude body1="right_finger_2_driving" body2="right_finger_2_internal" />
+    <exclude body1="right_finger_2_internal" body2="right_finger_2_external" />
+    <exclude body1="right_gripper_cam_link" body2="right_finger_1_internal" />
+    <exclude body1="right_gripper_cam_link" body2="right_finger_2_internal" />
+    <exclude body1="right_gripper_frame" body2="right_finger_1_driving" />
+    <exclude body1="right_gripper_frame" body2="right_finger_2_driving" />
+  </contact>
+  <keyframe>
+    <key name="cad_home" qpos="0 0 0.38 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 0 0 0 0 0 0 0 0 0 3.13984732434 3.13984732434 0 0 0 0 0 0 0 0 0 0 0 0 0" ctrl="0 3.13984732434 3.13984732434 0 0 0 3.13984732434 3.13984732434 0 0 0 0 0 0" />
+  </keyframe>
+  <visual>
+    <headlight ambient=".45 .45 .45" diffuse=".7 .7 .7" specular=".2 .2 .2" />
+  </visual>
+  <sensor>
+    <accelerometer name="imu_accelerometer" site="imu_site" />
+    <gyro name="imu_gyro" site="imu_site" />
+    <framequat name="imu_orientation" objtype="site" objname="imu_site" />
+  </sensor>
+</mujoco>

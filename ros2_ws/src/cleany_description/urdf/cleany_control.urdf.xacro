@@ -10,6 +10,7 @@
   <xacro:arg name="camera_name" default="left_wrist_rgb"/>
   <xacro:arg name="camera_frame_name" default="left_wrist_rgb_vendor_frame"/>
   <xacro:arg name="enable_gripper_command" default="false"/>
+  <xacro:arg name="include_head_camera" default="false"/>
   <xacro:arg name="left_shoulder_yaw_initial" default="0.0"/>
   <xacro:arg name="left_shoulder_pitch_initial" default="0.0"/>
   <xacro:arg name="left_elbow_pitch_initial" default="0.0"/>
@@ -23,11 +24,15 @@
   <xacro:arg name="right_wrist_roll_initial" default="0.0"/>
   <xacro:arg name="right_gripper_initial" default="0.0"/>
 
-  <xacro:include filename="$(find cleany_description)/urdf/materials.xacro"/>
-  <xacro:include filename="$(find cleany_description)/urdf/cleany_geometry.xacro"/>
-  <xacro:include filename="$(find cleany_description)/urdf/cleany_mujoco_ros2_control.xacro"/>
+  <xacro:include filename="materials.xacro"/>
+  <xacro:include filename="cleany_geometry.xacro"/>
+  <xacro:include filename="head_camera.xacro"/>
+  <xacro:include filename="cleany_mujoco_ros2_control.xacro"/>
 
   <xacro:cleany_robot_geometry/>
+  <xacro:if value="$(arg include_head_camera)">
+    <xacro:cleany_head_camera/>
+  </xacro:if>
   <xacro:cleany_mujoco_ros2_control
     mujoco_model="$(arg mujoco_model)"
     hardware_plugin="$(arg mujoco_hardware_plugin)"
