@@ -294,24 +294,16 @@
   </joint>
   <link name="right_gripper_frame">
     <inertial>
-      <origin xyz="0.01445 -0.068875 -6.93889390391e-18" rpy="0 0 0" />
-      <mass value="0.25" />
-      <inertia ixx="0.0005912329367332771" iyy="0.0002587110096499397" izz="0.00045810567708333763" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.01445 -0.0355544919243 0" rpy="0 0 0" />
+      <mass value="0.13" />
+      <inertia ixx="0.00015461861549315728" iyy="0.00013249177500000012" izz="8.74303904931573e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
-    <visual name="right_tool_printed">
+    <visual name="right_palm">
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_v1/right_tool_printed.stl" />
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_palm.stl" />
       </geometry>
-      <material name="right_tool_printed_color">
+      <material name="right_palm_color">
         <color rgba="0.7 0.49 0.19 1" />
-      </material>
-    </visual>
-    <visual name="right_tool_servo">
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_v1/right_tool_servo.stl" />
-      </geometry>
-      <material name="right_tool_servo_color">
-        <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
   </link>
@@ -488,24 +480,16 @@
   </joint>
   <link name="left_gripper_frame">
     <inertial>
-      <origin xyz="0.01445 -0.068875 -6.93889390391e-18" rpy="0 0 0" />
-      <mass value="0.25" />
-      <inertia ixx="0.0005912329367332771" iyy="0.0002587110096499397" izz="0.00045810567708333763" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.01445 -0.0355544919243 0" rpy="0 0 0" />
+      <mass value="0.13" />
+      <inertia ixx="0.00015461861549315728" iyy="0.00013249177500000012" izz="8.74303904931573e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
-    <visual name="left_tool_printed">
+    <visual name="left_palm">
       <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_v1/left_tool_printed.stl" />
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_palm.stl" />
       </geometry>
-      <material name="left_tool_printed_color">
+      <material name="left_palm_color">
         <color rgba="0.7 0.49 0.19 1" />
-      </material>
-    </visual>
-    <visual name="left_tool_servo">
-      <geometry>
-        <mesh filename="package://cleany_description/meshes/cad_v1/left_tool_servo.stl" />
-      </geometry>
-      <material name="left_tool_servo_color">
-        <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
   </link>
@@ -515,5 +499,425 @@
     <origin xyz="-0.00152720656655 -0.05705 0" rpy="0 1.57079632679 -0" />
     <axis xyz="0 -1 0" />
     <limit lower="-2.743847" upper="2.841206" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_gripper_cam_link">
+    <inertial>
+      <origin xyz="3.47123762144e-06 5.20417042793e-18 0.002975" rpy="0 0 0" />
+      <mass value="0.012" />
+      <inertia ixx="1.149329984061909e-06" iyy="1.1532668666135222e-06" izz="2.044951850675404e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_cam">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_cam.stl" />
+      </geometry>
+      <material name="right_cam_color">
+        <color rgba="0.45 0.5 0.55 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_gripper_joint" type="revolute">
+    <parent link="right_gripper_frame" />
+    <child link="right_gripper_cam_link" />
+    <origin xyz="0 -0.0490665820841 0" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.0471975511965976" upper="0" effort="1.5" velocity="4.245" />
+  </joint>
+  <link name="right_finger_1_internal">
+    <inertial>
+      <origin xyz="0.00793239642151 0.00466588388335 -5.20417042793e-18" rpy="0 0 0" />
+      <mass value="0.018" />
+      <inertia ixx="3.2810303016461728e-06" iyy="6.801868531851125e-06" izz="8.354898833497296e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_finger_1_internal">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_finger_1_internal.stl" />
+      </geometry>
+      <material name="right_finger_1_internal_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_finger_1_internal_joint" type="revolute">
+    <parent link="right_gripper_frame" />
+    <child link="right_finger_1_internal" />
+    <origin xyz="0 -0.0671089838486 0.0325" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_finger_1_external">
+    <inertial>
+      <origin xyz="0.0173205080757 0.01 -7.3725747729e-18" rpy="0 0 0" />
+      <mass value="0.008" />
+      <inertia ixx="6.023606769648956e-07" iyy="1.3123588604831952e-06" izz="1.8293862041147574e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_finger_1_external">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_finger_1_external.stl" />
+      </geometry>
+      <material name="right_finger_1_external_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_finger_1_external_joint" type="revolute">
+    <parent link="right_gripper_frame" />
+    <child link="right_finger_1_external" />
+    <origin xyz="0 -0.0671089838486 0.044" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_finger_1_distal">
+    <inertial>
+      <origin xyz="0.015625 -0.00186835901831 3.71973833705e-07" rpy="0 0 0" />
+      <mass value="0.028" />
+      <inertia ixx="3.4697169071689674e-06" iyy="5.4174984922991266e-06" izz="5.801510081536554e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_finger_1_distal">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_finger_1_distal.stl" />
+      </geometry>
+      <material name="right_finger_1_distal_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_finger_1_distal_joint" type="revolute">
+    <parent link="right_finger_1_internal" />
+    <child link="right_finger_1_distal" />
+    <origin xyz="0.0346410161514 0.02 0" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_finger_1_driving">
+    <inertial>
+      <origin xyz="-1.13408845151e-05 -0.0162515444276 -0.00555" rpy="0 0 0" />
+      <mass value="0.006" />
+      <inertia ixx="9.167687014910539e-07" iyy="1.439226012982423e-07" izz="1.0326013027892961e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_finger_1_driving">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_finger_1_driving.stl" />
+      </geometry>
+      <material name="right_finger_1_driving_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_finger_1_driving_joint" type="revolute">
+    <parent link="right_gripper_cam_link" />
+    <child link="right_finger_1_driving" />
+    <origin xyz="-0.00354167484447 -0.0104142469388 0" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_finger_2_internal">
+    <inertial>
+      <origin xyz="0.00793239642151 -0.00466588388335 -5.20417042793e-18" rpy="0 0 0" />
+      <mass value="0.018" />
+      <inertia ixx="3.281030301646178e-06" iyy="6.801868531851123e-06" izz="8.354898833497298e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_finger_2_internal">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_finger_2_internal.stl" />
+      </geometry>
+      <material name="right_finger_2_internal_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_finger_2_internal_joint" type="revolute">
+    <parent link="right_gripper_frame" />
+    <child link="right_finger_2_internal" />
+    <origin xyz="0 -0.0671089838486 -0.0325" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_finger_2_external">
+    <inertial>
+      <origin xyz="0.0173205080757 -0.01 -8.67361737988e-19" rpy="0 0 0" />
+      <mass value="0.008" />
+      <inertia ixx="6.023606769648963e-07" iyy="1.3123588604831958e-06" izz="1.8293862041147583e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_finger_2_external">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_finger_2_external.stl" />
+      </geometry>
+      <material name="right_finger_2_external_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_finger_2_external_joint" type="revolute">
+    <parent link="right_gripper_frame" />
+    <child link="right_finger_2_external" />
+    <origin xyz="0 -0.0671089838486 -0.044" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_finger_2_distal">
+    <inertial>
+      <origin xyz="0.015625 0.00186835901831 -3.71973833724e-07" rpy="0 0 0" />
+      <mass value="0.028" />
+      <inertia ixx="3.46971690716897e-06" iyy="5.417498492299126e-06" izz="5.8015100815365555e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_finger_2_distal">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_finger_2_distal.stl" />
+      </geometry>
+      <material name="right_finger_2_distal_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_finger_2_distal_joint" type="revolute">
+    <parent link="right_finger_2_internal" />
+    <child link="right_finger_2_distal" />
+    <origin xyz="0.0346410161514 -0.02 0" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_finger_2_driving">
+    <inertial>
+      <origin xyz="-0.000515304940004 0.0162125738817 -0.00555" rpy="0 0 0" />
+      <mass value="0.006" />
+      <inertia ixx="9.138365992373464e-07" iyy="1.5113960133302206e-07" izz="1.0368862005703686e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="right_finger_2_driving">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/right_finger_2_driving.stl" />
+      </geometry>
+      <material name="right_finger_2_driving_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="right_finger_2_driving_joint" type="revolute">
+    <parent link="right_gripper_cam_link" />
+    <child link="right_finger_2_driving" />
+    <origin xyz="0.00330082918453 0.01049307041 0" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_gripper_cam_link">
+    <inertial>
+      <origin xyz="3.47123762144e-06 5.20417042793e-18 0.002975" rpy="0 0 0" />
+      <mass value="0.012" />
+      <inertia ixx="1.149329984061909e-06" iyy="1.1532668666135222e-06" izz="2.044951850675404e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_cam">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_cam.stl" />
+      </geometry>
+      <material name="left_cam_color">
+        <color rgba="0.45 0.5 0.55 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_gripper_joint" type="revolute">
+    <parent link="left_gripper_frame" />
+    <child link="left_gripper_cam_link" />
+    <origin xyz="0 -0.0490665820841 0" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.0471975511965976" upper="0" effort="1.5" velocity="4.245" />
+  </joint>
+  <link name="left_finger_1_internal">
+    <inertial>
+      <origin xyz="0.00793239642151 0.00466588388335 -5.20417042793e-18" rpy="0 0 0" />
+      <mass value="0.018" />
+      <inertia ixx="3.2810303016461728e-06" iyy="6.801868531851125e-06" izz="8.354898833497296e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_finger_1_internal">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_finger_1_internal.stl" />
+      </geometry>
+      <material name="left_finger_1_internal_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_finger_1_internal_joint" type="revolute">
+    <parent link="left_gripper_frame" />
+    <child link="left_finger_1_internal" />
+    <origin xyz="0 -0.0671089838486 0.0325" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_finger_1_external">
+    <inertial>
+      <origin xyz="0.0173205080757 0.01 -7.3725747729e-18" rpy="0 0 0" />
+      <mass value="0.008" />
+      <inertia ixx="6.023606769648956e-07" iyy="1.3123588604831952e-06" izz="1.8293862041147574e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_finger_1_external">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_finger_1_external.stl" />
+      </geometry>
+      <material name="left_finger_1_external_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_finger_1_external_joint" type="revolute">
+    <parent link="left_gripper_frame" />
+    <child link="left_finger_1_external" />
+    <origin xyz="0 -0.0671089838486 0.044" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_finger_1_distal">
+    <inertial>
+      <origin xyz="0.015625 -0.00186835901831 3.71973833705e-07" rpy="0 0 0" />
+      <mass value="0.028" />
+      <inertia ixx="3.4697169071689674e-06" iyy="5.4174984922991266e-06" izz="5.801510081536554e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_finger_1_distal">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_finger_1_distal.stl" />
+      </geometry>
+      <material name="left_finger_1_distal_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_finger_1_distal_joint" type="revolute">
+    <parent link="left_finger_1_internal" />
+    <child link="left_finger_1_distal" />
+    <origin xyz="0.0346410161514 0.02 0" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_finger_1_driving">
+    <inertial>
+      <origin xyz="-1.13408845151e-05 -0.0162515444276 -0.00555" rpy="0 0 0" />
+      <mass value="0.006" />
+      <inertia ixx="9.167687014910539e-07" iyy="1.439226012982423e-07" izz="1.0326013027892961e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_finger_1_driving">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_finger_1_driving.stl" />
+      </geometry>
+      <material name="left_finger_1_driving_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_finger_1_driving_joint" type="revolute">
+    <parent link="left_gripper_cam_link" />
+    <child link="left_finger_1_driving" />
+    <origin xyz="-0.00354167484447 -0.0104142469388 0" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_finger_2_internal">
+    <inertial>
+      <origin xyz="0.00793239642151 -0.00466588388335 -5.20417042793e-18" rpy="0 0 0" />
+      <mass value="0.018" />
+      <inertia ixx="3.281030301646178e-06" iyy="6.801868531851123e-06" izz="8.354898833497298e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_finger_2_internal">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_finger_2_internal.stl" />
+      </geometry>
+      <material name="left_finger_2_internal_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_finger_2_internal_joint" type="revolute">
+    <parent link="left_gripper_frame" />
+    <child link="left_finger_2_internal" />
+    <origin xyz="0 -0.0671089838486 -0.0325" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_finger_2_external">
+    <inertial>
+      <origin xyz="0.0173205080757 -0.01 -8.67361737988e-19" rpy="0 0 0" />
+      <mass value="0.008" />
+      <inertia ixx="6.023606769648963e-07" iyy="1.3123588604831958e-06" izz="1.8293862041147583e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_finger_2_external">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_finger_2_external.stl" />
+      </geometry>
+      <material name="left_finger_2_external_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_finger_2_external_joint" type="revolute">
+    <parent link="left_gripper_frame" />
+    <child link="left_finger_2_external" />
+    <origin xyz="0 -0.0671089838486 -0.044" rpy="-1.57079632679 -0 -1.57079632679" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_finger_2_distal">
+    <inertial>
+      <origin xyz="0.015625 0.00186835901831 -3.71973833724e-07" rpy="0 0 0" />
+      <mass value="0.028" />
+      <inertia ixx="3.46971690716897e-06" iyy="5.417498492299126e-06" izz="5.8015100815365555e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_finger_2_distal">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_finger_2_distal.stl" />
+      </geometry>
+      <material name="left_finger_2_distal_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_finger_2_distal_joint" type="revolute">
+    <parent link="left_finger_2_internal" />
+    <child link="left_finger_2_distal" />
+    <origin xyz="0.0346410161514 -0.02 0" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="left_finger_2_driving">
+    <inertial>
+      <origin xyz="-0.000515304940004 0.0162125738817 -0.00555" rpy="0 0 0" />
+      <mass value="0.006" />
+      <inertia ixx="9.138365992373464e-07" iyy="1.5113960133302206e-07" izz="1.0368862005703686e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+    </inertial>
+    <visual name="left_finger_2_driving">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/left_finger_2_driving.stl" />
+      </geometry>
+      <material name="left_finger_2_driving_color">
+        <color rgba="0.7 0.49 0.19 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="left_finger_2_driving_joint" type="revolute">
+    <parent link="left_gripper_cam_link" />
+    <child link="left_finger_2_driving" />
+    <origin xyz="0.00330082918453 0.01049307041 0" rpy="0 -0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793" effort="2.65" velocity="4.245" />
+  </joint>
+  <link name="right_grasp_tcp" />
+  <joint name="right_grasp_tcp_fixed" type="fixed">
+    <parent link="right_gripper_frame" />
+    <child link="right_grasp_tcp" />
+    <origin xyz="0 -0.119132450457 0" rpy="-1.57079632679 -0 -1.57079632679" />
+  </joint>
+  <link name="right_pregrasp_aim_tip" />
+  <joint name="right_pregrasp_aim_tip_fixed" type="fixed">
+    <parent link="right_gripper_frame" />
+    <child link="right_pregrasp_aim_tip" />
+    <origin xyz="0 -0.259132450457 0" rpy="-1.57079632679 -0 -1.57079632679" />
+  </joint>
+  <link name="left_grasp_tcp" />
+  <joint name="left_grasp_tcp_fixed" type="fixed">
+    <parent link="left_gripper_frame" />
+    <child link="left_grasp_tcp" />
+    <origin xyz="0 -0.119132450457 0" rpy="-1.57079632679 -0 -1.57079632679" />
+  </joint>
+  <link name="left_pregrasp_aim_tip" />
+  <joint name="left_pregrasp_aim_tip_fixed" type="fixed">
+    <parent link="left_gripper_frame" />
+    <child link="left_pregrasp_aim_tip" />
+    <origin xyz="0 -0.259132450457 0" rpy="-1.57079632679 -0 -1.57079632679" />
   </joint>
 </robot>
