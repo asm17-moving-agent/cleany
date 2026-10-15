@@ -111,7 +111,7 @@ function Trend({
             : "표본 대기"}
         </span>
         <span>
-          {values.length}개 유효 표본 · {Math.round(end - start)}초
+          {values.length}개 유효 표본, {Math.round(end - start)}초
         </span>
         <span>
           {history.length ? new Date(end * 1000).toLocaleTimeString() : ""}
@@ -172,7 +172,7 @@ export function ResourceDashboard({
         ["논리 코어", `${data.cpu_cores?.length || 0}개`],
         [
           "관측 프로세스",
-          `${data.process_count ?? 0}개 · 접근 불가 ${data.denied_processes ?? 0}개`,
+          `${data.process_count ?? 0}개, 접근 불가 ${data.denied_processes ?? 0}개`,
         ],
       ],
     },
@@ -189,7 +189,7 @@ export function ResourceDashboard({
         [
           "Swap",
           data.swap?.total === 0
-            ? "비활성 · 할당 없음"
+            ? "비활성, 할당 없음"
             : `${bytes(data.swap?.used)} / ${bytes(data.swap?.total)} (${percent(data.swap?.percent)})`,
         ],
       ],
@@ -215,7 +215,7 @@ export function ResourceDashboard({
       unit: "B/s",
       details: [
         ["I/O 관측 장치", data.disk_devices?.join(", ") || "미지원"],
-        ["측정 범위", "관측 장치 합계 · 루트 디스크 용량과 별도"],
+        ["측정 범위", "관측 장치 합계, 루트 디스크 용량과 별도"],
       ],
     },
     {
@@ -227,7 +227,7 @@ export function ResourceDashboard({
           "관측 인터페이스",
           data.networks?.map((n: Data) => n.name).join(", ") || "미지원",
         ],
-        ["측정 범위", "loopback·가상 인터페이스 포함 합계"],
+        ["측정 범위", "loopback, 가상 인터페이스 포함 합계"],
       ],
     },
     {
@@ -243,14 +243,14 @@ export function ResourceDashboard({
   return (
     <div className="resources-dashboard">
       <div className="resource-source">
-        <strong>서버 호스트 · {data.host}</strong>
+        <strong>서버 호스트, {data.host}</strong>
         <span>
           {replay
             ? "기록 재생"
             : stale
-              ? `수집 지연 · ${age.toFixed(0)}초 전`
+              ? `수집 지연, ${age.toFixed(0)}초 전`
               : "실시간 관측"}{" "}
-          · {new Date(data.at * 1000).toLocaleString()} · {data.interval_s}초
+          , {new Date(data.at * 1000).toLocaleString()}, {data.interval_s}초
           주기
         </span>
       </div>
@@ -260,7 +260,7 @@ export function ResourceDashboard({
         </div>
       )}
       {data.errors?.length > 0 && (
-        <div className="notice warn">{data.errors.join(" · ")}</div>
+        <div className="notice warn">{data.errors.join(", ")}</div>
       )}
       <Panel title="최근 5분 추이">
         <div className="resource-trends">
@@ -291,8 +291,8 @@ export function ResourceDashboard({
         }
       >
         <p className="resource-note">
-          관측 {data.process_count ?? 0}개 · 권한 부족{" "}
-          {data.denied_processes ?? 0}개 · CPU 100% = 논리 코어 1개. ROS 노드와
+          관측 {data.process_count ?? 0}개, 권한 부족{" "}
+          {data.denied_processes ?? 0}개, CPU 100% = 논리 코어 1개. ROS 노드와
           PID의 대응은 확인되지 않습니다.
         </p>
         <div className="resource-table resource-process-table">
@@ -326,7 +326,7 @@ export function ResourceDashboard({
       </Panel>
       <Panel title="ROS 발견 노드">
         <p className="resource-note">
-          DDS domain에서 발견한 {rosNodes.length}개 노드 · 다른 호스트의 노드가
+          DDS domain에서 발견한 {rosNodes.length}개 노드, 다른 호스트의 노드가
           포함될 수 있으며 위 프로세스와 자동 대응시키지 않습니다.
         </p>
         <div className="resource-node-list">
@@ -341,7 +341,7 @@ export function ResourceDashboard({
           )}
         </div>
         {rosNodes.length > 128 && (
-          <p>처음 128개만 표시합니다. 전체 목록은 ROS 탐색기에서 확인하세요.</p>
+          <p>처음 128개만 표시합니다. 전체 목록은 ROS 메뉴에서 확인하세요.</p>
         )}
       </Panel>
       <div className="resource-details">
@@ -378,7 +378,7 @@ export function ResourceDashboard({
             </table>
           </div>
         </Panel>
-        <Panel title="온도 · GPU">
+        <Panel title="온도, GPU">
           <div className="resource-sensors">
             {data.temperatures?.length ? (
               data.temperatures.map((t: Data) => (
@@ -398,7 +398,7 @@ export function ResourceDashboard({
                 </div>
               ))
             ) : (
-              <p>GPU 사용률 미지원 · DRM sysfs 제공 장치만 관측</p>
+              <p>GPU 사용률 미지원, DRM sysfs 제공 장치만 관측</p>
             )}
           </div>
         </Panel>

@@ -151,6 +151,18 @@ make run-dev-monitor
 
 입력과 기록은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 설정합니다. 기록 DB, 재생, stale 표시의 의미는 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)에 있습니다.
 
+웹 자산을 다시 빌드하면 `make build-dev-monitor-ros`로 설치 자산도 갱신합니다. Node.js 22 이상과 pnpm 11을 사용합니다. 기록 위치는 `MONITOR_ROS_ARGS='-p state_directory:=/absolute/path'`로 지정할 수 있습니다.
+
+상세 SLAM, LiDAR, 점군과 costmap은 같은 domain의 RViz에서 확인합니다. 완료된 원본 bag ZIP을 내려받아 압축을 푼 뒤 다음과 같이 재생합니다. Bag에 기록된 토픽, TF와 CameraInfo만 사용할 수 있으며 SQLite 가공 기록은 RViz 입력이 아닙니다.
+
+```bash
+ros2 bag info <bag-directory>
+ros2 bag play <bag-directory> --clock
+rviz2 --ros-args -p use_sim_time:=true
+```
+
+Fixed Frame은 `map_frame`에 맞추고 Cartographer Submaps display에는 해당 plugin을 설치합니다.
+
 ## Base와 plot
 
 ### 장치 없는 mock

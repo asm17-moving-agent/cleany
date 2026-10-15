@@ -20,6 +20,7 @@ def enabled(key='point_cloud'):
 
 
 def test_raw_is_independent_of_ui_bounded_and_lossless(tmp_path):
+    pytest.importorskip('rosbag2_py')
     hub = Hub()
     controls = hub.recording
     controls.configure(enabled())
@@ -31,8 +32,10 @@ def test_raw_is_independent_of_ui_bounded_and_lossless(tmp_path):
     assert controls.reserve('/camera/head/depth/points') is None
     controls.offer(ticket, '/camera/head/depth/points', 'sensor_msgs/msg/PointCloud2', data, 10.)
     recorder.append_raw()
-    saved = recorder.db.execute('SELECT type,ros_time,payload FROM raw_messages').fetchone()
-    assert saved[:2] == ('sensor_msgs/msg/PointCloud2', 10.) and zlib.decompress(saved[2]) == data
+    assert recorder.db.execute("SELECT name FROM sqlite_master WHERE name='raw_messages'").fetchone() is None
+    saved = recorder.db.execute('SELECT type,ros_time,received FROM raw_index').fetchone()
+    assert saved[:2] == ('sensor_msgs/msg/PointCloud2', 10.)
+    assert recorder.raw_message(recorder.session_id, 'point_cloud', saved[2])[0] == data
     assert controls.view()['status']['point_cloud']['count'] == 1
     controls.configure(defaults())
     controls.offer(ticket, '/camera/head/depth/points', 'sensor_msgs/msg/PointCloud2', data, 11.)
@@ -50,7 +53,7 @@ def test_queue_loss_and_size_limit_are_explicit(tmp_path):
     controls.offer(ticket, '/camera/head/depth/points', 'sensor_msgs/msg/PointCloud2', b'12', 1.)
     recorder.append_raw()
     assert recorder.reason and recorder.path.exists()
-    assert recorder.db.execute('SELECT count(*) FROM raw_messages').fetchone()[0] == 0
+    assert recorder.db.execute('SELECT count(*) FROM raw_index').fetchone()[0] == 0
     recorder.close()
 
 
@@ -78,6 +81,7 @@ def test_invalid_configuration_is_rejected(change):
 
 
 def test_settings_http_persistence_origin_and_raw_download(tmp_path):
+    pytest.importorskip('rosbag2_py')
     async def scenario():
         hub = Hub()
         recorder = Recorder(tmp_path)
@@ -90,7 +94,8 @@ def test_settings_http_persistence_origin_and_raw_download(tmp_path):
             topic=settings['topics']['point_cloud']
             hub.recording.offer(hub.recording.reserve(topic), topic, 'sensor_msgs/msg/PointCloud2', b'lossless', 1.)
             recorder.append_raw()
-            at=recorder.db.execute('SELECT received FROM raw_messages').fetchone()[0]
+            at=recorder.db.execute('SELECT received FROM raw_index').fetchone()[0]
+            assert (await client.get(server.make_url(f'/api/recordings/{recorder.session_id}/bag'))).status == 409
             response=await client.get(server.make_url(f'/api/recordings/{recorder.session_id}/raw'), params={'category':'point_cloud','at':str(at)})
             assert response.status == 200 and await response.read() == b'lossless'
             response=await client.get(server.make_url(f'/api/recordings/{recorder.session_id}/raw'), params={'category':'point_cloud','at':str(at-1)})
@@ -101,7 +106,7 @@ def test_settings_http_persistence_origin_and_raw_download(tmp_path):
             assert response.status == 200 and (await response.json())['session_id'] != previous_id
             assert (tmp_path/f'{previous_id}.sqlite3').exists()
             with sqlite3.connect(tmp_path/f'{previous_id}.sqlite3') as previous:
-                assert previous.execute('SELECT count(*) FROM raw_messages').fetchone()[0] == 1
+                assert previous.execute('SELECT count(*) FROM raw_index').fetchone()[0] == 1
         recorder.close()
         newhub = Hub()
         newrecorder = Recorder(tmp_path)
@@ -431,6 +436,8 @@ def test_timeline_segments_exclude_pause_and_stale_initial_state_and_include_raw
     save('recording_policy', 'settings', {'active': False}, 105)
     save('recording_status', 'writer', {}, 108)
     save('recording_policy', 'settings', {'active': True}, 110)
+    recorder.db.execute('DROP TABLE raw_index')
+    recorder.db.execute('CREATE TABLE raw_messages(id INTEGER PRIMARY KEY, category TEXT, topic TEXT, type TEXT, received REAL, ros_time REAL, payload BLOB)')
     recorder.db.execute("INSERT INTO raw_messages(category,topic,type,received,payload) VALUES ('camera','/camera','sensor_msgs/msg/Image',111,?)", (b'raw',))
     recorder.db.commit()
     assert recorder.sessions()[0]['segments'] == [{'start': 101, 'end': 104}, {'start': 111, 'end': 111}]

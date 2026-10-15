@@ -7,9 +7,9 @@ import "./recording-controls.css";
 
 const labels: Record<string, string> = {
   resources: "호스트 리소스",
-  slam: "SLAM 서브맵·스캔·그래프",
-  motion: "위치·속도·미션",
-  paths: "계획·제어 경로",
+  slam: "SLAM 서브맵, 스캔, 그래프",
+  motion: "위치, 속도, 미션",
+  paths: "계획, 제어 경로",
   costmaps: "Costmap",
   bt: "Nav2 BT",
   safety: "안전 판단",
@@ -17,10 +17,12 @@ const labels: Record<string, string> = {
   lidar: "LiDAR 원본",
   point_cloud: "Depth point cloud 원본",
   voxel_layer: "Nav2 voxel layer 원본",
-  voxel_world: "Voxel world·장애물 메모리",
+  voxel_world: "Voxel world, 장애물 메모리",
   camera: "카메라 원본",
 };
 const heavy = ["lidar", "point_cloud", "voxel_layer", "voxel_world", "camera"];
+// Older monitor processes and saved sessions can still send previous labels.
+const displayLabel = (value: string) => value.replace(/\s*\u00b7\s*/g, ", ");
 export function RecordingControls({ replay }: { replay: boolean }) {
   const [live, setLive] = useState<Data | null>(null);
   const [draft, setDraft] = useState<Data | null>(null);
@@ -100,7 +102,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
               {
                 id: name,
                 name,
-                label: spec.label,
+                label: displayLabel(spec.label),
                 value,
                 internal: spec.internal,
                 defaultHz: spec.default_hz,
@@ -148,7 +150,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
   };
   const maximumLabel = (maximum: Data | undefined) => (
     <span
-      title={`${(maximum?.estimated ?? true) ? "추정 상한" : "코드·설정 기준"}: ${maximum?.detail || "토픽 역할 기준 추정"}. 실행 설정·발행자에 따라 달라질 수 있습니다.`}
+      title={`${(maximum?.estimated ?? true) ? "추정 상한" : "코드, 설정 기준"}: ${displayLabel(maximum?.detail || "토픽 역할 기준 추정")}. 실행 설정, 발행자에 따라 달라질 수 있습니다.`}
     >
       ({(maximum?.estimated ?? true) ? "≈" : ""}
       {maximum?.hz ?? 100} Hz)
@@ -193,6 +195,11 @@ export function RecordingControls({ replay }: { replay: boolean }) {
       )}
       {draft && (
         <fieldset className="recording-options" disabled={busy || replay}>
+          <p>
+            가공 데이터는 SQLite에, 선택한 ROS 원본은 rosbag2에 저장합니다.
+            카메라, 점군, voxel 원본은 용량이 큽니다. 필요한 토픽과 기록 빈도를
+            선택하세요.
+          </p>
           <div className="recording-toolbar">
             <label>
               주기 프로필{" "}
@@ -296,11 +303,11 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                                 })
                               }
                             />
-                            센서 원본
+                            센서 원본, rosbag2
                           </label>
                         </div>
                       </td>
-                      <td>토픽별 지정</td>
+                      <td>토픽별 지정, 대용량</td>
                       <td />
                       <td>
                         {rawSelected} / {heavy.length}개 선택
@@ -412,7 +419,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                         <td>
                           {live?.status[key]?.state || "확인 중"}
                           {live?.status[key]?.count
-                            ? ` · ${live.status[key].count}건`
+                            ? `, ${live.status[key].count}건`
                             : ""}
                           {live?.status[key]?.error && (
                             <small>{live.status[key].error}</small>
@@ -520,7 +527,8 @@ export function RecordingControls({ replay }: { replay: boolean }) {
               {recording ? "녹화 정지" : "녹화 시작"}
             </Button>
             <small>
-              용량 한도에 도달하면 기록을 중단하며 기존 기록은 보존합니다.
+              용량 한도는 SQLite와 rosbag2의 합계입니다. 한도에 도달하면 기록을
+              중단하며 기존 기록은 보존합니다.
             </small>
           </div>
         </fieldset>
@@ -543,10 +551,11 @@ export function RecordingReplayNotice({
   const settings = rows.find((r) => r.kind === "recording_policy")?.data;
   const status =
     rows.find((r) => r.kind === "recording_status")?.data.status || {};
-  const raw = rows.find((r) => r.kind === "recording_raw")?.data.items || [];
+  const archive = rows.find((r) => r.kind === "recording_raw")?.data;
+  const raw = archive?.items || [];
   return (
     <details className="recording-replay">
-      <summary>녹화 범위 · 원본 자료</summary>
+      <summary>녹화 범위, 원본 자료</summary>
       {settings ? (
         <p>
           {!settings.active && "이 시점은 녹화가 정지된 구간입니다. "}미녹화
@@ -569,7 +578,7 @@ export function RecordingReplayNotice({
               const config = rows.find((r) => r.kind === "config")?.data || {};
               const value = settings.sources?.[name] ?? config[name];
               return name === "_computed_motion"
-                ? "주행 요약·TF 위치"
+                ? "주행 요약, TF 위치"
                 : index !== undefined
                   ? value?.[Number(index)] || id
                   : value || id;
@@ -585,7 +594,7 @@ export function RecordingReplayNotice({
             {items.length ? (
               <>
                 {items.reduce((sum: number, item: Data) => sum + item.count, 0)}
-                건 ·{" "}
+                건,{" "}
                 <a
                   href={`/api/recordings/${sessionId}/raw?category=${key}&at=${timeAt}`}
                 >
@@ -599,15 +608,33 @@ export function RecordingReplayNotice({
             )}
             {items.map((item: Data) => (
               <small key={item.topic}>
-                {item.topic} · {item.message_type}
+                {item.topic}, {item.message_type}
               </small>
             ))}
           </div>
         );
       })}
       <p>
-        원본은 전체 세션 내보내기에 포함됩니다. 3D 원본과 카메라 영상의 직접
-        재생 뷰어는 아직 제공하지 않습니다.
+        {archive?.format === "rosbag2" ? (
+          <>
+            원본은 별도 rosbag2 기록입니다. 가공 데이터 SQLite 내보내기에는
+            원본이 포함되지 않습니다.{" "}
+            {archive.bag_available ? (
+              <a href={`/api/recordings/${sessionId}/bag`}>rosbag2 내려받기</a>
+            ) : !archive.bag_recording &&
+              ["incomplete", "recording"].includes(archive.bag_state) ? (
+              "rosbag2가 정상 종료되지 않아 내보낼 수 없습니다."
+            ) : (
+              "rosbag2 내려받기는 녹화 정지 후 가능합니다."
+            )}
+          </>
+        ) : archive?.format === "legacy_sqlite" ? (
+          "이전 형식의 원본은 SQLite 내보내기에 포함됩니다."
+        ) : (
+          "이 시점까지 원본 수신 기록이 없습니다."
+        )}{" "}
+        rosbag2 영상, 점군은 RViz(ROS 토픽 재생) 또는 Foxglove에서 확인할 수
+        있습니다.
       </p>
     </details>
   );

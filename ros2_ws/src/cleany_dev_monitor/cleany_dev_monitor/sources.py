@@ -6,7 +6,7 @@ FIELDS = {
     'motion': {'runtime_debug_topic': ('미션 상태', '/mission/debug_snapshot'), 'runtime_events_topic': ('미션 이벤트', '/mission/runtime_events'), 'runtime_result_topic': ('미션 결과', '/mission/result'), 'manipulation_events_topic': ('조작 이벤트', '/mock/manipulation/execution_events'), 'odometry_topic': ('휠 오도메트리', '/wheel/odom'), 'ground_truth_topic': ('Ground truth', '/ground_truth/odom'), 'amcl_pose_topic': ('AMCL 위치', '/amcl_pose'), 'clock_topic': ('시뮬레이션 시계', '/clock'), 'velocity_topics': ('속도 체인 (한 줄에 하나, 순서 유지)', ['/nav2/cmd_vel', '/safety_2d/cmd_vel', '/cmd_vel'])},
     'paths': {'path_topic': ('전체 경로', '/plan'), 'local_path_topic': ('지역 경로', '/local_plan'), 'controller_evaluation_topic': ('제어 후보 평가', '/evaluation')},
     'costmaps': {'map_topic': ('정적 지도', '/map'), 'local_costmap_topic': ('Local costmap', '/local_costmap/costmap'), 'global_costmap_topic': ('Global costmap', '/global_costmap/costmap')},
-    'bt': {'nav2_bt_topic': ('BT 상태 이벤트', '/behavior_tree_log'), 'nav2_bt_trace_topic': ('BT 트리 구조·상태', '/navigation/bt_trace')},
+    'bt': {'nav2_bt_topic': ('BT 상태 이벤트', '/behavior_tree_log'), 'nav2_bt_trace_topic': ('BT 트리 구조, 상태', '/navigation/bt_trace')},
     'safety': {'pan_state_topic': ('Pan 상태', '/head_pan/state'), 'reactive_guard_topic': ('Reactive guard', '/reactive_guard/state'), 'voxel_guard_topic': ('Voxel guard', '/body_guard_3d/state'), 'collision_state_topic': ('Collision monitor', '/collision_monitor_state'), 'coverage_topic': ('센서 Coverage', '/head_pan/coverage'), 'scan_topic': ('LiDAR 관측 요약', '/scan'), 'depth_points_topic': ('Depth 관측 요약', '/camera/head/depth/obstacle_points'), 'risk_points_topic': ('위험 점 관측 요약', '/body_guard_3d/risk_voxels'), 'footprint_topic': ('Footprint', '/local_costmap/published_footprint'), 'stop_polygon_topic': ('정지 영역', '/safety/stop_zone'), 'slow_polygon_topic': ('감속 영역', '/safety/slow_zone'), 'obstacle_memory_topic': ('장애물 메모리', '/obstacle_memory/grid'), 'lidar_memory_topic': ('LiDAR 메모리', '/obstacle_memory/lidar'), 'depth_memory_topic': ('Depth 메모리', '/obstacle_memory/depth')},
     'slam': {'slam_submaps_topic': ('SLAM 서브맵', '/submap_list'), 'slam_trajectory_topic': ('SLAM 궤적', '/trajectory_node_list'), 'slam_constraints_topic': ('SLAM 제약선', '/constraint_list'), 'slam_matched_points_topic': ('SLAM 매칭 점군', '/scan_matched_points2')},
     'logs': {'rosout_topic': ('ROS 로그', '/rosout')},
@@ -56,7 +56,7 @@ def routes(config):
     layers.update({c[key+'_topic']: key for key in ('obstacle_memory', 'lidar_memory', 'depth_memory', 'local_path')})
     return c, fixed, layers, navigation
 
-SCHEMA['_computed_motion'] = dict(group='motion', label='주행 요약·TF 위치', multiple=False, internal=True)
+SCHEMA['_computed_motion'] = dict(group='motion', label='주행 요약, TF 위치', multiple=False, internal=True)
 
 
 def source_roles(config):
@@ -125,14 +125,14 @@ SOURCE_MAX_HZ = {
     'manipulation_events_topic': (20., 'estimate', '조작 이벤트 burst 기준 추정'),
     'odometry_topic': (50., 'estimate', 'JointState 입력 의존; 베이스 50 Hz 기준 추정'),
     'ground_truth_topic': (50., 'config', 'Gazebo SDF: odom_publish_frequency=50'),
-    'amcl_pose_topic': (10., 'estimate', '이동·스캔 갱신에 의존; 위치 추정 10 Hz 가정'),
+    'amcl_pose_topic': (10., 'estimate', '이동, 스캔 갱신에 의존; 위치 추정 10 Hz 가정'),
     'clock_topic': (1000., 'estimate', '시뮬레이션 clock 전달 주기 추정; 실행 설정에 따라 다름'),
     'velocity_topics': (20., 'config', 'Nav2 controller_frequency=20; guard update_period_s=0.05'),
     '_computed_motion': (10., 'code', 'dev_monitor: TF 위치 0.1초 / 주행 요약 0.2초 타이머'),
-    'path_topic': (5., 'estimate', '요청·BT 재계획 의존; expected_planner_frequency=5는 강제 상한이 아님'),
+    'path_topic': (5., 'estimate', '요청, BT 재계획 의존; expected_planner_frequency=5는 강제 상한이 아님'),
     'local_path_topic': (20., 'config', 'Nav2 controller_frequency=20; 제어 경로 갱신 기준'),
     'controller_evaluation_topic': (20., 'config', 'Nav2 controller_frequency=20; 후보 평가 갱신 기준'),
-    'map_topic': (1., 'estimate', '정적 지도·SLAM 지도 변경 전달 기준 추정'),
+    'map_topic': (1., 'estimate', '정적 지도, SLAM 지도 변경 전달 기준 추정'),
     'local_costmap_topic': (2., 'config', 'nav2_amcl.yaml: local_costmap.publish_frequency=2'),
     'global_costmap_topic': (1., 'config', 'nav2_amcl.yaml: global_costmap.publish_frequency=1'),
     'nav2_bt_topic': (100., 'estimate', 'BT 전이 burst 기준 추정; 고정 발행 상한 없음'),
@@ -140,7 +140,7 @@ SOURCE_MAX_HZ = {
     'pan_state_topic': (20., 'code', 'pan_motion_gate_node.py: 기본 update_period_s=0.05'),
     'reactive_guard_topic': (20., 'code', 'reactive_guard_node.py: 기본 update_period_s=0.05'),
     'voxel_guard_topic': (20., 'config', 'voxel_guard.yaml: update_period_s=0.05'),
-    'collision_state_topic': (20., 'estimate', '속도 입력·판단 변경 의존; 제어 루프 20 Hz 기준 추정'),
+    'collision_state_topic': (20., 'estimate', '속도 입력, 판단 변경 의존; 제어 루프 20 Hz 기준 추정'),
     'coverage_topic': (5., 'code', 'depth_coverage_node.py: 기본 update_period_s=0.2'),
     'scan_topic': (5.5, 'config', 'Gazebo SDF: LiDAR update_rate=5.5; 요약 처리 상한과 별개'),
     'depth_points_topic': (15., 'config', 'Gazebo SDF: Depth update_rate=15; 점군 처리로 실제 주기는 낮을 수 있음'),

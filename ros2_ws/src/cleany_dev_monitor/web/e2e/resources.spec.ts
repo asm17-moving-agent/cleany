@@ -48,7 +48,7 @@ test("resource sorting, stale observation and narrow layout", async ({
     ),
   );
   await page.goto("/#resources");
-  await expect(page.getByText("서버 호스트 · fixture-host")).toBeVisible();
+  await expect(page.getByText("서버 호스트, fixture-host")).toBeVisible();
   await expect(
     page.getByText(
       "리소스 수집이 지연되었습니다. 아래 값은 마지막 관측값입니다.",
@@ -61,7 +61,7 @@ test("resource sorting, stale observation and narrow layout", async ({
   await expect(cpu.locator(".resource-trend-details")).toContainText("2개");
   await expect(
     page.getByRole("region", { name: "메모리 상세", exact: true }),
-  ).toContainText("비활성 · 할당 없음");
+  ).toContainText("비활성, 할당 없음");
   await expect(page.getByText("cpu-worker", { exact: true })).toBeVisible();
   await page.getByLabel("프로세스 정렬").selectOption("memory");
   await expect(page.getByText("memory-worker", { exact: true })).toBeVisible();
@@ -82,7 +82,7 @@ test("real host updates, reconnect and replay", async ({ page, request }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(url + "/#resources");
-  await expect(page.getByText(/서버 호스트 ·/)).toBeVisible();
+  await expect(page.getByText(/서버 호스트, /)).toBeVisible();
   const get = async () =>
     (await (await request.get(url + "/api/snapshot")).json()).rows.find(
       (r: any) => r.kind === "resources",
@@ -105,21 +105,21 @@ test("real host updates, reconnect and replay", async ({ page, request }) => {
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.reload();
-  await expect(page.getByText(/서버 호스트 ·/)).toBeVisible();
+  await expect(page.getByText(/서버 호스트, /)).toBeVisible();
   const sessions = (await (await request.get(url + "/api/recordings")).json())
     .sessions;
   const session = sessions.find((s: any) => s.count > 0);
-  await page.getByRole("button", { name: "기록 & 재생", exact: true }).click();
-  await page.getByText("기록 관리 · 내보내기", { exact: true }).first().click();
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await page.getByText("기록 관리, 내보내기", { exact: true }).first().click();
   await page
     .locator("tr")
     .filter({ hasText: session.id.slice(0, 8) })
     .getByRole("button", { name: "시각으로 이동", exact: true })
     .click();
   await page.getByRole("slider", { name: "재생 포인터" }).press("End");
-  await page.getByRole("button", { name: "리소스", exact: true }).click();
+  await page.getByRole("button", { name: "자원", exact: true }).click();
   await expect(page.locator(".resource-source")).toContainText("기록 재생");
-  await expect(page.getByText(/서버 호스트 ·/)).toBeVisible();
+  await expect(page.getByText(/서버 호스트, /)).toBeVisible();
   await page.screenshot({
     path: "test-results/resources-replay.png",
     fullPage: true,

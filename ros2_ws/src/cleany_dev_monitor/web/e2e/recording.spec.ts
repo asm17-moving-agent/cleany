@@ -184,6 +184,14 @@ test("recording presets, independent toggles, rate, stop and fresh starts", asyn
   );
   await page.goto("/#recordings");
   await expect(
+    page.getByText("가공 데이터는 SQLite에", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("카메라, 점군, voxel 원본은 용량이 큽니다.", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await expect(
     page.getByRole("checkbox", { name: "호스트 리소스", exact: true }),
   ).toBeChecked();
   await page
@@ -195,7 +203,7 @@ test("recording presets, independent toggles, rate, stop and fresh starts", asyn
     .getByRole("button", { name: "센서 원본 토픽 펼치기", exact: true })
     .click();
   const rawGroup = page.getByRole("checkbox", {
-    name: "센서 원본",
+    name: "센서 원본, rosbag2",
     exact: true,
   });
   await rawGroup.check();
@@ -203,7 +211,7 @@ test("recording presets, independent toggles, rate, stop and fresh starts", asyn
     "LiDAR 원본",
     "Depth point cloud 원본",
     "Nav2 voxel layer 원본",
-    "Voxel world·장애물 메모리",
+    "Voxel world, 장애물 메모리",
     "카메라 원본",
   ]) {
     await expect(
@@ -252,14 +260,14 @@ test("recording presets, independent toggles, rate, stop and fresh starts", asyn
     page.getByLabel("호스트 리소스 기록 Hz").locator(".."),
   ).toContainText("Hz / (1 Hz)");
   await page
-    .getByRole("button", { name: "위치·속도·미션 토픽 펼치기", exact: true })
+    .getByRole("button", { name: "위치, 속도, 미션 토픽 펼치기", exact: true })
     .click();
   await expect(
     page.getByLabel("속도 체인 1 기록 Hz", { exact: true }).locator(".."),
   ).toContainText("Hz / (20 Hz)");
   await page.getByLabel("세션 용량 MiB").fill("300");
   await page
-    .getByRole("button", { name: "계획·제어 경로 토픽 펼치기", exact: true })
+    .getByRole("button", { name: "계획, 제어 경로 토픽 펼치기", exact: true })
     .click();
   await expect(
     page.getByLabel("전체 경로 기록 Hz", { exact: true }),
@@ -297,11 +305,11 @@ test("recording presets, independent toggles, rate, stop and fresh starts", asyn
   ).toBeChecked();
   expect(
     await page
-      .getByRole("checkbox", { name: "계획·제어 경로", exact: true })
+      .getByRole("checkbox", { name: "계획, 제어 경로", exact: true })
       .evaluate((element: HTMLInputElement) => element.indeterminate),
   ).toBeTruthy();
   await expect(
-    page.getByLabel("계획·제어 경로 기록 Hz", { exact: true }),
+    page.getByLabel("계획, 제어 경로 기록 Hz", { exact: true }),
   ).toHaveCount(0);
   await page.getByLabel("주기 프로필").selectOption("precise");
   await expect(
@@ -375,4 +383,95 @@ test("recording presets, independent toggles, rate, stop and fresh starts", asyn
     path: "test-results/recording-settings.png",
     fullPage: true,
   });
+});
+
+test("recording exports separate processed data and only finalized bags", async ({
+  page,
+}) => {
+  const base = {
+    count: 3,
+    runtime_count: 0,
+    start: 100,
+    end: 101,
+    bytes: 1024,
+    segments: [{ start: 100, end: 101 }],
+  };
+  await page.route("**/api/recordings", (route) =>
+    route.fulfill({
+      json: {
+        sessions: [
+          {
+            ...base,
+            id: "finished",
+            metadata: { bag_state: "finalized" },
+            bag_available: true,
+            bag_recording: false,
+          },
+          {
+            ...base,
+            id: "active",
+            metadata: { bag_state: "recording" },
+            bag_available: false,
+            bag_recording: true,
+          },
+          {
+            ...base,
+            id: "incomplete",
+            metadata: { bag_state: "incomplete", raw_gap: "camera dropped" },
+            bag_available: false,
+            bag_recording: false,
+          },
+        ],
+        active: "active",
+        reason: "",
+      },
+    }),
+  );
+  await page.route("**/api/navigation/runs", (route) =>
+    route.fulfill({ json: { runs: [] } }),
+  );
+  await page.route("**/api/recording/settings", (route) =>
+    route.fulfill({
+      json: {
+        settings: initial(),
+        status: {},
+        source_fields: {},
+        rate_profiles: {},
+        reason: "",
+      },
+    }),
+  );
+  await page.routeWebSocket("**/ws", (ws) =>
+    ws.send(
+      JSON.stringify({
+        initial: true,
+        boot_id: "export-test",
+        sequence: 1,
+        rows: [],
+      }),
+    ),
+  );
+  await page.goto("/#recordings");
+  await page
+    .locator("summary")
+    .filter({ hasText: "기록 관리, 내보내기" })
+    .click();
+  const finished = page.getByRole("row").filter({ hasText: "finished" });
+  await expect(
+    finished.getByRole("link", { name: "SQLite 내보내기 ↓" }),
+  ).toHaveAttribute("href", "/api/recordings/finished/export");
+  await expect(
+    finished.getByRole("link", { name: "rosbag2 내보내기 ↓" }),
+  ).toHaveAttribute("href", "/api/recordings/finished/bag");
+  const active = page.getByRole("row").filter({ hasText: "active" });
+  await expect(active).toContainText("녹화 정지 후 내보낼 수 있습니다.");
+  await expect(
+    active.getByRole("link", { name: "rosbag2 내보내기 ↓" }),
+  ).toHaveCount(0);
+  const incomplete = page.getByRole("row").filter({ hasText: "incomple" });
+  await expect(incomplete).toContainText("rosbag2 미완료");
+  await expect(incomplete).toContainText("유실 있음");
+  await expect(
+    incomplete.getByRole("link", { name: "rosbag2 내보내기 ↓" }),
+  ).toHaveCount(0);
 });

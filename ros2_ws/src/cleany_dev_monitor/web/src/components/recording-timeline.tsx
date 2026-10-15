@@ -319,7 +319,7 @@ export function RecordingTimeline({
             }}
           >
             <div className="timeline-fine-heading">
-              <strong>정밀 탐색 · 1분</strong>
+              <strong>정밀 탐색, 1분</strong>
               <span>{fineClock(fine.cursor)}</span>
             </div>
             <div
@@ -451,7 +451,7 @@ export function RecordingTimeline({
               />
             </div>
             <div className="timeline-fine-help">
-              클릭·드래그로 선택 · 양끝에서 시간 이동
+              클릭, 드래그로 선택, 양끝에서 시간 이동
             </div>
           </div>
         )}

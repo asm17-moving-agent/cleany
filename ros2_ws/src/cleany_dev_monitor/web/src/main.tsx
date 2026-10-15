@@ -29,6 +29,7 @@ import { NavigationDashboard } from "@/components/navigation-dashboard";
 import { RosGraph } from "@/components/ros-graph";
 import { FitGraphToViewport } from "@/components/fit-graph-to-viewport";
 import { CameraView } from "@/components/camera-view";
+import { NavigationMap } from "@/components/navigation-map";
 import { ThemeToggle } from "@/components/theme-toggle";
 import "./theme.css";
 import "./style.css";
@@ -101,19 +102,19 @@ const navIcons = [
   GitBranch,
   Network,
   Navigation2,
+  Camera,
   LogsIcon,
   History,
-  Camera,
   Activity,
 ];
 const tabs = [
-  ["execution", "실행 흐름", "01"],
-  ["ros", "ROS 탐색기", "02"],
-  ["navigation", "자율주행", "03"],
-  ["logs", "로그", "04"],
-  ["recordings", "기록 & 재생", "05"],
-  ["camera", "카메라", "06"],
-  ["resources", "리소스", "07"],
+  ["execution", "실행", "01"],
+  ["ros", "ROS", "02"],
+  ["navigation", "주행", "03"],
+  ["camera", "카메라", "04"],
+  ["logs", "로그", "05"],
+  ["recordings", "기록", "06"],
+  ["resources", "자원", "07"],
 ];
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);
 const statusColor = (s: string) =>
@@ -210,7 +211,7 @@ function Tree({
     <>
       {!bt && visibleState !== runtime.state && (
         <span className="fsm-playback-note">
-          전이 재생 중 · 실제 {runtime.state}
+          전이 재생 중, 실제 {runtime.state}
         </span>
       )}
       <MemoDiagram spec={spec} onSelect={onSelect} bt={bt} />
@@ -331,16 +332,16 @@ const MemoDiagram = React.memo(function Diagram({
   ];
   const transitionLabels: Record<string, string> = {
     "IDLE-NAVIGATE_TO_TARGET": "미션 수락",
-    "NAVIGATE_TO_TARGET-WORKING": "도착 · 정지",
+    "NAVIGATE_TO_TARGET-WORKING": "도착, 정지",
     "WORKING-POST_MISSION": "청소 완료",
     "POST_MISSION-RETURN_HOME": "복귀 정책",
     "POST_MISSION-IDLE": "복귀 생략",
-    "RETURN_HOME-IDLE": "홈 도착 · 정지",
-    "CANCELLING-RETURN_HOME": "정지 확인 · 복귀",
-    "CANCELLING-IDLE": "정지 확인 · 종료",
+    "RETURN_HOME-IDLE": "홈 도착, 정지",
+    "CANCELLING-RETURN_HOME": "정지 확인, 복귀",
+    "CANCELLING-IDLE": "정지 확인, 종료",
     "CANCELLING-ERROR": "안전 미확인 / 치명 오류",
     "IDLE-ERROR": "안전 오류",
-    "ERROR-IDLE": "안전 확인 · 리셋",
+    "ERROR-IDLE": "안전 확인, 리셋",
   };
   const topology = JSON.stringify(
     bt ? btNodes.map((n) => [n.id, n.parent]) : [states, runtime.fsm_edges],
@@ -355,7 +356,7 @@ const MemoDiagram = React.memo(function Diagram({
               <>
                 <strong>{n.id}</strong>
                 <small>
-                  {n.status} {n.visited ? "· ticked" : ""}
+                  {n.status} {n.visited ? ", ticked" : ""}
                 </small>
               </>
             ),
@@ -496,542 +497,6 @@ const MemoDiagram = React.memo(function Diagram({
   );
 });
 
-function NavigationMap({
-  rows,
-  config,
-  timeAt,
-  mode = "overview",
-}: {
-  rows: Row[];
-  config: Data;
-  timeAt: number;
-  mode?: string;
-}) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const projection = useRef({ ox: 0, oy: 0, scale: 1 });
-  const [picked, setPicked] = useState<number[] | null>(null);
-  const mapViews: Record<
-    string,
-    { title: string; layers: string[]; defaults: string[] }
-  > = {
-    overview: {
-      title: "전체 경로와 주행 진행",
-      layers: ["map", "path", "trail", "footprint"],
-      defaults: ["map", "path", "trail", "footprint"],
-    },
-    safety: {
-      title: "주변 장애물과 안전 영역",
-      layers: [
-        "map",
-        "local_costmap",
-        "scan",
-        "depth_points",
-        "footprint",
-        "stop_polygon",
-        "slow_polygon",
-        "risk_points",
-        "obstacle_memory",
-        "lidar_memory",
-        "depth_memory",
-      ],
-      defaults: [
-        "map",
-        "local_costmap",
-        "scan",
-        "depth_points",
-        "footprint",
-        "stop_polygon",
-        "slow_polygon",
-        "risk_points",
-      ],
-    },
-    control: {
-      title: "계획 경로와 후보 궤적",
-      layers: [
-        "map",
-        "path",
-        "local_path",
-        "local_costmap",
-        "global_costmap",
-        "footprint",
-        "trail",
-      ],
-      defaults: ["map", "path", "local_path", "local_costmap", "footprint"],
-    },
-  };
-  const view = mapViews[mode] || mapViews.overview;
-  const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(
-      view.layers.map((key) => [key, view.defaults.includes(key)]),
-    ),
-  );
-  const [zoom, setZoom] = useState(1);
-  const navigation = rows.find((r) => r.kind === "runtime")?.data.navigation;
-  const layers = rows.filter((r) => r.kind === "layer");
-  const poseRow = rows.find((r) => r.kind === "pose");
-  const poseAge = poseRow
-    ? Math.max(0, timeAt - poseRow.received_at)
-    : Infinity;
-  const robot: Data | undefined = poseRow
-    ? {
-        ...poseRow.data,
-        valid: poseRow.data.valid && poseAge <= 2,
-        reason: poseAge > 2 ? "TF 관측 수신 지연" : poseRow.data.reason,
-      }
-    : undefined;
-  useEffect(() => {
-    const c = canvas.current;
-    if (!c) return;
-    const ctx = c.getContext("2d");
-    if (!ctx) return;
-    const width = (c.width = 1100),
-      height = (c.height = 620);
-    ctx.fillStyle = "#181818";
-    ctx.fillRect(0, 0, width, height);
-    const map = layers.find((r) => r.key === "map" && r.data.valid)?.data;
-    const points: number[][] = [];
-    const world = (x: number, y: number, o: number[]) => [
-      o[0] + Math.cos(o[2]) * x - Math.sin(o[2]) * y,
-      o[1] + Math.sin(o[2]) * x + Math.cos(o[2]) * y,
-    ];
-    const nearby = mode === "safety" || mode === "control";
-    const localBounds = layers.find(
-      (r) => r.key === "local_costmap" && r.data.valid,
-    )?.data;
-    if (nearby && robot?.valid) {
-      const radius = localBounds
-        ? Math.max(
-            1,
-            Math.min(
-              4,
-              (Math.max(localBounds.width, localBounds.height) *
-                localBounds.resolution) /
-                2,
-            ),
-          )
-        : 2.5;
-      points.push(
-        [robot.pose[0] - radius, robot.pose[1] - radius],
-        [robot.pose[0] + radius, robot.pose[1] + radius],
-      );
-    } else if (nearby && localBounds) {
-      for (const [x, y] of [
-        [0, 0],
-        [localBounds.width, 0],
-        [0, localBounds.height],
-        [localBounds.width, localBounds.height],
-      ])
-        points.push(
-          world(
-            x * localBounds.resolution,
-            y * localBounds.resolution,
-            localBounds.origin,
-          ),
-        );
-    } else if (map)
-      for (const [x, y] of [
-        [0, 0],
-        [map.width, 0],
-        [0, map.height],
-        [map.width, map.height],
-      ])
-        points.push(world(x * map.resolution, y * map.resolution, map.origin));
-    if (!points.length) points.push([-5, -5], [5, 5]);
-    const minX = Math.min(...points.map((p) => p[0])),
-      maxX = Math.max(...points.map((p) => p[0]));
-    const minY = Math.min(...points.map((p) => p[1])),
-      maxY = Math.max(...points.map((p) => p[1]));
-    const scale =
-      Math.min(
-        (width - 80) / Math.max(1, maxX - minX),
-        (height - 80) / Math.max(1, maxY - minY),
-      ) * zoom;
-    const ox = width / 2 - ((minX + maxX) / 2) * scale,
-      oy = height / 2 + ((minY + maxY) / 2) * scale;
-    projection.current = { ox, oy, scale };
-    const screen = (x: number, y: number) => [ox + x * scale, oy - y * scale];
-    for (const name of [
-      "map",
-      "obstacle_memory",
-      "lidar_memory",
-      "depth_memory",
-      "global_costmap",
-      "local_costmap",
-    ]) {
-      const layer = layers.find((r) => r.key === name)?.data;
-      if (!enabled[name] || !layer?.valid) continue;
-      const off = document.createElement("canvas");
-      off.width = layer.width;
-      off.height = layer.height;
-      const oc = off.getContext("2d")!;
-      const pixels = oc.createImageData(layer.width, layer.height);
-      layer.cells.forEach((value: number, i: number) => {
-        const p = i * 4;
-        const mapLayer = name === "map";
-        const shade = value < 0 ? 78 : Math.round(235 - value * 1.9);
-        pixels.data[p] = mapLayer
-          ? shade
-          : name === "global_costmap"
-            ? 230
-            : 63;
-        pixels.data[p + 1] = mapLayer ? shade : 110;
-        pixels.data[p + 2] = mapLayer
-          ? shade
-          : name === "global_costmap"
-            ? 95
-            : 232;
-        pixels.data[p + 3] = mapLayer
-          ? 255
-          : value <= 0
-            ? 0
-            : Math.min(175, value * 1.75);
-      });
-      oc.putImageData(pixels, 0, 0);
-      ctx.save();
-      ctx.translate(ox, oy);
-      ctx.scale(scale, -scale);
-      ctx.translate(layer.origin[0], layer.origin[1]);
-      ctx.rotate(layer.origin[2]);
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(
-        off,
-        0,
-        0,
-        layer.width * layer.resolution,
-        layer.height * layer.resolution,
-      );
-      ctx.restore();
-    }
-    const path = layers.find((r) => r.key === "path")?.data;
-    if (enabled.path && path?.valid && path.points.length) {
-      ctx.strokeStyle = "#4ae7ba";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      path.points.forEach(([x, y]: number[], i: number) => {
-        const [a, b] = screen(x, y);
-        i ? ctx.lineTo(a, b) : ctx.moveTo(a, b);
-      });
-      ctx.stroke();
-      const [x, y] = screen(...(path.points.at(-1) as [number, number]));
-      ctx.strokeStyle = "#ffd584";
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    const summary = rows.find(
-      (r) => r.kind === "navigation" && r.key === "summary",
-    )?.data;
-    const drawLine = (points: number[][], color: string, closed = false) => {
-      if (!points.length) return;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      points.forEach(([x, y], i) => {
-        const [a, b] = screen(x, y);
-        i ? ctx.lineTo(a, b) : ctx.moveTo(a, b);
-      });
-      if (closed) ctx.closePath();
-      ctx.stroke();
-    };
-    if (enabled.trail && Array.isArray(summary?.trail))
-      drawLine(
-        summary.trail.map((p: number[]) => p.slice(1, 3)),
-        "#80aaff",
-      );
-    const local = layers.find((r) => r.key === "local_path")?.data;
-    if (enabled.local_path && local?.valid && Array.isArray(local.points))
-      drawLine(local.points, "#ffb85c");
-    const colors: Record<string, string> = {
-      scan: "#5ed7ee",
-      depth_points: "#bf95ef",
-      risk_points: "#ff5252",
-      footprint: "#f8f8f8",
-      stop_polygon: "#ff7272",
-      slow_polygon: "#ffce70",
-    };
-    for (const key of Object.keys(colors)) {
-      const row = rows.find((r) => r.kind === "navigation" && r.key === key);
-      const d = row?.data;
-      if (
-        !enabled[key] ||
-        !d?.valid ||
-        !Array.isArray(d.points) ||
-        !row ||
-        timeAt - row.received_at > 2
-      )
-        continue;
-      if (["footprint", "stop_polygon", "slow_polygon"].includes(key))
-        drawLine(d.points, colors[key], true);
-      else {
-        ctx.fillStyle = colors[key];
-        for (const [x, y] of d.points) {
-          const [a, b] = screen(x, y);
-          ctx.fillRect(a - 1, b - 1, 3, 3);
-        }
-      }
-    }
-    if (mode === "control") {
-      const evaluation = rows.find(
-        (r) => r.kind === "navigation" && r.key === "controller_evaluation",
-      );
-      const e = evaluation?.data;
-      if (
-        evaluation &&
-        timeAt - evaluation.received_at <= 2 &&
-        Array.isArray(e?.trajectories) &&
-        e?.transform
-      )
-        for (const t of e.trajectories)
-          if (Array.isArray(t.points))
-            drawLine(
-              t.points.map((p: number[]) => world(p[0], p[1], e.transform)),
-              t.selected ? "#4ae7ba" : "#737c87",
-            );
-    }
-    const goal = navigation?.goal_pose;
-    if (mode !== "safety" && goal && navigation.frame === config.map_frame) {
-      const [x, y] = screen(goal.x, goal.y);
-      ctx.strokeStyle = "#ffd584";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x - 9, y);
-      ctx.lineTo(x + 9, y);
-      ctx.moveTo(x, y - 9);
-      ctx.lineTo(x, y + 9);
-      ctx.stroke();
-      ctx.fillStyle = "#ffd584";
-      ctx.font = "12px monospace";
-      ctx.fillText(navigation.target, x + 12, y - 8);
-    }
-    if (robot?.valid) {
-      const [x, y] = screen(robot.pose[0], robot.pose[1]);
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(-robot.pose[2]);
-      ctx.fillStyle = "#fff";
-      ctx.strokeStyle = "#262626";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(15, 0);
-      ctx.lineTo(-10, -9);
-      ctx.lineTo(-6, 0);
-      ctx.lineTo(-10, 9);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-      const arrow = (angle: number, color: string, length: number) => {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(-angle);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(length, 0);
-        ctx.lineTo(length - 7, -4);
-        ctx.moveTo(length, 0);
-        ctx.lineTo(length - 7, 4);
-        ctx.stroke();
-        ctx.restore();
-      };
-      const panRow = rows.find(
-        (r) => r.kind === "navigation" && r.key === "pan",
-      );
-      if (
-        mode === "safety" &&
-        panRow &&
-        timeAt - panRow.received_at <= 2 &&
-        Number.isFinite(panRow.data.pan)
-      )
-        arrow(robot.pose[2] + panRow.data.pan, "#d69aff", 45);
-      if (
-        summary?.measured &&
-        Math.hypot(...(summary.measured.slice(0, 2) as [number, number])) >
-          0.005
-      )
-        arrow(
-          robot.pose[2] + Math.atan2(summary.measured[1], summary.measured[0]),
-          "#5ed7ee",
-          35,
-        );
-    }
-    ctx.fillStyle = "#b8b8b8";
-    ctx.font = "13px monospace";
-    ctx.fillText(
-      `frame: ${config.map_frame || "map"} · ${zoom.toFixed(1)}×`,
-      20,
-      height - 20,
-    );
-  }, [rows, enabled, zoom, Math.floor(poseAge), timeAt, mode]);
-  return (
-    <>
-      <Panel
-        title={view.title}
-        aside={
-          <div className="inline">
-            <Button
-              variant="outline"
-              onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
-            >
-              −
-            </Button>
-            <Button variant="outline" onClick={() => setZoom(zoom + 0.25)}>
-              ＋
-            </Button>
-            <Button variant="outline" onClick={() => setZoom(1)}>
-              맞춤
-            </Button>
-          </div>
-        }
-      >
-        <div className="map-tools">
-          {view.layers.map((k) => (
-            <label key={k}>
-              <input
-                type="checkbox"
-                checked={enabled[k]}
-                onChange={(e) =>
-                  setEnabled({ ...enabled, [k]: e.target.checked })
-                }
-              />
-              {(
-                {
-                  map: "지도",
-                  path: "계획 경로",
-                  local_costmap: "local costmap",
-                  global_costmap: "global costmap",
-                  local_path: "제어 경로",
-                  scan: "LiDAR",
-                  depth_points: "Depth 장애물",
-                  footprint: "로봇 외곽",
-                  trail: "실제 궤적",
-                  stop_polygon: "정지 영역",
-                  slow_polygon: "감속 영역",
-                  risk_points: "위험점",
-                  obstacle_memory: "합성 메모리",
-                  lidar_memory: "LiDAR 메모리",
-                  depth_memory: "Depth 메모리",
-                } as Record<string, string>
-              )[k] || k}
-            </label>
-          ))}
-          <span>
-            {mode === "safety"
-              ? "△ 차체 · 빨강 정지 영역 · 노랑 감속 영역 · 보라 카메라"
-              : mode === "control"
-                ? "△ 차체 · 청록 선택 후보 · 회색 다른 후보 · 주황 제어 경로"
-                : "△ 차체 · ＋ 목표 · 파랑 실제 궤적 · 초록 계획 경로"}
-          </span>
-        </div>
-        {(mode === "safety" || mode === "control") &&
-          !robot?.valid &&
-          !layers.some((r) => r.key === "local_costmap" && r.data.valid) && (
-            <small>
-              주변 범위를 결정할 위치·local costmap이 없어 전체 지도를
-              표시합니다.
-            </small>
-          )}
-        {!layers.some((r) => r.key === "map" && r.data.valid) && (
-          <p className="nav-map-unavailable">
-            배경 지도 표시 불가 ·{" "}
-            {layers.find((r) => r.key === "map")?.data.reason ||
-              "지도 토픽 미수신"}
-          </p>
-        )}
-        <canvas
-          ref={canvas}
-          aria-label="ROS 2D navigation map"
-          className="map"
-          onClick={(event) => {
-            const c = canvas.current;
-            if (!c) return;
-            const rect = c.getBoundingClientRect();
-            const { ox, oy, scale } = projection.current;
-            setPicked([
-              (((event.clientX - rect.left) * c.width) / rect.width - ox) /
-                scale,
-              (oy - ((event.clientY - rect.top) * c.height) / rect.height) /
-                scale,
-            ]);
-          }}
-        />
-        {picked && (
-          <div className="map-tools" aria-label="선택한 지도 셀">
-            <span>
-              map ({picked[0].toFixed(2)}, {picked[1].toFixed(2)}) · 게시
-              OccupancyGrid 값
-            </span>
-            {layers
-              .filter((r) => r.data.valid && r.data.cells && enabled[r.key])
-              .map((r) => {
-                const g = r.data,
-                  dx = picked[0] - g.origin[0],
-                  dy = picked[1] - g.origin[1];
-                const x = Math.floor(
-                  (Math.cos(g.origin[2]) * dx + Math.sin(g.origin[2]) * dy) /
-                    g.resolution,
-                );
-                const y = Math.floor(
-                  (-Math.sin(g.origin[2]) * dx + Math.cos(g.origin[2]) * dy) /
-                    g.resolution,
-                );
-                const value =
-                  x >= 0 && y >= 0 && x < g.width && y < g.height
-                    ? g.cells[y * g.width + x]
-                    : null;
-                return (
-                  <span key={r.key}>
-                    {r.key}:{" "}
-                    {value === null ? "영역 밖" : value < 0 ? "미관측" : value}
-                  </span>
-                );
-              })}
-          </div>
-        )}
-        <details className="nav-map-sources">
-          <summary>지도 수신 상태와 출처</summary>
-          <div className="layer-status">
-            {view.layers
-              .filter((k) =>
-                [
-                  "map",
-                  "path",
-                  "local_path",
-                  "local_costmap",
-                  "global_costmap",
-                ].includes(k),
-              )
-              .map((k) => {
-                const l = layers.find((r) => r.key === k);
-                return (
-                  <div key={k}>
-                    <b>{k}</b>
-                    <Badge tone={l?.data.valid ? "good" : "warn"}>
-                      {l?.data.valid ? "수신" : "표시 불가"}
-                    </Badge>
-                    <small>
-                      {l?.data.reason || l?.data.topic || "토픽 대기"}
-                    </small>
-                  </div>
-                );
-              })}
-            <div>
-              <b>robot TF</b>
-              <Badge tone={robot?.valid ? "good" : "warn"}>
-                {robot?.valid ? "수신" : "표시 불가"}
-              </Badge>
-              <small>
-                {robot?.reason || `age ${robot?.age?.toFixed(2) ?? "—"}s`}
-              </small>
-            </div>
-          </div>
-        </details>
-      </Panel>
-    </>
-  );
-}
-
 function RosView({
   rows,
   graph,
@@ -1075,11 +540,11 @@ function RosView({
       <Tabs value={view} onValueChange={setView} className="subtabs">
         <TabsList>
           {[
-            ["topics", "Topics"],
-            ["graph", "연결 그래프"],
-            ["nodes", "Nodes"],
-            ["actions", "Actions"],
-            ["services", "Services"],
+            ["topics", "토픽"],
+            ["graph", "연결"],
+            ["nodes", "노드"],
+            ["actions", "액션"],
+            ["services", "서비스"],
           ].map(([id, label]) => (
             <TabsTrigger key={id} value={id}>
               {label}
@@ -1089,7 +554,7 @@ function RosView({
       </Tabs>
       {view === "topics" ? (
         <div className="ros-grid">
-          <Panel title={`Topics · ${topics.length}`}>
+          <Panel title={`토픽 (${topics.length})`}>
             <Input
               className="search"
               placeholder="토픽 이름 또는 타입 검색"
@@ -1212,7 +677,7 @@ function RosView({
       )}
       {graph.missing_fixed_topics?.length > 0 && (
         <details className="missing">
-          <summary>미발견 토픽 · {graph.missing_fixed_topics.length}</summary>
+          <summary>미발견 토픽, {graph.missing_fixed_topics.length}</summary>
           <Json value={graph.missing_fixed_topics} />
         </details>
       )}
@@ -1280,9 +745,7 @@ function App() {
   const [navigationTab, setNavigationTab] = useState(() => {
     const stored = sessionStorage.getItem("cleany.navigation.tab");
     return stored &&
-      ["overview", "safety", "control", "sensors", "compare", "slam"].includes(
-        stored,
-      )
+      ["overview", "safety", "control", "sensors", "compare"].includes(stored)
       ? stored
       : "overview";
   });
@@ -1290,7 +753,10 @@ function App() {
     sessionStorage.setItem("cleany.navigation.tab", navigationTab);
   }, [navigationTab]);
   const [collapsed, setCollapsed] = useState(false);
-  const [tab, setTab] = useState(location.hash.slice(1) || "execution");
+  const [tab, setTab] = useState(() => {
+    const requested = location.hash.slice(1);
+    return tabs.some(([id]) => id === requested) ? requested : "execution";
+  });
   const [rows, setRows] = useState<Row[]>([]);
   const live = useRef<Row[]>([]);
   const [connected, setConnected] = useState(false);
@@ -1368,11 +834,11 @@ function App() {
         }
         if (!p.rows) return;
         if (p.gap) setNotice("이벤트 유실");
-        if (p.sources_changed) setNotice("관측 토픽 변경 · 이전 관측값 초기화");
+        if (p.sources_changed) setNotice("관측 토픽 변경, 이전 관측값 초기화");
         if (p.initial && lastBoot.current && !p.sources_changed) {
           setNotice(
             p.boot_id === lastBoot.current
-              ? "재연결 · 누락 가능"
+              ? "재연결, 누락 가능"
               : "Monitor 재시작",
           );
         }
@@ -1670,7 +1136,7 @@ function App() {
                 sim {clockRow.data.time.toFixed(1)}s{" "}
                 {clockRow.data.unchanged_for > 1 ||
                 (!replayId && now - clockRow.received_at > 2)
-                  ? "· 정지/수신 지연"
+                  ? ", 정지/수신 지연"
                   : ""}
               </span>
             )}
@@ -1708,11 +1174,11 @@ function App() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setNavigationTab("slam");
+                  setNavigationTab("overview");
                   go("navigation");
                 }}
               >
-                <Activity size={16} /> SLAM 분석
+                <Navigation2 size={16} /> 개요
               </Button>
             </div>
           </div>
@@ -1720,7 +1186,7 @@ function App() {
             <div className="connection-banner" role="status">
               <Unplug size={19} />
               <div>
-                <strong>서버 연결 끊김 · 재연결 중</strong>
+                <strong>서버 연결 끊김, 재연결 중</strong>
               </div>
             </div>
           )}
@@ -1741,7 +1207,7 @@ function App() {
             </div>
           )}
           {recording.reason && (
-            <div className="notice warn">기록 중단 · {recording.reason}</div>
+            <div className="notice warn">기록 중단, {recording.reason}</div>
           )}
 
           {replayId && replayId !== "__gap__" && (
@@ -1810,7 +1276,7 @@ function App() {
                 {(!fresh || runtime.drive_block_reason || runtime.reason) && (
                   <p className="execution-reason">
                     {!fresh
-                      ? `상태 미확인 · ${age?.toFixed(1) ?? "—"}초 전`
+                      ? `상태 미확인, ${age?.toFixed(1) ?? "—"}초 전`
                       : runtime.drive_block_reason || runtime.reason}
                   </p>
                 )}
@@ -1833,7 +1299,7 @@ function App() {
                       >
                         <TabsList>
                           <TabsTrigger value="fsm">FSM</TabsTrigger>
-                          <TabsTrigger value="bt">청소 BT</TabsTrigger>
+                          <TabsTrigger value="bt">BT</TabsTrigger>
                         </TabsList>
                       </Tabs>
                       <Badge tone={!fresh ? "warn" : ""}>
@@ -1906,7 +1372,7 @@ function App() {
                                     : v.ready
                                       ? "Ready"
                                       : v.reason || "Not ready"}{" "}
-                                  · 정지{" "}
+                                  , 정지{" "}
                                   {v.stopped == null
                                     ? "미확인"
                                     : String(v.stopped)}
@@ -1960,7 +1426,7 @@ function App() {
                         {correlated.map((r) => (
                           <div className="mini-event" key={r.seq}>
                             <small>
-                              {time(r.received_at)} · {r.data.kind || r.kind}
+                              {time(r.received_at)}, {r.data.kind || r.kind}
                             </small>
                             <Json value={r.data.data || r.data} />
                           </div>
@@ -1980,11 +1446,11 @@ function App() {
                 )}
               </>
             ))}
-          {tab === "resources" && (
-            <ResourceDashboard rows={rows} replay={!!replayId} />
-          )}
           {tab === "camera" && (
             <CameraView topics={graph.topics || []} replay={!!replayId} />
+          )}
+          {tab === "resources" && (
+            <ResourceDashboard rows={rows} replay={!!replayId} />
           )}
           {tab === "ros" && (
             <RosView
@@ -2009,11 +1475,9 @@ function App() {
                 setTab={setNavigationTab}
                 map={
                   <NavigationMap
-                    key={navigationTab}
                     rows={rows}
                     config={config}
                     timeAt={replayId ? at : now}
-                    mode={navigationTab}
                   />
                 }
                 observe={setNavigationTopics}
@@ -2021,7 +1485,6 @@ function App() {
                   setFocusTopic(topic);
                   go("ros");
                 }}
-                openCamera={() => go("camera")}
                 openLogs={() => go("logs")}
                 seek={openNavigationMoment}
                 openRun={async (run) => {
@@ -2049,9 +1512,9 @@ function App() {
             <>
               <RecordingControls replay={!!replayId} />
               <details>
-                <summary>기록 관리 · 내보내기</summary>
+                <summary>기록 관리, 내보내기</summary>
                 <Panel
-                  title="기록 관리 · 내보내기"
+                  title="기록 관리, 내보내기"
                   aside={
                     <Button variant="outline" onClick={refreshSessions}>
                       새로고침
@@ -2079,9 +1542,13 @@ function App() {
                                 기록 중{recording.reason ? "단" : ""}
                               </Badge>
                             )}
-                            {s.metadata.gap && (
+                            {(s.metadata.gap || s.metadata.raw_gap) && (
                               <Badge tone="warn">유실 있음</Badge>
                             )}
+                            {!s.bag_recording &&
+                              ["incomplete", "recording"].includes(
+                                s.metadata.bag_state,
+                              ) && <Badge tone="warn">rosbag2 미완료</Badge>}
                           </td>
                           <td>
                             {s.start ? time(s.start) : "—"} →{" "}
@@ -2113,8 +1580,22 @@ function App() {
                               시각으로 이동
                             </Button>{" "}
                             <a href={`/api/recordings/${s.id}/export`}>
-                              내보내기 ↓
+                              SQLite 내보내기 ↓
                             </a>
+                            {s.bag_available ? (
+                              <>
+                                {" "}
+                                ,{" "}
+                                <a href={`/api/recordings/${s.id}/bag`}>
+                                  rosbag2 내보내기 ↓
+                                </a>
+                              </>
+                            ) : s.bag_recording ? (
+                              <small>
+                                {" "}
+                                , rosbag2는 녹화 정지 후 내보낼 수 있습니다.
+                              </small>
+                            ) : null}
                           </td>
                         </tr>
                       ))}

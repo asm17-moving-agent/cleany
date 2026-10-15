@@ -21,8 +21,8 @@ type TreeNode = {
 };
 const labels: Record<string, string> = {
   PlanThenNavigate: "경로 계획 후 주행",
-  InitialPlanWithPatience: "초기 계획 · 재시도",
-  NavigateWithPatience: "주행 · 복구",
+  InitialPlanWithPatience: "초기 계획, 재시도",
+  NavigateWithPatience: "주행, 복구",
   CheckBeforeFollowing: "경로 확인 후 추종",
   PathClearOrReplan: "유효 경로 또는 재계획",
   UpcomingPathClear: "앞쪽 경로 검사",
@@ -104,13 +104,13 @@ export function Nav2BtTree({
     <section className="nav2-tree" aria-label="Nav2 실행 트리">
       <div className="nav2-tree-summary">
         <strong>
-          {replay ? "기록 재생 · " : ""}
+          {replay ? "기록 재생, " : ""}
           {stale
-            ? "연결 끊김 · 마지막 관측"
+            ? "연결 끊김, 마지막 관측"
             : !tree.active
               ? "Nav2 비활성"
               : [4, 5, 6].includes(tree.goal_status)
-                ? "주행 종료 · 마지막 관측"
+                ? "주행 종료, 마지막 관측"
                 : "실행 상태 관측 중"}
         </strong>
         <span>
@@ -155,7 +155,7 @@ export function Nav2BtTree({
       {node && (
         <div className="nav2-tree-detail">
           <strong>
-            {node.label} · {tree.states?.[node.id] || "UNKNOWN"}
+            {node.label}, {tree.states?.[node.id] || "UNKNOWN"}
           </strong>
           <p>{descriptions[node.type] || `${node.type} 노드`}</p>
           <small>인스턴스: {node.id}</small>
@@ -170,11 +170,11 @@ export function Nav2BtTree({
         </div>
       )}
       <details>
-        <summary>최근 상태 전이 {selected ? "· 선택한 노드" : ""}</summary>
+        <summary>최근 상태 전이{selected ? ", 선택한 노드" : ""}</summary>
         {history.length ? (
           history.map((event: any) => (
             <div key={event.sequence}>
-              {time(event.received_at)} · {event.node} · {event.previous} →{" "}
+              {time(event.received_at)}, {event.node}, {event.previous} →{" "}
               {event.status}
             </div>
           ))
@@ -189,7 +189,7 @@ export function Nav2BtTree({
           <br />
           SHA256: {tree.xml_sha256}
           <br />
-          목표: {tree.goal_id || "미관측"} · 관측 구간: {tree.epoch}
+          목표: {tree.goal_id || "미관측"}, 관측 구간: {tree.epoch}
         </small>
       </details>
     </section>

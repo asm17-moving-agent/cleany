@@ -19,7 +19,7 @@ test("observed FSM, topic subscription, correlated logs and recording replay", a
   await expect(page.locator(".execution-summary").first()).toContainText(
     runtime.state,
   );
-  await page.getByRole("button", { name: "ROS 탐색기" }).click();
+  await page.getByRole("button", { name: "ROS" }).click();
   await expect(page.getByPlaceholder("토픽 이름 또는 타입 검색")).toBeVisible();
   await page
     .getByPlaceholder("토픽 이름 또는 타입 검색")
@@ -36,14 +36,14 @@ test("observed FSM, topic subscription, correlated logs and recording replay", a
   await expect(
     page.getByRole("heading", { name: "이벤트 타임라인" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "기록 & 재생" }).click();
+  await page.getByRole("button", { name: "기록" }).click();
   await expect(
-    page.locator("summary").filter({ hasText: "기록 관리 · 내보내기" }),
+    page.locator("summary").filter({ hasText: "기록 관리, 내보내기" }),
   ).toBeVisible();
   const sessions = (await (await request.get("/api/recordings")).json())
     .sessions;
   const session = sessions.find((s: any) => s.count > 0);
-  await page.getByText("기록 관리 · 내보내기", { exact: true }).first().click();
+  await page.getByText("기록 관리, 내보내기", { exact: true }).first().click();
   await page
     .locator("tr")
     .filter({ hasText: session.id.slice(0, 8) })
@@ -73,8 +73,9 @@ test("Gazebo map, TF and both costmaps render", async ({ page, request }) => {
     ).toBe(true);
   await page.goto(url + "/#navigation");
   await expect(
-    page.getByRole("heading", { name: "2D Navigation" }),
+    page.getByRole("heading", { name: "전체 경로와 주행 진행" }),
   ).toBeVisible();
+  await page.getByText("지도 수신 상태와 출처", { exact: true }).click();
   await expect(page.locator(".layer-status")).toContainText("수신");
   const canvas = page.getByLabel("ROS 2D navigation map");
   const colors = await canvas.evaluate((el: HTMLCanvasElement) => {

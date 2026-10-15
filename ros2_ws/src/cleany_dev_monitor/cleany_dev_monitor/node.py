@@ -72,8 +72,9 @@ class MonitorNode(Node):
 
     Notes:
         The HTTP worker consumes a shared hub. This node creates no command
-        publishers or action/service clients. Large geometry is subscribed on
-        demand, and camera, topic and recording limits bound retained data.
+        publishers or action clients. The only service client reads allowlisted
+        Cartographer SubmapQuery textures. Large geometry is subscribed on demand,
+        and camera, topic and recording limits bound retained data.
     """
     def __init__(self, **kwargs):
         super().__init__("cleany_dev_monitor", **kwargs)
@@ -265,6 +266,14 @@ class MonitorNode(Node):
         topics = dict(self.get_topic_names_and_types())
         selected = self.hub.selections()
         self.hub.recording.discover(topics)
+        revision = self.hub.recording.revision
+        if revision != getattr(self, 'raw_recording_revision', None):
+            # Re-request every publisher's retained sample for a fresh session,
+            # including /tf_static even when another observer keeps it selected.
+            for name in self.hub.recording.topics():
+                if name in self.subs and self.subs[name][1][2]:
+                    self.destroy_subscription(self.subs.pop(name)[0])
+            self.raw_recording_revision = revision
         wanted = self.fixed | selected | self.hub.cameras.selected() | self.hub.recording.topics()
         # Action status/feedback are read-only public topics, not goal/result services.
         wanted.update(
@@ -424,7 +433,10 @@ class MonitorNode(Node):
             ticket = self.hub.recording.reserve(topic)
             if ticket:
                 message_type = self.subs[topic][1][0][0]
-                self.hub.recording.offer(ticket, topic, message_type, serialize_message(message), ros_time)
+                signature = self.subs[topic][1]
+                self.hub.recording.offer(ticket, topic, message_type, serialize_message(message), ros_time,
+                                         timestamp_ns=self.get_clock().now().nanoseconds,
+                                         reliable=signature[1], latched=signature[2])
             if hasattr(message, "encoding") or (
                 hasattr(message, "format") and hasattr(message, "data")
             ):

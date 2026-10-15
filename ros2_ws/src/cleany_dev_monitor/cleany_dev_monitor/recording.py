@@ -1,16 +1,25 @@
 """Recording policy and bounded raw-message handoff; independent of UI leases."""
-from collections import deque
-from copy import deepcopy
 import math
 import re
 import threading
 import time
-from .sources import validate_sources, validate_source_enabled, SCHEMA, raw_maximum_references
+from collections import deque
+from contextlib import contextmanager
+from copy import deepcopy
+from dataclasses import dataclass
 
-LABELS = {'slam': 'SLAM 서브맵·스캔·그래프', 'resources': '호스트 리소스', 'motion': '위치·속도·미션', 'paths': '계획·제어 경로', 'costmaps': 'Costmap',
+from .sources import (
+    SCHEMA,
+    raw_maximum_references,
+    resolved,
+    validate_source_enabled,
+    validate_sources,
+)
+
+LABELS = {'slam': 'SLAM 서브맵, 스캔, 그래프', 'resources': '호스트 리소스', 'motion': '위치, 속도, 미션', 'paths': '계획, 제어 경로', 'costmaps': 'Costmap',
           'bt': 'Nav2 BT', 'safety': '안전 판단', 'logs': '로그',
           'lidar': 'LiDAR 원본', 'point_cloud': 'Depth point cloud 원본',
-          'voxel_layer': 'Nav2 voxel layer 원본', 'voxel_world': 'Voxel world·장애물 메모리',
+          'voxel_layer': 'Nav2 voxel layer 원본', 'voxel_world': 'Voxel world, 장애물 메모리',
           'camera': '카메라 원본'}
 RAW = {'lidar': '/scan', 'point_cloud': '/camera/head/depth/points',
        'voxel_layer': '/local_costmap/voxel_grid', 'voxel_world': '/obstacle_memory/voxels',
@@ -19,6 +28,34 @@ TYPES = {'lidar': {'sensor_msgs/msg/LaserScan'}, 'point_cloud': {'sensor_msgs/ms
          'voxel_layer': {'nav2_msgs/msg/VoxelGrid'}, 'voxel_world': {'sensor_msgs/msg/PointCloud2'},
          'camera': {'sensor_msgs/msg/Image', 'sensor_msgs/msg/CompressedImage'},
          'transforms': {'tf2_msgs/msg/TFMessage'}}
+TYPES.update(camera_info={'sensor_msgs/msg/CameraInfo'}, clock={'rosgraph_msgs/msg/Clock'})
+
+# Native visualization inputs accompany the corresponding processed records.
+# Keep this allowlist separate from heavy, independently selected sensor streams.
+CONTEXT = {
+    'map_topic': ('costmaps', 'nav_msgs/msg/OccupancyGrid'),
+    'local_costmap_topic': ('costmaps', 'nav_msgs/msg/OccupancyGrid'),
+    'global_costmap_topic': ('costmaps', 'nav_msgs/msg/OccupancyGrid'),
+    'path_topic': ('paths', 'nav_msgs/msg/Path'),
+    'local_path_topic': ('paths', 'nav_msgs/msg/Path'),
+    'odometry_topic': ('motion', 'nav_msgs/msg/Odometry'),
+    'ground_truth_topic': ('motion', 'nav_msgs/msg/Odometry'),
+    'amcl_pose_topic': ('motion', 'geometry_msgs/msg/PoseWithCovarianceStamped'),
+    'footprint_topic': ('motion', 'geometry_msgs/msg/PolygonStamped'),
+}
+
+
+@dataclass(frozen=True)
+class RawMessage:
+    category: str
+    topic: str
+    message_type: str
+    received: float
+    ros_time: float | None
+    payload: bytes
+    timestamp_ns: int
+    reliable: bool = False
+    latched: bool = False
 
 
 def observation_policies(config):
@@ -26,19 +63,19 @@ def observation_policies(config):
     interval = config.get('resource_interval_s', 1.0)
     repeat = config.get('bt_event_repeat_interval_s', 1.0)
     return {
-        'slam': {'summary': 'SLAM 레이어 최대 2 Hz · 서브맵 버전별 이미지 보존', 'detail': '서브맵 이미지와 위치를 함께 기록합니다. 버전·위치 metadata와 이미지는 재생 일관성을 위해 주기 제한 없이 저장합니다.'},
+        'slam': {'summary': 'SLAM 레이어 최대 2 Hz, 서브맵 버전별 이미지 보존', 'detail': '서브맵 이미지와 위치를 함께 기록합니다. 버전, 위치 metadata와 이미지는 재생 일관성을 위해 주기 제한 없이 저장합니다.'},
         'resources': {'summary': f'수집 설정 {interval:g}초 ({1 / interval:g} Hz)',
                       'detail': '새 호스트 표본을 저장합니다. 실제 간격에는 수집 소요시간이 더해집니다.'},
-        'motion': {'summary': '위치 최대 10 Hz · 주행 요약 5 Hz',
-                   'detail': '미션 상태는 발행 주기에 따라 수신합니다. 전이·결과는 이벤트별로 기록합니다.'},
-        'paths': {'summary': '토픽별 최대 10 Hz · 동일 경로 중복 제외',
+        'motion': {'summary': '위치 최대 10 Hz, 주행 요약 5 Hz',
+                   'detail': '미션 상태는 발행 주기에 따라 수신합니다. 전이, 결과는 이벤트별로 기록합니다.'},
+        'paths': {'summary': '토픽별 최대 10 Hz, 동일 경로 중복 제외',
                   'detail': '경로 수신 시 관측합니다. 동일한 경로 레이어는 다시 저장하지 않습니다.'},
-        'costmaps': {'summary': '토픽별 최대 10 Hz · 동일 지도 중복 제외',
+        'costmaps': {'summary': '토픽별 최대 10 Hz, 동일 지도 중복 제외',
                      'detail': 'Costmap 수신 시 관측합니다. 동일한 지도 레이어는 다시 저장하지 않습니다.'},
-        'bt': {'summary': '상태 수신 시 갱신 · 전이 이벤트 기록',
-               'detail': f'동일 상태 반복 이벤트는 {repeat:g}초마다 요약합니다. 실패·ComputePath·FollowPath·Wait 전이는 즉시 기록 대기열에 넣습니다.'},
-        'safety': {'summary': '진단 최대 10 Hz · 판단 변경 시 이벤트',
-                   'detail': '안전 진단의 최신값과 정지·감속 판단의 변경 이벤트를 저장합니다.'},
+        'bt': {'summary': '상태 수신 시 갱신, 전이 이벤트 기록',
+               'detail': f'동일 상태 반복 이벤트는 {repeat:g}초마다 요약합니다. 실패, ComputePath, FollowPath, Wait 전이는 즉시 기록 대기열에 넣습니다.'},
+        'safety': {'summary': '진단 최대 10 Hz, 판단 변경 시 이벤트',
+                   'detail': '안전 진단의 최신값과 정지, 감속 판단의 변경 이벤트를 저장합니다.'},
         'logs': {'summary': '/rosout 수신 이벤트별 기록',
                  'detail': '고정 Hz로 표본화하지 않습니다. 관측한 로그를 이벤트별로 저장합니다.'},
     }
@@ -235,7 +272,7 @@ def validate(value):
     if type(value['active']) is not bool or value['preset'] not in rate_profiles():
         raise ValueError('녹화 상태 또는 프리셋이 올바르지 않습니다.')
     if any(not isinstance(value[key], dict) for key in ('enabled', 'hz', 'topics')):
-        raise ValueError('녹화 항목·주기·토픽 형식이 올바르지 않습니다.')
+        raise ValueError('녹화 항목, 주기, 토픽 형식이 올바르지 않습니다.')
     value = deepcopy(value)
     value['sources'] = validate_sources(value['sources'])
     value['source_enabled'] = validate_source_enabled(value['source_enabled'])
@@ -316,14 +353,29 @@ class RecordingControls:
     def __init__(self, queue_limit=32*1024**2):
         self.lock = threading.Lock()
         self.settings = defaults()
+        self.source_config = {}
         self.revision = 0
         self.queue = deque()
         self.queued_bytes = 0
         self.queue_limit = queue_limit
         self.last = {}
         self.stats = {}
+        self.stats_generation = 0
         self.available = {}
         self.writer_error = ""
+        self.transitioning = False
+
+    @contextmanager
+    def transition(self):
+        """Seal in-flight callback tickets before draining or rotating a writer."""
+        with self.lock:
+            self.transitioning = True
+            self.revision += 1
+        try:
+            yield
+        finally:
+            with self.lock:
+                self.transitioning = False
 
     def configure(self, settings):
         settings = validate(settings)
@@ -332,18 +384,41 @@ class RecordingControls:
             self.revision += 1
             self.last.clear()
             self.stats = {}
+            self.stats_generation += 1
+
+    def camera_info_topic(self):
+        topic = self.settings['topics']['camera']
+        if topic.endswith('/compressed'):
+            topic = topic.rsplit('/', 1)[0]
+        return topic.rsplit('/', 1)[0] + '/camera_info'
+
+    def context_topics(self):
+        """Called under lock; topic remapping and per-source opt-outs apply."""
+        s = self.settings
+        sources = {**resolved(self.source_config), **s['sources']}
+        topics = {sources[field]: (group, typ, field)
+                  for field, (group, typ) in CONTEXT.items()
+                  if s['enabled'][group] and s['source_enabled'].get(field, True)}
+        if s['enabled']['motion']:
+            topics.update({'/joint_states': ('motion', 'sensor_msgs/msg/JointState', None),
+                           '/robot_description': ('motion', 'std_msgs/msg/String', None)})
+        return topics
+
+    def has_ros_context(self):
+        return any(self.settings['enabled'][k] for k in RAW) or bool(self.context_topics())
 
     def topics(self):
         with self.lock:
             if self.writer_error or not self.settings['active']:
                 return set()
             topics = {v for k,v in self.settings['topics'].items() if self.settings['enabled'][k]}
-            if self.settings['enabled']['paths']:
-                topics.add('/local_plan')
+            topics.update(self.context_topics())
             if self.settings['enabled']['voxel_world']:
                 topics.update(('/obstacle_memory/grid', '/obstacle_memory/lidar', '/obstacle_memory/depth'))
-            if any(self.settings['enabled'][k] for k in RAW):
-                topics.update(('/tf', '/tf_static'))
+            if self.has_ros_context():
+                topics.update(('/tf', '/tf_static', '/clock'))
+            if self.settings['enabled']['camera']:
+                topics.add(self.camera_info_topic())
             return topics
 
     def discover(self, topics):
@@ -354,33 +429,57 @@ class RecordingControls:
         with self.lock:
             s = self.settings
             key = next((k for k,v in s['topics'].items() if v == topic), None)
-            if topic in ('/tf','/tf_static') and any(s['enabled'][k] for k in RAW):
+            context = self.context_topics().get(topic)
+            if context and key is None:
+                key = context[0]
+            if topic in ('/tf','/tf_static') and self.has_ros_context():
                 key = 'transforms'
-            if self.writer_error or not key or not s['active'] or key != 'transforms' and not s['enabled'][key]:
+            if topic == '/clock' and self.has_ros_context():
+                key = 'clock'
+            if topic == self.camera_info_topic() and s['enabled']['camera']:
+                key = 'camera_info'
+            if self.transitioning or self.writer_error or not key or not s['active'] or key in RAW and not s['enabled'][key]:
                 return None
             now = time.monotonic()
             self.stats.setdefault(key, {})['received_at'] = time.time()
-            hz = 30 if key == 'transforms' else s['hz'][key]
-            if now-self.last.get(topic, -float('inf')) < 1/hz:
+            hz = s['hz'].get(key) if key in RAW else None
+            if context and context[2]:
+                hz = s['source_hz'].get(context[2])
+            if hz is not None and now-self.last.get(topic, -float('inf')) < 1/hz:
                 return None
             self.last[topic] = now
             return key, self.revision
 
-    def offer(self, ticket, topic, message_type, payload, ros_time):
+    def offer(self, ticket, topic, message_type, payload, ros_time, *, timestamp_ns=None, reliable=False, latched=False):
         key, revision = ticket
         with self.lock:
             if revision != self.revision:
                 return
             stat = self.stats.setdefault(key, {})
-            if message_type not in TYPES[key]:
+            context = self.context_topics().get(topic)
+            supported = {context[1]} if context and key not in RAW else TYPES.get(key, set())
+            if message_type not in supported:
                 stat['error'] = '지원하지 않는 ROS 메시지 타입'
                 return
-            if len(self.queue) >= 128 or len(payload) > 8*1024**2 or self.queued_bytes+len(payload) > self.queue_limit:
-                stat['error'] = '원본 크기 또는 저장 대기 한도 초과'
-                stat['dropped'] = stat.get('dropped', 0)+1
-                return
-            self.queue.append((key, topic, message_type, time.time(), ros_time, payload))
-            self.queued_bytes += len(payload)
+            received_ns = time.time_ns()
+            message = RawMessage(key, topic, message_type, received_ns / 1e9, ros_time, payload,
+                                 received_ns if timestamp_ns is None else timestamp_ns,
+                                 reliable, latched or topic == '/tf_static')
+            self._enqueue(message)
+
+    def _enqueue(self, message):
+        stat = self.stats.setdefault(message.category, {})
+        if len(self.queue) >= 128 or len(message.payload) > 8*1024**2 or self.queued_bytes+len(message.payload) > self.queue_limit:
+            stat['error'] = '원본 크기 또는 저장 대기 한도 초과'
+            stat['dropped'] = stat.get('dropped', 0)+1
+            return
+        self.queue.append(message)
+        self.queued_bytes += len(message.payload)
+
+    def dropped(self, key, count=1):
+        with self.lock:
+            stat = self.stats.setdefault(key, {})
+            stat['dropped'] = stat.get('dropped', 0) + count
 
     def drain(self):
         with self.lock:
@@ -398,12 +497,14 @@ class RecordingControls:
         with self.lock:
             statuses = {}
             s = self.settings
-            for key in (*LABELS, 'transforms'):
+            for key in (*LABELS, 'transforms', 'clock', 'camera_info'):
                 stat = dict(self.stats.get(key, {}))
-                is_enabled = any(s['enabled'][k] for k in RAW) if key == 'transforms' else s['enabled'][key]
+                is_enabled = (self.has_ros_context() if key in ('transforms', 'clock') else
+                              s['enabled']['camera'] if key == 'camera_info' else s['enabled'][key])
                 state = '미녹화' if not is_enabled else '녹화 정지' if not s['active'] else '저장 중단' if reason else '저장 오류' if stat.get('error') else '기록 대기'
-                if state == '기록 대기' and key == 'transforms':
-                    state = '토픽 미수신' if not any(self.available.get(t) for t in ('/tf','/tf_static')) else '기록 중' if stat.get('count') else '수신 대기'
+                if state == '기록 대기' and key in ('transforms', 'clock', 'camera_info'):
+                    topics = ('/tf', '/tf_static') if key == 'transforms' else ('/clock',) if key == 'clock' else (self.camera_info_topic(),)
+                    state = '토픽 미수신' if not any(self.available.get(t) for t in topics) else '기록 중' if stat.get('count') else '수신 대기'
                 elif state == '기록 대기' and key in RAW:
                     types = set(self.available.get(s['topics'][key], []))
                     state = '토픽 미수신' if not types else '타입 불일치' if not types <= TYPES[key] else '입력 중단' if stat.get('received_at') and time.time()-stat['received_at'] > max(3,2/s['hz'][key]) else '기록 중' if stat.get('count') else '수신 대기'
@@ -411,4 +512,6 @@ class RecordingControls:
                     state = '기록 중' if stat.get('count') else '수신 대기'
                 statuses[key] = dict(stat, state=state)
             return {'settings': deepcopy(s), 'labels': LABELS, 'status': statuses, 'reason': reason,
-                    'raw_format': 'ROS CDR; full message, sampled in time', 'revision': self.revision}
+                    'raw_format': 'rosbag2/sqlite3; CDR messages sampled in time',
+                    'storage': {'raw': 'rosbag2', 'processed': 'sqlite3'},
+                    'revision': self.revision, 'stats_generation': self.stats_generation}

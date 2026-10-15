@@ -208,12 +208,12 @@ class SlamReader:
         if not latest.get("valid"):
             return
         if self.last_list_received is not None and now - self.last_list_received > 3:
-            self.status("source_stale", "서브맵 목록 수신 지연 · 마지막 이미지 유지")
+            self.status("source_stale", "서브맵 목록 수신 지연, 마지막 이미지 유지")
             return
         pending = self.state.pending()
         if not pending:
             self.status(
-                "cache_limit", "이미지 메모리 한도 · 일부 서브맵 이미지 생략"
+                "cache_limit", "이미지 메모리 한도, 일부 서브맵 이미지 생략"
             ) if self.state.omitted_textures else self.status("ready")
             return
         if self.client is None:

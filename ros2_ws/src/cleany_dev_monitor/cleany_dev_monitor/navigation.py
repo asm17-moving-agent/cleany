@@ -165,7 +165,7 @@ class NavigationObserver:
                 break
         if runtime_fresh and runtime.get("state") not in ("NAVIGATE_TO_TARGET", "RETURN_HOME"):
             if motion == "STATIONARY":
-                reason, source = "작업/대기 단계 · 주행 중 정지와 별도", "runtime"
+                reason, source = "작업/대기 단계, 주행 중 정지와 별도", "runtime"
 
         nav = runtime.get("navigation", {}) if runtime_fresh else {}
         identity = str(nav.get("operation_id") or "")

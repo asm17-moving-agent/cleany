@@ -888,44 +888,6 @@ footer {
   color: var(--info-text);
 }
 
-.camera-content {
-  padding: 18px;
-}
-.camera-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.camera-toolbar select {
-  flex: 1;
-  min-width: 120px;
-  max-width: 100%;
-}
-.camera-size {
-  font-size: 11px;
-  color: var(--muted-foreground);
-}
-.camera-viewport {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 16 / 9;
-  background: #101010;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.camera-viewport img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  min-height: 0;
-}
-.camera-viewport .empty {
-  color: #a3a3a3;
-}
-
 .execution-summary {
   display: flex;
   align-items: center;
@@ -1197,4 +1159,42 @@ footer {
 .monitor-header .timeline-fine::after {
   top: auto;
   bottom: 100%;
+}
+
+.camera-content {
+  padding: 18px;
+}
+.camera-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.camera-toolbar select {
+  flex: 1;
+  min-width: 120px;
+  max-width: 100%;
+}
+.camera-size {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.camera-viewport {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  background: #101010;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.camera-viewport img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  min-height: 0;
+}
+.camera-viewport .empty {
+  color: #a3a3a3;
 }

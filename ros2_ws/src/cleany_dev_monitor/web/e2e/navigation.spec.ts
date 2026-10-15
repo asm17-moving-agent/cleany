@@ -337,7 +337,11 @@ function rows(now: number, replay = false) {
     }),
   ];
 }
-async function fixture(page: Page, stale = false) {
+async function fixture(
+  page: Page,
+  stale = false,
+  transform = (data: ReturnType<typeof rows>) => data,
+) {
   const messages: any[] = [];
   await page.route("**/api/recordings", (r) =>
     r.fulfill({
@@ -371,7 +375,7 @@ async function fixture(page: Page, stale = false) {
           initial: true,
           boot_id: "nav-fixture",
           sequence: 100,
-          rows: rows(stale ? base - 10 : Date.now() / 1000),
+          rows: transform(rows(stale ? base - 10 : Date.now() / 1000)),
         }),
       );
     send();
@@ -394,13 +398,7 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
   page.on("pageerror", (e) => errors.push(e.message));
   const messages = await fixture(page);
   await page.goto("/#navigation");
-  for (const name of [
-    "주행 개요",
-    "장애물·안전",
-    "계획·제어",
-    "센서·위치",
-    "주행 비교",
-  ])
+  for (const name of ["개요", "안전", "제어", "센서", "비교"])
     await expect(page.getByRole("tab", { name, exact: true })).toBeVisible();
   await expect(page.locator(".nav-summary-strip")).toContainText("저속 이동");
   await expect(
@@ -413,7 +411,7 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
     page.getByRole("checkbox", { name: "계획 경로", exact: true }),
   ).toBeChecked();
   await expect(
-    page.getByRole("checkbox", { name: "local costmap", exact: true }),
+    page.getByRole("checkbox", { name: "전체 costmap", exact: true }),
   ).toHaveCount(0);
   await expect
     .poll(() => messages.at(-1)?.topics)
@@ -422,30 +420,38 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
   await expect(
     page.getByRole("img", { name: "단계별 속도와 실측 속도 그래프" }),
   ).toHaveCount(0);
-  await page
-    .getByLabel("ROS 2D navigation map")
-    .click({ position: { x: 100, y: 100 } });
-  await expect(page.getByLabel("선택한 지도 셀")).toContainText(
-    "OccupancyGrid",
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await expect(page.getByLabel("ROS 2D navigation map")).toHaveAttribute(
+    "data-robot-visible",
+    "true",
   );
+  await expect(
+    page.getByRole("tab", { name: "SLAM 분석", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "카메라", exact: true }),
+  ).toBeVisible();
+  await page.getByText("상세 시각화, RViz", { exact: true }).click();
+  await expect(page.locator(".nav-rviz-guide")).toContainText(
+    "ros2 bag play <bag_directory> --clock",
+  );
+  await expect(page.locator(".nav-rviz-guide")).toContainText(
+    "SQLite는 대시보드 가공 기록",
+  );
+  await page.getByText("상세 시각화, RViz", { exact: true }).click();
   await page.screenshot({
     path: "test-results/navigation-overview.png",
     fullPage: true,
   });
   await page
-    .getByRole("button", { name: "정지·감속 원인 보기", exact: true })
+    .getByRole("button", { name: "정지, 감속 원인 보기", exact: true })
     .click();
   await expect(
-    page.getByRole("tab", { name: "장애물·안전", exact: true }),
+    page.getByRole("tab", { name: "안전", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
-  await expect(
-    page.getByRole("heading", { name: "주변 장애물과 안전 영역" }),
-  ).toBeVisible();
+  await expect(page.locator("canvas")).toHaveCount(0);
   await expect(
     page.getByRole("checkbox", { name: "정지 영역", exact: true }),
-  ).toBeChecked();
-  await expect(
-    page.getByRole("checkbox", { name: "계획 경로", exact: true }),
   ).toHaveCount(0);
   await expect(page.locator(".nav-summary-strip")).toHaveCount(0);
   await expect(page.locator(".nav-event")).toHaveCount(2);
@@ -453,24 +459,17 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
     page.locator(".nav-event").filter({ hasText: "nav2_bt" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("heading", { name: "Voxel guard · 별도 속도 감시" }),
+    page.getByRole("heading", { name: "Voxel guard, 별도 속도 감시" }),
   ).toBeVisible();
-  await expect
-    .poll(() => messages.at(-1)?.topics)
-    .toContain(config.depth_points_topic);
+  await expect.poll(() => messages.at(-1)?.topics).toEqual([]);
   await page.screenshot({
     path: "test-results/navigation-safety.png",
     fullPage: true,
   });
-  await page.getByRole("tab", { name: "계획·제어", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "계획 경로와 후보 궤적" }),
-  ).toBeVisible();
+  await page.getByRole("tab", { name: "제어", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveCount(0);
   await expect(
     page.getByRole("checkbox", { name: "제어 경로", exact: true }),
-  ).toBeChecked();
-  await expect(
-    page.getByRole("checkbox", { name: "LiDAR", exact: true }),
   ).toHaveCount(0);
   await expect(
     page.getByRole("img", { name: "단계별 속도와 실측 속도 그래프" }),
@@ -491,20 +490,23 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
     path: "test-results/navigation-control.png",
     fullPage: true,
   });
-  await page.getByRole("tab", { name: "센서·위치", exact: true }).click();
+  await page.getByRole("tab", { name: "센서", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "센서·TF 수신 상태" }),
+    page.getByRole("heading", { name: "센서, TF 수신 상태" }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "주행 비교", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect.poll(() => messages.at(-1)?.topics).toEqual([]);
+  await page.getByRole("tab", { name: "비교", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveCount(0);
   await expect(page.getByText("-7.00 s", { exact: true })).toBeVisible();
   await page.screenshot({
     path: "test-results/navigation-comparison.png",
     fullPage: true,
   });
-  await page.getByRole("tab", { name: "주행 개요", exact: true }).click();
+  await page.getByRole("tab", { name: "개요", exact: true }).click();
   await page.locator(".nav-event").first().click();
   await expect(page.locator(".header-status")).toContainText("REPLAY");
-  await page.getByRole("tab", { name: "계획·제어", exact: true }).click();
+  await page.getByRole("tab", { name: "제어", exact: true }).click();
   await expect(
     page.getByRole("region", { name: "Nav2 실행 트리" }),
   ).toContainText("FAILURE");
@@ -515,12 +517,12 @@ test("five navigation tabs, bounded topic leases, cause details and synchronized
   await expect(
     page.getByRole("region", { name: "Nav2 실행 트리" }),
   ).toContainText("recorded-tree");
-  await page.getByRole("tab", { name: "주행 개요", exact: true }).click();
+  await page.getByRole("tab", { name: "개요", exact: true }).click();
   await expect(page.locator(".nav-summary-strip")).toContainText("정지");
   await expect.poll(() => messages.at(-1)?.topics).toEqual([]);
   await page.getByRole("button", { name: "라이브", exact: true }).click();
   await expect(page.locator(".nav-summary-strip")).toContainText("저속 이동");
-  await page.getByRole("button", { name: "실행 흐름", exact: true }).click();
+  await page.getByRole("button", { name: "실행", exact: true }).click();
   await expect.poll(() => messages.at(-1)?.topics).toEqual([]);
   expect(messages.every((m) => m.op === "select")).toBe(true);
   expect(errors).toEqual([]);
@@ -531,23 +533,21 @@ test("stale navigation never shows fresh motion; narrow layout stays within view
 }) => {
   await fixture(page, true);
   await page.goto("/#navigation");
+  await expect(page.getByLabel("ROS 2D navigation map")).toHaveAttribute(
+    "data-robot-visible",
+    "false",
+  );
   await expect(page.locator(".nav-summary-strip")).toContainText(
     "관측 지연 / 미수신",
   );
   await expect(page.getByText("관측 전용", { exact: true })).toHaveCount(0);
-  await page.getByRole("tab", { name: "장애물·안전", exact: true }).click();
+  await page.getByRole("tab", { name: "안전", exact: true }).click();
   await expect(page.locator(".nav-safety-decisions")).toContainText(
     "미수신 / 지연",
   );
   await expect(page.locator(".nav-safety-decisions")).not.toContainText("PASS");
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const name of [
-    "주행 개요",
-    "장애물·안전",
-    "계획·제어",
-    "센서·위치",
-    "주행 비교",
-  ]) {
+  for (const name of ["개요", "안전", "제어", "센서", "비교"]) {
     await page.getByRole("tab", { name, exact: true }).click();
     expect(
       await page.evaluate(
@@ -555,7 +555,7 @@ test("stale navigation never shows fresh motion; narrow layout stays within view
       ),
     ).toBe(true);
   }
-  await page.getByRole("tab", { name: "주행 개요", exact: true }).click();
+  await page.getByRole("tab", { name: "개요", exact: true }).click();
   await page.screenshot({
     path: "test-results/navigation-mobile.png",
     fullPage: true,
@@ -567,9 +567,9 @@ test("Nav2 tree selects separate instances and shows ports, failures and stale s
 }) => {
   await fixture(page, true);
   await page.goto("/#navigation");
-  await page.getByRole("tab", { name: "계획·제어", exact: true }).click();
+  await page.getByRole("tab", { name: "제어", exact: true }).click();
   const tree = page.getByRole("region", { name: "Nav2 실행 트리" });
-  await expect(tree).toContainText("연결 끊김 · 마지막 관측");
+  await expect(tree).toContainText("연결 끊김, 마지막 관측");
   await expect(tree.locator(".react-flow__node")).toHaveCount(3);
   await page.screenshot({ path: "test-results/bt-debug.png", fullPage: true });
   await tree
@@ -579,10 +579,76 @@ test("Nav2 tree selects separate instances and shows ports, failures and stale s
   await expect(tree.locator(".nav2-tree-detail")).toContainText("GridBased");
   await tree.locator(".react-flow__node").filter({ hasText: "Replan" }).click();
   await expect(tree.locator(".nav2-tree-detail")).toContainText("{path}");
-  await tree.getByText("최근 상태 전이 · 선택한 노드", { exact: true }).click();
+  await tree.getByText("최근 상태 전이, 선택한 노드", { exact: true }).click();
   await expect(tree).toContainText("IDLE → RUNNING");
   await page.screenshot({
     path: "test-results/nav2-bt-tree.png",
     fullPage: true,
   });
+});
+
+test("retired SLAM selection returns to the overview without camera polling", async ({
+  page,
+}) => {
+  await fixture(page);
+  let cameraRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/camera")) cameraRequests++;
+  });
+  await page.addInitScript(() =>
+    sessionStorage.setItem("cleany.navigation.tab", "slam"),
+  );
+  await page.goto("/#navigation");
+  await expect(
+    page.getByRole("tab", { name: "개요", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByLabel("ROS 2D navigation map")).toBeVisible();
+  await expect(
+    page.getByRole("tab", { name: "SLAM 분석", exact: true }),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByLabel("ROS 2D navigation map")).toBeVisible();
+  expect(cameraRequests).toBe(0);
+});
+
+test("overview ignores costmaps and fits the path and body when the map is missing", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await fixture(page, false, (data) =>
+    data.filter((row) => !(row.kind === "layer" && row.key === "map")),
+  );
+  await page.goto("/#navigation");
+  const canvas = page.getByLabel("ROS 2D navigation map");
+  await expect(canvas).toBeVisible();
+  await expect(
+    page.getByText("배경 지도 표시 불가", { exact: false }),
+  ).toBeVisible();
+  await expect(canvas).toHaveAttribute("data-robot-visible", "true");
+  const pixels = () =>
+    canvas.evaluate((el: HTMLCanvasElement) => {
+      const data = el
+        .getContext("2d")!
+        .getImageData(0, 0, el.width, el.height).data;
+      const counts = { costmap: 0, path: 0, trail: 0, body: 0 };
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i],
+          g = data[i + 1],
+          b = data[i + 2];
+        if (r > 120 && r > g + 30 && g > b) counts.costmap++;
+        if (r === 74 && g === 231 && b === 186) counts.path++;
+        if (r === 128 && g === 170 && b === 255) counts.trail++;
+        if (r === 255 && g === 255 && b === 255) counts.body++;
+      }
+      return counts;
+    });
+  await expect.poll(async () => (await pixels()).body).toBeGreaterThan(20);
+  const before = await pixels();
+  expect(before.path).toBeGreaterThan(20);
+  expect(before.trail).toBeGreaterThan(20);
+  expect(before.body).toBeGreaterThan(20);
+  await expect(page.getByRole("checkbox", { name: /costmap/ })).toHaveCount(0);
+  expect(before.costmap).toBeLessThan(100);
+  expect(errors).toEqual([]);
 });

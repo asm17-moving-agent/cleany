@@ -82,13 +82,13 @@ test("stale observations never imply drive readiness; replay remains isolated", 
   await expect(page.getByText("확인 불가", { exact: true })).toBeVisible({
     timeout: 6000,
   });
-  await page.getByRole("button", { name: "기록 & 재생", exact: true }).click();
-  await page.getByText("기록 관리 · 내보내기", { exact: true }).first().click();
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await page.getByText("기록 관리, 내보내기", { exact: true }).first().click();
   await page
     .getByRole("button", { name: "시각으로 이동", exact: true })
     .click();
   await expect(page.locator(".header-status")).toContainText("REPLAY");
-  await page.getByRole("button", { name: "실행 흐름", exact: true }).click();
+  await page.getByRole("button", { name: "실행", exact: true }).click();
   await expect(page.getByText("주행 차단", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "라이브" }).click();
   await expect(page.getByText("확인 불가", { exact: true })).toBeVisible();
@@ -108,29 +108,27 @@ test("console navigation and diagnostics work at desktop and narrow widths", asy
     .click();
   await expect(page.getByRole("region", { name: "노드 상세" })).toBeVisible();
   await page.getByRole("button", { name: "상세 닫기" }).click();
-  await page.getByRole("tab", { name: "청소 BT", exact: true }).click();
+  await page.getByRole("tab", { name: "BT", exact: true }).click();
   await expect(
     page.locator(".react-flow__node").filter({ hasText: "ExecuteOne" }),
   ).toBeVisible();
   await page.getByRole("tab", { name: "FSM", exact: true }).click();
   await page.getByRole("button", { name: "사이드바 접기" }).click();
-  await page.getByRole("button", { name: "ROS 탐색기", exact: true }).click();
-  await page.getByRole("tab", { name: "Topics", exact: true }).focus();
+  await page.getByRole("button", { name: "ROS", exact: true }).click();
+  await page.getByRole("tab", { name: "토픽", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "연결 그래프" })).toHaveAttribute(
+  await expect(page.getByRole("tab", { name: "연결" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await page.getByRole("button", { name: "자율주행", exact: true }).click();
-  await page.getByRole("button", { name: "SLAM 분석", exact: true }).click();
+  await page.getByRole("button", { name: "주행", exact: true }).click();
+  await page.getByRole("button", { name: "개요", exact: true }).click();
+  await expect(page.getByLabel("ROS 2D navigation map")).toBeVisible();
   await expect(
-    page.getByRole("region", { name: "SLAM 분석 화면" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("tab", { name: "SLAM 분석", exact: true }),
+    page.getByRole("tab", { name: "개요", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: "사이드바 펼치기" }).click();
-  await page.getByRole("button", { name: "실행 흐름", exact: true }).click();
+  await page.getByRole("button", { name: "실행", exact: true }).click();
   await page.screenshot({
     path: "test-results/console-desktop.png",
     fullPage: true,
@@ -369,7 +367,7 @@ test("ROS graph keeps shared nodes and viewport stable through discovery refresh
     send(1);
   });
   await page.goto("/#ros");
-  await page.getByRole("tab", { name: "연결 그래프", exact: true }).click();
+  await page.getByRole("tab", { name: "연결", exact: true }).click();
   const graph = page.locator(".ros-connections");
   await expect(graph.locator(".react-flow__node")).toHaveCount(8);
   // /base publishes odom and consumes cmd_vel, but appears only once.
