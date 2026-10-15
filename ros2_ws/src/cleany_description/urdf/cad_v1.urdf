@@ -204,7 +204,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 -->
-  <!--CAD source Cleany.FCStd SHA256 5fe6b78e2eb0ef183e66631eb8aef31503eb8f0b0c5902d9955affd8a7aef82e. Export units: metres and radians; visual tessellation 0.12 mm. Saved CAD folded pose is cad_home in cad_v1.xml. Public left/right follows REP-103 base +Y/-Y; CAD internal RightArm is ROS left. Positive gripper angle opens: 0 to pi/3 corresponds to source cam 0 to -60 degrees. Passive linkage joints require measured/simulated states; URDF mimic does not represent these nonlinear closed loops.-->
+  <!--CAD source Cleany.FCStd SHA256 5fe6b78e2eb0ef183e66631eb8aef31503eb8f0b0c5902d9955affd8a7aef82e. Export units: metres and radians; visual tessellation 0.12 mm. Saved CAD folded pose is cad_home in cad_v1.xml. Public left/right follows REP-103 base +Y/-Y; CAD internal RightArm is ROS left. Positive gripper angle opens: 0 to 2.443460952792061 radians corresponds to source cam 0 to -140 degrees (vendor v1.0 flash_test.ipynb open command; 147-degree firmware guard is not the operating endpoint). Passive linkage joints require measured/simulated states; URDF mimic does not represent these nonlinear closed loops.-->
   <!--PincOpen v1.0 derived meshes: Pollen Robotics, https://github.com/pollen-robotics/PincOpen/tree/v1.0, CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/ . Adaptations: rigid SO-101 attachment and CAD tessellation; derived PincOpen geometry remains CC BY-SA 4.0. XLeRobot RGBD gimbal: https://github.com/Vector-Wangel/XLeRobot/tree/137865981ca9e828d0923804cf77ededd22c7816 , Apache-2.0 https://www.apache.org/licenses/LICENSE-2.0 . Other geometry: supplied Cleany CAD and its retained component provenance.-->
   <!--Estimated physics, not measured hardware: aluminum 2700 kg/m3; printed effective density 650 kg/m3; carbon 1550 kg/m3; steel 7800 kg/m3; mixed chassis mounts 1000 kg/m3; PG42 0.8 kg each; servo group 0.055 kg; D435 0.072 kg; RPLIDAR 0.17 kg. Total modeled mass 12.7186578946 kg. No unmodeled battery/payload. Collision uses tight per-solid envelopes and convex decomposition, not the high-resolution visuals. Internal slot envelope exclusions are limited to named PincOpen pairs. Mass and inertias for each URDF rigid wheel combine the MJCF core and twelve passive rollers.-->
   <link name="base_link">
@@ -1642,7 +1642,7 @@
     <child link="right_gripper_cam_link" />
     <origin xyz="0 -0.0490665820841 0" rpy="-1.57079632679 -0 -1.57079632679" />
     <axis xyz="0 0 -1" />
-    <limit lower="0" upper="1.0471975511965976" effort="1.5" velocity="4.245" />
+    <limit lower="0" upper="2.443460952792061" effort="1.5" velocity="4.245" />
   </joint>
   <link name="right_finger_1_internal">
     <inertial>
@@ -1808,10 +1808,164 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
-    <collision name="right_finger_1_driving_collision_0">
-      <origin xyz="-1.29813049989e-05 -0.0162525771416 -0.00555" rpy="0 0 0" />
+    <collision name="right_finger_1_driving_collision_00">
       <geometry>
-        <box size="0.016120476541 0.0425051542832 0.0053000002" />
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_12">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_13">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_14">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_15">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_15.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_16">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_16.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_17">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_17.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_18">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_18.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_19">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_19.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_20">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_20.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_21">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_21.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_22">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_22.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_23">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_23.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_24">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_24.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_25">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_25.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_26">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_26.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_27">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_27.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_28">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_28.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_29">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_29.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_30">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_30.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_driving_collision_31">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_31.stl" />
       </geometry>
     </collision>
   </link>
@@ -1992,10 +2146,164 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
-    <collision name="right_finger_2_driving_collision_0">
-      <origin xyz="-0.000514785589624 0.0162131654043 -0.00555" rpy="0 0 0" />
+    <collision name="right_finger_2_driving_collision_00">
       <geometry>
-        <box size="0.0165609229483 0.0424263308087 0.0053000002" />
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_12">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_13">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_14">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_15">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_15.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_16">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_16.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_17">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_17.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_18">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_18.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_19">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_19.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_20">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_20.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_21">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_21.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_22">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_22.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_23">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_23.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_24">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_24.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_25">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_25.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_26">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_26.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_27">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_27.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_28">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_28.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_29">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_29.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_30">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_30.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_driving_collision_31">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_31.stl" />
       </geometry>
     </collision>
   </link>
@@ -2038,7 +2346,7 @@
     <child link="left_gripper_cam_link" />
     <origin xyz="0 -0.0490665820841 0" rpy="-1.57079632679 -0 -1.57079632679" />
     <axis xyz="0 0 -1" />
-    <limit lower="0" upper="1.0471975511965976" effort="1.5" velocity="4.245" />
+    <limit lower="0" upper="2.443460952792061" effort="1.5" velocity="4.245" />
   </joint>
   <link name="left_finger_1_internal">
     <inertial>
@@ -2204,10 +2512,164 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
-    <collision name="left_finger_1_driving_collision_0">
-      <origin xyz="-1.29813049989e-05 -0.0162525771416 -0.00555" rpy="0 0 0" />
+    <collision name="left_finger_1_driving_collision_00">
       <geometry>
-        <box size="0.016120476541 0.0425051542832 0.0053000002" />
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_12">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_13">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_14">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_15">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_15.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_16">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_16.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_17">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_17.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_18">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_18.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_19">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_19.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_20">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_20.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_21">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_21.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_22">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_22.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_23">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_23.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_24">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_24.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_25">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_25.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_26">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_26.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_27">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_27.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_28">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_28.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_29">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_29.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_30">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_30.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_driving_collision_31">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_driving_collision_31.stl" />
       </geometry>
     </collision>
   </link>
@@ -2388,10 +2850,164 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
-    <collision name="left_finger_2_driving_collision_0">
-      <origin xyz="-0.000514785589624 0.0162131654043 -0.00555" rpy="0 0 0" />
+    <collision name="left_finger_2_driving_collision_00">
       <geometry>
-        <box size="0.0165609229483 0.0424263308087 0.0053000002" />
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_12">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_13">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_14">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_15">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_15.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_16">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_16.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_17">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_17.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_18">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_18.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_19">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_19.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_20">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_20.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_21">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_21.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_22">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_22.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_23">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_23.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_24">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_24.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_25">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_25.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_26">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_26.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_27">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_27.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_28">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_28.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_29">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_29.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_30">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_30.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_driving_collision_31">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_driving_collision_31.stl" />
       </geometry>
     </collision>
   </link>
