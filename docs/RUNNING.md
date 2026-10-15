@@ -7,7 +7,7 @@ source /opt/ros/humble/setup.bash
 source "$(make -s print-install-base)/setup.bash"
 ```
 
-Navigation과 시나리오 전용 빌드는 각각 `print-navigation-install-base`, `print-scenario-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
+Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
 ## 실행 선택과 준비 순서
 
@@ -185,7 +185,7 @@ Agent와 driver 양쪽에 domain 0을 적용하고 검토한 hardware config를 
 ```bash
 export ROS_DOMAIN_ID=0
 ros2 launch cleany_base_driver base_driver.launch.py \
-  mock:=false config:="$(pwd)/configs/robot/base_hardware.yaml"
+  mock:=false config:="$(ros2 pkg prefix --share cleany_base_driver)/config/base_hardware.yaml"
 # 같은 overlay/domain의 별도 터미널에서 관측 GUI:
 ros2 launch cleany_base_driver base_monitor.launch.py preset:=true
 ```

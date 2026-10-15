@@ -6,9 +6,9 @@
 
 | 데이터 루트 아래 경로 | 내용 |
 |---|---|
-| `fixtures/cad-fortress-command-hold/` | 시나리오 기본 입력 |
+| `fixtures/cad-fortress-command-hold/` | 과거 시나리오 입력 |
 | `fixtures/cad-fortress-command-hold-portable/` | local mesh/texture를 고정한 별도 입력 |
-| `runs/scenarios/<run-name>/` | 새 scenario 결과, journal, 로그 |
+| `runs/scenarios/<run-name>/` | 과거 시나리오 결과, journal, 로그 |
 | `runs/historical/20261010/artifacts/` | 이전 실행 원본 |
 | `reports/legacy-20261010/docs/` | 과거 검증, navigation 분석, ChatGPT 인수인계 사본 |
 | `experiments/legacy-20261010/` | 과거 캠페인, SLAM 코드 사본 |

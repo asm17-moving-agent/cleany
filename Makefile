@@ -13,16 +13,11 @@ LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 NAVIGATION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-navigation
 NAVIGATION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-navigation
 NAVIGATION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-navigation
-SCENARIO_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-scenario-runtime
-SCENARIO_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-scenario-runtime
-SCENARIO_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-scenario-runtime
 MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
 MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 MISSION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
 MISSION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
-SAFETY_MODE ?= sensors
-ROBOT_MODEL ?= cad_frame
 HANDEYE_PROFILE_DIR ?= $(CLEANY_DATA_ROOT)/fixtures/handeye/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
@@ -41,11 +36,10 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
 		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
 
-.PHONY: test-gazebo-facility-tools test-tools test-mission-core build-mission-runtime build-mission-sim test-mission-runtime help deps deps-gazebo check-gazebo-env build build-gazebo \
+.PHONY: test-gazebo-facility-tools test-mission-core build-mission-runtime build-mission-sim test-mission-runtime help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-handeye build-telemetry test test-mission test-mujoco \
 	test-handeye test-gazebo \
-	test-telemetry test-gazebo-nav-runtime test-gazebo-navigation-pipeline test-gazebo-evaluation \
-	test-gazebo-safety test-gazebo-navigation-goals view-gazebo-costmap \
+	test-telemetry test-gazebo-nav-runtime test-gazebo-evaluation \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo \
 	sim-gazebo-study-cafe sim-gazebo-facility clean firmware-setup firmware-smoke firmware-build \
@@ -60,13 +54,11 @@ help:
 	@echo "  make build         Build the ROS 2 workspace"
 	@echo "  make build-gazebo  Build cleany_gazebo_sim and its dependencies"
 	@echo "  make build-navigation  Build common navigation without Gazebo"
-	@echo "  make build-scenario-runtime  Build isolated Gazebo/mission runtime for scenario workers"
 	@echo "  make test-navigation  Test common navigation including C++ plugins"
 	@echo "  make test-navigation-runtime  Test Nav2 serial safety with a synthetic backend"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
 	@echo "  make build-telemetry Build the ROS telemetry package"
 	@echo "  make test          Build and run all colcon tests"
-	@echo "  make test-tools    Run development tool unit tests without ROS runtime"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make build-dev-monitor / run-dev-monitor  Build or serve the read-only robot monitor"
 	@echo "  make test-dev-monitor  Test bounded recording, HTTP API and ROS observation"
@@ -81,11 +73,7 @@ help:
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test Gazebo Fortress and navigation packages"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
-	@echo "  make test-gazebo-navigation-goals  Run distant and chair-gap goals headlessly (Fortress)"
-	@echo "  make test-gazebo-navigation-pipeline  Run CAD saved-map goal with full safety"
 	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
-	@echo "  make test-gazebo-safety  Run SCRUM-306 sensors/monitor/avoid evaluation"
-	@echo "  make view-gazebo-costmap  Show live costmap over saved SLAM map in RViz"
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run headless Gazebo Fortress simulation"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
@@ -102,9 +90,6 @@ firmware-setup:
 
 test-micro-ros-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q esp32/host_tests/test_micro_ros_setup.py'
-
-test-tools:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/tools'
 
 test-gazebo-facility-tools:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_gazebo_sim:$${PYTHONPATH:-}" /usr/bin/python3 -m pytest -p no:cacheprovider -q ros2_ws/src/cleany_gazebo_sim/test/test_mission_targets.py'
@@ -188,15 +173,6 @@ build:
 	cd "$(ROS2_WS)" && \
 	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)"
 
-.PHONY: build-scenario-runtime
-build-scenario-runtime:
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	colcon --log-base "$(SCENARIO_LOG_BASE)" build --symlink-install \
-		--build-base "$(SCENARIO_BUILD_BASE)" \
-		--install-base "$(SCENARIO_INSTALL_BASE)" \
-		--packages-up-to cleany_gazebo_sim cleany_mission_manager cleany_control_bridge cleany_base_odometry
-
 build-gazebo: check-gazebo-env
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
@@ -227,8 +203,7 @@ test: build
 	cd "$(ROS2_WS)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
 	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure && \
-	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose && \
-	python3 -m pytest "$(REPO_ROOT)tests/tools"
+	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose
 
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \
@@ -294,36 +269,12 @@ test-gazebo-nav-runtime: build-gazebo
 		src/cleany_gazebo_sim/test/test_runtime_simulation.py \
 		--run-sim-runtime --sim-profile=fortress
 
-test-gazebo-navigation-pipeline: build-gazebo
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 -m pytest -s \
-		src/cleany_gazebo_sim/test/test_runtime_navigation_pipeline.py \
-		--run-sim-runtime --sim-profile=fortress
-
 test-gazebo-evaluation: build-gazebo
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest src/cleany_gazebo_sim/test/evaluation \
 		--run-evaluation-tests
-
-test-gazebo-safety: build-gazebo
-	@test -n "$(SAFETY_MAP)" && test -n "$(SAFETY_OUTPUT)" || \
-		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
-	source "$(ROS_SETUP)" && \
-	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 "$(REPO_ROOT)tools/validation/navigation/run_safety_evaluation.py" \
-		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --mode "$(SAFETY_MODE)" --robot-model "$(ROBOT_MODEL)"
-
-view-gazebo-costmap: build-gazebo
-	@test -n "$(SAFETY_MAP)" && test -n "$(SAFETY_OUTPUT)" || \
-		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
-	source "$(ROS_SETUP)" && \
-	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 "$(REPO_ROOT)tools/validation/navigation/live_costmap.py" \
-		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --robot-model "$(ROBOT_MODEL)" $(if $(filter 1,$(SAFETY_DRIVE)),--drive,)
 
 sim: build
 	source "$(ROS_SETUP)" && \
@@ -437,26 +388,8 @@ run-dev-monitor:
 	ros2 run cleany_dev_monitor dev_monitor --ros-args \
 		--params-file "$(ROS2_WS)/src/cleany_dev_monitor/config/monitor.yaml" $(MONITOR_ROS_ARGS)
 
-.PHONY: test-scenario-tools
-test-scenario-tools:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/tools/scenarios'
-
-# Goal evidence is retained outside pytest temporary directories.
-NAVIGATION_GOAL_OUTPUT ?= $(CLEANY_DATA_ROOT)/runs/navigation-goals-$(shell date +%Y%m%d-%H%M%S)
-NAVIGATION_GOAL_RTF ?= 2
-
-test-gazebo-navigation-goals: build-gazebo
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 -m pytest -s src/cleany_gazebo_sim/test/test_runtime_navigation_goals.py \
-		--run-sim-runtime --sim-profile=fortress \
-		--navigation-output="$(NAVIGATION_GOAL_OUTPUT)" --navigation-rtf="$(NAVIGATION_GOAL_RTF)"
-
-.PHONY: print-install-base print-navigation-install-base print-scenario-install-base
+.PHONY: print-install-base print-navigation-install-base
 print-install-base:
 	@printf '%s\n' '$(INSTALL_BASE)'
 print-navigation-install-base:
 	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
-print-scenario-install-base:
-	@printf '%s\n' '$(SCENARIO_INSTALL_BASE)'

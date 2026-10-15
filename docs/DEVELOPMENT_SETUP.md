@@ -162,7 +162,7 @@ source "$(make -s print-install-base)/setup.bash"
 make test
 ```
 
-Gazebo, Navigation, 시나리오 전용 빌드는 Makefile이 선택하는 별도 출력을 사용합니다. Navigation과 시나리오 overlay는 `make -s print-navigation-install-base`, `make -s print-scenario-install-base`로 조회합니다. 빌드와 조회에는 같은 Make 변수를 전달합니다.
+Gazebo와 Navigation 전용 빌드는 Makefile이 선택하는 출력을 사용합니다. Navigation overlay는 `make -s print-navigation-install-base`로 조회합니다. 빌드와 조회에는 같은 Make 변수를 전달합니다.
 
 다른 ROS 배포판의 build/install/log는 재사용하지 않습니다. 출력은 Makefile의 clean target으로 정리하며, 실행 중인 overlay는 보존합니다.
 

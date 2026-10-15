@@ -88,7 +88,7 @@ flowchart TB
 | Navigation | [config](../ros2_ws/src/cleany_navigation/config) |
 | Grasp predictor | [anygrasp.yaml](../ros2_ws/src/cleany_grasping/config/anygrasp.yaml) |
 | 후보 선택 | [grasp_selection.yaml](../ros2_ws/src/cleany_skill_executor/config/grasp_selection.yaml) |
-| 실물, mock base | [configs/robot](../configs/robot) |
+| 실물, mock base | [Base driver config](../ros2_ws/src/cleany_base_driver/config) |
 
 | 조건 | 연동 규칙 |
 |---|---|

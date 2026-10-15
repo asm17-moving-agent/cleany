@@ -10,10 +10,7 @@
 |---|---|
 | `ros2_ws/src/<package>/test/`, `tests/` | 패키지 기능과 계약의 자동 검사 |
 | `ros2_ws/src/<package>/runtime_test/` | 해당 패키지의 명시 실행 smoke와 runtime 검사 |
-| `tests/tools/` | 저장소 개발 도구와 시나리오 도구의 단위 테스트 |
 | `tests/integration/` | Backend, Mission 등 여러 구성 요소의 연동 검사 |
-| `tools/validation/navigation/` | 주행 실행, 관찰과 보고 |
-| `tools/validation/scenarios/` | 반복 시나리오 준비, 실행, 자극과 판정 |
 
 패키지 내부에도 통합 검사가 있을 수 있습니다. 파일의 책임과 실행 조건으로 위치를 정하며, runtime CLI를 `tests/`에 넣었다고 pytest가 자동 실행하는 것은 아닙니다.
 
@@ -40,14 +37,13 @@ flowchart TB
 
 | 변경 범위 | 명령 | 확인 범위 |
 |---|---|---|
-| 전체 ROS workspace | `make test` | build, colcon package test와 출력 정리 도구 |
+| 전체 ROS workspace | `make test` | build, colcon package test와 결과 집계 |
 | Mission, Gateway core | `make test-mission-core` | ROS 없는 lifecycle, 영속성, 중복, 재전송 |
 | Mission ROS 설치, 연동 | `make test-mission-runtime` | 관련 package build/test |
 | Navigation core, plugin | `make test-navigation` | Python core와 C++ plugin |
 | 합성 Navigation runtime | `make test-navigation-runtime` | ROS lifecycle, goal, 취소, sensor 단절 |
 | Gazebo, Navigation | `make test-gazebo` | package 검사와 C++ plugin; 선택 runtime은 제외 |
 | Gazebo sensor runtime | `make test-gazebo-nav-runtime` | 실제 simulator의 sensor, odom, TF |
-| 저장 지도 목표 회귀 | `make test-gazebo-navigation-goals` | 장거리, chair-gap 주행; 새 출력 디렉터리 |
 | 시설 목표 생성 | `make test-gazebo-facility-tools` | simulator 없는 ID, 여유, 제거 의자 처리 |
 | MuJoCo | `make test-mujoco` | scene loader; 모든 조작 runtime을 뜻하지 않음 |
 | Hand-eye 경계 | `make test-handeye` | description, MuJoCo, MoveIt, calibration |
@@ -55,10 +51,8 @@ flowchart TB
 | ESP32 준비, motor core | `make test-micro-ros-setup test-motor-core` | Python 준비 도구와 장치 없는 C++ |
 | Monitor | `make test-dev-monitor` | 수집, 저장, HTTP와 UI 데이터 경계 |
 | Telemetry | `make test-telemetry` | odom relay |
-| 시나리오 보조 코드 | `make test-scenario-tools` | fixture, process 소유권, 결과 판정 |
-| 저장소 도구 | `make test-tools` | 빌드 정리, 시나리오 준비와 결과 판정 |
 
-Fedora에서는 native ROS target을 Humble Distrobox에서 실행합니다. `test-micro-ros-setup`, `test-motor-core`, `test-tools`, `test-scenario-tools`는 Makefile의 `BASE_EXEC`가 환경을 선택합니다.
+Fedora에서는 native ROS target을 Humble Distrobox에서 실행합니다. `test-micro-ros-setup`, `test-motor-core`는 Makefile의 `BASE_EXEC`가 환경을 선택합니다.
 
 ## 선택 runtime과 UI
 
@@ -81,14 +75,6 @@ cat ros2_ws/src/cleany_dev_monitor/web/package.json
 UI 변경은 실제 served app에서 새로고침, 재연결, 기록 재생까지 확인합니다. Playwright browser가 없으면 configured browser를 설치한 뒤 다시 실행합니다.
 
 Mission Gateway smoke는 `tests/integration/mission_runtime/`, Monitor smoke는 `ros2_ws/src/cleany_dev_monitor/runtime_test/`에 있습니다. 실제 Backend, ROS, Gazebo 입력 조건을 준비한 경우에 명시적으로 실행합니다.
-
-## 반복 시나리오
-
-1. [시나리오 실행법과 판정](../tools/validation/scenarios/README.md)에 따라 단일 smoke를 실행합니다.
-2. Sensor freshness, 정지, 도착, deadline 기준을 유지하며 반복 범위를 늘립니다.
-3. Fixture와 overlay, ROS domain, Gazebo partition, DB, 출력 디렉터리를 실행별로 분리합니다.
-
-성공 판정에는 요청 좌석, terminal 결과, 도착 근거, 최종 정지, 반복 완전성, child cleanup을 함께 사용합니다. 프로세스 exit나 action terminal만으로 성공을 판정하지 않으며, 원래 campaign과 fresh 재시험 결과는 따로 기록합니다.
 
 ## 결과와 증거
 

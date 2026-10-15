@@ -70,8 +70,15 @@ jobs:
           command -v xvfb-run
           git -C "${GITHUB_WORKSPACE}" rev-parse HEAD
 
-      - name: Update rosdep database
-        run: rosdep update --rosdistro humble
+      - name: Register Cleany rosdep rules
+        run: |
+          set -euo pipefail
+          rule_file="${GITHUB_WORKSPACE}/ros2_ws/rosdep/cleany.yaml"
+          test -f "${rule_file}"
+          printf 'yaml file://%s\n' "${rule_file}" \
+            > /etc/ros/rosdep/sources.list.d/10-cleany.list
+          rosdep update --rosdistro humble
+          rosdep resolve --rosdistro humble google-genai
 
       - name: Install workspace dependencies
         run: make deps
