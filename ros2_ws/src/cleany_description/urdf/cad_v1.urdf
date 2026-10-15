@@ -1,11 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot name="cleany">
-  <!--CAD source Cleany.FCStd SHA256 5fe6b78e2eb0ef183e66631eb8aef31503eb8f0b0c5902d9955affd8a7aef82e. Units m, rad. PincOpen v1.0 CC BY-SA 4.0, Pollen Robotics; XLeRobot RGBD gimbal Apache-2.0. Physics masses are estimates.-->
   <link name="base_link">
     <inertial>
-      <origin xyz="-2.45472967853e-05 2.70000000001e-05 0.143608746283" rpy="0 0 0" />
-      <mass value="8.0" />
-      <inertia ixx="0.8057268334966565" iyy="0.7272418102645422" izz="0.29182035128821915" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.0116621270824 2.55710297702e-05 -0.115096742373" rpy="0 0 0" />
+      <mass value="8.465515123837198" />
+      <inertia ixx="0.8788044836714152" iyy="0.7864577447749722" izz="0.5042563054677294" ixy="-4.986855352621137e-07" ixz="0.045798918245397384" iyz="7.4486026740966756e-06" />
     </inertial>
     <visual name="chassis_frame">
       <geometry>
@@ -39,12 +38,388 @@
         <color rgba="0.3 0.48 0.72 1" />
       </material>
     </visual>
+    <collision name="chassis_frame_collision_0">
+      <origin xyz="0.189976334368 -0.239972465217 0.0155030087869" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200001008797 0.0200000739002 0.560000001304" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_1">
+      <origin xyz="0.18997457123 0.240027534779 0.0155030123092" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200001008797 0.0200000739002 0.560000001304" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_2">
+      <origin xyz="-0.190023665629 -0.239973861035 0.0155029876908" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200001008797 0.0200000739002 0.560000001304" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_3">
+      <origin xyz="-0.190025428768 0.240026138961 0.0155029912131" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200001008797 0.0200000739002 0.560000001304" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_4">
+      <origin xyz="-2.36495307751e-05 -0.239973160998 -0.274497001761" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_5">
+      <origin xyz="-2.54126692247e-05 0.240026838998 -0.274496998239" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_6">
+      <origin xyz="-2.36817300397e-05 -0.239973165255 0.305502998239" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_7">
+      <origin xyz="-2.54448684892e-05 0.240026834742 0.305503001761" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_8">
+      <origin xyz="-2.37597269282e-05 -0.209973160999 -0.274497001541" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_9">
+      <origin xyz="-2.53024730716e-05 0.210026838999 -0.274496998459" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_10">
+      <origin xyz="0.189975468899 2.75369089694e-05 -0.274496989452" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200018376572 0.5000000736 0.0200000047238" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_11">
+      <origin xyz="-0.190024531099 2.61410910304e-05 -0.274497010548" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200018376572 0.5000000736 0.0200000047238" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_12">
+      <origin xyz="0.189975436699 2.7532652811e-05 0.305503010548" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200018376572 0.5000000736 0.0200000047238" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_13">
+      <origin xyz="-0.190024563298 2.6136834872e-05 0.305502989452" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200018376572 0.5000000736 0.0200000047238" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_14">
+      <origin xyz="0.0633088022329 2.70716363231e-05 -0.274496996484" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200014703367 0.400000073601 0.02000000399" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_15">
+      <origin xyz="-0.0633578644329 2.66063636767e-05 -0.274497003516" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200014703367 0.400000073601 0.02000000399" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_16">
+      <origin xyz="0.189975462237 2.75360283849e-05 -0.154496989452" rpy="0 0 0" />
+      <geometry>
+        <box size="0.020001690729 0.4600000736 0.0200000044303" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_17">
+      <origin xyz="-2.36561926919e-05 -0.239973161879 -0.154497001761" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_18">
+      <origin xyz="-0.190024537761 2.61402104459e-05 -0.154497010548" rpy="0 0 0" />
+      <geometry>
+        <box size="0.020001690729 0.4600000736 0.0200000044303" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_19">
+      <origin xyz="-2.54193311415e-05 0.240026838118 -0.154496998239" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_20">
+      <origin xyz="-2.45377619167e-05 2.68381194158e-05 -0.154497" rpy="0 0 0" />
+      <geometry>
+        <box size="0.360000074517 0.0200013224931 0.0200000201252" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_21">
+      <origin xyz="-2.36689613661e-05 -0.239973163567 0.0755029982389" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200000942178 0.0200000730196 0.440000001304" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_22">
+      <origin xyz="-2.54320998156e-05 0.24002683643 0.0755030017611" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0200000942178 0.0200000730196 0.440000001304" />
+      </geometry>
+    </collision>
+    <collision name="chassis_frame_collision_23">
+      <origin xyz="-0.0500245632989 2.66510835863e-05 0.305502997224" rpy="0 0 0" />
+      <geometry>
+        <box size="0.020001690729 0.4600000736 0.0200000044303" />
+      </geometry>
+    </collision>
+    <collision name="chassis_mounts_collision_0">
+      <origin xyz="-0.0867589682292 2.64636767852e-05 0.350982371701" rpy="0 0 0" />
+      <geometry>
+        <box size="0.150500459094 0.140000448118 0.0649587618148" />
+      </geometry>
+    </collision>
+    <collision name="chassis_mounts_collision_2">
+      <origin xyz="-0.120024563937 2.63938748399e-05 0.317002993438" rpy="0 0 0" />
+      <geometry>
+        <box size="0.160001836768 0.500000587731 0.00300001255156" />
+      </geometry>
+    </collision>
+    <collision name="chassis_mounts_collision_3">
+      <origin xyz="-0.120023921487 -0.174973606172 0.324802992355" rpy="0 0 0" />
+      <geometry>
+        <box size="0.110000037287 0.110000036805 0.012600006221" />
+      </geometry>
+    </collision>
+    <collision name="chassis_mounts_collision_4">
+      <origin xyz="-0.120025207109 0.175026393826 0.324802994927" rpy="0 0 0" />
+      <geometry>
+        <box size="0.110000037287 0.110000036805 0.0126000062284" />
+      </geometry>
+    </collision>
+    <collision name="pg42_motors_collision_0">
+      <origin xyz="-0.175024710184 0.186376970615 -0.316497000579" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0446002426312 0.154300088356 0.0446000006843" />
+      </geometry>
+    </collision>
+    <collision name="pg42_motors_collision_1">
+      <origin xyz="-0.175024710184 -0.186322970615 -0.316496999421" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0446002426312 0.154300088356 0.0446000006843" />
+      </geometry>
+    </collision>
+    <collision name="pg42_motors_collision_2">
+      <origin xyz="0.174975289816 0.186376970615 -0.316497000579" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0446002426312 0.154300088356 0.0446000006843" />
+      </geometry>
+    </collision>
+    <collision name="pg42_motors_collision_3">
+      <origin xyz="0.174975289816 -0.186322970615 -0.316496999421" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0446002426312 0.154300088356 0.0446000006843" />
+      </geometry>
+    </collision>
+    <collision name="pg42_brackets_collision_0">
+      <origin xyz="-0.175024938913 0.224527086321 -0.310997014554" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0500001219569 0.0510003008229 0.0529999951515" />
+      </geometry>
+    </collision>
+    <collision name="pg42_brackets_collision_1">
+      <origin xyz="-0.175024998981 -0.22447308632 -0.310997014554" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0500000029583 0.0510001949348 0.0529999951515" />
+      </geometry>
+    </collision>
+    <collision name="pg42_brackets_collision_2">
+      <origin xyz="0.174975061087 0.224527086321 -0.310997014554" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0500001219569 0.0510003008229 0.0529999951515" />
+      </geometry>
+    </collision>
+    <collision name="pg42_brackets_collision_3">
+      <origin xyz="0.174975001019 -0.22447308632 -0.310997014554" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0500000029583 0.0510001949348 0.0529999951515" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_00">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_12">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_13">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_14">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_15">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_15.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_16">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_16.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_17">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_17.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_18">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_18.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_19">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_19.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_20">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_20.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_21">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_21.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_22">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_22.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_23">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_23.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_24">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_24.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_25">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_25.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_26">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_26.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_27">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_27.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_28">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_28.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_29">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_29.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_30">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_30.stl" />
+      </geometry>
+    </collision>
+    <collision name="mast_collision_31">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/mast_collision_31.stl" />
+      </geometry>
+    </collision>
   </link>
   <link name="front_left_wheel_link">
     <inertial>
-      <origin xyz="0 0 2.93968455042e-05" rpy="0 0 0" />
-      <mass value="0.38" />
-      <inertia ixx="0.0005926438788740961" iyy="0.0010207940969134241" izz="0.0005928802180393281" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0 2.12547507394e-05 0" rpy="0 0 0" />
+      <mass value=".5" />
+      <inertia ixx="0.00066554032149263" iyy="0.001147760375999409" izz="0.00066554032149263" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
     <visual name="front_left_wheel">
       <geometry>
@@ -54,6 +429,12 @@
         <color rgba="0.13 0.13 0.15 1" />
       </material>
     </visual>
+    <collision name="front_left_wheel_envelope">
+      <origin xyz="0 0 0" rpy="-1.5707963267949 0 0" />
+      <geometry>
+        <cylinder radius=".0635" length=".051" />
+      </geometry>
+    </collision>
   </link>
   <joint name="front_left_wheel_joint" type="continuous">
     <parent link="base_link" />
@@ -64,9 +445,9 @@
   </joint>
   <link name="front_right_wheel_link">
     <inertial>
-      <origin xyz="0 0 2.93968455042e-05" rpy="0 0 0" />
-      <mass value="0.38" />
-      <inertia ixx="0.0005926438788740961" iyy="0.0010207940969134241" izz="0.0005928802180393281" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0 2.12547507394e-05 0" rpy="0 0 0" />
+      <mass value=".5" />
+      <inertia ixx="0.00066554032149263" iyy="0.001147760375999409" izz="0.00066554032149263" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
     <visual name="front_right_wheel">
       <geometry>
@@ -76,6 +457,12 @@
         <color rgba="0.13 0.13 0.15 1" />
       </material>
     </visual>
+    <collision name="front_right_wheel_envelope">
+      <origin xyz="0 0 0" rpy="-1.5707963267949 0 0" />
+      <geometry>
+        <cylinder radius=".0635" length=".051" />
+      </geometry>
+    </collision>
   </link>
   <joint name="front_right_wheel_joint" type="continuous">
     <parent link="base_link" />
@@ -86,9 +473,9 @@
   </joint>
   <link name="rear_left_wheel_link">
     <inertial>
-      <origin xyz="0 0 2.93968455042e-05" rpy="0 0 0" />
-      <mass value="0.38" />
-      <inertia ixx="0.0005926438788740961" iyy="0.0010207940969134241" izz="0.0005928802180393281" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0 2.12547507394e-05 0" rpy="0 0 0" />
+      <mass value=".5" />
+      <inertia ixx="0.00066554032149263" iyy="0.001147760375999409" izz="0.00066554032149263" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
     <visual name="rear_left_wheel">
       <geometry>
@@ -98,6 +485,12 @@
         <color rgba="0.13 0.13 0.15 1" />
       </material>
     </visual>
+    <collision name="rear_left_wheel_envelope">
+      <origin xyz="0 0 0" rpy="-1.5707963267949 0 0" />
+      <geometry>
+        <cylinder radius=".0635" length=".051" />
+      </geometry>
+    </collision>
   </link>
   <joint name="rear_left_wheel_joint" type="continuous">
     <parent link="base_link" />
@@ -108,9 +501,9 @@
   </joint>
   <link name="rear_right_wheel_link">
     <inertial>
-      <origin xyz="0 0 2.93968455042e-05" rpy="0 0 0" />
-      <mass value="0.38" />
-      <inertia ixx="0.0005926438788740961" iyy="0.0010207940969134241" izz="0.0005928802180393281" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0 2.12547507394e-05 0" rpy="0 0 0" />
+      <mass value=".5" />
+      <inertia ixx="0.00066554032149263" iyy="0.001147760375999409" izz="0.00066554032149263" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
     <visual name="rear_right_wheel">
       <geometry>
@@ -120,6 +513,12 @@
         <color rgba="0.13 0.13 0.15 1" />
       </material>
     </visual>
+    <collision name="rear_right_wheel_envelope">
+      <origin xyz="0 0 0" rpy="-1.5707963267949 0 0" />
+      <geometry>
+        <cylinder radius=".0635" length=".051" />
+      </geometry>
+    </collision>
   </link>
   <joint name="rear_right_wheel_joint" type="continuous">
     <parent link="base_link" />
@@ -130,9 +529,9 @@
   </joint>
   <link name="right_base_link">
     <inertial>
-      <origin xyz="0 -0.0251 0.036" rpy="0 0 0" />
-      <mass value="0.15" />
-      <inertia ixx="0.00017014049999999954" iyy="0.00021860444531249948" izz="0.0002591449453125" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-2.97083412568e-05 -0.0211166048815 0.0338498835467" rpy="0 0 0" />
+      <mass value="0.1501740431517099" />
+      <inertia ixx="0.00013491175910649761" iyy="0.00012743100288638672" izz="0.00013217620506709814" ixy="3.705499946751006e-07" ixz="5.618838889029218e-08" iyz="-2.2914168411994638e-06" />
     </inertial>
     <visual name="right_base_printed">
       <geometry>
@@ -150,6 +549,36 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="right_base_printed_collision_0">
+      <origin xyz="-6.93889390391e-18 -0.0275 0.036" rpy="0 0 0" />
+      <geometry>
+        <box size="0.1109250002 0.0870000002 0.0720000002" />
+      </geometry>
+    </collision>
+    <collision name="right_base_printed_collision_1">
+      <origin xyz="0.00147390139661 -0.01929999995 0.0538" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0476478029939 0.0802000001 0.0314000002" />
+      </geometry>
+    </collision>
+    <collision name="right_base_servo_collision_0">
+      <origin xyz="3.03576608296e-17 -0.0327 0.0347500000006" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0247200002 0.0452200002 0.0141000002013" />
+      </geometry>
+    </collision>
+    <collision name="right_base_servo_collision_1">
+      <origin xyz="-5.20417042793e-18 -0.0327 0.04775" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0247234080154 0.0452234080154 0.0139000002" />
+      </geometry>
+    </collision>
+    <collision name="right_base_servo_collision_2">
+      <origin xyz="6.59194920871e-17 -0.0327 0.05855000005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0245000002 0.0450000002 0.0097000001" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_base_link_fixed" type="fixed">
     <parent link="base_link" />
@@ -158,9 +587,9 @@
   </joint>
   <link name="right_shoulder_yaw_link">
     <inertial>
-      <origin xyz="0.00123920281232 0.0573558519539 0.0194" rpy="0 0 0" />
-      <mass value="0.22" />
-      <inertia ixx="0.0002962057395107768" iyy="0.00012792029737945213" izz="0.0002795185702235623" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.000247344122982 0.06782272643 0.0307405095853" rpy="0 0 0" />
+      <mass value="0.10924200458409095" />
+      <inertia ixx="0.00010689824975797867" iyy="2.5796446700344993e-05" izz="0.00010563045636549016" ixy="1.7989301800345642e-07" ixz="-4.389090146397374e-08" iyz="-3.0665226922872216e-06" />
     </inertial>
     <visual name="right_yaw_printed">
       <geometry>
@@ -178,6 +607,48 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="right_yaw_printed_collision_0">
+      <origin xyz="5.37764277553e-17 0.0442 0.0179" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0460000002 0.0842000002 0.0598000002" />
+      </geometry>
+    </collision>
+    <collision name="right_yaw_printed_collision_1">
+      <origin xyz="0.00124022191647 0.0723 0.0317514719126" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0550804440329 0.0280000002 0.0380970563748" />
+      </geometry>
+    </collision>
+    <collision name="right_yaw_printed_collision_2">
+      <origin xyz="0 0.04605 -8.67361737988e-19" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192000002 0.0045000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_yaw_printed_collision_3">
+      <origin xyz="-1.73472347598e-18 0.0135750011856 1.73472347598e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192000002 0.00335000257111 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_yaw_servo_collision_0">
+      <origin xyz="0.0118499999994 0.09 0.0306" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0141000002013 0.0452200002 0.0247200002" />
+      </geometry>
+    </collision>
+    <collision name="right_yaw_servo_collision_1">
+      <origin xyz="-0.00115 0.09 0.0306" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0139000002 0.0452234080154 0.0247234080154" />
+      </geometry>
+    </collision>
+    <collision name="right_yaw_servo_collision_2">
+      <origin xyz="-0.01195000005 0.09 0.0306" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0097000001 0.0450000002 0.0245000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_shoulder_yaw_joint" type="revolute">
     <parent link="right_base_link" />
@@ -188,9 +659,9 @@
   </joint>
   <link name="right_upper_arm_link">
     <inertial>
-      <origin xyz="0.00195 0.0841004695883 0.0129808519539" rpy="0 0 0" />
-      <mass value="0.22" />
-      <inertia ixx="0.0007231334155245809" iyy="0.00012935136279463658" izz="0.0007598560193966111" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-6.73245828305e-05 0.121668540708 0.0071204474328" rpy="0 0 0" />
+      <mass value="0.11360422934603755" />
+      <inertia ixx="0.00042052319553002914" iyy="3.9056614614930646e-05" izz="0.00042171702448825333" ixy="1.4369103751240863e-06" ixz="-7.192973007669469e-08" iyz="-3.3046137475608014e-05" />
     </inertial>
     <visual name="right_upper_printed">
       <geometry>
@@ -216,6 +687,54 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="right_upper_printed_collision_0">
+      <origin xyz="0.00195 0.02649999995 4.99998939821e-11" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0673000002 0.0770000001 0.0243000001" />
+      </geometry>
+    </collision>
+    <collision name="right_upper_printed_collision_1">
+      <origin xyz="4.99999798509e-11 0.146084978236 0.00017500005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0500000001 0.06817 0.0246500001" />
+      </geometry>
+    </collision>
+    <collision name="right_upper_printed_collision_2">
+      <origin xyz="-0.01595 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045000002 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_upper_printed_collision_3">
+      <origin xyz="0.0165249988144 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00335000257111 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_upper_carbon_collision_0">
+      <origin xyz="1.73472347598e-18 0.0884999891179 -9.54097911787e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.018 0.0869999782358 0.018" />
+      </geometry>
+    </collision>
+    <collision name="right_upper_servo_collision_0">
+      <origin xyz="0.0119499999994 0.16257 0.0155" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0141000002013 0.0247200002 0.0452200002" />
+      </geometry>
+    </collision>
+    <collision name="right_upper_servo_collision_1">
+      <origin xyz="-0.00105 0.16257 0.0155" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0139000002 0.0247234080154 0.0452234080154" />
+      </geometry>
+    </collision>
+    <collision name="right_upper_servo_collision_2">
+      <origin xyz="-0.01185000005 0.16257 0.0155" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0097000001 0.0245000002 0.0450000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_shoulder_pitch_joint" type="revolute">
     <parent link="right_shoulder_yaw_link" />
@@ -226,9 +745,9 @@
   </joint>
   <link name="right_lower_arm_link">
     <inertial>
-      <origin xyz="-0.002 -0.00344990505741 0.091518878572" rpy="0 0 0" />
-      <mass value="0.22" />
-      <inertia ixx="0.0008104186854568022" iyy="0.0008614910257041241" izz="0.00010099752641934489" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.000226086530861 -0.00265083387763 0.128225011023" rpy="0 0 0" />
+      <mass value="0.11506178963183422" />
+      <inertia ixx="0.0004211673428257646" iyy="0.0004325926053551804" izz="2.6937808510449877e-05" ixy="-1.1647926848584049e-08" ixz="1.7622235988175728e-06" iyz="1.2901718884495691e-05" />
     </inertial>
     <visual name="right_lower_printed">
       <geometry>
@@ -254,6 +773,60 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="right_lower_printed_collision_0">
+      <origin xyz="-0.00199548274483 -0.00345013036844 0.154699814673" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0563909656897 0.0369002609369 0.0280000002" />
+      </geometry>
+    </collision>
+    <collision name="right_lower_printed_collision_1">
+      <origin xyz="-0.002 0 0.0268480759173" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0644000002 0.0243 0.0776991880167" />
+      </geometry>
+    </collision>
+    <collision name="right_lower_printed_collision_2">
+      <origin xyz="0 -1.73472347598e-18 0.138199814723" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0460000002 0.0243 0.0610000001" />
+      </geometry>
+    </collision>
+    <collision name="right_lower_printed_collision_3">
+      <origin xyz="0.01595 0 1.73472347598e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045000002 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_lower_printed_collision_4">
+      <origin xyz="-0.0165249988144 0 -8.67361737988e-19" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00335000257111 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_lower_carbon_collision_0">
+      <origin xyz="-7.8062556419e-18 -5.20417042793e-18 0.0866987422994" rpy="0 0 0" />
+      <geometry>
+        <box size="0.018 0.018 0.0820021447476" />
+      </geometry>
+    </collision>
+    <collision name="right_lower_servo_collision_0">
+      <origin xyz="-0.0119499999994 -0.0052 0.1724" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0141000002013 0.0247200002 0.0452200002" />
+      </geometry>
+    </collision>
+    <collision name="right_lower_servo_collision_1">
+      <origin xyz="0.00105 -0.0052 0.1724" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0139000002 0.0247234080154 0.0452234080154" />
+      </geometry>
+    </collision>
+    <collision name="right_lower_servo_collision_2">
+      <origin xyz="0.01185000005 -0.0052 0.1724" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0097000001 0.0245000002 0.0450000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_elbow_pitch_joint" type="revolute">
     <parent link="right_upper_arm_link" />
@@ -264,9 +837,9 @@
   </joint>
   <link name="right_wrist_pitch_link">
     <inertial>
-      <origin xyz="-0.00476945523714 -0.0269142872585 -0.00217827154742" rpy="0 0 0" />
-      <mass value="0.22" />
-      <inertia ixx="0.00013434145937293716" iyy="9.77735866909514e-05" izz="0.00018553165865841376" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.0107695492162 -0.0381083491274 -0.000102198879161" rpy="0 0 0" />
+      <mass value="0.07673142399116653" />
+      <inertia ixx="2.1081608830300008e-05" iyy="2.5525196026839164e-05" izz="3.724158189872809e-05" ixy="-4.790731241592625e-06" ixz="6.224177698435907e-08" iyz="2.0291196093968087e-08" />
     </inertial>
     <visual name="right_wrist_printed">
       <geometry>
@@ -284,6 +857,42 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="right_wrist_printed_collision_0">
+      <origin xyz="-0.00405 -0.026914295164 -0.00216938206608" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0623000002 0.0778285905279 0.0356612360678" />
+      </geometry>
+    </collision>
+    <collision name="right_wrist_printed_collision_1">
+      <origin xyz="0.01585 -1.73472347598e-18 -1.73472347598e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045000002 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_wrist_printed_collision_2">
+      <origin xyz="-0.0164249988144 -1.73472347598e-18 1.73472347598e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00335000257111 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_wrist_servo_collision_0">
+      <origin xyz="-0.0140272065665 -0.0308000000006 3.55618312575e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0452200002 0.0141000002013 0.0247200002" />
+      </geometry>
+    </collision>
+    <collision name="right_wrist_servo_collision_1">
+      <origin xyz="-0.0140272065666 -0.0438 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0452234080154 0.0139000002 0.0247234080154" />
+      </geometry>
+    </collision>
+    <collision name="right_wrist_servo_collision_2">
+      <origin xyz="-0.0140272065665 -0.05460000005 7.8062556419e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0450000002 0.0097000001 0.0245000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_wrist_pitch_joint" type="revolute">
     <parent link="right_lower_arm_link" />
@@ -294,9 +903,9 @@
   </joint>
   <link name="right_gripper_frame">
     <inertial>
-      <origin xyz="0.01445 -0.0355544919243 0" rpy="0 0 0" />
+      <origin xyz="0.00982867679472 -0.0376059340461 5.21187858798e-06" rpy="0 0 0" />
       <mass value="0.13" />
-      <inertia ixx="0.00015461861549315728" iyy="0.00013249177500000012" izz="8.74303904931573e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <inertia ixx="9.970437384164296e-05" iyy="8.330121351986433e-05" izz="6.335164101653454e-05" ixy="2.171882593028283e-06" ixz="1.6683865810650645e-08" iyz="2.007716045279039e-07" />
     </inertial>
     <visual name="right_palm">
       <geometry>
@@ -306,6 +915,48 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_palm_collision_0">
+      <origin xyz="-2.60208521397e-18 -0.00225 -3.46944695195e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192000002 0.0045000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="right_palm_collision_1">
+      <origin xyz="-0.000900020274909 -0.0423627829664 -5.0000004137e-11" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0242000407498 0.0574924019645 0.0960000001" />
+      </geometry>
+    </collision>
+    <collision name="right_palm_collision_2">
+      <origin xyz="0.00975 -0.0440772198595 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0195000002 0.0609212757509 0.0960000002" />
+      </geometry>
+    </collision>
+    <collision name="right_palm_collision_3">
+      <origin xyz="0 -0.00855829109205 -1.21430643318e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0240000002 0.0101165823841 0.051" />
+      </geometry>
+    </collision>
+    <collision name="right_palm_collision_4">
+      <origin xyz="0.0348499999994 -0.0365665820841 3.90312782095e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0141000002013 0.0452200002 0.0247200002" />
+      </geometry>
+    </collision>
+    <collision name="right_palm_collision_5">
+      <origin xyz="0.02185 -0.0365665820841 3.46944695195e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0139000002 0.0452234080154 0.0247234080154" />
+      </geometry>
+    </collision>
+    <collision name="right_palm_collision_6">
+      <origin xyz="0.01104999995 -0.0365665820841 8.15320033709e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0097000001 0.0450000002 0.0245000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_wrist_roll_joint" type="revolute">
     <parent link="right_wrist_pitch_link" />
@@ -316,9 +967,9 @@
   </joint>
   <link name="left_base_link">
     <inertial>
-      <origin xyz="0 -0.0251 0.036" rpy="0 0 0" />
-      <mass value="0.15" />
-      <inertia ixx="0.00017014049999999954" iyy="0.00021860444531249948" izz="0.0002591449453125" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-2.97083412568e-05 -0.0211166048815 0.0338498835467" rpy="0 0 0" />
+      <mass value="0.1501740431517099" />
+      <inertia ixx="0.00013491175910649761" iyy="0.00012743100288638672" izz="0.00013217620506709814" ixy="3.705499946751006e-07" ixz="5.618838889029218e-08" iyz="-2.2914168411994638e-06" />
     </inertial>
     <visual name="left_base_printed">
       <geometry>
@@ -336,6 +987,36 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="left_base_printed_collision_0">
+      <origin xyz="-6.93889390391e-18 -0.0275 0.036" rpy="0 0 0" />
+      <geometry>
+        <box size="0.1109250002 0.0870000002 0.0720000002" />
+      </geometry>
+    </collision>
+    <collision name="left_base_printed_collision_1">
+      <origin xyz="0.00147390139661 -0.01929999995 0.0538" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0476478029939 0.0802000001 0.0314000002" />
+      </geometry>
+    </collision>
+    <collision name="left_base_servo_collision_0">
+      <origin xyz="3.03576608296e-17 -0.0327 0.0347500000006" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0247200002 0.0452200002 0.0141000002013" />
+      </geometry>
+    </collision>
+    <collision name="left_base_servo_collision_1">
+      <origin xyz="-5.20417042793e-18 -0.0327 0.04775" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0247234080154 0.0452234080154 0.0139000002" />
+      </geometry>
+    </collision>
+    <collision name="left_base_servo_collision_2">
+      <origin xyz="6.59194920871e-17 -0.0327 0.05855000005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0245000002 0.0450000002 0.0097000001" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_base_link_fixed" type="fixed">
     <parent link="base_link" />
@@ -344,9 +1025,9 @@
   </joint>
   <link name="left_shoulder_yaw_link">
     <inertial>
-      <origin xyz="0.00123920281232 0.0573558519539 0.0194" rpy="0 0 0" />
-      <mass value="0.22" />
-      <inertia ixx="0.0002962057395107768" iyy="0.00012792029737945213" izz="0.0002795185702235623" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.000247344122982 0.06782272643 0.0307405095853" rpy="0 0 0" />
+      <mass value="0.10924200458409095" />
+      <inertia ixx="0.00010689824975797867" iyy="2.5796446700344993e-05" izz="0.00010563045636549016" ixy="1.7989301800345642e-07" ixz="-4.389090146397374e-08" iyz="-3.0665226922872216e-06" />
     </inertial>
     <visual name="left_yaw_printed">
       <geometry>
@@ -364,6 +1045,48 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="left_yaw_printed_collision_0">
+      <origin xyz="5.37764277553e-17 0.0442 0.0179" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0460000002 0.0842000002 0.0598000002" />
+      </geometry>
+    </collision>
+    <collision name="left_yaw_printed_collision_1">
+      <origin xyz="0.00124022191647 0.0723 0.0317514719126" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0550804440329 0.0280000002 0.0380970563748" />
+      </geometry>
+    </collision>
+    <collision name="left_yaw_printed_collision_2">
+      <origin xyz="0 0.04605 -8.67361737988e-19" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192000002 0.0045000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_yaw_printed_collision_3">
+      <origin xyz="-1.73472347598e-18 0.0135750011856 1.73472347598e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192000002 0.00335000257111 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_yaw_servo_collision_0">
+      <origin xyz="0.0118499999994 0.09 0.0306" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0141000002013 0.0452200002 0.0247200002" />
+      </geometry>
+    </collision>
+    <collision name="left_yaw_servo_collision_1">
+      <origin xyz="-0.00115 0.09 0.0306" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0139000002 0.0452234080154 0.0247234080154" />
+      </geometry>
+    </collision>
+    <collision name="left_yaw_servo_collision_2">
+      <origin xyz="-0.01195000005 0.09 0.0306" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0097000001 0.0450000002 0.0245000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_shoulder_yaw_joint" type="revolute">
     <parent link="left_base_link" />
@@ -374,9 +1097,9 @@
   </joint>
   <link name="left_upper_arm_link">
     <inertial>
-      <origin xyz="0.00195 0.0841004695883 0.0129808519539" rpy="0 0 0" />
-      <mass value="0.22" />
-      <inertia ixx="0.0007231334155245809" iyy="0.00012935136279463658" izz="0.0007598560193966111" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-6.73245828305e-05 0.121668540708 0.0071204474328" rpy="0 0 0" />
+      <mass value="0.11360422934603755" />
+      <inertia ixx="0.00042052319553002914" iyy="3.9056614614930646e-05" izz="0.00042171702448825333" ixy="1.4369103751240863e-06" ixz="-7.192973007669469e-08" iyz="-3.3046137475608014e-05" />
     </inertial>
     <visual name="left_upper_printed">
       <geometry>
@@ -402,6 +1125,54 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="left_upper_printed_collision_0">
+      <origin xyz="0.00195 0.02649999995 4.99998939821e-11" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0673000002 0.0770000001 0.0243000001" />
+      </geometry>
+    </collision>
+    <collision name="left_upper_printed_collision_1">
+      <origin xyz="4.99999798509e-11 0.146084978236 0.00017500005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0500000001 0.06817 0.0246500001" />
+      </geometry>
+    </collision>
+    <collision name="left_upper_printed_collision_2">
+      <origin xyz="-0.01595 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045000002 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_upper_printed_collision_3">
+      <origin xyz="0.0165249988144 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00335000257111 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_upper_carbon_collision_0">
+      <origin xyz="1.73472347598e-18 0.0884999891179 -9.54097911787e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.018 0.0869999782358 0.018" />
+      </geometry>
+    </collision>
+    <collision name="left_upper_servo_collision_0">
+      <origin xyz="0.0119499999994 0.16257 0.0155" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0141000002013 0.0247200002 0.0452200002" />
+      </geometry>
+    </collision>
+    <collision name="left_upper_servo_collision_1">
+      <origin xyz="-0.00105 0.16257 0.0155" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0139000002 0.0247234080154 0.0452234080154" />
+      </geometry>
+    </collision>
+    <collision name="left_upper_servo_collision_2">
+      <origin xyz="-0.01185000005 0.16257 0.0155" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0097000001 0.0245000002 0.0450000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_shoulder_pitch_joint" type="revolute">
     <parent link="left_shoulder_yaw_link" />
@@ -412,9 +1183,9 @@
   </joint>
   <link name="left_lower_arm_link">
     <inertial>
-      <origin xyz="-0.002 -0.00344990505741 0.091518878572" rpy="0 0 0" />
-      <mass value="0.22" />
-      <inertia ixx="0.0008104186854568022" iyy="0.0008614910257041241" izz="0.00010099752641934489" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.000226086530861 -0.00265083387763 0.128225011023" rpy="0 0 0" />
+      <mass value="0.11506178963183422" />
+      <inertia ixx="0.0004211673428257646" iyy="0.0004325926053551804" izz="2.6937808510449877e-05" ixy="-1.1647926848584049e-08" ixz="1.7622235988175728e-06" iyz="1.2901718884495691e-05" />
     </inertial>
     <visual name="left_lower_printed">
       <geometry>
@@ -440,6 +1211,60 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="left_lower_printed_collision_0">
+      <origin xyz="-0.00199548274483 -0.00345013036844 0.154699814673" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0563909656897 0.0369002609369 0.0280000002" />
+      </geometry>
+    </collision>
+    <collision name="left_lower_printed_collision_1">
+      <origin xyz="-0.002 0 0.0268480759173" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0644000002 0.0243 0.0776991880167" />
+      </geometry>
+    </collision>
+    <collision name="left_lower_printed_collision_2">
+      <origin xyz="0 -1.73472347598e-18 0.138199814723" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0460000002 0.0243 0.0610000001" />
+      </geometry>
+    </collision>
+    <collision name="left_lower_printed_collision_3">
+      <origin xyz="0.01595 0 1.73472347598e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045000002 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_lower_printed_collision_4">
+      <origin xyz="-0.0165249988144 0 -8.67361737988e-19" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00335000257111 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_lower_carbon_collision_0">
+      <origin xyz="-7.8062556419e-18 -5.20417042793e-18 0.0866987422994" rpy="0 0 0" />
+      <geometry>
+        <box size="0.018 0.018 0.0820021447476" />
+      </geometry>
+    </collision>
+    <collision name="left_lower_servo_collision_0">
+      <origin xyz="-0.0119499999994 -0.0052 0.1724" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0141000002013 0.0247200002 0.0452200002" />
+      </geometry>
+    </collision>
+    <collision name="left_lower_servo_collision_1">
+      <origin xyz="0.00105 -0.0052 0.1724" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0139000002 0.0247234080154 0.0452234080154" />
+      </geometry>
+    </collision>
+    <collision name="left_lower_servo_collision_2">
+      <origin xyz="0.01185000005 -0.0052 0.1724" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0097000001 0.0245000002 0.0450000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_elbow_pitch_joint" type="revolute">
     <parent link="left_upper_arm_link" />
@@ -450,9 +1275,9 @@
   </joint>
   <link name="left_wrist_pitch_link">
     <inertial>
-      <origin xyz="-0.00476945523714 -0.0269142872585 -0.00217827154742" rpy="0 0 0" />
-      <mass value="0.22" />
-      <inertia ixx="0.00013434145937293716" iyy="9.77735866909514e-05" izz="0.00018553165865841376" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.0107695492162 -0.0381083491274 -0.000102198879161" rpy="0 0 0" />
+      <mass value="0.07673142399116653" />
+      <inertia ixx="2.1081608830300008e-05" iyy="2.5525196026839164e-05" izz="3.724158189872809e-05" ixy="-4.790731241592625e-06" ixz="6.224177698435907e-08" iyz="2.0291196093968087e-08" />
     </inertial>
     <visual name="left_wrist_printed">
       <geometry>
@@ -470,6 +1295,42 @@
         <color rgba="0.1 0.12 0.15 1" />
       </material>
     </visual>
+    <collision name="left_wrist_printed_collision_0">
+      <origin xyz="-0.00405 -0.026914295164 -0.00216938206608" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0623000002 0.0778285905279 0.0356612360678" />
+      </geometry>
+    </collision>
+    <collision name="left_wrist_printed_collision_1">
+      <origin xyz="0.01585 -1.73472347598e-18 -1.73472347598e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045000002 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_wrist_printed_collision_2">
+      <origin xyz="-0.0164249988144 -1.73472347598e-18 1.73472347598e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00335000257111 0.0192000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_wrist_servo_collision_0">
+      <origin xyz="-0.0140272065665 -0.0308000000006 3.55618312575e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0452200002 0.0141000002013 0.0247200002" />
+      </geometry>
+    </collision>
+    <collision name="left_wrist_servo_collision_1">
+      <origin xyz="-0.0140272065666 -0.0438 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0452234080154 0.0139000002 0.0247234080154" />
+      </geometry>
+    </collision>
+    <collision name="left_wrist_servo_collision_2">
+      <origin xyz="-0.0140272065665 -0.05460000005 7.8062556419e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0450000002 0.0097000001 0.0245000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_wrist_pitch_joint" type="revolute">
     <parent link="left_lower_arm_link" />
@@ -480,9 +1341,9 @@
   </joint>
   <link name="left_gripper_frame">
     <inertial>
-      <origin xyz="0.01445 -0.0355544919243 0" rpy="0 0 0" />
+      <origin xyz="0.00982867679472 -0.0376059340461 5.21187858798e-06" rpy="0 0 0" />
       <mass value="0.13" />
-      <inertia ixx="0.00015461861549315728" iyy="0.00013249177500000012" izz="8.74303904931573e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <inertia ixx="9.970437384164296e-05" iyy="8.330121351986433e-05" izz="6.335164101653454e-05" ixy="2.171882593028283e-06" ixz="1.6683865810650645e-08" iyz="2.007716045279039e-07" />
     </inertial>
     <visual name="left_palm">
       <geometry>
@@ -492,6 +1353,48 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_palm_collision_0">
+      <origin xyz="-2.60208521397e-18 -0.00225 -3.46944695195e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192000002 0.0045000002 0.0192000002" />
+      </geometry>
+    </collision>
+    <collision name="left_palm_collision_1">
+      <origin xyz="-0.000900020274909 -0.0423627829664 -5.0000004137e-11" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0242000407498 0.0574924019645 0.0960000001" />
+      </geometry>
+    </collision>
+    <collision name="left_palm_collision_2">
+      <origin xyz="0.00975 -0.0440772198595 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0195000002 0.0609212757509 0.0960000002" />
+      </geometry>
+    </collision>
+    <collision name="left_palm_collision_3">
+      <origin xyz="0 -0.00855829109205 -1.21430643318e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0240000002 0.0101165823841 0.051" />
+      </geometry>
+    </collision>
+    <collision name="left_palm_collision_4">
+      <origin xyz="0.0348499999994 -0.0365665820841 3.90312782095e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0141000002013 0.0452200002 0.0247200002" />
+      </geometry>
+    </collision>
+    <collision name="left_palm_collision_5">
+      <origin xyz="0.02185 -0.0365665820841 3.46944695195e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0139000002 0.0452234080154 0.0247234080154" />
+      </geometry>
+    </collision>
+    <collision name="left_palm_collision_6">
+      <origin xyz="0.01104999995 -0.0365665820841 8.15320033709e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0097000001 0.0450000002 0.0245000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_wrist_roll_joint" type="revolute">
     <parent link="left_wrist_pitch_link" />
@@ -502,9 +1405,9 @@
   </joint>
   <link name="right_gripper_cam_link">
     <inertial>
-      <origin xyz="3.47123762144e-06 5.20417042793e-18 0.002975" rpy="0 0 0" />
-      <mass value="0.012" />
-      <inertia ixx="1.149329984061909e-06" iyy="1.1532668666135222e-06" izz="2.044951850675404e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-7.95585726355e-06 -1.08140373939e-06 0.00165477169085" rpy="0 0 0" />
+      <mass value="0.003467308184406045" />
+      <inertia ixx="2.3117379813806424e-07" iyy="2.4003534370048557e-07" izz="4.29676375046634e-07" ixy="3.4021657200551953e-09" ixz="-1.3747700426698593e-10" iyz="-3.5973592129333363e-12" />
     </inertial>
     <visual name="right_cam">
       <geometry>
@@ -514,6 +1417,18 @@
         <color rgba="0.45 0.5 0.55 1" />
       </material>
     </visual>
+    <collision name="right_cam_collision_0">
+      <origin xyz="3.90529679105e-06 5.20417042793e-18 0.000725" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0320078107936 0.0320000002 0.0068500002" />
+      </geometry>
+    </collision>
+    <collision name="right_cam_collision_1">
+      <origin xyz="0 0 0.0064" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192000002 0.0192000002 0.0045000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_gripper_joint" type="revolute">
     <parent link="right_gripper_frame" />
@@ -524,9 +1439,9 @@
   </joint>
   <link name="right_finger_1_internal">
     <inertial>
-      <origin xyz="0.00793239642151 0.00466588388335 -5.20417042793e-18" rpy="0 0 0" />
-      <mass value="0.018" />
-      <inertia ixx="3.2810303016461728e-06" iyy="6.801868531851125e-06" izz="8.354898833497296e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0101863383513 0.00659023606517 -1.43809081829e-11" rpy="0 0 0" />
+      <mass value="0.0036140700056098104" />
+      <inertia ixx="4.843409084830829e-07" iyy="9.567467554613958e-07" izz="1.0625166026195424e-06" ixy="-4.4253490224397103e-07" ixz="1.467220945983683e-14" iyz="-2.3311845409008905e-14" />
     </inertial>
     <visual name="right_finger_1_internal">
       <geometry>
@@ -536,6 +1451,66 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_finger_1_internal_collision_00">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_1_internal_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_11.stl" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_finger_1_internal_joint" type="revolute">
     <parent link="right_gripper_frame" />
@@ -546,9 +1521,9 @@
   </joint>
   <link name="right_finger_1_external">
     <inertial>
-      <origin xyz="0.0173205080757 0.01 -7.3725747729e-18" rpy="0 0 0" />
-      <mass value="0.008" />
-      <inertia ixx="6.023606769648956e-07" iyy="1.3123588604831952e-06" izz="1.8293862041147574e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0173205080757 0.01 -7.0561446979e-18" rpy="0 0 0" />
+      <mass value="0.002110236426275736" />
+      <inertia ixx="1.150118320697848e-07" iyy="2.9435580322493084e-07" izz="3.8698288796507877e-07" ixy="-1.5531643503593995e-07" ixz="-1.1218089016589732e-22" iyz="-5.0619064495549324e-23" />
     </inertial>
     <visual name="right_finger_1_external">
       <geometry>
@@ -558,6 +1533,12 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_finger_1_external_collision_0">
+      <origin xyz="0.0173205080757 0.01 -4.33680868994e-19" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0436410161514 0.029 0.0080000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_finger_1_external_joint" type="revolute">
     <parent link="right_gripper_frame" />
@@ -568,9 +1549,9 @@
   </joint>
   <link name="right_finger_1_distal">
     <inertial>
-      <origin xyz="0.015625 -0.00186835901831 3.71973833705e-07" rpy="0 0 0" />
-      <mass value="0.028" />
-      <inertia ixx="3.4697169071689674e-06" iyy="5.4174984922991266e-06" izz="5.801510081536554e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0153538158474 0.000815381112711 -4.18379937664e-06" rpy="0 0 0" />
+      <mass value="0.00792952677678155" />
+      <inertia ixx="6.926541362247417e-07" iyy="1.179226797129729e-06" izz="1.183218321502959e-06" ixy="-2.2649624681199626e-07" ixz="-3.3302913437158025e-11" iyz="-1.0457906912892396e-10" />
     </inertial>
     <visual name="right_finger_1_distal">
       <geometry>
@@ -580,6 +1561,24 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_finger_1_distal_backing">
+      <origin xyz="0.01562500005 -0.003125 -1.02175212735e-15" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0407500001 0.02625 0.0257151159045" />
+      </geometry>
+    </collision>
+    <collision name="right_fixed_jaw_contact_1">
+      <origin xyz="0.01743735 0.011 -0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0070151 0.002 0.01038399" />
+      </geometry>
+    </collision>
+    <collision name="right_fixed_jaw_contact_2">
+      <origin xyz="0.01743735 0.011 0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0070151 0.002 0.01038399" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_finger_1_distal_joint" type="revolute">
     <parent link="right_finger_1_internal" />
@@ -590,9 +1589,9 @@
   </joint>
   <link name="right_finger_1_driving">
     <inertial>
-      <origin xyz="-1.13408845151e-05 -0.0162515444276 -0.00555" rpy="0 0 0" />
-      <mass value="0.006" />
-      <inertia ixx="9.167687014910539e-07" iyy="1.439226012982423e-07" izz="1.0326013027892961e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.00151112494983 -0.0174228264212 -0.00570081698787" rpy="0 0 0" />
+      <mass value="0.0010740527364630176" />
+      <inertia ixx="1.4592393934722712e-07" iyy="1.630902013004408e-08" izz="1.5777525931640162e-07" ixy="1.5276714192025923e-08" ixz="3.9999257106755985e-12" iyz="-1.3234562639318757e-11" />
     </inertial>
     <visual name="right_finger_1_driving">
       <geometry>
@@ -602,6 +1601,12 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_finger_1_driving_collision_0">
+      <origin xyz="-1.29813049989e-05 -0.0162525771416 -0.00555" rpy="0 0 0" />
+      <geometry>
+        <box size="0.016120476541 0.0425051542832 0.0053000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_finger_1_driving_joint" type="revolute">
     <parent link="right_gripper_cam_link" />
@@ -612,9 +1617,9 @@
   </joint>
   <link name="right_finger_2_internal">
     <inertial>
-      <origin xyz="0.00793239642151 -0.00466588388335 -5.20417042793e-18" rpy="0 0 0" />
-      <mass value="0.018" />
-      <inertia ixx="3.281030301646178e-06" iyy="6.801868531851123e-06" izz="8.354898833497298e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0101863383513 -0.00659023606517 1.43809021307e-11" rpy="0 0 0" />
+      <mass value="0.00361407000560981" />
+      <inertia ixx="4.843409084830822e-07" iyy="9.567467554613955e-07" izz="1.0625166026195403e-06" ixy="4.425349022439713e-07" ixz="-1.4672209198070218e-14" iyz="-2.3311845574410592e-14" />
     </inertial>
     <visual name="right_finger_2_internal">
       <geometry>
@@ -624,6 +1629,66 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_finger_2_internal_collision_00">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="right_finger_2_internal_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_11.stl" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_finger_2_internal_joint" type="revolute">
     <parent link="right_gripper_frame" />
@@ -634,9 +1699,9 @@
   </joint>
   <link name="right_finger_2_external">
     <inertial>
-      <origin xyz="0.0173205080757 -0.01 -8.67361737988e-19" rpy="0 0 0" />
-      <mass value="0.008" />
-      <inertia ixx="6.023606769648963e-07" iyy="1.3123588604831958e-06" izz="1.8293862041147583e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0173205080757 -0.01 -9.54242893389e-19" rpy="0 0 0" />
+      <mass value="0.002110236426275736" />
+      <inertia ixx="1.150118320697833e-07" iyy="2.943558032249306e-07" izz="3.869828879650769e-07" ixy="1.5531643503594056e-07" ixz="2.2967134335765e-22" iyz="-1.4620411548094126e-22" />
     </inertial>
     <visual name="right_finger_2_external">
       <geometry>
@@ -646,6 +1711,12 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_finger_2_external_collision_0">
+      <origin xyz="0.0173205080757 -0.01 -6.93889390391e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0436410161514 0.029 0.0080000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_finger_2_external_joint" type="revolute">
     <parent link="right_gripper_frame" />
@@ -656,9 +1727,9 @@
   </joint>
   <link name="right_finger_2_distal">
     <inertial>
-      <origin xyz="0.015625 0.00186835901831 -3.71973833724e-07" rpy="0 0 0" />
-      <mass value="0.028" />
-      <inertia ixx="3.46971690716897e-06" iyy="5.417498492299126e-06" izz="5.8015100815365555e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0153538158474 -0.000815381112712 4.18379937661e-06" rpy="0 0 0" />
+      <mass value="0.00792952677678155" />
+      <inertia ixx="6.926541362247435e-07" iyy="1.1792267971297256e-06" izz="1.1832183215029568e-06" ixy="2.2649624681199338e-07" ixz="3.330291343741065e-11" iyz="-1.0457906912904518e-10" />
     </inertial>
     <visual name="right_finger_2_distal">
       <geometry>
@@ -668,6 +1739,30 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_finger_2_distal_backing">
+      <origin xyz="0.01562500005 0.003125 1.00267016911e-15" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0407500001 0.02625 0.0257151159045" />
+      </geometry>
+    </collision>
+    <collision name="right_moving_jaw_contact_1">
+      <origin xyz="0.01743735 -0.011 -0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0070151 0.002 0.01038399" />
+      </geometry>
+    </collision>
+    <collision name="right_moving_jaw_contact_2">
+      <origin xyz="0.015683575 -0.011 0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00350755 0.002 0.01038399" />
+      </geometry>
+    </collision>
+    <collision name="right_moving_jaw_contact_3">
+      <origin xyz="0.019191125 -0.011 0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00350755 0.002 0.01038399" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_finger_2_distal_joint" type="revolute">
     <parent link="right_finger_2_internal" />
@@ -678,9 +1773,9 @@
   </joint>
   <link name="right_finger_2_driving">
     <inertial>
-      <origin xyz="-0.000515304940004 0.0162125738817 -0.00555" rpy="0 0 0" />
-      <mass value="0.006" />
-      <inertia ixx="9.138365992373464e-07" iyy="1.5113960133302206e-07" izz="1.0368862005703686e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.00110936634221 0.0174530136491 -0.00570081698787" rpy="0 0 0" />
+      <mass value="0.0010740527364630171" />
+      <inertia ixx="1.4515150499005502e-07" iyy="1.7081454487215126e-08" izz="1.5777525931640072e-07" ixy="1.8245557225639397e-08" ixz="-4.303739710358787e-12" iyz="1.3138907049346017e-11" />
     </inertial>
     <visual name="right_finger_2_driving">
       <geometry>
@@ -690,6 +1785,12 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="right_finger_2_driving_collision_0">
+      <origin xyz="-0.000514785589624 0.0162131654043 -0.00555" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0165609229483 0.0424263308087 0.0053000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_finger_2_driving_joint" type="revolute">
     <parent link="right_gripper_cam_link" />
@@ -700,9 +1801,9 @@
   </joint>
   <link name="left_gripper_cam_link">
     <inertial>
-      <origin xyz="3.47123762144e-06 5.20417042793e-18 0.002975" rpy="0 0 0" />
-      <mass value="0.012" />
-      <inertia ixx="1.149329984061909e-06" iyy="1.1532668666135222e-06" izz="2.044951850675404e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-7.95585726355e-06 -1.08140373939e-06 0.00165477169085" rpy="0 0 0" />
+      <mass value="0.003467308184406045" />
+      <inertia ixx="2.3117379813806424e-07" iyy="2.4003534370048557e-07" izz="4.29676375046634e-07" ixy="3.4021657200551953e-09" ixz="-1.3747700426698593e-10" iyz="-3.5973592129333363e-12" />
     </inertial>
     <visual name="left_cam">
       <geometry>
@@ -712,6 +1813,18 @@
         <color rgba="0.45 0.5 0.55 1" />
       </material>
     </visual>
+    <collision name="left_cam_collision_0">
+      <origin xyz="3.90529679105e-06 5.20417042793e-18 0.000725" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0320078107936 0.0320000002 0.0068500002" />
+      </geometry>
+    </collision>
+    <collision name="left_cam_collision_1">
+      <origin xyz="0 0 0.0064" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192000002 0.0192000002 0.0045000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_gripper_joint" type="revolute">
     <parent link="left_gripper_frame" />
@@ -722,9 +1835,9 @@
   </joint>
   <link name="left_finger_1_internal">
     <inertial>
-      <origin xyz="0.00793239642151 0.00466588388335 -5.20417042793e-18" rpy="0 0 0" />
-      <mass value="0.018" />
-      <inertia ixx="3.2810303016461728e-06" iyy="6.801868531851125e-06" izz="8.354898833497296e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0101863383513 0.00659023606517 -1.43809081829e-11" rpy="0 0 0" />
+      <mass value="0.0036140700056098104" />
+      <inertia ixx="4.843409084830829e-07" iyy="9.567467554613958e-07" izz="1.0625166026195424e-06" ixy="-4.4253490224397103e-07" ixz="1.467220945983683e-14" iyz="-2.3311845409008905e-14" />
     </inertial>
     <visual name="left_finger_1_internal">
       <geometry>
@@ -734,6 +1847,66 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_finger_1_internal_collision_00">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_1_internal_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_1_internal_collision_11.stl" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_finger_1_internal_joint" type="revolute">
     <parent link="left_gripper_frame" />
@@ -744,9 +1917,9 @@
   </joint>
   <link name="left_finger_1_external">
     <inertial>
-      <origin xyz="0.0173205080757 0.01 -7.3725747729e-18" rpy="0 0 0" />
-      <mass value="0.008" />
-      <inertia ixx="6.023606769648956e-07" iyy="1.3123588604831952e-06" izz="1.8293862041147574e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0173205080757 0.01 -7.0561446979e-18" rpy="0 0 0" />
+      <mass value="0.002110236426275736" />
+      <inertia ixx="1.150118320697848e-07" iyy="2.9435580322493084e-07" izz="3.8698288796507877e-07" ixy="-1.5531643503593995e-07" ixz="-1.1218089016589732e-22" iyz="-5.0619064495549324e-23" />
     </inertial>
     <visual name="left_finger_1_external">
       <geometry>
@@ -756,6 +1929,12 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_finger_1_external_collision_0">
+      <origin xyz="0.0173205080757 0.01 -4.33680868994e-19" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0436410161514 0.029 0.0080000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_finger_1_external_joint" type="revolute">
     <parent link="left_gripper_frame" />
@@ -766,9 +1945,9 @@
   </joint>
   <link name="left_finger_1_distal">
     <inertial>
-      <origin xyz="0.015625 -0.00186835901831 3.71973833705e-07" rpy="0 0 0" />
-      <mass value="0.028" />
-      <inertia ixx="3.4697169071689674e-06" iyy="5.4174984922991266e-06" izz="5.801510081536554e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0153538158474 0.000815381112711 -4.18379937664e-06" rpy="0 0 0" />
+      <mass value="0.00792952677678155" />
+      <inertia ixx="6.926541362247417e-07" iyy="1.179226797129729e-06" izz="1.183218321502959e-06" ixy="-2.2649624681199626e-07" ixz="-3.3302913437158025e-11" iyz="-1.0457906912892396e-10" />
     </inertial>
     <visual name="left_finger_1_distal">
       <geometry>
@@ -778,6 +1957,24 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_finger_1_distal_backing">
+      <origin xyz="0.01562500005 -0.003125 -1.02175212735e-15" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0407500001 0.02625 0.0257151159045" />
+      </geometry>
+    </collision>
+    <collision name="left_fixed_jaw_contact_1">
+      <origin xyz="0.01743735 0.011 -0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0070151 0.002 0.01038399" />
+      </geometry>
+    </collision>
+    <collision name="left_fixed_jaw_contact_2">
+      <origin xyz="0.01743735 0.011 0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0070151 0.002 0.01038399" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_finger_1_distal_joint" type="revolute">
     <parent link="left_finger_1_internal" />
@@ -788,9 +1985,9 @@
   </joint>
   <link name="left_finger_1_driving">
     <inertial>
-      <origin xyz="-1.13408845151e-05 -0.0162515444276 -0.00555" rpy="0 0 0" />
-      <mass value="0.006" />
-      <inertia ixx="9.167687014910539e-07" iyy="1.439226012982423e-07" izz="1.0326013027892961e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.00151112494983 -0.0174228264212 -0.00570081698787" rpy="0 0 0" />
+      <mass value="0.0010740527364630176" />
+      <inertia ixx="1.4592393934722712e-07" iyy="1.630902013004408e-08" izz="1.5777525931640162e-07" ixy="1.5276714192025923e-08" ixz="3.9999257106755985e-12" iyz="-1.3234562639318757e-11" />
     </inertial>
     <visual name="left_finger_1_driving">
       <geometry>
@@ -800,6 +1997,12 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_finger_1_driving_collision_0">
+      <origin xyz="-1.29813049989e-05 -0.0162525771416 -0.00555" rpy="0 0 0" />
+      <geometry>
+        <box size="0.016120476541 0.0425051542832 0.0053000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_finger_1_driving_joint" type="revolute">
     <parent link="left_gripper_cam_link" />
@@ -810,9 +2013,9 @@
   </joint>
   <link name="left_finger_2_internal">
     <inertial>
-      <origin xyz="0.00793239642151 -0.00466588388335 -5.20417042793e-18" rpy="0 0 0" />
-      <mass value="0.018" />
-      <inertia ixx="3.281030301646178e-06" iyy="6.801868531851123e-06" izz="8.354898833497298e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0101863383513 -0.00659023606517 1.43809021307e-11" rpy="0 0 0" />
+      <mass value="0.00361407000560981" />
+      <inertia ixx="4.843409084830822e-07" iyy="9.567467554613955e-07" izz="1.0625166026195403e-06" ixy="4.425349022439713e-07" ixz="-1.4672209198070218e-14" iyz="-2.3311845574410592e-14" />
     </inertial>
     <visual name="left_finger_2_internal">
       <geometry>
@@ -822,6 +2025,66 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_finger_2_internal_collision_00">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_00.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_01">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_01.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_02">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_02.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_03">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_03.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_04">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_04.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_05">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_05.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_06">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_06.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_07">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_07.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_08">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_08.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_09">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_09.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_10">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision name="left_finger_2_internal_collision_11">
+      <geometry>
+        <mesh filename="package://cleany_description/meshes/cad_v1/finger_2_internal_collision_11.stl" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_finger_2_internal_joint" type="revolute">
     <parent link="left_gripper_frame" />
@@ -832,9 +2095,9 @@
   </joint>
   <link name="left_finger_2_external">
     <inertial>
-      <origin xyz="0.0173205080757 -0.01 -8.67361737988e-19" rpy="0 0 0" />
-      <mass value="0.008" />
-      <inertia ixx="6.023606769648963e-07" iyy="1.3123588604831958e-06" izz="1.8293862041147583e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0173205080757 -0.01 -9.54242893389e-19" rpy="0 0 0" />
+      <mass value="0.002110236426275736" />
+      <inertia ixx="1.150118320697833e-07" iyy="2.943558032249306e-07" izz="3.869828879650769e-07" ixy="1.5531643503594056e-07" ixz="2.2967134335765e-22" iyz="-1.4620411548094126e-22" />
     </inertial>
     <visual name="left_finger_2_external">
       <geometry>
@@ -844,6 +2107,12 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_finger_2_external_collision_0">
+      <origin xyz="0.0173205080757 -0.01 -6.93889390391e-18" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0436410161514 0.029 0.0080000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_finger_2_external_joint" type="revolute">
     <parent link="left_gripper_frame" />
@@ -854,9 +2123,9 @@
   </joint>
   <link name="left_finger_2_distal">
     <inertial>
-      <origin xyz="0.015625 0.00186835901831 -3.71973833724e-07" rpy="0 0 0" />
-      <mass value="0.028" />
-      <inertia ixx="3.46971690716897e-06" iyy="5.417498492299126e-06" izz="5.8015100815365555e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0153538158474 -0.000815381112712 4.18379937661e-06" rpy="0 0 0" />
+      <mass value="0.00792952677678155" />
+      <inertia ixx="6.926541362247435e-07" iyy="1.1792267971297256e-06" izz="1.1832183215029568e-06" ixy="2.2649624681199338e-07" ixz="3.330291343741065e-11" iyz="-1.0457906912904518e-10" />
     </inertial>
     <visual name="left_finger_2_distal">
       <geometry>
@@ -866,6 +2135,30 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_finger_2_distal_backing">
+      <origin xyz="0.01562500005 0.003125 1.00267016911e-15" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0407500001 0.02625 0.0257151159045" />
+      </geometry>
+    </collision>
+    <collision name="left_moving_jaw_contact_1">
+      <origin xyz="0.01743735 -0.011 -0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0070151 0.002 0.01038399" />
+      </geometry>
+    </collision>
+    <collision name="left_moving_jaw_contact_2">
+      <origin xyz="0.015683575 -0.011 0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00350755 0.002 0.01038399" />
+      </geometry>
+    </collision>
+    <collision name="left_moving_jaw_contact_3">
+      <origin xyz="0.019191125 -0.011 0.006899105" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00350755 0.002 0.01038399" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_finger_2_distal_joint" type="revolute">
     <parent link="left_finger_2_internal" />
@@ -876,9 +2169,9 @@
   </joint>
   <link name="left_finger_2_driving">
     <inertial>
-      <origin xyz="-0.000515304940004 0.0162125738817 -0.00555" rpy="0 0 0" />
-      <mass value="0.006" />
-      <inertia ixx="9.138365992373464e-07" iyy="1.5113960133302206e-07" izz="1.0368862005703686e-06" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.00110936634221 0.0174530136491 -0.00570081698787" rpy="0 0 0" />
+      <mass value="0.0010740527364630171" />
+      <inertia ixx="1.4515150499005502e-07" iyy="1.7081454487215126e-08" izz="1.5777525931640072e-07" ixy="1.8245557225639397e-08" ixz="-4.303739710358787e-12" iyz="1.3138907049346017e-11" />
     </inertial>
     <visual name="left_finger_2_driving">
       <geometry>
@@ -888,6 +2181,12 @@
         <color rgba="0.7 0.49 0.19 1" />
       </material>
     </visual>
+    <collision name="left_finger_2_driving_collision_0">
+      <origin xyz="-0.000514785589624 0.0162131654043 -0.00555" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0165609229483 0.0424263308087 0.0053000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_finger_2_driving_joint" type="revolute">
     <parent link="left_gripper_cam_link" />
@@ -898,9 +2197,9 @@
   </joint>
   <link name="top_base_link">
     <inertial>
-      <origin xyz="-0.120330943693 0.0061 0.56055" rpy="0 0 0" />
-      <mass value="0.09" />
-      <inertia ixx="0.009457209074999997" iyy="0.00986087515530008" izz="0.00046510608030008317" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.204170668147 0.00609920910728 1.09201132981" rpy="0 0 0" />
+      <mass value="0.08199726219358494" />
+      <inertia ixx="2.5259924429303153e-05" iyy="3.973803312390321e-05" izz="2.9533464674242094e-05" ixy="2.445367531034875e-09" ixz="-4.900225762627529e-06" iyz="-4.062514386510559e-11" />
     </inertial>
     <visual name="head_base_plastic">
       <geometry>
@@ -918,6 +2217,30 @@
         <color rgba="0.13 0.15 0.17 1" />
       </material>
     </visual>
+    <collision name="head_base_plastic_collision_0">
+      <origin xyz="-0.209512082443 0.0061 1.09124999995" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0623003904987 0.064 0.0597000001" />
+      </geometry>
+    </collision>
+    <collision name="head_base_servo_collision_0">
+      <origin xyz="-0.200973591152 0.0061 1.08615" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0452200001 0.0247200002 0.0141000002" />
+      </geometry>
+    </collision>
+    <collision name="head_base_servo_collision_1">
+      <origin xyz="-0.200973591202 0.0061 1.10995000005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.045 0.0245 0.0097000001" />
+      </geometry>
+    </collision>
+    <collision name="head_base_servo_collision_2">
+      <origin xyz="-0.200973591202 0.0061 1.09914999995" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0452234080154 0.0247234080154 0.0139000001" />
+      </geometry>
+    </collision>
   </link>
   <joint name="top_base_link_fixed" type="fixed">
     <parent link="base_link" />
@@ -926,9 +2249,9 @@
   </joint>
   <link name="head_pan_link">
     <inertial>
-      <origin xyz="-0.0131 2.74086309204e-16 0.000374999999999" rpy="0 0 0" />
-      <mass value="0.1" />
-      <inertia ixx="6.638802083333476e-05" iyy="7.148802083333476e-05" izz="4.350000000000001e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.0129473641481 -0.000349406990187 0.0165405579454" rpy="0 0 0" />
+      <mass value="0.08198923533545688" />
+      <inertia ixx="2.9474748310205463e-05" iyy="3.73458313873737e-05" izz="2.4308841704523983e-05" ixy="-1.4480581314982175e-07" ixz="5.512664090654822e-06" iyz="1.9004041216953387e-07" />
     </inertial>
     <visual name="head_pan_plastic">
       <geometry>
@@ -954,6 +2277,42 @@
         <color rgba="0.13 0.15 0.17 1" />
       </material>
     </visual>
+    <collision name="head_pan_plastic_collision_0">
+      <origin xyz="-0.0131 2.72351585728e-16 0.0185" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0540000002 0.0480000002 0.0390000002" />
+      </geometry>
+    </collision>
+    <collision name="head_pan_hardware_collision_0">
+      <origin xyz="-6.68735899989e-16 -3.86843335143e-16 -0.00225000005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192 0.0192 0.0045000001" />
+      </geometry>
+    </collision>
+    <collision name="head_pan_hardware_collision_1">
+      <origin xyz="-6.67868538251e-16 5.55978874051e-16 -0.035575" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192 0.0192 0.00335" />
+      </geometry>
+    </collision>
+    <collision name="head_pan_servo_collision_0">
+      <origin xyz="-0.01249000005 0.01154999995 0.023375" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0452200001 0.0141000001 0.0247200002" />
+      </geometry>
+    </collision>
+    <collision name="head_pan_servo_collision_1">
+      <origin xyz="-0.01249 -0.01225000005 0.023375" rpy="0 0 0" />
+      <geometry>
+        <box size="0.045 0.0097000001 0.0245" />
+      </geometry>
+    </collision>
+    <collision name="head_pan_servo_collision_2">
+      <origin xyz="-0.01249 -0.00144999995 0.023375" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0452234080154 0.0139000001 0.0247234080154" />
+      </geometry>
+    </collision>
   </link>
   <joint name="head_pan_joint" type="revolute">
     <parent link="top_base_link" />
@@ -964,9 +2323,9 @@
   </joint>
   <link name="head_tilt_link">
     <inertial>
-      <origin xyz="0.0125250000012 4.64153583145e-05 0.0171980179946" rpy="0 0 0" />
-      <mass value="0.12" />
-      <inertia ixx="0.00011139401092980295" iyy="5.189323303536167e-05" izz="0.00010191282789879737" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.0178340806343 0.000586000970593 0.0272607476443" rpy="0 0 0" />
+      <mass value="0.09733350074312185" />
+      <inertia ixx="6.490829618191402e-05" iyy="2.805779778289544e-05" izz="6.1826754283207e-05" ixy="-1.8882122207337942e-07" ixz="-8.626047923372241e-06" iyz="-1.0352075880505402e-06" />
     </inertial>
     <visual name="head_tilt_plastic">
       <geometry>
@@ -1000,6 +2359,42 @@
         <color rgba="0.73 0.76 0.8 1" />
       </material>
     </visual>
+    <collision name="head_tilt_plastic_collision_0">
+      <origin xyz="-1.26634813746e-16 2.77555756156e-16 0.0144482924106" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0210000002 0.0664000002 0.0498965850212" />
+      </geometry>
+    </collision>
+    <collision name="head_tilt_camera_collision_0">
+      <origin xyz="0.0230249997526 4.75969937561e-05 0.0323960574743" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0250500006995 0.0899045062122 0.0249999590403" />
+      </geometry>
+    </collision>
+    <collision name="head_tilt_hardware_collision_0">
+      <origin xyz="-5.55111512313e-17 -0.01634999995 9.54965273525e-16" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192 0.0045000001 0.0192" />
+      </geometry>
+    </collision>
+    <collision name="head_tilt_hardware_collision_1">
+      <origin xyz="-5.63785129692e-17 0.016975 -1.12757025938e-17" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0192 0.00335 0.0192" />
+      </geometry>
+    </collision>
+    <collision name="head_tilt_hardware_collision_2">
+      <origin xyz="0.00899999999999 0.0225 0.0323960780544" rpy="0 0 0" />
+      <geometry>
+        <box size="0.011 0.0055000002 0.0055000002" />
+      </geometry>
+    </collision>
+    <collision name="head_tilt_hardware_collision_3">
+      <origin xyz="0.00899999999999 -0.0225 0.0323960780544" rpy="0 0 0" />
+      <geometry>
+        <box size="0.011 0.0055000002 0.0055000002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="head_tilt_joint" type="revolute">
     <parent link="head_pan_link" />
@@ -1010,9 +2405,9 @@
   </joint>
   <link name="right_wrist_camera_link">
     <inertial>
-      <origin xyz="9.19403442268e-17 -0.0231930978585 -0.00809399653274" rpy="0 0 0" />
-      <mass value="0.065" />
-      <inertia ixx="6.636974886942173e-05" iyy="3.7821410812811635e-05" izz="5.229622238994344e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="8.15711853647e-17 -0.0158010487469 -0.0171425914387" rpy="0 0 0" />
+      <mass value="0.042546690997913146" />
+      <inertia ixx="3.316703256854803e-05" iyy="1.769753077857888e-05" izz="2.634186232853889e-05" ixy="3.469739051193094e-21" ixz="2.13148493399613e-22" iyz="1.0458358005778335e-05" />
     </inertial>
     <visual name="right_camera_mount">
       <geometry>
@@ -1046,6 +2441,108 @@
         <color rgba="0.7 0.73 0.77 1" />
       </material>
     </visual>
+    <collision name="right_camera_mount_collision_0">
+      <origin xyz="9.19403442268e-17 -0.0231930978585 -0.00689399653274" rpy="0 0 0" />
+      <geometry>
+        <box size="0.04682 0.086386195717 0.0668120069345" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_pcb_collision_0">
+      <origin xyz="7.97972798949e-17 1.11022302463e-16 -0.0235" rpy="0 0 0" />
+      <geometry>
+        <box size="0.038 0.038 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_optics_collision_0">
+      <origin xyz="7.97972798949e-17 1.14491749414e-16 -0.01155" rpy="0 0 0" />
+      <geometry>
+        <box size="0.018 0.018 0.0223" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_optics_collision_1">
+      <origin xyz="8.19656842399e-17 1.15359111152e-16 -0.0002" rpy="0 0 0" />
+      <geometry>
+        <box size="0.01368 0.01368 0.0004" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_optics_collision_2">
+      <origin xyz="7.1557343384e-17 -0.017 -0.0263" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.004 0.004" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_0">
+      <origin xyz="-0.014 -0.014 -0.0317" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0038 0.0038 0.022" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_1">
+      <origin xyz="-0.014 -0.014 -0.0394" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00461880215352 0.004 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_2">
+      <origin xyz="-0.014 0.014 -0.0317" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0038 0.0038 0.022" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_3">
+      <origin xyz="-0.014 0.014 -0.0394" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00461880215352 0.004 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_4">
+      <origin xyz="0.014 -0.014 -0.0317" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0038 0.0038 0.022" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_5">
+      <origin xyz="0.014 -0.014 -0.0394" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00461880215352 0.004 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_6">
+      <origin xyz="0.014 0.014 -0.0317" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0038 0.0038 0.022" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_7">
+      <origin xyz="0.014 0.014 -0.0394" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00461880215352 0.004 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_8">
+      <origin xyz="-0.01891 -0.0579047830903 0.0111113587324" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.00910903164778 0.00991020106509" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_9">
+      <origin xyz="0.01891 -0.0579047830903 0.0111113587324" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.00910903164778 0.00991020106509" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_10">
+      <origin xyz="-0.01891 -0.0464141164436 0.0207531728777" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.00910903164778 0.00991020106509" />
+      </geometry>
+    </collision>
+    <collision name="right_camera_hardware_collision_11">
+      <origin xyz="0.01891 -0.0464141164436 0.0207531728777" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.00910903164778 0.00991020106509" />
+      </geometry>
+    </collision>
   </link>
   <joint name="right_wrist_camera_link_fixed" type="fixed">
     <parent link="right_gripper_frame" />
@@ -1054,9 +2551,9 @@
   </joint>
   <link name="left_wrist_camera_link">
     <inertial>
-      <origin xyz="9.19403442268e-17 -0.0231930978585 -0.00809399653274" rpy="0 0 0" />
-      <mass value="0.065" />
-      <inertia ixx="6.636974886942173e-05" iyy="3.7821410812811635e-05" izz="5.229622238994344e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="8.15711853647e-17 -0.0158010487469 -0.0171425914387" rpy="0 0 0" />
+      <mass value="0.042546690997913146" />
+      <inertia ixx="3.316703256854803e-05" iyy="1.769753077857888e-05" izz="2.634186232853889e-05" ixy="3.469739051193094e-21" ixz="2.13148493399613e-22" iyz="1.0458358005778335e-05" />
     </inertial>
     <visual name="left_camera_mount">
       <geometry>
@@ -1090,6 +2587,108 @@
         <color rgba="0.7 0.73 0.77 1" />
       </material>
     </visual>
+    <collision name="left_camera_mount_collision_0">
+      <origin xyz="9.19403442268e-17 -0.0231930978585 -0.00689399653274" rpy="0 0 0" />
+      <geometry>
+        <box size="0.04682 0.086386195717 0.0668120069345" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_pcb_collision_0">
+      <origin xyz="7.97972798949e-17 1.11022302463e-16 -0.0235" rpy="0 0 0" />
+      <geometry>
+        <box size="0.038 0.038 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_optics_collision_0">
+      <origin xyz="7.97972798949e-17 1.14491749414e-16 -0.01155" rpy="0 0 0" />
+      <geometry>
+        <box size="0.018 0.018 0.0223" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_optics_collision_1">
+      <origin xyz="8.19656842399e-17 1.15359111152e-16 -0.0002" rpy="0 0 0" />
+      <geometry>
+        <box size="0.01368 0.01368 0.0004" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_optics_collision_2">
+      <origin xyz="7.1557343384e-17 -0.017 -0.0263" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.004 0.004" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_0">
+      <origin xyz="-0.014 -0.014 -0.0317" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0038 0.0038 0.022" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_1">
+      <origin xyz="-0.014 -0.014 -0.0394" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00461880215352 0.004 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_2">
+      <origin xyz="-0.014 0.014 -0.0317" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0038 0.0038 0.022" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_3">
+      <origin xyz="-0.014 0.014 -0.0394" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00461880215352 0.004 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_4">
+      <origin xyz="0.014 -0.014 -0.0317" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0038 0.0038 0.022" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_5">
+      <origin xyz="0.014 -0.014 -0.0394" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00461880215352 0.004 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_6">
+      <origin xyz="0.014 0.014 -0.0317" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0038 0.0038 0.022" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_7">
+      <origin xyz="0.014 0.014 -0.0394" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00461880215352 0.004 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_8">
+      <origin xyz="-0.01891 -0.0579047830903 0.0111113587324" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.00910903164778 0.00991020106509" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_9">
+      <origin xyz="0.01891 -0.0579047830903 0.0111113587324" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.00910903164778 0.00991020106509" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_10">
+      <origin xyz="-0.01891 -0.0464141164436 0.0207531728777" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.00910903164778 0.00991020106509" />
+      </geometry>
+    </collision>
+    <collision name="left_camera_hardware_collision_11">
+      <origin xyz="0.01891 -0.0464141164436 0.0207531728777" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.00910903164778 0.00991020106509" />
+      </geometry>
+    </collision>
   </link>
   <joint name="left_wrist_camera_link_fixed" type="fixed">
     <parent link="left_gripper_frame" />
@@ -1098,9 +2697,9 @@
   </joint>
   <link name="lidar_link">
     <inertial>
-      <origin xyz="0 0.015275 -0.0240999999999" rpy="0 0 0" />
-      <mass value="0.25" />
-      <inertia ixx="0.0005476341666673985" iyy="0.0002996341666673984" izz="0.0006646666666666668" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="0.000168134776901 0.013303103613 -0.0348584172471" rpy="0 0 0" />
+      <mass value="0.43242420154660005" />
+      <inertia ixx="0.0007438547262610389" iyy="0.0004053809550130039" izz="0.0008561680598300475" ixy="1.3511113745185534e-06" ixz="-2.092783932358926e-06" iyz="3.1777327661824076e-05" />
     </inertial>
     <visual name="lidarplate">
       <geometry>
@@ -1158,6 +2757,276 @@
         <color rgba="0.189999997616 0.209999993443 0.239999994636 1" />
       </material>
     </visual>
+    <collision name="lidarplate_collision_0">
+      <origin xyz="0 0.015275 -0.049" rpy="0 0 0" />
+      <geometry>
+        <box size="0.1 0.148 0.006" />
+      </geometry>
+    </collision>
+    <collision name="lidarstandoffs_collision_0">
+      <origin xyz="-0.028 -0.028 -0.0335" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0057735026919 0.005 0.025" />
+      </geometry>
+    </collision>
+    <collision name="lidarstandoffs_collision_1">
+      <origin xyz="0.028 -0.028 -0.0335" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0057735026919 0.005 0.025" />
+      </geometry>
+    </collision>
+    <collision name="lidarstandoffs_collision_2">
+      <origin xyz="-0.02 0.042 -0.0335" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0057735026919 0.005 0.025" />
+      </geometry>
+    </collision>
+    <collision name="lidarstandoffs_collision_3">
+      <origin xyz="0.02 0.042 -0.0335" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0057735026919 0.005 0.025" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_0">
+      <origin xyz="-0.04 -0.050725 -0.0512" rpy="0 0 0" />
+      <geometry>
+        <box size="0.004 0.004 0.012" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_1">
+      <origin xyz="-0.04 -0.050725 -0.0432" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.007 0.004" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_2">
+      <origin xyz="-0.04 -0.050725 -0.0456" rpy="0 0 0" />
+      <geometry>
+        <box size="0.009 0.009 0.0008" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_3">
+      <origin xyz="0.04 -0.050725 -0.0512" rpy="0 0 0" />
+      <geometry>
+        <box size="0.004 0.004 0.012" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_4">
+      <origin xyz="0.04 -0.050725 -0.0432" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.007 0.004" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_5">
+      <origin xyz="0.04 -0.050725 -0.0456" rpy="0 0 0" />
+      <geometry>
+        <box size="0.009 0.009 0.0008" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_6">
+      <origin xyz="0 0.075598451065 -0.0512" rpy="0 0 0" />
+      <geometry>
+        <box size="0.004 0.004 0.012" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_7">
+      <origin xyz="0 0.075598451065 -0.0432" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.007 0.004" />
+      </geometry>
+    </collision>
+    <collision name="lidarprofilebolts_collision_8">
+      <origin xyz="0 0.075598451065 -0.0456" rpy="0 0 0" />
+      <geometry>
+        <box size="0.009 0.009 0.0008" />
+      </geometry>
+    </collision>
+    <collision name="lidarlowerbolts_collision_0">
+      <origin xyz="-0.028 -0.028 -0.04875" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0045 0.0125" />
+      </geometry>
+    </collision>
+    <collision name="lidarlowerbolts_collision_1">
+      <origin xyz="-0.028 -0.028 -0.05225" rpy="0 0 0" />
+      <geometry>
+        <box size="0.006 0.006 0.0005" />
+      </geometry>
+    </collision>
+    <collision name="lidarlowerbolts_collision_2">
+      <origin xyz="0.028 -0.028 -0.04875" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0045 0.0125" />
+      </geometry>
+    </collision>
+    <collision name="lidarlowerbolts_collision_3">
+      <origin xyz="0.028 -0.028 -0.05225" rpy="0 0 0" />
+      <geometry>
+        <box size="0.006 0.006 0.0005" />
+      </geometry>
+    </collision>
+    <collision name="lidarlowerbolts_collision_4">
+      <origin xyz="-0.02 0.042 -0.04875" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0045 0.0125" />
+      </geometry>
+    </collision>
+    <collision name="lidarlowerbolts_collision_5">
+      <origin xyz="-0.02 0.042 -0.05225" rpy="0 0 0" />
+      <geometry>
+        <box size="0.006 0.006 0.0005" />
+      </geometry>
+    </collision>
+    <collision name="lidarlowerbolts_collision_6">
+      <origin xyz="0.02 0.042 -0.04875" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0045 0.0045 0.0125" />
+      </geometry>
+    </collision>
+    <collision name="lidarlowerbolts_collision_7">
+      <origin xyz="0.02 0.042 -0.05225" rpy="0 0 0" />
+      <geometry>
+        <box size="0.006 0.006 0.0005" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_housing_collision_0">
+      <origin xyz="2.08166817117e-17 0.0132290529858 -0.0205" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0702806901873 0.0967387961583 0.0130000002" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_mechanism_collision_0">
+      <origin xyz="6.38378239159e-16 -1.17961196366e-16 -0.01205" rpy="0 0 0" />
+      <geometry>
+        <box size="0.07078 0.07078 0.0229000002" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_0">
+      <origin xyz="3.12250225676e-17 0 -0.01849999995" rpy="0 0 0" />
+      <geometry>
+        <box size="0.047 0.047 0.0070000001" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_1">
+      <origin xyz="-0.000124289253817 -6.75431932606e-14 -0.011" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0632514214924 0.0565363606555 0.00100000000074" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_2">
+      <origin xyz="0.0204283037871 -0.0199105304665 -0.00125" rpy="0 0 0" />
+      <geometry>
+        <box size="0.021488884018 0.015256092243 0.0185000002" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_3">
+      <origin xyz="0.0210245766472 0.015934914126 -0.0012499999999" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0249708738134 0.0218584911812 0.0185000002002" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_4">
+      <origin xyz="-1.70002900646e-16 -1.11022302463e-16 -0.00075" rpy="0 0 0" />
+      <geometry>
+        <box size="0.070816933742 0.070816933742 0.0195000002" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_5">
+      <origin xyz="5.00003094484e-11 0.0455 -0.02689999995" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0320000001 0.0320000002 0.0302000001" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_6">
+      <origin xyz="-4.99987898306e-11 0.0455 -0.01325" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0180000001 0.018 0.0055" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_7">
+      <origin xyz="0.00693802876711 0.0171931139721 -1.99926880606e-16" rpy="0 0 0" />
+      <geometry>
+        <box size="0.011718633815 0.0140432412813 0.014" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_8">
+      <origin xyz="-0.0289951824672 -0.000528577046402 -0.01335" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00507572192865 0.00429043626187 0.0067" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_9">
+      <origin xyz="6.31439345256e-16 0.0096375 -0.0125" rpy="0 0 0" />
+      <geometry>
+        <box size="0.07145 0.0907250002 0.00200000000069" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_10">
+      <origin xyz="-2.7582103268e-16 0.0055 -0.0302499999998" rpy="0 0 0" />
+      <geometry>
+        <box size="0.057 0.046 0.00850000000031" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_11">
+      <origin xyz="0.0026471905748 0.02410000005 -0.02935" rpy="0 0 0" />
+      <geometry>
+        <box size="0.01015 0.0042000001 0.0047" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_12">
+      <origin xyz="-0.00870029274619 0.02427 -0.02935" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0088 0.00386 0.0047" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_13">
+      <origin xyz="-0.020661702599 0.02490000005 -0.02935" rpy="0 0 0" />
+      <geometry>
+        <box size="0.003985 0.0042000001 0.0047" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_14">
+      <origin xyz="-0.016676702599 0.02490000005 -0.02935" rpy="0 0 0" />
+      <geometry>
+        <box size="0.003985 0.0042000001 0.0047" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_15">
+      <origin xyz="-0.00589926870896 -0.00679695731188 -0.0095" rpy="0 0 0" />
+      <geometry>
+        <box size="0.004 0.004 0.002" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_16">
+      <origin xyz="-0.00293670334605 0.00850739522165 -0.0095" rpy="0 0 0" />
+      <geometry>
+        <box size="0.004 0.004 0.002" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_17">
+      <origin xyz="0.00883597205501 -0.00171043790977 -0.0095" rpy="0 0 0" />
+      <geometry>
+        <box size="0.004 0.004 0.002" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_18">
+      <origin xyz="0.000236625146817 -0.00108294881761 -0.00050000005" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0215635355394 0.0619372087895 0.0160000001" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_19">
+      <origin xyz="0.00371383568471 -0.0240160040057 -6.07586897461e-16" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0206552341972 0.00893437505142 0.00650000000035" />
+      </geometry>
+    </collision>
+    <collision name="rplidar_components_collision_20">
+      <origin xyz="-0.0117455432465 0.00541940379845 -0.000499999999996" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00632517494757 0.0487866891998 0.015" />
+      </geometry>
+    </collision>
   </link>
   <joint name="lidar_link_fixed" type="fixed">
     <parent link="base_link" />
@@ -1166,9 +3035,9 @@
   </joint>
   <link name="imu_link">
     <inertial>
-      <origin xyz="0 0 -0.0037" rpy="0 0 0" />
-      <mass value="0.035" />
-      <inertia ixx="4.561783333333338e-06" iyy="1.0336783333333336e-05" izz="1.251833333333334e-05" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <origin xyz="-0.000187547361986 1.42359433697e-19 -0.00398135160464" rpy="0 0 0" />
+      <mass value="0.018832047383362863" />
+      <inertia ixx="1.1501701286936402e-06" iyy="4.386461286452233e-06" izz="4.9955451965815134e-06" ixy="7.665278459556406e-22" ixz="-2.5802141763829335e-08" iyz="2.1921475329483186e-23" />
     </inertial>
     <visual name="imumount">
       <geometry>
@@ -1226,6 +3095,90 @@
         <color rgba="0.699999988079 0.72000002861 0.740000009537 1" />
       </material>
     </visual>
+    <collision name="imumount_collision_0">
+      <origin xyz="0 0 -0.0056" rpy="0 0 0" />
+      <geometry>
+        <box size="0.056 0.034 0.008" />
+      </geometry>
+    </collision>
+    <collision name="imupcb_collision_0">
+      <origin xyz="0 0 -0.0008" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0156 0.0203 0.0016" />
+      </geometry>
+    </collision>
+    <collision name="imuheader_collision_0">
+      <origin xyz="0.0053 -1.73472347598e-18 0.0009" rpy="0 0 0" />
+      <geometry>
+        <box size="0.00254 0.02032 0.011" />
+      </geometry>
+    </collision>
+    <collision name="imuchip_collision_0">
+      <origin xyz="0 0 0.00045" rpy="0 0 0" />
+      <geometry>
+        <box size="0.004 0.004 0.0009" />
+      </geometry>
+    </collision>
+    <collision name="imuprofilebolts_collision_0">
+      <origin xyz="0.022 -5.63785129692e-18 -0.0042" rpy="0 0 0" />
+      <geometry>
+        <box size="0.009 0.009 0.0008" />
+      </geometry>
+    </collision>
+    <collision name="imuprofilebolts_collision_1">
+      <origin xyz="0.022 -4.77048955894e-18 -0.0068" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.007 0.014" />
+      </geometry>
+    </collision>
+    <collision name="imuprofilebolts_collision_2">
+      <origin xyz="-0.022 5.63785129692e-18 -0.0042" rpy="0 0 0" />
+      <geometry>
+        <box size="0.009 0.009 0.0008" />
+      </geometry>
+    </collision>
+    <collision name="imuprofilebolts_collision_3">
+      <origin xyz="-0.022 4.77048955894e-18 -0.0068" rpy="0 0 0" />
+      <geometry>
+        <box size="0.007 0.007 0.014" />
+      </geometry>
+    </collision>
+    <collision name="imuboardbolts_collision_0">
+      <origin xyz="-0.0047 -0.00762 0.00025" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0056 0.0056 0.0005" />
+      </geometry>
+    </collision>
+    <collision name="imuboardbolts_collision_1">
+      <origin xyz="-0.0047 -0.00762 -0.0036" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0046 0.0046 0.0118" />
+      </geometry>
+    </collision>
+    <collision name="imuboardbolts_collision_2">
+      <origin xyz="-0.0047 0.00762 0.00025" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0056 0.0056 0.0005" />
+      </geometry>
+    </collision>
+    <collision name="imuboardbolts_collision_3">
+      <origin xyz="-0.0047 0.00762 -0.0036" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0046 0.0046 0.0118" />
+      </geometry>
+    </collision>
+    <collision name="imuboardnuts_collision_0">
+      <origin xyz="-0.0047 -0.00762 -0.0085" rpy="0 0 0" />
+      <geometry>
+        <box size="0.005 0.0057735026919 0.002" />
+      </geometry>
+    </collision>
+    <collision name="imuboardnuts_collision_1">
+      <origin xyz="-0.0047 0.00762 -0.0085" rpy="0 0 0" />
+      <geometry>
+        <box size="0.005 0.0057735026919 0.002" />
+      </geometry>
+    </collision>
   </link>
   <joint name="imu_link_fixed" type="fixed">
     <parent link="base_link" />
