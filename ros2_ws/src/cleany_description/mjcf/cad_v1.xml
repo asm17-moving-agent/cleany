@@ -1,0 +1,273 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="cleany">
+  <compiler angle="radian" meshdir="../meshes/" autolimits="true" />
+  <option timestep=".002" integrator="implicitfast" iterations="100" />
+  <size njmax="6000" nconmax="2000" />
+  <asset>
+    <material name="white" rgba="0.3 0.3 0.3 1" specular="0.1" shininess="0.1" />
+    <material name="grey" rgba="0.5 0.5 0.5 1" specular="0.1" shininess="0.1" />
+    <material name="blue" rgba="0.15 0.25 0.5 1" specular="0.1" shininess="0.1" />
+    <material name="motor" rgba="0.1 0.1 0.1 1" specular="0.1" shininess="0.1" />
+    <material name="carbon" rgba="0.015 0.018 0.02 1" specular="0.3" shininess="0.6" />
+    <material name="wheel_plate" rgba="0.62 0.64 0.68 1" specular="0.35" shininess="0.45" />
+    <material name="wheel_roller" rgba="0.06 0.06 0.07 1" specular="0.05" shininess="0.1" />
+    <mesh name="cad_chassis_frame" file="cad_v1/chassis_frame.stl" />
+    <mesh name="cad_chassis_mounts" file="cad_v1/chassis_mounts.stl" />
+    <mesh name="cad_front_left_wheel" file="cad_v1/front_left_wheel.stl" />
+    <mesh name="cad_front_right_wheel" file="cad_v1/front_right_wheel.stl" />
+    <mesh name="cad_pg42_brackets" file="cad_v1/pg42_brackets.stl" />
+    <mesh name="cad_pg42_motors" file="cad_v1/pg42_motors.stl" />
+    <mesh name="cad_rear_left_wheel" file="cad_v1/rear_left_wheel.stl" />
+    <mesh name="cad_rear_right_wheel" file="cad_v1/rear_right_wheel.stl" />
+  </asset>
+  <default>
+    <geom friction="0.8 0.005 0.0001" solref=".01 1" />
+    <joint damping=".03" armature=".0001" />
+    <default class="wheel">
+      <joint type="hinge" axis="0 0 1" damping="0" actuatorfrcrange="-2.646 2.646" />
+    </default>
+    <default class="pg42_drive">
+      <dcmotor gear="1" nominal="12 28.702929 12.017021" saturation="2.646 0 0" ctrlrange="-10.8 10.8" />
+    </default>
+    <default class="mecanum_roller">
+      <joint type="hinge" axis="0 0 1" limited="false" damping="0.00002" frictionloss="0.0001" armature="0.000001" group="3" />
+      <geom type="capsule" size="0.008 0.015" mass="0.01" material="wheel_roller" group="2" contype="2" conaffinity="1" priority="1" condim="6" friction="1.2 0.002 0.0002" solref="0.003 1" solimp="0.95 0.99 0.001" />
+    </default>
+  </default>
+  <worldbody>
+    <body name="chassis" pos="0 0 .38">
+      <freejoint name="base_free_joint" />
+      <inertial mass="8.0" pos="-2.45472967853e-05 2.70000000001e-05 0.143608746283" fullinertia="0.805726833497 0.727241810265 0.291820351288 0 0 0" />
+      <geom name="chassis_frame_visual" type="mesh" mesh="cad_chassis_frame" rgba="0.65 0.68 0.72 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="chassis_mounts_visual" type="mesh" mesh="cad_chassis_mounts" rgba="0.65 0.48 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="pg42_motors_visual" type="mesh" mesh="cad_pg42_motors" rgba="0.65 0.7 0.75 1" contype="0" conaffinity="0" group="2" density="0" />
+      <geom name="pg42_brackets_visual" type="mesh" mesh="cad_pg42_brackets" rgba="0.3 0.48 0.72 1" contype="0" conaffinity="0" group="2" density="0" />
+      <body name="front_left_wheel" pos="0.174975 0.301927 -0.316497" quat="1 0 0 0">
+        <joint name="front_left_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial mass="0.38" pos="0 0 2.93968455042e-05" fullinertia="0.000592643878874 0.00102079409691 0.000592880218039 0 0 0" />
+        <geom name="front_left_wheel_visual" type="mesh" mesh="cad_front_left_wheel" rgba="0.13 0.13 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="front_left_wheel_link_roller_carrier" quat="0.707106781187 -0.707106781187 0 0">
+          <body name="front_left_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 0.707107">
+            <joint name="front_left_roller_00_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 0.707107">
+            <joint name="front_left_roller_01_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 0.707107">
+            <joint name="front_left_roller_02_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 0.707107">
+            <joint name="front_left_roller_03_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 0.707107">
+            <joint name="front_left_roller_04_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 0.707107">
+            <joint name="front_left_roller_05_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 0.707107">
+            <joint name="front_left_roller_06_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 0.707107">
+            <joint name="front_left_roller_07_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 0.707107">
+            <joint name="front_left_roller_08_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 0.707107">
+            <joint name="front_left_roller_09_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 0.707107">
+            <joint name="front_left_roller_10_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_left_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 0.707107">
+            <joint name="front_left_roller_11_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+        </body>
+      </body>
+      <body name="front_right_wheel" pos="0.174975 -0.301873 -0.316497" quat="1 0 0 0">
+        <joint name="front_right_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial mass="0.38" pos="0 0 2.93968455042e-05" fullinertia="0.000592643878874 0.00102079409691 0.000592880218039 0 0 0" />
+        <geom name="front_right_wheel_visual" type="mesh" mesh="cad_front_right_wheel" rgba="0.13 0.13 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="front_right_wheel_link_roller_carrier" quat="0.707106781187 -0.707106781187 0 0">
+          <body name="front_right_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 -0.707107">
+            <joint name="front_right_roller_00_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 -0.707107">
+            <joint name="front_right_roller_01_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 -0.707107">
+            <joint name="front_right_roller_02_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 -0.707107">
+            <joint name="front_right_roller_03_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 -0.707107">
+            <joint name="front_right_roller_04_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 -0.707107">
+            <joint name="front_right_roller_05_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 -0.707107">
+            <joint name="front_right_roller_06_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 -0.707107">
+            <joint name="front_right_roller_07_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 -0.707107">
+            <joint name="front_right_roller_08_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 -0.707107">
+            <joint name="front_right_roller_09_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 -0.707107">
+            <joint name="front_right_roller_10_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="front_right_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 -0.707107">
+            <joint name="front_right_roller_11_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+        </body>
+      </body>
+      <body name="rear_left_wheel" pos="-0.175025 0.301927 -0.316497" quat="1 0 0 0">
+        <joint name="rear_left_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial mass="0.38" pos="0 0 2.93968455042e-05" fullinertia="0.000592643878874 0.00102079409691 0.000592880218039 0 0 0" />
+        <geom name="rear_left_wheel_visual" type="mesh" mesh="cad_rear_left_wheel" rgba="0.13 0.13 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="rear_left_wheel_link_roller_carrier" quat="0.707106781187 -0.707106781187 0 0">
+          <body name="rear_left_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 -0.707107">
+            <joint name="rear_left_roller_00_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 -0.707107">
+            <joint name="rear_left_roller_01_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 -0.707107">
+            <joint name="rear_left_roller_02_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 -0.707107">
+            <joint name="rear_left_roller_03_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 -0.707107">
+            <joint name="rear_left_roller_04_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 -0.707107">
+            <joint name="rear_left_roller_05_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 -0.707107">
+            <joint name="rear_left_roller_06_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 -0.707107">
+            <joint name="rear_left_roller_07_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 -0.707107">
+            <joint name="rear_left_roller_08_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 -0.707107">
+            <joint name="rear_left_roller_09_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 -0.707107">
+            <joint name="rear_left_roller_10_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_left_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 -0.707107">
+            <joint name="rear_left_roller_11_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+        </body>
+      </body>
+      <body name="rear_right_wheel" pos="-0.175025 -0.301873 -0.316497" quat="1 0 0 0">
+        <joint name="rear_right_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial mass="0.38" pos="0 0 2.93968455042e-05" fullinertia="0.000592643878874 0.00102079409691 0.000592880218039 0 0 0" />
+        <geom name="rear_right_wheel_visual" type="mesh" mesh="cad_rear_right_wheel" rgba="0.13 0.13 0.15 1" contype="0" conaffinity="0" group="2" density="0" />
+        <body name="rear_right_wheel_link_roller_carrier" quat="0.707106781187 -0.707106781187 0 0">
+          <body name="rear_right_roller_00" pos="0.0555 0 0" zaxis="0 0.707107 0.707107">
+            <joint name="rear_right_roller_00_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_01" pos="0.048064 0.02775 0" zaxis="-0.353553 0.612372 0.707107">
+            <joint name="rear_right_roller_01_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_02" pos="0.02775 0.048064 0" zaxis="-0.612372 0.353553 0.707107">
+            <joint name="rear_right_roller_02_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_03" pos="0 0.0555 0" zaxis="-0.707107 0 0.707107">
+            <joint name="rear_right_roller_03_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_04" pos="-0.02775 0.048064 0" zaxis="-0.612372 -0.353553 0.707107">
+            <joint name="rear_right_roller_04_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_05" pos="-0.048064 0.02775 0" zaxis="-0.353553 -0.612372 0.707107">
+            <joint name="rear_right_roller_05_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_06" pos="-0.0555 0 0" zaxis="0 -0.707107 0.707107">
+            <joint name="rear_right_roller_06_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_07" pos="-0.048064 -0.02775 0" zaxis="0.353553 -0.612372 0.707107">
+            <joint name="rear_right_roller_07_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_08" pos="-0.02775 -0.048064 0" zaxis="0.612372 -0.353553 0.707107">
+            <joint name="rear_right_roller_08_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_09" pos="0 -0.0555 0" zaxis="0.707107 0 0.707107">
+            <joint name="rear_right_roller_09_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_10" pos="0.02775 -0.048064 0" zaxis="0.612372 0.353553 0.707107">
+            <joint name="rear_right_roller_10_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+          <body name="rear_right_roller_11" pos="0.048064 -0.02775 0" zaxis="0.353553 0.612372 0.707107">
+            <joint name="rear_right_roller_11_joint" class="mecanum_roller" />
+            <geom class="mecanum_roller" group="3" />
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <dcmotor class="pg42_drive" name="front_left_drive" joint="front_left_wheel_joint" />
+    <dcmotor class="pg42_drive" name="front_right_drive" joint="front_right_wheel_joint" />
+    <dcmotor class="pg42_drive" name="rear_left_drive" joint="rear_left_wheel_joint" />
+    <dcmotor class="pg42_drive" name="rear_right_drive" joint="rear_right_wheel_joint" />
+  </actuator>
+</mujoco>
