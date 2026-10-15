@@ -19,7 +19,6 @@ from stimuli import (
     obstacle_ahead,
     verify_chair_models,
 )
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--root", type=Path, required=True)
 parser.add_argument(
