@@ -95,6 +95,12 @@ self._tf_broadcaster.sendTransform(transform)
 
 촬영 뒤 팔이나 머리가 움직였다면 최신 TF로 예전 이미지의 점을 옮기는 것은 잘못된 조합일 수 있습니다. 영상 시각의 TF가 필요하고, 시뮬레이션에서는 관련 노드가 `/clock`을 사용해야 합니다. 같은 변환을 두 노드가 서로 다른 값으로 발행하는 것도 피해야 합니다.
 
+TF 관계를 출력하면 다음처럼 부모·자식 frame과 발행 노드, 갱신 시각을 한 화면에서 읽을 수 있습니다. 선이 연결되어 있는지만 보지 말고, 각 변환을 누가 발행하는지도 확인합니다.
+
+![map에서 odom과 base_link를 거쳐 LiDAR와 IMU로 이어지는 TF 트리. 각 선에는 발행 노드와 갱신 시각이 표시되어 있다](../assets/media/cartographer-frames.jpg)
+
+*외부 TF 출력 예시 · [Cartographer ROS 데모](https://google-cartographer-ros.readthedocs.io/en/latest/demos.html), The Cartographer Authors, Apache-2.0. 이 예시는 Cartographer가 odom → base_link도 발행하므로 위 Cleany 표의 발행 주체와 다릅니다.*
+
 ## 04.5 TF 오류 추적 실습
 
 먼저 ROS 없이 파일 세 개를 비교하세요. [head_camera.xacro](../../../ros2_ws/src/cleany_description/urdf/head_camera.xacro)의 부모·자식 이름, [base.yaml](../../../ros2_ws/src/cleany_gazebo_sim/config/base.yaml)의 센서 이름, [slam_toolbox.yaml](../../../ros2_ws/src/cleany_navigation/config/slam/slam_toolbox.yaml)의 `map_frame`, `odom_frame`, `base_frame`입니다. 이름을 적고 각 관계의 발행 주체를 표시해 보세요.

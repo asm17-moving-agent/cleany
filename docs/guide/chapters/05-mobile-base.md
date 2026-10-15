@@ -6,6 +6,12 @@
 
 메카넘 바퀴에는 기울어진 롤러가 있습니다. 네 바퀴 회전의 조합으로 전후 이동, 횡이동, 회전을 만듭니다. 그래서 “왼쪽으로 이동하라”는 차체 명령을 바퀴별 속도로 바꾸는 **역기구학**이 필요합니다.
 
+![바퀴 둘레에 비스듬히 장착된 붉은 롤러가 보이는 메카넘 바퀴 사진](../assets/media/mecanum-wheels.jpg)
+
+*외부 부품 사진 · [KillerGardevoir / Wikimedia Commons](https://commons.wikimedia.org/wiki/File:MG_6646.resize.jpg), [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), 원본 그대로 사용. Cleany에 장착된 바퀴 사진은 아닙니다.*
+
+사진에서 붉은 롤러들의 축은 바퀴 회전축과 비스듬합니다. 이 구조가 바퀴별 힘의 방향을 바꾸고, 네 바퀴의 조합으로 횡이동을 가능하게 합니다. 이 움직임을 원하는 속도로 유지하려면 바퀴의 목표와 측정값을 계속 비교해야 합니다.
+
 ```mermaid
 flowchart TD
     C["차체 속도: m/s · rad/s"] --> K["역기구학: 휠 목표 rad/s"]

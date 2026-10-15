@@ -14,6 +14,12 @@
 
 지도는 벽 위치를 보여주지만 로봇이 얼마나 가까이 갈지는 결정하지 않습니다. 주행에서는 로봇 크기와 장애물 여유를 고려하는 **costmap**, 경로 계획기, 속도 제어와 도착 판정이 필요합니다. Nav2는 이런 주행 구성 요소를 제공하는 ROS 2 스택입니다.
 
+실제로 지도가 쌓이는 모습은 아래 Cartographer 데모에서 볼 수 있습니다. 관측 위치가 바뀌면서 보이는 공간이 늘어나고, 아직 관측하지 않은 부분은 회색으로 남습니다. 이 지도 생성 화면에는 목적지 도착 판정이나 Nav2의 주행 결과가 들어 있지 않습니다.
+
+![Cartographer 2D 데모에서 센서 관측이 이동하며 회색 배경 위에 지도 영역이 점차 확장되는 움짤](../assets/media/cartographer-map.gif)
+
+*외부 SLAM 데모 · [Cartographer ROS](https://google-cartographer-ros.readthedocs.io/en/latest/), The Cartographer Authors, Apache-2.0. Cleany의 지도나 측정 결과가 아닙니다.*
+
 ## 06.2 Gazebo 센서 입력과 TF 계약
 
 Cleany의 SLAM 데이터 경로는 아래 순서로 읽을 수 있습니다.

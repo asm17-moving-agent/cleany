@@ -81,6 +81,12 @@ PYTHON
 
 이 순수 core는 `ReachabilityPort`에 요청하고, [moveit_adapter.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/moveit_adapter.py)가 ROS/MoveIt 서비스를 연결합니다. `set_target_contacts()`는 준비 단계와 접촉 단계의 허용 접촉 조건을 바꿉니다. 목표 물체와의 제한된 접촉 허용은 주변 전체의 충돌 검사를 해제한다는 뜻이 아닙니다.
 
+MoveIt에서 계획을 시각화하면 팔의 움직임과 단계별 결과를 함께 볼 수 있습니다. 아래는 MoveIt Task Constructor의 별도 데모로, 오른쪽 단계 목록에서 선택한 구간의 움직임을 왼쪽 RViz 화면으로 확인하는 모습입니다.
+
+![MoveIt Task Constructor에서 pick object와 place object의 하위 단계를 선택하며 로봇 팔의 계획을 RViz로 확인하는 움짤](../assets/media/moveit-stages.gif)
+
+*외부 계획 시각화 · [MoveIt Humble 문서](https://moveit.picknik.ai/humble/doc/examples/moveit_task_constructor/moveit_task_constructor_tutorial.html), Willow Garage / PickNik, BSD-3-Clause. Cleany의 팔 실행 결과가 아니며, 위 selector가 Task Constructor를 사용한다는 뜻도 아닙니다.*
+
 ## 08.5 계획·실행·실패 경계
 
 `select()` 후반의 연속된 실제 발췌입니다. pre-grasp 계획을 통과한 다음에도 grasp 구간 계획이 남습니다.
