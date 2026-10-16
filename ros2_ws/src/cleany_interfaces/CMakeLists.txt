@@ -9,6 +9,22 @@ find_package(shape_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/ComponentHealth.msg"
+  "msg/SafetyStatus.msg"
+  "msg/SystemFault.msg"
+  "msg/SystemCapability.msg"
+  "msg/MissionPermission.msg"
+  "msg/SystemState.msg"
+  "msg/SystemCapabilities.msg"
+  "msg/SystemFaults.msg"
+  "msg/SystemRecovery.msg"
+  "msg/SystemRecoveries.msg"
+  "msg/SystemHeartbeat.msg"
+  "srv/CheckPermission.srv"
+  "srv/RequestFaultReset.srv"
+  "action/StopMission.action"
+  "action/RecoverComponent.action"
+  "action/RequestRecovery.action"
   "msg/DetectedObject2D.msg"
   "msg/DetectedObject2DArray.msg"
   "msg/DetectedObject3D.msg"

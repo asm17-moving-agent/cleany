@@ -1,0 +1,5 @@
+string epoch
+string fault_code
+---
+bool reset
+string reason
