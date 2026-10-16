@@ -39,6 +39,46 @@ git submodule update --init --recursive docs/cleany-docs
 - ROS 패키지 dependency를 추가하면 `package.xml`과 `setup.py`/`setup.cfg`를 함께 갱신한다. 외부 의존성은 공식 rosdep 키를 사용하며, 공식 규칙으로 설치할 수 없는 경우에만 별도 설치 방법을 검토한다.
 - 생성 파일, 대용량 asset, mesh 파일은 명시 요청 없이 재생성하거나 포맷하지 않는다.
 
+### 주석과 Docstring
+
+- Python은 Google-style Docstring, C++은 Doxygen을 사용한다. 코드의 주석과 Docstring은 간결하고 자연스러운 영어로 작성한다.
+- 주석의 양보다 새로운 개발자가 역할, 설계 이유, 인터페이스 계약과 제약사항을 이해하는 데 도움이 되는지를 우선한다. 함수명, 변수명, 타입 힌트와 구현에서 자명한 동작을 반복하지 않는다.
+- 단순한 함수는 Docstring을 생략하고, 설명이 필요하면 한 줄부터 시작한다. 핵심 알고리즘과 Public API는 필요한 단위, 좌표계, 반환 조건, 부작용과 예외를 설명한다. `Args`, `Returns`, `Raises`는 유의미한 추가 정보가 있을 때만 작성한다.
+- ROS 콜백은 중요한 처리 조건과 예외 동작을 짧게 설명하고, Node 클래스에 적은 토픽과 메시지 정보를 반복하지 않는다. 함수 내부 주석은 비직관적인 구현 이유, 불변 조건과 제약사항에만 사용한다.
+- 실제 구현에서 확인한 사실만 작성한다. 설계 의도와 동작을 추측하지 않고 Mock, Simulation과 실제 하드웨어를 구분한다. KB의 아키텍처 설명과 같은 정보를 여러 위치에 중복하지 않는다.
+- 코드의 계약이 바뀌면 관련 주석도 함께 갱신하고, 잘못되거나 오래된 설명은 수정 또는 제거한다. 주석 작업을 이유로 동작, 공개 API, ROS 인터페이스를 바꾸거나 불필요한 리팩토링을 하지 않는다. 발견한 버그와 구조적 문제는 임의로 고치지 않고 별도로 보고한다.
+
+ROS 2 Node 클래스는 역할을 먼저 설명하고, 다음 항목 중 실제로 사용하는 것만 구조화한다.
+
+- `Subscriptions`, `Publishers`: 기본 토픽명, 메시지 타입과 입력 또는 출력의 의미.
+- `Services`, `Actions`: 기본 이름, 타입, Client 또는 Server 역할과 요청의 의미.
+- `TF`: 발행하는 Transform, 관련 좌표계와 다른 노드와의 책임 분리.
+- `QoS`: 통신 호환성에 중요한 설정. 개별 endpoint 설명에 포함해도 된다.
+- `Notes`: 초기화 조건, 예외 동작과 중요한 제약사항.
+
+파라미터로 변경할 수 있는 이름은 기본값임을 표시한다. 아래 예시는 형식 참고용이며, 실제 이름, 타입과 동작은 작성 대상 코드에서 확인한다.
+
+```python
+class WheelOdometryNode(Node):
+    """Estimate planar odometry from cumulative wheel angles.
+
+    Subscriptions:
+        joint_states (sensor_msgs/msg/JointState): All four wheel positions
+            in radians; input_topic default. QoS: sensor_data.
+
+    Publishers:
+        wheel/odom (nav_msgs/msg/Odometry): Pose in odom and velocity in
+            base_link; topic and frame names are parameter defaults.
+
+    TF:
+        Does not broadcast; the odometry relay owns odom -> base_link.
+
+    Notes:
+        The first sample, non-increasing time and velocity-window warm-up
+        produce no message. Invalid wheel values raise a validation error.
+    """
+```
+
 ## 4. 검증 규칙
 
 - 패키지 전용 자동 검사는 해당 패키지 `test/` 또는 `tests/`, 명시 실행 검사는 `runtime_test/`에 둔다. 루트 `tests/tools/`는 저장소 도구의 자동 검사, `tests/integration/`은 패키지를 연결하는 검사에 사용한다. 시나리오 실행, 관찰, 보고 코드는 `tools/validation/`에 두고 자체 단위 테스트와 분리한다.
