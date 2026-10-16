@@ -8,7 +8,6 @@ import pytest
 
 @dataclass(frozen=True)
 class RuntimeTestOptions:
-    profile: str
     sensor_profile: str
     warmup_sec: float
     measure_sec: float
@@ -26,12 +25,6 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         action='store_true',
         default=False,
         help='Run opt-in Gazebo runtime tests.',
-    )
-    group.addoption(
-        '--sim-profile',
-        choices=('fortress', 'harmonic'),
-        default='fortress',
-        help='Gazebo profile used by the runtime test (default: fortress).',
     )
     group.addoption(
         '--sensor-profile',
@@ -78,7 +71,6 @@ def runtime_test_options(request: pytest.FixtureRequest) -> RuntimeTestOptions:
         pytest.skip('pass --run-sim-runtime to run the Gazebo runtime test')
 
     options = RuntimeTestOptions(
-        profile=request.config.getoption('--sim-profile'),
         sensor_profile=request.config.getoption('--sensor-profile'),
         warmup_sec=request.config.getoption('--warmup-sec'),
         measure_sec=request.config.getoption('--measure-sec'),

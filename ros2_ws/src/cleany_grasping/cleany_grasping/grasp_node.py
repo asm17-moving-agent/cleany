@@ -14,7 +14,7 @@ from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
-from sensor_msgs.msg import Image, PointCloud2
+from sensor_msgs.msg import Image, PointCloud2, PointField
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from cleany_grasping.anygrasp_adapter import AnyGraspPredictor, ModelUnavailableError
@@ -102,9 +102,19 @@ def observed_geometry_message(points, target_object, header, snapshot_id, object
 
 
 def point_cloud_from_message(message: PointCloud2) -> PointCloud:
-    fields = {field.name: field.offset for field in message.fields}
-    if not {'x', 'y', 'z', 'rgb'} <= fields.keys() or message.point_step <= 0:
+    descriptors = {field.name: field for field in message.fields}
+    if not {'x', 'y', 'z', 'rgb'} <= descriptors.keys() or message.point_step <= 0:
         raise ValueError('PointCloud2 must contain x, y, z, and rgb fields')
+    for name in ('x', 'y', 'z', 'rgb'):
+        field = descriptors[name]
+        types = (PointField.FLOAT32, PointField.UINT32) if name == 'rgb' else (PointField.FLOAT32,)
+        if (field.count != 1 or field.datatype not in types
+                or field.offset + 4 > message.point_step):
+            raise ValueError('PointCloud2 fields must fit one point with float32 XYZ and packed RGB')
+    if (message.row_step < message.width * message.point_step
+            or len(message.data) < message.height * message.row_step):
+        raise ValueError('PointCloud2 rows or data are truncated')
+    fields = {name: field.offset for name, field in descriptors.items()}
     endian = '>' if message.is_bigendian else '<'
     points, colors = [], []
     payload = bytes(message.data)
@@ -123,6 +133,29 @@ def point_cloud_from_message(message: PointCloud2) -> PointCloud:
 
 
 class GraspNode(Node):
+    """Plan grasp candidates from a supplied observation without moving the robot.
+
+    Services:
+        grasp/plan (cleany_interfaces/srv/PlanGrasp): Server for candidate
+            prediction and filtering; service_name default.
+
+    Publishers:
+        grasp/debug_image (sensor_msgs/msg/Image): Candidate overlay.
+        /grasp/collision_geometry (cleany_interfaces/msg/ObservedObjectGeometry):
+            Optional observed geometry when publish_collision_geometry is enabled.
+            Both topic names are configurable defaults.
+
+    TF:
+        Resolves observation geometry into planning_frame, default base_link.
+
+    QoS:
+        Debug images and optional collision geometry are reliable and transient
+        local, with depths 1 and 16 respectively.
+
+    Notes:
+        Predictor selection and model/license validation occur at startup.
+        Request validation or planning failure is returned as a failed response.
+    """
     def __init__(self, predictor=None, **kwargs) -> None:
         super().__init__('grasp_server', **kwargs)
         self.declare_parameter('service_name', 'grasp/plan')
@@ -475,6 +508,11 @@ class GraspNode(Node):
         )
         if not math.isclose(quaternion_norm, 1.0, abs_tol=1e-4):
             raise ValueError('target OBB quaternion must be normalized')
+        if left.stamp.sec == 0 and left.stamp.nanosec == 0:
+            # TF interprets Time(0) as latest, never as capture at epoch zero.
+            raise ValueError('cloud capture timestamp must be nonzero')
+        if not 0 <= left.stamp.nanosec < 1_000_000_000:
+            raise ValueError('cloud capture timestamp has invalid nanoseconds')
 
     def _planning_transform(self, cloud_message):
         target_frame = str(self.get_parameter('planning_frame').value)

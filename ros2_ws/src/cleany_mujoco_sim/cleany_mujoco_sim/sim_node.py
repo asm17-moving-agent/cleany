@@ -51,6 +51,25 @@ from cleany_mujoco_sim.wheel_speed_controller import (
 
 
 class MujocoSimNode(Node):
+    """Step the standalone MuJoCo model and expose base feedback.
+
+    Subscriptions:
+        ~/joint_cmd (sensor_msgs/msg/JointState): Named joint targets.
+        cmd_vel (geometry_msgs/msg/Twist): Bounded planar base velocity.
+
+    Publishers:
+        joint_states (sensor_msgs/msg/JointState): Simulated joint state.
+        odom (nav_msgs/msg/Odometry): Base pose and velocity.
+        scan (sensor_msgs/msg/LaserScan): Ray-cast range data when scan_enabled.
+
+    TF:
+        Optionally broadcasts odom -> base_link and the static LiDAR mount.
+        odom, base_link and laser are configurable frame defaults.
+
+    Notes:
+        Requires a valid scene_path. Wheel dynamics, command limits and timeout
+        are simulation settings; this node is separate from ros2_control's backend.
+    """
     def __init__(
         self,
         *,

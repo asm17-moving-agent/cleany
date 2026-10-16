@@ -6,6 +6,7 @@ import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.signals import SignalHandlerOptions
 
 from cleany_gazebo_sim.command_limits import (
     ChassisCommand,
@@ -16,6 +17,19 @@ from cleany_gazebo_sim.command_limits import (
 
 
 class GazeboCommandGuard(Node):
+    """Bound planar commands before they reach Gazebo.
+
+    Subscriptions:
+        cmd_vel (geometry_msgs/msg/Twist): Body-frame planar velocity request.
+
+    Publishers:
+        gazebo_cmd_vel (geometry_msgs/msg/Twist): Limited command, or zero on
+            invalid input or command timeout.
+
+    Notes:
+        Unsupported axes are ignored. Command age uses monotonic time, but
+        timeout callbacks run on the node timer and depend on its clock advancing.
+    """
     def __init__(self) -> None:
         super().__init__('gazebo_command_guard')
         self.declare_parameter('max_linear_x', 0.3)
@@ -102,7 +116,9 @@ class GazeboCommandGuard(Node):
 
 
 def main(args: list[str] | None = None) -> None:
-    rclpy.init(args=args)
+    # Let Python interrupt spin before destroying the ROS context. Humble's
+    # asynchronous SIGINT shutdown can race with take_message conversion.
+    rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.SIGTERM)
     node = GazeboCommandGuard()
     try:
         rclpy.spin(node)

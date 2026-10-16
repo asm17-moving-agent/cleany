@@ -21,6 +21,12 @@ struct CameraRates {
   }
 };
 
+/**
+ * @brief Decide whether simulation time permits a new camera sample.
+ * A zero rate disables capture. Equal timestamps do not create another frame;
+ * clock rewind starts a new scheduling epoch.
+ * @throws std::invalid_argument If timing values are non-finite or rate is negative.
+ */
 inline bool camera_is_due(double simulation_time, double last_capture_time,
                           double next_capture_time, double rate_hz) {
   if (!std::isfinite(simulation_time) || !std::isfinite(last_capture_time) ||
@@ -31,8 +37,8 @@ inline bool camera_is_due(double simulation_time, double last_capture_time,
     (simulation_time > last_capture_time && simulation_time + 1e-9 >= next_capture_time));
 }
 
-// Retain the original phase when a frame is late, and skip missed deadlines.
-// Scheduling from capture time makes a nominal 10 Hz camera drift below 10 Hz.
+/// Retain the original phase when a frame is late, and skip missed deadlines.
+/// Scheduling from capture time makes a nominal 10 Hz camera drift below 10 Hz.
 inline double next_camera_deadline(double previous, double captured, double rate_hz) {
   if (!std::isfinite(previous) || !std::isfinite(captured) ||
       !std::isfinite(rate_hz) || rate_hz <= 0) {

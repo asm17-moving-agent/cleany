@@ -60,6 +60,21 @@ class InspectionPipeline:
         cancelled: CancelCallback | None = None,
         capture_transform: RigidTransform | None = None,
     ) -> InspectionOutput:
+        """Detect, segment and reconstruct one RGB-D snapshot.
+
+        Args:
+            capture_transform: Optional source-to-target transform at capture time.
+                If omitted, look it up at snapshot.stamp_ns through the transform port.
+
+        Returns:
+            Objects in target_frame, image-space detections and masks, and the
+            support plane in the snapshot's source frame. No detections yields an
+            empty result with no plane.
+
+        Raises:
+            InspectionFailure: A processing stage fails or cancellation is observed
+                between stages; in-flight port calls are not interrupted.
+        """
         report = progress or (
             lambda _stage, _detected, _objects, _message: None
         )
@@ -171,6 +186,15 @@ class InspectionPipeline:
         progress: ProgressCallback | None = None,
         cancelled: CancelCallback | None = None,
     ) -> InspectionOutput:
+        """Reconstruct one selected detection using its original capture transform.
+
+        All detection boxes are excluded when choosing support-plane pixels.
+        The output uses the same frame conventions as inspect().
+
+        Raises:
+            ValueError: The selection is absent from all_detections.
+            InspectionFailure: Reconstruction, tilt validation or cancellation fails.
+        """
         if selected_detection not in all_detections:
             raise ValueError('Selected detection must belong to the snapshot')
         report = progress or (

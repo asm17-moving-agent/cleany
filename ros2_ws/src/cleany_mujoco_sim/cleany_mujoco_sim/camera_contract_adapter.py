@@ -28,11 +28,24 @@ def _has_nonzero_stamp(message: Image | CameraInfo) -> bool:
 
 
 class CameraContractAdapter(Node):
-    """Expose one deterministic camera contract from the vendor renderer.
+    """Pair renderer image and calibration samples into one camera contract.
 
-    The Humble release renderer owns the source timestamp.  Images and source
-    CameraInfo are paired by that exact timestamp before either public message
-    is emitted, so the adapter never invents or wall-times a sample.
+    Subscriptions:
+        /cleany/internal/mujoco/left_wrist_camera/image_raw (sensor_msgs/msg/Image)
+        /cleany/internal/mujoco/left_wrist_camera/camera_info (sensor_msgs/msg/CameraInfo):
+            Renderer samples, paired by exact timestamp.
+
+    Publishers:
+        /left_wrist_camera/image_raw (sensor_msgs/msg/Image)
+        /left_wrist_camera/camera_info (sensor_msgs/msg/CameraInfo): Validated pair
+            with the original capture stamp and contracted optical frame.
+
+    QoS:
+        All camera endpoints use sensor_data.
+
+    Notes:
+        Names above come from the default camera_config and can change with it.
+        Incomplete or invalid pairs are withheld; the adapter does not synthesize time.
     """
 
     _MAX_PENDING_SAMPLES = 12

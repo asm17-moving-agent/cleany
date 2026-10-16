@@ -8,7 +8,7 @@ from cleany_gazebo_sim.world.layout import load_study_cafe_layout
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-ROBOT_WORLD = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf'
+ROBOT_WORLD = PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf'
 FORTRESS_ROBOT_WORLD = (
     PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf'
 )
@@ -117,7 +117,6 @@ def test_study_cafe_can_materialize_ogre_sensor_renderer(
     root = ElementTree.parse(generated).getroot()
     sensor_plugin_names = {
         'ignition::gazebo::systems::Sensors',
-        'gz::sim::systems::Sensors',
     }
     sensor_plugins = [
         plugin

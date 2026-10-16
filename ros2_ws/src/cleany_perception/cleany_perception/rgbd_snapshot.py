@@ -33,6 +33,13 @@ def stamp_nanoseconds(message: Any) -> int:
 
 
 class RgbdSnapshotBuffer:
+    """Pair color, depth and both calibrations at exactly one timestamp.
+
+    Condition-protected callbacks retain at most maximum_pending_stamps partial
+    bundles. A completed bundle replaces the previous one; older or equal
+    stamps are then ignored. Message objects are retained without copying, so
+    producers and consumers must not mutate them after insertion.
+    """
     _KINDS = ('color', 'color_info', 'depth', 'depth_info')
 
     def __init__(self, maximum_pending_stamps: int = 8) -> None:
@@ -67,6 +74,15 @@ class RgbdSnapshotBuffer:
         timeout_seconds: float,
         cancelled: Callable[[], bool] | None = None,
     ) -> SynchronizedRgbdMessages:
+        """Wait for a completed bundle newer than the caller's sequence cursor.
+
+        The timeout uses monotonic wall time, independent of the ROS clock.
+        Cancellation is checked while waiting, at most 50 ms apart.
+
+        Raises:
+            ValueError: The timeout is nonpositive.
+            InspectionFailure: Waiting times out or cancellation is observed.
+        """
         if timeout_seconds <= 0.0:
             raise ValueError('RGB-D timeout must be positive')
         is_cancelled = cancelled or (lambda: False)
@@ -124,6 +140,22 @@ def snapshot_from_messages(
     messages: SynchronizedRgbdMessages,
     depth_16u_scale_m: float = 0.001,
 ) -> RgbdSnapshot:
+    """Decode an already paired, aligned RGB-D capture.
+
+    Images must share dimensions, optical frame and matching intrinsics;
+    RgbdSnapshotBuffer owns timestamp pairing before this conversion.
+
+    Args:
+        depth_16u_scale_m: Metres per stored depth unit for 16UC1 images.
+            32FC1 depth is already in metres.
+
+    Returns:
+        RGB pixels, metric depth and intrinsics in the capture's source frame,
+        retaining its timestamp in nanoseconds.
+
+    Raises:
+        InspectionFailure: Encoding, calibration or alignment is invalid.
+    """
     try:
         rgb = _rgb_array(messages.color)
         depth_m = _depth_array(messages.depth, depth_16u_scale_m)

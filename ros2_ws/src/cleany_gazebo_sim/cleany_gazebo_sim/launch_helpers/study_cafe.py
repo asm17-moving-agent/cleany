@@ -1,4 +1,4 @@
-"""Launch construction for Fortress and Harmonic study-cafe worlds."""
+"""Launch construction for Fortress study-cafe and facility worlds."""
 
 from pathlib import Path
 
@@ -10,10 +10,12 @@ from launch.actions import (
     OpaqueFunction,
     SetEnvironmentVariable,
 )
+from launch.conditions import IfCondition
+from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EnvironmentVariable, LaunchConfiguration
 
-from cleany_gazebo_sim.gazebo_slam_experiment import (
+from cleany_gazebo_sim.sensor_mounts import (
     load_mount_profiles,
     write_sensor_tf_config,
 )
@@ -22,6 +24,8 @@ from cleany_gazebo_sim.launch_helpers.sensor_profile import (
     declare_sensor_profile_argument,
 )
 from cleany_gazebo_sim.world.generator import materialize_study_cafe_world
+from cleany_gazebo_sim.world.facility_generator import materialize_facility_world
+from cleany_gazebo_sim.world.facility_layout import load_facility_layout
 
 
 def _optional_spawn_pose(value: str) -> tuple[float, ...] | None:
@@ -40,15 +44,9 @@ def _optional_spawn_pose(value: str) -> tuple[float, ...] | None:
     return pose
 
 
-_BACKEND_LAUNCH = {
-    'fortress': 'gazebo_fortress.launch.py',
-    'harmonic': 'gazebo_harmonic.launch.py',
-}
-
-
 def _launch_simulation(
-    context: LaunchContext, *, package_share: Path, simulator: str
-) -> list[IncludeLaunchDescription]:
+    context: LaunchContext, *, package_share: Path, facility: bool = False
+) -> list:
     profiles_path = Path(
         LaunchConfiguration('lidar_profiles_config').perform(context)
     )
@@ -68,8 +66,18 @@ def _launch_simulation(
     if profile.transform.rotation_xyzw != (0.0, 0.0, 0.0, 1.0):
         raise ValueError('study-cafe LiDAR profiles must be level mounts')
 
-    world = materialize_study_cafe_world(
-        package_share / 'worlds' / f'cleany_mecanum_{simulator}.sdf',
+    generator = materialize_facility_world if facility else materialize_study_cafe_world
+    extra = {
+        'facility_layout_path': Path(LaunchConfiguration('facility_layout_config').perform(context))
+    } if facility else {}
+    output = LaunchConfiguration('world_output').perform(context)
+    world = generator(
+        package_share / 'worlds' / 'cleany_mecanum_fortress.sdf',
+        target_path=Path(output) if output else None,
+        robot_model=LaunchConfiguration('robot_model').perform(context),
+        chair_model=LaunchConfiguration('chair_model').perform(context),
+        chair_config_path=Path(LaunchConfiguration('chair_config').perform(context)),
+        **extra,
         max_step_size=float(
             LaunchConfiguration('physics_max_step_size').perform(context)
         ),
@@ -95,7 +103,7 @@ def _launch_simulation(
     write_sensor_tf_config(profile, sensor_config)
     simulation = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            str(package_share / 'launch' / _BACKEND_LAUNCH[simulator])
+            str(package_share / 'launch' / 'gazebo_fortress.launch.py')
         ),
         launch_arguments={
             'world': str(world),
@@ -112,29 +120,32 @@ def _launch_simulation(
                 'odometry_error_config'
             ),
             'odometry_source': LaunchConfiguration('odometry_source'),
-            **(
-                {
-                    'gui_render_engine': LaunchConfiguration(
-                        'gui_render_engine'
-                    ),
-                    'server_render_engine': LaunchConfiguration(
-                        'server_render_engine'
-                    ),
-                }
-                if simulator == 'fortress'
-                else {}
-            ),
+            'headless_rendering': LaunchConfiguration('headless_rendering'),
+            'server_gallium_thread': LaunchConfiguration('server_gallium_thread'),
+            'gui_render_engine': LaunchConfiguration('gui_render_engine'),
+            'server_render_engine': LaunchConfiguration('server_render_engine'),
         }.items(),
     )
-    return [simulation]
+    actions = [simulation]
+    if facility:
+        layout = load_facility_layout(extra['facility_layout_path'])
+        actions.append(Node(
+            package='cleany_gazebo_sim',
+            executable='ground_truth_route_follower',
+            name='ground_truth_route_follower',
+            condition=IfCondition(LaunchConfiguration('run_route')),
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                **layout.raw['route_control'],
+                'waypoints_xy': [float(v) for point in layout.raw['route_xy'] for v in point],
+            }],
+            output='screen',
+        ))
+    return actions
 
 
-def study_cafe_launch_description(
-    simulator: str = 'fortress',
-) -> LaunchDescription:
-    """Build a profile-specific study-cafe scenario launch description."""
-    if simulator not in _BACKEND_LAUNCH:
-        raise ValueError(f'unsupported study-cafe simulator: {simulator!r}')
+def study_cafe_launch_description(*, facility: bool = False) -> LaunchDescription:
+    """Build a Fortress study-cafe or full-facility launch description."""
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
     odometry_share = Path(
         get_package_share_directory('cleany_base_odometry')
@@ -231,7 +242,7 @@ def study_cafe_launch_description(
         ),
     )
     physics_step_arg = DeclareLaunchArgument(
-        'physics_max_step_size', default_value='0.002'
+        'physics_max_step_size', default_value='0.001' if facility else '0.002'
     )
     real_time_factor_arg = DeclareLaunchArgument(
         'physics_real_time_factor', default_value='1.0'
@@ -239,12 +250,20 @@ def study_cafe_launch_description(
     sensor_profile_arg = declare_sensor_profile_argument()
     simulation = OpaqueFunction(
         function=_launch_simulation,
-        kwargs={'package_share': package_share, 'simulator': simulator},
+        kwargs={'package_share': package_share, 'facility': facility},
     )
 
     return LaunchDescription(
         [
             headless_arg,
+            DeclareLaunchArgument('headless_rendering', default_value='false', choices=['true', 'false']),
+            DeclareLaunchArgument('server_gallium_thread', default_value=EnvironmentVariable('GALLIUM_THREAD', default_value='0')),
+            DeclareLaunchArgument('robot_model', default_value='cad_frame' if facility else 'legacy', choices=['legacy', 'cad_frame']),
+            DeclareLaunchArgument('chair_model', default_value='roly' if facility else 'legacy', choices=['legacy', 'roly']),
+            DeclareLaunchArgument('chair_config', default_value=str(package_share / 'config/furniture/roly_p1g210m.yaml')),
+            DeclareLaunchArgument('world_output', default_value='/tmp/cleany_facility_18f/world.sdf' if facility else ''),
+            DeclareLaunchArgument('facility_layout_config', default_value=str(package_share / 'config/facility_18f/facility_layout.yaml')),
+            DeclareLaunchArgument('run_route', default_value='false', choices=['true', 'false']),
             use_sim_time_arg,
             gui_render_engine_arg,
             server_render_engine_arg,
