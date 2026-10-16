@@ -18,7 +18,7 @@ setup(
         (f"share/{name}/config", ["config/monitor.yaml"]),
         *assets,
     ],
-    install_requires=["setuptools", "aiohttp>=3.8,<4", "Pillow>=9", "psutil>=5.9"],
+    install_requires=["setuptools", "cleany_logger>=0.1.0", "aiohttp>=3.8,<4", "Pillow>=9", "psutil>=5.9"],
     zip_safe=True,
     maintainer="Cleany Team",
     maintainer_email="team@example.com",

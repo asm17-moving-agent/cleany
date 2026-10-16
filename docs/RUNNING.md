@@ -149,9 +149,60 @@ make run-dev-monitor
 
 브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](DEVELOPMENT_SETUP.md)을 따릅니다.
 
-입력과 기록은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 설정합니다. 기록 DB, 재생, stale 표시의 의미는 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)에 있습니다.
+실시간 입력과 logger 연결은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서
+설정합니다. `make build-dev-monitor`는 logger도 빌드하지만 Monitor 실행은 logger를
+자동 시작하지 않습니다. 기록은 아래 절차로 별도 실행합니다. 웹 자산 갱신 후에는
+`make build-dev-monitor-ros`로 설치 자산도 갱신합니다.
 
-웹 자산을 다시 빌드하면 `make build-dev-monitor-ros`로 설치 자산도 갱신합니다. Node.js 22 이상과 pnpm 11을 사용합니다. 기록 위치는 `MONITOR_ROS_ARGS='-p state_directory:=/absolute/path'`로 지정할 수 있습니다.
+### 독립 Logger
+
+1. 웹 없이 logger만 빌드하려면 `make build-logger`를 실행합니다.
+2. 빌드 overlay를 source한 별도 터미널에서 logger를 시작합니다.
+   CLI에서 토픽을 먼저 설정하려면 녹화 대기 상태로 실행합니다.
+
+   ```bash
+   ros2 launch cleany_logger logger.launch.py record_on_start:=false
+   ```
+
+   기본값인 `record_on_start:=true`는 즉시 녹화하며, 시뮬레이션에서는
+   `use_sim_time:=true`를 지정합니다. `make run-logger LOGGER_LAUNCH_ARGS='record_on_start:=true'`도
+   사용할 수 있습니다.
+3. 같은 DDS domain과 빌드 overlay를 사용하는 다른 터미널에서 CLI로 설정하고
+   녹화합니다. 설정을 먼저 바꾸려면 logger를 `record_on_start:=false`로 실행합니다.
+   이미 녹화 중이면 `stop` 후 설정합니다.
+
+   ```bash
+   ros2 run cleany_logger logger status
+   ros2 run cleany_logger logger topics
+   ros2 run cleany_logger logger topics set camera --topic /camera/head/color/image_raw --hz 2 --enable
+   ros2 run cleany_logger logger topics set path_topic --topic /plan --hz 1 --enable
+   ros2 run cleany_logger logger start
+   ros2 run cleany_logger logger stop
+   ```
+
+   `topics set <ID> --disable`은 해당 항목을 끕니다. ID는 `topics` 출력에서 확인합니다.
+   속도 체인은 `topics set velocity_topics --topic /first --topic /second`로 전체를
+   지정하거나 `velocity_topics:0`처럼 특정 항목만 변경합니다. 출처별 `--hz all`은
+   수신마다 기록하며 카메라 등 센서 원본은 숫자 Hz가 필요합니다. 카메라와 점군
+   원본은 대용량이므로 필요한 토픽과 주기를 선택합니다.
+
+   루트에서 `make logger LOGGER_ARGS='status'`로도 호출할 수 있습니다.
+   다른 노드는 `--node /robot/logger`, 대기 시간은 `--timeout 3`, 자동화 출력은
+   `--json`으로 지정합니다. 이 옵션은 하위 명령 앞이나 뒤에 쓸 수 있습니다.
+   CLI는 한 번 요청하고 종료하며 logger 프로세스와 녹화는 계속됩니다.
+4. 대시보드를 사용하려면 별도 터미널에서 `make run-dev-monitor`를 실행합니다.
+   기본 저장 위치는 두 프로세스 모두 `~/.local/state/cleany/recordings`입니다.
+   다른 경로는 logger YAML의 `state_directory`와 Monitor의
+   `MONITOR_ROS_ARGS='-p state_directory:=/absolute/path'`에 동일하게 지정합니다.
+   이전 기록은 기존 디렉터리를 명시해 조회합니다. 대시보드나 브라우저를 종료해도
+   logger는 같은 세션을 녹화합니다.
+
+`mission_sim.launch.py`는 `enable_logger:=true record_on_start:=true`로 logger를
+함께 실행할 수 있습니다. 기본은 비활성이며 `logger_config:=/absolute/logger.yaml`로
+설정을 지정합니다. 이 launch 구성은 시뮬레이션 시계를 logger에 전달합니다.
+
+기록 구조는 [Logger 데이터 계약](../ros2_ws/src/cleany_logger/docs/data.md),
+HTTP와 stale 처리는 [Monitor 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)을 따릅니다.
 
 상세 SLAM, LiDAR, 점군과 costmap은 같은 domain의 RViz에서 확인합니다. 완료된 원본 bag ZIP을 내려받아 압축을 푼 뒤 다음과 같이 재생합니다. Bag에 기록된 토픽, TF와 CameraInfo만 사용할 수 있으며 SQLite 가공 기록은 RViz 입력이 아닙니다.
 

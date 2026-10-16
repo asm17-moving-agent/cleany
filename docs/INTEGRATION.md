@@ -72,7 +72,9 @@ flowchart TB
 | Robot model, 좌표, 형상 | [Model](../ros2_ws/src/cleany_description/docs/model.md) |
 | joint, TCP, MoveIt 그룹 | [Planning](../ros2_ws/src/cleany_moveit_config/docs/planning.md) |
 | MuJoCo backend, 시간, sensor | [Backends](../ros2_ws/src/cleany_mujoco_sim/docs/backends.md) |
-| Monitor 기록, 재생, stale | [관측 데이터](../ros2_ws/src/cleany_dev_monitor/docs/data.md) |
+| Logger ROS 제어와 상태 | [인터페이스](../ros2_ws/src/cleany_logger/docs/interfaces.md) |
+| Logger 저장, 세션, 시간과 원본 | [기록 데이터](../ros2_ws/src/cleany_logger/docs/data.md) |
+| Monitor 수집, HTTP, 화면과 stale | [관측 데이터](../ros2_ws/src/cleany_dev_monitor/docs/data.md) |
 | Calibration frame, 동기화, dataset | [Frames and data](../ros2_ws/src/cleany_handeye_calibration/docs/frames-and-data.md) |
 
 메시지 필드는 [cleany_interfaces](../ros2_ws/src/cleany_interfaces)와 [cleany_base_interfaces](../ros2_ws/src/cleany_base_interfaces)의 `.msg/.srv/.action`을 기준으로 확인합니다. 위 reference는 필드 목록을 복제하지 않고 단위, 소유권, 오류, 멱등성을 설명합니다.

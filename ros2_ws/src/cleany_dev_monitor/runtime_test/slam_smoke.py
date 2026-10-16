@@ -1,4 +1,4 @@
-"""Synthetic room scans -> actual Cartographer -> monitor -> durable replay.
+"""Synthetic room scans -> actual Cartographer -> logger observations -> durable replay.
 
 Run only in an isolated ROS_DOMAIN_ID. Publishes sensor/odometry/TF fixtures;
 never publishes commands, goals, or actuator messages. No physical validation.
@@ -13,8 +13,9 @@ import time
 from pathlib import Path
 
 import rclpy
-from cleany_dev_monitor.core import Recorder
-from cleany_dev_monitor.node import MonitorNode
+from cleany_logger import Recorder
+from cleany_logger.observer import ObservationNode
+from cleany_logger.slam_reader import SlamReader
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.executors import SingleThreadedExecutor
@@ -56,7 +57,7 @@ def main():
         stderr=subprocess.STDOUT,
     )
     rclpy.init()
-    monitor = MonitorNode(
+    monitor = ObservationNode(slam_factory=SlamReader,
         parameter_overrides=[
             Parameter("state_directory", value=str(output / "monitor")),
             Parameter("port", value=8876),

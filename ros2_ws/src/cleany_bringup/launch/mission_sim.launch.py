@@ -38,12 +38,19 @@ def _start(context):
         pose_url = arg("pose_url") or arg("gateway_url").removesuffix("/gateway/ws") + "/pose/ws"
         nodes.append(Node(package="cleany_telemetry", executable="telemetry_node", output="screen",
                           parameters=[{"odom_topic": "/ground_truth/odom", "url": pose_url}]))
+    if arg("enable_logger") == "true":
+        logger = Path(get_package_share_directory("cleany_logger"))
+        nodes.append(IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(str(logger / "launch/logger.launch.py")),
+            launch_arguments={"use_sim_time": "true", "record_on_start": arg("record_on_start"),
+                              "config": arg("logger_config")}.items()))
     return nodes
 
 
 def generate_launch_description():
     sim = Path(get_package_share_directory("cleany_gazebo_sim"))
     mission = Path(get_package_share_directory("cleany_mission_manager"))
+    logger = Path(get_package_share_directory("cleany_logger"))
     default_profile = "harmonic" if os.environ.get("ROS_DISTRO") == "jazzy" else "fortress"
     return LaunchDescription([
         DeclareLaunchArgument("profile", default_value=default_profile, choices=["fortress", "harmonic"]),
@@ -57,6 +64,9 @@ def generate_launch_description():
         DeclareLaunchArgument("journal_path", default_value="~/.local/state/cleany/missions.db"),
         DeclareLaunchArgument("bridge_journal_path", default_value="~/.local/state/cleany/control-bridge.db"),
         DeclareLaunchArgument("enable_bridge", default_value="true"),
+        DeclareLaunchArgument("enable_logger", default_value="false", choices=["true", "false"]),
+        DeclareLaunchArgument("record_on_start", default_value="true", choices=["true", "false"]),
+        DeclareLaunchArgument("logger_config", default_value=str(logger / "config/logger.yaml")),
         DeclareLaunchArgument("enable_telemetry", default_value="true", choices=["true", "false"]),
         DeclareLaunchArgument("pose_url", default_value="", description="Empty uses gateway host's pose endpoint."),
         # Isolate Gazebo transport from other simulations on the same host.
