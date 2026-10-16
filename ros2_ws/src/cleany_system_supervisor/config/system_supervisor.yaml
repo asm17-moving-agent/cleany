@@ -1,0 +1,76 @@
+# Conservative hardware profile: missing safety/arm adapters do NOT imply success.
+# Thresholds are initial integration policy, not certified physical safety limits.
+startup_grace_s: 5.0
+lease_s: 1.5
+heartbeat_timeout_s: 1.0
+stop_timeout_s: 3.0
+essential_capabilities: [BASE_MOTION]
+safety_sources: [safety, estop]
+recovery_safety_sources: [stopped]
+sources:
+  base:
+    {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: BASE_UNAVAILABLE,
+     severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
+  lidar:
+    {stale_s: 0.5, raise_s: 0.1, clear_s: 0.5, fault_code: LIDAR_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: lidar}
+  localization:
+    {stale_s: 1.0, raise_s: 0.2, clear_s: 1.0, fault_code: LOCALIZATION_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: localization}
+  navigation:
+    {stale_s: 1.5, raise_s: 0.2, clear_s: 0.5, fault_code: NAVIGATION_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: navigation}
+  camera:
+    {stale_s: 1.0, raise_s: 0.2, clear_s: 0.5, fault_code: CAMERA_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: camera}
+  perception:
+    {stale_s: 1.0, raise_s: 0.2, clear_s: 0.5, fault_code: PERCEPTION_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: ''}
+  arm:
+    {stale_s: 0.5, raise_s: 0.1, clear_s: 0.5, fault_code: ARM_UNAVAILABLE,
+     severity: ERROR, latched: false, locks_operation: false, recovery: arm}
+  arm_motion_safe:
+    {stale_s: 0.5, raise_s: 0.0, clear_s: 0.5, fault_code: ARM_MOTION_UNSAFE,
+     severity: CRITICAL, latched: false, locks_operation: false, recovery: ''}
+  safety:
+    {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: SAFETY_UNVERIFIED,
+     severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
+  estop:
+    {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: ESTOP,
+     severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
+  stopped:
+    # Motion itself is not a fault. This evidence gates recovery dispatch only.
+    {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: STOP_UNVERIFIED,
+     severity: WARNING, latched: false, locks_operation: false, recovery: '', monitor_only: true}
+capabilities:
+  BASE_MOTION: {sources: [base, arm_motion_safe], depends_on: []}
+  NAVIGATION: {sources: [lidar, localization, navigation], depends_on: [BASE_MOTION]}
+  MANIPULATION: {sources: [arm], depends_on: []}
+  VISUAL_PERCEPTION: {sources: [camera, perception], depends_on: []}
+  MOBILE_MANIPULATION:
+    {sources: [], depends_on: [NAVIGATION, MANIPULATION, VISUAL_PERCEPTION]}
+# Owners must implement these actions before enabling automatic recovery.
+# Nav2 internal BT recovery is left to Nav2. No generic node restart is provided.
+recovery_policies:
+  lidar: &recovery
+    {action: lidar/recover, automatic: false, max_attempts: 2,
+     attempt_timeout_s: 5.0, total_timeout_s: 20.0, verify_timeout_s: 3.0, cancel_timeout_s: 2.0}
+  localization: {<<: *recovery, action: localization/recover}
+  navigation: {<<: *recovery, action: navigation/recover}
+  camera: {<<: *recovery, action: camera/recover}
+  arm: {<<: *recovery, action: arm/recover}
+ros:
+  scan_topic: scan
+  pose_topic: amcl_pose
+  camera_topic: head_camera/color/image_raw
+  diagnostics_topic: diagnostics
+  component_health_topic: system/component_health
+  component_sources: [arm, arm_motion_safe, perception]
+  safety_topic: safety/status
+  stop_action: mission/stop
+  navigation_nodes: [controller_server, planner_server, bt_navigator, behavior_server]
+  localization_nodes: [amcl]
+  lifecycle_poll_s: 0.5
+  localization_max_variance: 0.5
+  minimum_scan_valid_ratio: 0.1
+  max_sensor_age_s: 1.0
