@@ -19,7 +19,7 @@ def test_qos_discovery_missing_transform_and_read_only_topics(tmp_path, monkeypa
     from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
     from std_msgs.msg import String
 
-    monkeypatch.setattr("cleany_dev_monitor.node.serve", lambda hub, config, stop: None)
+    monkeypatch.setattr("cleany_dev_monitor.node.serve", lambda *args: None)
     rclpy.init()
     monitor = MonitorNode(
         parameter_overrides=[Parameter("state_directory", value=str(tmp_path))]
@@ -94,7 +94,7 @@ def test_camera_best_effort_subscription_and_expiry(tmp_path, monkeypatch):
     from rclpy.qos import qos_profile_sensor_data
     from sensor_msgs.msg import Image
 
-    monkeypatch.setattr("cleany_dev_monitor.node.serve", lambda hub, config, stop: None)
+    monkeypatch.setattr("cleany_dev_monitor.node.serve", lambda *args: None)
     rclpy.init()
     monitor = MonitorNode()
     source = rclpy.create_node("camera_test_source")
@@ -296,9 +296,9 @@ def test_raw_point_cloud_recording_without_browser_and_off_release(tmp_path, mon
     from rclpy.executors import SingleThreadedExecutor
     from sensor_msgs.msg import PointCloud2, Image, LaserScan
     from nav2_msgs.msg import VoxelGrid
-    from cleany_dev_monitor.node import MonitorNode
-    from cleany_dev_monitor.core import Recorder
-    from cleany_dev_monitor.recording import defaults
+    from cleany_logger.observer import ObservationNode as MonitorNode
+    from cleany_logger import Recorder
+    from cleany_logger.recording import defaults
 
     monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda *args: None)
     rclpy.init()
@@ -343,14 +343,14 @@ def test_raw_point_cloud_recording_without_browser_and_off_release(tmp_path, mon
 
 def test_editing_base_path_topic_replaces_subscription_and_discards_old_layer(tmp_path, monkeypatch):
     import rclpy
-    from cleany_dev_monitor.node import MonitorNode
-    from cleany_dev_monitor.recording import defaults
+    from cleany_logger.observer import ObservationNode as MonitorNode
+    from cleany_logger.recording import defaults
     from nav_msgs.msg import Path
     from geometry_msgs.msg import PoseStamped
     from rclpy.executors import SingleThreadedExecutor
     from rclpy.parameter import Parameter
 
-    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda hub, config, stop: None)
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda *args: None)
     rclpy.init()
     monitor = MonitorNode(parameter_overrides=[Parameter('state_directory', value=str(tmp_path))])
     source = rclpy.create_node('editable_topic_test_source')
@@ -398,8 +398,8 @@ def test_short_safety_transitions_survive_state_display_throttle(tmp_path, monke
     from rclpy.parameter import Parameter
     from std_msgs.msg import String
 
-    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda hub, config, stop: None)
-    monkeypatch.setattr('cleany_dev_monitor.node.time.monotonic', lambda: 100.)
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda *args: None)
+    monkeypatch.setattr('cleany_logger.observer.time.monotonic', lambda: 100.)
     rclpy.init()
     monitor = MonitorNode(parameter_overrides=[Parameter('state_directory', value=str(tmp_path))])
     try:
@@ -417,9 +417,9 @@ def test_short_safety_transitions_survive_state_display_throttle(tmp_path, monke
 
 def test_new_session_requests_retained_static_transforms_again(tmp_path, monkeypatch):
     import rclpy
-    from cleany_dev_monitor.core import Recorder
-    from cleany_dev_monitor.node import MonitorNode
-    from cleany_dev_monitor.recording import defaults
+    from cleany_logger import Recorder
+    from cleany_logger.observer import ObservationNode as MonitorNode
+    from cleany_logger.recording import defaults
     from geometry_msgs.msg import TransformStamped
     from rclpy.executors import SingleThreadedExecutor
     from rclpy.parameter import Parameter

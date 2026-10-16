@@ -51,10 +51,23 @@
 | 서비스 요청 | `/submap_query` | `cartographer_ros_msgs/srv/SubmapQuery` | allowlist된 읽기 전용 요청; `slam_submap_query_service` |
 | 토픽 구독 | `<action>/_action/status` | `action_msgs/msg/GoalStatusArray` | Discovery된 최대 32개 status/feedback 토픽 내에서 선택 |
 | 토픽 구독 | `<action>/_action/feedback` | `<action package>/action/<Action>_FeedbackMessage` | Discovery 타입과 publisher QoS |
-| 토픽 구독 | `<사용자 선택 / camera / recording 토픽>` | `discovery 타입` | 설정과 웹 선택에 따라 구독 생성 / 해제 |
+| 토픽 구독 | `<사용자 선택 / camera 토픽>` | `discovery 타입` | 설정과 웹 선택에 따라 구독 생성 / 해제 |
 
-응용 ROS publisher, service server와 action server/client는 없다. SubmapQuery service client만 서브맵을 읽는다. Discovery에서 해당 이름과 타입이 확인돼야 실제 구독을 생성한다. 표의 타입은 기본 입력의 기대 타입이며 구독은 discovery 타입을 사용한다. `runtime_namespace`가 비어 있으면 prefix는 없다. TF listener 구독은 별도로 생성된다.
+응용 ROS publisher, service server와 action server/client는 없다. SubmapQuery client는 서브맵을 읽고, 녹화 제어 client는 독립 logger에 요청한다. Discovery에서 해당 이름과 타입이 확인돼야 실제 구독을 생성한다. 표의 타입은 기본 입력의 기대 타입이며 구독은 discovery 타입을 사용한다. `runtime_namespace`가 비어 있으면 prefix는 없다. TF listener 구독은 별도로 생성된다.
 
 동적 QoS는 모든 publisher와 호환되는 reliability/durability를 선택한다. Depth는 image 1, runtime_events 2048, 그 밖의 토픽 5다. 구독의 존재와 발행 주기는 보장하지 않는다.
 
-HTTP/WebSocket은 `host=127.0.0.1`, `port=8768`이 기본값이다. 주요 경로는 `/api/snapshot`, `/api/camera`, `/api/recordings`, `/api/recordings/{session}/replay`, `/ws`이며 전체 route는 [server.py](../cleany_dev_monitor/server.py)를 따른다. 기록 설정 API는 Monitor 내부 기록을 변경하며 로봇 구동 명령은 보내지 않는다. [관측 데이터 계약](data.md)을 함께 확인한다.
+HTTP/WebSocket은 `host=127.0.0.1`, `port=8768`이 기본값이다. 주요 경로는 `/api/snapshot`, `/api/camera`, `/api/recordings`, `/api/recordings/{session}/replay`, `/ws`이며 전체 route는 [server.py](../cleany_dev_monitor/server.py)를 따른다. 기록 설정 API는 독립 logger의 서비스를 호출하며 로봇 구동 명령은 보내지 않는다. [관측 데이터 계약](data.md)을 함께 확인한다.
+
+## Logger 연결
+
+`logger_namespace=/cleany_logger` 아래 `start`, `stop`, `configure`, `get_config`에
+`cleany_interfaces/srv/RecordingControl` client를 생성한다. `status`는
+`cleany_interfaces/msg/RecordingStatus`, Reliable, Transient Local, depth 1로
+구독한다. `logger_timeout_s=3.0`은 상태 유효시간과 서비스 응답 제한의 기본값이다.
+서비스 의미와 단위는 [Logger 인터페이스](../../cleany_logger/docs/interfaces.md)를 따른다.
+
+Monitor와 logger의 `state_directory`는 같은 호스트의 같은 디렉터리여야 한다.
+HTTP `PUT /api/recording/settings`는 정지 상태에서 설정하거나 활성 녹화를 정지한다.
+`POST /api/recording/session`은 정지 후 새 세션을 시작하고, 이미 녹화 중이면 같은
+세션을 반환한다. Monitor 종료는 logger 서비스 호출 없이 자체 HTTP와 구독만 닫는다.

@@ -54,10 +54,12 @@
 | `left_wrist_camera_contract_adapter` | `cleany_mujoco_sim` | `camera_contract_adapter` | [표](../ros2_ws/src/cleany_mujoco_sim/docs/interfaces.md#left_wrist_camera_contract_adapter) |
 | `single_pose_handeye_orchestrator` | `cleany_handeye_calibration` | `single_pose_calibration` | [표](../ros2_ws/src/cleany_handeye_calibration/docs/interfaces.md#single_pose_handeye_orchestrator) |
 | `multi_pose_handeye_orchestrator` | `cleany_handeye_calibration` | `multi_pose_calibration` | [표](../ros2_ws/src/cleany_handeye_calibration/docs/interfaces.md#multi_pose_handeye_orchestrator) |
+| `cleany_logger` | `cleany_logger` | `logger_node` | [표](../ros2_ws/src/cleany_logger/docs/interfaces.md#cleany_logger) |
+| `cleany_logger` | `cleany_logger_cli_<suffix>` | `logger` | [CLI](../ros2_ws/src/cleany_logger/docs/interfaces.md#cli) |
 | `cleany_dev_monitor` | `cleany_dev_monitor` | `dev_monitor` | [표](../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#cleany_dev_monitor) |
 | `cleany_motor_controller` | ESP32 micro-ROS | `esp32/src/main.cpp` | [MCU 표](../esp32/README.md#ros-인터페이스) |
 
-Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config`, `multi_pose_handeye_config`는 임시 bootstrap 노드다. 응용 endpoint가 없으며 ROS 기본 인터페이스만 생성한다. `cleany_description`, `cleany_bringup`은 모델/launch를 제공하고, `cleany_interfaces`, `cleany_base_interfaces`는 타입을 정의한다. `cleany_planner`, `cleany_logger`에는 현재 등록된 자체 ROS 노드가 없다. 새 perception과 sorting 실행은 아래 패키지 문서에서 확인한다. 이전 grasp 실행 데모, RGB-D pick 노드와 MuJoCo calibration pose generator는 제거됐다.
+Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config`, `multi_pose_handeye_config`는 임시 bootstrap 노드다. 응용 endpoint가 없으며 ROS 기본 인터페이스만 생성한다. `cleany_description`, `cleany_bringup`은 모델/launch를 제공하고, `cleany_interfaces`, `cleany_base_interfaces`는 타입을 정의한다. `cleany_planner`에는 현재 등록된 자체 ROS 노드가 없다. `cleany_logger`는 독립 기록 노드이며 [기록 계약](../ros2_ws/src/cleany_logger/docs/data.md)을 따른다. 새 perception과 sorting 실행은 아래 패키지 문서에서 확인한다. 이전 grasp 실행 데모, RGB-D pick 노드와 MuJoCo calibration pose generator는 제거됐다.
 
 ## Runtime integration에서 추가된 실행
 

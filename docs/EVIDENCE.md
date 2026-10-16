@@ -20,6 +20,10 @@
 | `reports/documentation-reorganization-20261013/before/` | 이번 문서 개편 전 Markdown 사본 |
 | `reports/documentation-reorganization-20261013/manifest.json` | 사본 source commit, dirty 상태, 각 파일 SHA-256 |
 
+Logger 분리와 CLI의 저장소 내 검증 요약은 [SCRUM-486 결과](../reports/SCRUM-486/validation.json)에서
+확인합니다. 실행 환경, 기준 commit, 단계별 결과와 원본 위치를 구분합니다. 원본 로그와
+합성 rosbag2, SQLite는 검증 호스트의 요약에 기재된 위치에서 보관합니다.
+
 ## 재현, 보존
 
 문서 개편 전 사본의 source commit은 `fbe5854`입니다. Commit, dirty 상태, SHA-256은 보관 manifest, 과거 경로 대응은 `relocation-manifest.json`에서 확인합니다. 원본의 절대 경로와 hash는 보존하고, fixture의 현재 위치와 profile-manifest의 과거 provenance를 구분합니다.

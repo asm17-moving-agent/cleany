@@ -16,8 +16,9 @@ def test_cartographer_topics_query_versions_timeout_and_replay(tmp_path, monkeyp
     import rclpy
     from cartographer_ros_msgs.msg import SubmapEntry, SubmapList, SubmapTexture
     from cartographer_ros_msgs.srv import SubmapQuery
-    from cleany_dev_monitor.core import Recorder
-    from cleany_dev_monitor.node import MonitorNode
+    from cleany_logger import Recorder
+    from cleany_logger.observer import ObservationNode
+    from cleany_logger.slam_reader import SlamReader
     from geometry_msgs.msg import Point
     from rclpy.executors import SingleThreadedExecutor
     from rclpy.parameter import Parameter
@@ -26,7 +27,7 @@ def test_cartographer_topics_query_versions_timeout_and_replay(tmp_path, monkeyp
 
     monkeypatch.setattr("cleany_dev_monitor.node.serve", lambda *args: None)
     rclpy.init()
-    monitor = MonitorNode(
+    monitor = ObservationNode(slam_factory=SlamReader,
         parameter_overrides=[
             Parameter("state_directory", value=str(tmp_path)),
             Parameter("slam_query_timeout_s", value=0.5),

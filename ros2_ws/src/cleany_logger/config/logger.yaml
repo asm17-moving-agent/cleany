@@ -1,0 +1,7 @@
+cleany_logger:
+  ros__parameters:
+    record_on_start: true
+    state_directory: "~/.local/state/cleany/recordings"
+    session_limit_bytes: 104857600
+    total_limit_bytes: 1073741824
+    resource_interval_s: 1.0
