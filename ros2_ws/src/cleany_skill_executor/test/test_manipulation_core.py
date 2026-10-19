@@ -246,8 +246,10 @@ def test_old_finished_database_defaults_diagnostics_and_corrupt_history_is_prese
 
 
 @pytest.mark.parametrize('changes', [
-    {'mission_id': ''}, {'task_id': ' '}, {'execution_id': ''}, {'snapshot_id': ''},
-    {'destination_id': ''}, {'object_id': 0}, {'skill_name': 'pick'},
+    {'mission_id': ''}, {'mission_id': None}, {'task_id': ' '}, {'execution_id': ''},
+    {'snapshot_id': ''}, {'snapshot_id': 42},
+    {'destination_id': ''}, {'object_id': 0}, {'object_id': True}, {'object_id': 1.5},
+    {'object_id': 0x100000000}, {'skill_name': 'pick'},
 ])
 def test_invalid_request_never_creates_record_or_motion(harness, changes):
     core, port, store, _ = harness()

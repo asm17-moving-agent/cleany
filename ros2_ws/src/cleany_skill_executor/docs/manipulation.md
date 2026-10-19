@@ -21,6 +21,8 @@
 
 Execution ID는 중복 수락하지 않는다. 재시작 시 ACTIVE를 INTERRUPTED로 보존하고 자동 재개하지 않는다. 과거 JSON의 추가 필드는 기본값으로 읽으며 손상된 DB는 시작 오류다. 서버 DB와 Mission DB는 분리해 유지한다. [결과, 취소와 보고 계약](../../cleany_interfaces/docs/manipulation.md)을 함께 확인한다.
 
+조회는 메모리에 유지 중인 최신 상태를 포함한다. 실행 중 서버 DB 쓰기가 실패하면 경고를 남기고 모의 동작 결과는 보존한다. Mission의 전송 전 journal 저장과 결과 저장은 별도 계약이며, 조회 응답만으로 서버 DB 쓰기 성공을 판단하지 않는다.
+
 ## 작업자 관찰 모드와 파지 깊이
 
 시뮬레이터를 시작하는 수거 launch는 `sorting_verify_placement:=false`가

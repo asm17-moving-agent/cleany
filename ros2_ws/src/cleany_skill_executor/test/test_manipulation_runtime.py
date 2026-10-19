@@ -22,7 +22,6 @@ from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 import yaml
 
 from cleany_skill_executor.manipulation.core import NORMAL_STAGES
-from cleany_skill_executor.manipulation.models import Stage
 from cleany_skill_executor.manipulation.store import StoreError
 from cleany_skill_executor.manipulation_node import ManipulationNode
 
@@ -53,8 +52,10 @@ def goal(execution_id=None, **changes):
 
 
 class RosHarness:
-    def __init__(self, tmp_path, *, scenario='success', start=True, slow=False):
+    def __init__(self, tmp_path, *, scenario='success', start=True, slow=False,
+                 action_name='manipulation/execute_skill'):
         self.namespace = '/manipulation_test_' + uuid.uuid4().hex
+        self.action_name = action_name
         self.context = Context()
         rclpy.init(context=self.context)
         self.executor = MultiThreadedExecutor(num_threads=4, context=self.context)
@@ -64,7 +65,7 @@ class RosHarness:
         self.database = tmp_path / 'executions.sqlite3'
         config = yaml.safe_load(CONFIG_PATH.read_text())
         config.update(stage_duration_sec=0.25 if slow else 0.08, stop_duration_sec=0.03,
-                      preparation_timeout_sec=5.0, verification_timeout_sec=5.0,
+                      preparation_timeout_sec=5.0, verification_timeout_sec=2.0,
                       motion_timeout_sec=10.0, stop_timeout_sec=1.0)
         self.config.write_text(yaml.safe_dump(config))
         self.feedback = []
@@ -73,24 +74,26 @@ class RosHarness:
                               durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.subscription = self.node.create_subscription(
             ManipulationExecutionRecord, 'manipulation/execution_events', self.events.append, self.qos)
-        self.client = ActionClient(self.node, ExecuteManipulationSkill, 'manipulation/execute_skill')
+        self.client = ActionClient(self.node, ExecuteManipulationSkill, self.action_name)
         self.service = self.node.create_client(GetManipulationExecution, 'manipulation/get_execution')
         self.server = None
         if start:
             self.server = ManipulationNode(context=self.context, namespace=self.namespace,
+                cli_args=['--ros-args', '-r', f'manipulation/execute_skill:={self.action_name}'],
                 parameter_overrides=[Parameter('database_path', value=str(self.database)),
                                      Parameter('mock_config', value=str(self.config)),
                                      Parameter('scenario', value=scenario)])
             self.executor.add_node(self.server)
         self.thread = threading.Thread(target=self.executor.spin, daemon=True)
         self.thread.start()
-        if start:
-            assert self.client.wait_for_server(timeout_sec=10.0)
+        if start and not self.client.wait_for_server(timeout_sec=10.0):
+            self.close()
+            raise AssertionError(f'Action server unavailable: {self.action_name}')
 
     def send(self, message):
         # Action services can be discovered before the volatile feedback topic.
         eventually(lambda: self.node.count_publishers(
-            'manipulation/execute_skill/_action/feedback') > 0,
+            self.action_name + '/_action/feedback') > 0,
             description='Action feedback publisher discovery')
         return response(self.client.send_goal_async(
             message, feedback_callback=lambda item: self.feedback.append(item.feedback)))
@@ -159,6 +162,56 @@ def test_real_ros_success_feedback_lookup_and_retained_event(ros):
     assert not response(handle.cancel_goal_async()).goals_canceling
 
 
+def test_shutdown_waits_for_record_write_without_claiming_a_physical_stop(ros, monkeypatch):
+    import json
+    import sqlite3
+    from cleany_skill_executor.manipulation_node import goal_from_message
+
+    harness = ros()
+    server = harness.server
+    harness.executor.remove_node(server)
+    assert server.core.accept(goal_from_message(goal()))[0]
+    entered, release, closing, closed = (threading.Event() for _ in range(4))
+    save, close = server.store.save, server.store.close
+
+    def blocked_save(*args, **kwargs):
+        entered.set()
+        assert release.wait(5.)
+        save(*args, **kwargs)
+
+    def tracked_close():
+        close()
+        closed.set()
+
+    def destroy():
+        closing.set()
+        server.destroy_node()
+
+    monkeypatch.setattr(server.store, 'save', blocked_save)
+    monkeypatch.setattr(server.store, 'close', tracked_close)
+    writer = threading.Thread(target=server.core.tick)
+    destroyer = threading.Thread(target=destroy)
+    writer.start()
+    try:
+        assert entered.wait(5.)
+        destroyer.start()
+        assert closing.wait(5.)
+        assert not closed.wait(.1), 'SQLite must remain open until the active write completes'
+    finally:
+        release.set()
+        writer.join(5.)
+        if destroyer.ident is not None:
+            destroyer.join(5.)
+        else:
+            server.destroy_node()
+        harness.server = None
+    assert not writer.is_alive() and not destroyer.is_alive() and closed.is_set()
+    with sqlite3.connect(harness.database) as database:
+        record = json.loads(database.execute('SELECT payload FROM executions').fetchone()[0])
+    assert record['record_state'] == 'ACTIVE' and record['result'] is None
+    assert not record['stop_confirmed']
+
+
 @pytest.mark.parametrize('changes,error', [
     ({'snapshot_id': 'absent'}, 'TARGET_UNAVAILABLE'),
     ({'object_id': 99}, 'TARGET_UNAVAILABLE'),
@@ -221,9 +274,14 @@ def test_real_ros_stage_cancellation_stops_before_next_stage(ros, stage):
     assert not any(item.stage in forbidden for item in harness.feedback)
 
 
-@pytest.mark.parametrize('mode', ['IMMEDIATE', 'CHECKPOINT', 'RETURN_ARM'])
-def test_real_ros_cancel_mode_service_keeps_action_state_and_recovery_evidence(ros, mode):
-    harness = ros(slow=True)
+@pytest.mark.parametrize('mode,action_name', [
+    ('IMMEDIATE', 'manipulation/execute_skill'),
+    ('CHECKPOINT', 'manipulation/execute_skill'),
+    ('RETURN_ARM', 'manipulation/execute_skill'),
+    ('CHECKPOINT', 'custom/execute'),
+])
+def test_real_ros_cancel_mode_service_keeps_action_state_and_recovery_evidence(ros, mode, action_name):
+    harness = ros(slow=True, action_name=action_name)
     message = goal()
     handle = harness.send(message)
     eventually(lambda: any(item.stage == 'TRANSPORTING' for item in harness.feedback))

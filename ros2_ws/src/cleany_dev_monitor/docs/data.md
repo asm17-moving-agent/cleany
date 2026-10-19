@@ -109,4 +109,4 @@ ExecuteOne을 선택하면 Action 준비, 접근, 집기, 운반, 놓기와 팔 
 | 조작 완료 | 서버 최종 record의 결과; Mission의 검증과 정지 확인은 별도 |
 | 진행 상태 미확인 | 수신 정체나 이전 실행을 현재 진행으로 추정하지 않음 |
 
-`execution_events`는 revision과 서버 steady timestamp로 단계 구간을 만든다. 중간부터 구독한 기록, 누락과 시간 역행을 구분한다. 기본 최근 실행 20개, 실행당 구간 64개를 보존하며 topic QoS depth는 100이다. SQLite 가공 기록과 시간 막대 재생에서도 같은 의미를 사용한다. 재생은 로봇 명령을 보내지 않는다.
+`execution_events`는 revision과 서버 wall timestamp로 단계 구간을 만든다. 중간부터 구독한 기록, 누락과 시각 역행을 구분하며 역행한 기록의 경과 시간은 표시하지 않는다. Timeout과 취소는 서버 steady clock을 사용한다. 기본 최근 실행 20개, 실행당 구간 64개를 보존하며 topic QoS depth는 100이다. SQLite 가공 기록과 시간 막대 재생에서도 같은 의미를 사용한다. 재생은 로봇 명령을 보내지 않는다.

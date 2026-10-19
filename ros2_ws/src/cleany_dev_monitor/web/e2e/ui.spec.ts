@@ -1,5 +1,30 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/recordings", (route) =>
+    route.fulfill({ json: { sessions: [], active: "", reason: "" } }),
+  );
+  await page.route("**/api/recording/settings", (route) =>
+    route.fulfill({
+      json: {
+        settings: {
+          active: false,
+          preset: "custom",
+          limit_mib: 100,
+          enabled: {},
+          hz: {},
+          topics: {},
+          sources: {},
+          source_hz: {},
+          source_enabled: {},
+        },
+        status: {},
+        reason: "",
+      },
+    }),
+  );
+});
+
 // UI transport fixture only; this does not claim a ROS or robot execution.
 const runtime = {
   boot_id: "fixture-runtime",

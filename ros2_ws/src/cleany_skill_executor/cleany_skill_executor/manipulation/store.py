@@ -99,19 +99,6 @@ class ExecutionStore:
         except (sqlite3.Error, ValueError, KeyError, TypeError) as exc:
             raise StoreError(str(exc)) from exc
 
-    def recover(self, now_ns: int) -> list[Record]:
-        recovered = []
-        for record in self.all_records():
-            if record.record_state == RecordState.ACTIVE:
-                record = replace(record, record_state=RecordState.INTERRUPTED,
-                                 human_confirmation_required=True, stop_confirmed=False,
-                                 result=None, revision=record.revision + 1,
-                                 updated_at_ns=now_ns,
-                                 message='Process interrupted; physical state needs human confirmation')
-                self.save(record)
-                recovered.append(record)
-        return recovered
-
 
 class ExecutionJournal:
     """Keep runtime state in memory; persistence errors are diagnostic only.

@@ -39,6 +39,8 @@ Runtime은 wire object ID를 Planner 제안과 대조하며 표시 ID에서 숫�
 
 행동마다 execution UUID를 발급하고 **전체 요청을 SQLite에 저장한 뒤 전송**한다. ROS goal UUID도 같은 값을 사용하므로 지연 수락, 재시작 취소는 정확한 goal만 대상으로 한다. 결과가 불명확하면 같은 execution ID로 조회하며 새 ID로 자동 재전송하지 않는다.
 
+Action 이름을 remap하면 Mission client와 서버가 해결된 Action 이름을 사용하며 CancelGoal 경로도 함께 맞춘다. Record의 `accepted_at_ns`, `updated_at_ns`, `evidence_at_ns`는 서버 wall 시각의 nanosecond다. 실행 timeout은 별도 steady clock으로 처리한다.
+
 ## 성공 판정
 
 현재 peer는 BLOCKED도 ROS SUCCEEDED로 반환할 수 있다. 따라서 Runtime은 ROS terminal뿐 아니라 다음 payload 조건을 함께 검사한다.

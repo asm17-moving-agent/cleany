@@ -58,6 +58,7 @@ class GoalHandle:
 
 class ROSManipulationTransport:
     def __init__(self, node, action_name: str, query_name: str) -> None:
+        action_name = node.resolve_topic_name(action_name)
         self.client = ActionClient(node, ExecuteManipulationSkill, action_name)
         self.cancel_client = node.create_client(CancelGoal, action_name + "/_action/cancel_goal")
         self.query_client = node.create_client(GetManipulationExecution, query_name)

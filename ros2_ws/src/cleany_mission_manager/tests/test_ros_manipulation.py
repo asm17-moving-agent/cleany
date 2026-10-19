@@ -13,7 +13,7 @@ pytestmark = pytest.mark.skipif(os.environ.get("CLEANY_RUN_MANIPULATION_TESTS") 
 
 
 @pytest.fixture
-def manipulation_runtime(tmp_path):
+def manipulation_runtime(tmp_path, request):
     rclpy = pytest.importorskip("rclpy")
     from rclpy.executors import SingleThreadedExecutor
     from rclpy.parameter import Parameter
@@ -45,10 +45,15 @@ def manipulation_runtime(tmp_path):
     ]
     executor = SingleThreadedExecutor()
     harness = SimpleNamespace(runtime=None, server=None)
+    action_name = getattr(request, 'param', None)
+    server_args = {'cli_args': ['--ros-args', '-r',
+                               f'manipulation/execute_skill:={action_name}']} if action_name else {}
+    runtime_args = {'cli_args': ['--ros-args', '-r',
+                                f'mock/manipulation/execute_skill:={action_name}']} if action_name else {}
 
     def start():
-        harness.server = ManipulationNode(namespace="/mock", parameter_overrides=server_parameters)
-        harness.runtime = MissionRuntimeNode(parameter_overrides=runtime_parameters)
+        harness.server = ManipulationNode(namespace="/mock", parameter_overrides=server_parameters, **server_args)
+        harness.runtime = MissionRuntimeNode(parameter_overrides=runtime_parameters, **runtime_args)
         executor.add_node(harness.server)
         executor.add_node(harness.runtime)
 
@@ -80,6 +85,8 @@ def manipulation_runtime(tmp_path):
         rclpy.shutdown()
 
 
+@pytest.mark.parametrize('manipulation_runtime', [None, '/custom/execute'], indirect=True,
+                         ids=['default-action', 'remapped-action'])
 def test_peer_action_two_objects_verified_success_then_home(manipulation_runtime):
     from cleany_mission_manager.core.runtime_models import RuntimeRequest
     node, server, spin = manipulation_runtime.runtime, manipulation_runtime.server, manipulation_runtime.spin
