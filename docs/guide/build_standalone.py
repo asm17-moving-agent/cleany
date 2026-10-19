@@ -11,6 +11,14 @@ import re
 
 
 ROOT = Path(__file__).resolve().parent
+IMAGE_TYPES = {
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
 
 
 def build() -> str:
@@ -22,9 +30,10 @@ def build() -> str:
             for page in manifest["pages"]
         },
         "assets": {
-            path.relative_to(ROOT).as_posix(): "data:image/svg+xml;base64,"
+            path.relative_to(ROOT).as_posix(): f"data:{IMAGE_TYPES[path.suffix.lower()]};base64,"
             + base64.b64encode(path.read_bytes()).decode("ascii")
-            for path in sorted((ROOT / "assets").glob("*.svg"))
+            for path in sorted((ROOT / "assets").rglob("*"))
+            if path.is_file() and path.suffix.lower() in IMAGE_TYPES
         },
         "licenses": {
             path.name: path.read_text(encoding="utf-8")

@@ -133,6 +133,29 @@ def point_cloud_from_message(message: PointCloud2) -> PointCloud:
 
 
 class GraspNode(Node):
+    """Plan grasp candidates from a supplied observation without moving the robot.
+
+    Services:
+        grasp/plan (cleany_interfaces/srv/PlanGrasp): Server for candidate
+            prediction and filtering; service_name default.
+
+    Publishers:
+        grasp/debug_image (sensor_msgs/msg/Image): Candidate overlay.
+        /grasp/collision_geometry (cleany_interfaces/msg/ObservedObjectGeometry):
+            Optional observed geometry when publish_collision_geometry is enabled.
+            Both topic names are configurable defaults.
+
+    TF:
+        Resolves observation geometry into planning_frame, default base_link.
+
+    QoS:
+        Debug images and optional collision geometry are reliable and transient
+        local, with depths 1 and 16 respectively.
+
+    Notes:
+        Predictor selection and model/license validation occur at startup.
+        Request validation or planning failure is returned as a failed response.
+    """
     def __init__(self, predictor=None, **kwargs) -> None:
         super().__init__('grasp_server', **kwargs)
         self.declare_parameter('service_name', 'grasp/plan')

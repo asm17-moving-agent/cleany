@@ -260,7 +260,6 @@ def materialize_mecanum_wheel_world(
         raise ValueError('world template is missing cleany_mecanum')
     sensor_plugin_names = {
         'ignition::gazebo::systems::Sensors',
-        'gz::sim::systems::Sensors',
     }
     sensors_plugin = next(
         (

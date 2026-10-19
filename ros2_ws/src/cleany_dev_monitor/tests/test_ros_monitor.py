@@ -13,6 +13,7 @@ pytestmark = pytest.mark.skipif(
 def test_retained_manipulation_history_is_aggregated_without_control_publishers(tmp_path, monkeypatch):
     import rclpy
     from cleany_interfaces.msg import ManipulationExecutionRecord
+    from cleany_dev_monitor.core import Recorder
     from cleany_dev_monitor.node import MonitorNode
     from rclpy.executors import SingleThreadedExecutor
     from rclpy.parameter import Parameter
@@ -44,6 +45,31 @@ def test_retained_manipulation_history_is_aggregated_without_control_publishers(
         assert monitor.subs["/mock/manipulation/execution_events"][0].qos_profile.depth == 100
         published = monitor.get_publisher_names_and_types_by_node(monitor.get_name(), monitor.get_namespace())
         assert all(name in ("/rosout", "/parameter_events") for name, _ in published)
+        settings = monitor.hub.recording.view()['settings']
+        settings['sources']['manipulation_events_topic'] = '/other/manipulation/events'
+        monitor.hub.recording.configure(settings)
+        monitor.apply_sources()
+        assert not monitor.hub.latest_data('manipulation', 'executions')
+        assert not monitor.manipulation.snapshot()['executions']
+        monitor.receive('/other/manipulation/events', ManipulationExecutionRecord(
+            execution_id='retained-execution', revision=0, stage='VALIDATING',
+            substage='new-source', accepted_at_ns=1, updated_at_ns=1, record_state='ACTIVE'))
+        rebound = monitor.hub.latest_data('manipulation', 'executions')['executions']
+        assert len(rebound) == 1
+        assert rebound[0]['record']['revision'] == 0
+        assert [interval['substage'] for interval in rebound[0]['intervals']] == ['new-source']
+        summary = next(row for row in monitor.hub.snapshot()['rows'] if row['kind'] == 'manipulation')
+        assert summary['source_id'] == 'manipulation_events_topic'
+        settings = monitor.hub.recording.view()['settings']
+        settings['source_enabled']['manipulation_events_topic'] = False
+        monitor.hub.recording.configure(settings)
+        recorder = Recorder(tmp_path / 'filtered', controls=monitor.hub.recording)
+        try:
+            recorder.append(monitor.hub.snapshot())
+            replay = recorder.replay(recorder.session_id, time.time())
+            assert not any(row['kind'] == 'manipulation' for row in replay['rows'])
+        finally:
+            recorder.close()
     finally:
         monitor.destroy_node()
         source.destroy_node()
@@ -340,7 +366,6 @@ def test_raw_point_cloud_recording_without_browser_and_off_release(tmp_path, mon
     from cleany_dev_monitor.node import MonitorNode
     from cleany_dev_monitor.core import Recorder
     from cleany_dev_monitor.recording import defaults
-    import zlib
 
     monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda *args: None)
     rclpy.init()
@@ -366,10 +391,10 @@ def test_raw_point_cloud_recording_without_browser_and_off_release(tmp_path, mon
             pub.publish(message)
             executor.spin_once(timeout_sec=.03)
             recorder.append_raw()
-            found=recorder.db.execute("SELECT payload FROM raw_messages WHERE category=?", (key,)).fetchone()
+            found=recorder.db.execute("SELECT received FROM raw_index WHERE category=?", (key,)).fetchone()
             if found:
                 break
-        assert found and deserialize_message(zlib.decompress(found[0]), type(message)) == message
+        assert found and deserialize_message(recorder.raw_message(recorder.session_id, key, found[0])[0], type(message)) == message
         assert not monitor.hub.selections() and not monitor.hub.cameras.selected()
         monitor.hub.recording.configure(defaults())
         monitor.discover()
@@ -380,4 +405,131 @@ def test_raw_point_cloud_recording_without_browser_and_off_release(tmp_path, mon
         monitor.destroy_node()
         source.destroy_node()
         executor.shutdown()
+        rclpy.shutdown()
+
+
+def test_editing_base_path_topic_replaces_subscription_and_discards_old_layer(tmp_path, monkeypatch):
+    import rclpy
+    from cleany_dev_monitor.node import MonitorNode
+    from cleany_dev_monitor.recording import defaults
+    from nav_msgs.msg import Path
+    from geometry_msgs.msg import PoseStamped
+    from rclpy.executors import SingleThreadedExecutor
+    from rclpy.parameter import Parameter
+
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda hub, config, stop: None)
+    rclpy.init()
+    monitor = MonitorNode(parameter_overrides=[Parameter('state_directory', value=str(tmp_path))])
+    source = rclpy.create_node('editable_topic_test_source')
+    old = source.create_publisher(Path, '/plan', 10)
+    new = source.create_publisher(Path, '/custom/plan', 10)
+    executor = SingleThreadedExecutor()
+    executor.add_node(source)
+    executor.add_node(monitor)
+    def observe(publisher, x):
+        message = Path()
+        message.header.frame_id = 'map'
+        point = PoseStamped()
+        point.pose.position.x = x
+        message.poses = [point]
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            monitor.discover()
+            publisher.publish(message)
+            executor.spin_once(timeout_sec=.05)
+            if monitor.hub.latest_data('layer', 'path').get('points') == [[x, 0.]]:
+                return
+        raise AssertionError('Changed path topic did not arrive')
+    try:
+        observe(old, 1.)
+        settings = defaults()
+        settings['sources'] = {'path_topic': '/custom/plan'}
+        monitor.hub.recording.configure(settings)
+        monitor.discover()
+        assert '/plan' not in monitor.subs
+        assert monitor.hub.latest_data('layer', 'path') == {}
+        observe(new, 2.)
+        assert '/custom/plan' in monitor.subs
+        assert monitor.hub.latest_data('config', 'monitor')['path_topic'] == '/custom/plan'
+    finally:
+        executor.shutdown()
+        monitor.destroy_node()
+        source.destroy_node()
+        rclpy.shutdown()
+
+
+def test_short_safety_transitions_survive_state_display_throttle(tmp_path, monkeypatch):
+    import json
+    import rclpy
+    from cleany_dev_monitor.node import MonitorNode
+    from rclpy.parameter import Parameter
+    from std_msgs.msg import String
+
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda hub, config, stop: None)
+    monkeypatch.setattr('cleany_dev_monitor.node.time.monotonic', lambda: 100.)
+    rclpy.init()
+    monitor = MonitorNode(parameter_overrides=[Parameter('state_directory', value=str(tmp_path))])
+    try:
+        topic = monitor.config['reactive_guard_topic']
+        for decision in ('STOP', 'PASS', 'STOP', 'PASS'):
+            monitor.receive(topic, String(data=json.dumps({'decision': decision})))
+        events = [r['data']['data']['decision'] for r in monitor.hub.snapshot()['rows']
+                  if r['kind'] == 'event' and r['key'] == topic and r['data'].get('kind') == 'navigation_decision']
+        assert events == ['STOP', 'PASS', 'STOP', 'PASS']
+        assert monitor.hub.latest_data('navigation', 'reactive_guard')['decision'] == 'STOP'
+    finally:
+        monitor.destroy_node()
+        rclpy.shutdown()
+
+
+def test_new_session_requests_retained_static_transforms_again(tmp_path, monkeypatch):
+    import rclpy
+    from cleany_dev_monitor.core import Recorder
+    from cleany_dev_monitor.node import MonitorNode
+    from cleany_dev_monitor.recording import defaults
+    from geometry_msgs.msg import TransformStamped
+    from rclpy.executors import SingleThreadedExecutor
+    from rclpy.parameter import Parameter
+    from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+    from tf2_msgs.msg import TFMessage
+
+    monkeypatch.setattr('cleany_dev_monitor.node.serve', lambda *args: None)
+    rclpy.init()
+    monitor = MonitorNode(parameter_overrides=[Parameter('state_directory', value=str(tmp_path))])
+    source = rclpy.create_node('retained_static_source')
+    qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL, reliability=ReliabilityPolicy.RELIABLE)
+    publisher = source.create_publisher(TFMessage, '/tf_static', qos)
+    transform = TransformStamped()
+    transform.header.frame_id = 'map'
+    transform.child_frame_id = 'sensor'
+    transform.transform.rotation.w = 1.
+    publisher.publish(TFMessage(transforms=[transform]))  # Publish only once.
+    executor = SingleThreadedExecutor()
+    executor.add_node(monitor)
+    executor.add_node(source)
+    recorder = None
+    try:
+        for _ in range(2):
+            settings = defaults()
+            settings['enabled']['camera'] = True
+            with monitor.hub.recording.transition():
+                monitor.hub.recording.configure(settings)
+                recorder = Recorder(tmp_path, controls=monitor.hub.recording)
+            deadline = time.monotonic() + 5
+            found = None
+            while time.monotonic() < deadline:
+                monitor.discover()
+                executor.spin_once(timeout_sec=.05)
+                recorder.append_raw()
+                found = recorder.db.execute("SELECT received FROM raw_index WHERE topic='/tf_static'").fetchone()
+                if found:
+                    break
+            assert found, 'A new recording must receive retained /tf_static without another publication'
+            recorder.close()
+    finally:
+        if recorder:
+            recorder.close()
+        executor.shutdown()
+        monitor.destroy_node()
+        source.destroy_node()
         rclpy.shutdown()

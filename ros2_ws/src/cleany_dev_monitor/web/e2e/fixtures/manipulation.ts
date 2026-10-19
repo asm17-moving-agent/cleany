@@ -163,11 +163,17 @@ export async function transport(page: Page, initial = rows()) {
           enabled: {},
           hz: {},
           topics: {},
+          sources: {},
+          source_hz: {},
+          source_enabled: {},
         },
         status: {},
         reason: "",
       },
     }),
+  );
+  await page.route("**/api/recordings", (route) =>
+    route.fulfill({ json: { sessions: [], active: "", reason: "" } }),
   );
   await page.routeWebSocket("**/ws", (ws) => {
     let first = true;

@@ -15,6 +15,12 @@ from .runtime_models import Admission, RuntimePolicy, RuntimeReport, RuntimeRequ
 
 
 class MissionRuntime:
+    """Own mission admission, progress and stop confirmation on one thread.
+
+    Call tick() regularly with nonblocking operation ports. Construction turns
+    unfinished journal entries into INTERRUPTED outcomes requiring operator
+    review. Admission and terminal outcomes are persisted synchronously.
+    """
     def __init__(self, *, navigator: OperationPort, perception: OperationPort,
                  planner: OperationPort, executor: ExecutorPort, clock: Callable[[], float],
                  supported_targets: set[str], policy: RuntimePolicy | None = None,
@@ -81,6 +87,11 @@ class MissionRuntime:
         return True, ""
 
     def offer(self, request: RuntimeRequest) -> Admission:
+        """Admit a supported mission only after readiness and journal persistence.
+
+        An identical request replays its admission and any terminal report without
+        restarting work. Reusing its mission ID with different fields is rejected.
+        """
         if any(not value.strip() for value in (
             request.mission_id, request.target_id, request.requested_by,
         )):
@@ -111,6 +122,11 @@ class MissionRuntime:
         return Admission(True)
 
     def cancel(self, mission_id: str) -> Admission:
+        """Request cancellation or replay an existing terminal report.
+
+        Acceptance confirms the request, not physical stop; tick() must continue
+        polling the adapters until stop is confirmed or the stop deadline expires.
+        """
         existing = self.journal.get(mission_id)
         if existing and existing[1]:
             return Admission(True, duplicate=True, report=existing[1])
@@ -167,6 +183,7 @@ class MissionRuntime:
         return Admission(True)
 
     def tick(self) -> None:
+        """Advance pending operations without waiting for ROS or network replies."""
         try:
             self._tick()
         except Exception as exc:

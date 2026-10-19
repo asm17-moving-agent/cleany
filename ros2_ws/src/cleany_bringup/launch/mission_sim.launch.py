@@ -91,10 +91,9 @@ def _start(context):
     )}
     runtime_arguments["manipulation_mock_fixture"] = fixture_path
     nodes = [
-        IncludeLaunchDescription(PythonLaunchDescriptionSource(str(sim / "launch" / (
-            "gazebo_study_cafe_fortress.launch.py" if arg("profile") == "fortress"
-            else "gazebo_study_cafe.launch.py"
-        ))), launch_arguments={"headless": arg("headless"), "use_sim_time": "true",
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
+            sim / "launch/gazebo_study_cafe_fortress.launch.py"
+        )), launch_arguments={"headless": arg("headless"), "use_sim_time": "true",
                               **({"sensor_profile": "lidar_depth_nav"} if backend == "action_mock" else {})}.items()),
         nav_launch,
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(mission / "launch/mission_runtime.launch.py")),
@@ -120,9 +119,7 @@ def _start(context):
 def generate_launch_description():
     sim = Path(get_package_share_directory("cleany_gazebo_sim"))
     mission = Path(get_package_share_directory("cleany_mission_manager"))
-    default_profile = "harmonic" if os.environ.get("ROS_DISTRO") == "jazzy" else "fortress"
     return LaunchDescription([
-        DeclareLaunchArgument("profile", default_value=default_profile, choices=["fortress", "harmonic"]),
         DeclareLaunchArgument("headless", default_value="true"),
         DeclareLaunchArgument("runtime_config", default_value=str(mission / "config/runtime.yaml")),
         DeclareLaunchArgument("start_manipulation_mock", default_value="false", choices=["true", "false"]),
@@ -143,7 +140,6 @@ def generate_launch_description():
         DeclareLaunchArgument("pose_url", default_value="", description="Empty uses gateway host's pose endpoint."),
         # Isolate Gazebo transport from other simulations on the same host.
         DeclareLaunchArgument("sim_partition", default_value="cleany-mission"),
-        SetEnvironmentVariable("GZ_PARTITION", LaunchConfiguration("sim_partition")),
         SetEnvironmentVariable("IGN_PARTITION", LaunchConfiguration("sim_partition")),
         OpaqueFunction(function=_start),
     ])

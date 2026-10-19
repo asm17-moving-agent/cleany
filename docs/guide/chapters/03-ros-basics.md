@@ -134,7 +134,7 @@ ros2 interface show cleany_interfaces/srv/PlanGrasp
 ros2 interface show cleany_interfaces/action/SelectReachableGrasp
 ```
 
-설치 전이라면 [원본 인터페이스 폴더](../../../ros2_ws/src/cleany_interfaces/README.md)를 읽어도 됩니다. 다음 세 가지를 찾아보세요.
+설치 전이라면 [원본 인터페이스 폴더](../../../ros2_ws/src/cleany_interfaces/docs/observation-contracts.md)를 읽어도 됩니다. 다음 세 가지를 찾아보세요.
 
 1. `PlanGrasp`에서 요청의 ID와 응답의 후보 배열을 찾습니다.
 2. `SelectReachableGrasp`에서 목표와 진행 피드백의 `arm` 필드를 구분합니다.

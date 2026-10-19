@@ -367,6 +367,21 @@ class GraspSelector:
         cancel_requested: Callable[[], bool] = lambda: False,
         feedback: Feedback = lambda *_: None,
     ) -> Selection | None:
+        """Return the first candidate/arm pair that passes the configured checks.
+
+        Candidates are tried by score, with pre-grasp and grasp IK, state validity
+        and planning checks. This method changes allowed target contacts through
+        the port; the caller owns scene restoration and any later execution.
+
+        Returns:
+            A selection with planned trajectories, or None if every attempted pair
+            is rejected.
+
+        Raises:
+            ValueError: required_arm is neither empty, left nor right.
+            InterruptedError: Cancellation is observed between port calls.
+            InfrastructureError: A required planning service cannot provide a result.
+        """
         if required_arm not in ('', 'left', 'right'):
             raise ValueError("required_arm must be '', 'left', or 'right'")
         ranked = sorted(candidates, key=lambda item: item.score, reverse=True)[

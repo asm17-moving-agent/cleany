@@ -15,8 +15,21 @@
 
 namespace cleany_mujoco_observer
 {
-// This internal reader only reads a synchronized private snapshot. It never
-// assigns qpos/qvel/ctrl, applies forces, or changes an equality constraint.
+/**
+ * @brief Publish simulation-only evidence from a consistent private snapshot.
+ *
+ * @par Publishers
+ * /simulation/sorting_ground_truth (visualization_msgs/msg/MarkerArray):
+ * Collision-geometry bounds in base_link, stamped with simulation time.
+ * /simulation/contact_diagnostics (diagnostic_msgs/msg/DiagnosticArray):
+ * Optional bounded contact evidence, enabled by sorting_observer.publish_contacts.
+ * Both use reliable, volatile QoS with depth 10. No TF is broadcast.
+ *
+ * @par Constraints
+ * Requires the chassis body and at least one free study_cafe_ body.
+ * The caller supplies a synchronized snapshot; this observer never changes
+ * physics state, controls, forces or equality constraints.
+ */
 class SortingObserver
   : public mujoco_ros2_control_plugins::MuJoCoROS2ControlPluginBase
 {

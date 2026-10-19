@@ -205,8 +205,14 @@ test("manipulation replay uses the selected past snapshot and never a live succe
   );
   await page.goto("/#manipulation");
   await expect(page.locator(".manip-summary")).toContainText("완료된 실행");
-  await page.getByRole("button", { name: "기록 & 재생", exact: true }).click();
-  await page.getByRole("button", { name: "재생", exact: true }).click();
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await page
+    .locator("summary")
+    .filter({ hasText: "기록 관리, 내보내기" })
+    .click();
+  await page
+    .getByRole("button", { name: "시각으로 이동", exact: true })
+    .click();
   await page.getByRole("button", { name: "매니퓰레이션", exact: true }).click();
   await expect(page.locator(".manip-summary")).toContainText("기록 시점 진행");
   await expect(page.locator(".manip-summary")).toContainText("CarryObject");

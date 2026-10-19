@@ -86,7 +86,22 @@ class MecanumOdometry:
         positions: WheelPositions,
         stamp_s: float,
     ) -> OdometryEstimate | None:
-        """Consume one wheel sample, returning no estimate for the baseline."""
+        """Integrate wheel displacement using midpoint-heading mecanum odometry.
+
+        A non-increasing timestamp resets the sample baseline, not the pose.
+        With a velocity window, pose continues integrating during velocity warm-up.
+
+        Args:
+            positions: Cumulative wheel angles in radians.
+            stamp_s: Finite sample time in seconds from one clock.
+
+        Returns:
+            Pose in the odometry frame and velocity in the body frame, or None for
+            the initial sample, a time reset or an incomplete velocity window.
+
+        Raises:
+            ValueError: The timestamp is not finite.
+        """
         if not isfinite(stamp_s):
             raise ValueError('Sample timestamp must be finite')
 

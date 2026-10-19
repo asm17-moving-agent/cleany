@@ -18,7 +18,7 @@ RGB-D → target/context 점군 → 파지 후보 → 도달 가능한 후보 �
 | 입력 필드는 무엇인가? | [PlanGrasp.srv](../../../ros2_ws/src/cleany_interfaces/srv/PlanGrasp.srv) |
 | 후보가 어디서 생성되는가? | [GraspNode._plan()](../../../ros2_ws/src/cleany_grasping/cleany_grasping/grasp_node.py) |
 | 어떤 후보가 탈락하는가? | [rank_grasps()](../../../ros2_ws/src/cleany_grasping/cleany_grasping/core/selector.py) |
-| 실제 실행까지 담당하는가? | [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/README.md) |
+| 실제 실행까지 담당하는가? | [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md) |
 
 ## 11.2 RGB-D부터 후보 선택까지 추적
 

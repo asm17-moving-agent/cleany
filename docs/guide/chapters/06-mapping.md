@@ -14,6 +14,12 @@
 
 지도는 벽 위치를 보여주지만 로봇이 얼마나 가까이 갈지는 결정하지 않습니다. 주행에서는 로봇 크기와 장애물 여유를 고려하는 **costmap**, 경로 계획기, 속도 제어와 도착 판정이 필요합니다. Nav2는 이런 주행 구성 요소를 제공하는 ROS 2 스택입니다.
 
+실제로 지도가 쌓이는 모습은 아래 Cartographer 데모에서 볼 수 있습니다. 관측 위치가 바뀌면서 보이는 공간이 늘어나고, 아직 관측하지 않은 부분은 회색으로 남습니다. 이 지도 생성 화면에는 목적지 도착 판정이나 Nav2의 주행 결과가 들어 있지 않습니다.
+
+![Cartographer 2D 데모에서 센서 관측이 이동하며 회색 배경 위에 지도 영역이 점차 확장되는 움짤](../assets/media/cartographer-map.gif)
+
+*외부 SLAM 데모 · [Cartographer ROS](https://google-cartographer-ros.readthedocs.io/en/latest/), The Cartographer Authors, Apache-2.0. Cleany의 지도나 측정 결과가 아닙니다.*
+
 ## 06.2 Gazebo 센서 입력과 TF 계약
 
 Cleany의 SLAM 데이터 경로는 아래 순서로 읽을 수 있습니다.
@@ -33,7 +39,7 @@ SLAM은 scan이 관측된 시각에 로봇과 LiDAR가 어디 있었는지 알�
 
 ## 06.3 slam_toolbox 설정과 Lifecycle
 
-[cleany_navigation](../../../ros2_ws/src/cleany_navigation/README.md)은 SLAM 알고리즘을 새로 구현하기보다 외부 노드를 실행하는 launch와 설정을 제공합니다. [slam_mapping.launch.py](../../../ros2_ws/src/cleany_navigation/launch/slam_mapping.launch.py)는 `async_slam_toolbox_node`를 `LifecycleNode`로 만들고 설정 파일과 launch 인자를 전달합니다.
+[cleany_navigation](../../../ros2_ws/src/cleany_navigation/docs/safety.md)은 SLAM 알고리즘을 새로 구현하기보다 외부 노드를 실행하는 launch와 설정을 제공합니다. [slam_mapping.launch.py](../../../ros2_ws/src/cleany_navigation/launch/slam_mapping.launch.py)는 `async_slam_toolbox_node`를 `LifecycleNode`로 만들고 설정 파일과 launch 인자를 전달합니다.
 
 [slam_toolbox.yaml](../../../ros2_ws/src/cleany_navigation/config/slam/slam_toolbox.yaml)의 실제 입력 계약은 다음과 같습니다.
 
@@ -109,7 +115,7 @@ Gazebo의 [ground_truth_route_follower.py](../../../ros2_ws/src/cleany_gazebo_si
 
 ## 06.6 SLAM 관찰 실습
 
-ROS Humble 설치와 package 빌드가 필요합니다. 준비 과정은 [workspace README](../../../ros2_ws/README.md)와 [Gazebo README](../../../ros2_ws/src/cleany_gazebo_sim/README.md)를 따릅니다. 실제 로봇과 연결하지 않은 독립된 시뮬레이션 환경에서 수행하세요.
+ROS Humble 설치와 package 빌드가 필요합니다. 준비 과정은 [workspace README](../../DEVELOPMENT_SETUP.md)와 [Gazebo README](../../../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md)를 따릅니다. 실제 로봇과 연결하지 않은 독립된 시뮬레이션 환경에서 수행하세요.
 
 첫 터미널에서 센서가 있는 가상 공간을 실행합니다.
 

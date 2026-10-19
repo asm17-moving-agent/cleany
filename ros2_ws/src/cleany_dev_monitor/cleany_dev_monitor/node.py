@@ -1,4 +1,4 @@
-"""ROS reader. Only subscriptions, graph introspection and TF buffer lookups."""
+"""ROS reader. Subscriptions, TF lookups and the allowlisted read-only SubmapQuery."""
 
 import json
 import math
@@ -28,27 +28,88 @@ from rclpy.time import Time
 from rosidl_runtime_py.utilities import get_message
 from tf2_ros import Buffer, TransformException, TransformListener
 
+from .slam_reader import SlamReader
 from .camera import IMAGE_TYPES
 from .core import Hub, grid_origin, preview, transform_point, yaw
+from .sources import routes, resolved, SCHEMA, source_roles
 from .server import serve
 from .navigation import NavigationObserver, cloud_points, transform_xyz, vector
 from .manipulation import ManipulationObserver
 
 
 class MonitorNode(Node):
+    """Expose bounded ROS observations through the local monitor server.
+
+    Subscriptions:
+        /mission/debug_snapshot (cleany_interfaces/msg/RuntimeDebugSnapshot),
+        /mission/runtime_events (cleany_interfaces/msg/RuntimeEvent) and
+        /mission/result (cleany_interfaces/msg/MissionResult): Runtime evidence;
+            runtime_namespace changes this prefix.
+        /map, /local_costmap/costmap, /global_costmap/costmap
+            (nav_msgs/msg/OccupancyGrid): Map layers; configurable defaults.
+        /plan (nav_msgs/msg/Path), /wheel/odom and /ground_truth/odom
+            (nav_msgs/msg/Odometry): Planned and measured motion.
+        /nav2/cmd_vel, /safety_2d/cmd_vel, /cmd_vel (geometry_msgs/msg/Twist):
+            Command stages, configurable through velocity_topics.
+        /amcl_pose (geometry_msgs/msg/PoseWithCovarianceStamped): Localization.
+        /head_pan/state, /head_pan/coverage, /reactive_guard/state,
+        /body_guard_3d/state and /navigation/bt_trace (std_msgs/msg/String):
+            JSON navigation evidence; configurable defaults.
+        /collision_monitor_state (nav2_msgs/msg/CollisionMonitorState) and
+        /behavior_tree_log (nav2_msgs/msg/BehaviorTreeLog): Navigation decisions.
+        /rosout (rcl_interfaces/msg/Log), /clock (rosgraph_msgs/msg/Clock):
+            Logs and simulation-clock health.
+        mock/manipulation/execution_events: Configurable execution evidence;
+            type resolved from the graph, relative to runtime_namespace.
+        Other configured, UI-selected, camera and recording topics are resolved
+            from the ROS graph at discovery time, including action feedback.
+
+    TF:
+        Reads map -> base_link and sensor transforms; frame defaults are configurable.
+
+    QoS:
+        Discovery chooses reliability and durability from advertised publishers
+        and records compatibility; message types are resolved from the graph.
+
+    Notes:
+        The HTTP worker consumes a shared hub. This node creates no command
+        publishers or action clients. The only service client reads allowlisted
+        Cartographer SubmapQuery textures. Large geometry is subscribed on demand,
+        and camera, topic and recording limits bound retained data.
+    """
     def __init__(self, **kwargs):
         super().__init__("cleany_dev_monitor", **kwargs)
         defaults = {
+            "resource_interval_s": 1.0,
+            "resource_process_limit": 20,
+            "resource_history_limit": 300,
             "host": "127.0.0.1",
             "port": 8768,
             "state_directory": "~/.local/state/cleany/dev-monitor",
             "runtime_namespace": "",
+            "runtime_debug_topic": "",
+            "runtime_events_topic": "",
+            "runtime_result_topic": "",
+            "rosout_topic": "/rosout",
+            "clock_topic": "/clock",
             "manipulation_events_topic": "mock/manipulation/execution_events",
             "manipulation_execution_limit": 20,
             "manipulation_interval_limit": 64,
             "map_frame": "map",
             "base_frame": "base_link",
             "map_topic": "/map",
+            "slam_submaps_topic": "/submap_list",
+            "slam_trajectory_topic": "/trajectory_node_list",
+            "slam_constraints_topic": "/constraint_list",
+            "slam_matched_points_topic": "/scan_matched_points2",
+            "slam_submap_query_service": "/submap_query",
+            "slam_submap_limit": 64,
+            "slam_texture_pixel_limit": 262144,
+            "slam_texture_cache_bytes": 16777216,
+            "slam_marker_point_limit": 4096,
+            "slam_query_timeout_s": 2.0,
+            "slam_adjustment_m": .05,
+            "slam_adjustment_rad": .02,
             "path_topic": "/plan",
             "local_costmap_topic": "/local_costmap/costmap",
             "global_costmap_topic": "/global_costmap/costmap",
@@ -97,6 +158,18 @@ class MonitorNode(Node):
                 or not .1 <= self.config["bt_event_repeat_interval_s"] <= 10
                 or not 0 <= self.config["stationary_speed_mps"] < self.config["creep_speed_mps"]):
             raise ValueError("Invalid navigation observation limits")
+        if (not 1 <= self.config['slam_submap_limit'] <= 128
+                or not 1 <= self.config['slam_texture_pixel_limit'] <= 524288
+                or not 1048576 <= self.config['slam_texture_cache_bytes'] <= 67108864
+                or not 2 <= self.config['slam_marker_point_limit'] <= 8192
+                or not .25 <= self.config['slam_query_timeout_s'] <= 10
+                or not .001 <= self.config['slam_adjustment_m'] <= 10
+                or not .001 <= self.config['slam_adjustment_rad'] <= math.pi):
+            raise ValueError('Invalid SLAM observation limits')
+        self.config.update(resolved(self.config))
+        self.base_config = dict(self.config)
+        self.source_settings = {}
+        self.topic_revision = 0
         self.navigation = NavigationObserver(self.config["velocity_topics"],
             self.config["navigation_freshness_s"], self.config["stationary_speed_mps"],
             self.config["creep_speed_mps"], self.config["map_frame"])
@@ -127,38 +200,11 @@ class MonitorNode(Node):
         self.hub.cameras.fps = self.config["camera_fps"]
         self.buffer = Buffer()
         self.listener = TransformListener(self.buffer, self)
-        prefix = (
-            "/" + self.config["runtime_namespace"].strip("/")
-            if self.config["runtime_namespace"].strip("/")
-            else ""
-        )
-        self.fixed = {
-            f"{prefix}/mission/debug_snapshot",
-            f"{prefix}/mission/runtime_events",
-            f"{prefix}/mission/result",
-            "/rosout",
-            "/clock",
-            *self.config["velocity_topics"],
-        }
-        self.layers = {
-            self.config["map_topic"]: "map",
-            self.config["path_topic"]: "path",
-            self.config["local_costmap_topic"]: "local_costmap",
-            self.config["global_costmap_topic"]: "global_costmap",
-        }
-        self.fixed.add(self.config["nav2_bt_trace_topic"])
-        self.fixed.update(self.layers)
-        self.fixed.update(self.config[key+"_topic"] for key in (
-            "odometry", "ground_truth", "amcl_pose", "pan_state", "reactive_guard",
-            "voxel_guard", "collision_state", "coverage", "nav2_bt"))
-        # Large geometry is selected by the visible navigation panel only.
-        self.layers.update({self.config[key+"_topic"]: key for key in (
-            "obstacle_memory", "lidar_memory", "depth_memory", "local_path")})
-        event_topic = self.config["manipulation_events_topic"]
-        self.manipulation_events = (
-            event_topic if event_topic.startswith("/") else prefix + "/" + event_topic
-        )
-        self.fixed.add(self.manipulation_events)
+        self.config, self.fixed, self.layers, self.navigation_keys = routes(self.config)
+        self.manipulation_events = self.config['manipulation_events_topic']
+        self.hub.source_roles = source_roles(self.config)
+        self.hub.source_categories = {topic: SCHEMA[key]['group'] for key, value in resolved(self.config).items() for topic in (value if isinstance(value, list) else [value])}
+        self.slam = SlamReader(self)
         self.subs, self.rates, self.last_ui, self.errors = {}, {}, {}, {}
         self.last_clock = None
         self.last_clock_changed = time.monotonic()
@@ -175,6 +221,7 @@ class MonitorNode(Node):
             },
         )
         steady = Clock(clock_type=ClockType.STEADY_TIME)
+        self.create_timer(.25, lambda: self.slam.tick(), clock=steady)
         self.create_timer(1.0, self.discover, clock=steady)
         self.create_timer(0.1, self.pose, clock=steady)
         self.create_timer(0.2, self.navigation_tick, clock=steady)
@@ -184,7 +231,39 @@ class MonitorNode(Node):
         )
         self.worker.start()
 
+    def apply_sources(self):
+        sources = self.hub.recording.view()['settings']['sources']
+        if sources == self.source_settings:
+            return
+        self.source_settings = dict(sources)
+        if resolved({**self.base_config, **sources}) == resolved(self.config):
+            return
+        self.last_clock = None
+        self.last_clock_changed = time.monotonic()
+        self.topic_revision += 1
+        self.config, self.fixed, self.layers, self.navigation_keys = routes({**self.base_config, **sources})
+        self.manipulation_events = self.config['manipulation_events_topic']
+        for subscription, _ in self.subs.values():
+            self.destroy_subscription(subscription)
+        self.subs.clear()
+        self.rates.clear()
+        self.last_ui.clear()
+        self.errors.clear()
+        self.runtime_data, self.runtime_received = {}, 0.
+        self.runtime_boot, self.runtime_seq = None, None
+        self.manipulation = ManipulationObserver(self.config['manipulation_execution_limit'],
+                                                self.config['manipulation_interval_limit'])
+        self.navigation_previous.clear()
+        self.bt_event_received.clear()
+        self.bt_event_repeated.clear()
+        self.navigation = NavigationObserver(self.config['velocity_topics'], self.config['navigation_freshness_s'], self.config['stationary_speed_mps'], self.config['creep_speed_mps'], self.config['map_frame'])
+        self.slam.close()
+        self.slam = SlamReader(self)
+        self.hub.reset_sources(self.config, self.topic_revision)
+        self.hub.put('event', 'observation_sources', {'kind': 'observation_sources_changed', 'topic_revision': self.topic_revision}, critical=True)
+
     def discover(self):
+        self.apply_sources()
         graph = {
             "topics": [],
             "nodes": [],
@@ -194,6 +273,14 @@ class MonitorNode(Node):
         topics = dict(self.get_topic_names_and_types())
         selected = self.hub.selections()
         self.hub.recording.discover(topics)
+        revision = self.hub.recording.revision
+        if revision != getattr(self, 'raw_recording_revision', None):
+            # Re-request every publisher's retained sample for a fresh session,
+            # including /tf_static even when another observer keeps it selected.
+            for name in self.hub.recording.topics():
+                if name in self.subs and self.subs[name][1][2]:
+                    self.destroy_subscription(self.subs.pop(name)[0])
+            self.raw_recording_revision = revision
         wanted = self.fixed | selected | self.hub.cameras.selected() | self.hub.recording.topics()
         # Action status/feedback are read-only public topics, not goal/result services.
         wanted.update(
@@ -354,19 +441,26 @@ class MonitorNode(Node):
             ticket = self.hub.recording.reserve(topic)
             if ticket:
                 message_type = self.subs[topic][1][0][0]
-                self.hub.recording.offer(ticket, topic, message_type, serialize_message(message), ros_time)
+                signature = self.subs[topic][1]
+                self.hub.recording.offer(ticket, topic, message_type, serialize_message(message), ros_time,
+                                         timestamp_ns=self.get_clock().now().nanoseconds,
+                                         reliable=signature[1], latched=signature[2])
             if hasattr(message, "encoding") or (
                 hasattr(message, "format") and hasattr(message, "data")
             ):
                 self.hub.cameras.receive(topic, message)
-            if topic.endswith("/mission/debug_snapshot"):
+            if topic in self.slam.topics:
+                if now-self.last_ui.get(topic, 0) >= .5:
+                    self.last_ui[topic] = now
+                    self.slam.receive(topic, message, ros_time)
+            elif topic == self.config["runtime_debug_topic"]:
                 if message.schema_version != 1 or len(message.snapshot_json) > 1048576:
                     raise ValueError("Unsupported/oversized Runtime debug snapshot")
                 data = json.loads(message.snapshot_json)
                 self.runtime_data, self.runtime_received = data, now
                 self.runtime_booted(message.boot_id)
                 self.hub.put("runtime", topic, data, ros_time=ros_time)
-            elif topic.endswith("/mission/runtime_events"):
+            elif topic == self.config["runtime_events_topic"]:
                 self.runtime_booted(message.boot_id)
                 if message.sequence != (self.runtime_seq or 0) + 1:
                     self.hub.put(
@@ -413,13 +507,14 @@ class MonitorNode(Node):
                 )
                 received_at = time.time()
                 if self.manipulation.ingest(record, received_at):
-                    self.hub.put("manipulation", "executions", self.manipulation.snapshot(),
+                    self.hub.put("manipulation", "executions",
+                                 {**self.manipulation.snapshot(), "topic": topic},
                                  ros_time=ros_time, received_at=received_at)
-            elif topic.endswith("/mission/result"):
+            elif topic == self.config["runtime_result_topic"]:
                 self.hub.put(
                     "result", topic, preview(message), critical=True, ros_time=ros_time
                 )
-            elif topic == "/rosout":
+            elif topic == self.config["rosout_topic"]:
                 self.hub.put(
                     "log",
                     topic,
@@ -427,9 +522,10 @@ class MonitorNode(Node):
                     critical=True,
                     ros_time=message.stamp.sec + message.stamp.nanosec / 1e9,
                 )
-            elif topic == "/clock":
+            elif topic == self.config["clock_topic"]:
                 value = message.clock.sec + message.clock.nanosec / 1e9
                 if self.last_clock is not None and value < self.last_clock:
+                    self.slam.reset()
                     self.hub.put(
                         "event",
                         "clock",
@@ -455,6 +551,12 @@ class MonitorNode(Node):
                 self.hub.put("nav2_bt_tree", topic, data, ros_time=ros_time)
             elif topic == self.config["nav2_bt_topic"]:
                 self.navigation_receive(topic, message, ros_time)
+            elif self.navigation_keys.get(topic) in ("pan", "reactive_guard", "voxel_guard", "coverage", "collision"):
+                # Detect every decision change before applying the state display cadence.
+                publish_state = now - self.last_ui.get(topic, 0) >= 0.1
+                self.navigation_receive(topic, message, ros_time, publish_state=publish_state)
+                if publish_state:
+                    self.last_ui[topic] = now
             elif now - self.last_ui.get(topic, 0) >= (0.5 if topic in self.navigation_keys and self.navigation_keys[topic] in ("scan", "depth_points", "risk_points", "controller_evaluation") else 0.1):
                 self.last_ui[topic] = now
                 if topic in self.layers:
@@ -541,7 +643,7 @@ class MonitorNode(Node):
         except (TransformException, ValueError, TypeError, AttributeError, RuntimeError) as exc:
             self.hub.put("layer", kind, {"valid": False, "reason": str(exc), "topic": topic}, ros_time=ros_time)
 
-    def navigation_receive(self, topic, message, ros_time):
+    def navigation_receive(self, topic, message, ros_time, *, publish_state=True):
         key = self.navigation_keys[topic]
         data = {"topic": topic, "valid": True}
         try:
@@ -654,7 +756,9 @@ class MonitorNode(Node):
         except (TransformException, ValueError, TypeError, AttributeError, struct.error) as exc:
             self.navigation.observations.pop(key, None)
             data = {"topic": topic, "valid": False, "reason": str(exc)}
-        self.hub.put("navigation", key, data, ros_time=ros_time)
+        data["topic"] = topic
+        if publish_state:
+            self.hub.put("navigation", key, data, ros_time=ros_time)
 
     def navigation_tick(self):
         wall, monotonic = time.time(), time.monotonic()
@@ -696,6 +800,7 @@ class MonitorNode(Node):
             self.hub.put("pose", "robot", {"valid": False, "reason": str(exc)})
 
     def destroy_node(self):
+        self.slam.close()
         self.stop_event.set()
         self.worker.join(timeout=5)
         return super().destroy_node()

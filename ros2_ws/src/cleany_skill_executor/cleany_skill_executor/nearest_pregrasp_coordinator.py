@@ -91,7 +91,54 @@ class LiftRedetectionError(RuntimeError):
 
 
 class NearestPregraspCoordinator(GraspExecutionNode):
-    """Try distance-valid objects until one reaches pre-grasp."""
+    """Inspect objects in distance order and attempt a guarded pre-grasp.
+
+    Inherits joint feedback and MoveIt/selection clients from GraspExecutionNode.
+
+    Subscriptions:
+        /monitored_planning_scene (moveit_msgs/msg/PlanningScene): Scene commits.
+        /perception/scene_cloud_filtered (sensor_msgs/msg/PointCloud2): Fresh cloud;
+            replaced by a std_msgs/msg/Header subscription if a receipt topic is set.
+        /perception/debug_image_latched (sensor_msgs/msg/Image): Overlay background.
+        /cleany/internal/mujoco/left_wrist_camera/camera_info
+            (sensor_msgs/msg/CameraInfo): Overlay calibration.
+        /{left,right}_arm_controller/controller_state
+            (control_msgs/msg/JointTrajectoryControllerState): Execution/contact feedback.
+        /robot_description (std_msgs/msg/String): Used by optional seeded Cartesian planning.
+        /grasp/collision_geometry (cleany_interfaces/msg/ObservedObjectGeometry):
+            Optional observed mesh input; collision_geometry_topic default,
+            reliable and transient local.
+
+    Publishers:
+        /grasp/debug_image_latched (sensor_msgs/msg/Image): Candidate overlay.
+
+    Services:
+        /grasp/plan (cleany_interfaces/srv/PlanGrasp): Grasp candidates.
+        /compute_fk (moveit_msgs/srv/GetPositionFK): Measured TCP pose.
+        /compute_ik (moveit_msgs/srv/GetPositionIK) and /check_state_validity
+            (moveit_msgs/srv/GetStateValidity): Optional seeded Cartesian checks.
+        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene) and
+        /get_planning_scene (moveit_msgs/srv/GetPlanningScene): Temporary geometry
+            and allowed-contact updates through TargetSceneTransaction.
+
+    Actions:
+        /perception/inspect_scene (cleany_interfaces/action/InspectScene): Inspection client.
+        /execute_trajectory (moveit_msgs/action/ExecuteTrajectory): Trajectory client.
+        /{left,right}_gripper_controller/follow_joint_trajectory
+            (control_msgs/action/FollowJointTrajectory): Gripper clients.
+
+    TF:
+        Reads camera/TCP transforms; does not broadcast.
+
+    QoS:
+        Images and robot description are transient local; camera/cloud inputs
+        use sensor_data. Optional receipt input is reliable depth 1.
+
+    Notes:
+        Inspection, grasp, scene, cloud, image and camera names above are parameter
+        defaults. Grasp/lift execution is opt-in; plan_only suppresses execution.
+        Scene receipts and scene commits are checked separately when required.
+    """
 
     def __init__(self) -> None:
         super().__init__(node_name='nearest_pregrasp_coordinator')

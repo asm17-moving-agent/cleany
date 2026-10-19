@@ -19,7 +19,7 @@ function cleaningRows(runs = [run()], stale = false) {
 }
 async function open(page: Page) {
   await page.goto("/");
-  await page.getByRole("tab", { name: "청소 BT", exact: true }).click();
+  await page.getByRole("tab", { name: "BT", exact: true }).click();
   await page.locator('.react-flow__node[data-id="ExecuteOne"]').click();
   const detail = page.getByRole("region", { name: "ExecuteOne 조작 상세" });
   await expect(detail).toBeVisible();
@@ -281,10 +281,16 @@ test("replay detail uses only the selected past execution record", async ({
     route.fulfill({ json: { rows: past, metadata: {} } }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "기록 & 재생", exact: true }).click();
-  await page.getByRole("button", { name: "재생", exact: true }).click();
-  await page.getByRole("button", { name: "실행 흐름", exact: true }).click();
-  await page.getByRole("tab", { name: "청소 BT", exact: true }).click();
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await page
+    .locator("summary")
+    .filter({ hasText: "기록 관리, 내보내기" })
+    .click();
+  await page
+    .getByRole("button", { name: "시각으로 이동", exact: true })
+    .click();
+  await page.getByRole("button", { name: "실행", exact: true }).click();
+  await page.getByRole("tab", { name: "BT", exact: true }).click();
   await page
     .getByRole("button", { name: "조작 단계 보기", exact: true })
     .press("Enter");

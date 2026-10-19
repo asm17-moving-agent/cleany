@@ -14,13 +14,19 @@
 
 색상과 깊이 영상의 같은 픽셀이 같은 공간을 보아야 합니다. 깊이의 단위도 확인해야 합니다. 이 장의 순수 함수는 입력 이름부터 `depth_m`으로 미터 단위를 요구합니다.
 
+![RealSense Viewer에서 깊이 영상의 가까운 부분과 먼 부분을 서로 다른 색으로 표시한 화면](../assets/media/realsense-viewer.png)
+
+*외부 깊이 화면 · [RealSense SDK](https://github.com/realsenseai/librealsense/blob/c84fe6438bd14a4cc69f46deae92c993268232c6/doc/img/windows_viewer_preview.PNG), Apache-2.0. 화면의 색은 물체의 실제 색이 아니라 깊이를 보기 쉽게 표현한 값입니다.*
+
+깊이 영상은 이렇게 색을 입혀 볼 수도 있습니다. 팔의 목표를 계산할 때는 화면의 빨강·파랑을 사용하는 것이 아니라 원래의 깊이 수치와 단위를 읽습니다.
+
 ## 07.2 Cleany의 인식 경로
 
 현재 `cleany_perception`은 scaffold입니다. 범용 인식 파이프라인의 인터페이스와 빨간 캔 데모의 실행 가능한 코드를 구분해서 읽습니다.
 
 | 경로 | 실제 책임 |
 | --- | --- |
-| [cleany_interfaces](../../../ros2_ws/src/cleany_interfaces/README.md) | 인식 결과·snapshot·파지 요청의 메시지 계약 |
+| [cleany_interfaces](../../../ros2_ws/src/cleany_interfaces/docs/observation-contracts.md) | 인식 결과·snapshot·파지 요청의 메시지 계약 |
 | [can_grasp_execution_demo.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/can_grasp_execution_demo.py) | MuJoCo 영상 수신, 변환, 서비스 요청을 연결 |
 | [core/can_rgbd.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/core/can_rgbd.py) | ROS 없이 빨간 캔 분할과 점군 투영 |
 
@@ -84,6 +90,12 @@ PYTHON
 
 결과는 `(0.1, 0.0, 1.0)`, `(0.2, 0.0, 2.0)`입니다. 같은 픽셀이라도 깊이가 다르면 3차원 위치가 다릅니다. 이것은 투영 식의 예시이며 실제 측정 결과가 아닙니다.
 
+![RealSense 점군 예제에서 방 안의 책상과 벽이 색을 가진 점들로 나타나고 일부 표면에는 빈 부분이 보이는 화면](../assets/media/realsense-pointcloud.png)
+
+*외부 점군 화면 · [RealSense SDK](https://github.com/realsenseai/librealsense/blob/c84fe6438bd14a4cc69f46deae92c993268232c6/doc/img/windows_pointcloud_preview.PNG), Apache-2.0. 앞의 깊이 화면과는 다른 장면이며, Cleany의 캔 분할 결과가 아닙니다.*
+
+점군은 물체 내부까지 채운 입체 모델이 아닙니다. 카메라가 관측한 표면의 점들이므로, 가려진 부분이나 깊이를 얻지 못한 부분은 비어 있을 수 있습니다.
+
 ## 07.5 Frame·timestamp·snapshot 계약
 
 좌표값만 전달하면 언제, 어디서 측정했는지 잃어버립니다. 데모의 `_on_camera()`는 ROS `header.stamp`의 초·나노초를 키로 사용합니다. 다음은 그 함수의 연속된 실제 발췌입니다.
@@ -129,4 +141,4 @@ _on_camera() → _wait_for_rgbd()
 
 </details>
 
-데모의 실행 전제와 현재 범위는 [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/README.md)에서 확인합니다.
+데모의 실행 전제와 현재 범위는 [Skill Executor README](../../../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)에서 확인합니다.

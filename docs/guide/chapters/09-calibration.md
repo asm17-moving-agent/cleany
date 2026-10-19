@@ -6,7 +6,7 @@
 
 설계 파일의 센서 위치는 실제 조립 위치와 조금 다를 수 있습니다. **보정**(calibration)은 측정을 사용해 모델의 관계나 파라미터를 추정하는 과정입니다. 손목과 카메라 사이 관계를 찾는 작업이 **hand-eye calibration**입니다.
 
-앞 장의 고정 카메라 캔 데모와 이번 장의 카메라는 다릅니다. [cleany_handeye_calibration](../../../ros2_ws/src/cleany_handeye_calibration/README.md)은 **왼팔 손목 카메라**의 eye-in-hand 경로를 다룹니다. 팔이 움직이면 카메라도 움직이고 관측 보드는 고정되어 있습니다.
+앞 장의 고정 카메라 캔 데모와 이번 장의 카메라는 다릅니다. [cleany_handeye_calibration](../../../ros2_ws/src/cleany_handeye_calibration/docs/offline-tools.md)은 **왼팔 손목 카메라**의 eye-in-hand 경로를 다룹니다. 팔이 움직이면 카메라도 움직이고 관측 보드는 고정되어 있습니다.
 
 ```mermaid
 flowchart TD
@@ -89,6 +89,16 @@ PYTHON
 ## 09.4 보드 검출과 PnP
 
 [target_detector.py](../../../ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/target_detector.py)는 보드 코너를 찾고 [pnp.py](../../../ros2_ws/src/cleany_handeye_calibration/cleany_handeye_calibration/pnp.py)의 `solve_planar_pnp()`가 자세를 계산합니다. 카메라 내부 파라미터와 왜곡 계수, 실제 보드 점과 영상 점이 필요합니다.
+
+<figure class="media-pair">
+  <div>
+    <img src="../assets/media/charuco-corners.jpg" alt="책상 위 ChArUco 보드의 검출된 코너에 번호를 붙인 OpenCV 예제 사진">
+    <img src="../assets/media/charuco-pose.jpg" alt="ChArUco 보드 위에 추정한 자세의 빨강 초록 파랑 좌표축을 표시한 OpenCV 예제 사진">
+  </div>
+  <figcaption>외부 검출 예시 · 첫 번째 사진은 코너 대응, 두 번째는 추정한 보드 자세의 축입니다. <a href="https://docs.opencv.org/4.9.0/df/d4a/tutorial_charuco_detection.html">OpenCV ChArUco 튜토리얼</a>, OpenCV contributors, Apache-2.0. Cleany의 촬영 자료나 보정 결과는 아닙니다.</figcaption>
+</figure>
+
+영상에 코너 번호를 표시하는 것과 3차원 자세를 구하는 것은 다른 단계입니다. 두 번째 사진처럼 축을 그리려면 코너 위치에 더해 보드의 실제 치수와 카메라 파라미터가 필요합니다.
 
 이 함수는 OpenCV의 `solvePnPGeneric(..., flags=cv2.SOLVEPNP_IPPE)`로 평면 보드의 두 후보를 얻습니다. 각 후보에 대해 `evaluate_pnp_candidate()`가 깊이·유효성·재투영 오차를 검사하고 `select_pnp_candidates()`로 이어집니다.
 

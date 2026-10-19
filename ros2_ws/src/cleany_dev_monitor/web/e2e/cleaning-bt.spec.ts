@@ -171,8 +171,11 @@ test("the cleaning view shows the final leaf when Runtime exits before its next 
       );
     ws.onMessage((message) => commands.push(JSON.parse(String(message))));
   });
+  await page.route("**/api/recordings", (route) =>
+    route.fulfill({ json: { sessions: [], active: "", reason: "" } }),
+  );
   await page.goto("/");
-  await page.getByRole("tab", { name: "청소 BT", exact: true }).click();
+  await page.getByRole("tab", { name: "BT", exact: true }).click();
   await expect(page.locator(".react-flow__node")).toHaveCount(9);
   await expect(page.locator(".react-flow__edge")).toHaveCount(8);
   await expect(page.locator(".bt-node-order")).toHaveCount(7);

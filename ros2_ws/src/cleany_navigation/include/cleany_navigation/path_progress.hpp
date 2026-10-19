@@ -1,8 +1,8 @@
 #pragma once
 #include "dwb_core/trajectory_critic.hpp"
 namespace cleany_navigation {
-// Continuous remaining path length resolves grid-potential plateaus without
-// changing collision, velocity or arrival acceptance.
+/// Continuous remaining path length resolves grid-potential plateaus without
+/// changing collision, velocity or arrival acceptance.
 class PathProgressCritic : public dwb_core::TrajectoryCritic {
 public:
   bool prepare(const geometry_msgs::msg::Pose2D &,const nav_2d_msgs::msg::Twist2D &,

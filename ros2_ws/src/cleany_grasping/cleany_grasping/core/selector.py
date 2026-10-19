@@ -72,6 +72,20 @@ def rank_grasps(
     target_cloud: PointCloud,
     config: GraspConfig | None = None,
 ) -> tuple[GraspPose, ...]:
+    """Filter and suppress scored grasps before robot-specific reachability checks.
+
+    Require the predicted contact inside the target bounds plus margin, enforce
+    opening limits and suppress nearby poses. Input clouds and candidate
+    translations share a frame and use metres.
+
+    Returns:
+        Score-ordered grasps converted from the model convention to the TCP
+        convention. An empty tuple means no candidate survived these filters;
+        surviving candidates still require robot IK and collision checks.
+
+    Raises:
+        ValueError: The target cloud is empty.
+    """
     settings = config or GraspConfig()
     if target_cloud.points.shape[0] == 0:
         raise ValueError('Target cloud must not be empty')

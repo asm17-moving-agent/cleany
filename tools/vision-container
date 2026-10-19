@@ -24,6 +24,7 @@ identity_keys=(
   YOLOE_MODEL_HOST_DIR
 )
 
+# Do not let the caller environment override the root-owned identity file.
 compose_environment=(env)
 for key in "${identity_keys[@]}" CLEANY_JETSON_IDENTITY_FILE; do
   compose_environment+=(-u "${key}")
@@ -87,6 +88,7 @@ identity_value() {
   ' "${identity_file}"
 }
 
+# The licensed MAC must not be shared by another running container.
 guard_unique_anygrasp_mac() {
   local expected_mac current_id container_id container_name actual_mac
   expected_mac="$(identity_value ANYGRASP_MAC_ADDRESS)"

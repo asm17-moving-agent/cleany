@@ -19,6 +19,18 @@ from cleany_gazebo_sim.route_control import (
 
 
 class GroundTruthRouteFollower(Node):
+    """Follow configured world waypoints using simulation ground truth.
+
+    Subscriptions:
+        ground_truth/odom (nav_msgs/msg/Odometry): Actual simulator pose.
+
+    Publishers:
+        cmd_vel (geometry_msgs/msg/Twist): Body-frame waypoint commands.
+
+    Notes:
+        waypoints_xy is required. This simulation-only follower bypasses Nav2;
+        stale odometry or route completion produces a stop command.
+    """
     def __init__(self) -> None:
         super().__init__('ground_truth_route_follower')
         self.declare_parameter('waypoints_xy', Parameter.Type.DOUBLE_ARRAY)

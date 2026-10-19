@@ -25,6 +25,27 @@ def velocity(msg) -> tuple[float, float, float]:
 
 
 class PanMotionGate(Node):
+    """Align the head with requested motion and optionally gate base commands.
+
+    Subscriptions:
+        nav2/cmd_vel (geometry_msgs/msg/Twist): Desired motion.
+        joint_states (sensor_msgs/msg/JointState): Measured pan position and speed.
+        odom (nav_msgs/msg/Odometry) and camera/head/depth/points
+            (sensor_msgs/msg/PointCloud2): Stop and freshness evidence in gating mode.
+
+    Publishers:
+        pan_ready/cmd_vel (geometry_msgs/msg/Twist): Gated base command.
+        head_pan/command (std_msgs/msg/Float64): Pan target in radians.
+        head_pan/state (std_msgs/msg/String): JSON alignment and gate state.
+
+    QoS:
+        Joint, odometry and depth inputs use sensor_data.
+
+    Notes:
+        All endpoint names above are configurable defaults. observation_only
+        omits the base command output and odometry/depth subscriptions but still
+        commands head pan. Timing checks run on a steady timer.
+    """
     def __init__(self) -> None:
         super().__init__('pan_motion_gate')
         defaults = dict(observation_only=False, target_change_rad=math.radians(10.), tracking_minimum_speed=.01,

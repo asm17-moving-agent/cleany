@@ -13,6 +13,28 @@ from .core import newer
 
 
 class MockMcu(Node):
+    """Emulate the MCU permission and encoder contract without hardware.
+
+    Subscriptions:
+        base/wheel_command (cleany_base_interfaces/msg/WheelCommand): Sequenced,
+            expiring wheel commands.
+
+    Publishers:
+        base/wheel_state (cleany_base_interfaces/msg/WheelState): Synthetic
+            encoder counts and permission state, with target speed as feedback.
+
+    Services:
+        mock/reboot (std_srvs/srv/Trigger): Reset boot identity and encoder state.
+        mock/transport (std_srvs/srv/SetBool): Enable or suppress feedback.
+        mock/drop_next_enable (std_srvs/srv/Trigger): Drop one enable request.
+        mock/force_disarm (std_srvs/srv/Trigger): Clear motion permission.
+
+    QoS:
+        Wheel transport uses best-effort, volatile, depth 1.
+
+    Notes:
+        Uses steady time and models protocol faults, not motor dynamics.
+    """
     def __init__(self):
         super().__init__('mock_base_mcu')
         qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT,

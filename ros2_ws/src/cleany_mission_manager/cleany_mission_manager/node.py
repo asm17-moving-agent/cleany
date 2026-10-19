@@ -30,6 +30,49 @@ from cleany_mission_manager.mocks.desk import MockDesk
 
 
 class MissionRuntimeNode(Node):
+    """Adapt the journaled mission state machine to ROS.
+
+    Subscriptions:
+        robot/safety_fault and robot/safety_released (std_msgs/msg/String):
+            E_STOP or HARDWARE_ERROR notifications from the safety owner.
+        odom (nav_msgs/msg/Odometry): Stop evidence with the Nav2 backend;
+            odom_topic default.
+        navigate_to_pose/_action/status (action_msgs/msg/GoalStatusArray):
+            Goal reconciliation in Nav2 mode.
+
+    Publishers:
+        mission/status (cleany_interfaces/msg/MissionStatus): Changed state.
+        mission/result (cleany_interfaces/msg/MissionResult): New terminal result.
+        mission/debug_snapshot (cleany_interfaces/msg/RuntimeDebugSnapshot):
+            Bounded diagnostic state, sampled at most twice per second.
+        mission/runtime_events (cleany_interfaces/msg/RuntimeEvent): Ordered events.
+
+    Services:
+        mission/offer (cleany_interfaces/srv/OfferMission): Admit or replay a request.
+        mission/cancel (cleany_interfaces/srv/CancelMission): Request cancellation.
+        mission/snapshot (cleany_interfaces/srv/GetRuntimeSnapshot): Read state.
+        mission/reset_error (std_srvs/srv/Trigger): Request guarded recovery.
+        Nav2 mode queries lifecycle GetState services through Nav2Navigator.
+        action_mock mode queries mock/manipulation/get_execution
+            (cleany_interfaces/srv/GetManipulationExecution), configurable.
+
+    Actions:
+        navigate_to_pose (nav2_msgs/action/NavigateToPose): Client in Nav2 mode.
+        mock/manipulation/execute_skill
+            (cleany_interfaces/action/ExecuteManipulationSkill): Configurable
+            client in action_mock mode; the default desk backend is in-process mock.
+
+    TF:
+        Nav2Navigator reads localization transforms; this node broadcasts none.
+
+    QoS:
+        State/result/debug use reliable, transient-local depth 1; runtime events
+        retain depth 2048. Navigation odometry uses sensor_data.
+
+    Notes:
+        State transitions run on a steady-clock tick. A safety notification
+        assumes its producer has already stopped hardware; it is not a stop actuator.
+    """
     def __init__(self, **kwargs) -> None:
         super().__init__("mission_runtime", **kwargs)
         defaults = {

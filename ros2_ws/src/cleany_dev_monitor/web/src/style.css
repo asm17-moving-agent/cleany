@@ -738,42 +738,6 @@ footer {
   padding: 7px;
   overflow-wrap: anywhere;
 }
-.foxglove-panel {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 20px;
-  background: var(--card);
-}
-.integration-icon {
-  padding: 10px;
-  background: var(--muted);
-  border-radius: 9px;
-  color: var(--muted-foreground);
-}
-.integration-copy {
-  flex: 1;
-}
-.integration-copy strong {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 600;
-}
-.integration-copy p {
-  font-size: 11px;
-  color: var(--muted-foreground);
-  line-height: 1.8;
-  margin-top: 7px;
-}
-.integration-copy summary {
-  font-size: 11px;
-  padding: 10px 0 0;
-}
 .sidebar-collapsed {
   --sidebar-width: 76px;
 }
@@ -877,12 +841,6 @@ footer {
   .connection-banner > .badge {
     display: none;
   }
-  .foxglove-panel {
-    flex-wrap: wrap;
-  }
-  .integration-copy strong {
-    flex-wrap: wrap;
-  }
   .log-row {
     grid-template-columns: 65px 85px 1fr;
     gap: 8px;
@@ -928,44 +886,6 @@ footer {
 .badge.info {
   background: var(--info-bg);
   color: var(--info-text);
-}
-
-.camera-content {
-  padding: 18px;
-}
-.camera-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.camera-toolbar select {
-  flex: 1;
-  min-width: 120px;
-  max-width: 100%;
-}
-.camera-size {
-  font-size: 11px;
-  color: var(--muted-foreground);
-}
-.camera-viewport {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 16 / 9;
-  background: #101010;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.camera-viewport img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  min-height: 0;
-}
-.camera-viewport .empty {
-  color: #a3a3a3;
 }
 
 .execution-summary {
@@ -1303,4 +1223,104 @@ footer {
 }
 .ros-connections .react-flow__handle {
   opacity: 0;
+}
+
+.header-status {
+  margin-left: auto;
+}
+.header-status > span.header-clock {
+  display: inline;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitor-header {
+  height: auto;
+  min-height: 64px;
+  padding-block: 12px;
+  flex-wrap: wrap;
+}
+.header-timeline-controls {
+  flex: 1;
+  min-width: 0;
+}
+.header-timeline-controls .timeline-toolbar {
+  margin: 0;
+  gap: 6px;
+  color: var(--foreground);
+  font-size: 13px;
+}
+.monitor-header .header-status {
+  flex-wrap: wrap;
+}
+@media (max-width: 650px) {
+  .monitor-header {
+    padding: 10px 16px;
+    gap: 8px;
+  }
+  .header-timeline-controls {
+    flex-basis: 100%;
+    order: 2;
+  }
+  .monitor-header .header-status {
+    order: 1;
+    justify-content: flex-end;
+    width: 100%;
+  }
+}
+
+.monitor-header > .recording-timeline {
+  flex-basis: 100%;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  order: 3;
+}
+.monitor-header .timeline-fine {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+.monitor-header .timeline-fine::after {
+  top: auto;
+  bottom: 100%;
+}
+
+.camera-content {
+  padding: 18px;
+}
+.camera-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.camera-toolbar select {
+  flex: 1;
+  min-width: 120px;
+  max-width: 100%;
+}
+.camera-size {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.camera-viewport {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  background: #101010;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.camera-viewport img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  min-height: 0;
+}
+.camera-viewport .empty {
+  color: #a3a3a3;
 }

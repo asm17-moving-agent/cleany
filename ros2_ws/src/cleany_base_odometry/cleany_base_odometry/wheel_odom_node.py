@@ -17,7 +17,26 @@ from cleany_base_odometry.mecanum_odometry import (
 
 
 class WheelOdometryNode(Node):
-    """Publish planar wheel odometry from four cumulative joint positions."""
+    """Estimate planar odometry from cumulative wheel angles.
+
+    Subscriptions:
+        joint_states (sensor_msgs/msg/JointState): All four wheel positions in
+            radians; configurable with input_topic.
+
+    Publishers:
+        wheel/odom (nav_msgs/msg/Odometry): Pose in odom and velocity in
+            base_link; topic and frame names are parameter defaults.
+
+    TF:
+        Does not broadcast; the odometry relay owns odom -> base_link.
+
+    QoS:
+        Input uses sensor_data; output is reliable with depth 10.
+
+    Notes:
+        The first sample, non-increasing time and velocity-window warm-up
+        produce no message. Invalid wheel values raise a validation error.
+    """
 
     def __init__(self) -> None:
         super().__init__('wheel_odometry')
@@ -72,6 +91,11 @@ class WheelOdometryNode(Node):
         )
 
     def _on_joint_state(self, message: JointState) -> None:
+        """Integrate complete wheel samples, using node time for a zero stamp.
+
+        Missing positions or wheel names are ignored. Non-finite wheel values
+        raise during validation; they are not converted into zero motion.
+        """
         if len(message.position) < len(message.name):
             self.get_logger().warning(
                 'Ignoring JointState with fewer positions than names',

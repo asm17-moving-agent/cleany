@@ -18,18 +18,17 @@ type Props = {
   map: ReactNode;
   observe: (topics: string[]) => void;
   openTopic: (topic: string) => void;
-  openCamera: () => void;
   openLogs: () => void;
   seek: (at: number) => void;
   openRun: (run: Data) => void;
   sessionId: string;
 };
 const names: Record<string, string> = {
-  overview: "주행 개요",
-  safety: "장애물·안전",
-  control: "계획·제어",
-  sensors: "센서·위치",
-  compare: "주행 비교",
+  overview: "개요",
+  safety: "안전",
+  control: "제어",
+  sensors: "센서",
+  compare: "비교",
 };
 const motions: Record<string, string> = {
   MOVING: "이동 중",
@@ -163,7 +162,7 @@ function SpeedPlot({ summary }: { summary: Data }) {
             fill="var(--warn-text)"
           >
             <title>
-              {peak.label}: {n(peak.value)} m/s · {stamp(peak.at)}
+              {peak.label}: {n(peak.value)} m/s, {stamp(peak.at)}
             </title>
           </circle>
         ))}
@@ -181,11 +180,11 @@ function SpeedPlot({ summary }: { summary: Data }) {
             {l}
           </span>
         ))}
-        <span>m/s · 관측 누락은 선을 끊어 표시</span>
+        <span>m/s, 관측 누락은 선을 끊어 표시</span>
         {!!peaks.length && (
           <span>
-            그래프 상한 초과 {peaks.length}개 · 최대{" "}
-            {n(Math.max(...peaks.map((p) => p.value)))} m/s · 원본 유지
+            그래프 상한 초과 {peaks.length}개, 최대{" "}
+            {n(Math.max(...peaks.map((p) => p.value)))} m/s, 원본 유지
           </span>
         )}
       </div>
@@ -231,7 +230,7 @@ function Diagnostic({
           <Raw data={row.data} />
         </>
       ) : (
-        <Empty>발행·활성 여부 확인 필요</Empty>
+        <Empty>발행, 활성 여부 확인 필요</Empty>
       )}
     </Panel>
   );
@@ -283,7 +282,7 @@ function Comparison({
     ["gt_goal_error_m", "시뮬 실제 위치 목표 오차", "m"],
   ];
   const label = (r: Data) =>
-    `${r.configuration?.run_label || r.session_id?.slice(0, 8) || "현재 기록"} · ${r.target} · ${r.phase === "RETURN_HOME" ? "복귀" : "도착"} · ${stamp(r.start)}`;
+    `${r.configuration?.run_label || r.session_id?.slice(0, 8) || "현재 기록"}, ${r.target}, ${r.phase === "RETURN_HOME" ? "복귀" : "도착"}, ${stamp(r.start)}`;
   return (
     <>
       <Panel
@@ -294,7 +293,7 @@ function Comparison({
               ? "실행 두 개 필요"
               : comparable
                 ? "관측 기준 일치"
-                : "대상·관측 기준 다름"}
+                : "대상, 관측 기준 다름"}
           </Tag>
         }
       >
@@ -448,23 +447,9 @@ export function NavigationDashboard(p: Props) {
     const keys =
       tab === "overview"
         ? ["footprint"]
-        : tab === "safety"
-          ? [
-              "scan",
-              "depth_points",
-              "risk_points",
-              "footprint",
-              "stop_polygon",
-              "slow_polygon",
-              "obstacle_memory",
-              "lidar_memory",
-              "depth_memory",
-            ]
-          : tab === "control"
-            ? ["controller_evaluation", "local_path", "footprint"]
-            : tab === "sensors"
-              ? ["scan", "depth_points"]
-              : [];
+        : tab === "control"
+          ? ["controller_evaluation"]
+          : [];
     const known = new Set<string>(JSON.parse(available));
     p.observe(
       keys.map((k) => config[k + "_topic"]).filter((t) => t && known.has(t)),
@@ -574,7 +559,7 @@ export function NavigationDashboard(p: Props) {
   return (
     <div className="navigation-dashboard">
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="nav-tabs" aria-label="자율주행 상세">
+        <TabsList className="nav-tabs" aria-label="주행 상세">
           {Object.entries(names).map(([id, label]) => (
             <TabsTrigger key={id} value={id}>
               {label}
@@ -588,7 +573,7 @@ export function NavigationDashboard(p: Props) {
             (
               {
                 overview: "전체 주행 진행",
-                safety: "정지·감속 원인",
+                safety: "정지, 감속 원인",
                 control: "경로 선택과 제어 출력",
                 sensors: "관측 신뢰도와 위치 추정",
                 compare: "주행 결과 비교",
@@ -603,7 +588,7 @@ export function NavigationDashboard(p: Props) {
                 overview: "전체 경로에서 목표와 실제 이동 진행을 확인합니다.",
                 safety: "로봇 주변 장애물과 감시 모듈의 판단을 확인합니다.",
                 control:
-                  "Nav2의 실행 상태, 선택한 궤적과 속도 출력을 비교합니다.",
+                  "Nav2의 실행 상태, 후보 평가 점수와 속도 출력을 비교합니다.",
                 sensors: "센서 수신 지연과 위치 추정 오차를 확인합니다.",
                 compare: "같은 대상과 관측 기준의 실행 결과를 비교합니다.",
               } as Record<string, string>
@@ -611,6 +596,27 @@ export function NavigationDashboard(p: Props) {
           }
         </p>
       </div>
+      <details className="nav-rviz-guide">
+        <summary>상세 시각화, RViz</summary>
+        <p>
+          주행 개요에서 지도와 주행 진행을 확인합니다. SLAM 서브맵, 제약선,
+          LiDAR, 점군, costmap과 후보 궤적은 RViz에서 확인하세요.
+        </p>
+        <p>
+          실시간 관측은 같은 ROS_DOMAIN_ID와 메시지 overlay를 적용한 터미널에서{" "}
+          <code>rviz2</code>를 실행하고 Fixed Frame을{" "}
+          <code>{config.map_frame || "map"}</code>으로 설정하세요.
+        </p>
+        <p>
+          기록 메뉴에서 원본 rosbag2를 내려받아 압축을 푼 뒤 별도 터미널에서
+          실행하세요. SQLite는 대시보드 가공 기록입니다.
+        </p>
+        <pre>
+          {
+            "ros2 bag play <bag_directory> --clock\nrviz2 --ros-args -p use_sim_time:=true"
+          }
+        </pre>
+      </details>
       {tab === "overview" && (
         <div className="nav-summary-strip">
           <div>
@@ -682,10 +688,10 @@ export function NavigationDashboard(p: Props) {
                 />
                 <div className="inline nav-detail-links">
                   <Button variant="outline" onClick={() => setTab("safety")}>
-                    정지·감속 원인 보기
+                    정지, 감속 원인 보기
                   </Button>
                   <Button variant="outline" onClick={() => setTab("control")}>
-                    경로·속도 명령 보기
+                    경로, 속도 명령 보기
                   </Button>
                 </div>
               </Panel>
@@ -722,7 +728,7 @@ export function NavigationDashboard(p: Props) {
       )}
       {tab === "safety" && (
         <>
-          <Panel title="정지·감속 판단 요약">
+          <Panel title="정지, 감속 판단 요약">
             <div className="nav-safety-decisions">
               <div>
                 <small>Reactive guard</small>
@@ -757,53 +763,45 @@ export function NavigationDashboard(p: Props) {
               모듈 진단으로 확인합니다.
             </small>
           </Panel>
-          <div className="nav-overview">
-            {p.map}
-            <div className="nav-stack">
-              <Diagnostic
-                title="Reactive guard"
-                row={guard}
-                topic={config.reactive_guard_topic || "/reactive_guard/state"}
-                fresh={fresh(guard)}
-                openTopic={p.openTopic}
-              >
-                <Facts
-                  items={[
-                    ["판단", guard?.data.decision || "—"],
-                    [
-                      "처리 시간",
-                      `${n(guard?.data.processing_s * 1000, 2)} ms`,
-                    ],
-                    ["입력 최대 나이", `${n(guard?.data.source_age_s)} s`],
-                    ["관측 범위", guard?.data.observation_scope || "미제공"],
-                  ]}
-                />
-                <small>
-                  위험점·최소 거리·예상 제동 영역은 현재 이 진단에 제공되지
-                  않습니다.
-                </small>
-              </Diagnostic>
-              <Diagnostic
-                title="Collision Monitor"
-                row={collision}
-                topic={
-                  config.collision_state_topic || "/collision_monitor_state"
-                }
-                fresh={fresh(collision)}
-                openTopic={p.openTopic}
-              >
-                <Facts
-                  items={[
-                    ["동작", collision?.data.action_type ?? "미제공"],
-                    ["영역", collision?.data.polygon_name || "미제공"],
-                  ]}
-                />
-              </Diagnostic>
-            </div>
+          <div className="nav-two">
+            <Diagnostic
+              title="Reactive guard"
+              row={guard}
+              topic={config.reactive_guard_topic || "/reactive_guard/state"}
+              fresh={fresh(guard)}
+              openTopic={p.openTopic}
+            >
+              <Facts
+                items={[
+                  ["판단", guard?.data.decision || "—"],
+                  ["처리 시간", `${n(guard?.data.processing_s * 1000, 2)} ms`],
+                  ["입력 최대 나이", `${n(guard?.data.source_age_s)} s`],
+                  ["관측 범위", guard?.data.observation_scope || "미제공"],
+                ]}
+              />
+              <small>
+                위험점, 최소 거리, 예상 제동 영역은 현재 이 진단에 제공되지
+                않습니다.
+              </small>
+            </Diagnostic>
+            <Diagnostic
+              title="Collision Monitor"
+              row={collision}
+              topic={config.collision_state_topic || "/collision_monitor_state"}
+              fresh={fresh(collision)}
+              openTopic={p.openTopic}
+            >
+              <Facts
+                items={[
+                  ["동작", collision?.data.action_type ?? "미제공"],
+                  ["영역", collision?.data.polygon_name || "미제공"],
+                ]}
+              />
+            </Diagnostic>
           </div>
           <div className="nav-two">
             <Diagnostic
-              title="Voxel guard · 별도 속도 감시"
+              title="Voxel guard, 별도 속도 감시"
               row={voxel}
               topic={config.voxel_guard_topic || "/body_guard_3d/state"}
               fresh={fresh(voxel)}
@@ -821,7 +819,7 @@ export function NavigationDashboard(p: Props) {
               />
             </Diagnostic>
             <Diagnostic
-              title="Depth coverage · 관측 진단"
+              title="Depth coverage, 관측 진단"
               row={coverage}
               topic={config.coverage_topic || "/head_pan/coverage"}
               fresh={fresh(coverage)}
@@ -899,9 +897,9 @@ export function NavigationDashboard(p: Props) {
                             : r.data.valid === false
                               ? r.data.reason
                               : timeAt - r.received_at > 2
-                                ? "마지막 관측 · 갱신 지연"
+                                ? "마지막 관측, 갱신 지연"
                                 : "수신"}
-                          {r?.data.sampled && " · 점군 표본"}
+                          {r?.data.sampled && ", 점군 표본"}
                         </td>
                         <td>
                           <button
@@ -954,7 +952,7 @@ export function NavigationDashboard(p: Props) {
                     <em>m/s</em>
                   </strong>
                   <small>
-                    vx {n(c.vector?.[0])} · vy {n(c.vector?.[1])} · ω{" "}
+                    vx {n(c.vector?.[0])}, vy {n(c.vector?.[1])}, ω{" "}
                     {n(c.vector?.[2])}
                   </small>
                   <Tag tone={summaryFresh && c.fresh ? "good" : "warn"}>
@@ -969,10 +967,9 @@ export function NavigationDashboard(p: Props) {
             </div>
             <SpeedPlot summary={summary} />
           </Panel>
-          <div className="nav-overview nav-control-flow">
-            {p.map}
+          <div className="nav-stack">
             <Panel
-              title="Nav2 BT · 실행 트리"
+              title="Nav2 BT, 실행 트리"
               aside={
                 <Tag
                   tone={
@@ -983,7 +980,7 @@ export function NavigationDashboard(p: Props) {
                 >
                   {treeRow
                     ? timeAt - treeRow.received_at < 2
-                      ? "구조·상태 수신"
+                      ? "구조, 상태 수신"
                       : "관측 지연"
                     : observation("nav2_bt")
                       ? "이벤트 기반"
@@ -1014,7 +1011,7 @@ export function NavigationDashboard(p: Props) {
                 </div>
               ) : (
                 <Empty>
-                  Nav2 BT 이벤트를 기다리고 있습니다. 청소 BT는 실행 흐름 탭에서
+                  Nav2 BT 이벤트를 기다리고 있습니다. 청소 BT는 실행 메뉴에서
                   확인합니다.
                 </Empty>
               )}
@@ -1069,7 +1066,7 @@ export function NavigationDashboard(p: Props) {
       )}
       {tab === "sensors" && (
         <>
-          <Panel title="센서·TF 수신 상태">
+          <Panel title="센서, TF 수신 상태">
             <div className="nav-table-scroll">
               <table>
                 <thead>
@@ -1160,8 +1157,8 @@ export function NavigationDashboard(p: Props) {
             </div>
             <small>
               여유는 대시보드 관측 기준 {n(freshness)} s에 대한 값입니다. 실제
-              guard의 안전 유효시간·판정은 해당 guard 진단을 따릅니다. 수신 Hz는
-              발행 Hz와 다를 수 있습니다.
+              guard의 안전 유효시간, 판정은 해당 guard 진단을 따릅니다. 수신
+              Hz는 발행 Hz와 다를 수 있습니다.
             </small>
           </Panel>
           <div className="nav-two">
@@ -1206,9 +1203,7 @@ export function NavigationDashboard(p: Props) {
                   ],
                 ]}
               />
-              <Button variant="outline" onClick={p.openCamera}>
-                카메라 영상 보기
-              </Button>
+              <small>카메라 영상과 센서 공간 배치는 RViz에서 확인합니다.</small>
             </Diagnostic>
           </div>
         </>
@@ -1226,7 +1221,7 @@ export function NavigationDashboard(p: Props) {
           )}
           <Comparison runs={runs} config={config} onReplay={p.openRun} />
           {summary.active && (
-            <Panel title="현재 주행 구간 · 집계 중">
+            <Panel title="현재 주행 구간, 집계 중">
               <Facts
                 items={[
                   ["목표", summary.active.target],
@@ -1258,7 +1253,7 @@ export function NavigationDashboard(p: Props) {
               onChange={(e) => setEventFilter(e.target.value)}
             >
               <option value="all">이 화면의 이벤트</option>
-              {tab !== "control" && <option value="motion">이동·정지</option>}
+              {tab !== "control" && <option value="motion">이동, 정지</option>}
               {tab !== "overview" && tab !== "control" && (
                 <option value="decision">감시 판단</option>
               )}
@@ -1297,7 +1292,7 @@ export function NavigationDashboard(p: Props) {
                   {r.data.data?.node
                     ? `${r.data.data.node}: ${r.data.data.previous} → ${r.data.data.status}`
                     : r.data.data?.motion
-                      ? `${motions[r.data.data.motion]} · ${r.data.data.reason}`
+                      ? `${motions[r.data.data.motion]}, ${r.data.data.reason}`
                       : r.data.data?.decision
                         ? `${r.data.data.source}: ${r.data.data.decision}`
                         : JSON.stringify(r.data.data || r.data)}
@@ -1309,8 +1304,8 @@ export function NavigationDashboard(p: Props) {
           <Empty>이 화면에 해당하는 주행 이벤트 없음</Empty>
         )}
         <small>
-          이벤트를 선택하면 해당 수신 시각의 기록으로 이동합니다. 큰 센서
-          데이터는 해당 화면에서 관측했던 구간만 재생할 수 있습니다.
+          이벤트를 선택하면 해당 수신 시각의 기록으로 이동합니다. 원본 센서
+          데이터의 공간 시각화는 rosbag2를 재생해 RViz에서 확인합니다.
         </small>
       </Panel>
     </div>
@@ -1339,9 +1334,8 @@ function Controller({
       ) : (
         <>
           <small>
-            총 {row?.data.count}개 중 {ts.length}개 표본 · 선택 후보 #
-            {row?.data.best_index} 포함 · 음수 점수는 컨트롤러가 제공한 무효
-            평가
+            총 {row?.data.count}개 중 {ts.length}개 표본, 선택 후보 #
+            {row?.data.best_index} 포함, 음수 점수는 컨트롤러가 제공한 무효 평가
           </small>
           <div className="nav-table-scroll">
             <table>
@@ -1373,7 +1367,7 @@ function Controller({
                         .map(
                           (s) => `${s.name}: ${n(s.raw, 2)} × ${n(s.scale, 2)}`,
                         )
-                        .join(" · ")}
+                        .join(", ")}
                     </td>
                   </tr>
                 ))}
@@ -1428,7 +1422,7 @@ function Location({
         ],
         [
           "Ground truth map 위치",
-          gp ? `${n(gp[0])}, ${n(gp[1])}` : "시뮬 전용 · 좌표 변환/수신 미확인",
+          gp ? `${n(gp[0])}, ${n(gp[1])}` : "시뮬 전용, 좌표 변환/수신 미확인",
         ],
         ["추정 ↔ 시뮬 실제 위치 오차", `${n(error)} m`],
       ]}

@@ -19,12 +19,19 @@ import {
   RecordingControls,
   RecordingReplayNotice,
 } from "@/components/recording-controls";
+import {
+  type TimelineSession,
+  RecordingTimeline,
+  recordingSegments,
+  sessionAt,
+} from "@/components/recording-timeline";
 import { NavigationDashboard } from "@/components/navigation-dashboard";
 import { ManipulationDashboard } from "@/components/manipulation-dashboard";
 import { ExecuteOneDetail } from "@/components/execute-one-detail";
 import { RosGraph } from "@/components/ros-graph";
 import { FitGraphToViewport } from "@/components/fit-graph-to-viewport";
 import { CameraView } from "@/components/camera-view";
+import { NavigationMap } from "@/components/navigation-map";
 import { ThemeToggle } from "@/components/theme-toggle";
 import "./theme.css";
 import "./style.css";
@@ -51,7 +58,7 @@ import {
   PanelLeftOpen,
   ChevronDown,
 } from "lucide-react";
-import { FoxglovePanel } from "@/components/foxglove-panel";
+import { ResourceDashboard } from "@/components/resource-dashboard";
 import { Panel } from "@/components/panel";
 import { type Data, type Row, time } from "@/lib/monitor";
 import { applyRuntimeEvents } from "@/lib/runtime-observation";
@@ -61,6 +68,7 @@ type Packet = {
   boot_id?: string;
   sequence?: number;
   initial?: boolean;
+  sources_changed?: boolean;
   gap?: boolean;
   recording?: Data;
   error?: string;
@@ -72,18 +80,20 @@ const navIcons = [
   Network,
   Navigation2,
   Hand,
+  Camera,
   LogsIcon,
   History,
-  Camera,
+  Activity,
 ];
 const tabs = [
-  ["execution", "실행 흐름", "01"],
-  ["ros", "ROS 탐색기", "02"],
-  ["navigation", "자율주행", "03"],
+  ["execution", "실행", "01"],
+  ["ros", "ROS", "02"],
+  ["navigation", "주행", "03"],
   ["manipulation", "매니퓰레이션", "04"],
-  ["logs", "로그", "05"],
-  ["recordings", "기록 & 재생", "06"],
-  ["camera", "카메라", "07"],
+  ["camera", "카메라", "05"],
+  ["logs", "로그", "06"],
+  ["recordings", "기록", "07"],
+  ["resources", "자원", "08"],
 ];
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);
 const statusColor = (s: string) =>
@@ -207,7 +217,7 @@ function Tree({
     <>
       {!bt && visibleState !== runtime.state && (
         <span className="fsm-playback-note">
-          전이 재생 중 · 실제 {runtime.state}
+          전이 재생 중, 실제 {runtime.state}
         </span>
       )}
       <MemoDiagram spec={spec} onSelect={onSelect} bt={bt} />
@@ -328,16 +338,16 @@ const MemoDiagram = React.memo(function Diagram({
   ];
   const transitionLabels: Record<string, string> = {
     "IDLE-NAVIGATE_TO_TARGET": "미션 수락",
-    "NAVIGATE_TO_TARGET-WORKING": "도착 · 정지",
+    "NAVIGATE_TO_TARGET-WORKING": "도착, 정지",
     "WORKING-POST_MISSION": "청소 완료",
     "POST_MISSION-RETURN_HOME": "복귀 정책",
     "POST_MISSION-IDLE": "복귀 생략",
-    "RETURN_HOME-IDLE": "홈 도착 · 정지",
-    "CANCELLING-RETURN_HOME": "정지 확인 · 복귀",
-    "CANCELLING-IDLE": "정지 확인 · 종료",
+    "RETURN_HOME-IDLE": "홈 도착, 정지",
+    "CANCELLING-RETURN_HOME": "정지 확인, 복귀",
+    "CANCELLING-IDLE": "정지 확인, 종료",
     "CANCELLING-ERROR": "안전 미확인 / 치명 오류",
     "IDLE-ERROR": "안전 오류",
-    "ERROR-IDLE": "안전 확인 · 리셋",
+    "ERROR-IDLE": "안전 확인, 리셋",
   };
   const topology = JSON.stringify(
     bt ? btNodes.map((n) => [n.id, n.parent]) : [states, runtime.fsm_edges],
@@ -543,542 +553,6 @@ const MemoDiagram = React.memo(function Diagram({
   );
 });
 
-function NavigationMap({
-  rows,
-  config,
-  timeAt,
-  mode = "overview",
-}: {
-  rows: Row[];
-  config: Data;
-  timeAt: number;
-  mode?: string;
-}) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const projection = useRef({ ox: 0, oy: 0, scale: 1 });
-  const [picked, setPicked] = useState<number[] | null>(null);
-  const mapViews: Record<
-    string,
-    { title: string; layers: string[]; defaults: string[] }
-  > = {
-    overview: {
-      title: "전체 경로와 주행 진행",
-      layers: ["map", "path", "trail", "footprint"],
-      defaults: ["map", "path", "trail", "footprint"],
-    },
-    safety: {
-      title: "주변 장애물과 안전 영역",
-      layers: [
-        "map",
-        "local_costmap",
-        "scan",
-        "depth_points",
-        "footprint",
-        "stop_polygon",
-        "slow_polygon",
-        "risk_points",
-        "obstacle_memory",
-        "lidar_memory",
-        "depth_memory",
-      ],
-      defaults: [
-        "map",
-        "local_costmap",
-        "scan",
-        "depth_points",
-        "footprint",
-        "stop_polygon",
-        "slow_polygon",
-        "risk_points",
-      ],
-    },
-    control: {
-      title: "계획 경로와 후보 궤적",
-      layers: [
-        "map",
-        "path",
-        "local_path",
-        "local_costmap",
-        "global_costmap",
-        "footprint",
-        "trail",
-      ],
-      defaults: ["map", "path", "local_path", "local_costmap", "footprint"],
-    },
-  };
-  const view = mapViews[mode] || mapViews.overview;
-  const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(
-      view.layers.map((key) => [key, view.defaults.includes(key)]),
-    ),
-  );
-  const [zoom, setZoom] = useState(1);
-  const navigation = rows.find((r) => r.kind === "runtime")?.data.navigation;
-  const layers = rows.filter((r) => r.kind === "layer");
-  const poseRow = rows.find((r) => r.kind === "pose");
-  const poseAge = poseRow
-    ? Math.max(0, timeAt - poseRow.received_at)
-    : Infinity;
-  const robot: Data | undefined = poseRow
-    ? {
-        ...poseRow.data,
-        valid: poseRow.data.valid && poseAge <= 2,
-        reason: poseAge > 2 ? "TF 관측 수신 지연" : poseRow.data.reason,
-      }
-    : undefined;
-  useEffect(() => {
-    const c = canvas.current;
-    if (!c) return;
-    const ctx = c.getContext("2d");
-    if (!ctx) return;
-    const width = (c.width = 1100),
-      height = (c.height = 620);
-    ctx.fillStyle = "#181818";
-    ctx.fillRect(0, 0, width, height);
-    const map = layers.find((r) => r.key === "map" && r.data.valid)?.data;
-    const points: number[][] = [];
-    const world = (x: number, y: number, o: number[]) => [
-      o[0] + Math.cos(o[2]) * x - Math.sin(o[2]) * y,
-      o[1] + Math.sin(o[2]) * x + Math.cos(o[2]) * y,
-    ];
-    const nearby = mode === "safety" || mode === "control";
-    const localBounds = layers.find(
-      (r) => r.key === "local_costmap" && r.data.valid,
-    )?.data;
-    if (nearby && robot?.valid) {
-      const radius = localBounds
-        ? Math.max(
-            1,
-            Math.min(
-              4,
-              (Math.max(localBounds.width, localBounds.height) *
-                localBounds.resolution) /
-                2,
-            ),
-          )
-        : 2.5;
-      points.push(
-        [robot.pose[0] - radius, robot.pose[1] - radius],
-        [robot.pose[0] + radius, robot.pose[1] + radius],
-      );
-    } else if (nearby && localBounds) {
-      for (const [x, y] of [
-        [0, 0],
-        [localBounds.width, 0],
-        [0, localBounds.height],
-        [localBounds.width, localBounds.height],
-      ])
-        points.push(
-          world(
-            x * localBounds.resolution,
-            y * localBounds.resolution,
-            localBounds.origin,
-          ),
-        );
-    } else if (map)
-      for (const [x, y] of [
-        [0, 0],
-        [map.width, 0],
-        [0, map.height],
-        [map.width, map.height],
-      ])
-        points.push(world(x * map.resolution, y * map.resolution, map.origin));
-    if (!points.length) points.push([-5, -5], [5, 5]);
-    const minX = Math.min(...points.map((p) => p[0])),
-      maxX = Math.max(...points.map((p) => p[0]));
-    const minY = Math.min(...points.map((p) => p[1])),
-      maxY = Math.max(...points.map((p) => p[1]));
-    const scale =
-      Math.min(
-        (width - 80) / Math.max(1, maxX - minX),
-        (height - 80) / Math.max(1, maxY - minY),
-      ) * zoom;
-    const ox = width / 2 - ((minX + maxX) / 2) * scale,
-      oy = height / 2 + ((minY + maxY) / 2) * scale;
-    projection.current = { ox, oy, scale };
-    const screen = (x: number, y: number) => [ox + x * scale, oy - y * scale];
-    for (const name of [
-      "map",
-      "obstacle_memory",
-      "lidar_memory",
-      "depth_memory",
-      "global_costmap",
-      "local_costmap",
-    ]) {
-      const layer = layers.find((r) => r.key === name)?.data;
-      if (!enabled[name] || !layer?.valid) continue;
-      const off = document.createElement("canvas");
-      off.width = layer.width;
-      off.height = layer.height;
-      const oc = off.getContext("2d")!;
-      const pixels = oc.createImageData(layer.width, layer.height);
-      layer.cells.forEach((value: number, i: number) => {
-        const p = i * 4;
-        const mapLayer = name === "map";
-        const shade = value < 0 ? 78 : Math.round(235 - value * 1.9);
-        pixels.data[p] = mapLayer
-          ? shade
-          : name === "global_costmap"
-            ? 230
-            : 63;
-        pixels.data[p + 1] = mapLayer ? shade : 110;
-        pixels.data[p + 2] = mapLayer
-          ? shade
-          : name === "global_costmap"
-            ? 95
-            : 232;
-        pixels.data[p + 3] = mapLayer
-          ? 255
-          : value <= 0
-            ? 0
-            : Math.min(175, value * 1.75);
-      });
-      oc.putImageData(pixels, 0, 0);
-      ctx.save();
-      ctx.translate(ox, oy);
-      ctx.scale(scale, -scale);
-      ctx.translate(layer.origin[0], layer.origin[1]);
-      ctx.rotate(layer.origin[2]);
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(
-        off,
-        0,
-        0,
-        layer.width * layer.resolution,
-        layer.height * layer.resolution,
-      );
-      ctx.restore();
-    }
-    const path = layers.find((r) => r.key === "path")?.data;
-    if (enabled.path && path?.valid && path.points.length) {
-      ctx.strokeStyle = "#4ae7ba";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      path.points.forEach(([x, y]: number[], i: number) => {
-        const [a, b] = screen(x, y);
-        i ? ctx.lineTo(a, b) : ctx.moveTo(a, b);
-      });
-      ctx.stroke();
-      const [x, y] = screen(...(path.points.at(-1) as [number, number]));
-      ctx.strokeStyle = "#ffd584";
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    const summary = rows.find(
-      (r) => r.kind === "navigation" && r.key === "summary",
-    )?.data;
-    const drawLine = (points: number[][], color: string, closed = false) => {
-      if (!points.length) return;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      points.forEach(([x, y], i) => {
-        const [a, b] = screen(x, y);
-        i ? ctx.lineTo(a, b) : ctx.moveTo(a, b);
-      });
-      if (closed) ctx.closePath();
-      ctx.stroke();
-    };
-    if (enabled.trail && Array.isArray(summary?.trail))
-      drawLine(
-        summary.trail.map((p: number[]) => p.slice(1, 3)),
-        "#80aaff",
-      );
-    const local = layers.find((r) => r.key === "local_path")?.data;
-    if (enabled.local_path && local?.valid && Array.isArray(local.points))
-      drawLine(local.points, "#ffb85c");
-    const colors: Record<string, string> = {
-      scan: "#5ed7ee",
-      depth_points: "#bf95ef",
-      risk_points: "#ff5252",
-      footprint: "#f8f8f8",
-      stop_polygon: "#ff7272",
-      slow_polygon: "#ffce70",
-    };
-    for (const key of Object.keys(colors)) {
-      const row = rows.find((r) => r.kind === "navigation" && r.key === key);
-      const d = row?.data;
-      if (
-        !enabled[key] ||
-        !d?.valid ||
-        !Array.isArray(d.points) ||
-        !row ||
-        timeAt - row.received_at > 2
-      )
-        continue;
-      if (["footprint", "stop_polygon", "slow_polygon"].includes(key))
-        drawLine(d.points, colors[key], true);
-      else {
-        ctx.fillStyle = colors[key];
-        for (const [x, y] of d.points) {
-          const [a, b] = screen(x, y);
-          ctx.fillRect(a - 1, b - 1, 3, 3);
-        }
-      }
-    }
-    if (mode === "control") {
-      const evaluation = rows.find(
-        (r) => r.kind === "navigation" && r.key === "controller_evaluation",
-      );
-      const e = evaluation?.data;
-      if (
-        evaluation &&
-        timeAt - evaluation.received_at <= 2 &&
-        Array.isArray(e?.trajectories) &&
-        e?.transform
-      )
-        for (const t of e.trajectories)
-          if (Array.isArray(t.points))
-            drawLine(
-              t.points.map((p: number[]) => world(p[0], p[1], e.transform)),
-              t.selected ? "#4ae7ba" : "#737c87",
-            );
-    }
-    const goal = navigation?.goal_pose;
-    if (mode !== "safety" && goal && navigation.frame === config.map_frame) {
-      const [x, y] = screen(goal.x, goal.y);
-      ctx.strokeStyle = "#ffd584";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x - 9, y);
-      ctx.lineTo(x + 9, y);
-      ctx.moveTo(x, y - 9);
-      ctx.lineTo(x, y + 9);
-      ctx.stroke();
-      ctx.fillStyle = "#ffd584";
-      ctx.font = "12px monospace";
-      ctx.fillText(navigation.target, x + 12, y - 8);
-    }
-    if (robot?.valid) {
-      const [x, y] = screen(robot.pose[0], robot.pose[1]);
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(-robot.pose[2]);
-      ctx.fillStyle = "#fff";
-      ctx.strokeStyle = "#262626";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(15, 0);
-      ctx.lineTo(-10, -9);
-      ctx.lineTo(-6, 0);
-      ctx.lineTo(-10, 9);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-      const arrow = (angle: number, color: string, length: number) => {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(-angle);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(length, 0);
-        ctx.lineTo(length - 7, -4);
-        ctx.moveTo(length, 0);
-        ctx.lineTo(length - 7, 4);
-        ctx.stroke();
-        ctx.restore();
-      };
-      const panRow = rows.find(
-        (r) => r.kind === "navigation" && r.key === "pan",
-      );
-      if (
-        mode === "safety" &&
-        panRow &&
-        timeAt - panRow.received_at <= 2 &&
-        Number.isFinite(panRow.data.pan)
-      )
-        arrow(robot.pose[2] + panRow.data.pan, "#d69aff", 45);
-      if (
-        summary?.measured &&
-        Math.hypot(...(summary.measured.slice(0, 2) as [number, number])) >
-          0.005
-      )
-        arrow(
-          robot.pose[2] + Math.atan2(summary.measured[1], summary.measured[0]),
-          "#5ed7ee",
-          35,
-        );
-    }
-    ctx.fillStyle = "#b8b8b8";
-    ctx.font = "13px monospace";
-    ctx.fillText(
-      `frame: ${config.map_frame || "map"} · ${zoom.toFixed(1)}×`,
-      20,
-      height - 20,
-    );
-  }, [rows, enabled, zoom, Math.floor(poseAge), timeAt, mode]);
-  return (
-    <>
-      <Panel
-        title={view.title}
-        aside={
-          <div className="inline">
-            <Button
-              variant="outline"
-              onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
-            >
-              −
-            </Button>
-            <Button variant="outline" onClick={() => setZoom(zoom + 0.25)}>
-              ＋
-            </Button>
-            <Button variant="outline" onClick={() => setZoom(1)}>
-              맞춤
-            </Button>
-          </div>
-        }
-      >
-        <div className="map-tools">
-          {view.layers.map((k) => (
-            <label key={k}>
-              <input
-                type="checkbox"
-                checked={enabled[k]}
-                onChange={(e) =>
-                  setEnabled({ ...enabled, [k]: e.target.checked })
-                }
-              />
-              {(
-                {
-                  map: "지도",
-                  path: "계획 경로",
-                  local_costmap: "local costmap",
-                  global_costmap: "global costmap",
-                  local_path: "제어 경로",
-                  scan: "LiDAR",
-                  depth_points: "Depth 장애물",
-                  footprint: "로봇 외곽",
-                  trail: "실제 궤적",
-                  stop_polygon: "정지 영역",
-                  slow_polygon: "감속 영역",
-                  risk_points: "위험점",
-                  obstacle_memory: "합성 메모리",
-                  lidar_memory: "LiDAR 메모리",
-                  depth_memory: "Depth 메모리",
-                } as Record<string, string>
-              )[k] || k}
-            </label>
-          ))}
-          <span>
-            {mode === "safety"
-              ? "△ 차체 · 빨강 정지 영역 · 노랑 감속 영역 · 보라 카메라"
-              : mode === "control"
-                ? "△ 차체 · 청록 선택 후보 · 회색 다른 후보 · 주황 제어 경로"
-                : "△ 차체 · ＋ 목표 · 파랑 실제 궤적 · 초록 계획 경로"}
-          </span>
-        </div>
-        {(mode === "safety" || mode === "control") &&
-          !robot?.valid &&
-          !layers.some((r) => r.key === "local_costmap" && r.data.valid) && (
-            <small>
-              주변 범위를 결정할 위치·local costmap이 없어 전체 지도를
-              표시합니다.
-            </small>
-          )}
-        {!layers.some((r) => r.key === "map" && r.data.valid) && (
-          <p className="nav-map-unavailable">
-            배경 지도 표시 불가 ·{" "}
-            {layers.find((r) => r.key === "map")?.data.reason ||
-              "지도 토픽 미수신"}
-          </p>
-        )}
-        <canvas
-          ref={canvas}
-          aria-label="ROS 2D navigation map"
-          className="map"
-          onClick={(event) => {
-            const c = canvas.current;
-            if (!c) return;
-            const rect = c.getBoundingClientRect();
-            const { ox, oy, scale } = projection.current;
-            setPicked([
-              (((event.clientX - rect.left) * c.width) / rect.width - ox) /
-                scale,
-              (oy - ((event.clientY - rect.top) * c.height) / rect.height) /
-                scale,
-            ]);
-          }}
-        />
-        {picked && (
-          <div className="map-tools" aria-label="선택한 지도 셀">
-            <span>
-              map ({picked[0].toFixed(2)}, {picked[1].toFixed(2)}) · 게시
-              OccupancyGrid 값
-            </span>
-            {layers
-              .filter((r) => r.data.valid && r.data.cells && enabled[r.key])
-              .map((r) => {
-                const g = r.data,
-                  dx = picked[0] - g.origin[0],
-                  dy = picked[1] - g.origin[1];
-                const x = Math.floor(
-                  (Math.cos(g.origin[2]) * dx + Math.sin(g.origin[2]) * dy) /
-                    g.resolution,
-                );
-                const y = Math.floor(
-                  (-Math.sin(g.origin[2]) * dx + Math.cos(g.origin[2]) * dy) /
-                    g.resolution,
-                );
-                const value =
-                  x >= 0 && y >= 0 && x < g.width && y < g.height
-                    ? g.cells[y * g.width + x]
-                    : null;
-                return (
-                  <span key={r.key}>
-                    {r.key}:{" "}
-                    {value === null ? "영역 밖" : value < 0 ? "미관측" : value}
-                  </span>
-                );
-              })}
-          </div>
-        )}
-        <details className="nav-map-sources">
-          <summary>지도 수신 상태와 출처</summary>
-          <div className="layer-status">
-            {view.layers
-              .filter((k) =>
-                [
-                  "map",
-                  "path",
-                  "local_path",
-                  "local_costmap",
-                  "global_costmap",
-                ].includes(k),
-              )
-              .map((k) => {
-                const l = layers.find((r) => r.key === k);
-                return (
-                  <div key={k}>
-                    <b>{k}</b>
-                    <Badge tone={l?.data.valid ? "good" : "warn"}>
-                      {l?.data.valid ? "수신" : "표시 불가"}
-                    </Badge>
-                    <small>
-                      {l?.data.reason || l?.data.topic || "토픽 대기"}
-                    </small>
-                  </div>
-                );
-              })}
-            <div>
-              <b>robot TF</b>
-              <Badge tone={robot?.valid ? "good" : "warn"}>
-                {robot?.valid ? "수신" : "표시 불가"}
-              </Badge>
-              <small>
-                {robot?.reason || `age ${robot?.age?.toFixed(2) ?? "—"}s`}
-              </small>
-            </div>
-          </div>
-        </details>
-      </Panel>
-    </>
-  );
-}
-
 function RosView({
   rows,
   graph,
@@ -1122,11 +596,11 @@ function RosView({
       <Tabs value={view} onValueChange={setView} className="subtabs">
         <TabsList>
           {[
-            ["topics", "Topics"],
-            ["graph", "연결 그래프"],
-            ["nodes", "Nodes"],
-            ["actions", "Actions"],
-            ["services", "Services"],
+            ["topics", "토픽"],
+            ["graph", "연결"],
+            ["nodes", "노드"],
+            ["actions", "액션"],
+            ["services", "서비스"],
           ].map(([id, label]) => (
             <TabsTrigger key={id} value={id}>
               {label}
@@ -1136,7 +610,7 @@ function RosView({
       </Tabs>
       {view === "topics" ? (
         <div className="ros-grid">
-          <Panel title={`Topics · ${topics.length}`}>
+          <Panel title={`토픽 (${topics.length})`}>
             <Input
               className="search"
               placeholder="토픽 이름 또는 타입 검색"
@@ -1259,7 +733,7 @@ function RosView({
       )}
       {graph.missing_fixed_topics?.length > 0 && (
         <details className="missing">
-          <summary>미발견 토픽 · {graph.missing_fixed_topics.length}</summary>
+          <summary>미발견 토픽, {graph.missing_fixed_topics.length}</summary>
           <Json value={graph.missing_fixed_topics} />
         </details>
       )}
@@ -1324,13 +798,26 @@ function Logs({
 
 function App() {
   const [graphTab, setGraphTab] = useState("fsm");
-  const [navigationTab, setNavigationTab] = useState("overview");
+  const [navigationTab, setNavigationTab] = useState(() => {
+    const stored = sessionStorage.getItem("cleany.navigation.tab");
+    return stored &&
+      ["overview", "safety", "control", "sensors", "compare"].includes(stored)
+      ? stored
+      : "overview";
+  });
+  useEffect(() => {
+    sessionStorage.setItem("cleany.navigation.tab", navigationTab);
+  }, [navigationTab]);
   const [collapsed, setCollapsed] = useState(false);
-  const [tab, setTab] = useState(location.hash.slice(1) || "execution");
+  const [tab, setTab] = useState(() => {
+    const requested = location.hash.slice(1);
+    return tabs.some(([id]) => id === requested) ? requested : "execution";
+  });
   const [rows, setRows] = useState<Row[]>([]);
   const live = useRef<Row[]>([]);
   const [connected, setConnected] = useState(false);
   const [now, setNow] = useState(Date.now() / 1000);
+  const [timelineNow, setTimelineNow] = useState(Date.now() / 1000);
   const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const selectedRef = useRef<string[]>([]);
@@ -1339,13 +826,17 @@ function App() {
   const socket = useRef<WebSocket | null>(null);
   const lastBoot = useRef("");
   const [recording, setRecording] = useState<Data>({});
-  const [sessions, setSessions] = useState<Data[]>([]);
+  const [sessions, setSessions] = useState<(Data & TimelineSession)[]>([]);
+  const [timelineControlsHost, setTimelineControlsHost] =
+    useState<HTMLElement | null>(null);
+  const [timelineFocus, setTimelineFocus] = useState<number | null>(null);
   const [replayId, setReplayId] = useState("");
   const replayRef = useRef("");
   const [at, setAt] = useState(0);
   const seekPending = useRef(false);
   const [seekRevision, setSeekRevision] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [filter, setFilter] = useState("");
   const [node, setNode] = useState("");
   const [error, setError] = useState("");
@@ -1399,10 +890,11 @@ function App() {
         }
         if (!p.rows) return;
         if (p.gap) setNotice("이벤트 유실");
-        if (p.initial && lastBoot.current) {
+        if (p.sources_changed) setNotice("관측 토픽 변경, 이전 관측값 초기화");
+        if (p.initial && lastBoot.current && !p.sources_changed) {
           setNotice(
             p.boot_id === lastBoot.current
-              ? "재연결 · 누락 가능"
+              ? "재연결, 누락 가능"
               : "Monitor 재시작",
           );
         }
@@ -1414,6 +906,21 @@ function App() {
         for (const r of merged) {
           if (critical.has(r.kind)) events.set(r.seq, r);
           else latest.set(r.kind + ":" + r.key, r);
+        }
+        const slamList = latest.get("slam:submaps")?.data;
+        for (const [key, row] of latest) {
+          if (
+            row.kind === "slam_texture" &&
+            (!slamList?.valid ||
+              row.data.epoch !== slamList.epoch ||
+              !slamList.submaps?.some(
+                (s: Data) => s.id === row.key && s.version >= row.data.version,
+              ) ||
+              latest
+                .get("slam:status")
+                ?.data.omitted_textures?.includes(row.key))
+          )
+            latest.delete(key);
         }
         const topicGraph = latest.get("graph:ros")?.data.topics || [];
         for (const [key, row] of latest) {
@@ -1436,10 +943,15 @@ function App() {
     };
     connect();
     const clock = setInterval(() => setNow(Date.now() / 1000), 500);
+    const timelineClock = setInterval(
+      () => setTimelineNow(Date.now() / 1000),
+      1000,
+    );
     return () => {
       stopped = true;
       clearTimeout(retry);
       clearInterval(clock);
+      clearInterval(timelineClock);
       ws.close();
     };
   }, []);
@@ -1452,8 +964,10 @@ function App() {
       })
       .catch((e) => setError(String(e)));
   useEffect(() => {
-    if (tab === "recordings") refreshSessions();
-  }, [tab]);
+    refreshSessions();
+    const timer = setInterval(refreshSessions, 1000);
+    return () => clearInterval(timer);
+  }, []);
   useEffect(() => {
     replayRef.current = replayId;
     if (!replayId) {
@@ -1461,43 +975,72 @@ function App() {
       setPlaying(false);
       return;
     }
+    if (replayId === "__gap__") {
+      setRows([]);
+      return;
+    }
     const controller = new AbortController();
-    fetch(`/api/recordings/${replayId}/replay?at=${at}`, {
-      signal: controller.signal,
-    })
-      .then((r) => {
-        if (!r.ok) throw Error("기록 읽기 실패");
-        return r.json();
-      })
-      .then((p) => {
-        setRows(applyRuntimeEvents(p.rows));
-        if (seekPending.current) {
-          seekPending.current = false;
-          setSeekRevision((value) => value + 1);
-        }
-        if (p.metadata.gap) setNotice(p.metadata.gap);
-      })
-      .catch((e) => {
-        if (e.name !== "AbortError") setError(String(e));
-      });
-    return () => controller.abort();
+    const timer = setTimeout(
+      () =>
+        fetch(`/api/recordings/${replayId}/replay?at=${at}`, {
+          signal: controller.signal,
+        })
+          .then((r) => {
+            if (!r.ok) throw Error("기록 읽기 실패");
+            return r.json();
+          })
+          .then((p) => {
+            if (controller.signal.aborted) return;
+            setRows(applyRuntimeEvents(p.rows));
+            if (seekPending.current) {
+              seekPending.current = false;
+              setSeekRevision((value) => value + 1);
+            }
+            if (p.metadata.gap) setNotice(p.metadata.gap);
+          })
+          .catch((e) => {
+            if (e.name !== "AbortError") setError(String(e));
+          }),
+      60,
+    );
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [replayId, at]);
   const session = sessions.find((s) => s.id === replayId);
+  const seekAbsolute = (moment: number, available = sessions) => {
+    moment = Math.min(Date.now() / 1000, moment);
+    const id = sessionAt(available, moment) || "__gap__";
+    replayRef.current = id;
+    if (id !== replayId) setRows([]);
+    seekPending.current = true;
+    setReplayId(id);
+    setAt(moment);
+  };
+  const returnLive = () => {
+    replayRef.current = "";
+    setReplayId("");
+    setPlaying(false);
+    setNotice("");
+  };
   useEffect(() => {
-    if (!playing || !session) return;
-    const timer = setInterval(
-      () =>
-        setAt((t) => {
-          if (t + 0.2 >= session.end) {
-            setPlaying(false);
-            return session.end;
-          }
-          return t + 0.2;
-        }),
-      200,
+    if (!playing) return;
+    const last = Math.min(
+      Date.now() / 1000,
+      Math.max(...recordingSegments(sessions).map((s) => s.end)),
     );
+    if (!Number.isFinite(last)) {
+      setPlaying(false);
+      return;
+    }
+    const timer = setInterval(() => {
+      const next = Math.min(last, at + 0.2 * playbackSpeed);
+      seekAbsolute(next);
+      if (next >= last) setPlaying(false);
+    }, 200);
     return () => clearInterval(timer);
-  }, [playing, session]);
+  }, [playing, at, playbackSpeed, sessions]);
   const go = (id: string) => {
     setTab(id);
     location.hash = id;
@@ -1547,26 +1090,21 @@ function App() {
       socket.current.send(JSON.stringify({ op: "select", topics: merged }));
   }, [navigationSelectionKey, selectionLimit]);
   const openNavigationMoment = async (moment: number) => {
+    setTimelineFocus(moment);
     setPlaying(false);
     if (replayId) {
-      seekPending.current = true;
-      setAt(moment);
+      seekAbsolute(moment);
       return;
     }
     try {
       const response = await fetch("/api/recordings");
       const data = await response.json();
-      const source = data.sessions.find(
-        (s: Data) => s.id === (data.active || recording.id),
-      );
-      if (!source || moment < source.start || moment > source.end)
+      if (!sessionAt(data.sessions, moment))
         throw Error(
           "해당 시점이 아직 기록되지 않았거나 기록이 중단되었습니다.",
         );
       setSessions(data.sessions);
-      setReplayId(source.id);
-      setAt(moment);
-      seekPending.current = true;
+      seekAbsolute(moment, data.sessions);
     } catch (e) {
       setError(String(e));
     }
@@ -1640,8 +1178,11 @@ function App() {
         </div>
       </aside>
       <main>
-        <header>
-          <div className="breadcrumb">읽기 전용</div>
+        <header className="monitor-header">
+          <div
+            className="header-timeline-controls"
+            ref={setTimelineControlsHost}
+          />
           <div className="header-status">
             <ThemeToggle />
             <span title="웹 관제보드 연결 상태입니다. Runtime 상태의 최신 여부는 실행 그래프에서 확인합니다.">
@@ -1655,13 +1196,34 @@ function App() {
                 sim {clockRow.data.time.toFixed(1)}s{" "}
                 {clockRow.data.unchanged_for > 1 ||
                 (!replayId && now - clockRow.received_at > 2)
-                  ? "· 정지/수신 지연"
+                  ? ", 정지/수신 지연"
                   : ""}
               </span>
             )}
             <code>{config.runtime_namespace || "/"}</code>
-            <span>{time(now)}</span>
+            <span className="header-clock" aria-label="현재 시각">
+              {new Date(now * 1000).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false,
+              })}
+            </span>
           </div>
+          <RecordingTimeline
+            controlsHost={timelineControlsHost}
+            focusAt={timelineFocus}
+            sessions={sessions}
+            now={timelineNow}
+            at={at}
+            historical={!!replayId}
+            playing={playing}
+            speed={playbackSpeed}
+            onSpeed={setPlaybackSpeed}
+            onPlaying={setPlaying}
+            onSeek={seekAbsolute}
+            onLive={returnLive}
+          />
         </header>
         <div className="content">
           <div className="page-title">
@@ -1669,16 +1231,14 @@ function App() {
               <h1>{tabs.find((t) => t[0] === tab)?.[1]}</h1>
             </div>
             <div className="page-actions">
-              <Button variant="outline" asChild>
-                <a
-                  href="https://app.foxglove.dev"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Activity size={16} />
-                  Foxglove
-                  <ArrowUpRight size={14} />
-                </a>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setNavigationTab("overview");
+                  go("navigation");
+                }}
+              >
+                <Navigation2 size={16} /> 개요
               </Button>
             </div>
           </div>
@@ -1686,7 +1246,7 @@ function App() {
             <div className="connection-banner" role="status">
               <Unplug size={19} />
               <div>
-                <strong>서버 연결 끊김 · 재연결 중</strong>
+                <strong>서버 연결 끊김, 재연결 중</strong>
               </div>
             </div>
           )}
@@ -1707,33 +1267,10 @@ function App() {
             </div>
           )}
           {recording.reason && (
-            <div className="notice warn">기록 중단 · {recording.reason}</div>
+            <div className="notice warn">기록 중단, {recording.reason}</div>
           )}
-          {replayId && (
-            <div className="replay-bar">
-              <strong>기록 재생</strong>
-              <span>{time(at)}</span>
-              <Button variant="outline" onClick={() => setPlaying(!playing)}>
-                {playing ? "일시정지" : "재생"}
-              </Button>
-              <input
-                aria-label="재생 시각"
-                type="range"
-                min={session?.start || 0}
-                max={session?.end || 0}
-                step="any"
-                value={at}
-                onChange={(e) => {
-                  seekPending.current = true;
-                  setAt(+e.target.value);
-                }}
-              />
-              <Button variant="outline" onClick={() => setReplayId("")}>
-                실시간으로
-              </Button>
-            </div>
-          )}
-          {replayId && (
+
+          {replayId && replayId !== "__gap__" && (
             <RecordingReplayNotice
               rows={rows}
               sessionId={replayId}
@@ -1859,7 +1396,7 @@ function App() {
                       >
                         <TabsList>
                           <TabsTrigger value="fsm">FSM</TabsTrigger>
-                          <TabsTrigger value="bt">청소 BT</TabsTrigger>
+                          <TabsTrigger value="bt">BT</TabsTrigger>
                         </TabsList>
                       </Tabs>
                       <div className="graph-toolbar-actions">
@@ -2032,7 +1569,7 @@ function App() {
                                     : v.ready
                                       ? "Ready"
                                       : v.reason || "Not ready"}{" "}
-                                  · 정지{" "}
+                                  , 정지{" "}
                                   {v.stopped == null
                                     ? "미확인"
                                     : String(v.stopped)}
@@ -2086,7 +1623,7 @@ function App() {
                         {correlated.map((r) => (
                           <div className="mini-event" key={r.seq}>
                             <small>
-                              {time(r.received_at)} · {r.data.kind || r.kind}
+                              {time(r.received_at)}, {r.data.kind || r.kind}
                             </small>
                             <Json value={r.data.data || r.data} />
                           </div>
@@ -2109,6 +1646,9 @@ function App() {
           {tab === "camera" && (
             <CameraView topics={graph.topics || []} replay={!!replayId} />
           )}
+          {tab === "resources" && (
+            <ResourceDashboard rows={rows} replay={!!replayId} />
+          )}
           {tab === "ros" && (
             <RosView
               rows={rows}
@@ -2121,7 +1661,6 @@ function App() {
           )}
           {tab === "navigation" && (
             <>
-              <FoxglovePanel />
               <NavigationDashboard
                 rows={rows}
                 config={config}
@@ -2133,11 +1672,9 @@ function App() {
                 setTab={setNavigationTab}
                 map={
                   <NavigationMap
-                    key={navigationTab}
                     rows={rows}
                     config={config}
                     timeAt={replayId ? at : now}
-                    mode={navigationTab}
                   />
                 }
                 observe={setNavigationTopics}
@@ -2145,7 +1682,6 @@ function App() {
                   setFocusTopic(topic);
                   go("ros");
                 }}
-                openCamera={() => go("camera")}
                 openLogs={() => go("logs")}
                 seek={openNavigationMoment}
                 openRun={async (run) => {
@@ -2157,7 +1693,10 @@ function App() {
                   setSessions(data.sessions);
                   setPlaying(false);
                   setReplayId(run.session_id);
-                  setAt(run.start);
+                  replayRef.current = run.session_id;
+                  const moment = Math.min(Date.now() / 1000, run.start);
+                  setAt(moment);
+                  setTimelineFocus(moment);
                   seekPending.current = true;
                 }}
               />
@@ -2182,75 +1721,99 @@ function App() {
           {tab === "recordings" && (
             <>
               <RecordingControls replay={!!replayId} />
-              <Panel
-                title="저장된 관측 세션"
-                aside={
-                  <Button variant="outline" onClick={refreshSessions}>
-                    새로고침
-                  </Button>
-                }
-              >
-                <table>
-                  <thead>
-                    <tr>
-                      <th>세션</th>
-                      <th>시작 / 종료</th>
-                      <th>레코드</th>
-                      <th>FSM</th>
-                      <th>크기</th>
-                      <th>열기</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sessions.map((s) => (
-                      <tr key={s.id}>
-                        <td>
-                          <code>{s.id.slice(0, 8)}</code>{" "}
-                          {s.id === recording.id && (
-                            <Badge tone="good">
-                              기록 중{recording.reason ? "단" : ""}
-                            </Badge>
-                          )}
-                          {s.metadata.gap && (
-                            <Badge tone="warn">유실 있음</Badge>
-                          )}
-                        </td>
-                        <td>
-                          {s.start ? time(s.start) : "—"} →{" "}
-                          {s.end ? time(s.end) : "—"}
-                        </td>
-                        <td>{s.count}</td>
-                        <td>
-                          {s.runtime_count == null
-                            ? "—"
-                            : s.runtime_count > 0
-                              ? "있음"
-                              : "없음"}
-                        </td>
-                        <td>{(s.bytes / 1024 ** 2).toFixed(2)} MiB</td>
-                        <td>
-                          <Button
-                            variant="outline"
-                            disabled={!s.count}
-                            onClick={() => {
-                              setReplayId(s.id);
-                              setAt(s.runtime_start ?? s.start);
-                              setPlaying(true);
-                              go("execution");
-                            }}
-                          >
-                            재생
-                          </Button>{" "}
-                          <a href={`/api/recordings/${s.id}/export`}>
-                            내보내기 ↓
-                          </a>
-                        </td>
+              <details>
+                <summary>기록 관리, 내보내기</summary>
+                <Panel
+                  title="기록 관리, 내보내기"
+                  aside={
+                    <Button variant="outline" onClick={refreshSessions}>
+                      새로고침
+                    </Button>
+                  }
+                >
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>세션</th>
+                        <th>시작 / 종료</th>
+                        <th>레코드</th>
+                        <th>FSM</th>
+                        <th>크기</th>
+                        <th>열기</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!sessions.length && <Empty>기록 없음</Empty>}
-              </Panel>
+                    </thead>
+                    <tbody>
+                      {sessions.map((s) => (
+                        <tr key={s.id}>
+                          <td>
+                            <code>{s.id.slice(0, 8)}</code>{" "}
+                            {s.id === recording.id && (
+                              <Badge tone="good">
+                                기록 중{recording.reason ? "단" : ""}
+                              </Badge>
+                            )}
+                            {(s.metadata.gap || s.metadata.raw_gap) && (
+                              <Badge tone="warn">유실 있음</Badge>
+                            )}
+                            {!s.bag_recording &&
+                              ["incomplete", "recording"].includes(
+                                s.metadata.bag_state,
+                              ) && <Badge tone="warn">rosbag2 미완료</Badge>}
+                          </td>
+                          <td>
+                            {s.start ? time(s.start) : "—"} →{" "}
+                            {s.end ? time(s.end) : "—"}
+                          </td>
+                          <td>{s.count}</td>
+                          <td>
+                            {s.runtime_count == null
+                              ? "—"
+                              : s.runtime_count > 0
+                                ? "있음"
+                                : "없음"}
+                          </td>
+                          <td>{(s.bytes / 1024 ** 2).toFixed(2)} MiB</td>
+                          <td>
+                            <Button
+                              variant="outline"
+                              disabled={!s.count}
+                              onClick={() => {
+                                const moment =
+                                  s.segments?.[0]?.start ??
+                                  s.runtime_start ??
+                                  s.start;
+                                setTimelineFocus(moment);
+                                seekAbsolute(moment);
+                                setPlaying(false);
+                              }}
+                            >
+                              시각으로 이동
+                            </Button>{" "}
+                            <a href={`/api/recordings/${s.id}/export`}>
+                              SQLite 내보내기 ↓
+                            </a>
+                            {s.bag_available ? (
+                              <>
+                                {" "}
+                                ,{" "}
+                                <a href={`/api/recordings/${s.id}/bag`}>
+                                  rosbag2 내보내기 ↓
+                                </a>
+                              </>
+                            ) : s.bag_recording ? (
+                              <small>
+                                {" "}
+                                , rosbag2는 녹화 정지 후 내보낼 수 있습니다.
+                              </small>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {!sessions.length && <Empty>기록 없음</Empty>}
+                </Panel>
+              </details>
             </>
           )}
         </div>

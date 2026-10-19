@@ -16,6 +16,7 @@ from uuid import UUID, uuid4
 
 from .camera import Cameras
 from .recording import RecordingControls, allowed, category
+from .rosbag import RosbagWriter, read_cdr
 
 
 def preview(value: Any, *, budget: int = 2048, depth: int = 10) -> Any:
@@ -79,10 +80,24 @@ class Hub:
         self.lock = threading.Lock()
         self.latest = {}
         self.events = deque(maxlen=event_limit)
+        self.source_categories = {}
+        self.source_roles = {}
+        self.topic_revision = 0
         self.sequence = 0
         self.evicted_through = 0
         self.selected = {}
         self.boot_id = str(uuid4())
+
+    def reset_sources(self, config, revision):
+        from .sources import resolved, SCHEMA, source_roles
+        with self.lock:
+            keep = {'resources', 'recording_policy', 'recording_status'}
+            previous = self.latest.get(('config', 'monitor'), {}).get('data', {})
+            self.latest = {key: row for key,row in self.latest.items() if row['kind'] in keep}
+            self.topic_revision = revision
+            self.source_roles = source_roles(config)
+            self.source_categories = {topic: SCHEMA[key]['group'] for key,value in resolved(config).items() for topic in (value if isinstance(value,list) else [value])}
+        self.put('config', 'monitor', {**previous, **config, 'topic_revision': revision})
 
     def put(
         self,
@@ -98,6 +113,7 @@ class Hub:
             self.sequence += 1
             row = {
                 "seq": self.sequence,
+                "topic_revision": self.topic_revision,
                 "kind": kind,
                 "key": key,
                 "data": data,
@@ -105,6 +121,13 @@ class Hub:
                 "received_monotonic": time.monotonic(),
                 "ros_time": ros_time,
             }
+            source = key if key in self.source_roles else data.get('topic', key) if isinstance(data, dict) else key
+            if source in self.source_roles:
+                row['source_id'] = self.source_roles[source]
+            elif kind == 'pose' or (kind == 'navigation' and key == 'summary'):
+                row['source_id'] = '_computed_motion'
+            if source in self.source_categories and kind not in ('config', 'graph', 'recording_policy', 'recording_status') and not (kind == 'layer' and key == 'map'):
+                row["category"] = self.source_categories[source]
             if critical:
                 if len(self.events) == self.events.maxlen:
                     self.evicted_through = self.events[0]["seq"]
@@ -118,6 +141,7 @@ class Hub:
             events = [row for row in self.events if row["seq"] > since]
             return {
                 "boot_id": self.boot_id,
+                "topic_revision": self.topic_revision,
                 "sequence": self.sequence,
                 "gap": bool(since < self.evicted_through),
                 "rows": sorted(
@@ -156,17 +180,26 @@ class Hub:
 class Recorder:
     """Owned by HTTP worker. Never touches MissionJournal or deletes evidence."""
 
-    def __init__(self, directory, session_limit=100 * 1024**2, total_limit=1024**3, controls=None):
+    def __init__(self, directory, session_limit=100 * 1024**2, total_limit=1024**3, controls=None, bag_factory=RosbagWriter):
         self.controls = controls
         self.directory = Path(directory).expanduser()
         self.session_limit, self.total_limit = session_limit, total_limit
         self.session_id = str(uuid4())
         self.path = self.directory / f"{self.session_id}.sqlite3"
+        self.bag_path = self.directory / 'bags' / self.session_id
+        self.bag_factory = bag_factory
+        self.bag = None
         self.db = None
         self.reason = ""
         self.last = 0
         self.bytes = 0
         self.hashes = {}
+        self.sampled_at = {}
+        self.recording_revision = None
+        self.source_revision = 0
+        self.raw_losses = {}
+        self.raw_loss_seen = {}
+        self.raw_loss_revision = None
         try:
             self.directory.mkdir(parents=True, exist_ok=True)
             if self.disk_bytes() >= total_limit:
@@ -178,11 +211,16 @@ class Recorder:
             )
             self.db.execute("CREATE INDEX records_time ON records(received)")
             self.db.execute("CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT)")
-            self.db.execute("CREATE TABLE raw_messages(id INTEGER PRIMARY KEY, category TEXT, topic TEXT, type TEXT, received REAL, ros_time REAL, payload BLOB)")
-            self.db.execute("CREATE INDEX raw_time ON raw_messages(received)")
+            self.db.execute("CREATE TABLE raw_index(id INTEGER PRIMARY KEY, category TEXT, topic TEXT, type TEXT, received REAL, ros_time REAL, timestamp_ns INTEGER)")
+            self.db.execute("CREATE INDEX raw_time ON raw_index(received)")
+            self.db.execute("CREATE INDEX raw_locator ON raw_index(topic,timestamp_ns,id)")
             self.db.execute(
-                "INSERT INTO metadata VALUES (?, ?)", ("schema_version", "3")
+                "INSERT INTO metadata VALUES (?, ?)", ("schema_version", "4")
             )
+            self.db.executemany('INSERT INTO metadata VALUES (?, ?)', [
+                ('raw_storage', 'rosbag2/sqlite3'), ('processed_storage', 'sqlite3'),
+                ('bag_uri', f'bags/{self.session_id}'), ('bag_state', 'not_started'),
+            ])
             self.db.commit()
         except (OSError, sqlite3.Error) as exc:
             self.reason = f"Recording unavailable: {exc}"
@@ -191,7 +229,41 @@ class Recorder:
                 self.db = None
 
     def disk_bytes(self):
-        return sum(p.stat().st_size for p in self.directory.glob("*.sqlite3*"))
+        return (sum(p.stat().st_size for p in self.directory.glob("*.sqlite3*"))
+                + sum(p.stat().st_size for p in (self.directory / 'bags').rglob('*') if p.is_file()))
+
+    def session_bytes(self):
+        return ((self.path.stat().st_size if self.path.exists() else 0)
+                + sum(p.stat().st_size for p in self.bag_path.rglob('*') if p.is_file()))
+
+    def limit_reached(self, size):
+        return (max(self.session_bytes(), self.bytes) + size + 65536 > self.session_limit
+                or self.disk_bytes() + size + 65536 > self.total_limit)
+
+    def stop_recording(self, reason):
+        self.reason = reason
+        if self.controls:
+            self.controls.writer_error = reason
+        if self.db:
+            self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?, ?)', ('stopped_reason', reason))
+        self.close_bag()
+
+    def close_bag(self):
+        bag, self.bag = self.bag, None
+        if bag is not None:
+            failed = False
+            try:
+                bag.close()
+            except (OSError, RuntimeError) as exc:
+                failed = True
+                self.reason = f'rosbag2 finalization failed: {exc}'
+                if self.controls:
+                    self.controls.writer_error = self.reason
+                if self.db:
+                    self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?, ?)', ('stopped_reason', self.reason))
+            if self.db:
+                state = 'finalized' if not failed and (self.bag_path / 'metadata.yaml').is_file() else 'incomplete'
+                self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?, ?)', ('bag_state', state))
 
     def append(self, snapshot: dict) -> None:
         if self.reason or self.db is None:
@@ -203,8 +275,25 @@ class Recorder:
                 ("gap", "Event ring overflow; recording is incomplete"),
             )
         settings = self.controls.view()["settings"] if self.controls else None
+        if self.controls and self.recording_revision != self.controls.revision:
+            self.sampled_at.clear()
+            self.recording_revision = self.controls.revision
+        revision = next((r['data'].get('topic_revision', 0) for r in snapshot['rows'] if r['kind'] == 'config'), self.source_revision)
+        if revision != self.source_revision:
+            self.source_revision = revision
+            self.hashes.clear()
+            self.sampled_at.clear()
         for row in rows:
             if settings and not allowed(row, settings):
+                continue
+            key = (row["kind"], row["key"])
+            sample_time = row.get('received_monotonic', row['received_at'])
+            identity = row.get('source_id')
+            rate = (settings['source_hz'].get(identity) if identity else settings['hz'].get(category(row))) if settings else None
+            context = row['kind'] == 'slam_texture' or (row['kind'] == 'slam' and row['key'] == 'submaps') or row['kind'] in ('config', 'graph', 'recording_policy', 'recording_status') or (row['kind'] == 'event' and row['data'].get('kind') == 'navigation_decision')
+            limited = rate is not None and not context and (bool(identity) or (row['kind'] not in ('event', 'log', 'result') and category(row) is not None))
+            previous = self.sampled_at.get(key)
+            if limited and previous is not None and 0 <= sample_time-previous < 1/rate:
                 continue
             payload = zlib.compress(
                 json.dumps(row, ensure_ascii=False, allow_nan=False).encode(), level=3
@@ -212,26 +301,19 @@ class Recorder:
             digest = hashlib.sha256(
                 json.dumps(row["data"], sort_keys=True).encode()
             ).hexdigest()
-            key = (row["kind"], row["key"])
             if row["kind"] == "layer" and self.hashes.get(key) == digest:
                 continue
             size = len(payload)
-            if (
-                max(self.path.stat().st_size, self.bytes) + size + 16384
-                > self.session_limit
-                or self.disk_bytes() + size + 16384 > self.total_limit
-            ):
-                self.reason = "Recording size limit reached; evidence retained."
-                self.db.execute(
-                    "INSERT OR REPLACE INTO metadata VALUES (?, ?)",
-                    ("stopped_reason", self.reason),
-                )
+            if self.limit_reached(size):
+                self.stop_recording('Recording size limit reached; evidence retained.')
                 break
             self.db.execute(
                 "INSERT OR IGNORE INTO records VALUES (?, ?, ?, ?, ?)",
                 (row["seq"], row["received_at"], row["kind"], row["key"], payload),
             )
             self.bytes += size
+            if limited:
+                self.sampled_at[key] = sample_time
             if self.controls and category(row):
                 self.controls.saved(category(row))
             self.hashes[key] = digest
@@ -242,29 +324,59 @@ class Recorder:
         if not self.controls:
             return
         batch = self.controls.drain()
-        if self.db:
-            loss = {key:value for key,value in self.controls.view()['status'].items() if value.get('dropped')}
-            if loss:
-                self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?,?)', ('raw_gap', json.dumps(loss)))
-                self.db.commit()
         if self.reason or self.db is None:
+            for message in batch:
+                self.controls.dropped(message.category)
+            self.save_raw_gaps()
             return
-        for key, topic, message_type, received, ros_time, raw in batch:
-            payload = zlib.compress(raw, level=1)
-            if (max(self.path.stat().st_size, self.bytes)+len(payload)+16384 > self.session_limit
-                    or self.disk_bytes()+len(payload)+16384 > self.total_limit):
-                self.reason = 'Recording size limit reached; evidence retained.'
-                self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?, ?)', ('stopped_reason', self.reason))
+        for index, message in enumerate(batch):
+            try:
+                if self.limit_reached(len(message.payload)):
+                    self.stop_recording('Recording size limit reached; evidence retained.')
+                else:
+                    if self.bag is None:
+                        self.bag_path.parent.mkdir(parents=True, exist_ok=True)
+                        self.bag = self.bag_factory(self.bag_path)
+                        self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?, ?)', ('bag_state', 'recording'))
+                    self.bag.write(message)
+                    self.db.execute('INSERT INTO raw_index(category,topic,type,received,ros_time,timestamp_ns) VALUES (?,?,?,?,?,?)',
+                                    (message.category, message.topic, message.message_type, message.received, message.ros_time, message.timestamp_ns))
+                    self.bytes += len(message.payload)
+                    self.controls.saved(message.category)
+            except (ImportError, OSError, RuntimeError, ValueError, sqlite3.Error) as exc:
+                self.stop_recording(f'rosbag2 recording unavailable: {exc}')
+            if self.reason:
+                for pending in batch[index:]:
+                    self.controls.dropped(pending.category)
                 break
-            self.db.execute('INSERT INTO raw_messages(category,topic,type,received,ros_time,payload) VALUES (?,?,?,?,?,?)',
-                            (key, topic, message_type, received, ros_time, payload))
-            self.bytes += len(payload)
-            self.controls.saved(key)
+        self.save_raw_gaps()
         self.db.commit()
 
-    def close(self):
+    def save_raw_gaps(self):
         if self.db:
+            view = self.controls.view()
+            if self.raw_loss_revision != view['stats_generation']:
+                self.raw_loss_seen.clear()
+                self.raw_loss_revision = view['stats_generation']
+            changed = False
+            for key, stat in view['status'].items():
+                dropped = stat.get('dropped', 0)
+                delta = dropped - self.raw_loss_seen.get(key, 0)
+                if delta > 0:
+                    previous = self.raw_losses.get(key, {}).get('dropped', 0)
+                    self.raw_losses[key] = {**stat, 'dropped': previous + delta}
+                    changed = True
+                self.raw_loss_seen[key] = dropped
+            if changed:
+                self.db.execute('INSERT OR REPLACE INTO metadata VALUES (?,?)', ('raw_gap', json.dumps(self.raw_losses)))
+                self.db.commit()
+
+    def close(self):
+        self.close_bag()
+        if self.db:
+            self.db.commit()
             self.db.close()
+            self.db = None
 
     def sessions(self) -> list[dict]:
         result = []
@@ -281,6 +393,36 @@ class Recorder:
                     "SELECT count(*),min(received) FROM records WHERE kind='runtime'"
                 ).fetchone()
                 meta = dict(db.execute("SELECT key,value FROM metadata"))
+                policies = [decode_record(r[0]) for r in db.execute(
+                    "SELECT payload FROM records WHERE kind='recording_policy' ORDER BY received,seq")]
+                raw_table = self.raw_table(db)
+                segments = []
+                def add_segment(left, right):
+                    bounds = []
+                    for table in (['records', raw_table] if raw_table else ['records']):
+                        where = "received>=? AND received<?"
+                        if table == 'records':
+                            where += " AND kind NOT IN ('config','graph','recording_policy','recording_status')"
+                        # Indexed first/last reads avoid scanning each active period every poll.
+                        first = db.execute(f"SELECT received FROM {table} WHERE {where} ORDER BY received ASC LIMIT 1", (left, right)).fetchone()
+                        last = db.execute(f"SELECT received FROM {table} WHERE {where} ORDER BY received DESC LIMIT 1", (left, right)).fetchone()
+                        if first and last:
+                            bounds.append((first[0], last[0]))
+                    if bounds:
+                        segments.append(dict(start=min(a for a, _ in bounds), end=max(b for _, b in bounds)))
+                if policies:
+                    opened = None
+                    for policy in policies:
+                        if policy['data'].get('active', True):
+                            if opened is None:
+                                opened = policy['received_at']
+                        elif opened is not None:
+                            add_segment(opened, policy['received_at'])
+                            opened = None
+                    if opened is not None:
+                        add_segment(opened, float('inf'))
+                else:
+                    add_segment(float('-inf'), float('inf'))
             result.append(
                 {
                     "id": path.stem,
@@ -289,8 +431,11 @@ class Recorder:
                     "runtime_start": runtime_start,
                     "start": start,
                     "end": end,
-                    "bytes": path.stat().st_size,
+                    "bytes": path.stat().st_size + sum(p.stat().st_size for p in (self.directory / 'bags' / path.stem).rglob('*') if p.is_file()),
+                    "bag_available": self.bag_available(path.stem, meta),
+                    "bag_recording": path.stem == self.session_id and self.bag is not None,
                     "metadata": meta,
+                    "segments": segments,
                 }
             )
         return result
@@ -303,6 +448,37 @@ class Recorder:
         if not path.is_file():
             raise FileNotFoundError(session)
         return path
+
+    @staticmethod
+    def raw_table(db):
+        tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        return 'raw_index' if 'raw_index' in tables else 'raw_messages' if 'raw_messages' in tables else None
+
+    def resolve_bag(self, session):
+        self.resolve(session)
+        return self.directory / 'bags' / session
+
+    def bag_available(self, session, metadata=None):
+        if metadata is None:
+            with sqlite3.connect(f'file:{self.resolve(session)}?mode=ro', uri=True) as db:
+                metadata = dict(db.execute('SELECT key,value FROM metadata'))
+        return (metadata.get('bag_state') == 'finalized'
+                and (self.directory / 'bags' / session / 'metadata.yaml').is_file())
+
+    def raw_message(self, session, key, at):
+        with sqlite3.connect(f'file:{self.resolve(session)}?mode=ro', uri=True) as db:
+            table = self.raw_table(db)
+            if table is None:
+                raise FileNotFoundError('원본 녹화 없음')
+            column = 'timestamp_ns' if table == 'raw_index' else 'payload'
+            row = db.execute(f'SELECT {column},type,topic,id FROM {table} WHERE category=? AND received<=? ORDER BY received DESC,id DESC LIMIT 1', (key, at)).fetchone()
+            occurrence = (db.execute('SELECT count(*) FROM raw_index WHERE topic=? AND timestamp_ns=? AND id<?',
+                                     (row[2], row[0], row[3])).fetchone()[0]
+                          if row is not None and table == 'raw_index' else 0)
+        if row is None:
+            raise FileNotFoundError('이 시점 이전에 원본 녹화가 없습니다.')
+        data = read_cdr(self.resolve_bag(session), row[2], row[0], occurrence) if table == 'raw_index' else zlib.decompress(row[0])
+        return data, row[1], row[2]
 
     def replay(self, session: str, at: float) -> dict:
         with sqlite3.connect(f"file:{self.resolve(session)}?mode=ro", uri=True) as db:
@@ -321,11 +497,19 @@ class Recorder:
                 )
             ]
             meta = dict(db.execute("SELECT key,value FROM metadata"))
-            if db.execute("SELECT name FROM sqlite_master WHERE name='raw_messages'").fetchone():
+            table = self.raw_table(db)
+            if table:
                 raw = [dict(category=k, count=count, last_received=last, topic=topic, message_type=typ)
-                       for k,count,last,topic,typ in db.execute("SELECT category,count(*),max(received),topic,type FROM raw_messages WHERE received<=? GROUP BY category,topic,type", (at,))]
+                       for k,count,last,topic,typ in db.execute(f"SELECT category,count(*),max(received),topic,type FROM {table} WHERE received<=? GROUP BY category,topic,type", (at,))]
                 if raw:
-                    rows.append(dict(seq=0, kind='recording_raw', key='archive', data={'items':raw}, received_at=at, ros_time=None))
+                    rows.append(dict(seq=0, kind='recording_raw', key='archive',
+                                     data={'items':raw, 'format':'rosbag2' if table == 'raw_index' else 'legacy_sqlite',
+                                           'bag_available': self.bag_available(session, meta),
+                                           'bag_state': meta.get('bag_state'),
+                                           'bag_recording': session == self.session_id and self.bag is not None},
+                                     received_at=at, ros_time=None))
+        revision = next((r['data'].get('topic_revision', 0) for r in rows if r['kind'] == 'config'), 0)
+        rows = [r for r in rows if r['kind'] in ('config','resources','recording_policy','recording_status','recording_raw','event','log','result') or r.get('topic_revision',0) == revision]
         policy = next((r['data'] for r in rows if r['kind'] == 'recording_policy'), None)
         if policy:
             rows = [r for r in rows if r['kind'] in ('recording_raw', 'recording_policy') or allowed(r, policy)]

@@ -27,7 +27,7 @@
 
 형상 기반 predictor는 context 점군에서 지지 평면을 추정하고 target의 접선 방향과 폭을 살펴 위에서 접근하는 평행 그리퍼 후보를 만듭니다. `GeometricGraspConfig`에는 폭 한계, 손가락 크기, 충돌 여유, 탐색 각도와 후보 수가 있습니다. 이 점군 수준 검사가 로봇 팔 전체의 MoveIt 충돌 검사를 대신하지는 않습니다.
 
-AnyGrasp 연결도 [anygrasp_adapter.py](../../../ros2_ws/src/cleany_grasping/cleany_grasping/anygrasp_adapter.py)에 있지만 실제 backend와 필요한 SDK 조건은 [Grasping README](../../../ros2_ws/src/cleany_grasping/README.md)를 확인해야 합니다. 데모의 형상 기반 후보와 학습 모델 출력을 동일한 것으로 읽지 마세요.
+AnyGrasp 연결도 [anygrasp_adapter.py](../../../ros2_ws/src/cleany_grasping/cleany_grasping/anygrasp_adapter.py)에 있지만 실제 backend와 필요한 SDK 조건은 [Grasping README](../../../ros2_ws/src/cleany_grasping/docs/predictors.md)를 확인해야 합니다. 데모의 형상 기반 후보와 학습 모델 출력을 동일한 것으로 읽지 마세요.
 
 ## 08.3 후보 필터와 TCP 변환
 
@@ -80,6 +80,12 @@ PYTHON
 ```
 
 이 순수 core는 `ReachabilityPort`에 요청하고, [moveit_adapter.py](../../../ros2_ws/src/cleany_skill_executor/cleany_skill_executor/moveit_adapter.py)가 ROS/MoveIt 서비스를 연결합니다. `set_target_contacts()`는 준비 단계와 접촉 단계의 허용 접촉 조건을 바꿉니다. 목표 물체와의 제한된 접촉 허용은 주변 전체의 충돌 검사를 해제한다는 뜻이 아닙니다.
+
+MoveIt에서 계획을 시각화하면 팔의 움직임과 단계별 결과를 함께 볼 수 있습니다. 아래는 MoveIt Task Constructor의 별도 데모로, 오른쪽 단계 목록에서 선택한 구간의 움직임을 왼쪽 RViz 화면으로 확인하는 모습입니다.
+
+![MoveIt Task Constructor에서 pick object와 place object의 하위 단계를 선택하며 로봇 팔의 계획을 RViz로 확인하는 움짤](../assets/media/moveit-stages.gif)
+
+*외부 계획 시각화 · [MoveIt Humble 문서](https://moveit.picknik.ai/humble/doc/examples/moveit_task_constructor/moveit_task_constructor_tutorial.html), Willow Garage / PickNik, BSD-3-Clause. Cleany의 팔 실행 결과가 아니며, 위 selector가 Task Constructor를 사용한다는 뜻도 아닙니다.*
 
 ## 08.5 계획·실행·실패 경계
 

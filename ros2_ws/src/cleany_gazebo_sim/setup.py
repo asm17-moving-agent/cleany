@@ -9,8 +9,8 @@ setup(
     name=package_name,
     version='0.1.0',
     packages=find_packages(exclude=['test']),
+    scripts=glob('scripts/*.py'),
     data_files=[
-        (f'share/{package_name}/config/behavior_trees', glob('config/behavior_trees/*.xml')),
         ('share/ament_index/resource_index/packages', [f'resource/{package_name}']),
         (f'share/{package_name}', ['package.xml']),
         (f'share/{package_name}/launch', glob('launch/*.launch.py')),
@@ -39,8 +39,6 @@ setup(
         (f'share/{package_name}/materials/roly', glob('materials/roly/*.png')),
         (f'share/{package_name}/config/facility_18f', glob('config/facility_18f/*.yaml')),
         (f'share/{package_name}/config/furniture', glob('config/furniture/*.yaml')),
-        (f'share/{package_name}/models/roly_p1g210m',
-         ['models/roly_p1g210m/README.md']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -53,11 +51,6 @@ setup(
         'console_scripts': [
             'gazebo_feedback_sampler = cleany_gazebo_sim.feedback_sampler:main',
             'gazebo_pan_tf_publisher = cleany_gazebo_sim.pan_tf_publisher:main',
-            'pan_motion_gate = cleany_gazebo_sim.pan_motion_gate_node:main',
-            'voxel_guard = cleany_gazebo_sim.voxel_guard_node:main',
-            'body_guard_observer = cleany_gazebo_sim.body_guard_observer:main',
-            'obstacle_memory = cleany_gazebo_sim.obstacle_memory_node:main',
-            'depth_clearance = cleany_gazebo_sim.depth_clearance_node:main',
             'gazebo_command_guard = cleany_gazebo_sim.command_guard:main',
             'gazebo_odom_tf_publisher = cleany_gazebo_sim.odom_tf_publisher:main',
             'gazebo_sensor_tf_publisher = cleany_gazebo_sim.sensor_tf_publisher:main',
@@ -66,8 +59,6 @@ setup(
             'simulated_odometry_error_node = '
             'cleany_gazebo_sim.simulated_odometry_error_node:main',
             'ground_truth_route_follower = cleany_gazebo_sim.ground_truth_route_follower:main',
-            'gazebo_slam_experiment = cleany_gazebo_sim.gazebo_slam_experiment:main',
-            'occupancy_grid_marker = cleany_gazebo_sim.occupancy_grid_marker:main',
         ],
     },
 )

@@ -365,6 +365,13 @@
           "title": "11.6 팀 코드 리뷰 실습"
         }
       ]
+    },
+    {
+      "id": "visual-sources",
+      "file": "assets/README.md",
+      "title": "그림과 영상 출처",
+      "part": "참고 자료",
+      "keywords": "사진 움짤 영상 출처 라이선스 저작권"
     }
   ]
 }

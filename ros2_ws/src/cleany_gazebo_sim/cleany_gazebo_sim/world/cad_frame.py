@@ -137,11 +137,9 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
                 plugin.find(key).text = str(profile[key])
         model.append(plugin)
     if pan_enabled:
-        fortress = any(p.get('name', '').startswith('ignition::') for p in legacy.findall('plugin'))
-        filename = 'ignition-gazebo-joint-position-controller-system' if fortress else 'gz-sim-joint-position-controller-system'
-        namespace = 'ignition::gazebo' if fortress else 'gz::sim'
-        plugin = ET.SubElement(model, 'plugin', filename=filename,
-                               name=namespace+'::systems::JointPositionController')
+        plugin = ET.SubElement(model, 'plugin',
+                               filename='ignition-gazebo-joint-position-controller-system',
+                               name='ignition::gazebo::systems::JointPositionController')
         for key, value in dict(joint_name='head_pan_joint', initial_position='0',
                 use_velocity_commands='true', cmd_max=str(profile.get('pan_speed_rad_s', 1.0)),
                 topic='/model/cleany_mecanum/head_pan/cmd_pos').items():

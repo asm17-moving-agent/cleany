@@ -40,6 +40,11 @@ def subscribe_collision_geometry(node, cache, *, callback_group=None, record=Fal
 
 
 class CollisionGeometryCache:
+    """Retain bounded copies of validated, closed convex meshes across callbacks.
+
+    Lookup requires matching snapshot/object identity, header and OBB pose;
+    missing or mismatched provenance returns None rather than substituting a mesh.
+    """
     def __init__(self, capacity: int = 64) -> None:
         if capacity < 1:
             raise ValueError('Geometry cache capacity must be positive')

@@ -29,6 +29,22 @@ def ros_runtime(tmp_path, request):
     from cleany_mission_manager.node import MissionRuntimeNode
 
     class NavigationFixture(Node):
+        """Emulate navigation transport and lifecycle state for mission tests.
+
+        Publishers:
+            wheel/odom (nav_msgs/msg/Odometry): Synthetic stop feedback.
+
+        Services:
+            {map_server,amcl,planner_server,controller_server,bt_navigator,
+            collision_monitor}/get_state (lifecycle_msgs/srv/GetState): Test-controlled state.
+
+        Actions:
+            navigate_to_pose (nav2_msgs/action/NavigateToPose): Server that completes,
+                holds or cancels goals under test control.
+
+        TF:
+            Broadcasts synthetic map -> base_link pose updates.
+        """
         def __init__(self):
             super().__init__("navigation_fixture")
             self.goals = []

@@ -25,7 +25,7 @@ ROS의 길이는 m, 각도는 rad입니다. 예를 들어 `linear.y=0.2`는 로�
 
 **URDF**는 로봇 부품인 `link`와 부품 사이 관계인 `joint`를 설명합니다. `fixed` 관절은 고정된 장착 관계이고, `revolute` 관절은 한 축을 중심으로 회전합니다. **Xacro**는 반복되는 모델을 macro로 묶고 옵션에 따라 펼쳐 URDF를 만드는 도구입니다.
 
-Cleany의 공통 모델 위치는 [cleany_description README](../../../ros2_ws/src/cleany_description/README.md)에 정리되어 있습니다.
+Cleany의 공통 모델 위치는 [cleany_description README](../../../ros2_ws/src/cleany_description/docs/model.md)에 정리되어 있습니다.
 
 | 파일 | 담당하는 내용 |
 | --- | --- |
@@ -94,6 +94,12 @@ self._tf_broadcaster.sendTransform(transform)
 `output.header`를 보존하므로 변환은 원본 odometry의 시각을 사용합니다. 입력 `/gazebo_odom`은 bridge가 연결한 ground-truth이고, 이 노드는 pose를 encoder로 다시 계산하지 않습니다.
 
 촬영 뒤 팔이나 머리가 움직였다면 최신 TF로 예전 이미지의 점을 옮기는 것은 잘못된 조합일 수 있습니다. 영상 시각의 TF가 필요하고, 시뮬레이션에서는 관련 노드가 `/clock`을 사용해야 합니다. 같은 변환을 두 노드가 서로 다른 값으로 발행하는 것도 피해야 합니다.
+
+TF 관계를 출력하면 다음처럼 부모·자식 frame과 발행 노드, 갱신 시각을 한 화면에서 읽을 수 있습니다. 선이 연결되어 있는지만 보지 말고, 각 변환을 누가 발행하는지도 확인합니다.
+
+![map에서 odom과 base_link를 거쳐 LiDAR와 IMU로 이어지는 TF 트리. 각 선에는 발행 노드와 갱신 시각이 표시되어 있다](../assets/media/cartographer-frames.jpg)
+
+*외부 TF 출력 예시 · [Cartographer ROS 데모](https://google-cartographer-ros.readthedocs.io/en/latest/demos.html), The Cartographer Authors, Apache-2.0. 이 예시는 Cartographer가 odom → base_link도 발행하므로 위 Cleany 표의 발행 주체와 다릅니다.*
 
 ## 04.5 TF 오류 추적 실습
 

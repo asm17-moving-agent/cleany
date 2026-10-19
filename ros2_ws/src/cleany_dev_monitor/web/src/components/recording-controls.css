@@ -61,3 +61,77 @@
 .recording-replay > div {
   margin: 8px 0;
 }
+
+.recording-cadence {
+  max-width: 560px;
+  line-height: 1.6;
+}
+.recording-cadence strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.recording-cadence-note {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+.recording-rate {
+  white-space: nowrap;
+}
+.recording-rate input[type="number"] {
+  width: 90px;
+}
+
+.recording-group-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.recording-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.recording-expand:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.recording-expand-spacer {
+  width: 24px;
+  flex-shrink: 0;
+}
+.recording-source-row {
+  background: var(--muted);
+}
+.recording-source-row td:first-child {
+  padding-left: 42px;
+}
+.recording-basic-topic {
+  width: 100%;
+  min-width: 220px;
+}
+
+.recording-start {
+  background: #2563eb;
+  color: #fff;
+}
+.recording-start:hover {
+  background: #1d4ed8;
+}
+.recording-stop {
+  background: #dc2626;
+  color: #fff;
+}
+.recording-stop:hover {
+  background: #b91c1c;
+}
