@@ -1,5 +1,20 @@
 # cleany_interfaces
 
+Cleany perception snapshot, grasp candidate 생성과 MoveIt 도달 가능성 검증이
+공유하는 ROS 2 interface package다. 구현 내부 model이나 provider별 응답은 wire
+contract로 노출하지 않는다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를 사용하는
+프로젝트 공통 topic 계약도 이곳에 기록한다.
+
+| 찾는 계약 | 안내 |
+|---|---|
+| 미션 요청·취소·상태·결과 | [Mission Runtime 계약](#mission-runtime-계약) |
+| 단일 물체 조작·조회·취소 | [Manipulation Action](#단일-물체-manipulation-action) |
+| FSM·청소 BT 관측 | [개발 관측 인터페이스](#개발-관측-인터페이스) |
+| 인식·파지 | [객체 메시지](#객체-메시지), [Scene inspection](#scene-inspection-action), [Grasp 선택](#grasp-planning과-선택) |
+| 관측 형상·손목·안착 | [ObservedObjectGeometry](#observedobjectgeometry), [ObserveWristTarget](#observewristtarget), [VerifyPlacement](#verifyplacement) |
+
+## ObservedObjectGeometry
+
 `ObservedObjectGeometry`는 `/grasp/collision_geometry`의 선택적 관측 형상
 인터페이스다. header의 capture stamp/frame, snapshot_id, object_id로 기존
 GraspCandidate와 연관하고, mesh_pose는 header frame 기준이며 Mesh vertices는
@@ -7,6 +22,8 @@ mesh_pose의 local 좌표다. convex footprint를 인식된 지지면까지 돌�
 실제 숨은 형상이나 시뮬레이터 정답을 의미하지 않는다. 기존 InspectScene,
 PlanGrasp, GraspCandidate의 필드를 바꾸지 않아 기존 CDR 기록 형식은 유지한다.
 메시 타입 의존성에 shape_msgs가 포함된다.
+
+## ObserveWristTarget
 
 `ObserveWristTarget.srv`는 RGB-only 손목 인계/확인 서비스다.
 HANDOFF는 head source ID, 원본 label/confidence와 예상 base-frame OBB를 전달받아
@@ -35,11 +52,6 @@ HANDOFF 미검출은 파지 진행을 허용하는 참조를 만들지 않는다
 평가용 oracle이며 조작 코드에는 물체 정답 pose를 반환하지 않는다.
 실제 로봇에는 독립 센서 기반 검증 제공자가 필요하다.
 
-Cleany perception snapshot, grasp candidate 생성과 MoveIt 도달 가능성 검증이
-공유하는 ROS 2 interface package다. 구현 내부 model이나 provider별 응답은 wire
-contract로 노출하지 않는다. 커스텀 메시지뿐 아니라 표준 ROS 메시지를 사용하는
-프로젝트 공통 topic 계약도 이곳에 기록한다.
-
 ## 객체 메시지
 
 `DetectedObject2D`와 `DetectedObject2DArray`는 Gemini detector가 반환한 RGB pixel
@@ -49,6 +61,10 @@ bounding box, snapshot-local 번호와 후속 선택 요청에 사용할 `snapsh
 순서로 정렬되며 depth가 불충분한 후보는 자동 조작 대상으로 선택하지 않는다.
 `DetectedObject3D`와 `DetectedObject3DArray`는 선택 객체의 OBB와 동일 snapshot 문맥을
 표현한다.
+
+`DetectedObject2D`는 모델이 반환한 `sorting_category`와 `sorting_reason`을
+포함한다. category는 `trash`, `lost_item`, `review` 또는 미제공 빈 문자열이다.
+빈 값은 이름 기반 폐기 허가가 아니다. 이 메시지 변경 후 모든 consumer를 재빌드한다.
 
 ## Scene inspection action
 
@@ -90,57 +106,29 @@ canonical `target_id`와 `requested_by`를 전달합니다. 응답의 `accepted`
 제공합니다. 내부 Mock 관측 ID는 실제 사진을 의미하지 않습니다.
 공개 이름과 취소·복구 규칙은 [Mission Manager README](../cleany_mission_manager/README.md)를 따릅니다.
 
-
-## 설정 및 검증
-
-인터페이스를 추가하거나 변경할 때는 해당 의존 패키지, `package.xml`, 빌드 및 메시지
-호환성 검증을 함께 갱신한다.
-
-```bash
-source /opt/ros/humble/setup.bash
-cd ros2_ws
-colcon build --symlink-install --packages-select cleany_interfaces
-source install/setup.bash
-colcon test --packages-select cleany_interfaces
-colcon test-result --verbose
-```
-
-설치된 계약은 `ros2 interface show`로 `InspectScene`, `PlanGrasp`,
-`SelectReachableGrasp`와 관련 message를 확인한다.
-
-## 관련 KB
-
-`DetectedObject2D`는 모델이 반환한 `sorting_category`와 `sorting_reason`을
-포함한다. category는 `trash`, `lost_item`, `review` 또는 미제공 빈 문자열이다.
-빈 값은 이름 기반 폐기 허가가 아니다. 이 메시지 변경 후 모든 consumer를 재빌드한다.
-
-- [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
-- [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
-- [ROS 2 Software Architecture](../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)
-
 ## 단일 물체 Manipulation action
 
-`ExecuteManipulationSkill`은 승인된 물체 하나를 목적지로 옮기는 실행 계약입니다.
-요청은 mission/task/execution ID, skill, snapshot ID, snapshot 범위의 uint32 object ID와
-목적지 ID를 포함합니다. execution ID는 호출자가 발급하고 전송 전에 영속 저장합니다.
-결과는 status/error, 실패·완료 stage, 물체·placement 상태, 선택한 팔,
-정지 확인, 팔 복귀, retryable과 설명을 포함합니다. feedback stage는 완료 증거가 아닙니다.
+`ExecuteManipulationSkill`은 승인된 물체 하나를 목적지로 옮기는 계약이다.
+execution ID는 호출자가 발급하고 전송 전에 영속 저장한다.
 
-`ManipulationExecutionRecord`는 동일 요청 및 영속 진행/결과와 revision, timestamp,
-사람 확인 필요 여부를 전달합니다. `GetManipulationExecution`은 execution ID로 이 기록을
-조회합니다. 현재 `found=false`는 서버 저장 오류와도 구분되지 않으므로 실행되지 않았다는
-증거로 사용하지 않습니다. 상세 수락·성공·취소와 주행 gate는
-[Mission Manager 계약](../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따릅니다.
+| 정의 | 주요 내용 |
+|---|---|
+| [Goal·Result·Feedback](action/ExecuteManipulationSkill.action) | Goal: mission/task/execution·skill·snapshot·uint32 object·destination ID. Result: status/error·물체/안착·팔/정지 상태. Feedback: 현재 stage/substage |
+| [ManipulationExecutionRecord](msg/ManipulationExecutionRecord.msg) | 요청·진행·결과, revision/timestamp, 완료 substage, 취소 방식, 사람 확인 여부 |
+| [GetManipulationExecution](srv/GetManipulationExecution.srv) | execution ID로 영속 실행 기록 조회 |
+| [CancelManipulation](srv/CancelManipulation.srv) | 서버의 취소 모드 요청 서비스. Mission은 기본 CHECKPOINT의 ROS Action cancel을 사용 |
 
-조작 Action과 Record는 PR #55의 `86a6d85` 정의를 사용합니다. Result에
-`failed_substage`, `cancel_mode`, Feedback에 `substage`, Record에 `completed_substages`를
-포함합니다. `CancelManipulation` service도 서버용으로 등록하지만 Mission은 기존
-ROS Action cancel을 사용하며 기본 CHECKPOINT를 유지합니다.
-Mission·관제 메시지는 PR #54 정의를 유지하고, 모든 consumer를 하나의 install prefix에서
-재빌드합니다. Mission의 `ManipulationOutcome`과 보고 JSON에는 새 진단 필드를 추가하지 않습니다.
-서버 내부 BT 구조는 이 계약에 포함하지 않습니다.
+조작 Action·Record는 PR #55 `86a6d85` 정의를 사용한다. 추가 필드는 Result의
+`failed_substage/cancel_mode`, Feedback의 `substage`, Record의 `completed_substages`다.
+Mission·관제 타입은 PR #54 기준을 유지하며 모든 consumer를 같은 install prefix에서
+재빌드한다. Mission은 추가 진단을 기존 결과 DTO·보고 JSON과 분리한다.
 
-### 개발 관측 인터페이스
+Feedback은 완료 증거가 아니며 `found=false`도 미실행·정지 증거가 아니다.
+수락·결과 판정·취소·주행 gate와 journal 호환은
+[Mission Manager 계약](../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따른다.
+서버 내부 BT 구조는 wire 계약에 포함하지 않는다.
+
+## 개발 관측 인터페이스
 
 `RuntimeDebugSnapshot` (`mission/debug_snapshot`, reliable/transient-local depth 1)은
 header, boot ID, 마지막 event sequence, mission ID, FSM state, ready/reason,
@@ -155,3 +143,25 @@ cancel_requested, mission_result다. 관측 데이터이며 명령 인터페이�
 기존 `MissionStatus`, `MissionResult`, 미션 service 계약은 변경하지 않는다.
 Action Mock 사용 시 JSON의 선택적 `manipulation_feedback`, `manipulation_details`에
 최신 Feedback과 세부 단계·취소 진단을 표시한다. 주행 허가와 완료 증거로 사용하지 않는다.
+
+## 설정 및 검증
+
+인터페이스를 추가하거나 변경할 때는 해당 의존 패키지, `package.xml`, 빌드 및 메시지
+호환성 검증을 함께 갱신한다.
+
+반복 빌드·통합 검사는 [workspace 공통 명령](../../README.md#missionmock-조작-검증)을 사용한다.
+설치 환경을 source한 뒤 타입을 확인할 수 있다.
+
+```bash
+source "$(make -s print-install-base)/setup.bash"
+ros2 interface show cleany_interfaces/action/ExecuteManipulationSkill
+ros2 interface show cleany_interfaces/msg/ManipulationExecutionRecord
+```
+
+ROSIDL/CDR 정의 변경 시 기존 제공자·호출자를 함께 재빌드하고 재시작한다.
+
+## 관련 KB
+
+- [Technical Overview](../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
+- [System Context](../../../docs/cleany-docs/20_TECHNICAL/01%20-%20System%20Context.md)
+- [ROS 2 Software Architecture](../../../docs/cleany-docs/20_TECHNICAL/11%20-%20ROS%202%20Software%20Architecture.md)

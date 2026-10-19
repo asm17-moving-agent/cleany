@@ -1,9 +1,9 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel } from "@/components/panel";
-import { type Data, type Row, time } from "@/lib/monitor";
+import { type Row, time } from "@/lib/monitor";
 import {
   Activity,
   ArrowRight,
@@ -12,39 +12,36 @@ import {
   CheckCircle2,
   CircleDot,
   Clock3,
-  Crosshair,
   FileClock,
   Hand,
   Layers3,
   ListChecks,
   PackageCheck,
   Radio,
-  ScanSearch,
   ShieldCheck,
   Timer,
   Trash2,
   TriangleAlert,
-  Undo2,
   X,
-  type LucideIcon,
 } from "lucide-react";
+import {
+  stages,
+  stageLabel,
+  stageIcons,
+  resultLabels,
+  objectLabels,
+  placementLabels,
+  extra,
+  manipulationObservation,
+  currentExecution,
+  missionExecutions,
+  normalSteps,
+  normalStepIds,
+  stepLabel,
+  type Run,
+} from "@/lib/manipulation";
 import "./manipulation.css";
 
-type Interval = {
-  stage: string;
-  substage: string;
-  start_ns: number;
-  end_ns: number | null;
-  partial: boolean;
-  received_at: number;
-};
-type Run = {
-  record: Data;
-  received_at: number;
-  intervals: Interval[];
-  partial: boolean;
-  clock_regressed: boolean;
-};
 type Props = {
   rows: Row[];
   timeAt: number;
@@ -54,98 +51,6 @@ type Props = {
   seek: (at: number) => void;
 };
 
-// Labels describe the Action protocol, rather than inventing an executor BT.
-const stages: [string, string, [string, string][]][] = [
-  ["VALIDATING", "실행 준비 확인", [["ValidateGoal", "모델과 실행 준비 확인"]]],
-  [
-    "PREPARING_TARGET",
-    "대상 확인·파지 계획",
-    [
-      ["PrepareTarget", "대상 관측 확인"],
-      ["ReconstructTarget", "선택 물체 3D 복원"],
-      ["GenerateGrasp", "파지 후보 생성"],
-      ["SelectArmAndPath", "팔과 경로 결정"],
-    ],
-  ],
-  [
-    "APPROACHING",
-    "물체 접근",
-    [
-      ["MoveToPregrasp", "잡기 전 위치 이동"],
-      ["ApproachObject", "물체 접근"],
-    ],
-  ],
-  [
-    "GRASPING",
-    "잡기·파지 확인",
-    [
-      ["GraspObject", "그리퍼 닫기"],
-      ["ConfirmGrasp", "파지 확인"],
-    ],
-  ],
-  [
-    "LIFTING",
-    "들어 올리기",
-    [
-      ["LiftObject", "물체 들어 올리기"],
-      ["ConfirmHeld", "보유 상태 확인"],
-    ],
-  ],
-  ["TRANSPORTING", "수거함 운반", [["CarryObject", "수거함 이동"]]],
-  [
-    "PLACING",
-    "놓기·이탈 확인",
-    [
-      ["CheckPlacementTarget", "놓을 위치 확인"],
-      ["OpenGripperAtDestination", "그리퍼 열기"],
-      ["ConfirmRelease", "물체 이탈 확인"],
-    ],
-  ],
-  ["RETURNING_ARM", "팔 복귀", [["ReturnArm", "팔 복귀"]]],
-  [
-    "VERIFYING_PLACEMENT",
-    "안착 확인",
-    [["VerifyPlacedObject", "수거함 내부 확인"]],
-  ],
-];
-const extra: Record<string, string> = {
-  STOPPING: "정지 확인",
-  FINALIZING: "결과 확정",
-  RELEASING_IN_PLACE: "현재 위치에서 놓기",
-  RECOVERING_ARM: "취소 후 팔 복귀",
-};
-const stageLabel = (id: string) =>
-  stages.find(([key]) => key === id)?.[1] || extra[id] || id || "—";
-const stageIcons: Record<string, LucideIcon> = {
-  VALIDATING: ShieldCheck,
-  PREPARING_TARGET: ScanSearch,
-  APPROACHING: Crosshair,
-  GRASPING: Hand,
-  LIFTING: Box,
-  TRANSPORTING: Trash2,
-  PLACING: PackageCheck,
-  RETURNING_ARM: Undo2,
-  VERIFYING_PLACEMENT: CheckCircle2,
-};
-const resultLabels: Record<string, string> = {
-  SUCCESS: "수거 완료",
-  CANCELED: "수거 취소",
-  BLOCKED: "실행 차단",
-  FAILED: "조작 실패",
-  FATAL: "안전 오류",
-};
-const objectLabels: Record<string, string> = {
-  NOT_TOUCHED: "접촉 전",
-  HELD: "보유 중",
-  LEFT_GRIPPER: "그리퍼 이탈",
-  UNKNOWN: "미확인",
-};
-const placementLabels: Record<string, string> = {
-  CONFIRMED: "안착 확인",
-  NOT_CHECKED: "검증 전",
-  NOT_CONFIRMED: "안착 미확인",
-  UNKNOWN: "미확인",
-};
 function StateValue({
   value,
   labels,
@@ -246,66 +151,25 @@ export function ManipulationDashboard({
 }: Props) {
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState("");
-  const summary = rows.find(
-    (row) => row.kind === "manipulation" && row.key === "executions",
-  );
-  const runs: Run[] = useMemo(() => summary?.data.executions || [], [summary]);
-  const runtimeRow = rows.find((row) => row.kind === "runtime");
-  const runtime = runtimeRow?.data || {};
-  const config = rows.find((row) => row.kind === "config")?.data || {};
-  const graphRow = rows.find((row) => row.kind === "graph");
-  const eventTopic =
-    config.manipulation_events_topic || "mock/manipulation/execution_events";
-  const topic = eventTopic.startsWith("/")
-    ? eventTopic
-    : "/" +
-      [config.runtime_namespace?.replace(/^\/+|\/+$/g, ""), eventTopic]
-        .filter(Boolean)
-        .join("/");
-  const endpoint = graphRow?.data.topics?.find(
-    (item: Data) => item.name === topic,
-  );
-  const runtimeFresh =
-    !!runtimeRow &&
-    age(timeAt, runtimeRow.received_at) < 3 &&
-    (replay || connected);
-  const serverPresent =
-    !!graphRow &&
-    age(timeAt, graphRow.received_at) < 3 &&
-    !!endpoint?.publishers?.length &&
-    (replay || connected);
+  const observation = manipulationObservation(rows, timeAt, replay, connected);
+  const { runtime, runs, topic, runtimeFresh, summary } = observation;
+  const { mission, automatic } = missionExecutions(observation);
   const selectedRun =
     runs.find((run) => run.record.execution_id === selected) ||
-    runs.find(
-      (run) =>
-        run.record.execution_id === runtime.manipulation_feedback?.execution_id,
-    ) ||
-    runs[0];
+    (mission ? automatic : runs[0]);
   const record = selectedRun?.record || {};
-  const current =
-    !!selectedRun &&
-    !record.has_result &&
-    record.record_state === "ACTIVE" &&
-    runtimeFresh &&
-    serverPresent &&
-    runtime.active_request?.mission_id === record.mission_id &&
-    runtime.manipulation_feedback?.execution_id === record.execution_id &&
-    ["WORKING", "CANCELLING"].includes(runtime.state);
+  const current = currentExecution(selectedRun, observation);
   // Extrapolate only a correlated live observation; freeze stale/finished evidence.
   const end =
     Number(record.updated_at_ns || 0) +
-    (current ? age(timeAt, selectedRun.received_at) * 1e9 : 0);
+    (current && selectedRun ? age(timeAt, selectedRun.received_at) * 1e9 : 0);
   const completed: string[] = Array.isArray(record.completed_substages)
     ? record.completed_substages
     : [];
-  const totalSteps = stages.reduce(
-    (count, [, , steps]) => count + steps.length,
-    0,
-  );
-  const normalIds = stages.flatMap(([, , steps]) => steps.map(([id]) => id));
-  const doneCount = new Set(completed.filter((id) => normalIds.includes(id)))
+  const totalSteps = normalSteps.length;
+  const doneCount = new Set(completed.filter((id) => normalStepIds.has(id)))
     .size;
-  const unknownSteps = completed.filter((id) => !normalIds.includes(id));
+  const unknownSteps = completed.filter((id) => !normalStepIds.has(id));
   const gate = !runtimeFresh
     ? "미확인"
     : runtime.safe_to_drive === true
@@ -326,7 +190,11 @@ export function ManipulationDashboard({
   const totals = new Map<string, number>();
   for (const interval of selectedRun?.intervals || []) {
     const stop = interval.end_ns ?? (current ? end : record.updated_at_ns);
-    if (!selectedRun.clock_regressed && stop >= interval.start_ns)
+    if (
+      selectedRun &&
+      !selectedRun.clock_regressed &&
+      stop >= interval.start_ns
+    )
       totals.set(
         interval.stage,
         (totals.get(interval.stage) || 0) + (stop - interval.start_ns) / 1e9,
@@ -346,9 +214,7 @@ export function ManipulationDashboard({
     : current
       ? "info"
       : "neutral";
-  const activeStepLabel = stages
-    .flatMap(([, , steps]) => steps)
-    .find(([id]) => id === record.substage)?.[1];
+  const activeStepLabel = stepLabel(record.substage);
   const stageState = (id: string, steps: [string, string][]) =>
     record.failed_stage === id
       ? "failed"
@@ -535,6 +401,32 @@ export function ManipulationDashboard({
     </Panel>
   );
 
+  const executionPicker = runs.length > 0 && (
+    <label className="manip-execution-picker">
+      <span>실행 기록</span>
+      <select
+        aria-label="조작 실행 선택"
+        value={
+          runs.some((run) => run.record.execution_id === selected)
+            ? selected
+            : ""
+        }
+        onChange={(event) => setSelected(event.target.value)}
+      >
+        <option value="">현재 / 최근 실행 자동 선택</option>
+        {runs.map(({ record: item }) => (
+          <option key={item.execution_id} value={item.execution_id}>
+            물체 {item.object_id} ·{" "}
+            {item.has_result
+              ? resultLabels[item.status] || item.status
+              : item.record_state}{" "}
+            · {item.execution_id.slice(0, 12)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
   return (
     <div className="manipulation-dashboard">
       <div className="manip-toolbar">
@@ -563,12 +455,18 @@ export function ManipulationDashboard({
         </Button>
       </div>
       {!selectedRun ? (
-        <Panel title="조작 실행 기록 대기">
-          <p className="manip-note">
-            서버의 실행 기록이 수신되면 단계·시간·결과를 표시합니다.
-          </p>
-          <code>{topic}</code>
-        </Panel>
+        <>
+          <Panel title="조작 실행 기록 대기">
+            <p className="manip-note">
+              현재 미션과 execution ID가 일치하는 서버 기록이 수신되면
+              단계·시간·결과를 표시합니다. 이전 실행은 기록에서 선택할 수
+              있습니다.
+            </p>
+            <code>{topic}</code>
+            {executionPicker}
+          </Panel>
+          {safetyPanel}
+        </>
       ) : (
         <>
           <section
@@ -633,27 +531,7 @@ export function ManipulationDashboard({
                   </p>
                 </div>
               </div>
-              <label className="manip-execution-picker">
-                <span>실행 기록</span>
-                <select
-                  aria-label="조작 실행 선택"
-                  value={record.execution_id}
-                  onChange={(event) => setSelected(event.target.value)}
-                >
-                  {runs.map((run) => (
-                    <option
-                      key={run.record.execution_id}
-                      value={run.record.execution_id}
-                    >
-                      물체 {run.record.object_id} ·{" "}
-                      {run.record.has_result
-                        ? resultLabels[run.record.status] || run.record.status
-                        : run.record.record_state}{" "}
-                      · {run.record.execution_id.slice(0, 12)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {executionPicker}
             </div>
             <div className="manip-hero-metrics">
               <div className="manip-completion">

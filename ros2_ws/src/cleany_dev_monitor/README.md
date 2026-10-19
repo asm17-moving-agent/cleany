@@ -1,8 +1,63 @@
 # Cleany 개발용 관제보드
 
-로봇 구현 레포 안의 독립적인 **읽기 전용 개발 도구**다. 운영용
-`cleany-control-dashboard`의 미션 요청/취소 기능은 그대로 사용한다.
-이 보드는 미션 수락, 취소, reset, 속도 발행, 임의 service/action 호출을 제공하지 않는다.
+Mission FSM·청소 BT·주행·조작 진행을 관측하는 **읽기 전용 개발 도구**다.
+미션 요청·취소는 운영 `cleany-control-dashboard` 또는 Mission ROS API를 사용한다.
+이 보드는 미션 수락·취소·reset·속도 발행·임의 service/action 호출을 제공하지 않는다.
+
+| 찾는 내용 | 안내 |
+|---|---|
+| 웹 열기·기존 VM 서비스 확인 | [설치와 실행](#설치와-실행) |
+| BT SUCCESS·주행 확인 불가의 의미 | [실행 흐름과 상태 읽기](#실행-흐름과-상태-읽기) |
+| 물체별 단계·시간·결과 | [ExecuteOne 상세](#executeone에서-조작-진행-펼치기), [전용 조작 화면](#매니퓰레이션-전용-화면) |
+| 지도·Nav2·센서 진단 | [자율주행 관측](#자율주행-관측) |
+| 과거 미션·원본 저장 | [기록과 재생](#기록과-재생) |
+| 빌드·브라우저 검사 | [프런트엔드 구성](#프런트엔드-구성과-foxglove), [검증](#검증) |
+
+## 설치와 실행
+
+ROS 2 Humble, 같은 DDS domain과 공통 메시지 install이 필요하다.
+[의존 설치](../../../docs/DEVELOPMENT_SETUP.md)와 [Bash/zsh 환경 안내](../../README.md#외부-데이터와-빌드-경로)를
+먼저 확인하고 저장소 루트에서 실행한다.
+
+```bash
+source /opt/ros/humble/setup.bash
+rosdep install --from-paths ros2_ws/src/cleany_dev_monitor --ignore-src -r -y
+make build-dev-monitor
+ROS_DOMAIN_ID=186 make run-dev-monitor MONITOR_ROS_ARGS='-p use_sim_time:=true'
+```
+
+브라우저에서 **<http://127.0.0.1:8768>**을 연다. `use_sim_time`은 Gazebo/ROS clock을
+사용할 때 지정한다. 이 명령은 simulator나 Runtime을 시작하지 않는다.
+
+| 상황 | 설정 |
+|---|---|
+| 다른 포트 | `MONITOR_ROS_ARGS='-p port:=8769'` |
+| `/robot1` Runtime | `MONITOR_ROS_ARGS='-p runtime_namespace:=/robot1'` |
+| 원격 호스트 | localhost bind를 유지하고 `ssh -L 8768:127.0.0.1:8768 robot-host`로 전달 |
+| 토픽·frame·저장 위치 변경 | [monitor.yaml](config/monitor.yaml)의 실제 remapping과 일치하도록 설정 |
+
+### Mission Mock 통합 VM에서 확인
+
+[기존 VM 활성화](../../README.md#기존-mission-mock-vm)를 사용한다.
+아래 사용자 서비스는 별도로 실행한 경우에만 존재하며 상시 실행을 보장하지 않는다.
+기존 `start-monitor.bash`는 **domain 185 / port 8768**을 사용하므로 Runtime도 domain을 맞춘다.
+
+```bash
+systemctl --user status cleany-mission-mock-monitor.service
+journalctl --user -u cleany-mission-mock-monitor.service -n 30 --no-pager
+```
+
+서비스가 없거나 종료된 경우, 해당 스크립트가 있는 기존 VM에서 시작할 수 있다.
+
+```bash
+systemd-run --user --unit=cleany-mission-mock-monitor --collect \
+  /usr/bin/bash /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/start-monitor.bash
+```
+
+종료 명령은 `systemctl --user stop cleany-mission-mock-monitor.service`다.
+Gazebo 미션 실행·요청은 [Bringup](../cleany_bringup/README.md#빠른-시작)을 따르며,
+자동 시험을 domain 185에서 관측하려면 공통 검사 명령의 `BASE_TEST_ROS_DOMAIN_ID`도 185로 맞춘다.
+Monitor 시작 이후 수신한 데이터만 기록하므로 먼저 실행해야 전체 미션을 재생할 수 있다.
 
 ## 제공 화면
 
@@ -16,151 +71,86 @@
 | 로그 | `/rosout`, FSM/BT/action 이벤트와 결과를 수신 시각순으로 조회. 노드/미션/문자열 및 로그 수준 필터 |
 | 기록 & 재생 | 항목별 ON/OFF·프리셋·원본 주기·용량 제한, SQLite 세션 선택 및 재생·내보내기 |
 
-청소 BT는 Runtime이 실제로 생성한 트리다. 책상 도착 전에는 트리 생성 대기 상태로
-표시한다. Nav2 또는 팀원 조작 서버의 내부 트리를 추측해서 그리지 않는다.
-자율주행의 Nav2 BT 화면은 최종 기본 XML에서 전달한 구조와 `BehaviorTreeLog`의 관측 상태를 표시한다.
-구조가 없는 환경에서는 관측된 노드 목록만 제공하며 로그에서 부모 관계를 추측하지 않는다.
-Nav2/조작 action의 status와 feedback은 ROS 탐색기로 확인하며, goal/result는 Runtime이나
-조작 실행 이벤트에서 실제 제공한 것만 보여준다. 모듈의 mock/sim 표시는 Runtime의
-`execution_profile`에서 가져온다. 현재 Runtime은 물리 로봇 실행을 지원하지 않는다.
-청소 BT 화면에는 Runtime의 `manipulation_feedback`에 있는 조작 단계와 세부 동작을
-별도로 표시한다. `ExecuteOne`의 내부 진행을 읽기만 하며 BT 노드를 추가하거나
-완료·주행 조건을 판정하지 않는다. 오래된 정보에는 마지막 조작 관측임을 표시한다.
+## 실행 흐름과 상태 읽기
+
+| 표시 | 읽는 방법 |
+|---|---|
+| 상단 `LIVE` | 웹과 Monitor가 연결됨. Runtime·Nav2 준비 완료를 뜻하지 않음 |
+| `Runtime 대기` | Monitor는 연결됐지만 같은 domain의 Runtime 관측이 없음 |
+| 주행 `확인 불가` | Runtime 수신이 3초 이상 끊겼거나 연결을 확인할 수 없음 |
+| 마지막 청소 결과의 `SUCCESS` | 당시 BT 노드의 통과 결과. 현재 주행 허가와 별개 |
+| Mock / sim | Runtime의 `execution_profile` 출처. 실물 실행 증거가 아님 |
+
+### 청소 BT와 노드 의미
+
+책상 도착 후 Runtime이 생성한 실제 트리를 표시한다. Sequence는 번호 순서대로
+실행하며 `UntilVerified`가 `ActionCheckpoint` 주기를 반복한다. 반복 때 자식 상태가
+INVALID로 초기화될 수 있다. 최근 tick 방문 점과 노드 선택 상세에서 흐름을 확인한다.
+
+| 노드 | 호출·판정 역할 |
+|---|---|
+| `ObserveBefore`, `Reobserve` | perception port로 작업 전·후 관측 |
+| `PlanNext` | planner port로 다음 행동 제안 요청 |
+| `ValidateProposal` | Mission Manager가 snapshot·물체·행동·목적지 검사 |
+| `ExecuteOne` | 승인된 한 물체를 조작 port로 실행. done·skip·human_review는 Action 없이 통과 가능 |
+| `VerifyCompletion` | fresh 재관측으로 완료 여부 검사. 노드 SUCCESS여도 완료 미확정이면 다음 주기 진행 |
+
+노드 SUCCESS는 미션 전체 성공이나 실제 수거 성공을 보장하지 않는다.
+최종 조작 결과는 Action payload, 미션 결과는 `mission/result`로 확인한다.
+
+snapshot/event는 Runtime boot ID·event sequence로 맞춘다. 이미 snapshot에 포함된
+이벤트는 다시 적용하지 않고 이후 leaf tick으로 마지막 청소 단계를 갱신한다.
+방문 표시는 root tick마다 초기화한다. 이벤트 반영으로 snapshot 수신 시각이나
+주행 준비 보고를 새로 만들지 않는다.
+
+### ExecuteOne에서 조작 진행 펼치기
+
+`실행 흐름 → 청소 BT → ExecuteOne` 또는 ‘조작 단계 보기’를 누른다.
+상세 패널에서 한국어 동작명, 물체·목적지·선택 팔, 완료 수, 경과 시간과
+**9단계·17개 세부 동작**을 확인한다. 실패 위치·오류 코드는 별도로 강조한다.
+UUID·원본 기록은 펼쳐 볼 수 있다. 패널을 열 때만 초점과 스크롤이 이동하고
+수신 갱신은 독자의 위치를 바꾸지 않는다. 접으면 ExecuteOne으로 초점을 돌린다.
+
+같은 미션의 실행만 선택한다. done·skip·human_review에서는 이번 주기의 Action
+미실행과 이전 기록을 구분한다. 이 패널은 실제 BT의 자식 노드를 추가하지 않는다.
 
 ### 매니퓰레이션 전용 화면
 
-개요 상단에는 현재/마지막 동작, 서버가 확인한 동작 수와 진행률 링, 경과 시간을
-크게 표시한다. 진행률은 `completed_substages`의 완료 개수이며 시간에 따라 추정하지 않는다.
-9단계 흐름에서 현재·완료·실패 위치를 아이콘과 색으로 함께 구분한다.
-‘단계 진행’ 탭은 단계별 세부 동작과 완료 막대를 표시한다. 미션/실행 UUID와
-Runtime 진단은 펼침 영역에서 확인하며, 대상·결과와 현재 주행 조건은 별도 카드다.
-상태는 한국어 설명과 원본 코드를 함께 제공하고 밝은/어두운 테마·모바일 배치를 지원한다.
+| 탭 | 확인 내용 |
+|---|---|
+| 조작 개요 | 현재/마지막 동작, 확인된 진행률, 물체·목적지·결과와 현재 주행 조건 |
+| 단계 진행 | 단계별 세부 동작, 완료·실패 위치 |
+| 실행 타임라인 | 관측 구간별 소요 시간, ‘시점 보기’로 기록 재생 |
+| 취소·주행 조건 | 취소 방식, 팔·물체 상태, Runtime의 준비·주행 차단 근거 |
+| 실행 비교 | 최근 실행의 결과·시간·오류·복귀/정지 증거 비교 |
 
-`/mock/manipulation/execution_events`의 `ManipulationExecutionRecord`를 읽어
-실행 ID별 최근 기록과 관측 구간을 유지한다. 토픽은 `manipulation_events_topic`으로
-설정하며 절대 경로는 그대로, 상대 경로는 `runtime_namespace` 아래에서 구독한다.
-서버 단계도는 Action 프로토콜의 9개 정상 단계와 17개 세부 동작을 표시한다.
-실제 Executor의 내부 BT를 추측하거나 Mission 청소 BT를 변경하지 않는다.
+현재 미션·execution ID를 자동으로 따라간다. 이전 실행을 직접 선택하거나 자동
+선택으로 돌아올 수 있다. ExecuteOne 상세와 동일한 단계 정의·관측 규칙을 사용한다.
 
-- 완료 동작은 `completed_substages`, 실패 위치는 `failed_stage/failed_substage`,
-  최종 결과는 `has_result/status`를 사용한다. 시간 경과만으로 성공을 표시하지 않는다.
-- 기본 최근 실행 20개, 실행별 관측 구간 64개를 별도 요약으로 보관한다.
-  `manipulation_execution_limit`(1..50), `manipulation_interval_limit`(1..128)로 조정한다.
-  BT 로그가 일반 이벤트 ring에서 밀려나도 조작 요약은 남는다. Monitor 재시작 시
-  메모리 목록은 새로 시작하며 서버의 retained 이벤트로 확인한 범위만 복원한다.
-- 서버 기록은 revision으로 중복·역순 수신을 무시한다. 늦은 접속, revision 누락과
-  보관 한도 초과는 일부 구간 미관측으로 표시한다. 서버 시각 역행 시 소요 시간을
-  표시하지 않는다. 상세 단계 시간은 관측된 전환 사이의 구간이다.
-- 완료·중단 실행의 시간은 기록된 서버 시각으로 고정한다. 진행 중 경과 시간은
-  최신 Runtime·graph와 같은 미션/실행의 Feedback이 연결된 경우에만 갱신한다.
-  오래된 기록이나 연결이 끊긴 상태를 현재 실행으로 표시하지 않는다.
-- 조작 기준 `safe_to_drive`, 주행 모듈 준비·베이스 정지와 미션 수락 준비를 구분한다.
-  선택한 과거 실행의 팔 복귀·정지 결과가 현재 Runtime 주행 판단을 대체하지 않는다.
-- 실행 타임라인의 ‘시점 보기’는 해당 수신 시각의 관측 기록을 연다. 재생에서는
-  해당 시점에 저장된 조작 요약만 사용하며 미래 결과나 실시간 데이터와 합치지 않는다.
-  과거 Monitor 기록에 조작 요약이 없으면 실행 기록 대기로 표시한다.
+### 조작 관측 규칙
 
-Mock의 단계·안착·팔 복귀는 서버의 모의 보고다. 실물 관절·그리퍼 센서나
-Gazebo 팔 애니메이션의 증거로 표시하지 않는다. 원본 기록과 ROS 탐색기 링크도 제공한다.
+| 항목 | 표시 근거 |
+|---|---|
+| 진행·결과 입력 | `/mock/manipulation/execution_events`의 `ManipulationExecutionRecord` |
+| 완료 수·실패 위치·최종 결과 | `completed_substages`, `failed_stage/failed_substage`, `has_result/status` |
+| 새 실행의 첫 기록 대기 | 이전 물체의 진행·성공이나 다른 미션의 결과로 대체하지 않음 |
+| 현재 실행 강조·경과 시간 추정 | 최신 Runtime·graph, 같은 미션·Feedback execution ID와 현재 제안 ID 일치 |
+| 종료·수신 중단·과거 실행 | 서버 기록 시각으로 시간 고정; 진행 애니메이션 중단 |
+| 재생 | 선택한 시각까지 저장된 요약만 사용; 미래·실시간 결과를 섞지 않음 |
+| 현재 주행 조건 | Runtime의 `safe_to_drive`, navigation 준비·베이스 정지·미션 수락 준비를 구분 |
 
-## 구조와 데이터 계약
+현재 제안에 execution ID가 없는 과거 기록도 읽는다. 시간이나 BT SUCCESS만으로
+조작 성공을 만들지 않으며, 과거 실행의 팔 복귀·정지가 현재 주행 판단을 대체하지 않는다.
 
-```text
-MissionRuntime ─ debug_snapshot (2 Hz), runtime_events ─┐
-ROS graph / selected topics / rosout / TF ──────────────┤
-                                                      ▼
-                 cleany_dev_monitor (rclpy, 관측만)
-                         bounded Hub
-                              │ 별도 worker thread
-                        aiohttp + SQLite
-                              │ HTTP / WebSocket
-                        React + Vite + TypeScript + shadcn/ui
-                         React Flow / Canvas
-```
+기본 최근 실행 20개·실행별 구간 64개를 별도 요약으로 보관한다.
+`manipulation_execution_limit`(1..50), `manipulation_interval_limit`(1..128)로 조절한다.
+revision 중복·역순은 무시하고 늦은 접속·누락·보관 초과는 일부 구간 미관측으로 표시한다.
+시계 역행 시 소요 시간은 표시하지 않는다. Monitor 재시작 시 retained 이벤트에서
+관측한 범위만 복원하며, 과거 기록에 요약이 없으면 실행 기록 대기로 표시한다.
 
-- ROS discovery 1 Hz, 선택 메시지/위치/웹 갱신 최대 10 Hz. 수신 주기는 발행 주기를
-  보장하지 않으며 미구독 토픽은 `unmeasured`로 표시한다.
-- 모든 토픽의 **메타데이터**를 찾지만 모든 메시지를 구독하지 않는다. 기본 관측 토픽,
-  최대 32개 action status/feedback 토픽, 사용자가 선택한 최대 16개 토픽만 구독한다.
-  최대 8개 브라우저가 구독을 공유한다. 마지막 선택자가 해제/종료하면 구독을 정리한다.
-- QoS는 발견된 publisher endpoint에 맞춰 reliable/best-effort와
-  transient-local/volatile을 선택한다. 혼합 publisher에는 호환 가능한 가장 약한
-  설정을 사용한다. 타입 import 실패, QoS 오류, publisher 없음, 수신 없음, 오래된 수신을 구별한다.
-- 메시지를 JSON으로 전부 펼친 뒤 자르지 않는다. 미리보기는 총 2,048개 항목,
-  배열당 256개 항목, 깊이 10, 문자열당 4,096자 한도로 변환한다. `truncated`를 표시한다.
-  PointCloud 원본 보기와 rosbag 전체 데이터 저장을 대체하지 않는다. 카메라 영상은 별도 경로로 제공한다.
-- 지도는 기본 최대 524,288셀, 경로는 최대 4,096점이다. 초과 지도는 거절 사유를
-  표시한다. 경로는 잘린 여부를 데이터에 남긴다. `max_grid_cells` 상한은 1,048,576이다.
-- 2D 레이어는 메시지 시각의 TF를 이용해 `map_frame`으로 변환한다. 회전된 지도
-  origin도 반영한다. TF가 없으면 레이어를 표시하지 않는다. 로봇 위치는 최신 TF를
-  사용하고 ±2초 밖의 stamp는 오래된 값으로 처리한다. 정적 지도/마지막 경로는 유지된다.
-- 최근 telemetry는 종류/토픽별 최신값으로 합치고, 이벤트/로그/결과는 별도 2,048개 ring에
-  보존한다. 오래된 이벤트가 밀려나면 gap을 표시한다. 브라우저 로그는 최근 500개다.
-  느린 브라우저의 전송은 2초 후 종료하고 재접속 시 초기 snapshot을 다시 제공한다.
-- Runtime boot ID/sequence와 Monitor boot ID를 분리한다. 재접속, Runtime 재시작,
-  이벤트 sequence gap을 표시한다. 데이터가 끊겨도 IDLE/성공/주행 안전으로 바꾸지 않는다.
-- ROS stamp와 수신 wall/monotonic 시각을 함께 저장한다. 재생 축은 수신 wall 시각이다.
-  `/clock` 역행은 이벤트로 남기며, 같은 clock 값 유지/수신 지연을 화면에 표시한다.
-  호스트 wall clock 자체가 역행하는 환경의 정밀 재생은 지원하지 않는다.
-
-## 설치와 실행
-
-ROS 2 Humble 환경, 같은 DDS domain, 같은 메시지 overlay가 필요하다. 의존 설치 기준은
-[개발환경 문서](../../../docs/DEVELOPMENT_SETUP.md), 공통 명령은
-[workspace README](../../README.md)를 따른다.
-
-```bash
-# 저장소 루트, ROS 환경의 터미널
-source /opt/ros/humble/setup.bash
-rosdep install --from-paths ros2_ws/src/cleany_dev_monitor --ignore-src -r -y
-make build-dev-monitor
-ROS_DOMAIN_ID=187 make run-dev-monitor
-```
-
-브라우저에서 <http://127.0.0.1:8768>을 연다. 원격 ROS 호스트는 기본 localhost bind를
-유지하고 `ssh -L 8768:127.0.0.1:8768 robot-host`로 전달한다. 공개 배포용 인증 서버는 아니다.
-
-### Mission Mock 통합 VM에서 확인
-
-`cleany-mission-manipulation-mock` 작업트리의 통합 install에 웹과 monitor를 포함해 빌드했다.
-이 VM에서는 `cleany-mission-mock-monitor.service` 사용자 서비스가 domain 185,
-`127.0.0.1:8768`에서 실행된다. 터미널을 닫아도 유지된다.
-
-```bash
-systemctl --user status cleany-mission-mock-monitor.service
-journalctl --user -u cleany-mission-mock-monitor.service -n 30 --no-pager
-# 관제보드 종료
-systemctl --user stop cleany-mission-mock-monitor.service
-```
-
-서비스가 종료·회수되었거나 VM을 재시작했다면 다음 명령으로 다시 실행한다.
-
-```bash
-systemd-run --user --unit=cleany-mission-mock-monitor --collect \
-  /usr/bin/bash /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/start-monitor.bash
-```
-
-웹이 `Runtime 대기`를 표시하면 monitor 연결은 정상이고 같은 domain의 Runtime을 기다리는 상태다.
-zsh 터미널에서 다음 시험을 실행하고 웹의 `실행 흐름 → 청소 BT`를 본다.
-
-```zsh
-cd /home/ubuntu/Documents/cleany-mission-manipulation-mock
-source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh
-make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=185
-```
-
-시험은 종료 후 simulator와 Runtime을 닫는다. monitor가 미리 실행 중이었다면
-`기록 & 재생`에서 해당 미션을 다시 볼 수 있다. 지금부터 수신한 데이터를 기록하며
-monitor를 시작하기 전에 종료된 미션의 상태를 재구성하지 않는다.
-상단 `LIVE`는 웹 관제보드 연결 상태다. Runtime 수신이 3초 이상 끊기면 현재 주행은
-`확인 불가`로 표시하고 FSM/BT에는 마지막 관측임을 명시한다. 남아 있는 BT의 SUCCESS는
-당시 실행 결과이며 현재 주행 준비 여부를 보장하지 않는다. 미션 종료 뒤 새 상태가
-수신되는 경우에도 청소 BT는 `마지막 청소 결과`로 구분한다.
-
-`config/monitor.yaml`에서 runtime namespace, map/base frame, 지도/경로/costmap/속도 토픽,
-저장 위치와 용량을 설정한다. 토픽 이름은 실제 launch의 remapping과 맞춰야 한다.
-예를 들어 safety chain 중간 토픽이 추가되면 `velocity_topics`에 관측 순서대로 추가한다.
-기본값 자체가 특정 로봇의 실제 안전 체인을 확정하지 않는다.
+`manipulation_events_topic`이 절대 경로면 그대로, 상대 경로면 `runtime_namespace` 아래에서
+구독한다. Mock 단계·안착·팔 복귀는 서버의 모의 보고이며 팔 애니메이션·실물 센서의
+증거가 아니다. 서버 내부 BT를 추측해서 그리지 않는다.
 
 ## 자율주행 관측
 
@@ -219,70 +209,16 @@ monitor를 시작하기 전에 종료된 미션의 상태를 재구성하지 않
 탐색기의 발행/오류 상태를 확인한다. 비교 요약은 읽기 전용 `GET /api/navigation/runs`로
 최근 50개 세션의 마지막 작업 요약을 조회하며, 재생 화면은 해당 기록 시각의 요약만 사용한다.
 
-```bash
-# Gazebo/ROS clock을 사용하는 경우
-ROS_DOMAIN_ID=189 make run-dev-monitor \
-  MONITOR_ROS_ARGS='-p use_sim_time:=true -p port:=8769'
-# namespace가 /robot1인 Runtime
-make run-dev-monitor MONITOR_ROS_ARGS='-p runtime_namespace:=/robot1'
-```
+### Nav2 BT 시각화 및 재생
 
-프런트엔드 빌드와 ROS 빌드 환경이 다른 경우:
+`자율주행 → 계획·제어`에서 `/navigation/bt_trace`로 받은 최종 실행 XML 구조를 본다.
+노드를 선택하면 역할·instance ID·입출력 포트·최근 전이를 확인한다. 세 ComputePathToPose
+인스턴스를 구분하며 UNKNOWN은 미관측이다. 구조가 없으면 BehaviorTreeLog 노드 목록을 쓴다.
+2초 이상 snapshot이 없으면 연결 끊김과 마지막 관측 상태를 표시한다.
 
-```bash
-# Node.js 22 이상 / pnpm 11: 프런트엔드 빌드
-make build-dev-monitor-web
-# ROS 2 환경: 빌드된 web/dist를 포함해 설치
-make build-dev-monitor-ros
-```
-
-웹 파일을 다시 빌드하면 `make build-dev-monitor-ros`도 실행해야 해시가 바뀐 자산이
-install에 포함된다. 개발 시 `web` 디렉터리의 `pnpm dev`도 사용할 수 있다.
-Vite proxy와 API가 같은 origin을 사용하도록 브라우저는 Vite 주소로 접속한다.
-
-## 프런트엔드 구성과 Foxglove
-
-- React 19 / Vite 6 / TypeScript strict / Tailwind CSS 4 / shadcn/ui (Radix) 구성이다.
-- `web/components.json`은 shadcn 설정, `src/components/ui/`는 소유하는 컴포넌트 소스다.
-  버튼, 배지, 카드, 입력, 탭, 구분선, 툴팁을 공통 컴포넌트로 사용한다.
-- 화면에는 상태·차단 이유·식별자·핵심 동작을 우선 배치한다. 반복 안내, 장식 문구,
-  푸터 설명은 생략하며 실행 환경(mock 등), 데이터 지연과 유실 표시는 유지한다.
-- 배경·패널은 무채색, 선택·포커스는 파란색, 정상·경고·오류는 초록·노랑·빨강으로 구분한다.
-- 색상·반경 토큰은 `src/theme.css`, 콘솔 레이아웃은 `src/style.css`에서 관리한다.
-  `@/`는 `src/` alias다. React Flow는 FSM/BT와 ROS 연결 그래프를 담당한다.
-- 상단 해/달 버튼으로 라이트·다크 테마를 전환한다. 처음에는 시스템 설정을 따르며,
-  직접 선택한 값은 브라우저 localStorage에 저장한다. FSM/BT/ROS 그래프와 진단 상태 색상도
-  테마 토큰을 공유한다. 지도 Canvas는 레이어 판독을 위해 기존 어두운 팔레트를 유지한다.
-- 실행 흐름은 상태 요약 한 줄과 FSM/청소 BT 전환 그래프를 중심으로 표시한다.
-  정상 FSM 상태는 좌→우 방향으로 배치하고, 높이·간격 편차는 기존의 20%로 제한한다. 취소·오류는 아래에 배치한다.
-  정상 진행은 좌우 포트, 복귀 전이는 위쪽, 취소·오류 전이는 아래쪽 포트로 분리한다. 연결선은 가능한 전이를 나타내므로 활성 상태 색상을 사용하지 않는다.
-  FSM은 둥근 상태 박스와 직각 화살표로 표시하고 선 위에 전이 조건의 요약을 붙인다. 같은 면의 입구·출구는 42%/58% 위치로 분리하며 양방향 전이는 서로 다른 경로를 사용한다. 화살표는 도착 지점에만 표시한다. 조건 표시는 설명이며 실제 전이 판단은 Mission Runtime이 수행한다.
-  노드 텍스트는 중앙 정렬하며 활성 상태는 색상과 접근성 라벨로 표시한다. 실제 전이 연결은 Runtime이 제공한다.
-  그래프 관련 값이 변할 때만 렌더링하며 노드 크기는 고정한다. 자동 화면 맞춤은 구조/화면 크기 변경 시만 실행한다.
-  노드를 선택하면 모듈·작업 결과·실행 기록을 한 상세 패널에서 확인한다. Runtime 미수신 시 대기 안내만 표시한다.
-- 사이드바는 접을 수 있으며 작은 화면에서는 아이콘 탐색으로 전환한다.
-  ROS 하위 탭은 방향키로 전환할 수 있다. 연결 끊김, 오래된 데이터, 기록 재생을 구분한다.
-- FSM/BT·미션 진단은 이 콘솔, 카메라·라이다·3D 분석은 Foxglove를 병행하는 방향이다.
-  상단 Foxglove 링크와 자율주행 화면의 연결 가이드 링크를 제공한다.
-  **Foxglove Bridge 설치·실행·연결 검증은 아직 하지 않았다.** 기존 2D/ROS 화면도 유지한다.
-- Foxglove는 같은 ROS domain의 별도 Foxglove Bridge에 연결한다. Monitor의 `/ws`는
-  Foxglove 프로토콜이 아니며 SQLite 관측 기록도 MCAP/rosbag 파일이 아니다.
-  현재 연결/확장 권한은 [Foxglove 문서](https://docs.foxglove.dev/docs/visualization/connecting/live)를 확인한다.
-
-ROS 없이 프런트엔드 동작을 확인하려면:
-
-```bash
-cd ros2_ws/src/cleany_dev_monitor/web
-pnpm install --frozen-lockfile
-pnpm build
-pnpm exec playwright install chromium
-pnpm test:e2e
-```
-
-기본 브라우저 검사는 Vite를 임시 실행하고 테스트용 HTTP/WebSocket 응답으로
-오래된 데이터의 주행 상태, 재생 격리, 키보드 탐색, 좁은 화면을 검사한다.
-실제 ROS 검사는 `MONITOR_URL`, Gazebo 지도 검사는 `NAV_MONITOR_URL`을 명시한 경우만 실행한다.
-검사가 시뮬레이터나 로봇을 시작하지는 않는다.
+구조·상태·XML SHA256·목표 문맥을 SQLite에 저장한다. 재생은 기록 당시 트리를 사용하고
+현재 XML을 읽지 않는다. 목표 연결은 수신 시각 기준이며 누락 탐지는 연속 상태 불일치에
+한정된다. Monitor는 BT를 실행하거나 주행 명령을 보내지 않는다.
 
 ## 실시간 카메라
 
@@ -317,62 +253,183 @@ Runtime이 없는 세션은 전체 기록 시작점부터 재생하고 실행 �
 저장된 최신 snapshot/레이어/메시지와 최근 이벤트를 합친다. snapshot 사이의 FSM 전이와
 짧게 끝나는 BT 노드는 이벤트로 반영한다. 기록의 gap은 UI에 표시한다.
 
-SQLite `metadata.schema_version=2`, `records(seq, received, kind, key, payload)` 구조다.
-`payload`는 zlib 압축 UTF-8 JSON BLOB이며 `cleany_dev_monitor.core.decode_record()`로
-읽는다. 버전 1의 평문 JSON 기록도 읽을 수 있다. 내보내기는 SQLite backup API를
-사용하므로 기록 중인 세션도 일관된 사본을 받는다.
+현재 기록은 **SQLite schema 3**이며 이전 schema 1/2도 읽는다.
+
+| 저장 항목 | 내용 |
+|---|---|
+| `metadata.schema_version` | 현재 `3` |
+| `records(seq, received, kind, key, payload)` | 관측 snapshot·레이어·이벤트. payload는 zlib 압축 JSON BLOB |
+| `raw_messages` | 선택한 ROS 원본 CDR과 토픽·타입·수신/ROS 시각 |
+
+`cleany_dev_monitor.core.decode_record()`는 현재 payload와 schema 1의 평문 JSON을 읽는다.
+내보내기는 SQLite backup API를 사용해 기록 중인 세션도 일관된 사본으로 제공한다.
 
 HTTP GET: `/api/snapshot`, `/api/recordings`,
 `/api/recordings/{uuid}/replay?at={unix_seconds}`, `/api/recordings/{uuid}/export`.
 `/ws` 입력은 `{"op":"select","topics":["/odom"]}`만 지원한다.
 재생 기능은 ROS service/action을 호출하지 않는다.
 
-## 검증
+### 녹화 항목 선택과 원본 저장
+
+`기록 & 재생 → 녹화 설정`에서 기본 주행·장애물 분석·사용자 지정 프리셋과 항목별
+ON/OFF를 선택한다. 화면 관측·카메라 preview lease와 녹화 구독은 독립적이다.
+
+| 항목 | 설정·상한 |
+|---|---|
+| 기본 기록 | 위치·속도·미션, 경로·costmap·Nav2 BT·안전·로그. 청소 BT는 Runtime snapshot에 포함 |
+| 기본 OFF | LiDAR, depth point cloud, Nav2 voxel layer, voxel world, 카메라 원본 |
+| 주기·세션 용량 | 항목별 0.1~10 Hz, 세션 10~1024 MiB |
+| TF 원본 | 원본 활성 시 `/tf`, `/tf_static`도 최대 30 Hz 기록 |
+| 원본 한 건 | 최대 8 MiB, 전체 ROS 직렬화 CDR. 공간 점·픽셀을 줄이지 않음 |
+| 원본 대기 큐 | 최대 32 MiB / 128건. 초과는 저장 오류·유실 건수·`raw_gap` metadata |
+| 기본 voxel 토픽 | `/obstacle_memory/voxels`, `/local_costmap/voxel_grid`. 미발행은 미수신으로 표시 |
+| 3D·영상 원본 재생 | 시각 직전 원본 다운로드 제공. 직접 재생 뷰어는 미제공 |
+
+원본 압축·쓰기는 HTTP worker에서 수행한다. 녹화 OFF 후에도 다른 관측 목적의 구독은
+유지될 수 있다. 용량 제한은 파일을 삭제하지 않고 기록을 중단하며 ‘새 녹화 시작’으로
+새 세션을 만든다. 전체 저장 한도는 `total_limit_bytes`를 따른다.
+
+설정은 `state_directory/recording-settings.json`, 변경 시점은 `recording_policy`로 저장한다.
+일시정지 중에는 설정·녹화 상태만 기록한다. 재생은 당시 정책을 적용해 미녹화·미수신·
+입력 중단·저장 오류를 구분한다. 원본은 SQLite 내보내기에 포함된다.
+
+| 로컬 API | 역할 |
+|---|---|
+| `GET/PUT /api/recording/settings` | 녹화 설정 읽기·변경 |
+| `POST /api/recording/session` | 새 세션 |
+| `GET /api/recordings/{session}/raw?category=point_cloud&at=<wall-seconds>` | 시각 직전 원본 한 건 다운로드 |
+
+설정 변경은 같은 출처에서만 허용하며 ROS 명령·로봇 설정을 변경하지 않는다.
+
+## 구조와 데이터 계약
+
+```text
+MissionRuntime ─ debug_snapshot (2 Hz), runtime_events ─┐
+ROS graph / selected topics / rosout / TF ──────────────┤
+                                                      ▼
+                 cleany_dev_monitor (rclpy, 관측만)
+                         bounded Hub
+                              │ 별도 worker thread
+                        aiohttp + SQLite
+                              │ HTTP / WebSocket
+                        React + Vite + TypeScript + shadcn/ui
+                         React Flow / Canvas
+```
+
+- ROS discovery 1 Hz, 선택 메시지/위치/웹 갱신 최대 10 Hz. 수신 주기는 발행 주기를
+  보장하지 않으며 미구독 토픽은 `unmeasured`로 표시한다.
+- 모든 토픽의 **메타데이터**를 찾지만 모든 메시지를 구독하지 않는다. 기본 관측 토픽,
+  최대 32개 action status/feedback 토픽, 사용자가 선택한 최대 16개 토픽만 구독한다.
+  최대 8개 브라우저가 구독을 공유한다. 마지막 선택자가 해제/종료하면 구독을 정리한다.
+- QoS는 발견된 publisher endpoint에 맞춰 reliable/best-effort와
+  transient-local/volatile을 선택한다. 혼합 publisher에는 호환 가능한 가장 약한
+  설정을 사용한다. 타입 import 실패, QoS 오류, publisher 없음, 수신 없음, 오래된 수신을 구별한다.
+- 메시지를 JSON으로 전부 펼친 뒤 자르지 않는다. 미리보기는 총 2,048개 항목,
+  배열당 256개 항목, 깊이 10, 문자열당 4,096자 한도로 변환한다. `truncated`를 표시한다.
+  PointCloud 원본 보기와 rosbag 전체 데이터 저장을 대체하지 않는다. 카메라 영상은 별도 경로로 제공한다.
+- 지도는 기본 최대 524,288셀, 경로는 최대 4,096점이다. 초과 지도는 거절 사유를
+  표시한다. 경로는 잘린 여부를 데이터에 남긴다. `max_grid_cells` 상한은 1,048,576이다.
+- 2D 레이어는 메시지 시각의 TF를 이용해 `map_frame`으로 변환한다. 회전된 지도
+  origin도 반영한다. TF가 없으면 레이어를 표시하지 않는다. 로봇 위치는 최신 TF를
+  사용하고 ±2초 밖의 stamp는 오래된 값으로 처리한다. 정적 지도/마지막 경로는 유지된다.
+- 최근 telemetry는 종류/토픽별 최신값으로 합치고, 이벤트/로그/결과는 별도 2,048개 ring에
+  보존한다. 오래된 이벤트가 밀려나면 gap을 표시한다. 브라우저 로그는 최근 500개다.
+  느린 브라우저의 전송은 2초 후 종료하고 재접속 시 초기 snapshot을 다시 제공한다.
+- Runtime boot ID/sequence와 Monitor boot ID를 분리한다. 재접속, Runtime 재시작,
+  이벤트 sequence gap을 표시한다. 데이터가 끊겨도 IDLE/성공/주행 안전으로 바꾸지 않는다.
+- ROS stamp와 수신 wall/monotonic 시각을 함께 저장한다. 재생 축은 수신 wall 시각이다.
+  `/clock` 역행은 이벤트로 남기며, 같은 clock 값 유지/수신 지연을 화면에 표시한다.
+  호스트 wall clock 자체가 역행하는 환경의 정밀 재생은 지원하지 않는다.
+
+## 프런트엔드 구성과 Foxglove
+
+| 항목 | 구현·표시 |
+|---|---|
+| 구성 | React 19, Vite 6, TypeScript strict, Tailwind CSS 4, shadcn/ui (Radix) |
+| 공통 UI | `web/components.json`, `src/components/ui/`; 버튼·배지·입력·탭·툴팁 |
+| 스타일 | `src/theme.css`의 색상·반경 토큰, `src/style.css`의 레이아웃; `@/`는 `src/` alias |
+| 상태 색상 | 선택·포커스 파랑, 정상·경고·오류 초록·노랑·빨강. 상태 설명·지연·유실 표시 병행 |
+| 테마 | 해/달 버튼, 처음에는 시스템 설정. 직접 선택은 localStorage 보존. 지도 Canvas는 어두운 팔레트 유지 |
+| 그래프 | React Flow의 FSM·BT·ROS 연결, 고정 노드 크기. 구조·화면 크기 변경 때만 자동 맞춤 |
+| 탐색 | 접는 사이드바, 작은 화면 아이콘 탐색, ROS 하위 탭 방향키 이동 |
+
+FSM 활성 강조는 관측 상태를 최소 **500ms**씩 표시한다. 빠른 전이는 시각적으로
+지연될 수 있으나 실제 상태를 함께 표시한다. 상단 안전 정보와 Runtime 동작은
+지연하지 않는다. 시각 탐색·세션 변경·Runtime 재시작 시 대기열을 초기화하며
+미관측 상태를 복원하지 않는다.
+
+<details>
+<summary>FSM·ROS 그래프의 배치와 갱신 규칙</summary>
+
+- 정상 FSM은 좌→우, 취소·오류는 아래에 배치한다. 높이·간격 편차는 기존의 20%로 제한한다.
+- 정상 진행은 좌우 포트, 복귀는 위쪽, 취소·오류는 아래쪽 포트다. 같은 면의 입구·출구는
+  42%/58% 위치로 분리하고 양방향 전이는 서로 다른 경로를 사용한다.
+- FSM은 둥근 상자와 직각 화살표이며 화살표는 도착점에만 표시한다. 연결선은 가능한
+  전이여서 활성 상태 색상을 사용하지 않는다. 노드 텍스트는 중앙 정렬한다.
+- 전이 조건 요약은 설명이고 실제 판단·정의·활성 상태는 Runtime에서 온다. 노드 선택은
+  모듈·작업 결과·실행 기록을 열며 미수신이면 대기를 표시한다.
+- ROS 그래프는 같은 publisher/subscriber 노드를 하나로 표시한다. 주기·시각·QoS·endpoint
+  순서만 바뀌면 DOM·배치·확대 위치를 유지하고, 실제 연결·선택 토픽이 바뀌면 재배치한다.
+
+</details>
+
+### Foxglove 연결
+
+FSM·BT·미션 진단은 이 콘솔에서 보고 카메라·라이다·3D 분석용 Foxglove 링크도 제공한다.
+**Foxglove Bridge 설치·실행·연결은 아직 검증하지 않았다.** 같은 ROS domain의 별도
+Bridge가 필요하며 Monitor `/ws`는 Foxglove 프로토콜이 아니다. SQLite 관측 기록도
+MCAP/rosbag과 다르다. 연결 방법은 [Foxglove 문서](https://docs.foxglove.dev/docs/visualization/connecting/live)를 따른다.
+
+### 웹 개발과 분리 빌드
 
 ```bash
-make test-mission-core test-dev-monitor
-# ROS overlay source 후, 다른 실행과 분리된 domain
+make build-dev-monitor-web
+make build-dev-monitor-ros
+```
+
+Node.js 22 이상·pnpm 11과 ROS 빌드 환경이 다른 경우 위 순서로 실행한다.
+웹을 다시 빌드하면 해시가 바뀐 자산이 install에 포함되도록 ROS 빌드도 실행한다.
+개발 중에는 `web` 디렉터리에서 `pnpm dev`를 사용하고 브라우저는 Vite 주소로 접속한다.
+
+## 검증
+
+Core·ROS 공통 검사는 [workspace 명령](../../README.md#개발용-로봇-관제보드)을 따른다.
+ROS 검사는 통합 install을 source한 별도 domain에서 활성화한다.
+
+```bash
 ROS_DOMAIN_ID=188 CLEANY_RUN_ROS_TESTS=1 make test-dev-monitor
-# 정상 mock Runtime을 실제 ROS/HTTP로 검증 (같은 domain의 Monitor가 먼저 실행 중이어야 함)
-ROS_DOMAIN_ID=187 python3 tools/dev_monitor/smoke.py --output /absolute/new-directory
-# 팀원 cleany_skill_executor overlay까지 source한 경우, HELD 취소 검증
-ROS_DOMAIN_ID=187 python3 tools/dev_monitor/smoke.py --held --output /absolute/new-held-directory
-# ROS 서버 없이 웹 표시·재생 회귀 검사
+```
+
+브라우저 검사는 아래처럼 실행한다. 기본 실행은 Vite와 HTTP/WebSocket fixture를
+사용하며 simulator나 로봇을 시작하지 않는다. 조작·ExecuteOne fixture는 녹화 설정도
+자체 응답으로 제공한다. 웹 빌드는 미사용 import·변수·인자를 TypeScript 오류로 검사한다.
+
+```bash
 cd ros2_ws/src/cleany_dev_monitor/web
+pnpm install --frozen-lockfile
+pnpm build
 pnpm exec playwright install chromium
 pnpm test:e2e
-# 동작 중인 Monitor의 관측 데이터로 브라우저 통합 검사
+```
+
+실환경 브라우저 검사는 Runtime 관측과 지도가 있는 Monitor 주소를 지정한다.
+
+```bash
 MONITOR_URL=http://127.0.0.1:8768 NAV_MONITOR_URL=http://127.0.0.1:8769 pnpm test:e2e
 ```
 
-`NAV_MONITOR_URL`은 지도/경로/두 costmap을 수신 중인 Gazebo monitor일 때만 지정한다.
-검사 대상 미션/지도가 없는 빈 monitor에서는 브라우저 검사 사전조건이 충족되지 않는다.
-물리 로봇에는 smoke 시나리오를 연결하지 않는다. 실제 수행한 검증과 제한은
-[검증 기록](../../../docs/validation/README.md)에 정리한다.
+실제 ROS/HTTP smoke는 같은 domain에서 Monitor를 먼저 시작한 뒤 실행한다.
+아래 시나리오는 주행을 Mock으로 명시한다. `--held`는 같은 install의 Mock 서버를 사용한다.
+저장소 루트로 돌아와 실행한다.
 
-2026-10-15 매니퓰레이션 탭 추가 검증: Monitor core·ROS 41개, 웹 회귀 13개 통과
-(별도 관측 시나리오가 필요한 기존 2개는 건너뜀). Gazebo + Mock 미션을 139.49초와
-138.44초에 각각 통과했고 실제 웹에서 두 물체의 SUCCESS, 각 17개 완료 동작과 약 40.5초 실행 시간을 확인했다.
-단계 기록 누락·브라우저 page error는 없었다. 해당 실행의 DB·로그·단계/타임라인/비교 화면과
-`monitor-evidence.json`은 `cleany-data/runs/manipulation-dashboard-20261015-m9VBmk/`에 보존했다.
-타임라인의 ‘시점 보기’도 실제 저장 기록에서 5.1초의 `MoveToPregrasp`를 재생했고,
-해당 화면과 마지막 두 실행 요약은 `bookmark-replay.png`, `replay-evidence.json`에 보존했다.
+```bash
+cd "$(git rev-parse --show-toplevel)"
+ROS_DOMAIN_ID=187 python3 tools/dev_monitor/smoke.py --output /absolute/new-directory
+ROS_DOMAIN_ID=187 python3 tools/dev_monitor/smoke.py --held --output /absolute/new-held-directory
+```
 
-FSM 활성 강조는 관측된 상태를 순서대로 최소 500ms씩 표시한다. 빠른 전이는 화면에서 지연될 수 있으며 이때 실제 상태를 함께 표시한다. 상단 상태·안전 정보와 실제 Runtime 동작에는 지연을 적용하지 않는다. 재생 시각 탐색·세션 변경·Runtime 재시작 시 표시 대기열을 초기화한다. 수신 전에 지나간 상태는 복원하지 않는다.
+smoke 명령은 저장소 루트에서 실행하고 `--output`에는 새 디렉터리를 지정한다.
+다른 포트에서는 `--url http://127.0.0.1:<port>`를 추가한다. 물리 로봇에는 연결하지 않는다.
 
-### Nav2 BT 시각화 및 재생
-
-자율주행 → 계획·제어의 Nav2 BT 패널은 `/navigation/bt_trace`에서 수신한 최종 실행 XML의 구조를 표시합니다. 노드를 선택하면 역할 설명, instance ID, 입력·출력 포트와 최근 상태 전이를 확인합니다. 세 ComputePathToPose 인스턴스를 독립적으로 표시하며 UNKNOWN은 미관측입니다. 2초 이상 스냅샷이 없으면 연결 끊김과 마지막 관측 상태를 표시합니다. 구조가 미수신이면 기존 BehaviorTreeLog 노드 목록을 제공합니다.
-
-구조·상태·XML SHA256·목표 문맥을 기존 SQLite 녹화에 함께 저장합니다. 재생은 해당 시점의 기록된 트리를 사용하며 현재 XML을 읽지 않습니다. 목표 연결은 수신 시점 기준이고, 누락 탐지는 연속 상태 불일치에 한정됩니다. 모니터는 기존처럼 읽기 전용이며 BT를 실행하거나 주행 명령을 보내지 않습니다.
-
-### 녹화 항목 선택과 원본 저장
-
-`기록 & 재생 → 녹화 설정`에서 기본 주행 / 장애물 분석 / 사용자 지정 프리셋과 항목별 ON/OFF를 선택합니다. 위치·속도·미션, 경로, costmap, Nav2 BT, 안전 진단, 로그를 독립적으로 선택하며 청소 BT는 미션 runtime snapshot에 포함됩니다. LiDAR, depth point cloud, Nav2 voxel layer, voxel world, 카메라 원본은 기본 OFF입니다. 화면 표시 및 카메라 preview lease와 녹화 구독은 독립적입니다. 센서별 토픽과 0.1~10Hz 주기, 세션 10~1024MiB 제한을 설정할 수 있습니다. 용량 제한은 이전 기록을 지우지 않고 중단하며 `새 녹화 시작`으로 새 세션을 만듭니다. 전체 저장 한도는 기존 `total_limit_bytes`를 따릅니다.
-
-원본은 ROS 직렬화 CDR 전체 메시지로 SQLite `raw_messages`에 저장합니다. 공간 점/픽셀을 자르지 않으며 시간축에서 설정 주기로 표본화합니다. 원본 활성 시 `/tf`, `/tf_static`도 최대 30Hz로 함께 저장합니다. 메시지 최대 8MiB, 대기 큐 최대 32MiB/128건으로 제한하며 초과는 저장 오류·유실 건수 및 `raw_gap` metadata로 남깁니다. 원본 압축/쓰기 작업은 HTTP worker에서 수행합니다. 원본 구독은 토픽 발견 시 QoS에 맞춰 생성되고 OFF 시 해제되지만 화면 또는 다른 관측 목적의 구독은 유지됩니다. 현재 voxel world 기본 토픽은 `/obstacle_memory/voxels`, Nav2 voxel layer는 `/local_costmap/voxel_grid`이며 발행되지 않으면 미수신으로 표시합니다.
-
-설정은 `state_directory/recording-settings.json`에 저장하고 변경 시점을 `recording_policy`로 녹화합니다. 일시정지 중에는 설정·녹화 상태만 기록합니다. 재생은 당시 정책으로 비활성 자료를 제외하고 미녹화·미수신·입력 중단·저장 오류를 구분합니다. 원본은 세션 내보내기(SQLite)에 포함되며 재생 시각 직전 원본 1건도 내려받을 수 있습니다. 3D 원본 및 카메라 영상의 직접 재생 뷰어는 아직 제공하지 않습니다. 기존 schema 1/2 기록은 그대로 읽고, 새 schema 3 기록은 원본 테이블을 추가합니다.
-
-로컬 녹화 API: `GET/PUT /api/recording/settings`, `POST /api/recording/session`, `GET /api/recordings/{session}/raw?category=point_cloud&at=<wall-seconds>`. 설정 변경은 동일 출처에서만 허용하며 ROS 명령이나 로봇 설정을 변경하지 않습니다.
-ROS 연결 그래프는 토픽·노드 연결에 따라 결정적인 정적 배치를 계산한다. Publisher/Subscriber 역할을 가진 동일 노드는 하나로 표시한다. 수신 주기·시각·QoS와 endpoint 순서가 갱신되어도 연결 관계가 같으면 그래프 DOM·배치·확대 위치를 유지한다. 선택 토픽이나 실제 연결 관계가 변경되면 배치를 다시 계산한다.
+최신 검사 수·DB 무결성·Gazebo 실행과 빌드/병합 제한은
+[통합 검증 결과](../cleany_mission_manager/docs/manipulation_mock_integration.md#최신-검증-결과)에서 관리한다.

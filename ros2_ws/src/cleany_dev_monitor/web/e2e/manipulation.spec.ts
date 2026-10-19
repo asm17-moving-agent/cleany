@@ -1,147 +1,55 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { run, rows, transport, beforeCarry } from "./fixtures/manipulation";
+import { type Data } from "../src/lib/monitor";
 
-const beforeCarry = [
-  "ValidateGoal",
-  "PrepareTarget",
-  "ReconstructTarget",
-  "GenerateGrasp",
-  "SelectArmAndPath",
-  "MoveToPregrasp",
-  "ApproachObject",
-  "GraspObject",
-  "ConfirmGrasp",
-  "LiftObject",
-  "ConfirmHeld",
-];
-const allSteps = [
-  ...beforeCarry,
-  "CarryObject",
-  "CheckPlacementTarget",
-  "OpenGripperAtDestination",
-  "ConfirmRelease",
-  "ReturnArm",
-  "VerifyPlacedObject",
-];
-const topic = "/mock/manipulation/execution_events";
-
-function run(
-  finished = false,
-  id = "execution-1",
-  received = Date.now() / 1000 - 8,
-) {
-  return {
-    received_at: received,
-    partial: false,
-    clock_regressed: false,
-    record: {
-      execution_id: id,
-      mission_id: "mission-1",
-      task_id: "task-1",
-      object_id: 1,
-      snapshot_id: "snapshot-1",
-      destination_id: "mock_trash_bin",
-      selected_arm: "left",
-      execution_profile: "mock",
-      stage: finished ? "FINALIZING" : "TRANSPORTING",
-      substage: finished ? "" : "CarryObject",
-      completed_substages: finished ? allSteps : beforeCarry,
-      has_result: finished,
-      record_state: finished ? "FINISHED" : "ACTIVE",
-      status: finished ? "SUCCESS" : "",
-      object_state: finished ? "LEFT_GRIPPER" : "HELD",
-      placement_state: finished ? "CONFIRMED" : "NOT_CHECKED",
-      arm_recovered: finished,
-      stop_confirmed: finished,
-      failed_stage: "",
-      failed_substage: "",
-      error_code: "NONE",
-      cancel_mode: "",
-      accepted_at_ns: 100e9,
-      updated_at_ns: finished ? 140e9 : 120e9,
-      revision: finished ? 30 : 15,
-    },
-    intervals: [
-      {
-        stage: "GRASPING",
-        substage: "GraspObject",
-        start_ns: 110e9,
-        end_ns: 113e9,
-        partial: false,
-        received_at: received - 10,
-      },
-      {
-        stage: "TRANSPORTING",
-        substage: "CarryObject",
-        start_ns: 120e9,
-        end_ns: finished ? 128e9 : null,
-        partial: false,
-        received_at: received,
-      },
-    ],
+test("goal handover waits for the exact execution instead of showing old progress", async ({
+  page,
+}) => {
+  const fixture = await transport(page);
+  await page.goto("/#manipulation");
+  await expect(page.locator(".manip-summary")).toContainText("진행 중");
+  const waiting = rows();
+  (waiting.find((row) => row.kind === "runtime")!.data as Data).proposal = {
+    execution_id: "execution-next",
   };
-}
-function rows(runs = [run()], at = Date.now() / 1000, staleRuntime = false) {
-  return [
-    {
-      seq: 1,
-      kind: "config",
-      key: "monitor",
-      received_at: at,
-      data: { manipulation_events_topic: topic },
-    },
-    {
-      seq: 2,
-      kind: "graph",
-      key: "ros",
-      received_at: at,
-      data: { topics: [{ name: topic, publishers: [{}] }] },
-    },
-    {
-      seq: 3,
-      kind: "runtime",
-      key: "runtime",
-      received_at: at - (staleRuntime ? 20 : 0),
-      data: {
-        state: "WORKING",
-        active_request: { mission_id: "mission-1" },
-        bt_stage: "ExecuteOne",
-        safe_to_drive: staleRuntime,
-        drive_block_reason: "물체 HELD: 팔 복귀가 확인되지 않았습니다.",
-        manipulation_feedback: {
-          execution_id: "execution-1",
-          stage: "TRANSPORTING",
-          substage: "CarryObject",
-        },
-      },
-    },
-    {
-      seq: 4,
-      kind: "manipulation",
-      key: "executions",
-      received_at: at,
-      data: { executions: runs, evicted: 0 },
-    },
-  ];
-}
-async function transport(page: Page, initial = rows()) {
-  const commands: unknown[] = [];
-  let send = (_rows: ReturnType<typeof rows>) => {};
-  await page.routeWebSocket("**/ws", (ws) => {
-    let first = true;
-    send = (values) => {
-      ws.send(
-        JSON.stringify({ initial: first, boot_id: "fixture", rows: values }),
-      );
-      first = false;
-    };
-    send(initial);
-    ws.onMessage((message) => commands.push(JSON.parse(String(message))));
-  });
-  return {
-    commands,
-    update: (values: ReturnType<typeof rows>) => send(values),
-  };
-}
+  fixture.update(waiting);
+  await expect(
+    page.getByText("조작 실행 기록 대기", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".manip-summary")).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "현재 Runtime 주행 판단" }),
+  ).toContainText("주행 차단");
+  const picker = page.getByRole("combobox", { name: "조작 실행 선택" });
+  await picker.selectOption("execution-1");
+  await expect(page.locator(".manip-summary")).toContainText(
+    "진행 상태 미확인",
+  );
+  await expect(
+    page.locator('.manip-stage-rail [aria-current="step"]'),
+  ).toHaveCount(0);
+  await picker.selectOption("");
+  const next = run(false, "execution-next");
+  next.record.object_id = 2;
+  const received = rows([run(), next]);
+  const runtime = received.find((row) => row.kind === "runtime")!.data as Data;
+  runtime.proposal = { execution_id: "execution-next" };
+  runtime.manipulation_feedback.execution_id = "execution-next";
+  fixture.update(received);
+  await expect(page.locator(".manip-summary")).toContainText("물체 2");
+  await expect(page.locator(".manip-summary")).toContainText("진행 중");
+  const newMission = rows([run(true)]);
+  const newRuntime = newMission.find((row) => row.kind === "runtime")!
+    .data as Data;
+  newRuntime.active_request.mission_id = "mission-next";
+  newRuntime.manipulation_feedback = {};
+  fixture.update(newMission);
+  await expect(
+    page.getByText("조작 실행 기록 대기", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".manip-summary")).toHaveCount(0);
+  expect(fixture.commands).toEqual([]);
+});
 
 test("active manipulation shows reported substages, timing and current drive gates", async ({
   page,

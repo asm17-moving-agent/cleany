@@ -21,6 +21,7 @@ import {
 } from "@/components/recording-controls";
 import { NavigationDashboard } from "@/components/navigation-dashboard";
 import { ManipulationDashboard } from "@/components/manipulation-dashboard";
+import { ExecuteOneDetail } from "@/components/execute-one-detail";
 import { RosGraph } from "@/components/ros-graph";
 import { FitGraphToViewport } from "@/components/fit-graph-to-viewport";
 import { CameraView } from "@/components/camera-view";
@@ -48,10 +49,12 @@ import {
   Unplug,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronDown,
 } from "lucide-react";
 import { FoxglovePanel } from "@/components/foxglove-panel";
 import { Panel } from "@/components/panel";
 import { type Data, type Row, time } from "@/lib/monitor";
+import { applyRuntimeEvents } from "@/lib/runtime-observation";
 
 type Packet = {
   rows: Row[];
@@ -63,34 +66,6 @@ type Packet = {
   error?: string;
   selection?: string[];
 };
-function applyRuntimeEvents(rows: Row[]): Row[] {
-  const base = rows.find((r) => r.kind === "runtime");
-  if (!base) return rows;
-  const data = structuredClone(base.data);
-  for (const row of rows
-    .filter((r) => r.kind === "event" && r.seq > base.seq)
-    .sort((a, b) => a.seq - b.seq)) {
-    if (row.data.boot_id !== data.boot_id) continue;
-    const event = row.data;
-    if (event.kind === "transition") {
-      data.state = event.data.to;
-      data.active_request = event.data.active_request;
-      data.ready = false;
-      data.reason = "전이 후 준비 상태 확인 중";
-    }
-    if (event.kind === "bt_tick") {
-      const node = data.bt_nodes?.find(
-        (n: Data) => n.id === event.data.node_id,
-      );
-      if (node) {
-        node.status = event.data.status;
-        node.visited = true;
-      }
-    }
-    if (event.kind === "mission_result") data.last_result = event.data;
-  }
-  return rows.map((r) => (r === base ? { ...base, data } : r));
-}
 const critical = new Set(["event", "log", "result"]);
 const navIcons = [
   GitBranch,
@@ -175,22 +150,49 @@ function useVisibleFsmState(state: string): string {
   return visible;
 }
 
+const btKinds: Record<string, string> = {
+  Sequence: "→ 순서 실행",
+  UntilVerified: "↻ 완료까지 반복",
+  OperationLeaf: "작업",
+  CheckLeaf: "조건 검사",
+};
+const btHelp: Record<string, string> = {
+  CleanDesk:
+    "처음 관측한 뒤, 완료가 확인될 때까지 물체별 작업 주기를 실행합니다.",
+  ObserveBefore: "청소를 시작하기 전 책상 상태를 한 번 관측합니다.",
+  UntilVerified:
+    "작업 주기가 SUCCESS여도 청소 완료가 확인되지 않으면 자식을 초기화하고 PlanNext부터 다시 실행합니다.",
+  ActionCheckpoint:
+    "제안 → 검증 → 한 물체 실행 → 재관측 → 완료 검사를 왼쪽부터 순서대로 실행합니다.",
+  PlanNext: "최신 관측과 실행 기록을 바탕으로 다음 행동 하나를 제안받습니다.",
+  ValidateProposal: "관측 ID, 물체, 허용 행동과 목적지가 유효한지 검사합니다.",
+  ExecuteOne:
+    "물체 하나의 조작을 요청하고 결과를 처리합니다. done·skip·human_review 제안은 Action 없이 통과합니다. SUCCESS는 결과 처리 통과를 뜻하며, 실제 수거 성공은 조작 결과에서 확인합니다.",
+  Reobserve: "실행 이후 새 관측을 받아 책상 상태를 다시 확인합니다.",
+  VerifyCompletion:
+    "새 관측을 검사하고 done 제안이면 남은 물체를 확인합니다. SUCCESS여도 청소 완료가 확정되지 않으면 UntilVerified가 다음 주기를 실행합니다.",
+};
+
 function Tree({
   runtime,
   onSelect,
   bt = false,
+  selectedNode = "",
 }: {
   runtime: Data;
   onSelect: (id: string) => void;
   bt?: boolean;
+  selectedNode?: string;
 }) {
   const visibleState = useVisibleFsmState(runtime.state);
   const spec = JSON.stringify(
     bt
       ? {
+          selectedNode,
           bt_nodes: (runtime.bt_nodes || []).map((n: Data) => ({
             id: n.id,
             parent: n.parent,
+            kind: n.kind,
             status: n.status,
             visited: n.visited,
           })),
@@ -297,7 +299,7 @@ const MemoDiagram = React.memo(function Diagram({
     );
     const xs = children.map((n) => place(n.id, depth + 1));
     const x = xs.length ? (xs[0] + xs[xs.length - 1]) / 2 : leaf++ * 240;
-    positions.set(id, { x, y: depth * 135 });
+    positions.set(id, { x, y: depth * 145 });
     return x;
   };
   btNodes.filter((n) => !n.parent).forEach((n) => place(n.id, 0));
@@ -342,20 +344,69 @@ const MemoDiagram = React.memo(function Diagram({
   );
   const nodes: Node[] = bt
     ? btNodes.map((n) => {
+        const order =
+          btNodes.find((parent) => parent.id === n.parent)?.kind === "Sequence"
+            ? btNodes
+                .filter((child) => child.parent === n.parent)
+                .findIndex((child) => child.id === n.id) + 1
+            : null;
         return {
           id: n.id,
           position: positions.get(n.id)!,
+          domAttributes:
+            n.id === "ExecuteOne"
+              ? {
+                  "aria-expanded": runtime.selectedNode === n.id,
+                  "aria-controls": "execute-one-detail",
+                }
+              : undefined,
+          ariaLabel: `${n.id} · ${btKinds[n.kind] || n.kind || "BT 노드"} · ${n.status}${n.visited ? " · 최근 tick 방문" : ""}`,
           data: {
             label: (
               <>
-                <strong>{n.id}</strong>
-                <small>
-                  {n.status} {n.visited ? "· ticked" : ""}
+                <span className="bt-node-kind">
+                  {order && (
+                    <b
+                      className="bt-node-order"
+                      title={`${n.parent}의 실행 순서`}
+                    >
+                      {order}
+                    </b>
+                  )}
+                  {btKinds[n.kind] || n.kind || "BT 노드"}
+                </span>
+                <strong
+                  className={
+                    n.id === "ExecuteOne" ? "bt-execute-label" : undefined
+                  }
+                >
+                  {n.id}
+                  {n.id === "ExecuteOne" && (
+                    <ChevronDown
+                      size={14}
+                      className={runtime.selectedNode === n.id ? "is-open" : ""}
+                      aria-hidden="true"
+                    />
+                  )}
+                </strong>
+                <small
+                  className="bt-node-status"
+                  style={{ color: statusColor(n.status) }}
+                >
+                  {n.visited && (
+                    <span className="bt-visited" title="최근 tick 방문" />
+                  )}
+                  {n.status}
                 </small>
               </>
             ),
           },
           style: {
+            boxShadow:
+              runtime.selectedNode === n.id
+                ? "0 0 0 3px var(--info-bg)"
+                : undefined,
+            borderWidth: runtime.selectedNode === n.id ? 2 : 1,
             borderColor: statusColor(n.status),
             background:
               n.status === "RUNNING" ? "var(--info-bg)" : "var(--card)",
@@ -403,6 +454,7 @@ const MemoDiagram = React.memo(function Diagram({
           target: n.id,
           animated: false,
           type: "smoothstep",
+          style: { stroke: "var(--graph-edge)" },
         }))
     : (runtime.fsm_edges || []).map(([a, b]: string[]) => {
         const ai = mainFlow.indexOf(a);
@@ -470,8 +522,8 @@ const MemoDiagram = React.memo(function Diagram({
           ...n,
           className: "runtime-node react-flow__node-default",
           width: 200,
-          height: 76,
-          style: { ...n.style, width: 200, height: 76 },
+          height: bt ? 96 : 76,
+          style: { ...n.style, width: 200, height: bt ? 96 : 76 },
         }))}
         edges={edges}
         fitView
@@ -1459,6 +1511,7 @@ function App() {
     : null;
   const fresh = age !== null && age < 3 && (!!replayId || connected);
   const completedBT = !runtime.active_request && !!runtime.last_result;
+  const executeDetail = graphTab === "bt" && node === "ExecuteOne";
   const selectionLimit = Number(config.max_selected_topics) || 16;
   const select = (topics: string[]) => {
     if (topics.length > selectionLimit) {
@@ -1738,7 +1791,11 @@ function App() {
                   </div>
                   {runtime.bt_stage && (
                     <div>
-                      <span>청소</span>
+                      <span>
+                        {runtime.state === "WORKING" && fresh
+                          ? "청소 단계"
+                          : "마지막 청소 단계"}
+                      </span>
                       <strong>{runtime.bt_stage}</strong>
                     </div>
                   )}
@@ -1751,6 +1808,7 @@ function App() {
                   </p>
                 )}
                 {graphTab === "bt" &&
+                  !executeDetail &&
                   runtime.manipulation_feedback?.execution_id && (
                     <section
                       className="execution-summary"
@@ -1783,7 +1841,8 @@ function App() {
                   )}
                 <div
                   className={
-                    "execution-workspace " + (node ? "with-detail" : "")
+                    "execution-workspace " +
+                    (node && !executeDetail ? "with-detail" : "")
                   }
                 >
                   <section
@@ -1803,17 +1862,36 @@ function App() {
                           <TabsTrigger value="bt">청소 BT</TabsTrigger>
                         </TabsList>
                       </Tabs>
-                      <Badge tone={!fresh ? "warn" : ""}>
-                        {!fresh
-                          ? graphTab === "bt"
-                            ? "마지막 BT 관측 · 상태 미확인"
-                            : "마지막 FSM 관측 · 상태 미확인"
-                          : replayId
-                            ? "기록 시점"
-                            : graphTab === "bt" && completedBT
-                              ? "마지막 청소 결과"
-                              : "LIVE"}
-                      </Badge>
+                      <div className="graph-toolbar-actions">
+                        {graphTab === "bt" &&
+                          runtime.bt_nodes?.some(
+                            (n: Data) => n.id === "ExecuteOne",
+                          ) && (
+                            <Button
+                              variant={executeDetail ? "secondary" : "outline"}
+                              size="sm"
+                              aria-expanded={executeDetail}
+                              aria-controls="execute-one-detail"
+                              onClick={() =>
+                                setNode(executeDetail ? "" : "ExecuteOne")
+                              }
+                            >
+                              <Hand size={14} />
+                              조작 단계 {executeDetail ? "접기" : "보기"}
+                            </Button>
+                          )}
+                        <Badge tone={!fresh ? "warn" : ""}>
+                          {!fresh
+                            ? graphTab === "bt"
+                              ? "마지막 BT 관측 · 상태 미확인"
+                              : "마지막 FSM 관측 · 상태 미확인"
+                            : replayId
+                              ? "기록 시점"
+                              : graphTab === "bt" && completedBT
+                                ? "마지막 청소 결과"
+                                : "LIVE"}
+                        </Badge>
+                      </div>
                     </div>
                     <h2 className="sr-only">
                       {graphTab === "fsm"
@@ -1825,9 +1903,64 @@ function App() {
                       runtime={runtime}
                       onSelect={setNode}
                       bt={graphTab === "bt"}
+                      selectedNode={node}
                     />
+                    {graphTab === "bt" && runtime.bt_nodes?.length > 0 && (
+                      <div className="bt-guide" aria-label="청소 BT 읽는 법">
+                        <p>
+                          <strong>왼쪽부터 순서 실행</strong>
+                          <span>
+                            UntilVerified가 완료 확인까지 작업 주기를
+                            반복합니다.
+                          </span>
+                        </p>
+                        <p className="bt-legend">
+                          <span>
+                            <i className="running" />
+                            RUNNING 진행
+                          </span>
+                          <span>
+                            <i className="success" />
+                            SUCCESS 통과
+                          </span>
+                          <span>
+                            <i className="failure" />
+                            FAILURE 실패
+                          </span>
+                          <span>
+                            <i className="invalid" />
+                            INVALID 대기·초기화
+                          </span>
+                          <span>
+                            <i className="visited" />
+                            최근 tick 방문
+                          </span>
+                        </p>
+                        <p>
+                          노드를 누르면 역할과 통과 조건을 확인할 수 있습니다.
+                          ExecuteOne의 조작 세부 단계는 매니퓰레이션 화면에서
+                          확인합니다.
+                        </p>
+                      </div>
+                    )}
                   </section>
-                  {node && (
+                  {executeDetail && (
+                    <ExecuteOneDetail
+                      rows={rows}
+                      timeAt={replayId ? at : now}
+                      replay={!!replayId}
+                      connected={connected}
+                      close={() => {
+                        setNode("");
+                        const target = document.querySelector<HTMLElement>(
+                          '.flow.bt .react-flow__node[data-id="ExecuteOne"]',
+                        );
+                        target?.focus();
+                      }}
+                      openDashboard={() => go("manipulation")}
+                    />
+                  )}
+                  {node && !executeDetail && (
                     <section
                       className="execution-detail"
                       aria-label="노드 상세"
@@ -1843,6 +1976,28 @@ function App() {
                           닫기
                         </Button>
                       </div>
+                      {graphTab === "bt" && (
+                        <div className="bt-node-explanation">
+                          <Badge>
+                            {btKinds[
+                              runtime.bt_nodes?.find((n: Data) => n.id === node)
+                                ?.kind
+                            ] || "BT 노드"}
+                          </Badge>
+                          <p>
+                            {btHelp[node] || "Runtime이 제공한 BT 노드입니다."}
+                          </p>
+                          {node === "ExecuteOne" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => go("manipulation")}
+                            >
+                              조작 상세 보기 <ArrowUpRight size={14} />
+                            </Button>
+                          )}
+                        </div>
+                      )}
                       <dl className="facts">
                         <div>
                           <dt>작업 대상</dt>

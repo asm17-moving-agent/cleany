@@ -4,14 +4,22 @@ SCRUM-420의 단일 로봇 Mission Runtime입니다. 상위 FSM이 수락·이�
 소유하고, `py_trees` Behavior Tree가 책상 작업의 반복과 완료 확인을 소유합니다.
 순수 core는 ROS 및 네트워크를 호출하지 않고 `start/poll/cancel/ready/stopped` port를 사용합니다.
 
+- [실행 범위](#현재-실행-범위) · [FSM·청소 BT](#실행-흐름과-소유권) · [ROS 계약](#ros-계약)
+- [Runtime 실행](#설정과-실행) · [조작 연결·결과 판정](#단일-물체-manipulation-연결)
+- [Mock 시간표](#mock-조작의-관찰-시간) · [개발 관측](#개발용-fsmbt-관측)
+- [시설 지도](#full-facility-simulation-approach-map) · [도착 검사](#independent-navigation-arrival-check)
+
 ## 현재 실행 범위
 
-`navigation_backend:=nav2`는 Gazebo에서 실제 `NavigateToPose` action을 호출합니다.
-Perception과 Planner는 **명시적 Mock**입니다. Executor는 기본 로컬 Mock 또는
-`manipulation_backend:=action_mock`에서 팀원의 외부 mock action server를 호출합니다. 두 쓰레기 객체를 처리하고
-새 관측에서 완료를 확인하는 흐름이며 실제 카메라·LLM·팔을 호출하지 않습니다.
-`navigation_backend:=mock`는 주행도 Mock으로 바꾸는 구조 확인 모드입니다.
-실행 출처는 미션 수락 시 저장하고 최종 보고에도 보존합니다.
+| 구성 | 주행 | 조작 | 설정·실행 |
+|---|---|---|---|
+| 기본 | Nav2 | 로컬 Mock | [runtime.yaml](config/runtime.yaml) |
+| ROS 통신 확인 | Mock | 외부 Mock Action | [runtime_manipulation_mock.yaml](config/runtime_manipulation_mock.yaml) |
+| Gazebo 통합 | Gazebo/Nav2 | 외부 Mock Action | [Bringup 빠른 시작](../cleany_bringup/README.md#빠른-시작) |
+
+Perception·Planner는 모든 구성에서 Mock이며 카메라·LLM·실물 팔을 호출하지 않는다.
+두 쓰레기 객체를 처리하고 새 관측으로 완료를 확인한다. 실행 출처는 미션 수락 시
+저장하고 최종 보고에 보존한다.
 
 | 역할 | 구현 |
 |---|---|
@@ -42,8 +50,18 @@ flowchart LR
   R --> B
 ```
 
-Backend가 Queue와 배차를 소유합니다. Runtime은 별도 Queue를 만들지 않고, IDLE 및
-모든 port의 준비·정지 여부, 지원 좌석, 요청 유형을 검사해 하나만 수락합니다. Nav2의 준비 검사는 `required_navigation_lifecycle_nodes`의 모든 노드가 active이고 lifecycle 응답이 `lifecycle_timeout` 이내인지 확인합니다. 기본 목록은 map_server, amcl, planner_server, controller_server, bt_navigator, collision_monitor입니다. Nav2 action server만 켜져 있고 collision monitor 초기화가 끝나지 않은 상태에서는 `NAV2_NOT_READY`로 요청을 거절하며 주행 goal을 보내지 않습니다. 다른 실행 profile의 목록은 ROS parameter로 명시하되, 필요한 안전 체인이 준비됐다는 확인을 대신하지 않습니다.
+Backend가 Queue와 배차를 소유한다. Runtime은 Queue 없이 한 미션만 수락한다.
+
+| 수락·작업 진입 검사 | 조건 |
+|---|---|
+| 미션 수락 | IDLE, 지원 좌석·요청 유형, 모든 port의 준비·정지 조건 충족 |
+| Nav2 준비 | `required_navigation_lifecycle_nodes` 전체 ACTIVE, `lifecycle_timeout` 이내 응답 |
+| 기본 필수 노드 | map_server, amcl, planner_server, controller_server, bt_navigator, collision_monitor |
+| 작업 진입 | Nav2 terminal 결과, fresh odom 정지와 원래 목표 pose에 대한 도착 검사 통과 |
+
+Nav2 Action만 준비된 상태는 충분하지 않다. 필수 lifecycle이 미준비이면
+`NAV2_NOT_READY`로 거절하고 주행 Goal을 보내지 않는다. 다른 profile의 필수 목록은
+ROS parameter로 명시하며 준비된 안전 체인을 확인해야 한다.
 동일 mission ID·동일 요청은 재실행하지 않습니다. 다른 내용으로 ID를 재사용하면 거절합니다.
 
 FSM은 `IDLE → NAVIGATE_TO_TARGET → WORKING → POST_MISSION → RETURN_HOME/IDLE`이며
@@ -94,7 +112,8 @@ Backend 연결 단절은 이미 수락한 미션의 실행을 중단하지 않�
 
 좌석 YAML은 `map_id`, `frame_id`, `home`, `seats`를 명시합니다. 현재 seat-12·13 pose와
 home은 study-cafe **시뮬레이션 접근 후보**입니다. 충전 dock·팔 도달 가능성·실환경 좌표는
-검증되지 않았고, 실제 Gazebo home 복귀 시험도 실패했습니다.
+아직 검증하지 않았습니다. 구성·시점별 home 복귀 결과는
+[통합 검증 이력](docs/manipulation_mock_integration.md#과거-검증-이력)을 확인합니다.
 
 기존 AMCL/Nav2 실행 옆에서 시작합니다. SLAM은 동시에 시작하지 않습니다.
 
@@ -110,16 +129,8 @@ Nav2 없이 구조를 확인할 때는 위 명령에 `navigation_backend:=mock`�
 실험별 `journal_path`, `bridge_journal_path`를 사용하되 동일 미션을 복구할 때는 동일 DB를
 유지합니다. Gazebo부터 함께 시작하려면 [cleany_bringup](../cleany_bringup/README.md)을 봅니다.
 
-```bash
-make test-mission-core
-make test-mission-runtime
-# 실제 ROS transport와 fake Nav2 server를 사용하는 선택 검사
-source "$(make -s print-install-base)/setup.bash"
-ROS_DOMAIN_ID=82 CLEANY_RUN_ROS_TESTS=1 make test-mission-core
-```
-
-ROS transport 검사는 Gazebo·실물 검증과 구분합니다. 시험 결과와 제한은
-[SCRUM-420 검증 기록](../../../docs/validation/README.md)에 정리합니다.
+검사 명령과 ROS 선택 검사는 [workspace 공통 검증](../../README.md#missionmock-조작-검증),
+실행 결과와 제한은 [통합 검증 결과](docs/manipulation_mock_integration.md#최신-검증-결과)를 따른다.
 기획 근거는 KB [Mission Lifecycle](../../../docs/cleany-docs/20_TECHNICAL/09%20-%20Mission%20Lifecycle.md),
 [Robot ROS Contract](../../../docs/cleany-docs/20_TECHNICAL/10%20-%20Robot%20ROS%20Contract.md),
 [안전](../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)을 따릅니다.
@@ -127,89 +138,77 @@ KB는 이 구현 변경에서 수정하지 않습니다.
 
 ## 단일 물체 Manipulation 연결
 
-청소 BT가 관찰과 Planner 제안을 검증한 뒤 물체 하나의 action을 보냅니다.
-Executor 내부의 BT/XML이나 접근·집기 단계 순서는 Mission Manager가 소유하지 않습니다.
-PR #54의 FSM·BT·보고 계약을 유지하며 PR #55 `86a6d85`의 Python Mock 서버에 연결합니다.
-공통 조작 interface와 필요한 서버 의존 코드만 선별 포함했습니다. 전체 PR 병합이나
-MuJoCo 실행기 연결은 하지 않았습니다. [통합 문서](docs/manipulation_mock_integration.md)를 참고합니다.
+청소 BT가 관측·Planner 제안을 검증한 뒤 `ManipulationPort`로 한 물체를 실행한다.
+서버의 접근·집기·운반 단계는 Action 내부 진행이며 Mission의 FSM·BT 노드를 추가하지 않는다.
+선별 포함 범위는 [통합 문서](docs/manipulation_mock_integration.md#책임과-구현-범위),
+wire 필드는 [공통 인터페이스](../cleany_interfaces/README.md#단일-물체-manipulation-action)를 따른다.
 
-| 상대 이름 기본값 | 타입 | 의미 |
-|---|---|---|
-| `mock/manipulation/execute_skill` | `ExecuteManipulationSkill` | 승인한 snapshot의 numeric object를 지정한 destination으로 이동 |
-| `mock/manipulation/get_execution` | `GetManipulationExecution` | 동일 execution ID의 영속 결과 확인 |
+| Runtime의 상대 이름 기본값 | 용도 |
+|---|---|
+| `mock/manipulation/execute_skill` | 승인된 단일 물체 실행 |
+| `mock/manipulation/get_execution` | 같은 execution ID의 영속 기록 조회 |
 
-요청은 `mission_id`, `task_id`, `execution_id`, `skill_name=collect_trash`, `snapshot_id`,
-`uint32 object_id`, `destination_id`입니다. 표시용 object ID와 wire ID를 분리하고,
-`SceneObject.wire_object_id`를 Planner 제안과 대조합니다. `trash-1`을 숫자로 추정하지 않습니다.
-목적지는 `RuntimePolicy.manipulation_destinations`의 allowlist로 검사합니다.
-행동마다 새로운 execution UUID를 발급하고 전체 요청을 SQLite에 저장한 **뒤** 전송합니다.
-이 UUID를 ROS goal UUID에도 사용하므로 지연 수락·재시작 취소는 정확한 goal만 대상으로 합니다.
+### 요청과 결과 판정
 
-ROS action의 SUCCEEDED만으로 청소 성공을 판단하지 않습니다. 팀원 서버는 BLOCKED도
-ROS SUCCEEDED로 반환합니다. payload의 SUCCESS와 일치하는 execution ID, mock 출처,
-`LEFT_GRIPPER`, `CONFIRMED`, placement 검증 완료, 팔 복귀 및 정지 확인을 함께 검사합니다.
-결과 전체와 task/execution/destination ID를 `report_json.actions`와 SQLite에 보존합니다.
-`CANCELED` payload는 Runtime의 `CANCELLED`로 변환합니다.
+- Mission allowlist는 `collect_trash`다. `SceneObject.wire_object_id`를 Planner 제안과
+  대조하며 `trash-1` 표시 문자열에서 숫자를 추정하지 않는다.
+- 목적지는 `RuntimePolicy.manipulation_destinations`로 검사한다.
+- 행동마다 task/execution UUID를 발급하고 전체 Goal을 SQLite에 기록한 **뒤** 보낸다.
+  execution UUID를 ROS Goal UUID에도 사용해 조회·취소 대상을 고정한다.
 
-정지와 주행 가능 여부를 분리합니다. 정지 확인이 있어도 물체가 HELD/UNKNOWN이거나
-팔이 복귀하지 않았거나 사람 확인이 필요하면 home과 다음 미션 이동을 차단합니다.
-취소 결과는 CANCELLED로 보존하면서 FSM은 ERROR와 사람 확인 필요 상태를 유지합니다.
-이 상태에서는 `reset_error`도 주행 가능 조건을 우회하지 못합니다.
-현재 서버에 수동 팔 복구·해제 계약은 없으므로 Runtime이 임의로 복구 동작을 실행하지 않습니다.
+| 응답·상태 | Mission 처리 |
+|---|---|
+| ROS SUCCEEDED + payload BLOCKED | 수거 성공으로 처리하지 않음 |
+| payload SUCCESS | execution ID·mock 출처·오류 없음·placement 검증 완료·`LEFT_GRIPPER`·`CONFIRMED`·선택 팔·팔 복귀·정지 등 기존 일관성 조건 검사 |
+| HELD / UNKNOWN / 팔 미복귀 / 사람 확인 필요 | home·다음 미션 이동·오류 해제 차단 |
+| CANCELED | 보고는 `CANCELLED`; 주행 불가 상태가 남으면 FSM ERROR·사람 확인 유지 |
+| FATAL / 정지 미확인 | ERROR 유지 |
+| 응답 유실·지연·불일치·거절 | 같은 ID로 조회·취소; 새 ID 자동 재전송 없음 |
+| 조회 `found=false` / ACTIVE / INTERRUPTED | 미실행·정지 증거로 사용하지 않음 |
 
-전송·결과가 불확실하면 같은 execution ID로 조회하며 새 ID로 자동 재전송하지 않습니다.
-현재 peer service는 저장 오류와 기록 없음 모두 `found=false`로 반환할 수 있으므로
-이 응답은 미실행·정지 증거가 아닙니다. 진행 중·INTERRUPTED·불일치 결과도 gate를 해제하지 않습니다.
-재시작 후에는 저장한 UUID 취소와 조회만 수행하고 미션은 자동 재개하지 않습니다.
-이 진단 상태는 journal의 `manipulation_boundary` metadata에도 보존합니다.
-새 `failed_substage`, `cancel_mode`와 조회의 `substage`, `completed_substages`는
-선택적 `details` metadata로 분리합니다. 과거 metadata에 이 항목이 없으면 빈 값입니다.
-`ManipulationOutcome`, `RuntimeReport.actions`, MissionResult와 Gateway payload 형태는 유지합니다.
-Feedback은 실행 ID를 대조해 최신 값 하나만 보존하고, 종료된 실행과 이전 실행의 늦은
-메시지를 무시합니다. 진단 오류는 제어 흐름에 영향을 주지 않습니다.
+취소는 현재 UUID의 ROS Action cancel을 통해 기본 **CHECKPOINT**로 처리한다.
+취소 ACK는 정지 증거가 아니다. 수동 팔 복구·해제나 IMMEDIATE/RETURN_ARM 선택용
+Mission API는 제공하지 않는다. 재시작 후에는 저장된 UUID만 취소·조회하고 자동 재개하지 않는다.
+
+### 보고·journal·Feedback 호환
+
+기존 `ManipulationOutcome`, `RuntimeReport.actions`, `MissionResult`, Gateway payload를
+유지한다. action 결과·task/execution/destination ID는 기존 보고와 SQLite에 보존한다.
+
+| 정보 | 보관·용도 |
+|---|---|
+| `failed_substage`, `cancel_mode`, 조회의 `substage/completed_substages` | 기존 `manipulation_boundary`의 선택적 `details` metadata |
+| 과거 metadata에 없는 `details` | 빈 값으로 읽음 |
+| Action Feedback | execution ID가 일치하는 최신 값 하나; 새 실행 초기화, 이전·종료 실행 무시 |
+| `manipulation_feedback`, `manipulation_details` | debug JSON의 선택적 관측 정보 |
+
+Feedback·debug 오류는 제어 흐름을 중단하지 않으며 진단 정보를 완료·정지·주행 허가의
+증거로 사용하지 않는다. 주행 판정은 기존 `map_outcome()`과 `safe_to_drive()`를 따른다.
 
 ### 통합 Mock 서버와 함께 실행
 
-Mission과 서버를 한 install prefix에서 빌드·source합니다.
-PR #54 Runtime overlay와 PR #55 서버 overlay를 따로 겹치지 않습니다.
-공유 mock 입력은 [server fixture](config/manipulation_server_fixture.yaml),
-Runtime 설정은 [runtime_manipulation_mock.yaml](config/runtime_manipulation_mock.yaml)입니다.
-실제 카메라 대신 순서가 정해진 네 snapshot을 사용하고, 서버의 성공 결과에 따라
-mock 책상 목록에서 해당 물체를 제거합니다. 설정한 snapshot이 소진되면 실패합니다.
+두 터미널이 같은 install과 domain을 사용한다. 빌드와 서버 시작은
+[Skill Executor 단독 실행](../cleany_skill_executor/README.md#서버-단독-실행)을 따른다.
+서버가 준비되면 두 번째 터미널에서 주행도 Mock인 Runtime을 실행한다.
 
 ```bash
-make build-mission-mock
 source "$(make -s print-install-base)/setup.bash"
-# 두 terminal에서 같은 install prefix를 source
-ros2 run cleany_skill_executor manipulation_server --ros-args -r __ns:=/mock \
-  -p database_path:=/tmp/cleany-manipulation-server.db \
-  -p mock_config:=$PWD/ros2_ws/src/cleany_mission_manager/config/manipulation_server_fixture.yaml
-
-# 같은 install prefix를 source한 별도 terminal; 이 설정의 주행도 Mock
+export ROS_DOMAIN_ID=186
 ros2 run cleany_mission_manager mission_runtime --ros-args \
   --params-file ros2_ws/src/cleany_mission_manager/config/runtime_manipulation_mock.yaml \
   -p targets_file:=$PWD/ros2_ws/src/cleany_mission_manager/config/study_cafe_targets.yaml \
-  -p journal_path:=/tmp/cleany-manipulation-missions.db
+  -p post_mission:=wait_for_next \
+  -p journal_path:=$HOME/.local/state/cleany/mission-mock/missions.db
 ```
 
-`action_mock`만 지원하며 실제 팔 backend를 활성화하지 않습니다.
-새 mock DB에서 최초 팔이 안전하다는 가정은 `manipulation_initial_mock_safe=true`로
-명시합니다. 기본값은 false이고, 저장된 진행/위험 상태를 이 설정으로 덮어쓰지 않습니다.
-조작 실행 기록이 있는 DB에서는 로컬 `mock` backend로 전환해 주행 gate를 우회할 수 없도록 시작을 거부합니다.
-실물 연결에는 최신 팔 상태를 제공하는 별도 readiness/복구 계약이 필요합니다.
-fixture timeout은 작업 120초, 취소 15초로, 서버의 최대 10초 atomic stage와 정지 확인
-시간을 포함합니다. 기본 로컬 mock의 30초/5초 설정과 구분합니다.
+서버와 Runtime은 [공유 fixture](config/manipulation_server_fixture.yaml)의 두 물체·네
+snapshot을 사용한다. 검증된 SUCCESS만 논리적 책상 목록을 갱신하고, snapshot 소진은 실패다.
+미션 요청은 [Bringup의 요청 예제](../cleany_bringup/README.md#3-준비-상태-확인과-미션-요청)를 사용한다.
 
-```bash
-make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=185
-make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186
-```
-
-첫 검사는 Mock 주행과 실제 ROS 조작 통신, 두 번째는 Gazebo/Nav2 주행을 사용합니다.
-Gazebo용 설정은 [runtime_gazebo_manipulation_mock.yaml](config/runtime_gazebo_manipulation_mock.yaml)이며
-통합 launch와 `/initialpose` 및 직접 `mission/offer` 방법은
-[bringup README](../cleany_bringup/README.md#gazebo-주행과-외부-mock-조작)를 따릅니다.
-Mock의 논리적 물체 목록만 갱신하며 실제 팔·물체 애니메이션이나 물리 수거의 증거가 아닙니다.
+외부 조작 backend는 `action_mock`만 허용한다. `manipulation_initial_mock_safe=true`는
+새 journal에서만 초기 안전 가정으로 적용하며 기본값은 false다. 저장된 진행·위험 상태를
+덮어쓰지 않는다. 조작 실행 기록이 있으면 로컬 `mock`으로 전환해 gate를 우회할 수 없다.
+Gazebo 주행 구성은 [Bringup](../cleany_bringup/README.md#빠른-시작)을 사용한다.
 
 ### Mock 조작의 관찰 시간
 
@@ -237,9 +236,16 @@ Mock의 논리적 물체 목록만 갱신하며 실제 팔·물체 애니메이�
 
 `stage_durations_sec`는 모든 scenario의 기본 시간이고, scenario별 값이 우선합니다.
 설정을 바꾸면 Mock 서버를 다시 실행해야 합니다. 이미 진행 중인 실행의 DB는 보존합니다.
-작업 120초·취소 15초·청소 300초와 기존 안전 판정은 유지합니다.
-ROS 계약 회귀 검사는 동일한 논리 fixture에 빠른 시간을 적용하고,
-`make test-gazebo-manipulation`은 위 관찰 시간을 그대로 사용합니다.
+
+| Runtime timeout | 기본 로컬 Mock | 외부 Action Mock profile |
+|---|---:|---:|
+| 단일 작업 | 30초 | 120초 |
+| 취소 확인 | 5초 | 15초 |
+| 청소 전체 | 180초 | 300초 |
+
+ROS 계약 회귀 검사는 같은 논리 fixture의 시간을 줄이고 Gazebo 검사는 위 관찰 시간을 사용한다.
+설정은 [Runtime profile](config/runtime_manipulation_mock.yaml)과
+[Gazebo profile](config/runtime_gazebo_manipulation_mock.yaml)에서 관리한다.
 
 ### 개발용 FSM/BT 관측
 

@@ -4,6 +4,15 @@ Cleany의 로봇 엣지 시스템 코드가 들어가는 ROS 2 workspace다.
 
 패키지는 `src/` 아래에 두고, 공통 인터페이스는 `cleany_interfaces`에서 먼저 정의한다.
 
+| 찾는 내용 | 문서 |
+|---|---|
+| 설치·공통 빌드·테스트 | 이 문서의 [개발 환경](#개발-환경), [빠른 시작](#빠른-시작) |
+| Gazebo + Mock 조작 실행·미션 요청 | [Bringup](src/cleany_bringup/README.md) |
+| Mission FSM·청소 BT·조작 결과 판정 | [Mission Manager](src/cleany_mission_manager/README.md) |
+| 조작 서버 단독 실행 | [Skill Executor](src/cleany_skill_executor/README.md#python-mock-manipulation-서버) |
+| 관제 화면·기록 재생 | [Dev Monitor](src/cleany_dev_monitor/README.md) |
+| 통합 범위·검증 결과·남은 이슈 | [Mock 조작 통합](src/cleany_mission_manager/docs/manipulation_mock_integration.md) |
+
 ## 개발 환경
 
 공식 개발환경은 Ubuntu 22.04 VM과 ROS 2 Humble native 환경이다. ROS 2 Humble이
@@ -36,6 +45,19 @@ provenance를 읽는 hand-eye 검사를 실행한다. 시나리오 launcher는 �
 
 [데이터 보관 및 검증 색인](../docs/validation/README.md)에 과거 자료와 활성 입력 위치를 정리했다.
 
+### 기존 Mission Mock VM
+
+아래 파일은 기존 VM에 마련한 로컬 의존성과 통합 install을 읽는다. 새 VM 설치 절차는
+[개발환경 설치 가이드](../docs/DEVELOPMENT_SETUP.md)를 따른다. Mission·서버·interfaces는
+같은 install에서 읽으며 PR별 overlay를 따로 겹치지 않는다.
+
+| 셸 | 기존 VM 활성화 명령 |
+|---|---|
+| Bash | `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.bash` |
+| zsh | `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh` |
+
+이 환경의 Nav2 재빌드 제한과 확인 날짜는 [최신 통합 검증 결과](src/cleany_mission_manager/docs/manipulation_mock_integration.md#최신-검증-결과)를 확인한다.
+
 ## 빠른 시작
 
 아래 명령은 레포지토리 루트에서 실행한다.
@@ -67,28 +89,31 @@ The `cleany_telemetry` package relays latest-only finite `/odom` `x`/`y`
 and optional yaw over the configured WebSocket; see its README for parameters
 and endpoint.
 
-Mission FSM·BT와 Backend 연동만 검사할 때는 다음을 사용한다.
+### Mission·Mock 조작 검증
+
+| 명령 | 확인 범위 |
+|---|---|
+| `make test-mission-core` | ROS 없는 FSM·청소 BT·Bridge core; `py_trees`, PyYAML, pytest 필요 |
+| `make test-manipulation-core` | Python Mock 조작 core |
+| `make test-mission-runtime` | interfaces·Mission·Bridge 빌드와 colcon 검사 |
+| `make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=186` | 서버까지 함께 빌드한 실제 ROS Action·조회·취소·복구 검사; 주행은 Mock |
+| `make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186` | Gazebo/Nav2 주행 후 두 물체를 Mock 조작; 기본 종료 정책은 `wait_for_next` |
+| `CLEANY_GAZEBO_POST_MISSION=return_home make test-gazebo-manipulation BASE_TEST_ROS_DOMAIN_ID=186` | 같은 통합 시나리오의 home 복귀 시험 |
+
+통합 빌드는 Mission·서버·interfaces를 같은 install prefix에 설치한다. 기존 Skill Executor
+의존 패키지도 빌드하지만 MuJoCo 서버나 native BT를 실행하지는 않는다.
+ROS·Gazebo 검사는 실행 중인 로봇과 분리한 domain을 사용한다.
+
+개별 ROS transport 검사는 설치 환경을 source한 뒤 아래처럼 실행한다. fake Nav2를
+사용하므로 실제 Gazebo 주행 검증과는 구분한다.
 
 ```bash
-make test-mission-core
-make test-mission-runtime
-make build-mission-sim
 source "$(make -s print-install-base)/setup.bash"
-ros2 launch cleany_bringup mission_sim.launch.py post_mission:=wait_for_next
+ROS_DOMAIN_ID=82 CLEANY_RUN_ROS_TESTS=1 make test-mission-core
 ```
 
-`test-mission-core`는 ROS 없이 실행하며 `py_trees`, PyYAML, pytest가 필요하다.
-`test-mission-runtime`은 interfaces, manager, bridge를 빌드하고 colcon test를 실행한다.
-외부 Python Mock 조작을 함께 검증할 때는 `make test-manipulation-core`,
-`make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=185`를 사용한다. Mission·서버·interfaces를
-같은 install prefix에서 빌드하며 기존 Skill Executor 의존 패키지도 빌드한다.
-이 의존 빌드는 MuJoCo 서버나 native BT를 실행하지 않는다. 필요한 시스템 dependency는
-`make deps`와 개발환경 문서를 따른다.
-Gazebo/Nav2까지 포함하는 검사는 `make test-gazebo-manipulation`을 사용한다.
-기본은 `wait_for_next`, 별도 home 시험은 `CLEANY_GAZEBO_POST_MISSION=return_home`을 지정한다.
-실제 ROS transport 검사는 `CLEANY_RUN_ROS_TESTS=1`과 분리한 `ROS_DOMAIN_ID`를 지정해
-설치 환경에서 `make test-mission-core`로 실행한다. fake Nav2 server를 사용하므로
-Gazebo 주행 성공의 증거와 구분한다.
+대화형 실행은 [Bringup 빠른 시작](src/cleany_bringup/README.md#빠른-시작),
+검사별 결과와 제한은 [통합 검증 결과](src/cleany_mission_manager/docs/manipulation_mock_integration.md#최신-검증-결과)를 따른다.
 
 별도 ROS distro나 실험 output은 `ROS_SETUP`, `MISSION_BUILD_BASE`,
 `MISSION_INSTALL_BASE`, `MISSION_LOG_BASE` Make 변수로 지정한다. 기본 output은 위 외부 빌드 루트의

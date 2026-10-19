@@ -3,52 +3,59 @@
 파지 후보 선택, MoveIt 계획, 시뮬레이션 집기·분류·놓기를 담당한다.
 실물 명령을 지원하는 통합 운용 단계는 아니며 외부 로봇 경로는 plan-only다.
 
+- [Python Mock 조작 서버](#python-mock-manipulation-서버)
 - [분류 실행](#시뮬레이션-분리-수거-통합-검증-진행-중)
 - [분류·운반 실행 계약](#분류운반-실행-계약)
 - [설정 및 검증](#설정-및-검증)
 
 ## Python Mock Manipulation 서버
 
-PR #55의 `86a6d85`에서 Python 서버와 순수 실행 core/model/mock/port/단계/SQLite 저장소만
-선별 포함했다. 기존 실행 등록과 패키지 의존성은 유지한다. native BT, 모니터,
-MuJoCo 제어 실행기와 인식·MoveIt 리팩터링은 이 연결에 포함하지 않는다.
+`manipulation_server`는 조작 진행과 결과를 모의 생성하는 Python 서버다.
+PR #55 `86a6d85`에서 순수 core·model·mock·port·단계·SQLite 저장소와 ROS wrapper를
+선별 포함했다. 기존 실행 등록·의존성은 유지하며 이 서버는 simulator/controller를 시작하지 않는다.
 
-`manipulation_server`는 `/mock` namespace에서 Action `manipulation/execute_skill`,
-조회 `manipulation/get_execution`, 취소 `manipulation/cancel`과 진단
-`manipulation/execution_events`를 제공한다. 기본 backend는 `mock`만 허용한다.
-시뮬레이터·controller를 시작하거나 clock, TF, odom, 카메라, joint_states를 발행하지 않는다.
-실행·정지는 steady clock으로 처리하며 ROS sim time이 멈춰도 취소를 처리한다.
+| `/mock` namespace의 이름 | 역할 |
+|---|---|
+| `manipulation/execute_skill` | 단일 물체 Action |
+| `manipulation/get_execution` | 영속 실행 기록 조회 |
+| `manipulation/cancel` | 서버 취소 모드 요청 |
+| `manipulation/execution_events` | 진행·결과 관측 토픽 |
+
+backend는 `mock`만 허용한다. clock·TF·odom·카메라·joint_states는 발행하지 않으며,
+steady clock을 사용해 ROS sim time이 멈춰도 취소를 처리한다.
+wire 필드는 [공통 인터페이스](../cleany_interfaces/README.md#단일-물체-manipulation-action),
+Mission의 수락·주행 차단은 [Mission 계약](../cleany_mission_manager/README.md#단일-물체-manipulation-연결)을 따른다.
+
+### 서버 단독 실행
+
+저장소 루트에서 실행한다. Mission을 다른 터미널에서 시작할 때도 같은 install과
+`ROS_DOMAIN_ID`를 사용한다.
 
 ```bash
 make build-mission-mock
 source "$(make -s print-install-base)/setup.bash"
+export ROS_DOMAIN_ID=186
 ros2 launch cleany_skill_executor manipulation_mock.launch.py \
   mock_config:=$PWD/ros2_ws/src/cleany_mission_manager/config/manipulation_server_fixture.yaml \
   database_path:=$HOME/.local/state/cleany/mission-mock/manipulation.sqlite3
 ```
 
-단독 서버 기본 설정은 `config/manipulation_mock.yaml`이다. Mission과 연결할 때는 위의
-공유 두 물체·네 snapshot fixture를 사용한다. 실행 중에도 같은 execution ID를 재수락하지
-않으며, 재시작 시 ACTIVE 기록을 INTERRUPTED로 보존하고 자동 재개하지 않는다.
-추가 JSON 필드가 없는 과거 기록은 기본값으로 읽고, 손상된 기존 DB는 시작 오류로 처리한다.
-자동 DB 초기화나 팔 상태 해제는 제공하지 않는다. Mission DB와 서버 DB를 분리해 보존한다.
+| 설정 | 용도 | 정상 시간 |
+|---|---|---|
+| [단독 기본 fixture](config/manipulation_mock.yaml) | 빠른 서버 계약 검사 | 단계당 기본 0.5초 |
+| [Mission 공유 fixture](../cleany_mission_manager/config/manipulation_server_fixture.yaml) | 두 물체·네 관측을 사용하는 Mission 연결 | 물체당 정상 단계 합계 40초 |
 
-공유 fixture의 정상 수거 시간은 물체 하나당 약 40초다. 준비와 확인보다 팔 이동에
-더 긴 시간을 배정한 관찰용 가정이며 실물 측정값이나 제어 속도 제한이 아니다.
-각 세부 단계는 최소 1초 동안 유지된다. 시간표와 변경 후 실행 방법은
-[Mission README](../cleany_mission_manager/README.md#mock-조작의-관찰-시간)를 따른다.
-설정의 `stage_durations_sec`는 모든 scenario에 적용되며, scenario 안의 같은 설정이
-이를 덮어쓴다. 미지정 단계는 `stage_duration_sec`, 정지는 `stop_duration_sec`를 사용한다.
-단독 서버 기본 fixture는 빠른 계약 검증을 위해 기존 0.5초 설정을 유지한다.
+시간 우선순위는 **scenario의 `stage_durations_sec` → 전역 `stage_durations_sec` →
+`stage_duration_sec`**이며 정지 단계의 기본값은 `stop_duration_sec`다. 상세 시간표와 timeout은
+[Mission 관찰 시간](../cleany_mission_manager/README.md#mock-조작의-관찰-시간)을 따른다.
 
-```bash
-make test-manipulation-core
-make test-mission-mock BASE_TEST_ROS_DOMAIN_ID=185
-```
+실행 ID는 중복 수락하지 않는다. 재시작 시 ACTIVE를 INTERRUPTED로 보존하고 자동
+재개하지 않으며, 과거 JSON의 추가 필드는 기본값으로 읽는다. 손상된 DB는 시작 오류다.
+서버 DB와 Mission DB는 분리해 보존하며 자동 초기화나 팔 상태 해제는 제공하지 않는다.
 
-두 번째 명령은 공통 interfaces와 Mission·Bridge·서버를 함께 빌드한 뒤 실제 DDS Action,
-Feedback, 조회, 취소와 프로세스 재시작을 검사한다. Gazebo 검증과 연결 계약은
-[Mission 통합 문서](../cleany_mission_manager/docs/manipulation_mock_integration.md)를 따른다.
+core 검사는 `make test-manipulation-core`, ROS·Gazebo 통합 검사는
+[공통 검증 명령](../../README.md#missionmock-조작-검증)을 사용한다.
+Gazebo까지 함께 시작하려면 [Bringup 빠른 시작](../cleany_bringup/README.md#빠른-시작)을 따른다.
 
 ## 작업자 관찰 모드와 파지 깊이
 
