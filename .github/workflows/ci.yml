@@ -47,7 +47,8 @@ jobs:
             --repository "${GITHUB_REPOSITORY}" >> "${GITHUB_OUTPUT}"
 
       - name: Restore compiler cache
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        id: compiler-cache
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ${{ runner.temp }}/cleany-ccache
           key: cleany-ccache-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.dependencies.outputs.key }}-${{ github.sha }}
@@ -119,6 +120,13 @@ jobs:
           '
           tools/ci/run make check-gazebo-env
 
+      - name: Publish dependency image
+        if: success() && steps.image.outputs.hit == 'false' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          IMAGE: ${{ steps.dependencies.outputs.image }}
+        run: |
+          docker push "${IMAGE}" || echo '::warning::Image publication failed; subsequent runs will build dependencies locally.'
+
       - name: Build and test workspace
         run: tools/ci/run xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test
 
@@ -135,14 +143,8 @@ jobs:
       - name: Test Gazebo navigation runtime
         run: tools/ci/run xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make -o build-gazebo test-gazebo-nav-runtime
 
-      - name: Publish validated dependency image
-        if: success() && steps.image.outputs.hit == 'false' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        env:
-          IMAGE: ${{ steps.dependencies.outputs.image }}
-        run: |
-          docker push "${IMAGE}" || echo '::warning::Image publication failed; subsequent runs will build dependencies locally.'
-
       - name: Collect diagnostics and compiler cache statistics
+        id: diagnostics
         if: always()
         run: |
           if docker inspect cleany-ci >/dev/null 2>&1; then
@@ -150,7 +152,15 @@ jobs:
             docker cp cleany-ci:/opt/cleany-ci/dpkg-packages.txt "${RUNNER_TEMP}/cleany-builds/"
             docker cp cleany-ci:/opt/cleany-ci/pip-packages.txt "${RUNNER_TEMP}/cleany-builds/"
             sudo chown -R "$(id -u):$(id -g)" "${RUNNER_TEMP}/cleany-ccache"
+            echo 'cache-ready=true' >> "${GITHUB_OUTPUT}"
           fi
+
+      - name: Save compiler cache
+        if: always() && steps.diagnostics.outputs.cache-ready == 'true' && steps.compiler-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/cleany-ccache
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
 
       - name: Upload test results and environment
         if: always()
