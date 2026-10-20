@@ -28,6 +28,8 @@ jobs:
       LIBGL_ALWAYS_SOFTWARE: "1"
       ROS_DOMAIN_ID: "42"
       ROS_HOME: /tmp/cleany-ros
+      # Runtime dependencies can install plugins incompatible with Jammy's pytest.
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
     defaults:
       run:
         shell: bash
