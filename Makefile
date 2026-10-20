@@ -202,8 +202,12 @@ test: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure && \
-	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose
+	{ \
+		test_status=0; \
+		colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure || test_status=$$?; \
+		colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose || test_status=$$?; \
+		exit $$test_status; \
+	}
 
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \

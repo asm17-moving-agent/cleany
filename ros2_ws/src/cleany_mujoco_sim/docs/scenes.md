@@ -14,8 +14,9 @@ desk X 음수가 로봇 왼쪽이다. 같은 쪽 팔에서 같은 쪽 수거함�
 
 스터디카페는 `cleany_description/mjcf/cleany.xml`의 migrated CAD 모델을 사용한다.
 방·책상·파티션의 공통 배치는 Gazebo의 `study_cafe_layout.yaml`과 동일하게 유지한다.
-CAD 전면 기둥과 책상의 초기 겹침을 피하도록 chair 기준 후퇴 거리를 0.22m로
-설정한다(기존 0.18m에서 4cm 후퇴). 내부 후면 수거함은 chassis에 부착한다.
+chair 기준 후퇴 거리는 0.32m로 설정한다. 공통 의자 기준점을 책상 쪽으로
+0.10m 옮긴 배치에서도 로봇 중심 좌표 `(-3.13, -4.16, 0.38)`와 CAD 전면
+기둥과 책상 사이의 초기 여유를 유지한다. 내부 후면 수거함은 chassis에 부착한다.
 초기 keyframe의 position actuator 명령은 actuator 이름이 아니라 연결된
 joint 이름으로 찾는다. 따라서 `head_tilt` / `head_tilt_joint`처럼 이름이
 달라도 지정된 카메라 자세를 유지하며 0rad로 돌아가지 않는다.
@@ -198,7 +199,7 @@ make test-mujoco
 `sim-mujoco-study-cafe`는 Gazebo 개발공간의 12.26×10.94 m 방과 동일한 좌표에
 벽 4개, 책상 48개, 파티션 24개, 모니터 48개를 띄우며 의자는 생성하지 않는다.
 기존 Gazebo spawn에서 가장 가까웠던 43번 의자 자리를 기준으로 끌리니 1대를
-책상을 향하도록 배치한다. 의자 중심에서 책상 반대 방향으로 0.22 m 이동하며
+책상을 향하도록 배치한다. 의자 중심에서 책상 반대 방향으로 0.32 m 이동하며
 후퇴 거리는 `robot_center_rearward_offset_m`으로 설정한다. 로봇 앞 43번 책상의 현재
 물체는 손잡이 없는 종이컵, 빨간 2×4 레고 블록, 흰 휴지뭉치, 무선 마우스다.
 마우스는 [Computer Mouse — CreativeTrio](https://poly.pizza/m/V2Ebx3pvo4)의 CC0

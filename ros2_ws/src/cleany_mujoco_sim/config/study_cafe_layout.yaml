@@ -9,9 +9,8 @@ robot:
   spawn_pose: [-1.865, -4.705, 0.38, 0.0, 0.0, 1.5708]
 
 mujoco:
-  # Migrated CAD front uprights require 0.20 m setback from the chair center.
-  # Add 0.02 m clearance; the desk and rear collection station stay unchanged.
-  robot_center_rearward_offset_m: 0.22
+  # Preserve the robot pose after chair centers moved 0.10 m toward the desks.
+  robot_center_rearward_offset_m: 0.32
   # Keep all four objects within the 640x480 head RGB camera at 1.00 rad tilt.
   # At this robot spawn yaw, desk -X is robot-left: lost items left, trash right.
   # Test arrangement only; classification and arm selection still use perception.
@@ -89,8 +88,8 @@ desk_layout:
   row_pair_centers_y_m: [3.17, 0.0, -3.17]
   rows:
     - desk_y_offset_m: 0.385
-      chair_y_offset_from_desk_m: 0.385
+      chair_y_offset_from_desk_m: 0.285
     - desk_y_offset_m: -0.385
-      chair_y_offset_from_desk_m: -0.385
+      chair_y_offset_from_desk_m: -0.285
   partition_center_z_m: 0.62
   monitor_y_offset_from_desk_center_m: 0.285
