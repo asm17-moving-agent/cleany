@@ -22,6 +22,37 @@ Jetson의 `cleany_description/mjcf/cleany.xml`과 기존 mesh로 MuJoCo 3.11.0�
 elbow pitch 1.1, wrist pitch -0.45, gripper 0.25 rad를 사용했다.
 실물 제어와 calibration 재수행은 하지 않았다.
 
+### 2026-10-21 적용 검증
+
+검증 코드는 `19f3882918f660fe580fe7f7fac0d8869d0a6331`이다.
+Jetson Ubuntu 22.04, ROS 2 Humble, Python 3.10.12, MuJoCo 3.11.0의 별도
+`/tmp/cleany-calibration-pr-20261021` workspace에서 실행했다.
+`cleany_description`의 Git 추적 파일 100개가 해당 commit과 동일한지 hash로 확인했다.
+빌드 대상은 description과 인접 MoveIt config 두 패키지이며 전체 workspace 검증은 아니다.
+
+| 검사 | 결과 |
+|---|---|
+| 루트 `make build`, 별도 `CLEANY_BUILD_ROOT` | 두 패키지 빌드 통과 |
+| `colcon test`: description 모델 정합성 | 46개 통과 |
+| `colcon test`: 카메라 보정 프로파일 | 10개 통과 |
+| MoveIt 설정과 collision 계약 | 18개 통과 |
+| 기본 description launch | 명목 헤드 TF, 손목 보정 TF 미발행 확인 |
+| `jetson_20261009` description launch | 보정된 헤드와 양손목 TF, RGB alias 5개 확인 |
+| MoveIt mock 실행 | Pilz LIN plan-only 결과가 `ABORTED`여서 1개 실패 |
+
+마지막 실패는 수정 전 `main`의 `d5a640a556d473b2a0af59932974b3b3b0aa4732`를
+별도 workspace로 빌드해 동일 환경에서 재현했다.
+`test_per_arm_position_ik_plan_and_execute`의 `_assert_pilz_lin_is_cartesian`에서
+`status == 6`으로 실패하며 기대값은 `STATUS_SUCCEEDED == 4`이다.
+이번 변경에서 실행기를 수정하거나 해당 검사를 생략하지 않았다.
+Description launch 검사는 localhost 전용 ROS domain 212와 213에서 수행했고
+실물 장치 명령은 전송하지 않았다.
+
+원본 로그와 JUnit은 데이터 루트의
+`reports/physical-calibration-20261021/`에 보관한다.
+Jetson 원본 출력은 `/tmp/cleany-calibration-pr-20261021-output/`,
+비교 기준 출력은 `/tmp/cleany-calibration-main-baseline-output/`이다.
+
 | 데이터 루트 아래 경로 | 내용 |
 |---|---|
 | `fixtures/cad-fortress-command-hold/` | 과거 시나리오 입력 |
