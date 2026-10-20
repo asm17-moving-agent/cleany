@@ -42,6 +42,20 @@ CONTEXT = {
     'ground_truth_topic': ('motion', 'nav_msgs/msg/Odometry'),
     'amcl_pose_topic': ('motion', 'geometry_msgs/msg/PoseWithCovarianceStamped'),
     'footprint_topic': ('motion', 'geometry_msgs/msg/PolygonStamped'),
+    'runtime_debug_topic': ('motion', 'cleany_interfaces/msg/RuntimeDebugSnapshot'),
+    'runtime_events_topic': ('motion', 'cleany_interfaces/msg/RuntimeEvent'),
+    'runtime_result_topic': ('motion', 'cleany_interfaces/msg/MissionResult'),
+    'rosout_topic': ('logs', 'rcl_interfaces/msg/Log'),
+    'nav2_bt_topic': ('bt', 'nav2_msgs/msg/BehaviorTreeLog'),
+    'nav2_bt_trace_topic': ('bt', 'std_msgs/msg/String'),
+    'controller_evaluation_topic': ('paths', 'dwb_msgs/msg/LocalPlanEvaluation'),
+    'pan_state_topic': ('safety', 'std_msgs/msg/String'),
+    'reactive_guard_topic': ('safety', 'std_msgs/msg/String'),
+    'voxel_guard_topic': ('safety', 'std_msgs/msg/String'),
+    'coverage_topic': ('safety', 'std_msgs/msg/String'),
+    'collision_state_topic': ('safety', 'nav2_msgs/msg/CollisionMonitorState'),
+    'stop_polygon_topic': ('safety', 'geometry_msgs/msg/PolygonStamped'),
+    'slow_polygon_topic': ('safety', 'geometry_msgs/msg/PolygonStamped'),
 }
 
 
@@ -377,14 +391,15 @@ class RecordingControls:
             with self.lock:
                 self.transitioning = False
 
-    def configure(self, settings):
+    def configure(self, settings, *, preserve_stats=False):
         settings = validate(settings)
         with self.lock:
             self.settings = settings
             self.revision += 1
             self.last.clear()
-            self.stats = {}
-            self.stats_generation += 1
+            if not preserve_stats:
+                self.stats = {}
+                self.stats_generation += 1
 
     def camera_info_topic(self):
         topic = self.settings['topics']['camera']
@@ -400,8 +415,21 @@ class RecordingControls:
                   for field, (group, typ) in CONTEXT.items()
                   if s['enabled'][group] and s['source_enabled'].get(field, True)}
         if s['enabled']['motion']:
+            for index, topic in enumerate(sources['velocity_topics']):
+                identity = f'velocity_topics:{index}'
+                if s['source_enabled'].get(identity, True):
+                    topics[topic] = ('motion', 'geometry_msgs/msg/Twist', identity)
             topics.update({'/joint_states': ('motion', 'sensor_msgs/msg/JointState', None),
                            '/robot_description': ('motion', 'std_msgs/msg/String', None)})
+        if s['enabled']['slam']:
+            for name, default, typ in (
+                ('submaps', '/submap_list', 'cartographer_ros_msgs/msg/SubmapList'),
+                ('trajectory', '/trajectory_node_list', 'visualization_msgs/msg/MarkerArray'),
+                ('constraints', '/constraint_list', 'visualization_msgs/msg/MarkerArray'),
+                ('matched_points', '/scan_matched_points2', 'sensor_msgs/msg/PointCloud2'),
+            ):
+                topic = self.source_config.get(f'slam_{name}_topic', default)
+                topics[topic] = ('slam', typ, None)
         return topics
 
     def has_ros_context(self):
