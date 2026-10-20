@@ -118,6 +118,7 @@ jobs:
             python3 -m pytest --version
             git rev-parse HEAD
           '
+          tools/ci/run rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble
           tools/ci/run make check-gazebo-env
 
       - name: Publish dependency image
