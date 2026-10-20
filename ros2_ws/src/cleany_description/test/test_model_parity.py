@@ -1018,10 +1018,9 @@ def _axis_angle(axis: np.ndarray, angle: float) -> np.ndarray:
 
 
 @pytest.mark.parametrize('entrypoint', URDF_ENTRYPOINTS)
-@pytest.mark.parametrize('gap', (0.05, 0.08))
-def test_mast_smooth_face_is_rearward_and_behind_top_plate(entrypoint: str, gap: float) -> None:
+def test_mast_smooth_face_is_rearward_and_behind_top_plate(entrypoint: str) -> None:
     """Measure the actual CAD surface, rather than only comparing two model files."""
-    root = _expand_urdf(entrypoint, f'head_mast_rear_gap_m:={gap}')
+    root = _expand_urdf(entrypoint)
     joints = {joint.get('name'): joint for joint in root.findall('joint')}
     mast_pose = _urdf_fk(joints, ('top_base_joint',), {})
 
@@ -1051,7 +1050,14 @@ def test_mast_smooth_face_is_rearward_and_behind_top_plate(entrypoint: str, gap:
     assert normal == pytest.approx([-1., 0., 0.], abs=1e-5)
     rear_edge = plate[:, :, 0].min()
     assert rear_edge - smooth[:, :, 0] == pytest.approx(
-        np.full(smooth.shape[:2], gap), abs=2e-6)
+        np.full(smooth.shape[:2], 0.05), abs=2e-6)
+
+
+@pytest.mark.parametrize('entrypoint', URDF_ENTRYPOINTS)
+def test_mast_gap_override_cannot_diverge_from_mjcf(entrypoint: str, capfd) -> None:
+    with pytest.raises(subprocess.CalledProcessError):
+        _expand_urdf(entrypoint, 'head_mast_rear_gap_m:=0.08')
+    assert 'head_mast_rear_gap_m must be 0.05' in capfd.readouterr().err
 
 
 def test_reversed_mast_keeps_nominal_upper_camera_facing_forward() -> None:
