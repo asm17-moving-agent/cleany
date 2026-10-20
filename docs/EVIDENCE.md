@@ -53,6 +53,22 @@ Description launch 검사는 localhost 전용 ROS domain 212와 213에서 수행
 Jetson 원본 출력은 `/tmp/cleany-calibration-pr-20261021-output/`,
 비교 기준 출력은 `/tmp/cleany-calibration-main-baseline-output/`이다.
 
+### 2026-10-21 시뮬레이터 정합성 재검증
+
+검증 코드는 `e5b26da2e077007003999d1abedb3b67447f6cba`다.
+같은 Jetson 환경에서 `make build`로 두 패키지를 다시 빌드하고,
+description의 모델 정합성 46개와 보정 프로파일 10개를 통과했다.
+검사한 description 추적 파일 100개는 로컬 코드와 SHA-256이 일치한다.
+두 URDF 모두 Jetson 모델의 마스트 간격 `0.05`를 유지하며,
+`0.08`을 요청하면 오류로 거부하는 회귀 검사를 포함한다.
+
+Gazebo의 `test_cad_frame.py` 6개도 통과했다. SDFormat 12.9.0과 스키마는
+공식 ROS APT 패키지를 별도 `/tmp` 경로에 풀어 사용했다.
+실제 URDF→SDF 변환 결과에서 RGB와 depth 센서의 위치 및 방향이
+변경된 헤드 장착 형상과 TF metadata에 일치하는지 확인했다.
+이 검증은 모델 변환 검사이며 Gazebo 동적 실행이나 실물 구동 검증은 아니다.
+원본 로그와 JUnit은 데이터 루트의 `reports/pr58-fix-20261021/`에 보관한다.
+
 | 데이터 루트 아래 경로 | 내용 |
 |---|---|
 | `fixtures/cad-fortress-command-hold/` | 과거 시나리오 입력 |
