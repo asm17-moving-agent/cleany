@@ -33,8 +33,8 @@ headless 인식 진단 시 `wrist_failure_image_directory`를 지정하면 YOLOE
 예상 손목 물체를 찾지 못한 프레임만 PNG로 저장한다. 기본값은 빈 문자열이라
 영상을 저장하지 않는다.
 HANDOFF 이후 RGB·mask 이력을 보관하지 않는다. 손목 카메라는 RGB만 제공하므로
-새 3D 위치나 독립적인 물체 ID는 산출하지 않는다. 손목 모델은 현재 head 영상 학습본을
-별도 체크포인트를 쓰면 그만큼 모델 메모리가 추가된다.
+새 3D 위치나 독립적인 물체 ID는 산출하지 않는다. Head 모델과 다른 손목
+체크포인트를 지정하면 그만큼 모델 메모리가 추가된다.
 
 손목 RGB와 CameraInfo는 exact timestamp로 짝지어 처리한다. 촬영 시점 TF,
 보정값, source/reference ID와 mask 검증 실패는 성공으로 처리하지 않는다.
@@ -46,6 +46,13 @@ CHECK 미검출도 실제 촬영 시각과 기존 reference/source ID를 반환�
 그 프레임을 다시 CHECK에 사용하면 거부한다. 새 프레임 재시도와 그리퍼 피드백을
 이용한 진행 여부는 skill executor가 판단한다. 센서·TF·모델 오류, 후보 모호성,
 잘못된 mask 및 비정상 confidence는 `ERROR`로 반환하며 미검출로 숨기지 않는다.
+
+## 기존 snapshot 조회
+
+`/perception/get_scene_snapshot` (`cleany_interfaces/srv/GetSceneSnapshot`)은
+`snapshot_id`의 캐시된 2D 관측을 읽는다. `found`, `detections`, `message`를 반환하고,
+TTL과 촬영 시각을 갱신하거나 새 모델 추론을 시작하지 않는다. 누락/만료는 `found=false`다.
+동일 cache를 `InspectScene` 선택 물체 복원에서도 사용한다.
 
 ## 필터링 점군 수신 확인
 
@@ -88,7 +95,7 @@ MAC, license와 checkpoint는 perception container에 mount하지 않는다. 자
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 export GEMINI_API_KEY="<your-api-key>"
 ros2 launch cleany_perception inspect_scene.launch.py
 ```
@@ -168,6 +175,17 @@ ros2 topic echo /perception/debug_image_latched --once --field encoding \
 1차 결과의 `snapshot_id`는 후속 선택 단계가 같은 RGB-D와 촬영 시점 TF를 사용하기 위한
 opaque key다. cache 크기와 TTL을 넘긴 snapshot은 후속 단계에서 사용할 수 없다.
 
+## 모델 로딩 로그
+
+기본 `INFO` 출력은 모델 로딩 시작과 준비 완료·사용 장치를 알린다.
+개별 detector 로딩과 모델·text encoder 경로는 `DEBUG`에서 확인한다.
+MuJoCo 수거·BT launch에서는 `log_level:=debug`, 단독 노드 실행에서는
+`--ros-args --log-level perception_inspector:=debug`로 상세 로그를 켠다.
+
+깊이 점군과 receipt 노드는 ROS context 종료에 따른 executor 중단과 점군 변환
+중단을 정상 종료로 처리한다. ROS가 실행 중일 때의 `RuntimeError`는 다시
+발생시켜 실제 변환 실패가 숨겨지지 않게 한다.
+
 ## 검증
 
 ```bash
@@ -206,7 +224,7 @@ holdout 영상으로 head와 양손목 성능을 각각 평가한다. 이 geom I
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 export MUJOCO_GL=egl
 export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4
 python3 ros2_ws/src/cleany_perception/tools/study_cafe_yoloe_dataset.py \
@@ -283,6 +301,24 @@ ros2 run cleany_perception depth_scene_node --ros-args \
 이 출력은 RViz 표시와 MoveIt occupancy updater 입력용이다. 로봇 자체
 표면 제거는 MoveIt의 URDF/TF 기반 self-filter가 담당한다. 검출되지 않은
 물체도 depth가 관측되면 포함되지만, 가려진 표면은 복원하지 않는다.
+
+## 고정 베이스 책상 물체 추적
+
+`InspectScene.Goal.tracking_session_id`를 지정하면 새 관찰 성공 시 `core/tracking.py`가
+같은 종류·촬영 TF의 `base_link` 대표 위치로 물체를 연결한다. 거리 계산에 사용한 3D
+위치를 함께 보존하며 `position_valid`, `track_id`, `tracking_state`를 반환한다.
+RGB header frame과 대표 위치의 `representative_frame`은 서로 구분한다. 유일한 양방향
+대응만 `TRACKED`이며 모호한 위치·큰 이동·깊이 실패는 새 ID로 우회하지 않는다.
+사라진 물체의 마지막 참조는 `missing_objects`에 남는다. 최초부터 불확실했던 물체는
+빈 track ID 참조로 남을 수 있다. 빈 장면이 불확실한 대상을 없던 것으로 만들지 않는다.
+
+`inspect_scene.yaml`의 위치 차이 3cm·후보 차이 1cm, alias, 최대 32세션·TTL 600초는
+조정 가능한 시뮬레이션 초기값이다. 컵 별칭과 `computer mouse`, `wireless mouse`를
+각각 `cup`, `mouse`로 연결하며 레고는 `lego brick`을 유지한다. 별칭은 종류만 연결하고
+쓰레기·분실물 분류를 결정하지 않는다. 실물 기준이 아니다. 세션 메모리 재생성·만료마다
+epoch가 바뀌며 베이스 이동 시 호출자가 새 세션을 시작해야 한다. TF 실패·취소 관찰은
+갱신하지 않는다. cache 조회·선택 복원은 기존 ID·epoch를 그대로 반환하고 TTL을 유지한다.
+기존 빈 세션 호출은 `UNTRACKED`다.
 
 ## 관련 KB
 

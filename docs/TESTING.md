@@ -46,6 +46,9 @@ flowchart TB
 | Gazebo sensor runtime | `make test-gazebo-nav-runtime` | 실제 simulator의 sensor, odom, TF |
 | 시설 목표 생성 | `make test-gazebo-facility-tools` | simulator 없는 ID, 여유, 제거 의자 처리 |
 | MuJoCo | `make test-mujoco` | scene loader; 모든 조작 runtime을 뜻하지 않음 |
+| Manipulation core | `make test-manipulation-core` | 가짜 시계 기반 단계, 취소, 기록과 모니터 |
+| Mock Manipulation Action | `make test-manipulation` | ROS Action, 취소, 조회와 재시작 복구 |
+| MuJoCo BT 경계 | `make test-manipulation-bt` | native BT, Action, 관련 인식과 수거 회귀; 실제 물리 수거 성공은 별도 |
 | Hand-eye 경계 | `make test-handeye` | description, MuJoCo, MoveIt, calibration |
 | Base ROS | `make test-base` | interface, driver, odometry; mock MCU |
 | ESP32 준비, motor core | `make test-micro-ros-setup test-motor-core` | Python 준비 도구와 장치 없는 C++ |

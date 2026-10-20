@@ -30,6 +30,27 @@ depth는 640픽셀 행 버퍼에서 환산한 뒤 각 메시지 행에 복사한
 늦게 촬영한 프레임은 원래 촬영 주기를 유지하면서 놓친 기한을 건너뛴다.
 simulation clock reset 뒤에는 새로운 시각에서 촬영을 재개한다.
 
+## 제어 주기와 관절 피드백 시각
+
+`study_cafe_backend.launch.py`는 이 패키지의 `ros2_control_node`를 실행한다.
+설치된 MuJoCo hardware/physics와 기존 trajectory controller를 사용하고,
+제어 주기의 시각 선택과 대기를 레포에서 관리한다. `controller_manager.update_rate`
+기본값 100 Hz는 기존 controller 설정을 따른다. `use_sim_time=true`가 필요하다.
+
+한 주기에서 읽은 simulation timestamp와 실제 경과 시간을 `read/update/write`에
+동일하게 전달한다. 처리가 늦어진 뒤에도 마지막 제어 시각으로부터 한 주기 이상
+시각이 진행돼야 다음 실행을 허용한다. 같은 시각의 새 관절 상태를 발행하지 않으며,
+정지된 시계에서 피드백 수신 시각을 갱신하지 않는다. 피드백 만료와 BT 정지 판정
+기준은 유지한다. 시각이 역행하면 오류로 backend를 종료하므로 reset 후에는
+새 launch로 장면을 시작해야 한다. physics의 timestep이나 물체 상태를 조작하지 않는다.
+
+제어 중 read 지연, 중복 시각, 멈춘 시계, 밀린 주기와 시각 역행을
+`test_control_cycle`에서 검사한다. 실제 수거 성공은 별도 MuJoCo 시나리오로 확인한다.
+2026-10-14에는 실제 컵 수거의 안착·팔 복귀·정지를 확인했고, 관절 메시지 8,162개의
+시각 중복·역행은 없었다. MoveIt 이동 요청 직후 physics를 일시 정지하면 새 피드백이 끊기고 BT가
+`FATAL / STOP_UNCONFIRMED`로 종료하는 것도 확인했다.
+상세 범위는 [BT 검증 기록](../cleany_manipulation_bt/README.md#검증-기록-2026-10-14)을 따른다.
+
 ## GUI 렌더링
 
 `scheduled_cameras:=true headless:=false sim_viewer:=efficient`는 센서 worker의
@@ -58,8 +79,9 @@ scene 인자가 있는 6인자 API 또는 scene 인자가 없는 5인자 API를 
 
 MuJoCo 분리 수거 시뮬레이션의 결과를 독립적으로 평가하는 read-only 관측기다.
 `cleany_mujoco_observer/ObservedMujocoSystem`은 설치된
-`MujocoSystemInterface`를 상속하며 제어/physics 동작은 원래
-backend에 맡긴다. 공개 `get_model` / `get_data`가 제공하는 physics mutex로
+`MujocoSystemInterface`를 상속하며 hardware/physics 동작은 원래
+backend에 맡긴다. 제어 실행 주기는 위 로컬 실행기를 사용한다.
+공개 `get_model` / `get_data`가 제공하는 physics mutex로
 보호된 **별도 소유 snapshot**에서 동적 study-cafe
 물체 collision geometry의 base-frame AABB를 읽어 `/simulation/sorting_ground_truth`에
 `visualization_msgs/MarkerArray`로 발행한다. `text`는 body 이름이며

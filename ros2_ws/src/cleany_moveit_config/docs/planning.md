@@ -51,3 +51,39 @@ Pick-demo table은 config/pick_demo_collision_objects.yaml에 있으며 rgbd_pic
 관련 안내: [실행](../../../../docs/RUNNING.md), [검증](../../../../docs/TESTING.md).
 
 노드별 통신 목록: [인터페이스 표](interfaces.md).
+
+## Terminal logging
+
+`move_group.launch.py` accepts `backend_log_level` (standalone default `info`)
+and `log_level` (default `info`). The sensor-driven MuJoCo workflow passes
+`backend_log_level:=warn` to reduce backend initialization and planning detail.
+Warnings and errors remain visible. The child logger `move_group.scene_mapping`
+uses `log_level` independently: `log_level:=debug` enables throttled depth
+callback and map timing diagnostics without enabling every MoveIt logger.
+In quiet mode, capability banners printed directly to stdout go to the launch
+log; this process sends ROS logs to stderr so warnings and errors remain on
+screen even if the parent environment selects stdout. `backend_log_level:=info`
+also restores those banners to the terminal.
+
+## Humble controller plugin teardown
+
+`keep_controller_plugin_loaded:=true` keeps the default controller plugin library
+mapped through process teardown using a process-local `LD_PRELOAD`. Existing
+preload entries are preserved. It applies only to
+`moveit_simple_controller_manager/MoveItSimpleControllerManager`.
+
+In this VM, Ctrl+C caused a SIGSEGV in `rclcpp::CallbackGroup` while the controller
+manager node was being destroyed. MoveIt 2.5.9 declares the plugin loader after
+that node, so the loader is destroyed first; the core dump is consistent with
+a remaining weak-pointer control block referencing unloaded plugin code.
+See the [upstream member declarations](https://github.com/moveit/moveit2/blob/2.5.9/moveit_ros/planning/trajectory_execution_manager/include/moveit/trajectory_execution_manager/trajectory_execution_manager.h).
+
+Preloading prevented the observed crash. The workaround does not change
+trajectory execution or controller selection. Set
+`keep_controller_plugin_loaded:=false` when validating a patched MoveIt install.
+The workaround may leave the upstream `class_loader` unload warning visible;
+it prevents the observed crash without suppressing that warning.
+
+The runtime regression exercises `/check_state_validity` in the default MuJoCo
+logging mode (`backend_log_level:=warn`) and requires clean SIGINT termination
+without SIGTERM escalation. It also checks that ROS warnings remain on screen.

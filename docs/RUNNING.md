@@ -114,6 +114,19 @@ ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
 
 위 두 실행과 `handeye_backend.launch.py` 중 backend 하나만 실행합니다. RGB-D scene 출력은 grasp/skill 입력으로 사용하며, 수거 완료는 별도로 확인해야 합니다.
 
+### 단일 물체 Manipulation Action
+
+Mock 서버의 요청, 취소, 조회와 모니터 사용은
+[Mock 실행 안내](../ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md)를 따릅니다.
+실제 인식과 MoveIt을 사용하는 MuJoCo BT 스택은 다음 명령으로 실행합니다.
+
+```bash
+make sim-mujoco-manipulation
+```
+
+이 스택은 승인된 물체 하나를 실행하며, 기존 sorting coordinator와 별도 구성입니다.
+입력, 세부 옵션과 검증 범위는 [MuJoCo BT 서버](../ros2_ws/src/cleany_manipulation_bt/README.md)를 따릅니다.
+
 ### Plan-only 후보 선택
 
 MoveIt을 준비한 뒤 같은 overlay의 별도 터미널에서 후보 선택을 실행합니다.

@@ -280,6 +280,16 @@ Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config
 | `nearest_pregrasp_coordinator` | `nearest_pregrasp_coordinator` | [조작 경로](../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#가까운-객체-자동-pre-grasp) |
 | `nearest_pregrasp_coordinator` 상속 이름 | `sorting_coordinator` | [분류와 수거](../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#시뮬레이션-분리-수거-통합-검증-진행-중); launch remap 적용 여부 확인 |
 | `simulation_placement_verifier` | `placement_verifier` | [MuJoCo 표](../ros2_ws/src/cleany_mujoco_sim/docs/interfaces.md#simulation_placement_verifier) |
+| `manipulation_server` | `manipulation_server` | [Mock Action 서버](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_server) |
+| `manipulation_monitor` | `manipulation_monitor` | [읽기 전용 트리 모니터](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_monitor) |
+| `manipulation_test_client` | `manipulation_test_client` | [요청·취소·조회 CLI](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_test_client) |
+| `manipulation_mujoco_server` | `manipulation_mujoco_server` | [MuJoCo BT Action 서버](../ros2_ws/src/cleany_manipulation_bt/README.md#계약과-증거) |
+
+`perception_inspector`는 `GetSceneSnapshot` 타입의 `/perception/get_scene_snapshot`을
+제공해 기존 cache를 조회합니다. `simulation_placement_verifier`의
+`/sorting/register_placement_target`은 `RegisterPlacementTarget`으로 개체를 고정하며,
+`VerifyPlacement.verification_id`로 해당 개체만 검증합니다.
+상세 필드는 [관측 계약](../ros2_ws/src/cleany_interfaces/docs/observation-contracts.md)을 따릅니다.
 
 ## 외부 노드와 타입만 있는 계약
 

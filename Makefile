@@ -1,8 +1,12 @@
 SHELL := /bin/bash
 
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD := 1
+
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
+COLCON_BUILD_ARGS ?=
+SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
 CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
 CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
@@ -46,12 +50,21 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	firmware-upload test-motor-core build-base test-base \
 	micro-ros-agent-build test-micro-ros-setup
 
+.PHONY: build-manipulation build-manipulation-bt test-manipulation-core \
+	test-manipulation test-manipulation-bt sim-mujoco-manipulation
+
 help:
 	@echo "Cleany native ROS 2 commands"
 	@echo "  make deps          Install workspace dependencies with rosdep"
 	@echo "  make deps-gazebo   Install Gazebo Fortress dependencies with rosdep"
 	@echo "  make check-gazebo-env  Verify Ubuntu 22.04 / Humble / Fortress environment"
 	@echo "  make build         Build the ROS 2 workspace"
+	@echo "  make build-manipulation  Build mock manipulation Action packages"
+	@echo "  make build-manipulation-bt  Build native BT and MuJoCo Action packages"
+	@echo "  make test-manipulation-core  Test manipulation core and monitor"
+	@echo "  make test-manipulation  Test mock Action, cancellation and recovery"
+	@echo "  make test-manipulation-bt  Test BT and related perception/manipulation contracts"
+	@echo "  make sim-mujoco-manipulation  Run the single-object MuJoCo Action stack"
 	@echo "  make build-gazebo  Build cleany_gazebo_sim and its dependencies"
 	@echo "  make build-navigation  Build common navigation without Gazebo"
 	@echo "  make test-navigation  Test common navigation including C++ plugins"
@@ -171,7 +184,7 @@ test-navigation-runtime: build-navigation
 build:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)"
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS)
 
 build-gazebo: check-gazebo-env
 	source "$(ROS_SETUP)" && \
@@ -180,6 +193,53 @@ build-gazebo: check-gazebo-env
 		--build-base "$(BUILD_BASE)" \
 		--install-base "$(INSTALL_BASE)" \
 		--packages-up-to cleany_gazebo_sim
+
+build-manipulation:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(LOG_BASE)" build --symlink-install \
+		--build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-up-to cleany_skill_executor $(COLCON_BUILD_ARGS)
+
+build-manipulation-bt:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(LOG_BASE)" build --symlink-install \
+		--build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-up-to cleany_manipulation_bt $(COLCON_BUILD_ARGS)
+
+test-manipulation-core:
+	PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_core.py" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_monitor.py"
+
+test-manipulation: build-manipulation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	python3 -m pytest -q src/cleany_interfaces/test/test_interface_contract.py \
+		src/cleany_skill_executor/test/test_manipulation_core.py \
+		src/cleany_skill_executor/test/test_manipulation_runtime.py \
+		src/cleany_skill_executor/test/test_manipulation_monitor.py \
+		src/cleany_skill_executor/test/test_manipulation_monitor_runtime.py
+
+test-manipulation-bt: build-manipulation-bt
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	python3 -m pytest -q src/cleany_manipulation_bt/test \
+		src/cleany_perception/test/test_inspection_node.py \
+		src/cleany_skill_executor/test/test_sorting_coordinator.py \
+		src/cleany_skill_executor/test/test_nearest_object.py \
+		src/cleany_skill_executor/test/test_learned_runtime_launch.py
+
+sim-mujoco-manipulation: build-manipulation-bt
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	ros2 launch cleany_manipulation_bt manipulation_mujoco.launch.py $(SORTING_ARGS)
 
 build-handeye:
 	source "$(ROS_SETUP)" && \
@@ -198,6 +258,7 @@ test-telemetry: build-telemetry
 	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest src/cleany_telemetry/test
 
+test: COLCON_BUILD_ARGS += --cmake-force-configure
 test: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \

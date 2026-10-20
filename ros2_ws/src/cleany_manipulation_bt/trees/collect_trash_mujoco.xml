@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root BTCPP_format="4" main_tree_to_execute="CollectTrashSkill">
+  <BehaviorTree ID="CollectTrashSkill">
+    <Fallback name="행동 실행과 실패 종료">
+      <Sequence name="승인된 물체 하나 수거">
+        <Sequence name="준비">
+          <ValidateGoal name="모델과 실행 준비 확인" execution_id="{execution_id}" />
+          <PrepareTarget name="대상 관측 확인" execution_id="{execution_id}" />
+          <ReconstructTarget name="선택 물체 3D 복원" execution_id="{execution_id}" />
+          <GenerateGrasp name="파지 후보 생성" execution_id="{execution_id}" />
+          <SelectArmAndPath name="팔과 경로 결정" execution_id="{execution_id}" />
+        </Sequence>
+        <Sequence name="물체 잡기">
+          <MoveToPregrasp name="잡기 전 위치 이동" execution_id="{execution_id}" />
+          <ApproachObject name="물체 접근" execution_id="{execution_id}" />
+          <GraspObject name="그리퍼 닫기" execution_id="{execution_id}" />
+          <ConfirmGrasp name="파지 확인" execution_id="{execution_id}" />
+          <LiftObject name="물체 들어 올리기" execution_id="{execution_id}" />
+          <ConfirmHeld name="보유 상태 확인" execution_id="{execution_id}" />
+        </Sequence>
+        <Sequence name="물체 놓기">
+          <CarryObject name="수거함 이동" execution_id="{execution_id}" />
+          <CheckPlacementTarget name="놓을 위치 확인" execution_id="{execution_id}" />
+          <OpenGripperAtDestination name="그리퍼 열기" execution_id="{execution_id}" />
+          <ConfirmRelease name="물체 이탈 확인" execution_id="{execution_id}" />
+          <ReturnArm name="팔 복귀" execution_id="{execution_id}" />
+        </Sequence>
+        <Sequence name="확인과 종료">
+          <VerifyPlacedObject name="수거함 내부 확인" execution_id="{execution_id}" />
+          <FinalizeSuccess name="결과 저장" execution_id="{execution_id}" />
+        </Sequence>
+      </Sequence>
+      <Sequence name="차단과 실패 종료">
+        <StopAndAssess name="동작 종료와 실제 상태 확인" execution_id="{execution_id}" />
+        <Fallback name="취소 후 복귀와 복귀 실패 정지">
+          <Sequence name="현재 위치에서 놓고 팔 복귀">
+            <ReleaseInPlace name="현재 위치에서 그리퍼 열기" execution_id="{execution_id}" />
+            <ReturnArmAfterCancel name="취소 후 팔 복귀" execution_id="{execution_id}" />
+            <StopAfterRecovery name="복귀 후 실제 정지 확인" execution_id="{execution_id}" />
+          </Sequence>
+          <StopAndAssess name="복귀 중단 후 실제 상태 확인" execution_id="{execution_id}" />
+        </Fallback>
+        <FinalizeFailure name="진행과 실패 결과 보관" execution_id="{execution_id}" />
+        <AlwaysFailure name="정상 경로 미완료" />
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
+</root>

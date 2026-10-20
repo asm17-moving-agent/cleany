@@ -113,7 +113,7 @@ def test_motor_confirmation_requires_recent_distinct_sustained_contact(monkeypat
         node._joint_positions[joint] = actual
         node._joint_velocities[joint] = velocity
 
-    monkeypatch.setattr(module.rclpy, 'spin_once', spin)
+    node._spin_once = spin
     monkeypatch.setattr(module.time, 'monotonic', lambda: clock['wall'])
     held = SimpleNamespace(selected=SimpleNamespace(selected_arm='left', selected_candidate=None))
     if fault not in (None, 'clock_lag'):
@@ -145,7 +145,7 @@ def test_only_identified_fresh_check_misses_are_recoverable(fault):
     node = SimpleNamespace(_wrist_reference=SimpleNamespace(reference_id='wrist-1'),
         _lift_completion_stamp_ns=2 * 10**9,
         get_clock=lambda: SimpleNamespace(now=lambda: Time(seconds=5)),
-        get_logger=lambda: SimpleNamespace(info=lambda _: None),
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None),
         _record_pipeline_message=lambda *_: None,
         _wrist_client=SimpleNamespace(call_async=lambda request: requests.append(request) or response),
         _future=lambda result, *_: result)

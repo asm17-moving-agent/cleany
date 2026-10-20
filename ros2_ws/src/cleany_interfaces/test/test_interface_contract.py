@@ -1,4 +1,4 @@
-from cleany_interfaces.action import InspectScene, SelectReachableGrasp
+from cleany_interfaces.action import ExecuteManipulationSkill, InspectScene, SelectReachableGrasp
 from cleany_interfaces.msg import (
     DetectedObject2D,
     DetectedObject2DArray,
@@ -6,14 +6,39 @@ from cleany_interfaces.msg import (
     DetectedObject3DArray,
     GraspCandidate,
     ObservedObjectGeometry,
+    ManipulationExecutionRecord,
 )
-from cleany_interfaces.srv import ObserveWristTarget, PlanGrasp, VerifyPlacement
+from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution, ObserveWristTarget, PlanGrasp, VerifyPlacement
 
 
 def test_wrist_observation_distinguishes_missing_target_from_service_failure():
     response = ObserveWristTarget.Response()
     assert not response.success and response.status == response.ERROR
     assert (response.ERROR, response.OK, response.NOT_DETECTED) == (0, 1, 2)
+
+
+def test_manipulation_action_and_execution_lookup_contract() -> None:
+    goal = ExecuteManipulationSkill.Goal()
+    result = ExecuteManipulationSkill.Result()
+    feedback = ExecuteManipulationSkill.Feedback()
+    response = GetManipulationExecution.Response()
+    assert goal.execution_id == goal.skill_name == goal.snapshot_id == ''
+    assert goal.object_id == 0
+    assert result.execution_profile == result.status == result.error_code == ''
+    assert not result.stop_confirmed and not result.arm_recovered
+    assert feedback.execution_id == feedback.stage == feedback.selected_arm == ''
+    assert feedback.substage == result.failed_substage == ''
+    assert not response.found and isinstance(response.record, ManipulationExecutionRecord)
+    assert not response.record.has_result
+    assert not response.record.human_confirmation_required
+    assert response.record.record_state == '' and response.record.revision == 0
+    assert response.record.substage == response.record.failed_substage == ''
+    assert response.record.completed_substages == []
+    assert result.cancel_mode == response.record.cancel_mode == ''
+    cancel = CancelManipulation.Request()
+    assert (cancel.IMMEDIATE, cancel.CHECKPOINT, cancel.RETURN_ARM) == ('IMMEDIATE', 'CHECKPOINT', 'RETURN_ARM')
+    assert cancel.execution_id == cancel.mode == ''
+    assert not CancelManipulation.Response().accepted
 
 
 def test_observed_geometry_has_explicit_identity_and_empty_default_mesh():
@@ -144,3 +169,23 @@ def test_select_reachable_grasp_contract() -> None:
     assert isinstance(result.selected_candidate, GraspCandidate)
     assert feedback.STAGE_PREGRASP_IK == 1
     assert feedback.STAGE_PLAN_GRASP == 5
+
+
+def test_read_only_scene_snapshot_contract():
+    from cleany_interfaces.srv import GetSceneSnapshot
+    request, response = GetSceneSnapshot.Request(), GetSceneSnapshot.Response()
+    assert request.snapshot_id == ''
+    assert not response.found and isinstance(response.detections, DetectedObject2DArray)
+    assert response.message == ''
+
+
+def test_tracking_and_individual_verification_contract():
+    from cleany_interfaces.srv import RegisterPlacementTarget
+
+    assert InspectScene.Goal().tracking_session_id == ''
+    assert DetectedObject2DArray().tracking_epoch == ''
+    assert DetectedObject2DArray().missing_objects == []
+    assert not DetectedObject2D().position_valid
+    assert RegisterPlacementTarget.Request().execution_id == ''
+    assert RegisterPlacementTarget.Response().verification_id == ''
+    assert VerifyPlacement.Request().verification_id == ''

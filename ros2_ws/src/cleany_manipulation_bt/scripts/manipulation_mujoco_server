@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+from cleany_manipulation_bt.node import main
+main()
