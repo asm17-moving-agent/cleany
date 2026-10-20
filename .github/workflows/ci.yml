@@ -118,7 +118,8 @@ jobs:
             python3 -m pytest --version
             git rev-parse HEAD
           '
-          tools/ci/run rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble
+          # Image construction populated rosdep metadata under root's ROS_HOME.
+          tools/ci/run env ROS_HOME=/root/.ros rosdep check --from-paths ros2_ws/src --ignore-src --rosdistro humble
           tools/ci/run make check-gazebo-env
 
       - name: Publish dependency image
