@@ -1,0 +1,76 @@
+status: manual_cad_reference_not_absolute_angle_calibration
+encoder_scale_rad_per_tick: 0.0015339807878856412
+absolute_angle_accuracy_validated: false
+note: q_rad = direction * (present_position - zero_tick) * encoder_scale_rad_per_tick + offset_rad. Present_Position
+  already includes EEPROM homing_offset; do not add it again. Stored reference data only; no motor configuration
+  or command is applied.
+arms:
+  left:
+    motor_calibration_file: motors/cleany_so101_left.json
+    joints:
+      left_shoulder_yaw_joint:
+        motor_id: 1
+        direction: -1
+        zero_tick: 2044.0
+        offset_rad: 0.0
+      left_shoulder_pitch_joint:
+        motor_id: 2
+        direction: -1
+        zero_tick: 3104.0
+        offset_rad: 0.0
+      left_elbow_pitch_joint:
+        motor_id: 3
+        direction: 1
+        zero_tick: 1049.0
+        offset_rad: 0.0
+      left_wrist_pitch_joint:
+        motor_id: 4
+        direction: 1
+        zero_tick: 2008.0
+        offset_rad: 0.0
+      left_wrist_roll_joint:
+        motor_id: 5
+        direction: -1
+        zero_tick: 2513.0
+        offset_rad: 0.0
+        observed_position_limits_rad:
+        - -1.5247769031583274
+        - 2.9513790358919736
+      left_gripper_joint:
+        motor_id: 6
+        direction: 1
+        zero_tick: 1345.0
+        offset_rad: -0.37453297762778587
+  right:
+    motor_calibration_file: motors/cleany_so101_right.json
+    joints:
+      right_shoulder_yaw_joint:
+        motor_id: 7
+        direction: -1
+        zero_tick: 2043.0
+        offset_rad: 0.0
+      right_shoulder_pitch_joint:
+        motor_id: 8
+        direction: -1
+        zero_tick: 3108.0
+        offset_rad: 0.0
+      right_elbow_pitch_joint:
+        motor_id: 9
+        direction: 1
+        zero_tick: 1052.0
+        offset_rad: 0.0
+      right_wrist_pitch_joint:
+        motor_id: 10
+        direction: 1
+        zero_tick: 2053.0
+        offset_rad: 0.0
+      right_wrist_roll_joint:
+        motor_id: 11
+        direction: -1
+        zero_tick: 2467.0
+        offset_rad: 0.0
+      right_gripper_joint:
+        motor_id: 12
+        direction: 1
+        zero_tick: 1359.0
+        offset_rad: -0.37453297762778587

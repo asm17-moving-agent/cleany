@@ -4,6 +4,24 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## Jetson 실물 마운트와 카메라 보정
+
+2026-10-21에 `jetson-orin:/home/cleany/cleany`의
+`52e44abe89b7103bd832f3cbf806a121c37cb82c`와 미커밋 작업 내용을 읽어 선별했다.
+프로파일은 [jetson_20261009](../ros2_ws/src/cleany_description/config/calibration/jetson_20261009/)
+아래에 보존한다. [provenance.json](../ros2_ws/src/cleany_description/config/calibration/jetson_20261009/provenance.json)은
+보정 원본, 사용한 내부 보정, 과거 검증 보고서의 경로와 SHA-256을 기록한다.
+검증 지표와 실패 또는 미검증 조건은 각 extrinsics YAML과 [캘리브레이션 가이드](CALIBRATION.md)에 있다.
+보고서 원본과 이미지 데이터셋은 Jetson의 기록된 위치에 남아 있다.
+
+[manipulation-detail.png](assets/physical-calibration/manipulation-detail.png)는
+Jetson의 `cleany_description/mjcf/cleany.xml`과 기존 mesh로 MuJoCo 3.11.0에서
+렌더링한 이미지다. `/tmp/cleany-shape-preview/manipulation-detail.png`에서
+원본 그대로 복사했다. 카메라 시점과 관절 자세만 시각화용으로 설정했다.
+양팔 shoulder yaw는 좌 -1.25, 우 +1.25 rad이고, shoulder pitch 0.45,
+elbow pitch 1.1, wrist pitch -0.45, gripper 0.25 rad를 사용했다.
+실물 제어와 calibration 재수행은 하지 않았다.
+
 | 데이터 루트 아래 경로 | 내용 |
 |---|---|
 | `fixtures/cad-fortress-command-hold/` | 과거 시나리오 입력 |

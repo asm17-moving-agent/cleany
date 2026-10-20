@@ -298,9 +298,11 @@
           <geom type="mesh" mesh="canonical_Base" class="collision" />
           <geom type="mesh" mesh="canonical_Base_Motor" class="collision" />
         </body>
-        <body name="top_base_link" pos="0 0 0.35">
+        <!-- Reversed mast: smooth rear face is 50 mm behind the top plate.
+             upper_structure is rotated pi from base_link. -->
+        <body name="top_base_link" pos="-0.1172 0 0.35" quat="0 0 0 1">
           <inertial pos="0 0 0" mass="0.2542" diaginertia="0.0045 0.005 0.0045" />
-          <body name="head_pan_link" pos="-0.103 0 0.323">
+          <body name="head_pan_link" pos="-0.103 0 0.3505" quat="0 0 0 1">
             <inertial pos="0 0 0" mass="0.2556" diaginertia="0.0129 0.0095 0.0184" />
             <joint name="head_pan_joint" type="hinge" axis="0 0 1" range="-3.2 3.2" class="sts3215" />
             <body name="head_tilt_link" pos="0.001 0.002 0.09815" quat="1.79489651492e-09 0 0 1">
@@ -329,8 +331,9 @@
             <geom name="head_pan_link_collision_0" class="collision" type="box" size="0.0275 0.025 0.02" pos="0.0135000000003 -2.37496286505e-07 0.093" quat="0.999999999999 0 0 1.32679489668e-06" />
           </body>
           <geom type="mesh" mesh="urdf_mesh_046" pos="-0.44 -0.005 -0.6" euler="0 0 0" material="white" class="visual" />
-          <geom type="mesh" mesh="canonical_topbase2" pos="-0.298 0.006 -0.715" euler="0 0 3.14" material="motor" class="visual" />
-          <geom name="top_base_link_collision_0" class="collision" type="box" size="0.0752 0.06 0.16745" pos="-0.104399999336 -0.000250277034774 0.23595" quat="0.999999999999 0 0 1.32679489668e-06" />
+          <geom type="mesh" mesh="canonical_topbase2" pos="-0.298 0.006 -0.6875" euler="0 0 3.14" material="motor" class="visual" />
+          <geom name="top_base_link_collision_0" class="collision" type="box" size="0.0752 0.06 0.1487" pos="-0.104399999336 -0.000250277034774 0.2822" quat="0.999999999999 0 0 1.32679489668e-06" />
+          <geom name="lower_head_mount_collision" class="collision" type="box" size="0.086 0.06 0.0325" pos="-0.048 -0.00025 0.101" />
         </body>
       </body>
       <site name="lidar_site" pos="0.18 0 0.08" size="0.02" rgba="0 1 0 0.5" />

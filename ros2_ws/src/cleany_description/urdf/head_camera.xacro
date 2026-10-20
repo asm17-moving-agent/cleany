@@ -1,22 +1,31 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="cleany_head_mount">
+  <xacro:macro name="cleany_head_mount" params="rear_gap_m:=0.05">
+    <!-- 2026-10-09 assembly: smooth mast face points rearward and sits
+         rear_gap_m behind the CAD top plate's rear edge (base_link -X).
+         Plate: center X=0.1162, depth=0.16. Mast smooth face: local X=-0.131.
+         Rotate the rigid mast by pi relative to the previous assembly. -->
+    <xacro:property name="plate_rear_x_m" value="${0.1162 - 0.16 / 2.0}"/>
+    <xacro:property name="mast_smooth_face_x_m" value="${-0.131}"/>
     <link name="top_base_link">
       <xacro:cleany_link_properties link_name="top_base_link" />
     </link>
     <joint name="top_base_joint" type="fixed">
       <parent link="base_link" />
       <child link="top_base_link" />
-      <origin xyz="0 0 0.35" rpy="0 0 3.14159265359" />
+      <origin xyz="${plate_rear_x_m - float(rear_gap_m) - mast_smooth_face_x_m} 0 0.35" rpy="0 0 0" />
     </joint>
   </xacro:macro>
-  <xacro:macro name="cleany_head_camera">
+  <xacro:macro name="cleany_head_camera" params="calibration_file:=''">
+    <xacro:property name="rgb_calibration"
+      value="${xacro.load_yaml(calibration_file) if calibration_file else dict(xyz='0 0 0', rpy='-1.57079632679 0 -1.57079632679')}"/>
     <link name="head_pan_link">
       <xacro:cleany_link_properties link_name="head_pan_link" />
     </link>
     <joint name="head_pan_joint" type="revolute">
       <parent link="top_base_link" />
       <child link="head_pan_link" />
-      <origin xyz="-0.103 0 0.323" rpy="0 0 0" />
+      <!-- Reversed mast; 65 mm lower mount + 238 mm pillar. -->
+      <origin xyz="-0.103 0 0.3505" rpy="0 0 ${pi}" />
       <axis xyz="0 0 1" />
       <limit lower="-3.2" upper="3.2" effort="2.6477955" velocity="4.245" />
     </joint>
@@ -52,7 +61,7 @@
     <joint name="head_camera_rgb_optical_joint" type="fixed">
       <parent link="head_camera_rgb_frame" />
       <child link="head_camera_rgb_optical_frame" />
-      <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679" />
+      <origin xyz="${rgb_calibration['xyz']}" rpy="${rgb_calibration['rpy']}" />
     </joint>
     <link name="head_camera_depth_frame">
       <xacro:cleany_link_properties link_name="head_camera_depth_frame" />

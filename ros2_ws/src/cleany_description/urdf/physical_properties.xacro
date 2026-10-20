@@ -1045,7 +1045,7 @@
         </material>
       </visual>
       <visual name="mjcf_geom_113_0_visual">
-        <origin xyz="-0.297999984077 0.00600079076974 -0.715" rpy="-5.90619133461e-17 6.93889390391e-18 3.13999734641" />
+        <origin xyz="-0.297999984077 0.00600079076974 -0.6875" rpy="-5.90619133461e-17 6.93889390391e-18 3.13999734641" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/topbase2.stl" scale="0.001 0.001 0.001" />
         </geometry>
@@ -1054,9 +1054,16 @@
         </material>
       </visual>
       <collision name="mjcf_geom_114_0_collision">
-        <origin xyz="-0.1044 -0.00025 0.23595" rpy="0 -0 5.25245130592e-18" />
+        <origin xyz="-0.1044 -0.00025 0.2822" rpy="0 -0 5.25245130592e-18" />
         <geometry>
-          <box size="0.1504 0.12 0.3349" />
+          <box size="0.1504 0.12 0.2974" />
+        </geometry>
+      </collision>
+      <collision name="lower_head_mount_collision">
+        <!-- 172 mm depth; front edge 41 mm behind the top plate's front edge. -->
+        <origin xyz="-0.048 -0.00025 0.101" rpy="0 0 0" />
+        <geometry>
+          <box size="0.172 0.12 0.065" />
         </geometry>
       </collision>
     </xacro:if>

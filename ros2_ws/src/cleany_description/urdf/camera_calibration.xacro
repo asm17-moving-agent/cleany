@@ -1,0 +1,17 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="cleany_calibrated_wrist_camera" params="side calibration_file">
+    <xacro:property name="calibration" value="${xacro.load_yaml(calibration_file)}"/>
+    <link name="${side}_wrist_camera_optical_frame"/>
+    <joint name="${side}_wrist_camera_calibrated_joint" type="fixed">
+      <parent link="${side}_gripper_frame"/>
+      <child link="${side}_wrist_camera_optical_frame"/>
+      <origin xyz="${calibration['xyz']}" rpy="${calibration['rpy']}"/>
+    </joint>
+    <link name="${side}_wrist_rgb_optical_frame"/>
+    <joint name="${side}_wrist_rgb_optical_alias_joint" type="fixed">
+      <parent link="${side}_wrist_camera_optical_frame"/>
+      <child link="${side}_wrist_rgb_optical_frame"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+</robot>

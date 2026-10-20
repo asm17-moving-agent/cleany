@@ -1,4 +1,69 @@
-# Hand-eye calibration 작업 가이드
+# 캘리브레이션 작업 가이드
+
+## Jetson 실물 모델과 2026-10-09 보정 프로파일
+
+`cleany_description/config/calibration/jetson_20261009/`는 Jetson에서 사용한
+헤드와 양손목 카메라 외부 보정, 해당 RGB 내부 보정, 팔과 헤드의 관절 기준을
+보존한다. 카메라 외부 보정은 각각 20개 학습 뷰와 별도 5개 검증 뷰로 평가한
+`provisional_20plus5_manual_stationary` 결과다.
+
+| 변환 | 적용 내용 |
+|---|---|
+| `head_camera_rgb_frame` → `head_camera_rgb_optical_frame` | 헤드 RGB 외부 보정 |
+| `left_gripper_frame` → `left_wrist_camera_optical_frame` | 왼손목 외부 보정 |
+| `right_gripper_frame` → `right_wrist_camera_optical_frame` | 오른손목 외부 보정 |
+| 각 `*_wrist_camera_optical_frame` → `*_wrist_rgb_optical_frame` | 항등 변환 alias |
+
+`xyz`는 parent frame 기준 m, `rpy`는 고정축 XYZ의 rad이며,
+`parent_T_child`는 child 좌표를 parent 좌표로 변환한다. 보정은 광학 좌표계에
+적용하며 카메라 케이스 mesh의 CAD 배치를 옮기지 않는다. 헤드 depth frame은
+명목값을 유지한다.
+
+빌드한 workspace의 `setup.bash`를 읽은 뒤 모델을 실행한다.
+
+```bash
+ros2 launch cleany_description description.launch.py \
+  use_sim_time:=false calibration_profile:=jetson_20261009
+```
+
+이 launch는 `robot_state_publisher`만 실행한다. 관절 상태는 별도 `/joint_states`
+입력이 필요하며, 저장된 encoder 영점으로 tick을 변환하거나 모터를 제어하지 않는다.
+`calibration_profile`의 기본값은 빈 문자열이다. 기본 실행은 명목 헤드 TF를
+유지하고 손목 보정 optical frame을 추가하지 않는다.
+
+노드를 실행하지 않고 보정된 URDF만 확인하려면 다음 명령을 사용한다.
+
+```bash
+xacro "$(ros2 pkg prefix --share cleany_description)/urdf/cleany.urdf.xacro" \
+  calibration_profile:=jetson_20261009 > /tmp/cleany-calibrated.urdf
+```
+
+`arm_joint_calibration.yaml`에는 좌우 12개 모터의 현재 영점, 방향과 rad 오프셋을
+담았다. `q = direction × (Present_Position - zero_tick) × 2π/4096 + offset_rad`로
+해석한다. Present_Position에 이미 반영된 EEPROM homing offset을 다시 더하지 않는다.
+`motors/`의 원본 JSON과 `reference/`의 과거 자세 기록은 측정 근거이며 자동 적용하지
+않는다. 현재 매핑은 `arm_joint_calibration.yaml`이 기준이다. 오른쪽 elbow 영점처럼
+과거 자세 기록 이후 보완된 값이 있다. 절대 관절 각도 정확도는 검증되지 않았다.
+
+`head_joint_calibration.json`의 pan/tilt 기준 tick은 각각 2009와 2067,
+방향은 -1과 +1이다. 이는 수동 영점과 회전 방향 확인이며 회전축 추정 결과가 아니다.
+내부 보정 JSON은 외부 보정 입력을 보존하기 위한 자료로, 이 launch에서
+`CameraInfo`를 발행하거나 카메라 드라이버 설정을 바꾸지 않는다.
+
+| 카메라 | 검증 보드 위치 RMS | 검증 보드 회전 RMS |
+|---|---:|---:|
+| 헤드 RGB | 1.246 mm | 0.247° |
+| 왼손목 | 8.525 mm | 1.540° |
+| 오른손목 | 8.895 mm | 1.739° |
+
+이 수치는 고정 보드 가정에 대한 일관성이다. 절대 위치 ground truth와 하드웨어
+노출 동기화는 검증되지 않았다. 오른손목 학습 뷰 3개에는 manual torque hold
+기록이 없으며, k3=0 모델은 held-out 평가 전에 선택했다. 각 YAML의 원본 검증
+조건과 `absolute_calibration_verified: false`를 유지한다.
+원본 보고서 경로와 SHA-256은 프로파일의 `provenance.json`에 기록하며,
+절대 경로는 과거 근거 위치로만 사용한다.
+
+## 기존 hand-eye 수집과 평가 도구
 
 현재 패키지는 calibration core, ROS 수집 adapter와 오프라인 평가를 유지합니다. MuJoCo calibration 장면과 전용 launch는 제거됐습니다. 현행 기능은 [패키지 안내](../ros2_ws/src/cleany_handeye_calibration/docs/offline-tools.md)를 따릅니다. 아래 MuJoCo 전용 절차는 이전 구현의 참고 기록이며 현재 실행 절차가 아닙니다. 결과 transform은 검토용 artifact로 저장하며 TF에 자동 적용하지 않습니다. 실물 calibration과 grasp 성공은 별도로 검증합니다.
 

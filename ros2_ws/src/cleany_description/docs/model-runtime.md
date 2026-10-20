@@ -69,7 +69,7 @@ Authoritative robot description assets shared by MuJoCo, TF, and MoveIt.
   adds the MuJoCo `ros2_control` hardware interface for the ten arm joints and
   read-only state interfaces for both grippers
 - `urdf/cleany_mujoco_ros2_control.xacro`: reusable MuJoCo hardware macro
-- `urdf/head_camera.xacro`: nominal head pan/tilt and RGB-D frame tree
+- `urdf/head_camera.xacro`: physical head mount and optional measured RGB optical transform
 - `mjcf/cleany.xml`: MuJoCo robot model included by simulator scenes
 - `meshes/`: visual and collision CAD assets referenced by both descriptions
 - `test/test_model_parity.py`: canonical joint, motor geometry, and randomized
@@ -118,8 +118,10 @@ performance, navigation, or successful object retention.
   URDF wheels are rigid 500 g assemblies; 48 passive roller joints are MJCF-only.
 - `${side}_grasp_tcp` is fixed at `(0, -0.100, 0)` m in
   `${side}_gripper_frame`; the original hinged gripper is retained.
-- Head RGB-D transforms are nominal, not measured calibration.
-  Wrist camera ground-truth edges remain out of runtime TF for hand-eye calibration.
+- Head RGB-D transforms are nominal by default. The explicit `jetson_20261009`
+  calibration profile applies provisional measured RGB and wrist optical transforms.
+  Depth remains nominal; simulation ground-truth wrist edges remain separate.
+  See [model contract](model.md) and [calibration guide](../../../../docs/CALIBRATION.md).
 - The control entrypoint commands ten arm joints and reads both grippers.
   Gripper commands are opt-in via `enable_gripper_command:=true`.
   Base, head, and rollers are outside this control contract.

@@ -11,8 +11,35 @@ CAD 모델은 ROS 좌표, 팔 chain, 시뮬레이션 형상을 공유한다. Geo
 | CAD wheelbase / track / radius | 0.35 / 0.6038 / 0.0635 m |
 | Wheel 모델 | URDF: 500 g rigid assembly; MJCF만 passive roller joint 48개 |
 | Grasp TCP | gripper_frame 기준 (0, -0.100, 0) m 고정; hinged gripper 유지 |
-| Head RGB-D TF | 명목값, 실측 calibration 아님 |
-| Wrist camera GT | hand-eye 수집을 위해 runtime TF에서 제외 |
+| Head RGB-D TF | 기본은 명목값; `jetson_20261009` 프로파일은 RGB optical TF에만 잠정 실물 보정 적용 |
+| Wrist camera TF | 기본은 제외; 같은 프로파일 선택 시 각 gripper 기준 보정 optical TF와 RGB alias 추가 |
+
+## 실물 헤드 마운트와 관절 기준
+
+2026-10-09 Jetson 조립 기록에 맞춰 마스트의 매끄러운 면을 뒤쪽(-X)으로 돌리고,
+CAD 상판 뒤쪽 모서리보다 50 mm 뒤에 배치한다. `head_mast_rear_gap_m`으로 이 간격을
+지정할 수 있다. 하부 마운트 높이 65 mm와 기둥 238 mm를 반영하며 상부 pan/tilt
+부품은 이 합계에서 제외한다. 하부 마운트의 전후 길이는 172 mm이고 앞쪽 모서리는
+상판 앞쪽보다 41 mm 뒤에 있다. 상부 헤드는 전방을 향하도록 유지한다.
+
+`topbase1.stl`은 Jetson의 기존 수정 mesh를 그대로 사용한다. URDF visual과 collision,
+MJCF의 마스트와 상부 장착 높이를 함께 맞춘다. 메시 치수와 조립 방향을 확인하는
+검사는 URDF/MJCF의 단순 상호 일치와 별개로 수행한다.
+
+왼쪽 wrist-roll의 2026-10-05 측정 범위
+`[-1.5247769031583274, 2.9513790358919736]` rad는 관절 보정 프로파일의
+`observed_position_limits_rad`와 원본 자세 기록에 보존한다. 이 범위를 실행 제한으로
+채택하려면 URDF, MJCF, MoveIt과 grasp 실행기의 좌우별 설정을 함께 연결해야 한다.
+현재 기본 관절 제한과 TCP는 유지한다. 마운트 변경은 기본 형상에 적용하며,
+카메라 외부 보정은 프로파일 선택으로 구분한다.
+
+![Jetson 모델의 양팔과 헤드 마운트](../../../../docs/assets/physical-calibration/manipulation-detail.png)
+
+이미지는 Jetson의 MJCF와 mesh로 만든 형상 확인용 렌더다. 관절 자세는 시각화를
+위해 설정했으며 실물 사진, 보정 정확도 또는 PR 적용 후 실행 검증의 증거가 아니다.
+
+프로파일 적용 방법, 좌표계와 검증 한계는 [캘리브레이션 가이드](../../../../docs/CALIBRATION.md)를 따른다.
+팔과 헤드 encoder 매핑은 근거 데이터로 보존하며 이 패키지가 직접 장치를 설정하지 않는다.
 
 ## 제어 범위
 
