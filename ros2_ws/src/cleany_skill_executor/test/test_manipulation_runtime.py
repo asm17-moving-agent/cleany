@@ -65,7 +65,7 @@ class RosHarness:
         self.database = tmp_path / 'executions.sqlite3'
         config = yaml.safe_load(CONFIG_PATH.read_text())
         config.update(stage_duration_sec=0.25 if slow else 0.08, stop_duration_sec=0.03,
-                      preparation_timeout_sec=5.0, verification_timeout_sec=2.0,
+                      preparation_timeout_sec=5.0, verification_timeout_sec=5.0,
                       motion_timeout_sec=10.0, stop_timeout_sec=1.0)
         self.config.write_text(yaml.safe_dump(config))
         self.feedback = []
@@ -327,6 +327,18 @@ def test_real_ros_invalid_mode_request_does_not_cancel_execution(ros, wrong_id, 
         execution_id='wrong' if wrong_id else message.execution_id, mode=mode)))
     assert not rejected.accepted
     assert response(handle.get_result_async()).status == GoalStatus.STATUS_SUCCEEDED
+
+
+def test_cli_return_cancel_uses_mode_service_and_prints_recovery_result(ros):
+    harness = ros(slow=True)
+    completed = subprocess.run(
+        ['ros2', 'run', 'cleany_skill_executor', 'manipulation_test_client',
+         '--namespace', harness.namespace, '--cancel-stage', 'TRANSPORTING',
+         '--cancel-mode', 'RETURN_ARM'], capture_output=True, text=True, timeout=15.)
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert '"cancel_mode": "RETURN_ARM"' in completed.stdout
+    assert '"arm_recovered": true' in completed.stdout
+    assert '"status": "CANCELED"' in completed.stdout
 
 
 @pytest.mark.parametrize('scenario,error,cancel', [

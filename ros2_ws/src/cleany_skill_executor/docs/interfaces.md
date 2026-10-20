@@ -35,3 +35,19 @@
 Tick 기본 주기는 steady clock 0.05초다. 물리 명령 publisher는 없다. Mission은 취소 service의 별도 모드 대신 ROS Action cancel의 CHECKPOINT를 사용한다.
 
 Action 이름을 remap하면 서버와 내부 CancelGoal client가 같은 해결된 이름을 사용한다. 예를 들어 `manipulation/execute_skill:=/custom/execute`에서는 내부 취소 요청도 `/custom/execute/_action/cancel_goal`로 전달한다.
+
+수락, 기록과 취소의 의미는 [공통 Action 계약](../../cleany_interfaces/docs/observation-contracts.md#단일-물체-manipulation-action)을 따른다.
+
+## manipulation_monitor
+
+실행 파일: `manipulation_monitor`. 원본: [manipulation_monitor_node.py](../cleany_skill_executor/manipulation_monitor_node.py).
+`event_topic` 기본값 `/mock/manipulation/execution_events`를 Reliable, transient-local,
+depth 100으로 구독한다. `monitor_port`의 localhost ZeroMQ REP socket은 읽기 전용
+트리 상태를 제공하며 ROS Action을 실행하거나 취소하지 않는다.
+
+## manipulation_test_client
+
+실행 파일: `manipulation_test_client`. 원본: [manipulation_client.py](../cleany_skill_executor/manipulation_client.py).
+`namespace` 옵션으로 선택한 서버의 `manipulation/execute_skill` Action과
+`manipulation/get_execution`, `manipulation/cancel` 서비스를 호출한다.
+요청, 취소와 결과 확인 예시는 [실행 안내](manipulation_mock_usage.md)를 따른다.

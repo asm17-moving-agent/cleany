@@ -125,6 +125,21 @@ make deps
 | Native depth self-filter | Manifest의 `python3-dev` 개발 헤더 |
 | 계획, 제어 | MoveIt 2, KDL, OMPL, ros2_control, joint_trajectory_controller |
 | Hand-eye backend | cleany_mujoco_sim manifest의 mujoco_ros2_control |
+| 단일 물체 MuJoCo Action | BehaviorTree.CPP 4.x, pybind11_vendor, python3-dev |
+| Mock Action 트리 모니터 | python3-zmq; VS Code 확장의 native ZeroMQ 의존성은 별도 |
+
+`cleany_manipulation_bt`는 BehaviorTree.CPP 4.x를 사용합니다. Humble Navigation의
+`behaviortree_cpp_v3`와 별도 패키지이며 두 major 버전을 함께 설치할 수 있습니다.
+개별 설치와 빌드는 다음 명령을 사용합니다.
+
+```bash
+sudo apt install ros-humble-behaviortree-cpp ros-humble-pybind11-vendor python3-dev python3-zmq
+make build-manipulation-bt
+```
+
+Gemini 인식으로 MuJoCo Action을 실행할 터미널에는 `GEMINI_API_KEY`를 설정합니다.
+로컬 파일을 사용한다면 권한 `600`의 `~/.config/cleany/gemini.env`에 `export` 문을
+보관하고 실행 전에 source합니다. 모델 준비는 [인식 reference](../ros2_ws/src/cleany_perception/docs/runtime.md#모델-준비)를 따릅니다.
 
 아래 명령으로 runtime package 설치를 확인합니다.
 

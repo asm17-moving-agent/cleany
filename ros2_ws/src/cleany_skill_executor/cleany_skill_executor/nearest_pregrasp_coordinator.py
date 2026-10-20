@@ -78,6 +78,7 @@ from cleany_skill_executor.core.grasp_pipeline import (
     linear_approach_error_deg,
 )
 from cleany_skill_executor.grasp_execution import GraspExecutionNode
+from cleany_skill_executor.pick_operations import GraspProgress
 from cleany_skill_executor.planning_scene import TargetSceneTransaction
 from cleany_skill_executor.collision_geometry_cache import CollisionGeometryCache, subscribe_collision_geometry
 from cleany_skill_executor.seeded_cartesian import (
@@ -337,10 +338,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             geometry_lookup=self._geometry_cache.get if use_mesh else None,
             support_patch_margin_m=float(self.get_parameter('support_patch_margin_m').value),
             timeout_sec=float(self.get_parameter('planning_scene_timeout_sec').value),
-            spin_once=lambda duration: rclpy.spin_once(
-                self,
-                timeout_sec=duration,
-            ),
+            spin_once=lambda duration: self._spin_once(timeout_sec=duration),
         )
         self._joint_velocities: dict[str, float] = {}
         self._controller_states: dict[str, JointTrajectoryControllerState] = {}
@@ -603,7 +601,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             if selected_index is None
             else f'selected={selected_index} arm={selected_arm}'
         )
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Published grasp RGB overlay: count={len(candidates)} {state}'
         )
 
@@ -790,14 +788,14 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                         self._scene_cloud_stamp_ns is None or self._scene_cloud_stamp_ns <= after_stamp_ns):
                     raise RuntimeError('No processed depth capture after the attachment scene update')
                 if after_stamp_ns is not None:
-                    self.get_logger().info(
+                    self.get_logger().debug(
                         f'Post-attachment depth ready: wait_wall_sec={time.monotonic()-started:.3f} '
                         f'capture_after_attachment_sec={(self._scene_cloud_stamp_ns-after_stamp_ns)/1e9:.3f}')
                 return
             except RuntimeError:
                 if time.monotonic() >= deadline:
                     raise
-                rclpy.spin_once(self, timeout_sec=0.2)
+                self._spin_once(timeout_sec=0.2)
 
     def _detect_objects(self):
         return self._finish_object_detection(self._begin_object_detection())
@@ -806,6 +804,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         """Submit detection and return its handle/future without waiting for inference."""
         goal = InspectScene.Goal()
         goal.query = str(self.get_parameter('query').value)
+        goal.tracking_session_id = getattr(self, '_tracking_session_id', '')
         handle = self._future(
             self._inspection.send_goal_async(goal),
             10.0,
@@ -857,6 +856,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
     ):
         goal = InspectScene.Goal()
         goal.snapshot_id = snapshot_id
+        goal.tracking_session_id = getattr(self, '_tracking_session_id', '')
         goal.selected_object_id = attempt.object_id
         handle = self._future(
             self._inspection.send_goal_async(goal),
@@ -1040,6 +1040,19 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             ),
         )
 
+    def _validate_approved_tracking(self, observation) -> None:
+        approved = getattr(self, '_approved_tracking', None)
+        if approved is None:
+            return
+        if ((observation.tracking_session_id, observation.tracking_epoch) != approved[:2]
+                or sum(d.track_id == approved[2] and d.tracking_state == 'TRACKED'
+                       for d in observation.detections) != 1):
+            raise ValueError('Approved track is missing, ambiguous or its epoch changed')
+
+    def _matches_approved_tracking(self, detection) -> bool:
+        approved = getattr(self, '_approved_tracking', None)
+        return approved is None or (detection.track_id == approved[2] and detection.tracking_state == 'TRACKED')
+
     def _refresh_selected_grasp(
         self,
         previous,
@@ -1050,9 +1063,18 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         arm = previous.selected_arm
         self._wait_arm_stationary(arm)
         detected = self._detect_objects()
+        if getattr(self, '_approved_tracking', None) is not None:
+            self._validate_approved_tracking(detected.detections)
         reconstructions = []
+        label_key = getattr(self, '_target_label_key', lambda label: label)
+        if (getattr(self, '_require_unique_target_label', False)
+                and sum(label_key(d.label) == label_key(attempt.label)
+                        for d in detected.detections.detections) != 1):
+            raise ValueError('Approved object type is missing or duplicated in refreshed snapshot')
         for detection in detected.detections.detections:
-            if (match_label and detection.label != attempt.label) or not detection.distance_valid:
+            if getattr(self, '_approved_tracking', None) is not None and not self._matches_approved_tracking(detection):
+                continue
+            if (match_label and label_key(detection.label) != label_key(attempt.label)) or not detection.distance_valid:
                 continue
             refreshed_attempt = ObjectAttempt(
                 object_id=int(detection.object_id),
@@ -1162,7 +1184,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         deadline = time.monotonic() + 5.0
         consecutive = 0
         while time.monotonic() < deadline:
-            rclpy.spin_once(self, timeout_sec=0.05)
+            self._spin_once(timeout_sec=0.05)
             if all(
                 name in self._joint_velocities
                 and abs(self._joint_velocities[name]) <= maximum
@@ -1175,138 +1197,168 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 consecutive = 0
         raise RuntimeError(f'{arm} arm did not settle before LIN planning')
 
-    def _execute_grasp_and_lift(
-        self,
-        selected,
-        attempt: ObjectAttempt,
-    ) -> None:
-        gripper_contact = False
+    def _execute_grasp_and_lift(self, selected, attempt: ObjectAttempt) -> None:
+        progress = GraspProgress()
         try:
-            self._align_refreshed_pregrasp(selected, attempt)
-            arm = selected.selected_arm
-            approach_start = self._tcp_pose(arm)
-            approach_start_joints = (self._arm_joint_state(arm)
-                                     if getattr(self, '_use_joint_corridor', False) else None)
-            # The selector's 5-DOF IK may only approximate the candidate
-            # quaternion. Use FK of the accepted hard-constrained joint state
-            # as the exact Pilz endpoint orientation.
-            grasp_pose = self._tcp_pose(
-                arm, selected.grasp_joint_state
-            )
-            alignment = linear_approach_error_deg(
-                self._pose_position(approach_start),
-                self._pose_position(grasp_pose),
-                self._observed_grasp(
-                    selected.selected_candidate, attempt.object_id
-                ).approach,
-            )
-            maximum_alignment = float(
-                self.get_parameter('lin_alignment_tolerance_deg').value
-            )
-            if alignment >= maximum_alignment:
-                raise RuntimeError(
-                    f'LIN approach is misaligned by {alignment:.2f}deg '
-                    f'(maximum {maximum_alignment:.2f}deg)'
-                )
-            self.get_logger().info(
-                f'Cartesian approach alignment={alignment:.2f}deg '
-                f'maximum={maximum_alignment:.2f}deg'
-            )
-            arm_contact = self._execute_linear(
-                arm,
-                grasp_pose,
-                'refreshed grasp approach',
-                velocity_scaling=float(
-                    self.get_parameter('approach_velocity_scaling').value
-                ),
-                contact_target=grasp_pose,
-                joint_target=(selected.grasp_joint_state
-                              if approach_start_joints is not None else None),
-            )
-            if arm_contact:
-                self.get_logger().info(
-                    'Pilz LIN approach stopped on debounced target contact'
-                )
-            gripper_start = self._joint_positions[f'{arm}_gripper_joint']
-            self._grasp_close_override = None
-            close_position = self._candidate_close_position(
-                selected.selected_candidate
-            )
-            contact = self._command_gripper(
-                arm,
-                close_position,
-                'close',
-                allow_contact_stall=True,
-            )
-            contact, close_position = self._retry_gripper_contact(
-                arm, gripper_start, close_position, contact)
-            if not contact:
-                raise RuntimeError(
-                    f'gripper retention not confirmed from joint feedback on '
-                    f'{attempt.label}'
-                )
-            self._hold('grasp_settle_sec')
-            if not self._gripper_contact_stalled(arm, gripper_start, close_position):
-                raise RuntimeError('gripper contact did not persist while settling')
-            gripper_contact = True
-            count_retreat = bool(self.get_parameter('count_retreat_as_lift').value)
-            lift_distance = float(self.get_parameter('lift_distance_m').value)
-            if not math.isfinite(lift_distance) or lift_distance <= 0.0:
-                raise ValueError('lift distance must be finite and positive')
-            minimum_object_z = None
-            if count_retreat:
-                contact_tcp_z = self._tcp_pose(arm).position.z
-                initial_object_z = selected.selected_candidate.target_object.obb_pose.position.z
-                if not all(math.isfinite(z) for z in (contact_tcp_z, initial_object_z)):
-                    raise ValueError('lift reference heights must be finite')
-                minimum_object_z = initial_object_z + lift_distance
-            self._on_grasp_contact(selected, attempt)
-            self._execution_scene.attach_to(arm)
-            if bool(self.get_parameter('require_sensor_scene').value):
-                self._wait_for_sensor_scene(
-                    float(self.get_parameter('attachment_scene_timeout_sec').value),
-                    after_stamp_ns=self.get_clock().now().nanoseconds)
-            if not getattr(self, '_direct_vertical_lift', False):
-                self._execute_linear(
-                    arm,
-                    approach_start,
-                    'reverse grasp retreat',
-                    joint_target=approach_start_joints,
-                    velocity_scaling=float(
-                        self.get_parameter('retreat_velocity_scaling').value
-                    ),
-                )
-            lift_pose = deepcopy(self._tcp_pose(arm) if (
-                count_retreat or getattr(self, '_direct_vertical_lift', False)) else approach_start)
-            remaining_lift = (max(0.0, contact_tcp_z + lift_distance - lift_pose.position.z)
-                              if count_retreat else lift_distance)
-            extra_lift = (float(self.get_parameter('direct_vertical_lift_extra_m').value)
-                          if getattr(self, '_direct_vertical_lift', False) else 0.0)
-            if not math.isfinite(extra_lift) or not 0.0 <= extra_lift <= 0.05:
-                raise ValueError('direct_vertical_lift_extra_m must be in [0, 0.05]')
-            remaining_lift += extra_lift
-            if not math.isfinite(remaining_lift) or not math.isfinite(lift_pose.position.z):
-                raise ValueError('lift feedback height must be finite')
-            self.get_logger().info(
-                f'Lift clearance: count_retreat={count_retreat} '
-                f'remaining_tcp_rise={remaining_lift:.4f}m '
-                f'direct_extra={extra_lift:.4f}m '
-                f'required_observed_center_z={minimum_object_z}')
-            if remaining_lift > 0.0:
-                lift_pose.position.z += remaining_lift
-                self._execute_linear(
-                    arm, lift_pose, 'vertical grasp lift',
-                    velocity_scaling=float(self.get_parameter('retreat_velocity_scaling').value))
-            self._on_lift_motion_complete()
-            self._hold('lift_hold_sec')
-            if count_retreat:
-                self._verify_lift_height(attempt, minimum_center_z_m=minimum_object_z)
-            else:
-                self._verify_lift_height(attempt)
+            self._approach_grasp(selected, attempt, progress)
+            self._close_grasp(selected, attempt, progress)
+            self._confirm_grasp_contact(selected, attempt, progress)
+            self._lift_grasp(selected, attempt, progress)
+            self._confirm_held_grasp(selected, attempt, progress)
         except Exception:
-            if not gripper_contact:
+            if not progress.confirmed:
                 self._execution_scene.restore()
             raise
+
+    def _approach_grasp(self, selected, attempt, progress: GraspProgress) -> None:
+        self._align_refreshed_pregrasp(selected, attempt)
+        arm = selected.selected_arm
+        approach_start = self._tcp_pose(arm)
+        approach_start_joints = (self._arm_joint_state(arm)
+                                 if getattr(self, '_use_joint_corridor', False) else None)
+        # The selector's 5-DOF IK may only approximate the candidate
+        # quaternion. Use FK of the accepted hard-constrained joint state
+        # as the exact Pilz endpoint orientation.
+        grasp_pose = self._tcp_pose(
+            arm, selected.grasp_joint_state
+        )
+        alignment = linear_approach_error_deg(
+            self._pose_position(approach_start),
+            self._pose_position(grasp_pose),
+            self._observed_grasp(
+                selected.selected_candidate, attempt.object_id
+            ).approach,
+        )
+        maximum_alignment = float(
+            self.get_parameter('lin_alignment_tolerance_deg').value
+        )
+        if alignment >= maximum_alignment:
+            raise RuntimeError(
+                f'LIN approach is misaligned by {alignment:.2f}deg '
+                f'(maximum {maximum_alignment:.2f}deg)'
+            )
+        self.get_logger().debug(
+            f'Cartesian approach alignment={alignment:.2f}deg '
+            f'maximum={maximum_alignment:.2f}deg'
+        )
+        arm_contact = self._execute_linear(
+            arm,
+            grasp_pose,
+            'refreshed grasp approach',
+            velocity_scaling=float(
+                self.get_parameter('approach_velocity_scaling').value
+            ),
+            contact_target=grasp_pose,
+            joint_target=(selected.grasp_joint_state
+                          if approach_start_joints is not None else None),
+        )
+        if arm_contact:
+            self.get_logger().info(
+                'Pilz LIN approach stopped on debounced target contact'
+            )
+        progress.approach_start = approach_start
+        progress.approach_start_joints = approach_start_joints
+
+    def _close_grasp(self, selected, attempt, progress: GraspProgress, *, retry=True) -> None:
+        arm = selected.selected_arm
+        gripper_start = self._joint_positions[f'{arm}_gripper_joint']
+        self._grasp_close_override = None
+        close_position = self._candidate_close_position(
+            selected.selected_candidate
+        )
+        contact = self._command_gripper(
+            arm,
+            close_position,
+            'close',
+            allow_contact_stall=True,
+        )
+        if retry:
+            contact, close_position = self._retry_gripper_contact(
+                arm, gripper_start, close_position, contact)
+        if not contact:
+            raise RuntimeError(
+                f'gripper retention not confirmed from joint feedback on '
+                f'{attempt.label}'
+            )
+        progress.gripper_start = gripper_start
+        progress.close_position = close_position
+
+    def _confirm_grasp_contact(self, selected, attempt, progress: GraspProgress) -> None:
+        arm = selected.selected_arm
+        gripper_start, close_position = progress.gripper_start, progress.close_position
+        self._hold('grasp_settle_sec')
+        if not self._gripper_contact_stalled(arm, gripper_start, close_position):
+            raise RuntimeError('gripper contact did not persist while settling')
+        progress.confirmed = True
+        count_retreat = bool(self.get_parameter('count_retreat_as_lift').value)
+        lift_distance = float(self.get_parameter('lift_distance_m').value)
+        if not math.isfinite(lift_distance) or lift_distance <= 0.0:
+            raise ValueError('lift distance must be finite and positive')
+        minimum_object_z = None
+        if count_retreat:
+            contact_tcp_z = self._tcp_pose(arm).position.z
+            initial_object_z = selected.selected_candidate.target_object.obb_pose.position.z
+            if not all(math.isfinite(z) for z in (contact_tcp_z, initial_object_z)):
+                raise ValueError('lift reference heights must be finite')
+            minimum_object_z = initial_object_z + lift_distance
+        self._on_grasp_contact(selected, attempt)
+        self._execution_scene.attach_to(arm)
+        if bool(self.get_parameter('require_sensor_scene').value):
+            self._wait_for_sensor_scene(
+                float(self.get_parameter('attachment_scene_timeout_sec').value),
+                after_stamp_ns=self.get_clock().now().nanoseconds)
+        progress.count_retreat = count_retreat
+        progress.contact_tcp_z = contact_tcp_z if count_retreat else 0.0
+        progress.minimum_object_z = minimum_object_z
+
+    def _lift_grasp(self, selected, attempt, progress: GraspProgress) -> None:
+        if not progress.confirmed:
+            raise RuntimeError('Lift requires confirmed gripper contact')
+        arm = selected.selected_arm
+        approach_start, approach_start_joints = progress.approach_start, progress.approach_start_joints
+        count_retreat, contact_tcp_z = progress.count_retreat, progress.contact_tcp_z
+        minimum_object_z = progress.minimum_object_z
+        lift_distance = float(self.get_parameter('lift_distance_m').value)
+        if not getattr(self, '_direct_vertical_lift', False):
+            self._execute_linear(
+                arm,
+                approach_start,
+                'reverse grasp retreat',
+                joint_target=approach_start_joints,
+                velocity_scaling=float(
+                    self.get_parameter('retreat_velocity_scaling').value
+                ),
+            )
+        lift_pose = deepcopy(self._tcp_pose(arm) if (
+            count_retreat or getattr(self, '_direct_vertical_lift', False)) else approach_start)
+        remaining_lift = (max(0.0, contact_tcp_z + lift_distance - lift_pose.position.z)
+                          if count_retreat else lift_distance)
+        extra_lift = (float(self.get_parameter('direct_vertical_lift_extra_m').value)
+                      if getattr(self, '_direct_vertical_lift', False) else 0.0)
+        if not math.isfinite(extra_lift) or not 0.0 <= extra_lift <= 0.05:
+            raise ValueError('direct_vertical_lift_extra_m must be in [0, 0.05]')
+        remaining_lift += extra_lift
+        if not math.isfinite(remaining_lift) or not math.isfinite(lift_pose.position.z):
+            raise ValueError('lift feedback height must be finite')
+        self.get_logger().debug(
+            f'Lift clearance: count_retreat={count_retreat} '
+            f'remaining_tcp_rise={remaining_lift:.4f}m '
+            f'direct_extra={extra_lift:.4f}m '
+            f'required_observed_center_z={minimum_object_z}')
+        if remaining_lift > 0.0:
+            lift_pose.position.z += remaining_lift
+            self._execute_linear(
+                arm, lift_pose, 'vertical grasp lift',
+                velocity_scaling=float(self.get_parameter('retreat_velocity_scaling').value))
+        self._on_lift_motion_complete()
+
+    def _confirm_held_grasp(self, selected, attempt, progress: GraspProgress) -> None:
+        count_retreat, minimum_object_z = progress.count_retreat, progress.minimum_object_z
+        self._hold('lift_hold_sec')
+        if count_retreat:
+            self._verify_lift_height(attempt, minimum_center_z_m=minimum_object_z)
+        else:
+            self._verify_lift_height(attempt)
 
     def _on_grasp_contact(self, selected, attempt: ObjectAttempt) -> None:
         """Optional consumer hook after settled contact and before attachment."""
@@ -1351,33 +1403,45 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         after_stamp = self.get_clock().now().nanoseconds
         self._wait_arm_stationary(selected.selected_arm)
         detected = self._detect_objects()
+        if getattr(self, '_approved_tracking', None) is not None:
+            self._validate_approved_tracking(detected.detections)
         previous = self._obb_corners(selected.selected_candidate.target_object)
         tolerance = float(self.get_parameter('preapproach_maximum_geometry_shift_m').value)
         if not math.isfinite(tolerance) or tolerance <= 0:
             raise ValueError('pre-approach geometry tolerance must be finite and positive')
         matches = 0
+        evidence = []
+        label_key = getattr(self, '_target_label_key', lambda label: label)
+        label_count = sum(label_key(d.label) == label_key(attempt.label)
+                          for d in detected.detections.detections)
         for detection in detected.detections.detections:
-            if detection.label != attempt.label or not detection.distance_valid:
+            if getattr(self, '_approved_tracking', None) is not None and not self._matches_approved_tracking(detection):
+                continue
+            if label_key(detection.label) != label_key(attempt.label) or not detection.distance_valid:
                 continue
             fresh_attempt = ObjectAttempt(
                 int(detection.object_id), detection.label,
                 float(detection.confidence), float(detection.distance_m))
             inspected = self._inspect_selected(detected.detections.snapshot_id, fresh_attempt)
             if inspected is None or len(inspected.objects.objects) != 1:
+                evidence.append('reconstruction unavailable')
                 continue
             header = inspected.objects.header
             stamp = header.stamp.sec * 1_000_000_000 + header.stamp.nanosec
             if stamp <= after_stamp or header.frame_id != selected.selected_candidate.header.frame_id:
+                evidence.append(f'stamp={stamp} barrier={after_stamp} frame={header.frame_id}')
                 continue
             current = self._obb_corners(inspected.objects.objects[0])
             distances = np.linalg.norm(previous[:, None] - current[None, :], axis=2)
             shift = max(float(distances.min(axis=0).max()),
                         float(distances.min(axis=1).max()))
+            evidence.append(f'geometry_shift={shift:.4f}m maximum={tolerance:.4f}m')
             if shift <= tolerance:
                 matches += 1
-        if matches != 1:
+        if matches != 1 or (getattr(self, '_require_unique_target_label', False) and label_count != 1):
             raise RuntimeError(
-                'target geometry is stale, changed, missing or ambiguous after pregrasp reposition')
+                'target geometry is stale, changed, missing or ambiguous after pregrasp reposition: '
+                f'label_count={label_count}; ' + '; '.join(evidence))
 
     @staticmethod
     def _pose_position(pose: Pose) -> tuple[float, float, float]:
@@ -1512,7 +1576,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                     samples, self._cartesian_pose(start), self._cartesian_pose(target),
                     position_limit, math.radians(float(self.get_parameter(
                         'corridor_orientation_tolerance_deg').value)), orientation_limit)
-                self.get_logger().info(f'{label} FK corridor verified: lateral={lateral:.6f}m '
+                self.get_logger().debug(f'{label} FK corridor verified: lateral={lateral:.6f}m '
                                        f'orientation={math.degrees(angle):.3f}deg samples={len(samples)}')
             else:
                 # Position-only KDL can report success while ignoring the
@@ -1539,7 +1603,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             point.time_from_start = Duration(nanoseconds=round(stamp * factor * 1e9)).to_msg()
             point.velocities = [x/factor for x in point.velocities]
             point.accelerations = [x/factor**2 for x in point.accelerations]
-        self.get_logger().info(f'Corridor uniform time scale={factor:.3f} '
+        self.get_logger().debug(f'Corridor uniform time scale={factor:.3f} '
                                f'duration={times[-1]*factor:.3f}s; geometry unchanged')
 
     def _pose_constraint(
@@ -1650,7 +1714,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
             float(self.get_parameter('cartesian_execution_wall_timeout_factor').value),
             float(self.get_parameter('cartesian_execution_wall_timeout_margin_sec').value),
             float(self.get_parameter('cartesian_execution_wall_timeout_minimum_sec').value))
-        self.get_logger().info(f'{label} execution deadline: trajectory={planned_duration:.3f}s '
+        self.get_logger().debug(f'{label} execution deadline: trajectory={planned_duration:.3f}s '
                                f'wall_timeout={execution_timeout:.3f}s')
         execute_goal = ExecuteTrajectory.Goal()
         execute_goal.trajectory = trajectory
@@ -1667,7 +1731,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         result_future = execute_handle.get_result_async()
         deadline = time.monotonic() + execution_timeout
         while not result_future.done() and time.monotonic() < deadline:
-            rclpy.spin_once(self, timeout_sec=0.02)
+            self._spin_once(timeout_sec=0.02)
 
             count = self._controller_state_counts[arm]
             if contact is None or count == last_sample:
@@ -1826,7 +1890,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 f'lift verification could not reconstruct {attempt.label}'
             )
         center_z = float(inspected.objects.objects[0].obb_pose.position.z)
-        self.get_logger().info(
+        self.get_logger().debug(
             f'Lift verification: label={attempt.label} '
             f'center_z={center_z:.3f}m minimum={minimum:.3f}m'
         )
@@ -1895,9 +1959,9 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         )
         deadline = time.monotonic() + 0.25
         while time.monotonic() < deadline:
-            rclpy.spin_once(self, timeout_sec=0.05)
+            self._spin_once(timeout_sec=0.05)
         actual = self._joint_positions.get(joint, math.inf)
-        self.get_logger().info(f'GRIPPER FEEDBACK arm={arm} operation={command} start={start:.5f} '
+        self.get_logger().debug(f'GRIPPER FEEDBACK arm={arm} operation={command} start={start:.5f} '
             f'actual={actual:.5f} command={position:.5f} residual={actual-position:.5f} '
             f'velocity={self._joint_velocities.get(joint, math.nan):.5f}')
         succeeded = (
@@ -1938,7 +2002,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         stable_since = None
         samples = 0
         while time.monotonic() - started < timeout:
-            rclpy.spin_once(self, timeout_sec=0.05)
+            self._spin_once(timeout_sec=0.05)
             stamp = getattr(self, '_gripper_feedback_stamps', {}).get(joint, 0)
             if stamp <= previous:
                 continue
@@ -1948,7 +2012,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                     stable_since = stamp
                 samples += 1
                 if samples >= 3 and (stamp - stable_since) / 1e9 >= duration:
-                    self.get_logger().info(
+                    self.get_logger().debug(
                         f'{arm} gripper stable contact: samples={samples} '
                         f'wait_wall_sec={time.monotonic()-started:.3f}')
                     return True

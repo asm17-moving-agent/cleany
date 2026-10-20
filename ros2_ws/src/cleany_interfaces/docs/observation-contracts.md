@@ -4,8 +4,8 @@
 인터페이스다. header의 capture stamp/frame, snapshot_id, object_id로 기존
 GraspCandidate와 연관하고, mesh_pose는 header frame 기준이며 Mesh vertices는
 mesh_pose의 local 좌표다. convex footprint를 인식된 지지면까지 돌출한 형상으로,
-실제 숨은 형상이나 시뮬레이터 정답을 의미하지 않는다. 기존 InspectScene,
-PlanGrasp, GraspCandidate의 필드를 바꾸지 않아 기존 CDR 기록 형식은 유지한다.
+실제 숨은 형상이나 시뮬레이터 정답을 의미하지 않는다. 별도 mesh 메시지이며,
+다른 인터페이스의 필드 변경과 호환성은 각각의 계약을 확인한다.
 메시 타입 의존성에 shape_msgs가 포함된다.
 
 `ObserveWristTarget.srv`는 RGB-only 손목 인계/확인 서비스다.
@@ -126,20 +126,68 @@ colcon test-result --verbose
 
 ## 단일 물체 Manipulation action
 
-`ExecuteManipulationSkill`은 승인된 물체 하나를 목적지로 옮기는 실행 계약입니다.
-요청은 mission/task/execution ID, skill, snapshot ID, snapshot 범위의 uint32 object ID와
-목적지 ID를 포함합니다. execution ID는 호출자가 발급하고 전송 전에 영속 저장합니다.
-결과는 status/error, 실패·완료 stage, 물체·placement 상태, 선택한 팔,
-정지 확인, 팔 복귀, retryable과 설명을 포함합니다. feedback stage는 완료 증거가 아닙니다.
+실행·취소·조회 명령은 [Skill Executor 실행 안내](../../cleany_skill_executor/docs/manipulation_mock_usage.md)를
+따른다. 이 절은 ROS 필드와 종료·기록 상태의 의미를 정리한다.
 
-`ManipulationExecutionRecord`는 동일 요청 및 영속 진행/결과와 revision, timestamp,
-사람 확인 필요 여부를 전달합니다. `GetManipulationExecution`은 execution ID로 이 기록을
-조회합니다. 현재 `found=false`는 서버 저장 오류와도 구분되지 않으므로 실행되지 않았다는
-증거로 사용하지 않습니다. 상세 수락·성공·취소와 주행 gate는
-[Mission Manager 계약](mission.md)을 따릅니다.
+### 공개 인터페이스
 
-이 세 interface는 팀원 브랜치 `feat/manipulation-action-server`의
-`46efa012cddb4ef0ff3f4dadb785550591bb6073`과 동일합니다. 서버 내부 BT 구조는 이 계약에 포함하지 않습니다.
+| 타입 | 기본 ROS 이름 | 역할 |
+|---|---|---|
+| `ExecuteManipulationSkill.action` | `/mock/manipulation/execute_skill` | 승인된 `collect_trash` 또는 `collect_lost_item` 물체 하나의 요청·Feedback·Result·취소 |
+| `GetManipulationExecution.srv` | `/mock/manipulation/get_execution` | execution_id를 받아 found와 최신 record 반환 |
+| `CancelManipulation.srv` | `/mock/manipulation/cancel` | 활성 execution_id와 취소 mode를 받아 accepted와 message 반환 |
+| `ManipulationExecutionRecord.msg` | `/mock/manipulation/execution_events` | 진행·종료·재시작 중단 이벤트 |
+
+[MuJoCo BT 서버](../../cleany_manipulation_bt/README.md)는 같은 계약을 `/sim/manipulation`에서 제공한다.
+
+이벤트 QoS는 Reliable·Transient Local, depth 100이다.
+상태·단계·오류의 전체 목록은 [Action 명세](../../cleany_skill_executor/docs/02_execute_manipulation_skill_action_spec.md)를 따른다.
+
+### Goal·Feedback·Result
+
+| 구분 | 확인할 내용 |
+|---|---|
+| Goal | 호출자가 execution_id 발급. snapshot_id/object_id 조합으로 대상 지정 |
+| Feedback | 큰 단계 `stage`, 세부 동작 `substage`, 선택 팔과 진행 설명 |
+| `substage` | Feedback·기록의 현재 세부 동작. 큰 단계 `stage`의 취소·timeout 계약은 유지 |
+| `completed_substages` | 기록에 저장된 완료 세부 동작 목록. 명령 완료와 물체 상태 확인을 구분 |
+| `failed_substage` | Result·기록의 실패 세부 동작. 기존 기록에는 빈 값일 수 있음 |
+| `cancel_mode` | Result·기록의 취소 정책. `IMMEDIATE`, `CHECKPOINT`, `RETURN_ARM`; 취소 요청이 없으면 빈 값 |
+| Result | 종료 status, 오류, 물체·놓은 결과·팔 복귀·정지 근거 |
+| `execution_profile` | 근거를 생성한 실행 환경. 모의 서버는 `mock`, BT MuJoCo 서버는 `mujoco` |
+
+세부 진행 필드 추가 후 서버·클라이언트·모니터를 함께 재빌드하고 재시작한다.
+이전 SQLite JSON 기록은 세부 진행 필드가 없어도 읽으며 빈 값으로 취급한다.
+
+`CancelManipulation`은 기본 Action 취소를 내부에서 전달해 ROS 상태도 `CANCELING`으로
+전환한다. 일반 Action cancel의 기본 정책은 `CHECKPOINT`다. 활성 실행 중 모드 선택은
+멱등이며, 이미 요청한 모드를 변경하려면 `IMMEDIATE`로 선점한다. 즉시 정지는 이후
+요청으로 완화되지 않는다. 잘못된 ID와 mode, 종료된 실행은 거절한다.
+
+### 실행 기록 읽기
+
+`ManipulationExecutionRecord`는 Goal, 최신 진행과 Result 필드를 함께 제공한다.
+
+| 필드 | 의미 |
+|---|---|
+| `record_state` | 아래 표의 기록 상태 |
+| `has_result` | 최종 Action Result 존재 여부 |
+| `human_confirmation_required` | 물리 상태에 대한 사람 확인 필요 여부 |
+| `revision` | 기록 갱신 버전 |
+| `accepted_at_ns`, `updated_at_ns`, `evidence_at_ns` | 수락·갱신·관측 근거 시각. Unix nanoseconds |
+
+| `record_state` | 해석 |
+|---|---|
+| `ACTIVE` | 진행 중 |
+| `FINISHED` | 실행 종료와 최종 Result 확정. 디스크 저장 완료를 보장하지 않음 |
+| `INTERRUPTED` | 재시작 시 발견한 미완료 실행. 가짜 Result를 만들지 않음 |
+| `RECORDING_FAILED` | 이전 구현의 저장 실패 진단. 현재 서버는 새 기록에 사용하지 않음 |
+
+`has_result=false`이면 status/error_code/failed_stage/retryable을 Result로 해석하지 않는다.
+중단 기록도 마지막 물리 상태와 완료 단계를 보존하며 사람 확인 필요를 표시한다.
+현재 서버의 조회는 메모리의 최신 기록을 반환한다. 실행 기록 저장 실패는 경고로 남기고
+실제 실행의 status와 error_code를 유지하며, 조회 성공이 디스크 저장 완료를 보장하지 않는다.
+단계 deadline은 기록 시각과 별개로 프로세스 단조 시계를 사용한다.
 
 ### 개발 관측 인터페이스
 
@@ -154,3 +202,29 @@ header, boot ID, 연속 sequence, mission/task/execution ID, kind, `data_json`�
 kind는 transition, bt_tick, action_start, action_result, action_cancel_requested,
 cancel_requested, mission_result다. 관측 데이터이며 명령 인터페이스가 아니다.
 기존 `MissionStatus`, `MissionResult`, 미션 service 계약은 변경하지 않는다.
+
+## 읽기 전용 snapshot 조회
+
+`GetSceneSnapshot.srv`는 `/perception/get_scene_snapshot`에서 `snapshot_id`를 받아
+`found`, `DetectedObject2DArray detections`, `message`를 반환한다. 기존 cache만 조회하고
+TTL, 촬영 시각과 객체 번호를 갱신하지 않는다. 누락/만료는 `found=false`다.
+
+
+## 관찰 간 추적
+
+`InspectScene.Goal.tracking_session_id`는 같은 고정 베이스 책상 작업에 재사용한다.
+2D 메시지의 `track_id`, `tracking_state`, `position_valid`, `representative_position`은
+관찰 간 연결에 쓰이며 3D 대표 위치 frame은 배열의 `representative_frame`에 명시한다.
+배열은 session/epoch와 마지막 참조를 보존한 `missing_objects`를 포함한다. 최초부터
+불확실한 대상의 missing 참조에는 빈 track ID가 있을 수 있다. 선택 3D 결과에도 같은
+track/session/epoch를 전달한다. RGB header frame·snapshot-local 번호와 구분한다.
+세션을 비우면 추적을 사용하지 않는다. snapshot 조회·선택 복원은 저장된 ID를 유지한다.
+
+
+## 개체별 배치 확인
+
+`RegisterPlacementTarget.srv`는 `/sorting/register_placement_target`에서 execution ID,
+목적지, 촬영 header와 관측 OBB·종류로 개체를 고정하고 불투명 `verification_id`를 반환한다.
+`VerifyPlacement.verification_id`가 있으면 그 개체만 확인한다. 미등록·만료 ID는 실패하고
+label로 fallback하지 않는다. 빈 ID의 label-only 경로는 종류당 물체 하나인 기존 장면에
+유지한다. 종류 중복 장면은 등록 경로가 필요하다. 인터페이스 변경 후 consumer를 모두 재빌드한다.

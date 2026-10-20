@@ -186,7 +186,7 @@ def _tabletop_objects(
             )
         )
     names = [item.name for item in objects]
-    if set(names) != {'cup', 'lego', 'tissue', 'mouse'}:
+    if not {'cup', 'lego', 'tissue', 'mouse'} <= set(names):
         raise ValueError(
             'mujoco.tabletop_objects must define cup, lego, tissue, mouse'
         )

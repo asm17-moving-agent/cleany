@@ -1,5 +1,17 @@
 # cleany_skill_executor
 
+## 단일 물체 Action 실행
+
+승인된 물체 하나의 실행은 Mock 서버와 native MuJoCo BT 서버가 같은
+`ExecuteManipulationSkill` 계약을 사용합니다. Mock의 요청, 취소, 조회와 모니터는
+[실행 안내](manipulation_mock_usage.md), 물리 시뮬레이션의 인식·MoveIt 연동은
+[MuJoCo BT 서버](../../cleany_manipulation_bt/README.md)를 따릅니다.
+세부 진행, 취소 정책과 실행 기록 필드는
+[공통 Action 계약](../../cleany_interfaces/docs/observation-contracts.md#단일-물체-manipulation-action)에 정리합니다.
+Mission Manager의 `action_mock` 어댑터는 `/mock/manipulation`의 계약을 호출합니다.
+기본 Mission runtime의 조작 backend 선택은 Mission 설정으로 유지합니다.
+아래 nearest-pregrasp와 sorting coordinator는 별도 실행 경로입니다.
+
 파지 후보 선택, MoveIt 계획, 시뮬레이션 집기·분류·놓기를 담당한다.
 실물 명령을 지원하는 통합 운용 단계는 아니며 외부 로봇 경로는 plan-only다.
 

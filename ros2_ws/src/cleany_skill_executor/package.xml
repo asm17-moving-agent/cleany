@@ -30,6 +30,7 @@
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-pil</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>python3-zmq</exec_depend>
   <exec_depend>rqt_image_view</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <test_depend>python3-pytest</test_depend>

@@ -15,6 +15,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectedObject3DArray.msg"
   "msg/GraspCandidate.msg"
   "msg/ObservedObjectGeometry.msg"
+  "msg/TrackedObjectReference.msg"
 
   "msg/MissionStatus.msg"
   "msg/DebugBTNode.msg"
@@ -34,6 +35,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GetRuntimeSnapshot.srv"
   "srv/GetManipulationExecution.srv"
   "srv/CancelManipulation.srv"
+  "srv/GetSceneSnapshot.srv"
+  "srv/RegisterPlacementTarget.srv"
   DEPENDENCIES geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 

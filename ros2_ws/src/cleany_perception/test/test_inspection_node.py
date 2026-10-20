@@ -437,3 +437,26 @@ def test_inspection_action_honors_cancel_while_waiting_for_rgbd(
             wrapped_result.result.error_code
             == InspectScene.Result.ERROR_CANCELLED
         )
+
+
+def test_snapshot_lookup_preserves_capture_time_and_does_not_extend_ttl(synthetic_scene):
+    from types import SimpleNamespace
+    from cleany_interfaces.srv import GetSceneSnapshot
+    from cleany_perception.snapshot_cache import CachedDetectionSnapshot, DetectionSnapshotCache
+    now = [0.0]
+    cache = DetectionSnapshotCache(ttl_seconds=10., clock=lambda: now[0])
+    cached = CachedDetectionSnapshot(synthetic_scene['snapshot'],
+        (synthetic_scene['detection'],), (.5,), synthetic_scene['transform'], 'camera')
+    cache.put('approved', cached)
+    node = SimpleNamespace(_snapshot_cache=cache, _detections_message=InspectionNode._detections_message)
+    now[0] = 9.
+    response = InspectionNode._get_scene_snapshot(node, GetSceneSnapshot.Request(snapshot_id='approved'),
+                                                GetSceneSnapshot.Response())
+    assert response.found and response.detections.snapshot_id == 'approved'
+    assert response.detections.header.stamp.sec == 1
+    assert response.detections.header.stamp.nanosec == 500_000_000
+    assert response.detections.detections[0].object_id == 1
+    now[0] = 10.
+    response = InspectionNode._get_scene_snapshot(node, GetSceneSnapshot.Request(snapshot_id='approved'),
+                                                GetSceneSnapshot.Response())
+    assert not response.found and response.detections.detections == []
