@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+apt-get update
+apt-get install -y --no-install-recommends \
+  ccache git make python3-pip libgl1-mesa-dri xauth xvfb
+source /opt/ros/humble/setup.bash
+printf 'yaml file:///opt/cleany-ci/ros2_ws/rosdep/cleany.yaml\n' \
+  > /etc/ros/rosdep/sources.list.d/10-cleany.list
+rosdep update --rosdistro humble
+PIP_CONSTRAINT=/opt/cleany-ci/pip-constraints.txt \
+  rosdep install --from-paths /opt/cleany-ci/ros2_ws/src \
+    --ignore-src --rosdistro humble -y
+python3 -m pytest --version
+dpkg-query -W > /opt/cleany-ci/dpkg-packages.txt
+python3 -m pip freeze > /opt/cleany-ci/pip-packages.txt
+rm -rf /var/lib/apt/lists/* /root/.cache/pip

@@ -9,6 +9,7 @@ setup(name=package_name, version='0.1.0', packages=find_packages(exclude=['test'
                   ('share/' + package_name + '/config',
                    glob('config/*.yaml') + glob('config/*.perspective'))],
       install_requires=['setuptools'], zip_safe=True,
+      tests_require=['pytest'],
       entry_points={'console_scripts': [
           'base_driver_node=cleany_base_driver.driver_node:main',
           'mock_mcu_node=cleany_base_driver.mock_node:main',

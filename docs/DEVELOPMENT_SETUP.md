@@ -15,7 +15,7 @@
 
 ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원합니다. ROS의 system Python은 유지하며 Python 가상환경으로 대체하지 않습니다.
 
-[CI workflow](../.github/workflows/ci.yml)는 Humble ros-base container에서 package 의존성과 자동 검사를 확인합니다. GUI와 실물 동작은 별도 검증이 필요합니다. 설치 전에 아래 명령으로 현재 버전을 확인합니다.
+[CI workflow](../.github/workflows/ci.yml)는 [전용 이미지](../containers/ci/Dockerfile)에 설치한 Humble package 의존성으로 자동 검사를 실행합니다. 이미지 갱신과 컴파일 캐시는 [테스트 가이드](TESTING.md#ci-실행과-재사용)를 따릅니다. GUI와 실물 동작은 별도 검증이 필요합니다. 설치 전에 아래 명령으로 현재 버전을 확인합니다.
 
 ```bash
 lsb_release -ds

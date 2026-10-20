@@ -5,7 +5,6 @@
   <description>Read-only FSM, BT, ROS graph and navigation developer monitor.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>MIT</license>
-  <buildtool_depend>ament_python</buildtool_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>rosbag2_py</exec_depend>
   <exec_depend>rosbag2_storage_default_plugins</exec_depend>

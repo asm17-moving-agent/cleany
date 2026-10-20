@@ -2,12 +2,12 @@ name: Cleany CI
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * 1'
 
 permissions:
   contents: read
@@ -20,16 +20,11 @@ jobs:
   build-and-unit:
     name: build-and-unit
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
-    container:
-      image: ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4
-    env:
-      DEBIAN_FRONTEND: noninteractive
-      LIBGL_ALWAYS_SOFTWARE: "1"
-      ROS_DOMAIN_ID: "42"
-      ROS_HOME: /tmp/cleany-ros
-      # Runtime dependencies can install plugins incompatible with Jammy's pytest.
-      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+    # Image creation is a cold path; ordinary runs reuse the dependency image.
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
     defaults:
       run:
         shell: bash
@@ -41,59 +36,135 @@ jobs:
           persist-credentials: false
           submodules: false
 
-      - name: Trust checkout workspace
-        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+      - name: Test CI tools
+        run: make test-ci-tools
 
-      - name: Install CI bootstrap dependencies
+      - name: Identify dependency image
+        id: dependencies
+        run: |
+          python3 tools/ci/dependency_image.py \
+            --context "${RUNNER_TEMP}/ci-context" \
+            --repository "${GITHUB_REPOSITORY}" >> "${GITHUB_OUTPUT}"
+
+      - name: Restore compiler cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/cleany-ccache
+          key: cleany-ccache-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.dependencies.outputs.key }}-${{ github.sha }}
+          restore-keys: |
+            cleany-ccache-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.dependencies.outputs.key }}-
+            cleany-ccache-v1-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Authenticate dependency image registry
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "${REGISTRY_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Prepare dependency image
+        id: image
+        env:
+          IMAGE: ${{ steps.dependencies.outputs.image }}
+          DEPENDENCY_KEY: ${{ steps.dependencies.outputs.key }}
         run: |
           set -euo pipefail
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            libgl1-mesa-dri \
-            python3-pip \
-            xauth \
-            xvfb
+          if docker pull "${IMAGE}"; then
+            echo 'hit=true' >> "${GITHUB_OUTPUT}"
+          else
+            echo 'hit=false' >> "${GITHUB_OUTPUT}"
+            docker build --pull --platform linux/amd64 \
+              --build-arg "DEPENDENCY_KEY=${DEPENDENCY_KEY}" \
+              --build-arg "SOURCE_URL=https://github.com/${GITHUB_REPOSITORY}" \
+              --tag "${IMAGE}" --file "${RUNNER_TEMP}/ci-context/containers/ci/Dockerfile" \
+              "${RUNNER_TEMP}/ci-context"
+          fi
+          docker image inspect "${IMAGE}" --format '{{.Id}}' >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Start CI environment
+        env:
+          IMAGE: ${{ steps.dependencies.outputs.image }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/cleany-builds" "${RUNNER_TEMP}/cleany-ccache"
+          # Bound package-level and compiler-level parallelism together.
+          compile_jobs=$(( $(nproc) / 2 ))
+          test "${compile_jobs}" -ge 1 || compile_jobs=1
+          docker run --detach --name cleany-ci --entrypoint sleep \
+            --workdir "${GITHUB_WORKSPACE}" \
+            --volume "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
+            --volume "${RUNNER_TEMP}/cleany-builds:/ci-builds" \
+            --volume "${RUNNER_TEMP}/cleany-ccache:/ci-ccache" \
+            --env CLEANY_BUILD_ROOT=/ci-builds \
+            --env CCACHE_DIR=/ci-ccache --env CCACHE_MAXSIZE=2G \
+            --env CCACHE_COMPILERCHECK=content --env "CCACHE_BASEDIR=${GITHUB_WORKSPACE}" \
+            --env "CMAKE_BUILD_PARALLEL_LEVEL=${compile_jobs}" \
+            --env LIBGL_ALWAYS_SOFTWARE=1 --env ROS_DOMAIN_ID=42 \
+            --env ROS_HOME=/tmp/cleany-ros "${IMAGE}" infinity
+          docker exec cleany-ci git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          tools/ci/run ccache --zero-stats
 
       - name: Verify CI environment
         run: |
-          set -eo pipefail
-          source /etc/os-release
-          test "${VERSION_ID}" = "22.04"
-          test "$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" = "3.10"
-          test -f /opt/ros/humble/setup.bash
-          source /opt/ros/humble/setup.bash
-          test "${ROS_DISTRO}" = "humble"
-          command -v git
-          command -v make
-          command -v pip3
-          command -v ros2
-          command -v colcon
-          command -v rosdep
-          command -v xvfb-run
-          git -C "${GITHUB_WORKSPACE}" rev-parse HEAD
-
-      - name: Register Cleany rosdep rules
-        run: |
-          set -euo pipefail
-          rule_file="${GITHUB_WORKSPACE}/ros2_ws/rosdep/cleany.yaml"
-          test -f "${rule_file}"
-          printf 'yaml file://%s\n' "${rule_file}" \
-            > /etc/ros/rosdep/sources.list.d/10-cleany.list
-          rosdep update --rosdistro humble
-          rosdep resolve --rosdistro humble google-genai
-
-      - name: Install workspace dependencies
-        run: make deps
-
-      - name: Verify Gazebo baseline
-        run: make check-gazebo-env
+          tools/ci/run bash -c '
+            set -eo pipefail
+            source /etc/os-release
+            test "${VERSION_ID}" = "22.04"
+            test "${ROS_DISTRO}" = "humble"
+            test "$(python3 -c '\''import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'\'')" = "3.10"
+            for command in git make pip3 ros2 colcon rosdep xvfb-run ccache; do
+              command -v "${command}"
+            done
+            python3 -m pytest --version
+            git rev-parse HEAD
+          '
+          tools/ci/run make check-gazebo-env
 
       - name: Build and test workspace
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test
-      - name: Test motor core and device-free base integration
-        run: make test-motor-core test-base
+        run: tools/ci/run xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test
+
+      - name: Test motor core
+        run: tools/ci/run make test-motor-core
 
       - name: Test common navigation runtime without Gazebo
-        run: make test-navigation-runtime
+        run: |
+          tools/ci/run make -o build-navigation test-navigation-runtime \
+            NAVIGATION_BUILD_BASE=/ci-builds/build \
+            NAVIGATION_INSTALL_BASE=/ci-builds/install \
+            NAVIGATION_LOG_BASE=/ci-builds/log
+
       - name: Test Gazebo navigation runtime
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test-gazebo-nav-runtime
+        run: tools/ci/run xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make -o build-gazebo test-gazebo-nav-runtime
+
+      - name: Publish validated dependency image
+        if: success() && steps.image.outputs.hit == 'false' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          IMAGE: ${{ steps.dependencies.outputs.image }}
+        run: |
+          docker push "${IMAGE}" || echo '::warning::Image publication failed; subsequent runs will build dependencies locally.'
+
+      - name: Collect diagnostics and compiler cache statistics
+        if: always()
+        run: |
+          if docker inspect cleany-ci >/dev/null 2>&1; then
+            tools/ci/run ccache --show-stats | tee "${RUNNER_TEMP}/cleany-builds/ccache.txt"
+            docker cp cleany-ci:/opt/cleany-ci/dpkg-packages.txt "${RUNNER_TEMP}/cleany-builds/"
+            docker cp cleany-ci:/opt/cleany-ci/pip-packages.txt "${RUNNER_TEMP}/cleany-builds/"
+            sudo chown -R "$(id -u):$(id -g)" "${RUNNER_TEMP}/cleany-ccache"
+          fi
+
+      - name: Upload test results and environment
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ci-results-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/cleany-builds/build/**/test_results/**/*.xml
+            ${{ runner.temp }}/cleany-builds/build/**/pytest.xml
+            ${{ runner.temp }}/cleany-builds/log/latest_test/**/stdout_stderr.log
+            ${{ runner.temp }}/cleany-builds/*.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Stop CI environment
+        if: always()
+        run: docker rm --force cleany-ci || true
