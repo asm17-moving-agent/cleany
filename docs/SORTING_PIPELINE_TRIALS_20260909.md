@@ -2,8 +2,8 @@
 
 > 날짜별 시험 당시의 코드·물체·설정 기록이다. 지갑, 외부 선반, 예전 깊이·속도·
 > 검증 기본값을 현재 실행 설정으로 적용하지 않는다. 현재 설정은
-> [Skill Executor README](../ros2_ws/src/cleany_skill_executor/README.md)와
-> [MuJoCo README](../ros2_ws/src/cleany_mujoco_sim/README.md), 현재 검증 상태는
+> [Skill Executor README](../ros2_ws/src/cleany_skill_executor/docs/manipulation.md)와
+> [MuJoCo README](../ros2_ws/src/cleany_mujoco_sim/docs/scenes.md), 현재 검증 상태는
 > [2026-09-14 품질 점검](QUALITY_REVIEW_20260914.md)을 따른다.
 
 ## 범위와 판정

@@ -1,6 +1,6 @@
 # 스터디카페 실행과 진단
 
-[패키지 안내로 돌아가기](../README.md)
+[패키지 안내로 돌아가기](manipulation.md)
 
 ## 센서 전용 study-cafe 검증
 
@@ -99,7 +99,7 @@ category/reason 미제공 결과는 review로 남기고 조작하지 않는다.
 `cup`, `computer mouse`, `crumpled tissue`, `lego brick`이며 Gemini는 고정 목록 없이
 외형에 따른 자유 라벨을 생성한다. 모델 출력 category/reason으로 분류하고 위험·저신뢰
 결과는 review로 남긴다. 장면의 형상·크기와 평가용 body mapping은
-[MuJoCo README](../../cleany_mujoco_sim/README.md)를 따른다.
+[MuJoCo README](../../cleany_mujoco_sim/docs/scenes.md)를 따른다.
 
 수거 위치는 로봇 뒤쪽 +Y(좌측)의 `lost_items_left`, -Y(우측)의
 `trash_right`다. `cleany_mujoco_sim/config/robot_top_bins.yaml`은

@@ -13,6 +13,23 @@ from cleany_perception.depth_scene_cloud import depth_scene_cloud
 
 
 class DepthSceneNode(Node):
+    """Publish sensor depth as a scene cloud for visualization and mapping.
+
+    Subscriptions:
+        /camera/depth/image_rect_raw (sensor_msgs/msg/Image): Captured depth.
+        /camera/depth/camera_info (sensor_msgs/msg/CameraInfo): Projection intrinsics.
+
+    Publishers:
+        /perception/scene_cloud (sensor_msgs/msg/PointCloud2): Nonempty measured
+            cloud in the capture frame, with the original stamp.
+
+    QoS:
+        Inputs use best-effort depth 1; output uses reliable depth 1.
+
+    Notes:
+        Topic names are configurable defaults. Repeated, stale, invalid or empty
+        samples are skipped. No cloud is computed without an output subscriber.
+    """
     def __init__(self) -> None:
         super().__init__('depth_scene_node')
         defaults = {

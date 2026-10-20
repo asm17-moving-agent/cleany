@@ -4,6 +4,7 @@ wheel_odometry:
     output_topic: wheel/odom
     odom_frame_id: odom
     base_frame_id: base_link
+    velocity_window_s: 0.0
     wheel_radius_m: 0.0635
     wheelbase_m: 0.30
     wheel_separation_m: 0.51

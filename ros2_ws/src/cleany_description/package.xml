@@ -9,7 +9,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <test_depend>ament_cmake_pytest</test_depend>
-  <test_depend>mujoco</test_depend>
+  <test_depend>python3-mujoco-pip</test_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>

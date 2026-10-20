@@ -1,109 +1,71 @@
-# 끌리니 (Cleany)
+# Cleany 로봇 런타임
 
-무인 스터디카페의 지정 구역에서 쓰레기와 분실물 후보를 분류·수거하는 로봇 엣지 시스템 구현 저장소다.
+Cleany 로봇의 ROS 2 runtime, Gazebo/MuJoCo 시뮬레이션, ESP32 펌웨어를 관리하는 저장소입니다. 제품 목표와 설계 결정은 [KB](docs/cleany-docs/README.md)에서 확인합니다. 각 구현과 시험의 상태는 제품 전체의 완료 여부와 구분합니다.
 
-AI·SW마에스트로 제17기 | 팀명: AI 에이전트는 움직이고 싶어
+## 문서 지도
 
-제품의 1차 타깃은 무인 스터디카페이며 MVP 시연 환경은 개발센터 개발공간이다.
-제품 범위와 채택된 설계는 [기획 KB](docs/cleany-docs/README.md)를 따른다.
-이 저장소의 시뮬레이션 설정은 실물 하드웨어 사양이나 안전 기준의 확정을 뜻하지 않는다.
-
-## 현재 구현
-
-| 영역 | 구현 상태와 진입점 |
-| --- | --- |
-| Mission lifecycle | [Mission Manager](ros2_ws/src/cleany_mission_manager/README.md)의 순수 Python FSM·port·단위 테스트. 외부 mission ROS API는 아직 없음 |
-| RGB-D 인식 | [Perception](ros2_ws/src/cleany_perception/README.md)의 YOLOE-seg 검출·선택 객체 분할·3D 복원과 Gemini 분류 |
-| 파지·조작 | [Grasping](ros2_ws/src/cleany_grasping/README.md)의 기하/AnyGrasp 후보와 [Skill Executor](ros2_ws/src/cleany_skill_executor/README.md)의 IK·pregrasp·접촉 기반 집기·분류·놓기 |
-| 물체 하나의 Action 실행 | [Mock 서버](ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md)의 모의 실행·취소·조회와 [MuJoCo BT 서버](ros2_ws/src/cleany_manipulation_bt/README.md)의 실제 인식·MoveIt 연동 |
-| 계획·충돌 지도 | [MoveIt 설정](ros2_ws/src/cleany_moveit_config/README.md), [선택형 OctoMap updater](ros2_ws/src/cleany_scene_mapping/README.md) |
-| 로봇 모델·시뮬레이션 | [URDF/MJCF](ros2_ws/src/cleany_description/README.md), [MuJoCo](ros2_ws/src/cleany_mujoco_sim/README.md), [관측·카메라 스케줄러](ros2_ws/src/cleany_mujoco_observer/README.md) |
-| 주행·보정 | [Gazebo](ros2_ws/src/cleany_gazebo_sim/README.md)의 Mecanum·센서·SLAM 시험, [Navigation](ros2_ws/src/cleany_navigation/README.md) 설정, [Hand-eye calibration](ros2_ws/src/cleany_handeye_calibration/README.md) |
-| Jetson·모터 | [Vision container](containers/vision/README.md)의 분리된 perception/AnyGrasp 실행 환경, [Motor controller](esp32/README.md)의 펌웨어·회로·하드웨어 시험 자료 |
-| 미구현 경계 | `cleany_planner`, `cleany_robot_interface`, `cleany_logger`는 README scaffold. Dashboard/Backend부터 실물 수거까지의 통합 시스템은 아직 아님 |
-
-현재 분류 시뮬레이션의 흐름은 다음과 같다. Mission Manager의 FSM과 이 데모의
-coordinator는 별도 구현이며 end-to-end로 연결된 상태는 아니다.
-
-```text
-RGB-D → 검출·분류 → 선택 객체 분할·3D 복원 → 파지 후보
-                                                ↓
-                     MoveIt IK·충돌 검사 → 접근·파지·들기
-                                                ↓
-                           수거함 운반·놓기 → 복귀·재탐색
+```mermaid
+flowchart TB
+    KB["KB / 제품 목표와 설계 결정"]
+    Entry["README / 작업 선택"]
+    Setup["DEVELOPMENT_SETUP / 환경과 빌드"]
+    Run["RUNNING / 실행"]
+    Test["TESTING / 검증"]
+    Cal["CALIBRATION / 수집과 평가"]
+    Contract["INTEGRATION / 연결과 계약 위치"]
+    Ref["코드 옆 docs / 단위와 안전 규약"]
+    API["ROS_INTERFACES / 노드별 통신 목록"]
+    Evidence["EVIDENCE / 과거 원본 위치"]
+    KB -. "제품 기준" .-> Entry
+    Entry --> Setup
+    Setup --> Run
+    Run --> Test
+    Run --> Cal
+    Entry --> Contract
+    Contract --> Ref
+    Entry --> API
+    API --> Ref
+    Test --> Evidence
 ```
 
-개별 물체의 배치 성공 기록은 있으나 연속 전체 정리 성공과 실물 운용은 검증 중이다.
-[실행 기록](docs/SORTING_PIPELINE_TRIALS_20260909.md)과
-[저장소 품질 점검](docs/QUALITY_REVIEW_20260914.md)에서 검증 범위와 잔여 문제를 확인한다.
+## 개발 시작
 
-## 개발과 검증
-
-기준 환경은 Ubuntu 22.04 VM, native ROS 2 Humble, Python 3.10이다.
-새 환경은 [개발환경 설치 가이드](docs/DEVELOPMENT_SETUP.md)를 먼저 따른다.
-레포지토리 루트에서 실행한다.
+기준 환경은 Ubuntu 22.04, ROS 2 Humble, Python 3.10, Gazebo Fortress 6입니다. 새 환경은 [개발환경 설치](docs/DEVELOPMENT_SETUP.md)를 먼저 따릅니다. 아래 명령은 저장소 루트의 Humble 터미널에서 실행합니다.
 
 ```bash
 git submodule update --init --recursive docs/cleany-docs
-make deps
-make build
-make test
+source /opt/ros/humble/setup.bash
+make deps-gazebo
+make test-gazebo
+make sim-gazebo
 ```
 
-반복 작업에는 관련 범위의 테스트를 사용한다.
+전체 workspace는 `make deps`, `make build`, `make test`를 사용합니다. 각 검사의 범위와 시뮬레이션, 실물 검증의 차이는 [테스트 가이드](docs/TESTING.md)에서 확인합니다.
 
-```bash
-make test-grasp-pregrasp          # 인식·파지·분류·모델·충돌 지도 집중 검사
-make test-grasp-pregrasp-runtime  # MoveIt mock controller 실행
-make test-mujoco                 # MuJoCo 패키지 전체 테스트
-make test-manipulation-core      # 모의 Action core와 모니터 검사
-make test-manipulation-bt        # native BT와 Action·취소·조회 검사
-```
+## 필요한 문서
 
-전체 명령과 native 실행 방법은 [ROS 2 workspace 안내](ros2_ws/README.md) 및
-`make help`를 따른다. Jetson CUDA·모델·라이선스 인수검사는
-[Vision container 안내](containers/vision/README.md)에서 별도로 관리한다.
+| 작업 | 문서 |
+|---|---|
+| 환경 설치, 의존성, 빌드 경로 | [개발환경](docs/DEVELOPMENT_SETUP.md) |
+| 시뮬레이션, Mission Runtime, Monitor 실행 | [실행](docs/RUNNING.md) |
+| 변경 검증, runtime 시험, 결과 저장 | [테스트](docs/TESTING.md) |
+| hand-eye 데이터 수집과 검토 | [Calibration](docs/CALIBRATION.md) |
+| 노드별 토픽, 서비스, 액션 찾기 | [ROS 인터페이스 색인](docs/ROS_INTERFACES.md) |
+| Backend, ROS, MCU 연동 | [연동과 계약](docs/INTEGRATION.md) |
+| 펌웨어 빌드, 업로드, 장치 확인 | [ESP32](esp32/README.md), [배선](esp32/PINMAP.md) |
+| 과거 보고서와 실행 원본 찾기 | [근거 색인](docs/EVIDENCE.md) |
+| 코드 구조와 구현 학습 | [학습 가이드](docs/guide/README.md), [HTML 뷰어](docs/guide/index.html) |
+| 인식과 sorting 실행 | [Perception](ros2_ws/src/cleany_perception/docs/runtime.md), [Manipulation](ros2_ws/src/cleany_skill_executor/docs/manipulation.md) |
+| 물체 하나의 Action 실행 | [Mock 서버](ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md), [MuJoCo BT 서버](ros2_ws/src/cleany_manipulation_bt/README.md) |
+| 제품, 설계, 미해결 질문 | [KB](docs/cleany-docs/README.md) |
 
-## 시뮬레이션 실행
+## 코드 위치
 
-```bash
-make sim                        # 스터디카페 MuJoCo headless 실행
-make sim-mujoco-study-cafe       # 스터디카페 viewer
-make sim-mujoco-pipeline         # 인식·계획, 기본 plan-only
-make sim-mujoco-sorting          # 시뮬레이션 집기·운반·놓기
-make sim-mujoco-manipulation     # 승인된 물체 하나의 MuJoCo BT Action
-```
+| 위치 | 책임 |
+|---|---|
+| `ros2_ws/src/` | ROS 패키지, 순수 core, launch와 package 설정 |
+| `esp32/` | micro-ROS 펌웨어, 빌드 보조 도구, 장치 없는 검사와 PCB |
+| `tests/` | 패키지 경계를 넘는 통합 검사 |
+| `tools/` | 빌드 출력 정리와 vision 환경 준비 도구 |
 
-인식 파이프라인은 로컬 YOLOE-seg 모델과 `GEMINI_API_KEY`가 필요하며 RGB 영상을
-Google API로 전송한다. 기본 pipeline은 외부 RGB-D 입력을 기다린다.
-전체 수거 데모는 sorting target, 승인된 물체 하나의 Action 실행은 manipulation target을 사용한다.
-
-Sorting 기본값은 작업자가 GUI로 안착을 확인하는 `sorting_verify_placement:=false`다.
-완료 단계 `mission_complete_unverified`는 자동 배치 검증 성공을 뜻하지 않는다.
-독립 MuJoCo 배치 검증을 포함하려면 다음처럼 실행한다.
-
-```bash
-make sim-mujoco-sorting SORTING_ARGS='sorting_verify_placement:=true'
-```
-
-수거함은 로봇 내부 후면 받침판 위 좌측 분실물함·우측 쓰레기함이다.
-현재 시뮬레이션 설정은 고정 기둥의 물리 접촉과 MoveIt 로봇 링크 간 충돌을 제외한다.
-이 제한과 선택형 성능 프로필은 [MuJoCo README](ros2_ws/src/cleany_mujoco_sim/README.md)를 따른다.
-
-## 저장소와 문서
-
-| 경로 | 내용 |
-| --- | --- |
-| `ros2_ws/src/` | ROS 패키지와 설계 scaffold |
-| `configs/` | 공통 mission·robot 설정 영역 |
-| `esp32/` | MCU 펌웨어와 회로·하드웨어 시험 |
-| `containers/vision/` | Jetson vision 실행 환경 |
-| `tools/` | 개발·SLAM 평가 도구 |
-| `tests/` | 테스트 진입 안내; 실행 가능한 검사는 패키지별 `test/`·`tests/`에 위치 |
-| `docs/cleany-docs/` | 제품·기획·예비설계 KB submodule |
-| `docs/` | 개발환경, 날짜별 구현 실행·품질 점검 기록 |
-| `artifacts/`, `output/` | 로컬 실행 증거·발표 원본 및 출력물. Git 제외 |
-
-패키지 책임·ROS 인터페이스·설정·실행법은 해당 패키지 README를 코드와 함께 갱신한다.
-공통 작업 규칙은 [AGENTS.md](AGENTS.md), 기획 판단은 KB의 결정 및 질문 문서가 관리한다.
-KB submodule은 명시적인 KB 수정 요청이 있을 때만 편집한다.
+생성물과 실행 원본은 기본적으로 worktree 옆 `../cleany-data/`에 둡니다. 사용 가능한 명령은 `make help`, 실제 옵션은 Makefile, launch, config에서 확인합니다. 문서 변경은 기존 설명에 반영하며, README에는 날짜별 구현 일지를 추가하지 않습니다.

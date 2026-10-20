@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from math import asin, atan2, cos, isfinite, pi, sin, sqrt
 import json
+from math import asin, atan2, cos, isfinite, pi, sin, sqrt
 from pathlib import Path
 from tempfile import mkdtemp
 from xml.etree import ElementTree
 
 from cleany_gazebo_sim.lidar_noise import LidarNoiseProfile
+from cleany_gazebo_sim.world.sdf import write_world
 from cleany_gazebo_sim.world.layout import load_study_cafe_layout
 
 
@@ -63,18 +64,6 @@ _FOLDED_ARM_LINK_POSES = {
     'right_gripper_joint': ('right_moving_jaw', '0 0 0 0 0 0.8'),
 }
 _FUEL_VISUALS = {
-    'adj_table': (
-        'https://fuel.gazebosim.org/1.0/openrobotics/models/'
-        'adjtable/3/files/meshes/AdjTable.obj'
-    ),
-    'wooden_chair': (
-        'https://fuel.gazebosim.org/1.0/openrobotics/models/'
-        'woodenchair/1/files/meshes/WoodenChair.obj'
-    ),
-    'square_shelf': (
-        'https://fuel.gazebosim.org/1.0/openrobotics/models/'
-        'squareshelf/2/files/meshes/SquareShelf.obj'
-    ),
     'office_chair_grey': (
         'https://fuel.gazebosim.org/1.0/OpenRobotics/models/'
         'OfficeChairGrey/1/files/meshes/OfficeChairGrey.obj'
@@ -271,7 +260,6 @@ def materialize_mecanum_wheel_world(
         raise ValueError('world template is missing cleany_mecanum')
     sensor_plugin_names = {
         'ignition::gazebo::systems::Sensors',
-        'gz::sim::systems::Sensors',
     }
     sensors_plugin = next(
         (
@@ -339,12 +327,7 @@ def materialize_mecanum_wheel_world(
         f'cleany-mecanum-{suffix}-', 'world.sdf'
     )
     target.parent.mkdir(parents=True, exist_ok=True)
-    ElementTree.register_namespace(
-        'gz', 'http://gazebosim.org/schema'
-    )
-    ElementTree.ElementTree(root).write(
-        target, encoding='unicode', xml_declaration=True
-    )
+    write_world(ElementTree.ElementTree(root), target)
     if model_metadata is not None:
         target.with_suffix('.model.json').write_text(json.dumps(model_metadata, indent=2))
     return target
@@ -386,40 +369,6 @@ def _add_box_model(
                 ElementTree.SubElement(metal, 'metalness').text = '0.0'
 
 
-def _add_fuel_furniture(
-    world: ElementTree.Element,
-    name: str,
-    model_key: str,
-    pose: tuple[float, float, float, float, float, float],
-    collision_size: tuple[float, float, float],
-    collision_z: float,
-    visual_scale: tuple[float, float, float] | None = None,
-) -> None:
-    """Use a Fuel mesh only as a visual and a cheap box for collision."""
-    model = ElementTree.SubElement(world, 'model', {'name': name})
-    ElementTree.SubElement(model, 'static').text = 'true'
-    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
-    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
-    visual = ElementTree.SubElement(link, 'visual', {'name': 'fuel_visual'})
-    geometry = ElementTree.SubElement(visual, 'geometry')
-    mesh = ElementTree.SubElement(geometry, 'mesh')
-    ElementTree.SubElement(mesh, 'uri').text = _FUEL_VISUALS[model_key]
-    if visual_scale is not None:
-        ElementTree.SubElement(mesh, 'scale').text = ' '.join(
-            map(str, visual_scale)
-        )
-
-    if model_key == 'adj_table':
-        _add_table_collisions(link, 1.6, 0.82, 0.72, 0.68, 0.32)
-    elif model_key == 'wooden_chair':
-        _add_chair_collisions(link)
-    else:
-        _add_box_collision(
-            link, 'simple_collision', collision_size,
-            (0.0, 0.0, collision_z)
-        )
-
-
 def _add_box_collision(
     link: ElementTree.Element,
     name: str,
@@ -433,127 +382,6 @@ def _add_box_collision(
     geometry = ElementTree.SubElement(collision, 'geometry')
     box = ElementTree.SubElement(geometry, 'box')
     ElementTree.SubElement(box, 'size').text = ' '.join(map(str, size))
-
-
-def _add_cylinder_collision(
-    link: ElementTree.Element,
-    name: str,
-    radius: float,
-    length: float,
-    xyz: tuple[float, float, float],
-) -> None:
-    collision = ElementTree.SubElement(link, 'collision', {'name': name})
-    ElementTree.SubElement(collision, 'pose').text = (
-        f'{xyz[0]} {xyz[1]} {xyz[2]} 0 0 0'
-    )
-    geometry = ElementTree.SubElement(collision, 'geometry')
-    cylinder = ElementTree.SubElement(geometry, 'cylinder')
-    ElementTree.SubElement(cylinder, 'radius').text = str(radius)
-    ElementTree.SubElement(cylinder, 'length').text = str(length)
-
-
-def _add_table_collisions(
-    link: ElementTree.Element,
-    width: float,
-    depth: float,
-    height: float,
-    leg_x: float,
-    leg_y: float,
-) -> None:
-    top_thickness = 0.04
-    leg_length = height - top_thickness
-    _add_box_collision(
-        link,
-        'tabletop_collision',
-        (width, depth, top_thickness),
-        (0.0, 0.0, height - top_thickness / 2.0),
-    )
-    for leg_name, x, y in (
-        ('front_left', leg_x, leg_y),
-        ('front_right', leg_x, -leg_y),
-        ('back_left', -leg_x, leg_y),
-        ('back_right', -leg_x, -leg_y),
-    ):
-        _add_cylinder_collision(
-            link,
-            f'{leg_name}_leg_collision',
-            0.035,
-            leg_length,
-            (x, y, leg_length / 2.0),
-        )
-
-
-def _add_chair_collisions(link: ElementTree.Element) -> None:
-    _add_box_collision(
-        link, 'seat_collision', (0.36, 0.34, 0.04),
-        (-0.01, 0.0, 0.42)
-    )
-    _add_box_collision(
-        link, 'backrest_collision', (0.05, 0.36, 0.36),
-        (-0.19, 0.0, 0.61)
-    )
-    for leg_name, x, y in (
-        ('front_left', 0.14, 0.14),
-        ('front_right', 0.14, -0.14),
-        ('back_left', -0.14, 0.14),
-        ('back_right', -0.14, -0.14),
-    ):
-        _add_cylinder_collision(
-            link,
-            f'{leg_name}_leg_collision',
-            0.025,
-            0.40,
-            (x, y, 0.20),
-        )
-
-
-def _add_standard_table(
-    world: ElementTree.Element,
-    name: str,
-    pose: tuple[float, float, float, float, float, float],
-) -> None:
-    """Add a 72 cm variant of OpenRobotics' primitive Fuel Table."""
-    model = ElementTree.SubElement(world, 'model', {'name': name})
-    ElementTree.SubElement(model, 'static').text = 'true'
-    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
-    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
-
-    _add_table_collisions(link, 1.5, 0.8, 0.72, 0.68, 0.34)
-
-    top = ElementTree.SubElement(link, 'visual', {'name': 'wood_top'})
-    ElementTree.SubElement(top, 'pose').text = '0 0 0.70 0 0 0'
-    geometry = ElementTree.SubElement(top, 'geometry')
-    box = ElementTree.SubElement(geometry, 'box')
-    ElementTree.SubElement(box, 'size').text = '1.5 0.8 0.04'
-    material = ElementTree.SubElement(top, 'material')
-    ElementTree.SubElement(material, 'diffuse').text = '0.58 0.34 0.16 1'
-    pbr = ElementTree.SubElement(material, 'pbr')
-    metal = ElementTree.SubElement(pbr, 'metal')
-    ElementTree.SubElement(metal, 'albedo_map').text = (
-        'https://fuel.gazebosim.org/1.0/openrobotics/models/'
-        'table/3/files/Table_Diffuse.jpg'
-    )
-
-    for leg_name, x, y in (
-        ('front_left', 0.68, 0.34),
-        ('front_right', 0.68, -0.34),
-        ('back_left', -0.68, 0.34),
-        ('back_right', -0.68, -0.34),
-    ):
-        leg = ElementTree.SubElement(
-            link, 'visual', {'name': f'{leg_name}_leg'}
-        )
-        ElementTree.SubElement(leg, 'pose').text = (
-            f'{x} {y} 0.34 0 0 0'
-        )
-        geometry = ElementTree.SubElement(leg, 'geometry')
-        cylinder = ElementTree.SubElement(geometry, 'cylinder')
-        ElementTree.SubElement(cylinder, 'radius').text = '0.025'
-        ElementTree.SubElement(cylinder, 'length').text = '0.68'
-        material = ElementTree.SubElement(leg, 'material')
-        ElementTree.SubElement(material, 'diffuse').text = (
-            '0.20 0.20 0.22 1'
-        )
 
 
 def _add_box_part(
@@ -866,43 +694,6 @@ def _chair_pose_toward(
     return (chair_x, chair_y, 0.0, 0.0, 0.0, yaw)
 
 
-def _add_planter(
-    world: ElementTree.Element,
-    name: str,
-    xy: tuple[float, float],
-) -> None:
-    """Add a lightweight visual landmark with primitive collision."""
-    model = ElementTree.SubElement(world, 'model', {'name': name})
-    ElementTree.SubElement(model, 'static').text = 'true'
-    ElementTree.SubElement(model, 'pose').text = (
-        f'{xy[0]} {xy[1]} 0 0 0 0'
-    )
-    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
-    for element_name in ('collision', 'visual'):
-        pot = ElementTree.SubElement(
-            link, element_name, {'name': f'pot_{element_name}'}
-        )
-        ElementTree.SubElement(pot, 'pose').text = '0 0 0.25 0 0 0'
-        geometry = ElementTree.SubElement(pot, 'geometry')
-        cylinder = ElementTree.SubElement(geometry, 'cylinder')
-        ElementTree.SubElement(cylinder, 'radius').text = '0.24'
-        ElementTree.SubElement(cylinder, 'length').text = '0.5'
-        if element_name == 'visual':
-            material = ElementTree.SubElement(pot, 'material')
-            ElementTree.SubElement(material, 'diffuse').text = (
-                '0.42 0.20 0.10 1'
-            )
-    foliage = ElementTree.SubElement(
-        link, 'visual', {'name': 'foliage_visual'}
-    )
-    ElementTree.SubElement(foliage, 'pose').text = '0 0 0.72 0 0 0'
-    geometry = ElementTree.SubElement(foliage, 'geometry')
-    sphere = ElementTree.SubElement(geometry, 'sphere')
-    ElementTree.SubElement(sphere, 'radius').text = '0.38'
-    material = ElementTree.SubElement(foliage, 'material')
-    ElementTree.SubElement(material, 'diffuse').text = '0.12 0.42 0.16 1'
-
-
 def materialize_study_cafe_world(
     robot_template_path: Path,
     target_path: Path | None = None,
@@ -915,6 +706,8 @@ def materialize_study_cafe_world(
     robot_spawn_pose: tuple[float, float, float, float, float, float]
     | None = None,
     robot_model: str = 'legacy',
+    chair_model: str = 'legacy',
+    chair_config_path: Path | None = None,
 ) -> Path:
     """Build a spacious, lightweight study-cafe evaluation world."""
     if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
@@ -928,6 +721,14 @@ def materialize_study_cafe_world(
         / 'study_cafe'
         / 'study_cafe_layout.yaml'
     )
+    from cleany_gazebo_sim.world.roly import add_roly_chair, load_roly_config
+
+    if chair_model not in ('legacy', 'roly'):
+        raise ValueError('chair_model must be legacy or roly')
+    chair_config = load_roly_config(
+        chair_config_path or robot_template_path.parent.parent
+        / 'config/furniture/roly_p1g210m.yaml'
+    ) if chair_model == 'roly' else None
     target = target_path or _unique_runtime_target(
         'cleany-study-cafe-', 'world.sdf'
     )
@@ -1101,13 +902,12 @@ def materialize_study_cafe_world(
                     front_sign=front_sign,
                 )
                 chair_xy = (desk_x, desk_y + chair_offset)
-                _add_office_chair(
-                    world, chair_name,
-                    _chair_pose_toward(chair_xy, (desk_x, desk_y)),
-                )
+                chair_pose = _chair_pose_toward(chair_xy, (desk_x, desk_y))
+                if chair_config is None:
+                    _add_office_chair(world, chair_name, chair_pose)
+                else:
+                    add_roly_chair(world, chair_name, chair_pose, chair_config, target.parent / 'roly_meshes')
                 desk_index += 1
 
-    ElementTree.ElementTree(root).write(
-        target, encoding='unicode', xml_declaration=True
-    )
+    write_world(ElementTree.ElementTree(root), target)
     return target

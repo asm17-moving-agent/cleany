@@ -19,7 +19,21 @@ from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
 
 
 class GraspExecutionNode(Node):
-    """Provide action clients and guarded motion to manipulation coordinators."""
+    """Provide guarded MoveIt execution to manipulation coordinators.
+
+    Subscriptions:
+        /joint_states (sensor_msgs/msg/JointState): Motion feedback, depth 20.
+
+    Actions:
+        /grasp/select_reachable (cleany_interfaces/action/SelectReachableGrasp):
+            Selection client; selection_action default.
+        /move_action (moveit_msgs/action/MoveGroup): Motion client;
+            move_group_action default.
+
+    Notes:
+        Execution waits for joint feedback and checks the final tracking error.
+        This base class provides clients and helpers; subclasses own the sequence.
+    """
 
     def __init__(self, node_name: str = 'grasp_execution') -> None:
         super().__init__(node_name)

@@ -11,8 +11,23 @@
 
 namespace cleany_scene_mapping
 {
-// Own the whole callback: inconsistent geometry rejects the entire frame before
-// masking, raycasting, tree writes, and publishing a processed-cloud receipt.
+/**
+ * @brief Integrate clouds only when robot geometry remains consistent for the frame.
+ *
+ * @par Subscriptions
+ * point_cloud_topic (sensor_msgs/msg/PointCloud2): Required plugin parameter;
+ * there is no built-in topic default. Uses SensorDataQoS with depth 1.
+ *
+ * @par Publishers
+ * filtered_cloud_topic (sensor_msgs/msg/PointCloud2): Configured output after
+ * successful tree integration, with the source header. Empty disables output.
+ * Uses SensorDataQoS with depth 1; publication also acts as a processed receipt.
+ *
+ * @par TF and constraints
+ * The occupancy-map monitor supplies geometry transforms. This plugin does not
+ * broadcast TF. Invalid cloud layout, missing geometry transforms or a changed
+ * geometry generation rejects the frame before tree writes or publication.
+ */
 class KnownGeometryOctomapUpdater : public occupancy_map_monitor::OccupancyMapUpdater
 {
 public:
@@ -24,7 +39,7 @@ public:
   void stop() override;
   occupancy_map_monitor::ShapeHandle excludeShape(const shapes::ShapeConstPtr& shape) override;
   void forgetShape(occupancy_map_monitor::ShapeHandle handle) override;
-  // Same synchronous path as the subscription, exposed for map-level tests.
+  /// Same synchronous path as the subscription, exposed for map-level tests.
   bool processCloud(const sensor_msgs::msg::PointCloud2& cloud);
 
 private:

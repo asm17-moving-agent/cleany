@@ -1,6 +1,6 @@
 # 모의 Manipulation Action 사용법
 
-[패키지 안내로 돌아가기](../README.md)
+[패키지 안내로 돌아가기](manipulation.md)
 
 **물체 하나의 `collect_trash` 또는 `collect_lost_item`을 요청하고, 진행·결과·실행 기록을 터미널에서 확인한다.**
 현재 실행 profile은 `mock`이다. 팔과 그리퍼 동작 및 확인 근거를 모의로 생성하며,
@@ -27,7 +27,7 @@
 cd /home/ubuntu/Documents/cleany
 make build-manipulation
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 
 mock_db_dir="$(mktemp -d)"
 ros2 launch cleany_skill_executor manipulation_mock.launch.py \
@@ -42,7 +42,7 @@ ros2 launch cleany_skill_executor manipulation_mock.launch.py \
 ```bash
 cd /home/ubuntu/Documents/cleany
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 
 ros2 run cleany_skill_executor manipulation_test_client
 ```
@@ -385,4 +385,6 @@ SQLite는 실행 ID UNIQUE 제약, DB별 파일 lock, WAL/FULL 동기화를 사�
 이벤트 QoS는 Reliable·Transient Local, depth 100이다. 최신 100개 이벤트를 재수신할 수
 있으며 SQLite 저장에 성공한 이력은 `execution_events`에 보존한다.
 이 mock 경로는 실제 Perception·팔 backend를 사용하지 않는다. 실제 MuJoCo BT 실행은
-[cleany_manipulation_bt](../../cleany_manipulation_bt/README.md)를 따르며, Mission Manager·Backend 연결은 후속 단계다.
+[cleany_manipulation_bt](../../cleany_manipulation_bt/README.md)를 따릅니다.
+Mission Manager의 `action_mock` 연동과 Backend 계약은
+[Mission 계약](../../cleany_interfaces/docs/mission.md)을 확인합니다.

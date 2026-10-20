@@ -26,6 +26,21 @@ DEFAULT_LABEL_BODIES = {
 
 
 class PlacementVerifier(Node):
+    """Verify settled placement from simulator evidence.
+
+    Subscriptions:
+        /simulation/sorting_ground_truth (visualization_msgs/msg/MarkerArray):
+            Object bounds in base_link; other frames are ignored.
+
+    Services:
+        /sorting/verify_placement (cleany_interfaces/srv/VerifyPlacement): Server
+            checking fresh samples after the requested timestamp, bin containment
+            and bounded drift over the configured settling interval.
+
+    Notes:
+        This is a simulation outcome oracle, not a perception or grasp-pose source.
+        Insufficient evidence returns an unsuccessful response.
+    """
     def __init__(self):
         super().__init__('simulation_placement_verifier')
         default = (Path(get_package_share_directory('cleany_mujoco_sim'))

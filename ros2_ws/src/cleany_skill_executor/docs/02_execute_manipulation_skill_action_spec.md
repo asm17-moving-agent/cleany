@@ -88,7 +88,7 @@ ROS Goal 거절에는 일반 Result payload가 없다. 호출 adapter는 거절�
 이번 구현의 중단 이벤트는 `manipulation/execution_events`의
 `ManipulationExecutionRecord`이며 Reliable·Transient Local, depth 100이다.
 SQLite 기록과 함께 제공하고 Backend 전달은 후속 Mission Manager adapter가 맡는다.
-외부 보고 연결은 [Mission 연동 후속 작업](../README.md#mission-연동-후속-작업)를 따르며,
+외부 보고 연결은 [Mission 연동 후속 작업](manipulation.md#mission-연동-후속-작업)를 따르며,
 제품 요구는 [KB 재시작 규칙](../../../../docs/cleany-docs/20_TECHNICAL/02%20-%20Robot%20Operations%20and%20Mission%20Dispatch.md)에 있다.
 
 ## 4. Feedback: 지금 어디까지 했는지
@@ -279,7 +279,7 @@ string message
 `STOP_UNCONFIRMED`, `INTERNAL_ERROR`.
 
 반환 단계와 adapter 대응은 [서버 명세](03_manipulation_server_behavior_spec.md)와
-[Mission 연동 후속 작업](../README.md#mission-연동-후속-작업)에 정리한다.
+[Mission 연동 후속 작업](manipulation.md#mission-연동-후속-작업)에 정리한다.
 클라이언트는 execution_id를 발급하며 테스트 클라이언트는 UUID4를 사용한다.
 실행 기록 저장 실패는 경고 로그로 전달하며 실제 실행의 status와 error_code를 유지한다.
 저장 실패만으로 동작이나 신규 Goal을 차단하지 않는다. 함께 발생한 hardware fault·e-stop·

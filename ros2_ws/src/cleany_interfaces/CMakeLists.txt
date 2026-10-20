@@ -15,18 +15,28 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectedObject3DArray.msg"
   "msg/GraspCandidate.msg"
   "msg/ObservedObjectGeometry.msg"
-  "msg/ManipulationExecutionRecord.msg"
   "msg/TrackedObjectReference.msg"
-  "srv/RegisterPlacementTarget.srv"
+
+  "msg/MissionStatus.msg"
+  "msg/DebugBTNode.msg"
+  "msg/RuntimeDebugSnapshot.msg"
+  "msg/RuntimeEvent.msg"
+
+  "msg/MissionResult.msg"
+  "msg/ManipulationExecutionRecord.msg"
+  "action/ExecuteManipulationSkill.action"
   "action/InspectScene.action"
   "action/SelectReachableGrasp.action"
-  "action/ExecuteManipulationSkill.action"
   "srv/PlanGrasp.srv"
   "srv/VerifyPlacement.srv"
   "srv/ObserveWristTarget.srv"
+  "srv/OfferMission.srv"
+  "srv/CancelMission.srv"
+  "srv/GetRuntimeSnapshot.srv"
   "srv/GetManipulationExecution.srv"
   "srv/CancelManipulation.srv"
   "srv/GetSceneSnapshot.srv"
+  "srv/RegisterPlacementTarget.srv"
   DEPENDENCIES geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 

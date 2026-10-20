@@ -75,7 +75,7 @@ BT의 RUNNING 전환을 보려면
 
 ```bash
 source /opt/ros/humble/setup.bash
-source ros2_ws/install/setup.bash
+source "$(make -s print-install-base)/setup.bash"
 ros2 action send_goal /perception/inspect_scene cleany_interfaces/action/InspectScene \
   "{query: 'Detect objects on the table.', tracking_session_id: 'desk-validation-1', snapshot_id: '', selected_object_id: 0}"
 ```
@@ -85,7 +85,7 @@ ros2 action send_goal /perception/inspect_scene cleany_interfaces/action/Inspect
 
 같은 고정 베이스 책상 작업에는 같은 `tracking_session_id`를 사용한다. BT는 승인된
 snapshot의 session/epoch/track ID를 재관측에서도 확인한다. 베이스 이동 후에는 새 세션을
-시작한다. 자세한 조건은 [인식 패키지의 물체 추적](../cleany_perception/README.md#고정-베이스-책상-물체-추적)을 따른다.
+시작한다. 자세한 조건은 [인식 패키지의 물체 추적](../cleany_perception/docs/runtime.md#고정-베이스-책상-물체-추적)을 따른다.
 빈 세션은 추적을 끄는 호환 경로이며, 재관측에서 같은 종류가 여러 개면 수거를 중단한다.
 
 ```bash
@@ -120,7 +120,7 @@ make sim-mujoco-manipulation SORTING_ARGS="headless:=false log_level:=debug back
 
 MoveIt 2.5.9의 종료 시 controller plugin unload 문제를 피하기 위해
 `keep_controller_plugin_loaded:=true`를 기본으로 전달한다. 적용 범위와 종료
-회귀 검사는 [MoveIt README](../cleany_moveit_config/README.md#humble-controller-plugin-teardown)를 따른다.
+회귀 검사는 [MoveIt README](../cleany_moveit_config/docs/planning.md#humble-controller-plugin-teardown)를 따른다.
 
 ## 계약과 증거
 
@@ -284,7 +284,7 @@ DB(`/tmp/cleany-bt-physical-clean.sqlite3`)에는 checkpoint 39개와 실제 BT 
 `/tmp/cleany-bt-physical-paused.sqlite3`에 FATAL 기록을 보존했다.
 
 `make test-manipulation-bt`의 272개 검사와 `make test-manipulation`의 기존 mock 102개 검사가
-통과했다. `make test-grasp-pregrasp`로 관련 C++ 지도/관측과 기존 인식·파지·수거·MoveIt·MuJoCo
+통과했다. 당시의 `make test-grasp-pregrasp`로 관련 C++ 지도/관측과 기존 인식·파지·수거·MoveIt·MuJoCo
 회귀 검사도 통과했다. native BT 실패 경로, 원자적 취소, stale/잘못된 대상 차단, false 평가 응답의
 확인 대기, 늦은 응답 격리, stop 근거 누락과 기록 실패, 재시작 자동 재개 금지를 포함한다.
 이 기록은 첫 컵 한 개의 연동 검증이며 다른 대상의 수거 성공률 측정은 아니다.

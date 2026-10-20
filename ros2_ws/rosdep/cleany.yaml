@@ -1,8 +1,3 @@
-mujoco:
-  ubuntu:
-    pip:
-      packages:
-        - mujoco
 google-genai:
   ubuntu:
     pip:

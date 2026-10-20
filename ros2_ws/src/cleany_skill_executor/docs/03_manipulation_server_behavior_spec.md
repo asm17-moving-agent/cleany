@@ -256,7 +256,7 @@ MuJoCo BT는 sample count, 지속 시간과 관절별 freshness를 함께 검증
 팔 동작을 재사용할 때 시뮬레이션 좌석 순회와 물체 선택까지 서버로 가져오지 않는다.
 
 관련 문서: [Action 명세](02_execute_manipulation_skill_action_spec.md),
-[Mission 연동 후속 작업](../README.md#mission-연동-후속-작업), [설계 안내](01_manipulation_action_design.md).
+[Mission 연동 후속 작업](manipulation.md#mission-연동-후속-작업), [설계 안내](01_manipulation_action_design.md).
 
 ## 10. 모의 서버의 구현 경계
 

@@ -1,6 +1,6 @@
 # Grasp 선택과 pre-grasp 실행
 
-[패키지 안내로 돌아가기](../README.md)
+[패키지 안내로 돌아가기](manipulation.md)
 
 ## 상태
 
@@ -106,7 +106,7 @@ ros2 launch cleany_skill_executor study_cafe_nearest_grasp_demo.launch.py
 이 study-cafe MuJoCo launch의 YOLOE 기본 체크포인트는
 `~/models/yoloe/study_cafe_sim_yoloe26s_seg.pt`다. 현재 시뮬레이션 head 영상으로
 fine-tune한 파일이며, 생성·학습·평가 절차는
-[`cleany_perception/README.md`](../../cleany_perception/README.md#스터디카페-mujoco-전용-yoloe-seg-학습)에 있다.
+[`cleany_perception/README.md`](../../cleany_perception/docs/runtime.md#스터디카페-mujoco-전용-yoloe-seg-학습)에 있다.
 손목 HANDOFF는 별도 `~/models/yoloe/study_cafe_sim_all_views_yoloe26s_seg.pt`를
 `wrist_yoloe_model_path`로 로드한다. 오른손목 HANDOFF는 head 체크포인트를
 `wrist_right_yoloe_model_path`로 재사용한다. 실제 컵 pregrasp 오른손목 프레임에서

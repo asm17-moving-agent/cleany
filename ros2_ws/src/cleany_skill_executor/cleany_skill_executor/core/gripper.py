@@ -116,6 +116,13 @@ def is_gripper_contact_stall(
     maximum_velocity: float,
     allow_closing_motion: bool = False,
 ) -> bool:
+    """Classify contact from closing motion and residual position error.
+
+    Positions and motion thresholds use radians; velocity uses radians per
+    second. Closing decreases position. Invalid or non-finite inputs return
+    False. allow_closing_motion relaxes the stall test for an established grasp;
+    the caller must enforce feedback freshness and persistence over time.
+    """
     values = (
         start,
         actual,

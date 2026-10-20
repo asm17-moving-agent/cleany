@@ -1,6 +1,6 @@
 # 스터디카페 수거 설정과 실험 기록
 
-[패키지 안내로 돌아가기](../README.md)
+[패키지 안내로 돌아가기](manipulation.md)
 
 ## 작업자 관찰 모드와 파지 깊이
 
@@ -31,7 +31,7 @@ pregrasp 기준 위치와 물체별 추가량(마우스 +14mm, 레고/휴지 +4m
 `tabletop_collision`도 제공한다. 파지 깊이·물체 물리·관절 속도·YOLOE-seg·
 MoveIt 충돌 검사와 완료 판정은 바꾸지 않는다.
 적용 범위, 실행 예제와 비교 측정은
-[`cleany_mujoco_sim/README.md`](../../cleany_mujoco_sim/README.md#되돌릴-수-있는-고정-책상-최적화)를 따른다.
+[`cleany_mujoco_sim/README.md`](../../cleany_mujoco_sim/docs/scenes.md#되돌릴-수-있는-고정-책상-최적화)를 따른다.
 
 MuJoCo sorting의 마우스는 `mouse_grasp_extra_depth_m=0.014`를 기본 적용한다.
 `mouse`, `computer mouse`, `wireless mouse` 라벨에만 기본 접근 0.018m에

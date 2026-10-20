@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from cleany_grasping.core.models import PointCloud, RawGrasp
 from cleany_grasping.core.selector import GraspConfig, rank_grasps
@@ -83,6 +84,29 @@ def test_returns_empty_ranking_instead_of_inventing_candidate() -> None:
 
 def test_nms_keeps_best_of_near_duplicate_candidates() -> None:
     target = cloud(((-0.1, -0.1, -0.1), (0.1, 0.1, 0.1)))
-    candidates = (grasp((0.0, 0.0, 0.0), 0.9), grasp((0.001, 0.0, 0.0), 0.8))
-    ranked = rank_grasps(candidates, target)
+    ranked = rank_grasps(
+        (grasp((0.0, 0.0, 0.0), 0.9), grasp((0.001, 0.0, 0.0), 0.8)),
+        target,
+    )
     assert len(ranked) == 1 and ranked[0].score == 0.9
+
+
+def test_reflection_cannot_be_used_as_a_tcp_rotation():
+    with pytest.raises(ValueError, match='right-handed'):
+        GraspConfig(canonical_to_tcp_rotation=np.diag([-1., 1., 1.]))
+
+
+def test_tcp_configuration_is_isolated_from_mutating_input_arrays():
+    conversion = np.array(((0., -1., 0.), (1., 0., 0.), (0., 0., 1.)))
+    axis = np.array([0., -1., 0.])
+    config = GraspConfig(canonical_to_tcp_rotation=conversion, tcp_approach_axis=axis)
+    conversion[:] = 0.
+    axis[:] = [0., 0., 1.]
+    target = cloud(((-.02, -.02, .5), (.02, .02, .55)))
+    result = rank_grasps([grasp((0., 0., .52), .8)], target, config)[0]
+    np.testing.assert_allclose(result.rotation, ((0., -1., 0.), (1., 0., 0.), (0., 0., 1.)))
+    np.testing.assert_allclose(result.approach_direction, [1., 0., 0.])
+    with pytest.raises(ValueError):
+        config.canonical_to_tcp_rotation[0, 0] = -1.
+    with pytest.raises(ValueError):
+        config.tcp_approach_axis[0] = 0.

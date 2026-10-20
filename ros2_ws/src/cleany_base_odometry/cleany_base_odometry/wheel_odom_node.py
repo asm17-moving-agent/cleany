@@ -17,7 +17,26 @@ from cleany_base_odometry.mecanum_odometry import (
 
 
 class WheelOdometryNode(Node):
-    """Publish planar wheel odometry from four cumulative joint positions."""
+    """Estimate planar odometry from cumulative wheel angles.
+
+    Subscriptions:
+        joint_states (sensor_msgs/msg/JointState): All four wheel positions in
+            radians; configurable with input_topic.
+
+    Publishers:
+        wheel/odom (nav_msgs/msg/Odometry): Pose in odom and velocity in
+            base_link; topic and frame names are parameter defaults.
+
+    TF:
+        Does not broadcast; the odometry relay owns odom -> base_link.
+
+    QoS:
+        Input uses sensor_data; output is reliable with depth 10.
+
+    Notes:
+        The first sample, non-increasing time and velocity-window warm-up
+        produce no message. Invalid wheel values raise a validation error.
+    """
 
     def __init__(self) -> None:
         super().__init__('wheel_odometry')
@@ -25,6 +44,8 @@ class WheelOdometryNode(Node):
         self.declare_parameter('output_topic', 'wheel/odom')
         self.declare_parameter('odom_frame_id', 'odom')
         self.declare_parameter('base_frame_id', 'base_link')
+        self.declare_parameter('velocity_window_s', 0.0)
+        self.declare_parameter('yaw_scale', 1.0)
         self.declare_parameter('wheel_radius_m', 0.0635)
         self.declare_parameter('wheelbase_m', 0.30)
         self.declare_parameter('wheel_separation_m', 0.51)
@@ -44,7 +65,11 @@ class WheelOdometryNode(Node):
                 self.get_parameter('wheel_separation_m').value
             ),
         )
-        self._odometry = MecanumOdometry(geometry)
+        self._odometry = MecanumOdometry(
+            geometry,
+            velocity_window_s=float(self.get_parameter('velocity_window_s').value),
+            yaw_scale=float(self.get_parameter('yaw_scale').value),
+        )
         self._odom_frame_id = str(self.get_parameter('odom_frame_id').value)
         self._base_frame_id = str(self.get_parameter('base_frame_id').value)
         self._joint_names = {
@@ -66,6 +91,11 @@ class WheelOdometryNode(Node):
         )
 
     def _on_joint_state(self, message: JointState) -> None:
+        """Integrate complete wheel samples, using node time for a zero stamp.
+
+        Missing positions or wheel names are ignored. Non-finite wheel values
+        raise during validation; they are not converted into zero motion.
+        """
         if len(message.position) < len(message.name):
             self.get_logger().warning(
                 'Ignoring JointState with fewer positions than names',

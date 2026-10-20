@@ -9,7 +9,7 @@
 | 모델 없이 실행·취소·조회 | [Mock 사용법](manipulation_mock_usage.md) |
 | MuJoCo·인식·MoveIt 연동 실행 | [BT 서버 README](../../cleany_manipulation_bt/README.md) |
 | Goal·Feedback·Result 필드 | [공통 Action 명세](02_execute_manipulation_skill_action_spec.md) |
-| Mission Manager와 연결할 책임 | [Mission 연동 후속 작업](../README.md#mission-연동-후속-작업) |
+| Mission Manager와 연결할 책임 | [Mission 연동 후속 작업](manipulation.md#mission-연동-후속-작업) |
 
 ## 1. 먼저 이해할 한 문장
 

@@ -125,6 +125,42 @@ _LATCHED_DEBUG_IMAGE_QOS = QoSProfile(
 
 
 class InspectionNode(Node):
+    """Inspect a synchronized RGB-D snapshot and retain selectable observations.
+
+    Subscriptions:
+        camera/color/image_raw and camera/depth/image_raw (sensor_msgs/msg/Image):
+            Color and depth; configurable defaults.
+        camera/color/camera_info and camera/depth/camera_info
+            (sensor_msgs/msg/CameraInfo): Corresponding intrinsics; configurable.
+        /{left,right}_wrist_camera/{image_raw,camera_info}
+            (sensor_msgs/msg/Image, sensor_msgs/msg/CameraInfo): Optional wrist RGB pairs.
+
+    Publishers:
+        perception/objects (cleany_interfaces/msg/DetectedObject3DArray): Located objects.
+        perception/detections_2d (cleany_interfaces/msg/DetectedObject2DArray): Image detections.
+        perception/debug_image and perception/debug_image_latched (sensor_msgs/msg/Image):
+            Detection overlays. All publisher names are configurable defaults.
+
+    Services:
+        /perception/observe_wrist_target (cleany_interfaces/srv/ObserveWristTarget):
+            Optional WristService endpoint when enable_wrist_observation is true.
+
+    Actions:
+        perception/inspect_scene (cleany_interfaces/action/InspectScene): Server
+            for inspection and selection from cached snapshots; configurable default.
+
+    TF:
+        Resolves capture-time camera geometry into target_frame, default base_link.
+
+    QoS:
+        Camera inputs and live debug output use sensor_data; latched debug uses
+        reliable, transient-local QoS.
+
+    Notes:
+        Sensor callbacks and action work use separate callback groups. Missing
+        synchronized input, invalid geometry or expired snapshots fail the request.
+        Wrist RGB supplies image evidence, not measured depth.
+    """
     def __init__(
         self,
         detector: DetectorPort | None = None,

@@ -12,10 +12,15 @@
 
 namespace cleany_mujoco_observer
 {
-// Physics, controllers and writes remain in the installed backend; optional
-// cameras render a read-only snapshot at independently scheduled rates.
-// Its plugin read() data races with physics-loop mj_copyData. Instead, use the
-// public get_data API which copies under that same simulation mutex.
+/**
+ * @brief Add snapshot observers while delegating physics and control to the backend.
+ *
+ * get_data() copies under the backend simulation mutex, avoiding concurrent
+ * reads of live mjData. SortingObserver and ScheduledCameras own publication;
+ * their private snapshots are never written back into physics.
+ * With scheduled cameras enabled, vendor startup frames use internal topics
+ * so the scheduled renderer remains the public camera source.
+ */
 class ObservedMujocoSystem : public mujoco_ros2_control::MujocoSystemInterface
 {
 public:

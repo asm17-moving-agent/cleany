@@ -85,6 +85,24 @@ class SeededCartesianPlanner:
 
     def plan(self, request: MotionPlanRequest, start: CartesianPose,
              target: CartesianPose) -> tuple[RobotTrajectory, list[CartesianPose]]:
+        """Plan and sample a joint path through a Cartesian corridor.
+
+        Args:
+            request: Full feedback state with is_diff set, one joint goal and one
+                Cartesian position corridor. Non-arm joints and attachments are retained.
+            start: TCP pose in the corridor frame, in metres and an XYZW quaternion.
+            target: TCP endpoint in the same frame and units.
+
+        Returns:
+            A joint-limited trajectory and corresponding FK poses after sampled
+            collision/constraint checks. The caller must still validate Cartesian
+            geometry and apply Cartesian speed/acceleration limits before execution.
+
+        Raises:
+            ValueError: The request, scaling or sampling budget is invalid.
+            CartesianPlanningError: IK, joint bounds or sampled validity checks fail.
+            RuntimeError: Required model or service output is unavailable or inconsistent.
+        """
         if (not request.start_state.is_diff or len(request.goal_constraints) != 1 or
                 len(request.path_constraints.position_constraints) != 1):
             raise ValueError('seeded planner requires a full feedback diff and one Cartesian corridor')

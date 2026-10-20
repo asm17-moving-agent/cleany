@@ -86,6 +86,30 @@ def object_in_destination(obj, destination) -> bool:
 
 
 class SortingCoordinator(NearestPregraspCoordinator):
+    """Extend pre-grasp execution into a policy-driven pick and sorting sequence.
+
+    Inherits perception, scene, joint and motion interfaces from
+    NearestPregraspCoordinator; only additional interfaces are listed here.
+
+    Subscriptions:
+        /robot_description (std_msgs/msg/String): Transport-planning geometry.
+
+    Publishers:
+        /sorting/status (std_msgs/msg/String): JSON stage and outcome, reliable
+            and transient local with depth 1.
+
+    Services:
+        /perception/observe_wrist_target (cleany_interfaces/srv/ObserveWristTarget):
+            Wrist observation client.
+        /sorting_cameras/set_parameters (rcl_interfaces/srv/SetParameters): Camera control.
+        /sorting/verify_placement (cleany_interfaces/srv/VerifyPlacement): Placement oracle.
+        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene): Bin geometry updates.
+
+    Notes:
+        Policy and bins are loaded from configured files. Placement verification
+        is enabled by default and uses a simulation oracle. The inherited default
+        ROS node name is nearest_pregrasp_coordinator unless remapped at launch.
+    """
     def __init__(self):
         super().__init__()
         skill = Path(get_package_share_directory('cleany_skill_executor'))
