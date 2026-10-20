@@ -4,6 +4,32 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-10-21 손목 마운트 v8 전달본
+
+`412f1c2270e378ee1b97529412db8d2005d62958` 위에 기존 Isaac
+`measured-registration-v8`의 구성품을 추가했다. 입력과 원본 hash는
+[형상 설정](../ros2_ws/src/cleany_description/config/geometry/wrist_mount_v8.json),
+재현 명령과 적용 범위는 [전달 설명](../ros2_ws/src/cleany_description/docs/wrist-mount-v8.md)에 있다.
+기본 URDF, canonical MJCF와 hand-eye 보정 프로파일은 수정하지 않았다.
+
+로컬 Ubuntu 22.04 컨테이너의 ROS 2 Humble, Python 3.10, MuJoCo 3.12.0에서
+별도 입력 workspace에 description 패키지만 연결하고 루트 `make build`를 실행했다.
+빌드 후 `colcon test --packages-select cleany_description`을 통과했다.
+모델 정합성 pytest 46개와 보정 프로파일 pytest 10개이며,
+colcon 집계의 CTest wrapper 2개를 별도 검사로 중복 합산하지 않는다.
+
+`tools/validation/verify_wrist_mount_v8.py`는 원본 STL 14개와 합친 STL 2개의
+hash, m/mm 동등성, 구성품 좌표 합성, 사용자 실측 네 기준, 기존 Fixed_Jaw 메시와
+부착 원점 및 카메라 CV 변환을 검사했다. symlink install과 소스 파일을 복사한
+독립 assets 디렉터리 모두에서 MJCF를 컴파일하고 검사를 통과했다.
+이는 형상과 파일 이식성 검사이며 센서 보정, Isaac 통합 동역학 또는 실물 구동의
+검증은 아니다. 장치 명령과 현재 학습 모델 변경은 없었다.
+
+실행 원본은 로컬 `~/workspace/cleany/reports/physical-mount-camera-review-20261021/`
+아래 `publication-validation-20261021/`에 보관한다. `invocation.json`,
+`build-test.log`, `ros-build/build/cleany_description/`의 JUnit,
+`asset-check-installed.log`와 `asset-check-detached.log`로 구분한다.
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의

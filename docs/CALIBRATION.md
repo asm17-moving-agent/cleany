@@ -63,6 +63,11 @@ xacro "$(ros2 pkg prefix --share cleany_description)/urdf/cleany.urdf.xacro" \
 원본 보고서 경로와 SHA-256은 프로파일의 `provenance.json`에 기록하며,
 절대 경로는 과거 근거 위치로만 사용한다.
 
+사진과 실측으로 복원한 손목 마운트 형상은
+[v8 전달 및 적용 설명](../ros2_ws/src/cleany_description/docs/wrist-mount-v8.md)에 있다.
+이 형상의 추정 렌즈 좌표는 hand-eye 측정값과 구분한다.
+STL을 추가해도 이 보정 프로파일과 센서 설정이 자동으로 바뀌지 않는다.
+
 ## 기존 hand-eye 수집과 평가 도구
 
 현재 패키지는 calibration core, ROS 수집 adapter와 오프라인 평가를 유지합니다. MuJoCo calibration 장면과 전용 launch는 제거됐습니다. 현행 기능은 [패키지 안내](../ros2_ws/src/cleany_handeye_calibration/docs/offline-tools.md)를 따릅니다. 아래 MuJoCo 전용 절차는 이전 구현의 참고 기록이며 현재 실행 절차가 아닙니다. 결과 transform은 검토용 artifact로 저장하며 TF에 자동 적용하지 않습니다. 실물 calibration과 grasp 성공은 별도로 검증합니다.
