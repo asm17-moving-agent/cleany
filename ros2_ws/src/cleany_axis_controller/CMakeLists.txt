@@ -27,12 +27,15 @@ install(TARGETS axis_generator EXPORT axis_generatorTargets LIBRARY DESTINATION 
 install(DIRECTORY include/ DESTINATION include)
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  # RTAB-Map installs another GoogleTest under the shared ROS include prefix.
+  # Keep dependency headers SYSTEM so ament's matching gtest_vendor headers,
+  # added first by ament_add_gtest, take precedence over that shared prefix.
   ament_add_gtest(test_axis_generator test/test_axis_generator.cpp)
   target_link_libraries(test_axis_generator axis_generator)
-  ament_target_dependencies(test_axis_generator dwb_plugins nav2_util rclcpp)
+  ament_target_dependencies(test_axis_generator SYSTEM dwb_plugins nav2_util rclcpp)
   ament_add_gtest(test_yield_wait test/test_yield_wait.cpp)
   target_include_directories(test_yield_wait PRIVATE include)
-  ament_target_dependencies(test_yield_wait nav2_behavior_tree nav2_msgs rclcpp rclcpp_action)
+  ament_target_dependencies(test_yield_wait SYSTEM nav2_behavior_tree nav2_msgs rclcpp rclcpp_action)
 endif()
 ament_export_targets(axis_generatorTargets HAS_LIBRARY_TARGET)
 ament_export_dependencies(geometry_msgs dwb_msgs dwb_core dwb_plugins nav2_util nav_2d_msgs pluginlib rclcpp)

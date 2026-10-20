@@ -29,3 +29,9 @@ DWB의 footprint 비용 평가와 가속·감속 rollout을 사용하며,
 Nav2 BtActionNode를 사용한다. navigator의 `plugin_lib_names`에 등록한다.
 플러그인 등록 헤더는 Nav2가 제공하는 Humble의 BehaviorTree.CPP v3 경로와
 Jazzy의 v4 경로를 지원한다. factory 헤더는 등록 구현 파일에서만 포함한다.
+
+C++ 테스트는 `ament_cmake_gtest`가 선택한 GoogleTest 헤더와 라이브러리를
+함께 사용한다. RTAB-Map이 ROS 공용 include 경로에 별도 GoogleTest 헤더를
+설치하는 환경에서도 이 조합을 유지하도록 테스트의 ROS dependency include를
+`SYSTEM`으로 등록한다. 두 버전이 섞이면 `MakeAndRegisterTestInfo` 링크 오류가
+발생할 수 있다.
