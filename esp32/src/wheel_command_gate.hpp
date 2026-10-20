@@ -21,10 +21,23 @@ struct WheelGateConfig {
   float maxVelocity = 10.0F;
 };
 
+/**
+ * @brief Enforce motion permission, sequence ordering and MCU-time expiry.
+ *
+ * STOP always disarms, including stale or malformed protocol commands.
+ * ENABLE requires zero targets; VELOCITY requires existing permission.
+ * The caller must invoke expire() and disconnect() on their respective events.
+ */
 class WheelCommandGate {
  public:
   explicit WheelCommandGate(WheelGateConfig config) : config_(config) {}
 
+  /**
+   * @brief Validate a command and update permission and targets on acceptance.
+   * @param nowUs Current MCU monotonic time in microseconds, in the same clock
+   * as validUntilUs. Sequence ordering uses the uint32 half-range rule.
+   * @return False for rejected commands; rejection leaves gate state unchanged.
+   */
   bool accept(const WheelCommand& c, uint64_t nowUs) {
     if (c.mode == WheelMode::kStop) {
       if (!haveSequence_ || newer(c.sequence, lastSequence_)) {

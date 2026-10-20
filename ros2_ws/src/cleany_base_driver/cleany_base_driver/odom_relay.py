@@ -1,5 +1,4 @@
 """The sole canonical /odom and odom->base_link TF publisher."""
-import math
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -9,6 +8,21 @@ from tf2_ros import TransformBroadcaster
 
 
 class OdomRelay(Node):
+    """Relay wheel odometry and own its canonical base transform.
+
+    Subscriptions:
+        wheel/odom (nav_msgs/msg/Odometry): Wheel-integrated pose and velocity.
+
+    Publishers:
+        odom (nav_msgs/msg/Odometry): The same sample with canonical frame IDs.
+
+    TF:
+        Broadcasts odom -> base_link using the input pose and timestamp.
+
+    Notes:
+        Relabels frames without transforming coordinates; the input pose must
+        already represent odom -> base_link. Do not run a second TF owner.
+    """
     def __init__(self):
         super().__init__('base_odom_relay')
         self.pub = self.create_publisher(Odometry, 'odom', 10)

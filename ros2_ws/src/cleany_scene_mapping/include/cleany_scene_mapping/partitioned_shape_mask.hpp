@@ -11,8 +11,8 @@
 
 namespace cleany_scene_mapping
 {
-// Caller serializes shape/transform mutation against maskContainment. Each
-// worker owns an upstream ShapeMask, so no non-thread-safe Body is shared.
+/// Caller serializes shape/transform mutation against maskContainment. Each
+/// worker owns an upstream ShapeMask, so no non-thread-safe Body is shared.
 class PartitionedShapeMask
 {
 public:

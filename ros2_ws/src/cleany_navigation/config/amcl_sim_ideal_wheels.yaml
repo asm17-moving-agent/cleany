@@ -1,0 +1,11 @@
+# Simulation calibration for quantized wheels without added odometry error.
+# Verified with the 5 cm LiDAR-plane facility map and measured-noise LiDAR.
+# Do not use as an uncalibrated physical-robot profile.
+amcl:
+  ros__parameters:
+    alpha1: 0.001
+    alpha2: 0.001
+    alpha3: 0.001
+    alpha4: 0.001
+    alpha5: 0.001
+    sigma_hit: 0.05

@@ -83,10 +83,6 @@ class PoseCache:
                 return None
             return self._pose
 
-    def invalidate(self) -> None:
-        with self._lock:
-            self._pose = None
-
 
 class PoseRelay:
     """Wall-clock worker; callbacks only update ``PoseCache``."""

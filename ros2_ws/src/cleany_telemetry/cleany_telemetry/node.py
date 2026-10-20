@@ -6,6 +6,7 @@ import math
 
 import rclpy
 from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 
@@ -13,6 +14,18 @@ from .relay import PoseRelay, quaternion_yaw
 
 
 class TelemetryNode(Node):
+    """Forward finite odometry poses to the telemetry WebSocket worker.
+
+    Subscriptions:
+        /odom (nav_msgs/msg/Odometry): Pose and capture timestamp; odom_topic default.
+
+    QoS:
+        Input uses best-effort, keep-last depth 1.
+
+    Notes:
+        The callback updates a shared latest pose; PoseRelay owns socket I/O,
+        rate limiting and stale-input handling. Coordinates retain the input frame.
+    """
     def __init__(self) -> None:
         super().__init__("cleany_telemetry")
         self.declare_parameter("odom_topic", "/odom")
@@ -52,11 +65,14 @@ class TelemetryNode(Node):
         return super().destroy_node()
 
 
-def main() -> None:
-    rclpy.init()
+def main(args: list[str] | None = None) -> None:
+    rclpy.init(args=args)
     node = TelemetryNode()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()

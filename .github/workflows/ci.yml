@@ -28,6 +28,8 @@ jobs:
       LIBGL_ALWAYS_SOFTWARE: "1"
       ROS_DOMAIN_ID: "42"
       ROS_HOME: /tmp/cleany-ros
+      # Runtime dependencies can install plugins incompatible with Jammy's pytest.
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
     defaults:
       run:
         shell: bash
@@ -75,9 +77,10 @@ jobs:
           set -euo pipefail
           rule_file="${GITHUB_WORKSPACE}/ros2_ws/rosdep/cleany.yaml"
           test -f "${rule_file}"
-          echo "yaml file://${rule_file}" \
+          printf 'yaml file://%s\n' "${rule_file}" \
             > /etc/ros/rosdep/sources.list.d/10-cleany.list
           rosdep update --rosdistro humble
+          rosdep resolve --rosdistro humble google-genai
 
       - name: Install workspace dependencies
         run: make deps
@@ -89,5 +92,8 @@ jobs:
         run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test
       - name: Test motor core and device-free base integration
         run: make test-motor-core test-base
+
+      - name: Test common navigation runtime without Gazebo
+        run: make test-navigation-runtime
       - name: Test Gazebo navigation runtime
         run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24 +extension GLX" make test-gazebo-nav-runtime

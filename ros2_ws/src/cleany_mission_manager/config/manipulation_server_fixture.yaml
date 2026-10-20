@@ -1,0 +1,56 @@
+# Shared deterministic fixture for the external mock server; not camera evidence.
+# Mock verification settings only; these are not real robot safety limits.
+stage_duration_sec: 0.5
+stop_duration_sec: 0.1
+preparation_timeout_sec: 5.0
+verification_timeout_sec: 5.0
+motion_timeout_sec: 10.0
+stop_timeout_sec: 1.0
+observation_max_age_sec: 30.0
+selected_arm: left
+destination_id: mock_trash_bin
+snapshots:
+  mock-snapshot-001:
+    age_sec: 0.0
+    object_ids: [1, 2]
+  mock-snapshot-002:
+    age_sec: 0.0
+    object_ids: [2]
+  mock-snapshot-003:
+    age_sec: 0.0
+    object_ids: []
+  mock-snapshot-004:
+    age_sec: 0.0
+    object_ids: []
+  mock-stale-snapshot:
+    age_sec: 60.0
+    object_ids: [1]
+scenarios:
+  success: {}
+  backend_not_ready:
+    stage_errors: {VALIDATING: BACKEND_NOT_READY}
+  verification_unavailable:
+    stage_errors: {VALIDATING: VERIFICATION_UNAVAILABLE}
+  grasp_failure:
+    stage_errors: {GRASPING: GRASP_FAILED}
+  grasp_lost:
+    stage_errors: {TRANSPORTING: GRASP_LOST}
+  placement_failure:
+    stage_errors: {VERIFYING_PLACEMENT: PLACEMENT_NOT_CONFIRMED}
+  verification_timeout:
+    stage_durations_sec: {VERIFYING_PLACEMENT: 6.0}
+  release_unobserved:
+    release_evidence: false
+  return_failure:
+    stage_errors: {RETURNING_ARM: MOTION_FAILED}
+    independent_placement: true
+  stop_failure:
+    stop_confirmed: false
+  stop_timeout:
+    stage_durations_sec: {STOPPING: 2.0}
+  hardware_fault:
+    fault_stage: TRANSPORTING
+    fault_error: HARDWARE_ERROR
+  e_stop:
+    fault_stage: LIFTING
+    fault_error: E_STOP

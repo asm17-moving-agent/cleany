@@ -10,7 +10,22 @@ from cleany_gazebo_sim.simulated_encoder import SimulatedQuadratureEncoder
 
 
 class SimulatedEncoderNode(Node):
-    """Publish synthetic quadrature-encoder joint states for Gazebo wheels."""
+    """Quantize simulated wheel angles into synthetic encoder feedback.
+
+    Subscriptions:
+        joint_states (sensor_msgs/msg/JointState): Cumulative simulated angles.
+
+    Publishers:
+        wheel_encoder/joint_states (sensor_msgs/msg/JointState): Quantized wheel
+            positions after configured scale and tick noise.
+
+    QoS:
+        Both directions use sensor_data.
+
+    Notes:
+        Topic and joint names are configurable defaults. Missing wheel samples
+        are ignored; synthetic encoder data is not measured hardware feedback.
+    """
 
     def __init__(self) -> None:
         super().__init__('simulated_encoder')

@@ -12,6 +12,13 @@ struct WheelVelocityControllerConfig {
   float outputLimitPercent = 100.0F;
 };
 
+/**
+ * @brief Convert wheel speed error to signed PWM percent with PI anti-windup.
+ *
+ * Inputs use rad/s and seconds. Output cannot oppose the target direction;
+ * MotorCommandFilter owns reversal after encoder-confirmed stop.
+ * The caller must supply finite inputs and a valid positive speed scale.
+ */
 class WheelVelocityController {
  public:
   WheelVelocityController() = default;
@@ -19,6 +26,10 @@ class WheelVelocityController {
   explicit WheelVelocityController(WheelVelocityControllerConfig config)
       : config_(config) {}
 
+  /**
+   * @brief Advance PI state and return bounded PWM percent.
+   * Zero target or nonpositive elapsed time resets the integral and returns zero.
+   */
   float update(float targetRadPerSecond, float measuredRadPerSecond,
                float elapsedSeconds) {
     if (targetRadPerSecond == 0.0F || elapsedSeconds <= 0.0F) {

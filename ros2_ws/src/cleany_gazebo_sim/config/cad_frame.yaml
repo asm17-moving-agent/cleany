@@ -1,5 +1,6 @@
 # Gazebo navigation evaluation pose, not an arm controller or calibration.
-source_commit: e718ac57e861f3d34b6e0e10b0d18d87a348bf51
+source_commit: 71f8d6c
+# Description and Fortress adapter imported from feat/navigation-runtime.
 wheel_radius: 0.0635
 wheel_width: 0.051
 # Evaluation margins, separate from the model's physical outer bounds.
@@ -28,9 +29,12 @@ park_joints:
   left_gripper_joint: 0.0
   right_gripper_joint: 0.0
   head_pan_joint: 0.0
-  # Positive +Y rotation points the forward-facing camera down by 30 degrees.
-  head_tilt_joint: 0.5235987755982988
+  # Positive +Y rotation points the forward-facing camera down by 20 degrees.
+  head_tilt_joint: 0.3490658503988659
 
 # Simulation: measured pan joint drives camera TF and pre-motion interlock.
 dynamic_pan: true
 pan_speed_rad_s: 1.0
+
+# Navigation-only simulation: omit both arms, including grippers and wrist sensors.
+simulation_excluded_link_roots: [left_shoulder_yaw_link, right_shoulder_yaw_link]

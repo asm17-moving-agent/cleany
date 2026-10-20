@@ -48,6 +48,36 @@ STAGE_CONSTANT = {
 
 
 class GraspSelectionNode(Node):
+    """Select a reachable, collision-checked grasp without executing it.
+
+    Subscriptions:
+        joint_states (sensor_msgs/msg/JointState): Current state; configurable default.
+        /robot_description (std_msgs/msg/String): Robot geometry, transient local.
+        /grasp/collision_geometry (cleany_interfaces/msg/ObservedObjectGeometry):
+            Optional observed mesh input; collision_geometry_topic default,
+            reliable and transient local.
+
+    Services:
+        /compute_ik (moveit_msgs/srv/GetPositionIK), /compute_fk
+            (moveit_msgs/srv/GetPositionFK), /check_state_validity
+            (moveit_msgs/srv/GetStateValidity): Clients owned by MoveItGraspAdapter.
+        /apply_planning_scene (moveit_msgs/srv/ApplyPlanningScene) and
+        /get_planning_scene (moveit_msgs/srv/GetPlanningScene): Temporary geometry
+            and allowed-contact updates through TargetSceneTransaction.
+
+    Actions:
+        grasp/select_reachable (cleany_interfaces/action/SelectReachableGrasp):
+            Selection server; action_name default.
+        /move_action (moveit_msgs/action/MoveGroup): Planning client through the adapter.
+
+    TF:
+        Optional pre-grasp visibility checks read the configured camera transform.
+        Candidate geometry is expected in planning_frame, default base_link.
+
+    Notes:
+        Admits one selection goal at a time and requires fresh joint feedback.
+        Selection temporarily updates the planning scene and attempts cleanup on exit.
+    """
     def __init__(self, **kwargs) -> None:
         super().__init__('grasp_selection_server', **kwargs)
         defaults = {

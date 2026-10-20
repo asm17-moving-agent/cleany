@@ -25,6 +25,7 @@ EXPECTED_GROUP_TOPICS = {
     'head_rgbd': {
         '/camera/head/color/image_raw',
         '/camera/head/depth/image_raw',
+        '/camera/head/depth/camera_info',
     },
     'left_wrist': {'/camera/left_wrist/color/image_raw'},
     'right_wrist': {'/camera/right_wrist/color/image_raw'},
@@ -40,7 +41,6 @@ NAVIGATION_TOPICS = {
 }
 JOINT_STATE_TOPIC = '/model/cleany_mecanum/joint_state'
 FORTRESS_ODOMETRY_TOPIC = '/model/cleany_mecanum/ground_truth'
-HARMONIC_ODOMETRY_TOPIC = '/model/cleany_mecanum/odometry'
 
 
 def _entries(path: Path) -> list[dict[str, object]]:
@@ -70,6 +70,7 @@ def test_sensor_profiles_select_only_their_bridge_groups() -> None:
     assert SENSOR_PROFILES == (
         'lidar_nav',
         'lidar_depth_nav',
+        'lidar_rgbd_nav',
         'head_rgbd',
         'left_wrist',
         'right_wrist',
@@ -78,6 +79,7 @@ def test_sensor_profiles_select_only_their_bridge_groups() -> None:
     assert sensor_profile_bridge_groups('lidar_nav') == ('core', 'lidar')
     assert sensor_profile_bridge_groups('lidar_depth_nav') == ('core', 'lidar', 'head_depth')
     assert sensor_profile_bridge_groups('head_rgbd') == ('core', 'head_rgbd')
+    assert sensor_profile_bridge_groups('lidar_rgbd_nav') == ('core', 'lidar', 'head_rgbd')
     assert sensor_profile_bridge_groups('left_wrist') == ('core', 'left_wrist')
     assert sensor_profile_bridge_groups('right_wrist') == (
         'core',
@@ -93,41 +95,39 @@ def test_sensor_profiles_select_only_their_bridge_groups() -> None:
         sensor_profile_bridge_groups('all_sensors')
 
 
-@pytest.mark.parametrize(
-    ('suffix', 'transport_namespace'),
-    (('', 'ignition.msgs.'), ('_harmonic', 'gz.msgs.')),
-)
-def test_split_bridge_configs_match_ros_topic_contract(
-    suffix: str,
-    transport_namespace: str,
-) -> None:
+def test_rgbd_navigation_profile_has_all_inputs_without_duplicate_publishers():
+    entries = [entry for group in sensor_profile_bridge_groups('lidar_rgbd_nav')
+               for entry in _entries(CONFIG_ROOT / f'{group}_bridge.yaml')]
+    topics = [entry['ros_topic_name'] for entry in entries]
+    assert len(topics) == len(set(topics))
+    assert NAVIGATION_TOPICS | {'/camera/head/color/image_raw', '/camera/head/depth/image_raw',
+                                '/camera/head/depth/camera_info'} <= set(topics)
+    # RGB work starts on demand; safety depth inputs stay eager even before
+    # downstream lifecycle activation so readiness cannot depend on a viewer.
+    by_topic = {entry['ros_topic_name']: entry for entry in entries}
+    assert by_topic['/camera/head/color/image_raw'].get('lazy') is True
+    for topic in ('/camera/head/depth/image_raw', '/camera/head/depth/camera_info'):
+        assert not by_topic[topic].get('lazy', False)
+
+
+def test_split_bridge_configs_match_ros_topic_contract() -> None:
     for group, expected_topics in EXPECTED_GROUP_TOPICS.items():
-        path = CONFIG_ROOT / f'{group}_bridge{suffix}.yaml'
+        path = CONFIG_ROOT / f'{group}_bridge.yaml'
         entries = _entries(path)
         assert _ros_topics(path) == expected_topics
         assert all(
-            str(entry['gz_type_name']).startswith(transport_namespace)
+            str(entry['gz_type_name']).startswith('ignition.msgs.')
             for entry in entries
         )
 
 
-@pytest.mark.parametrize(
-    ('filename', 'transport_namespace'),
-    (
-        ('navigation_bridge.yaml', 'ignition.msgs.'),
-        ('navigation_bridge_harmonic.yaml', 'gz.msgs.'),
-    ),
-)
-def test_navigation_bridge_exposes_only_runtime_topics(
-    filename: str,
-    transport_namespace: str,
-) -> None:
-    path = CONFIG_ROOT / filename
+def test_navigation_bridge_exposes_only_runtime_topics() -> None:
+    path = CONFIG_ROOT / 'navigation_bridge.yaml'
     entries = _entries(path)
     assert _ros_topics(path) == NAVIGATION_TOPICS
     assert all('/camera/' not in topic for topic in _ros_topics(path))
     assert all(
-        str(entry['gz_type_name']).startswith(transport_namespace)
+        str(entry['gz_type_name']).startswith('ignition.msgs.')
         for entry in entries
     )
 
@@ -136,11 +136,8 @@ def test_navigation_bridge_exposes_only_runtime_topics(
     'filename',
     (
         'bridge.yaml',
-        'bridge_harmonic.yaml',
         'core_bridge.yaml',
-        'core_bridge_harmonic.yaml',
         'navigation_bridge.yaml',
-        'navigation_bridge_harmonic.yaml',
     ),
 )
 def test_joint_state_bridge_is_independent_of_world_name(filename: str) -> None:
@@ -162,25 +159,3 @@ def test_fortress_uses_odometry_publisher_fallback(filename: str) -> None:
     assert entry['direction'] == 'GZ_TO_ROS'
     assert ground_truth['gz_topic_name'] == FORTRESS_ODOMETRY_TOPIC
     assert ground_truth['gz_type_name'] == 'ignition.msgs.Odometry'
-
-
-@pytest.mark.parametrize(
-    'filename',
-    (
-        'bridge_harmonic.yaml',
-        'core_bridge_harmonic.yaml',
-        'navigation_bridge_harmonic.yaml',
-    ),
-)
-def test_harmonic_uses_mecanum_drive_odometry(filename: str) -> None:
-    path = CONFIG_ROOT / filename
-    entry = _entry_for_ros_topic(path, '/gazebo_odom')
-    ground_truth = _entry_for_ros_topic(path, '/ground_truth/odom')
-    assert entry['gz_topic_name'] == HARMONIC_ODOMETRY_TOPIC
-    assert entry['gz_type_name'] == 'gz.msgs.Odometry'
-    assert entry['ros_type_name'] == 'nav_msgs/msg/Odometry'
-    assert entry['direction'] == 'GZ_TO_ROS'
-    assert ground_truth['gz_topic_name'] == (
-        '/model/cleany_mecanum/ground_truth'
-    )
-    assert ground_truth['gz_topic_name'] != entry['gz_topic_name']

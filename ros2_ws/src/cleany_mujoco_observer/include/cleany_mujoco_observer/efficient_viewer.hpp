@@ -10,8 +10,8 @@
 
 namespace cleany_mujoco_observer {
 
-// Input and camera state only. Rendering uses the sensor worker's private
-// snapshot; the viewer never holds the physics mutex while drawing.
+/// Input and camera state only. Rendering uses the sensor worker's private
+/// snapshot; the viewer never holds the physics mutex while drawing.
 class EfficientViewer {
 public:
   EfficientViewer(GLFWwindow* window, const mjModel* model, mjvScene* scene,

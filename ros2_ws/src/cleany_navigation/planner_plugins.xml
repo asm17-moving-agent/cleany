@@ -1,0 +1,5 @@
+<library path="straight_first_planner">
+  <class name="cleany_navigation::StraightFirstPlanner" type="cleany_navigation::StraightFirstPlanner" base_class_type="nav2_core::GlobalPlanner">
+    <description>Checked straight translation with in-place end rotations; Smac lattice fallback.</description>
+  </class>
+</library>

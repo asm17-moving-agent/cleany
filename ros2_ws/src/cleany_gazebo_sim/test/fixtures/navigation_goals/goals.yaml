@@ -1,0 +1,17 @@
+# Simulation regression goals; not physical robot missions.
+real_time_factor: 2.0
+max_truth_error_m: 0.2
+max_truth_yaw_error_rad: 0.2
+max_recoveries: 3
+cases:
+  distant:
+    goal_world: [1.865, 4.7]
+    goal_map_yaw: 0.0
+    timeout_wall_s: 300.0
+  chair_gap:
+    goal_world: [0.60, -1.585]
+    goal_map_yaw: 0.0
+    timeout_wall_s: 120.0
+    min_truth_lateral_m: 2.0
+    min_lateral_command_mps: 0.05
+    min_camera_pan_rad: 1.0

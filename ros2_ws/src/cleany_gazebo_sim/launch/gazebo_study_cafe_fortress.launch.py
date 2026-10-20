@@ -6,4 +6,4 @@ from cleany_gazebo_sim.launch_helpers.study_cafe import (
 
 
 def generate_launch_description():
-    return study_cafe_launch_description('fortress')
+    return study_cafe_launch_description()
