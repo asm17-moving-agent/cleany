@@ -1,6 +1,8 @@
 {
-  "linear_kp": 1.0,
-  "yaw_kp": 2.0,
+  "linear_kp": 6.0,
+  "linear_x_kp": 6.0,
+  "linear_y_kp": 6.0,
+  "yaw_kp": 6.0,
   "linear_tolerance_m": 0.005,
   "yaw_tolerance_rad": 0.017453292519943295,
   "min_linear_speed_mps": 0.01,

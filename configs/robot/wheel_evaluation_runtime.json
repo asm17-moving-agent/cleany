@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "startup_timeout_s": 30.0,
+  "discovery_s": 2.0,
+  "shutdown_timeout_s": 8.0,
+  "agent": {
+    "serial_port": "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_90:E5:B1:D5:3F:34-if00",
+    "baudrate": 115200
+  },
+  "base": {
+    "config": "configs/robot/base_hardware.yaml"
+  },
+  "lidar": {
+    "serial_port": "/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0",
+    "baudrate": 115200,
+    "frame_id": "laser",
+    "inverted": false,
+    "angle_compensate": true,
+    "scan_mode": "Standard",
+    "node_name": "wheel_eval_lidar",
+    "restart_stale": true,
+    "restart_node_names": ["profile_calibration_lidar", "wheel_eval_lidar"]
+  }
+}

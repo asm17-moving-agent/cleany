@@ -26,12 +26,21 @@ class MotionConfig:
     angular_deceleration_rad_s2: float = 0.35
     hold_time_s: float = 0.5
     candidate_settings: bool = True
+    linear_x_kp: float | None = None
+    linear_y_kp: float | None = None
 
     def __post_init__(self) -> None:
         values = asdict(self)
         values.pop("candidate_settings")
+        overrides = (values.pop("linear_x_kp"), values.pop("linear_y_kp"))
         if not _finite(*values.values()) or any(value <= 0 for value in values.values()):
             raise ValueError("motion settings must be finite and positive")
+        for value in overrides:
+            if value is not None and (
+                isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(value) or value <= 0
+            ):
+                raise ValueError("axis-specific motion gains must be finite and positive")
 
     @classmethod
     def from_json(cls, path: str | Path | None = None) -> "MotionConfig":
@@ -78,6 +87,7 @@ class MotionController:
             c, s = math.cos(start_pose.yaw_rad), math.sin(start_pose.yaw_rad)
             self.ux, self.uy = ((c * vx - s * vy) / mag, (s * vx + c * vy) / mag)
         self._initial_speed = mag
+        self._initial_vx, self._initial_vy = vx, vy
         self.target = target_displacement
         self.last_yaw = start_pose.yaw_rad
         self.yaw_accum = 0.0
@@ -108,7 +118,14 @@ class MotionController:
         if in_tol:
             cmd = 0.0
         else:
-            kp = self.config.yaw_kp if self.rotation else self.config.linear_kp
+            if self.rotation:
+                kp = self.config.yaw_kp
+            elif self._initial_vx != 0 and self._initial_vy == 0:
+                kp = self.config.linear_x_kp or self.config.linear_kp
+            elif self._initial_vy != 0 and self._initial_vx == 0:
+                kp = self.config.linear_y_kp or self.config.linear_kp
+            else:
+                kp = self.config.linear_kp
             decel = self.config.angular_deceleration_rad_s2 if self.rotation else self.config.linear_deceleration_mps2
             ceiling = abs(self._initial_speed)
             magnitude = min(ceiling, kp * abs(error), math.sqrt(2 * decel * abs(error)))

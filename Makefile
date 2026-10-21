@@ -36,7 +36,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo sim-gazebo-harmonic sim-gazebo-office \
 	sim-gazebo-study-cafe clean firmware-setup firmware-smoke firmware-build \
-	firmware-upload test-motor-core build-base test-base \
+	firmware-upload test-motor-core build-base test-base test-odometry-evaluation \
 	micro-ros-agent-build test-micro-ros-setup imu-calibration-build \
 	imu-calibration-upload imu-calibration-capture test-imu-calibration
 
@@ -70,6 +70,7 @@ help:
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 	@echo "  make firmware-setup / firmware-smoke / firmware-build"
 	@echo "  make test-motor-core / build-base / test-base"
+	@echo "  make test-odometry-evaluation  Test config-driven wheel odom evaluation"
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
 	@echo "  make imu-calibration-build / test-imu-calibration"
@@ -116,6 +117,9 @@ build-base:
 
 test-base: build-base
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source install/setup.bash && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon test --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon test-result --test-result-base "build/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+
+test-odometry-evaluation:
+	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; source /opt/ros/humble/setup.bash; if test -f ros2_ws/install/setup.bash; then source ros2_ws/install/setup.bash; fi; for launcher in run_wheel_only_eval.sh run_motion_response.sh; do bash -n "tools/odometry_evaluation/$$launcher"; done; PYTHONNOUSERSITE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/odometry_evaluation tools/wheel_calibration'
 
 micro-ros-agent-build:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 tools/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'

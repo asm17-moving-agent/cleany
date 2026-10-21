@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Automated One-Way (편도) Holonomic Odometry Evaluation via 2D LiDAR ICP Ground Truth.
 
-Measures precise displacement errors during unidirectional motion (surge, sway, rotation)
+Measures displacement differences during axial, diagonal and rotation motion
 without error cancellation from round-trip return legs.
 """
 
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import json
 import math
 import os
@@ -44,6 +45,8 @@ from evaluator_core import OdomFreshnessGuard, OdomGuardError, Pose2D
 from evaluation_results import build_leg_result, json_finite, match_metadata, write_data_json
 from motion_control import MotionConfig
 from motion_runtime import execute_motion, init_motion_runtime, receive_odometry, stop_motion
+from planar_extrinsic import PlanarExtrinsic
+from motion_patterns import motion_vectors
 
 
 def quaternion_to_yaw(q) -> float:
@@ -66,16 +69,25 @@ class OneWayEvaluatorNode(Node if HAVE_ROS else object):  # type: ignore[misc]
         voxel_size_m: float = 0.015,
         odom_timeout_s: float = 0.15,
         motion_config: MotionConfig | None = None,
+        extrinsic: PlanarExtrinsic | None = None,
+        odom_topic: str = "/odom",
+        min_inlier_ratio: float = 0.40,
+        convergence_config: dict | None = None,
     ) -> None:
         if not HAVE_ROS:
             raise RuntimeError("ROS 2 (rclpy) is not available")
         super().__init__("oneway_odometry_evaluator")
 
-        self.matcher = LidarScanMatcher(min_range_m=min_range_m, voxel_size_m=voxel_size_m)
+        self.extrinsic = extrinsic or PlanarExtrinsic()
+        self.matcher = LidarScanMatcher(
+            min_range_m=min_range_m, voxel_size_m=voxel_size_m,
+            min_inlier_ratio=min_inlier_ratio,
+            convergence_config=convergence_config,
+        )
         self.guard = OdomFreshnessGuard(timeout_s=odom_timeout_s)
         self.cmd_vel_pub = self.create_publisher(Twist, "/cmd_vel", 10)
         self.enable_client = self.create_client(SetBool, "/base/enable")
-        self.odom_sub = self.create_subscription(Odometry, "/odom", self._on_odom, 1)
+        self.odom_sub = self.create_subscription(Odometry, odom_topic, self._on_odom, 1)
         self.scan_sub = self.create_subscription(
             LaserScan, "/scan", self._on_scan,
             QoSProfile(depth=30, reliability=ReliabilityPolicy.BEST_EFFORT),
@@ -204,6 +216,16 @@ def save_scan_capture(node: Any, points: np.ndarray, path: Path) -> None:
         np.savez_compressed(stream, **arrays)
 
 
+def match_with_base_guess(
+    node: Any, reference: np.ndarray, target: np.ndarray,
+    base_delta: tuple[float, float, float],
+) -> ScanMatchResult:
+    """ICP operates in laser axes, not the odometry/base coordinate frame."""
+    return node.matcher.match(
+        reference, target, initial_guess=node.extrinsic.base_to_lidar(*base_delta)
+    )
+
+
 def run_single_oneway_test(
     node: OneWayEvaluatorNode,
     pattern: str,
@@ -212,6 +234,8 @@ def run_single_oneway_test(
     plot_prefix: Path,
 ) -> dict[str, Any] | None:
     """Execute one-way outbound and return inbound test, evaluating ICP for each leg."""
+    is_rotation = pattern == "rotation"
+    (out_vx, out_vy, out_wz), (in_vx, in_vy, in_wz) = motion_vectors(pattern, speed)
     # Wait for odom
     wait_deadline = time.monotonic() + 5.0
     while node.current_pose is None and time.monotonic() < wait_deadline:
@@ -230,20 +254,6 @@ def run_single_oneway_test(
     save_scan_capture(node, s0_pts, plot_prefix.parent / f"{plot_prefix.name}_start.npz")
     p0_odom = node.current_pose
     assert p0_odom is not None
-
-    # Determine motion parameters
-    is_rotation = pattern == "rotation"
-    if pattern == "surge":
-        out_vx, out_vy, out_wz = speed, 0.0, 0.0
-        in_vx, in_vy, in_wz = -speed, 0.0, 0.0
-    elif pattern == "sway":
-        out_vx, out_vy, out_wz = 0.0, speed, 0.0
-        in_vx, in_vy, in_wz = 0.0, -speed, 0.0
-    elif pattern == "rotation":
-        out_vx, out_vy, out_wz = 0.0, 0.0, speed
-        in_vx, in_vy, in_wz = 0.0, 0.0, -speed
-    else:
-        raise ValueError(f"Unknown pattern: {pattern}")
 
     # Step 2: Outbound Leg (편도 가는 길)
     node.current_stage = "outbound_motion"
@@ -269,7 +279,9 @@ def run_single_oneway_test(
 
     # Match S1 to S0 with initial guess from odometry
     node.current_stage = "outbound_icp"
-    out_icp = node.matcher.match(s0_pts, s1_pts, initial_guess=(odom_out_dx, odom_out_dy, odom_out_dyaw))
+    out_icp = match_with_base_guess(
+        node, s0_pts, s1_pts, (odom_out_dx, odom_out_dy, odom_out_dyaw)
+    )
     if getattr(node, "plot_enabled", True):
         plot_scan_match(
             s0_pts, s1_pts, out_icp,
@@ -298,7 +310,9 @@ def run_single_oneway_test(
     # Compute Inbound Odometry & ICP Ground Truth
     node.current_stage = "inbound_and_loop_icp"
     odom_in_dx, odom_in_dy, odom_in_dyaw = compute_relative_odom(p1_odom, p2_odom)
-    in_icp = node.matcher.match(s1_pts, s2_pts, initial_guess=(odom_in_dx, odom_in_dy, odom_in_dyaw))
+    in_icp = match_with_base_guess(
+        node, s1_pts, s2_pts, (odom_in_dx, odom_in_dy, odom_in_dyaw)
+    )
     if getattr(node, "plot_enabled", True):
         plot_scan_match(
             s1_pts, s2_pts, in_icp,
@@ -308,12 +322,11 @@ def run_single_oneway_test(
 
     # Full Round-Trip Loop Closure (S0 vs S2)
     odom_loop_dx, odom_loop_dy, odom_loop_dyaw = compute_relative_odom(p0_odom, p2_odom)
-    loop_icp = node.matcher.match(s0_pts, s2_pts, initial_guess=(odom_loop_dx, odom_loop_dy, odom_loop_dyaw))
-
-    transform = lambda dx, dy, yaw: transform_lidar_to_base(
-        dx, dy, yaw, extrinsic_yaw_rad=math.radians(-7.85),
-        lever_arm_x_m=0.029, lever_arm_y_m=0.0,
+    loop_icp = match_with_base_guess(
+        node, s0_pts, s2_pts, (odom_loop_dx, odom_loop_dy, odom_loop_dyaw)
     )
+
+    transform = node.extrinsic.lidar_to_base
     outbound = build_leg_result(
         (odom_out_dx, odom_out_dy, odom_out_dyaw), out_icp,
         displacement, is_rotation, transform,
@@ -342,9 +355,8 @@ def run_single_oneway_test(
         "control_stopping_performance": {
             "outbound": out_stop_stats, "inbound": in_stop_stats,
         },
-        "extrinsic_calibration_applied": {
-            "yaw_deg": -7.85, "lever_arm_x_m": 0.029, "lever_arm_y_m": 0.0,
-        },
+        "extrinsic_calibration_applied": node.extrinsic.to_dict(),
+        "evaluation_settings": node.evaluation_settings,
         "raw_scan_file": str(raw_path),
         "outbound": outbound, "inbound": inbound,
         "loop_closure": loop,
@@ -356,11 +368,13 @@ def generate_oneway_comparison_plots(
     results_by_pattern: dict[str, list[dict[str, Any]]],
     save_path: Path,
 ) -> None:
-    """Generate comprehensive comparison plot for Surge, Sway, and Rotation one-way errors."""
+    """Plot axial, optional diagonal and rotation odom-versus-ICP differences."""
     if not HAVE_MATPLOTLIB:
         return
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10), dpi=150)
+    has_diagonals = any(p in results_by_pattern for p in ("diagonal_left", "diagonal_right"))
+    fig, axes = plt.subplots(3 if has_diagonals else 2, 2,
+                             figsize=(14, 15 if has_diagonals else 10), dpi=150)
 
     # Subplot 1: Surge One-Way Error vs Speed
     ax_surge = axes[0, 0]
@@ -430,6 +444,24 @@ def generate_oneway_comparison_plots(
         rates.append(r["outbound"]["one_way_error"]["error_rate_pct"])
         colors_list.append("#e377c2")
 
+    if has_diagonals:
+        for col, pattern in enumerate(("diagonal_left", "diagonal_right")):
+            ax = axes[2, col]
+            runs = [r for r in results_by_pattern.get(pattern, []) if r.get("is_valid")]
+            for leg, style in (("outbound", "o-"), ("inbound", "s--")):
+                ax.plot([r["speed"] for r in runs],
+                        [r[leg]["one_way_error"]["error_norm_mm"] for r in runs],
+                        style, label=leg)
+            ax.set_title(f"{pattern.upper()} one-way odom - ICP")
+            ax.set_xlabel("Speed cap (m/s)")
+            ax.set_ylabel("Translation difference norm (mm)")
+            ax.grid(alpha=.3)
+            ax.legend()
+            for r in runs:
+                categories.append(f"{pattern} {r['speed']:.2f}")
+                rates.append(r["outbound"]["one_way_error"]["error_rate_pct"])
+                colors_list.append("#2ca02c" if col == 0 else "#8c564b")
+
     if categories:
         x_indices = np.arange(len(categories))
         ax_bar.bar(x_indices, rates, color=colors_list, alpha=0.8, width=0.55)
@@ -440,7 +472,7 @@ def generate_oneway_comparison_plots(
         ax_bar.grid(True, axis="y", linestyle=":", alpha=0.6)
         ax_bar.legend(fontsize=8)
 
-    fig.suptitle("One-Way Holonomic Motion Error via LiDAR ICP Ground Truth", fontsize=13, fontweight="bold")
+    fig.suptitle("One-Way Holonomic Motion: Wheel Odometry vs LiDAR ICP", fontsize=13, fontweight="bold")
     plt.tight_layout()
     save_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(save_path)
@@ -451,20 +483,40 @@ def generate_oneway_comparison_plots(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Evaluate one-way motion using LiDAR ICP")
     parser.add_argument("--patterns", nargs="+", default=["surge", "sway", "rotation"],
-                        choices=["surge", "sway", "rotation"])
+                        choices=["surge", "sway", "diagonal_left", "diagonal_right", "rotation"])
     parser.add_argument("--linear-speeds", type=float, nargs="+", default=[0.20, 0.35, 0.50])
     parser.add_argument("--angular-speeds", type=float, nargs="+", default=[0.30, 0.60, 1.00])
     parser.add_argument("--distance", type=float, default=0.50)
     parser.add_argument("--rotation-angle-deg", type=float, default=90.0)
     parser.add_argument("--odom-timeout", type=float, default=0.15)
     parser.add_argument("--motion-config", type=Path)
+    parser.add_argument("--extrinsic-config", type=Path,
+                        help="Flat JSON: yaw_deg, lever_arm_x_m, lever_arm_y_m")
+    parser.add_argument("--odom-topic", default="/odom")
+    parser.add_argument("--lidar-min-range", type=float, default=0.38,
+                        help="ICP-only minimum range in metres; excludes near body returns")
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/odometry_evaluation"))
     parser.add_argument("--no-plots", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     try:
         config = MotionConfig.from_json(args.motion_config)
+        extrinsic = PlanarExtrinsic.from_json(args.extrinsic_config)
         OdomFreshnessGuard(timeout_s=args.odom_timeout)
+        if not math.isfinite(args.lidar_min_range) or not 0 <= args.lidar_min_range < 10:
+            raise ValueError("lidar minimum range must be finite and in [0, 10) metres")
+        if not args.odom_topic or any(c.isspace() for c in args.odom_topic):
+            raise ValueError("odom topic must be nonempty and contain no whitespace")
+        evaluation_settings = {
+            "odom_topic": args.odom_topic,
+            "lidar_min_range_m": args.lidar_min_range,
+            "extrinsic_calibration_applied": extrinsic.to_dict(),
+            "extrinsic_config_file": str(args.extrinsic_config) if args.extrinsic_config else None,
+            "extrinsic_config_sha256": (
+                hashlib.sha256(args.extrinsic_config.read_bytes()).hexdigest()
+                if args.extrinsic_config else None
+            ),
+        }
         if not math.isfinite(args.distance) or not 0 < args.distance <= 3:
             raise ValueError("distance must be in (0, 3] metres")
         if not math.isfinite(args.rotation_angle_deg) or args.rotation_angle_deg <= 0:
@@ -480,6 +532,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Patterns: {args.patterns}; linear speeds: {args.linear_speeds}; distance: {args.distance}")
         print(f"Angular speeds: {args.angular_speeds}; angle: {args.rotation_angle_deg}")
         print(f"Motion config: {config.to_dict()}")
+        print(f"Evaluation settings: {evaluation_settings}")
         return 0
     if not HAVE_ROS:
         print("Run inside distrobox ros2-humble.", file=sys.stderr)
@@ -492,8 +545,13 @@ def main(argv: list[str] | None = None) -> int:
         print("Another calibration motion tool is active.", file=sys.stderr)
         return 1
     rclpy.init()
-    node = OneWayEvaluatorNode(odom_timeout_s=args.odom_timeout, motion_config=config)
+    node = OneWayEvaluatorNode(
+        odom_timeout_s=args.odom_timeout, motion_config=config,
+        extrinsic=extrinsic, odom_topic=args.odom_topic,
+        min_range_m=args.lidar_min_range,
+    )
     node.plot_enabled = not args.no_plots
+    node.evaluation_settings = evaluation_settings
     from datetime import datetime
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -524,6 +582,7 @@ def main(argv: list[str] | None = None) -> int:
                         "nominal_displacement": displacement,
                         "failure_reason": failure,
                         "failed_stage": getattr(node, "current_stage", "initial_odometry"),
+                        "evaluation_settings": evaluation_settings,
                         "capture_files": [str(p) for p in prefix.parent.glob(f"{prefix.name}_*.npz")],
                     }
                     results_by_pattern[pattern].append(result)
@@ -558,6 +617,7 @@ def main(argv: list[str] | None = None) -> int:
             "linear_speeds": args.linear_speeds, "angular_speeds": args.angular_speeds,
             "translation_distance_m": args.distance, "rotation_angle_deg": args.rotation_angle_deg,
             "motion_config": config.to_dict(), "odom_timeout_s": args.odom_timeout,
+            "evaluation_settings": evaluation_settings,
             "results": results_by_pattern, "motion_runs": node.motion_results,
         }
         summary_path = args.output_dir / f"oneway_evaluation_summary_{timestamp}.json"

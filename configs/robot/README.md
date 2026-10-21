@@ -2,6 +2,30 @@
 
 로봇, 센서, frame, workspace, safety limit 관련 설정을 둔다.
 
+## LiDAR 평면 extrinsic
+
+- `lidar_extrinsic_20261015.json`: 2026-10-15 정지 스캔 158개와 CAD의 네 프로파일
+  단면으로 추정한 `laser → base_link`의 yaw와 x/y lever arm이다.
+  실물 전방≈laser −Y, 좌측≈laser +X를 대응 기준으로 사용했다.
+  Z와 roll/pitch를 실측한 6DoF 보정값이 아니며, 정합 잔차를 절대 정확도로
+  해석하지 않는다. 센서나 프로파일 장착이 바뀌면 재측정한다.
+- 편도 평가의 `--extrinsic-config`로 명시적으로 선택한다.
+  실행 명령과 측정용 근거리 제거 설정은
+  [오도메트리 평가 README](../../tools/odometry_evaluation/README.md#속도별-3회-휠-odom-재측정)를 따른다.
+
+## 휠 평가 런타임
+
+`wheel_evaluation_runtime.json`은 config 기반 실험 launcher의 실물 노드 기동
+설정이다. MCU와 LiDAR의 persistent `/dev/serial/by-id/` 경로, baudrate, hardware
+base profile, LiDAR scan 옵션과 시작·종료 대기 시간을 포함한다.
+
+- 정상 동작 중인 stack은 재사용하고, 없는 Agent·driver·LiDAR만 기동한다.
+- `restart_stale`이 켜져 있으면 설정된 USB 경로와 `restart_node_names`에 일치하는
+  같은 사용자 LiDAR 프로세스만 정체 시 재시작한다. USB 재연결로 `/dev/ttyUSB*`
+  번호가 바뀌어도 by-id 경로를 사용한다.
+- 준비 확인은 `/wheel/odom`, `/scan`, `/base/wheel_state`의 실제 수신과
+  `/base/enable` service를 확인한다. 노드나 topic 이름만 있다고 통과하지 않는다.
+
 ## 메카넘 base
 
 - `base_hardware.yaml`: 사용자 확인 geometry는 휠 직경 127 mm, 앞뒤 휠 중심 간
