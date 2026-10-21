@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>cleany_base_driver</name><version>0.1.0</version>
-  <description>Safe core for the Cleany base driver.</description>
+  <description>Safe wheel driver and adapter for MCU-calibrated MPU6050 gyro telemetry.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>Apache-2.0</license>
   <exec_depend>rclpy</exec_depend>

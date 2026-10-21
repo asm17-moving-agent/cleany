@@ -2,9 +2,9 @@
   <xacro:include filename="$(find cleany_description)/urdf/physical_properties.xacro" />
   <xacro:include filename="$(find cleany_description)/urdf/dual_arm.xacro" />
   <xacro:include filename="$(find cleany_description)/urdf/head_camera.xacro" />
-  <xacro:macro name="cleany_robot_geometry" params="include_wheel_joints:=false">
+  <xacro:macro name="cleany_robot_geometry" params="include_wheel_joints:=false head_mast_rear_gap_m:=0.05">
     <!-- Fixed mast belongs to every model, including the controller's TF tree. -->
-    <xacro:cleany_head_mount/>
+    <xacro:cleany_head_mount rear_gap_m="${head_mast_rear_gap_m}"/>
     <link name="base_link">
       <xacro:cleany_link_properties link_name="base_link" />
     </link>

@@ -187,11 +187,31 @@ def test_urdf_geometry_and_mass_match_mjcf() -> None:
     assert urdf_model.body_mass.sum() == pytest.approx(source.body_mass.sum(), abs=1e-8)
     base = source_data.body("chassis")
     rotation = base.xmat.reshape(3, 3)
+    # Named additions must not renumber the imported CAD geometry indices.
+    named_additions = {
+        urdf_model.geom(index).name for index in range(urdf_model.ngeom)
+        if not urdf_model.geom(index).name.startswith("mjcf_geom_")
+    }
+    imported_indices = [
+        index for index in range(source.ngeom)
+        if source.geom(index).name not in named_additions
+    ]
+    # v8 replaces the two original camera visuals on each wrist. Preserve the
+    # remaining CAD identifiers instead of renumbering unrelated model geometry.
+    retired_camera_indices = {78, 79, 110, 111}
+    imported_indices = dict(zip(
+        (index for index in range(len(imported_indices) + len(retired_camera_indices))
+         if index not in retired_camera_indices),
+        imported_indices,
+    ))
     compared = set()
     for index in range(urdf_model.ngeom):
         name = urdf_model.geom(index).name
-        assert name.startswith("mjcf_geom_")
-        source_index, piece = (int(value) for value in name.split("_")[2:4])
+        if name in named_additions:
+            source_index, piece = source.geom(name).id, 0
+        else:
+            imported_index, piece = (int(value) for value in name.split("_")[2:4])
+            source_index = imported_indices[imported_index]
         if name.endswith("_visual"):
             assert urdf_model.geom_rgba[index] == pytest.approx(colors[source_index])
         if piece:  # capsule end spheres; the central cylinder is checked below
@@ -263,46 +283,51 @@ def test_arm_motor_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
 def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
     urdf = _expand_urdf(entrypoint)
     mjcf = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
-    body = mjcf.find(f".//body[@name='{side.title()}_Arm_Camera']")
-    assert body is not None
-    quaternion = np.empty(4)
-    mujoco.mju_euler2Quat(
-        quaternion, np.fromstring(body.get("euler"), sep=" "), "xyz"
-    )
-    rotation = np.empty(9)
-    mujoco.mju_quat2Mat(rotation, quaternion)
-    rotation = rotation.reshape(3, 3)
+    source = mujoco.MjModel.from_xml_path(str(_source_root() / "mjcf/wrist_mount_v8.xml"))
+    data = mujoco.MjData(source)
+    mujoco.mj_forward(source, data)
     link = urdf.find(f"./link[@name='{side}_gripper_frame']")
     assert link is not None
-    geoms = body.findall("./geom[@class='visual']")
-    assert len(geoms) == 2
-    for geom in geoms:
-        asset = mjcf.find(f"./asset/mesh[@name='{geom.get('mesh')}']")
-        assert asset is not None
-        assert (_source_root() / "meshes" / asset.get("file")).is_file()
-        filename = f"package://cleany_description/meshes/{asset.get('file')}"
-        assert not body.findall("./geom[@class='collision']")
-        expected_position = (
-            np.fromstring(body.get("pos"), sep=" ")
-            + rotation @ np.fromstring(geom.get("pos"), sep=" ")
-        )
-        # MuJoCo visuals also need URDF collision coverage for self filtering.
-        for kind in ("visual", "collision"):
-            element = _mesh_element(link, kind, filename)
-
-            mesh = element.find("geometry/mesh")
-            assert mesh is not None
-            assert np.fromstring(mesh.get("scale", "1 1 1"), sep=" ") == pytest.approx(
-                np.fromstring(asset.get("scale", "1 1 1"), sep=" ")
-            )
-            origin = element.find("origin")
-            assert origin is not None
-            assert np.fromstring(origin.get("xyz"), sep=" ") == pytest.approx(
-                expected_position, abs=1e-5
-            )
-            assert _rpy(np.fromstring(origin.get("rpy"), sep=" ")) == pytest.approx(
-                rotation, abs=1e-5
-            )
+    jaw = mjcf.find(f".//body[@name='{'Fixed_Jaw' if side == 'left' else 'Fixed_Jaw_2'}']")
+    prefix = f"{side}_wrist_mount_v8_"
+    collisions = [c for c in link.findall('collision') if c.get('name').startswith(prefix)]
+    visuals = [v for v in link.findall('visual') if v.get('name').startswith(prefix)]
+    assert len(collisions) == 15
+    assert len(visuals) == 6
+    assert not any('XLeRobot_camera' in mesh.get('filename') for mesh in link.findall('.//mesh'))
+    # The rigid geometry belongs to the gripper; optical calibration stays on
+    # its existing camera body and cannot move collision geometry.
+    camera_body = mjcf.find(f".//body[@name='{side.title()}_Arm_Camera']")
+    assert camera_body.find('camera') is not None
+    assert camera_body.find('site') is not None
+    assert not camera_body.findall('geom')
+    for collision in collisions:
+        name = collision.get('name')
+        source_id = source.geom(name.replace(prefix, 'left_camera_', 1)).id
+        origin = collision.find('origin')
+        assert np.fromstring(origin.get('xyz'), sep=' ') == pytest.approx(
+            data.geom_xpos[source_id], abs=1e-12)
+        assert _rpy(np.fromstring(origin.get('rpy'), sep=' ')) == pytest.approx(
+            data.geom_xmat[source_id].reshape(3, 3), abs=1e-12)
+        canonical = jaw.find(f"geom[@name='{name}']")
+        assert canonical is not None
+        assert canonical.get('contype') == canonical.get('conaffinity') == '1'
+        shape = collision.find('geometry')[0]
+        assert shape.tag == canonical.get('type')
+        if shape.tag == 'box':
+            size = np.fromstring(shape.get('size'), sep=' ') / 2
+        else:
+            assert shape.tag == 'cylinder'
+            size = [float(shape.get('radius')), float(shape.get('length')) / 2, 0]
+        assert size == pytest.approx(source.geom_size[source_id], abs=1e-12)
+    for visual in visuals:
+        canonical = jaw.find(f"geom[@name='{visual.get('name')}']")
+        assert canonical is not None
+        mesh = visual.find('geometry/mesh')
+        if mesh is not None:
+            asset = mjcf.find(f"./asset/mesh[@name='{canonical.get('mesh')}']")
+            assert mesh.get('filename') == f"package://cleany_description/meshes/{asset.get('file')}"
+            assert mesh.get('scale') == '1 1 1'
 
 
 @pytest.mark.parametrize("entrypoint", URDF_ENTRYPOINTS)
@@ -1023,3 +1048,122 @@ def test_xacro_reuse_preserves_argument_and_tree_isolation(monkeypatch):
     _expand_urdf('cache_probe.xacro', 'option:=two')
     assert len(calls) == 2
     _expand_urdf_xml.cache_clear()
+
+
+@pytest.mark.parametrize('entrypoint', URDF_ENTRYPOINTS)
+def test_mast_smooth_face_is_rearward_and_behind_top_plate(entrypoint: str) -> None:
+    """Measure the actual CAD surface, rather than only comparing two model files."""
+    root = _expand_urdf(entrypoint)
+    joints = {joint.get('name'): joint for joint in root.findall('joint')}
+    mast_pose = _urdf_fk(joints, ('top_base_joint',), {})
+
+    def triangles(link_name, filename, link_pose):
+        visual = _mesh_element(root.find(f"link[@name='{link_name}']"), 'visual',
+                               'package://cleany_description/meshes/' + filename)
+        mesh = visual.find('geometry/mesh')
+        raw = (_source_root() / 'meshes' / filename).read_bytes()
+        records = np.frombuffer(raw, offset=84, dtype=np.dtype([
+            ('normal', '<f4', (3,)), ('vertices', '<f4', (3, 3)), ('attribute', '<u2'),
+        ]))
+        vertices = records['vertices'].astype(float)
+        vertices *= np.fromstring(mesh.get('scale', '1 1 1'), sep=' ')
+        origin = visual.find('origin')
+        rotation = _rpy(np.fromstring(origin.get('rpy', '0 0 0'), sep=' '))
+        translation = np.fromstring(origin.get('xyz', '0 0 0'), sep=' ')
+        local = vertices @ rotation.T + translation
+        return vertices, local @ link_pose[:3, :3].T + link_pose[:3, 3]
+
+    _, plate = triangles('base_link', 'cad_frame/part_1__2.stl', np.eye(4))
+    source, mast = triangles('top_base_link', 'cad_frame/topbase1.stl', mast_pose)
+    # The broad smooth vertical face is the CAD mesh's X=309 mm plane.
+    smooth = mast[np.all(np.isclose(source[:, :, 0], .309, atol=1e-6, rtol=0), axis=1)]
+    assert len(smooth) >= 2
+    normal = np.cross(smooth[:, 1] - smooth[:, 0], smooth[:, 2] - smooth[:, 0]).sum(axis=0)
+    normal /= np.linalg.norm(normal)
+    assert normal == pytest.approx([-1., 0., 0.], abs=1e-5)
+    rear_edge = plate[:, :, 0].min()
+    assert rear_edge - smooth[:, :, 0] == pytest.approx(
+        np.full(smooth.shape[:2], 0.05), abs=2e-6)
+
+
+@pytest.mark.parametrize('entrypoint', URDF_ENTRYPOINTS)
+def test_mast_gap_override_cannot_diverge_from_mjcf(entrypoint: str, capfd) -> None:
+    with pytest.raises(subprocess.CalledProcessError):
+        _expand_urdf(entrypoint, 'head_mast_rear_gap_m:=0.08')
+    assert 'head_mast_rear_gap_m must be 0.05' in capfd.readouterr().err
+
+
+def test_reversed_mast_keeps_nominal_upper_camera_facing_forward() -> None:
+    root = _expand_urdf('cleany.urdf.xacro')
+    joints = {joint.get('name'): joint for joint in root.findall('joint')}
+    pose = _urdf_fk(joints, ('top_base_joint', 'head_pan_joint', 'head_tilt_joint',
+                             'head_camera_joint'),
+                    {'head_pan_joint': 0., 'head_tilt_joint': 0.})
+    assert pose[:3, :3] == pytest.approx(np.eye(3), abs=1e-8)
+
+
+def test_measured_mast_heights_exclude_upper_pan_tilt_fittings() -> None:
+    raw = (_source_root() / 'meshes/cad_frame/topbase1.stl').read_bytes()
+    triangles = np.frombuffer(raw, offset=84, dtype=np.dtype([
+        ('normal', '<f4', (3,)), ('vertices', '<f4', (3, 3)), ('attribute', '<u2'),
+    ]))['vertices'].astype(float)
+    smooth = triangles[np.all(np.isclose(triangles[:, :, 0], .309,
+                                         atol=1e-6, rtol=0), axis=1)]
+    bottom = triangles[:, :, 2].min()
+    mount_top, pillar_top = smooth[:, :, 2].min(), smooth[:, :, 2].max()
+    assert mount_top - bottom == pytest.approx(.065, abs=1e-6)
+    assert pillar_top - mount_top == pytest.approx(.238, abs=1e-6)
+    assert pillar_top - bottom == pytest.approx(.303, abs=1e-6)
+    # The upper motor seat remains above the 303 mm mount + pillar datum.
+    assert triangles[:, :, 2].max() - pillar_top == pytest.approx(.0593997, abs=1e-6)
+    root = _expand_urdf('cleany.urdf.xacro')
+    joints = {joint.get('name'): joint for joint in root.findall('joint')}
+    pan = _urdf_fk(joints, ('top_base_joint', 'head_pan_joint'), {'head_pan_joint': 0.})
+    assert pan[2, 3] == pytest.approx(.7005)
+    collision = root.find("link[@name='top_base_link']/collision[@name='mjcf_geom_114_0_collision']")
+    center = float(collision.find('origin').get('xyz').split()[2])
+    height = float(collision.find('geometry/box').get('size').split()[2])
+    visual_z = triangles[:, :, 2] - .6
+    assert center - height/2 == pytest.approx(mount_top - .6, abs=1e-6)
+    assert center + height/2 == pytest.approx(visual_z.max(), abs=1e-6)
+
+
+@pytest.mark.parametrize('entrypoint', URDF_ENTRYPOINTS)
+def test_lower_mount_depth_and_offset_from_plate_front(entrypoint: str) -> None:
+    root = _expand_urdf(entrypoint)
+    joints = {joint.get('name'): joint for joint in root.findall('joint')}
+    mast_pose = _urdf_fk(joints, ('top_base_joint',), {})
+
+    def mesh_triangles(link_name, filename, link_pose):
+        link = root.find(f"link[@name='{link_name}']")
+        visual = _mesh_element(link, 'visual',
+                               'package://cleany_description/meshes/' + filename)
+        raw = (_source_root() / 'meshes' / filename).read_bytes()
+        source = np.frombuffer(raw, offset=84, dtype=np.dtype([
+            ('normal', '<f4', (3,)), ('vertices', '<f4', (3, 3)), ('attribute', '<u2'),
+        ]))['vertices'].astype(float)
+        scale = np.fromstring(visual.find('geometry/mesh').get('scale', '1 1 1'), sep=' ')
+        origin = visual.find('origin')
+        rotation = _rpy(np.fromstring(origin.get('rpy', '0 0 0'), sep=' '))
+        translation = np.fromstring(origin.get('xyz', '0 0 0'), sep=' ')
+        local = (source * scale) @ rotation.T + translation
+        return source, local, local @ link_pose[:3, :3].T + link_pose[:3, 3]
+
+    _, _, plate = mesh_triangles('base_link', 'cad_frame/part_1__2.stl', np.eye(4))
+    source, local, world = mesh_triangles('top_base_link', 'cad_frame/topbase1.stl', mast_pose)
+    smooth = source[np.all(np.isclose(source[:, :, 0], .309, atol=1e-6, rtol=0), axis=1)]
+    mount_top = smooth[:, :, 2].min()
+    below_pillar = source[:, :, 2].min(axis=1) < mount_top - 1e-6
+    mount = world[below_pillar]
+    assert np.ptp(mount[:, :, 0]) == pytest.approx(.172, abs=1e-6)
+    assert np.ptp(mount[:, :, 1]) == pytest.approx(.120, abs=1e-6)
+    assert np.ptp(mount[:, :, 2]) == pytest.approx(.065, abs=1e-6)
+    assert plate[:, :, 0].max() - mount[:, :, 0].max() == pytest.approx(.041, abs=2e-6)
+    # The corrected depth reaches behind the pillar, closing the former gap.
+    smooth_world = world[np.all(np.isclose(source[:, :, 0], .309, atol=1e-6, rtol=0), axis=1)]
+    assert smooth_world[:, :, 0].min() - mount[:, :, 0].min() == pytest.approx(.003, abs=1e-6)
+    collision = root.find("link[@name='top_base_link']/collision[@name='lower_head_mount_collision']")
+    center = np.fromstring(collision.find('origin').get('xyz'), sep=' ')
+    half_size = np.fromstring(collision.find('geometry/box').get('size'), sep=' ') / 2
+    assert center - half_size == pytest.approx(local[below_pillar].min(axis=(0, 1)), abs=1e-6)
+    assert center + half_size == pytest.approx(local[below_pillar].max(axis=(0, 1)), abs=1e-6)

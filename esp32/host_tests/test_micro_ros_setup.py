@@ -148,6 +148,17 @@ def test_component_refresh_invalidates_cmake_on_environment_switch(tmp_path, mon
     cache.write_text("matching runtime configure")
     setup.refresh_component(controller, "runtime")
     assert cache.exists()  # Matching fingerprints retain a valid build cache.
+    incomplete = component / "micro_ros_src/install"
+    incomplete.mkdir(parents=True)
+    (incomplete / "partial-marker").write_text("failed colcon configure")
+    setup.refresh_component(controller, "runtime")
+    assert not incomplete.exists()
+    assert cache.exists()
+    (component / "libmicroros.a").write_text("complete library")
+    (component / "include").mkdir()
+    incomplete.mkdir()
+    setup.refresh_component(controller, "runtime")
+    assert incomplete.exists()  # Complete artifacts do not force regeneration.
 
 
 def test_generated_sdkconfig_link_migrates_only_known_previous_source(tmp_path):
@@ -208,3 +219,31 @@ def test_only_micro_ros_firmware_and_console_free_board_defaults():
     assert defaults["CONFIG_FREERTOS_HZ"] == "1000"
     assert defaults["CONFIG_ESPTOOLPY_FLASHSIZE_32MB"] == "y"
     assert defaults["CONFIG_SPIRAM_MODE_OCT"] == "y"
+
+
+def test_cmake_restores_pinned_generators_after_platformio_clears_pythonpath(tmp_path):
+    import os
+    import shutil
+    import subprocess
+
+    cmake = shutil.which("cmake")
+    if cmake is None:
+        pytest.skip("CMake is not installed")
+    controller = tmp_path / "esp32"
+    helper = controller / "cmake/microros_python.cmake"
+    helper.parent.mkdir(parents=True)
+    helper.write_text((setup.CONTROLLER / "cmake/microros_python.cmake").read_text())
+    script = tmp_path / "check.cmake"
+    script.write_text(f'include("{helper}")\nmessage(STATUS "PYTHONPATH=$ENV{{PYTHONPATH}}")\n')
+    env = dict(os.environ, PYTHONPATH="retained")
+    missing = subprocess.run([cmake, "-P", str(script)], env=env, text=True, capture_output=True)
+    assert missing.returncode != 0
+    assert "make firmware-setup" in missing.stderr
+    generator = controller / ".venv/lib/python3.10/site-packages"
+    (generator / "catkin_pkg").mkdir(parents=True)
+    result = subprocess.run([cmake, "-P", str(script)], env=env, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+    assert f"{generator}:retained" in result.stdout
+    for source in ("CMakeLists.txt", "microros_smoke/CMakeLists.txt"):
+        contents = (setup.CONTROLLER / source).read_text()
+        assert contents.index("microros_python.cmake") < contents.index("project(")

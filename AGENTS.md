@@ -20,6 +20,9 @@ git submodule update --init --recursive docs/cleany-docs
 
 제품 범위, 아키텍처, 안전, 하드웨어 또는 런타임 전제에 관한 KB 근거가 필요한 작업은 `docs/cleany-docs/AGENTS.md`와 그 안내 문서를 우선 따른다. KB를 수정할 때도 해당 submodule의 `AGENTS.md`를 우선 따른다.
 
+- KB와 코드 기능 구현이 불일치하면 해당 사안의 가장 최근 사용자 대화에 있는 명시적 지시와 확정된 합의를 우선한다.
+- 관련 대화를 확인할 수 없거나 결정이 모호하면 사용자에게 확인한다. 미확정 내용을 추측해 확정하거나 하드코딩하지 않는다.
+
 ### 구현 문서 갱신
 
 - 실행, 테스트, 캘리브레이션 절차는 `docs/RUNNING.md`, `docs/TESTING.md`, `docs/CALIBRATION.md`가 관리한다. 인터페이스, 단위, 멱등성, 안전, 데이터 규약은 `docs/INTEGRATION.md`에서 연결한 패키지의 `docs/` reference가 관리한다. 코드 변경으로 달라진 문서를 같은 변경에 포함한다.
@@ -91,6 +94,41 @@ class WheelOdometryNode(Node):
 - 공통 빌드는 `docs/DEVELOPMENT_SETUP.md`, 실행은 `docs/RUNNING.md`, 검증은 `docs/TESTING.md`를 따른다.
 - 검증을 실행하지 못했으면 최종 응답에 이유와 대신 확인한 내용을 적는다.
 
-## 5. KB 관련 판단
+## 5. 대화 기반 plan과 KB 기록
 
-구현 중 KB와 충돌하거나 추가 결정이 필요한 사항을 발견하면 임의로 확정하지 않는다. 관련 KB 문서를 참고하고, 필요한 경우 코드에는 최소한의 TODO 또는 주석으로 불확실성을 남긴다.
+plan은 실행 계획이고, Decision은 실제로 확정한 선택과 이유다. plan 승인이나 구현 성공만으로 미결정 정책을 확정하지 않는다.
+
+1. 대화에서 목적, 변경 범위, 선택지, 검증 방법과 미결정 사항을 plan으로 정리하고 확정된 합의와 구분한다.
+2. KB 작성이 요청되면 관련 대화 요약과 plan을 `40_RAW`에 보존한다.
+3. 합의된 제품 기준은 `10_PLANNING`, 기술 기준은 `20_TECHNICAL`, 실제 결정은 `30_DECISIONS`에 반영한다. 실제로 제기한 미결정 판단은 해당 계층의 `99 - Questions.md`에 둔다.
+4. Decision에는 선택, 논의된 대안, 확인된 이유, 영향과 결정 근거를 간결하게 기록한다. 근거나 수치를 만들지 않는다.
+5. 작업 브랜치에서 KB 품질 검사를 실행하고 사람이 GitHub PR로 검토한다. 공유 기준은 검토와 병합이 끝난 문서를 따른다.
+
+- Planning과 Technical의 `출처`에는 Raw 근거를, `관련 결정`에는 Decision을 연결한다. Decision의 `출처`에는 결정 근거를 표준 Markdown 링크로 연결한다.
+- 결정 변경은 새 Decision과 `supersedes`, `superseded_by`로 기록하고 관련 기준 문서도 갱신한다.
+- 실행 절차는 `docs/RUNNING.md`, 구현 계약은 패키지 `docs/`에 둔다. KB 편집은 명시 요청과 해당 submodule의 `AGENTS.md`를 따른다.
+
+## 6. Jira와 GitHub
+
+정보 소유권은 [KB 협업 안내](docs/cleany-docs/README.md#협업-도구와-구현-문서의-경계)를 따른다. Jira는 작업 상태, 담당자와 일정, GitHub PR은 검토와 승인 이력을 관리한다.
+
+### 작업 분해
+
+- 논리적 분해는 `Epic → Story → Task`다. Epic은 대분류, Story는 큰 기능·구현 단위, Task는 필요한 기술적 작업과 검증 항목이다.
+- 실제 Jira에서는 Story와 독립 `Task` 모두 관련 Epic을 `parent`로 연결한다.
+- 필요한 Task는 `Blocks`로 Story를 연결한다: `Task blocks Story` / `Story is blocked by Task`. 공통 Task는 필요한 Story들에 각각 연결한다.
+- Task 간 선행 의존성도 `Blocks`로 연결한다. 생성·정리 시 유형, Epic `parent`와 링크 방향을 확인한다.
+- Story 완료는 연결된 Task 상태와 자체 완료 조건을 함께 확인한다. Task 완료나 PR 상태만으로 Jira 상태를 자동 변경하지 않고 합의된 `Done` 기준을 따른다.
+
+### Jira 작성
+
+- 제목과 본문은 짧은 명사형 개조식으로 작성한다.
+- 본문은 `목적 및 개요 / 완료 조건 / 결과`로 구성한다. 결과에는 진행 결과와 검증 근거를 요약한다.
+- 선행 작업과 의존관계는 issue 링크로 관리하고 본문에 중복 기재하지 않는다.
+- KB나 구현 README 본문은 복사하지 않는다. 관련 문서는 버전·작업 브랜치를 식별할 수 있는 링크로 연결하고 PR도 연결한다.
+
+### PR과 보고
+
+- PR에는 변경 범위, 검증 결과와 관련 Jira issue를 연결한다.
+- CI 통과, 사람 승인, `main` 병합과 실물 검증을 구분해 보고한다. 병합 조건은 현재 브랜치 보호 규칙과 팀 운영 기준을 확인한다.
+- commit, push, PR 생성과 병합은 사용자가 요청한 범위에서 수행한다.

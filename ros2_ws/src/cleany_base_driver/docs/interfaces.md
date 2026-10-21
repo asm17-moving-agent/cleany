@@ -43,3 +43,17 @@
 | 토픽 발행 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
 `odom → base_link` TF를 발행한다. 외부 estimator 또는 Gazebo canonical publisher와 중복 실행하지 않는다.
+
+## cleany_imu
+
+실행 파일: `imu_driver_node`. 원본: [imu_node.py](../cleany_base_driver/imu_node.py).
+
+| 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
+|---|---|---|---|
+| 토픽 구독 | `base/imu_state` | `cleany_base_interfaces/msg/ImuState` | B1 |
+| 토픽 발행 | `imu/data_raw` | `sensor_msgs/msg/Imu` | B1; 정상 IMU 수신 시 |
+| 토픽 발행 | `imu/data` | `sensor_msgs/msg/Imu` | B1; RUNNING 또는 FALLBACK |
+| 토픽 발행 | `imu/status` | `diagnostic_msgs/msg/DiagnosticArray` | R/T1; 상태 변경 시와 1 Hz |
+| 토픽 발행 | `diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | R10; 상태 변경 시와 1 Hz |
+
+이름은 ROS remap으로 변경한다. 보정과 오류 상태는 [IMU 계약](imu.md)을 따른다.

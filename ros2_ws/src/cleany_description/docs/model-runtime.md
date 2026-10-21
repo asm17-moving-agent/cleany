@@ -69,7 +69,7 @@ Authoritative robot description assets shared by MuJoCo, TF, and MoveIt.
   adds the MuJoCo `ros2_control` hardware interface for the ten arm joints and
   read-only state interfaces for both grippers
 - `urdf/cleany_mujoco_ros2_control.xacro`: reusable MuJoCo hardware macro
-- `urdf/head_camera.xacro`: nominal head pan/tilt and RGB-D frame tree
+- `urdf/head_camera.xacro`: physical head mount and optional measured RGB optical transform
 - `mjcf/cleany.xml`: MuJoCo robot model included by simulator scenes
 - `meshes/`: visual and collision CAD assets referenced by both descriptions
 - `test/test_model_parity.py`: canonical joint, motor geometry, and randomized
@@ -80,13 +80,16 @@ as visuals and URDF collision shapes, at their MJCF body-local placements. Upper
 and lower-arm motors have respective offsets `(0, 0.05, 0)` and `(0, 0, 0.05)` m;
 the other three have zero offsets. The RGB-D self-filter uses collision shapes,
 so omitting these parts can leave the robot's own surfaces in the environment
-OctoMap. The fixed-jaw motor and the two rigid wrist-camera meshes remain
-visual-only in MJCF, but have matching URDF collision meshes for conservative
-planning and self-filter coverage. The migration initially omitted these URDF
-collisions; they are restored using the exact visual origins/scales, without
-changing MuJoCo contact physics. Regression checks compare both visual and
-collision mesh scale and composed camera mesh poses
-within `1e-5`; motor translation comparisons allow `2e-6` m for CAD rounding.
+OctoMap. The fixed-jaw motor remains visual-only in MJCF and has a matching URDF
+collision mesh. The v8 wrist mounts use six visuals and fifteen collision
+primitives per wrist in both backends, replacing the old camera-case meshes.
+Their rigid geometry is attached to the gripper independently of optical TFs.
+The simulated wrist cameras and optical sites/bodies use the v8 geometry
+registration's lens centre and CV axes. The camera renderer reverses optical
+Y/Z to use its -Z viewing convention. Sorting's nominal wrist transform config
+matches this pose; the measured Jetson calibration profile remains independent.
+Regression checks compare visual and collision poses, dimensions and colors
+across backends; motor translation comparisons allow `2e-6` m for CAD rounding.
 Existing CAD files are reused without regenerating assets or changing joint
 kinematics. This coverage does not by itself prove collision-free execution.
 
@@ -102,8 +105,8 @@ arm and gripper configurations in both URDF entrypoints, in addition to the
 fixed jaws and TCPs. The `1e-5` tolerance accommodates rounded MJCF CAD angles;
 this is simulation-model parity, not a measured hardware calibration.
 
-Run `make test-grasp-pregrasp` from the repository root to build the relevant
-packages and check the entire model parity suite, including randomized arm/TCP,
+Run `make test` from the repository root to build the workspace and check
+the model parity suite, including randomized arm/TCP,
 moving-jaw and head-camera FK. The simulation tests also compare the configured
 wrist optical transforms against the MJCF camera sites. URDF entrypoint geometry
 is compared with `include_wheel_joints:=false` on both sides: the default mobile
@@ -118,8 +121,10 @@ performance, navigation, or successful object retention.
   URDF wheels are rigid 500 g assemblies; 48 passive roller joints are MJCF-only.
 - `${side}_grasp_tcp` is fixed at `(0, -0.100, 0)` m in
   `${side}_gripper_frame`; the original hinged gripper is retained.
-- Head RGB-D transforms are nominal, not measured calibration.
-  Wrist camera ground-truth edges remain out of runtime TF for hand-eye calibration.
+- Head RGB-D transforms are nominal by default. The explicit `jetson_20261009`
+  calibration profile applies provisional measured RGB and wrist optical transforms.
+  Depth remains nominal; simulation ground-truth wrist edges remain separate.
+  See [model contract](model.md) and [calibration guide](../../../../docs/CALIBRATION.md).
 - The control entrypoint commands ten arm joints and reads both grippers.
   Gripper commands are opt-in via `enable_gripper_command:=true`.
   Base, head, and rollers are outside this control contract.
