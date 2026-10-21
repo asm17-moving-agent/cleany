@@ -36,6 +36,9 @@ HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 	cleany_moveit_config cleany_handeye_calibration
 ROS2_CONTAINER ?= ros2-humble
 BASE_TEST_ROS_DOMAIN_ID ?= 173
+IMU_CALIBRATION_OUTPUT ?= $(REPO_ROOT)artifacts/imu_calibration/result.json
+IMU_CALIBRATION_TIMEOUT ?= 60
+IMU_CALIBRATION_ARGS ?=
 # Run natively inside the Ubuntu Distrobox, enter it when invoked from the host.
 BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
@@ -49,7 +52,8 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	sim sim-gazebo \
 	sim-gazebo-study-cafe sim-gazebo-facility clean firmware-setup firmware-smoke firmware-build \
 	firmware-upload test-motor-core build-base test-base \
-	micro-ros-agent-build test-micro-ros-setup
+	micro-ros-agent-build test-micro-ros-setup imu-calibration-build \
+	imu-calibration-upload imu-calibration-capture test-imu-calibration test-odometry-evaluation
 
 .PHONY: build-manipulation build-manipulation-bt test-manipulation-core \
 	test-manipulation test-manipulation-bt sim-mujoco-manipulation
@@ -98,8 +102,12 @@ help:
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 	@echo "  make firmware-setup / firmware-smoke / firmware-build"
 	@echo "  make test-motor-core / build-base / test-base"
+	@echo "  make test-odometry-evaluation  Test config-driven wheel odom evaluation"
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
+	@echo "  make imu-calibration-build / test-imu-calibration"
+	@echo "  make imu-calibration-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
+	@echo "  make imu-calibration-capture CLEANY_ESP_PORT=/dev/... [IMU_CALIBRATION_ARGS=--calibrate]"
 
 firmware-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 esp32/scripts/micro_ros_setup.py'
@@ -124,11 +132,29 @@ firmware-upload: firmware-setup
 test-motor-core:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; for f in esp32/host_tests/*.cpp; do g++ -std=c++17 -Wall -Wextra -Werror -pedantic -Iesp32/src "$$f" -o "/tmp/$$(basename "$$f" .cpp)"; "/tmp/$$(basename "$$f" .cpp)"; done'
 
+imu-calibration-build:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration'
+
+imu-calibration-upload:
+	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)
+	@test "$(CONFIRM_UPLOAD)" = 1 || (echo "CONFIRM_UPLOAD=1 is required" >&2; exit 2)
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration -t upload --upload-port "$(CLEANY_ESP_PORT)"'
+
+imu-calibration-capture:
+	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && esp32/.venv/bin/python tools/imu_calibration/capture.py --port "$(CLEANY_ESP_PORT)" --output "$(IMU_CALIBRATION_OUTPUT)" --timeout "$(IMU_CALIBRATION_TIMEOUT)" $(IMU_CALIBRATION_ARGS)'
+
+test-imu-calibration: test-motor-core
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/imu_calibration'
+
 build-base:
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_base_driver cleany_base_odometry'
 
 test-base: build-base
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+
+test-odometry-evaluation:
+	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; source /opt/ros/humble/setup.bash; if test -f ros2_ws/install/setup.bash; then source ros2_ws/install/setup.bash; fi; for launcher in run_wheel_only_eval.sh run_motion_response.sh; do bash -n "tools/odometry_evaluation/$$launcher"; done; PYTHONNOUSERSITE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/odometry_evaluation tools/wheel_calibration'
 
 micro-ros-agent-build:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 esp32/scripts/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'

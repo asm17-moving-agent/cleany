@@ -6,7 +6,8 @@ geometry:
   # 127 mm diameter -> 63.5 mm radius.
   wheel_radius_m: 0.0635
   wheelbase_m: 0.350
-  wheel_separation_m: 0.610
+  # Ground-run effective separation; measured wheel-center distance is 0.610 m.
+  wheel_separation_m: 0.590
 limits:
   # Input-axis ceilings; proportional wheel scaling still limits the targets.
   linear_x_mps: 0.5

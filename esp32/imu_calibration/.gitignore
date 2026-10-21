@@ -1,0 +1,7 @@
+/.pio/
+/sdkconfig
+/sdkconfig.esp32-*
+/sdkconfig.old
+/dependencies.lock
+/managed_components/
+/build/
