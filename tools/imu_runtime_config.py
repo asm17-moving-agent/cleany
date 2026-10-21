@@ -8,7 +8,7 @@ import math
 from pathlib import Path
 
 
-SOURCE = Path(__file__).resolve().parents[1] / "configs/robot/imu_calibration.json"
+SOURCE = Path(__file__).resolve().parents[1] / "ros2_ws/src/cleany_base_driver/config/imu_calibration.json"
 
 
 def render(config: dict) -> str:
@@ -37,7 +37,7 @@ def render(config: dict) -> str:
         raise ValueError("fallback covariance must be symmetric positive definite")
     bias = ", ".join(format(x, ".17g") for x in config["fallback_bias_rad_s"])
     cov = ", ".join(format(x, ".17g") for x in config["fallback_covariance_rad2_s2"])
-    return f"""// Generated from configs/robot/imu_calibration.json; do not edit.
+    return f"""// Generated from ros2_ws/src/cleany_base_driver/config/imu_calibration.json; do not edit.
 #pragma once
 #include "imu_startup_calibration.hpp"
 namespace cleany {{

@@ -29,12 +29,12 @@ def test_park_rejects_out_of_limit_angle():
         freeze(robot, {'arm': 2})
 
 
-@pytest.mark.skipif(shutil.which('gz') is None, reason='Gazebo sdformat conversion required')
+@pytest.mark.skipif(not (shutil.which('gz') or shutil.which('ign')), reason='Gazebo sdformat conversion required')
 def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     pytest.importorskip('xacro')
     package = Path(__file__).resolve().parents[1]
     world = materialize_mecanum_wheel_world(
-        package/'worlds/cleany_mecanum_harmonic.sdf', target_path=tmp_path/'world.sdf', robot_model='cad_frame')
+        package/'worlds/cleany_mecanum_fortress.sdf', target_path=tmp_path/'world.sdf', robot_model='cad_frame')
     model = ET.parse(world).getroot().find("world/model[@name='cleany_mecanum']")
     assert len(model.findall('link')) == 6
     assert len(model.findall('joint')) == 5
@@ -48,7 +48,9 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
         assert float(contact.findtext('geometry/cylinder/radius')) == pytest.approx(.0635)
     assert model.find("joint[@name='head_pan_joint']").get('type') == 'revolute'
     assert model.find("link[@name='head_pan_link']/sensor[@name='head_realsense_depth']") is not None
-    assert len(model.findall('.//sensor')) == 6
+    assert len(model.findall('.//sensor')) == 4
+    assert not any('Upper_Arm_5cm_Sockets.stl' in uri.text for uri in model.findall('.//mesh/uri'))
+    assert not any('wrist' in n.get('name', '') for n in model.findall('frame'))
     names = {n.get('name') for n in model if n.tag in ('link', 'frame', 'joint')}
     for sensor in model.findall('.//sensor'):
         assert sensor.find('pose').get('relative_to') in names
@@ -60,7 +62,7 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     assert max(abs(low[1]), abs(high[1])) < 0.40
     assert high[1]-low[1] > 0.60
     assert high[1]-low[1] == pytest.approx(.6548, abs=1e-6)
-    angle = np.deg2rad(30)
+    angle = np.deg2rad(20)
     np.testing.assert_allclose(meta['depth_camera_tf']['rotation_rpy'], [0, angle, 0], atol=1e-9)
     expected = [0.102+0.025*np.cos(angle)+0.03*np.sin(angle), -0.002,
                 0.77115-0.025*np.sin(angle)+0.03*np.cos(angle)]

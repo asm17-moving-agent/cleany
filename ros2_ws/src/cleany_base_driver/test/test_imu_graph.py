@@ -182,7 +182,7 @@ def test_installed_imu_launch_and_profile():
     assert 'calibration_samples' not in profile
     assert 'fallback_bias_rad_s' not in profile
     root = Path(__file__).resolve().parents[4]
-    source = yaml.safe_load((root / 'configs/robot/imu_bringup.yaml').read_text())
+    source = yaml.safe_load((root / 'ros2_ws/src/cleany_base_driver/config/imu_bringup.yaml').read_text())
     assert profile == source['cleany_imu']['ros__parameters']
     rclpy.init()
     try:

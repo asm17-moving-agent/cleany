@@ -1,0 +1,40 @@
+# Gazebo/Nav2 drives the base; the external Action updates the logical MockDesk only.
+# Initial mock safety applies only to an empty Mission journal.
+mission_runtime:
+  ros__parameters:
+    navigation_backend: nav2
+    post_mission: return_home
+    tick_hz: 10.0
+    navigation_timeout: 180.0
+    cleaning_timeout: 300.0
+    operation_timeout: 120.0
+    cancel_timeout: 15.0
+    max_actions: 30
+    max_skill_retries: 2
+    mock_operation_polls: 2
+    odom_topic: wheel/odom
+    input_timeout: 1.5
+    stopped_linear_speed: 0.03
+    stopped_angular_speed: 0.05
+    navigation_settle_timeout: 3.0
+    arrival_position_tolerance: 0.08
+    arrival_yaw_tolerance: 0.15
+    arrival_pose_timeout: 0.5
+    lifecycle_timeout: 3.0
+    required_navigation_lifecycle_nodes:
+    - map_server
+    - amcl
+    - planner_server
+    - controller_server
+    - bt_navigator
+    - collision_monitor
+    manipulation_backend: action_mock
+    manipulation_action: mock/manipulation/execute_skill
+    manipulation_query: mock/manipulation/get_execution
+    manipulation_destination: mock_trash_bin
+    manipulation_initial_mock_safe: true
+    manipulation_mock_snapshot_ids:
+    - mock-snapshot-001
+    - mock-snapshot-002
+    - mock-snapshot-003
+    - mock-snapshot-004

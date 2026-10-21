@@ -1,0 +1,50 @@
+# Copy outside the package and fill every null using the backend geometry and
+# measured conservative braking bounds. This template intentionally cannot launch.
+voxel_guard:
+  ros__parameters:
+    profile: body_profile.yaml
+    max_speed: null
+    max_yaw_rate: null
+    reaction_s: null
+    linear_deceleration: null
+    angular_deceleration: null
+obstacle_memory:
+  ros__parameters:
+    floor_z: null  # floor height in map, meters
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      footprint: null  # string: [[x,y], ...], in base_link
+      obstacle_layer:
+        min_obstacle_height: null
+        scan:
+          min_obstacle_height: null
+      depth_layer:
+        origin_z: null  # floor height in local costmap frame
+        min_obstacle_height: null
+        max_obstacle_height: null
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      footprint: null
+      obstacle_layer:
+        min_obstacle_height: null
+        scan:
+          min_obstacle_height: null
+collision_monitor:
+  ros__parameters:
+    StopZone:
+      points: null  # string: [[x,y], ...], in base_link
+    SlowZone:
+      points: null
+    depth:
+      min_height: null
+      max_height: null
+depth_clearance:
+  ros__parameters:
+    camera_frame: head_camera_depth_frame
+    optical_frame: head_camera_depth_optical_frame
+    positive_infinity_is_free: false
+    allow_simulation_limits: false
+# Also tune controller velocity/acceleration bounds and depth range to the backend.
+# AMCL starts without a guessed initial pose; publish initialpose after activation.

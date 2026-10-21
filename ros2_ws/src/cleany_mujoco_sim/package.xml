@@ -20,7 +20,7 @@
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>joint_trajectory_controller</exec_depend>
-  <exec_depend>mujoco</exec_depend>
+  <exec_depend>python3-mujoco-pip</exec_depend>
   <exec_depend>mujoco_ros2_control</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
@@ -36,6 +36,8 @@
   <test_depend>tf2_msgs</test_depend>
   <test_depend>trajectory_msgs</test_depend>
 
+  <exec_depend>cleany_mujoco_observer</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
   <export>
     <build_type>ament_python</build_type>
   </export>

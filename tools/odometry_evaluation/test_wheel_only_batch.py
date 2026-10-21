@@ -9,7 +9,7 @@ import run_wheel_only_eval as batch
 
 def config(tmp_path):
     motion = Path(__file__).with_name("motion_settings.json")
-    extrinsic = batch.ROOT / "configs/robot/lidar_extrinsic_20261015.json"
+    extrinsic = batch.ROOT / "ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261015.json"
     data = {
         "schema_version": 1, "repetitions": 3, "ros_domain_id": 0,
         "patterns": ["surge", "sway", "rotation"],
@@ -17,7 +17,7 @@ def config(tmp_path):
         "translation_distance_m": .5, "rotation_angle_deg": 90.,
         "odom_topic": "/wheel/odom", "odom_timeout_s": .15, "lidar_min_range_m": .45,
         "extrinsic_config": str(extrinsic.relative_to(batch.ROOT)),
-        "runtime_config": "configs/robot/wheel_evaluation_runtime.json",
+        "runtime_config": "ros2_ws/src/cleany_base_driver/config/wheel_evaluation_runtime.json",
         "motion_config": str(motion.relative_to(batch.ROOT)), "plots": True,
         "output_dir": str((tmp_path / "out").relative_to(batch.ROOT)) if tmp_path.is_relative_to(batch.ROOT) else str(tmp_path / "out"),
     }

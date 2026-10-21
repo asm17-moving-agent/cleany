@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+DATA_ROOT="${CLEANY_DATA_ROOT:-$(dirname "${REPO_ROOT}")/cleany-data}"
+BUILD_ROOT="${CLEANY_BUILD_ROOT:-${DATA_ROOT}/builds/$(basename "${REPO_ROOT}")}"
+BUILD_ROOT="$(realpath -m "${BUILD_ROOT}")"
+# Reject a build root that contains any protected directory.
+for protected in "${HOME}" "${REPO_ROOT}" "${DATA_ROOT}"; do
+  protected="$(realpath -m "${protected}")"
+  case "${protected}/" in "${BUILD_ROOT%/}/"*)
+    echo "Refusing unsafe build root: ${BUILD_ROOT}" >&2
+    exit 2
+    ;;
+  esac
+done
+
+if [[ "${1:-}" != "--yes" && "${1:-}" != "-y" ]]; then
+  printf 'Remove ROS 2 generated build outputs under %s? [y/N] ' "${BUILD_ROOT}" >&2
+  read -r answer
+  case "${answer}" in
+    y|Y|yes|YES) ;;
+    *)
+      echo "aborted" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+# Limit deletion to generated output names for this checkout.
+for suffix in "" -navigation -scenario-runtime; do
+  rm -rf -- "${BUILD_ROOT}/build${suffix}" "${BUILD_ROOT}/install${suffix}" "${BUILD_ROOT}/log${suffix}"
+done

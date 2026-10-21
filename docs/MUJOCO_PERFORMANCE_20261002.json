@@ -1,0 +1,329 @@
+{
+  "date": "2026-10-02 Asia/Seoul",
+  "baseline_commit": "5922b148f695bfadb5004a73aaccc5dae748bd98",
+  "measurements": {
+    "baseline-headless": {
+      "command": [
+        "ros2",
+        "launch",
+        "cleany_skill_executor",
+        "study_cafe_nearest_grasp_demo.launch.py",
+        "headless:=true",
+        "use_rviz:=false",
+        "use_image_view:=false",
+        "perception_detector_type:=yoloe"
+      ],
+      "scope": "ROS runtime; clock, RGB-D delivery and process CPU",
+      "log": "/tmp/cleany-perf/baseline-headless.log",
+      "first_clock_seconds": 2.806563422025647,
+      "wall_seconds": 29.999188093002886,
+      "realtime_factor": 0.9999937300635504,
+      "cpu_core_equivalents": 5.117471830372889,
+      "images": {
+        "/camera/color/image_raw": {
+          "frames": 206,
+          "wall_hz": 6.866852508186652,
+          "median_interval_ms": 130.63588700606488,
+          "max_interval_ms": 260.2790919772815
+        },
+        "/camera/aligned_depth_to_color/image_raw": {
+          "frames": 206,
+          "wall_hz": 6.866852508186652,
+          "median_interval_ms": 130.66188100492582,
+          "max_interval_ms": 260.99059998523444
+        },
+        "/left_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        },
+        "/right_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        }
+      },
+      "remaining_test_processes": []
+    },
+    "baseline-gui": {
+      "command": [
+        "ros2",
+        "launch",
+        "cleany_skill_executor",
+        "study_cafe_nearest_grasp_demo.launch.py",
+        "headless:=false",
+        "use_rviz:=false",
+        "use_image_view:=false",
+        "perception_detector_type:=yoloe"
+      ],
+      "scope": "ROS runtime; clock, RGB-D delivery and process CPU",
+      "log": "/tmp/cleany-perf/baseline-gui.log",
+      "first_clock_seconds": 3.0627434740017634,
+      "wall_seconds": 30.002523672010284,
+      "realtime_factor": 0.9999158846756401,
+      "cpu_core_equivalents": 5.275556207548678,
+      "images": {
+        "/camera/color/image_raw": {
+          "frames": 71,
+          "wall_hz": 2.3664675937323483,
+          "median_interval_ms": 429.3872120033484,
+          "max_interval_ms": 520.3039970074315
+        },
+        "/camera/aligned_depth_to_color/image_raw": {
+          "frames": 71,
+          "wall_hz": 2.3664675937323483,
+          "median_interval_ms": 429.60909601242747,
+          "max_interval_ms": 520.8291900053155
+        },
+        "/left_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        },
+        "/right_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        }
+      },
+      "remaining_test_processes": []
+    },
+    "optimized-headless": {
+      "command": [
+        "ros2",
+        "launch",
+        "cleany_skill_executor",
+        "study_cafe_nearest_grasp_demo.launch.py",
+        "headless:=true",
+        "use_rviz:=false",
+        "use_image_view:=false",
+        "perception_detector_type:=yoloe"
+      ],
+      "scope": "ROS runtime; clock, RGB-D delivery and process CPU",
+      "log": "/tmp/cleany-perf/optimized-headless.log",
+      "first_clock_seconds": 2.7903009169967845,
+      "wall_seconds": 30.001770896022208,
+      "realtime_factor": 0.9999743049826998,
+      "cpu_core_equivalents": 5.400347884847071,
+      "images": {
+        "/camera/color/image_raw": {
+          "frames": 300,
+          "wall_hz": 9.999409736169126,
+          "median_interval_ms": 99.18996499618515,
+          "max_interval_ms": 119.30747798760422
+        },
+        "/camera/aligned_depth_to_color/image_raw": {
+          "frames": 300,
+          "wall_hz": 9.999409736169126,
+          "median_interval_ms": 99.21767699415796,
+          "max_interval_ms": 119.53595900558867
+        },
+        "/left_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        },
+        "/right_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        }
+      },
+      "remaining_test_processes": []
+    },
+    "optimized-visible-gui": {
+      "command": [
+        "ros2",
+        "launch",
+        "cleany_skill_executor",
+        "study_cafe_nearest_grasp_demo.launch.py",
+        "headless:=false",
+        "use_rviz:=false",
+        "use_image_view:=false",
+        "perception_detector_type:=yoloe"
+      ],
+      "scope": "ROS runtime; clock, RGB-D delivery and process CPU",
+      "log": "/tmp/cleany-perf/optimized-visible-gui.log",
+      "first_clock_seconds": 2.756616762984777,
+      "wall_seconds": 40.00148866599193,
+      "realtime_factor": 0.9999627847102301,
+      "cpu_core_equivalents": 5.56854275749431,
+      "images": {
+        "/camera/color/image_raw": {
+          "frames": 400,
+          "wall_hz": 9.999627847352293,
+          "median_interval_ms": 101.56368601019494,
+          "max_interval_ms": 130.41999799315818
+        },
+        "/camera/aligned_depth_to_color/image_raw": {
+          "frames": 400,
+          "wall_hz": 9.999627847352293,
+          "median_interval_ms": 101.05899997870438,
+          "max_interval_ms": 140.25991002563387
+        },
+        "/left_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        },
+        "/right_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        }
+      },
+      "remaining_test_processes": []
+    },
+    "optimized-full-gui": {
+      "command": [
+        "ros2",
+        "launch",
+        "cleany_skill_executor",
+        "study_cafe_nearest_grasp_demo.launch.py"
+      ],
+      "scope": "ROS runtime; clock, RGB-D delivery and process CPU",
+      "log": "/tmp/cleany-perf/optimized-full-gui.log",
+      "measurement_completed": true,
+      "first_clock_seconds": 2.9127467419893946,
+      "wall_seconds": 35.00226256099995,
+      "realtime_factor": 0.999963929131788,
+      "cpu_core_equivalents": 5.731343785287832,
+      "images": {
+        "/camera/color/image_raw": {
+          "frames": 350,
+          "wall_hz": 9.999353595786555,
+          "median_interval_ms": 99.70367499045096,
+          "max_interval_ms": 140.14998701168224
+        },
+        "/camera/aligned_depth_to_color/image_raw": {
+          "frames": 350,
+          "wall_hz": 9.999353595786555,
+          "median_interval_ms": 99.80338998138905,
+          "max_interval_ms": 140.808816999197
+        },
+        "/left_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        },
+        "/right_wrist_camera/image_raw": {
+          "frames": 0,
+          "wall_hz": 0.0,
+          "median_interval_ms": null,
+          "max_interval_ms": null
+        }
+      },
+      "remaining_test_processes": []
+    },
+    "sorting-optimized-headless": {
+      "command": [
+        "ros2",
+        "launch",
+        "cleany_skill_executor",
+        "study_cafe_sorting.launch.py",
+        "headless:=true",
+        "sorting_artifact_directory:=/tmp/cleany-perf/sorting-optimized-headless"
+      ],
+      "scope": "ROS runtime; clock, RGB-D delivery and process CPU",
+      "log": "/tmp/cleany-perf/sorting-optimized-headless.log",
+      "launch_returncode": 0,
+      "first_clock_seconds": 2.8498474690131843,
+      "wall_seconds": 87.43883074601763,
+      "realtime_factor": 0.9999790625514773,
+      "cpu_core_equivalents": 6.3280809599023655,
+      "images": {
+        "/camera/color/image_raw": {
+          "frames": 234,
+          "wall_hz": 2.676156554285322,
+          "median_interval_ms": 447.4057810148224,
+          "max_interval_ms": 586.2815550062805
+        },
+        "/camera/aligned_depth_to_color/image_raw": {
+          "frames": 234,
+          "wall_hz": 2.676156554285322,
+          "median_interval_ms": 447.16308198985644,
+          "max_interval_ms": 586.0381170059554
+        },
+        "/left_wrist_camera/image_raw": {
+          "frames": 55,
+          "wall_hz": 0.6290111559217637,
+          "median_interval_ms": 527.9277239897056,
+          "max_interval_ms": 586.4858319982886
+        },
+        "/right_wrist_camera/image_raw": {
+          "frames": 36,
+          "wall_hz": 0.4117163929669726,
+          "median_interval_ms": 528.5407549818046,
+          "max_interval_ms": 595.2850079920609
+        }
+      },
+      "remaining_test_processes": []
+    },
+    "sorting-optimized-visible-gui": {
+      "command": [
+        "ros2",
+        "launch",
+        "cleany_skill_executor",
+        "study_cafe_sorting.launch.py",
+        "headless:=false",
+        "sorting_artifact_directory:=/tmp/cleany-perf/sorting-optimized-visible-gui"
+      ],
+      "scope": "ROS runtime; clock, RGB-D delivery and process CPU",
+      "log": "/tmp/cleany-perf/sorting-optimized-visible-gui.log",
+      "launch_returncode": 0,
+      "first_clock_seconds": 2.963971172022866,
+      "wall_seconds": 80.94067860100768,
+      "realtime_factor": 0.999929842433918,
+      "cpu_core_equivalents": 5.392467762119381,
+      "images": {
+        "/camera/color/image_raw": {
+          "frames": 624,
+          "wall_hz": 7.70934974583017,
+          "median_interval_ms": 103.60819799825549,
+          "max_interval_ms": 514.0793840109836
+        },
+        "/camera/aligned_depth_to_color/image_raw": {
+          "frames": 624,
+          "wall_hz": 7.70934974583017,
+          "median_interval_ms": 103.67400298127905,
+          "max_interval_ms": 514.2156700021587
+        },
+        "/left_wrist_camera/image_raw": {
+          "frames": 260,
+          "wall_hz": 3.2122290607625708,
+          "median_interval_ms": 103.81666800822131,
+          "max_interval_ms": 143.94729098421521
+        },
+        "/right_wrist_camera/image_raw": {
+          "frames": 166,
+          "wall_hz": 2.050884708025334,
+          "median_interval_ms": 104.787637013942,
+          "max_interval_ms": 147.66884600976482
+        }
+      },
+      "remaining_test_processes": []
+    },
+    "probe-cleanup-check": {
+      "command": [
+        "python3",
+        "-c",
+        "import subprocess,time; subprocess.Popen([\"python3\", \"-c\", \"import time; time.sleep(60)\"]); time.sleep(0.8)"
+      ],
+      "scope": "ROS runtime; clock, RGB-D delivery and process CPU",
+      "log": "/tmp/cleany-perf/probe-cleanup-check.log",
+      "launch_returncode": 0,
+      "measurement_completed": false,
+      "error": "No simulation clock; see /tmp/cleany-perf/probe-cleanup-check.log",
+      "remaining_test_processes": []
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "method": "Gazebo GPU lidar survey using known sensor poses; simulation reference map, not SLAM",
+  "height_m": 0.3,
+  "samples_per_scan": 1440,
+  "stations": 106,
+  "resolution_m": 0.05,
+  "alignment": {
+    "rotation_rad": 0.0,
+    "rotation_deg": 0.0,
+    "translation_m": [
+      0.0,
+      0.0
+    ],
+    "method": "Room axes aligned to robot initial heading for lattice navigation",
+    "median_wall_residual_m": 0.022062787300038522,
+    "wall_samples": 1498
+  },
+  "spawn_pose": [
+    -1.865,
+    -4.705,
+    0.38,
+    0.0,
+    0.0,
+    1.5708
+  ],
+  "occupied_cells": 4614,
+  "free_cells": 50047,
+  "layout_sha256": "e1df63c8c5cf8f545f96470a0dfbfc6300248870fa81f4fe330f3e13e23f9ee7",
+  "map_sha256": "e15fe550c6c6587d910ac76a801b019e49f612265bebce65ffa433e7bc71b00e"
+}

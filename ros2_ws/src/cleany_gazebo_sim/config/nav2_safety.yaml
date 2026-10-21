@@ -37,20 +37,28 @@ local_costmap:
         min_obstacle_height: -0.33
         max_obstacle_height: 1.62
         publish_voxel_map: true
-        observation_sources: depth
+        observation_sources: depth depth_clear
         depth:
-          topic: /camera/head/depth/points
+          topic: /camera/head/depth/obstacle_points
           sensor_frame: head_camera_depth_frame
           data_type: PointCloud2
           marking: true
-          clearing: true
-          # Keep floor/ceiling endpoints for clearing rays. The layer above
-          # separately restricts the height of points marked as obstacles.
-          min_obstacle_height: -10.0
-          max_obstacle_height: 10.0
+          clearing: false
+          min_obstacle_height: -0.33
+          max_obstacle_height: 1.62
           obstacle_min_range: 0.15
           obstacle_max_range: 4.0
           raytrace_min_range: 0.15
+          raytrace_max_range: 5.0
+        depth_clear:
+          topic: /camera/head/depth/points
+          sensor_frame: head_camera_depth_frame
+          data_type: PointCloud2
+          marking: false
+          clearing: true
+          min_obstacle_height: -10.0
+          max_obstacle_height: 10.0
+          obstacle_max_range: 4.0
           raytrace_max_range: 5.0
 
 global_costmap:
@@ -108,6 +116,8 @@ depth_camera_tf:
 depth_clearance:
   ros__parameters:
     use_sim_time: true
+    marking_min_z: -0.33
+    marking_max_z: 1.62
     pixel_stride: 4
     # Gazebo Ogre2: +inf = beyond far clip; -inf = too near. Never use this
     # assumption for physical RGB-D invalid pixels without a sensor contract.

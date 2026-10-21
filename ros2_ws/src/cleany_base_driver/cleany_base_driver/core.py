@@ -8,6 +8,7 @@ UINT32 = 0xFFFFFFFF
 
 
 def newer(new: int, old: int) -> bool:
+    """Compare wrapping uint32 sequences using the strict half-range rule."""
     delta = (new - old) & UINT32
     return 0 < delta < 0x80000000
 
@@ -47,6 +48,20 @@ class Limits:
 
 def wheel_speeds(x: float, y: float, yaw: float, geometry: Geometry,
                  limits: Limits) -> tuple[float, float, float, float]:
+    """Convert a bounded body-frame twist to wheel angular velocities.
+
+    Clamp each body axis first, then scale all wheels together if a wheel limit
+    is exceeded. Non-finite input axes produce four zero targets.
+
+    Args:
+        x: Forward velocity in metres per second.
+        y: Leftward velocity in metres per second.
+        yaw: Counterclockwise yaw rate in radians per second.
+        geometry: Wheel radius, wheelbase and separation in metres.
+
+    Returns:
+        Wheel targets in radians per second, ordered FL, FR, RL, RR.
+    """
     axes = (x, y, yaw)
     if not all(isfinite(v) for v in axes):
         return (0.,) * 4
@@ -75,11 +90,26 @@ class EncoderAdapter:
         """Discard the next delta while retaining accumulated wheel angles."""
         self.previous = None
 
-    def update(self, boot: int, counts: tuple[int, ...]) -> tuple[float, ...] | None:
+    def update(self, boot: int, counts: tuple[int, ...]) -> tuple[float, ...]:
+        """Unwrap counts while preserving accumulated angles across MCU reboots.
+
+        The first sample after a boot change or rebase establishes a baseline.
+        Between samples in one boot, each true delta must fit the int32 half-range.
+
+        Args:
+            boot: MCU boot identity used to detect encoder resets.
+            counts: Four signed int32 counts in FL, FR, RL, RR order.
+
+        Returns:
+            Cumulative wheel angles in radians in the same order.
+
+        Raises:
+            ValueError: Counts do not contain four signed int32 values.
+        """
         if len(counts) != 4 or any(not -0x80000000 <= c <= 0x7fffffff for c in counts):
             raise ValueError('expected four signed int32 encoder counts')
         if self.boot != boot:
-            self.boot, self.previous = boot, counts
+            self.boot = boot
         elif self.previous is not None:
             for i, (cur, prev) in enumerate(zip(counts, self.previous)):
                 delta = ((cur - prev + 0x80000000) & UINT32) - 0x80000000

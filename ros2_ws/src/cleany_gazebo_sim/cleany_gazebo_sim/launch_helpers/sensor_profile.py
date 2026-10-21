@@ -11,6 +11,7 @@ from launch_ros.actions import Node
 SENSOR_PROFILES = (
     'lidar_nav',
     'lidar_depth_nav',
+    'lidar_rgbd_nav',
     'head_rgbd',
     'left_wrist',
     'right_wrist',
@@ -20,6 +21,7 @@ SENSOR_PROFILES = (
 _PROFILE_BRIDGES = {
     'lidar_nav': ('lidar',),
     'lidar_depth_nav': ('lidar', 'head_depth'),
+    'lidar_rgbd_nav': ('lidar', 'head_rgbd'),
     'head_rgbd': ('head_rgbd',),
     'left_wrist': ('left_wrist',),
     'right_wrist': ('right_wrist',),
@@ -50,20 +52,17 @@ def _sensor_bridge_nodes(
     context: LaunchContext,
     *,
     package_share: Path,
-    harmonic: bool,
     bridge_config: LaunchConfiguration,
 ) -> list[Node]:
     profile = LaunchConfiguration('sensor_profile').perform(context)
     bridge_config_path = bridge_config.perform(context)
-    config_suffix = '_harmonic' if harmonic else ''
-    node_prefix = 'gazebo_harmonic' if harmonic else 'gazebo'
 
     if bridge_config_path:
         return [
             Node(
                 package='ros_gz_bridge',
                 executable='parameter_bridge',
-                name=f'{node_prefix}_override_bridge',
+                name='gazebo_override_bridge',
                 parameters=[{'config_file': bridge_config_path}],
                 output='screen',
             )
@@ -73,34 +72,36 @@ def _sensor_bridge_nodes(
         Node(
             package='ros_gz_bridge',
             executable='parameter_bridge',
-            name=f'{node_prefix}_{group}_bridge',
+            name=f'gazebo_{group}_bridge',
             parameters=[
                 {
                     'config_file': str(
                         package_share
                         / 'config'
                         / 'bridge'
-                        / f'{group}_bridge{config_suffix}.yaml'
+                        / f'{group}_bridge.yaml'
                     )
                 }
             ],
+            remappings=[('/clock', '/gazebo/raw_clock'),
+                        ('/joint_states', '/gazebo/raw_joint_states')] if group == 'core' else [],
             output='screen',
         )
         for group in sensor_profile_bridge_groups(profile)
-    ]
+    ] + [Node(package='cleany_gazebo_sim', executable='gazebo_feedback_sampler',
+              name='gazebo_feedback_sampler', parameters=[{'publish_period_s': .02}],
+              output='screen')]
 
 
 def sensor_profile_bridges(
     package_share: Path,
     *,
-    harmonic: bool,
     bridge_config: LaunchConfiguration,
 ) -> OpaqueFunction:
     return OpaqueFunction(
         function=_sensor_bridge_nodes,
         kwargs={
             'package_share': package_share,
-            'harmonic': harmonic,
             'bridge_config': bridge_config,
         },
     )

@@ -1,0 +1,20 @@
+# Copy to body_profile.yaml beside robot_params.yaml and fill every joint angle
+# in radians. The actual backend must hold this posture during navigation.
+# Never copy simulation_park_limits into a physical robot profile.
+park_joints:
+  left_shoulder_yaw_joint: null
+  right_shoulder_yaw_joint: null
+  left_shoulder_pitch_joint: null
+  right_shoulder_pitch_joint: null
+  left_elbow_pitch_joint: null
+  right_elbow_pitch_joint: null
+  left_wrist_pitch_joint: null
+  right_wrist_pitch_joint: null
+  left_wrist_roll_joint: null
+  right_wrist_roll_joint: null
+  left_gripper_joint: null
+  right_gripper_joint: null
+  head_pan_joint: null
+  head_tilt_joint: null
+# Include a conservative pan sweep in the body envelope.
+dynamic_pan: true

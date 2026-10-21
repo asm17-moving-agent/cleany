@@ -6,8 +6,8 @@
 
 namespace cleany {
 
-// Port operations are non-blocking or bounded by the supplied timeout. Return
-// positive byte count, zero on timeout, and negative on I/O error.
+/// Port operations are non-blocking or bounded by the supplied timeout. Return
+/// positive byte count, zero on timeout, and negative on I/O error.
 class UsbStreamPort {
  public:
   virtual ~UsbStreamPort() = default;
@@ -18,6 +18,11 @@ class UsbStreamPort {
   virtual uint64_t nowMs() const = 0;
 };
 
+/**
+ * @brief Bound partial USB transfers for XRCE stream framing.
+ * The referenced port must outlive this transport and provide monotonic nowMs().
+ * A failed write may already have sent a prefix; callers must handle framing recovery.
+ */
 class UsbStreamTransport {
  public:
   explicit UsbStreamTransport(UsbStreamPort& port) : port_(port) {}
@@ -33,7 +38,7 @@ class UsbStreamTransport {
   }
   bool isOpen() const { return opened_; }
 
-  // Returns partial data on timeout, 0 if no bytes arrived, and -1 on error.
+  /// Returns partial data on timeout, 0 if no bytes arrived, and -1 on error.
   int read(uint8_t* data, size_t size, int timeoutMs) {
     if (!opened_ || data == nullptr || timeoutMs < 0) return -1;
     if (size == 0) return 0;
@@ -53,7 +58,7 @@ class UsbStreamTransport {
     return static_cast<int>(received);
   }
 
-  // XRCE's reliable framing needs the complete payload; failure is explicit.
+  /// XRCE's reliable framing needs the complete payload; failure is explicit.
   int write(const uint8_t* data, size_t size, int timeoutMs) {
     if (!opened_ || (data == nullptr && size != 0) || timeoutMs < 0) return -1;
     const uint64_t deadline = port_.nowMs() + static_cast<uint32_t>(timeoutMs);

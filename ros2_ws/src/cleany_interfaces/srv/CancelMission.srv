@@ -1,0 +1,6 @@
+string mission_id
+---
+bool accepted
+bool duplicate
+string reason
+string report_json

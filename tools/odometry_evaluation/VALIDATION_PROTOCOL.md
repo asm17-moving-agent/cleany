@@ -77,10 +77,10 @@ X/Y trial은 축별 P, 두 대각선 trial은 fallback `linear_kp`, yaw trial은
 2. 시작 위치와 heading을 표시한다. 대각선 0.5 m가 각 축 0.5 m가 아님을
    확인하고 전체 차체의 회전 공간을 확보한다.
 3. MCU의 모터 제어 펌웨어, MCU·LiDAR USB 연결과
-   [`wheel_evaluation_runtime.json`](../../configs/robot/wheel_evaluation_runtime.json)의
+   [`wheel_evaluation_runtime.json`](../../ros2_ws/src/cleany_base_driver/config/wheel_evaluation_runtime.json)의
    by-id 경로를 확인한다. 다른 teleop·Nav2·평가 명령원을 종료한다.
 4. 장착 상태와
-   [`lidar_extrinsic_20261015.json`](../../configs/robot/lidar_extrinsic_20261015.json)을
+   [`lidar_extrinsic_20261015.json`](../../ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261015.json)을
    대조한다. 거리 필터 0.45 m 밖에 서로 다른 방향의 고정 구조물이 보여야 한다.
 5. 아래 offline 검사와 dry-run에서 모든 P=6, 90개 편도와 결과 경로를 확인한다.
    dry-run은 장치 준비 확인을 대신하지 않으며 ROS 노드나 이동을 시작하지 않는다.

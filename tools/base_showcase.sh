@@ -173,7 +173,7 @@ if [[ -n $role ]]; then
                 run_process ros2 launch cleany_base_driver base_driver.launch.py mock:=true
             else
                 run_process ros2 launch cleany_base_driver base_driver.launch.py \
-                    mock:=false config:="$root/configs/robot/base_hardware.yaml"
+                    mock:=false config:="$root/ros2_ws/src/cleany_base_driver/config/base_hardware.yaml"
             fi ;;
         monitor)
             timeout 30s ros2 topic echo /base/wheel_state cleany_base_interfaces/msg/WheelState --once \

@@ -10,8 +10,8 @@
   "odom_topic": "/wheel/odom",
   "odom_timeout_s": 0.15,
   "lidar_min_range_m": 0.45,
-  "extrinsic_config": "configs/robot/lidar_extrinsic_20261015.json",
-  "runtime_config": "configs/robot/wheel_evaluation_runtime.json",
+  "extrinsic_config": "ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261015.json",
+  "runtime_config": "ros2_ws/src/cleany_base_driver/config/wheel_evaluation_runtime.json",
   "motion_config": "tools/odometry_evaluation/motion_settings.json",
   "plots": true,
   "output_dir": "artifacts/odometry_evaluation"

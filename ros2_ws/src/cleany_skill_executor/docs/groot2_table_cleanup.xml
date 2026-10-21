@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Design and mock event visualization; this XML is not ticked by a BT executor. -->
+<root BTCPP_format="4" main_tree_to_execute="CollectTrashSkill">
+  <BehaviorTree ID="CollectTrashSkill">
+    <Fallback name="행동 실행과 실패 종료">
+      <Sequence name="승인된 물체 하나 수거">
+        <Sequence name="준비">
+          <ValidateGoal name="모델과 실행 준비 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <PrepareTarget name="대상 관측 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <ReconstructTarget name="선택 물체 3D 복원" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <GenerateGrasp name="파지 후보 생성" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <SelectArmAndPath name="팔과 경로 결정" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+        </Sequence>
+        <Sequence name="물체 잡기">
+          <MoveToPregrasp name="잡기 전 위치 이동" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <ApproachObject name="물체 접근" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <GraspObject name="그리퍼 닫기" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <ConfirmGrasp name="파지 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <LiftObject name="물체 들어 올리기" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <ConfirmHeld name="보유 상태 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+        </Sequence>
+        <Sequence name="물체 놓기">
+          <CarryObject name="수거함 이동" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <CheckPlacementTarget name="놓을 위치 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <OpenGripperAtDestination name="그리퍼 열기" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <ConfirmRelease name="물체 이탈 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <ReturnArm name="팔 복귀" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+        </Sequence>
+        <Sequence name="확인과 종료">
+          <VerifyPlacedObject name="수거함 내부 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error="{error}" />
+          <FinalizeSuccess name="결과 저장" goal="{goal}" context_in="{execution}" error="{error}" result="{result}" />
+        </Sequence>
+      </Sequence>
+      <Sequence name="차단과 실패 종료">
+        <StopAndAssess name="동작 종료와 실제 상태 확인" goal="{goal}" context_in="{execution}" context_out="{execution}" error_in="{error}" error_out="{error}" />
+        <ReleaseInPlace name="현재 위치에서 그리퍼 열기" />
+        <ReturnArmAfterCancel name="취소 후 팔 복귀" />
+        <FinalizeFailure name="진행과 실패 결과 보관" goal="{goal}" context_in="{execution}" error="{error}" result="{result}" />
+        <AlwaysFailure name="정상 경로 미완료" />
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
+  <TreeNodesModel>
+    <Action ID="ValidateGoal">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="PrepareTarget">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="ApproachObject">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="GraspObject">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="LiftObject">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="CarryObject">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="OpenGripperAtDestination">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="ReturnArm">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="VerifyPlacedObject">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="FinalizeSuccess">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+      <output_port name="result" type="SkillResult" />
+    </Action>
+    <Action ID="StopAndAssess">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <input_port name="error_in" type="SkillError" />
+      <output_port name="error_out" type="SkillError" />
+    </Action>
+    <Action ID="FinalizeFailure">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <input_port name="error" type="SkillError" />
+      <output_port name="result" type="SkillResult" />
+    </Action>
+    <Action ID="ReleaseInPlace" />
+    <Action ID="ReturnArmAfterCancel" />
+    <Action ID="ReconstructTarget">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="GenerateGrasp">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="SelectArmAndPath">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="MoveToPregrasp">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="ConfirmGrasp">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="ConfirmHeld">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="CheckPlacementTarget">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+    <Action ID="ConfirmRelease">
+      <input_port name="goal" type="SkillGoal" />
+      <input_port name="context_in" type="SkillContext" />
+      <output_port name="context_out" type="SkillContext" />
+      <output_port name="error" type="SkillError" />
+    </Action>
+  </TreeNodesModel>
+</root>
