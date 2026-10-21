@@ -1,0 +1,17 @@
+# cuRobo v0.7.8 URDF runtime, Python 3.10 / JetPack 6.2.
+# Install with --no-deps to preserve the Jetson CUDA PyTorch/NumPy ABI.
+# The base environment must provide torch, numpy, PyYAML, lxml,
+# networkx, scikit-image, tqdm, importlib_resources, six and tomli.
+warp-lang==1.6.2
+yourdfpy==0.0.56
+trimesh==4.5.3
+numpy-quaternion==2023.0.4
+setuptools-scm==8.1.0
+pybind11==2.13.6
+ninja==1.11.1.3
+packaging==25.0
+setuptools==79.0.1
+wheel==0.45.1
+scipy==1.13.1
+shapely==2.0.6
+rtree==1.4.1

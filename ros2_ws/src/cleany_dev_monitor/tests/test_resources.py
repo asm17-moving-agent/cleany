@@ -9,7 +9,7 @@ from aiohttp.test_utils import TestServer
 
 from cleany_dev_monitor.core import Hub, Recorder
 from cleany_dev_monitor.recording import allowed, defaults, validate
-from cleany_dev_monitor.resources import ResourceSampler
+from cleany_dev_monitor.resources import ResourceSampler, linux_process_snapshot, psutil_process_snapshot
 from cleany_dev_monitor.server import create_app
 
 
@@ -47,6 +47,7 @@ class Process:
 
 def test_process_exit_permission_pid_reuse_and_bounded_history(monkeypatch):
     sampler = ResourceSampler(history_limit=2)
+    monkeypatch.setattr('cleany_dev_monitor.resources.process_snapshot', psutil_process_snapshot)
     clock = iter([10, 12, 14, 16])
     monkeypatch.setattr(
         "cleany_dev_monitor.resources.time.monotonic", lambda: next(clock)
@@ -69,6 +70,46 @@ def test_process_exit_permission_pid_reuse_and_bounded_history(monkeypatch):
     assert result["processes_cpu"] == []
     assert len(result["history"]) == 2
     assert sampler.processes == {}
+
+
+def test_linux_process_snapshot_reads_identity_cpu_and_rss_together(tmp_path):
+    import os
+
+    process = tmp_path / '42'
+    process.mkdir()
+    fields = ['0'] * 22
+    fields[0], fields[11], fields[12], fields[19], fields[21] = 'S', '120', '30', '987654', '17'
+    (process / 'stat').write_text('42 (worker ) name) ' + ' '.join(fields))
+    (tmp_path / 'not-a-pid').mkdir()
+    (tmp_path / '43').mkdir()  # Exited between enumeration and stat read.
+    (tmp_path / '44').mkdir()
+    (tmp_path / '44/stat').write_text('invalid stat')
+    rows, denied = linux_process_snapshot(tmp_path)
+    assert rows == [((42, 987654), 'worker ) name', 150 / os.sysconf('SC_CLK_TCK'), 17 * os.sysconf('SC_PAGE_SIZE'))]
+    assert denied == 1
+
+
+def test_linux_process_snapshot_pid_reuse_resets_cpu_baseline(tmp_path, monkeypatch):
+    process = tmp_path / '42'
+    process.mkdir()
+    fields = ['0'] * 22
+    fields[0], fields[11], fields[19], fields[21] = 'S', '100', '1000', '2'
+
+    def write():
+        (process / 'stat').write_text('42 (worker) ' + ' '.join(fields))
+
+    write()
+    monkeypatch.setattr('cleany_dev_monitor.resources.process_snapshot', lambda: linux_process_snapshot(tmp_path))
+    clock = iter([10, 12, 14])
+    monkeypatch.setattr('cleany_dev_monitor.resources.time.monotonic', lambda: next(clock))
+    sampler = ResourceSampler()
+    assert sampler.sample()['processes_cpu'][0]['cpu_percent'] is None
+    fields[11] = '200'
+    write()
+    assert sampler.sample()['processes_cpu'][0]['cpu_percent'] > 0
+    fields[19] = '2000'
+    write()
+    assert sampler.sample()['processes_cpu'][0]['cpu_percent'] is None
 
 
 def test_read_failure_is_unknown_and_recovers(monkeypatch):

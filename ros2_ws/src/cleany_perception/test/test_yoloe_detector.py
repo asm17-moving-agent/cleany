@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from cleany_perception.adapters.yoloe_detector import YoloeDetector, YoloeMaskSegmenter
+from cleany_perception.adapters.yoloe_detector import YoloeModelPool
 from cleany_perception.adapters.gemini_detector import GeminiClassifier
 from cleany_perception.adapters.yoloe_gemini import YoloeGeminiDetector
 from cleany_perception.core.models import FailureKind, InspectionFailure
@@ -43,6 +44,28 @@ def _model_files(tmp_path: Path) -> tuple[Path, Path]:
     encoder_directory.mkdir()
     (encoder_directory / 'mobileclip2_b.ts').write_bytes(b'encoder')
     return checkpoint, encoder_directory
+
+
+def test_shared_model_preserves_per_camera_thresholds_and_nms(tmp_path):
+    checkpoint, encoder = _model_files(tmp_path)
+    model = _Model(); loads = []
+    def factory(path):
+        loads.append(path)
+        return model
+    common = dict(model_path=str(checkpoint), classes=['cup','wallet'], device='cpu',
+                  text_encoder_directory=str(encoder), model_factory=factory,
+                  model_pool=YoloeModelPool())
+    head = YoloeDetector(**common, confidence_threshold=.1)
+    wrist = YoloeDetector(**common, confidence_threshold=.2, iou_threshold=.7,
+                         maximum_detections=3, class_confidence_thresholds=[.2,.9])
+    head.prepare(); wrist.prepare()
+    image = np.zeros((20,30,3),dtype=np.uint8)
+    assert len(head.detect(image,'')) == 1
+    assert not wrist.detect(image,'')
+    assert len(loads) == 1
+    assert model.calls[-1][1]['conf'] == .2
+    assert model.calls[-1][1]['iou'] == .7
+    assert model.calls[-1][1]['max_det'] == 3
 
 
 def test_yoloe_detector_loads_once_and_converts_boxes(tmp_path):
@@ -94,6 +117,7 @@ def test_yoloe_detector_loads_once_and_converts_boxes(tmp_path):
         'iou': 0.6,
         'max_det': 4,
         'verbose': False,
+        'rect': False,
     }
 
 
@@ -218,7 +242,7 @@ def test_yoloe_gemini_classifies_same_segmentation_instance(tmp_path):
     detections = detector.detect(rgb, 'old detection prompt')
     masks = YoloeMaskSegmenter().segment(rgb, detections)
     assert len(model.calls) == len(requests) == len(masks) == 1
-    assert detections[0].label == 'computer mouse'
+    assert detections[0].label == 'wallet (computer mouse)'
     assert detections[0].sorting_category == 'lost_item'
     assert detections[0].confidence == pytest.approx(0.82)
     assert detections[0].bbox.x_min == pytest.approx(2.0)

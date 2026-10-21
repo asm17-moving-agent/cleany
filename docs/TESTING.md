@@ -157,3 +157,11 @@ CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. �
 내부 파일 링크, anchor, 코드, 설정, launch 경로, Make target의 존재와 native dry-run을 확인합니다. 문서 검증만을 위해 실제 로봇을 움직이거나 새 calibration을 수행하지 않습니다.
 
 KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검사 통과와 내용 승인은 별도로 기록합니다.
+
+## Jetson 변경 검증
+
+관련 native 패키지와 interfaces를 먼저 빌드한다. `make test-jetson-core`는 snapshot 버퍼, 재구성 캐시, worker, 실물 파지 core와 정지 표본을 검사한다. `make test-jetson-native`는 scene mapping, Feetech driver와 MoveIt batch capability의 C++ 검사를 실행한다. `make test-jetson-packages`는 인식, 파지, 실물 상태, 조작과 BT의 package 회귀 검사를 수행한다. `make test-jetson-tools`는 `tests/tools/`의 host 도구 검사를 수행한다.
+
+검사는 localhost 전용의 별도 ROS domain을 사용한다. GPU, licensed SDK와 선택적인 LeRobot 환경이 필요한 검사는 해당 조건과 skip 이유를 구분한다. `runtime_test/`의 PTY controller와 TCP replay 검사는 명시적으로 실행하며 실물 USB 장치를 열지 않는다. 테스트 입력인 `supervised_collection_fixture.json`은 공용 실물 설정이나 commissioning 완료의 증거가 아니다.
+
+모델 비교, 오차 주입 캠페인과 날짜별 보고서 원본은 자동 회귀 검사와 분리한다. 코드 수정의 작은 재현 사례는 해당 패키지 테스트로 유지하고 측정 JSON, 영상, 점군과 그래프는 데이터 루트에 보관한다.

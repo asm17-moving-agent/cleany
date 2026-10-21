@@ -3,6 +3,10 @@ grasp_server:
     service_name: grasp/plan
     planning_frame: base_link
     predictor_type: geometric  # geometric works without model files.
+    anygrasp_worker_enabled: true
+    anygrasp_worker_idle_timeout_sec: 120.0  # Keep model through nearby re-observation.
+    anygrasp_worker_request_timeout_sec: 120.0
+    anygrasp_preload: false  # run-anygrasp prepares its persistent worker once.
     debug_image_topic: grasp/debug_image
     checkpoint_path: ''  # Jetson-local licensed SDK checkpoint; configure at deployment.
     license_path: ''     # Jetson-local AnyGrasp SDK license file.

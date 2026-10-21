@@ -1,0 +1,5 @@
+# Fixed-head 640x480 D435 tabletop test workspace. Revalidate after moving camera.
+# This excludes image-edge robot parts; it is NOT a general robot self-mask.
+validate_pick_server:
+  ros__parameters:
+    workspace_roi_pixels: [140.0, 90.0, 500.0, 430.0]

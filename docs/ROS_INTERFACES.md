@@ -341,3 +341,16 @@ ros2 action info /grasp/select_reachable
 ```
 
 실행 graph는 해당 실행의 증거다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않는다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신한다.
+
+## Jetson 실물 경로의 추가 노드
+
+| 노드와 실행 파일 | 인터페이스 원본 |
+|---|---|
+| `arm_state_reader`, `robot_state_reader`, `control_state_guard`, `wrist_rgb_camera`, `rgbd_frame_bridge`, `motor_telemetry_recorder` | [cleany_robot_interface](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `physical_grasp_selection_server` | [실물 파지 선택](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#physical_grasp_selection_server) |
+| `validate_pick_server`, `manipulation_evidence`, `collection_pipeline`, `hardware_pregrasp`, `pregrasp_pipeline`, `pregrasp_sim_ready` | [실물 파이프라인](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#실물-준비-검증과-증거-노드) |
+| `manipulation_jetson_server`, `manipulation_recovery`, `arm_return` | [Jetson BT](../ros2_ws/src/cleany_manipulation_bt/README.md#jetson-실물-backend) |
+
+기존 MuJoCo와 Mock 실행 파일은 유지한다. `/perception/check_rgbd`는 `std_srvs/Trigger`로 새 RGB-D 입력 상태를 확인한다. 실물과 시뮬레이터가 같은 Action 주소를 사용할 때는 backend와 namespace를 명시적으로 선택한다.
+
+`manipulation_io_probe`와 `manipulation_io_report`는 Monitor의 관측 기록과 오프라인 보고 실행 파일이다. `manipulation_io_probe`는 설정된 ROS 토픽을 passive 구독하며 Goal, service 요청과 USB 접근은 하지 않는다. [Monitor 안내](../ros2_ws/src/cleany_dev_monitor/README.md)를 따른다.

@@ -41,17 +41,30 @@ class FaultShutdown:
 class ExecutionCore:
     def __init__(self, backend: Backend, store: BTExecutionStore, tree_xml: str,
                  runner_factory: Callable, *, timeout_sec: float = 180.0,
-                 stop_timeout_sec: float = 15.0, clock: Callable = time.monotonic) -> None:
+                 stop_timeout_sec: float = 15.0, clock: Callable = time.monotonic,
+                 execution_profile: str = 'mujoco', allow_assumed_placement: bool = False,
+                 operation_timeouts: dict[str, float] | None = None) -> None:
         self.backend, self.store, self.tree_xml = backend, BTExecutionJournal(store), tree_xml
         self.runner_factory, self.clock = runner_factory, clock
         self.timeout_sec, self.stop_timeout_sec = timeout_sec, stop_timeout_sec
+        self.operation_timeouts = dict(operation_timeouts or {})
+        if (set(self.operation_timeouts) - NODE_STAGE.keys()
+                or any(not math.isfinite(value) or value <= 0
+                       for value in self.operation_timeouts.values())):
+            raise ValueError('Operation timeout overrides must name a BT operation and be positive')
+        if execution_profile not in ('mujoco', 'jetson'):
+            raise ValueError('Unknown execution profile')
+        self.execution_profile = execution_profile
+        if allow_assumed_placement and execution_profile != 'jetson':
+            raise ValueError('Assumed placement is only available for the temporary Jetson mode')
+        self.allow_assumed_placement = allow_assumed_placement
         if any(not math.isfinite(value) or value <= 0 for value in (timeout_sec, stop_timeout_sec)):
             raise ValueError('Operation and stop deadlines must be finite and positive')
         self.lock = threading.RLock()
         self.record: Record | None = None
         self.tree = None
         self.events: list[Record] = self.store.recover(time.time_ns())
-        self.inhibited = any(inhibits_execution(record) for record in self.store.all_records())
+        self.inhibited = bool(self.recovery_blocks())
         self.cancel_requested = False
         self._timeout_cancel_requested = False
         self.failure: Observation | None = None
@@ -67,9 +80,59 @@ class ExecutionCore:
         self.recovering = False
         self._fault_shutdown: FaultShutdown | None = None
         self._deferred_fault: Exception | None = None
+        self._recovery_in_progress = False
+        self.arm_return_active = False
+
+    def recovery_blocks(self) -> list[Record]:
+        return [record for record in self.store.all_records()
+                if inhibits_execution(record) and not self.store.recovery_confirmed(record)]
+
+    def confirm_recovery(self, execution_id: str, revision: int, *, stopped: bool,
+                         gripper_empty: bool, note: str,
+                         verify_stationary: Callable[[], bool]) -> tuple[bool, str]:
+        with self.lock:
+            if self._recovery_in_progress or self.arm_return_active:
+                return False, 'Recovery confirmation or arm return is already in progress'
+            if self.record is not None and self.record.result is None:
+                return False, 'An execution is active; finish or cancel it first'
+            record = self.store.get(execution_id)
+            if record is None:
+                return False, 'Execution not found'
+            if record.revision != revision:
+                return False, 'Execution revision changed; query it again'
+            if record.record_state == RecordState.ACTIVE:
+                return False, 'Execution is active; restart recovery cannot acknowledge it'
+            if not stopped or not gripper_empty or not note.strip():
+                return False, 'Operator must confirm a stopped robot, empty grippers and provide a note'
+            if self.store.recovery_confirmed(record):
+                return True, 'This execution revision was already acknowledged'
+            if not inhibits_execution(record):
+                return False, 'This execution does not inhibit new work'
+            self._recovery_in_progress = True
+        try:
+            # Let timer/status callbacks run while the operation node receives
+            # fresh feedback. Waiting under core.lock can exhaust executor threads.
+            if not self.backend.ready():
+                return False, 'Operations or controller Actions have not quiesced'
+            stationary = verify_stationary()
+            with self.lock:
+                if not stationary or not self.backend.ready():
+                    return False, 'Fresh stationary joint feedback and terminal Actions are required'
+                if self.store.get(execution_id) != record:
+                    return False, 'Execution changed during verification; query it again'
+                self.store.confirm_recovery(record, note.strip())
+                self.inhibited = bool(self.recovery_blocks())
+                return True, ('Recovery acknowledged; fresh Goals are allowed' if not self.inhibited
+                              else 'Recovery acknowledged; other execution records still inhibit new work')
+        except Exception as error:
+            return False, f'Recovery confirmation failed: {error}'
+        finally:
+            with self.lock:
+                self._recovery_in_progress = False
 
     def accept(self, goal: Goal) -> tuple[bool, str]:
-        if self.inhibited or (self.record is not None and self.record.result is None):
+        if (self.inhibited or self._recovery_in_progress or self.arm_return_active
+                or (self.record is not None and self.record.result is None)):
             return False, 'Execution inhibited, busy or awaiting physical-state confirmation'
         try:
             ready = self.backend.ready()
@@ -84,7 +147,7 @@ class ExecutionCore:
             if self.store.get(goal.execution_id) is not None:
                 return False, 'Duplicate execution_id'
             now = time.time_ns()
-            record = Record(goal, execution_profile='mujoco', accepted_at_ns=now,
+            record = Record(goal, execution_profile=self.execution_profile, accepted_at_ns=now,
                             updated_at_ns=now, message='Accepted; awaiting BT validation')
             # Construct before acceptance, so malformed XML cannot leave an
             # accepted goal without an executable tree. No nodes are ticked here.
@@ -237,7 +300,7 @@ class ExecutionCore:
                 arm_recovered=observed.arm_recovered if observed is not None else None)
         else:
             observation = observed
-        if observation is None and self.clock() - started >= self.timeout_sec:
+        if observation is None and self.clock() - started >= self.operation_timeouts.get(node, self.timeout_sec):
             # Requesting cancellation does not prove the worker has ended.
             self._timeout_cancel_requested = True
             self._pending_cancel_results.add(token)
@@ -335,7 +398,8 @@ class ExecutionCore:
         if record.result is not None:
             return Observation()
         if success and not (record.object_state == ObjectState.LEFT_GRIPPER
-                            and record.placement_state == Placement.CONFIRMED
+                            and (record.placement_state == Placement.CONFIRMED or
+                                 (self.allow_assumed_placement and record.placement_state == Placement.ASSUMED))
                             and record.arm_recovered and record.stop_confirmed):
             observation = Observation(False, Error.PLACEMENT_NOT_CONFIRMED,
                                       'Success evidence is incomplete')
@@ -352,11 +416,12 @@ class ExecutionCore:
             if ((self.motion_started or self.cancel_requested or self._timeout_cancel_requested)
                     and not record.stop_confirmed):
                 status, error = Status.FATAL, Error.STOP_UNCONFIRMED
-        result = Result(record.goal.execution_id, 'mujoco', status, error,
+        result = Result(record.goal.execution_id, record.execution_profile, status, error,
                         self.failed_stage, record.last_completed_stage, record.object_state,
                         record.placement_state, record.selected_arm, record.stop_confirmed,
                         record.arm_recovered, False,
-                        'Verified single-object collection' if success else
+                        ('Temporary return-to-pick completed; release and placement assumed'
+                         if record.placement_state == Placement.ASSUMED else 'Verified single-object collection') if success else
                         (self.failure.message if self.failure else 'Execution failed'),
                         failed_substage=self.failed_substage, cancel_mode=record.cancel_mode)
         self._save(result=result, record_state=RecordState.FINISHED,

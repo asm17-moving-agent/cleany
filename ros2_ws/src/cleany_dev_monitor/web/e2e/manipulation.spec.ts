@@ -2,6 +2,120 @@ import { test, expect } from "@playwright/test";
 import { run, rows, transport, beforeCarry } from "./fixtures/manipulation";
 import { type Data } from "../src/lib/monitor";
 
+test("pre-Action preparation is visible and does not borrow a previous object execution", async ({
+  page,
+}) => {
+  const now = Date.now() / 1000;
+  const previous = run(true, "previous-object", now);
+  const values = rows([previous], now).filter((row) => row.kind !== "runtime");
+  Object.assign(values.find((row) => row.kind === "config")!.data, {
+    manipulation_observation_mode: "server",
+  });
+  const request = {
+    execution_id: "new-object",
+    started_at_ns: now * 1e9,
+    phase: "RUNTIME_PREPARING",
+    state: "ACTIVE",
+    owner_alive: true,
+    history: [{ phase: "RUNTIME_PREPARING", at_ns: now * 1e9 }],
+    message: "Preparing services",
+  };
+  const requestRow = {
+    seq: 5,
+    kind: "manipulation_request",
+    key: "current",
+    received_at: now,
+    data: request,
+  };
+  const fixture = await transport(page, [...values, requestRow] as ReturnType<
+    typeof rows
+  >);
+  await page.goto("/#manipulation");
+  const panel = page.getByRole("region", { name: "실행 요청 진행" });
+  await expect(panel.locator("p strong")).toHaveText("실행 환경 준비");
+  await expect(page.locator(".manip-summary")).toHaveCount(0);
+  request.phase = "INSPECTING_SCENE";
+  request.history.push(
+    { phase: "CHECKING_EXECUTION", at_ns: now * 1e9 + 1 },
+    { phase: "INSPECTING_SCENE", at_ns: now * 1e9 + 2 },
+  );
+  fixture.update([...values, requestRow] as ReturnType<typeof rows>);
+  await expect(panel.locator("p strong")).toHaveText("초기 장면 인식");
+  await expect(panel.locator('[aria-current="step"]')).toContainText(
+    "초기 장면 인식",
+  );
+  await expect(panel.getByText("보고됨", { exact: true })).toHaveCount(2);
+  const current = run(false, "new-object", Date.now() / 1000);
+  current.record.execution_profile = "jetson";
+  (values.find((row) => row.kind === "manipulation")!.data as Data).executions =
+    [current, previous];
+  request.phase = "EXECUTING";
+  request.history.push({ phase: "EXECUTING", at_ns: Date.now() * 1e6 });
+  fixture.update([...values, requestRow] as ReturnType<typeof rows>);
+  await expect(page.locator(".manip-summary")).toContainText("진행 중");
+  await expect(panel.locator("p strong")).toHaveText("실물 조작");
+  request.owner_alive = false;
+  fixture.update([...values, requestRow] as ReturnType<typeof rows>);
+  await expect(panel.locator("p strong")).toHaveText("요청 진행 확인 불가");
+  expect(fixture.commands).toEqual([]);
+});
+
+test("Jetson server progress needs fresh evidence without a Mission Runtime", async ({
+  page,
+}) => {
+  const at = Date.now() / 1000;
+  const execution = run(false, "physical-execution", at);
+  execution.record.execution_profile = "jetson";
+  const values = rows([execution], at).filter((row) => row.kind !== "runtime");
+  const topic = "/manipulation/execution_events";
+  Object.assign(values.find((row) => row.kind === "config")!.data, {
+    manipulation_events_topic: topic,
+    manipulation_observation_mode: "server",
+  });
+  (values.find((row) => row.kind === "graph")!.data as Data).topics[0].name =
+    topic;
+  const fixture = await transport(page, values);
+  await page.goto("/#manipulation");
+  await expect(page.locator(".manip-summary")).toContainText("진행 중");
+  await expect(page.locator(".manip-summary")).toContainText("jetson");
+  await expect(
+    page.getByRole("region", { name: "현재 Runtime 주행 판단" }),
+  ).toContainText("미확인");
+  const stale = structuredClone(values);
+  const staleRun = (
+    stale.find((row) => row.kind === "manipulation")!.data as Data
+  ).executions[0];
+  staleRun.received_at = at - 30;
+  fixture.update(stale);
+  await expect(page.locator(".manip-summary")).toContainText(
+    "진행 상태 미확인",
+  );
+  await expect(
+    page.locator('.manip-stage-rail [aria-current="step"]'),
+  ).toHaveCount(0);
+  // A heartbeat refreshes liveness; the original progress timestamp stays frozen.
+  staleRun.last_seen_at = Date.now() / 1000;
+  fixture.update(stale);
+  await expect(page.locator(".manip-summary")).toContainText("진행 중");
+  const missing = structuredClone(values);
+  (
+    missing.find((row) => row.kind === "graph")!.data as Data
+  ).topics[0].publishers = [];
+  fixture.update(missing);
+  await expect(page.locator(".manip-summary")).toContainText(
+    "진행 상태 미확인",
+  );
+  const mock = structuredClone(values);
+  (
+    mock.find((row) => row.kind === "manipulation")!.data as Data
+  ).executions[0].record.execution_profile = "mock";
+  fixture.update(mock);
+  await expect(page.locator(".manip-summary")).toContainText(
+    "진행 상태 미확인",
+  );
+  expect(fixture.commands).toEqual([]);
+});
+
 test("goal handover waits for the exact execution instead of showing old progress", async ({
   page,
 }) => {

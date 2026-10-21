@@ -124,6 +124,21 @@ def test_snapshot_buffer_reports_timeout_and_cancel():
     assert cancelled.value.kind == FailureKind.CANCELLED
 
 
+def test_snapshot_timeout_identifies_missing_stream_and_timestamp_mismatch():
+    buffer = RgbdSnapshotBuffer()
+    messages = _messages(stamp_ns=10)
+    other = _messages(stamp_ns=20)
+    buffer.add_color(messages.color)
+    buffer.add_depth(other.depth)
+    buffer.add_depth_info(other.depth_info)
+    with pytest.raises(InspectionFailure) as raised:
+        buffer.wait_for_new(0, timeout_seconds=0.01)
+    message = str(raised.value)
+    assert "'color_info': 0" in message
+    assert "'color': 10" in message and "'depth': 20" in message
+    assert 'completed=0, pending=2' in message
+
+
 def _cached_scene(synthetic_scene):
     return CachedDetectionSnapshot(
         snapshot=synthetic_scene['snapshot'],

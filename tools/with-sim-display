@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Humble mujoco_ros2_control 0.0.3 uses GLFW even with its viewer hidden.
+# Reuse this user's authenticated local session; never change X access control.
+if [[ -z "${DISPLAY:-}" ]]; then
+    cleany_runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    if [[ -S /tmp/.X11-unix/X0 && -r "${cleany_runtime_dir}/gdm/Xauthority" ]]; then
+        export DISPLAY=:0
+        export XAUTHORITY="${cleany_runtime_dir}/gdm/Xauthority"
+    elif command -v xvfb-run >/dev/null 2>&1; then
+        exec xvfb-run -a "$@"
+    else
+        echo 'MuJoCo camera rendering needs DISPLAY/XAUTHORITY or xvfb-run (Humble 0.0.3).' >&2
+        exit 1
+    fi
+fi
+exec "$@"

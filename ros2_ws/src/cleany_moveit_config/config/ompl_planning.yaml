@@ -14,6 +14,14 @@ planner_configs:
   RRTConnectkConfigDefault:
     type: geometric::RRTConnect
     range: 0.0
+  # The return executor already shortens and validates its executable cubic.
+  # Skip OMPL's additional simplification pass; keep collision interpolation
+  # and the request adapters, including time parameterization, unchanged.
+  RRTConnectReturnkConfigDefault:
+    type: geometric::RRTConnect
+    range: 0.0
+    # MoveIt 2.5.9 parses this planner option with lexical_cast<bool>.
+    simplify_solutions: 0
 
 left_arm:
   planner_configs:
@@ -26,10 +34,12 @@ left_grasp_arm:
   longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
+    - RRTConnectReturnkConfigDefault
 right_grasp_arm:
   longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
+    - RRTConnectReturnkConfigDefault
 left_pregrasp_aim_arm:
   planner_configs:
     - RRTConnectkConfigDefault

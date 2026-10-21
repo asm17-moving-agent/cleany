@@ -1,0 +1,274 @@
+{
+  "schema_version": 2,
+  "method": "per_component_enclosure_or_surface_decimation",
+  "bound_reference": "Enclosure: original component convex hull. Surface decimation: bidirectional original CAD surface distance.",
+  "settings": {
+    "description_package": "ros2_ws/src/cleany_description",
+    "source_meshes": [
+      "Upper_Arm_5cm.stl",
+      "Lower_Arm_5cm.stl",
+      "Base.stl",
+      "Base_Motor.stl",
+      "Rotation_Pitch_Motor.stl",
+      "Upper_Arm_Motor.stl",
+      "Wrist_Pitch_Roll_Motor.stl",
+      "Fixed_Jaw_Motor.stl"
+    ],
+    "output_directory": "meshes/collision",
+    "max_hull_expansion_m": 0.00025,
+    "enclosure_margin_m": 1e-06,
+    "max_iterations": 64,
+    "planes_per_iteration": 16,
+    "surface_components": {
+      "Lower_Arm_5cm.stl": {
+        "2": {
+          "target_triangles": 8000,
+          "max_surface_distance_m": 0.00025
+        }
+      }
+    },
+    "surface_simplifier_image": "cleany-motion:jp6.2"
+  },
+  "meshes": {
+    "Upper_Arm_5cm.stl": {
+      "source_sha256": "13cfcdbf071eb84bb201b6668a6791a82d67b844e275ecf5e6d81aa0bb024ad2",
+      "output_sha256": "24207f1c576bde453767eb2a6295916b8ca0a51e667c5a875c08c59686acb093",
+      "source_vertices": 37769,
+      "source_triangles": 75650,
+      "vertices": 515,
+      "triangles": 1018,
+      "components": [
+        {
+          "source_vertices": 12925,
+          "source_triangles": 25930,
+          "vertices": 162,
+          "triangles": 320,
+          "maximum_source_plane_violation_m": -9.978983536718111e-07,
+          "max_expansion_from_component_hull_m": 0.00024519879816870953,
+          "source_convex_hull_volume_m3": 7.271611980575984e-05,
+          "output_volume_m3": 7.285942750079841e-05
+        },
+        {
+          "source_vertices": 598,
+          "source_triangles": 1196,
+          "vertices": 32,
+          "triangles": 60,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.00010334579439705066,
+          "source_convex_hull_volume_m3": 2.1686946457471954e-05,
+          "output_volume_m3": 2.1696286466522108e-05
+        },
+        {
+          "source_vertices": 24246,
+          "source_triangles": 48524,
+          "vertices": 321,
+          "triangles": 638,
+          "maximum_source_plane_violation_m": -9.981287750204793e-07,
+          "max_expansion_from_component_hull_m": 0.00024208589543500355,
+          "source_convex_hull_volume_m3": 9.592295494781492e-05,
+          "output_volume_m3": 9.609769484926264e-05
+        }
+      ]
+    },
+    "Lower_Arm_5cm.stl": {
+      "source_sha256": "f33a8b3d13362ffa3c1a2be79c358d5134ba37cf09c5f0aa44726636f0d91356",
+      "output_sha256": "84d892745ab8311d160adfdc4de364a52fcb64ee73e258bf8ef6f5c17b310326",
+      "source_vertices": 67843,
+      "source_triangles": 135758,
+      "vertices": 4198,
+      "triangles": 8420,
+      "components": [
+        {
+          "source_vertices": 11292,
+          "source_triangles": 22624,
+          "vertices": 182,
+          "triangles": 360,
+          "maximum_source_plane_violation_m": -9.975638799591957e-07,
+          "max_expansion_from_component_hull_m": 0.0002378086394632458,
+          "source_convex_hull_volume_m3": 5.798878128690223e-05,
+          "output_volume_m3": 5.809927190204111e-05
+        },
+        {
+          "source_vertices": 592,
+          "source_triangles": 1184,
+          "vertices": 32,
+          "triangles": 60,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 9.772443706334092e-05,
+          "source_convex_hull_volume_m3": 2.0411794366020135e-05,
+          "output_volume_m3": 2.042060888813877e-05
+        },
+        {
+          "method": "surface_quadric_decimation",
+          "source_vertices": 55959,
+          "source_triangles": 111950,
+          "vertices": 3984,
+          "triangles": 8000,
+          "open3d_version": "0.14.1",
+          "surface_certificate": {
+            "source_to_reduced": {
+              "maximum_distance_bound_m": 0.00024999914384726433,
+              "verified_surface_patches": 188495,
+              "subdivision_depth": 13
+            },
+            "reduced_to_source": {
+              "maximum_distance_bound_m": 0.00024998662050185666,
+              "verified_surface_patches": 60494,
+              "subdivision_depth": 14
+            }
+          }
+        }
+      ]
+    },
+    "Base.stl": {
+      "source_sha256": "bb8afb0303c0125f265a797625cfaf646ac214d5d2dc9c986348c415755e2a74",
+      "output_sha256": "a812474b94ad0eb6e0cabd398d8f7c339c84505f504a09f30a9aa38fdc13e82c",
+      "source_vertices": 4277,
+      "source_triangles": 8868,
+      "vertices": 423,
+      "triangles": 830,
+      "components": [
+        {
+          "source_vertices": 2992,
+          "source_triangles": 6276,
+          "vertices": 138,
+          "triangles": 272,
+          "maximum_source_plane_violation_m": -9.96545419143513e-07,
+          "max_expansion_from_component_hull_m": 0.0002473110961600395,
+          "source_convex_hull_volume_m3": 0.0003701682159260682,
+          "output_volume_m3": 0.00037027672673682925
+        },
+        {
+          "source_vertices": 176,
+          "source_triangles": 362,
+          "vertices": 64,
+          "triangles": 124,
+          "maximum_source_plane_violation_m": -9.9729916035185e-07,
+          "max_expansion_from_component_hull_m": 0.00024670071894545984,
+          "source_convex_hull_volume_m3": 1.2320123426292999e-05,
+          "output_volume_m3": 1.2335832340422605e-05
+        },
+        {
+          "source_vertices": 935,
+          "source_triangles": 1878,
+          "vertices": 189,
+          "triangles": 374,
+          "maximum_source_plane_violation_m": -9.979863470760408e-07,
+          "max_expansion_from_component_hull_m": 0.0002447911174091974,
+          "source_convex_hull_volume_m3": 9.002040517028469e-05,
+          "output_volume_m3": 9.008973486663358e-05
+        },
+        {
+          "source_vertices": 174,
+          "source_triangles": 352,
+          "vertices": 32,
+          "triangles": 60,
+          "maximum_source_plane_violation_m": -9.98377799987793e-07,
+          "max_expansion_from_component_hull_m": 0.00021210326031573546,
+          "source_convex_hull_volume_m3": 3.6774716896854073e-06,
+          "output_volume_m3": 3.6864508818232425e-06
+        }
+      ]
+    },
+    "Base_Motor.stl": {
+      "source_sha256": "aac4485d448eca418d2a93df3f78f449bd59b21ec1af2a579171819fd44ea576",
+      "output_sha256": "d61489cd1472fb7d8f3246714e5366728c07b0540d34b81bf30c058f1cf8b046",
+      "source_vertices": 1541,
+      "source_triangles": 3084,
+      "vertices": 147,
+      "triangles": 290,
+      "components": [
+        {
+          "source_vertices": 1541,
+          "source_triangles": 3084,
+          "vertices": 147,
+          "triangles": 290,
+          "maximum_source_plane_violation_m": -9.970615719306908e-07,
+          "max_expansion_from_component_hull_m": 0.00024625313215752965,
+          "source_convex_hull_volume_m3": 4.013232787849751e-05,
+          "output_volume_m3": 4.019387208567691e-05
+        }
+      ]
+    },
+    "Rotation_Pitch_Motor.stl": {
+      "source_sha256": "f4fbcf18d8f2e91d12a767c1679430140dce0c81ea1478cc153bfce3a162db61",
+      "output_sha256": "240da1309da85a2545f89277b06e0313a73aee48f3f08f1fa70931b04de907be",
+      "source_vertices": 1528,
+      "source_triangles": 3084,
+      "vertices": 144,
+      "triangles": 284,
+      "components": [
+        {
+          "source_vertices": 1528,
+          "source_triangles": 3084,
+          "vertices": 144,
+          "triangles": 284,
+          "maximum_source_plane_violation_m": -9.96437104383574e-07,
+          "max_expansion_from_component_hull_m": 0.000246292870010262,
+          "source_convex_hull_volume_m3": 4.013232382549642e-05,
+          "output_volume_m3": 4.019386385859158e-05
+        }
+      ]
+    },
+    "Upper_Arm_Motor.stl": {
+      "source_sha256": "bafdb2cb9e9a884e62b5fbf15b1f706a65771da82764dbe703df128d9f34d723",
+      "output_sha256": "041f1af57f2dff029cb0fdd879917c4760aed19832da41d9f34305a98aacefaa",
+      "source_vertices": 1508,
+      "source_triangles": 3044,
+      "vertices": 151,
+      "triangles": 298,
+      "components": [
+        {
+          "source_vertices": 1508,
+          "source_triangles": 3044,
+          "vertices": 151,
+          "triangles": 298,
+          "maximum_source_plane_violation_m": -9.976275537476598e-07,
+          "max_expansion_from_component_hull_m": 0.0002461696184446496,
+          "source_convex_hull_volume_m3": 4.0133809206151465e-05,
+          "output_volume_m3": 4.019696263498324e-05
+        }
+      ]
+    },
+    "Wrist_Pitch_Roll_Motor.stl": {
+      "source_sha256": "89ac3fb1d2536fa4f7c40e7449be4b934d7d776f9cd0453c842767f980ff6c18",
+      "output_sha256": "df5e756580a0ad75b1ebddbb317a36c8b98763cd9609d0216e2b53f4d148fcbc",
+      "source_vertices": 1330,
+      "source_triangles": 2672,
+      "vertices": 138,
+      "triangles": 272,
+      "components": [
+        {
+          "source_vertices": 1330,
+          "source_triangles": 2672,
+          "vertices": 138,
+          "triangles": 272,
+          "maximum_source_plane_violation_m": -9.983460795143229e-07,
+          "max_expansion_from_component_hull_m": 0.00024156608690117495,
+          "source_convex_hull_volume_m3": 3.978213284922613e-05,
+          "output_volume_m3": 3.980527880222692e-05
+        }
+      ]
+    },
+    "Fixed_Jaw_Motor.stl": {
+      "source_sha256": "0321bfb902d5a119c4f2a934ab4be7e9ea8c93a02e1685f066f99c24a5ca3ecf",
+      "output_sha256": "9ab6063e1fe98430e3b11b452bf24c54db4209e28082f1a9cc24e1a0feffd823",
+      "source_vertices": 1504,
+      "source_triangles": 3036,
+      "vertices": 151,
+      "triangles": 298,
+      "components": [
+        {
+          "source_vertices": 1504,
+          "source_triangles": 3036,
+          "vertices": 151,
+          "triangles": 298,
+          "maximum_source_plane_violation_m": -9.98330029207406e-07,
+          "max_expansion_from_component_hull_m": 0.00024615942590317603,
+          "source_convex_hull_volume_m3": 4.0132343478357845e-05,
+          "output_volume_m3": 4.0195524702591696e-05
+        }
+      ]
+    }
+  }
+}

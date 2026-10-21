@@ -196,7 +196,10 @@ def test_navigation_dds_diagnostics_geometry_and_actual_bt_messages(tmp_path, mo
     import json
     import rclpy
     from cleany_dev_monitor.node import MonitorNode
-    from cleany_interfaces.msg import RuntimeDebugSnapshot
+    RuntimeDebugSnapshot = pytest.importorskip(
+        'cleany_interfaces.msg._runtime_debug_snapshot',
+        reason='Optional Mission Runtime debug interface is not installed',
+    ).RuntimeDebugSnapshot
     from geometry_msgs.msg import Point32, PolygonStamped, PoseWithCovarianceStamped, Twist
     from nav_msgs.msg import Odometry
     from nav2_msgs.msg import BehaviorTreeLog, BehaviorTreeStatusChange

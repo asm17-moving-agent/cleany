@@ -1,0 +1,90 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ''
+  Enabled: true
+  Global Options:
+    Fixed Frame: base_link
+    Background Color: 48; 48; 48
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.1
+    - Class: rviz_default_plugins/RobotModel
+      Name: Read-only arms - alignment unverified
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /arm_preview/robot_description
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+      Visual Enabled: true
+      Collision Enabled: false
+    - Class: rviz_default_plugins/Axes
+      Name: Right wrist calibrated optical frame
+      Enabled: true
+      Reference Frame: right_wrist_camera_optical_frame
+      Length: 0.08
+      Radius: 0.004
+    - Class: rviz_default_plugins/Axes
+      Name: Left wrist provisional optical frame
+      Enabled: true
+      Reference Frame: left_wrist_camera_optical_frame
+      Length: 0.08
+      Radius: 0.004
+    - Class: rviz_default_plugins/Axes
+      Name: Left fingertip TCP - CAD candidate
+      Enabled: true
+      Reference Frame: left_fingertip_tcp
+      Length: 0.03
+      Radius: 0.002
+    - Class: rviz_default_plugins/Axes
+      Name: Head Pan
+      Enabled: true
+      Reference Frame: head_pan_link
+      Length: 0.08
+      Radius: 0.003
+    - Class: rviz_default_plugins/Axes
+      Name: Head Tilt
+      Enabled: true
+      Reference Frame: head_tilt_link
+      Length: 0.08
+      Radius: 0.003
+    - Class: rviz_default_plugins/Axes
+      Name: Head RGB - common board calibration
+      Enabled: true
+      Reference Frame: head_camera_rgb_optical_frame
+      Length: 0.08
+      Radius: 0.003
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Left wrist board target - preview only
+      Enabled: false
+      Topic:
+        Value: /arm_preview/left_wrist_target
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Three camera boards - cyan left orange right purple head
+      Enabled: true
+      Topic:
+        Value: /arm_preview/camera_boards
+        Reliability Policy: Reliable
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Depth: 1
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 2.6
+      Focal Point: {X: 0.4, Y: 0.15, Z: 0.35}
+      Pitch: 0.4
+      Yaw: 0.6
+Window Geometry:
+  Width: 1280
+  Height: 900

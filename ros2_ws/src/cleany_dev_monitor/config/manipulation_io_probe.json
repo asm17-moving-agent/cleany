@@ -1,0 +1,24 @@
+{
+  "window_s": 1.0,
+  "sample_interval_s": 0.1,
+  "state_timeout_s": 3.0,
+  "startup_grace_s": 2.0,
+  "resource_interval_s": 1.0,
+  "motor_detail_interval_s": 0.2,
+  "writer_queue_size": 8192,
+  "max_recording_mib": 512,
+  "execution_topic": "/manipulation/execution_events",
+  "bt_topic": "/manipulation/bt_transitions",
+  "streams": [
+    {"topic": "/joint_states", "type": "sensor_msgs/msg/JointState", "label": "모터 1–14 위치", "hz": 50, "mode": "always", "kind": "joint"},
+    {"topic": "/joint_state_broadcaster/dynamic_joint_states", "type": "control_msgs/msg/DynamicJointState", "label": "모터 원시 피드백", "hz": 50, "mode": "always", "kind": "motor"},
+    {"topic": "/camera/color/image_raw", "type": "sensor_msgs/msg/Image", "label": "헤드 컬러", "hz": 15, "mode": "always", "kind": "image"},
+    {"topic": "/camera/depth/image_raw", "type": "sensor_msgs/msg/Image", "label": "헤드 정렬 깊이", "hz": 15, "mode": "always", "kind": "image"},
+    {"topic": "/left_wrist_camera/image_raw", "type": "sensor_msgs/msg/Image", "label": "왼손목 컬러", "hz": 15, "mode": "left", "kind": "image"},
+    {"topic": "/right_wrist_camera/image_raw", "type": "sensor_msgs/msg/Image", "label": "오른손목 컬러", "hz": 15, "mode": "right", "kind": "image"},
+    {"topic": "/camera/color/camera_info", "type": "sensor_msgs/msg/CameraInfo", "label": "헤드 컬러 정보", "hz": 15, "mode": "always", "kind": "info"},
+    {"topic": "/camera/depth/camera_info", "type": "sensor_msgs/msg/CameraInfo", "label": "헤드 깊이 정보", "hz": 15, "mode": "always", "kind": "info"},
+    {"topic": "/left_wrist_camera/camera_info", "type": "sensor_msgs/msg/CameraInfo", "label": "왼손목 정보", "hz": 15, "mode": "left", "kind": "info"},
+    {"topic": "/right_wrist_camera/camera_info", "type": "sensor_msgs/msg/CameraInfo", "label": "오른손목 정보", "hz": 15, "mode": "right", "kind": "info"}
+  ]
+}

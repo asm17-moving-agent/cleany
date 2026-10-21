@@ -26,7 +26,7 @@ def test_flash_lite_profile_classifies_local_yoloe_masks():
     profile = load_model_profile(
         Path(__file__).resolve().parents[1] / 'config/yoloe_seg_gemini.yaml')
     assert profile['detector_type'] == 'yoloe_gemini'
-    assert profile['gemini_model'] == 'gemini-3.1-flash-lite'
+    assert profile['gemini_model'] == 'gemini-3.5-flash-lite'
     assert profile['segmenter_type'] == 'yoloe_seg'
     assert profile['preload_models'] is True
     for label in ('cup', 'computer mouse', 'crumpled tissue', 'lego brick'):

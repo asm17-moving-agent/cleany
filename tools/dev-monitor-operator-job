@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+set +u
+source /opt/ros/humble/setup.bash
+source "${repo_root}/tools/ros2/cleany-install-env"
+    source "${CLEANY_INSTALL_BASE}/setup.bash"
+source "${repo_root}/tools/vision-ros-env"
+export CYCLONEDDS_URI="file://${repo_root}/ros2_ws/src/cleany_dev_monitor/config/jetson_dds.xml"
+set -u
+exec python3 -m cleany_dev_monitor.operator_jobs "$1" "${repo_root}"

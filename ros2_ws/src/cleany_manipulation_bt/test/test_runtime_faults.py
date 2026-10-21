@@ -391,7 +391,7 @@ def test_native_halt_callback_error_is_reported_after_resetting_the_tree(executi
 
 def test_action_timer_delivers_fault_result_once_even_if_bt_snapshot_throws(execution):
     from concurrent.futures import Future
-    from cleany_manipulation_bt.node import MujocoManipulationNode
+    from cleany_manipulation_bt.jetson_node import JetsonManipulationNode
     import zmq
 
     core, backend, _, now = execution
@@ -405,7 +405,7 @@ def test_action_timer_delivers_fault_result_once_even_if_bt_snapshot_throws(exec
         raise zmq.Again()
 
     core.tree.snapshot = snapshot
-    node = object.__new__(MujocoManipulationNode)
+    node = object.__new__(JetsonManipulationNode)
     node.core = core
     node._closing = False
     delivered, warnings = [], []

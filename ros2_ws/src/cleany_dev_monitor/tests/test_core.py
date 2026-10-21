@@ -57,9 +57,46 @@ def test_rotated_grid_origin_and_cell_transform():
     assert transform_point(1, 0, origin) == pytest.approx([7 - 2**-0.5, 22 + 2**-0.5])
 
 
+def test_delta_snapshots_preserve_events_gaps_and_source_revisions():
+    hub = Hub(event_limit=2)
+    original = hub.put('layer', 'map', {'cells': [0, 100]})
+    hub.put('event', 'stage', {'stage': 'READY'}, critical=True)
+    boundary = hub.sequence
+    changed = hub.put('pose', 'robot', {'valid': False})
+    event = hub.put('event', 'stage', {'stage': 'RUNNING'}, critical=True)
+    delta = hub.snapshot(boundary, delta=True)
+    assert delta['rows'] == [changed, event]
+    assert delta['sequence'] == event['seq'] and not delta['gap']
+    assert original in hub.snapshot(boundary)['rows']
+    hub.put('event', 'stage', {'stage': 'DONE'}, critical=True)
+    assert hub.snapshot(0, delta=True)['gap']
+    hub.reset_sources({'map_topic': '/new_map'}, 1)
+    reset = hub.snapshot(delta['sequence'], delta=True)
+    assert reset['topic_revision'] == 1
+    assert all(row['key'] != 'map' for row in reset['rows'])
+    assert any(row['kind'] == 'config' for row in reset['rows'])
+
+
+def test_delta_recording_keeps_initial_layers_and_every_event(tmp_path):
+    hub, recorder = Hub(), Recorder(tmp_path)
+    first = hub.put('layer', 'map', {'cells': [0, 100]})
+    recorder.append(hub.snapshot(recorder.last, delta=True))
+    event = hub.put('event', 'stage', {'stage': 'RUNNING'}, critical=True)
+    recorder.append(hub.snapshot(recorder.last, delta=True))
+    repeated = hub.put('layer', 'map', first['data'])
+    recorder.append(hub.snapshot(recorder.last, delta=True))
+    rows = recorder.replay(recorder.session_id, repeated['received_at'])['rows']
+    assert any(row['seq'] == first['seq'] for row in rows)
+    assert any(row['seq'] == event['seq'] for row in rows)
+    assert all(row['seq'] != repeated['seq'] for row in rows)
+    recorder.close()
+
+
 def test_record_replay_layers_dedup_and_limit_preserves_evidence(tmp_path):
     hub = Hub()
-    recorder = Recorder(tmp_path, session_limit=100_000)
+    # Leave room for schema indexes and the 64 KiB reserve before testing a
+    # payload that must exceed the remaining quota.
+    recorder = Recorder(tmp_path, session_limit=128 * 1024)
     first = hub.put("layer", "map", {"cells": [0, 100]})
     runtime = hub.put("runtime", "fsm", {"state": "WORKING"})
     hub.put("event", "fsm", {"kind": "transition", "to": "WORKING"}, critical=True)
@@ -79,7 +116,7 @@ def test_record_replay_layers_dedup_and_limit_preserves_evidence(tmp_path):
     recorder.append(hub.snapshot(recorder.last))
     assert recorder.reason
     assert recorder.path.exists()
-    assert recorder.path.stat().st_size < 100_000
+    assert recorder.path.stat().st_size < recorder.session_limit
     assert len(recorder.sessions()) == 1
     assert recorder.sessions()[0]["runtime_start"] == runtime["received_at"]
     assert recorder.sessions()[0]["runtime_count"] == 1

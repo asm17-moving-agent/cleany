@@ -3,6 +3,8 @@
 import hashlib
 import json
 import math
+import os
+import shutil
 import sqlite3
 import threading
 import time
@@ -136,16 +138,17 @@ class Hub:
                 self.latest[(kind, key)] = row
             return row
 
-    def snapshot(self, since: int = 0) -> dict:
+    def snapshot(self, since: int = 0, *, delta: bool = False) -> dict:
         with self.lock:
             events = [row for row in self.events if row["seq"] > since]
+            latest = [row for row in self.latest.values() if not delta or row['seq'] > since]
             return {
                 "boot_id": self.boot_id,
                 "topic_revision": self.topic_revision,
                 "sequence": self.sequence,
                 "gap": bool(since < self.evicted_through),
                 "rows": sorted(
-                    [*self.latest.values(), *events], key=lambda r: r["seq"]
+                    [*latest, *events], key=lambda r: r["seq"]
                 ),
             }
 
@@ -177,8 +180,30 @@ class Hub:
             return set().union(*self.selected.values()) if self.selected else set()
 
 
+def directory_bytes(directory: Path) -> int:
+    """Fresh file sizes with one stat per file; do not follow directory links."""
+    total = 0
+    pending: list[str | Path] = [directory]
+    while pending:
+        try:
+            entries = os.scandir(pending.pop())
+        except FileNotFoundError:
+            continue
+        with entries:
+            for entry in entries:
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append(entry.path)
+                elif entry.is_file():
+                    total += entry.stat().st_size
+    return total
+
+
+class RecordingInUseError(ValueError):
+    """A recording still has an open writer and cannot be deleted."""
+
+
 class Recorder:
-    """Owned by HTTP worker. Never touches MissionJournal or deletes evidence."""
+    """Owned by HTTP worker. Explicit deletion affects monitor recordings only."""
 
     def __init__(self, directory, session_limit=100 * 1024**2, total_limit=1024**3, controls=None, bag_factory=RosbagWriter):
         self.controls = controls
@@ -200,6 +225,7 @@ class Recorder:
         self.raw_losses = {}
         self.raw_loss_seen = {}
         self.raw_loss_revision = None
+        self.session_cache = {}
         try:
             self.directory.mkdir(parents=True, exist_ok=True)
             if self.disk_bytes() >= total_limit:
@@ -210,6 +236,7 @@ class Recorder:
                 "CREATE TABLE records(seq INTEGER PRIMARY KEY, received REAL, kind TEXT, key TEXT, payload BLOB)"
             )
             self.db.execute("CREATE INDEX records_time ON records(received)")
+            self.db.execute("CREATE INDEX records_kind_time ON records(kind,received)")
             self.db.execute("CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT)")
             self.db.execute("CREATE TABLE raw_index(id INTEGER PRIMARY KEY, category TEXT, topic TEXT, type TEXT, received REAL, ros_time REAL, timestamp_ns INTEGER)")
             self.db.execute("CREATE INDEX raw_time ON raw_index(received)")
@@ -229,12 +256,24 @@ class Recorder:
                 self.db = None
 
     def disk_bytes(self):
-        return (sum(p.stat().st_size for p in self.directory.glob("*.sqlite3*"))
-                + sum(p.stat().st_size for p in (self.directory / 'bags').rglob('*') if p.is_file()))
+        total = 0
+        try:
+            entries = os.scandir(self.directory)
+        except FileNotFoundError:
+            return 0
+        with entries:
+            for entry in entries:
+                # Include SQLite journals/WAL as well as the database itself.
+                if '.sqlite3' in entry.name:
+                    total += entry.stat().st_size
+        return total + directory_bytes(self.directory / 'bags')
 
     def session_bytes(self):
-        return ((self.path.stat().st_size if self.path.exists() else 0)
-                + sum(p.stat().st_size for p in self.bag_path.rglob('*') if p.is_file()))
+        try:
+            size = self.path.stat().st_size
+        except FileNotFoundError:
+            size = 0
+        return size + directory_bytes(self.bag_path)
 
     def limit_reached(self, size):
         return (max(self.session_bytes(), self.bytes) + size + 65536 > self.session_limit
@@ -274,7 +313,7 @@ class Recorder:
                 "INSERT OR REPLACE INTO metadata VALUES (?, ?)",
                 ("gap", "Event ring overflow; recording is incomplete"),
             )
-        settings = self.controls.view()["settings"] if self.controls else None
+        settings = self.controls.policy() if self.controls else None
         if self.controls and self.recording_revision != self.controls.revision:
             self.sampled_at.clear()
             self.recording_revision = self.controls.revision
@@ -295,14 +334,15 @@ class Recorder:
             previous = self.sampled_at.get(key)
             if limited and previous is not None and 0 <= sample_time-previous < 1/rate:
                 continue
+            # Only layers use content deduplication. Other rows (notably host
+            # history and graph) used to serialize their full data twice.
+            if row["kind"] == "layer":
+                digest = hashlib.sha256(json.dumps(row["data"], sort_keys=True).encode()).hexdigest()
+                if self.hashes.get(key) == digest:
+                    continue
             payload = zlib.compress(
                 json.dumps(row, ensure_ascii=False, allow_nan=False).encode(), level=3
             )
-            digest = hashlib.sha256(
-                json.dumps(row["data"], sort_keys=True).encode()
-            ).hexdigest()
-            if row["kind"] == "layer" and self.hashes.get(key) == digest:
-                continue
             size = len(payload)
             if self.limit_reached(size):
                 self.stop_recording('Recording size limit reached; evidence retained.')
@@ -316,7 +356,8 @@ class Recorder:
                 self.sampled_at[key] = sample_time
             if self.controls and category(row):
                 self.controls.saved(category(row))
-            self.hashes[key] = digest
+            if row["kind"] == "layer":
+                self.hashes[key] = digest
         self.db.commit()
         self.last = snapshot["sequence"]
 
@@ -385,12 +426,20 @@ class Recorder:
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         ):
+            stamp = (path.stat().st_mtime_ns, path.stat().st_size)
+            cached = self.session_cache.get(path.name)
+            if path.stem != self.session_id and cached and cached[0] == stamp:
+                result.append(cached[1])
+                continue
             with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as db:
-                count, start, end = db.execute(
-                    "SELECT count(*),min(received),max(received) FROM records"
-                ).fetchone()
-                runtime_count, runtime_start = db.execute(
-                    "SELECT count(*),min(received) FROM records WHERE kind='runtime'"
+                # Separate aggregates let SQLite use fast COUNT and indexed
+                # MIN/MAX lookups. One statement keeps a consistent snapshot.
+                count, start, end, runtime_count, runtime_start = db.execute(
+                    "SELECT (SELECT count(*) FROM records),"
+                    "(SELECT min(received) FROM records),"
+                    "(SELECT max(received) FROM records),"
+                    "(SELECT count(*) FROM records WHERE kind='runtime'),"
+                    "(SELECT min(received) FROM records WHERE kind='runtime')"
                 ).fetchone()
                 meta = dict(db.execute("SELECT key,value FROM metadata"))
                 policies = [decode_record(r[0]) for r in db.execute(
@@ -434,11 +483,44 @@ class Recorder:
                     "bytes": path.stat().st_size + sum(p.stat().st_size for p in (self.directory / 'bags' / path.stem).rglob('*') if p.is_file()),
                     "bag_available": self.bag_available(path.stem, meta),
                     "bag_recording": path.stem == self.session_id and self.bag is not None,
+                    "deletable": not self.session_in_use(path.stem) or (path.stem == self.session_id and bool(self.reason)),
                     "metadata": meta,
                     "segments": segments,
                 }
             )
+            if path.stem != self.session_id:
+                self.session_cache[path.name] = (stamp, result[-1])
+        present = {row['id'] + '.sqlite3' for row in result}
+        self.session_cache = {key: value for key, value in self.session_cache.items() if key in present}
         return result
+
+    def session_in_use(self, session: str) -> bool:
+        return session == self.session_id and (self.db is not None or self.bag is not None)
+
+    def delete_session(self, session: str) -> None:
+        """Delete a closed session's paired stores; never select files by glob."""
+        path = self.resolve(session)
+        if self.session_in_use(session):
+            raise RecordingInUseError('녹화를 정지한 뒤 삭제하세요.')
+        bag = self.directory / 'bags' / session
+        sidecars = [Path(str(path) + suffix) for suffix in ('-journal', '-wal', '-shm')]
+        # Refuse redirected roots before deleting any part of the recording.
+        if any(p.is_symlink() for p in (path, bag.parent, bag, *sidecars)):
+            raise ValueError('심볼릭 링크인 녹화 경로는 삭제할 수 없습니다.')
+        if bag.exists() and not bag.is_dir():
+            raise ValueError('원본 녹화 경로가 디렉터리가 아닙니다.')
+        if any(p.exists() and not p.is_file() for p in sidecars):
+            raise ValueError('SQLite 부속 파일 경로를 확인하세요.')
+        try:
+            if bag.exists():
+                shutil.rmtree(bag)
+            for sidecar in sidecars:
+                sidecar.unlink(missing_ok=True)
+            # Keep the catalog entry until its associated files are removed so
+            # a failed deletion stays visible and can be retried.
+            path.unlink()
+        finally:
+            self.session_cache.pop(path.name, None)
 
     def resolve(self, session: str) -> Path:
         # UUID names only; no arbitrary filesystem paths from browser.

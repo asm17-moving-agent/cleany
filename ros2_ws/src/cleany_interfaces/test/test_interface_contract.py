@@ -11,6 +11,24 @@ from cleany_interfaces.msg import (
 from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution, ObserveWristTarget, PlanGrasp, VerifyPlacement
 
 
+def test_manual_arm_return_defaults_require_explicit_success_and_stop():
+    from cleany_interfaces.action import ReturnArm
+    assert ReturnArm.Goal().arm == ''
+    result = ReturnArm.Result()
+    assert not result.success and not result.stop_confirmed
+    assert not result.recovery_required
+    assert ReturnArm.Feedback(stage='opening_right').stage == 'opening_right'
+
+
+def test_batch_validity_has_an_explicit_computation_failure_and_checked_prefix():
+    from cleany_interfaces.srv import CheckStateValidityBatch
+    from moveit_msgs.msg import RobotState
+    request = CheckStateValidityBatch.Request(robot_states=[RobotState(is_diff=True)])
+    response = CheckStateValidityBatch.Response()
+    assert request.robot_states[0].is_diff
+    assert not response.success and not response.valid
+
+
 def test_wrist_observation_distinguishes_missing_target_from_service_failure():
     response = ObserveWristTarget.Response()
     assert not response.success and response.status == response.ERROR

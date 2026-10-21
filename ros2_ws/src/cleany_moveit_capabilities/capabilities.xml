@@ -1,0 +1,6 @@
+<library path="cleany_moveit_capabilities">
+  <class name="cleany/StateValidityBatch" type="cleany::StateValidityBatchCapability"
+         base_class_type="move_group::MoveGroupCapability">
+    <description>Check a bounded state prefix against one complete, locked planning scene.</description>
+  </class>
+</library>

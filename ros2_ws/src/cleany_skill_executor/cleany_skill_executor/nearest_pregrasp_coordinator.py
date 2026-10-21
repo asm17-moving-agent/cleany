@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from array import array as byte_array
 from collections.abc import Sequence
 from copy import deepcopy
 import math
@@ -593,7 +594,10 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         message.encoding = 'rgb8'
         message.is_bigendian = False
         message.step = message.width * 3
-        message.data = np.ascontiguousarray(rendered).tobytes()
+        payload = byte_array('B')
+        if rendered.size:
+            payload.frombytes(memoryview(np.ascontiguousarray(rendered)).cast('B'))
+        message.data = payload
         self._last_grasp_debug_image = message
         self._grasp_debug_publisher.publish(message)
         state = (

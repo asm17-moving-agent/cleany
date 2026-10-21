@@ -183,3 +183,9 @@ Its navigation profile freezes the arms and head at configured park angles, reta
 four driven wheel joints, and attaches Gazebo sensors and mecanum contact approximations.
 It does not modify this package's movable joint contract. See that package's README
 for the CAD launcher, wheel odometry geometry, and simulation limitations.
+
+## 선택적 팔 충돌 메시
+
+`optimized_arm_collision_meshes` 기본값은 false이며 기존 CAD 충돌 형상을 유지한다. true로 명시하면 `meshes/collision/`의 별도 팔 충돌 자산을 사용한다. visual과 관성은 변경하지 않는다. `configs/robot/arm_collision_meshes.json`과 자산 manifest가 생성 조건과 원본/output hash를 기록한다. 재생성은 `tools/optimize_arm_collision_meshes.py`를 명시 실행할 때만 수행한다.
+
+메시 단순화는 컴포넌트 연결 관계, 폐곡면, 경계 포함 또는 양방향 표면 거리 조건을 검사한다. `test_collision_meshes.py`와 관련 MoveIt runtime 검사로 확인하며 실물 간섭 여유의 검증을 대신하지 않는다. `head_collision_meshes`도 기본 false이며 명시할 때만 head CAD 충돌 면을 선택한다.

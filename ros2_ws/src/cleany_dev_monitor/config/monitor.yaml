@@ -9,6 +9,7 @@ cleany_dev_monitor:
     rosout_topic: /rosout
     clock_topic: /clock
     manipulation_events_topic: mock/manipulation/execution_events
+    manipulation_observation_mode: mission
     manipulation_execution_limit: 20
     manipulation_interval_limit: 64
     map_frame: map

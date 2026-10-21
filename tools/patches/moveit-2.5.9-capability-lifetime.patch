@@ -1,0 +1,55 @@
+--- a/src/move_group.cpp
++++ b/src/move_group.cpp
+@@ -38,6 +38,7 @@
+ #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+ #include <tf2_ros/transform_listener.h>
+ #include <moveit/move_group/move_group_capability.h>
++#include <moveit/occupancy_map_monitor/occupancy_map_updater.h>
+ #include <moveit/trajectory_execution_manager/trajectory_execution_manager.h>
+ #include <boost/tokenizer.hpp>
+ #include <moveit/macros/console_colors.h>
+@@ -91,6 +92,11 @@
+     capability_plugin_loader_.reset();
+   }
+ 
++  auto getCapabilityLoader() const
++  {
++    return capability_plugin_loader_;
++  }
++
+   void status()
+   {
+     if (context_)
+@@ -205,6 +211,9 @@
+ {
+   rclcpp::init(argc, argv);
+ 
++  // Keep capability DSOs loaded until node-owned weak callback references die.
++  std::shared_ptr<pluginlib::ClassLoader<move_group::MoveGroupCapability>> capability_loader_lifetime;
++  std::shared_ptr<pluginlib::ClassLoader<occupancy_map_monitor::OccupancyMapUpdater>> sensor_loader_lifetime;
+   rclcpp::NodeOptions opt;
+   opt.allow_undeclared_parameters(true);
+   opt.automatically_declare_parameters_from_overrides(true);
+@@ -294,6 +303,22 @@
+     rclcpp::executors::MultiThreadedExecutor executor;
+ 
+     move_group::MoveGroupExe mge(moveit_cpp, default_planning_pipeline, debug);
++    capability_loader_lifetime = mge.getCapabilityLoader();
++    // A stopped sensor leaves weak subscription references in the same node.
++    // Retain only the configured plugin libraries, without creating extra sensors.
++    std::vector<std::string> sensor_names;
++    if (nh->get_parameter("sensors", sensor_names) && !sensor_names.empty())
++    {
++      sensor_loader_lifetime =
++          std::make_shared<pluginlib::ClassLoader<occupancy_map_monitor::OccupancyMapUpdater>>(
++              "moveit_ros_occupancy_map_monitor", "occupancy_map_monitor::OccupancyMapUpdater");
++      for (const auto& sensor : sensor_names)
++      {
++        std::string plugin;
++        if (nh->get_parameter(sensor + ".sensor_plugin", plugin) && !plugin.empty())
++          sensor_loader_lifetime->loadLibraryForClass(plugin);
++      }
++    }
+ 
+     bool monitor_dynamics;
+     if (nh->get_parameter("monitor_dynamics", monitor_dynamics) && monitor_dynamics)

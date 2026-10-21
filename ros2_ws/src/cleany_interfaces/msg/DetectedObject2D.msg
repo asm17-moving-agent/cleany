@@ -30,3 +30,11 @@ string track_id
 string tracking_state
 bool position_valid
 geometry_msgs/Point representative_position
+# Head RGB-D estimates retained for the physical target filters. Zero means
+# unavailable. Width/height are two horizontal support-plane footprint extents
+# from foreground depth (instance mask when available), not image-axis bbox
+# lengths or object vertical height. Selected inspection/grasp checks still
+# validate the actual object and required jaw opening.
+float32 median_depth_m
+float32 estimated_width_m
+float32 estimated_height_m

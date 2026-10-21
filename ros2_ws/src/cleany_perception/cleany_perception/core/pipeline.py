@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 
 import numpy as np
 
@@ -29,6 +30,7 @@ from cleany_perception.core.ports import (
     SegmenterPort,
     TransformPort,
 )
+from cleany_perception.core.reconstruction_cache import ReconstructionCache
 
 
 ProgressCallback = Callable[[InspectionStage, int, int, str], None]
@@ -166,6 +168,9 @@ class InspectionPipeline:
         query: str,
         progress: ProgressCallback | None = None,
         cancelled: CancelCallback | None = None,
+        *,
+        capture_transform: RigidTransform | None = None,
+        geometry_cache: ReconstructionCache | None = None,
     ) -> tuple[Detection2D, ...]:
         report = progress or (
             lambda _stage, _detected, _objects, _message: None
@@ -173,7 +178,13 @@ class InspectionPipeline:
         is_cancelled = cancelled or (lambda: False)
         self._raise_if_cancelled(is_cancelled)
         report(InspectionStage.DETECTING, 0, 0, 'Detecting objects')
-        detections = self._detect(snapshot, query)
+        def preprocess(raw_detections):
+            self.estimate_detection_footprints(
+                snapshot, self._validate_detections(snapshot, raw_detections),
+                capture_transform, cancelled=is_cancelled, geometry_cache=geometry_cache)
+
+        detections = self._detect(snapshot, query,
+            preprocess=preprocess if capture_transform is not None and geometry_cache is not None else None)
         self._raise_if_cancelled(is_cancelled)
         return detections
 
@@ -185,6 +196,8 @@ class InspectionPipeline:
         capture_transform: RigidTransform,
         progress: ProgressCallback | None = None,
         cancelled: CancelCallback | None = None,
+        *,
+        geometry_cache: ReconstructionCache | None = None,
     ) -> InspectionOutput:
         """Reconstruct one selected detection using its original capture transform.
 
@@ -224,6 +237,7 @@ class InspectionPipeline:
             all_detections,
             masks,
             exclude_detection_boxes=True,
+            geometry_cache=geometry_cache,
         )
         self._raise_if_cancelled(is_cancelled)
 
@@ -258,13 +272,65 @@ class InspectionPipeline:
             plane=plane,
         )
 
+    def estimate_detection_footprints(
+        self,
+        snapshot: RgbdSnapshot,
+        detections: Sequence[Detection2D],
+        capture_transform: RigidTransform,
+        cancelled: CancelCallback | None = None,
+        geometry_cache: ReconstructionCache | None = None,
+    ) -> tuple[Detection2D, ...]:
+        """Estimate support-plane extents without another segmentation call.
+
+        Image-axis bbox lengths mix footprint, object height and camera tilt.
+        Reuse detector instance masks when available; otherwise use bbox depth
+        above the fitted support plane for this preliminary estimate. Selected
+        inspection and grasp opening checks remain separate requirements.
+        Unmeasurable extents stay zero instead of substituting image dimensions.
+        """
+        is_cancelled = cancelled or (lambda: False)
+        estimated = []
+        for detection in detections:
+            self._raise_if_cancelled(is_cancelled)
+            measured = replace(detection, estimated_width_m=0.0, estimated_height_m=0.0)
+            mask = detection.segmentation_mask
+            if mask is None:
+                mask = np.zeros(snapshot.depth_m.shape, dtype=np.bool_)
+                bbox = detection.bbox
+                mask[math.floor(bbox.y_min):math.ceil(bbox.y_max),
+                     math.floor(bbox.x_min):math.ceil(bbox.x_max)] = True
+            try:
+                if mask.shape != snapshot.depth_m.shape or not np.any(mask):
+                    raise ValueError('Detection mask does not cover valid image pixels')
+                plane, boxes = self._reconstruct(snapshot, detections,
+                    (ObjectMask(detection, mask, detection.confidence),),
+                    exclude_detection_boxes=True, geometry_cache=geometry_cache)
+                normal = transform_plane_normal(plane, capture_transform)
+                if float(normal @ np.array((0.0, 0.0, 1.0))) < math.cos(
+                        math.radians(self._config.maximum_plane_tilt_degrees)):
+                    raise ValueError('Support plane exceeds the configured base-frame tilt')
+                measured = replace(measured,
+                    estimated_width_m=float(boxes[0].size[0]),
+                    estimated_height_m=float(boxes[0].size[1]))
+            except (InspectionFailure, ValueError):
+                # A bad depth/plane estimate for one object must not hide other
+                # detections. Zero extents make its size eligibility explicit.
+                pass
+            self._raise_if_cancelled(is_cancelled)
+            estimated.append(measured)
+        return tuple(estimated)
+
     def _detect(
         self,
         snapshot: RgbdSnapshot,
         query: str,
+        preprocess: Callable | None = None,
     ) -> tuple[Detection2D, ...]:
         try:
-            raw_detections = tuple(self._detector.detect(snapshot.rgb, query))
+            concurrent = getattr(self._detector, 'detect_with_preprocessing', None)
+            raw_detections = tuple(concurrent(snapshot.rgb, query, preprocess)
+                if preprocess is not None and callable(concurrent)
+                else self._detector.detect(snapshot.rgb, query))
         except InspectionFailure:
             raise
         except Exception as error:
@@ -272,6 +338,9 @@ class InspectionPipeline:
                 FailureKind.DETECTOR_API,
                 f'Detector request failed: {error}',
             ) from error
+        return self._validate_detections(snapshot, raw_detections)
+
+    def _validate_detections(self, snapshot, raw_detections) -> tuple[Detection2D, ...]:
         detections: list[Detection2D] = []
         for detection in raw_detections:
             if not isinstance(detection, Detection2D):
@@ -346,6 +415,7 @@ class InspectionPipeline:
         detections: Sequence[Detection2D],
         masks: Sequence[ObjectMask],
         exclude_detection_boxes: bool = False,
+        geometry_cache: ReconstructionCache | None = None,
     ):
         support_selection = self._support_selection(
             snapshot.depth_m.shape,
@@ -353,50 +423,44 @@ class InspectionPipeline:
             masks,
             exclude_detection_boxes,
         )
-        support_points = deproject_masked_depth(
-            snapshot.depth_m,
-            snapshot.intrinsics,
-            support_selection,
-            self._config.minimum_depth_m,
-            self._config.maximum_depth_m,
-            self._config.support_sample_stride,
-        )
-        try:
-            plane = fit_plane_ransac(
-                support_points,
+        if geometry_cache is not None:
+            geometry_cache.bind(snapshot, self._config)
+        support_key = ReconstructionCache.array_key(support_selection)
+
+        def estimate_plane():
+            support_points = deproject_masked_depth(
+                snapshot.depth_m, snapshot.intrinsics, support_selection,
+                self._config.minimum_depth_m, self._config.maximum_depth_m,
+                self._config.support_sample_stride)
+            return fit_plane_ransac(support_points,
                 self._config.plane_ransac_iterations,
                 self._config.plane_distance_threshold_m,
                 self._config.plane_minimum_inliers,
-                self._config.plane_minimum_inlier_ratio,
-            )
+                self._config.plane_minimum_inlier_ratio)
+
+        try:
+            plane = (geometry_cache.get_or_compute(('plane', support_key), estimate_plane)
+                     if geometry_cache is not None else estimate_plane())
         except ValueError as error:
             raise InspectionFailure(FailureKind.PLANE, str(error)) from error
 
         boxes = []
         for object_mask in masks:
-            points = deproject_masked_depth(
-                snapshot.depth_m,
-                snapshot.intrinsics,
-                object_mask.mask,
-                self._config.minimum_depth_m,
-                self._config.maximum_depth_m,
-            )
-            if points.shape[0] < self._config.minimum_object_points:
-                raise InspectionFailure(
-                    FailureKind.DEPTH,
-                    'Not enough valid depth for '
-                    f'{object_mask.detection.label}',
-                )
+            def estimate_box():
+                points = deproject_masked_depth(
+                    snapshot.depth_m, snapshot.intrinsics, object_mask.mask,
+                    self._config.minimum_depth_m, self._config.maximum_depth_m)
+                if points.shape[0] < self._config.minimum_object_points:
+                    raise InspectionFailure(FailureKind.DEPTH,
+                        f'Not enough valid depth for {object_mask.detection.label}')
+                return reconstruct_supported_obb(points, plane,
+                    self._config.minimum_object_height_m,
+                    self._config.minimum_obb_extent_m,
+                    self._config.minimum_object_points)
             try:
-                boxes.append(
-                    reconstruct_supported_obb(
-                        points,
-                        plane,
-                        self._config.minimum_object_height_m,
-                        self._config.minimum_obb_extent_m,
-                        self._config.minimum_object_points,
-                    )
-                )
+                boxes.append(geometry_cache.get_or_compute(
+                    ('box', support_key, ReconstructionCache.array_key(object_mask.mask)), estimate_box)
+                    if geometry_cache is not None else estimate_box())
             except ValueError as error:
                 raise InspectionFailure(
                     FailureKind.DEPTH,

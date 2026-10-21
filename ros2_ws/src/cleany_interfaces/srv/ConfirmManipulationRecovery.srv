@@ -1,0 +1,12 @@
+# With both confirmations false, query unresolved historical inhibitions.
+string execution_id
+uint64 expected_revision
+bool robot_stopped_confirmed
+bool gripper_empty_confirmed
+string operator_note
+---
+bool success
+bool inhibited
+string message
+string[] blocked_execution_ids
+uint64[] blocked_revisions

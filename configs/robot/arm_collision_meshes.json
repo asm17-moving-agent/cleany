@@ -1,0 +1,27 @@
+{
+  "description_package": "ros2_ws/src/cleany_description",
+  "source_meshes": [
+    "Upper_Arm_5cm.stl",
+    "Lower_Arm_5cm.stl",
+    "Base.stl",
+    "Base_Motor.stl",
+    "Rotation_Pitch_Motor.stl",
+    "Upper_Arm_Motor.stl",
+    "Wrist_Pitch_Roll_Motor.stl",
+    "Fixed_Jaw_Motor.stl"
+  ],
+  "output_directory": "meshes/collision",
+  "max_hull_expansion_m": 0.00025,
+  "enclosure_margin_m": 1e-06,
+  "max_iterations": 64,
+  "planes_per_iteration": 16,
+  "surface_components": {
+    "Lower_Arm_5cm.stl": {
+      "2": {
+        "target_triangles": 8000,
+        "max_surface_distance_m": 0.00025
+      }
+    }
+  },
+  "surface_simplifier_image": "cleany-motion:jp6.2"
+}

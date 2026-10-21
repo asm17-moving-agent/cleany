@@ -14,13 +14,6 @@ from .ports import Evidence
 from .steps import STAGE_STEPS, STEP_BY_ID
 
 
-def _validate_stage_durations(durations: dict[str, float]) -> None:
-    for stage, duration in durations.items():
-        Stage(stage)
-        if not math.isfinite(duration) or duration <= 0:
-            raise ValueError('mock stage durations must be finite and positive')
-
-
 @dataclass(frozen=True)
 class MockConfig:
     stage_duration_sec: float = 0.5
@@ -37,7 +30,6 @@ class MockConfig:
         'mock-snapshot-001': {'age_sec': 0.0, 'object_ids': [1, 2, 3]},
     })
     scenarios: dict[str, Any] = field(default_factory=lambda: {'success': {}})
-    stage_durations_sec: dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         for name in (
@@ -55,7 +47,6 @@ class MockConfig:
         for snapshot in self.snapshots.values():
             if not math.isfinite(float(snapshot['age_sec'])) or snapshot['age_sec'] < 0:
                 raise ValueError('snapshot age must be finite and nonnegative')
-        _validate_stage_durations(self.stage_durations_sec)
         for scenario in self.scenarios.values():
             for step, error in scenario.get('substage_errors', {}).items():
                 if step not in STEP_BY_ID:
@@ -64,7 +55,10 @@ class MockConfig:
             for stage, error in scenario.get('stage_errors', {}).items():
                 Stage(stage)
                 Error(error)
-            _validate_stage_durations(scenario.get('stage_durations_sec', {}))
+            for stage, duration in scenario.get('stage_durations_sec', {}).items():
+                Stage(stage)
+                if not math.isfinite(duration) or duration <= 0:
+                    raise ValueError('scenario durations must be finite and positive')
             if scenario.get('fault_stage'):
                 Stage(scenario['fault_stage'])
                 if Error(scenario.get('fault_error', 'HARDWARE_ERROR')) not in (
@@ -111,7 +105,6 @@ class MockAdapter:
     def duration(self) -> float:
         default = (self.config.stop_duration_sec if self.stage == Stage.STOPPING
                    else self.config.stage_duration_sec)
-        default = self.config.stage_durations_sec.get(self.stage.value, default)
         return self.scenario.get('stage_durations_sec', {}).get(self.stage.value, default)
 
     def fault(self, now: float) -> Error | None:

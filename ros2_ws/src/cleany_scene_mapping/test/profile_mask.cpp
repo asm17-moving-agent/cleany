@@ -91,7 +91,8 @@ int main(int argc, char** argv)
       poses.emplace(fk.fk_link_names[i], transform(p.x, p.y, p.z, q.x, q.y, q.z, q.w));
     }
     std::map<unsigned int, Eigen::Isometry3d> cache;
-    point_containment_filter::ShapeMask mask([&](unsigned int handle, Eigen::Isometry3d& pose) {
+    cleany_scene_mapping::PartitionedShapeMask mask(1);
+    mask.setTransformCallback([&](unsigned int handle, Eigen::Isometry3d& pose) {
       pose = cache.at(handle); return true;
     });
     std::vector<std::unique_ptr<cleany_scene_mapping::PartitionedShapeMask>> parallel_masks;
@@ -115,14 +116,13 @@ int main(int argc, char** argv)
         const auto& p = collision->origin.position;
         const auto& q = collision->origin.rotation;
         const auto placed = pose * transform(p.x, p.y, p.z, q.x, q.y, q.z, q.w);
-        const auto handle = mask.addShape(geometry, 1.0, 0.015);
+        const auto prepared = cleany_scene_mapping::PartitionedShapeMask::prepareShape(geometry, 1.0, 0.015);
+        const auto handle = mask.addShape(prepared);
         cache[handle] = placed;
         for (auto& parallel : parallel_masks)
-          if (parallel->addShape(geometry, 1.0, 0.015) != handle)
+          if (parallel->addShape(prepared) != handle)
             throw std::runtime_error("Unexpected replay handle mapping");
-        bodies::BodyPtr body(bodies::createBodyFromShape(geometry.get()));
-        body->setPadding(0.015);
-        body->setPose(placed);
+        auto body = prepared.body->cloneAt(placed);
         bodies.emplace_back(name + "/" + std::to_string(index++), body);
       }
     }
@@ -155,10 +155,11 @@ int main(int argc, char** argv)
     }
     for (const auto& [name, body] : bodies)
     {
+      const cleany_scene_mapping::ExclusionVolume exclusion(body);
       std::size_t inside = 0;
       const auto start = std::chrono::steady_clock::now();
       for (const auto& point : points)
-        if (point.allFinite() && body->containsPoint(point)) ++inside;
+        if (point.allFinite() && exclusion.containsPoint(point)) ++inside;
       const double contains_ms = milliseconds(start);
       const auto clone_start = std::chrono::steady_clock::now();
       auto clone = body->cloneAt(body->getPose());

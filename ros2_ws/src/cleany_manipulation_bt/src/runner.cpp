@@ -50,8 +50,6 @@ public:
     auto board = BT::Blackboard::create();
     board->set("execution_id", execution);
     tree_ = factory_.createTreeFromFile(xml, board);
-    // Structure and UIDs stay fixed for this execution; statuses are sampled below.
-    tree_xml_ = BT::WriteTreeToXML(tree_, true, true);
     tree_.applyVisitor([this](BT::TreeNode* node) {
       subscriptions_.push_back(node->subscribeToStatusChange(
         [this](BT::TimePoint, const BT::TreeNode& n, BT::NodeStatus previous, BT::NodeStatus current) {
@@ -74,14 +72,13 @@ public:
       nodes.append(item);
     });
     result["nodes"] = nodes;
-    result["xml"] = tree_xml_;
+    result["xml"] = BT::WriteTreeToXML(tree_, true, true);
     return result;
   }
   py::list drain_transitions() { py::list out = transitions_; transitions_ = py::list(); return out; }
 private:
   BT::BehaviorTreeFactory factory_;
   BT::Tree tree_;
-  std::string tree_xml_;
   std::vector<BT::TreeNode::StatusChangeSubscriber> subscriptions_;
   py::list transitions_;
 };

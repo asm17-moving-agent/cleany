@@ -29,8 +29,9 @@ joint_limits:
     has_acceleration_limits: false
   left_wrist_roll_joint:
     has_position_limits: true
-    min_position: -2.743847297
-    max_position: 2.84120630938
+    # Observed 2026-10-05 operating window about the calibrated CAD reference.
+    min_position: -1.5247769031583274
+    max_position: 2.9513790358919736
     has_velocity_limits: true
     max_velocity: 4.245
     has_acceleration_limits: false

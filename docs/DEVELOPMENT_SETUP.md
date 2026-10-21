@@ -107,7 +107,7 @@ rosdep update
 
 의존성은 공식 rosdep 규칙을 사용합니다. MuJoCo Python 패키지는 `python3-mujoco-pip` 키로 설치합니다.
 
-새 인식 경로의 `google-genai`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
+새 인식 경로의 `google-genai`와 물리 버스용 `feetech-servo-sdk`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
 
 ```bash
 printf 'yaml file://%s/ros2_ws/rosdep/cleany.yaml\n' "$PWD" | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list
@@ -220,3 +220,23 @@ pnpm build
 ## 기존 Mission Mock VM 환경
 
 이미 구성된 Ubuntu VM의 로컬 의존성과 통합 install은 Bash에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.bash`, zsh에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh`로 적용한다. 셸에 맞는 파일을 사용한다. 이 파일은 새 환경의 설치 절차를 대신하지 않으며 Mission, 서버와 interfaces는 같은 worktree install에서 읽는다.
+
+
+### 선택형 Jetson 조작 환경
+
+실물 backend는 `cleany_robot_interface`, `cleany_feetech_hardware`, `cleany_scene_mapping`과 명시적인 physical selector를 사용한다. 기존 MuJoCo 서버와 별도 실행 파일이며 기본 시뮬레이션 launch를 교체하지 않는다.
+
+MoveIt 2.5.9와 geometric_shapes 2.3.4의 로컬 overlay가 필요한 경우 다음 명령을 사용한다. 설치기는 버전과 archive hash를 확인하고 사용자 prefix에 빌드한다. 시스템 `/opt/ros`는 교체하지 않는다. 다른 버전은 설치기가 거부한다.
+
+```bash
+make scene-mapping-setup moveit-octomap-lock-setup
+source /opt/ros/humble/setup.bash
+source tools/scene-mapping-env
+make build-jetson
+```
+
+`CLEANY_SCENE_RUNTIME_PREFIX`, `CLEANY_SCENE_DEPENDENCY_PREFIX`와 `CLEANY_MOVEIT_PATCH_PREFIX`로 prefix를 지정할 수 있다. geometry cache는 `CLEANY_MOVEIT_GEOMETRY_CACHE_DIR`로 선택하며 빈 값이면 사용하지 않는다. cache miss와 손상은 원래 계산으로 돌아간다.
+
+native 출력은 기본 `../cleany-data/builds/<checkout 이름>/install`이다. wrapper는 `CLEANY_INSTALL_BASE`, `CLEANY_BUILD_ROOT`, `CLEANY_DATA_ROOT` 순서로 override를 해석한다. `make`의 `INSTALL_BASE`를 직접 바꾸는 환경에서는 wrapper에도 같은 `CLEANY_INSTALL_BASE`를 설정한다. GPU 모델, license와 API key는 저장소 밖에 준비한다. TensorRT와 cuRobo 이미지는 [vision](../containers/vision/README.md), [motion](../containers/motion/README.md) 안내를 따른다.
+
+실행 시에는 로봇별 collection, controller와 motion-monitor 설정 파일을 각각 명시한다. 실험에서 검사를 끈 profile은 배포 기본값으로 제공하지 않는다. [실물 실행 안내](RUNNING.md#jetson-실물-실행-경로)를 따른다.

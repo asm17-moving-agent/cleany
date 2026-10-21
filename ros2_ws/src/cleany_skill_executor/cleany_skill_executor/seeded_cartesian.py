@@ -215,10 +215,10 @@ class SeededCartesianPlanner:
         for scaling in (request.max_velocity_scaling_factor, request.max_acceleration_scaling_factor):
             if not math.isfinite(scaling) or not 0 < scaling <= 1:
                 raise ValueError('invalid motion scaling')
-        path = CubicJointPath(knots)
-        duration = path.minimum_duration(
-            [self.limits[n].velocity*request.max_velocity_scaling_factor for n in names],
-            [self.limits[n].acceleration*request.max_acceleration_scaling_factor for n in names])
+        velocity_limits = [self.limits[n].velocity*request.max_velocity_scaling_factor for n in names]
+        acceleration_limits = [self.limits[n].acceleration*request.max_acceleration_scaling_factor for n in names]
+        path = CubicJointPath(knots).retimed(velocity_limits, acceleration_limits)
+        duration = path.minimum_duration(velocity_limits, acceleration_limits)
         samples = path.samples(self.config.validation_joint_step_rad,
                                math.ceil(self.config.ik_step_m/self.config.validation_step_m),
                                self.config.maximum_points)

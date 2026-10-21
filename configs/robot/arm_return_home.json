@@ -1,0 +1,9 @@
+{
+  "frame": "base_link",
+  "recorded_at": "2026-10-15T16:15:33.111666+00:00",
+  "source": "ReadOnlyBus: 10 stable encoder samples, current operator-designated default pose; no register writes",
+  "arms": {
+    "left": [-1.4695535947944443, 3.442252888015379, 3.1400586728019073, -1.5846021538858672, 1.5922720578252956],
+    "right": [1.5370487494614125, 3.451456772742693, 3.1354567304382504, -1.7778837331594581, 1.7410681942502026]
+  }
+}

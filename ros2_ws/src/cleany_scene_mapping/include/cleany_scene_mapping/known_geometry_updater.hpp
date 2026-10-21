@@ -43,6 +43,7 @@ public:
   bool processCloud(const sensor_msgs::msg::PointCloud2& cloud);
 
 private:
+  friend struct KnownGeometryUpdaterTestAccess;
   bool processFrame(const sensor_msgs::msg::PointCloud2& cloud, const char*& stage);
   rclcpp::Node::SharedPtr node_;
   rclcpp::Logger logger_{rclcpp::get_logger("cleany_scene_mapping")};
@@ -55,7 +56,8 @@ private:
   std::mutex frame_mutex_;
   std::mutex geometry_mutex_;
   PartitionedShapeMask shape_mask_;
-  KnownBodies bodies_;
+  // Empty, private coordinate/ray geometry; never contains occupancy nodes.
+  std::unique_ptr<octomap::OcTree> ray_geometry_;
   std::uint64_t generation_ = 0;
   std::string cloud_topic_;
   std::string filtered_topic_;

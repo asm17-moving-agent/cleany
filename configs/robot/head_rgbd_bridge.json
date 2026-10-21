@@ -1,0 +1,8 @@
+{
+  "calibrated_rgb_frame": "head_camera_rgb_optical_frame",
+  "sdk_base_frame": "camera_link",
+  "sdk_color_optical_frame": "camera_color_optical_frame",
+  "tf_topic": "/arm_preview/tf",
+  "tf_static_topic": "/arm_preview/tf_static",
+  "color_topic": "/camera/color/image_raw"
+}

@@ -1,0 +1,33 @@
+{
+  "camera_serial": "261822075013",
+  "width": 640,
+  "height": 480,
+  "fps": 30,
+  "squares_x": 7,
+  "squares_y": 5,
+  "square_length_m": 0.05,
+  "marker_length_m": 0.035,
+  "dictionary": "DICT_6X6_250",
+  "board_pdf": "/home/cleany/Downloads/charuco_A3_50mm_marker35mm.pdf",
+  "board_pdf_sha256": "52ca2a4364091bcd19d3008a9973c95373dfd0769474b4265f89803757897464",
+  "minimum_corners": 16,
+  "minimum_calibration_views": 20,
+  "serial_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00",
+  "baudrate": 1000000,
+  "encoder_period_ticks": 4096,
+  "maximum_step_ticks": 512,
+  "zero_max_span_ticks": 3,
+  "maximum_gap_seconds": 0.3,
+  "motor_ids": {
+    "pan": 13,
+    "tilt": 14
+  },
+  "square_size_physically_verified": true,
+  "joint_zero_and_direction_verified": true,
+  "board_view": {
+    "intrinsics_file": "~/.local/share/cleany/headcam/20260909_014249_878549/intrinsics_candidate_1788886846069875105.json",
+    "axis_length_m": 0.05,
+    "maximum_pnp_rmse_px": 1.0,
+    "minimum_pnp_ratio": 1.05
+  }
+}

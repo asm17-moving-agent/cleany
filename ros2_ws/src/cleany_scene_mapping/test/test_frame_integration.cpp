@@ -7,12 +7,62 @@
 #include <limits>
 #include <thread>
 
+namespace cleany_scene_mapping
+{
+// Inject a body with a synchronization barrier, so this concurrency regression
+// does not depend on point count, CPU speed, or sleeps inside the filter.
+struct KnownGeometryUpdaterTestAccess
+{
+  static unsigned int addBody(KnownGeometryOctomapUpdater& updater, const bodies::BodyConstPtr& body)
+  {
+    std::lock_guard<std::mutex> lock(updater.geometry_mutex_);
+    const auto handle = updater.shape_mask_.addShape({body, body->computeVolume()});
+    ++updater.generation_;
+    return handle;
+  }
+};
+}
+
 namespace
 {
 using Monitor = occupancy_map_monitor::OccupancyMapMonitor;
 using Cache = occupancy_map_monitor::ShapeTransformCache;
 using Updater = cleany_scene_mapping::KnownGeometryOctomapUpdater;
 using namespace std::chrono_literals;
+
+struct MaskBarrier
+{
+  std::once_flag once;
+  std::promise<void> entered, release;
+  std::shared_future<void> released = release.get_future().share();
+};
+
+class BlockingBox : public bodies::Box
+{
+public:
+  explicit BlockingBox(std::shared_ptr<MaskBarrier> barrier) : barrier_(std::move(barrier))
+  {
+    const shapes::Box shape(0.1, 0.1, 0.1);
+    setDimensions(&shape);
+  }
+  bool containsPoint(const Eigen::Vector3d& point, bool verbose = false) const override
+  {
+    std::call_once(barrier_->once, [&] { barrier_->entered.set_value(); });
+    if (barrier_->released.wait_for(2s) != std::future_status::ready)
+      throw std::runtime_error("Test mask barrier timed out");
+    return bodies::Box::containsPoint(point, verbose);
+  }
+  bodies::BodyPtr cloneAt(const Eigen::Isometry3d& pose, double padding, double scale) const override
+  {
+    auto clone = std::make_shared<BlockingBox>(barrier_);
+    clone->setPose(pose);
+    clone->setPadding(padding);
+    clone->setScale(scale);
+    return clone;
+  }
+private:
+  std::shared_ptr<MaskBarrier> barrier_;
+};
 
 class Middleware : public Monitor::MiddlewareHandle
 {
@@ -135,6 +185,42 @@ TEST_F(FrameIntegration, RejectsRemoveAndReaddDuringProvider)
   EXPECT_EQ(updates, 0U);
 }
 
+TEST_F(FrameIntegration, CompletesMaskBeforeConcurrentShapeReregistration)
+{
+  auto barrier = std::make_shared<MaskBarrier>();
+  const auto handle = cleany_scene_mapping::KnownGeometryUpdaterTestAccess::addBody(
+      *updater, std::make_shared<BlockingBox>(barrier));
+  setBoxCache(handle);
+  auto tree = monitor->getOcTreePtr();
+  tree->updateNode(0.505, 0.005, 0.005, true);
+  tree->updateNode(0.005, 0.805, 0.005, true);
+  const auto message = cloud({{0.505F, 0.005F, 0.005F}, {1.005F, 0.005F, 0.005F}});
+  auto processing = std::async(std::launch::async, [&] { return updater->processCloud(message); });
+  ASSERT_EQ(barrier->entered.get_future().wait_for(2s), std::future_status::ready);
+  std::promise<void> attempting;
+  auto changed = std::async(std::launch::async, [&] {
+    // Scene updates may own the tree lock while registering shapes. The frame
+    // must release its geometry lock before attempting any tree operation.
+    auto tree_lock = tree->writing();
+    attempting.set_value();
+    updater->forgetShape(handle);
+    return addBox();
+  });
+  ASSERT_EQ(attempting.get_future().wait_for(2s), std::future_status::ready);
+  EXPECT_EQ(changed.wait_for(30ms), std::future_status::timeout);
+  barrier->release.set_value();
+  ASSERT_EQ(processing.wait_for(2s), std::future_status::ready);
+  EXPECT_TRUE(processing.get());
+  ASSERT_EQ(changed.wait_for(2s), std::future_status::ready);
+  setBoxCache(changed.get());
+  EXPECT_FALSE(tree->isNodeOccupied(tree->search(0.505, 0.005, 0.005)));
+  EXPECT_TRUE(tree->isNodeOccupied(tree->search(1.005, 0.005, 0.005)));
+  EXPECT_TRUE(tree->isNodeOccupied(tree->search(0.005, 0.805, 0.005)));
+  EXPECT_EQ(updates, 1U);
+  EXPECT_TRUE(updater->processCloud(message));
+  EXPECT_EQ(updates, 2U);
+}
+
 TEST_F(FrameIntegration, RejectsNonfiniteAndFailedProvidersThenRecovers)
 {
   const auto handle = addBox();
@@ -185,6 +271,33 @@ TEST_F(FrameIntegration, MeshFacePaddingClearsStaleAndNewReturnsWithoutErasingOu
     EXPECT_FALSE(tree->isNodeOccupied(tree->search(0.505, 0.035, 0.005)));
     EXPECT_TRUE(tree->isNodeOccupied(tree->search(1.005, 0.005, 0.005)));
     EXPECT_TRUE(tree->isNodeOccupied(tree->search(0.005, 0.805, 0.005)));
+  }
+}
+
+TEST_F(FrameIntegration, MeshPointMaskClearsObservedPartialCellButPreservesUnobservedBoundary)
+{
+  node->set_parameter(rclcpp::Parameter("depth_cloud.padding_offset", .015));
+  ASSERT_TRUE(updater->setParams("depth_cloud"));
+  const shapes::Box box(.4, .04, .04);
+  const auto handle = updater->excludeShape(shapes::ShapeConstPtr(shapes::createMeshFromShape(box)));
+  updater->setTransformCacheCallback([handle](const auto&, const auto&, Cache& cache) {
+    auto pose = Eigen::Isometry3d::Identity();
+    pose.translation().x() = .5;
+    cache[handle] = pose; return true;
+  });
+  auto tree = monitor->getOcTreePtr();
+  // Both boundary cells extend past the 35 mm padded face. Only the positive
+  // side has an observed model endpoint; do not clear the unobserved other side.
+  tree->updateNode(.505, .035, .005, true);
+  tree->updateNode(.505, -.035, .005, true);
+  tree->updateNode(.505, .045, .005, true);
+  const auto message = cloud({{.505F, .033F, .005F}, {.505F, .046F, .005F}});
+  for (unsigned int i=0; i<3; ++i)
+  {
+    ASSERT_TRUE(updater->processCloud(message));
+    EXPECT_FALSE(tree->isNodeOccupied(tree->search(.505, .035, .005)));
+    EXPECT_TRUE(tree->isNodeOccupied(tree->search(.505, -.035, .005)));
+    EXPECT_TRUE(tree->isNodeOccupied(tree->search(.505, .045, .005)));
   }
 }
 

@@ -382,7 +382,7 @@ def test_stop_requires_terminal_actions_and_new_stationary_samples(monkeypatch, 
     feedback = JointFeedback(REQUIRED_JOINT_NAMES)
     feedback.update(REQUIRED_JOINT_NAMES, [0.] * len(REQUIRED_JOINT_NAMES), 100, 10.)
     node = NS(get_parameter=lambda name: NS(value=values[name]),
-              get_clock=lambda: NS(now=lambda: NS(nanoseconds=100)),
+              get_clock=lambda: NS(now=lambda: NS(nanoseconds=stamp[0])),
               _joint_feedback=feedback,
               submissions=[], handles=[], quiescent=lambda: problem != 'unsettled_action')
     stamp = [100]

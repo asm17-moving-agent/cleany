@@ -10,7 +10,8 @@ SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
 CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
 CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
-export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT
+CLEANY_INSTALL_BASE ?= $(INSTALL_BASE)
+export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT CLEANY_INSTALL_BASE
 BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
 LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
@@ -523,3 +524,156 @@ print-navigation-install-base:
 .PHONY: test-ci-tools
 test-ci-tools:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/tools/ci -v
+
+JETSON_SOURCE_PATH := $(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_grasping:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_manipulation_bt:$(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_mujoco_sim:$(ROS2_WS)/src/cleany_mujoco_observer:$(ROS2_WS)/src/cleany_handeye_calibration:$(ROS2_WS)/src/cleany_moveit_config
+
+.PHONY: test-jetson-core
+test-jetson-core:
+	source "$(ROS_SETUP)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=221 \
+	PYTHONPATH="$(JETSON_SOURCE_PATH):$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib \
+		$(ROS2_WS)/src/cleany_perception/test/test_byte_buffer.py \
+		$(ROS2_WS)/src/cleany_perception/test/test_reconstruction_cache.py \
+		$(ROS2_WS)/src/cleany_grasping/test/test_anygrasp_worker.py \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_physical_grasp_selection.py \
+		$(ROS2_WS)/src/cleany_manipulation_bt/test/test_stationary_feedback.py
+
+.PHONY: test-jetson-tools
+test-jetson-tools:
+	source "$(ROS_SETUP)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=222 \
+	PYTHONPATH="$(REPO_ROOT)tools:$(JETSON_SOURCE_PATH):$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib tests/tools $(JETSON_PYTEST_ARGS)
+
+.PHONY: test-jetson-packages
+test-jetson-packages:
+	source "$(ROS_SETUP)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 \
+	PYTHONPATH="$(REPO_ROOT)tools:$(subst $(ROS2_WS)/src/cleany_manipulation_bt:,,$(JETSON_SOURCE_PATH)):$(ROS2_WS)/src/cleany_perception/test:$(ROS2_WS)/src/cleany_skill_executor/test:$(ROS2_WS)/src/cleany_manipulation_bt/test:$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib \
+		$(ROS2_WS)/src/cleany_interfaces/test \
+		$(ROS2_WS)/src/cleany_perception/test \
+		$(ROS2_WS)/src/cleany_grasping/test \
+		$(ROS2_WS)/src/cleany_robot_interface/test \
+		$(ROS2_WS)/src/cleany_skill_executor/test \
+		$(ROS2_WS)/src/cleany_manipulation_bt/test $(JETSON_PYTEST_ARGS)
+
+.PHONY: test-jetson-native
+test-jetson-native:
+	source "$(ROS_SETUP)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	cd "$(ROS2_WS)" && \
+	ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=224 \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" \
+		--install-base "$(INSTALL_BASE)" --return-code-on-test-failure \
+		--packages-select cleany_scene_mapping cleany_feetech_hardware cleany_moveit_capabilities
+
+.PHONY: build-jetson scene-mapping-setup moveit-octomap-lock-setup
+build-jetson:
+	source "$(ROS_SETUP)" && source "$(REPO_ROOT)tools/scene-mapping-env" && \
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_manipulation_bt cleany_dev_monitor --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+scene-mapping-setup:
+	"$(REPO_ROOT)tools/setup-scene-mapping"
+
+moveit-octomap-lock-setup:
+	"$(REPO_ROOT)tools/setup-moveit-octomap-lock"
+
+.PHONY: perception-run hybrid-run motion-container-image motion-container-prepare motion-container-check
+perception-run:
+	"$(REPO_ROOT)tools/vision-container" perception-run
+hybrid-run:
+	"$(REPO_ROOT)tools/vision-container" hybrid-run
+motion-container-image:
+	"$(REPO_ROOT)tools/motion-container" image
+motion-container-prepare:
+	"$(REPO_ROOT)tools/motion-container" prepare
+motion-container-check:
+	"$(REPO_ROOT)tools/motion-container" check
+
+.PHONY: collection-start
+collection-start:
+	"$(REPO_ROOT)tools/collection-runtime" start
+
+.PHONY: collection-recover-control
+collection-recover-control:
+	"$(REPO_ROOT)tools/collection-runtime" recover-control
+
+.PHONY: collection-recover-planning
+collection-recover-planning:
+	"$(REPO_ROOT)tools/collection-runtime" recover-planning
+
+.PHONY: collection-plan
+collection-plan:
+	"$(REPO_ROOT)tools/collection-runtime" plan
+
+.PHONY: collection-execute
+collection-execute:
+	"$(REPO_ROOT)tools/collection-runtime" execute
+
+.PHONY: collection-run
+collection-run:
+	"$(REPO_ROOT)tools/collection-runtime" run
+
+.PHONY: collection-status
+collection-status:
+	"$(REPO_ROOT)tools/collection-runtime" status
+
+.PHONY: collection-logs
+collection-logs:
+	"$(REPO_ROOT)tools/collection-runtime" logs
+
+.PHONY: collection-stop
+collection-stop:
+	"$(REPO_ROOT)tools/collection-runtime" stop
+
+.PHONY: manipulation-start
+manipulation-start:
+	"$(REPO_ROOT)tools/collection-runtime" action-start
+
+.PHONY: manipulation-run
+manipulation-run:
+	"$(REPO_ROOT)tools/collection-runtime" action-run
+
+.PHONY: manipulation-restart
+manipulation-restart:
+	"$(REPO_ROOT)tools/collection-runtime" action-restart
+
+.PHONY: manipulation-recover
+manipulation-recover:
+	"$(REPO_ROOT)tools/collection-runtime" action-recover
+
+.PHONY: arm-return
+arm-return:
+	"$(REPO_ROOT)tools/collection-runtime" arm-return
+
+.PHONY: benchmark-dev-monitor-cpu
+benchmark-dev-monitor-cpu:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	python3 "$(REPO_ROOT)tools/validation/monitor/cpu.py" --output "$(MONITOR_CPU_OUTPUT)" \
+		--source "$(if $(MONITOR_CPU_SOURCE),$(MONITOR_CPU_SOURCE),$(ROS2_WS)/src/cleany_dev_monitor)"
+
+DEV_MONITOR_COMMANDS := start stop status control-on control-off control-key
+.PHONY: $(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS))
+$(addprefix dev-monitor-,$(DEV_MONITOR_COMMANDS)):
+	"$(REPO_ROOT)tools/dev-monitor" $(patsubst dev-monitor-%,%,$@)
+
+VISION_COMMANDS := init host-setup build feature-id
+.PHONY: $(addprefix vision-,$(VISION_COMMANDS)) vision-license-check
+$(addprefix vision-,$(VISION_COMMANDS)):
+	"$(REPO_ROOT)tools/vision-container" $(patsubst vision-%,%,$@)
+vision-license-check:
+	"$(REPO_ROOT)tools/vision-container" check-license
+
+VISION_SERVICE_COMMANDS := hybrid-config hybrid-up hybrid-down anygrasp-up anygrasp-run perception-up
+.PHONY: $(VISION_SERVICE_COMMANDS)
+$(VISION_SERVICE_COMMANDS):
+	"$(REPO_ROOT)tools/vision-container" $@
+
+.PHONY: yoloe-trt-build yoloe-trt-export yoloe-trt-validate
+yoloe-trt-build yoloe-trt-export yoloe-trt-validate:
+	python3 "$(REPO_ROOT)tools/yoloe_trt_container.py" $(patsubst yoloe-trt-%,%,$@) $(YOLOE_TRT_ARGS)

@@ -813,3 +813,26 @@
     transition: none;
   }
 }
+.manip-request-phases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+.manip-request-phases li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.manip-request-phases li[aria-current="step"] {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.manip-request-phases li span:last-child {
+  font-size: 12px;
+  opacity: 0.75;
+}

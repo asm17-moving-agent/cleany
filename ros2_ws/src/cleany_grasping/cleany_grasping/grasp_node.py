@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 import math
-import struct
 
 import numpy as np
 import rclpy
@@ -15,6 +14,7 @@ from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
 from sensor_msgs.msg import Image, PointCloud2, PointField
+from std_msgs.msg import Header
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from cleany_grasping.anygrasp_adapter import AnyGraspPredictor, ModelUnavailableError
@@ -109,27 +109,69 @@ def point_cloud_from_message(message: PointCloud2) -> PointCloud:
         field = descriptors[name]
         types = (PointField.FLOAT32, PointField.UINT32) if name == 'rgb' else (PointField.FLOAT32,)
         if (field.count != 1 or field.datatype not in types
-                or field.offset + 4 > message.point_step):
+                or field.offset < 0 or field.offset + 4 > message.point_step):
             raise ValueError('PointCloud2 fields must fit one point with float32 XYZ and packed RGB')
-    if (message.row_step < message.width * message.point_step
-            or len(message.data) < message.height * message.row_step):
-        raise ValueError('PointCloud2 rows or data are truncated')
+    if not message.height or not message.width:
+        return PointCloud(np.empty((0, 3)), np.empty((0, 3)))
+    if message.row_step < message.width * message.point_step:
+        raise ValueError('PointCloud2 row_step is shorter than its points')
+    required_bytes = message.height * message.row_step
+    if len(message.data) < required_bytes:
+        raise ValueError('PointCloud2 data is shorter than its declared layout')
     fields = {name: field.offset for name, field in descriptors.items()}
     endian = '>' if message.is_bigendian else '<'
-    points, colors = [], []
-    payload = bytes(message.data)
-    for row in range(message.height):
-        for column in range(message.width):
-            offset = row * message.row_step + column * message.point_step
-            xyz = tuple(
-                struct.unpack_from(endian + 'f', payload, offset + fields[name])[0]
-                for name in ('x', 'y', 'z')
-            )
-            packed = struct.unpack_from(endian + 'I', payload, offset + fields['rgb'])[0]
-            if np.isfinite(xyz).all():
-                points.append(xyz)
-                colors.append(((packed >> 16) & 255, (packed >> 8) & 255, packed & 255))
-    return PointCloud(np.asarray(points).reshape((-1, 3)), np.asarray(colors).reshape((-1, 3)) / 255.0)
+    dtype = np.dtype({
+        'names': ['x', 'y', 'z', 'rgb'],
+        'formats': [endian + 'f4'] * 3 + [endian + 'u4'],
+        'offsets': [fields[name] for name in ('x', 'y', 'z', 'rgb')],
+        'itemsize': message.point_step,
+    })
+    records = np.ndarray(
+        (message.height, message.width), dtype=dtype, buffer=message.data,
+        strides=(message.row_step, message.point_step),
+    )
+    # Filter in wire precision, then retain the core's owned float64 arrays.
+    finite = np.isfinite(records['x'])
+    finite &= np.isfinite(records['y'])
+    finite &= np.isfinite(records['z'])
+    count = int(np.count_nonzero(finite))
+    points = np.empty((count, 3), dtype=np.float64)
+    colors = np.empty((count, 3), dtype=np.float64)
+    for axis, name in enumerate(('x', 'y', 'z')):
+        points[:, axis] = records[name][finite]
+    rgb = records['rgb'][finite]
+    for axis, shift in enumerate((16, 8, 0)):
+        colors[:, axis] = (rgb >> shift) & 255
+    colors /= 255.0
+    return PointCloud(points, colors)
+
+
+def _predict_and_rank(
+    predictor,
+    target: PointCloud,
+    context: PointCloud,
+    workspace: np.ndarray,
+    config: GraspConfig,
+):
+    candidates = predictor.predict(target, context, workspace)
+    ranked = rank_grasps(candidates, target, config)
+    should_retry = getattr(
+        predictor,
+        'should_retry_full_resolution',
+        None,
+    )
+    retry = getattr(predictor, 'predict_full_resolution', None)
+    retried = False
+    if (
+        not ranked
+        and callable(should_retry)
+        and should_retry(context)
+        and callable(retry)
+    ):
+        candidates = retry(target, context, workspace)
+        ranked = rank_grasps(candidates, target, config)
+        retried = True
+    return candidates, ranked, retried
 
 
 class GraspNode(Node):
@@ -160,9 +202,18 @@ class GraspNode(Node):
         super().__init__('grasp_server', **kwargs)
         self.declare_parameter('service_name', 'grasp/plan')
         self.declare_parameter('planning_frame', 'base_link')
+        self.declare_parameter('tf_cache_time_sec', 180.0)
+        self.declare_parameter('optimization_profile', 'optimized')
+        self.declare_parameter('cuda_cache_release_threshold_mb', 512.0)
+        self.declare_parameter('optimized_adaptive_maximum_points', 8000)
+        self.declare_parameter('optimized_adaptive_minimum_region_points', 2000)
         self.declare_parameter('checkpoint_path', '')
         self.declare_parameter('license_path', '')
         self.declare_parameter('predictor_type', 'geometric')
+        self.declare_parameter('anygrasp_worker_enabled', True)
+        self.declare_parameter('anygrasp_worker_idle_timeout_sec', 120.0)
+        self.declare_parameter('anygrasp_worker_request_timeout_sec', 120.0)
+        self.declare_parameter('anygrasp_preload', False)
         self.declare_parameter('publish_collision_geometry', False)
         self.declare_parameter('collision_geometry_topic', '/grasp/collision_geometry')
         self.declare_parameter('debug_image_topic', 'grasp/debug_image')
@@ -217,6 +268,12 @@ class GraspNode(Node):
         )
         self.declare_parameter('tcp_approach_axis', [0.0, -1.0, 0.0])
         self._predictor = predictor or self._create_predictor()
+        if bool(self.get_parameter('anygrasp_preload').value):
+            prepare = getattr(self._predictor, 'prepare', None)
+            if prepare is not None:
+                prepare()
+        release_idle = getattr(self._predictor, 'release_if_idle', None)
+        self._worker_idle_timer = self.create_timer(5.0, release_idle) if release_idle else None
         self._debug_publisher = self.create_publisher(
             Image,
             str(self.get_parameter('debug_image_topic').value),
@@ -226,7 +283,7 @@ class GraspNode(Node):
                 durability=DurabilityPolicy.TRANSIENT_LOCAL,
             ),
         )
-        self._tf_buffer = Buffer()
+        self._tf_buffer = Buffer(cache_time=Duration(seconds=float(self.get_parameter('tf_cache_time_sec').value)))
         self._geometry_publisher = None
         if self.get_parameter('publish_collision_geometry').value:
             self._geometry_publisher = self.create_publisher(ObservedObjectGeometry,
@@ -237,10 +294,29 @@ class GraspNode(Node):
             PlanGrasp, str(self.get_parameter('service_name').value), self._plan
         )
 
+    def destroy_node(self):
+        close = getattr(self._predictor, 'close', None)
+        if close is not None:
+            close()
+        return super().destroy_node()
+
     def _plan(self, request, response):
         response.candidates = []
         try:
             self._validate(request)
+            # Capture-time TF must survive inference and its cache eviction.
+            frame_rotation, frame_translation = self._planning_transform(
+                request.context_cloud.header
+            )
+            if request.target_object_header == request.context_cloud.header:
+                object_rotation, object_translation = frame_rotation, frame_translation
+            else:
+                object_rotation, object_translation = self._planning_transform(
+                    request.target_object_header
+                )
+            target_object = _transform_target_object(
+                request.target_object, object_rotation, object_translation
+            )
             target = point_cloud_from_message(request.target_cloud)
             context = point_cloud_from_message(request.context_cloud)
             config = GraspConfig(
@@ -261,8 +337,10 @@ class GraspNode(Node):
                     target_max + config.workspace_margin_m,
                 )
             ).reshape(-1)
-            candidates = self._predictor.predict(target, context, workspace)
-            ranked = rank_grasps(candidates, target, config)
+            candidates, ranked, retried = _predict_and_rank(
+                self._predictor, target, context, workspace, config)
+            if retried:
+                self.get_logger().warning('Adaptive sampling found no grasp; retried the full point cloud')
             grasp = ranked[0] if ranked else None
             self._publish_debug(
                 target,
@@ -273,14 +351,6 @@ class GraspNode(Node):
             )
             if grasp is None:
                 return self._fail(response, response.ERROR_NO_GRASP_CANDIDATE, 'No valid grasp candidate')
-            frame_rotation, frame_translation = self._planning_transform(
-                request.context_cloud
-            )
-            target_object = _transform_target_object(
-                request.target_object,
-                frame_rotation,
-                frame_translation,
-            )
             if self._geometry_publisher is not None:
                 header = deepcopy(request.context_cloud.header)
                 header.frame_id = str(self.get_parameter('planning_frame').value)
@@ -321,15 +391,31 @@ class GraspNode(Node):
     def _create_predictor(self):
         predictor_type = str(self.get_parameter('predictor_type').value).strip().lower()
         if predictor_type == 'anygrasp':
-            return AnyGraspPredictor(
-                str(self.get_parameter('checkpoint_path').value),
-                str(self.get_parameter('license_path').value),
+            profile = str(self.get_parameter('optimization_profile').value)
+            if profile not in ('reference', 'optimized'):
+                raise ValueError('Unknown AnyGrasp optimization profile')
+            factory = AnyGraspPredictor
+            options = {}
+            if bool(self.get_parameter('anygrasp_worker_enabled').value):
+                from cleany_grasping.anygrasp_worker import AnyGraspWorkerPredictor
+                factory = AnyGraspWorkerPredictor
+                options.update(
+                    idle_timeout_sec=float(self.get_parameter('anygrasp_worker_idle_timeout_sec').value),
+                    request_timeout_sec=float(self.get_parameter('anygrasp_worker_request_timeout_sec').value))
+            return factory(
+                **options,
+                checkpoint_path=str(self.get_parameter('checkpoint_path').value),
+                license_path=str(self.get_parameter('license_path').value),
                 maximum_gripper_width_m=float(
                     self.get_parameter('maximum_gripper_width_m').value
                 ),
                 gripper_height_m=float(
                     self.get_parameter('gripper_height_m').value
                 ),
+                cuda_cache_release_threshold_mb=float(self.get_parameter('cuda_cache_release_threshold_mb').value),
+                adaptive_sampling_enabled=profile == 'optimized',
+                adaptive_maximum_points=int(self.get_parameter('optimized_adaptive_maximum_points').value),
+                adaptive_minimum_region_points=int(self.get_parameter('optimized_adaptive_minimum_region_points').value),
             )
         if predictor_type == 'geometric':
             origins = list(self.get_parameter('geometric.approach_reference_positions').value)
@@ -482,8 +568,14 @@ class GraspNode(Node):
             not left.frame_id
             or left.frame_id != right.frame_id
             or left.stamp != right.stamp
+            or left.stamp.sec * 1_000_000_000 + left.stamp.nanosec <= 0
         ):
-            raise ValueError('Target and context clouds must share frame and timestamp')
+            raise ValueError('Target and context clouds must share frame and positive capture timestamp')
+        object_header = request.target_object_header
+        if not object_header.frame_id or object_header.stamp != right.stamp:
+            raise ValueError(
+                'target OBB requires an explicit frame and the same capture timestamp as clouds'
+            )
         size = request.target_object.obb_size
         pose = request.target_object.obb_pose
         values = (
@@ -514,13 +606,13 @@ class GraspNode(Node):
         if not 0 <= left.stamp.nanosec < 1_000_000_000:
             raise ValueError('cloud capture timestamp has invalid nanoseconds')
 
-    def _planning_transform(self, cloud_message):
+    def _planning_transform(self, header: Header) -> tuple[np.ndarray, np.ndarray]:
         target_frame = str(self.get_parameter('planning_frame').value)
-        source_frame = cloud_message.header.frame_id
+        source_frame = header.frame_id
         if target_frame == source_frame:
             return np.eye(3), np.zeros(3)
         transform = self._tf_buffer.lookup_transform(
-            target_frame, source_frame, Time.from_msg(cloud_message.header.stamp), timeout=Duration(seconds=0.5)
+            target_frame, source_frame, Time.from_msg(header.stamp), timeout=Duration(seconds=0.5)
         ).transform
         q = transform.rotation
         frame_rotation = _rotation_from_quaternion(q.x, q.y, q.z, q.w)

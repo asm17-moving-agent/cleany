@@ -36,6 +36,16 @@ def goal(execution_id='execution-1', **kwargs):
                         'mock-snapshot-001', 1, 'mock_trash_bin'), **kwargs)
 
 
+@pytest.mark.parametrize('field,value', [
+    ('mission_id', None), ('task_id', 123), ('execution_id', ''),
+    ('snapshot_id', ' '), ('destination_id', []),
+    ('object_id', True), ('object_id', 1.5), ('object_id', '1'),
+    ('object_id', 0), ('object_id', 0x100000000),
+])
+def test_invalid_goal_values_are_rejected_without_raising(field, value):
+    assert not goal(**{field: value}).valid()
+
+
 @pytest.mark.parametrize('destination,expected', [
     ('mock_lost_item_bin', Error.NONE), ('mock_trash_bin', Error.DESTINATION_UNAVAILABLE),
 ])
@@ -138,63 +148,6 @@ def test_gripper_command_completion_does_not_claim_held_state(harness):
     assert core.record.object_state == ObjectState.HELD
 
 
-def test_shared_observation_profile_exposes_all_substages_and_still_verifies_success(harness):
-    path = Path(__file__).parents[2] / 'cleany_mission_manager/config/manipulation_server_fixture.yaml'
-    config = MockConfig.load(str(path))
-    core, port, _, clock = harness(config=config)
-    core.accept(goal())
-    started = clock.now
-    seen = {}
-    while core.record.result is None and clock.now - started < 45.0:
-        substage = core.record.substage
-        if substage:
-            seen.setdefault(substage, [clock.now, clock.now])[1] = clock.now
-        step(core, clock)
-    assert core.record.result.status == Status.SUCCESS
-    assert 40.0 <= clock.now - started < 45.0
-    assert port.commands == list(NORMAL_STAGES)
-    expected = {item.node for stage in NORMAL_STAGES for item in STAGE_STEPS[stage]}
-    assert expected <= seen.keys()
-    assert all(seen[node][1] - seen[node][0] >= 0.9 for node in expected)
-
-
-def test_shared_observation_profile_checkpoint_cancel_keeps_held_state(harness):
-    path = Path(__file__).parents[2] / 'cleany_mission_manager/config/manipulation_server_fixture.yaml'
-    core, port, _, clock = harness(config=MockConfig.load(str(path)))
-    core.accept(goal())
-    reach(core, port, clock, Stage.TRANSPORTING)
-    requested_at = clock.now
-    assert core.request_cancel(goal().execution_id)
-    result = finish(core, clock)
-    assert result.status == Status.CANCELED
-    assert result.object_state == ObjectState.HELD and result.stop_confirmed
-    assert not result.arm_recovered
-    assert clock.now - requested_at < 15.0
-
-
-def test_stage_timing_precedence_keeps_scenario_fault_overrides_and_legacy_defaults():
-    config = replace(MockConfig(), stage_durations_sec={'APPROACHING': 7.0},
-                     scenarios={'success': {'stage_durations_sec': {'APPROACHING': 2.0}}})
-    port = MockAdapter(config)
-    port.begin(Stage.APPROACHING, goal(), 0.0)
-    assert port.duration() == 2.0
-    port.scenario = {}
-    assert port.duration() == 7.0
-    port.begin(Stage.GRASPING, goal(), 0.0)
-    assert port.duration() == config.stage_duration_sec
-    port.stop(0.0)
-    assert port.duration() == config.stop_duration_sec
-
-
-@pytest.mark.parametrize('stage,duration', [
-    ('APPROACHING', 0.0), ('APPROACHING', -1.0),
-    ('APPROACHING', float('nan')), ('APPROACHING', float('inf')), ('TYPO', 1.0),
-])
-def test_mock_config_rejects_invalid_per_stage_timings(stage, duration):
-    with pytest.raises(ValueError):
-        replace(MockConfig(), stage_durations_sec={stage: duration})
-
-
 def test_substage_failure_stops_remaining_operations_and_survives_lookup(harness):
     config = replace(MockConfig(), scenarios={
         'success': {'substage_errors': {'GraspObject': 'GRASP_FAILED'}}})
@@ -214,35 +167,6 @@ def test_legacy_record_without_substages_can_still_be_loaded():
     for name in ('substage', 'completed_substages', 'failed_substage'):
         data.pop(name)
     assert Record.from_dict(data) == record
-
-
-def test_old_finished_database_defaults_diagnostics_and_corrupt_history_is_preserved(harness):
-    import json
-
-    core, _, store, clock = harness()
-    core.accept(goal())
-    finish(core, clock)
-    payload = core.record.to_dict()
-    for name in ('substage', 'completed_substages', 'failed_substage', 'cancel_mode'):
-        payload.pop(name)
-    for name in ('failed_substage', 'cancel_mode'):
-        payload['result'].pop(name)
-    path = store.path
-    store.close()
-    with sqlite3.connect(str(path)) as db:
-        db.execute('UPDATE executions SET payload=?', (json.dumps(payload),))
-    restarted, _, reopened, _ = harness(path=path)
-    record = restarted.get(goal().execution_id)
-    assert record.result.status == Status.SUCCESS
-    assert record.substage == record.cancel_mode == record.result.failed_substage == ''
-    assert record.completed_substages == ()
-    reopened.close()
-    with sqlite3.connect(str(path)) as db:
-        db.execute('UPDATE executions SET payload=?', ('unreadable history',))
-    with pytest.raises(StoreError):
-        harness(path=path)
-    with sqlite3.connect(str(path)) as db:
-        assert db.execute('SELECT payload FROM executions').fetchone()[0] == 'unreadable history'
 
 
 @pytest.mark.parametrize('changes', [

@@ -11,6 +11,7 @@ perception_inspector:
     color_info_topic: camera/color/camera_info
     depth_image_topic: camera/depth/image_raw
     depth_info_topic: camera/depth/camera_info
+    rgbd_qos_reliability: best_effort
     target_frame: base_link
     default_query: Detect the box and can on the table.
     detector_type: yoloe_gemini
@@ -50,7 +51,8 @@ perception_inspector:
     tracking_label_aliases: [paper cup=cup, disposable paper cup=cup, computer mouse=mouse, wireless mouse=mouse]
     snapshot_cache_max_entries: 2
     snapshot_cache_ttl_seconds: 120.0
-    gemini_model: gemini-robotics-er-2-preview
+    snapshot_cleanup_period_seconds: 5.0
+    gemini_model: gemini-3.5-flash-lite
     gemini_api_key_environment: GEMINI_API_KEY
     detector_timeout_seconds: 30.0
     tf_timeout_seconds: 0.5

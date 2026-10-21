@@ -205,3 +205,7 @@ Target/context cloud의 촬영 timestamp는 같고 0이 아니어야 한다. 미
 최신 TF를 사용해 과거 cloud를 계획하지 않도록 요청을 거부한다.
 XYZRGB cloud는 지원되는 field datatype, offset, point/row step 및 전체 data
 길이를 검사한다. 정상적인 organized cloud의 행 padding과 packed RGB는 유지한다.
+
+## AnyGrasp worker 수명
+
+선택한 AnyGrasp predictor는 전용 worker를 재사용할 수 있다. 모델 import와 초기화는 worker가 소유하며 오류와 종료를 요청 호출자에게 전달한다. 모델 weight와 라이선스는 외부에 준비한다. `test_anygrasp_worker.py`는 합성 predictor로 프로세스 수명과 오류 전달을 검사하며 라이선스나 GPU에서의 실제 추론 검증이 아니다.

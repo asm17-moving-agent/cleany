@@ -65,6 +65,25 @@ def test_execution_and_interval_history_is_bounded():
     assert {run["record"]["execution_id"] for run in snapshot["executions"]} == {"execution-2", "execution-3"}
 
 
+def test_server_heartbeat_refreshes_liveness_without_rewriting_progress_or_timing():
+    observer = ManipulationObserver()
+    initial = record(1)
+    observer.ingest(initial, 100., heartbeat=True)
+    assert observer.ingest(initial, 110., heartbeat=True)
+    run = observer.snapshot()['executions'][0]
+    assert run['received_at'] == 100. and run['last_seen_at'] == 110.
+    assert run['record'] == initial and len(run['intervals']) == 1
+    assert run['intervals'][0]['end_ns'] is None
+    assert not observer.ingest(record(0), 120., heartbeat=True)
+    changed = {**initial, 'substage': 'ConfirmGrasp'}
+    assert not observer.ingest(changed, 121., heartbeat=True)
+    assert observer.snapshot()['executions'][0]['last_seen_at'] == 110.
+    finished = {**record(2), 'has_result': True, 'record_state': 'FINISHED', 'status': 'FAILED'}
+    observer.ingest(finished, 122., heartbeat=True)
+    assert not observer.ingest(finished, 123., heartbeat=True)
+    assert observer.snapshot()['executions'][0]['last_seen_at'] == 122.
+
+
 def test_manipulation_replay_cannot_read_a_future_success(tmp_path):
     observer, hub, recorder = ManipulationObserver(), Hub(), Recorder(tmp_path)
     observer.ingest(record(), 100.)

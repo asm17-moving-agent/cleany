@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Source to locate the native overlay using the same defaults as the Makefile.
+cleany_install_repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cleany_install_data="${CLEANY_DATA_ROOT:-${cleany_install_repo}/../cleany-data}"
+cleany_install_build="${CLEANY_BUILD_ROOT:-${cleany_install_data}/builds/$(basename "${cleany_install_repo}")}"
+export CLEANY_INSTALL_BASE="${CLEANY_INSTALL_BASE:-${cleany_install_build}/install}"
+unset cleany_install_repo cleany_install_data cleany_install_build

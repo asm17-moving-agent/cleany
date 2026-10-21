@@ -37,7 +37,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph Goal["설계 목표 / cleany_robot_interface adapter는 아직 미구현"]
+    subgraph Goal["설계 목표 / 공통 backend adapter는 아직 미구현"]
         Consumer["Mission / Skill<br/>공통 robot port"]
         Interface["robot_interface 경계"]
         Mock["Mock adapter"]
@@ -50,7 +50,7 @@ flowchart TB
     end
 ```
 
-점선은 예정된 공통 adapter 구조입니다. `cleany_robot_interface` adapter는 아직 미구현이며, 현재 구체적인 adapter는 [`cleany_mission_manager/adapters/`](../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/)에 있습니다. 하드웨어 좌표계와 안전 한계는 adapter와 설정이 소유합니다.
+점선은 예정된 공통 adapter 구조입니다. 공통 Mock/Sim/Real adapter는 아직 미구현이다. 실물 상태 조회와 controller guard는 [cleany_robot_interface](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)가 제공하며, 현재 Mission의 구체적인 adapter는 [`cleany_mission_manager/adapters/`](../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/)에 있습니다. 하드웨어 좌표계와 안전 한계는 adapter와 설정이 소유합니다.
 
 설계 경계의 근거는 KB의 [ROS 2 Software Architecture](<cleany-docs/20_TECHNICAL/11 - ROS 2 Software Architecture.md>)에서 확인합니다.
 
@@ -99,3 +99,7 @@ flowchart TB
 | 재연결, 재시작 | Cached motion과 미션을 자동 재개하지 않음 |
 
 외부 Backend의 schema, 인증, media 정책은 별도 control-plane 저장소가 관리합니다.
+
+## 명시적인 실물 backend
+
+[실물 조작](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md)은 기존 시뮬레이터 backend와 별도 실행 파일로 선택한다. 공통 메시지의 기존 tracking 필드는 유지하며 실물 footprint 추정과 복구용 interface를 추가한다. 관련 workspace를 다시 빌드해 같은 interface 정의를 사용한다. 외부 로봇별 프로파일, 실제 보정과 commissioning 기록은 해당 backend의 준비 조건이며 다른 환경에 자동 승계하지 않는다.

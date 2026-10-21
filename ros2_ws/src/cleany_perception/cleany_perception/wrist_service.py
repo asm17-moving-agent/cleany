@@ -13,13 +13,16 @@ from uuid import uuid4
 import numpy as np
 from PIL import Image as PilImage
 from sensor_msgs.msg import Image, CameraInfo
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.qos import qos_profile_sensor_data
 from cleany_interfaces.srv import ObserveWristTarget
+from cleany_interfaces.msg import WristTrackingStatus
 from cleany_perception.adapters.tf2_transform import rotation_matrix_from_quaternion
 from cleany_perception.core.wrist_observation import (
     WristObservationConfig, project_box, bbox_iou, verify_mask,
 )
 from cleany_perception.core.ports import DetectorPort
+from cleany_perception.byte_buffer import numpy_byte_array
 
 
 class WristTargetNotDetected(ValueError):
@@ -45,13 +48,15 @@ class WristService:
         self.images = {arm: OrderedDict() for arm in ('left', 'right')}
         self.infos = {arm: OrderedDict() for arm in ('left', 'right')}
         self.reference = None
+        self.status_publisher = node.create_publisher(
+            WristTrackingStatus, '/perception/wrist_tracking_status', 10)
         self.subscriptions = []
         for arm in self.images:
             for message, suffix, cache in ((Image, 'image_raw', self.images), (CameraInfo, 'camera_info', self.infos)):
                 self.subscriptions.append(node.create_subscription(
                     message, f'/{arm}_wrist_camera/{suffix}',
                     lambda msg, a=arm, c=cache: self.receive(c[a], msg), qos_profile_sensor_data,
-                    callback_group=node._sensor_callback_group))
+                    callback_group=MutuallyExclusiveCallbackGroup()))
         self.service = node.create_service(ObserveWristTarget, '/perception/observe_wrist_target',
             self.execute, callback_group=node._action_callback_group)
 
@@ -98,6 +103,14 @@ class WristService:
         rgb = rgb.reshape(msg.height,msg.width,3)
         return np.array(rgb if msg.encoding=='rgb8' else rgb[...,::-1],copy=True)
 
+    @staticmethod
+    def _debug_image(msg: Image, rgb: np.ndarray) -> Image:
+        """Preserve Image metadata without copying the overwritten source pixels."""
+        debug = Image(header=deepcopy(msg.header), height=msg.height, width=msg.width,
+                      encoding='rgb8', is_bigendian=msg.is_bigendian, step=msg.width*3)
+        debug.data = numpy_byte_array(rgb)
+        return debug
+
     def _reference_expired(self, ref):
         return time.monotonic()-ref.get('last_valid_at',ref['created']) > self.config.reference_ttl_seconds
 
@@ -125,7 +138,7 @@ class WristService:
         if not candidates:
             if self.failure_image_directory is not None:
                 self.failure_image_directory.mkdir(parents=True, exist_ok=True)
-                PilImage.fromarray(rgb, mode='RGB').save(
+                PilImage.fromarray(rgb).save(
                     self.failure_image_directory / f'wrist_missing_{time.time_ns()}.png')
             matching_labels = [d for d in detections
                                if f' {d.label.casefold().strip()} ' in f' {expected_label} ']
@@ -173,8 +186,23 @@ class WristService:
             response.status = response.ERROR
             response.message = str(error)
         finally:
-            with self.node._busy_lock:
-                self.node._busy = False
+            try:
+                status = WristTrackingStatus()
+                status.header = deepcopy(response.header)
+                status.arm = request.arm
+                status.reference_id = response.reference_id or request.reference_id
+                status.source_snapshot_id = request.source_snapshot_id
+                status.source_object_id = request.source_object_id
+                status.valid = status.visible = bool(
+                    response.success and request.operation != request.CLEAR)
+                status.image_pixels = response.mask.width * response.mask.height
+                status.mask_pixels = int(np.count_nonzero(
+                    np.frombuffer(bytes(response.mask.data), dtype=np.uint8)))
+                status.reason = response.message
+                self.status_publisher.publish(status)
+            finally:
+                with self.node._busy_lock:
+                    self.node._busy = False
         return response
 
     def process(self, req, out):
@@ -186,6 +214,11 @@ class WristService:
                     or ref['source'] != req.source_snapshot_id or ref['object'] != req.source_object_id):
                 raise ValueError('Wrist reference identity mismatch')
             if req.operation == req.CLEAR:
+                out.header.stamp = self.node.get_clock().now().to_msg()
+                out.reference_id = ref['id']
+                out.source_snapshot_id = ref['source']
+                out.source_object_id = ref['object']
+                out.message = 'Wrist reference cleared'
                 self.close()
                 return
             if self._reference_expired(ref):
@@ -210,8 +243,7 @@ class WristService:
         # Show the active sensor even if association/inference subsequently fails.
         if (getattr(self.node, '_debug_republish_count', 1) > 0
                 and hasattr(self.node, '_publish_debug_image')):
-            debug=deepcopy(msg); debug.encoding='rgb8'; debug.step=msg.width*3
-            debug.data=rgb.tobytes(); self.node._publish_debug_image(debug)
+            self.node._publish_debug_image(self._debug_image(msg, rgb))
         pose = req.expected_pose.pose
         q = pose.orientation
         rotation = rotation_matrix_from_quaternion(q.x,q.y,q.z,q.w)
@@ -258,12 +290,11 @@ class WristService:
         out.header=deepcopy(msg.header)
         out.mask.header=deepcopy(msg.header); out.mask.width=msg.width; out.mask.height=msg.height
         out.mask.encoding='mono8'; out.mask.step=msg.width
-        out.mask.data=(np.asarray(mask,dtype=np.uint8)*255).tobytes()
+        out.mask.data=numpy_byte_array(np.asarray(mask,dtype=np.uint8)*255)
         out.message = 'Wrist YOLOE-seg target consistency passed; no fresh depth or measured 3D pose'
         if getattr(self.node, '_debug_republish_count', 1) > 0:
-            debug=deepcopy(msg); debug.encoding='rgb8'
             overlay=rgb.copy(); overlay[mask]=(overlay[mask]*0.5+np.array((0,255,0))*0.5).astype(np.uint8)
-            debug.step=msg.width*3; debug.data=overlay.tobytes()
+            debug=self._debug_image(msg, overlay)
             if hasattr(self.node, '_publish_debug_image'):
                 self.node._publish_debug_image(debug)
             else:

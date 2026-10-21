@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 /workspace/cleany/containers/vision/scripts/build-workspace
-
 set +u
 source /workspace/cleany/ros2_ws/install-perception/setup.bash
 set -u
-
-perception_sim_time="${CLEANY_PERCEPTION_USE_SIM_TIME:-false}"
-perception_wrist="${CLEANY_PERCEPTION_USE_WRIST_CAMERA:-false}"
-for value in "${perception_sim_time}" "${perception_wrist}"; do
-  case "${value}" in
-    true|false) ;;
-    *) echo "Perception clock/wrist options must be true or false" >&2; exit 1 ;;
-  esac
-done
-
-exec ros2 launch cleany_perception learned_rgbd.launch.py \
-  model_directory:=/models \
-  use_sim_time:="${perception_sim_time}" \
-  enable_wrist_observation:="${perception_wrist}" \
-  device:=cuda
+export YOLO_AUTOINSTALL=false
+default_model_path=/models/yoloe/yoloe-26s-seg.pt
+if [[ -L /models/yoloe/real34/active || -e /models/yoloe/real34/active ]]; then
+  default_model_path=/models/yoloe/real34/active/yoloe-26s-seg-real34.engine
+fi
+rgbd_qos_reliability=best_effort
+if [[ "${CLEANY_PERCEPTION_USE_SIM_TIME:-false}" != true ]]; then
+  rgbd_qos_reliability=reliable
+fi
+exec ros2 launch cleany_perception inspect_scene.launch.py \
+  detector_type:=yoloe_gemini segmenter_type:=yoloe_seg \
+  yoloe_config_file:="${YOLOE_CONFIG_FILE:-/workspace/cleany/ros2_ws/src/cleany_perception/config/yoloe_real34.yaml}" \
+  yoloe_model_path:="${YOLOE_MODEL_PATH:-${default_model_path}}" \
+  yoloe_text_encoder_directory:="${YOLOE_TEXT_ENCODER_DIRECTORY:-/models/yoloe}" \
+  yoloe_device:=cuda \
+  vlm_ik_warmup_enabled:="${CLEANY_VLM_IK_WARMUP_ENABLED:-true}" \
+  gemini_model:="${GEMINI_MODEL:-gemini-3.5-flash-lite}" \
+  minimum_detection_confidence:="${MINIMUM_DETECTION_CONFIDENCE:-0.25}" \
+  use_sim_time:="${CLEANY_PERCEPTION_USE_SIM_TIME:-false}" \
+  rgbd_qos_reliability:="${CLEANY_RGBD_QOS_RELIABILITY:-${rgbd_qos_reliability}}" \
+  enable_reference_observation:="${CLEANY_REFERENCE_OBSERVATION:-false}" \
+  enable_wrist_observation:="${CLEANY_WRIST_OBSERVATION:-false}" \
+  reference_ttl_seconds:="${CLEANY_REFERENCE_TTL_SECONDS:-600.0}" \
+  target_frame:="${CLEANY_TARGET_FRAME:-base_link}"

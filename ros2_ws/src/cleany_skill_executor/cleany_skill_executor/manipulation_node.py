@@ -141,7 +141,9 @@ class ManipulationNode(Node):
             accepted = self.core.request_cancel(execution_id, mode)
             return CancelResponse.ACCEPT if accepted else CancelResponse.REJECT
 
-    def _setup_cancel_service(self, group: ReentrantCallbackGroup, action_name: str) -> None:
+    def _setup_cancel_service(self, group: ReentrantCallbackGroup,
+                              action_name: str | None = None) -> None:
+        action_name = action_name or self.resolve_topic_name('manipulation/execute_skill')
         self._cancel_modes: dict[str, str] = {}
         self._cancel_client = self.create_client(
             CancelGoal, action_name + '/_action/cancel_goal', callback_group=group)

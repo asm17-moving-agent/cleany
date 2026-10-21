@@ -11,7 +11,9 @@ x-vision-image: &vision-image
 x-runtime-environment: &runtime-environment
   ROS_DOMAIN_ID: "${ROS_DOMAIN_ID:?set ROS_DOMAIN_ID in the root-owned Jetson identity file}"
   RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
-  CYCLONEDDS_URI: file:///etc/cleany/cyclonedds.xml
+  # Use the workspace profile so participant-pool changes do not require an
+  # unrelated GPU image rebuild. The licensed MAC/IP/domain remain unchanged.
+  CYCLONEDDS_URI: file:///workspace/cleany/containers/vision/cyclonedds/container.xml
 
 services:
   anygrasp:
@@ -71,6 +73,7 @@ services:
     environment:
       <<: *runtime-environment
       CLEANY_WORKSPACE_ROLE: perception
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
     volumes:
       - type: bind
         source: ../..
@@ -88,6 +91,7 @@ services:
       hybrid:
         ipv4_address: "${PERCEPTION_IPV4_ADDRESS:?set PERCEPTION_IPV4_ADDRESS in the root-owned Jetson identity file}"
 
+
 networks:
   hybrid:
     driver: bridge
@@ -96,7 +100,6 @@ networks:
         - subnet: "${HYBRID_SUBNET:?set HYBRID_SUBNET in the root-owned Jetson identity file}"
           gateway: "${HYBRID_GATEWAY:?set HYBRID_GATEWAY in the root-owned Jetson identity file}"
           aux_addresses:
-            vlm: "${VLM_IPV4_ADDRESS:?set VLM_IPV4_ADDRESS in the root-owned Jetson identity file}"
             motion: "${MOTION_IPV4_ADDRESS:?set MOTION_IPV4_ADDRESS in the root-owned Jetson identity file}"
 
 volumes:

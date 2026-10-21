@@ -292,3 +292,11 @@ DB(`/tmp/cleany-bt-physical-clean.sqlite3`)에는 checkpoint 39개와 실제 BT 
 회귀 검사도 통과했다. native BT 실패 경로, 원자적 취소, stale/잘못된 대상 차단, false 평가 응답의
 확인 대기, 늦은 응답 격리, stop 근거 누락과 기록 실패, 재시작 자동 재개 금지를 포함한다.
 이 기록은 첫 컵 한 개의 연동 검증이며 다른 대상의 수거 성공률 측정은 아니다.
+
+## Jetson 실물 backend
+
+기존 `manipulation_mujoco_server`는 유지한다. 실물 실행 파일은 `manipulation_jetson_server`, Python 진입점은 `jetson_node.py`다. 두 서버의 기본 Action 경로가 같으므로 backend와 namespace를 명시적으로 선택한다.
+
+`manipulation_jetson.launch.py`는 `repository_root`, 외부 `collection_config`와 `hardware_monitor_config`를 요구한다. 로컬 감독 시험 설정을 자동으로 선택하지 않는다. controller, 정지 guard와 센서 runtime은 실행 전에 준비해야 한다. [실물 조작 경로](../cleany_skill_executor/docs/physical-manipulation.md)와 [RUNNING](../../../docs/RUNNING.md)을 따른다.
+
+실물 경로의 추가 서비스는 `manipulation/control_state` (`std_srvs/Trigger`), `manipulation/confirm_recovery` (`ConfirmManipulationRecovery`)이며, `manipulation/return_arm` (`ReturnArm`) Action으로 명시적인 팔 복귀를 요청한다. 실행 이력은 기본적으로 `$XDG_STATE_HOME/cleany/manipulation_jetson/` 또는 `~/.local/state/cleany/manipulation_jetson/`에 둔다. 프로세스 종료나 과거 성공 기록을 현재 정지 또는 배치의 증거로 취급하지 않는다.

@@ -332,3 +332,11 @@ Gemini structured response에 `sorting_category`(trash/lost_item/review),
 
 - [Technical Overview](../../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
 - [Safety and Risk](../../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
+
+## RGB-D 버퍼와 재구성 재사용
+
+ROS 영상과 점군은 연속 NumPy 버퍼에서 ROS가 소유하는 byte array로 복사한다. 같은 snapshot의 평면과 OBB는 재사용하되 depth, frame, intrinsic와 설정이 달라지면 캐시를 무효화한다. 실패한 재구성은 성공 결과로 보관하지 않으며 capture 시각과 TTL을 갱신하지 않는다.
+
+`snapshot_cleanup_period_seconds`는 만료된 snapshot과 reference 정리를 제어한다. `/perception/check_rgbd` (`std_srvs/Trigger`)는 새 RGB-D 입력의 timestamp와 freshness를 확인하며 모델 추론이나 과거 검출을 입력 정상성의 근거로 쓰지 않는다. 기존 tracking 필드와 함께 검출 메시지의 `median_depth_m`, `estimated_width_m`, `estimated_height_m`을 발행한다. 두 크기는 지지면 위의 footprint 추정이며 물체의 수직 높이나 완전한 형상이 아니다.
+
+VLM 대기와 geometry 계산을 중첩하며 선택적 `/grasp/vlm_warmup` 예열을 요청할 수 있다. 응답 성공은 최종 분류와 기하 검증 이후에만 반환한다. 예열 서비스가 없거나 실패해도 그 자체로 물체를 성공 처리하지 않는다.

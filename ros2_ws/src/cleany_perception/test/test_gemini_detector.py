@@ -42,7 +42,7 @@ def test_gemini_classifies_yoloe_instances_without_changing_geometry():
     assert len(requests) == 1
     assert requests[0][0].startswith(b'\x89PNG')
     assert requests[0][2]['required'] == ['objects']
-    assert classified[0].label == 'used paper cup'
+    assert classified[0].label == 'cup (used paper cup)'
     assert classified[0].sorting_category == 'trash'
     assert classified[0].confidence == .82
     assert classified[0].bbox is detection.bbox
@@ -69,7 +69,7 @@ def test_gemini_classification_retries_one_incomplete_mapping():
     classifier = GeminiClassifier('test-model', response_provider=provider)
     result = classifier.classify(np.zeros((20, 30, 3), np.uint8), detections)
     assert len(prompts) == 2 and 'exactly 2 entries' in prompts[1]
-    assert [item.label for item in result] == ['paper cup', 'computer mouse']
+    assert [item.label for item in result] == ['cup (paper cup)', 'computer mouse']
     assert result[0].bbox is detections[0].bbox
 
 
@@ -107,7 +107,8 @@ def test_flash_lite_prepare_initializes_client_without_inference(monkeypatch):
     assert calls == [30.0]
 
 
-def test_gemini_retries_only_transient_503(monkeypatch):
+@pytest.mark.parametrize('error_code', [503, 504])
+def test_gemini_retries_transient_service_and_deadline_failures(monkeypatch, error_code):
     monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'unit-test-placeholder')
     delays = []
     monkeypatch.setattr('cleany_perception.adapters.gemini_detector.time.sleep', delays.append)
@@ -120,7 +121,7 @@ def test_gemini_retries_only_transient_503(monkeypatch):
         calls.append(None)
         if len(calls) < 3:
             error = RuntimeError('model busy')
-            error.code = 503
+            error.code = error_code
             raise error
         return '{}'
 
@@ -140,6 +141,25 @@ def test_gemini_retries_only_transient_503(monkeypatch):
     with pytest.raises(RuntimeError, match='unavailable'):
         detector._request(b'png', 'classify')
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize('error_code, expected_calls', [(503, 3), (504, 3), (401, 1), (403, 1)])
+def test_gemini_api_retry_is_bounded_and_preserves_authentication_failures(
+        monkeypatch, error_code, expected_calls):
+    monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'unit-test-placeholder')
+    monkeypatch.setattr('cleany_perception.adapters.gemini_detector.time.sleep', lambda _: None)
+    detector = GeminiDetector('test-model', api_key_environment='CLEANY_TEST_GEMINI_KEY',
+                              client_factory=lambda *_: object())
+    calls = []
+    def unavailable(*args):
+        calls.append(None)
+        error = RuntimeError('API failed')
+        error.code = error_code
+        raise error
+    detector._request_generate_content = unavailable
+    with pytest.raises(RuntimeError, match='API failed'):
+        detector._request(b'png', 'classify')
+    assert len(calls) == expected_calls
 
 
 def test_gemini_prepare_fails_without_key_before_advertising_ready(monkeypatch):

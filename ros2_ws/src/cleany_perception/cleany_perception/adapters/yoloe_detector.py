@@ -5,8 +5,13 @@ import threading
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
+from contextlib import nullcontext
 
 import numpy as np
+
+from cleany_perception.model_contract import (
+    check_segmentation_shapes, ordered_names, read_model_manifest,
+)
 
 from cleany_perception.core.models import (
     BoundingBox2D,
@@ -18,10 +23,17 @@ from cleany_perception.core.models import (
 )
 
 
-ModelFactory = Callable[[str], Any]
+ModelFactory = Callable[..., Any]
 
 _TEXT_ENCODER_FILENAME = 'mobileclip2_b.ts'
 _MODEL_SETUP_LOCK = threading.Lock()
+
+
+class YoloeModelPool:
+    """One inspector's validated backends, with serialized setup/inference."""
+    def __init__(self) -> None:
+        self.models: dict[tuple, Any] = {}
+        self.lock = threading.RLock()
 
 
 def _numpy(value: Any) -> np.ndarray:
@@ -49,6 +61,8 @@ class YoloeDetector:
         model_factory: ModelFactory | None = None,
         require_masks: bool = False,
         class_confidence_thresholds: Sequence[float] = (),
+        allow_unvalidated_engine: bool = False,
+        model_pool: YoloeModelPool | None = None,
     ) -> None:
         normalized_classes = tuple(item.strip() for item in classes)
         if not model_path:
@@ -97,6 +111,20 @@ class YoloeDetector:
             normalized_classes, class_confidence_thresholds
         ))
         self._model = None
+        self._is_engine = Path(self._model_path).suffix == '.engine'
+        self._allow_unvalidated_engine = allow_unvalidated_engine
+        self._model_pool = model_pool
+
+    def _predict(self, model: Any, image: np.ndarray) -> Any:
+        options = dict(
+            device=self._device, imgsz=self._image_size,
+            conf=self._confidence_threshold, iou=self._iou_threshold,
+            max_det=self._maximum_detections, verbose=False, rect=False,
+        )
+        if self._require_masks:
+            options['retina_masks'] = True
+        with self._model_pool.lock if self._model_pool is not None else nullcontext():
+            return model.predict(np.ascontiguousarray(image[..., ::-1]), **options)
 
     def prepare(self) -> None:
         """Load checkpoint and text prompts before accepting requests."""
@@ -117,18 +145,8 @@ class YoloeDetector:
 
         model = self._get_model()
         try:
-            options = dict(
-                # Ultralytics interprets NumPy images as BGR; our port is RGB.
-                device=self._device,
-                imgsz=self._image_size,
-                conf=self._confidence_threshold,
-                iou=self._iou_threshold,
-                max_det=self._maximum_detections,
-                verbose=False,
-            )
-            if self._require_masks:
-                options['retina_masks'] = True
-            results = model.predict(np.ascontiguousarray(image[..., ::-1]), **options)
+            # Ultralytics restores boxes and retina masks to original pixels.
+            results = self._predict(model, image)
         except InspectionFailure:
             raise
         except Exception as error:
@@ -154,6 +172,8 @@ class YoloeDetector:
                 if mask_data.shape != (len(boxes), height, width):
                     raise ValueError('YOLOE mask count or image shape differs from boxes')
             names = getattr(result, 'names', None) or model.names
+            if ordered_names(names) != list(self._classes):
+                raise ValueError('YOLOE result class order differs from profile')
             detections = []
             for index, box in enumerate(boxes):
                 coordinates = _numpy(box.xyxy).reshape(-1, 4)[0]
@@ -177,7 +197,7 @@ class YoloeDetector:
                 y_max = min(max(y_max, 0.0), float(height))
                 mask = None
                 if mask_data is not None:
-                    mask = np.array(mask_data[index], dtype=np.bool_, copy=True)
+                    mask = np.array(mask_data[index] > 0.5, dtype=np.bool_, copy=True)
                     mask.flags.writeable = False
                 detections.append(
                     Detection2D(
@@ -201,14 +221,32 @@ class YoloeDetector:
                 f'YOLOE returned invalid detections: {error}',
             ) from error
 
-    def _get_model(self):
+    def _get_model(self) -> Any:
         if self._model is not None:
             return self._model
+        if self._model_pool is None:
+            return self._load_model()
+        # Per-call thresholds/NMS are wrapper settings, not backend identity.
+        key = (self._model_path, self._classes, self._device, self._image_size,
+               self._require_masks, self._text_encoder_directory,
+               self._allow_unvalidated_engine, self._model_factory)
+        with self._model_pool.lock:
+            if key not in self._model_pool.models:
+                self._model_pool.models[key] = self._load_model()
+            self._model = self._model_pool.models[key]
+            return self._model
+
+    def _load_model(self) -> Any:
         if not Path(self._model_path).is_file():
             raise InspectionFailure(
                 FailureKind.DETECTOR_API,
                 f'YOLOE checkpoint not found: {self._model_path}',
             )
+        if self._is_engine:
+            return self._load_engine()
+        # Prepared PT already contains the exact export text embeddings.
+        if (Path(self._model_path).parent / 'manifest.json').is_file():
+            return self._load_prepared_checkpoint()
         encoder_directory = Path(self._text_encoder_directory)
         encoder_path = encoder_directory / _TEXT_ENCODER_FILENAME
         if not encoder_path.is_file():
@@ -249,6 +287,54 @@ class YoloeDetector:
             ) from error
         self._model = model
         return model
+
+    def _load_prepared_checkpoint(self) -> Any:
+        try:
+            read_model_manifest(Path(self._model_path), self._classes, self._image_size)
+            factory = self._model_factory
+            if factory is None:
+                from ultralytics import YOLOE
+                factory = YOLOE
+            model = factory(self._model_path)
+            model.to(self._device)
+            if model.task != 'segment' or ordered_names(model.names) != list(self._classes):
+                raise ValueError('Prepared checkpoint task or classes differ from profile')
+            self._model = model
+            return model
+        except Exception as error:
+            raise InspectionFailure(FailureKind.DETECTOR_API,
+                                    f'Failed to load prepared YOLOE: {error}') from error
+
+    def _load_engine(self) -> Any:
+        try:
+            if not self._require_masks:
+                raise ValueError('TensorRT profile requires segmentation masks')
+            manifest = read_model_manifest(
+                Path(self._model_path), self._classes, self._image_size,
+                allow_unvalidated=self._allow_unvalidated_engine,
+            )
+            factory = self._model_factory
+            if factory is None:
+                from ultralytics import YOLO
+                factory = YOLO
+            model = factory(self._model_path, task='segment')
+            # Initialize the lazy backend once, exercising its segmentation postprocessor.
+            self._predict(model, np.zeros((self._image_size, self._image_size, 3),
+                                          dtype=np.uint8))
+            backend = model.predictor.model
+            if (model.task != 'segment' or ordered_names(model.names) != list(self._classes)
+                    or backend.dynamic):
+                raise ValueError('TensorRT task, class order or static input differs')
+            shapes = {name: list(binding.shape) for name, binding in backend.bindings.items()}
+            inputs = {'images': shapes.pop('images')}
+            check_segmentation_shapes(inputs, shapes, self._image_size, len(self._classes))
+            if inputs != manifest['inputs'] or shapes != manifest['outputs']:
+                raise ValueError('TensorRT bindings differ from manifest')
+            self._model = model
+            return model
+        except Exception as error:
+            raise InspectionFailure(FailureKind.DETECTOR_API,
+                                    f'Failed to load YOLOE TensorRT: {error}') from error
 
 
 class YoloeMaskSegmenter:

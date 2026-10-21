@@ -3,35 +3,45 @@
 <package format="3">
   <name>cleany_skill_executor</name>
   <version>0.1.0</version>
-  <description>Reachable grasp selection and nearest pre-grasp execution.</description>
+  <description>Plan-only RGB-D pick validation and grasp reachability.</description>
   <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
   <license>Apache-2.0</license>
   <depend>action_msgs</depend>
+  <exec_depend>python3-zmq</exec_depend>
   <depend>ament_index_python</depend>
   <depend>cleany_interfaces</depend>
   <depend>control_msgs</depend>
+  <depend>controller_manager_msgs</depend>
+  <depend>tf2_ros</depend>
   <depend>geometry_msgs</depend>
-  <depend>rcl_interfaces</depend>
   <depend>launch</depend>
   <depend>launch_ros</depend>
   <depend>moveit_msgs</depend>
   <depend>rclpy</depend>
+  <exec_depend>rosidl_runtime_py</exec_depend>
   <depend>sensor_msgs</depend>
   <depend>shape_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>rcl_interfaces</depend>
   <depend>trajectory_msgs</depend>
   <depend>visualization_msgs</depend>
   <exec_depend>cleany_moveit_config</exec_depend>
-  <exec_depend>cleany_scene_mapping</exec_depend>
+  <exec_depend>cleany_description</exec_depend>
+  <exec_depend>xacro</exec_depend>
   <exec_depend>cleany_mujoco_sim</exec_depend>
   <exec_depend>cleany_grasping</exec_depend>
   <exec_depend>cleany_perception</exec_depend>
+  <exec_depend>cleany_robot_interface</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-pil</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>python3-zmq</exec_depend>
   <exec_depend>rqt_image_view</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
   <test_depend>python3-pytest</test_depend>
+  <exec_depend>cleany_scene_mapping</exec_depend>
+
+  <exec_depend>cleany_mujoco_observer</exec_depend>
+
   <export><build_type>ament_python</build_type></export>
 </package>

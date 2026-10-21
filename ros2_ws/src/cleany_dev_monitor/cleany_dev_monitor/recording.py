@@ -4,9 +4,11 @@ import re
 import threading
 import time
 from collections import deque
+from collections.abc import Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from .sources import (
     SCHEMA,
@@ -353,7 +355,7 @@ class RecordingControls:
     def __init__(self, queue_limit=32*1024**2):
         self.lock = threading.Lock()
         self.settings = defaults()
-        self.source_config = {}
+        self._source_config = {}
         self.revision = 0
         self.queue = deque()
         self.queued_bytes = 0
@@ -364,6 +366,23 @@ class RecordingControls:
         self.available = {}
         self.writer_error = ""
         self.transitioning = False
+        self._rebuild_context()
+
+    @property
+    def source_config(self) -> dict:
+        with self.lock:
+            return deepcopy(self._source_config)
+
+    @source_config.setter
+    def source_config(self, value: dict) -> None:
+        config = deepcopy(value)
+        with self.lock:
+            if config == self._source_config:
+                return
+            self._source_config = config
+            self._rebuild_context()
+            self.revision += 1
+            self.last.clear()
 
     @contextmanager
     def transition(self):
@@ -385,27 +404,39 @@ class RecordingControls:
             self.last.clear()
             self.stats = {}
             self.stats_generation += 1
+            self._rebuild_context()
+
+    def policy(self):
+        """Snapshot policy without rebuilding display status for each write tick."""
+        with self.lock:
+            return deepcopy(self.settings)
 
     def camera_info_topic(self):
-        topic = self.settings['topics']['camera']
-        if topic.endswith('/compressed'):
-            topic = topic.rsplit('/', 1)[0]
-        return topic.rsplit('/', 1)[0] + '/camera_info'
+        return self._camera_info_topic
 
-    def context_topics(self):
-        """Called under lock; topic remapping and per-source opt-outs apply."""
+    def _rebuild_context(self) -> None:
+        """Build derived routes under lock only when their inputs change."""
         s = self.settings
-        sources = {**resolved(self.source_config), **s['sources']}
+        sources = {**resolved(self._source_config), **s['sources']}
         topics = {sources[field]: (group, typ, field)
                   for field, (group, typ) in CONTEXT.items()
                   if s['enabled'][group] and s['source_enabled'].get(field, True)}
         if s['enabled']['motion']:
             topics.update({'/joint_states': ('motion', 'sensor_msgs/msg/JointState', None),
                            '/robot_description': ('motion', 'std_msgs/msg/String', None)})
-        return topics
+        self._context_topics = MappingProxyType(topics)
+        self._has_ros_context = any(s['enabled'][key] for key in RAW) or bool(topics)
+        camera = s['topics']['camera']
+        if camera.endswith('/compressed'):
+            camera = camera.rsplit('/', 1)[0]
+        self._camera_info_topic = camera.rsplit('/', 1)[0] + '/camera_info'
 
-    def has_ros_context(self):
-        return any(self.settings['enabled'][k] for k in RAW) or bool(self.context_topics())
+    def context_topics(self) -> Mapping[str, tuple[str, str, str | None]]:
+        """Called under lock; the returned routes cannot be mutated by callers."""
+        return self._context_topics
+
+    def has_ros_context(self) -> bool:
+        return self._has_ros_context
 
     def topics(self):
         with self.lock:
@@ -497,9 +528,10 @@ class RecordingControls:
         with self.lock:
             statuses = {}
             s = self.settings
+            context_enabled = self.has_ros_context()
             for key in (*LABELS, 'transforms', 'clock', 'camera_info'):
                 stat = dict(self.stats.get(key, {}))
-                is_enabled = (self.has_ros_context() if key in ('transforms', 'clock') else
+                is_enabled = (context_enabled if key in ('transforms', 'clock') else
                               s['enabled']['camera'] if key == 'camera_info' else s['enabled'][key])
                 state = '미녹화' if not is_enabled else '녹화 정지' if not s['active'] else '저장 중단' if reason else '저장 오류' if stat.get('error') else '기록 대기'
                 if state == '기록 대기' and key in ('transforms', 'clock', 'camera_info'):

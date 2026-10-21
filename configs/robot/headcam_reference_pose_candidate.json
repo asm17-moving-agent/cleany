@@ -1,0 +1,333 @@
+{
+  "recorded_utc": "2026-09-08T17:21:47.174522+00:00",
+  "status": "candidate",
+  "reference": "User-positioned robot-forward and camera-level pose; not independently measured against URDF axes.",
+  "motor_configuration_written": false,
+  "joint_zero_and_direction_verified": false,
+  "baudrate": 1000000,
+  "summary": {
+    "pan": {
+      "id": 13,
+      "zero_candidate_raw_tick": 2016.0,
+      "min_raw_tick": 2016,
+      "max_raw_tick": 2016,
+      "span_tick": 0,
+      "direction": null
+    },
+    "tilt": {
+      "id": 14,
+      "zero_candidate_raw_tick": 2071.0,
+      "min_raw_tick": 2071,
+      "max_raw_tick": 2071,
+      "span_tick": 0,
+      "direction": null
+    }
+  },
+  "observations": [
+    {
+      "host_monotonic_start_ns": 31914361251270,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31914361990360
+    },
+    {
+      "host_monotonic_start_ns": 31914462302561,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31914463205944
+    },
+    {
+      "host_monotonic_start_ns": 31914563351900,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31914564715198
+    },
+    {
+      "host_monotonic_start_ns": 31914664947525,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31914665842363
+    },
+    {
+      "host_monotonic_start_ns": 31914765985727,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31914766785716
+    },
+    {
+      "host_monotonic_start_ns": 31914866955064,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31914867892656
+    },
+    {
+      "host_monotonic_start_ns": 31914968072117,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31914969018349
+    },
+    {
+      "host_monotonic_start_ns": 31915069192434,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915070135498
+    },
+    {
+      "host_monotonic_start_ns": 31915170285166,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915171223174
+    },
+    {
+      "host_monotonic_start_ns": 31915271600208,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915272517575
+    },
+    {
+      "host_monotonic_start_ns": 31915372882353,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915373775431
+    },
+    {
+      "host_monotonic_start_ns": 31915474144817,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915476382250
+    },
+    {
+      "host_monotonic_start_ns": 31915576752212,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915578236025
+    },
+    {
+      "host_monotonic_start_ns": 31915678399006,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915680821467
+    },
+    {
+      "host_monotonic_start_ns": 31915780982752,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915782487014
+    },
+    {
+      "host_monotonic_start_ns": 31915882648810,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915883588674
+    },
+    {
+      "host_monotonic_start_ns": 31915983745703,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31915984660286
+    },
+    {
+      "host_monotonic_start_ns": 31916084819490,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31916085731705
+    },
+    {
+      "host_monotonic_start_ns": 31916185877309,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31916186718675
+    },
+    {
+      "host_monotonic_start_ns": 31916286880247,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2016
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2071
+        }
+      },
+      "host_monotonic_end_ns": 31916287812015
+    }
+  ],
+  "pan_direction_observation": {
+    "recorded_utc": "2026-09-08T17:23:52.737347+00:00",
+    "user_motion": "robot-relative left pan",
+    "source": "Repeated read-only capture process live feedback logs",
+    "reference_raw_tick": 2016,
+    "observed_raw_tick": 1626,
+    "delta_raw_tick": -390,
+    "tilt_observed_raw_tick": 2069,
+    "raw_increases_toward": "robot-relative right",
+    "raw_decreases_toward": "robot-relative left",
+    "urdf_direction_verified": false
+  },
+  "tilt_direction_observation": {
+    "recorded_utc": "2026-09-08T17:25:42.888040+00:00",
+    "user_motion": "Returned pan toward forward, then tilted camera upward",
+    "source": "Repeated read-only capture process live feedback logs",
+    "reference_raw_tick": 2071,
+    "observed_raw_tick": 1844,
+    "delta_raw_tick": -227,
+    "pan_observed_raw_tick": 2028,
+    "pan_delta_from_reference_raw_tick": 12,
+    "raw_increases_toward": "camera downward",
+    "raw_decreases_toward": "camera upward",
+    "urdf_direction_verified": false
+  }
+}

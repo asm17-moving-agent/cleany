@@ -15,15 +15,19 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", [f"resource/{name}"]),
         (f"share/{name}", ["package.xml"]),
-        (f"share/{name}/config", ["config/monitor.yaml"]),
+        (f"share/{name}/config", [str(path) for path in Path('config').iterdir() if path.is_file()]),
         *assets,
     ],
-    install_requires=["setuptools", "aiohttp>=3.8,<4", "Pillow>=9", "psutil>=5.9"],
+    install_requires=["setuptools", "aiohttp>=3.8,<4", "Pillow>=9", "psutil>=5.9", "matplotlib>=3.5", "numpy>=1.21"],
     zip_safe=True,
     maintainer="Cleany Team",
     maintainer_email="team@example.com",
     license="MIT",
-    description="Read-only robot developer monitor",
+    description="Robot developer monitor with optional authenticated operator controls",
     tests_require=["pytest"],
-    entry_points={"console_scripts": ["dev_monitor = cleany_dev_monitor.node:main"]},
+    entry_points={"console_scripts": [
+        "dev_monitor = cleany_dev_monitor.node:main",
+        "manipulation_io_probe = cleany_dev_monitor.io_probe_node:main",
+        "manipulation_io_report = cleany_dev_monitor.io_probe_report:main",
+    ]},
 )

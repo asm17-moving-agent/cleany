@@ -21,6 +21,15 @@ from cleany_skill_executor.core.grasp_selection import InfrastructureError
 from cleany_skill_executor.core.grasp_selection import quaternion_axis
 
 
+def collision_pair_is_allowed(matrix: Any, first: str, second: str) -> bool:
+    """Confirm an explicit symmetric permission, without interpreting contacts."""
+    try:
+        i, j = matrix.entry_names.index(first), matrix.entry_names.index(second)
+        return bool(matrix.entry_values[i].enabled[j] and matrix.entry_values[j].enabled[i])
+    except (ValueError, IndexError):
+        return False
+
+
 def support_patch_from_obb(candidate: Any, object_id: str, margin: float) -> CollisionObject:
     """Finite support patch from the plane-aligned perception OBB bottom.
 
@@ -120,12 +129,6 @@ class TargetSceneTransaction:
             raise InfrastructureError(
                 'planning-scene transaction is already active'
             )
-        request = GetPlanningScene.Request()
-        request.components.components = PlanningSceneComponents.ALLOWED_COLLISION_MATRIX
-        response = self._call(self._get_client, request)
-        self._saved_acm = deepcopy(response.scene.allowed_collision_matrix)
-        self._object_id = object_id
-
         collision_object = CollisionObject()
         collision_object.header.frame_id = candidate.header.frame_id
         collision_object.id = object_id
@@ -148,20 +151,34 @@ class TargetSceneTransaction:
             collision_object.primitive_poses = []
             collision_object.meshes = [deepcopy(geometry.mesh)]
             collision_object.mesh_poses = [deepcopy(geometry.mesh_pose)]
-        self._collision_object = deepcopy(collision_object)
+        support_id = object_id + '/perceived_support' if self._support_margin else ''
+        patch = (support_patch_from_obb(candidate, support_id, self._support_margin)
+                 if support_id else None)
+
+        # Validate geometry before acquiring transaction ownership or touching
+        # MoveIt. A bad support pose must leave the next request usable.
+        request = GetPlanningScene.Request()
+        request.components.components = PlanningSceneComponents.ALLOWED_COLLISION_MATRIX
+        response = self._call(self._get_client, request)
+        saved_acm = deepcopy(response.scene.allowed_collision_matrix)
         scene = PlanningScene()
         scene.is_diff = True
         scene.robot_state.is_diff = True
         scene.world.collision_objects = [collision_object]
-        if self._support_margin:
-            self._support_id = object_id + '/perceived_support'
-            patch = support_patch_from_obb(candidate, self._support_id, self._support_margin)
+        support_acm = None
+        if patch is not None:
             scene.world.collision_objects.append(patch)
             # The object rests on its support; only this object/support pair
             # may touch. Robot links must still avoid the support patch.
-            self._support_acm = self._with_allowed_links(
-                self._saved_acm, object_id, {self._support_id})
-            scene.allowed_collision_matrix = deepcopy(self._support_acm)
+            support_acm = self._with_allowed_links(saved_acm, object_id, {support_id})
+            scene.allowed_collision_matrix = deepcopy(support_acm)
+        # Keep ownership if an apply fails: MoveIt may have partially applied
+        # the diff, so the caller must still be able to restore these objects.
+        self._object_id = object_id
+        self._saved_acm = saved_acm
+        self._collision_object = deepcopy(collision_object)
+        self._support_id = support_id
+        self._support_acm = support_acm
         response = self._apply(scene)
         if not response.success:
             raise InfrastructureError('failed to register target OBB')
@@ -259,6 +276,20 @@ class TargetSceneTransaction:
         request.scene = scene
         return self._call(self._apply_client, request)
 
+    def _scene_is_restored(self) -> bool:
+        request = GetPlanningScene.Request()
+        request.components.components = (
+            PlanningSceneComponents.WORLD_OBJECT_NAMES
+            | PlanningSceneComponents.ALLOWED_COLLISION_MATRIX)
+        if self._attached:
+            request.components.components |= PlanningSceneComponents.ROBOT_STATE_ATTACHED_OBJECTS
+        scene = self._call(self._get_client, request).scene
+        owned = {self._object_id, self._support_id} - {''}
+        present = {item.id for item in scene.world.collision_objects}
+        present.update(item.object.id for item in scene.robot_state.attached_collision_objects)
+        return (not owned.intersection(present) and self._saved_acm is not None
+                and scene.allowed_collision_matrix == self._saved_acm)
+
     def restore(self) -> None:
         """Remove temporary geometry and restore the saved allowed-collision matrix.
 
@@ -292,7 +323,15 @@ class TargetSceneTransaction:
             scene.allowed_collision_matrix = deepcopy(self._saved_acm)
         response = self._apply(scene)
         if not response.success:
-            raise InfrastructureError('failed to restore planning scene')
+            try:
+                restored = self._scene_is_restored()
+            except InfrastructureError:
+                restored = False
+            if not restored:
+                raise InfrastructureError('failed to restore planning scene')
+            # The authoritative scene confirms that no detach/world removal
+            # remains to be done despite the failed apply response.
+            self._attached = False
         if self._attached:
             # Humble DETACH puts the body back into the collision world. It
             # does not remove a temporary grasp OBB. Remove that world copy
@@ -323,10 +362,9 @@ class SceneAwarePort:
     def reset(self) -> None:
         self._arm = ''
 
-    def gripper_sweep_is_valid(self, arm, solution, opening, closing, step):
-        if self._arm != arm:
-            raise InfrastructureError('Closure sweep requires selected-arm target permissions')
-        return self._adapter.gripper_sweep_is_valid(arm, solution, opening, closing, step)
+    @property
+    def prepares_pregrasps_lazily(self) -> bool:
+        return bool(getattr(self._adapter, 'prepares_pregrasps_lazily', False))
 
     def set_target_contacts(self, arm: str | None) -> None:
         if arm == self._arm:
@@ -340,53 +378,63 @@ class SceneAwarePort:
     def solve_position_ik(self, arm, position, seed):
         return self._adapter.solve_position_ik(arm, position, seed)
 
-    def solve_aimed_pregrasp_ik(
-        self,
-        arm,
-        grasp_position,
-        approach_direction,
-        closing_direction,
-        pregrasp_position,
-        seed,
-    ):
-        return self._adapter.solve_aimed_pregrasp_ik(
-            arm,
-            grasp_position,
-            approach_direction,
-            closing_direction,
-            pregrasp_position,
-            seed,
-        )
+    def set_gripper_position(self, arm, position):
+        return self._adapter.set_gripper_position(arm, position)
 
-    def solve_grasp_ik(
-        self,
-        arm,
-        grasp_position,
-        approach_direction,
-        closing_direction,
-        seed,
-    ):
-        return self._adapter.solve_grasp_ik(
-            arm,
-            grasp_position,
-            approach_direction,
-            closing_direction,
-            seed,
-        )
+    def set_ik_context(self, candidate_index, arm, target, *, pregrasp):
+        context = getattr(self._adapter, 'set_ik_context', None)
+        if context is not None:
+            context(candidate_index, arm, target, pregrasp=pregrasp)
+
+    def solve_aligned_ik(self, arm, target, seed):
+        return self._adapter.solve_aligned_ik(arm, target, seed)
+
+    def solve_pregrasp_ik(self, arm, target, seed):
+        solve = getattr(self._adapter, 'solve_pregrasp_ik', self._adapter.solve_aligned_ik)
+        return solve(arm, target, seed)
+
+    def prepare_pregrasps(self, requests):
+        prepare = getattr(self._adapter, 'prepare_pregrasps', None)
+        if prepare is not None:
+            prepare(requests)
+
+    def prepare_grasps(self, requests):
+        prepare = getattr(self._adapter, 'prepare_grasps', None)
+        if prepare is not None:
+            prepare(requests)
+
+    def begin_candidate_pass(self, retry: bool) -> bool:
+        begin = getattr(self._adapter, 'begin_candidate_pass', None)
+        return begin(retry) if begin is not None else False
 
     def state_is_valid(self, arm, solution):
         return self._adapter.state_is_valid(arm, solution)
 
-    def open_grasp_is_valid(self, arm, solution, opening):
-        previous = self._arm
-        self.set_target_contacts(None)
-        try:
-            return self._adapter.open_grasp_is_valid(arm, solution, opening)
-        finally:
-            self.set_target_contacts(previous)
+    def plan(self, arm, goal, start):
+        return self._adapter.plan(arm, goal, start)
+
+    def plan_direct_grasp(self, arm, goal):
+        return self._adapter.plan_direct_grasp(arm, goal)
+
+    def trajectory_alignment(
+        self, arm, path, orientation_xyzw, maximum_waypoints
+    ):
+        return self._adapter.trajectory_alignment(
+            arm, path, orientation_xyzw, maximum_waypoints
+        )
+
+    def wrist_motion_cost(self, arm, pregrasp, grasp):
+        metric = getattr(self._adapter, 'wrist_motion_cost', None)
+        return None if metric is None else metric(arm, pregrasp, grasp)
+
+    def current_tcp_pose(self, arm):
+        return self._adapter.current_tcp_pose(arm)
+
+    def gripper_sweep_is_valid(self, arm, solution, opening, closing, step):
+        return self._adapter.gripper_sweep_is_valid(arm, solution, opening, closing, step)
+
+    def validate_approach_path(self, arm, path, start, target):
+        return self._adapter.validate_approach_path(arm, path, start, target)
 
     def pregrasp_is_visible(self, arm, solution):
         return self._adapter.pregrasp_is_visible(arm, solution)
-
-    def plan(self, arm, goal, start):
-        return self._adapter.plan(arm, goal, start)

@@ -29,12 +29,13 @@ from rosidl_runtime_py.utilities import get_message
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from .slam_reader import SlamReader
-from .camera import IMAGE_TYPES
+from .camera import IMAGE_TYPES, preview_supported
 from .core import Hub, grid_origin, preview, transform_point, yaw
 from .sources import routes, resolved, SCHEMA, source_roles
 from .server import serve
 from .navigation import NavigationObserver, cloud_points, transform_xyz, vector
 from .manipulation import ManipulationObserver
+from .request import read_request
 
 
 class MonitorNode(Node):
@@ -84,6 +85,10 @@ class MonitorNode(Node):
             "resource_process_limit": 20,
             "resource_history_limit": 300,
             "host": "127.0.0.1",
+            "control_enabled": False,
+            "control_directory": "~/.local/state/cleany/dev-monitor/operator",
+            "control_repository_root": "",
+            "control_session_seconds": 3600,
             "port": 8768,
             "state_directory": "~/.local/state/cleany/dev-monitor",
             "runtime_namespace": "",
@@ -93,6 +98,8 @@ class MonitorNode(Node):
             "rosout_topic": "/rosout",
             "clock_topic": "/clock",
             "manipulation_events_topic": "mock/manipulation/execution_events",
+            "manipulation_observation_mode": "mission",
+            "manipulation_request_file": "",
             "manipulation_execution_limit": 20,
             "manipulation_interval_limit": 64,
             "map_frame": "map",
@@ -153,6 +160,8 @@ class MonitorNode(Node):
         for key, value in defaults.items():
             self.declare_parameter(key, value)
         self.config = {key: self.get_parameter(key).value for key in defaults}
+        if self.config['manipulation_observation_mode'] not in ('mission', 'server'):
+            raise ValueError('manipulation_observation_mode must be mission or server')
         if (not 16 <= self.config["navigation_point_limit"] <= 2048
                 or not 0 < self.config["navigation_freshness_s"] <= 5
                 or not .1 <= self.config["bt_event_repeat_interval_s"] <= 10
@@ -223,6 +232,7 @@ class MonitorNode(Node):
         steady = Clock(clock_type=ClockType.STEADY_TIME)
         self.create_timer(.25, lambda: self.slam.tick(), clock=steady)
         self.create_timer(1.0, self.discover, clock=steady)
+        self.create_timer(1.0, self.command_progress, clock=steady)
         self.create_timer(0.1, self.pose, clock=steady)
         self.create_timer(0.2, self.navigation_tick, clock=steady)
         self.stop_event = threading.Event()
@@ -231,8 +241,18 @@ class MonitorNode(Node):
         )
         self.worker.start()
 
+    def command_progress(self):
+        path = self.config['manipulation_request_file']
+        if not path or self.config['manipulation_observation_mode'] != 'server':
+            return
+        try:
+            data = read_request(path)
+        except (OSError, ValueError, TypeError, KeyError):
+            return
+        self.hub.put('manipulation_request', 'current', data)
+
     def apply_sources(self):
-        sources = self.hub.recording.view()['settings']['sources']
+        sources = self.hub.recording.policy()['sources']
         if sources == self.source_settings:
             return
         self.source_settings = dict(sources)
@@ -390,6 +410,7 @@ class MonitorNode(Node):
                 {
                     "name": name,
                     "types": types,
+                    "camera_supported": preview_supported(name),
                     "publishers": endpoints(pubs),
                     "subscribers": endpoints(subscriptions),
                     "state": state,
@@ -506,7 +527,8 @@ class MonitorNode(Node):
                     ros_time=ros_time,
                 )
                 received_at = time.time()
-                if self.manipulation.ingest(record, received_at):
+                if self.manipulation.ingest(record, received_at,
+                        heartbeat=self.config['manipulation_observation_mode'] == 'server'):
                     self.hub.put("manipulation", "executions",
                                  {**self.manipulation.snapshot(), "topic": topic},
                                  ros_time=ros_time, received_at=received_at)

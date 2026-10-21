@@ -1,0 +1,31 @@
+/camera:
+  ros__parameters:
+    camera_name: camera
+    enable_color: true
+    enable_depth: true
+    enable_infra: false
+    enable_infra1: false
+    enable_infra2: false
+    rgb_camera.color_profile: '640,480,30'
+    rgb_camera.color_format: RGB8
+    depth_module.depth_profile: '640,480,30'
+    depth_module.depth_format: Z16
+    # Keep metric depth out of generic JPEG/Theora publishers.
+    camera.depth.image_rect_raw.enable_pub_plugins: ['image_transport/raw', 'image_transport/compressedDepth']
+    camera.aligned_depth_to_color.image_raw.enable_pub_plugins: ['image_transport/raw', 'image_transport/compressedDepth']
+    camera.color.image_raw.enable_pub_plugins: ['image_transport/raw', 'image_transport/compressed']
+    camera.color.image_raw.jpeg_quality: 75
+    rgb_camera.enable_auto_exposure: true
+    rgb_camera.enable_auto_white_balance: true
+    depth_module.enable_auto_exposure: true
+    enable_sync: true
+    align_depth.enable: true
+    publish_tf: true
+    pointcloud.enable: false
+    colorizer.enable: false
+    decimation_filter.enable: false
+    spatial_filter.enable: false
+    temporal_filter.enable: false
+    hole_filling_filter.enable: false
+    hdr_merge.enable: false
+    clip_distance: -1.0

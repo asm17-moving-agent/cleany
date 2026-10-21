@@ -6,11 +6,8 @@ find_package(ament_cmake_python REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
 
-install(
-  PROGRAMS cleany_moveit_config/apply_collision_scene.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME apply_collision_scene
-)
+install(PROGRAMS cleany_moveit_config/apply_collision_scene.py
+  DESTINATION lib/${PROJECT_NAME} RENAME apply_collision_scene)
 
 install(
   DIRECTORY config launch
@@ -49,6 +46,10 @@ if(BUILD_TESTING)
     test/test_move_group_shutdown.py
     TIMEOUT 90
   )
+  ament_add_pytest_test(head_collision_runtime test/test_head_collision_runtime.py TIMEOUT 180)
+  # Requires the patched MoveIt overlay; explicit make target also checks its receipt.
+  # Allow full CAD self-filter startup (180 s), concurrent queries and shutdown.
+  ament_add_pytest_test(octomap_query_runtime test/test_octomap_query_runtime.py TIMEOUT 300)
 endif()
 
 ament_package()

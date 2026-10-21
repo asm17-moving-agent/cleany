@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import math
 from typing import Sequence
 
@@ -129,6 +129,10 @@ def rank_detections_by_distance(
         distance_m = None
         position = None
         if source_point is not None:
+            depth = float(source_point[2])
+            # Preserve measured support-plane extents. Image-axis bbox lengths
+            # are not a physical jaw-opening estimate for tilted/tall objects.
+            detection = replace(detection, median_depth_m=depth)
             target_point = (
                 capture_transform.rotation @ source_point
                 + capture_transform.translation

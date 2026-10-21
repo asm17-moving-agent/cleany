@@ -2,13 +2,12 @@
 set -euo pipefail
 
 /workspace/cleany/containers/vision/scripts/anygrasp_preflight.py
+export CLEANY_ANYGRASP_VALIDATION_MODE="${1:-full}"
 
 python3 - <<'PY'
 import os
 from pathlib import Path
 from types import SimpleNamespace
-
-from gsnet import check_license, create_detector
 
 license_dir = Path(os.environ['ANYGRASP_LICENSE_DIR'])
 license_path = license_dir / os.environ['ANYGRASP_LICENSE_FILE']
@@ -17,6 +16,12 @@ if not license_path.is_file():
     raise SystemExit(f'AnyGrasp license file is missing: {license_path}')
 if not checkpoint_path.is_file():
     raise SystemExit(f'AnyGrasp checkpoint is missing: {checkpoint_path}')
+if os.environ['CLEANY_ANYGRASP_VALIDATION_MODE'] == '--files-only':
+    print('AnyGrasp identity and asset preflight passed; worker validates the license on load')
+    raise SystemExit(0)
+if os.environ['CLEANY_ANYGRASP_VALIDATION_MODE'] != 'full':
+    raise SystemExit('Usage: check-anygrasp-license [--files-only]')
+from gsnet import check_license, create_detector
 if not check_license(str(license_dir)):
     raise SystemExit('AnyGrasp license validation failed')
 

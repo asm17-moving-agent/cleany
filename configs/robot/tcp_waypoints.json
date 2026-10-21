@@ -1,0 +1,39 @@
+{
+  "state_profile": "configs/robot/camera_preview.json",
+  "operating_profiles": {
+    "left": "~/.config/cleany/feetech_operational_left_arm.yaml",
+    "right": "~/.config/cleany/feetech_operational_right_arm.yaml"
+  },
+  "camera_configs": {
+    "left": "configs/robot/wristcam_charuco.json",
+    "right": "configs/robot/right_wristcam_charuco.json"
+  },
+  "camera_extrinsics": {
+    "left": "ros2_ws/src/cleany_robot_interface/config/left_wrist_camera_extrinsics.yaml",
+    "right": "ros2_ws/src/cleany_robot_interface/config/right_wrist_camera_extrinsics.yaml"
+  },
+  "tcp_candidates": {
+    "left": "ros2_ws/src/cleany_robot_interface/config/left_gripper_tcp.yaml",
+    "right": "configs/robot/right_gripper_tcp.json"
+  },
+  "ros_domain_id": 174,
+  "hold_seconds": 1.5,
+  "max_span_ticks": 3,
+  "max_gap_seconds": 0.3,
+  "stable_rms_px": 2.0,
+  "measurement_timeout_s": 12.0,
+  "maximum_pnp_rmse_px": 1.0,
+  "minimum_pnp_ratio": 1.05,
+  "passive_joint_tolerance_rad": 0.01,
+  "closed_gripper_tolerance_rad": 0.01,
+  "planning_time_s": 5.0,
+  "planning_attempts": 5,
+  "velocity_scaling": 1.0,
+  "acceleration_scaling": 1.0,
+  "collision_sample_step_rad": 0.008726646259971648,
+  "minimum_path_subdivisions": 3,
+  "maximum_path_points": 2000,
+  "start_tolerance_ticks": 3,
+  "service_timeout_s": 20.0,
+  "startup_timeout_s": 40.0
+}

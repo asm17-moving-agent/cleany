@@ -341,8 +341,9 @@ def test_resolved_nodes_share_grasp_geometry_and_mode_guards(runtime, monkeypatc
     assert selector['grasp_approach_offset_m'] == coordinator['selector_grasp_approach_offset_m'] == .019
     for key in ('deeper_grasp_labels', 'deeper_grasp_offsets_m', 'support_patch_margin_m'):
         assert selector[key] == coordinator[key]
-    for key in ('require_open_grasp_clearance', 'require_gripper_closure_clearance'):
-        assert selector[key] is (sorting == 'true')
+    # Open-jaw endpoint validity is always checked by the selector. Only the
+    # extra closure sweep is configurable and enabled for sorting.
+    assert selector['require_gripper_closure_clearance'] is (sorting == 'true')
     assert selector['require_pregrasp_visibility'] is (sorting == 'true' and wrist == 'false')
     assert coordinator['use_seeded_cartesian_grasp'] is (sorting == 'true')
     assert parameters['grasp_server']['geometric.defer_support_plane_collision'] is (sorting == 'true')

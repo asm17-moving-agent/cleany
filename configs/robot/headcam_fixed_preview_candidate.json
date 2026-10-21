@@ -1,0 +1,305 @@
+{
+  "status": "manual_zero_based_preview_candidate",
+  "calibration_file": "/home/cleany/.local/share/cleany/headcam/joint_calibration_20260909_024703_189252.json",
+  "motor_configuration_written": false,
+  "observations": [
+    {
+      "host_monotonic_start_ns": 40307537568654,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307538314177
+    },
+    {
+      "host_monotonic_start_ns": 40307588419401,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307589292671
+    },
+    {
+      "host_monotonic_start_ns": 40307639401095,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307640250013
+    },
+    {
+      "host_monotonic_start_ns": 40307690358693,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307691235548
+    },
+    {
+      "host_monotonic_start_ns": 40307741343588,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307742213402
+    },
+    {
+      "host_monotonic_start_ns": 40307792317987,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307793229914
+    },
+    {
+      "host_monotonic_start_ns": 40307843337154,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307844158935
+    },
+    {
+      "host_monotonic_start_ns": 40307894262175,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307895156918
+    },
+    {
+      "host_monotonic_start_ns": 40307945289087,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307946280921
+    },
+    {
+      "host_monotonic_start_ns": 40307996397377,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40307997317177
+    },
+    {
+      "host_monotonic_start_ns": 40308047426209,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308048330264
+    },
+    {
+      "host_monotonic_start_ns": 40308098588452,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308099458202
+    },
+    {
+      "host_monotonic_start_ns": 40308149563170,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308150461818
+    },
+    {
+      "host_monotonic_start_ns": 40308200572834,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308201487897
+    },
+    {
+      "host_monotonic_start_ns": 40308251597185,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308252472888
+    },
+    {
+      "host_monotonic_start_ns": 40308302584608,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308303473975
+    },
+    {
+      "host_monotonic_start_ns": 40308353583583,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308354723740
+    },
+    {
+      "host_monotonic_start_ns": 40308404841605,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308405709563
+    },
+    {
+      "host_monotonic_start_ns": 40308455830596,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308456753947
+    },
+    {
+      "host_monotonic_start_ns": 40308506864579,
+      "joints": {
+        "pan": {
+          "id": 13,
+          "raw_tick": 2015
+        },
+        "tilt": {
+          "id": 14,
+          "raw_tick": 2625
+        }
+      },
+      "host_monotonic_end_ns": 40308508044578
+    }
+  ],
+  "joints": {
+    "pan": {
+      "raw_tick": 2015.0,
+      "zero_raw_tick": 2010.0,
+      "direction": -1,
+      "angle_rad": -0.007669903939428206,
+      "angle_deg": -0.439453125,
+      "span_tick": 0
+    },
+    "tilt": {
+      "raw_tick": 2625.0,
+      "zero_raw_tick": 2150.0,
+      "direction": 1,
+      "angle_rad": 0.7286408742456796,
+      "angle_deg": 41.748046875,
+      "span_tick": 0
+    }
+  }
+}

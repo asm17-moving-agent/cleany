@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""ROS launch prefix: run the perception node in the existing Jetson GPU image."""
+from __future__ import annotations
+import os
+from pathlib import Path
+from cleany_paths import install_base
+import signal
+import subprocess
+import sys
+from tempfile import TemporaryDirectory
+from uuid import uuid4
+import yaml
+
+
+def main() -> int:
+    def interrupt(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, interrupt)
+    root = Path(__file__).resolve().parents[1]
+    args = sys.argv[1:]
+    if not args or Path(args[0]).name != 'inspection_node':
+        raise ValueError('This launch prefix accepts only inspection_node')
+    args = args[1:]
+    def translate(value):
+        if isinstance(value, dict):return {k: translate(v) for k,v in value.items()}
+        if isinstance(value, list):return [translate(v) for v in value]
+        if isinstance(value, str):
+            for source_install in (str(install_base(root)), str(root / 'ros2_ws/install')):
+                if value == source_install or value.startswith(source_install + '/'):
+                    return value.replace(source_install, '/workspace/cleany/ros2_ws/install-perception', 1)
+            if value == str(root) or value.startswith(str(root) + '/'):
+                return value.replace(str(root), '/workspace/cleany', 1)
+            model_root = os.environ.get('CLEANY_MODEL_DIR', str(Path.home() / 'models'))
+            if value == model_root or value.startswith(model_root + '/'):
+                return value.replace(model_root, '/models', 1)
+        return value
+    runtime = root / 'runtime/simulation-perception'
+    runtime.mkdir(parents=True, exist_ok=True)
+    container = 'cleany-sim-perception-' + uuid4().hex[:12]
+    with TemporaryDirectory(dir=runtime) as directory:
+        directory = Path(directory)
+        converted = []
+        index = 0
+        while index < len(args):
+            value = args[index]
+            if value == '--params-file':
+                if index+1 >= len(args):raise ValueError('Missing ROS parameter file')
+                source = Path(args[index+1])
+                data = translate(yaml.safe_load(source.read_text()))
+                destination = directory / f'parameters-{index}.yaml'
+                destination.write_text(yaml.safe_dump(data))
+                converted += [value, '/workspace/cleany/' + str(destination.relative_to(root))]
+                index += 2
+            else:
+                converted.append(value)
+                index += 1
+        environment = os.environ.copy()
+        environment['CLEANY_SIMULATION_ROS_DOMAIN_ID'] = environment.get('ROS_DOMAIN_ID', '24')
+        process = subprocess.Popen([str(root / 'tools/vision-container'),
+                                    'run-perception-node', container, *converted], env=environment)
+        try:
+            return process.wait()
+        except KeyboardInterrupt:
+            process.send_signal(signal.SIGINT)
+            return 130
+        finally:
+            # Stop only this launch's one-off container; preserve the real stack.
+            subprocess.run(['docker', 'stop', '--time', '10', container],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if process.poll() is None:
+                try:process.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    process.terminate()
+                    process.wait(timeout=5)
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

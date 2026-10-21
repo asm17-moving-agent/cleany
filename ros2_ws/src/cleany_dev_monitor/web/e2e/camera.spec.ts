@@ -12,7 +12,10 @@ test("camera preview pauses, clears stale frames and never polls live images dur
     key: "ros",
     received_at: now,
     ros_time: null,
-    data: { topics: [{ name: topic, types: ["sensor_msgs/msg/Image"] }] },
+    data: { topics: [
+      { name: topic, types: ["sensor_msgs/msg/Image"], camera_supported: true },
+      { name: "/camera/depth/image_raw", types: ["sensor_msgs/msg/Image"], camera_supported: false },
+    ] },
   };
   const jpeg = await page.evaluate(() => {
     const canvas = document.createElement("canvas");
@@ -77,6 +80,7 @@ test("camera preview pauses, clears stale frames and never polls live images dur
     page.getByRole("heading", { name: "카메라", exact: true }),
   ).toBeVisible();
   expect(requests).toBe(0);
+  await expect(page.locator('select[aria-label="카메라 토픽"] option[value="/camera/depth/image_raw"]')).toHaveCount(0);
   await page.getByLabel("카메라 토픽").selectOption(topic);
   const image = page.getByRole("img", { name: topic, exact: true });
   await expect(image).toBeVisible();

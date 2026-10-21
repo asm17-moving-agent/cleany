@@ -133,7 +133,12 @@ def parse_gemini_classifications(
     if len(by_id) != len(detections):
         raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
                                 'Gemini classification omitted a YOLOE instance')
-    return tuple(replace(detection, label=by_id[index][0],
+    def normalized_label(canonical: str, detail: str) -> str:
+        if canonical.casefold() == detail.casefold():
+            return canonical
+        return f'{canonical} ({detail})'
+
+    return tuple(replace(detection, label=normalized_label(detection.label, by_id[index][0]),
                          sorting_category=by_id[index][1],
                          sorting_reason=by_id[index][2])
                  for index, detection in enumerate(detections, 1))
@@ -303,7 +308,7 @@ class GeminiDetector:
             'unclear disposability. Do not infer ownership as fact.'
         )
         buffer = io.BytesIO()
-        PilImage.fromarray(image, mode='RGB').save(buffer, format='PNG')
+        PilImage.fromarray(image).save(buffer, format='PNG')
         try:
             if self._response_provider is not None:
                 response_text = self._response_provider(
@@ -343,7 +348,7 @@ class GeminiDetector:
                                                      interaction_schema)
                 return self._request_generate_content(client, image_bytes, prompt, schema)
             except Exception as error:
-                if getattr(error, 'code', None) != 503 or attempt == 2:
+                if getattr(error, 'code', None) not in (503, 504) or attempt == 2:
                     raise
                 time.sleep(2 ** attempt)
 
@@ -473,7 +478,7 @@ class GeminiClassifier(GeminiDetector):
         if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
             raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
                                     'Gemini classifier requires an HxWx3 uint8 RGB image')
-        annotated = PilImage.fromarray(image, mode='RGB')
+        annotated = PilImage.fromarray(image)
         draw = ImageDraw.Draw(annotated)
         for index, detection in enumerate(detections, 1):
             box = detection.bbox

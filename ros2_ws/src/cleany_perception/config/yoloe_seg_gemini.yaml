@@ -21,6 +21,7 @@ perception_inspector:
       than guessing a specific object type. Exclude the table itself, fixed fixtures,
       and robot parts. Do not invent hidden or absent objects. Return an empty objects
       list if none are visible.
-    gemini_model: gemini-3.1-flash-lite
+    gemini_model: gemini-3.5-flash-lite
     gemini_api_key_environment: GEMINI_API_KEY
     detector_timeout_seconds: 30.0
+    vlm_ik_warmup_enabled: true

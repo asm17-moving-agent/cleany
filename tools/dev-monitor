@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+service=cleany-dev-monitor.service
+operator_dir="${XDG_STATE_HOME:-${HOME}/.local/state}/cleany/dev-monitor/operator"
+source "${repo_root}/tools/ros2/cleany-install-env"
+
+case "${1:-run}" in
+  run)
+    if [[ $# -gt 0 ]]; then shift; fi
+    set +u
+    source /opt/ros/humble/setup.bash
+    source "${repo_root}/tools/ros2/cleany-install-env"
+    source "${CLEANY_INSTALL_BASE}/setup.bash"
+    export ROS_DOMAIN_ID="${CLEANY_COLLECTION_ROS_DOMAIN_ID:-0}"
+    source "${repo_root}/tools/vision-ros-env"
+    export CYCLONEDDS_URI="file://${repo_root}/ros2_ws/src/cleany_dev_monitor/config/jetson_dds.xml"
+    set -u
+    control_enabled=false
+    [[ ! -f "${operator_dir}/enabled" ]] || control_enabled=true
+    exec ros2 run cleany_dev_monitor dev_monitor --ros-args \
+      --params-file "${repo_root}/ros2_ws/src/cleany_dev_monitor/config/monitor.yaml" \
+      --params-file "${repo_root}/ros2_ws/src/cleany_dev_monitor/config/jetson.yaml" \
+      -p "control_enabled:=${control_enabled}" -p "control_directory:=${operator_dir}" \
+      -p "control_repository_root:=${repo_root}" \
+      -p "manipulation_request_file:=${CLEANY_MANIPULATION_PROGRESS_FILE:-${XDG_STATE_HOME:-${HOME}/.local/state}/cleany/manipulation/request.json}" "$@"
+    ;;
+  start)
+    if systemctl --user is-active --quiet "${service}"; then
+      systemctl --user status "${service}" --no-pager
+      exit 0
+    fi
+    systemctl --user reset-failed "${service}" 2>/dev/null || true
+    systemd-run --user --unit="${service}" --collect \
+      --property=Restart=on-failure --property=RestartSec=3 \
+      --setenv="CLEANY_INSTALL_BASE=${CLEANY_INSTALL_BASE}" \
+      --setenv="CLEANY_COLLECTION_ROS_DOMAIN_ID=${CLEANY_COLLECTION_ROS_DOMAIN_ID:-0}" \
+      --setenv="XDG_STATE_HOME=${XDG_STATE_HOME:-${HOME}/.local/state}" \
+      --setenv="CLEANY_COLLECTION_STATE_DIR=${CLEANY_COLLECTION_STATE_DIR:-/tmp/cleany-collection-runtime-${UID}}" \
+      --setenv="CLEANY_MANIPULATION_PROGRESS_FILE=${CLEANY_MANIPULATION_PROGRESS_FILE:-${XDG_STATE_HOME:-${HOME}/.local/state}/cleany/manipulation/request.json}" \
+      "${repo_root}/tools/dev-monitor" run
+    ;;
+  stop) systemctl --user stop "${service}" ;;
+  status) systemctl --user status "${service}" --no-pager ;;
+  control-on|control-off)
+    mode="$1"
+    mkdir -p "${operator_dir}"
+    PYTHONPATH="${repo_root}/ros2_ws/src/cleany_dev_monitor:${PYTHONPATH:-}" python3 - "${operator_dir}" "${mode}" <<'PY'
+import fcntl,json,os,secrets,sys,time
+from pathlib import Path
+from cleany_dev_monitor.operator_jobs import RUNTIME_ENV_KEYS,atomic_json,runtime_settings
+root,mode=Path(sys.argv[1]),sys.argv[2]
+with (root/'operation.lock').open('a') as lock:
+    try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    except BlockingIOError:raise SystemExit('실행 중인 웹 명령을 먼저 종료하세요.')
+    for path in (root/'jobs').glob('*.json'):
+        job=json.loads(path.read_text())
+        if job['state']=='PENDING' and time.time()-job['created_at']<15:
+            raise SystemExit('시작 중인 웹 명령을 먼저 확인하세요.')
+    if mode=='control-on':
+        key=root/'key'
+        if not key.exists():key.write_text(secrets.token_urlsafe(32)+'\n')
+        key.chmod(0o600)
+        previous=runtime_settings(root)
+        environment={k:os.environ[k] for k in RUNTIME_ENV_KEYS if k in os.environ}
+        if 'GEMINI_API_KEY' not in environment and 'GEMINI_API_KEY' in previous:
+            environment['GEMINI_API_KEY']=previous['GEMINI_API_KEY']
+        atomic_json(root/'runtime-settings.json',environment)
+        (root/'enabled').touch(mode=0o600)
+    else:(root/'enabled').unlink(missing_ok=True)
+print('웹 제어 켜짐' if mode=='control-on' else '관측 전용 모드로 복귀')
+PY
+    systemctl --user stop "${service}" 2>/dev/null || true
+    exec "${repo_root}/tools/dev-monitor" start
+    ;;
+  control-key) cat "${operator_dir}/key" ;;
+  *) echo 'Usage: tools/dev-monitor {run [ROS_ARGS...]|start|stop|status|control-on|control-off|control-key}' >&2; exit 2 ;;
+esac

@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Panel } from "@/components/panel";
+import { ManipulationRequest } from "@/components/manipulation-request";
+import { OperatorControls } from "@/components/operator-controls";
 import { type Row, time } from "@/lib/monitor";
 import {
   Activity,
@@ -154,9 +156,22 @@ export function ManipulationDashboard({
   const observation = manipulationObservation(rows, timeAt, replay, connected);
   const { runtime, runs, topic, runtimeFresh, summary } = observation;
   const { mission, automatic } = missionExecutions(observation);
+  const pendingRequest =
+    observation.serverMode &&
+    observation.request?.execution_id &&
+    (observation.request.execution_id === runs[0]?.record.execution_id ||
+      observation.request.started_at_ns >
+        (runs[0]?.record.accepted_at_ns || 0));
   const selectedRun =
     runs.find((run) => run.record.execution_id === selected) ||
-    (mission ? automatic : runs[0]);
+    (pendingRequest
+      ? runs.find(
+          (run) =>
+            run.record.execution_id === observation.request!.execution_id,
+        )
+      : mission
+        ? automatic
+        : runs[0]);
   const record = selectedRun?.record || {};
   const current = currentExecution(selectedRun, observation);
   // Extrapolate only a correlated live observation; freeze stale/finished evidence.
@@ -176,7 +191,9 @@ export function ManipulationDashboard({
       ? "조작 기준 주행 조건 충족"
       : "조작 기준 주행 차단";
   const gateReason = !runtimeFresh
-    ? "Runtime 상태가 오래되었거나 수신되지 않았습니다."
+    ? observation.serverMode
+      ? "실물 조작 서버를 직접 관측하고 있습니다. 주행 판단은 Mission Runtime 연결 후 확인할 수 있습니다."
+      : "Runtime 상태가 오래되었거나 수신되지 않았습니다."
     : runtime.drive_block_reason ||
       runtime.reason ||
       "Runtime이 보고한 주행 조건을 표시합니다.";
@@ -429,6 +446,20 @@ export function ManipulationDashboard({
 
   return (
     <div className="manipulation-dashboard">
+      <OperatorControls
+        enabled={
+          rows.find((row) => row.kind === "config")?.data.control_enabled ===
+          true
+        }
+        connected={connected}
+        replay={replay}
+      />
+      {observation.serverMode && observation.request && (
+        <ManipulationRequest
+          request={observation.request}
+          fresh={observation.requestFresh}
+        />
+      )}
       <div className="manip-toolbar">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="manip-tabs">
@@ -458,9 +489,9 @@ export function ManipulationDashboard({
         <>
           <Panel title="조작 실행 기록 대기">
             <p className="manip-note">
-              현재 미션과 execution ID가 일치하는 서버 기록이 수신되면
-              단계·시간·결과를 표시합니다. 이전 실행은 기록에서 선택할 수
-              있습니다.
+              {observation.serverMode
+                ? "실물 조작을 실행하면 서버가 보고하는 단계·시간·결과를 표시합니다."
+                : "현재 미션과 execution ID가 일치하는 서버 기록이 수신되면 단계·시간·결과를 표시합니다. 이전 실행은 기록에서 선택할 수 있습니다."}
             </p>
             <code>{topic}</code>
             {executionPicker}

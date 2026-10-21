@@ -1,0 +1,11 @@
+{
+  "serial_port": "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00",
+  "baudrate": 1000000,
+  "encoder_period_ticks": 4096,
+  "maximum_step_ticks": 512,
+  "maximum_gap_seconds": 0.3,
+  "zero_max_span_ticks": 3,
+  "motor_ids": {"left_wrist_roll": 5},
+  "zero_prompt": "왼쪽 손목 5번을 영점으로 삼을 기준 자세에 맞추고 멈춘 뒤 Enter: ",
+  "range_prompt": "5번 손목 회전축만 실제 사용할 양쪽 끝까지 천천히 돌린 뒤 기준 자세로 돌아오세요."
+}

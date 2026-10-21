@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -eo pipefail
+tcp_repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source /opt/ros/humble/setup.bash
+source "${tcp_repo_root}/tools/scene-mapping-env" --optional
+source "${tcp_repo_root}/tools/ros2/cleany-install-env"
+if [[ -f "${CLEANY_INSTALL_BASE}/local_setup.bash" ]]; then
+    source "${CLEANY_INSTALL_BASE}/local_setup.bash"
+fi
+export PYTHONPATH="${tcp_repo_root}/ros2_ws/src/cleany_robot_interface:${tcp_repo_root}/ros2_ws/src/cleany_handeye_calibration:${tcp_repo_root}/ros2_ws/src/cleany_skill_executor:${tcp_repo_root}/tools/headcam:${PYTHONPATH:-}"
+exec /usr/bin/python3 "${tcp_repo_root}/tools/tcp_waypoints_cli.py" "$@"
