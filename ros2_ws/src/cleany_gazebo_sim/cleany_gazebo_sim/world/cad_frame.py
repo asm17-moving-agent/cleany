@@ -14,6 +14,7 @@ import yaml
 
 
 from cleany_navigation.urdf_geometry import rotation, rpy, origin, freeze, apply_simulation_geometry
+from cleany_gazebo_sim.world.wrist_cameras import apply_wrist_cameras
 
 
 def collision_bounds(urdf: ET.Element, transforms: dict[str, np.ndarray]) -> list[list[float]]:
@@ -124,12 +125,15 @@ def adapt_cad_frame(legacy: ET.Element, description: Path, config: Path) -> tupl
             model.append(frame)
     for sensor in legacy.findall('.//sensor'):
         sensor = deepcopy(sensor)
-        if sensor.get('name', '').startswith(('left_wrist', 'right_wrist')) and sensor.find('pose').get('relative_to') not in {f.get('name') for f in model.findall('frame')}:
-            continue
+        if sensor.get('name', '').startswith(('left_wrist', 'right_wrist')):
+            side = sensor.get('name').split('_')[0]
+            if f'{side}_gripper_frame' not in transforms:
+                continue
         if pan_enabled and sensor.get('name', '').startswith('head_realsense'):
             model.find("link[@name='head_pan_link']").append(sensor)
         else:
             base.append(sensor)
+    apply_wrist_cameras(model, description)
     for plugin in legacy.findall('plugin'):
         plugin = deepcopy(plugin)
         if plugin.get('name', '').endswith('MecanumDrive'):

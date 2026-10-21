@@ -11,6 +11,8 @@
 | `ros2_ws/src/<package>/test/`, `tests/` | 패키지 기능과 계약의 자동 검사 |
 | `ros2_ws/src/<package>/runtime_test/` | 해당 패키지의 명시 실행 smoke와 runtime 검사 |
 | `tests/integration/` | Backend, Mission 등 여러 구성 요소의 연동 검사 |
+| `tests/tools/` | 저장소 검증 도구의 자동 검사 |
+| `tools/validation/` | Simulator 실행과 영상·로그 수집 |
 
 패키지 내부에도 통합 검사가 있을 수 있습니다. 파일의 책임과 실행 조건으로 위치를 정하며, runtime CLI를 `tests/`에 넣었다고 pytest가 자동 실행하는 것은 아닙니다.
 
@@ -64,6 +66,33 @@ CI는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 runtime 의존성이 설치한 외�
 `make test`는 package test가 실패해도 `colcon test-result --verbose`로 실패 상세를 출력하고 실패 상태를 반환합니다.
 
 ## 선택 runtime과 UI
+
+### 카메라 영상 수집
+
+현재 workspace를 빌드한 뒤 `tools/validation/capture_cameras.py`로 실제 ROS
+카메라 영상을 수집합니다. 각 출력 경로는 아직 없는 새 디렉터리여야 합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source "$(make -s print-install-base)/local_setup.bash"
+python3 tools/validation/capture_cameras.py --backend mujoco \
+  --output /absolute/new-camera-run/mujoco
+python3 tools/validation/capture_cameras.py --backend gazebo --gazebo-model cad-with-arms \
+  --output /absolute/new-camera-run/gazebo
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tests/tools/test_capture_cameras.py
+```
+
+GUI가 없는 환경에서는 촬영 명령 앞에 `xvfb-run --auto-servernum`을 붙입니다.
+VM에서 GPU 렌더링이 불안정하면 `LIBGL_ALWAYS_SOFTWARE=1`을 지정합니다.
+Gazebo의 `--gazebo-model legacy`로 레거시 모델도 선택할 수 있습니다.
+
+도구는 head와 양손목 영상의 크기, encoding, frame, buffer 및 시뮬레이션 clock과
+상태 메시지를 확인하고 PNG, `report.json`, `launch.log`를 남깁니다. 누락, timeout과
+조기 종료는 실패 코드로 보고하고 실행한 프로세스 그룹을 종료합니다. 촬영 성공은
+전체 집기 미션의 성공을 뜻하지 않습니다. 기본 CAD 주행 프로파일은 팔을 제외하며,
+`cad-with-arms`는 촬영 검증에만 팔을 포함합니다.
+
+### 선택 실행 조건
 
 Gazebo package의 `--run-sim-runtime`, `--run-evaluation-tests`와 Mission core의 `CLEANY_RUN_ROS_TESTS=1`은 별도로 활성화하는 검사입니다. 실행 결과에서 통과와 skip을 구분합니다.
 

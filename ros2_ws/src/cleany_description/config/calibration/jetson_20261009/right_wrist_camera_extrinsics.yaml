@@ -1,0 +1,62 @@
+parent_frame: right_gripper_frame
+child_frame: right_wrist_camera_optical_frame
+xyz: -0.002251289042011332 -0.058722518317472931 0.061126069590575184
+rpy: -2.3653557875077453 0.062930955653555762 -3.0906153952068025
+parent_T_child:
+- - -0.9967240132315238
+  - 0.007643716959049722
+  - 0.08051593034110544
+  - -0.002251289042011332
+- - -0.0508543165725386
+  - 0.7148731822111926
+  - -0.6974024461106976
+  - -0.05872251831747293
+- - -0.06288942624626165
+  - -0.6992123475356462
+  - -0.7121425511231038
+  - 0.061126069590575184
+- - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+method: OpenCV PARK
+training_views: 20
+intrinsics_file: intrinsics/right_wrist.json
+status: provisional_20plus5_manual_stationary
+validation_views: 5
+validation:
+  reprojection_rmse_px:
+    mean: 0.18130510618054754
+    rms: 0.18941958238887358
+    max: 0.28599053445044537
+  board_position_error_mm:
+    mean: 8.776086108440007
+    rms: 8.895096343919075
+    max: 10.85173315190858
+  board_angle_error_deg:
+    mean: 1.7053185420967794
+    rms: 1.7392313118796876
+    max: 2.167817704192268
+  board_prediction_rmse_px:
+    mean: 13.857032734430959
+    rms: 15.21760716620595
+    max: 25.240848132979515
+training_views_without_manual_torque_hold: 3
+intrinsics_training_rms_px: 0.1873172080521103
+intrinsic_calibration_flags:
+- CALIB_FIX_K3
+model_sha256: b23db2d1e0a147b124a072d13b2d8b15b52b09a31a8d0de9e943c2b11bbf0436
+validation_reference: Fixed 20-view training mean; not refit on held-out views.
+stationary_host_bracket_verified: true
+hardware_exposure_synchronized: false
+absolute_calibration_verified: false
+note: Provisional static wrist-camera calibration from all 20 training views and 5 independent held-out
+  views. Three stationary training views lack manual torque hold; no images were excluded. Fixed k3=0
+  selected before validation because the free-k3 model folded at image corners. No held-out refit or outlier
+  exclusion. Board consistency is not measured absolute accuracy; pose-dependent arm deformation and fingertip
+  accuracy remain unverified.
+source_training_run: /home/cleany/.local/share/cleany/right_wrist_handeye/20261009_053422_079230
+source_validation_run: /home/cleany/.local/share/cleany/right_wrist_handeye/20261009_060200_205560
+source_training_report: /home/cleany/.local/share/cleany/right_wrist_handeye/20261009_053422_079230/analysis_20/calibration_report.json
+source_validation_report: /home/cleany/.local/share/cleany/right_wrist_handeye/20261009_053422_079230/analysis_20/validation_5/validation_report.json
+source_distortion_model_checks: /home/cleany/.local/share/cleany/right_wrist_handeye/20261009_053422_079230/analysis_20/distortion_model_checks.json
