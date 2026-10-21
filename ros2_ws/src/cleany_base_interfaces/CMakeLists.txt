@@ -5,6 +5,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/WheelCommand.msg"
   "msg/WheelState.msg"
+  "msg/ImuState.msg"
 )
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)

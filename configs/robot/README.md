@@ -42,3 +42,15 @@ base profile, LiDAR scan 옵션과 시작·종료 대기 시간을 포함한다.
 두 profile 원본은 `cleany_base_driver` package share에 설치된다. 같은 geometry를
 driver 역기구학과 wheel odometry에 전달한다. 필드, launch와 검증 방법은
 [`cleany_base_driver` README](../../ros2_ws/src/cleany_base_driver/README.md)를 따른다.
+
+## IMU
+
+- `imu_calibration.json`: MCU 부팅 보정의 안정화 시간, 샘플 수, timeout,
+  잡음 기준과 기존 측정 bias·covariance다. `make firmware-build`에서 검사하고
+  펌웨어에 포함한다. 변경 후 다시 빌드·업로드한다.
+- `imu_bringup.yaml`: PC 수신 node의 장치 MAC, 센서 frame과 수신 timeout이다.
+  PC는 MCU의 보정 결과를 그대로 발행하며 보정값을 재검사하거나 다시 적용하지 않는다.
+
+부팅 보정과 모터 구동 차단은 [펌웨어 README](../../esp32/README.md#power-on-calibration),
+ROS 토픽과 실행은
+[base driver README](../../ros2_ws/src/cleany_base_driver/README.md#imu-실시간-수신)를 따른다.

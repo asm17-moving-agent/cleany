@@ -61,6 +61,59 @@ USB carries framed XRCE-DDS traffic exclusively for the Agent. Agent reachabilit
 is checked every 100 ms with a 20 ms ping timeout. Failure latches STOP before
 entity teardown and reconnect.
 
+## Runtime MPU6050 telemetry
+
+The motor image also acquires MPU6050 data on J_I2C1 (SDA GPIO41, SCL GPIO42),
+using the existing driver: 100 kHz I2C, 100 Hz sensor sampling, ±250 deg/s gyro,
+±2 g accelerometer and 42 Hz gyro DLPF. Module/external I2C pull-ups are required.
+
+The independent priority-2 acquisition task polls data-ready every 2 ms. It does
+not take `motorMutex`. The priority-6 motor and priority-4 communication tasks
+remain separate. A one-entry overwrite queue drops intermediate data if
+communication stalls; reconnect does not drain a sample backlog.
+
+The communication task publishes fixed-size `ImuState` on `base/imu_state`,
+best effort / volatile / keep last 1, driven by newly acquired samples up to
+the sensor rate. WheelState remains at 50 Hz. Actual rates and motor timing
+under combined USB/I2C load require robot measurements.
+
+Packets carry uncalibrated sensor-frame SI vectors, temperature, MCU MAC,
+WHO_AM_I, boot ID, packet sequence, MCU acquisition timestamp and fault bits.
+ImuState v2 also carries MCU-corrected gyro, the selected bias/covariance,
+and calibration state/reason. Build the ROS interfaces and firmware together.
+Acquisitions older than 100 ms and duplicate/backward timestamps are not sent
+as new measurements. Missing/error data produces a sensor-fault heartbeat
+at most 10 Hz; saturation has its own fault bit. Initialization/read errors
+retry with 250 ms to 5 s backoff. IMU I2C failure does not authorize motors.
+
+### Power-on calibration
+
+The acquisition task calibrates once per MCU boot, independently of the Agent.
+Defaults are 5 s settling, 1,000 training samples and 500 holdout samples, with
+a 25 s deadline. It reuses the existing online gyro statistics. Noise/residual
+failure, sensor/sample errors or timeout select the saved bench coefficients.
+The selection remains fixed until MCU reboot, including across Agent reconnects.
+
+During calibration, motor PWM stays zero, PID updates are skipped and non-STOP
+commands are discarded. Completion only releases this inhibit; a fresh ENABLE
+is still required. STOP, watchdog and disconnect handling remain active.
+Fallback can release the calibration inhibit even if the sensor is unavailable;
+sensor errors are still reported, and no angular-rate samples are fabricated.
+
+Edit [`configs/robot/imu_calibration.json`](../configs/robot/imu_calibration.json)
+to configure timing, windows, checks and measured fallback bias/covariance.
+`make firmware-build` validates it and generates `cleany_config/imu_startup_config.hpp`
+inside the PlatformIO build directory. The configuration is compiled into the
+image; changes require rebuilding and uploading. Runtime checks samples and
+observed statistics. A single acquisition-side enqueue helper attaches calibration
+metadata and releases the boot inhibit on completion. The IMU task uses 6144 bytes
+of stack for online statistics.
+
+ROS topics and status are documented under
+[IMU 실시간 수신](../ros2_ws/src/cleany_base_driver/README.md#imu-실시간-수신).
+The standalone [diagnostic](imu_calibration/README.md) provides bench reports;
+normal startup calibration is part of the motor image.
+
 ## 휠별 초기 PI + FF 보정값
 
 2026-10-02, 네 바퀴를 공중에 띄운 상태에서 **네 바퀴를 동시에** 정·역방향으로
@@ -123,6 +176,11 @@ make micro-ros-agent-build
 Make uses Ubuntu 22.04 `ros2-humble` Distrobox when invoked from the host.
 Sources and tool versions are pinned in `micro_ros.lock.json`. Interfaces are
 generated from `ros2_ws/src/cleany_base_interfaces`.
+
+`cmake/microros_python.cmake` exposes the pinned generator modules to IDF's
+Python during CMake configuration. PlatformIO clears the process `PYTHONPATH`
+before this step, so the SCons environment alone does not cover a fresh
+micro-ROS/type-support rebuild. Runtime and smoke projects share this helper.
 
 Smoke and runtime share a library cache and build sequentially. Changes to
 interfaces, metadata, or build environment regenerate type support.

@@ -13,7 +13,8 @@ class PytestSuite(unittest.TestCase):
             ['/usr/bin/python3', '-m', 'pytest', '-q',
              str(root / 'test_core.py'), str(root / 'test_profiles.py'),
              str(root / 'test_mock_gate.py'), str(root / 'test_graph.py'),
-             str(root / 'test_monitor_launch.py')],
+             str(root / 'test_monitor_launch.py'), str(root / 'test_imu_core.py'),
+             str(root / 'test_imu_graph.py')],
             cwd=root.parent, env=env, text=True, capture_output=True,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

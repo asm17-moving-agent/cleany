@@ -11,8 +11,9 @@
 |---|---|---|
 | `base/wheel_command` | `WheelCommand` | ROS adapter → MCU |
 | `base/wheel_state` | `WheelState` | MCU → ROS adapter |
+| `base/imu_state` | `ImuState` | MCU → IMU adapter |
 
-두 토픽은 best effort, volatile, keep last 1이며 명령과 피드백은 50 Hz다.
+Wheel 두 토픽은 best effort, volatile, keep last 1이며 명령과 피드백은 50 Hz다.
 배열 순서는 **FL, FR, RL, RR**이다. MCU만 PCB 순서 M1, M2, M4, M3로 변환하고
 모터와 encoder 극성을 적용한다. ROS가 부호를 다시 반전하지 않는다.
 각도는 출력축 rad, 속도는 출력축 rad/s, encoder는 signed int32 누적 count,
@@ -85,3 +86,31 @@ make firmware-smoke firmware-build
 펌웨어와 Agent 준비는
 [`esp32/README.md`](../../../esp32/README.md)와
 [`docs/DEVELOPMENT_SETUP.md`](../../../docs/DEVELOPMENT_SETUP.md)를 따른다.
+
+## IMU telemetry v2
+
+`ImuState`는 WheelState v2와 별개의 고정 크기 메시지다. `base/imu_state`는
+best effort, volatile, keep last 1이다. MPU6050의 100 Hz 취득 결과를 최신값
+mailbox에서 소비해 발행하며, 연결 지연 중 누락된 샘플은 재전송하지 않는다.
+
+- `angular_velocity_rad_s[3]`와 `acceleration_mps2[3]`는 센서 축 X/Y/Z의
+  보정 전 SI 값이며 `temperature_c`는 섭씨다.
+- `protocol_version=2`, `who_am_i=0x68`이다. Sensor fault bit는 1,
+  saturation bit는 2다. 정상 측정이 없으면 최대 10 Hz fault heartbeat를 보낸다.
+- 정상 패킷의 `timestamp_us`는 MCU acquisition 시각이고 ROS epoch가 아니다.
+  Fault 패킷은 오류 보고 시각을 사용하므로 측정으로 적분하지 않는다.
+- `boot_id`는 WheelState와 같은 MCU 부팅 ID다. `sequence`는 발행 패킷마다
+  증가하며, 수신자는 동일 부팅 내 중복, 역순과 역행 시각을 거부한다.
+- `device_mac[6]`는 ESP32의 MAC이다. 교체 가능한 MPU6050 칩의 고유 ID는 아니다.
+- `calibration_state`는 `CALIBRATING=0`, `RUNNING=1`, `FALLBACK=2`다.
+  MCU 부팅 때 한 번 결정하며 Agent/ROS 재시작으로 보정을 재실행하지 않는다.
+- `calibration_reason`은 `NONE=0`, `TIMEOUT=1`, `SENSOR=2`, `UNSTABLE=3`,
+  `SAMPLE=4`다. Runtime 상태와 오류 보고용이며 측정값 자체를 대신하지 않는다.
+- `corrected_angular_velocity_rad_s[3]`는 MCU가 bias를 제거한 각속도다.
+  `gyro_bias_rad_s[3]`, `gyro_covariance_rad2_s2[9]`와 함께 전달한다.
+  `RUNNING` 또는 `FALLBACK`일 때만 사용하며 raw vector는 그대로 보존한다.
+
+센서 오류 패킷과 원본 acceleration은 이 토픽을 기록해 보존한다.
+Gyro-only ROS 변환, MCU 부팅 보정과 기존 측정값 fallback은
+[`cleany_base_driver`](../cleany_base_driver/README.md#imu-실시간-수신)를 따른다.
+v1과 payload가 다르므로 펌웨어와 ROS 인터페이스를 함께 빌드한다.
