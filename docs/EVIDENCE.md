@@ -66,6 +66,27 @@ Gazebo의 `test_cad_frame.py` 6개도 통과했다. SDFormat 12.9.0과 스키마
 이 검증은 모델 변환 검사이며 Gazebo 동적 실행이나 실물 구동 검증은 아니다.
 원본 로그와 JUnit은 데이터 루트의 `reports/pr58-fix-20261021/`에 보관한다.
 
+### 2026-10-21 v8 손목 마운트 반영 검증
+
+검증 코드는 `b6d52578f8e18f9a082cbb43cb2e56f6d8ebd902`다. Jetson의 같은
+HEAD와 최신 미커밋 작업에서 v8 마운트만 선별했다. 메시 16개, 형상 JSON,
+독립 MJCF와 xacro는 원본 바이트와 일치한다. 실제 보정 YAML 두 개도 이전
+수집본과 동일하며, 이번에 hand-eye 보정을 다시 수행하지 않았다.
+
+Ubuntu 22.04 / ROS 2 Humble / Python 3.10.12 / MuJoCo 3.11.0에서 별도
+`/tmp/cleany-pr58-wrist-20261021` 사본과 `/tmp/cleany-pr58-wrist-output` 빌드
+경로를 사용했다. Description 파일 121개가 로컬 코드와 SHA-256으로 일치한다.
+루트 `make build`로 description과 MoveIt config 빌드를 통과했고,
+`colcon test`에서 모델 정합성 46개, 보정 프로파일 10개, 마운트 자산 검사 1개,
+MoveIt 설정 및 collision 계약 18개가 통과했다. 검사에는 좌우 30개 충돌
+primitive의 배치와 크기, m/mm 단위, 실측 기준 치수와 원본 hash를 포함한다.
+
+MoveIt mock 실행 1개는 앞서 `main`에서도 재현한 동일 Pilz LIN 단계에서
+`ABORTED`로 실패했다. 이번 검사의 전체 colcon 결과는 이 실패를 포함한다.
+새 마운트의 실물 간섭 여유, 카메라 정확도와 로봇 동작은 검증하지 않았다.
+원본 로그, JUnit과 파일 manifest는 데이터 루트의
+`reports/pr58-wrist-20261021/`에 보관한다.
+
 | 데이터 루트 아래 경로 | 내용 |
 |---|---|
 | `fixtures/cad-fortress-command-hold/` | 과거 시나리오 입력 |
