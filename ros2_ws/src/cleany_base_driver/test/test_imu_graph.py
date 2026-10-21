@@ -11,7 +11,7 @@ os.environ['ROS_DOMAIN_ID'] = os.environ.get('BASE_TEST_ROS_DOMAIN_ID', '173')
 import rclpy
 from cleany_base_interfaces.msg import ImuState
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import SingleThreadedExecutor
 from rclpy.parameter import Parameter
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from sensor_msgs.msg import Imu
@@ -80,7 +80,8 @@ def test_gyro_relay_calibration_reboot_and_fault_recovery():
         ))
 
     timer = monitor.create_timer(.01, emit)
-    executor = MultiThreadedExecutor(num_threads=2)
+    # Scheduler contention must not look like delayed MCU telemetry.
+    executor = SingleThreadedExecutor()
     executor.add_node(driver)
     executor.add_node(monitor)
     thread = threading.Thread(target=executor.spin, daemon=True)
