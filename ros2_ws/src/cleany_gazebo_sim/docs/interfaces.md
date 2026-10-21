@@ -112,3 +112,14 @@ Pan feedback에서 head camera TF를 발행한다. Frame 이름과 장착 geomet
 QoS를 지정하지 않은 행은 설치된 bridge 기본값을 따른다. `/clock`과 `/joint_states`의 raw 입력은 `gazebo_feedback_sampler`가 정규 토픽으로 다시 발행한다. `bridge_config` override는 sampler와 이 remap을 사용하지 않고 지정 YAML로 단일 `gazebo_override_bridge`를 만든다.
 
 `bridge.yaml`, `navigation_bridge.yaml`은 별도 통합 설정이며 위 profile 표와 동시에 활성화되는 것은 아니다. Gazebo wire type은 Fortress의 `ignition.msgs`를 사용한다. 서비스와 액션 bridge는 현재 설정에 없다.
+
+생성된 Gazebo world의 손목 카메라는 description의
+`config/geometry/wrist_mount_v8.json`에서 렌즈 위치와 광학 방향을 읽는다.
+Gazebo의 +X 전방 축을 optical frame의 +Z 전방 축으로 변환하며, SDF의
+`*_wrist_rgb_optical_frame`도 같은 위치와 방향을 사용한다. 이 SDF frame은
+ROS TF 발행을 추가하지 않는다. 레거시 모델은 이전 카메라 케이스 visual을
+공유 v8 visual 6개로 교체하고 기존 주행용 상체 충돌 envelope를 유지한다.
+CAD 모델은 URDF의 v8 visual/collision을 사용한다. 기본 CAD 주행 설정은
+양팔과 손목 센서를 제외하며, 팔을 포함한 설정에서만 손목 센서가 생성된다.
+Gazebo의 기존 손목 RGB 계약은 640×360이고 MuJoCo의 640×480과 별도다.
+원본 SDF는 입력 템플릿이므로 launch 또는 world generator로 생성해 실행한다.

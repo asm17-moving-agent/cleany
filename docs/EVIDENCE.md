@@ -87,6 +87,35 @@ MoveIt mock 실행 1개는 앞서 `main`에서도 재현한 동일 Pilz LIN 단�
 원본 로그, JUnit과 파일 manifest는 데이터 루트의
 `reports/pr58-wrist-20261021/`에 보관한다.
 
+### PR 58 카메라 수정 후속 검증 (2026-10-22)
+
+기준은 PR 58의 `f8ffd75f741b8da9087de87b01d4ad5ea968ea37`과
+`fix/pr58-wrist-camera-pose`의 미커밋 변경이다. MuJoCo의 렌더링 카메라와
+optical body/site, sorting 카메라 설정을 v8 마운트 등록 위치·방향에 맞췄다.
+Gazebo 레거시 및 팔 포함 CAD 모델도 같은 등록을 사용한다. 손목 마운트의
+시야 가림과 좌표계 회귀 검사를 패키지 테스트로 등록했다.
+
+CI 최적화는 PR 61에서 관리하며, 이 변경은 workflow, Makefile과 CI 인프라를
+수정하지 않는다. 기존 모델 검사의 xacro 캐시와 Base 검사 등록 변경도 포함하지
+않는다. 재촬영은 `tools/validation/capture_cameras.py`를 명시 실행한다.
+
+Ubuntu 22.04 arm64, ROS Humble에서 별도 `builds/pr58-camera-only/` 경로에
+관련 6개 패키지를 빌드했다. 최초 선택 빌드는 설치되지 않은 Navigation의
+package 환경 파일 때문에 실패했다. Navigation C++ 의존성은 기존과 같이
+충족되지 않아 선택 빌드에서 제외하고 촬영에 필요한 Python 소스만 PYTHONPATH로
+제공했다. 최초 pytest도 description overlay를 source하지 않아 실패했으며,
+새 빌드 overlay를 적용한 최종 description 65개, Gazebo 손목 2개와 도구 9개가
+통과했다. 전체 workspace 빌드와 주행 검증을 뜻하지 않는다.
+
+Xvfb/GLX와 software rendering에서 MuJoCo 및 팔 포함 Gazebo CAD의 실제
+head/양손목 카메라 촬영을 통과했다. Xvfb는 기존 `pr58-test-cleanup/xvfb-bin`
+링크로 추출된 실행 파일을 사용했다. 이 수정은 최신 main `254ffc4`와 함께
+임시 worktree에서 충돌 없이 적용됐으며, 원격 CI는 실행하지 않았다.
+원본 실패·성공 로그, JUnit, 카메라 PNG와 JSON, 변경 manifest는 데이터 루트의
+`reviews/pr58-camera-only/`에 있다. 앞선 전체 backend 검증 원본은
+`reviews/pr58-all-backends/`, CI 통합 비교 원본은 `reviews/pr58-pr61-preserved/`에
+별도로 보존한다.
+
 | 데이터 루트 아래 경로 | 내용 |
 |---|---|
 | `fixtures/cad-fortress-command-hold/` | 과거 시나리오 입력 |

@@ -84,6 +84,10 @@ OctoMap. The fixed-jaw motor remains visual-only in MJCF and has a matching URDF
 collision mesh. The v8 wrist mounts use six visuals and fifteen collision
 primitives per wrist in both backends, replacing the old camera-case meshes.
 Their rigid geometry is attached to the gripper independently of optical TFs.
+The simulated wrist cameras and optical sites/bodies use the v8 geometry
+registration's lens centre and CV axes. The camera renderer reverses optical
+Y/Z to use its -Z viewing convention. Sorting's nominal wrist transform config
+matches this pose; the measured Jetson calibration profile remains independent.
 Regression checks compare visual and collision poses, dimensions and colors
 across backends; motor translation comparisons allow `2e-6` m for CAD rounding.
 Existing CAD files are reused without regenerating assets or changing joint
@@ -101,8 +105,8 @@ arm and gripper configurations in both URDF entrypoints, in addition to the
 fixed jaws and TCPs. The `1e-5` tolerance accommodates rounded MJCF CAD angles;
 this is simulation-model parity, not a measured hardware calibration.
 
-Run `make test-grasp-pregrasp` from the repository root to build the relevant
-packages and check the entire model parity suite, including randomized arm/TCP,
+Run `make test` from the repository root to build the workspace and check
+the model parity suite, including randomized arm/TCP,
 moving-jaw and head-camera FK. The simulation tests also compare the configured
 wrist optical transforms against the MJCF camera sites. URDF entrypoint geometry
 is compared with `include_wheel_joints:=false` on both sides: the default mobile

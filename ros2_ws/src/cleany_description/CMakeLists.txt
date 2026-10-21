@@ -13,6 +13,7 @@ if(BUILD_TESTING)
   ament_add_pytest_test(model_parity test/test_model_parity.py TIMEOUT 300)
   ament_add_pytest_test(camera_calibration test/test_camera_calibration.py)
   ament_add_pytest_test(wrist_mount_assets test/test_wrist_mount_assets.py)
+  ament_add_pytest_test(wrist_cameras test/test_wrist_cameras.py)
 endif()
 
 ament_package()

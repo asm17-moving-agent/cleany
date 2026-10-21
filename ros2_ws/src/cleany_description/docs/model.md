@@ -58,7 +58,14 @@ Jetson에 적용된 v8 마운트를 양쪽 `*_gripper_frame`에 붙인다. 기�
 
 형상의 추정 광학 좌표와 `jetson_20261009` 실측 외부 보정은 별도다. Jetson의
 보정 파일은 이전 수집본과 동일하며 이번 형상 반영으로 보정 정확도를 새로 검증한
-것은 아니다. Canonical MuJoCo 카메라와 optical site는 기존 명목값을 유지한다.
+것은 아니다. Canonical MuJoCo 카메라와 optical site/body는 형상 설정의
+`legacy_jaw_from_camera_cv_approximate`를 따라 v8 렌즈 중심과 방향에 맞춘다.
+MuJoCo 카메라의 -Z 촬영 방향과 optical frame의 +Z 전방을 변환하며,
+시뮬레이션 내부 보정 계약인 640×480, 수직 FOV 93°는 유지한다.
+`cleany_mujoco_sim/config/sorting_wrist_cameras.yaml`도 같은 광학 변환을 사용한다.
+Gazebo world generator도 이 형상 설정에서 손목 촬영 위치와 방향을 읽고,
+렌더러의 +X 전방 축으로 변환한다. CAD의 팔 제외 설정에서는 손목 센서를
+추가하지 않는다. 레거시 모델의 카메라 케이스 visual도 공유 v8 형상을 사용한다.
 실제 장착 위치가 보정 당시와 달라졌다면 기존 보정값의 유효성을 재확인해야 한다.
 
 독립 형상 미리보기는 다음 명령으로 연다. 독립 모델의 추정 관성과 카메라 설정은

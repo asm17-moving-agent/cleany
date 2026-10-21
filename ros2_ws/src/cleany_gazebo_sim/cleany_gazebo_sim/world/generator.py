@@ -279,12 +279,14 @@ def materialize_mecanum_wheel_world(
     render_engine.text = sensor_render_engine
     _freeze_folded_arms(robot)
     _collapse_fixed_upper_body(robot)
+    from ament_index_python.packages import get_package_share_directory
+    from cleany_gazebo_sim.world.wrist_cameras import apply_wrist_cameras
+    description = Path(get_package_share_directory('cleany_description'))
     model_metadata = None
     if robot_model == 'cad_frame':
-        from ament_index_python.packages import get_package_share_directory
         from cleany_gazebo_sim.world.cad_frame import adapt_cad_frame
         new_robot, model_metadata = adapt_cad_frame(
-            robot, Path(get_package_share_directory('cleany_description')),
+            robot, description,
             template_path.parent.parent/'config/cad_frame.yaml',
         )
         root.find('world').remove(robot)
@@ -292,6 +294,8 @@ def materialize_mecanum_wheel_world(
         robot = new_robot
     elif robot_model != 'legacy':
         raise ValueError(f'Unknown robot model: {robot_model}')
+    else:
+        apply_wrist_cameras(robot, description, legacy_visuals=True)
     for visual in robot.findall('.//visual'):
         flags = visual.find('visibility_flags')
         if flags is None:

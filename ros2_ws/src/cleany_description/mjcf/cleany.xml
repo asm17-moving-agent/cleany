@@ -186,12 +186,13 @@
                         <inertial mass="1e-09" fullinertia="1e-09 1e-09 1e-09 -4.23522244606e-31 -4.25331005726e-30 1.57772168441e-30" pos="-6.61021018312e-12 2.38753461484e-12 1.79958549407e-06" />
                       </body>
                     </body>
-                    <body name="left_wrist_rgb_optical_frame" pos="-0.00387202 -0.01367 0.06494" quat="0.382116765679 0.594970780241 0.597856496624 -0.377576690873">
+                    <body name="left_wrist_rgb_optical_frame" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0 0 -0.9171950194878352 0.39843857271442656">
                       <inertial mass="1e-09" fullinertia="1e-09 1e-09 1e-09 -3.37370805697e-27 6.03357851998e-25 -1.04115093529e-27" pos="-1.01365842617e-06 5.04782112276e-09 -6.63147172246e-07" />
                     </body>
-                    <body name="Left_Arm_Camera" pos="0 -0.022 0.05" euler="1.5708 -1.5708 0">
-                      <site name="left_wrist_rgb_optical_frame" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 -0.00690 0.00322 -0.99997" size="0.005" rgba="1 0 0 0" />
-                      <camera name="left_wrist_rgb" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 0.00690 -0.00322 0.99997" fovy="93" />
+                    <!-- v8 geometry registration; CV +Z forward, renderer -Z forward. -->
+                    <body name="Left_Arm_Camera" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0.39843857271442656 0.9171950194878352 0 0">
+                      <site name="left_wrist_rgb_optical_frame" pos="0 0 0" quat="0 0 0 1" size="0.005" rgba="1 0 0 0" />
+                      <camera name="left_wrist_rgb" pos="0 0 0" quat="0 0 1 0" fovy="93" />
                     </body>
                     <geom name="left_wrist_mount_v8_mount_visual" type="mesh" mesh="wrist_mount_v8_mount" rgba=".38 .08 .66 1" group="2" contype="0" conaffinity="0" density="0" />
                     <geom name="left_wrist_mount_v8_case_back_collision" type="box" pos="0.00123088555759804 -0.0489895729952997 0.055450135462964" size="0.02105 0.02535 0.002" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
@@ -278,12 +279,13 @@
                         <inertial mass="1e-09" fullinertia="1e-09 1e-09 1e-09 -6.13231448667e-39 -4.28249991409e-30 1.54074395554e-33" pos="-8.89180305844e-15 5.9957624125e-17 2.43449062652e-09" />
                       </body>
                     </body>
-                    <body name="right_wrist_rgb_optical_frame" pos="-0.00387202 -0.01267 0.06494" quat="0.382116765679 0.594970780241 0.597856496624 -0.377576690873">
+                    <body name="right_wrist_rgb_optical_frame" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0 0 -0.9171950194878352 0.39843857271442656">
                       <inertial mass="1e-09" fullinertia="1e-09 1e-09 1e-09 -3.7862833647e-27 7.14569423757e-25 3.35665116041e-28" pos="-1.36803160262e-09 6.81718570483e-12 -8.95590072589e-10" />
                     </body>
-                    <body name="Right_Arm_Camera" pos="0 -0.021 0.05" euler="1.5708 -1.5708 0">
-                      <site name="right_wrist_rgb_optical_frame" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 -0.00690 0.00322 -0.99997" size="0.005" rgba="1 0 0 0" />
-                      <camera name="right_wrist_rgb" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 0.00690 -0.00322 0.99997" fovy="93" />
+                    <!-- Same v8 mount and optical registration on both fixed jaws. -->
+                    <body name="Right_Arm_Camera" pos="0.0012308855575980408 -0.05668501651548681 0.0549" quat="0.39843857271442656 0.9171950194878352 0 0">
+                      <site name="right_wrist_rgb_optical_frame" pos="0 0 0" quat="0 0 0 1" size="0.005" rgba="1 0 0 0" />
+                      <camera name="right_wrist_rgb" pos="0 0 0" quat="0 0 1 0" fovy="93" />
                     </body>
                     <geom name="right_wrist_mount_v8_mount_visual" type="mesh" mesh="wrist_mount_v8_mount" rgba=".38 .08 .66 1" group="2" contype="0" conaffinity="0" density="0" />
                     <geom name="right_wrist_mount_v8_case_back_collision" type="box" pos="0.00123088555759804 -0.0489895729952997 0.055450135462964" size="0.02105 0.02535 0.002" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />

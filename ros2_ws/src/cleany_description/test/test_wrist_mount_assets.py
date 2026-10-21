@@ -24,8 +24,9 @@ def triangles(path: Path) -> np.ndarray:
     return result
 
 
-def verify(package: Path) -> dict:
+def test_wrist_mount_assets() -> None:
     """Check units, measured datums, source hashes and standalone frame placement."""
+    package = Path(__file__).resolve().parents[1]
     config = json.loads((package / 'config/geometry/wrist_mount_v8.json').read_text())
     asset_dir = package / 'meshes/wrist_mount_v8'
     for folder, key in ((asset_dir, 'combined_mesh_sha256'),
@@ -113,16 +114,3 @@ def verify(package: Path) -> dict:
     camera = model.camera('registered_wrist_rgb').id
     cv_rotation = data.cam_xmat[camera].reshape(3, 3) @ np.diag([1., -1., -1.])
     np.testing.assert_allclose(cv_rotation, jaw_from_cv[:3, :3], atol=1e-12)
-    return {'status': 'passed', 'mujoco_version': mujoco.__version__,
-            'asset_hashes': len(config['source_component_sha256']) + len(config['combined_mesh_sha256']),
-            'purple_components': len(purple), 'purple_triangles': len(combined),
-            'checks': ['binary STL integrity and hashes', 'm/mm equivalence',
-                       'component-to-merged geometry transform', 'four user-measured datums',
-                       'canonical fixed-jaw attachment and mesh identity',
-                       'portable MJCF references and compilation', 'camera and optical-site transforms'],
-            'scope': 'Geometry and file portability; no hardware, sensor calibration or robot dynamics validation.'}
-
-
-
-def test_wrist_mount_assets() -> None:
-    verify(Path(__file__).resolve().parents[1])

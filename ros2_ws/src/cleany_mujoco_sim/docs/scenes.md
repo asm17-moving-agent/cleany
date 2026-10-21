@@ -60,8 +60,11 @@ MoveIt에 등록한다. 함의 탈착·체결부 강도·배선 여유는 모델
 사용한다. 센서 RGB-D는 640×480과 원래 그림자를 유지한다. 전체 native MuJoCo UI는
 `sim_viewer:=native`로 선택한다. 설정·조작법은
 [`cleany_mujoco_observer`](../../cleany_mujoco_observer/README.md#gui-렌더링)를 따른다.
-`config/sorting_wrist_cameras.yaml`은 양팔 RGB optical frame의 nominal CAD 장착값이다.
-수거 launch의 TF 입력이며 실제 로봇에서 측정한 hand-eye calibration이 아니다.
+`config/sorting_wrist_cameras.yaml`은 양팔 RGB optical frame의 v8 형상 기반 장착값이다.
+Description의 `config/geometry/wrist_mount_v8.json`에 저장된 렌즈 중심과 광학 방향을
+canonical MJCF 카메라 및 optical site/body와 공유한다. 수거 launch는 이 변환으로
+손목 영상의 좌표를 gripper 좌표에 연결한다. 실제 로봇의 hand-eye 보정은 별도이며,
+시뮬레이션 영상 계약은 기존 640×480, 수직 FOV 93°를 유지한다.
 
 전체 ROS runtime의 clock 진행률·RGB-D 수신 빈도·process tree CPU는 다음으로 측정한다.
 측정기는 warmup 이후 JSON과 별도 launch log를 저장하고, 완료·실패·중단 시 자신이
