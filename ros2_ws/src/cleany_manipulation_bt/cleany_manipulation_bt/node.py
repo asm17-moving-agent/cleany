@@ -56,6 +56,7 @@ class MujocoManipulationNode(ManipulationNode):
                                   timeout_sec=float(self.get_parameter('bt_operation_timeout_sec').value),
                                   stop_timeout_sec=float(self.get_parameter('bt_stop_timeout_sec').value) + 2.)
         self._handle = self._result_future = None
+        self._closing = False
         self._futures = {}
         group = ReentrantCallbackGroup()
         qos = QoSProfile(depth=100, reliability=ReliabilityPolicy.RELIABLE,
@@ -64,11 +65,12 @@ class MujocoManipulationNode(ManipulationNode):
         self._bt_events = self.create_publisher(String, 'manipulation/bt_transitions', qos)
         self._service = self.create_service(GetManipulationExecution, 'manipulation/get_execution', self._get,
                                             callback_group=group)
-        self._action = ActionServer(self, ExecuteManipulationSkill, 'manipulation/execute_skill',
+        action_name = self.resolve_topic_name('manipulation/execute_skill')
+        self._action = ActionServer(self, ExecuteManipulationSkill, action_name,
                                     execute_callback=self._execute, goal_callback=self._goal,
                                     handle_accepted_callback=self._accepted, cancel_callback=self._cancel,
                                     callback_group=group)
-        self._setup_cancel_service(group)
+        self._setup_cancel_service(group, action_name)
         self.monitor = LiveMonitor()
         # Even the idle tree is a real native tree. It is never ticked or used
         # for motion until an accepted execution creates its own context.
@@ -87,6 +89,8 @@ class MujocoManipulationNode(ManipulationNode):
 
     def _tick(self) -> None:
         with self.core.lock:
+            if self._closing:
+                return
             if self.core.record is not None:
                 super()._tick()
             if self.core.tree is not None:
@@ -110,17 +114,20 @@ class MujocoManipulationNode(ManipulationNode):
                 self.socket.send_multipart(self.monitor.reply(frames))
 
     def destroy_node(self):
-        self._timer.cancel()
-        self._action.destroy()
-        # Shutdown only halts work; the ACTIVE record remains for recovery.
-        if self.core.tree is not None and self.core.record.result is None:
-            self.core.tree.halt()
+        with self.core.lock:
+            self._closing = True
+            self._timer.cancel()
+            self._action.destroy()
+            # Shutdown only halts work; the ACTIVE record remains for recovery.
+            if self.core.tree is not None and self.core.record.result is None:
+                self.core.tree.halt()
         self.backend.close()
         if self.operations is not None:
             self.operations.destroy_node()
         self.socket.close()
         self.zmq_context.term()
-        self.store.close()
+        with self.core.lock:
+            self.store.close()
         return Node.destroy_node(self)
 
 

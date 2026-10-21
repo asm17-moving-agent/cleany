@@ -947,6 +947,38 @@ footer {
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
 }
+.graph-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.graph-toolbar-actions .badge {
+  max-width: 100%;
+}
+.bt-execute-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.bt-execute-label svg {
+  color: var(--info-text);
+  transition: transform 0.15s;
+}
+.bt-execute-label svg.is-open {
+  transform: rotate(180deg);
+}
+@media (max-width: 700px) {
+  .graph-toolbar {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .graph-toolbar-actions {
+    justify-content: flex-start;
+  }
+}
 .execution-canvas .flow {
   margin: 0;
   height: clamp(430px, 65vh, 850px);
@@ -1055,6 +1087,100 @@ footer {
   margin: 0;
   font-size: 12px;
   line-height: 1.3;
+}
+
+.bt-node-kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.2;
+}
+.bt-node-order {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: 10px;
+  font-weight: 600;
+}
+.bt-node-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bt-visited {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.bt-guide {
+  border-top: 1px solid var(--border);
+  padding: 14px 16px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.bt-guide p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+}
+.bt-guide strong {
+  color: var(--foreground);
+  font-weight: 500;
+}
+.bt-guide .bt-legend {
+  margin: 8px 0;
+  gap: 8px 16px;
+}
+.bt-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.bt-legend i {
+  width: 7px;
+  height: 7px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+.bt-legend .running {
+  color: var(--info-text);
+  background: var(--info-bg);
+}
+.bt-legend .success {
+  color: var(--good-text);
+  background: var(--good-bg);
+}
+.bt-legend .failure {
+  color: var(--bad-text);
+  background: var(--bad-bg);
+}
+.bt-legend .invalid {
+  color: var(--muted-foreground);
+}
+.bt-legend .visited {
+  border-radius: 50%;
+  background: currentColor;
+  width: 5px;
+  height: 5px;
+}
+.bt-node-explanation {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.bt-node-explanation p {
+  margin: 10px 0;
 }
 
 /* State-chart styling: quiet canvas, rounded states, explicit transition arrows. */

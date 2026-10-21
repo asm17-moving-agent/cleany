@@ -100,10 +100,14 @@ class Goal:
     destination_id: str
 
     def valid(self) -> bool:
-        return (all(value.strip() for value in (
-            self.mission_id, self.task_id, self.execution_id, self.snapshot_id,
-            self.destination_id,
-        )) and self.skill_name in ('collect_trash', 'collect_lost_item') and 0 < self.object_id <= 0xffffffff)
+        return (
+            all(isinstance(value, str) and value.strip() for value in (
+                self.mission_id, self.task_id, self.execution_id, self.snapshot_id,
+                self.destination_id,
+            ))
+            and self.skill_name in ('collect_trash', 'collect_lost_item')
+            and type(self.object_id) is int and 0 < self.object_id <= 0xffffffff
+        )
 
 
 @dataclass(frozen=True)

@@ -44,6 +44,27 @@ def record_message(record: Record) -> ManipulationExecutionRecord:
 
 
 class ManipulationNode(Node):
+    """Generate Mock manipulation evidence for one active execution.
+
+    Actions:
+        manipulation/execute_skill (ExecuteManipulationSkill): Single-object
+            execution server; remapping also applies to the cancel client.
+
+    Services:
+        manipulation/get_execution (GetManipulationExecution): Latest execution
+            evidence, including history loaded at startup.
+        manipulation/cancel (CancelManipulation): Forward a selected mode to
+            the exact active ROS Goal UUID through its CancelGoal service.
+
+    Publishers:
+        manipulation/execution_events (ManipulationExecutionRecord): Changed
+            records; reliable, transient-local, depth 100.
+
+    Notes:
+        Names are relative defaults. Steady-clock ticks do not depend on /clock.
+        Records use wall timestamps. No physical commands or TF are published.
+    """
+
     def __init__(self, **kwargs) -> None:
         super().__init__('manipulation_server', **kwargs)
         self.declare_parameter('backend', 'mock')
@@ -62,6 +83,7 @@ class ManipulationNode(Node):
             self.store.close()
             raise
         self._handle = None
+        self._closing = False
         self._result_future: Future | None = None
         self._futures: dict[str, Future] = {}
         group = ReentrantCallbackGroup()
@@ -72,12 +94,13 @@ class ManipulationNode(Node):
         self._service = self.create_service(GetManipulationExecution,
                                             'manipulation/get_execution', self._get,
                                             callback_group=group)
+        action_name = self.resolve_topic_name('manipulation/execute_skill')
         self._action = ActionServer(
-            self, ExecuteManipulationSkill, 'manipulation/execute_skill',
+            self, ExecuteManipulationSkill, action_name,
             execute_callback=self._execute, goal_callback=self._goal,
             handle_accepted_callback=self._accepted, cancel_callback=self._cancel,
             callback_group=group)
-        self._setup_cancel_service(group)
+        self._setup_cancel_service(group, action_name)
         # Steady clock also works when ROS use_sim_time is paused or unset.
         self._timer = self.create_timer(0.05, self._tick, callback_group=group,
                                        clock=Clock(clock_type=ClockType.STEADY_TIME))
@@ -87,7 +110,7 @@ class ManipulationNode(Node):
 
     def _goal(self, request) -> GoalResponse:
         with self.core.lock:
-            if self._handle is not None:
+            if self._closing or self._handle is not None:
                 return GoalResponse.REJECT
             accepted, reason = self.core.accept(goal_from_message(request))
             if not accepted:
@@ -118,10 +141,10 @@ class ManipulationNode(Node):
             accepted = self.core.request_cancel(execution_id, mode)
             return CancelResponse.ACCEPT if accepted else CancelResponse.REJECT
 
-    def _setup_cancel_service(self, group: ReentrantCallbackGroup) -> None:
+    def _setup_cancel_service(self, group: ReentrantCallbackGroup, action_name: str) -> None:
         self._cancel_modes: dict[str, str] = {}
         self._cancel_client = self.create_client(
-            CancelGoal, 'manipulation/execute_skill/_action/cancel_goal', callback_group=group)
+            CancelGoal, action_name + '/_action/cancel_goal', callback_group=group)
         self._cancel_service = self.create_service(
             CancelManipulation, 'manipulation/cancel', self._request_cancel, callback_group=group)
 
@@ -186,6 +209,8 @@ class ManipulationNode(Node):
 
     def _tick(self) -> None:
         with self.core.lock:
+            if self._closing:
+                return
             if self._handle is not None:
                 self.core.tick()
             self._publish_events()
@@ -207,10 +232,13 @@ class ManipulationNode(Node):
             self._handle, self._result_future = None, None
 
     def destroy_node(self):
-        self._timer.cancel()
-        self._action.destroy()
-        # An active record remains ACTIVE for recovery; shutdown is not stop evidence.
-        self.store.close()
+        with self.core.lock:
+            self._closing = True
+            self._timer.cancel()
+            self._action.destroy()
+            # Closing cannot race a tick's SQLite write. ACTIVE remains
+            # unfinished for recovery; shutdown is not stop evidence.
+            self.store.close()
         return super().destroy_node()
 
 

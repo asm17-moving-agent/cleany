@@ -407,6 +407,7 @@ def test_action_timer_delivers_fault_result_once_even_if_bt_snapshot_throws(exec
     core.tree.snapshot = snapshot
     node = object.__new__(MujocoManipulationNode)
     node.core = core
+    node._closing = False
     delivered, warnings = [], []
     node._handle = NS(abort=lambda: delivered.append('abort'))
     future = Future()

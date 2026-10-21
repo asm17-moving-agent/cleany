@@ -242,6 +242,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `wheel_odometry` | `cleany_base_odometry` | `wheel_odometry_node` | [표](../ros2_ws/src/cleany_base_odometry/docs/interfaces.md#wheel_odometry) |
 | `control_bridge` | `cleany_control_bridge` | `control_bridge` | [표](../ros2_ws/src/cleany_control_bridge/docs/interfaces.md#control_bridge) |
 | `mission_runtime` | `cleany_mission_manager` | `mission_runtime` | [표](../ros2_ws/src/cleany_mission_manager/docs/interfaces.md#mission_runtime) |
+| `manipulation_server` | `cleany_skill_executor` | `manipulation_server` | [표](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#manipulation_server) |
 | `grasp_server` | `cleany_grasping` | `grasp_server` | [표](../ros2_ws/src/cleany_grasping/docs/interfaces.md#grasp_server) |
 | `grasp_selection_server` | `cleany_skill_executor` | `grasp_selection_server` | [표](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#grasp_selection_server) |
 | `collision_scene_applier` | `cleany_moveit_config` | `apply_collision_scene` | [구현](../ros2_ws/src/cleany_moveit_config/cleany_moveit_config/apply_collision_scene.py) |
@@ -301,7 +302,7 @@ Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config
 | ros2_control | Arm/gripper의 FollowJointTrajectory와 joint_state_broadcaster. [Controller 설정](../ros2_ws/src/cleany_moveit_config/config/mock_ros2_controllers.yaml)과 [MuJoCo backend launch](../ros2_ws/src/cleany_mujoco_sim/launch/study_cafe_backend.launch.py)이 선택 |
 | `robot_state_publisher` | `joint_states` 구독, `/tf`, `/tf_static` 발행. URDF와 [모델 계약](../ros2_ws/src/cleany_description/docs/model.md)이 frame 의미를 관리 |
 | `InspectScene` | `perception_inspector`가 `perception/inspect_scene`을 제공. [Perception API](../ros2_ws/src/cleany_perception/docs/runtime.md#ros-api) |
-| `ExecuteManipulationSkill` | Runtime의 action client와 [타입](../ros2_ws/src/cleany_interfaces/action/ExecuteManipulationSkill.action)은 존재. 기본 mock는 process 내부 구현이며 외부 action server는 별도로 필요 |
+| `ExecuteManipulationSkill` | Runtime의 action client와 [타입](../ros2_ws/src/cleany_interfaces/action/ExecuteManipulationSkill.action)은 존재. 기본 mock는 process 내부 구현이며 `action_mock`은 선택형 Python Mock 서버에 연결 |
 
 위 표는 외부 패키지의 연결 경계다. 외부 패키지의 전체 API 목록은 해당 패키지 문서와 실행 graph를 기준으로 확인한다. RViz, rqt, controller spawner와 검증용 probe 노드는 실행 보조 도구이며 자체 제품 endpoint 목록에 포함하지 않는다.
 

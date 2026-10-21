@@ -28,6 +28,7 @@ def wait(future):
     return future.result()
 
 
+@pytest.mark.parametrize('action_name', ['manipulation/execute_skill', 'custom/execute'])
 @pytest.mark.parametrize('cancel,mode,write_failure', [
     (False, None, 'none'),
     (True, None, 'none'),
@@ -39,7 +40,8 @@ def wait(future):
     # Exercise recovery and ROS cancellation together during a write outage.
     (True, 'RETURN_ARM', 'all'),
 ])
-def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mode, write_failure):
+def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mode, write_failure,
+                                            action_name):
     context = Context()
     rclpy.init(context=context)
     namespace = '/bt_test_' + uuid.uuid4().hex
@@ -64,6 +66,7 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
         available.bind(('127.0.0.1', 0))
         port = available.getsockname()[1]
     server = MujocoManipulationNode(context=context, namespace=namespace, backend=backend,
+        cli_args=['--ros-args', '-r', f'manipulation/execute_skill:={action_name}'],
         parameter_overrides=[Parameter('database_path', value=str(tmp_path/'runtime.sqlite3')),
                              Parameter('monitor_port', value=port)])
     save = server.store.save
@@ -83,7 +86,7 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
     executor.add_node(client_node)
     thread = threading.Thread(target=executor.spin, daemon=True)
     thread.start()
-    client = ActionClient(client_node, ExecuteManipulationSkill, 'manipulation/execute_skill')
+    client = ActionClient(client_node, ExecuteManipulationSkill, action_name)
     service = client_node.create_client(GetManipulationExecution, 'manipulation/get_execution')
     cancel_service = client_node.create_client(CancelManipulation, 'manipulation/cancel')
     feedback = []
@@ -137,3 +140,66 @@ def test_dds_result_feedback_cancel_and_query(tmp_path, monkeypatch, cancel, mod
         server.destroy_node()
         client_node.destroy_node()
         context.shutdown()
+
+
+def test_shutdown_waits_for_bt_record_write_without_claiming_a_stop(tmp_path, monkeypatch):
+    import json
+    import sqlite3
+    from cleany_skill_executor.manipulation.models import Goal
+
+    context = Context()
+    rclpy.init(context=context)
+    with socket.socket() as available:
+        available.bind(('127.0.0.1', 0))
+        port = available.getsockname()[1]
+    database = tmp_path / 'shutdown.sqlite3'
+    server = MujocoManipulationNode(context=context,
+        backend=WorkerBackend(lambda *_: Observation()),
+        parameter_overrides=[Parameter('database_path', value=str(database)),
+                             Parameter('monitor_port', value=port)])
+    assert server.core.accept(Goal('m', 't', uuid.uuid4().hex, 'collect_trash',
+                                  'snapshot', 1, 'trash_right'))[0]
+    entered, release, closing, closed = (threading.Event() for _ in range(4))
+    save, close = server.store.save, server.store.close
+
+    def blocked_save(*args, **kwargs):
+        entered.set()
+        assert release.wait(5.)
+        save(*args, **kwargs)
+
+    def tracked_close():
+        close()
+        closed.set()
+
+    def destroy():
+        closing.set()
+        server.destroy_node()
+
+    def tick():
+        with server.core.lock:
+            server.core.tick()
+
+    monkeypatch.setattr(server.store, 'save', blocked_save)
+    monkeypatch.setattr(server.store, 'close', tracked_close)
+    writer = threading.Thread(target=tick)
+    destroyer = threading.Thread(target=destroy)
+    writer.start()
+    try:
+        assert entered.wait(5.)
+        destroyer.start()
+        assert closing.wait(5.)
+        assert not closed.wait(.1), 'SQLite must remain open until the active BT write completes'
+    finally:
+        release.set()
+        writer.join(5.)
+        if destroyer.ident is not None:
+            destroyer.join(5.)
+        else:
+            server.destroy_node()
+        context.shutdown()
+    assert not writer.is_alive() and not destroyer.is_alive() and closed.is_set()
+    server._tick()
+    with sqlite3.connect(database) as connection:
+        record = json.loads(connection.execute('SELECT payload FROM executions').fetchone()[0])
+    assert record['record_state'] == 'ACTIVE' and record['result'] is None
+    assert not record['stop_confirmed']

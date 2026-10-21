@@ -171,6 +171,22 @@ def test_select_reachable_grasp_contract() -> None:
     assert feedback.STAGE_PLAN_GRASP == 5
 
 
+def test_integrated_manipulation_and_mission_types_share_generated_prefix():
+    from cleany_interfaces.action import ExecuteManipulationSkill
+    from cleany_interfaces.msg import ManipulationExecutionRecord, MissionResult, RuntimeDebugSnapshot
+    from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution, OfferMission
+
+    result, feedback = ExecuteManipulationSkill.Result(), ExecuteManipulationSkill.Feedback()
+    record = ManipulationExecutionRecord()
+    assert result.failed_substage == result.cancel_mode == feedback.substage == ""
+    assert record.substage == record.failed_substage == record.cancel_mode == ""
+    assert list(record.completed_substages) == []
+    assert GetManipulationExecution.Response().record == record
+    assert CancelManipulation.Request().execution_id == ""
+    assert MissionResult().report_json == RuntimeDebugSnapshot().snapshot_json == ""
+    assert not OfferMission.Response().accepted
+
+
 def test_read_only_scene_snapshot_contract():
     from cleany_interfaces.srv import GetSceneSnapshot
     request, response = GetSceneSnapshot.Request(), GetSceneSnapshot.Response()

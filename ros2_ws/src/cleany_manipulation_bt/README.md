@@ -133,6 +133,10 @@ MoveIt 2.5.9의 종료 시 controller plugin unload 문제를 피하기 위해
 | `/sim/manipulation/bt_transitions` | 실제 UID, 노드 ID, 이전/현재 상태 JSON |
 | `/perception/get_scene_snapshot` | 읽기 전용 `GetSceneSnapshot`; TTL/촬영 시각 유지 |
 
+Action 이름을 remap하면 내부 취소 client도 같은 이름의 `/_action/cancel_goal`을
+사용한다. 서버 종료는 진행 중인 tick의 기록 쓰기를 기다린 뒤 DB를 닫으며,
+종료 자체를 정지 확인이나 수거 완료 근거로 기록하지 않는다.
+
 정상 수거의 `SUCCESS`에는 물체 이탈·안착, 팔 복귀와 최종 정지 근거가 모두 필요하다.
 관절 메시지의 시각과 내용이 모두 같은 연속 중복 수신은 새 관측으로 세지 않는다.
 기존 수신 시각을 유지하므로 멈춘 스트림은 만료되고, 같은 시각에 내용이 달라지거나

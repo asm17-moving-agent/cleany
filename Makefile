@@ -18,6 +18,7 @@ NAVIGATION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-navigation
 NAVIGATION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-navigation
 NAVIGATION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-navigation
 MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
+MISSION_MOCK_PACKAGES := $(MISSION_PACKAGES) cleany_skill_executor
 MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 MISSION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
 MISSION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
@@ -79,6 +80,8 @@ help:
 	@echo "  make build-mission-runtime  Build interfaces, FSM and Backend bridge"
 	@echo "  make build-mission-sim  Build Gazebo + navigation + runtime + pose relay"
 	@echo "  make test-mission-runtime  Build and test mission ROS packages"
+	@echo "  make build-mission-mock / test-mission-mock  Build and test the integrated Mock Action"
+	@echo "  make test-gazebo-manipulation  Check study-cafe Nav2 + two Mock Action collections"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-handeye  Build and test the hand-eye package boundary"
 	@echo "  make test-telemetry Test the ROS telemetry package"
@@ -209,7 +212,7 @@ build-manipulation-bt:
 		--packages-up-to cleany_manipulation_bt $(COLCON_BUILD_ARGS)
 
 test-manipulation-core:
-	PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
 	PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider \
 		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_core.py" \
@@ -299,6 +302,34 @@ test-mission-runtime: build-mission-runtime
 	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
 
 test-mission: test-mission-core
+
+.PHONY: build-mission-mock test-mission-mock test-gazebo-manipulation
+build-mission-mock:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-up-to $(MISSION_MOCK_PACKAGES)
+
+test-mission-mock: build-mission-mock
+	source "$(ROS_SETUP)" && \
+	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
+	ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) CLEANY_RUN_MANIPULATION_TESTS=1 CLEANY_RUN_ROS_TESTS=1 \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 \
+	python3 -m pytest -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_interfaces/test" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_core.py" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_runtime.py" \
+		"$(ROS2_WS)/src/cleany_mission_manager/tests" \
+		"$(ROS2_WS)/src/cleany_control_bridge/test"
+
+test-gazebo-manipulation: build-mission-sim
+	source "$(ROS_SETUP)" && \
+	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
+	ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) CLEANY_RUN_GAZEBO_MANIPULATION_TESTS=1 \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 \
+	python3 -m pytest -p no:cacheprovider -s \
+		"$(ROS2_WS)/src/cleany_mission_manager/tests/test_ros_gazebo_manipulation.py"
 
 test-mujoco: build
 	source "$(ROS_SETUP)" && \

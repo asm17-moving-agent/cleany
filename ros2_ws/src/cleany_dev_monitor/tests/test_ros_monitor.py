@@ -10,6 +10,73 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+def test_retained_manipulation_history_is_aggregated_without_control_publishers(tmp_path, monkeypatch):
+    import rclpy
+    from cleany_interfaces.msg import ManipulationExecutionRecord
+    from cleany_dev_monitor.core import Recorder
+    from cleany_dev_monitor.node import MonitorNode
+    from rclpy.executors import SingleThreadedExecutor
+    from rclpy.parameter import Parameter
+    from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+
+    monkeypatch.setattr("cleany_dev_monitor.node.serve", lambda hub, config, stop: None)
+    rclpy.init()
+    source = rclpy.create_node("manipulation_history_source")
+    pub = source.create_publisher(ManipulationExecutionRecord, "/mock/manipulation/execution_events",
+        QoSProfile(depth=100, reliability=ReliabilityPolicy.RELIABLE,
+                   durability=DurabilityPolicy.TRANSIENT_LOCAL))
+    for revision in range(20):
+        pub.publish(ManipulationExecutionRecord(execution_id="retained-execution", revision=revision,
+            accepted_at_ns=1_000_000_000, updated_at_ns=(revision + 1) * 1_000_000_000,
+            stage="VALIDATING", substage=f"observed-{revision}", record_state="ACTIVE"))
+    monitor = MonitorNode(parameter_overrides=[Parameter("state_directory", value=str(tmp_path))])
+    executor = SingleThreadedExecutor()
+    executor.add_node(monitor)
+    executor.add_node(source)
+    try:
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            executor.spin_once(timeout_sec=.05)
+            snapshot = monitor.hub.latest_data("manipulation", "executions")
+            if snapshot.get("executions") and snapshot["executions"][0]["record"]["revision"] == 19:
+                break
+        run = snapshot["executions"][0]
+        assert not run["partial"] and len(run["intervals"]) == 20
+        assert monitor.subs["/mock/manipulation/execution_events"][0].qos_profile.depth == 100
+        published = monitor.get_publisher_names_and_types_by_node(monitor.get_name(), monitor.get_namespace())
+        assert all(name in ("/rosout", "/parameter_events") for name, _ in published)
+        settings = monitor.hub.recording.view()['settings']
+        settings['sources']['manipulation_events_topic'] = '/other/manipulation/events'
+        monitor.hub.recording.configure(settings)
+        monitor.apply_sources()
+        assert not monitor.hub.latest_data('manipulation', 'executions')
+        assert not monitor.manipulation.snapshot()['executions']
+        monitor.receive('/other/manipulation/events', ManipulationExecutionRecord(
+            execution_id='retained-execution', revision=0, stage='VALIDATING',
+            substage='new-source', accepted_at_ns=1, updated_at_ns=1, record_state='ACTIVE'))
+        rebound = monitor.hub.latest_data('manipulation', 'executions')['executions']
+        assert len(rebound) == 1
+        assert rebound[0]['record']['revision'] == 0
+        assert [interval['substage'] for interval in rebound[0]['intervals']] == ['new-source']
+        summary = next(row for row in monitor.hub.snapshot()['rows'] if row['kind'] == 'manipulation')
+        assert summary['source_id'] == 'manipulation_events_topic'
+        settings = monitor.hub.recording.view()['settings']
+        settings['source_enabled']['manipulation_events_topic'] = False
+        monitor.hub.recording.configure(settings)
+        recorder = Recorder(tmp_path / 'filtered', controls=monitor.hub.recording)
+        try:
+            recorder.append(monitor.hub.snapshot())
+            replay = recorder.replay(recorder.session_id, time.time())
+            assert not any(row['kind'] == 'manipulation' for row in replay['rows'])
+        finally:
+            recorder.close()
+    finally:
+        monitor.destroy_node()
+        source.destroy_node()
+        executor.shutdown()
+        rclpy.shutdown()
+
+
 def test_qos_discovery_missing_transform_and_read_only_topics(tmp_path, monkeypatch):
     import rclpy
     from cleany_dev_monitor.node import MonitorNode
