@@ -128,6 +128,35 @@ pose Jacobian을 사용합니다. 최종 30 mm inlier에서 같은 robust Jacobi
 `LidarScanMatcher(convergence_config=...)`로 병진·회전 strict 공차,
 최대 반복 진동 폭과 주기를 각각 설정합니다.
 
+#### 저장 스캔 재검증
+
+`replay_scan_matches.py`는 저장된 `response_summary.json`과 NPZ만 읽어
+outbound·inbound·직접 loop 정합을 다시 계산합니다. ROS나 장치를 사용하지
+않습니다. 저장된 extrinsic과 odometry로 laser-axis 초기값을 재구성하며,
+loop 초기값은 두 편도의 SE(2) 합성으로 계산합니다.
+
+```bash
+# 레포 루트, Ubuntu 22.04 외 호스트의 Distrobox 환경
+distrobox enter --name ros2-humble --no-tty --clean-path -- \
+  env PYTHONNOUSERSITE=1 /usr/bin/python3 \
+  tools/odometry_evaluation/replay_scan_matches.py \
+  artifacts/odometry_evaluation/all_axis_validation/*/response_summary.json \
+  --min-inlier-ratio .30 \
+  --output artifacts/odometry_evaluation/icp_replay_new.json
+```
+
+`--min-inlier-ratio`를 생략하면 각 원본 결과의 적용값(없으면 40%)을 사용합니다.
+새 JSON에는 기존·새 품질 판정, 수렴 사유, 적용 설정, pose 변화량과 회귀 건수를
+기록합니다. 원본을 수정하지 않으며 기존 출력 파일도 덮어쓰지 않습니다.
+Pose 변화량은 알고리즘 간 차이이며 실제 위치 오차가 아닙니다.
+
+2026-10-21 저장 정합 87건을 inlier 하한 30%로 재검증한 결과, 기존 유효 79건을
+모두 유지하고 기존 무효 8건 중 7건이 유효해졌습니다. 이 중 4건은 미수렴
+수정, 3건은 40%→30% 하한 변경에 해당합니다. Inlier 25.6%인 1건은 계속
+거부했습니다. 기존 유효 정합의 최대 pose 변화는 병진 2.45 mm·yaw 0.029° 미만입니다.
+원본과 상세 비교는 Git 제외 경로
+`artifacts/odometry_evaluation/icp_regression/20261021_bounded_cycle/`에 있습니다.
+
 ### 4.2 바닥 마킹 테이프 수동 입력 (Fallback 또는 `--no-lidar`)
 LiDAR를 사용하지 않거나 ICP가 거부되면 명시적인 수동 측정이 필요합니다.
 `--manual-fallback`을 지정하면 바닥 테이프 기준의 측정치를 프롬프트로 입력받습니다.
