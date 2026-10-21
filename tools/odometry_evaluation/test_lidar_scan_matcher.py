@@ -5,7 +5,8 @@ import math
 import numpy as np
 import pytest
 
-from lidar_scan_matcher import LidarScanMatcher
+import lidar_scan_matcher
+from lidar_scan_matcher import LidarScanMatcher, validate_scan_match
 
 
 def test_synthetic_scan_matching_convergence():
@@ -96,3 +97,153 @@ def test_sparse_scan_match_is_invalid_with_specific_reason():
 
     assert not result.is_valid
     assert "Insufficient scan points" in result.rejection_reason
+
+
+@pytest.mark.parametrize("minimum,accepted", [(.30, True), (.40, False)])
+def test_matcher_applies_configured_inlier_minimum(monkeypatch, minimum, accepted):
+    matcher = LidarScanMatcher(min_inlier_ratio=minimum)
+    coordinates = np.linspace(-2., 2., 100)
+    room = np.vstack([
+        np.column_stack((coordinates, np.full(100, -2.))),
+        np.column_stack((coordinates, np.full(100, 2.))),
+        np.column_stack((np.full(100, -2.), coordinates)),
+        np.column_stack((np.full(100, 2.), coordinates)),
+    ])
+    def validate(result, **kwargs):
+        assert kwargs["min_inlier_ratio"] == minimum
+        result.inlier_ratio = .35
+        return validate_scan_match(result, **kwargs)
+    monkeypatch.setattr(lidar_scan_matcher, "validate_scan_match", validate)
+    result = matcher.match(room, room.copy())
+    assert result.converged
+    assert result.is_valid is accepted
+    assert matcher.max_iterations == 50
+    assert matcher.tolerance == 1e-5
+    result.converged = False
+    assert not validate_scan_match(result, min_inlier_ratio=.30)[0]
+
+
+@pytest.mark.parametrize("value", [0, -.1, 1.01, float("nan"), float("inf"), True, "0.3"])
+def test_invalid_inlier_minimum_rejected(value):
+    with pytest.raises(ValueError, match="min_inlier_ratio"):
+        LidarScanMatcher(min_inlier_ratio=value)
+
+
+def square_room():
+    coordinates = np.linspace(-2., 2., 100)
+    return np.vstack([
+        np.column_stack((coordinates, np.full(100, -2.))),
+        np.column_stack((coordinates, np.full(100, 2.))),
+        np.column_stack((np.full(100, -2.), coordinates)),
+        np.column_stack((np.full(100, 2.), coordinates)),
+    ])
+
+
+@pytest.mark.parametrize("pose", [(.5, -.4, .2), (-2., 3., -1.)])
+def test_mixed_residual_jacobian_matches_additive_pose_finite_difference(pose):
+    points = np.array([[1., 2.], [-.7, 1.3]])
+    normals = np.array([[.6, .8], [.8, -.6]])
+    linearity = np.array([1., 0.])  # Both point-to-line and point-to-point.
+
+    def rotated(value):
+        c, s = math.cos(value[2]), math.sin(value[2])
+        return points @ np.array([[c, s], [-s, c]])
+
+    pose = np.array(pose)
+    reference = rotated(pose) + pose[:2]
+
+    def system(value):
+        return lidar_scan_matcher._linearized_system(
+            rotated(value), value[:2], reference, normals, linearity,
+        )
+
+    actual, _ = system(pose)
+    numerical = np.empty_like(actual)
+    for index in range(3):
+        step = np.zeros(3)
+        step[index] = 1e-6
+        numerical[:, index] = -(system(pose + step)[1] - system(pose - step)[1]) / 2e-6
+    np.testing.assert_allclose(actual, numerical, atol=1e-8, rtol=1e-6)
+
+
+@pytest.mark.parametrize("iterations,converged", [(13, False), (14, True)])
+def test_small_step_cannot_converge_before_final_correspondence_stage(iterations, converged):
+    room = square_room()
+    result = LidarScanMatcher(max_iterations=iterations).match(room, room)
+    assert result.converged is converged
+    assert result.is_valid is converged
+    assert result.iterations == iterations
+    assert result.convergence_reason == ("step_tolerance" if converged else "maximum_iterations")
+
+
+def test_noisy_scan_cycle_converges_without_relaxing_strict_step_tolerances():
+    room = square_room()
+    rng = np.random.default_rng(2)
+    translation = np.array([-.085, .489])
+    yaw = .0058
+    c, s = math.cos(yaw), math.sin(yaw)
+    reference = room + rng.normal(0, .012, room.shape)
+    target = (room - translation) @ np.array([[c, -s], [s, c]])
+    target += rng.normal(0, .012, room.shape)
+    matcher = LidarScanMatcher(voxel_size_m=.015, min_inlier_ratio=.30)
+    result = matcher.match(reference, target, (*translation, yaw))
+
+    assert result.is_valid
+    assert result.convergence_reason == "bounded_cycle"
+    assert 14 < result.iterations < 50
+    assert result.final_step_translation_m > matcher.tolerance
+    assert result.convergence_settings["translation_tolerance_m"] == 1e-5
+    assert result.convergence_settings["rotation_tolerance_rad"] == 1e-5
+    assert np.linalg.norm([result.delta_x_m - translation[0],
+                           result.delta_y_m - translation[1]]) < .002
+    assert abs(result.delta_yaw_rad - yaw) < math.radians(.1)
+    # Convergence is not quality acceptance.
+    result.inlier_ratio = .29
+    assert not validate_scan_match(result, min_inlier_ratio=.30)[0]
+    result.inlier_ratio = .9
+    result.min_translation_eigenvalue = 0.
+    assert not validate_scan_match(result, min_inlier_ratio=.30)[0]
+
+
+def test_observability_uses_final_inliers_and_same_additive_jacobian(monkeypatch):
+    room = square_room()
+    outliers = np.column_stack((np.full(20, 2.035), np.linspace(-1.5, 1.5, 20)))
+    calls = []
+    original = lidar_scan_matcher._linearized_system
+
+    def track(*args):
+        matrix, rhs = original(*args)
+        calls.append((matrix.copy(), args[0].copy()))
+        return matrix, rhs
+
+    monkeypatch.setattr(lidar_scan_matcher, "_linearized_system", track)
+    result = LidarScanMatcher(voxel_size_m=.005).match(room, np.vstack([room, outliers]))
+    matrix, rotated_points = calls[-1]
+    assert len(calls[-2][0]) > len(matrix)  # 40 mm fit versus 30 mm final inliers.
+    trans_h = matrix[:, :2].T @ matrix[:, :2]
+    eigenvalues = np.linalg.eigvalsh(trans_h)
+    assert result.min_translation_eigenvalue == pytest.approx(eigenvalues[0])
+    assert result.translation_condition_number == pytest.approx(eigenvalues[-1] / eigenvalues[0])
+    matrix[:, 2] /= np.sqrt(np.mean(np.sum(rotated_points ** 2, axis=1)))
+    full_eigenvalues = np.linalg.eigvalsh(matrix.T @ matrix)
+    assert result.full_min_eigenvalue == pytest.approx(full_eigenvalues[0])
+    assert result.condition_number == pytest.approx(full_eigenvalues[-1] / full_eigenvalues[0])
+
+
+def test_convergence_configuration_is_validated_and_snapshotted():
+    settings = {"translation_tolerance_m": 2e-5, "rotation_tolerance_rad": 3e-5,
+                "max_translation_span_m": .0005, "max_rotation_span_rad": .0001,
+                "max_period": 4}
+    matcher = LidarScanMatcher(convergence_config=settings)
+    result = matcher.match(square_room(), square_room())
+    assert result.convergence_settings == settings
+    assert matcher.tolerance == 2e-5
+    assert matcher.rotation_tolerance_rad == 3e-5
+    settings["max_period"] = 100
+    assert result.convergence_settings["max_period"] == 4
+
+
+@pytest.mark.parametrize("iterations", [0, -1, 1.5, True])
+def test_invalid_iteration_limit_rejected(iterations):
+    with pytest.raises(ValueError, match="max_iterations"):
+        LidarScanMatcher(max_iterations=iterations)

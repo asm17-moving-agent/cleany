@@ -8,11 +8,13 @@ between reference scan and target scan.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
 from typing import Sequence
 import numpy as np
 from scipy.spatial import cKDTree
+
+from icp_convergence import BoundedCycleDetector
 
 
 @dataclass
@@ -34,6 +36,47 @@ class ScanMatchResult:
     translation_condition_number: float = 1.0
     min_translation_eigenvalue: float = 0.0
     full_min_eigenvalue: float = 0.0
+    convergence_reason: str = ""
+    final_step_translation_m: float = 0.0
+    final_step_rotation_rad: float = 0.0
+    convergence_settings: dict[str, float | int] = field(default_factory=dict)
+
+
+def _additive_pose_jacobians(rotated_points: np.ndarray) -> np.ndarray:
+    """Derivative of R(yaw) q + t for additive [tx, ty, yaw] updates.
+
+    The yaw lever arm is R q, not the translated point R q + t.
+    """
+    jacobians = np.zeros((len(rotated_points), 2, 3))
+    jacobians[:, 0, 0] = 1.0
+    jacobians[:, 1, 1] = 1.0
+    jacobians[:, 0, 2] = -rotated_points[:, 1]
+    jacobians[:, 1, 2] = rotated_points[:, 0]
+    return jacobians
+
+
+def _linearized_system(
+    rotated_points: np.ndarray, translation: np.ndarray,
+    reference: np.ndarray, normals: np.ndarray, linearity: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build the same robust residual/Jacobian for optimization and observability."""
+    jacobians = _additive_pose_jacobians(rotated_points)
+    differences = rotated_points + translation - reference
+    rows, values = [], []
+    for jacobian, difference, normal, linear in zip(
+        jacobians, differences, normals, linearity
+    ):
+        if linear > 0.7:
+            residual = float(normal @ difference)
+            weight = math.sqrt(1.0 if abs(residual) < .02 else .02 / abs(residual))
+            rows.append(weight * (normal @ jacobian))
+            values.append(-weight * residual)
+        else:
+            residual = float(np.linalg.norm(difference))
+            weight = .5 * math.sqrt(1.0 if residual < .02 else .02 / residual)
+            rows.extend(weight * jacobian)
+            values.extend(-weight * difference)
+    return np.asarray(rows).reshape(-1, 3), np.asarray(values)
 
 
 def validate_scan_match(
@@ -102,12 +145,37 @@ class LidarScanMatcher:
         voxel_size_m: float = 0.02,
         max_iterations: int = 50,
         tolerance: float = 1e-5,
+        min_inlier_ratio: float = 0.40,
+        convergence_config: dict | None = None,
     ) -> None:
+        if (isinstance(min_inlier_ratio, bool)
+                or not isinstance(min_inlier_ratio, (int, float))
+                or not math.isfinite(min_inlier_ratio)
+                or not 0 < min_inlier_ratio <= 1):
+            raise ValueError("min_inlier_ratio must be finite and in (0, 1]")
+        if type(max_iterations) is not int or max_iterations < 1:
+            raise ValueError("max_iterations must be a positive integer")
+        if convergence_config is not None and not isinstance(convergence_config, dict):
+            raise ValueError("convergence_config must be an object")
+        settings = {
+            "translation_tolerance_m": tolerance,
+            "rotation_tolerance_rad": tolerance,
+            **(convergence_config or {}),
+        }
+        detector = BoundedCycleDetector(**settings)
+        self.convergence_settings = {
+            key: getattr(detector, key) for key in (
+                "translation_tolerance_m", "rotation_tolerance_rad",
+                "max_translation_span_m", "max_rotation_span_rad", "max_period",
+            )
+        }
         self.min_range_m = min_range_m
         self.max_range_m = max_range_m
         self.voxel_size_m = voxel_size_m
         self.max_iterations = max_iterations
-        self.tolerance = tolerance
+        self.tolerance = detector.translation_tolerance_m
+        self.rotation_tolerance_rad = detector.rotation_tolerance_rad
+        self.min_inlier_ratio = float(min_inlier_ratio)
 
     def laserscan_to_points(
         self,
@@ -202,6 +270,8 @@ class LidarScanMatcher:
                 condition_number=float("inf"),
                 is_valid=False,
                 rejection_reason=f"Insufficient scan points for ICP (ref={len(ref_pts)}, target={len(tgt_pts)}, minimum=20)",
+                convergence_reason="insufficient_scan_points",
+                convergence_settings=self.convergence_settings.copy(),
             )
 
         ref_tree = cKDTree(ref_pts)
@@ -214,8 +284,9 @@ class LidarScanMatcher:
         converged = False
         final_iter = 0
 
-        cond_num = float("inf")
-        last_AtA = np.eye(3) * 1e-4
+        convergence_reason = "maximum_iterations"
+        step_norm = dyaw = 0.0
+        cycle_detector = BoundedCycleDetector(**self.convergence_settings)
 
         for it in range(self.max_iterations):
             final_iter = it + 1
@@ -226,74 +297,34 @@ class LidarScanMatcher:
             s = math.sin(yaw)
             R = np.array([[c, -s], [s, c]])
 
-            transformed_tgt = (R @ tgt_pts.T).T + np.array([tx, ty])
+            rotated_tgt = (R @ tgt_pts.T).T
+            transformed_tgt = rotated_tgt + np.array([tx, ty])
 
             dists, indices = ref_tree.query(transformed_tgt)
 
             mask = dists < dist_thresh
             if np.sum(mask) < 15:
+                convergence_reason = "insufficient_correspondences"
                 break
 
-            matched_tgt = transformed_tgt[mask]
             matched_ref = ref_pts[indices[mask]]
             matched_normals = ref_normals[indices[mask]]
             matched_linearity = ref_linearity[indices[mask]]
-
-            # Point-to-line residual: n_j^T * (p_i' - q_j)
-            diffs = matched_tgt - matched_ref
-            # Use point-to-line where linearity is high (> 0.7), point-to-point otherwise
-            pt_to_line_mask = matched_linearity > 0.7
-
-            A_rows = []
-            b_vals = []
-
-            for i in range(len(matched_tgt)):
-                p = matched_tgt[i]
-                diff = diffs[i]
-                if pt_to_line_mask[i]:
-                    n = matched_normals[i]
-                    # Jacobian wrt [dtx, dty, dyaw]
-                    # residual = n_x * (dtx - p_y*dyaw + p_x) + n_y * (dty + p_x*dyaw + p_y) - n^T q
-                    # linearized error: n^T ( [dtx, dty] + dyaw * [-p_y, p_x] + diff )
-                    # b = - (n^T diff)
-                    r_val = np.dot(n, diff)
-                    # Huber weight
-                    huber = 1.0 if abs(r_val) < 0.02 else (0.02 / abs(r_val))
-                    w = math.sqrt(huber)
-
-                    j_tx = n[0]
-                    j_ty = n[1]
-                    j_yaw = -n[0] * p[1] + n[1] * p[0]
-                    A_rows.append([w * j_tx, w * j_ty, w * j_yaw])
-                    b_vals.append(-w * r_val)
-                else:
-                    # Point-to-point residual
-                    r_val = np.linalg.norm(diff)
-                    huber = 1.0 if r_val < 0.02 else (0.02 / r_val)
-                    w = math.sqrt(huber) * 0.5  # lower weight than planar normals
-
-                    A_rows.append([w * 1.0, 0.0, -w * p[1]])
-                    b_vals.append(-w * diff[0])
-                    A_rows.append([0.0, w * 1.0, w * p[0]])
-                    b_vals.append(-w * diff[1])
-
-            A = np.array(A_rows)
-            b = np.array(b_vals)
+            A, b = _linearized_system(
+                rotated_tgt[mask], np.array([tx, ty]),
+                matched_ref, matched_normals, matched_linearity,
+            )
 
             AtA = A.T @ A
             Atb = A.T @ b
-            last_AtA = AtA
-
-            # Check condition number of Hessian
-            eigvals = np.linalg.eigvalsh(AtA)
-            if eigvals[0] > 1e-9:
-                cond_num = float(eigvals[-1] / eigvals[0])
-            else:
-                cond_num = float("inf")
 
             try:
                 delta = np.linalg.solve(AtA + 1e-4 * np.eye(3), Atb)
             except np.linalg.LinAlgError:
+                convergence_reason = "linear_solve_failed"
+                break
+            if not np.all(np.isfinite(delta)):
+                convergence_reason = "non_finite_update"
                 break
 
             dtx, dty, dyaw = delta
@@ -302,41 +333,42 @@ class LidarScanMatcher:
             yaw = (yaw + dyaw + math.pi) % (2.0 * math.pi) - math.pi
 
             step_norm = math.sqrt(dtx * dtx + dty * dty)
-            if step_norm < self.tolerance and abs(dyaw) < self.tolerance:
+            final_stage = dist_thresh == min_dist
+            if (final_stage and step_norm < self.tolerance
+                    and abs(dyaw) < self.rotation_tolerance_rad):
                 converged = True
+                convergence_reason = "step_tolerance"
                 break
-
-        # Compute translation observability on final Hessian
-        trans_H = last_AtA[0:2, 0:2]
-        trans_eigvals = np.linalg.eigvalsh(trans_H)
-        min_trans_eig = float(trans_eigvals[0])
-        max_trans_eig = float(trans_eigvals[1])
-        if min_trans_eig > 1e-9:
-            trans_cond_num = float(max_trans_eig / min_trans_eig)
-        else:
-            trans_cond_num = float("inf")
+            if cycle_detector.observe((tx, ty, yaw), final_stage=final_stage):
+                converged = True
+                convergence_reason = "bounded_cycle"
+                break
 
         # Final evaluation and observability use the actual final correspondences.
         c = math.cos(yaw)
         s = math.sin(yaw)
         R = np.array([[c, -s], [s, c]])
-        final_tgt = (R @ tgt_pts.T).T + np.array([tx, ty])
-        final_dists, _ = ref_tree.query(final_tgt)
+        final_rotated = (R @ tgt_pts.T).T
+        final_tgt = final_rotated + np.array([tx, ty])
+        final_dists, final_indices = ref_tree.query(final_tgt)
 
         inlier_threshold = 0.030  # 30 mm
         inliers = final_dists < inlier_threshold
-        final_indices = ref_tree.query(final_tgt[inliers])[1] if np.any(inliers) else np.array([], dtype=int)
-        final_p = final_tgt[inliers]
-        final_n = ref_normals[final_indices]
-        final_lin = ref_linearity[final_indices]
-        scale = max(float(np.sqrt(np.mean(np.sum(final_p ** 2, axis=1)))) if len(final_p) else 1.0, 1e-6)
-        rows = []
-        for p, n, linear in zip(final_p, final_n, final_lin):
-            if linear > 0.7:
-                rows.append([n[0], n[1], (-n[0] * p[1] + n[1] * p[0]) / scale])
-            else:
-                rows.extend(([1.0, 0.0, -p[1] / scale], [0.0, 1.0, p[0] / scale]))
-        full_h = np.asarray(rows, dtype=np.float64).T @ np.asarray(rows, dtype=np.float64) if rows else np.zeros((3, 3))
+        final_p = final_rotated[inliers]
+        final_A, _ = _linearized_system(
+            final_p, np.array([tx, ty]), ref_pts[final_indices[inliers]],
+            ref_normals[final_indices[inliers]], ref_linearity[final_indices[inliers]],
+        )
+        trans_H = final_A[:, :2].T @ final_A[:, :2]
+        trans_eigs = np.linalg.eigvalsh(trans_H)
+        min_trans_eig = float(trans_eigs[0])
+        trans_cond_num = (float(trans_eigs[-1] / trans_eigs[0])
+                          if trans_eigs[0] > 1e-9 else float("inf"))
+        # Normalize yaw by the target's RMS range, independent of translation.
+        scale = max(float(np.sqrt(np.mean(np.sum(final_p ** 2, axis=1))))
+                    if len(final_p) else 1.0, 1e-6)
+        final_A[:, 2] /= scale
+        full_h = final_A.T @ final_A
         full_eigs = np.linalg.eigvalsh(full_h)
         full_min_eig = float(full_eigs[0])
         full_cond = float(full_eigs[-1] / full_eigs[0]) if full_eigs[0] > 1e-9 else float("inf")
@@ -364,9 +396,15 @@ class LidarScanMatcher:
             translation_condition_number=trans_cond_num,
             min_translation_eigenvalue=min_trans_eig,
             full_min_eigenvalue=full_min_eig,
+            convergence_reason=convergence_reason,
+            final_step_translation_m=float(step_norm),
+            final_step_rotation_rad=float(dyaw),
+            convergence_settings=self.convergence_settings.copy(),
         )
 
-        is_valid, reason = validate_scan_match(res)
+        is_valid, reason = validate_scan_match(
+            res, min_inlier_ratio=self.min_inlier_ratio
+        )
         res.is_valid = is_valid
         res.rejection_reason = reason
         return res
@@ -421,8 +459,11 @@ def plot_scan_match(
         f"  • Residual RMSE:           {result.rmse_mm:.2f} mm\n"
         f"  • Hessian Condition Num:   {result.condition_number:.1f}\n\n"
         f"Observability Assessment:\n"
-        f"  • Environment:             {'Sufficient 2D geometry' if result.condition_number < 100.0 else 'High degeneracy risk'}\n"
-        f"  • Measurement Confidence:  {'HIGH (< 3mm accuracy)' if result.inlier_ratio > 0.20 and result.rmse_mm < 20.0 else 'MEDIUM'}"
+        f"  • Translation Condition:   {result.translation_condition_number:.1f}\n"
+        f"  • Min Translation Eigen:   {result.min_translation_eigenvalue:.2f}\n"
+        f"  • Convergence Reason:      {result.convergence_reason}\n"
+        f"  • Quality Decision:        {'VALID' if result.is_valid else 'REJECTED'}\n"
+        f"  • Reason:                  {result.rejection_reason}"
     )
     ax2.text(
         0.05, 0.95, summary_text,

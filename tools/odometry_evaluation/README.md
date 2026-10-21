@@ -107,6 +107,27 @@ RMSE, 인라이어 비율과 관측성 판정을 통과한 결과만 유효한 �
 - **결과 플롯**: 평가 JSON과 같은 이름의 `.png`에 스캔 오버레이 및 ICP 결과 저장.
 - **비활성화 옵션**: LiDAR가 없거나 수동 마킹 테이프 입력이 필요한 경우 `--no-lidar` 플래그를 전달합니다.
 
+#### ICP 수렴과 관측성
+
+`lidar_scan_matcher.py`는 `p_ref = R(yaw) p_target + t`와 일치하는 additive
+pose Jacobian을 사용합니다. 최종 30 mm inlier에서 같은 robust Jacobian으로
+병진·전체 SE(2) 관측성을 다시 계산합니다.
+
+수렴은 correspondence 거리의 annealing이 40 mm 최종 단계에 도달한 뒤만
+판정합니다. 병진 `1e-5 m`와 회전 `1e-5 rad`의 strict step 조건을 각각 확인하며,
+작은 반복 진동은 다음 조건을 모두 만족할 때 별도로 종료합니다.
+
+- 주기 2~6의 pose가 세 주기 연속 반복.
+- 대응하는 모든 pose 쌍이 strict 병진·회전 공차 안에서 일치.
+- 전체 반복 구간의 pose 간 최대 차이가 1 mm·0.02° 이하.
+
+반환값은 마지막 pose이며, 평균 pose나 odometry 값으로 대체하지 않습니다.
+수렴 후에도 inlier·RMSE·관측성 검사를 통과해야 유효합니다.
+`ScanMatchResult`는 `convergence_reason`(`step_tolerance`, `bounded_cycle` 등),
+마지막 보정량과 적용한 `convergence_settings`를 기록합니다.
+`LidarScanMatcher(convergence_config=...)`로 병진·회전 strict 공차,
+최대 반복 진동 폭과 주기를 각각 설정합니다.
+
 ### 4.2 바닥 마킹 테이프 수동 입력 (Fallback 또는 `--no-lidar`)
 LiDAR를 사용하지 않거나 ICP가 거부되면 명시적인 수동 측정이 필요합니다.
 `--manual-fallback`을 지정하면 바닥 테이프 기준의 측정치를 프롬프트로 입력받습니다.
