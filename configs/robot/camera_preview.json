@@ -14,8 +14,6 @@
   "head_config": "configs/robot/head_board_view.json",
   "head_joint_mapping": "configs/robot/head_preview_joints.json",
   "head_rgb_extrinsics": "configs/robot/head_rgb_board_extrinsics.yaml",
-  "left_target": "configs/robot/left_wrist_target.json",
-  "three_boards": "configs/robot/three_board_view.json",
   "xacro_args": {
     "head_fixed": "false",
     "head_collision_meshes": "true",

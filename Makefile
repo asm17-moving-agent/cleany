@@ -531,7 +531,7 @@ JETSON_SOURCE_PATH := $(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_gra
 test-jetson-core:
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=221 \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=221 \
 	PYTHONPATH="$(JETSON_SOURCE_PATH):$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib \
 		$(ROS2_WS)/src/cleany_perception/test/test_byte_buffer.py \
@@ -544,7 +544,7 @@ test-jetson-core:
 test-jetson-tools:
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=222 \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=222 \
 	PYTHONPATH="$(REPO_ROOT)tools:$(JETSON_SOURCE_PATH):$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib tests/tools $(JETSON_PYTEST_ARGS)
 
@@ -552,7 +552,7 @@ test-jetson-tools:
 test-jetson-packages:
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 \
 	PYTHONPATH="$(REPO_ROOT)tools:$(subst $(ROS2_WS)/src/cleany_manipulation_bt:,,$(JETSON_SOURCE_PATH)):$(ROS2_WS)/src/cleany_perception/test:$(ROS2_WS)/src/cleany_skill_executor/test:$(ROS2_WS)/src/cleany_manipulation_bt/test:$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib \
 		$(ROS2_WS)/src/cleany_interfaces/test \
@@ -677,3 +677,10 @@ $(VISION_SERVICE_COMMANDS):
 .PHONY: yoloe-trt-build yoloe-trt-export yoloe-trt-validate
 yoloe-trt-build yoloe-trt-export yoloe-trt-validate:
 	python3 "$(REPO_ROOT)tools/yoloe_trt_container.py" $(patsubst yoloe-trt-%,%,$@) $(YOLOE_TRT_ARGS)
+
+.PHONY: test-jetson-controller
+test-jetson-controller:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 \
+	python3 -m pytest -q -p no:cacheprovider \
+		$(ROS2_WS)/src/cleany_robot_interface/runtime_test/test_controller_emulator.py $(JETSON_CONTROLLER_TEST_ARGS)

@@ -173,7 +173,7 @@ def main(operation: str, root: Path, *, side: Literal['left', 'right'] = 'left')
     parser = argparse.ArgumentParser(description=f'{side.title()} IDs {ids[0]}-{ids[-1]} torque {operation.upper()}')
     parser.add_argument('--bus-config', type=Path, default=root / 'ros2_ws/src/cleany_robot_interface/config/arm_preview.yaml')
     if operation == 'on':
-        parser.add_argument('--control-config', type=Path, default=root / f'configs/robot/feetech_operational_{side}_arm.yaml')
+        parser.add_argument('--control-config', type=Path, required=True, help='Explicit local motor limits')
     args = parser.parse_args()
     try:
         config = yaml.safe_load(args.bus_config.read_text())

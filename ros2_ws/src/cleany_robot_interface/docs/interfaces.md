@@ -29,3 +29,5 @@ Guard의 기본 상태 최대 나이는 0.25초이며 기동 대기는 30초다.
 `tools/tcp-waypoints init`는 `--config`의 camera, board와 로봇별 operating profile을 읽어 세션 모델과 hash를 고정한다. 예시 정책의 operating profile은 `~/.config/cleany/` 아래 외부 YAML을 가리킨다. `init`는 장치에 명령하지 않으며 이후 hold, 저장과 재방문은 명시적인 명령이다. 카메라 intrinsics와 원본 capture manifest가 없으면 세션 준비를 거부한다.
 
 `tcp_waypoints.launch.py`는 세션 모델의 native controller와 plan-only MoveIt을 연결한다. ROS transport는 `joint_states`, controller의 `FollowJointTrajectory`, MoveIt의 `GetMotionPlan`과 `GetStateValidity`를 사용한다. 선택한 팔 5관절 이외의 명령, 머리 명령과 gripper trajectory를 허용하지 않는다. 수동 hold 인수와 물리 정지 확인은 구분한다.
+
+`tools/{left,right}-arm-torque-on`도 `--control-config /absolute/local-limits.yaml`을 요구한다. OFF 명령은 제어 profile 없이 선택한 모터의 torque 해제를 요청한다. 명령 성공은 보고된 register readback이며 외부 하중과 물리 정지의 증거를 대신하지 않는다.

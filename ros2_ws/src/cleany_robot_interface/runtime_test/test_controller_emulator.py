@@ -428,7 +428,7 @@ def test_readonly_controllers_cannot_activate_or_execute(tmp_path):
 @pytest.mark.parametrize('side', ['left', 'right'])
 def test_shared_bus_selected_arm_only(tmp_path, side):
     """14 IDs on one real wire driver: five writable motors, no head/gripper writes."""
-    config = yaml.safe_load((ROOT / f'configs/robot/feetech_operational_{side}_arm.yaml').read_text())
+    config = yaml.safe_load((ROOT / f'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_{side}_arm.yaml').read_text())
     config['command_joints'] = [j for j in config['command_joints'] if not j.endswith('_gripper_joint')]
     path = tmp_path / 'selected.yaml'
     path.write_text(yaml.safe_dump(config))
@@ -669,7 +669,7 @@ def test_stalled_goal_and_software_stop_return_failure(tmp_path, fault):
 
 
 def test_single_wrist_trial_never_writes_other_motors(tmp_path):
-    runtime = Runtime(tmp_path, False, ROOT/'configs/robot/feetech_commissioning_left_wrist.yaml')
+    runtime = Runtime(tmp_path, False, ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_commissioning_left_wrist.yaml')
     try:
         handle, _ = runtime.goal('left_arm_controller', delta=math.radians(2), duration=3)
         assert handle.accepted
@@ -689,7 +689,7 @@ def test_single_wrist_trial_never_writes_other_motors(tmp_path):
 
 @pytest.mark.parametrize('terminal', ['goal_timeout', 'cancel'])
 def test_lagging_wrist_hold_does_not_fault_and_software_stop_completes(tmp_path, terminal):
-    runtime = Runtime(tmp_path, False, ROOT/'configs/robot/feetech_commissioning_left_wrist.yaml')
+    runtime = Runtime(tmp_path, False, ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_commissioning_left_wrist.yaml')
     try:
         # Error stays below the path tolerance but exceeds the final goal tolerance.
         # Real first trial similarly stopped short; an ideal servo hid the hold jump.
@@ -723,7 +723,7 @@ def test_lagging_wrist_hold_does_not_fault_and_software_stop_completes(tmp_path,
 
 
 def test_left_arm_profile_holds_gripper_and_never_writes_right_or_head(tmp_path):
-    runtime = Runtime(tmp_path, False, ROOT/'configs/robot/feetech_commissioning_left_arm.yaml')
+    runtime = Runtime(tmp_path, False, ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_commissioning_left_arm.yaml')
     try:
         gripper_start = bytes(runtime.arms.registers[6][56:58])
         handle, _ = runtime.goal('left_arm_controller', delta=.01, duration=2)

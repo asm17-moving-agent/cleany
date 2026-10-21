@@ -14,8 +14,8 @@ joints:
   wrist_flex: {suffix: wrist_pitch_joint, direction: 1, zero_tick: 2048, offset_rad: 0.0}
   wrist_roll: {suffix: wrist_roll_joint, direction: 1, zero_tick: 2048, offset_rad: 1.5707963267948966}
   gripper: {suffix: gripper_joint, direction: 1, zero_tick: range_min, offset_rad: -0.37453297762778586}
-# Left reference: configs/robot/poses/left_arm_ros_reference_20261005.json.
-# Right reference: configs/robot/poses/right_arm_ros_reference_20261006.json.
+# Left reference: ros2_ws/src/cleany_description/config/calibration/jetson_20261009/reference/left_arm_ros_reference_20261005.json.
+# Right reference: ros2_ws/src/cleany_description/config/calibration/jetson_20261009/reference/right_arm_ros_reference_20261006.json.
 # Manual CAD alignment does not establish precise angle or force calibration.
 overrides:
   left:

@@ -11,8 +11,8 @@ import yaml
 import cleany_robot_interface.arm_torque as module
 
 ROOT = Path(__file__).resolve().parents[4]
-PROFILE = yaml.safe_load((ROOT / 'configs/robot/feetech_operational_left_arm.yaml').read_text())
-RIGHT_PROFILE = yaml.safe_load((ROOT / 'configs/robot/feetech_operational_right_arm.yaml').read_text())
+PROFILE = yaml.safe_load((ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_left_arm.yaml').read_text())
+RIGHT_PROFILE = yaml.safe_load((ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_right_arm.yaml').read_text())
 
 
 class Bus:
@@ -84,7 +84,7 @@ def test_right_main_dispatch_and_profile(monkeypatch, capsys, operation):
     def fake_connect(*args):
         yield bus
     monkeypatch.setattr(module, 'connect', fake_connect)
-    monkeypatch.setattr('sys.argv', ['right-arm-torque-' + operation])
+    monkeypatch.setattr('sys.argv', ['right-arm-torque-' + operation, *(['--control-config', str(ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_right_arm.yaml')] if operation == 'on' else [])])
     enabled = Mock(wraps=module.enable)
     monkeypatch.setattr(module, 'enable', enabled)
     assert module.main(operation, ROOT, side='right') == 0
@@ -102,7 +102,7 @@ def test_right_partial_on_preserves_hold_and_reports_correct_ids(monkeypatch, ca
     def fake_connect(*args):
         yield bus
     monkeypatch.setattr(module, 'connect', fake_connect)
-    monkeypatch.setattr('sys.argv', ['right-arm-torque-on'])
+    monkeypatch.setattr('sys.argv', ['right-arm-torque-on', '--control-config', str(ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_right_arm.yaml')])
     assert module.main('on', ROOT, side='right') == 1
     assert [bus.values[m][40] for m in range(7, 12)] == [1, 1, 0, 0, 0]
     assert not any(e[0] == 'write' and e[2:] == (40, 0) for e in bus.events)
@@ -177,7 +177,7 @@ def test_partial_on_reports_state_without_automatic_off(monkeypatch, capsys):
     def fake_connect(*args):
         yield bus
     monkeypatch.setattr(module, 'connect', fake_connect)
-    monkeypatch.setattr('sys.argv', ['left-arm-torque-on'])
+    monkeypatch.setattr('sys.argv', ['left-arm-torque-on', '--control-config', str(ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_left_arm.yaml')])
     assert module.main('on', ROOT) == 1
     assert [bus.values[m][40] for m in module.IDS] == [1, 1, 0, 0, 0]
     assert not any(e[0] == 'write' and e[2:] == (40, 0) for e in bus.events)
@@ -248,3 +248,11 @@ def test_busy_port_never_opens_sdk(monkeypatch):
         with module.connect('/unused', 1000000):
             pass
     opened.assert_not_called()
+
+
+def test_torque_on_requires_local_limits_before_opening_a_bus(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['left-arm-torque-on'])
+    monkeypatch.setattr(module, 'connect', lambda *_: pytest.fail('No profile may open a bus'))
+    with pytest.raises(SystemExit) as stopped:
+        module.main('on', ROOT)
+    assert stopped.value.code == 2

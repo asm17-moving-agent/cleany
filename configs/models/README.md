@@ -76,3 +76,5 @@ ROS launch의 `yoloe_config_file` 또는 container의 `YOLOE_CONFIG_FILE`로 프
 
 Jetson 이미지·workspace 준비와 실행은
 [`containers/vision/README.md`](../../containers/vision/README.md)를 따른다.
+
+프로파일의 Gemini 모델 변경도 입력 파일 hash를 바꾼다. 현재 lock은 저장소의 프로파일 bytes를 기준으로 하므로 과거 engine의 manifest와 다르면 다시 export와 검증을 거쳐야 한다. lock 갱신 자체는 새 engine 검증 결과가 아니다.

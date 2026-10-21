@@ -68,3 +68,10 @@ containers/vision/models/
 **/*.lic
 **/*.public_key
 **/*.signature
+
+# Local robot operating limits are supplied explicitly, never shared defaults.
+/configs/robot/collection_hardware.json
+/configs/robot/feetech*.yaml
+/configs/robot/hardware_motion_monitor.yaml
+*.sqlite
+*.sqlite3

@@ -1,9 +1,0 @@
-{
-  "camera_config": "configs/robot/wristcam_charuco.json",
-  "handeye_config": "configs/robot/left_wristcam_handeye.json",
-  "output_root": "~/.local/share/cleany/left_wrist_target",
-  "offset_m": 0.1,
-  "maximum_pnp_rmse_px": 1.0,
-  "minimum_pnp_ratio": 1.05,
-  "camera_device": "/dev/v4l/by-path/platform-3610000.usb-usb-0:2.1.4:1.0-video-index0"
-}

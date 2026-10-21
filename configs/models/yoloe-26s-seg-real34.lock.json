@@ -2,7 +2,7 @@
   "schema": "cleany.yoloe_seg_export_lock/v1",
   "profile": {
     "filename": "yoloe_real34.yaml",
-    "sha256": "3ec0b22ce7903bd18d2dbdfb62ff1c5d889d32beffe27fd617952e26fd8216f7"
+    "sha256": "762093b46c537bf136253c7560b0cd53ce9062e45e1f12d5688e311b23a0ff3e"
   },
   "source": {
     "checkpoint_filename": "yoloe-26s-seg.pt",

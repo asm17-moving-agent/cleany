@@ -18,16 +18,14 @@ ROOT = Path(__file__).resolve().parents[4]
 
 @pytest.fixture
 def state_profile_file(tmp_path):
-    from cleany_robot_interface.core import JOINTS
     config = json.loads((ROOT / 'configs/robot/camera_preview.json').read_text())
     arm = yaml.safe_load((ROOT / config['arm_config']).read_text())
     arm['port'] = '/dev/cleany-synthetic-test-only'
     arm['calibration_dir'] = str(tmp_path)
-    for side, first in (('left', 1), ('right', 7)):
-        calibration = {name: dict(id=first+index, drive_mode=0, homing_offset=0,
-                                 range_min=0, range_max=4095)
-                       for index, name in enumerate(JOINTS)}
-        (tmp_path / arm['arms'][side]['calibration']).write_text(json.dumps(calibration))
+    frozen = ROOT / 'ros2_ws/src/cleany_description/config/calibration/jetson_20261009/motors'
+    for side in ('left', 'right'):
+        filename = arm['arms'][side]['calibration']
+        (tmp_path / filename).write_bytes((frozen / filename).read_bytes())
     arm_path = tmp_path / 'synthetic_arm.yaml'
     arm_path.write_text(yaml.safe_dump(arm))
     config['arm_config'] = str(arm_path)

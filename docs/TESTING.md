@@ -165,3 +165,5 @@ KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검�
 검사는 localhost 전용의 별도 ROS domain을 사용한다. GPU, licensed SDK와 선택적인 LeRobot 환경이 필요한 검사는 해당 조건과 skip 이유를 구분한다. `runtime_test/`의 PTY controller와 TCP replay 검사는 명시적으로 실행하며 실물 USB 장치를 열지 않는다. 테스트 입력인 `supervised_collection_fixture.json`은 공용 실물 설정이나 commissioning 완료의 증거가 아니다.
 
 모델 비교, 오차 주입 캠페인과 날짜별 보고서 원본은 자동 회귀 검사와 분리한다. 코드 수정의 작은 재현 사례는 해당 패키지 테스트로 유지하고 측정 JSON, 영상, 점군과 그래프는 데이터 루트에 보관한다.
+
+PTY controller의 명시 실행은 `make test-jetson-controller`를 사용한다. 예를 들어 `JETSON_CONTROLLER_TEST_ARGS='-k "readonly_controllers_cannot_activate_or_execute or shared_bus_readonly_has_no_writes"'`는 READ 전용 활성화 차단과 쓰기 부재를 실제 native driver와 가상 serial에서 검사한다. 일반 pytest는 ROS launch 자동 수집 plugin을 비활성화해 인접한 runtime 검사를 암묵적으로 import하지 않는다.
