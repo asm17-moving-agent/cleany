@@ -26,6 +26,8 @@ ros2 launch cleany_skill_executor physical_grasp_selection.launch.py \
 
 launch prefix는 `physical_grasp_selection_server`만 받아 컨테이너의 `cleany_skill_executor.physical_grasp_selection_node`를 실행한다. ROS parameter YAML을 복사하고 native install과 저장소 경로를 mount 경로로 변환한다. domain, RMW와 DDS 설정은 전달하며 호스트 Python과 install 환경은 source하지 않는다.
 
+selector와 `tools/motion-container exec`의 OpenBLAS 계산은 기본 1개 스레드를 사용한다. 인식과 경로 준비가 겹칠 때 CPU 경쟁을 줄이도록 Python 시작 전에 `OPENBLAS_NUM_THREADS`를 설정한다. `CLEANY_MOTION_BLAS_THREADS`로 양의 정수를 지정할 수 있으며 다음 컨테이너 실행부터 적용된다. ROS 콜백 스레드는 유지하며 PyTorch/OpenMP 전용 설정은 추가하지 않는다.
+
 컨테이너는 호스트 network, IPC와 PID namespace를 사용하고 selector는 호스트 UID/GID로 실행한다. 시작한 컨테이너는 고유 이름과 owner label을 가지며 정상 종료, 오류와 signal 취소 시 해당 컨테이너만 정리한다. 종료 확인과 물리 정지 증거는 별개다.
 
 ```bash

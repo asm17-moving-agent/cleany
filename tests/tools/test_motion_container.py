@@ -108,6 +108,24 @@ def test_unset_rmw_uses_host_default_instead_of_image_default(tmp_path, monkeypa
     args = Runtime(tmp_path).environment({})
     assert 'RMW_IMPLEMENTATION=host_default_rmw' in args
     assert 'ROS_DOMAIN_ID=0' in args
+    assert 'OPENBLAS_NUM_THREADS=1' in args
+
+
+@pytest.mark.parametrize('threads', ['1', '2', '8'])
+def test_blas_budget_overrides_inherited_host_default(tmp_path, threads):
+    args = Runtime(tmp_path).environment({
+        'CLEANY_MOTION_BLAS_THREADS': threads, 'OPENBLAS_NUM_THREADS': '32',
+        'OMP_NUM_THREADS': '8',
+    })
+    assert f'OPENBLAS_NUM_THREADS={threads}' in args
+    assert 'OPENBLAS_NUM_THREADS=32' not in args
+    assert not any(arg.startswith('OMP_NUM_THREADS=') for arg in args)
+
+
+@pytest.mark.parametrize('threads', ['0', '-1', 'invalid'])
+def test_invalid_blas_budget_fails_before_launch(tmp_path, threads):
+    with pytest.raises(ValueError):
+        Runtime(tmp_path).environment({'CLEANY_MOTION_BLAS_THREADS': threads})
 
 
 @pytest.fixture
@@ -161,6 +179,7 @@ def test_launch_propagates_failure_or_cancel_and_cleans_only_its_container(fake_
         name = create[create.index('--name') + 1]
         assert name.startswith('cleany-motion-selector-')
         assert 'ROS_DOMAIN_ID=53' in create and 'cleany.owner=test owner' in create
+        assert 'OPENBLAS_NUM_THREADS=1' in create
         assert '--network' in create and 'host' in create
         assert create[create.index('--user') + 1] == f'{os.getuid()}:{os.getgid()}'
         assert create[create.index('--pid') + 1] == 'host'

@@ -95,6 +95,14 @@ make perception-up
 make perception-run
 ```
 
+인식 컨테이너의 NumPy/SciPy OpenBLAS 계산은 기본 1개 스레드를 사용한다.
+VLM 응답 대기 중 기하 계산과 경로 준비가 겹칠 때 CPU 경쟁을 줄이기 위한 설정이다.
+`CLEANY_PERCEPTION_BLAS_THREADS`로 개수를 바꿀 수 있으며, 변경 후
+`make perception-up`으로 컨테이너를 재생성하고 `make perception-run`을 실행한다.
+ROS 콜백 스레드 수는 유지하며 PyTorch/OpenMP 전용 설정은 추가하지 않는다.
+연동된 수치 라이브러리에 따라 PyTorch CPU 연산 내부 스레드 수에도 영향이 있으므로
+시험 시 실제 로드된 라이브러리의 스레드 수를 함께 확인한다.
+
 현재 `cleany_perception`의 2D detector는 Gemini adapter이므로 Qwen/VLM service가 구현되기
 전까지 API key를 실행 process에만 전달한다. key는 identity나 Compose environment에
 저장하지 않는다. `.12` VLM 주소는 IPAM이 선점하며 service 구현 시 예약을 해제하고 같은

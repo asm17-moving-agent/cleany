@@ -209,3 +209,15 @@ XYZRGB cloud는 지원되는 field datatype, offset, point/row step 및 전체 d
 ## AnyGrasp worker 수명
 
 선택한 AnyGrasp predictor는 전용 worker를 재사용할 수 있다. 모델 import와 초기화는 worker가 소유하며 오류와 종료를 요청 호출자에게 전달한다. 모델 weight와 라이선스는 외부에 준비한다. `test_anygrasp_worker.py`는 합성 predictor로 프로세스 수명과 오류 전달을 검사하며 라이선스나 GPU에서의 실제 추론 검증이 아니다.
+
+## CPU 연산 스레드
+
+`grasp_server`는 NumPy와 ROS 노드를 import하기 전에 `OPENBLAS_NUM_THREADS=1`을
+설정한다. 기하 후보 생성의 작은 행렬 연산이 카메라 수신과 제어 프로세스의 CPU를
+동시에 점유하지 않도록 하는 기본값이며 geometric과 AnyGrasp 실행 경로에 공통 적용한다.
+프로세스별 예산을 바꾸려면 시작 환경에 `CLEANY_GRASP_BLAS_THREADS`를 양의 정수로
+지정한다. 이 값은 상위 환경의 `OPENBLAS_NUM_THREADS`보다 우선하며 실행 중인 서버에는
+재시작 후 적용된다. ROS executor, OpenMP와 PyTorch 스레드 수는 이 설정의 대상이 아니다.
+
+기본값과 import 순서는 `test/test_runtime.py`에서 검증한다. 성능 비교는 동일한
+점군과 후보 설정으로 수행하고 계산 시간, CPU 시간, 카메라 수신 간격을 함께 확인한다.

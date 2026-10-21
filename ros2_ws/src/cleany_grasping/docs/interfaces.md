@@ -4,7 +4,7 @@
 
 ## grasp_server
 
-실행 파일: `grasp_server`. 원본: [grasp_node.py](../cleany_grasping/grasp_node.py).
+실행 파일: `grasp_server`. 시작 설정: [runtime.py](../cleany_grasping/runtime.py). 노드 구현: [grasp_node.py](../cleany_grasping/grasp_node.py).
 
 | 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
 |---|---|---|---|

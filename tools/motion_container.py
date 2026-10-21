@@ -154,7 +154,11 @@ class Runtime:
         return converted
 
     def environment(self, environment: dict[str, str]) -> list[str]:
-        options = []
+        blas_threads = int(environment.get('CLEANY_MOTION_BLAS_THREADS', '1'))
+        if blas_threads < 1:
+            raise ValueError('CLEANY_MOTION_BLAS_THREADS must be a positive integer')
+        # Limit BLAS before importing NumPy/SciPy without overriding ROS or OpenMP.
+        options = ['--env', f'OPENBLAS_NUM_THREADS={blas_threads}']
         mounts = set()
         for key in DDS_ENVIRONMENT:
             value = environment.get(key, '0' if key == 'ROS_DOMAIN_ID' else '')

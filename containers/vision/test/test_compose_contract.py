@@ -167,6 +167,8 @@ def test_compose_separates_anygrasp_assets_and_reserves_gpu_addresses(
     assert '/models/sam2' not in perception_volumes
     assert 'ANYGRASP_EXPECTED_FEATURE_ID' not in perception['environment']
     assert 'GEMINI_API_KEY' in perception['environment']
+    assert perception['environment']['OPENBLAS_NUM_THREADS'] == '1'
+    assert 'OPENBLAS_NUM_THREADS' not in anygrasp['environment']
     assert not any(key.startswith(('SAM2_', 'VLM_')) for key in perception['environment'])
 
     network = configuration['networks'][network_name]['ipam']['config'][0]

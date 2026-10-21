@@ -73,6 +73,7 @@ services:
     environment:
       <<: *runtime-environment
       CLEANY_WORKSPACE_ROLE: perception
+      OPENBLAS_NUM_THREADS: "${CLEANY_PERCEPTION_BLAS_THREADS:-1}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
     volumes:
       - type: bind
