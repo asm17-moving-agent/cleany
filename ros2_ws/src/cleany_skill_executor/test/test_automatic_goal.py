@@ -22,6 +22,56 @@ def test_auto_selection_preserves_real_snapshot_and_chooses_eligible_target():
         'camera-capture-423', 7, 'collect_lost_item', 'return_to_pick')
 
 
+@pytest.mark.parametrize('reverse_input', [False, True])
+def test_auto_selection_uses_robot_distance_when_camera_depth_order_is_reversed(reverse_input):
+    detections = [
+        detection(1, .80, distance_m=.70),
+        detection(2, .65, distance_m=.85),
+    ]
+    if reverse_input:
+        detections.reverse()
+    target = select_automatic_target(NS(snapshot_id='real', detections=detections),
+        {'label_destinations': {'*': 'return_to_pick'}})
+    assert target.object_id == 1
+
+
+def test_equal_robot_distances_use_object_id_instead_of_camera_depth():
+    detections = [
+        detection(2, .65, distance_m=.70),
+        detection(1, .80, distance_m=.70),
+    ]
+    target = select_automatic_target(NS(snapshot_id='real', detections=detections),
+        {'label_destinations': {'*': 'return_to_pick'}})
+    assert target.object_id == 1
+
+
+@pytest.mark.parametrize('nearest_fields', [
+    dict(label='battery'), dict(sorting_category='review'),
+    dict(estimated_width_m=.12, estimated_height_m=.13),
+    dict(median_depth_m=0.), dict(distance_valid=False), dict(confidence=.1),
+])
+def test_excluded_nearest_target_preserves_robot_distance_order(nearest_fields):
+    detections = [
+        detection(1, .40, distance_m=.50, **nearest_fields),
+        detection(3, .65, distance_m=.85),
+        detection(2, .80, distance_m=.70),
+    ]
+    target = select_automatic_target(NS(snapshot_id='real', detections=detections),
+        {'label_destinations': {'*': 'return_to_pick'}})
+    assert target.object_id == 2
+
+
+def test_missing_destination_tries_next_target_by_robot_distance():
+    detections = [
+        detection(1, .50, distance_m=.60, label='no route'),
+        detection(3, .65, distance_m=.85, label='box'),
+        detection(2, .80, distance_m=.70, label='cup'),
+    ]
+    target = select_automatic_target(NS(snapshot_id='real', detections=detections),
+        {'label_destinations': {'cup': 'cup_destination', 'box': 'box_destination'}})
+    assert (target.object_id, target.destination_id) == (2, 'cup_destination')
+
+
 def test_40mm_footprint_is_selectable_even_with_a_large_diagonal_image_region():
     target = detection(1, .5, label='box', sorting_category='lost_item',
         estimated_width_m=.040, estimated_height_m=.160,

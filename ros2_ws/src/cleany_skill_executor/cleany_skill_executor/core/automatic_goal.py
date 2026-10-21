@@ -27,8 +27,11 @@ def select_automatic_target(snapshot, config: dict, *, minimum_confidence: float
                   and math.isfinite(item.distance_m) and item.distance_m > 0]
     selection = select_closest_eligible(detections,
         denylist=denylist, maximum_smaller_extent_m=maximum_smaller_extent_m)
+    # Screening uses camera depth; target priority uses the robot-frame distance.
+    ranked_indices = sorted(selection.eligible_indices, key=lambda index: (
+        detections[index].distance_m, detections[index].object_id))
     destinations = config.get('label_destinations', {})
-    for index in selection.eligible_indices:
+    for index in ranked_indices:
         target = detections[index]
         destination = destinations.get(target.label, destinations.get('*'))
         if destination:
