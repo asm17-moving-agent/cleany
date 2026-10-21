@@ -6,7 +6,6 @@
   <description>Reachable grasp selection and nearest pre-grasp execution.</description>
   <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
   <license>Apache-2.0</license>
-  <buildtool_depend>ament_python</buildtool_depend>
   <depend>action_msgs</depend>
   <depend>ament_index_python</depend>
   <depend>cleany_interfaces</depend>

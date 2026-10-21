@@ -152,7 +152,7 @@ build-base:
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_base_driver cleany_base_odometry'
 
 test-base: build-base
-	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done'
 
 test-imu-runtime: build-base
 	$(BASE_EXEC) bash -lc 'set -e; source /opt/ros/humble/setup.bash; source "$(INSTALL_BASE)/setup.bash"; cd "$(REPO_ROOT)"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q ros2_ws/src/cleany_base_interfaces/test/test_contract.py ros2_ws/src/cleany_base_driver/test/test_imu_core.py ros2_ws/src/cleany_base_driver/test/test_imu_graph.py tools/test_imu_runtime_config.py'
@@ -519,3 +519,7 @@ print-install-base:
 	@printf '%s\n' '$(INSTALL_BASE)'
 print-navigation-install-base:
 	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
+
+.PHONY: test-ci-tools
+test-ci-tools:
+	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/tools/ci -v

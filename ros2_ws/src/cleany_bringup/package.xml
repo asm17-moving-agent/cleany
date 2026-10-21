@@ -3,7 +3,6 @@
   <name>cleany_bringup</name><version>0.1.0</version>
   <description>Simulation composition for the Cleany mission runtime.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer><license>MIT</license>
-  <buildtool_depend>ament_python</buildtool_depend>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend>
   <exec_depend>cleany_mission_manager</exec_depend>

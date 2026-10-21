@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from functools import lru_cache
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -61,15 +62,15 @@ def test_grasp_roll_alignment_matches_collinear_robot_geometry():
 
 
 def _expand_urdf(entrypoint: str, *xacro_args: str) -> ET.Element:
+    # Tests mutate XML trees; only share the immutable xacro output.
+    return ET.fromstring(_expand_urdf_xml(entrypoint, *xacro_args))
+
+
+@lru_cache(maxsize=None)
+def _expand_urdf_xml(entrypoint: str, *xacro_args: str) -> bytes:
     description = _source_root()
-    return ET.fromstring(
-        subprocess.check_output(
-            [
-                "xacro",
-                str(description / "urdf" / entrypoint),
-                *xacro_args,
-            ]
-        )
+    return subprocess.check_output(
+        ["xacro", str(description / "urdf" / entrypoint), *xacro_args]
     )
 
 
@@ -1028,6 +1029,25 @@ def _axis_angle(axis: np.ndarray, angle: float) -> np.ndarray:
             ],
         ]
     )
+
+
+def test_xacro_reuse_preserves_argument_and_tree_isolation(monkeypatch):
+    _expand_urdf_xml.cache_clear()
+    calls = []
+
+    def expand(command):
+        calls.append(command)
+        return b'<robot><link name="original"/></robot>'
+
+    monkeypatch.setattr(subprocess, 'check_output', expand)
+    first = _expand_urdf('cache_probe.xacro', 'option:=one')
+    first.find('link').set('name', 'mutated')
+    second = _expand_urdf('cache_probe.xacro', 'option:=one')
+    assert second.find('link').get('name') == 'original'
+    assert len(calls) == 1
+    _expand_urdf('cache_probe.xacro', 'option:=two')
+    assert len(calls) == 2
+    _expand_urdf_xml.cache_clear()
 
 
 @pytest.mark.parametrize('entrypoint', URDF_ENTRYPOINTS)

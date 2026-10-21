@@ -1,0 +1,2 @@
+build:
+  parallel-workers: 2

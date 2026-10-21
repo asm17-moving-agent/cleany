@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec docker exec cleany-ci bash -lc \
+  'source /opt/ros/humble/setup.bash && exec "$@"' bash "$@"
