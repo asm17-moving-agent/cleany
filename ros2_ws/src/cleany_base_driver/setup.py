@@ -12,4 +12,5 @@ setup(name=package_name, version='0.1.0', packages=find_packages(exclude=['test'
       entry_points={'console_scripts': [
           'base_driver_node=cleany_base_driver.driver_node:main',
           'mock_mcu_node=cleany_base_driver.mock_node:main',
+          'imu_driver_node=cleany_base_driver.imu_node:main',
           'odom_relay_node=cleany_base_driver.odom_relay:main']})

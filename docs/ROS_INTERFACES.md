@@ -36,6 +36,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | 기본 이름 (root namespace) | ROS 타입 | 발행 노드 | 구독 노드 | 조건 / 연결 |
 |---|---|---|---|---|
 | `/amcl_pose` | `geometry_msgs/msg/PoseWithCovarianceStamped` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
+| `/base/imu_state` | `cleany_base_interfaces/msg/ImuState` | [`cleany_motor_controller`][ros-cleany-motor-controller] | [`cleany_imu`][ros-cleany-imu] | — |
 | `/base/wheel_command` | `cleany_base_interfaces/msg/WheelCommand` | [`cleany_base_driver`][ros-cleany-base-driver] | [`mock_base_mcu`][ros-mock-base-mcu], [`cleany_motor_controller`][ros-cleany-motor-controller] | — |
 | `/base/wheel_state` | `cleany_base_interfaces/msg/WheelState` | [`mock_base_mcu`][ros-mock-base-mcu], [`cleany_motor_controller`][ros-cleany-motor-controller] | [`cleany_base_driver`][ros-cleany-base-driver] | — |
 | `/behavior_tree_log` | `nav2_msgs/msg/BehaviorTreeLog` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor], [`nav2_bt_trace`][ros-nav2-bt-trace] | — |
@@ -61,7 +62,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/cmd_vel` | `geometry_msgs/msg/Twist` | [`ground_truth_route_follower`][ros-ground-truth-route-follower], [`reactive_guard`][ros-reactive-guard], [`voxel_guard`][ros-voxel-guard] | [`cleany_base_driver`][ros-cleany-base-driver], [`cleany_dev_monitor`][ros-cleany-dev-monitor], [`gazebo_command_guard`][ros-gazebo-command-guard], [`mujoco_sim`][ros-mujoco-sim] | — |
 | `/collision_monitor_state` | `discovery 타입` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | 실행 graph에서 타입 확인 |
 | `/constraint_list` | `visualization_msgs/msg/MarkerArray` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
-| `/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | [`cleany_base_driver`][ros-cleany-base-driver] | — | — |
+| `/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | [`cleany_base_driver`][ros-cleany-base-driver], [`cleany_imu`][ros-cleany-imu] | — | — |
 | `/evaluation` | `discovery 타입` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | 실행 graph에서 타입 확인; 발행자 존재는 실행 구성에서 확인 |
 | `/gazebo/raw_clock` | `rosgraph_msgs/msg/Clock` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler] | Gazebo profile에서 raw 이름으로 remap |
 | `/gazebo/raw_joint_states` | `sensor_msgs/msg/JointState` | [`ros_gz_bridge`][ros-ros-gz-bridge] | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler] | Gazebo profile에서 raw 이름으로 remap |
@@ -75,7 +76,9 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/head_pan/command` | `std_msgs/msg/Float64` | [`pan_motion_gate`][ros-pan-motion-gate] | [`head_pan_bridge`][ros-head-pan-bridge] | Gazebo dynamic pan 구성 |
 | `/head_pan/coverage` | `std_msgs/msg/String` | [`depth_coverage`][ros-depth-coverage] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/head_pan/state` | `std_msgs/msg/String` | [`pan_motion_gate`][ros-pan-motion-gate] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
-| `/imu/data` | `sensor_msgs/msg/Imu` | [`ros_gz_bridge`][ros-ros-gz-bridge] | — | — |
+| `/imu/data` | `sensor_msgs/msg/Imu` | [`ros_gz_bridge`][ros-ros-gz-bridge], [`cleany_imu`][ros-cleany-imu] | — | 실행 구성별 대안 |
+| `/imu/data_raw` | `sensor_msgs/msg/Imu` | [`cleany_imu`][ros-cleany-imu] | — | — |
+| `/imu/status` | `diagnostic_msgs/msg/DiagnosticArray` | [`cleany_imu`][ros-cleany-imu] | — | — |
 | `/joint_states` | `sensor_msgs/msg/JointState` | [`cleany_base_driver`][ros-cleany-base-driver], [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler], [`ros_gz_bridge`][ros-ros-gz-bridge], [`mujoco_sim`][ros-mujoco-sim] | [`wheel_odometry`][ros-wheel-odometry], [`gazebo_pan_tf_publisher`][ros-gazebo-pan-tf-publisher], [`simulated_encoder`][ros-simulated-encoder], [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`pan_motion_gate`][ros-pan-motion-gate], [`reactive_guard`][ros-reactive-guard], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator], [`robot_state_publisher`][ros-robot-state-publisher] | Bridge 직접 발행은 override 구성; profile은 sampler 경유 |
 | `/left_arm_controller/controller_state` | `control_msgs/msg/JointTrajectoryControllerState` | [`left_arm_controller`][ros-left-arm-controller] | [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/left_wrist_camera/camera_info` | `sensor_msgs/msg/CameraInfo` | [`left_wrist_camera_contract_adapter`][ros-left-wrist-camera-contract-adapter], [`sorting_cameras`][ros-sorting-cameras] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`perception_inspector`][ros-perception-inspector] | 손목 구독은 enable_wrist_observation=true; MuJoCo camera 또는 adapter 경로 선택; 실물 camera 제공자는 별도 |
@@ -184,6 +187,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 
 [ros-base-odom-relay]: ../ros2_ws/src/cleany_base_driver/docs/interfaces.md#base_odom_relay
 [ros-bt-navigator]: ../ros2_ws/src/cleany_navigation/launch/navigation.launch.py
+[ros-cleany-imu]: ../ros2_ws/src/cleany_base_driver/docs/interfaces.md#cleany_imu
 [ros-cleany-base-driver]: ../ros2_ws/src/cleany_base_driver/docs/interfaces.md#cleany_base_driver
 [ros-cleany-dev-monitor]: ../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#cleany_dev_monitor
 [ros-cleany-motor-controller]: ../esp32/README.md#ros-인터페이스
@@ -237,6 +241,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | 노드 이름 | 패키지 | 실행 파일 | 인터페이스 표 |
 |---|---|---|---|
 | `cleany_base_driver` | `cleany_base_driver` | `base_driver_node` | [표](../ros2_ws/src/cleany_base_driver/docs/interfaces.md#cleany_base_driver) |
+| `cleany_imu` | `cleany_base_driver` | `imu_driver_node` | [표](../ros2_ws/src/cleany_base_driver/docs/interfaces.md#cleany_imu) |
 | `mock_base_mcu` | `cleany_base_driver` | `mock_mcu_node` | [표](../ros2_ws/src/cleany_base_driver/docs/interfaces.md#mock_base_mcu) |
 | `base_odom_relay` | `cleany_base_driver` | `odom_relay_node` | [표](../ros2_ws/src/cleany_base_driver/docs/interfaces.md#base_odom_relay) |
 | `wheel_odometry` | `cleany_base_odometry` | `wheel_odometry_node` | [표](../ros2_ws/src/cleany_base_odometry/docs/interfaces.md#wheel_odometry) |

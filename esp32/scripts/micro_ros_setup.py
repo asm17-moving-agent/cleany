@@ -53,6 +53,12 @@ def refresh_component(project: Path, environment: str) -> None:
     fingerprint = component_fingerprint(project, environment)
     stamp = component / ".cleany-build-fingerprint"
     if stamp.exists() and stamp.read_text() == fingerprint:
+        # Upstream uses the install directory itself as a make target. Failed
+        # colcon builds can leave that directory behind, suppressing the retry.
+        if not (component / "libmicroros.a").exists() or not (component / "include").is_dir():
+            incomplete = component / "micro_ros_src/install"
+            if incomplete.is_dir():
+                shutil.rmtree(incomplete)
         return
     # Upstream builds libmicroros/includes during CMake configuration. A
     # project/environment switch must rerun it even with unchanged sdkconfig.

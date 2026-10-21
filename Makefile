@@ -53,7 +53,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	sim-gazebo-study-cafe sim-gazebo-facility clean firmware-setup firmware-smoke firmware-build \
 	firmware-upload test-motor-core build-base test-base \
 	micro-ros-agent-build test-micro-ros-setup imu-calibration-build \
-	imu-calibration-upload imu-calibration-capture test-imu-calibration test-odometry-evaluation
+	imu-calibration-upload imu-calibration-capture test-imu-calibration test-odometry-evaluation test-imu-runtime
 
 .PHONY: build-manipulation build-manipulation-bt test-manipulation-core \
 	test-manipulation test-manipulation-bt sim-mujoco-manipulation
@@ -106,6 +106,7 @@ help:
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
 	@echo "  make imu-calibration-build / test-imu-calibration"
+	@echo "  make test-imu-runtime  Test MCU calibration config and ROS gyro relay"
 	@echo "  make imu-calibration-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
 	@echo "  make imu-calibration-capture CLEANY_ESP_PORT=/dev/... [IMU_CALIBRATION_ARGS=--calibrate]"
 
@@ -152,6 +153,9 @@ build-base:
 
 test-base: build-base
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+
+test-imu-runtime: build-base
+	$(BASE_EXEC) bash -lc 'set -e; source /opt/ros/humble/setup.bash; source "$(INSTALL_BASE)/setup.bash"; cd "$(REPO_ROOT)"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q ros2_ws/src/cleany_base_interfaces/test/test_contract.py ros2_ws/src/cleany_base_driver/test/test_imu_core.py ros2_ws/src/cleany_base_driver/test/test_imu_graph.py tools/test_imu_runtime_config.py'
 
 test-odometry-evaluation:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; source /opt/ros/humble/setup.bash; if test -f ros2_ws/install/setup.bash; then source ros2_ws/install/setup.bash; fi; for launcher in run_wheel_only_eval.sh run_motion_response.sh; do bash -n "tools/odometry_evaluation/$$launcher"; done; PYTHONNOUSERSITE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/odometry_evaluation tools/wheel_calibration'

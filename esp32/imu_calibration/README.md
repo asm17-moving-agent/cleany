@@ -5,6 +5,10 @@ checks them against a separate stationary validation window. Results are
 JSON lines over native USB. The diagnostic holds motor PWM/DIR outputs LOW
 and runs without motor-control tasks or micro-ROS.
 
+Normal power-on calibration now runs inside the
+[motor firmware](../README.md#power-on-calibration), using its build-time
+robot config. This standalone application is for acquiring bench reports.
+
 Acquisition/calibration runs in a task pinned to **core 1**; USB command parsing,
 JSON serialization, and output run on **core 0**. The IMU task exclusively owns
 the driver and calibrator. A length-one overwrite queue transfers immutable
