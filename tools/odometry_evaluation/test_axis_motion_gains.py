@@ -23,13 +23,18 @@ def test_pure_axes_select_override_independent_of_sign_and_heading(sign, yaw):
     assert command(0, sign, config, yaw) == pytest.approx(0.8)
 
 
-def test_legacy_fallback_diagonal_and_rotation_gain():
-    legacy = MotionConfig(linear_kp=0.3, yaw_kp=0.6)
+def test_shared_gain_without_axis_overrides():
+    shared = MotionConfig(linear_kp=0.3, yaw_kp=0.6)
+    assert command(1, 0, shared) == pytest.approx(0.3)
+    assert command(0, 1, shared) == pytest.approx(0.3)
+    assert command(1, 1, shared) == pytest.approx(0.3)
+
+
+def test_diagonal_and_rotation_select_their_own_gains():
     overrides = MotionConfig(
         linear_kp=0.3, linear_x_kp=0.9, linear_y_kp=1.2, yaw_kp=0.6
     )
-    assert command(1, 0, legacy) == pytest.approx(command(1, 0, MotionConfig(linear_kp=0.3)))
-    assert command(1, 1, overrides) == pytest.approx(command(1, 1, legacy))
+    assert command(1, 1, overrides) == pytest.approx(0.3)
     assert command(0, 0, overrides, rotation=True) == pytest.approx(0.6)
 
 
