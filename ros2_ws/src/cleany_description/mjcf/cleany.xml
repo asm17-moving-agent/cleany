@@ -51,13 +51,16 @@
     <mesh name="canonical_Moving_Jaw_part1" file="Moving_Jaw_part1.ply.convex.stl" />
     <mesh name="canonical_Moving_Jaw_part2" file="Moving_Jaw_part2.ply.convex.stl" />
     <mesh name="canonical_Moving_Jaw_part3" file="Moving_Jaw_part3.ply.convex.stl" />
-    <mesh name="canonical_XLeRobot_camera1" file="XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
-    <mesh name="canonical_XLeRobot_camera2" file="XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
     <mesh name="canonical_topbase2" file="topbase2.stl" scale="0.001 0.001 0.001" />
     <mesh name="canonical_tophead1" file="tophead1.stl" scale="0.001 0.001 0.001" />
     <mesh name="canonical_tophead4" file="tophead4.stl" scale="0.001 0.001 0.001" />
     <mesh name="canonical_tophead5" file="tophead5.stl" scale="0.001 0.001 0.001" />
     <mesh name="canonical_tophead6" file="tophead6.stl" scale="0.001 0.001 0.001" />
+    <mesh name="wrist_mount_v8_mount" file="wrist_mount_v8/mount_legacy_jaw_m.stl" />
+    <mesh name="wrist_mount_v8_connector" file="wrist_mount_v8/components/connector.stl" />
+    <mesh name="wrist_mount_v8_foot_screw_0" file="wrist_mount_v8/components/foot_screw_0.stl" />
+    <mesh name="wrist_mount_v8_foot_screw_1" file="wrist_mount_v8/components/foot_screw_1.stl" />
+    <mesh name="wrist_mount_v8_front_camera_module" file="wrist_mount_v8/components/front_camera_module.stl" />
   </asset>
   <default>
     <geom contype="0" conaffinity="0" condim="1" solref="0.005 1" />
@@ -189,9 +192,28 @@
                     <body name="Left_Arm_Camera" pos="0 -0.022 0.05" euler="1.5708 -1.5708 0">
                       <site name="left_wrist_rgb_optical_frame" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 -0.00690 0.00322 -0.99997" size="0.005" rgba="1 0 0 0" />
                       <camera name="left_wrist_rgb" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 0.00690 -0.00322 0.99997" fovy="93" />
-                      <geom type="mesh" mesh="canonical_XLeRobot_camera1" pos="-0.015 -0.026 0" material="white" class="visual" />
-                      <geom type="mesh" mesh="canonical_XLeRobot_camera2" pos="-0.015 -0.026 0" material="motor" class="visual" />
                     </body>
+                    <geom name="left_wrist_mount_v8_mount_visual" type="mesh" mesh="wrist_mount_v8_mount" rgba=".38 .08 .66 1" group="2" contype="0" conaffinity="0" density="0" />
+                    <geom name="left_wrist_mount_v8_case_back_collision" type="box" pos="0.00123088555759804 -0.0489895729952997 0.055450135462964" size="0.02105 0.02535 0.002" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_case_lip_left_collision" type="box" pos="0.021030885557598 -0.0466141748112739 0.0576682390374904" size="0.00125 0.02535 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_case_lip_right_collision" type="box" pos="-0.018569114442402 -0.0466141748112739 0.0576682390374904" size="0.00125 0.02535 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_case_lip_top_collision" type="box" pos="0.00123088555759804 -0.0630622659331465 0.0752827301867282" size="0.01855 0.00125 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_case_lip_bottom_left_collision" type="box" pos="0.013505885557598 -0.0301660836894013 0.0400537478882526" size="0.006275 0.00125 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_case_lip_bottom_right_collision" type="box" pos="-0.011044114442402 -0.0301660836894013 0.0400537478882526" size="0.006275 0.00125 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_rear_clip_left_collision" type="box" pos="0.011755885557598 -0.0470171485988188 0.0613965244512633" size="0.0035 0.005 0.0035" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_rear_clip_right_collision" type="box" pos="-0.00929411444240196 -0.0470171485988188 0.0613965244512633" size="0.0035 0.005 0.0035" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_connector_visual" type="mesh" mesh="wrist_mount_v8_connector" rgba=".84 .81 .66 1" contype="0" conaffinity="0" group="2" density="0" pos="0.00123088555759804 -0.0566850165154868 0.0549" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="left_wrist_mount_v8_connector_collision" type="box" pos="0.00123088555759804 -0.0310325291912217 0.0457435872702014" size="0.004 0.003 0.0025" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_front_camera_module_visual" type="mesh" mesh="wrist_mount_v8_front_camera_module" rgba=".045 .045 .05 1" contype="0" conaffinity="0" group="2" density="0" pos="0.00123088555759804 -0.0566850165154868 0.0549" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="left_wrist_mount_v8_front_camera_module_collision" type="box" pos="0.00123088555759804 -0.0548577871431592 0.0566062335188664" size="0.009 0.009 0.0015" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_lens_visual" type="cylinder" pos="0.00123088555759804 -0.0570504623899523 0.0545587532962267" size=".006 .0015" rgba=".045 .045 .05 1" contype="0" conaffinity="0" group="2" density="0" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="left_wrist_mount_v8_lens_collision" type="cylinder" pos="0.00123088555759804 -0.0570504623899523 0.0545587532962267" size=".006 .0015" contype="1" conaffinity="1" group="3" density="0" quat="0.398438572714427 0.917195019487835 0 0" class="collision" />
+                    <geom name="left_wrist_mount_v8_foot_collision" type="box" pos="0.00123088555759804 -0.0213708585215405 0.026" size="0.015 0.013 0.002" quat="-1 0 0 0" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_upright_collision" type="box" pos="0.00123088555759804 -0.0323708585215405 0.0318264606882467" size="0.015 0.002 0.006826460688246741" quat="-1 0 0 0" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_foot_screw_0_visual" type="mesh" mesh="wrist_mount_v8_foot_screw_0" rgba=".67 .69 .72 1" contype="0" conaffinity="0" group="2" density="0" pos="0.00123088555759804 -0.0566850165154868 0.0549" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="left_wrist_mount_v8_foot_screw_0_collision" type="box" pos="-0.00476911444240196 -0.0243708585215405 0.0286" size="0.0025 0.0025 0.0006" quat="-1 0 0 0" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="left_wrist_mount_v8_foot_screw_1_visual" type="mesh" mesh="wrist_mount_v8_foot_screw_1" rgba=".67 .69 .72 1" contype="0" conaffinity="0" group="2" density="0" pos="0.00123088555759804 -0.0566850165154868 0.0549" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="left_wrist_mount_v8_foot_screw_1_collision" type="box" pos="0.00723088555759804 -0.0243708585215405 0.0286" size="0.0025 0.0025 0.0006" quat="-1 0 0 0" group="3" density="0" contype="1" conaffinity="1" class="collision" />
                     <site name="left_grasp_tcp" pos="0 -0.100 0" size="0.005" rgba="0 0.8 1 0.4" />
                     <geom type="mesh" mesh="canonical_Fixed_Jaw" material="white" class="visual" />
                     <geom type="mesh" mesh="canonical_Fixed_Jaw_Motor" material="motor" class="visual" />
@@ -262,9 +284,28 @@
                     <body name="Right_Arm_Camera" pos="0 -0.021 0.05" euler="1.5708 -1.5708 0">
                       <site name="right_wrist_rgb_optical_frame" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 -0.00690 0.00322 -0.99997" size="0.005" rgba="1 0 0 0" />
                       <camera name="right_wrist_rgb" pos="-0.00833 0.01494 0.003872" xyaxes="-0.42286 -0.90620 0.0 0.00690 -0.00322 0.99997" fovy="93" />
-                      <geom type="mesh" mesh="canonical_XLeRobot_camera1" pos="-0.015 -0.026 0" material="white" class="visual" />
-                      <geom type="mesh" mesh="canonical_XLeRobot_camera2" pos="-0.015 -0.026 0" material="motor" class="visual" />
                     </body>
+                    <geom name="right_wrist_mount_v8_mount_visual" type="mesh" mesh="wrist_mount_v8_mount" rgba=".38 .08 .66 1" group="2" contype="0" conaffinity="0" density="0" />
+                    <geom name="right_wrist_mount_v8_case_back_collision" type="box" pos="0.00123088555759804 -0.0489895729952997 0.055450135462964" size="0.02105 0.02535 0.002" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_case_lip_left_collision" type="box" pos="0.021030885557598 -0.0466141748112739 0.0576682390374904" size="0.00125 0.02535 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_case_lip_right_collision" type="box" pos="-0.018569114442402 -0.0466141748112739 0.0576682390374904" size="0.00125 0.02535 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_case_lip_top_collision" type="box" pos="0.00123088555759804 -0.0630622659331465 0.0752827301867282" size="0.01855 0.00125 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_case_lip_bottom_left_collision" type="box" pos="0.013505885557598 -0.0301660836894013 0.0400537478882526" size="0.006275 0.00125 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_case_lip_bottom_right_collision" type="box" pos="-0.011044114442402 -0.0301660836894013 0.0400537478882526" size="0.006275 0.00125 0.00125" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_rear_clip_left_collision" type="box" pos="0.011755885557598 -0.0470171485988188 0.0613965244512633" size="0.0035 0.005 0.0035" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_rear_clip_right_collision" type="box" pos="-0.00929411444240196 -0.0470171485988188 0.0613965244512633" size="0.0035 0.005 0.0035" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_connector_visual" type="mesh" mesh="wrist_mount_v8_connector" rgba=".84 .81 .66 1" contype="0" conaffinity="0" group="2" density="0" pos="0.00123088555759804 -0.0566850165154868 0.0549" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="right_wrist_mount_v8_connector_collision" type="box" pos="0.00123088555759804 -0.0310325291912217 0.0457435872702014" size="0.004 0.003 0.0025" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_front_camera_module_visual" type="mesh" mesh="wrist_mount_v8_front_camera_module" rgba=".045 .045 .05 1" contype="0" conaffinity="0" group="2" density="0" pos="0.00123088555759804 -0.0566850165154868 0.0549" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="right_wrist_mount_v8_front_camera_module_collision" type="box" pos="0.00123088555759804 -0.0548577871431592 0.0566062335188664" size="0.009 0.009 0.0015" quat="0 0 -0.917195019487835 0.398438572714427" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_lens_visual" type="cylinder" pos="0.00123088555759804 -0.0570504623899523 0.0545587532962267" size=".006 .0015" rgba=".045 .045 .05 1" contype="0" conaffinity="0" group="2" density="0" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="right_wrist_mount_v8_lens_collision" type="cylinder" pos="0.00123088555759804 -0.0570504623899523 0.0545587532962267" size=".006 .0015" contype="1" conaffinity="1" group="3" density="0" quat="0.398438572714427 0.917195019487835 0 0" class="collision" />
+                    <geom name="right_wrist_mount_v8_foot_collision" type="box" pos="0.00123088555759804 -0.0213708585215405 0.026" size="0.015 0.013 0.002" quat="-1 0 0 0" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_upright_collision" type="box" pos="0.00123088555759804 -0.0323708585215405 0.0318264606882467" size="0.015 0.002 0.006826460688246741" quat="-1 0 0 0" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_foot_screw_0_visual" type="mesh" mesh="wrist_mount_v8_foot_screw_0" rgba=".67 .69 .72 1" contype="0" conaffinity="0" group="2" density="0" pos="0.00123088555759804 -0.0566850165154868 0.0549" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="right_wrist_mount_v8_foot_screw_0_collision" type="box" pos="-0.00476911444240196 -0.0243708585215405 0.0286" size="0.0025 0.0025 0.0006" quat="-1 0 0 0" group="3" density="0" contype="1" conaffinity="1" class="collision" />
+                    <geom name="right_wrist_mount_v8_foot_screw_1_visual" type="mesh" mesh="wrist_mount_v8_foot_screw_1" rgba=".67 .69 .72 1" contype="0" conaffinity="0" group="2" density="0" pos="0.00123088555759804 -0.0566850165154868 0.0549" quat="0.398438572714427 0.917195019487835 0 0" />
+                    <geom name="right_wrist_mount_v8_foot_screw_1_collision" type="box" pos="0.00723088555759804 -0.0243708585215405 0.0286" size="0.0025 0.0025 0.0006" quat="-1 0 0 0" group="3" density="0" contype="1" conaffinity="1" class="collision" />
                     <site name="right_grasp_tcp" pos="0 -0.100 0" size="0.005" rgba="0 0.8 1 0.4" />
                     <geom type="mesh" mesh="canonical_Fixed_Jaw" material="white" class="visual" />
                     <geom type="mesh" mesh="canonical_Fixed_Jaw_Motor" material="motor" class="visual" />

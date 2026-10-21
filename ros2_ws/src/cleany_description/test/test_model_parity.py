@@ -195,6 +195,14 @@ def test_urdf_geometry_and_mass_match_mjcf() -> None:
         index for index in range(source.ngeom)
         if source.geom(index).name not in named_additions
     ]
+    # v8 replaces the two original camera visuals on each wrist. Preserve the
+    # remaining CAD identifiers instead of renumbering unrelated model geometry.
+    retired_camera_indices = {78, 79, 110, 111}
+    imported_indices = dict(zip(
+        (index for index in range(len(imported_indices) + len(retired_camera_indices))
+         if index not in retired_camera_indices),
+        imported_indices,
+    ))
     compared = set()
     for index in range(urdf_model.ngeom):
         name = urdf_model.geom(index).name
@@ -274,46 +282,51 @@ def test_arm_motor_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
 def test_wrist_camera_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
     urdf = _expand_urdf(entrypoint)
     mjcf = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
-    body = mjcf.find(f".//body[@name='{side.title()}_Arm_Camera']")
-    assert body is not None
-    quaternion = np.empty(4)
-    mujoco.mju_euler2Quat(
-        quaternion, np.fromstring(body.get("euler"), sep=" "), "xyz"
-    )
-    rotation = np.empty(9)
-    mujoco.mju_quat2Mat(rotation, quaternion)
-    rotation = rotation.reshape(3, 3)
+    source = mujoco.MjModel.from_xml_path(str(_source_root() / "mjcf/wrist_mount_v8.xml"))
+    data = mujoco.MjData(source)
+    mujoco.mj_forward(source, data)
     link = urdf.find(f"./link[@name='{side}_gripper_frame']")
     assert link is not None
-    geoms = body.findall("./geom[@class='visual']")
-    assert len(geoms) == 2
-    for geom in geoms:
-        asset = mjcf.find(f"./asset/mesh[@name='{geom.get('mesh')}']")
-        assert asset is not None
-        assert (_source_root() / "meshes" / asset.get("file")).is_file()
-        filename = f"package://cleany_description/meshes/{asset.get('file')}"
-        assert not body.findall("./geom[@class='collision']")
-        expected_position = (
-            np.fromstring(body.get("pos"), sep=" ")
-            + rotation @ np.fromstring(geom.get("pos"), sep=" ")
-        )
-        # MuJoCo visuals also need URDF collision coverage for self filtering.
-        for kind in ("visual", "collision"):
-            element = _mesh_element(link, kind, filename)
-
-            mesh = element.find("geometry/mesh")
-            assert mesh is not None
-            assert np.fromstring(mesh.get("scale", "1 1 1"), sep=" ") == pytest.approx(
-                np.fromstring(asset.get("scale", "1 1 1"), sep=" ")
-            )
-            origin = element.find("origin")
-            assert origin is not None
-            assert np.fromstring(origin.get("xyz"), sep=" ") == pytest.approx(
-                expected_position, abs=1e-5
-            )
-            assert _rpy(np.fromstring(origin.get("rpy"), sep=" ")) == pytest.approx(
-                rotation, abs=1e-5
-            )
+    jaw = mjcf.find(f".//body[@name='{'Fixed_Jaw' if side == 'left' else 'Fixed_Jaw_2'}']")
+    prefix = f"{side}_wrist_mount_v8_"
+    collisions = [c for c in link.findall('collision') if c.get('name').startswith(prefix)]
+    visuals = [v for v in link.findall('visual') if v.get('name').startswith(prefix)]
+    assert len(collisions) == 15
+    assert len(visuals) == 6
+    assert not any('XLeRobot_camera' in mesh.get('filename') for mesh in link.findall('.//mesh'))
+    # The rigid geometry belongs to the gripper; optical calibration stays on
+    # its existing camera body and cannot move collision geometry.
+    camera_body = mjcf.find(f".//body[@name='{side.title()}_Arm_Camera']")
+    assert camera_body.find('camera') is not None
+    assert camera_body.find('site') is not None
+    assert not camera_body.findall('geom')
+    for collision in collisions:
+        name = collision.get('name')
+        source_id = source.geom(name.replace(prefix, 'left_camera_', 1)).id
+        origin = collision.find('origin')
+        assert np.fromstring(origin.get('xyz'), sep=' ') == pytest.approx(
+            data.geom_xpos[source_id], abs=1e-12)
+        assert _rpy(np.fromstring(origin.get('rpy'), sep=' ')) == pytest.approx(
+            data.geom_xmat[source_id].reshape(3, 3), abs=1e-12)
+        canonical = jaw.find(f"geom[@name='{name}']")
+        assert canonical is not None
+        assert canonical.get('contype') == canonical.get('conaffinity') == '1'
+        shape = collision.find('geometry')[0]
+        assert shape.tag == canonical.get('type')
+        if shape.tag == 'box':
+            size = np.fromstring(shape.get('size'), sep=' ') / 2
+        else:
+            assert shape.tag == 'cylinder'
+            size = [float(shape.get('radius')), float(shape.get('length')) / 2, 0]
+        assert size == pytest.approx(source.geom_size[source_id], abs=1e-12)
+    for visual in visuals:
+        canonical = jaw.find(f"geom[@name='{visual.get('name')}']")
+        assert canonical is not None
+        mesh = visual.find('geometry/mesh')
+        if mesh is not None:
+            asset = mjcf.find(f"./asset/mesh[@name='{canonical.get('mesh')}']")
+            assert mesh.get('filename') == f"package://cleany_description/meshes/{asset.get('file')}"
+            assert mesh.get('scale') == '1 1 1'
 
 
 @pytest.mark.parametrize("entrypoint", URDF_ENTRYPOINTS)

@@ -80,13 +80,12 @@ as visuals and URDF collision shapes, at their MJCF body-local placements. Upper
 and lower-arm motors have respective offsets `(0, 0.05, 0)` and `(0, 0, 0.05)` m;
 the other three have zero offsets. The RGB-D self-filter uses collision shapes,
 so omitting these parts can leave the robot's own surfaces in the environment
-OctoMap. The fixed-jaw motor and the two rigid wrist-camera meshes remain
-visual-only in MJCF, but have matching URDF collision meshes for conservative
-planning and self-filter coverage. The migration initially omitted these URDF
-collisions; they are restored using the exact visual origins/scales, without
-changing MuJoCo contact physics. Regression checks compare both visual and
-collision mesh scale and composed camera mesh poses
-within `1e-5`; motor translation comparisons allow `2e-6` m for CAD rounding.
+OctoMap. The fixed-jaw motor remains visual-only in MJCF and has a matching URDF
+collision mesh. The v8 wrist mounts use six visuals and fifteen collision
+primitives per wrist in both backends, replacing the old camera-case meshes.
+Their rigid geometry is attached to the gripper independently of optical TFs.
+Regression checks compare visual and collision poses, dimensions and colors
+across backends; motor translation comparisons allow `2e-6` m for CAD rounding.
 Existing CAD files are reused without regenerating assets or changing joint
 kinematics. This coverage does not by itself prove collision-free execution.
 

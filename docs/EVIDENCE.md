@@ -14,13 +14,10 @@
 검증 지표와 실패 또는 미검증 조건은 각 extrinsics YAML과 [캘리브레이션 가이드](CALIBRATION.md)에 있다.
 보고서 원본과 이미지 데이터셋은 Jetson의 기록된 위치에 남아 있다.
 
-[manipulation-detail.png](assets/physical-calibration/manipulation-detail.png)는
-Jetson의 `cleany_description/mjcf/cleany.xml`과 기존 mesh로 MuJoCo 3.11.0에서
-렌더링한 이미지다. `/tmp/cleany-shape-preview/manipulation-detail.png`에서
-원본 그대로 복사했다. 카메라 시점과 관절 자세만 시각화용으로 설정했다.
-양팔 shoulder yaw는 좌 -1.25, 우 +1.25 rad이고, shoulder pitch 0.45,
-elbow pitch 1.1, wrist pitch -0.45, gripper 0.25 rad를 사용했다.
-실물 제어와 calibration 재수행은 하지 않았다.
+[mount.png](assets/physical-calibration/mount.png)는 사용자가 제공한 형상 렌더다.
+`/Users/hyeon/Downloads/Jetson/mount.png`에서 원본 그대로 복사해 이전 PR 이미지를
+교체했다. SHA-256은 `c36c8aff0047bbe3dd34ec6904da879269c4221d2dd68f64d0363cce8d5d9d8b`다.
+실물 제어와 calibration 재수행의 증거로 사용하지 않는다.
 
 ### 2026-10-21 적용 검증
 
