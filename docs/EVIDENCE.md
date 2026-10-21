@@ -201,3 +201,27 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 `d5852af`의 [환경 확인 실패](https://github.com/asm17-moving-agent/cleany/actions/runs/39428868069)는 런타임 `ROS_HOME`이 이미지의 rosdep metadata 위치와 달라 발생했습니다. `45df20f`는 의존성 확인 명령에 이미지 생성 시의 `ROS_HOME`을 지정하며, 재설치 없이 실제 manifest의 의존성 충족 여부를 검사합니다.
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
+
+
+## Jetson 변경 선별 검증 (2026-10-22)
+
+기준 main은 `d0afd48`, 검증한 구현은 `integrate/jetson-main-curated`의 `d81212e`다. 원본 `feat/jetson-manipulation`의 `9c85b7d`와 미커밋 변경은 별도 snapshot으로 보존했다. 원래 작업 폴더의 변경 파일 364개 SHA-256과 전체 Git 상태가 백업 당시와 일치했다.
+
+Ubuntu 22.04 arm64, Python 3.10, ROS Humble, MoveIt 2.5.9와 geometric_shapes 2.3.4에서 검사했다. 기존 사용자 prefix의 scene runtime, OctoMap lock overlay와 BehaviorTree.CPP 4.10.0을 사용했으며 빌드 출력은 별도 `cleany-data/builds/cleany-main-curated/`에 뒀다. 입력은 합성 RGB-D와 transport, 가상 모터 PTY, 저장소의 고정 보정과 모델이다.
+
+| 검사 | 결과 | 원본 로그 |
+|---|---|---|
+| 관련 native 빌드 | 14개 패키지 통과 | `build-final-3.log` |
+| Interfaces, perception, grasp, physical state, skill와 BT 회귀 | 3150 passed, 28 skipped | `package-tests-verified.log` |
+| Host 도구 | 235 passed, 3 skipped | `host-tools-tests-final.log` |
+| 설정 정리 후 TCP 도구 | 36 passed; 선택하지 않은 SDK 검사 3 skip | `tcp-tools-tests-final.log` |
+| Controller의 READ 전용 활성화 차단과 쓰기 부재 | PTY 2개 통과 | `controller-emulator-tests-2.log` |
+| 모델 parity, 보정, v8 mount와 collision mesh | 74 passed | `model-tests-final.log` |
+| Scene mapping, Feetech driver와 MoveIt capability C++ | 3개 패키지 통과 | `native-tests.log` |
+| Monitor Python | 154 passed, 17 skipped | `monitor-tests-final.log` |
+| Monitor 웹 fixture | 44 passed, 3 skipped | `web-e2e-tests.log` |
+| GPU export와 runtime 경계의 장치 없는 검사 | 34 passed | `vision-tools-tests-final.log` |
+
+초기 통합에서 기존 main의 API와 launch 설정, 점군 buffer 검증, 로컬 전용 profile 참조와 보정 fixture의 경계값이 실패했다. 별도 physical 진입점, 명시적 외부 설정, 완전한 buffer 검사와 버전 관리되는 보정 입력으로 수정했다. 삭제한 legacy 파일의 이전 build symlink는 새 작업 폴더의 출력에서만 정리한 뒤 다시 빌드했다. 기존 시뮬레이션, Navigation, Mission과 CI 원본은 유지했다.
+
+원본 로그, 설정별 판정, 전체 파일 선별 내역, 이전 실패와 보존 검사는 `cleany-data/reviews/jetson-main-curation-20261021T173354Z/`의 `verification.json`, `file-dispositions.tsv`, `source-preservation.json`과 위 로그에 있다. NumPy 1.26.1과 시스템 SciPy의 버전 경고가 있었으며 관련 검사는 통과했다. 선택형 GPU, LeRobot, licensed SDK와 별도 ROS 시나리오는 실제 실행 조건에 따라 skip했다. 실제 USB 장치와 모터를 구동하지 않았고 GitHub CI, 실물 안전과 작업 성공률을 검증한 결과는 아니다. 변경된 profile lock의 기존 engine manifest는 별도 export와 검증이 필요하다.

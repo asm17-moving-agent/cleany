@@ -46,6 +46,7 @@ ros2_ws/log-*/
 /captures/
 /data/
 /datasets/
+/models/
 /runtime/
 /docs/benchmark_assets/
 *.bag
