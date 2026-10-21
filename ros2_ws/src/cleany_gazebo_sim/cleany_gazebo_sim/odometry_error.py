@@ -127,6 +127,10 @@ class StatefulOdometryError:
         self._slip_until_s = float('-inf')
         self._slip_gain = 1.0
 
+    @property
+    def is_ideal(self) -> bool:
+        return self._parameters.is_ideal
+
     def update(
         self, raw_pose: Pose2D, stamp_s: float
     ) -> NoisyOdometryEstimate:

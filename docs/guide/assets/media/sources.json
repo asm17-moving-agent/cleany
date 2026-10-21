@@ -1,0 +1,83 @@
+[
+  {
+    "file": "cartographer-map.gif",
+    "source": "https://github.com/cartographer-project/cartographer_ros/blob/c138034db0c47fe0ea5a2abe516acae02190dbf5/docs/source/demo_2d.gif",
+    "download": "https://raw.githubusercontent.com/cartographer-project/cartographer_ros/c138034db0c47fe0ea5a2abe516acae02190dbf5/docs/source/demo_2d.gif",
+    "revision": "c138034db0c47fe0ea5a2abe516acae02190dbf5",
+    "license": "Apache-2.0",
+    "modified": false,
+    "retrieved": "2026-10-13",
+    "sha256": "969072a3e0563ec68df49d3bc884a5f27cf53eae59df3f1b2de4e4e5cc8b4fe1"
+  },
+  {
+    "file": "cartographer-frames.jpg",
+    "source": "https://github.com/cartographer-project/cartographer_ros/blob/c138034db0c47fe0ea5a2abe516acae02190dbf5/docs/source/frames_demo_2d.jpg",
+    "download": "https://raw.githubusercontent.com/cartographer-project/cartographer_ros/c138034db0c47fe0ea5a2abe516acae02190dbf5/docs/source/frames_demo_2d.jpg",
+    "revision": "c138034db0c47fe0ea5a2abe516acae02190dbf5",
+    "license": "Apache-2.0",
+    "modified": false,
+    "retrieved": "2026-10-13",
+    "sha256": "9f05028a7ab864d837bc2850f7f32248802ffaf59a38adf69f89a860d8a3fa69"
+  },
+  {
+    "file": "moveit-stages.gif",
+    "source": "https://github.com/moveit/moveit2_tutorials/blob/b8f954ce045b00f29de4da24146eb7732e7b2a9e/doc/examples/moveit_task_constructor/mtc_show_stages.gif",
+    "download": "https://raw.githubusercontent.com/moveit/moveit2_tutorials/b8f954ce045b00f29de4da24146eb7732e7b2a9e/doc/examples/moveit_task_constructor/mtc_show_stages.gif",
+    "revision": "b8f954ce045b00f29de4da24146eb7732e7b2a9e",
+    "license": "BSD-3-Clause",
+    "modified": false,
+    "retrieved": "2026-10-13",
+    "sha256": "4d86c746bcb4ea0d295e7298ebd78ff77ae172617c081901bb2602beffa03d1f"
+  },
+  {
+    "file": "realsense-viewer.png",
+    "source": "https://github.com/realsenseai/librealsense/blob/c84fe6438bd14a4cc69f46deae92c993268232c6/doc/img/windows_viewer_preview.PNG",
+    "download": "https://raw.githubusercontent.com/realsenseai/librealsense/c84fe6438bd14a4cc69f46deae92c993268232c6/doc/img/windows_viewer_preview.PNG",
+    "revision": "c84fe6438bd14a4cc69f46deae92c993268232c6",
+    "license": "Apache-2.0",
+    "modified": false,
+    "retrieved": "2026-10-13",
+    "sha256": "4e3c92f79af28c8692d083617a17e778d57358dec76be7ba5b34cd322e582916"
+  },
+  {
+    "file": "realsense-pointcloud.png",
+    "source": "https://github.com/realsenseai/librealsense/blob/c84fe6438bd14a4cc69f46deae92c993268232c6/doc/img/windows_pointcloud_preview.PNG",
+    "download": "https://raw.githubusercontent.com/realsenseai/librealsense/c84fe6438bd14a4cc69f46deae92c993268232c6/doc/img/windows_pointcloud_preview.PNG",
+    "revision": "c84fe6438bd14a4cc69f46deae92c993268232c6",
+    "license": "Apache-2.0",
+    "modified": false,
+    "retrieved": "2026-10-13",
+    "sha256": "63952ca17d483a2ed2a1e8349d83deeb6971464e2b9c1d01991a8f10fc720e3c"
+  },
+  {
+    "file": "charuco-corners.jpg",
+    "source": "https://github.com/opencv/opencv_contrib/blob/c7602a8f74205e44389bd6a4e8d727d32e7e27b4/modules/aruco/tutorials/charuco_detection/images/chcorners.jpg",
+    "download": "https://raw.githubusercontent.com/opencv/opencv_contrib/c7602a8f74205e44389bd6a4e8d727d32e7e27b4/modules/aruco/tutorials/charuco_detection/images/chcorners.jpg",
+    "revision": "c7602a8f74205e44389bd6a4e8d727d32e7e27b4",
+    "license": "Apache-2.0",
+    "modified": false,
+    "retrieved": "2026-10-13",
+    "sha256": "377d26e44c2ef6c79e848aab5f9ab0152a95230af0ab5eb1a57e9d00b7e9175f"
+  },
+  {
+    "file": "charuco-pose.jpg",
+    "source": "https://github.com/opencv/opencv_contrib/blob/c7602a8f74205e44389bd6a4e8d727d32e7e27b4/modules/aruco/tutorials/charuco_detection/images/chaxis.jpg",
+    "download": "https://raw.githubusercontent.com/opencv/opencv_contrib/c7602a8f74205e44389bd6a4e8d727d32e7e27b4/modules/aruco/tutorials/charuco_detection/images/chaxis.jpg",
+    "revision": "c7602a8f74205e44389bd6a4e8d727d32e7e27b4",
+    "license": "Apache-2.0",
+    "modified": false,
+    "retrieved": "2026-10-13",
+    "sha256": "7f55c380a2ca128ebe40a02e7a91ee3436af3e2aa36b6f45bfb6d88515ea7792"
+  },
+  {
+    "file": "mecanum-wheels.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:MG_6646.resize.jpg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/a/af/MG_6646.resize.jpg",
+    "author": "KillerGardevoir",
+    "license": "CC-BY-3.0",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "modified": false,
+    "retrieved": "2026-10-13",
+    "sha256": "338f5b537de113b24d0cf570d4f7b3534b526e9aa7a9b2e28380fd8f501259a3"
+  }
+]

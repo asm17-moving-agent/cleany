@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from cleany_grasping.core.models import GraspPose, PointCloud, RawGrasp
-from cleany_grasping.core.ports import GraspPredictor
 
 
 @dataclass(frozen=True)
@@ -16,22 +15,38 @@ class GraspConfig:
     maximum_gripper_width_m: float = 0.10
     nms_translation_threshold_m: float = 0.02
     nms_rotation_threshold_rad: float = math.radians(20.0)
-    canonical_to_tcp_rotation: np.ndarray = field(default_factory=lambda: np.eye(3))
+    # GraspNet +X -> Cleany local -Y (approach), GraspNet +Y -> local +X
+    # (parallel-jaw closing).
+    canonical_to_tcp_rotation: np.ndarray = field(
+        default_factory=lambda: np.array(
+            ((0.0, -1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
+        )
+    )
     tcp_approach_axis: np.ndarray = field(
-        default_factory=lambda: np.array((1.0, 0.0, 0.0))
+        default_factory=lambda: np.array((0.0, -1.0, 0.0))
     )
 
     def __post_init__(self) -> None:
-        conversion = np.asarray(self.canonical_to_tcp_rotation, dtype=float)
-        approach = np.asarray(self.tcp_approach_axis, dtype=float)
+        conversion = np.asarray(self.canonical_to_tcp_rotation, dtype=float).copy()
+        approach = np.asarray(self.tcp_approach_axis, dtype=float).copy()
         if conversion.shape != (3, 3) or not np.allclose(
             conversion.T @ conversion, np.eye(3), atol=1e-5
         ):
             raise ValueError('Canonical-to-TCP rotation must be orthonormal')
+        if not math.isclose(float(np.linalg.det(conversion)), 1.0, abs_tol=1e-5):
+            raise ValueError('Canonical-to-TCP rotation must be right-handed')
         if approach.shape != (3,) or not np.isfinite(approach).all():
             raise ValueError('TCP approach axis must be a finite 3-vector')
         if np.linalg.norm(approach) <= 1e-12:
             raise ValueError('TCP approach axis must not be zero')
+        if not np.allclose(approach / np.linalg.norm(approach), (0.0, -1.0, 0.0)):
+            raise ValueError('Cleany TCP approach axis must be local -Y')
+        if not np.allclose(conversion @ approach, (1.0, 0.0, 0.0)) or not np.allclose(
+            conversion @ np.array((1.0, 0.0, 0.0)), (0.0, 1.0, 0.0)
+        ):
+            raise ValueError(
+                'GraspNet +X/+Y must map to Cleany local -Y/+X'
+            )
         limits = (
             self.workspace_margin_m,
             self.target_contact_margin_m,
@@ -41,6 +56,8 @@ class GraspConfig:
         )
         if not all(math.isfinite(value) and value > 0.0 for value in limits):
             raise ValueError('Grasp limits must be finite and positive')
+        conversion.setflags(write=False)
+        approach.setflags(write=False)
         object.__setattr__(self, 'canonical_to_tcp_rotation', conversion)
         object.__setattr__(self, 'tcp_approach_axis', approach)
 
@@ -55,6 +72,20 @@ def rank_grasps(
     target_cloud: PointCloud,
     config: GraspConfig | None = None,
 ) -> tuple[GraspPose, ...]:
+    """Filter and suppress scored grasps before robot-specific reachability checks.
+
+    Require the predicted contact inside the target bounds plus margin, enforce
+    opening limits and suppress nearby poses. Input clouds and candidate
+    translations share a frame and use metres.
+
+    Returns:
+        Score-ordered grasps converted from the model convention to the TCP
+        convention. An empty tuple means no candidate survived these filters;
+        surviving candidates still require robot IK and collision checks.
+
+    Raises:
+        ValueError: The target cloud is empty.
+    """
     settings = config or GraspConfig()
     if target_cloud.points.shape[0] == 0:
         raise ValueError('Target cloud must not be empty')
@@ -97,26 +128,3 @@ def rank_grasps(
             )
         )
     return tuple(ranked)
-
-
-def select_grasp(
-    predictor: GraspPredictor,
-    target_cloud: PointCloud,
-    context_cloud: PointCloud,
-    config: GraspConfig | None = None,
-) -> GraspPose | None:
-    settings = config or GraspConfig()
-    if target_cloud.points.shape[0] == 0 or context_cloud.points.shape[0] == 0:
-        raise ValueError('Target and context clouds must not be empty')
-    target_min = target_cloud.points.min(axis=0)
-    target_max = target_cloud.points.max(axis=0)
-    workspace_min = target_min - settings.workspace_margin_m
-    workspace_max = target_max + settings.workspace_margin_m
-    # AnyGrasp SDK order: xmin, xmax, ymin, ymax, zmin, zmax.
-    workspace = np.column_stack((workspace_min, workspace_max)).reshape(-1)
-    ranked = rank_grasps(
-        predictor.predict(target_cloud, context_cloud, workspace),
-        target_cloud,
-        settings,
-    )
-    return ranked[0] if ranked else None

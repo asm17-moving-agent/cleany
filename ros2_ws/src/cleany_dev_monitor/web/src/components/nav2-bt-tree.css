@@ -1,0 +1,80 @@
+.nav2-tree-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.nav2-tree-summary small,
+.nav2-tree-detail small {
+  color: var(--muted-foreground);
+}
+.nav2-tree-canvas {
+  height: 480px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+}
+.nav2-tree-node {
+  width: 190px;
+  padding: 10px;
+  border: 2px solid #94a3b8;
+  border-radius: 8px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+}
+.nav2-tree-node strong {
+  overflow-wrap: anywhere;
+}
+.nav2-tree-node[data-status="RUNNING"] {
+  border-color: #0d9488;
+  background: #ccfbf1;
+  color: #134e4a;
+}
+.nav2-tree-node[data-status="FAILURE"] {
+  border-color: #dc2626;
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+.nav2-tree-node[data-status="SUCCESS"] {
+  border-color: #16a34a;
+}
+.nav2-tree-node[data-status="UNKNOWN"] {
+  border-style: dashed;
+}
+.nav2-tree .react-flow__node.selected .nav2-tree-node {
+  box-shadow: 0 0 0 3px #60a5fa;
+}
+.nav2-tree-detail {
+  padding: 12px;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.nav2-tree-detail dl > div {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+.nav2-tree-detail dt {
+  min-width: 120px;
+  font-weight: 600;
+}
+.nav2-tree-detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.nav2-tree details {
+  margin-top: 12px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.nav-control-flow {
+  grid-template-columns: minmax(0, 1fr);
+}
+.nav-control-flow .nav2-tree-canvas {
+  height: 600px;
+}

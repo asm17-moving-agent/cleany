@@ -13,7 +13,7 @@ PACKAGE = Path(__file__).resolve().parents[1]
 
 
 def test_camera_extrinsics_match_fixed_gazebo_head_chain():
-    model = ET.parse(PACKAGE/'worlds/cleany_mecanum_harmonic.sdf').find('.//model[@name="cleany_mecanum"]')
+    model = ET.parse(PACKAGE/'worlds/cleany_mecanum_fortress.sdf').find('.//model[@name="cleany_mecanum"]')
     entities = {e.get('name'): e for tag in ('link', 'joint') for e in model.findall(tag)}
 
     def resolve(name):
@@ -39,13 +39,13 @@ def test_clearing_rays_cannot_be_marked_and_fit_the_actual_camera_clip():
     safety = yaml.safe_load((PACKAGE/'config/nav2_safety.yaml').read_text())
     projection = safety['depth_clearance']['ros__parameters']
     layer = safety['local_costmap']['local_costmap']['ros__parameters']['depth_layer']
-    sensor = ET.parse(PACKAGE/'worlds/cleany_mecanum_harmonic.sdf').find('.//sensor[@name="head_realsense_depth"]')
+    sensor = ET.parse(PACKAGE/'worlds/cleany_mecanum_fortress.sdf').find('.//sensor[@name="head_realsense_depth"]')
     assert projection['sensor_far_clip'] == float(sensor.findtext('camera/clip/far'))
     assert projection['marking_max_range'] == layer['depth']['obstacle_max_range']
     assert layer['depth']['obstacle_max_range'] < projection['clearing_distance'] < projection['sensor_far_clip']
     assert layer['depth']['raytrace_max_range'] >= projection['clearing_distance']
-    assert layer['depth']['min_obstacle_height'] < layer['min_obstacle_height']
-    assert layer['depth']['max_obstacle_height'] > layer['max_obstacle_height']
+    assert layer['depth_clear']['min_obstacle_height'] < layer['depth']['min_obstacle_height']
+    assert layer['depth_clear']['max_obstacle_height'] > layer['depth']['max_obstacle_height']
     assert layer['origin_z'] < layer['min_obstacle_height'] < layer['max_obstacle_height'] < layer['origin_z']+layer['z_resolution']*layer['z_voxels']
 
 

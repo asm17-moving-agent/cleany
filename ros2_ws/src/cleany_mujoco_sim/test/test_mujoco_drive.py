@@ -1,10 +1,12 @@
 import math
+from pathlib import Path
+
 import mujoco
 import pytest
 
 from cleany_mujoco_sim.mecanum_kinematics import WheelSpeeds
 from cleany_mujoco_sim.mujoco_drive import MujocoMecanumDrive
-from cleany_mujoco_sim.scene_loader import load_model
+from cleany_mujoco_sim.scene_loader import load_model, materialize_scene
 from cleany_mujoco_sim.wheel_speed_controller import (
     PidGains,
     VelocityControllerConfig,
@@ -21,8 +23,22 @@ def controller_config() -> VelocityControllerConfig:
 
 
 @pytest.fixture
-def xlerobot_model_data(cleany_scene_path):
-    return load_model(cleany_scene_path)
+def xlerobot_model_data(tmp_path: Path):
+    # Drive directions are measured in the world frame from an unobstructed
+    # origin. The study-cafe fixture parks a rotated robot next to a desk.
+    template = tmp_path / 'drive.xml.in'
+    template.write_text(
+        '<mujoco model="drive_regression">'
+        '<include file="@CLEANY_MJCF_PATH@"/>'
+        '<option timestep="0.002" gravity="0 0 -9.80665" '
+        'integrator="implicitfast" noslip_iterations="5">'
+        '<flag multiccd="enable"/>'
+        '</option>'
+        '<worldbody><geom name="floor" type="plane" size="0 0 0.05" '
+        'contype="1" conaffinity="1"/></worldbody>'
+        '</mujoco>'
+    )
+    return load_model(materialize_scene(template))
 
 
 def test_drive_maps_each_wheel_to_its_motor(

@@ -1,0 +1,36 @@
+schema_version: 1
+product: Bestuhl ROLY P1G210M
+source: https://bestuhlmall.com/product/detail.html?product_no=28
+manufacturer_catalog: https://bestuhl.co.kr/wp-content/uploads/2023/11/ROLY-카다로그_국문-압축됨.pdf
+# Catalog lists P1G210M at 697 x 572 x 955 mm, seat height 428–504 mm.
+# Model uses a 460 mm seat setting; individual surfaces remain photo reconstructions.
+manufacturer_reference_mm: [697, 572, 955]
+manufacturer_seat_height_range_mm: [428, 504]
+# All dimensions below are simulation estimates, NOT manufacturer/field measurements.
+# Frame/seat colors follow the representative photo, not a verified facility sample.
+dimension_source: photo_estimate
+seat_size_m: [0.465, 0.505, 0.070]
+seat_top_m: 0.46
+back_size_m: [0.15, 0.46, 0.53]
+back_origin_m: [-0.225, 0.0, 0.455]
+arm_top_m: 0.655
+arm_half_width_m: 0.276
+arm_length_m: 0.275
+arm_pad_width_m: 0.075
+arm_pad_thickness_m: 0.025
+frame_radius_m: 0.018
+base_radius_m: 0.32
+base_hub_height_m: 0.185
+base_tip_height_m: 0.067
+base_spoke_width_m: 0.045
+base_spoke_height_m: 0.035
+column_radius_m: 0.025
+caster_radius_m: 0.028
+caster_width_m: 0.016
+caster_gap_m: 0.010
+colors:
+  frame: [0.82, 0.84, 0.84, 1.0]
+  mesh: [0.68, 0.70, 0.70, 1.0]
+  seat: [0.10, 0.27, 0.23, 1.0]
+  metal: [0.16, 0.17, 0.18, 1.0]
+  tire: [0.055, 0.06, 0.065, 1.0]

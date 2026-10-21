@@ -13,7 +13,7 @@ from lidar_scan_matcher import LidarScanMatcher, ScanMatchResult
 import run_oneway_eval as runner
 
 
-CONFIG = Path(__file__).resolve().parents[2] / "configs/robot/lidar_extrinsic_20261015.json"
+CONFIG = Path(__file__).resolve().parents[2] / "ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261015.json"
 
 
 def test_current_mount_dry_run_reports_wheel_input_and_extrinsic(capsys):

@@ -420,7 +420,21 @@ def solve_all_hand_eye_methods(
     frame_convention: HandEyeFrameConvention = DEFAULT_HAND_EYE_FRAMES,
     cv_module: Any = cv2,
 ) -> tuple[HandEyeResult, ...]:
-    """Run all five methods on the same validated calibration pose pairs."""
+    """Solve eye-in-hand calibration with each registered OpenCV method.
+
+    Args:
+        samples: At least three calibration-split samples containing
+            base_T_gripper and camera_T_target, with translations in metres.
+
+    Returns:
+        One result per method. Valid results contain gripper_T_camera; method
+        exceptions and invalid transforms become failed results without stopping
+        the remaining solvers. Each solver receives independent input copies.
+
+    Raises:
+        InvalidHandEyeDataset: Samples violate the count, split or frame contract.
+        RegistryCompletenessError: Installed OpenCV methods differ from the registry.
+    """
 
     inputs = _prepare_opencv_inputs(samples, frame_convention)
     constants = validate_hand_eye_registry(cv_module)
@@ -445,12 +459,7 @@ def solve_hand_eye_method(
     frame_convention: HandEyeFrameConvention = DEFAULT_HAND_EYE_FRAMES,
     cv_module: Any = cv2,
 ) -> HandEyeResult:
-    """Run one explicitly selected method on validated calibration pairs.
-
-    The full registry is still checked before execution.  This entry point is
-    reserved for the timestamp-sensitivity follow-up, where rerunning all five
-    methods would violate the selected-method-only experiment contract.
-    """
+    """Run one solver using the contract of solve_all_hand_eye_methods()."""
 
     try:
         selected = HandEyeMethod(method)

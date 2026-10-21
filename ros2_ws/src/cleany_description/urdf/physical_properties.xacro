@@ -1,10 +1,11 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:macro name="cleany_link_properties" params="link_name">
     <xacro:if value="${link_name == 'base_link'}">
+      <!-- Combined source MJCF fullinertia tensors at the aligned arm mounts. -->
       <inertial>
-        <origin xyz="0.00644072910811 2.68920880351e-05 -0.141372186369" rpy="0 -0 0" />
+        <origin xyz="0.00644073126036 2.68998835469e-05 -0.141372186369" rpy="0 -0 0" />
         <mass value="12.3513377764" />
-        <inertia ixx="0.932591878949" ixy="0.0005589332157" ixz="-0.046314226328" iyy="0.865628944375" iyz="1.45840680831e-08" izz="0.486831237121" />
+        <inertia ixx="0.933542754865" ixy="0.000607854672282" ixz="-0.0463142424415" iyy="0.865629751875" iyz="-1.47964742646e-08" izz="0.487782920537" />
       </inertial>
       <visual name="mjcf_geom_0_0_visual">
         <origin xyz="-0.0154995 -0.0745144 -0.317538" rpy="-5.55160000426e-08 -7.33800005229e-09 1.5708" />
@@ -378,8 +379,9 @@
           <box size="0.195 0.165 0.175" />
         </geometry>
       </collision>
+      <!-- Base/Motor visual and collision poses share the CAD mounting-hole fit. -->
       <visual name="mjcf_geom_48_0_visual">
-        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
         </geometry>
@@ -388,7 +390,7 @@
         </material>
       </visual>
       <visual name="mjcf_geom_49_0_visual">
-        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
         </geometry>
@@ -397,19 +399,19 @@
         </material>
       </visual>
       <collision name="mjcf_geom_50_0_collision">
-        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_51_0_collision">
-        <origin xyz="0.1163 0.139917 0.431297" rpy="0 -0 3.14159265359" />
+        <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <visual name="mjcf_geom_80_0_visual">
-        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
+        <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
         </geometry>
@@ -418,7 +420,7 @@
         </material>
       </visual>
       <visual name="mjcf_geom_81_0_visual">
-        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -0 -3.58979302984e-09" />
+        <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -0 -3.58979302984e-09" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
         </geometry>
@@ -427,13 +429,13 @@
         </material>
       </visual>
       <collision name="mjcf_geom_82_0_collision">
-        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
+        <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_83_0_collision">
-        <origin xyz="0.116101000162 -0.139863 0.431297" rpy="0 -0 -3.58979302984e-09" />
+        <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -0 -3.58979302984e-09" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
         </geometry>
@@ -629,6 +631,12 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_71_0_self_filter_collision">
+        <origin xyz="4.08954814457e-12 1.5600333525e-12 -1.16272394365e-06" rpy="2.65358979332e-06 -3.35582256428e-13 9.74717818498e-12" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
       <collision name="mjcf_geom_72_0_collision">
         <origin xyz="4.08954944561e-12 1.56000906637e-12 -1.16272394366e-06" rpy="2.6535897933e-06 -3.35547845291e-13 9.74717868076e-12" />
         <geometry>
@@ -650,6 +658,12 @@
           <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_78_0_self_filter_collision">
+        <origin xyz="5.51022591132e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.32679579342e-06 -1.57079999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+      </collision>
       <visual name="mjcf_geom_79_0_visual">
         <origin xyz="5.51022591513e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.3267957937e-06 -1.57079999999" />
         <geometry>
@@ -659,6 +673,12 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_79_0_self_filter_collision">
+        <origin xyz="5.51022591513e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.3267957937e-06 -1.57079999999" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+      </collision>
     </xacro:if>
     <xacro:if value="${link_name == 'left_moving_jaw_link'}">
       <inertial>
@@ -905,6 +925,12 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_103_0_self_filter_collision">
+        <origin xyz="-1.75451667084e-13 1.72466207982e-14 -1.57319893348e-09" rpy="3.58979298692e-09 -3.3556837864e-13 1.31342831277e-14" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_Motor.stl" scale="1 1 1" />
+        </geometry>
+      </collision>
       <collision name="mjcf_geom_104_0_collision">
         <origin xyz="-1.75492433085e-13 1.71772318591e-14 -1.57319893063e-09" rpy="3.58979317055e-09 -3.35534912368e-13 1.32416268892e-14" />
         <geometry>
@@ -926,6 +952,12 @@
           <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_110_0_self_filter_collision">
+        <origin xyz="5.50979259921e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.676795793e-06 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+      </collision>
       <visual name="mjcf_geom_111_0_visual">
         <origin xyz="5.50979259431e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.67679579317e-06 -1.5708" />
         <geometry>
@@ -935,6 +967,12 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <collision name="mjcf_geom_111_0_self_filter_collision">
+        <origin xyz="5.50979259431e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.67679579317e-06 -1.5708" />
+        <geometry>
+          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
+        </geometry>
+      </collision>
     </xacro:if>
     <xacro:if value="${link_name == 'right_moving_jaw_link'}">
       <inertial>

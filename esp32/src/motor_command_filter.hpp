@@ -42,6 +42,13 @@ inline float encoderVelocityRadPerSecond(int32_t deltaCount,
          elapsedSeconds;
 }
 
+/**
+ * @brief Slew PWM commands and require measured standstill before reversal.
+ *
+ * Slew is applied per step(), so the caller owns the update cadence.
+ * Target and result are signed PWM percent; feedback uses rad/s and MCU
+ * monotonic microseconds. forceStop() bypasses slew but retains direction history.
+ */
 class MotorCommandFilter {
  public:
   MotorCommandFilter() = default;

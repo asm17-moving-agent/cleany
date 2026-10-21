@@ -1,0 +1,353 @@
+"""Persistent obstacle observations in the saved SLAM map, without inflation."""
+from __future__ import annotations
+
+from array import array
+from copy import deepcopy
+import hashlib
+import json
+from pathlib import Path
+import time
+
+import numpy as np
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, qos_profile_sensor_data
+from rclpy.time import Time
+from nav_msgs.msg import OccupancyGrid
+from sensor_msgs.msg import LaserScan, PointCloud2
+from std_srvs.srv import SetBool, Trigger
+from std_msgs.msg import String
+from cleany_navigation.point_cloud import cloud_xyz, xyz_cloud
+from tf2_ros import Buffer, TransformException, TransformListener
+
+from cleany_navigation.obstacle_memory import MemoryGeometry, ObstacleMemory, local_observation
+
+
+from cleany_navigation.transforms import transform
+
+
+class ObstacleMemoryNode(Node):
+    """Maintain sensor-derived obstacle memory in a configured map frame.
+
+    Subscriptions:
+        map (nav_msgs/msg/OccupancyGrid): Map geometry and static occupancy.
+        scan (sensor_msgs/msg/LaserScan): LiDAR rays.
+        camera/head/depth/points (sensor_msgs/msg/PointCloud2): Depth rays.
+            These topic names are configurable defaults.
+
+    Publishers:
+        obstacle_memory/{grid,lidar,depth,navigation_grid}
+            (nav_msgs/msg/OccupancyGrid): Combined and source-specific projections.
+        obstacle_memory/{voxels,local_voxels} (sensor_msgs/msg/PointCloud2):
+            Global and local occupied voxels when 3D publication is enabled.
+        obstacle_memory/voxel_status (std_msgs/msg/String): Revision and freshness.
+
+    Services:
+        obstacle_memory/save (std_srvs/srv/Trigger): Save configured memory output.
+        obstacle_memory/set_enabled (std_srvs/srv/SetBool): Freeze or resume updates.
+
+    TF:
+        Reads capture-time sensor transforms into map_frame, default map.
+
+    QoS:
+        Map input and memory outputs use reliable, transient-local depth 1;
+        sensor inputs use sensor_data.
+
+    Notes:
+        Initialization waits for a map. Restore compatibility and source age are
+        checked; configured persistence writes snapshots to output_directory.
+    """
+    def __init__(self):
+        super().__init__('obstacle_memory')
+        for name, value in [('map_topic', 'map'), ('scan_topic', 'scan'),
+                            ('depth_topic', 'camera/head/depth/points'), ('output_directory', ''),
+                            ('restore_path', ''), ('map_frame', 'map'), ('floor_z', 0.0), ('min_height', 0.05),
+                            ('max_height', 2.0), ('z_resolution', 0.10), ('update_period', 0.5),
+                            ('save_period', 5.0), ('mark_range', 4.0), ('clear_range', 5.0),
+                            ('scan_stride', 2), ('max_depth_rays', 1200), ('publish_3d', False),
+                            ('mark_all_depth_points', False), ('source_timeout_s', .8),
+                            ('shared_voxel_costmap', False), ('base_frame', 'base_link'), ('near_radius', 3.0), ('local_radius', 4.0),
+                            ('far_update_period', 1.0), ('world_publish_period', 1.0),
+                            ('expiry_period', 1.0), ('memory_ttl_s', 300.0),
+                            ('projection_min_z', -100.0), ('projection_max_z', 100.0)]:
+            self.declare_parameter(name, value)
+        self.values = {name: self.get_parameter(name).value for name in (
+            'output_directory', 'restore_path', 'floor_z', 'min_height', 'max_height', 'z_resolution',
+            'update_period', 'save_period', 'mark_range', 'clear_range', 'scan_stride', 'max_depth_rays',
+            'publish_3d', 'mark_all_depth_points', 'source_timeout_s', 'base_frame',
+            'near_radius', 'local_radius', 'far_update_period', 'world_publish_period',
+            'expiry_period', 'memory_ttl_s', 'projection_min_z', 'projection_max_z')}
+        if min(self.values[k] for k in ('update_period', 'save_period', 'scan_stride', 'max_depth_rays', 'mark_range')) <= 0:
+            raise ValueError('Periods, sampling counts and marking range must be positive')
+        if self.values['clear_range'] < self.values['mark_range']:
+            raise ValueError('Clearing range must cover marking range')
+        for key in ('near_radius', 'local_radius', 'far_update_period', 'world_publish_period', 'expiry_period'):
+            if not np.isfinite(self.values[key]) or self.values[key] <= 0:
+                raise ValueError(f'Invalid {key}')
+        if not np.isfinite(self.values['memory_ttl_s']) or self.values['memory_ttl_s'] < 0:
+            raise ValueError('Invalid memory_ttl_s')
+        if self.values['projection_min_z'] >= self.values['projection_max_z']:
+            raise ValueError('Invalid projection height range')
+        self.center = None
+        self.last_far: dict[str, float] = {}
+        self.last_world = self.last_expiry = -float('inf')
+        self.last_update = None
+        self.expired_count = 0
+        self.directory = Path(self.values['output_directory']) if self.values['output_directory'] else None
+        if self.directory is not None:
+            self.directory.mkdir(parents=True, exist_ok=True)
+        self.map_frame = self.get_parameter('map_frame').value
+        self.memory = None
+        self.latest = {}
+        self.processed = {}
+        self.counts = {'lidar': 0, 'depth': 0, 'tf_waits': 0}
+        self.source_stamps = {}
+        self.voxel_revision = 0
+        self.previous_grid = None
+        self.restored = False
+        self.enabled = True
+        self.map_fault = ''
+        self.buffer = Buffer()
+        self.listener = TransformListener(self.buffer, self)
+        durable = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.voxel_publisher = self.create_publisher(PointCloud2, 'obstacle_memory/voxels', durable)
+        self.local_publisher = self.create_publisher(PointCloud2, 'obstacle_memory/local_voxels', durable)
+        self.voxel_status = self.create_publisher(String, 'obstacle_memory/voxel_status', durable)
+        self.grid_publishers = {key: self.create_publisher(OccupancyGrid, 'obstacle_memory/'+key, durable)
+                           for key in ('grid', 'lidar', 'depth', 'navigation_grid')}
+        self.create_subscription(OccupancyGrid, self.get_parameter('map_topic').value, self.on_map, durable)
+        self.create_subscription(LaserScan, self.get_parameter('scan_topic').value,
+                                 lambda m: self.latest.update(lidar=m), qos_profile_sensor_data)
+        self.create_subscription(PointCloud2, self.get_parameter('depth_topic').value,
+                                 lambda m: self.latest.update(depth=m), qos_profile_sensor_data)
+        self.create_timer(self.values['update_period'], self.update)
+        self.create_timer(self.values['save_period'], self.save)
+        self.create_service(Trigger, 'obstacle_memory/save', self.save_service)
+        self.create_service(SetBool, 'obstacle_memory/set_enabled', self.set_enabled)
+
+    def set_enabled(self, request, response):
+        if request.data and self.map_fault:
+            response.success = False
+            response.message = self.map_fault
+            return response
+        self.enabled = request.data
+        response.success = True
+        response.message = 'Recording enabled' if self.enabled else 'Recording frozen'
+        self.save()
+        if self.memory is not None and self.values['publish_3d']:
+            self.publish_voxels()
+        return response
+
+    def on_map(self, msg):
+        q = msg.info.origin.orientation
+        if msg.header.frame_id != self.map_frame or max(abs(q.x), abs(q.y), abs(q.z)) > 1e-8:
+            raise ValueError('Obstacle memory requires an axis-aligned saved map')
+        self.info = deepcopy(msg.info)
+        v = self.values
+        geometry = MemoryGeometry(msg.info.width, msg.info.height, msg.info.resolution,
+                                  msg.info.origin.position.x, msg.info.origin.position.y,
+                                  v['floor_z']+v['min_height'], v['floor_z']+v['max_height'],
+                                  v['z_resolution'], hashlib.sha256(np.array(msg.data, dtype=np.int8).tobytes()).hexdigest())
+        if self.memory is not None:
+            if geometry == self.memory.geometry:
+                return
+            try:
+                self.memory.rebind_map(geometry)
+            except ValueError as exc:
+                # Retain the evidence with its original coordinate system.
+                # A durable disabled status makes the downstream guard stop.
+                self.enabled = False
+                self.map_fault = str(exc)
+                self.get_logger().error(str(exc))
+                self.publish_voxels()
+                return
+            self.publish()
+            self.save()
+            return
+        self.memory = (ObstacleMemory.restore(Path(v['restore_path']), geometry)
+                       if v['restore_path'] else ObstacleMemory(geometry))
+        self.restored = bool(v['restore_path'])
+        self.publish()
+        self.save()
+
+    def observe(self, source, msg):
+        stamp = (msg.header.stamp.sec, msg.header.stamp.nanosec)
+        stamp_s = (stamp[0]*1_000_000_000+stamp[1])/1e9
+        now = self.get_clock().now().nanoseconds/1e9
+        if self.values['publish_3d'] and not 0 <= now-stamp_s <= self.values['source_timeout_s']:
+            return
+        if self.processed.get(source) == stamp:
+            return
+        try:
+            # This node and TransformListener share a single-threaded executor.
+            # Waiting here prevents the very TF callback that could satisfy the
+            # lookup from running. At accelerated sim rates two 30 ms waits per
+            # update can starve TF/subscriptions and keep the safety guard stopped.
+            # Retry from the next update with the original sensor stamp; never
+            # substitute a latest transform or increase the source age limit.
+            pose = self.buffer.lookup_transform(
+                self.map_frame, msg.header.frame_id,
+                Time.from_msg(msg.header.stamp)).transform
+        except TransformException as error:
+            self.counts['tf_waits'] += 1
+            if now-self.source_stamps.get(source, 0.) > self.values['source_timeout_s']:
+                self.get_logger().warning(
+                    f'{source} observation TF unavailable at {stamp_s:.6f} '
+                    f'(now {now:.6f}): {error}', throttle_duration_sec=2.)
+            return
+        v = self.values
+        full_hits = None
+        if source == 'lidar':
+            indices = np.arange(0, len(msg.ranges), v['scan_stride'])
+            ranges = np.asarray(msg.ranges)[indices]
+            valid = (np.isfinite(ranges) & (ranges >= msg.range_min) & (ranges <= msg.range_max)) | np.isposinf(ranges)
+            ranges, indices = ranges[valid], indices[valid]
+            hits = np.isfinite(ranges) & (ranges < min(msg.range_max, v['mark_range']))
+            ranges = np.minimum(ranges, min(msg.range_max, v['clear_range']))
+            angles = msg.angle_min+indices*msg.angle_increment
+            points = np.column_stack((ranges*np.cos(angles), ranges*np.sin(angles), np.zeros(len(ranges))))
+        else:
+            full_points = cloud_xyz(msg)
+            full_points = full_points[np.isfinite(full_points).all(axis=1)]
+            if v['mark_all_depth_points']:
+                full_distances = np.linalg.norm(full_points, axis=1)
+                full_hits = full_points[(full_distances > .01) & (full_distances < v['mark_range'])]
+            stride = max(1, int(np.ceil(len(full_points)/v['max_depth_rays'])))
+            # Cycle the clearing subset so permanently skipped pixels cannot
+            # leave occupied voxels behind after an object disappears.
+            phase = self.counts['depth'] % stride if v['publish_3d'] else 0
+            points = full_points[phase::stride]
+            distances = np.linalg.norm(points, axis=1)
+            valid = distances > 0.01
+            points, distances = points[valid], distances[valid]
+            hits = distances < v['mark_range']
+            points *= np.minimum(1.0, v['clear_range']/distances)[:, None]
+        sensor = np.array([pose.translation.x, pose.translation.y, pose.translation.z])
+        if not len(points):
+            return
+        points = transform(points, pose)
+        full_hits = transform(full_hits, pose) if full_hits is not None else None
+        if self.center is not None and now-self.last_far.get(source, -float('inf')) < v['far_update_period']:
+            points, hits, full_hits = local_observation(sensor, points, hits, full_hits, self.center, v['near_radius']+np.linalg.norm([self.info.resolution, self.info.resolution, v['z_resolution']]))
+        else:
+            self.last_far[source] = now
+        self.memory.observe(source, sensor, points, hits, stamp_s, full_hits)
+        self.source_stamps[source] = stamp_s
+        self.voxel_revision += 1
+        self.processed[source] = stamp
+        self.counts[source] += 1
+
+    def update(self):
+        if self.memory is None or not self.enabled:
+            return
+        now = self.get_clock().now().nanoseconds/1e9
+        if self.last_update is not None and now < self.last_update:
+            self.enabled = False
+            self.map_fault = 'ROS clock reset; restart mapping'
+            self.publish_voxels()
+            return
+        self.last_update = now
+        try:
+            pose = self.buffer.lookup_transform(self.map_frame, self.values['base_frame'], Time())
+            if not 0 <= now-Time.from_msg(pose.header.stamp).nanoseconds/1e9 <= self.values['source_timeout_s']:
+                return
+            self.center = np.array([pose.transform.translation.x, pose.transform.translation.y])
+        except TransformException:
+            return
+        if now-self.last_expiry >= self.values['expiry_period']:
+            self.expired_count += self.memory.expire(now, self.values['memory_ttl_s'])
+            self.last_expiry = now
+        for source, msg in list(self.latest.items()):
+            self.observe(source, msg)
+        self.publish()
+
+    def publish(self):
+        if self.values['publish_3d']:
+            self.publish_voxels()
+        fused = None
+        diagnostic_due = not hasattr(self, 'last_diagnostic') or self.get_clock().now().nanoseconds/1e9-self.last_diagnostic >= self.values['world_publish_period']
+        for name, publisher in self.grid_publishers.items():
+            if name != 'navigation_grid' and not diagnostic_due:
+                continue
+            navigation = name == 'navigation_grid'
+            grid = self.memory.grid(None if name in ('grid', 'navigation_grid') else name,
+                min_z=self.values['projection_min_z'] if navigation else None,
+                max_z=self.values['projection_max_z'] if navigation else None,
+                block_expired=navigation)
+            msg = OccupancyGrid()
+            msg.header.frame_id = self.map_frame
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.info = self.info
+            # int8 storage preserves unknown (-1), free (0), and occupied (100)
+            # cells without Python element-by-element ROS sequence validation.
+            msg.data = array('b', grid.tobytes())
+            publisher.publish(msg)
+            if name == 'grid':
+                fused = grid.ravel()
+        if fused is None:
+            return
+        self.last_diagnostic = self.get_clock().now().nanoseconds/1e9
+        changed = np.arange(len(fused)) if self.previous_grid is None else np.flatnonzero(fused != self.previous_grid)
+        if len(changed) and self.directory is not None:
+            with (self.directory/'changes.jsonl').open('a') as stream:
+                stream.write(json.dumps({'unix_s': time.time(), 'sim_s': self.get_clock().now().nanoseconds/1e9,
+                                         'indices': changed.tolist(), 'values': fused[changed].tolist()})+'\n')
+        self.previous_grid = fused.copy()
+
+    def publish_voxels(self):
+        g = self.memory.geometry
+        stamp = self.get_clock().now().to_msg()
+        now = Time.from_msg(stamp).nanoseconds/1e9
+        # Full-world transport is diagnostic and runs slower than the local gate.
+        if now-self.last_world >= self.values['world_publish_period']:
+            points = self.memory.occupied_centers()
+            self.voxel_publisher.publish(xyz_cloud(points, self.map_frame, stamp))
+            self.last_world = now
+        local_count = 0
+        if self.center is not None:
+            nearby = self.memory.occupied_centers(center=self.center, radius=self.values['local_radius'], include_expired=True)
+            self.local_publisher.publish(xyz_cloud(nearby, self.map_frame, stamp))
+            local_count = len(nearby)
+        status = dict(enabled=self.enabled, map_fault=self.map_fault, revision=self.voxel_revision,
+                      stamp_s=Time.from_msg(stamp).nanoseconds/1e9, source_stamps=self.source_stamps,
+                      voxel_size=[g.resolution, g.resolution, g.z_resolution],
+                      occupied_voxels=len(self.memory.occupied_at[0].keys() | self.memory.occupied_at[1].keys()), map_id=g.map_id,
+                      local_voxels=local_count, local_center=self.center.tolist() if self.center is not None else None,
+                      local_radius=self.values['local_radius'], near_radius=self.values['near_radius'], expired_voxels=sum(len(s) for s in self.memory.expired),
+                      memory_ttl_s=self.values['memory_ttl_s'], expired_total=self.expired_count,
+                      min_xyz=[g.origin_x, g.origin_y, g.min_z],
+                      max_xyz=[g.origin_x+g.width*g.resolution, g.origin_y+g.height*g.resolution, g.max_z])
+        self.voxel_status.publish(String(data=json.dumps(status)))
+        if self.directory is not None:
+            (self.directory/'voxel_status.json').write_text(json.dumps(status, indent=2))
+
+    def save(self):
+        if self.memory is None or self.directory is None:
+            return
+        self.memory.save(self.directory/'obstacles.npz')
+        grid = self.memory.grid()
+        report = dict(counts=self.counts, restored=self.restored, enabled=self.enabled,
+                      observed_cells=int(np.count_nonzero(grid >= 0)), occupied_cells=int(np.count_nonzero(grid == 100)),
+                      total_cells=grid.size, observed_area_m2=float(np.count_nonzero(grid >= 0)*self.info.resolution**2),
+                      occupied_by_source={s: int(np.count_nonzero(self.memory.grid(s) == 100)) for s in self.memory.sources})
+        (self.directory/'status.json').write_text(json.dumps(report, indent=2))
+
+    def save_service(self, request, response):
+        self.save()
+        response.success = self.memory is not None and self.directory is not None
+        response.message = str(self.directory/'obstacles.npz') if self.directory is not None else 'Disk recording disabled; set output_directory'
+        return response
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = ObstacleMemoryNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.save()
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()

@@ -18,7 +18,18 @@ from cleany_gazebo_sim.odometry_error import (
 
 
 class SimulatedOdometryErrorNode(Node):
-    """Apply stateful planar errors to simulation wheel odometry."""
+    """Apply stateful error profiles to simulated wheel odometry.
+
+    Subscriptions:
+        wheel/odom_raw (nav_msgs/msg/Odometry): Baseline wheel estimate.
+
+    Publishers:
+        wheel/odom (nav_msgs/msg/Odometry): Estimate with configured scale,
+            drift, noise and slip effects. Both topic names are defaults.
+
+    TF:
+        Publishes no transform; the output remains input to the odometry relay.
+    """
 
     def __init__(self) -> None:
         super().__init__('simulated_odometry_error')
@@ -126,9 +137,10 @@ class SimulatedOdometryErrorNode(Node):
         output.pose.pose.orientation.y = 0.0
         output.pose.pose.orientation.z = sin(estimate.pose.yaw_rad / 2.0)
         output.pose.pose.orientation.w = cos(estimate.pose.yaw_rad / 2.0)
-        output.twist.twist.linear.x = estimate.linear_x_mps
-        output.twist.twist.linear.y = estimate.linear_y_mps
-        output.twist.twist.angular.z = estimate.angular_z_rps
+        if not self._model.is_ideal:
+            output.twist.twist.linear.x = estimate.linear_x_mps
+            output.twist.twist.linear.y = estimate.linear_y_mps
+            output.twist.twist.angular.z = estimate.angular_z_rps
         self._publisher.publish(output)
 
 

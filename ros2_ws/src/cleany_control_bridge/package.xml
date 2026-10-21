@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>cleany_control_bridge</name>
+  <version>0.1.0</version>
+  <description>Backend gateway to Mission Runtime ROS adapter.</description>
+  <maintainer email="team@example.com">Cleany Team</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>cleany_interfaces</exec_depend>
+  <exec_depend>python3-websocket</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

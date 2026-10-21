@@ -37,7 +37,7 @@ source /opt/ros/humble/setup.bash
 source ros2_ws/install/setup.bash
 export ROS_DOMAIN_ID=0
 ros2 launch cleany_base_driver base_driver.launch.py \
-  mock:=false config:="$(pwd)/configs/robot/base_hardware.yaml"
+  mock:=false config:="$(pwd)/ros2_ws/src/cleany_base_driver/config/base_hardware.yaml"
 ```
 
 ---
@@ -247,7 +247,7 @@ Config의 파일 경로와 `output_dir`는 레포 루트 기준이며, 작업 �
 
 #### 자동 기동과 준비 확인
 
-[`configs/robot/wheel_evaluation_runtime.json`](../../configs/robot/wheel_evaluation_runtime.json)에서
+[`ros2_ws/src/cleany_base_driver/config/wheel_evaluation_runtime.json`](../../ros2_ws/src/cleany_base_driver/config/wheel_evaluation_runtime.json)에서
 MCU·LiDAR by-id USB 경로, base hardware profile, LiDAR 옵션과 대기 시간을 바꿉니다.
 
 - Agent가 없으면 연결된 MCU에 serial Agent를 시작하고, base driver가 없으면

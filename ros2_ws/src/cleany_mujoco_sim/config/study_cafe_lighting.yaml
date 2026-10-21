@@ -1,0 +1,32 @@
+# Study-cafe renderer only; not a calibrated real-camera illumination model.
+schema_version: 1
+shadow_map_size: 4096
+shadow_scale: 1.0
+# World-space shadow coverage, independent of each scene's viewer extent.
+shadow_clip_half_extent_m: 12.0
+headlight:
+  ambient: [0.12, 0.12, 0.12]
+  diffuse: [0.08, 0.08, 0.08]
+  specular: [0.0, 0.0, 0.0]
+lights:
+  # Six adjoining desks: X=-5.53/-4.33/-3.13, Y=-2.785/-3.555.
+  # One flat-profile ceiling light covers the block, concentrating shadow texels.
+  - name: study_cafe_work_area_key
+    position_m: [-4.33, -3.17, 3.30]
+    direction: [0.0, 0.0, -1.0]
+    directional: false
+    cast_shadow: true
+    cutoff_degrees: 40.0
+    exponent: 0.0
+    diffuse: [0.40, 0.39, 0.37]
+    ambient: [0.07, 0.07, 0.07]
+    specular: [0.03, 0.03, 0.03]
+  - name: study_cafe_room_fill
+    position_m: [0.0, 0.0, 2.50]
+    direction: [-0.3, -0.2, -1.0]
+    directional: true
+    cast_shadow: false
+    cutoff_degrees: 60.0
+    diffuse: [0.24, 0.25, 0.27]
+    ambient: [0.04, 0.04, 0.04]
+    specular: [0.0, 0.0, 0.0]

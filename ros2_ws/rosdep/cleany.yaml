@@ -1,5 +1,5 @@
-mujoco:
+google-genai:
   ubuntu:
     pip:
       packages:
-        - mujoco
+        - google-genai

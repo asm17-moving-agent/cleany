@@ -9,7 +9,7 @@ LAUNCH = Path(__file__).parents[1] / 'launch' / 'base_driver.launch.py'
 spec = importlib.util.spec_from_file_location('base_driver_launch', LAUNCH)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-CONFIG = Path(__file__).parents[4] / 'configs' / 'robot'
+CONFIG = Path(__file__).parents[1] / 'config'
 
 
 def test_profile_mock_is_explicit_and_synthetic_never_real():

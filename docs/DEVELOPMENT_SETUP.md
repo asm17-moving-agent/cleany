@@ -1,8 +1,6 @@
 # Cleany 개발환경 설치 가이드
 
-이 문서는 새 Ubuntu VM에서 Cleany 구현 레포를 빌드하고 테스트할 수 있는 native
-ROS 2 개발환경을 준비하는 절차다. 팀은 VM 이미지를 배포하지 않으므로 각 개발자가
-아래 기준에 맞춰 환경을 직접 구성한다.
+새 Ubuntu native ROS 개발환경을 아래 순서로 구성합니다. VM 이미지는 별도로 배포하지 않습니다.
 
 ## 기준 환경
 
@@ -15,16 +13,9 @@ ROS 2 개발환경을 준비하는 절차다. 팀은 VM 이미지를 배포하�
 | Shell | Bash |
 | 기본 실행 방식 | VM의 native 환경 |
 
-ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원한다. Python
-가상환경으로 ROS의 system Python을 대체하지 않는다.
+ROS 2 Humble은 Ubuntu 22.04의 amd64와 arm64를 Tier 1 플랫폼으로 지원합니다. ROS의 system Python은 유지하며 Python 가상환경으로 대체하지 않습니다.
 
-GitHub Actions의 자동 검사는 설치 시간을 줄이기 위해 공식
-`ros:humble-ros-base-jammy` job container에서 실행하고, workspace에 필요한 추가
-의존성은 `package.xml`과 rosdep 규칙으로 설치한다. 이는 개발자의 native Humble
-Desktop 환경을 대체하지 않으며 GUI, 실제 센서와 actuator 검증도 포함하지 않는다.
-정확한 자동 검사 구성은 [CI workflow](../.github/workflows/ci.yml)를 따른다.
-
-설치 전 버전을 확인한다.
+[CI workflow](../.github/workflows/ci.yml)는 Humble ros-base container에서 package 의존성과 자동 검사를 확인합니다. GUI와 실물 동작은 별도 검증이 필요합니다. 설치 전에 아래 명령으로 현재 버전을 확인합니다.
 
 ```bash
 lsb_release -ds
@@ -33,7 +24,7 @@ python3 --version
 
 ## 1. Ubuntu 기본 설정
 
-UTF-8 locale과 ROS 저장소 등록에 필요한 도구를 준비한다.
+UTF-8 locale과 ROS 저장소 등록에 필요한 도구를 준비합니다.
 
 ```bash
 sudo apt update
@@ -46,7 +37,7 @@ sudo add-apt-repository universe
 
 ## 2. ROS 2 apt 저장소 등록
 
-ROS 공식 `ros2-apt-source` 패키지로 keyring과 apt source를 등록한다.
+ROS 공식 `ros2-apt-source` 패키지로 keyring과 apt source를 등록합니다.
 
 ```bash
 ROS_APT_SOURCE_VERSION="$(
@@ -67,19 +58,19 @@ sudo apt upgrade -y
 sudo apt install -y ros-humble-desktop ros-dev-tools python3-pip git make
 ```
 
-현재 terminal에서 ROS 환경을 적용한다.
+현재 terminal에 ROS 환경을 적용합니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
 ```
 
-새 terminal마다 자동으로 적용하려면 아래 한 줄을 `~/.bashrc`에 추가한다.
+새 terminal마다 자동 적용하려면 아래 한 줄을 `~/.bashrc`에 추가합니다.
 
 ```bash
 source /opt/ros/humble/setup.bash
 ```
 
-설치 결과를 확인한다.
+설치 결과를 확인합니다.
 
 ```bash
 test "${ROS_DISTRO}" = "humble"
@@ -88,18 +79,18 @@ command -v ros2 colcon rosdep
 ros2 doctor --report
 ```
 
-Python은 `3.10.x`, `ROS_DISTRO`는 `humble`이어야 한다.
+Python 3.10.x와 `ROS_DISTRO=humble`을 확인합니다.
 
 ## 4. 레포지토리 준비
 
-SSH key가 GitHub에 등록되어 있다는 전제에서 submodule과 함께 clone한다.
+GitHub에 SSH key를 등록한 뒤 submodule과 함께 clone합니다.
 
 ```bash
 git clone --recurse-submodules git@github.com:asm17-moving-agent/cleany.git
 cd cleany
 ```
 
-이미 clone한 레포지토리라면 submodule을 초기화한다.
+이미 clone한 레포지토리에서는 submodule을 초기화합니다.
 
 ```bash
 git submodule update --init --recursive
@@ -107,29 +98,50 @@ git submodule update --init --recursive
 
 ## 5. rosdep과 workspace 의존성 준비
 
-machine에서 rosdep을 처음 사용한다면 초기화한다. 이미 초기화되어 있다는 메시지가
-나오면 다시 실행하지 않아도 된다.
+Machine에서 rosdep을 처음 사용한다면 초기화합니다. 이미 초기화됐다는 메시지가 나오면 이 단계를 건너뜁니다.
 
 ```bash
 sudo rosdep init
 rosdep update
 ```
 
-그다음 [Cleany custom rosdep 규칙](../ros2_ws/rosdep/README.md)을 machine에
-등록한다. 레포지토리 경로가 바뀌면 custom 규칙도 다시 등록해야 한다.
+의존성은 공식 rosdep 규칙을 사용합니다. MuJoCo Python 패키지는 `python3-mujoco-pip` 키로 설치합니다.
 
-레포지토리 루트에서 workspace 의존성을 설치한다.
+새 인식 경로의 `google-genai`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
+
+```bash
+printf 'yaml file://%s/ros2_ws/rosdep/cleany.yaml\n' "$PWD" | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list
+rosdep update
+```
+
+레포지토리 루트에서 workspace 의존성을 설치합니다.
 
 ```bash
 make deps
 ```
 
-`cleany_moveit_config` 패키지를 빌드하면 package manifest에 따라 ROS 2
-Humble용 MoveIt 2, KDL kinematics plugin, OMPL planner, `ros2_control` 및
-`joint_trajectory_controller`도 `make deps`가 함께 설치한다. MuJoCo hand-eye
-backend를 포함한 전체 workspace 설치에서는 Humble용 `mujoco_ros2_control`도
-`cleany_mujoco_sim` manifest를 통해 설치한다. 설치 후 다음으로 필수 runtime
-package를 확인할 수 있다.
+| 기능 | `make deps`로 설치하는 의존성 |
+|---|---|
+| Native depth self-filter | Manifest의 `python3-dev` 개발 헤더 |
+| 계획, 제어 | MoveIt 2, KDL, OMPL, ros2_control, joint_trajectory_controller |
+| Hand-eye backend | cleany_mujoco_sim manifest의 mujoco_ros2_control |
+| 단일 물체 MuJoCo Action | BehaviorTree.CPP 4.x, pybind11_vendor, python3-dev |
+| Mock Action 트리 모니터 | python3-zmq; VS Code 확장의 native ZeroMQ 의존성은 별도 |
+
+`cleany_manipulation_bt`는 BehaviorTree.CPP 4.x를 사용합니다. Humble Navigation의
+`behaviortree_cpp_v3`와 별도 패키지이며 두 major 버전을 함께 설치할 수 있습니다.
+개별 설치와 빌드는 다음 명령을 사용합니다.
+
+```bash
+sudo apt install ros-humble-behaviortree-cpp ros-humble-pybind11-vendor python3-dev python3-zmq
+make build-manipulation-bt
+```
+
+Gemini 인식으로 MuJoCo Action을 실행할 터미널에는 `GEMINI_API_KEY`를 설정합니다.
+로컬 파일을 사용한다면 권한 `600`의 `~/.config/cleany/gemini.env`에 `export` 문을
+보관하고 실행 전에 source합니다. 모델 준비는 [인식 reference](../ros2_ws/src/cleany_perception/docs/runtime.md#모델-준비)를 따릅니다.
+
+아래 명령으로 runtime package 설치를 확인합니다.
 
 ```bash
 ros2 pkg prefix moveit_ros_move_group
@@ -140,370 +152,71 @@ ros2 pkg prefix joint_trajectory_controller
 ros2 pkg prefix mujoco_ros2_control
 ```
 
-Gazebo 패키지만 재현할 때는 MuJoCo 등 다른 workspace 의존성을 제외하고 설치할 수
-있다.
+Gazebo만 준비할 때는 다음 target을 사용합니다.
 
 ```bash
 make deps-gazebo
 ```
 
-이 target은 `cleany_description`의 MuJoCo parity test에만 필요한 `mujoco` rosdep key를
-제외합니다. 전체 workspace test를 실행할 환경에서는 custom rosdep 규칙을 등록한 뒤
-`make deps`를 사용합니다.
+시설 CLI는 `cleany_gazebo_sim`에 포함됩니다. NumPy, SciPy, Pillow, PyYAML은 manifest와 rosdep으로 설치하며, 빌드 후 `ros2 run cleany_gazebo_sim`으로 실행합니다.
 
-rosdep이 Gazebo 의존성을 해석하지 못할 때만 아래 APT 패키지를 직접 확인한다.
-일반 설치에서는 package manifest를 기준으로 하는 `make deps-gazebo`를 우선한다.
+`deps-gazebo`는 MuJoCo parity-test용 `python3-mujoco-pip` 키를 제외합니다. 전체 테스트를 준비할 때는 `make deps`를 사용합니다.
+
+일반 설치는 manifest 기반의 `make deps-gazebo`를 사용합니다. Rosdep이 Gazebo 의존성을 해석하지 못할 때는 아래 APT 패키지를 직접 확인합니다.
 
 ```bash
 sudo apt update
 sudo apt install -y ros-humble-ros-gz-sim ros-humble-ros-gz-bridge
 ```
 
-## 6. 빌드와 테스트
+## 6. 빌드와 출력 경로
 
 ```bash
 make build
+source "$(make -s print-install-base)/setup.bash"
 make test
 ```
 
-변경한 패키지만 빠르게 확인할 수도 있다.
+Gazebo와 Navigation 전용 빌드는 Makefile이 선택하는 출력을 사용합니다. Navigation overlay는 `make -s print-navigation-install-base`로 조회합니다. 빌드와 조회에는 같은 Make 변수를 전달합니다.
+
+다른 ROS 배포판의 build/install/log는 재사용하지 않습니다. 출력은 Makefile의 clean target으로 정리하며, 실행 중인 overlay는 보존합니다.
+
+준비 후 [실행](RUNNING.md), [테스트](TESTING.md), [캘리브레이션](CALIBRATION.md) 가이드로 이동합니다. Gazebo 지원 조합은 Humble/Fortress입니다.
+
+## 7. 선택 환경
+
+### Fedora
+
+Ubuntu 22.04 Distrobox `ros2-humble` 안에 위 의존성을 준비합니다. 호스트 Python과 Ubuntu ROS Python은 혼용하지 않습니다. GUI 실행에는 display와 OpenGL 전달도 필요합니다.
+
+### ESP32
+
+모터 펌웨어와 micro-ROS 준비는 [ESP32](../esp32/README.md) 가이드를 따릅니다. 고정 버전은 [micro_ros.lock.json](../esp32/micro_ros.lock.json)이 관리하며, firmware와 ROS/Agent의 shell 환경은 분리합니다. 장치 없는 빌드 이후 upload, serial 연결, 모터 구동은 각각 별도로 확인합니다.
+
+### Monitor 웹
+
+웹 빌드는 Node.js 22 이상과 pnpm 11을 사용합니다.
 
 ```bash
-make test-mission
-make test-mujoco
-make test-handeye
-make test-gazebo
+cd ros2_ws/src/cleany_dev_monitor/web
+pnpm install --frozen-lockfile
+pnpm build
 ```
 
-Hand-eye 개발 범위만 반복할 때는 아래 두 target을 사용한다.
-
-```bash
-make build-handeye
-make test-handeye
-```
-
-`make deps`는 hand-eye package manifest를 통해 MoveIt 2/KDL/OMPL,
-`ros2_control`, `mujoco_ros2_control`, OpenCV contrib, NumPy, PyYAML과 ROS service/action
-dependency를 설치한다. 별도 Python virtualenv에 OpenCV나 NumPy를 다시 설치하지
-않는다.
-
-MuJoCo용 random pose set을 생성하고 실제 calibration을 viewer와 함께 실행한 뒤
-완성 dataset을 검증한다.
-
-```bash
-make handeye-generate-mujoco
-make handeye-mujoco
-make handeye-validate-mujoco
-```
-
-첫 명령은 random seed와 제한된 workspace prior를 사용하되 MoveIt, collision,
-렌더링 ChArUco/PnP를 통과한 후보만 모으고 rotation axis/covariance 분석으로 20+5를
-선정한다. 두 번째 명령은 `headless:=false`를 고정해 operator 화면을 표시한다.
-마지막 명령은 row/image hash, PnP 재현과 150-run solver를 검증한다. 자동 테스트는
-`headless:=true`를 명시하므로 CI나 반복 회귀에서 viewer를 열지 않는다. Template의
-승인 전 `null` 값은 실행 입력으로 사용하지 않는다.
-
-Gazebo 재현성만 확인할 때는 환경 검사부터 실행한다. 활성 `ROS_DISTRO`와 Gazebo major
-version으로 Humble/Fortress 또는 Jazzy/Harmonic profile을 선택한 뒤, profile에 맞는
-Ubuntu, Python과 ROS bridge 설치 여부를 확인한다.
-
-```bash
-make check-gazebo-env
-make test-gazebo
-make sim-gazebo
-```
-
-MuJoCo 시뮬레이션을 headless로 실행한다.
-
-```bash
-make sim
-```
-
-Make target과 내부 native 명령은 [ROS 2 workspace 안내](../ros2_ws/README.md)를
-참고한다.
-
-## 7. 선택: ROS 2 Jazzy / Gazebo Harmonic 호환 환경
-
-팀의 기준 환경은 위에서 설명한 Ubuntu 22.04 / ROS 2 Humble / Gazebo Fortress다.
-Jazzy/Harmonic 호환 profile이 필요하면 별도의 Ubuntu 24.04 환경을 사용한다. 이 환경은
-팀 표준을 대체하지 않으며 Fortress와 build output을 공유하지 않는다.
-
-현재 검증한 호환 환경은 다음과 같다.
-
-| 항목 | 검증값 |
-|---|---|
-| OS | Ubuntu 24.04 (Noble) |
-| ROS / Python | ROS 2 Jazzy / Python 3.12.x |
-| Gazebo | Harmonic (`gz sim` 8.x, 검증 버전 8.11.0) |
-
-Fedora host에서 실험 환경만 분리할 때는 Ubuntu 24.04 Distrobox를 사용할 수 있다.
-
-```bash
-distrobox create --name ros2-jazzy \
-  --image docker.io/library/ubuntu:24.04 --yes
-distrobox enter ros2-jazzy
-```
-
-### ROS와 Gazebo 설치
-
-Ubuntu 24.04 환경에서 이 문서의 1절과 2절을 실행해 locale과 ROS apt source를 준비한
-뒤 Jazzy와 Harmonic bridge를 설치한다.
-
-```bash
-sudo apt update
-sudo apt install -y \
-  ros-jazzy-desktop ros-dev-tools python3-pip git make \
-  ros-jazzy-ros-gz-sim ros-jazzy-ros-gz-bridge \
-  ros-jazzy-navigation2
-source /opt/ros/jazzy/setup.bash
-```
-
-rosdep을 초기화하고 Gazebo 관련 dependency를 설치한다.
-
-```bash
-sudo rosdep init
-rosdep update --rosdistro jazzy
-cd ros2_ws
-rosdep install --from-paths src/cleany_description src/cleany_gazebo_sim \
-  --ignore-src --skip-keys mujoco --rosdistro jazzy -r -y
-cd ..
-```
-
-이미 rosdep이 초기화되어 있다는 메시지가 나오면 `sudo rosdep init`은 다시 실행하지
-않는다.
-
-### 환경 확인과 실행
-
-다음 값이 맞는지 확인한다.
-
-```bash
-source /opt/ros/jazzy/setup.bash
-test "$(. /etc/os-release && echo "${VERSION_ID}")" = "24.04"
-test "${ROS_DISTRO}" = "jazzy"
-python3 --version
-gz sim --versions
-ros2 pkg prefix ros_gz_sim
-ros2 pkg prefix ros_gz_bridge
-ros2 pkg prefix nav2_amcl
-```
-
-Snapdragon X2-85 host에서는 Ubuntu Noble 기본 Mesa 25.2.8이 GPU를 인식하지 못해
-OGRE2 sensor server가 시작되지 않는다. 이 경우에만 격리된 Distrobox 안에서 Kisak
-Mesa를 사용한다. Mesa 26.1.7과 `eglinfo`의 `Adreno (TM) X2-85` 출력을 확인한 뒤
-Gazebo runtime test를 실행한다. 이 PPA를 호스트 Fedora에 추가하지 않는다.
-
-```bash
-sudo add-apt-repository -y ppa:kisak/kisak-mesa
-sudo apt update
-sudo apt install -y \
-  libgl1-mesa-dri libegl-mesa0 libgbm1 libglx-mesa0 \
-  mesa-vulkan-drivers mesa-utils
-eglinfo -B
-```
-
-저장소 루트에서 공통 Gazebo 명령을 실행한다. 활성 `ROS_DISTRO=jazzy`와 Gazebo 8.x를
-확인하면 Harmonic profile을 자동으로 선택한다.
-
-```bash
-make check-gazebo-env
-make test-gazebo
-make sim-gazebo
-```
-
-ROS 환경을 source하지 않았고 여러 배포판이 설치돼 있어 자동 판정이 불가능하면
-`GAZEBO_PROFILE=harmonic make test-gazebo`처럼 profile을 명시한다. 활성
-`ROS_DISTRO`와 충돌하는 profile은 허용하지 않는다.
-
-`make sim-gazebo`는 GUI 없이 server를 실행한다. GUI까지 실행하려면 build 후
-다음 명령을 사용한다.
-
-```bash
-source /opt/ros/jazzy/setup.bash
-source ros2_ws/install-harmonic/setup.bash
-ros2 launch cleany_gazebo_sim gazebo_harmonic.launch.py headless:=false
-```
-
-Harmonic profile은 `build-harmonic/`, `install-harmonic/`, `log-harmonic/`을 사용한다.
-렌더링 sensor server는 OGRE2로 실행하고 GUI는 OGRE1을 사용한다. Harmonic world의
-rendering sensor는 구독 전까지 비활성화할 수 있지만, 기본 bridge는 모든 sensor
-topic을 bridge한다.
-
-## 8. 모터 컨트롤러와 micro-ROS 개발환경
-
-모터 펌웨어는 `esp32/`의 PlatformIO ESP-IDF 프로젝트다. ROS adapter와
-odometry는 Humble workspace에서 빌드한다. ESP32-S3의 **native USB Serial/JTAG**를
-custom stream transport로 사용하며 USB-UART bridge용 UART transport를 선택하지 않는다.
-
-### 도구와 외부 소스
-
-| 항목 | 고정 기준 |
-|---|---|
-| PlatformIO Core | 6.1.19 |
-| PlatformIO platform | espressif32 6.12.0 |
-| ESP-IDF | 5.5.0 (`framework-espidf` 3.50500.0) |
-| 공식 micro-ROS ESP-IDF component | Humble, `4ddd8c26e721662319ed8af981cb7cdc9ae05382` |
-| micro-ROS Agent | Humble, `c93ee764e0d2ef4907aeb29233c68cb5f4b56976` |
-| ROS 메시지 원본 | `ros2_ws/src/cleany_base_interfaces/msg/` |
-
-전체 source revision과 Python dependency는
-[`esp32/micro_ros.lock.json`](../esp32/micro_ros.lock.json)에서
-관리한다. 외부 checkout, micro-ROS library, 생성 type support와 PlatformIO 출력은
-Git에 포함하지 않는다. 메시지 변경 후 firmware type support도 다시 빌드한다.
-펌웨어는 micro-ROS 단일 빌드 경로를 사용한다. GPIO/encoder, 모터 제어 task와
-native USB micro-ROS 통신만 포함한다.
-
-공식 component는 ESP-IDF 5.5와 ESP32-S3를 지원하고,
-`RMW_UXRCE_TRANSPORT=custom`과 framing-enabled custom transport를 사용할 수 있다.
-Firmware 빌드는 ROS overlay 변수와 분리한 shell을 사용한다. ROS 패키지와 Agent
-빌드에서는 `/opt/ros/humble/setup.bash`를 적용한다.
-
-### Distrobox 환경
-
-Fedora 호스트에서 작업할 때는 모든 빌드와 테스트를 Ubuntu 22.04
-`ros2-humble` Distrobox 안에서 실행한다.
-
-```bash
-distrobox enter ros2-humble
-cd /home/changsu/Workspace/cleany
-source /etc/os-release
-test "$VERSION_ID" = 22.04
-source /opt/ros/humble/setup.bash
-test "$ROS_DISTRO" = humble
-python3 --version
-```
-
-호스트 Python/PlatformIO를 Ubuntu의 system Python과 혼용하지 않는다.
-
-### 빌드와 장치 없는 테스트
-
-```bash
-make firmware-setup
-make test-motor-core
-make firmware-smoke
-make firmware-build
-make micro-ros-agent-build
-make build-base
-make test-base
-```
-
-Smoke/runtime는 같은 micro-ROS library cache를 공유한다. 두 빌드는 순서대로
-실행하며, project/environment 전환 시 CMake를 다시 구성해 생성 header와 library를
-현재 target에 맞춘다.
-
-위 명령은 펌웨어를 upload하거나 serial device를 열지 않는다.
-Upload, Agent의 실물 serial 연결과 구동 절차는
-[`esp32/README.md`](../esp32/README.md)와
-[`cleany_base_driver/README.md`](../ros2_ws/src/cleany_base_driver/README.md)를 따른다.
-실물 geometry는 사용자 확인 휠 직경 127 mm, 앞뒤 중심 간 350 mm, 좌우 중심 간
-610 mm를 `configs/robot/base_hardware.yaml`에 반영한다. 주행 제한은 별도 안전
-검토 후 명시해야 한다.
-합성 mock 설정은 실제 로봇의 calibration 값이 아니다.
-
-## 9. 선택 개발도구
-
-### Base plot과 diagnostics
-
-Base 관찰 GUI는 `rqt_gui`, `rqt_plot`, `rqt_robot_monitor`를 사용한다. 의존성은
-`cleany_base_driver/package.xml`에 선언되어 `make deps`로 설치된다.
-Base 도구만 준비하려면 Ubuntu 22.04 ROS 환경에서 다음을 실행한다.
-Fedora 호스트에서는 `ros2-humble` Distrobox 안에서 설치한다.
-
-```bash
-sudo apt update
-sudo apt install -y ros-humble-rqt-gui ros-humble-rqt-plot ros-humble-rqt-robot-monitor
-source /opt/ros/humble/setup.bash
-ros2 pkg prefix rqt_plot
-ros2 pkg prefix rqt_robot_monitor
-ros2 pkg prefix rqt_gui
-```
-
-GUI 실행에는 desktop display가 필요하다. Agent와 driver를 먼저 실행한 뒤
-[`cleany_base_driver`의 plot 실행 절차](../ros2_ws/src/cleany_base_driver/README.md#plot과-diagnostics)를
-따른다.
-
-### Helix와 Pyright
-
-레포의 Helix 설정은 native `pyright-langserver`를 사용한다. Helix에서 Python
-language server가 필요하면 Node.js 20 LTS와 npm을 준비한 뒤 Pyright를 추가한다.
-
-```bash
-sudo npm install --global pyright
-pyright --version
-```
+`pnpm-lock.yaml`이 웹 dependency를 고정합니다. 빌드된 `web/dist`를 package 설치에 포함하므로 ROS 런타임에는 Node.js가 필요하지 않습니다. Playwright browser는 개발 검증 시 설치하며, ROS 쪽 aiohttp, Pillow 등은 package.xml과 rosdep으로 설치합니다.
 
 ## 문제 해결
 
-### `ModuleNotFoundError`가 발생하는 경우
+| 증상 | 확인과 조치 |
+|---|---|
+| Python import 오류 | 같은 worktree를 빌드하고 해당 install overlay를 source |
+| Rosdep의 `python3-mujoco-pip` 키 오류 | `rosdep update`로 공식 규칙을 갱신 |
+| Gazebo 환경 검사 실패 | Ubuntu 22.04, Python 3.10, ROS humble, Ignition Gazebo major 6, ros_gz package 확인 |
+| Headless camera/GPU LiDAR 실패 | Server의 rendering context와 display/OpenGL 확인. `LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo`는 저속 진단용 fallback |
+| Viewer 실패 | VM 3D acceleration과 DISPLAY/socket 확인. Hand-eye 수집에는 viewer 필요; 화면 없는 환경에서는 `test-handeye`의 headless 검사 사용 |
 
-workspace를 build하고 overlay를 적용한다.
+설치 기준은 [ROS Humble 공식 문서](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)를 따릅니다. 저장소의 재현 기준은 package.xml, 공식 rosdep 규칙, lock 파일과 [CI](../.github/workflows/ci.yml)가 관리합니다.
 
-```bash
-make build
-source ros2_ws/install/setup.bash
-```
+## 기존 Mission Mock VM 환경
 
-Make의 타깃 테스트는 이 과정을 자동으로 수행한다.
-
-### rosdep이 `mujoco` key를 찾지 못하는 경우
-
-[Cleany custom rosdep 규칙](../ros2_ws/rosdep/README.md)을 다시 등록하고
-`rosdep update`를 실행한다.
-
-### MuJoCo viewer가 열리지 않는 경우
-
-VM의 3D acceleration과 display 설정을 확인한다. GUI가 필요하지 않은 검증은
-`make sim`의 headless 실행을 사용한다.
-
-`make handeye-mujoco`는 실제 calibration 관찰을 위해 viewer를 강제로 사용한다.
-VM 또는 Distrobox에서 실행한다면 `DISPLAY`가 전달됐는지와 X11/Wayland socket,
-OpenGL acceleration을 함께 확인한다. 화면이 없는 환경에서는 실제 calibration을
-진행하지 말고 `make test-handeye`로 headless runtime만 검증한다.
-
-### `make check-gazebo-env`가 실패하는 경우
-
-다음 명령으로 어떤 기준이 맞지 않는지 확인한다.
-
-```bash
-lsb_release -rs
-python3 --version
-source /opt/ros/humble/setup.bash
-echo "${ROS_DISTRO}"
-ign gazebo --versions
-ros2 pkg prefix ros_gz_sim
-ros2 pkg prefix ros_gz_bridge
-```
-
-기대값은 Ubuntu `22.04`, Python `3.10.x`, ROS `humble`, Ignition Gazebo major
-version `6`이다. 다른 ROS 배포판에서 생성된 `build/`, `install/`, `log/`를 복사하거나
-재사용하지 않는다.
-
-### Gazebo rendering sensor 또는 GUI가 시작하지 않는 경우
-
-Camera와 GPU LiDAR는 headless server에서도 rendering context를 필요로 한다.
-Fortress의 `ign gazebo -s`는 GUI만 끄며 rendering sensor를 CPU-only sensor로
-바꾸지 않는다. 먼저 실행 환경 안에서 display와 ROS/Gazebo package를 확인한다.
-
-```bash
-echo "${DISPLAY}"
-ros2 pkg prefix ros_gz_sim
-ros2 pkg prefix ros_gz_bridge
-```
-
-GPU driver 또는 OpenGL 문제를 구분해야 할 때만 software rendering으로 재현한다.
-
-```bash
-LIBGL_ALWAYS_SOFTWARE=1 make sim-gazebo
-```
-
-이 설정은 진단용 저속 fallback이며 표준 실행 설정이 아니다. Harmonic에서는
-headless server가 OGRE2, GUI가 OGRE1을 사용한다.
-
-## 참고 자료
-
-- [ROS 2 Humble Ubuntu deb 설치](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
-- [ROS 2 Humble 지원 플랫폼](https://docs.ros.org/en/humble/Releases/Release-Humble-Hawksbill.html)
-- [ros-apt-source](https://github.com/ros-infrastructure/ros-apt-source)
-- [Node.js 다운로드](https://nodejs.org/en/download)
-- [공식 micro-ROS ESP-IDF component (Humble)](https://github.com/micro-ROS/micro_ros_espidf_component/tree/4ddd8c26e721662319ed8af981cb7cdc9ae05382)
-- [micro-ROS Agent (Humble)](https://github.com/micro-ROS/micro-ROS-Agent/tree/c93ee764e0d2ef4907aeb29233c68cb5f4b56976)
-- [ESP-IDF 5.5 native USB Serial/JTAG 안내](https://github.com/espressif/esp-idf/blob/v5.5/docs/en/api-guides/usb-serial-jtag-console.rst)
+이미 구성된 Ubuntu VM의 로컬 의존성과 통합 install은 Bash에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.bash`, zsh에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh`로 적용한다. 셸에 맞는 파일을 사용한다. 이 파일은 새 환경의 설치 절차를 대신하지 않으며 Mission, 서버와 interfaces는 같은 worktree install에서 읽는다.

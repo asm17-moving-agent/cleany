@@ -1,0 +1,14 @@
+# Local visualization: approximately 3 seconds per substage, 51 seconds in total.
+# All evidence is mock; these values are not real robot safety limits.
+stage_duration_sec: 3.0
+preparation_timeout_sec: 30.0
+verification_timeout_sec: 15.0
+motion_timeout_sec: 30.0
+scenarios:
+  success:
+    stage_durations_sec:
+      PREPARING_TARGET: 12.0
+      APPROACHING: 6.0
+      GRASPING: 6.0
+      LIFTING: 6.0
+      PLACING: 9.0
