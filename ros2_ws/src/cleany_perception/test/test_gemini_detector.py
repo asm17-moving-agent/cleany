@@ -1,8 +1,10 @@
+import io
 import json
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from PIL import Image, JpegImagePlugin
 
 from cleany_perception.adapters.gemini_detector import (
     GeminiClassifier,
@@ -13,6 +15,16 @@ from cleany_perception.adapters.gemini_detector import (
 from cleany_perception.core.models import (
     BoundingBox2D, Detection2D, FailureKind, InspectionFailure,
 )
+
+
+def _jpeg_pixels(payload, size):
+    with Image.open(io.BytesIO(payload)) as image:
+        assert image.format == 'JPEG'
+        assert image.size == size
+        assert image.mode == 'RGB'
+        assert JpegImagePlugin.get_sampling(image) == 0
+        image.load()
+        return np.asarray(image)
 
 
 def test_gemini_sorting_semantics_survive_parser_and_missing_is_not_guessed():
@@ -40,7 +52,9 @@ def test_gemini_classifies_yoloe_instances_without_changing_geometry():
         }]})))
     classified = classifier.classify(np.zeros((20, 30, 3), np.uint8), (detection,))
     assert len(requests) == 1
-    assert requests[0][0].startswith(b'\x89PNG')
+    pixels = _jpeg_pixels(requests[0][0], (30, 20))
+    # The originally black input must still contain the annotated box.
+    assert pixels[10, 2, :2].min() > 200
     assert requests[0][2]['required'] == ['objects']
     assert classified[0].label == 'cup (used paper cup)'
     assert classified[0].sorting_category == 'trash'
@@ -198,9 +212,35 @@ def test_gemini_detector_encodes_image_and_parses_normalized_bbox():
     assert detections[0].bbox.y_min == pytest.approx(10.0)
     assert detections[0].bbox.x_max == pytest.approx(160.0)
     assert detections[0].bbox.y_max == pytest.approx(60.0)
-    assert requests[0][0].startswith(b'\x89PNG')
+    _jpeg_pixels(requests[0][0], (200, 100))
     assert 'find a can' in requests[0][1]
     assert requests[0][2]['required'] == ['objects']
+
+
+def test_gemini_generate_content_sends_jpeg_with_matching_mime(monkeypatch):
+    monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'test-key')
+    calls = []
+    client = SimpleNamespace(models=SimpleNamespace(generate_content=lambda **kwargs: (
+        calls.append(kwargs) or SimpleNamespace(text='{"objects": []}'))))
+    detector = GeminiDetector('test-model', api_key_environment='CLEANY_TEST_GEMINI_KEY',
+                              client_factory=lambda *_: client)
+    detector._types = SimpleNamespace(
+        Part=SimpleNamespace(from_bytes=lambda **kwargs: SimpleNamespace(**kwargs)),
+        GenerateContentConfig=lambda **kwargs: SimpleNamespace(**kwargs))
+    rgb = np.full((48, 64, 3), (230, 30, 10), dtype=np.uint8)
+
+    assert detector.detect(rgb, 'classify') == ()
+
+    part = calls[0]['contents'][1]
+    assert part.mime_type == 'image/jpeg'
+    pixels = _jpeg_pixels(part.data, (64, 48))
+    np.testing.assert_allclose(pixels.astype(float), rgb, atol=3)
+
+
+@pytest.mark.parametrize('quality', [0, 101, 95.5, True])
+def test_gemini_rejects_invalid_jpeg_quality(quality):
+    with pytest.raises(ValueError, match='JPEG quality'):
+        GeminiDetector('test-model', jpeg_quality=quality)
 
 
 def test_gemini_parser_accepts_robotics_interaction_bbox_array():
@@ -236,9 +276,11 @@ def test_robotics_detector_uses_interactions_and_deletes_upload(monkeypatch):
     class FakeFiles:
         def upload(self, **kwargs):
             calls['upload'] = kwargs
+            calls['image_bytes'] = kwargs['file'].getvalue()
+            calls['filename'] = kwargs['file'].name
             return SimpleNamespace(
-                uri='https://example.invalid/file.png',
-                mime_type='image/png',
+                uri='https://example.invalid/file.jpg',
+                mime_type=kwargs['config']['mime_type'],
                 name='files/cleany-test',
             )
 
@@ -279,11 +321,14 @@ def test_robotics_detector_uses_interactions_and_deletes_upload(monkeypatch):
     )
 
     assert len(detections) == 1
-    assert calls['upload']['config']['mime_type'] == 'image/png'
+    assert calls['upload']['config']['mime_type'] == 'image/jpeg'
+    assert calls['filename'].endswith('.jpg')
+    _jpeg_pixels(calls['image_bytes'], (200, 100))
     assert calls['interaction']['model'] == (
         'gemini-robotics-er-2-preview'
     )
     assert calls['interaction']['input'][0]['type'] == 'image'
+    assert calls['interaction']['input'][0]['mime_type'] == 'image/jpeg'
     assert calls['interaction']['response_format']['schema']['type'] == (
         'array'
     )

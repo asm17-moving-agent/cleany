@@ -216,6 +216,7 @@ class InspectionNode(Node):
             if detector_type == 'gemini':
                 detector = GeminiDetector(
                     model=str(self.get_parameter('gemini_model').value),
+                    jpeg_quality=self.get_parameter('gemini_jpeg_quality').value,
                     api_key_environment=str(
                         self.get_parameter('gemini_api_key_environment').value
                     ),
@@ -337,6 +338,7 @@ class InspectionNode(Node):
                 if detector_type == 'yoloe_gemini':
                     detector = YoloeGeminiDetector(yoloe, GeminiClassifier(
                         model=str(self.get_parameter('gemini_model').value),
+                        jpeg_quality=self.get_parameter('gemini_jpeg_quality').value,
                         api_key_environment=str(self.get_parameter(
                             'gemini_api_key_environment').value),
                         timeout_seconds=float(self.get_parameter(
@@ -673,6 +675,7 @@ class InspectionNode(Node):
             'gemini-robotics-er-2-preview',
         )
         self.declare_parameter('gemini_api_key_environment', 'GEMINI_API_KEY')
+        self.declare_parameter('gemini_jpeg_quality', 95)
         self.declare_parameter('detector_timeout_seconds', 30.0)
         self.declare_parameter('tf_timeout_seconds', 0.5)
         self.declare_parameter('tf_cache_seconds', 60.0)

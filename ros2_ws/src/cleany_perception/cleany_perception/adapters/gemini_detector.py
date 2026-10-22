@@ -256,6 +256,8 @@ class GeminiDetector:
         timeout_seconds: float = 30.0,
         response_provider: ResponseProvider | None = None,
         client_factory: ClientFactory | None = None,
+        *,
+        jpeg_quality: int = 95,
     ) -> None:
         if not model:
             raise ValueError('Gemini model must not be empty')
@@ -265,11 +267,14 @@ class GeminiDetector:
             )
         if timeout_seconds <= 0.0:
             raise ValueError('Gemini timeout must be positive')
+        if type(jpeg_quality) is not int or not 1 <= jpeg_quality <= 100:
+            raise ValueError('Gemini JPEG quality must be an integer in [1, 100]')
         self._model = model
         self._api_key_environment = api_key_environment
         self._timeout_seconds = timeout_seconds
         self._response_provider = response_provider
         self._client_factory = client_factory
+        self._jpeg_quality = jpeg_quality
         self._client = None
         self._types = None
 
@@ -307,17 +312,16 @@ class GeminiDetector:
             'are lost_item. Use review for uncertainty, hazardous objects, or '
             'unclear disposability. Do not infer ownership as fact.'
         )
-        buffer = io.BytesIO()
-        PilImage.fromarray(image).save(buffer, format='PNG')
+        image_bytes = self._encode_image(PilImage.fromarray(image))
         try:
             if self._response_provider is not None:
                 response_text = self._response_provider(
-                    buffer.getvalue(),
+                    image_bytes,
                     prompt,
                     _RESPONSE_SCHEMA,
                 )
             else:
-                response_text = self._request(buffer.getvalue(), prompt)
+                response_text = self._request(image_bytes, prompt)
         except InspectionFailure:
             raise
         except Exception as error:
@@ -330,6 +334,12 @@ class GeminiDetector:
             width=image.shape[1],
             height=image.shape[0],
         )
+
+    def _encode_image(self, image: PilImage.Image) -> bytes:
+        """Keep input dimensions and full chroma resolution for numbered boxes."""
+        buffer = io.BytesIO()
+        image.save(buffer, format='JPEG', quality=self._jpeg_quality, subsampling=0)
+        return buffer.getvalue()
 
     def _request(self, image_bytes: bytes, prompt: str,
                  schema: dict[str, Any] = _RESPONSE_SCHEMA,
@@ -396,7 +406,7 @@ class GeminiDetector:
                 prompt,
                 types.Part.from_bytes(
                     data=image_bytes,
-                    mime_type='image/png',
+                    mime_type='image/jpeg',
                 ),
             ],
             config=types.GenerateContentConfig(
@@ -421,13 +431,13 @@ class GeminiDetector:
         schema: dict[str, Any] = _INTERACTION_RESPONSE_SCHEMA,
     ) -> str:
         image_file = io.BytesIO(image_bytes)
-        image_file.name = 'cleany_rgb_snapshot.png'
+        image_file.name = 'cleany_rgb_snapshot.jpg'
         uploaded_file = None
         try:
             uploaded_file = client.files.upload(
                 file=image_file,
                 config={
-                    'mime_type': 'image/png',
+                    'mime_type': 'image/jpeg',
                     'display_name': 'cleany RGB snapshot',
                 },
             )
@@ -486,8 +496,7 @@ class GeminiClassifier(GeminiDetector):
                            outline=(255, 255, 0), width=3)
             draw.text((box.x_min, max(0, box.y_min - 12)), str(index),
                       fill=(255, 255, 0), stroke_width=2, stroke_fill=(0, 0, 0))
-        buffer = io.BytesIO()
-        annotated.save(buffer, format='PNG')
+        image_bytes = self._encode_image(annotated)
         candidates = '; '.join(
             f'{index}: {detection.label}'
             for index, detection in enumerate(detections, 1))
@@ -514,10 +523,10 @@ class GeminiClassifier(GeminiDetector):
             try:
                 if self._response_provider is not None:
                     response_text = self._response_provider(
-                        buffer.getvalue(), request_prompt, _CLASSIFICATION_SCHEMA)
+                        image_bytes, request_prompt, _CLASSIFICATION_SCHEMA)
                 else:
                     response_text = self._request(
-                        buffer.getvalue(), request_prompt, _CLASSIFICATION_SCHEMA,
+                        image_bytes, request_prompt, _CLASSIFICATION_SCHEMA,
                         _CLASSIFICATION_INTERACTION_SCHEMA)
             except InspectionFailure:
                 raise

@@ -84,6 +84,10 @@ aligned RGB-D → capture-time TF → detector bbox + 번호
 `mobileclip2_b.ts` text encoder는 `CLEANY_MODEL_DIR` 또는 `~/models` 아래에 준비한다.
 모델은 저장소에 포함하거나 실행 중 자동 다운로드하지 않는다.
 Gemini 분류를 사용하는 `yoloe_gemini`는 `GEMINI_API_KEY` 환경변수가 필요하다.
+Gemini 입력 RGB는 원래 해상도의 JPEG(`image/jpeg`)로 전송한다. 품질은
+`gemini_jpeg_quality` parameter로 지정하며 기본값은 95, 허용 범위는 정수 1–100이다.
+색차 서브샘플링은 사용하지 않는 4:4:4 형식이며, 분류 입력에는 YOLOE 번호와 box를
+그린 뒤 인코딩한다. ROS RGB-D 원본과 YOLOE의 bbox, mask는 이 압축을 거치지 않는다.
 스터디카페 head/손목 전용 체크포인트는 아래 학습 절과 Skill Executor README를 따른다.
 
 ## 실행

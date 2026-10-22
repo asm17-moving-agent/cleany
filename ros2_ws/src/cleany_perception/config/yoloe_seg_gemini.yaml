@@ -23,5 +23,6 @@ perception_inspector:
       list if none are visible.
     gemini_model: gemini-3.5-flash-lite
     gemini_api_key_environment: GEMINI_API_KEY
+    gemini_jpeg_quality: 95
     detector_timeout_seconds: 30.0
     vlm_ik_warmup_enabled: true
