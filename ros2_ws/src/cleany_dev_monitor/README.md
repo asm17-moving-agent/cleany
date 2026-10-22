@@ -170,6 +170,10 @@ Makefile의 기존 `tools/collection-runtime action-run`과 같은 인식·자�
 `CLEANY_MANIPULATION_COLLECTION_CONFIG`와 진행 파일, 로컬 scene/MoveIt prefix를 포함한다.
 터미널에서 별도 옵션을 사용했다면 같은 옵션으로 웹 제어를 활성화한다. 이후 터미널
 환경변수를 바꾼 경우 유휴 상태에서 `make dev-monitor-control-on`으로 다시 반영한다.
+다시 활성화할 때 현재 터미널에 없는 허용 옵션은 저장된 값을 유지하며, 명시한
+환경변수만 덮어쓴다. 처음 활성화할 때는 로봇별 collection, control, motion-monitor
+설정 경로를 지정해야 한다. 저장 옵션을 제거하려면 유휴 상태에서 0600 설정 파일의
+해당 항목을 삭제한다.
 API key 값은 웹 응답이나 명령 이력에 노출하지 않는다.
 화면의 웹 명령 이력은 최근 5개만 표시하고 원본 기록은 보존한다. 실행이 실패하면
 해당 명령 로그의 최종 `GetManipulationExecution` 결과를 읽어 실행 ID, 오류와 실패

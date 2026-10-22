@@ -368,3 +368,32 @@ def test_control_on_captures_cli_options_without_starting_services(tmp_path):
     assert (root / 'enabled').is_file()
     assert (root / 'runtime-settings.json').stat().st_mode & 0o077 == 0
     assert 'test-secret' not in result.stdout + result.stderr
+
+
+def test_reenabling_control_from_a_fresh_shell_preserves_profiles_and_explicit_overrides(tmp_path):
+    from cleany_dev_monitor.operator_jobs import RUNTIME_ENV_KEYS
+    repo = Path(__file__).resolve().parents[4]
+    source = (repo / 'tools/dev-monitor').read_text().split("<<'PY'\n", 1)[1].split('\nPY\n', 1)[0]
+    root = tmp_path / 'operator'
+    root.mkdir()
+    previous = {
+        'CLEANY_MANIPULATION_COLLECTION_CONFIG': '/local/collection profile.json',
+        'CLEANY_FEETECH_CONTROL_CONFIG': '/local/control.yaml',
+        'CLEANY_HARDWARE_MONITOR_CONFIG': '/local/monitor.yaml',
+        'CLEANY_COLLECTION_MOTION_BACKEND': 'moveit',
+        'CLEANY_COLLECTION_GRASP_PREDICTOR': 'geometric',
+        'COLLECTION_QUERY': 'saved objects', 'GEMINI_API_KEY': 'saved-test-secret',
+        'BASH_ENV': '/untrusted', 'CLEANY_CONTROL_RUNTIME_LOCKED': '1',
+    }
+    atomic_json(root / 'runtime-settings.json', previous)
+    env = {k: v for k, v in os.environ.items() if k not in RUNTIME_ENV_KEYS}
+    env['PYTHONPATH'] = str(repo / 'ros2_ws/src/cleany_dev_monitor')
+    for overrides in ({}, {'CLEANY_COLLECTION_GRASP_PREDICTOR': 'anygrasp',
+                           'COLLECTION_QUERY': 'explicit new query'}):
+        result = subprocess.run(['python3', '-', str(root), 'control-on'], input=source,
+            env={**env, **overrides}, capture_output=True, text=True, check=True, timeout=5)
+        expected = {**{k: v for k, v in previous.items() if k in RUNTIME_ENV_KEYS}, **overrides}
+        assert runtime_settings(root) == expected
+        assert json.loads((root / 'runtime-settings.json').read_text()) == expected
+        assert (root / 'runtime-settings.json').stat().st_mode & 0o077 == 0
+        assert 'saved-test-secret' not in result.stdout + result.stderr

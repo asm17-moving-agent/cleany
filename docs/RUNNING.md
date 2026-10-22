@@ -292,6 +292,15 @@ native 빌드 출력은 다른 실행과 같이 `CLEANY_DATA_ROOT/builds/<checko
 
 실물 수거에는 로봇별 외부 프로파일을 명시한다.
 
+경로를 저장한 로컬 환경 파일이 있으면 실행할 터미널에서 불러온다. 이 파일은
+저장소 밖에 두며, 환경 변수를 설정하는 것만으로 서비스를 시작하지 않는다.
+
+```bash
+source "$HOME/.config/cleany/jetson-runtime.env"
+```
+
+환경 파일을 사용하지 않을 때는 다음 경로를 직접 지정한다.
+
 ```bash
 export CLEANY_MANIPULATION_COLLECTION_CONFIG=/absolute/path/to/local-collection-profile.json
 export CLEANY_FEETECH_CONTROL_CONFIG=/absolute/path/to/local-controller-limits.yaml

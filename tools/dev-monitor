@@ -62,10 +62,10 @@ with (root/'operation.lock').open('a') as lock:
         key=root/'key'
         if not key.exists():key.write_text(secrets.token_urlsafe(32)+'\n')
         key.chmod(0o600)
-        previous=runtime_settings(root)
-        environment={k:os.environ[k] for k in RUNTIME_ENV_KEYS if k in os.environ}
-        if 'GEMINI_API_KEY' not in environment and 'GEMINI_API_KEY' in previous:
-            environment['GEMINI_API_KEY']=previous['GEMINI_API_KEY']
+        # A fresh shell may omit the commissioned profiles and runtime options.
+        # Keep saved values unless the operator explicitly supplies a replacement.
+        environment={**runtime_settings(root),
+            **{k:os.environ[k] for k in RUNTIME_ENV_KEYS if k in os.environ}}
         atomic_json(root/'runtime-settings.json',environment)
         (root/'enabled').touch(mode=0o600)
     else:(root/'enabled').unlink(missing_ok=True)
