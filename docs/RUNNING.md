@@ -220,7 +220,20 @@ make build-dev-monitor
 make run-dev-monitor
 ```
 
-브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](DEVELOPMENT_SETUP.md)을 따릅니다.
+브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 기본적으로 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](DEVELOPMENT_SETUP.md)을 따릅니다.
+
+실물 웹 제어를 활성화한 환경에서는 `매니퓰레이션 → 실물 조작 제어`에서 다음 작업을
+제안받고 승인할 수 있습니다. Mission Manager는 필요하지 않습니다.
+
+1. [웹 제어 준비 및 인증](../ros2_ws/src/cleany_dev_monitor/README.md#선택적-웹-실물-제어와-되돌리기) 절차로 연결합니다.
+2. `다음 작업 제안받기`를 누르고 관측 이미지의 대상, 행동과 선정 이유를 확인합니다.
+3. `승인하여 1회 실행`으로 대상 재확인과 단일 동작을 요청합니다. 만료 또는 승인 대상의 변화로
+   거절되면 다시 제안받습니다. `이 물체 건너뛰기`는 해당 추적 대상을 다음 제안에서 제외합니다.
+4. 결과와 다음 제안을 확인하고 다음 회차를 직접 승인합니다. 다음 제안은 자동 실행되지
+   않습니다. 실행 차단 또는 상태 불명확 시 기존 복구 절차를 따릅니다.
+
+기존 `물체 1개 실행`은 제안 검토 없이 자동 선택 후 실행하는 별도 버튼입니다.
+`pick_return_release` 모드는 물체를 원래 위치에 놓으므로 수거 완료와 구분합니다.
 
 입력과 기록은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 설정합니다. 기록 DB, 재생, stale 표시의 의미는 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)에 있습니다.
 

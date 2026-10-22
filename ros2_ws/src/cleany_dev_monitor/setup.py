@@ -18,12 +18,14 @@ setup(
         (f"share/{name}/config", [str(path) for path in Path('config').iterdir() if path.is_file()]),
         *assets,
     ],
+    # ROS packages, including the proposal selector in cleany_skill_executor,
+    # are resolved through package.xml rather than installed from PyPI.
     install_requires=["setuptools", "aiohttp>=3.8,<4", "Pillow>=9", "psutil>=5.9", "matplotlib>=3.5", "numpy>=1.21"],
     zip_safe=True,
     maintainer="Cleany Team",
     maintainer_email="team@example.com",
     license="MIT",
-    description="Robot developer monitor with optional authenticated operator controls",
+    description="Robot developer monitor with authenticated task proposals and operator approvals",
     tests_require=["pytest"],
     entry_points={"console_scripts": [
         "dev_monitor = cleany_dev_monitor.node:main",

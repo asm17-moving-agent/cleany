@@ -13,6 +13,7 @@
   <exec_depend>tf2_msgs</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>cleany_interfaces</exec_depend>
+  <exec_depend>cleany_skill_executor</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>nav2_msgs</exec_depend>
   <exec_depend>dwb_msgs</exec_depend>

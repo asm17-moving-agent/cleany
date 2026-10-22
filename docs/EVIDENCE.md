@@ -32,6 +32,29 @@ target 173점과 context 3,760점으로 후보 53개를 약 0.912초에 생성�
 `deployment.log`, `control-recovery-held-lock.log`, `action-restart.log`에 있다.
 카메라와 점군은 `../cleany-data/reports/geometric-camera-20261023-065858/`에 보존했다.
 
+## 2026-10-23 승인 대상만 비교하는 재검증
+
+Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble과 commit
+`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 검사했다.
+승인 대상이 유지되는데 다른 검출의 추가, 소실, 위치나 분류 변화로 승인이 거절되던
+전체 장면 비교를 제거했다. 승인 대상의 추적, 위치, bbox, 분류, 깊이, 크기와 목적지
+검사 및 승인 이후 실행기의 경로와 충돌 검사는 유지했다.
+
+추가한 주변 검출 변동 검사 7개는 수정 전에 실패했고, 수정 후 관련 검사 22개가
+통과했다. 전체 `make test-dev-monitor`는 182개 통과, opt-in 검사 18개 제외였다.
+별도 domain 231의 합성 ROS 검사 1개에서 주변 검출 소실 후 승인, 이동한 대상 거절,
+원래 승인 Goal의 단일 전송을 확인했다. 과거 실패 3건의 원래 제안과 새 관측을 당시
+시각으로 재생하여 모두 통과했으며, 승인 대상을 변경하지 않았다.
+
+웹과 ROS 패키지 4개 빌드를 완료했다. Vite의 기존 `use client`와 bundle 크기 경고가
+있었으며 종료 코드는 0이었다. 유휴 상태에서 Dev Monitor만 재시작하고 변경된 코드와
+화면 자산의 제공, 제어 backend 준비 상태를 확인했다. 실제 로봇 Action은 보내지
+않았으며 실물 파지 검증은 수행하지 않았다.
+
+원본은 `runtime/scene-revalidation-diagnosis-20261023/`의 작업 UUID별 JSON,
+`provenance.json`, `target-only-replay.json`, `monitor-regression.xml`,
+`ros-approval-regression.xml`, `build.log`, `deployment.json`에 보관한다.
+
 ## 2026-10-23 수거 파지 목표 추가 삽입 20mm
 
 Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble과 commit
@@ -54,6 +77,30 @@ AnyGrasp 후보 58개를 생성했다. 왼팔은 후보 5에서 두 경로 계�
 `verification.json`, `implementation.patch`, `regression-tests.xml`,
 `selected-ik-diagnostics.json`, `deployment.json`에 보존했다. 카메라, 점군과
 Action 결과는 `../cleany-data/reports/grasp-insertion-20mm-camera-20261023-053433/`에 있다.
+
+## 2026-10-23 Dev Monitor 작업 제안과 사용자 승인
+
+Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, Python 3.10.12와 commit
+`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 검사했다.
+Mission Manager를 실행하지 않고 규칙 기반 대상 제안, 승인된 snapshot/object의 단일
+Action, 결과 이후 새 제안의 승인 대기를 연결했다.
+
+`make test-dev-monitor`는 174개 통과, opt-in 검사 18개 제외였다. Domain 231의 별도
+ROS fixture는 실제 InspectScene, snapshot 조회와 기존 Action CLI를 연결하여 관측
+이미지 일치, 이동한 대상 거절, 정확한 승인 Goal 1회 전송, 다음 제안과 건너뛰기의
+비실행을 확인했다. 이는 합성 Action 결과를 사용한 계약 검사다. Playwright의
+`operator.spec.ts` 9개와 웹 빌드, ROS 패키지 4개 빌드가 통과했다. 데스크톱과 모바일
+제안 화면을 캡처해 확인했다.
+
+운영 monitor를 갱신한 뒤 실제 인식만 요청한 작업
+`1d10ae5b-a2b2-4088-b21f-02dc2fd417d4`가 약 7.49초에 완료됐다. 캔을 물체 ID 1로
+추천하고 관측 JPEG와 함께 `READY`로 반환했다. 최초 요청은 별도 계획 검증 프로세스가
+실행 잠금을 보유하여 HTTP 409로 차단됐고, 해당 프로세스 종료 후 요청했다. 실물
+승인 또는 파지 Action은 보내지 않았으며 이 결과를 실제 파지 성공으로 해석하지 않는다.
+
+원본은 `../cleany-data/reports/dev-monitor-proposals-20261023/`의
+`live-proposal-job.json`, `live-proposal.jpg`, `ros-proposal-validation.xml`,
+`proposal-desktop.png`, `proposal-mobile.png`, `verification.json`에 있다.
 
 ## 2026-10-23 접근 준비 자세의 4cm 대체 검사
 

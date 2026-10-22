@@ -57,10 +57,17 @@ flowchart TB
 | Base ROS | `make test-base` | interface, driver, odometry; mock MCU |
 | ESP32 준비, motor core | `make test-micro-ros-setup test-motor-core` | Python 준비 도구와 장치 없는 C++ |
 | Monitor | `make test-dev-monitor` | 수집, 저장, HTTP와 UI 데이터 경계 |
+| Monitor 승인 제안 | `CLEANY_RUN_ROS_TESTS=1 ROS_DOMAIN_ID=231 ROS_LOCALHOST_ONLY=1 make test-dev-monitor` | 별도 ROS domain의 관측 fixture, 제안 이미지와 대상 재확인; 실물 동작 없음 |
 | Telemetry | `make test-telemetry` | odom relay |
 | CI 준비 도구 | `make test-ci-tools` | 의존성 이미지 무효화, build context와 명령 전달 |
 
 Fedora에서는 native ROS target을 Humble Distrobox에서 실행합니다. `test-micro-ros-setup`, `test-motor-core`는 Makefile의 `BASE_EXEC`가 환경을 선택합니다.
+
+승인 화면은 `pnpm --dir ros2_ws/src/cleany_dev_monitor/web exec playwright test operator.spec.ts`로
+확인합니다. `OPERATOR_VISUAL_DIR`를 지정하면 제안의 데스크톱·모바일 화면을 저장합니다.
+Python 검사에는 만료, 장면 변화, 대상 대체 금지, 승인 중복·재시작, 정확한 Goal 전달,
+다음 제안의 승인 대기를 포함합니다. ROS fixture 및 브라우저 mock 통과는 실제 파지
+성공의 근거가 아닙니다.
 
 CI는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 runtime 의존성이 설치한 외부 pytest plugin의 자동 로드를 끕니다. 프로젝트의 `conftest.py`와 pytest 기본 plugin은 유지하며, 로컬에서는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 make test`로 같은 설정을 적용합니다.
 

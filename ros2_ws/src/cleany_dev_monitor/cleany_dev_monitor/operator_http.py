@@ -12,6 +12,7 @@ from aiohttp import web
 
 from .operator_jobs import alive, atomic_json, cancel_external_client, command_report, process_start, runtime_info
 from .operator_policy import capabilities, validate_action
+from .proposals import ProposalStore, identifier, policy_settings
 
 
 class OperatorControl:
@@ -25,6 +26,8 @@ class OperatorControl:
         self.state, self.state_time = {}, 0.
         self.mutation_lock, self.state_lock = asyncio.Lock(), asyncio.Lock()
         self.session_seconds = max(60, int(config.get('control_session_seconds', 3600)))
+        self.proposals = ProposalStore(self.root)
+        self.proposal_policy = policy_settings(config)
 
     @staticmethod
     async def body(request):
@@ -50,7 +53,7 @@ class OperatorControl:
                         job = {**job, 'state': 'UNKNOWN', 'message': '명령 프로세스 상태를 확인하지 못했습니다. 실행기를 조회하세요.'}
                     if job['state'] == 'PENDING' and time.time() - job['created_at'] > 15:
                         job = {**job, 'state': 'UNKNOWN', 'message': '명령 시작을 확인하지 못했습니다. 상태를 다시 조회하세요.'}
-                    if job['action'] == 'run' and job['state'] in ('SUCCEEDED', 'FAILED', 'INTERRUPTED') and 'result' not in job:
+                    if job['action'] in ('run', 'approve') and job['state'] in ('SUCCEEDED', 'FAILED', 'INTERRUPTED') and 'result' not in job:
                         job = {**job, **command_report(path.with_suffix('.log'))}
                     rows.append(job)
                 except (OSError, ValueError, KeyError):
@@ -103,7 +106,7 @@ class OperatorControl:
         actor = self.session(request)
         unknown = any(j['state'] == 'UNKNOWN' for j in jobs)
         return web.json_response(dict(enabled=True, authenticated=bool(actor), actor=actor['name'] if actor else '',
-            state=state, runtime=info, active_job=active, jobs=jobs,
+            state=state, runtime=info, active_job=active, jobs=jobs, proposal=self.proposals.current(),
             capabilities=capabilities(state, busy=bool(active) or info['client_busy'] or unknown, managed=info['managed'])))
 
     async def login(self, request):
@@ -179,9 +182,16 @@ class OperatorControl:
                 raise web.HTTPConflict(text=reason)
             if action == 'recover' and dict(execution_id=args['execution_id'], revision=args['revision']) not in state.get('blocked', []):
                 raise web.HTTPConflict(text='차단 기록이 변경되었습니다. 상태를 다시 조회하세요.')
+            proposal = None
+            if action in ('approve', 'skip'):
+                proposal = self.proposals.claimable(args['proposal_id'])
             job = dict(id=request_id, action=action, args=args, actor=actor['name'],
                        state='PENDING', created_at=time.time(), owner_pid=0)
+            if action in ('approve', 'skip', 'propose'):
+                job.update(proposal=proposal or self.proposals.current(), proposal_policy=self.proposal_policy)
             atomic_json(path, job)
+            if action not in ('approve', 'skip'):
+                self.proposals.invalidate()
             runner = self.config.get('_operator_launch')
             try:
                 if runner:
@@ -197,6 +207,14 @@ class OperatorControl:
                 atomic_json(path, {**job, 'state': 'FAILED', 'message': str(error)})
                 raise
             return web.json_response(job, status=202)
+
+    async def proposal_image(self, request):
+        if not self.enabled() or not self.session(request):
+            raise web.HTTPUnauthorized()
+        path = self.proposals.directory / f"{identifier(request.match_info['proposal'])}.jpg"
+        if not path.is_file():
+            raise web.HTTPNotFound()
+        return web.FileResponse(path, headers={'Cache-Control': 'no-store'})
 
     async def cancel(self, request):
         self.require(request)
@@ -251,6 +269,7 @@ def attach_control(app, config):
     app.router.add_post('/api/control/login', control.login)
     app.router.add_post('/api/control/logout', control.logout)
     app.router.add_post('/api/control/jobs', control.submit)
+    app.router.add_get('/api/control/proposals/{proposal}/image', control.proposal_image)
     app.router.add_post('/api/control/cancel', control.cancel)
     app.router.add_post('/api/control/jobs/{job}/acknowledge', control.acknowledge)
     app.on_cleanup.append(control.close)

@@ -57,6 +57,8 @@ async function fixture(page: Page) {
           status: 409,
           body: "차단 기록이 변경되었습니다.",
         });
+      if (["approve", "skip"].includes(data.action) && status.proposal)
+        status.proposal.state = "CONSUMED";
       status.jobs = [
         {
           id: data.request_id,
@@ -124,6 +126,94 @@ test("viewers authenticate before an exact single run request; server gates are 
   await f.panel.getByRole("button", { name: "상태 다시 확인" }).click();
   await expect(runButton).toBeDisabled();
   await expect(f.panel).toContainText("실행 차단을 먼저 해제하세요.");
+});
+
+test("a reviewed proposal approves only its immutable ID and the next task waits again", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  const id = "1b567183-65af-4f3b-a6e6-12e843b43291";
+  f.status.proposal = {
+    id,
+    state: "READY",
+    expires_at: Date.now() / 1000 + 80,
+    operation_mode: "pick_return_release",
+    image_available: true,
+    target: {
+      object_id: 3,
+      label: "cup",
+      distance_m: 0.42,
+      confidence: 0.94,
+      classification_reason: "빈 종이컵",
+    },
+    reason: "조건을 통과한 물체 중 로봇에 가장 가깝습니다.",
+  };
+  await page.route("**/api/control/proposals/*/image", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="#243447"/><rect x="230" y="90" width="120" height="180" rx="8" fill="#eee" stroke="#00efb0" stroke-width="6"/><text x="240" y="70" fill="white" font-size="24">3 · cup</text></svg>',
+    }),
+  );
+  await f.login();
+  const card = page.getByRole("region", { name: "다음 작업 제안" });
+  await expect(card).toContainText("3번 · cup");
+  await expect(card).toContainText("원래 위치에 놓기");
+  await expect(card.getByRole("img")).toBeVisible();
+  expect(f.sent).toHaveLength(0);
+  if (process.env.OPERATOR_VISUAL_DIR)
+    await card.screenshot({
+      path: process.env.OPERATOR_VISUAL_DIR + "/proposal-desktop.png",
+    });
+  await card.getByRole("button", { name: "승인하여 1회 실행" }).click();
+  await expect.poll(() => f.sent.length).toBe(1);
+  expect(f.sent[0].action).toBe("approve");
+  expect(f.sent[0].args).toEqual({ proposal_id: id });
+  await expect(
+    card.getByRole("button", { name: "승인하여 1회 실행" }),
+  ).toBeDisabled();
+  f.status.proposal = {
+    ...f.status.proposal,
+    id: "2b567183-65af-4f3b-a6e6-12e843b43291",
+    state: "READY",
+  };
+  await f.panel.getByRole("button", { name: "상태 다시 확인" }).click();
+  await expect(
+    card.getByRole("button", { name: "승인하여 1회 실행" }),
+  ).toBeEnabled();
+  expect(f.sent).toHaveLength(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  if (process.env.OPERATOR_VISUAL_DIR)
+    await card.screenshot({
+      path: process.env.OPERATOR_VISUAL_DIR + "/proposal-mobile.png",
+    });
+  await card.getByRole("button", { name: "이 물체 건너뛰기" }).click();
+  await expect.poll(() => f.sent.length).toBe(2);
+  expect(f.sent[1].action).toBe("skip");
+  expect(f.sent[1].args.proposal_id).toBe(f.status.proposal.id);
+});
+
+test("expired proposals cannot execute and can request a fresh observation", async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  f.status.proposal = {
+    id: "1b567183-65af-4f3b-a6e6-12e843b43291",
+    state: "READY",
+    expires_at: Date.now() / 1000 - 1,
+    target: { object_id: 1, label: "cup", distance_m: 0.4, confidence: 0.9 },
+  };
+  await f.login();
+  const card = page.getByRole("region", { name: "다음 작업 제안" });
+  await expect(
+    card.getByRole("button", { name: "승인하여 1회 실행" }),
+  ).toBeDisabled();
+  await expect(
+    card.getByRole("button", { name: "이 물체 건너뛰기" }),
+  ).toBeDisabled();
+  await card.getByRole("button", { name: "다시 제안받기" }).click();
+  await expect.poll(() => f.sent.length).toBe(1);
+  expect(f.sent[0].action).toBe("propose");
+  expect(f.sent[0].args).toEqual({});
 });
 
 test("torque, gripper and recovery confirmations are explicit and revisions stay reviewed", async ({

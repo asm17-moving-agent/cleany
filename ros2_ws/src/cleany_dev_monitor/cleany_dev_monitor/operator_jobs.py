@@ -113,6 +113,18 @@ def command_vectors(repo: Path, action: str, args: dict):
     }.get(action, [])
 
 
+def approved_command(repo: Path, job: dict) -> list[str]:
+    """Only server-stored, approved fields become the explicit Action goal."""
+    proposal = job['proposal']
+    return ['ros2', 'run', 'cleany_skill_executor', 'manipulation_test_client',
+        '--namespace', '/', '--execution-id', job['id'], '--mission-id', proposal['tracking_session_id'],
+        '--task-id', proposal['id'], '--snapshot-id', proposal['snapshot_id'],
+        '--object-id', str(proposal['target']['object_id']), '--skill-name', proposal['skill_name'],
+        '--destination-id', proposal['destination_id'],
+        '--timeout', str(job['proposal_policy']['proposal_execution_timeout_sec']),
+        '--ros-args', '--params-file', str(repo / 'ros2_ws/src/cleany_manipulation_bt/config/manipulation_jetson.yaml')]
+
+
 def command_report(path: Path) -> dict:
     """Explain this job using its CLI's final record; never authorize motion from logs."""
     try:
@@ -135,7 +147,8 @@ def command_report(path: Path) -> dict:
                 or not isinstance(record.get('execution_id'), str)):
             continue
         result = {key: record[key] for key in ('execution_id', 'status', 'error_code', 'message',
-            'failed_stage', 'failed_substage', 'object_id', 'object_state', 'stop_confirmed') if key in record}
+            'failed_stage', 'failed_substage', 'object_id', 'object_state', 'placement_state',
+            'arm_recovered', 'stop_confirmed') if key in record}
         message = str(record.get('message', ''))[:1000]
         if message == 'No reachable commissioned arm':
             message = '선택한 물체를 잡을 팔 자세(IK)를 양팔 모두에서 찾지 못했습니다. 물체 위치와 접근 방향을 확인하세요.'
@@ -167,7 +180,11 @@ def execute_job(path: Path, repo: Path):
         value.update(state='RUNNING', owner_pid=os.getpid(), owner_start=process_start(os.getpid()), started_at=time.time())
         atomic_json(path, value)
         if action != 'prepare':
-            port = OperatorROS()
+            if action in ('propose', 'approve', 'skip'):
+                from .proposal_ros import ProposalROS
+                port = ProposalROS(path.parent.parent, value['proposal_policy'])
+            else:
+                port = OperatorROS()
             state = {**port.snapshot(), 'available': True}
             info = runtime_info()
             # The worker owns the shared command lock; actual executor ownership is still checked.
@@ -183,8 +200,23 @@ def execute_job(path: Path, repo: Path):
                 raise RuntimeError(result['message'])
         elif action == 'inspect':
             value['result'] = port.inspect(cancelled.is_file)
+        elif action in ('propose', 'skip'):
+            value['phase'] = 'PROPOSING'
+            atomic_json(path, value)
+            value['result'] = port.propose(cancelled.is_file, previous=value.get('proposal'), skip=action == 'skip')
         else:
-            for command in command_vectors(repo, action, args):
+            if action == 'approve':
+                value['phase'] = 'REVALIDATING'
+                atomic_json(path, value)
+                port.revalidate(value['proposal'], cancelled.is_file)
+                state = {**port.snapshot(), 'available': True}
+                reason = capabilities(state, busy=runtime_info()['pipeline_busy'], managed=True)['approve']
+                if reason:
+                    raise RuntimeError(reason)
+                value['phase'] = 'EXECUTING'
+                atomic_json(path, value)
+            commands = [approved_command(repo, value)] if action == 'approve' else command_vectors(repo, action, args)
+            for command in commands:
                 if cancelled.exists():
                     raise InterruptedError('실행 요청이 취소되었습니다.')
                 process = subprocess.Popen(command, start_new_session=True)
@@ -196,8 +228,22 @@ def execute_job(path: Path, repo: Path):
                         os.killpg(process.pid, signal.SIGINT)
                         signalled = True
                     time.sleep(.2)
-                if action == 'run':
+                if action in ('run', 'approve'):
                     value.update(command_report(path.with_suffix('.log')))
+                if action == 'approve' and not cancelled.exists():
+                    result = value.get('result', {})
+                    if result.get('stop_confirmed') and result.get('arm_recovered'):
+                        try:
+                            state = {**port.snapshot(), 'available': True}
+                            reason = capabilities(state, busy=runtime_info()['pipeline_busy'], managed=True)['propose']
+                            if reason:
+                                raise RuntimeError(reason)
+                            value['phase'] = 'PROPOSING_NEXT'
+                            atomic_json(path, value)
+                            value['next_proposal_id'] = port.propose(cancelled.is_file,
+                                previous=value['proposal'], last_result=result)['id']
+                        except Exception as error:
+                            value['next_proposal_error'] = str(error)
                 if process.returncode:
                     raise RuntimeError(value.get('message') or f'명령 종료 코드 {process.returncode}; 상세 로그와 실물 상태를 확인하세요.')
         value['state'] = 'SUCCEEDED'

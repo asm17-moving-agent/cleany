@@ -165,6 +165,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/compute_ik` | `moveit_msgs/srv/GetPositionIK` | [`move_group`][ros-move-group] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/get_planning_scene` | `moveit_msgs/srv/GetPlanningScene` | [`move_group`][ros-move-group] | [`single_pose_handeye_orchestrator`][ros-single-pose-handeye-orchestrator], [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator], [`grasp_selection_server`][ros-grasp-selection-server], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/grasp/plan` | `cleany_interfaces/srv/PlanGrasp` | [`grasp_server`][ros-grasp-server] | [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
+| `/grasp/prepare_window` | `std_srvs/srv/SetBool` | [`grasp_server`][ros-grasp-server] | `perception_inspector` | AnyGrasp 준비 뒤 cuRobo 예열; `vlm_anygrasp_prepare_service` |
 | `/handeye/cancel_run` | `std_srvs/srv/Trigger` | [`multi_pose_handeye_orchestrator`][ros-multi-pose-handeye-orchestrator] | — | — |
 | `/mission/cancel` | `cleany_interfaces/srv/CancelMission` | [`mission_runtime`][ros-mission-runtime] | [`control_bridge`][ros-control-bridge] | — |
 | `/mission/offer` | `cleany_interfaces/srv/OfferMission` | [`mission_runtime`][ros-mission-runtime] | [`control_bridge`][ros-control-bridge] | — |
@@ -272,6 +273,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `single_pose_handeye_orchestrator` | `cleany_handeye_calibration` | `single_pose_calibration` | [표](../ros2_ws/src/cleany_handeye_calibration/docs/interfaces.md#single_pose_handeye_orchestrator) |
 | `multi_pose_handeye_orchestrator` | `cleany_handeye_calibration` | `multi_pose_calibration` | [표](../ros2_ws/src/cleany_handeye_calibration/docs/interfaces.md#multi_pose_handeye_orchestrator) |
 | `cleany_dev_monitor` | `cleany_dev_monitor` | `dev_monitor` | [표](../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#cleany_dev_monitor) |
+| `cleany_dev_monitor_operator_<pid>_<id>` | `cleany_dev_monitor` | 인증된 웹 작업의 adapter | [승인 제안과 관측](../ros2_ws/src/cleany_dev_monitor/docs/interfaces.md#승인-기반-작업-제안) |
 | `cleany_motor_controller` | ESP32 micro-ROS | `esp32/src/main.cpp` | [MCU 표](../esp32/README.md#ros-인터페이스) |
 
 Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config`, `multi_pose_handeye_config`는 임시 bootstrap 노드다. 응용 endpoint가 없으며 ROS 기본 인터페이스만 생성한다. `cleany_description`, `cleany_bringup`은 모델/launch를 제공하고, `cleany_interfaces`, `cleany_base_interfaces`는 타입을 정의한다. `cleany_planner`, `cleany_logger`에는 현재 등록된 자체 ROS 노드가 없다. 새 perception과 sorting 실행은 아래 패키지 문서에서 확인한다. 이전 grasp 실행 데모, RGB-D pick 노드와 MuJoCo calibration pose generator는 제거됐다.

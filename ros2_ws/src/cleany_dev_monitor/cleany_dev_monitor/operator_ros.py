@@ -65,15 +65,15 @@ class OperatorROS:
             raise TimeoutError('인식 응답을 확인하지 못했습니다.')
         return future.result()
 
-    def inspect(self, cancelled):
+    def inspect_scene(self, cancelled, *, tracking_session_id='', timeout=180.):
         if not self.inspection.wait_for_server(timeout_sec=5.):
             raise RuntimeError('장면 인식 서버가 없습니다.')
         handle = self.wait(self.inspection.send_goal_async(InspectScene.Goal(
-            query='Detect visible movable objects on the tabletop.')))
+            query='Detect visible movable objects on the tabletop.', tracking_session_id=tracking_session_id)))
         if not handle.accepted:
             raise RuntimeError('장면 인식 요청이 거절되었습니다.')
         result = handle.get_result_async()
-        deadline = time.monotonic() + 180.
+        deadline = time.monotonic() + timeout
         try:
             while not result.done():
                 if cancelled() or time.monotonic() > deadline:
@@ -82,14 +82,18 @@ class OperatorROS:
             inspected = result.result().result
             if not inspected.success:
                 raise RuntimeError(inspected.message)
-            return dict(snapshot_id=inspected.detections.snapshot_id,
-                        objects=[dict(object_id=item.object_id, label=item.label,
-                                      confidence=item.confidence, category=item.sorting_category)
-                                 for item in inspected.detections.detections[:64]])
+            return inspected.detections
         finally:
             if not result.done():
                 self.wait(handle.cancel_goal_async(), 5.)
                 self.wait(result, 25.)
+
+    def inspect(self, cancelled):
+        scene = self.inspect_scene(cancelled)
+        return dict(snapshot_id=scene.snapshot_id,
+                    objects=[dict(object_id=item.object_id, label=item.label,
+                                  confidence=item.confidence, category=item.sorting_category)
+                             for item in scene.detections[:64]])
 
     def close(self):
         self.executor.shutdown(timeout_sec=3.)

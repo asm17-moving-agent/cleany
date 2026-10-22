@@ -36,6 +36,7 @@ from .server import serve
 from .navigation import NavigationObserver, cloud_points, transform_xyz, vector
 from .manipulation import ManipulationObserver
 from .request import read_request
+from .proposals import DEFAULTS as PROPOSAL_DEFAULTS
 
 
 class MonitorNode(Node):
@@ -81,6 +82,7 @@ class MonitorNode(Node):
     def __init__(self, **kwargs):
         super().__init__("cleany_dev_monitor", **kwargs)
         defaults = {
+            **PROPOSAL_DEFAULTS,
             "resource_interval_s": 1.0,
             "resource_process_limit": 20,
             "resource_history_limit": 300,

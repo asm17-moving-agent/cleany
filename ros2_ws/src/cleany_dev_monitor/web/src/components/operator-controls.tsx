@@ -25,12 +25,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type Data } from "@/lib/monitor";
+import { TaskProposal } from "./task-proposal";
 import "./operator-controls.css";
 
 const labels: Record<string, string> = {
   prepare: "로봇 준비",
   inspect: "장면 인식만",
   run: "물체 1개 실행",
+  propose: "다음 작업 제안받기",
+  approve: "제안 승인 실행",
+  skip: "물체 건너뛰고 재제안",
   return_arm: "팔 기본 자세 복귀",
   recover: "실행 차단 해제",
   shutdown: "로봇 종료·토크 해제",
@@ -44,19 +48,37 @@ const jobStates: Record<string, string> = {
   UNKNOWN: "결과 확인 필요",
   ACKNOWLEDGED: "운영자 기록 확인",
 };
+const proposalPhases: Record<string, string> = {
+  PROPOSING: "현재 장면을 관찰하고 다음 작업을 제안하고 있습니다.",
+  REVALIDATING: "승인한 대상의 동일성과 현재 위치를 다시 확인하고 있습니다.",
+  EXECUTING: "승인한 물체의 동작을 실행하고 있습니다.",
+  PROPOSING_NEXT: "실행 결과를 반영해 다음 제안을 준비하고 있습니다.",
+};
 
 const actionIcons: Record<string, LucideIcon> = {
   prepare: Power,
   inspect: ScanLine,
   run: Play,
+  propose: ScanLine,
+  approve: Play,
+  skip: RefreshCw,
   return_arm: RotateCcw,
   recover: ShieldCheck,
   shutdown: Power,
 };
 const mainActions = [
   { id: "prepare", tag: "준비", detail: "센서와 실행기를 준비합니다" },
+  {
+    id: "propose",
+    tag: "승인 방식",
+    detail: "추천 대상을 확인한 뒤 승인합니다",
+  },
   { id: "inspect", tag: "선택 사항", detail: "주변 물체를 먼저 확인합니다" },
-  { id: "run", tag: "실행", detail: "물체 하나를 자동 선택해 실행합니다" },
+  {
+    id: "run",
+    tag: "직접 실행",
+    detail: "제안 검토 없이 물체 하나를 자동 선택해 실행합니다",
+  },
 ];
 
 function jobTone(job: Data) {
@@ -544,7 +566,7 @@ export function OperatorControls({
                     >
                       <Button
                         className="operator-action"
-                        data-primary={id === "run"}
+                        data-primary={id === "propose"}
                         variant="outline"
                         aria-label={labels[id]}
                         disabled={!!reason(id)}
@@ -600,6 +622,14 @@ export function OperatorControls({
               <small>실물 정지 여부는 실행 기록에서 확인하세요.</small>
             </div>
           </div>
+          <TaskProposal
+            proposal={status.proposal}
+            reason={reason}
+            submit={submit}
+          />
+          {status.active_job?.phase && (
+            <p role="status">{proposalPhases[status.active_job.phase]}</p>
+          )}
           <div className="operator-recovery">
             <div className="operator-section-label">
               <h3>
@@ -642,7 +672,9 @@ export function OperatorControls({
             </p>
           )}
           {!status.active_job &&
-            status.jobs?.[0]?.action === "run" &&
+            ["run", "approve", "propose", "skip"].includes(
+              status.jobs?.[0]?.action,
+            ) &&
             status.jobs[0].state === "FAILED" && (
               <p
                 className="operator-message"
@@ -651,7 +683,7 @@ export function OperatorControls({
               >
                 <CircleAlert aria-hidden="true" />
                 <span>
-                  <strong>물체 1개 실행</strong>
+                  <strong>{labels[status.jobs[0].action]}</strong>
                   {status.jobs[0].message || "실행 결과를 확인하세요."}
                 </span>
               </p>
@@ -723,6 +755,9 @@ export function OperatorControls({
                           </span>
                         </div>
                         {job.message && <p>{job.message}</p>}
+                        {job.next_proposal_error && (
+                          <p>다음 제안 준비 중단: {job.next_proposal_error}</p>
+                        )}
                         {job.result?.status && (
                           <small className="operator-job-result">
                             실행 결과: {job.result.status} ·{" "}

@@ -2,6 +2,12 @@ cleany_dev_monitor:
   ros__parameters:
     host: 127.0.0.1
     port: 8768
+    proposal_max_age_sec: 90.0
+    proposal_position_tolerance_m: 0.015
+    proposal_minimum_bbox_iou: 0.7
+    proposal_debug_image_topic: /perception/debug_image_latched
+    proposal_inspection_timeout_sec: 180.0
+    proposal_execution_timeout_sec: 1200.0
     runtime_namespace: ""
     runtime_debug_topic: ""
     runtime_events_topic: ""

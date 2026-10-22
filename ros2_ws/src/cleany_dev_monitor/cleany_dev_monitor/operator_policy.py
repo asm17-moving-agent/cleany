@@ -10,7 +10,7 @@ def capabilities(state: dict, *, busy: bool, managed: bool) -> dict[str, str]:
     software_stop = (state.get('guard_fresh') is True and guard.get('reason') == 'Operator software stop'
                      and guard.get('controllers_stopped') is True and guard.get('actions_cancelled') is True)
     control = unavailable or ('' if ready else '제어기의 최신 준비 상태가 확인되지 않았습니다.')
-    return {
+    actions = {
         'prepare': reason or ('기존 런타임의 실행 상태를 먼저 확인하세요.' if managed and not state.get('available') else ''),
         'inspect': control,
         'run': control or ('실행 차단을 먼저 해제하세요.' if state.get('inhibited') else '')
@@ -21,6 +21,8 @@ def capabilities(state: dict, *, busy: bool, managed: bool) -> dict[str, str]:
                            or ('보유 물체가 남아 있습니다.' if state.get('payload_attached') else ''),
         'shutdown': unavailable or ('실행기의 남은 동작을 먼저 종료하세요.' if not state.get('backend_ready') else ''),
     }
+    actions.update(propose=actions['run'], approve=actions['run'], skip=actions['run'])
+    return actions
 
 
 def validate_action(action: str, args: dict) -> dict:
@@ -30,7 +32,12 @@ def validate_action(action: str, args: dict) -> dict:
         if set(args) != {'confirm_torque_on'} or args['confirm_torque_on'] is not True:
             raise ValueError('모터 토크 활성화를 확인하세요.')
         return dict(args)
-    if action in ('inspect', 'run'):
+    if action in ('approve', 'skip'):
+        from .proposals import identifier
+        if set(args) != {'proposal_id'} or not isinstance(args['proposal_id'], str):
+            raise ValueError('승인할 제안 ID가 필요합니다.')
+        return {'proposal_id': identifier(args['proposal_id'])}
+    if action in ('inspect', 'run', 'propose'):
         if args:
             raise ValueError('추가 인자를 허용하지 않는 명령입니다.')
         return {}
