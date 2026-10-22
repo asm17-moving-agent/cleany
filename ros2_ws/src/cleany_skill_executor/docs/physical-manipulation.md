@@ -15,6 +15,22 @@
 SDK와 모델 weight, AnyGrasp 라이선스, 실행 DB, 영상, 점군과 결과 파일은 clone에 포함하지 않는다. 모델의 버전과 hash, 필요한 설치 방법은 저장소에 유지한다. cuRobo 전용 비교 도구와 모델 비교 캠페인은 일반 실행 경로에 포함하지 않는다.
 
 Controller limits와 motion monitor는 `CLEANY_FEETECH_CONTROL_CONFIG`, `CLEANY_HARDWARE_MONITOR_CONFIG`로 각각 명시한다. BT launch의 대응 인자는 `hardware_monitor_config`다. 시험용 YAML도 test data에만 두며 실행 기본값으로 사용하지 않는다.
+## 접근 준비 자세의 거리 대체
+
+`grasp_ik_first=true`에서는 파지 자세를 먼저 구하고 같은 해를 시작점으로 접근 준비
+자세를 검사한다. `pregrasp_offset_m`의 기본 거리는 0.08m다. 이 준비 자세의 IK가
+없거나 자세 허용 오차를 넘으면 `pregrasp_fallback_offsets_m`의 거리를 순서대로
+검사한다. 수거 프로필은 `[0.06, 0.04]`를 사용하므로 8cm, 6cm, 4cm 순서가 된다.
+앞선 거리에서 통과하면 이후 거리는 검사하지 않는다. 대체 거리는 양수이며 기본
+거리보다 짧고 순서대로 감소해야 한다. 목록이 비어 있으면 기존 단일 설정인
+`pregrasp_fallback_offset_m`을 사용하며, 이 값도 0이면 대체 검사를 끈다.
+
+대체 준비 자세도 기존 위치와 방향 허용 오차, 전체 장면 충돌 검사, 두 구간의 경로
+계획과 경로 자세 검사를 통과해야 한다. 접근 통로 검사가 켜져 있으면 실제 선택한
+준비 자세를 시작점으로 사용한다. 이 설정은 파지 후보, 목표 파지 자세와 controller
+실행 계약을 바꾸지 않는다. 피드백의 `offset`은 추가 삽입을 포함한 준비 위치와
+최종 목표 사이의 거리이고, `fallback`은 대체 준비 자세 사용 여부다.
+
 ## GPU 준비 작업과 실제 요청 우선순위
 
 `gpu_lock_path`가 설정되면 AnyGrasp worker와 같은 호스트 lock 및 `.demand` 파일을

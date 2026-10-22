@@ -175,6 +175,8 @@ class GraspSelectionConfig:
     fixed_jaw_additional_bias_m: float = 0.0
     pregrasp_position_tolerance_m: float | None = None
     direction_preference: GraspDirectionConfig = GraspDirectionConfig()
+    pregrasp_fallback_offset_m: float = 0.0
+    pregrasp_fallback_offsets_m: tuple[float, ...] = ()
 
     def __post_init__(self) -> None:
         positive = (
@@ -184,6 +186,14 @@ class GraspSelectionConfig:
         )
         if not all(math.isfinite(value) and value > 0.0 for value in positive):
             raise ValueError('grasp selection limits must be finite and positive')
+        if (not math.isfinite(self.pregrasp_fallback_offset_m)
+                or not 0.0 <= self.pregrasp_fallback_offset_m < self.pregrasp_offset_m):
+            raise ValueError('pregrasp fallback must be zero or shorter than the primary offset')
+        previous = self.pregrasp_offset_m
+        for offset in self.pregrasp_fallback_offsets_m:
+            if not math.isfinite(offset) or not 0.0 < offset < previous:
+                raise ValueError('pregrasp fallback offsets must be positive and strictly decreasing')
+            previous = offset
         if (self.pregrasp_position_tolerance_m is not None
                 and (not math.isfinite(self.pregrasp_position_tolerance_m)
                      or self.pregrasp_position_tolerance_m <= 0.0)):
@@ -421,7 +431,7 @@ class GraspSelector:
         self, candidate: Candidate, arm: str, pregrasp_target: PoseValue,
         grasp_target: PoseValue, check_canceled: Callable[[], None], feedback: Feedback,
         latencies: list[tuple[str, float]],
-    ) -> tuple[PoseAlignment, PoseAlignment] | None:
+    ) -> tuple[PoseAlignment, PoseAlignment, PoseValue] | None:
         """Solve one endpoint, then seed the other endpoint from that solution."""
         index = candidate.source_index
         if not self._config.grasp_ik_first:
@@ -454,7 +464,7 @@ class GraspSelector:
                 feedback(index, arm, EvaluationStage.POSE_ALIGNMENT,
                          self._alignment_failure('grasp', grasp))
                 return
-            return pregrasp, grasp
+            return pregrasp, grasp, pregrasp_target
 
         self._port.set_target_contacts(arm)
         started = self._monotonic()
@@ -470,22 +480,32 @@ class GraspSelector:
             feedback(index, arm, EvaluationStage.POSE_ALIGNMENT,
                      self._alignment_failure('grasp', grasp))
             return
-        self._port.set_target_contacts(None)
-        started = self._monotonic()
-        feedback(index, arm, EvaluationStage.PREGRASP_IK, 'evaluating from grasp solution')
-        pregrasp = self._solve(arm, pregrasp_target, grasp.solution, pregrasp=True,
-                               candidate_index=index)
-        latencies.append(('pregrasp_ik', self._monotonic() - started))
-        check_canceled()
-        if pregrasp is None:
-            feedback(index, arm, EvaluationStage.PREGRASP_IK, 'no IK solution')
-            return
-        feedback(index, arm, EvaluationStage.POSE_ALIGNMENT, 'pregrasp')
-        if not pregrasp.within(self._config, pregrasp=True):
+        targets = [pregrasp_target]
+        fallbacks = self._config.pregrasp_fallback_offsets_m or (
+            (self._config.pregrasp_fallback_offset_m,)
+            if self._config.pregrasp_fallback_offset_m else ())
+        for fallback in fallbacks:
+            targets.append(PoseValue(self.pregrasp_position(
+                candidate, fallback, grasp_target.position), candidate.orientation_xyzw))
+        for attempt, target in enumerate(targets):
+            check_canceled()
+            self._port.set_target_contacts(None)
+            started = self._monotonic()
+            offset = math.dist(target.position, grasp_target.position)
+            feedback(index, arm, EvaluationStage.PREGRASP_IK,
+                     f'evaluating from grasp solution; offset={offset:.3f}m fallback={bool(attempt)}')
+            pregrasp = self._solve(arm, target, grasp.solution, pregrasp=True,
+                                   candidate_index=index)
+            latencies.append(('pregrasp_ik', self._monotonic() - started))
+            check_canceled()
+            if pregrasp is None:
+                feedback(index, arm, EvaluationStage.PREGRASP_IK, 'no IK solution')
+                continue
+            feedback(index, arm, EvaluationStage.POSE_ALIGNMENT, 'pregrasp')
+            if pregrasp.within(self._config, pregrasp=True):
+                return pregrasp, grasp, target
             feedback(index, arm, EvaluationStage.POSE_ALIGNMENT,
                      self._alignment_failure('pregrasp', pregrasp))
-            return
-        return pregrasp, grasp
 
     def select(
         self,
@@ -583,7 +603,7 @@ class GraspSelector:
                 candidate, arm, pregrasp_target, grasp_target, check_canceled, feedback, latencies)
             if pair is None:
                 continue
-            pregrasp, grasp = pair
+            pregrasp, grasp, pregrasp_target = pair
             self._port.set_target_contacts(None)
             started = self._monotonic()
             feedback(index, arm, EvaluationStage.STATE_VALIDITY, 'pregrasp')

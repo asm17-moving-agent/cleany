@@ -32,6 +32,72 @@ target 173점과 context 3,760점으로 후보 53개를 약 0.912초에 생성�
 `deployment.log`, `control-recovery-held-lock.log`, `action-restart.log`에 있다.
 카메라와 점군은 `../cleany-data/reports/geometric-camera-20261023-065858/`에 보존했다.
 
+## 2026-10-23 접근 준비 자세의 4cm 대체 검사
+
+Jetson Orin, ROS 2 Humble과 commit `3950218d70cbebd4ce3278e7602bc276482c0471`의
+미커밋 작업 내용에서 수거 준비 자세를 8cm, 6cm, 4cm 순서로 확장했다.
+`pregrasp_fallback_offsets_m=[0.06, 0.04]`를 사용하며, 앞선 준비 자세의 IK가
+없거나 기존 허용 오차를 넘을 때만 다음 거리를 검사한다. 통과하면 뒤의 거리는
+생략한다. 기존 단일 거리 설정은 목록이 비어 있을 때 계속 사용할 수 있다.
+
+루트 Makefile의 집중 검사 30개와 관련 회귀 197개가 통과했다. 순서, 조기 중단,
+4cm의 충돌 거부, 취소와 실제 선택한 준비 자세의 접근 통로 검사를 포함한다.
+native 패키지 1개와 motion container 패키지 5개 빌드를 완료하고 계획 지원만
+재시작했다. real_control PID와 운영 인식 container는 유지했다.
+
+04:44 KST의 새 캔 입력에서는 후보 66개를 생성했고 팔별 상위 32개까지 검사했다.
+왼팔 후보 2, 9, 17에서 실제 8cm, 6cm, 4cm 호출을 확인했다. 4cm에서도 가장 가까운
+접근 방향 오차가 각각 약 32.1도, 32.1도, 30.9도로 허용치 30도를 넘었다.
+새 입력은 양팔 모두 실패했고 경로 탐색에 진입하지 않았다. 이전 성공 입력인
+저장 후보 71개를 같은 운영 서버에서 재검사하면 후보 7의 6cm 준비 자세와 두 구간
+경로가 계속 통과했다. 거리 검사 확장을 모든 후보의 계획 성공으로 해석하지 않는다.
+실제 팔과 그리퍼 이동 명령은 보내지 않았다.
+
+원본은 `jetson-orin:/home/cleany/cleany-data/reports/pregrasp-4cm-20261023/`과
+`pregrasp-4cm-camera-20261023-044405/`에 보관한다. `verification.json`은 실제 결과,
+`implementation.patch`와 `change-manifest.json`은 이번 변경, XML과 빌드 로그는
+검사 결과, `deployment.json`은 제어 프로세스 유지, `fresh-ik-stats-*.json`과
+카메라 폴더의 CDR 및 피드백은 거리별 탈락 근거다. 별도 8→4cm 임시 진단 노드는
+action 호출 없이 종료했으며 실제 거리 검증은 운영 서버의 8→6→4cm 경로에서 수행했다.
+
+## 2026-10-23 캔의 팔 선택 및 경로 계획 실패 수정
+
+Jetson Orin, ROS 2 Humble과 commit `3950218d70cbebd4ce3278e7602bc276482c0471`의
+미커밋 작업 내용으로 운영 AnyGrasp 및 `curobo_ik_moveit` 경로를 검사했다.
+04:17 KST에 새로 촬영한 캔에서 후보 71개를 생성하고 팔별 상위 32개까지 검사했다.
+기존 설정은 양팔 모두 실패했다. 왼팔 후보 7의 파지 자세는 통과했으나 0.08m
+준비 자세의 가장 가까운 IK 방향 오차가 약 33.5도로 허용치 30도를 넘었다.
+양팔 모두 경로 탐색 호출은 없었다. 이 유한 탐색 결과가 해당 자세의 기하학적
+불가능을 증명하지는 않는다.
+
+같은 후보에서 준비 거리를 0.06m로 바꾸면 왼팔의 두 구간 경로가 통과했다.
+수거 프로필에 `pregrasp_fallback_offset_m=0.06`을 추가해 0.08m 준비 자세 IK가
+없거나 허용 오차를 넘을 때만 한 번 대체 검사하도록 수정했다. 후보와 파지 자세,
+기존 위치 및 방향 허용치, 전체 장면 충돌 검사와 경로 검증은 유지했다.
+방향 보정 검색만 추가한 별도 실험은 양팔 모두 실패했으며 그 변경은 적용하지 않았다.
+
+루트 Makefile로 집중 회귀 12개와 관련 전체 회귀 179개가 통과했다.
+native 패키지 1개 및 motion container 패키지 5개 빌드를 완료했다.
+확대 회귀의 첫 실행에서 기존 예열 테스트가 `continue_work` 인자를 반영하지 않아
+실패했으며, foreground 요청 시 양보하는 조건까지 검사하도록 기대값을 갱신했다.
+로컬 시각화 venv에는 pytest가 없어 자동 검사는 Jetson native 환경에서 실행했다.
+
+`collection-recover-planning`으로 계획 지원만 재시작하고 real_control PID를 유지했다.
+운영 서버에서 동일한 후보의 왼팔 계획과 반복 계획이 통과했다. 같은 요청 안에서
+0.08m 준비 자세는 약 31.5도로 탈락하고 0.06m 준비 자세는 약 27.7도로 통과했다.
+04:26 KST의 새 촬영에서는 후보 49개 중 왼팔 후보 0을 선택했으며, 준비 자세 방향
+오차 약 29.1도로 두 구간의 경로가 통과했다. 오른팔은 이 장면에서 계속 IK에
+실패했다. 모든 검사는 plan-only로 실행했고 팔과 그리퍼에 이동 명령을 보내지 않았다.
+다른 물체의 성공률이나 실제 파지 성공은 검증하지 않았다.
+
+원본은 `jetson-orin:/home/cleany/cleany-data/reports/arm-selection-fix-20261023-041756/`과
+`arm-selection-verification-20261023-042645/`에 보관한다.
+`comparison-summary.json`, `comparison.png`와 `report.html`은 비교 결과,
+`implementation.patch`와 `change-manifest.json`은 이번 변경 및 전후 hash,
+`baseline/`, `production/`, `production-repeat/`는 입력 CDR, IK 진단과 계획 결과,
+XML과 빌드 로그는 검사 결과, `deployment.json`은 제어 프로세스 유지 기록이다.
+초기 실패와 적용하지 않은 실험 로그도 같은 경로에 보존했다.
+
 
 ## Jetson 실물 마운트와 카메라 보정
 

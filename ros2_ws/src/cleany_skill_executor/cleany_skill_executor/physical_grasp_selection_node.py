@@ -19,6 +19,7 @@ from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from trajectory_msgs.msg import JointTrajectory
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
@@ -152,6 +153,7 @@ class GraspSelectionNode(Node):
             'action_timeout_sec': 120.0,
             'robot_description_startup_timeout_sec': 30.0,
             'pregrasp_offset_m': 0.08,
+            'pregrasp_fallback_offset_m': 0.0,
             'planner_id': 'RRTConnectkConfigDefault',
             'aim_tip_offset_m': 0.14,
             'ik_seed_wrist_offsets_degrees': [0.0, -45.0, 45.0, -90.0, 90.0],
@@ -196,6 +198,11 @@ class GraspSelectionNode(Node):
         defaults['gpu_lock_path'] = ''
         for name, value in defaults.items():
             self.declare_parameter(name, value)
+        # Empty Python lists otherwise infer BYTE_ARRAY in ROS Humble.
+        fallback_name = 'pregrasp_fallback_offsets_m'
+        self.declare_parameter(fallback_name, Parameter.Type.DOUBLE_ARRAY)
+        if self.get_parameter_or(fallback_name).value is None:
+            self.set_parameters([Parameter(fallback_name, Parameter.Type.DOUBLE_ARRAY, [])])
         self._sensor_scene = SensorSceneMonitor(self)
         if self._sensor_scene.required and self.get_parameter("motion_backend").value not in ('moveit', 'curobo_ik_moveit'):
             raise ValueError("Sensor OctoMap requires the MoveIt backend; cuRobo conversion is unavailable")
@@ -350,6 +357,8 @@ class GraspSelectionNode(Node):
                     'pregrasp_motion_enabled', 'direct_grasp_shortcut_enabled',
                     'grasp_ik_first')},
                 pregrasp_offset_m=float(self.get_parameter('pregrasp_offset_m').value),
+                pregrasp_fallback_offset_m=float(self.get_parameter('pregrasp_fallback_offset_m').value),
+                pregrasp_fallback_offsets_m=tuple(self.get_parameter('pregrasp_fallback_offsets_m').value),
                 maximum_candidates=int(self.get_parameter('maximum_candidates').value),
                 maximum_gripper_width_m=float(
                     self.get_parameter('maximum_gripper_width_m').value

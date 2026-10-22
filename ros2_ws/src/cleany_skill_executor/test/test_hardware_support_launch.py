@@ -67,6 +67,7 @@ def test_hardware_launch_selects_predictor_and_keeps_shared_limits(monkeypatch, 
     assert config['approach_tolerance_degrees'] == config['closing_tolerance_degrees'] == 30.
     assert config['maximum_candidates'] == 32
     assert config['grasp_ik_first'] is True
+    assert config['pregrasp_fallback_offsets_m'] == [.06, .04]
     assert config['stop_after_first_feasible'] is True
     assert config['prefer_near_wrist_grasp_direction'] is True
     assert config['wrist_direction_tie_tolerance_degrees'] == 5.0

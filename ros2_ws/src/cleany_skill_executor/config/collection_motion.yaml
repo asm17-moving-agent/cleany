@@ -4,6 +4,8 @@ grasp_selection_server:
   ros__parameters:
     maximum_candidates: 32
     grasp_ik_first: true
+    # Try shorter preparation poses only after the preceding endpoint IK fails.
+    pregrasp_fallback_offsets_m: [0.06, 0.04]
     position_tolerance_m: 0.010
     pregrasp_position_tolerance_m: 0.010
     approach_tolerance_degrees: 30.0

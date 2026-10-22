@@ -535,6 +535,125 @@ def test_grasp_first_skips_pregrasp_and_planning_if_grasp_has_no_solution():
     assert not any(c[0] == 'seeded_pregrasp' or c[0].startswith('plan_') for c in port.calls)
 
 
+@pytest.mark.parametrize('failure', ['no_ik', 'alignment'])
+@pytest.mark.parametrize('collision_free', [True, False])
+def test_shorter_pregrasp_fallback_reuses_grasp_and_keeps_collision_checks(failure, collision_free):
+    from dataclasses import replace
+    port = GraspFirstPort()
+    solve = port.solve_pregrasp_ik
+
+    def prepare(arm, target, seed):
+        result = solve(arm, target, seed)
+        if target.position[0] < .43:
+            return None if failure == 'no_ik' else replace(result, approach_error_degrees=31.)
+        return result
+
+    port.solve_pregrasp_ik = prepare
+    port.state_is_valid = lambda *_: collision_free
+    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offset_m=.06)
+    selected = GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left')
+    assert (selected is not None) == collision_free
+    preparations = [c for c in port.calls if c[0] == 'seeded_pregrasp']
+    assert [c[2].position[0] for c in preparations] == pytest.approx([.42, .44])
+    assert preparations[0][3] == preparations[1][3]
+    assert len([c for c in port.calls if c[0] == 'grasp_first']) == 1
+    assert bool([c for c in port.calls if c[0].startswith('plan_')]) == collision_free
+
+
+def test_shorter_pregrasp_fallback_is_not_used_when_primary_succeeds():
+    port = GraspFirstPort()
+    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offset_m=.06)
+    assert GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left')
+    preparations = [c for c in port.calls if c[0] == 'seeded_pregrasp']
+    assert len(preparations) == 1
+    assert preparations[0][2].position[0] == pytest.approx(.42)
+
+
+@pytest.mark.parametrize('fallbacks', [(.06,), (.06, .04)])
+def test_shorter_pregrasp_fallback_uses_selected_endpoint_for_corridor_validation(fallbacks):
+    port = GraspFirstPort()
+    solve = port.solve_pregrasp_ik
+    port.solve_pregrasp_ik = lambda arm, target, seed: (
+        solve(arm, target, seed) if target.position[0] > .5-fallbacks[-1]-.001 else None)
+    port.plan = lambda arm, goal, start: PlannedPath(goal.names, (goal.positions,))
+    port.trajectory_alignment = lambda *_: TrajectoryAlignment(0., 0., 1)
+    observed = []
+    port.validate_approach_path = lambda arm, path, start, end: observed.append((start, end)) or True
+    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offsets_m=fallbacks,
+                                  require_approach_corridor=True)
+    assert GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left')
+    assert observed[0][0].position == pytest.approx((.5-fallbacks[-1], .2, .8))
+    assert observed[0][1].position == pytest.approx((.5, .2, .8))
+
+
+def test_shorter_pregrasp_fallback_preserves_cancellation_between_attempts():
+    port = GraspFirstPort('pregrasp_ik')
+    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offset_m=.06)
+    with pytest.raises(InterruptedError):
+        GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left',
+            cancel_requested=lambda: any(c[0] == 'seeded_pregrasp' for c in port.calls))
+    assert len([c for c in port.calls if c[0] == 'seeded_pregrasp']) == 1
+    assert not any(c[0].startswith('plan_') for c in port.calls)
+
+
+@pytest.mark.parametrize('offset', [-.01, .08, .09, float('nan'), float('inf')])
+def test_shorter_pregrasp_fallback_rejects_invalid_distance(offset):
+    with pytest.raises(ValueError, match='pregrasp fallback'):
+        GraspSelectionConfig(pregrasp_fallback_offset_m=offset)
+
+
+@pytest.mark.parametrize('first_success', [.08, .06, .04, None])
+@pytest.mark.parametrize('failure', ['no_ik', 'alignment'])
+def test_pregrasp_distance_sequence_stops_at_first_valid_ik(first_success, failure):
+    from dataclasses import replace
+    port = GraspFirstPort()
+    solve = port.solve_pregrasp_ik
+
+    def prepare(arm, target, seed):
+        result = solve(arm, target, seed)
+        distance = round(.5-target.position[0], 2)
+        if first_success is None or distance > first_success:
+            return None if failure == 'no_ik' else replace(result, approach_error_degrees=31.)
+        return result
+
+    port.solve_pregrasp_ik = prepare
+    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offsets_m=(.06, .04))
+    selected = GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left')
+    assert (selected is not None) == (first_success is not None)
+    preparations = [c for c in port.calls if c[0] == 'seeded_pregrasp']
+    expected = [.08, .06, .04][:1+[.08, .06, .04].index(first_success)] if first_success else [.08, .06, .04]
+    assert [.5-c[2].position[0] for c in preparations] == pytest.approx(expected)
+    assert all(c[3] == preparations[0][3] for c in preparations)
+    assert len([c for c in port.calls if c[0] == 'grasp_first']) == 1
+
+
+def test_four_centimeter_pregrasp_keeps_collision_rejection():
+    port = GraspFirstPort()
+    solve = port.solve_pregrasp_ik
+    port.solve_pregrasp_ik = lambda arm, target, seed: (
+        solve(arm, target, seed) if target.position[0] > .45 else None)
+    port.state_is_valid = lambda *_: False
+    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offsets_m=(.06, .04))
+    assert GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left') is None
+    assert not any(c[0].startswith('plan_') for c in port.calls)
+
+
+def test_cancellation_after_six_centimeters_prevents_four_centimeter_attempt():
+    port = GraspFirstPort('pregrasp_ik')
+    config = GraspSelectionConfig(grasp_ik_first=True, pregrasp_fallback_offsets_m=(.06, .04))
+    with pytest.raises(InterruptedError):
+        GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left',
+            cancel_requested=lambda: len([c for c in port.calls if c[0] == 'seeded_pregrasp']) >= 2)
+    assert len([c for c in port.calls if c[0] == 'seeded_pregrasp']) == 2
+
+
+@pytest.mark.parametrize('offsets', [(.08,), (.04, .06), (.06, .06), (.06, 0.),
+                                   (.06, -.01), (.06, float('nan')), (float('inf'),)])
+def test_pregrasp_fallback_sequence_rejects_invalid_distances(offsets):
+    with pytest.raises(ValueError, match='pregrasp fallback offsets'):
+        GraspSelectionConfig(pregrasp_fallback_offsets_m=offsets)
+
+
 def test_grasp_first_does_not_revisit_failed_candidates_when_port_offers_retry():
     from dataclasses import replace
     port = GraspFirstPort()
