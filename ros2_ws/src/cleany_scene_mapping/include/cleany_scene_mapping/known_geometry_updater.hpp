@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cleany_scene_mapping/known_geometry.hpp"
+#include "cleany_scene_mapping/raycast.hpp"
 #include "cleany_scene_mapping/partitioned_shape_mask.hpp"
 #include <moveit/occupancy_map_monitor/occupancy_map_updater.h>
 #include <moveit/point_containment_filter/shape_mask.h>
@@ -58,6 +59,7 @@ private:
   PartitionedShapeMask shape_mask_;
   // Empty, private coordinate/ray geometry; never contains occupancy nodes.
   std::unique_ptr<octomap::OcTree> ray_geometry_;
+  RaycastWorkspace raycast_;
   std::uint64_t generation_ = 0;
   std::string cloud_topic_;
   std::string filtered_topic_;

@@ -257,7 +257,6 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   // No geometry lock during tree access. Scene updates can own the tree lock
   // while changing excluded shapes. Clones preserve this capture's geometry.
   octomap::KeySet occupied, model, clipped, free;
-  octomap::KeyRay ray;
   const auto origin = octoPoint(map_from_cloud.translation());
   sensor_msgs::msg::PointCloud2 filtered;
   filtered.header = cloud.header;
@@ -304,10 +303,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
           outside.emplace_back(raw[0], raw[1], raw[2]);
         }
       }
-    for (const auto* endpoints : {&occupied, &model, &clipped})
-      for (const auto& key : *endpoints)
-        if (rays_tree.computeRayKeys(origin, rays_tree.keyToCoord(key), ray))
-          free.insert(ray.begin(), ray.end());
+    raycast_.compute(rays_tree, origin, {&occupied, &model, &clipped}, free);
     free.insert(clipped.begin(), clipped.end());
   }
   const auto rays_done = std::chrono::steady_clock::now();

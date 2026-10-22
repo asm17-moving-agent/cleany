@@ -20,6 +20,13 @@ mesh에는 convex face를 법선 방향으로 `padding_offset`만큼 확장한 v
 
 기본 4 worker는 호출 스레드와 상주 스레드 3개를 사용한다. 스레드와 판정 배열은 프레임 사이에 재사용하며 작업 예외가 생기면 나머지 worker 종료를 기다린 뒤 프레임 전체를 거부한다. 형상이 등록된 동안 worker 수를 바꿀 수 없다. 단일 worker도 같은 volume을 사용한다.
 
+광선 경로는 OctoMap의 `computeRayKeys`를 그대로 사용한다. 같은 프레임에서 이미
+방문한 free key는 최대 8 MiB의 재사용 비트 배열로 걸러 반복 hash 조회를 줄인다.
+배열은 매 프레임 초기화하며 점군이나 지도를 이전 프레임 것으로 대체하지 않는다.
+광선 영역이 메모리 예산보다 크거나 원점이 key 범위 밖이면 기존 hash 삽입 경로로
+처리한다. free key의 집합과 free→occupied→model 갱신 우선순위는 유지한다. hash 내부
+순회 순서는 달라질 수 있으므로 전체 점유 데이터의 동일성을 비교한다.
+
 `depth_cloud.known_geometry_clear_max_leaves`는 프레임당 검사 예산이며 기본 200000이다. free cell도 예산에 포함하고 초과하면 나머지를 그대로 두며 경고한다. raycast는 이 추가 검사 예산과 별개다. 빌드 기본은 `RelWithDebInfo`다.
 
 정상 프레임의 입장, 종료와 단계별 통계는 `move_group.scene_mapping`의 throttled `DEBUG` 로그다. 준비 실패, TF 누락과 예산 초과는 기본 출력에 남는다. callback 통계만으로 upstream 입력 중단과 executor 지연을 구분하지 않는다.
@@ -33,5 +40,7 @@ make scene-mapping-setup moveit-octomap-lock-setup
 source tools/scene-mapping-env
 make test-jetson-native
 ```
+
+`test_raycast`는 기준 광선의 key 집합, 기존에 prune된 지도를 갱신한 전체 점유 데이터의 동일성, 메모리 예산 fallback과 key 경계를 비교한다.
 
 C++ 검사는 내부, 외부, 경계, 회전, 가변 leaf 크기, shape 변경, TF/cache 누락, worker 예외와 복구, 단일/병렬 결과 일치를 확인한다. mesh component 병합 경계와 검증된 geometry cache의 손상·입력 hash 불일치도 검사한다. 실물 파지 성공과 현장 안전성은 별도 검증이다. 결과와 원본 위치는 [EVIDENCE](../../../docs/EVIDENCE.md)에 남긴다.

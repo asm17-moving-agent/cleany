@@ -16,7 +16,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(Threads REQUIRED)
 
-add_library(known_geometry_core SHARED src/known_geometry.cpp)
+add_library(known_geometry_core SHARED src/known_geometry.cpp src/raycast.cpp)
 target_compile_features(known_geometry_core PUBLIC cxx_std_17)
 target_include_directories(known_geometry_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -48,6 +48,8 @@ if(BUILD_TESTING)
   ament_target_dependencies(profile_mask moveit_msgs urdf)
   ament_add_gtest(test_partitioned_shape_mask test/test_partitioned_shape_mask.cpp)
   target_link_libraries(test_partitioned_shape_mask known_geometry_octomap_updater)
+  ament_add_gtest(test_raycast test/test_raycast.cpp)
+  target_link_libraries(test_raycast known_geometry_core)
   ament_add_gtest(test_known_geometry test/test_known_geometry.cpp)
   target_link_libraries(test_known_geometry known_geometry_core)
   ament_add_gtest(test_updater_plugin test/test_updater_plugin.cpp)
