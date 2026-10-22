@@ -1,6 +1,39 @@
 # 테스트 가이드
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
+## DDS 수신 버퍼 단계 비교
+
+`tools/validation/dds_buffer_sweep.py`는 동작 중인 런타임의 토픽을 읽는 별도 계측기를 순차 실행합니다. 호스트와 운영 인식 프로세스의 설정은 유지하고 계측기의 CycloneDDS 수신 소켓 요청값만 변경합니다. 로봇 명령이나 카메라 활성화 요청은 보내지 않습니다. 따라서 결과는 추가 호스트 Best Effort 수신기의 대기 상태 비교이며, 운영 인식의 Reliable 수신 및 파지 중 검증과 구분합니다.
+
+1. 로봇이 대기 중인 상태에서 운영 런타임과 같은 ROS domain 및 네트워크 환경을 설정합니다.
+
+   ```bash
+   source /opt/ros/humble/setup.bash
+   source tools/ros2/cleany-install-env
+   source "$CLEANY_INSTALL_BASE/setup.bash"
+   source tools/vision-ros-env
+   export ROS_DOMAIN_ID=0
+   export PYTHONPATH="$PWD/ros2_ws/src/cleany_dev_monitor:${PYTHONPATH:-}"
+   export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+   ```
+
+2. 새 출력 경로를 지정해 비교합니다. 기본값은 208 KiB, 512 KiB, 1 MiB, 2 MiB, 4 MiB, 8 MiB를 순방향과 역방향으로 각각 35초 측정합니다. 시스템 `rmem_max`보다 큰 요청값은 거부합니다. 다른 빈도 계측기를 동시에 실행하면 추가 부하가 생깁니다.
+
+   ```bash
+   python3 tools/validation/dds_buffer_sweep.py run \
+     --output ../cleany-data/reports/dds-buffer-idle-NEW \
+     --sizes-kib 208 512 1024 2048 4096 8192 --rounds 2 --seconds 35 --warmup 5
+   ```
+
+3. 측정 종료 후 보고서를 생성합니다. 렌더링 부하가 측정에 섞이지 않도록 순차 실행합니다.
+
+   ```bash
+   python3 tools/validation/dds_buffer_report.py ../cleany-data/reports/dds-buffer-idle-NEW
+   ```
+
+`report/index.html`과 PDF는 1초 이동 구간의 Hz를 0.1초 간격으로 표시합니다. 처음 5초와 이 구간에 걸친 이동 창은 비교 지표에서 제외합니다. 각 회차 `events.jsonl`에는 초기 연결 구간을 포함한 원본이 남습니다. `socket-limits.json`에서 Linux `SO_RCVBUF` 실효 크기를 확인하며, 요청값의 두 배가 아니면 해당 측정을 중지합니다. 소켓별 UDP 유실은 계측기 자신의 소켓만 집계하며 영상 프레임 유실률을 의미하지 않습니다. 손목 OFF는 정상 비활성으로 구분합니다.
+
+보고서의 `idle_observed`와 기록 완전성을 확인합니다. 실행 이벤트, 활성 명령 또는 손목 ON이 관측되면 대기 상태 비교로 판정하지 않습니다. 실제 파지 중 후보값 검증에는 운영 수신기의 프로파일 적용과 새 소켓 생성 확인, 파이프라인 구간별 기록이 추가로 필요합니다. 계측기 버퍼만 줄인 결과로 OS 전체 상한의 적정성을 확정하지 않습니다.
 
 ## 테스트와 도구 위치
 

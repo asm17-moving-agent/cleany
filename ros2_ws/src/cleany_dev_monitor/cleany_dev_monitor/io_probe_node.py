@@ -213,7 +213,7 @@ def parser() -> argparse.ArgumentParser:
     return result
 
 
-def main(args=None) -> None:
+def main(args=None, *, probe_type: type[IOProbe] = IOProbe) -> None:
     options = parser().parse_args(args)
     if not math.isfinite(options.seconds) or options.seconds <= 0:
         raise SystemExit('--seconds must be finite and positive')
@@ -243,7 +243,7 @@ def main(args=None) -> None:
     rclpy.init(args=[])
     node = None
     try:
-        node = IOProbe(config, options.output, request_file=options.request_file)
+        node = probe_type(config, options.output, request_file=options.request_file)
         manifest['observation_start_wall_ns'] = node.wall_ns
         node.start_resources(not options.no_tegrastats)
         print(f'Recording only: {options.output}; no robot commands; {options.seconds:g}s', flush=True)
