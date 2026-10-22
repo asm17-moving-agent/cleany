@@ -78,6 +78,34 @@ AnyGrasp 후보 58개를 생성했다. 왼팔은 후보 5에서 두 경로 계�
 `selected-ik-diagnostics.json`, `deployment.json`에 보존했다. 카메라, 점군과
 Action 결과는 `../cleany-data/reports/grasp-insertion-20mm-camera-20261023-053433/`에 있다.
 
+## 2026-10-23 캔 크기 추정 변동의 원인 분리
+
+Jetson Orin NX, ROS 2 Humble과 commit
+`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 승인 작업
+`23d7ed83-a7c3-41a8-b4c3-03a09d659be6`의 크기 필터 탈락을 조사했다. 당시 Action
+결과를 읽어 같은 캔의 짧은 바닥면 추정값 9.297cm와 13.368cm를 확보했으며,
+11cm 제한에 의한 탈락을 재현했다. 당시 RGB-D 원본과 마스크는 120초 캐시가
+만료되어 확보하지 못했다.
+
+현재 장면에서 약 10.07초 동안 20개 RGB-D 입력을 수동 구독으로 수집하고 운영
+TensorRT 모델과 같은 geometry 함수로 분석했다. 운영 로봇 Action과 Gemini 호출은
+보내지 않았다. 짧은 바닥면 추정값은 5.388~20.137cm였고 20개 중 6개가 11cm를
+넘었다. 첫 관측의 마스크와 평면을 고정하고 깊이만 바꿔도 5.371~20.322cm로
+변동했다. 마스크 IoU는 첫 관측 대비 0.9942 이상, 평면 법선 변화는 0.224도 이하였다.
+
+물체로 채택된 약 11,300개 점 중 캔 위쪽 경계의 0~15개 점은 카메라 깊이
+70.4~73.7cm, 추정 평면 위 높이 5.02~8.52mm였다. 이 점들은 5mm 물체 높이
+조건을 통과하여 PCA와 min/max 상자 범위에 포함됐다. 진단용 0.6m 깊이 분리로
+이 점들만 제외하면 폭은 5.268~5.568cm였다. 이는 새 관측의 원인 분리 실험이며,
+과거 두 프레임의 직접 재생 또는 운영 필터 변경이 아니다.
+
+수집 도구의 최초 설정 일괄 조회는 미초기화 optional parameter 때문에 실패했고,
+개별 조회로 수정한 뒤 수집, 분석과 그래프 생성을 완료했다. 운영 perception 코드와
+11cm 제한은 유지했다. 원본은 `runtime/footprint-diagnosis-20261023/`의
+`captures.npz`, `masks.npz`, `parameters.json`, `analysis.json`, `diagnostics.json`,
+`diagnostic.png`, `provenance.json`과 `historical/`에 보관한다. 재실행 절차는
+[실물 크기 추정 변동 진단](TESTING.md#실물-크기-추정-변동-진단)을 따른다.
+
 ## 2026-10-23 Dev Monitor 작업 제안과 사용자 승인
 
 Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, Python 3.10.12와 commit

@@ -1,6 +1,49 @@
 # 테스트 가이드
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
+
+## 실물 크기 추정 변동 진단
+
+`tools/validation/inspect_footprint_stability.py`는 운영 인식 노드의 설정을 읽고,
+시각이 일치하는 RGB-D 입력을 저장한다. 저장 영상에 같은 YOLOE 모델과 크기 계산을
+적용한 뒤 깊이, 마스크, 지지 평면을 각각 고정하여 변동 원인을 비교한다. Gemini와
+로봇 동작 Action은 호출하지 않는다. 분석 중에는 별도 GPU 추론 부하가 생기므로
+로봇이 대기 중일 때 실행한다.
+
+1. 운영 ROS 환경에서 새 출력 디렉터리에 영상을 수집한다.
+
+   ```bash
+   source /opt/ros/humble/setup.bash
+   source tools/ros2/cleany-install-env
+   source "$CLEANY_INSTALL_BASE/setup.bash"
+   source tools/vision-ros-env
+   OPENBLAS_NUM_THREADS=1 python3 tools/validation/inspect_footprint_stability.py capture \
+     --output runtime/footprint-NEW --count 20 --interval 0.5
+   ```
+
+2. 운영 모델이 있는 perception container에서 저장 영상만 분석한다.
+
+   ```bash
+   docker exec cleany-vision-perception-1 bash -c '
+     source /opt/ros/humble/setup.bash
+     source /workspace/cleany/ros2_ws/install-perception/setup.bash
+     OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 \
+       /workspace/cleany/tools/validation/inspect_footprint_stability.py analyze \
+       --output /workspace/cleany/runtime/footprint-NEW --label "beverage can"'
+   ```
+
+3. `analysis.json`의 깊이 분포를 확인한 뒤 진단용 분리값을 지정해 그래프를 만든다.
+   아래 0.6m는 해당 캔 관측에서 사용한 값이며 범용 필터나 운영 설정이 아니다.
+
+   ```bash
+   OPENBLAS_NUM_THREADS=1 python3 tools/validation/inspect_footprint_stability.py report \
+     --output runtime/footprint-NEW --depth-split-m 0.6
+   ```
+
+`captures.npz`, `masks.npz`, `parameters.json`이 재현 입력이며 `analysis.json`,
+`diagnostics.json`, `diagnostic.png`에 원인 분리 결과를 남긴다. 과거 실패 시점의
+원본이 없으면 새 수집 결과를 당시 프레임의 직접 재생으로 해석하지 않는다.
+
 ## DDS 수신 버퍼 단계 비교
 
 `tools/validation/dds_buffer_sweep.py`는 동작 중인 런타임의 토픽을 읽는 별도 계측기를 순차 실행합니다. 호스트와 운영 인식 프로세스의 설정은 유지하고 계측기의 CycloneDDS 수신 소켓 요청값만 변경합니다. 로봇 명령이나 카메라 활성화 요청은 보내지 않습니다. 따라서 결과는 추가 호스트 Best Effort 수신기의 대기 상태 비교이며, 운영 인식의 Reliable 수신 및 파지 중 검증과 구분합니다.
