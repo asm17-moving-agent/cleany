@@ -31,7 +31,14 @@ def test_startup_warmup_runs_once_and_never_overlaps_an_active_request():
     assert not calls
     node._goal_active = False
     GraspSelectionNode._try_warmup(node)
-    assert calls == [('state', 'fresh state'), ('warmup', ['right', 'left'], {'include_aim': True})]
+    assert calls[0] == ('state', 'fresh state')
+    assert calls[1][:2] == ('warmup', ['right', 'left'])
+    assert calls[1][2]['include_aim'] is True
+    continue_work = calls[1][2]['continue_work']
+    assert continue_work()
+    node._goal_active = True
+    assert not continue_work()
+    node._goal_active = False
     assert node._warmup_ready and node._warmup_description == 'runtime'
     GraspSelectionNode._try_warmup(node)
     assert len(calls) == 2

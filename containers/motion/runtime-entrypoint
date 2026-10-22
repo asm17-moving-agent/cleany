@@ -7,8 +7,8 @@ case "${1:-}" in
     rm -f "${workspace}/ready.json"
     cd /workspace/cleany/ros2_ws
     colcon --log-base "${workspace}/log" build \
-      --base-paths src/cleany_interfaces src/cleany_description src/cleany_moveit_config src/cleany_skill_executor \
-      --packages-select cleany_interfaces cleany_description cleany_moveit_config cleany_skill_executor \
+      --base-paths src/cleany_interfaces src/cleany_description src/cleany_moveit_config src/cleany_grasping src/cleany_skill_executor \
+      --packages-select cleany_interfaces cleany_description cleany_moveit_config cleany_grasping cleany_skill_executor \
       --build-base "${workspace}/build" --install-base "${workspace}/install" \
       --parallel-workers 2 --cmake-args -DBUILD_TESTING=OFF
     source "${workspace}/install/local_setup.bash"

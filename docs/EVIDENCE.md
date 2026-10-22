@@ -306,3 +306,73 @@ ROI 1.994초, 4,000점 1.357초, 가변 1.740초였다. 각각 4.5%, 3.0%,
 가변 정책은 43개 장면에서 4,000점을 선택했다. 접근 방향은 저장 장면의
 지지면 추정값이며 실물 로봇 도달성 검증이 아니다. 입력 조건 기본값은
 제한 없는 방향, workspace ROI와 고정 8,000점으로 유지했다.
+
+사전 준비는 실제 notifier와 두 GPU 모델을 사용하되 VLM을 3, 15, 30초
+시간 대기로 대체하고 ROS 전달을 파일과 스레드로 재현했다. 공통 geometry
+cache를 준비하고 조건별 새 process에서 각각 2회 측정했다. VLM 종료 후
+후보 추론까지 평균은 10.766→7.195초, 10.094→4.350초, 10.241→2.504초다.
+VLM 시작부터 후보와 cuRobo 준비 및 notifier 정리까지 평균은
+26.115→26.434초, 25.114→26.163초, 40.259→32.561초였다.
+30초 대기에서는 전체 준비가 19.1% 줄었지만 짧은 대기에서는 소폭 늘었다.
+AnyGrasp 상주 대조군 1회에서도 후보까지 1.596→2.389초로 늘어,
+모든 조건에서 이득이 있다고 판단하지 않는다. cuRobo는 현 로봇 geometry와
+합성 관절 위치를 사용했고 실제 물체의 IK 및 경로 계획은 측정하지 않았다.
+
+모델 유지 비교는 idle 120초를 유지한 채 실제 125초를 기다렸다. 기존은
+worker를 해제해 다음 요청 9.848초, 작업 lease 600초는 동일 PID를 유지해
+1.603초였다. 대신 worker RSS 약 1.18GiB가 상주한다. 이는 시스템 전체
+추가 RAM과 같지 않다. 가용 메모리보다 높은 임계값으로 압박 해제 분기를
+검사했으며 실제 RAM 고갈 시험은 아니다. 메모리 임계값 기본 0은 비활성이다.
+입력 비교에서 worker별 RSS 절대값 차이가 있었지만 초기 상태 차이도 포함하며
+91회 동안 지속 증가를 확인하지 않았다. 4,000점의 요청 중 CUDA 예약 최대값
+중앙값은 1,904→1,088MiB였지만 전체 해상도 재시도로 최댓값 약 3.45GiB가 남았다.
+
+배포 설정에 AnyGrasp 후 cuRobo 준비, 공유 GPU 작업 순서와 실제 요청 우선권,
+VLM 및 작업 상태의 유한 시간 lease를 적용했다. native 관련 3개 패키지 빌드,
+pytest 241개, motion 이미지 및 5개 패키지 준비, vision overlay 빌드가 통과했다.
+실제 ROS service와 licensed worker로 준비, IK 알림 순서, 종료 정리, 작업 상태
+유지와 반복 종료 상태 무시도 확인했다. 최초 ROS 검사는 interface overlay를
+source하지 않아 실패했고 overlay 빌드 및 source 후 통과했다.
+카메라, 실제 VLM API, 실제 물체 IK, 로봇 구동과 파지 성공률 검증은 아니다.
+
+통합 보고서와 그래프는
+`jetson-orin:/home/cleany/cleany-data/reports/anygrasp-optimizations-20261022/`의
+`report.html`에 있다. `options/`는 입력 비교 455개 요청 원본과 환경,
+`pipeline/raw/`는 사전 준비 14개 사례 및 모델 hash,
+`pipeline/retention/`은 실제 125초 유지 및 압박 분기 원본,
+`pipeline/validation.json`, XML과 로그는 빌드 및 검사 결과다.
+`summary.json`, `options/measurements.csv`와 `plot_suite.py`에서 그래프를 재생성한다.
+
+## manipulation-run AnyGrasp 후보 전환 (2026-10-22)
+
+기준 commit은 `3950218d70cbebd4ce3278e7602bc276482c0471`이며 기존 미커밋
+AnyGrasp 최적화와 작업트리를 포함한다. Jetson Orin NX, native Humble과 기존
+licensed vision 및 motion container에서 검사했다. `make manipulation-run`이
+호출하는 `tools/collection-runtime`의 기본 후보 방식을 AnyGrasp로 바꿨다.
+해당 모드의 hardware support launch는 기하학적 후보 노드를 생성하지 않는다.
+명시한 `CLEANY_COLLECTION_GRASP_PREDICTOR` 값은 기본값보다 우선한다.
+배포 YAML은 `target_geometry`로 4,000/8,000점을 선택하며 기존 전체 해상도
+재시도, worker 재사용과 작업 유지 설정을 사용한다. 노드 자체 기본 정책과
+접근 방향 및 ROI 제한은 변경하지 않았다.
+
+운영 도구 pytest 103개와 launch 검사 8개가 통과했다. 도구 수집에서 선택형
+3개가 skip됐으며 나머지 139개는 이번 선택 범위에서 제외했다. 기본 선택과
+모드별 서비스 분기만 먼저 확인한 12개 검사는 위 도구 검사에 포함된다.
+루트 Makefile로 grasping native 빌드와 motion container 준비를 마쳤다.
+실제 `run-anygrasp` entrypoint의 predictor, 가변 정책과 worker 설정을 ROS로
+조회하고 native client에서 `/grasp/plan`을 호출했다. 저장 fixture 0002,
+0001, 0002에서 후보 29개, 21개, 29개를 반환했고 동일 worker PID를 유지했다.
+저장 점군은 identity base_link frame으로 전달한 서비스 검사이며 카메라,
+실제 물체 IK, 로봇 구동 및 파지 성공 검증은 아니다. 시험 container는 종료했다.
+
+초기 launch 검사는 ROS Python 경로를 덮어써 collection 단계에서 실패했고
+기존 overlay 경로를 유지해 통과했다. 서비스 검사는 고정 identity의 ROS domain을
+바꾼 시험 설정이 preflight에서 거절됐으며 해당 identity는 수정하지 않았다.
+같은 container 안의 별도 client도 정적 DDS 경로에서 서비스를 발견하지 못했다.
+운영과 같은 native→container 및 기준 domain 0 경로로 검사해 위 요청이 통과했다.
+
+원본은 `jetson-orin:/home/cleany/cleany-data/reports/manipulation-anygrasp-20261022/`에
+보관한다. `implementation.patch`, `change-manifest.json`과 `verification.json`은
+기존 수정 보존 및 변경 전후 hash, XML과 `validation.json`은 검사와 빌드 결과,
+`ros-smoke.json`, `ros-smoke.log`, `anygrasp-server.log`는 실제 설정과 후보 응답을
+기록한다. 초기 실패 로그도 같은 위치의 `*-before*` 파일에 보존했다.

@@ -2,6 +2,7 @@
 grasp_selection_server:
   ros__parameters:
     motion_backend: curobo_ik_moveit
+    gpu_lock_path: /workspace/cleany/configs/robot/gpu-work.lock
     maximum_candidates: 32
     grasp_ik_first: true
     position_tolerance_m: 0.010  # Operator-supervised pregrasp and grasp: 10 mm.

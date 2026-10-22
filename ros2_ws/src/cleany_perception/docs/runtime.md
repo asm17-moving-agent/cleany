@@ -344,3 +344,8 @@ ROS 영상과 점군은 연속 NumPy 버퍼에서 ROS가 소유하는 byte array
 `snapshot_cleanup_period_seconds`는 만료된 snapshot과 reference 정리를 제어한다. `/perception/check_rgbd` (`std_srvs/Trigger`)는 새 RGB-D 입력의 timestamp와 freshness를 확인하며 모델 추론이나 과거 검출을 입력 정상성의 근거로 쓰지 않는다. 기존 tracking 필드와 함께 검출 메시지의 `median_depth_m`, `estimated_width_m`, `estimated_height_m`을 발행한다. 두 크기는 지지면 위의 footprint 추정이며 물체의 수직 높이나 완전한 형상이 아니다.
 
 VLM 대기와 geometry 계산을 중첩하며 선택적 `/grasp/vlm_warmup` 예열을 요청할 수 있다. 응답 성공은 최종 분류와 기하 검증 이후에만 반환한다. 예열 서비스가 없거나 실패해도 그 자체로 물체를 성공 처리하지 않는다.
+
+`vlm_anygrasp_prepare_service`의 기본값은 `/grasp/prepare_window`다. 이 준비 응답이
+성공한 뒤 cuRobo 예열을 요청한다. VLM이 그 전에 끝나면 cuRobo를 새로 예열하지
+않는다. 종료 통지는 cuRobo, AnyGrasp 순서로 보내며 perception은 해당 GPU 준비
+완료를 기다리지 않는다. 빈 서비스 이름은 기존 cuRobo 통지만 사용한다.

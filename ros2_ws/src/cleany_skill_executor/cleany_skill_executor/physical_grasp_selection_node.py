@@ -9,6 +9,7 @@ import time
 import uuid
 from dataclasses import replace
 from contextlib import nullcontext
+from cleany_grasping.gpu_scheduling import GpuLease
 from typing import Callable, Sequence
 
 import rclpy
@@ -192,6 +193,7 @@ class GraspSelectionNode(Node):
             'visibility_padding_m': 0.003,
             'visibility_cone_sides': 16,
         }
+        defaults['gpu_lock_path'] = ''
         for name, value in defaults.items():
             self.declare_parameter(name, value)
         self._sensor_scene = SensorSceneMonitor(self)
@@ -206,6 +208,7 @@ class GraspSelectionNode(Node):
         self._goal_lock = threading.Lock()
         self._goal_active = False
         self._adapter_lock = threading.RLock()
+        self._gpu_lease = GpuLease(str(self.get_parameter('gpu_lock_path').value))
         callback_group = ReentrantCallbackGroup()
         self.create_subscription(
             JointState,
@@ -467,7 +470,9 @@ class GraspSelectionNode(Node):
 
     def _vlm_warmup_active(self):
         with self._vlm_warmup_lock:
-            return (not self._goal_active and time.monotonic() < self._vlm_warmup_until)
+            lease = getattr(self, '_gpu_lease', None)
+            return (not self._goal_active and time.monotonic() < self._vlm_warmup_until
+                    and (lease is None or not lease.foreground_pending()))
 
     def _try_vlm_warmup(self):
         if (not self._vlm_warmup_enabled or not self._description_ready
@@ -476,33 +481,38 @@ class GraspSelectionNode(Node):
             return
         began, arm = time.monotonic(), None
         try:
-            if not self._vlm_warmup_active():
-                return
-            arms = self.get_parameter('curobo_ik_vlm_warmup_arms').value
-            if not arms or any(value not in ('left', 'right') for value in arms):
-                raise ValueError('VLM warmup arms must be left/right')
-            with self._vlm_warmup_lock:
-                arm = next((value for value in arms if value not in
-                    self._vlm_warmup_completed | self._vlm_warmup_failed), None)
-                deadline = self._vlm_warmup_until
-            if arm is None:
-                return
-            try:
-                state = self._current_joint_state()
-            except (TimeoutError, ValueError):
-                return  # No fresh joints yet; never block perception for them.
-            self._adapter.set_current_state(state)
-            self._adapter.set_deadline(deadline)
-            self._adapter.set_progress_callback(
-                lambda message: self.get_logger().info('vlm_warmup: ' + message))
-            # One arm per timer callback; a real request takes priority between
-            # arms. No auxiliary aim TCP or fallback seed solvers are created.
-            self._adapter.warmup([arm], include_aim=False,
-                continue_work=self._vlm_warmup_active)
-            with self._vlm_warmup_lock:
-                self._vlm_warmup_completed.add(arm)
-            self.get_logger().info(json.dumps({'event': 'vlm_ik_warmup',
-                'arm': arm, 'wall_sec': time.monotonic() - began, 'outcome': 'ready'}))
+            lease = getattr(self, '_gpu_lease', None)
+            admission = lease.acquire(foreground=False, blocking=False) if lease is not None else nullcontext(True)
+            with admission as admitted:
+                if not admitted:
+                    return
+                if not self._vlm_warmup_active():
+                    return
+                arms = self.get_parameter('curobo_ik_vlm_warmup_arms').value
+                if not arms or any(value not in ('left', 'right') for value in arms):
+                    raise ValueError('VLM warmup arms must be left/right')
+                with self._vlm_warmup_lock:
+                    arm = next((value for value in arms if value not in
+                        self._vlm_warmup_completed | self._vlm_warmup_failed), None)
+                    deadline = self._vlm_warmup_until
+                if arm is None:
+                    return
+                try:
+                    state = self._current_joint_state()
+                except (TimeoutError, ValueError):
+                    return  # No fresh joints yet; never block perception for them.
+                self._adapter.set_current_state(state)
+                self._adapter.set_deadline(deadline)
+                self._adapter.set_progress_callback(
+                    lambda message: self.get_logger().info('vlm_warmup: ' + message))
+                # One arm per timer callback; a real request takes priority between
+                # arms. No auxiliary aim TCP or fallback seed solvers are created.
+                self._adapter.warmup([arm], include_aim=False,
+                    continue_work=self._vlm_warmup_active)
+                with self._vlm_warmup_lock:
+                    self._vlm_warmup_completed.add(arm)
+                self.get_logger().info(json.dumps({'event': 'vlm_ik_warmup',
+                    'arm': arm, 'wall_sec': time.monotonic() - began, 'outcome': 'ready'}))
         except InterruptedError:
             self.get_logger().info('VLM IK warmup yielded; initialized buffers retained')
         except Exception as error:
@@ -522,23 +532,32 @@ class GraspSelectionNode(Node):
                 or self._goal_active or not self._adapter_lock.acquire(blocking=False)):
             return
         try:
-            try:
-                state = self._current_joint_state()
-            except (TimeoutError, ValueError):
-                return  # Wait for the complete, fresh measured joint snapshot.
-            timeout = float(self.get_parameter('curobo_ik_warmup_timeout_sec').value)
-            if not math.isfinite(timeout) or timeout <= 0:
-                raise ValueError('IK warmup timeout must be positive')
-            self._adapter.set_current_state(state)
-            self._adapter.set_deadline(time.monotonic() + timeout)
-            self._adapter.set_progress_callback(lambda message: self.get_logger().info('warmup: ' + message))
-            self._adapter.warmup(self.get_parameter('curobo_ik_warmup_arms').value,
-                include_aim=self.get_parameter('curobo_ik_warmup_include_aim').value)
-            self._warmup_description = self._adapter._description
-            self._warmup_ready = True
-            self.get_logger().info('Primary GPU IK warmup complete; results discarded')
+            lease = getattr(self, '_gpu_lease', None)
+            admission = lease.acquire(foreground=False, blocking=False) if lease is not None else nullcontext(True)
+            with admission as admitted:
+                if not admitted:
+                    return
+                try:
+                    state = self._current_joint_state()
+                except (TimeoutError, ValueError):
+                    return  # Wait for the complete, fresh measured joint snapshot.
+                timeout = float(self.get_parameter('curobo_ik_warmup_timeout_sec').value)
+                if not math.isfinite(timeout) or timeout <= 0:
+                    raise ValueError('IK warmup timeout must be positive')
+                self._adapter.set_current_state(state)
+                self._adapter.set_deadline(time.monotonic() + timeout)
+                self._adapter.set_progress_callback(lambda message: self.get_logger().info('warmup: ' + message))
+                self._adapter.warmup(self.get_parameter('curobo_ik_warmup_arms').value,
+                    include_aim=self.get_parameter('curobo_ik_warmup_include_aim').value,
+                    continue_work=lambda: not self._goal_active and
+                        (lease is None or not lease.foreground_pending()))
+                self._warmup_description = self._adapter._description
+                self._warmup_ready = True
+                self.get_logger().info('Primary GPU IK warmup complete; results discarded')
         except InterruptedError as error:
-            if self._goal_active:
+            if lease is not None and lease.foreground_pending():
+                self.get_logger().info('IK warmup yielded to foreground GPU work')
+            elif self._goal_active:
                 self.get_logger().warning(f'IK warmup interrupted by selection cancellation: {error}')
             else:
                 self._warmup_error = f'IK warmup failed: {error}'
@@ -801,7 +820,12 @@ class GraspSelectionNode(Node):
                 if goal_handle.is_cancel_requested or time.monotonic() >= deadline:
                     raise InterruptedError('IK warmup wait canceled or timed out')
             try:
-                return GraspSelectionNode._execute_locked(self, goal_handle, deadline)
+                lease = getattr(self, '_gpu_lease', None)
+                admission = (lease.acquire(continue_work=lambda:
+                    not goal_handle.is_cancel_requested and time.monotonic() < deadline)
+                    if lease is not None else nullcontext())
+                with admission:
+                    return GraspSelectionNode._execute_locked(self, goal_handle, deadline)
             finally:
                 lock.release()
         except Exception as error:

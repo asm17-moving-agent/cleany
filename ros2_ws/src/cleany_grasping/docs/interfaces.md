@@ -9,6 +9,8 @@
 | 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
 |---|---|---|---|
 | 서비스 제공 | `grasp/plan` | `cleany_interfaces/srv/PlanGrasp` | Service 기본값; `service_name` |
+| 서비스 제공 | `/grasp/prepare_window` | `std_srvs/srv/SetBool` | true는 모델 준비 및 유한 유지, false는 VLM 유지 해제; `anygrasp_prepare_service` |
+| 토픽 구독 | `/manipulation/execute_skill/_action/status` | `action_msgs/msg/GoalStatusArray` | R/T1; 활성 작업 동안 worker 유지, `anygrasp_task_status_topic` |
 | 토픽 발행 | `grasp/debug_image` | `sensor_msgs/msg/Image` | R/T1; 계획 요청 처리 시, `debug_image_topic` |
 | 토픽 구독 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 | 토픽 구독 | `/tf_static` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |

@@ -44,3 +44,13 @@ tools/motion-container exec -- python3 /workspace/cleany/containers/motion/smoke
 ```
 
 위 smoke는 명시적으로 준비된 Jetson GPU 이미지를 사용하며 실물 모터에 명령하지 않는다. 검증 결과와 환경은 [EVIDENCE](../../docs/EVIDENCE.md), 로봇별 외부 프로파일은 [실행 안내](../../docs/RUNNING.md#jetson-실물-실행-경로)를 따른다.
+
+
+## AnyGrasp와 GPU 준비 순서
+
+motion runtime은 `cleany_grasping`의 공개 GPU lease 모듈도 설치한다. 해당 패키지의
+소스와 entrypoint가 준비 fingerprint에 포함된다. 이 변경을 받은 뒤
+`make motion-container-image motion-container-prepare`로 설치를 갱신한다.
+`gpu_lock_path`와 `.demand` 파일은 vision container와 동일한 호스트 inode를
+사용하며 motion의 읽기 전용 저장소 mount를 유지한다. 실제 요청은 예열보다
+우선하고, 진행 중 예열의 양보는 CUDA 단계 경계에서 이루어진다.

@@ -15,3 +15,12 @@
 SDK와 모델 weight, AnyGrasp 라이선스, 실행 DB, 영상, 점군과 결과 파일은 clone에 포함하지 않는다. 모델의 버전과 hash, 필요한 설치 방법은 저장소에 유지한다. cuRobo 전용 비교 도구와 모델 비교 캠페인은 일반 실행 경로에 포함하지 않는다.
 
 Controller limits와 motion monitor는 `CLEANY_FEETECH_CONTROL_CONFIG`, `CLEANY_HARDWARE_MONITOR_CONFIG`로 각각 명시한다. BT launch의 대응 인자는 `hardware_monitor_config`다. 시험용 YAML도 test data에만 두며 실행 기본값으로 사용하지 않는다.
+## GPU 준비 작업과 실제 요청 우선순위
+
+`gpu_lock_path`가 설정되면 AnyGrasp worker와 같은 호스트 lock 및 `.demand` 파일을
+사용한다. cuRobo 예열은 GPU가 사용 중이거나 실제 요청이 대기하면 시작하지 않는다.
+진행 중인 예열은 단계 사이에서 양보하고 초기화한 solver buffer를 보존한다.
+실제 선택 요청은 foreground lease를 유지하며 취소와 action deadline을 확인한다.
+이미 시작한 CUDA 호출 자체를 중단하지는 않는다. 기본 container 프로필은
+`/workspace/cleany/configs/robot/gpu-work.lock`을 사용한다. native 실행은 같은 호스트
+inode를 가리키는 경로로 덮어쓴다. 빈 경로는 GPU 조정을 끈다.

@@ -58,3 +58,45 @@ def test_failed_startup_is_reported_and_child_is_cleaned_up(tmp_path):
 def test_invalid_worker_timeouts_are_rejected_before_spawn(options):
     with pytest.raises(ValueError, match='timeout'):
         AnyGraspWorkerPredictor(checkpoint_path='', license_path='', **options)
+
+
+def fake_resident(**options):
+    from types import SimpleNamespace
+    worker=AnyGraspWorkerPredictor(checkpoint_path='',license_path='',**options)
+    worker._process=SimpleNamespace(is_alive=lambda:True)
+    worker.close=lambda:setattr(worker,'_process',None)
+    return worker
+
+
+def test_task_and_vlm_holds_are_independent_and_bounded():
+    import time
+    worker=fake_resident()
+    worker.hold_for('task',600)
+    worker.hold_for('vlm',180)
+    worker.hold_for('task',0)
+    worker._last_used-=121
+    assert not worker.release_if_idle()
+    worker._holds['vlm']=time.monotonic()-1
+    assert worker.release_if_idle() and worker.worker_pid is None
+
+
+def test_memory_pressure_can_release_even_during_a_task():
+    worker=fake_resident(minimum_available_memory_mb=1024.)
+    worker.hold_for('task',600)
+    worker._available_memory_mb=lambda:512.
+    assert worker.release_if_idle() and worker.worker_pid is None
+
+
+def test_prepare_refreshes_idle_time_for_an_existing_worker():
+    worker=fake_resident()
+    worker._last_used-=121
+    assert worker.prepare()
+    assert not worker.release_if_idle()
+
+
+@pytest.mark.parametrize('duration',[-1.,float('nan'),float('inf')])
+def test_invalid_hold_does_not_change_retention(duration):
+    worker=fake_resident()
+    with pytest.raises(ValueError,match='hold'):
+        worker.hold_for('task',duration)
+    assert worker._holds=={}

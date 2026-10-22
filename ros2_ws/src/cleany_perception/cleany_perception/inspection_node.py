@@ -468,7 +468,8 @@ class InspectionNode(Node):
         self._snapshot_buffer = RgbdSnapshotBuffer()
         self._action_callback_group = ReentrantCallbackGroup()
         self._vlm_warmup = (VlmWarmupClient(self,
-            str(self.get_parameter('vlm_ik_warmup_service').value), self._action_callback_group)
+            str(self.get_parameter('vlm_ik_warmup_service').value), self._action_callback_group,
+            prepare_service=str(self.get_parameter('vlm_anygrasp_prepare_service').value))
             if self.get_parameter('vlm_ik_warmup_enabled').value else None)
         self.get_logger().info('VLM IK warmup notifications: ' +
             ('enabled' if self._vlm_warmup is not None else 'disabled'))
@@ -610,6 +611,7 @@ class InspectionNode(Node):
         self.declare_parameter('preload_models', False)
         self.declare_parameter('vlm_ik_warmup_enabled', False)
         self.declare_parameter('vlm_ik_warmup_service', '/grasp/vlm_warmup')
+        self.declare_parameter('vlm_anygrasp_prepare_service', '/grasp/prepare_window')
         self.declare_parameter(
             'model_directory',
             os.environ.get('CLEANY_MODEL_DIR', str(Path.home() / 'models')),

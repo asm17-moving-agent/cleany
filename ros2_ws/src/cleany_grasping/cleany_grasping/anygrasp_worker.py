@@ -10,8 +10,10 @@ import multiprocessing as mp
 from multiprocessing.connection import Connection
 from threading import RLock
 import time
+from pathlib import Path
 
 from cleany_grasping.anygrasp_adapter import AnyGraspPredictor, ModelUnavailableError
+from cleany_grasping.gpu_scheduling import GpuLease
 
 
 def _serve(connection: Connection, options: dict) -> None:
@@ -43,16 +45,22 @@ def _serve(connection: Connection, options: dict) -> None:
 
 class AnyGraspWorkerPredictor:
     def __init__(self, *, idle_timeout_sec: float = 120.0,
-                 request_timeout_sec: float = 120.0, **options) -> None:
+                 request_timeout_sec: float = 120.0, gpu_lock_path: str = '',
+                 minimum_available_memory_mb: float = 0.0, **options) -> None:
         if (not math.isfinite(idle_timeout_sec) or idle_timeout_sec < 0
                 or not math.isfinite(request_timeout_sec) or request_timeout_sec <= 0):
             raise ValueError('Worker idle timeout must be nonnegative and request timeout positive')
+        if not math.isfinite(minimum_available_memory_mb) or minimum_available_memory_mb < 0:
+            raise ValueError('Minimum available memory must be finite and nonnegative')
         # Validate options without loading the licensed SDK or CUDA runtime.
         self._sampling = AnyGraspPredictor(**options)
         self._options = options
         self._idle_timeout = idle_timeout_sec
         self._request_timeout = request_timeout_sec
         self._lock = RLock()
+        self._gpu_lease = GpuLease(gpu_lock_path)
+        self._holds: dict[str, float] = {}
+        self._minimum_available_memory_mb = minimum_available_memory_mb
         self._process = None
         self._connection = None
         self._last_used = time.monotonic()
@@ -74,10 +82,13 @@ class AnyGraspWorkerPredictor:
             raise ModelUnavailableError(f'AnyGrasp worker failed: {result}')
         return result
 
-    def prepare(self) -> None:
-        with self._lock:
+    def prepare(self) -> bool:
+        with self._lock, self._gpu_lease.acquire(foreground=False, blocking=False) as admitted:
+            if not admitted:
+                return False
             if self._process is not None and self._process.is_alive():
-                return
+                self._last_used = time.monotonic()
+                return True
             self.close()
             context = mp.get_context('spawn')
             self._connection, child = context.Pipe()
@@ -91,9 +102,10 @@ class AnyGraspWorkerPredictor:
                 self.close()
                 raise
             self._last_used = time.monotonic()
+            return True
 
     def _predict(self, method, target, context, bounds):
-        with self._lock:
+        with self._lock, self._gpu_lease.acquire() as admitted:
             self.prepare()
             try:
                 points, region_mask = self._sampling._prepare_input(target, context, bounds)
@@ -121,16 +133,44 @@ class AnyGraspWorkerPredictor:
     def should_retry_full_resolution(self, context_cloud) -> bool:
         return self._sampling.should_retry_full_resolution(context_cloud)
 
+    def hold_for(self, owner: str, seconds: float) -> None:
+        """Refresh a bounded task/window lease; zero releases that owner only."""
+        if not owner or not math.isfinite(seconds) or seconds < 0:
+            raise ValueError('Worker hold needs an owner and a nonnegative finite duration')
+        with self._lock:
+            if seconds:
+                self._holds[owner] = time.monotonic() + seconds
+            else:
+                self._holds.pop(owner, None)
+            self._last_used = time.monotonic()
+
+    @staticmethod
+    def _available_memory_mb() -> float | None:
+        try:
+            for line in Path('/proc/meminfo').read_text().splitlines():
+                if line.startswith('MemAvailable:'):
+                    return float(line.split()[1]) / 1024
+        except OSError:
+            pass
+        return None
+
     def release_if_idle(self) -> bool:
         with self._lock:
-            if (self._process is not None and self._idle_timeout > 0
-                    and time.monotonic()-self._last_used >= self._idle_timeout):
-                self.close()
-                return True
+            now = time.monotonic()
+            self._holds = {owner: until for owner, until in self._holds.items() if until > now}
+            available = self._available_memory_mb() if self._minimum_available_memory_mb else None
+            pressure = available is not None and available < self._minimum_available_memory_mb
+            idle = (not self._holds and self._idle_timeout > 0
+                    and now-self._last_used >= self._idle_timeout)
+            if self._process is not None and (pressure or idle):
+                with self._gpu_lease.acquire(foreground=False, blocking=False) as admitted:
+                    if admitted:
+                        self.close()
+                        return True
             return False
 
     def close(self) -> None:
-        with self._lock:
+        with self._lock, self._gpu_lease.acquire() as admitted:
             process, connection = self._process, self._connection
             self._process = self._connection = None
             if connection is not None:

@@ -104,6 +104,45 @@ def test_missing_warmup_service_never_waits_or_blocks_perception():
     assert not notifier._pending
 
 
+def test_anygrasp_prepare_finishes_before_ik_and_fast_vlm_skips_ik():
+    calls=[];futures=[]
+    def client(name):
+        def call(request):
+            calls.append((name,request.data));futures.append(Future());return futures[-1]
+        return SimpleNamespace(service_is_ready=lambda:True,call_async=call)
+    node=SimpleNamespace(create_client=lambda _,name,**kw:client(name),
+        create_timer=lambda *a,**kw:None,
+        get_logger=lambda:SimpleNamespace(warning=lambda _:None,info=lambda _:None))
+    notifier=VlmWarmupClient(node,'/ik',prepare_service='/prepare')
+    notifier.set_active(True)
+    assert calls==[('/prepare',True)]
+    notifier.set_active(False)
+    futures[0].set_result(SimpleNamespace(success=True))
+    assert calls==[('/prepare',True),('/prepare',False)]
+    futures[1].set_result(SimpleNamespace(success=True))
+    assert not notifier._pending
+
+
+def test_ordered_prepare_then_ik_then_reverse_cleanup():
+    calls=[];futures=[]
+    def create(_,name,**kw):
+        def call(request):
+            calls.append((name,request.data));futures.append(Future());return futures[-1]
+        return SimpleNamespace(service_is_ready=lambda:True,call_async=call)
+    notifier=VlmWarmupClient(SimpleNamespace(create_client=create,create_timer=lambda *a,**kw:None),
+        '/ik',prepare_service='/prepare')
+    notifier.set_active(True)
+    futures[0].set_result(SimpleNamespace(success=True))
+    assert calls==[('/prepare',True),('/ik',True)]
+    notifier.set_active(False)
+    futures[1].set_result(SimpleNamespace(success=True))
+    assert calls[-1]==('/ik',False)
+    futures[2].set_result(SimpleNamespace(success=True))
+    assert calls[-1]==('/prepare',False)
+    futures[3].set_result(SimpleNamespace(success=True))
+    assert not notifier._prepared and not notifier._sent
+
+
 @pytest.mark.parametrize('ends_before_discovery', [False, True])
 def test_late_service_discovery_retries_only_during_vlm(ends_before_discovery):
     ready, calls, timers = [False], [], []

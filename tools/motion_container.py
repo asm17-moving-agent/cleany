@@ -22,7 +22,7 @@ import yaml
 
 CONTAINER_ROOT = '/workspace/cleany'
 WORKSPACE = '/opt/cleany-motion/workspace'
-PACKAGES = ('cleany_interfaces', 'cleany_description', 'cleany_moveit_config', 'cleany_skill_executor')
+PACKAGES = ('cleany_interfaces', 'cleany_description', 'cleany_moveit_config', 'cleany_grasping', 'cleany_skill_executor')
 DDS_ENVIRONMENT = (
     'ROS_DOMAIN_ID', 'ROS_LOCALHOST_ONLY', 'ROS_AUTOMATIC_DISCOVERY_RANGE', 'ROS_STATIC_PEERS',
     'RMW_IMPLEMENTATION', 'CYCLONEDDS_URI', 'FASTRTPS_DEFAULT_PROFILES_FILE',

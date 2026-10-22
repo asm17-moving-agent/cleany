@@ -16,6 +16,30 @@ from cleany_grasping.core.models import PointCloud, RawGrasp
 from cleany_grasping.core.selector import GraspConfig
 
 
+def test_repeated_terminal_task_status_does_not_keep_worker_alive():
+    from types import SimpleNamespace
+    calls=[]
+    node=SimpleNamespace(_predictor=SimpleNamespace(hold_for=lambda *a:calls.append(a)),
+        _task_hold_active=False,get_parameter=lambda _:SimpleNamespace(value=600.))
+    status=lambda value:SimpleNamespace(status_list=[SimpleNamespace(status=value)])
+    GraspNode._task_status(node,status(4))
+    assert calls==[]
+    GraspNode._task_status(node,status(2))
+    GraspNode._task_status(node,status(4))
+    GraspNode._task_status(node,status(4))
+    assert calls==[('task',600.),('task',0.)]
+
+
+def test_deferred_prepare_releases_only_the_vlm_hold():
+    from types import SimpleNamespace
+    calls=[]
+    node=SimpleNamespace(_predictor=SimpleNamespace(hold_for=lambda *a:calls.append(a),prepare=lambda:False),
+        get_parameter=lambda _:SimpleNamespace(value=180.))
+    response=SimpleNamespace()
+    GraspNode._prepare_window(node,SimpleNamespace(data=True),response)
+    assert not response.success and calls==[('vlm',180.),('vlm',0.)]
+
+
 def test_observed_mesh_message_roundtrips_with_frame_pose_and_capture_identity():
     from cleany_interfaces.msg import ObservedObjectGeometry
     from rclpy.serialization import serialize_message, deserialize_message

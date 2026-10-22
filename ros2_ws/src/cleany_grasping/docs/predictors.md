@@ -208,6 +208,27 @@ XYZRGB cloud는 지원되는 field datatype, offset, point/row step 및 전체 d
 
 ## AnyGrasp worker 수명
 
+VLM 통지는 `/grasp/prepare_window`를 먼저 호출해 AnyGrasp를 준비한 뒤 cuRobo
+예열을 시작한다. VLM이 먼저 끝나면 아직 시작하지 않은 cuRobo 예열은 생략한다.
+준비 서비스의 true는 기본 180초의 유한 VLM 유지 lease를 만들며 false는 해당
+lease만 해제한다. 실제 추론과 모델 준비는 worker 내부에서 직렬 처리한다.
+
+`anygrasp_task_status_topic`의 활성 manipulation action 상태는 기본 600초의
+작업 유지 lease를 갱신한다. 작업 종료 통지는 한 번만 해제하며, 반복된 종료
+통지로 idle 시간을 갱신하지 않는다. 두 lease가 끝난 뒤 기존 120초 idle 기준을
+적용한다. 기존 worker에 대한 준비 요청도 idle 기준 시각을 갱신한다.
+`anygrasp_minimum_available_memory_mb`가 0보다 크면 Linux `MemAvailable`이 그
+값보다 낮을 때 작업 lease보다 메모리 반환을 우선한다. 기본값 0은 이 조건을
+사용하지 않는다. 전체 runtime의 추론 최대 사용량을 확인한 뒤 설정한다.
+
+`gpu_lock_path`는 AnyGrasp와 cuRobo가 공유하는 호스트 파일의 경로다. 같은 경로에
+`.demand`를 붙인 파일도 필요하다. 컨테이너는 같은 호스트 inode를 bind mount해야
+하며 읽기 전용 mount로 충분하다. 실제 요청은 foreground demand를 유지하고,
+cuRobo 예열은 새 GPU 단계 전에 대기 요청을 확인해 양보한다. 이미 시작한 CUDA
+호출이나 solver 초기화는 완료될 때까지 기다린다. 준비, 추론과 worker 종료도
+같은 GPU lease로 보호한다. 빈 경로는 조정을 끄며 container 기본 설정은
+`/workspace/cleany/configs/robot/gpu-work.lock`을 사용한다.
+
 ### 후보 조건과 점 수 시험 옵션
 
 | 설정 | 노드 기본값 | 의미 |

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import math
+from action_msgs.msg import GoalStatus, GoalStatusArray
 
 import numpy as np
 import rclpy
@@ -10,11 +11,14 @@ from geometry_msgs.msg import Point
 from shape_msgs.msg import MeshTriangle
 from cleany_interfaces.srv import PlanGrasp
 from rclpy.duration import Duration
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from std_msgs.msg import Header
+from std_srvs.srv import SetBool
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from cleany_grasping.anygrasp_adapter import AnyGraspPredictor, ModelUnavailableError
@@ -226,6 +230,17 @@ class GraspNode(Node):
         self.declare_parameter('anygrasp_worker_enabled', True)
         self.declare_parameter('anygrasp_worker_idle_timeout_sec', 120.0)
         self.declare_parameter('anygrasp_worker_request_timeout_sec', 120.0)
+        self.declare_parameter('gpu_lock_path', '')
+        self.declare_parameter('anygrasp_prepare_service', '/grasp/prepare_window')
+        self.declare_parameter('anygrasp_prepare_hold_sec', 180.0)
+        self.declare_parameter('anygrasp_task_status_topic', '/manipulation/execute_skill/_action/status')
+        self.declare_parameter('anygrasp_task_hold_sec', 600.0)
+        self.declare_parameter('anygrasp_minimum_available_memory_mb', 0.0)
+        for name in ('anygrasp_prepare_hold_sec', 'anygrasp_task_hold_sec'):
+            value=float(self.get_parameter(name).value)
+            if not math.isfinite(value) or value < 0:
+                raise ValueError('AnyGrasp hold durations must be finite and nonnegative')
+        self._task_hold_active = False
         self.declare_parameter('anygrasp_preload', False)
         self.declare_parameter('publish_collision_geometry', False)
         self.declare_parameter('collision_geometry_topic', '/grasp/collision_geometry')
@@ -306,6 +321,43 @@ class GraspNode(Node):
         self._service = self.create_service(
             PlanGrasp, str(self.get_parameter('service_name').value), self._plan
         )
+        self._prepare_service = self.create_service(SetBool,
+            str(self.get_parameter('anygrasp_prepare_service').value), self._prepare_window,
+            callback_group=ReentrantCallbackGroup())
+        self._task_status_subscription = self.create_subscription(GoalStatusArray,
+            str(self.get_parameter('anygrasp_task_status_topic').value), self._task_status,
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+            callback_group=ReentrantCallbackGroup())
+
+    def _prepare_window(self, request, response):
+        hold = getattr(self._predictor, 'hold_for', None)
+        prepare = getattr(self._predictor, 'prepare', None)
+        if hold is None or prepare is None:
+            geometric = str(self.get_parameter('predictor_type').value).strip().lower() == 'geometric'
+            response.success = geometric
+            response.message = 'No model preparation required' if geometric else 'Persistent AnyGrasp worker is disabled'
+            return response
+        try:
+            hold('vlm', float(self.get_parameter('anygrasp_prepare_hold_sec').value) if request.data else 0.)
+            ready = prepare() if request.data else True
+            response.success = ready is not False
+            response.message = 'AnyGrasp ready' if request.data else 'AnyGrasp preparation window closed'
+            if not response.success:
+                hold('vlm', 0.)
+                response.message = 'GPU has foreground work; preparation deferred'
+        except (ModelUnavailableError, ValueError, OSError) as error:
+            hold('vlm', 0.)
+            response.success, response.message = False, str(error)
+        return response
+
+    def _task_status(self, message):
+        hold = getattr(self._predictor, 'hold_for', None)
+        if hold is not None:
+            active = any(status.status in (GoalStatus.STATUS_ACCEPTED, GoalStatus.STATUS_EXECUTING,
+                                          GoalStatus.STATUS_CANCELING) for status in message.status_list)
+            if active or getattr(self, '_task_hold_active', False):
+                hold('task', float(self.get_parameter('anygrasp_task_hold_sec').value) if active else 0.)
+            self._task_hold_active = active
 
     def destroy_node(self):
         close = getattr(self._predictor, 'close', None)
@@ -413,6 +465,8 @@ class GraspNode(Node):
                 from cleany_grasping.anygrasp_worker import AnyGraspWorkerPredictor
                 factory = AnyGraspWorkerPredictor
                 options.update(
+                    gpu_lock_path=str(self.get_parameter('gpu_lock_path').value),
+                    minimum_available_memory_mb=float(self.get_parameter('anygrasp_minimum_available_memory_mb').value),
                     idle_timeout_sec=float(self.get_parameter('anygrasp_worker_idle_timeout_sec').value),
                     request_timeout_sec=float(self.get_parameter('anygrasp_worker_request_timeout_sec').value))
             return factory(
@@ -647,11 +701,14 @@ class GraspNode(Node):
 def main(args=None) -> None:
     rclpy.init(args=args)
     node = GraspNode()
+    executor = MultiThreadedExecutor(num_threads=3)
+    executor.add_node(node)
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:
+        executor.shutdown()
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

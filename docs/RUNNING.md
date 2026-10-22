@@ -311,4 +311,6 @@ export CLEANY_HARDWARE_MONITOR_CONFIG=/absolute/path/to/local-motion-monitor.yam
 
 `make manipulation-run`과 dev-monitor의 실물 실행은 기본적으로 기하학적 후보 생성과 cuRobo IK/MoveIt 경로를 사용한다. 기하학적 후보는 native grasp 노드에서 생성하며 AnyGrasp container는 시작하지 않는다. `CLEANY_COLLECTION_GRASP_PREDICTOR=anygrasp`를 명시하면 SDK 경로를 선택할 수 있다. 명시 값은 기본값보다 우선하며, 이미 실행 중인 runtime과 후보 방식이 다르면 시작 요청을 거절한다.
 
+AnyGrasp를 명시적으로 선택한 경우 배포 설정은 target 형상에 따라 4,000점과 8,000점을 선택하고, 작거나 얇거나 성긴 target은 8,000점을 유지한다. 후보 미생성 시 전체 해상도 재시도와 작업 중 worker 유지를 사용한다. 조건과 메모리 유지 정책은 [predictor 계약](../ros2_ws/src/cleany_grasping/docs/predictors.md)을 따른다.
+
 공유하는 감독 시험 기본 파일이나 부팅 자동 구동 스크립트는 제공하지 않는다. [실물 경로와 설정 계약](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md), [하드웨어 통신](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)을 따른다. SDK 기반 수동 commissioning 도구는 선택적인 LeRobot 환경을 사용하며 native ROS 필수 의존성과 구분한다.

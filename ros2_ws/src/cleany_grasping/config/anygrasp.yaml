@@ -4,6 +4,12 @@ grasp_server:
     planning_frame: base_link
     predictor_type: geometric  # geometric works without model files.
     anygrasp_worker_enabled: true
+    gpu_lock_path: /workspace/cleany/configs/robot/gpu-work.lock
+    anygrasp_prepare_service: /grasp/prepare_window
+    anygrasp_prepare_hold_sec: 180.0
+    anygrasp_task_status_topic: /manipulation/execute_skill/_action/status
+    anygrasp_task_hold_sec: 600.0
+    anygrasp_minimum_available_memory_mb: 0.0  # Opt in after sizing the full runtime peak.
     anygrasp_worker_idle_timeout_sec: 120.0  # Keep model through nearby re-observation.
     anygrasp_worker_request_timeout_sec: 120.0
     anygrasp_preload: false  # run-anygrasp prepares its persistent worker once.
