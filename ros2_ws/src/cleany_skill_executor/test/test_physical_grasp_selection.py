@@ -528,6 +528,40 @@ def test_grasp_first_registers_final_targets_and_seeds_pregrasp_from_grasp():
                      ('plan_grasp', 'left', selected.grasp, selected.pregrasp)]
 
 
+@pytest.mark.parametrize('preparation_offset', [.08, .06, .04])
+def test_twenty_millimeter_insertion_keeps_preparation_and_plans_deeper_goal(preparation_offset):
+    from dataclasses import replace
+    config = GraspSelectionConfig(
+        grasp_ik_first=True, pregrasp_fallback_offsets_m=(.06, .04),
+        asymmetric_gripper_enabled=True, fixed_jaw_tcp_offset_m=.009849299681842694,
+        fixed_jaw_additional_bias_m=.020)
+    original = candidate(0, y=.2, approach=(.6, .8, 0.))
+    baseline = GraspSelector(GraspFirstPort(), config).grasp_tcp_position(original)
+    inserted = replace(original, approach_offset_m=.020)
+    port = GraspFirstPort()
+    solve = port.solve_pregrasp_ik
+
+    def prepare(arm, target, seed):
+        result = solve(arm, target, seed)
+        return result if math.dist(target.position, baseline) <= preparation_offset + 1e-9 else None
+
+    port.solve_pregrasp_ik = prepare
+    selected = GraspSelector(port, config).select([inserted], required_arm='left')
+    assert selected is not None
+    expected_goal = tuple(p + .020*a for p, a in zip(baseline, original.approach_direction))
+    assert selected.grasp_alignment.pose.position == pytest.approx(expected_goal)
+    preparations = [c[2] for c in port.calls if c[0] == 'seeded_pregrasp']
+    offsets = [.08, .06, .04][:1+[.08, .06, .04].index(preparation_offset)]
+    for pose, offset in zip(preparations, offsets, strict=True):
+        assert pose.position == pytest.approx(
+            GraspSelector.pregrasp_position(original, offset, baseline))
+    assert math.dist(preparations[-1].position, expected_goal) == pytest.approx(preparation_offset+.020)
+    registered = next(c[1] for c in port.calls if c[0] == 'prepare_grasps')
+    assert registered[0].target.position == pytest.approx(expected_goal)
+    assert ('valid', 'left', selected.grasp) in port.calls
+    assert ('plan_grasp', 'left', selected.grasp, selected.pregrasp) in port.calls
+
+
 def test_grasp_first_skips_pregrasp_and_planning_if_grasp_has_no_solution():
     port = GraspFirstPort('grasp_ik')
     assert GraspSelector(port, GraspSelectionConfig(grasp_ik_first=True)).select(

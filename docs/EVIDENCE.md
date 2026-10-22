@@ -32,6 +32,29 @@ target 173점과 context 3,760점으로 후보 53개를 약 0.912초에 생성�
 `deployment.log`, `control-recovery-held-lock.log`, `action-restart.log`에 있다.
 카메라와 점군은 `../cleany-data/reports/geometric-camera-20261023-065858/`에 보존했다.
 
+## 2026-10-23 수거 파지 목표 추가 삽입 20mm
+
+Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble과 commit
+`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 검사했다.
+공용 수거 설정의 `grasp_approach_offset_m`을 0.020m로 적용했다. TCP 정의와 닫힘
+방향 보정은 유지하며, 원래 8cm, 6cm, 4cm 준비 위치에서 보정 목표까지의 거리는
+10cm, 8cm, 6cm다. 집중 검사 11개와 관련 회귀 검사 131개가 통과했고 native
+1개 패키지와 motion container 5개 패키지 빌드가 완료됐다. 기존 NumPy/SciPy
+버전 경고와 container의 setuptools_scm 경고가 있었으며 종료 코드는 0이었다.
+
+planning support만 복구하여 real_control PID 55052를 유지했고 운영 파라미터
+0.02를 확인했다. 05:34:33 카메라의 정면 캔, snapshot
+`rgbd-1792701273610493164-037980`에서 target 700점과 context 7680점으로
+AnyGrasp 후보 58개를 생성했다. 왼팔은 후보 5에서 두 경로 계획을 통과했고,
+4cm 준비 위치와 보정 목표 사이의 거리가 60mm인 것을 실제 IK 요청에서 확인했다.
+오른팔은 상위 32개 검사에서 실패했다. 실제 팔과 그리퍼 이동 명령은 보내지
+않았으므로 이 결과는 실물 파지 성공이나 삽입량 캘리브레이션의 근거가 아니다.
+
+원본은 `../cleany-data/reports/grasp-insertion-20mm-20261023/`의
+`verification.json`, `implementation.patch`, `regression-tests.xml`,
+`selected-ik-diagnostics.json`, `deployment.json`에 보존했다. 카메라, 점군과
+Action 결과는 `../cleany-data/reports/grasp-insertion-20mm-camera-20261023-053433/`에 있다.
+
 ## 2026-10-23 접근 준비 자세의 4cm 대체 검사
 
 Jetson Orin, ROS 2 Humble과 commit `3950218d70cbebd4ce3278e7602bc276482c0471`의

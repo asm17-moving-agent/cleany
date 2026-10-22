@@ -15,6 +15,22 @@
 SDK와 모델 weight, AnyGrasp 라이선스, 실행 DB, 영상, 점군과 결과 파일은 clone에 포함하지 않는다. 모델의 버전과 hash, 필요한 설치 방법은 저장소에 유지한다. cuRobo 전용 비교 도구와 모델 비교 캠페인은 일반 실행 경로에 포함하지 않는다.
 
 Controller limits와 motion monitor는 `CLEANY_FEETECH_CONTROL_CONFIG`, `CLEANY_HARDWARE_MONITOR_CONFIG`로 각각 명시한다. BT launch의 대응 인자는 `hardware_monitor_config`다. 시험용 YAML도 test data에만 두며 실행 기본값으로 사용하지 않는다.
+
+
+## 파지 목표의 추가 삽입
+
+수거 공용 설정 `collection_motion.yaml`은 `grasp_approach_offset_m: 0.020`으로
+최종 TCP 목표를 후보의 접근 방향으로 20mm 더 이동한다. `make manipulation-run`과
+dev-monitor의 수거 실행은 같은 설정을 사용한다. 이 값은 수거 후보 전체에 적용하며
+TCP의 기구학적 정의나 기존 닫힘 방향 보정을 변경하지 않는다. 원래 삽입 깊이로
+돌리려면 이 값을 0.0으로 설정하고 planning runtime을 다시 준비한다.
+
+접근 준비 위치는 추가 삽입 전 목표를 기준으로 유지한다. 따라서 8cm, 6cm, 4cm
+준비 자세에서 보정한 최종 목표까지의 거리는 각각 10cm, 8cm, 6cm다. 보정 목표로
+IK, 상태 유효성, 그리퍼 닫힘 공간과 경로를 다시 검사하며 기존 목표에 도착한 뒤
+검사 없이 추가 이동하지 않는다. 이 20mm는 요청한 삽입량이며 SDK `grasp_depth_m`을
+자동 적용한 값이나 실물 파지 성공을 검증한 보정량은 아니다.
+
 ## 접근 준비 자세의 거리 대체
 
 `grasp_ik_first=true`에서는 파지 자세를 먼저 구하고 같은 해를 시작점으로 접근 준비
