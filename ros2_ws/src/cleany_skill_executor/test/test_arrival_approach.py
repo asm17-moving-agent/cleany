@@ -146,14 +146,14 @@ def test_explicit_support_conversion_preserves_the_measured_physical_destination
 
 @pytest.mark.parametrize('offset', [.0119081533721877, -.0119081533721877])
 @pytest.mark.parametrize('check_collisions', [False, True])
-@pytest.mark.parametrize('stage', ['retreat_after_release', 'return_to_pickup'])
+@pytest.mark.parametrize('stage', ['return_to_pickup'])
 def test_next_cartesian_movement_plans_and_dispatches_from_measured_state_without_old_hold_bias(
         command_pipeline, offset, check_collisions, stage):
     node, selected, state, _, plans, sent, trace = command_pipeline
     measured = (1., 0., 0., 0., 0.)
     state.position = [*measured, .2]
     # Reproduce the 65a30167 failure's 11.908 mm TCP gap, with both an old
-    # entry residual and a nonzero hold correction. Neither belongs in retreat.
+    # entry residual and a nonzero hold correction in the pickup fallback.
     old_hold = ArmHold((1., -.02, 0., 0., 0.), (1., offset, 0., 0., 0.))
     node.real.arm_holds['right'] = old_hold
     node.linear('right', selected.fk_grasp_pose, stage,
@@ -171,7 +171,7 @@ def test_next_cartesian_movement_plans_and_dispatches_from_measured_state_withou
     assert event['measured_tcp_position_m'] == [0., 0., 0.]
 
 
-@pytest.mark.parametrize('stage', ['approach', 'lift'])
+@pytest.mark.parametrize('stage', ['approach', 'lift', 'retreat_after_release'])
 @pytest.mark.parametrize('sag', [.03097461591006146, .075])
 @pytest.mark.parametrize('check_collisions', [False, True])
 def test_physical_planning_uses_measured_tcp_and_converts_support_only_once(
@@ -198,6 +198,9 @@ def test_physical_planning_uses_measured_tcp_and_converts_support_only_once(
     node.linear('right', target, stage, check_orientation=False, check_collisions=check_collisions)
     assert plans == [measured, command]  # Physical planning, then explicit motor conversion.
     assert len(sent) == 1 and tuple(sent[0].points[0].positions) == command
+    assert tuple(sent[0].points[0].velocities) == (0.,)*5
+    # No downward command reset may unload support before the upward motion.
+    assert min(point.positions[1] for point in sent[0].points) >= command[1]-1e-9
     assert sent[0].points[-1].positions[1] == pytest.approx(.3+sag)
     assert node.pose('right').position.z == pytest.approx(.3)
     assert target.position.z == .3
@@ -210,7 +213,7 @@ def test_physical_planning_uses_measured_tcp_and_converts_support_only_once(
     assert support['command_target_position_m'][2] == pytest.approx(.3+sag)
 
 
-@pytest.mark.parametrize('stage', ['retreat_after_release', 'return_to_pickup'])
+@pytest.mark.parametrize('stage', ['return_to_pickup'])
 def test_measured_start_stays_measured_when_small_start_drift_refreshes_validation(command_pipeline, stage):
     node, selected, state, _, plans, sent, _ = command_pipeline
     state.position = [1., 0., 0., 0., 0., .2]
@@ -227,6 +230,34 @@ def test_measured_start_stays_measured_when_small_start_drift_refreshes_validati
     assert len(sent) == 1
     assert tuple(sent[0].points[0].positions) == (1.006, 0., 0., 0., 0.)
     assert node.real.last_execution_metrics['start_from_measured'] is True
+
+
+def test_release_retreat_keeps_support_after_small_drift_revalidation(command_pipeline):
+    node, selected, state, _, plans, sent, _ = command_pipeline
+    state.position = [1., 0., 0., 0., 0., .2]
+    command = (1., .02, 0., 0., 0.)
+    node.real.arm_holds['right'] = ArmHold(command, command)
+    call, changed = node.call, []
+    def drifting_call(client, request, *args):
+        if client is node.real.validity and not changed:
+            changed.append(True)
+            state.position[0] += .006
+        return call(client, request, *args)
+    node.call = drifting_call
+    node.linear('right', selected.fk_grasp_pose, 'retreat_after_release', check_orientation=False)
+    assert changed and plans == [(1., 0., 0., 0., 0.), command]
+    assert len(sent) == 1 and tuple(sent[0].points[0].positions) == command
+    assert sent[0].points[-1].positions[1] == pytest.approx(.10)
+    assert node.real.last_execution_metrics['start_from_measured'] is False
+
+
+def test_release_retreat_rejects_a_departed_hold_before_dispatch(command_pipeline):
+    node, selected, state, _, _, sent, _ = command_pipeline
+    state.position = [1., 0., 0., 0., 0., .2]
+    node.real.arm_holds['right'] = ArmHold((1.5, .02, 0., 0., 0.), (1.5, .02, 0., 0., 0.))
+    with pytest.raises(RuntimeError, match='departed too far'):
+        node.linear('right', selected.fk_grasp_pose, 'retreat_after_release', check_orientation=False)
+    assert not sent
 
 
 @pytest.mark.parametrize('stage', ['retreat_after_release', 'return_to_pickup'])

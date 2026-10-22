@@ -821,7 +821,10 @@ class CollectionPipeline(PregraspPipeline):
 
         # Motor support is an explicit conversion after measured geometry has
         # been checked. Its FK is a command coordinate, never the current TCP.
-        hold = (None if stage in ('retreat_after_release', 'return_to_pickup') else
+        # Opening the jaw does not cancel the arm's active position command.
+        # Keep its support at release-to-retreat handoff; physical waypoints
+        # still originate at measured FK and retain the requested destination.
+        hold = (None if stage == 'return_to_pickup' else
                 self.real.arm_holds.get(arm))
         command_start = None
         if hold is not None:
