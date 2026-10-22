@@ -17,6 +17,7 @@
   "xacro_args": {
     "head_fixed": "false",
     "head_collision_meshes": "true",
+    "optimized_arm_collision_meshes": "true",
     "include_wheel_joints": "false",
     "calibration_profile": "jetson_20261009"
   },

@@ -61,6 +61,29 @@ def test_default_has_read_only_head_and_twelve_arm_position_commands(prepared):
     assert ET.tostring(root) == ET.tostring(state_model)
 
 
+def test_physical_profile_selects_optimized_arm_collision_meshes(prepared):
+    from collections import Counter
+
+    settings = json.loads((ROOT / 'configs/robot/arm_collision_meshes.json').read_text())
+    expected = Counter({
+        f'package://cleany_description/meshes/collision/{name}': 2
+        for name in settings['source_meshes']
+    })
+    for path in (prepared.state.model, prepared.model):
+        root = ET.parse(path).getroot()
+        actual = Counter(mesh.get('filename')
+                         for mesh in root.findall('./link/collision/geometry/mesh')
+                         if '/meshes/collision/' in mesh.get('filename'))
+        assert actual == expected
+        assert not any('/meshes/collision/' in mesh.get('filename')
+                       for mesh in root.findall('./link/visual/geometry/mesh'))
+        for side in ('left', 'right'):
+            collisions = root.findall(f"./link[@name='{side}_gripper_frame']/collision")
+            assert sum('wrist_mount_v8' in c.get('name', '') for c in collisions) == 15
+    receipt = json.loads((prepared.state.model.parent / 'manifest.json').read_text())
+    assert 'optimized_arm_collision_meshes:=true' in receipt['xacro_command']
+
+
 def test_motor_writes_and_moveit_execution_permissions_are_independent():
     assert resolve_moveit_trajectory_execution(True, 'auto') is False
     assert resolve_moveit_trajectory_execution(False, 'auto') is True

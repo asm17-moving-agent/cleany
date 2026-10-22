@@ -40,7 +40,7 @@ def moveit_runtime(tmp_path, *, head=False, octomap=False, robot_model_file=None
             params.write_text(yaml.safe_dump({'/**': {'ros__parameters': {'robot_description': model}}}))
             rsp = subprocess.Popen(['ros2', 'run', 'robot_state_publisher', 'robot_state_publisher', '--ros-args', '--params-file', str(params)], env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         process = subprocess.Popen([
-            'ros2', 'launch', 'cleany_moveit_config', 'move_group.launch.py',
+            'ros2', 'launch', 'cleany_moveit_config', 'physical_move_group.launch.py',
             'use_rviz:=false', 'allow_trajectory_execution:=false',
             f'include_head_camera:={str(head).lower()}',
             f'enable_depth_octomap:={str(octomap).lower()}',

@@ -188,4 +188,6 @@ for the CAD launcher, wheel odometry geometry, and simulation limitations.
 
 `optimized_arm_collision_meshes` 기본값은 false이며 기존 CAD 충돌 형상을 유지한다. true로 명시하면 `meshes/collision/`의 별도 팔 충돌 자산을 사용한다. visual과 관성은 변경하지 않는다. `configs/robot/arm_collision_meshes.json`과 자산 manifest가 생성 조건과 원본/output hash를 기록한다. 재생성은 `tools/optimize_arm_collision_meshes.py`를 명시 실행할 때만 수행한다.
 
+실물 수집에 사용하는 `configs/robot/camera_preview.json`은 `xacro_args.optimized_arm_collision_meshes`를 `"true"`로 명시한다. 상태 모델과 제어 모델은 이 설정으로 양팔의 경량 충돌 메시 16개를 선택한다. 공통 Xacro 기본값에 의존하지 않으며, 변경은 다음 모델 생성과 런타임 기동부터 반영된다.
+
 메시 단순화는 컴포넌트 연결 관계, 폐곡면, 경계 포함 또는 양방향 표면 거리 조건을 검사한다. `test_collision_meshes.py`와 관련 MoveIt runtime 검사로 확인하며 실물 간섭 여유의 검증을 대신하지 않는다. `head_collision_meshes`도 기본 false이며 명시할 때만 head CAD 충돌 면을 선택한다.
