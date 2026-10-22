@@ -16,6 +16,8 @@
 
 놓기 후 후퇴는 측정 관절의 FK에서 물리 경로를 계획하고, 팔이 유지 중인 마지막 모터 목표를 첫 명령으로 이어받는다. 유지 목표와 측정 FK의 차이는 명령 경로 변환에 한 번만 사용하며 물리 목적지는 변경하지 않는다. 그리퍼 개방을 이유로 팔 목표를 측정 관절값으로 재설정하지 않는다. 최종 명령의 FK 경로, 관절 한계와 실제 도착 위치는 계속 검사한다.
 
+팔 복귀와 그리퍼 닫기의 동기 경로도 실행 직전 전체 로봇 상태로 충돌 검사한다. 거부하면 `hardware_collision_validation_failed`에 `trajectory_stage=synchronized_return`, 표본 번호, 관절값, 접촉한 링크·장애물과 지도 고정 여부를 남긴다. `hold_bridge`는 측정 위치에서 유지 명령까지의 검사 구간이고 `command_path`는 실제 명령 경로다. 검사를 통과하지 못한 경로는 전송하지 않는다.
+
 SDK와 모델 weight, AnyGrasp 라이선스, 실행 DB, 영상, 점군과 결과 파일은 clone에 포함하지 않는다. 모델의 버전과 hash, 필요한 설치 방법은 저장소에 유지한다. cuRobo 전용 비교 도구와 모델 비교 캠페인은 일반 실행 경로에 포함하지 않는다.
 
 Controller limits와 motion monitor는 `CLEANY_FEETECH_CONTROL_CONFIG`, `CLEANY_HARDWARE_MONITOR_CONFIG`로 각각 명시한다. BT launch의 대응 인자는 `hardware_monitor_config`다. 시험용 YAML도 test data에만 두며 실행 기본값으로 사용하지 않는다.

@@ -931,6 +931,35 @@ def test_collision_on_a_communication_resume_is_marked_as_already_started():
     assert error.motion_started and len(calls) == 2
 
 
+def test_synchronized_collision_after_communication_resume_is_not_a_new_plan_rejection():
+    from contextlib import nullcontext
+    from cleany_skill_executor.hardware_execution import HardwareExecution
+    from cleany_skill_executor.core.hardware_execution import CollisionValidationError, CommunicationRecovered
+    from sensor_msgs.msg import JointState
+    from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+    names, calls = ARM_JOINT_NAMES['left'], []
+    state = JointState(name=[*names, 'left_gripper_joint'], position=[.05, 0., 0., 0., 0., .2])
+    error = CollisionValidationError('collision after resume', phase='command_path', sample_index=2)
+    def execute(*args, **kwargs):
+        calls.append(True)
+        if len(calls) == 1:
+            interrupted = CommunicationRecovered(1)
+            interrupted.cancellation_confirmed = True
+            raise interrupted
+        raise error
+    fake = NS(_execute_pregrasp_parallel=execute, positive_integer=lambda _: 1, value=lambda _: .03,
+              wait_for_settle=lambda _: state, arm_holds={}, frozen_sensor_scene=nullcontext,
+              node=NS(get_logger=lambda: NS(warning=lambda _: None)))
+    trajectory = JointTrajectory(joint_names=list(names), points=[
+        JointTrajectoryPoint(positions=[0., 0., 0., 0., 0.]),
+        JointTrajectoryPoint(positions=[.1, 0., 0., 0., 0.])])
+    jaw = JointTrajectory(joint_names=['left_gripper_joint'], points=[
+        JointTrajectoryPoint(positions=[0.]), JointTrajectoryPoint(positions=[.4])])
+    with pytest.raises(CollisionValidationError):
+        HardwareExecution.execute_pregrasp_parallel(fake, 'left', trajectory, jaw, .3, 1)
+    assert error.motion_started and len(calls) == 2
+
+
 def test_physical_driver_gate_rejects_mock_readonly_and_uncommandable_arm():
     params={'lower':-2,'upper':2,'max_velocity':.04,'max_acceleration':.15,'zero_tick':2048,
             'direction':1,'offset_rad':0,'range_min':0,'range_max':4095}
@@ -2067,7 +2096,7 @@ def test_endpoint_transport_keeps_held_setpoint_and_validates_measured_bridge(mo
 
 
 @pytest.mark.parametrize('arm_side', ['left', 'right'])
-@pytest.mark.parametrize('collision', [False, True, 'interior'])
+@pytest.mark.parametrize('collision', [False, True, 'interior', 'bridge'])
 @pytest.mark.parametrize('entry_bend', [False, True])
 @pytest.mark.parametrize('closing,stuck', [(False, False), (True, False), (True, True)])
 def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results(
@@ -2129,20 +2158,25 @@ def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results
               'hardware_tcp_position_tolerance_m': .1,
               'hardware_tcp_orientation_tolerance_deg': 20.,
               'hardware_uncommanded_tolerance_rad': .03, 'hardware_settle_time_sec': .5}
-    checked = []
+    checked, diagnostics = [], []
     def validate(_client, request):
         q = tuple(request.robot_state.joint_state.position)
         checked.append(q)
-        blocked = collision is True or (collision == 'interior' and .02 < abs(q[0]) < .05)
-        return NS(valid=not blocked)
+        blocked = (collision is True or (collision == 'interior' and .02 < abs(q[0]) < .05)
+                   or (collision == 'bridge' and q[0] < .01))
+        return NS(valid=not blocked, contacts=[contact(body_2=f'{arm_side}_gripper_frame')]
+                  if blocked else [])
     node = NS(call=validate, wait=lambda future, *_: future.result(),
               get_clock=lambda: NS(now=lambda: NS(nanoseconds=2_000_000_000)),
-              get_logger=lambda: NS(error=lambda _: None, info=lambda _: None),
+              get_logger=lambda: NS(error=lambda _: None, info=lambda _: None, warning=diagnostics.append),
               motion=NS(forward_kinematics=lambda _arm, solution: NS(
                   position=solution.positions[:3], orientation_xyzw=(0., 0., 0., 1.))))
     fake = NS(node=node, verify=lambda _: limits, monitor=lambda: deepcopy(state),
               value=values.__getitem__, validity=object(), fail_stop=lambda: stopped.append(True),
-              uncommanded=None, last_execution_metrics={}, arm_holds={})
+              uncommanded=None, last_execution_metrics={}, arm_holds={}, sensor_scene_frozen=False)
+    if collision == 'bridge':
+        command = (.02, 0., 0., 0., 0.)
+        fake.arm_holds[arm_side] = ArmHold(command, command)
     fake.endpoint_metrics = lambda arm_name, target, actual, **kwargs: (
         module.HardwareExecution.endpoint_metrics(
             fake, arm_name, target, actual, **kwargs))
@@ -2161,11 +2195,22 @@ def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results
     options = {'gripper_goal_required': True, 'stage_prefix': 'synchronized_return'} if closing else {}
 
     if collision:
-        with pytest.raises(RuntimeError, match='collision validation'):
+        from cleany_skill_executor.core.hardware_execution import CollisionValidationError
+        with pytest.raises(CollisionValidationError, match='collision validation') as rejected:
             module.HardwareExecution._execute_pregrasp_parallel(
                 fake, arm_side, arm, jaw, 0. if closing else .3, 1, **options)
         assert checked and not sent
         assert not stopped
+        error, details = rejected.value, json.loads(diagnostics[0])
+        assert not error.motion_started and error.contacts and error.octomap_arm_contact
+        assert error.phase == ('hold_bridge' if collision == 'bridge' else 'command_path')
+        assert error.sample_index == len(checked)-1
+        assert error.entry_blocked is (collision is True or collision == 'bridge')
+        assert details['trajectory_stage'] == ('synchronized_return' if closing else 'synchronized_pregrasp')
+        assert details['sample_joint_names'] == [*arm_names, gripper_name]
+        assert details['full_joint_names'] == state.name
+        assert details['full_joint_rad'] == list(checked[-1])
+        assert details['contacts'] == list(error.contacts)
         return
     if stuck:
         with pytest.raises(RuntimeError, match='gripper goal not confirmed'):

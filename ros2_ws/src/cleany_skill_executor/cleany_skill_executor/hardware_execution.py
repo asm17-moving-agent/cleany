@@ -480,6 +480,7 @@ class HardwareExecution:
         measured,
         *,
         hold_bridge_samples=0,
+        trajectory_stage='hardware',
     ):
         """Validate the held-command entry and path against the current scene."""
         states = []
@@ -504,9 +505,13 @@ class HardwareExecution:
             octomap_arm_contact = transient_octomap_arm_collision(response, arm)
             self.node.get_logger().warning(json.dumps({
                 'stage': 'hardware_collision_validation_failed',
+                'trajectory_stage': trajectory_stage,
                 'arm': arm,
                 'sample_index': index,
+                'sample_joint_names': list(expected),
                 'sample_joint_rad': list(sample.positions),
+                'full_joint_names': list(states[index].joint_state.name),
+                'full_joint_rad': list(states[index].joint_state.position),
                 'phase': phase,
                 'hold_bridge_samples': hold_bridge_samples,
                 'frozen_pre_motion_octomap': self.sensor_scene_frozen,
@@ -514,7 +519,8 @@ class HardwareExecution:
                 'contacts': contacts,
             }))
             raise CollisionValidationError(
-                f'Physical trajectory failed collision validation: phase={phase} sample={index}',
+                f'{trajectory_stage} trajectory failed collision validation: '
+                f'phase={phase} sample={index} contacts={contacts}',
                 phase=phase, sample_index=index, contacts=tuple(contacts),
                 octomap_arm_contact=octomap_arm_contact)
 
@@ -1234,6 +1240,9 @@ class HardwareExecution:
                     if resumes:
                         self.last_execution_metrics['communication_resumes'] = resumes
                     return actual
+                except CollisionValidationError as error:
+                    error.motion_started = bool(resumes)
+                    raise
                 except CommunicationRecovered as error:
                     if not error.cancellation_confirmed or attempt >= limit:
                         self.fail_stop()
@@ -1320,6 +1329,7 @@ class HardwareExecution:
             self.node.event('gripper_opening_position_range_check_disabled', arm=arm,
                             joints=list(range_exemptions), raw_encoder_check_enabled=True)
         collision_samples = samples
+        hold_bridge_samples = 0
         if hold is not None:
             bridge, _ = bounded_path(
                 combined_names,
@@ -1329,20 +1339,11 @@ class HardwareExecution:
                 step=self.value('hardware_path_step_rad'),
                 simplification_tolerance=simplification_tolerance,
                 position_range_exemptions=range_exemptions)
+            hold_bridge_samples = len(bridge)-1
             collision_samples = [*bridge[:-1], *samples]
-        states = []
-        for sample in collision_samples:
-            self.monitor()
-            state = deepcopy(measured)
-            q = {**baseline, **dict(zip(combined_names, sample.positions))}
-            state.position = [q[name] for name in state.name]
-            robot_state = GetStateValidity.Request().robot_state
-            robot_state.joint_state = state
-            robot_state.is_diff = True
-            states.append(robot_state)
-        for _, response in HardwareExecution._collision_responses(self, states):
-            if not response.valid:
-                raise RuntimeError('Synchronized pregrasp trajectory failed collision validation')
+        HardwareExecution.validate_collision_samples(
+            self, arm, combined_names, collision_samples, baseline, measured,
+            hold_bridge_samples=hold_bridge_samples, trajectory_stage=stage_prefix)
         latest = self.monitor()
         drift = path_validation_drift(
             baseline, latest, combined_names,
