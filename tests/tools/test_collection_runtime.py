@@ -310,6 +310,7 @@ start_hardware_support /tmp/hardware-support.log /tmp/collection-test
 
 
 @pytest.mark.parametrize('backend,predictor', [
+    ('', ''),
     ('moveit', 'geometric'), ('moveit', 'anygrasp'),
     ('curobo_ik_moveit', 'geometric'), ('curobo_ik_moveit', 'anygrasp'),
 ])
@@ -336,6 +337,8 @@ start_vision /tmp/vision.log
     result = subprocess.run(['bash', '-c', transport, 'planning-mode-test',
         str(shell), str(tmp_path), backend, predictor], text=True, capture_output=True, timeout=5)
     assert result.returncode == 0, result.stderr
+    backend = backend or 'curobo_ik_moveit'
+    predictor = predictor or 'geometric'
     assert ('motion-container check' in result.stdout) == (backend == 'curobo_ik_moveit')
     assert ('motion-container stop' in result.stdout) == (backend == 'curobo_ik_moveit')
     assert ('vision-container hybrid-up' in result.stdout) == (predictor == 'anygrasp')

@@ -205,8 +205,21 @@ class GraspNode(Node):
         self.declare_parameter('tf_cache_time_sec', 180.0)
         self.declare_parameter('optimization_profile', 'optimized')
         self.declare_parameter('cuda_cache_release_threshold_mb', 512.0)
+        self.declare_parameter('cuda_gc_interval_calls', 16)
         self.declare_parameter('optimized_adaptive_maximum_points', 8000)
         self.declare_parameter('optimized_adaptive_minimum_region_points', 2000)
+        for name, value in {
+            'anygrasp_approach_direction': [0.0, 0.0, 0.0],
+            'anygrasp_approach_threshold_degrees': 180.0,
+            'anygrasp_region_steering_mode': 'workspace',
+            'anygrasp_target_region_voxel_m': 0.01,
+            'anygrasp_adaptive_point_policy': 'fixed',
+            'anygrasp_adaptive_low_maximum_points': 4000,
+            'anygrasp_adaptive_minimum_object_points': 400,
+            'anygrasp_adaptive_minimum_object_extent_m': 0.015,
+            'anygrasp_adaptive_maximum_context_ratio': 40.0,
+        }.items():
+            self.declare_parameter(name, value)
         self.declare_parameter('checkpoint_path', '')
         self.declare_parameter('license_path', '')
         self.declare_parameter('predictor_type', 'geometric')
@@ -413,6 +426,17 @@ class GraspNode(Node):
                     self.get_parameter('gripper_height_m').value
                 ),
                 cuda_cache_release_threshold_mb=float(self.get_parameter('cuda_cache_release_threshold_mb').value),
+                cuda_gc_interval_calls=int(self.get_parameter('cuda_gc_interval_calls').value),
+                approach_direction=(tuple(self.get_parameter('anygrasp_approach_direction').value)
+                    if any(self.get_parameter('anygrasp_approach_direction').value) else None),
+                approach_threshold_rad=math.radians(float(self.get_parameter('anygrasp_approach_threshold_degrees').value)),
+                region_steering_mode=str(self.get_parameter('anygrasp_region_steering_mode').value),
+                target_region_voxel_m=float(self.get_parameter('anygrasp_target_region_voxel_m').value),
+                adaptive_point_policy=str(self.get_parameter('anygrasp_adaptive_point_policy').value),
+                adaptive_low_maximum_points=int(self.get_parameter('anygrasp_adaptive_low_maximum_points').value),
+                adaptive_minimum_object_points=int(self.get_parameter('anygrasp_adaptive_minimum_object_points').value),
+                adaptive_minimum_object_extent_m=float(self.get_parameter('anygrasp_adaptive_minimum_object_extent_m').value),
+                adaptive_maximum_context_ratio=float(self.get_parameter('anygrasp_adaptive_maximum_context_ratio').value),
                 adaptive_sampling_enabled=profile == 'optimized',
                 adaptive_maximum_points=int(self.get_parameter('optimized_adaptive_maximum_points').value),
                 adaptive_minimum_region_points=int(self.get_parameter('optimized_adaptive_minimum_region_points').value),

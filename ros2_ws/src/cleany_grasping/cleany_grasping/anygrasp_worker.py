@@ -92,11 +92,11 @@ class AnyGraspWorkerPredictor:
                 raise
             self._last_used = time.monotonic()
 
-    def _predict(self, method, context, bounds):
+    def _predict(self, method, target, context, bounds):
         with self._lock:
             self.prepare()
             try:
-                points, region_mask = self._sampling._prepare_points(context, bounds)
+                points, region_mask = self._sampling._prepare_input(target, context, bounds)
                 if method == 'predict' and self._sampling.should_retry_full_resolution(context):
                     points, region_mask = self._sampling._adaptive_sample(points, region_mask)
                 # SDK inference uses XYZ and steering only. Sample on the CPU
@@ -113,10 +113,10 @@ class AnyGraspWorkerPredictor:
                 self._last_used = time.monotonic()
 
     def predict(self, target_cloud, context_cloud, workspace_bounds):
-        return self._predict('predict', context_cloud, workspace_bounds)
+        return self._predict('predict', target_cloud, context_cloud, workspace_bounds)
 
     def predict_full_resolution(self, target_cloud, context_cloud, workspace_bounds):
-        return self._predict('predict_full_resolution', context_cloud, workspace_bounds)
+        return self._predict('predict_full_resolution', target_cloud, context_cloud, workspace_bounds)
 
     def should_retry_full_resolution(self, context_cloud) -> bool:
         return self._sampling.should_retry_full_resolution(context_cloud)

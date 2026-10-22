@@ -208,6 +208,35 @@ XYZRGB cloud는 지원되는 field datatype, offset, point/row step 및 전체 d
 
 ## AnyGrasp worker 수명
 
+### 후보 조건과 점 수 시험 옵션
+
+| 설정 | 노드 기본값 | 의미 |
+|---|---|---|
+| `anygrasp_approach_direction` | `[0, 0, 0]` | 입력 점군 좌표계의 접근 벡터. 영벡터는 제한 해제 |
+| `anygrasp_approach_threshold_degrees` | 180 | 접근 벡터에서 허용할 각도. 벡터 사용 시 0보다 커야 함 |
+| `anygrasp_region_steering_mode` | `workspace` | `target_voxels`는 target 점군 주변 voxel로 SDK 관심 영역을 좁힘 |
+| `anygrasp_target_region_voxel_m` | 0.01 | target voxel과 이웃 26개 voxel을 관심 영역으로 사용 |
+| `anygrasp_adaptive_point_policy` | `fixed` | `target_geometry`는 아래 조건을 만족할 때 낮은 점 수 사용 |
+| `anygrasp_adaptive_low_maximum_points` | 4000 | 낮은 점 수 상한 |
+| `anygrasp_adaptive_minimum_object_points` | 400 | 낮은 상한을 허용하는 target 점 수 하한 |
+| `anygrasp_adaptive_minimum_object_extent_m` | 0.015 | target PCA 각 축의 2~98 percentile 폭 하한 |
+| `anygrasp_adaptive_maximum_context_ratio` | 40 | context/target 점 수 비율 상한 |
+
+target ROI는 입력 context를 삭제하지 않는다. SDK 충돌 검사는 샘플링된 context를
+계속 사용한다. 관심 영역이 비면 workspace mask로 돌아가 SDK의 무제한 영역 동작을
+피한다. 가변 점 수는 작거나 얇거나 성긴 target 및 높은 context 비율에서 기존
+상한을 유지한다. 빠른 경로에 후보가 없으면 기존 전체 해상도 재시도를 유지한다.
+노드 자체의 기본 정책은 `fixed`다. Jetson의 `config/anygrasp.yaml`은
+`target_geometry`를 사용해 조건을 만족하는 target에서 4,000점을 선택하며,
+나머지는 8,000점을 유지한다. 방향 제한과 target ROI는 비활성 상태다.
+이 정책은 후보를 바꾸므로 실물 파지 성공률은 별도 검증한다.
+
+`cuda_gc_interval_calls`는 명시적 Python 전체 GC의 최소 추론 호출 간격이며 기본값은
+16이다. 전체 해상도 재시도도 호출 수에 포함한다. CUDA 미사용 예약 메모리가
+`cuda_cache_release_threshold_mb` 이상이면 캐시는 계속 반환하고, 호출 간격이 찼을
+때만 전체 GC를 함께 실행한다. 자동 Python GC는 유지한다. 값 1은 기존 매회 수집
+방식이며, 1 이상의 정수만 허용한다. worker가 다시 시작되면 호출 수를 초기화한다.
+
 선택한 AnyGrasp predictor는 전용 worker를 재사용할 수 있다. 모델 import와 초기화는 worker가 소유하며 오류와 종료를 요청 호출자에게 전달한다. 모델 weight와 라이선스는 외부에 준비한다. `test_anygrasp_worker.py`는 합성 predictor로 프로세스 수명과 오류 전달을 검사하며 라이선스나 GPU에서의 실제 추론 검증이 아니다.
 
 ## CPU 연산 스레드

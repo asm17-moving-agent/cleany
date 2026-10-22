@@ -309,4 +309,6 @@ export CLEANY_HARDWARE_MONITOR_CONFIG=/absolute/path/to/local-motion-monitor.yam
 
 실제 로봇 연결과 감독 조건을 준비한 뒤 `make collection-start`로 runtime을 시작한다. `make manipulation-start`는 idle Jetson Action 서버를 연결한다. 실행, 복구와 팔 복귀는 각각 명시적인 운영 명령이다. 프로파일의 준비 여부, controller와 정지 수단을 확인한 운영 환경에서만 사용한다.
 
+`make manipulation-run`과 dev-monitor의 실물 실행은 기본적으로 기하학적 후보 생성과 cuRobo IK/MoveIt 경로를 사용한다. 기하학적 후보는 native grasp 노드에서 생성하며 AnyGrasp container는 시작하지 않는다. `CLEANY_COLLECTION_GRASP_PREDICTOR=anygrasp`를 명시하면 SDK 경로를 선택할 수 있다. 명시 값은 기본값보다 우선하며, 이미 실행 중인 runtime과 후보 방식이 다르면 시작 요청을 거절한다.
+
 공유하는 감독 시험 기본 파일이나 부팅 자동 구동 스크립트는 제공하지 않는다. [실물 경로와 설정 계약](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md), [하드웨어 통신](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)을 따른다. SDK 기반 수동 commissioning 도구는 선택적인 LeRobot 환경을 사용하며 native ROS 필수 의존성과 구분한다.

@@ -4,6 +4,35 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-10-23 기하학적 후보 생성으로 운영 전환
+
+Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble과 commit
+`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 검사했다.
+공통 collection runtime의 기본 후보 방식을 `geometric`으로 변경하여
+`make manipulation-run`과 dev-monitor에 적용했다. cuRobo IK/MoveIt 경로와
+20mm 추가 접근 보정 및 8cm, 6cm, 4cm 준비 위치는 유지했다.
+
+`make test-jetson-tools JETSON_PYTEST_ARGS="-k test_collection_runtime"`는
+103개 통과, 3개 제외였다. shell 기본값, 기존 검사와 실행 문서만 변경하여
+ROS 패키지 재빌드는 필요하지 않았다. AnyGrasp container를 종료하고 native
+기하학적 후보 서버가 유일한 `/grasp/plan` 제공자인 것을 확인했다.
+
+전환 중 Docker 네트워크 재생성과 함께 DDS 전송 오류 및 feedback timeout
+보호 정지가 발생해 첫 readiness 검사가 실패했다. 기존 복구 명령으로 powered
+hold를 인계했고 goal, RAM, torque 쓰기 없이 복구됐다는 하드웨어 로그를 확인했다.
+유휴 Action 서버의 남은 fault 상태도 재시작으로 제거했다. 최종 검증에서 양팔과
+그리퍼 controller가 active, guard가 ready이며 실행기 fault가 없음을 확인했다.
+
+06:58:58의 새 카메라에서 파란 물체(object 2, 검출명 power bank)를 선택했다.
+target 173점과 context 3,760점으로 후보 53개를 약 0.912초에 생성했다.
+실제 팔 이동 명령은 보내지 않았으며 경로 계획과 실물 파지 성공은 검증하지 않았다.
+
+원본은 `../cleany-data/reports/geometric-switch-20261023/`의
+`deployment.json`, `verification.json`, `implementation.patch`, `runtime-tests.xml`,
+`deployment.log`, `control-recovery-held-lock.log`, `action-restart.log`에 있다.
+카메라와 점군은 `../cleany-data/reports/geometric-camera-20261023-065858/`에 보존했다.
+
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의
@@ -225,3 +254,55 @@ Ubuntu 22.04 arm64, Python 3.10, ROS Humble, MoveIt 2.5.9와 geometric_shapes 2.
 초기 통합에서 기존 main의 API와 launch 설정, 점군 buffer 검증, 로컬 전용 profile 참조와 보정 fixture의 경계값이 실패했다. 별도 physical 진입점, 명시적 외부 설정, 완전한 buffer 검사와 버전 관리되는 보정 입력으로 수정했다. 삭제한 legacy 파일의 이전 build symlink는 새 작업 폴더의 출력에서만 정리한 뒤 다시 빌드했다. 기존 시뮬레이션, Navigation, Mission과 CI 원본은 유지했다.
 
 원본 로그, 설정별 판정, 전체 파일 선별 내역, 이전 실패와 보존 검사는 `cleany-data/reviews/jetson-main-curation-20261021T173354Z/`의 `verification.json`, `file-dispositions.tsv`, `source-preservation.json`과 위 로그에 있다. NumPy 1.26.1과 시스템 SciPy의 버전 경고가 있었으며 관련 검사는 통과했다. 선택형 GPU, LeRobot, licensed SDK와 별도 ROS 시나리오는 실제 실행 조건에 따라 skip했다. 실제 USB 장치와 모터를 구동하지 않았고 GitHub CI, 실물 안전과 작업 성공률을 검증한 결과는 아니다. 변경된 profile lock의 기존 engine manifest는 별도 export와 검증이 필요하다.
+
+
+## AnyGrasp 강제 GC 주기 비교 (2026-10-22)
+
+기준은 Jetson의 `3950218d70cbebd4ce3278e7602bc276482c0471`과
+`cuda_gc_interval_calls` 기본값을 16으로 바꾼 미커밋 변경이다.
+Jetson Orin NX 16GB, 25W 모드와 기존 `cleany-vision:jp6.2` 이미지에서
+입력 8,000점, CUDA 미사용 캐시 반환 기준 512MiB를 유지했다.
+자동 Python GC는 유지하고 명시적 전체 GC만 최소 16회 추론 간격으로 실행한다.
+값 1은 기존 매회 수집 동작이다. 설정은
+[predictor 계약](../ros2_ws/src/cleany_grasping/docs/predictors.md)을 따른다.
+
+기존 OCID fixture manifest의 유효 점군 91개를 두 독립 worker에서 순차 실행하고
+장면마다 실행 순서를 바꿨다. 원본 100개 중 이전 phase2 처리 실패로 제외된 9개는
+이번 시험 입력에 포함되지 않는다. worker별 최초 3회는 준비 구간으로 제외했다.
+재시도와 후보 미생성 요청을 포함한 평균은 2.292초에서 2.055초로 10.3%,
+p95는 4.916초에서 4.554초로 7.4% 줄었다. 두 방식 모두 13회 재시도했고
+78개 장면에서 후보를 생성했다. 91개 장면의 후보 수와 소수점 6자리로 반올림한
+원시 출력 hash가 일치했다. 추가 256회, 약 8.6분 연속 실행에서 처음 및 마지막
+16회 평균 RSS 차이는 +0.36MiB였고 추론 후 CUDA 예약 메모리는 120MiB였다.
+이 실행 길이로 장시간 메모리 안정성을 확정하지 않는다.
+
+루트 Makefile로 interfaces와 grasping 두 패키지를 별도 경로에 빌드했고,
+grasping 테스트 109개, ROS 설정 전달과 실제 SDK worker 재사용 및 종료 검사가
+통과했다. 카메라, ROS 서비스 전송, VLM, IK와 실물 파지 성공률 검증은 아니다.
+
+원본은 `jetson-orin:/home/cleany/cleany-data/experiments/anygrasp-gc-20261022/`에
+보관한다. `metadata.json`과 `patch-manifest.json`은 환경과 소스 hash,
+`fixtures-manifest.json`은 입력 및 제외 항목, `requests.jsonl`과
+`tegrastats.log`는 측정 원본, `validation.json`과 `pytest.xml`은 빌드 및 검사
+결과를 기록한다. `report.html`, `comparison.png`와 `latency.png`는
+`summary.json`에서 생성한 비교 보고서다.
+
+## AnyGrasp 입력, 사전 준비와 작업 유지 비교 (2026-10-22)
+
+기준 commit은 `3950218d70cbebd4ce3278e7602bc276482c0471`이며 앞서 적용한
+GC16과 기존 작업트리를 포함한다. Jetson Orin NX 16GB, 25W, native Humble과
+실제 licensed AnyGrasp 및 cuRobo 0.7.8 GPU container에서 검사했다.
+변경 전후 파일 hash와 GC16 이후 증분 변경은 `pipeline/change-manifest.json`과
+`pipeline/implementation.patch`를 따른다. 관련 없는 기존 수정은 보존했다.
+
+기존 OCID manifest 유효 장면 91개에 대해 8,000점 기준, 접근 방향 60도,
+target voxel ROI, 고정 4,000점과 가변 4,000/8,000점을 각각 독립 worker에서
+실행했다. 장면마다 실행 순서를 바꿨으며 worker별 준비 3회는 제외했다.
+원본 100개 중 이전 phase2 실패 9개는 기존 manifest와 동일하게 제외했다.
+재시도와 후보 미생성을 포함한 평균은 기준 2.054초, 방향 1.962초,
+ROI 1.994초, 4,000점 1.357초, 가변 1.740초였다. 각각 4.5%, 3.0%,
+33.9%, 15.3% 감소다. 후보를 생성한 장면은 78, 82, 82, 80, 78개지만
+방향은 기존 장면 0018과 0067에서, ROI는 0051에서 후보를 잃었다.
+가변 정책은 43개 장면에서 4,000점을 선택했다. 접근 방향은 저장 장면의
+지지면 추정값이며 실물 로봇 도달성 검증이 아니다. 입력 조건 기본값은
+제한 없는 방향, workspace ROI와 고정 8,000점으로 유지했다.
