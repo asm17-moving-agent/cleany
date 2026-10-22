@@ -77,4 +77,9 @@ ROS launch의 `yoloe_config_file` 또는 container의 `YOLOE_CONFIG_FILE`로 프
 Jetson 이미지·workspace 준비와 실행은
 [`containers/vision/README.md`](../../containers/vision/README.md)를 따른다.
 
-프로파일의 Gemini 모델 변경도 입력 파일 hash를 바꾼다. 현재 lock은 저장소의 프로파일 bytes를 기준으로 하므로 과거 engine의 manifest와 다르면 다시 export와 검증을 거쳐야 한다. lock 갱신 자체는 새 engine 검증 결과가 아니다.
+프로파일의 Gemini 모델 변경도 전체 입력 파일 hash를 바꾸지만, 검출기의 weight나
+TensorRT graph를 변경하지 않는다. Gemini 모델 이름만 바뀌고 클래스 순서와 입력
+크기 등 검출 설정이 같으면 기존 검증된 engine을 계속 사용할 수 있다. Runtime은
+engine에 함께 보관된 manifest, lock과 검증 기록을 확인한다. 모델 binary 입력,
+클래스나 export 조건을 바꿀 때는 새 export와 비교 검증이 필요하다. 저장소 lock을
+갱신한 것만으로 기존 engine의 검증 기록을 덮어쓰지 않는다.
