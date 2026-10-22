@@ -45,7 +45,7 @@ from .core.hardware_execution import (
 )
 from .core.joint_path import executable_joint_path
 from .core.height_correction import (
-    HeightCorrection, HeightCorrectionPolicy, height_correction_enabled, lift_height_tolerance,
+    HeightCorrection, HeightCorrectionPolicy, height_correction_enabled,
     validate_height_correctable_endpoint,
 )
 from .core.recorded_trajectory import (
@@ -649,11 +649,7 @@ class CollectionPipeline(PregraspPipeline):
     def correct_height_endpoint(self, arm: str, target: Pose, phase: str,
                                 report: dict | None = None, *,
                                 check_collisions: bool = True) -> None:
-        """Raise the held command while checking the unchanged physical goal.
-
-        Only downward height error may enter this loop. Existing motion,
-        contact, XY and orientation failures propagate without corrections.
-        """
+        """Correct measured lift shortfall once, without a final height gate."""
         policy = HeightCorrectionPolicy.from_config(self.config)
         if not policy.enabled:
             return
@@ -662,61 +658,60 @@ class CollectionPipeline(PregraspPipeline):
         goal = self.cartesian_pose(deepcopy(target))
         position_tolerance = self.real.value('hardware_tcp_position_tolerance_m')
         orientation_tolerance = math.radians(self.real.value('hardware_tcp_orientation_tolerance_deg'))
-        height_tolerance = lift_height_tolerance(self.config)
         history = []
-        summary = {'target_z_m': goal.position[2], 'tolerance_m': height_tolerance,
-                   'history': history, 'status': 'checking'}
+        summary = {'target_z_m': goal.position[2], 'history': history, 'status': 'checking'}
         if report is not None:
             report.setdefault('height_corrections', {})[phase] = summary
-        correction = None
         try:
-            while True:
-                # Includes fresh feedback, fault, cancellation and payload gates.
-                state = self.real.wait_for_settle(ARM_JOINT_NAMES[arm])
-                actual = self.cartesian_pose(self.pose(arm))
-                validate_height_correctable_endpoint(actual, goal, position_tolerance,
-                    orientation_tolerance)
-                if correction is None:
-                    hold = self.real.arm_holds.get(arm)
-                    if hold is None:
-                        raise RuntimeError('Height correction requires a completed held arm command')
-                    self.motion.set_current_state(state)
-                    fk = self.motion.forward_kinematics(
-                        arm, JointSolution(ARM_JOINT_NAMES[arm], hold.command))
-                    # Accumulate from the sent command, retaining its support
-                    # against the measured tracking residual.
-                    command = CartesianPose(fk.position, fk.orientation_xyzw)
-                    correction = HeightCorrection(goal.position[2], command.position[2],
-                                                  height_tolerance, policy)
-                    summary['initial_command_z_m'] = command.position[2]
-                sample = {'attempt': correction.attempts, 'target_z_m': goal.position[2],
-                          'command_z_m': correction.command_z, 'actual_z_m': actual.position[2],
-                          'error_m': goal.position[2] - actual.position[2],
-                          'total_correction_m': correction.command_z - correction.initial_command_z}
-                history.append(sample)
-                summary.update(sample)
-                self.event('height_correction_measured', arm=arm, phase=phase, **sample)
-                previous_command_z = correction.command_z
-                next_z = correction.next_command(actual.position[2])
-                if next_z is None:
-                    summary['status'] = 'reached'
-                    self.event('height_correction_completed', arm=arm, phase=phase, **sample)
-                    return
+            # Includes fresh feedback, fault, cancellation and payload gates.
+            state = self.real.wait_for_settle(ARM_JOINT_NAMES[arm])
+            actual = self.cartesian_pose(self.pose(arm))
+            validate_height_correctable_endpoint(actual, goal, position_tolerance,
+                orientation_tolerance)
+            hold = self.real.arm_holds.get(arm)
+            if hold is None:
+                raise RuntimeError('Height correction requires a completed held arm command')
+            self.motion.set_current_state(state)
+            fk = self.motion.forward_kinematics(
+                arm, JointSolution(ARM_JOINT_NAMES[arm], hold.command))
+            # Retain the sent command's support against the tracking residual.
+            command = CartesianPose(fk.position, fk.orientation_xyzw)
+            correction = HeightCorrection(goal.position[2], command.position[2], policy)
+            summary['initial_command_z_m'] = command.position[2]
+            sample = {'attempt': 0, 'target_z_m': goal.position[2],
+                      'command_z_m': command.position[2], 'actual_z_m': actual.position[2],
+                      'error_m': goal.position[2] - actual.position[2],
+                      'total_correction_m': 0.}
+            history.append(sample)
+            summary.update(sample)
+            self.event('height_correction_measured', arm=arm, phase=phase, **sample)
+            next_z = correction.next_command(actual.position[2])
+            if next_z is None:
+                summary['status'] = 'not_needed'
+            else:
                 command_waypoint = CartesianPose(
                     (command.position[0], command.position[1], next_z), command.orientation)
-                # Keep the physical increment separate from the accumulated
-                # support command. Planning starts at measured FK each time.
+                step = next_z-command.position[2]
+                # Physical planning starts at measured FK; motor support remains
+                # separate from the requested physical upward increment.
                 waypoint = self.pose_message(CartesianPose(
-                    (*goal.position[:2], actual.position[2]+next_z-previous_command_z),
-                    goal.orientation))
+                    (*goal.position[:2], actual.position[2]+step), goal.orientation))
                 self.event('height_correction_command', arm=arm, phase=phase,
-                           attempt=correction.attempts, target_z_m=goal.position[2],
-                           command_z_m=next_z, actual_z_m=actual.position[2],
-                           correction_step_m=next_z-previous_command_z,
+                           attempt=1, target_z_m=goal.position[2], command_z_m=next_z,
+                           actual_z_m=actual.position[2], correction_step_m=step,
                            collision_checks_enabled=check_collisions)
                 self.linear(arm, waypoint, phase+'_height_correction',
                             check_orientation=True, check_collisions=check_collisions,
                             command_target=command_waypoint, validate_command_path=True)
+                # Record the remaining height error without retrying or gating return.
+                final = self.cartesian_pose(self.pose(arm))
+                sample = {'attempt': 1, 'target_z_m': goal.position[2],
+                          'command_z_m': next_z, 'actual_z_m': final.position[2],
+                          'error_m': goal.position[2]-final.position[2],
+                          'total_correction_m': step}
+                history.append(sample)
+                summary.update(sample, status='applied')
+            self.event('height_correction_completed', arm=arm, phase=phase, **summary)
         except Exception as error:
             summary.update(status='failed', message=str(error))
             self.event('height_correction_failed', arm=arm, phase=phase, **summary)
@@ -1898,9 +1893,6 @@ class CollectionPipeline(PregraspPipeline):
                                                  check_collisions=lift_collisions)
                 actual = self.pose(arm)
                 height = actual.position.z-bottom.position.z
-                required_height = self.config['lift_height_m'] - lift_height_tolerance(self.config)
-                if height + 1e-9 < required_height:
-                    raise RuntimeError('Measured-joint FK lift height not reached')
                 report['lift_height_from_fk_m'] = height
             if self.wrist_observation_required():
                 self.confirm_held_target(selected, actual, report)

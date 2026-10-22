@@ -10,7 +10,6 @@ from cleany_skill_executor.collection_pipeline import CollectionPipeline
 from cleany_skill_executor.core.collection import configuration_issues
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES
 from cleany_skill_executor.core.hardware_execution import ArmHold, ExecutionCanceled
-from cleany_skill_executor.core.height_correction import HeightCorrectionError
 from cleany_skill_executor.core.recorded_trajectory import CommandPoint, RecordedTrajectory
 from cleany_skill_executor.hardware_execution import HardwareExecution
 from test_arrival_approach import command_pipeline  # noqa: F401
@@ -73,16 +72,17 @@ def test_loaded_endpoint_converges_with_original_goal_and_existing_motion_checks
         assert options == dict(check_orientation=True, check_collisions=collisions,
                                command_target=node.cartesian_pose(command), validate_command_path=True)
     summary = report['height_corrections']['lift']
-    assert summary['status'] == 'reached'
+    assert summary['status'] == 'applied'
     assert summary['target_z_m'] == target.position.z
     assert summary['attempt'] == 1
-    assert summary['tolerance_m'] == .010
+    assert 'tolerance_m' not in summary
     assert events[-1][0] == 'height_correction_completed'
 
 
 @pytest.mark.parametrize('arm', ['left', 'right'])
 @pytest.mark.parametrize('shortfall,step', [
-    (.011, .015), (.0351138972905688, .040), (.043382882998641126, .045), (.075, .075)])
+    (.001, .005), (.008, .010), (.010, .010), (.011, .015),
+    (.0351138972905688, .040), (.043382882998641126, .045), (.075, .075)])
 def test_full_rounded_shortfall_is_sent_and_then_measured_again(arm, shortfall, step):
     node, actual, commands, events = plant(arm, goal=.5, sag=shortfall)
     node.config.update(lift_height_correction_max_attempts=3)
@@ -176,29 +176,30 @@ def test_retreat_defers_logged_shortfall_for_subsequent_lift(reverse, sag):
                                 endpoint_pose=node.cartesian_pose(pose(target)))]
 
 
-def test_large_cumulative_correction_still_stops_after_three_attempts():
+def test_remaining_large_shortfall_does_not_retry_or_block_return():
     node, actual, commands, _ = plant(goal=.5, sag=.1)
     def improve_slightly(arm, target, stage, **options):
         commands.append(node.pose_message(options['command_target']))
         actual.position.z += .002
     node.linear = improve_slightly
     report = {}
-    with pytest.raises(HeightCorrectionError, match='attempt limit'):
-        node.correct_height_endpoint('right', pose(.5), 'lift', report)
-    assert len(commands) == 3
-    assert commands[-1].position.z == pytest.approx(.8)
-    assert report['height_corrections']['lift']['attempt'] == 3
+    node.correct_height_endpoint('right', pose(.5), 'lift', report)
+    assert len(commands) == 1
+    assert commands[-1].position.z == pytest.approx(.6)
+    assert report['height_corrections']['lift']['attempt'] == 1
+    assert report['height_corrections']['lift']['error_m'] == pytest.approx(.098)
+    assert report['height_corrections']['lift']['status'] == 'applied'
 
 
-def test_stalled_endpoint_never_keeps_raising_the_command():
+def test_stalled_height_completes_after_one_correction_without_tolerance_gate():
     node, actual, commands, events = plant()
     node.linear = lambda *args, **kwargs: commands.append(args)
     report = {}
-    with pytest.raises(HeightCorrectionError, match='progress'):
-        node.correct_height_endpoint('right', pose(.5743888152472258), 'lift', report)
+    node.correct_height_endpoint('right', pose(.5743888152472258), 'lift', report)
     assert len(commands) == 1
-    assert report['height_corrections']['lift']['status'] == 'failed'
-    assert events[-1][0] == 'height_correction_failed'
+    assert report['height_corrections']['lift']['status'] == 'applied'
+    assert report['height_corrections']['lift']['error_m'] > .010
+    assert events[-1][0] == 'height_correction_completed'
 
 
 @pytest.mark.parametrize('fault', ['stale', 'contact', 'cancel', 'collision'])
@@ -288,12 +289,12 @@ def test_original_retreat_failure_never_starts_correction():
 def test_collection_validation_checks_correction_configuration_before_startup():
     assert 'lift_height_correction_enabled must be boolean' in configuration_issues(
         {'lift_height_correction_enabled': 'true'})
-    assert 'lift_height_tolerance_m must be less than lift_height_m' in configuration_issues(
-        {'lift_height_tolerance_m': .05, 'lift_height_m': .05})
+    issues = configuration_issues({'lift_height_tolerance_m': .05, 'lift_height_m': .05})
+    assert not any('lift_height_tolerance_m' in issue for issue in issues)
 
 
-@pytest.mark.parametrize('sag', [.008, .010, -.020])
-def test_lift_at_minimum_height_or_above_target_needs_no_correction(sag):
+@pytest.mark.parametrize('sag', [0., -.020])
+def test_lift_at_target_or_above_target_needs_no_correction(sag):
     node, _, commands, _ = plant(sag=sag)
     node.correct_height_endpoint('right', pose(.5743888152472258), 'lift')
     assert commands == []

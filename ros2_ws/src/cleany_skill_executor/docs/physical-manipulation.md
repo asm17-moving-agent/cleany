@@ -12,6 +12,8 @@
 
 감독 시험의 `pick_return_release`는 명시적인 임시 모드다. 가정한 배치는 `ASSUMED`로 보존하며 센서 확인으로 취급하지 않는다. 관련 JSON은 `test/data/supervised_collection_fixture.json`에 합성 회귀 입력으로만 둔다. 실행 launch는 이 fixture를 기본값으로 읽지 않는다.
 
+들어올리기 후 `lift_height_correction_enabled=true`이면 목표 높이와 실측 관절 FK 높이의 부족분을 `lift_height_correction_step_m` 단위로 올림해 한 번만 추가 상승한다. 기본 단위는 0.005m이며, 0.011m 부족하면 0.015m를 추가한다. 물리 경로는 실측 TCP에서 시작하고, 유지 중인 모터 명령의 지지량은 별도로 보존한다. 보정 후 남은 높이 오차는 기록만 하며 재보정이나 높이 합격 판정 없이 보유 확인과 복귀 흐름을 계속한다. 기존 `lift_height_tolerance_m`, `lift_height_correction_max_attempts`, `lift_height_correction_min_progress_m`, `lift_height_correction_max_total_m` 값은 사용하지 않는다. 모터 fault, 최신 피드백, 접촉, 취소, 명령 경로와 XY 및 방향의 도착 검사는 계속 적용한다.
+
 SDK와 모델 weight, AnyGrasp 라이선스, 실행 DB, 영상, 점군과 결과 파일은 clone에 포함하지 않는다. 모델의 버전과 hash, 필요한 설치 방법은 저장소에 유지한다. cuRobo 전용 비교 도구와 모델 비교 캠페인은 일반 실행 경로에 포함하지 않는다.
 
 Controller limits와 motion monitor는 `CLEANY_FEETECH_CONTROL_CONFIG`, `CLEANY_HARDWARE_MONITOR_CONFIG`로 각각 명시한다. BT launch의 대응 인자는 `hardware_monitor_config`다. 시험용 YAML도 test data에만 두며 실행 기본값으로 사용하지 않는다.

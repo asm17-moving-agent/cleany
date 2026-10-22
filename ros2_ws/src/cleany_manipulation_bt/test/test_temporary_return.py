@@ -668,8 +668,8 @@ def test_legacy_pipeline_also_returns_releases_and_stops_after_one_cycle(
     assert collected['success'] and len(calls) == 1
 
 
-@pytest.mark.parametrize('shortfall', [.008, .010, .0101])
-def test_legacy_lift_uses_ten_mm_shortfall_gate_with_correction_disabled(temporary, shortfall):
+@pytest.mark.parametrize('shortfall', [.008, .010, .0101, .040])
+def test_legacy_lift_records_shortfall_without_blocking_return(temporary, shortfall):
     node, context, _, pickup, commands = temporary
     node.config['visual_servo_enabled'] = False
     linear = node.linear
@@ -684,16 +684,68 @@ def test_legacy_lift_uses_ten_mm_shortfall_gate_with_correction_disabled(tempora
     selected.fk_grasp_pose = node.pose(selected.selected_arm)
     selected.grasp_joint_state = NS(name=ARM_JOINT_NAMES[selected.selected_arm], position=list(pickup))
     report = {}
-    if shortfall > .010:
-        with pytest.raises(RuntimeError, match='Measured-joint FK lift height not reached'):
-            CollectionPipeline.after_pregrasp(node, selected, None, report)
-        assert 'release_at_pickup' not in commands
-        assert report['payload_preserved_on_failure']
-    else:
-        CollectionPipeline.after_pregrasp(node, selected, None, report)
-        assert report['lift_height_from_fk_m'] == pytest.approx(.05-shortfall)
-        assert report['released']
+    CollectionPipeline.after_pregrasp(node, selected, None, report)
+    assert report['lift_height_from_fk_m'] == pytest.approx(.05-shortfall)
+    assert report['released'] and report['returned']
     assert 'lift_height_correction' not in commands
+
+
+@pytest.mark.parametrize('adapter', ['bt', 'legacy'])
+@pytest.mark.parametrize('stalled', [False, True])
+def test_one_height_correction_continues_through_return_and_release(temporary, adapter, stalled):
+    from cleany_skill_executor.core.hardware_execution import ArmHold
+
+    node, context, joints, pickup, commands = temporary
+    arm = context.selected.selected_arm
+    node.config.update(lift_height_correction_enabled=True, visual_servo_enabled=False,
+                       lift_height_correction_max_attempts=3, lift_height_tolerance_m=.010)
+    node.real.wait_for_settle = lambda _: joints
+    node.real.arm_holds = {}
+    node.real.value = {'hardware_tcp_position_tolerance_m': .03,
+                       'hardware_tcp_orientation_tolerance_deg': 20.,
+                       'hardware_arrival_tolerance_rad': .01}.__getitem__
+    node.motion = NS(set_current_state=lambda _: None,
+        forward_kinematics=lambda _, q: NS(position=(0., 0., q.positions[0]),
+                                          orientation_xyzw=(0., 0., 0., 1.)))
+    linear = node.linear
+    def loaded_motion(selected_arm, target, stage, *args, **options):
+        measured = deepcopy(target)
+        motor = node.pose_message(options['command_target']) if 'command_target' in options else target
+        if stage == 'lift':
+            measured.position.z -= .011
+        elif stage == 'lift_height_correction':
+            measured = node.pose(arm) if stalled else deepcopy(motor)
+            if not stalled:
+                measured.position.z -= .011
+        linear(selected_arm, measured, stage, *args, **options)
+        q = (motor.position.z, 0., 0., 0., 0.)
+        node.real.arm_holds[arm] = ArmHold(q, q)
+    node.linear = loaded_motion
+    if adapter == 'bt':
+        node.grasp(context)
+        node.confirm_grasp(context)
+        node.lift(context)
+        node.confirm_held(context)
+        node.carry(context)
+        node.check_placement(context)
+        node.open(context)
+        node.confirm_release(context)
+        node.return_arm(context)
+        report, release = node.report, 'release'
+    else:
+        context.selected.selected_candidate = NS()
+        context.selected.fk_grasp_pose = node.pose(arm)
+        context.selected.grasp_joint_state = NS(name=ARM_JOINT_NAMES[arm], position=list(pickup))
+        report, release = {}, 'release_at_pickup'
+        CollectionPipeline.after_pregrasp(node, context.selected, None, report)
+    correction = report['height_corrections']['lift']
+    assert correction['status'] == 'applied'
+    assert correction['total_correction_m'] == pytest.approx(.015)
+    assert commands.count('lift_height_correction') == 1
+    assert commands.index('lift_height_correction') < commands.index('return_to_pickup')
+    assert commands.index('return_to_pickup') < commands.index(release) < commands.index('return')
+    if stalled:
+        assert correction['error_m'] == pytest.approx(.011)
 
 
 @pytest.mark.parametrize('key', ['temporary_contact_verification', 'temporary_placement_verification', 'label_destinations'])

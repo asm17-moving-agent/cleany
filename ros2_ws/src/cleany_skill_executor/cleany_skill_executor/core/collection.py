@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 import math
 from .physical_grasp_selection import ARM_JOINT_NAMES
-from .height_correction import HeightCorrectionPolicy, lift_height_tolerance
+from .height_correction import HeightCorrectionPolicy
 
 RETURN_TO_PICK = 'return_to_pick'
 
@@ -80,10 +80,6 @@ def configuration_issues(config: dict) -> list[str]:
     issues = []
     try:
         PickupReturnPolicy.from_config(config)
-    except ValueError as error:
-        issues.append(str(error))
-    try:
-        lift_height_tolerance(config)
     except ValueError as error:
         issues.append(str(error))
     try:

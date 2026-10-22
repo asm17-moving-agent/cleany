@@ -56,7 +56,6 @@ def test_lift_corrects_static_sag_against_original_height_before_confirm_held(
         operation, enabled, stalled, sag):
     from geometry_msgs.msg import Pose
     from cleany_skill_executor.core.hardware_execution import ArmHold
-    from cleany_skill_executor.core.height_correction import HeightCorrectionError
 
     node, context, _ = operation
     node.config.update(pregrasp_motion_enabled=False, lift_height_m=.05,
@@ -83,22 +82,15 @@ def test_lift_corrects_static_sag_against_original_height_before_confirm_held(
         q = (motor.position.z, 0., 0., 0., 0.)
         node.real.arm_holds[arm] = ArmHold(q, q)
     node.linear = linear
-    if not enabled and sag > .010:
-        with pytest.raises(OperationError, match='Measured FK lift height not reached'):
-            node.lift(context)
-        assert commands == ['lift']
-    elif stalled:
-        with pytest.raises(HeightCorrectionError, match='progress'):
-            node.lift(context)
-        assert commands == ['lift', 'lift_height_correction']
-    else:
-        assert node.lift(context).success
-        if enabled:
-            summary = node.report['height_corrections']['lift']
-            assert summary['target_z_m'] == pytest.approx(original_z+.05)
-        assert node.report['lift_height_from_fk_m'] == pytest.approx(actual.position.z-original_z)
-        assert node.report['lift_height_from_fk_m'] >= .040 - 1e-9
-        assert commands == ['lift'] + ['lift_height_correction']*(1 if sag > .010 else 0)
+    assert node.lift(context).success
+    if enabled:
+        summary = node.report['height_corrections']['lift']
+        assert summary['target_z_m'] == pytest.approx(original_z+.05)
+        assert 'tolerance_m' not in summary
+    assert node.report['lift_height_from_fk_m'] == pytest.approx(actual.position.z-original_z)
+    assert commands == ['lift'] + ['lift_height_correction']*(1 if enabled and sag > 0 else 0)
+    if stalled:
+        assert node.report['lift_height_from_fk_m'] < .040
 
 
 def test_lift_includes_logged_retreat_shortfall_without_lowering_the_goal(operation):

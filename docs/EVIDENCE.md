@@ -376,6 +376,14 @@ grasping 테스트 109개, ROS 설정 전달과 실제 SDK worker 재사용 및 
 결과를 기록한다. `report.html`, `comparison.png`와 `latency.png`는
 `summary.json`에서 생성한 비교 보고서다.
 
+## 들어올리기 높이 보정 1회 전환 검증 (2026-10-22)
+
+기준 commit은 `3950218d70cbebd4ce3278e7602bc276482c0471`이며 미커밋 높이 보정 변경을 포함한다. Jetson의 native ROS 2 Humble, Python 3.10과 기존 motion container에서 검사했다. 입력은 실측 높이 부족, 일정한 하중 처짐, 보정 후 높이 정체, 기존 3회 보정 설정, 양팔의 BT 및 기존 pipeline 합성 motion port다. 11mm 부족분의 15mm 단일 보정, 잔여 높이 오차에 의한 중단 없이 복귀와 놓기 진행, 기존 피드백 및 경로 실패의 전파를 확인했다.
+
+관련 pytest 783개가 통과했고 최종 검사 실패는 없다. 확장한 합성 fixture는 최초 실행에서 도착 관절 허용값 입력이 누락되어 8개가 실패했으며 해당 입력을 보완했다. `make build-manipulation-bt`의 13개 패키지 빌드와 `make motion-container-prepare`의 5개 패키지 빌드 및 import 검사가 완료됐다. Container 빌드에는 Git metadata를 찾지 못한 setuptools_scm 메시지가 있었지만 빌드는 성공했다. 실제 모터 명령은 전송하지 않았으며 실물 파지 성공을 검증한 결과는 아니다.
+
+원본은 `/home/cleany/cleany-data/reports/lift-single-correction-20261022/`의 `pytest.log`, `pytest.xml`, `build.log`, `motion-prepare.log`에 보관한다. 동작 계약은 [실물 조작 경로](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md)를 따른다.
+
 ## AnyGrasp 입력, 사전 준비와 작업 유지 비교 (2026-10-22)
 
 기준 commit은 `3950218d70cbebd4ce3278e7602bc276482c0471`이며 앞서 적용한

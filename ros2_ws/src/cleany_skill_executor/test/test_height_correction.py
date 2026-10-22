@@ -3,7 +3,7 @@ import math
 import pytest
 
 from cleany_skill_executor.core.height_correction import (
-    HeightCorrection, HeightCorrectionError, HeightCorrectionPolicy, lift_height_tolerance,
+    HeightCorrection, HeightCorrectionError, HeightCorrectionPolicy,
     validate_height_correctable_endpoint,
 )
 from cleany_skill_executor.core.cartesian import CartesianPose
@@ -17,7 +17,7 @@ def test_logged_lift_error_converges_without_moving_the_physical_goal():
     goal = .5743888152472258
     actual = .5557920195791695
     sag = goal - actual
-    controller = HeightCorrection(goal, goal, .005, policy())
+    controller = HeightCorrection(goal, goal, policy())
     commands = []
     while (command := controller.next_command(actual)) is not None:
         commands.append(command)
@@ -31,7 +31,7 @@ def test_logged_lift_error_converges_without_moving_the_physical_goal():
 
 def test_logged_thirty_two_mm_shortfall_converges():
     goal, sag = .5408224849074599, .0319983857472429
-    correction = HeightCorrection(goal, goal, .010, policy())
+    correction = HeightCorrection(goal, goal, policy())
     actual, commands = goal-sag, []
     while (command := correction.next_command(actual)) is not None:
         commands.append(command)
@@ -44,12 +44,12 @@ def test_logged_thirty_two_mm_shortfall_converges():
 
 
 @pytest.mark.parametrize('shortfall_mm,step_mm', [
-    (5., 5.), (10., 10.), (11., 15.), (15., 15.), (15.0001, 20.),
+    (.1, 5.), (1., 5.), (5., 5.), (8., 10.), (10., 10.), (11., 15.), (15., 15.), (15.0001, 20.),
     (21., 25.), (31.9983857472429, 35.), (35.1138972905688, 40.),
     (43.382882998641126, 45.), (75., 75.), (101., 105.),
 ])
 def test_entire_shortfall_rounds_up_to_five_mm_grid(shortfall_mm, step_mm):
-    controller = HeightCorrection(.5, .5, .001, policy())
+    controller = HeightCorrection(.5, .5, policy())
     assert controller.next_command(.5-shortfall_mm/1000) == pytest.approx(.5+step_mm/1000)
     assert controller.attempts == 1
 
@@ -77,68 +77,43 @@ def test_height_correction_accumulates_from_sent_command_not_measured_goal():
     goal = .5318423315105774
     sent = .5419910580592112
     actual = .5243888133737824
-    controller = HeightCorrection(goal, sent, .005, policy())
+    controller = HeightCorrection(goal, sent, policy())
     next_command = controller.next_command(actual)
     assert next_command == pytest.approx(sent + .010)
     assert next_command > sent
     assert controller.next_command(actual + next_command-sent) is None
 
 
-@pytest.mark.parametrize('actual', [.5, .499, .501, .52])
+@pytest.mark.parametrize('actual', [.5, .501, .52])
 def test_reached_goal_requires_no_additional_command(actual):
-    assert HeightCorrection(.5, .52, .005, policy()).next_command(actual) is None
+    assert HeightCorrection(.5, .52, policy()).next_command(actual) is None
 
 
-@pytest.mark.parametrize('actual', [.48, .479, .4805])
-def test_stall_worsening_or_tiny_progress_stops_after_one_command(actual):
-    controller = HeightCorrection(.5, .5, .005, policy())
+@pytest.mark.parametrize('actual', [.48, .479, .4805, .49, .5, .52])
+def test_remaining_error_never_causes_a_second_command_or_height_failure(actual):
+    controller = HeightCorrection(.5, .5, policy())
     controller.next_command(.48)
-    with pytest.raises(HeightCorrectionError, match='progress'):
-        controller.next_command(actual)
+    assert controller.next_command(actual) is None
     assert controller.attempts == 1
-
-
-def test_attempt_budget_stops_even_with_slow_improvement():
-    controller = HeightCorrection(.5, .5, .005, policy(max_attempts=2))
-    controller.next_command(.48)
-    controller.next_command(.482)
-    with pytest.raises(HeightCorrectionError, match='attempt limit'):
-        controller.next_command(.484)
-
-
-def test_cumulative_distance_does_not_stop_three_improving_corrections():
-    controller = HeightCorrection(.5, .5, .005, policy())
-    commands = [controller.next_command(actual) for actual in (.400, .420, .440)]
-    assert commands == pytest.approx([.600, .680, .740])
-    assert controller.attempts == 3
-    with pytest.raises(HeightCorrectionError, match='attempt limit'):
-        controller.next_command(.460)
+    assert controller.command_z == pytest.approx(.52)
 
 
 def test_logged_forty_three_mm_error_can_correct_with_a_legacy_config():
     settings = HeightCorrectionPolicy.from_config({
-        'lift_height_correction_enabled': True, 'lift_height_correction_max_total_m': .040})
+        'lift_height_correction_enabled': True, 'lift_height_correction_max_total_m': .040,
+        'lift_height_correction_max_attempts': 3, 'lift_height_correction_min_progress_m': .001,
+        'lift_height_tolerance_m': .010})
     goal, sent, actual = .5877117403295785, .587711741975668, .5443288573309374
-    controller = HeightCorrection(goal, sent, .010, settings)
+    controller = HeightCorrection(goal, sent, settings)
     command = controller.next_command(actual)
     assert command == pytest.approx(sent+.045)
-    assert controller.next_command(actual+command-sent) is None
-
-
-def test_default_policy_never_issues_a_fourth_correction():
-    controller = HeightCorrection(.5, .5, .005,
-                                  policy(min_progress_m=.0001))
-    for actual in (.489, .491, .493):
-        controller.next_command(actual)
-    with pytest.raises(HeightCorrectionError, match='attempt limit'):
-        controller.next_command(.494)
-    assert controller.attempts == 3
-    assert controller.command_z == pytest.approx(.535)
+    assert controller.next_command(actual) is None
+    assert controller.attempts == 1
 
 
 @pytest.mark.parametrize('actual', [float('nan'), float('inf'), -1e308])
 def test_bad_feedback_never_triggers_another_motion(actual):
-    controller = HeightCorrection(.5, .5, .005, policy())
+    controller = HeightCorrection(.5, .5, policy())
     with pytest.raises(HeightCorrectionError, match='nonfinite'):
         controller.next_command(actual)
     assert controller.attempts == 0
@@ -146,9 +121,7 @@ def test_bad_feedback_never_triggers_another_motion(actual):
 
 @pytest.mark.parametrize('field,value', [
     ('enabled', 'true'), ('step_m', True), ('step_m', 0), ('step_m', float('nan')),
-    ('step_m', float('inf')), ('step_m', .0005), ('min_progress_m', .006),
-    ('max_attempts', 0), ('max_attempts', 4), ('max_attempts', True),
-    ('max_attempts', 2.5),
+    ('step_m', float('inf')), ('step_m', -.005),
 ])
 def test_bad_configuration_is_rejected(field, value):
     with pytest.raises(ValueError, match='lift_height_correction'):
@@ -159,22 +132,4 @@ def test_absent_configuration_preserves_disabled_behavior():
     settings = HeightCorrectionPolicy.from_config({})
     assert settings == HeightCorrectionPolicy()
     with pytest.raises(HeightCorrectionError, match='disabled'):
-        HeightCorrection(.5, .5, .005, settings).next_command(.48)
-
-
-@pytest.mark.parametrize('shortfall,corrects', [(.008, False), (.010, False), (.0101, True)])
-def test_lift_shortfall_uses_dedicated_ten_mm_threshold(shortfall, corrects):
-    tolerance = lift_height_tolerance({'cartesian_tolerance_m': .005})
-    controller = HeightCorrection(.5, .5, tolerance, policy())
-    assert (controller.next_command(.5-shortfall) is not None) == corrects
-
-
-def test_lift_tolerance_can_be_tuned_without_changing_path_tolerance():
-    assert lift_height_tolerance({'lift_height_tolerance_m': .012,
-                                  'cartesian_tolerance_m': .005}) == .012
-
-
-@pytest.mark.parametrize('value', [0., -.01, float('nan'), float('inf'), True, '0.01', .05, .06])
-def test_invalid_lift_tolerance_is_rejected(value):
-    with pytest.raises(ValueError, match='lift_height_tolerance_m'):
-        lift_height_tolerance({'lift_height_tolerance_m': value, 'lift_height_m': .05})
+        HeightCorrection(.5, .5, settings).next_command(.48)

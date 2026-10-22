@@ -19,7 +19,6 @@ from cleany_skill_executor.core.physical_grasp_selection import (
     ARM_JOINT_NAMES, REQUIRED_JOINT_NAMES, InfrastructureError,
 )
 from cleany_skill_executor.core.hardware_execution import ExecutionCanceled
-from cleany_skill_executor.core.height_correction import lift_height_tolerance
 from cleany_skill_executor.core.target_filter import select_closest_eligible
 from cleany_skill_executor.manipulation.models import Error, ObjectState, Placement
 from cleany_skill_executor.validate_pick_node import ValidatePickNode
@@ -541,11 +540,6 @@ class JetsonOperations(CollectionPipeline):
                                              check_collisions=lift_collisions)
             height = self.pose(arm).position.z - bottom.position.z
             self.report['lift_height_from_fk_m'] = height
-            required_height = self.config['lift_height_m'] - lift_height_tolerance(self.config)
-            if height + 1e-9 < required_height:
-                raise OperationError(Error.MOTION_FAILED,
-                    f'Measured FK lift height not reached: measured={height:.6f}m '
-                    f'required={required_height:.6f}m')
         return Observation()
 
     def confirm_held(self, context):
