@@ -10,6 +10,7 @@ import numpy as np
 import rclpy
 from cleany_interfaces.action import InspectScene
 from cleany_interfaces.msg import (
+    ComponentHealth,
     DetectedObject2D,
     DetectedObject2DArray,
     DetectedObject3D,
@@ -63,6 +64,7 @@ from cleany_perception.core.models import (
     RgbdSnapshot,
     RigidTransform,
 )
+from cleany_perception.core.readiness import AVAILABLE, UNAVAILABLE, perception_readiness
 from cleany_perception.core.object_ranking import (
     ObjectRankingConfig,
     rank_detections_by_distance,
@@ -352,7 +354,11 @@ class InspectionNode(Node):
                 raise ValueError(
                     f'Unsupported segmenter_type: {segmenter_type}'
                 )
-        if bool(self.get_parameter('preload_models').value):
+        preload = bool(self.get_parameter('preload_models').value)
+        # Lazily loaded models cannot be claimed ready before the first request.
+        self._models_ready = preload or not any(
+            callable(getattr(adapter, 'prepare', None)) for adapter in (detector, segmenter))
+        if preload:
             self.get_logger().info('Loading perception models')
             adapters = (('detector', detector), ('segmenter', segmenter))
             if wrist_yoloe is not None and wrist_yoloe is not yoloe:
@@ -502,6 +508,11 @@ class InspectionNode(Node):
         self._snapshot_service = self.create_service(
             GetSceneSnapshot, 'perception/get_scene_snapshot',
             self._get_scene_snapshot, callback_group=self._action_callback_group)
+        health_topic = str(self.get_parameter('health_topic').value)
+        self._health_publisher = None
+        if health_topic:
+            self._health_publisher = self.create_publisher(ComponentHealth, health_topic, 10)
+            self.create_timer(float(self.get_parameter('health_period_seconds').value), self._publish_health)
         self._action_server = ActionServer(
             self,
             InspectScene,
@@ -530,7 +541,21 @@ class InspectionNode(Node):
         self._action_server.destroy()
         super().destroy_node()
 
+    def _publish_health(self) -> None:
+        status, detail = perception_readiness(
+            self._models_ready, self._snapshot_buffer.latest_stamp_ns, self.get_clock().now().nanoseconds,
+            float(self.get_parameter('health_maximum_rgbd_age_seconds').value))
+        message = ComponentHealth(
+            source='perception', detail=detail,
+            status={AVAILABLE: ComponentHealth.AVAILABLE, UNAVAILABLE: ComponentHealth.UNAVAILABLE}.get(
+                status, ComponentHealth.UNKNOWN))
+        message.header.stamp = self.get_clock().now().to_msg()
+        self._health_publisher.publish(message)
+
     def _declare_parameters(self) -> None:
+        self.declare_parameter('health_topic', 'system/component_health')
+        self.declare_parameter('health_period_seconds', 0.2)
+        self.declare_parameter('health_maximum_rgbd_age_seconds', 1.0)
         self.declare_parameter('enable_wrist_observation', False)
         self.declare_parameter('preload_models', False)
         self.declare_parameter(
