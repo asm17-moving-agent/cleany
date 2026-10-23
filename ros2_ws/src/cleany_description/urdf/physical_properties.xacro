@@ -1,5 +1,10 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:include filename="wrist_mount_v8.xacro" />
+  <!-- Physical collection can use the validated head CAD collision surfaces. -->
+  <xacro:arg name="head_collision_meshes" default="true"/>
+  <!-- Separate enclosing arm collision assets; visual CAD and inertia stay exact. -->
+  <xacro:arg name="optimized_arm_collision_meshes" default="true"/>
+  <xacro:property name="arm_collision_directory" value="${'collision/' if '$(arg optimized_arm_collision_meshes)'.lower() in ('true', '1') else ''}"/>
   <xacro:macro name="cleany_link_properties" params="link_name">
     <xacro:if value="${link_name == 'base_link'}">
       <!-- Combined source MJCF fullinertia tensors at the aligned arm mounts. -->
@@ -402,13 +407,13 @@
       <collision name="mjcf_geom_50_0_collision">
         <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Base.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_51_0_collision">
         <origin xyz="0.116200343 0.151031727 0.431297" rpy="0 -0 3.14159265359" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Base_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <visual name="mjcf_geom_80_0_visual">
@@ -432,13 +437,13 @@
       <collision name="mjcf_geom_82_0_collision">
         <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -5.55111512313e-17 -3.58979312866e-09" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Base.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Base.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_83_0_collision">
         <origin xyz="0.116200838 -0.150977072 0.431297" rpy="0 -0 -3.58979302984e-09" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Base_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Base_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -469,13 +474,13 @@
       <collision name="mjcf_geom_54_0_collision">
         <origin xyz="-2.98155597434e-19 -9.71445146547e-17 5.55111512313e-17" rpy="-3.3539837574e-13 -2.65358979332e-06 9.74718396277e-12" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Rotation_Pitch.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_55_0_collision">
         <origin xyz="6.93889390391e-18 -9.71445146547e-17 6.24500451352e-17" rpy="-3.35618590807e-13 -2.65358979329e-06 9.74722386141e-12" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Rotation_Pitch_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Rotation_Pitch_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -515,13 +520,13 @@
       <collision name="mjcf_geom_59_0_collision">
         <origin xyz="-0.000100253949776 0.0650999997343 -0.0120000000001" rpy="1.57079632678 -6.71128083662e-13 -1.57079367321" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Upper_Arm_5cm.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Upper_Arm_5cm.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_60_0_collision">
         <origin xyz="-2.13880336414e-07 0.0499999999997 -4.37740121928e-14" rpy="-6.70963993052e-13 1.94943609866e-11 2.65358979315e-06" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Upper_Arm_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Upper_Arm_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -561,13 +566,13 @@
       <collision name="mjcf_geom_64_0_collision">
         <origin xyz="-0.00250068507803 0.0320000000001 0.0649999933651" rpy="-1.26408588281e-07 1.57079367321 -1.26413818102e-07" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Lower_Arm_5cm.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Lower_Arm_5cm.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_65_0_collision">
         <origin xyz="-6.45273883274e-07 1.36086454605e-13 0.0499999999991" rpy="-3.35508353651e-13 -2.65358979335e-06 9.74729819568e-12" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Lower_Arm_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Lower_Arm_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -598,13 +603,13 @@
       <collision name="mjcf_geom_68_0_collision">
         <origin xyz="-1.00324319708e-06 1.34834851617e-12 1.81327947991e-13" rpy="-1.19262238973e-17 7.3725747729e-18 -2.65358979346e-06" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Wrist_Pitch_Roll.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_69_0_collision">
         <origin xyz="-1.0032431971e-06 1.34827565779e-12 1.81325612443e-13" rpy="1.71455341476e-18 9.38558131561e-18 -2.65358979335e-06" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Wrist_Pitch_Roll_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -635,7 +640,7 @@
       <collision name="mjcf_geom_71_0_self_filter_collision">
         <origin xyz="4.08954814457e-12 1.5600333525e-12 -1.16272394365e-06" rpy="2.65358979332e-06 -3.35582256428e-13 9.74717818498e-12" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Fixed_Jaw_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_72_0_collision">
@@ -734,13 +739,13 @@
       <collision name="mjcf_geom_86_0_collision">
         <origin xyz="-2.58642499779e-13 -1.5959455979e-16 -4.51028103754e-17" rpy="-3.3545388689e-13 -3.5897930236e-09 1.31917046731e-14" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Rotation_Pitch.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Rotation_Pitch.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_87_0_collision">
         <origin xyz="-2.58639897693e-13 -1.2490009027e-16 -1.04083408559e-17" rpy="-3.35608339132e-13 -3.58979290442e-09 1.32290012278e-14" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Rotation_Pitch_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Rotation_Pitch_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -780,13 +785,13 @@
       <collision name="mjcf_geom_91_0_collision">
         <origin xyz="-0.000100000343803 0.0650999999996 -0.0120000000001" rpy="1.57079632679 -6.71155839238e-13 -1.57079632321" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Upper_Arm_5cm.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Upper_Arm_5cm.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_92_0_collision">
         <origin xyz="-2.89597327455e-10 0.05 -4.3832992791e-14" rpy="-6.70993330038e-13 2.63712662818e-14 3.589792896e-09" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Upper_Arm_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Upper_Arm_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -826,13 +831,13 @@
       <collision name="mjcf_geom_96_0_collision">
         <origin xyz="-0.00250000092704 0.0320000000001 0.064999999991" rpy="0 1.57079632321 1.31376029847e-14" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Lower_Arm_5cm.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Lower_Arm_5cm.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_97_0_collision">
         <origin xyz="-8.73189226654e-10 1.36059566391e-13 0.05" rpy="-3.35384399272e-13 -3.58979304269e-09 1.3471843864e-14" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Lower_Arm_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Lower_Arm_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -863,13 +868,13 @@
       <collision name="mjcf_geom_100_0_collision">
         <origin xyz="-1.35745237707e-09 1.73749903354e-14 1.81328422329e-13" rpy="1.62630325873e-17 5.48606299278e-17 -3.58979312942e-09" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Wrist_Pitch_Roll.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_101_0_collision">
         <origin xyz="-1.35745236753e-09 1.73819292293e-14 1.81325653127e-13" rpy="-4.23516473627e-22 -1.52033649196e-30 -3.5897930184e-09" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Wrist_Pitch_Roll_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Wrist_Pitch_Roll_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
     </xacro:if>
@@ -900,7 +905,7 @@
       <collision name="mjcf_geom_103_0_self_filter_collision">
         <origin xyz="-1.75451667084e-13 1.72466207982e-14 -1.57319893348e-09" rpy="3.58979298692e-09 -3.3556837864e-13 1.31342831277e-14" />
         <geometry>
-          <mesh filename="package://cleany_description/meshes/Fixed_Jaw_Motor.stl" scale="1 1 1" />
+          <mesh filename="package://cleany_description/meshes/${arm_collision_directory}Fixed_Jaw_Motor.stl" scale="1 1 1" />
         </geometry>
       </collision>
       <collision name="mjcf_geom_104_0_collision">
@@ -996,7 +1001,19 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <xacro:if value="$(arg head_collision_meshes)">
+        <collision name="head_mast_cad_collision">
+          <origin xyz="-0.440000013266 -0.00499883242047 -0.6" rpy="-1.73472347598e-18 6.93889390391e-18 -2.65358979331e-06" />
+          <geometry><mesh filename="package://cleany_description/meshes/${arm_collision_directory}cad_frame/topbase1.stl" scale="1 1 1" /></geometry>
+        </collision>
+        <collision name="lower_head_mount_cad_collision">
+          <origin xyz="-0.297999984077 0.00600079076974 -0.6875" rpy="-5.90619133461e-17 6.93889390391e-18 3.13999734641" />
+          <geometry><mesh filename="package://cleany_description/meshes/${arm_collision_directory}topbase2.stl" scale="0.001 0.001 0.001" /></geometry>
+        </collision>
+      </xacro:if>
+      <xacro:unless value="$(arg head_collision_meshes)">
       <collision name="mjcf_geom_114_0_collision">
+        <!-- Retain pillar coverage above the independently positioned lower mount. -->
         <origin xyz="-0.1044 -0.00025 0.2822" rpy="0 -0 5.25245130592e-18" />
         <geometry>
           <box size="0.1504 0.12 0.2974" />
@@ -1009,6 +1026,7 @@
           <box size="0.172 0.12 0.065" />
         </geometry>
       </collision>
+      </xacro:unless>
     </xacro:if>
     <xacro:if value="${link_name == 'head_pan_link'}">
       <inertial>
@@ -1034,12 +1052,24 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <xacro:if value="$(arg head_collision_meshes)">
+        <collision name="head_pan_bracket_cad_collision">
+          <origin xyz="-0.335000013266 -0.00499883772765 -0.923" rpy="8.67361737988e-19 -5.55111512313e-17 -2.65358979336e-06" />
+          <geometry><mesh filename="package://cleany_description/meshes/${arm_collision_directory}tophead1.stl" scale="0.001 0.001 0.001" /></geometry>
+        </collision>
+        <collision name="head_pan_motor_cad_collision">
+          <origin xyz="1.16999997611 -0.00900283138028 0.262" rpy="-3.14159201945 -1.57000000101 3.14159063414" />
+          <geometry><mesh filename="package://cleany_description/meshes/${arm_collision_directory}tophead4.stl" scale="0.001 0.001 0.001" /></geometry>
+        </collision>
+      </xacro:if>
+      <xacro:unless value="$(arg head_collision_meshes)">
       <collision name="mjcf_geom_117_0_collision">
         <origin xyz="0.0135 1.09426068873e-19 0.093" rpy="0 -0 5.25245130592e-18" />
         <geometry>
           <box size="0.055 0.05 0.04" />
         </geometry>
       </collision>
+      </xacro:unless>
     </xacro:if>
     <xacro:if value="${link_name == 'head_tilt_link'}">
       <inertial>
@@ -1065,12 +1095,24 @@
           <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
         </material>
       </visual>
+      <xacro:if value="$(arg head_collision_meshes)">
+        <collision name="head_tilt_bracket_cad_collision">
+          <origin xyz="0.162649962825 -0.00600113446269 -1.16815" rpy="-6.20163642662e-17 4.55026099265e-18 -5.31076937972e-06" />
+          <geometry><mesh filename="package://cleany_description/meshes/${arm_collision_directory}tophead5.stl" scale="0.001 0.001 0.001" /></geometry>
+        </collision>
+        <collision name="head_tilt_motor_cad_collision">
+          <origin xyz="0.162649962825 -0.00600113446269 -1.16815" rpy="-3.56491214576e-17 -1.75849280414e-18 -5.31076937974e-06" />
+          <geometry><mesh filename="package://cleany_description/meshes/${arm_collision_directory}tophead6.stl" scale="0.001 0.001 0.001" /></geometry>
+        </collision>
+      </xacro:if>
+      <xacro:unless value="$(arg head_collision_meshes)">
       <collision name="mjcf_geom_120_0_collision">
         <origin xyz="0.0101 0.0026 0.014" rpy="0 -0 7.23196730366e-18" />
         <geometry>
           <box size="0.045 0.099 0.05" />
         </geometry>
       </collision>
+      </xacro:unless>
     </xacro:if>
     <xacro:if value="${link_name == 'front_right_wheel_link'}">
       <inertial>
