@@ -182,6 +182,33 @@ head/양손목 카메라 촬영을 통과했다. Xvfb는 기존 `pr58-test-clean
 
 Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6개도 다시 통과했다. Cartographer ROS 1개는 이전과 같이 `cartographer_ros_msgs`가 없어 제외했다. Gazebo는 142.52초에 두 execution ID의 수거와 각각 17동작, 추가 빈 관측을 확인했고 Mission DB와 서버 DB의 integrity_check가 모두 통과했다. 마지막 종료 잠금 수정은 별도 동시성 회귀 검사로 검증했다. 원본은 `monitor.log`, `web.log`, `ui-final.log`, `gazebo.log`, `gazebo-evidence.json`, `stage-contract.json`, `static-final.log`에 있다.
 
+## System Supervisor와 Mission Runtime 통합
+
+검증 코드는 `ad472e2`(main `d0afd48` 위 리베이스)다. Ubuntu 22.04.5 aarch64 Distrobox, ROS 2 Humble, Python 3.10.12에서 실행했다. 원본 로그, 지연 JSON과 `verification.json`은 데이터 루트의 `runs/supervision/20261023/`에 있다.
+
+| 검사 | 입력과 결과 | 원본 |
+|---|---|---|
+| `make test-supervision-core` | 50 passed | `test-supervision-core.log` |
+| `make test-supervision` | 69 passed. 실제 Supervisor, safety adapter, base driver와 MockMcu, `mission_runtime`(Nav2 backend, supervised), lifecycle 복구 owner. 센서, Nav2 action, lifecycle manager와 안전 하드웨어 Bool은 합성 | `test-supervision.log` |
+| 같은 Supervisor 검사, 18개 CPU busy loop | 47 passed | `test-supervisor-under-cpu-load.log` |
+| `make test-mission-core`, `test-base`, `test-navigation` | 77 passed와 17 skipped, 109개, 191개 통과 | 각 로그 |
+| `make test-mission-mock` | 233 passed, 2 skipped, 1 failed. `test_process_kill_restart_reports_interruption_without_action_result`는 main `d0afd48`에서도 5회 중 3회 실패 | `test-mission-mock.log`, `flaky-process-kill-*.log` |
+| Workspace colcon test, `cleany_manipulation_bt` 제외 | 2218개 중 실패 3. 위 flaky 1개와 이 문서의 기존 MoveIt mock planning `status == 6`(ctest와 xunit 두 번 집계) | `workspace-test-skip-bt.log` |
+| `make test` | 이 환경에 `behaviortree_cpp` v4가 없어 `cleany_manipulation_bt` build에서 중단 | `make-test.log` |
+
+Lease 승인과 상태 파일 기록 사이에 Supervisor가 종료되면 lease가 사라지는 결함을 부하 실행에서 발견해 승인 응답 전 기록하도록 수정했다. 수정 전 같은 부하에서 재시작 재확인 검사가 8회 중 4회 실패했고 수정 후 8회 모두 통과했다.
+
+LiDAR 무효 scan 발행부터의 지연이며, 같은 host 한 process 안의 DDS loopback과 Runtime tick 10 Hz 기준이다. 실제 Nav2 controller 정지, 모터 감속과 다중 host 지연은 포함하지 않는다.
+
+| 구간 (5회) | 중앙값 / 최대, 무부하 | 중앙값 / 최대, CPU 부하 |
+|---|---|---|
+| Lease 철회 | 42 / 46 ms | 24 / 53 ms |
+| Nav2 goal cancel 수신 | 46 / 50 ms | 28 / 57 ms |
+| Supervisor 정지 확인 (`MISSION_STOPPED`) | 96 / 112 ms | 121 / 201 ms |
+| Supervisor 종료 → Nav2 cancel | 0.995 s (heartbeat timeout 1 s) | 0.994 s |
+
+E-stop 회로, MCU 통신 차단 시 모터 정지, 실제 Nav2 lifecycle 복구, 실물 팔 controller, Jetson 다중 프로세스와 SROS2는 검증하지 않았다.
+
 ## CI 성능 검증 (2026-10-20)
 
 기준은 Ubuntu 22.04 GitHub runner, ROS Humble의 [실행 39417986298](https://github.com/asm17-moving-agent/cleany/actions/runs/39417986298), commit `11d1ba8`입니다. 전체 job은 804초, workspace 의존성 설치 288초, 빌드와 테스트 279초, 별도 Navigation 빌드와 runtime 123초였습니다. 입력은 해당 commit의 전체 workspace 검사와 기존 motor, Navigation, Gazebo runtime 검사입니다.
