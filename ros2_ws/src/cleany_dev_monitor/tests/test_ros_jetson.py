@@ -11,11 +11,10 @@ import pytest
 pytestmark = pytest.mark.skipif(os.environ.get('CLEANY_RUN_ROS_TESTS') != '1', reason='ROS opt-in')
 
 
-def test_preparation_file_is_observed_and_replayed_before_an_action_exists(tmp_path, monkeypatch):
+def test_preparation_file_is_observed_before_an_action_exists(tmp_path, monkeypatch):
     import rclpy
     from rclpy.context import Context
     from rclpy.parameter import Parameter
-    from cleany_dev_monitor.core import Recorder
     from cleany_dev_monitor.node import MonitorNode
     from cleany_skill_executor.core.command_progress import CommandProgress
 
@@ -29,25 +28,20 @@ def test_preparation_file_is_observed_and_replayed_before_an_action_exists(tmp_p
     monitor = MonitorNode(context=context, parameter_overrides=[
         Parameter('manipulation_observation_mode', value='server'),
         Parameter('manipulation_request_file', value=str(path))])
-    recorder = Recorder(tmp_path / 'recordings')
     try:
         monitor.command_progress()
         request = monitor.hub.latest_data('manipulation_request', 'current')
         assert request['phase'] == 'INSPECTING_SCENE' and request['owner_alive']
         assert [item['phase'] for item in request['history']] == ['RUNTIME_PREPARING', 'INSPECTING_SCENE']
         assert not monitor.hub.latest_data('manipulation', 'executions')
-        before = monitor.hub.snapshot()
-        recorder.append(before)
         progress.update('COMMAND_FAILED', 'No classified target', state='FAILED')
         monitor.command_progress()
-        recorder.append(monitor.hub.snapshot())
-        at = next(row['received_at'] for row in before['rows'] if row['kind'] == 'manipulation_request')
-        historical = next(row['data'] for row in recorder.replay(recorder.session_id, at)['rows'] if row['kind'] == 'manipulation_request')
-        assert historical['phase'] == 'INSPECTING_SCENE' and historical['state'] == 'ACTIVE'
+        request = monitor.hub.latest_data('manipulation_request', 'current')
+        assert request['phase'] == 'COMMAND_FAILED' and request['state'] == 'FAILED'
+        assert not (tmp_path / 'recordings').exists()
         published = monitor.get_publisher_names_and_types_by_node(monitor.get_name(), monitor.get_namespace())
         assert all(name in ('/rosout', '/parameter_events') for name, _ in published)
     finally:
-        recorder.close()
         monitor.destroy_node()
         context.shutdown()
 

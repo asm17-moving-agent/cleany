@@ -2,8 +2,9 @@
 
 import pytest
 
-from cleany_dev_monitor.core import Hub, Recorder
-from cleany_dev_monitor.manipulation import ManipulationObserver
+from cleany_logger import Recorder
+from cleany_logger.observation import ObservationBuffer as Hub
+from cleany_logger.manipulation import ManipulationObserver
 
 
 def record(revision=0, execution_id="execution-1", **values):

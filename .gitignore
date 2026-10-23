@@ -25,7 +25,17 @@ ros2_ws/log-scenario-runtime*/
 # Local artifacts
 *.log
 *.tmp
+.DS_Store
 /artifacts/
+/output/
+/reports/
+/test-results/
+/playwright-report/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+junit*.xml
 /.memory/
 /.vscode/
 calibration_data/
@@ -49,6 +59,10 @@ ros2_ws/log-*/
 /models/
 /runtime/
 /docs/benchmark_assets/
+/docs/MUJOCO_PERFORMANCE_*.json
+/docs/MUJOCO_PERFORMANCE_*.md
+/docs/SORTING_PERFORMANCE_*.md
+/docs/SORTING_PIPELINE_TRIALS_*.md
 *.bag
 *.db3
 *.mcap

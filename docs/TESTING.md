@@ -60,6 +60,32 @@ python3 tools/validation/replay_semantic_pipeline.py classify \
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
+## 변경 범위별 검사 선택
+
+파일이나 디렉터리를 지정하면 해당 검사만 수집합니다. 경로를 생략하면 각 target의
+기존 전체 범위를 실행합니다. `-k`는 수집 후 필터이므로 import 비용을 줄이려면
+경로를 먼저 좁힙니다.
+
+```bash
+make test-jetson-packages \
+  JETSON_TEST_PATHS='ros2_ws/src/cleany_skill_executor/test/test_automatic_goal.py' \
+  JETSON_PYTEST_ARGS='--durations=10'
+make test-logger LOGGER_TEST_PATHS='ros2_ws/src/cleany_logger/tests/test_resources.py'
+make test-dev-monitor \
+  DEV_MONITOR_TEST_PATHS='ros2_ws/src/cleany_dev_monitor/tests/test_operator.py ros2_ws/src/cleany_dev_monitor/tests/test_proposals.py' \
+  DEV_MONITOR_PYTEST_ARGS='--durations=10'
+```
+
+`test-dev-monitor`는 Logger 검사도 먼저 실행합니다. Logger 범위는
+`LOGGER_TEST_PATHS`, 옵션은 `LOGGER_PYTEST_ARGS`로 별도 지정합니다.
+BT 실행 검사는 `make build-manipulation-bt`로 설치한 native 확장 모듈을 사용합니다.
+BT 소스 디렉터리를 `PYTHONPATH` 앞에 넣으면 설치된 `_bt_runner`를 가릴 수 있습니다.
+
+관절 보간 검사는 `test_joint_path.py`, snapshot 캐시 검사는 `test_snapshot_cache.py`,
+공용 리소스 수집 검사는 Logger의 `tests/test_resources.py`가 관리합니다. BT의
+`test_action_runtime.py`는 MuJoCo와 Jetson 서버 모두에 성공, 중단, 저장 장애와
+종료 계약을 적용합니다. 합성 backend를 사용하며 실물 명령을 보내지 않습니다.
+
 ## 실물 크기 추정 변동 진단 (Footprint Stability)
 
 `tools/validation/inspect_footprint_stability.py`는 실제 인식 노드의 설정을 읽고, 동기화된 RGB-D 입력을 저장하여 객체의 바닥면 크기(Footprint) 추정치가 흔들리는 원인을 진단합니다.
@@ -140,6 +166,11 @@ python3 tools/validation/replay_semantic_pipeline.py classify \
 
 테스트는 검사 대상을 소유한 위치에 둡니다. 루트 `tests/`에는 저장소 도구의 자동 검사와 패키지를 연결하는 통합 검사만 둡니다. 실행, 관찰과 보고 코드는 검증 도구로 분리합니다.
 
+벤치마크 결과, 실행 이력, 로그, 녹화와 화면 캡처는 저장소 밖
+`CLEANY_DATA_ROOT/runs/` 또는 `CLEANY_DATA_ROOT/reports/`에 보관합니다.
+새 실행 기록은 PR에 포함하지 않고, 코드와 설정, 검사 fixture 및 재현 절차를 관리합니다.
+기존 도구가 저장소 안에 만든 `output/`, `reports/`와 검사 보고서도 Git에서 제외합니다.
+
 | 위치 | 책임 |
 |---|---|
 | `ros2_ws/src/<package>/test/`, `tests/` | 패키지 기능과 계약의 자동 검사 |
@@ -190,7 +221,8 @@ flowchart TB
 | Hand-eye 경계 | `make test-handeye` | description, MuJoCo, MoveIt, calibration |
 | Base ROS | `make test-base` | interface, driver, odometry; mock MCU |
 | ESP32 준비, motor core | `make test-micro-ros-setup test-motor-core` | Python 준비 도구와 장치 없는 C++ |
-| Monitor | `make test-dev-monitor` | 수집, 저장, HTTP와 UI 데이터 경계 |
+| Logger | `make test-logger` | CLI 정책 편집과 종료 코드, 기록 정책, 읽기 전용 archive, 디렉터리 독점, 세션과 복구 경계 |
+| Monitor와 Logger | `make test-dev-monitor` | Logger 검사와 ROS 수집, 저장, HTTP와 UI 데이터 경계 |
 | Monitor 승인 제안 | `CLEANY_RUN_ROS_TESTS=1 ROS_DOMAIN_ID=231 ROS_LOCALHOST_ONLY=1 make test-dev-monitor` | 별도 ROS domain의 관측 fixture, 제안 이미지와 대상 재확인; 실물 동작 없음 |
 | Telemetry | `make test-telemetry` | odom relay |
 | CI 준비 도구 | `make test-ci-tools` | 의존성 이미지 무효화, build context와 명령 전달 |
@@ -258,6 +290,27 @@ Gazebo package의 `--run-sim-runtime`, `--run-evaluation-tests`와 Mission core�
 source /opt/ros/humble/setup.bash
 source "$(make -s print-install-base)/setup.bash"
 ROS_DOMAIN_ID=82 CLEANY_RUN_ROS_TESTS=1 make test-mission-core
+```
+
+Logger 독립 녹화 검사는 빌드 overlay를 source한 뒤 빈 출력 경로에서 실행합니다.
+logger와 Monitor를 별도 프로세스로 띄우고 합성 경로, 카메라와 점군을 발행합니다.
+Monitor 종료 전후의 같은 세션에서 SQLite 증가, rosbag2 원문과 stamp, Monitor 재접속,
+HTTP 시작과 정지, logger 단절과 writer 대체 금지를 확인합니다. 실제 로봇 구동과
+센서 성능 검증은 포함하지 않습니다.
+
+```bash
+ROS_DOMAIN_ID=218 ROS_LOCALHOST_ONLY=1 make test-logger-independence \
+  LOGGER_TEST_OUTPUT=/absolute/new-logger-run LOGGER_BASE_COMMIT=<base-commit>
+CLEANY_RUN_ROS_TESTS=1 ROS_DOMAIN_ID=217 ROS_LOCALHOST_ONLY=1 make test-dev-monitor
+```
+
+CLI 실제 연결 검사는 logger를 별도 프로세스로 띄우고 설치된 `logger` 실행 파일로
+조회, 토픽 설정, 시작과 정지를 호출합니다. 합성 경로와 이미지를 native bag에서
+다시 읽으며 CLI 종료 후 녹화 유지, 활성 설정 거부, 세션 보호와 연결 실패를 확인합니다.
+
+```bash
+ROS_DOMAIN_ID=219 ROS_LOCALHOST_ONLY=1 make test-logger-cli \
+  LOGGER_TEST_OUTPUT=/absolute/new-cli-run LOGGER_BASE_COMMIT=<base-commit>
 ```
 
 Monitor smoke는 같은 domain에서 Monitor를 먼저 실행한 뒤 호출합니다.

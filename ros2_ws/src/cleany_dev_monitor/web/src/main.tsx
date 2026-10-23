@@ -57,7 +57,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronDown,
-  Trash2,
 } from "lucide-react";
 import { ResourceDashboard } from "@/components/resource-dashboard";
 import { Panel } from "@/components/panel";
@@ -828,10 +827,6 @@ function App() {
   const lastBoot = useRef("");
   const [recording, setRecording] = useState<Data>({});
   const [sessions, setSessions] = useState<(Data & TimelineSession)[]>([]);
-  const sessionsRevision = useRef(0);
-  const deletePending = useRef(false);
-  const [deletingSession, setDeletingSession] = useState("");
-  const [recordingMessage, setRecordingMessage] = useState("");
   const [timelineControlsHost, setTimelineControlsHost] =
     useState<HTMLElement | null>(null);
   const [timelineFocus, setTimelineFocus] = useState<number | null>(null);
@@ -960,19 +955,14 @@ function App() {
       ws.close();
     };
   }, []);
-  const refreshSessions = async () => {
-    const revision = ++sessionsRevision.current;
-    try {
-      const response = await fetch("/api/recordings");
-      if (!response.ok) throw Error("녹화 목록을 읽을 수 없습니다.");
-      const data = await response.json();
-      if (revision !== sessionsRevision.current) return;
-      setSessions(data.sessions);
-      setRecording({ id: data.active, reason: data.reason });
-    } catch (e) {
-      if (revision === sessionsRevision.current) setError(String(e));
-    }
-  };
+  const refreshSessions = () =>
+    fetch("/api/recordings")
+      .then((r) => r.json())
+      .then((d) => {
+        setSessions(d.sessions);
+        setRecording({ id: d.active, reason: d.reason });
+      })
+      .catch((e) => setError(String(e)));
   useEffect(() => {
     refreshSessions();
     const timer = setInterval(refreshSessions, 1000);
@@ -1033,35 +1023,6 @@ function App() {
     setReplayId("");
     setPlaying(false);
     setNotice("");
-  };
-  const deleteRecording = async (session: Data & TimelineSession) => {
-    if (deletePending.current) return;
-    const description = `${session.id.slice(0, 8)}, ${session.start ? time(session.start) : "시각 없음"}, ${(session.bytes / 1024 ** 2).toFixed(2)} MiB`;
-    if (
-      !window.confirm(
-        `${description}\n\n이 녹화의 SQLite와 센서 원본(rosbag2)을 함께 삭제할까요?\n삭제한 기록은 복구할 수 없습니다.`,
-      )
-    )
-      return;
-    deletePending.current = true;
-    setDeletingSession(session.id);
-    setRecordingMessage("");
-    try {
-      const response = await fetch(`/api/recordings/${session.id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw Error(await response.text());
-      ++sessionsRevision.current;
-      setSessions((value) => value.filter((item) => item.id !== session.id));
-      if (replayRef.current === session.id) returnLive();
-      setRecordingMessage("녹화를 삭제했습니다.");
-      await refreshSessions();
-    } catch (e) {
-      setRecordingMessage(`삭제 실패: ${String(e)}`);
-    } finally {
-      deletePending.current = false;
-      setDeletingSession("");
-    }
   };
   useEffect(() => {
     if (!playing) return;
@@ -1779,7 +1740,6 @@ function App() {
                         <th>FSM</th>
                         <th>크기</th>
                         <th>열기</th>
-                        <th className="recording-delete-cell">삭제</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1788,18 +1748,8 @@ function App() {
                           <td>
                             <code>{s.id.slice(0, 8)}</code>{" "}
                             {s.id === recording.id && (
-                              <Badge
-                                tone={
-                                  s.deletable || recording.reason
-                                    ? "warn"
-                                    : "good"
-                                }
-                              >
-                                {recording.reason
-                                  ? "기록 중단"
-                                  : s.deletable
-                                    ? "기록 정지"
-                                    : "기록 중"}
+                              <Badge tone="good">
+                                기록 중{recording.reason ? "단" : ""}
                               </Badge>
                             )}
                             {(s.metadata.gap || s.metadata.raw_gap) && (
@@ -1857,44 +1807,11 @@ function App() {
                               </small>
                             ) : null}
                           </td>
-                          <td className="recording-delete-cell">
-                            <Button
-                              variant="outline"
-                              size="icon-sm"
-                              className="recording-delete-button"
-                              aria-label={`녹화 ${s.id.slice(0, 8)} 삭제`}
-                              aria-busy={deletingSession === s.id}
-                              title={
-                                deletingSession === s.id
-                                  ? "삭제 중…"
-                                  : s.deletable === false ||
-                                      (s.id === recording.id &&
-                                        s.deletable !== true)
-                                    ? "녹화를 정지한 뒤 삭제할 수 있습니다."
-                                    : "SQLite와 센서 원본을 함께 삭제"
-                              }
-                              disabled={
-                                !connected ||
-                                !!deletingSession ||
-                                s.deletable === false ||
-                                (s.id === recording.id && s.deletable !== true)
-                              }
-                              onClick={() => void deleteRecording(s)}
-                            >
-                              <Trash2 aria-hidden="true" />
-                            </Button>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {!sessions.length && <Empty>기록 없음</Empty>}
-                  {recordingMessage && <p role="status">{recordingMessage}</p>}
-                  <small>
-                    삭제하면 SQLite와 센서 원본이 함께 지워집니다. 기록 중인
-                    세션은 먼저 녹화를 정지하세요. 용량 한도로 중단된 경우
-                    공간을 확보한 뒤 녹화 시작을 누르세요.
-                  </small>
                 </Panel>
               </details>
             </>

@@ -3,10 +3,11 @@ import asyncio
 import pytest
 from aiohttp import ClientSession
 from aiohttp.test_utils import TestServer
-from cleany_dev_monitor.core import Hub, Recorder
-from cleany_dev_monitor.recording import defaults, allowed
+from cleany_logger import Recorder
+from cleany_dev_monitor.core import Hub
+from cleany_logger.recording import defaults, allowed
 from cleany_dev_monitor.sources import resolved, routes, validate_sources
-from cleany_dev_monitor.server import create_app
+from logger_fixture import create_app
 
 
 def test_namespace_and_custom_roles_rebuild_actual_routes():
@@ -67,13 +68,15 @@ def test_topic_settings_persist_validate_and_expose_applied_pending(tmp_path):
             initial = await response.json()
             assert initial['source_fields']['path_topic']['group'] == 'paths'
             settings = initial['settings']
+            settings['active'] = False
+            await client.put(server.make_url('/api/recording/settings'), json=settings)
             settings['sources']['path_topic'] = '/custom/plan'
             settings['source_hz']['path_topic'] = .5
             settings['source_hz']['local_path_topic'] = 3.
             response = await client.put(server.make_url('/api/recording/settings'), json=settings)
             value = await response.json()
-            assert response.status == 200 and value['source_pending']
-            assert value['source_applied']['path_topic'] == '/plan'
+            assert response.status == 200 and not value['source_pending']
+            assert value['source_applied']['path_topic'] == '/custom/plan'
             hub.reset_sources({**config, **settings['sources']}, 1)
             value = await (await client.get(server.make_url('/api/recording/settings'))).json()
             assert not value['source_pending']

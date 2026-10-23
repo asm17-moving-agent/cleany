@@ -84,7 +84,9 @@ help:
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make build-dev-monitor / run-dev-monitor  Build or serve the read-only robot monitor"
-	@echo "  make test-dev-monitor  Test bounded recording, HTTP API and ROS observation"
+	@echo "  make logger LOGGER_ARGS='status'  Control the independent recorder"
+	@echo "  make test-logger    Test the recording engine without Monitor or ROS"
+	@echo "  make test-dev-monitor  Test Logger, HTTP API and ROS observation"
 	@echo "  make test-mission-core  Run ROS-independent FSM, BT and bridge tests"
 	@echo "  make build-mission-runtime  Build interfaces, FSM and Backend bridge"
 	@echo "  make build-mission-sim  Build Gazebo + navigation + runtime + pose relay"
@@ -230,7 +232,7 @@ PERCEPTION_PYTEST_ARGS ?=
 test-perception:
 	source "$(ROS_SETUP)" && \
 	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_manipulation_bt:$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider $(PERCEPTION_TEST_PATHS) $(PERCEPTION_PYTEST_ARGS)
 
 build-gazebo: check-gazebo-env
@@ -505,7 +507,7 @@ clean:
 	"$(REPO_ROOT)tools/ros2/ros2-clean"
 
 DEV_MONITOR_WEB := $(ROS2_WS)/src/cleany_dev_monitor/web
-.PHONY: build-dev-monitor-web build-dev-monitor-ros build-dev-monitor test-dev-monitor run-dev-monitor
+.PHONY: build-dev-monitor-web build-dev-monitor-ros build-dev-monitor test-logger test-dev-monitor run-dev-monitor
 build-dev-monitor-web:
 	pnpm --dir "$(DEV_MONITOR_WEB)" install --frozen-lockfile
 	pnpm --dir "$(DEV_MONITOR_WEB)" build
@@ -515,13 +517,21 @@ build-dev-monitor-ros:
 	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
 	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
 		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
-		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_dev_monitor
+		--packages-up-to cleany_dev_monitor cleany_control_bridge cleany_mission_manager $(COLCON_BUILD_ARGS)
 
 build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
 
-test-dev-monitor:
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
-	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+LOGGER_TEST_PATHS ?= "$(ROS2_WS)/src/cleany_logger/tests"
+LOGGER_PYTEST_ARGS ?=
+DEV_MONITOR_TEST_PATHS ?= "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+DEV_MONITOR_PYTEST_ARGS ?=
+test-logger:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider $(LOGGER_TEST_PATHS) $(LOGGER_PYTEST_ARGS)
+
+test-dev-monitor: test-logger
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider $(DEV_MONITOR_TEST_PATHS) $(DEV_MONITOR_PYTEST_ARGS)
 
 DEV_MONITOR_E2E_ARGS ?=
 .PHONY: test-dev-monitor-web
@@ -538,6 +548,31 @@ print-install-base:
 	@printf '%s\n' '$(INSTALL_BASE)'
 print-navigation-install-base:
 	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
+
+.PHONY: build-logger run-logger logger
+build-logger:
+	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-select cleany_interfaces cleany_logger
+
+run-logger:
+	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
+	ros2 launch cleany_logger logger.launch.py $(LOGGER_LAUNCH_ARGS)
+
+logger:
+	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
+	ros2 run cleany_logger logger $(LOGGER_ARGS)
+
+.PHONY: test-logger-independence
+test-logger-independence:
+	@test -n "$(LOGGER_TEST_OUTPUT)" -a -n "$(LOGGER_BASE_COMMIT)" || (echo "Set LOGGER_TEST_OUTPUT and LOGGER_BASE_COMMIT" >&2; exit 2)
+	python3 tools/validation/logger/independence.py --output "$(LOGGER_TEST_OUTPUT)" --base-commit "$(LOGGER_BASE_COMMIT)"
+
+.PHONY: test-logger-cli
+test-logger-cli:
+	@test -n "$(LOGGER_TEST_OUTPUT)" -a -n "$(LOGGER_BASE_COMMIT)" || (echo "Set LOGGER_TEST_OUTPUT and LOGGER_BASE_COMMIT" >&2; exit 2)
+	python3 tools/validation/logger/cli.py --output "$(LOGGER_TEST_OUTPUT)" --base-commit "$(LOGGER_BASE_COMMIT)"
 
 .PHONY: test-ci-tools
 test-ci-tools:
@@ -567,18 +602,19 @@ test-jetson-tools:
 	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib tests/tools $(JETSON_PYTEST_ARGS)
 
 .PHONY: test-jetson-packages
+JETSON_TEST_PATHS ?= $(ROS2_WS)/src/cleany_interfaces/test \
+	$(ROS2_WS)/src/cleany_perception/test \
+	$(ROS2_WS)/src/cleany_grasping/test \
+	$(ROS2_WS)/src/cleany_robot_interface/test \
+	$(ROS2_WS)/src/cleany_skill_executor/test \
+	$(ROS2_WS)/src/cleany_manipulation_bt/test
 test-jetson-packages:
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
 	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 \
 	PYTHONPATH="$(REPO_ROOT)tools:$(subst $(ROS2_WS)/src/cleany_manipulation_bt:,,$(JETSON_SOURCE_PATH)):$(ROS2_WS)/src/cleany_perception/test:$(ROS2_WS)/src/cleany_skill_executor/test:$(ROS2_WS)/src/cleany_manipulation_bt/test:$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib \
-		$(ROS2_WS)/src/cleany_interfaces/test \
-		$(ROS2_WS)/src/cleany_perception/test \
-		$(ROS2_WS)/src/cleany_grasping/test \
-		$(ROS2_WS)/src/cleany_robot_interface/test \
-		$(ROS2_WS)/src/cleany_skill_executor/test \
-		$(ROS2_WS)/src/cleany_manipulation_bt/test $(JETSON_PYTEST_ARGS)
+		$(JETSON_TEST_PATHS) $(JETSON_PYTEST_ARGS)
 
 .PHONY: test-jetson-native
 test-jetson-native:

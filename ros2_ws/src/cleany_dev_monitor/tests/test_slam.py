@@ -5,8 +5,9 @@ import math
 from types import SimpleNamespace as N
 
 import pytest
-from cleany_dev_monitor.core import Hub, Recorder
-from cleany_dev_monitor.recording import defaults, validate
+from cleany_logger import Recorder
+from cleany_dev_monitor.core import Hub
+from cleany_logger.recording import defaults, validate
 from cleany_dev_monitor.slam import SlamState, marker_geometry, texture_png
 from cleany_dev_monitor.sources import SCHEMA, resolved, routes, source_roles
 from PIL import Image

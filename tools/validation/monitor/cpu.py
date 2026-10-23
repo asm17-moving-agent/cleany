@@ -7,6 +7,7 @@ it never starts the robot runtime or calls manipulation control services.
 
 import argparse
 import asyncio
+from contextlib import ExitStack
 import json
 import math
 import os
@@ -20,13 +21,25 @@ import time
 
 
 def worker(args):
-    sys.path.insert(0, str(args.source.resolve()))
-    from cleany_dev_monitor.node import main
+    parameters = ['--ros-args', '-p', f'state_directory:={args.output / "recordings"}']
+    if args.logger_worker:
+        from cleany_logger.node import main
+        parameters.extend(['-p', 'record_on_start:=true'])
+    else:
+        sys.path.insert(0, str(args.source.resolve()))
+        from cleany_dev_monitor.node import main
+        parameters.extend(['-p', f'port:={args.port}', '-p', 'host:=127.0.0.1'])
+    main(parameters)
 
-    main([
-        '--ros-args', '-p', f'port:={args.port}', '-p', 'host:=127.0.0.1',
-        '-p', f'state_directory:={args.output / "recordings"}',
-    ])
+
+def stop_process(process: subprocess.Popen) -> None:
+    if process.poll() is None:
+        process.send_signal(signal.SIGINT)
+        try:
+            process.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
 
 
 async def measure(args, process):
@@ -132,25 +145,25 @@ def benchmark(args):
     thread = threading.Thread(target=executor.spin, daemon=True)
     thread.start()
     environment = dict(os.environ)
-    with (args.output / 'monitor.log').open('w') as log:
-        process = subprocess.Popen([
-            sys.executable, str(Path(__file__).resolve()), '--worker',
-            '--source', str(args.source.resolve()), '--output', str(args.output.resolve()),
-            '--port', str(args.port),
-        ], env=environment, stdout=log, stderr=subprocess.STDOUT)
-        try:
+    try:
+        with ExitStack() as stack:
+            processes = {}
+            for name, flag in (('logger', '--logger-worker'), ('monitor', '--worker')):
+                log = stack.enter_context((args.output / f'{name}.log').open('w'))
+                process = subprocess.Popen([
+                    sys.executable, str(Path(__file__).resolve()), flag,
+                    '--source', str(args.source.resolve()), '--output', str(args.output.resolve()),
+                    '--port', str(args.port),
+                ], env=environment, stdout=log, stderr=subprocess.STDOUT)
+                stack.callback(stop_process, process)
+                processes[name] = process
+            process, logger = processes['monitor'], processes['logger']
             report = asyncio.run(measure(args, process))
-        finally:
-            process.send_signal(signal.SIGINT)
-            try:
-                process.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-            executor.shutdown()
-            thread.join(timeout=5)
-            source.destroy_node()
-            rclpy.shutdown()
+    finally:
+        executor.shutdown()
+        thread.join(timeout=5)
+        source.destroy_node()
+        rclpy.shutdown()
     archives = list((args.output / 'recordings').glob('*.sqlite3'))
     recorded, raw, bag_messages = 0, 0, 0
     finalized, gaps = True, []
@@ -165,12 +178,13 @@ def benchmark(args):
         with sqlite3.connect(bag) as db:
             bag_messages += db.execute('SELECT count(*) FROM messages').fetchone()[0]
     report.update(source=str(args.source.resolve()), monitor_exit_code=process.returncode,
+                  logger_exit_code=logger.returncode,
                   processed_records=recorded, raw_records=raw,
                   bag_messages=bag_messages, bag_finalized=finalized, recording_gaps=gaps,
                   ros_domain_id=os.environ['ROS_DOMAIN_ID'], synthetic_publishers=51)
     (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
-    assert process.returncode == 0 and recorded > 0 and raw == bag_messages > 0
+    assert process.returncode == logger.returncode == 0 and recorded > 0 and raw == bag_messages > 0
     assert finalized and not gaps and report['websocket_gaps'] == 0
 
 
@@ -181,8 +195,9 @@ if __name__ == '__main__':
     parser.add_argument('--seconds', type=float, default=30)
     parser.add_argument('--port', type=int, default=8779)
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--logger-worker', action='store_true', help=argparse.SUPPRESS)
     arguments = parser.parse_args()
     # Isolate all test topics from the real robot, regardless of caller defaults.
     os.environ.update(ROS_DOMAIN_ID='180', ROS_LOCALHOST_ONLY='1')
     os.environ.pop('CYCLONEDDS_URI', None)
-    worker(arguments) if arguments.worker else benchmark(arguments)
+    worker(arguments) if arguments.worker or arguments.logger_worker else benchmark(arguments)

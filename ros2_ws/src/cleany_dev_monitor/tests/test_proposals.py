@@ -12,7 +12,7 @@ import pytest
 
 from cleany_dev_monitor.operator_jobs import approved_command, atomic_json
 from cleany_dev_monitor.proposals import DEFAULTS, ProposalStore, fingerprint, scene_context, validate_fresh_target
-from test_operator import environment
+from operator_fixture import environment
 
 
 def scene():
@@ -165,7 +165,7 @@ def test_expired_proposal_and_new_observation_invalidate_approval(tmp_path, monk
 def test_worker_checks_before_dispatch_and_next_proposal_never_executes(tmp_path, monkeypatch, changed):
     from cleany_dev_monitor.operator_jobs import execute_job
     import cleany_dev_monitor.proposal_ros as adapter
-    from test_operator import Port
+    from operator_fixture import Port
     calls = []
     approved = proposal()
     store = ProposalStore(tmp_path)
