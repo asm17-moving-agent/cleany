@@ -19,7 +19,7 @@ setup(
     maintainer_email="team@example.com",
     description="Cleany mission lifecycle and FSM manager.",
     license="MIT",
-    extras_require={"test": ["pytest"]},
+    extras_require={"test": ["pytest", "websockets"]},
     entry_points={"console_scripts": [
         "mission_runtime = cleany_mission_manager.node:main",
     ]},

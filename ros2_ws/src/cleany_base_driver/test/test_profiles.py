@@ -9,7 +9,7 @@ LAUNCH = Path(__file__).parents[1] / 'launch' / 'base_driver.launch.py'
 spec = importlib.util.spec_from_file_location('base_driver_launch', LAUNCH)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-CONFIG = Path(__file__).parents[4] / 'configs' / 'robot'
+CONFIG = Path(__file__).parents[1] / 'config'
 
 
 def test_profile_mock_is_explicit_and_synthetic_never_real():
@@ -23,10 +23,12 @@ def test_profile_mock_is_explicit_and_synthetic_never_real():
 
 def test_confirmed_real_geometry_and_initial_lifted_wheel_limits():
     profile, required = module.load_profile(CONFIG / 'base_hardware.yaml', False)
+    # Physical measured wheel separation is 0.610 m (center-to-center),
+    # but effective kinematic wheel separation is calibrated to 0.590 m for floor driving.
     assert profile['geometry'] == {
         'wheel_radius_m': 0.0635,
         'wheelbase_m': 0.350,
-        'wheel_separation_m': 0.610,
+        'wheel_separation_m': 0.590,
     }
     assert profile['limits'] == {
         'linear_x_mps': 0.5,
@@ -35,7 +37,7 @@ def test_confirmed_real_geometry_and_initial_lifted_wheel_limits():
         'wheel_rad_s': 10.0,
         'command_timeout_s': 0.3,
     }
-    assert required == (0.0635, 0.350, 0.610, 0.5, 0.5, 1.0, 10.0, 0.3)
+    assert required == (0.0635, 0.350, 0.590, 0.5, 0.5, 1.0, 10.0, 0.3)
 
 
 @pytest.mark.parametrize('field', [

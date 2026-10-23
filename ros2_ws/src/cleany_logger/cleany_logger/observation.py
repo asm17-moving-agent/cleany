@@ -108,6 +108,7 @@ class ObservationBuffer:
         *,
         critical: bool = False,
         ros_time: float | None = None,
+        received_at: float | None = None,
     ) -> dict:
         with self.lock:
             self.sequence += 1
@@ -117,7 +118,7 @@ class ObservationBuffer:
                 "kind": kind,
                 "key": key,
                 "data": data,
-                "received_at": time.time(),
+                "received_at": time.time() if received_at is None else received_at,
                 "received_monotonic": time.monotonic(),
                 "ros_time": ros_time,
             }

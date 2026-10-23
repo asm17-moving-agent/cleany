@@ -8,6 +8,7 @@ import pytest
 
 from cleany_gazebo_sim.world.cad_frame import freeze
 from cleany_gazebo_sim.world.generator import materialize_mecanum_wheel_world
+from cleany_navigation.urdf_geometry import rotation
 
 
 def test_park_rotation_follows_joint_axis_and_preserves_translation():
@@ -30,12 +31,11 @@ def test_park_rejects_out_of_limit_angle():
 
 
 @pytest.mark.skipif(not (shutil.which('gz') or shutil.which('ign')), reason='Gazebo sdformat conversion required')
-@pytest.mark.parametrize('backend', ['harmonic', 'fortress'])
-def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path, backend):
+def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path):
     pytest.importorskip('xacro')
     package = Path(__file__).resolve().parents[1]
     world = materialize_mecanum_wheel_world(
-        package/f'worlds/cleany_mecanum_{backend}.sdf', target_path=tmp_path/'world.sdf', robot_model='cad_frame')
+        package/'worlds/cleany_mecanum_fortress.sdf', target_path=tmp_path/'world.sdf', robot_model='cad_frame')
     model = ET.parse(world).getroot().find("world/model[@name='cleany_mecanum']")
     assert len(model.findall('link')) == 6
     assert len(model.findall('joint')) == 5
@@ -65,10 +65,42 @@ def test_cad_conversion_preserves_drive_sensor_and_envelope_contract(tmp_path, b
     assert high[1]-low[1] == pytest.approx(.6548, abs=1e-6)
     angle = np.deg2rad(20)
     np.testing.assert_allclose(meta['depth_camera_tf']['rotation_rpy'], [0, angle, 0], atol=1e-9)
-    expected = [0.102+0.025*np.cos(angle)+0.03*np.sin(angle), -0.002,
-                0.77115-0.025*np.sin(angle)+0.03*np.cos(angle)]
+    # Jetson mast origin: (0.1172, 0, 0.35); reversed pan: (-0.103, 0, 0.3505).
+    pan_pivot = np.array([0.0142, 0.0, 0.7005])
+    tilt_pivot = pan_pivot + [-0.001, -0.002, 0.09815]
+    expected = tilt_pivot + [
+        0.025*np.cos(angle)+0.03*np.sin(angle), 0,
+        -0.025*np.sin(angle)+0.03*np.cos(angle)]
+    np.testing.assert_allclose(meta['depth_camera_tf']['pan_pivot'], pan_pivot, atol=1e-9)
     np.testing.assert_allclose(meta['depth_camera_tf']['translation'], expected, atol=1e-9)
-    assert meta['depth_camera_tf']['translation'][2] < 0.80115
+    assert meta['depth_camera_tf']['translation'][2] < tilt_pivot[2] + 0.03
+
+    # Resolve the converted SDF independently of the URDF-derived TF metadata.
+    entities = {e.get('name'): e for e in model if e.tag in ('link', 'joint', 'frame')}
+
+    def local_pose(pose):
+        transform = np.eye(4)
+        if pose is not None:
+            values = np.fromstring(pose.text, sep=' ')
+            transform[:3, 3] = values[:3]
+            transform[:3, :3] = rotation(values[3:])
+        return transform
+
+    def base_pose(name):
+        transform = np.eye(4)
+        while name != 'base_link':
+            entity = entities[name]
+            pose = entity.find('pose')
+            transform = local_pose(pose) @ transform
+            name = (pose.get('relative_to') if pose is not None else None) or entity.get('attached_to')
+        return transform
+
+    for name in ('head_realsense_rgb', 'head_realsense_depth'):
+        pose = model.find(f".//sensor[@name='{name}']/pose")
+        camera = base_pose(pose.get('relative_to')) @ local_pose(pose)
+        # SDFormat rounds some fixed-frame RPY values during URDF conversion.
+        np.testing.assert_allclose(camera[:3, 3], expected, atol=1e-6)
+        np.testing.assert_allclose(camera[:3, :3], rotation([0, angle, 0]), atol=1e-5)
 
 
 def test_navigation_geometry_preserves_offset_and_separates_margins():

@@ -12,9 +12,6 @@ SLAM_CONFIG = (
 FORTRESS_WORLD = (
     GAZEBO_PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_fortress.sdf'
 )
-HARMONIC_WORLD = (
-    GAZEBO_PACKAGE_ROOT / 'worlds' / 'cleany_mecanum_harmonic.sdf'
-)
 
 
 def _lidar_range(world: Path) -> tuple[float, float]:
@@ -28,7 +25,7 @@ def _lidar_range(world: Path) -> tuple[float, float]:
     return float(minimum), float(maximum)
 
 
-def test_slam_laser_limits_match_both_gazebo_profiles() -> None:
+def test_slam_laser_limits_match_gazebo_world() -> None:
     document = yaml.safe_load(SLAM_CONFIG.read_text(encoding='utf-8'))
     params = document['slam_toolbox']['ros__parameters']
     expected = (
@@ -37,4 +34,3 @@ def test_slam_laser_limits_match_both_gazebo_profiles() -> None:
     )
 
     assert _lidar_range(FORTRESS_WORLD) == expected
-    assert _lidar_range(HARMONIC_WORLD) == expected

@@ -5,3 +5,5 @@ cleany_logger:
     session_limit_bytes: 104857600
     total_limit_bytes: 1073741824
     resource_interval_s: 1.0
+    manipulation_execution_limit: 20
+    manipulation_interval_limit: 64

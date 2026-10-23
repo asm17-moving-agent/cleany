@@ -1,0 +1,25 @@
+{
+  "evaluation_config": "configs/mission/wheel_odometry_evaluation.json",
+  "output_dir": "artifacts/odometry_evaluation/diagonal_p_tuning",
+  "require_valid_icp": false,
+  "repetitions": 1,
+  "translation_distance_m": 0.5,
+  "rotation_angle_deg": 90.0,
+  "trials": [
+    {"axis": "diagonal_left", "kp": 1.0, "speed": 0.20},
+    {"axis": "diagonal_right", "kp": 1.0, "speed": 0.20},
+    {"axis": "diagonal_left", "kp": 3.0, "speed": 0.20},
+    {"axis": "diagonal_right", "kp": 3.0, "speed": 0.20},
+    {"axis": "diagonal_left", "kp": 4.0, "speed": 0.20},
+    {"axis": "diagonal_right", "kp": 4.0, "speed": 0.20},
+    {"axis": "diagonal_left", "kp": 6.0, "speed": 0.20},
+    {"axis": "diagonal_right", "kp": 6.0, "speed": 0.20}
+  ],
+  "guards": {
+    "session_radius_m": 0.75,
+    "cross_track_m": 0.08,
+    "translation_overshoot_m": 0.025,
+    "translation_yaw_drift_deg": 10.0,
+    "rotation_overshoot_deg": 5.0
+  }
+}

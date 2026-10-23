@@ -1,11 +1,39 @@
 # cleany_skill_executor
 
+## 단일 물체 Action 실행
+
+승인된 물체 하나의 실행은 Mock 서버와 native MuJoCo BT 서버가 같은
+`ExecuteManipulationSkill` 계약을 사용합니다. Mock의 요청, 취소, 조회와 모니터는
+[실행 안내](manipulation_mock_usage.md), 물리 시뮬레이션의 인식·MoveIt 연동은
+[MuJoCo BT 서버](../../cleany_manipulation_bt/README.md)를 따릅니다.
+세부 진행, 취소 정책과 실행 기록 필드는
+[공통 Action 계약](../../cleany_interfaces/docs/observation-contracts.md#단일-물체-manipulation-action)에 정리합니다.
+Mission Manager의 `action_mock` 어댑터는 `/mock/manipulation`의 계약을 호출합니다.
+기본 Mission runtime의 조작 backend 선택은 Mission 설정으로 유지합니다.
+아래 nearest-pregrasp와 sorting coordinator는 별도 실행 경로입니다.
+
 파지 후보 선택, MoveIt 계획, 시뮬레이션 집기·분류·놓기를 담당한다.
 실물 명령을 지원하는 통합 운용 단계는 아니며 외부 로봇 경로는 plan-only다.
 
+- [Python Mock 조작 서버](#python-mock-manipulation-서버)
 - [분류 실행](#시뮬레이션-분리-수거-통합-검증-진행-중)
 - [분류·운반 실행 계약](#분류운반-실행-계약)
 - [설정 및 검증](#설정-및-검증)
+
+## Python Mock Manipulation 서버
+
+`manipulation_server`는 진행과 결과를 모의 생성한다. Backend는 `mock`만 허용하며 clock, TF, odom, 카메라와 joint_states를 발행하지 않는다. Steady clock으로 timeout과 취소를 처리한다. [Endpoint 표](interfaces.md#manipulation_server)와 [실행 절차](../../../../docs/RUNNING.md#주행도-mock으로-action-연결-확인)를 따른다.
+
+| 설정 | 용도 | 정상 시간 |
+|---|---|---|
+| [기본 fixture](../config/manipulation_mock.yaml) | 빠른 서버 계약 검사 | 단계당 기본 0.5초 |
+| [Mission 공유 fixture](../../cleany_mission_manager/config/manipulation_server_fixture.yaml) | 두 물체와 네 관측 | 물체당 합계 40초 |
+
+시간 우선순위는 scenario의 `stage_durations_sec`, 전역 `stage_durations_sec`, `stage_duration_sec` 순서다. 정지 단계 기본값은 `stop_duration_sec`다. [공유 시간표와 timeout](../../cleany_mission_manager/docs/manipulation_mock_integration.md#mock-조작의-관찰-시간)을 따른다.
+
+Execution ID는 중복 수락하지 않는다. 재시작 시 ACTIVE를 INTERRUPTED로 보존하고 자동 재개하지 않는다. 과거 JSON의 추가 필드는 기본값으로 읽으며 손상된 DB는 시작 오류다. 서버 DB와 Mission DB는 분리해 유지한다. [결과, 취소와 보고 계약](../../cleany_interfaces/docs/manipulation.md)을 함께 확인한다.
+
+조회는 메모리에 유지 중인 최신 상태를 포함한다. 실행 중 서버 DB 쓰기가 실패하면 경고를 남기고 모의 동작 결과는 보존한다. Mission의 전송 전 journal 저장과 결과 저장은 별도 계약이며, 조회 응답만으로 서버 DB 쓰기 성공을 판단하지 않는다.
 
 ## 작업자 관찰 모드와 파지 깊이
 
@@ -36,7 +64,7 @@ pregrasp 기준 위치와 물체별 추가량(마우스 +14mm, 레고/휴지 +4m
 `tabletop_collision`도 제공한다. 파지 깊이·물체 물리·관절 속도·YOLOE-seg·
 MoveIt 충돌 검사와 완료 판정은 바꾸지 않는다.
 적용 범위, 실행 예제와 비교 측정은
-[`cleany_mujoco_sim/README.md`](../../cleany_mujoco_sim/docs/scenes.md#되돌릴-수-있는-고정-책상-최적화)를 따른다.
+[MuJoCo scenes](../../cleany_mujoco_sim/docs/scenes.md#되돌릴-수-있는-고정-책상-최적화)를 따른다.
 
 MuJoCo sorting의 마우스는 `mouse_grasp_extra_depth_m=0.014`를 기본 적용한다.
 `mouse`, `computer mouse`, `wireless mouse` 라벨에만 기본 접근 0.018m에

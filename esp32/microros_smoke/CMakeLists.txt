@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/microros_python.cmake")
 set(EXTRA_COMPONENT_DIRS
   "${CMAKE_CURRENT_LIST_DIR}/main"
   "${CMAKE_CURRENT_LIST_DIR}/../micro_ros/micro_ros_espidf_component")

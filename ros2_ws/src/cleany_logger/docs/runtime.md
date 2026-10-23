@@ -2,7 +2,7 @@
 
 `logger_node`는 대시보드 없이 ROS 입력을 구독하고 녹화하는 독립 프로세스다.
 원본 CDR은 rosbag2, 가공 관측과 조회 index는 SQLite에 저장한다. 수집 정책,
-주행 요약 계산, 호스트 리소스, 원본 큐, 단일 writer와 세션 종료를 소유한다.
+주행 요약과 조작 이력 집계, 호스트 리소스, 원본 큐, 단일 writer와 세션 종료를 소유한다.
 대시보드를 종료하거나 다시 열어도 활성 세션은 유지한다.
 
 ![Logger 기록 구조](assets/logger-architecture.svg)

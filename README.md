@@ -56,6 +56,7 @@ make sim-gazebo
 | 과거 보고서와 실행 원본 찾기 | [근거 색인](docs/EVIDENCE.md) |
 | 코드 구조와 구현 학습 | [학습 가이드](docs/guide/README.md), [HTML 뷰어](docs/guide/index.html) |
 | 인식과 sorting 실행 | [Perception](ros2_ws/src/cleany_perception/docs/runtime.md), [Manipulation](ros2_ws/src/cleany_skill_executor/docs/manipulation.md) |
+| 물체 하나의 Action 실행 | [Mock 서버](ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md), [MuJoCo BT 서버](ros2_ws/src/cleany_manipulation_bt/README.md) |
 | 제품, 설계, 미해결 질문 | [KB](docs/cleany-docs/README.md) |
 
 ## 코드 위치
@@ -64,8 +65,7 @@ make sim-gazebo
 |---|---|
 | `ros2_ws/src/` | ROS 패키지, 순수 core, launch와 package 설정 |
 | `esp32/` | micro-ROS 펌웨어, 빌드 보조 도구, 장치 없는 검사와 PCB |
-| `configs/robot/` | 실제 base 초기 시험 설정과 mock 전용 설정 |
-| `tests/` | 저장소 도구의 단위 테스트와 패키지 경계를 넘는 통합 검사 |
-| `tools/` | 빌드 정리, vision 환경과 시나리오 실행, 관찰, 보고 도구 |
+| `tests/` | 패키지 경계를 넘는 통합 검사 |
+| `tools/` | 빌드 출력 정리와 vision 환경 준비 도구 |
 
 생성물과 실행 원본은 기본적으로 worktree 옆 `../cleany-data/`에 둡니다. 사용 가능한 명령은 `make help`, 실제 옵션은 Makefile, launch, config에서 확인합니다. 문서 변경은 기존 설명에 반영하며, README에는 날짜별 구현 일지를 추가하지 않습니다.

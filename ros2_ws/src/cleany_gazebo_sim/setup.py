@@ -39,8 +39,6 @@ setup(
         (f'share/{package_name}/materials/roly', glob('materials/roly/*.png')),
         (f'share/{package_name}/config/facility_18f', glob('config/facility_18f/*.yaml')),
         (f'share/{package_name}/config/furniture', glob('config/furniture/*.yaml')),
-        (f'share/{package_name}/models/roly_p1g210m',
-         ['models/roly_p1g210m/README.md']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

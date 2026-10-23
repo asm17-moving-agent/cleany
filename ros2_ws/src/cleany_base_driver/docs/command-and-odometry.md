@@ -37,7 +37,7 @@ Mecanum 변환 후 wheel limit을 넘으면 네 바퀴를 같은 비율로 축�
 
 | 항목 | 기준 |
 |---|---|
-| 설정 원본 | configs/robot/base_hardware.yaml, base_synthetic.yaml |
+| 설정 원본 | [base_hardware.yaml](../config/base_hardware.yaml), [base_synthetic.yaml](../config/base_synthetic.yaml) |
 | 실물 geometry | radius 0.0635 m / wheelbase 0.350 m / separation 0.610 m |
 | MCU timestamp | MCU monotonic; ROS epoch 아님 |
 | JointState stamp | ROS 수신 시각 |

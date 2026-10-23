@@ -1,8 +1,12 @@
 SHELL := /bin/bash
 
+export PYTEST_DISABLE_PLUGIN_AUTOLOAD := 1
+
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
+COLCON_BUILD_ARGS ?=
+SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
 CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
 CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
@@ -13,16 +17,12 @@ LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 NAVIGATION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-navigation
 NAVIGATION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-navigation
 NAVIGATION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-navigation
-SCENARIO_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build-scenario-runtime
-SCENARIO_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install-scenario-runtime
-SCENARIO_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log-scenario-runtime
 MISSION_PACKAGES := cleany_interfaces cleany_mission_manager cleany_control_bridge
+MISSION_MOCK_PACKAGES := $(MISSION_PACKAGES) cleany_skill_executor
 MISSION_BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 MISSION_INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
 MISSION_LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
 GAZEBO_GUI_RENDER_ENGINE ?= ogre
-SAFETY_MODE ?= sensors
-ROBOT_MODEL ?= cad_frame
 HANDEYE_PROFILE_DIR ?= $(CLEANY_DATA_ROOT)/fixtures/handeye/mujoco_seed_20260810
 HANDEYE_POSE_MANIFEST ?= $(HANDEYE_PROFILE_DIR)/materialized_poses.yaml
 HANDEYE_RUNTIME_CONFIG ?= $(HANDEYE_PROFILE_DIR)/materialized_runtime.json
@@ -36,21 +36,27 @@ HANDEYE_PACKAGES := cleany_description cleany_mujoco_sim \
 	cleany_moveit_config cleany_handeye_calibration
 ROS2_CONTAINER ?= ros2-humble
 BASE_TEST_ROS_DOMAIN_ID ?= 173
+IMU_CALIBRATION_OUTPUT ?= $(REPO_ROOT)artifacts/imu_calibration/result.json
+IMU_CALIBRATION_TIMEOUT ?= 60
+IMU_CALIBRATION_ARGS ?=
 # Run natively inside the Ubuntu Distrobox, enter it when invoked from the host.
 BASE_EXEC ?= $(shell . /etc/os-release; \
 	if test "$$ID:$$VERSION_ID" != "ubuntu:22.04"; then \
 		printf 'distrobox enter --name $(ROS2_CONTAINER) --no-tty --clean-path --'; fi)
 
-.PHONY: test-gazebo-facility-tools test-tools test-mission-core build-mission-runtime build-mission-sim test-mission-runtime help deps deps-gazebo check-gazebo-env build build-gazebo \
+.PHONY: test-gazebo-facility-tools test-mission-core build-mission-runtime build-mission-sim test-mission-runtime help deps deps-gazebo check-gazebo-env build build-gazebo \
 	build-handeye build-telemetry test test-mission test-mujoco \
 	test-handeye test-gazebo \
-	test-telemetry test-gazebo-nav-runtime test-gazebo-navigation-pipeline test-gazebo-evaluation \
-	test-gazebo-safety test-gazebo-navigation-goals view-gazebo-costmap \
+	test-telemetry test-gazebo-nav-runtime test-gazebo-evaluation \
 	handeye-generate-mujoco handeye-validate-mujoco handeye-mujoco \
 	sim sim-gazebo \
 	sim-gazebo-study-cafe sim-gazebo-facility clean firmware-setup firmware-smoke firmware-build \
 	firmware-upload test-motor-core build-base test-base \
-	micro-ros-agent-build test-micro-ros-setup
+	micro-ros-agent-build test-micro-ros-setup imu-calibration-build \
+	imu-calibration-upload imu-calibration-capture test-imu-calibration test-odometry-evaluation test-imu-runtime
+
+.PHONY: build-manipulation build-manipulation-bt test-manipulation-core \
+	test-manipulation test-manipulation-bt sim-mujoco-manipulation
 
 help:
 	@echo "Cleany native ROS 2 commands"
@@ -58,15 +64,19 @@ help:
 	@echo "  make deps-gazebo   Install Gazebo Fortress dependencies with rosdep"
 	@echo "  make check-gazebo-env  Verify Ubuntu 22.04 / Humble / Fortress environment"
 	@echo "  make build         Build the ROS 2 workspace"
+	@echo "  make build-manipulation  Build mock manipulation Action packages"
+	@echo "  make build-manipulation-bt  Build native BT and MuJoCo Action packages"
+	@echo "  make test-manipulation-core  Test manipulation core and monitor"
+	@echo "  make test-manipulation  Test mock Action, cancellation and recovery"
+	@echo "  make test-manipulation-bt  Test BT and related perception/manipulation contracts"
+	@echo "  make sim-mujoco-manipulation  Run the single-object MuJoCo Action stack"
 	@echo "  make build-gazebo  Build cleany_gazebo_sim and its dependencies"
 	@echo "  make build-navigation  Build common navigation without Gazebo"
-	@echo "  make build-scenario-runtime  Build isolated Gazebo/mission runtime for scenario workers"
 	@echo "  make test-navigation  Test common navigation including C++ plugins"
 	@echo "  make test-navigation-runtime  Test Nav2 serial safety with a synthetic backend"
 	@echo "  make build-handeye Build hand-eye packages and dependencies"
 	@echo "  make build-telemetry Build the ROS telemetry package"
 	@echo "  make test          Build and run all colcon tests"
-	@echo "  make test-tools    Run development tool unit tests without ROS runtime"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make build-dev-monitor / run-dev-monitor  Build or serve the read-only robot monitor"
 	@echo "  make logger LOGGER_ARGS='status'  Control the independent recorder"
@@ -76,6 +86,8 @@ help:
 	@echo "  make build-mission-runtime  Build interfaces, FSM and Backend bridge"
 	@echo "  make build-mission-sim  Build Gazebo + navigation + runtime + pose relay"
 	@echo "  make test-mission-runtime  Build and test mission ROS packages"
+	@echo "  make build-mission-mock / test-mission-mock  Build and test the integrated Mock Action"
+	@echo "  make test-gazebo-manipulation  Check study-cafe Nav2 + two Mock Action collections"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-handeye  Build and test the hand-eye package boundary"
 	@echo "  make test-telemetry Test the ROS telemetry package"
@@ -83,11 +95,7 @@ help:
 	@echo "  make handeye-validate-mujoco  Validate the completed 20+5 dataset"
 	@echo "  make test-gazebo   Test Gazebo Fortress and navigation packages"
 	@echo "  make test-gazebo-nav-runtime  Run LiDAR, IMU, odom, and TF runtime test"
-	@echo "  make test-gazebo-navigation-goals  Run distant and chair-gap goals headlessly (Fortress)"
-	@echo "  make test-gazebo-navigation-pipeline  Run CAD saved-map goal with full safety"
 	@echo "  make test-gazebo-evaluation  Run temporary SLAM evaluation checks"
-	@echo "  make test-gazebo-safety  Run SCRUM-306 sensors/monitor/avoid evaluation"
-	@echo "  make view-gazebo-costmap  Show live costmap over saved SLAM map in RViz"
 	@echo "  make sim           Build and run the headless MuJoCo simulation"
 	@echo "  make sim-gazebo    Build and run headless Gazebo Fortress simulation"
 	@echo "  make sim-gazebo-study-cafe  Run the spacious study cafe with GUI"
@@ -96,17 +104,19 @@ help:
 	@echo "  make clean         Remove ROS 2 build, install, and log outputs"
 	@echo "  make firmware-setup / firmware-smoke / firmware-build"
 	@echo "  make test-motor-core / build-base / test-base"
+	@echo "  make test-odometry-evaluation  Test config-driven wheel odom evaluation"
 	@echo "  make micro-ros-agent-build  Build pinned Agent and check --help"
 	@echo "  make firmware-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
+	@echo "  make imu-calibration-build / test-imu-calibration"
+	@echo "  make test-imu-runtime  Test MCU calibration config and ROS gyro relay"
+	@echo "  make imu-calibration-upload CLEANY_ESP_PORT=/dev/... CONFIRM_UPLOAD=1"
+	@echo "  make imu-calibration-capture CLEANY_ESP_PORT=/dev/... [IMU_CALIBRATION_ARGS=--calibrate]"
 
 firmware-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 esp32/scripts/micro_ros_setup.py'
 
 test-micro-ros-setup:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q esp32/host_tests/test_micro_ros_setup.py'
-
-test-tools:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/tools'
 
 test-gazebo-facility-tools:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_gazebo_sim:$${PYTHONPATH:-}" /usr/bin/python3 -m pytest -p no:cacheprovider -q ros2_ws/src/cleany_gazebo_sim/test/test_mission_targets.py'
@@ -125,11 +135,32 @@ firmware-upload: firmware-setup
 test-motor-core:
 	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; for f in esp32/host_tests/*.cpp; do g++ -std=c++17 -Wall -Wextra -Werror -pedantic -Iesp32/src "$$f" -o "/tmp/$$(basename "$$f" .cpp)"; "/tmp/$$(basename "$$f" .cpp)"; done'
 
+imu-calibration-build:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration'
+
+imu-calibration-upload:
+	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)
+	@test "$(CONFIRM_UPLOAD)" = 1 || (echo "CONFIRM_UPLOAD=1 is required" >&2; exit 2)
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && env -u ROS_DISTRO -u AMENT_PREFIX_PATH -u CMAKE_PREFIX_PATH -u COLCON_PREFIX_PATH -u PYTHONPATH esp32/.venv/bin/platformio run -d esp32/imu_calibration -e esp32-s3-imu-calibration -t upload --upload-port "$(CLEANY_ESP_PORT)"'
+
+imu-calibration-capture:
+	@test -n "$(CLEANY_ESP_PORT)" || (echo "CLEANY_ESP_PORT is required" >&2; exit 2)
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && esp32/.venv/bin/python tools/imu_calibration/capture.py --port "$(CLEANY_ESP_PORT)" --output "$(IMU_CALIBRATION_OUTPUT)" --timeout "$(IMU_CALIBRATION_TIMEOUT)" $(IMU_CALIBRATION_ARGS)'
+
+test-imu-calibration: test-motor-core
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/imu_calibration'
+
 build-base:
 	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_base_driver cleany_base_odometry'
 
 test-base: build-base
-	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest src/cleany_base_driver/test src/cleany_base_odometry/test'
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_base_driver cleany_base_odometry && for p in cleany_base_interfaces cleany_base_driver cleany_base_odometry; do colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)/$$p" --verbose || exit 1; done'
+
+test-imu-runtime: build-base
+	$(BASE_EXEC) bash -lc 'set -e; source /opt/ros/humble/setup.bash; source "$(INSTALL_BASE)/setup.bash"; cd "$(REPO_ROOT)"; export ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID); PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q ros2_ws/src/cleany_base_interfaces/test/test_contract.py ros2_ws/src/cleany_base_driver/test/test_imu_core.py ros2_ws/src/cleany_base_driver/test/test_imu_graph.py tools/test_imu_runtime_config.py'
+
+test-odometry-evaluation:
+	$(BASE_EXEC) bash -lc 'set -e; cd "$(REPO_ROOT)"; source /opt/ros/humble/setup.bash; if test -f ros2_ws/install/setup.bash; then source ros2_ws/install/setup.bash; fi; for launcher in run_wheel_only_eval.sh run_motion_response.sh; do bash -n "tools/odometry_evaluation/$$launcher"; done; PYTHONNOUSERSITE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -q tools/odometry_evaluation tools/wheel_calibration'
 
 micro-ros-agent-build:
 	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && source /opt/ros/humble/setup.bash && /usr/bin/python3 esp32/scripts/micro_ros_setup.py --agent-build && source esp32/micro_ros/agent/install/local_setup.bash && out=$$(ros2 run micro_ros_agent micro_ros_agent --help 2>&1 | tr -d "\000" | sed "/^\\[ros2run\\]: Process exited/d" || true); printf "%s\n" "$$out"; grep -q "Usage:.*micro_ros_agent" <<<"$$out"'
@@ -188,16 +219,7 @@ test-navigation-runtime: build-navigation
 build:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)"
-
-.PHONY: build-scenario-runtime
-build-scenario-runtime:
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	colcon --log-base "$(SCENARIO_LOG_BASE)" build --symlink-install \
-		--build-base "$(SCENARIO_BUILD_BASE)" \
-		--install-base "$(SCENARIO_INSTALL_BASE)" \
-		--packages-up-to cleany_gazebo_sim cleany_mission_manager cleany_control_bridge cleany_base_odometry
+	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS)
 
 build-gazebo: check-gazebo-env
 	source "$(ROS_SETUP)" && \
@@ -206,6 +228,53 @@ build-gazebo: check-gazebo-env
 		--build-base "$(BUILD_BASE)" \
 		--install-base "$(INSTALL_BASE)" \
 		--packages-up-to cleany_gazebo_sim
+
+build-manipulation:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(LOG_BASE)" build --symlink-install \
+		--build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-up-to cleany_skill_executor $(COLCON_BUILD_ARGS)
+
+build-manipulation-bt:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(LOG_BASE)" build --symlink-install \
+		--build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-up-to cleany_manipulation_bt $(COLCON_BUILD_ARGS)
+
+test-manipulation-core:
+	PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_core.py" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_monitor.py"
+
+test-manipulation: build-manipulation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	python3 -m pytest -q src/cleany_interfaces/test/test_interface_contract.py \
+		src/cleany_skill_executor/test/test_manipulation_core.py \
+		src/cleany_skill_executor/test/test_manipulation_runtime.py \
+		src/cleany_skill_executor/test/test_manipulation_monitor.py \
+		src/cleany_skill_executor/test/test_manipulation_monitor_runtime.py
+
+test-manipulation-bt: build-manipulation-bt
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	python3 -m pytest -q src/cleany_manipulation_bt/test \
+		src/cleany_perception/test/test_inspection_node.py \
+		src/cleany_skill_executor/test/test_sorting_coordinator.py \
+		src/cleany_skill_executor/test/test_nearest_object.py \
+		src/cleany_skill_executor/test/test_learned_runtime_launch.py
+
+sim-mujoco-manipulation: build-manipulation-bt
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	source "$(INSTALL_BASE)/setup.bash" && \
+	ros2 launch cleany_manipulation_bt manipulation_mujoco.launch.py $(SORTING_ARGS)
 
 build-handeye:
 	source "$(ROS_SETUP)" && \
@@ -224,13 +293,17 @@ test-telemetry: build-telemetry
 	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest src/cleany_telemetry/test
 
+test: COLCON_BUILD_ARGS += --cmake-force-configure
 test: build
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
-	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure && \
-	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose && \
-	python3 -m pytest "$(REPO_ROOT)tests/tools"
+	{ \
+		test_status=0; \
+		colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --return-code-on-test-failure || test_status=$$?; \
+		colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(BUILD_BASE)" --verbose || test_status=$$?; \
+		exit $$test_status; \
+	}
 
 test-mission-core:
 	PYTHONDONTWRITEBYTECODE=1 \
@@ -261,6 +334,34 @@ test-mission-runtime: build-mission-runtime
 	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
 
 test-mission: test-mission-core
+
+.PHONY: build-mission-mock test-mission-mock test-gazebo-manipulation
+build-mission-mock:
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-up-to $(MISSION_MOCK_PACKAGES)
+
+test-mission-mock: build-mission-mock
+	source "$(ROS_SETUP)" && \
+	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
+	ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) CLEANY_RUN_MANIPULATION_TESTS=1 CLEANY_RUN_ROS_TESTS=1 \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 \
+	python3 -m pytest -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_interfaces/test" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_core.py" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_manipulation_runtime.py" \
+		"$(ROS2_WS)/src/cleany_mission_manager/tests" \
+		"$(ROS2_WS)/src/cleany_control_bridge/test"
+
+test-gazebo-manipulation: build-mission-sim
+	source "$(ROS_SETUP)" && \
+	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
+	ROS_DOMAIN_ID=$(BASE_TEST_ROS_DOMAIN_ID) CLEANY_RUN_GAZEBO_MANIPULATION_TESTS=1 \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 \
+	python3 -m pytest -p no:cacheprovider -s \
+		"$(ROS2_WS)/src/cleany_mission_manager/tests/test_ros_gazebo_manipulation.py"
 
 test-mujoco: build
 	source "$(ROS_SETUP)" && \
@@ -294,15 +395,7 @@ test-gazebo-nav-runtime: build-gazebo
 	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest -s \
 		src/cleany_gazebo_sim/test/test_runtime_simulation.py \
-		--run-sim-runtime --sim-profile=fortress
-
-test-gazebo-navigation-pipeline: build-gazebo
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 -m pytest -s \
-		src/cleany_gazebo_sim/test/test_runtime_navigation_pipeline.py \
-		--run-sim-runtime --sim-profile=fortress
+		--run-sim-runtime
 
 test-gazebo-evaluation: build-gazebo
 	source "$(ROS_SETUP)" && \
@@ -310,22 +403,6 @@ test-gazebo-evaluation: build-gazebo
 	source "$(INSTALL_BASE)/setup.bash" && \
 	python3 -m pytest src/cleany_gazebo_sim/test/evaluation \
 		--run-evaluation-tests
-
-test-gazebo-safety: build-gazebo
-	@test -n "$(SAFETY_MAP)" && test -n "$(SAFETY_OUTPUT)" || \
-		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
-	source "$(ROS_SETUP)" && \
-	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 "$(REPO_ROOT)tools/validation/navigation/run_safety_evaluation.py" \
-		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --mode "$(SAFETY_MODE)" --robot-model "$(ROBOT_MODEL)"
-
-view-gazebo-costmap: build-gazebo
-	@test -n "$(SAFETY_MAP)" && test -n "$(SAFETY_OUTPUT)" || \
-		(echo "SAFETY_MAP and a new SAFETY_OUTPUT directory are required" >&2; exit 2)
-	source "$(ROS_SETUP)" && \
-	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 "$(REPO_ROOT)tools/validation/navigation/live_costmap.py" \
-		--map "$(SAFETY_MAP)" --output "$(SAFETY_OUTPUT)" --robot-model "$(ROBOT_MODEL)" $(if $(filter 1,$(SAFETY_DRIVE)),--drive,)
 
 sim: build
 	source "$(ROS_SETUP)" && \
@@ -443,29 +520,11 @@ run-dev-monitor:
 	ros2 run cleany_dev_monitor dev_monitor --ros-args \
 		--params-file "$(ROS2_WS)/src/cleany_dev_monitor/config/monitor.yaml" $(MONITOR_ROS_ARGS)
 
-.PHONY: test-scenario-tools
-test-scenario-tools:
-	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest -p no:cacheprovider -q tests/tools/scenarios'
-
-# Goal evidence is retained outside pytest temporary directories.
-NAVIGATION_GOAL_OUTPUT ?= $(CLEANY_DATA_ROOT)/runs/navigation-goals-$(shell date +%Y%m%d-%H%M%S)
-NAVIGATION_GOAL_RTF ?= 2
-
-test-gazebo-navigation-goals: build-gazebo
-	source "$(ROS_SETUP)" && \
-	cd "$(ROS2_WS)" && \
-	source "$(INSTALL_BASE)/setup.bash" && \
-	python3 -m pytest -s src/cleany_gazebo_sim/test/test_runtime_navigation_goals.py \
-		--run-sim-runtime --sim-profile=fortress \
-		--navigation-output="$(NAVIGATION_GOAL_OUTPUT)" --navigation-rtf="$(NAVIGATION_GOAL_RTF)"
-
-.PHONY: print-install-base print-navigation-install-base print-scenario-install-base
+.PHONY: print-install-base print-navigation-install-base
 print-install-base:
 	@printf '%s\n' '$(INSTALL_BASE)'
 print-navigation-install-base:
 	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
-print-scenario-install-base:
-	@printf '%s\n' '$(SCENARIO_INSTALL_BASE)'
 
 .PHONY: build-logger run-logger logger
 build-logger:
@@ -491,3 +550,7 @@ test-logger-independence:
 test-logger-cli:
 	@test -n "$(LOGGER_TEST_OUTPUT)" -a -n "$(LOGGER_BASE_COMMIT)" || (echo "Set LOGGER_TEST_OUTPUT and LOGGER_BASE_COMMIT" >&2; exit 2)
 	python3 tools/validation/logger/cli.py --output "$(LOGGER_TEST_OUTPUT)" --base-commit "$(LOGGER_BASE_COMMIT)"
+
+.PHONY: test-ci-tools
+test-ci-tools:
+	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/tools/ci -v

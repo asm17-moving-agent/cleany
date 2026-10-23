@@ -99,21 +99,12 @@ class SensorMeasurements:
             self.message_counts[LIDAR_TOPIC] += 1
 
 
-def _launch_command(
-    profile: str,
-    sensor_profile: str,
-    world_path: Path,
-) -> list[str]:
-    launch_file = (
-        'gazebo_fortress.launch.py'
-        if profile == 'fortress'
-        else 'gazebo_harmonic.launch.py'
-    )
+def _launch_command(sensor_profile: str, world_path: Path) -> list[str]:
     return [
         'ros2',
         'launch',
         'cleany_gazebo_sim',
-        launch_file,
+        'gazebo_fortress.launch.py',
         'headless:=true',
         f'sensor_profile:={sensor_profile}',
         f'world:={world_path}',
@@ -175,13 +166,9 @@ def _validation_scene_sdf() -> str:
     return '\n'.join(walls)
 
 
-def _write_validation_world(profile: str, output_path: Path) -> None:
+def _write_validation_world(output_path: Path) -> None:
     package_share = Path(get_package_share_directory('cleany_gazebo_sim'))
-    world_name = (
-        'cleany_mecanum_fortress.sdf'
-        if profile == 'fortress'
-        else 'cleany_mecanum_harmonic.sdf'
-    )
+    world_name = 'cleany_mecanum_fortress.sdf'
     materialized_world = materialize_mecanum_wheel_world(
         package_share / 'worlds' / world_name
     ).read_text(encoding='utf-8')
@@ -195,12 +182,12 @@ def _write_validation_world(profile: str, output_path: Path) -> None:
     )
 
 
-def _assert_profile_environment(profile: str) -> None:
-    expected_ros_distro = 'humble' if profile == 'fortress' else 'jazzy'
+def _assert_environment() -> None:
+    expected_ros_distro = 'humble'
     actual_ros_distro = os.environ.get('ROS_DISTRO')
     if actual_ros_distro != expected_ros_distro:
         pytest.fail(
-            f'{profile} requires ROS_DISTRO={expected_ros_distro}; '
+            f'Fortress requires ROS_DISTRO={expected_ros_distro}; '
             f'current value is {actual_ros_distro!r}'
         )
 
@@ -445,16 +432,13 @@ def test_sensor_profile_and_rtf(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     options = runtime_test_options
-    _assert_profile_environment(options.profile)
+    _assert_environment()
     expected_topics = PROFILE_TOPICS[options.sensor_profile]
     expected_topic_set = set(expected_topics)
 
     monkeypatch.setenv('ROS_DOMAIN_ID', str(100 + os.getpid() % 100))
     partition = f'cleany_runtime_test_{uuid4().hex}'
-    partition_variable = (
-        'IGN_PARTITION' if options.profile == 'fortress' else 'GZ_PARTITION'
-    )
-    monkeypatch.setenv(partition_variable, partition)
+    monkeypatch.setenv('IGN_PARTITION', partition)
     launch_environment = os.environ.copy()
 
     rclpy.init()
@@ -485,11 +469,10 @@ def test_sensor_profile_and_rtf(
     with tempfile.TemporaryDirectory(prefix=temp_prefix) as temp_dir:
         log_path = Path(temp_dir) / 'launch.log'
         world_path = Path(temp_dir) / 'runtime_validation_world.sdf'
-        _write_validation_world(options.profile, world_path)
+        _write_validation_world(world_path)
         with log_path.open('wb') as launch_log:
             process = subprocess.Popen(
                 _launch_command(
-                    options.profile,
                     options.sensor_profile,
                     world_path,
                 ),
@@ -585,7 +568,7 @@ def test_sensor_profile_and_rtf(
                 }
 
                 print(
-                    f'\nGazebo runtime result: profile={options.profile}, '
+                    f'\nGazebo runtime result: profile=fortress, '
                     f'sensor_profile={options.sensor_profile}, '
                     f'wall={wall_elapsed:.3f}s, sim={sim_elapsed:.3f}s, '
                     f'RTF={rtf:.3f}{lidar_summary}'

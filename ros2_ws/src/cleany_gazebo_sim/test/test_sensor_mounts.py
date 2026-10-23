@@ -36,16 +36,12 @@ def _launch_configurations(value) -> set[str]:
 
 
 def test_launch_profiles_accept_materialized_sensor_config() -> None:
-    for launch_name in (
-        'gazebo_fortress.launch.py',
-        'gazebo_harmonic.launch.py',
-    ):
-        description = get_launch_description_from_python_launch_file(
-            str(PACKAGE_ROOT / 'launch' / launch_name)
-        )
-        assert 'sensor_config' in {
-            argument.name for argument in description.get_launch_arguments()
-        }
+    description = get_launch_description_from_python_launch_file(
+        str(PACKAGE_ROOT / 'launch/gazebo_fortress.launch.py')
+    )
+    assert 'sensor_config' in {
+        argument.name for argument in description.get_launch_arguments()
+    }
     sensor_node = next(
         node for node in robot_runtime_nodes(PACKAGE_ROOT / 'config' / 'base.yaml')
         if node.node_executable == 'gazebo_sensor_tf_publisher'

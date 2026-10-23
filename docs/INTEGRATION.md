@@ -17,7 +17,7 @@ flowchart TB
         Base["활성 base backend"]
         Manip["Manipulation transport"]
     end
-    Peer["외부 조작 실행 서버"]
+    Peer["Python Mock 조작 서버 / 별도 실행 서버"]
     Gateway <-->|"요청 / 상태 / 결과"| Bridge
     Bridge <--> Mission
     Mission --> Nav --> Safety --> Base
@@ -63,6 +63,7 @@ flowchart TB
 | 경계 | 문서와 원본 |
 |---|---|
 | Mission 수락, 중복, 취소, 복구, Gateway | [Mission](../ros2_ws/src/cleany_interfaces/docs/mission.md) |
+| Gazebo와 Mock 조작 profile, fixture | [Mock 연결](../ros2_ws/src/cleany_mission_manager/docs/manipulation_mock_integration.md) |
 | Scene, Grasp snapshot/frame/후보 | [Scene와 Grasp](../ros2_ws/src/cleany_interfaces/docs/scene-and-grasp.md) |
 | Manipulation ID, timeout, 중복, 결과 | [Manipulation](../ros2_ws/src/cleany_interfaces/docs/manipulation.md) |
 | 공통 base Twist | [Mobile base](../ros2_ws/src/cleany_interfaces/docs/mobile_base.md) |
@@ -90,7 +91,7 @@ flowchart TB
 | Navigation | [config](../ros2_ws/src/cleany_navigation/config) |
 | Grasp predictor | [anygrasp.yaml](../ros2_ws/src/cleany_grasping/config/anygrasp.yaml) |
 | 후보 선택 | [grasp_selection.yaml](../ros2_ws/src/cleany_skill_executor/config/grasp_selection.yaml) |
-| 실물, mock base | [configs/robot](../configs/robot) |
+| 실물, mock base | [Base driver config](../ros2_ws/src/cleany_base_driver/config) |
 
 | 조건 | 연동 규칙 |
 |---|---|

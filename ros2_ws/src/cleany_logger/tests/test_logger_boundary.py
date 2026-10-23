@@ -15,6 +15,8 @@ def test_logger_runs_without_monitor_http_or_ros_on_the_import_path(tmp_path):
             sys.executable, "-I", "-S", "-c",
             "import sys; sys.path.insert(0, sys.argv[1]); "
             "from cleany_logger import Recorder, RecordingControls, RawMessage; "
+            "from cleany_logger.manipulation import ManipulationObserver; "
+            "from cleany_logger.observation import ObservationBuffer; "
             "recorder = Recorder(sys.argv[2], controls=RecordingControls()); "
             "assert recorder.db is not None; recorder.close(); "
             "assert not any(name in sys.modules for name in "

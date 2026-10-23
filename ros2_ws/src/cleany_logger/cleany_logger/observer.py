@@ -30,6 +30,7 @@ from tf2_ros import Buffer, TransformException, TransformListener
 from .observation import ObservationBuffer, grid_origin, preview, transform_point, yaw
 from .routes import routes, resolved, SCHEMA, source_roles
 from .navigation import NavigationObserver, cloud_points, transform_xyz, vector
+from .manipulation import ManipulationObserver
 
 
 IMAGE_TYPES = {"sensor_msgs/msg/Image", "sensor_msgs/msg/CompressedImage"}
@@ -66,6 +67,8 @@ class ObservationNode(Node):
             "rosout_topic": "/rosout",
             "clock_topic": "/clock",
             "manipulation_events_topic": "mock/manipulation/execution_events",
+            "manipulation_execution_limit": 20,
+            "manipulation_interval_limit": 64,
             "map_frame": "map",
             "base_frame": "base_link",
             "map_topic": "/map",
@@ -152,6 +155,8 @@ class ObservationNode(Node):
         self.navigation_keys.update({self.config["pan_state_topic"]: "pan",
                                      self.config["collision_state_topic"]: "collision"})
         self.navigation_previous = {}
+        self.manipulation = ManipulationObserver(self.config["manipulation_execution_limit"],
+                                                self.config["manipulation_interval_limit"])
         self.bt_event_received = {}
         self.bt_event_repeated = {}
         self.runtime_data = {}
@@ -221,6 +226,8 @@ class ObservationNode(Node):
         self.errors.clear()
         self.runtime_data, self.runtime_received = {}, 0.
         self.runtime_boot, self.runtime_seq = None, None
+        self.manipulation = ManipulationObserver(self.config['manipulation_execution_limit'],
+                                                self.config['manipulation_interval_limit'])
         self.navigation_previous.clear()
         self.bt_event_received.clear()
         self.bt_event_repeated.clear()
@@ -296,7 +303,8 @@ class ObservationNode(Node):
                 qos = QoSProfile(
                     depth=1
                     if any(t in IMAGE_TYPES for t in types)
-                    else (2048 if name.endswith("runtime_events") else 5),
+                    else (2048 if name.endswith("runtime_events")
+                          else 100 if name == self.manipulation_events else 5),
                     reliability=ReliabilityPolicy.RELIABLE
                     if reliable
                     else ReliabilityPolicy.BEST_EFFORT,
@@ -464,13 +472,19 @@ class ObservationNode(Node):
                     ros_time=ros_time,
                 )
             elif topic == self.manipulation_events:
+                record = preview(message)
                 self.hub.put(
                     "event",
                     topic,
-                    {"kind": "manipulation_record", **preview(message)},
+                    {"kind": "manipulation_record", **record},
                     critical=True,
                     ros_time=ros_time,
                 )
+                received_at = time.time()
+                if self.manipulation.ingest(record, received_at):
+                    self.hub.put("manipulation", "executions",
+                                 {**self.manipulation.snapshot(), "topic": topic},
+                                 ros_time=ros_time, received_at=received_at)
             elif topic == self.config["runtime_result_topic"]:
                 self.hub.put(
                     "result", topic, preview(message), critical=True, ros_time=ros_time

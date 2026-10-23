@@ -7,7 +7,7 @@ source /opt/ros/humble/setup.bash
 source "$(make -s print-install-base)/setup.bash"
 ```
 
-Navigation과 시나리오 전용 빌드는 각각 `print-navigation-install-base`, `print-scenario-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
+Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
 ## 실행 선택과 준비 순서
 
@@ -41,7 +41,7 @@ make sim-gazebo-study-cafe      # study-cafe GUI; 위 실행과 별도로 사용
 make sim-gazebo-facility        # 전체 시설 GUI; 위 실행과 별도로 사용
 ```
 
-GUI renderer는 `GAZEBO_GUI_RENDER_ENGINE=ogre|ogre2`로 선택합니다. 센서 서버는 OGRE2를 사용하므로 GPU LiDAR와 camera는 headless에서도 OpenGL context가 필요합니다. 지원 환경은 Fortress/Humble이며, 이전 Harmonic 실험 기록은 [근거 색인](EVIDENCE.md)에 있습니다.
+GUI renderer는 `GAZEBO_GUI_RENDER_ENGINE=ogre|ogre2`로 선택합니다. 센서 서버는 OGRE2를 사용하므로 GPU LiDAR와 camera는 headless에서도 OpenGL context가 필요합니다. 지원 환경은 Fortress/Humble입니다.
 
 3. 같은 overlay/domain의 별도 터미널에서 sensor와 odometry를 확인합니다.
 
@@ -91,6 +91,66 @@ ros2 launch cleany_mission_manager mission_runtime.launch.py \
 
 재연결, 중복, 취소, 재시작 동작은 [Mission 계약](../ros2_ws/src/cleany_interfaces/docs/mission.md)을 따릅니다.
 
+### Gazebo 주행과 Mock 조작
+
+베이스 주행은 Gazebo/Nav2, 인식과 계획 및 팔 조작은 Mock이다. 모든 터미널에 같은 overlay와 DDS domain을 적용한다. 기본 로컬 Mock 실행과 별도로 사용한다.
+
+1. 통합 package를 빌드하고 환경을 적용한다.
+
+```bash
+make build-mission-sim
+source "$(make -s print-install-base)/setup.bash"
+export ROS_DOMAIN_ID=186
+```
+
+2. Gateway 없이 시작한다. 세 DB 경로는 분리하고 재시작 시험에서는 보존한다.
+
+```bash
+ros2 launch cleany_bringup mission_sim.launch.py \
+  profile:=fortress headless:=true \
+  runtime_config:=$PWD/ros2_ws/src/cleany_mission_manager/config/runtime_gazebo_manipulation_mock.yaml \
+  start_manipulation_mock:=true manipulation_scenario:=success \
+  post_mission:=wait_for_next enable_bridge:=false enable_telemetry:=false \
+  journal_path:=$HOME/.local/state/cleany/mission-mock/missions.db \
+  bridge_journal_path:=$HOME/.local/state/cleany/mission-mock/bridge.db \
+  manipulation_database_path:=$HOME/.local/state/cleany/mission-mock/manipulation.sqlite3
+```
+
+3. 별도 터미널에서 `ros2 topic echo /mission/status`로 `ready: true`를 확인한 뒤 요청한다. 새 미션에는 새 ID를 사용한다. `NAV2_NOT_READY`이면 Nav2 lifecycle, odom과 TF를 먼저 확인한다.
+
+```bash
+ros2 service call /mission/offer cleany_interfaces/srv/OfferMission \
+  "{mission_id: gazebo-mock-demo-001, mission_type: clean_desk, target_kind: SEAT, target_id: seat-12, requested_by: manual-test}"
+ros2 topic echo /mission/result
+```
+
+수락 응답은 완료 결과가 아니다. 정상 실행은 두 물체를 서로 다른 execution ID로 처리한 뒤 추가 빈 관측을 확인한다. 물체당 정상 조작 시간은 약 40초다. [개발 Monitor](#개발-monitor)의 실행 → BT에서 ExecuteOne을 선택하거나 매니퓰레이션 화면을 연다. 같은 domain과 overlay를 사용한다.
+
+Backend 조합과 주행 설정은 [Mock 연결 reference](../ros2_ws/src/cleany_mission_manager/docs/manipulation_mock_integration.md)를 따른다. 기본 종료 정책은 `return_home`이며 위 명령의 첫 시험은 `wait_for_next`를 명시한다.
+
+### 주행도 Mock으로 Action 연결 확인
+
+두 터미널에서 같은 overlay와 `ROS_DOMAIN_ID=186`을 사용한다. 첫 터미널에서 서버를 시작한다.
+
+```bash
+make build-mission-mock
+source "$(make -s print-install-base)/setup.bash"
+export ROS_DOMAIN_ID=186
+ros2 launch cleany_skill_executor manipulation_mock.launch.py \
+  mock_config:=$PWD/ros2_ws/src/cleany_mission_manager/config/manipulation_server_fixture.yaml \
+  database_path:=$HOME/.local/state/cleany/mission-mock/manipulation.sqlite3
+```
+
+두 번째 터미널에서 Runtime을 시작한 뒤 위의 준비 확인과 미션 요청을 수행한다. 이 구성의 주행 성공은 Gazebo 주행 증거가 아니다.
+
+```bash
+ros2 run cleany_mission_manager mission_runtime --ros-args \
+  --params-file ros2_ws/src/cleany_mission_manager/config/runtime_manipulation_mock.yaml \
+  -p targets_file:=$PWD/ros2_ws/src/cleany_mission_manager/config/study_cafe_targets.yaml \
+  -p post_mission:=wait_for_next \
+  -p journal_path:=$HOME/.local/state/cleany/mission-mock/missions.db
+```
+
 ## 저장 지도 Navigation
 
 ```bash
@@ -113,6 +173,19 @@ ros2 launch cleany_mujoco_sim rgbd_pick_demo.launch.py
 ```
 
 위 두 실행과 `handeye_backend.launch.py` 중 backend 하나만 실행합니다. RGB-D scene 출력은 grasp/skill 입력으로 사용하며, 수거 완료는 별도로 확인해야 합니다.
+
+### 단일 물체 Manipulation Action
+
+Mock 서버의 요청, 취소, 조회와 모니터 사용은
+[Mock 실행 안내](../ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md)를 따릅니다.
+실제 인식과 MoveIt을 사용하는 MuJoCo BT 스택은 다음 명령으로 실행합니다.
+
+```bash
+make sim-mujoco-manipulation
+```
+
+이 스택은 승인된 물체 하나를 실행하며, 기존 sorting coordinator와 별도 구성입니다.
+입력, 세부 옵션과 검증 범위는 [MuJoCo BT 서버](../ros2_ws/src/cleany_manipulation_bt/README.md)를 따릅니다.
 
 ### Plan-only 후보 선택
 
@@ -236,7 +309,7 @@ Agent와 driver 양쪽에 domain 0을 적용하고 검토한 hardware config를 
 ```bash
 export ROS_DOMAIN_ID=0
 ros2 launch cleany_base_driver base_driver.launch.py \
-  mock:=false config:="$(pwd)/configs/robot/base_hardware.yaml"
+  mock:=false config:="$(ros2 pkg prefix --share cleany_base_driver)/config/base_hardware.yaml"
 # 같은 overlay/domain의 별도 터미널에서 관측 GUI:
 ros2 launch cleany_base_driver base_monitor.launch.py preset:=true
 ```
@@ -259,3 +332,7 @@ Plot은 목표, slew/reversal 이후 목표, encoder 속도(rad/s), PWM(%), diag
 시설 reference 이미지와 입력 fixture는 clone에 포함되지 않을 수 있으므로 [근거 색인](EVIDENCE.md)에서 위치를 확인합니다. 목표 생성은 정적 footprint 여유를 검사하며, 전체 경로와 팔 도달성은 별도 검증이 필요합니다.
 
 Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 실행의 자식 종료를 확인합니다. 시나리오 runner의 실패, cleanup 판정은 [테스트 가이드](TESTING.md)를 따릅니다.
+
+## 실물 IMU
+
+MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.

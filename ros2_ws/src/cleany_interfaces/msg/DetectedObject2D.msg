@@ -23,3 +23,10 @@ float32 x_min
 float32 y_min
 float32 x_max
 float32 y_max
+
+# Identity across successful observations in a fixed-base tracking session.
+# TRACKED / AMBIGUOUS / INVALID / UNTRACKED. Only TRACKED is selectable.
+string track_id
+string tracking_state
+bool position_valid
+geometry_msgs/Point representative_position

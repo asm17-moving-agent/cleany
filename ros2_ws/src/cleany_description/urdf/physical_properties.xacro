@@ -1,4 +1,5 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="wrist_mount_v8.xacro" />
   <xacro:macro name="cleany_link_properties" params="link_name">
     <xacro:if value="${link_name == 'base_link'}">
       <!-- Combined source MJCF fullinertia tensors at the aligned arm mounts. -->
@@ -649,36 +650,7 @@
           <mesh filename="package://cleany_description/meshes/Fixed_Jaw_part2.ply.convex.stl" scale="1 1 1" />
         </geometry>
       </collision>
-      <visual name="mjcf_geom_78_0_visual">
-        <origin xyz="5.51022591132e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.32679579342e-06 -1.57079999999" />
-        <geometry>
-          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
-        </geometry>
-        <material name="mjcf_color_78">
-          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
-        </material>
-      </visual>
-      <collision name="mjcf_geom_78_0_self_filter_collision">
-        <origin xyz="5.51022591132e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.32679579342e-06 -1.57079999999" />
-        <geometry>
-          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
-        </geometry>
-      </collision>
-      <visual name="mjcf_geom_79_0_visual">
-        <origin xyz="5.51022591513e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.3267957937e-06 -1.57079999999" />
-        <geometry>
-          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
-        </geometry>
-        <material name="mjcf_color_79">
-          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
-        </material>
-      </visual>
-      <collision name="mjcf_geom_79_0_self_filter_collision">
-        <origin xyz="5.51022591513e-08 -0.00699996818156 0.0239988737994" rpy="1.57079632677 6.3267957937e-06 -1.57079999999" />
-        <geometry>
-          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
-        </geometry>
-      </collision>
+      <xacro:cleany_wrist_mount_v8 side="left" />
     </xacro:if>
     <xacro:if value="${link_name == 'left_moving_jaw_link'}">
       <inertial>
@@ -943,36 +915,7 @@
           <mesh filename="package://cleany_description/meshes/Fixed_Jaw_part2.ply.convex.stl" scale="1 1 1" />
         </geometry>
       </collision>
-      <visual name="mjcf_geom_110_0_visual">
-        <origin xyz="5.50979259921e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.676795793e-06 -1.5708" />
-        <geometry>
-          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
-        </geometry>
-        <material name="mjcf_color_110">
-          <color rgba="0.300000011921 0.300000011921 0.300000011921 1" />
-        </material>
-      </visual>
-      <collision name="mjcf_geom_110_0_self_filter_collision">
-        <origin xyz="5.50979259921e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.676795793e-06 -1.5708" />
-        <geometry>
-          <mesh filename="package://cleany_description/meshes/XLeRobot_camera1.stl" scale="0.001 0.001 0.001" />
-        </geometry>
-      </collision>
-      <visual name="mjcf_geom_111_0_visual">
-        <origin xyz="5.50979259431e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.67679579317e-06 -1.5708" />
-        <geometry>
-          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
-        </geometry>
-        <material name="mjcf_color_111">
-          <color rgba="0.10000000149 0.10000000149 0.10000000149 1" />
-        </material>
-      </visual>
-      <collision name="mjcf_geom_111_0_self_filter_collision">
-        <origin xyz="5.50979259431e-08 -0.00599990458298 0.0240000535035" rpy="1.57079632678 3.67679579317e-06 -1.5708" />
-        <geometry>
-          <mesh filename="package://cleany_description/meshes/XLeRobot_camera2.stl" scale="0.001 0.001 0.001" />
-        </geometry>
-      </collision>
+      <xacro:cleany_wrist_mount_v8 side="right" />
     </xacro:if>
     <xacro:if value="${link_name == 'right_moving_jaw_link'}">
       <inertial>
@@ -1045,7 +988,7 @@
         </material>
       </visual>
       <visual name="mjcf_geom_113_0_visual">
-        <origin xyz="-0.297999984077 0.00600079076974 -0.715" rpy="-5.90619133461e-17 6.93889390391e-18 3.13999734641" />
+        <origin xyz="-0.297999984077 0.00600079076974 -0.6875" rpy="-5.90619133461e-17 6.93889390391e-18 3.13999734641" />
         <geometry>
           <mesh filename="package://cleany_description/meshes/topbase2.stl" scale="0.001 0.001 0.001" />
         </geometry>
@@ -1054,9 +997,16 @@
         </material>
       </visual>
       <collision name="mjcf_geom_114_0_collision">
-        <origin xyz="-0.1044 -0.00025 0.23595" rpy="0 -0 5.25245130592e-18" />
+        <origin xyz="-0.1044 -0.00025 0.2822" rpy="0 -0 5.25245130592e-18" />
         <geometry>
-          <box size="0.1504 0.12 0.3349" />
+          <box size="0.1504 0.12 0.2974" />
+        </geometry>
+      </collision>
+      <collision name="lower_head_mount_collision">
+        <!-- 172 mm depth; front edge 41 mm behind the top plate's front edge. -->
+        <origin xyz="-0.048 -0.00025 0.101" rpy="0 0 0" />
+        <geometry>
+          <box size="0.172 0.12 0.065" />
         </geometry>
       </collision>
     </xacro:if>

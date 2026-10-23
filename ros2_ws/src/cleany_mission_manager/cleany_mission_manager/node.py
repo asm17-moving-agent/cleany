@@ -4,7 +4,9 @@ import json
 from dataclasses import asdict
 import time
 from math import isfinite
+from pathlib import Path
 
+from ament_index_python.packages import get_package_share_directory
 import rclpy
 from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
@@ -15,7 +17,7 @@ from std_srvs.srv import Trigger
 from cleany_interfaces.msg import (MissionResult, MissionStatus, DebugBTNode,
                                     RuntimeDebugSnapshot, RuntimeEvent)
 from cleany_interfaces.srv import CancelMission, GetRuntimeSnapshot, OfferMission
-from cleany_mission_manager.adapters.config import load_targets
+from cleany_mission_manager.adapters.config import load_targets, validate_manipulation_fixture
 from cleany_mission_manager.adapters.nav2 import Nav2Navigator
 from cleany_mission_manager.adapters.manipulation import ROSManipulationTransport
 from cleany_mission_manager.core.manipulation import ManipulationPort, validate_backend
@@ -93,6 +95,7 @@ class MissionRuntimeNode(Node):
             "manipulation_query": "mock/manipulation/get_execution",
             "manipulation_initial_mock_safe": False,
             "manipulation_destination": "mock_trash_bin",
+            "manipulation_mock_fixture": "",
             "manipulation_mock_snapshot_ids": ["mock-snapshot-001", "mock-snapshot-002",
                                                "mock-snapshot-003", "mock-snapshot-004"],
         }
@@ -106,6 +109,13 @@ class MissionRuntimeNode(Node):
         snapshots = tuple(value("manipulation_mock_snapshot_ids")) if manipulation_backend == "action_mock" else ()
         if manipulation_backend == "action_mock" and (len(snapshots) < 4 or len(set(snapshots)) != len(snapshots)):
             raise ValueError("action_mock requires at least four distinct registered snapshot IDs")
+        if manipulation_backend == "action_mock":
+            fixture = value("manipulation_mock_fixture") or str(Path(get_package_share_directory(
+                "cleany_mission_manager")) / "config/manipulation_server_fixture.yaml")
+            validate_manipulation_fixture({
+                "manipulation_mock_snapshot_ids": snapshots,
+                "manipulation_destination": value("manipulation_destination"),
+            }, fixture)
         self.desk = MockDesk(
             time.monotonic, polls=value("mock_operation_polls"),
             destination_id=value("manipulation_destination"), snapshot_ids=snapshots,
@@ -243,6 +253,9 @@ class MissionRuntimeNode(Node):
             return
         self.last_debug_at = time.monotonic()
         data = self.runtime.debug_snapshot()
+        if isinstance(self.manipulation, ManipulationPort):
+            data["manipulation_feedback"] = dict(self.manipulation.transport.feedback)
+            data["manipulation_details"] = dict(self.manipulation.details)
         data["modules"]["navigation"].update({
             "topics": ["/" + self.get_parameter("odom_topic").value.lstrip("/"), "/tf", "/cmd_vel"],
             "actions": ["navigate_to_pose"] if isinstance(self.navigator, Nav2Navigator) else [],

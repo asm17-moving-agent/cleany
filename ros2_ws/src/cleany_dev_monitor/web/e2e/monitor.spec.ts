@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { applyRuntimeEvents } from "../src/lib/runtime-observation";
 
 test("observed FSM, topic subscription, correlated logs and recording replay", async ({
   page,
@@ -13,12 +14,28 @@ test("observed FSM, topic subscription, correlated logs and recording replay", a
   await page.goto("/");
   await expect(page.getByRole("region", { name: "실행 그래프" })).toBeVisible();
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
-  const runtime = (await (await request.get("/api/snapshot")).json()).rows.find(
-    (r: any) => r.kind === "runtime",
-  ).data;
-  await expect(page.locator(".execution-summary").first()).toContainText(
-    runtime.state,
-  );
+  // A final transition may arrive after the last periodic snapshot. Compare
+  // the same observed event boundary as the UI and allow an active transition
+  // to settle between the HTTP response and the browser's WebSocket refresh.
+  await expect
+    .poll(async () => {
+      const snapshot = await (await request.get("/api/snapshot")).json();
+      const runtime = applyRuntimeEvents(snapshot.rows).find(
+        (row) => row.kind === "runtime",
+      )?.data;
+      return (
+        !!runtime &&
+        (
+          await page
+            .locator(".execution-summary")
+            .first()
+            .locator(".badge")
+            .first()
+            .innerText()
+        ).trim() === runtime.state
+      );
+    })
+    .toBe(true);
   await page.getByRole("button", { name: "ROS" }).click();
   await expect(page.getByPlaceholder("토픽 이름 또는 타입 검색")).toBeVisible();
   await page
@@ -73,21 +90,51 @@ test("Gazebo map, TF and both costmaps render", async ({ page, request }) => {
     ).toBe(true);
   await page.goto(url + "/#navigation");
   await expect(
-    page.getByRole("heading", { name: "전체 경로와 주행 진행" }),
+    page.getByRole("heading", { name: "전체 경로와 주행 진행", exact: true }),
   ).toBeVisible();
   await page.getByText("지도 수신 상태와 출처", { exact: true }).click();
   await expect(page.locator(".layer-status")).toContainText("수신");
   const canvas = page.getByLabel("ROS 2D navigation map");
-  const colors = await canvas.evaluate((el: HTMLCanvasElement) => {
-    const data = el
-      .getContext("2d")!
-      .getImageData(0, 0, el.width, el.height).data;
-    const seen = new Set<string>();
-    for (let i = 0; i < data.length; i += 400)
-      seen.add(`${data[i]},${data[i + 1]},${data[i + 2]}`);
-    return seen.size;
-  });
-  expect(colors).toBeGreaterThan(8);
+  const mapToggle = page.getByRole("checkbox", { name: "지도", exact: true });
+  await expect(mapToggle).toBeChecked();
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  await canvas.evaluate(
+    (el: HTMLCanvasElement & { verificationPixels?: Uint8ClampedArray }) => {
+      el.verificationPixels = el
+        .getContext("2d")!
+        .getImageData(0, 0, el.width, el.height).data;
+    },
+  );
+  const changedMapArea = () =>
+    canvas.evaluate(
+      (el: HTMLCanvasElement & { verificationPixels?: Uint8ClampedArray }) => {
+        const before = el.verificationPixels!;
+        const after = el
+          .getContext("2d")!
+          .getImageData(0, 0, el.width, el.height).data;
+        let changed = 0;
+        for (let i = 0; i < after.length; i += 4)
+          if (
+            before[i] !== after[i] ||
+            before[i + 1] !== after[i + 1] ||
+            before[i + 2] !== after[i + 2]
+          )
+            changed++;
+        return changed / (after.length / 4);
+      },
+    );
+  // A valid occupancy map can contain only three shades after the simulator
+  // stops and live pose overlays expire. Check real map-layer visibility
+  // instead of depending on the number of colors in moving overlays.
+  await mapToggle.uncheck();
+  await expect.poll(changedMapArea).toBeGreaterThan(0.02);
+  await mapToggle.check();
+  await expect.poll(changedMapArea).toBeLessThan(0.02);
   await page.screenshot({
     path: "test-results/navigation.png",
     fullPage: true,

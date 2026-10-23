@@ -10,6 +10,7 @@ rosbag2 의존성은 첫 원본 쓰기에 불러오며 저장 API와 과거 조�
 
 | API | 입력과 계약 |
 |---|---|
+| `ObservationBuffer.put` | 가공 관측의 수신 wall 시각을 초 단위 `received_at`으로 전달할 수 있다. 생략하면 현재 wall 시각을 사용한다. |
 | `RecordingControls` | 항목, 주기, 출처와 원본 큐를 관리한다. `reserve`로 얻은 ticket을 `offer`에 전달한다. |
 | `RawMessage` | 토픽, 메시지 타입, 변경하지 않은 CDR bytes, 수신 wall 초, 선택적 ROS stamp 초와 정수 수신 ROS timestamp ns를 전달한다. |
 | `Recorder.append(snapshot)` | `sequence`, `rows`, 선택적 `gap`이 있는 snapshot을 기록한다. 각 row는 `seq`, `kind`, `key`, `data`, `received_at`을 포함한다. |
@@ -56,6 +57,15 @@ ROS callback은 최대 8 MiB 메시지를 32 MiB/128건의 큐로 넘기고 logg
 정지 후 녹화를 시작할 때 새 UUID를 만들고, 녹화 중 시작 요청은 같은 세션을 반환한다. 정지하면 SQLite와 bag writer를 닫는다. `bag_state`는 `not_started`, `recording`, `finalized`, `incomplete`를 구분하며 완료된 bag만 ZIP으로 내보낸다. 원본 timestamp는 수신 ROS clock의 nanosecond, SQLite 시간축은 수신 wall 초다. 동일 ROS timestamp의 원본도 수신 순서로 구분한다. 이전 schema 1/2/3 SQLite는 수정하거나 자동 변환하지 않고 계속 읽는다.
 
 원본 구독은 화면과 카메라 preview lease에 독립적이다. CameraInfo는 이미지 토픽의 형제 `camera_info`에서 요청한다. TF와 시계, CameraInfo는 Hz로 누락시키지 않는다. 설정 변경과 새 세션은 transient-local 원본 구독을 다시 생성해 retained 자료를 요청한다.
+
+## 조작 이력
+
+공유 관측기는 조작 execution record의 revision과 서버 wall timestamp로 실행별
+단계 구간을 집계한다. Logger와 Monitor가 각각 독립적으로 집계하며 기본 최근
+20개 실행, 실행당 64개 구간을 보존한다. 늦은 구독, revision 누락과 시각 역행을
+표시하며 수신 시각 이후의 결과를 과거 재생에 섞지 않는다. Logger의 관측 출처를
+바꾸면 조작 이력과 revision을 초기화한다. 집계 결과는 해당 조작 출처의 녹화
+선택을 따르며 Monitor나 HTTP 모듈을 필요로 하지 않는다.
 
 ## 기록 정책
 

@@ -174,7 +174,7 @@ def test_retiming_changes_only_time_and_derivatives():
               'cartesian_translation_acceleration_m_s2': .2, 'lin_acceleration_scaling': .4,
               'corridor_time_margin': 2.}
     node = SimpleNamespace(get_parameter=lambda name: SimpleNamespace(value=values[name]),
-                           get_logger=lambda: SimpleNamespace(info=lambda _: None))
+                           get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None))
     Coordinator._slow_corridor_plan(node, trajectory, samples, .2)
     end = trajectory.joint_trajectory.points[-1].time_from_start
     scale = (end.sec + end.nanosec*1e-9)/2
