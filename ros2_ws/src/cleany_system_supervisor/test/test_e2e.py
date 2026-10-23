@@ -66,7 +66,7 @@ def wait(predicate, timeout=8., message='condition did not become true'):
         if predicate():
             return
         sleep(.005)
-    assert predicate(), message
+    assert predicate(), message() if callable(message) else message
 
 
 class SyntheticPlant(Node):
@@ -411,7 +411,8 @@ def test_supervisor_crash_stops_the_mission_and_restart_reconfirms_the_old_lease
     record('supervisor_crash_to_nav2_cancel', {'nav2_cancel_s': latency})
     assert latency < 1.7  # Heartbeat timeout 1.0 s plus one Runtime tick and DDS delivery.
     g.supervisor = g.add(SupervisorNode(config=deepcopy(g.config)))
-    wait(lambda: lease_id in g.core.permissions.leases and g.core.permissions.leases[lease_id].stopped, 8.)
+    wait(lambda: lease_id in g.core.permissions.leases and g.core.permissions.leases[lease_id].stopped, 8.,
+         lambda: f'restored lease {g.core.permissions.leases.get(lease_id)}, runtime {g.runtime.state.value}')
     assert g.core.permissions.leases[lease_id].restored
     admissible(g)
 

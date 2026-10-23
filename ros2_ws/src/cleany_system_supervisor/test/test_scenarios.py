@@ -248,3 +248,30 @@ def test_unreachable_stop_server_escalates_at_the_stop_deadline():
     for _ in range(int(system.config['stop_timeout_s'] * 10) + 2):
         advance(system, bad=('localization',))
     assert system.faults.faults['MISSION_STOP_FAILED:' + lease.lease_id].active
+
+
+def test_grant_is_persisted_before_the_reply(tmp_path):
+    store = LatchStore(tmp_path / 'state.json')
+    system = make(store)
+    ready(system)
+    lease = permission(system)
+    assert lease.granted
+    saved = json.loads((tmp_path / 'state.json').read_text())
+    assert [entry['lease_id'] for entry in saved['leases']] == [lease.lease_id]
+
+
+def test_grant_is_refused_when_it_cannot_be_persisted(tmp_path):
+    class FailingAfterBoot(LatchStore):
+        broken = False
+
+        def save(self, state):
+            if self.broken:
+                raise OSError('synthetic disk full')
+            super().save(state)
+    store = FailingAfterBoot(tmp_path / 'state.json')
+    system = make(store)
+    ready(system)
+    store.broken = True
+    decision = permission(system)
+    assert not decision.granted and decision.reason == 'lease could not be persisted'
+    assert not any(lease.granted for lease in system.permissions.leases.values())

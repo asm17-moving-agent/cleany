@@ -6,7 +6,8 @@ from .capabilities import CapabilityManager, operating_state
 from .config import validate
 from .faults import STATE_FAULT, FaultManager
 from .health import HealthMonitoring
-from .models import Availability, HealthReport, OperatingState, RecoveryState, SupervisorEvent
+from .models import (Availability, HealthReport, OperatingState, PermissionDecision, RecoveryState,
+                     SupervisorEvent)
 from .permissions import MissionPermissionManager
 from .ports import MissionStopTransport, RecoveryTransport
 from .recovery import RecoveryCoordinator, UnsupportedRecovery
@@ -177,6 +178,13 @@ class SystemSupervisor:
         decision = self.permissions.check(**request, states=self.capabilities.states,
                                           operating=self.state, now=self.clock())
         self._record()
+        # Write-ahead: a grant becomes durable before the client can move under it, so a
+        # crash right after the reply still leaves an unconfirmed lease to re-verify.
+        self._persist(self.clock())
+        if decision.granted and self._persist_failed:
+            lease = self.permissions.leases[decision.lease_id]
+            lease.granted, lease.reason = False, 'lease could not be persisted'
+            return PermissionDecision(False, self.epoch, reason='lease could not be persisted')
         return decision
 
     def reset_fault(self, epoch: str, code: str, operator: str = '') -> tuple[bool, str]:
