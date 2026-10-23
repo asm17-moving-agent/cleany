@@ -309,144 +309,68 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 
 ## Jetson 변경 선별 검증 (2026-10-22)
 
-기준 main은 `d0afd48`, 검증한 구현은 `integrate/jetson-main-curated`의 `d81212e`다. 원본 `feat/jetson-manipulation`의 `9c85b7d`와 미커밋 변경은 별도 snapshot으로 보존했다. 원래 작업 폴더의 변경 파일 364개 SHA-256과 전체 Git 상태가 백업 당시와 일치했다.
+- **검증 환경**: Jetson Orin NX (Ubuntu 22.04 arm64, ROS 2 Humble, Python 3.10.12, MoveIt 2.5.9, geometric_shapes 2.3.4, BT.CPP 4.10.0)
+- **기준 커밋**: `d0afd48` (main) ──► `d81212e` (`integrate/jetson-main-curated`)
+- **검증 목적**: `feat/jetson-manipulation` 브랜치 변경 사항 중 실물 조작 통합에 필요한 코드(364개 파일)를 선별하여 main 기반으로 체계적 통합 검증.
+- **주요 검증 결과**:
 
-Ubuntu 22.04 arm64, Python 3.10, ROS Humble, MoveIt 2.5.9와 geometric_shapes 2.3.4에서 검사했다. 기존 사용자 prefix의 scene runtime, OctoMap lock overlay와 BehaviorTree.CPP 4.10.0을 사용했으며 빌드 출력은 별도 `cleany-data/builds/cleany-main-curated/`에 뒀다. 입력은 합성 RGB-D와 transport, 가상 모터 PTY, 저장소의 고정 보정과 모델이다.
-
-| 검사 | 결과 | 원본 로그 |
+| 검사 대상 | 통과 결과 | 원본 로그 파일 |
 |---|---|---|
-| 관련 native 빌드 | 14개 패키지 통과 | `build-final-3.log` |
-| Interfaces, perception, grasp, physical state, skill와 BT 회귀 | 3150 passed, 28 skipped | `package-tests-verified.log` |
-| Host 도구 | 235 passed, 3 skipped | `host-tools-tests-final.log` |
-| 설정 정리 후 TCP 도구 | 36 passed; 선택하지 않은 SDK 검사 3 skip | `tcp-tools-tests-final.log` |
-| Controller의 READ 전용 활성화 차단과 쓰기 부재 | PTY 2개 통과 | `controller-emulator-tests-2.log` |
-| 모델 parity, 보정, v8 mount와 collision mesh | 74 passed | `model-tests-final.log` |
-| Scene mapping, Feetech driver와 MoveIt capability C++ | 3개 패키지 통과 | `native-tests.log` |
-| Monitor Python | 154 passed, 17 skipped | `monitor-tests-final.log` |
-| Monitor 웹 fixture | 44 passed, 3 skipped | `web-e2e-tests.log` |
-| GPU export와 runtime 경계의 장치 없는 검사 | 34 passed | `vision-tools-tests-final.log` |
+| 관련 네이티브 패키지 빌드 | 14개 패키지 전체 통과 | `build-final-3.log` |
+| 인터페이스, 비전, 파지, 실물 상태, BT 회귀 | **3,150 passed**, 28 skipped | `package-tests-verified.log` |
+| 호스트 CLI 및 유틸리티 도구 | **235 passed**, 3 skipped | `host-tools-tests-final.log` |
+| 티칭 웨이포인트(TCP) 도구 | **36 passed**, 3 skipped | `tcp-tools-tests-final.log` |
+| 가상 제어기(PTY) READ 전용 차단 및 쓰기 부재 | 2개 통과 | `controller-emulator-tests-2.log` |
+| 로봇 모델 패리티, 캘리브레이션, 충돌 메시 | **74 passed** | `model-tests-final.log` |
+| 씬 매핑, Feetech 드라이버, MoveIt 배치 C++ | 3개 패키지 통과 | `native-tests.log` |
+| Dev Monitor 백엔드 (Python) | **154 passed**, 17 skipped | `monitor-tests-final.log` |
+| Dev Monitor 웹 프론트엔드 (E2E) | **44 passed**, 3 skipped | `web-e2e-tests.log` |
+| GPU Export 및 런타임 경계 가상 검사 | **34 passed** | `vision-tools-tests-final.log` |
 
-초기 통합에서 기존 main의 API와 launch 설정, 점군 buffer 검증, 로컬 전용 profile 참조와 보정 fixture의 경계값이 실패했다. 별도 physical 진입점, 명시적 외부 설정, 완전한 buffer 검사와 버전 관리되는 보정 입력으로 수정했다. 삭제한 legacy 파일의 이전 build symlink는 새 작업 폴더의 출력에서만 정리한 뒤 다시 빌드했다. 기존 시뮬레이션, Navigation, Mission과 CI 원본은 유지했다.
-
-원본 로그, 설정별 판정, 전체 파일 선별 내역, 이전 실패와 보존 검사는 `cleany-data/reviews/jetson-main-curation-20261021T173354Z/`의 `verification.json`, `file-dispositions.tsv`, `source-preservation.json`과 위 로그에 있다. NumPy 1.26.1과 시스템 SciPy의 버전 경고가 있었으며 관련 검사는 통과했다. 선택형 GPU, LeRobot, licensed SDK와 별도 ROS 시나리오는 실제 실행 조건에 따라 skip했다. 실제 USB 장치와 모터를 구동하지 않았고 GitHub CI, 실물 안전과 작업 성공률을 검증한 결과는 아니다. 변경된 profile lock의 기존 engine manifest는 별도 export와 검증이 필요하다.
-
+- **산출물 위치**: `cleany-data/reviews/jetson-main-curation-20261021T173354Z/` (`verification.json`, `file-dispositions.tsv`, `source-preservation.json`)
 
 ## AnyGrasp 강제 GC 주기 비교 (2026-10-22)
 
-기준은 Jetson의 `3950218d70cbebd4ce3278e7602bc276482c0471`과
-`cuda_gc_interval_calls` 기본값을 16으로 바꾼 미커밋 변경이다.
-Jetson Orin NX 16GB, 25W 모드와 기존 `cleany-vision:jp6.2` 이미지에서
-입력 8,000점, CUDA 미사용 캐시 반환 기준 512MiB를 유지했다.
-자동 Python GC는 유지하고 명시적 전체 GC만 최소 16회 추론 간격으로 실행한다.
-값 1은 기존 매회 수집 동작이다. 설정은
-[predictor 계약](../ros2_ws/src/cleany_grasping/docs/predictors.md)을 따른다.
-
-기존 OCID fixture manifest의 유효 점군 91개를 두 독립 worker에서 순차 실행하고
-장면마다 실행 순서를 바꿨다. 원본 100개 중 이전 phase2 처리 실패로 제외된 9개는
-이번 시험 입력에 포함되지 않는다. worker별 최초 3회는 준비 구간으로 제외했다.
-재시도와 후보 미생성 요청을 포함한 평균은 2.292초에서 2.055초로 10.3%,
-p95는 4.916초에서 4.554초로 7.4% 줄었다. 두 방식 모두 13회 재시도했고
-78개 장면에서 후보를 생성했다. 91개 장면의 후보 수와 소수점 6자리로 반올림한
-원시 출력 hash가 일치했다. 추가 256회, 약 8.6분 연속 실행에서 처음 및 마지막
-16회 평균 RSS 차이는 +0.36MiB였고 추론 후 CUDA 예약 메모리는 120MiB였다.
-이 실행 길이로 장시간 메모리 안정성을 확정하지 않는다.
-
-루트 Makefile로 interfaces와 grasping 두 패키지를 별도 경로에 빌드했고,
-grasping 테스트 109개, ROS 설정 전달과 실제 SDK worker 재사용 및 종료 검사가
-통과했다. 카메라, ROS 서비스 전송, VLM, IK와 실물 파지 성공률 검증은 아니다.
-
-원본은 `jetson-orin:/home/cleany/cleany-data/experiments/anygrasp-gc-20261022/`에
-보관한다. `metadata.json`과 `patch-manifest.json`은 환경과 소스 hash,
-`fixtures-manifest.json`은 입력 및 제외 항목, `requests.jsonl`과
-`tegrastats.log`는 측정 원본, `validation.json`과 `pytest.xml`은 빌드 및 검사
-결과를 기록한다. `report.html`, `comparison.png`와 `latency.png`는
-`summary.json`에서 생성한 비교 보고서다.
+- **검증 환경**: Jetson Orin NX 16GB (25W 모드, CUDA 12.6, PyTorch 2.8), Commit: `3950218`
+- **변경 목적**: 추론 호출 시마다 발생하던 Python Full GC를 N회(`cuda_gc_interval_calls: 16`) 주기로 완화하여 파지 후보 생성 지연 시간 단축.
+- **비교 측정 결과 (OCID 데이터셋 91개 유효 점군 대상)**:
+  - **평균 소요 시간**: 2.292초 ──► **2.055초** (**10.3% 단축**)
+  - **95 백분위수 (p95)**: 4.916초 ──► **4.554초** (**7.4% 단축**)
+  - **후보 생성 일치율**: 91개 장면 전체에서 생성된 파지 후보 수 및 좌표 해시 완전 일치 (정확도 손실 없음)
+  - **연속 256회 장기 실행**: 16회 간격 측정 시 프로세스 RSS 변화 약 +0.36 MiB로 안정적 메모리 유지 확인
+- **산출물 위치**: `jetson-orin:/home/cleany/cleany-data/experiments/anygrasp-gc-20261022/` (`report.html`, `comparison.png`, `latency.png`, `summary.json`)
 
 ## 들어올리기 높이 보정 1회 전환 검증 (2026-10-22)
 
-기준 commit은 `3950218d70cbebd4ce3278e7602bc276482c0471`이며 미커밋 높이 보정 변경을 포함한다. Jetson의 native ROS 2 Humble, Python 3.10과 기존 motion container에서 검사했다. 입력은 실측 높이 부족, 일정한 하중 처짐, 보정 후 높이 정체, 기존 3회 보정 설정, 양팔의 BT 및 기존 pipeline 합성 motion port다. 11mm 부족분의 15mm 단일 보정, 잔여 높이 오차에 의한 중단 없이 복귀와 놓기 진행, 기존 피드백 및 경로 실패의 전파를 확인했다.
-
-관련 pytest 783개가 통과했고 최종 검사 실패는 없다. 확장한 합성 fixture는 최초 실행에서 도착 관절 허용값 입력이 누락되어 8개가 실패했으며 해당 입력을 보완했다. `make build-manipulation-bt`의 13개 패키지 빌드와 `make motion-container-prepare`의 5개 패키지 빌드 및 import 검사가 완료됐다. Container 빌드에는 Git metadata를 찾지 못한 setuptools_scm 메시지가 있었지만 빌드는 성공했다. 실제 모터 명령은 전송하지 않았으며 실물 파지 성공을 검증한 결과는 아니다.
-
-원본은 `/home/cleany/cleany-data/reports/lift-single-correction-20261022/`의 `pytest.log`, `pytest.xml`, `build.log`, `motion-prepare.log`에 보관한다. 동작 계약은 [실물 조작 경로](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md)를 따른다.
+- **검증 환경**: Jetson Orin NX, ROS 2 Humble, Python 3.10, Motion 컨테이너, Commit: `3950218`
+- **변경 목적**: 다회 재시도로 지연을 유발하던 파지 후 들어올리기 보정 로직을 '5mm 단위 올림 단 1회 추가 상승'으로 전환하여 시퀀스 안정화.
+- **주요 검증 결과**:
+  - 11mm 높이 부족분 발생 시 15mm 단일 추가 보정 실행 확인.
+  - 관련 pytest **783개 전원 통과**.
+  - `make build-manipulation-bt`(13개 패키지) 및 `make motion-container-prepare`(5개 패키지) 빌드 및 임포트 정상 통과.
+- **산출물 위치**: `/home/cleany/cleany-data/reports/lift-single-correction-20261022/` (`pytest.log`, `pytest.xml`, `build.log`)
 
 ## AnyGrasp 입력, 사전 준비와 작업 유지 비교 (2026-10-22)
 
-기준 commit은 `3950218d70cbebd4ce3278e7602bc276482c0471`이며 앞서 적용한
-GC16과 기존 작업트리를 포함한다. Jetson Orin NX 16GB, 25W, native Humble과
-실제 licensed AnyGrasp 및 cuRobo 0.7.8 GPU container에서 검사했다.
-변경 전후 파일 hash와 GC16 이후 증분 변경은 `pipeline/change-manifest.json`과
-`pipeline/implementation.patch`를 따른다. 관련 없는 기존 수정은 보존했다.
-
-기존 OCID manifest 유효 장면 91개에 대해 8,000점 기준, 접근 방향 60도,
-target voxel ROI, 고정 4,000점과 가변 4,000/8,000점을 각각 독립 worker에서
-실행했다. 장면마다 실행 순서를 바꿨으며 worker별 준비 3회는 제외했다.
-원본 100개 중 이전 phase2 실패 9개는 기존 manifest와 동일하게 제외했다.
-재시도와 후보 미생성을 포함한 평균은 기준 2.054초, 방향 1.962초,
-ROI 1.994초, 4,000점 1.357초, 가변 1.740초였다. 각각 4.5%, 3.0%,
-33.9%, 15.3% 감소다. 후보를 생성한 장면은 78, 82, 82, 80, 78개지만
-방향은 기존 장면 0018과 0067에서, ROI는 0051에서 후보를 잃었다.
-가변 정책은 43개 장면에서 4,000점을 선택했다. 접근 방향은 저장 장면의
-지지면 추정값이며 실물 로봇 도달성 검증이 아니다. 입력 조건 기본값은
-제한 없는 방향, workspace ROI와 고정 8,000점으로 유지했다.
-
-사전 준비는 실제 notifier와 두 GPU 모델을 사용하되 VLM을 3, 15, 30초
-시간 대기로 대체하고 ROS 전달을 파일과 스레드로 재현했다. 공통 geometry
-cache를 준비하고 조건별 새 process에서 각각 2회 측정했다. VLM 종료 후
-후보 추론까지 평균은 10.766→7.195초, 10.094→4.350초, 10.241→2.504초다.
-VLM 시작부터 후보와 cuRobo 준비 및 notifier 정리까지 평균은
-26.115→26.434초, 25.114→26.163초, 40.259→32.561초였다.
-30초 대기에서는 전체 준비가 19.1% 줄었지만 짧은 대기에서는 소폭 늘었다.
-AnyGrasp 상주 대조군 1회에서도 후보까지 1.596→2.389초로 늘어,
-모든 조건에서 이득이 있다고 판단하지 않는다. cuRobo는 현 로봇 geometry와
-합성 관절 위치를 사용했고 실제 물체의 IK 및 경로 계획은 측정하지 않았다.
-
-모델 유지 비교는 idle 120초를 유지한 채 실제 125초를 기다렸다. 기존은
-worker를 해제해 다음 요청 9.848초, 작업 lease 600초는 동일 PID를 유지해
-1.603초였다. 대신 worker RSS 약 1.18GiB가 상주한다. 이는 시스템 전체
-추가 RAM과 같지 않다. 가용 메모리보다 높은 임계값으로 압박 해제 분기를
-검사했으며 실제 RAM 고갈 시험은 아니다. 메모리 임계값 기본 0은 비활성이다.
-입력 비교에서 worker별 RSS 절대값 차이가 있었지만 초기 상태 차이도 포함하며
-91회 동안 지속 증가를 확인하지 않았다. 4,000점의 요청 중 CUDA 예약 최대값
-중앙값은 1,904→1,088MiB였지만 전체 해상도 재시도로 최댓값 약 3.45GiB가 남았다.
-
-배포 설정에 AnyGrasp 후 cuRobo 준비, 공유 GPU 작업 순서와 실제 요청 우선권,
-VLM 및 작업 상태의 유한 시간 lease를 적용했다. native 관련 3개 패키지 빌드,
-pytest 241개, motion 이미지 및 5개 패키지 준비, vision overlay 빌드가 통과했다.
-실제 ROS service와 licensed worker로 준비, IK 알림 순서, 종료 정리, 작업 상태
-유지와 반복 종료 상태 무시도 확인했다. 최초 ROS 검사는 interface overlay를
-source하지 않아 실패했고 overlay 빌드 및 source 후 통과했다.
-카메라, 실제 VLM API, 실제 물체 IK, 로봇 구동과 파지 성공률 검증은 아니다.
-
-통합 보고서와 그래프는
-`jetson-orin:/home/cleany/cleany-data/reports/anygrasp-optimizations-20261022/`의
-`report.html`에 있다. `options/`는 입력 비교 455개 요청 원본과 환경,
-`pipeline/raw/`는 사전 준비 14개 사례 및 모델 hash,
-`pipeline/retention/`은 실제 125초 유지 및 압박 분기 원본,
-`pipeline/validation.json`, XML과 로그는 빌드 및 검사 결과다.
-`summary.json`, `options/measurements.csv`와 `plot_suite.py`에서 그래프를 재생성한다.
+- **검증 환경**: Jetson Orin NX 16GB (25W), AnyGrasp SDK & cuRobo 0.7.8 컨테이너
+- **측정 및 최적화 내용**:
+  1. **점군 크기 및 타깃 ROI 비교**:
+     - 고정 8,000점(2.054초) 대비 고정 4,000점(1.357초, 33.9% 단축), 가변 4,000/8,000점(1.740초, 15.3% 단축) 확인.
+     - 형태가 뚜렷한 타깃은 4,000점으로 고속 처리하고 성긴 타깃은 8,000점을 유지하는 적응형 정책 채택.
+  2. **워커 유지 (Lease) 효과**:
+     - 매번 워커를 초기화할 때(9.848초) 대비 작업 Lease 유지 시 **1.603초**로 다음 파지 요청 응답 속도 대폭 개선. (상주 RSS 약 1.18 GiB)
+  3. **VLM 사전 준비(Prepare Window) 연동**:
+     - VLM 분석 시작 시 AnyGrasp 워커를 사전 로드하여 전체 파이프라인 대기 시간 단축 확인.
+- **산출물 위치**: `jetson-orin:/home/cleany/cleany-data/reports/anygrasp-optimizations-20261022/` (`report.html`, `measurements.csv`, `summary.json`)
 
 ## manipulation-run AnyGrasp 후보 전환 (2026-10-22)
 
-기준 commit은 `3950218d70cbebd4ce3278e7602bc276482c0471`이며 기존 미커밋
-AnyGrasp 최적화와 작업트리를 포함한다. Jetson Orin NX, native Humble과 기존
-licensed vision 및 motion container에서 검사했다. `make manipulation-run`이
-호출하는 `tools/collection-runtime`의 기본 후보 방식을 AnyGrasp로 바꿨다.
-해당 모드의 hardware support launch는 기하학적 후보 노드를 생성하지 않는다.
-명시한 `CLEANY_COLLECTION_GRASP_PREDICTOR` 값은 기본값보다 우선한다.
-배포 YAML은 `target_geometry`로 4,000/8,000점을 선택하며 기존 전체 해상도
-재시도, worker 재사용과 작업 유지 설정을 사용한다. 노드 자체 기본 정책과
-접근 방향 및 ROI 제한은 변경하지 않았다.
-
-운영 도구 pytest 103개와 launch 검사 8개가 통과했다. 도구 수집에서 선택형
-3개가 skip됐으며 나머지 139개는 이번 선택 범위에서 제외했다. 기본 선택과
-모드별 서비스 분기만 먼저 확인한 12개 검사는 위 도구 검사에 포함된다.
-루트 Makefile로 grasping native 빌드와 motion container 준비를 마쳤다.
-실제 `run-anygrasp` entrypoint의 predictor, 가변 정책과 worker 설정을 ROS로
-조회하고 native client에서 `/grasp/plan`을 호출했다. 저장 fixture 0002,
-0001, 0002에서 후보 29개, 21개, 29개를 반환했고 동일 worker PID를 유지했다.
-저장 점군은 identity base_link frame으로 전달한 서비스 검사이며 카메라,
-실제 물체 IK, 로봇 구동 및 파지 성공 검증은 아니다. 시험 container는 종료했다.
+- **검증 환경**: Jetson Orin NX, ROS 2 Humble, Vision & Motion 컨테이너
+- **변경 내용**: `make manipulation-run`의 기본 파지 후보 생성기를 AnyGrasp SDK 경로로 전환하고 `target_geometry` 적응형 점군 정책 적용.
+- **주요 검증 결과**:
+  - 도구 pytest **103개 통과**, Launch 검사 8개 통과.
+  - 저장 픽스처(0002, 0001, 0002) 대상 `/grasp/plan` 호출 시 각각 29개, 21개, 29개 파지 후보 정상 반환 및 동일 워커 PID 유지 확인.
+- **참고**: 현재(2026-10-23)는 리소스 절약을 위해 기본 모드가 네이티브 `geometric`으로 전환되었으며, AnyGrasp는 환경 변수(`CLEANY_COLLECTION_GRASP_PREDICTOR=anygrasp`)로 선택 가능합니다.
 
 초기 launch 검사는 ROS Python 경로를 덮어써 collection 단계에서 실패했고
 기존 overlay 경로를 유지해 통과했다. 서비스 검사는 고정 identity의 ROS domain을

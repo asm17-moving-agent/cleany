@@ -57,6 +57,7 @@ make sim-gazebo
 | 코드 구조와 구현 학습 | [학습 가이드](docs/guide/README.md), [HTML 뷰어](docs/guide/index.html) |
 | 인식과 sorting 실행 | [Perception](ros2_ws/src/cleany_perception/docs/runtime.md), [Manipulation](ros2_ws/src/cleany_skill_executor/docs/manipulation.md) |
 | 물체 하나의 Action 실행 | [Mock 서버](ros2_ws/src/cleany_skill_executor/docs/manipulation_mock_usage.md), [MuJoCo BT 서버](ros2_ws/src/cleany_manipulation_bt/README.md) |
+| 실물 로봇 조작(Jetson) 실행 및 제어 | [실물 실행](docs/RUNNING.md#jetson-실물-실행-경로), [조작 경로 규격](ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md), [Dev Monitor 웹 제어](ros2_ws/src/cleany_dev_monitor/README.md) |
 | 제품, 설계, 미해결 질문 | [KB](docs/cleany-docs/README.md) |
 
 ## 코드 위치
