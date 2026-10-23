@@ -293,10 +293,30 @@ DB(`/tmp/cleany-bt-physical-clean.sqlite3`)에는 checkpoint 39개와 실제 BT 
 확인 대기, 늦은 응답 격리, stop 근거 누락과 기록 실패, 재시작 자동 재개 금지를 포함한다.
 이 기록은 첫 컵 한 개의 연동 검증이며 다른 대상의 수거 성공률 측정은 아니다.
 
-## Jetson 실물 backend
+## Jetson 실물 백엔드 (Real Robot Backend)
 
-기존 `manipulation_mujoco_server`는 유지한다. 실물 실행 파일은 `manipulation_jetson_server`, Python 진입점은 `jetson_node.py`다. 두 서버의 기본 Action 경로가 같으므로 backend와 namespace를 명시적으로 선택한다.
+기존 시뮬레이션용 `manipulation_mujoco_server`와 별개로, 실물 로봇용 Behavior Tree 서버인 `manipulation_jetson_server`(진입점: `jetson_node.py`)를 제공합니다.
+두 서버는 동일한 Action 인터페이스를 공유하므로, 충돌 방지를 위해 백엔드와 네임스페이스(`namespace`)를 명시적으로 구분하여 실행합니다.
 
-`manipulation_jetson.launch.py`는 `repository_root`, 외부 `collection_config`와 `hardware_monitor_config`를 요구한다. 로컬 감독 시험 설정을 자동으로 선택하지 않는다. controller, 정지 guard와 센서 runtime은 실행 전에 준비해야 한다. [실물 조작 경로](../cleany_skill_executor/docs/physical-manipulation.md)와 [RUNNING](../../../docs/RUNNING.md)을 따른다.
+### 1. 실행 및 설정
+`manipulation_jetson.launch.py`는 로봇별 외부 설정 파일을 필수로 요구합니다:
+- `collection_config`: 로봇별 수거 파라미터 JSON
+- `hardware_monitor_config`: 하드웨어 모션 감시 기준 YAML
 
-실물 경로의 추가 서비스는 `manipulation/control_state` (`std_srvs/Trigger`), `manipulation/confirm_recovery` (`ConfirmManipulationRecovery`)이며, `manipulation/return_arm` (`ReturnArm`) Action으로 명시적인 팔 복귀를 요청한다. 실행 이력은 기본적으로 `$XDG_STATE_HOME/cleany/manipulation_jetson/` 또는 `~/.local/state/cleany/manipulation_jetson/`에 둔다. 프로세스 종료나 과거 성공 기록을 현재 정지 또는 배치의 증거로 취급하지 않는다.
+```bash
+ros2 launch cleany_manipulation_bt manipulation_jetson.launch.py \
+  repository_root:="$PWD" \
+  collection_config:=/absolute/path/to/profile.json \
+  hardware_monitor_config:=/absolute/path/to/monitor.yaml
+```
+
+### 2. 실물 전용 서비스 및 액션
+
+| 인터페이스 명칭 | ROS 타입 / 통신 방식 | 설명 |
+|---|---|---|
+| `manipulation/control_state` | `std_srvs/srv/Trigger` (서비스 제공) | 제어기 및 하드웨어 가드 활성 상태 확인 |
+| `manipulation/confirm_recovery` | `cleany_interfaces/srv/ConfirmManipulationRecovery` (서비스 제공) | 안전 차단 후 운영자 수동 복구 승인 |
+| `manipulation/return_arm` | `cleany_interfaces/action/ReturnArm` (액션 제공) | 명시적인 팔 복귀(Return Home) 시퀀스 요청 |
+
+- **실행 이력 관리**: 기본적으로 `~/.local/state/cleany/manipulation_jetson/`에 실행 이력과 복구 스냅샷을 남깁니다.
+- **안전 주의**: 프로세스 종료나 과거 성공 기록이 현재 로봇의 안전 정지를 보장하는 것은 아니므로 항상 하드웨어 감시 상태를 함께 확인합니다. 상세 내용은 [실물 조작 가이드](../cleany_skill_executor/docs/physical-manipulation.md)를 참고하세요.

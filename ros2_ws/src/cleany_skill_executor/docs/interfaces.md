@@ -54,27 +54,22 @@ depth 100으로 구독한다. `monitor_port`의 localhost ZeroMQ REP socket은 �
 
 ## physical_grasp_selection_server
 
-실행 파일은 `physical_grasp_selection_server`이며 ROS node 이름은 `grasp_selection_server`다. 기존 선택 Action과 메시지 계약을 사용하되 [실물 경로](physical-manipulation.md)로 명시 선택한다. 기존 서버와 같은 namespace에서 동시에 사용하지 않는다.
+실물 전용 파지 후보 선택 서버입니다. (노드명: `grasp_selection_server`)
+시뮬레이션용 서버와 동일한 액션 인터페이스(`grasp/select_reachable`)를 제공하되, GPU cuRobo IK 및 실물 씬 매핑 검증을 거칩니다.
 
-| 종류 | 기본 이름 | ROS 타입 | 조건 |
+| 종류 | 기본 이름 | ROS 타입 | 설명 |
 |---|---|---|---|
-| 서비스 제공 | `/grasp/warmup_status` | `std_srvs/Trigger` | IK 예열 상태 조회 |
-| 서비스 제공 | `/grasp/vlm_warmup` | `std_srvs/SetBool` | 활성화된 hybrid profile의 제한 시간 내 예열 요청 |
+| 서비스 제공 | `/grasp/warmup_status` | `std_srvs/srv/Trigger` | cuRobo IK 엔진 예열 상태 확인 |
+| 서비스 제공 | `/grasp/vlm_warmup` | `std_srvs/srv/SetBool` | VLM 감지 시 제한 시간 내 백그라운드 예열 트리거 |
 
-예열 실패는 파지 성공을 의미하지 않는다. 유효 상태, 경로와 실제 실행은 각각 검사한다.
+## 실물 준비, 검증 및 모니터링 노드
 
-
-## 실물 준비, 검증과 증거 노드
-
-| 실행 파일 | 기본 ROS 통신 | 역할 |
+| 실행 파일 | 제공 및 호출 인터페이스 | 역할 및 동작 상세 |
 |---|---|---|
-| `validate_pick_server` | `grasp/validate_pick` (`ValidatePick`) 제공 | 촬영, 후보 생성과 도달성의 plan-only 검증 |
-| 같은 서버 | `perception/inspect_scene` (`InspectScene`), `grasp/plan` (`PlanGrasp`), `grasp/select_reachable` (`SelectReachableGrasp`) 호출 | 제한 시간과 취소를 downstream에 전달 |
-| 같은 서버 | `/perception/observe_object_reference` (`ObserveObjectReference`) 호출 | 선택적으로 대상 reference 고정과 정리 |
-| 같은 서버 | `grasp/validate_pick_debug` (`sensor_msgs/Image`) 발행 | reliable/transient-local depth 1, 검증 overlay |
-| `manipulation_evidence` | `/manipulation/check_evidence` (`CheckManipulation`) 제공 | motor, wrist tracking, guard와 outcome의 신선한 증거 결합 |
-| 같은 노드 | `/joint_state_broadcaster/dynamic_joint_states`, `/perception/wrist_tracking_status`, `/real_control/status`, `/perception/manipulation_outcome` 구독 | 관측만 결합하고 성공을 가정하지 않음 |
-| `pregrasp_pipeline`, `hardware_pregrasp`, `collection_pipeline` | `/grasp/validate_pick`, `/joint_states`, `/robot_description` | 준비와 검증 입력; 실행 모드는 native controller Action을 명시적으로 사용 |
-| `pregrasp_sim_ready` | `/joint_states`, head와 양손목 `camera_info`, TF, `/controller_manager/list_controllers` | 시뮬레이션 입력의 신선도와 controller 준비 대기 |
+| `validate_pick_server` | `grasp/validate_pick` (`cleany_interfaces/srv/ValidatePick`) [제공]<br/>`grasp/validate_pick_debug` (`sensor_msgs/msg/Image`) [발행] | 촬영, 파지 후보 생성 및 도달성 검증을 실제 모터 이동 없이 확인 (Plan-only) |
+| 〃 | `perception/inspect_scene`, `grasp/plan`, `grasp/select_reachable` [호출] | 하위 인식 및 파지 서버로 요청을 위임하고 취소/타임아웃 전달 |
+| `manipulation_evidence` | `/manipulation/check_evidence` (`CheckManipulation`) [제공] | 모터 텔레메트리, 손목 비전 추적, 안전 가드 상태를 종합하여 작업 성공 증거 판정 |
+| `collection_pipeline`, `pregrasp_pipeline`, `hardware_pregrasp` | `/grasp/validate_pick`, `/joint_states`, `/robot_description` [구독] | 단계별 준비 상태 확인 및 네이티브 제어기 액션 호출 준비 |
+| `pregrasp_sim_ready` | `/joint_states`, 카메라 `camera_info`, TF, `controller_manager/list_controllers` [구독] | 런타임 시작 전 센서 및 제어기의 준비 신선도 대기 |
 
 실물 trajectory는 `/{arm}_{arm,gripper}_controller/follow_joint_trajectory` (`control_msgs/FollowJointTrajectory`)로 보낸다. 실행기는 검증 Action과 센서 관측의 성공, 모터 command 수락과 물리 도착을 구분한다. 외부 limits와 contact 판단 조건은 [physical-manipulation](physical-manipulation.md)을 따른다.
