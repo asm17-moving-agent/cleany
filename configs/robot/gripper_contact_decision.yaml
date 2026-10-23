@@ -1,7 +1,4 @@
-# 2026-10-13 양팔 시험으로 채택한 모터 접촉 판정 기준.
-# 실제 파지와 evidence 노드가 공유하는 기준 파일이다.
-# 2026-10-15 운영 온도 제한은 사용자 요청으로 드라이버와 같은 80°C로 조정.
-# 2026-10-20 사용자 요청으로 위치 변화 폭 조건 삭제. 변화 폭은 진단값으로만 기록.
+# Contact criteria shared by physical grasp execution and the evidence node.
 schema_version: 1
 decision: motor_resistance_contact
 runtime_activation: hardware_contact_evidence
@@ -32,21 +29,6 @@ arms:
     motor_id: 12
     closed_goal_raw: 1372
     opening_direction: 1
-diagnostic_motion_reference:
-  speed_raw: 800
-  acceleration_raw: 254
-  host_velocity_rad_s: 1.0
-  host_acceleration_rad_s2: 2.0
-  opening_targets_raw: {left: 2039, right: 2053}
-  # 양쪽에서 물체가 있는 상태를 측정한 7조건. 모든 조합의 검증을 의미하지 않는다.
-  characterized_positive_speed_acceleration_pairs:
-    - [800, 254]
-    - [200, 254]
-    - [400, 254]
-    - [800, 20]
-    - [800, 80]
-    - [800, 160]
-    - [400, 80]
 states:
   CONTACT: position_residual_and_sustained_current_and_load
   EMPTY: near_closed_goal_and_low_current_and_low_load
@@ -57,7 +39,3 @@ scope:
   high_output_threshold_validated: false
   current_to_force_or_torque_calibrated: false
   # CONTACT는 기계적 저항의 증거. 목표 물체 식별과 상승 후 동행 관측이 별도로 필요하다.
-evidence:
-  left_report: benchmark-results/left-gripper-40mm-full-20261013-012816/analysis.json
-  right_report: benchmark-results/right-gripper-comprehensive-20261013/analysis.json
-  left_reference_thread: 01a130c8-644d-78a1-b176-0afc3291e9cc

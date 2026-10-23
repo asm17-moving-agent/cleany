@@ -272,7 +272,8 @@ make benchmark-dev-monitor-cpu MONITOR_CPU_OUTPUT=/absolute/new-baseline-run \
 index 기록 건수가 남는다. 이 수치는 합성 관측 부하의 비교이며 실제 파지 작업의
 최대 부하나 성공률 검증은 아니다.
 
-CPU 비교의 원자료와 환경별 결과는 저장소 밖 데이터 루트에 보관한다. 현재 브랜치의 회귀 검증 범위와 원본 위치는 [EVIDENCE](../../../docs/EVIDENCE.md)를 따른다.
+CPU 비교의 원자료와 환경별 결과는 저장소 밖 `CLEANY_DATA_ROOT/reports/`에 보관한다.
+검사 선택과 실행 절차는 [테스트 가이드](../../../docs/TESTING.md)를 따른다.
 
 카메라 화면에서 손목 `image_raw`를 선택하면 해당 publisher의 5Hz
 `preview/compressed` 토픽을 우선 구독한다. 헤드 컬러는 드라이버의

@@ -35,8 +35,8 @@ joint 이름으로 찾는다. 따라서 `head_tilt` / `head_tilt_joint`처럼 �
 jaw collision geom을 참조한다. `robot_top_bins_preview.launch.py`는 모델 배치
 확인용이며 자동 집기·수거를 실행하지 않는다. 전체 수거 성공은 별도 검증 대상이다.
 
-날짜별 CAD 이관·수거 실행 결과는 [실행 기록](../../../../docs/SORTING_PIPELINE_TRIALS_20260909.md)을
-따른다. 단위 테스트 통과는 전체 물리 수거 성공률을 나타내지 않는다.
+날짜별 CAD 이관·수거 실행 결과의 원본 위치는 [근거 색인](../../../../docs/EVIDENCE.md)에서
+확인한다. 단위 테스트 통과는 전체 물리 수거 성공률을 나타내지 않는다.
 `make test-mujoco`는 현재 장면과 공통 bridge의 전체 단위 테스트를 실행한다. Python bridge의 시뮬레이션 context와 step observer는 단일 정의로 관리한다.
 주행 회귀 검사는 같은 CAD 로봇을 원점의 장애물 없는 평면 fixture에 배치해
 휠 속도 추종·정지·이동 방향을 확인한다. 스터디카페의 회전된 초기 배치와
@@ -94,8 +94,8 @@ DISPLAY=:0 make profile-mujoco-runtime \
 ```
 
 `tools/benchmark_runtime.py --output <file> -- ros2 launch ...`로 다른 launch도 측정한다.
-2026-10-02 VM의 비교 수치와 실제 수거 중단 지점은
-[성능 측정 기록](../../../../docs/MUJOCO_PERFORMANCE_20261002.md)을 따른다.
+과거 VM의 성능 비교와 수거 중단 기록은 저장소 밖에 보관하며,
+원본 위치는 [근거 색인](../../../../docs/EVIDENCE.md)에서 확인한다.
 
 `scenes/study_cafe_grasp_execution.xml.in`에는 컵–양손 그리퍼의 10개 접촉쌍을
 명시해 미끄럼 마찰을 기존 접촉값 3에서 6으로 높인 시험 설정을 둔다.
