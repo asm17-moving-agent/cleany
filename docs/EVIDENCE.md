@@ -211,3 +211,30 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 `d5852af`의 [환경 확인 실패](https://github.com/asm17-moving-agent/cleany/actions/runs/39428868069)는 런타임 `ROS_HOME`이 이미지의 rosdep metadata 위치와 달라 발생했습니다. `45df20f`는 의존성 확인 명령에 이미지 생성 시의 `ROS_HOME`을 지정하며, 재설치 없이 실제 manifest의 의존성 충족 여부를 검사합니다.
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
+
+## MoveIt 충돌 메시 최적화와 MuJoCo 동등성 검사 (2026-10-24)
+
+`main`의 `eb2c56a190ad9fbb52cb104ff55282e955a56fcb`에서 충돌 메시 최적화만
+분리했다. 형상과 기본값은 Jetson에 적용한 로컬 `cffdddb`, 동등성 검사 수정은
+`707538d`를 따른다. STL 17종과 manifest, 선택 옵션, 생성 도구와 검사를 포함한다.
+MuJoCo 접촉용 MJCF, 관절, 시각 CAD와 MoveIt 자기 충돌 예외는 main을 유지한다.
+cuRobo와 GPU 계산 및 미병합 physical launch의 변경은 포함하지 않는다.
+
+Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, Python 3.10.12와 MuJoCo 3.11.0의
+별도 main 사본에서 description 패키지를 빌드하고 설치 자산 18개의 hash를
+소스와 비교했다. `make test-description-models`에 description의 나머지 검사와
+기존 main의 MoveIt 설정, 시뮬레이션 충돌 예외 및 장면 검사를 추가해
+122개가 모두 통과했다. 이때 검사한 26개 core 파일은 분리 변경과 동일하다.
+NumPy/SciPy 호환 범위와 deprecated API 경고 2개는 남았다.
+
+공통 URDF 기본값 때문에 Gazebo navigation에도 최적화 메시 10개가 전달된다.
+이 변경은 Jetson과 같은 기본값을 유지하며, 별도 검토한 Gazebo 원본 형상 고정은
+포함하지 않는다. 앞선 122개 검사는 Gazebo 변환 모듈을 실행하지 않는다.
+Gazebo 시뮬레이션 실행과 실물 모터 동작을 검증한 결과는 아니다.
+
+원본은 Jetson의 `/home/cleany/cleany-data/reports/collision-main-review-20261024/`에
+있다. `main.tar.gz`, `candidate.json`, `installation.json`, `build.log`와
+`models-and-main-contracts.log/.xml`에 입력 main, core 파일 hash, 환경과 결과를
+보존했다. 해당 검토의 `candidate.patch`에는 별도로 제안한 Gazebo 원본 고정이
+포함되어 있으므로 이 PR의 패치와 구분한다. Jetson 운영 적용 기록은
+`/home/cleany/cleany-data/reports/collision-deployment-20261024/`에 있다.

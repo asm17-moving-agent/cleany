@@ -60,6 +60,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 
 help:
 	@echo "Cleany native ROS 2 commands"
+	@echo "  make test-description-models  Test URDF/MuJoCo parity and optimized collision assets"
 	@echo "  make deps          Install workspace dependencies with rosdep"
 	@echo "  make deps-gazebo   Install Gazebo Fortress dependencies with rosdep"
 	@echo "  make check-gazebo-env  Verify Ubuntu 22.04 / Humble / Fortress environment"
@@ -554,3 +555,12 @@ test-logger-cli:
 .PHONY: test-ci-tools
 test-ci-tools:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/tools/ci -v
+
+.PHONY: test-description-models
+test-description-models:
+	source "$(ROS_SETUP)" && \
+	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
+	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
+	python3 -m pytest -q -p no:cacheprovider \
+		$(ROS2_WS)/src/cleany_description/test/test_model_parity.py \
+		$(ROS2_WS)/src/cleany_description/test/test_collision_meshes.py $(COLLISION_TEST_ARGS)

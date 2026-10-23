@@ -1,0 +1,117 @@
+{
+  "description_package": "ros2_ws/src/cleany_description",
+  "source_meshes": [
+    "Upper_Arm_5cm.stl",
+    "Lower_Arm_5cm.stl",
+    "Base.stl",
+    "Base_Motor.stl",
+    "Rotation_Pitch_Motor.stl",
+    "Upper_Arm_Motor.stl",
+    "Wrist_Pitch_Roll_Motor.stl",
+    "Fixed_Jaw_Motor.stl",
+    "Rotation_Pitch.stl",
+    "Lower_Arm_Motor.stl",
+    "Wrist_Pitch_Roll.stl",
+    "cad_frame/topbase1.stl",
+    "topbase2.stl",
+    "tophead1.stl",
+    "tophead4.stl",
+    "tophead5.stl",
+    "tophead6.stl"
+  ],
+  "output_directory": "meshes/collision",
+  "max_hull_expansion_m": 0.001,
+  "enclosure_margin_m": 1e-06,
+  "max_iterations": 1024,
+  "planes_per_iteration": 1,
+  "surface_components": {},
+  "surface_simplifier_image": "cleany-motion:jp6.2",
+  "partition_components": {
+    "Lower_Arm_5cm.stl": {
+      "2": [
+        {
+          "axis": 0,
+          "offset_m": 0.032
+        }
+      ]
+    },
+    "Rotation_Pitch.stl": {
+      "0": [
+        {
+          "axis": 0,
+          "offset_m": -0.016
+        },
+        {
+          "axis": 0,
+          "offset_m": 0.016
+        }
+      ]
+    },
+    "Wrist_Pitch_Roll.stl": {
+      "0": [
+        {
+          "axis": 0,
+          "offset_m": -0.0272
+        },
+        {
+          "axis": 0,
+          "offset_m": -0.02
+        },
+        {
+          "axis": 0,
+          "offset_m": 0.015
+        },
+        {
+          "axis": 1,
+          "offset_m": -0.02
+        }
+      ]
+    },
+    "Lower_Arm_Motor.stl": {
+      "0": [
+        {
+          "axis": 0,
+          "offset_m": -0.014
+        },
+        {
+          "axis": 0,
+          "offset_m": 0.0148
+        }
+      ]
+    },
+    "cad_frame/topbase1.stl": {
+      "1": [
+        {
+          "axis": 2,
+          "offset_m": 0.75
+        },
+        {
+          "axis": 2,
+          "offset_m": 0.97
+        }
+      ]
+    },
+    "tophead5.stl": {
+      "0": [
+        {
+          "axis": 0,
+          "offset_m": -0.1545
+        }
+      ]
+    }
+  },
+  "mesh_scales": {
+    "topbase2.stl": 0.001,
+    "tophead1.stl": 0.001,
+    "tophead4.stl": 0.001,
+    "tophead5.stl": 0.001,
+    "tophead6.stl": 0.001
+  },
+  "already_planar_meshes": [
+    "Fixed_Jaw_part1.ply.convex.stl",
+    "Fixed_Jaw_part2.ply.convex.stl",
+    "Moving_Jaw_part1.ply.convex.stl",
+    "Moving_Jaw_part2.ply.convex.stl",
+    "Moving_Jaw_part3.ply.convex.stl"
+  ]
+}
