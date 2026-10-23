@@ -1,4 +1,5 @@
 """ROS graph evidence with synthetic peers; no hardware or navigation is driven."""
+import os
 from copy import deepcopy
 from pathlib import Path
 from threading import Event, Thread
@@ -56,17 +57,24 @@ class SyntheticPeers(Node):
             'owner': self.create_publisher(ComponentHealth, settings['component_health_topic'], 10),
             'safety': self.create_publisher(SafetyStatus, settings['safety_topic'], 10),
         }
-        for name in settings['navigation_nodes'] + settings['localization_nodes']:
+        for name in settings['navigation_nodes']:
+            self.create_service(GetState, name + '/get_state', self.navigation_state)
+        for name in settings['localization_nodes']:
             self.create_service(GetState, name + '/get_state', self.state)
         self.create_subscription(SystemState, 'system/state', self.messages.append, 10)
         self.recoveries = []
-        self.recovery = ActionServer(self, RecoverComponent, 'lidar/recover', self.recover,
+        self.recovery = ActionServer(self, RecoverComponent, 'navigation/recover', self.recover,
                                      callback_group=self.group)
         self.timer = self.create_timer(.025, self.publish)
 
     @staticmethod
     def state(request, response):
         response.current_state = State(id=3, label='active')
+        return response
+
+    def navigation_state(self, request, response):
+        response.current_state = (State(id=2, label='inactive') if 'navigation' in self.bad
+                                  else State(id=3, label='active'))
         return response
 
     def recover(self, goal):
@@ -103,6 +111,9 @@ class SyntheticPeers(Node):
             physical_release_confirmed='estop' not in self.bad, stopped=True))
 
 
+_DOMAINS = iter(range(int(os.environ.get('SUPERVISOR_GRAPH_DOMAIN_BASE', '170')), 200))
+
+
 @pytest.fixture
 def graph():
     config = load(Path(__file__).resolve().parents[1] / 'config/system_supervisor.yaml')
@@ -110,9 +121,12 @@ def graph():
     config['ros']['localization_nodes'] = ['synthetic_amcl']
     config['ros']['lifecycle_poll_s'] = .1
     config['lease_s'], config['heartbeat_timeout_s'], config['stop_timeout_s'] = .5, .3, .7
+    config['persistence']['state_file'] = ''  # Never touch the operator's real latch state.
+    config['ros']['trusted_publishers'] = {topic: ['/synthetic_supervisor_peers']
+                                           for topic in config['ros']['trusted_publishers']}
     for entry in config['sources'].values():
         entry['clear_s'], entry['raise_s'] = .08, 0.
-    rclpy.init()
+    rclpy.init(domain_id=next(_DOMAINS))
     peers, supervisor = SyntheticPeers(config), SupervisorNode(config=config)
     executor = MultiThreadedExecutor(num_threads=6)
     nodes = [peers, supervisor]
@@ -140,12 +154,12 @@ def test_ros_permission_service_and_recovery_verification(graph):
         mission_id='synthetic_permission_only', capabilities=['UNKNOWN_CAPABILITY']))
     wait(future.done)
     assert not future.result().granted
-    peers.bad.add('lidar')
-    wait(lambda: 'LIDAR_UNAVAILABLE' in supervisor.core.faults.faults)
+    peers.bad.add('navigation')
+    wait(lambda: 'NAVIGATION_UNAVAILABLE' in supervisor.core.faults.faults)
     request = ActionClient(peers, RequestRecovery, 'system/request_recovery', callback_group=peers.group)
     wait(request.server_is_ready)
     sent = request.send_goal_async(RequestRecovery.Goal(epoch=supervisor.core.epoch,
-                                                       fault_code='LIDAR_UNAVAILABLE'))
+                                                       fault_code='NAVIGATION_UNAVAILABLE'))
     wait(sent.done)
     handle = sent.result()
     assert handle.accepted
@@ -154,7 +168,7 @@ def test_ros_permission_service_and_recovery_verification(graph):
     job = next(iter(supervisor.core.recoveries.jobs.values()))
     wait(lambda: job.verify_after is not None)
     assert not result.done() and job.state == RecoveryState.RUNNING
-    peers.bad.remove('lidar')
+    peers.bad.remove('navigation')
     wait(result.done)
     assert result.result().result.restored and job.state == RecoveryState.SUCCEEDED
     wait(lambda: supervisor.core.state == OperatingState.OPERATIONAL)
@@ -262,7 +276,8 @@ def test_ros_stop_failure_escalates_without_fabricating_success(graph):
     wait(reset.service_is_ready)
     code = next(f.code for f in supervisor.core.faults.faults.values()
                 if f.code.startswith('MISSION_STOP_FAILED:'))
-    result = reset.call_async(RequestFaultReset.Request(epoch=supervisor.core.epoch, fault_code=code))
+    result = reset.call_async(RequestFaultReset.Request(epoch=supervisor.core.epoch, fault_code=code,
+                                                        operator_id='synthetic_operator'))
     wait(result.done)
     assert not result.result().reset  # Service dispatches verification, not a fabricated stop result.
     wait(lambda: all(lease.stopped for lease in supervisor.core.permissions.leases.values()))

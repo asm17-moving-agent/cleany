@@ -45,6 +45,8 @@ class Fault:
     recovery_policy: str
     detail: str = ''
     locks_operation: bool = False
+    cleared_at: float | None = None
+    restored: bool = False
 
 
 @dataclass
@@ -59,6 +61,8 @@ class Lease:
     stop_requested_at: float | None = None
     stop_accepted: bool = False
     stopped: bool = False
+    ended_at: float | None = None
+    restored: bool = False
 
 
 @dataclass
@@ -76,6 +80,7 @@ class RecoveryJob:
     resource_held: bool = False
     cancel_requested: bool = False
     detail: str = ''
+    finished_at: float | None = None
 
 
 @dataclass
@@ -86,3 +91,15 @@ class PermissionDecision:
     version: int = 0
     valid_for_s: float = 0.
     reason: str = ''
+
+
+@dataclass
+class SupervisorEvent:
+    """Structured audit record; monotonic_s belongs to the emitting process epoch."""
+    sequence: int
+    kind: str
+    monotonic_s: float
+    code: str = ''
+    source: str = ''
+    severity: str = ''
+    detail: str = ''

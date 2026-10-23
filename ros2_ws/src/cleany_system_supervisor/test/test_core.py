@@ -5,7 +5,14 @@ import pytest
 
 from cleany_system_supervisor.config import load, validate
 from cleany_system_supervisor.models import Availability as A, OperatingState as O, RecoveryState as R
+from cleany_system_supervisor.recovery import UnsupportedRecovery
+from cleany_system_supervisor.store import LatchStore
 from cleany_system_supervisor.supervisor import SystemSupervisor
+
+OPERATOR = 'synthetic_operator'
+# Fixed test timings, independent of the robot profile's recovery deadlines.
+RECOVERY = dict(automatic=False, max_attempts=2, attempt_timeout_s=5., total_timeout_s=20.,
+                verify_timeout_s=3., cancel_timeout_s=2.)
 
 
 class Clock:
@@ -32,7 +39,7 @@ class Recovery:
 
 class Stop:
     def __init__(self):
-        self.requests, self.status = [], 'ACCEPTED'
+        self.requests, self.status, self.forgotten = [], 'ACCEPTED', []
 
     def request(self, lease, epoch):
         self.requests.append(lease.lease_id)
@@ -40,12 +47,20 @@ class Stop:
     def poll(self, lease_id):
         return self.status
 
+    def forget(self, lease_id):
+        self.forgotten.append(lease_id)
+
+
+def profile():
+    config = load(Path(__file__).resolve().parents[1] / 'config/system_supervisor.yaml')
+    for policy in config['recovery_policies'].values():
+        policy.update(RECOVERY)
+    return config
+
 
 @pytest.fixture
 def system():
-    config = load(Path(__file__).resolve().parents[1] / 'config/system_supervisor.yaml')
-    clock, recovery, stop = Clock(), Recovery(), Stop()
-    return SystemSupervisor(config, clock=clock, recovery_port=recovery, stop_port=stop)
+    return SystemSupervisor(profile(), clock=Clock(), recovery_port=Recovery(), stop_port=Stop())
 
 
 def advance(system, seconds=.1, bad=(), missing=()):
@@ -84,7 +99,7 @@ def test_boot_unknown_then_operational_and_optional_degradation(system):
 
 def test_stale_cannot_remain_available_and_missing_safety_locks(system):
     ready(system)
-    advance(system, .6, missing=('lidar',))
+    advance(system, .6, missing=('navigation',))
     assert system.capabilities.states['NAVIGATION'] != A.AVAILABLE
     advance(system, .4, missing=('safety',))
     assert system.state == O.FAULT_LOCKED
@@ -93,24 +108,26 @@ def test_stale_cannot_remain_available_and_missing_safety_locks(system):
 
 def test_fault_hysteresis_multiple_faults_and_conjunctive_reset(system):
     ready(system)
-    advance(system, bad=('lidar', 'camera'))
-    advance(system, .3, bad=('lidar', 'camera'))
+    advance(system, bad=('navigation', 'camera'))
+    advance(system, .3, bad=('navigation', 'camera'))
     assert {f.code for f in system.faults.faults.values() if f.active} == {
-        'LIDAR_UNAVAILABLE', 'CAMERA_UNAVAILABLE'}
+        'NAVIGATION_UNAVAILABLE', 'CAMERA_UNAVAILABLE'}
     advance(system)
-    assert system.faults.faults['LIDAR_UNAVAILABLE'].active
+    assert system.faults.faults['NAVIGATION_UNAVAILABLE'].active
     for _ in range(7):
         advance(system)
-    assert not system.faults.faults['LIDAR_UNAVAILABLE'].active
-    advance(system, bad=('estop', 'base'))
+    assert not system.faults.faults['NAVIGATION_UNAVAILABLE'].active
+    for _ in range(5):
+        advance(system, bad=('estop', 'base'))
     assert system.state == O.FAULT_LOCKED
-    assert not system.reset_fault(system.epoch, 'ESTOP')[0]
+    assert not system.reset_fault(system.epoch, 'ESTOP', OPERATOR)[0]
     for _ in range(8):
         advance(system)
     assert system.state == O.FAULT_LOCKED
-    assert system.reset_fault(system.epoch, 'ESTOP')[0]
+    assert not system.reset_fault(system.epoch, 'ESTOP')[0]  # Operator identity is mandatory.
+    assert system.reset_fault(system.epoch, 'ESTOP', OPERATOR)[0]
     assert system.state == O.FAULT_LOCKED
-    assert system.reset_fault(system.epoch, 'BASE_UNAVAILABLE')[0]
+    assert system.reset_fault(system.epoch, 'BASE_UNAVAILABLE', OPERATOR)[0]
     assert system.state == O.OPERATIONAL
 
 
@@ -146,7 +163,7 @@ def test_expiry_epoch_and_identity_cannot_reauthorize(system):
     assert not permission(system).granted  # Previous stop is unconfirmed.
 
 
-def make_recovery(system, source='lidar'):
+def make_recovery(system, source='navigation'):
     advance(system, bad=(source,))
     advance(system, .3, bad=(source,))
     code = system.config['sources'][source]['fault_code']
@@ -160,7 +177,7 @@ def test_recovery_result_requires_new_stable_health_and_keeps_permission_blocked
     ready(system)
     job = make_recovery(system)
     system.recoveries.port.statuses[job.job_id] = 'SUCCEEDED'
-    advance(system, bad=('lidar',))
+    advance(system, bad=('navigation',))
     assert job.state == R.RUNNING and job.verify_after is not None
     assert not permission(system).granted
     for _ in range(4):
@@ -179,7 +196,7 @@ def test_failed_recovery_exhausts_budget_without_clearing_fault(system):
     job = make_recovery(system)
     for _ in range(2):
         system.recoveries.port.statuses[job.job_id] = 'FAILED'
-        advance(system, bad=('lidar',))
+        advance(system, bad=('navigation',))
     assert job.state == R.FAILED and job.attempt == 2
     assert system.request_recovery(system.epoch, job.fault_code) is job
     assert system.faults.faults[job.fault_code].active
@@ -189,29 +206,29 @@ def test_failed_recovery_exhausts_budget_without_clearing_fault(system):
 def test_timeout_quarantines_until_terminal_cancel_and_serializes_jobs(system):
     ready(system)
     job = make_recovery(system)
-    advance(system, bad=('lidar', 'camera'))
-    advance(system, .3, bad=('lidar', 'camera'))
-    other = system.request_recovery(system.epoch, 'CAMERA_UNAVAILABLE')
+    advance(system, bad=('navigation', 'localization'))
+    advance(system, .3, bad=('navigation', 'localization'))
+    other = system.request_recovery(system.epoch, 'LOCALIZATION_UNAVAILABLE')
     for _ in range(52):
-        advance(system, bad=('lidar', 'camera'))
+        advance(system, bad=('navigation', 'localization'))
     assert system.recoveries.port.canceled == [job.job_id]
     assert other.state == R.IDLE
     for _ in range(21):
-        advance(system, bad=('lidar', 'camera'))
+        advance(system, bad=('navigation', 'localization'))
     assert job.state == R.FAILED and job.resource_held
     assert other.state == R.IDLE and not permission(system).granted
     system.recoveries.port.statuses[job.job_id] = 'CANCELED'
-    advance(system, bad=('lidar', 'camera'))
+    advance(system, bad=('navigation', 'localization'))
     assert len(system.recoveries.port.started) == 2
 
 
 def test_safety_fault_cancels_running_recovery_without_releasing_resource(system):
     ready(system)
     job = make_recovery(system)
-    advance(system, bad=('lidar', 'estop'))
+    advance(system, bad=('navigation', 'estop'))
     assert job.cancel_requested and job.resource_held
     system.recoveries.port.statuses[job.job_id] = 'CANCELED'
-    advance(system, bad=('lidar', 'estop'))
+    advance(system, bad=('navigation', 'estop'))
     assert job.state == R.CANCELED and not job.resource_held
 
 
@@ -239,9 +256,9 @@ def test_missing_component_action_fails_honestly(system):
 
 
 def make_recovery_unavailable(system):
-    advance(system, bad=('lidar',))
-    advance(system, .3, bad=('lidar',))
-    job = system.request_recovery(system.epoch, 'LIDAR_UNAVAILABLE')
+    advance(system, bad=('navigation',))
+    advance(system, .3, bad=('navigation',))
+    job = system.request_recovery(system.epoch, 'NAVIGATION_UNAVAILABLE')
     system.tick()
     system.tick()
     return job
@@ -262,7 +279,7 @@ def test_no_health_never_passes_startup_and_latched_unknown_does_not_reset(syste
     system.clock.now += 6.
     system.tick()
     assert system.state == O.FAULT_LOCKED
-    assert not system.reset_fault(system.epoch, 'ESTOP')[0]
+    assert not system.reset_fault(system.epoch, 'ESTOP', OPERATOR)[0]
     assert not permission(system).granted
 
 
@@ -271,24 +288,24 @@ def test_recovery_success_without_health_times_out_and_exhausts_budget(system):
     job = make_recovery(system)
     for _ in range(2):
         system.recoveries.port.statuses[job.job_id] = 'SUCCEEDED'
-        advance(system, bad=('lidar',))
+        advance(system, bad=('navigation',))
         for _ in range(32):
-            advance(system, bad=('lidar',))
+            advance(system, bad=('navigation',))
     assert job.state == R.FAILED and job.attempt == 2
     assert not permission(system).granted
 
 
 def test_recovery_requires_independent_stop_evidence_but_owner_may_move_during_recovery(system):
     ready(system)
-    advance(system, bad=('lidar', 'stopped'))
-    advance(system, .3, bad=('lidar', 'stopped'))
-    job = system.request_recovery(system.epoch, 'LIDAR_UNAVAILABLE')
+    advance(system, bad=('navigation', 'stopped'))
+    advance(system, .3, bad=('navigation', 'stopped'))
+    job = system.request_recovery(system.epoch, 'NAVIGATION_UNAVAILABLE')
     system.tick()
     assert job.state == R.IDLE
     for _ in range(8):
-        advance(system, bad=('lidar',))
+        advance(system, bad=('navigation',))
     assert job.state == R.RUNNING
-    advance(system, bad=('lidar', 'stopped'))
+    advance(system, bad=('navigation', 'stopped'))
     assert job.state == R.RUNNING and not job.cancel_requested
     assert 'STOP_UNVERIFIED' not in system.faults.faults
 
@@ -299,7 +316,7 @@ def test_reset_does_not_invent_mission_stop_proof(system):
     system.stop_port.status = 'FAILED'
     advance(system, bad=('localization',))
     code = 'MISSION_STOP_FAILED:' + lease.lease_id
-    assert not system.reset_fault(system.epoch, code)[0]
+    assert not system.reset_fault(system.epoch, code, OPERATOR)[0]
     assert system.state == O.FAULT_LOCKED
     system.stop_port.status = 'STOPPED'
     advance(system, bad=('localization',))
@@ -308,8 +325,9 @@ def test_reset_does_not_invent_mission_stop_proof(system):
 
 def test_operation_lock_is_independent_of_recovery_job_state(system):
     ready(system)
-    system.config['sources']['base']['recovery'] = 'lidar'
-    advance(system, bad=('base',))
+    system.config['sources']['base']['recovery'] = 'navigation'
+    for _ in range(5):
+        advance(system, bad=('base',))
     job = system.request_recovery(system.epoch, 'BASE_UNAVAILABLE')
     system.tick()
     assert system.state == O.FAULT_LOCKED

@@ -3,6 +3,12 @@ from uuid import uuid4
 
 from .models import RecoveryJob, RecoveryState
 
+TERMINAL = (RecoveryState.SUCCEEDED, RecoveryState.FAILED, RecoveryState.CANCELED)
+
+
+class UnsupportedRecovery(ValueError):
+    """No owner implements recovery for this fault; never a retryable failure."""
+
 
 class RecoveryCoordinator:
     def __init__(self, config: dict, port):
@@ -10,8 +16,10 @@ class RecoveryCoordinator:
         self.jobs: dict[str, RecoveryJob] = {}
 
     def request(self, fault, now: float) -> RecoveryJob:
-        if not fault.active or not fault.recovery_policy:
-            raise ValueError('active fault has no component recovery policy')
+        if not fault.active:
+            raise ValueError('fault is not active')
+        if not fault.recovery_policy:
+            raise UnsupportedRecovery(f'{fault.code} has no component-owned recovery; operator action required')
         # A single fault episode gets one bounded budget, including manual requests.
         for job in self.jobs.values():
             if job.fault_code == fault.code and job.started_at >= fault.first_seen:
@@ -44,6 +52,23 @@ class RecoveryCoordinator:
             job.state = RecoveryState.IDLE
 
     def update(self, faults, health, now: float, allow_dispatch: bool, allow_continue: bool = True) -> None:
+        self._dispatch(faults, health, now, allow_dispatch, allow_continue)
+        for job in self.jobs.values():
+            if job.state in TERMINAL and not job.resource_held and job.finished_at is None:
+                job.finished_at = now
+
+    def prune(self, faults, now: float, retention_s: float) -> list[RecoveryJob]:
+        """Forget finished jobs only after their fault episode ended, preserving the budget."""
+        removed = []
+        for job in list(self.jobs.values()):
+            fault = faults.get(job.fault_code)
+            episode_over = fault is None or not fault.active or fault.first_seen > job.started_at
+            if (job.finished_at is not None and episode_over and not job.resource_held
+                    and now - job.finished_at >= retention_s):
+                removed.append(self.jobs.pop(job.job_id))
+        return removed
+
+    def _dispatch(self, faults, health, now, allow_dispatch, allow_continue) -> None:
         for fault in faults.values():
             if (fault.active and fault.recovery_policy and
                     self.config['recovery_policies'][fault.recovery_policy]['automatic']):

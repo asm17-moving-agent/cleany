@@ -14,5 +14,8 @@ setup(
     maintainer='Cleany Team', maintainer_email='team@example.com',
     description='Capability-based system availability, mission leases and recovery coordination.',
     license='MIT', extras_require={'test': ['pytest']},
-    entry_points={'console_scripts': ['system_supervisor=cleany_system_supervisor.node:main']},
+    entry_points={'console_scripts': [
+        'system_supervisor=cleany_system_supervisor.node:main',
+        'supervisor_operator=cleany_system_supervisor.operator_cli:main',
+    ]},
 )

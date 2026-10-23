@@ -22,7 +22,7 @@ class MissionPermissionManager:
         if release:
             if existing and existing.granted:
                 # Release is valid only after Mission has confirmed completion/stop.
-                existing.granted, existing.stopped = False, True
+                existing.granted, existing.stopped, existing.ended_at = False, True, now
                 existing.reason = 'released after mission completion'
             return denied('released' if existing else 'unknown lease')
         if not mission_id or not capabilities or any(cap not in states for cap in capabilities):
@@ -70,7 +70,26 @@ class MissionPermissionManager:
                 status = 'FAILED'
             lease.stop_accepted |= status in ('ACCEPTED', 'STOPPED')
             if status == 'STOPPED':
-                lease.stopped = True
-                faults.confirm_stop(lease.lease_id)
+                lease.stopped, lease.ended_at = True, now
+                faults.confirm_stop(lease.lease_id, now)
             elif status == 'FAILED' or now - lease.stop_requested_at >= self.config['stop_timeout_s']:
                 faults.escalate_stop(lease.lease_id, now, 'mission stop failed or timed out')
+
+    def persisted(self) -> list[dict]:
+        """Unconfirmed leases, granted or not, must be stopped again after a restart."""
+        return [{'mission_id': lease.mission_id, 'lease_id': lease.lease_id}
+                for lease in self.leases.values() if not lease.stopped]
+
+    def restore(self, entries: list[dict]) -> None:
+        for entry in entries:
+            # Version 0 is never issued, so a restored lease can never be renewed.
+            self.leases[entry['lease_id']] = Lease(
+                entry['mission_id'], entry['lease_id'], 0, (), 0., granted=False,
+                reason='restored unconfirmed lease from previous supervisor process', restored=True)
+
+    def prune(self, now: float, retention_s: float) -> list[str]:
+        removed = [lease_id for lease_id, lease in self.leases.items()
+                   if lease.stopped and lease.ended_at is not None and now - lease.ended_at >= retention_s]
+        for lease_id in removed:
+            del self.leases[lease_id]
+        return removed

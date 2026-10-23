@@ -15,6 +15,10 @@ class RecoveryTransport(Protocol):
     def cancel(self, job: RecoveryJob) -> None:
         ...
 
+    def forget(self, job: RecoveryJob) -> None:
+        """Drop bookkeeping for a pruned terminal job."""
+        ...
+
 
 class MissionStopTransport(Protocol):
     def request(self, lease: Lease, epoch: str) -> None:
@@ -22,4 +26,7 @@ class MissionStopTransport(Protocol):
 
     def poll(self, lease_id: str) -> str:
         """ACCEPTED is receipt; STOPPED requires component completion proof."""
+        ...
+
+    def forget(self, lease_id: str) -> None:
         ...

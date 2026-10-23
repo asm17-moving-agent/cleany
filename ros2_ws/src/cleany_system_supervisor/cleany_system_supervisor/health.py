@@ -9,6 +9,7 @@ class HealthMonitoring:
         self.reports: dict[str, HealthReport] = {}
         self.good_since: dict[str, float] = {}
         self.bad_since: dict[str, float] = {}
+        self.verified: set[str] = set()  # Sources that have reported AVAILABLE at least once.
 
     def observe(self, report: HealthReport) -> None:
         if report.source not in self.sources:
@@ -18,6 +19,7 @@ class HealthMonitoring:
             return
         self.reports[report.source] = report
         if report.status == Availability.AVAILABLE:
+            self.verified.add(report.source)
             # A gap must break healthy hysteresis even when both samples are good.
             if previous is None or previous.status != report.status or (
                 report.observed_at - previous.observed_at > self.sources[report.source]['stale_s']

@@ -12,8 +12,10 @@ def validate(config: dict) -> dict:
         if value < 0 or (value == 0 and not allow_zero):
             raise ValueError(f'{name} out of range')
 
-    for key in ('startup_grace_s', 'lease_s', 'heartbeat_timeout_s', 'stop_timeout_s'):
+    for key in ('startup_grace_s', 'lease_s', 'heartbeat_timeout_s', 'stop_timeout_s', 'retention_s'):
         positive(config[key], key)
+    if not isinstance(config.get('persistence', {}).get('state_file', ''), str):
+        raise ValueError('persistence.state_file must be a path string')
     sources, caps, policies = config['sources'], config['capabilities'], config['recovery_policies']
     if not sources or not caps or not config['essential_capabilities']:
         raise ValueError('sources, capabilities and essential capabilities must be nonempty')
@@ -28,6 +30,8 @@ def validate(config: dict) -> dict:
     for source, entry in sources.items():
         for key in ('stale_s', 'raise_s', 'clear_s'):
             positive(entry[key], f'{source}.{key}', allow_zero=key == 'raise_s')
+        if 'startup_grace_s' in entry:
+            positive(entry['startup_grace_s'], f'{source}.startup_grace_s')
         if entry['severity'] not in ('WARNING', 'ERROR', 'CRITICAL'):
             raise ValueError('invalid severity')
         if entry.get('recovery', '') not in ('', *policies):
