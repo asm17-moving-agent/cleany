@@ -117,3 +117,16 @@ Update 주기는 `update_period_s` 기본 0.05초다. 이름 외에도 body prof
 | 토픽 발행 | `navigation/bt_trace` | `std_msgs/msg/String` | R/T1; 입력 이벤트 처리 시, `output_topic` |
 
 시작할 때 `manifest_file`과 `xml_file`을 검증한다.
+
+## nav2_lifecycle_recovery
+
+실행 파일: `nav2_lifecycle_recovery`. 원본: [lifecycle_recovery_node.py](../cleany_navigation/lifecycle_recovery_node.py).
+
+| 종류 / 방향 | 기본 이름 | ROS 타입 | QoS, 주기와 이름 설정 |
+|---|---|---|---|
+| 액션 제공 | `navigation/recover` | `cleany_interfaces/action/RecoverComponent` | Action 기본값; `actions` |
+| 액션 제공 | `localization/recover` | `cleany_interfaces/action/RecoverComponent` | Action 기본값; `actions` |
+| 서비스 호출 | `lifecycle_manager_navigation/manage_nodes` | `nav2_msgs/srv/ManageLifecycleNodes` | Service 기본값; `lifecycle_managers`, `call_timeout_s` 10초 |
+| 서비스 호출 | `lifecycle_manager_localization/manage_nodes` | `nav2_msgs/srv/ManageLifecycleNodes` | Service 기본값; `lifecycle_managers` |
+
+System Supervisor의 복구 요청을 받아 해당 lifecycle manager에 RESET, STARTUP 순서로 위임한다. 모든 Action을 통틀어 한 번에 하나의 goal만 수락하고, cancel은 단계 사이에서만 적용한다. 성공은 manager가 성공을 응답했다는 뜻이며 실제 복구는 Supervisor가 이후 fresh lifecycle과 localization health로 검증한다. `lifecycle_manager_safety`의 collision_monitor와 Nav2 BT recovery는 다루지 않는다. 실제 Nav2 stack에서 RESET 뒤 AMCL 초기 pose와 지도 상태는 검증하지 않았다.
