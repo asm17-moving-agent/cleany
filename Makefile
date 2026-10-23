@@ -232,7 +232,7 @@ PERCEPTION_PYTEST_ARGS ?=
 test-perception:
 	source "$(ROS_SETUP)" && \
 	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_manipulation_bt:$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider $(PERCEPTION_TEST_PATHS) $(PERCEPTION_PYTEST_ARGS)
 
 build-gazebo: check-gazebo-env
@@ -521,13 +521,17 @@ build-dev-monitor-ros:
 
 build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
 
+LOGGER_TEST_PATHS ?= "$(ROS2_WS)/src/cleany_logger/tests"
+LOGGER_PYTEST_ARGS ?=
+DEV_MONITOR_TEST_PATHS ?= "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+DEV_MONITOR_PYTEST_ARGS ?=
 test-logger:
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
-	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_logger/tests"
+	python3 -m pytest -p no:cacheprovider $(LOGGER_TEST_PATHS) $(LOGGER_PYTEST_ARGS)
 
 test-dev-monitor: test-logger
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
-	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
+	python3 -m pytest -p no:cacheprovider $(DEV_MONITOR_TEST_PATHS) $(DEV_MONITOR_PYTEST_ARGS)
 
 DEV_MONITOR_E2E_ARGS ?=
 .PHONY: test-dev-monitor-web
@@ -598,18 +602,19 @@ test-jetson-tools:
 	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib tests/tools $(JETSON_PYTEST_ARGS)
 
 .PHONY: test-jetson-packages
+JETSON_TEST_PATHS ?= $(ROS2_WS)/src/cleany_interfaces/test \
+	$(ROS2_WS)/src/cleany_perception/test \
+	$(ROS2_WS)/src/cleany_grasping/test \
+	$(ROS2_WS)/src/cleany_robot_interface/test \
+	$(ROS2_WS)/src/cleany_skill_executor/test \
+	$(ROS2_WS)/src/cleany_manipulation_bt/test
 test-jetson-packages:
 	source "$(ROS_SETUP)" && \
 	source "$(INSTALL_BASE)/setup.bash" && \
 	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 \
 	PYTHONPATH="$(REPO_ROOT)tools:$(subst $(ROS2_WS)/src/cleany_manipulation_bt:,,$(JETSON_SOURCE_PATH)):$(ROS2_WS)/src/cleany_perception/test:$(ROS2_WS)/src/cleany_skill_executor/test:$(ROS2_WS)/src/cleany_manipulation_bt/test:$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib \
-		$(ROS2_WS)/src/cleany_interfaces/test \
-		$(ROS2_WS)/src/cleany_perception/test \
-		$(ROS2_WS)/src/cleany_grasping/test \
-		$(ROS2_WS)/src/cleany_robot_interface/test \
-		$(ROS2_WS)/src/cleany_skill_executor/test \
-		$(ROS2_WS)/src/cleany_manipulation_bt/test $(JETSON_PYTEST_ARGS)
+		$(JETSON_TEST_PATHS) $(JETSON_PYTEST_ARGS)
 
 .PHONY: test-jetson-native
 test-jetson-native:

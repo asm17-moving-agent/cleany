@@ -60,6 +60,32 @@ python3 tools/validation/replay_semantic_pipeline.py classify \
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
+## 변경 범위별 검사 선택
+
+파일이나 디렉터리를 지정하면 해당 검사만 수집합니다. 경로를 생략하면 각 target의
+기존 전체 범위를 실행합니다. `-k`는 수집 후 필터이므로 import 비용을 줄이려면
+경로를 먼저 좁힙니다.
+
+```bash
+make test-jetson-packages \
+  JETSON_TEST_PATHS='ros2_ws/src/cleany_skill_executor/test/test_automatic_goal.py' \
+  JETSON_PYTEST_ARGS='--durations=10'
+make test-logger LOGGER_TEST_PATHS='ros2_ws/src/cleany_logger/tests/test_resources.py'
+make test-dev-monitor \
+  DEV_MONITOR_TEST_PATHS='ros2_ws/src/cleany_dev_monitor/tests/test_operator.py ros2_ws/src/cleany_dev_monitor/tests/test_proposals.py' \
+  DEV_MONITOR_PYTEST_ARGS='--durations=10'
+```
+
+`test-dev-monitor`는 Logger 검사도 먼저 실행합니다. Logger 범위는
+`LOGGER_TEST_PATHS`, 옵션은 `LOGGER_PYTEST_ARGS`로 별도 지정합니다.
+BT 실행 검사는 `make build-manipulation-bt`로 설치한 native 확장 모듈을 사용합니다.
+BT 소스 디렉터리를 `PYTHONPATH` 앞에 넣으면 설치된 `_bt_runner`를 가릴 수 있습니다.
+
+관절 보간 검사는 `test_joint_path.py`, snapshot 캐시 검사는 `test_snapshot_cache.py`,
+공용 리소스 수집 검사는 Logger의 `tests/test_resources.py`가 관리합니다. BT의
+`test_action_runtime.py`는 MuJoCo와 Jetson 서버 모두에 성공, 중단, 저장 장애와
+종료 계약을 적용합니다. 합성 backend를 사용하며 실물 명령을 보내지 않습니다.
+
 ## 실물 크기 추정 변동 진단 (Footprint Stability)
 
 `tools/validation/inspect_footprint_stability.py`는 실제 인식 노드의 설정을 읽고, 동기화된 RGB-D 입력을 저장하여 객체의 바닥면 크기(Footprint) 추정치가 흔들리는 원인을 진단합니다.
