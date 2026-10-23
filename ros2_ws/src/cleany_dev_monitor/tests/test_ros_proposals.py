@@ -49,7 +49,7 @@ def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, mo
         message.tracking_epoch = 'fixture-epoch'
         message.representative_frame = 'base_link'
         item = DetectedObject2D(object_id=1, label='cup', confidence=.95,
-            sorting_category='trash', sorting_reason='empty cup', distance_valid=True, distance_m=.4,
+            sorting_category='trash',  distance_valid=True, distance_m=.4,
             track_id='fixture-track', tracking_state='TRACKED', position_valid=True,
             x_min=10., y_min=10., x_max=70., y_max=90., median_depth_m=.4,
             estimated_width_m=.05, estimated_height_m=.07)
@@ -57,7 +57,7 @@ def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, mo
         message.detections = [item]
         if include_neighbor[0]:
             neighbor = DetectedObject2D(object_id=2, label='book', confidence=.27,
-                sorting_category='lost_item', sorting_reason='book',
+                sorting_category='lost_item',
                 distance_valid=True, distance_m=.8, track_id='neighbor',
                 tracking_state='TRACKED', position_valid=True,
                 x_min=75., y_min=10., x_max=95., y_max=40., median_depth_m=.8,

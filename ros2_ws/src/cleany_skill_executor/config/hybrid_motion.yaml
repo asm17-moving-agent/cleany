@@ -31,8 +31,10 @@ grasp_selection_server:
     curobo_ik_pregrasp_retry_passes: 0
     stop_after_first_feasible: true
     # Approximate GPU proposal cost only; full MoveIt state/path checks remain.
-    curobo_spheres_per_link: 8
-    curobo_sphere_budget_per_link: 8  # 96 total; existing active-arm cost uses 48.
+    curobo_spheres_per_link: 64
+    curobo_sphere_budget_per_link: 16
+    curobo_sphere_surface_radius_m: 0.0005
+    curobo_collision_hull_max_expansion_m: 0.001
     curobo_ik_cpu_fallback: false
     curobo_planning_retries: 1
     action_timeout_sec: 480.0

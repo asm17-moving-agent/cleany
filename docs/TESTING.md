@@ -1,5 +1,63 @@
 # 테스트 가이드
 
+## 물체 종류명과 원본 검출 클래스 검증
+
+1. ROS 인터페이스와 소비 패키지를 빌드한다.
+
+   ```bash
+   make build COLCON_BUILD_ARGS='--packages-select cleany_interfaces cleany_perception cleany_skill_executor cleany_manipulation_bt cleany_dev_monitor'
+   ```
+
+2. 인식 패키지와 승인 경계의 합성 입력 회귀를 실행한다.
+
+   ```bash
+   ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 make test-perception
+   ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 make test-perception \
+     PERCEPTION_TEST_PATHS='tests/integration/test_perception_label_contract.py'
+   make test-jetson-packages
+   make test-dev-monitor
+   CLEANY_RUN_ROS_TESTS=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=231 \
+     make test-perception PERCEPTION_TEST_PATHS='ros2_ws/src/cleany_dev_monitor/tests/test_ros_proposals.py'
+   make build-dev-monitor-web test-dev-monitor-web
+   ```
+
+`PERCEPTION_TEST_PATHS`와 `PERCEPTION_PYTEST_ARGS`로 검사 범위를 지정한다.
+합성 응답 재생은 종류명 교정, 동의어 정규화, 원본 클래스 보존, 추적 ID,
+손목 매칭, 분류 사유 없는 정상 처리와 승인 거절을 검증한다. 실제 Gemini 분류 정확도나 실물 파지의
+성공을 검증하는 시험은 아니다.
+
+### 저장 RGB-D와 실제 Gemini API 재생
+
+`tools/validation/replay_semantic_pipeline.py`는 `captures.npz`, `capture.json`,
+`parameters.json`이 있는 저장 입력을 사용한다. `detect`는 vision 컨테이너의
+YOLOE TensorRT와 실제 복원 코드를 실행한다. 입력과 출력 디렉터리를 각각
+읽기 전용, 쓰기 가능 volume으로 연결하고 다음 명령을 실행한다.
+
+```bash
+source /workspace/cleany/ros2_ws/install-perception/setup.bash
+python3 /workspace/cleany/tools/validation/replay_semantic_pipeline.py detect \
+  --capture /capture --output /evidence/replay \
+  --model-path /models/yoloe/real34/active/yoloe-26s-seg-real34.engine
+```
+
+`classify`는 native overlay와 `GEMINI_API_KEY`가 설정된 환경에서 실행한다.
+사유 제거 전 adapter 파일을 `--baseline`으로 전달한다. 이전 prompt와 schema는
+그대로 사용하고 결과 parser만 현재 dataclass에 맞춰 사유를 버린다. 같은 입력을
+두 방식으로 번갈아 요청하며 API 출력 토큰, 응답 시간, 라벨과 분류를 기록한다.
+
+```bash
+python3 tools/validation/replay_semantic_pipeline.py classify \
+  --input /path/to/replay --baseline /path/to/previous/gemini_detector.py \
+  --model gemini-3.5-flash-lite --repeats 2 --interval-seconds 15
+```
+
+호출 한도 등으로 중단되면 같은 입력, 모델, baseline으로 `--resume`을 지정해
+성공한 요청을 보존한다. 이 명령은 실제 API 사용량을 소비한다. 결과는
+`detections.json`, `classification-progress.json`, `classification-report.json`에 남는다.
+카메라 좌표계 복원, 추적, ROS 직렬화와 합성 목적지 정책의 대상 선택을 확인하며
+로봇 TF, 손목 관측, 경로 계획이나 모터 동작은 실행하지 않는다. 작은 저장 영상
+묶음의 전후 비교는 일반적인 분류 정확도나 속도 개선을 보장하지 않는다.
+
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
 ## 실물 크기 추정 변동 진단 (Footprint Stability)
@@ -240,6 +298,88 @@ CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. �
 내부 파일 링크, anchor, 코드, 설정, launch 경로, Make target의 존재와 native dry-run을 확인합니다. 문서 검증만을 위해 실제 로봇을 움직이거나 새 calibration을 수행하지 않습니다.
 
 KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검사 통과와 내용 승인은 별도로 기록합니다.
+
+## 충돌 형상 시각화
+
+`tools/validation/render_collision_visualization.py`는 저장된 URDF와 cuRobo cache를
+읽어 원본과 최적화 충돌 메시, 병합 전후 구, GPU 볼록 형상과 정점을 그립니다.
+비교 자세는 `test_head_collision_runtime.state()`의 기준 관절값이며 실시간 관측이 아닙니다.
+원본 STL을 수정하거나 ROS 노드와 하드웨어를 실행하지 않습니다.
+
+1. 입력 디렉터리에 `current.urdf`, `geometry-cache/*.npz`, 수집 근거를 담은
+   `acquisition.json`을 준비합니다. 수집 근거에는 commit, 프로필, 원본 위치와
+   `failures` 배열을 남깁니다. `fitting.json`에 `schema`, `spheres_per_mesh`,
+   `budget_per_link`, `padding_m`을 기록합니다. 현재 값은 4, 64, 16, 0.0005이며,
+   trimesh 4.5.3/cuRobo 0.7.8 캐시를 사용합니다. 설정 파일이 없으면 과거
+   8개/mesh, 반경 0.002m의 schema 2 캐시를 읽습니다.
+2. NumPy, SciPy, Matplotlib, trimesh, Plotly를 제공하는 별도 Python 환경에서 실행합니다.
+   과거 실행 환경은 산출물의 `render-environment.txt`를 참고합니다.
+
+   ```bash
+   python3 tools/validation/render_collision_visualization.py \
+     --source output/collision-visualization-20261023/source \
+     --output output/collision-visualization-20261023
+   ```
+
+3. PNG와 `collision-inspector.html`을 열어 확인합니다. 입력 hash, 포함 조건,
+   cache 일치 검사는 생성 중 실행되며, 출처와 집계는 `provenance.json`에 남습니다.
+   정점 수 비교는 mesh 인스턴스 합계이며 primitive를 제외합니다.
+
+저장된 구 재검토 결과를 HTML에 포함하려면 `--sphere-review <review.json>`을
+추가합니다. JSON과 같은 디렉터리에 `sphere-overreach.png`가 있어야 합니다.
+검토 결과의 형상 hash를 표시할 모델과 비교한 뒤 이미지와 JSON을 출력
+디렉터리에 복사합니다. 이후 같은 출력 디렉터리로 다시 생성하면 저장된 검토
+결과를 유지합니다. 이 옵션은 시각화만 갱신하며 구 배치나 로봇 설정은 바꾸지 않습니다.
+
+형상에서 구를 직접 맞추는 비교안은 다음 순서로 생성합니다. 이 도구는
+로봇 설정을 수정하지 않습니다. 기존 구 병합과 같은 개수의 비교안을 먼저
+확인하고, 개수를 늘린 결과와 비교합니다.
+
+```bash
+python3 tools/validation/compare_sphere_fits.py \
+  --source output/collision-angular-20261024/source \
+  --output output/curobo-direct-fit-20261024 --budgets 16 24 32 48 64
+python3 tools/validation/render_sphere_fit_comparison.py \
+  --comparison output/curobo-direct-fit-20261024/comparison.json \
+  --review output/curobo-sphere-review-20261024/review.json
+```
+
+HTML 생성 명령에 `--sphere-fit output/curobo-direct-fit-20261024/comparison.json`을
+추가하면 16개와 32개 비교안을 3D 메뉴에서 선택할 수 있습니다. 기존 구 배열이
+표시할 모델과 동일한지 확인하고, 검토용 배치임을 화면에 표시합니다. 구 중심
+최적화가 수렴하지 않으면 유한한 후보 중심 중 작은 외접 반경을 선택하고 모든
+분할 정점으로 반경을 다시 계산합니다. 수치적으로 퇴화한 분할은 제외합니다.
+분할 전후 부피, 분할 정점의 포함 관계와 CAD 정점 및 면 표본을 검사하며,
+전체 계획 성공률과 처리 속도는 별도 런타임 검증이 필요합니다.
+
+## 충돌 근사 형상 회귀 검사
+
+1. NumPy, SciPy, pytest 환경에서 `make test-collision-geometry`를 실행합니다.
+   별도 환경은 `GEOMETRY_PYTHON=/path/to/python`으로 지정합니다. 셀의 면과 내부
+   포함, 분리된 부품 사이의 공간, 구 병합, GPU 외접 상한과 캐시 무효화를 검사합니다.
+2. ROS overlay 빌드 후 `make test-arm-collision-runtime`을 실행합니다.
+   `INSTALL_BASE` 또는 `CLEANY_BUILD_ROOT`로 별도 빌드를 선택할 수 있습니다.
+   원본/경량 MoveIt 형상의 자세, 근접 장애물과 경로를 비교하며 드라이버는 시작하지 않습니다.
+   평면화 대상 17종과 이미 평면인 집게 5종을 모두 포함합니다. CAD의 미터와
+   밀리미터 단위를 반영하고, 하완 포크의 틈과 모든 분할 표면의 외접 포함을
+   별도로 확인합니다. 형상을 더 크게 감쌌더라도 내부 면이 사라지면 MoveIt의
+   접촉 판정이 달라질 수 있으므로 근접 장애물 비교를 생략하지 않습니다.
+3. ROS 2와 cuRobo 환경에서 `make test-curobo-model`과
+   `make test-curobo-geometry`를 실행합니다. `COLLISION_TEST_ARGS`로 pytest의
+   `-k`, `--junitxml`, `--basetemp`를 전달합니다. MoveIt 실행 의존성이 없는
+   motion 이미지에서는 `-k 'gpu_fk_and_position or gpu_collision_aware_ik or
+   gpu_convex_acceptance or generates_finite_joint_path'`로 CUDA 검사만 선택합니다.
+   전체 GPU 비교는 네이티브 MoveIt에서 저장한 동일 자세와 ACM을 재생할 수 있으며,
+   `CUROBO_GPU_TEST_FILE`로 비교 스크립트를 지정합니다. 전체 ROS 연동 검사는
+   MoveIt을 제공하는 환경의 별도 DDS domain에서 GenericSystem을 사용합니다.
+4. 같은 환경에서 `tools/validation/audit_collision_coverage.py --urdf ... --srdf ...
+   --output ... --cache ...`를 실행합니다. 현재 프로필로 확장한 URDF/SRDF를
+   제공하며, 원본 CAD의 모든 정점과 메시별 20,000개 표면 표본의 구 포함 여부를
+   기록합니다. 이 표본 검사는 수학적 셀 포함 조건과 별개로 형상 누락을 찾는 검사입니다.
+
+형상 개수 감소를 실행 속도 개선율로 해석하지 않습니다. 구는 제안 비용이며
+최종 자기 충돌 판정은 전체 형상 검사를 통과해야 합니다. 좁은 틈의 도달성이나
+실물 동작 확인은 이 검사와 구분합니다.
 
 ## Jetson 실물 변경 검증
 

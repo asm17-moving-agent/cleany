@@ -91,13 +91,13 @@ sorting launch에서는 `sorting_payload_velocity_scaling=0.24`,
 유지한다. 노드 단독 기본값은 둘 다 0.01이며 launch 인수로 이전 값을 재현할 수 있다.
 이는 시뮬레이션 시험 설정이며, 지속 파지 성공이나 실제 하드웨어 적합성을 뜻하지 않는다.
 
-`config/table_sorting_policy.yaml`은 Gemini의 category/reason을 받아
+`config/table_sorting_policy.yaml`은 Gemini의 category를 받아
 쓰레기를 `trash_right`, 분실물을 `lost_items_left`로 보낸다. 위험 라벨과 저신뢰,
-category/reason 미제공 결과는 review로 남기고 조작하지 않는다.
+category 미제공 결과는 review로 남기고 조작하지 않는다.
 
 현재 장면은 종이컵·마우스·휴지뭉치·확대한 레고를 사용한다. YOLOE의 명시 클래스는
 `cup`, `computer mouse`, `crumpled tissue`, `lego brick`이며 Gemini는 고정 목록 없이
-외형에 따른 자유 라벨을 생성한다. 모델 출력 category/reason으로 분류하고 위험·저신뢰
+외형에 따른 자유 라벨을 생성한다. 모델 출력 category로 분류하고 위험·저신뢰
 결과는 review로 남긴다. 장면의 형상·크기와 평가용 body mapping은
 [MuJoCo README](../../cleany_mujoco_sim/docs/scenes.md)를 따른다.
 

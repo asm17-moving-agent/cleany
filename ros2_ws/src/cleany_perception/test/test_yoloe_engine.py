@@ -143,14 +143,15 @@ def test_prepared_pt_keeps_export_embeddings_without_encoder(tmp_path):
     assert len(detector.detect(np.zeros((80, 160, 3), np.uint8), '')) == 1
 
 
-@pytest.mark.parametrize(('detail', 'expected'), [('paper cup', 'cup (paper cup)'), ('Cup', 'cup')])
-def test_gemini_keeps_canonical_class_and_geometry(detail, expected):
+@pytest.mark.parametrize(('detail', 'expected'), [('paper cup', 'cup'), ('Cup', 'cup')])
+def test_gemini_normalizes_type_and_preserves_detector_class_and_geometry(detail, expected):
     mask = np.ones((20, 30), dtype=np.bool_)
     detection = Detection2D('cup', .8, BoundingBox2D(2., 3., 12., 15.), segmentation_mask=mask)
     response = json.dumps({'objects': [{'id': 1, 'label': detail,
-                                       'sorting_category': 'trash', 'sorting_reason': 'used cup'}]})
+                                       'sorting_category': 'trash'}]})
     item = parse_gemini_classifications(response, [detection])[0]
     assert item.label == expected
+    assert item.detector_label == 'cup'
     assert item.bbox is detection.bbox
     assert item.segmentation_mask is mask
     assert item.confidence == detection.confidence

@@ -184,15 +184,35 @@ four driven wheel joints, and attaches Gazebo sensors and mecanum contact approx
 It does not modify this package's movable joint contract. See that package's README
 for the CAD launcher, wheel odometry geometry, and simulation limitations.
 
-## 선택적 팔 충돌 메시 (Optimized Collision Meshes)
+## 선택적 충돌 메시 평면화
 
-실물 로봇 및 MoveIt 계획 연산의 충돌 검사 부하를 줄이기 위해 최적화된 경량 충돌 메시를 선택할 수 있습니다.
+`optimized_arm_collision_meshes`는 기존 이름을 유지하며 팔, 모터, 머리와 마스트의
+경량 충돌 메시를 선택한다. 기본값은 `false`이고, 실물 수거 프로필
+`configs/robot/camera_preview.json`은 `true`를 사용한다. 시각 모델, 관성,
+관절과 원본 CAD 파일은 바뀌지 않는다.
 
-- **설정 파라미터**: `optimized_arm_collision_meshes` (기본값: `false`)
-  - `false`: 기존 CAD 충돌 형상을 그대로 유지합니다.
-  - `true`: `meshes/collision/` 디렉터리에 위치한 경량 팔 충돌 메시(16개)를 적용합니다. (시각적 외형(Visual) 및 관성(Inertia) 파라미터는 영향을 받지 않음)
-- **실물 수거 설정**: 실물 수거용 `configs/robot/camera_preview.json`에서는 `xacro_args.optimized_arm_collision_meshes`를 `"true"`로 지정하여 고속 충돌 검사를 활성화합니다.
-- **형상 검증 및 재생성**:
-  - 단순화된 메시는 컴포넌트 연결 관계, 폐곡면, 경계 포함 조건을 엄격히 만족하도록 생성되었습니다.
-  - 자산 무결성은 `configs/robot/arm_collision_meshes.json` 및 `test_collision_meshes.py` 단위 테스트로 검증됩니다.
-  - 메시 파일 재생성은 필요 시 `tools/optimize_arm_collision_meshes.py`를 명시적으로 실행할 때만 수행합니다.
+| 대상 | `true`일 때의 형상 |
+|---|---|
+| 양팔의 상완, 하완, 연결부와 모터 11종 | `meshes/collision/`의 평면 메시, 좌우 합계 22개 인스턴스 |
+| 머리와 마스트 CAD 6종 | `head_collision_meshes=true`이고 해당 링크가 포함될 때 경량 메시 적용 |
+| 집게의 기존 볼록 메시 5종 | 이미 12–24개 삼각형으로 구성되어 원본 유지 |
+| box, cylinder, sphere primitive | 기존 해석적 형상 유지 |
+
+외접 메시의 각 조각은 담당하는 원본 표면 조각을 포함한다. 하완 포크, 어깨와 손목 연결부,
+하완 모터, 마스트와 머리 브래킷은 먼저 평면으로 나누고 떨어진 표면 조각을
+분리한다. 이후 각 조각을 지지 평면으로 감싸 불필요한 둥근 모서리와 작은
+구멍을 단순화한다. 하완의 기존 8,000면 QEM 예외는 사용하지 않는다.
+분할 축과 위치는 `configs/robot/arm_collision_meshes.json`의
+`partition_components`에서 원본 메시 좌표계의 미터 단위로 지정한다.
+밀리미터 CAD의 단위 변환은 `mesh_scales`가 관리한다.
+
+팽창 상한 1mm는 **분할 조각의 볼록 외피**를 기준으로 한다. 오목한 CAD
+표면과의 거리 상한이 아니며, 조각 내부의 작은 빈 공간은 메워질 수 있다.
+MoveIt의 메시 접촉 판정은 내부 면 변경의 영향을 받으므로 외접 포함 조건만으로
+검증을 끝내지 않는다. 원본 CAD와의 자세, 근접 장애물, 계획 경로 비교는
+`make test-arm-collision-runtime`으로 실행한다.
+
+`test_collision_meshes.py`는 모든 출력 메시의 실제 STL 좌표에서 포함과 팽창
+상한, 폐곡면, 분할된 포크의 틈, 단위와 Xacro 적용 범위를 검사한다.
+재생성은 `python3 tools/optimize_arm_collision_meshes.py --write`를 명시적으로
+실행하며, `--write`가 없으면 생성 결과와 저장된 자산의 일치를 확인한다.

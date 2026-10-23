@@ -202,6 +202,7 @@ class YoloeDetector:
                 detections.append(
                     Detection2D(
                         label=str(label).strip(),
+                        detector_label=str(label).strip(),
                         confidence=confidence,
                         bbox=BoundingBox2D(
                             x_min=x_min,

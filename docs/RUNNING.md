@@ -9,6 +9,27 @@ source "$(make -s print-install-base)/setup.bash"
 
 Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
+## Jetson 관측 인터페이스 갱신
+
+`DetectedObject2D/3D.detector_label`, 관측 서비스의 원본 클래스 필드와
+`DetectedObject2D`의 분류 사유 필드 제거는
+native와 GPU 컨테이너에서 같은 버전을 사용해야 합니다. 실행 중인 로봇 작업을
+종료한 상태에서 native 패키지와 컨테이너 workspace를 갱신합니다.
+
+```bash
+make build-dev-monitor-web
+make build COLCON_BUILD_ARGS='--packages-select cleany_interfaces cleany_perception cleany_skill_executor cleany_manipulation_bt cleany_dev_monitor'
+tools/vision-container build-perception-workspace
+tools/vision-container build-anygrasp-workspace
+make motion-container-prepare
+```
+
+컨테이너 workspace 준비 명령은 센서나 조작 Action을 시작하지 않습니다.
+새 터미널에서 native overlay를 다시 source한 뒤 필요한 실행 경로를 시작합니다.
+이미 실행 중인 Dev Monitor도 진행 작업이 없을 때 재시작해 새 인터페이스와 웹 자산을 읽게 합니다.
+종류명, 원본 클래스와 이전 CDR 기록의 호환성은
+[관측 계약](../ros2_ws/src/cleany_interfaces/docs/observation-contracts.md#객체-메시지)을 따릅니다.
+
 ## 실행 선택과 준비 순서
 
 ```mermaid

@@ -22,7 +22,7 @@ def select_automatic_target(snapshot, config: dict, *, minimum_confidence: float
         raise ValueError('Detector returned no snapshot identity')
     detections = [item for item in snapshot.detections
                   if item.object_id > 0 and item.sorting_category in ('trash', 'lost_item')
-                  and item.sorting_reason.strip() and math.isfinite(item.confidence)
+                  and math.isfinite(item.confidence)
                   and item.confidence >= minimum_confidence and item.distance_valid
                   and math.isfinite(item.distance_m) and item.distance_m > 0]
     selection = select_closest_eligible(detections,

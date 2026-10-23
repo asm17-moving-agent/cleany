@@ -22,8 +22,13 @@ flowchart TB
 | Array header | 전체 객체의 capture stamp, frame |
 | object_id | Snapshot 내 1부터 시작하는 선택 번호 |
 | snapshot_id | Opaque identifier |
+| label | 정규화된 최종 물체 종류명; `yoloe_gemini`에서는 Gemini 판단 |
+| detector_label | 원본 검출 클래스; 검출 재매칭용이며 미제공 시 빈 문자열 |
 | OBB pose / size | 중심, 방향 / local X/Y/Z 전체 길이 |
-| Confidence | [0,1] |
+| Confidence | 검출 신뢰도 [0,1]; 의미 분류의 신뢰도가 아님 |
+
+종류명과 원본 클래스의 소비 규칙, 관측 서비스 필드 및 CDR 호환성은
+[관측 계약](observation-contracts.md#객체-메시지)을 따른다.
 
 InspectScene은 detector → segmenter → 3D reconstruction → TF를 한 번 수행하며 취소할 수 있다. 빈 query는 기본 prompt를 사용한다. 정상 빈 장면은 success=true, ERROR_NONE, objects=[]로 반환한다. 오류는 timeout, API, JSON, mask, depth, plane, TF, cancel, internal로 구분한다.
 

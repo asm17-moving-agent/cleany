@@ -4,6 +4,101 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-10-24 Dev Monitor 조작과 관측 통합 배치
+
+로컬 `7908ef2`, Jetson `4f92bc0` 기반에서 조작 패널을 포함한 매니퓰레이션
+배치를 검증했다. macOS의 Node.js 26.5.0, pnpm 11.28.8, Chrome에서
+합성 WebSocket과 제어 API를 사용하는 브라우저 검사 15개가 모두 통과했다.
+인증, 승인, 중단, 복구 확인, 기능 비활성 안내와 1440px, 1280px, 390px
+배치를 확인했다. 라이트와 다크 화면을 검토했고 실물 조작 명령은 보내지 않았다.
+
+`make build-dev-monitor-web`의 타입 검사와 웹 빌드, Ubuntu 22.04와
+ROS 2 Humble을 사용하는 Jetson의
+`make build COLCON_BUILD_ARGS='--packages-select cleany_dev_monitor'`가 성공했다.
+테스트 실패는 없으며 Vite의 sourcemap, `use client` 무시와 500kB 초과
+번들 경고는 남았다. 실제 서비스에서 조작 패널과 실행 요약의 좌우 배치,
+인증 영역 접기와 펼치기, 가로 넘침 없음을 확인했다. 제공 중인 HTML, CSS와
+JS는 검증한 빌드 산출물과 SHA256이 일치한다.
+
+원본은 로컬 `output/dev-monitor-layout-20261024/`와 Jetson의
+`../cleany-data/reports/dev-monitor-layout-20261024/`에 있다.
+`verification.json`, `source-sha256.json`, `served-assets.json`,
+`implementation.patch`, 빌드 및 검사 로그와 화면 캡처를 보존했다.
+Jetson 적용 전 파일과 웹 산출물은 `before-layout.tar.gz`에 있다.
+
+## 2026-10-24 Dev Monitor 매니퓰레이션 화면 가독성
+
+로컬 `7908ef2`, Jetson `4f92bc0` 기반의 UI 변경을 macOS의 Node.js 26.5.0,
+pnpm 11.28.8, Chrome과 Jetson의 Ubuntu 22.04, ROS 2 Humble에서 검증했다.
+합성 WebSocket과 제어 API를 사용하는 매니퓰레이션 및 조작 제어 브라우저 검사
+15개가 모두 통과했다. 진행, 실패, 오래된 관측, 재생과 승인 확인을 포함하며
+라이트, 다크와 390px 화면을 확인했다. 실제 로봇 동작 시험은 수행하지 않았다.
+
+`make build-dev-monitor-web`의 타입 검사와 웹 빌드, Jetson의
+`make build COLCON_BUILD_ARGS='--packages-select cleany_dev_monitor'`가 성공했다.
+테스트 실패는 없었고 Vite의 `use client` 무시 및 500kB 초과 번들 경고가 남았다.
+실제 서비스에서 종료된 요청 이력의 접기와 펼치기, 실패 상태 표시와 가로 넘침
+없음을 확인했다. 서빙되는 HTML, CSS와 JS는 빌드 산출물과 SHA256이 일치한다.
+
+원본은 로컬 `output/dev-monitor-ui-20261024/`와 Jetson의
+`../cleany-data/reports/dev-monitor-ui-20261024/`에 있다. `verification.json`,
+`source-sha256.json`, `served-assets.json`, `implementation.patch`, 빌드 및 검사
+로그와 화면 캡처를 보존했다. Jetson 적용 전 파일은 `before-ui.tar.gz`에 있다.
+
+## 2026-10-23 Gemini 종류명과 YOLOE 원본 클래스 분리
+
+로컬 `7908ef2`, Jetson `4f92bc0` 기반의 변경을 Jetson Orin NX,
+Ubuntu 22.04, ROS 2 Humble와 Python 3.10.12에서 검증했다.
+Gemini 합성 응답, 합성 RGB/mask와 ROS 메시지 직렬화로 종류명 교정,
+동의어 정규화, 추적 ID 유지, 원본 클래스의 head/손목 전달 및 승인 거절을
+확인했다. 실제 영상에 대한 Gemini 정확도나 실물 파지 시험은 아니다.
+
+| 검증 | 결과 |
+|---|---|
+| 인식 패키지 및 승인 경계 통합 검사 | 332 통과, 1 제외 |
+| Dev Monitor | 182 통과, 18 제외 |
+| 6개 패키지 연동 회귀 | 수정 후 전체 재실행 3,282 통과, 28 제외, 실패 0 |
+| 별도 ROS domain의 승인 통신 검사 | 1 통과; 합성 인식 결과 수신, 주변 객체 소실 허용, 대상 이동 거절 및 단일 실행 Goal 확인 |
+| native ROS build | 5개 패키지 성공 |
+| perception / AnyGrasp / motion 컨테이너 workspace | 각각 2 / 2 / 5개 패키지 빌드 성공 |
+
+최초 6개 패키지 회귀는 3,277 통과, 28 제외, 5 실패였으며, 수정 후 실패 항목
+5개와 전체 회귀를 각각 재실행해 통과했다. 초기 검사에서 기존 라벨 결합을 기대한 assertion, ROS float 필드의 정수 입력,
+테스트용 관측 객체의 새 필드 누락을 수정했다. 프로세스 재시작 시험의 DDS
+응답 시간 초과는 코드를 변경하지 않은 개별 및 전체 재실행에서 통과했다. motion 빌드의
+`setuptools_scm` Git 파일 열거 경고는 남았지만 빌드와 설치 import 검사는 성공했다.
+
+원본은 Jetson의 `../cleany-data/reports/semantic-labels-20261023/`에 있다.
+`implementation.patch`, `verification.json`, `source-sha256.json`,
+`package-tests.log`, `retry-package-failures.log`, `perception-integration-tests.log`,
+`monitor-tests.log`와 각 build log를 보존했다. native와 컨테이너를 함께 갱신했다.
+전체 재검증 근거는 `revalidation.json`, `package-tests-final.log/.xml`,
+`ros-approval-final.log/.xml`, `implementation-final.patch`, `source-sha256-final.json`이다.
+재검증 전에 적용 파일 37개가 최초 검증 시점과 동일함을 확인했다.
+제외된 28개는 실물 카메라와 명시 실행이 필요한 GPU 및 런타임 검사다.
+검증 당시 카메라 장치가 없고 운영 런타임은 중지 상태여서 실제 인식과 로봇
+동작은 실행하지 않았다. 실행 절차는 [관측 인터페이스 갱신](RUNNING.md)을 따른다.
+
+## 2026-10-23 충돌 형상 시각화
+
+macOS의 `7908ef2` checkout과 Jetson의 `4f92bc0`에서 읽은 현재 URDF,
+cuRobo geometry cache로 PNG 4장과 회전 가능한 3D HTML을 생성했다.
+현재 URDF의 mesh 38개 인스턴스에서 원본 STL 정점은 260,261개,
+최적화 STL 정점은 37,395개다. 같은 모델의 구는 병합 전 272개에서
+병합 후 120개이며, 양팔만 집계하면 224개에서 96개다.
+
+원본과 최적화 STL 16개 hash, fitting cache checksum, 병합 구의 기존 구 포함,
+전체 모델 cache와 구 좌표 일치를 확인했다. PNG는 육안으로 확인했다.
+비교용 기준 자세를 사용했으며 실시간 자세, 새 충돌 시험이나 속도 측정은 아니다.
+Jetson 설치 overlay의 `camera_calibration.xacro` 누락으로 최초 확장에 실패해
+같은 프로필로 checkout 소스를 직접 확장했다. 로봇 구동 명령은 보내지 않았다.
+
+원본과 결과는 `output/collision-visualization-20261023/`의 `source/`,
+`provenance.json`, `render.log`에 있다. 과거 비교 기록은 Jetson의
+`runtime/mesh-optimization-20261019-stage2/review-results.json`과
+`runtime/curobo-plan-comparison/sphere-optimization/optimization-summary.json`을
+별도로 보존했다. 재생성은 [충돌 형상 시각화](TESTING.md#충돌-형상-시각화)를 따른다.
+
 ## 2026-10-23 기하학적 후보 생성으로 운영 전환
 
 - **검증 환경**: Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble (Commit: `3950218` 기반)
@@ -383,3 +478,131 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 기존 수정 보존 및 변경 전후 hash, XML과 `validation.json`은 검사와 빌드 결과,
 `ros-smoke.json`, `ros-smoke.log`, `anygrasp-server.log`는 실제 설정과 후보 응답을
 기록한다. 초기 실패 로그도 같은 위치의 `*-before*` 파일에 보존했다.
+
+## 충돌 메시 평면화와 구 포함 범위 수정 (2026-10-23)
+
+기준은 `7908ef2`의 `feat/jetson-manipulation-integration` 작업 트리다.
+충돌 관련 최종 파일 hash는
+[`source-hashes.json`](../output/collision-fix-20261023/source-hashes.json)에 기록했다.
+Jetson의 `/tmp/cleany-collision-fix-20261023`와 별도 native/container build,
+cache에서 검사했으며 운영 checkout을 수정하거나 실제 모터를 구동하지 않았다.
+환경은 ROS 2 Humble, `cleany-motion:jp6.2`, cuRobo 0.7.8이다.
+
+외접 메시의 팽창 상한을 원본 컴포넌트 볼록 외피 대비 1mm로 두고 지지 평면을
+하나씩 추가해 작은 모서리를 단순화했다. 하완 오목 부품의 QEM과 양방향
+표면 거리 0.25mm 기준은 유지했다. 대상 8종의 삼각형은 11,710→9,336,
+양팔 GPU support 정점은 7,844→2,888이다. GPU 추가 외접 팽창 상한은 0.25mm다.
+이 개수 변화는 실행 시간 개선율 측정이 아니다.
+
+표면점 기반 구를 컴포넌트별 부피 포함 구로 교체하고, 링크당 16개로 병합했다.
+현재 프로필의 구는 전체 120→240개다. 원본 CAD 정점과 메시별 표면 표본
+928,625점에서 구 밖으로 빠진 점은 0개였다. base와 primitive는 이 구 검사
+대상에 포함되지 않으며 전체 형상 검증에서는 유지된다. cuRobo 0.7.8은
+자기 충돌 제약을 끄면 해당 비용도 함께 끄므로, 제안 구는 월드 장애물 회피에
+사용한다. 후보와 경로의 자기 충돌 수락은 기존 MoveIt 또는 GPU 전체 형상
+검사가 담당하며 SRDF와 live ACM은 변경하지 않았다.
+
+최종 검사는 형상 core 28개, cuRobo/adapter 113개, 메시/MoveIt 17개,
+CUDA 8개가 통과했다. 관련 native 3개와 motion overlay 5개 패키지 빌드도
+통과했다. MoveIt 원본/경량 비교는 무작위 자세 128개와 근접 장애물 396개에서
+기존 충돌 누락 0, 추가 자세 거부 0, 추가 접촉 2건이었다. 경량 모델의 경로
+6개 상태는 원본 CAD에서도 유효했다. 별도 GPU 대조는 고정 바퀴, 머리 제외
+모델의 동일 97개 자세와 native ACM을 저장해 CUDA에서 재생했다. 정규화한
+URDF가 충돌 메시 경로 외에는 같음을 확인했고, MoveIt 허용 65개, GPU 허용
+63개, GPU 충돌 누락 0개였다.
+
+초기 8개 구의 단순 분할과 48개 구의 강제 자기 충돌 제약은 정상 IK를 거부해
+채택하지 않았다. 기존 CUDA fixture의 continuous wheel 입력도 조작 프로필의
+고정 바퀴로 수정했다. motion 이미지 내부 MoveIt 실행 의존성 부족과 직접
+DDS 연결의 준비/응답 실패 때문에 최종 대조는 저장한 동일 입력을 재생했다.
+대칭 구 병합의 플랫폼별 반올림 차이는 포함 관계를 검증한 뒤 원본 cache의
+구를 표시하도록 해결했다. 초기 실패와 최종 XML, 로그는
+[`결과 디렉터리`](../output/collision-fix-20261023/)에 보존했다.
+
+[`수정 전후 그림`](../output/collision-fix-20261023/05-before-after.png),
+[`3D 보기`](../output/collision-fix-20261023/collision-inspector.html),
+[`검증 집계`](../output/collision-fix-20261023/verification.json)에서 결과를 확인할 수 있다.
+실물 배포, 동작 확인과 처리 속도 벤치마크는 수행하지 않았다.
+
+## 전체 충돌 메시 평면화 확대 (2026-10-24)
+
+기준은 `7908ef29a1968088d458c11b586386450028c6d5`의 작업 트리다.
+상완과 일부 모터에만 적용되었던 평면화를 하완, 어깨와 손목 연결부,
+하완 모터, 머리와 마스트까지 확대했다. 17종의 자산, 전체 모델 28개 메시
+인스턴스가 경량 자산을 사용한다. 이미 12–24개 삼각형인 집게 5종은 유지한다.
+전체 38개 메시 인스턴스의 삼각형은 이전 적용 상태 70,600개에서 7,966개로,
+하완은 8,128개에서 408개로 줄었다. 원본 CAD는 변경하지 않았다.
+
+하완 포크와 오목한 연결부를 설정된 평면으로 자르고, 떨어진 조각을 따로
+외접한다. 이전 하완의 8,000면 QEM 예외는 제거했다. 각 출력 조각은 입력
+표면을 포함하며, 팽창 상한 1mm는 분할 조각의 볼록 외피 기준이다.
+GPU의 추가 외접 팽창 상한도 1mm로 설정해 양팔 support 정점을
+2,888개에서 1,766개로 줄였다. 이 수치는 실행 속도 측정 결과가 아니다.
+
+Jetson의 격리된 `/tmp/cleany-collision-fix-20261023` checkout과 native/motion
+overlay에서 검사했다. 환경은 ROS 2 Humble, `cleany-motion:jp6.2`,
+cuRobo 0.7.8, Warp 1.6.2, Orin CUDA 12.8이다. native description/MoveIt
+2개 패키지와 motion description/skill executor 2개 패키지 빌드가 통과했다.
+최초 빌드는 underlay와 패키지 검색 범위 누락으로 실패했으며, native는 기존
+underlay를 명시하고 motion은 이미지가 제공하는 5개 패키지로 검색 범위를
+제한해 해결했다. 운영 checkout이나 실제 로봇은 변경하거나 구동하지 않았다.
+
+형상 core 28개, 메시/MoveIt 30개, cuRobo/adapter 113개, CUDA 팔 검사 8개,
+머리 포함 CUDA 비교 1개가 통과했다. MoveIt 비교는 무작위 자세 128개와
+모든 22종 자산의 근접 장애물 684개에서 충돌 누락 0개, 추가 자세 거부 3개,
+추가 접촉 3개였다. 생성된 경로의 6개 상태도 원본 CAD에서 통과했다.
+머리 없는 GPU 비교는 이전에 저장한 동일 원본 CAD와 native ACM의 97개
+상태를 재사용했다. 머리 포함 비교는 native MoveIt에서 129개 상태와 ACM을
+새로 저장했다. 각각 충돌 누락 0개, 추가 거부 2개와 8개이며 기준 자세는
+모두 통과했다. 정규화한 URDF가 충돌 메시 경로 외에는 같음을 검사했다.
+구 240개는 원본 CAD 정점과 표면 표본 928,625점에서 누락 0개였다.
+
+첫 후보의 통짜 볼록 외피는 원본 내부 면과 접촉하던 장애물 9개를 놓쳤다.
+내부 면을 고려한 분할로 수정한 뒤 같은 장애물 전체를 다시 검사했다.
+중간 하완 분할 후보는 포크를 분리하지 못해 단위 검사에서 거부했다.
+QEM 후보의 표면 오차와 퇴화 삼각형 실패, 얇은 분할 조각의 외접 상한
+실패도 보존했으며 이 후보들은 최종 자산에 포함하지 않았다.
+
+원본 결과는 [`전체 검증 집계`](../output/collision-angular-20261024/verification.json),
+[`파일 hash`](../output/collision-angular-20261024/source-hashes.json),
+[`로그와 XML`](../output/collision-angular-20261024/),
+[`평면화 전후 그림`](../output/collision-angular-20261024/06-angular-before-after.png),
+[`전체 3D 및 부품별 그림`](../output/collision-angular-20261024/collision-inspector.html)에 있다.
+형상 포함, 표본 검사와 실물 검증은 구분하며, 배포와 실물 동작은 수행하지 않았다.
+
+## cuRobo 구 재검토와 형상 직접 맞춤 비교 (2026-10-24)
+
+`feat/jetson-manipulation-integration`의 `7908ef29a1968088d458c11b586386450028c6d5`
+위 미커밋 평면화 자산과 `collision-angular-20261024/source`의 URDF 및 검증된
+cuRobo cache를 입력으로 사용했다. 로컬 NumPy/SciPy로 링크별 볼록 조각을 분할하고
+구 중심을 최적화한 뒤, 모든 분할 정점까지의 거리로 외접 반경을 다시 계산했다.
+기존 구와 비교안은 모두 15개 메시 링크에 16개씩, 총 240개다. base와 primitive는
+제안용 구에서 제외되는 기존 범위를 유지했다.
+
+| 항목 | 기존 병합 구 | 형상 직접 맞춤 16개/링크 |
+|---|---:|---:|
+| 하완의 방향별 CAD 외곽 초과 최댓값 | 23.9mm | 10.5mm |
+| 오른쪽 가동 집게의 방향별 CAD 외곽 초과 최댓값 | 17.7mm | 8.1mm |
+| 마스트의 방향별 CAD 외곽 초과 최댓값 | 59.9mm | 37.9mm |
+| 선별한 4mm 장애물 4개에 대한 cuRobo 충돌 오탐 | 4 | 0 |
+
+외곽 차이는 648개 방향의 표본값이며 모든 표면 간 거리의 상한이 아니다.
+원본 CAD 정점과 면 표본 2,242,289개에서 비교안의 누락은 0이었다. 분할 전후
+부피 보존과 분할 정점의 구 포함을 별도로 검사했다. 좌우 가동 집게는 공통
+정규화 형상으로 맞춰 동일한 반지름 배열을 사용했다. CUDA 검사는 Jetson Orin의
+`cleany-motion:jp6.2`, cuRobo 0.7.8에서 실행했다. 같은 장애물은 원본 CAD와
+최적화 MoveIt 메시에서 모두 비충돌로 확인된 이전 검토 사례다.
+
+첫 부피 중심 분할안은 큰 외곽 오차를 줄이지 못해 비교안에서 제외했다. 분할
+후보 중 수치적으로 퇴화한 14개는 거부했다. 구 중심 최적화 12,457회 중 2회는
+수렴 상태를 반환하지 않아 유한한 후보 중심 중 외접 반경이 작은 것을 선택하고
+포함 반경을 재계산했다. 이 경로도 동일한 정점 포함 검사를 통과했다.
+
+원본 수치, 소스 hash와 환경은
+[`비교 결과`](../output/curobo-direct-fit-20261024/comparison.json),
+[`분할 정점 증명 자료`](../output/curobo-direct-fit-20261024/certificates.npz),
+[`CUDA 검사`](../output/curobo-direct-fit-20261024/curobo-witnesses.json),
+[`비교 그림`](../output/curobo-direct-fit-20261024/sphere-fit-comparison.png)에 있다.
+[`HTML`](../output/collision-angular-20261024/collision-inspector.html)은 기존 구와
+16개, 32개 비교안을 선택해 표시한다. 이 비교안의 전역 최적성, 전체 계획
+성공률과 속도는 검증하지 않았으며 로봇 설정 변경, 배포와 실물 동작은 하지 않았다.

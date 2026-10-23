@@ -206,6 +206,7 @@ class WristService:
         return response
 
     def process(self, req, out):
+        detector_label = req.detector_label or req.label
         if req.arm not in self.images or req.operation not in (req.HANDOFF, req.CHECK, req.CLEAR):
             raise ValueError('Invalid wrist operation or arm')
         if req.operation != req.HANDOFF:
@@ -223,6 +224,8 @@ class WristService:
                 return
             if self._reference_expired(ref):
                 raise ValueError('Wrist reference expired')
+            if req.label != ref['label'] or detector_label != ref['detector_label']:
+                raise ValueError('Wrist reference semantic type or detector class changed')
         else:
             # Failed replacement must not leave a usable old reference.
             self.close()
@@ -257,7 +260,7 @@ class WristService:
         out.source_object_id = req.source_object_id
         out.header = deepcopy(msg.header)
         if req.operation == req.HANDOFF:
-            mask = self._yoloe_mask(rgb, box, req.label,
+            mask = self._yoloe_mask(rgb, box, detector_label,
                 detector=self.right_detector if req.arm == 'right' else self.detector,
                 fallback_detector=self.detector if req.arm == 'right' else None)
         else:
@@ -267,10 +270,10 @@ class WristService:
             out.reference_id = ref['id']
             ref['stamp'] = stamp  # Consume failed checks too; retries need a new frame.
             mask = self._yoloe_mask(
-                rgb, box, req.label,
+                rgb, box, detector_label,
                 detector=(self.right_check_detector if req.arm == 'right'
                           else self.mouse_check_detector
-                          if 'computer mouse' in req.label.casefold()
+                          if 'computer mouse' in detector_label.casefold()
                           else self.check_detector),
                 fallback_detector=self.check_detector if req.arm == 'right' else None)
         if np.shape(mask) != (msg.height, msg.width):
@@ -279,6 +282,7 @@ class WristService:
         if req.operation == req.HANDOFF:
             with self.lock:
                 self.reference = dict(id=uuid4().hex,arm=req.arm,source=req.source_snapshot_id,
+                    label=req.label, detector_label=detector_label,
                     object=req.source_object_id,created=time.monotonic(),stamp=stamp,
                     shape=rgb.shape,
                     k=tuple(info.k))

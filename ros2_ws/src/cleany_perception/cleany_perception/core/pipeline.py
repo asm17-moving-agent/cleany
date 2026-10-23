@@ -149,6 +149,7 @@ class InspectionPipeline:
         objects = tuple(
             InspectedObject(
                 label=detection.label,
+                detector_label=detection.detector_label,
                 confidence=detection.confidence,
                 box=transform_box(box, transform),
             )
@@ -261,6 +262,7 @@ class InspectionPipeline:
             )
         inspected = InspectedObject(
             label=selected_detection.label,
+            detector_label=selected_detection.detector_label,
             confidence=selected_detection.confidence,
             box=transform_box(camera_boxes[0], capture_transform),
         )

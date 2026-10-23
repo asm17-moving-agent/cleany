@@ -166,8 +166,8 @@ def test_aged_wrist_prior_is_reobserved_without_restamping_or_weakening_checks(
         return SimpleNamespace(selected_candidate=SimpleNamespace(header=SimpleNamespace(
             stamp=SimpleNamespace(sec=stamp, nanosec=0))))
     old, new = selection(old_stamp), selection(fresh_stamp)
-    attempt = ObjectAttempt(1, 'wallet', .9, .6, 'lost_item', 'personal item')
-    fresh = ObjectAttempt(2, 'wallet', .9, .6, category, 'fresh classification')
+    attempt = ObjectAttempt(1, 'wallet', .9, .6, 'lost_item')
+    fresh = ObjectAttempt(2, 'wallet', .9, .6, category)
     events = []
     def reobserve(*args):
         assert args == (old, attempt)
@@ -179,7 +179,7 @@ def test_aged_wrist_prior_is_reobserved_without_restamping_or_weakening_checks(
         get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None),
         _switch_camera=lambda camera: events.append(camera),
         _refresh_selected_grasp=reobserve,
-        _policy=SimpleNamespace(classify_model=lambda label, confidence, category, reason:
+        _policy=SimpleNamespace(classify_model=lambda label, confidence, category:
             SimpleNamespace(category=Category(category), destination=category)))
     if error:
         with pytest.raises(RuntimeError, match=error):
@@ -372,7 +372,7 @@ def test_visible_unclassified_object_cannot_be_reported_as_clear():
 @pytest.mark.parametrize('success_index', [0, 1, None])
 def test_sorting_tries_target_near_arm_then_other_without_changing_destination(
         monkeypatch, target_y, arms, label, category, success_index):
-    attempt = ObjectAttempt(1, label, .99, .5, category, 'test')
+    attempt = ObjectAttempt(1, label, .99, .5, category)
     obj = SimpleNamespace(obb_pose=Pose(), obb_size=SimpleNamespace(x=.03, y=.02, z=.01))
     obj.obb_pose.position.x, obj.obb_pose.position.y, obj.obb_pose.position.z = .4, target_y, .36
     calls = []
@@ -396,7 +396,7 @@ def test_sorting_tries_target_near_arm_then_other_without_changing_destination(
 
 @pytest.mark.parametrize('first_failure', [None, 'inspection', 'planning', 'reachability'])
 def test_fixed_bins_reconstruct_candidates_only_until_one_is_reachable(monkeypatch, first_failure):
-    attempts = [ObjectAttempt(i, 'object', .95, .4+i*.1, 'trash', 'discarded')
+    attempts = [ObjectAttempt(i, 'object', .95, .4+i*.1, 'trash')
                 for i in (1, 2, 3)]
     obj = SimpleNamespace(obb_pose=Pose(), obb_size=SimpleNamespace(x=.03, y=.02, z=.01))
     obj.obb_pose.position.x, obj.obb_pose.position.z = .4, .36
@@ -424,8 +424,8 @@ def test_fixed_bins_reconstruct_candidates_only_until_one_is_reachable(monkeypat
 
 
 def test_missing_previously_seen_item_is_not_an_empty_workspace(monkeypatch):
-    attempts=[ObjectAttempt(1,'cup',.95,.5,'trash','Disposable'),
-              ObjectAttempt(2,'wallet',.95,.6,'lost_item','Personal belonging')]
+    attempts=[ObjectAttempt(1,'cup',.95,.5,'trash'),
+              ObjectAttempt(2,'wallet',.95,.6,'lost_item')]
     detections=iter([attempts,[]])
     obj=SimpleNamespace(obb_pose=Pose(),obb_size=SimpleNamespace(x=.03,y=.02,z=.01))
     obj.obb_pose.position.x,obj.obb_pose.position.z=.4,.36

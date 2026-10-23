@@ -147,6 +147,7 @@ class CuRoboBatchEngine(CuRoboEngine):
                 deepcopy(self.model.robot_config(self._urdf, arm, state, f'{arm}_grasp_tcp')),
                 WorldConfig.from_dict(world).get_collision_check_world(),
                 tensor_args=self.tensor, collision_checker_type=CollisionCheckerType.MESH,
+                self_collision_check=False, self_collision_opt=False,
                 collision_cache={'obb': 128, 'mesh': 128},
                 interpolation_dt=self.config.interpolation_dt,
                 num_ik_seeds=self.config.num_seeds, num_trajopt_seeds=4,

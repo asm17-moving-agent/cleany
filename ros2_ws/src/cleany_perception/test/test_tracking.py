@@ -16,6 +16,32 @@ def test_two_cups_keep_identity_despite_order_number_and_position_changes():
     assert observe(tracker, '2', []).detections == second.detections
 
 
+def test_semantic_correction_retains_spatial_identity_and_reports_current_name():
+    tracker = ObjectTracker()
+    first = tracker.update('desk', '1', ['power bank'], [(0., 0., .7)],
+                           detector_labels=['power bank'])
+    second = tracker.update('desk', '2', ['remote control'], [(.005, 0., .7)],
+                            detector_labels=['power bank'])
+    assert second.detections[0].track_id == first.detections[0].track_id
+    missing = tracker.update('desk', '3', [], [], detector_labels=[])
+    assert missing.missing[0].label == 'remote control'
+    moved = tracker.update('desk', '4', ['remote control'], [(.3, 0., .7)],
+                           detector_labels=['power bank'])
+    assert moved.detections[0].state == S.AMBIGUOUS
+
+
+def test_two_corrected_objects_keep_separate_ids_and_reject_ambiguous_matching():
+    tracker = ObjectTracker()
+    first = tracker.update('desk', '1', ['remote control'] * 2,
+                           [(0., 0., .7), (.2, 0., .7)], detector_labels=['power bank'] * 2)
+    second = tracker.update('desk', '2', ['remote control'] * 2,
+                            [(.2, 0., .7), (.005, 0., .7)], detector_labels=['power bank'] * 2)
+    assert [d.track_id for d in second.detections] == [d.track_id for d in first.detections[::-1]]
+    ambiguous = tracker.update('desk', '3', ['remote control'] * 2,
+                               [(.01, 0., .7), (.012, 0., .7)], detector_labels=['power bank'] * 2)
+    assert all(d.state == S.AMBIGUOUS for d in ambiguous.detections)
+
+
 def test_close_candidates_and_large_motion_do_not_mint_fresh_ids():
     tracker = ObjectTracker()
     first = observe(tracker, '1', [(0, 0, .7), (.1, 0, .7)])

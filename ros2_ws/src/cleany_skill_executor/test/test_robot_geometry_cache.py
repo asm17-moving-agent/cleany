@@ -53,6 +53,7 @@ def test_complete_cache_key_tracks_geometry_but_not_solver_tuning(tmp_path, monk
     assert first != model_cache_path(urdf.replace('arm', 'other'), '<robot/>', config)
     assert first != model_cache_path(urdf, '<robot name="changed"/>', config)
     assert first != model_cache_path(urdf, '<robot/>', replace(config, sphere_budget_per_link=0))
+    assert first != model_cache_path(urdf, '<robot/>', replace(config, collision_hull_max_expansion_m=0))
     mesh.write_bytes(b'changed!')
     assert first != model_cache_path(urdf, '<robot/>', config)
     assert model_cache_path(urdf, '', replace(config, geometry_cache_directory='')) is None

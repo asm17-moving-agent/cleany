@@ -179,7 +179,7 @@ def preparation():
     goal = Goal('m', 't', 'e', 'collect_trash', 'cached', 1, 'trash_right')
     context = ExecutionContext(goal)
     detection = DetectedObject2D(object_id=1, label='cup', confidence=.9,
-        distance_valid=True, distance_m=.7, sorting_category='trash', sorting_reason='Empty paper cup')
+        distance_valid=True, distance_m=.7, sorting_category='trash')
     response = GetSceneSnapshot.Response(found=True, detections=DetectedObject2DArray(
         snapshot_id='cached', detections=[detection]))
     path = Path(__file__).parents[2] / 'cleany_skill_executor/config/table_sorting_policy.yaml'
@@ -249,15 +249,15 @@ def test_lost_item_preparation_checks_skill_and_bin_before_motion(preparation, l
     ('trash', 'collect_trash', 'trash_right', 'cup'),
     ('lost_item', 'collect_lost_item', 'lost_items_left', 'mouse'),
 ])
-@pytest.mark.parametrize('changed', ['category', 'confidence', 'reason', 'destination'])
+@pytest.mark.parametrize('changed', ['category', 'confidence', 'review', 'destination'])
 def test_first_motion_is_blocked_when_reobserved_approval_changes(preparation, category, skill, destination, label, changed):
     from cleany_skill_executor.core.nearest_object import ObjectAttempt
     node, context, _ = preparation
     context.goal = replace(context.goal, skill_name=skill, destination_id=destination)
-    context.attempt = ObjectAttempt(1, label, .9, .7, category, 'Approved test object')
+    context.attempt = ObjectAttempt(1, label, .9, .7, category)
     refreshed = replace(context.attempt,
         **{'category': {'sorting_category': 'lost_item' if category == 'trash' else 'trash'},
-           'confidence': {'confidence': .001}, 'reason': {'sorting_reason': ''},
+           'confidence': {'confidence': .001}, 'review': {'sorting_category': 'review'},
            'destination': {}}[changed])
     if changed == 'destination':
         node._policy = replace(node._policy, **{
@@ -285,7 +285,7 @@ def test_first_pregrasp_hands_off_refreshed_scene_before_combined_motion(prepara
     node._wrist_enabled = False
     node.get_parameter = lambda name: NS(value=['cup'] if name.startswith('bt_supported_') else 1.2)
     node.get_logger = lambda: NS(info=lambda _: None)
-    context.attempt = ObjectAttempt(1, 'cup', .9, .7, 'trash', 'Disposable cup')
+    context.attempt = ObjectAttempt(1, 'cup', .9, .7, 'trash')
     candidate = NS(snapshot_id='refreshed')
     selected = NS(selected_arm='right', selected_candidate=candidate,
                   pregrasp_joint_state=JointState(name=list(ARM_JOINT_NAMES['right']), position=[0.] * 5))

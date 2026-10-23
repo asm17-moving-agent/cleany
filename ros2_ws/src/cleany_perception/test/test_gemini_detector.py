@@ -29,10 +29,10 @@ def _jpeg_pixels(payload, size):
 
 def test_gemini_sorting_semantics_survive_parser_and_missing_is_not_guessed():
     item = dict(label='cup', confidence=.9, box_2d=[100,100,200,200],
-                sorting_category='lost_item', sorting_reason='Reusable ceramic cup')
+                sorting_category='lost_item')
     result = parse_gemini_detections(json.dumps([item]), 640, 480)[0]
     assert result.sorting_category == 'lost_item'
-    assert result.sorting_reason == item['sorting_reason']
+
     item.pop('sorting_category')
     assert parse_gemini_detections(json.dumps([item]), 640, 480)[0].sorting_category == ''
     item['sorting_category'] = 'recycle'
@@ -48,7 +48,6 @@ def test_gemini_classifies_yoloe_instances_without_changing_geometry():
     classifier = GeminiClassifier('test-model', response_provider=lambda image, prompt, schema: (
         requests.append((image, prompt, schema)) or json.dumps({'objects': [{
             'id': 1, 'label': 'used paper cup', 'sorting_category': 'trash',
-            'sorting_reason': 'Disposable paper cup',
         }]})))
     classified = classifier.classify(np.zeros((20, 30, 3), np.uint8), (detection,))
     assert len(requests) == 1
@@ -56,7 +55,11 @@ def test_gemini_classifies_yoloe_instances_without_changing_geometry():
     # The originally black input must still contain the annotated box.
     assert pixels[10, 2, :2].min() > 200
     assert requests[0][2]['required'] == ['objects']
-    assert classified[0].label == 'cup (used paper cup)'
+    item_schema = requests[0][2]['properties']['objects']['items']
+    assert set(item_schema['properties']) == {'id', 'label', 'sorting_category'}
+    assert set(item_schema['required']) == {'id', 'label', 'sorting_category'}
+    assert classified[0].label == 'cup'
+    assert classified[0].detector_label == 'cup'
     assert classified[0].sorting_category == 'trash'
     assert classified[0].confidence == .82
     assert classified[0].bbox is detection.bbox
@@ -73,18 +76,44 @@ def test_gemini_classification_retries_one_incomplete_mapping():
     def provider(_image, prompt, _schema):
         prompts.append(prompt)
         objects = [{'id': 1, 'label': 'paper cup',
-                    'sorting_category': 'trash', 'sorting_reason': 'disposable'}]
+                    'sorting_category': 'trash'}]
         if len(prompts) == 2:
             objects.append({'id': 2, 'label': 'computer mouse',
-                            'sorting_category': 'lost_item',
-                            'sorting_reason': 'reusable'})
+                            'sorting_category': 'lost_item'})
         return json.dumps({'objects': objects})
 
     classifier = GeminiClassifier('test-model', response_provider=provider)
     result = classifier.classify(np.zeros((20, 30, 3), np.uint8), detections)
     assert len(prompts) == 2 and 'exactly 2 entries' in prompts[1]
-    assert [item.label for item in result] == ['cup (paper cup)', 'computer mouse']
+    assert [item.label for item in result] == ['cup', 'computer mouse']
     assert result[0].bbox is detections[0].bbox
+
+
+@pytest.mark.parametrize('semantic,expected', [
+    ('Remote Control', 'remote control'), ('remote', 'remote control'),
+    ('unknown', 'unknown object'),
+])
+def test_semantic_type_can_correct_detector_without_replacing_mask(semantic, expected):
+    mask = np.ones((20, 30), dtype=bool)
+    detection = Detection2D('power bank', .82, BoundingBox2D(2, 3, 12, 15),
+                            segmentation_mask=mask)
+    payload = json.dumps({'objects': [dict(id=1, label=semantic,
+        sorting_category='lost_item')]})
+    result, = parse_gemini_classifications(payload, (detection,))
+    assert result.label == expected
+    assert result.detector_label == 'power bank'
+    assert result.bbox is detection.bbox and result.segmentation_mask is mask
+    assert result.confidence == detection.confidence
+    assert result.sorting_category == ('review' if expected == 'unknown object' else 'lost_item')
+
+
+def test_classification_custom_aliases_do_not_change_detector_identity():
+    detection = Detection2D('bottle', .8, BoundingBox2D(1, 1, 9, 9))
+    classifier = GeminiClassifier('test-model', label_aliases=['controller=remote control'],
+        response_provider=lambda *_: json.dumps({'objects': [dict(id=1, label='controller',
+            sorting_category='lost_item')]}))
+    result, = classifier.classify(np.zeros((20, 30, 3), np.uint8), (detection,))
+    assert result.label == 'remote control' and result.detector_label == 'bottle'
 
 
 def test_gemini_classification_stops_after_two_incomplete_mappings():
@@ -100,8 +129,10 @@ def test_gemini_classification_stops_after_two_incomplete_mappings():
 
 @pytest.mark.parametrize('objects', [
     [],
-    [{'id': 2, 'label': 'cup', 'sorting_category': 'trash', 'sorting_reason': 'paper'}],
-    [{'id': 1, 'label': 'cup', 'sorting_category': 'trash', 'sorting_reason': ''}],
+    [{'id': 2, 'label': 'cup', 'sorting_category': 'trash'}],
+    [{'id': 1, 'label': 'cup'}],
+    [{'id': 1, 'label': 'cup', 'sorting_category': ''}],
+    [{'id': 1, 'label': 'cup', 'sorting_category': 'recycle'}],
 ])
 def test_gemini_classification_rejects_unmatched_or_incomplete_ids(objects):
     detection = Detection2D('cup', .82, BoundingBox2D(2, 3, 12, 15))

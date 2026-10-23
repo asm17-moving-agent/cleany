@@ -20,16 +20,24 @@ export function TaskProposal({
   const unavailable = !ready ? "새 제안을 받아 확인하세요." : "";
   const approvalReason = reason("approve") || unavailable;
   return (
-    <section className="task-proposal" aria-label="다음 작업 제안">
+    <section
+      className="task-proposal"
+      aria-label="다음 작업 제안"
+      data-empty={!proposal}
+    >
       <div className="task-proposal-heading">
         <div>
           <h3>다음 작업 제안</h3>
-          <p>
-            한 번 승인하면 한 물체만 실행합니다. 다음 작업은 다시 승인을
-            기다립니다.
-          </p>
+          {proposal && (
+            <p>
+              한 번 승인하면 한 물체만 실행합니다. 다음 작업은 다시 승인을
+              기다립니다.
+            </p>
+          )}
         </div>
-        <span className="task-proposal-badge">규칙 기반 Planner</span>
+        <span className="task-proposal-badge">
+          {proposal ? "규칙 기반 Planner" : "제안 대기"}
+        </span>
       </div>
       {!proposal ? (
         <p>‘다음 작업 제안받기’를 눌러 현재 장면과 추천 대상을 확인하세요.</p>
@@ -66,9 +74,6 @@ export function TaskProposal({
                     : ""}
               </p>
               <p>{proposal.reason}</p>
-              {target?.classification_reason && (
-                <p>분류 근거: {target.classification_reason}</p>
-              )}
               <p className="task-proposal-state" role="status">
                 {ready
                   ? `승인 대기 · ${remaining}초 남음`

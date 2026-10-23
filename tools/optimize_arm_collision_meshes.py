@@ -5,6 +5,7 @@ Their expansion bound is relative to the original component CONVEX HULL: holes
 and concavities inside that hull are filled. It is not a CAD surface error bound.
 Selected concave components use surface decimation with a two-sided surface
 distance bound instead. Original STL assets, visuals and physics are preserved.
+Plane partitions retain large openings before enclosing the resulting patches.
 """
 from __future__ import annotations
 
@@ -67,6 +68,72 @@ def components(mesh: Mesh) -> list[Mesh]:
 def maximum_plane_violation(points: np.ndarray, equations: np.ndarray) -> float:
     return max(float(np.max(chunk @ equations[:, :3].T + equations[:, 3]))
                for chunk in np.array_split(points, max(1, (len(points) + 511) // 512)))
+
+
+def clip_surface(mesh: Mesh, axis: int, offset: float, sign: int) -> Mesh:
+    """Clip triangles to a halfspace, sharing exact edge intersections.
+
+    Coordinates are metres. The open cut is capped by the later convex hull;
+    clipping itself preserves every portion of the original triangle surface.
+    """
+    if axis not in (0, 1, 2) or sign not in (-1, 1) or not np.isfinite(offset):
+        raise ValueError('Invalid partition plane')
+    inside = sign * (mesh.vertices[:, axis] - offset) >= 0
+    mask = inside[mesh.faces]
+    faces = mesh.faces[mask.all(axis=1)].tolist()
+    vertices = mesh.vertices.tolist()
+    intersections: dict[tuple[int, int], int] = {}
+    for triangle in mesh.faces[mask.any(axis=1) & ~mask.all(axis=1)]:
+        polygon = []
+        for a, b in zip(triangle, np.roll(triangle, -1)):
+            if inside[a]:
+                polygon.append(int(a))
+            if inside[a] != inside[b]:
+                edge = tuple(sorted((int(a), int(b))))
+                if edge not in intersections:
+                    start, end = mesh.vertices[list(edge)]
+                    if start[axis] == offset:
+                        index = edge[0]
+                    elif end[axis] == offset:
+                        index = edge[1]
+                    else:
+                        point = start + (end - start) * ((offset - start[axis]) / (end[axis] - start[axis]))
+                        point[axis] = offset
+                        index = len(vertices)
+                        vertices.append(point.tolist())
+                    intersections[edge] = index
+                polygon.append(intersections[edge])
+        polygon = list(dict.fromkeys(polygon))
+        for i in range(1, len(polygon) - 1):
+            faces.append([polygon[0], polygon[i], polygon[i + 1]])
+    if not faces:
+        raise ValueError('Partition produced an empty surface')
+    used, inverse = np.unique(faces, return_inverse=True)
+    return Mesh(np.asarray(vertices)[used], inverse.reshape(-1, 3))
+
+
+def partition_surface(mesh: Mesh, planes: list[dict]) -> list[Mesh]:
+    """Separate disconnected prongs after each configured cut plane."""
+    parts = [mesh]
+    for plane in planes:
+        axis, offset = plane['axis'], plane['offset_m']
+        if type(axis) is not int or axis not in (0, 1, 2) or not np.isfinite(offset):
+            raise ValueError('Invalid partition plane')
+        divided = []
+        for part in parts:
+            if not part.vertices[:, axis].min() < offset < part.vertices[:, axis].max():
+                divided.append(part)
+                continue
+            for sign in (-1, 1):
+                divided.extend(components(clip_surface(part, axis, offset, sign)))
+        parts = divided
+    return parts
+
+
+def source_pieces(source: Mesh, settings: dict, filename: str) -> list[tuple[int, Mesh]]:
+    partitions = settings.get('partition_components', {}).get(filename, {})
+    return [(index, piece) for index, part in enumerate(components(source))
+            for piece in partition_surface(part, partitions.get(str(index), []))]
 
 
 def radial_bounds(points: np.ndarray, source: ConvexHull, center: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -186,7 +253,7 @@ def surface_decimation(source: Mesh, settings: dict, image: str) -> tuple[Mesh, 
 def optimize(source: Mesh, settings: dict, filename: str = '') -> tuple[Mesh, list[dict]]:
     vertices, faces, reports = [], [], []
     offset = 0
-    for index, part in enumerate(components(source)):
+    for index, part in source_pieces(source, settings, filename):
         surface = settings.get('surface_components', {}).get(filename, {}).get(str(index))
         if surface:
             result, report = surface_decimation(part, surface, settings['surface_simplifier_image'])
@@ -197,6 +264,7 @@ def optimize(source: Mesh, settings: dict, filename: str = '') -> tuple[Mesh, li
         vertices.append(result.vertices)
         faces.append(result.faces + offset)
         offset += len(result.vertices)
+        report['source_component'] = index
         reports.append(report)
     return Mesh(np.vstack(vertices), np.vstack(faces)), reports
 
@@ -213,14 +281,18 @@ def main() -> None:
     destination = args.output or package / settings['output_directory']
     if destination.resolve() == (package / 'meshes').resolve():
         raise ValueError('Output directory must preserve the original CAD meshes')
-    report = {'schema_version': 2, 'method': 'per_component_enclosure_or_surface_decimation',
-              'bound_reference': 'Enclosure: original component convex hull. Surface decimation: bidirectional original CAD surface distance.',
+    report = {'schema_version': 3, 'method': 'partitioned_component_enclosure_or_surface_decimation',
+              'bound_reference': 'Enclosure: convex hull of each original component or clipped surface patch, in metres. Surface decimation: bidirectional original CAD surface distance.',
               'settings': settings, 'meshes': {}}
     pending = []
     for filename in settings['source_meshes']:
         path = package / 'meshes' / filename
         source = read_stl(path)
-        output, parts = optimize(source, settings, filename)
+        scale = settings.get('mesh_scales', {}).get(filename, 1.)
+        if not np.isfinite(scale) or scale <= 0:
+            raise ValueError('Mesh scale must be positive and finite')
+        output, parts = optimize(Mesh(source.vertices * scale, source.faces), settings, filename)
+        output = Mesh(output.vertices / scale, output.faces)
         data = stl_bytes(output)
         report['meshes'][filename] = {
             'source_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),

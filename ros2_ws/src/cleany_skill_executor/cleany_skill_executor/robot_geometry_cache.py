@@ -18,19 +18,20 @@ from .curobo_collision import ConvexBody
 def model_cache_path(urdf: str, srdf: str, config) -> Path | None:
     if not config.geometry_cache_directory:
         return None
-    from ament_index_python.packages import get_package_share_directory
-
     digest = hashlib.sha256()
     inputs = [urdf, srdf, json.dumps([
-        config.spheres_per_link, config.sphere_surface_radius_m, config.sphere_budget_per_link])]
+        config.spheres_per_link, config.sphere_surface_radius_m, config.sphere_budget_per_link,
+        config.collision_hull_max_expansion_m])]
     for package in ('numpy', 'scipy', 'trimesh', 'nvidia_curobo'):
         inputs.append(package + '=' + importlib.metadata.version(package))
     source = Path(__file__).parent
     for relative in ('curobo_model.py', 'curobo_collision.py', 'geometry_cache.py',
-                     'core/sphere_reduction.py', 'robot_geometry_cache.py'):
+                     'core/sphere_reduction.py', 'core/collision_geometry.py', 'robot_geometry_cache.py'):
         inputs.append(hashlib.sha256((source / relative).read_bytes()).hexdigest())
     for uri in sorted({mesh.get('filename') for mesh in ET.fromstring(urdf).findall('.//collision/geometry/mesh')}):
         if uri.startswith('package://'):
+            from ament_index_python.packages import get_package_share_directory
+
             package, relative = uri[len('package://'):].split('/', 1)
             path = Path(get_package_share_directory(package)) / relative
         else:

@@ -19,7 +19,7 @@ from cleany_skill_executor.physical_moveit_adapter import MoveItAdapterConfig
 
 
 def test_sphere_fitting_requires_valid_configuration():
-    assert CuRoboConfig().sphere_budget_per_link == 8
+    assert CuRoboConfig().sphere_budget_per_link == 16
     assert CuRoboConfig(sphere_budget_per_link=0).sphere_budget_per_link == 0
     for budget in (-1, None, True, 2.5):
         with pytest.raises(ValueError, match='Sphere budget'):

@@ -25,9 +25,9 @@ Python worker 하나가 개별 동작을 수행하므로 ROS 응답/모델 추�
 
 움직이기 전에 지정 snapshot, 대상 깊이, 모델 분류, 정책과 목적지를 검사한다.
 기본 지원 쓰레기는 `cup`, `crumpled tissue`다. `paper cup`, `disposable paper cup`은
-같은 컵 종류 alias로 연결하되 원래 인식 label과 분류를 보존한다. 쓰레기 분류·사유와
+같은 컵 종류 alias로 연결하되 원래 인식 label과 분류를 보존한다. 쓰레기 분류와
 목적지 정책을 검증한다. `collect_lost_item`은 `mouse`, `computer mouse`, `wireless mouse`,
-`lego brick`을 지원하며 모델의 `lost_item` 분류와 사유, 정책의 `lost_items_left` 목적지가
+`lego brick`을 지원하며 모델의 `lost_item` 분류, 정책의 `lost_items_left` 목적지가
 일치해야 한다. 두 skill은 기존 `collect_trash_mujoco.xml`의 집기·이동·놓기·확인 절차를 공유한다.
 종류와 목적지는 정책 및 `bt_supported_trash_labels`, `bt_supported_lost_item_labels` 설정에서 읽는다.
 같은 종류 여러 개는 유효한 session/epoch/track이 있을 때 허용한다.

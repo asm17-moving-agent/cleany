@@ -567,6 +567,7 @@ class PregraspPipeline(Node):
                 wrist_request = ObserveWristTarget.Request(operation=ObserveWristTarget.Request.HANDOFF,
                     arm=selected.selected_arm, source_snapshot_id=after.source_snapshot_id,
                     source_object_id=after.source_object_id, label=after.source_label,
+                    detector_label=after.source_detector_label,
                     source_confidence=float(after.source_confidence), after_stamp_ns=arrival)
                 wrist_request.expected_pose.header = deepcopy(after.header)
                 wrist_request.expected_pose.pose.position = deepcopy(after.observed_center)

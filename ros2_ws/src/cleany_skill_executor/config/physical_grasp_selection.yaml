@@ -5,9 +5,10 @@ grasp_selection_server:
     curobo_num_seeds: 32
     curobo_ik_position_threshold_m: 0.001
     curobo_joint_tolerance_rad: 0.002
-    curobo_spheres_per_link: 16
-    curobo_sphere_budget_per_link: 8  # Per rigid link after fitting: 96 spheres across both arms.
-    curobo_sphere_surface_radius_m: 0.002
+    curobo_spheres_per_link: 64
+    curobo_sphere_budget_per_link: 16
+    curobo_sphere_surface_radius_m: 0.0005
+    curobo_collision_hull_max_expansion_m: 0.001
     curobo_geometry_cache_directory: ''  # Optional content-addressed mesh fitting cache.
     curobo_interpolation_dt: 0.05
     curobo_validation_step_rad: 0.025

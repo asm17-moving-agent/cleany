@@ -94,8 +94,12 @@ class CuRoboEngine:
                     # graph replays. grad_iters configures the total budget.
                     grad_iters=getattr(self, 'ik_iterations', None),
                     rotation_threshold=10.0,
-                    self_collision_check=True,
-                    self_collision_opt=True,
+                    # Outer covers overlap at mechanically close links. IK
+                    # checks world obstacles; the adapter owns full-geometry
+                    # self-collision acceptance. cuRobo 0.7.8 couples these two
+                    # self-collision flags, so disable both explicitly.
+                    self_collision_check=False,
+                    self_collision_opt=False,
                     collision_checker_type=CollisionCheckerType.MESH,
                     collision_cache={"obb": 128, "mesh": 128},
                     world_coll_checker=self.resources.world_checker,
@@ -159,6 +163,7 @@ class CuRoboEngine:
     def solve(
         self, arm: str, tip: str, position, seeds, state: dict, world=None
     ) -> list[JointSolution]:
+        """Propose IK states; the adapter must validate full robot geometry."""
         from curobo.types.math import Pose
 
         self.model.validate_state(state)
@@ -326,6 +331,7 @@ class CuRoboEngine:
                     world_model,
                     tensor_args=self.tensor,
                     collision_checker_type=CollisionCheckerType.MESH,
+                    self_collision_check=False, self_collision_opt=False,
                     collision_cache={"obb": 128, "mesh": 128},
                     interpolation_dt=self.config.interpolation_dt,
                     num_ik_seeds=self.config.num_seeds,

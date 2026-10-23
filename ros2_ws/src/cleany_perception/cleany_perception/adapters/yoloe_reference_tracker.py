@@ -17,7 +17,7 @@ class YoloeReferenceTracker:
               current_rgb: RgbArray) -> MaskArray:
         if current_rgb.shape != reference_rgb.shape:
             raise InspectionFailure(FailureKind.MASK, 'Reference camera dimensions changed')
-        label = ' ' + detection.label.casefold().strip() + ' '
+        label = ' ' + (detection.detector_label or detection.label).casefold().strip() + ' '
         candidates = [item for item in self.detector.detect(current_rgb, '')
                       if ' ' + item.label.casefold().strip() + ' ' in label
                       and bbox_iou(item.bbox, detection.bbox) >= self.minimum_iou]

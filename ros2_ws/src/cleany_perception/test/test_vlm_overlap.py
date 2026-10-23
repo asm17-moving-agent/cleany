@@ -23,8 +23,7 @@ def test_geometry_runs_during_vlm_and_selected_reconstruction_reuses_it(syntheti
     def classify(rgb, detections):
         started.set()
         assert geometry_done.wait(5.), 'Geometry must run while VLM is waiting'
-        return [replace(detections[0], label='classified box', sorting_category='lost_item',
-                        sorting_reason='reusable object')]
+        return [replace(detections[0], label='classified box', sorting_category='lost_item')]
     original = module.fit_plane_ransac
     def fit(*args, **kwargs):
         assert started.wait(5.)

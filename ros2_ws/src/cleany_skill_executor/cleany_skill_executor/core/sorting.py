@@ -23,7 +23,7 @@ class Category(str, Enum):
 COLLECTION_SKILLS = {'trash': 'collect_trash', 'lost_item': 'collect_lost_item'}
 
 
-def classify_model(label: str, confidence: float, category: str, reason: str, *,
+def classify_model(label: str, confidence: float, category: str, *,
                    hazardous_labels: frozenset[str], minimum_confidence: float,
                    trash_destination: str, lost_item_destination: str) -> Decision:
     """Shared semantic gates; labels may veto safety, never grant permission."""
@@ -31,10 +31,10 @@ def classify_model(label: str, confidence: float, category: str, reason: str, *,
         return Decision(label, Category.REVIEW, None, 'hazardous_label')
     if not math.isfinite(confidence) or not minimum_confidence <= confidence <= 1:
         return Decision(label, Category.REVIEW, None, 'low_confidence')
-    if category not in COLLECTION_SKILLS or not isinstance(reason, str) or not reason.strip():
+    if category not in COLLECTION_SKILLS:
         return Decision(label, Category.REVIEW, None, 'missing_or_uncertain_model_classification')
     destination = trash_destination if category == 'trash' else lost_item_destination
-    return Decision(label, Category(category), destination or None, 'gemini: ' + reason.strip())
+    return Decision(label, Category(category), destination or None, 'model_category')
 
 
 def bin_release_region(
@@ -93,9 +93,9 @@ class SortingPolicy:
 
 
     def classify_model(self, label: str, confidence: float,
-                       category: str, reason: str) -> Decision:
+                       category: str) -> Decision:
         """Consume model semantics, retaining conservative safety vetoes only."""
-        return classify_model(label, confidence, category, reason,
+        return classify_model(label, confidence, category,
             hazardous_labels=self.hazardous_labels, minimum_confidence=self.minimum_confidence,
             trash_destination=self.trash_destination, lost_item_destination=self.lost_item_destination)
 

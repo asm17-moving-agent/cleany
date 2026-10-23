@@ -114,6 +114,30 @@ def test_yoloe_wrist_handoff_and_check_use_instance_masks(service):
     assert checked.reference_id == handoff.reference_id
 
 
+def test_semantic_correction_uses_original_detector_class_through_handoff_and_check(service):
+    s, req = service
+    req.label, req.detector_label = 'remote control', 'power bank'
+    detection = instance('power bank')
+    s.detector.detect = lambda *_: (detection,)
+    handoff = s.execute(req, Service.Response())
+    assert handoff.success, handoff.message
+    s.check_detector = SimpleNamespace(detect=lambda *_: (detection,))
+    prepare_check(s, req, handoff)
+    assert s.execute(req, Service.Response()).success
+
+
+@pytest.mark.parametrize('field', ['label', 'detector_label'])
+def test_check_rejects_changed_semantics_or_detector_class_with_same_reference(service, field):
+    s, req = service
+    req.detector_label = 'cup'
+    handoff = s.execute(req, Service.Response())
+    prepare_check(s, req, handoff)
+    setattr(req, field, 'bottle')
+    result = s.execute(req, Service.Response())
+    assert not result.success and result.status == result.ERROR
+    assert 'type or detector class changed' in result.message
+
+
 def test_yoloe_wrist_fails_closed_on_wrong_or_ambiguous_instance(service):
     s, req = service
     detection = instance('cup')

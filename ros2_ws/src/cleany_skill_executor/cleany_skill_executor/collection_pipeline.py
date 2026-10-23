@@ -1262,6 +1262,7 @@ class CollectionPipeline(PregraspPipeline):
                 arm=selected.selected_arm, source_snapshot_id=selected.selected_candidate.snapshot_id,
                 source_object_id=selected.selected_candidate.object_id,
                 label=after.source_label, source_confidence=float(after.source_confidence),
+                detector_label=after.source_detector_label,
                 after_stamp_ns=arrival)
             request.expected_pose.header = deepcopy(after.header)
             request.expected_pose.pose.position = deepcopy(after.observed_center)

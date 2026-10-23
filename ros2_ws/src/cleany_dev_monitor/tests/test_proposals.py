@@ -17,7 +17,7 @@ from test_operator import environment
 
 def scene():
     item = NS(object_id=7, track_id='track-a', tracking_state='TRACKED', label='cup',
-        sorting_category='trash', sorting_reason='empty cup', confidence=.9,
+        sorting_category='trash',  confidence=.9,
         distance_valid=True, distance_m=.4, position_valid=True,
         representative_position=NS(x=.4, y=0., z=.2), x_min=10., y_min=10., x_max=70., y_max=90.,
         median_depth_m=.4, estimated_width_m=.05, estimated_height_m=.07)

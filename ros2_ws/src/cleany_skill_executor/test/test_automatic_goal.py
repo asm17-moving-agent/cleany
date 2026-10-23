@@ -7,14 +7,14 @@ from cleany_skill_executor.core.automatic_goal import select_automatic_target
 
 def detection(identifier, depth, **fields):
     return NS(**dict(dict(object_id=identifier, label='cup', confidence=.9,
-        sorting_category='trash', sorting_reason='disposable', distance_valid=True,
+        sorting_category='trash',  distance_valid=True,
         distance_m=depth, median_depth_m=depth, estimated_width_m=.07,
         estimated_height_m=.1), **fields))
 
 
 def test_auto_selection_preserves_real_snapshot_and_chooses_eligible_target():
     snapshot = NS(snapshot_id='camera-capture-423', detections=[
-        detection(1, .1, label='battery'), detection(2, .2, sorting_reason=''),
+        detection(1, .1, label='battery'), detection(2, .2, sorting_category='review'),
         detection(3, .3, distance_valid=False), detection(4, .5),
         detection(7, .4, sorting_category='lost_item')])
     target = select_automatic_target(snapshot, {'label_destinations': {'*': 'return_to_pick'}})

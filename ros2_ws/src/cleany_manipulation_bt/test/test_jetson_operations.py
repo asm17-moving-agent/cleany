@@ -29,7 +29,7 @@ def operation():
     node.value = values.__getitem__
     node._snapshot = object()
     detection = DetectedObject2D(object_id=2, label='paper cup', confidence=.9,
-        sorting_category='trash', sorting_reason='disposable cup', distance_valid=True,
+        sorting_category='trash',  distance_valid=True,
         distance_m=.5, median_depth_m=.5, estimated_width_m=.07, estimated_height_m=.1,
         x_min=0., y_min=0., x_max=100., y_max=100.)
     snapshot = DetectedObject2DArray(snapshot_id='approved', detections=[
@@ -320,7 +320,8 @@ def test_camera_stays_on_until_last_observation_and_closes_on_stop(operation, st
 
 @pytest.mark.parametrize('field,value,error', [
     ('sorting_category', 'lost_item', Error.TARGET_UNAVAILABLE),
-    ('sorting_reason', '', Error.TARGET_UNAVAILABLE),
+    ('sorting_category', 'review', Error.TARGET_UNAVAILABLE),
+    ('sorting_category', '', Error.TARGET_UNAVAILABLE),
     ('distance_valid', False, Error.TARGET_UNAVAILABLE),
     ('label', 'battery', Error.TARGET_UNAVAILABLE),
     ('confidence', .1, Error.TARGET_UNAVAILABLE),

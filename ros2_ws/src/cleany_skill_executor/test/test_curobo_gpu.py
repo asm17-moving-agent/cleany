@@ -34,7 +34,8 @@ def engine():
     moveit = Path(get_package_share_directory("cleany_moveit_config"))
     urdf = xacro.process_file(
         str(description / "urdf/cleany.urdf.xacro"),
-        mappings={"include_head_camera": "false"},
+        mappings={"include_head_camera": "false", "include_wheel_joints": "false",
+                  "optimized_arm_collision_meshes": "true"},
     ).toxml()
     config = CuRoboConfig(num_seeds=16)
     result = CuRoboEngine(

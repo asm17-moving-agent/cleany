@@ -293,7 +293,8 @@ def replay_pipeline(monkeypatch, *, primary_empty=False, fail_controller=False,
                   observed_extent=Vector3(x=.04,y=.04,z=.04), mask_pixels=200,
                   valid_depth_points=200,valid_depth_fraction=1.,
                   source_snapshot_id='synthetic_capture',source_object_id=1,
-                  source_label='synthetic_box',source_confidence=1.)
+                  source_label='synthetic_box',source_detector_label='detector_box',
+                  source_confidence=1.)
     node.observe = observe
     limits = {n:PhysicalJointLimit(-2.,2.,1.,2.,2048.,1.,0.,0.,4095.) for n in state.name}
     real = HardwareExecution.__new__(HardwareExecution)
@@ -458,6 +459,8 @@ def replay_pipeline(monkeypatch, *, primary_empty=False, fail_controller=False,
             trace.append('reference_clear')
             return NS(success=True)
         if client is node.wrist:
+            assert request.label == 'synthetic_box'
+            assert request.detector_label == 'detector_box'
             return NS(success=True, reference_id=request.reference_id or 'synthetic_wrist',
                       source_snapshot_id=request.source_snapshot_id,
                       source_object_id=request.source_object_id,

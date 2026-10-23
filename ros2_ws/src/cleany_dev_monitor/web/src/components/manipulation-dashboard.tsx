@@ -443,6 +443,150 @@ export function ManipulationDashboard({
       </select>
     </label>
   );
+  const requestPanel = observation.serverMode && observation.request && (
+    <ManipulationRequest
+      request={observation.request}
+      fresh={observation.requestFresh}
+    />
+  );
+
+  const executionSummary = !selectedRun ? (
+    <Panel title="조작 실행 기록 대기" className="manip-empty-panel">
+      <div className="manip-empty-state">
+        <span className="manip-empty-icon">
+          <Radio size={28} aria-hidden="true" />
+        </span>
+        <strong>
+          {runs.length
+            ? "현재 요청의 실행 기록을 기다리고 있습니다"
+            : "아직 수신된 실행 기록이 없습니다"}
+        </strong>
+        <p className="manip-note">
+          {observation.serverMode
+            ? "실물 조작을 실행하면 서버가 보고하는 단계·시간·결과를 표시합니다."
+            : "현재 미션과 execution ID가 일치하는 서버 기록이 수신되면 단계·시간·결과를 표시합니다. 이전 실행은 기록에서 선택할 수 있습니다."}
+        </p>
+        <code className="manip-topic-name">{topic}</code>
+      </div>
+      {executionPicker}
+    </Panel>
+  ) : (
+    <>
+      <section
+        className="manip-summary"
+        data-tone={visualTone}
+        aria-label="선택 실행 요약"
+      >
+        <div className="manip-hero-main">
+          <div className="manip-hero-meta">
+            <Tag
+              kind={
+                current
+                  ? "info"
+                  : record.has_result
+                    ? tone(record.status)
+                    : "warn"
+              }
+            >
+              {observationLabel}
+            </Tag>
+            <span className="manip-source-label">
+              {record.execution_profile === "mock"
+                ? "Mock"
+                : record.execution_profile || "출처 미확인"}
+            </span>
+            <span>물체 {record.object_id ?? "—"}</span>
+          </div>
+          <div className="manip-hero-heading">
+            <span className="manip-hero-icon">
+              {record.has_result ? (
+                record.status === "SUCCESS" ? (
+                  <CheckCircle2 size={28} aria-hidden="true" />
+                ) : record.status === "CANCELED" ? (
+                  <Hand size={28} aria-hidden="true" />
+                ) : (
+                  <TriangleAlert size={28} aria-hidden="true" />
+                )
+              ) : (
+                <StageIcon stage={record.stage} size={28} />
+              )}
+            </span>
+            <div>
+              <small>
+                {record.has_result
+                  ? "마지막 실행 결과"
+                  : current
+                    ? replay
+                      ? "기록 시점의 동작"
+                      : "현재 동작"
+                    : "마지막 관측 동작"}
+              </small>
+              <h2>
+                {record.has_result
+                  ? resultLabels[record.status] || "결과 미확인"
+                  : stageLabel(record.stage)}
+              </h2>
+              <p className="manip-current-step">
+                {activeStepLabel && <span>{activeStepLabel}</span>}
+                <code>
+                  {record.substage || record.status || record.stage || "—"}
+                </code>
+              </p>
+            </div>
+          </div>
+          {executionPicker}
+        </div>
+        <div className="manip-hero-metrics">
+          <div className="manip-completion">
+            <ProgressRing completed={doneCount} total={totalSteps} />
+            <div>
+              <small>확인된 동작</small>
+              <strong>
+                {doneCount}
+                <span> / {totalSteps}</span>
+              </strong>
+              <span>
+                {doneCount}/{totalSteps}개 동작 완료
+              </span>
+            </div>
+          </div>
+          <div className="manip-time-metric">
+            <span className="manip-metric-icon">
+              <Timer size={19} aria-hidden="true" />
+            </span>
+            <div>
+              <small>{current ? "관측 경과 시간" : "기록된 경과 시간"}</small>
+              <strong>{seconds(elapsed(selectedRun, end))}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+      <p
+        className={`manip-note manip-observation ${selectedRun.partial || selectedRun.clock_regressed ? "is-warning" : ""}`}
+      >
+        {replay ? (
+          <FileClock size={14} aria-hidden="true" />
+        ) : current ? (
+          <Radio size={14} aria-hidden="true" />
+        ) : (
+          <Clock3 size={14} aria-hidden="true" />
+        )}
+        {replay
+          ? "기록 시점의 관측"
+          : current
+            ? "서버와 현재 미션을 연결해 관측 중"
+            : "마지막 실행 기록"}{" "}
+        · 마지막 기록 수신 {age(timeAt, selectedRun.received_at).toFixed(1)}초
+        전
+        {selectedRun.partial
+          ? " · 일부 구간 미관측: 세부 시간은 불완전합니다."
+          : ""}
+        {selectedRun.clock_regressed
+          ? " · 서버 시각 역행으로 소요 시간을 표시하지 않습니다."
+          : ""}
+      </p>
+    </>
+  );
 
   return (
     <div className="manipulation-dashboard">
@@ -453,494 +597,380 @@ export function ManipulationDashboard({
         }
         connected={connected}
         replay={replay}
-      />
-      {observation.serverMode && observation.request && (
-        <ManipulationRequest
-          request={observation.request}
-          fresh={observation.requestFresh}
-        />
-      )}
-      <div className="manip-toolbar">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="manip-tabs">
-            {Object.entries(tabs).map(([id, name]) => (
-              <TabsTrigger key={id} value={id}>
-                {id === "overview" ? (
-                  <Layers3 size={15} aria-hidden="true" />
-                ) : id === "stages" ? (
-                  <ListChecks size={15} aria-hidden="true" />
-                ) : id === "timeline" ? (
-                  <Clock3 size={15} aria-hidden="true" />
-                ) : id === "safety" ? (
-                  <ShieldCheck size={15} aria-hidden="true" />
-                ) : (
-                  <FileClock size={15} aria-hidden="true" />
-                )}
-                {name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <Button variant="outline" size="sm" onClick={() => openTopic(topic)}>
-          실행 토픽 보기
-        </Button>
-      </div>
-      {!selectedRun ? (
-        <>
-          <Panel title="조작 실행 기록 대기">
-            <p className="manip-note">
-              {observation.serverMode
-                ? "실물 조작을 실행하면 서버가 보고하는 단계·시간·결과를 표시합니다."
-                : "현재 미션과 execution ID가 일치하는 서버 기록이 수신되면 단계·시간·결과를 표시합니다. 이전 실행은 기록에서 선택할 수 있습니다."}
-            </p>
-            <code>{topic}</code>
-            {executionPicker}
-          </Panel>
-          {safetyPanel}
-        </>
-      ) : (
-        <>
-          <section
-            className="manip-summary"
-            data-tone={visualTone}
-            aria-label="선택 실행 요약"
-          >
-            <div className="manip-hero-main">
-              <div className="manip-hero-meta">
-                <Tag
-                  kind={
-                    current
-                      ? "info"
-                      : record.has_result
-                        ? tone(record.status)
-                        : "warn"
-                  }
-                >
-                  {observationLabel}
-                </Tag>
-                <span className="manip-source-label">
-                  {record.execution_profile === "mock"
-                    ? "Mock"
-                    : record.execution_profile || "출처 미확인"}
-                </span>
-                <span>물체 {record.object_id ?? "—"}</span>
-              </div>
-              <div className="manip-hero-heading">
-                <span className="manip-hero-icon">
-                  {record.has_result ? (
-                    record.status === "SUCCESS" ? (
-                      <CheckCircle2 size={28} aria-hidden="true" />
-                    ) : record.status === "CANCELED" ? (
-                      <Hand size={28} aria-hidden="true" />
-                    ) : (
-                      <TriangleAlert size={28} aria-hidden="true" />
-                    )
+        summary={executionSummary}
+      >
+        {requestPanel}
+        <div className="manip-toolbar">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="manip-tabs">
+              {Object.entries(tabs).map(([id, name]) => (
+                <TabsTrigger key={id} value={id}>
+                  {id === "overview" ? (
+                    <Layers3 size={15} aria-hidden="true" />
+                  ) : id === "stages" ? (
+                    <ListChecks size={15} aria-hidden="true" />
+                  ) : id === "timeline" ? (
+                    <Clock3 size={15} aria-hidden="true" />
+                  ) : id === "safety" ? (
+                    <ShieldCheck size={15} aria-hidden="true" />
                   ) : (
-                    <StageIcon stage={record.stage} size={28} />
+                    <FileClock size={15} aria-hidden="true" />
                   )}
-                </span>
-                <div>
-                  <small>
-                    {record.has_result
-                      ? "마지막 실행 결과"
-                      : current
-                        ? replay
-                          ? "기록 시점의 동작"
-                          : "현재 동작"
-                        : "마지막 관측 동작"}
-                  </small>
-                  <h2>
-                    {record.has_result
-                      ? resultLabels[record.status] || "결과 미확인"
-                      : stageLabel(record.stage)}
-                  </h2>
-                  <p className="manip-current-step">
-                    {activeStepLabel && <span>{activeStepLabel}</span>}
-                    <code>
-                      {record.substage || record.status || record.stage || "—"}
-                    </code>
-                  </p>
-                </div>
-              </div>
-              {executionPicker}
-            </div>
-            <div className="manip-hero-metrics">
-              <div className="manip-completion">
-                <ProgressRing completed={doneCount} total={totalSteps} />
-                <div>
-                  <small>확인된 동작</small>
-                  <strong>
-                    {doneCount}
-                    <span> / {totalSteps}</span>
-                  </strong>
-                  <span>
-                    {doneCount}/{totalSteps}개 동작 완료
+                  {name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          <Button variant="outline" size="sm" onClick={() => openTopic(topic)}>
+            실행 토픽 보기
+          </Button>
+        </div>
+        {!selectedRun ? (
+          safetyPanel
+        ) : (
+          <>
+            {tab === "overview" && (
+              <Panel
+                title="실행 흐름"
+                className="manip-flow-panel"
+                aside={
+                  <span className="manip-panel-caption">
+                    서버가 보고한 9단계
                   </span>
-                </div>
-              </div>
-              <div className="manip-time-metric">
-                <span className="manip-metric-icon">
-                  <Timer size={19} aria-hidden="true" />
-                </span>
-                <div>
-                  <small>
-                    {current ? "관측 경과 시간" : "기록된 경과 시간"}
-                  </small>
-                  <strong>{seconds(elapsed(selectedRun, end))}</strong>
-                </div>
-              </div>
-            </div>
-          </section>
-          <p
-            className={`manip-note manip-observation ${selectedRun.partial || selectedRun.clock_regressed ? "is-warning" : ""}`}
-          >
-            {replay ? (
-              <FileClock size={14} aria-hidden="true" />
-            ) : current ? (
-              <Radio size={14} aria-hidden="true" />
-            ) : (
-              <Clock3 size={14} aria-hidden="true" />
-            )}
-            {replay
-              ? "기록 시점의 관측"
-              : current
-                ? "서버와 현재 미션을 연결해 관측 중"
-                : "마지막 실행 기록"}{" "}
-            · 마지막 기록 수신 {age(timeAt, selectedRun.received_at).toFixed(1)}
-            초 전
-            {selectedRun.partial
-              ? " · 일부 구간 미관측: 세부 시간은 불완전합니다."
-              : ""}
-            {selectedRun.clock_regressed
-              ? " · 서버 시각 역행으로 소요 시간을 표시하지 않습니다."
-              : ""}
-          </p>
-          {tab === "overview" && (
-            <Panel
-              title="실행 흐름"
-              className="manip-flow-panel"
-              aside={
-                <span className="manip-panel-caption">서버가 보고한 9단계</span>
-              }
-            >
-              <ol className="manip-stage-rail" aria-label="전체 조작 단계">
-                {stages.map(([id, label, steps], index) => {
-                  const state = stageState(id, steps);
-                  return (
-                    <li
-                      key={id}
-                      data-state={state}
-                      aria-current={state === "active" ? "step" : undefined}
-                    >
-                      <span className="manip-rail-node">
-                        {state === "completed" ? (
-                          <Check size={17} aria-hidden="true" />
-                        ) : state === "failed" ? (
-                          <X size={17} aria-hidden="true" />
-                        ) : (
-                          <StageIcon stage={id} size={17} />
-                        )}
-                      </span>
-                      <span className="manip-rail-index">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <strong>{label}</strong>
-                    </li>
-                  );
-                })}
-              </ol>
-            </Panel>
-          )}
-          {(tab === "overview" || tab === "safety") && (
-            <div className="manip-two">
-              {targetPanel}
-              {safetyPanel}
-            </div>
-          )}
-          {tab === "stages" && (
-            <Panel
-              title="서버 단계 진행"
-              aside={
-                <Tag>
-                  {doneCount} / {totalSteps} 동작 확인
-                </Tag>
-              }
-            >
-              <p className="manip-note">
-                청소 BT의 ExecuteOne 내부에서 관측한 Action 단계입니다. 완료
-                표시는 서버의 completed_substages를 사용합니다.
-              </p>
-              <ol className="manip-stages">
-                {stages.map(([id, label, steps], index) => {
-                  const finished = steps.every(([node]) =>
-                    completed.includes(node),
-                  );
-                  const failed = record.failed_stage === id;
-                  const active = current && record.stage === id;
-                  return (
-                    <li
-                      key={id}
-                      className={
-                        failed
-                          ? "failed"
-                          : active
-                            ? "active"
-                            : finished
-                              ? "completed"
-                              : ""
-                      }
-                    >
-                      <div className="manip-stage-title">
-                        <span className="manip-stage-icon">
-                          <StageIcon stage={id} />
+                }
+              >
+                <ol className="manip-stage-rail" aria-label="전체 조작 단계">
+                  {stages.map(([id, label, steps], index) => {
+                    const state = stageState(id, steps);
+                    return (
+                      <li
+                        key={id}
+                        data-state={state}
+                        aria-current={state === "active" ? "step" : undefined}
+                      >
+                        <span className="manip-rail-node">
+                          {state === "completed" ? (
+                            <Check size={17} aria-hidden="true" />
+                          ) : state === "failed" ? (
+                            <X size={17} aria-hidden="true" />
+                          ) : (
+                            <StageIcon stage={id} size={17} />
+                          )}
                         </span>
-                        <span className="manip-stage-name">
-                          <small>
-                            STEP {String(index + 1).padStart(2, "0")}
-                          </small>
-                          <strong>{label}</strong>
+                        <span className="manip-rail-index">
+                          {String(index + 1).padStart(2, "0")}
                         </span>
-                        <Tag
-                          kind={
-                            failed
-                              ? "bad"
-                              : active
-                                ? "info"
-                                : finished
-                                  ? "good"
-                                  : ""
-                          }
-                        >
-                          {failed
-                            ? "실패"
-                            : active
+                        <strong>{label}</strong>
+                        <span className="manip-rail-state">
+                          {state === "completed"
+                            ? "완료"
+                            : state === "active"
                               ? "진행 중"
+                              : state === "failed"
+                                ? "실패"
+                                : "미관측"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </Panel>
+            )}
+            {(tab === "overview" || tab === "safety") && (
+              <div className="manip-two">
+                {targetPanel}
+                {safetyPanel}
+              </div>
+            )}
+            {tab === "stages" && (
+              <Panel
+                title="서버 단계 진행"
+                aside={
+                  <Tag>
+                    {doneCount} / {totalSteps} 동작 확인
+                  </Tag>
+                }
+              >
+                <p className="manip-note">
+                  청소 BT의 ExecuteOne 내부에서 관측한 Action 단계입니다. 완료
+                  표시는 서버의 completed_substages를 사용합니다.
+                </p>
+                <ol className="manip-stages">
+                  {stages.map(([id, label, steps], index) => {
+                    const finished = steps.every(([node]) =>
+                      completed.includes(node),
+                    );
+                    const failed = record.failed_stage === id;
+                    const active = current && record.stage === id;
+                    return (
+                      <li
+                        key={id}
+                        className={
+                          failed
+                            ? "failed"
+                            : active
+                              ? "active"
                               : finished
-                                ? "완료"
-                                : record.stage === id
-                                  ? "마지막 관측"
-                                  : "미관측"}
-                        </Tag>
-                      </div>
-                      <div className="manip-stage-track" aria-hidden="true">
+                                ? "completed"
+                                : ""
+                        }
+                      >
+                        <div className="manip-stage-title">
+                          <span className="manip-stage-icon">
+                            <StageIcon stage={id} />
+                          </span>
+                          <span className="manip-stage-name">
+                            <small>
+                              STEP {String(index + 1).padStart(2, "0")}
+                            </small>
+                            <strong>{label}</strong>
+                          </span>
+                          <Tag
+                            kind={
+                              failed
+                                ? "bad"
+                                : active
+                                  ? "info"
+                                  : finished
+                                    ? "good"
+                                    : ""
+                            }
+                          >
+                            {failed
+                              ? "실패"
+                              : active
+                                ? "진행 중"
+                                : finished
+                                  ? "완료"
+                                  : record.stage === id
+                                    ? "마지막 관측"
+                                    : "미관측"}
+                          </Tag>
+                        </div>
+                        <div className="manip-stage-track" aria-hidden="true">
+                          <i
+                            style={{
+                              width: `${(steps.filter(([node]) => completed.includes(node)).length / steps.length) * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <ul>
+                          {steps.map(([node, name]) => (
+                            <li key={node}>
+                              <span className="manip-step-name">
+                                {record.failed_substage === node ? (
+                                  <X size={14} aria-hidden="true" />
+                                ) : completed.includes(node) ? (
+                                  <CheckCircle2 size={14} aria-hidden="true" />
+                                ) : (
+                                  <CircleDot size={14} aria-hidden="true" />
+                                )}
+                                {name}
+                              </span>
+                              <code>{node}</code>
+                              <Tag
+                                kind={
+                                  record.failed_substage === node
+                                    ? "bad"
+                                    : completed.includes(node)
+                                      ? "good"
+                                      : current && record.substage === node
+                                        ? "info"
+                                        : ""
+                                }
+                              >
+                                {record.failed_substage === node
+                                  ? "실패"
+                                  : completed.includes(node)
+                                    ? "완료"
+                                    : current && record.substage === node
+                                      ? "진행 중"
+                                      : "미관측"}
+                              </Tag>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {extra[record.stage] && (
+                  <p className="manip-note">
+                    추가 단계: {stageLabel(record.stage)} ·{" "}
+                    {record.substage || "—"}
+                  </p>
+                )}
+                {!!unknownSteps.length && (
+                  <p className="manip-note">
+                    추가 완료 동작: {unknownSteps.join(", ")}
+                  </p>
+                )}
+              </Panel>
+            )}
+            {tab === "timeline" && (
+              <Panel title="단계별 관측 시간">
+                <p className="manip-note">
+                  서버 실행 시각 기준입니다. 진행 중 시간은 관측 경과값이며,
+                  기록을 클릭하면 해당 수신 시점으로 이동합니다.
+                </p>
+                <div className="manip-bars" aria-label="단계별 소요 시간">
+                  {[...totals].map(([stage, duration]) => (
+                    <div key={stage}>
+                      <span>{stageLabel(stage)}</span>
+                      <div>
                         <i
                           style={{
-                            width: `${(steps.filter(([node]) => completed.includes(node)).length / steps.length) * 100}%`,
+                            width: `${Math.max(1, (duration / Math.max(1, ...totals.values())) * 100)}%`,
                           }}
                         />
                       </div>
-                      <ul>
-                        {steps.map(([node, name]) => (
-                          <li key={node}>
-                            <span className="manip-step-name">
-                              {record.failed_substage === node ? (
-                                <X size={14} aria-hidden="true" />
-                              ) : completed.includes(node) ? (
-                                <CheckCircle2 size={14} aria-hidden="true" />
-                              ) : (
-                                <CircleDot size={14} aria-hidden="true" />
-                              )}
-                              {name}
-                            </span>
-                            <code>{node}</code>
-                            <Tag
-                              kind={
-                                record.failed_substage === node
-                                  ? "bad"
-                                  : completed.includes(node)
-                                    ? "good"
-                                    : current && record.substage === node
-                                      ? "info"
-                                      : ""
-                              }
-                            >
-                              {record.failed_substage === node
-                                ? "실패"
-                                : completed.includes(node)
-                                  ? "완료"
-                                  : current && record.substage === node
-                                    ? "진행 중"
-                                    : "미관측"}
-                            </Tag>
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
-                  );
-                })}
-              </ol>
-              {extra[record.stage] && (
-                <p className="manip-note">
-                  추가 단계: {stageLabel(record.stage)} ·{" "}
-                  {record.substage || "—"}
-                </p>
-              )}
-              {!!unknownSteps.length && (
-                <p className="manip-note">
-                  추가 완료 동작: {unknownSteps.join(", ")}
-                </p>
-              )}
-            </Panel>
-          )}
-          {tab === "timeline" && (
-            <Panel title="단계별 관측 시간">
-              <p className="manip-note">
-                서버 실행 시각 기준입니다. 진행 중 시간은 관측 경과값이며,
-                기록을 클릭하면 해당 수신 시점으로 이동합니다.
-              </p>
-              <div className="manip-bars" aria-label="단계별 소요 시간">
-                {[...totals].map(([stage, duration]) => (
-                  <div key={stage}>
-                    <span>{stageLabel(stage)}</span>
-                    <div>
-                      <i
-                        style={{
-                          width: `${Math.max(1, (duration / Math.max(1, ...totals.values())) * 100)}%`,
-                        }}
-                      />
+                      <strong>{seconds(duration)}</strong>
                     </div>
-                    <strong>{seconds(duration)}</strong>
-                  </div>
-                ))}
-              </div>
-              <div className="manip-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>관측 시각</th>
-                      <th>단계</th>
-                      <th>세부 동작</th>
-                      <th>관측 구간</th>
-                      <th>기록</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedRun.intervals.map((interval, index) => {
-                      const stop =
-                        interval.end_ns ??
-                        (current ? end : record.updated_at_ns);
-                      const duration =
-                        !selectedRun.clock_regressed &&
-                        stop >= interval.start_ns
-                          ? (stop - interval.start_ns) / 1e9
-                          : null;
-                      return (
-                        <tr key={index}>
-                          <td>{time(interval.received_at)}</td>
-                          <td>{stageLabel(interval.stage)}</td>
-                          <td>
-                            <code>{interval.substage || "—"}</code>
-                          </td>
-                          <td>
-                            {seconds(duration)}
-                            {interval.partial
-                              ? " · 일부 미관측"
-                              : interval.end_ns === null
-                                ? current
-                                  ? " · 진행 중"
-                                  : " · 마지막 관측까지"
-                                : ""}
-                          </td>
+                  ))}
+                </div>
+                <div className="manip-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>관측 시각</th>
+                        <th>단계</th>
+                        <th>세부 동작</th>
+                        <th>관측 구간</th>
+                        <th>기록</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRun.intervals.map((interval, index) => {
+                        const stop =
+                          interval.end_ns ??
+                          (current ? end : record.updated_at_ns);
+                        const duration =
+                          !selectedRun.clock_regressed &&
+                          stop >= interval.start_ns
+                            ? (stop - interval.start_ns) / 1e9
+                            : null;
+                        return (
+                          <tr key={index}>
+                            <td>{time(interval.received_at)}</td>
+                            <td>{stageLabel(interval.stage)}</td>
+                            <td>
+                              <code>{interval.substage || "—"}</code>
+                            </td>
+                            <td>
+                              {seconds(duration)}
+                              {interval.partial
+                                ? " · 일부 미관측"
+                                : interval.end_ns === null
+                                  ? current
+                                    ? " · 진행 중"
+                                    : " · 마지막 관측까지"
+                                  : ""}
+                            </td>
+                            <td>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                aria-label={`${interval.substage || interval.stage} 관측 시점 보기`}
+                                onClick={() => seek(interval.received_at)}
+                              >
+                                시점 보기
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {!selectedRun.intervals.length && (
+                  <p className="manip-note">단계별 시간 기록 없음</p>
+                )}
+              </Panel>
+            )}
+            {tab === "compare" && (
+              <Panel
+                title="실행 기록 비교"
+                aside={<Tag>최근 {runs.length}개</Tag>}
+              >
+                <p className="manip-note">
+                  현재 Monitor가 관측한 실행입니다.{" "}
+                  {summary?.data.evicted
+                    ? `${summary.data.evicted}개의 이전 실행은 메모리 목록에서 제외되었습니다.`
+                    : ""}
+                </p>
+                <div className="manip-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>물체</th>
+                        <th>실행 ID</th>
+                        <th>출처</th>
+                        <th>결과</th>
+                        <th>기록된 시간</th>
+                        <th>물체 상태</th>
+                        <th>팔 복귀 / 정지</th>
+                        <th>오류</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {runs.map((run) => (
+                        <tr
+                          key={run.record.execution_id}
+                          className={
+                            run === selectedRun ? "manip-selected" : ""
+                          }
+                        >
+                          <td>{run.record.object_id}</td>
                           <td>
                             <Button
                               variant="ghost"
                               size="sm"
-                              aria-label={`${interval.substage || interval.stage} 관측 시점 보기`}
-                              onClick={() => seek(interval.received_at)}
+                              onClick={() =>
+                                setSelected(run.record.execution_id)
+                              }
+                              title={run.record.execution_id}
                             >
-                              시점 보기
+                              {run.record.execution_id.slice(0, 12)}
                             </Button>
                           </td>
+                          <td>{run.record.execution_profile || "미확인"}</td>
+                          <td>
+                            <Tag
+                              kind={
+                                run.record.has_result
+                                  ? tone(run.record.status)
+                                  : "warn"
+                              }
+                            >
+                              {run.record.has_result
+                                ? run.record.status
+                                : "최종 결과 없음"}
+                            </Tag>
+                          </td>
+                          <td>
+                            {seconds(elapsed(run, run.record.updated_at_ns))}
+                            {run.partial && <small>일부 구간 미관측</small>}
+                          </td>
+                          <td>{run.record.object_state || "미확인"}</td>
+                          <td>
+                            {confirmed(run.record.arm_recovered)} /{" "}
+                            {confirmed(run.record.stop_confirmed)}
+                          </td>
+                          <td>{run.record.error_code || "—"}</td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {!selectedRun.intervals.length && (
-                <p className="manip-note">단계별 시간 기록 없음</p>
-              )}
-            </Panel>
-          )}
-          {tab === "compare" && (
-            <Panel
-              title="실행 기록 비교"
-              aside={<Tag>최근 {runs.length}개</Tag>}
-            >
-              <p className="manip-note">
-                현재 Monitor가 관측한 실행입니다.{" "}
-                {summary?.data.evicted
-                  ? `${summary.data.evicted}개의 이전 실행은 메모리 목록에서 제외되었습니다.`
-                  : ""}
-              </p>
-              <div className="manip-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>물체</th>
-                      <th>실행 ID</th>
-                      <th>출처</th>
-                      <th>결과</th>
-                      <th>기록된 시간</th>
-                      <th>물체 상태</th>
-                      <th>팔 복귀 / 정지</th>
-                      <th>오류</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {runs.map((run) => (
-                      <tr
-                        key={run.record.execution_id}
-                        className={run === selectedRun ? "manip-selected" : ""}
-                      >
-                        <td>{run.record.object_id}</td>
-                        <td>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelected(run.record.execution_id)}
-                            title={run.record.execution_id}
-                          >
-                            {run.record.execution_id.slice(0, 12)}
-                          </Button>
-                        </td>
-                        <td>{run.record.execution_profile || "미확인"}</td>
-                        <td>
-                          <Tag
-                            kind={
-                              run.record.has_result
-                                ? tone(run.record.status)
-                                : "warn"
-                            }
-                          >
-                            {run.record.has_result
-                              ? run.record.status
-                              : "최종 결과 없음"}
-                          </Tag>
-                        </td>
-                        <td>
-                          {seconds(elapsed(run, run.record.updated_at_ns))}
-                          {run.partial && <small>일부 구간 미관측</small>}
-                        </td>
-                        <td>{run.record.object_state || "미확인"}</td>
-                        <td>
-                          {confirmed(run.record.arm_recovered)} /{" "}
-                          {confirmed(run.record.stop_confirmed)}
-                        </td>
-                        <td>{run.record.error_code || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Panel>
-          )}
-          <details>
-            <summary>선택 실행의 서버 원본 기록</summary>
-            <pre>{JSON.stringify(record, null, 2)}</pre>
-          </details>
-        </>
-      )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Panel>
+            )}
+            <details>
+              <summary>선택 실행의 서버 원본 기록</summary>
+              <pre>{JSON.stringify(record, null, 2)}</pre>
+            </details>
+          </>
+        )}
+      </OperatorControls>
     </div>
   );
 }

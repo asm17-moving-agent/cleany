@@ -62,6 +62,15 @@ depth 100으로 구독한다. `monitor_port`의 localhost ZeroMQ REP socket은 �
 | 서비스 제공 | `/grasp/warmup_status` | `std_srvs/srv/Trigger` | cuRobo IK 엔진 예열 상태 확인 |
 | 서비스 제공 | `/grasp/vlm_warmup` | `std_srvs/srv/SetBool` | VLM 감지 시 제한 시간 내 백그라운드 예열 트리거 |
 
+충돌 형상 파라미터는 다음과 같다. 형상 생성과 검증의 범위는 [조작 구현 계약](manipulation.md#충돌-근사-형상)을 따른다.
+
+| 파라미터 | 기본값 | 의미 |
+|---|---|---|
+| `curobo_spheres_per_link` | 64 | 메시 하나당 분할 셀 수 목표; 분리된 컴포넌트마다 최소 하나를 유지 |
+| `curobo_sphere_budget_per_link` | 16 | 같은 강체 링크 내 병합 후 구의 상한, 0이면 병합 생략 |
+| `curobo_sphere_surface_radius_m` | 0.0005 | 각 셀을 감싸는 구에 추가하는 바깥 여유, m |
+| `curobo_collision_hull_max_expansion_m` | 0.001 | GPU 로봇 외피의 입력 메시 볼록 외피 대비 추가 팽창 상한, m; 0이면 정점 단순화 생략 |
+
 ## 실물 준비, 검증 및 모니터링 노드
 
 | 실행 파일 | 제공 및 호출 인터페이스 | 역할 및 동작 상세 |

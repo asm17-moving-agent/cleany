@@ -79,7 +79,7 @@ class ProposalROS(OperatorROS):
             proposal.update(state='READY', skill_name=selected.skill_name, destination_id=selected.destination_id,
                 reason='분류·신뢰도·깊이·크기·금지 목록·목적지 조건을 통과한 물체 중 로봇에 가장 가깝습니다.',
                 target=dict(object_id=item.object_id, track_id=item.track_id, label=item.label,
-                    category=item.sorting_category, classification_reason=item.sorting_reason,
+                    category=item.sorting_category,
                     confidence=float(item.confidence), distance_m=float(item.distance_m),
                     bbox=[item.x_min, item.y_min, item.x_max, item.y_max],
                     position=[item.representative_position.x, item.representative_position.y, item.representative_position.z]))

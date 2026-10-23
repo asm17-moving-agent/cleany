@@ -83,6 +83,10 @@ HTTP/WebSocket은 `host=127.0.0.1`, `port=8768`이 기본값이다. 주요 경�
 - `GET /api/control/status`: 현재 활성 제안(`proposal`) 및 작업 진행 단계(`phase`) 조회
 - `GET /api/control/proposals/{id}/image`: 촬영 시점과 일치하는 실시간 관측 JPEG 이미지 반환
 
+제안의 `target`은 종류명, 처리 분류, 검출 신뢰도와 위치를 포함합니다.
+Gemini 분류 사유는 생성, 저장하거나 표시하지 않습니다. 제안의 `reason`은
+대상 선정 규칙이나 실행 불가 상태를 설명하는 로컬 메시지입니다.
+
 ### 3. 주요 파라미터 및 승인 유효성 기준
 
 | 파라미터 | 기본값 | 설명 |

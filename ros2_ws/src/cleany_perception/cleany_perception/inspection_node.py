@@ -42,6 +42,7 @@ from sensor_msgs.msg import CameraInfo, Image
 from std_srvs.srv import Trigger
 
 from cleany_perception.adapters.gemini_detector import GeminiClassifier, GeminiDetector
+from cleany_perception.object_labels import DEFAULT_OBJECT_LABEL_ALIASES
 from cleany_perception.adapters.simulation_color import (
     SimulationColorDetector,
     SimulationColorSegmenter,
@@ -338,6 +339,7 @@ class InspectionNode(Node):
                 if detector_type == 'yoloe_gemini':
                     detector = YoloeGeminiDetector(yoloe, GeminiClassifier(
                         model=str(self.get_parameter('gemini_model').value),
+                        label_aliases=self.get_parameter('semantic_label_aliases').value,
                         jpeg_quality=self.get_parameter('gemini_jpeg_quality').value,
                         api_key_environment=str(self.get_parameter(
                             'gemini_api_key_environment').value),
@@ -678,6 +680,7 @@ class InspectionNode(Node):
         )
         self.declare_parameter('gemini_api_key_environment', 'GEMINI_API_KEY')
         self.declare_parameter('gemini_jpeg_quality', 95)
+        self.declare_parameter('semantic_label_aliases', list(DEFAULT_OBJECT_LABEL_ALIASES))
         self.declare_parameter('detector_timeout_seconds', 30.0)
         self.declare_parameter('tf_timeout_seconds', 0.5)
         self.declare_parameter('tf_cache_seconds', 60.0)
@@ -886,6 +889,7 @@ class InspectionNode(Node):
             tracking = self._tracker.update(
                 session_id, snapshot_id, [d.label for d in detections],
                 [item.position for item in ranked_detections],
+                detector_labels=[d.detector_label for d in detections],
             )
             self._snapshot_cache.put(
                 snapshot_id,
@@ -1199,9 +1203,9 @@ class InspectionNode(Node):
             detected = DetectedObject2D()
             detected.object_id = object_id
             detected.label = detection.label
+            detected.detector_label = detection.detector_label
             detected.confidence = detection.confidence
             detected.sorting_category = detection.sorting_category
-            detected.sorting_reason = detection.sorting_reason
             detected.distance_valid = distance_m is not None
             detected.distance_m = 0.0 if distance_m is None else distance_m
             if tracking is not None:
@@ -1238,6 +1242,7 @@ class InspectionNode(Node):
             detected = DetectedObject3D()
             detected.object_id = object_id
             detected.label = inspected.label
+            detected.detector_label = inspected.detector_label
             detected.confidence = inspected.confidence
             detected.obb_pose.position.x = float(inspected.box.center[0])
             detected.obb_pose.position.y = float(inspected.box.center[1])

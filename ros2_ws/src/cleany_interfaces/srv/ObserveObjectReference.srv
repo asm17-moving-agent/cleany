@@ -27,6 +27,7 @@ uint32 source_object_id
 int64 source_capture_stamp_ns
 # Original detection identity/confidence, not the fresh mask confidence.
 string source_label
+string source_detector_label
 float64 source_confidence
 # Current capture, target frame; observed surface AABB, NOT a completed OBB.
 std_msgs/Header header

@@ -1,5 +1,31 @@
 # cleany_perception
 
+## 물체 종류명과 검출 클래스
+
+`yoloe_gemini`는 Gemini가 판단한 짧은 영어 종류명을 `label`로 반환한다.
+색상, 브랜드와 상태 설명은 이름에 붙이지 않는다. YOLOE와 다른 종류나
+YOLOE 34종 밖의 이름도 허용하며, `detector_label`에는 원본 YOLOE 클래스를
+보존한다. bbox, instance mask와 confidence는 YOLOE 결과다.
+
+`semantic_label_aliases` ROS parameter는 `source=type` 문자열 배열이다.
+대소문자와 연속 공백을 정규화한 뒤 명시한 별칭만 적용한다. 기본값은
+`mouse`, `wireless mouse`를 `computer mouse`로, `paper cup`을 `cup`으로
+통일한다. 새로운 종류를 기존 종류로 추측해서 바꾸지 않으며, 순환하거나
+중복된 별칭 설정은 거절한다. `unknown object`는 항상 `review`로 반환한다.
+종류명 정규화는 쓰레기와 분실물 분류를 대신하지 않는다.
+
+Gemini 분류 응답은 객체별 `id`, `label`, `sorting_category`만 요청한다.
+분류 사유 문장은 생성하거나 메시지로 전달하지 않는다. 처리 허가는 category와
+기존 위험 물체, 검출 신뢰도, 깊이, 크기 및 목적지 조건으로 검사한다.
+
+고정 베이스 추적과 head reference 재관측은 원본 검출 클래스와 공간 정보를
+사용한다. 최종 종류명 교정만으로 새 track ID를 만들지 않는다. `detector_label`이
+없는 비-YOLOE 입력은 `label`을 사용한다. 승인 대상의 최종 종류나 처리 분류가
+달라지면 기존 승인 검사가 거절한다. 제외 목록, 목적지와 종류별 파지 보정의
+설정 키는 정규화된 최종 종류명이다.
+
+필드와 호환성은 [관측 계약](../../cleany_interfaces/docs/observation-contracts.md)을 따른다.
+
 `depth_scene_node`의 Depth/CameraInfo 구독은 best-effort KEEP_LAST(1)이다.
 부하가 높을 때 과거 입력을 순차 처리하지 않고 최신 수신 프레임을 사용한다.
 촬영 timestamp와 `maximum_depth_age_sec` 검사는 유지하며 오래된 Depth를
@@ -20,7 +46,7 @@
 사용하며 컵 기준만 0.08로 설정한다. 추가 학습한 v2 모델은 서로 다른 독립
 합성 영상 묶음에서 컵 마스크 IoU 0.5 검출이 각각 20/20이었다. 실제 파지
 영상 한 장에서도 컵 검출 신뢰도가 약 0.69였다. 미검출과 관측 오류는 아래 응답 상태로 구분한다.
-Gemini 상세 라벨에 포함된 YOLOE 클래스, 투영 box와의 IoU, 단일 물체 여부 및 instance
+별도로 전달한 원본 `detector_label`, 투영 box와의 IoU, 단일 물체 여부 및 instance
 mask 위치·면적을 HANDOFF와 CHECK마다 확인한다. 손목 영상은 로컬 YOLOE-seg로 검증한다. 연속 추적 대신 두 시점의 새 영상을 독립적으로 검출하며,
 같은 위치·마스크의 중복 예측만 하나로 취급한다.
 오른손목 HANDOFF 전용 모델이 투영 위치에서 물체를 찾지 못하면, 이미 로드된
@@ -266,7 +292,7 @@ cp ~/models/yoloe/study_cafe_sim_v1_training/fit/weights/best.pt \
 
 `config/yoloe_seg.yaml`은 로컬 YOLOE 검출의 instance mask를 선택 객체 분할에
 그대로 사용한다. `config/yoloe_seg_gemini.yaml`은 같은 마스크에 Gemini의
-label/category/reason을 결합하며 `learned_rgbd.launch.py`의 기본 프로필이다.
+label/category를 결합하며 `learned_rgbd.launch.py`의 기본 프로필이다.
 `model_profile:=<yaml>`로 명시적으로 다른 프로필을 선택할 수 있다.
 `enable_wrist_observation:=true`로 YOLOE-seg 손목 HANDOFF/CHECK 서비스를 켠다.
 모델 생성 시 로컬 파일과 장치를 검사하고 `preload_models=true`는 action 공개 전에
@@ -314,7 +340,7 @@ ros2 run cleany_perception depth_scene_node --ros-args \
 ## 고정 베이스 책상 물체 추적
 
 `InspectScene.Goal.tracking_session_id`를 지정하면 새 관찰 성공 시 `core/tracking.py`가
-같은 종류·촬영 TF의 `base_link` 대표 위치로 물체를 연결한다. 거리 계산에 사용한 3D
+같은 검출 클래스와 촬영 TF의 `base_link` 대표 위치로 물체를 연결한다. 거리 계산에 사용한 3D
 위치를 함께 보존하며 `position_valid`, `track_id`, `tracking_state`를 반환한다.
 RGB header frame과 대표 위치의 `representative_frame`은 서로 구분한다. 유일한 양방향
 대응만 `TRACKED`이며 모호한 위치·큰 이동·깊이 실패는 새 ID로 우회하지 않는다.
@@ -331,10 +357,10 @@ epoch가 바뀌며 베이스 이동 시 호출자가 새 세션을 시작해야 
 
 ## 관련 KB
 
-### Gemini 분류 메타데이터 (2026-09-08)
+### Gemini 분류 메타데이터
 
-Gemini structured response에 `sorting_category`(trash/lost_item/review),
-`sorting_reason`을 추가해 `DetectedObject2D`까지 보존한다. 기존 bbox만 있는
+Gemini structured response의 `sorting_category`(trash/lost_item/review)를
+`DetectedObject2D`까지 보존한다. 기존 bbox만 있는
 응답은 파싱 가능하지만 category는 빈 값이며 sorting 실행에서 검토 대상으로
 처리한다. 위험하거나 용도가 불확실한 물체는 review를 요청한다. 소유권 판단은
 확정 사실이 아니며 현재 정책은 감독하의 시뮬레이션 검증용이다.

@@ -184,6 +184,8 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
 ):
     events = []
     segmenter = _Segmenter(synthetic_scene['mask'])
+    synthetic_scene = dict(synthetic_scene, detection=replace(
+        synthetic_scene['detection'], detector_label='power bank'))
     can_detection = replace(
         synthetic_scene['detection'],
         label='can',
@@ -278,6 +280,7 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert [
             item.label for item in result.detections.detections
         ] == ['can', 'box']
+        assert result.detections.detections[1].detector_label == 'power bank'
         assert [
             item.object_id for item in result.detections.detections
         ] == [1, 2]
@@ -370,6 +373,7 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert len(selection_result.objects.objects) == 1
         assert selection_result.objects.objects[0].object_id == 2
         assert selection_result.objects.objects[0].label == 'box'
+        assert selection_result.objects.objects[0].detector_label == 'power bank'
         assert _wait_until(lambda: bool(objects))
         assert objects[0].objects[0].object_id == 2
         assert [item.stage for item in selection_feedback] == [

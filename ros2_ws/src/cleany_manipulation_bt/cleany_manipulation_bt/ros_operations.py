@@ -294,13 +294,13 @@ class MujocoOperations(SortingCoordinator):
         if not detection.distance_valid:
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Target has no valid sensor depth')
         decision = self._policy.classify_model(detection.label, detection.confidence,
-                                              detection.sorting_category, detection.sorting_reason)
+                                              detection.sorting_category)
         if decision.category.value != expected_category:
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Target classification does not match approved skill')
         if goal.destination_id != decision.destination or goal.destination_id not in self._bins:
             raise OperationError(Error.DESTINATION_UNAVAILABLE, 'Destination does not match collection policy')
         context.attempt = ObjectAttempt(detection.object_id, detection.label, detection.confidence,
-                                        detection.distance_m, detection.sorting_category, detection.sorting_reason)
+                                        detection.distance_m, detection.sorting_category)
         return Observation(message=f'Approved {goal.snapshot_id}/{goal.object_id}: {detection.label}')
 
     def reconstruct(self, context: ExecutionContext) -> Observation:
@@ -378,9 +378,9 @@ class MujocoOperations(SortingCoordinator):
         self._switch_camera('head') if self._wrist_enabled else None
         selected, attempt = self._refresh_selected_grasp(context.selected, context.attempt, match_label=True)
         old = self._policy.classify_model(context.attempt.label, context.attempt.confidence,
-                                         context.attempt.sorting_category, context.attempt.sorting_reason)
+                                         context.attempt.sorting_category)
         new = self._policy.classify_model(attempt.label, attempt.confidence,
-                                         attempt.sorting_category, attempt.sorting_reason)
+                                         attempt.sorting_category)
         if (new.category != old.category or new.destination != old.destination
                 or COLLECTION_SKILLS.get(new.category.value) != context.goal.skill_name
                 or new.destination != context.goal.destination_id):

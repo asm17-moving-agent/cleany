@@ -450,7 +450,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             for attempt in choices:
                 decision = self._policy.classify_model(
                     attempt.label, attempt.confidence,
-                    attempt.sorting_category, attempt.sorting_reason)
+                    attempt.sorting_category)
                 self._current = dict(label=attempt.label,
                                      distance_m=attempt.distance_m,
                                      category=decision.category.value,
@@ -622,9 +622,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
         if age(refreshed) > maximum:
             raise RuntimeError('Refreshed head observation expired during replanning')
         previous = self._policy.classify_model(attempt.label, attempt.confidence,
-            attempt.sorting_category, attempt.sorting_reason)
+            attempt.sorting_category)
         current = self._policy.classify_model(fresh_attempt.label, fresh_attempt.confidence,
-            fresh_attempt.sorting_category, fresh_attempt.sorting_reason)
+            fresh_attempt.sorting_category)
         if (current.category == Category.REVIEW or current.category != previous.category
                 or current.destination != previous.destination):
             raise RuntimeError('Object classification changed during head reference refresh')
@@ -1060,6 +1060,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         request = ObserveWristTarget.Request(operation=operation, arm=selected.selected_arm,
             source_snapshot_id=candidate.snapshot_id, source_object_id=obj.object_id,
             label=obj.label, source_confidence=obj.confidence,
+            detector_label=obj.detector_label,
             reference_id=self._wrist_reference.reference_id if self._wrist_reference else '',
             size=deepcopy(obj.obb_size), after_stamp_ns=self.get_clock().now().nanoseconds)
         if operation == ObserveWristTarget.Request.CHECK:

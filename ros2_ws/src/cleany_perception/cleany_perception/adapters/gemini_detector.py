@@ -20,6 +20,9 @@ from cleany_perception.core.models import (
     InspectionFailure,
     RgbArray,
 )
+from cleany_perception.object_labels import (
+    DEFAULT_OBJECT_LABEL_ALIASES, ObjectLabelNormalizer,
+)
 
 
 ResponseProvider = Callable[[bytes, str, dict[str, Any]], str]
@@ -37,7 +40,6 @@ _RESPONSE_SCHEMA: dict[str, Any] = {
                     'label': {'type': 'STRING'},
                     'confidence': {'type': 'NUMBER'},
                     'sorting_category': {'type': 'STRING', 'enum': ['trash', 'lost_item', 'review']},
-                    'sorting_reason': {'type': 'STRING'},
                     'box_2d': {
                         'type': 'ARRAY',
                         'items': {'type': 'NUMBER'},
@@ -45,7 +47,7 @@ _RESPONSE_SCHEMA: dict[str, Any] = {
                         'maxItems': 4,
                     },
                 },
-                'required': ['label', 'confidence', 'box_2d', 'sorting_category', 'sorting_reason'],
+                'required': ['label', 'confidence', 'box_2d', 'sorting_category'],
             },
         }
     },
@@ -60,13 +62,12 @@ _INTERACTION_RESPONSE_SCHEMA: dict[str, Any] = {
             'label': {'type': 'string'},
             'confidence': {'type': 'number'},
             'sorting_category': {'type': 'string', 'enum': ['trash', 'lost_item', 'review']},
-            'sorting_reason': {'type': 'string'},
             'y': {'type': 'number'},
             'x': {'type': 'number'},
             'y2': {'type': 'number'},
             'x2': {'type': 'number'},
         },
-        'required': ['label', 'confidence', 'y', 'x', 'y2', 'x2', 'sorting_category', 'sorting_reason'],
+        'required': ['label', 'confidence', 'y', 'x', 'y2', 'x2', 'sorting_category'],
     },
 }
 
@@ -78,9 +79,8 @@ _CLASSIFICATION_SCHEMA: dict[str, Any] = {
             'id': {'type': 'INTEGER'},
             'label': {'type': 'STRING'},
             'sorting_category': {'type': 'STRING', 'enum': ['trash', 'lost_item', 'review']},
-            'sorting_reason': {'type': 'STRING'},
         },
-        'required': ['id', 'label', 'sorting_category', 'sorting_reason'],
+        'required': ['id', 'label', 'sorting_category'],
     }}},
     'required': ['objects'],
 }
@@ -93,9 +93,8 @@ _CLASSIFICATION_INTERACTION_SCHEMA: dict[str, Any] = {
             'id': {'type': 'integer'},
             'label': {'type': 'string'},
             'sorting_category': {'type': 'string', 'enum': ['trash', 'lost_item', 'review']},
-            'sorting_reason': {'type': 'string'},
         },
-        'required': ['id', 'label', 'sorting_category', 'sorting_reason'],
+        'required': ['id', 'label', 'sorting_category'],
     }}},
     'required': ['objects'],
 }
@@ -103,6 +102,7 @@ _CLASSIFICATION_INTERACTION_SCHEMA: dict[str, Any] = {
 
 def parse_gemini_classifications(
     response_text: str, detections: Sequence[Detection2D],
+    *, normalize_label: ObjectLabelNormalizer | None = None,
 ) -> tuple[Detection2D, ...]:
     """Attach semantics by exact YOLOE instance ID; never replace geometry."""
     try:
@@ -122,26 +122,26 @@ def parse_gemini_classifications(
         identifier = item.get('id')
         label = item.get('label')
         category = item.get('sorting_category')
-        reason = item.get('sorting_reason')
         if (type(identifier) is not int or identifier < 1 or identifier > len(detections)
                 or identifier in by_id or not isinstance(label, str) or not label.strip()
-                or category not in ('trash', 'lost_item', 'review')
-                or not isinstance(reason, str) or not reason.strip()):
+                or category not in ('trash', 'lost_item', 'review')):
             raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
                                     'Gemini returned missing, duplicate, or invalid instance semantics')
-        by_id[identifier] = (label.strip(), category, reason.strip())
+        by_id[identifier] = (label.strip(), category)
     if len(by_id) != len(detections):
         raise InspectionFailure(FailureKind.DETECTOR_RESPONSE,
                                 'Gemini classification omitted a YOLOE instance')
-    def normalized_label(canonical: str, detail: str) -> str:
-        if canonical.casefold() == detail.casefold():
-            return canonical
-        return f'{canonical} ({detail})'
-
-    return tuple(replace(detection, label=normalized_label(detection.label, by_id[index][0]),
-                         sorting_category=by_id[index][1],
-                         sorting_reason=by_id[index][2])
-                 for index, detection in enumerate(detections, 1))
+    normalize = normalize_label or ObjectLabelNormalizer()
+    classified = []
+    for index, detection in enumerate(detections, 1):
+        label, category = by_id[index]
+        label = normalize(label)
+        classified.append(replace(
+            detection, label=label,
+            detector_label=detection.detector_label or detection.label,
+            sorting_category='review' if label == 'unknown object' else category,
+        ))
+    return tuple(classified)
 
 
 def parse_gemini_detections(
@@ -237,7 +237,6 @@ def parse_gemini_detections(
                     confidence=float(confidence),
                     bbox=bbox,
                     sorting_category=item.get('sorting_category', ''),
-                    sorting_reason=item.get('sorting_reason', ''),
                 )
             )
         except ValueError as error:
@@ -307,7 +306,7 @@ class GeminiDetector:
             'Return a concise label and confidence in [0, 1]. Do not return '
             'segmentation masks. Also classify each object for this supervised '
             'table-clearing simulation: sorting_category must be trash, lost_item, '
-            'or review, with a short sorting_reason based on visible evidence. '
+            'or review, based on visible evidence. Return only the requested JSON fields. '
             'Discarded disposable material is trash; reusable personal belongings '
             'are lost_item. Use review for uncertainty, hazardous objects, or '
             'unclear disposability. Do not infer ownership as fact.'
@@ -480,6 +479,12 @@ class GeminiDetector:
 class GeminiClassifier(GeminiDetector):
     """Classify numbered YOLOE instances without re-detecting their geometry."""
 
+    def __init__(self, *args: Any,
+                 label_aliases: Sequence[str] = DEFAULT_OBJECT_LABEL_ALIASES,
+                 **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._normalize_label = ObjectLabelNormalizer(label_aliases)
+
     def classify(self, rgb: RgbArray, detections: Sequence[Detection2D],
                  query: str = '') -> tuple[Detection2D, ...]:
         if not detections:
@@ -504,11 +509,17 @@ class GeminiClassifier(GeminiDetector):
             (f'{query.strip()}\n' if query.strip() else '')
             + 'The image contains numbered YOLOE instance boxes. Classify only '
             'these numbered objects; do not detect new objects or return boxes. '
-            'For each ID return a specific visible-object label. Include the YOLOE '
-            'candidate class phrase in the label when visual evidence confirms it; '
-            'otherwise name the visible object accurately. Return sorting_category '
-            '(trash, lost_item, or review), and a brief sorting_reason grounded '
-            'in visual evidence. Discarded disposable material is trash; reusable '
+            'For each ID return a short, generic object-type name in English, '
+            'such as cup, computer mouse, crumpled tissue, lego brick, or remote control. '
+            'Omit color, brand, ownership, and descriptive sentences from the label. '
+            'Use the same name for the same kind of object across observations. '
+            'The YOLOE candidate class is only a fallible hint: correct it when the '
+            'visible object is a different type, including types outside YOLOE classes. '
+            'Return unknown object and review when the type is unclear. Preserve '
+            'safety-relevant kinds such as broken glass. Return sorting_category '
+            '(trash, lost_item, or review) based on visual evidence. '
+            'Return only id, label, and sorting_category for each object. '
+            'Discarded disposable material is trash; reusable '
             'personal belongings are lost_item. Use review for uncertainty, '
             'hazardous objects, or unclear disposability. Do not infer ownership '
             f'as fact. YOLOE coarse candidates: {candidates}.'
@@ -534,7 +545,8 @@ class GeminiClassifier(GeminiDetector):
                 raise InspectionFailure(FailureKind.DETECTOR_API,
                                         f'Gemini classification failed: {error}') from error
             try:
-                return parse_gemini_classifications(response_text, detections)
+                return parse_gemini_classifications(
+                    response_text, detections, normalize_label=self._normalize_label)
             except InspectionFailure as error:
                 if error.kind != FailureKind.DETECTOR_RESPONSE or attempt:
                     raise

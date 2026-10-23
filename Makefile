@@ -5,6 +5,9 @@ export PYTEST_DISABLE_PLUGIN_AUTOLOAD := 1
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROS2_WS := $(REPO_ROOT)ros2_ws
 ROS_SETUP := /opt/ros/humble/setup.bash
+GEOMETRY_PYTHON ?= python3
+CUROBO_GPU_TEST_FILE ?= $(ROS2_WS)/src/cleany_skill_executor/test/test_curobo_gpu.py
+
 COLCON_BUILD_ARGS ?=
 SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
@@ -61,6 +64,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 
 help:
 	@echo "Cleany native ROS 2 commands"
+	@echo "  make test-collision-geometry  Test ROS-independent conservative geometry (GEOMETRY_PYTHON override)"
 	@echo "  make deps          Install workspace dependencies with rosdep"
 	@echo "  make deps-gazebo   Install Gazebo Fortress dependencies with rosdep"
 	@echo "  make check-gazebo-env  Verify Ubuntu 22.04 / Humble / Fortress environment"
@@ -219,6 +223,15 @@ build:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS)
+
+PERCEPTION_TEST_PATHS ?= ros2_ws/src/cleany_perception/test
+PERCEPTION_PYTEST_ARGS ?=
+.PHONY: test-perception
+test-perception:
+	source "$(ROS_SETUP)" && \
+	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_manipulation_bt:$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider $(PERCEPTION_TEST_PATHS) $(PERCEPTION_PYTEST_ARGS)
 
 build-gazebo: check-gazebo-env
 	source "$(ROS_SETUP)" && \
@@ -510,6 +523,11 @@ test-dev-monitor:
 	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
 	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
 
+DEV_MONITOR_E2E_ARGS ?=
+.PHONY: test-dev-monitor-web
+test-dev-monitor-web:
+	pnpm --dir "$(DEV_MONITOR_WEB)" exec playwright test $(DEV_MONITOR_E2E_ARGS)
+
 run-dev-monitor:
 	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
 	ros2 run cleany_dev_monitor dev_monitor --ros-args \
@@ -684,3 +702,33 @@ test-jetson-controller:
 	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 \
 	python3 -m pytest -q -p no:cacheprovider \
 		$(ROS2_WS)/src/cleany_robot_interface/runtime_test/test_controller_emulator.py $(JETSON_CONTROLLER_TEST_ARGS)
+
+.PHONY: test-collision-geometry
+test-collision-geometry:
+	PYTHONPATH=$(ROS2_WS)/src/cleany_skill_executor $(GEOMETRY_PYTHON) -m pytest -q \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_collision_geometry.py \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_sphere_reduction.py \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_geometry_cache.py \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_robot_geometry_cache.py
+
+.PHONY: test-arm-collision-runtime test-curobo-geometry
+test-arm-collision-runtime:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	ROS_LOCALHOST_ONLY=1 CLEANY_TEST_ARM_MESH_RUNTIME=1 \
+	python3 -m pytest -q -s $(ROS2_WS)/src/cleany_description/test/test_collision_meshes.py \
+		$(ROS2_WS)/src/cleany_moveit_config/test/test_arm_collision_mesh_runtime.py $(COLLISION_TEST_ARGS)
+
+test-curobo-geometry:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/local_setup.bash" && \
+	ROS_LOCALHOST_ONLY=1 CLEANY_RUN_CUROBO=1 \
+	PYTHONPATH=$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH:-} \
+	python3 -m pytest -q -s $(CUROBO_GPU_TEST_FILE) $(COLLISION_TEST_ARGS)
+
+.PHONY: test-curobo-model
+test-curobo-model:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/local_setup.bash" && \
+	PYTHONPATH=$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH:-} \
+	python3 -m pytest -q $(ROS2_WS)/src/cleany_skill_executor/test/test_curobo.py \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_curobo_batch.py \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_hybrid_adapter.py \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_hybrid_validation_order.py $(COLLISION_TEST_ARGS)

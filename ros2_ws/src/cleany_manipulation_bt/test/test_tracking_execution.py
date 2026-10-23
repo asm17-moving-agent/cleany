@@ -17,8 +17,7 @@ def test_tracked_two_cups_are_allowed_but_uncertain_target_is_blocked():
     array = DetectedObject2DArray(snapshot_id='cached', tracking_session_id='desk',
                                  tracking_epoch='epoch', representative_frame='base_link', detections=[
         DetectedObject2D(object_id=i, label='cup', confidence=.9, distance_valid=True, distance_m=.7,
-                         position_valid=True, tracking_state='TRACKED', track_id=track, sorting_category='trash',
-                         sorting_reason='Empty test cup')
+                         position_valid=True, tracking_state='TRACKED', track_id=track, sorting_category='trash')
         for i, track in [(1, 'a'), (2, 'b')]])
     response = GetSceneSnapshot.Response(found=True, detections=array)
     node = NS(_snapshot=NS(call_async=lambda request: response), _future=lambda future, *_: future,

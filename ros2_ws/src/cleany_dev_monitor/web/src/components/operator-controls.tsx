@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   ArrowRight,
@@ -68,12 +68,12 @@ const actionIcons: Record<string, LucideIcon> = {
 };
 const mainActions = [
   { id: "prepare", tag: "준비", detail: "센서와 실행기를 준비합니다" },
+  { id: "inspect", tag: "선택 사항", detail: "주변 물체를 먼저 확인합니다" },
   {
     id: "propose",
     tag: "승인 방식",
     detail: "추천 대상을 확인한 뒤 승인합니다",
   },
-  { id: "inspect", tag: "선택 사항", detail: "주변 물체를 먼저 확인합니다" },
   {
     id: "run",
     tag: "직접 실행",
@@ -126,10 +126,14 @@ export function OperatorControls({
   enabled,
   connected,
   replay,
+  summary,
+  children,
 }: {
   enabled: boolean;
   connected: boolean;
   replay: boolean;
+  summary: ReactNode;
+  children: ReactNode;
 }) {
   const [status, setStatus] = useState<Data>({});
   const [error, setError] = useState("");
@@ -205,7 +209,25 @@ export function OperatorControls({
     };
   }, [enabled, replay]);
 
-  if (!enabled) return null;
+  if (!enabled)
+    return (
+      <>
+        <section aria-label="실물 조작 제어" className="operator-disabled">
+          <LockKeyhole size={20} aria-hidden="true" />
+          <div>
+            <h2>
+              실물 조작 제어 <span>웹 제어 꺼짐</span>
+            </h2>
+            <p>
+              현재 관측 전용입니다. 조작 기능을 켜면 이곳에 제어 패널이
+              표시됩니다.
+            </p>
+          </div>
+        </section>
+        <div className="manip-summary-slot">{summary}</div>
+        <div className="manip-monitor-column">{children}</div>
+      </>
+    );
   const fresh =
     connected && !replay && lastPoll > 0 && Date.now() - lastPoll < 5000;
   const authenticated = status.authenticated === true;
@@ -221,6 +243,11 @@ export function OperatorControls({
           : uncertain
             ? "응답을 확인하지 못한 요청을 먼저 조회하세요."
             : status.capabilities?.[action] || "";
+  const sharedActionReason = mainActions.every(
+    ({ id }) => reason(id) === reason(mainActions[0].id),
+  )
+    ? reason(mainActions[0].id)
+    : "";
   const canCancel =
     fresh &&
     authenticated &&
@@ -404,125 +431,54 @@ export function OperatorControls({
   return (
     <section aria-label="실물 조작 제어" className="operator-region">
       <div className="operator-console">
-        <header className="operator-header">
-          <div className="operator-heading">
-            <span className="operator-brand-icon">
-              <Hand aria-hidden="true" />
-            </span>
-            <div>
-              <span className="operator-eyebrow">MANIPULATION CONTROL</span>
-              <h2>실물 조작 제어</h2>
-              <p>로봇의 준비부터 실행, 복구까지 한곳에서 관리하세요.</p>
-            </div>
-          </div>
-          <div className="operator-toolbar">
-            <span className="operator-access" data-active={authenticated}>
-              {authenticated ? (
-                <ShieldCheck aria-hidden="true" />
-              ) : (
-                <LockKeyhole aria-hidden="true" />
-              )}
-              <span>
-                {authenticated ? `조작자: ${status.actor}` : "보기 전용"}
+        <div className="operator-overview">
+          <header className="operator-header">
+            <div className="operator-heading">
+              <span className="operator-brand-icon">
+                <Hand aria-hidden="true" />
               </span>
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={sending}
-              aria-label="상태 다시 확인"
-              title="상태 다시 확인"
-              onClick={() => void refresh()}
-            >
-              <RefreshCw aria-hidden="true" />
-            </Button>
-            {authenticated && (
+              <div>
+                <h2>실물 조작 제어</h2>
+              </div>
+            </div>
+            <div className="operator-toolbar">
+              <span className="operator-access" data-active={authenticated}>
+                {authenticated ? (
+                  <ShieldCheck aria-hidden="true" />
+                ) : (
+                  <LockKeyhole aria-hidden="true" />
+                )}
+                <span>
+                  {authenticated ? `조작자: ${status.actor}` : "보기 전용"}
+                </span>
+              </span>
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="조작 권한 해제"
-                title="조작 권한 해제"
-                onClick={() =>
-                  void api("logout", {})
-                    .then(refresh)
-                    .catch((e) => setError(String(e)))
-                }
+                disabled={sending}
+                aria-label="상태 다시 확인"
+                title="상태 다시 확인"
+                onClick={() => void refresh()}
               >
-                <LogOut aria-hidden="true" />
+                <RefreshCw aria-hidden="true" />
               </Button>
-            )}
-          </div>
-        </header>
-        <div className="operator-body">
-          {replay && (
-            <p className="operator-message" data-tone="warn">
-              <History aria-hidden="true" />
-              기록 재생 중에는 제어할 수 없습니다.
-            </p>
-          )}
-          {!replay && !authenticated && (
-            <div className="operator-auth">
-              <div className="operator-auth-heading">
-                <span className="operator-auth-icon">
-                  <KeyRound aria-hidden="true" />
-                </span>
-                <div>
-                  <h3>조작 권한을 연결하세요</h3>
-                  <p>
-                    이름과 조작키를 입력하면 실물 조작 버튼을 사용할 수
-                    있습니다.
-                  </p>
-                </div>
-              </div>
-              <form onSubmit={login} className="operator-login">
-                <div className="operator-login-fields">
-                  <label>
-                    조작자 이름
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      maxLength={40}
-                      autoComplete="name"
-                      placeholder="이름 입력"
-                      required
-                    />
-                  </label>
-                  <label>
-                    조작키
-                    <input
-                      type="password"
-                      value={key}
-                      onChange={(e) => setKey(e.target.value)}
-                      autoComplete="off"
-                      placeholder="Jetson에서 확인한 조작키"
-                      required
-                    />
-                  </label>
-                  <Button disabled={sending || !fresh} type="submit">
-                    조작 권한 연결
-                    <ArrowRight aria-hidden="true" />
-                  </Button>
-                </div>
-                <div className="operator-login-footer">
-                  <label className="operator-check operator-takeover">
-                    <input
-                      type="checkbox"
-                      checked={takeover}
-                      onChange={(e) => setTakeover(e.target.checked)}
-                    />
-                    다른 브라우저의 조작 권한 가져오기
-                  </label>
-                  <details className="operator-key-help">
-                    <summary>조작키 확인 방법</summary>
-                    <small>
-                      Jetson 터미널에서{" "}
-                      <code>make dev-monitor-control-key</code>를 실행하세요.
-                    </small>
-                  </details>
-                </div>
-              </form>
+              {authenticated && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="조작 권한 해제"
+                  title="조작 권한 해제"
+                  onClick={() =>
+                    void api("logout", {})
+                      .then(refresh)
+                      .catch((e) => setError(String(e)))
+                  }
+                >
+                  <LogOut aria-hidden="true" />
+                </Button>
+              )}
             </div>
-          )}
+          </header>
           <div className="operator-status" aria-label="제어 준비 상태">
             {statusCards.map(({ label, icon: Icon, value, tone }) => (
               <div className="operator-stat" key={label} data-tone={tone}>
@@ -549,248 +505,348 @@ export function OperatorControls({
               <small>안착은 가정</small>
             )}
           </div>
-          <div className="operator-execution">
-            <div className="operator-workspace">
-              <div className="operator-section-label">
-                <h3>작업 실행</h3>
-                <span>준비 상태를 확인한 뒤 실행하세요</span>
-              </div>
-              <div className="operator-actions">
-                {mainActions.map(({ id, detail, tag }) => {
-                  const Icon = actionIcons[id];
-                  return (
-                    <span
-                      key={id}
-                      title={reason(id)}
-                      className="operator-action-wrap"
-                    >
-                      <Button
-                        className="operator-action"
-                        data-primary={id === "propose"}
-                        variant="outline"
-                        aria-label={labels[id]}
-                        disabled={!!reason(id)}
-                        onClick={() =>
-                          id === "prepare" ? open(id) : void submit(id)
-                        }
-                      >
-                        <span className="operator-action-top">
-                          <span className="operator-action-icon">
-                            <Icon aria-hidden="true" />
-                          </span>
-                          <span className="operator-step">{tag}</span>
-                        </span>
-                        <span className="operator-action-title">
-                          {labels[id]}
-                          <ArrowRight aria-hidden="true" />
-                        </span>
-                        <span className="operator-action-description">
-                          {detail}
-                        </span>
+        </div>
+        <div className="operator-layout">
+          <div className="manip-summary-slot">{summary}</div>
+          <aside className="operator-control-column" aria-label="조작 명령">
+            <div className="operator-control-panel">
+              {!replay && !authenticated && (
+                <details className="operator-auth">
+                  <summary>
+                    <KeyRound aria-hidden="true" />
+                    <span>조작 권한 연결</span>
+                    <small>인증 필요</small>
+                    <ChevronDown aria-hidden="true" />
+                  </summary>
+                  <p className="operator-auth-caption">
+                    이름과 조작키로 인증한 후 실행할 수 있습니다.
+                  </p>
+                  <form onSubmit={login} className="operator-login">
+                    <div className="operator-login-fields">
+                      <label>
+                        조작자 이름
+                        <input
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          maxLength={40}
+                          autoComplete="name"
+                          placeholder="이름 입력"
+                          required
+                        />
+                      </label>
+                      <label>
+                        조작키
+                        <input
+                          type="password"
+                          value={key}
+                          onChange={(e) => setKey(e.target.value)}
+                          autoComplete="off"
+                          placeholder="Jetson에서 확인한 조작키"
+                          required
+                        />
+                      </label>
+                      <Button disabled={sending || !fresh} type="submit">
+                        조작 권한 연결
+                        <ArrowRight aria-hidden="true" />
                       </Button>
-                    </span>
-                  );
-                })}
+                    </div>
+                    <div className="operator-login-footer">
+                      <label className="operator-check operator-takeover">
+                        <input
+                          type="checkbox"
+                          checked={takeover}
+                          onChange={(e) => setTakeover(e.target.checked)}
+                        />
+                        다른 브라우저의 조작 권한 가져오기
+                      </label>
+                      <details className="operator-key-help">
+                        <summary>조작키 확인 방법</summary>
+                        <small>
+                          Jetson 터미널에서{" "}
+                          <code>make dev-monitor-control-key</code>를
+                          실행하세요.
+                        </small>
+                      </details>
+                    </div>
+                  </form>
+                </details>
+              )}
+              <div className="operator-stop">
+                <div className="operator-section-label">
+                  <h3>
+                    <Square aria-hidden="true" />
+                    동작 중단
+                  </h3>
+                  <span>진행 중인 작업에 요청</span>
+                </div>
+                <div className="operator-stop-buttons">
+                  <Button
+                    variant="destructive"
+                    disabled={!canCancel}
+                    onClick={() => void cancel("IMMEDIATE")}
+                  >
+                    <Square aria-hidden="true" />
+                    즉시 중단 요청
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={!canCancel || !state.active_execution_id}
+                    onClick={() => void cancel("CHECKPOINT")}
+                  >
+                    <Pause aria-hidden="true" />
+                    현재 단계 후 중단
+                  </Button>
+                </div>
+                <small>실물 정지 여부는 실행 기록에서 확인하세요.</small>
               </div>
-            </div>
-            <div className="operator-stop">
-              <div className="operator-section-label">
-                <h3>
-                  <Square aria-hidden="true" />
-                  동작 중단
-                </h3>
-                <span>진행 중인 작업에 요청</span>
-              </div>
-              <div className="operator-stop-buttons">
-                <Button
-                  variant="destructive"
-                  disabled={!canCancel}
-                  onClick={() => void cancel("IMMEDIATE")}
-                >
-                  <Square aria-hidden="true" />
-                  즉시 중단 요청
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={!canCancel || !state.active_execution_id}
-                  onClick={() => void cancel("CHECKPOINT")}
-                >
-                  <Pause aria-hidden="true" />
-                  현재 단계 후 중단
-                </Button>
-              </div>
-              <small>실물 정지 여부는 실행 기록에서 확인하세요.</small>
-            </div>
-          </div>
-          <TaskProposal
-            proposal={status.proposal}
-            reason={reason}
-            submit={submit}
-          />
-          {status.active_job?.phase && (
-            <p role="status">{proposalPhases[status.active_job.phase]}</p>
-          )}
-          <div className="operator-recovery">
-            <div className="operator-section-label">
-              <h3>
-                <ShieldCheck aria-hidden="true" />
-                복구 및 종료
-              </h3>
-            </div>
-            <div className="operator-recovery-actions">
-              {["return_arm", "recover", "shutdown"].map((action) => {
-                const Icon = actionIcons[action];
-                return (
-                  <span key={action} title={reason(action)}>
-                    <Button
-                      variant="outline"
-                      className="operator-recovery-button"
-                      aria-label={labels[action]}
-                      disabled={!!reason(action)}
-                      onClick={() => open(action)}
-                    >
-                      <Icon aria-hidden="true" />
-                      <span>{labels[action]}</span>
-                      <ArrowRight aria-hidden="true" />
-                    </Button>
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-          {authenticated && attention && (
-            <p className="operator-message" data-tone="info">
-              <CircleAlert aria-hidden="true" />
-              {attention}
-            </p>
-          )}
-          {status.active_job && (
-            <p className="operator-message" data-tone="info" role="status">
-              <LoaderCircle className="operator-spin" aria-hidden="true" />
-              <strong>{labels[status.active_job.action]}</strong>
-              {jobStates[status.active_job.state]}
-            </p>
-          )}
-          {!status.active_job &&
-            ["run", "approve", "propose", "skip"].includes(
-              status.jobs?.[0]?.action,
-            ) &&
-            status.jobs[0].state === "FAILED" && (
-              <p
-                className="operator-message"
-                data-tone={jobTone(status.jobs[0])}
-                role="status"
-              >
-                <CircleAlert aria-hidden="true" />
-                <span>
-                  <strong>{labels[status.jobs[0].action]}</strong>
-                  {status.jobs[0].message || "실행 결과를 확인하세요."}
-                </span>
-              </p>
-            )}
-          {error && (
-            <p className="operator-message" data-tone="info" role="status">
-              <CircleAlert aria-hidden="true" />
-              {error}
-            </p>
-          )}
-          {uncertain && (
-            <div className="operator-uncertain">
-              <p>
-                <CircleAlert aria-hidden="true" />
-                응답 미확인 요청이 있습니다. 같은 요청 ID로만 다시 전송합니다.
-              </p>
-              <Button
-                variant="outline"
-                disabled={!fresh || !authenticated || sending}
-                onClick={() => void submit("", {}, true)}
-              >
-                같은 요청 다시 보내기
-                <RefreshCw aria-hidden="true" />
-              </Button>
-            </div>
-          )}
-          {!!status.jobs?.length && (
-            <details className="operator-history">
-              <summary>
-                <History aria-hidden="true" />
-                <span>웹 명령 이력</span>
-                <small>최근 {Math.min(5, status.jobs.length)}개</small>
-                <ChevronDown
-                  className="operator-history-chevron"
-                  aria-hidden="true"
-                />
-              </summary>
-              <ul className="operator-jobs">
-                {status.jobs.slice(0, 5).map((job: Data) => {
-                  const Icon = actionIcons[job.action] || Activity;
-                  return (
-                    <li key={job.id} data-tone={jobTone(job)}>
-                      <span className="operator-job-icon">
-                        <Icon aria-hidden="true" />
-                      </span>
-                      <div className="operator-job-content">
-                        <div className="operator-job-heading">
-                          <strong>{labels[job.action]}</strong>
-                          <span className="operator-job-state">
-                            {jobStates[job.state]}
+              <div className="operator-workspace">
+                <div className="operator-section-label">
+                  <h3>작업 실행</h3>
+                  <span>준비 → 관측 → 실행</span>
+                </div>
+                {authenticated && sharedActionReason && (
+                  <p
+                    className="operator-action-reason"
+                    id="operator-common-reason"
+                  >
+                    {sharedActionReason}
+                  </p>
+                )}
+                <div className="operator-actions">
+                  {mainActions.map(({ id, detail, tag }) => {
+                    const Icon = actionIcons[id];
+                    return (
+                      <span
+                        key={id}
+                        title={reason(id)}
+                        className="operator-action-wrap"
+                      >
+                        <Button
+                          className="operator-action"
+                          data-primary={id === "propose"}
+                          variant="outline"
+                          aria-label={labels[id]}
+                          disabled={!!reason(id)}
+                          aria-describedby={
+                            authenticated && reason(id)
+                              ? sharedActionReason
+                                ? "operator-common-reason"
+                                : `operator-reason-${id}`
+                              : undefined
+                          }
+                          onClick={() =>
+                            id === "prepare" ? open(id) : void submit(id)
+                          }
+                        >
+                          <span className="operator-action-top">
+                            <span className="operator-action-icon">
+                              <Icon aria-hidden="true" />
+                            </span>
+                            <span className="operator-step">{tag}</span>
                           </span>
-                          <span className="operator-job-meta">
-                            {job.actor}
-                            {Number.isFinite(job.created_at) && (
-                              <time
-                                dateTime={new Date(
-                                  job.created_at * 1000,
-                                ).toISOString()}
-                              >
-                                {new Date(
-                                  job.created_at * 1000,
-                                ).toLocaleTimeString("ko-KR", {
-                                  hour12: false,
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </time>
-                            )}
+                          <span className="operator-action-title">
+                            {labels[id]}
+                            <ArrowRight aria-hidden="true" />
                           </span>
-                        </div>
-                        {job.message && <p>{job.message}</p>}
-                        {job.next_proposal_error && (
-                          <p>다음 제안 준비 중단: {job.next_proposal_error}</p>
-                        )}
-                        {job.result?.status && (
-                          <small className="operator-job-result">
-                            실행 결과: {job.result.status} ·{" "}
-                            {job.result.error_code} {job.result.failed_substage}
+                          <span className="operator-action-description">
+                            {detail}
+                          </span>
+                        </Button>
+                        {authenticated && !sharedActionReason && reason(id) && (
+                          <small
+                            id={`operator-reason-${id}`}
+                            className="operator-action-reason"
+                          >
+                            {reason(id)}
                           </small>
                         )}
-                        {job.result?.objects && (
-                          <p>
-                            인식 물체:{" "}
-                            {job.result.objects
-                              .map(
-                                (item: Data) =>
-                                  `${item.object_id}: ${item.label}`,
-                              )
-                              .join(", ") || "없음"}
-                          </p>
-                        )}
-                        {job.state === "UNKNOWN" && (
-                          <Button
-                            variant="outline"
-                            disabled={!authenticated || !fresh}
-                            onClick={() => open("ack:" + job.id)}
-                          >
-                            명령 기록 확인
-                          </Button>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </details>
-          )}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+              <details className="operator-recovery">
+                <summary>
+                  <ShieldCheck aria-hidden="true" />
+                  <span>복구 및 종료</span>
+                  <ChevronDown aria-hidden="true" />
+                </summary>
+                <div className="operator-recovery-actions">
+                  {["return_arm", "recover", "shutdown"].map((action) => {
+                    const Icon = actionIcons[action];
+                    return (
+                      <span key={action} title={reason(action)}>
+                        <Button
+                          variant="outline"
+                          className="operator-recovery-button"
+                          aria-label={labels[action]}
+                          disabled={!!reason(action)}
+                          onClick={() => open(action)}
+                        >
+                          <Icon aria-hidden="true" />
+                          <span>{labels[action]}</span>
+                          <ArrowRight aria-hidden="true" />
+                        </Button>
+                      </span>
+                    );
+                  })}
+                </div>
+              </details>
+              {!!status.jobs?.length && (
+                <details className="operator-history">
+                  <summary>
+                    <History aria-hidden="true" />
+                    <span>웹 명령 이력</span>
+                    <small>최근 {Math.min(5, status.jobs.length)}개</small>
+                    <ChevronDown
+                      className="operator-history-chevron"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <ul className="operator-jobs">
+                    {status.jobs.slice(0, 5).map((job: Data) => {
+                      const Icon = actionIcons[job.action] || Activity;
+                      return (
+                        <li key={job.id} data-tone={jobTone(job)}>
+                          <span className="operator-job-icon">
+                            <Icon aria-hidden="true" />
+                          </span>
+                          <div className="operator-job-content">
+                            <div className="operator-job-heading">
+                              <strong>{labels[job.action]}</strong>
+                              <span className="operator-job-state">
+                                {jobStates[job.state]}
+                              </span>
+                              <span className="operator-job-meta">
+                                {job.actor}
+                                {Number.isFinite(job.created_at) && (
+                                  <time
+                                    dateTime={new Date(
+                                      job.created_at * 1000,
+                                    ).toISOString()}
+                                  >
+                                    {new Date(
+                                      job.created_at * 1000,
+                                    ).toLocaleTimeString("ko-KR", {
+                                      hour12: false,
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </time>
+                                )}
+                              </span>
+                            </div>
+                            {job.message && <p>{job.message}</p>}
+                            {job.next_proposal_error && (
+                              <p>
+                                다음 제안 준비 중단: {job.next_proposal_error}
+                              </p>
+                            )}
+                            {job.result?.status && (
+                              <small className="operator-job-result">
+                                실행 결과: {job.result.status} ·{" "}
+                                {job.result.error_code}{" "}
+                                {job.result.failed_substage}
+                              </small>
+                            )}
+                            {job.result?.objects && (
+                              <p>
+                                인식 물체:{" "}
+                                {job.result.objects
+                                  .map(
+                                    (item: Data) =>
+                                      `${item.object_id}: ${item.label}`,
+                                  )
+                                  .join(", ") || "없음"}
+                              </p>
+                            )}
+                            {job.state === "UNKNOWN" && (
+                              <Button
+                                variant="outline"
+                                disabled={!authenticated || !fresh}
+                                onClick={() => open("ack:" + job.id)}
+                              >
+                                명령 기록 확인
+                              </Button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </details>
+              )}
+            </div>
+          </aside>
+          <div className="manip-monitor-column">
+            {replay && (
+              <p className="operator-message" data-tone="warn">
+                <History aria-hidden="true" />
+                기록 재생 중에는 제어할 수 없습니다.
+              </p>
+            )}
+            {authenticated && attention && attention !== sharedActionReason && (
+              <p className="operator-message" data-tone="info">
+                <CircleAlert aria-hidden="true" />
+                {attention}
+              </p>
+            )}
+            {status.active_job && (
+              <p className="operator-message" data-tone="info" role="status">
+                <LoaderCircle className="operator-spin" aria-hidden="true" />
+                <strong>{labels[status.active_job.action]}</strong>
+                {jobStates[status.active_job.state]}
+              </p>
+            )}
+            {!status.active_job &&
+              ["run", "approve", "propose", "skip"].includes(
+                status.jobs?.[0]?.action,
+              ) &&
+              status.jobs[0].state === "FAILED" && (
+                <p
+                  className="operator-message"
+                  data-tone={jobTone(status.jobs[0])}
+                  role="status"
+                >
+                  <CircleAlert aria-hidden="true" />
+                  <span>
+                    <strong>{labels[status.jobs[0].action]}</strong>
+                    {status.jobs[0].message || "실행 결과를 확인하세요."}
+                  </span>
+                </p>
+              )}
+            {error && (
+              <p className="operator-message" data-tone="info" role="status">
+                <CircleAlert aria-hidden="true" />
+                {error}
+              </p>
+            )}
+            {uncertain && (
+              <div className="operator-uncertain">
+                <p>
+                  <CircleAlert aria-hidden="true" />
+                  응답 미확인 요청이 있습니다. 같은 요청 ID로만 다시 전송합니다.
+                </p>
+                <Button
+                  variant="outline"
+                  disabled={!fresh || !authenticated || sending}
+                  onClick={() => void submit("", {}, true)}
+                >
+                  같은 요청 다시 보내기
+                  <RefreshCw aria-hidden="true" />
+                </Button>
+              </div>
+            )}
+            <TaskProposal
+              proposal={status.proposal}
+              reason={reason}
+              submit={submit}
+            />
+            {status.active_job?.phase && (
+              <p role="status">{proposalPhases[status.active_job.phase]}</p>
+            )}
+            {children}
+          </div>
         </div>
         {modal && (
           <div className="operator-modal-backdrop">

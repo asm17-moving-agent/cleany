@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import numpy as np
 import pytest
-from rclpy.serialization import serialize_message
+from rclpy.serialization import deserialize_message, serialize_message
 from sensor_msgs.msg import Image
 
 from cleany_perception.byte_buffer import numpy_byte_array
@@ -35,8 +35,9 @@ def test_wrist_debug_preserves_cdr_metadata_and_does_not_alias_image_or_pixels()
     expected.encoding, expected.step = 'rgb8', 9
     expected.data = array('B', rgb.tobytes())
     output = WristService._debug_image(source, rgb)
-    assert serialize_message(output) == serialize_message(expected)
+    # CDR alignment padding is not message content and need not be deterministic.
+    assert deserialize_message(serialize_message(output), Image) == expected
     rgb.fill(0)
     source.header.frame_id = 'changed'
     source.data[0] = 1
-    assert serialize_message(output) == serialize_message(expected)
+    assert deserialize_message(serialize_message(output), Image) == expected

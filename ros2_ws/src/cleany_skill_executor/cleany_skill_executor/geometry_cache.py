@@ -30,8 +30,8 @@ def fitted_geometry(path: Path, scale: tuple[float, ...], count: int,
     cache = None
     if directory:
         digest = hashlib.sha256(path.read_bytes())
-        digest.update(json.dumps([2, scale, count, radius, versions,
-                                  'convex_hull/subdivide']).encode())
+        digest.update(json.dumps([4, scale, count, radius, versions,
+                                  'component_cells_v1']).encode())
         cache = Path(directory).expanduser() / (digest.hexdigest()+'.npz')
         try:
             with np.load(cache, allow_pickle=False) as stored:

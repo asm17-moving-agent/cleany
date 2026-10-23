@@ -125,7 +125,7 @@ def replay_head_labels(adapter: YoloeDetector, samples: list) -> dict:
         detections = adapter.detect(rgb, '')
         response = {'objects': [{
             'id': index, 'label': 'paper cup' if detection.label == 'cup' else detection.label,
-            'sorting_category': 'review', 'sorting_reason': 'Offline semantic fixture',
+            'sorting_category': 'review',
         } for index, detection in enumerate(detections, 1)]}
         classified = parse_gemini_classifications(json.dumps(response), detections)
         for original, item in zip(detections, classified):

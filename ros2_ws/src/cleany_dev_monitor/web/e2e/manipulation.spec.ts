@@ -57,6 +57,16 @@ test("pre-Action preparation is visible and does not borrow a previous object ex
   request.owner_alive = false;
   fixture.update([...values, requestRow] as ReturnType<typeof rows>);
   await expect(panel.locator("p strong")).toHaveText("요청 진행 확인 불가");
+  request.state = "FAILED";
+  fixture.update([...values, requestRow] as ReturnType<typeof rows>);
+  await expect(panel.getByRole("status")).toContainText("실행 요청 실패");
+  await expect(
+    panel.getByRole("list", { name: "실행 요청 단계" }),
+  ).not.toBeVisible();
+  await panel.locator("summary").filter({ hasText: "준비 단계 이력" }).click();
+  await expect(
+    panel.getByRole("list", { name: "실행 요청 단계" }),
+  ).toBeVisible();
   expect(fixture.commands).toEqual([]);
 });
 
@@ -271,7 +281,7 @@ test("cancellation and incomplete observations survive execution comparison on n
     "GraspObject",
   );
   await page.getByRole("button", { name: "사이드바 접기" }).click();
-  await page.setViewportSize({ width: 620, height: 900 });
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator(".manip-stages > li.failed")).toBeVisible();
   expect(
     await page.evaluate(

@@ -147,7 +147,7 @@ def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compat
     )
     detection = SimpleNamespace(object_id=1, label='paper cup' if reworded else 'cup', confidence=0.8,
                                 distance_valid=True, distance_m=0.5,
-                                sorting_category='trash', sorting_reason='disposable cup')
+                                sorting_category='trash')
     pose = Pose()
     pose.position.x, pose.position.z = 0.4, 0.4
     inspected = SimpleNamespace(objects=SimpleNamespace(
@@ -191,7 +191,7 @@ def test_refresh_hands_off_old_obb_before_selector_transaction(reachable, compat
             node, selected, attempt, match_label=not reworded)
         assert result is selected
         assert refreshed.sorting_category == 'trash'
-        assert refreshed.sorting_reason == 'disposable cup'
+
         assert events == ['restore', 'select', 'begin', 'allow']
     else:
         with pytest.raises(RuntimeError, match='not reachable'):

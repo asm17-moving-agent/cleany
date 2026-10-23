@@ -285,7 +285,7 @@ class JetsonOperations(CollectionPipeline):
         if not target.distance_valid or not math.isfinite(target.distance_m) or target.distance_m <= 0:
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Approved target has no valid sensor depth')
         expected = {'collect_trash': 'trash', 'collect_lost_item': 'lost_item'}[goal.skill_name]
-        if (target.sorting_category != expected or not target.sorting_reason.strip()
+        if (target.sorting_category != expected
                 or not math.isfinite(target.confidence)
                 or not self.value('bt_minimum_confidence') <= target.confidence <= 1):
             raise OperationError(Error.TARGET_UNAVAILABLE, 'Model classification does not match approved skill')
@@ -454,6 +454,7 @@ class JetsonOperations(CollectionPipeline):
             request = ObserveWristTarget.Request(operation=ObserveWristTarget.Request.HANDOFF,
                 arm=selected.selected_arm, source_snapshot_id=context.goal.snapshot_id,
                 source_object_id=context.goal.object_id, label=context.target.label,
+                detector_label=context.target.detector_label,
                 source_confidence=float(context.target.confidence), after_stamp_ns=arrival)
             request.expected_pose.header = deepcopy(observed.header)
             request.expected_pose.pose.position = deepcopy(observed.observed_center)

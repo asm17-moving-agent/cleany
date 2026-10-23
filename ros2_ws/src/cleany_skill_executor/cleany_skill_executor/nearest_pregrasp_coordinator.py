@@ -844,7 +844,6 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 confidence=float(item.confidence),
                 distance_m=float(item.distance_m),
                 sorting_category=getattr(item, 'sorting_category', ''),
-                sorting_reason=getattr(item, 'sorting_reason', ''),
             )
             for item in detections
             if item.distance_valid
@@ -1086,7 +1085,6 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                 confidence=float(detection.confidence),
                 distance_m=float(detection.distance_m),
                 sorting_category=detection.sorting_category,
-                sorting_reason=detection.sorting_reason,
             )
             inspected = self._inspect_selected(
                 detected.detections.snapshot_id, refreshed_attempt

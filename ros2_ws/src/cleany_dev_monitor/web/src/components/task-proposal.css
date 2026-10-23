@@ -2,7 +2,8 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 18px;
-  margin: 14px 0;
+  margin: 0;
+  min-width: 0;
   background: var(--card);
 }
 .task-proposal-heading {
@@ -26,7 +27,7 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 4px 9px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .task-proposal-content {
   display: grid;
@@ -39,9 +40,29 @@
   border-radius: 8px;
   object-fit: contain;
   background: #0f172a;
+  max-height: 300px;
 }
 .task-proposal-description strong {
   font-size: 21px;
+  overflow-wrap: anywhere;
+}
+.task-proposal-description {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.task-proposal[data-empty="true"] {
+  background: var(--muted);
+  padding: 14px 18px;
+}
+.task-proposal[data-empty="true"] p {
+  margin-bottom: 0;
+  color: var(--muted-foreground);
+}
+.task-proposal-state {
+  color: var(--info-text);
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: var(--info-bg);
 }
 .task-proposal-action,
 .task-proposal-state {
@@ -61,5 +82,13 @@
   }
   .task-proposal-heading {
     flex-direction: column;
+  }
+}
+@container manipulation-monitor (max-width: 620px) {
+  .task-proposal-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .task-proposal-heading {
+    flex-wrap: wrap;
   }
 }

@@ -29,7 +29,7 @@ def test_native_jetson_skill_preserves_target_and_requires_real_port_evidence(op
     if skill == 'collect_lost_item':
         snapshot.detections[1].label = 'computer mouse'
         snapshot.detections[1].sorting_category = 'lost_item'
-        snapshot.detections[1].sorting_reason = 'owner property'
+
         context.goal = replace(context.goal, skill_name=skill, destination_id='lost_bin')
         node.config['label_destinations'] = {'computer mouse':'lost_bin'}
     if return_to_pick:

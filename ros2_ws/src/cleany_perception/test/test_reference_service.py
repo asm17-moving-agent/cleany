@@ -60,6 +60,18 @@ def test_pinned_seed_survives_cache_eviction_and_current_capture_precedes_infere
     assert not np.shares_memory(handler._reference.rgb, synthetic_scene['snapshot'].rgb)
 
 
+def test_pinned_reference_preserves_corrected_type_and_original_detector_class(synthetic_scene):
+    scene = dict(synthetic_scene, detection=replace(synthetic_scene['detection'],
+                 label='remote control', detector_label='power bank'))
+    handler, cache, pin, _ = make_service(scene)
+    assert (pin.source_label, pin.source_detector_label) == ('remote control', 'power bank')
+    cache.put('replacement', replace(cache.get('source')))
+    result = handler.execute(Service.Request(operation=Service.Request.OBSERVE,
+        reference_id=pin.reference_id), Service.Response())
+    assert result.success, result.message
+    assert (result.source_label, result.source_detector_label) == ('remote control', 'power bank')
+
+
 def test_stale_capture_is_rejected_before_inference(synthetic_scene):
     handler, _, pin, events = make_service(synthetic_scene)
     result = handler.execute(Service.Request(operation=Service.Request.OBSERVE,

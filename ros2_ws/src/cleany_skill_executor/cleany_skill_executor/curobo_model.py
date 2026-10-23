@@ -27,9 +27,10 @@ class CuRoboConfig:
     num_seeds: int = 32
     ik_position_threshold_m: float = 0.001
     joint_tolerance_rad: float = 0.002
-    spheres_per_link: int = 16
-    sphere_budget_per_link: int = 8  # Merge within each rigid link; 0 keeps original fits.
-    sphere_surface_radius_m: float = 0.002
+    spheres_per_link: int = 64  # Historical name: cell count per mesh instance.
+    sphere_budget_per_link: int = 16  # Merge within each rigid link; 0 keeps original fits.
+    sphere_surface_radius_m: float = 0.0005  # Outward padding on every enclosing ball.
+    collision_hull_max_expansion_m: float = 0.001
     interpolation_dt: float = 0.05
     validation_step_rad: float = 0.025
     maximum_validation_states: int = 2000
@@ -41,6 +42,9 @@ class CuRoboConfig:
     geometry_cache_directory: str = ''
 
     def __post_init__(self) -> None:
+        if (not math.isfinite(self.collision_hull_max_expansion_m)
+                or self.collision_hull_max_expansion_m < 0):
+            raise ValueError('GPU hull expansion must be finite and nonnegative')
         if type(self.sphere_budget_per_link) is not int or self.sphere_budget_per_link < 0:
             raise ValueError('Sphere budget must be a nonnegative integer')
         if (
@@ -72,6 +76,8 @@ class RobotModel:
                 self.config.spheres_per_link, self.config.sphere_surface_radius_m,
                 self.config.sphere_budget_per_link):
             raise ValueError('Shared robot geometry requires identical sphere fitting settings')
+        if config.collision_hull_max_expansion_m != self.config.collision_hull_max_expansion_m:
+            raise ValueError('Shared robot geometry requires identical hull settings')
         model = copy(self)
         model.config = config
         return model
@@ -88,8 +94,8 @@ class RobotModel:
         # Optional dependencies are imported only for the cuRobo backend.
         import trimesh
         from ament_index_python.packages import get_package_share_directory
-        from curobo.geom.sphere_fit import voxel_fit_mesh
         from cleany_skill_executor.curobo_collision import convex_body, world_bodies
+        from cleany_skill_executor.core.collision_geometry import covering_spheres, enclosing_polytope
 
         self.xml = urdf
         root = ET.fromstring(urdf)
@@ -100,6 +106,7 @@ class RobotModel:
         self.geometry_cache_hits = 0
         self.geometry_cache_misses = 0
         fitted_meshes = {}
+        fitted_hulls = {}
         for joint in root.findall("joint"):
             if joint.get("type") == "revolute":
                 limit = joint.find("limit")
@@ -172,7 +179,8 @@ class RobotModel:
                 if name == 'base_link':
                     geometry = trimesh.load_mesh(path, process=True)
                     geometry.apply_scale(scale)
-                    self.bodies.append(convex_body(name, geometry.vertices @ rotation.T + xyz))
+                    vertices = enclosing_polytope(geometry.vertices, config.collision_hull_max_expansion_m)
+                    self.bodies.append(convex_body(name, vertices @ rotation.T + xyz))
                     # As for the base box above, preserve the full base in final
                     # validation without coarse base spheres in IK optimization.
                     continue
@@ -182,11 +190,9 @@ class RobotModel:
                     def fit():
                         geometry = trimesh.load_mesh(path, process=True)
                         geometry.apply_scale(scale)
-                        # Fit a stable closed volume without changing the STL.
-                        geometry = geometry.convex_hull
-                        centers, radii = voxel_fit_mesh(geometry, config.spheres_per_link,
-                            config.sphere_surface_radius_m, voxelize_method="subdivide")
-                        return centers, radii, geometry.vertices.copy()
+                        centers, radii = covering_spheres(geometry.vertices, config.spheres_per_link,
+                            config.sphere_surface_radius_m, faces=geometry.faces)
+                        return centers, radii, geometry.convex_hull.vertices.copy()
 
                     versions = '/'.join(importlib.metadata.version(package)
                         for package in ('trimesh', 'nvidia_curobo'))
@@ -196,6 +202,9 @@ class RobotModel:
                     self.geometry_cache_hits += int(hit)
                     self.geometry_cache_misses += int(not hit)
                 centers, radii, vertices = fitted_meshes[key]
+                if key not in fitted_hulls:
+                    fitted_hulls[key] = enclosing_polytope(vertices, config.collision_hull_max_expansion_m)
+                vertices = fitted_hulls[key]
                 self.bodies.append(convex_body(name, vertices @ rotation.T + xyz))
                 for center, radius in zip(centers, radii, strict=True):
                     spheres.append(

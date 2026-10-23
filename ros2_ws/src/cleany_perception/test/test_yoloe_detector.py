@@ -229,7 +229,7 @@ def test_yoloe_gemini_classifies_same_segmentation_instance(tmp_path):
         return json.dumps({'objects': [{
             'id': 1, 'label': 'computer mouse',
             'sorting_category': 'lost_item',
-            'sorting_reason': 'reusable personal device',
+
         }]})
 
     detector = YoloeGeminiDetector(
@@ -242,7 +242,8 @@ def test_yoloe_gemini_classifies_same_segmentation_instance(tmp_path):
     detections = detector.detect(rgb, 'old detection prompt')
     masks = YoloeMaskSegmenter().segment(rgb, detections)
     assert len(model.calls) == len(requests) == len(masks) == 1
-    assert detections[0].label == 'wallet (computer mouse)'
+    assert detections[0].label == 'computer mouse'
+    assert detections[0].detector_label == 'wallet'
     assert detections[0].sorting_category == 'lost_item'
     assert detections[0].confidence == pytest.approx(0.82)
     assert detections[0].bbox.x_min == pytest.approx(2.0)

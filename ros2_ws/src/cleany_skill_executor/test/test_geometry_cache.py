@@ -1,9 +1,26 @@
 from dataclasses import replace
+import hashlib
+import json
 import numpy as np
 import pytest
 
 from cleany_skill_executor.geometry_cache import fitted_geometry
 from cleany_skill_executor.curobo_model import CuRoboConfig, RobotModel
+
+
+def test_legacy_surface_point_cache_is_not_reused(tmp_path):
+    from cleany_skill_executor.geometry_cache import _array_digest
+    mesh = tmp_path / 'mesh.stl'
+    mesh.write_bytes(b'mesh')
+    digest = hashlib.sha256(mesh.read_bytes())
+    digest.update(json.dumps([2, (1., 1., 1.), 4, .002, 'v1', 'convex_hull/subdivide']).encode())
+    old = (np.ones((4, 3)), np.full(4, .002), np.ones((8, 3)))
+    np.savez(tmp_path / (digest.hexdigest() + '.npz'), centers=old[0], radii=old[1],
+             vertices=old[2], data_sha256=_array_digest(old))
+    values, hit = fitted_geometry(mesh, (1., 1., 1.), 4, .002, 'v1', str(tmp_path),
+                                 lambda: (old[0], np.full(4, .03), old[2]))
+    assert not hit
+    np.testing.assert_array_equal(values[1], np.full(4, .03))
 
 
 def test_cache_invalidates_mesh_contents_scale_settings_and_version(tmp_path):
@@ -50,3 +67,5 @@ def test_geometry_sharing_keeps_solver_tuning_separate():
         model.with_config(replace(model.config, spheres_per_link=32))
     with pytest.raises(ValueError, match='identical sphere'):
         model.with_config(replace(model.config, sphere_budget_per_link=0))
+    with pytest.raises(ValueError, match='identical hull'):
+        model.with_config(replace(model.config, collision_hull_max_expansion_m=0))

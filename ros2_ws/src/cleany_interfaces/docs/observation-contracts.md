@@ -9,9 +9,10 @@ mesh_pose의 local 좌표다. convex footprint를 인식된 지지면까지 돌�
 메시 타입 의존성에 shape_msgs가 포함된다.
 
 `ObserveWristTarget.srv`는 RGB-only 손목 인계/확인 서비스다.
-HANDOFF는 head source ID, 원본 label/confidence와 예상 base-frame OBB를 전달받아
+HANDOFF는 head source ID, 최종 label, 원본 detector_label/confidence와 예상 base-frame OBB를 전달받아
 손목 영상에서 segmentation reference를 만든다. 별도 손목 detection은 선택 옵션이다.
-CHECK는 같은 arm/source/reference의 새 RGB mask를 반환한다. CLEAR는 참조를 해제한다.
+CHECK는 같은 arm/source/reference의 새 RGB mask를 반환한다. 최종 종류명이나 원본
+검출 클래스가 HANDOFF 때와 다르면 거절한다. CLEAR는 참조를 해제한다.
 `expected_pose`는 입력 추정치일 뿐 측정값이 아니며 응답은 촬영 header와 mask만
 포함한다. 손목에서 측정한 depth/3D 높이를 주장하지 않는다.
 HANDOFF의 `expected_pose.header.stamp`는 원본 head 관측 시각이다.
@@ -49,6 +50,27 @@ bounding box, snapshot-local 번호와 후속 선택 요청에 사용할 `snapsh
 순서로 정렬되며 depth가 불충분한 후보는 자동 조작 대상으로 선택하지 않는다.
 `DetectedObject3D`와 `DetectedObject3DArray`는 선택 객체의 OBB와 동일 snapshot 문맥을
 표현한다.
+
+| 필드 | 계약 |
+|---|---|
+| `DetectedObject2D/3D.label` | 최종 종류명. `yoloe_gemini`에서는 Gemini 이름을 정규화하며 YOLOE 이름을 접두어로 붙이지 않음 |
+| `DetectedObject2D/3D.detector_label` | 원본 검출 클래스. 검출 재매칭용이며 미제공은 빈 문자열 |
+| `confidence` | 검출기의 신뢰도. Gemini 종류명과 처리 분류의 확률이 아님 |
+| `ObserveObjectReference.Response.source_label / source_detector_label` | PIN 당시의 최종 종류명과 원본 검출 클래스. 원래 snapshot이 cache에서 제거돼도 참조 TTL 동안 보존 |
+| `ObserveWristTarget.Request.label / detector_label` | 최종 종류명과 손목 재검증에 사용할 원본 클래스. detector_label이 비어 있으면 label 사용 |
+
+추적 ID가 유지돼도 최종 종류나 `sorting_category`가 바뀌면 기존 사용자 승인을
+그대로 실행하지 않는다. 단순 동의어는 인식 노드의 `semantic_label_aliases`에서
+정규화한다. 이름 기반 제외 목록과 목적지 설정은 최종 종류명을 사용한다.
+
+원본 검출 클래스 필드 추가로 이 메시지를 포함한 Action, Service와 topic의
+wire/CDR 형식도 바뀐다. native와 perception, grasp, motion 컨테이너의 인터페이스를
+함께 재빌드한 뒤 같은 버전으로 실행해야 한다. 이전 CDR 및 rosbag은 기록 당시의
+인터페이스로 읽는다. TensorRT 모델의 클래스와 출력은 바꾸지 않아 재변환하지 않는다.
+
+`DetectedObject2D`에서 분류 사유 필드를 제거했다. Gemini 설명 문장을 요청하거나
+수거 허가의 조건으로 사용하지 않는다. 이 제거도 CDR 변경이므로 위 재빌드 규칙을
+따른다. 보존된 이전 관측과 rosbag은 기록 당시 인터페이스로 읽는다.
 
 ## Scene inspection action
 
@@ -116,8 +138,8 @@ colcon test-result --verbose
 
 ## 관련 KB
 
-`DetectedObject2D`는 모델이 반환한 `sorting_category`와 `sorting_reason`을
-포함한다. category는 `trash`, `lost_item`, `review` 또는 미제공 빈 문자열이다.
+`DetectedObject2D`는 모델이 반환한 `sorting_category`를 포함한다.
+category는 `trash`, `lost_item`, `review` 또는 미제공 빈 문자열이다.
 빈 값은 이름 기반 폐기 허가가 아니다. 이 메시지 변경 후 모든 consumer를 재빌드한다.
 
 - [Technical Overview](../../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)

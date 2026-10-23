@@ -23,14 +23,20 @@ from test_head_collision_runtime import state
 
 
 PACKAGE = Path(__file__).resolve().parents[2] / 'cleany_description'
-# Fixed probe coverage includes parts excluded after the initial candidate failed.
-# Keeping this independent of the optimization list prevents shrinking coverage.
+# Keep probe coverage independent of the optimization list.
 PROBE_MESHES = {
     'Upper_Arm_5cm.stl', 'Lower_Arm_5cm.stl', 'Base.stl', 'Rotation_Pitch.stl',
     'Wrist_Pitch_Roll.stl', 'Base_Motor.stl', 'Rotation_Pitch_Motor.stl',
     'Upper_Arm_Motor.stl', 'Lower_Arm_Motor.stl', 'Wrist_Pitch_Roll_Motor.stl',
     'Fixed_Jaw_Motor.stl',
+    'Fixed_Jaw_part1.ply.convex.stl', 'Fixed_Jaw_part2.ply.convex.stl',
+    'Moving_Jaw_part1.ply.convex.stl', 'Moving_Jaw_part2.ply.convex.stl', 'Moving_Jaw_part3.ply.convex.stl',
+    'cad_frame/topbase1.stl', 'topbase2.stl', 'tophead1.stl', 'tophead4.stl', 'tophead5.stl', 'tophead6.stl',
 }
+
+
+def source_resource(collision):
+    return collision.find('geometry/mesh').get('filename').split('/meshes/')[1].removeprefix('collision/')
 
 
 def test_reduced_arm_geometry_preserves_collision_detection_and_planning(tmp_path):
@@ -47,9 +53,10 @@ def test_reduced_arm_geometry_preserves_collision_detection_and_planning(tmp_pat
         collision_resources = [(link.get('name'), collision)
             for link in tree.findall('link') for collision in link.findall('collision')
             if collision.find('geometry/mesh') is not None
-            and collision.find('geometry/mesh').get('filename').split('/')[-1] in PROBE_MESHES]
+            and source_resource(collision) in PROBE_MESHES]
         links = list(dict.fromkeys(name for name, _ in collision_resources))
-        assert len(collision_resources) == 2 * len(PROBE_MESHES)
+        assert len(collision_resources) == 38
+        assert {source_resource(collision) for _, collision in collision_resources} == PROBE_MESHES
         report = {'random_valid': [], 'surface_contacts': [], 'surface_contact_details': [],
                   'planning_success': False}
         with moveit_runtime(directory, head=True, robot_model_file=model) as (node, process):
@@ -62,7 +69,8 @@ def test_reduced_arm_geometry_preserves_collision_detection_and_planning(tmp_pat
             def check(sample):
                 return call(node, process, validity, GetStateValidity.Request(robot_state=sample))
 
-            assert check(current).valid
+            initial = check(current)
+            assert initial.valid, [(c.contact_body_1, c.contact_body_2) for c in initial.contacts]
             rng = np.random.default_rng(937)
             for _ in range(128):
                 sample = deepcopy(current)
@@ -87,10 +95,11 @@ def test_reduced_arm_geometry_preserves_collision_detection_and_planning(tmp_pat
                 placement = Rotation.from_euler('xyz', np.fromstring(origin.get('rpy'), sep=' ')).as_matrix()
                 offset = np.fromstring(origin.get('xyz'), sep=' ')
                 # Always use the original CAD as the independent obstacle fixture.
-                filename = collision.find('geometry/mesh').get('filename').split('/')[-1]
+                filename = source_resource(collision)
                 raw = (PACKAGE / 'meshes' / filename).read_bytes()
                 dtype = np.dtype([('n', '<f4', (3,)), ('v', '<f4', (3, 3)), ('a', '<u2')])
                 vertices = np.frombuffer(raw, dtype=dtype, offset=84)['v'].reshape(-1, 3).astype(float)
+                vertices *= np.fromstring(collision.find('geometry/mesh').get('scale', '1 1 1'), sep=' ')
                 for direction in np.vstack((np.eye(3), -np.eye(3))):
                     point = vertices[np.argmax(vertices @ direction)]
                     for gap in (-.002, .002, .02):

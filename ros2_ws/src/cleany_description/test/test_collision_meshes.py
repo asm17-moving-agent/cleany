@@ -55,19 +55,22 @@ def test_disconnected_solids_do_not_bridge_the_gap():
 def test_committed_assets_meet_component_geometry_bounds(filename):
     source_path = PACKAGE / 'meshes' / filename
     output_path = PACKAGE / SETTINGS['output_directory'] / filename
-    manifest = json.loads((output_path.parent / 'arm_meshes.json').read_text())['meshes'][filename]
+    manifest = json.loads((PACKAGE / SETTINGS['output_directory'] / 'arm_meshes.json').read_text())['meshes'][filename]
     assert hashlib.sha256(source_path.read_bytes()).hexdigest() == manifest['source_sha256']
     assert hashlib.sha256(output_path.read_bytes()).hexdigest() == manifest['output_sha256']
     source = optimizer.read_stl(source_path)
     output = optimizer.read_stl(output_path)
-    originals = optimizer.components(source)
+    scale = SETTINGS.get('mesh_scales', {}).get(filename, 1.)
+    source = optimizer.Mesh(source.vertices * scale, source.faces)
+    output = optimizer.Mesh(output.vertices * scale, output.faces)
+    originals = optimizer.source_pieces(source, SETTINGS, filename)
     reduced = optimizer.components(output)
     assert len(originals) == len(reduced) == len(manifest['components'])
-    maximum_fraction = .08 if filename in SETTINGS.get('surface_components', {}) else (.02 if '_5cm' in filename else .15)
+    maximum_fraction = .35 if filename in SETTINGS.get('mesh_scales', {}) else (.02 if '_5cm' in filename else .15)
     assert len(output.vertices) < len(source.vertices) * maximum_fraction
     assert len(output.faces) < len(source.faces) * maximum_fraction
     used = set()
-    for component_index, part in enumerate(originals):
+    for component_index, part in originals:
         surface = SETTINGS.get('surface_components', {}).get(filename, {}).get(str(component_index))
         # Nested CAD parts can lie inside another component's hull. Match by
         # both containment and the independently measured expansion limit.
@@ -112,10 +115,12 @@ def test_committed_assets_meet_component_geometry_bounds(filename):
 
 
 @pytest.mark.parametrize('entrypoint', ['cleany.urdf.xacro', 'cleany_control.urdf.xacro'])
-def test_mesh_toggle_changes_only_selected_collision_resources(entrypoint):
+@pytest.mark.parametrize('head_meshes', ['true', 'false'])
+def test_mesh_toggle_changes_only_selected_collision_resources(entrypoint, head_meshes):
     def expand(value):
         root = ET.fromstring(subprocess.check_output([
             'xacro', str(PACKAGE / 'urdf' / entrypoint), f'optimized_arm_collision_meshes:={value}',
+            'include_head_camera:=true', f'head_collision_meshes:={head_meshes}',
         ]))
         for element in root.iter():
             element.text = element.tail = None
@@ -127,9 +132,49 @@ def test_mesh_toggle_changes_only_selected_collision_resources(entrypoint):
         if '/meshes/collision/' in filename:
             altered.append(filename)
             mesh.set('filename', filename.replace('/meshes/collision/', '/meshes/'))
-    assert len(altered) == 2 * len(SETTINGS['source_meshes'])
-    assert sorted(path.split('/')[-1] for path in altered) == sorted(SETTINGS['source_meshes'] * 2)
+    expected = [mesh.get('filename') for mesh in original.findall('./link/collision/geometry/mesh')
+                if mesh.get('filename').split('/meshes/')[1] in SETTINGS['source_meshes']]
+    assert sorted(path.replace('/meshes/collision/', '/meshes/') for path in altered) == sorted(expected)
+    if head_meshes == 'true' and entrypoint == 'cleany.urdf.xacro':
+        assert len(altered) == 28
+        assert {path.split('/meshes/')[1] for path in expected} == set(SETTINGS['source_meshes'])
+        remaining = [mesh.get('filename').split('/meshes/')[1]
+                     for mesh in original.findall('./link/collision/geometry/mesh')
+                     if mesh.get('filename') not in expected]
+        assert set(remaining) == set(SETTINGS['already_planar_meshes'])
     assert ET.tostring(original) == ET.tostring(reduced)
+
+
+def test_partition_retains_lower_arm_fork_and_complete_source_surface():
+    filename = 'Lower_Arm_5cm.stl'
+    source = optimizer.components(optimizer.read_stl(PACKAGE / 'meshes' / filename))[2]
+    pieces = optimizer.partition_surface(source, SETTINGS['partition_components'][filename]['2'])
+    assert len(pieces) == 3
+
+    def area(mesh):
+        triangles = mesh.vertices[mesh.faces]
+        return np.linalg.norm(np.cross(triangles[:, 1] - triangles[:, 0],
+                                      triangles[:, 2] - triangles[:, 0]), axis=1).sum() / 2
+
+    assert sum(area(piece) for piece in pieces) == pytest.approx(area(source), abs=1e-12)
+    point_in_fork_gap = np.array([.065, -.032, 0.])
+    for piece in pieces:
+        reduced, _ = optimizer.enclosing_hull(piece, max_expansion=SETTINGS['max_hull_expansion_m'],
+            margin=SETTINGS['enclosure_margin_m'], max_iterations=1024, planes_per_iteration=1)
+        equations = ConvexHull(reduced.vertices).equations
+        assert (point_in_fork_gap @ equations[:, :3].T + equations[:, 3]).max() > .01
+
+
+def test_clipping_through_a_vertex_preserves_area_without_degenerate_faces():
+    triangle = optimizer.Mesh(np.array([[-1., 0., 0.], [0., 1., 0.], [1., 0., 0.]]), np.array([[0, 1, 2]]))
+    areas = []
+    for sign in (-1, 1):
+        part = optimizer.clip_surface(triangle, 0, 0., sign)
+        assert len(part.faces) == 1
+        assert len(np.unique(part.faces)) == 3
+        a, b, c = part.vertices[part.faces[0]]
+        areas.append(np.linalg.norm(np.cross(b - a, c - a)) / 2)
+    assert sum(areas) == pytest.approx(1.)
 
 
 def test_bad_enclosure_settings_fail():

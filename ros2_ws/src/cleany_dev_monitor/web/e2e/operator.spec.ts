@@ -3,6 +3,7 @@ import { rows, run, transport } from "./fixtures/manipulation";
 import { type Data } from "../src/lib/monitor";
 
 async function fixture(page: Page) {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const values = rows([run(true)]);
   Object.assign(values[0].data, { control_enabled: true });
   const wire = await transport(page, values);
@@ -73,6 +74,7 @@ async function fixture(page: Page) {
   await page.goto("/#manipulation");
   const panel = page.getByRole("region", { name: "실물 조작 제어" });
   async function login() {
+    await panel.locator(".operator-auth > summary").click();
     await panel
       .getByLabel("조작자 이름", { exact: true })
       .fill("테스트 운영자");
@@ -108,15 +110,78 @@ test("viewers authenticate before an exact single run request; server gates are 
   });
   await expect(runButton).toBeDisabled();
   expect(f.sent).toEqual([]);
+  const controls = await f.panel
+    .locator(".operator-control-column")
+    .boundingBox();
+  const summary = await page
+    .getByRole("region", { name: "선택 실행 요약" })
+    .boundingBox();
+  expect(controls!.x + controls!.width).toBeLessThan(summary!.x);
+  expect(Math.abs(controls!.y - summary!.y)).toBeLessThan(2);
+  const stop = await f.panel
+    .getByRole("button", { name: "즉시 중단 요청", exact: true })
+    .boundingBox();
+  expect(stop!.y + stop!.height).toBeLessThan(1000);
   if (process.env.OPERATOR_VISUAL_DIR)
-    await f.panel.screenshot({
+    await page.screenshot({
+      animations: "disabled",
       path: process.env.OPERATOR_VISUAL_DIR + "/viewer.png",
     });
   await f.login();
-  if (process.env.OPERATOR_VISUAL_DIR)
-    await f.panel.screenshot({
+  if (process.env.OPERATOR_VISUAL_DIR) {
+    await page.screenshot({
+      animations: "disabled",
       path: process.env.OPERATOR_VISUAL_DIR + "/ready.png",
     });
+    (f.values[3].data as Data).executions = [run()];
+    f.status.state.active_execution_id = "execution-1";
+    const idleCapabilities = f.status.capabilities;
+    f.status.capabilities = Object.fromEntries(
+      [
+        "prepare",
+        "inspect",
+        "propose",
+        "run",
+        "return_arm",
+        "recover",
+        "shutdown",
+      ].map((action) => [action, "실물 조작이 진행 중입니다."]),
+    );
+    f.wire.update(f.values);
+    await f.panel.getByRole("button", { name: "상태 다시 확인" }).click();
+    await expect(
+      f.panel.getByRole("button", { name: "즉시 중단 요청", exact: true }),
+    ).toBeEnabled();
+    await expect(page.locator(".manip-summary")).toContainText("진행 중");
+    await page.screenshot({
+      animations: "disabled",
+      path: process.env.OPERATOR_VISUAL_DIR + "/combined-active.png",
+    });
+    await page.getByRole("button", { name: "다크 모드로 전환" }).click();
+    await page.screenshot({
+      animations: "disabled",
+      path: process.env.OPERATOR_VISUAL_DIR + "/combined-active-dark.png",
+    });
+    await page.getByRole("button", { name: "라이트 모드로 전환" }).click();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      animations: "disabled",
+      path: process.env.OPERATOR_VISUAL_DIR + "/combined-laptop.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    delete f.status.state.active_execution_id;
+    f.status.capabilities = idleCapabilities;
+    (f.values[3].data as Data).executions = [run(true)];
+    f.wire.update(f.values);
+    await f.panel.getByRole("button", { name: "상태 다시 확인" }).click();
+    await expect(runButton).toBeEnabled();
+  }
   await runButton.click();
   await expect.poll(() => f.sent.length).toBe(1);
   expect(f.sent[0].action).toBe("run");
@@ -144,7 +209,6 @@ test("a reviewed proposal approves only its immutable ID and the next task waits
       label: "cup",
       distance_m: 0.42,
       confidence: 0.94,
-      classification_reason: "빈 종이컵",
     },
     reason: "조건을 통과한 물체 중 로봇에 가장 가깝습니다.",
   };
@@ -157,11 +221,13 @@ test("a reviewed proposal approves only its immutable ID and the next task waits
   await f.login();
   const card = page.getByRole("region", { name: "다음 작업 제안" });
   await expect(card).toContainText("3번 · cup");
+  await expect(card).not.toContainText("분류 근거:");
   await expect(card).toContainText("원래 위치에 놓기");
   await expect(card.getByRole("img")).toBeVisible();
   expect(f.sent).toHaveLength(0);
   if (process.env.OPERATOR_VISUAL_DIR)
     await card.screenshot({
+      animations: "disabled",
       path: process.env.OPERATOR_VISUAL_DIR + "/proposal-desktop.png",
     });
   await card.getByRole("button", { name: "승인하여 1회 실행" }).click();
@@ -182,8 +248,14 @@ test("a reviewed proposal approves only its immutable ID and the next task waits
   ).toBeEnabled();
   expect(f.sent).toHaveLength(1);
   await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
   if (process.env.OPERATOR_VISUAL_DIR)
     await card.screenshot({
+      animations: "disabled",
       path: process.env.OPERATOR_VISUAL_DIR + "/proposal-mobile.png",
     });
   await card.getByRole("button", { name: "이 물체 건너뛰기" }).click();
@@ -230,12 +302,14 @@ test("torque, gripper and recovery confirmations are explicit and revisions stay
   await dialog.getByRole("button", { name: "확인 후 요청" }).click();
   await expect(dialog).toHaveCount(0);
   expect(f.sent[0].args).toEqual({ confirm_torque_on: true });
+  await f.panel.locator(".operator-recovery > summary").click();
   await f.panel
     .getByRole("button", { name: "팔 기본 자세 복귀", exact: true })
     .click();
   dialog = page.getByRole("dialog");
   if (process.env.OPERATOR_VISUAL_DIR)
     await page.screenshot({
+      animations: "disabled",
       path: process.env.OPERATOR_VISUAL_DIR + "/return-confirm.png",
     });
   await dialog.getByLabel("복귀할 팔").selectOption("left");
@@ -317,18 +391,21 @@ test("stop ACK waits for physical evidence and narrow screens fit controls", asy
   ).toBe(true);
   if (process.env.OPERATOR_VISUAL_DIR)
     await f.panel.screenshot({
+      animations: "disabled",
       path: process.env.OPERATOR_VISUAL_DIR + "/mobile.png",
     });
 });
 
-test("disabling the feature removes control UI without posting any command", async ({
+test("disabling the feature explains why controls are unavailable without posting a command", async ({
   page,
 }) => {
   const f = await fixture(page);
   await f.login();
   Object.assign(f.values[0].data, { control_enabled: false });
   f.wire.update(f.values);
-  await expect(f.panel).toHaveCount(0);
+  await expect(f.panel).toContainText("웹 제어 꺼짐");
+  await expect(f.panel.getByRole("button")).toHaveCount(0);
+  await expect(page.locator(".manip-summary")).toBeVisible();
   expect(f.sent).toEqual([]);
 });
 
@@ -389,10 +466,12 @@ test("command history shows five recent jobs and explains a blocked grasp", asyn
   );
   if (process.env.OPERATOR_VISUAL_DIR) {
     await f.panel.screenshot({
+      animations: "disabled",
       path: process.env.OPERATOR_VISUAL_DIR + "/history.png",
     });
     await page.getByRole("button", { name: "다크 모드로 전환" }).click();
     await f.panel.screenshot({
+      animations: "disabled",
       path: process.env.OPERATOR_VISUAL_DIR + "/dark.png",
     });
   }

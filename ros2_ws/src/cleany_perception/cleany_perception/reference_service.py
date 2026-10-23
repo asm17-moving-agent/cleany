@@ -127,6 +127,7 @@ class ReferenceService:
             response.source_object_id = reference.object_id
             response.source_capture_stamp_ns = reference.stamp_ns
             response.source_label = detection.label
+            response.source_detector_label = detection.detector_label
             response.source_confidence = detection.confidence
             if request.operation == request.OBSERVE:
                 self._observe(request, response, reference, detection)

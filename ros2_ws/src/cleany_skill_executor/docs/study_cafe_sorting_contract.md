@@ -8,7 +8,7 @@
 내부 후면 받침판·수거함을 기본 배치로 사용한다. 책상 양끝 분류 영역과 구분선은
 없으며 수거함의 고정 투하 위치만 사용한다.
 개별 물체 배치 성공 기록이 있지만 전체 정리 성공은 검증 중이다.
-`table_sorting_policy.yaml`의 destination으로 Gemini의 category/reason을
+`table_sorting_policy.yaml`의 destination으로 Gemini의 category를
 연결한다. label allowlist로 category를 대체하지 않으며 위험 label은 보수적으로
 거부한다. RGB-D 거리순으로 시도하고 인식된 수거 구역 물체는 다시 집지 않는다.
 미처리/미확인 물체가 남으면 성공으로 보고하지 않는다. 관측한 작업 물체 수와
