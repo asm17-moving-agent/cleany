@@ -20,7 +20,7 @@ setup(
     ],
     # ROS packages, including the proposal selector in cleany_skill_executor,
     # are resolved through package.xml rather than installed from PyPI.
-    install_requires=["setuptools", "aiohttp>=3.8,<4", "Pillow>=9", "psutil>=5.9", "matplotlib>=3.5", "numpy>=1.21"],
+    install_requires=["setuptools", "cleany_logger>=0.1.0", "aiohttp>=3.8,<4", "Pillow>=9", "psutil>=5.9", "matplotlib>=3.5", "numpy>=1.21"],
     zip_safe=True,
     maintainer="Cleany Team",
     maintainer_email="team@example.com",

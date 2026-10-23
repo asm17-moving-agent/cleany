@@ -4,6 +4,46 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-10-24 main Logger 통합
+
+체크포인트 `ec7227bb3866439d08509de8fcb3517a9fe6bae5`에 main
+`eb2c56a190ad9fbb52cb104ff55282e955a56fcb`를 병합한
+`integrate/main-logger` 작업 트리를 검증했다. 녹화 저장, 정책, 제어 및 CLI
+구현은 main과 동일하며, Jetson heartbeat와 카메라 미리보기, 조작 제어를
+독립 Logger 구조에 연결했다. 운영 Jetson에는 적용하지 않았다.
+
+macOS의 Node.js 26.5.0 및 Chrome과 Ubuntu 22.04 ARM64 VM의 ROS 2 Humble,
+Python 3.10.12를 사용했다. ROS 검사는 localhost의 별도 DDS domain에서
+합성 메시지와 임시 저장소를 사용했으며 실물 명령을 보내지 않았다.
+
+| 검증 | 결과 |
+|---|---|
+| 웹 타입 검사 및 Vite 빌드 | 통과; sourcemap, `use client`, 번들 크기 경고 |
+| 조작, 매니퓰레이션, 카메라, 녹화, 리소스 브라우저 검사 | 20 통과, 실제 리소스 서버가 필요한 1개 제외 |
+| `make build-dev-monitor-ros` | 의존 패키지 포함 16개 성공 |
+| `make build-manipulation-bt` | 13개 성공 |
+| `CLEANY_RUN_ROS_TESTS=1 make test-dev-monitor` | Logger 56개, Monitor 147개 통과; 아래 환경 제약의 7개 제외 |
+| `make test-logger-independence` | Monitor 종료 후 녹화 지속, HTTP 제어, 원본 stamp와 종료 시 bag 확정 통과 |
+| `make test-logger-cli` | 별도 domain 187에서 19개 CLI 호출 시나리오 통과 |
+| `make benchmark-dev-monitor-cpu` | 30초 합성 입력; WebSocket 및 녹화 gap 없음, raw index와 bag 818개 일치, 두 프로세스 정상 종료 |
+
+최초 빌드는 내부 의존 패키지 누락으로 실패해 `build-dev-monitor-ros`를
+`--packages-up-to`로 변경했다. VM의 기존 MoveIt perception 및 BehaviorTree.CPP
+prefix를 설정한 뒤 빌드했다. 최초 ROS 검사에서 BT 미빌드 1개와 Nav2 및
+Cartographer 메시지 미설치 7개가 실패했다. BT를 빌드한 후 나머지 7개를 명시적으로
+제외해 재실행했다. 따라서 Nav2 DDS 진단, 원본 point cloud 기록의 5개 입력 유형,
+Cartographer DDS 연동은 이 실행으로 검증하지 못했다.
+
+CLI 검사는 domain 185에서 두 번 응답 시간 초과가 발생했고 두 번째에는 종료 대기도
+시간을 초과했다. 이후 순수 main을 domain 186, 병합본을 domain 187에서 각각 단독
+실행해 모두 통과했다. 코드 수정 없이 통과했으며 초기 시간 초과의 원인은 확정하지
+않았다. Python 검사에는 VM의 Matplotlib 중복 설치 경고가 남았다.
+
+원본은 VM의 `/home/ubuntu/Documents/cleany-data/reports/main-sync-20261024/`와
+로컬 `../cleany-data/reports/main-sync-20261024/`에 있다. 빌드 및 Python 검사 로그,
+`independence/`, `cli/`, `cli-retry/`, `cli-main/`, `cli-isolated/`, `cpu/`의 원본,
+브라우저 실행 상태, `implementation.patch`와 `verification.json`을 보존했다.
+
 ## 2026-10-24 Dev Monitor 조작과 관측 통합 배치
 
 로컬 `7908ef2`, Jetson `4f92bc0` 기반에서 조작 패널을 포함한 매니퓰레이션
@@ -331,6 +371,16 @@ head/양손목 카메라 촬영을 통과했다. Xvfb는 기존 `pr58-test-clean
 | `builds/ci-optimization-evidence/` | CI 실행 metadata와 원본 로그, 테스트 수집 비교, 종료 경쟁 재현 |
 | `reports/documentation-reorganization-20261013/before/` | 이번 문서 개편 전 Markdown 사본 |
 | `reports/documentation-reorganization-20261013/manifest.json` | 사본 source commit, dirty 상태, 각 파일 SHA-256 |
+
+Logger 분리와 CLI의 초기 검증은 [SCRUM-486 결과](../reports/SCRUM-486/validation.json)를 따른다.
+`a401f6f`의 Ubuntu 22.04 ARM64/Humble 검증에서는 합성 ROS와 웹 fixture로
+Logger 55개, Monitor 80개, Mock 통합 225개(Gazebo 1개 제외), 웹 13개와 CLI 19건을 확인했다.
+초기 rosdep 선언과 launch 기본값 누락 오류는 수정 후 재검증했다. 원본은
+`ubuntu-vm:/home/ubuntu/Documents/cleany-data/runs/` 아래
+`pr62-conflicts-20261023/`와 `pr62-launch-local-review-20261023/`에 보존한다.
+
+`f5e26ab` 기준 Ubuntu 22.04 ARM64/Humble에서 관측 콜백을 300ms 늦춰 Navigation 검사의 기존 실패를 재현했다. 네 속도 토픽을 함께 기다리는 미커밋 수정 후 기본 조건과 지연 조건을 각각 3회 통과했고, 패키지 검사 188개도 오류와 실패 없이 통과했다.
+원본과 소스 SHA-256은 `ubuntu-vm:/home/ubuntu/Documents/cleany-data/runs/pr62-navigation-20261024/verification.json`과 같은 경로의 로그에 보존한다.
 
 ## 재현, 보존
 

@@ -84,7 +84,9 @@ help:
 	@echo "  make test          Build and run all colcon tests"
 	@echo "  make test-mission  Run Mission Manager pytest"
 	@echo "  make build-dev-monitor / run-dev-monitor  Build or serve the read-only robot monitor"
-	@echo "  make test-dev-monitor  Test bounded recording, HTTP API and ROS observation"
+	@echo "  make logger LOGGER_ARGS='status'  Control the independent recorder"
+	@echo "  make test-logger    Test the recording engine without Monitor or ROS"
+	@echo "  make test-dev-monitor  Test Logger, HTTP API and ROS observation"
 	@echo "  make test-mission-core  Run ROS-independent FSM, BT and bridge tests"
 	@echo "  make build-mission-runtime  Build interfaces, FSM and Backend bridge"
 	@echo "  make build-mission-sim  Build Gazebo + navigation + runtime + pose relay"
@@ -505,7 +507,7 @@ clean:
 	"$(REPO_ROOT)tools/ros2/ros2-clean"
 
 DEV_MONITOR_WEB := $(ROS2_WS)/src/cleany_dev_monitor/web
-.PHONY: build-dev-monitor-web build-dev-monitor-ros build-dev-monitor test-dev-monitor run-dev-monitor
+.PHONY: build-dev-monitor-web build-dev-monitor-ros build-dev-monitor test-logger test-dev-monitor run-dev-monitor
 build-dev-monitor-web:
 	pnpm --dir "$(DEV_MONITOR_WEB)" install --frozen-lockfile
 	pnpm --dir "$(DEV_MONITOR_WEB)" build
@@ -515,12 +517,16 @@ build-dev-monitor-ros:
 	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
 	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
 		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
-		--packages-select cleany_interfaces cleany_control_bridge cleany_mission_manager cleany_dev_monitor
+		--packages-up-to cleany_dev_monitor cleany_control_bridge cleany_mission_manager $(COLCON_BUILD_ARGS)
 
 build-dev-monitor: build-dev-monitor-web build-dev-monitor-ros
 
-test-dev-monitor:
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
+test-logger:
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_logger/tests"
+
+test-dev-monitor: test-logger
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_dev_monitor:$(ROS2_WS)/src/cleany_logger:$${PYTHONPATH:-}" \
 	python3 -m pytest -p no:cacheprovider "$(ROS2_WS)/src/cleany_dev_monitor/tests"
 
 DEV_MONITOR_E2E_ARGS ?=
@@ -538,6 +544,31 @@ print-install-base:
 	@printf '%s\n' '$(INSTALL_BASE)'
 print-navigation-install-base:
 	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
+
+.PHONY: build-logger run-logger logger
+build-logger:
+	source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-select cleany_interfaces cleany_logger
+
+run-logger:
+	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
+	ros2 launch cleany_logger logger.launch.py $(LOGGER_LAUNCH_ARGS)
+
+logger:
+	source "$(ROS_SETUP)" && source "$(if $(filter /%,$(MISSION_INSTALL_BASE)),$(MISSION_INSTALL_BASE),$(ROS2_WS)/$(MISSION_INSTALL_BASE))/setup.bash" && \
+	ros2 run cleany_logger logger $(LOGGER_ARGS)
+
+.PHONY: test-logger-independence
+test-logger-independence:
+	@test -n "$(LOGGER_TEST_OUTPUT)" -a -n "$(LOGGER_BASE_COMMIT)" || (echo "Set LOGGER_TEST_OUTPUT and LOGGER_BASE_COMMIT" >&2; exit 2)
+	python3 tools/validation/logger/independence.py --output "$(LOGGER_TEST_OUTPUT)" --base-commit "$(LOGGER_BASE_COMMIT)"
+
+.PHONY: test-logger-cli
+test-logger-cli:
+	@test -n "$(LOGGER_TEST_OUTPUT)" -a -n "$(LOGGER_BASE_COMMIT)" || (echo "Set LOGGER_TEST_OUTPUT and LOGGER_BASE_COMMIT" >&2; exit 2)
+	python3 tools/validation/logger/cli.py --output "$(LOGGER_TEST_OUTPUT)" --base-commit "$(LOGGER_BASE_COMMIT)"
 
 .PHONY: test-ci-tools
 test-ci-tools:

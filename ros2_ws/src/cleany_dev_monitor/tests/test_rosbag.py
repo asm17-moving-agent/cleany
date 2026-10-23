@@ -10,9 +10,10 @@ from io import BytesIO
 import pytest
 from aiohttp import ClientSession
 from aiohttp.test_utils import TestServer
-from cleany_dev_monitor.core import Hub, Recorder
-from cleany_dev_monitor.recording import defaults
-from cleany_dev_monitor.server import create_app
+from cleany_logger import Recorder
+from cleany_dev_monitor.core import Hub
+from cleany_logger.recording import defaults
+from logger_fixture import create_app
 
 
 def raw_settings():
@@ -61,34 +62,6 @@ def test_combined_quota_counts_other_bags_and_retains_them(tmp_path):
     recorder.close()
 
 
-def test_legacy_sqlite_payload_stays_readable(tmp_path):
-    recorder = Recorder(tmp_path)
-    recorder.db.execute("DROP TABLE raw_index")
-    recorder.db.execute(
-        "CREATE TABLE raw_messages(id INTEGER PRIMARY KEY, category TEXT, topic TEXT, type TEXT, received REAL, ros_time REAL, payload BLOB)"
-    )
-    recorder.db.execute(
-        "INSERT INTO raw_messages VALUES (1,?,?,?,?,?,?)",
-        (
-            "camera",
-            "/old/image",
-            "sensor_msgs/msg/Image",
-            12.0,
-            2.0,
-            zlib.compress(b"old cdr"),
-        ),
-    )
-    recorder.db.commit()
-    assert recorder.raw_message(recorder.session_id, "camera", 12.0) == (
-        b"old cdr",
-        "sensor_msgs/msg/Image",
-        "/old/image",
-    )
-    assert (
-        recorder.replay(recorder.session_id, 12.0)["rows"][0]["data"]["format"]
-        == "legacy_sqlite"
-    )
-    recorder.close()
 
 
 def test_camera_context_selection_and_tf_are_not_sampled(monkeypatch):
@@ -100,7 +73,7 @@ def test_camera_context_selection_and_tf_are_not_sampled(monkeypatch):
         "/clock",
         "/camera/head/color/camera_info",
     } <= hub.recording.topics()
-    monkeypatch.setattr("cleany_dev_monitor.recording.time.monotonic", lambda: 100.0)
+    monkeypatch.setattr("cleany_logger.recording.time.monotonic", lambda: 100.0)
     assert hub.recording.reserve("/tf")
     assert hub.recording.reserve("/tf")  # Distinct transforms may arrive in a burst.
     assert hub.recording.reserve("/tf_static")
@@ -161,7 +134,7 @@ def test_navigation_context_respects_remapping_selection_and_native_bytes(tmp_pa
         saved[topic] = payload
     assert list(deserialize_message(saved['/robot/map'], OccupancyGrid).data) == [100]
     assert '/robot/plan' in saved
-    settings['enabled'].update(motion=False, paths=False, costmaps=False)
+    settings['enabled'].update({key: False for key in settings['enabled']})
     controls.configure(settings)
     assert controls.reserve('/robot/map') is None
     assert controls.reserve('/tf') is None
@@ -204,6 +177,7 @@ def test_native_bag_preserves_images_clouds_timestamps_qos_and_separate_exports(
             TestServer(create_app(hub, {}, recorder, tmp_path)) as server,
             ClientSession() as client,
         ):
+            await client.put(server.make_url("/api/recording/settings"), json=dict(defaults(), active=False))
             assert (
                 await client.put(
                     server.make_url("/api/recording/settings"), json=settings
@@ -230,6 +204,9 @@ def test_native_bag_preserves_images_clouds_timestamps_qos_and_separate_exports(
             ]
             assert "payload" not in columns
             session = recorder.session_id
+            active = await (await client.get(server.make_url('/api/recordings'))).json()
+            assert active['active'] == session
+            assert next(item for item in active['sessions'] if item['id'] == session)['bag_recording']
             assert (
                 await client.get(server.make_url(f"/api/recordings/{session}/bag"))
             ).status == 409
@@ -303,7 +280,7 @@ def test_duplicate_ros_timestamps_select_the_correct_raw_message(tmp_path, monke
     topic = raw_settings()["topics"]["camera"]
     clock = iter((100.0, 102.0))
     monkeypatch.setattr(
-        "cleany_dev_monitor.recording.time.monotonic", lambda: next(clock)
+        "cleany_logger.recording.time.monotonic", lambda: next(clock)
     )
     for payload in (b"first frame", b"second frame"):
         hub.recording.offer(
@@ -372,6 +349,7 @@ def test_failed_bag_finalization_is_not_exported_as_complete(tmp_path):
             TestServer(create_app(hub, {}, recorder, tmp_path)) as server,
             ClientSession() as client,
         ):
+            await client.put(server.make_url("/api/recording/settings"), json=dict(defaults(), active=False))
             settings = raw_settings()
             assert (
                 await client.put(

@@ -4,11 +4,9 @@ import re
 import threading
 import time
 from collections import deque
-from collections.abc import Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
-from types import MappingProxyType
 
 from .sources import (
     SCHEMA,
@@ -44,6 +42,20 @@ CONTEXT = {
     'ground_truth_topic': ('motion', 'nav_msgs/msg/Odometry'),
     'amcl_pose_topic': ('motion', 'geometry_msgs/msg/PoseWithCovarianceStamped'),
     'footprint_topic': ('motion', 'geometry_msgs/msg/PolygonStamped'),
+    'runtime_debug_topic': ('motion', 'cleany_interfaces/msg/RuntimeDebugSnapshot'),
+    'runtime_events_topic': ('motion', 'cleany_interfaces/msg/RuntimeEvent'),
+    'runtime_result_topic': ('motion', 'cleany_interfaces/msg/MissionResult'),
+    'rosout_topic': ('logs', 'rcl_interfaces/msg/Log'),
+    'nav2_bt_topic': ('bt', 'nav2_msgs/msg/BehaviorTreeLog'),
+    'nav2_bt_trace_topic': ('bt', 'std_msgs/msg/String'),
+    'controller_evaluation_topic': ('paths', 'dwb_msgs/msg/LocalPlanEvaluation'),
+    'pan_state_topic': ('safety', 'std_msgs/msg/String'),
+    'reactive_guard_topic': ('safety', 'std_msgs/msg/String'),
+    'voxel_guard_topic': ('safety', 'std_msgs/msg/String'),
+    'coverage_topic': ('safety', 'std_msgs/msg/String'),
+    'collision_state_topic': ('safety', 'nav2_msgs/msg/CollisionMonitorState'),
+    'stop_polygon_topic': ('safety', 'geometry_msgs/msg/PolygonStamped'),
+    'slow_polygon_topic': ('safety', 'geometry_msgs/msg/PolygonStamped'),
 }
 
 
@@ -355,7 +367,7 @@ class RecordingControls:
     def __init__(self, queue_limit=32*1024**2):
         self.lock = threading.Lock()
         self.settings = defaults()
-        self._source_config = {}
+        self.source_config = {}
         self.revision = 0
         self.queue = deque()
         self.queued_bytes = 0
@@ -366,23 +378,6 @@ class RecordingControls:
         self.available = {}
         self.writer_error = ""
         self.transitioning = False
-        self._rebuild_context()
-
-    @property
-    def source_config(self) -> dict:
-        with self.lock:
-            return deepcopy(self._source_config)
-
-    @source_config.setter
-    def source_config(self, value: dict) -> None:
-        config = deepcopy(value)
-        with self.lock:
-            if config == self._source_config:
-                return
-            self._source_config = config
-            self._rebuild_context()
-            self.revision += 1
-            self.last.clear()
 
     @contextmanager
     def transition(self):
@@ -396,47 +391,49 @@ class RecordingControls:
             with self.lock:
                 self.transitioning = False
 
-    def configure(self, settings):
+    def configure(self, settings, *, preserve_stats=False):
         settings = validate(settings)
         with self.lock:
             self.settings = settings
             self.revision += 1
             self.last.clear()
-            self.stats = {}
-            self.stats_generation += 1
-            self._rebuild_context()
-
-    def policy(self):
-        """Snapshot policy without rebuilding display status for each write tick."""
-        with self.lock:
-            return deepcopy(self.settings)
+            if not preserve_stats:
+                self.stats = {}
+                self.stats_generation += 1
 
     def camera_info_topic(self):
-        return self._camera_info_topic
+        topic = self.settings['topics']['camera']
+        if topic.endswith('/compressed'):
+            topic = topic.rsplit('/', 1)[0]
+        return topic.rsplit('/', 1)[0] + '/camera_info'
 
-    def _rebuild_context(self) -> None:
-        """Build derived routes under lock only when their inputs change."""
+    def context_topics(self):
+        """Called under lock; topic remapping and per-source opt-outs apply."""
         s = self.settings
-        sources = {**resolved(self._source_config), **s['sources']}
+        sources = {**resolved(self.source_config), **s['sources']}
         topics = {sources[field]: (group, typ, field)
                   for field, (group, typ) in CONTEXT.items()
                   if s['enabled'][group] and s['source_enabled'].get(field, True)}
         if s['enabled']['motion']:
+            for index, topic in enumerate(sources['velocity_topics']):
+                identity = f'velocity_topics:{index}'
+                if s['source_enabled'].get(identity, True):
+                    topics[topic] = ('motion', 'geometry_msgs/msg/Twist', identity)
             topics.update({'/joint_states': ('motion', 'sensor_msgs/msg/JointState', None),
                            '/robot_description': ('motion', 'std_msgs/msg/String', None)})
-        self._context_topics = MappingProxyType(topics)
-        self._has_ros_context = any(s['enabled'][key] for key in RAW) or bool(topics)
-        camera = s['topics']['camera']
-        if camera.endswith('/compressed'):
-            camera = camera.rsplit('/', 1)[0]
-        self._camera_info_topic = camera.rsplit('/', 1)[0] + '/camera_info'
+        if s['enabled']['slam']:
+            for name, default, typ in (
+                ('submaps', '/submap_list', 'cartographer_ros_msgs/msg/SubmapList'),
+                ('trajectory', '/trajectory_node_list', 'visualization_msgs/msg/MarkerArray'),
+                ('constraints', '/constraint_list', 'visualization_msgs/msg/MarkerArray'),
+                ('matched_points', '/scan_matched_points2', 'sensor_msgs/msg/PointCloud2'),
+            ):
+                topic = self.source_config.get(f'slam_{name}_topic', default)
+                topics[topic] = ('slam', typ, None)
+        return topics
 
-    def context_topics(self) -> Mapping[str, tuple[str, str, str | None]]:
-        """Called under lock; the returned routes cannot be mutated by callers."""
-        return self._context_topics
-
-    def has_ros_context(self) -> bool:
-        return self._has_ros_context
+    def has_ros_context(self):
+        return any(self.settings['enabled'][k] for k in RAW) or bool(self.context_topics())
 
     def topics(self):
         with self.lock:
@@ -528,10 +525,9 @@ class RecordingControls:
         with self.lock:
             statuses = {}
             s = self.settings
-            context_enabled = self.has_ros_context()
             for key in (*LABELS, 'transforms', 'clock', 'camera_info'):
                 stat = dict(self.stats.get(key, {}))
-                is_enabled = (context_enabled if key in ('transforms', 'clock') else
+                is_enabled = (self.has_ros_context() if key in ('transforms', 'clock') else
                               s['enabled']['camera'] if key == 'camera_info' else s['enabled'][key])
                 state = '미녹화' if not is_enabled else '녹화 정지' if not s['active'] else '저장 중단' if reason else '저장 오류' if stat.get('error') else '기록 대기'
                 if state == '기록 대기' and key in ('transforms', 'clock', 'camera_info'):

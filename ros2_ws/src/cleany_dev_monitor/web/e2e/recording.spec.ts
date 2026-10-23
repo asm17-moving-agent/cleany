@@ -24,7 +24,7 @@ function initial() {
       local_path_topic: "/local_plan",
       velocity_topics: ["/cmd_vel"],
     },
-    active: true,
+    active: false,
     preset: "standard",
     limit_mib: 100,
     enabled: Object.fromEntries(keys.map((k) => [k, !heavy.includes(k)])),
@@ -356,6 +356,11 @@ test("recording presets, independent toggles, rate, stop and fresh starts", asyn
   expect(writes[0].enabled.point_cloud).toBe(false);
   expect(writes[0].hz.point_cloud).toBe(3.5);
   expect(writes[0].limit_mib).toBe(300);
+  await page.getByRole("button", { name: "녹화 시작", exact: true }).click();
+  await expect(page.getByLabel("주기 프로필")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "설정 적용", exact: true }),
+  ).toBeDisabled();
   await page.getByRole("button", { name: "녹화 정지", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "녹화 시작", exact: true }),
@@ -364,14 +369,15 @@ test("recording presets, independent toggles, rate, stop and fresh starts", asyn
   await expect(
     page.getByRole("button", { name: "녹화 정지", exact: true }),
   ).toBeVisible();
-  await expect.poll(() => writes.length).toBe(3);
+  await expect.poll(() => writes.length).toBe(4);
   expect(methods).toEqual([
     "PUT /api/recording/settings",
+    "POST /api/recording/session",
     "PUT /api/recording/settings",
     "POST /api/recording/session",
   ]);
-  expect(writes[1].active).toBe(false);
-  expect(writes[2].active).toBe(true);
+  expect(writes[2].active).toBe(false);
+  expect(writes[3].active).toBe(true);
   await page.mouse.move(0, 0);
   await expect(
     page.getByRole("button", { name: "녹화 정지", exact: true }),
@@ -474,4 +480,53 @@ test("recording exports separate processed data and only finalized bags", async 
   await expect(
     incomplete.getByRole("link", { name: "rosbag2 내보내기 ↓" }),
   ).toHaveCount(0);
+});
+
+test("logger disconnect disables recording controls and preserves the draft", async ({
+  page,
+}) => {
+  let offline = false;
+  await page.route("**/api/recordings", (route) =>
+    route.fulfill({ json: { sessions: [], active: "", reason: "" } }),
+  );
+  await page.route("**/api/navigation/runs", (route) =>
+    route.fulfill({ json: { runs: [] } }),
+  );
+  await page.route("**/api/recording/settings", (route) =>
+    offline
+      ? route.fulfill({
+          status: 503,
+          body: "logger 서비스를 사용할 수 없습니다.",
+        })
+      : route.fulfill({
+          json: {
+            settings: initial(),
+            status: {},
+            rate_profiles: {},
+            reason: "",
+          },
+        }),
+  );
+  await page.routeWebSocket("**/ws", (socket) =>
+    socket.send(
+      JSON.stringify({
+        initial: true,
+        boot_id: "offline-test",
+        sequence: 1,
+        rows: [],
+      }),
+    ),
+  );
+  await page.goto("/#recordings");
+  await expect(page.getByLabel("세션 용량 MiB")).toBeEnabled();
+  await page.getByLabel("세션 용량 MiB").fill("250");
+  offline = true;
+  await expect(
+    page.getByText("logger 연결 끊김", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("세션 용량 MiB")).toBeDisabled();
+  await expect(page.getByLabel("세션 용량 MiB")).toHaveValue("250");
+  await expect(
+    page.getByRole("button", { name: "녹화 시작", exact: true }),
+  ).toBeDisabled();
 });

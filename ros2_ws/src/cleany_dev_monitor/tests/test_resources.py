@@ -7,10 +7,11 @@ import pytest
 from aiohttp import ClientSession
 from aiohttp.test_utils import TestServer
 
-from cleany_dev_monitor.core import Hub, Recorder
-from cleany_dev_monitor.recording import allowed, defaults, validate
+from cleany_dev_monitor.core import Hub
+from cleany_logger import Recorder
+from cleany_logger.recording import allowed, defaults, validate
 from cleany_dev_monitor.resources import ResourceSampler, linux_process_snapshot, psutil_process_snapshot
-from cleany_dev_monitor.server import create_app
+from logger_fixture import create_app
 
 
 def test_counter_rates_first_sample_reset_and_actual_elapsed():
@@ -47,10 +48,10 @@ class Process:
 
 def test_process_exit_permission_pid_reuse_and_bounded_history(monkeypatch):
     sampler = ResourceSampler(history_limit=2)
-    monkeypatch.setattr('cleany_dev_monitor.resources.process_snapshot', psutil_process_snapshot)
+    monkeypatch.setattr('cleany_logger.resources.process_snapshot', psutil_process_snapshot)
     clock = iter([10, 12, 14, 16])
     monkeypatch.setattr(
-        "cleany_dev_monitor.resources.time.monotonic", lambda: next(clock)
+        "cleany_logger.resources.time.monotonic", lambda: next(clock)
     )
     items = [
         Process(),
@@ -99,9 +100,9 @@ def test_linux_process_snapshot_pid_reuse_resets_cpu_baseline(tmp_path, monkeypa
         (process / 'stat').write_text('42 (worker) ' + ' '.join(fields))
 
     write()
-    monkeypatch.setattr('cleany_dev_monitor.resources.process_snapshot', lambda: linux_process_snapshot(tmp_path))
+    monkeypatch.setattr('cleany_logger.resources.process_snapshot', lambda: linux_process_snapshot(tmp_path))
     clock = iter([10, 12, 14])
-    monkeypatch.setattr('cleany_dev_monitor.resources.time.monotonic', lambda: next(clock))
+    monkeypatch.setattr('cleany_logger.resources.time.monotonic', lambda: next(clock))
     sampler = ResourceSampler()
     assert sampler.sample()['processes_cpu'][0]['cpu_percent'] is None
     fields[11] = '200'
@@ -192,6 +193,8 @@ def test_http_worker_live_metrics_and_shutdown(tmp_path):
             assert policy['observation']['resources']['summary'] == '수집 설정 0.5초 (2 Hz)'
             assert policy['labels']['resources'] == '호스트 리소스'
             settings = policy['settings']
+            settings['active'] = False
+            await client.put(server.make_url('/api/recording/settings'), json=settings)
             settings['enabled']['resources'] = False
             response = await client.put(server.make_url('/api/recording/settings'), json=settings)
             assert response.status == 200

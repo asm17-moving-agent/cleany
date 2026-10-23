@@ -232,57 +232,38 @@ HTTP API는 `/api/control/status`, `login`, `logout`, `jobs`, `cancel`,
 
 상태 조회는 한 번에 하나만 전송하고, 느린 응답도 다음 주기의 요청 때문에 버리지
 않는다. HTTP 대기는 10초로 제한하며 오래된 상태에서는 기존 버튼 잠금을 유지한다.
-녹화 목록은 HTTP 이벤트 루프 밖에서 조회하고 브라우저 간 갱신을 공유한다. 종료된
-녹화의 요약은 파일 수정 시각과 크기가 바뀔 때 다시 읽는다. 기록 파일이 많아져도
-목록 조회가 라이브 WebSocket과 조작 API의 응답을 막지 않도록 한다.
-### 녹화 세션 관리 및 삭제
 
-기록 탭의 `기록 관리, 내보내기` 목록에서 녹화본을 다운로드하거나 불필요한 세션을 안전하게 정리할 수 있습니다.
+### 독립 Logger 녹화
 
-- **개별 세션 영구 삭제**:
-  - 목록 오른쪽의 휴지통 아이콘을 누르면 해당 세션의 SQLite DB 파일, 저널/WAL 파일, `bags/<session>/` 원본 Rosbag 데이터가 함께 삭제됩니다.
-  - 다른 녹화 세션, 모니터 운영 설정 및 웹 명령 이력은 보호됩니다.
-- **삭제 시 안전 조건**:
-  - 현재 녹화가 진행 중인 세션은 삭제할 수 없습니다. (`녹화 정지` 후 삭제 가능)
-  - 용량 한도 초과나 센서 에러로 중단된 세션은 파일 락(Writer)이 안전하게 닫힌 후 삭제가 가능합니다.
-  - 현재 재생 중인 세션을 삭제하면 자동으로 라이브 관측 모드로 복귀합니다.
-- **인덱스 최적화**: 신규 녹화 시 `records(kind, received)` SQL 인덱스를 자동 생성하여 대용량 녹화본에서도 UI 지연 없이 고속 조회가 가능합니다.
+녹화는 `cleany_logger`가 담당하며 Monitor에는 자체 writer가 없다.
+Monitor와 Logger를 같은 ROS domain과 같은 `state_directory`로 실행한다.
+기본 저장 위치는 `~/.local/state/cleany/recordings`이며 기존
+`~/.local/state/cleany/dev-monitor` 기록을 자동으로 이동하지 않는다.
+Logger 실행과 CLI 제어는 [독립 Logger 절차](../../../docs/RUNNING.md#독립-logger)를 따른다.
+녹화 삭제 API와 버튼은 제공하지 않는다. Monitor 종료는 Logger 녹화를 중단하지 않는다.
 
-이 적용 전 소스 백업은 이 Jetson의
-`~/.local/state/cleany/dev-monitor/backups/before-controls-20261021-033539/`에 있다.
-`sources.tar.gz`와 SHA256 `manifest.json`으로 기존 작업까지 보존했다. 일반적인
-원복은 위 feature-off 명령으로 충분하다. 같은 디렉터리의 `controls-change.patch`는
-이 기능에 한정한 소스 차이다. 소스까지 제거하려면 유휴 상태에서 제어를 끄고
-저장소 루트에서 `git apply --reverse --check <패치 경로>`로 이후 변경과 충돌 여부를
-먼저 확인한 뒤 `git apply --reverse <패치 경로>`를 적용하고 두 패키지를 다시 빌드한다.
-기존 소스를 보존하기 위해 `git reset`이나 `git clean`을 사용하지 않는다.
+실행 준비 파일의 진행 상태는 실시간 화면에만 표시한다. 녹화와 재생은 Logger가
+구독한 ROS 관측을 기준으로 하며 준비 파일의 이력을 자동으로 저장하지 않는다.
 
 ## 검증
 
 Linux/Jetson 호스트 리소스는 매 표본마다 `/proc/<PID>/stat`를 한 번 읽어
 프로세스 이름, CPU 누적 시간, 시작 tick과 RSS를 함께 수집한다. 전체 프로세스와
 호스트 지표의 기본 1초 수집 주기는 유지하며 PID 재사용 시 CPU 기준을 초기화한다.
-다른 운영체제에서는 psutil을 사용한다. 녹화는 중복 제외가 필요한 지도 레이어만
-내용 hash를 계산하고, 녹화 정책 조회와 화면용 상태 계산을 분리한다.
-WebSocket과 주기 녹화는 새 sequence의 행만 가져온다. 최초 접속과 출처 변경에는
-전체 최신 상태를 보내며 이벤트 ring의 누락 표시, 레이어 중복 제외와 저장 한도는 유지한다.
-
-SQLite·journal·bag의 용량 검사는 `scandir`의 파일 정보를 사용해 중복 조회를
-줄인다. 매 기록 전 현재 크기를 새로 확인하므로 다른 세션의 파일 증가도 한도에
-반영한다. 녹화용 토픽과 CameraInfo 경로는 설정 변경 시 한 번 계산한다.
-`RecordingControls.configure()`와 `source_config` 교체는 같은 lock 안에서
-캐시를 갱신하고 이전 설정의 수신 ticket을 무효화한다. `source_config` 조회는
-복사본을, 도출된 토픽 목록은 읽기 전용 객체를 반환한다.
+다른 운영체제에서는 psutil을 사용한다. WebSocket은 최초 접속과 출처 변경에
+전체 최신 상태를 보내며 이후에는 새 sequence의 행을 보낸다. 녹화 정책,
+저장 한도와 archive 조회는 Logger의 구현과 검증 절차를 따른다.
 
 합성 ROS 입력 51개 publisher, 16개 선택 토픽, WebSocket 1개와 2초 간격 HTTP 조회로
 모니터 프로세스 CPU를 비교할 수 있다. 별도의 localhost DDS domain 180을 사용하며
 실제 로봇 런타임을 시작하거나 조작 서비스를 호출하지 않는다. CPU는 한 코어를
-100%로 계산하며 합성 publisher와 브라우저의 CPU는 포함하지 않는다.
+100%로 계산하며 별도 프로세스로 실행하는 Logger, 합성 publisher와 브라우저의
+CPU는 포함하지 않는다. 녹화 검사는 Logger가 만든 SQLite와 rosbag2를 사용한다.
 시작 후 5초를 제외하고 기본 30초를 측정한다. 출력 경로는 새 디렉터리여야 한다.
 
 ```bash
 make benchmark-dev-monitor-cpu MONITOR_CPU_OUTPUT=/absolute/new-monitor-cpu-run
-# 백업된 패키지로 동일 부하 비교: 해당 경로 아래 cleany_dev_monitor 모듈 필요
+# 독립 Logger를 사용하는 다른 버전과 비교: 해당 경로 아래 cleany_dev_monitor 모듈 필요
 make benchmark-dev-monitor-cpu MONITOR_CPU_OUTPUT=/absolute/new-baseline-run \
   MONITOR_CPU_SOURCE=/absolute/baseline
 ```
@@ -314,6 +295,6 @@ pnpm test:e2e
 
 ROS 검사는 localhost의 독립 domain 179에서 실행한다. 웹 검사는 Playwright Chromium이
 필요하다. 실제 Jetson 서버 연결 검사는 모터 Goal을 보내지 않고 관측과 heartbeat를
-검사한다. 기록은 기본 `~/.local/state/cleany/dev-monitor`에 저장하며 자동 삭제하지 않는다.
+검사한다. 기록은 기본 `~/.local/state/cleany/recordings`에 저장하며 자동 삭제하지 않는다.
 
 상세 규약은 [데이터](docs/data.md)와 [ROS 인터페이스](docs/interfaces.md)를 따른다.

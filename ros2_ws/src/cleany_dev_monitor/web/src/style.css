@@ -13,21 +13,6 @@ summary {
 button:disabled {
   cursor: not-allowed;
 }
-.recording-delete-cell {
-  width: 1%;
-  text-align: right;
-  white-space: nowrap;
-}
-.recording-delete-button {
-  border: 1px solid var(--bad-border);
-  background: var(--bad-bg);
-  color: var(--bad-text);
-  box-shadow: none;
-}
-.recording-delete-button:hover:not(:disabled) {
-  border-color: var(--bad-text);
-  background: color-mix(in srgb, var(--bad-bg) 82%, var(--bad-border));
-}
 a {
   text-decoration: none;
 }

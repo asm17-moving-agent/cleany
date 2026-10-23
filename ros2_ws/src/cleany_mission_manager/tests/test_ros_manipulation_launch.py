@@ -10,7 +10,7 @@ pytest.importorskip("launch")
 pytest.importorskip("launch_ros")
 
 from launch import LaunchContext
-from launch.actions import GroupAction, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
 from launch_ros.actions import Node
 
 
@@ -23,6 +23,9 @@ def composition(tmp_path, monkeypatch):
     spec.loader.exec_module(module)
     monkeypatch.setattr(module, "get_package_share_directory", lambda name: str(source / name))
     context = LaunchContext()
+    for action in module.generate_launch_description().entities:
+        if isinstance(action, DeclareLaunchArgument):
+            action.execute(context)
     context.launch_configurations.update({
         "map": str(source / "cleany_gazebo_sim/maps/study_cafe_26cm.yaml"),
         "targets_file": str(source / "cleany_mission_manager/config/study_cafe_targets.yaml"),
@@ -31,7 +34,7 @@ def composition(tmp_path, monkeypatch):
         "start_manipulation_mock": "true", "manipulation_scenario": "success",
         "manipulation_database_path": str(tmp_path / "executions.db"),
         "journal_path": str(tmp_path / "missions.db"), "bridge_journal_path": str(tmp_path / "bridge.db"),
-        "profile": "fortress", "headless": "true", "gateway_url": "ws://localhost/gateway/ws",
+        "headless": "true", "gateway_url": "ws://localhost/gateway/ws",
         "post_mission": "wait_for_next", "enable_bridge": "false", "enable_telemetry": "false",
     })
     return module, context
@@ -39,16 +42,25 @@ def composition(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("backend,start,count", [("mock", "false", 3),
     ("action_mock", "false", 5), ("action_mock", "true", 6)])
-def test_supported_compositions_start_exactly_one_simulator(composition, tmp_path, backend, start, count):
+@pytest.mark.parametrize("enable_logger", ["false", "true"])
+def test_supported_compositions_start_exactly_one_simulator(
+        composition, tmp_path, backend, start, count, enable_logger):
     module, context = composition
+    assert context.launch_configurations["enable_logger"] == "false"
     parameters = yaml.safe_load(Path(context.launch_configurations["runtime_config"]).read_text())
     parameters["mission_runtime"]["ros__parameters"]["manipulation_backend"] = backend
     path = tmp_path / "runtime.yaml"
     path.write_text(yaml.safe_dump(parameters))
-    context.launch_configurations.update(runtime_config=str(path), start_manipulation_mock=start)
+    context.launch_configurations.update(runtime_config=str(path), start_manipulation_mock=start,
+                                         enable_logger=enable_logger)
     actions = module._start(context)
-    assert len(actions) == count
-    assert sum(isinstance(action, (IncludeLaunchDescription, GroupAction)) for action in actions) == 3
+    logger_count = int(enable_logger == "true")
+    assert len(actions) == count + logger_count
+    assert sum(isinstance(action, (IncludeLaunchDescription, GroupAction)) for action in actions) == 3 + logger_count
+    assert sum(isinstance(action, IncludeLaunchDescription)
+               and "headless" in dict(action.launch_arguments) for action in actions) == 1
+    assert sum(isinstance(action, IncludeLaunchDescription)
+               and "record_on_start" in dict(action.launch_arguments) for action in actions) == logger_count
     expected = (2 if backend == "action_mock" else 0) + (1 if start == "true" else 0)
     assert sum(isinstance(action, Node) for action in actions) == expected
     if backend == "action_mock":
@@ -62,6 +74,21 @@ def test_supported_compositions_start_exactly_one_simulator(composition, tmp_pat
         safety = yaml.safe_load((Path(__file__).parents[2] / "cleany_gazebo_sim/config/nav2_safety.yaml").read_text())
         for name in ("local_costmap", "global_costmap"):
             assert parameters[name][name]["ros__parameters"]["footprint"] == safety[name][name]["ros__parameters"]["footprint"]
+
+
+@pytest.mark.parametrize("record_on_start", ["false", "true"])
+def test_logger_include_forwards_recording_configuration(composition, tmp_path, record_on_start):
+    module, context = composition
+    config = tmp_path / "logger.yaml"
+    context.launch_configurations.update(enable_logger="true", record_on_start=record_on_start,
+                                         logger_config=str(config))
+    actions = module._start(context)
+    includes = [action for action in actions if isinstance(action, IncludeLaunchDescription)
+                and "record_on_start" in dict(action.launch_arguments)]
+    assert len(includes) == 1
+    assert dict(includes[0].launch_arguments) == {
+        "use_sim_time": "true", "record_on_start": record_on_start, "config": str(config),
+    }
 
 
 @pytest.mark.parametrize("error", ["backend", "scenario", "snapshots", "destination", "database", "timeout"])

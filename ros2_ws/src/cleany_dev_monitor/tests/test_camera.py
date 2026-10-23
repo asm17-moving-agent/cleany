@@ -6,8 +6,9 @@ import pytest
 from aiohttp import ClientSession
 from aiohttp.test_utils import TestServer
 from cleany_dev_monitor.camera import Cameras, encode_image, preview_source, preview_supported
-from cleany_dev_monitor.core import Hub, Recorder
-from cleany_dev_monitor.server import create_app
+from cleany_dev_monitor.core import Hub
+from cleany_logger import Recorder
+from logger_fixture import create_app
 from PIL import Image
 
 
