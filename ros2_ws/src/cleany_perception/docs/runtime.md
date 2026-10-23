@@ -87,7 +87,7 @@ coordinator의 capture-age와 populated OctoMap 수신-age 검사도 필요하�
 
 ## 모델 준비 및 Gemini 설정
 
-- **사전 준비**: 상세 의존성 및 모델 다운로드 안내는 [개발환경 가이드](DEVELOPMENT_SETUP.md)를 참고하세요.
+- **사전 준비**: 상세 의존성 및 모델 다운로드 안내는 [개발환경 가이드](../../../../docs/DEVELOPMENT_SETUP.md)를 참고하세요.
 - **가중치 파일 위치**: YOLOE 체크포인트와 `mobileclip2_b.ts` 텍스트 인코더는 `CLEANY_MODEL_DIR` 또는 `~/models` 아래에 준비합니다.
 - **Gemini 분류 연동**:
   - `yoloe_gemini` 모드 사용 시 환경 변수 `GEMINI_API_KEY`를 필수로 주입해야 합니다.
