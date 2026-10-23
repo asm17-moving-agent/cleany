@@ -20,6 +20,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SystemRecovery.msg"
   "msg/SystemRecoveries.msg"
   "msg/SystemHeartbeat.msg"
+  "msg/SystemEvent.msg"
   "srv/CheckPermission.srv"
   "srv/RequestFaultReset.srv"
   "action/StopMission.action"

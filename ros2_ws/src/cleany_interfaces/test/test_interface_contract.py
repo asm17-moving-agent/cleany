@@ -25,6 +25,13 @@ def test_supervision_wire_contracts_default_to_no_authority():
     assert not StopMission.Result().stopped
     assert not RecoverComponent.Result().success
     assert not RequestRecovery.Result().restored
+    assert RequestFaultReset.Request().operator_id == ''
+
+
+def test_supervisor_event_is_structured():
+    from cleany_interfaces.msg import SystemEvent
+    event = SystemEvent()
+    assert event.sequence == 0 and event.kind == event.code == event.detail == ''
 
 
 def test_wrist_observation_distinguishes_missing_target_from_service_failure():
