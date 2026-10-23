@@ -184,10 +184,15 @@ four driven wheel joints, and attaches Gazebo sensors and mecanum contact approx
 It does not modify this package's movable joint contract. See that package's README
 for the CAD launcher, wheel odometry geometry, and simulation limitations.
 
-## 선택적 팔 충돌 메시
+## 선택적 팔 충돌 메시 (Optimized Collision Meshes)
 
-`optimized_arm_collision_meshes` 기본값은 false이며 기존 CAD 충돌 형상을 유지한다. true로 명시하면 `meshes/collision/`의 별도 팔 충돌 자산을 사용한다. visual과 관성은 변경하지 않는다. `configs/robot/arm_collision_meshes.json`과 자산 manifest가 생성 조건과 원본/output hash를 기록한다. 재생성은 `tools/optimize_arm_collision_meshes.py`를 명시 실행할 때만 수행한다.
+실물 로봇 및 MoveIt 계획 연산의 충돌 검사 부하를 줄이기 위해 최적화된 경량 충돌 메시를 선택할 수 있습니다.
 
-실물 수집에 사용하는 `configs/robot/camera_preview.json`은 `xacro_args.optimized_arm_collision_meshes`를 `"true"`로 명시한다. 상태 모델과 제어 모델은 이 설정으로 양팔의 경량 충돌 메시 16개를 선택한다. 공통 Xacro 기본값에 의존하지 않으며, 변경은 다음 모델 생성과 런타임 기동부터 반영된다.
-
-메시 단순화는 컴포넌트 연결 관계, 폐곡면, 경계 포함 또는 양방향 표면 거리 조건을 검사한다. `test_collision_meshes.py`와 관련 MoveIt runtime 검사로 확인하며 실물 간섭 여유의 검증을 대신하지 않는다. `head_collision_meshes`도 기본 false이며 명시할 때만 head CAD 충돌 면을 선택한다.
+- **설정 파라미터**: `optimized_arm_collision_meshes` (기본값: `false`)
+  - `false`: 기존 CAD 충돌 형상을 그대로 유지합니다.
+  - `true`: `meshes/collision/` 디렉터리에 위치한 경량 팔 충돌 메시(16개)를 적용합니다. (시각적 외형(Visual) 및 관성(Inertia) 파라미터는 영향을 받지 않음)
+- **실물 수거 설정**: 실물 수거용 `configs/robot/camera_preview.json`에서는 `xacro_args.optimized_arm_collision_meshes`를 `"true"`로 지정하여 고속 충돌 검사를 활성화합니다.
+- **형상 검증 및 재생성**:
+  - 단순화된 메시는 컴포넌트 연결 관계, 폐곡면, 경계 포함 조건을 엄격히 만족하도록 생성되었습니다.
+  - 자산 무결성은 `configs/robot/arm_collision_meshes.json` 및 `test_collision_meshes.py` 단위 테스트로 검증됩니다.
+  - 메시 파일 재생성은 필요 시 `tools/optimize_arm_collision_meshes.py`를 명시적으로 실행할 때만 수행합니다.
