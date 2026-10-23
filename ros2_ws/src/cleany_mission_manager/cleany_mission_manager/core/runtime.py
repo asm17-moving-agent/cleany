@@ -12,6 +12,7 @@ from .journal import MissionJournal
 from .operations import ExecutorPort, OperationPort
 from .result import FailureCode, ModuleResult, ResultStatus
 from .runtime_models import Admission, RuntimePolicy, RuntimeReport, RuntimeRequest, RuntimeState
+from .supervision import Authorization, SupervisionPort
 
 
 class MissionRuntime:
@@ -20,17 +21,27 @@ class MissionRuntime:
     Call tick() regularly with nonblocking operation ports. Construction turns
     unfinished journal entries into INTERRUPTED outcomes requiring operator
     review. Admission and terminal outcomes are persisted synchronously.
+
+    With a supervision port the System Supervisor owns system faults and
+    capabilities: admission needs its availability, motion needs a granted lease
+    and lost authority stops the mission. Losing authority is not a Runtime
+    execution error, so it ends the mission without entering ERROR. The Runtime
+    still owns stop confirmation of its own operations and its ERROR/reset rules.
     """
     def __init__(self, *, navigator: OperationPort, perception: OperationPort,
                  planner: OperationPort, executor: ExecutorPort, clock: Callable[[], float],
                  supported_targets: set[str], policy: RuntimePolicy | None = None,
                  journal: MissionJournal | None = None,
                  on_accept: Callable[[], None] | None = None,
-                 navigation_mode: str = "mock") -> None:
+                 navigation_mode: str = "mock",
+                 supervision: SupervisionPort | None = None) -> None:
         if navigation_mode not in ("sim", "mock"):
             raise ValueError("this runtime supports simulation or explicit mocks only")
         self.execution_profile = {"navigation": navigation_mode, "perception": "mock",
                                   "planning": "mock", "execution": "mock"}
+        self.supervision = supervision
+        self.revoked = False
+        self.authorized_once = False
         self.navigator = navigator
         self.desk_ports = (perception, planner, executor)
         self.executor = executor
@@ -77,6 +88,13 @@ class MissionRuntime:
         safe, reason = self._safe_to_drive()
         if not safe:
             return False, reason
+        if self.supervision is not None:
+            try:
+                available, reason = self.supervision.available()
+            except Exception:
+                return False, "SUPERVISION_ERROR"
+            if not available:
+                return False, reason or "SUPERVISION_UNAVAILABLE"
         for port in (self.navigator, *self.desk_ports):
             try:
                 ready, reason = port.ready()
@@ -118,7 +136,13 @@ class MissionRuntime:
         self.operation_id = None
         self.cleaning = None
         self.navigation_result = self.return_result = "NOT_STARTED"
+        self.revoked = self.authorized_once = False
         self._enter(RuntimeState.NAVIGATE_TO_TARGET)
+        if self.supervision is not None:
+            try:
+                self.supervision.acquire(request.mission_id)
+            except Exception as exc:
+                self._revoke(f"lease request failed: {exc}")
         return Admission(True)
 
     def cancel(self, mission_id: str) -> Admission:
@@ -182,6 +206,24 @@ class MissionRuntime:
         self.journal.set("error_code", self.error_code)
         return Admission(True)
 
+    def supervisor_stop(self, mission_id: str, reason: str) -> Admission:
+        """Accept a Supervisor stop request for the active or a finished mission.
+
+        A mission not running here is answered from stop evidence only, because a
+        restarted Runtime or Supervisor may still need confirmation of an old lease.
+        """
+        if self.request is None:
+            return Admission(True)
+        if self.request.mission_id != mission_id:
+            return Admission(False, "OTHER_MISSION_ACTIVE")
+        if self.state not in (RuntimeState.CANCELLING, RuntimeState.ERROR):
+            self._revoke(reason or "Supervisor requested stop")
+        return Admission(True)
+
+    def supervisor_stop_confirmed(self, mission_id: str) -> bool:
+        """True only when no work runs here and every operation reports stopped."""
+        return self.request is None and self._stopped()
+
     def tick(self) -> None:
         """Advance pending operations without waiting for ROS or network replies."""
         try:
@@ -205,6 +247,8 @@ class MissionRuntime:
 
     def _tick(self) -> None:
         self.executor.maintain()
+        if self.supervision is not None:
+            self.supervision.maintain()
         if self.cleaning and self.state in (RuntimeState.CANCELLING, RuntimeState.ERROR):
             self.cleaning.settle()
         if self.state == RuntimeState.ERROR and self.operation_id:
@@ -212,6 +256,8 @@ class MissionRuntime:
         if self.state in (RuntimeState.IDLE, RuntimeState.ERROR):
             return
         assert self.request is not None
+        if self.state != RuntimeState.CANCELLING and not self._authorized():
+            return
         if self.state == RuntimeState.CANCELLING:
             # Poll cancellation too: a cancel request alone is never a stopped acknowledgement.
             if self.operation_id:
@@ -301,6 +347,27 @@ class MissionRuntime:
                 self.return_result = "NOT_REQUESTED"
                 self._finish()
 
+    def _authorized(self) -> bool:
+        """Gate every active tick on the Supervisor lease; wait only before first motion."""
+        if self.supervision is None:
+            return True
+        status, reason = self.supervision.authorization()
+        if status == Authorization.GRANTED:
+            self.authorized_once = True
+            return True
+        if (status == Authorization.PENDING and not self.authorized_once
+                and self.state == RuntimeState.NAVIGATE_TO_TARGET and self.operation_id is None
+                and self.clock() - self.started_at < self.policy.permission_timeout):
+            return False
+        self._revoke(reason or status.value)
+        return False
+
+    def _revoke(self, reason: str) -> None:
+        self.revoked = True
+        self.return_after_cancel = False
+        self._begin_stop(ModuleResult.blocked(FailureCode.PERMISSION_REVOKED,
+                                              message=f"Supervisor authority unavailable: {reason}"))
+
     def _begin_stop(self, result: ModuleResult) -> None:
         self.stop_result = result
         self.observe("cancel_requested", {"operation_id": self.operation_id,
@@ -361,7 +428,8 @@ class MissionRuntime:
             skipped_tasks=list(context.skipped) if context else [],
             failed_task=(context.proposal.object_id if context and context.proposal and result else ""),
             needs_human_review=bool(force_error or result and result.status == ResultStatus.FATAL
-                                   or context and context.needs_review),
+                                   or context and context.needs_review
+                                   or self.revoked and self.cleaning is not None),
             before_observation=context.before if context else "",
             after_observation=context.after if context else "",
             navigation_result=self.navigation_result, return_result=self.return_result,
@@ -370,6 +438,13 @@ class MissionRuntime:
         )
         self.journal.finish(report)
         self.last_report = report
+        if self.supervision is not None:
+            try:
+                # Only confirmed stops return the lease; otherwise the Supervisor
+                # lets it expire and verifies the stop itself.
+                self.supervision.release() if self._stopped() else self.supervision.abandon()
+            except Exception:
+                pass
         self.observe("mission_result", report.to_dict())
         fatal = force_error or result is not None and result.status == ResultStatus.FATAL
         self.error_code = report.failure_code or "ERROR" if fatal else ""
@@ -405,7 +480,19 @@ class MissionRuntime:
             "completed_reports": [report.to_dict() for report in self.journal.reports()] if include_completed else [],
             "supported_seat_ids": sorted(self.targets),
             "execution_profile": dict(self.execution_profile),
+            "supervision": "required" if self.supervision is not None else "disabled",
         }
+
+    def _supervision_snapshot(self) -> dict | None:
+        if self.supervision is None:
+            return None
+        try:
+            available, reason = self.supervision.available()
+            status, detail = self.supervision.authorization()
+            return {"available": available, "reason": reason, "authorization": status.value,
+                    "detail": detail, "revoked": self.revoked}
+        except Exception as exc:
+            return {"error": str(exc)}
 
     def observe(self, kind: str, data: dict) -> None:
         """Bounded in-memory observation; no I/O or mission control from consumers."""
@@ -446,6 +533,7 @@ class MissionRuntime:
                 ("CANCELLING", "ERROR"), ("IDLE", "ERROR"), ("ERROR", "IDLE"))],
             "bt_nodes": self.cleaning.debug_nodes() if self.cleaning else [],
             "modules": modules, "safe_to_drive": safe, "drive_block_reason": reason,
+            "supervision": self._supervision_snapshot(),
             "proposal": asdict(proposal) if proposal else None,
             "manipulation": asdict(outcome) if is_dataclass(outcome) else None,
             "navigation": {"operation_id": self.operation_id,

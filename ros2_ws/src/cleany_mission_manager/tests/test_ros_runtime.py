@@ -119,6 +119,7 @@ def ros_runtime(tmp_path, request):
         Parameter("tick_hz", value=50.0),
         Parameter("navigation_timeout", value=5.0),
         Parameter("mock_operation_polls", value=1),
+        Parameter("supervision_mode", value="disabled"),
     ])
     fixture = NavigationFixture()
     executor = SingleThreadedExecutor()

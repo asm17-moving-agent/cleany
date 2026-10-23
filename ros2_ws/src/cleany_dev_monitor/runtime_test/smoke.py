@@ -62,6 +62,7 @@ node = MissionRuntimeNode(
         Parameter("mock_operation_polls", value=8),
         Parameter("operation_timeout", value=120.0),
         Parameter("cancel_timeout", value=15.0),
+        Parameter("supervision_mode", value="disabled"),
     ]
 )
 executor.add_node(node)

@@ -6,6 +6,7 @@
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend>
   <exec_depend>cleany_mission_manager</exec_depend>
+  <exec_depend>cleany_system_supervisor</exec_depend>
   <exec_depend>cleany_skill_executor</exec_depend>
   <exec_depend>nav2_collision_monitor</exec_depend>
   <exec_depend>nav2_lifecycle_manager</exec_depend>

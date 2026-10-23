@@ -33,6 +33,7 @@ node = MissionRuntimeNode(
         Parameter("navigation_backend", value="nav2"),
         Parameter("post_mission", value="wait_for_next"),
         Parameter("mock_operation_polls", value=8),
+        Parameter("supervision_mode", value="disabled"),
     ]
 )
 executor = SingleThreadedExecutor()
