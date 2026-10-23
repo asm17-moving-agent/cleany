@@ -7,10 +7,11 @@ import pytest
 from aiohttp import ClientSession
 from aiohttp.test_utils import TestServer
 
-from cleany_dev_monitor.core import Hub, Recorder
-from cleany_dev_monitor.recording import allowed, defaults, validate
+from cleany_logger import Recorder
+from cleany_dev_monitor.core import Hub
+from cleany_logger.recording import allowed, defaults, validate
 from cleany_dev_monitor.resources import ResourceSampler
-from cleany_dev_monitor.server import create_app
+from logger_fixture import create_app
 
 
 def test_counter_rates_first_sample_reset_and_actual_elapsed():
@@ -151,6 +152,8 @@ def test_http_worker_live_metrics_and_shutdown(tmp_path):
             assert policy['observation']['resources']['summary'] == '수집 설정 0.5초 (2 Hz)'
             assert policy['labels']['resources'] == '호스트 리소스'
             settings = policy['settings']
+            settings['active'] = False
+            await client.put(server.make_url('/api/recording/settings'), json=settings)
             settings['enabled']['resources'] = False
             response = await client.put(server.make_url('/api/recording/settings'), json=settings)
             assert response.status == 200

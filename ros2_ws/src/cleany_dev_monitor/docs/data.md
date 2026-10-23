@@ -1,21 +1,18 @@
 # Monitor 관측 데이터 계약
 
-Monitor는 ROS 상태를 수집해 웹에 표시하고 기록하고 재생한다. 관측 전용이며 Runtime의 안전과 완료 판정을 대체하지 않는다.
+Monitor는 ROS 상태를 웹에 표시하고 독립 logger의 기록을 조회한다. 관측 전용이며 Runtime의 안전과 완료 판정을 대체하지 않는다.
 
 ```mermaid
-flowchart TB
-    Mission["Mission Runtime<br/>debug_snapshot 2 Hz / runtime_events"] --> Collector
-    ROS["ROS graph / 선택 토픽 / rosout / TF"] --> Collector
-    Collector["rclpy 수집<br/>관측 전용"] --> Hub["크기가 제한된 Hub"]
-    subgraph Worker["별도 worker thread"]
-        API["aiohttp<br/>HTTP / WebSocket"]
-        Recorder["선택 데이터 기록"] --> DB[(SQLite 조회 모델)]
-        Recorder --> Bag[(rosbag2 CDR 원본)]
-        DB --> Replay["수신 wall 시각 기준 재생"] --> API
-    end
-    Hub -->|"실시간 snapshot / 변경분"| API
-    Hub --> Recorder
-    API -->|"실시간 표시 / 기록 재생"| UI["React 웹<br/>React Flow / Canvas"]
+flowchart LR
+    ROS[ROS 입력] --> Logger[독립 logger_node]
+    ROS --> Live[Monitor 실시간 수집]
+    Logger --> Archive[(rosbag2 원본 / SQLite 가공 자료)]
+    Archive --> Reader[읽기 전용 ArchiveReader]
+    Reader --> HTTP[Monitor HTTP / WebSocket]
+    Live --> HTTP
+    HTTP --> UI[브라우저]
+    HTTP -->|ROS 녹화 제어 서비스| Logger
+    Logger -->|상태 토픽| HTTP
 ```
 
 ## 수집과 한도
@@ -50,22 +47,18 @@ Telemetry는 종류/토픽별 최신값으로 합친다. Runtime/Monitor boot ID
 
 ## 기록과 시간
 
-ROS stamp와 수신 wall/monotonic 시각을 함께 저장하며 재생 축은 수신 wall이다. ROS clock 역행은 이벤트로 남기고 clock 정체와 수신 지연을 표시한다. Host wall 역행 환경의 정밀 재생은 지원하지 않는다.
+Logger가 ROS 수집, 가공, 정책, 설정 파일, 세션과 단일 writer를 소유한다.
+Monitor는 ROS 상태와 카메라의 실시간 표시, HTTP와 녹화 제어 client를 소유하며
+`ArchiveReader`로 공유 디렉터리의 과거 자료만 읽는다. 생성자는 저장 경로나 파일을
+만들지 않는다. Monitor 종료는 logger에 정지 요청을 보내지 않는다. 두 프로세스의
+메모리 Hub와 구독 수명은 독립적이며 `MissionJournal`은 Mission Runtime에 남는다.
 
-저장 경계는 ROS 메시지의 CDR 원문은 rosbag2, 대시보드가 만든 조회와 재생 모델은 SQLite다. 선택하고 표본화한 기록이므로 전체 ROS 그래프의 무손실 녹화를 뜻하지 않는다.
+Logger 상태가 기본 3초 동안 갱신되지 않으면 `UNAVAILABLE`로 표시한다. 제어 서비스
+불가와 응답 timeout은 HTTP 503, 상태나 revision 충돌은 409다. 실패 시 로컬 writer를
+만들거나 정지 완료로 추정하지 않는다. 과거 기록은 logger가 없어도 조회할 수 있다.
 
-| 데이터 | 저장소 |
-|---|---|
-| 선택한 LiDAR, 점군, voxel, 카메라, 지도, 경로와 위치 원문 | rosbag2의 표준 `sqlite3` storage |
-| TF, 시계, 카메라 CameraInfo와 선택한 로봇 모델 문맥 | 같은 bag에 수신마다 기록 |
-| 화면 레이어, 미션, BT, 안전 상태, 로그와 호스트 리소스 | 대시보드 SQLite의 가공 자료 |
-| 원본의 토픽, 타입, 수신 시각과 bag timestamp | SQLite `raw_index`; payload 없음 |
-
-`state_directory` 아래 `<session>.sqlite3`, `bags/<session>/`, `recording-settings.json`을 둔다. 기본 위치는 `~/.local/state/cleany/dev-monitor`이며 실행 시 `-p state_directory:=/absolute/path`로 바꾼다. 기록은 자동 삭제하지 않는다. `web/dist`와 ROS install은 생성물이다.
-
-ROS callback은 최대 8 MiB 메시지를 32 MiB/128건의 큐로 넘기고 HTTP worker가 bag 쓰기와 종료를 소유한다. 초과, 쓰기 실패와 용량 중단은 유실 건수와 `raw_gap` metadata로 남긴다. rosbag2 runtime이 없거나 쓰기에 실패하면 원본 기록을 중단하며 SQLite payload로 대체하지 않는다. 세션 제한과 `total_limit_bytes`는 SQLite와 bag을 합산한다.
-
-녹화 시작마다 새 UUID를 만들고 정지하면 SQLite와 bag writer를 닫는다. `bag_state`는 `not_started`, `recording`, `finalized`, `incomplete`를 구분하며 완료된 bag만 ZIP으로 내보낸다. 원본 timestamp는 수신 ROS clock의 nanosecond, SQLite 시간축은 수신 wall 초다. 동일 ROS timestamp의 원본도 수신 순서로 구분한다. 이전 schema 1/2/3 SQLite는 수정하거나 자동 변환하지 않고 계속 읽는다.
+저장 형식, 시간 단위, 큐와 종료 계약은 [Logger 데이터 계약](../../cleany_logger/docs/data.md)을
+따른다. 기존 `state_directory`와 schema 1/2/3/4 읽기를 유지하며 HTTP 경로도 같다.
 
 | HTTP 경로 | 의미 |
 |---|---|
@@ -74,15 +67,13 @@ ROS callback은 최대 8 MiB 메시지를 32 MiB/128건의 큐로 넘기고 HTTP
 | `/api/recordings/{session}/raw?category=point_cloud&at=<wall-seconds>` | 지정 시각 직전 원본 CDR 1건 |
 | `/api/recordings/{session}/replay?at=<wall-seconds>` | SQLite의 가공 자료로 과거 재생 |
 
-원본 구독은 화면과 카메라 preview lease에 독립적이다. CameraInfo는 이미지 토픽의 형제 `camera_info`에서 요청한다. TF와 시계, CameraInfo는 Hz로 누락시키지 않는다. 설정 변경과 새 세션은 transient-local 원본 구독을 다시 생성해 retained 자료를 요청한다.
-
 ## 기록 설정과 화면
 
-저사양, 기본, 정밀 프로필은 주기만 바꾸며 항목 선택, 토픽 이름, 녹화 정지 상태를 유지한다. 센서 원본 5종은 기본 OFF다. 항목별 Hz는 시간 표본화이며 점과 픽셀 수를 줄이지 않는다. 안전 판단 변경 이벤트는 해당 토픽을 끈 경우를 제외하고 Hz와 무관하게 보존한다. 정확한 항목과 주기는 `recording.py`의 `SEMANTIC_RATES`, `sources.py`의 출처 정의를 따른다.
+저사양, 기본, 정밀 프로필은 주기만 바꾸며 항목 선택, 토픽 이름, 녹화 정지 상태를 유지한다. 센서 원본 5종은 기본 OFF다. 항목별 Hz는 시간 표본화이며 점과 픽셀 수를 줄이지 않는다. 안전 판단 변경 이벤트는 해당 토픽을 끈 경우를 제외하고 Hz와 무관하게 보존한다. 정확한 항목과 주기는 `cleany_logger.recording`의 `SEMANTIC_RATES`, `cleany_logger.sources`의 출처 정의를 따른다.
 
-기본 관측 토픽 변경은 녹화만이 아니라 대시보드 수집 대상도 바꾼다. 설정 세대가 바뀌면 이전 최신 상태와 주행 이력을 초기화하고 설정을 기록한다. 시간 막대는 SQLite 세션의 실제 기록 구간을 연결하고, 일시정지와 기록 없는 시각을 구분한다. 재생에는 라이브 표본을 섞지 않는다.
+녹화 토픽 변경은 logger의 관측 출처만 바꾼다. 대시보드 실시간 관측은 Monitor parameter를 따른다. 설정 변경은 정지 상태에서만 허용하며 녹화 중 시작 요청은 기존 세션을 반환한다. logger 출처 세대가 바뀌면 가공 최신 상태와 주행, 조작 이력을 초기화하고 설정을 기록한다. 시간 막대는 SQLite 세션의 실제 기록 구간을 연결하고, 일시정지와 기록 없는 시각을 구분한다. 재생에는 라이브 표본을 섞지 않는다.
 
-호스트 리소스는 Monitor 서버 호스트의 `psutil` 관측이며 다른 DDS 호스트의 지표를 추정하지 않는다. 별도 worker가 기본 1초마다 수집하고 CPU/RSS 상위 프로세스는 각각 20개, 요약 이력은 300개가 기본값이다. 권한과 장치 오류, 첫 표본은 미측정으로 표시한다. 프로세스 CPU는 논리 코어 하나가 100%이며 RSS 합계는 호스트 메모리 사용량이 아니다.
+실시간 호스트 리소스는 Monitor, 기록된 호스트 리소스는 logger의 `psutil` 관측이며 다른 DDS 호스트의 지표를 추정하지 않는다. 별도 worker가 기본 1초마다 수집하고 CPU/RSS 상위 프로세스는 각각 20개, 요약 이력은 300개가 기본값이다. 권한과 장치 오류, 첫 표본은 미측정으로 표시한다. 프로세스 CPU는 논리 코어 하나가 100%이며 RSS 합계는 호스트 메모리 사용량이 아니다.
 
 ## Cartographer와 RViz
 

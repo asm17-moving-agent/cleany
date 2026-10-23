@@ -63,9 +63,12 @@ cleany_dev_monitor:
     max_selected_topics: 16
     camera_max_streams: 2
     camera_fps: 5.0
-    state_directory: ~/.local/state/cleany/dev-monitor
+    state_directory: ~/.local/state/cleany/recordings
     session_limit_bytes: 104857600
     total_limit_bytes: 1073741824
     resource_interval_s: 1.0
     resource_process_limit: 20
     resource_history_limit: 300
+
+    logger_namespace: /cleany_logger
+    logger_timeout_s: 3.0

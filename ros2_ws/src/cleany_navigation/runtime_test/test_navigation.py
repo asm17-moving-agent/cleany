@@ -270,9 +270,9 @@ def test_goal_serial_guard_obstacle_cancel_and_missing_sources(tmp_path, monkeyp
             wait(future.done)
             handle = future.result()
             assert handle.accepted, log.read_text()[-14000:]
-            wait(lambda: moving(backend.commands.get('cmd_vel')), 40.)
-            for name in ('nav2/cmd_vel', 'pan_ready/cmd_vel', 'safety_2d/cmd_vel'):
-                assert moving(backend.commands.get(name)), (name, backend.states)
+            command_topics = ('nav2/cmd_vel', 'pan_ready/cmd_vel', 'safety_2d/cmd_vel', 'cmd_vel')
+            # Topic callbacks update independently; await movement across the chain.
+            wait(lambda: all(moving(backend.commands.get(name)) for name in command_topics), 40.)
             assert backend.count_publishers('cmd_vel') == 1
             assert all('gazebo' not in name for name in backend.get_node_names())
             backend.obstacle = True

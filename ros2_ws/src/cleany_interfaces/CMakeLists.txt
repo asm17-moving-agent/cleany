@@ -17,6 +17,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ObservedObjectGeometry.msg"
   "msg/TrackedObjectReference.msg"
 
+  "msg/RecordingCategory.msg"
+  "msg/RecordingSource.msg"
+  "msg/RecordingConfig.msg"
+  "msg/RecordingCounter.msg"
+  "msg/RecordingStatus.msg"
+  "srv/RecordingControl.srv"
   "msg/MissionStatus.msg"
   "msg/DebugBTNode.msg"
   "msg/RuntimeDebugSnapshot.msg"

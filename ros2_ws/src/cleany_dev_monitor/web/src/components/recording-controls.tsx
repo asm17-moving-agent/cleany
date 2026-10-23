@@ -28,20 +28,25 @@ export function RecordingControls({ replay }: { replay: boolean }) {
   const [draft, setDraft] = useState<Data | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [available, setAvailable] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   useEffect(() => {
     let stopped = false;
     const refresh = async () => {
       try {
         const response = await fetch("/api/recording/settings");
-        if (!response.ok) throw Error("녹화 설정을 읽을 수 없습니다.");
+        if (!response.ok) throw Error(await response.text());
         const data = await response.json();
         if (!stopped) {
+          setAvailable(true);
           setLive(data);
           setDraft((value) => value || data.settings);
         }
       } catch (e) {
-        if (!stopped) setMessage(String(e));
+        if (!stopped) {
+          setAvailable(false);
+          setMessage(String(e));
+        }
       }
     };
     void refresh();
@@ -172,11 +177,13 @@ export function RecordingControls({ replay }: { replay: boolean }) {
       title="녹화 설정"
       aside={
         <span>
-          {live?.reason
-            ? "저장 중단"
-            : live?.settings.active
-              ? "녹화 중"
-              : "녹화 정지"}
+          {!available
+            ? "logger 연결 끊김"
+            : live?.reason
+              ? "저장 중단"
+              : live?.settings.active
+                ? "녹화 중"
+                : "녹화 정지"}
         </span>
       }
     >
@@ -194,16 +201,24 @@ export function RecordingControls({ replay }: { replay: boolean }) {
         </p>
       )}
       {draft && (
-        <fieldset className="recording-options" disabled={busy || replay}>
+        <fieldset
+          className="recording-options"
+          disabled={!available || busy || replay}
+        >
           <p>
             가공 데이터는 SQLite에, 선택한 ROS 원본은 rosbag2에 저장합니다.
             카메라, 점군, voxel 원본은 용량이 큽니다. 필요한 토픽과 기록 빈도를
             선택하세요.
           </p>
+          <p>
+            대시보드를 닫아도 logger는 녹화를 계속합니다.{" "}
+            {recording && "설정을 변경하려면 녹화를 정지하세요."}
+          </p>
           <div className="recording-toolbar">
             <label>
               주기 프로필{" "}
               <select
+                disabled={recording}
                 aria-label="주기 프로필"
                 value={draft.preset}
                 onChange={(e) => {
@@ -228,6 +243,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
             <label>
               세션 용량 제한{" "}
               <input
+                disabled={recording}
                 aria-label="세션 용량 MiB"
                 type="number"
                 min={10}
@@ -280,6 +296,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                           </button>
                           <label>
                             <input
+                              disabled={recording}
                               type="checkbox"
                               checked={rawSelected === heavy.length}
                               ref={(node) => {
@@ -356,6 +373,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                             ) : null}
                             <label>
                               <input
+                                disabled={recording}
                                 type="checkbox"
                                 checked={
                                   items.length
@@ -377,6 +395,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                           {!raw && key !== "resources" ? null : (
                             <label className="recording-rate">
                               <input
+                                disabled={recording}
                                 type="number"
                                 min={0.1}
                                 max={1000}
@@ -401,6 +420,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                           {heavy.includes(key) ? (
                             <div className="recording-source">
                               <input
+                                disabled={recording}
                                 aria-label={`${label} 토픽`}
                                 value={draft.topics[key]}
                                 onChange={(e) =>
@@ -435,6 +455,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                             <td>
                               <label>
                                 <input
+                                  disabled={recording}
                                   type="checkbox"
                                   aria-label={`${item.label} 기록`}
                                   checked={
@@ -451,6 +472,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                             <td>
                               <label className="recording-rate">
                                 <input
+                                  disabled={recording}
                                   type="number"
                                   min={0.1}
                                   max={1000}
@@ -482,6 +504,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
                             <td>
                               {item.internal ? null : (
                                 <input
+                                  disabled={recording}
                                   className="recording-basic-topic"
                                   aria-label={`${item.label} 기본 토픽`}
                                   value={item.value}
@@ -509,6 +532,7 @@ export function RecordingControls({ replay }: { replay: boolean }) {
           </div>
           <div className="recording-toolbar">
             <Button
+              disabled={recording}
               variant="outline"
               onClick={() =>
                 void apply({ ...draft, active: !!live?.settings.active })

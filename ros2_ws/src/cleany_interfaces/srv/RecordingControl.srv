@@ -1,0 +1,10 @@
+# Each endpoint binds one operation; no arbitrary ROS service dispatch.
+string request_id
+string session_id
+uint64 expected_revision
+cleany_interfaces/RecordingConfig config
+---
+bool success
+string reason
+cleany_interfaces/RecordingConfig config
+cleany_interfaces/RecordingStatus status
