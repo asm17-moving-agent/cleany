@@ -69,26 +69,31 @@ TTL과 촬영 시각을 갱신하거나 새 모델 추론을 시작하지 않는
 coordinator의 capture-age와 populated OctoMap 수신-age 검사도 필요하다.
 이 경로는 센서 전용 파이프라인 launch에서 함께 시작된다.
 
-## 처리 경계
+## 처리 흐름 및 경계
+
+인식 파이프라인의 처리 순서는 다음과 같습니다:
 
 ```text
-aligned RGB-D → capture-time TF → detector bbox + 번호
-→ bbox 중앙 depth로 base_link 거리 산정 및 가까운 순 정렬
-→ bounded snapshot cache → 사용자 선택
-→ 선택된 instance mask → support plane → base_link 3D OBB
+정렬된(Aligned) RGB-D 수신
+  └─► 촬영 시점의 TF 좌표 변환
+  └─► 2D 검출기(YOLOE) Bounding Box 및 객체 식별 번호 부여
+  └─► Bounding Box 중앙 Depth를 기준으로 로봇(base_link)과의 거리 계산 및 가까운 순 정렬
+  └─► 크기 제한이 적용된 스냅샷 캐시(Bounded Snapshot Cache) 저장
+  └─► 대상 물체 선정 (자동 추천 또는 사용자 승인)
+  └─► 선택된 객체의 인스턴스 마스크(Mask) 추출
+  └─► 바닥 지지 평면(Support Plane) 추정 및 분리
+  └─► 로봇 기준계(base_link) 3D 지향 경계 상자(OBB) 및 파지 영역 생성
 ```
 
-## 모델 준비
+## 모델 준비 및 Gemini 설정
 
-의존성 설치는 `docs/DEVELOPMENT_SETUP.md`를 따른다. YOLOE checkpoint와
-`mobileclip2_b.ts` text encoder는 `CLEANY_MODEL_DIR` 또는 `~/models` 아래에 준비한다.
-모델은 저장소에 포함하거나 실행 중 자동 다운로드하지 않는다.
-Gemini 분류를 사용하는 `yoloe_gemini`는 `GEMINI_API_KEY` 환경변수가 필요하다.
-Gemini 입력 RGB는 원래 해상도의 JPEG(`image/jpeg`)로 전송한다. 품질은
-`gemini_jpeg_quality` parameter로 지정하며 기본값은 95, 허용 범위는 정수 1–100이다.
-색차 서브샘플링은 사용하지 않는 4:4:4 형식이며, 분류 입력에는 YOLOE 번호와 box를
-그린 뒤 인코딩한다. ROS RGB-D 원본과 YOLOE의 bbox, mask는 이 압축을 거치지 않는다.
-스터디카페 head/손목 전용 체크포인트는 아래 학습 절과 Skill Executor README를 따른다.
+- **사전 준비**: 상세 의존성 및 모델 다운로드 안내는 [개발환경 가이드](DEVELOPMENT_SETUP.md)를 참고하세요.
+- **가중치 파일 위치**: YOLOE 체크포인트와 `mobileclip2_b.ts` 텍스트 인코더는 `CLEANY_MODEL_DIR` 또는 `~/models` 아래에 준비합니다.
+- **Gemini 분류 연동**:
+  - `yoloe_gemini` 모드 사용 시 환경 변수 `GEMINI_API_KEY`를 필수로 주입해야 합니다.
+  - Gemini API로 전송되는 이미지는 원본 해상도의 **JPEG(`image/jpeg`) 포맷**으로 인코딩됩니다.
+  - 압축 품질은 ROS 파라미터 `gemini_jpeg_quality`로 지정하며 (기본값: 95, 범위: 1~100), 색차 서브샘플링 없는 고품질 4:4:4 형식을 사용합니다.
+  - 전송 이미지에는 YOLOE가 검출한 객체 번호와 박스를 시각적으로 오버레이하여 VLM의 공간 인식을 보조합니다. (ROS 2 내부의 PointCloud2 원본 데이터나 3D OBB는 압축 손실 없이 보존됨)
 
 ## 실행
 
