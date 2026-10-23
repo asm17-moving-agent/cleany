@@ -4,6 +4,71 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 2026-10-24 Gemini 분류 사유 제거
+
+로컬 `7908ef2`, Jetson `4f92bc0` 기반에서 Gemini의 분류 사유를 prompt,
+응답 schema, 모델, ROS 메시지, 수거 및 BT 소비자와 Dev Monitor 화면에서 제거했다.
+Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble와 Python 3.10.12에서 검증했다.
+원본 YOLOE 클래스, bbox, mask와 confidence를 보존하며 종류명과 처리 분류,
+깊이, 크기, 금지 목록, 목적지 및 승인 재확인 조건을 사용한다.
+
+| 검증 | 결과 |
+|---|---|
+| Gemini parser, 분류와 자동 선택의 집중 검사 | 76 통과 |
+| 6개 패키지 전체 회귀 최종 실행 | 3,285 통과, 28 제외, 실패 0 |
+| 인식부터 승인 경계까지 통합 검사 | 8 통과 |
+| Dev Monitor Python 검사 | 182 통과, 18 제외 |
+| 별도 DDS domain의 ROS 제안 및 조작 통신 검사 | 2 통과; 합성 인식과 mock 실행 |
+| macOS Chrome의 전체 웹 브라우저 검사 | 46 통과, 3 제외; 합성 WebSocket과 제어 API |
+| native / perception / AnyGrasp / motion workspace 빌드 | 5 / 2 / 2 / 5개 패키지 성공 |
+| 웹 타입 검사 및 빌드, Monitor 재설치 | 성공; 실제 제공 HTML, JS와 CSS의 SHA256 일치 |
+
+실물 RGB-D 저장 입력 `runtime/footprint-diagnosis-20261023/captures.npz`의
+0, 10, 19번 프레임에 production YOLOE TensorRT와 3D 복원을 적용했다.
+프레임별 8개, 합계 24개 검출의 카메라 좌표계 복원이 모두 성공했다.
+입력과 모델 hash는 `replay/detections.json`에 있다. 기존 Jetson 환경의 키로
+`gemini-3.5-flash-lite`에 사유 포함 및 제거 prompt를 각각 6회 요청했다.
+이전 adapter의 prompt와 schema는 보존하고 parser만 현재 모델에 맞게 연결했다.
+성공한 12개 응답은 production 라벨 처리, 추적, ROS 직렬화와 역직렬화,
+합성 목적지 정책의 대상 선택을 통과했다. 사유 없는 응답은 객체별
+`id`, `label`, `sorting_category` 필드만 반환했으며 bbox, mask와 검출 신뢰도는 유지됐다.
+
+| 실제 API 비교 | 사유 포함 | 사유 제거 |
+|---|---:|---:|
+| 성공 요청 수 | 6 | 6 |
+| 평균 출력 토큰 | 666.3 | 468.8 |
+| 응답 시간 중앙값 | 6.42초 | 5.88초 |
+| 응답 시간 95백분위 | 24.13초 | 12.82초 |
+
+출력 토큰은 약 29.6% 감소했다. 작은 표본과 서버 지연 편차 때문에 일반적인
+속도 개선을 확정하지 않는다. 같은 객체의 전후 비교 48건에서 처리 분류는
+48건, 종류명은 41건 일치했다. 한 장면의 반복 영상이며 정답 라벨을 사용한
+정확도 평가가 아니다. 종류명 변동과 YOLOE 중복 및 오검출 가능성은 남아 있다.
+
+첫 전체 회귀의 3개 실패는 삭제된 인자를 받던 테스트 mock을 수정했다.
+다음 실행의 2개 실패 중 CDR 검사는 패딩 바이트 비교를 실제 메시지의
+왕복 직렬화 내용 비교로 수정했고, 프로세스 재시작 DDS 응답 시간 초과는
+생산 코드를 변경하지 않은 개별 재실행에서 통과했다. 이후 전체 회귀도 통과했다.
+실제 API 비교 도중 분당 호출 한도 429가 발생해 성공 결과를 보존하고
+15초 호출 간격으로 남은 요청을 재개했다. 생산 API 재시도 정책은 변경하지 않았다.
+SciPy와 NumPy 호환 범위 경고, Vite sourcemap 및 bundle 크기 경고와
+motion 빌드의 `setuptools_scm` 경고는 남았다.
+
+원본은 Jetson의 `../cleany-data/reports/remove-classification-reason-20261024/`에 있다.
+`before/`, `implementation-final.patch`, `verification.json`, `source-sha256.json`,
+`package-tests-verified.log/.xml`, 초기 실패 및 재검사 로그, `replay/`,
+`replay-classification*.log`, `ros-operator-tests.log`, `e2e.log`, 화면 캡처,
+각 build log와 `served-assets.json`을 보존했다. 웹 화면 검사는 로컬
+`/tmp/cleany-no-reason-web/`에서도 실행했다. Monitor는 진행 작업이 없는 상태에서
+재시작했으며 기존 제어 활성 설정을 유지했다.
+
+실물 카메라가 연결되어 있지 않아 새 RGB-D 촬영, 실제 로봇 TF와 손목 관측,
+물리적 파지 및 이동은 검증하지 않았다. 제외된 검사는 실물 카메라와 명시 실행이
+필요한 GPU 및 런타임 검사 등을 포함한다. 저장 영상 재생 및 mock 통신 결과를
+실물 전체 파이프라인 성공으로 해석하지 않는다. 실행 절차는
+[관측 인터페이스 갱신](RUNNING.md#jetson-관측-인터페이스-갱신), 재생 절차는
+[저장 RGB-D와 실제 Gemini API 재생](TESTING.md#저장-rgb-d와-실제-gemini-api-재생)을 따른다.
+
 ## 2026-10-24 Dev Monitor 조작과 관측 통합 배치
 
 로컬 `7908ef2`, Jetson `4f92bc0` 기반에서 조작 패널을 포함한 매니퓰레이션
