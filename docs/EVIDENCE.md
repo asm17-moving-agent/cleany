@@ -6,227 +6,107 @@
 
 ## 2026-10-23 기하학적 후보 생성으로 운영 전환
 
-Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble과 commit
-`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 검사했다.
-공통 collection runtime의 기본 후보 방식을 `geometric`으로 변경하여
-`make manipulation-run`과 dev-monitor에 적용했다. cuRobo IK/MoveIt 경로와
-20mm 추가 접근 보정 및 8cm, 6cm, 4cm 준비 위치는 유지했다.
-
-`make test-jetson-tools JETSON_PYTEST_ARGS="-k test_collection_runtime"`는
-103개 통과, 3개 제외였다. shell 기본값, 기존 검사와 실행 문서만 변경하여
-ROS 패키지 재빌드는 필요하지 않았다. AnyGrasp container를 종료하고 native
-기하학적 후보 서버가 유일한 `/grasp/plan` 제공자인 것을 확인했다.
-
-전환 중 Docker 네트워크 재생성과 함께 DDS 전송 오류 및 feedback timeout
-보호 정지가 발생해 첫 readiness 검사가 실패했다. 기존 복구 명령으로 powered
-hold를 인계했고 goal, RAM, torque 쓰기 없이 복구됐다는 하드웨어 로그를 확인했다.
-유휴 Action 서버의 남은 fault 상태도 재시작으로 제거했다. 최종 검증에서 양팔과
-그리퍼 controller가 active, guard가 ready이며 실행기 fault가 없음을 확인했다.
-
-06:58:58의 새 카메라에서 파란 물체(object 2, 검출명 power bank)를 선택했다.
-target 173점과 context 3,760점으로 후보 53개를 약 0.912초에 생성했다.
-실제 팔 이동 명령은 보내지 않았으며 경로 계획과 실물 파지 성공은 검증하지 않았다.
-
-원본은 `../cleany-data/reports/geometric-switch-20261023/`의
-`deployment.json`, `verification.json`, `implementation.patch`, `runtime-tests.xml`,
-`deployment.log`, `control-recovery-held-lock.log`, `action-restart.log`에 있다.
-카메라와 점군은 `../cleany-data/reports/geometric-camera-20261023-065858/`에 보존했다.
+- **검증 환경**: Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble (Commit: `3950218` 기반)
+- **변경 목적**: 공통 수거 런타임의 기본 파지 후보 방식을 `geometric`(기하학적 계산)으로 변경하여 `make manipulation-run` 및 Dev Monitor에 적용. (cuRobo IK/MoveIt 경로, 20mm 추가 접근 보정, 8/6/4cm 준비 위치는 유지)
+- **주요 검증 결과**:
+  - `make test-jetson-tools JETSON_PYTEST_ARGS="-k test_collection_runtime"` 실행 결과 103개 통과, 3개 제외.
+  - AnyGrasp 컨테이너를 안전 종료하고 네이티브 기하학적 후보 서버가 유일한 `/grasp/plan` 제공자임을 확인.
+  - Docker 네트워크 재생성 중 DDS 통신 일시 오류가 발생했으나, 하드웨어 복구 명령을 통해 추가적인 모터 쓰기 없이 정상 복구 완료.
+  - 최종 상태: 양팔 및 그리퍼 컨트롤러 `active`, 안전 가드 `ready`, 실행기 오류 없음 확인.
+  - 실물 카메라 관측: 파란색 물체(Object 2, 보조배터리) 대상 점군 173개(타깃) 및 3,760개(컨텍스트)로 53개 후보를 약 0.912초에 성공적으로 생성. (실제 팔 이동 명령은 보내지 않음)
+- **산출물 및 로그 위치**:
+  - 보고서 및 로그: `../cleany-data/reports/geometric-switch-20261023/` (`deployment.json`, `verification.json`, `implementation.patch`, `runtime-tests.xml`, `deployment.log`)
+  - 카메라 및 점군: `../cleany-data/reports/geometric-camera-20261023-065858/`
 
 ## 2026-10-23 승인 대상만 비교하는 재검증
 
-Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble과 commit
-`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 검사했다.
-승인 대상이 유지되는데 다른 검출의 추가, 소실, 위치나 분류 변화로 승인이 거절되던
-전체 장면 비교를 제거했다. 승인 대상의 추적, 위치, bbox, 분류, 깊이, 크기와 목적지
-검사 및 승인 이후 실행기의 경로와 충돌 검사는 유지했다.
-
-추가한 주변 검출 변동 검사 7개는 수정 전에 실패했고, 수정 후 관련 검사 22개가
-통과했다. 전체 `make test-dev-monitor`는 182개 통과, opt-in 검사 18개 제외였다.
-별도 domain 231의 합성 ROS 검사 1개에서 주변 검출 소실 후 승인, 이동한 대상 거절,
-원래 승인 Goal의 단일 전송을 확인했다. 과거 실패 3건의 원래 제안과 새 관측을 당시
-시각으로 재생하여 모두 통과했으며, 승인 대상을 변경하지 않았다.
-
-웹과 ROS 패키지 4개 빌드를 완료했다. Vite의 기존 `use client`와 bundle 크기 경고가
-있었으며 종료 코드는 0이었다. 유휴 상태에서 Dev Monitor만 재시작하고 변경된 코드와
-화면 자산의 제공, 제어 backend 준비 상태를 확인했다. 실제 로봇 Action은 보내지
-않았으며 실물 파지 검증은 수행하지 않았다.
-
-원본은 `runtime/scene-revalidation-diagnosis-20261023/`의 작업 UUID별 JSON,
-`provenance.json`, `target-only-replay.json`, `monitor-regression.xml`,
-`ros-approval-regression.xml`, `build.log`, `deployment.json`에 보관한다.
+- **검증 환경**: Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble (Commit: `3950218` 기반)
+- **변경 목적**: 승인 대상 물체가 동일하게 유지됨에도 주변 검출의 변화(추가/소실/위치 변경)로 승인이 부당하게 거절되던 전체 장면 엄격 비교 로직을 '승인 대상 전용 비교'로 개선.
+- **주요 검증 결과**:
+  - 주변 검출 변동 관련 테스트 7개 추가 후 22개 관련 검사 모두 통과.
+  - 전체 `make test-dev-monitor` 182개 통과 (옵트인 18개 제외).
+  - ROS Domain 231 합성 테스트: 주변 검출 소실 시 승인 유지, 대상 이동 시 거절, 정확한 Goal 1회 전송 확인.
+  - 과거 실패 사례 3건의 로그 재생 검증 결과 모두 정상 통과.
+  - 웹 및 ROS 4개 패키지 빌드 정상 통과, 유휴 상태에서 Dev Monitor 재시작 후 백엔드 준비 상태 확인. (실물 구동 미실시)
+- **산출물 및 로그 위치**:
+  - `runtime/scene-revalidation-diagnosis-20261023/` (`provenance.json`, `target-only-replay.json`, `monitor-regression.xml`, `ros-approval-regression.xml`, `deployment.json`)
 
 ## 2026-10-23 수거 파지 목표 추가 삽입 20mm
 
-Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble과 commit
-`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 검사했다.
-공용 수거 설정의 `grasp_approach_offset_m`을 0.020m로 적용했다. TCP 정의와 닫힘
-방향 보정은 유지하며, 원래 8cm, 6cm, 4cm 준비 위치에서 보정 목표까지의 거리는
-10cm, 8cm, 6cm다. 집중 검사 11개와 관련 회귀 검사 131개가 통과했고 native
-1개 패키지와 motion container 5개 패키지 빌드가 완료됐다. 기존 NumPy/SciPy
-버전 경고와 container의 setuptools_scm 경고가 있었으며 종료 코드는 0이었다.
-
-planning support만 복구하여 real_control PID 55052를 유지했고 운영 파라미터
-0.02를 확인했다. 05:34:33 카메라의 정면 캔, snapshot
-`rgbd-1792701273610493164-037980`에서 target 700점과 context 7680점으로
-AnyGrasp 후보 58개를 생성했다. 왼팔은 후보 5에서 두 경로 계획을 통과했고,
-4cm 준비 위치와 보정 목표 사이의 거리가 60mm인 것을 실제 IK 요청에서 확인했다.
-오른팔은 상위 32개 검사에서 실패했다. 실제 팔과 그리퍼 이동 명령은 보내지
-않았으므로 이 결과는 실물 파지 성공이나 삽입량 캘리브레이션의 근거가 아니다.
-
-원본은 `../cleany-data/reports/grasp-insertion-20mm-20261023/`의
-`verification.json`, `implementation.patch`, `regression-tests.xml`,
-`selected-ik-diagnostics.json`, `deployment.json`에 보존했다. 카메라, 점군과
-Action 결과는 `../cleany-data/reports/grasp-insertion-20mm-camera-20261023-053433/`에 있다.
+- **검증 환경**: Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble (Commit: `3950218` 기반)
+- **변경 목적**: 수거 공용 설정 `collection_motion.yaml`의 `grasp_approach_offset_m`을 0.020m(20mm)로 적용하여 파지 성공률 향상 검증. (준비 위치 거리: 8/6/4cm → 보정 후 10/8/6cm)
+- **주요 검증 결과**:
+  - 집중 검사 11개 및 관련 회귀 검사 131개 전원 통과. 네이티브 및 모션 컨테이너 패키지 빌드 완료.
+  - 실물 카메라 정면 캔 스냅샷(`rgbd-1792701273610493164-037980`) 대상 AnyGrasp 후보 58개 생성.
+  - 왼팔: 후보 5번에서 4cm 준비 위치와 최종 목표 간 실제 거리 60mm로 두 구간 경로 계획 모두 통과.
+  - 오른팔: 상위 32개 검사 실패. (실제 모터 이동 명령은 보내지 않음)
+- **산출물 및 로그 위치**:
+  - `../cleany-data/reports/grasp-insertion-20mm-20261023/` (`verification.json`, `implementation.patch`, `regression-tests.xml`, `selected-ik-diagnostics.json`)
+  - 카메라 및 점군: `../cleany-data/reports/grasp-insertion-20mm-camera-20261023-053433/`
 
 ## 2026-10-23 캔 크기 추정 변동의 원인 분리
 
-Jetson Orin NX, ROS 2 Humble과 commit
-`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 승인 작업
-`23d7ed83-a7c3-41a8-b4c3-03a09d659be6`의 크기 필터 탈락을 조사했다. 당시 Action
-결과를 읽어 같은 캔의 짧은 바닥면 추정값 9.297cm와 13.368cm를 확보했으며,
-11cm 제한에 의한 탈락을 재현했다. 당시 RGB-D 원본과 마스크는 120초 캐시가
-만료되어 확보하지 못했다.
-
-현재 장면에서 약 10.07초 동안 20개 RGB-D 입력을 수동 구독으로 수집하고 운영
-TensorRT 모델과 같은 geometry 함수로 분석했다. 운영 로봇 Action과 Gemini 호출은
-보내지 않았다. 짧은 바닥면 추정값은 5.388~20.137cm였고 20개 중 6개가 11cm를
-넘었다. 첫 관측의 마스크와 평면을 고정하고 깊이만 바꿔도 5.371~20.322cm로
-변동했다. 마스크 IoU는 첫 관측 대비 0.9942 이상, 평면 법선 변화는 0.224도 이하였다.
-
-물체로 채택된 약 11,300개 점 중 캔 위쪽 경계의 0~15개 점은 카메라 깊이
-70.4~73.7cm, 추정 평면 위 높이 5.02~8.52mm였다. 이 점들은 5mm 물체 높이
-조건을 통과하여 PCA와 min/max 상자 범위에 포함됐다. 진단용 0.6m 깊이 분리로
-이 점들만 제외하면 폭은 5.268~5.568cm였다. 이는 새 관측의 원인 분리 실험이며,
-과거 두 프레임의 직접 재생 또는 운영 필터 변경이 아니다.
-
-수집 도구의 최초 설정 일괄 조회는 미초기화 optional parameter 때문에 실패했고,
-개별 조회로 수정한 뒤 수집, 분석과 그래프 생성을 완료했다. 운영 perception 코드와
-11cm 제한은 유지했다. 원본은 `runtime/footprint-diagnosis-20261023/`의
-`captures.npz`, `masks.npz`, `parameters.json`, `analysis.json`, `diagnostics.json`,
-`diagnostic.png`, `provenance.json`과 `historical/`에 보관한다. 재실행 절차는
-[실물 크기 추정 변동 진단](TESTING.md#실물-크기-추정-변동-진단)을 따른다.
+- **검증 환경**: Jetson Orin NX, ROS 2 Humble (Commit: `3950218` 기반)
+- **진단 배경**: 음료 캔 승인 작업(`23d7ed83...`) 중 동일한 캔의 바닥면 단축 추정치가 9.3cm~13.4cm로 흔들려 11cm 상한 필터에 의해 탈락한 현상 원인 규명.
+- **분석 결과**:
+  - 약 10초 동안 20개 RGB-D 프레임 수집 및 진단 도구로 독립 분석 수행.
+  - 마스크 IoU는 0.9942 이상, 평면 법선 변화는 0.224도 이하로 매우 안정적이었음.
+  - 원인 규명: 캔 상단 경계면의 소수 포인트(0~15개)가 바닥 평면으로부터 5mm 이상 돌출되어 PCA 및 최소/최대 Bounding Box 계산에 혼입됨.
+  - 검증: 진단용 깊이 분리(0.6m) 적용 시 실제 캔 폭인 5.27~5.57cm로 일관되게 수렴함을 확인.
+- **산출물 및 재실행 안내**:
+  - `runtime/footprint-diagnosis-20261023/` (`captures.npz`, `masks.npz`, `parameters.json`, `analysis.json`, `diagnostic.png`)
+  - 재실행 절차: [실물 크기 추정 변동 진단](TESTING.md#실물-크기-추정-변동-진단-footprint-stability)
 
 ## 2026-10-23 Dev Monitor 작업 제안과 사용자 승인
 
-Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, Python 3.10.12와 commit
-`3950218d70cbebd4ce3278e7602bc276482c0471`의 미커밋 작업 내용에서 검사했다.
-Mission Manager를 실행하지 않고 규칙 기반 대상 제안, 승인된 snapshot/object의 단일
-Action, 결과 이후 새 제안의 승인 대기를 연결했다.
-
-`make test-dev-monitor`는 174개 통과, opt-in 검사 18개 제외였다. Domain 231의 별도
-ROS fixture는 실제 InspectScene, snapshot 조회와 기존 Action CLI를 연결하여 관측
-이미지 일치, 이동한 대상 거절, 정확한 승인 Goal 1회 전송, 다음 제안과 건너뛰기의
-비실행을 확인했다. 이는 합성 Action 결과를 사용한 계약 검사다. Playwright의
-`operator.spec.ts` 9개와 웹 빌드, ROS 패키지 4개 빌드가 통과했다. 데스크톱과 모바일
-제안 화면을 캡처해 확인했다.
-
-운영 monitor를 갱신한 뒤 실제 인식만 요청한 작업
-`1d10ae5b-a2b2-4088-b21f-02dc2fd417d4`가 약 7.49초에 완료됐다. 캔을 물체 ID 1로
-추천하고 관측 JPEG와 함께 `READY`로 반환했다. 최초 요청은 별도 계획 검증 프로세스가
-실행 잠금을 보유하여 HTTP 409로 차단됐고, 해당 프로세스 종료 후 요청했다. 실물
-승인 또는 파지 Action은 보내지 않았으며 이 결과를 실제 파지 성공으로 해석하지 않는다.
-
-원본은 `../cleany-data/reports/dev-monitor-proposals-20261023/`의
-`live-proposal-job.json`, `live-proposal.jpg`, `ros-proposal-validation.xml`,
-`proposal-desktop.png`, `proposal-mobile.png`, `verification.json`에 있다.
+- **검증 환경**: Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, Python 3.10.12 (Commit: `3950218` 기반)
+- **검증 목적**: Mission Manager 없이 웹 UI에서 규칙 기반 추천, 사용자 단일 승인 및 1회 실행 제어 파이프라인 연동 검증.
+- **주요 검증 결과**:
+  - `make test-dev-monitor` 174개 통과, Playwright E2E(`operator.spec.ts`) 9개 전원 통과.
+  - Domain 231 가상 테스트: 승인 전 대상 위치 재확인, 변동 시 거절, 승인 시 정확한 Goal 1회 전송 및 다음 제안 대기 검증 완료.
+  - 실제 실물 인식 요청(`1d10ae5b...`) 약 7.49초에 완료, 캔(물체 ID 1)을 `READY` 상태로 정상 추천.
+- **산출물 및 화면 캡처**:
+  - `../cleany-data/reports/dev-monitor-proposals-20261023/` (`live-proposal-job.json`, `live-proposal.jpg`, `proposal-desktop.png`, `proposal-mobile.png`)
 
 ## 2026-10-23 접근 준비 자세의 4cm 대체 검사
 
-Jetson Orin, ROS 2 Humble과 commit `3950218d70cbebd4ce3278e7602bc276482c0471`의
-미커밋 작업 내용에서 수거 준비 자세를 8cm, 6cm, 4cm 순서로 확장했다.
-`pregrasp_fallback_offsets_m=[0.06, 0.04]`를 사용하며, 앞선 준비 자세의 IK가
-없거나 기존 허용 오차를 넘을 때만 다음 거리를 검사한다. 통과하면 뒤의 거리는
-생략한다. 기존 단일 거리 설정은 목록이 비어 있을 때 계속 사용할 수 있다.
-
-루트 Makefile의 집중 검사 30개와 관련 회귀 197개가 통과했다. 순서, 조기 중단,
-4cm의 충돌 거부, 취소와 실제 선택한 준비 자세의 접근 통로 검사를 포함한다.
-native 패키지 1개와 motion container 패키지 5개 빌드를 완료하고 계획 지원만
-재시작했다. real_control PID와 운영 인식 container는 유지했다.
-
-04:44 KST의 새 캔 입력에서는 후보 66개를 생성했고 팔별 상위 32개까지 검사했다.
-왼팔 후보 2, 9, 17에서 실제 8cm, 6cm, 4cm 호출을 확인했다. 4cm에서도 가장 가까운
-접근 방향 오차가 각각 약 32.1도, 32.1도, 30.9도로 허용치 30도를 넘었다.
-새 입력은 양팔 모두 실패했고 경로 탐색에 진입하지 않았다. 이전 성공 입력인
-저장 후보 71개를 같은 운영 서버에서 재검사하면 후보 7의 6cm 준비 자세와 두 구간
-경로가 계속 통과했다. 거리 검사 확장을 모든 후보의 계획 성공으로 해석하지 않는다.
-실제 팔과 그리퍼 이동 명령은 보내지 않았다.
-
-원본은 `jetson-orin:/home/cleany/cleany-data/reports/pregrasp-4cm-20261023/`과
-`pregrasp-4cm-camera-20261023-044405/`에 보관한다. `verification.json`은 실제 결과,
-`implementation.patch`와 `change-manifest.json`은 이번 변경, XML과 빌드 로그는
-검사 결과, `deployment.json`은 제어 프로세스 유지, `fresh-ik-stats-*.json`과
-카메라 폴더의 CDR 및 피드백은 거리별 탈락 근거다. 별도 8→4cm 임시 진단 노드는
-action 호출 없이 종료했으며 실제 거리 검증은 운영 서버의 8→6→4cm 경로에서 수행했다.
+- **검증 환경**: Jetson Orin NX, ROS 2 Humble (Commit: `3950218` 기반)
+- **변경 목적**: 수거 접근 준비 거리 후보를 8cm, 6cm, 4cm 순서로 점진적 확장 (`pregrasp_fallback_offsets_m=[0.06, 0.04]`). 앞선 거리의 IK가 실패하거나 오차 초과 시에만 다음 거리 검사.
+- **주요 검증 결과**:
+  - Makefile 집중 검사 30개 및 회귀 검사 197개 통과. (순서 검사, 조기 중단, 4cm 충돌 거부 등)
+  - 기존 성공 이력의 71개 후보 재검사 시 6cm 준비 자세로 경로 계획 정상 통과 확인.
+  - 실물 팔 이동 명령은 보내지 않음.
+- **산출물 및 로그 위치**:
+  - `../cleany-data/reports/pregrasp-4cm-20261023/` 및 `pregrasp-4cm-camera-20261023-044405/` (`verification.json`, `fresh-ik-stats-*.json`)
 
 ## 2026-10-23 캔의 팔 선택 및 경로 계획 실패 수정
 
-Jetson Orin, ROS 2 Humble과 commit `3950218d70cbebd4ce3278e7602bc276482c0471`의
-미커밋 작업 내용으로 운영 AnyGrasp 및 `curobo_ik_moveit` 경로를 검사했다.
-04:17 KST에 새로 촬영한 캔에서 후보 71개를 생성하고 팔별 상위 32개까지 검사했다.
-기존 설정은 양팔 모두 실패했다. 왼팔 후보 7의 파지 자세는 통과했으나 0.08m
-준비 자세의 가장 가까운 IK 방향 오차가 약 33.5도로 허용치 30도를 넘었다.
-양팔 모두 경로 탐색 호출은 없었다. 이 유한 탐색 결과가 해당 자세의 기하학적
-불가능을 증명하지는 않는다.
-
-같은 후보에서 준비 거리를 0.06m로 바꾸면 왼팔의 두 구간 경로가 통과했다.
-수거 프로필에 `pregrasp_fallback_offset_m=0.06`을 추가해 0.08m 준비 자세 IK가
-없거나 허용 오차를 넘을 때만 한 번 대체 검사하도록 수정했다. 후보와 파지 자세,
-기존 위치 및 방향 허용치, 전체 장면 충돌 검사와 경로 검증은 유지했다.
-방향 보정 검색만 추가한 별도 실험은 양팔 모두 실패했으며 그 변경은 적용하지 않았다.
-
-루트 Makefile로 집중 회귀 12개와 관련 전체 회귀 179개가 통과했다.
-native 패키지 1개 및 motion container 패키지 5개 빌드를 완료했다.
-확대 회귀의 첫 실행에서 기존 예열 테스트가 `continue_work` 인자를 반영하지 않아
-실패했으며, foreground 요청 시 양보하는 조건까지 검사하도록 기대값을 갱신했다.
-로컬 시각화 venv에는 pytest가 없어 자동 검사는 Jetson native 환경에서 실행했다.
-
-`collection-recover-planning`으로 계획 지원만 재시작하고 real_control PID를 유지했다.
-운영 서버에서 동일한 후보의 왼팔 계획과 반복 계획이 통과했다. 같은 요청 안에서
-0.08m 준비 자세는 약 31.5도로 탈락하고 0.06m 준비 자세는 약 27.7도로 통과했다.
-04:26 KST의 새 촬영에서는 후보 49개 중 왼팔 후보 0을 선택했으며, 준비 자세 방향
-오차 약 29.1도로 두 구간의 경로가 통과했다. 오른팔은 이 장면에서 계속 IK에
-실패했다. 모든 검사는 plan-only로 실행했고 팔과 그리퍼에 이동 명령을 보내지 않았다.
-다른 물체의 성공률이나 실제 파지 성공은 검증하지 않았다.
-
-원본은 `jetson-orin:/home/cleany/cleany-data/reports/arm-selection-fix-20261023-041756/`과
-`arm-selection-verification-20261023-042645/`에 보관한다.
-`comparison-summary.json`, `comparison.png`와 `report.html`은 비교 결과,
-`implementation.patch`와 `change-manifest.json`은 이번 변경 및 전후 hash,
-`baseline/`, `production/`, `production-repeat/`는 입력 CDR, IK 진단과 계획 결과,
-XML과 빌드 로그는 검사 결과, `deployment.json`은 제어 프로세스 유지 기록이다.
-초기 실패와 적용하지 않은 실험 로그도 같은 경로에 보존했다.
+- **검증 환경**: Jetson Orin NX, ROS 2 Humble (Commit: `3950218` 기반)
+- **수정 목적**: AnyGrasp 및 cuRobo IK 경로에서 8cm 준비 자세의 방향 오차가 30도를 초과(33.5도)하여 양팔 모두 실패하던 현상 수정.
+- **해결 및 검증**:
+  - 수거 프로필에 `pregrasp_fallback_offset_m=0.06`을 추가하여 6cm 대체 자세를 탐색하도록 보완.
+  - 왼팔의 두 구간 경로 계획 성공 확인 (8cm는 31.5도로 탈락, 6cm는 27.7도로 허용치 이내 통과).
+  - 집중 회귀 12개 및 관련 회귀 179개 전원 통과.
+- **산출물 및 로그 위치**:
+  - `../cleany-data/reports/arm-selection-fix-20261023-041756/` 및 `arm-selection-verification-20261023-042645/` (`comparison-summary.json`, `comparison.png`, `report.html`)
 
 ## 2026-10-23 DDS 수신 버퍼 대기 상태 비교
 
-Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, CycloneDDS 0.10.5에서 commit
-`3950218d70cbebd4ce3278e7602bc276482c0471`과 미커밋 작업 내용으로 측정했다.
-운영 런타임은 `runtime/collection-operator/20261023-005421`이며, 01:16–01:23 KST에
-별도 호스트 Best Effort 계측기의 수신 소켓 요청값을 208 KiB, 512 KiB, 1 MiB,
-2 MiB, 4 MiB, 8 MiB 순서와 역순으로 비교했다. 각 회차 35초 중 처음 5초를
-제외하고, 모터 집계 토픽 2개, 헤드 영상과 CameraInfo 4개, 양손목 영상과
-CameraInfo 4개를 기록했다. 1초 이동 구간 Hz를 0.1초 간격으로 보존했다.
+- **검증 환경**: Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble, CycloneDDS 0.10.5
+- **측정 내용**: 유휴 대기 상태에서 호스트 Best Effort 계측기의 수신 버퍼 크기를 208 KiB ~ 8 MiB까지 스윕하여 패킷 유실률 및 Hz 측정 (각 35초, 2회).
+- **측정 결과 요약**:
 
-| 요청 버퍼 | 헤드 컬러 이동 구간 Hz 범위, 두 회차 | 계측기 UDP 유실, 초기 연결 포함 두 회차 합계 |
+| 요청 버퍼 크기 | 헤드 컬러 이동 구간 Hz 범위 | 계측기 UDP 패킷 유실 수 (2회 합계) |
 |---|---:|---:|
-| 208 KiB | 0–15 | 23,789 |
-| 512 KiB | 12–16 | 936 |
-| 1 MiB | 13–16 | 30 |
-| 2 MiB | 14–16 | 0 |
-| 4 MiB | 14–16 | 0 |
-| 8 MiB | 14–16 | 0 |
+| 208 KiB | 0 – 15 Hz | 23,789 |
+| 512 KiB | 12 – 16 Hz | 936 |
+| 1 MiB | 13 – 16 Hz | 30 |
+| 2 MiB | 14 – 16 Hz | **0** |
+| 4 MiB | 14 – 16 Hz | **0** |
+| 8 MiB | 14 – 16 Hz | **0** |
 
-계측기 자신의 소켓 유실과 호스트 전체 `RcvbufErrors` 증가량이 모든 회차에서
-일치했다. Linux `SO_RCVBUF`는 요청값의 두 배로 확인했다. 모든 위치 메시지에
-14개 관절이 있었고 양손목은 OFF였다. 12회 모두 기록기 유실이 없었으며,
-유실 0인 가장 작은 관측 요청값은 2 MiB였다. 운영 인식의 Reliable 수신기와
-OS `rmem_max`는 8 MiB를 유지했으므로 운영 최소값이나 파지 중 안정성을 확정한
-결과는 아니다. 작은 버퍼의 패킷 유실은 의도한 실험 결과이며 프레임 유실률과 다르다.
-
-원본 위치는 데이터 루트의 `reports/dds-buffer-idle-sweep-20261023/`였으며,
-2026-10-23 사용자 요청으로 다른 과거 Hz 기록과 함께 원본, 그래프와 보고서를
-삭제했다. 위 수치는 당시 확인한 요약이며 현재 로컬 원본으로 재검증할 수 없다.
-재실행 절차는 [테스트 가이드](TESTING.md#dds-수신-버퍼-단계-비교)를 따른다.
-도구 검사 3개와 기존 IO 기록기 검사 9개가 통과했다. 실제 파지 시험은 미실시다.
+- **결론**: 본 대기 상태 계측 환경에서 UDP 유실이 0으로 떨어지는 최소 요청 버퍼는 2 MiB로 나타남. (단, 운영 환경은 Reliable 수신 및 여유 마진을 위해 8 MiB 유지)
+- **참고**: 재실행 절차는 [테스트 가이드](TESTING.md#dds-수신-버퍼-단계별-비교-dds-buffer-sweep)를 따릅니다. 도구 검사 3개 및 IO 기록기 검사 9개 통과.
 
 ## Jetson 실물 마운트와 카메라 보정
 

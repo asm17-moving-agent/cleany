@@ -2,16 +2,16 @@
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
-## 실물 크기 추정 변동 진단
+## 실물 크기 추정 변동 진단 (Footprint Stability)
 
-`tools/validation/inspect_footprint_stability.py`는 운영 인식 노드의 설정을 읽고,
-시각이 일치하는 RGB-D 입력을 저장한다. 저장 영상에 같은 YOLOE 모델과 크기 계산을
-적용한 뒤 깊이, 마스크, 지지 평면을 각각 고정하여 변동 원인을 비교한다. Gemini와
-로봇 동작 Action은 호출하지 않는다. 분석 중에는 별도 GPU 추론 부하가 생기므로
-로봇이 대기 중일 때 실행한다.
+`tools/validation/inspect_footprint_stability.py`는 실제 인식 노드의 설정을 읽고, 동기화된 RGB-D 입력을 저장하여 객체의 바닥면 크기(Footprint) 추정치가 흔들리는 원인을 진단합니다.
+저장된 영상에 동일한 YOLOE 모델과 크기 계산 알고리즘을 적용한 후 깊이(Depth), 세그멘테이션 마스크, 지지 평면을 각각 고정하여 변동 원인을 독립적으로 분석합니다.
 
-1. 운영 ROS 환경에서 새 출력 디렉터리에 영상을 수집한다.
+> [!NOTE]
+> - Gemini API 및 실제 로봇 구동 Action은 호출하지 않습니다.
+> - 별도 GPU 추론 부하가 발생하므로 로봇이 대기(Idle) 중일 때 실행하세요.
 
+1. **RGB-D 프레임 수집 (호스트 환경)**:
    ```bash
    source /opt/ros/humble/setup.bash
    source tools/ros2/cleany-install-env
@@ -21,8 +21,7 @@
      --output runtime/footprint-NEW --count 20 --interval 0.5
    ```
 
-2. 운영 모델이 있는 perception container에서 저장 영상만 분석한다.
-
+2. **저장 영상 분석 (Vision 컨테이너 환경)**:
    ```bash
    docker exec cleany-vision-perception-1 bash -c '
      source /opt/ros/humble/setup.bash
@@ -32,24 +31,24 @@
        --output /workspace/cleany/runtime/footprint-NEW --label "beverage can"'
    ```
 
-3. `analysis.json`의 깊이 분포를 확인한 뒤 진단용 분리값을 지정해 그래프를 만든다.
-   아래 0.6m는 해당 캔 관측에서 사용한 값이며 범용 필터나 운영 설정이 아니다.
-
+3. **진단 보고서 및 그래프 생성**:
+   `analysis.json`의 깊이 분포를 확인한 후, 진단용 기준값(아래 0.6m는 진단 예시값)을 지정하여 그래프를 생성합니다.
    ```bash
    OPENBLAS_NUM_THREADS=1 python3 tools/validation/inspect_footprint_stability.py report \
      --output runtime/footprint-NEW --depth-split-m 0.6
    ```
 
-`captures.npz`, `masks.npz`, `parameters.json`이 재현 입력이며 `analysis.json`,
-`diagnostics.json`, `diagnostic.png`에 원인 분리 결과를 남긴다. 과거 실패 시점의
-원본이 없으면 새 수집 결과를 당시 프레임의 직접 재생으로 해석하지 않는다.
+- **입력 및 산출물**:
+  - 재현 입력: `captures.npz`, `masks.npz`, `parameters.json`
+  - 분석 결과: `analysis.json`, `diagnostics.json`, `diagnostic.png`
 
-## DDS 수신 버퍼 단계 비교
+## DDS 수신 버퍼 단계별 비교 (DDS Buffer Sweep)
 
-`tools/validation/dds_buffer_sweep.py`는 동작 중인 런타임의 토픽을 읽는 별도 계측기를 순차 실행합니다. 호스트와 운영 인식 프로세스의 설정은 유지하고 계측기의 CycloneDDS 수신 소켓 요청값만 변경합니다. 로봇 명령이나 카메라 활성화 요청은 보내지 않습니다. 따라서 결과는 추가 호스트 Best Effort 수신기의 대기 상태 비교이며, 운영 인식의 Reliable 수신 및 파지 중 검증과 구분합니다.
+`tools/validation/dds_buffer_sweep.py`는 실행 중인 런타임의 토픽을 구독하는 독립 계측기를 단계별로 실행하여 최적의 DDS 수신 버퍼 크기를 진단합니다.
+운영 인식 프로세스의 설정은 유지한 채, 계측기의 CycloneDDS 수신 소켓 크기(`SO_RCVBUF`)만 변경하면서 패킷 처리율을 측정합니다. 로봇 구동 명령이나 카메라 ON 요청은 보내지 않습니다.
 
-1. 로봇이 대기 중인 상태에서 운영 런타임과 같은 ROS domain 및 네트워크 환경을 설정합니다.
-
+1. **측정 환경 설정**:
+   로봇이 대기 중인 상태에서 운영 런타임과 동일한 환경을 구성합니다.
    ```bash
    source /opt/ros/humble/setup.bash
    source tools/ros2/cleany-install-env
@@ -60,23 +59,24 @@
    export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
    ```
 
-2. 새 출력 경로를 지정해 비교합니다. 기본값은 208 KiB, 512 KiB, 1 MiB, 2 MiB, 4 MiB, 8 MiB를 순방향과 역방향으로 각각 35초 측정합니다. 시스템 `rmem_max`보다 큰 요청값은 거부합니다. 다른 빈도 계측기를 동시에 실행하면 추가 부하가 생깁니다.
-
+2. **버퍼 크기별 스윕(Sweep) 측정**:
+   기본값으로 208 KiB부터 8 MiB까지 정방향 및 역방향으로 각 35초씩 2회 반복 측정합니다. (시스템 `rmem_max`보다 큰 요청값은 자동 거부됨)
    ```bash
    python3 tools/validation/dds_buffer_sweep.py run \
      --output ../cleany-data/reports/dds-buffer-idle-NEW \
      --sizes-kib 208 512 1024 2048 4096 8192 --rounds 2 --seconds 35 --warmup 5
    ```
 
-3. 측정 종료 후 보고서를 생성합니다. 렌더링 부하가 측정에 섞이지 않도록 순차 실행합니다.
-
+3. **보고서 생성**:
+   측정 부하와의 간섭을 피하기 위해 측정이 완전히 종료된 후 리포트를 생성합니다.
    ```bash
    python3 tools/validation/dds_buffer_report.py ../cleany-data/reports/dds-buffer-idle-NEW
    ```
 
-`report/index.html`과 PDF는 1초 이동 구간의 Hz를 0.1초 간격으로 표시합니다. 처음 5초와 이 구간에 걸친 이동 창은 비교 지표에서 제외합니다. 각 회차 `events.jsonl`에는 초기 연결 구간을 포함한 원본이 남습니다. `socket-limits.json`에서 Linux `SO_RCVBUF` 실효 크기를 확인하며, 요청값의 두 배가 아니면 해당 측정을 중지합니다. 소켓별 UDP 유실은 계측기 자신의 소켓만 집계하며 영상 프레임 유실률을 의미하지 않습니다. 손목 OFF는 정상 비활성으로 구분합니다.
-
-보고서의 `idle_observed`와 기록 완전성을 확인합니다. 실행 이벤트, 활성 명령 또는 손목 ON이 관측되면 대기 상태 비교로 판정하지 않습니다. 실제 파지 중 후보값 검증에는 운영 수신기의 프로파일 적용과 새 소켓 생성 확인, 파이프라인 구간별 기록이 추가로 필요합니다. 계측기 버퍼만 줄인 결과로 OS 전체 상한의 적정성을 확정하지 않습니다.
+- **결과 확인**:
+  - `report/index.html` 및 PDF 보고서에서 1초 이동 구간의 평균 Hz 변화를 확인합니다. (초기 5초 웜업 구간 제외)
+  - `socket-limits.json`에서 커널의 실제 `SO_RCVBUF` 적용값(요청값의 2배)을 확인합니다.
+  - 보고서의 `idle_observed` 항목을 확인하여 측정 도중 다른 활성 명령이나 외란이 없었는지 검증합니다.
 
 ## 테스트와 도구 위치
 
@@ -241,12 +241,28 @@ CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. �
 
 KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검사 통과와 내용 승인은 별도로 기록합니다.
 
-## Jetson 변경 검증
+## Jetson 실물 변경 검증
 
-관련 native 패키지와 interfaces를 먼저 빌드한다. `make test-jetson-core`는 snapshot 버퍼, 재구성 캐시, worker, 실물 파지 core와 정지 표본을 검사한다. `make test-jetson-native`는 scene mapping, Feetech driver와 MoveIt batch capability의 C++ 검사를 실행한다. `make test-jetson-packages`는 인식, 파지, 실물 상태, 조작과 BT의 package 회귀 검사를 수행한다. `make test-jetson-tools`는 `tests/tools/`의 host 도구 검사를 수행한다.
+Jetson 실물 관련 패키지를 수정한 경우 관련 네이티브 패키지와 인터페이스를 먼저 빌드한 후 검증합니다. 모든 테스트는 격리된 로컬 환경(`ROS_LOCALHOST_ONLY=1`) 및 별도의 ROS Domain에서 실행됩니다.
 
-검사는 localhost 전용의 별도 ROS domain을 사용한다. GPU, licensed SDK와 선택적인 LeRobot 환경이 필요한 검사는 해당 조건과 skip 이유를 구분한다. `runtime_test/`의 PTY controller와 TCP replay 검사는 명시적으로 실행하며 실물 USB 장치를 열지 않는다. 테스트 입력인 `supervised_collection_fixture.json`은 공용 실물 설정이나 commissioning 완료의 증거가 아니다.
+### 1. 단계별 검증 명령어
 
-모델 비교, 오차 주입 캠페인과 날짜별 보고서 원본은 자동 회귀 검사와 분리한다. 코드 수정의 작은 재현 사례는 해당 패키지 테스트로 유지하고 측정 JSON, 영상, 점군과 그래프는 데이터 루트에 보관한다.
+| 검증 대상 | 명령어 | 주요 검증 내용 |
+|---|---|---|
+| 핵심 로직 (Core) | `make test-jetson-core` | 스냅샷 버퍼, 복구 캐시, 워커, 실물 파지 코어 로직 및 정지 표본 검사 |
+| 네이티브 C++ 패키지 | `make test-jetson-native` | 씬 매핑(`cleany_scene_mapping`), 모터 드라이버(`cleany_feetech_hardware`), MoveIt 배치 서비스 검사 |
+| 파이프라인 패키지 | `make test-jetson-packages` | 인식, 파지 계획, 로봇 인터페이스 상태, 매니퓰레이션 BT 회귀 검사 |
+| 저장소 검증 도구 | `make test-jetson-tools` | `tests/tools/`의 호스트 CLI 및 유틸리티 도구 검사 |
+| 가상 제어기 (Controller) | `make test-jetson-controller` | 가상 시리얼(PTY) 기반으로 실제 하드웨어 연결 없이 읽기/쓰기 모드 및 제어기 안전 검사 |
 
-PTY controller의 명시 실행은 `make test-jetson-controller`를 사용한다. 예를 들어 `JETSON_CONTROLLER_TEST_ARGS='-k "readonly_controllers_cannot_activate_or_execute or shared_bus_readonly_has_no_writes"'`는 READ 전용 활성화 차단과 쓰기 부재를 실제 native driver와 가상 serial에서 검사한다. 일반 pytest는 ROS launch 자동 수집 plugin을 비활성화해 인접한 runtime 검사를 암묵적으로 import하지 않는다.
+> [!NOTE]
+> - GPU 추론, 라이선스가 필요한 SDK, 선택적인 LeRobot 환경이 필요한 검사는 해당 환경이 없으면 자동으로 `skip` 처리되며 그 이유가 출력됩니다.
+> - `runtime_test/`의 PTY 제어기 및 TCP 재생 검사는 가상 환경에서 수행되며 실제 USB 하드웨어 포트를 열지 않습니다.
+> - `supervised_collection_fixture.json` 등의 테스트 픽스처는 계약 검증용이며 실물 로봇의 캘리브레이션 완료 근거로 대체할 수 없습니다.
+
+### 2. 가상 제어기 세부 검사 예시
+특정 제어기 안전 검사만 집중적으로 실행할 때는 `JETSON_CONTROLLER_TEST_ARGS`를 전달합니다.
+```bash
+# READ 전용 모드에서 모터 쓰기 차단 및 명령 거절 검사
+make test-jetson-controller JETSON_CONTROLLER_TEST_ARGS='-k "readonly_controllers_cannot_activate_or_execute or shared_bus_readonly_has_no_writes"'
+```

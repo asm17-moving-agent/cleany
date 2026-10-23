@@ -220,26 +220,32 @@ make build-dev-monitor
 make run-dev-monitor
 ```
 
-브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 기본적으로 관측 전용이며, 관측 대상과 같은 DDS domain과 메시지 overlay가 필요합니다. Frontend 준비는 [개발환경](DEVELOPMENT_SETUP.md)을 따릅니다.
+브라우저에서 `http://127.0.0.1:8768`을 엽니다. Monitor는 기본적으로 관측 전용이며, 관측 대상과 동일한 DDS Domain 및 메시지 Overlay가 필요합니다. 프론트엔드 빌드 준비는 [개발환경 가이드](DEVELOPMENT_SETUP.md)를 참고하세요.
 
-실물 웹 제어를 활성화한 환경에서는 `매니퓰레이션 → 실물 조작 제어`에서 다음 작업을
-제안받고 승인할 수 있습니다. Mission Manager는 필요하지 않습니다.
+### 웹 기반 실물 조작 제어 (작업 제안 및 승인)
 
-1. [웹 제어 준비 및 인증](../ros2_ws/src/cleany_dev_monitor/README.md#선택적-웹-실물-제어와-되돌리기) 절차로 연결합니다.
-2. `다음 작업 제안받기`를 누르고 관측 이미지의 대상, 행동과 선정 이유를 확인합니다.
-3. `승인하여 1회 실행`으로 대상 재확인과 단일 동작을 요청합니다. 만료 또는 승인 대상의 변화로
-   거절되면 다시 제안받습니다. `이 물체 건너뛰기`는 해당 추적 대상을 다음 제안에서 제외합니다.
-4. 결과와 다음 제안을 확인하고 다음 회차를 직접 승인합니다. 다음 제안은 자동 실행되지
-   않습니다. 실행 차단 또는 상태 불명확 시 기존 복구 절차를 따릅니다.
+실물 웹 제어가 켜져 있는 환경에서는 Mission Manager 없이도 `매니퓰레이션 → 실물 조작 제어` 메뉴에서 로봇이 추천하는 작업을 검토하고 1회씩 실행을 승인할 수 있습니다.
 
-기존 `물체 1개 실행`은 제안 검토 없이 자동 선택 후 실행하는 별도 버튼입니다.
-`pick_return_release` 모드는 물체를 원래 위치에 놓으므로 수거 완료와 구분합니다.
+> [!NOTE]
+> 실물 제어 기능은 원격 오작동을 방지하기 위해 [웹 제어 준비 및 인증](../ros2_ws/src/cleany_dev_monitor/README.md#선택적-웹-실물-제어와-되돌리기) 절차를 먼저 거쳐야 활성화됩니다.
 
-입력과 기록은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 설정합니다. 기록 DB, 재생, stale 표시의 의미는 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)에 있습니다.
+1. **작업 제안 요청**: `다음 작업 제안받기` 버튼을 눌러 카메라에 포착된 대상 물체, 권장 행동, 추천 이유를 확인합니다.
+2. **작업 승인 및 1회 실행**: `승인하여 1회 실행`을 누르면 대상의 현재 위치를 재확인한 뒤 해당 동작을 1회 수행합니다.
+   - 시간 만료나 물체 이동으로 대상이 달라진 경우 승인이 안전하게 거절되며, 다시 제안을 받아야 합니다.
+   - 특정 물체를 건너뛰고 싶다면 `이 물체 건너뛰기`를 눌러 다음 제안 목록에서 제외할 수 있습니다.
+3. **결과 확인 및 후속 제안**: 동작 완료 후 결과와 다음 추천 작업을 확인합니다. 다음 작업은 사용자의 명시적 승인 없이 **절대 자동 실행되지 않습니다**.
+   - 오류 발생 또는 안전 차단 시에는 표준 복구 절차를 진행합니다.
 
-웹 자산을 다시 빌드하면 `make build-dev-monitor-ros`로 설치 자산도 갱신합니다. Node.js 22 이상과 pnpm 11을 사용합니다. 기록 위치는 `MONITOR_ROS_ARGS='-p state_directory:=/absolute/path'`로 지정할 수 있습니다.
+> [!TIP]
+> - `물체 1개 실행`: 제안 검토 단계 없이 바로 가장 적합한 물체를 자동 선택하여 실행하는 단축 버튼입니다.
+> - `pick_return_release` 모드: 물체를 집은 뒤 원래 위치에 다시 내려놓는 모드로, 최종 수거 완료(`pick_and_dump`)와 구분됩니다.
 
-상세 SLAM, LiDAR, 점군과 costmap은 같은 domain의 RViz에서 확인합니다. 완료된 원본 bag ZIP을 내려받아 압축을 푼 뒤 다음과 같이 재생합니다. Bag에 기록된 토픽, TF와 CameraInfo만 사용할 수 있으며 SQLite 가공 기록은 RViz 입력이 아닙니다.
+입력 및 기록 설정은 [monitor.yaml](../ros2_ws/src/cleany_dev_monitor/config/monitor.yaml)에서 관리합니다. 기록 DB, 재생, 지연(stale) 표시 기준은 [관측 데이터 계약](../ros2_ws/src/cleany_dev_monitor/docs/data.md)에 정리되어 있습니다.
+
+웹 자산을 수정했을 때는 `make build-dev-monitor-ros`를 실행하여 패키지 설치본을 갱신합니다. (Node.js 22 이상, pnpm 11 필요)
+기록 저장 경로는 `MONITOR_ROS_ARGS='-p state_directory:=/absolute/path'` 파라미터로 지정할 수 있습니다.
+
+상세 SLAM, LiDAR, 점군과 Costmap은 동일한 DDS Domain 환경의 RViz2에서 확인합니다. 웹에서 내려받은 원본 Bag 압축을 해제한 후 아래와 같이 재생할 수 있습니다.
 
 ```bash
 ros2 bag info <bag-directory>
@@ -247,7 +253,7 @@ ros2 bag play <bag-directory> --clock
 rviz2 --ros-args -p use_sim_time:=true
 ```
 
-Fixed Frame은 `map_frame`에 맞추고 Cartographer Submaps display에는 해당 plugin을 설치합니다.
+Fixed Frame은 `map_frame`으로 설정하며, Cartographer 서브맵 표시는 전용 RViz 플러그인이 설치되어 있어야 합니다.
 
 ## Base와 plot
 
@@ -301,29 +307,57 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 
 ## Jetson 실물 실행 경로
 
-native 빌드 출력은 다른 실행과 같이 `CLEANY_DATA_ROOT/builds/<checkout>/`에 둔다. `CLEANY_BUILD_ROOT`와 `CLEANY_INSTALL_BASE`로 변경할 수 있으며 host 도구와 container 경로 변환도 같은 기준을 사용한다. GPU/라이선스 runtime과 version이 맞는 MoveIt overlay를 먼저 준비한 뒤 `make build-jetson`을 실행한다.
+실물 로봇(Jetson Orin NX)에서 수거 파이프라인을 실행하는 절차입니다.
+빌드 산출물은 기본적으로 `CLEANY_DATA_ROOT/builds/<checkout>/`에 저장되며, 환경 변수(`CLEANY_BUILD_ROOT`, `CLEANY_INSTALL_BASE`)로 변경할 수 있습니다. GPU 모델 가중치, 라이선스, MoveIt 오버레이를 사전에 준비한 뒤 `make build-jetson`을 실행합니다.
 
-실물 수거에는 로봇별 외부 프로파일을 명시한다.
+### 1. 환경 설정
 
-경로를 저장한 로컬 환경 파일이 있으면 실행할 터미널에서 불러온다. 이 파일은
-저장소 밖에 두며, 환경 변수를 설정하는 것만으로 서비스를 시작하지 않는다.
+실물 로봇별 설정 경로를 환경 파일 또는 환경 변수로 설정합니다.
+설정 파일은 Git 추적 대상이 아니므로 저장소 외부(`~/.config/cleany/`)에 보관합니다.
 
+**방법 A. 환경 파일 로드 (권장)**:
 ```bash
 source "$HOME/.config/cleany/jetson-runtime.env"
 ```
 
-환경 파일을 사용하지 않을 때는 다음 경로를 직접 지정한다.
-
+**방법 B. 환경 변수 직접 지정**:
 ```bash
+# 로봇별 수거 동작 프로파일
 export CLEANY_MANIPULATION_COLLECTION_CONFIG=/absolute/path/to/local-collection-profile.json
+# 모터 제어기 한계치 및 포트 설정
 export CLEANY_FEETECH_CONTROL_CONFIG=/absolute/path/to/local-controller-limits.yaml
+# 모션 안전 감시 기준
 export CLEANY_HARDWARE_MONITOR_CONFIG=/absolute/path/to/local-motion-monitor.yaml
 ```
 
-실제 로봇 연결과 감독 조건을 준비한 뒤 `make collection-start`로 runtime을 시작한다. `make manipulation-start`는 idle Jetson Action 서버를 연결한다. 실행, 복구와 팔 복귀는 각각 명시적인 운영 명령이다. 프로파일의 준비 여부, controller와 정지 수단을 확인한 운영 환경에서만 사용한다.
+> [!NOTE]
+> 환경 변수를 설정하는 것만으로는 백그라운드 서비스나 모터 구동이 시작되지 않습니다. 실제 구동 전에 비상 정지 수단과 로봇 주변 안전거리를 반드시 확보하세요.
 
-`make manipulation-run`과 dev-monitor의 실물 실행은 기본적으로 기하학적 후보 생성과 cuRobo IK/MoveIt 경로를 사용한다. 기하학적 후보는 native grasp 노드에서 생성하며 AnyGrasp container는 시작하지 않는다. `CLEANY_COLLECTION_GRASP_PREDICTOR=anygrasp`를 명시하면 SDK 경로를 선택할 수 있다. 명시 값은 기본값보다 우선하며, 이미 실행 중인 runtime과 후보 방식이 다르면 시작 요청을 거절한다.
+### 2. 런타임 시작 및 실행
 
-AnyGrasp를 명시적으로 선택한 경우 배포 설정은 target 형상에 따라 4,000점과 8,000점을 선택하고, 작거나 얇거나 성긴 target은 8,000점을 유지한다. 후보 미생성 시 전체 해상도 재시도와 작업 중 worker 유지를 사용한다. 조건과 메모리 유지 정책은 [predictor 계약](../ros2_ws/src/cleany_grasping/docs/predictors.md)을 따른다.
+| 명령어 | 동작 설명 | 비고 |
+|---|---|---|
+| `make collection-start` | 하드웨어 드라이버, 카메라 브리지, 조작 파이프라인 전체를 백그라운드에서 시작 | 로봇 연결 및 안전 확인 후 실행 |
+| `make manipulation-start` | 유휴(Idle) 상태의 Jetson Action 서버 기동 | 외부 요청 대기 모드 |
+| `make manipulation-run` | 1회 수거 시퀀스(인식 → 파지 계획 → 접근 → 파지 → 복귀) 즉시 실행 | 단일 작업 실행 |
+| `make manipulation-stop` | 실행 중인 조작 파이프라인 및 백그라운드 노드 안전 종료 | 안전 종료 |
 
-공유하는 감독 시험 기본 파일이나 부팅 자동 구동 스크립트는 제공하지 않는다. [실물 경로와 설정 계약](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md), [하드웨어 통신](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)을 따른다. SDK 기반 수동 commissioning 도구는 선택적인 LeRobot 환경을 사용하며 native ROS 필수 의존성과 구분한다.
+### 3. 파지 후보 생성 방식 선택 (Predictor)
+
+`make manipulation-run` 및 Dev Monitor의 실물 실행은 기본적으로 **기하학적 후보 생성(Geometric)** 및 **cuRobo IK / MoveIt 경로 계획**을 사용합니다.
+
+- **기본 모드 (`geometric`)**:
+  - 네이티브 ROS 2 노드에서 점군의 기하 형상을 기반으로 파지 후보를 계산합니다.
+  - AnyGrasp 컨테이너를 구동하지 않으므로 GPU 메모리와 시스템 자원을 절약합니다.
+- **AnyGrasp 모드 (`anygrasp`)**:
+  - 딥러닝 기반 파지 신경망을 사용할 경우 환경 변수로 명시합니다:
+    ```bash
+    export CLEANY_COLLECTION_GRASP_PREDICTOR=anygrasp
+    ```
+  - 대상 물체의 기하 형상에 따라 4,000점 또는 8,000점의 점군 샘플링을 동적으로 적용합니다. (작거나 얇은 물체는 8,000점 유지)
+  - 파지 후보 미생성 시 원본 해상도 재시도 및 메모리 반환 정책이 작동합니다. 상세 내용은 [Predictor 계약 문서](../ros2_ws/src/cleany_grasping/docs/predictors.md)를 참고하세요.
+
+> [!WARNING]
+> 이미 실행 중인 런타임의 예측기 방식과 다른 방식으로 실행을 요청하면 안전을 위해 시작 요청이 거절됩니다. 방식을 변경할 때는 런타임을 재시작해야 합니다.
+
+상세한 파라미터 및 하드웨어 연동 계약은 [실물 경로와 설정 계약 문서](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md)와 [하드웨어 인터페이스 문서](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 참고하세요.

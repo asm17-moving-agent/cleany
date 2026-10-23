@@ -50,7 +50,7 @@ flowchart TB
     end
 ```
 
-점선은 예정된 공통 adapter 구조입니다. 공통 Mock/Sim/Real adapter는 아직 미구현이다. 실물 상태 조회와 controller guard는 [cleany_robot_interface](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)가 제공하며, 현재 Mission의 구체적인 adapter는 [`cleany_mission_manager/adapters/`](../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/)에 있습니다. 하드웨어 좌표계와 안전 한계는 adapter와 설정이 소유합니다.
+점선은 예정된 공통 adapter 구조입니다. 공통 Mock/Sim/Real adapter는 아직 구현되지 않았습니다. 실물 상태 조회와 controller guard는 [cleany_robot_interface](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)가 제공하며, 현재 Mission의 구체적인 adapter는 [`cleany_mission_manager/adapters/`](../ros2_ws/src/cleany_mission_manager/cleany_mission_manager/adapters/)에 있습니다. 하드웨어 좌표계와 안전 한계는 adapter와 설정이 소유합니다.
 
 설계 경계의 근거는 KB의 [ROS 2 Software Architecture](<cleany-docs/20_TECHNICAL/11 - ROS 2 Software Architecture.md>)에서 확인합니다.
 

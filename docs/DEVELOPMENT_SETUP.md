@@ -222,21 +222,39 @@ pnpm build
 이미 구성된 Ubuntu VM의 로컬 의존성과 통합 install은 Bash에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.bash`, zsh에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh`로 적용한다. 셸에 맞는 파일을 사용한다. 이 파일은 새 환경의 설치 절차를 대신하지 않으며 Mission, 서버와 interfaces는 같은 worktree install에서 읽는다.
 
 
-### 선택형 Jetson 조작 환경
+### 선택형 Jetson 실물 조작 환경
 
-실물 backend는 `cleany_robot_interface`, `cleany_feetech_hardware`, `cleany_scene_mapping`과 명시적인 physical selector를 사용한다. 기존 MuJoCo 서버와 별도 실행 파일이며 기본 시뮬레이션 launch를 교체하지 않는다.
+실물 로봇 제어(Jetson 백엔드)는 `cleany_robot_interface`, `cleany_feetech_hardware`, `cleany_scene_mapping` 및 실물 전용 Grasp Selector를 사용합니다. 기존 MuJoCo 시뮬레이션 서버와 분리되어 독립적으로 동작합니다.
 
-MoveIt 2.5.9와 geometric_shapes 2.3.4의 로컬 overlay가 필요한 경우 다음 명령을 사용한다. 설치기는 버전과 archive hash를 확인하고 사용자 prefix에 빌드한다. 시스템 `/opt/ros`는 교체하지 않는다. 다른 버전은 설치기가 거부한다.
+#### 1. MoveIt 오버레이 및 빌드 준비
+MoveIt 2.5.9와 geometric_shapes 2.3.4의 잠금 패치 및 오버레이를 사용자 경로에 빌드합니다. (시스템 `/opt/ros`는 변경하지 않으며, 지정된 버전/해시가 일치할 때만 빌드됩니다.)
 
 ```bash
+# 1. 씬 매핑 및 MoveIt 옥토맵 락 패치 설치
 make scene-mapping-setup moveit-octomap-lock-setup
+
+# 2. ROS 환경 및 씬 매핑 환경 변수 로드
 source /opt/ros/humble/setup.bash
 source tools/scene-mapping-env
+
+# 3. Jetson 실물 패키지 빌드
 make build-jetson
 ```
 
-`CLEANY_SCENE_RUNTIME_PREFIX`, `CLEANY_SCENE_DEPENDENCY_PREFIX`와 `CLEANY_MOVEIT_PATCH_PREFIX`로 prefix를 지정할 수 있다. geometry cache는 `CLEANY_MOVEIT_GEOMETRY_CACHE_DIR`로 선택하며 빈 값이면 사용하지 않는다. cache miss와 손상은 원래 계산으로 돌아간다.
+#### 2. 주요 환경 변수 설정
 
-native 출력은 기본 `../cleany-data/builds/<checkout 이름>/install`이다. wrapper는 `CLEANY_INSTALL_BASE`, `CLEANY_BUILD_ROOT`, `CLEANY_DATA_ROOT` 순서로 override를 해석한다. `make`의 `INSTALL_BASE`를 직접 바꾸는 환경에서는 wrapper에도 같은 `CLEANY_INSTALL_BASE`를 설정한다. GPU 모델, license와 API key는 저장소 밖에 준비한다. TensorRT와 cuRobo 이미지는 [vision](../containers/vision/README.md), [motion](../containers/motion/README.md) 안내를 따른다.
+| 환경 변수 | 기본값 | 설명 |
+|---|---|---|
+| `CLEANY_INSTALL_BASE` | `../cleany-data/builds/<checkout>/install` | 빌드 산출물 설치 경로 (최우선) |
+| `CLEANY_BUILD_ROOT` | `../cleany-data/builds/<checkout>/build` | 빌드 중간 산출물 경로 |
+| `CLEANY_DATA_ROOT` | `../cleany-data` | 데이터 저장소 루트 경로 |
+| `CLEANY_MOVEIT_GEOMETRY_CACHE_DIR` | (미설정 시 캐시 미사용) | 기하 형상 캐시 디렉터리 경로 |
+| `CLEANY_SCENE_RUNTIME_PREFIX` | 사용자 기본 접두어 | 씬 매핑 런타임 설치 접두어 |
+| `CLEANY_MOVEIT_PATCH_PREFIX` | 사용자 기본 접두어 | MoveIt 패치 라이브러리 접두어 |
 
-실행 시에는 로봇별 collection, controller와 motion-monitor 설정 파일을 각각 명시한다. 실험에서 검사를 끈 profile은 배포 기본값으로 제공하지 않는다. [실물 실행 안내](RUNNING.md#jetson-실물-실행-경로)를 따른다.
+> [!NOTE]
+> - `make` 실행 시 `INSTALL_BASE`를 임의로 지정하는 경우, 래퍼 스크립트에도 동일하게 `CLEANY_INSTALL_BASE`를 맞춰주어야 경로 불일치가 발생하지 않습니다.
+> - GPU 모델 가중치, 라이선스, API 키는 보안을 위해 Git 저장소 외부에서 관리합니다.
+>   - TensorRT / YOLOE: [Vision 컨테이너 안내](../containers/vision/README.md)
+>   - cuRobo / MoveIt: [Motion 컨테이너 안내](../containers/motion/README.md)
+> - 실제 실행 시에는 로봇별 프로파일을 명시해야 합니다. 상세 실행법은 [실물 실행 가이드](RUNNING.md#jetson-실물-실행-경로)를 참고하세요.
