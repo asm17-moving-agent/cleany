@@ -1,23 +1,14 @@
-"""ROS graph evidence with synthetic peers; no hardware or navigation is driven."""
+"""Supervisor-only ROS graph with synthetic peers; mission integration is in test_e2e.py."""
 import os
-from copy import deepcopy
 from pathlib import Path
-from threading import Event, Thread
+from threading import Thread
 from time import monotonic, sleep
 
 import pytest
 import rclpy
 from cleany_interfaces.action import RecoverComponent, RequestRecovery
 from cleany_interfaces.msg import ComponentHealth, SafetyStatus, SystemState
-from cleany_interfaces.srv import CheckPermission, RequestFaultReset
-from cleany_mission_manager.core.manager import MissionManager
-from cleany_mission_manager.core.models import MissionRequest
-from cleany_mission_manager.core.result import ModuleResult
-from cleany_mission_manager.core.states import MissionState
-from cleany_mission_manager.mocks.components import (
-    MockNavigator, MockPerception, MockPlanner, MockSkillExecutor, InMemoryReporter,
-)
-from cleany_mission_manager.ros_supervision import SupervisedMissionNode
+from cleany_interfaces.srv import CheckPermission
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from lifecycle_msgs.msg import State
@@ -111,7 +102,7 @@ class SyntheticPeers(Node):
             physical_release_confirmed='estop' not in self.bad, stopped=True))
 
 
-_DOMAINS = iter(range(int(os.environ.get('SUPERVISOR_GRAPH_DOMAIN_BASE', '170')), 200))
+_DOMAINS = iter(range(int(os.environ.get('SUPERVISOR_GRAPH_DOMAIN_BASE', '190')), 200))
 
 
 @pytest.fixture
@@ -173,115 +164,6 @@ def test_ros_permission_service_and_recovery_verification(graph):
     assert result.result().result.restored and job.state == RecoveryState.SUCCEEDED
     wait(lambda: supervisor.core.state == OperatingState.OPERATIONAL)
     assert peers.messages[-1].epoch == supervisor.core.epoch
-
-
-class BlockingNavigator(MockNavigator):
-    def __init__(self):
-        self.entered, self.finish = Event(), Event()
-
-    def navigate_to_target(self, request):
-        self.entered.set()
-        assert self.finish.wait(5.)
-        return ModuleResult.success()
-
-
-class SyntheticStop:
-    def __init__(self, navigator):
-        self.navigator, self.confirmed, self.requested = navigator, False, False
-
-    def request_stop(self):
-        self.requested = True
-        self.navigator.finish.set()
-        return True
-
-    def stopped(self):
-        return self.confirmed
-
-
-def start_mission(graph):
-    peers, supervisor, executor, nodes = graph
-    navigator = BlockingNavigator()
-    stopper = SyntheticStop(navigator)
-    manager = MissionManager(navigator=navigator, perception=MockPerception(), planner=MockPlanner(),
-                            skill_executor=MockSkillExecutor(), reporter=InMemoryReporter(), stop_controller=stopper)
-    bridge = SupervisedMissionNode(manager, stop_timeout_s=.6)
-    bridge.permission.heartbeat_timeout_s = .3
-    executor.add_node(bridge)
-    nodes.append(bridge)
-    wait(lambda: bool(bridge.permission.epoch) and bridge.permission.client.service_is_ready())
-    bridge.submit(MissionRequest('synthetic_mission', 'clean_seat', 'seat_01', 'synthetic_operator'))
-    wait(navigator.entered.is_set)
-    return bridge, manager, stopper
-
-
-def test_ros_revocation_ack_and_actual_stop_are_distinct(graph):
-    peers, supervisor, _, _ = graph
-    bridge, manager, stopper = start_mission(graph)
-    lease = next(iter(supervisor.core.permissions.leases.values()))
-    peers.bad.add('localization')
-    wait(lambda: lease.stop_accepted)
-    assert stopper.requested and not lease.stopped and manager.state == MissionState.STOPPING
-    stopper.confirmed = True
-    wait(lambda: lease.stopped)
-    assert manager.state == MissionState.INTERRUPTED
-    peers.bad.remove('localization')
-    wait(lambda: supervisor.core.state == OperatingState.OPERATIONAL)
-    assert manager.state == MissionState.INTERRUPTED and not lease.granted
-
-
-def test_ros_supervisor_restart_invalidates_active_permission(graph):
-    peers, supervisor, executor, nodes = graph
-    bridge, manager, stopper = start_mission(graph)
-    previous_epoch = supervisor.core.epoch
-    executor.remove_node(supervisor)
-    nodes.remove(supervisor)
-    supervisor.destroy_node()
-    restarted = SupervisorNode(config=deepcopy(peers.config))
-    executor.add_node(restarted)
-    nodes.append(restarted)
-    assert restarted.core.epoch != previous_epoch
-    wait(lambda: stopper.requested)
-    assert not bridge.permission.valid()
-    stopper.confirmed = True
-    wait(lambda: manager.state == MissionState.INTERRUPTED)
-    assert not restarted.core.permissions.leases
-
-
-def test_ros_supervisor_exit_expires_lease_without_a_revocation_message(graph):
-    _, supervisor, executor, nodes = graph
-    bridge, manager, stopper = start_mission(graph)
-    # Exercise successful renewals for more than the original grant lifetime.
-    sleep(.8)
-    assert bridge.permission.valid() and not stopper.requested
-    executor.remove_node(supervisor)
-    nodes.remove(supervisor)
-    supervisor.destroy_node()
-    wait(lambda: stopper.requested, timeout=1.)
-    assert not bridge.permission.valid()
-    stopper.confirmed = True
-    wait(lambda: manager.state == MissionState.INTERRUPTED)
-
-
-def test_ros_stop_failure_escalates_without_fabricating_success(graph):
-    peers, supervisor, _, _ = graph
-    bridge, manager, stopper = start_mission(graph)
-    peers.bad.add('localization')
-    wait(lambda: any(f.code.startswith('MISSION_STOP_FAILED:') and f.active
-                     for f in supervisor.core.faults.faults.values()))
-    assert supervisor.core.state == OperatingState.FAULT_LOCKED
-    assert not any(lease.stopped for lease in supervisor.core.permissions.leases.values())
-    stopper.confirmed = True
-    wait(lambda: manager.state == MissionState.INTERRUPTED)
-    reset = peers.create_client(RequestFaultReset, 'system/request_fault_reset', callback_group=peers.group)
-    wait(reset.service_is_ready)
-    code = next(f.code for f in supervisor.core.faults.faults.values()
-                if f.code.startswith('MISSION_STOP_FAILED:'))
-    result = reset.call_async(RequestFaultReset.Request(epoch=supervisor.core.epoch, fault_code=code,
-                                                        operator_id='synthetic_operator'))
-    wait(result.done)
-    assert not result.result().reset  # Service dispatches verification, not a fabricated stop result.
-    wait(lambda: all(lease.stopped for lease in supervisor.core.permissions.leases.values()))
-    assert supervisor.core.state == OperatingState.DEGRADED
 
 
 def test_sensor_validation_rejects_publish_only_health():

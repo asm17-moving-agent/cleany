@@ -60,10 +60,16 @@ class MissionPermissionManager:
                 continue
             if lease.stop_requested_at is None:
                 lease.stop_requested_at = now
+            if not lease.stop_dispatched:
+                # The stop server may not be discovered yet (e.g. right after a restart):
+                # keep retrying within the stop deadline instead of failing at once.
                 try:
                     stop_port.request(lease, self.epoch)
+                    lease.stop_dispatched = True
                 except Exception as exc:
-                    faults.escalate_stop(lease.lease_id, now, str(exc))
+                    if now - lease.stop_requested_at >= self.config['stop_timeout_s']:
+                        faults.escalate_stop(lease.lease_id, now, str(exc))
+                    continue
             try:
                 status = stop_port.poll(lease.lease_id)
             except Exception:

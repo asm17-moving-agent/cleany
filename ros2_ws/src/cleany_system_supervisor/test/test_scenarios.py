@@ -196,18 +196,6 @@ def test_unsupported_recovery_is_explicit_and_consumes_no_budget():
     assert not system.recoveries.jobs and 'RECOVERY_UNSUPPORTED' in kinds(system)
 
 
-def test_arm_outside_travel_posture_limits_navigation_without_a_fault():
-    system = make()
-    ready(system)
-    manipulation = permission(system, ('MANIPULATION', 'VISUAL_PERCEPTION'))
-    for _ in range(3):
-        advance(system, bad=('arm_motion_safe',))
-    assert system.capabilities.states['NAVIGATION'] == A.UNAVAILABLE
-    assert system.state == O.DEGRADED and 'ARM_MOTION_UNSAFE' not in system.faults.faults
-    assert system.permissions.leases[manipulation.lease_id].granted
-    assert not permission(system, mission_id='navigation').granted
-
-
 def test_events_cover_state_fault_lease_and_recovery_transitions():
     system = make()
     ready(system)
@@ -228,3 +216,35 @@ def test_events_cover_state_fault_lease_and_recovery_transitions():
     assert raised.code == 'NAVIGATION_UNAVAILABLE' and raised.severity == 'ERROR'
     assert any(e.code == lease.lease_id for e in system.events if e.kind == 'LEASE_REVOKED')
     assert job.job_id in next(e.detail for e in system.events if e.kind == 'RECOVERY_RUNNING')
+
+
+def test_stop_request_retries_until_the_stop_server_is_reachable():
+    class LateServer(Stop):
+        reachable = False
+
+        def request(self, lease, epoch):
+            if not self.reachable:
+                raise RuntimeError('mission/stop action unavailable')
+            super().request(lease, epoch)
+    system = make()
+    system.stop_port = LateServer()
+    ready(system)
+    lease = permission(system)
+    advance(system, bad=('localization',))
+    advance(system, bad=('localization',))
+    assert not any(code.startswith('MISSION_STOP_FAILED') for code in system.faults.faults)
+    system.stop_port.reachable, system.stop_port.status = True, 'STOPPED'
+    advance(system, bad=('localization',))
+    assert system.permissions.leases[lease.lease_id].stopped
+    assert system.stop_port.requests == [lease.lease_id]
+
+
+def test_unreachable_stop_server_escalates_at_the_stop_deadline():
+    from cleany_system_supervisor.supervisor import UnavailablePort
+    system = make()
+    system.stop_port = UnavailablePort()
+    ready(system)
+    lease = permission(system)
+    for _ in range(int(system.config['stop_timeout_s'] * 10) + 2):
+        advance(system, bad=('localization',))
+    assert system.faults.faults['MISSION_STOP_FAILED:' + lease.lease_id].active

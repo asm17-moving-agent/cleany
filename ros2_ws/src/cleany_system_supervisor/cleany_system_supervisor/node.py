@@ -1,7 +1,6 @@
 """Single ROS node: bounded callbacks, asynchronous transports, monotonic policy."""
 import json
 from dataclasses import asdict
-from pathlib import Path
 from threading import RLock
 from time import monotonic
 
@@ -48,8 +47,6 @@ class SupervisorNode(Node):
         self.core = SystemSupervisor(config, recovery_port=RecoveryPort(self, self.action_group),
                                      stop_port=MissionStopPort(self, self.settings['stop_action'], self.action_group),
                                      store=LatchStore(state_file) if state_file else None)
-        event_log = config.get('event_log_file', '')
-        self.event_log = Path(event_log).expanduser() if event_log else None
         self.stamps = StampGuard(self.settings['max_sensor_age_s'])
         self.lifecycle = {}
         self.lifecycle_pending = {}
@@ -261,15 +258,8 @@ class SupervisorNode(Node):
         while self.core.events:
             event = self.core.events.popleft()
             record = {'epoch': self.core.epoch, **asdict(event)}
-            line = json.dumps(record, sort_keys=True)
-            self.get_logger().info('event ' + line)
-            if self.event_log is not None:
-                try:
-                    self.event_log.parent.mkdir(parents=True, exist_ok=True)
-                    with open(self.event_log, 'a', encoding='utf-8') as stream:
-                        stream.write(line + '\n')
-                except OSError as exc:
-                    self.get_logger().error(f'event log write failed: {exc}')
+            # Persistent recording belongs to cleany_logger; this log line is for live debugging.
+            self.get_logger().debug('event ' + json.dumps(record, sort_keys=True))
             msg = messages.SystemEvent(epoch=self.core.epoch, sequence=event.sequence,
                                        monotonic_s=event.monotonic_s, kind=event.kind, code=event.code,
                                        source=event.source, severity=event.severity, detail=event.detail)

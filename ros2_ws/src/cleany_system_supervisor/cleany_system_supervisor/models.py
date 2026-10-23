@@ -59,6 +59,7 @@ class Lease:
     granted: bool = True
     reason: str = ''
     stop_requested_at: float | None = None
+    stop_dispatched: bool = False
     stop_accepted: bool = False
     stopped: bool = False
     ended_at: float | None = None

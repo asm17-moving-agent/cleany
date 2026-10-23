@@ -85,6 +85,7 @@ help:
 	@echo "  make build-mission-sim  Build Gazebo + navigation + runtime + pose relay"
 	@echo "  make test-mission-runtime  Build and test mission ROS packages"
 	@echo "  make build-mission-mock / test-mission-mock  Build and test the integrated Mock Action"
+	@echo "  make test-supervision-core / test-supervision  Supervisor core, ROS graph and E2E with latency report"
 	@echo "  make test-gazebo-manipulation  Check study-cafe Nav2 + two Mock Action collections"
 	@echo "  make test-mujoco   Run MuJoCo simulation pytest"
 	@echo "  make test-handeye  Build and test the hand-eye package boundary"
@@ -332,6 +333,41 @@ test-mission-runtime: build-mission-runtime
 	colcon --log-base "$(LOG_BASE)" test-result --test-result-base "$(MISSION_BUILD_BASE)" --verbose
 
 test-mission: test-mission-core
+
+.PHONY: build-supervision test-supervision-core test-supervision
+SUPERVISION_PACKAGES := cleany_system_supervisor cleany_safety_adapter cleany_mission_manager cleany_base_driver
+SUPERVISION_TEST_ROS_DOMAIN_ID ?= 184
+SUPERVISION_LATENCY_REPORT ?= $(CLEANY_DATA_ROOT)/runs/supervision/latency.json
+# The E2E graph uses the Nav2 lifecycle recovery owner from the separate navigation base.
+build-supervision: build-navigation
+	source "$(ROS_SETUP)" && \
+	cd "$(ROS2_WS)" && \
+	colcon --log-base "$(MISSION_LOG_BASE)" build --symlink-install \
+		--build-base "$(MISSION_BUILD_BASE)" --install-base "$(MISSION_INSTALL_BASE)" \
+		--packages-up-to $(SUPERVISION_PACKAGES)
+
+test-supervision-core:
+	PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONPATH="$(ROS2_WS)/src/cleany_system_supervisor:$(ROS2_WS)/src/cleany_safety_adapter:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_skill_executor:$${PYTHONPATH:-}" \
+	python3 -m pytest -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_core.py" \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test/test_scenarios.py" \
+		"$(ROS2_WS)/src/cleany_safety_adapter/test" \
+		"$(ROS2_WS)/src/cleany_mission_manager/tests/test_runtime_supervision.py" \
+		"$(ROS2_WS)/src/cleany_skill_executor/test/test_arm_health.py"
+
+test-supervision: build-supervision
+	source "$(ROS_SETUP)" && \
+	source "$(NAVIGATION_INSTALL_BASE)/setup.bash" && \
+	source "$(MISSION_INSTALL_BASE)/setup.bash" && \
+	mkdir -p "$$(dirname "$(SUPERVISION_LATENCY_REPORT)")" && rm -f "$(SUPERVISION_LATENCY_REPORT)" && \
+	ROS_DOMAIN_ID=$(SUPERVISION_TEST_ROS_DOMAIN_ID) SUPERVISOR_LATENCY_REPORT="$(SUPERVISION_LATENCY_REPORT)" \
+	PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider \
+		"$(ROS2_WS)/src/cleany_interfaces/test" \
+		"$(ROS2_WS)/src/cleany_system_supervisor/test" \
+		"$(ROS2_WS)/src/cleany_safety_adapter/test" \
+		"$(ROS2_WS)/src/cleany_navigation/test/test_lifecycle_recovery.py" && \
+	echo "latency report: $(SUPERVISION_LATENCY_REPORT)"
 
 .PHONY: build-mission-mock test-mission-mock test-gazebo-manipulation
 build-mission-mock:

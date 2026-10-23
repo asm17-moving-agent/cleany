@@ -139,7 +139,7 @@ def test_revocation_acceptance_is_not_stopped_and_timeout_escalates(system):
     record = system.permissions.leases[lease.lease_id]
     assert not record.granted and record.stop_accepted and not record.stopped
     assert not permission(system, lease_id=lease.lease_id, version=lease.version).granted
-    for _ in range(32):
+    for _ in range(int(system.config['stop_timeout_s'] * 10) + 2):
         advance(system, bad=('localization',))
     assert system.state == O.FAULT_LOCKED
     assert system.faults.faults['MISSION_STOP_FAILED:' + lease.lease_id].active

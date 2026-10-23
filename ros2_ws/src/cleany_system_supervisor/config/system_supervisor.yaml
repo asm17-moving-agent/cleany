@@ -3,13 +3,14 @@
 startup_grace_s: 5.0
 lease_s: 1.5
 heartbeat_timeout_s: 1.0
-stop_timeout_s: 3.0
+# Must exceed the Mission Runtime cancel_timeout (5 s) plus its 0.5 s answer margin,
+# otherwise a stop that the Runtime still confirms in time escalates to a lock.
+stop_timeout_s: 6.0
 # Finished leases/recovery jobs and cleared faults are forgotten after this time.
 retention_s: 300.0
 persistence:
   # Active latched faults and unconfirmed leases survive a Supervisor restart.
   state_file: ~/.ros/cleany/system_supervisor_state.json
-event_log_file: ''
 essential_capabilities: [BASE_MOTION]
 safety_sources: [safety, estop, publisher_trust]
 recovery_safety_sources: [stopped]
@@ -37,11 +38,6 @@ sources:
   arm:
     {stale_s: 0.5, raise_s: 0.1, clear_s: 0.5, fault_code: ARM_UNAVAILABLE,
      severity: ERROR, latched: false, locks_operation: false, recovery: ''}
-  arm_motion_safe:
-    # Arm outside the travel posture during manipulation is normal, not a fault.
-    # It only gates NAVIGATION; arm loss is reported by the `arm` source.
-    {stale_s: 0.5, raise_s: 0.0, clear_s: 0.5, fault_code: ARM_MOTION_UNSAFE,
-     severity: WARNING, latched: false, locks_operation: false, recovery: '', monitor_only: true}
   safety:
     {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: SAFETY_UNVERIFIED,
      severity: CRITICAL, latched: true, locks_operation: true, recovery: ''}
@@ -57,10 +53,11 @@ sources:
     {stale_s: 0.3, raise_s: 0.0, clear_s: 0.5, fault_code: STOP_UNVERIFIED,
      severity: WARNING, latched: false, locks_operation: false, recovery: '', monitor_only: true}
 capabilities:
-  # TODO(KB review): the KB's initial table puts the arm state under BASE_MOTION. It is here
-  # under NAVIGATION so normal manipulation does not lock the essential capability.
+  # TODO(KB review): the KB's initial table puts "arm state that permits base motion" under
+  # BASE_MOTION. Whether the base may move with the current arm state is decided per drive
+  # by the Mission Runtime from the manipulation outcome (safe_to_drive), not here.
   BASE_MOTION: {sources: [base], depends_on: []}
-  NAVIGATION: {sources: [lidar, localization, navigation, arm_motion_safe], depends_on: [BASE_MOTION]}
+  NAVIGATION: {sources: [lidar, localization, navigation], depends_on: [BASE_MOTION]}
   MANIPULATION: {sources: [arm], depends_on: []}
   VISUAL_PERCEPTION: {sources: [camera, perception], depends_on: []}
   MOBILE_MANIPULATION:
@@ -76,14 +73,15 @@ recovery_policies:
 ros:
   scan_topic: scan
   pose_topic: amcl_pose
-  camera_topic: head_camera/color/image_raw
+  camera_topic: camera/head/color/image_raw
   diagnostics_topic: diagnostics
   component_health_topic: system/component_health
-  component_sources: [arm, arm_motion_safe, perception]
+  component_sources: [arm, perception]
   safety_topic: safety/status
   stop_action: mission/stop
-  navigation_nodes: [controller_server, planner_server, bt_navigator, behavior_server]
-  localization_nodes: [amcl]
+  # Same nodes the Mission Runtime required before supervision owned this check.
+  navigation_nodes: [planner_server, controller_server, bt_navigator, collision_monitor]
+  localization_nodes: [map_server, amcl]
   lifecycle_poll_s: 0.5
   localization_max_variance: 0.5
   minimum_scan_valid_ratio: 0.1

@@ -17,18 +17,15 @@
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <!-- supervised_system.launch.py; cleany_gazebo_sim is only needed with include_navigation. -->
-  <exec_depend>cleany_mission_manager</exec_depend>
-  <exec_depend>cleany_robot_interface</exec_depend>
+  <!-- supervision.launch.py; cleany_navigation and cleany_skill_executor provide the
+       optional lifecycle recovery owner and arm reporter and are resolved only when enabled. -->
   <exec_depend>cleany_safety_adapter</exec_depend>
   <test_depend>python3-pytest</test_depend>
-  <test_depend>nav2_msgs</test_depend>
+  <test_depend>cleany_mission_manager</test_depend>
   <test_depend>cleany_base_driver</test_depend>
-  <test_depend>cleany_perception</test_depend>
-  <test_depend>std_srvs</test_depend>
-  <test_depend>action_msgs</test_depend>
-  <test_depend>controller_manager_msgs</test_depend>
-  <test_depend>control_msgs</test_depend>
+  <test_depend>nav2_msgs</test_depend>
   <test_depend>nav_msgs</test_depend>
+  <test_depend>std_srvs</test_depend>
+  <test_depend>tf2_ros</test_depend>
   <export><build_type>ament_python</build_type></export>
 </package>
