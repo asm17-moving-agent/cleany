@@ -22,9 +22,10 @@
   "scope": "Recovery of source, configurations, generators and analysis tools. Historical bag data and media remain in original data directories; no simulation or physical driving performed by this recovery.",
   "active_default": {
     "planner": "nav2_smac_planner::SmacPlannerLattice",
-    "controller": "nav2_mppi_controller::MPPIController",
+    "controller": "cleany_navigation::MPPIController",
     "motion_model": "Omni",
     "primitive": "ros2_ws/src/cleany_navigation/config/lattice/omni-r10cm.json",
     "explicit_axis_profile": "Legacy DWB/StraightFirstPlanner; axis_motion defaults to false"
-  }
+  },
+  "active_mppi_module": "ros2_ws/src/cleany_navigation/mppi"
 }

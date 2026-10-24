@@ -1,0 +1,39 @@
+Running main() from /opt/ros/humble/src/gtest_vendor/src/gtest_main.cc
+Note: Google Test filter = CriticTests.PathAlignCritic
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from CriticTests
+[ RUN      ] CriticTests.PathAlignCritic
+[INFO] [1792836506.006987460] [dummy_costmap.dummy_costmap]:
+	dummy_costmap lifecycle node launched.
+	Waiting on external lifecycle transitions to activate
+	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1792836506.007331525] [dummy_costmap.dummy_costmap]: Creating Costmap
+[INFO] [1792836506.007445796] [dummy_costmap.dummy_costmap]: Configuring
+[INFO] [1792836506.008755648] [dummy_costmap.dummy_costmap]: Using plugin "static_layer"
+[INFO] [1792836506.009017420] [dummy_costmap.dummy_costmap]: Subscribing to the map topic (/map) with transient local durability
+[INFO] [1792836506.009501173] [dummy_costmap.dummy_costmap]: Initialized plugin "static_layer"
+[INFO] [1792836506.009507266] [dummy_costmap.dummy_costmap]: Using plugin "obstacle_layer"
+[INFO] [1792836506.009566017] [dummy_costmap.dummy_costmap]: Subscribed to Topics:
+[INFO] [1792836506.009580131] [dummy_costmap.dummy_costmap]: Initialized plugin "obstacle_layer"
+[INFO] [1792836506.009584038] [dummy_costmap.dummy_costmap]: Using plugin "inflation_layer"
+[INFO] [1792836506.009679767] [dummy_costmap.dummy_costmap]: Initialized plugin "inflation_layer"
+[INFO] [1792836506.012803848] [my_node]: ReferenceTrajectoryCritic instantiated with 1 power and 10.000000 weight
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/nav2_mppi_controller/test/critics_tests.cpp:596: Failure
+The difference between xt::sum(costs, immediate)() and 6600.0 is 0.015625, which exceeds 1e-2, where
+xt::sum(costs, immediate)() evaluates to 6599.984375,
+6600.0 evaluates to 6600, and
+1e-2 evaluates to 0.01.
+Warning: class_loader.ClassLoader: SEVERE WARNING!!! Attempting to unload library while objects created by this loader exist in the heap! You should delete your objects before attempting to unload the library or destroying the ClassLoader. The library will NOT be unloaded.
+         at line 127 in ./src/class_loader.cpp
+[INFO] [1792836506.014742089] [dummy_costmap.dummy_costmap]: Destroying
+[  FAILED  ] CriticTests.PathAlignCritic (20 ms)
+[----------] 1 test from CriticTests (20 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (20 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] CriticTests.PathAlignCritic
+
+ 1 FAILED TEST

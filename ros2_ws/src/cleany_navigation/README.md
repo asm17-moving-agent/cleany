@@ -3,7 +3,7 @@
 ## 기본 주행: Smac Lattice + MPPI
 
 기본 AMCL 및 Omni 프로필은 Nav2 `nav2_smac_planner::SmacPlannerLattice`와
-`nav2_mppi_controller::MPPIController`를 사용한다. Humble에서는 planner 이름을
+`cleany_navigation::MPPIController`를 사용한다. Humble에서는 planner 이름을
 `nav2_smac_planner/SmacPlannerLattice`로 변환한다. MPPI는 `Omni` motion model로
 전후·횡이동을 허용하며 `CostCritic.consider_footprint=true`로 차체를 검사한다.
 
@@ -25,6 +25,16 @@ SCRUM-425: 실제 로봇과 Gazebo가 공유하는 saved-map localization, Nav2 
 runtime이다. SLAM은 외부 `slam_toolbox`/`cartographer_ros`, 주행은 외부 Nav2를
 사용한다. 공통 노드는 Gazebo에 의존하지 않는다. Gazebo world/bridge, encoder,
 카메라 TF adapter, rosbag 및 평가 도구는 `cleany_gazebo_sim`에 남는다.
+
+## 통합 MPPI 구현
+
+튜닝한 MPPI 본체와 critic은 이 패키지의 `mppi/src`, 헤더는
+`include/cleany_navigation/mppi`에서 빌드한다. 별도 `nav2_mppi_controller` ROS
+소스 패키지는 필요하지 않다. controller는 `cleany_navigation::MPPIController`,
+critic은 `cleany_navigation::mppi::critics`로 등록해 설치된 기본 Nav2 MPPI와 분리한다.
+빌드 결과는 `libcleany_mppi_controller.so`, `libcleany_mppi_critics.so`이며,
+`make build-navigation`으로 함께 설치된다. 원본 라이선스와 upstream 문서는
+`mppi/LICENSE.md`, `mppi/README.upstream.md`에 보존한다.
 
 ## Saved-map navigation
 

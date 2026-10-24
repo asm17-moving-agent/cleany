@@ -256,7 +256,7 @@ def test_default_omni_lattice_mppi_survives_humble_layering():
         'nav2_smac_planner/SmacPlannerLattice')
     assert 'w_traversal_cost' not in adapted['planner_server']['ros__parameters']['GridBased']
     follow = adapted['controller_server']['ros__parameters']['FollowPath']
-    assert follow['plugin'] == 'nav2_mppi_controller::MPPIController'
+    assert follow['plugin'] == 'cleany_navigation::MPPIController'
     assert follow['motion_model'] == 'Omni'
     assert follow['vy_max'] > 0
     assert follow['PathAlignCritic']['use_path_orientations'] is False

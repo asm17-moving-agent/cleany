@@ -13,7 +13,7 @@ controller_server:
       required_movement_angle: 0.25
       movement_time_allowance: 20.0
     FollowPath:
-      plugin: nav2_mppi_controller::MPPIController
+      plugin: cleany_navigation::MPPIController
       motion_model: Omni
       vx_max: 0.15
       vx_min: -0.15

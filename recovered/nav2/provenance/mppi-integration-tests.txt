@@ -1,0 +1,33 @@
+source "/opt/ros/humble/setup.bash" && \
+cd "/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws" && \
+colcon --log-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/log-navigation" build --symlink-install \
+	--build-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/build-navigation" \
+	--install-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/install-navigation" \
+	--packages-up-to cleany_navigation
+Starting >>> cleany_description
+--- stderr: cleany_description
+gmake[1]: warning: -j3 forced in submake: resetting jobserver mode.
+---
+Finished <<< cleany_description [0.18s]
+Starting >>> cleany_navigation
+--- stderr: cleany_navigation
+gmake[1]: warning: -j3 forced in submake: resetting jobserver mode.
+---
+Finished <<< cleany_navigation [10.4s]
+
+Summary: 2 packages finished [10.6s]
+  2 packages had stderr output: cleany_description cleany_navigation
+source "/opt/ros/humble/setup.bash" && \
+cd "/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws" && \
+source "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/install-navigation/setup.bash" && \
+colcon --log-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/log-navigation" test \
+	--build-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/build-navigation" \
+	--install-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/install-navigation" \
+	--packages-select cleany_navigation \
+	--return-code-on-test-failure && \
+colcon --log-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/log" test-result --test-result-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated/build-navigation" --verbose
+Starting >>> cleany_navigation
+Finished <<< cleany_navigation [5.51s]
+
+Summary: 1 package finished [5.62s]
+Summary: 288 tests, 0 errors, 0 failures, 0 skipped

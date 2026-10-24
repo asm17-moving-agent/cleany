@@ -1,0 +1,23 @@
+{
+  "build_passed": true,
+  "source_packages_built": [
+    "cleany_description",
+    "cleany_navigation"
+  ],
+  "test_cases": 288,
+  "test_errors": 0,
+  "test_failures": 0,
+  "test_skipped": 0,
+  "ctest_suites": 22,
+  "controller_plugin": "cleany_navigation::MPPIController",
+  "critic_namespace": "cleany_navigation::mppi::critics",
+  "controller_and_critic_plugin_owner_test_passed": true,
+  "standalone_mppi_source_package_present": false,
+  "build_root": "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-integrated",
+  "algorithm_changes": false,
+  "test_precision_fix": "PathAlignCritic score accumulation uses double; baseline standalone failure reproduced before fixing test; expected value/tolerance unchanged",
+  "cpp_namespace_and_include_files_migrated": 69,
+  "benchmark_executables_built": false,
+  "gazebo_driving_rerun": false,
+  "physical_robot_execution": false
+}

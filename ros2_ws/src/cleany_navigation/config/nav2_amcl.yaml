@@ -70,7 +70,7 @@ controller_server:
       xy_goal_tolerance: 0.12
       yaw_goal_tolerance: 0.15
     FollowPath:
-      plugin: nav2_mppi_controller::MPPIController
+      plugin: cleany_navigation::MPPIController
       time_steps: 56
       model_dt: 0.05
       batch_size: 1000

@@ -1,0 +1,12 @@
+{
+  "source_commit": "f0936e72b518af98538064d84977d8d6a2584754",
+  "checked_cpp_files": 69,
+  "mismatches": [],
+  "changes": "Header paths, C++ namespaces/guards and critic loader package; no algorithm changes",
+  "standalone_ros_package_removed": true,
+  "test_only_precision_fix": {
+    "file": "mppi/test/critics_tests.cpp",
+    "change": "Accumulate float scores into double; same expected value and tolerance",
+    "reason": "Original standalone baseline also fails its float reduction tolerance on this ARM64 host"
+  }
+}

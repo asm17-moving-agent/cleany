@@ -27,7 +27,8 @@ Omni, 지도 격자5cm, 곡선 최소 반경 설정10cm, 16headings.
 - `snapshots/remote/doorway-diagnosis-20261014/desktop-experiment/`:
   MPPI 원본, candidate/candidate_v2/candidate_general/candidate_diverse,
   후보별 설정, 마지막 generalization/common.yaml, Gazebo runner와 분석 도구.
-  실제 활성 workspace의 `nav2_mppi_controller`는 `candidate_diverse/src`를 복사한 것이다.
+  현재 활성 구현은 `ros2_ws/src/cleany_navigation/mppi`에 통합했다.
+  `candidate_diverse/src`의 알고리즘을 보존하고 namespace/플러그인 소유권만 변경했다.
 - `snapshots/remote/controller-optimization-20261013/teb/`:
   ROS2 TEB 소스 (`sol61_20261013/teb_local_planner`), 튜닝 단계별 설정과 보고서.
 - `snapshots/remote/controller-optimization-20261013/rpp-source/ros2_ws/src/cleany_navigation/`:
