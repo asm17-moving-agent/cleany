@@ -1,0 +1,15 @@
+{
+  "pose_errors": "meters and degrees, GT and map estimate separately; sampled snapshots include source stamps",
+  "time": "simulation seconds and monotonic wall seconds; RTF = sim/wall",
+  "compute_ms": "steady-clock wall time inside the wrapped computeVelocityCommands call; excludes CSV I/O and wrapper lock",
+  "CPU": "controller process delta CPU seconds / wall seconds as percent of one core; same host only, load dependent",
+  "RSS": "MiB = bytes / 2^20",
+  "acceleration": "linear m/s^2 and angular rad/s^2",
+  "jerk": "linear m/s^3 and angular rad/s^3",
+  "smoothness": "GT message twist interpolated to 20Hz sim time, centered 5-point moving average, two np.gradient derivatives, both ends trimmed 0.25s; failed/stopped runs retain outcomes and stationary time",
+  "stop_counts": "GT linear speed threshold 0.01 m/s; reversal deadbands vx/vy 0.01m/s, wz 0.02rad/s",
+  "stage_diagnostics": "receive sim/wall timestamp for unstamped Twist; asynchronous stage samples indicate boundaries, not an atomic synchronized snapshot",
+  "wheel_inverse_kinematics": "max abs [(vx-vy-k*wz),(vx+vy+k*wz),(vx+vy-k*wz),(vx-vy+k*wz)] / 0.0635, k=(0.35+0.6038)/2; joint feedback max separately",
+  "safety": "existing samples.action default zero is not proof of observed collision-monitor intervention; static contact and true footprint clearance not instrumented",
+  "comparison": "No combined score or new acceptance thresholds; observe required command box and wheel limits separately"
+}

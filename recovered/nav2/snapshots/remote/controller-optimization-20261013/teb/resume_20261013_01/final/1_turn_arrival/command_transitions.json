@@ -1,0 +1,34 @@
+[
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 33792.258468578,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.0,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "ROS clock stalled"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 33791.469542424,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.0,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "ROS clock stalled"
+    }
+  }
+]

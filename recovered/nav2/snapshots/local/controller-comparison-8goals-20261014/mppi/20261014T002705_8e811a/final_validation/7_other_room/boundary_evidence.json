@@ -1,0 +1,75 @@
+{
+  "goal_index": 7,
+  "goal_name": "other_room",
+  "action_status": 5,
+  "timeout": true,
+  "error": null,
+  "last_sampled_tf_gt": {
+    "sim_s": 142.841,
+    "navigation_end_sim_s": 402.569,
+    "age_before_navigation_end_s": 259.728,
+    "gt_xy": [
+      -5.318864612836385,
+      -5.1932423461728145
+    ],
+    "tf_xy": [
+      -5.384421610143054,
+      -5.220019409414055
+    ],
+    "gt_goal_error_m": 13.408931329677932,
+    "tf_goal_error_m": 13.366958240136587,
+    "tf_gt_separation_m": 0.0708147654920359,
+    "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+  },
+  "log_diagnostics": {
+    "Failed to transform from base_link to ": {
+      "count": 133,
+      "first": "[bt_navigator-20] [ERROR] [1791908938.034733522] [transformPoseInTargetFrame]: Failed to transform from base_link to ",
+      "last": "[bt_navigator-20] [ERROR] [1791909187.472210693] [transformPoseInTargetFrame]: Failed to transform from base_link to "
+    },
+    "Failed to lookup current robot pose": {
+      "count": 133,
+      "first": "[bt_navigator-20] [WARN] [1791908938.034790137] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to lookup current robot pose for bt_0_1_0_0_0_0__TruncatePathLocal",
+      "last": "[bt_navigator-20] [WARN] [1791909187.472268194] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to lookup current robot pose for bt_0_1_0_0_0_0__TruncatePathLocal"
+    },
+    "Failed to get result for compute_path_to_pose in node halt": {
+      "count": 2,
+      "first": "[bt_navigator-20] [ERROR] [1791908937.178201105] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to get result for compute_path_to_pose in node halt!",
+      "last": "[bt_navigator-20] [ERROR] [1791909000.196463562] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to get result for compute_path_to_pose in node halt!"
+    },
+    "Lattice plan rejected:": {
+      "count": 3,
+      "first": "[planner_server-18] [WARN] [1791908889.168163156] [planner_server]: Lattice plan rejected: no_valid_lattice_path, attempts=3 elapsed=69.002 budget=80.000",
+      "last": "[planner_server-18] [WARN] [1791909061.238470366] [planner_server]: Lattice plan rejected: no_valid_lattice_path, attempts=3 elapsed=69.570 budget=80.000"
+    },
+    "failed to generate a path": {
+      "count": 0,
+      "first": null,
+      "last": null
+    },
+    "Goal was canceled": {
+      "count": 13,
+      "first": "[controller_server-17] [INFO] [1791908820.166002375] [controller_server]: Goal was canceled. Stopping the robot.",
+      "last": "[controller_server-17] [INFO] [1791910609.774242383] [controller_server]: Goal was canceled. Stopping the robot."
+    },
+    "Optimizer reset": {
+      "count": 9,
+      "first": "[controller_server-17] [INFO] [1791908765.242202149] [controller_server]: Optimizer reset",
+      "last": "[controller_server-17] [INFO] [1791909187.472979866] [controller_server]: Optimizer reset"
+    },
+    "Control loop missed its desired rate": {
+      "count": 1,
+      "first": "[controller_server-17] [WARN] [1791909678.479227897] [controller_server]: Control loop missed its desired rate of 20.0000Hz",
+      "last": "[controller_server-17] [WARN] [1791909678.479227897] [controller_server]: Control loop missed its desired rate of 20.0000Hz"
+    }
+  },
+  "bag_message_count": 2396340,
+  "bag_databases": [
+    {
+      "name": "bag_0.db3",
+      "bytes": 1204248576,
+      "quick_check": "ok",
+      "messages": 2396340
+    }
+  ]
+}

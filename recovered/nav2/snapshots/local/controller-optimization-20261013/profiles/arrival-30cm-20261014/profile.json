@@ -1,0 +1,15 @@
+{
+  "scope": "subsequent controller comparison runs; no running simulation",
+  "controllers": [
+    "DWB",
+    "MPPI",
+    "TEB",
+    "RPP"
+  ],
+  "xy_goal_tolerance_m": 0.3,
+  "yaw_goal_tolerance_deg": 10,
+  "previous_xy_m": 0.15,
+  "interpretation": "coarse navigation arrival before separate final alignment",
+  "historical_results": "unchanged",
+  "apply": "load arrival_tolerance.yaml after controller-specific parameters; check runtime goal checker before executing"
+}

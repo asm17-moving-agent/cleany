@@ -1,0 +1,6 @@
+{
+  "reason": "Representative terminal yaw plateau: raw controller output persistently zero near approximately10deg GT yaw error. Full2s RotateToGoal scoring with newly widened yaw sampling can prefer zero instead of short correction. Test shorter critic lookahead while keeping full collision rollout.",
+  "terminated_by": "SIGINT to owned supervisor",
+  "excluded_from_completed_outcomes": true,
+  "supervisor_pid": 219177
+}

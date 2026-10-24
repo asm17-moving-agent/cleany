@@ -1,0 +1,9 @@
+obstacle_memory:
+  ros__parameters:
+    mark_all_depth_points: true
+    output_directory: /home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/07_aux_zero_refresh/2_chair_gap/obstacle_memory
+    publish_3d: true
+    restore_path: ''
+    update_period: 0.2
+    use_sim_time: true
+    z_resolution: 0.05

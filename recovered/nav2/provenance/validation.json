@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "source_integrity": {
+    "remote_files": 12137,
+    "local_files": 9523,
+    "sha256_mismatches": 0,
+    "active_mppi_matches_candidate_diverse": true,
+    "missing_mppi_package_source_files": [],
+    "excluded_mppi_media": [
+      "media/demo.gif"
+    ]
+  },
+  "restored_navigation_python_tests": {
+    "passed": 26,
+    "environment": "local ros2-humble container",
+    "command": "PYTHONPATH=ros2_ws/src/cleany_navigation python3 -m pytest -q ros2_ws/src/cleany_navigation/test/test_runtime_config.py"
+  },
+  "build": {
+    "passed": true,
+    "packages": [
+      "cleany_description",
+      "nav2_mppi_controller",
+      "cleany_navigation"
+    ],
+    "command": "CMAKE_BUILD_PARALLEL_LEVEL=3 MAKEFLAGS=-j3 make build-navigation CLEANY_BUILD_ROOT=/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-recovered",
+    "log": "build-navigation.txt",
+    "platform": "local ARM64 ROS2 Humble container"
+  },
+  "mppi_targeted_regression_tests": {
+    "passed": 4,
+    "filter": "OptimizerTests.Arrival*:OptimizerTests.FilterOvershootIsBounded:OptimizerTests.CoupledWheelProjectionPreservesRatiosInAllOctants",
+    "log": "mppi-tests.txt"
+  },
+  "dwb_targeted_regression_tests": {
+    "passed": 5,
+    "filter": "*Wheel*:*Overshoot*:*Target*",
+    "log": "dwb-tests.txt"
+  },
+  "git_diff_check": true,
+  "gazebo_rerun": false,
+  "physical_robot_execution": false,
+  "benchmark_plugin_and_historical_teb_rpp_built": false,
+  "limitations": [
+    "Archived runner paths require relocation before local replay",
+    "TEB/RPP historical variants retained as separate source snapshots; not active plugins in this workspace build",
+    "Recovered source history does not guarantee every deleted uncommitted file was captured",
+    "Measured historical experiments are separate from these recovery build/unit checks"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "checked_unix": 1792504510.1252022,
+  "trial_sessions": 21,
+  "remaining_processes_with_owned_ign_partitions": [],
+  "method": "After final markers, read all trial session IGN partitions and scan /proc process environments within the ROS container. No process retained an owned partition. Unrelated existing Isaac training was untouched."
+}

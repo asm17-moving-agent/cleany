@@ -1,0 +1,79 @@
+{
+  "sim_s": 20.097,
+  "navigation_sim_s": 11.863000000000001,
+  "truth": [
+    -3.0294284923990107,
+    -4.4299711066582415,
+    1.4027681703213795
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 20.092000000000002,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 20.092,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout",
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 0.5733830003009643
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 20.094,
+      "stamp_s": 20.094,
+      "sim_s": 20.094,
+      "target": 1.4199219678118935,
+      "pan": 1.4127683358757852,
+      "reason": "WALL_TIMEOUT",
+      "requested": [
+        0.008776865899562836,
+        0.0577312707901001,
+        0.3043377697467804
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 19.999
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 20.096,
+      "sim_s": 20.096,
+      "requested": [
+        0.010216489434242249,
+        0.0572325736284256,
+        0.3052726089954376
+      ],
+      "output": [
+        0.010216489434242249,
+        0.0572325736284256,
+        0.3052726089954376
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 20.097,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 20.097,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout",
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 0.5904119989281753
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "failures": [
+    {
+      "planner": "lattice",
+      "error": "RuntimeError('Unfinished run requires inspection: /home/donglee/workspace/cleany/planner-lattice-theta-20261016/lattice/7_other_room')"
+    }
+  ],
+  "finished_wall": 1792091875.7889097
+}

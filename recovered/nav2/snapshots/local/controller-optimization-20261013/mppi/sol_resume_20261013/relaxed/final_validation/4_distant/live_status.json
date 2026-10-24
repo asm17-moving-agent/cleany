@@ -1,0 +1,98 @@
+{
+  "sim_s": 79.77600000000001,
+  "navigation_sim_s": 64.99400000000001,
+  "truth": [
+    9.280440907578965,
+    -3.701272935761713,
+    0.021654112376976675
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 79.724,
+      "stamp_s": 79.724,
+      "sim_s": 79.724,
+      "target": -0.13953123575513976,
+      "pan": -0.13953123575513976,
+      "reason": "WALL_TIMEOUT",
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 79.662
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 79.742,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 79.742,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 12712,
+      "source_age_s": 0.2820000000000107,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 1.0609509990899824
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 79.75800000000001,
+      "sim_s": 79.75800000000001,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 0.0,
+      "reason": "CONTROLLER_COMMAND_TIMEOUT",
+      "source_age_s": 0.862000000000009
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 79.75800000000001,
+      "stamp_s": 79.758,
+      "sim_s": 79.758,
+      "target": -0.13953123575513976,
+      "pan": -0.13953123575513976,
+      "reason": "WALL_TIMEOUT",
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 79.73
+    }
+  ]
+}

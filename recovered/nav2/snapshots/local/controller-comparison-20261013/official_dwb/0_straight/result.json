@@ -1,0 +1,173 @@
+{
+  "candidate": "dwb",
+  "goal_index": 0,
+  "goal_name": "straight",
+  "goal_map": [
+    2.0,
+    0.0,
+    0.0
+  ],
+  "completed": true,
+  "domain": 211,
+  "partition": "cleany_comparison_a09851c5167b477189b93c492b104fbb",
+  "host": "a16-fedora",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "navigation_started": true,
+  "action_status": 4,
+  "position_error_m": 0.12724906181481355,
+  "yaw_error_deg": 0.17960529794878202,
+  "final_truth": [
+    1.8788292954955033,
+    0.038858513901514194,
+    -0.0031347038032316643
+  ],
+  "navigation_sim_s": 29.433999999999997,
+  "navigation_wall_s": 31.500459130999843,
+  "achieved_rtf": 0.9343990789973525,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 1.0859965880576425,
+    "linear_jerk_p95_m_s3": 2.493692151638382,
+    "angular_jerk_rms_rad_s3": 0.08493739126749279,
+    "angular_jerk_p95_rad_s3": 0.00046887598704005375,
+    "stationary_s": 8.6,
+    "motion_start_count": 43,
+    "yaw_reversals": 0,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.0639685881048098,
+    "speed_max_m_s": 0.1623117999949667
+  },
+  "controller_command_sim_interval_s": {
+    "mean": 0.046904841402337236,
+    "p95": 0.060000000000002274,
+    "count": 599
+  },
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 2.7800586867407238,
+    "/cmd_vel": 2.706674546517569
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 530
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 57.2701816029994,
+  "controller_deadline_warning_count": 0
+}

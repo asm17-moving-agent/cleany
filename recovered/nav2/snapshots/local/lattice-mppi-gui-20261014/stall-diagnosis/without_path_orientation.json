@@ -1,0 +1,25 @@
+{
+  "phase": "without_path_orientation",
+  "values": {
+    "PathAlignCritic.use_path_orientations": false
+  },
+  "wall_s": 45.02789537799981,
+  "sim_s": 14.360000000000014,
+  "start": {
+    "wall": 36537.296725292,
+    "phase": "without_path_orientation",
+    "x": -17.15962603065146,
+    "y": 0.6858364768633709,
+    "yaw": 2.4652088098534763,
+    "sim_s": 425.18
+  },
+  "end": {
+    "wall": 36582.273962392,
+    "phase": "without_path_orientation",
+    "x": -17.166366304433133,
+    "y": 0.6845932294172754,
+    "yaw": 2.366009753519668,
+    "sim_s": 439.54
+  },
+  "displacement_m": 0.006853973655051387
+}

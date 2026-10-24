@@ -1,0 +1,25 @@
+{
+  "phase": "restored_path_orientation",
+  "values": {
+    "PathAlignCritic.use_path_orientations": true
+  },
+  "wall_s": 8.074011547992995,
+  "sim_s": 2.3600000000000136,
+  "start": {
+    "wall": 36582.342791482,
+    "phase": "restored_path_orientation",
+    "x": -17.16635681393156,
+    "y": 0.6847186209443712,
+    "yaw": 2.3660407191984576,
+    "sim_s": 439.56
+  },
+  "end": {
+    "wall": 36590.27017504,
+    "phase": "restored_path_orientation",
+    "x": -17.121728326589373,
+    "y": 0.6908044149170973,
+    "yaw": 2.3455232086284923,
+    "sim_s": 441.92
+  },
+  "displacement_m": 0.04504152273991466
+}

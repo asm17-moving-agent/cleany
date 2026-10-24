@@ -1,0 +1,26 @@
+{
+  "GridBased.plugin": {
+    "type": 4,
+    "string_value": "nav2_theta_star_planner/ThetaStarPlanner",
+    "double_value": 0.0,
+    "integer_value": 0
+  },
+  "GridBased.w_traversal_cost": {
+    "type": 3,
+    "string_value": "",
+    "double_value": 2.0,
+    "integer_value": 0
+  },
+  "GridBased.w_euc_cost": {
+    "type": 3,
+    "string_value": "",
+    "double_value": 1.0,
+    "integer_value": 0
+  },
+  "GridBased.how_many_corners": {
+    "type": 2,
+    "string_value": "",
+    "double_value": 0.0,
+    "integer_value": 8
+  }
+}

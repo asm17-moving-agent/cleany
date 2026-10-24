@@ -1,0 +1,43 @@
+{
+  "repo": "/home/ehdrms/workspace/cleany/standard-nav2-planner",
+  "branch": "codex/standard-nav2-planner-20261014",
+  "head": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "changes": [
+    {
+      "path": "ros2_ws/src/cleany_gazebo_sim/config/nav2_amcl.yaml",
+      "before_sha256": "6664508c43b445385bf431406de1118df12f45e5f210803e771aca3e0e132bd5",
+      "after_sha256": "9c6646d189dc123787bac01d049da122dcc6c2ed3c3da36ab4261d67dc9583d4"
+    },
+    {
+      "path": "ros2_ws/src/cleany_navigation/README.md",
+      "before_sha256": "59b27c815e212e257b7fbb1a742b2a941d9f31cb3736ad87b4447a7d2da233f4",
+      "after_sha256": "5e1019230a725dcca097e2cf3508b7098ceec466201cc22a4f3fbc3b4ef0413e"
+    },
+    {
+      "path": "ros2_ws/src/cleany_navigation/cleany_navigation/runtime_config.py",
+      "before_sha256": "cb7ca1d54167e87f5b9c2f56e30ff2aba677216109b31c97de48afa4115cc3b5",
+      "after_sha256": "37463cc9ca3502c60fc274001e4f9b6664d6973c1915bff3216a94bd8dc5955e"
+    },
+    {
+      "path": "ros2_ws/src/cleany_navigation/config/nav2_amcl.yaml",
+      "before_sha256": "ddc657b3a8ac213a47cd6791d2bb0b672bbf6efba877b8a6768ecc801a213582",
+      "after_sha256": "eaafded5539493b4faaf8d29d80d0c5f8060e3205ad5a35e76673f7f6de3463e"
+    },
+    {
+      "path": "ros2_ws/src/cleany_navigation/config/nav2_omni_motion.yaml",
+      "before_sha256": "2900a0711fda81b56f116557eb6e86026036a08ae18cbb12cf717b6460d405b9",
+      "after_sha256": "d8d125e65b3d6feb99a560300afd51e041a6db668b6f4bb17c4f73b939cb20d3"
+    },
+    {
+      "path": "ros2_ws/src/cleany_navigation/package.xml",
+      "before_sha256": "42a7b420ac3af0063f39a814e4c8b1bd34da7c02b22118b5d8cd9b4950046cf3",
+      "after_sha256": "699020432e2f73b7d9aee8083a045ebfe5ed1950026349e427c2df3a34c6d00f"
+    },
+    {
+      "path": "ros2_ws/src/cleany_navigation/test/test_runtime_config.py",
+      "before_sha256": "1f08ceb55126e5c65da1cb878257dc3704f60df0d0fd7c20eb7cb0c7d68f1a4b",
+      "after_sha256": "841949ce50bf78f6a8c99e0469eb8c832d3dbc879db3b739ecb817d7c255ae94"
+    }
+  ],
+  "baseline": "Exact pre-task files, preserving prior dirty work; test file was clean at task start and recovered from HEAD"
+}

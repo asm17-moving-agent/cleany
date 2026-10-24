@@ -1,0 +1,199 @@
+{
+  "candidate": "teb",
+  "goal_index": 5,
+  "goal_name": "lateral",
+  "goal_map": [
+    -1.265,
+    -4.705,
+    1.5708
+  ],
+  "completed": false,
+  "domain": 227,
+  "partition": "cleany_comparison_e38ff9f05489441891a2b7521d0d77bc",
+  "host": "142spp-endeavour",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "experiment_stage": "relaxed",
+  "world_fixture": "18F full facility canonical per-goal world",
+  "map_frame": "world aligned",
+  "hard_timeout_sim_s": 1200,
+  "hard_timeout_wall_s": 1800,
+  "controller_frequency_hz": 10.0,
+  "error": "RuntimeError: Context.init() must only be called once",
+  "elapsed_wall_s": 0.6615317259966105,
+  "controller_deadline_warning_count": 0,
+  "arrived": false,
+  "measurement_completed": false,
+  "artifact_group": "infrastructure_uri_startup",
+  "run_directory": "controller-comparison-8goals-20261014/teb/run_20261014_0029/infrastructure_uri_startup/5_lateral",
+  "terminal_status": "infrastructure error",
+  "measurement_label": "pre-goal infrastructure attempt; not a navigation measurement",
+  "error_meaning": "GT remaining error at abort/timeout; not arrival accuracy",
+  "controller_resources": {
+    "cpu_observed_seconds": 0,
+    "observed_wall_seconds": 0,
+    "one_core_cpu_percent": null,
+    "rss_mb": {
+      "count": 0
+    },
+    "host": "142spp-endeavour",
+    "cross_host_ranking_valid": false
+  },
+  "actual_wheel_feedback_rad_s": {
+    "count": 0,
+    "over_5_plus_1e8_count": 0,
+    "last_wheel_velocity": null
+  },
+  "actual_contact_count": null,
+  "actual_contact_note": "Contact attribution unavailable: no ground positive control or unnamed collision entities; raw contact samples preserved.",
+  "command_stage_audit": {},
+  "pan_requested_bearing_step_rad": {
+    "count": 0
+  },
+  "feasibility_rejection_reasons": {},
+  "feasibility_failed_vertices": 0,
+  "feasibility_failed_interpolated": 0,
+  "infeasible_reset_count": 0,
+  "stationary_definition": "hypot(vx,vy)<.01 AND abs(wz)<.02 rad/s",
+  "final_gt_tolerance_observed": false,
+  "final_nav2_map_xy": null,
+  "contact_audit": {
+    "ground_pair_samples": 0,
+    "self_pair_samples": 0,
+    "nonfloor_pair_samples": 0,
+    "unnamed_pair_samples": 0,
+    "counts_by_topic": {},
+    "nonfloor_pair_episodes": null,
+    "max_nonfloor_depth_m": null
+  },
+  "wheel_envelope_audit": {
+    "samples": 0,
+    "scaled_count": 0,
+    "scale": {
+      "count": 0
+    },
+    "max_requested_rad_s": null,
+    "max_output_rad_s": null,
+    "watchdog_count": 0
+  },
+  "counterfactual_body_guard_decision_duration_sim_s": {},
+  "counterfactual_body_guard_stop_reason_duration_sim_s": {},
+  "counterfactual_intentional_safety_wait_sim_s": 0.0,
+  "counterfactual_safety_unavailable_wait_sim_s": 0.0,
+  "counterfactual_safety_processing_overrun_wait_sim_s": 0.0,
+  "counterfactual_total_safety_stop_sim_s": 0,
+  "counterfactual_pan_gate_reason_duration_sim_s": {},
+  "stop_count": 0
+}

@@ -1,0 +1,45 @@
+Running main() from /opt/ros/humble/src/gtest_vendor/src/gtest_main.cc
+Note: Google Test filter = *Wheel*:*Overshoot*:*Target*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from AxisTest
+[ RUN      ] AxisTest.HolonomicFirstCommandStaysInBoxWhenMeasuredVelocityOvershoots
+[INFO] [1792835016.997616614] [axis_test]: 
+	axis_test lifecycle node launched. 
+	Waiting on external lifecycle transitions to activate
+	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1792835016.997890834] [axis_test]: Destroying
+[       OK ] AxisTest.HolonomicFirstCommandStaysInBoxWhenMeasuredVelocityOvershoots (17 ms)
+[ RUN      ] AxisTest.TargetRayCorrectsSmallCrossTrackVelocityWithinInheritedBudgets
+[INFO] [1792835017.000408712] [axis_test]: 
+	axis_test lifecycle node launched. 
+	Waiting on external lifecycle transitions to activate
+	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1792835017.000577984] [axis_test]: Destroying
+[       OK ] AxisTest.TargetRayCorrectsSmallCrossTrackVelocityWithinInheritedBudgets (3 ms)
+[ RUN      ] AxisTest.InfeasibleTargetRayAndZeroTargetRetainSafeSegmentBraking
+[INFO] [1792835017.002494088] [axis_test]: 
+	axis_test lifecycle node launched. 
+	Waiting on external lifecycle transitions to activate
+	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1792835017.002638152] [axis_test]: Destroying
+[       OK ] AxisTest.InfeasibleTargetRayAndZeroTargetRetainSafeSegmentBraking (2 ms)
+[ RUN      ] AxisTest.CoupledMecanumCapScalesFullTwistAndAllWheelSigns
+[INFO] [1792835017.004446183] [axis_test]: 
+	axis_test lifecycle node launched. 
+	Waiting on external lifecycle transitions to activate
+	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1792835017.004625246] [axis_test]: Destroying
+[       OK ] AxisTest.CoupledMecanumCapScalesFullTwistAndAllWheelSigns (2 ms)
+[ RUN      ] AxisTest.DisabledWheelCapRetainsIndependentBoxAndRejectsBadGeometry
+[INFO] [1792835017.006421454] [axis_test]: 
+	axis_test lifecycle node launched. 
+	Waiting on external lifecycle transitions to activate
+	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1792835017.006565205] [axis_test]: Destroying
+[       OK ] AxisTest.DisabledWheelCapRetainsIndependentBoxAndRejectsBadGeometry (2 ms)
+[----------] 5 tests from AxisTest (26 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (26 ms total)
+[  PASSED  ] 5 tests.

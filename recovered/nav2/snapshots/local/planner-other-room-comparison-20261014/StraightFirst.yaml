@@ -1,0 +1,51 @@
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      footprint: '[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484],
+        [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]'
+      footprint_padding: 0.02
+      global_frame: map
+      inflation_layer:
+        cost_scaling_factor: 6.0
+        inflation_radius: 0.8
+        plugin: nav2_costmap_2d::InflationLayer
+      plugins:
+      - static_layer
+      - inflation_layer
+      publish_frequency: 2.0
+      resolution: 0.05
+      robot_base_frame: base_link
+      rolling_window: false
+      static_layer:
+        map_subscribe_transient_local: true
+        plugin: nav2_costmap_2d::StaticLayer
+        subscribe_to_updates: true
+      track_unknown_space: true
+      transform_tolerance: 1.0
+      update_frequency: 5.0
+      use_sim_time: false
+map_server:
+  ros__parameters:
+    use_sim_time: false
+    yaml_filename: /home/ehdrms/workspace/cleany/cleany-data/runs/standard-planner-20261014/preflight/goals/7_other_room/map.yaml
+planner_server:
+  ros__parameters:
+    StraightFirst:
+      allow_reverse_expansion: true
+      allow_unknown: false
+      analytic_expansion_max_length: 0.0
+      body_heading_grid_bins: 32
+      cache_obstacle_heuristic: false
+      cost_penalty: 5.0
+      holonomic_direct_path: true
+      lattice_collision_padding: 0.05
+      lattice_filepath: /opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json
+      max_planning_time: 5.0
+      plugin: cleany_navigation::StraightFirstPlanner
+      require_exact_goal: true
+      smooth_path: false
+      tolerance: 0.05
+    expected_planner_frequency: 1.0
+    planner_plugins:
+    - StraightFirst
+    use_sim_time: false

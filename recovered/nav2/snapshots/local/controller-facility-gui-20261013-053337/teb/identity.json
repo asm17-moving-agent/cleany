@@ -1,0 +1,14 @@
+{
+  "controller": "teb",
+  "domain": 227,
+  "partition": "cleany_facility_gui_teb_6c0b2482b06441b389062c5d4e9fd0ff",
+  "goal": [
+    0.575,
+    -1.625,
+    1.570796
+  ],
+  "profile": "final relaxed",
+  "note": "Both GUIs run on laptop ARM64; not remote-host benchmark replay",
+  "seat": "seat-29",
+  "removed_chair": "office_chair_29"
+}

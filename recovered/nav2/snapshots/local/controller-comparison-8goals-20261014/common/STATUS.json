@@ -1,0 +1,15 @@
+{
+  "phase": "locked",
+  "checked_goal_count": 8,
+  "common_planner_routes_verified": 8,
+  "goal_coordinate_changes": 0,
+  "restored_chairs": [
+    "office_chair_13",
+    "office_chair_43"
+  ],
+  "map_resolution_m": 0.025,
+  "common_config": "fixture/config/nav2_amcl.yaml",
+  "consumer_requirements": "CONSUMER_REQUIREMENTS.md",
+  "ready_policy": "Only READY marker confirms release; remote transfer verified before markers",
+  "lock_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac"
+}

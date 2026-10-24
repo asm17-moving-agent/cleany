@@ -1,0 +1,14 @@
+{
+  "returncode": 0,
+  "expected_model_count": 329,
+  "missing_model_names": [],
+  "missing_mesh_messages": [],
+  "unresolved_world_uri": false,
+  "initial_gt": [
+    -1.8650000000000295,
+    -4.704999999833625,
+    1.570800000000001
+  ],
+  "map_resolution": 0.02500000037252903,
+  "expected_chairs": 81
+}

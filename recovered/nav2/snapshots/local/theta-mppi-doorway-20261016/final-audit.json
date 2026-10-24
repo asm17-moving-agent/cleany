@@ -1,0 +1,14 @@
+{
+  "owned_trial_processes_remaining": [],
+  "artifact_sha256": {
+    "REPORT.md": "915a4a6dbb8e72b455751e67d7a029dd7923ec9e6e98e4ce88dad09239959957",
+    "comparison.json": "18f9b63a1e08ea35e30e3af2d655264f31c527d7e3c862e5756a7c96955b4319",
+    "comparison.csv": "0581fd5519fda5fa9a424b925af9e99bd38632e3d8a5cf7c13228a31757a2204",
+    "COMPLETED.json": "30cfc568ae9640e00ee9e8a7e4fe3b6526c1a80c99c53222342597a223ff222e",
+    "selected-overrides.yaml": "d00db2fd921f211805c577e4e7ac9946920da87801cc07e1f57c7e90b5ab14f7",
+    "source-change.patch": "bcf3a35577488cfd492d2c5cecec14992575c0b2f536064434295fdf7de463c0",
+    "media/theta-static-clearance-before-after.png": "47b2e5555507d5821cdf0a10742d94f7a1a662dea4643e15b97a9984f0b86235",
+    "media/theta-mppi-doorway-before-after-2x.gif": "bc852872eada8771fe38f0f3cc40d8fb2cf696706d6d49edcf45400675f096b9",
+    "media/theta-mppi-doorway-before-after-final.png": "2c0c417b7aacd045488ad293a34c46d13d8058f3812d053dec85c68569f7920a"
+  }
+}

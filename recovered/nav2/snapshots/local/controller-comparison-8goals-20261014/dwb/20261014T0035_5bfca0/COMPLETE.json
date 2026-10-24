@@ -1,0 +1,31 @@
+{
+  "measurement_count": 8,
+  "action_status_counts": {
+    "4": 5,
+    "5": 2,
+    "6": 1
+  },
+  "actual_joint_cap_met": false,
+  "max_actual_joint_rad_s": 5.1284976327385,
+  "actual_joint_cap_violation_goals": [
+    "turn_arrival",
+    "far_heading",
+    "distant"
+  ],
+  "raw_bag_full_window_count": 6,
+  "raw_bag_partial_goals": [
+    "chair_gap",
+    "distant"
+  ],
+  "independent_probe_full_window_count": 8,
+  "Nav2_succeeded_but_GT_xy_over_30cm": [
+    "narrow_seat"
+  ],
+  "owned_remaining": [],
+  "common_lock_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac",
+  "report": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/dwb/20261014T0035_5bfca0/REPORT.md",
+  "qualified_constraint_complete_campaign": false,
+  "no_rerun_of_completed_goals": true,
+  "shared_controller_and_planner_profile_identical": true,
+  "remote_common_verified": true
+}

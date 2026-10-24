@@ -1,0 +1,19 @@
+{
+  "status": "straightness_improved_with_rotation_regression",
+  "profile": "refined-planner-override.yaml",
+  "goals_tested": [
+    1,
+    2,
+    4,
+    6
+  ],
+  "physical_robot_used": false,
+  "production_default_changed": false,
+  "MPPI_unchanged": true,
+  "remaining": [
+    "Route 4 increased actual total yaw variation and angular jerk, and took longer",
+    "Route 6 increased linear jerk RMS",
+    "Only single descriptive trials per profile; no confidence interval",
+    "Remaining four routes not driven with these new planner profiles"
+  ]
+}

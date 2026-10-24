@@ -1,0 +1,11 @@
+{
+  "common": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/common",
+  "previous_profile_source": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013",
+  "output": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/dwb/20261014T0035_5bfca0",
+  "domain": 225,
+  "ports": [
+    22551,
+    22552
+  ],
+  "partition_policy": "unique per independent world"
+}

@@ -1,0 +1,5 @@
+{
+  "path": "/home/donglee/workspace/cleany/cleany",
+  "head": "c9995007ad97ce5a570c0288551024dff9d2ccbc",
+  "status": " M README.md\n M docs/cleany-docs\n M ros2_ws/src/cleany_gazebo_sim/README.md\n M ros2_ws/src/cleany_gazebo_sim/cleany_gazebo_sim/launch_helpers/study_cafe.py\n M ros2_ws/src/cleany_gazebo_sim/cleany_gazebo_sim/world/generator.py\n M ros2_ws/src/cleany_gazebo_sim/launch/gazebo_fortress.launch.py\n M ros2_ws/src/cleany_gazebo_sim/test/test_study_cafe_world.py\n"
+}

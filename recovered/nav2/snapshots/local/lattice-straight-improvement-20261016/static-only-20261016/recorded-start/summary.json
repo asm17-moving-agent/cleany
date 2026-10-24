@@ -1,0 +1,602 @@
+[
+  {
+    "route_index": 1,
+    "route": "straight",
+    "variant": "original_profile",
+    "exit": 0,
+    "ok": true,
+    "iterations": 182,
+    "search_ms": 0.78173,
+    "max_cross_track_cm": 18.226838032526647,
+    "length_m": 1.085707560794493,
+    "straight_distance_m": 1.0012492346448154,
+    "yaw_variation_deg": 143.13010428428308,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 29,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 1,
+    "route": "straight",
+    "variant": "original_exact",
+    "exit": 0,
+    "ok": true,
+    "iterations": 182,
+    "search_ms": 0.79172,
+    "max_cross_track_cm": 18.226838032526647,
+    "length_m": 1.085707560794493,
+    "straight_distance_m": 1.0012492346448154,
+    "yaw_variation_deg": 143.13010428428308,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 29,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 1,
+    "route": "straight",
+    "variant": "current",
+    "exit": 0,
+    "ok": true,
+    "iterations": 142,
+    "search_ms": 0.707071,
+    "max_cross_track_cm": 4.744073680361968,
+    "length_m": 1.0207106933284291,
+    "straight_distance_m": 1.0012492346448154,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 29,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 1,
+    "route": "straight",
+    "variant": "current_cost0",
+    "exit": 0,
+    "ok": true,
+    "iterations": 296,
+    "search_ms": 1.234164,
+    "max_cross_track_cm": 8.239706918523417,
+    "length_m": 1.0388404545256023,
+    "straight_distance_m": 1.0012492346448154,
+    "yaw_variation_deg": 53.13012910056159,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 35,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 1,
+    "route": "straight",
+    "variant": "no_curves",
+    "exit": 0,
+    "ok": true,
+    "iterations": 129,
+    "search_ms": 0.427985,
+    "max_cross_track_cm": 4.744073680361968,
+    "length_m": 1.0207106933284291,
+    "straight_distance_m": 1.0012492346448154,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 29,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 1,
+    "route": "straight",
+    "variant": "no_curves_cost0",
+    "exit": 0,
+    "ok": true,
+    "iterations": 52,
+    "search_ms": 0.257187,
+    "max_cross_track_cm": 4.744073680361968,
+    "length_m": 1.0207106933284291,
+    "straight_distance_m": 1.0012492346448154,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 23,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 2,
+    "route": "turn_arrival",
+    "variant": "original_profile",
+    "exit": 0,
+    "ok": true,
+    "iterations": 2392,
+    "search_ms": 6.286052,
+    "max_cross_track_cm": 14.995071687086195,
+    "length_m": 2.1381717269115845,
+    "straight_distance_m": 1.9506409493799308,
+    "yaw_variation_deg": 143.13008561494863,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "pose_count": 53,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -2.8249998185783625,
+      8.742277657347586e-08
+    ]
+  },
+  {
+    "route_index": 2,
+    "route": "turn_arrival",
+    "variant": "original_exact",
+    "exit": 0,
+    "ok": true,
+    "iterations": 2392,
+    "search_ms": 8.01988,
+    "max_cross_track_cm": 14.995071687086195,
+    "length_m": 2.1381717269115845,
+    "straight_distance_m": 1.9506409493799308,
+    "yaw_variation_deg": 143.13008561494863,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "pose_count": 53,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -2.8249998185783625,
+      8.742277657347586e-08
+    ]
+  },
+  {
+    "route_index": 2,
+    "route": "turn_arrival",
+    "variant": "current",
+    "exit": 0,
+    "ok": true,
+    "iterations": 2347,
+    "search_ms": 7.834472,
+    "max_cross_track_cm": 9.099573416949742,
+    "length_m": 1.9888404686817054,
+    "straight_distance_m": 1.9506409493799308,
+    "yaw_variation_deg": 89.99999749552202,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "pose_count": 82,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -2.8249998185783625,
+      8.742277657347586e-08
+    ]
+  },
+  {
+    "route_index": 2,
+    "route": "turn_arrival",
+    "variant": "current_cost0",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1647,
+    "search_ms": 5.64274,
+    "max_cross_track_cm": 9.099573416949742,
+    "length_m": 1.9888404686817054,
+    "straight_distance_m": 1.9506409493799308,
+    "yaw_variation_deg": 89.99999749552202,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "pose_count": 82,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -2.8249998185783625,
+      8.742277657347586e-08
+    ]
+  },
+  {
+    "route_index": 2,
+    "route": "turn_arrival",
+    "variant": "no_curves",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1383,
+    "search_ms": 2.812145,
+    "max_cross_track_cm": 4.870194223156201,
+    "length_m": 2.0707107089746484,
+    "straight_distance_m": 1.9506409493799308,
+    "yaw_variation_deg": 89.99999749552202,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "pose_count": 64,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -2.8249998185783625,
+      8.742277657347586e-08
+    ]
+  },
+  {
+    "route_index": 2,
+    "route": "turn_arrival",
+    "variant": "no_curves_cost0",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1628,
+    "search_ms": 3.20255,
+    "max_cross_track_cm": 4.870194223156201,
+    "length_m": 1.9707107074845323,
+    "straight_distance_m": 1.9506409493799308,
+    "yaw_variation_deg": 89.99999749552202,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "pose_count": 63,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -2.8249998185783625,
+      8.742277657347586e-08
+    ]
+  },
+  {
+    "route_index": 4,
+    "route": "far_heading",
+    "variant": "original_profile",
+    "exit": 0,
+    "ok": true,
+    "iterations": 16213,
+    "search_ms": 41.756889,
+    "max_cross_track_cm": 15.453547941480892,
+    "length_m": 4.593784146753238,
+    "straight_distance_m": 4.400284147307702,
+    "yaw_variation_deg": 286.2602292865048,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "pose_count": 111,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -0.3249997813254595,
+      4.71238899230957
+    ]
+  },
+  {
+    "route_index": 4,
+    "route": "far_heading",
+    "variant": "original_exact",
+    "exit": 0,
+    "ok": true,
+    "iterations": 24021,
+    "search_ms": 58.709807,
+    "max_cross_track_cm": 22.004867613211108,
+    "length_m": 4.5710928891899965,
+    "straight_distance_m": 4.400284147307702,
+    "yaw_variation_deg": 339.39034449931705,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "pose_count": 115,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -0.3249997813254595,
+      4.71238899230957
+    ]
+  },
+  {
+    "route_index": 4,
+    "route": "far_heading",
+    "variant": "current",
+    "exit": 0,
+    "ok": true,
+    "iterations": 9728,
+    "search_ms": 31.639875,
+    "max_cross_track_cm": 9.601652948934818,
+    "length_m": 4.43884050518955,
+    "straight_distance_m": 4.400284147307702,
+    "yaw_variation_deg": 180.00000182123281,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "pose_count": 194,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -0.3249997813254595,
+      4.71238899230957
+    ]
+  },
+  {
+    "route_index": 4,
+    "route": "far_heading",
+    "variant": "current_cost0",
+    "exit": 0,
+    "ok": true,
+    "iterations": 10412,
+    "search_ms": 33.274415,
+    "max_cross_track_cm": 9.601652948934818,
+    "length_m": 4.43884050518955,
+    "straight_distance_m": 4.400284147307702,
+    "yaw_variation_deg": 180.00000182123281,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "pose_count": 194,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -0.3249997813254595,
+      4.71238899230957
+    ]
+  },
+  {
+    "route_index": 4,
+    "route": "far_heading",
+    "variant": "no_curves",
+    "exit": 0,
+    "ok": true,
+    "iterations": 10583,
+    "search_ms": 20.817401,
+    "max_cross_track_cm": 4.942862760694256,
+    "length_m": 4.420710743992377,
+    "straight_distance_m": 4.400284147307702,
+    "yaw_variation_deg": 179.99999817876719,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "pose_count": 129,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -0.3249997813254595,
+      4.71238899230957
+    ]
+  },
+  {
+    "route_index": 4,
+    "route": "far_heading",
+    "variant": "no_curves_cost0",
+    "exit": 0,
+    "ok": true,
+    "iterations": 10105,
+    "search_ms": 19.838063,
+    "max_cross_track_cm": 4.942862760694256,
+    "length_m": 4.420710743992377,
+    "straight_distance_m": 4.400284147307702,
+    "yaw_variation_deg": 179.99999817876719,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "pose_count": 127,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -0.3249997813254595,
+      4.71238899230957
+    ]
+  },
+  {
+    "route_index": 6,
+    "route": "lateral",
+    "variant": "original_profile",
+    "exit": 0,
+    "ok": true,
+    "iterations": 325,
+    "search_ms": 1.365262,
+    "max_cross_track_cm": 13.805370004968706,
+    "length_m": 0.8236068100226768,
+    "straight_distance_m": 0.6519202502346335,
+    "yaw_variation_deg": 53.13012910056159,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 25,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.2749996613711119,
+      -4.724999846890569,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 6,
+    "route": "lateral",
+    "variant": "original_exact",
+    "exit": 0,
+    "ok": true,
+    "iterations": 325,
+    "search_ms": 1.207096,
+    "max_cross_track_cm": 13.805370004968706,
+    "length_m": 0.8236068100226768,
+    "straight_distance_m": 0.6519202502346335,
+    "yaw_variation_deg": 53.13012910056159,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 25,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.2749996613711119,
+      -4.724999846890569,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 6,
+    "route": "lateral",
+    "variant": "current",
+    "exit": 0,
+    "ok": true,
+    "iterations": 58,
+    "search_ms": 0.383035,
+    "max_cross_track_cm": 4.601790001656235,
+    "length_m": 0.6707106881130227,
+    "straight_distance_m": 0.6519202502346335,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 15,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.2749996613711119,
+      -4.724999846890569,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 6,
+    "route": "lateral",
+    "variant": "current_cost0",
+    "exit": 0,
+    "ok": true,
+    "iterations": 47,
+    "search_ms": 0.341765,
+    "max_cross_track_cm": 4.601790001656235,
+    "length_m": 0.6707106881130227,
+    "straight_distance_m": 0.6519202502346335,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 18,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.2749996613711119,
+      -4.724999846890569,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 6,
+    "route": "lateral",
+    "variant": "no_curves",
+    "exit": 0,
+    "ok": true,
+    "iterations": 57,
+    "search_ms": 0.244607,
+    "max_cross_track_cm": 4.601790001656235,
+    "length_m": 0.6707106881130227,
+    "straight_distance_m": 0.6519202502346335,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 15,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.2749996613711119,
+      -4.724999846890569,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 6,
+    "route": "lateral",
+    "variant": "no_curves_cost0",
+    "exit": 0,
+    "ok": true,
+    "iterations": 45,
+    "search_ms": 0.240337,
+    "max_cross_track_cm": 4.601790001656235,
+    "length_m": 0.6707106881130227,
+    "straight_distance_m": 0.6519202502346335,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "pose_count": 18,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.2749996613711119,
+      -4.724999846890569,
+      1.5707963705062866
+    ]
+  }
+]

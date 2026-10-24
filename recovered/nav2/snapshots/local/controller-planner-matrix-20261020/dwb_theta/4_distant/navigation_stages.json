@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      -5.525,
+      4.775,
+      -1.570796
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/dwb_theta/4_distant/behavior.xml",
+    "index": 0,
+    "status": 6,
+    "sim_start": 8.282,
+    "sim_end": 53.821000000000005,
+    "truth": [
+      -2.6926563874729026,
+      4.559777870594197,
+      0.17247213086998062
+    ]
+  }
+]

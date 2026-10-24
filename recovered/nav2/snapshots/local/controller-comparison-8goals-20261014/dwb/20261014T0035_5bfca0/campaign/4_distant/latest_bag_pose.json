@@ -1,0 +1,32 @@
+{
+  "captured_epoch_s": 1791911183.8596106,
+  "source": "read-only last committed bag record",
+  "/ground_truth/odom": {
+    "header_sim_s": 367.62,
+    "bag_record_timestamp_ns": 1791911183816330481,
+    "pose": [
+      -1.7044809163603474,
+      0.013696280401808097,
+      2.6511675993198027
+    ],
+    "twist": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "/odom": {
+    "header_sim_s": 367.62,
+    "bag_record_timestamp_ns": 1791911183821101617,
+    "pose": [
+      4.711025765212799,
+      -0.10483188614950635,
+      1.0886113809751101
+    ],
+    "twist": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  }
+}

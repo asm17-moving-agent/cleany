@@ -1,0 +1,96 @@
+{
+  "sim_s": 39.443000000000005,
+  "navigation_sim_s": 27.990000000000002,
+  "truth": [
+    -5.365761746830528,
+    -5.653867829409351,
+    2.99402459537669
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 39.409,
+      "sim_s": 39.409,
+      "requested": [
+        0.02646256610751152,
+        0.185394287109375,
+        0.042522501200437546
+      ],
+      "output": [
+        0.02646256610751152,
+        0.185394287109375,
+        0.042522501200437546
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 39.426,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 39.426,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.02795167906726643,
+        0.1886738337039278,
+        0.043958396520113206
+      ],
+      "nearby_voxels": 1015,
+      "total_voxels": 15365,
+      "source_age_s": 0.1490000000000009,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 6.8082959987805225
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 39.426,
+      "stamp_s": 39.426,
+      "sim_s": 39.426,
+      "target": 1.4290173221008584,
+      "pan": 1.3846606954106813,
+      "reason": "TURNING_PAN",
+      "requested": [
+        0.02646256610751152,
+        0.185394287109375,
+        0.042522501200437546
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 39.403
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 39.435,
+      "sim_s": 39.426,
+      "requested": [
+        0.027242511510849,
+        0.1856391727924347,
+        0.04407947510480881
+      ],
+      "output": [
+        0.027242511510849,
+        0.1856391727924347,
+        0.04407947510480881
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    }
+  ]
+}

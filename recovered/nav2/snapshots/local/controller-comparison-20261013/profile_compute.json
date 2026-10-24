@@ -1,0 +1,58 @@
+[
+  {
+    "candidate": "dwb",
+    "host": "a16-fedora",
+    "case": "supplemental straight-route profile",
+    "action_status": 4,
+    "calls": 283,
+    "exceptions": 0,
+    "median_ms": 15.168515,
+    "p95_ms": 27.1395746,
+    "p99_ms": 28.119376459999998,
+    "all_calls_p95_ms": 27.1395746,
+    "calls_over_50ms": 0,
+    "note": "same ARM64 host; wall time includes scheduling; each algorithm follows its own trajectory; not a standardized frozen-input microbenchmark"
+  },
+  {
+    "candidate": "mppi",
+    "host": "a16-fedora",
+    "case": "supplemental straight-route profile",
+    "action_status": 4,
+    "calls": 459,
+    "exceptions": 0,
+    "median_ms": 5.86005,
+    "p95_ms": 10.7498415,
+    "p99_ms": 13.148080580000007,
+    "all_calls_p95_ms": 10.7498415,
+    "calls_over_50ms": 0,
+    "note": "same ARM64 host; wall time includes scheduling; each algorithm follows its own trajectory; not a standardized frozen-input microbenchmark"
+  },
+  {
+    "candidate": "teb",
+    "host": "a16-fedora",
+    "case": "supplemental straight-route profile",
+    "action_status": 6,
+    "calls": 1261,
+    "exceptions": 213,
+    "median_ms": 24.522944000000003,
+    "p95_ms": 51.224101,
+    "p99_ms": 58.564966239999976,
+    "all_calls_p95_ms": 50.540796,
+    "calls_over_50ms": 69,
+    "note": "same ARM64 host; wall time includes scheduling; each algorithm follows its own trajectory; not a standardized frozen-input microbenchmark"
+  },
+  {
+    "candidate": "rpp",
+    "host": "a16-fedora",
+    "case": "supplemental straight-route profile",
+    "action_status": 4,
+    "calls": 318,
+    "exceptions": 0,
+    "median_ms": 0.1014855,
+    "p95_ms": 0.2894787999999995,
+    "p99_ms": 1.000459619999997,
+    "all_calls_p95_ms": 0.2894787999999995,
+    "calls_over_50ms": 0,
+    "note": "same ARM64 host; wall time includes scheduling; each algorithm follows its own trajectory; not a standardized frozen-input microbenchmark"
+  }
+]

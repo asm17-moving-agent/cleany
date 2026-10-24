@@ -1,0 +1,914 @@
+from __future__ import annotations
+
+from copy import deepcopy
+import json
+from math import asin, atan2, cos, isfinite, pi, sin, sqrt
+from pathlib import Path
+from tempfile import mkdtemp
+from xml.etree import ElementTree
+
+from cleany_gazebo_sim.lidar_noise import LidarNoiseProfile
+from cleany_gazebo_sim.world.sdf import write_world
+from cleany_gazebo_sim.world.layout import load_study_cafe_layout
+
+
+_WHEEL_HANDEDNESS = {
+    'rear_left': -1.0,
+    'rear_right': 1.0,
+    'front_left': 1.0,
+    'front_right': -1.0,
+}
+_ROLLER_RADIUS = 0.008
+_ROLLER_LENGTH = 0.03
+_ROLLER_CENTER_RADIUS = 0.0555
+_ROBOT_VISIBILITY_FLAGS = '0x02'
+_FOLDED_ARM_LINKS = (
+    'left_arm_base',
+    'left_rotation_pitch',
+    'left_upper_arm',
+    'left_lower_arm',
+    'left_wrist_pitch',
+    'left_fixed_jaw',
+    'left_moving_jaw',
+    'right_arm_base',
+    'right_rotation_pitch',
+    'right_upper_arm',
+    'right_lower_arm',
+    'right_wrist_pitch',
+    'right_fixed_jaw',
+    'right_moving_jaw',
+)
+_FOLDED_ARM_COLLISION_COUNT = 30
+_UPPER_BODY_ENVELOPE_SIZE = (0.55, 0.52, 0.70)
+_UPPER_BODY_ENVELOPE_CENTER = (0.0, 0.0, 0.35)
+_PHYSICAL_LINKS = {
+    'base_link',
+    'rear_left_wheel',
+    'rear_right_wheel',
+    'front_left_wheel',
+    'front_right_wheel',
+}
+_COLLAPSED_FIXED_LINK_COUNT = 22
+_FOLDED_ARM_LINK_POSES = {
+    'left_shoulder_yaw_joint': ('left_rotation_pitch', '0 0 0 0 -1.5708 0'),
+    'left_shoulder_pitch_joint': ('left_upper_arm', '0 0 0 -3.0 0 0'),
+    'left_elbow_pitch_joint': ('left_lower_arm', '0 0 0 2.4 0 0'),
+    'left_wrist_pitch_joint': ('left_wrist_pitch', '0 0 0 1.2 0 0'),
+    'left_wrist_roll_joint': ('left_fixed_jaw', '0 0 0 0 0 0'),
+    'left_gripper_joint': ('left_moving_jaw', '0 0 0 0 0 0.8'),
+    'right_shoulder_yaw_joint': ('right_rotation_pitch', '0 0 0 0 1.5708 0'),
+    'right_shoulder_pitch_joint': ('right_upper_arm', '0 0 0 -3.0 0 0'),
+    'right_elbow_pitch_joint': ('right_lower_arm', '0 0 0 2.4 0 0'),
+    'right_wrist_pitch_joint': ('right_wrist_pitch', '0 0 0 1.2 0 0'),
+    'right_wrist_roll_joint': ('right_fixed_jaw', '0 0 0 0 0 0'),
+    'right_gripper_joint': ('right_moving_jaw', '0 0 0 0 0 0.8'),
+}
+_FUEL_VISUALS = {
+    'office_chair_grey': (
+        'https://fuel.gazebosim.org/1.0/OpenRobotics/models/'
+        'OfficeChairGrey/1/files/meshes/OfficeChairGrey.obj'
+    ),
+}
+
+
+def _unique_runtime_target(prefix: str, filename: str) -> Path:
+    """Reserve a process-owned runtime directory and return a file in it."""
+    return Path(mkdtemp(prefix=prefix)) / filename
+
+
+def fixed_roller_visual_sdf(prefix: str, handedness: float) -> str:
+    """Generate one wheel's fixed, non-controllable roller visuals."""
+    fragments: list[str] = []
+    for index in range(12):
+        angle = index * pi / 6.0
+        x = _ROLLER_CENTER_RADIUS * cos(angle)
+        y = _ROLLER_CENTER_RADIUS * sin(angle)
+        axis_x = -sin(angle) / sqrt(2.0)
+        axis_y = cos(angle) / sqrt(2.0)
+        axis_z = handedness / sqrt(2.0)
+        roll = -asin(axis_y)
+        pitch = atan2(axis_x, axis_z)
+        fragments.append(
+            f'''<visual name="{prefix}_roller_{index:02d}_visual">
+  <pose>{x:.6f} {y:.6f} 0 {roll:.6f} {pitch:.6f} 0</pose>
+  <geometry><capsule><radius>{_ROLLER_RADIUS}</radius><length>{_ROLLER_LENGTH}</length></capsule></geometry>
+  <material><diffuse>0.06 0.06 0.07 1</diffuse></material>
+</visual>'''
+        )
+    return '\n'.join(fragments)
+
+
+def _freeze_folded_arms(robot: ElementTree.Element) -> None:
+    """Bake the standby angles into fixed joints without actuator impulse."""
+    controllers = {
+        plugin.findtext('joint_name'): plugin
+        for plugin in robot.findall('plugin')
+        if plugin.get('name', '').endswith('JointPositionController')
+    }
+    if set(controllers) != set(_FOLDED_ARM_LINK_POSES):
+        raise ValueError('robot template has an incomplete folded-arm profile')
+
+    for joint_name, (link_name, link_pose) in _FOLDED_ARM_LINK_POSES.items():
+        joint = robot.find(f"joint[@name='{joint_name}']")
+        link = robot.find(f"link[@name='{link_name}']")
+        if joint is None or link is None:
+            raise ValueError(f'folded-arm element is missing for {joint_name}')
+        if joint.findtext('child') != link_name:
+            raise ValueError(f'folded-arm child mismatch for {joint_name}')
+        pose = link.find('pose')
+        if pose is None or pose.get('relative_to') != joint_name:
+            raise ValueError(
+                f'folded-arm pose frame mismatch for {joint_name}'
+            )
+
+        joint.set('type', 'fixed')
+        axis = joint.find('axis')
+        if axis is not None:
+            joint.remove(axis)
+        pose.text = link_pose
+        robot.remove(controllers[joint_name])
+
+
+def _collapse_fixed_upper_body(
+    robot: ElementTree.Element,
+) -> None:
+    """Keep upper-body frames and visuals without separate physics bodies."""
+    removed = 0
+    for link_name in _FOLDED_ARM_LINKS:
+        link = robot.find(f"link[@name='{link_name}']")
+        if link is None:
+            raise ValueError(f'folded-arm link is missing: {link_name}')
+        collisions = link.findall('collision')
+        removed += len(collisions)
+        for collision in collisions:
+            link.remove(collision)
+    if removed != _FOLDED_ARM_COLLISION_COUNT:
+        raise ValueError(
+            'robot template folded-arm collision count changed: '
+            f'expected {_FOLDED_ARM_COLLISION_COUNT}, found {removed}'
+        )
+
+    base_link = robot.find("link[@name='base_link']")
+    if base_link is None:
+        raise ValueError('robot template is missing base_link')
+    _add_box_collision(
+        base_link,
+        'folded_upper_body_envelope_collision',
+        _UPPER_BODY_ENVELOPE_SIZE,
+        _UPPER_BODY_ENVELOPE_CENTER,
+    )
+
+    collapsed_links = [
+        link for link in robot.findall('link')
+        if link.get('name') not in _PHYSICAL_LINKS
+    ]
+    if len(collapsed_links) != _COLLAPSED_FIXED_LINK_COUNT:
+        raise ValueError(
+            'robot template fixed-link count changed: '
+            f'expected {_COLLAPSED_FIXED_LINK_COUNT}, '
+            f'found {len(collapsed_links)}'
+        )
+    collapsed_names = {link.get('name', '') for link in collapsed_links}
+    collapsed_joints = [
+        joint for joint in robot.findall('joint')
+        if joint.findtext('child') in collapsed_names
+    ]
+    if len(collapsed_joints) != _COLLAPSED_FIXED_LINK_COUNT:
+        raise ValueError('each collapsed link must have one fixed joint')
+    if any(joint.get('type') != 'fixed' for joint in collapsed_joints):
+        raise ValueError('all collapsed upper-body joints must be fixed')
+
+    for joint in collapsed_joints:
+        joint_name = joint.get('name')
+        parent_name = joint.findtext('parent')
+        pose = joint.find('pose')
+        if not joint_name or not parent_name or pose is None:
+            raise ValueError('collapsed joint is missing its frame contract')
+        frame = ElementTree.Element(
+            'frame', {'name': joint_name, 'attached_to': parent_name}
+        )
+        frame.append(pose)
+        robot.append(frame)
+
+    for link in collapsed_links:
+        link_name = link.get('name')
+        pose = link.find('pose')
+        if not link_name or pose is None:
+            raise ValueError('collapsed link is missing its frame pose')
+        attached_to = pose.get('relative_to')
+        if not attached_to:
+            raise ValueError(
+                f'collapsed link pose has no relative frame: {link_name}'
+            )
+        frame = ElementTree.Element(
+            'frame', {'name': link_name, 'attached_to': attached_to}
+        )
+        frame.append(pose)
+        robot.append(frame)
+
+        for element_name in ('visual', 'sensor'):
+            for element in link.findall(element_name):
+                element_pose = element.find('pose')
+                if element_pose is None:
+                    element_pose = ElementTree.Element(
+                        'pose', {'relative_to': link_name}
+                    )
+                    element_pose.text = '0 0 0 0 0 0'
+                    element.insert(0, element_pose)
+                elif element_pose.get('relative_to') is None:
+                    element_pose.set('relative_to', link_name)
+                if element_name == 'visual':
+                    element.set(
+                        'name', f'{link_name}_{element.get("name", "visual")}'
+                    )
+                link.remove(element)
+                base_link.append(element)
+
+    for joint in collapsed_joints:
+        robot.remove(joint)
+    for link in collapsed_links:
+        robot.remove(link)
+
+
+def materialize_mecanum_wheel_world(
+    template_path: Path,
+    lidar_noise: LidarNoiseProfile | None = None,
+    *,
+    target_path: Path | None = None,
+    sensor_render_engine: str = 'ogre2',
+    robot_model: str = 'legacy',
+) -> Path:
+    """Materialize compact mecanum visuals without exposing roller joints."""
+    if sensor_render_engine not in {'ogre', 'ogre2'}:
+        raise ValueError('sensor render engine must be ogre or ogre2')
+    template = template_path.read_text(encoding='utf-8')
+    world = template
+    for prefix, handedness in _WHEEL_HANDEDNESS.items():
+        marker = f'<!-- CLEANY_{prefix.upper()}_ROLLER_VISUALS -->'
+        if world.count(marker) != 1:
+            raise ValueError(
+                f'world template must contain one {prefix} roller marker'
+            )
+        world = world.replace(
+            marker,
+            fixed_roller_visual_sdf(prefix, handedness),
+        )
+
+    root = ElementTree.fromstring(world)
+    robot = root.find("./world/model[@name='cleany_mecanum']")
+    if robot is None:
+        raise ValueError('world template is missing cleany_mecanum')
+    sensor_plugin_names = {
+        'ignition::gazebo::systems::Sensors',
+        'gz::sim::systems::Sensors',
+    }
+    sensors_plugin = next(
+        (
+            plugin
+            for plugin in root.findall('./world/plugin')
+            if plugin.get('name') in sensor_plugin_names
+        ),
+        None,
+    )
+    render_engine = (
+        sensors_plugin.find('render_engine')
+        if sensors_plugin is not None
+        else None
+    )
+    if render_engine is None:
+        raise ValueError('world template is missing the sensor render engine')
+    render_engine.text = sensor_render_engine
+    _freeze_folded_arms(robot)
+    _collapse_fixed_upper_body(robot)
+    model_metadata = None
+    if robot_model == 'cad_frame':
+        from ament_index_python.packages import get_package_share_directory
+        from cleany_gazebo_sim.world.cad_frame import adapt_cad_frame
+        new_robot, model_metadata = adapt_cad_frame(
+            robot, Path(get_package_share_directory('cleany_description')),
+            template_path.parent.parent/'config/cad_frame.yaml',
+        )
+        root.find('world').remove(robot)
+        root.find('world').append(new_robot)
+        robot = new_robot
+    elif robot_model != 'legacy':
+        raise ValueError(f'Unknown robot model: {robot_model}')
+    for visual in robot.findall('.//visual'):
+        flags = visual.find('visibility_flags')
+        if flags is None:
+            flags = ElementTree.Element('visibility_flags')
+            geometry = visual.find('geometry')
+            insert_at = (
+                list(visual).index(geometry) if geometry is not None else 0
+            )
+            visual.insert(insert_at, flags)
+        flags.text = _ROBOT_VISIBILITY_FLAGS
+
+    if lidar_noise is not None:
+        lidar = robot.find(".//sensor[@name='rplidar_a1']/lidar")
+        if lidar is None:
+            raise ValueError('world template is missing the RPLIDAR sensor')
+        noise = lidar.find('noise')
+        if noise is None:
+            noise = ElementTree.Element('noise')
+            visibility_mask = lidar.find('visibility_mask')
+            insert_at = (
+                list(lidar).index(visibility_mask)
+                if visibility_mask is not None
+                else len(lidar)
+            )
+            lidar.insert(insert_at, noise)
+        noise.clear()
+        ElementTree.SubElement(noise, 'type').text = 'gaussian'
+        ElementTree.SubElement(noise, 'mean').text = str(lidar_noise.mean)
+        ElementTree.SubElement(noise, 'stddev').text = str(lidar_noise.stddev)
+
+    suffix = lidar_noise.name if lidar_noise is not None else 'no_noise'
+    target = target_path or _unique_runtime_target(
+        f'cleany-mecanum-{suffix}-', 'world.sdf'
+    )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    write_world(ElementTree.ElementTree(root), target)
+    if model_metadata is not None:
+        target.with_suffix('.model.json').write_text(json.dumps(model_metadata, indent=2))
+    return target
+
+
+def _add_box_model(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+    size: tuple[float, float, float],
+    color: str,
+    roughness: float | None = None,
+) -> None:
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+    for element_name in ('collision', 'visual'):
+        element = ElementTree.SubElement(
+            link, element_name, {'name': element_name}
+        )
+        geometry = ElementTree.SubElement(element, 'geometry')
+        box = ElementTree.SubElement(geometry, 'box')
+        ElementTree.SubElement(box, 'size').text = ' '.join(map(str, size))
+        if element_name == 'visual':
+            material = ElementTree.SubElement(element, 'material')
+            if roughness is not None:
+                ElementTree.SubElement(material, 'ambient').text = color
+            ElementTree.SubElement(material, 'diffuse').text = color
+            if roughness is not None:
+                ElementTree.SubElement(material, 'specular').text = (
+                    '0.03 0.03 0.03 1'
+                )
+                pbr = ElementTree.SubElement(material, 'pbr')
+                metal = ElementTree.SubElement(pbr, 'metal')
+                ElementTree.SubElement(metal, 'roughness').text = str(
+                    roughness
+                )
+                ElementTree.SubElement(metal, 'metalness').text = '0.0'
+
+
+def _add_box_collision(
+    link: ElementTree.Element,
+    name: str,
+    size: tuple[float, float, float],
+    xyz: tuple[float, float, float],
+) -> None:
+    collision = ElementTree.SubElement(link, 'collision', {'name': name})
+    ElementTree.SubElement(collision, 'pose').text = (
+        f'{xyz[0]} {xyz[1]} {xyz[2]} 0 0 0'
+    )
+    geometry = ElementTree.SubElement(collision, 'geometry')
+    box = ElementTree.SubElement(geometry, 'box')
+    ElementTree.SubElement(box, 'size').text = ' '.join(map(str, size))
+
+
+def _add_box_part(
+    link: ElementTree.Element,
+    name: str,
+    size: tuple[float, float, float],
+    pose: tuple[float, float, float, float, float, float],
+    color: str,
+    *,
+    with_collision: bool = True,
+) -> None:
+    """Add a detailed visual and, when requested, matching collision."""
+    pose_text = ' '.join(map(str, pose))
+    size_text = ' '.join(map(str, size))
+    element_names = (
+        ('collision', 'visual') if with_collision else ('visual',)
+    )
+    for element_name in element_names:
+        element = ElementTree.SubElement(
+            link, element_name, {'name': f'{name}_{element_name}'}
+        )
+        ElementTree.SubElement(element, 'pose').text = pose_text
+        geometry = ElementTree.SubElement(element, 'geometry')
+        box = ElementTree.SubElement(geometry, 'box')
+        ElementTree.SubElement(box, 'size').text = size_text
+        if element_name == 'visual':
+            material = ElementTree.SubElement(element, 'material')
+            ElementTree.SubElement(material, 'ambient').text = color
+            ElementTree.SubElement(material, 'diffuse').text = color
+
+
+def _add_cylinder_part(
+    link: ElementTree.Element,
+    name: str,
+    radius: float,
+    length: float,
+    pose: tuple[float, float, float, float, float, float],
+    color: str,
+    *,
+    with_collision: bool = True,
+) -> None:
+    """Add a detailed visual and, when requested, matching collision."""
+    pose_text = ' '.join(map(str, pose))
+    element_names = (
+        ('collision', 'visual') if with_collision else ('visual',)
+    )
+    for element_name in element_names:
+        element = ElementTree.SubElement(
+            link, element_name, {'name': f'{name}_{element_name}'}
+        )
+        ElementTree.SubElement(element, 'pose').text = pose_text
+        geometry = ElementTree.SubElement(element, 'geometry')
+        cylinder = ElementTree.SubElement(geometry, 'cylinder')
+        ElementTree.SubElement(cylinder, 'radius').text = str(radius)
+        ElementTree.SubElement(cylinder, 'length').text = str(length)
+        if element_name == 'visual':
+            material = ElementTree.SubElement(element, 'material')
+            ElementTree.SubElement(material, 'ambient').text = color
+            ElementTree.SubElement(material, 'diffuse').text = color
+
+
+def _add_demo_desk(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+    front_sign: float,
+) -> None:
+    """Add the 1.2 m white desk with two compact A-frame supports."""
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+    white = '0.92 0.93 0.94 1'
+
+    # Navigation only needs the furniture's occupied volume. One conservative
+    # primitive avoids iterating nine separate static collision geometries for
+    # every repeated desk while keeping the detailed visual unchanged.
+    _add_box_collision(
+        link, 'desk_envelope_collision', (1.2, 0.77, 0.72),
+        (0.0, 0.0, 0.36),
+    )
+
+    corner_radius = 0.06
+    tabletop_half_depth = 0.385
+    # Keep the partition-side corners square and round only the two corners
+    # on the chair-facing edge. The union of two boxes and two cylinders
+    # gives visual and collision geometry the same footprint.
+    _add_box_part(
+        link, 'tabletop_back', (1.2, 0.77 - corner_radius, 0.04),
+        (
+            0.0, -front_sign * corner_radius / 2.0, 0.70,
+            0.0, 0.0, 0.0,
+        ),
+        white,
+        with_collision=False,
+    )
+    _add_box_part(
+        link,
+        'tabletop_front_center',
+        (1.2 - 2.0 * corner_radius, corner_radius, 0.04),
+        (
+            0.0,
+            front_sign * (tabletop_half_depth - corner_radius / 2.0),
+            0.70,
+            0.0, 0.0, 0.0,
+        ),
+        white,
+        with_collision=False,
+    )
+    for side_name, x in (
+        ('left', -0.60 + corner_radius),
+        ('right', 0.60 - corner_radius),
+    ):
+        _add_cylinder_part(
+            link,
+            f'tabletop_front_{side_name}_corner',
+            corner_radius,
+            0.04,
+            (
+                x,
+                front_sign * (tabletop_half_depth - corner_radius),
+                0.70,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            white,
+            with_collision=False,
+        )
+    leg_bottom_z = 0.02
+    leg_top_z = 0.67
+    # Supports sit 8 cm inboard from every tabletop edge.
+    for support_name, x in (('left', -0.52), ('right', 0.52)):
+        for side_name, bottom_y in (
+            ('front', tabletop_half_depth - 0.08),
+            ('back', -tabletop_half_depth + 0.08),
+        ):
+            top_y = 0.035 if bottom_y > 0 else -0.035
+            delta_y = top_y - bottom_y
+            delta_z = leg_top_z - leg_bottom_z
+            leg_length = sqrt(delta_y ** 2 + delta_z ** 2)
+            roll = atan2(-delta_y, delta_z)
+            _add_box_part(
+                link,
+                f'{support_name}_{side_name}_leg',
+                (0.045, 0.045, leg_length),
+                (
+                    x,
+                    (bottom_y + top_y) / 2.0,
+                    (leg_bottom_z + leg_top_z) / 2.0,
+                    roll,
+                    0.0,
+                    0.0,
+                ),
+                white,
+                with_collision=False,
+            )
+    _add_box_part(
+        link, 'upper_crossbar', (0.82, 0.045, 0.045),
+        (0.0, 0.0, 0.62, 0.0, 0.0, 0.0), white,
+        with_collision=False,
+    )
+
+
+def _add_rounded_partition(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+) -> None:
+    """Add a thin divider with four rounded corners in the X-Z plane."""
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+    color = '0.78 0.80 0.82 1'
+    width = 1.2
+    thickness = 0.025
+    height = 0.72
+    radius = 0.05
+
+    _add_box_collision(
+        link, 'partition_envelope_collision',
+        (width, thickness, height), (0.0, 0.0, 0.0),
+    )
+
+    _add_box_part(
+        link, 'partition_center', (width - 2.0 * radius, thickness, height),
+        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), color,
+        with_collision=False,
+    )
+    _add_box_part(
+        link, 'partition_middle', (width, thickness, height - 2.0 * radius),
+        (0.0, 0.0, 0.0, 0.0, 0.0, 0.0), color,
+        with_collision=False,
+    )
+    for horizontal_name, x in (
+        ('left', -width / 2.0 + radius),
+        ('right', width / 2.0 - radius),
+    ):
+        for vertical_name, z in (
+            ('bottom', -height / 2.0 + radius),
+            ('top', height / 2.0 - radius),
+        ):
+            _add_cylinder_part(
+                link,
+                f'partition_{vertical_name}_{horizontal_name}_corner',
+                radius,
+                thickness,
+                (x, 0.0, z, pi / 2.0, 0.0, 0.0),
+                color,
+                with_collision=False,
+            )
+
+
+def _add_desk_monitor(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+    front_sign: float,
+) -> None:
+    """Add one black 27-inch 16:9 monitor facing its chair."""
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+    bezel_color = '0.025 0.025 0.03 1'
+    screen_color = '0.008 0.010 0.014 1'
+
+    _add_box_collision(
+        link, 'monitor_envelope_collision', (0.62, 0.16, 0.46),
+        (0.0, front_sign * 0.04, 0.95),
+    )
+
+    _add_box_part(
+        link, 'monitor_panel', (0.62, 0.035, 0.36),
+        (0.0, 0.0, 1.00, 0.0, 0.0, 0.0), bezel_color,
+        with_collision=False,
+    )
+    _add_box_part(
+        link, 'monitor_stem', (0.035, 0.035, 0.12),
+        (0.0, 0.0, 0.79, 0.0, 0.0, 0.0), bezel_color,
+        with_collision=False,
+    )
+    _add_box_part(
+        link, 'monitor_base', (0.24, 0.16, 0.02),
+        (0.0, front_sign * 0.04, 0.73, 0.0, 0.0, 0.0),
+        bezel_color,
+        with_collision=False,
+    )
+
+    screen = ElementTree.SubElement(
+        link, 'visual', {'name': 'monitor_screen_visual'}
+    )
+    ElementTree.SubElement(screen, 'pose').text = (
+        f'0.0 {front_sign * 0.0185} 1.0 0.0 0.0 0.0'
+    )
+    geometry = ElementTree.SubElement(screen, 'geometry')
+    box = ElementTree.SubElement(geometry, 'box')
+    # 0.598 x 0.336 m is a 27-inch diagonal at 16:9.
+    ElementTree.SubElement(box, 'size').text = '0.598 0.002 0.336'
+    material = ElementTree.SubElement(screen, 'material')
+    ElementTree.SubElement(material, 'ambient').text = screen_color
+    ElementTree.SubElement(material, 'diffuse').text = screen_color
+
+
+def _add_office_chair(
+    world: ElementTree.Element,
+    name: str,
+    pose: tuple[float, float, float, float, float, float],
+) -> None:
+    """Use the same low-poly mesh for the static chair's visible and contact surfaces."""
+    model = ElementTree.SubElement(world, 'model', {'name': name})
+    ElementTree.SubElement(model, 'static').text = 'true'
+    ElementTree.SubElement(model, 'pose').text = ' '.join(map(str, pose))
+    link = ElementTree.SubElement(model, 'link', {'name': 'body'})
+
+    visual = ElementTree.SubElement(
+        link, 'visual', {'name': 'office_chair_visual'}
+    )
+    # Fuel's chair faces -Y. Rotate it so the model's +X is the front.
+    ElementTree.SubElement(visual, 'pose').text = (
+        '0 0 0 0 0 1.5707963267948966'
+    )
+    geometry = ElementTree.SubElement(visual, 'geometry')
+    mesh = ElementTree.SubElement(geometry, 'mesh')
+    ElementTree.SubElement(mesh, 'uri').text = _FUEL_VISUALS[
+        'office_chair_grey'
+    ]
+    ElementTree.SubElement(mesh, 'scale').text = '0.9 0.9 0.9'
+
+    # The old solid envelope filled the empty space beneath the seat and
+    # between the legs. Fuel's *_Col.obj is also a coarse solid proxy.
+    # This static visual mesh is only 240 vertices / 221 OBJ faces; preserve
+    # its concavities rather than requesting convex-hull optimization.
+    collision = ElementTree.SubElement(
+        link, 'collision', {'name': 'chair_surface_collision'}
+    )
+    collision.append(deepcopy(visual.find('pose')))
+    collision.append(deepcopy(geometry))
+
+
+def _chair_pose_toward(
+    chair_xy: tuple[float, float],
+    table_xy: tuple[float, float],
+) -> tuple[float, float, float, float, float, float]:
+    """Point WoodenChair's local +X front toward its assigned table."""
+    chair_x, chair_y = chair_xy
+    table_x, table_y = table_xy
+    yaw = atan2(table_y - chair_y, table_x - chair_x)
+    return (chair_x, chair_y, 0.0, 0.0, 0.0, yaw)
+
+
+def materialize_study_cafe_world(
+    robot_template_path: Path,
+    target_path: Path | None = None,
+    max_step_size: float = 0.002,
+    real_time_factor: float = 1.0,
+    layout_path: Path | None = None,
+    lidar_translation: tuple[float, float, float] | None = None,
+    lidar_noise: LidarNoiseProfile | None = None,
+    sensor_render_engine: str = 'ogre2',
+    robot_spawn_pose: tuple[float, float, float, float, float, float]
+    | None = None,
+    robot_model: str = 'legacy',
+    chair_model: str = 'legacy',
+    chair_config_path: Path | None = None,
+) -> Path:
+    """Build a spacious, lightweight study-cafe evaluation world."""
+    if not isfinite(max_step_size) or not 0.0 < max_step_size <= 0.01:
+        raise ValueError('max step size must be within (0, 0.01] seconds')
+    if not isfinite(real_time_factor) or real_time_factor <= 0.0:
+        raise ValueError('real time factor must be positive')
+    layout = load_study_cafe_layout(
+        layout_path
+        or robot_template_path.parent.parent
+        / 'config'
+        / 'study_cafe'
+        / 'study_cafe_layout.yaml'
+    )
+    from cleany_gazebo_sim.world.roly import add_roly_chair, load_roly_config
+
+    if chair_model not in ('legacy', 'roly'):
+        raise ValueError('chair_model must be legacy or roly')
+    chair_config = load_roly_config(
+        chair_config_path or robot_template_path.parent.parent
+        / 'config/furniture/roly_p1g210m.yaml'
+    ) if chair_model == 'roly' else None
+    target = target_path or _unique_runtime_target(
+        'cleany-study-cafe-', 'world.sdf'
+    )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    generated_robot_world = materialize_mecanum_wheel_world(
+        robot_template_path,
+        lidar_noise,
+        target_path=target.parent / '.robot-world.sdf',
+        sensor_render_engine=sensor_render_engine,
+        robot_model=robot_model,
+    )
+    try:
+        root = ElementTree.parse(generated_robot_world).getroot()
+        if robot_model == 'cad_frame':
+            generated_robot_world.with_suffix('.model.json').replace(target.with_suffix('.model.json'))
+    finally:
+        generated_robot_world.unlink(missing_ok=True)
+    world = root.find('world')
+    if world is None:
+        raise ValueError('robot template must contain a world')
+    world.set('name', 'cleany_study_cafe')
+    physics = world.find('physics')
+    if physics is None:
+        raise ValueError('robot template must contain world physics')
+    step_element = physics.find('max_step_size')
+    factor_element = physics.find('real_time_factor')
+    if step_element is None or factor_element is None:
+        raise ValueError('world physics is missing timing parameters')
+    step_element.text = str(max_step_size)
+    factor_element.text = str(real_time_factor)
+
+    scene = world.find('scene')
+    if scene is None:
+        scene = ElementTree.SubElement(world, 'scene')
+    ambient = scene.find('ambient')
+    if ambient is None:
+        ambient = ElementTree.SubElement(scene, 'ambient')
+    ambient.text = ' '.join(map(str, layout.scene.ambient_rgba))
+    background = scene.find('background')
+    if background is None:
+        background = ElementTree.SubElement(scene, 'background')
+    background.text = ' '.join(map(str, layout.scene.background_rgba))
+
+    robot = world.find("model[@name='cleany_mecanum']")
+    if robot is None:
+        raise ValueError('robot template is missing cleany_mecanum')
+    pose = robot.find('pose')
+    if pose is None:
+        raise ValueError('cleany_mecanum is missing its world pose')
+    spawn_pose = robot_spawn_pose or layout.robot_spawn_pose
+    if len(spawn_pose) != 6 or not all(isfinite(value) for value in spawn_pose):
+        raise ValueError('robot spawn pose must contain six finite values')
+    pose.text = ' '.join(map(str, spawn_pose))
+    if lidar_translation is not None:
+        if len(lidar_translation) != 3 or not all(
+            isfinite(value) for value in lidar_translation
+        ):
+            raise ValueError(
+                'LiDAR translation must contain three finite values'
+            )
+        lidar_mount = robot.find("frame[@name='lidar_mount']")
+        lidar_pose = (
+            lidar_mount.find('pose') if lidar_mount is not None else None
+        )
+        if lidar_mount is None or lidar_pose is None:
+            raise ValueError('robot template is missing the lidar_mount pose')
+        if lidar_mount.get('attached_to') != 'base_link':
+            raise ValueError('lidar_mount must be fixed to base_link')
+        lidar_frame = robot.find("frame[@name='lidar_link']")
+        if (
+            lidar_frame is None
+            or lidar_frame.get('attached_to') != 'lidar_mount'
+        ):
+            raise ValueError('lidar_link must be fixed to lidar_mount')
+        lidar_pose.text = ' '.join(
+            str(value) for value in (*lidar_translation, 0.0, 0.0, 0.0)
+        )
+
+    room_width, room_depth = layout.room.inside_size_m
+    room_half_width = room_width / 2.0
+    room_half_depth = room_depth / 2.0
+    wall_thickness = layout.room.wall_thickness_m
+    wall_height = layout.room.wall_height_m
+    outer_width = room_width + wall_thickness
+    outer_depth = room_depth + wall_thickness
+
+    ground = world.find("model[@name='ground_plane']")
+    if ground is not None:
+        ElementTree.SubElement(ground, 'pose').text = '0 0 0 0 0 0'
+        for ground_size in ground.findall('link/*/geometry/plane/size'):
+            ground_size.text = f'{outer_width} {outer_depth}'
+
+    wall_color = ' '.join(map(str, layout.room.wall_rgba))
+    wall_center_z = wall_height / 2.0
+    _add_box_model(
+        world, 'wall_north',
+        (0, room_half_depth + wall_thickness / 2.0, wall_center_z, 0, 0, 0),
+        (outer_width, wall_thickness, wall_height),
+        wall_color,
+        roughness=layout.room.wall_roughness,
+    )
+    _add_box_model(
+        world, 'wall_south',
+        (0, -room_half_depth - wall_thickness / 2.0, wall_center_z, 0, 0, 0),
+        (outer_width, wall_thickness, wall_height),
+        wall_color,
+        roughness=layout.room.wall_roughness,
+    )
+    _add_box_model(
+        world, 'wall_east',
+        (room_half_width + wall_thickness / 2.0, 0, wall_center_z, 0, 0, 0),
+        (wall_thickness, room_depth, wall_height),
+        wall_color,
+        roughness=layout.room.wall_roughness,
+    )
+    _add_box_model(
+        world, 'wall_west',
+        (-room_half_width - wall_thickness / 2.0, 0, wall_center_z, 0, 0, 0),
+        (wall_thickness, room_depth, wall_height),
+        wall_color,
+        roughness=layout.room.wall_roughness,
+    )
+
+    partition_index = 1
+    for pair_center in layout.desks.row_pair_centers_y_m:
+        for desk_x in layout.desks.x_positions_m:
+            # Keep the 72 cm divider height while matching the measured
+            # 26 cm floor clearance: z=0.26..0.98 m.
+            _add_rounded_partition(
+                world,
+                f'desk_partition_{partition_index:02d}',
+                (
+                    desk_x,
+                    pair_center,
+                    layout.desks.partition_center_z_m,
+                    0.0,
+                    0.0,
+                    0.0,
+                ),
+            )
+            partition_index += 1
+
+    desk_index = 1
+    for pair_center in layout.desks.row_pair_centers_y_m:
+        for row in layout.desks.rows:
+            desk_y = pair_center + row.desk_y_offset_m
+            chair_offset = row.chair_y_offset_from_desk_m
+            front_sign = 1.0 if chair_offset > 0 else -1.0
+            for desk_x in layout.desks.x_positions_m:
+                desk_name = f'demo_desk_{desk_index:02d}'
+                monitor_name = f'desk_monitor_{desk_index:02d}'
+                chair_name = f'office_chair_{desk_index:02d}'
+                _add_demo_desk(
+                    world, desk_name,
+                    (desk_x, desk_y, 0.0, 0.0, 0.0, 0.0),
+                    front_sign=front_sign,
+                )
+                _add_desk_monitor(
+                    world,
+                    monitor_name,
+                    (
+                        desk_x,
+                        desk_y
+                        - front_sign
+                        * layout.desks.monitor_y_offset_from_desk_center_m,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                    ),
+                    front_sign=front_sign,
+                )
+                chair_xy = (desk_x, desk_y + chair_offset)
+                chair_pose = _chair_pose_toward(chair_xy, (desk_x, desk_y))
+                if chair_config is None:
+                    _add_office_chair(world, chair_name, chair_pose)
+                else:
+                    add_roly_chair(world, chair_name, chair_pose, chair_config, target.parent / 'roly_meshes')
+                desk_index += 1
+
+    write_world(ElementTree.ElementTree(root), target)
+    return target

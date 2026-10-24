@@ -1,0 +1,98 @@
+{
+  "sim_s": 23.772000000000002,
+  "navigation_sim_s": 12.446000000000002,
+  "truth": [
+    -1.8100589456214047,
+    -2.7809306507654585,
+    0.3576612405248439
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 23.755000000000003,
+      "stamp_s": 23.755,
+      "sim_s": 23.755,
+      "target": 1.841234356372109,
+      "pan": 1.2176688432902434,
+      "reason": "TURNING_PAN",
+      "requested": [
+        -0.008245694451034069,
+        0.029743177816271782,
+        -0.049355726689100266
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 23.695
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 23.755000000000003,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 23.755,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        -0.006987919766811908,
+        0.02795167906724763,
+        -0.04395839652010007
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 8600,
+      "source_age_s": 0.22499999999999787,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 2.366514999721403
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 23.764000000000003,
+      "sim_s": 23.764000000000003,
+      "requested": [
+        -0.010620144195854664,
+        0.028775252401828766,
+        -0.0568227656185627
+      ],
+      "output": [
+        -0.010620144195854664,
+        0.028775252401828766,
+        -0.0568227656185627
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 23.772000000000002,
+      "stamp_s": 23.772,
+      "sim_s": 23.772,
+      "target": 1.9243598745040422,
+      "pan": 1.2336688432902443,
+      "reason": "TURNING_PAN",
+      "requested": [
+        -0.010620144195854664,
+        0.028775252401828766,
+        -0.0568227656185627
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 23.76
+    }
+  ]
+}

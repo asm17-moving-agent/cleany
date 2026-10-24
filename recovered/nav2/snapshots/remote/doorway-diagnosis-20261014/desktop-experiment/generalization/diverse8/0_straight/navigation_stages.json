@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      -1.865,
+      -3.705,
+      1.5708
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/generalization/diverse8/0_straight/behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 11.262,
+    "sim_end": 16.012,
+    "truth": [
+      -1.798609319386012,
+      -3.9595254363774632,
+      1.6167620090514216
+    ]
+  }
+]

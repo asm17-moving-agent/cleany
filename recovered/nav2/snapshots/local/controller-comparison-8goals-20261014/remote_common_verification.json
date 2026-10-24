@@ -1,0 +1,48 @@
+{
+  "remote_host": "142spp-endeavour",
+  "verified_file_count": 204,
+  "hash_failures": [],
+  "remote_goal_asset_checks": [
+    {
+      "id": "straight",
+      "URI_count": 399,
+      "missing": []
+    },
+    {
+      "id": "turn_arrival",
+      "URI_count": 399,
+      "missing": []
+    },
+    {
+      "id": "chair_gap",
+      "URI_count": 393,
+      "missing": []
+    },
+    {
+      "id": "far_heading",
+      "URI_count": 399,
+      "missing": []
+    },
+    {
+      "id": "distant",
+      "URI_count": 393,
+      "missing": []
+    },
+    {
+      "id": "lateral",
+      "URI_count": 399,
+      "missing": []
+    },
+    {
+      "id": "narrow_seat",
+      "URI_count": 393,
+      "missing": []
+    },
+    {
+      "id": "other_room",
+      "URI_count": 397,
+      "missing": []
+    }
+  ],
+  "lock_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac"
+}

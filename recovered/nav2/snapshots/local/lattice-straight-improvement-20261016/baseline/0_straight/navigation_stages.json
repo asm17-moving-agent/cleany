@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      -1.865,
+      -3.705,
+      1.5708
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/baseline/0_straight/behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 8.268,
+    "sim_end": 12.703000000000001,
+    "truth": [
+      -1.8287562757330482,
+      -3.9715962224606844,
+      1.5848697539296683
+    ]
+  }
+]

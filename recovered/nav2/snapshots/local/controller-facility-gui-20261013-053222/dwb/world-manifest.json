@@ -1,0 +1,7 @@
+{
+  "source": "/home/ehdrms/workspace/cleany/cleany-data/fixtures/cad-fortress-command-hold-portable/world.sdf",
+  "removed": "office_chair_29",
+  "environment_models": 327,
+  "robot": "previous optimized controller robot with sensor contract",
+  "map": "regenerated static LiDAR plane map, not SLAM"
+}

@@ -1,0 +1,12 @@
+{
+  "runs": 16,
+  "replicates_per_route": 1,
+  "nav2_succeeded": {
+    "lattice": 8,
+    "theta": 7
+  },
+  "gif_files": 9,
+  "condition_audit": true,
+  "owned_simulation_processes_remaining": 0,
+  "completed_wall": 1792092035.3562236
+}

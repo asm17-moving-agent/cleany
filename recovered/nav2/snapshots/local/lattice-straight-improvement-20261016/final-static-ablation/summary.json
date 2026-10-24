@@ -1,0 +1,90 @@
+[
+  {
+    "route": "0_straight",
+    "variant": "grid_straight_preferred",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1029,
+    "search_ms": 19.624703,
+    "max_cross_track_m": 0.07852365294580924,
+    "length_m": 0.9844632129796194,
+    "pose_count": 23
+  },
+  {
+    "route": "0_straight",
+    "variant": "grid_high_turn_cost",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1029,
+    "search_ms": 20.487873,
+    "max_cross_track_m": 0.07852365294580924,
+    "length_m": 0.9844632129796194,
+    "pose_count": 23
+  },
+  {
+    "route": "1_turn_arrival",
+    "variant": "grid_straight_preferred",
+    "exit": 0,
+    "ok": true,
+    "iterations": 6202,
+    "search_ms": 75.711892,
+    "max_cross_track_m": 0.09099573416949742,
+    "length_m": 2.0051739063080487,
+    "pose_count": 84
+  },
+  {
+    "route": "1_turn_arrival",
+    "variant": "grid_high_turn_cost",
+    "exit": 0,
+    "ok": true,
+    "iterations": 6202,
+    "search_ms": 85.654907,
+    "max_cross_track_m": 0.09099573416949742,
+    "length_m": 2.0051739063080487,
+    "pose_count": 84
+  },
+  {
+    "route": "3_far_heading",
+    "variant": "grid_straight_preferred",
+    "exit": 0,
+    "ok": true,
+    "iterations": 23015,
+    "search_ms": 275.760832,
+    "max_cross_track_m": 0.08010846543194138,
+    "length_m": 4.482174056711347,
+    "pose_count": 140
+  },
+  {
+    "route": "3_far_heading",
+    "variant": "grid_high_turn_cost",
+    "exit": 0,
+    "ok": true,
+    "iterations": 23015,
+    "search_ms": 265.455561,
+    "max_cross_track_m": 0.08010846543194138,
+    "length_m": 4.482174056711347,
+    "pose_count": 140
+  },
+  {
+    "route": "5_lateral",
+    "variant": "grid_straight_preferred",
+    "exit": 0,
+    "ok": true,
+    "iterations": 320,
+    "search_ms": 5.820743,
+    "max_cross_track_m": 0.03067860001104157,
+    "length_m": 0.6707106881130227,
+    "pose_count": 18
+  },
+  {
+    "route": "5_lateral",
+    "variant": "grid_high_turn_cost",
+    "exit": 0,
+    "ok": true,
+    "iterations": 320,
+    "search_ms": 5.908641,
+    "max_cross_track_m": 0.03067860001104157,
+    "length_m": 0.6707106881130227,
+    "pose_count": 18
+  }
+]

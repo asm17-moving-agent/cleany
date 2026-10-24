@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "local_costmap_full_footprint": true,
+    "local_costmap_zero_padding": true,
+    "global_costmap_full_footprint": true,
+    "global_costmap_zero_padding": true,
+    "final_goal_30cm_10deg": true,
+    "mecanum_wheel_configuration": true,
+    "pathalign_nonzero_offset": true,
+    "native_footprint_critic": true,
+    "stock_smac_lattice": true,
+    "lattice_5cm_0p5m": true,
+    "amcl_motion_thresholds": true,
+    "scene_geometry_preserved": true,
+    "actual_scene_loaded": true,
+    "emitted_command_wheels_le_5": true,
+    "bounded_failure": true,
+    "output_validation_enabled": true
+  },
+  "passed": true,
+  "failed": [],
+  "measured_joint_limit_note": "Check metrics.json measured_joint_max_rad_s separately; command projection does not clamp physics joint impulses."
+}

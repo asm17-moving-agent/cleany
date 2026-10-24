@@ -1,0 +1,732 @@
+{
+  "guard_3d": true,
+  "world": "cleany_study_cafe",
+  "fixtures": {
+    "tall": {
+      "size": [
+        0.4,
+        0.4,
+        1.4
+      ],
+      "z": 0.7
+    },
+    "elevated": {
+      "size": [
+        0.4,
+        0.4,
+        0.5
+      ],
+      "z": 0.85
+    },
+    "low": {
+      "size": [
+        0.4,
+        0.4,
+        0.15
+      ],
+      "z": 0.075
+    }
+  },
+  "evaluation": {
+    "fixtures": {
+      "tall": {
+        "size": [
+          0.4,
+          0.4,
+          1.4
+        ],
+        "z": 0.7
+      },
+      "elevated": {
+        "size": [
+          0.4,
+          0.4,
+          0.5
+        ],
+        "z": 0.85
+      },
+      "low": {
+        "size": [
+          0.4,
+          0.4,
+          0.15
+        ],
+        "z": 0.075
+      }
+    },
+    "sensor_cases": [
+      {
+        "fixture": "tall",
+        "center": [
+          1.4,
+          0.0
+        ]
+      },
+      {
+        "fixture": "elevated",
+        "center": [
+          1.4,
+          0.0
+        ]
+      },
+      {
+        "fixture": "low",
+        "center": [
+          1.0,
+          0.0
+        ]
+      }
+    ],
+    "sensor_durations_s": {
+      "before": 2.0,
+      "present": 3.0,
+      "removed": 4.0
+    },
+    "monitor": {
+      "raw_vx": 0.15,
+      "fixture_initial_x": 1.3,
+      "fixture_final_x": 1.0,
+      "fixture_speed_mps": 0.08,
+      "fixture_update_s": 0.2,
+      "approach_timeout_s": 14.0,
+      "hold_s": 3.0,
+      "clear_s": 2.0
+    },
+    "avoid": {
+      "goal": [
+        4.0,
+        0.0,
+        0.0
+      ],
+      "fixture_x": 3.15,
+      "fixture_initial_y": 1.0,
+      "fixture_final_y": 0.45,
+      "fixture_speed_mps": 0.2,
+      "fixture_start_s": 2.0,
+      "fixture_update_s": 0.2,
+      "timeout_wall_s": 360.0,
+      "max_recoveries": 3
+    },
+    "thresholds": {
+      "min_clearance_m": 0.03,
+      "stopped_speed_mps": 0.02,
+      "min_lateral_avoidance_m": 0.25,
+      "max_final_goal_error_m": 0.3,
+      "slowdown_ratio_tolerance": 0.02
+    }
+  },
+  "obstacle_memory": true,
+  "robot_half_size": [
+    0.2585,
+    0.34740000000024485
+  ],
+  "robot_center": [
+    -2.4999999999997247e-05,
+    2.6999999999999247e-05
+  ],
+  "expected_slowdown_ratio": 0.35,
+  "spawn_pose": [
+    -1.865,
+    -4.705,
+    0.38,
+    0.0,
+    0.0,
+    1.5708
+  ],
+  "robot_model": "cad_frame",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "initial_pose": [
+    -1.865,
+    -4.705,
+    1.5708
+  ],
+  "map_source": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/common/goals/1_turn_arrival/map.yaml",
+  "map_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245",
+  "lidar_height_m": 0.3,
+  "lidar_noise": "canonical fixture SDF; not regenerated from prior-world profile",
+  "wheel_stress_level": 0,
+  "depth_recording": "Every eighth point of adapted cloud, at most ~6.7 Hz; Nav2 receives the entire adapted cloud",
+  "candidate": "teb",
+  "requested_rtf": 1.0,
+  "comparison_limits": {
+    "wheel_rad_s": 5.0,
+    "xy_tolerance": 0.3,
+    "yaw_tolerance": 0.17453292519943295
+  },
+  "rpp_limit_note": null,
+  "relaxed": true,
+  "contact_topics": [
+    "/benchmark/contacts/c0",
+    "/benchmark/contacts/c1",
+    "/benchmark/contacts/c2",
+    "/benchmark/contacts/c3",
+    "/benchmark/contacts/c4",
+    "/benchmark/contacts/c5",
+    "/benchmark/contacts/c6",
+    "/benchmark/contacts/c7",
+    "/benchmark/contacts/c8",
+    "/benchmark/contacts/c9",
+    "/benchmark/contacts/c10",
+    "/benchmark/contacts/c11",
+    "/benchmark/contacts/c12",
+    "/benchmark/contacts/c13",
+    "/benchmark/contacts/c14",
+    "/benchmark/contacts/c15",
+    "/benchmark/contacts/c16",
+    "/benchmark/contacts/c17",
+    "/benchmark/contacts/c18",
+    "/benchmark/contacts/c19",
+    "/benchmark/contacts/c20",
+    "/benchmark/contacts/c21",
+    "/benchmark/contacts/c22",
+    "/benchmark/contacts/c23",
+    "/benchmark/contacts/c24",
+    "/benchmark/contacts/c25",
+    "/benchmark/contacts/c26",
+    "/benchmark/contacts/c27",
+    "/benchmark/contacts/c28",
+    "/benchmark/contacts/c29",
+    "/benchmark/contacts/c30"
+  ],
+  "controller_frequency_hz": 10.0,
+  "soft_timeout_sim_s": 240,
+  "hard_timeout_sim_s": 1200,
+  "hard_timeout_wall_s": 1800,
+  "bypass": "Nav2 raw -> uniform wheel envelope -> /cmd_vel -> Gazebo command guard; pan/2D/3D guard outputs routed to /ignored/cmd_vel; those nodes still record counterfactual decisions",
+  "internal_feasibility_retained": true,
+  "contact_sensor_model": "cleany_mecanum",
+  "actuator_smoothing": {
+    "wheel_cap_rad_s": 4.99,
+    "wheel_acceleration_rad_s2": 8.0,
+    "output_frequency_hz": 20.0,
+    "gazebo_body_acceleration_limits": "removed; coupled wheel limiter owns slew"
+  },
+  "lidar_tf_nominal_height_m": 0.26,
+  "lidar_height_note": "SDF sensor relative_to frame chain resolved; canonical TF translation is recorded separately (4cm below actual SDF sensor mount). Both shared inputs retained.",
+  "initial_pose_covariance": [
+    0.0625,
+    0.0625,
+    0.06853891945200942
+  ],
+  "map_frame": "world aligned",
+  "common_goal": {
+    "index": 1,
+    "id": "turn_arrival",
+    "pose_map_world": [
+      -1.865,
+      -2.8,
+      0
+    ],
+    "seat": null,
+    "remove_chair": null,
+    "world": "goals/1_turn_arrival/world.canonical.sdf",
+    "map": "goals/1_turn_arrival/map.yaml",
+    "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+    "map_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245",
+    "model_count": 330,
+    "chair_count": 82,
+    "start_occupied_cells": 0,
+    "proposed_goal_occupied_cells": 0,
+    "coordinate_change": null,
+    "goal_name": "turn_arrival",
+    "name": "turn_arrival",
+    "pose": [
+      -1.865,
+      -2.8,
+      0
+    ],
+    "map_yaml": "goals/1_turn_arrival/map.yaml",
+    "world_template": "goals/1_turn_arrival/world.canonical.sdf",
+    "removed_chair": null,
+    "preflight": {
+      "index": 1,
+      "id": "turn_arrival",
+      "action_status": 4,
+      "pose_count": 224,
+      "wall_s": 0.010505450001801364,
+      "path_length_m": 1.9050000000000002,
+      "total_path_yaw_change_rad": 1.5707999999999998,
+      "start": [
+        [
+          -1.865,
+          -4.705,
+          1.5707999999999998
+        ]
+      ],
+      "end": [
+        [
+          -1.865,
+          -2.8,
+          0.0
+        ]
+      ],
+      "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+      "live": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0,
+        "planner": {
+          "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+          "GridBased.holonomic_direct_path": true,
+          "GridBased.require_exact_goal": true,
+          "GridBased.lattice_collision_padding": 0.05
+        }
+      }
+    },
+    "planner_path": "goals/1_turn_arrival/planner_path.json",
+    "actual_route_description": {
+      "body_heading_total_change_rad": 1.5707999999999998,
+      "path_length_m": 1.9050000000000002,
+      "narrow_or_multiple_turn_label": "Measured route, see saved poses"
+    }
+  },
+  "canonical_world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+  "locked_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac",
+  "expected_scene_models": [
+    "cleany_mecanum",
+    "ground_plane",
+    "desk_partition_01",
+    "desk_partition_02",
+    "desk_partition_03",
+    "desk_partition_04",
+    "desk_partition_05",
+    "desk_partition_06",
+    "desk_partition_07",
+    "desk_partition_08",
+    "desk_partition_09",
+    "desk_partition_10",
+    "desk_partition_11",
+    "desk_partition_12",
+    "desk_partition_13",
+    "desk_partition_14",
+    "desk_partition_15",
+    "desk_partition_16",
+    "desk_partition_17",
+    "desk_partition_18",
+    "desk_partition_19",
+    "desk_partition_20",
+    "desk_partition_21",
+    "desk_partition_22",
+    "desk_partition_23",
+    "desk_partition_24",
+    "demo_desk_01",
+    "desk_monitor_01",
+    "office_chair_01",
+    "demo_desk_02",
+    "desk_monitor_02",
+    "office_chair_02",
+    "demo_desk_03",
+    "desk_monitor_03",
+    "office_chair_03",
+    "demo_desk_04",
+    "desk_monitor_04",
+    "office_chair_04",
+    "demo_desk_05",
+    "desk_monitor_05",
+    "office_chair_05",
+    "demo_desk_06",
+    "desk_monitor_06",
+    "office_chair_06",
+    "demo_desk_07",
+    "desk_monitor_07",
+    "office_chair_07",
+    "demo_desk_08",
+    "desk_monitor_08",
+    "office_chair_08",
+    "demo_desk_09",
+    "desk_monitor_09",
+    "office_chair_09",
+    "demo_desk_10",
+    "desk_monitor_10",
+    "office_chair_10",
+    "demo_desk_11",
+    "desk_monitor_11",
+    "office_chair_11",
+    "demo_desk_12",
+    "desk_monitor_12",
+    "office_chair_12",
+    "demo_desk_13",
+    "desk_monitor_13",
+    "demo_desk_14",
+    "desk_monitor_14",
+    "office_chair_14",
+    "demo_desk_15",
+    "desk_monitor_15",
+    "office_chair_15",
+    "demo_desk_16",
+    "desk_monitor_16",
+    "office_chair_16",
+    "demo_desk_17",
+    "desk_monitor_17",
+    "office_chair_17",
+    "demo_desk_18",
+    "desk_monitor_18",
+    "office_chair_18",
+    "demo_desk_19",
+    "desk_monitor_19",
+    "office_chair_19",
+    "demo_desk_20",
+    "desk_monitor_20",
+    "office_chair_20",
+    "demo_desk_21",
+    "desk_monitor_21",
+    "office_chair_21",
+    "demo_desk_22",
+    "desk_monitor_22",
+    "office_chair_22",
+    "demo_desk_23",
+    "desk_monitor_23",
+    "office_chair_23",
+    "demo_desk_24",
+    "desk_monitor_24",
+    "office_chair_24",
+    "demo_desk_25",
+    "desk_monitor_25",
+    "office_chair_25",
+    "demo_desk_26",
+    "desk_monitor_26",
+    "office_chair_26",
+    "demo_desk_27",
+    "desk_monitor_27",
+    "office_chair_27",
+    "demo_desk_28",
+    "desk_monitor_28",
+    "office_chair_28",
+    "demo_desk_29",
+    "desk_monitor_29",
+    "office_chair_29",
+    "demo_desk_30",
+    "desk_monitor_30",
+    "office_chair_30",
+    "demo_desk_31",
+    "desk_monitor_31",
+    "office_chair_31",
+    "demo_desk_32",
+    "desk_monitor_32",
+    "office_chair_32",
+    "demo_desk_33",
+    "desk_monitor_33",
+    "office_chair_33",
+    "demo_desk_34",
+    "desk_monitor_34",
+    "office_chair_34",
+    "demo_desk_35",
+    "desk_monitor_35",
+    "office_chair_35",
+    "demo_desk_36",
+    "desk_monitor_36",
+    "office_chair_36",
+    "demo_desk_37",
+    "desk_monitor_37",
+    "office_chair_37",
+    "demo_desk_38",
+    "desk_monitor_38",
+    "office_chair_38",
+    "demo_desk_39",
+    "desk_monitor_39",
+    "office_chair_39",
+    "demo_desk_40",
+    "desk_monitor_40",
+    "office_chair_40",
+    "demo_desk_41",
+    "desk_monitor_41",
+    "office_chair_41",
+    "demo_desk_42",
+    "desk_monitor_42",
+    "office_chair_42",
+    "demo_desk_43",
+    "desk_monitor_43",
+    "demo_desk_44",
+    "desk_monitor_44",
+    "office_chair_44",
+    "demo_desk_45",
+    "desk_monitor_45",
+    "office_chair_45",
+    "demo_desk_46",
+    "desk_monitor_46",
+    "office_chair_46",
+    "demo_desk_47",
+    "desk_monitor_47",
+    "office_chair_47",
+    "demo_desk_48",
+    "desk_monitor_48",
+    "office_chair_48",
+    "facility_wall_outer_north_00",
+    "facility_wall_outer_west_00",
+    "facility_wall_outer_east_00",
+    "facility_wall_outer_south_00",
+    "facility_wall_storage_top_00",
+    "facility_wall_storage_top_01",
+    "facility_wall_storage_top_stub_00",
+    "facility_wall_a3_diagonal_00",
+    "facility_wall_a3_front_upper_00",
+    "facility_wall_a4_stub_00",
+    "facility_wall_a4_m1_00",
+    "facility_wall_m1_front_stub_00",
+    "facility_wall_m1_m2_00",
+    "facility_wall_m2_m3_00",
+    "facility_wall_m1_south_00",
+    "facility_wall_m2_south_00",
+    "facility_wall_m3_south_00",
+    "facility_wall_a3_south_00",
+    "facility_wall_a2_front_upper_00",
+    "facility_wall_a2_south_00",
+    "facility_wall_a2_door_stub_00",
+    "facility_wall_a1_south_00",
+    "facility_wall_a1_south_01",
+    "facility_wall_dhub_west_00",
+    "facility_wall_dhub_south_stub_00",
+    "facility_wall_dhub_south_00",
+    "facility_wall_dhub_corner_stub_00",
+    "facility_wall_dhub_east_00",
+    "facility_wall_relax_divider_00",
+    "facility_wall_relax_entry_00",
+    "facility_wall_relax_entry_01",
+    "facility_wall_relax_entry_02",
+    "facility_wall_relax_entry_03",
+    "facility_wall_stairs_left_north_00",
+    "facility_wall_stairs_left_north_01",
+    "facility_wall_stairs_left_east_00",
+    "facility_wall_stairs_left_west_00",
+    "facility_wall_stairs_left_mid_00",
+    "facility_wall_stairs_left_inner_00",
+    "facility_wall_storage_bottom_stub_00",
+    "facility_wall_storage_bottom_entry_00",
+    "facility_wall_lift_left_00",
+    "facility_wall_lift_left_01",
+    "facility_wall_lift_left_02",
+    "facility_wall_lift_left_mid_00",
+    "facility_wall_lift_left_entry_00",
+    "facility_wall_lift_left_bottom_00",
+    "facility_wall_lift_right_top_00",
+    "facility_wall_lift_right_top_01",
+    "facility_wall_lift_right_top_02",
+    "facility_wall_lift_right_top_03",
+    "facility_wall_lift_right_entry_00",
+    "facility_wall_lift_right_bottom_00",
+    "facility_wall_lift_right_divider_00",
+    "facility_wall_lift_emergency_top_00",
+    "facility_wall_lift_emergency_bottom_00",
+    "facility_wall_lift_bottom_obstacle_00",
+    "facility_wall_lift_bottom_obstacle_01",
+    "facility_wall_lift_bottom_obstacle_02",
+    "facility_wall_restroom_top_00",
+    "facility_wall_restroom_top_01",
+    "facility_wall_restroom_left_00",
+    "facility_wall_restroom_bottom_00",
+    "facility_wall_restroom_bottom_01",
+    "facility_wall_restroom_bottom_02",
+    "facility_wall_restroom_divider_00",
+    "facility_wall_restroom_entry_top_00",
+    "facility_wall_storage_right_stub_00",
+    "facility_wall_storage_right_west_00",
+    "facility_wall_stairs_right_west_00",
+    "facility_wall_stairs_right_east_00",
+    "facility_wall_dhub_rounded_corner_00",
+    "facility_wall_dhub_rounded_corner_01",
+    "facility_wall_dhub_rounded_corner_02",
+    "facility_wall_dhub_rounded_corner_03",
+    "facility_wall_dhub_rounded_corner_04",
+    "facility_wall_dhub_rounded_corner_05",
+    "facility_wall_dhub_rounded_corner_06",
+    "facility_wall_dhub_rounded_corner_07",
+    "facility_wall_dhub_rounded_corner_08",
+    "facility_wall_dhub_rounded_corner_09",
+    "facility_wall_dhub_rounded_corner_10",
+    "facility_wall_dhub_rounded_corner_11",
+    "facility_door_a4_entry",
+    "facility_door_m1_entry",
+    "facility_door_m2_entry",
+    "facility_door_m3_entry",
+    "facility_door_a3_entry",
+    "facility_door_a2_entry",
+    "facility_door_a1_entry",
+    "facility_ground_table",
+    "facility_ceiling",
+    "facility_desk_A41",
+    "facility_chair_A41",
+    "facility_desk_A42",
+    "facility_chair_A42",
+    "facility_desk_A43",
+    "facility_chair_A43",
+    "facility_desk_A44",
+    "facility_chair_A44",
+    "facility_desk_M11",
+    "facility_chair_M11",
+    "facility_desk_M12",
+    "facility_chair_M12",
+    "facility_desk_M13",
+    "facility_chair_M13",
+    "facility_desk_M14",
+    "facility_chair_M14",
+    "facility_desk_M15",
+    "facility_chair_M15",
+    "facility_desk_M16",
+    "facility_chair_M16",
+    "facility_desk_M21",
+    "facility_chair_M21",
+    "facility_desk_M22",
+    "facility_chair_M22",
+    "facility_desk_M23",
+    "facility_chair_M23",
+    "facility_desk_M24",
+    "facility_chair_M24",
+    "facility_desk_M25",
+    "facility_chair_M25",
+    "facility_desk_M26",
+    "facility_chair_M26",
+    "facility_desk_M31",
+    "facility_chair_M31",
+    "facility_desk_M32",
+    "facility_chair_M32",
+    "facility_desk_M33",
+    "facility_chair_M33",
+    "facility_desk_M34",
+    "facility_chair_M34",
+    "facility_desk_M35",
+    "facility_chair_M35",
+    "facility_desk_M36",
+    "facility_chair_M36",
+    "facility_desk_A31",
+    "facility_chair_A31",
+    "facility_desk_A32",
+    "facility_chair_A32",
+    "facility_desk_A33",
+    "facility_chair_A33",
+    "facility_desk_A34",
+    "facility_chair_A34",
+    "facility_desk_A21",
+    "facility_chair_A21",
+    "facility_desk_A22",
+    "facility_chair_A22",
+    "facility_desk_A23",
+    "facility_chair_A23",
+    "facility_desk_A24",
+    "facility_chair_A24",
+    "facility_desk_A11",
+    "facility_chair_A11",
+    "facility_desk_A12",
+    "facility_chair_A12",
+    "facility_desk_A13",
+    "facility_chair_A13",
+    "facility_desk_A14",
+    "facility_chair_A14",
+    "office_chair_13",
+    "office_chair_43"
+  ],
+  "destination_removed_chair": null
+}

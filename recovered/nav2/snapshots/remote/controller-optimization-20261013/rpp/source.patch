@@ -1,0 +1,247 @@
+diff --git a/ros2_ws/src/cleany_navigation/CMakeLists.txt b/ros2_ws/src/cleany_navigation/CMakeLists.txt
+index 918b202..7c60a48 100644
+--- a/ros2_ws/src/cleany_navigation/CMakeLists.txt
++++ b/ros2_ws/src/cleany_navigation/CMakeLists.txt
+@@ -23,6 +23,7 @@ find_package(dwb_plugins REQUIRED)
+ find_package(dwb_critics REQUIRED)
+ find_package(nav2_util REQUIRED)
+ find_package(nav2_core REQUIRED)
++find_package(nav2_regulated_pure_pursuit_controller REQUIRED)
+ find_package(nav2_smac_planner REQUIRED)
+ find_package(nlohmann_json REQUIRED)
+ find_package(nav2_costmap_2d REQUIRED)
+@@ -31,6 +32,7 @@ find_package(nav_2d_msgs REQUIRED)
+ find_package(nav_2d_utils REQUIRED)
+ find_package(pluginlib REQUIRED)
+ find_package(rclcpp REQUIRED)
++find_package(rcl_interfaces REQUIRED)
+ find_package(nav2_behavior_tree REQUIRED)
+ find_package(nav2_msgs REQUIRED)
+ find_package(rclcpp_action REQUIRED)
+@@ -57,6 +59,12 @@ target_link_libraries(straight_first_planner ${CLEANY_NAV2_LATTICE_LIBRARY})
+ ament_target_dependencies(straight_first_planner nav2_core nav2_costmap_2d nav_msgs geometry_msgs pluginlib)
+ pluginlib_export_plugin_description_file(nav2_core planner_plugins.xml)
+ pluginlib_export_plugin_description_file(nav2_core controller_plugins.xml)
++add_library(curvature_limited_rpp SHARED src/curvature_limited_rpp.cpp)
++target_compile_features(curvature_limited_rpp PUBLIC cxx_std_17)
++target_include_directories(curvature_limited_rpp PRIVATE include)
++ament_target_dependencies(curvature_limited_rpp nav2_regulated_pure_pursuit_controller nav2_util nav2_core pluginlib rcl_interfaces)
++pluginlib_export_plugin_description_file(nav2_core rpp_plugins.xml)
++install(TARGETS curvature_limited_rpp LIBRARY DESTINATION lib)
+ install(TARGETS straight_first_planner LIBRARY DESTINATION lib)
+ add_library(cleany_yield_wait_bt_node SHARED src/yield_wait.cpp)
+ target_include_directories(cleany_yield_wait_bt_node PRIVATE include)
+@@ -77,6 +85,8 @@ install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
+ if(BUILD_TESTING)
+   find_package(ament_cmake_gtest REQUIRED)
+   find_package(ament_cmake_pytest REQUIRED)
++  ament_add_gtest(test_rpp_yaw_limit test/test_rpp_yaw_limit.cpp)
++  target_include_directories(test_rpp_yaw_limit PRIVATE include)
+   ament_add_pytest_test(navigation_runtime_core test)
+   ament_add_gtest(test_axis_generator test/test_axis_generator.cpp)
+   ament_add_gtest(test_observed_footprint test/test_observed_footprint.cpp)
+diff --git a/ros2_ws/src/cleany_navigation/README.md b/ros2_ws/src/cleany_navigation/README.md
+index 446b7cf..6f1a0df 100644
+--- a/ros2_ws/src/cleany_navigation/README.md
++++ b/ros2_ws/src/cleany_navigation/README.md
+@@ -698,3 +698,30 @@ pose, velocity, footprint and one sufficient obstacle cell from that cycle.
+ This check supplies a configured delay margin; it does not measure pose age, prove
+ physical stopping dynamics, or certify delays beyond the chosen hold time.
+ Continuous-60 simulation success remains a separate validation requirement.
++
++### Curvature-limited RPP (Humble)
++
++`cleany_navigation::CurvatureLimitedRPP` delegates to native Nav2 RPP and
++proportionally reduces returned `linear.x` and `angular.z` when the yaw exceeds
++`FollowPath.tracking_yaw_limit` (default 0.14 rad/s, finite and positive).
++Unlike independently clipping yaw, this retains the returned turning radius.
++The native footprint and forward collision checks still run before scaling;
++exceptions propagate. This is a command-path invariant, not a continuous
++collision or tracking guarantee under actuator dynamics and downstream guards.
++
++Set this controller as `FollowPath.plugin`, or as `FollowPath.wrapped_plugin`
++when using the benchmark TimedController. The yaw limit is configure-time only;
++attempts to change it while configured are rejected. Cleanup/reconfigure to
++change it. Other native RPP parameters retain their upstream behavior.
++No native linear acceleration limit or shared smoother is added. Preserve the
++platform's final guard, footprint, tolerance and wheel constraints.
++
++Humble's terminal rotation predicate compares the carrot distance with goal
++XY tolerance. A minimum lookahead smaller than that tolerance can therefore
++trigger goal rotation away from the goal; keep the floor above the tolerance
++when using velocity-scaled lookahead. With a fixed-heading holonomic global
++path, this forward-only controller still follows the path tangent and may be
++unable to rotate its padded footprint at a narrow endpoint.
++
++RPP Gazebo tuning and one-pass common-goal evidence are retained under
++`controller-optimization-20261013/rpp/sol61_20261013_0620/` outside this checkout.
+diff --git a/ros2_ws/src/cleany_navigation/include/cleany_navigation/rpp_yaw_limit.hpp b/ros2_ws/src/cleany_navigation/include/cleany_navigation/rpp_yaw_limit.hpp
+new file mode 100644
+index 0000000..80f60b1
+--- /dev/null
++++ b/ros2_ws/src/cleany_navigation/include/cleany_navigation/rpp_yaw_limit.hpp
+@@ -0,0 +1,19 @@
++#ifndef CLEANY_NAVIGATION__RPP_YAW_LIMIT_HPP_
++#define CLEANY_NAVIGATION__RPP_YAW_LIMIT_HPP_
++#include <algorithm>
++#include <cmath>
++#include <stdexcept>
++namespace cleany_navigation
++{
++inline double rpp_yaw_scale(double angular, double limit)
++{
++  if (!std::isfinite(limit) || limit <= 0.0) {
++    throw std::invalid_argument("tracking_yaw_limit must be finite and positive");
++  }
++  if (!std::isfinite(angular)) {
++    throw std::invalid_argument("native RPP returned a non-finite angular velocity");
++  }
++  return std::abs(angular) > limit ? limit / std::abs(angular) : 1.0;
++}
++}  // namespace cleany_navigation
++#endif  // CLEANY_NAVIGATION__RPP_YAW_LIMIT_HPP_
+diff --git a/ros2_ws/src/cleany_navigation/package.xml b/ros2_ws/src/cleany_navigation/package.xml
+index 244cef9..1736a29 100644
+--- a/ros2_ws/src/cleany_navigation/package.xml
++++ b/ros2_ws/src/cleany_navigation/package.xml
+@@ -27,6 +27,7 @@
+   <depend>nav_2d_msgs</depend>
+   <depend>pluginlib</depend>
+   <depend>rclcpp</depend>
++  <depend>rcl_interfaces</depend>
+   <depend>rclcpp_action</depend>
+   <depend>nav2_behavior_tree</depend>
+   <depend>nav2_msgs</depend>
+@@ -36,6 +37,7 @@
+   <depend>geometry_msgs</depend>
+   <depend>nav_msgs</depend>
+   <depend>nav2_core</depend>
++  <depend>nav2_regulated_pure_pursuit_controller</depend>
+   <depend>nav2_costmap_2d</depend>
+   <exec_depend>sensor_msgs</exec_depend>
+   <exec_depend>std_msgs</exec_depend>
+diff --git a/ros2_ws/src/cleany_navigation/rpp_plugins.xml b/ros2_ws/src/cleany_navigation/rpp_plugins.xml
+new file mode 100644
+index 0000000..2af9539
+--- /dev/null
++++ b/ros2_ws/src/cleany_navigation/rpp_plugins.xml
+@@ -0,0 +1,5 @@
++<library path="curvature_limited_rpp">
++  <class name="cleany_navigation::CurvatureLimitedRPP" type="cleany_navigation::CurvatureLimitedRPP" base_class_type="nav2_core::Controller">
++    <description>Native RPP with proportional linear/angular scaling to preserve curvature under a yaw limit.</description>
++  </class>
++</library>
+diff --git a/ros2_ws/src/cleany_navigation/src/curvature_limited_rpp.cpp b/ros2_ws/src/cleany_navigation/src/curvature_limited_rpp.cpp
+new file mode 100644
+index 0000000..4e52519
+--- /dev/null
++++ b/ros2_ws/src/cleany_navigation/src/curvature_limited_rpp.cpp
+@@ -0,0 +1,69 @@
++#include <algorithm>
++#include <cmath>
++#include <stdexcept>
++#include "nav2_regulated_pure_pursuit_controller/regulated_pure_pursuit_controller.hpp"
++#include "nav2_util/node_utils.hpp"
++#include "pluginlib/class_list_macros.hpp"
++#include "cleany_navigation/rpp_yaw_limit.hpp"
++
++namespace cleany_navigation
++{
++// Keep RPP's checked circular path when applying the platform yaw bound.
++// The native check covers the original, longer arc; reducing both velocities
++// follows a prefix of that arc. Collision exceptions are never suppressed.
++class CurvatureLimitedRPP final : public
++  nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController
++{
++public:
++  void configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent,
++    std::string name, std::shared_ptr<tf2_ros::Buffer> tf,
++    std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap) override
++  {
++    auto node = parent.lock();
++    if (!node) {throw std::runtime_error("CurvatureLimitedRPP: expired node");}
++    nav2_util::declare_parameter_if_not_declared(node, name + ".tracking_yaw_limit",
++      rclcpp::ParameterValue(0.14));
++    limit_ = node->get_parameter(name + ".tracking_yaw_limit").as_double();
++    if (!std::isfinite(limit_) || limit_ <= 0.) {
++      throw std::invalid_argument("tracking_yaw_limit must be finite and positive");
++    }
++    RegulatedPurePursuitController::configure(parent, name, tf, costmap);
++    limit_handler_ = node->add_on_set_parameters_callback(
++      [this, key = name + ".tracking_yaw_limit"](const std::vector<rclcpp::Parameter> & values) {
++        rcl_interfaces::msg::SetParametersResult result;
++        result.successful = true;
++        for (const auto & value : values) {
++          if (value.get_name() == key &&
++            (value.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE ||
++            value.as_double() != limit_))
++          {
++            result.successful = false;
++            result.reason = "tracking_yaw_limit is configure-time only; cleanup and reconfigure";
++          }
++        }
++        return result;
++      });
++  }
++
++  void cleanup() override
++  {
++    limit_handler_.reset();
++    RegulatedPurePursuitController::cleanup();
++  }
++
++  geometry_msgs::msg::TwistStamped computeVelocityCommands(
++    const geometry_msgs::msg::PoseStamped & pose,
++    const geometry_msgs::msg::Twist & speed, nav2_core::GoalChecker * checker) override
++  {
++    auto command = RegulatedPurePursuitController::computeVelocityCommands(pose, speed, checker);
++    const double scale = rpp_yaw_scale(command.twist.angular.z, limit_);
++    command.twist.linear.x *= scale;
++    command.twist.angular.z *= scale;
++    return command;
++  }
++private:
++  double limit_{0.14};
++  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr limit_handler_;
++};
++}  // namespace cleany_navigation
++PLUGINLIB_EXPORT_CLASS(cleany_navigation::CurvatureLimitedRPP, nav2_core::Controller)
+diff --git a/ros2_ws/src/cleany_navigation/test/test_rpp_yaw_limit.cpp b/ros2_ws/src/cleany_navigation/test/test_rpp_yaw_limit.cpp
+new file mode 100644
+index 0000000..f634720
+--- /dev/null
++++ b/ros2_ws/src/cleany_navigation/test/test_rpp_yaw_limit.cpp
+@@ -0,0 +1,33 @@
++#include <cmath>
++#include <limits>
++#include "gtest/gtest.h"
++#include "cleany_navigation/rpp_yaw_limit.hpp"
++using cleany_navigation::rpp_yaw_scale;
++TEST(RppYawLimit, RejectsInvalidInputs)
++{
++  for (double limit : {0.0, -0.14, std::numeric_limits<double>::infinity(),
++      std::numeric_limits<double>::quiet_NaN()}) {
++    EXPECT_THROW(rpp_yaw_scale(0.3, limit), std::invalid_argument);
++  }
++  EXPECT_THROW(rpp_yaw_scale(std::numeric_limits<double>::infinity(), 0.14), std::invalid_argument);
++}
++TEST(RppYawLimit, PreservesCheckedArcForSignedVelocities)
++{
++  for (double v : {-0.15, 0.0, 0.03, 0.15}) {
++    for (double w : {-0.8, -0.14, -0.01, 0.0, 0.01, 0.14, 0.8}) {
++      const double scale = rpp_yaw_scale(w, 0.14);
++      EXPECT_GT(scale, 0.0); EXPECT_LE(scale, 1.0);
++      EXPECT_LE(std::abs(w * scale), 0.14 + 1e-12);
++      // Same SE(2) pose at scaled time: lowering both components must not
++      // produce the wider turning radius caused by independent yaw clipping.
++      if (std::abs(w) > 1e-12) {
++        const double t = 0.7;
++        EXPECT_NEAR(v / w * std::sin(w * scale * t),
++          (v * scale) / (w * scale) * std::sin(w * scale * t), 1e-12);
++        EXPECT_NEAR(v / w * (1.0 - std::cos(w * scale * t)),
++          (v * scale) / (w * scale) * (1.0 - std::cos(w * scale * t)), 1e-12);
++      } else { EXPECT_DOUBLE_EQ(scale, 1.0); }
++      if (std::abs(w) <= 0.14) { EXPECT_DOUBLE_EQ(scale, 1.0); }
++    }
++  }
++}

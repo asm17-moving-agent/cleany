@@ -1,0 +1,4 @@
+{
+  "reason": "Manually interrupted after severe CPU overbooking with4sims; not navigation failure; will rerun from initial state with2sims",
+  "goal_sent": true
+}

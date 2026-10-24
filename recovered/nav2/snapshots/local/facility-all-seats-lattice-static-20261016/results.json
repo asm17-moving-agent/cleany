@@ -1,0 +1,2477 @@
+[
+  {
+    "seat": "seat-01",
+    "zone": "D-hub",
+    "goal": [
+      -5.525,
+      4.775,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-01/map.yaml",
+    "map_sha256": "602fb21f625e2f760b44ca13539280ac531e464e5cfaee3f505c77c9ab87cdc2",
+    "removed_chair": "office_chair_01",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 271,
+    "path_length_m": 12.680166212055045,
+    "planned_yaw_variation_deg": 179.99999817876719,
+    "planning_s": 0.031567574,
+    "wall_s": 0.03766881699266378,
+    "goal_xy_error_m": 4.032619434982201e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-02",
+    "zone": "D-hub",
+    "goal": [
+      -4.325,
+      4.775,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-02/map.yaml",
+    "map_sha256": "618401c5b48394b8527fe4cfa8f42fe371ae9bfafd13805ac0f569c5ae5015b1",
+    "removed_chair": "office_chair_02",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 247,
+    "path_length_m": 11.480166194173652,
+    "planned_yaw_variation_deg": 179.99999817876719,
+    "planning_s": 0.025252433,
+    "wall_s": 0.029880014990339987,
+    "goal_xy_error_m": 4.156746287614587e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-03",
+    "zone": "D-hub",
+    "goal": [
+      -3.125,
+      4.775,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-03/map.yaml",
+    "map_sha256": "46a097e116824c5c34322ac86b66bc0357699a1c999b81cd4eaaae833086b36b",
+    "removed_chair": "office_chair_03",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 223,
+    "path_length_m": 10.280166176292258,
+    "planned_yaw_variation_deg": 179.99999817876719,
+    "planning_s": 0.024091038000000002,
+    "wall_s": 0.028560312013723888,
+    "goal_xy_error_m": 4.28474138504846e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-04",
+    "zone": "D-hub",
+    "goal": [
+      -0.625,
+      4.775,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-04/map.yaml",
+    "map_sha256": "bcf172b3177aa19479b4f39cccc1900c9b990e75c8bfb47e3d6a7a9d1e09daef",
+    "removed_chair": "office_chair_04",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 18,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 223,
+    "path_length_m": 10.26235161753947,
+    "planned_yaw_variation_deg": 180.00004280236783,
+    "planning_s": 0.042135591,
+    "wall_s": 0.04641616799926851,
+    "goal_xy_error_m": 4.56238722367251e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-05",
+    "zone": "D-hub",
+    "goal": [
+      0.575,
+      4.775,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-05/map.yaml",
+    "map_sha256": "a5690abf924e0b1f5ca36dc1857a6929b5cbd7eefa7083117121321519078b62",
+    "removed_chair": "office_chair_05",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 18,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 247,
+    "path_length_m": 11.462351635420863,
+    "planned_yaw_variation_deg": 180.00004280236783,
+    "planning_s": 0.044949426,
+    "wall_s": 0.04989130300236866,
+    "goal_xy_error_m": 4.7003214612110584e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-06",
+    "zone": "D-hub",
+    "goal": [
+      3.125,
+      4.775,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-06/map.yaml",
+    "map_sha256": "ba51b204f8234202bd51d3ff1f45f17acba5724079d469d3dd62453ed56409e5",
+    "removed_chair": "office_chair_06",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 293,
+    "path_length_m": 12.998857986428632,
+    "planned_yaw_variation_deg": 392.52041895836527,
+    "planning_s": 0.117975879,
+    "wall_s": 0.12940230598906055,
+    "goal_xy_error_m": 5.00203427462247e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-07",
+    "zone": "D-hub",
+    "goal": [
+      4.325,
+      4.775,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-07/map.yaml",
+    "map_sha256": "c59be5c38e0289ea1f837d7f80802b9949d3aba92d1e95a68a96bf5bfa16dd2a",
+    "removed_chair": "office_chair_07",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 317,
+    "path_length_m": 14.198858004310026,
+    "planned_yaw_variation_deg": 392.52041895836527,
+    "planning_s": 0.117059382,
+    "wall_s": 0.12319530399690848,
+    "goal_xy_error_m": 5.147604459423234e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-08",
+    "zone": "D-hub",
+    "goal": [
+      5.075,
+      4.775,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-08/map.yaml",
+    "map_sha256": "2be99c54f1dac51a594d1392320c30c6aad839ec3012c9e82451762a756b3c64",
+    "removed_chair": "office_chair_08",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 332,
+    "path_length_m": 14.948858015485897,
+    "planned_yaw_variation_deg": 392.52041895836527,
+    "planning_s": 0.13491977700000002,
+    "wall_s": 0.14150943400454707,
+    "goal_xy_error_m": 5.239631064729574e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-09",
+    "zone": "D-hub",
+    "goal": [
+      -5.525,
+      1.575,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-09/map.yaml",
+    "map_sha256": "ed9c64f055de400ce28657d3cee457111c9a7d6852cbcb95a421cef57dd4d370",
+    "removed_chair": "office_chair_09",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 216,
+    "path_length_m": 9.568034131324719,
+    "planned_yaw_variation_deg": 233.13011407369262,
+    "planning_s": 0.034300949000000004,
+    "wall_s": 0.03878064399759751,
+    "goal_xy_error_m": 3.698539804576866e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-10",
+    "zone": "D-hub",
+    "goal": [
+      -4.325,
+      1.575,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-10/map.yaml",
+    "map_sha256": "e75d28aa5c194803497ba58e451cc3bbb6479f8a6b1a8596e332613f1d46029a",
+    "removed_chair": "office_chair_10",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 192,
+    "path_length_m": 8.368034113443326,
+    "planned_yaw_variation_deg": 233.13011407369262,
+    "planning_s": 0.031676192,
+    "wall_s": 0.035695721991942264,
+    "goal_xy_error_m": 3.8334992993661765e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-11",
+    "zone": "D-hub",
+    "goal": [
+      -3.125,
+      1.575,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-11/map.yaml",
+    "map_sha256": "c91621576779f3442feb07141cdcfc56ec68942b0b9f593aa2ac2a651d82a801",
+    "removed_chair": "office_chair_11",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 164,
+    "path_length_m": 7.1451942835648445,
+    "planned_yaw_variation_deg": 233.13010678876128,
+    "planning_s": 0.030257720000000002,
+    "wall_s": 0.03368356800638139,
+    "goal_xy_error_m": 3.971924711697128e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-12",
+    "zone": "D-hub",
+    "goal": [
+      -0.625,
+      1.575,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-12/map.yaml",
+    "map_sha256": "139c38acf40b8a261983efc87c69eb18fb7ee779d61540435b33e20c0427b143",
+    "removed_chair": "office_chair_12",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 28,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 151,
+    "path_length_m": 7.091640892173565,
+    "planned_yaw_variation_deg": 106.26018989923148,
+    "planning_s": 0.019612954000000002,
+    "wall_s": 0.022796633988036774,
+    "goal_xy_error_m": 4.269959526432712e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-13",
+    "zone": "D-hub",
+    "goal": [
+      0.575,
+      1.875,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-13/map.yaml",
+    "map_sha256": "bafcbfb99be2bd0eec623101ade79217e5c555211956ec729f4a18b6b5838448",
+    "removed_chair": "office_chair_13",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 28,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 179,
+    "path_length_m": 8.324264702666017,
+    "planned_yaw_variation_deg": 159.39025069790137,
+    "planning_s": 0.025869906,
+    "wall_s": 0.029527430000598542,
+    "goal_xy_error_m": 4.442186485978854e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-14",
+    "zone": "D-hub",
+    "goal": [
+      3.125,
+      1.575,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-14/map.yaml",
+    "map_sha256": "4363a6b05a78931f08bec1f974ee43c62864c09ded7622b4dff1f552a0d66e26",
+    "removed_chair": "office_chair_14",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 218,
+    "path_length_m": 9.82557977687411,
+    "planned_yaw_variation_deg": 286.2601949081878,
+    "planning_s": 0.05019482,
+    "wall_s": 0.05493781100085471,
+    "goal_xy_error_m": 4.736826370381466e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-15",
+    "zone": "D-hub",
+    "goal": [
+      4.325,
+      1.575,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-15/map.yaml",
+    "map_sha256": "d2e0e47b454a87ea5f3dbba347d2a68fb5824439299c45a590ca40ce8fc058c7",
+    "removed_chair": "office_chair_15",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 242,
+    "path_length_m": 11.025579794755503,
+    "planned_yaw_variation_deg": 286.2601949081878,
+    "planning_s": 0.053328121000000006,
+    "wall_s": 0.058482895998167805,
+    "goal_xy_error_m": 4.89029741931074e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-16",
+    "zone": "D-hub",
+    "goal": [
+      5.525,
+      1.575,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-16/map.yaml",
+    "map_sha256": "8d0e30b1eee93e8e4b2c9ebf4a7bd5674d48817b76c3da534509bda8effa5a4a",
+    "removed_chair": "office_chair_16",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 266,
+    "path_length_m": 12.225579812636896,
+    "planned_yaw_variation_deg": 286.2601949081878,
+    "planning_s": 0.060548371000000004,
+    "wall_s": 0.0659628419962246,
+    "goal_xy_error_m": 5.045437788779202e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-17",
+    "zone": "D-hub",
+    "goal": [
+      -5.525,
+      1.625,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-17/map.yaml",
+    "map_sha256": "9eea85497b602cdc8e35952aba08d0e281dfe57a9f765016f7bb15f3d406d155",
+    "removed_chair": "office_chair_17",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 216,
+    "path_length_m": 9.579837530375592,
+    "planned_yaw_variation_deg": 233.13012090388136,
+    "planning_s": 0.030839923,
+    "wall_s": 0.03525505799916573,
+    "goal_xy_error_m": 3.703519419182699e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-18",
+    "zone": "D-hub",
+    "goal": [
+      -4.325,
+      1.625,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-18/map.yaml",
+    "map_sha256": "c848e4685d3481b30e4be8908d195b7c20279614e19994764fe16869fb4730eb",
+    "removed_chair": "office_chair_18",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 192,
+    "path_length_m": 8.379837512494198,
+    "planned_yaw_variation_deg": 233.13012090388136,
+    "planning_s": 0.028820428000000002,
+    "wall_s": 0.03276020901103038,
+    "goal_xy_error_m": 3.8383038285764767e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-19",
+    "zone": "D-hub",
+    "goal": [
+      -3.125,
+      1.625,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-19/map.yaml",
+    "map_sha256": "3b0b94491029b9737e0918e3d503eda0969f9514448aff82c1a121e1b749f7d9",
+    "removed_chair": "office_chair_19",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 159,
+    "path_length_m": 7.091969527659435,
+    "planned_yaw_variation_deg": 179.99999817876719,
+    "planning_s": 0.016438533,
+    "wall_s": 0.019772301995544694,
+    "goal_xy_error_m": 3.976561997204895e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-20",
+    "zone": "D-hub",
+    "goal": [
+      -0.625,
+      1.625,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-20/map.yaml",
+    "map_sha256": "57e9242761f54a4b036a3f487a863796162fbf48fc012262e17b074665f2a54b",
+    "removed_chair": "office_chair_20",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 28,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 158,
+    "path_length_m": 7.0537729259652515,
+    "planned_yaw_variation_deg": 180.00004280236783,
+    "planning_s": 0.024514073,
+    "wall_s": 0.028144777999841608,
+    "goal_xy_error_m": 4.274273477399094e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-21",
+    "zone": "D-hub",
+    "goal": [
+      0.575,
+      1.625,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-21/map.yaml",
+    "map_sha256": "27009176944728f0d46eb1367c570365845411e22f1f1d1bcc443549e6440c6f",
+    "removed_chair": "office_chair_21",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 28,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 182,
+    "path_length_m": 8.23595838509386,
+    "planned_yaw_variation_deg": 180.00004280236783,
+    "planning_s": 0.03268053,
+    "wall_s": 0.03671817899157759,
+    "goal_xy_error_m": 4.421205539170108e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-22",
+    "zone": "D-hub",
+    "goal": [
+      3.125,
+      1.625,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-22/map.yaml",
+    "map_sha256": "4cf1103ce620180b0af14b442439306e08378bc3f4084f5ba9e2ec6a3b7e1dac",
+    "removed_chair": "office_chair_22",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 225,
+    "path_length_m": 9.787711810665796,
+    "planned_yaw_variation_deg": 360.000099037743,
+    "planning_s": 0.052703608000000006,
+    "wall_s": 0.05758225799945649,
+    "goal_xy_error_m": 4.740715501415912e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-23",
+    "zone": "D-hub",
+    "goal": [
+      4.325,
+      1.625,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-23/map.yaml",
+    "map_sha256": "36b1218ff82c7846e9ac5a87288364d1456811bb6806f006943aa95849d47825",
+    "removed_chair": "office_chair_23",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 253,
+    "path_length_m": 11.010661355677192,
+    "planned_yaw_variation_deg": 392.52041895836527,
+    "planning_s": 0.061054545,
+    "wall_s": 0.06644680599856656,
+    "goal_xy_error_m": 4.894064594132484e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-24",
+    "zone": "D-hub",
+    "goal": [
+      5.525,
+      1.625,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-24/map.yaml",
+    "map_sha256": "61a6c5bd4fef0d963571732b8217322f9b1ac6a6a0c2d25455d5d0775416920a",
+    "removed_chair": "office_chair_24",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 273,
+    "path_length_m": 12.169897287675793,
+    "planned_yaw_variation_deg": 360.000099037743,
+    "planning_s": 0.073872163,
+    "wall_s": 0.08018300498952158,
+    "goal_xy_error_m": 5.049089213181427e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-25",
+    "zone": "D-hub",
+    "goal": [
+      -5.525,
+      -1.625,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-25/map.yaml",
+    "map_sha256": "a31d85fdf5e89cb36194680d6d4024b62d5fcbd96e0d0432a1cb47efe95b254f",
+    "removed_chair": "office_chair_25",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 152,
+    "path_length_m": 6.368034083640994,
+    "planned_yaw_variation_deg": 233.13011407369262,
+    "planning_s": 0.025014046,
+    "wall_s": 0.0287335499888286,
+    "goal_xy_error_m": 3.3986940418702445e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-26",
+    "zone": "D-hub",
+    "goal": [
+      -4.325,
+      -1.625,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-26/map.yaml",
+    "map_sha256": "08467dcf9a63f117b0d59362acf23cfe8531d388889885b1617aad514de91d4a",
+    "removed_chair": "office_chair_26",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 119,
+    "path_length_m": 5.062351540053443,
+    "planned_yaw_variation_deg": 180.00003232971304,
+    "planning_s": 0.019193409,
+    "wall_s": 0.023229718004586175,
+    "goal_xy_error_m": 3.545086935809302e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-27",
+    "zone": "D-hub",
+    "goal": [
+      -3.125,
+      -1.625,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-27/map.yaml",
+    "map_sha256": "93744bc192a2076fb76c6acdeefe5ec1b3fd1159a5326cf979af8fc73f0a7525",
+    "removed_chair": "office_chair_27",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 95,
+    "path_length_m": 3.8623515221720486,
+    "planned_yaw_variation_deg": 180.00003232971304,
+    "planning_s": 0.014799095000000002,
+    "wall_s": 0.017245274008018896,
+    "goal_xy_error_m": 3.6943349089646876e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-28",
+    "zone": "D-hub",
+    "goal": [
+      -0.625,
+      -1.625,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-28/map.yaml",
+    "map_sha256": "ab714ba538ab78d98f4907046f653135571ad9ae7ef6d4a82027f33e2422244e",
+    "removed_chair": "office_chair_28",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 28,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 87,
+    "path_length_m": 3.8916408444898387,
+    "planned_yaw_variation_deg": 106.26018989923148,
+    "planning_s": 0.012134138000000001,
+    "wall_s": 0.014550916996086016,
+    "goal_xy_error_m": 4.013038607038099e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-29",
+    "zone": "D-hub",
+    "goal": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-29/map.yaml",
+    "map_sha256": "dc9615119b9d09ede2c6a374b71df0bbb3c9036a4975de61f1a06168489d3635",
+    "removed_chair": "office_chair_29",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 28,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 116,
+    "path_length_m": 5.077051058778796,
+    "planned_yaw_variation_deg": 159.39031899979312,
+    "planning_s": 0.012824169000000002,
+    "wall_s": 0.015848462004214525,
+    "goal_xy_error_m": 4.1691873934340477e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-30",
+    "zone": "D-hub",
+    "goal": [
+      3.125,
+      -1.625,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-30/map.yaml",
+    "map_sha256": "3ecc613fa84fda67937162961060c43065eef7ca89ef8ca01698c6d4c05a6312",
+    "removed_chair": "office_chair_30",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 161,
+    "path_length_m": 7.1489671044769025,
+    "planned_yaw_variation_deg": 233.130134109518,
+    "planning_s": 0.034619076000000006,
+    "wall_s": 0.03822756100271363,
+    "goal_xy_error_m": 4.506600555556934e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-31",
+    "zone": "D-hub",
+    "goal": [
+      4.325,
+      -1.625,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-31/map.yaml",
+    "map_sha256": "f574c9d57d34211d8de76009cca7f8e707aa5d016e8bf1d109818e56294e0708",
+    "removed_chair": "office_chair_31",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 191,
+    "path_length_m": 8.319020529068764,
+    "planned_yaw_variation_deg": 286.2602358893229,
+    "planning_s": 0.040970616,
+    "wall_s": 0.047092020002310164,
+    "goal_xy_error_m": 4.6676475181318155e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-32",
+    "zone": "D-hub",
+    "goal": [
+      5.525,
+      -1.625,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-32/map.yaml",
+    "map_sha256": "de0d1cb45a7f0d33b715faba7410ac087129c7e4e686be4ae8b652b32a28c405",
+    "removed_chair": "office_chair_32",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 27,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 215,
+    "path_length_m": 9.519020546950157,
+    "planned_yaw_variation_deg": 286.2602358893229,
+    "planning_s": 0.041919844000000005,
+    "wall_s": 0.046453386996290646,
+    "goal_xy_error_m": 4.829944822111944e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-33",
+    "zone": "D-hub",
+    "goal": [
+      -5.525,
+      -1.575,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-33/map.yaml",
+    "map_sha256": "a6934948ff7225486ffd8246b52777664d95cd72fb28ebdcc105564da7d7921e",
+    "removed_chair": "office_chair_33",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 143,
+    "path_length_m": 6.291969515738497,
+    "planned_yaw_variation_deg": 179.99999817876719,
+    "planning_s": 0.012421454,
+    "wall_s": 0.016003398995962925,
+    "goal_xy_error_m": 3.4030684926294784e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-34",
+    "zone": "D-hub",
+    "goal": [
+      -4.325,
+      -1.575,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-34/map.yaml",
+    "map_sha256": "2c518689384cdb2bf5090a92f882fade91cf6d2a9c5f113cbe28cd0075428942",
+    "removed_chair": "office_chair_34",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 119,
+    "path_length_m": 5.091969497857104,
+    "planned_yaw_variation_deg": 179.99999817876719,
+    "planning_s": 0.009735848,
+    "wall_s": 0.012472093003452756,
+    "goal_xy_error_m": 3.5492809634810475e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-35",
+    "zone": "D-hub",
+    "goal": [
+      -3.125,
+      -1.575,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-35/map.yaml",
+    "map_sha256": "b895f5e2b06bf20acc051618d53fa2bf5576fb95cbe271061e14117939339a21",
+    "removed_chair": "office_chair_35",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 95,
+    "path_length_m": 3.8919694799757107,
+    "planned_yaw_variation_deg": 179.99999817876719,
+    "planning_s": 0.009201464000000001,
+    "wall_s": 0.012009439000394195,
+    "goal_xy_error_m": 3.69835968976495e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-36",
+    "zone": "D-hub",
+    "goal": [
+      -0.625,
+      -1.575,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-36/map.yaml",
+    "map_sha256": "8a0f26db4f671c89a9316c147664abe914a2f02286df9590937bf82c37592b77",
+    "removed_chair": "office_chair_36",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 28,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 94,
+    "path_length_m": 3.8537728782815264,
+    "planned_yaw_variation_deg": 180.00004280236783,
+    "planning_s": 0.014210361000000001,
+    "wall_s": 0.016694060002919286,
+    "goal_xy_error_m": 4.016744059168004e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-37",
+    "zone": "D-hub",
+    "goal": [
+      0.575,
+      -1.575,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-37/map.yaml",
+    "map_sha256": "15823035f54fc22a240be012c743b0c8013f771cacf8297e0e0be02f2d1ee2c2",
+    "removed_chair": "office_chair_37",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 28,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 118,
+    "path_length_m": 5.05377289616292,
+    "planned_yaw_variation_deg": 180.00004280236783,
+    "planning_s": 0.016354886000000003,
+    "wall_s": 0.01921600899368059,
+    "goal_xy_error_m": 4.172754186008632e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-38",
+    "zone": "D-hub",
+    "goal": [
+      3.125,
+      -1.575,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-38/map.yaml",
+    "map_sha256": "d980e9f68c46f9e17741594deda7e3ba82b3360f4b0f5acf0a0c28071d8b069c",
+    "removed_chair": "office_chair_38",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 167,
+    "path_length_m": 7.107217112136494,
+    "planned_yaw_variation_deg": 286.26023270159936,
+    "planning_s": 0.039954689,
+    "wall_s": 0.04391016000590753,
+    "goal_xy_error_m": 4.509900502519899e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-39",
+    "zone": "D-hub",
+    "goal": [
+      4.325,
+      -1.575,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-39/map.yaml",
+    "map_sha256": "9b90658c1800e6e765a6771cde5d9a2a22567be2ee0ada246197deb0caca3233",
+    "removed_chair": "office_chair_39",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 191,
+    "path_length_m": 8.307217130017888,
+    "planned_yaw_variation_deg": 286.26023270159936,
+    "planning_s": 0.040526672,
+    "wall_s": 0.04494117600552272,
+    "goal_xy_error_m": 4.670833686699331e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-40",
+    "zone": "D-hub",
+    "goal": [
+      5.525,
+      -1.575,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-40/map.yaml",
+    "map_sha256": "e9fa2a82ecc7961dd5f0a75f22c02eb7bac47636dad437a13b87006e0d734742",
+    "removed_chair": "office_chair_40",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 29,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 215,
+    "path_length_m": 9.507217147899281,
+    "planned_yaw_variation_deg": 286.26023270159936,
+    "planning_s": 0.0470266,
+    "wall_s": 0.0519746180070797,
+    "goal_xy_error_m": 4.833023997450163e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-41",
+    "zone": "D-hub",
+    "goal": [
+      -5.525,
+      -4.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-41/map.yaml",
+    "map_sha256": "3359f89bc43fddf2271df0535b7cfa1625a8a37f6e603a55bf3faf11266c3013",
+    "removed_chair": "office_chair_41",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 94,
+    "path_length_m": 3.661803453440112,
+    "planned_yaw_variation_deg": 179.99999499104408,
+    "planning_s": 0.006926173000000001,
+    "wall_s": 0.009541360996081494,
+    "goal_xy_error_m": 3.1464967198549176e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-42",
+    "zone": "D-hub",
+    "goal": [
+      -4.325,
+      -4.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-42/map.yaml",
+    "map_sha256": "c4329895b3ba5d001e54e6c1f4eb3df2bc3f1ad0e2dbb8de7dc86fdb51c6c337",
+    "removed_chair": "office_chair_42",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 70,
+    "path_length_m": 2.4618034355587186,
+    "planned_yaw_variation_deg": 179.99999499104408,
+    "planning_s": 0.0037376030000000004,
+    "wall_s": 0.005412601996795274,
+    "goal_xy_error_m": 3.304082595859135e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-43",
+    "zone": "D-hub",
+    "goal": [
+      -3.125,
+      -4.475,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-43/map.yaml",
+    "map_sha256": "cce4b5785615086e130c0dd2b7e899b9c1c0adaeff97bb0d4525ea8ce4d69f56",
+    "removed_chair": "office_chair_43",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 46,
+    "path_length_m": 1.3090170138808204,
+    "planned_yaw_variation_deg": 180.00003232971304,
+    "planning_s": 0.0031168800000000003,
+    "wall_s": 0.004977636999683455,
+    "goal_xy_error_m": 3.483626498636801e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-44",
+    "zone": "D-hub",
+    "goal": [
+      -0.625,
+      -4.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-44/map.yaml",
+    "map_sha256": "0292b5d2420f78b271f22678962fa7bf676171e2ce9c367ef7b7eb9af7fff7f9",
+    "removed_chair": "office_chair_44",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 18,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 27,
+    "path_length_m": 1.3000000193715096,
+    "planned_yaw_variation_deg": 0.0,
+    "planning_s": 0.001540621,
+    "wall_s": 0.0028833539981860667,
+    "goal_xy_error_m": 3.8018152610814407e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-45",
+    "zone": "D-hub",
+    "goal": [
+      0.575,
+      -4.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-45/map.yaml",
+    "map_sha256": "22c1bb2d7ea2663dfd5405557e4689b60fc4341997a0c5df546647eaa575ea14",
+    "removed_chair": "office_chair_45",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 18,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 51,
+    "path_length_m": 2.500000037252903,
+    "planned_yaw_variation_deg": 0.0,
+    "planning_s": 0.002008325,
+    "wall_s": 0.003265669001848437,
+    "goal_xy_error_m": 3.9662884337101415e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-46",
+    "zone": "D-hub",
+    "goal": [
+      3.125,
+      -4.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-46/map.yaml",
+    "map_sha256": "e8952468273e9483fa773c5e8bd93ce6dcaae4c334072b0f83235ca64d066d3d",
+    "removed_chair": "office_chair_46",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 102,
+    "path_length_m": 5.050000075250864,
+    "planned_yaw_variation_deg": 0.0,
+    "planning_s": 0.001926816,
+    "wall_s": 0.004551823003566824,
+    "goal_xy_error_m": 4.319579723209137e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-47",
+    "zone": "D-hub",
+    "goal": [
+      4.325,
+      -4.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-47/map.yaml",
+    "map_sha256": "e5c033af3b1c585b828e53363311e0c7a4ef275ad5099b50f79352e7302b1de1",
+    "removed_chair": "office_chair_47",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 126,
+    "path_length_m": 6.2500000931322575,
+    "planned_yaw_variation_deg": 0.0,
+    "planning_s": 0.0017274880000000001,
+    "wall_s": 0.004282866007997654,
+    "goal_xy_error_m": 4.4873437322469016e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-48",
+    "zone": "D-hub",
+    "goal": [
+      5.325,
+      -4.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/seat-48/map.yaml",
+    "map_sha256": "dc66e33541ace1654a5e7a2b127fc3d22dc1fe82889a20cc1e9f1336abb3eaa4",
+    "removed_chair": "office_chair_48",
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 19,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 146,
+    "path_length_m": 7.250000108033419,
+    "planned_yaw_variation_deg": 0.0,
+    "planning_s": 0.0032778290000000003,
+    "wall_s": 0.00614085300185252,
+    "goal_xy_error_m": 4.6277792642042646e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a1-01",
+    "zone": "A1",
+    "goal": [
+      -20.075,
+      -5.025,
+      -3.141593
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 432,
+    "path_length_m": 19.838150820954112,
+    "planned_yaw_variation_deg": 466.2601794265769,
+    "planning_s": 0.49214425600000006,
+    "wall_s": 0.5009267370041925,
+    "goal_xy_error_m": 1.5973200339057354e-07,
+    "goal_yaw_error_deg": 2.4856799172505015e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a1-02",
+    "zone": "A1",
+    "goal": [
+      -20.075,
+      -6.075,
+      -3.141593
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 450,
+    "path_length_m": 20.852521719094767,
+    "planned_yaw_variation_deg": 429.3903265132277,
+    "planning_s": 0.469613979,
+    "wall_s": 0.4777072790020611,
+    "goal_xy_error_m": 1.4528536631079912e-07,
+    "goal_yaw_error_deg": 2.4856799172505015e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a1-03",
+    "zone": "A1",
+    "goal": [
+      -23.075,
+      -7.275,
+      -0.0
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 481,
+    "path_length_m": 22.540060564491302,
+    "planned_yaw_variation_deg": 376.260206064088,
+    "planning_s": 0.237748432,
+    "wall_s": 0.24704414600273594,
+    "goal_xy_error_m": 1.159337636500786e-07,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a1-04",
+    "zone": "A1",
+    "goal": [
+      -23.075,
+      -7.275,
+      -0.0
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 481,
+    "path_length_m": 22.540060564491302,
+    "planned_yaw_variation_deg": 376.260206064088,
+    "planning_s": 0.22305386700000002,
+    "wall_s": 0.23709004098782316,
+    "goal_xy_error_m": 1.159337636500786e-07,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a2-01",
+    "zone": "A2",
+    "goal": [
+      -20.075,
+      -1.975,
+      -3.141593
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 468,
+    "path_length_m": 21.64312951532459,
+    "planned_yaw_variation_deg": 572.5203283446733,
+    "planning_s": 0.739415661,
+    "wall_s": 0.7477503970003454,
+    "goal_xy_error_m": 2.02708514551115e-07,
+    "goal_yaw_error_deg": 2.4856799172505015e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a2-02",
+    "zone": "A2",
+    "goal": [
+      -20.075,
+      -3.125,
+      -3.141593
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 432,
+    "path_length_m": 20.009410077281117,
+    "planned_yaw_variation_deg": 482.52034633076266,
+    "planning_s": 0.424916679,
+    "wall_s": 0.43315297600929625,
+    "goal_xy_error_m": 1.8636655970161182e-07,
+    "goal_yaw_error_deg": 2.4856799172505015e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a2-03",
+    "zone": "A2",
+    "goal": [
+      -20.075,
+      -1.975,
+      3.141593
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 468,
+    "path_length_m": 21.64312951532459,
+    "planned_yaw_variation_deg": 572.5203283446733,
+    "planning_s": 0.734615462,
+    "wall_s": 0.7434731609973824,
+    "goal_xy_error_m": 2.02708514551115e-07,
+    "goal_yaw_error_deg": 1.4838886492032333e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a2-04",
+    "zone": "A2",
+    "goal": [
+      -20.075,
+      -3.125,
+      3.141593
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 432,
+    "path_length_m": 20.009410077281117,
+    "planned_yaw_variation_deg": 482.52034633076266,
+    "planning_s": 0.421480862,
+    "wall_s": 0.42956724199757446,
+    "goal_xy_error_m": 1.8636655970161182e-07,
+    "goal_yaw_error_deg": 1.4838886492032333e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a3-01",
+    "zone": "A3",
+    "goal": [
+      -20.075,
+      0.675,
+      -3.141593
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 6,
+    "path_generated": false,
+    "pose_count": 0,
+    "path_length_m": null,
+    "planned_yaw_variation_deg": null,
+    "planning_s": 0.0,
+    "wall_s": 4.3946390460041584,
+    "goal_xy_error_m": null,
+    "goal_yaw_error_deg": null,
+    "error": null,
+    "planner_diagnostics": [
+      "[planner_server-2] [WARN] [1792155104.340023559] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155104.340066199] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-20.07, 0.68)"
+    ]
+  },
+  {
+    "seat": "seat-a3-02",
+    "zone": "A3",
+    "goal": [
+      -20.075,
+      0.675,
+      -3.141593
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 6,
+    "path_generated": false,
+    "pose_count": 0,
+    "path_length_m": null,
+    "planned_yaw_variation_deg": null,
+    "planning_s": 0.0,
+    "wall_s": 4.40029085399874,
+    "goal_xy_error_m": null,
+    "goal_yaw_error_deg": null,
+    "error": null,
+    "planner_diagnostics": [
+      "[planner_server-2] [WARN] [1792155108.741734656] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155108.741791565] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-20.07, 0.68)"
+    ]
+  },
+  {
+    "seat": "seat-a3-03",
+    "zone": "A3",
+    "goal": [
+      -23.075,
+      1.775,
+      -0.0
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 6,
+    "path_generated": false,
+    "pose_count": 0,
+    "path_length_m": null,
+    "planned_yaw_variation_deg": null,
+    "planning_s": 0.0,
+    "wall_s": 4.28478910800186,
+    "goal_xy_error_m": null,
+    "goal_yaw_error_deg": null,
+    "error": null,
+    "planner_diagnostics": [
+      "[planner_server-2] [WARN] [1792155113.027706639] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155113.027762868] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-23.07, 1.77)"
+    ]
+  },
+  {
+    "seat": "seat-a3-04",
+    "zone": "A3",
+    "goal": [
+      -23.075,
+      1.775,
+      0.0
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 6,
+    "path_generated": false,
+    "pose_count": 0,
+    "path_length_m": null,
+    "planned_yaw_variation_deg": null,
+    "planning_s": 0.0,
+    "wall_s": 4.319970135009498,
+    "goal_xy_error_m": null,
+    "goal_yaw_error_deg": null,
+    "error": null,
+    "planner_diagnostics": [
+      "[planner_server-2] [WARN] [1792155117.349026156] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155117.349088496] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-23.07, 1.77)"
+    ]
+  },
+  {
+    "seat": "seat-a4-01",
+    "zone": "A4",
+    "goal": [
+      -19.675,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 545,
+    "path_length_m": 26.893924568013755,
+    "planned_yaw_variation_deg": 683.1300646696388,
+    "planning_s": 1.086986457,
+    "wall_s": 1.0968269439908909,
+    "goal_xy_error_m": 3.060044246150705e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a4-02",
+    "zone": "A4",
+    "goal": [
+      -18.625,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 571,
+    "path_length_m": 27.943924583659975,
+    "planned_yaw_variation_deg": 736.2601664494438,
+    "planning_s": 1.095735318,
+    "wall_s": 1.1061566080024932,
+    "goal_xy_error_m": 3.0967762607843723e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-a4-03",
+    "zone": "A4",
+    "goal": [
+      -19.975,
+      0.575,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 6,
+    "path_generated": false,
+    "pose_count": 0,
+    "path_length_m": null,
+    "planned_yaw_variation_deg": null,
+    "planning_s": 0.0,
+    "wall_s": 4.455597709005815,
+    "goal_xy_error_m": null,
+    "goal_yaw_error_deg": null,
+    "error": null,
+    "planner_diagnostics": [
+      "[planner_server-2] [WARN] [1792155124.010925966] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155124.010987495] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-19.98, 0.57)"
+    ]
+  },
+  {
+    "seat": "seat-a4-04",
+    "zone": "A4",
+    "goal": [
+      -18.625,
+      0.475,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 396,
+    "path_length_m": 20.19932545251487,
+    "planned_yaw_variation_deg": 413.1301527788526,
+    "planning_s": 0.09212444700000001,
+    "wall_s": 0.09997634899627883,
+    "goal_xy_error_m": 2.4410915174712866e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m1-01",
+    "zone": "M1",
+    "goal": [
+      -16.775,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 481,
+    "path_length_m": 24.26829678299341,
+    "planned_yaw_variation_deg": 540.0000355174367,
+    "planning_s": 1.208616898,
+    "wall_s": 1.2178040029975818,
+    "goal_xy_error_m": 3.1792466329051637e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m1-02",
+    "zone": "M1",
+    "goal": [
+      -15.725,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 504,
+    "path_length_m": 25.303049724075464,
+    "planned_yaw_variation_deg": 556.2602570631358,
+    "planning_s": 1.19573129,
+    "wall_s": 1.2051168530015275,
+    "goal_xy_error_m": 3.235581364946936e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m1-03",
+    "zone": "M1",
+    "goal": [
+      -14.675,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 525,
+    "path_length_m": 26.353049739721683,
+    "planned_yaw_variation_deg": 556.2602570631358,
+    "planning_s": 1.166868212,
+    "wall_s": 1.1763295640121214,
+    "goal_xy_error_m": 3.298382213692235e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m1-04",
+    "zone": "M1",
+    "goal": [
+      -16.775,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 390,
+    "path_length_m": 20.25228266271993,
+    "planned_yaw_variation_deg": 413.13012545809596,
+    "planning_s": 0.41110748700000005,
+    "wall_s": 0.41880950100312475,
+    "goal_xy_error_m": 2.721660476568652e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m1-05",
+    "zone": "M1",
+    "goal": [
+      -15.725,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 406,
+    "path_length_m": 21.155836066777198,
+    "planned_yaw_variation_deg": 413.13012545809596,
+    "planning_s": 0.422458245,
+    "wall_s": 0.4307387220032979,
+    "goal_xy_error_m": 2.7872591135502555e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m1-06",
+    "zone": "M1",
+    "goal": [
+      -14.675,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 427,
+    "path_length_m": 22.205836082423417,
+    "planned_yaw_variation_deg": 413.13012545809596,
+    "planning_s": 0.42568637400000003,
+    "wall_s": 0.4340291900007287,
+    "goal_xy_error_m": 2.859921646562781e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m2-01",
+    "zone": "M2",
+    "goal": [
+      -12.825,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 490,
+    "path_length_m": 21.942314418255776,
+    "planned_yaw_variation_deg": 740.6097028572648,
+    "planning_s": 0.854241734,
+    "wall_s": 0.863482907996513,
+    "goal_xy_error_m": 3.423657305918487e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m2-02",
+    "zone": "M2",
+    "goal": [
+      -11.775,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 515,
+    "path_length_m": 22.950345521208657,
+    "planned_yaw_variation_deg": 773.1301559665764,
+    "planning_s": 0.909280956,
+    "wall_s": 0.9192101709923008,
+    "goal_xy_error_m": 3.5024267271818176e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m2-03",
+    "zone": "M2",
+    "goal": [
+      -10.725,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 532,
+    "path_length_m": 23.96848873034847,
+    "planned_yaw_variation_deg": 756.869924402964,
+    "planning_s": 0.872288338,
+    "wall_s": 0.8821724050067132,
+    "goal_xy_error_m": 3.5862957744677354e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m2-04",
+    "zone": "M2",
+    "goal": [
+      -12.825,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 397,
+    "path_length_m": 17.86438718305343,
+    "planned_yaw_variation_deg": 593.1301441274308,
+    "planning_s": 0.414860241,
+    "wall_s": 0.4226133129996015,
+    "goal_xy_error_m": 3.0035405682704054e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m2-05",
+    "zone": "M2",
+    "goal": [
+      -11.775,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 412,
+    "path_length_m": 18.69722990793837,
+    "planned_yaw_variation_deg": 593.130116806674,
+    "planning_s": 0.394205089,
+    "wall_s": 0.4024423160008155,
+    "goal_xy_error_m": 3.093027574425197e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m2-06",
+    "zone": "M2",
+    "goal": [
+      -10.725,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 433,
+    "path_length_m": 19.74722992358459,
+    "planned_yaw_variation_deg": 593.130116806674,
+    "planning_s": 0.43040690600000003,
+    "wall_s": 0.438844940988929,
+    "goal_xy_error_m": 3.1876863049619883e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m3-01",
+    "zone": "M3",
+    "goal": [
+      -8.875,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 409,
+    "path_length_m": 18.35881387150799,
+    "planned_yaw_variation_deg": 613.7397959856482,
+    "planning_s": 0.371204817,
+    "wall_s": 0.38014662500063423,
+    "goal_xy_error_m": 3.745415831426025e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m3-02",
+    "zone": "M3",
+    "goal": [
+      -7.875,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 433,
+    "path_length_m": 19.334659532468592,
+    "planned_yaw_variation_deg": 646.2602390770465,
+    "planning_s": 0.36216017,
+    "wall_s": 0.37066071400477085,
+    "goal_xy_error_m": 3.836929650213491e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m3-03",
+    "zone": "M3",
+    "goal": [
+      -6.825,
+      5.075,
+      -1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 452,
+    "path_length_m": 20.393566827491206,
+    "planned_yaw_variation_deg": 630.0000175313475,
+    "planning_s": 0.38498911500000005,
+    "wall_s": 0.39376166500733234,
+    "goal_xy_error_m": 3.9368017616969444e-07,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m3-04",
+    "zone": "M3",
+    "goal": [
+      -8.875,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 320,
+    "path_length_m": 14.366406549336245,
+    "planned_yaw_variation_deg": 503.1301074720067,
+    "planning_s": 0.144154377,
+    "wall_s": 0.15083028399385512,
+    "goal_xy_error_m": 3.3657044355043686e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m3-05",
+    "zone": "M3",
+    "goal": [
+      -7.875,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 340,
+    "path_length_m": 15.219959952648454,
+    "planned_yaw_variation_deg": 540.0000150268692,
+    "planning_s": 0.16710283,
+    "wall_s": 0.17400352298864163,
+    "goal_xy_error_m": 3.467254784056762e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  },
+  {
+    "seat": "seat-m3-06",
+    "zone": "M3",
+    "goal": [
+      -6.825,
+      1.775,
+      1.570796
+    ],
+    "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+    "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+    "removed_chair": null,
+    "removed_only_target_chair": true,
+    "changed_2p5cm_cells": 0,
+    "start": [
+      -1.865,
+      -4.705,
+      1.5708
+    ],
+    "action_status": 4,
+    "path_generated": true,
+    "pose_count": 356,
+    "path_length_m": 16.26995996829467,
+    "planned_yaw_variation_deg": 503.1301074720067,
+    "planning_s": 0.170095732,
+    "wall_s": 0.17752186900179368,
+    "goal_xy_error_m": 3.5774620484048806e-07,
+    "goal_yaw_error_deg": 2.122844650180712e-05,
+    "error": null,
+    "planner_diagnostics": []
+  }
+]

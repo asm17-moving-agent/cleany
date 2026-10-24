@@ -1,0 +1,7 @@
+# Map-specific mission constraints validated against native local/global footprint costs.
+# These poses precede the unchanged final goal. They are not localization resets.
+other_room:
+  - name: prealign_outside_M1
+    pose: [-17.125, 0.0, 3.141592653589793]
+  - name: clear_M1_doorway
+    pose: [-17.125, 2.0, 3.141592653589793]

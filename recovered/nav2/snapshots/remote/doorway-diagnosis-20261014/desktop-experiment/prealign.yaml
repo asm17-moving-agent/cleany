@@ -1,0 +1,7 @@
+path_seed_count: 128
+path_seed_max_speed: 0.25
+validate_output: true
+goal_rotate_enter_radius: 0.025
+goal_rotate_exit_radius: 0.030
+PathAlignCritic:
+  cost_weight: 12.0

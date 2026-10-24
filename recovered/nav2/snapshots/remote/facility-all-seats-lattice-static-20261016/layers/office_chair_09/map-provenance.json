@@ -1,0 +1,21 @@
+{
+  "method": "static collision boxes/cylinders/spheres and OBJ triangle cross-sections at actual LiDAR plane; not SLAM",
+  "height_m": 0.3,
+  "resolution_m": 0.025,
+  "bounds": [
+    -24.0,
+    -15.0,
+    12.0,
+    6.0
+  ],
+  "counts": {
+    "box": 1,
+    "cylinder": 5,
+    "sphere": 0,
+    "mesh_slices": 0,
+    "mesh_slice_segments": 0
+  },
+  "canonical_world_sha256": "6dffcf0e4fd95c2f8fba6dac1fc00e3d3ee3500e1125c55a71bdf46855083dba",
+  "map_sha256": "bf60cab6d19831b60639b8173343d2d1f6a4279f6eb8bef50909486b17675888",
+  "mesh_interior_note": "OBJ slice surfaces rasterized; no invented convex-hull occupancy"
+}

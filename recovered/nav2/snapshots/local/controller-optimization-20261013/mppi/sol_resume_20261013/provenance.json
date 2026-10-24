@@ -1,0 +1,29 @@
+{
+  "comparison_source_commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "worktree": "/home/ehdrms/.codex/worktrees/mppi-optimization/main",
+  "host": "a16-fedora",
+  "architecture": "aarch64",
+  "container": "ros2-humble",
+  "domain": 226,
+  "upstream_url": "https://github.com/ros-navigation/navigation2/archive/refs/tags/1.1.20.tar.gz",
+  "upstream_tar_sha256": "c965b7a36ef48cd7f35f01c1f98883741693d195dae582232d6d0444d2eedab6",
+  "baseline_evidence": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-20261013",
+  "baseline_effective_configuration": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/baseline_effective_controller.yaml",
+  "common_layer_changes": [],
+  "physical_validation": false,
+  "discovery": {
+    "ROS_LOCALHOST_ONLY": "1",
+    "IGN_IP": "127.0.0.1",
+    "GZ_IP": "127.0.0.1"
+  },
+  "isolation": "Domain 226; unique IGN_PARTITION/GZ_PARTITION per launch; preserved planner/map/world geometry and common start/goals; relaxed sensing/command chain changes documented separately",
+  "date_kst": "2026-10-13",
+  "common_layer_changes_by_stage": {
+    "conservative": [],
+    "relaxed_gazebo_only": [
+      "Final external guard output remapped to /shadow/cmd_vel; uniform coupled wheel projector alone publishes /cmd_vel",
+      "Contact system and sensor bridges added, geometry invariant checked",
+      "Progress/failure allowance bounded by 1200sim/1800wall hard watchdog instead of early abort"
+    ]
+  }
+}

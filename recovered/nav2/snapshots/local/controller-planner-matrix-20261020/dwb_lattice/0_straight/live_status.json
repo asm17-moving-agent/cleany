@@ -1,0 +1,98 @@
+{
+  "sim_s": 11.343,
+  "navigation_sim_s": 3.103999999999999,
+  "truth": [
+    -1.8481424538740894,
+    -4.036245463501976,
+    1.444004172121511
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 11.316,
+      "stamp_s": 11.316,
+      "sim_s": 11.316,
+      "target": 0.18301507591156546,
+      "pan": 0.18400197475444063,
+      "reason": "PASS",
+      "requested": [
+        0.18976247309715943,
+        0.03512240789004062,
+        0.0
+      ],
+      "output": [
+        0.18976247309715943,
+        0.03512240789004062,
+        0.0
+      ],
+      "depth_stamp": 11.286
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 11.33,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 11.321,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.2138619277571022,
+        0.042301422729212584,
+        0.0
+      ],
+      "measured": [
+        0.17609557812363358,
+        0.025156511160525526,
+        -1.1826238131882813e-14
+      ],
+      "nearby_voxels": 127,
+      "total_voxels": 3530,
+      "source_age_s": 0.27999999999999936,
+      "output": [
+        0.17685119451071887,
+        0.03498078043914798,
+        0.0
+      ],
+      "processing_ms": 13.153495034202933
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 11.33,
+      "sim_s": 11.33,
+      "requested": [
+        0.1878442891211695,
+        0.03477650586158343,
+        0.0
+      ],
+      "output": [
+        0.1878442891211695,
+        0.03477650586158343,
+        0.0
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 11.33,
+      "stamp_s": 11.33,
+      "sim_s": 11.33,
+      "target": 0.18306205572459927,
+      "pan": 0.18301507591156546,
+      "reason": "PASS",
+      "requested": [
+        0.1878442891211695,
+        0.03477650586158343,
+        0.0
+      ],
+      "output": [
+        0.1878442891211695,
+        0.03477650586158343,
+        0.0
+      ],
+      "depth_stamp": 11.286
+    }
+  ]
+}

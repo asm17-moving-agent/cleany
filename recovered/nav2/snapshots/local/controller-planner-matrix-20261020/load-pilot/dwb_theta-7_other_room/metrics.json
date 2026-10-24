@@ -1,0 +1,61 @@
+{
+  "goal_index": 7,
+  "goal_name": "other_room",
+  "action_status": null,
+  "final_truth": [
+    -2.0069609203117924,
+    -5.019874245660119,
+    1.283464459022165
+  ],
+  "position_error_m": 16.256238626248486,
+  "yaw_error_deg": 16.46288461902021,
+  "navigation_sim_s": 25.976000000000003,
+  "navigation_wall_s": 400.2955248049693,
+  "achieved_rtf": 0.0648920569688006,
+  "max_command_wheel_rad_s": null,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 0.4885166529717045,
+    "linear_jerk_p95_m_s3": 0.8546072919862981,
+    "angular_jerk_rms_rad_s3": 0.2497500168950832,
+    "angular_jerk_p95_rad_s3": 0.14065156204821175,
+    "stationary_s": 20.85,
+    "motion_start_count": 2,
+    "yaw_reversals": 0,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.018757874928029848,
+    "speed_max_m_s": 0.12819798973359162
+  },
+  "error": "KeyboardInterrupt: ",
+  "gt_tolerance_success": false,
+  "success": false,
+  "nav2_success": false,
+  "command_sim_interval_s": {},
+  "controller_deadline_warning_count": 214,
+  "measured_joint_max_rad_s": 4.22444486229009,
+  "contacts": {
+    "non_floor_non_self_records": 0,
+    "pairs": [],
+    "sampled_floor_records": 104,
+    "self_records": 0,
+    "unknown_pair_records": 0,
+    "all_collision_links_instrumented": true,
+    "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+  },
+  "compute_timing_columns": [
+    "sequence",
+    "sim_time_ns",
+    "wall_start_ns",
+    "compute_us",
+    "success"
+  ],
+  "compute_timing": {
+    "compute_us": {
+      "median": 12992.962,
+      "p95": 37662.961500000005,
+      "p99": 60547.997800000136,
+      "max": 203049.998
+    }
+  },
+  "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+}

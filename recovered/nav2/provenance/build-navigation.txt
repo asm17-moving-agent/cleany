@@ -1,0 +1,66 @@
+source "/opt/ros/humble/setup.bash" && \
+cd "/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws" && \
+colcon --log-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-recovered/log-navigation" build --symlink-install \
+	--build-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-recovered/build-navigation" \
+	--install-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-recovered/install-navigation" \
+	--packages-up-to cleany_navigation
+[0.370s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'nav2_mppi_controller' is in: /opt/ros/humble
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding nav2_mppi_controller
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> cleany_description
+Starting >>> nav2_mppi_controller
+--- stderr: cleany_description
+gmake[1]: warning: -j3 forced in submake: resetting jobserver mode.
+---
+Finished <<< cleany_description [1.57s]
+--- stderr: nav2_mppi_controller
+gmake[1]: warning: -j3 forced in submake: resetting jobserver mode.
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/nav2_mppi_controller/test/optimizer_unit_tests.cpp: In member function ‘std::pair<double, double> OptimizerTester::getVelLimits()’:
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/nav2_mppi_controller/test/optimizer_unit_tests.cpp:238:3: note: parameter passing for argument of type ‘std::pair<double, double>’ when C++17 is enabled changed to match C++14 in GCC 10.1
+  238 |   {
+      |   ^
+---
+[Processing: nav2_mppi_controller]
+Finished <<< nav2_mppi_controller [51.8s]
+Starting >>> cleany_navigation
+--- stderr: cleany_navigation
+gmake[1]: warning: -j3 forced in submake: resetting jobserver mode.
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/src/body_heading_search.cpp: In instantiation of ‘cleany_navigation::checkedBodyHeadingGridPath(const PoseStamped&, const PoseStamped&, nav2_costmap_2d::Costmap2D&, const std::vector<geometry_msgs::msg::Point_<std::allocator<void> > >&, unsigned int, double, double, const std::function<bool()>&)::<lambda(const auto:49&)> [with auto:49 = geometry_msgs::msg::Pose2D_<std::allocator<void> >]’:
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/src/body_heading_search.cpp:95:9:   required from here
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/src/body_heading_search.cpp:94:115: warning: converting to ‘geometry_msgs::msg::Quaternion_<std::allocator<void> >’ from initializer list would use explicit constructor ‘geometry_msgs::msg::Quaternion_<ContainerAllocator>::Quaternion_(rosidl_runtime_cpp::MessageInitialization) [with ContainerAllocator = std::allocator<void>]’
+   94 |   const auto append=[&](const auto &p){auto z=start;z.pose.position.x=p.x;z.pose.position.y=p.y;z.pose.orientation={};z.pose.orientation.z=std::sin(p.theta/2.);z.pose.orientation.w=std::cos(p.theta/2.);path.poses.push_back(z);};
+      |                                                                                                 ~~~~~~~~~~~~~~~~~~^~~
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/src/body_heading_search.cpp:94:115: note: in C++11 and above a default constructor can be explicit
+In file included from /opt/ros/humble/src/gtest_vendor/include/gtest/gtest.h:62,
+                 from /home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:1:
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp: In member function ‘virtual void PathProgress_DiagonalProgressBeatsStandingStillAndBackwardMotion_Test::TestBody()’:
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:12:29: warning: converting to ‘const Twist2D’ {aka ‘const nav_2d_msgs::msg::Twist2D_<std::allocator<void> >’} from initializer list would use explicit constructor ‘nav_2d_msgs::msg::Twist2D_<ContainerAllocator>::Twist2D_(rosidl_runtime_cpp::MessageInitialization) [with ContainerAllocator = std::allocator<void>]’
+   12 |   ASSERT_TRUE(critic.prepare(point(.1,.1),{},point(1.,0.),path));
+      |               ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:12:29: note: in C++11 and above a default constructor can be explicit
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp: In member function ‘virtual void PathProgress_InPlaceTurnsAndLoopCrossingsDoNotInventTravel_Test::TestBody()’:
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:21:29: warning: converting to ‘const Twist2D’ {aka ‘const nav_2d_msgs::msg::Twist2D_<std::allocator<void> >’} from initializer list would use explicit constructor ‘nav_2d_msgs::msg::Twist2D_<ContainerAllocator>::Twist2D_(rosidl_runtime_cpp::MessageInitialization) [with ContainerAllocator = std::allocator<void>]’
+   21 |   ASSERT_TRUE(critic.prepare(point(0,0),{},point(0,0),path));
+      |               ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:21:29: note: in C++11 and above a default constructor can be explicit
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp: In member function ‘virtual void PathProgress_InvalidPreparationAndTrajectoriesCannotReusePriorPath_Test::TestBody()’:
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:29:29: warning: converting to ‘const Twist2D’ {aka ‘const nav_2d_msgs::msg::Twist2D_<std::allocator<void> >’} from initializer list would use explicit constructor ‘nav_2d_msgs::msg::Twist2D_<ContainerAllocator>::Twist2D_(rosidl_runtime_cpp::MessageInitialization) [with ContainerAllocator = std::allocator<void>]’
+   29 |   ASSERT_TRUE(critic.prepare(point(0,0),{},point(1,0),path));
+      |               ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:29:29: note: in C++11 and above a default constructor can be explicit
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:33:49: warning: converting to ‘const Twist2D’ {aka ‘const nav_2d_msgs::msg::Twist2D_<std::allocator<void> >’} from initializer list would use explicit constructor ‘nav_2d_msgs::msg::Twist2D_<ContainerAllocator>::Twist2D_(rosidl_runtime_cpp::MessageInitialization) [with ContainerAllocator = std::allocator<void>]’
+   33 |   path.poses.clear();EXPECT_FALSE(critic.prepare(point(0,0),{},point(1,0),path));
+      |                                   ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/test/test_path_progress.cpp:33:49: note: in C++11 and above a default constructor can be explicit
+---
+[Processing: cleany_navigation]
+Finished <<< cleany_navigation [36.8s]
+
+Summary: 3 packages finished [1min 29s]
+  3 packages had stderr output: cleany_description cleany_navigation nav2_mppi_controller

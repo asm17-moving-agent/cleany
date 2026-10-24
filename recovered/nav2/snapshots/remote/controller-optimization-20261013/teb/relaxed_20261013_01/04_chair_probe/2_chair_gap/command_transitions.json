@@ -1,0 +1,1234 @@
+[
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 34944.404561296,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.0,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "ROS clock stalled"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 34943.893487362,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.0,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "ROS clock stalled"
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 34943.92106307,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.0,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "ROS clock stalled"
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 0.056,
+    "receive_steady_wall_s": 34946.137376394,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.056,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Missing voxel map, status or wheel odometry"
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 0.056,
+    "receive_steady_wall_s": 34946.137403384,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.056,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Missing voxel map, status or wheel odometry"
+    }
+  },
+  {
+    "topic": "/nav2/cmd_vel",
+    "sim_s": 8.462,
+    "receive_steady_wall_s": 34954.685363683,
+    "moving": true,
+    "command": [
+      0.08335705675626699,
+      0.038599532227920993,
+      -0.03324510936056821
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.422,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 8.502,
+    "receive_steady_wall_s": 34954.716725556,
+    "moving": true,
+    "command": [
+      0.012290841520637147,
+      0.005691428558607725,
+      -0.0049019289594371875
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.482000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 8.502,
+    "receive_steady_wall_s": 34954.717112043,
+    "moving": true,
+    "command": [
+      0.012290841520637147,
+      0.005691428558607725,
+      -0.0049019289594371875
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.482000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 8.808,
+    "receive_steady_wall_s": 34955.043268619,
+    "moving": true,
+    "command": [
+      0.13390228204994215,
+      0.03679883165858668,
+      -0.05263432291461619
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.808,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 8.848,
+    "receive_steady_wall_s": 34955.093199178,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.808,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.008000000000001,
+    "receive_steady_wall_s": 34955.243283892,
+    "moving": true,
+    "command": [
+      0.193699744769222,
+      0.06416618699322656,
+      0.027113466028556764
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.008000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.048,
+    "receive_steady_wall_s": 34955.29320448,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.008000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.694,
+    "receive_steady_wall_s": 34955.943222963,
+    "moving": true,
+    "command": [
+      0.3030877275275978,
+      -0.08615213772977233,
+      -0.0515325535753424
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.694,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.734,
+    "receive_steady_wall_s": 34955.993239051,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.694,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 10.81,
+    "receive_steady_wall_s": 34957.093301689,
+    "moving": true,
+    "command": [
+      0.3175,
+      -0.018119541778684762,
+      -0.03171231039546496
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 10.770000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 10.91,
+    "receive_steady_wall_s": 34957.193216305,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 10.870000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 11.9,
+    "receive_steady_wall_s": 34958.193249631,
+    "moving": true,
+    "command": [
+      0.3175,
+      -0.011779786075063645,
+      -0.008886744539763548
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 11.860000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 12.0,
+    "receive_steady_wall_s": 34958.293259716,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 11.96,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 12.838000000000001,
+    "receive_steady_wall_s": 34959.143236526,
+    "moving": true,
+    "command": [
+      0.3011686861226317,
+      -0.07047449343235189,
+      -0.08196830871874446
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 12.838000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 12.874,
+    "receive_steady_wall_s": 34959.193213883,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 12.838000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 13.718,
+    "receive_steady_wall_s": 34960.043322239,
+    "moving": true,
+    "command": [
+      0.2565552273504156,
+      0.1337447431066399,
+      0.1380449372968948
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 13.718,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 13.758000000000001,
+    "receive_steady_wall_s": 34960.093264186,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 13.718,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 14.644,
+    "receive_steady_wall_s": 34960.993310924,
+    "moving": true,
+    "command": [
+      0.2704141365469554,
+      -0.05268195573974205,
+      -0.19023535804834776
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 14.604000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 14.744000000000002,
+    "receive_steady_wall_s": 34961.093190018,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 14.704,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 15.13,
+    "receive_steady_wall_s": 34961.493397727,
+    "moving": true,
+    "command": [
+      0.2704141365469554,
+      -0.05268195573974205,
+      -0.19023535804834776
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 15.090000000000002,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 15.13,
+    "receive_steady_wall_s": 34961.494371998,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 15.090000000000002,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 15.290000000000001,
+    "receive_steady_wall_s": 34961.643232068,
+    "moving": true,
+    "command": [
+      0.27529436213778113,
+      0.07455921206998455,
+      0.10423620380384756
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 15.250000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 15.33,
+    "receive_steady_wall_s": 34961.693217014,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 15.31,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 16.608,
+    "receive_steady_wall_s": 34962.993232742,
+    "moving": true,
+    "command": [
+      0.23930589307446098,
+      -0.17773577000379243,
+      -0.03494569392584123
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 16.588,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 17.094,
+    "receive_steady_wall_s": 34963.493483668,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.074,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 17.194000000000003,
+    "receive_steady_wall_s": 34963.593670348,
+    "moving": true,
+    "command": [
+      0.1802131373917399,
+      -0.15343964059378293,
+      -0.2035816875077217
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.174,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 17.194000000000003,
+    "receive_steady_wall_s": 34963.593634799,
+    "moving": true,
+    "command": [
+      0.2310560520793735,
+      -0.18619105854732443,
+      -0.0633236906014912
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.174,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 17.234,
+    "receive_steady_wall_s": 34963.628266831,
+    "moving": true,
+    "command": [
+      0.1373847157954112,
+      -0.11672805946221365,
+      -0.11594439875899483
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.234,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 17.294,
+    "receive_steady_wall_s": 34963.693354103,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.274,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 17.754,
+    "receive_steady_wall_s": 34964.143588041,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.734,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 17.77,
+    "receive_steady_wall_s": 34964.160282833,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.77,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 20.148,
+    "receive_steady_wall_s": 34966.593216353,
+    "moving": true,
+    "command": [
+      0.21854561167298558,
+      -0.19337728073782526,
+      0.002193415937823699
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 20.128,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 20.692,
+    "receive_steady_wall_s": 34967.143667342,
+    "moving": true,
+    "command": [
+      0.22336545114610803,
+      -0.2048219705947537,
+      0.00011693183060590194
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 20.652,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 20.712,
+    "receive_steady_wall_s": 34967.167978156,
+    "moving": true,
+    "command": [
+      0.13287151801013275,
+      -0.12184071446640059,
+      0.00011693183060590194
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 20.712,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 23.588,
+    "receive_steady_wall_s": 34970.093528473,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 23.568,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 23.944000000000003,
+    "receive_steady_wall_s": 34970.443153935,
+    "moving": true,
+    "command": [
+      0.25340393686419926,
+      -0.1386146556166209,
+      0.05864189276386222
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 23.924000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 23.984,
+    "receive_steady_wall_s": 34970.493167768,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 23.964000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 24.044,
+    "receive_steady_wall_s": 34970.543544699,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.024,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 24.064,
+    "receive_steady_wall_s": 34970.559190529,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.064,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 24.338,
+    "receive_steady_wall_s": 34970.844080668,
+    "moving": true,
+    "command": [
+      0.25340393686419926,
+      -0.1386146556166209,
+      0.05864189276386222
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.298000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 24.358,
+    "receive_steady_wall_s": 34970.873700663,
+    "moving": true,
+    "command": [
+      0.15816129799799641,
+      -0.0865159165448126,
+      0.05864189276386222
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.358,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 24.478,
+    "receive_steady_wall_s": 34970.994441485,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.458000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 24.498,
+    "receive_steady_wall_s": 34971.010119945,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.498,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 24.538,
+    "receive_steady_wall_s": 34971.04321505,
+    "moving": true,
+    "command": [
+      0.22302266486704872,
+      -0.17870382423156234,
+      0.02562554420911936
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.498,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 24.912000000000003,
+    "receive_steady_wall_s": 34971.444475949,
+    "moving": true,
+    "command": [
+      0.22302266486704872,
+      -0.17870382423156234,
+      0.02562554420911936
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.872,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 24.932000000000002,
+    "receive_steady_wall_s": 34971.473244922,
+    "moving": true,
+    "command": [
+      0.14068517253291035,
+      -0.11272835592425376,
+      0.02562554420911936
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.932000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 24.952,
+    "receive_steady_wall_s": 34971.493140594,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 24.932000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 25.212000000000003,
+    "receive_steady_wall_s": 34971.754795668,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 25.212000000000003,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Local voxel window does not cover the braking sweep"
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 25.292,
+    "receive_steady_wall_s": 34971.822823541,
+    "moving": true,
+    "command": [
+      0.13300013485980186,
+      -0.12170030454881577,
+      0.0467978954105907
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 25.292,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 25.412000000000003,
+    "receive_steady_wall_s": 34971.963818522,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 25.372,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 25.452,
+    "receive_steady_wall_s": 34972.009361815,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 25.452,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 28.738000000000003,
+    "receive_steady_wall_s": 34975.343144705,
+    "moving": true,
+    "command": [
+      -0.006570179615872859,
+      -0.3175,
+      -0.059782106348807325
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 28.738000000000003,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 28.778000000000002,
+    "receive_steady_wall_s": 34975.393189337,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 28.738000000000003,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 28.934,
+    "receive_steady_wall_s": 34975.543177715,
+    "moving": true,
+    "command": [
+      -0.02181194807789769,
+      -0.3175,
+      -0.07521908452242855
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 28.934,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 28.974,
+    "receive_steady_wall_s": 34975.593304467,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 28.934,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 29.326,
+    "receive_steady_wall_s": 34975.943182735,
+    "moving": true,
+    "command": [
+      0.06095373470970776,
+      -0.3175,
+      0.11761763015947113
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 29.326,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 29.366000000000003,
+    "receive_steady_wall_s": 34975.993459175,
+    "moving": true,
+    "command": [
+      -0.02181194807789769,
+      -0.3175,
+      -0.07521908452242855
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 29.326,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 29.366000000000003,
+    "receive_steady_wall_s": 34975.994115759,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 29.326,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 29.466,
+    "receive_steady_wall_s": 34976.093183332,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 29.446,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 29.722,
+    "receive_steady_wall_s": 34976.344050827,
+    "moving": true,
+    "command": [
+      0.06095373470970776,
+      -0.3175,
+      0.11761763015947113
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 29.686000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 29.762,
+    "receive_steady_wall_s": 34976.38389715,
+    "moving": true,
+    "command": [
+      0.03398904484295563,
+      -0.17704447133605594,
+      0.11761763015947113
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 29.762,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 29.962000000000003,
+    "receive_steady_wall_s": 34976.593676722,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 29.962000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 29.982000000000003,
+    "receive_steady_wall_s": 34976.615982133,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 29.982000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 31.200000000000003,
+    "receive_steady_wall_s": 34977.843313698,
+    "moving": true,
+    "command": [
+      -0.028567611105257535,
+      -0.30903903183169734,
+      0.17675883044048077
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 31.160000000000004,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 31.240000000000002,
+    "receive_steady_wall_s": 34977.893178191,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 31.220000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 31.6,
+    "receive_steady_wall_s": 34978.244048737,
+    "moving": true,
+    "command": [
+      -0.028567611105257535,
+      -0.30903903183169734,
+      0.17675883044048077
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 31.560000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 31.62,
+    "receive_steady_wall_s": 34978.275537294,
+    "moving": true,
+    "command": [
+      -0.016594133974942415,
+      -0.1795122132826111,
+      0.14
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 31.62,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/nav2/cmd_vel",
+    "sim_s": 31.64,
+    "receive_steady_wall_s": 34978.280260642,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 31.62,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 31.784000000000002,
+    "receive_steady_wall_s": 34978.443598308,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 31.764000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 31.804000000000002,
+    "receive_steady_wall_s": 34978.460597086,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 31.804000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 32.304,
+    "receive_steady_wall_s": 34978.956708678,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 32.304,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 32.304,
+    "receive_steady_wall_s": 34978.957107995,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 32.304,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  }
+]

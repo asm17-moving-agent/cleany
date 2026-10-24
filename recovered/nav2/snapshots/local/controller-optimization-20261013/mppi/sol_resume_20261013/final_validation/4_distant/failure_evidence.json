@@ -1,0 +1,17 @@
+{
+  "outcome": "abort",
+  "action_status": 6,
+  "navigation_sim_s": 71.41,
+  "exception_sim_s": 84.066,
+  "reported_sequence": [
+    "Optimizer fail to compute path",
+    "FollowPath abort",
+    "wait recovery",
+    "StraightFirstPlanner no_valid_lattice_path after start lattice connection rejected at clearances .05/.025/0",
+    "NavigateToPose abort"
+  ],
+  "atomic_root_cause": null,
+  "atomic_root_cause_null_reason": "No conservative contact instrument or synchronized candidate/costmap failure snapshot; log chain does not establish physical collision cause",
+  "log_path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/final_validation/4_distant/launch.log",
+  "compute_path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/final_validation/4_distant/compute_timing.csv"
+}

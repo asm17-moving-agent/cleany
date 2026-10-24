@@ -1,0 +1,109 @@
+{
+  "sim_s": 70.322,
+  "navigation_sim_s": 56.184,
+  "truth": [
+    5.940245725964536,
+    0.031109941221077513,
+    -1.3954991658990585
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 70.244,
+      "stamp_s": 70.244,
+      "sim_s": 70.244,
+      "target": 0.13823700715612258,
+      "pan": 0.13823700715612258,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        -0.08093941956758499
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.08093941956758499
+      ],
+      "depth_stamp": 70.226
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 70.26400000000001,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 70.244,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        -0.08093941956758499
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        -0.08242199347522236
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 11286,
+      "source_age_s": 0.19599999999999795,
+      "output": [
+        0.0,
+        0.0,
+        -0.08093941956758499
+      ],
+      "processing_ms": 4.641472000002977
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 70.302,
+      "stamp_s": 70.302,
+      "sim_s": 70.302,
+      "target": 0.13823700715612258,
+      "pan": 0.13823700715612258,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        -0.08039340376853943
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.08039340376853943
+      ],
+      "depth_stamp": 70.226
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 70.302,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 70.302,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        -0.08093941956758499
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        -0.08242199347517731
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 11286,
+      "source_age_s": 0.2540000000000049,
+      "output": [
+        0.0,
+        0.0,
+        -0.08093941956758499
+      ],
+      "processing_ms": 9.79154299966467
+    }
+  ]
+}

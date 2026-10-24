@@ -1,0 +1,11 @@
+- direction: GZ_TO_ROS
+  gz_topic_name: /model/cleany_mecanum/lidar/scan
+  gz_type_name: ignition.msgs.LaserScan
+  ros_topic_name: /scan
+  ros_type_name: sensor_msgs/msg/LaserScan
+- direction: GZ_TO_ROS
+  gz_topic_name: /model/cleany_mecanum/head_camera/depth/camera_info
+  gz_type_name: ignition.msgs.CameraInfo
+  qos_profile: SENSOR_DATA
+  ros_topic_name: /camera/head/depth/camera_info
+  ros_type_name: sensor_msgs/msg/CameraInfo

@@ -1,0 +1,432 @@
+{
+  "runs": [
+    {
+      "goal": "straight",
+      "completed": true,
+      "status": 4,
+      "initial_GT": [
+        7.310925200817734e-10,
+        5.993112581348025e-14,
+        6.661338147750939e-16
+      ],
+      "goal_map": [
+        2.0,
+        0.0,
+        0.0
+      ],
+      "owned_launch_stopped": true,
+      "owned_bag_stopped": true,
+      "bag_checks": [
+        {
+          "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/final5_v1/0_straight/bag/bag_0.db3",
+          "integrity": "ok",
+          "topic_message_counts": {
+            "/amcl_pose": 32,
+            "/benchmark/relay_state": 261,
+            "/tf": 1323,
+            "/cmd_vel": 261,
+            "/gazebo_cmd_vel": 261,
+            "/nav2/cmd_vel": 171,
+            "/wheel/odom": 636,
+            "/safety_2d/cmd_vel": 211,
+            "/tf_static": 2,
+            "/benchmark/contacts/c28": 5610,
+            "/benchmark/contacts/c26": 5610,
+            "/joint_states": 590,
+            "/benchmark/contacts/c25": 5609,
+            "/pan_ready/cmd_vel": 241,
+            "/body_guard_3d/state": 242,
+            "/ground_truth/odom": 560,
+            "/head_pan/state": 241,
+            "/clock": 592,
+            "/scan": 62,
+            "/shadow/cmd_vel": 242,
+            "/benchmark/contacts/c27": 5604,
+            "/odom": 539
+          }
+        }
+      ],
+      "canonical_world_equal_excluding_contact_instrumentation": true,
+      "model_metadata_equal": true,
+      "map_equal": true,
+      "XY_goal_tolerance_m": 0.15,
+      "yaw_goal_tolerance_rad": 0.17453292519943295,
+      "full_rollout_s": 2.0,
+      "RotateToGoal_score_lookahead_s": 1.0,
+      "contact_sensor_count": 31,
+      "source_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+      "source_library_hashes": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/libaxis_generator.so": "543211b93305d0102b18fa3e384fb64e5c26df4342d7c2b02fd06ee8ed4f14c7",
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation/lib/libaxis_generator.so": "4763cd31f6c1fd11aee43269e778e2787f32e0f101e2f11b89a93bfc38249d4e"
+      },
+      "live_local_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "live_global_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "command_wheel_limit_observed": true,
+      "joint_wheel_max_rad_s": 4.992795914378448,
+      "contact_heartbeat_available": true
+    },
+    {
+      "goal": "turn_arrival",
+      "completed": true,
+      "status": 4,
+      "initial_GT": [
+        7.310925200817734e-10,
+        5.993112581348025e-14,
+        6.661338147750939e-16
+      ],
+      "goal_map": [
+        4.0,
+        0.0,
+        1.5707963267948966
+      ],
+      "owned_launch_stopped": true,
+      "owned_bag_stopped": true,
+      "bag_checks": [
+        {
+          "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/final5_v1/1_turn_arrival/bag/bag_0.db3",
+          "integrity": "ok",
+          "topic_message_counts": {
+            "/benchmark/contacts/c28": 10286,
+            "/clock": 1096,
+            "/gazebo_cmd_vel": 445,
+            "/nav2/cmd_vel": 372,
+            "/joint_states": 1093,
+            "/benchmark/contacts/c26": 10286,
+            "/benchmark/contacts/c27": 10285,
+            "/benchmark/contacts/c25": 10285,
+            "/amcl_pose": 81,
+            "/shadow/cmd_vel": 443,
+            "/head_pan/state": 444,
+            "/body_guard_3d/state": 443,
+            "/cmd_vel": 443,
+            "/benchmark/relay_state": 443,
+            "/tf": 2295,
+            "/ground_truth/odom": 1026,
+            "/odom": 1090,
+            "/tf_static": 2,
+            "/pan_ready/cmd_vel": 443,
+            "/safety_2d/cmd_vel": 413,
+            "/scan": 114,
+            "/wheel/odom": 1044
+          }
+        }
+      ],
+      "canonical_world_equal_excluding_contact_instrumentation": true,
+      "model_metadata_equal": true,
+      "map_equal": true,
+      "XY_goal_tolerance_m": 0.15,
+      "yaw_goal_tolerance_rad": 0.17453292519943295,
+      "full_rollout_s": 2.0,
+      "RotateToGoal_score_lookahead_s": 1.0,
+      "contact_sensor_count": 31,
+      "source_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+      "source_library_hashes": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/libaxis_generator.so": "543211b93305d0102b18fa3e384fb64e5c26df4342d7c2b02fd06ee8ed4f14c7",
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation/lib/libaxis_generator.so": "4763cd31f6c1fd11aee43269e778e2787f32e0f101e2f11b89a93bfc38249d4e"
+      },
+      "live_local_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "live_global_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "command_wheel_limit_observed": true,
+      "joint_wheel_max_rad_s": 4.990000253421023,
+      "contact_heartbeat_available": true
+    },
+    {
+      "goal": "chair_gap",
+      "completed": true,
+      "status": 4,
+      "initial_GT": [
+        7.310925200817734e-10,
+        5.993112581348025e-14,
+        6.661338147750939e-16
+      ],
+      "goal_map": [
+        3.12,
+        -2.465,
+        0.0
+      ],
+      "owned_launch_stopped": true,
+      "owned_bag_stopped": true,
+      "bag_checks": [
+        {
+          "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/final5_v1/2_chair_gap/bag/bag_0.db3",
+          "integrity": "ok",
+          "topic_message_counts": {
+            "/benchmark/contacts/c28": 11871,
+            "/benchmark/contacts/c26": 11871,
+            "/joint_states": 1261,
+            "/benchmark/contacts/c25": 11870,
+            "/benchmark/contacts/c27": 11868,
+            "/cmd_vel": 511,
+            "/body_guard_3d/state": 512,
+            "/ground_truth/odom": 1187,
+            "/tf": 2640,
+            "/clock": 1260,
+            "/odom": 1260,
+            "/safety_2d/cmd_vel": 462,
+            "/benchmark/relay_state": 511,
+            "/shadow/cmd_vel": 511,
+            "/amcl_pose": 81,
+            "/gazebo_cmd_vel": 510,
+            "/head_pan/state": 492,
+            "/tf_static": 2,
+            "/pan_ready/cmd_vel": 492,
+            "/scan": 126,
+            "/wheel/odom": 1213,
+            "/nav2/cmd_vel": 404
+          }
+        }
+      ],
+      "canonical_world_equal_excluding_contact_instrumentation": true,
+      "model_metadata_equal": true,
+      "map_equal": true,
+      "XY_goal_tolerance_m": 0.15,
+      "yaw_goal_tolerance_rad": 0.17453292519943295,
+      "full_rollout_s": 2.0,
+      "RotateToGoal_score_lookahead_s": 1.0,
+      "contact_sensor_count": 31,
+      "source_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+      "source_library_hashes": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/libaxis_generator.so": "543211b93305d0102b18fa3e384fb64e5c26df4342d7c2b02fd06ee8ed4f14c7",
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation/lib/libaxis_generator.so": "4763cd31f6c1fd11aee43269e778e2787f32e0f101e2f11b89a93bfc38249d4e"
+      },
+      "live_local_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "live_global_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "command_wheel_limit_observed": true,
+      "joint_wheel_max_rad_s": 4.990000000234702,
+      "contact_heartbeat_available": true
+    },
+    {
+      "goal": "far_heading",
+      "completed": true,
+      "status": 4,
+      "initial_GT": [
+        7.310925200817734e-10,
+        5.993112581348025e-14,
+        6.661338147750939e-16
+      ],
+      "goal_map": [
+        6.0,
+        0.0,
+        -1.5707963267948966
+      ],
+      "owned_launch_stopped": true,
+      "owned_bag_stopped": true,
+      "bag_checks": [
+        {
+          "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/final5_v1/3_far_heading/bag/bag_0.db3",
+          "integrity": "ok",
+          "topic_message_counts": {
+            "/cmd_vel": 611,
+            "/benchmark/relay_state": 611,
+            "/wheel/odom": 1497,
+            "/benchmark/contacts/c28": 14207,
+            "/benchmark/contacts/c26": 14207,
+            "/joint_states": 1495,
+            "/benchmark/contacts/c25": 14206,
+            "/ground_truth/odom": 1420,
+            "/tf": 3147,
+            "/clock": 1498,
+            "/nav2/cmd_vel": 520,
+            "/tf_static": 2,
+            "/odom": 1495,
+            "/scan": 157,
+            "/benchmark/contacts/c27": 14199,
+            "/amcl_pose": 117,
+            "/shadow/cmd_vel": 591,
+            "/head_pan/state": 590,
+            "/gazebo_cmd_vel": 590,
+            "/body_guard_3d/state": 592,
+            "/pan_ready/cmd_vel": 590,
+            "/safety_2d/cmd_vel": 560
+          }
+        }
+      ],
+      "canonical_world_equal_excluding_contact_instrumentation": true,
+      "model_metadata_equal": true,
+      "map_equal": true,
+      "XY_goal_tolerance_m": 0.15,
+      "yaw_goal_tolerance_rad": 0.17453292519943295,
+      "full_rollout_s": 2.0,
+      "RotateToGoal_score_lookahead_s": 1.0,
+      "contact_sensor_count": 31,
+      "source_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+      "source_library_hashes": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/libaxis_generator.so": "543211b93305d0102b18fa3e384fb64e5c26df4342d7c2b02fd06ee8ed4f14c7",
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation/lib/libaxis_generator.so": "4763cd31f6c1fd11aee43269e778e2787f32e0f101e2f11b89a93bfc38249d4e"
+      },
+      "live_local_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "live_global_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "command_wheel_limit_observed": true,
+      "joint_wheel_max_rad_s": 4.990000000288881,
+      "contact_heartbeat_available": true
+    },
+    {
+      "goal": "distant",
+      "completed": true,
+      "status": 4,
+      "initial_GT": [
+        7.310925200817734e-10,
+        5.993112581348025e-14,
+        6.661338147750939e-16
+      ],
+      "goal_map": [
+        9.405,
+        -3.73,
+        0.0
+      ],
+      "owned_launch_stopped": true,
+      "owned_bag_stopped": true,
+      "bag_checks": [
+        {
+          "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/final5_v1/4_distant/bag/bag_0.db3",
+          "integrity": "ok",
+          "topic_message_counts": {
+            "/amcl_pose": 199,
+            "/head_pan/state": 1044,
+            "/clock": 2573,
+            "/tf": 5394,
+            "/joint_states": 2572,
+            "/nav2/cmd_vel": 951,
+            "/wheel/odom": 2528,
+            "/odom": 2572,
+            "/pan_ready/cmd_vel": 1044,
+            "/safety_2d/cmd_vel": 994,
+            "/tf_static": 2,
+            "/cmd_vel": 1026,
+            "/gazebo_cmd_vel": 1026,
+            "/body_guard_3d/state": 1027,
+            "/ground_truth/odom": 2389,
+            "/benchmark/relay_state": 1026,
+            "/shadow/cmd_vel": 1026,
+            "/scan": 264,
+            "/benchmark/contacts/c28": 23421,
+            "/benchmark/contacts/c26": 23421,
+            "/benchmark/contacts/c25": 23421,
+            "/benchmark/contacts/c27": 23420
+          }
+        }
+      ],
+      "canonical_world_equal_excluding_contact_instrumentation": true,
+      "model_metadata_equal": true,
+      "map_equal": true,
+      "XY_goal_tolerance_m": 0.15,
+      "yaw_goal_tolerance_rad": 0.17453292519943295,
+      "full_rollout_s": 2.0,
+      "RotateToGoal_score_lookahead_s": 1.0,
+      "contact_sensor_count": 31,
+      "source_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+      "source_library_hashes": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/libaxis_generator.so": "543211b93305d0102b18fa3e384fb64e5c26df4342d7c2b02fd06ee8ed4f14c7",
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation/lib/libaxis_generator.so": "4763cd31f6c1fd11aee43269e778e2787f32e0f101e2f11b89a93bfc38249d4e"
+      },
+      "live_local_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "live_global_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "command_wheel_limit_observed": true,
+      "joint_wheel_max_rad_s": 4.990000000416621,
+      "contact_heartbeat_available": true
+    }
+  ],
+  "owned_partition_processes_remaining": [],
+  "expected_goal_count": 5,
+  "actual_goal_count": 5
+}

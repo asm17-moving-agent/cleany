@@ -1,0 +1,42 @@
+{
+  "final_patch": "final_patch.yaml",
+  "final_source_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+  "representative_outcomes": [
+    {
+      "run": "pilot01c_straight",
+      "sim_s": 9.654,
+      "GT_error_m": 0.131632,
+      "limitation": "backend still clipped.3m/s; subsequently widened only in relaxed runtime copy"
+    },
+    {
+      "run": "pilot02_chair_gap",
+      "sim_s": 20.8,
+      "GT_error_m": 0.16615335,
+      "joint_max_rad_s": 4.990177831
+    },
+    {
+      "run": "pilot03_turn_arrival",
+      "completed": false,
+      "reason": "manual stop terminal yaw plateau full2s RotateToGoal lookahead"
+    },
+    {
+      "run": "pilot04_turn_lookahead",
+      "completed": false,
+      "reason": "manual stop terminal yaw90deg plateau with .5s RotateToGoal lookahead"
+    },
+    {
+      "run": "pilot05_turn_lookahead1",
+      "sim_s": 19.566,
+      "GT_error_m": 0.1204414113,
+      "compute_exceptions": 1,
+      "reason": "1s score lookahead balances full2s PathOrientation/collision rollout"
+    }
+  ],
+  "structural_remaining_limit": "Common localization/goal-checker15cm does not guarantee GT15cm; no common layer change",
+  "contact_positive_control": "contact_positive_control/validation_summary.json",
+  "infrastructure_excluded": [
+    "pilot01_straight invalid numeric contact topics",
+    "pilot01b_straight scoped remap delivery error"
+  ],
+  "score": "none"
+}

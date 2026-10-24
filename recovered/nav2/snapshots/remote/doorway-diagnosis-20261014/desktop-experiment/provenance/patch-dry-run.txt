@@ -1,0 +1,10 @@
+checking file CMakeLists.txt
+checking file README.md
+checking file include/nav2_mppi_controller/controller.hpp
+checking file include/nav2_mppi_controller/optimizer.hpp
+checking file include/nav2_mppi_controller/path_progress.hpp
+checking file include/nav2_mppi_controller/path_seed.hpp
+checking file src/controller.cpp
+checking file src/critic_manager.cpp
+checking file src/optimizer.cpp
+checking file src/replay_snapshot.cpp

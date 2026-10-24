@@ -1,0 +1,32 @@
+[
+  {
+    "link": "base_link",
+    "collision_count": 25,
+    "covered": true
+  },
+  {
+    "link": "front_left_wheel_link",
+    "collision_count": 1,
+    "covered": true
+  },
+  {
+    "link": "front_right_wheel_link",
+    "collision_count": 1,
+    "covered": true
+  },
+  {
+    "link": "rear_left_wheel_link",
+    "collision_count": 1,
+    "covered": true
+  },
+  {
+    "link": "rear_right_wheel_link",
+    "collision_count": 1,
+    "covered": true
+  },
+  {
+    "link": "head_pan_link",
+    "collision_count": 2,
+    "covered": true
+  }
+]

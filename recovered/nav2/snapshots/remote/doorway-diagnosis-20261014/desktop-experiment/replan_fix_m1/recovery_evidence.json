@@ -1,0 +1,33 @@
+{
+  "backup_command_matches": [],
+  "backup_completed_log_count": 0,
+  "backup_collision_rejected_log_count": 1,
+  "route_timeout_log_count": 23,
+  "recovery_log_lines": [
+    "[controller_server-17] [WARN] [1791928876.983564747] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.033561097] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.083562386] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.133540336] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.183494656] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.233561305] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.283537054] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.333542004] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.383563893] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.433544543] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.483534142] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.533546402] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.583496052] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.633542021] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.683540040] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.733544420] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.783538589] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.833543128] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.883539848] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.933524788] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928877.983528347] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928878.033581816] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928878.083537726] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[behavior_server-19] [INFO] [1791928879.333504754] [behavior_server]: Running backup",
+    "[behavior_server-19] [WARN] [1791928879.333724721] [behavior_server]: Collision Ahead - Exiting DriveOnHeading"
+  ]
+}

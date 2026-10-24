@@ -1,0 +1,19 @@
+{
+  "kind": "Recorded Gazebo GT replay, not GUI screen capture",
+  "shared_elapsed_time": true,
+  "frames": 264,
+  "fps": 12,
+  "simulation_duration_s": 98.533,
+  "motion_playback_speed_sim_s_per_wall_s": 4.9472635983263595,
+  "final_hold_s": 2,
+  "individual_gifs": [
+    "diverse8/0_straight/drive.gif",
+    "diverse8/1_turn_arrival/drive.gif",
+    "diverse8/2_chair_gap/drive.gif",
+    "diverse8/3_far_heading/drive.gif",
+    "diverse8/4_distant/drive.gif",
+    "diverse8/5_lateral/drive.gif",
+    "diverse8/6_narrow_seat/drive.gif",
+    "diverse8/7_other_room/drive.gif"
+  ]
+}

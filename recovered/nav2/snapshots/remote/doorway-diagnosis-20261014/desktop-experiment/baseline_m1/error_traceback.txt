@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/laptop-runtime/run_facility_gui.py", line 308, in run
+    rclpy.init();node=Probe(out,scenario);node.initialize();node.wait(2)
+  File "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/laptop-runtime/relaxed_safety_probe.py", line 279, in initialize
+    assert max(abs(p[i]) for p in footprint) >= max(abs(p[i]) for p in stop_points)
+AssertionError

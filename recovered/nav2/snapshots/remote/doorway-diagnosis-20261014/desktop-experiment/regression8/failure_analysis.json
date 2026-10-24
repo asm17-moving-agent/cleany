@@ -1,0 +1,53 @@
+{
+  "status": "initial_6_of_8; both failed goals passed targeted correction checks",
+  "failures": [
+    {
+      "goal_index": 1,
+      "goal": "turn_arrival",
+      "run": "1_turn_arrival",
+      "nav2_status": 6,
+      "gt_xy_m": 0.20300779215163856,
+      "gt_yaw_deg": 7.985667782332444,
+      "classification": "Controller reached goal, but concurrent periodic planning failure caused BT recovery and final abort",
+      "confirmed_evidence": [
+        "launch.log: controller Reached the goal at wall stamp 1791927440.451743412",
+        "launch.log: planner failed at 1791927441.098596487; BackUp then rejected for Collision Ahead",
+        "native_pose_costs.json: saved near-arrival robot/global costs129/local174 and goal95, all below lethal254",
+        "../native/test-replan-tree-result.txt reproduces old BT failure and verifies new typed-path preservation with actual Nav2 BT controls"
+      ],
+      "limits": "Saved maps are sampled every5sim seconds, not an exact planner failure snapshot; cannot assert exact search failure cause. GT being within tolerance does not change Nav2 status6 into success.",
+      "fix": "recovery_keep_path.xml: initial planning mandatory; periodic planning writes separate candidate path and commits only on success; controller failures still recover",
+      "live_retest": {
+        "run": "../replan_fix_turn_arrival",
+        "nav2_status": 4,
+        "gt_xy_m": 0.038074695020189,
+        "gt_yaw_deg": 6.8922416006953995
+      }
+    },
+    {
+      "goal_index": 7,
+      "goal": "other_room",
+      "run": "7_other_room",
+      "nav2_status": 6,
+      "gt_xy_m": 1.0785983636779897,
+      "gt_yaw_deg": 63.14624569510781,
+      "classification": "Prealignment completed, but long exit-goal segment permitted oblique heading and repeated doorway blockage",
+      "confirmed_evidence": [
+        "navigation_stages.json: prealign status4; clear_M1_doorway status6",
+        "final_truth yaw2.6729rad (~153.15deg), y0.77157 at doorway; optimizer all-collision followed by blocked BackUp",
+        "../native/portal-clearance-v2.json: both exact saved costmaps have0/1845 native collisions for x=-17.125±.02m,yaw=pi±2deg,y=.005..2.045m"
+      ],
+      "fix": "portal_approaches_v2.yaml: short0.30m segments at actual lattice cell centers; intermediate2cm/2deg checker and goal rotation lock. Final0.30m/10deg unchanged.",
+      "live_retest": {
+        "failed_intermediate_attempt": "../replan_fix_m1",
+        "failed_stage": "M1_portal_3",
+        "reason": "Successful periodic replan inserted backward loop near goal; last1000 critic Cost deltas0, all end poses behind current",
+        "successful_attempt": "../portal_hold_m1",
+        "nav2_status": 4,
+        "gt_xy_m": 0.05083869961741545,
+        "gt_yaw_deg": 8.397209077965872,
+        "final_fix": "Short portal stages preserve initial Smac route and replan on failure; approach/final retain successful-only periodic replanning"
+      }
+    }
+  ]
+}

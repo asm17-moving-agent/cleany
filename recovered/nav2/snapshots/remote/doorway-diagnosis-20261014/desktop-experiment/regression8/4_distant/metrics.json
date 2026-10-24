@@ -1,0 +1,86 @@
+{
+  "goal_index": 4,
+  "goal_name": "distant",
+  "action_status": 4,
+  "final_truth": [
+    -5.44699195790302,
+    4.760278817610944,
+    -1.6757494645718596
+  ],
+  "position_error_m": 0.0793849346081243,
+  "yaw_error_deg": 6.013390565243359,
+  "navigation_sim_s": 64.167,
+  "navigation_wall_s": 149.00063878200308,
+  "achieved_rtf": 0.43064916046353463,
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 4.909656814139659,
+    "/cmd_vel": 4.909656814139659
+  },
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 1.0265958758943663,
+    "linear_jerk_p95_m_s3": 1.8956340352997743,
+    "angular_jerk_rms_rad_s3": 1.492572624096008,
+    "angular_jerk_p95_rad_s3": 3.6524944254581593,
+    "stationary_s": 0.30000000000000004,
+    "motion_start_count": 1,
+    "yaw_reversals": 2,
+    "lateral_reversals": 29,
+    "speed_mean_m_s": 0.19787968368919373,
+    "speed_max_m_s": 0.24939147934386122
+  },
+  "error": null,
+  "gt_tolerance_success": true,
+  "success": true,
+  "nav2_success": true,
+  "command_sim_interval_s": {
+    "/nav2/cmd_vel": {
+      "mean": 0.021557692307692305,
+      "p95": 0.028000000000005798,
+      "p99": 0.029000000000003467
+    },
+    "/pan_ready/cmd_vel": {
+      "mean": 0.02155241935483871,
+      "p95": 0.027999999999998693,
+      "p99": 0.028999999999996362
+    },
+    "/safety_2d/cmd_vel": {
+      "mean": 0.021690742624618516,
+      "p95": 0.028000000000005798,
+      "p99": 0.036000000000001364
+    },
+    "/shadow/cmd_vel": null,
+    "/cmd_vel": {
+      "mean": 0.021554432086282438,
+      "p95": 0.028000000000005798,
+      "p99": 0.029000000000003467
+    }
+  },
+  "controller_deadline_warning_count": 0,
+  "measured_joint_max_rad_s": 4.874157776446358,
+  "contacts": {
+    "non_floor_non_self_records": 0,
+    "pairs": [],
+    "sampled_floor_records": 256,
+    "self_records": 0,
+    "unknown_pair_records": 0,
+    "all_collision_links_instrumented": true,
+    "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+  },
+  "compute_timing_columns": [
+    "sequence",
+    "sim_time_ns",
+    "wall_start_ns",
+    "compute_us",
+    "success"
+  ],
+  "compute_timing": {
+    "compute_us": {
+      "median": 3273.49,
+      "p95": 4420.9346,
+      "p99": 6622.027000000003,
+      "max": 10040.747
+    }
+  },
+  "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+}

@@ -1,0 +1,98 @@
+{
+  "sim_s": 133.619,
+  "navigation_sim_s": 125.287,
+  "truth": [
+    -1.9163613474496264,
+    -3.030112613601284,
+    0.9586624748708527
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 133.60500000000002,
+      "stamp_s": 133.605,
+      "sim_s": 133.605,
+      "target": 0.7853981633974483,
+      "pan": 0.7853981633974483,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        -0.0042
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.0042
+      ],
+      "depth_stamp": 133.584
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 133.612,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 133.608,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        -0.0042
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 19431,
+      "source_age_s": 0.030000000000001137,
+      "output": [
+        0.0,
+        0.0,
+        -0.0042
+      ],
+      "processing_ms": 6.004292983561754
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 133.612,
+      "sim_s": 133.612,
+      "requested": [
+        0.0,
+        0.0,
+        -0.006
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.006
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 133.615,
+      "stamp_s": 133.615,
+      "sim_s": 133.615,
+      "target": 0.7853981633974483,
+      "pan": 0.7853981633974483,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        -0.006
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.006
+      ],
+      "depth_stamp": 133.584
+    }
+  ]
+}

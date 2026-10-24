@@ -1,0 +1,98 @@
+{
+  "sim_s": 28.048000000000002,
+  "navigation_sim_s": 16.797,
+  "truth": [
+    -1.9629269635277453,
+    -2.820042393047891,
+    0.1393761957684544
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 28.011000000000003,
+      "stamp_s": 28.003,
+      "sim_s": 28.003,
+      "target": 3.141592653589793,
+      "pan": 1.9969693718024901,
+      "reason": "TURNING_PAN",
+      "requested": [
+        -0.10000000149011612,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 27.985
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 28.029000000000003,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 28.02,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        -0.10132483661881266,
+        -0.003493959883407333,
+        0.007326399420019571
+      ],
+      "nearby_voxels": 104,
+      "total_voxels": 8936,
+      "source_age_s": 0.1460000000000008,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 3.5330969985807315
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 28.029000000000003,
+      "stamp_s": 28.029,
+      "sim_s": 28.029,
+      "target": 3.141592653589793,
+      "pan": 2.0229693718024873,
+      "reason": "TURNING_PAN",
+      "requested": [
+        -0.10000000149011612,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 27.985
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 28.038,
+      "sim_s": 28.038,
+      "requested": [
+        -0.10000000149011612,
+        0.0,
+        0.0
+      ],
+      "output": [
+        -0.10000000149011612,
+        0.0,
+        0.0
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    }
+  ]
+}

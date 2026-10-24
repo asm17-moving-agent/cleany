@@ -1,0 +1,122 @@
+[
+  {
+    "index": 7,
+    "id": "diag_exit",
+    "action_status": 4,
+    "pose_count": 229,
+    "wall_s": 0.03424131499923533,
+    "path_length_m": 11.899746606476265,
+    "total_path_yaw_change_rad": 3.999999999892978e-06,
+    "start": [
+      [
+        -1.865,
+        -4.705,
+        1.5708
+      ]
+    ],
+    "end": [
+      [
+        -7.0,
+        -1.0,
+        1.570796
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+        "GridBased.holonomic_direct_path": true,
+        "GridBased.require_exact_goal": true,
+        "GridBased.lattice_collision_padding": 0.05
+      }
+    }
+  },
+  {
+    "index": 7,
+    "id": "diag_hall",
+    "action_status": 4,
+    "pose_count": 269,
+    "wall_s": 0.04500249500051723,
+    "path_length_m": 14.64533108073363,
+    "total_path_yaw_change_rad": 3.999999999892978e-06,
+    "start": [
+      [
+        -1.865,
+        -4.705,
+        1.5708
+      ]
+    ],
+    "end": [
+      [
+        -10.0,
+        0.0,
+        1.570796
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+        "GridBased.holonomic_direct_path": true,
+        "GridBased.require_exact_goal": true,
+        "GridBased.lattice_collision_padding": 0.05
+      }
+    }
+  },
+  {
+    "index": 7,
+    "id": "diag_M1_approach",
+    "action_status": 6,
+    "pose_count": 0,
+    "wall_s": 34.569546593997075,
+    "path_length_m": 0,
+    "total_path_yaw_change_rad": 0,
+    "start": [],
+    "end": [],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+        "GridBased.holonomic_direct_path": true,
+        "GridBased.require_exact_goal": true,
+        "GridBased.lattice_collision_padding": 0.05
+      }
+    }
+  },
+  {
+    "index": 7,
+    "id": "diag_M1_near",
+    "action_status": 6,
+    "pose_count": 0,
+    "wall_s": 38.49568123499921,
+    "path_length_m": 0,
+    "total_path_yaw_change_rad": 0,
+    "start": [],
+    "end": [],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+        "GridBased.holonomic_direct_path": true,
+        "GridBased.require_exact_goal": true,
+        "GridBased.lattice_collision_padding": 0.05
+      }
+    }
+  }
+]

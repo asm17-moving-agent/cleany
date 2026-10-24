@@ -48,6 +48,8 @@ private:
   double command_dt_{0.};
   bool use_elapsed_command_time_{true};
   bool preserve_translation_direction_{true};
+  bool prefer_target_translation_direction_{false};
+  double max_wheel_speed_{0.},wheel_radius_{.0635},wheel_lever_{(.35+.6038)/2.};
   std::vector<nav_2d_msgs::msg::Twist2D> candidates_;
   size_t index_{0};
   double fine_scale_{.25};

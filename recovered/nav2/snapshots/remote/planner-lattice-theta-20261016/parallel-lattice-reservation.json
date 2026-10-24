@@ -1,0 +1,6 @@
+{
+  "planner": "lattice",
+  "goal_index": 7,
+  "started_wall": 1792091191.6392548,
+  "reason": "User requested additional parallel simulation workers"
+}

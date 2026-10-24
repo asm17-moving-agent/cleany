@@ -1,0 +1,210 @@
+{
+  "sample_wall_s": 8.000067516004492,
+  "cpu_logical_count": 18,
+  "processes": [
+    {
+      "pid": 591852,
+      "cpu_percent_one_core_100": 124.4,
+      "rss_mb": 2135.5,
+      "cmd": "ign gazebo -r -s --render-engine-server ogre2 /tmp/cleany-friction-frames-0bthx63h/world.sdf               "
+    },
+    {
+      "pid": 592050,
+      "cpu_percent_one_core_100": 32.5,
+      "rss_mb": 87.8,
+      "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_navigation/lib/cleany_navigation/voxel_guard --ros-args -r __node:=voxel_guard --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml --params-"
+    },
+    {
+      "pid": 591990,
+      "cpu_percent_one_core_100": 21.5,
+      "rss_mb": 60.1,
+      "cmd": "/opt/ros/humble/lib/nav2_controller/controller_server --ros-args -r __node:=controller_server --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml --params-file /tmp/launch_params_i0ijfvp7 -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r"
+    },
+    {
+      "pid": 591862,
+      "cpu_percent_one_core_100": 14.7,
+      "rss_mb": 60.8,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_feedback_sampler --ros-args -r __node:=gazebo_feedback_sampler --params-file /tmp/launch_params_hq_gc"
+    },
+    {
+      "pid": 593023,
+      "cpu_percent_one_core_100": 14.4,
+      "rss_mb": 71.0,
+      "cmd": "/usr/bin/python3 /opt/ros/humble/bin/ros2 bag record -o /home/ehdrms/workspace/cleany/cleany-data/runs/lattice-mppi-gui-20261014/runtime-v2/7_other_room/bag /clock /ground_truth/odom /odom /wheel/odom /joint_states /nav2/cmd_vel /pan_ready/"
+    },
+    {
+      "pid": 592046,
+      "cpu_percent_one_core_100": 14.2,
+      "rss_mb": 111.2,
+      "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_navigation/lib/cleany_navigation/obstacle_memory --ros-args -r __node:=obstacle_memory --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml -"
+    },
+    {
+      "pid": 592012,
+      "cpu_percent_one_core_100": 13.7,
+      "rss_mb": 91.8,
+      "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_navigation/lib/cleany_navigation/depth_clearance --ros-args -r __node:=depth_clearance --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml -"
+    },
+    {
+      "pid": 592026,
+      "cpu_percent_one_core_100": 8.1,
+      "rss_mb": 62.6,
+      "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_navigation/lib/cleany_navigation/pan_motion_gate --ros-args -r __node:=pan_motion_gate --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml -"
+    },
+    {
+      "pid": 591866,
+      "cpu_percent_one_core_100": 5.9,
+      "rss_mb": 62.7,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_odom_tf_publisher --ros-args -r __node:=gazebo_odom_tf_publisher --params-file /home/ehdrms/workspace"
+    },
+    {
+      "pid": 592059,
+      "cpu_percent_one_core_100": 5.6,
+      "rss_mb": 49.8,
+      "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge /evaluation/contacts/base_link@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts /evaluation/contacts/front_left_wheel_link@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts /evaluation/contact"
+    },
+    {
+      "pid": 591872,
+      "cpu_percent_one_core_100": 5.0,
+      "rss_mb": 61.0,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/simulated_odometry_error_node --ros-args -r __node:=simulated_odometry_error --params-file /home/ehdrms/work"
+    },
+    {
+      "pid": 591870,
+      "cpu_percent_one_core_100": 4.9,
+      "rss_mb": 61.5,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_base_odometry/lib/cleany_base_odometry/wheel_odometry_node --ros-args -r __node:=wheel_odometry --params-file /home/ehdrms/workspace/cleany/c"
+    },
+    {
+      "pid": 591854,
+      "cpu_percent_one_core_100": 4.4,
+      "rss_mb": 2196.6,
+      "cmd": "ign gazebo -g --render-engine-gui ogre2               "
+    },
+    {
+      "pid": 591856,
+      "cpu_percent_one_core_100": 4.4,
+      "rss_mb": 50.8,
+      "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge --ros-args -r __node:=gazebo_core_bridge --params-file /tmp/launch_params_8d62qq8x -r /clock:=/gazebo/raw_clock -r /joint_states:=/gazebo/raw_joint_states "
+    },
+    {
+      "pid": 591878,
+      "cpu_percent_one_core_100": 4.2,
+      "rss_mb": 63.0,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_pan_tf_publisher --ros-args --params-file /tmp/launch_params_ma4fhpzd --params-file /tmp/launch_param"
+    },
+    {
+      "pid": 591996,
+      "cpu_percent_one_core_100": 4.0,
+      "rss_mb": 47.9,
+      "cmd": "/opt/ros/humble/lib/nav2_bt_navigator/bt_navigator --ros-args -r __node:=bt_navigator --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml --params-file /tmp/launch_params_tkpgrwqn -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r cmd_vel"
+    },
+    {
+      "pid": 591992,
+      "cpu_percent_one_core_100": 3.9,
+      "rss_mb": 155.7,
+      "cmd": "/opt/ros/humble/lib/nav2_planner/planner_server --ros-args -r __node:=planner_server --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml --params-file /tmp/launch_params_2cmz4vw8 -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r cmd_vel:"
+    },
+    {
+      "pid": 592057,
+      "cpu_percent_one_core_100": 3.7,
+      "rss_mb": 59.5,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/runs/lattice-mppi-gui-20261014/wheel_limit_node.py "
+    },
+    {
+      "pid": 591868,
+      "cpu_percent_one_core_100": 3.5,
+      "rss_mb": 60.9,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/simulated_encoder_node --ros-args -r __node:=simulated_encoder --params-file /home/ehdrms/workspace/cleany/c"
+    },
+    {
+      "pid": 591864,
+      "cpu_percent_one_core_100": 3.4,
+      "rss_mb": 59.9,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_command_guard --ros-args -r __node:=gazebo_command_guard --params-file /home/ehdrms/workspace/cleany/"
+    },
+    {
+      "pid": 592002,
+      "cpu_percent_one_core_100": 3.2,
+      "rss_mb": 62.4,
+      "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_navigation/lib/cleany_navigation/nav2_bt_trace --ros-args -r __node:=nav2_bt_trace --params-file /tmp/launch_params_tg2cquep -r voxel_guard:cmd_vel:=/"
+    },
+    {
+      "pid": 592053,
+      "cpu_percent_one_core_100": 3.0,
+      "rss_mb": 37.6,
+      "cmd": "/opt/ros/humble/lib/nav2_collision_monitor/collision_monitor --ros-args -r __node:=collision_monitor --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml --params-file /tmp/launch_params_vf5xrlet -r voxel_guard:cmd_vel:=/shadow/cmd"
+    },
+    {
+      "pid": 591936,
+      "cpu_percent_one_core_100": 2.7,
+      "rss_mb": 45.8,
+      "cmd": "/opt/ros/humble/lib/nav2_amcl/amcl --ros-args -r __node:=amcl --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml --params-file /tmp/launch_params_wg4f7ejt -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r cmd_vel:=nav2/cmd_vel "
+    },
+    {
+      "pid": 591994,
+      "cpu_percent_one_core_100": 2.7,
+      "rss_mb": 38.1,
+      "cmd": "/opt/ros/humble/lib/nav2_behaviors/behavior_server --ros-args -r __node:=behavior_server --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml --params-file /tmp/launch_params_khnbxpli -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r cmd_"
+    },
+    {
+      "pid": 591860,
+      "cpu_percent_one_core_100": 2.4,
+      "rss_mb": 56.6,
+      "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge --ros-args -r __node:=gazebo_head_depth_bridge --params-file /tmp/launch_params_34yddvut "
+    },
+    {
+      "pid": 592000,
+      "cpu_percent_one_core_100": 2.2,
+      "rss_mb": 31.3,
+      "cmd": "/opt/ros/humble/lib/nav2_lifecycle_manager/lifecycle_manager --ros-args -r __node:=lifecycle_manager_navigation --params-file /tmp/launch_params_ff6jh76z -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r cmd_vel:=nav2/cmd_vel "
+    },
+    {
+      "pid": 591874,
+      "cpu_percent_one_core_100": 2.1,
+      "rss_mb": 62.7,
+      "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/mppi-optimization/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_sensor_tf_publisher --ros-args -r __node:=gazebo_sensor_tf_publisher --params-file /home/ehdrms/works"
+    },
+    {
+      "pid": 591876,
+      "cpu_percent_one_core_100": 2.0,
+      "rss_mb": 48.7,
+      "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge /model/cleany_mecanum/head_pan/cmd_pos@std_msgs/msg/Float64]gz.msgs.Double --ros-args -r __node:=head_pan_bridge -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r /model/cleany_mecanum/head_pan/cm"
+    },
+    {
+      "pid": 591933,
+      "cpu_percent_one_core_100": 1.9,
+      "rss_mb": 37.7,
+      "cmd": "/opt/ros/humble/lib/nav2_map_server/map_server --ros-args -r __node:=map_server --params-file /tmp/cleany-navigation-hm3q4bv5/parameters.yaml --params-file /tmp/launch_params_32mj7494 --params-file /tmp/launch_params_bc3i1558 -r voxel_guard"
+    },
+    {
+      "pid": 591998,
+      "cpu_percent_one_core_100": 1.9,
+      "rss_mb": 31.3,
+      "cmd": "/opt/ros/humble/lib/nav2_lifecycle_manager/lifecycle_manager --ros-args -r __node:=lifecycle_manager_localization --params-file /tmp/launch_params_nt48puda -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r cmd_vel:=nav2/cmd_vel "
+    },
+    {
+      "pid": 591858,
+      "cpu_percent_one_core_100": 1.7,
+      "rss_mb": 49.1,
+      "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge --ros-args -r __node:=gazebo_lidar_bridge --params-file /tmp/launch_params_uaqvgoit "
+    },
+    {
+      "pid": 592055,
+      "cpu_percent_one_core_100": 1.6,
+      "rss_mb": 30.8,
+      "cmd": "/opt/ros/humble/lib/nav2_lifecycle_manager/lifecycle_manager --ros-args -r __node:=lifecycle_manager_safety --params-file /tmp/launch_params_tqcea7gv -r voxel_guard:cmd_vel:=/shadow/cmd_vel -r cmd_vel:=nav2/cmd_vel "
+    },
+    {
+      "pid": 591927,
+      "cpu_percent_one_core_100": 0.6,
+      "rss_mb": 29.0,
+      "cmd": "/opt/ros/humble/lib/tf2_ros/static_transform_publisher --frame-id head_camera_depth_frame --child-frame-id head_camera_depth_optical_frame --roll -1.5707963267948966 --pitch 0 --yaw -1.5707963267948966 --ros-args -r __node:=depth_optical_tf"
+    },
+    {
+      "pid": 591819,
+      "cpu_percent_one_core_100": 0.0,
+      "rss_mb": 69.1,
+      "cmd": "/usr/bin/python3 /opt/ros/humble/bin/ros2 launch /home/ehdrms/workspace/cleany/cleany-data/runs/lattice-mppi-gui-20261014/runtime-v2/7_other_room/run.launch.py "
+    }
+  ]
+}

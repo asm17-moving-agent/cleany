@@ -1,0 +1,195 @@
+[
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.22,
+    "sim_s": 14.22,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 14.242,
+    "sim_s": 14.242,
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "STOP_UNAVAILABLE"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.454,
+    "sim_s": 14.454,
+    "requested": [
+      0.0032252566888928413,
+      -0.001124412054196,
+      -0.0011797331972047687
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.554,
+    "sim_s": 14.554,
+    "requested": [
+      0.010202519595623016,
+      -0.0005759525811299682,
+      0.003047117032110691
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.610000000000001,
+    "sim_s": 14.61,
+    "requested": [
+      0.01312654372304678,
+      5.8833538787439466e-05,
+      0.003565936116501689
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.65,
+    "sim_s": 14.65,
+    "requested": [
+      0.01735582761466503,
+      -0.00020794400188606232,
+      0.00414650933817029
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.71,
+    "sim_s": 14.71,
+    "requested": [
+      0.020374448969960213,
+      0.00027626624796539545,
+      0.0014401422813534737
+    ],
+    "output": [
+      0.020374448969960213,
+      0.00027626624796539545,
+      0.0014401422813534737
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 14.73,
+    "sim_s": 14.71,
+    "requested": [
+      0.020374448969960213,
+      0.00027626624796539545,
+      0.0014401422813534737
+    ],
+    "output": [
+      0.020374448969960213,
+      0.00027626624796539545,
+      0.0014401422813534737
+    ],
+    "reason": "PASS_OBSERVED_SPACE"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 21.830000000000002,
+    "sim_s": 21.83,
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "STOP_UNAVAILABLE"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 21.87,
+    "sim_s": 21.87,
+    "requested": [
+      0.15000000596046448,
+      -0.0008638296858407557,
+      0.004933962132781744
+    ],
+    "output": [
+      0.15000000596046448,
+      -0.0008638296858407557,
+      0.004933962132781744
+    ],
+    "reason": "PASS_OBSERVED_SPACE"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 45.804,
+    "sim_s": 45.804,
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "STOP_UNAVAILABLE"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 45.828,
+    "sim_s": 45.828,
+    "requested": [
+      0.0,
+      0.0,
+      0.07313381880521774
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.07313381880521774
+    ],
+    "reason": "PASS_OBSERVED_SPACE"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 59.142,
+    "sim_s": 59.122,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  }
+]

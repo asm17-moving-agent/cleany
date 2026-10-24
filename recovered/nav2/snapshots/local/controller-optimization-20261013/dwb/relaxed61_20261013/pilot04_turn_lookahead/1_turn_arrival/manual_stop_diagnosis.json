@@ -1,0 +1,6 @@
+{
+  "reason": "0.5s RotateToGoal score remained dominated by full2s PathOrientation penalty: estimateXY12.3cm, yaw error90.32deg, controller command zero. Next test1s lookahead to retain enough goal-yaw incentive without full2s terminal overshoot.",
+  "excluded_from_completed_outcomes": true,
+  "terminated_by": "SIGINT to owned supervisor",
+  "evidence": "live bag /tf and /nav2/cmd_vel; raw bag preserved"
+}

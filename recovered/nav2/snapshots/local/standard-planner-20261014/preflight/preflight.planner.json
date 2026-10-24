@@ -1,0 +1,262 @@
+[
+  {
+    "index": 0,
+    "id": "straight",
+    "action_status": 4,
+    "pose_count": 15,
+    "wall_s": 0.018455336001352407,
+    "path_length_m": 1.0000000149011612,
+    "total_path_yaw_change_rad": 0.0,
+    "start": [
+      [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ]
+    ],
+    "end": [
+      [
+        -1.8749996703118086,
+        -3.7249998319894075,
+        1.5707963705062866
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json"
+      }
+    }
+  },
+  {
+    "index": 1,
+    "id": "turn_arrival",
+    "action_status": 4,
+    "pose_count": 39,
+    "wall_s": 0.007104912998329382,
+    "path_length_m": 2.333953325653581,
+    "total_path_yaw_change_rad": 3.4253865480422974,
+    "start": [
+      [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ]
+    ],
+    "end": [
+      [
+        -1.8749996703118086,
+        -2.8249998185783625,
+        0.0
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json"
+      }
+    }
+  },
+  {
+    "index": 2,
+    "id": "chair_gap",
+    "action_status": 4,
+    "pose_count": 99,
+    "wall_s": 0.011114118999103084,
+    "path_length_m": 5.4772403947441015,
+    "total_path_yaw_change_rad": 4.996183284113201,
+    "start": [
+      [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ]
+    ],
+    "end": [
+      [
+        0.5750003661960363,
+        -1.624999800696969,
+        1.5707963705062866
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json"
+      }
+    }
+  },
+  {
+    "index": 3,
+    "id": "far_heading",
+    "action_status": 4,
+    "pose_count": 90,
+    "wall_s": 0.012821218999306438,
+    "path_length_m": 4.987531110307657,
+    "total_path_yaw_change_rad": 3.1415926853763025,
+    "start": [
+      [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ]
+    ],
+    "end": [
+      [
+        -1.8749996703118086,
+        -0.3249997813254595,
+        4.71238899230957
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json"
+      }
+    }
+  },
+  {
+    "index": 4,
+    "id": "distant",
+    "action_status": 4,
+    "pose_count": 249,
+    "wall_s": 0.010125566997885471,
+    "path_length_m": 13.056716441113569,
+    "total_path_yaw_change_rad": 4.068887829780579,
+    "start": [
+      [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ]
+    ],
+    "end": [
+      [
+        -5.524999724701047,
+        4.775000294670463,
+        4.71238899230957
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json"
+      }
+    }
+  },
+  {
+    "index": 5,
+    "id": "lateral",
+    "action_status": 4,
+    "pose_count": 23,
+    "wall_s": 0.004231812003126834,
+    "path_length_m": 1.182093861793597,
+    "total_path_yaw_change_rad": 2.2142980098724365,
+    "start": [
+      [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ]
+    ],
+    "end": [
+      [
+        -1.2749996613711119,
+        -4.724999846890569,
+        1.5707963705062866
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json"
+      }
+    }
+  },
+  {
+    "index": 6,
+    "id": "narrow_seat",
+    "action_status": 4,
+    "pose_count": 35,
+    "wall_s": 0.008161172998370603,
+    "path_length_m": 1.9058258349423447,
+    "total_path_yaw_change_rad": 4.068888314554485,
+    "start": [
+      [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ]
+    ],
+    "end": [
+      [
+        -3.12499968893826,
+        -4.474999843165278,
+        1.5707963705062866
+      ]
+    ],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json"
+      }
+    }
+  },
+  {
+    "index": 7,
+    "id": "other_room",
+    "action_status": 6,
+    "pose_count": 0,
+    "wall_s": 5.009457845000725,
+    "path_length_m": 0,
+    "total_path_yaw_change_rad": 0,
+    "start": [],
+    "end": [],
+    "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+    "live": {
+      "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+      "footprint_padding": 0.02,
+      "inflation_layer.inflation_radius": 0.8,
+      "inflation_layer.cost_scaling_factor": 6.0,
+      "planner": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json"
+      }
+    }
+  }
+]

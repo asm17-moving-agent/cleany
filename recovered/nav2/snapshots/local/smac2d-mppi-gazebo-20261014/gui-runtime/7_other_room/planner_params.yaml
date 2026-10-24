@@ -1,0 +1,12 @@
+planner_server:
+  ros__parameters:
+    GridBased:
+      allow_unknown: false
+      cost_travel_multiplier: 2.0
+      max_planning_time: 5.0
+      plugin: nav2_smac_planner/SmacPlanner2D
+      tolerance: 0.05
+      use_final_approach_orientation: false
+    planner_plugins:
+    - GridBased
+    use_sim_time: true

@@ -1,0 +1,63 @@
+{
+  "candidates": [
+    {
+      "id": "DWB",
+      "status": "previously tested configuration"
+    },
+    {
+      "id": "MPPI",
+      "status": "previously tested configuration"
+    },
+    {
+      "id": "TEB",
+      "status": "previously tested configuration"
+    },
+    {
+      "id": "RPP",
+      "status": "previously tested configuration"
+    },
+    {
+      "id": "Neo Local Planner",
+      "status": "candidate; Cleany build and runtime not verified",
+      "source": "https://www.neobotix-docs.de/ros/packages/neo_local_planner2.html",
+      "note": "Differential and holonomic modes documented; Cleany build/runtime pending"
+    },
+    {
+      "id": "Graceful Controller",
+      "status": "candidate; Cleany build and runtime not verified",
+      "source": "https://github.com/ros-navigation/navigation2/tree/humble/nav2_graceful_controller",
+      "note": "Smooth pose-following; evaluate Humble implementation and lateral usage"
+    },
+    {
+      "id": "Vector Pursuit",
+      "status": "candidate; Cleany build and runtime not verified",
+      "source": "https://github.com/blackcoffeerobotics/vector_pursuit_controller",
+      "note": "Path-following comparison; standard differential/Ackermann style, no lateral exploitation"
+    },
+    {
+      "id": "Omni Pursuit",
+      "status": "candidate; Cleany build and runtime not verified",
+      "source": "https://github.com/qkrt-rm/qkrt-nav",
+      "note": "Experimental custom Humble mecanum plugin; original zero angular output requires heading alignment adaptation"
+    }
+  ],
+  "candidate_count": 8,
+  "criteria": {
+    "xy_goal_tolerance_m": 0.3,
+    "yaw_goal_tolerance_deg": 10,
+    "wheel_rad_s_max": 5,
+    "world": "full facility 18F",
+    "destination_chair": "remove only destination chair and regenerate matching map",
+    "metrics": [
+      "navigation status",
+      "time",
+      "compute",
+      "smoothness",
+      "collision/contact",
+      "final error diagnostic"
+    ]
+  },
+  "execution": "not started; no new chats created",
+  "note": "Candidates are distinct controller implementations; no implied compatibility proof or new repetition count",
+  "status": "cancelled: user meant 8 goal scenarios, not 8 controllers"
+}

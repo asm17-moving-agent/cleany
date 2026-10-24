@@ -1,0 +1,82 @@
+{
+  "goal_index": 5,
+  "goal_name": "lateral",
+  "action_status": 4,
+  "final_truth": [
+    -1.5308152729304405,
+    -4.714566387933156,
+    1.584133640558681
+  ],
+  "position_error_m": 0.26598735891235936,
+  "yaw_error_deg": 0.76396132955688,
+  "navigation_sim_s": 2.3149999999999995,
+  "navigation_wall_s": 5.200626218000252,
+  "achieved_rtf": 0.4451387011793677,
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 4.394747284776348,
+    "/cmd_vel": 4.394747284776348
+  },
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 2.5428646838860582,
+    "linear_jerk_p95_m_s3": 5.879228160091261,
+    "angular_jerk_rms_rad_s3": 0.16597041361155512,
+    "angular_jerk_p95_rad_s3": 0.3618775576796954,
+    "stationary_s": 0.65,
+    "motion_start_count": 1,
+    "yaw_reversals": 0,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.14572231090308416,
+    "speed_max_m_s": 0.22919137405191642
+  },
+  "error": null,
+  "gt_tolerance_success": true,
+  "success": true,
+  "nav2_success": true,
+  "command_sim_interval_s": {
+    "/nav2/cmd_vel": {
+      "mean": 0.021647887323943675,
+      "p95": 0.028999999999999915,
+      "p99": 0.02930000000000099
+    },
+    "/pan_ready/cmd_vel": {
+      "mean": 0.022291262135922325,
+      "p95": 0.028999999999999915,
+      "p99": 0.030000000000001102
+    },
+    "/safety_2d/cmd_vel": null,
+    "/shadow/cmd_vel": null,
+    "/cmd_vel": {
+      "mean": 0.02971052631578946,
+      "p95": 0.04624999999999968,
+      "p99": 0.1719999999999997
+    }
+  },
+  "controller_deadline_warning_count": 0,
+  "measured_joint_max_rad_s": 3.994990737763729,
+  "contacts": {
+    "non_floor_non_self_records": 0,
+    "pairs": [],
+    "sampled_floor_records": 8,
+    "self_records": 0,
+    "unknown_pair_records": 0,
+    "all_collision_links_instrumented": true,
+    "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+  },
+  "compute_timing_columns": [
+    "sequence",
+    "sim_time_ns",
+    "wall_start_ns",
+    "compute_us",
+    "success"
+  ],
+  "compute_timing": {
+    "compute_us": {
+      "median": 3641.5969999999998,
+      "p95": 4272.041550000001,
+      "p99": 6423.077620000034,
+      "max": 10233.49
+    }
+  },
+  "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+}

@@ -1,0 +1,8 @@
+{
+  "snapshot": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/generalization/regression8/7_other_room",
+  "sim_s": 112.40400000000001,
+  "closest_index": 3,
+  "replay_speed": "zero",
+  "path_points": 34,
+  "caveat": "nearest position then 1.5m crop reconstructed from saved global path, not exact in-flight transformed path"
+}

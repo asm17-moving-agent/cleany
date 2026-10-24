@@ -1,0 +1,239 @@
+{
+  "candidate": "rpp",
+  "goal_index": 0,
+  "goal_name": "straight",
+  "goal_map": [
+    2.0,
+    0.0,
+    0.0
+  ],
+  "completed": true,
+  "domain": 228,
+  "partition": "cleany_comparison_a38b28982ef14a3bb50cfa9a4c12f703",
+  "host": "142spp-endeavour",
+  "sim_timeout_s": 240.0,
+  "wall_watchdog_s": 360.0,
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "verified_controller": {
+    "FollowPath.plugin": "cleany_benchmark::TimedController",
+    "FollowPath.wrapped_plugin": "cleany_navigation::CurvatureLimitedRPP"
+  },
+  "verified_yaw_limit": {
+    "FollowPath.tracking_yaw_limit": 0.14
+  },
+  "dynamic_limit_change_test": {
+    "rejected": true,
+    "reason": "tracking_yaw_limit is configure-time only; cleanup and reconfigure"
+  },
+  "verified_planner": {
+    "GridBased.plugin": "cleany_navigation::StraightFirstPlanner"
+  },
+  "rpp_limit_note": "Humble RPP has no native translational acceleration or tracking angular-velocity limit. Final common voxel guard caps speed/yaw; controller acceleration settings apply natively only to DWB/MPPI/TEB. No shared velocity smoother is present.",
+  "nav2_localized_final_pose": [
+    1.8533638457997643,
+    0.008892073655681912,
+    -0.04757716728419207
+  ],
+  "nav2_localized_position_error_m": 0.1469055162086617,
+  "nav2_localized_yaw_error_deg": 2.7259708865721026,
+  "final_sample_sim_s": 26.518,
+  "action_status": 4,
+  "position_error_m": 0.1372443995909338,
+  "yaw_error_deg": 2.179158683771213,
+  "final_truth": [
+    1.8634755617347103,
+    0.01403933671592097,
+    -0.03803349395523359
+  ],
+  "navigation_sim_s": 16.378,
+  "navigation_wall_s": 16.800513181005954,
+  "achieved_rtf": 0.9748511741008226,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 0.5343634551553964,
+    "linear_jerk_p95_m_s3": 0.12036199781455502,
+    "angular_jerk_rms_rad_s3": 0.6253529105746063,
+    "angular_jerk_p95_rad_s3": 1.228109104590558,
+    "stationary_s": 1.55,
+    "motion_start_count": 1,
+    "yaw_reversals": 5,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.11372674484059238,
+    "speed_max_m_s": 0.15000442733190436
+  },
+  "navigation_sim_start_s": 8.132,
+  "navigation_sim_end_s": 24.51,
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 3.377037533149317,
+    "/cmd_vel": 3.377037533149317
+  },
+  "command_sim_interval_s": {
+    "/nav2/cmd_vel": {
+      "mean": 0.04867752442996742,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    },
+    "/pan_ready/cmd_vel": {
+      "mean": 0.04874404761904762,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    },
+    "/safety_2d/cmd_vel": {
+      "mean": 0.048747720364741655,
+      "p95": 0.060000000000002274,
+      "p99": 0.08000000000000007
+    },
+    "/cmd_vel": {
+      "mean": 0.048710447761194035,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    }
+  },
+  "sensor_freshness": {
+    "/scan": {
+      "count": 91,
+      "sim_period_mean_s": 0.181,
+      "sim_period_p95_s": 0.18200000000000216,
+      "received_age_p95_s": 0.0270000000000028,
+      "received_age_max_s": 0.03200000000000003
+    },
+    "/camera/head/depth/points": {
+      "count": 207,
+      "sim_period_mean_s": 0.07944660194174757,
+      "sim_period_p95_s": 0.13400000000000034,
+      "received_age_p95_s": 0.018000000000000682,
+      "received_age_max_s": 0.02000000000000135
+    },
+    "/ground_truth/odom": {
+      "count": 820,
+      "sim_period_mean_s": 0.02,
+      "sim_period_p95_s": 0.020000000000003126,
+      "received_age_p95_s": -0.0019999999999988916,
+      "received_age_max_s": 3.552713678800501e-15
+    }
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 308
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 32.98013871799776,
+  "controller_deadline_warning_count": 0
+}

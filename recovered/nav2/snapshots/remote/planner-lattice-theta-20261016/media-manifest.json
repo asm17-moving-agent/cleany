@@ -1,0 +1,65 @@
+[
+  {
+    "path": "media/01-straight-pair-2x.gif",
+    "frames": 20,
+    "duration_ms": 4000,
+    "sha256": "6f63c07367fcf6c8d2e19459066218aa39e76f172bcfd06a6e3dba5a70bbd115",
+    "bytes": 163091
+  },
+  {
+    "path": "media/02-turn_arrival-pair-2x.gif",
+    "frames": 45,
+    "duration_ms": 9000,
+    "sha256": "76d55ccd170b22a104ff823cb60e3df1ca2adb003fc3e2a3e47e6ebce75ad388",
+    "bytes": 329657
+  },
+  {
+    "path": "media/03-chair_gap-pair-2x.gif",
+    "frames": 74,
+    "duration_ms": 14800,
+    "sha256": "ed7d8d26d21ccac1fcfe276cad6cc6d6bfcf77b1e243e016f52776b8aa479309",
+    "bytes": 617431
+  },
+  {
+    "path": "media/04-far_heading-pair-2x.gif",
+    "frames": 80,
+    "duration_ms": 16000,
+    "sha256": "311df8d8e76a07e598e7e1f2d928d5d0b172c8cd67f98e0d66a19a29678ba516",
+    "bytes": 643449
+  },
+  {
+    "path": "media/05-distant-pair-2x.gif",
+    "frames": 153,
+    "duration_ms": 30600,
+    "sha256": "5fa6a6fd2b99c87dc3a002899572d369e6aebd3cf74384dd81ed1909631b7c8c",
+    "bytes": 1424055
+  },
+  {
+    "path": "media/06-lateral-pair-2x.gif",
+    "frames": 15,
+    "duration_ms": 3000,
+    "sha256": "4a3d526d399981c5df68de2f8e7de49941fa0e438edfdb52939673951c697e2f",
+    "bytes": 107341
+  },
+  {
+    "path": "media/07-narrow_seat-pair-2x.gif",
+    "frames": 37,
+    "duration_ms": 7400,
+    "sha256": "992fcd9ce7bff0832916c66fe34545da0ac64eff7e1bf0b9e6cea4cfb6032d12",
+    "bytes": 352993
+  },
+  {
+    "path": "media/08-other_room-pair-2x.gif",
+    "frames": 257,
+    "duration_ms": 51400,
+    "sha256": "55b075ec7132b147d4c5325877659d835d1df62b3da36bafc6d4c1457c3f0444",
+    "bytes": 1436848
+  },
+  {
+    "path": "media/lattice-theta-2rows-8cols-2x.gif",
+    "frames": 257,
+    "duration_ms": 51400,
+    "sha256": "312a3c9f84264f09f00800afb9bb33bf7dd707d53b74628e0e24d1c682f716bb",
+    "bytes": 7602865
+  }
+]

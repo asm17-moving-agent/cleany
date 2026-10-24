@@ -1,0 +1,14 @@
+{
+  "base_commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "conservative_commit": "538e9231ac68a4a95ebed4c7961d995ce539fc26",
+  "relaxed_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+  "full_patch": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/combined_source.patch",
+  "full_patch_sha256": "372475cd76a5e9393309a0ce05efc6219e43c3010cee84669f99fb1860445479",
+  "conservative_profile": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/final.yaml",
+  "relaxed_profile": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/final.yaml",
+  "production_safety_bypass_added": false,
+  "Gazebo_only_bypass_runner": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/run_relaxed.py",
+  "tests_194_log": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/build-test-wheel-envelope-fixed.log",
+  "test_log_sha256": "ea11c52ca4c2438379bb731f37ad60178e9ae1138d6506197b6645d05a18cd64",
+  "push": false
+}

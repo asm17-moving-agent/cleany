@@ -1,0 +1,161 @@
+{
+  "gif_count": 9,
+  "runs": 32,
+  "frozen_input_audit": true,
+  "gif_checks": [
+    {
+      "file": "01-straight-four-combos-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 24.806000000000004,
+      "playback_s": 12.8,
+      "frames": 64,
+      "dimensions": [
+        880,
+        640
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    },
+    {
+      "file": "05-distant-four-combos-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 209.10200000000003,
+      "playback_s": 104.8,
+      "frames": 524,
+      "dimensions": [
+        880,
+        640
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    },
+    {
+      "file": "controller-planner-4rows-8cols-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 209.10200000000003,
+      "playback_s": 104.8,
+      "frames": 524,
+      "dimensions": [
+        3520,
+        1280
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    },
+    {
+      "file": "06-lateral-four-combos-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 150.484,
+      "playback_s": 75.6,
+      "frames": 378,
+      "dimensions": [
+        880,
+        640
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    },
+    {
+      "file": "08-other_room-four-combos-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 188.786,
+      "playback_s": 94.6,
+      "frames": 473,
+      "dimensions": [
+        880,
+        640
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    },
+    {
+      "file": "02-turn_arrival-four-combos-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 125.99100000000001,
+      "playback_s": 63.2,
+      "frames": 316,
+      "dimensions": [
+        880,
+        640
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    },
+    {
+      "file": "04-far_heading-four-combos-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 185.67000000000002,
+      "playback_s": 93.2,
+      "frames": 466,
+      "dimensions": [
+        880,
+        640
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    },
+    {
+      "file": "07-narrow_seat-four-combos-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 136.447,
+      "playback_s": 68.6,
+      "frames": 343,
+      "dimensions": [
+        880,
+        640
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    },
+    {
+      "file": "03-chair_gap-four-combos-2x.gif",
+      "kind": "Actual Gazebo GT replay, not GUI screen recording",
+      "speedup": 2,
+      "sim_step_s": 0.4,
+      "frame_ms": 200,
+      "duration_sim_s": 90.648,
+      "playback_s": 45.6,
+      "frames": 228,
+      "dimensions": [
+        880,
+        640
+      ],
+      "finished_runs_hold_final_pose": true,
+      "failed_and_stationary_segments_preserved": true,
+      "actual_first_global_plan_overlay": true
+    }
+  ],
+  "validation": "Each GIF renderer reopens output, traverses frames and sums durations. Finalizer checks saved metadata/dimensions,32 CSV/JSON rows and paired input audit."
+}

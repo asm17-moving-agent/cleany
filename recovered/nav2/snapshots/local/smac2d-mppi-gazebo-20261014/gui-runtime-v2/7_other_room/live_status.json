@@ -1,0 +1,107 @@
+{
+  "sim_s": 274.976,
+  "navigation_sim_s": 264.302,
+  "truth": [
+    -16.122474622008053,
+    -0.26253292639354436,
+    2.405650280424672
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 274.956,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 274.956,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 7328,
+      "source_age_s": 0.19800000000003593,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 1.866527003585361
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 274.961,
+      "sim_s": 274.961,
+      "requested": [
+        0.22255057096481323,
+        -0.0028035063296556473,
+        0.012734088115394115
+      ],
+      "output": [
+        0.22255057096481323,
+        -0.0028035063296556473,
+        0.012734088115394115
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 274.961,
+      "stamp_s": 274.961,
+      "sim_s": 274.961,
+      "target": -0.012596499019587303,
+      "pan": -0.009201501068709608,
+      "reason": "PASS",
+      "requested": [
+        0.22255057096481323,
+        -0.0028035063296556473,
+        0.012734088115394115
+      ],
+      "output": [
+        0.22255057096481323,
+        -0.0028035063296556473,
+        0.012734088115394115
+      ],
+      "depth_stamp": 274.956
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 274.976,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 274.968,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.22255057096481323,
+        -0.0028035063296556473,
+        0.012734088115394115
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 7328,
+      "source_age_s": 0.21000000000003638,
+      "output": [
+        0.18026326148066557,
+        -0.002270806102067109,
+        0.012734088115394115
+      ],
+      "processing_ms": 9.469511998759117
+    }
+  ]
+}

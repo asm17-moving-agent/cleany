@@ -1,0 +1,828 @@
+{
+  "seat_count": 82,
+  "chair_count": 82,
+  "seats": [
+    "seat-01",
+    "seat-02",
+    "seat-03",
+    "seat-04",
+    "seat-05",
+    "seat-06",
+    "seat-07",
+    "seat-08",
+    "seat-09",
+    "seat-10",
+    "seat-11",
+    "seat-12",
+    "seat-13",
+    "seat-14",
+    "seat-15",
+    "seat-16",
+    "seat-17",
+    "seat-18",
+    "seat-19",
+    "seat-20",
+    "seat-21",
+    "seat-22",
+    "seat-23",
+    "seat-24",
+    "seat-25",
+    "seat-26",
+    "seat-27",
+    "seat-28",
+    "seat-29",
+    "seat-30",
+    "seat-31",
+    "seat-32",
+    "seat-33",
+    "seat-34",
+    "seat-35",
+    "seat-36",
+    "seat-37",
+    "seat-38",
+    "seat-39",
+    "seat-40",
+    "seat-41",
+    "seat-42",
+    "seat-43",
+    "seat-44",
+    "seat-45",
+    "seat-46",
+    "seat-47",
+    "seat-48",
+    "seat-a4-01",
+    "seat-a4-02",
+    "seat-a4-03",
+    "seat-a4-04",
+    "seat-m1-01",
+    "seat-m1-02",
+    "seat-m1-03",
+    "seat-m1-04",
+    "seat-m1-05",
+    "seat-m1-06",
+    "seat-m2-01",
+    "seat-m2-02",
+    "seat-m2-03",
+    "seat-m2-04",
+    "seat-m2-05",
+    "seat-m2-06",
+    "seat-m3-01",
+    "seat-m3-02",
+    "seat-m3-03",
+    "seat-m3-04",
+    "seat-m3-05",
+    "seat-m3-06",
+    "seat-a3-01",
+    "seat-a3-02",
+    "seat-a3-03",
+    "seat-a3-04",
+    "seat-a2-01",
+    "seat-a2-02",
+    "seat-a2-03",
+    "seat-a2-04",
+    "seat-a1-01",
+    "seat-a1-02",
+    "seat-a1-03",
+    "seat-a1-04"
+  ],
+  "manifests": [
+    {
+      "seat": "seat-01",
+      "removed_chair": "office_chair_01",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "9ae9b92d8464da1a4b1fdab8234450fd838f4babca9eebb2f00b09fd3654953f",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-02",
+      "removed_chair": "office_chair_02",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "f7744d7cf72324388cf62337122b2a94eeae4c7d8341d7b37c92dd985ac862ff",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-03",
+      "removed_chair": "office_chair_03",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "fa8d9a60da3f896f2d6509d8f1a921d2d691f5573f641d8edc1e8a0aff5495b3",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-04",
+      "removed_chair": "office_chair_04",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "965f1f40363a3a412d1f303c966efc8e9ef9688ae32b4a9267a570f0ded55082",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-05",
+      "removed_chair": "office_chair_05",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "06272dbe4dcfd28f233564759443f2a4b9a464f7ae310233f79951463b3f2d8b",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-06",
+      "removed_chair": "office_chair_06",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "2df1aad324f2583b289b888c7f4c905066e5f77089028e9ec36d4b463e69bba1",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-07",
+      "removed_chair": "office_chair_07",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "081860615b62048611dfef2f4ba86f48b8d8b494144cddcd25ed80d6e32d7f0e",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-08",
+      "removed_chair": "office_chair_08",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "bd475e0ff9d824627b6b0d1ab03999c81ca839b1ac9de6ee3ea3135dfcd275f8",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-09",
+      "removed_chair": "office_chair_09",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "95c4c297ca51215f99f885bf27f860c713eeebe0184ba920176f54230c7daee0",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-10",
+      "removed_chair": "office_chair_10",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "6e8cb792b77886adc817f9c72383f409d64994c1ff543ce66d621c938cd810c2",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-11",
+      "removed_chair": "office_chair_11",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "1d85a448a27b865ab006154ba4119cfd3bac6f2ee27665d420eb54cdbd4fa480",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-12",
+      "removed_chair": "office_chair_12",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "7d3cbcb2a96b376c051fdb9ce50d6fb795984551601e9befc3f005f92b9b3748",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-13",
+      "removed_chair": "office_chair_13",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "686924a74716027c254b190df989f8de826e36233203c54374cb37a519f2db8d",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-14",
+      "removed_chair": "office_chair_14",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "282d8cb67ad20e69342130f15955ec27ffbf6c329297ce90368cfdbfeac7fa10",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-15",
+      "removed_chair": "office_chair_15",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "997cf90bbcbfbf61a9cbe87819f516b992405b7c47b1b3fd36d7a008c51d1ca3",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-16",
+      "removed_chair": "office_chair_16",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "55d2f1711e1cdbfc5419bc76c5dc7961b33926cac66759bd52ea0f566ed8a6ff",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-17",
+      "removed_chair": "office_chair_17",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "8b80e5932e30047f4b75c7f2ed96ad72169b1725fec7f325caf4c9c13149e46b",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-18",
+      "removed_chair": "office_chair_18",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "a61ee76490aa70ec57dcb44d80bf1cca2865ceb4c8bd94d3b11755f1539244d6",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-19",
+      "removed_chair": "office_chair_19",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "b9e75d440e6750314bb5ccd39f2ea1ff87d6ff09f5c29c59fdf30a874227eb30",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-20",
+      "removed_chair": "office_chair_20",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "13ccc0e6b2e2144599c6339ea4d54a51a6e53280577707970dce4577ece0a700",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-21",
+      "removed_chair": "office_chair_21",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "844cf987a3cc0d65605b7badc2e61edb9f1776146ba23a2cfca83983bc65700d",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-22",
+      "removed_chair": "office_chair_22",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "1f4bf612ba21328bafcd0100a1d95f417684ff65df4cf4c699adbde8338b17ab",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-23",
+      "removed_chair": "office_chair_23",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "fb6730b425a1babb1eef77f73a8c8f8d038d930dbd7a633789665fe75cbf1c37",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-24",
+      "removed_chair": "office_chair_24",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "1782a289b74fc111eed26f6e02abd0b0991639de467a86423b5c1f1085effcd8",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-25",
+      "removed_chair": "office_chair_25",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "56ec1073d4c575b4bead5ce08c2596894534ae326a51d918c64eba2d9990fd4d",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-26",
+      "removed_chair": "office_chair_26",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "ed46f3be2bd22845fc2039397bf9e0825e479d16252562fe19fd1fc045c531a4",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-27",
+      "removed_chair": "office_chair_27",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "69bf1b872d8ff24985df687ca12f1c30a17053a22f318acb91e33c41f768dac3",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-28",
+      "removed_chair": "office_chair_28",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "655b0d248a9c0b83e2dcac4528ce165d5b51cd7ca36121f0e15bdd89d78c39b1",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-29",
+      "removed_chair": "office_chair_29",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "ca076a1ed2db3726abf71e8536f43a058685af71b88a52418ec7f6e47956f91b",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-30",
+      "removed_chair": "office_chair_30",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "04695afe4483dc3402f892cf982c5d8845261dea29e077faed712e1bf2d843f7",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-31",
+      "removed_chair": "office_chair_31",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "93006cb0e975599d745c7ca947ed8200d4d53b26a47fe93635efa640a6947476",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-32",
+      "removed_chair": "office_chair_32",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "b97517abdac18109980f40f497e79705984c80740d3680b9cb149e5373a1dddb",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-33",
+      "removed_chair": "office_chair_33",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "2b80fc4cb538623aa3c914599ce21caf39e5acd6d0d96c7eee20df6835df4342",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-34",
+      "removed_chair": "office_chair_34",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "f20afd44473b9a7e5527413333a5c1a07eb067707979eb03a969ab34d6d406d1",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-35",
+      "removed_chair": "office_chair_35",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "43828c4e76b9833d40673a5fee0dd61147d7d11a651d42c1529d1eb29588f93b",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-36",
+      "removed_chair": "office_chair_36",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "81451bc12f09be18fd984ac710b6521213c5d41b26acf5d7d365925295de08e2",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-37",
+      "removed_chair": "office_chair_37",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "6891b75614ef71e355c8dd4ae46cd50a2b3a6dcfce0109f49f764820d3228684",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-38",
+      "removed_chair": "office_chair_38",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "112f837ef91c5c14c725eb2ea1612fd3da944c0edcc7b34148a797acd982419d",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-39",
+      "removed_chair": "office_chair_39",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "761f6b8a032e0b87dac7f999b9d39ed9b0affbfef11734133732f15cba822db2",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-40",
+      "removed_chair": "office_chair_40",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "d47e4264b5c02c12fd385a49be59ffd5254bb8dc5aa23443fa783388160c3448",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-41",
+      "removed_chair": "office_chair_41",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "171d0347944e10a3309076313de14e3345483d4d75bd65c3a2f95751c5fc7271",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-42",
+      "removed_chair": "office_chair_42",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "f624fe55b0359f46e004bdfb72de37c0bc36393089a4c8a217e2fe7e1de9727c",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-43",
+      "removed_chair": "office_chair_43",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "9c7854b07c19a2c3c625dc8945cfb778e1c0d29cafc6c97321c4bbdce9cad8e3",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-44",
+      "removed_chair": "office_chair_44",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "3bfce831ba614e5c56820f226c55ac646502adc25cf2b03cb34d063d4f68d71e",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-45",
+      "removed_chair": "office_chair_45",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "8930e7a0f354896274ae6bc6449919a7d82050fc9cd75c17df24b7af57f741e6",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-46",
+      "removed_chair": "office_chair_46",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "19956ed939da76793dbe2bc0f5c60f84a6c7d4c351f6c4bde880e2a0fefac224",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-47",
+      "removed_chair": "office_chair_47",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "867f79122761983973f905e2adb0d6762d5b3285da20332cc8ea538cdb15b46e",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-48",
+      "removed_chair": "office_chair_48",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "7cbe426d30a92fa8e78d2954767bdd6edd8df4b60cda6e63236abcf51d720b7e",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a4-01",
+      "removed_chair": "facility_chair_A41",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "344c65c6d42214de04638e887d0474dba289a13b07f7315a9dbb57b090db9f16",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a4-02",
+      "removed_chair": "facility_chair_A42",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "d9328dd8cadca02d18ba4d0b243d7ba9ed20b251f6a760ebfb7a82b558495bfe",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a4-03",
+      "removed_chair": "facility_chair_A43",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "3734ed3d146a731bcd191cf7881aaf1353aee7ecbaa677a054f5c6dae7f5aca4",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a4-04",
+      "removed_chair": "facility_chair_A44",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "7b53ab0f264e2be342aba30113f6b73c690e2eb3f7acb502078479a3afbdd99d",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m1-01",
+      "removed_chair": "facility_chair_M11",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "716c1609e81975dd4ba97aa29ecac71665d5df74203eb46bf10bd3e6df1afbce",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m1-02",
+      "removed_chair": "facility_chair_M12",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "cef6ad5169e5692e3d861a81ff75dfdcf5a4d7a35ada3ea732ad2183fc5fe7a7",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m1-03",
+      "removed_chair": "facility_chair_M13",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "f0401f37c7ce024aa21c15afbd28dbec7c2e3b08422c9338bf310f2e285f72ae",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m1-04",
+      "removed_chair": "facility_chair_M14",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "d8cc5002e1a39d58e30571831c92d0569b7a5a1faf47f02f54d5c3da84737387",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m1-05",
+      "removed_chair": "facility_chair_M15",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "108a50fca1c4c0b1fcbd1cd2d63fb04d72eae6ea46bc3c7b8e3bb6c570468041",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m1-06",
+      "removed_chair": "facility_chair_M16",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "547c9584fdfa6e11f19b06d0964bc1feec5cbde6daafb2f195217dda44900fdc",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m2-01",
+      "removed_chair": "facility_chair_M21",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "5bc278fae4ad8ebe03fb84af2763f80bac5cef40eb80525024dd9e739c0ac69c",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m2-02",
+      "removed_chair": "facility_chair_M22",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "abf519bc217a258d789b70f848110939cfe49910ac928952f6e1b65669b43d7b",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m2-03",
+      "removed_chair": "facility_chair_M23",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "5a04f1cfb9ed2d3e2e4be27231b97bcfa821ac6719e627e6cbb7bcb0868bdbce",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m2-04",
+      "removed_chair": "facility_chair_M24",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "69c92054e5da00852d88b8ee5aa00299c30b3d47d3c50fce8c403b9f62fad081",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m2-05",
+      "removed_chair": "facility_chair_M25",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "d7cca0248179817a3c55eca1338dbab8aa4cc838f4bbd031872889d5d7732776",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m2-06",
+      "removed_chair": "facility_chair_M26",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "178d63058c79a321bc322cce7d95d2c9c7128b63edd6e4bbcc0bfb00eee6063c",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m3-01",
+      "removed_chair": "facility_chair_M31",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "51642088cbd8088ecbb0384210bdb99217f7b071e9593c23d1085385adcb76e9",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m3-02",
+      "removed_chair": "facility_chair_M32",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "fd75cc0d73675974a78b5caa8d2bd68207d6fadc51643ad61bc02cd505d7976b",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m3-03",
+      "removed_chair": "facility_chair_M33",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "9ee7b9898bfc7db4f282e9e870b2ab797063947471779390ab721d4d8778f6f1",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m3-04",
+      "removed_chair": "facility_chair_M34",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "ec48e96a9b56b810123bdf6fad05240711250ff8d3be32bebd2c8ed62851b10d",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m3-05",
+      "removed_chair": "facility_chair_M35",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "7eab6c86d3787f4283e9a9b003639c85378296272aac1086c330d8e774e129c6",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-m3-06",
+      "removed_chair": "facility_chair_M36",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "986437c0082e270e413934b1ca48b955f05f437615959b52d9c20ed78a5f9161",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a3-01",
+      "removed_chair": "facility_chair_A31",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "02f8a9ddffeb57f8dbc7605d9585f020daa06778922bf33da61487a5b8fe3267",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a3-02",
+      "removed_chair": "facility_chair_A32",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "c855d737b0a92a3f2cdde7b33408008abc24f1037ff49dfba8132cb7b5dd9f1b",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a3-03",
+      "removed_chair": "facility_chair_A33",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "2a2ea6d8f0206041a782dca83e104fd583b15304b41e9898cd789a49d1c500fa",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a3-04",
+      "removed_chair": "facility_chair_A34",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "502957137f915c79c2f447aa403897c2557bad82fe1ee29de344cf663581494a",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a2-01",
+      "removed_chair": "facility_chair_A21",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "4026c2705dad823ebf544043c5628c65239d858309fa5a320d8cdfe16ea7bef5",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a2-02",
+      "removed_chair": "facility_chair_A22",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "243ff464bd8ee8027dd8b47a465bfd4a8402310fb64fa8f726661c296b96e54e",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a2-03",
+      "removed_chair": "facility_chair_A23",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "d8085277296aabda24899ccd612950cbb23defcb166d60ffab53b0b1e99a4b98",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a2-04",
+      "removed_chair": "facility_chair_A24",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "3025251cc7cb4dc1885d74c53360f0cb4cf38a9182ca1d8f987da67a2c295805",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a1-01",
+      "removed_chair": "facility_chair_A11",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "8f62c5c208ce21b37132ddf6d7a90b7e21f6a6fd9fd253d526261b87f35f33d9",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a1-02",
+      "removed_chair": "facility_chair_A12",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "696ac2e92f7ccaf3f3053775394bccdc2ed3a0aa330e982d79085cb7d7449114",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a1-03",
+      "removed_chair": "facility_chair_A13",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "58a1c8944ad285d125bf9b294e57ea46e98fbb03695afd9323c1a35dcdaeec51",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    },
+    {
+      "seat": "seat-a1-04",
+      "removed_chair": "facility_chair_A14",
+      "model_count_before": 330,
+      "model_count_after": 329,
+      "sha256": "45aac12121c80ca201543efd74611f5260ac304b9d457e2ce5c202e268a42ed3",
+      "source_sha256": "df88e7eedb07bcd247abf05a2956a17f3511713323f07552fb749944e259bbb4",
+      "reference_sha256": "3322f75f192f31d96830926314342012566b4d68959816a0c50aee0b5240f959"
+    }
+  ]
+}

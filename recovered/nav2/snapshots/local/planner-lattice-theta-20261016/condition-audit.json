@@ -1,0 +1,173 @@
+{
+  "paired_condition_checks": [
+    {
+      "goal": "straight",
+      "checks": {
+        "controller": true,
+        "bt_sha256": true,
+        "map_sha256": true,
+        "world_sha256": true,
+        "manual_waypoints": true,
+        "mppi_install": true,
+        "requested_rtf": true,
+        "loaded_mppi_binaries": true,
+        "lattice_wheel5": true,
+        "lattice_arrival30cm10deg": true,
+        "lattice_local_costmap_physical_footprint": true,
+        "lattice_global_costmap_physical_footprint": true,
+        "theta_wheel5": true,
+        "theta_arrival30cm10deg": true,
+        "theta_local_costmap_physical_footprint": true,
+        "theta_global_costmap_physical_footprint": true
+      }
+    },
+    {
+      "goal": "turn_arrival",
+      "checks": {
+        "controller": true,
+        "bt_sha256": true,
+        "map_sha256": true,
+        "world_sha256": true,
+        "manual_waypoints": true,
+        "mppi_install": true,
+        "requested_rtf": true,
+        "loaded_mppi_binaries": true,
+        "lattice_wheel5": true,
+        "lattice_arrival30cm10deg": true,
+        "lattice_local_costmap_physical_footprint": true,
+        "lattice_global_costmap_physical_footprint": true,
+        "theta_wheel5": true,
+        "theta_arrival30cm10deg": true,
+        "theta_local_costmap_physical_footprint": true,
+        "theta_global_costmap_physical_footprint": true
+      }
+    },
+    {
+      "goal": "chair_gap",
+      "checks": {
+        "controller": true,
+        "bt_sha256": true,
+        "map_sha256": true,
+        "world_sha256": true,
+        "manual_waypoints": true,
+        "mppi_install": true,
+        "requested_rtf": true,
+        "loaded_mppi_binaries": true,
+        "lattice_wheel5": true,
+        "lattice_arrival30cm10deg": true,
+        "lattice_local_costmap_physical_footprint": true,
+        "lattice_global_costmap_physical_footprint": true,
+        "theta_wheel5": true,
+        "theta_arrival30cm10deg": true,
+        "theta_local_costmap_physical_footprint": true,
+        "theta_global_costmap_physical_footprint": true
+      }
+    },
+    {
+      "goal": "far_heading",
+      "checks": {
+        "controller": true,
+        "bt_sha256": true,
+        "map_sha256": true,
+        "world_sha256": true,
+        "manual_waypoints": true,
+        "mppi_install": true,
+        "requested_rtf": true,
+        "loaded_mppi_binaries": true,
+        "lattice_wheel5": true,
+        "lattice_arrival30cm10deg": true,
+        "lattice_local_costmap_physical_footprint": true,
+        "lattice_global_costmap_physical_footprint": true,
+        "theta_wheel5": true,
+        "theta_arrival30cm10deg": true,
+        "theta_local_costmap_physical_footprint": true,
+        "theta_global_costmap_physical_footprint": true
+      }
+    },
+    {
+      "goal": "distant",
+      "checks": {
+        "controller": true,
+        "bt_sha256": true,
+        "map_sha256": true,
+        "world_sha256": true,
+        "manual_waypoints": true,
+        "mppi_install": true,
+        "requested_rtf": true,
+        "loaded_mppi_binaries": true,
+        "lattice_wheel5": true,
+        "lattice_arrival30cm10deg": true,
+        "lattice_local_costmap_physical_footprint": true,
+        "lattice_global_costmap_physical_footprint": true,
+        "theta_wheel5": true,
+        "theta_arrival30cm10deg": true,
+        "theta_local_costmap_physical_footprint": true,
+        "theta_global_costmap_physical_footprint": true
+      }
+    },
+    {
+      "goal": "lateral",
+      "checks": {
+        "controller": true,
+        "bt_sha256": true,
+        "map_sha256": true,
+        "world_sha256": true,
+        "manual_waypoints": true,
+        "mppi_install": true,
+        "requested_rtf": true,
+        "loaded_mppi_binaries": true,
+        "lattice_wheel5": true,
+        "lattice_arrival30cm10deg": true,
+        "lattice_local_costmap_physical_footprint": true,
+        "lattice_global_costmap_physical_footprint": true,
+        "theta_wheel5": true,
+        "theta_arrival30cm10deg": true,
+        "theta_local_costmap_physical_footprint": true,
+        "theta_global_costmap_physical_footprint": true
+      }
+    },
+    {
+      "goal": "narrow_seat",
+      "checks": {
+        "controller": true,
+        "bt_sha256": true,
+        "map_sha256": true,
+        "world_sha256": true,
+        "manual_waypoints": true,
+        "mppi_install": true,
+        "requested_rtf": true,
+        "loaded_mppi_binaries": true,
+        "lattice_wheel5": true,
+        "lattice_arrival30cm10deg": true,
+        "lattice_local_costmap_physical_footprint": true,
+        "lattice_global_costmap_physical_footprint": true,
+        "theta_wheel5": true,
+        "theta_arrival30cm10deg": true,
+        "theta_local_costmap_physical_footprint": true,
+        "theta_global_costmap_physical_footprint": true
+      }
+    },
+    {
+      "goal": "other_room",
+      "checks": {
+        "controller": true,
+        "bt_sha256": true,
+        "map_sha256": true,
+        "world_sha256": true,
+        "manual_waypoints": true,
+        "mppi_install": true,
+        "requested_rtf": true,
+        "loaded_mppi_binaries": true,
+        "lattice_wheel5": true,
+        "lattice_arrival30cm10deg": true,
+        "lattice_local_costmap_physical_footprint": true,
+        "lattice_global_costmap_physical_footprint": true,
+        "theta_wheel5": true,
+        "theta_arrival30cm10deg": true,
+        "theta_local_costmap_physical_footprint": true,
+        "theta_global_costmap_physical_footprint": true
+      }
+    }
+  ],
+  "all_equal": true
+}

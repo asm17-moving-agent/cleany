@@ -1,0 +1,1200 @@
+[
+  {
+    "phase": "runtime_verified",
+    "sim_s": 5.1000000000000005,
+    "states": {
+      "map_server": "active",
+      "amcl": "active",
+      "controller_server": "active",
+      "planner_server": "active",
+      "behavior_server": "active",
+      "bt_navigator": "active",
+      "collision_monitor": "active",
+      "local_costmap/local_costmap": "active",
+      "global_costmap/global_costmap": "active"
+    },
+    "parameters": {
+      "controller_server": {
+        "odom_topic": "odom",
+        "FollowPath.plugin": "cleany_benchmark::TimedController",
+        "FollowPath.time_steps": 80,
+        "FollowPath.model_dt": 0.05,
+        "FollowPath.vx_max": 0.3175,
+        "FollowPath.PathAlignCritic.cost_weight": 3.0,
+        "FollowPath.PathFollowCritic.cost_weight": 15.0,
+        "FollowPath.GoalCritic.cost_weight": 15.0
+      },
+      "bt_navigator": {
+        "odom_topic": "odom"
+      },
+      "wheel_odometry": {
+        "wheel_radius_m": 0.0635,
+        "wheelbase_m": 0.35,
+        "wheel_separation_m": 0.6038
+      },
+      "simulated_odometry_error": {
+        "input_topic": "wheel/odom_raw",
+        "output_topic": "wheel/odom",
+        "forward_scale": 1.0,
+        "lateral_scale": 1.0,
+        "rotation_scale": 1.0,
+        "forward_noise_stddev_per_sqrt_m": 0.0,
+        "lateral_noise_stddev_per_sqrt_m": 0.0,
+        "rotation_noise_stddev_per_sqrt_rad": 0.0,
+        "yaw_bias_walk_stddev_per_sqrt_m": 0.0,
+        "max_abs_yaw_bias_rad_per_m": 0.0,
+        "yaw_drift_rad_per_forward_m": 0.0,
+        "slip_events_per_second": 0.0,
+        "slip_duration_min_sec": 0.0,
+        "slip_duration_max_sec": 0.0,
+        "slip_gain_min": 1.0,
+        "slip_gain_max": 1.0,
+        "random_seed": 42
+      },
+      "local_costmap": {
+        "footprint": "[[-0.238525,-0.32737300000024483],[-0.238525,0.32742700000024483],[0.238475,0.32742700000024483],[0.238475,-0.32737300000024483]]",
+        "footprint_padding": 0.0,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "global_costmap": {
+        "footprint": "[[-0.238525,-0.32737300000024483],[-0.238525,0.32742700000024483],[0.238475,0.32742700000024483],[0.238475,-0.32737300000024483]]",
+        "footprint_padding": 0.0,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "collision_monitor": {
+        "cmd_vel_in_topic": "pan_ready/cmd_vel",
+        "cmd_vel_out_topic": "safety_2d/cmd_vel",
+        "observation_sources": [
+          "scan",
+          "depth"
+        ],
+        "source_timeout": 0.6
+      }
+    },
+    "cmd_vel_publishers": [
+      "mppi_wheel_limit"
+    ],
+    "cloud_frame": "head_camera_depth_frame",
+    "cloud_size": [
+      15200,
+      1
+    ],
+    "finite_sampled_points": 1900,
+    "truth": [
+      -1.8650000000000295,
+      -4.704999999833625,
+      1.570800000000001
+    ]
+  },
+  {
+    "phase": "comparison_navigation",
+    "sim_s": 10.214,
+    "goal": [
+      -16.775,
+      1.775,
+      1.570796
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 155.678,
+    "truth": [
+      -17.162617376011166,
+      0.6815188349721629,
+      2.389300313104824
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 155.657,
+        "stamp_s": 155.657,
+        "sim_s": 155.657,
+        "target": 2.741287816482023,
+        "pan": 0.3449598243286195,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -0.022769223898649216,
+          0.009634856134653091,
+          0.0011746831005439162
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 155.629
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 155.663,
+        "sim_s": 155.663,
+        "requested": [
+          -0.0230574794113636,
+          0.010967095382511616,
+          0.001691597979515791
+        ],
+        "output": [
+          -0.0230574794113636,
+          0.010967095382511616,
+          0.001691597979515791
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 155.67100000000002,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 155.671,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.49250399752054363
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 155.678,
+        "stamp_s": 155.671,
+        "sim_s": 155.671,
+        "target": 2.697620995296162,
+        "pan": 0.3589598243286189,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -0.0230574794113636,
+          0.010967095382511616,
+          0.001691597979515791
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 155.629
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 185.681,
+    "truth": [
+      -17.1617419650828,
+      0.6816912496187272,
+      2.398301922958279
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 185.662,
+        "stamp_s": 185.654,
+        "sim_s": 185.654,
+        "target": -0.9496736993948582,
+        "pan": -0.5571546277876576,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.0030697982292622328,
+          -0.004289793316274881,
+          0.0122903510928154
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 185.593
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 185.667,
+        "sim_s": 185.667,
+        "requested": [
+          0.004358121659606695,
+          -0.0037446231581270695,
+          0.009429900906980038
+        ],
+        "output": [
+          0.004358121659606695,
+          -0.0037446231581270695,
+          0.009429900906980038
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 185.673,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 185.673,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.4482340009417385
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 185.673,
+        "stamp_s": 185.673,
+        "sim_s": 185.673,
+        "target": -0.7098274540144165,
+        "pan": -0.5771546277876547,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.004358121659606695,
+          -0.0037446231581270695,
+          0.009429900906980038
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 185.659
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 215.68200000000002,
+    "truth": [
+      -17.161060626344085,
+      0.6767062248939005,
+      2.3774529106967
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 215.662,
+        "stamp_s": 215.662,
+        "sim_s": 215.662,
+        "target": 1.1111615605015452,
+        "pan": 0.7574237019912045,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.0014945525908842683,
+          0.0030193349812179804,
+          0.011843518353998661
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 215.622
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 215.67700000000002,
+        "sim_s": 215.67700000000002,
+        "requested": [
+          -4.020446795038879e-05,
+          0.002555456478148699,
+          0.005861641839146614
+        ],
+        "output": [
+          -4.020446795038879e-05,
+          0.002555456478148699,
+          0.005861641839146614
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 215.67700000000002,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 215.677,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.41828499524854124
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 215.67700000000002,
+        "stamp_s": 215.677,
+        "sim_s": 215.677,
+        "target": 1.5865278219855357,
+        "pan": 0.7724237019912068,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -4.020446795038879e-05,
+          0.002555456478148699,
+          0.005861641839146614
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 215.622
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 245.68800000000002,
+    "truth": [
+      -17.156119010816724,
+      0.6690202100962108,
+      2.4045581542888974
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 245.667,
+        "stamp_s": 245.667,
+        "sim_s": 245.667,
+        "target": 2.8809351854827527,
+        "pan": -0.21232107409046427,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -0.009715983644127846,
+          0.0025915021542459726,
+          0.007482326123863459
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 245.652
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 245.67600000000002,
+        "sim_s": 245.67600000000002,
+        "requested": [
+          -0.005629792809486389,
+          0.002520710928365588,
+          0.008247955702245235
+        ],
+        "output": [
+          -0.005629792809486389,
+          0.002520710928365588,
+          0.008247955702245235
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 245.681,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 245.681,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 1.49011799658183
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 245.681,
+        "stamp_s": 245.681,
+        "sim_s": 245.681,
+        "target": 2.7206156655722435,
+        "pan": -0.19832107409046426,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -0.005629792809486389,
+          0.002520710928365588,
+          0.008247955702245235
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 245.652
+      }
+    ]
+  },
+  {
+    "phase": "soft_240_sim_seconds_exceeded",
+    "sim_s": 250.215,
+    "truth": [
+      -17.160558880989587,
+      0.6835064183389932,
+      2.4047527917884812
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 275.68800000000005,
+    "truth": [
+      -17.161651198847956,
+      0.6638008155422302,
+      2.3861174887533187
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 275.665,
+        "stamp_s": 275.665,
+        "sim_s": 275.665,
+        "target": 1.1240262329432233,
+        "pan": 0.5400555336196667,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.0014072705525904894,
+          0.0029374579899013042,
+          0.008782412856817245
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 275.617
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 275.677,
+        "sim_s": 275.677,
+        "requested": [
+          0.00246364064514637,
+          0.0029113348573446274,
+          0.01243195217102766
+        ],
+        "output": [
+          0.00246364064514637,
+          0.0029113348573446274,
+          0.01243195217102766
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 275.683,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 275.683,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.47661900316597894
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 275.683,
+        "stamp_s": 275.683,
+        "sim_s": 275.683,
+        "target": 0.8684986706979833,
+        "pan": 0.5590555336196589,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.00246364064514637,
+          0.0029113348573446274,
+          0.01243195217102766
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 275.617
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 305.69100000000003,
+    "truth": [
+      -17.16167581534524,
+      0.6735199237700085,
+      2.394440761906713
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 305.66700000000003,
+        "stamp_s": 305.66,
+        "sim_s": 305.66,
+        "target": 0.12453657420323914,
+        "pan": -0.29669544746869414,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.005212211050093174,
+          0.0006524876225739717,
+          0.0017185882898047566
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 305.647
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 305.673,
+        "sim_s": 305.673,
+        "requested": [
+          0.004577835090458393,
+          -0.0009435658575966954,
+          0.00517061585560441
+        ],
+        "output": [
+          0.004577835090458393,
+          -0.0009435658575966954,
+          0.00517061585560441
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 305.68100000000004,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 305.681,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.348544999724254
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 305.68100000000004,
+        "stamp_s": 305.681,
+        "sim_s": 305.681,
+        "target": -0.2032695206170653,
+        "pan": -0.2756954474686977,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.004577835090458393,
+          -0.0009435658575966954,
+          0.00517061585560441
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 305.647
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 335.694,
+    "truth": [
+      -17.1627411625994,
+      0.6742426260249142,
+      2.3958291592599186
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 335.66700000000003,
+        "sim_s": 335.66700000000003,
+        "requested": [
+          -0.003124973503872752,
+          0.0011189974611625075,
+          -0.00399659713730216
+        ],
+        "output": [
+          -0.003124973503872752,
+          0.0011189974611625075,
+          -0.00399659713730216
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 335.673,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 335.673,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.4487019978114404
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 335.673,
+        "stamp_s": 335.673,
+        "sim_s": 335.673,
+        "target": 2.797735857825576,
+        "pan": 0.031279225132973966,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -0.003124973503872752,
+          0.0011189974611625075,
+          -0.00399659713730216
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 335.61
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 335.684,
+        "sim_s": 335.684,
+        "requested": [
+          -0.0015443203737959266,
+          0.0005148387281224132,
+          -0.0039004897698760033
+        ],
+        "output": [
+          -0.0015443203737959266,
+          0.0005148387281224132,
+          -0.0039004897698760033
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 365.70000000000005,
+    "truth": [
+      -17.15885055641885,
+      0.671145074290666,
+      2.40072995830664
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 365.67900000000003,
+        "stamp_s": 365.679,
+        "sim_s": 365.679,
+        "target": 1.6457584143604242,
+        "pan": 0.5912892065885191,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -0.0003224381653126329,
+          0.004293289966881275,
+          -0.0017605777829885483
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 365.64
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 365.68600000000004,
+        "sim_s": 365.68600000000004,
+        "requested": [
+          -0.00023129857436288148,
+          0.004349846858531237,
+          -0.0008189317304641008
+        ],
+        "output": [
+          -0.00023129857436288148,
+          0.004349846858531237,
+          -0.0008189317304641008
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 365.692,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 365.692,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.4720880024251528
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 365.692,
+        "stamp_s": 365.692,
+        "sim_s": 365.692,
+        "target": 1.6239202537700752,
+        "pan": 0.6042892065885181,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -0.00023129857436288148,
+          0.004349846858531237,
+          -0.0008189317304641008
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 365.64
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 395.706,
+    "truth": [
+      -17.163337696985586,
+      0.6766216596523672,
+      2.387042949687755
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 395.68300000000005,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 395.683,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.3118780005024746
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 395.68300000000005,
+        "stamp_s": 395.683,
+        "sim_s": 395.683,
+        "target": 0.44360917624198787,
+        "pan": -0.2150455305040512,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.001763611100614071,
+          0.000838062958791852,
+          0.004631870426237583
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 395.67
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 395.692,
+        "sim_s": 395.692,
+        "requested": [
+          0.00153340061660856,
+          -0.00076925044413656,
+          0.00984799861907959
+        ],
+        "output": [
+          0.00153340061660856,
+          -0.00076925044413656,
+          0.00984799861907959
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 395.69800000000004,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 395.698,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.5253169947536662
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 425.711,
+    "truth": [
+      -17.16622131107612,
+      0.695068179366198,
+      2.369129143523698
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 425.685,
+        "stamp_s": 425.685,
+        "sim_s": 425.685,
+        "target": 0.7454395745737429,
+        "pan": -0.11459097890345935,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.002563034649938345,
+          0.0023659735452383757,
+          -0.00492991553619504
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 425.635
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 425.699,
+        "sim_s": 425.699,
+        "requested": [
+          0.001781853032298386,
+          0.0007470074924640357,
+          -0.00446047680452466
+        ],
+        "output": [
+          0.001781853032298386,
+          0.0007470074924640357,
+          -0.00446047680452466
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 425.699,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 425.699,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.47015999734867364
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 425.70500000000004,
+        "stamp_s": 425.699,
+        "sim_s": 425.699,
+        "target": 0.3969738669730266,
+        "pan": -0.1005909789034551,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.001781853032298386,
+          0.0007470074924640357,
+          -0.00446047680452466
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 425.635
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 462.831,
+    "truth": [
+      -17.153628200809504,
+      0.6688632000792266,
+      2.2159895038933497
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 462.81100000000004,
+        "sim_s": 462.81100000000004,
+        "requested": [
+          0.0099524836987257,
+          -0.0034771659411489964,
+          0.018363086506724358
+        ],
+        "output": [
+          0.0099524836987257,
+          -0.0034771659411489964,
+          0.018363086506724358
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 462.82500000000005,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 462.825,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.5167259951122105
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 462.82500000000005,
+        "stamp_s": 462.825,
+        "sim_s": 462.825,
+        "target": -0.33611943576763215,
+        "pan": -0.2136375778441351,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.0099524836987257,
+          -0.0034771659411489964,
+          0.018363086506724358
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 462.793
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 462.831,
+        "sim_s": 462.831,
+        "requested": [
+          0.00925208069384098,
+          -0.0029078475199639797,
+          0.018071912229061127
+        ],
+        "output": [
+          0.00925208069384098,
+          -0.0029078475199639797,
+          0.018071912229061127
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 495.884,
+    "truth": [
+      -17.112906911010587,
+      0.7025841350436178,
+      2.3503327409109795
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 495.86600000000004,
+        "stamp_s": 495.862,
+        "sim_s": 495.862,
+        "target": -1.2024691281024642,
+        "pan": 0.4565015755866498,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.0033432445488870144,
+          -0.008662602864205837,
+          0.00999223068356514
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 495.792
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 495.86600000000004,
+        "sim_s": 495.86600000000004,
+        "requested": [
+          0.0031205215491354465,
+          -0.008382637985050678,
+          0.010651642456650734
+        ],
+        "output": [
+          0.0031205215491354465,
+          -0.008382637985050678,
+          0.010651642456650734
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 495.879,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 495.879,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.33089000498875976
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 495.879,
+        "stamp_s": 495.879,
+        "sim_s": 495.879,
+        "target": -1.2144299327890216,
+        "pan": 0.43950157558664943,
+        "reason": "TURNING_PAN",
+        "requested": [
+          0.0031205215491354465,
+          -0.008382637985050678,
+          0.010651642456650734
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 495.859
+      }
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 525.89,
+    "truth": [
+      -17.098621322393218,
+      0.7016603647605019,
+      2.3648347302795862
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 525.876,
+        "sim_s": 525.876,
+        "requested": [
+          -0.004985940642654896,
+          0.004569320939481258,
+          0.009428625926375389
+        ],
+        "output": [
+          -0.004985940642654896,
+          0.004569320939481258,
+          0.009428625926375389
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 525.8810000000001,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 525.881,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "STOP_UNAVAILABLE",
+        "reason": "Command timeout",
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 0.392399997508619
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 525.884,
+        "stamp_s": 525.881,
+        "sim_s": 525.881,
+        "target": 2.3997679700813586,
+        "pan": -1.0772801621087198,
+        "reason": "TURNING_PAN",
+        "requested": [
+          -0.004985940642654896,
+          0.004569320939481258,
+          0.009428625926375389
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 525.822
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 525.884,
+        "sim_s": 525.884,
+        "requested": [
+          -0.00394824706017971,
+          0.005386906675994396,
+          0.006438649259507656
+        ],
+        "output": [
+          -0.00394824706017971,
+          0.005386906675994396,
+          0.006438649259507656
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      }
+    ]
+  }
+]

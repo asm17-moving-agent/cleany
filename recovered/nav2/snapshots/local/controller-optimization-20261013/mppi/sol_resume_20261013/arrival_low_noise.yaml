@@ -1,0 +1,5 @@
+goal_rotate_enter_radius: 0.10
+goal_rotate_exit_radius: 0.13
+vx_std: 0.035
+vy_std: 0.025
+wz_std: 0.07

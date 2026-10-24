@@ -1,0 +1,15 @@
+{
+  "records": 410,
+  "new_requests": 328,
+  "native_costmap_and_goal_checks_passed": true,
+  "files_sha256": {
+    "comparison.json": "3fceaf7024d80f5ff9ef95c108bbe479a20e64d305159814cd1231a43ad997d8",
+    "comparison.csv": "3d986052a671b6be421add4e91068d4d5b3182d736403137a83eb8fc438b00c2",
+    "summary.json": "1f76e5464b5c9b97ac97e44a8f10bf53133e452bd3b328bc537cbc25a7bb50cd",
+    "validation.json": "27b948e341a68dd90ac1d4701240531b2232e6031f3d548fd6e177bcbe6d213a",
+    "zone-comparison.csv": "f24ee54aa6d4489cdfb6355c4c70b463b90fd7efcb6fb2cff0a7567f282240e6",
+    "media/planner-comparison-2x3.png": "9d22b9d7b181e47371e856ce1c68bcfc160d9c7fb8f9fe2866ac7323ad256fd1",
+    "media/a3-01-planner-footprint-detail.png": "b2ef12fab0b2901355faf59c582d80146c81afb67e4dc31db7bf235d948aeb51"
+  },
+  "raw_native_audit": "Full native inputs/outputs retained on remote. Local omits redundant per-goal costmap binary and audit inputs; existing Lattice raw costmap binaries remain available locally."
+}

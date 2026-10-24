@@ -1,0 +1,15 @@
+{
+  "planner": {
+    "GridBased.plugin": "nav2_theta_star_planner/ThetaStarPlanner",
+    "GridBased.allow_unknown": false,
+    "GridBased.w_traversal_cost": 5.0,
+    "GridBased.how_many_corners": 8
+  },
+  "costmap": {
+    "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+    "footprint_padding": 0.0,
+    "resolution": 0.05,
+    "inflation_layer.inflation_radius": 0.8,
+    "inflation_layer.cost_scaling_factor": 6.0
+  }
+}

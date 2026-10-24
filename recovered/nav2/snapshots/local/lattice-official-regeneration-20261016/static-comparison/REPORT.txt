@@ -1,0 +1,11 @@
+정적 Lattice 경로 비교: 기존 튜닝272 vs 공식 재생성144 (회전반경10cm)
+
+1/2/4/6번 각각 동일한 기록 start/goal 및 frozen global costmap, 실제 polygon footprint(padding0), 동일 planner penalties/탐색 코드로 비교. Native Nav2 1.1.20 AStarAlgorithm<NodeLattice> + GridCollisionChecker 사용. primitive 파일만 교체했고 heuristic의 최소회전반경은 파일 metadata(50→10cm)를 따른다. 따라서 곡선 크기와 휴리스틱 반경의 개별 효과를 분리한 실험은 아니다.
+
+1번: 최대 직선편차 4.74→4.24cm; 길이 1.021→1.012m; 총 계획yaw변화 0.0→53.1deg; 탐색 성공 True/True
+2번: 최대 직선편차 9.10→4.74cm; 길이 1.989→1.962m; 총 계획yaw변화 90.0→90.0deg; 탐색 성공 True/True
+4번: 최대 직선편차 9.60→4.83cm; 길이 4.439→4.412m; 총 계획yaw변화 180.0→180.0deg; 탐색 성공 True/True
+6번: 최대 직선편차 4.60→4.99cm; 길이 0.671→0.700m; 총 계획yaw변화 0.0→0.0deg; 탐색 성공 True/True
+
+판단: 2/4번은 중심선 굴곡이 감소했지만 1번은 불필요한 차체 자세 변화53.1도가 생기고 6번은 길이가 증가하여 일괄 개선으로 판단하지 않는다. 5cm 격자와 기록된 시작점/목표 셀 위치 차이도 남는다.
+그림은 실제 native 정적 경로 pose이며, MPPI/시뮬레이터/AMCL 갱신/주행을 실행하지 않았다. footprint 선은 계획된 yaw로 그린 표본이며 연속 swept volume 무충돌 증명이 아니다. 단일 탐색시간은 기록만 하며 성능순위/반복 성공률을 주장하지 않는다. 기존 기본 플래너와 파라미터는 변경하지 않았다.

@@ -1,0 +1,178 @@
+[
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 29846.376629454,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.0,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "ROS clock stalled"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 29845.690179635,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.0,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "ROS clock stalled"
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 29845.739935626,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.0,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "ROS clock stalled"
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 0.057,
+    "receive_steady_wall_s": 29848.389636236,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.047,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Missing voxel map, status or wheel odometry"
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 0.057,
+    "receive_steady_wall_s": 29848.389979292,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.047,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Missing voxel map, status or wheel odometry"
+    }
+  },
+  {
+    "topic": "/nav2/cmd_vel",
+    "sim_s": 8.415000000000001,
+    "receive_steady_wall_s": 29867.554706828,
+    "moving": true,
+    "command": [
+      0.0002137675569973803,
+      -0.08320240838791514,
+      -0.0014309529351306844
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.402000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 8.453000000000001,
+    "receive_steady_wall_s": 29867.629451106,
+    "moving": true,
+    "command": [
+      6.456345427414175e-05,
+      -0.025129327223014756,
+      -0.0004321856211178531
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.443000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 8.453000000000001,
+    "receive_steady_wall_s": 29867.629775572,
+    "moving": true,
+    "command": [
+      6.456345427414175e-05,
+      -0.025129327223014756,
+      -0.0004321856211178531
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.443000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/nav2/cmd_vel",
+    "sim_s": 9.998000000000001,
+    "receive_steady_wall_s": 29871.353792876,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.979000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 10.603000000000002,
+    "receive_steady_wall_s": 29872.76910661,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 10.603000000000002,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 10.603000000000002,
+    "receive_steady_wall_s": 29872.770662679,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 10.603000000000002,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  }
+]

@@ -1,0 +1,980 @@
+[
+   {
+      "name": "firmware/gsp_tu10x.bin",
+      "type": "FIRMWARE",
+      "category": [
+         "firmware"
+      ]
+   },
+   {
+      "name": "firmware/ucodes_tu10x.bin",
+      "type": "FIRMWARE",
+      "category": [
+         "firmware"
+      ]
+   },
+   {
+      "name": "firmware/gsp_ga10x.bin",
+      "type": "FIRMWARE",
+      "category": [
+         "firmware"
+      ]
+   },
+   {
+      "name": "firmware/ucodes_ga10x.bin",
+      "type": "FIRMWARE",
+      "category": [
+         "firmware"
+      ]
+   },
+   {
+      "name": "nvidia-modprobe",
+      "type": "MODPROBE",
+      "category": [
+         "modprobe"
+      ]
+   },
+   {
+      "name": "nvidia-smi",
+      "type": "BINARY",
+      "category": [
+         "nvml"
+      ]
+   },
+   {
+      "name": "libnvidia-ml.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "nvml"
+      ]
+   },
+   {
+      "name": "nvidia-debugdump",
+      "type": "BINARY",
+      "category": [
+         "nvml"
+      ]
+   },
+   {
+      "name": "libcuda.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-opencl.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "opencl"
+      ]
+   },
+   {
+      "name": "libOpenCL.so.1.0.0",
+      "type": "LIB",
+      "category": [
+         "cuda",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "nvidia.icd",
+      "type": "ICD",
+      "category": [
+         "opencl"
+      ]
+   },
+   {
+      "name": "nvidia-cuda-mps-control",
+      "type": "BINARY",
+      "category": [
+         "cuda",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "nvidia-cuda-mps-server",
+      "type": "BINARY",
+      "category": [
+         "cuda",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-ptxjitcompiler.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda",
+         "opencl",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libcudadebugger.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "nvidia-persistenced",
+      "type": "BINARY",
+      "category": [
+         "nvpd"
+      ]
+   },
+   {
+      "name": "libnvidia-nvvm.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "opencl"
+      ]
+   },
+   {
+      "name": "libnvidia-nvvm70.so.4",
+      "type": "LIB",
+      "category": [
+         "opencl",
+         "cuda",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-gpucomp.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "cuda",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11",
+         "optix"
+      ]
+   },
+   {
+      "name": "libnvidia-api.so.1",
+      "type": "LIB",
+      "category": [
+         "nvapi"
+      ]
+   },
+   {
+      "name": "nvidia-powerd",
+      "type": "BINARY",
+      "category": [
+         "powerd"
+      ]
+   },
+   {
+      "name": "libnvidia-glcore.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "glx",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-tls.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "nvidia_icd.json",
+      "type": "JSON",
+      "category": [
+         "vulkan"
+      ]
+   },
+   {
+      "name": "nvidia_layers.json",
+      "type": "JSON",
+      "category": [
+         "vulkan"
+      ]
+   },
+   {
+      "name": "nvidia-application-profiles-610.57.04-rc",
+      "type": "PROFILE",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "cuda",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11",
+         "optix"
+      ]
+   },
+   {
+      "name": "libGLX_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "glx",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libGLX_indirect.so.0",
+      "type": "SYMLINK",
+      "category": [
+         "glx"
+      ]
+   },
+   {
+      "name": "libnvidia-glsi.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "10_nvidia.json",
+      "type": "JSON",
+      "category": [
+         "egl",
+         "egl_headless",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libnvidia-glvkspirv.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libglxserver_nvidia.so.610.57.04",
+      "type": "GLX_MODULE_SHARED_LIB",
+      "category": [
+         "xdriver"
+      ]
+   },
+   {
+      "name": "libnvidia-eglcore.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libEGL_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libGLESv2_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libGLESv1_CM_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libnvidia-egl-wayland.so.1.1.20",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_wayland"
+      ]
+   },
+   {
+      "name": "10_nvidia_wayland.json",
+      "type": "JSON",
+      "category": [
+         "egl",
+         "egl_wayland"
+      ]
+   },
+   {
+      "name": "libnvidia-egl-gbm.so.1.1.3",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_gbm"
+      ]
+   },
+   {
+      "name": "15_nvidia_gbm.json",
+      "type": "JSON",
+      "category": [
+         "egl",
+         "egl_gbm"
+      ]
+   },
+   {
+      "name": "libnvidia-egl-xlib.so.1.0.5",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "20_nvidia_xlib.json",
+      "type": "JSON",
+      "category": [
+         "egl",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libnvidia-egl-xcb.so.1.0.5",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "20_nvidia_xcb.json",
+      "type": "JSON",
+      "category": [
+         "egl",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libnvidia-egl-wayland2.so.1.0.1",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_wayland"
+      ]
+   },
+   {
+      "name": "09_nvidia_wayland2.json",
+      "type": "JSON",
+      "category": [
+         "egl",
+         "egl_wayland"
+      ]
+   },
+   {
+      "name": "nvidia_drv.so",
+      "type": "XMODULE_SHARED_LIB",
+      "category": [
+         "xdriver"
+      ]
+   },
+   {
+      "name": "nvidia-drm-outputclass.conf",
+      "type": "CONFIG",
+      "category": [
+         "xdriver"
+      ]
+   },
+   {
+      "name": "nvidia-xconfig",
+      "type": "BINARY",
+      "category": [
+         "utils"
+      ]
+   },
+   {
+      "name": "nvidia-settings",
+      "type": "BINARY",
+      "category": [
+         "utils"
+      ]
+   },
+   {
+      "name": "libnvidia-gtk2.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "utils"
+      ]
+   },
+   {
+      "name": "libnvidia-gtk3.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "utils"
+      ]
+   },
+   {
+      "name": "libnvidia-wayland-client.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "utils"
+      ]
+   },
+   {
+      "name": "libnvidia-cfg.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "utils",
+         "nvpd"
+      ]
+   },
+   {
+      "name": "libvdpau_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "video"
+      ]
+   },
+   {
+      "name": "libnvidia-allocator.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "glx",
+         "gbm",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "nvidia-drm_gbm.so",
+      "type": "SYMLINK",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "glx",
+         "gbm",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libnvidia-rtcore.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvoptix.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "optix"
+      ]
+   },
+   {
+      "name": "nvoptix.bin",
+      "type": "DATA",
+      "category": [
+         "optix"
+      ]
+   },
+   {
+      "name": "libnvidia-ngx.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "ngx"
+      ]
+   },
+   {
+      "name": "nvidia-ngx-updater",
+      "type": "BINARY",
+      "category": [
+         "ngx"
+      ]
+   },
+   {
+      "name": "libnvidia-fbc.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ]
+   },
+   {
+      "name": "libnvcuvid.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "video"
+      ]
+   },
+   {
+      "name": "libnvidia-encode.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "video"
+      ]
+   },
+   {
+      "name": "libnvidia-opticalflow.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "video",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-pkcs11.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda",
+         "video",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-pkcs11-openssl3.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda",
+         "video",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-present.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "nvpresent",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-vksc-core.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "vulkan"
+      ]
+   },
+   {
+      "name": "nvidia_icd_vksc.json",
+      "type": "JSON",
+      "category": [
+         "vulkan"
+      ]
+   },
+   {
+      "name": "nvidia-pcc",
+      "type": "BINARY",
+      "category": [
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libnvidia-sandboxutils.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "nvsandboxutils"
+      ]
+   },
+   {
+      "name": "libnvidia-tileiras.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda",
+         "optix",
+         "vulkan"
+      ]
+   },
+   {
+      "name": "libcuda.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-ptxjitcompiler.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda",
+         "opencl"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-ml.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "nvml"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libOpenCL.so.1.0.0",
+      "type": "LIB",
+      "category": [
+         "cuda"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-opencl.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "opencl"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-nvvm.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "opencl"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libGLX_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "glx",
+         "vulkan"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libGLX_indirect.so.0",
+      "type": "SYMLINK",
+      "category": [
+         "glx"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-glcore.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "glx",
+         "vulkan"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-tls.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-glvkspirv.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-glsi.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-gpucomp.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "cuda",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-tileiras.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "cuda"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libvdpau_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "video"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvcuvid.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "video"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-encode.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "video"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-eglcore.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libEGL_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libGLESv2_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libGLESv1_CM_nvidia.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-egl-gbm.so.1.1.3",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_gbm"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-egl-wayland.so.1.1.20",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_wayland"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-egl-wayland2.so.1.0.1",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_wayland"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-egl-xlib.so.1.0.5",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-egl-xcb.so.1.0.5",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-fbc.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "glx",
+         "vulkan",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-allocator.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "glx",
+         "gbm",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "nvidia-drm_gbm.so",
+      "type": "SYMLINK",
+      "category": [
+         "egl",
+         "egl_headless",
+         "vulkan",
+         "glx",
+         "gbm",
+         "egl_wayland",
+         "egl_gbm",
+         "egl_x11"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "libnvidia-opticalflow.so.610.57.04",
+      "type": "LIB",
+      "category": [
+         "video",
+         "vulkan"
+      ],
+      "is_32bit_compat": "true"
+   },
+   {
+      "name": "nvngx.dll",
+      "type": "LIB",
+      "category": [
+         "ngx"
+      ]
+   },
+   {
+      "name": "_nvngx.dll",
+      "type": "LIB",
+      "category": [
+         "ngx"
+      ]
+   },
+   {
+      "name": "nvngx_dlssg.dll",
+      "type": "LIB",
+      "category": [
+         "ngx"
+      ]
+   }
+]

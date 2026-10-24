@@ -1,0 +1,1 @@
+PASS: short segment holds its initial plan and preserves failure recovery; original concurrent replan failure reproduced; revised tree preserves typed path and controller success; initial-plan/controller failures still reach bounded recovery

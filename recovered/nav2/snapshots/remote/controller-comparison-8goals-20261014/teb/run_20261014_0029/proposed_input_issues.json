@@ -1,0 +1,378 @@
+{
+  "status": "Proposed only, READY not yet received; canonical inputs will be rechecked before campaign",
+  "parent_absolute_references": [
+    {
+      "line": 2961,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/felt/albedo.png</albedo_map>"
+    },
+    {
+      "line": 5651,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 5671,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 6251,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 6271,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 6851,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 6871,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 7451,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 7471,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 8051,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 8071,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 8651,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 8671,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 9251,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 9271,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 9851,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 9871,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 10451,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 10471,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 11051,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 11071,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 11651,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 11671,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 12251,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 12271,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 13037,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 13057,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 13637,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 13657,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 14237,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 14257,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 14837,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 14857,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 15437,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 15457,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 16037,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 16057,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 16637,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 16657,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 17237,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 17257,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 17837,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 17857,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 18437,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 18457,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 19037,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 19057,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 19637,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 19657,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 20237,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 20257,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 20837,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 20857,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 21437,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 21457,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 22037,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 22057,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 22637,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 22657,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 23237,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 23257,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 23837,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 23857,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 24437,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 24457,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 25037,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 25057,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 25637,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 25657,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 26237,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 26257,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 26837,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 26857,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 27437,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 27457,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 28037,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 28057,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 28637,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 28657,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 29237,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 29257,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 29837,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 29857,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 30623,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 30643,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 31223,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 31243,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 31823,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 31843,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 32423,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 32443,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    },
+    {
+      "line": 33023,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/seat.png</albedo_map>"
+    },
+    {
+      "line": 33043,
+      "reference": "<albedo_map>file:///home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/materials/roly/back.png</albedo_map>"
+    }
+  ],
+  "action": "Reject any canonical world retaining these references. Do not alter shared common."
+}

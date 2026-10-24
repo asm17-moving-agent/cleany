@@ -1,0 +1,25 @@
+{
+  "planner": {
+    "GridBased.allow_unknown": false,
+    "GridBased.tolerance": 0.0,
+    "GridBased.plugin": "nav2_smac_planner/SmacPlannerHybrid",
+    "GridBased.max_planning_time": 80.0,
+    "GridBased.max_iterations": -1,
+    "GridBased.max_on_approach_iterations": 1000,
+    "GridBased.motion_model_for_search": "REEDS_SHEPP",
+    "GridBased.minimum_turning_radius": 0.1,
+    "GridBased.angle_quantization_bins": 72,
+    "GridBased.lookup_table_size": 20.0,
+    "GridBased.analytic_expansion_ratio": 3.5,
+    "GridBased.analytic_expansion_max_length": 3.0,
+    "GridBased.cache_obstacle_heuristic": false,
+    "GridBased.smooth_path": false
+  },
+  "costmap": {
+    "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+    "footprint_padding": 0.0,
+    "resolution": 0.05,
+    "inflation_layer.inflation_radius": 0.8,
+    "inflation_layer.cost_scaling_factor": 6.0
+  }
+}

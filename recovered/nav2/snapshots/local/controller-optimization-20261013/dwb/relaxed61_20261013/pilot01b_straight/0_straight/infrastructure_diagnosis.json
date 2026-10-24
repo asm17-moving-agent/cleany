@@ -1,0 +1,5 @@
+{
+  "reason": "Global cmd_vel remap took precedence over nested Nav2 remap; controller published to shadow/cmd_vel, no nav2/cmd_vel publisher. Relay remained stale, robot stationary. This is delivery configuration failure, not controller navigation performance.",
+  "confirmed_controller_argv": "/opt/ros/humble/lib/nav2_controller/controller_server --ros-args -r __node:=controller_server --params-file /tmp/cleany-navigation-y7sasslc/parameters.yaml --params-file /tmp/launch_params_nsapw_x3 -r cmd_vel:=shadow/cmd_vel -r cmd_vel:=nav2/cmd_vel ",
+  "stopped_supervisor_pid": 204881
+}

@@ -1,0 +1,31 @@
+FollowPath:
+  min_vel_x: -0.3175
+  max_vel_x: 0.3175
+  min_vel_y: -0.3175
+  max_vel_y: 0.3175
+  max_vel_theta: 0.665758020549
+  max_speed_xy: 0.449012806054
+  max_wheel_speed_rad_s: 4.99
+  mecanum_wheel_radius_m: 0.0635
+  mecanum_wheelbase_m: 0.35
+  mecanum_wheel_separation_m: 0.6038
+  vx_samples: 5
+  vy_samples: 5
+  vtheta_samples: 7
+  goal_directed_radius: 4.5
+  prefer_target_translation_direction: true
+  acc_lim_x: 0.4
+  acc_lim_y: 0.4
+  acc_lim_theta: 0.6
+  decel_lim_x: -0.4
+  decel_lim_y: -0.4
+  decel_lim_theta: -0.6
+  RotateToGoal.lookahead_time: 1.0
+  xy_goal_tolerance: 0.3
+progress_checker:
+  required_movement_radius: 0.001
+  required_movement_angle: 0.001
+  movement_time_allowance: 1200.0
+controller_server:
+  failure_tolerance: -1.0
+  controller_frequency: 20.0

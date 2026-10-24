@@ -1,0 +1,26 @@
+{
+  "dwb_critic": "cleany_navigation::PathOrientationCritic",
+  "source_sha256": "dd02c502de0c800acb9c6ba700b553a5cba5dead30072e884441e96c8602ac36",
+  "logic": "Uses yaw of nearest path pose as target and costs rollout endpoint angular error",
+  "actual_new_theta_straight_first_plan": {
+    "first": [
+      -1.8749996703118086,
+      -4.774999847635627,
+      0.0
+    ],
+    "middle": [
+      -1.8749996703118086,
+      -4.224999839439988,
+      0.0
+    ],
+    "last": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5708
+    ],
+    "interior_zero_yaw_fraction": 1.0
+  },
+  "interpretation": "Intermediate zero yaw can encourage rotation away from physical straight travel heading under this tuned DWB profile; compatibility hypothesis, not isolated causal rerun",
+  "source_file_remote": "/home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/dwb-source/ros2_ws/src/cleany_navigation/src/path_orientation.cpp",
+  "source_final_run": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/dwb_theta/0_straight"
+}

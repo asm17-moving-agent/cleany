@@ -1,0 +1,1097 @@
+[
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/plans.json",
+    "sha256": "be6dfb414267e3cc6924d420c36c39c827e9c1c151e2bc963709d875a20283f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/samples.csv",
+    "sha256": "6b3a90eb70ffb182616d5c2ff56f38ac2cfa9bdceca72e73b581e535ba9f4f6a"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/velocity.csv",
+    "sha256": "49bbf0573bfdff31922b70d68c3a5b4afc975395006e1fd95961e3d48e3f3bb6"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/bag.log",
+    "sha256": "1d41caa6fdee02fd3faf89c4b048de4f554a9ef00d3a120d9d606ce3a48e61ef"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/comparison_contract.json",
+    "sha256": "98cebbcd160c4828b3ee529bbd8646c92c82f90b37fa805cd2aa92c8f2cea2e9"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/result.json",
+    "sha256": "c475e113e8843651341a65867d311ad1ca9e7d36fa67fc934834ace5dc5fafc1"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/parameters.yaml",
+    "sha256": "4866ce3f4599c795c79f7e7914d08aa9bc8d61da4d9134c6c7fc80f5d4f78816"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/metrics.json",
+    "sha256": "a6aa6c7fef825133e457c58471d78295c7e66882353c2359a7044b8b2e2fb76f"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/launch.log",
+    "sha256": "b4d8cd4b18cb9ba7f405a42b1ce0030e81cc10184104f4c2fce44be15a21b9fa"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/0_straight/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/0_straight/commands.csv",
+    "sha256": "42e3010991d3867a75f221d4351bf8ec7d12ddc1834fa8091ca3acd3597cb079"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/plans.json",
+    "sha256": "21d1ec927effc5a27d48efe8489281b3718c25bf2d1ee685a1e5e0e8bde7e4db"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/samples.csv",
+    "sha256": "36532e19576d1dfb12784f447fc50ee11154ff68ce0cb0ba76748383536b757c"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/velocity.csv",
+    "sha256": "f18b6647439c318215d7a8523da544f3e0b686f64d86f88ae0a1bac88abaf870"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/bag.log",
+    "sha256": "9fe7cf7930d331abd8ec48aa61178df3622bdeb92881fa896679ed5de50a42af"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/comparison_contract.json",
+    "sha256": "3bc98a807bca1090ee431156269695c2fe0a84939943790462c207b636ab52c4"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/result.json",
+    "sha256": "6d93c3355cdae0a14ca629ca20fa6b5d47e5305ac18c66ec8c062c7fd760a981"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/parameters.yaml",
+    "sha256": "f3d2ededeede2992ee434b0fffa910132a5aa61c91ac03521b73803d0b6c9afc"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/metrics.json",
+    "sha256": "affbb4f8b46c7daa7107141b518f4a597b6e9312710f8a47c7c0bcdbbfe615b8"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/launch.log",
+    "sha256": "1d3abdd52e290f7e46a9f0e259892d742c046716e38ac4b3a7b77a9bf2c43f30"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/1_turn_arrival/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/1_turn_arrival/commands.csv",
+    "sha256": "9ff0add3b8b767e7d2b8b99583c3b121ebe280db9ca0ea866db34907daae0ec0"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/plans.json",
+    "sha256": "cc8a5830fededd93cc6c09cb62ae4a3f1e2d78f25e4165b20a8231363458c7ac"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/samples.csv",
+    "sha256": "235faa274f59348f44c6d0b8b4d31dc9732b9b5d39d158dd0e1985e0a16aa85f"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/velocity.csv",
+    "sha256": "399eace1c329af8d20d14fa01bce87cc66a44f3cf5230c5ade3c3860b5cdb8fc"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/bag.log",
+    "sha256": "882ad3153f217b15cd954d6f64d532610665691ecd81aeda59c14c50b8e7fa96"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/comparison_contract.json",
+    "sha256": "744366a9a047a945c4e6de32d5894abb9d078f19eca1bd4189185d77928dc8dd"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/result.json",
+    "sha256": "58c066ed12855e75842340c1e0e7187c4a36a19a866cd0846249bc57bc85827f"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/map.pgm",
+    "sha256": "dc9615119b9d09ede2c6a374b71df0bbb3c9036a4975de61f1a06168489d3635"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/parameters.yaml",
+    "sha256": "dd585c1d809f727db4eb787126fcbba9aa0f0e611e8a1a6dcb2066084c7bebfd"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/metrics.json",
+    "sha256": "6c27e5a639a43feb1ba71e4bcdb4ea875355077715113e10483774eaab37fc55"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/launch.log",
+    "sha256": "f2f9b4ecadb2ed7fc47159a66fdd4b84ad18beb27cc7a514fe87876f0c71d945"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/2_chair_gap/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/2_chair_gap/commands.csv",
+    "sha256": "027475c132556e035b425b2a58f887fd0270acf28e2348aec95f406046c63149"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/plans.json",
+    "sha256": "55821c83f7c6bb36e6fc5e8ad6fce0757ec7fd1965dd0ea88a0b644e80c20f19"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/samples.csv",
+    "sha256": "ff986b743dcb06e9b53e9f9069e9d590a5d2deb43b27c5c84fdf1413b066d461"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/velocity.csv",
+    "sha256": "0ea143859598c0ef4b8a0ceeb6bc44f1513538a88f53c83ca632ca1d5a94ef3a"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/bag.log",
+    "sha256": "b8867fa16759d461f7b9feb0c061859d645c68e830a37895312fd78962c95ad2"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/comparison_contract.json",
+    "sha256": "a6dfe84ee04f9f591e709654728424ce9f91dda3108b23f40fc7fc2ff2309d92"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/result.json",
+    "sha256": "62a35abd781f6fa42a16198fc792a59deee808ff8629edd6709c2bde6519f3bd"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/parameters.yaml",
+    "sha256": "2f52d945c68fa3c6ca5df4280f65d516da0d0656abeccbb983edcaecd45d8a89"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/metrics.json",
+    "sha256": "4cfe476de39148610b073792c64152f5814fbd31b9f2fbb405964bfb61525c8a"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/launch.log",
+    "sha256": "21c4c505fc1ebaa67fadafadcf429827532228da10350ee4e99aa40de8a86879"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/3_far_heading/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/3_far_heading/commands.csv",
+    "sha256": "0d3a0722602f93141e6b6afc5cdcd6b8bec385f95df930184d37e3d1e152b6d3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/plans.json",
+    "sha256": "95b6948654d73fc54184017fd2078a88b707f208a641cff7f4bfd04b31ee7ec5"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/samples.csv",
+    "sha256": "79c0b9e343db7c340897717215ed0a7c4c66564accf4c316b19dc8082d04184f"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/velocity.csv",
+    "sha256": "d933a3384f6063cf76af92edbbea62121459760a0dad3eff9ddd41d83fb65ef0"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/bag.log",
+    "sha256": "cff5865a5c196ab9bb620e324360f32c279e1cfbacab35b6a5fe29486fc152ba"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/comparison_contract.json",
+    "sha256": "46dc11ffde0a31ce3452ccb71a5fd1ee02d34ecbab3aebd5c44f0e5e5f316571"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/result.json",
+    "sha256": "426925e53ab8132c13e0cf7943e7b63d123bddc7976f5b5828623646dee33535"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/map.pgm",
+    "sha256": "602fb21f625e2f760b44ca13539280ac531e464e5cfaee3f505c77c9ab87cdc2"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/parameters.yaml",
+    "sha256": "33f3f2a973de7c922b6f98f82962930d449b3be442ebf4e15cebdeb7bda2f1dc"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/metrics.json",
+    "sha256": "223a691cad8b54fe7d9ce3c95d40412af923369bccae7dc74b4bf0eade176403"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/launch.log",
+    "sha256": "eef50fc2d61e56a5669ad44f674875d340edb477f0a485cab8d4c0bfab2a1af0"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/4_distant/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/4_distant/commands.csv",
+    "sha256": "c8974a142a0b391f01a3948e679d9c732a92fe834ff0525401a8923a2cdd2bd0"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/plans.json",
+    "sha256": "756bb85a6a2bf270befd356d7cced210535f280c270e6cd140690fc01c085255"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/samples.csv",
+    "sha256": "1cac7924ea7bb8732a9cfe4c348156d4bb88ade1a78f8255d5ed856f787933ac"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/velocity.csv",
+    "sha256": "3069770d58e7e990fb8bc2fbab0e5cf71c7ace2cb65a7421a6d173c4960b64ec"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/bag.log",
+    "sha256": "0fe9b533e3843008da8473645948d8ebcd9b2df9c443ef4e9965cfe9e71b6eff"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/comparison_contract.json",
+    "sha256": "5b3cd5a7d08bb6771d5df3cc0b69d54a8b93827ac2507e371a9e3a0c94364331"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/result.json",
+    "sha256": "0fffdfa0b494de8bd3d28d2dd85f6be2cfca36fb641590af54ff0a0c972980de"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/parameters.yaml",
+    "sha256": "af824fbb44656b3f165f21f0ae431d84b0147701d3a8b8fbb80d21410572d8cb"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/metrics.json",
+    "sha256": "174f9df6bbbea786c811fb7e944683f4372abdd5ae1a4cbe45b72c113da63565"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/launch.log",
+    "sha256": "70f0778d42ce0cc5f845026aebc57a7c5f7b0626a9fc80dd5a6c591e13974a05"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/5_lateral/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/5_lateral/commands.csv",
+    "sha256": "1a515f4f3c96cfe4ee60e70a4c3d2f879b969e71789a3b80d730ed4373afed08"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/plans.json",
+    "sha256": "04864165f4c1f1876dbd03c4c5fb25315fd24f4fb555d35edb8bd7c4e02889cf"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/samples.csv",
+    "sha256": "181acf034c4a86e8eeb6eb6970517aba38fc6cf89e9635fc0527b0e1bd9f3db3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/velocity.csv",
+    "sha256": "716aa00fe5fa560c7ab75be98c86c90a58b5b299d42aa4cf0224bf3ca712410d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/bag.log",
+    "sha256": "102170600af8d6a1931f5984d7b92a5ae56859af50247405337dddc70f3dae9c"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/comparison_contract.json",
+    "sha256": "070dc2995ddb820a9c7a561ae5242f95b3e799892a65d18e04f7201e9e0e35f4"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/result.json",
+    "sha256": "4f1eecd74367c8df18afdfa3439741151a948de8a7de110b9ce64955d4fc1e29"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/map.pgm",
+    "sha256": "cce4b5785615086e130c0dd2b7e899b9c1c0adaeff97bb0d4525ea8ce4d69f56"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/parameters.yaml",
+    "sha256": "c9bbd0812760b187947076e85eb1eb629e9bf51fd1f8869e2526c2df799ec29d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/metrics.json",
+    "sha256": "b8d47e4dae73b89b817e0556799841fe1ec1c99c91d238428c64fd653986a788"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/launch.log",
+    "sha256": "847d8e5c6554b70ea1aae2a37201164eb9a50da6d987068992ba84b56fab737f"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/6_narrow_seat/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/6_narrow_seat/commands.csv",
+    "sha256": "368135a187d04063631af24cd2eaecd2e9aad23e64bf624f5590abecb354086c"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/plans.json",
+    "sha256": "587b2a7288b678d9aaed831a5c49966fb282ad64b8ef2f3cc484b488d196d28d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/samples.csv",
+    "sha256": "3e683cbdf711714dbf18ca5880a2c7900c7772088328f1f729c263f09734c482"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/velocity.csv",
+    "sha256": "1858e57ba9e4a13bfb694b37c6bb08ecd5159026f67ed48c9bd82e063d95983f"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/bag.log",
+    "sha256": "b7b344a4d1fc99f438053c31253955f0d52f8179350a00fe5eb5fc2cd952df87"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/comparison_contract.json",
+    "sha256": "017672f19bbcd44e0ffbb6d289aa3357a52953c64d1f5b5ed230bc957e67e020"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/result.json",
+    "sha256": "f0e37faebefb972b2a6d4f3bab0db9ee181dbe344d3691566e5e951b074506ba"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/map.pgm",
+    "sha256": "0a6a5d845db8021af4a200a3c7ccfeccb2399e4cd7aeb513870aa12b65058fd3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/parameters.yaml",
+    "sha256": "f41e20482e41b02c4a4f7c85321fa2f8b2fe8622679ba54c0cae29e480ed7f43"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/metrics.json",
+    "sha256": "cc0c022f71fd751e5f463b1a78d1d526ac0249d30b213fbc6c089aa727951056"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/launch.log",
+    "sha256": "9190918181b124deda87ca6b91222fa6a63a56d7ae99404d671994771c6d714c"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/7_other_room/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/7_other_room/commands.csv",
+    "sha256": "d9e746cbcde46be1b18a89af5bd75b2447fac5750ec193eb65f38cc9db258123"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/plans.json",
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/samples.csv",
+    "sha256": "57a1107c1d5bc21a83f5cdb6b1635f5b304e50d6d3e182dde2d406c15720b7d6"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/velocity.csv",
+    "sha256": "efae17a1d9cc088df2ec683c3970086d0c73b4bb37b67e9b59e6e808de2756f8"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/comparison_contract.json",
+    "sha256": "3bc98a807bca1090ee431156269695c2fe0a84939943790462c207b636ab52c4"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/result.json",
+    "sha256": "60bb2732c833b1c5a277750ab9e293f650d86237389aa0010152f0aff37e23d7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/parameters.yaml",
+    "sha256": "f3d2ededeede2992ee434b0fffa910132a5aa61c91ac03521b73803d0b6c9afc"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/launch.log",
+    "sha256": "6557a4ad15e0d84bb89dacd8de5f7925ac76ec5a6dad56539ceb6774faf7d8f9"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/lattice/startup-failed-1_turn_arrival-1792090649/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_lattice/startup-failed-1_turn_arrival-1792090649/commands.csv",
+    "sha256": "849d0d823038c384e336375af529739b0933b0367e0b9938b3f4d0f17b48a2e8"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/plans.json",
+    "sha256": "9b561afb1a40a2a85a546f652f397ff80d114ea0133dbe867c7be7ebfda4c28a"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/samples.csv",
+    "sha256": "8f8b6a2ba3bef83044d885822dbc9586460de3720966cd1f517fb03312fe92fa"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/velocity.csv",
+    "sha256": "67c465aa2aeb2698a5071f12ea1b9b0c905764493c5169fc1672aad1253cde36"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/bag.log",
+    "sha256": "5c527b5f5a47440ac1d18e21338074f72b3dea6746464f9d1c2bbc5d66afd856"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/comparison_contract.json",
+    "sha256": "7b466406b4823d0c882d8dfe8818e17baff98c6610003551d418aa5d52cae467"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/result.json",
+    "sha256": "55d2a6d840fc60573acd45ad5f58f63c5d74ec23af8228aa35a078a97fc6fcc7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/parameters.yaml",
+    "sha256": "539e2968322b1665e95bd40704280ccc8244466a7c932c191d0e9fba9ed616ec"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/metrics.json",
+    "sha256": "f9dd4c964216e1d85497b09af76938003f1212e05a1966b4f3db539cf9473a28"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/launch.log",
+    "sha256": "0b0b039d9f2a76534486574874fa5cf745448ca870df64fbad6f60c7c05a1ae0"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/0_straight/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/0_straight/commands.csv",
+    "sha256": "254bf1bda4ed0a75771f8f620486f98a87b7efe8525dc3bf8ff0ee5930534be8"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/plans.json",
+    "sha256": "975183242fda231836c1262b69ac6d8ec679aeb6788b2134bcae9acf6a4324f8"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/samples.csv",
+    "sha256": "5fabf63cac393e51f8add7252ea92449a0c6d4224b80569c266a3cf3e5205ec0"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/velocity.csv",
+    "sha256": "e47876b3d0b61b14d67c564420d9b4a2b7b3978ddd9ef5155443ea009ecd1d76"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/bag.log",
+    "sha256": "c2a3a9b43df4a3ac48ec2f150629442312312ec1b82103064e3a6a348809cab2"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/comparison_contract.json",
+    "sha256": "e5399c4e3673eeeec37f95dae15c8a31ef99ad5a8816bfd4676bc31eebad909e"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/result.json",
+    "sha256": "54d45c4d820fd4ab6d8fde560152430020646c85a7ba80e16f09e493aa2552bf"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/parameters.yaml",
+    "sha256": "d56f570680ff2f07aab5d8b05b15405788340321f29035307f7b8f9de6639929"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/metrics.json",
+    "sha256": "ab4f1172077f8d78ce1294b2019b8d208cdde4b5d03d4c454ac55f30c5432a4d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/launch.log",
+    "sha256": "83b98bf1e50376cff2a8d66615580d6aeba2cc72e0060bee64a9bcc6f99035bc"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/1_turn_arrival/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/1_turn_arrival/commands.csv",
+    "sha256": "0e4041c4d37eda26e0e1a99803426a3378c8de6823f222fdcaa697f72bb6463a"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/plans.json",
+    "sha256": "7448f703c5ed1426d2c062cc899569ba5859b8b9ebc76b62cbca37364e8a2894"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/samples.csv",
+    "sha256": "9e4383cfbf551e7b5e1085830f4bc24c2b056ceba9ea59a961be36726ce3a68d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/velocity.csv",
+    "sha256": "c34a5f0eccb8f06fbcf24fd0d11f563364a0da8e0ac95544719de4cd6100ef20"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/bag.log",
+    "sha256": "c0f5f42bcf28903d21c262ea95a2cd7d551d680f4fcc489ed3d35e0ad6d57ad5"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/comparison_contract.json",
+    "sha256": "d3ca4b98a394a3dcbed9e2953512e17553b31a8faa64ba71888c6ec6f875191b"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/result.json",
+    "sha256": "ac56a8913a3c91ed19641a74e5b365c0c6a385e2842fbe717e4aa37dfc1a4d11"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/map.pgm",
+    "sha256": "dc9615119b9d09ede2c6a374b71df0bbb3c9036a4975de61f1a06168489d3635"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/parameters.yaml",
+    "sha256": "ce806071adf2da4ddd3dc622b1eede104fc46e245785e37b751c2f43b386eb0d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/metrics.json",
+    "sha256": "f3e3056959bc57a40982aca5906b14550aadb2bdad413a5e9a25c455fc9092f9"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/launch.log",
+    "sha256": "17b3d07ffb657d6684ea233012b3035fb5342e5b48dad1d7185553352bc0ef16"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/2_chair_gap/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/2_chair_gap/commands.csv",
+    "sha256": "139058d836afcb65a0f6f85b22b88d383fe2cf0179e9b91a1d919522bb909a3a"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/plans.json",
+    "sha256": "ed038129a43a0c9464694c00c24a2bbc1c086b2d8b0b5aae739ec04a4f2808bd"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/samples.csv",
+    "sha256": "610825ace6e83ba1c20436c41947dd0b2186e2b9f21ac173c8abd7391ffc844d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/velocity.csv",
+    "sha256": "76251a10d16c5be89077655f7333abc296b6d8ec94802b7ae42b4f468822e9bb"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/bag.log",
+    "sha256": "3e2de2ce79a1173eebff2287404d58d47d902076d1f95f43ff51ef5833143f9b"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/comparison_contract.json",
+    "sha256": "2fe6a407e2c4724c19c54b8d06ce440162b8da8bb8d60dd0d7d5cd53f549ff3c"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/result.json",
+    "sha256": "937fc1dd5d219eec068131bd980ca50fd5f39eff88dfb9b6d91577a04ccfef9b"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/parameters.yaml",
+    "sha256": "398de2012e874ea3455b6dc43a839c5525294c0148e55a4644cb8cd34a640dcd"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/metrics.json",
+    "sha256": "c77d6fd5a7bcacb42c061494613ca2b7db9e096a2a01f44195de24aa37f1db52"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/launch.log",
+    "sha256": "65b083638beb55320db270dd186ac7adf35246fd32aa138093b1dafe83d13621"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/3_far_heading/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/3_far_heading/commands.csv",
+    "sha256": "9caac19a76feb9974bac221786e3c8e3c1b2e2c966a5d2a3544477a9709548c0"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/plans.json",
+    "sha256": "799a8ffd69af8ada553dc15c660ae659eb520f840f03c4ab0c726609734ab89f"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/samples.csv",
+    "sha256": "504e6dc4154a8bd5a5d38c2b3a8abb9eecee6246173ac486caa32be766ed3231"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/velocity.csv",
+    "sha256": "a4c1e4e52ee95e57fbd0c821222b4a3332bf9b6f945a2ad56e5e3d9faddda927"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/bag.log",
+    "sha256": "95a8ed066da237513b05bae403e9952c5ce2e9c0ca7e9359ecdbc616a369e670"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/comparison_contract.json",
+    "sha256": "1e39da251622c9310959ae55b6dd2973f15a2eecb1348acd551ab1869fdd12da"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/result.json",
+    "sha256": "26fe160e19fd065aac87e7258b3fae8e9719c6451f151f47097f481988bf0280"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/map.pgm",
+    "sha256": "602fb21f625e2f760b44ca13539280ac531e464e5cfaee3f505c77c9ab87cdc2"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/parameters.yaml",
+    "sha256": "1f077f9c057e9407d74b4828ed24366e09e19f613f71074cb6f30825ea437ada"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/metrics.json",
+    "sha256": "25fba47824f6fb6c80a737e89cefcccf4f389af1e45a9f6d95de4822262b832a"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/launch.log",
+    "sha256": "9ecfc99096af69c4cc96a1c74c8e4a1cc1a725d29ffabc8a846a9c1b7606e2b0"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/4_distant/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/4_distant/commands.csv",
+    "sha256": "ebfd8c428e50eea9538298ceecb6ba7befcc5b3b3b0ed218a4bd73ce8c50552f"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/plans.json",
+    "sha256": "426baa63d585ef8e7e32c64c8fc13a24afa20bc228ee1c275461196aaf2aaeb4"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/samples.csv",
+    "sha256": "9b16e0552e4ec32d6cbd874a6db2a9488b5a7ffbbfd27513d24788d8bac2919c"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/velocity.csv",
+    "sha256": "c37a75da7f3bec8a2073e922c740ec01452453b7cdefd49b989b0b580d12b193"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/bag.log",
+    "sha256": "a3327fe7aba8ca5ea48cc0baee038c85bdab92c709bdb58f9facc544f65d0834"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/comparison_contract.json",
+    "sha256": "e2250c3e10047b0fbba9102ae0de5dc849c167c3b52928a84272165f713ec01e"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/result.json",
+    "sha256": "148e1022976c442d1cb711822f46ebfb4d7ca7c7eed03427083ef2dedb8375c6"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/map.pgm",
+    "sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/parameters.yaml",
+    "sha256": "9a6ea800a434fac279f9b29242b21a498401e4e507909228e2c9479d0c9f868b"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/metrics.json",
+    "sha256": "4d2bb3f69aa59fcfe9f5f350ab4cb17767bb9c81ec994c304ea371dabce4b66e"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/launch.log",
+    "sha256": "d12a9bcc2d4f6968d362abdeb32aa02b173eea874b2d47162e9a37dd008353be"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/5_lateral/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/5_lateral/commands.csv",
+    "sha256": "158e7593d7c73132908ec1657f4ed34d641d1ee370a25a3567e7b0dbfcc7efde"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/plans.json",
+    "sha256": "dcc52bb3b9c0b52b4a247424319ee1117efaf064959dd05df5115089b8e3a03c"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/samples.csv",
+    "sha256": "8641bdb835382de83b465f71ffe37c9ca5376024b21bc2b1e647f4f3322de0a6"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/velocity.csv",
+    "sha256": "75816e60733920f633500fc3f9f3c8ff7ea7c3b2bc5c86593b5788d270c795ab"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/bag.log",
+    "sha256": "ca596075608856187877ee47567f77608861ccb22983d6585c77fef871041a27"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/comparison_contract.json",
+    "sha256": "a53f8120ea40f07f175c8319eca435a0f1f037513ff77a9802981b0ada73b277"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/result.json",
+    "sha256": "74c139a29c3ffe950c7228a763f0cec201822c12eaedfbb195b81bb9ecd861d7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/map.pgm",
+    "sha256": "cce4b5785615086e130c0dd2b7e899b9c1c0adaeff97bb0d4525ea8ce4d69f56"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/parameters.yaml",
+    "sha256": "42f1fce583f996fcdd2092823e5e33308d22b6eb198cce748c1cdbda138b7480"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/metrics.json",
+    "sha256": "9c793538a1f42d0752bfc011f84e45b0bcf7efba9ed52456db480a04e720b6c8"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/launch.log",
+    "sha256": "88b07357f78c600c588cf2db7df56a288e869cc7a528441797aaf75d9b30ab7a"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/6_narrow_seat/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/6_narrow_seat/commands.csv",
+    "sha256": "11900a39a29af9545e2bcc9c6cb3cd2f4e5ba627ddebcce3f293c3000f34d30c"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/plans.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/plans.json",
+    "sha256": "8744ac7b439eb4bbbf4d4090ba1e49feaaaa706e8afd2b1155bdcf6e9d764519"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/samples.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/samples.csv",
+    "sha256": "3a4c9a103454c5c20abf118d8865e5457090d1adce0006460cf03b00120cfec9"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/velocity.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/velocity.csv",
+    "sha256": "2e48502395c31e742819fcf68ecfe3738895a63684d54713755acff6c0f7855e"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/bag.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/bag.log",
+    "sha256": "b478581bde424326f2b92cf37c7b75cd60b778bbd3c10fcf51dbaea7bc49ba36"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/comparison_contract.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/comparison_contract.json",
+    "sha256": "fdb22ab2b3f5e97e0a8afe22634c34c8fde9ba5595bb35b8e1842c72ba34c1b8"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/result.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/result.json",
+    "sha256": "4345383c85deacd7c056f77125f37945dca99f37d5a1860030d6fc08cf5a11b1"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/map.pgm",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/map.pgm",
+    "sha256": "0a6a5d845db8021af4a200a3c7ccfeccb2399e4cd7aeb513870aa12b65058fd3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/parameters.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/parameters.yaml",
+    "sha256": "369b17fbdcf749c606bf3778199a5c905e7af78f0a6d3dda699da9ee10d73068"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/map.yaml",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/map.yaml",
+    "sha256": "74c5368794055cd4ebe08d27a2b094983a72c6b6f6e669df9efcc93186fcd5a3"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/metrics.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/metrics.json",
+    "sha256": "d71fab181e0a28c9a9c799ab4fa4271980cf3d535d59f1a71d64d38675820c51"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/launch.log",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/launch.log",
+    "sha256": "98bed2a1e29143bf5473e147c5b0c1407e0a0ec5ae434e41f205b9fe8430e092"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/runtime_verified.json",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/runtime_verified.json",
+    "sha256": "1dbfd99515f7e2b12c0cb2d978898ee8fdaf34deeb53e7e5b0387d4ab64ce9f7"
+  },
+  {
+    "source": "/home/ehdrms/workspace/cleany-data/runs/planner-lattice-theta-20261016/theta/7_other_room/commands.csv",
+    "snapshot": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/baseline-snapshot/mppi_theta/7_other_room/commands.csv",
+    "sha256": "7a8c448699d8f7bcae2c13e30152a495d96a516c9d5988919b52d0b343a930cc"
+  }
+]

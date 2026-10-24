@@ -1,0 +1,21 @@
+{
+  "type": "Actual recorded Gazebo GT and /plan replay, not GUI capture",
+  "frames": 257,
+  "frame_ms": 200,
+  "sim_step_s": 0.4,
+  "speedup": 2,
+  "dimensions": [
+    1920,
+    860
+  ],
+  "finished_failed_runs_hold_final_pose": true,
+  "columns": [
+    "baseline",
+    "xy_only",
+    "clearance"
+  ],
+  "rows": [
+    "full route",
+    "first failure corner zoom"
+  ]
+}

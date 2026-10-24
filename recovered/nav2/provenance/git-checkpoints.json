@@ -1,0 +1,274 @@
+{
+  "status": "complete",
+  "checkpoints": [
+    {
+      "path": "cleany",
+      "before": "57db456a261dec6e73fdb0c657b3e8bb9d9dcc3a",
+      "after": "132cc51a35714afe03dda8e1f4306fd21c981ace",
+      "branch": "codex/refactor-local-checkpoint",
+      "committed": true,
+      "status_after": ""
+    },
+    {
+      "path": "feat-chair-reposition",
+      "before": "1745a58e7d5ac87f883b231521aadec6e277c543",
+      "after": "fef266f6194f6cad1a1bde8e62609e6bb570fc36",
+      "branch": "feat/chair-reposition",
+      "committed": true,
+      "status_after": ""
+    },
+    {
+      "path": "controller-optimization-20261013/rpp-source",
+      "before": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+      "after": "125775e40d51b59e91222efb01c5cab62f1b9815",
+      "branch": "codex/curvature-limited-rpp-checkpoint-20261017",
+      "committed": true,
+      "status_after": ""
+    },
+    {
+      "path": "runtime-refactor",
+      "before": "20d264d44fefa6093948e58e903dc1d9c417ab25",
+      "after": "20d264d44fefa6093948e58e903dc1d9c417ab25",
+      "branch": "codex/runtime-refactor",
+      "committed": false,
+      "status_after": ""
+    },
+    {
+      "path": "runtime-refactor-baseline",
+      "before": "d5236d84dcd582c86d617be588f12066d2c01799",
+      "after": "d5236d84dcd582c86d617be588f12066d2c01799",
+      "branch": "",
+      "committed": false,
+      "status_after": ""
+    },
+    {
+      "path": "isaac-training/IsaacLab",
+      "before": "3c6e67bb5c7ada942a6d1884ab69338f57596f77",
+      "after": "3c6e67bb5c7ada942a6d1884ab69338f57596f77",
+      "branch": "",
+      "committed": false,
+      "status_after": ""
+    },
+    {
+      "path": "controller-comparison-20261013/source",
+      "before": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+      "after": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+      "branch": "",
+      "committed": false,
+      "status_after": ""
+    },
+    {
+      "path": "controller-optimization-20261013/teb/source",
+      "before": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+      "after": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+      "branch": "",
+      "committed": false,
+      "status_after": ""
+    },
+    {
+      "path": ".",
+      "before": null,
+      "after": "fd24e8835c01f04d13dea0ad959b12907580a756",
+      "branch": "codex/workspace-scripts-checkpoint-20261017",
+      "committed": true,
+      "authored_files": 6340
+    }
+  ],
+  "bundles": [
+    {
+      "representative": "cleany",
+      "heads": [
+        {
+          "path": "cleany",
+          "commit": "132cc51a35714afe03dda8e1f4306fd21c981ace",
+          "anchor": "refs/heads/codex/archive-20261017-00"
+        },
+        {
+          "path": "feat-chair-reposition",
+          "commit": "fef266f6194f6cad1a1bde8e62609e6bb570fc36",
+          "anchor": "refs/heads/codex/archive-20261017-01"
+        },
+        {
+          "path": "runtime-refactor",
+          "commit": "20d264d44fefa6093948e58e903dc1d9c417ab25",
+          "anchor": "refs/heads/codex/archive-20261017-03"
+        },
+        {
+          "path": "runtime-refactor-baseline",
+          "commit": "d5236d84dcd582c86d617be588f12066d2c01799",
+          "anchor": "refs/heads/codex/archive-20261017-04"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/cleany/.git",
+      "bundle": "git-bundles/repository-00.bundle",
+      "bytes": 43296618,
+      "sha256": "05b76beaa824df3a13b2be7a5d6b62e3218d8dd941e0a2aec884a3274a2252e9",
+      "heads_advertised": "934213827e2689707d63261b98428ddbd1050652 refs/codex/import-scrum426\nb9f90d6b971141927ce523fe336d0a91e10e0a1b refs/codex/import-scrum426-gate\nf9909ca75bf3280b7b19f7f64e1d1db9bd692bc9 refs/codex/import-scrum426-laptop\n889d68f4eed89cd463a0aea8a1fe623ec6c0ad1c refs/codex/import-scrum426-recheck\n89178c5e1b90ae80be4e61f68003770caef27715 refs/codex/import-scrum426-repeat\n9502378a5b4f12a9f9a5d799d3f3fe4c15f7c142 refs/codex/turn-diffs/captures/1791824214359/aa7bf84d-90b3-4120-adfa-8dc92726f090/base\n9502378a5b4f12a9f9a5d799d3f3fe4c15f7c142 refs/codex/turn-diffs/captures/1791824324768/bfbc28d4-23fa-45b4-9d4a-0a222338e338/base\n9502378a5b4f12a9f9a5d799d3f3fe4c15f7c142 refs/codex/turn-diffs/captures/1791824684418/2834c04a-bece-48d8-b7b1-9a0fbf7afaf5/base\n79ef5d7201ea9bcbfb50e107724665e8b6cdb0ab refs/codex/turn-diffs/captures/1791828118133/e6d83ded-23b6-4457-af97-7d3b9a92b95b/base\n132cc51a35714afe03dda8e1f4306fd21c981ace refs/heads/codex/archive-20261017-00\nfef266f6194f6cad1a1bde8e62609e6bb570fc36 refs/heads/codex/archive-20261017-01\n20d264d44fefa6093948e58e903dc1d9c417ab25 refs/heads/codex/archive-20261017-03\nd5236d84dcd582c86d617be588f12066d2c01799 refs/heads/codex/archive-20261017-04\n5e151090b9bbb668638a5654dc28a3b141e82c47 refs/heads/codex/archive/navigation-runtime-validation-20261008-20261016\n16504eec7ad091e3f2737b34d6276a9e0df0fd56 refs/heads/codex/archive/runtime-integration-validation-20261008-20261016\n132cc51a35714afe03dda8e1f4306fd21c981ace refs/heads/codex/refactor-local-checkpoint\n20d264d44fefa6093948e58e903dc1d9c417ab25 refs/heads/codex/runtime-refactor\nfef266f6194f6cad1a1bde8e62609e6bb570fc36 refs/heads/feat/chair-reposition\n076b8935eabec288a164bb751e51c8c2079f7543 refs/heads/fix/runtime-accuracy-review\nc9995007ad97ce5a570c0288551024dff9d2ccbc refs/heads/main\nf0870880365670fca7c3683053b9840961a84ae1 refs/heads/perf/runtime-resources\nf9909ca75bf3280b7b19f7f64e1d1db9bd692bc9 refs/heads/test/scrum-426-scenarios\n8afe63bbacf1f8576d44fb3ca79b3c9ae68b4319 refs/remotes/a16/legacy-runtime-cleanup\nba7ede1c939b995de53cc07fa5b941ffdde59875 refs/remotes/origin/HEAD\n3fb5fa11be700363c2ad95585fdc9d99055cf09e refs/remotes/origin/docs/learning-guide-pr\nec5f834e19633571db82c0c7def389dad9bad7a8 refs/remotes/origin/feat/advanced-topic-publishing\n46efa012cddb4ef0ff3f4dadb785550591bb6073 refs/remotes/origin/feat/anygrasp-ready-pregrasp\n5bf8e9126a6d6c8d9da30ca4cd22ff26984a8690 refs/remotes/origin/feat/cad-whole-robot-simulation\n3791b22baf1af417fc7504a9a83b822bbc60a010 refs/remotes/origin/feat/dev-monitor\nbeeeabd538d367c54e79b96379a943f759060afe refs/remotes/origin/feat/gazebo-full-facility-pr\n5f9713375650e5792f21d7bc963cc0f4823813c2 refs/remotes/origin/feat/grasp-candidate-moveit-validation\n7388e76f3a621de235c7022f6153f9eac557caca refs/remotes/origin/feat/handeye-core\n2b40763212328c428992a42a30d4cf2fb1739f67 refs/remotes/origin/feat/handeye-evaluation\n6aadbcfdd6950739128288538725cd6109c35d87 refs/remotes/origin/feat/handeye-mujoco-scene\n810fdd25b37f4adfc11141ab2ca0fd969723c753 refs/remotes/origin/feat/handeye-multi-pose\n8b2a3522a7401538e9f0c58d39b9c77f0d6d4ad6 refs/remotes/origin/feat/handeye-runtime-adapters\ndfd85ec4094c48443571b2288020ee1f9c6a59ca refs/remotes/origin/feat/handeye-single-pose\n3c4656c494e43121c09a52788803b59a7fd419bc refs/remotes/origin/feat/handeye-workflow-validation\n3f8da661d9f47ddec09a624548a8e8a8a509974c refs/remotes/origin/feat/jetson-rgbd-grasp-validation\n814475f0eace0a72bc59b1eaef49e5d7edfd87f4 refs/remotes/origin/feat/manipulation-action-server\n9819ada83c0e849a3efd1283b8f9b410f790d7da refs/remotes/origin/feat/mission-runtime\n8cad9ad94764f2b80a80fd920cc04617cae3730d refs/remotes/origin/feat/moveit-arm-planning\n282f139e08bb4c5acef21f71de3eaa295aa26313 refs/remotes/origin/feat/mujoco-rgbd-grasp-planning\n4cdfcc081807e3c33d995bf4dd12603b1fcea3b6 refs/remotes/origin/feat/mujoco-simulation-pr\n57d89d37ddf7dbec025b1b6289fd373d6692962b refs/remotes/origin/feat/real-lidar-odom-mapping\n98e9f6c63743f7fef577644987b40086692b01d8 refs/remotes/origin/feat/runtime-integration\nba7ede1c939b995de53cc07fa5b941ffdde59875 refs/remotes/origin/main\na610c4aff179ff175d06db309135f00d7c4fbdd5 refs/remotes/origin/test/yolo-mujoco-detection\nf0870880365670fca7c3683053b9840961a84ae1 refs/remotes/validation/perf-runtime-resources\n92c832097493df4a1b4b9ab86e28f6215aa4e81b refs/stash\n132cc51a35714afe03dda8e1f4306fd21c981ace HEAD\n20d264d44fefa6093948e58e903dc1d9c417ab25 worktrees/runtime-refactor/HEAD\nd5236d84dcd582c86d617be588f12066d2c01799 worktrees/runtime-refactor-baseline/HEAD\nfef266f6194f6cad1a1bde8e62609e6bb570fc36 worktrees/feat-chair-reposition/HEAD",
+      "refs_scope": [
+        "--all"
+      ],
+      "verified": true
+    },
+    {
+      "representative": "controller-optimization-20261013/rpp-source",
+      "heads": [
+        {
+          "path": "controller-optimization-20261013/rpp-source",
+          "commit": "125775e40d51b59e91222efb01c5cab62f1b9815",
+          "anchor": "refs/heads/codex/archive-20261017-02"
+        },
+        {
+          "path": "controller-comparison-20261013/source",
+          "commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+          "anchor": "refs/heads/codex/archive-20261017-06"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/controller-comparison-20261013/source/.git",
+      "bundle": "git-bundles/repository-01.bundle",
+      "bytes": 16340433,
+      "sha256": "c54a1653d2fe0c5cc3f3797370dd8c1bc2b6b397b978bd7969f865ec1e82911a",
+      "heads_advertised": "125775e40d51b59e91222efb01c5cab62f1b9815 refs/heads/codex/archive-20261017-02\nb3ca816ba420452ee7960837bc16ec74148e07b0 refs/heads/codex/archive-20261017-06\n125775e40d51b59e91222efb01c5cab62f1b9815 refs/heads/codex/curvature-limited-rpp-checkpoint-20261017\n125775e40d51b59e91222efb01c5cab62f1b9815 HEAD\nb3ca816ba420452ee7960837bc16ec74148e07b0 main-worktree/HEAD",
+      "refs_scope": [
+        "--all"
+      ],
+      "verified": true
+    },
+    {
+      "representative": "isaac-training/IsaacLab",
+      "heads": [
+        {
+          "path": "isaac-training/IsaacLab",
+          "commit": "3c6e67bb5c7ada942a6d1884ab69338f57596f77",
+          "anchor": "refs/heads/codex/archive-20261017-05"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/isaac-training/IsaacLab/.git",
+      "bundle": "git-bundles/repository-02.bundle",
+      "bytes": 31087615,
+      "sha256": "b73cee9380325d803ca7d55f0ab8ca43205073718f590550e563ec2f13b8c7fa",
+      "heads_advertised": "3c6e67bb5c7ada942a6d1884ab69338f57596f77 refs/heads/codex/archive-20261017-05\n3c6e67bb5c7ada942a6d1884ab69338f57596f77 refs/tags/v2.3.0\n3c6e67bb5c7ada942a6d1884ab69338f57596f77 HEAD",
+      "refs_scope": [
+        "--all"
+      ],
+      "verified": true,
+      "shallow_boundary_file": "git-bundles/repository-02.shallow",
+      "shallow_boundary_sha256": "1d97b0d456e8d5ac288cdf84511ffc1a357b8ddde84b0aba23514b65b1ad6cd3"
+    },
+    {
+      "representative": "controller-optimization-20261013/teb/source",
+      "heads": [
+        {
+          "path": "controller-optimization-20261013/teb/source",
+          "commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+          "anchor": "refs/heads/codex/archive-20261017-07"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/controller-optimization-20261013/teb/source/.git",
+      "bundle": "git-bundles/repository-03.bundle",
+      "bytes": 16335706,
+      "sha256": "da384bc524b4c3c0402e80e9cd67a681009fb397abff15727059fd68a6533db4",
+      "heads_advertised": "b3ca816ba420452ee7960837bc16ec74148e07b0 refs/heads/codex/archive-20261017-07\nb3ca816ba420452ee7960837bc16ec74148e07b0 HEAD",
+      "refs_scope": [
+        "--all"
+      ],
+      "verified": true
+    },
+    {
+      "representative": ".",
+      "heads": [
+        {
+          "path": ".",
+          "commit": "fd24e8835c01f04d13dea0ad959b12907580a756",
+          "anchor": "refs/heads/codex/archive-20261017-08"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/.git",
+      "bundle": "git-bundles/repository-04.bundle",
+      "bytes": 1862357,
+      "sha256": "113ba0f3b9572ccc5f00f232e4ca39f13ee67f4b39e8f30eca5e15b814fdf734",
+      "heads_advertised": "fd24e8835c01f04d13dea0ad959b12907580a756 refs/heads/codex/archive-20261017-08\nfd24e8835c01f04d13dea0ad959b12907580a756 refs/heads/codex/workspace-scripts-checkpoint-20261017",
+      "refs_scope": [
+        "--branches",
+        "--tags"
+      ],
+      "verified": true
+    },
+    {
+      "representative": "cleany/docs/cleany-docs",
+      "heads": [
+        {
+          "path": "cleany/docs/cleany-docs",
+          "commit": "5c0db209f835701824b669a2000248ed0a48dec7",
+          "anchor": "refs/heads/codex/archive-20261017-09"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/cleany/.git/modules/docs/cleany-docs",
+      "bundle": "git-bundles/repository-05.bundle",
+      "bytes": 19326426,
+      "sha256": "147d86c60dd58755e3ebf2ee1feffcb82d73cdafb57506c9daf1de5569855643",
+      "heads_advertised": "5c0db209f835701824b669a2000248ed0a48dec7 refs/heads/codex/archive-20261017-09\n4b6816e4d5ca8d368f3f4742f8d1e45a3aba8513 refs/heads/main\n5c0db209f835701824b669a2000248ed0a48dec7 refs/remotes/origin/HEAD\n1c6ca6e58fb1c696fe7f5a5491ec3605211c427d refs/remotes/origin/ci/kb-integrity-checks\n9931007c3470ea3b66746fde20f630e13806ae86 refs/remotes/origin/docs/ci-verification-strategy\n42a33139def1478a75b04a26e3bb7a45d086368a refs/remotes/origin/docs/kb-planning-technical-refresh\n5c0db209f835701824b669a2000248ed0a48dec7 refs/remotes/origin/main\n5c0db209f835701824b669a2000248ed0a48dec7 HEAD",
+      "refs_scope": [
+        "--all"
+      ],
+      "verified": true
+    },
+    {
+      "representative": "feat-chair-reposition/docs/cleany-docs",
+      "heads": [
+        {
+          "path": "feat-chair-reposition/docs/cleany-docs",
+          "commit": "9931007c3470ea3b66746fde20f630e13806ae86",
+          "anchor": "refs/heads/codex/archive-20261017-10"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/cleany/.git/worktrees/feat-chair-reposition/modules/docs/cleany-docs",
+      "bundle": "git-bundles/repository-06.bundle",
+      "bytes": 19329463,
+      "sha256": "acfe2bd4553cc5f33bbd0800074aa654d5f63440abdb9b84772b5cc4b1be013a",
+      "heads_advertised": "9931007c3470ea3b66746fde20f630e13806ae86 refs/heads/codex/archive-20261017-10\n5c0db209f835701824b669a2000248ed0a48dec7 refs/heads/main\n5c0db209f835701824b669a2000248ed0a48dec7 refs/remotes/origin/HEAD\n1c6ca6e58fb1c696fe7f5a5491ec3605211c427d refs/remotes/origin/ci/kb-integrity-checks\n9931007c3470ea3b66746fde20f630e13806ae86 refs/remotes/origin/docs/ci-verification-strategy\n42a33139def1478a75b04a26e3bb7a45d086368a refs/remotes/origin/docs/kb-planning-technical-refresh\n5c0db209f835701824b669a2000248ed0a48dec7 refs/remotes/origin/main\n9931007c3470ea3b66746fde20f630e13806ae86 HEAD",
+      "refs_scope": [
+        "--all"
+      ],
+      "verified": true
+    },
+    {
+      "representative": "runtime-refactor/docs/cleany-docs",
+      "heads": [
+        {
+          "path": "runtime-refactor/docs/cleany-docs",
+          "commit": "fb53e2906dfc6e97995960f1594d60b9ad769654",
+          "anchor": "refs/heads/codex/archive-20261017-11"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/cleany/.git/worktrees/runtime-refactor/modules/docs/cleany-docs",
+      "bundle": "git-bundles/repository-07.bundle",
+      "bytes": 19333462,
+      "sha256": "f22dce4b1fe7fd5bf0ceb7811232c132a7ce827788b565404df9d3988e626aaf",
+      "heads_advertised": "fb53e2906dfc6e97995960f1594d60b9ad769654 refs/heads/codex/archive-20261017-11\nfb53e2906dfc6e97995960f1594d60b9ad769654 refs/heads/docs/implementation-document-boundaries\nfb53e2906dfc6e97995960f1594d60b9ad769654 refs/remotes/origin/HEAD\nfb53e2906dfc6e97995960f1594d60b9ad769654 refs/remotes/origin/docs/implementation-document-boundaries\n5c0db209f835701824b669a2000248ed0a48dec7 refs/remotes/origin/main\nfb53e2906dfc6e97995960f1594d60b9ad769654 HEAD",
+      "refs_scope": [
+        "--all"
+      ],
+      "verified": true
+    },
+    {
+      "representative": "controller-comparison-20261013/source/docs/cleany-docs",
+      "heads": [
+        {
+          "path": "controller-comparison-20261013/source/docs/cleany-docs",
+          "commit": "9931007c3470ea3b66746fde20f630e13806ae86",
+          "anchor": "refs/heads/codex/archive-20261017-12"
+        }
+      ],
+      "original_common_dir": "/home/donglee/workspace/cleany/controller-comparison-20261013/source/.git/modules/docs/cleany-docs",
+      "bundle": "git-bundles/repository-08.bundle",
+      "bytes": 19329463,
+      "sha256": "49cfa834d69ecfae256fbdc3f0537928c86b3a3316874ebe5f0bed9b8fc47201",
+      "heads_advertised": "9931007c3470ea3b66746fde20f630e13806ae86 refs/heads/codex/archive-20261017-12\n5c0db209f835701824b669a2000248ed0a48dec7 refs/heads/main\n5c0db209f835701824b669a2000248ed0a48dec7 refs/remotes/origin/HEAD\n1c6ca6e58fb1c696fe7f5a5491ec3605211c427d refs/remotes/origin/ci/kb-integrity-checks\n9931007c3470ea3b66746fde20f630e13806ae86 refs/remotes/origin/docs/ci-verification-strategy\n42a33139def1478a75b04a26e3bb7a45d086368a refs/remotes/origin/docs/kb-planning-technical-refresh\n5c0db209f835701824b669a2000248ed0a48dec7 refs/remotes/origin/main\n9931007c3470ea3b66746fde20f630e13806ae86 HEAD",
+      "refs_scope": [
+        "--all"
+      ],
+      "verified": true
+    }
+  ],
+  "note": "Checkpoint commits preserve existing work; no source behavior changed and no runtime tests were rerun. Independent Git bundles plus the full workspace archive preserve local history without requiring remote push."
+}

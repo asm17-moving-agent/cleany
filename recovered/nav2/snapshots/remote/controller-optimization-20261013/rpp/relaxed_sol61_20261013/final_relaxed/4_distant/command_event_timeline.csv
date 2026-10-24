@@ -1,0 +1,27 @@
+received_sim_s,steady_wall_s,stage,state,reason
+8.158000000000001,34828.440700653,/cmd_vel,zero,received command transition
+8.158000000000001,,/wheel_limit/state,input_command_timeout,input_command_timeout
+8.178,34828.460930603,/legacy_guard/cmd_vel,zero,received command transition
+8.178,,/body_guard_3d/state,STOP_UNAVAILABLE,Command timeout
+8.198,34828.480235395,/pan_ready/cmd_vel,zero,received command transition
+8.198,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+8.358,34828.636276829,/nav2/cmd_vel,nonzero,received command transition
+8.398,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+8.418000000000001,34828.69450012,/cmd_vel,nonzero,received command transition
+8.418000000000001,,/wheel_limit/state,coupled_wheel_limit,coupled_wheel_limit
+8.498000000000001,34828.780216782,/pan_ready/cmd_vel,nonzero,received command transition
+8.498000000000001,34828.780537118,/safety_2d/cmd_vel,nonzero,received command transition
+8.498000000000001,,/head_pan/state,PASS,PASS
+8.524000000000001,34828.818405411,/legacy_guard/cmd_vel,nonzero,received command transition
+8.524000000000001,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+15.238000000000001,34835.660936372,/legacy_guard/cmd_vel,zero,received command transition
+15.238000000000001,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+15.318000000000001,34835.733844334,/legacy_guard/cmd_vel,nonzero,received command transition
+15.318000000000001,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+60.042,34881.887325061,/nav2/cmd_vel,zero,received command transition
+60.082,34881.93021545,/pan_ready/cmd_vel,zero,received command transition
+60.082,34881.930647157,/safety_2d/cmd_vel,zero,received command transition
+60.12200000000001,34881.963361681,/legacy_guard/cmd_vel,zero,received command transition
+60.202000000000005,34882.034479043,/cmd_vel,zero,received command transition
+60.56,,/wheel_limit/state,input_command_timeout,input_command_timeout
+60.56,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT

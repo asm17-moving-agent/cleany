@@ -1,0 +1,189 @@
+{
+  "candidate": "dwb",
+  "goal_index": 1,
+  "goal_name": "turn_arrival",
+  "goal_map": [
+    4.0,
+    0.0,
+    1.5707963267948966
+  ],
+  "completed": false,
+  "domain": 225,
+  "partition": "cleany_comparison_16dcf0b52ec74df6805a72c2d723b356",
+  "host": "a16-fedora",
+  "discovery_ports": {
+    "msg": "22551",
+    "srv": "22552"
+  },
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "initial_pose_snapshot": {
+    "sim_s": 7.376,
+    "GT": [
+      7.310925200817734e-10,
+      5.993112581348025e-14,
+      6.661338147750939e-16
+    ],
+    "map": {
+      "sim_s": 7.3340000000000005,
+      "source": "map_base_tf",
+      "pose": [
+        0.020344088527582224,
+        -0.01325492523160989,
+        0.011605760059034522
+      ]
+    },
+    "odom": {
+      "sim_s": 7.376,
+      "source": "/odom",
+      "stamp_s": 7.376,
+      "pose": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "wheel_odom": {
+      "sim_s": 7.376,
+      "source": "/wheel/odom",
+      "stamp_s": 7.376,
+      "pose": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "amcl": {
+      "sim_s": 4.21,
+      "source": "amcl",
+      "stamp_s": 4.164,
+      "pose": [
+        0.020344088527582224,
+        -0.013254925231609892,
+        0.011605760059034513
+      ]
+    }
+  },
+  "navigation_started": true,
+  "navigation_sim_start_s": 8.394,
+  "navigation_wall_start_monotonic_s": 10653.630341471,
+  "error": "KeyboardInterrupt: ",
+  "cleanup_error": "failed to create timer: the given context is not valid, either rcl_init() was not called or rcl_shutdown() was called., at ./src/rcl/guard_condition.c:67",
+  "owned_launch_stopped": true,
+  "owned_bag_stopped": true,
+  "elapsed_wall_s": 108.45420404300057,
+  "no_valid_trajectory_warning_count": 0,
+  "controller_deadline_warning_count": 0
+}

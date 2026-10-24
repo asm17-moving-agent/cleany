@@ -1,0 +1,9 @@
+{
+  "actual_scene_info_received": true,
+  "fixture_or_repo_uri_remaining_in_materialized_world": false,
+  "fixture_or_repo_uri_remaining_in_scene": false,
+  "missing_mesh_errors": [],
+  "scene_model_name_count": 330,
+  "scope": "headless actual Gazebo server scene metadata and log; no GUI or navigation; not physical proof",
+  "server_stopped": true
+}

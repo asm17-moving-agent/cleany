@@ -1,0 +1,65 @@
+{
+  "client_date": "2026-10-13",
+  "host": "142spp-endeavour",
+  "platform": "Linux-7.1.9-arch1-2-x86_64-with-glibc2.44",
+  "cpu": {
+    "exit_code": 0,
+    "stdout": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           48 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  12\nOn-line CPU(s) list:                     0-11\nVendor ID:                               AuthenticAMD\nModel name:                              AMD Ryzen 5 9600X 6-Core Processor\nCPU family:                              26\nModel:                                   68\nThread(s) per core:                      2\nCore(s) per socket:                      6\nSocket(s):                               1\nStepping:                                0\nMicrocode version:                       0xb404023\nFrequency boost:                         enabled\nCPU(s) scaling MHz:                      62%\nCPU max MHz:                             5486.4409\nCPU min MHz:                             627.9670\nBogoMIPS:                                7799.98\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good amd_lbr_v2 nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpuid_fault cpb cat_l3 cdp_l3 hw_pstate ssbd mba perfmon_v2 ibrs ibpb stibp ibrs_enhanced vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk avx_vnni avx512_bf16 clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif x2avic v_spec_ctrl vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid bus_lock_detect movdiri movdir64b overflow_recov succor smca fsrm avx512_vp2intersect flush_l1d amd_lbr_pmc_freeze\nVirtualization:                          AMD-V\nL1d cache:                               288 KiB (6 instances)\nL1i cache:                               192 KiB (6 instances)\nL2 cache:                                6 MiB (6 instances)\nL3 cache:                                32 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-11\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Mitigation; IBPB on VMEXIT only\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; STIBP always-on; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB on VMEXIT",
+    "stderr": ""
+  },
+  "container": "cleany-ros-humble-cdi",
+  "source_head": {
+    "exit_code": 0,
+    "stdout": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+    "stderr": ""
+  },
+  "source_status": {
+    "exit_code": 0,
+    "stdout": "M ros2_ws/src/cleany_navigation/CMakeLists.txt\n M ros2_ws/src/cleany_navigation/README.md\n A ros2_ws/src/cleany_navigation/include/cleany_navigation/rpp_yaw_limit.hpp\n M ros2_ws/src/cleany_navigation/package.xml\n A ros2_ws/src/cleany_navigation/rpp_plugins.xml\n A ros2_ws/src/cleany_navigation/src/curvature_limited_rpp.cpp\n A ros2_ws/src/cleany_navigation/test/test_rpp_yaw_limit.cpp",
+    "stderr": ""
+  },
+  "source_diff_check": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "permissions": "danger-full-access / approval never confirmed by active tool instructions",
+  "domain": 228,
+  "discovery": {
+    "ROS_LOCALHOST_ONLY": "1",
+    "IGN_IP": "127.0.0.1",
+    "GZ_IP": "127.0.0.1",
+    "partition": "UUID per run"
+  },
+  "sha256": {
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp-source/ros2_ws/src/cleany_navigation/src/curvature_limited_rpp.cpp": "b973d72235b18a0c696cf66de9d45d3d3b9d9d0fc85f8458de7555ba6d436c37",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp-source/ros2_ws/src/cleany_navigation/include/cleany_navigation/rpp_yaw_limit.hpp": "898375a6a083b7f922114243fbfdb7691e9d3be1731a6250f6833c264632b4f2",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/source.patch": "7e3c6e600a7a44d6129488894e906fcbfab210f1c4fd12ca9d15f68cfc7ddf98",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/analyze.py": "cc91dc60528aceda39216da1daff30c89c82a3891148d735265c100f9218d298",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/costmap_diagnosis.py": "07cdfe1fa462d2e89d2a9b5af7d017bf1fe7dcd1a56928ecf269416790557836",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/runner.py": "06218f9efdaaf418371da10e8ad5ab6b5353c9fa0ef51dd833be9e5f829f3dd4",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/analysis_base.py": "1697de81042abd4cf4e94eb7dfe1c0316b5a8802dcf3c92a00550a3face02f02",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/common.py": "9c11153e1485759009c75f6abf09b00c94cb4365b4ef19610c50f81ef171542e",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/cancel_representative.py": "307b23a4f22c2ce36b792a4d362c5f500ef25b2c9d067a7e839791c533f5bbde",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/probe.py": "a55616147a4df83d660e66145cc8214f73ca6895c9e87a4955a33416ae94113b",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/analyze.py": "733c474480aa891d16136ae5f954aeaf8c452b8488855e665409554a5f7b36d5",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/costmap_diagnosis.py": "07cdfe1fa462d2e89d2a9b5af7d017bf1fe7dcd1a56928ecf269416790557836",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/runner.py": "d86840d51e4707a44d9cd7f6e2a71c8286f88a52b7b45b27806ec38597fa1b37",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/analysis_base.py": "1697de81042abd4cf4e94eb7dfe1c0316b5a8802dcf3c92a00550a3face02f02",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/test_wheel_limit.py": "b7e328f4f1445b7e967ddfdd580bfc0104014ed4885eb0dd72fc487102948e6f",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/common.py": "e431001572bde9fe21498cd690cb42a3e2edfbb1756e2243c12066d057a1fa4b",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/cancel_representative.py": "838ee806a3df11e78a3e4fb151d2ec51868f64ca4cf02f7cb2095decd3686089",
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/wheel_limit.py": "e74923bf1260e61bc3b8f1d04ef61217bc7f0b32863e51ac79bfddf18ff15c02"
+  },
+  "baseline_environment": "/home/donglee/workspace/cleany/controller-comparison-20261013/environment.json",
+  "ros_packages": {
+    "exit_code": 0,
+    "stdout": "libignition-gazebo6 6.18.0-1~jammy\nros-humble-nav2-controller 1.1.20-1jammy.20260908.005456\nros-humble-nav2-regulated-pure-pursuit-controller 1.1.20-1jammy.20260915.232155\nros-humble-ros-gz-bridge 0.244.25-1jammy.20260729.042716",
+    "stderr": ""
+  },
+  "container_os": {
+    "exit_code": 0,
+    "stdout": "PRETTY_NAME=\"Ubuntu 22.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"22.04\"\nVERSION=\"22.04.5 LTS (Jammy Jellyfish)\"\nVERSION_CODENAME=jammy\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=jammy",
+    "stderr": ""
+  }
+}

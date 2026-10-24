@@ -1,0 +1,437 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -127,3 +127,8 @@
+ pluginlib_export_plugin_description_file(nav2_mppi_controller critics.xml)
+ 
+ ament_package()
++
++add_executable(replay_snapshot src/replay_snapshot.cpp)
++target_link_libraries(replay_snapshot mppi_controller)
++ament_target_dependencies(replay_snapshot ${dependencies_pkgs})
++install(TARGETS replay_snapshot DESTINATION lib/${PROJECT_NAME})
+--- a/README.md
++++ b/README.md
+@@ -321,3 +321,7 @@
+ As you increase or decrease your weights on the Obstacle, you may notice the aforementioned behaviors (e.g. won't overcome free to non-free threshold). To overcome them, increase the FollowPath critic cost to increase the desire for the trajectory planner to continue moving towards the goal. Make sure to not overshoot this though, keep them balanced. A desirable outcome is smooth motion roughly in the center of spaces without significant close interactions with obstacles. It shouldn't be perfectly following a path yet nor should the output velocity be wobbling jaggedly.
+ 
+ Once you have your obstacle avoidance behavior tuned and matched with an appropriate path following penalty, tune the Path Align critic to align with the path. If you design exact-path-alignment behavior, its possible to skip the obstacle critic step as highly tuning the system to follow the path will give it less ability to deviate to avoid obstacles (though it'll slow and stop). Tuning the critic weight for the Obstacle critic high will do the job to avoid near-collisions but the repulsion weight is largely unnecessary to you. For others wanting more dynamic behavior, it _can_ be beneficial to slowly lower the weight on the obstacle critic to give the path alignment critic some more room to work. If your path was generated with a cost-aware planner (like all provided by Nav2) and providing paths sufficiently far from obstacles for your satisfaction, the impact of a slightly reduced Obstacle critic with a Path Alignment critic will do you well. Not over-weighting the path align critic will allow the robot to  deviate from the path to get around dynamic obstacles in the scene or other obstacles not previous considered during path planning. It is subjective as to the best behavior for your application, but it has been shown that MPPI can be an exact path tracker and/or avoid dynamic obstacles very fluidly and everywhere in between. The defaults provided are in the generally right regime for a balanced initial trade-off. 
++
++## Cleany doorway experiment extensions
++
++The isolated experiment adds `path_seed_count` (default 0), `path_seed_max_speed` (default 0.25 m/s), `validate_output` (default false), `path_progress_timeout` (default 0, disabled), and `path_progress_distance` (default 0.08 m). These are controller plugin parameters. Coherent SE(2) proposals retain every existing critic and the coupled wheel envelope. Optional output validation checks the averaged/filtered sequence against the native footprint collision checker; a failed mean is replaced by an already scored, collision-free candidate or raises a failure. Progress is measured against a stable route for the same goal; replanning does not grant more time. `MPPI_TRACE_FILE` enables sampled per-candidate critic telemetry before control regularization. The experiment README two directories above the candidate workspace documents mission waypoints, constraints, reproduction, and measurement limitations.
+--- a/include/nav2_mppi_controller/controller.hpp
++++ b/include/nav2_mppi_controller/controller.hpp
+@@ -25,6 +25,7 @@
+ #include "nav2_mppi_controller/tools/utils.hpp"
+ 
+ #include "nav2_core/controller.hpp"
++#include "nav2_mppi_controller/path_progress.hpp"
+ #include "nav2_core/goal_checker.hpp"
+ #include "rclcpp/rclcpp.hpp"
+ 
+@@ -120,6 +121,9 @@
+   PathHandler path_handler_;
+   TrajectoryVisualizer trajectory_visualizer_;
+ 
++  nav_msgs::msg::Path progress_path_;
++  mppi::PathProgressGate progress_gate_;
++  double path_progress_timeout_{0.0}, path_progress_distance_{0.08};
+   bool visualize_;
+ 
+   double reset_period_;
+--- a/include/nav2_mppi_controller/optimizer.hpp
++++ b/include/nav2_mppi_controller/optimizer.hpp
+@@ -247,6 +247,11 @@
+   float goal_rotate_enter_radius_{0.0f};
+   float goal_rotate_exit_radius_{0.0f};
+   bool goal_rotation_active_{false};
++  bool validate_output_{false};
++  bool sequenceCollisionFree(const models::ControlSequence & sequence) const;
++  void validateOutput();
++  int path_seed_count_{0};
++  float path_seed_max_speed_{0.25f};
+   float wheel_max_rad_s_{0.0f};
+   float wheel_radius_m_{0.0635f};
+   float wheelbase_m_{0.35f};
+--- /dev/null
++++ b/include/nav2_mppi_controller/path_progress.hpp
+@@ -0,0 +1,38 @@
++#pragma once
++#include <algorithm>
++#include <cmath>
++#include <limits>
++#include <vector>
++namespace mppi {
++struct ProgressPoint {double x,y;};
++inline double projectProgress(const std::vector<ProgressPoint>& path,double x,double y) {
++  double best=std::numeric_limits<double>::infinity(),s=0,result=0;
++  for(size_t i=1;i<path.size();++i){
++    const double dx=path[i].x-path[i-1].x,dy=path[i].y-path[i-1].y,length=std::hypot(dx,dy);
++    if(length<1e-8)continue;
++    const double t=std::clamp(((x-path[i-1].x)*dx+(y-path[i-1].y)*dy)/(length*length),0.,1.);
++    const double dist=std::hypot(x-path[i-1].x-t*dx,y-path[i-1].y-t*dy);
++    if(dist<best){best=dist;result=s+t*length;}s+=length;
++  }
++  return result;
++}
++class PathProgressGate {
++public:
++  void reset(){active_=false;anchor_=false;credit_=0.;}
++  // Replanning rebases the route coordinate but does not grant time or progress.
++  void replan(){anchor_=false;}
++  bool observe(double now,double s,double yaw_error,bool terminal,double timeout,double distance){
++    if(!active_){active_=true;last_time_=now;last_yaw_=yaw_error;}
++    if(!anchor_){best_s_=s;anchor_=true;}
++    if(now<last_time_){reset();return true;}
++    if(terminal){
++      if(!terminal_ || last_yaw_-yaw_error>=.05){last_time_=now;last_yaw_=yaw_error;}
++    }else if(s>best_s_){credit_+=s-best_s_;best_s_=s;if(credit_>=distance){last_time_=now;credit_=0.;}}
++    terminal_=terminal;
++    return now-last_time_<=timeout;
++  }
++private:
++  bool active_=false,anchor_=false,terminal_=false;
++  double best_s_=0,credit_=0,last_time_=0,last_yaw_=0;
++};
++}
+--- /dev/null
++++ b/include/nav2_mppi_controller/path_seed.hpp
+@@ -0,0 +1,38 @@
++// Experiment: coherent path proposals, still evaluated by every MPPI critic.
++#pragma once
++#include <algorithm>
++#include <cmath>
++#include <vector>
++#include "nav2_mppi_controller/wheel_projection.hpp"
++namespace mppi {
++struct SeedPose {float x, y, yaw;};
++struct SeedControl {float x, y, yaw;};
++inline float wrapSeedAngle(float a) {return std::atan2(std::sin(a), std::cos(a));}
++inline std::vector<SeedControl> pathSeed(
++  SeedPose current, const std::vector<SeedPose> & path, size_t steps,
++  float dt, float speed, float yaw_speed, float radius, float lever, float wheel_cap,
++  size_t start_index = 0)
++{
++  std::vector<SeedControl> result; result.reserve(steps);
++  size_t target = path.empty() ? 0 : std::min(start_index,path.size()-1);
++  for (size_t t=0; t<steps; ++t) {
++    while (target+1<path.size() && std::hypot(path[target].x-current.x,path[target].y-current.y)<0.012f &&
++      std::abs(wrapSeedAngle(path[target].yaw-current.yaw))<0.025f) {++target;}
++    if (path.empty()) {result.push_back({0,0,0}); continue;}
++    const float dx=path[target].x-current.x, dy=path[target].y-current.y;
++    const float da=wrapSeedAngle(path[target].yaw-current.yaw);
++    // Interpolate all three coordinates with one fraction, preserving the
++    // coupled connector to the lattice pose, instead of rotating in place.
++    const float duration=std::max({dt,std::hypot(dx,dy)/speed,std::abs(da)/yaw_speed});
++    const float wx=dx/duration, wy=dy/duration;
++    SeedControl u{std::cos(current.yaw)*wx+std::sin(current.yaw)*wy,
++      -std::sin(current.yaw)*wx+std::cos(current.yaw)*wy,da/duration};
++    if (wheel_cap>0) {projectWheelTwist(u.x,u.y,u.yaw,radius,lever,wheel_cap);}
++    current.x+=dt*(std::cos(current.yaw)*u.x-std::sin(current.yaw)*u.y);
++    current.y+=dt*(std::sin(current.yaw)*u.x+std::cos(current.yaw)*u.y);
++    current.yaw+=dt*u.yaw;
++    result.push_back(u);
++  }
++  return result;
++}
++}
+--- a/src/controller.cpp
++++ b/src/controller.cpp
+@@ -13,6 +13,7 @@
+ // limitations under the License.
+ 
+ #include <stdint.h>
++#include "nav2_core/exceptions.hpp"
+ #include <chrono>
+ #include "nav2_mppi_controller/controller.hpp"
+ #include "nav2_mppi_controller/tools/utils.hpp"
+@@ -40,6 +41,8 @@
+   auto getParam = parameters_handler_->getParamGetter(name_);
+   getParam(visualize_, "visualize", false);
+   getParam(reset_period_, "reset_period", 1.0);
++  getParam(path_progress_timeout_, "path_progress_timeout", 0.0);
++  getParam(path_progress_distance_, "path_progress_distance", 0.08);
+ 
+   // Configure composed objects
+   optimizer_.initialize(parent_, name_, costmap_ros_, parameters_handler_.get());
+@@ -88,11 +91,33 @@
+ 
+   if (clock_->now() - last_time_called_ > rclcpp::Duration::from_seconds(reset_period_)) {
+     reset();
++    progress_gate_.reset();
+   }
+   last_time_called_ = clock_->now();
+ 
+   std::lock_guard<std::mutex> param_lock(*parameters_handler_->getLock());
+   nav_msgs::msg::Path transformed_plan = path_handler_.transformPath(robot_pose);
++  if (path_progress_timeout_ > 0.0 && !progress_path_.poses.empty()) {
++    geometry_msgs::msg::PoseStamped pose;
++    if (robot_pose.header.frame_id == progress_path_.header.frame_id) {pose=robot_pose;}
++    else {tf_buffer_->transform(robot_pose,pose,progress_path_.header.frame_id,tf2::durationFromSec(0.1));}
++    std::vector<mppi::ProgressPoint> points;
++    for (const auto & p : progress_path_.poses) {points.push_back({p.pose.position.x,p.pose.position.y});}
++    const auto & goal=progress_path_.poses.back().pose;
++    geometry_msgs::msg::Pose tolerance;geometry_msgs::msg::Twist velocity_tolerance;
++    const bool valid=goal_checker && goal_checker->getTolerances(tolerance,velocity_tolerance);
++    const bool terminal=valid && std::hypot(pose.pose.position.x-goal.position.x,
++      pose.pose.position.y-goal.position.y)<=tolerance.position.x;
++    const double yaw_error=std::abs(angles::shortest_angular_distance(
++      tf2::getYaw(pose.pose.orientation),tf2::getYaw(goal.orientation)));
++    const double progress=mppi::projectProgress(points,pose.pose.position.x,pose.pose.position.y);
++    if (!progress_gate_.observe(clock_->now().seconds(),progress,yaw_error,terminal,
++      path_progress_timeout_,path_progress_distance_)) {
++      RCLCPP_WARN(logger_, "Path progress timeout: %.2fs without %.3fm route advance",path_progress_timeout_,path_progress_distance_);
++      throw nav2_core::PlannerException("Path progress timeout");
++    }
++  }
++
+ 
+   nav2_costmap_2d::Costmap2D * costmap = costmap_ros_->getCostmap();
+   std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> costmap_lock(*(costmap->getMutex()));
+@@ -122,6 +147,14 @@
+ 
+ void MPPIController::setPlan(const nav_msgs::msg::Path & path)
+ {
++  bool new_goal=progress_path_.poses.empty() || path.poses.empty();
++  if (!new_goal) {
++    const auto & a=progress_path_.poses.back().pose;const auto & b=path.poses.back().pose;
++    new_goal=std::hypot(a.position.x-b.position.x,a.position.y-b.position.y)>0.01 ||
++      std::abs(angles::shortest_angular_distance(tf2::getYaw(a.orientation),tf2::getYaw(b.orientation)))>0.01;
++  }
++  if (new_goal) {progress_gate_.reset(); progress_path_=path;}
++  // Keep a stable reference arc coordinate across periodic replanning.
+   path_handler_.setPath(path);
+ }
+ 
+--- a/src/critic_manager.cpp
++++ b/src/critic_manager.cpp
+@@ -13,6 +13,9 @@
+ // limitations under the License.
+ 
+ #include "nav2_mppi_controller/critic_manager.hpp"
++#include <fstream>
++#include <cstdlib>
++#include <iomanip>
+ 
+ namespace mppi
+ {
+@@ -67,11 +70,52 @@
+ void CriticManager::evalTrajectoriesScores(
+   CriticData & data) const
+ {
++  // Optional experiment telemetry; never changes scores or rollout selection.
++  static std::ofstream trace;
++  static double previous_stamp = -1e9;
++  static size_t snapshot = 0;
++  const double stamp = data.state.pose.header.stamp.sec +
++    data.state.pose.header.stamp.nanosec * 1e-9;
++  const char * filename = std::getenv("MPPI_TRACE_FILE");
++  const bool record = filename && (stamp < previous_stamp || stamp - previous_stamp >= 2.0);
++  const size_t count = data.costs.size();
++  std::vector<std::vector<float>> deltas;
++  if (record) {deltas.resize(critics_.size(), std::vector<float>(count, 0.0f));}
+   for (size_t q = 0; q < critics_.size(); q++) {
+-    if (data.fail_flag) {
+-      break;
++    if (data.fail_flag) {break;}
++    xt::xtensor<float, 1> before;
++    if (record) {before = data.costs;}
++    critics_[q]->score(data);
++    if (record) {
++      for (size_t n = 0; n < count; ++n) {deltas[q][n] = data.costs(n) - before(n);}
+     }
+-    critics_[q]->score(data);
++  }
++  if (record) {
++    if (!trace.is_open()) {
++      trace.open(filename);
++      trace << "snapshot,sim_s,candidate,robot_x,robot_y,robot_yaw,path0_x,path0_y,path0_yaw,furthest,failed";
++      for (const auto & name : critic_names_) {trace << "," << name;}
++      trace << ",critic_total";
++      for (int k = 0; k < 5; ++k) {trace << ",x" << k << ",y" << k << ",yaw" << k;}
++      trace << "\n";
++      trace << std::setprecision(9);
++    }
++    const size_t last = data.trajectories.x.shape(1) - 1;
++    for (size_t n = 0; n < count; ++n) {
++      trace << snapshot << ',' << stamp << ',' << n << ',' << data.state.pose.pose.position.x
++        << ',' << data.state.pose.pose.position.y << ',' << tf2::getYaw(data.state.pose.pose.orientation)
++        << ',' << data.path.x(0) << ',' << data.path.y(0) << ',' << data.path.yaws(0)
++        << ',' << data.furthest_reached_path_point.value_or(0) << ',' << data.fail_flag;
++      for (const auto & cost : deltas) {trace << ',' << cost[n];}
++      trace << ',' << data.costs(n);
++      for (size_t k = 0; k < 5; ++k) {
++        const size_t t = k * last / 4;
++        trace << ',' << data.trajectories.x(n,t) << ',' << data.trajectories.y(n,t)
++          << ',' << data.trajectories.yaws(n,t);
++      }
++      trace << "\n";
++    }
++    trace.flush(); previous_stamp = stamp; ++snapshot;
+   }
+ }
+ 
+--- a/src/optimizer.cpp
++++ b/src/optimizer.cpp
+@@ -14,6 +14,9 @@
+ 
+ #include "nav2_mppi_controller/optimizer.hpp"
+ #include "nav2_mppi_controller/wheel_projection.hpp"
++#include "nav2_mppi_controller/path_seed.hpp"
++#include "nav2_costmap_2d/footprint_collision_checker.hpp"
++#include <numeric>
+ 
+ #include <limits>
+ #include <memory>
+@@ -81,6 +84,10 @@
+   getParam(s.sampling_std.vy, "vy_std", 0.2);
+   getParam(s.sampling_std.wz, "wz_std", 0.4);
+   getParam(s.retry_attempt_limit, "retry_attempt_limit", 1);
++  getParam(validate_output_, "validate_output", false);
++  getParam(path_seed_count_, "path_seed_count", 0);
++  getParam(path_seed_max_speed_, "path_seed_max_speed", 0.25f);
++  if (path_seed_count_ < 0 || path_seed_max_speed_ <= 0.0f) {throw std::runtime_error("Invalid path seed settings");}
+   getParam(wheel_max_rad_s_, "wheel_max_rad_s", 0.0f);
+   getParam(wheel_radius_m_, "wheel_radius_m", 0.0635f);
+   getParam(wheelbase_m_, "wheelbase_m", 0.35f);
+@@ -169,6 +176,7 @@
+     control_sequence_.vy.fill(0.0f);
+     for (auto & control : control_history_) {control.vx = control.vy = 0.0f;}
+   }
++  if (validate_output_) {validateOutput();}
+   auto control = getControlFromSequenceAsTwist(plan.header.stamp);
+ 
+   if (settings_.shift_control_sequence) {
+@@ -176,6 +184,53 @@
+   }
+ 
+   return control;
++}
++
++bool Optimizer::sequenceCollisionFree(const models::ControlSequence & sequence) const
++{
++  nav2_costmap_2d::FootprintCollisionChecker<nav2_costmap_2d::Costmap2D*> checker(costmap_);
++  const auto & footprint=costmap_ros_->getRobotFootprint();
++  double x=state_.pose.pose.position.x,y=state_.pose.pose.position.y;
++  double yaw=tf2::getYaw(state_.pose.pose.orientation);
++  const double dt=settings_.model_dt;
++  for (size_t t=0;t<sequence.vx.size();++t) {
++    const double vx=t==0?state_.speed.linear.x:sequence.vx(t-1);
++    const double vy=t==0?state_.speed.linear.y:sequence.vy(t-1);
++    const double wz=t==0?state_.speed.angular.z:sequence.wz(t-1);
++    const double dx=dt*(std::cos(yaw)*vx-std::sin(yaw)*vy);
++    const double dy=dt*(std::sin(yaw)*vx+std::cos(yaw)*vy),da=dt*wz;
++    const int steps=std::max({1,static_cast<int>(std::ceil(std::hypot(dx,dy)/.01)),
++      static_cast<int>(std::ceil(std::abs(da)/.01745329252))});
++    for (int k=1;k<=steps;++k) {
++      const double u=static_cast<double>(k)/steps;
++      const double cost=checker.footprintCostAtPose(x+u*dx,y+u*dy,yaw+u*da,footprint);
++      if (cost<0 || cost>=254) {return false;}
++    }
++    x+=dx;y+=dy;yaw+=da;
++  }
++  return true;
++}
++
++void Optimizer::validateOutput()
++{
++  if (sequenceCollisionFree(control_sequence_)) {return;}
++  // A weighted mean of feasible trajectories need not be feasible in SE(2).
++  // Choose an already scored, native-checked proposal when averaging/filtering
++  // crosses an obstacle. No collision cost or footprint threshold is relaxed.
++  std::vector<size_t> order(costs_.size());std::iota(order.begin(),order.end(),0);
++  std::sort(order.begin(),order.end(),[this](size_t a,size_t b){return costs_(a)<costs_(b);});
++  for (const size_t row:order) {
++    control_sequence_.vx=xt::view(state_.cvx,row,xt::all());
++    control_sequence_.vy=xt::view(state_.cvy,row,xt::all());
++    control_sequence_.wz=xt::view(state_.cwz,row,xt::all());
++    applyControlSequenceConstraints();
++    if (sequenceCollisionFree(control_sequence_)) {
++      RCLCPP_WARN_THROTTLE(logger_,*parent_.lock()->get_clock(),2000,
++        "MPPI mean rollout rejected; using scored collision-free candidate %zu",row);
++      return;
++    }
++  }
++  throw std::runtime_error("MPPI: no collision-free emitted rollout");
+ }
+ 
+ void Optimizer::optimize()
+@@ -267,6 +322,41 @@
+ {
+   noise_generator_.setNoisedControls(state_, control_sequence_);
+   noise_generator_.generateNextNoises();
++  if (path_seed_count_ > 0 && isHolonomic() && !goal_rotation_active_) {
++    std::vector<SeedPose> path;
++    for (size_t j=0; j<path_.x.size(); ++j) {
++      path.push_back({path_.x(j),path_.y(j),path_.yaws(j)});
++    }
++    const float yaw=tf2::getYaw(state_.pose.pose.orientation), dt=settings_.model_dt;
++    // The motion model's first sample is the measured velocity.
++    SeedPose pose{static_cast<float>(state_.pose.pose.position.x)+dt*
++      (std::cos(yaw)*static_cast<float>(state_.speed.linear.x)-std::sin(yaw)*static_cast<float>(state_.speed.linear.y)),
++      static_cast<float>(state_.pose.pose.position.y)+dt*
++      (std::sin(yaw)*static_cast<float>(state_.speed.linear.x)+std::cos(yaw)*static_cast<float>(state_.speed.linear.y)),
++      yaw+dt*static_cast<float>(state_.speed.angular.z)};
++    const size_t count=std::min(static_cast<size_t>(path_seed_count_),static_cast<size_t>(settings_.batch_size));
++    // Explore different short connectors onto the planner path, rather than
++    // repeating eight identical proposals. Every connector is evaluated by all
++    // critics and the native output checker; no map-specific pose is inserted.
++    size_t connector_end=0;float connector_arc=0;
++    while (connector_end+1<path.size() && connector_end<15) {
++      const float step=std::hypot(path[connector_end+1].x-path[connector_end].x,
++        path[connector_end+1].y-path[connector_end].y);
++      if (connector_arc+step>.35f) {break;}
++      connector_arc+=step;++connector_end;
++    }
++    for (size_t n=0; n<count; ++n) {
++      const float speed=path_seed_max_speed_*(0.2f+0.8f*(n%8)/7.0f);
++      auto proposal=pathSeed(pose,path,settings_.time_steps,dt,speed,
++        std::min(settings_.constraints.wz,0.35f),wheel_radius_m_,
++        0.5f*(wheelbase_m_+wheel_separation_m_),wheel_max_rad_s_,
++        (n/8)%(connector_end+1));
++      for (size_t t=0; t<proposal.size(); ++t) {
++        state_.cvx(n,t)=proposal[t].x;state_.cvy(n,t)=proposal[t].y;state_.cwz(n,t)=proposal[t].yaw;
++      }
++    }
++  }
++
+   // Constrain the sampled controls before rollout/collision scoring, rather than
+   // deleting XY from a trajectory that was evaluated as translating.
+   if (goal_rotation_active_) {
+--- /dev/null
++++ b/src/replay_snapshot.cpp
+@@ -0,0 +1,34 @@
++#include <fstream>
++#include <iostream>
++#include "nav2_mppi_controller/optimizer.hpp"
++#include "nav2_costmap_2d/footprint_collision_checker.hpp"
++class Goal final:public nav2_core::GoalChecker {
++public:
++void initialize(const rclcpp_lifecycle::LifecycleNode::WeakPtr&,const std::string&,const std::shared_ptr<nav2_costmap_2d::Costmap2DROS>)override{}
++void reset()override{}
++bool isGoalReached(const geometry_msgs::msg::Pose&,const geometry_msgs::msg::Pose&,const geometry_msgs::msg::Twist&)override{return false;}
++bool getTolerances(geometry_msgs::msg::Pose &p,geometry_msgs::msg::Twist&)override{p.position.x=p.position.y=.3;return true;}
++};
++int main(int argc,char**argv){
++ rclcpp::init(argc,argv);std::string root=argv[1];
++ auto parent=std::make_shared<rclcpp_lifecycle::LifecycleNode>("controller_server");
++ auto cm=std::make_shared<nav2_costmap_2d::Costmap2DROS>("local_costmap");
++ cm->on_configure(rclcpp_lifecycle::State());
++ unsigned nx,ny;double res,ox,oy;std::ifstream(root+"/map.txt")>>nx>>ny>>res>>ox>>oy;
++ cm->getLayeredCostmap()->resizeMap(nx,ny,res,ox,oy,true);
++ auto map=cm->getCostmap();std::ifstream raw(root+"/map.bin",std::ios::binary);raw.read(reinterpret_cast<char*>(map->getCharMap()),nx*ny);
++ std::ifstream in(root+"/poses.txt");double x,y,yaw;in>>x>>y>>yaw;
++ geometry_msgs::msg::PoseStamped pose;pose.header.frame_id="odom";pose.pose.position.x=x;pose.pose.position.y=y;pose.pose.orientation.z=sin(yaw/2);pose.pose.orientation.w=cos(yaw/2);
++ nav_msgs::msg::Path path;path.header.frame_id="odom";
++ while(in>>x>>y>>yaw){auto p=pose;p.pose.position.x=x;p.pose.position.y=y;p.pose.orientation.z=sin(yaw/2);p.pose.orientation.w=cos(yaw/2);path.poses.push_back(p);}
++ mppi::ParametersHandler params(parent);mppi::Optimizer optimizer;optimizer.initialize(parent,"FollowPath",cm,&params);Goal goal;geometry_msgs::msg::Twist speed;
++ nav2_costmap_2d::FootprintCollisionChecker<nav2_costmap_2d::Costmap2D*> checker(map);
++ std::cout<<"n,vx,vy,wz,optimized_lethal\n";
++ for(int n=0;n<240;n++){
++  pose.header.stamp=rclcpp::Time(static_cast<int64_t>(n)*100000000LL);path.header.stamp=pose.header.stamp;
++  auto u=optimizer.evalControl(pose,speed,path,&goal).twist;auto traj=optimizer.getOptimizedTrajectory();int hits=0;
++  for(size_t k=0;k<traj.shape(0);k++)hits+=checker.footprintCostAtPose(traj(k,0),traj(k,1),traj(k,2),cm->getRobotFootprint())==254;
++  std::cout<<n<<','<<u.linear.x<<','<<u.linear.y<<','<<u.angular.z<<','<<hits<<'\n';
++ }
++ optimizer.shutdown();cm->on_cleanup(rclcpp_lifecycle::State());rclcpp::shutdown();
++}

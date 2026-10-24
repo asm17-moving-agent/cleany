@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/ehdrms/workspace/cleany/cleany-data/runs/standard-planner-20261014/run_facility.py", line 292, in run
+    scenario=setup(out,candidate,rtf,goal_index);result['model_metadata']=scenario['model_metadata']
+  File "/home/ehdrms/workspace/cleany/cleany-data/runs/standard-planner-20261014/run_facility.py", line 167, in setup
+    scenario=facility_world(out,scenario,goal_index,rtf)
+  File "/home/ehdrms/workspace/cleany/cleany-data/runs/standard-planner-20261014/run_facility.py", line 91, in facility_world
+    assert hashlib.sha256((out/'map.pgm').read_bytes()).hexdigest()==record['map_sha256']
+AssertionError

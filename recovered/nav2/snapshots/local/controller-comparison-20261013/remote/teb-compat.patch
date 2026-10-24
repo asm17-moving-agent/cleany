@@ -1,0 +1,24 @@
+diff --git a/teb_local_planner/src/teb_local_planner_ros.cpp b/teb_local_planner/src/teb_local_planner_ros.cpp
+index 6060d8b..1e6ccc0 100644
+--- a/teb_local_planner/src/teb_local_planner_ros.cpp
++++ b/teb_local_planner/src/teb_local_planner_ros.cpp
+@@ -713,7 +713,7 @@ bool TebLocalPlannerROS::transformGlobalPlan(const std::vector<geometry_msgs::ms
+ 
+     // get plan_to_global_transform from plan frame to global_frame
+     geometry_msgs::msg::TransformStamped plan_to_global_transform = tf_->lookupTransform(
+-                global_frame, tf2_ros::fromMsg(plan_pose.header.stamp),
++                global_frame, tf2::timeFromSec(0),
+                 plan_pose.header.frame_id, tf2::timeFromSec(0),
+                 plan_pose.header.frame_id, tf2::durationFromSec(0.5));
+ 
+@@ -1111,7 +1111,9 @@ void TebLocalPlannerROS::deactivate() {
+ }
+ void TebLocalPlannerROS::cleanup() {
+   visualization_->on_cleanup();
+-  costmap_converter_->stopWorker();
++  if (costmap_converter_) {
++    costmap_converter_->stopWorker();
++  }
+   
+   return;
+ }

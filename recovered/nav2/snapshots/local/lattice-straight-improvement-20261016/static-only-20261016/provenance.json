@@ -1,0 +1,86 @@
+{
+  "type": "Static native AStarAlgorithm<NodeLattice> and GridCollisionChecker only; no MPPI/Gazebo, localization or replanning",
+  "source": "Same pre-navigation frozen costmap per route; all variants use identical poses and map",
+  "start": "Actual home world/map pose held constant across all four routes; native 5cm grid quantization retained",
+  "footprint_padding_m": 0,
+  "heading_count": 16,
+  "primitive_counts": {
+    "stock": 144,
+    "current": 272,
+    "no_curves": 208
+  },
+  "profile_notes": {
+    "original_profile": "Original planner parameters incl 5cm tolerance",
+    "original_exact": "Original parameters but exact goal cell and heading required for common endpoint comparison",
+    "current": "Final refined candidate from previous experiment",
+    "current_cost0": "Disable soft obstacle cost penalty for diagnosis; collision checker remains enabled",
+    "no_curves": "Current profile with only curved translation primitives removed; existing translations and in-place rotations kept",
+    "no_curves_cost0": "Combine removal of curves and disabling soft cost penalty for diagnosis"
+  },
+  "snapshots": [
+    {
+      "route": "straight",
+      "snapshot": "/home/donglee/workspace/cleany/planner-lattice-theta-20261016/lattice/0_straight/snapshots/00005.401.json",
+      "stamp": 5.205,
+      "binary_sha256": "95066b063282f1206b012ab06cf293ea4ad9909b3fbbe556d0d284dee484fc93",
+      "start": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "goal": [
+        -1.865,
+        -3.705,
+        1.5708
+      ]
+    },
+    {
+      "route": "turn_arrival",
+      "snapshot": "/home/donglee/workspace/cleany/planner-lattice-theta-20261016/lattice/1_turn_arrival/snapshots/00005.402.json",
+      "stamp": 5.204,
+      "binary_sha256": "ecb6dfe7f41e4dc147eb08621e62937c85b2aa14634ea5d6cb820246ef2f7855",
+      "start": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "goal": [
+        -1.865,
+        -2.8,
+        0
+      ]
+    },
+    {
+      "route": "far_heading",
+      "snapshot": "/home/donglee/workspace/cleany/planner-lattice-theta-20261016/lattice/3_far_heading/snapshots/00005.400.json",
+      "stamp": 5.199,
+      "binary_sha256": "8c684ed5961bb8dfb125f8810772f9d08cee749e1ad8e6b6adf6b924090585f2",
+      "start": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "goal": [
+        -1.865,
+        -0.3,
+        -1.570796
+      ]
+    },
+    {
+      "route": "lateral",
+      "snapshot": "/home/donglee/workspace/cleany/planner-lattice-theta-20261016/lattice/5_lateral/snapshots/00005.400.json",
+      "stamp": 5.205,
+      "binary_sha256": "a84b1293cdfb9c4709e8115aeeed276bd98aad2da835097b28f1d8b580bac03e",
+      "start": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "goal": [
+        -1.265,
+        -4.705,
+        1.5708
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "seat": "seat-a3-04",
+  "zone": "A3",
+  "goal": [
+    -23.075,
+    1.775,
+    0.0
+  ],
+  "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+  "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+  "removed_chair": null,
+  "removed_only_target_chair": true,
+  "changed_2p5cm_cells": 0,
+  "start": [
+    -1.865,
+    -4.705,
+    1.5708
+  ],
+  "action_status": 6,
+  "path_generated": false,
+  "pose_count": 0,
+  "path_length_m": null,
+  "planned_yaw_variation_deg": null,
+  "planning_s": 0.0,
+  "wall_s": 4.319970135009498,
+  "goal_xy_error_m": null,
+  "goal_yaw_error_deg": null,
+  "error": null,
+  "planner_diagnostics": [
+    "[planner_server-2] [WARN] [1792155117.349026156] [planner_server]: GridBased: failed to create plan, no valid path found.",
+    "[planner_server-2] [WARN] [1792155117.349088496] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-23.07, 1.77)"
+  ]
+}

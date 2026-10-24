@@ -1,0 +1,11 @@
+{
+  "utc": "2026-10-13T18:24:19.259400+00:00",
+  "owned_processes": [],
+  "common_manifest_reverified_count": 204,
+  "common_hash_failures": [],
+  "source_clean": true,
+  "scope": "Only recorded TEB supervisor/partition ownership; other processes and original container preserved. Private NVIDIA CDI root and overlay kernel module remain required by restored containers.",
+  "final_utc": "2026-10-13T18:31:11.184893+00:00",
+  "configuration_replay_pid_absent": true,
+  "domain_227_daemon_stopped": true
+}

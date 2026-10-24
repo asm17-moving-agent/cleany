@@ -1,0 +1,15 @@
+{
+  "goal_index": 6,
+  "profile": "general",
+  "command": [
+    "bash",
+    "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/run.sh",
+    "--output",
+    "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/generalization/diverse8/6_narrow_seat",
+    "--goal",
+    "6",
+    "--domain",
+    "226"
+  ],
+  "started_wall": 1791978673.7880826
+}

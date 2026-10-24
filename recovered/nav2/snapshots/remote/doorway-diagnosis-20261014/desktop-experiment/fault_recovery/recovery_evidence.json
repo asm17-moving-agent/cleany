@@ -1,0 +1,56 @@
+{
+  "backup_command_matches": [
+    {
+      "command_start_sim_s": 28.021,
+      "command_end_sim_s": 31.517000000000003,
+      "command_duration_s": 3.496000000000002,
+      "gt_start": {
+        "sim": 28.011000000000003,
+        "pose": [
+          -1.8633760475805996,
+          -4.683060209305528,
+          1.4156551141578797
+        ]
+      },
+      "gt_end": {
+        "sim": 31.618000000000002,
+        "pose": [
+          -1.9180787741600847,
+          -5.032826357506051,
+          1.415655113799261
+        ]
+      },
+      "gt_translation_m": 0.3540180033872006
+    }
+  ],
+  "backup_completed_log_count": 1,
+  "backup_collision_rejected_log_count": 0,
+  "route_timeout_log_count": 23,
+  "recovery_log_lines": [
+    "[controller_server-17] [WARN] [1791928458.088394991] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.138375675] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.188404958] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.238381062] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.288398035] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.338376779] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.388370722] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.438377246] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.488401569] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.538376393] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.588404436] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.638402840] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.688386304] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.738375547] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.788397170] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.838388534] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.888376107] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.938387241] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928458.988383414] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928459.038374898] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928459.088364442] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928459.138369115] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[controller_server-17] [WARN] [1791928459.188385229] [MPPIController]: Path progress timeout: 12.00s without 0.080m route advance",
+    "[behavior_server-19] [INFO] [1791928460.388148577] [behavior_server]: Running backup",
+    "[behavior_server-19] [INFO] [1791928476.088377676] [behavior_server]: backup completed successfully"
+  ]
+}

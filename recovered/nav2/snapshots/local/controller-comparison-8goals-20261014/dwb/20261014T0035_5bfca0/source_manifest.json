@@ -1,0 +1,13 @@
+{
+  "commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+  "conservative_commit": "538e9231ac68a4a95ebed4c7961d995ce539fc26",
+  "comparison_base_commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "patch_base": "538e9231ac68a4a95ebed4c7961d995ce539fc26",
+  "push": false,
+  "tests": {
+    "total": 194,
+    "failures": 0,
+    "errors": 0,
+    "log": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/build-test-wheel-envelope-fixed.log"
+  }
+}

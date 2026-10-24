@@ -1,0 +1,150 @@
+{
+  "baseline_source_commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "optimized_source_commit": "538e9231ac68a4a95ebed4c7961d995ce539fc26",
+  "canonical_world_identical_after_checkout_path_normalization": true,
+  "model_metadata_identical": true,
+  "map_identical": true,
+  "asset_hashes": [
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/Base.stl",
+      "sha256": "bb8afb0303c0125f265a797625cfaf646ac214d5d2dc9c986348c415755e2a74",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/Base_Motor.stl",
+      "sha256": "aac4485d448eca418d2a93df3f78f449bd59b21ec1af2a579171819fd44ea576",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/035armbase_step__\u00ea\u00e4\u00e8\u00eb4.stl",
+      "sha256": "af5e3ab26967aa1a6f77cb63ef9f1043f356847c665e253b39fbc16b74ba2f03",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/fl_upright.stl",
+      "sha256": "3a62bc31fe912a47386223eb03ad835c3dc3c7c4e98e7e0faac951682694ccee",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/fr_upright.stl",
+      "sha256": "76d15786059d507e776736f6f2ac12ec669a94ccc19b5d6c89a1a88626d56d1a",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/front_inner_lower_cross_rail.stl",
+      "sha256": "ed86aee75cc10ce5d9732c83049da638a86a1591285973e4328bc8d7e2a2c3e3",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/left_inner_lower_rail.stl",
+      "sha256": "35f2fb4854b63c9b4c69fbf4834f7c77e06f076d8d94841b467aa399f0d296cb",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/lower_front_cross_rail.stl",
+      "sha256": "159f986cdd7b68e1f2a2703e11c8dcaed3c09249d08c4f500eb9cb866cde60d9",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/lower_left_side_rail.stl",
+      "sha256": "4a4bfc67a1c7c9c0f8e8fc9d85a417caab37660f50cd1be0bfaf5a7df7576a13",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/lower_rear_cross_rail.stl",
+      "sha256": "61cb6694021ce07ab0f5ad4eac6b41e94fa425d6541a54725361ec65a7730a86",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/lower_right_side_rail.stl",
+      "sha256": "d62c961e8919405195147502076b5e6362cc06a2f020eac4e2dd56b7936a20b8",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/part_1__2.stl",
+      "sha256": "c6211fd1908f5ac8003f33b1e4baae3f3d83ae83576631f875599d62dd298d5d",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/pg42_4266_1270ne___1_61.stl",
+      "sha256": "9f37427859e037ad44ebb24dae10f7a767265000a05efc4ccb72a8e6b97866c0",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/pg42_motor_bracket.stl",
+      "sha256": "3fe7ad7de56a02769424e27a47ae14894d03e74b049bb0d0639852e00be3b10b",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/rear_inner_lower_cross_rail.stl",
+      "sha256": "7d289e3942aadd1a55c328095e7fba4bdcf4036614aff5eddc2681b96e27831c",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/right_inner_lower_rail.stl",
+      "sha256": "96411a29c365b42b13d97260bdcac63b4bee1cb96fb33b7aa630eef9147d956e",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/rl_upright.stl",
+      "sha256": "ed0fc0962b0f8ba4ecd8ecbcffaa72d3672a6dce6b1dd1eec6d07a2c992bf0d9",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/rr_upright.stl",
+      "sha256": "864f9bac149bc5988636f60615321d114c0eb789799eaef7d87a8ab17f8d55c0",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/topbase1.stl",
+      "sha256": "fb26572fbd883d6be4a29657bbe7211a7c26de1941ad8f87fc1340335e79e34e",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/upper_front_cross_rail.stl",
+      "sha256": "faed717344f14f183e18d29a451394dc5bc67f895bdd0e4665238004fef2b30b",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/upper_left_side_rail.stl",
+      "sha256": "48d0001e591991a5c48cc3b6a37155f4c6979a59ef296c14326e9b849e0bb6e9",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/upper_rear_cross_rail.stl",
+      "sha256": "c64dc6f5a8b7c8da1a054871a26cab9a96ce572b9ccff28fc8fc7cf7ded43f76",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/cad_frame/upper_right_side_rail.stl",
+      "sha256": "bdccfcceae3aca1fa086247739ee647d71131697214ecea9f1070b3695db8a00",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/topbase2.stl",
+      "sha256": "866c172149e274ffad3fbb9a98c2dcd348eb3556a8227b73e2c0c09d9ce2bbef",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/tophead1.stl",
+      "sha256": "bee7ae0af47d25b7d4d48675873f7943702535c470e25e9ffa4015441c4ff49d",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/tophead4.stl",
+      "sha256": "a427b70481f89f5fe41480613a8f1470e1e0ae18fd085142c0bee5cd5ad9254d",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/tophead5.stl",
+      "sha256": "54bda4db70209c444aff603267209e6b382ec11729ec2bde38989e360cbc7985",
+      "baseline_identical": true
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_description/meshes/tophead6.stl",
+      "sha256": "3646936db777b61f57b6150cded1894b696e519d99071425fc3911458bb11c95",
+      "baseline_identical": true
+    }
+  ],
+  "canonical_world_sha256": "9cc3980e1b1150936f56ac557dca73b7c58484f1bbfd6184dc93f870521c2c6e"
+}

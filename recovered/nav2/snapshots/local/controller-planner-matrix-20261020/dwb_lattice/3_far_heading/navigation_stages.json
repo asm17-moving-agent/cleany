@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      -1.865,
+      -0.3,
+      -1.570796
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/dwb_lattice/3_far_heading/behavior.xml",
+    "index": 0,
+    "status": 6,
+    "sim_start": 8.359,
+    "sim_end": 194.02900000000002,
+    "truth": [
+      -2.013972103994338,
+      -0.5339345603971858,
+      -0.14334422124621832
+    ]
+  }
+]

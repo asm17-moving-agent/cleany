@@ -1,0 +1,21 @@
+18F facility 全좌석 정적 Lattice 경로 생성 확인
+
+결과: 82개 좌석 ID 요청 중77개 경로 생성,5개 실패. 고유 기하학적 목표77개(일부 방 좌석 접근 좌표 공유).
+조건: 고정HOME [-1.865,-4.705,1.5708]→기존 fixture targets.yaml의 책상 앞 접근좌표. 새 공식Omni144 primitive(R10cm), map5cm, 실제 직사각형 footprint/padding0. Native ROS2 Humble Nav2 planner_server ComputePathToPose와 static/inflation layer 사용. goal tolerance0(격자와heading 양자화는 적용), smoothing없음, analytic shortcut0, planning budget80초.
+D-hub48석은 목적지 의자만 제거한 서로다른 지도. 나머지34석은 모든 의자 유지. occupancy overlap을 보존하는 model별 union 방식이고, 원본 world전체 raster와 기존 canonical맵 일치 확인. mapload 후 native costmap lethal mask가 입력지도와 일치함을2회 확인하고 탐색.
+
+D-hub: 48/48
+A1: 4/4
+A2: 4/4
+A3: 0/4
+A4: 3/4
+M1: 6/6
+M2: 6/6
+M3: 6/6
+
+실패: seat-a3-01, seat-a3-02, seat-a3-03, seat-a3-04, seat-a4-03
+실패5건은 모두 native checker상 출발/목표 footprint 충돌 없음, 2D 점 기준 지도 연결됨. Native Lattice는 no valid path found로 종료. 따라서 목표 자체가 장애물에 들어가 있어서 실패했다거나 물리적으로 통행이 불가능하다고 단정하지 않는다. 중간 passage와 orientation/primitive 연결성의 추가 원인 분리는 미수행.
+좌석별 경로는 paths/<seat>/path.json, 결과CSV/JSON, native planner 로그와 실제 costmap binary 보존.
+공유 접근좌표: [["seat-a1-03", "seat-a1-04"], ["seat-a2-01", "seat-a2-03"], ["seat-a2-02", "seat-a2-04"], ["seat-a3-01", "seat-a3-02"], ["seat-a3-03", "seat-a3-04"]]
+이 좌표들은 기존 approximate desk-front approach이며 arm reach/개별 책상 작업 가능성을 검증한 것이 아니다.
+정적 경로 생성 검증만 수행. Gazebo/MPPI/실물 주행은 실행하지 않았고 프로젝트 기본값을 변경하지 않았다. 0.30m collision slice 지도는 전체3D환경이 아니며 연속 swept-volume 무충돌을 주장하지 않는다. 실행한 planner/map_server는 종료됨.

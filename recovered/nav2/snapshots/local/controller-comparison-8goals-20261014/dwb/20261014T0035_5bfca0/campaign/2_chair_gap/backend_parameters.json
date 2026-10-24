@@ -1,0 +1,6 @@
+{
+  "max_linear_x": 1.0,
+  "max_linear_y": 1.0,
+  "max_angular_z": 2.0,
+  "cmd_vel_timeout_sec": 5.0
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/dwb_theta/2_chair_gap/behavior.xml",
+    "index": 0,
+    "status": 6,
+    "sim_start": 8.401,
+    "sim_end": 27.619000000000003,
+    "truth": [
+      -1.4816862932187347,
+      -2.1437097257847584,
+      0.13952713836199687
+    ]
+  }
+]

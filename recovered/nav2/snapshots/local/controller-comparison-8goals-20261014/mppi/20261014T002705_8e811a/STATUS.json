@@ -1,0 +1,31 @@
+{
+  "phase": "completed",
+  "completed_at_utc": "2026-10-13T16:58:41.443348+00:00",
+  "navigation_goals_sent": 8,
+  "indices_each_once": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "final_action_statuses": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    5
+  ],
+  "remaining_owned_processes": 0,
+  "simulation_only": true,
+  "output": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/mppi/20261014T002705_8e811a",
+  "final_evidence_audit": "final_evidence_audit.json",
+  "boundary_evidence": "boundary_evidence.json",
+  "report": "REPORT.md"
+}

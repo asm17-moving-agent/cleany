@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/laptop-runtime/run_facility_gui.py", line 356, in run
+    assert result['verified_relaxed_parent_parameters']['failure_tolerance']==-1.0
+AssertionError

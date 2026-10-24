@@ -1,0 +1,9 @@
+obstacle_memory:
+  ros__parameters:
+    mark_all_depth_points: true
+    output_directory: /home/donglee/workspace/cleany/lattice-straight-improvement-20261016/refined/0_straight/obstacle_memory
+    publish_3d: true
+    restore_path: ''
+    update_period: 0.2
+    use_sim_time: true
+    z_resolution: 0.05

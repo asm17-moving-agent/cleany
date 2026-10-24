@@ -1,0 +1,10 @@
+{
+  "nav2-1.1.20.patch": {
+    "match": true,
+    "sha256": "affa77fa8346098f6b69ec1db7f99911ad285c87040ed9a0611039587ae0fe4c"
+  },
+  "nav2-1.1.20-relaxed.patch": {
+    "match": true,
+    "sha256": "ae38c7b75ad67ae25010e62cb4e1c98378e3c227f89f422bc13d3c622f6cbb16"
+  }
+}

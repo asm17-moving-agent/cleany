@@ -1,0 +1,173 @@
+{
+  "candidate": "dwb",
+  "goal_index": 0,
+  "goal_name": "straight",
+  "goal_map": [
+    2.0,
+    0.0,
+    0.0
+  ],
+  "completed": true,
+  "domain": 213,
+  "partition": "cleany_comparison_899d3054a4b24e7382505c3cbc2ea007",
+  "host": "a16-fedora",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "navigation_started": true,
+  "action_status": 4,
+  "position_error_m": 0.13015158250093925,
+  "yaw_error_deg": 0.531799395610591,
+  "final_truth": [
+    1.8708968836208097,
+    0.01648695753254827,
+    0.009281650413520692
+  ],
+  "navigation_sim_s": 14.786000000000001,
+  "navigation_wall_s": 15.600321750000148,
+  "achieved_rtf": 0.9478009644256126,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 0.307817264750215,
+    "linear_jerk_p95_m_s3": 0.5021075943715942,
+    "angular_jerk_rms_rad_s3": 0.19909742909722314,
+    "angular_jerk_p95_rad_s3": 0.44859906240233055,
+    "stationary_s": 1.4500000000000002,
+    "motion_start_count": 1,
+    "yaw_reversals": 1,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.1263635730105688,
+    "speed_max_m_s": 0.15001410189302128
+  },
+  "controller_command_sim_interval_s": {
+    "mean": 0.04750354609929078,
+    "p95": 0.060000000000002274,
+    "count": 282
+  },
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 2.572491338582677,
+    "/cmd_vel": 2.572491338582677
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 283
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 31.473441502999776,
+  "controller_deadline_warning_count": 0
+}

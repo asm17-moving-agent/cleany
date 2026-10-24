@@ -1,0 +1,8 @@
+{
+  "kind": "Gazebo GT data replay over actual navigation map",
+  "gui_capture": false,
+  "frames": 150,
+  "sim_start": 11.114,
+  "sim_end": 40.06,
+  "playback_fps": 12
+}

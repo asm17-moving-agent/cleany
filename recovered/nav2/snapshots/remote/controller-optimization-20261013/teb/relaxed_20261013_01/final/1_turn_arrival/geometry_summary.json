@@ -1,0 +1,180 @@
+{
+  "metric": "conservative projected static collision geometry vs physical CAD footprint",
+  "actual_contact": "unknown: no Gazebo contact instrumentation in this analysis",
+  "completeness": "all_static_collisions_supported",
+  "footprint_source": "scenario.json.model_metadata.navigation_geometry.physical",
+  "physical_footprint_m": [
+    [
+      -0.238525,
+      -0.32737300000024483
+    ],
+    [
+      -0.238525,
+      0.32742700000024483
+    ],
+    [
+      0.238475,
+      0.32742700000024483
+    ],
+    [
+      0.238475,
+      -0.32737300000024483
+    ]
+  ],
+  "spawn_pose": [
+    -1.865,
+    -4.705,
+    0.38,
+    0.0,
+    0.0,
+    1.5708
+  ],
+  "robot_world_z_range_m": [
+    2.9999999265895028e-06,
+    1.192039061987889
+  ],
+  "obstacle_count": 175,
+  "supported_geometry_counts": {
+    "box": 127,
+    "mesh": 48
+  },
+  "ignored_counts": {
+    "ground_plane_collision": 1,
+    "nonstatic_collision": 31
+  },
+  "unsupported_geometry_count": 0,
+  "unsupported_geometry": [],
+  "unexpanded_includes": [],
+  "rejected_gt_sample_count": 0,
+  "all_phases": {
+    "sample_count": 552,
+    "min_projected_clearance_m": 0.2353287731621281,
+    "minimum_sample": {
+      "sim_s": 14.47,
+      "phase": "comparison_navigation",
+      "clearance_m": 0.2353287731621281,
+      "nearest": "demo_desk_43::body::@desk_envelope_collision",
+      "overlap_area_m2": 0.0,
+      "overlap_obstacles": [],
+      "world_xy_yaw": [
+        -1.953542154927998,
+        -3.4754844264792117,
+        1.6307567115004462
+      ]
+    },
+    "projected_overlap_sample_count": 0,
+    "max_projected_overlap_area_m2": 0.0,
+    "first_projected_overlap_sample": null,
+    "overlap_obstacles": []
+  },
+  "navigation": {
+    "sample_count": 415,
+    "min_projected_clearance_m": 0.2353287731621281,
+    "minimum_sample": {
+      "sim_s": 14.47,
+      "phase": "comparison_navigation",
+      "clearance_m": 0.2353287731621281,
+      "nearest": "demo_desk_43::body::@desk_envelope_collision",
+      "overlap_area_m2": 0.0,
+      "overlap_obstacles": [],
+      "world_xy_yaw": [
+        -1.953542154927998,
+        -3.4754844264792117,
+        1.6307567115004462
+      ]
+    },
+    "projected_overlap_sample_count": 0,
+    "max_projected_overlap_area_m2": 0.0,
+    "first_projected_overlap_sample": null,
+    "overlap_obstacles": []
+  },
+  "per_phase": {
+    "comparison_navigation": {
+      "sample_count": 415,
+      "min_projected_clearance_m": 0.2353287731621281,
+      "minimum_sample": {
+        "sim_s": 14.47,
+        "phase": "comparison_navigation",
+        "clearance_m": 0.2353287731621281,
+        "nearest": "demo_desk_43::body::@desk_envelope_collision",
+        "overlap_area_m2": 0.0,
+        "overlap_obstacles": [],
+        "world_xy_yaw": [
+          -1.953542154927998,
+          -3.4754844264792117,
+          1.6307567115004462
+        ]
+      },
+      "projected_overlap_sample_count": 0,
+      "max_projected_overlap_area_m2": 0.0,
+      "first_projected_overlap_sample": null,
+      "overlap_obstacles": []
+    },
+    "relaxed_runtime_verified": {
+      "sample_count": 51,
+      "min_projected_clearance_m": 0.5264737980261743,
+      "minimum_sample": {
+        "sim_s": 5.24,
+        "phase": "relaxed_runtime_verified",
+        "clearance_m": 0.5264737980261743,
+        "nearest": "wall_south::body::@collision",
+        "overlap_area_m2": 0.0,
+        "overlap_obstacles": [],
+        "world_xy_yaw": [
+          -1.8650000000000626,
+          -4.7049999992689076,
+          1.5708000000000006
+        ]
+      },
+      "projected_overlap_sample_count": 0,
+      "max_projected_overlap_area_m2": 0.0,
+      "first_projected_overlap_sample": null,
+      "overlap_obstacles": []
+    },
+    "startup": {
+      "sample_count": 86,
+      "min_projected_clearance_m": 0.526473797489497,
+      "minimum_sample": {
+        "sim_s": 0.066,
+        "phase": "startup",
+        "clearance_m": 0.526473797489497,
+        "nearest": "wall_south::body::@collision",
+        "overlap_area_m2": 0.0,
+        "overlap_obstacles": [],
+        "world_xy_yaw": [
+          -1.8650000000000162,
+          -4.704999999805585,
+          1.5708000000000006
+        ]
+      },
+      "projected_overlap_sample_count": 0,
+      "max_projected_overlap_area_m2": 0.0,
+      "first_projected_overlap_sample": null,
+      "overlap_obstacles": []
+    }
+  },
+  "mesh_sources": [
+    {
+      "path": "/home/donglee/.ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1/meshes/OfficeChairGrey.obj",
+      "sha256": "00d7caa967520dcd8f2b47ed10f4e657a6d4ce4b213c38582dfea56ca7e4c61b",
+      "projection": "convex hull of all mesh vertices (openings filled conservatively)"
+    }
+  ],
+  "limitations": [
+    "XY projection and full-height robot bounding prism can overstate overlap at different heights.",
+    "Mesh convex hull fills concavities and gaps; cylinder/sphere use circumscribed 96-gons.",
+    "GT samples transformed from map to world using spawn yaw; fixed spawn z used (no live roll/pitch/z).",
+    "Static SDF poses only; dynamic obstacles, geometry changes, and inter-sample swept contact unknown.",
+    "Distance is nonnegative; projected overlap is reported as area, not signed penetration or contact."
+  ],
+  "versions": {
+    "numpy": "2.5.4",
+    "shapely": "2.2.0"
+  },
+  "input_sha256": {
+    "world.sdf": "c70277137be832fbfa92669e827c4e6283d1e9a58ee3f605e6c329ded2cbfb66",
+    "world.model.json": "f8b69dd23acbd1070daf05663559a6126fa9943ec2b7dbc812042b3ee7d19822",
+    "scenario.json": "644988c4b7446cfd586fff6c85f4a36b04a310f0a0abbc6a692e24081eddb23e",
+    "samples.csv": "6607f4efb33dd4cf05cb562bded8c8b00e1ffa39b3135e3cd9741980914ec6d9"
+  }
+}

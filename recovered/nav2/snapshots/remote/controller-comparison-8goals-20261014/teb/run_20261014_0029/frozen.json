@@ -1,0 +1,65 @@
+{
+  "source_commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "scripts_sha256": {
+    "runner.py": "323d3221e42e59b6bb3ba1b32b35d9e9a9af6ce1319471383c52b3786fa8df16",
+    "conservative_runner_snapshot.py": "156bbf538c2b923802184cff07c2abebbff83b5afe177571352f3cb740aac464",
+    "relaxed_probe.py": "a779bd10915972443a51a0feb533ac0a36244621178ccfda337fec49c06b83db",
+    "wheel_limiter.py": "d5dd459140833a8c0748e6425e6e4391ffd85ef419b8ca32dbe4570c0f844d32",
+    "materialize.py": "1035ef2c99cf0ea2320673f25522317da0c037934d2b0e9f74ea3f15742e49cf",
+    "scene_check.py": "369f888bf34869117db4d7455cca6e7e1d2bba2484055308057eca5476eb0bf3"
+  },
+  "locked_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac",
+  "planner_sha256": "de98f4bb5de5f9efbd5f465b2e575fd3047edcaf6ec56b05c116dab90e2ba45d",
+  "goals": [
+    {
+      "index": 0,
+      "id": "straight",
+      "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+      "map_image_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245"
+    },
+    {
+      "index": 1,
+      "id": "turn_arrival",
+      "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+      "map_image_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245"
+    },
+    {
+      "index": 2,
+      "id": "chair_gap",
+      "world_sha256": "49cd9ce6dd7bfd5b083310d60e4f0edba40943e73c6cd330d09b43d5bc90d439",
+      "map_image_sha256": "2ab09f28d029f03b6ed2506a1e63761c1e5e22cb7df58f04f2c5c45678b4f28c"
+    },
+    {
+      "index": 3,
+      "id": "far_heading",
+      "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+      "map_image_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245"
+    },
+    {
+      "index": 4,
+      "id": "distant",
+      "world_sha256": "8f30c5f8f9a585c84d8b4dceed8913cc15bc84e2779f9d2d41f68e4184869ca2",
+      "map_image_sha256": "26f98b340147adf63de62f852f83309f64c720859d59e0abb189100d0186ad52"
+    },
+    {
+      "index": 5,
+      "id": "lateral",
+      "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+      "map_image_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245"
+    },
+    {
+      "index": 6,
+      "id": "narrow_seat",
+      "world_sha256": "9db4337ec3f92636cd9937c5eb5fea10857c3de416c31823a71f8d23be944cf8",
+      "map_image_sha256": "373849c2c56c3603eea1c424a3340f26d84d55e6c942127b6e60e3c71f548a21"
+    },
+    {
+      "index": 7,
+      "id": "other_room",
+      "world_sha256": "690d2862cc8c142162f12a8c91c59ff6e906077d6eb269eacd62eda7ca07c989",
+      "map_image_sha256": "cd1b12894edd04392ff590928178b562087c1968c1082e23f10e8df953ea954a"
+    }
+  ],
+  "measurement_policy": "Each locked goal once; no goal-specific tuning or retries after accepted navigation goal.",
+  "path_materialization_note": "Plain absolute filesystem paths, required for Fortress non-ASCII asset filename. All mesh/texture bytes and geometry retained. Changed after pre-goal infrastructure attempts only."
+}

@@ -1,0 +1,192 @@
+{
+  "restored_chairs": [
+    "office_chair_13",
+    "office_chair_43"
+  ],
+  "restore_source": "fixture/world.study.sdf",
+  "restored_source_sha256": "84f3d215bdfe0502d32be048b0fe75e2b333295f1265769b01ee38ac38ebc997",
+  "original_template_sha256": "9d7022bc0927d2f34ea156c17e5079ca5d79b775490719878000ccff2edc05c9",
+  "canonical_full_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+  "footprint": [
+    [
+      -0.318525,
+      -0.40737300000024484
+    ],
+    [
+      -0.318525,
+      0.40742700000024484
+    ],
+    [
+      0.318475,
+      0.40742700000024484
+    ],
+    [
+      0.318475,
+      -0.40737300000024484
+    ]
+  ],
+  "padding_m": 0.02,
+  "lidar_height_m": 0.3,
+  "goals": [
+    {
+      "index": 0,
+      "id": "straight",
+      "pose_map_world": [
+        -1.865,
+        -3.705,
+        1.5708
+      ],
+      "seat": null,
+      "remove_chair": null,
+      "world": "goals/0_straight/world.canonical.sdf",
+      "map": "goals/0_straight/map.yaml",
+      "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+      "map_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245",
+      "model_count": 330,
+      "chair_count": 82,
+      "start_occupied_cells": 0,
+      "proposed_goal_occupied_cells": 0,
+      "coordinate_change": null
+    },
+    {
+      "index": 1,
+      "id": "turn_arrival",
+      "pose_map_world": [
+        -1.865,
+        -2.8,
+        0
+      ],
+      "seat": null,
+      "remove_chair": null,
+      "world": "goals/1_turn_arrival/world.canonical.sdf",
+      "map": "goals/1_turn_arrival/map.yaml",
+      "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+      "map_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245",
+      "model_count": 330,
+      "chair_count": 82,
+      "start_occupied_cells": 0,
+      "proposed_goal_occupied_cells": 0,
+      "coordinate_change": null
+    },
+    {
+      "index": 2,
+      "id": "chair_gap",
+      "pose_map_world": [
+        0.575,
+        -1.625,
+        1.570796
+      ],
+      "seat": "seat-29",
+      "remove_chair": "office_chair_29",
+      "world": "goals/2_chair_gap/world.canonical.sdf",
+      "map": "goals/2_chair_gap/map.yaml",
+      "world_sha256": "49cd9ce6dd7bfd5b083310d60e4f0edba40943e73c6cd330d09b43d5bc90d439",
+      "map_sha256": "2ab09f28d029f03b6ed2506a1e63761c1e5e22cb7df58f04f2c5c45678b4f28c",
+      "model_count": 329,
+      "chair_count": 81,
+      "start_occupied_cells": 0,
+      "proposed_goal_occupied_cells": 0,
+      "coordinate_change": null
+    },
+    {
+      "index": 3,
+      "id": "far_heading",
+      "pose_map_world": [
+        -1.865,
+        -0.3,
+        -1.570796
+      ],
+      "seat": null,
+      "remove_chair": null,
+      "world": "goals/3_far_heading/world.canonical.sdf",
+      "map": "goals/3_far_heading/map.yaml",
+      "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+      "map_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245",
+      "model_count": 330,
+      "chair_count": 82,
+      "start_occupied_cells": 0,
+      "proposed_goal_occupied_cells": 0,
+      "coordinate_change": null
+    },
+    {
+      "index": 4,
+      "id": "distant",
+      "pose_map_world": [
+        -5.525,
+        4.775,
+        -1.570796
+      ],
+      "seat": "seat-01",
+      "remove_chair": "office_chair_01",
+      "world": "goals/4_distant/world.canonical.sdf",
+      "map": "goals/4_distant/map.yaml",
+      "world_sha256": "8f30c5f8f9a585c84d8b4dceed8913cc15bc84e2779f9d2d41f68e4184869ca2",
+      "map_sha256": "26f98b340147adf63de62f852f83309f64c720859d59e0abb189100d0186ad52",
+      "model_count": 329,
+      "chair_count": 81,
+      "start_occupied_cells": 0,
+      "proposed_goal_occupied_cells": 0,
+      "coordinate_change": null
+    },
+    {
+      "index": 5,
+      "id": "lateral",
+      "pose_map_world": [
+        -1.265,
+        -4.705,
+        1.5708
+      ],
+      "seat": null,
+      "remove_chair": null,
+      "world": "goals/5_lateral/world.canonical.sdf",
+      "map": "goals/5_lateral/map.yaml",
+      "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+      "map_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245",
+      "model_count": 330,
+      "chair_count": 82,
+      "start_occupied_cells": 0,
+      "proposed_goal_occupied_cells": 0,
+      "coordinate_change": null
+    },
+    {
+      "index": 6,
+      "id": "narrow_seat",
+      "pose_map_world": [
+        -3.125,
+        -4.475,
+        1.570796
+      ],
+      "seat": "seat-43",
+      "remove_chair": "office_chair_43",
+      "world": "goals/6_narrow_seat/world.canonical.sdf",
+      "map": "goals/6_narrow_seat/map.yaml",
+      "world_sha256": "9db4337ec3f92636cd9937c5eb5fea10857c3de416c31823a71f8d23be944cf8",
+      "map_sha256": "373849c2c56c3603eea1c424a3340f26d84d55e6c942127b6e60e3c71f548a21",
+      "model_count": 329,
+      "chair_count": 81,
+      "start_occupied_cells": 0,
+      "proposed_goal_occupied_cells": 0,
+      "coordinate_change": null
+    },
+    {
+      "index": 7,
+      "id": "other_room",
+      "pose_map_world": [
+        -16.775,
+        1.775,
+        1.570796
+      ],
+      "seat": "seat-m1-04",
+      "remove_chair": "facility_chair_M14",
+      "world": "goals/7_other_room/world.canonical.sdf",
+      "map": "goals/7_other_room/map.yaml",
+      "world_sha256": "690d2862cc8c142162f12a8c91c59ff6e906077d6eb269eacd62eda7ca07c989",
+      "map_sha256": "cd1b12894edd04392ff590928178b562087c1968c1082e23f10e8df953ea954a",
+      "model_count": 329,
+      "chair_count": 81,
+      "start_occupied_cells": 0,
+      "proposed_goal_occupied_cells": 0,
+      "coordinate_change": null
+    }
+  ]
+}

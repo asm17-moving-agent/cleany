@@ -1,0 +1,5 @@
+<library path="curvature_limited_rpp">
+  <class name="cleany_navigation::CurvatureLimitedRPP" type="cleany_navigation::CurvatureLimitedRPP" base_class_type="nav2_core::Controller">
+    <description>Native RPP with proportional linear/angular scaling to preserve curvature under a yaw limit.</description>
+  </class>
+</library>

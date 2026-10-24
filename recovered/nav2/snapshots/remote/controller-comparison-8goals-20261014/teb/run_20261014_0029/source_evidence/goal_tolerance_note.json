@@ -1,0 +1,6 @@
+{
+  "xy_tolerance": "TEB computeVelocityCommands reads GoalChecker.getTolerances and sets cfg_->goal_tolerance.xy_goal_tolerance from pose_tolerance.position.x; actual checker is .30m",
+  "yaw_tolerance": "This port has no native yaw_goal_tolerance parameter; Nav2 goal checker handles actual 10deg yaw tolerance",
+  "undeclared_queries": "FollowPath.xy_goal_tolerance and FollowPath.yaw_goal_tolerance return null; not used to claim runtime verification",
+  "source": "final-teb-source.tar.gz/src/teb_local_planner_ros.cpp lines261-268"
+}

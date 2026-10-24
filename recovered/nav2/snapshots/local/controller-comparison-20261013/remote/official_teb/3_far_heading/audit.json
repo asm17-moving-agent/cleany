@@ -1,0 +1,46 @@
+{
+  "run": "teb_rtf1/3_far_heading",
+  "source_commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "map_sha256": "e15fe550c6c6587d910ac76a801b019e49f612265bebce65ffa433e7bc71b00e",
+  "motion_config_sha256": "336b612be96c732121bb9e84963d97a37cfe6f0746d64024424f22a4e0e91460",
+  "bag_topic_counts": {
+    "/wheel/odom": 1508,
+    "/head_pan/state": 605,
+    "/tf_static": 2,
+    "/amcl_pose": 15,
+    "/clock": 1501,
+    "/tf": 3074,
+    "/evaluation/depth_points": 136,
+    "/global_costmap/costmap": 21,
+    "/joint_states": 1502,
+    "/local_costmap/costmap": 49,
+    "/scan": 161,
+    "/nav2/cmd_vel": 407,
+    "/plan": 3,
+    "/odom": 1457,
+    "/cmd_vel": 585,
+    "/ground_truth/odom": 1407,
+    "/body_guard_3d/state": 586
+  },
+  "missing_or_empty_requested_topics": [
+    "/collision_monitor_state"
+  ],
+  "compute_call_count": 407,
+  "last_final_command": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "max_actual_wheel_rad_s": 4.543046488963923,
+  "max_final_command_wheel_rad_s": 4.988440944881889,
+  "actual_contact_count": null,
+  "collision_monitor_state_note": "No state messages were recorded when this topic is missing/empty. Probe defaults and zero action samples are not evidence of zero safety interventions.",
+  "plan_recording_note": "A missing plan topic limits retrospective path analysis; do not infer that no path was planned. Goals were accepted and controller compute calls recorded.",
+  "sensor_received_age_note": "Callback receive sim clock minus sensor header stamp, not a synchronized transport-latency measurement; small negative ages reflect callback ordering.",
+  "safety_wait_note": "Adjacent received-state sample durations inside navigation; final unclosed interval omitted. STOP_OBSTACLE is intentional obstacle wait; unavailability and processing overruns are separate."
+}

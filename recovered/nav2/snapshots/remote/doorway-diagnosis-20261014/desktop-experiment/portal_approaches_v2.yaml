@@ -1,0 +1,23 @@
+# Short segments keep the doorway goal yaw active throughout the transit.
+# XY coordinates lie at actual 5cm lattice cell centers, avoiding a 2.5cm
+# request-versus-planner endpoint offset with the tighter intermediate checker.
+stage_goal_checker:
+  xy_goal_tolerance: 0.020
+  yaw_goal_tolerance: 0.03490658503988659
+other_room:
+  - name: prealign_outside_M1
+    pose: [-17.125, 0.025, 3.141592653589793]
+  - name: M1_portal_1
+    pose: [-17.125, 0.325, 3.141592653589793]
+  - name: M1_portal_2
+    pose: [-17.125, 0.625, 3.141592653589793]
+  - name: M1_portal_3
+    pose: [-17.125, 0.925, 3.141592653589793]
+  - name: M1_portal_4
+    pose: [-17.125, 1.225, 3.141592653589793]
+  - name: M1_portal_5
+    pose: [-17.125, 1.525, 3.141592653589793]
+  - name: M1_portal_6
+    pose: [-17.125, 1.825, 3.141592653589793]
+  - name: clear_M1_doorway
+    pose: [-17.125, 2.025, 3.141592653589793]

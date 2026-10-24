@@ -1,0 +1,6 @@
+ros-humble-dwb-core	1.1.20-1jammy.20260908.005222
+ros-humble-nav2-controller	1.1.20-1jammy.20260908.005456
+ros-humble-nav2-smac-planner	1.1.20-1jammy.20260908.005553
+ros-humble-nav2-theta-star-planner	1.1.20-1jammy.20260915.232221
+814733962e71376dada74193b7aa911b91f0c71b2b867f83994a6eefc0d0ee4b  /opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json
+12

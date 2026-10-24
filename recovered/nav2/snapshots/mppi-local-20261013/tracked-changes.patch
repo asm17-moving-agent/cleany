@@ -1,0 +1,63 @@
+diff --git a/Makefile b/Makefile
+index 15ed600..f0465f8 100644
+--- a/Makefile
++++ b/Makefile
+@@ -62,6 +62,8 @@ help:
+ 	@echo "  make build-gazebo  Build the detected Gazebo profile"
+ 	@echo "  make build-navigation  Build common navigation without Gazebo"
+ 	@echo "  make build-scenario-runtime  Build isolated Gazebo/mission runtime for scenario workers"
++	@echo "  make build-mppi-experiment   Build pinned optional Humble MPPI overlay outside source"
++	@echo "  make test-mppi-experiment    Validate optimizer and smoke suites for that overlay"
+ 	@echo "  make test-navigation  Test common navigation including C++ plugins"
+ 	@echo "  make test-navigation-runtime  Test Nav2 serial safety with a synthetic backend"
+ 	@echo "  make build-handeye Build hand-eye packages and dependencies"
+@@ -490,3 +492,20 @@ print-navigation-install-base:
+ 	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
+ print-scenario-install-base:
+ 	@printf '%s\n' '$(SCENARIO_INSTALL_BASE)'
++
++# Optional, pinned Nav2 1.1.20 experiment. Never replaces the system installation.
++MPPI_EXPERIMENT_WS ?= $(CLEANY_DATA_ROOT)/builds/mppi-humble-experiment
++MPPI_EXPERIMENT_PATCH ?= $(REPO_ROOT)tools/navigation_evaluation/mppi_humble_experiment/nav2-1.1.20.patch
++.PHONY: build-mppi-experiment test-mppi-experiment
++build-mppi-experiment:
++	python3 "$(REPO_ROOT)tools/navigation_evaluation/mppi_humble_experiment/prepare_overlay.py" "$(MPPI_EXPERIMENT_WS)" --patch "$(MPPI_EXPERIMENT_PATCH)"
++	source "$(ROS_SETUP)" && cd "$(MPPI_EXPERIMENT_WS)" && \
++		colcon build --symlink-install --packages-select nav2_mppi_controller \
++		--allow-overriding nav2_mppi_controller --parallel-workers 1 \
++		--cmake-args -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
++
++test-mppi-experiment: build-mppi-experiment
++	source "$(ROS_SETUP)" && source "$(MPPI_EXPERIMENT_WS)/install/local_setup.bash" && \
++		cd "$(MPPI_EXPERIMENT_WS)" && \
++		colcon test --packages-select nav2_mppi_controller \
++		--ctest-args -R 'optimizer_unit_tests|optimizer_smoke_test' --output-on-failure
+diff --git a/ros2_ws/src/cleany_navigation/README.md b/ros2_ws/src/cleany_navigation/README.md
+index 446b7cf..43d0306 100644
+--- a/ros2_ws/src/cleany_navigation/README.md
++++ b/ros2_ws/src/cleany_navigation/README.md
+@@ -698,3 +698,24 @@ pose, velocity, footprint and one sufficient obstacle cell from that cycle.
+ This check supplies a configured delay margin; it does not measure pose age, prove
+ physical stopping dynamics, or certify delays beyond the chosen hold time.
+ Continuous-60 simulation success remains a separate validation requirement.
++
++
++### MPPI Humble simulation experiment
++
++`tools/navigation_evaluation/mppi_humble_experiment/` contains a pinned Nav2
++1.1.20 patch, not a replacement for the default navigation profile. It adds a
++collision-scored rotation-only arrival domain and reapplies constraints after
++Humble's Savitzky-Golay filter. The separate relaxed patch adds a coupled
++mecanum wheel projection before sampled trajectory scoring and after sequence
++filtering. The model geometry is explicitly configured; it is not a physical
++calibration result.
++
++Use `make build-mppi-experiment MPPI_EXPERIMENT_WS=/absolute/external/workspace`
++inside the ROS Humble environment. `make test-mppi-experiment` runs the optimizer
++and smoke suites. The workspace must be external to source and its pinned
++upstream/patch provenance must match; choose a new directory for a different
++patch. `MPPI_EXPERIMENT_PATCH` selects the separate relaxed patch. See the
++experiment README for configuration and evidence boundaries. None of these
++settings are automatically loaded by the common runtime. Simulation-only
++external safety bypass requires the recorded experiment runner and is never a
++physical robot configuration.

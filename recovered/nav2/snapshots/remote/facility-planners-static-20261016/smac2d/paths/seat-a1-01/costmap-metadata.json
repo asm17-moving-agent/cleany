@@ -1,0 +1,13 @@
+{
+  "size": [
+    720,
+    420
+  ],
+  "resolution": 0.05000000074505806,
+  "origin": [
+    -24.0,
+    -15.0
+  ],
+  "costmap_lethal_mask_verified": true,
+  "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d"
+}

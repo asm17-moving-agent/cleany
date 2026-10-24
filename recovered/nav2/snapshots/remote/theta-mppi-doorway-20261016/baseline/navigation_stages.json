@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      -16.775,
+      1.775,
+      1.570796
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/theta-mppi-doorway-20261016/baseline/behavior.xml",
+    "index": 0,
+    "status": 6,
+    "sim_start": 8.367,
+    "sim_end": 34.445,
+    "truth": [
+      -5.527423134016664,
+      -6.078000918704903,
+      0.026399460815373907
+    ]
+  }
+]

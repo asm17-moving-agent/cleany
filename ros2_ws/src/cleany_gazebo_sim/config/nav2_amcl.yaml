@@ -238,10 +238,9 @@ planner_server:
     costmap_update_timeout: 1.0
     planner_plugins: [GridBased]
     GridBased:
-      plugin: nav2_navfn_planner::NavfnPlanner
-      tolerance: 0.25
-      use_astar: true
+      plugin: nav2_theta_star_planner::ThetaStarPlanner
       allow_unknown: false
+      w_traversal_cost: 5.0
 
 behavior_server:
   ros__parameters:

@@ -1,0 +1,15 @@
+{
+  "navigation_goal_sent": false,
+  "actual_xy_tolerance_m": 0.3,
+  "actual_yaw_tolerance_rad": 0.17453292519943295,
+  "actual_controller_frequency_hz": 20,
+  "actual_model_dt_s": 0.05,
+  "initial_truth_world": [
+    -1.865,
+    -4.705,
+    1.5708
+  ],
+  "loaded_mppi_controller_sha256": "3f0d0428b526bf884b527d313e2e687706049724ffbede2aa9d277175512f9a3",
+  "tool_validation_file": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/mppi/20261014T002705_8e811a/tool_validation.json",
+  "campaign_ready": false
+}

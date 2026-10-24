@@ -1,0 +1,1229 @@
+[
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.143,
+    "sim_s": 10.143,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 10.147,
+    "sim_s": 10.147,
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "STOP_UNAVAILABLE"
+  },
+  {
+    "topic": "/wheel_limit/state",
+    "received_sim_s": 10.152000000000001,
+    "sim_s": 10.152000000000001,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "CONTROLLER_COMMAND_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.192,
+    "sim_s": 10.192,
+    "requested": [
+      0.0032720500603318214,
+      -0.0011397876078262925,
+      -0.0011521205306053162
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/wheel_limit/state",
+    "received_sim_s": 10.192,
+    "sim_s": 10.192,
+    "requested": [
+      0.0032720500603318214,
+      -0.0011397876078262925,
+      -0.0011521205306053162
+    ],
+    "output": [
+      0.0032720500603318214,
+      -0.0011397876078262925,
+      -0.0011521205306053162
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.216000000000001,
+    "sim_s": 10.216,
+    "requested": [
+      0.01045418530702591,
+      -0.0006081658648326993,
+      0.00306989555247128
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.24,
+    "sim_s": 10.24,
+    "requested": [
+      0.01790734753012657,
+      -0.00023286580108106136,
+      0.004189349710941315
+    ],
+    "output": [
+      0.01790734753012657,
+      -0.00023286580108106136,
+      0.004189349710941315
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 10.256,
+    "sim_s": 10.253,
+    "requested": [
+      0.01790734753012657,
+      -0.00023286580108106136,
+      0.004189349710941315
+    ],
+    "output": [
+      0.01790734753012657,
+      -0.00023286580108106136,
+      0.004189349710941315
+    ],
+    "reason": "PASS_OBSERVED_SPACE"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.26,
+    "sim_s": 10.26,
+    "requested": [
+      0.025630371645092964,
+      0.0008248822414316237,
+      0.002846932038664818
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.287,
+    "sim_s": 10.287,
+    "requested": [
+      0.03370702639222145,
+      0.0013351821107789874,
+      -0.002396089257672429
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.318000000000001,
+    "sim_s": 10.318,
+    "requested": [
+      0.03988702595233917,
+      6.748791201971471e-05,
+      -0.0015493867686018348
+    ],
+    "output": [
+      0.03988702595233917,
+      6.748791201971471e-05,
+      -0.0015493867686018348
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.34,
+    "sim_s": 10.34,
+    "requested": [
+      0.04644237831234932,
+      -0.0020178628619760275,
+      -0.005834921728819609
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.354000000000001,
+    "sim_s": 10.354,
+    "requested": [
+      0.04996592178940773,
+      -0.001400254899635911,
+      -0.004310650285333395
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 10.375,
+    "sim_s": 10.375,
+    "requested": [
+      0.0547507181763649,
+      -0.0007962966337800026,
+      -0.002909422153607011
+    ],
+    "output": [
+      0.0547507181763649,
+      -0.0007962966337800026,
+      -0.002909422153607011
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 13.191,
+    "sim_s": 13.191,
+    "requested": [
+      0.22303561866283417,
+      -0.007641423027962446,
+      0.0007234137156046927
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 13.211,
+    "sim_s": 13.211,
+    "requested": [
+      0.2213548868894577,
+      -0.00806274265050888,
+      -0.0007366265635937452
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 13.273000000000001,
+    "sim_s": 13.273,
+    "requested": [
+      0.2208135575056076,
+      -0.007211268879473209,
+      3.0176524887792766e-05
+    ],
+    "output": [
+      0.2208135575056076,
+      -0.007211268879473209,
+      3.0176524887792766e-05
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.978000000000002,
+    "sim_s": 14.978,
+    "requested": [
+      0.22247155010700226,
+      -0.007437938824295998,
+      0.0024025209713727236
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.99,
+    "sim_s": 14.99,
+    "requested": [
+      0.22247155010700226,
+      -0.007437938824295998,
+      0.0024025209713727236
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 15.056000000000001,
+    "sim_s": 15.056,
+    "requested": [
+      0.2186700999736786,
+      -0.010362689383327961,
+      -0.0020003984682261944
+    ],
+    "output": [
+      0.2186700999736786,
+      -0.010362689383327961,
+      -0.0020003984682261944
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 16.439,
+    "sim_s": 16.439,
+    "requested": [
+      0.2147972583770752,
+      -0.00818539783358574,
+      -0.009634566493332386
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 16.451,
+    "sim_s": 16.451,
+    "requested": [
+      0.21427495777606964,
+      -0.00789907481521368,
+      -0.01105637289583683
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 16.512,
+    "sim_s": 16.512,
+    "requested": [
+      0.21242079138755798,
+      -0.008425253443419933,
+      -0.00838605035096407
+    ],
+    "output": [
+      0.21242079138755798,
+      -0.008425253443419933,
+      -0.00838605035096407
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 18.404,
+    "sim_s": 18.404,
+    "requested": [
+      0.13162468373775482,
+      0.0004552720347419381,
+      -0.06206230819225311
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 18.493000000000002,
+    "sim_s": 18.493,
+    "requested": [
+      0.1256067156791687,
+      -0.0026674969121813774,
+      -0.06417348980903625
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 18.562,
+    "sim_s": 18.562,
+    "requested": [
+      0.1276034414768219,
+      -0.0008891491452232003,
+      -0.0586240254342556
+    ],
+    "output": [
+      0.1276034414768219,
+      -0.0008891491452232003,
+      -0.0586240254342556
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 19.753,
+    "sim_s": 19.753,
+    "requested": [
+      0.08019083738327026,
+      0.008870363235473633,
+      -0.07926475256681442
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 19.776,
+    "sim_s": 19.776,
+    "requested": [
+      0.07603278756141663,
+      0.009903560392558575,
+      -0.07952092587947845
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 19.812,
+    "sim_s": 19.812,
+    "requested": [
+      0.07298742979764938,
+      0.009425085969269276,
+      -0.07562892884016037
+    ],
+    "output": [
+      0.07298742979764938,
+      0.009425085969269276,
+      -0.07562892884016037
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.257,
+    "sim_s": 20.257,
+    "requested": [
+      0.06278932094573975,
+      0.0066326698288321495,
+      -0.059704143553972244
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.27,
+    "sim_s": 20.27,
+    "requested": [
+      0.06278932094573975,
+      0.0066326698288321495,
+      -0.059704143553972244
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.334,
+    "sim_s": 20.334,
+    "requested": [
+      0.057689275592565536,
+      0.007026121020317078,
+      -0.06207241490483284
+    ],
+    "output": [
+      0.057689275592565536,
+      0.007026121020317078,
+      -0.06207241490483284
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.407,
+    "sim_s": 20.407,
+    "requested": [
+      0.05807788670063019,
+      0.009522310458123684,
+      -0.0674808993935585
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.469,
+    "sim_s": 20.469,
+    "requested": [
+      0.05637117475271225,
+      0.012372741475701332,
+      -0.0721728503704071
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.539,
+    "sim_s": 20.539,
+    "requested": [
+      0.05582757666707039,
+      0.008901916444301605,
+      -0.06792180985212326
+    ],
+    "output": [
+      0.05582757666707039,
+      0.008901916444301605,
+      -0.06792180985212326
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.628,
+    "sim_s": 20.628,
+    "requested": [
+      0.049827948212623596,
+      0.01031020563095808,
+      -0.06840780377388
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.639000000000003,
+    "sim_s": 20.639,
+    "requested": [
+      0.04850463196635246,
+      0.010405299253761768,
+      -0.06883899122476578
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.673000000000002,
+    "sim_s": 20.673,
+    "requested": [
+      0.04675830900669098,
+      0.010722927749156952,
+      -0.07334994524717331
+    ],
+    "output": [
+      0.04675830900669098,
+      0.010722927749156952,
+      -0.07334994524717331
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 20.98,
+    "sim_s": 20.98,
+    "requested": [
+      0.042573362588882446,
+      0.013852928765118122,
+      -0.07731638103723526
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 21.069000000000003,
+    "sim_s": 21.069,
+    "requested": [
+      0.0,
+      0.0,
+      -0.08660601079463959
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 21.133000000000003,
+    "sim_s": 21.133,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09159237146377563
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.09159237146377563
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 21.382,
+    "sim_s": 21.382,
+    "requested": [
+      0.0,
+      0.0,
+      -0.08518055081367493
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 21.399,
+    "sim_s": 21.399,
+    "requested": [
+      0.0,
+      0.0,
+      -0.08338744938373566
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 21.470000000000002,
+    "sim_s": 21.47,
+    "requested": [
+      0.0,
+      0.0,
+      -0.08320845663547516
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.08320845663547516
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 22.305,
+    "sim_s": 22.305,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10293448716402054
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 22.315,
+    "sim_s": 22.315,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10331471264362335
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 22.379,
+    "sim_s": 22.379,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09356312453746796
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.09356312453746796
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 23.215,
+    "sim_s": 23.215,
+    "requested": [
+      0.0,
+      0.0,
+      -0.11460219323635101
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 23.25,
+    "sim_s": 23.25,
+    "requested": [
+      0.0,
+      0.0,
+      -0.11456599086523056
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 23.309,
+    "sim_s": 23.309,
+    "requested": [
+      0.0,
+      0.0,
+      -0.11025498062372208
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.11025498062372208
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 24.077,
+    "sim_s": 24.077,
+    "requested": [
+      0.0,
+      0.0,
+      -0.1014970988035202
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 24.097,
+    "sim_s": 24.097,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10432236641645432
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 24.167,
+    "sim_s": 24.167,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10517307370901108
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.10517307370901108
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 26.986,
+    "sim_s": 26.986,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10282035917043686
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 27.012,
+    "sim_s": 27.012,
+    "requested": [
+      0.0,
+      0.0,
+      -0.1001724898815155
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 27.072000000000003,
+    "sim_s": 27.072,
+    "requested": [
+      0.0,
+      0.0,
+      -0.1060289815068245
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.1060289815068245
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 27.261000000000003,
+    "sim_s": 27.261,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09685809910297394
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 27.274,
+    "sim_s": 27.269,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09745293110609055
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 27.334000000000003,
+    "sim_s": 27.334,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09919421374797821
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.09919421374797821
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 27.646,
+    "sim_s": 27.646,
+    "requested": [
+      0.0,
+      0.0,
+      -0.1128789409995079
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 27.661,
+    "sim_s": 27.661,
+    "requested": [
+      0.0,
+      0.0,
+      -0.11184239387512207
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 27.73,
+    "sim_s": 27.73,
+    "requested": [
+      0.0,
+      0.0,
+      -0.11663034558296204
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.11663034558296204
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 28.581000000000003,
+    "sim_s": 28.581,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10714320838451385
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 28.592000000000002,
+    "sim_s": 28.592,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10555505752563477
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 28.663,
+    "sim_s": 28.663,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09633731842041016
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.09633731842041016
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 28.966,
+    "sim_s": 28.966,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09207890927791595
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 28.988000000000003,
+    "sim_s": 28.983,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09543444961309433
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 29.056,
+    "sim_s": 29.056,
+    "requested": [
+      0.0,
+      0.0,
+      -0.09775007516145706
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.09775007516145706
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 30.262,
+    "sim_s": 30.262,
+    "requested": [
+      0.0,
+      0.0,
+      -0.11998629570007324
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 30.305000000000003,
+    "sim_s": 30.305,
+    "requested": [
+      0.0,
+      0.0,
+      -0.12051026523113251
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 30.412000000000003,
+    "sim_s": 30.412,
+    "requested": [
+      0.0,
+      0.0,
+      -0.11999660730361938
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 30.435000000000002,
+    "sim_s": 30.435,
+    "requested": [
+      0.0,
+      0.0,
+      -0.11636966466903687
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 30.502000000000002,
+    "sim_s": 30.502,
+    "requested": [
+      0.0,
+      0.0,
+      -0.1152837947010994
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.1152837947010994
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 30.882,
+    "sim_s": 30.882,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10266093164682388
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 30.893,
+    "sim_s": 30.893,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10261456668376923
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 30.961000000000002,
+    "sim_s": 30.961,
+    "requested": [
+      0.0,
+      0.0,
+      -0.10163196176290512
+    ],
+    "output": [
+      0.0,
+      0.0,
+      -0.10163196176290512
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 31.339000000000002,
+    "sim_s": 31.339,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  }
+]

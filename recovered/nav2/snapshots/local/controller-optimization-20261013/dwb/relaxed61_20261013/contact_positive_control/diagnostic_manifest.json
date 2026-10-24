@@ -1,0 +1,12 @@
+{
+  "excluded_from_navigation_comparison": true,
+  "reason": "Positive control: known base_link collision0 overlaps a static 3cm cube. Validates body/environment contact telemetry. No Nav2 goal or commanded motion.",
+  "fixture_world_position": [
+    -2.104999999998381,
+    -4.705000881569225,
+    0.10599999999999998
+  ],
+  "domain": 225,
+  "partition": "dwb_contact_validation_39bf6a28f21744149909a5ed85e37f87",
+  "source_world": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot02_chair_gap/2_chair_gap/world.sdf"
+}

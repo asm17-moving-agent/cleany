@@ -1,0 +1,12 @@
+{
+  "controller": "dwb",
+  "domain": 225,
+  "partition": "cleany_gui_dwb_cfa5f65b203149c48d7e722f41266db4",
+  "goal": [
+    3.12,
+    -2.465,
+    0
+  ],
+  "profile": "final relaxed",
+  "note": "Both GUIs run on laptop ARM64; not remote-host benchmark replay"
+}

@@ -1,0 +1,6 @@
+{
+  "contact_stream_keeps_ground_self_environment_and_depth_position_stamp": true,
+  "rotation_only_is_not_stationary": true,
+  "pure_straight_3175_maps_to_wheel5": true,
+  "compile_syntax": true
+}

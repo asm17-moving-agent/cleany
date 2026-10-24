@@ -1,0 +1,14 @@
+{
+  "controller": "dwb",
+  "domain": 225,
+  "partition": "cleany_facility_gui_dwb_4c5d95a86dfe4783b4f14cdb53f4a64b",
+  "goal": [
+    0.575,
+    -1.625,
+    1.570796
+  ],
+  "profile": "final relaxed",
+  "note": "Both GUIs run on laptop ARM64; not remote-host benchmark replay",
+  "seat": "seat-29",
+  "removed_chair": "office_chair_29"
+}

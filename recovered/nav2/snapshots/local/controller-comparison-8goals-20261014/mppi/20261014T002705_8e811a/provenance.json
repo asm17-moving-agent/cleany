@@ -1,0 +1,54 @@
+{
+  "date_kst": "2026-10-14",
+  "output": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/mppi/20261014T002705_8e811a",
+  "host": "a16-fedora",
+  "architecture": "aarch64",
+  "container": "ros2-humble",
+  "domain": 226,
+  "common_source": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/common",
+  "comparison_source_commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "mppi_build_reused": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/relaxed/mppi_ws",
+  "mppi_controller_sha256": "3f0d0428b526bf884b527d313e2e687706049724ffbede2aa9d277175512f9a3",
+  "mppi_configuration_sha256": "45f14785f7648ab2cc7bf7b66fc965bc401e69e41f3dad88e3cb462f7db8456d",
+  "changes_since_prior_relaxed": [
+    "New locked 18F facility per-goal canonical world and matching map; target chair only removed in common",
+    "Start/GT world-aligned home [-1.865,-4.705,1.5708]",
+    "SimpleGoalChecker XY .30m (yaw still10deg); actual parameter verification",
+    "Stationary definition |v_xy|<.01 AND |wz|<.02"
+  ],
+  "controller_tuning_changes": [],
+  "headless": true,
+  "physical_robot": false,
+  "git_push": false,
+  "axis_box_restored": false,
+  "common_modified_by_mppi": false,
+  "campaign_started": true,
+  "instrumentation_changes": [
+    "Contact records streamed as JSONL instead of unbounded RAM list; all environment/ground/self records retained; same ROS bags"
+  ],
+  "common_setup_changes": {
+    "resolution_m": {
+      "previous": 0.05,
+      "final": 0.025,
+      "reason": "5cm static raster full-cell sweep/grid-center representation blocked M1 passage; 2.5cm same geometry permits checked route"
+    },
+    "max_planning_time_s": {
+      "previous": 2.0,
+      "final": 80.0
+    },
+    "lattice_metadata": {
+      "grid_resolution": 0.025,
+      "metric_poses_unchanged": true,
+      "physical_turn_radius_m": 0.5
+    },
+    "body_heading_grid_bins": 32,
+    "controller_local_costmap_resolution_unchanged": true,
+    "physical_footprint_padding_and_internal_collision_unchanged": true
+  },
+  "common_locked_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac",
+  "common_ready_sha256": "c0d6988020b687ead0ac6a97847bfa8f68133a7207b95c796b4447a96d64fafa",
+  "campaign_completed": true,
+  "completed_at_utc": "2026-10-13T16:58:41.443348+00:00",
+  "navigation_goals_sent": 8,
+  "remaining_owned_processes": 0
+}

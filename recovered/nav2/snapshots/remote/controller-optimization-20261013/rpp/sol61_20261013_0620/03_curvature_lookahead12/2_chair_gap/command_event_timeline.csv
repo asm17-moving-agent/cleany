@@ -1,0 +1,54 @@
+received_sim_s,steady_wall_s,stage,state,reason
+8.21,33156.90356729,/cmd_vel,zero,received command transition
+8.21,,/body_guard_3d/state,STOP_UNAVAILABLE,Command timeout
+8.23,33156.91948697,/pan_ready/cmd_vel,zero,received command transition
+8.23,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+8.386000000000001,33157.080569033,/nav2/cmd_vel,nonzero,received command transition
+8.426,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+8.466000000000001,33157.169389469,/pan_ready/cmd_vel,nonzero,received command transition
+8.466000000000001,33157.169759675,/safety_2d/cmd_vel,nonzero,received command transition
+8.466000000000001,,/head_pan/state,PASS,PASS
+8.506,33157.207588345,/cmd_vel,nonzero,received command transition
+8.506,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+11.636000000000001,33160.454624721,/cmd_vel,zero,received command transition
+11.636000000000001,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+11.676,33160.508836116,/cmd_vel,nonzero,received command transition
+11.676,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+28.41,33177.875492337,/nav2/cmd_vel,zero,received command transition
+28.450000000000003,33177.91932281,/pan_ready/cmd_vel,zero,received command transition
+28.450000000000003,33177.919955552,/safety_2d/cmd_vel,zero,received command transition
+28.490000000000002,33177.95650954,/cmd_vel,zero,received command transition
+28.946,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+30.186000000000003,33179.67331622,/nav2/cmd_vel,nonzero,received command transition
+30.226000000000003,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+30.266000000000002,33179.769415405,/pan_ready/cmd_vel,nonzero,received command transition
+30.266000000000002,33179.76978668,/safety_2d/cmd_vel,nonzero,received command transition
+30.266000000000002,,/head_pan/state,PASS,PASS
+30.306,33179.808909515,/cmd_vel,nonzero,received command transition
+50.228,33200.273194388,/nav2/cmd_vel,zero,received command transition
+50.268,33200.318972697,/pan_ready/cmd_vel,zero,received command transition
+50.288000000000004,33200.339431618,/safety_2d/cmd_vel,zero,received command transition
+50.308,33200.355538957,/cmd_vel,zero,received command transition
+50.752,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+52.092000000000006,33202.173347344,/nav2/cmd_vel,nonzero,received command transition
+52.132000000000005,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+52.160000000000004,33202.269401363,/pan_ready/cmd_vel,nonzero,received command transition
+52.160000000000004,33202.269464292,/safety_2d/cmd_vel,nonzero,received command transition
+52.160000000000004,,/head_pan/state,PASS,PASS
+52.2,33202.307993196,/cmd_vel,nonzero,received command transition
+72.128,33222.773532684,/nav2/cmd_vel,zero,received command transition
+72.168,33222.818806571,/pan_ready/cmd_vel,zero,received command transition
+72.188,33222.839251783,/safety_2d/cmd_vel,zero,received command transition
+72.208,33222.853421118,/cmd_vel,zero,received command transition
+72.638,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+73.95400000000001,33224.673559389,/nav2/cmd_vel,nonzero,received command transition
+73.994,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+74.08800000000001,33224.818844886,/pan_ready/cmd_vel,nonzero,received command transition
+74.08800000000001,33224.819159982,/safety_2d/cmd_vel,nonzero,received command transition
+74.08800000000001,,/head_pan/state,PASS,PASS
+74.128,33224.857761926,/cmd_vel,nonzero,received command transition
+93.988,33245.223237214,/nav2/cmd_vel,zero,received command transition
+94.028,33245.268622211,/pan_ready/cmd_vel,zero,received command transition
+94.028,33245.268866298,/safety_2d/cmd_vel,zero,received command transition
+94.06800000000001,33245.304609001,/cmd_vel,zero,received command transition
+94.51,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT

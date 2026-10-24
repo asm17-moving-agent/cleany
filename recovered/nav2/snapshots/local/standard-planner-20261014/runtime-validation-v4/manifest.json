@@ -1,0 +1,85 @@
+{
+  "goals": [
+    [
+      "straight",
+      [
+        -1.865,
+        -3.705,
+        1.5708
+      ]
+    ],
+    [
+      "turn_arrival",
+      [
+        -1.865,
+        -2.8,
+        0
+      ]
+    ],
+    [
+      "chair_gap",
+      [
+        0.575,
+        -1.625,
+        1.570796
+      ]
+    ],
+    [
+      "far_heading",
+      [
+        -1.865,
+        -0.3,
+        -1.570796
+      ]
+    ],
+    [
+      "distant",
+      [
+        -5.525,
+        4.775,
+        -1.570796
+      ]
+    ],
+    [
+      "lateral",
+      [
+        -1.265,
+        -4.705,
+        1.5708
+      ]
+    ],
+    [
+      "narrow_seat",
+      [
+        -3.125,
+        -4.475,
+        1.570796
+      ]
+    ],
+    [
+      "other_room",
+      [
+        -16.775,
+        1.775,
+        1.570796
+      ]
+    ]
+  ],
+  "limits": {
+    "wheel_rad_s": 5.0,
+    "xy_tolerance": 0.3,
+    "yaw_tolerance": 0.17453292519943295
+  },
+  "wheel_geometry": {
+    "radius_m": 0.0635,
+    "wheelbase_m": 0.35,
+    "separation_m": 0.6038
+  },
+  "wheel_projection": "all vx/vy/wz uniformly scaled to max wheel 5rad/s",
+  "straight_limit_m_s": 0.3175,
+  "soft_sim_time_s": 240,
+  "hard_sim_timeout_s": 1200,
+  "wall_watchdog_s": 1800,
+  "filter": "GT velocity interpolated at 20Hz sim-time; 0.25s centered moving average before derivatives; jerk RMS and p95; smoothing boundary 0.25s trimmed",
+  "no_pass_fail_thresholds": true
+}

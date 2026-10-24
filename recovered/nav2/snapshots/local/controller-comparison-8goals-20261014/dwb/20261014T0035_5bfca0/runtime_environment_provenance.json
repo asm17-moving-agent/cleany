@@ -1,0 +1,354 @@
+{
+  "captured_wall_epoch_s": 1791908419.1341288,
+  "architecture": "aarch64",
+  "python": "3.10.12 (main, Jun 22 2026, 18:55:27) [GCC 11.4.0]",
+  "ros_distro": "humble",
+  "selected_env": {
+    "AMENT_PREFIX_PATH": "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/measurement_ws/install/cleany_benchmark:/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation:/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_description:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_bringup:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_telemetry:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_skill_executor:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_handeye_calibration:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mujoco_sim:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_moveit_config:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mission_manager:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_grasping:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_dev_monitor:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_control_bridge:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_interfaces:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_description:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_driver:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_odometry:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_interfaces:/opt/ros/humble",
+    "PYTHONPATH": "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/local/lib/python3.10/dist-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_bringup:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_bringup/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_telemetry:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_telemetry/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_skill_executor:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_skill_executor/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_gazebo_sim:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation/local/lib/python3.10/dist-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_handeye_calibration:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_handeye_calibration/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_mujoco_sim:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mujoco_sim/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_moveit_config/local/lib/python3.10/dist-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_mission_manager:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mission_manager/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_grasping:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_grasping/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_dev_monitor:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_dev_monitor/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_control_bridge:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_control_bridge/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_interfaces/local/lib/python3.10/dist-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_base_driver:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_driver/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/build/cleany_base_odometry:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_odometry/lib/python3.10/site-packages:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_interfaces/local/lib/python3.10/dist-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages",
+    "ROS_DOMAIN_ID": null,
+    "ROS_LOCALHOST_ONLY": "0",
+    "IGN_DISCOVERY_MSG_PORT": null,
+    "IGN_DISCOVERY_SRV_PORT": null
+  },
+  "owned_loaded_plugins": [
+    {
+      "pid": 338337,
+      "cmd": "/opt/ros/humble/lib/nav2_controller/controller_server --ros-args -r __node:=controller_server --params-file /tmp/cleany-navigation-axgj_xkj/parameters.yaml --params-file /tmp/launch_params_sbd9nt9z -r voxel_guard:cmd_vel:=shadow/cmd_vel -r cmd_vel:=nav2/cmd_vel ",
+      "loaded_libraries": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/libaxis_generator.so": "543211b93305d0102b18fa3e384fb64e5c26df4342d7c2b02fd06ee8ed4f14c7",
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/measurement_ws/build/cleany_benchmark/libtimed_controller.so": "c0594c282a24306a9c940afc88668a78dd71a9bcce01df6e87152573c882e2f6"
+      },
+      "selected_process_env": {
+        "ROS_DOMAIN_ID": "225",
+        "ROS_LOCALHOST_ONLY": "1",
+        "IGN_PARTITION": "cleany_comparison_a38fed2bbb104c19ad4a6d6714855188",
+        "IGN_DISCOVERY_MSG_PORT": "22551",
+        "IGN_DISCOVERY_SRV_PORT": "22552",
+        "AMENT_PREFIX_PATH": "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/measurement_ws/install/cleany_benchmark:/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation:/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_description:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_bringup:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_telemetry:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_skill_executor:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_handeye_calibration:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mujoco_sim:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_moveit_config:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mission_manager:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_grasping:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_dev_monitor:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_control_bridge:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_interfaces:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_description:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_driver:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_odometry:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_interfaces:/opt/ros/humble"
+      }
+    },
+    {
+      "pid": 338413,
+      "cmd": "/opt/ros/humble/lib/nav2_planner/planner_server --ros-args -r __node:=planner_server --params-file /tmp/cleany-navigation-axgj_xkj/parameters.yaml --params-file /tmp/launch_params_ujo1hol9 -r voxel_guard:cmd_vel:=shadow/cmd_vel -r cmd_vel:=nav2/cmd_vel ",
+      "loaded_libraries": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/build-navigation/cleany_navigation/libstraight_first_planner.so": "edaab606042aa98a15d2d1bc838369adf747f9509155075cab06120f706149f0",
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/libaxis_generator.so": "543211b93305d0102b18fa3e384fb64e5c26df4342d7c2b02fd06ee8ed4f14c7"
+      },
+      "selected_process_env": {
+        "ROS_DOMAIN_ID": "225",
+        "ROS_LOCALHOST_ONLY": "1",
+        "IGN_PARTITION": "cleany_comparison_a38fed2bbb104c19ad4a6d6714855188",
+        "IGN_DISCOVERY_MSG_PORT": "22551",
+        "IGN_DISCOVERY_SRV_PORT": "22552",
+        "AMENT_PREFIX_PATH": "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/measurement_ws/install/cleany_benchmark:/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation:/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_description:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_bringup:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_telemetry:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_skill_executor:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_handeye_calibration:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mujoco_sim:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_moveit_config:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mission_manager:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_grasping:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_dev_monitor:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_control_bridge:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_interfaces:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_description:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_driver:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_odometry:/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_interfaces:/opt/ros/humble"
+      }
+    }
+  ],
+  "installed_package_files": {
+    "cleany_gazebo_sim": {
+      "prefix": "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim",
+      "share": "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim",
+      "files": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/nav2_axis_motion.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/nav2_axis_motion.yaml",
+          "sha256": "e7f744c99743187364418761dd4387fee687d0be99e16eac27c79e87ed87a8c3"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/odometry_error_stress.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/odometry_error_stress.yaml",
+          "sha256": "5507fe8d7d6c37edad4f822acf7f75e4a28f6ac19848c315781d2a5810d4bf8b"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/odometry_error_level2.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/odometry_error_level2.yaml",
+          "sha256": "05f40124abd5a89e4bb086f14f8562868b852af27cbfc72e3f997e81fb1326dd"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/lidar_mount_profiles.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/lidar_mount_profiles.yaml",
+          "sha256": "bf8260f41773f41e54a8d83d6999bffb701bea1e217e1a16d9cf85f5f55b1c0b"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/simulated_encoder.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/simulated_encoder.yaml",
+          "sha256": "f4b2c0b101c36e2ec0c1bcf4ded13aa472ddea3f672c9b779f0e7fc45a9684d5"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/nav2_safety_evaluation.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/nav2_safety_evaluation.yaml",
+          "sha256": "fc185b99bd867f2e973bdea21bc985873ae3045254db14bee733bc7dc88b560f"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/cad_frame.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/cad_frame.yaml",
+          "sha256": "f4bd2f90b0594e6775f31cd31ae4e370261df8ae3d6e6271e22bcc8f8bf50ba5"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/simulated_encoder_synthetic_noise.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/simulated_encoder_synthetic_noise.yaml",
+          "sha256": "810e3f92f3e35f13dddbe775644a106a2a5f5645e7a051551abe2f5dd7165492"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/nav2_amcl.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/nav2_amcl.yaml",
+          "sha256": "6664508c43b445385bf431406de1118df12f45e5f210803e771aca3e0e132bd5"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/lidar_noise_profiles.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/lidar_noise_profiles.yaml",
+          "sha256": "28bb9e651cf8fe75a2ec9d7434e7590b72871ca1d3595062eba6ffac6ddf8886"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/pan_motion_gate.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/pan_motion_gate.yaml",
+          "sha256": "d3a45489525f42f3ba0f1f811f4b7d473d55dbb9f58e62ae0998d8d102a948d4"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/nav2_safety.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/nav2_safety.yaml",
+          "sha256": "827824e8d434a8e771d5eaee9e0f200076532760b3e6baad8c0d0b74f06e3063"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/odometry_error_level1.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/odometry_error_level1.yaml",
+          "sha256": "a5e56c49316ed6987ac8c29efea4bd1af3676d0d4cf2143657f5f8854481f873"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/odometry_error_ideal.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/odometry_error_ideal.yaml",
+          "sha256": "487d0db97d7f1dec919acfd17d61c700ee5f4f0aa0b9348844eca02ed7d835de"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/voxel_guard.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/voxel_guard.yaml",
+          "sha256": "ed3d4f73c37ee95322c4244b057abcdbfc8421bf71cc2cb4d2d039fd435da5e9"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/base.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/base.yaml",
+          "sha256": "e1192bd24fdc97e66d83654bbed90d4d43f19d842aa07e200d8b30454f59cfc8"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/left_wrist_bridge_harmonic.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/left_wrist_bridge_harmonic.yaml",
+          "sha256": "5e5e8831c47c0dd94b41b7e086412c700109df4699cba7317c81039ffe89a444"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/core_bridge_harmonic.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/core_bridge_harmonic.yaml",
+          "sha256": "e807c7c2e96494cf28916e580a1783c7c24a7f44bdc09e15559851ab71e02178"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/navigation_bridge_harmonic.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/navigation_bridge_harmonic.yaml",
+          "sha256": "ad4cb976b98e83f1009c025a598ca0fa8f62956da8c127b55d24a710be6590da"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/lidar_bridge.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/lidar_bridge.yaml",
+          "sha256": "6c224a68e8c01e19c4cfe1e8c6f65a7bc7563a9c3fb61c032f2166236454db0a"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/head_rgbd_bridge_harmonic.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/head_rgbd_bridge_harmonic.yaml",
+          "sha256": "7886fb29272c55dc982437b2d045faad9ea4f36c085e9ad41ccf4e3c14de5985"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/bridge.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/bridge.yaml",
+          "sha256": "d8ea9de35f29b25c296411abe7f418cf6dcb3cf2bad25c4877e0b3615a4b927c"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/head_depth_bridge.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/head_depth_bridge.yaml",
+          "sha256": "94a8097d74f45629783de4cd3c3a66fe841e14312f5ccdbfe34a92754605681e"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/core_bridge.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/core_bridge.yaml",
+          "sha256": "efb7ddec0c223516ab38a2f6ad2bacbc6d247c484354c421206dc4df645f26e9"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/head_rgbd_bridge.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/head_rgbd_bridge.yaml",
+          "sha256": "4c85f19c5acd2e9df23a33e73a5993631c6eef86c7dfdbe47ba7ee2be194030b"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/left_wrist_bridge.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/left_wrist_bridge.yaml",
+          "sha256": "046a0f388671d49e3a9939d0e8e1858c2e9977d475ff37b2325758fa430c508c"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/bridge_harmonic.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/bridge_harmonic.yaml",
+          "sha256": "92d7fdf3a91487d166293343de4ddf47171c4b1dd2ccf71e7e86801e0435dee9"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/right_wrist_bridge_harmonic.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/right_wrist_bridge_harmonic.yaml",
+          "sha256": "8662d01d2fac675c6cbf9e4ad41bb8f1566c425a611ece3f68dc99d75218662d"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/lidar_bridge_harmonic.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/lidar_bridge_harmonic.yaml",
+          "sha256": "aaff8c641f2c8651d9b7edefafb00984eedb74b17d8b00a26ef4425c2f2ecba7"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/right_wrist_bridge.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/right_wrist_bridge.yaml",
+          "sha256": "d2dcae88d0839bcef711a9bfb6439b054c99b697f8673fa7f92d6dc0159780d4"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/head_depth_bridge_harmonic.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/head_depth_bridge_harmonic.yaml",
+          "sha256": "b26e3f4605e392bd0e1424f92500137635fcd77214ed932b674e12fa70e74d32"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/bridge/navigation_bridge.yaml",
+          "sha256": "4b3c0ea117cac4e65e7f534e86492f7cc40fb11df759640797a953f00985f08d"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/facility_18f/facility_layout.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/facility_18f/facility_layout.yaml",
+          "sha256": "04380cf2728ba4a308da4698908e958a90c5221061654de2a426c485e4944a44"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/study_cafe/study_cafe_layout.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/study_cafe/study_cafe_layout.yaml",
+          "sha256": "e1df63c8c5cf8f545f96470a0dfbfc6300248870fa81f4fe330f3e13e23f9ee7"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/study_cafe/study_cafe_route.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/study_cafe/study_cafe_route.yaml",
+          "sha256": "e711f1f47171c35415ff0acd3db2f17945f1924f0fdd0c7c0f21b094a306ef83"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/furniture/roly_p1g210m.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/config/furniture/roly_p1g210m.yaml",
+          "sha256": "b6dffb675192bab89d7888e96d066c5aaf3a1bc1a8282fc4d8d219289697c050"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/maps/study_cafe_30cm.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/maps/study_cafe_30cm.yaml",
+          "sha256": "34a4acbe106d4f3ad8e96b168779e33964a0f6d0d200db90d09b794b9259c19c"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/maps/study_cafe_26cm.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/maps/study_cafe_26cm.yaml",
+          "sha256": "dd4fb674e7e6465b76852b7b6074e7e838120aa799c02791568f795ccb4d49fd"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/amcl_nav2.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/amcl_nav2.launch.py",
+          "sha256": "df1078d7a4d7501b5ba9c24956d2c774774bd300dece7a96d2409423dc6ffa67"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/gazebo_facility_18f.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/gazebo_facility_18f.launch.py",
+          "sha256": "9031f218cd7b504eb3156485ac85bd8cdb134ed750014a2ce5d4934ed8f64ebd"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/gazebo_study_cafe.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/gazebo_study_cafe.launch.py",
+          "sha256": "9d8f338b073988fdd6ceb4bfb48e518a63eda8edcd51ea0bba0d62e49798e690"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/amcl_nav2_safety.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/amcl_nav2_safety.launch.py",
+          "sha256": "d9769425b4d70c04348647ec275654476b640d1f191e649e78cd45284072da41"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/gazebo_cad_frame.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/gazebo_cad_frame.launch.py",
+          "sha256": "26a0da226848c029c9932c71a6ac71cd2f6af775756c7f5766633cc985834c0b"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/gazebo_study_cafe_fortress.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/gazebo_study_cafe_fortress.launch.py",
+          "sha256": "91853f4c9cc5bf52a03687cd7abf9257b2a08c34f67369ae443bee0f4d132220"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/gazebo_harmonic.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/gazebo_harmonic.launch.py",
+          "sha256": "685451e9990891f5f01b8a158486c1e85f0c8464d48a01b50e1c2d32f1266888"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/evaluation_cartographer_replay.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/evaluation_cartographer_replay.launch.py",
+          "sha256": "c0e00428bd73240eb3f3736e5f2472fdc33a17e41391bff1890bf1008d9c064a"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/evaluation_slam_toolbox_localization_replay.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/evaluation_slam_toolbox_localization_replay.launch.py",
+          "sha256": "410f87f5edc082304623a98bfb0bbc5b79318f6df9abdd9f165f487386aa60fb"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/evaluation_slam_toolbox_live_replay.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/evaluation_slam_toolbox_live_replay.launch.py",
+          "sha256": "f3efbdc053b9939aac6fdeb9e2b6dfefef2d0b49a505083f159363ee4e64853e"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/evaluation_study_cafe_route.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/evaluation_study_cafe_route.launch.py",
+          "sha256": "f2d6ebeca30ca06fc1cd290e295bee46e5ff7000a9aa284526f73aee1878e699"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/evaluation_slam_visualization.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/evaluation_slam_visualization.launch.py",
+          "sha256": "6ae54fbb1806c79a07bb83cea9c84b6d6da2265d525c37c80ed7e50d8a814b9d"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/evaluation_slam_toolbox_replay.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/evaluation_slam_toolbox_replay.launch.py",
+          "sha256": "5f50191e4f596686ad671b7252eee4f475da40bb3bf8af46ef0df398cc06e38f"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/evaluation_rtabmap_replay.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/evaluation_rtabmap_replay.launch.py",
+          "sha256": "103bcef68464f3c6e9b19ceca516e2d4d4192d375bc36849ffe23813bc961074"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/launch/gazebo_fortress.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_gazebo_sim/launch/gazebo_fortress.launch.py",
+          "sha256": "840868aaad03d5b3e6630b00dabbdbe22c5c06c17cde8aca8e9fb8d03be83dda"
+        }
+      }
+    },
+    "cleany_navigation": {
+      "prefix": "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation",
+      "share": "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation",
+      "files": {
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/nav2_omni_motion.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/nav2_omni_motion.yaml",
+          "sha256": "ec71a83692373bbd4b13e1b44d8bf16917ea44532a2467c1020db4a892953734"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/nav2_axis_motion.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/nav2_axis_motion.yaml",
+          "sha256": "dd50ce0d8e2a72324b6e0ec89c68bf43130db0dd01e46f0f8036e42b7cd91ec8"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/amcl_sim_ideal_wheels.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/amcl_sim_ideal_wheels.yaml",
+          "sha256": "9b90973063bd4933b4972807c5f7211e624d56e5736a79d5ae9861cd6f351bfd"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/robot_params.template.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/robot_params.template.yaml",
+          "sha256": "245282e1a860087f1f6f6ea7a9fc74f7dea37ab106ac7b38e1ac92c9012506e1"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/obstacle_memory.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/obstacle_memory.yaml",
+          "sha256": "9e4d085381874dc5e9c55aa7d46abc7e6cee5c12d3a4052174f570921997ba5f"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/nav2_amcl.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/nav2_amcl.yaml",
+          "sha256": "ddc657b3a8ac213a47cd6791d2bb0b672bbf6efba877b8a6768ecc801a213582"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/pan_motion_gate.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/pan_motion_gate.yaml",
+          "sha256": "d3a45489525f42f3ba0f1f811f4b7d473d55dbb9f58e62ae0998d8d102a948d4"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/nav2_safety.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/nav2_safety.yaml",
+          "sha256": "da02bae5503305c699da7d5f147c1906d8edfbf4820359e7c6d59eca24788b71"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/body_profile.template.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/body_profile.template.yaml",
+          "sha256": "9723d3308877d3e27ce5501cedb125ce9f9717dc2d0f4c45f34891205aa7c506"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/voxel_guard.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/voxel_guard.yaml",
+          "sha256": "3d110e42043b1968c825a060f74043eab5fc47c1296d62b2c68f06f47c9dd1e3"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/slam/slam_toolbox.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/slam/slam_toolbox.yaml",
+          "sha256": "a03f6a314b21cc1514ad42c5138e3aa1dbb1fb65598778b44bce373d7d01765b"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/config/slam/slam_toolbox_localization.yaml": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/config/slam/slam_toolbox_localization.yaml",
+          "sha256": "c594a6dc3d7d4deb2b23921a8202727e22e644bb55ae5bcd30cf5abb08b7fa28"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/launch/amcl_nav2.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/launch/amcl_nav2.launch.py",
+          "sha256": "dc9c695b41b2ed44650eb6367c1b698b18e5e740846f34681dba5599121c4a55"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/launch/amcl_nav2_safety.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/launch/amcl_nav2_safety.launch.py",
+          "sha256": "c218b0d82262c1fea3472e0de4564e81e2a21c82a89c1891f82e7a01799c1190"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/launch/cartographer_mapping.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/launch/cartographer_mapping.launch.py",
+          "sha256": "0f0044f216162c4cd8fe2d6a5f06cab38b93abac82d31810898c4a6039f92afd"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/launch/slam_mapping.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/launch/slam_mapping.launch.py",
+          "sha256": "4e4829d9e4b2788418d630c7df30f477c6567c62b5f47dead8d0defd40b8669b"
+        },
+        "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/share/cleany_navigation/launch/navigation.launch.py": {
+          "resolved_source_path": "/home/ehdrms/workspace/cleany/controller-opt-dwb/ros2_ws/src/cleany_navigation/launch/navigation.launch.py",
+          "sha256": "c218b0d82262c1fea3472e0de4564e81e2a21c82a89c1891f82e7a01799c1190"
+        }
+      }
+    },
+    "cleany_benchmark": {
+      "prefix": "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/measurement_ws/install/cleany_benchmark",
+      "share": "/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/measurement_ws/install/cleany_benchmark/share/cleany_benchmark",
+      "files": {}
+    },
+    "cleany_safety_guard": {
+      "unavailable_reason": "\"package 'cleany_safety_guard' not found, searching: ['/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/measurement_ws/install/cleany_benchmark', '/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation', '/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_description', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_bringup', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_telemetry', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_skill_executor', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_handeye_calibration', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mujoco_sim', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_moveit_config', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mission_manager', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_grasping', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_dev_monitor', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_control_bridge', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_interfaces', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_description', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_driver', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_odometry', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_interfaces', '/opt/ros/humble']\""
+    },
+    "cleany_body_guard_3d": {
+      "unavailable_reason": "\"package 'cleany_body_guard_3d' not found, searching: ['/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/measurement_ws/install/cleany_benchmark', '/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation', '/home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_description', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_bringup', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_telemetry', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_skill_executor', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_navigation', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_handeye_calibration', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mujoco_sim', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_moveit_config', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_mission_manager', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_grasping', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_dev_monitor', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_control_bridge', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_interfaces', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_description', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_driver', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_odometry', '/home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_interfaces', '/opt/ros/humble']\""
+    }
+  },
+  "selected_env_scope": "Capture helper; authoritative campaign env below and in each session.json"
+}

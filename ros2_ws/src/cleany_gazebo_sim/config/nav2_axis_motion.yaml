@@ -14,8 +14,8 @@ controller_server:
       trajectory_generator_name: cleany_axis_controller::AxisGenerator
       min_vel_x: -0.15
       max_vel_x: 0.15
-      min_vel_y: 0.0
-      max_vel_y: 0.0
+      min_vel_y: -0.0265
+      max_vel_y: 0.0265
       max_vel_theta: 0.3
       min_speed_xy: 0.0
       max_speed_xy: 0.15
@@ -40,6 +40,7 @@ controller_server:
       forward_prune_distance: 2.0
       shorten_transformed_plan: true
       axis_allow_lateral: false
+      axis_translation_angle_deg: 10.0
       axis_linear_stopped: 0.01
       axis_angular_stopped: 0.02
       axis_settle_s: 0.3
@@ -51,6 +52,8 @@ controller_server:
       PathHeading.class: cleany_axis_controller::PathHeadingCritic
       PathHeading.scale: 32.0
       PathHeading.lookahead_m: 1.2
+      PathHeading.respect_path_orientation: true
+      PathHeading.rotation_position_tolerance_m: 0.025
       PathHeading.heading_tolerance: 0.025
       PathHeading.heading_release_tolerance: 0.06
       PathHeading.reverse_angle_threshold: 2.356194490192345
@@ -74,7 +77,8 @@ planner_server:
       lattice_filepath: ""
       # Disable curved analytic shortcuts for the stop/rotate/translate policy.
       analytic_expansion_max_length: 0.0
-      cost_penalty: 2.0
+      cost_penalty: 5.0
+      lattice_collision_padding: 0.05
 bt_navigator:
   ros__parameters:
     plugin_lib_names: [cleany_yield_wait_bt_node]

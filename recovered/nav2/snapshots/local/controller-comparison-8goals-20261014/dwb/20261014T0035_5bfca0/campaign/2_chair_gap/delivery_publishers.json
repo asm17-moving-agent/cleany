@@ -1,0 +1,15 @@
+{
+  "nav2_cmd_vel": [
+    "controller_server",
+    "behavior_server",
+    "behavior_server",
+    "behavior_server",
+    "behavior_server"
+  ],
+  "shadow_cmd_vel": [
+    "voxel_guard"
+  ],
+  "cmd_vel": [
+    "wheel_cap_relay"
+  ]
+}

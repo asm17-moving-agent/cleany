@@ -1,0 +1,9 @@
+{
+  "checker": "Installed Nav2 FootprintCollisionChecker<Costmap2D*> native library",
+  "current_cost": 253.0,
+  "sparse_collisions": 0,
+  "sparse_count": 29,
+  "sweep_collisions": 0,
+  "sweep_count": 244,
+  "dense_collision_poses": []
+}

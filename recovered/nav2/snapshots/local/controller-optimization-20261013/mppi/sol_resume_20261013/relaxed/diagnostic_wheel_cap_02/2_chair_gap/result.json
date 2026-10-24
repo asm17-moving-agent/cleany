@@ -1,0 +1,241 @@
+{
+  "candidate": "mppi",
+  "goal_index": 2,
+  "goal_name": "chair_gap",
+  "goal_map": [
+    3.12,
+    -2.465,
+    0.0
+  ],
+  "completed": true,
+  "domain": 226,
+  "partition": "cleany_comparison_86486af425fd4ed8b63108d21013c2e1",
+  "host": "a16-fedora",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "verified_controller": {
+    "FollowPath.plugin": "cleany_benchmark::TimedController",
+    "FollowPath.wrapped_plugin": "nav2_mppi_controller::MPPIController"
+  },
+  "loaded_mppi_libraries_sha256": {
+    "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/relaxed/mppi_ws/build/nav2_mppi_controller/libmppi_critics.so": "20dfad8e0143026e66b105b764796403c5c808d3eea2e6d98c93928476e0bcf0",
+    "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/relaxed/mppi_ws/build/nav2_mppi_controller/libmppi_controller.so": "3f0d0428b526bf884b527d313e2e687706049724ffbede2aa9d277175512f9a3",
+    "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/measurement_ws/install/cleany_benchmark/lib/libtimed_controller.so": "5fdfc8fe9a9573dac08ad152c25a52084aa11aa1991041c634fae0fd0613b9e9"
+  },
+  "verified_relaxed_parent_parameters": {
+    "failure_tolerance": -1.0,
+    "progress_checker.movement_time_allowance": 1500.0,
+    "controller_frequency": 20.0,
+    "goal_checker.xy_goal_tolerance": 0.15,
+    "goal_checker.yaw_goal_tolerance": 0.17453292519943295
+  },
+  "verified_planner": {
+    "GridBased.plugin": "cleany_navigation::StraightFirstPlanner"
+  },
+  "rpp_limit_note": null,
+  "stage": "relaxed_gazebo_only",
+  "soft_240s_exceeded": false,
+  "action_status": 4,
+  "position_error_m": 0.1673214502098543,
+  "yaw_error_deg": 0.10739454979869126,
+  "final_truth": [
+    3.120650412828833,
+    -2.29767981393902,
+    -0.0018743884926841758
+  ],
+  "navigation_sim_s": 45.19800000000001,
+  "navigation_wall_s": 48.59996536399922,
+  "achieved_rtf": 0.9300006627881418,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 0.31254405060376117,
+    "linear_jerk_p95_m_s3": 0.4512733884139931,
+    "angular_jerk_rms_rad_s3": 0.4228123490337959,
+    "angular_jerk_p95_rad_s3": 0.8722099001249785,
+    "stationary_s": 1.35,
+    "motion_start_count": 1,
+    "yaw_reversals": 5,
+    "lateral_reversals": 1,
+    "speed_mean_m_s": 0.10959953153227672,
+    "speed_max_m_s": 0.13646999841332427
+  },
+  "navigation_sim_start_s": 14.488000000000001,
+  "navigation_sim_end_s": 59.68600000000001,
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 2.565160359412901,
+    "/cmd_vel": 2.565160359412901
+  },
+  "command_sim_interval_s": {
+    "/nav2/cmd_vel": {
+      "mean": 0.046509554140127383,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    },
+    "/pan_ready/cmd_vel": {
+      "mean": 0.046575257731958766,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    },
+    "/safety_2d/cmd_vel": {
+      "mean": 0.04656666666666667,
+      "p95": 0.07400000000000162,
+      "p99": 0.0799999999999983
+    },
+    "/shadow/cmd_vel": {
+      "mean": 0.04674741200828157,
+      "p95": 0.060000000000002274,
+      "p99": 0.0799999999999983
+    },
+    "/cmd_vel": {
+      "mean": 0.047039583333333336,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    }
+  },
+  "sensor_freshness": {
+    "/scan": {
+      "count": 250,
+      "sim_period_mean_s": 0.181004016064257,
+      "sim_period_p95_s": 0.18200000000000216,
+      "received_age_p95_s": 0.04200000000000159,
+      "received_age_max_s": 0.05200000000000671
+    },
+    "/camera/head/depth/points": {
+      "count": 655,
+      "sim_period_mean_s": 0.06903058103975536,
+      "sim_period_p95_s": 0.06800000000000495,
+      "received_age_p95_s": 0.028000000000005798,
+      "received_age_max_s": 0.03800000000000381
+    },
+    "/ground_truth/odom": {
+      "count": 2261,
+      "sim_period_mean_s": 0.02,
+      "sim_period_p95_s": 0.020000000000003126,
+      "received_age_p95_s": -0.001999999999995339,
+      "received_age_max_s": 0.018000000000000682
+    }
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 806
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 71.70566511500147,
+  "controller_deadline_warning_count": 0
+}

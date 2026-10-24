@@ -1,0 +1,109 @@
+{
+  "sim_s": 108.56200000000001,
+  "navigation_sim_s": 94.254,
+  "truth": [
+    9.056826735317825,
+    -3.7335520449461375,
+    0.03900213508641581
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 108.48200000000001,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 108.462,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.14996957778930664,
+        -0.0018759563099592924,
+        -0.009826041758060455
+      ],
+      "measured": [
+        0.14936678501564554,
+        -0.004716845842604795,
+        -0.009890639217036685
+      ],
+      "nearby_voxels": 4,
+      "total_voxels": 14047,
+      "source_age_s": 0.22400000000000375,
+      "output": [
+        0.14996957778930664,
+        -0.0018759563099592924,
+        -0.009826041758060455
+      ],
+      "processing_ms": 10.62670999999682
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 108.48200000000001,
+      "stamp_s": 108.482,
+      "sim_s": 108.482,
+      "target": -0.008394249799576441,
+      "pan": -0.01250826001754266,
+      "reason": "PASS",
+      "requested": [
+        0.14990338683128357,
+        -0.0012583560310304165,
+        -0.011358345858752728
+      ],
+      "output": [
+        0.14990338683128357,
+        -0.0012583560310304165,
+        -0.011358345858752728
+      ],
+      "depth_stamp": 108.438
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 108.522,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 108.522,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.14990338683128357,
+        -0.0012583560310304165,
+        -0.011358345858752728
+      ],
+      "measured": [
+        0.1493667850156568,
+        -0.0015722819475612515,
+        -0.009890639217013032
+      ],
+      "nearby_voxels": 4,
+      "total_voxels": 14047,
+      "source_age_s": 0.284000000000006,
+      "output": [
+        0.14990338683128357,
+        -0.0012583560310304165,
+        -0.011358345858752728
+      ],
+      "processing_ms": 6.760059999578516
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 108.522,
+      "stamp_s": 108.522,
+      "sim_s": 108.522,
+      "target": -0.0113374680947674,
+      "pan": -0.008394249799576441,
+      "reason": "PASS",
+      "requested": [
+        0.14998729526996613,
+        -0.0017005490371957421,
+        -0.011725783348083496
+      ],
+      "output": [
+        0.14998729526996613,
+        -0.0017005490371957421,
+        -0.011725783348083496
+      ],
+      "depth_stamp": 108.506
+    }
+  ]
+}

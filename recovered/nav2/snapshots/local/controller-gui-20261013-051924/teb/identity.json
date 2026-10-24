@@ -1,0 +1,12 @@
+{
+  "controller": "teb",
+  "domain": 227,
+  "partition": "cleany_gui_teb_502755a9c5344ebca2cf62dd5ca3f228",
+  "goal": [
+    3.12,
+    -2.465,
+    0
+  ],
+  "profile": "final relaxed",
+  "note": "Both GUIs run on laptop ARM64; not remote-host benchmark replay"
+}

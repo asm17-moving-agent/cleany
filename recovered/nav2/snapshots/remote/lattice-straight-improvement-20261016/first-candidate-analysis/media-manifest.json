@@ -1,0 +1,25 @@
+{
+  "pngs": [
+    "06-lateral-before-after-gt-footprints.png",
+    "02-turn_arrival-before-after-planned-footprints.png",
+    "06-lateral-before-after-planned-footprints.png",
+    "02-turn_arrival-before-after-gt-footprints.png",
+    "01-straight-before-after-gt-footprints.png",
+    "04-far_heading-before-after-planned-footprints.png",
+    "before-after-gt-footprints.png",
+    "before-after-planned-footprints.png",
+    "04-far_heading-before-after-gt-footprints.png",
+    "01-straight-before-after-planned-footprints.png"
+  ],
+  "gif": "before-after-2rows-4cols-2x.gif",
+  "frames": 74,
+  "dimensions": [
+    2560,
+    1000
+  ],
+  "frame_ms": 200,
+  "speed": 2,
+  "type": "Actual recorded GT and /plan replay, not a GUI recording",
+  "static": "Initial plan plus full GT; planned-footprint variant uses actual recorded plan yaw",
+  "animation": "Latest plan received by simulation timestamp, with true GT footprints; finished runs hold final pose"
+}

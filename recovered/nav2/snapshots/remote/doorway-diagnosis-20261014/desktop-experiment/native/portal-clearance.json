@@ -1,0 +1,324 @@
+{
+  "snapshot": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/pathseed_m1_v3/snapshots/00112.804.json",
+  "scan": [
+    {
+      "x": -17.35,
+      "local": {
+        "collisions": 114,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 113,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.325000000000003,
+      "local": {
+        "collisions": 114,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 113,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.300000000000004,
+      "local": {
+        "collisions": 114,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 113,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.275000000000006,
+      "local": {
+        "collisions": 114,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 113,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.250000000000007,
+      "local": {
+        "collisions": 114,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 113,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.22500000000001,
+      "local": {
+        "collisions": 96,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 113,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.20000000000001,
+      "local": {
+        "collisions": 64,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.17500000000001,
+      "local": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.150000000000013,
+      "local": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.125000000000014,
+      "local": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.100000000000016,
+      "local": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.075000000000017,
+      "local": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.05000000000002,
+      "local": {
+        "collisions": 29,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 253.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.02500000000002,
+      "local": {
+        "collisions": 76,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 75,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -17.00000000000002,
+      "local": {
+        "collisions": 76,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 75,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -16.975000000000023,
+      "local": {
+        "collisions": 75,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 80,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    },
+    {
+      "x": -16.950000000000024,
+      "local": {
+        "collisions": 75,
+        "max_cost": 254.0,
+        "count": 151
+      },
+      "global": {
+        "collisions": 80,
+        "max_cost": 254.0,
+        "count": 151
+      }
+    }
+  ],
+  "rotations_90_to_180": [
+    {
+      "pose": [
+        -17.125,
+        -0.3
+      ],
+      "local": {
+        "collisions": 0,
+        "max_cost": 11.0,
+        "count": 91
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 10.0,
+        "count": 91
+      }
+    },
+    {
+      "pose": [
+        -17.125,
+        0.0
+      ],
+      "local": {
+        "collisions": 0,
+        "max_cost": 61.0,
+        "count": 91
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 61.0,
+        "count": 91
+      }
+    },
+    {
+      "pose": [
+        -17.125,
+        0.1
+      ],
+      "local": {
+        "collisions": 0,
+        "max_cost": 107.0,
+        "count": 91
+      },
+      "global": {
+        "collisions": 0,
+        "max_cost": 107.0,
+        "count": 91
+      }
+    },
+    {
+      "pose": [
+        -17.125,
+        1.5
+      ],
+      "local": {
+        "collisions": 76,
+        "max_cost": 254.0,
+        "count": 91
+      },
+      "global": {
+        "collisions": 73,
+        "max_cost": 254.0,
+        "count": 91
+      }
+    },
+    {
+      "pose": [
+        -17.125,
+        1.7
+      ],
+      "local": {
+        "collisions": 72,
+        "max_cost": 254.0,
+        "count": 91
+      },
+      "global": {
+        "collisions": 69,
+        "max_cost": 254.0,
+        "count": 91
+      }
+    },
+    {
+      "pose": [
+        -17.125,
+        1.8
+      ],
+      "local": {
+        "collisions": 31,
+        "max_cost": 254.0,
+        "count": 91
+      },
+      "global": {
+        "collisions": 30,
+        "max_cost": 254.0,
+        "count": 91
+      }
+    }
+  ]
+}

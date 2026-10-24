@@ -1,0 +1,22 @@
+Running main() from /opt/ros/humble/src/gtest_vendor/src/gtest_main.cc
+Note: Google Test filter = OptimizerTests.Arrival*:OptimizerTests.FilterOvershootIsBounded:OptimizerTests.CoupledWheelProjectionPreservesRatiosInAllOctants
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from OptimizerTests
+[ RUN      ] OptimizerTests.ArrivalHysteresisAndToleranceBoundary
+[INFO] [1792835016.948195350] [MPPIController]: MPPI goal rotation phase: enter
+[INFO] [1792835016.948252069] [MPPIController]: MPPI goal rotation phase: exit
+[       OK ] OptimizerTests.ArrivalHysteresisAndToleranceBoundary (0 ms)
+[ RUN      ] OptimizerTests.FilterOvershootIsBounded
+[       OK ] OptimizerTests.FilterOvershootIsBounded (0 ms)
+[ RUN      ] OptimizerTests.ArrivalRolloutPreservesMeasuredVelocityAndAngularExploration
+[INFO] [1792835016.948441289] [MPPIController]: MPPI goal rotation phase: enter
+[INFO] [1792835016.948542331] [MPPIController]: Optimizer reset
+[       OK ] OptimizerTests.ArrivalRolloutPreservesMeasuredVelocityAndAngularExploration (0 ms)
+[ RUN      ] OptimizerTests.CoupledWheelProjectionPreservesRatiosInAllOctants
+[       OK ] OptimizerTests.CoupledWheelProjectionPreservesRatiosInAllOctants (0 ms)
+[----------] 4 tests from OptimizerTests (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 4 tests.

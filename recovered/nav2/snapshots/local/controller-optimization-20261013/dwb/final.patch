@@ -1,0 +1,189 @@
+diff --git a/ros2_ws/src/cleany_navigation/README.md b/ros2_ws/src/cleany_navigation/README.md
+index 446b7cf..c5b517b 100644
+--- a/ros2_ws/src/cleany_navigation/README.md
++++ b/ros2_ws/src/cleany_navigation/README.md
+@@ -698,3 +698,22 @@ pose, velocity, footprint and one sufficient obstacle cell from that cycle.
+ This check supplies a configured delay margin; it does not measure pose age, prove
+ physical stopping dynamics, or certify delays beyond the chosen hold time.
+ Continuous-60 simulation success remains a separate validation requirement.
++
++### DWB 명령 속도 상한과 측정 속도 초과
++
++HolonomicGenerator는 odometry 측정 속도가 설정 상한을 초과하더라도 모든
++rollout 단계의 X/Y/yaw 명령을 kinematic component 상한으로 제한한다.
++이 제한은 `preserve_translation_direction=false`에도 적용되고, footprint critic이
++평가한 rollout의 첫 속도와 실제 발행 명령에 동일하게 적용된다. 상한 안에서의
++기존 가속 제한은 유지된다. 상한 밖의 측정 속도에서는 명령 상한 복귀를 우선하므로
++첫 명령과 측정 속도 사이의 차이는 가속 budget보다 클 수 있다. 이것은 실제
++wheel feedback 상한이나 물리 제동을 보장하지 않는다. 회귀 검증은
++`make test-navigation`의 overshoot/reset 및 direction-preservation 비활성 경계를 포함한다.
++
++`FollowPath.prefer_target_translation_direction`는 기본값 false인 실험 옵션이다.
++true이면 기존 component 가속/감속 projection이 허용한 구간과 목표 translation
++방향 ray의 교집합에서 가장 빠른 속도를 선택한다. 교집합이 없거나 목표가 zero이면
++기존 segment ramp를 사용한다. 저속에서 작은 odometry 횡속도 오차가 명령 bearing을
++흔드는 현상을 줄이려는 옵션이며, 모든 rollout에서 적용되어 정상 critic 평가를
++거친다. pan alignment/freshness, footprint, 목표 도착 허용오차는 변경하지 않는다.
++실제 횡가속 응답이나 physical E2E 검증을 대신하지 않는다.
+diff --git a/ros2_ws/src/cleany_navigation/include/cleany_navigation/holonomic_generator.hpp b/ros2_ws/src/cleany_navigation/include/cleany_navigation/holonomic_generator.hpp
+index 5e08d37..ec1655c 100644
+--- a/ros2_ws/src/cleany_navigation/include/cleany_navigation/holonomic_generator.hpp
++++ b/ros2_ws/src/cleany_navigation/include/cleany_navigation/holonomic_generator.hpp
+@@ -48,6 +48,7 @@ private:
+   double command_dt_{0.};
+   bool use_elapsed_command_time_{true};
+   bool preserve_translation_direction_{true};
++  bool prefer_target_translation_direction_{false};
+   std::vector<nav_2d_msgs::msg::Twist2D> candidates_;
+   size_t index_{0};
+   double fine_scale_{.25};
+diff --git a/ros2_ws/src/cleany_navigation/src/holonomic_generator.cpp b/ros2_ws/src/cleany_navigation/src/holonomic_generator.cpp
+index 72aad18..4d1bb5c 100644
+--- a/ros2_ws/src/cleany_navigation/src/holonomic_generator.cpp
++++ b/ros2_ws/src/cleany_navigation/src/holonomic_generator.cpp
+@@ -73,6 +73,9 @@ void HolonomicGenerator::initialize(const nav2_util::LifecycleNode::SharedPtr &n
+   const auto direction_key=name+".preserve_translation_direction";
+   if(!node->has_parameter(direction_key))node->declare_parameter(direction_key,true);
+   preserve_translation_direction_=node->get_parameter(direction_key).as_bool();
++  const auto target_direction_key=name+".prefer_target_translation_direction";
++  if(!node->has_parameter(target_direction_key))node->declare_parameter(target_direction_key,false);
++  prefer_target_translation_direction_=node->get_parameter(target_direction_key).as_bool();
+   const auto continuity_key=name+".continuity_samples";
+   if(!node->has_parameter(continuity_key))node->declare_parameter(continuity_key,false);
+   continuity_samples_=node->get_parameter(continuity_key).as_bool();
+@@ -192,16 +195,47 @@ dwb_msgs::msg::Trajectory2D HolonomicGenerator::generateTrajectory(
+ nav_2d_msgs::msg::Twist2D HolonomicGenerator::computeNewVelocity(
+   const nav_2d_msgs::msg::Twist2D &target,const nav_2d_msgs::msg::Twist2D &current,double dt) {
+   auto result=StandardTrajectoryGenerator::computeNewVelocity(target,current,dt);
+-  if(!preserve_translation_direction_)return result;
+-  // Share one progress fraction between X/Y while respecting BOTH inherited
+-  // component budgets. From rest (and while braking to zero), bearing stays
+-  // constant instead of turning toward 45 degrees as both components saturate.
+-  double progress=1.;
+-  const double delta[]={target.x-current.x,target.y-current.y};
+-  const double allowed[]={result.x-current.x,result.y-current.y};
+-  for(int i=0;i<2;++i)if(std::abs(delta[i])>1e-12)
+-    progress=std::min(progress,std::clamp(std::abs(allowed[i]/delta[i]),0.,1.));
+-  result.x=current.x+progress*delta[0];result.y=current.y+progress*delta[1];
++  if(preserve_translation_direction_) {
++    const auto projected=result;
++    // Share one progress fraction between X/Y while respecting BOTH inherited
++    // component budgets. Keep this segment ramp as the fallback when reaching
++    // the target bearing would require too much lateral acceleration/braking.
++    double progress=1.;
++    const double delta[]={target.x-current.x,target.y-current.y};
++    const double allowed[]={result.x-current.x,result.y-current.y};
++    for(int i=0;i<2;++i)if(std::abs(delta[i])>1e-12)
++      progress=std::min(progress,std::clamp(std::abs(allowed[i]/delta[i]),0.,1.));
++    result.x=current.x+progress*delta[0];result.y=current.y+progress*delta[1];
++    if(prefer_target_translation_direction_ && std::hypot(target.x,target.y)>1e-12) {
++      // Intersect the target ray with the inherited reachable component box.
++      // This can correct small measured cross-track velocity immediately,
++      // instead of amplifying it into bearing jitter at low commanded speed.
++      // The sampled target is unchanged; all normal rollouts/critics still run.
++      double lower=0.,upper=1.;bool feasible=true;
++      const double target_xy[]={target.x,target.y},current_xy[]={current.x,current.y},
++        projected_xy[]={projected.x,projected.y};
++      for(int i=0;i<2;++i) {
++        const double lo=std::min(current_xy[i],projected_xy[i]);
++        const double hi=std::max(current_xy[i],projected_xy[i]);
++        if(std::abs(target_xy[i])<=1e-12) {
++          if(lo>0. || hi<0.)feasible=false;
++        } else {
++          const double a=lo/target_xy[i],b=hi/target_xy[i];
++          lower=std::max(lower,std::min(a,b));upper=std::min(upper,std::max(a,b));
++        }
++      }
++      if(feasible && lower<=upper) {
++        result.x=upper*target.x;result.y=upper*target.y;
++      }
++    }
++  }
++  // Measured odometry can overshoot the commanded box. Acceleration limiting
++  // alone would then emit out-of-box commands while braking. Apply component
++  // caps inside the rollout so critics check the same first command we emit.
++  auto limits=kinematics_handler_->getKinematics();
++  result.x=std::clamp(result.x,limits.getMinX(),limits.getMaxX());
++  result.y=std::clamp(result.y,limits.getMinY(),limits.getMaxY());
++  result.theta=std::clamp(result.theta,-limits.getMaxTheta(),limits.getMaxTheta());
+   return result;
+ }
+ }
+diff --git a/ros2_ws/src/cleany_navigation/test/test_axis_generator.cpp b/ros2_ws/src/cleany_navigation/test/test_axis_generator.cpp
+index e410eb7..06b9519 100644
+--- a/ros2_ws/src/cleany_navigation/test/test_axis_generator.cpp
++++ b/ros2_ws/src/cleany_navigation/test/test_axis_generator.cpp
+@@ -485,3 +485,73 @@ TEST_F(AxisTest, SwitchingCostIsSoftAndStillDisappearsForGoalCorrection) {
+   goal.x=.05;ASSERT_TRUE(critic.prepare(pose,selected,goal,path));
+   EXPECT_DOUBLE_EQ(critic.scoreTrajectory(candidate),0.);
+ }
++
++TEST_F(AxisTest, HolonomicFirstCommandStaysInBoxWhenMeasuredVelocityOvershoots) {
++  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
++  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
++  nav_2d_msgs::msg::Twist2D measured,target;measured.x=.18;measured.y=-.17;measured.theta=.4;
++  target.x=.15;target.y=-.15;target.theta=.3;
++  geometry_msgs::msg::Pose2D pose;
++  time(10.);generator.startNewIteration(measured); // reset: zero acceleration budget
++  auto trajectory=generator.generateTrajectory(pose,measured,target);
++  EXPECT_LE(trajectory.velocity.x,.15);EXPECT_GE(trajectory.velocity.y,-.15);
++  EXPECT_LE(trajectory.velocity.theta,.3);
++  time(10.001);generator.startNewIteration(measured);
++  trajectory=generator.generateTrajectory(pose,measured,target);
++  EXPECT_LE(trajectory.velocity.x,.15);EXPECT_GE(trajectory.velocity.y,-.15);
++  EXPECT_LE(trajectory.velocity.theta,.3);
++  measured.x=-.18;measured.y=.17;measured.theta=-.4;target.x=-.15;target.y=.15;target.theta=-.3;
++  time(10.002);generator.startNewIteration(measured);
++  trajectory=generator.generateTrajectory(pose,measured,target);
++  EXPECT_GE(trajectory.velocity.x,-.15);EXPECT_LE(trajectory.velocity.y,.15);
++  EXPECT_GE(trajectory.velocity.theta,-.3);
++}
++
++TEST_F(AxisTest, HolonomicBoxClampAlsoAppliesWithoutDirectionPreservation) {
++  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
++  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
++  node->set_parameter(rclcpp::Parameter("FollowPath.preserve_translation_direction",false));
++  generator.initialize(node,"FollowPath");
++  nav_2d_msgs::msg::Twist2D measured,target;
++  measured.x=-.18;measured.y=.17;measured.theta=-.4;
++  target.x=-.15;target.y=.15;target.theta=-.3;
++  geometry_msgs::msg::Pose2D pose;
++  time(10.);generator.startNewIteration(measured);
++  auto trajectory=generator.generateTrajectory(pose,measured,target);
++  EXPECT_GE(trajectory.velocity.x,-.15);EXPECT_LE(trajectory.velocity.y,.15);
++  EXPECT_GE(trajectory.velocity.theta,-.3);
++}
++
++TEST_F(AxisTest, TargetRayCorrectsSmallCrossTrackVelocityWithinInheritedBudgets) {
++  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
++  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
++  node->set_parameter(rclcpp::Parameter("FollowPath.prefer_target_translation_direction",true));
++  generator.initialize(node,"FollowPath");
++  nav_2d_msgs::msg::Twist2D measured,target;measured.x=.033;measured.y=.002;
++  target.x=.15;target.y=-.001;geometry_msgs::msg::Pose2D pose;
++  time(10.);generator.startNewIteration(measured);
++  time(10.05);generator.startNewIteration(measured);
++  auto trajectory=generator.generateTrajectory(pose,measured,target);
++  const auto &v=trajectory.velocity;
++  EXPECT_NEAR(v.x*target.y-v.y*target.x,0.,1e-12);
++  EXPECT_GT(v.x,measured.x);EXPECT_LT(v.y,0.);
++  EXPECT_LE(std::abs(v.x-measured.x),.4*.05+1e-12);
++  EXPECT_LE(std::abs(v.y-measured.y),.4*.05+1e-12);
++}
++TEST_F(AxisTest, InfeasibleTargetRayAndZeroTargetRetainSafeSegmentBraking) {
++  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
++  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
++  node->set_parameter(rclcpp::Parameter("FollowPath.prefer_target_translation_direction",true));
++  generator.initialize(node,"FollowPath");
++  nav_2d_msgs::msg::Twist2D measured,target;measured.x=.033;measured.y=-.1;
++  target.x=.15;target.y=-.001;geometry_msgs::msg::Pose2D pose;
++  time(10.);generator.startNewIteration(measured);
++  time(10.05);generator.startNewIteration(measured);
++  const auto trajectory=generator.generateTrajectory(pose,measured,target);
++  EXPECT_LE(std::abs(trajectory.velocity.x-measured.x),.4*.05+1e-12);
++  EXPECT_LE(std::abs(trajectory.velocity.y-measured.y),.4*.05+1e-12);
++  EXPECT_LT(trajectory.velocity.y,-.07); // Do not snap to an unreachable ray.
++  const auto braking=generator.generateTrajectory(pose,measured,nav_2d_msgs::msg::Twist2D());
++  EXPECT_NEAR(braking.velocity.x*measured.y-braking.velocity.y*measured.x,0.,1e-12);
++  EXPECT_GT(braking.poses.back().x,0.); // A stop still models finite braking.
++}

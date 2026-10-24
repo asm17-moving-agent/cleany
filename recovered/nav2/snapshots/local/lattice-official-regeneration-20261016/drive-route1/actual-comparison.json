@@ -1,0 +1,54 @@
+{
+  "results": {
+    "previous272": {
+      "status": 4,
+      "sim_s": 4.079000000000001,
+      "gt_error_cm": 26.3868323897912,
+      "gt_yaw_error_deg": 0.7381416249577948,
+      "gt_max_deviation_cm": 6.379940542597614,
+      "gt_yaw_max_departure_deg": 0.8668719815495078,
+      "gt_yaw_total_variation_deg": 0.9963018364071274,
+      "initial_plan_yaw_total_variation_deg": 0.0,
+      "initial_plan_start": [
+        -1.9249996710568666,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "plan_count": 3,
+      "wheel_command_max": {
+        "/nav2/cmd_vel": 4.588956746754538,
+        "/cmd_vel": 4.588956746754538
+      },
+      "actual_rtf": 0.4120199217634076
+    },
+    "official144": {
+      "status": 4,
+      "sim_s": 4.388000000000002,
+      "gt_error_cm": 25.599334975362957,
+      "gt_yaw_error_deg": 0.08236774323600334,
+      "gt_max_deviation_cm": 3.938105034997642,
+      "gt_yaw_max_departure_deg": 1.1691109543755027,
+      "gt_yaw_total_variation_deg": 2.2666182988899664,
+      "initial_plan_yaw_total_variation_deg": 53.13012910056159,
+      "initial_plan_start": [
+        -1.9249996710568666,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "plan_count": 3,
+      "wheel_command_max": {
+        "/nav2/cmd_vel": 4.488148518921587,
+        "/cmd_vel": 4.488148518921587
+      },
+      "actual_rtf": 0.4139386374709026
+    }
+  },
+  "checks": {
+    "same_controller_config": true,
+    "same_mppi_binary": true,
+    "same_map": true,
+    "same_BT": true,
+    "same_goal": true
+  },
+  "scope": "Actual Gazebo GT, not hardware; one new route1 trial; compare initial plan start before attributing differences solely to primitives"
+}

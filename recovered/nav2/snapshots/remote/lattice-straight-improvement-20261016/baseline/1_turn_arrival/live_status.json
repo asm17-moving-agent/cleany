@@ -1,0 +1,96 @@
+{
+  "sim_s": 20.459,
+  "navigation_sim_s": 12.222,
+  "truth": [
+    -1.8027675922126198,
+    -2.7789362413215755,
+    0.6837831497059214
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 20.433,
+      "sim_s": 20.433,
+      "requested": [
+        0.0,
+        0.0,
+        -0.359552264213562
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.359552264213562
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 20.442,
+      "stamp_s": 20.442,
+      "sim_s": 20.442,
+      "target": 0.9359854022691264,
+      "pan": 0.935213318187565,
+      "reason": "WAIT_FRESH_DEPTH",
+      "requested": [
+        0.0,
+        0.0,
+        -0.359552264213562
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 20.395
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 20.442,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 20.442,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.0,
+        0.006987919766811908,
+        -0.36631997100083385
+      ],
+      "nearby_voxels": 2,
+      "total_voxels": 7307,
+      "source_age_s": 0.1700000000000017,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 3.4680499993555713
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 20.451,
+      "sim_s": 20.451,
+      "requested": [
+        0.0,
+        0.0,
+        -0.36156052350997925
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.36156052350997925
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    }
+  ]
+}

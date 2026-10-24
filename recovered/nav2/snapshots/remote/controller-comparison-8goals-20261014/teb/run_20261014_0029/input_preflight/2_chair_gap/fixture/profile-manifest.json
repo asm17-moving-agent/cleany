@@ -1,0 +1,57 @@
+{
+  "source_fixture": "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture",
+  "profile": "/home/ehdrms/workspace/cleany/feat-runtime-integration/tools/scenario_validation/profiles/cad_fortress_command_hold.yaml",
+  "profile_sha256": "47158dfb3fc3ca26c6fa3f92bda7e79367b4fd50fb1d7e208a38417e302f4dca",
+  "configs": {
+    "config/wheel_odometry.yaml": {
+      "source_sha256": "510ed70342550f1d20042b574d6157cf2d2425330126dfb01cbfe49aeeea4681",
+      "prepared_sha256": "720293a6ba1e30d9c5812ba53321f5ef257a4812d684788afa6b58c806517506"
+    },
+    "config/nav2_safety.yaml": {
+      "source_sha256": "f8856e611293b96506d336d8e8fdb85d081db867cb2ac3fb2b37db874c3342ec",
+      "prepared_sha256": "b273794d5102d537051017a6d45304089d7b4e31defa0d0a42b87b4052d2dbd9"
+    }
+  },
+  "asset_hashes": {
+    "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture/world.floor.dae": "f12b486566be6bcb0f534c77413ae09d1b33bef4b9a0417cc2f9c25261ca3f25",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/Base.stl": "bb8afb0303c0125f265a797625cfaf646ac214d5d2dc9c986348c415755e2a74",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/Base_Motor.stl": "aac4485d448eca418d2a93df3f78f449bd59b21ec1af2a579171819fd44ea576",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/035armbase_step__\u00ea\u00e4\u00e8\u00eb4.stl": "af5e3ab26967aa1a6f77cb63ef9f1043f356847c665e253b39fbc16b74ba2f03",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/part_1__2.stl": "c6211fd1908f5ac8003f33b1e4baae3f3d83ae83576631f875599d62dd298d5d",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/upper_right_side_rail.stl": "bdccfcceae3aca1fa086247739ee647d71131697214ecea9f1070b3695db8a00",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/lower_rear_cross_rail.stl": "61cb6694021ce07ab0f5ad4eac6b41e94fa425d6541a54725361ec65a7730a86",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/upper_front_cross_rail.stl": "faed717344f14f183e18d29a451394dc5bc67f895bdd0e4665238004fef2b30b",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/rear_inner_lower_cross_rail.stl": "7d289e3942aadd1a55c328095e7fba4bdcf4036614aff5eddc2681b96e27831c",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/lower_left_side_rail.stl": "4a4bfc67a1c7c9c0f8e8fc9d85a417caab37660f50cd1be0bfaf5a7df7576a13",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/lower_front_cross_rail.stl": "159f986cdd7b68e1f2a2703e11c8dcaed3c09249d08c4f500eb9cb866cde60d9",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/right_inner_lower_rail.stl": "96411a29c365b42b13d97260bdcac63b4bee1cb96fb33b7aa630eef9147d956e",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/front_inner_lower_cross_rail.stl": "ed86aee75cc10ce5d9732c83049da638a86a1591285973e4328bc8d7e2a2c3e3",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/rl_upright.stl": "ed0fc0962b0f8ba4ecd8ecbcffaa72d3672a6dce6b1dd1eec6d07a2c992bf0d9",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/rr_upright.stl": "864f9bac149bc5988636f60615321d114c0eb789799eaef7d87a8ab17f8d55c0",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/fr_upright.stl": "76d15786059d507e776736f6f2ac12ec669a94ccc19b5d6c89a1a88626d56d1a",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/fl_upright.stl": "3a62bc31fe912a47386223eb03ad835c3dc3c7c4e98e7e0faac951682694ccee",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/left_inner_lower_rail.stl": "35f2fb4854b63c9b4c69fbf4834f7c77e06f076d8d94841b467aa399f0d296cb",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/upper_left_side_rail.stl": "48d0001e591991a5c48cc3b6a37155f4c6979a59ef296c14326e9b849e0bb6e9",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/upper_rear_cross_rail.stl": "c64dc6f5a8b7c8da1a054871a26cab9a96ce572b9ccff28fc8fc7cf7ded43f76",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/lower_right_side_rail.stl": "d62c961e8919405195147502076b5e6362cc06a2f020eac4e2dd56b7936a20b8",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/pg42_motor_bracket.stl": "3fe7ad7de56a02769424e27a47ae14894d03e74b049bb0d0639852e00be3b10b",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/pg42_4266_1270ne___1_61.stl": "9f37427859e037ad44ebb24dae10f7a767265000a05efc4ccb72a8e6b97866c0",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/cad_frame/topbase1.stl": "fb26572fbd883d6be4a29657bbe7211a7c26de1941ad8f87fc1340335e79e34e",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/topbase2.stl": "866c172149e274ffad3fbb9a98c2dcd348eb3556a8227b73e2c0c09d9ce2bbef",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/tophead1.stl": "bee7ae0af47d25b7d4d48675873f7943702535c470e25e9ffa4015441c4ff49d",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/tophead4.stl": "a427b70481f89f5fe41480613a8f1470e1e0ae18fd085142c0bee5cd5ad9254d",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/tophead5.stl": "54bda4db70209c444aff603267209e6b382ec11729ec2bde38989e360cbc7985",
+    "/home/ehdrms/workspace/cleany/feat-runtime-integration/ros2_ws/src/cleany_description/meshes/tophead6.stl": "3646936db777b61f57b6150cded1894b696e519d99071425fc3911458bb11c95",
+    "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture/roly_meshes/roly-8c2147fce3639f9a-frame.dae": "39c0c28756a26e4ca662c9b7d363b11445987f007776caee4925c6e4f811367b",
+    "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture/roly_meshes/roly-8c2147fce3639f9a-seat.dae": "aca6bfdb480c23edc48ef286dd7474016e6498a3113a0652418f711f9d48bb34",
+    "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture/roly_meshes/roly-8c2147fce3639f9a-mesh.dae": "0fc34db98e757e42944f3b737238acd02acb7df366f31c8c962ac59d57727bdb",
+    "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture/roly_meshes/roly-8c2147fce3639f9a-metal.dae": "1206b7ddc005b41133ca727d841aecaf9d23fca02edb32b2a23feeb9e898844c",
+    "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture/roly_meshes/roly-8c2147fce3639f9a-tire.dae": "dc408944d950cc91502de36a0a877410b56cb309acd7afcc9bb4261e10810f75",
+    "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture/roly_meshes/roly-8c2147fce3639f9a-lumbar.dae": "da67d82a595096013cfd843c6bbee46f277113a28d22007e62f70814f89886d8",
+    "/home/ehdrms/workspace/cleany/scrum-426-scenarios/artifacts/scenarios/fixture/world.ceiling.dae": "f5752c19dcb81492668f7abf58bedd81339838af653af7ab27e7fdd83e71c661",
+    "/home/ehdrms/.ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1/meshes/OfficeChairGrey.obj": "00d7caa967520dcd8f2b47ed10f4e657a6d4ce4b213c38582dfea56ca7e4c61b",
+    "/home/ehdrms/.ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1/meshes/OfficeChairGrey.mtl": "03ac8b3bc457c83429c6ab1fbaf7f3ab7d44a90b01d5fbb453b58494a3f6e933",
+    "/home/ehdrms/.ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1/meshes/OfficeChairGrey.png": "d9aaf5456e023ddae60de712d9cca1b0618621cee13630d93fb5badb44f3199b"
+  },
+  "scope": "Simulation fixture preparation only; no mission success is inferred."
+}

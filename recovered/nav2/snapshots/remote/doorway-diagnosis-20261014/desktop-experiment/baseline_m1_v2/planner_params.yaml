@@ -1,0 +1,22 @@
+planner_server:
+  ros__parameters:
+    GridBased:
+      allow_reverse_expansion: true
+      allow_unknown: false
+      analytic_expansion_max_length: 0.0
+      cache_obstacle_heuristic: false
+      cost_penalty: 2.0
+      failure_snapshot_directory: /home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/baseline_m1_v2/runtime/planner_failures
+      holonomic_direct_path: true
+      lattice_collision_padding: 0.05
+      lattice_filepath: /opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json
+      max_iterations: -1
+      max_planning_time: 80.0
+      plugin: nav2_smac_planner/SmacPlannerLattice
+      require_exact_goal: true
+      smooth_path: false
+      tolerance: 0.05
+    expected_planner_frequency: 1.0
+    planner_plugins:
+    - GridBased
+    use_sim_time: true

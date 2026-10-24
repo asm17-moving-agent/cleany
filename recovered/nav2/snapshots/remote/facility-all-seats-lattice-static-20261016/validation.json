@@ -1,0 +1,19 @@
+{
+  "seat_count": 82,
+  "unique_ids": 82,
+  "success": 77,
+  "goal_endpoint_quantization_checked": true,
+  "chair_removal_scope_checked": true,
+  "source_fullmap_matches_prior_canonical": true,
+  "sha256": {
+    "results.json": "ff6787382359ed9e8492d337893ac3c769058e1c7ccaa1707f051405ef39daf6",
+    "results.csv": "f65a0b95e94254c11eeaa0ec3258d1e68a09ff4710bc2f64f82e895f525255f5",
+    "summary.json": "ab5ec1204e8a3ef079e85d28f1c198526d6632d668b36cd29804f9dbcd7112ad",
+    "provenance.json": "9f8bb53403d37142294ffd67295b0ebd5cffba3b19724df3f388aa1ccaafcf85",
+    "verified-runtime.json": "9797a8aa0096249f2b67b7082d55f475509417a6c56a99cc1a47fb66e9ae68d4",
+    "failure-diagnosis.json": "eae0e687b32460c0a67ddc79606491ed2cd19ab5933f68f1cf6f9b06368381be",
+    "media/facility-82-seats-overview.png": "808f0c673157165e99d674cc8f081f0d974f1e325537b831e4bdbe91c2245ad8",
+    "media/D-hub-all-seats-footprints.png": "c54ad383b910ccea15fb8c9a7cba6a4563b3e4ea25a826a48ac774e9b2b07e86",
+    "media/rooms-all-seats-footprints.png": "5ec8b4c75c5f5cfee0dfd9d80720e96ce3f021cffec38b9d8532b48a22b30287"
+  }
+}

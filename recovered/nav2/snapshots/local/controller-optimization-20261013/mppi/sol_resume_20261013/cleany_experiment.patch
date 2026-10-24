@@ -1,0 +1,802 @@
+diff --git a/Makefile b/Makefile
+index 15ed600..f0465f8 100644
+--- a/Makefile
++++ b/Makefile
+@@ -62,6 +62,8 @@ help:
+ 	@echo "  make build-gazebo  Build the detected Gazebo profile"
+ 	@echo "  make build-navigation  Build common navigation without Gazebo"
+ 	@echo "  make build-scenario-runtime  Build isolated Gazebo/mission runtime for scenario workers"
++	@echo "  make build-mppi-experiment   Build pinned optional Humble MPPI overlay outside source"
++	@echo "  make test-mppi-experiment    Validate optimizer and smoke suites for that overlay"
+ 	@echo "  make test-navigation  Test common navigation including C++ plugins"
+ 	@echo "  make test-navigation-runtime  Test Nav2 serial safety with a synthetic backend"
+ 	@echo "  make build-handeye Build hand-eye packages and dependencies"
+@@ -490,3 +492,20 @@ print-navigation-install-base:
+ 	@printf '%s\n' '$(NAVIGATION_INSTALL_BASE)'
+ print-scenario-install-base:
+ 	@printf '%s\n' '$(SCENARIO_INSTALL_BASE)'
++
++# Optional, pinned Nav2 1.1.20 experiment. Never replaces the system installation.
++MPPI_EXPERIMENT_WS ?= $(CLEANY_DATA_ROOT)/builds/mppi-humble-experiment
++MPPI_EXPERIMENT_PATCH ?= $(REPO_ROOT)tools/navigation_evaluation/mppi_humble_experiment/nav2-1.1.20.patch
++.PHONY: build-mppi-experiment test-mppi-experiment
++build-mppi-experiment:
++	python3 "$(REPO_ROOT)tools/navigation_evaluation/mppi_humble_experiment/prepare_overlay.py" "$(MPPI_EXPERIMENT_WS)" --patch "$(MPPI_EXPERIMENT_PATCH)"
++	source "$(ROS_SETUP)" && cd "$(MPPI_EXPERIMENT_WS)" && \
++		colcon build --symlink-install --packages-select nav2_mppi_controller \
++		--allow-overriding nav2_mppi_controller --parallel-workers 1 \
++		--cmake-args -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
++
++test-mppi-experiment: build-mppi-experiment
++	source "$(ROS_SETUP)" && source "$(MPPI_EXPERIMENT_WS)/install/local_setup.bash" && \
++		cd "$(MPPI_EXPERIMENT_WS)" && \
++		colcon test --packages-select nav2_mppi_controller \
++		--ctest-args -R 'optimizer_unit_tests|optimizer_smoke_test' --output-on-failure
+diff --git a/ros2_ws/src/cleany_navigation/README.md b/ros2_ws/src/cleany_navigation/README.md
+index 446b7cf..43d0306 100644
+--- a/ros2_ws/src/cleany_navigation/README.md
++++ b/ros2_ws/src/cleany_navigation/README.md
+@@ -698,3 +698,24 @@ pose, velocity, footprint and one sufficient obstacle cell from that cycle.
+ This check supplies a configured delay margin; it does not measure pose age, prove
+ physical stopping dynamics, or certify delays beyond the chosen hold time.
+ Continuous-60 simulation success remains a separate validation requirement.
++
++
++### MPPI Humble simulation experiment
++
++`tools/navigation_evaluation/mppi_humble_experiment/` contains a pinned Nav2
++1.1.20 patch, not a replacement for the default navigation profile. It adds a
++collision-scored rotation-only arrival domain and reapplies constraints after
++Humble's Savitzky-Golay filter. The separate relaxed patch adds a coupled
++mecanum wheel projection before sampled trajectory scoring and after sequence
++filtering. The model geometry is explicitly configured; it is not a physical
++calibration result.
++
++Use `make build-mppi-experiment MPPI_EXPERIMENT_WS=/absolute/external/workspace`
++inside the ROS Humble environment. `make test-mppi-experiment` runs the optimizer
++and smoke suites. The workspace must be external to source and its pinned
++upstream/patch provenance must match; choose a new directory for a different
++patch. `MPPI_EXPERIMENT_PATCH` selects the separate relaxed patch. See the
++experiment README for configuration and evidence boundaries. None of these
++settings are automatically loaded by the common runtime. Simulation-only
++external safety bypass requires the recorded experiment runner and is never a
++physical robot configuration.
+--- /dev/null
++++ b/tools/navigation_evaluation/mppi_humble_experiment/README.md
+@@ -0,0 +1,31 @@
++# Humble MPPI Omni 실험 overlay
++
++Nav2 1.1.20을 별도 workspace에 내려받고 고정된 patch를 적용한다. 기본 배포 설정을 바꾸지 않는다. 원본 tar SHA256은 `prepare_overlay.py`에 고정되어 있으며 기존 workspace의 provenance가 다르면 새 경로가 필요하다.
++
++보수 patch는 목표 10cm 안에서 XY 탐색을 멈추고 회전 탐색을 유지하는 hysteresis(해제 13cm), sampled rollout의 초기 실측 속도 보존, fallback 시 도착 모드 유지, Savitzky-Golay 필터 뒤 constraint 재적용을 추가한다. 실제 goal checker XY tolerance보다 큰 진입/해제 반경은 활성화하지 않는다. 기존 collision critic을 통과한 회전만 선택한다.
++
++완화 patch는 위 변경에 Omni의 결합 wheel 제한을 추가한다. `wheel_max_rad_s`가 양수일 때 `|vx|+|vy|+((wheelbase_m+wheel_separation_m)/2)|wz| <= wheel_radius_m*wheel_max_rad_s`로 twist 전체를 균일 축소한다. sampled controls를 rollout 전에, 선택 sequence를 필터 뒤에도 제한한다. 기본값 0은 추가 projection 비활성이다. footprint와 내부 collision critic은 유지한다.
++
++## 빌드와 최소 검증
++
++ROS 2 Humble 환경에서 저장소 루트의 Makefile을 사용한다. workspace는 저장소 밖에 둔다.
++
++```bash
++make test-mppi-experiment MPPI_EXPERIMENT_WS=/absolute/data/builds/mppi-conservative
++make test-mppi-experiment MPPI_EXPERIMENT_WS=/absolute/data/builds/mppi-relaxed \
++  MPPI_EXPERIMENT_PATCH="$PWD/tools/navigation_evaluation/mppi_humble_experiment/nav2-1.1.20-relaxed.patch"
++```
++
++실험 프로세스에서만 `/opt/ros/humble/setup.bash`, 필요한 Cleany overlay, 해당 MPPI `install/local_setup.bash` 순으로 source한다. 두 MPPI overlay를 동시에 source하지 않는다. `conservative_overrides.yaml`과 `relaxed_overrides.yaml`은 FollowPath override이며 robot overlay가 다시 덮어쓰지 않도록 마지막 설정에도 적용하고 실제 parameter dump를 검증해야 한다.
++
++보수 optimizer 15개 및 smoke 3개, 완화 optimizer 16개 및 smoke 3개가 통과했다. upstream critic 23개 중 PathAlign float 합산 assertion 1개는 실패했다. 같은 바이너리를 수정하지 않은 시스템 라이브러리에 연결해 동일 실패를 재현했으며 assertion을 변경하지 않았다. 이 Makefile의 최소 검증은 optimizer/smoke에 한정된다.
++
++## 실행 조건과 증거
++
++2026-10-13 실험 source는 `b3ca816ba420452ee7960837bc16ec74148e07b0`, 도착 허용은 15cm/10deg, controller는 20Hz/model_dt=.05였다. 보수 설정은 원래 속도 박스와 외부 안전 경로를 유지한다. 완화 설정은 **Gazebo 전용**이며 외부 pan/freshness/Collision Monitor/voxel guard 최종 출력을 shadow로 보내고 wheel projector를 실제 `/cmd_vel`에 연결했다. .5sim초 command-loss watchdog을 유지했고 contact sensor를 추가했다. 완화 설정을 물리 로봇에 적용하지 않는다.
++
++실험 러너, contact/wheel 계측, 실제 YAML, raw bag/log, JSON/CSV, 재현 명령은 다음 외부 증거 경로에 보존한다.
++
++`/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/`
++
++`REPORT.md`에서 Nav2 상태, ground truth 오차, 접촉 및 계측 한계를 함께 확인한다. Nav2 status 4만으로 GT 도착 허용이나 실제 비접촉을 판정하지 않는다. 단일 실행의 수치는 통계적 성공률이나 다른 CPU와의 성능 순위가 아니다.
+--- /dev/null
++++ b/tools/navigation_evaluation/mppi_humble_experiment/conservative_overrides.yaml
+@@ -0,0 +1,23 @@
++goal_rotate_enter_radius: 0.1
++goal_rotate_exit_radius: 0.13
++vx_std: 0.035
++vy_std: 0.025
++wz_std: 0.07
++PathAngleCritic:
++  cost_power: 1
++  cost_weight: 2.0
++  enabled: false
++  forward_preference: true
++  max_angle_to_furthest: 1.0
++  offset_from_furthest: 4
++  threshold_to_consider: 0.5
++PathAlignCritic:
++  cost_power: 1
++  cost_weight: 3.0
++  enabled: true
++  max_path_occupancy_ratio: 0.05
++  offset_from_furthest: 2
++  threshold_to_consider: 1.0
++  trajectory_point_step: 4
++  use_path_orientations: true
++gamma: 0.002
+--- /dev/null
++++ b/tools/navigation_evaluation/mppi_humble_experiment/nav2-1.1.20-relaxed.patch
+@@ -0,0 +1,347 @@
++--- a/include/nav2_mppi_controller/optimizer.hpp
+++++ b/include/nav2_mppi_controller/optimizer.hpp
++@@ -244,6 +244,13 @@
++   NoiseGenerator noise_generator_;
++ 
++   models::OptimizerSettings settings_;
+++  float goal_rotate_enter_radius_{0.0f};
+++  float goal_rotate_exit_radius_{0.0f};
+++  bool goal_rotation_active_{false};
+++  float wheel_max_rad_s_{0.0f};
+++  float wheel_radius_m_{0.0635f};
+++  float wheelbase_m_{0.35f};
+++  float wheel_separation_m_{0.6038f};
++ 
++   models::State state_;
++   models::ControlSequence control_sequence_;
++--- a/src/optimizer.cpp
+++++ b/src/optimizer.cpp
++@@ -13,6 +13,7 @@
++ // limitations under the License.
++ 
++ #include "nav2_mppi_controller/optimizer.hpp"
+++#include "nav2_mppi_controller/wheel_projection.hpp"
++ 
++ #include <limits>
++ #include <memory>
++@@ -80,6 +81,20 @@
++   getParam(s.sampling_std.vy, "vy_std", 0.2);
++   getParam(s.sampling_std.wz, "wz_std", 0.4);
++   getParam(s.retry_attempt_limit, "retry_attempt_limit", 1);
+++  getParam(wheel_max_rad_s_, "wheel_max_rad_s", 0.0f);
+++  getParam(wheel_radius_m_, "wheel_radius_m", 0.0635f);
+++  getParam(wheelbase_m_, "wheelbase_m", 0.35f);
+++  getParam(wheel_separation_m_, "wheel_separation_m", 0.6038f);
+++  if (wheel_max_rad_s_ < 0.0f || wheel_radius_m_ <= 0.0f ||
+++    wheelbase_m_ <= 0.0f || wheel_separation_m_ <= 0.0f)
+++  {throw std::runtime_error("Invalid wheel projection geometry or limit");}
+++  getParam(goal_rotate_enter_radius_, "goal_rotate_enter_radius", 0.0f);
+++  getParam(goal_rotate_exit_radius_, "goal_rotate_exit_radius", 0.0f);
+++  if (goal_rotate_enter_radius_ < 0.0f ||
+++    goal_rotate_exit_radius_ < goal_rotate_enter_radius_)
+++  {
+++    throw std::runtime_error("Goal rotation radii must be nonnegative and ordered");
+++  }
++ 
++   getParam(motion_model_name, "motion_model", std::string("DiffDrive"));
++ 
++@@ -115,6 +130,8 @@
++ 
++ void Optimizer::reset()
++ {
+++  // Keep the arrival domain through an internal fallback retry; prepare()
+++  // recomputes it from the current path and pose on the next control cycle.
++   state_.reset(settings_.batch_size, settings_.time_steps);
++   control_sequence_.reset(settings_.time_steps);
++   control_history_[0] = {0.0, 0.0, 0.0};
++@@ -143,6 +160,15 @@
++   } while (fallback(critics_data_.fail_flag));
++ 
++   utils::savitskyGolayFilter(control_sequence_, control_history_, settings_);
+++  // The Savitzky-Golay filter has negative coefficients and can overshoot.
+++  applyControlSequenceConstraints();
+++  // The filter carries prior translations. Clear those values before emission;
+++  // this is the same zero-translation domain scored by all active critics.
+++  if (goal_rotation_active_) {
+++    control_sequence_.vx.fill(0.0f);
+++    control_sequence_.vy.fill(0.0f);
+++    for (auto & control : control_history_) {control.vx = control.vy = 0.0f;}
+++  }
++   auto control = getControlFromSequenceAsTwist(plan.header.stamp);
++ 
++   if (settings_.shift_control_sequence) {
++@@ -188,6 +214,25 @@
++   state_.pose = robot_pose;
++   state_.speed = robot_speed;
++   path_ = utils::toTensor(plan);
+++  geometry_msgs::msg::Pose tolerance;
+++  geometry_msgs::msg::Twist velocity_tolerance;
+++  const bool valid_tolerance = goal_checker &&
+++    goal_checker->getTolerances(tolerance, velocity_tolerance);
+++  const bool bounded = valid_tolerance && goal_rotate_enter_radius_ > 0.0f &&
+++    goal_rotate_exit_radius_ <= tolerance.position.x;
+++  const float radius = goal_rotation_active_ ?
+++    goal_rotate_exit_radius_ : goal_rotate_enter_radius_;
+++  const bool next_rotation = bounded &&
+++    utils::withinPositionGoalTolerance(radius, state_.pose.pose, path_);
+++  if (next_rotation != goal_rotation_active_) {
+++    RCLCPP_INFO(logger_, "MPPI goal rotation phase: %s", next_rotation ? "enter" : "exit");
+++  }
+++  goal_rotation_active_ = next_rotation;
+++  if (goal_rotation_active_) {
+++    control_sequence_.vx.fill(0.0f);
+++    control_sequence_.vy.fill(0.0f);
+++    for (auto & control : control_history_) {control.vx = control.vy = 0.0f;}
+++  }
++   costs_.fill(0);
++ 
++   critics_data_.fail_flag = false;
++@@ -222,6 +267,21 @@
++ {
++   noise_generator_.setNoisedControls(state_, control_sequence_);
++   noise_generator_.generateNextNoises();
+++  // Constrain the sampled controls before rollout/collision scoring, rather than
+++  // deleting XY from a trajectory that was evaluated as translating.
+++  if (goal_rotation_active_) {
+++    state_.cvx.fill(0.0f);
+++    state_.cvy.fill(0.0f);
+++  }
+++  if (wheel_max_rad_s_ > 0.0f && isHolonomic()) {
+++    const float lever = 0.5f * (wheelbase_m_ + wheel_separation_m_);
+++    for (size_t batch = 0; batch < settings_.batch_size; ++batch) {
+++      for (size_t t = 0; t < settings_.time_steps; ++t) {
+++        projectWheelTwist(state_.cvx(batch, t), state_.cvy(batch, t), state_.cwz(batch, t),
+++          wheel_radius_m_, lever, wheel_max_rad_s_);
+++      }
+++    }
+++  }
++   updateStateVelocities(state_);
++   integrateStateVelocities(generated_trajectories_, state_);
++ }
++@@ -240,6 +300,13 @@
++   control_sequence_.wz = xt::clip(control_sequence_.wz, -s.constraints.wz, s.constraints.wz);
++ 
++   motion_model_->applyConstraints(control_sequence_);
+++  if (wheel_max_rad_s_ > 0.0f && isHolonomic()) {
+++    const float lever = 0.5f * (wheelbase_m_ + wheel_separation_m_);
+++    for (size_t t = 0; t < control_sequence_.vx.size(); ++t) {
+++      projectWheelTwist(control_sequence_.vx(t), control_sequence_.vy(t), control_sequence_.wz(t),
+++        wheel_radius_m_, lever, wheel_max_rad_s_);
+++    }
+++  }
++ }
++ 
++ void Optimizer::updateStateVelocities(
++--- a/test/optimizer_unit_tests.cpp
+++++ b/test/optimizer_unit_tests.cpp
++@@ -18,6 +18,7 @@
++ #include "gtest/gtest.h"
++ #include "rclcpp/rclcpp.hpp"
++ #include "nav2_mppi_controller/optimizer.hpp"
+++#include "nav2_mppi_controller/wheel_projection.hpp"
++ 
++ // Tests main optimizer functions
++ 
++@@ -40,6 +41,96 @@
++   OptimizerTester()
++   : Optimizer() {}
++ 
+++  void prepareArrival(double x, nav2_core::GoalChecker * checker, double exit_radius = 0.13)
+++  {
+++    goal_rotate_enter_radius_ = 0.10f;
+++    goal_rotate_exit_radius_ = exit_radius;
+++    settings_.batch_size = 8;
+++    settings_.time_steps = 12;
+++    costs_ = xt::ones<float>({8});
+++    if (!motion_model_) {setMotionModel("Omni");}
+++    control_sequence_.vx = xt::ones<float>({12});
+++    control_sequence_.vy = xt::ones<float>({12});
+++    control_sequence_.wz = xt::zeros<float>({12});
+++    nav_msgs::msg::Path path;
+++    path.poses.resize(2);
+++    path.poses.back().pose.orientation.w = 1.0;
+++    geometry_msgs::msg::PoseStamped pose;
+++    pose.pose.position.x = x;
+++    pose.pose.orientation.w = 1.0;
+++    prepare(pose, geometry_msgs::msg::Twist(), path, checker);
+++  }
+++  bool rotating() const {return goal_rotation_active_;}
+++  void verifyArrivalRetry()
+++  {
+++    reset();
+++    EXPECT_TRUE(goal_rotation_active_);
+++  }
+++  void verifyArrivalHistoryZero()
+++  {
+++    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.vx))(), 0.0f);
+++    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.vy))(), 0.0f);
+++    for (const auto & control : control_history_) {
+++      EXPECT_EQ(control.vx, 0.0f);
+++      EXPECT_EQ(control.vy, 0.0f);
+++    }
+++  }
+++
+++  void verifyFilteredBounds()
+++  {
+++    settings_.time_steps = 80;
+++    settings_.constraints.vx_min = -0.15f;
+++    settings_.constraints.vx_max = 0.15f;
+++    settings_.constraints.vy = 0.10f;
+++    settings_.constraints.wz = 0.14f;
+++    if (!motion_model_) {setMotionModel("Omni");}
+++    control_sequence_.vx = 0.15f * xt::ones<float>({80});
+++    control_sequence_.vy = 0.10f * xt::ones<float>({80});
+++    control_sequence_.wz = 0.14f * xt::ones<float>({80});
+++    // The negative filter taps multiply opposing, but still bounded, values.
+++    control_sequence_.vx(4) = -0.15f;
+++    control_sequence_.vy(4) = -0.10f;
+++    control_sequence_.wz(4) = -0.14f;
+++    for (auto & control : control_history_) {control = {0.15f, 0.10f, 0.14f};}
+++    control_history_[0] = {-0.15f, -0.10f, -0.14f};
+++    utils::savitskyGolayFilter(control_sequence_, control_history_, settings_);
+++    EXPECT_GT(control_sequence_.vx(0), 0.15f);
+++    EXPECT_GT(control_sequence_.vy(0), 0.10f);
+++    EXPECT_GT(control_sequence_.wz(0), 0.14f);
+++    applyControlSequenceConstraints();
+++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.vx))(), 0.15f);
+++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.vy))(), 0.10f);
+++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.wz))(), 0.14f);
+++  }
+++
+++  void verifyArrivalRollout()
+++  {
+++    state_.reset(settings_.batch_size, settings_.time_steps);
+++    generated_trajectories_.reset(settings_.batch_size, settings_.time_steps);
+++    settings_.model_dt = 0.05f;
+++    settings_.sampling_std.vx = settings_.sampling_std.vy = 0.1f;
+++    settings_.sampling_std.wz = 0.2f;
+++    state_.pose.pose.orientation.w = 1.0;
+++    state_.speed.linear.x = 0.03;
+++    state_.speed.linear.y = -0.02;
+++    noise_generator_.reset(settings_, true);
+++    generateNoisedTrajectories();
+++    EXPECT_EQ(xt::sum(xt::abs(state_.cvx))(), 0.0f);
+++    EXPECT_EQ(xt::sum(xt::abs(state_.cvy))(), 0.0f);
+++    EXPECT_GT(xt::sum(xt::abs(state_.cwz))(), 0.0f);
+++    for (size_t batch = 0; batch < settings_.batch_size; ++batch) {
+++      EXPECT_NEAR(state_.vx(batch, 0), 0.03, 1e-6);
+++      EXPECT_NEAR(state_.vy(batch, 0), -0.02, 1e-6);
+++      // Scoring includes the measured initial translation, not an idealized stop.
+++      EXPECT_NEAR(generated_trajectories_.x(batch, 0), state_.pose.pose.position.x + 0.03 * 0.05, 1e-6);
+++      EXPECT_NEAR(generated_trajectories_.y(batch, 0), -0.02 * 0.05, 1e-6);
+++      for (size_t t = 1; t < settings_.time_steps; ++t) {
+++        EXPECT_EQ(state_.vx(batch, t), 0.0f);
+++        EXPECT_EQ(state_.vy(batch, t), 0.0f);
+++      }
+++    }
+++  }
+++
++   void testSetDiffModel()
++   {
++     EXPECT_EQ(motion_model_.get(), nullptr);
++@@ -634,3 +725,79 @@
++     EXPECT_NEAR(traj.y(1, i), y, 1e-6);
++   }
++ }
+++
+++class ArrivalGoalChecker : public nav2_core::GoalChecker
+++{
+++public:
+++  void initialize(const rclcpp_lifecycle::LifecycleNode::WeakPtr &,
+++    const std::string &, const std::shared_ptr<nav2_costmap_2d::Costmap2DROS>) override {}
+++  void reset() override {}
+++  bool isGoalReached(const geometry_msgs::msg::Pose &, const geometry_msgs::msg::Pose &,
+++    const geometry_msgs::msg::Twist &) override {return false;}
+++  bool getTolerances(geometry_msgs::msg::Pose & pose, geometry_msgs::msg::Twist &) override
+++  {pose.position.x = pose.position.y = 0.15; return true;}
+++};
+++
+++TEST(OptimizerTests, ArrivalHysteresisAndToleranceBoundary)
+++{
+++  ArrivalGoalChecker checker;
+++  OptimizerTester optimizer;
+++  optimizer.prepareArrival(0.11, &checker);
+++  EXPECT_FALSE(optimizer.rotating());
+++  optimizer.prepareArrival(0.09, &checker);
+++  EXPECT_TRUE(optimizer.rotating());
+++  optimizer.verifyArrivalHistoryZero();
+++  optimizer.prepareArrival(0.12, &checker);
+++  EXPECT_TRUE(optimizer.rotating());
+++  optimizer.prepareArrival(0.14, &checker);
+++  EXPECT_FALSE(optimizer.rotating());
+++  optimizer.prepareArrival(0.12, &checker);
+++  EXPECT_FALSE(optimizer.rotating());
+++  optimizer.prepareArrival(0.09, &checker, 0.16);
+++  EXPECT_FALSE(optimizer.rotating());
+++  optimizer.prepareArrival(0.09, nullptr);
+++  EXPECT_FALSE(optimizer.rotating());
+++}
+++
+++TEST(OptimizerTests, FilterOvershootIsBounded)
+++{
+++  OptimizerTester optimizer;
+++  optimizer.verifyFilteredBounds();
+++}
+++
+++TEST(OptimizerTests, ArrivalRolloutPreservesMeasuredVelocityAndAngularExploration)
+++{
+++  ArrivalGoalChecker checker;
+++  OptimizerTester optimizer;
+++  optimizer.prepareArrival(0.09, &checker);
+++  ASSERT_TRUE(optimizer.rotating());
+++  optimizer.verifyArrivalRollout();
+++  optimizer.verifyArrivalRetry();
+++}
+++
+++TEST(OptimizerTests, CoupledWheelProjectionPreservesRatiosInAllOctants)
+++{
+++  const float radius = 0.0635f, lever = 0.4769f;
+++  for (float sx : {-1.0f, 1.0f}) {
+++    for (float sy : {-1.0f, 1.0f}) {
+++      for (float sw : {-1.0f, 1.0f}) {
+++        float x = sx * 0.3175f, y = sy * 0.2f, w = sw * 0.6f;
+++        const float ratio_y = y / x, ratio_w = w / x;
+++        mppi::projectWheelTwist(x, y, w, radius, lever, 5.0f);
+++        EXPECT_NEAR(y / x, ratio_y, 1e-6);
+++        EXPECT_NEAR(w / x, ratio_w, 1e-6);
+++        for (float sign_y : {-1.0f, 1.0f}) {
+++          for (float sign_w : {-1.0f, 1.0f}) {
+++            EXPECT_LE(std::abs((x + sign_y * y + sign_w * lever * w) / radius), 5.0f + 1e-6f);
+++          }
+++        }
+++      }
+++    }
+++  }
+++  float x = 0.3175f, y = 0.0f, w = 0.0f;
+++  mppi::projectWheelTwist(x, y, w, radius, lever, 5.0f);
+++  EXPECT_NEAR(x, 0.3175f, 1e-7);
+++  x = 0.02f; y = -0.01f; w = 0.04f;
+++  mppi::projectWheelTwist(x, y, w, radius, lever, 5.0f);
+++  EXPECT_EQ(x, 0.02f); EXPECT_EQ(y, -0.01f); EXPECT_EQ(w, 0.04f);
+++}
++--- a/include/nav2_mppi_controller/wheel_projection.hpp
+++++ b/include/nav2_mppi_controller/wheel_projection.hpp
++@@ -0,0 +1,23 @@
+++// Copyright (c) 2026 Cleany contributors
+++// Licensed under the Apache License, Version 2.0.
+++#ifndef NAV2_MPPI_CONTROLLER__WHEEL_PROJECTION_HPP_
+++#define NAV2_MPPI_CONTROLLER__WHEEL_PROJECTION_HPP_
+++#include <cmath>
+++#include <algorithm>
+++namespace mppi
+++{
+++// These four wheel signs imply max|omega|=(|vx|+|vy|+lever*|wz|)/radius.
+++// Scaling all axes together preserves the complete body twist direction.
+++inline void projectWheelTwist(float & vx, float & vy, float & wz,
+++  float radius, float lever, float maximum)
+++{
+++  if (maximum <= 0.0f) {return;}
+++  const float demand = std::abs(vx) + std::abs(vy) + lever * std::abs(wz);
+++  const float bound = radius * maximum;
+++  if (demand > bound) {
+++    const float scale = bound / demand;
+++    vx *= scale; vy *= scale; wz *= scale;
+++  }
+++}
+++}  // namespace mppi
+++#endif  // NAV2_MPPI_CONTROLLER__WHEEL_PROJECTION_HPP_
+--- /dev/null
++++ b/tools/navigation_evaluation/mppi_humble_experiment/nav2-1.1.20.patch
+@@ -0,0 +1,244 @@
++--- a/include/nav2_mppi_controller/optimizer.hpp
+++++ b/include/nav2_mppi_controller/optimizer.hpp
++@@ -244,6 +244,9 @@
++   NoiseGenerator noise_generator_;
++ 
++   models::OptimizerSettings settings_;
+++  float goal_rotate_enter_radius_{0.0f};
+++  float goal_rotate_exit_radius_{0.0f};
+++  bool goal_rotation_active_{false};
++ 
++   models::State state_;
++   models::ControlSequence control_sequence_;
++--- a/src/optimizer.cpp
+++++ b/src/optimizer.cpp
++@@ -80,6 +80,13 @@
++   getParam(s.sampling_std.vy, "vy_std", 0.2);
++   getParam(s.sampling_std.wz, "wz_std", 0.4);
++   getParam(s.retry_attempt_limit, "retry_attempt_limit", 1);
+++  getParam(goal_rotate_enter_radius_, "goal_rotate_enter_radius", 0.0f);
+++  getParam(goal_rotate_exit_radius_, "goal_rotate_exit_radius", 0.0f);
+++  if (goal_rotate_enter_radius_ < 0.0f ||
+++    goal_rotate_exit_radius_ < goal_rotate_enter_radius_)
+++  {
+++    throw std::runtime_error("Goal rotation radii must be nonnegative and ordered");
+++  }
++ 
++   getParam(motion_model_name, "motion_model", std::string("DiffDrive"));
++ 
++@@ -115,6 +122,8 @@
++ 
++ void Optimizer::reset()
++ {
+++  // Keep the arrival domain through an internal fallback retry; prepare()
+++  // recomputes it from the current path and pose on the next control cycle.
++   state_.reset(settings_.batch_size, settings_.time_steps);
++   control_sequence_.reset(settings_.time_steps);
++   control_history_[0] = {0.0, 0.0, 0.0};
++@@ -143,6 +152,15 @@
++   } while (fallback(critics_data_.fail_flag));
++ 
++   utils::savitskyGolayFilter(control_sequence_, control_history_, settings_);
+++  // The Savitzky-Golay filter has negative coefficients and can overshoot.
+++  applyControlSequenceConstraints();
+++  // The filter carries prior translations. Clear those values before emission;
+++  // this is the same zero-translation domain scored by all active critics.
+++  if (goal_rotation_active_) {
+++    control_sequence_.vx.fill(0.0f);
+++    control_sequence_.vy.fill(0.0f);
+++    for (auto & control : control_history_) {control.vx = control.vy = 0.0f;}
+++  }
++   auto control = getControlFromSequenceAsTwist(plan.header.stamp);
++ 
++   if (settings_.shift_control_sequence) {
++@@ -188,6 +206,25 @@
++   state_.pose = robot_pose;
++   state_.speed = robot_speed;
++   path_ = utils::toTensor(plan);
+++  geometry_msgs::msg::Pose tolerance;
+++  geometry_msgs::msg::Twist velocity_tolerance;
+++  const bool valid_tolerance = goal_checker &&
+++    goal_checker->getTolerances(tolerance, velocity_tolerance);
+++  const bool bounded = valid_tolerance && goal_rotate_enter_radius_ > 0.0f &&
+++    goal_rotate_exit_radius_ <= tolerance.position.x;
+++  const float radius = goal_rotation_active_ ?
+++    goal_rotate_exit_radius_ : goal_rotate_enter_radius_;
+++  const bool next_rotation = bounded &&
+++    utils::withinPositionGoalTolerance(radius, state_.pose.pose, path_);
+++  if (next_rotation != goal_rotation_active_) {
+++    RCLCPP_INFO(logger_, "MPPI goal rotation phase: %s", next_rotation ? "enter" : "exit");
+++  }
+++  goal_rotation_active_ = next_rotation;
+++  if (goal_rotation_active_) {
+++    control_sequence_.vx.fill(0.0f);
+++    control_sequence_.vy.fill(0.0f);
+++    for (auto & control : control_history_) {control.vx = control.vy = 0.0f;}
+++  }
++   costs_.fill(0);
++ 
++   critics_data_.fail_flag = false;
++@@ -222,6 +259,12 @@
++ {
++   noise_generator_.setNoisedControls(state_, control_sequence_);
++   noise_generator_.generateNextNoises();
+++  // Constrain the sampled controls before rollout/collision scoring, rather than
+++  // deleting XY from a trajectory that was evaluated as translating.
+++  if (goal_rotation_active_) {
+++    state_.cvx.fill(0.0f);
+++    state_.cvy.fill(0.0f);
+++  }
++   updateStateVelocities(state_);
++   integrateStateVelocities(generated_trajectories_, state_);
++ }
++--- a/test/optimizer_unit_tests.cpp
+++++ b/test/optimizer_unit_tests.cpp
++@@ -40,6 +40,96 @@
++   OptimizerTester()
++   : Optimizer() {}
++ 
+++  void prepareArrival(double x, nav2_core::GoalChecker * checker, double exit_radius = 0.13)
+++  {
+++    goal_rotate_enter_radius_ = 0.10f;
+++    goal_rotate_exit_radius_ = exit_radius;
+++    settings_.batch_size = 8;
+++    settings_.time_steps = 12;
+++    costs_ = xt::ones<float>({8});
+++    if (!motion_model_) {setMotionModel("Omni");}
+++    control_sequence_.vx = xt::ones<float>({12});
+++    control_sequence_.vy = xt::ones<float>({12});
+++    control_sequence_.wz = xt::zeros<float>({12});
+++    nav_msgs::msg::Path path;
+++    path.poses.resize(2);
+++    path.poses.back().pose.orientation.w = 1.0;
+++    geometry_msgs::msg::PoseStamped pose;
+++    pose.pose.position.x = x;
+++    pose.pose.orientation.w = 1.0;
+++    prepare(pose, geometry_msgs::msg::Twist(), path, checker);
+++  }
+++  bool rotating() const {return goal_rotation_active_;}
+++  void verifyArrivalRetry()
+++  {
+++    reset();
+++    EXPECT_TRUE(goal_rotation_active_);
+++  }
+++  void verifyArrivalHistoryZero()
+++  {
+++    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.vx))(), 0.0f);
+++    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.vy))(), 0.0f);
+++    for (const auto & control : control_history_) {
+++      EXPECT_EQ(control.vx, 0.0f);
+++      EXPECT_EQ(control.vy, 0.0f);
+++    }
+++  }
+++
+++  void verifyFilteredBounds()
+++  {
+++    settings_.time_steps = 80;
+++    settings_.constraints.vx_min = -0.15f;
+++    settings_.constraints.vx_max = 0.15f;
+++    settings_.constraints.vy = 0.10f;
+++    settings_.constraints.wz = 0.14f;
+++    if (!motion_model_) {setMotionModel("Omni");}
+++    control_sequence_.vx = 0.15f * xt::ones<float>({80});
+++    control_sequence_.vy = 0.10f * xt::ones<float>({80});
+++    control_sequence_.wz = 0.14f * xt::ones<float>({80});
+++    // The negative filter taps multiply opposing, but still bounded, values.
+++    control_sequence_.vx(4) = -0.15f;
+++    control_sequence_.vy(4) = -0.10f;
+++    control_sequence_.wz(4) = -0.14f;
+++    for (auto & control : control_history_) {control = {0.15f, 0.10f, 0.14f};}
+++    control_history_[0] = {-0.15f, -0.10f, -0.14f};
+++    utils::savitskyGolayFilter(control_sequence_, control_history_, settings_);
+++    EXPECT_GT(control_sequence_.vx(0), 0.15f);
+++    EXPECT_GT(control_sequence_.vy(0), 0.10f);
+++    EXPECT_GT(control_sequence_.wz(0), 0.14f);
+++    applyControlSequenceConstraints();
+++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.vx))(), 0.15f);
+++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.vy))(), 0.10f);
+++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.wz))(), 0.14f);
+++  }
+++
+++  void verifyArrivalRollout()
+++  {
+++    state_.reset(settings_.batch_size, settings_.time_steps);
+++    generated_trajectories_.reset(settings_.batch_size, settings_.time_steps);
+++    settings_.model_dt = 0.05f;
+++    settings_.sampling_std.vx = settings_.sampling_std.vy = 0.1f;
+++    settings_.sampling_std.wz = 0.2f;
+++    state_.pose.pose.orientation.w = 1.0;
+++    state_.speed.linear.x = 0.03;
+++    state_.speed.linear.y = -0.02;
+++    noise_generator_.reset(settings_, true);
+++    generateNoisedTrajectories();
+++    EXPECT_EQ(xt::sum(xt::abs(state_.cvx))(), 0.0f);
+++    EXPECT_EQ(xt::sum(xt::abs(state_.cvy))(), 0.0f);
+++    EXPECT_GT(xt::sum(xt::abs(state_.cwz))(), 0.0f);
+++    for (size_t batch = 0; batch < settings_.batch_size; ++batch) {
+++      EXPECT_NEAR(state_.vx(batch, 0), 0.03, 1e-6);
+++      EXPECT_NEAR(state_.vy(batch, 0), -0.02, 1e-6);
+++      // Scoring includes the measured initial translation, not an idealized stop.
+++      EXPECT_NEAR(generated_trajectories_.x(batch, 0), state_.pose.pose.position.x + 0.03 * 0.05, 1e-6);
+++      EXPECT_NEAR(generated_trajectories_.y(batch, 0), -0.02 * 0.05, 1e-6);
+++      for (size_t t = 1; t < settings_.time_steps; ++t) {
+++        EXPECT_EQ(state_.vx(batch, t), 0.0f);
+++        EXPECT_EQ(state_.vy(batch, t), 0.0f);
+++      }
+++    }
+++  }
+++
++   void testSetDiffModel()
++   {
++     EXPECT_EQ(motion_model_.get(), nullptr);
++@@ -634,3 +724,52 @@
++     EXPECT_NEAR(traj.y(1, i), y, 1e-6);
++   }
++ }
+++
+++class ArrivalGoalChecker : public nav2_core::GoalChecker
+++{
+++public:
+++  void initialize(const rclcpp_lifecycle::LifecycleNode::WeakPtr &,
+++    const std::string &, const std::shared_ptr<nav2_costmap_2d::Costmap2DROS>) override {}
+++  void reset() override {}
+++  bool isGoalReached(const geometry_msgs::msg::Pose &, const geometry_msgs::msg::Pose &,
+++    const geometry_msgs::msg::Twist &) override {return false;}
+++  bool getTolerances(geometry_msgs::msg::Pose & pose, geometry_msgs::msg::Twist &) override
+++  {pose.position.x = pose.position.y = 0.15; return true;}
+++};
+++
+++TEST(OptimizerTests, ArrivalHysteresisAndToleranceBoundary)
+++{
+++  ArrivalGoalChecker checker;
+++  OptimizerTester optimizer;
+++  optimizer.prepareArrival(0.11, &checker);
+++  EXPECT_FALSE(optimizer.rotating());
+++  optimizer.prepareArrival(0.09, &checker);
+++  EXPECT_TRUE(optimizer.rotating());
+++  optimizer.verifyArrivalHistoryZero();
+++  optimizer.prepareArrival(0.12, &checker);
+++  EXPECT_TRUE(optimizer.rotating());
+++  optimizer.prepareArrival(0.14, &checker);
+++  EXPECT_FALSE(optimizer.rotating());
+++  optimizer.prepareArrival(0.12, &checker);
+++  EXPECT_FALSE(optimizer.rotating());
+++  optimizer.prepareArrival(0.09, &checker, 0.16);
+++  EXPECT_FALSE(optimizer.rotating());
+++  optimizer.prepareArrival(0.09, nullptr);
+++  EXPECT_FALSE(optimizer.rotating());
+++}
+++
+++TEST(OptimizerTests, FilterOvershootIsBounded)
+++{
+++  OptimizerTester optimizer;
+++  optimizer.verifyFilteredBounds();
+++}
+++
+++TEST(OptimizerTests, ArrivalRolloutPreservesMeasuredVelocityAndAngularExploration)
+++{
+++  ArrivalGoalChecker checker;
+++  OptimizerTester optimizer;
+++  optimizer.prepareArrival(0.09, &checker);
+++  ASSERT_TRUE(optimizer.rotating());
+++  optimizer.verifyArrivalRollout();
+++  optimizer.verifyArrivalRetry();
+++}
+--- /dev/null
++++ b/tools/navigation_evaluation/mppi_humble_experiment/prepare_overlay.py
+@@ -0,0 +1,45 @@
++#!/usr/bin/env python3
++"""Materialize a pinned MPPI experiment outside the Cleany source tree."""
++import argparse, hashlib, json, subprocess, tarfile, urllib.request
++from pathlib import Path
++
++UPSTREAM_SHA = "c965b7a36ef48cd7f35f01c1f98883741693d195dae582232d6d0444d2eedab6"
++UPSTREAM_URL = "https://github.com/ros-navigation/navigation2/archive/refs/tags/1.1.20.tar.gz"
++
++def main() -> None:
++    parser = argparse.ArgumentParser()
++    parser.add_argument('workspace', type=Path)
++    parser.add_argument('--patch', type=Path, default=Path(__file__).parent / 'nav2-1.1.20.patch')
++    args = parser.parse_args()
++    root = args.workspace.expanduser().resolve()
++    root.mkdir(parents=True, exist_ok=True)
++    patch = args.patch.resolve()
++    marker = root / 'source_provenance.json'
++    expected = {'upstream_sha256': UPSTREAM_SHA,
++                'patch_sha256': hashlib.sha256(patch.read_bytes()).hexdigest()}
++    source = root / 'src/nav2_mppi_controller'
++    if source.exists():
++        if not marker.exists() or json.loads(marker.read_text()) != expected:
++            raise RuntimeError('Existing source has different provenance; choose a fresh workspace')
++        return
++    archive = root / 'nav2-1.1.20.tar.gz'
++    if not archive.exists():
++        urllib.request.urlretrieve(UPSTREAM_URL, archive)
++    if hashlib.sha256(archive.read_bytes()).hexdigest() != UPSTREAM_SHA:
++        raise RuntimeError('Upstream archive checksum mismatch')
++    with tarfile.open(archive) as stream:
++        for entry in stream.getmembers():
++            prefix = 'navigation2-1.1.20/nav2_mppi_controller/'
++            if not entry.name.startswith(prefix):
++                continue
++            relative = Path(entry.name[len('navigation2-1.1.20/'):])
++            if relative.is_absolute() or '..' in relative.parts or entry.issym() or entry.islnk():
++                raise RuntimeError('Unexpected archive member')
++            entry.name = str(relative)
++            stream.extract(entry, root / 'src')
++    subprocess.run(['patch', '--batch', '--forward', '-p1', '-i', str(patch)],
++                   cwd=source, check=True)
++    marker.write_text(json.dumps(expected, indent=2))
++
++if __name__ == '__main__':
++    main()
+--- /dev/null
++++ b/tools/navigation_evaluation/mppi_humble_experiment/relaxed_overrides.yaml
+@@ -0,0 +1,31 @@
++goal_rotate_enter_radius: 0.1
++goal_rotate_exit_radius: 0.13
++vx_std: 0.035
++vy_std: 0.025
++wz_std: 0.07
++PathAngleCritic:
++  cost_power: 1
++  cost_weight: 2.0
++  enabled: false
++  forward_preference: true
++  max_angle_to_furthest: 1.0
++  offset_from_furthest: 4
++  threshold_to_consider: 0.5
++PathAlignCritic:
++  cost_power: 1
++  cost_weight: 3.0
++  enabled: true
++  max_path_occupancy_ratio: 0.05
++  offset_from_furthest: 2
++  threshold_to_consider: 1.0
++  trajectory_point_step: 4
++  use_path_orientations: true
++gamma: 0.0003
++vx_max: 0.3175
++vx_min: -0.3175
++vy_max: 0.3175
++wz_max: 0.6657580205493815
++wheel_max_rad_s: 5.0
++wheel_radius_m: 0.0635
++wheelbase_m: 0.35
++wheel_separation_m: 0.6038

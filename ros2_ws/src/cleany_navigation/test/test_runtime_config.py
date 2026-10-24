@@ -81,7 +81,7 @@ def test_humble_preserves_three_point_stop_boundary_and_bt_registration():
     # Jazzy triggers at points >= min_points, Humble at points > max_points.
     assert 'min_points' not in zone
     assert zone['max_points'] == before['collision_monitor']['ros__parameters']['StopZone']['min_points'] - 1 == 2
-    assert result['planner_server']['ros__parameters']['GridBased']['plugin'] == 'nav2_navfn_planner/NavfnPlanner'
+    assert result['planner_server']['ros__parameters']['GridBased']['plugin'] == 'nav2_theta_star_planner/ThetaStarPlanner'
     assert result['controller_server']['ros__parameters']['progress_checker_plugin'] == 'progress_checker'
     assert {'nav2_follow_path_action_bt_node', 'nav2_truncate_path_local_action_bt_node',
             'cleany_yield_wait_bt_node'} <= set(result['bt_navigator']['ros__parameters']['plugin_lib_names'])
@@ -245,3 +245,21 @@ def test_shared_map_replaces_depth_voxel_build_but_preserves_lidar_and_static_ma
     assert result['obstacle_memory']['ros__parameters']['projection_max_z'] == before['local_costmap']['local_costmap']['ros__parameters']['depth_layer']['max_obstacle_height']
     disabled = configure_safety(source, memory_enabled=False, voxel_enabled=False)
     assert 'depth_layer' in disabled['local_costmap']['local_costmap']['ros__parameters']['plugins']
+
+
+def test_default_omni_theta_mppi_survives_humble_layering():
+    """The selected motion layer must not restore DWB or an unsupported plugin name."""
+    doc = parameters()
+    merge_parameters(doc, load_parameters(PACKAGE/'config/nav2_omni_motion.yaml'))
+    adapted = adapt_nav2_parameters(doc, 'humble')
+    assert adapted['planner_server']['ros__parameters']['GridBased']['plugin'] == (
+        'nav2_theta_star_planner/ThetaStarPlanner')
+    assert adapted['planner_server']['ros__parameters']['GridBased']['w_traversal_cost'] == 5.0
+    follow = adapted['controller_server']['ros__parameters']['FollowPath']
+    assert follow['plugin'] == 'nav2_mppi_controller::MPPIController'
+    assert follow['motion_model'] == 'Omni'
+    assert follow['vy_max'] > 0
+    assert follow['PathAlignCritic']['use_path_orientations'] is False
+    assert follow['PathAlignCritic']['offset_from_furthest'] == 2
+    assert follow['CostCritic']['consider_footprint'] is True
+    assert follow['PathAngleCritic']['enabled'] is False

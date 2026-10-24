@@ -1,0 +1,34 @@
+{
+  "objective_completed": true,
+  "common_eight_initial_successes": 6,
+  "common_eight_total": 8,
+  "targeted_corrected_goals": {
+    "turn_arrival": true,
+    "M1": true
+  },
+  "final_M1": {
+    "action_status": 4,
+    "position_error_m": 0.05083869961741545,
+    "yaw_error_deg": 8.397209077965872,
+    "navigation_sim_s": 138.95600000000002,
+    "navigation_wall_s": 326.5948350990002,
+    "achieved_rtf": 0.42546906768405723,
+    "measured_joint_max_rad_s": 4.870125925111174
+  },
+  "no_extra_five_repeat_batch": true,
+  "fault_injection_timeout_and_backup_passed": true,
+  "final_config_constraints_audited": true,
+  "native_tests": [
+    "path_seed: coupled connector/wheel envelope/yaw wrap/empty path PASS",
+    "path_progress: arc/replans/rotation-only stall/terminal yaw PASS",
+    "PASS: short segment holds its initial plan and preserves failure recovery; original concurrent replan failure reproduced; revised tree preserves typed path and controller success; initial-plan/controller failures still reach bounded recovery"
+  ],
+  "limitations": [
+    "Single normal trial per common goal; no statistical success-rate claim",
+    "Other6 goals not rerun under revised BT; original8 and targeted corrections are separate",
+    "Body-X BackUp can be collision-rejected in a lateral doorway; not a universal trap escape",
+    "Frozen optimizer replay lacks original warm nominal state",
+    "Contact absence is observed data, not independent geometric nonpenetration proof",
+    "Intermediate failed runs recorded physical joint overshoot despite command cap; final M1 observed<=5rad/s"
+  ]
+}

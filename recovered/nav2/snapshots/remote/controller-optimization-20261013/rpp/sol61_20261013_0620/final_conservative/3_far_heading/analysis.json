@@ -1,0 +1,623 @@
+{
+  "candidate": "rpp",
+  "goal_index": 3,
+  "goal_name": "far_heading",
+  "goal_map": [
+    6.0,
+    0.0,
+    -1.5707963267948966
+  ],
+  "completed": true,
+  "domain": 228,
+  "partition": "cleany_comparison_ddc240fc5be54bf790cfe474f065de86",
+  "host": "142spp-endeavour",
+  "sim_timeout_s": 240.0,
+  "wall_watchdog_s": 360.0,
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "verified_controller": {
+    "FollowPath.plugin": "cleany_benchmark::TimedController",
+    "FollowPath.wrapped_plugin": "cleany_navigation::CurvatureLimitedRPP"
+  },
+  "verified_yaw_limit": {
+    "FollowPath.tracking_yaw_limit": 0.14
+  },
+  "dynamic_limit_change_test": {
+    "rejected": true,
+    "reason": "tracking_yaw_limit is configure-time only; cleanup and reconfigure"
+  },
+  "verified_planner": {
+    "GridBased.plugin": "cleany_navigation::StraightFirstPlanner"
+  },
+  "rpp_limit_note": "Humble RPP has no native translational acceleration or tracking angular-velocity limit. Final common voxel guard caps speed/yaw; controller acceleration settings apply natively only to DWB/MPPI/TEB. No shared velocity smoother is present.",
+  "nav2_localized_final_pose": [
+    5.868758985745515,
+    0.0008589662498226791,
+    -1.4183356337852635
+  ],
+  "nav2_localized_position_error_m": 0.13124382517118371,
+  "nav2_localized_yaw_error_deg": 8.735354251091668,
+  "final_sample_sim_s": 63.792,
+  "action_status": 4,
+  "position_error_m": 0.11059303141334702,
+  "yaw_error_deg": 7.110684998869265,
+  "final_truth": [
+    5.892817458447817,
+    0.027252915139632884,
+    -1.4466914614924586
+  ],
+  "navigation_sim_s": 53.508,
+  "navigation_wall_s": 55.00025947499671,
+  "achieved_rtf": 0.9728681375462402,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 0.30134776794263474,
+    "linear_jerk_p95_m_s3": 0.011946165958817118,
+    "angular_jerk_rms_rad_s3": 0.5205855500946694,
+    "angular_jerk_p95_rad_s3": 1.0316077188672397,
+    "stationary_s": 11.65,
+    "motion_start_count": 1,
+    "yaw_reversals": 18,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.11019713592794535,
+    "speed_max_m_s": 0.15000238596125162,
+    "linear_accel_rms_m_s2": 0.039901575249347405,
+    "linear_accel_p95_m_s2": 0.024517474063491505,
+    "angular_accel_rms_rad_s2": 0.07524711599376974,
+    "angular_accel_p95_rad_s2": 0.1513843441165725,
+    "stop_count": 1
+  },
+  "navigation_sim_start_s": 8.268,
+  "navigation_sim_end_s": 61.776,
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 3.0002911966863293,
+    "/cmd_vel": 3.0002911966863293
+  },
+  "command_sim_interval_s": {
+    "/nav2/cmd_vel": {
+      "mean": 0.04868037383177571,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    },
+    "/pan_ready/cmd_vel": {
+      "mean": 0.048633303002729764,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    },
+    "/safety_2d/cmd_vel": {
+      "mean": 0.048713107241063244,
+      "p95": 0.060000000000002274,
+      "p99": 0.08000000000000007
+    },
+    "/cmd_vel": {
+      "mean": 0.048633303002729764,
+      "p95": 0.060000000000002274,
+      "p99": 0.060000000000002274
+    }
+  },
+  "sensor_freshness": {
+    "/scan": {
+      "count": 296,
+      "sim_period_mean_s": 0.18100338983050848,
+      "sim_period_p95_s": 0.18200000000000216,
+      "received_age_p95_s": 0.028000000000002245,
+      "received_age_max_s": 0.03200000000000358
+    },
+    "/camera/head/depth/points": {
+      "count": 635,
+      "sim_period_mean_s": 0.0843217665615142,
+      "sim_period_p95_s": 0.13400000000000034,
+      "received_age_p95_s": 0.018000000000000682,
+      "received_age_max_s": 0.02400000000000091
+    },
+    "/ground_truth/odom": {
+      "count": 2676,
+      "sim_period_mean_s": 0.02,
+      "sim_period_p95_s": 0.020000000000003126,
+      "received_age_p95_s": -0.001999999999995339,
+      "received_age_max_s": 0.03200000000000358
+    }
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 928
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 71.6226445259963,
+  "controller_deadline_warning_count": 0,
+  "arrived": true,
+  "measurement_completed": true,
+  "artifact_group": "final_conservative",
+  "run_directory": "controller-optimization-20261013/rpp/sol61_20261013_0620/final_conservative/3_far_heading",
+  "terminal_status": "arrived",
+  "measurement_label": "RPP optimization final frozen one-pass validation",
+  "error_meaning": "GT arrival error",
+  "controller_compute": {
+    "scope": "inner plugin compute steady wall milliseconds; scheduling included",
+    "all_ms": {
+      "count": 1072,
+      "mean": 0.16381216231343282,
+      "p95": 0.2379125,
+      "p99": 0.30251049999999957,
+      "max": 0.914959,
+      "median": 0.153598
+    },
+    "success_ms": {
+      "count": 1072,
+      "mean": 0.16381216231343282,
+      "p95": 0.2379125,
+      "p99": 0.30251049999999957,
+      "max": 0.914959
+    },
+    "exception_ms": {
+      "count": 0
+    },
+    "wall_deadline_ms": 50.0,
+    "wall_deadline_exceeded": 0
+  },
+  "controller_resources": {
+    "cpu_observed_seconds": 3.5,
+    "observed_wall_seconds": 54.49622253399866,
+    "one_core_cpu_percent": 6.422463497935932,
+    "rss_mb": {
+      "count": 55,
+      "mean": 47.147088068181816,
+      "p95": 47.392578125,
+      "p99": 47.589765625,
+      "max": 47.6171875
+    },
+    "host": "142spp-endeavour",
+    "cross_host_ranking_valid": false
+  },
+  "actual_wheel_feedback_rad_s": {
+    "count": 10968,
+    "mean": 1.9300129808011246,
+    "p95": 2.649356029875388,
+    "p99": 2.7575028869563236,
+    "max": 3.000291196491913
+  },
+  "actual_contact_count": null,
+  "actual_contact_note": "No physics contact sensor recorded; projected footprint overlap is a separate geometric estimate.",
+  "body_guard_decision_duration_sim_s": {
+    "STOP_UNAVAILABLE": 0.3819999999999997,
+    "PASS_OBSERVED_SPACE": 53.06600000000001
+  },
+  "body_guard_stop_reason_duration_sim_s": {
+    "STOP_UNAVAILABLE / Command timeout": 0.3819999999999997
+  },
+  "intentional_safety_wait_sim_s": 0.0,
+  "safety_unavailable_wait_sim_s": 0.3819999999999997,
+  "safety_processing_overrun_wait_sim_s": 0.0,
+  "total_safety_stop_sim_s": 0.3819999999999997,
+  "footprint_geometry": {
+    "metric": "conservative projected static collision geometry vs physical CAD footprint",
+    "actual_contact": "unknown: no Gazebo contact instrumentation in this analysis",
+    "completeness": "all_static_collisions_supported",
+    "footprint_source": "scenario.json.model_metadata.navigation_geometry.physical",
+    "physical_footprint_m": [
+      [
+        -0.238525,
+        -0.32737300000024483
+      ],
+      [
+        -0.238525,
+        0.32742700000024483
+      ],
+      [
+        0.238475,
+        0.32742700000024483
+      ],
+      [
+        0.238475,
+        -0.32737300000024483
+      ]
+    ],
+    "spawn_pose": [
+      -1.865,
+      -4.705,
+      0.38,
+      0.0,
+      0.0,
+      1.5708
+    ],
+    "robot_world_z_range_m": [
+      2.9999999265895028e-06,
+      1.192039061987889
+    ],
+    "obstacle_count": 175,
+    "supported_geometry_counts": {
+      "box": 127,
+      "mesh": 48
+    },
+    "ignored_counts": {
+      "ground_plane_collision": 1,
+      "nonstatic_collision": 31
+    },
+    "unsupported_geometry_count": 0,
+    "unsupported_geometry": [],
+    "unexpanded_includes": [],
+    "rejected_gt_sample_count": 0,
+    "all_phases": {
+      "sample_count": 1066,
+      "min_projected_clearance_m": 0.30492213710767957,
+      "minimum_sample": {
+        "sim_s": 15.562000000000001,
+        "phase": "comparison_navigation",
+        "clearance_m": 0.30492213710767957,
+        "nearest": "demo_desk_44::body::@desk_envelope_collision",
+        "overlap_area_m2": 0.0,
+        "overlap_obstacles": [],
+        "world_xy_yaw": [
+          -1.8479429578467077,
+          -3.6793686444331652,
+          1.6397111578924446
+        ]
+      },
+      "projected_overlap_sample_count": 0,
+      "max_projected_overlap_area_m2": 0.0,
+      "first_projected_overlap_sample": null,
+      "overlap_obstacles": []
+    },
+    "navigation": {
+      "sample_count": 928,
+      "min_projected_clearance_m": 0.30492213710767957,
+      "minimum_sample": {
+        "sim_s": 15.562000000000001,
+        "phase": "comparison_navigation",
+        "clearance_m": 0.30492213710767957,
+        "nearest": "demo_desk_44::body::@desk_envelope_collision",
+        "overlap_area_m2": 0.0,
+        "overlap_obstacles": [],
+        "world_xy_yaw": [
+          -1.8479429578467077,
+          -3.6793686444331652,
+          1.6397111578924446
+        ]
+      },
+      "projected_overlap_sample_count": 0,
+      "max_projected_overlap_area_m2": 0.0,
+      "first_projected_overlap_sample": null,
+      "overlap_obstacles": []
+    },
+    "per_phase": {
+      "comparison_navigation": {
+        "sample_count": 928,
+        "min_projected_clearance_m": 0.30492213710767957,
+        "minimum_sample": {
+          "sim_s": 15.562000000000001,
+          "phase": "comparison_navigation",
+          "clearance_m": 0.30492213710767957,
+          "nearest": "demo_desk_44::body::@desk_envelope_collision",
+          "overlap_area_m2": 0.0,
+          "overlap_obstacles": [],
+          "world_xy_yaw": [
+            -1.8479429578467077,
+            -3.6793686444331652,
+            1.6397111578924446
+          ]
+        },
+        "projected_overlap_sample_count": 0,
+        "max_projected_overlap_area_m2": 0.0,
+        "first_projected_overlap_sample": null,
+        "overlap_obstacles": []
+      },
+      "runtime_verified": {
+        "sample_count": 51,
+        "min_projected_clearance_m": 0.5264737980261743,
+        "minimum_sample": {
+          "sim_s": 5.260000000000001,
+          "phase": "runtime_verified",
+          "clearance_m": 0.5264737980261743,
+          "nearest": "wall_south::body::@collision",
+          "overlap_area_m2": 0.0,
+          "overlap_obstacles": [],
+          "world_xy_yaw": [
+            -1.8650000000000626,
+            -4.7049999992689076,
+            1.5708000000000006
+          ]
+        },
+        "projected_overlap_sample_count": 0,
+        "max_projected_overlap_area_m2": 0.0,
+        "first_projected_overlap_sample": null,
+        "overlap_obstacles": []
+      },
+      "startup": {
+        "sample_count": 87,
+        "min_projected_clearance_m": 0.5264737974187357,
+        "minimum_sample": {
+          "sim_s": 0.052000000000000005,
+          "phase": "startup",
+          "clearance_m": 0.5264737974187357,
+          "nearest": "wall_south::body::@collision",
+          "overlap_area_m2": 0.0,
+          "overlap_obstacles": [],
+          "world_xy_yaw": [
+            -1.865000000000011,
+            -4.704999999876346,
+            1.5708000000000006
+          ]
+        },
+        "projected_overlap_sample_count": 0,
+        "max_projected_overlap_area_m2": 0.0,
+        "first_projected_overlap_sample": null,
+        "overlap_obstacles": []
+      }
+    },
+    "mesh_sources": [
+      {
+        "path": "/home/donglee/.ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1/meshes/OfficeChairGrey.obj",
+        "sha256": "00d7caa967520dcd8f2b47ed10f4e657a6d4ce4b213c38582dfea56ca7e4c61b",
+        "projection": "convex hull of all mesh vertices (openings filled conservatively)"
+      }
+    ],
+    "limitations": [
+      "XY projection and full-height robot bounding prism can overstate overlap at different heights.",
+      "Mesh convex hull fills concavities and gaps; cylinder/sphere use circumscribed 96-gons.",
+      "GT samples transformed from map to world using spawn yaw; fixed spawn z used (no live roll/pitch/z).",
+      "Static SDF poses only; dynamic obstacles, geometry changes, and inter-sample swept contact unknown.",
+      "Distance is nonnegative; projected overlap is reported as area, not signed penetration or contact."
+    ],
+    "versions": {
+      "numpy": "2.5.4",
+      "shapely": "2.2.0"
+    },
+    "input_sha256": {
+      "world.sdf": "1e8f5026c14d99c71f96998a9eca13701531cb4de3d111a183f54f9326068eaa",
+      "world.model.json": "f8b69dd23acbd1070daf05663559a6126fa9943ec2b7dbc812042b3ee7d19822",
+      "scenario.json": "7f4a40abf1faa2ce21579dd51ec7f469dba78176f8854322b3b496c00209e68d",
+      "samples.csv": "d03f7864f6dab28d65d358ed1097e78ff8ec5eccf09ccbf0572e3a4963783647"
+    }
+  },
+  "command_stages": {
+    "/nav2/cmd_vel": {
+      "count": 1073,
+      "first_sim_s": 8.468,
+      "last_sim_s": 60.556000000000004,
+      "last_nonzero_sim_s": 60.556000000000004,
+      "max_abs_xyz": [
+        0.15,
+        0.0,
+        0.14
+      ],
+      "nonzero_count": 1072,
+      "period_sim_s": {
+        "count": 1070,
+        "mean": 0.04868037383177571,
+        "p95": 0.060000000000002274,
+        "p99": 0.060000000000002274,
+        "max": 0.10000000000000142,
+        "median": 0.04000000000000625
+      },
+      "gaps_over_0_25_sim_s": 0,
+      "terminal_command": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "/pan_ready/cmd_vel": {
+      "count": 1100,
+      "first_sim_s": 8.308,
+      "last_sim_s": 61.75600000000001,
+      "last_nonzero_sim_s": 60.556000000000004,
+      "max_abs_xyz": [
+        0.15,
+        0.0,
+        0.14
+      ],
+      "nonzero_count": 1068,
+      "period_sim_s": {
+        "count": 1099,
+        "mean": 0.048633303002729764,
+        "p95": 0.060000000000002274,
+        "p99": 0.060000000000002274,
+        "max": 0.06200000000000472,
+        "median": 0.04000000000000625
+      },
+      "gaps_over_0_25_sim_s": 0,
+      "terminal_command": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "/safety_2d/cmd_vel": {
+      "count": 1093,
+      "first_sim_s": 8.63,
+      "last_sim_s": 61.776,
+      "last_nonzero_sim_s": 60.556000000000004,
+      "max_abs_xyz": [
+        0.15,
+        0.0,
+        0.14
+      ],
+      "nonzero_count": 1068,
+      "period_sim_s": {
+        "count": 1091,
+        "mean": 0.048713107241063244,
+        "p95": 0.060000000000002274,
+        "p99": 0.08000000000000007,
+        "max": 0.08200000000000074,
+        "median": 0.04000000000000625
+      },
+      "gaps_over_0_25_sim_s": 0,
+      "terminal_command": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "/cmd_vel": {
+      "count": 1100,
+      "first_sim_s": 8.288,
+      "last_sim_s": 61.736000000000004,
+      "last_nonzero_sim_s": 60.596000000000004,
+      "max_abs_xyz": [
+        0.15,
+        0.0,
+        0.14
+      ],
+      "nonzero_count": 1068,
+      "period_sim_s": {
+        "count": 1099,
+        "mean": 0.048633303002729764,
+        "p95": 0.060000000000002274,
+        "p99": 0.060000000000002274,
+        "max": 0.06200000000000472,
+        "median": 0.04000000000000625
+      },
+      "gaps_over_0_25_sim_s": 0,
+      "terminal_command": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "controller_model_dt_s": null,
+  "controller_model_dt_reason": "Humble RPP has no model_dt rollout parameter; controller_frequency=20Hz provides rotation acceleration dt.",
+  "controller_exception_count": 0,
+  "compute_sim_period_without_replan_gaps_s": {
+    "count": 1071,
+    "mean": 0.04863492063492064,
+    "p95": 0.060000000000002274,
+    "p99": 0.060000000000002274,
+    "max": 0.06200000000000472,
+    "median": 0.04000000000000625
+  },
+  "compute_wall_period_without_replan_gaps_s": {
+    "count": 1071,
+    "mean": 0.05000004559664237,
+    "p95": 0.05014406450209208,
+    "p99": 0.05047677900074632,
+    "max": 0.05096678499830887,
+    "median": 0.04999997699633241
+  },
+  "first_controller_exception_sim_s": null,
+  "final_command_box_verified": true,
+  "final_command_wheel_verified": true,
+  "actual_wheel_verified": true,
+  "last_final_command": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "final_stop_verified": true
+}

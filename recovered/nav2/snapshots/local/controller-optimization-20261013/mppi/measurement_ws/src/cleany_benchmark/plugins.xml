@@ -1,0 +1,7 @@
+<library path="timed_controller">
+  <class name="cleany_benchmark::TimedController"
+         type="cleany_benchmark::TimedController"
+         base_class_type="nav2_core::Controller">
+    <description>Wrap any Nav2 controller and record its compute call duration.</description>
+  </class>
+</library>

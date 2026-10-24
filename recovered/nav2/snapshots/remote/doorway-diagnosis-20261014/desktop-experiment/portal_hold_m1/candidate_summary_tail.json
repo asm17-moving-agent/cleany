@@ -1,0 +1,89 @@
+[
+  {
+    "sim_s": 144.726,
+    "nearest_gt": [
+      -16.855535349313925,
+      1.9843690994103298,
+      2.7563788447127617
+    ],
+    "gt_time_offset_s": -0.7179999999999893,
+    "failed": 0,
+    "furthest": 0,
+    "yaw_change_range_deg": [
+      -67.49273162378805,
+      -29.532828342332433
+    ],
+    "best_candidate": 199,
+    "best_yaw_change_deg": -64.64118914587844,
+    "best_costs": {
+      "ConstraintCritic": 0.0,
+      "CostCritic": 0.0,
+      "GoalCritic": 0.873581529,
+      "GoalAngleCritic": 1.14203775,
+      "PathAlignCritic": 0.0,
+      "PathFollowCritic": 0.0,
+      "PathAngleCritic": 0.0,
+      "TwirlingCritic": 0.0,
+      "critic_total": 2.01561928
+    },
+    "collision_penalized_count": 0
+  },
+  {
+    "sim_s": 146.726,
+    "nearest_gt": [
+      -16.737715496968338,
+      1.8095457366127696,
+      1.8012102523703666
+    ],
+    "gt_time_offset_s": 2.281000000000006,
+    "failed": 0,
+    "furthest": 0,
+    "yaw_change_range_deg": [
+      -32.28757097585338,
+      19.25670429324197
+    ],
+    "best_candidate": 773,
+    "best_yaw_change_deg": -25.112610924223713,
+    "best_costs": {
+      "ConstraintCritic": 0.0,
+      "CostCritic": 0.0,
+      "GoalCritic": 0.12121474,
+      "GoalAngleCritic": 0.227109641,
+      "PathAlignCritic": 0.0,
+      "PathFollowCritic": 0.0,
+      "PathAngleCritic": 0.0,
+      "TwirlingCritic": 0.0,
+      "critic_total": 0.348324388
+    },
+    "collision_penalized_count": 0
+  },
+  {
+    "sim_s": 148.746,
+    "nearest_gt": [
+      -16.737715496968338,
+      1.8095457366127696,
+      1.8012102523703666
+    ],
+    "gt_time_offset_s": 0.2609999999999957,
+    "failed": 0,
+    "furthest": 0,
+    "yaw_change_range_deg": [
+      -19.516080167153852,
+      -9.393443541536003
+    ],
+    "best_candidate": 688,
+    "best_yaw_change_deg": -16.067037819916806,
+    "best_costs": {
+      "ConstraintCritic": 0.0,
+      "CostCritic": 0.0,
+      "GoalCritic": 0.079843387,
+      "GoalAngleCritic": 0.297759235,
+      "PathAlignCritic": 0.0,
+      "PathFollowCritic": 0.0,
+      "PathAngleCritic": 0.0,
+      "TwirlingCritic": 0.0,
+      "critic_total": 0.377602607
+    },
+    "collision_penalized_count": 0
+  }
+]

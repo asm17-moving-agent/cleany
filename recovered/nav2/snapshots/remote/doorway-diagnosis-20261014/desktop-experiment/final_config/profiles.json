@@ -1,0 +1,14 @@
+{
+  "mppi_install": "candidate_v2/install",
+  "general_controller": "controller_general.yaml",
+  "m1_controller": "controller_m1.yaml",
+  "m1_mission": "portal_approaches.yaml",
+  "navigation_bt": "navigation_bt.xml",
+  "short_portal_bt": "portal_segment_bt.xml",
+  "final_goal_tolerance": [
+    0.3,
+    10
+  ],
+  "wheel_cap_rad_s": 5.0,
+  "profile_validation": "Initial8:6 successes/2 failures; turn-arrival corrected check and final M1 corrected check passed; other6 not rerun under revised BT"
+}

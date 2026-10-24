@@ -1,0 +1,117 @@
+diff --git a/ros2_ws/src/cleany_navigation/README.md b/ros2_ws/src/cleany_navigation/README.md
+index c5b517b..412d5ab 100644
+--- a/ros2_ws/src/cleany_navigation/README.md
++++ b/ros2_ws/src/cleany_navigation/README.md
+@@ -717,3 +717,15 @@ true이면 기존 component 가속/감속 projection이 허용한 구간과 목
+ 흔드는 현상을 줄이려는 옵션이며, 모든 rollout에서 적용되어 정상 critic 평가를
+ 거친다. pan alignment/freshness, footprint, 목표 도착 허용오차는 변경하지 않는다.
+ 실제 횡가속 응답이나 physical E2E 검증을 대신하지 않는다.
++
++### Gazebo 비교의 결합 wheel cap
++
++`FollowPath.max_wheel_speed_rad_s`는 기본 0(disabled)인 opt-in 결합 제한이다.
++활성화 시 설정된 `mecanum_wheel_radius_m`, `mecanum_wheelbase_m`,
++`mecanum_wheel_separation_m`으로 각 rollout 속도의 네 wheel inverse kinematics를
++계산하고, 가장 큰 wheel rate가 상한을 넘으면 vx/vy/yaw를 동일 비율로 축소한다.
++독립 component box보다 정확한 wheel envelope이며 critic이 축소된 rollout을 평가한다.
++기존 보수적 profile은 이 옵션을 사용하지 않는다. wheel feedback 상한은 실제 joint
++계측으로 별도 확인해야 한다. 측정 current가 wheel envelope 밖이면 명령 상한 복귀를
++가속 budget보다 우선한다. 안전 가드 우회나 timeout 완화는 production profile에
++포함하지 않으며 Gazebo 전용 외부 실험 설정에서만 사용한다.
+diff --git a/ros2_ws/src/cleany_navigation/include/cleany_navigation/holonomic_generator.hpp b/ros2_ws/src/cleany_navigation/include/cleany_navigation/holonomic_generator.hpp
+index ec1655c..0cda6b1 100644
+--- a/ros2_ws/src/cleany_navigation/include/cleany_navigation/holonomic_generator.hpp
++++ b/ros2_ws/src/cleany_navigation/include/cleany_navigation/holonomic_generator.hpp
+@@ -49,6 +49,7 @@ private:
+   bool use_elapsed_command_time_{true};
+   bool preserve_translation_direction_{true};
+   bool prefer_target_translation_direction_{false};
++  double max_wheel_speed_{0.},wheel_radius_{.0635},wheel_lever_{(.35+.6038)/2.};
+   std::vector<nav_2d_msgs::msg::Twist2D> candidates_;
+   size_t index_{0};
+   double fine_scale_{.25};
+diff --git a/ros2_ws/src/cleany_navigation/src/holonomic_generator.cpp b/ros2_ws/src/cleany_navigation/src/holonomic_generator.cpp
+index 4d1bb5c..2bafeae 100644
+--- a/ros2_ws/src/cleany_navigation/src/holonomic_generator.cpp
++++ b/ros2_ws/src/cleany_navigation/src/holonomic_generator.cpp
+@@ -76,6 +76,21 @@ void HolonomicGenerator::initialize(const nav2_util::LifecycleNode::SharedPtr &n
+   const auto target_direction_key=name+".prefer_target_translation_direction";
+   if(!node->has_parameter(target_direction_key))node->declare_parameter(target_direction_key,false);
+   prefer_target_translation_direction_=node->get_parameter(target_direction_key).as_bool();
++  double wheelbase=.35,separation=.6038;
++  for(auto entry:{std::make_pair("max_wheel_speed_rad_s",&max_wheel_speed_),
++      std::make_pair("mecanum_wheel_radius_m",&wheel_radius_),
++      std::make_pair("mecanum_wheelbase_m",&wheelbase),
++      std::make_pair("mecanum_wheel_separation_m",&separation)}) {
++    const auto key=name+"."+entry.first;
++    if(!node->has_parameter(key))node->declare_parameter(key,*entry.second);
++    *entry.second=node->get_parameter(key).as_double();
++  }
++  if(!std::isfinite(max_wheel_speed_) || max_wheel_speed_<0. ||
++     !std::isfinite(wheel_radius_) || wheel_radius_<=0. ||
++     !std::isfinite(wheelbase) || wheelbase<=0. ||
++     !std::isfinite(separation) || separation<=0.)
++    throw std::invalid_argument(name+" mecanum wheel limits/geometry");
++  wheel_lever_=(wheelbase+separation)/2.;
+   const auto continuity_key=name+".continuity_samples";
+   if(!node->has_parameter(continuity_key))node->declare_parameter(continuity_key,false);
+   continuity_samples_=node->get_parameter(continuity_key).as_bool();
+@@ -236,6 +251,16 @@ nav_2d_msgs::msg::Twist2D HolonomicGenerator::computeNewVelocity(
+   result.x=std::clamp(result.x,limits.getMinX(),limits.getMaxX());
+   result.y=std::clamp(result.y,limits.getMinY(),limits.getMaxY());
+   result.theta=std::clamp(result.theta,-limits.getMaxTheta(),limits.getMaxTheta());
++  if(max_wheel_speed_>0.) {
++    const double rotation=wheel_lever_*result.theta;
++    const double wheel_max=std::max({std::abs(result.x-result.y-rotation),
++      std::abs(result.x+result.y+rotation),std::abs(result.x+result.y-rotation),
++      std::abs(result.x-result.y+rotation)})/wheel_radius_;
++    if(wheel_max>max_wheel_speed_) {
++      const double scale=max_wheel_speed_/wheel_max;
++      result.x*=scale;result.y*=scale;result.theta*=scale;
++    }
++  }
+   return result;
+ }
+ }
+diff --git a/ros2_ws/src/cleany_navigation/test/test_axis_generator.cpp b/ros2_ws/src/cleany_navigation/test/test_axis_generator.cpp
+index 06b9519..993242a 100644
+--- a/ros2_ws/src/cleany_navigation/test/test_axis_generator.cpp
++++ b/ros2_ws/src/cleany_navigation/test/test_axis_generator.cpp
+@@ -555,3 +555,37 @@ TEST_F(AxisTest, InfeasibleTargetRayAndZeroTargetRetainSafeSegmentBraking) {
+   EXPECT_NEAR(braking.velocity.x*measured.y-braking.velocity.y*measured.x,0.,1e-12);
+   EXPECT_GT(braking.poses.back().x,0.); // A stop still models finite braking.
+ }
++
++TEST_F(AxisTest, CoupledMecanumCapScalesFullTwistAndAllWheelSigns) {
++  node->set_parameter(rclcpp::Parameter("FollowPath.min_vel_x",-.4));
++  node->set_parameter(rclcpp::Parameter("FollowPath.min_vel_y",-.4));
++  node->set_parameter(rclcpp::Parameter("FollowPath.max_vel_x",.4));
++  node->set_parameter(rclcpp::Parameter("FollowPath.max_vel_y",.4));
++  node->set_parameter(rclcpp::Parameter("FollowPath.max_vel_theta",1.));
++  node->set_parameter(rclcpp::Parameter("FollowPath.max_speed_xy",.6));
++  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
++  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
++  node->set_parameter(rclcpp::Parameter("FollowPath.max_wheel_speed_rad_s",5.));
++  generator.initialize(node,"FollowPath");
++  for(double sign:{1.,-1.}) {
++    nav_2d_msgs::msg::Twist2D measured;measured.x=sign*.30;measured.y=sign*.25;measured.theta=sign*.50;
++    geometry_msgs::msg::Pose2D pose;generator.reset();time(10.);generator.startNewIteration(measured);
++    const auto v=generator.generateTrajectory(pose,measured,measured).velocity;
++    const double k=(.35+.6038)/2.;
++    for(double rate:{(v.x-v.y-k*v.theta)/.0635,(v.x+v.y+k*v.theta)/.0635,
++        (v.x+v.y-k*v.theta)/.0635,(v.x-v.y+k*v.theta)/.0635})EXPECT_LE(std::abs(rate),5.+1e-12);
++    EXPECT_NEAR(v.x/measured.x,v.y/measured.y,1e-12);
++    EXPECT_NEAR(v.x/measured.x,v.theta/measured.theta,1e-12);
++    EXPECT_NEAR((std::abs(v.x)+std::abs(v.y)+k*std::abs(v.theta))/.0635,5.,1e-12);
++  }
++}
++TEST_F(AxisTest, DisabledWheelCapRetainsIndependentBoxAndRejectsBadGeometry) {
++  node->set_parameter(rclcpp::Parameter("FollowPath.limit_vel_cmd_in_traj",true));
++  cleany_navigation::HolonomicGenerator generator;generator.initialize(node,"FollowPath");
++  nav_2d_msgs::msg::Twist2D measured;measured.x=.15;measured.y=.15;measured.theta=.3;
++  geometry_msgs::msg::Pose2D pose;time(10.);generator.startNewIteration(measured);
++  const auto v=generator.generateTrajectory(pose,measured,measured).velocity;
++  EXPECT_DOUBLE_EQ(v.x,measured.x);EXPECT_DOUBLE_EQ(v.y,measured.y);EXPECT_DOUBLE_EQ(v.theta,measured.theta);
++  node->set_parameter(rclcpp::Parameter("FollowPath.mecanum_wheel_radius_m",0.));
++  EXPECT_THROW(generator.initialize(node,"FollowPath"),std::invalid_argument);
++}

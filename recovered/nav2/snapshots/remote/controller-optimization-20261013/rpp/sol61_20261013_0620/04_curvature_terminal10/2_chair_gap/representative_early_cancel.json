@@ -1,0 +1,6 @@
+{
+  "reason": "Repeated native collision exceptions/replans at endpoint; rotation-speed candidate provides no recovery. Diagnostic early cancellation, not a 240s final campaign timeout.",
+  "cancel_return_code": 0,
+  "goals_canceling": 1,
+  "wall_monotonic_s": 33405.779855723
+}

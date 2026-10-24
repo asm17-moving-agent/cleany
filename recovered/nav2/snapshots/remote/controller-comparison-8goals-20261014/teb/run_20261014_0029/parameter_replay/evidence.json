@@ -1,0 +1,42 @@
+{
+  "parameters": {
+    "goal_checker.xy_goal_tolerance": 0.3,
+    "goal_checker.yaw_goal_tolerance": 0.17453292519943295,
+    "goal_checker.stateful": true,
+    "FollowPath.plugin": "cleany_benchmark::TimedController",
+    "FollowPath.wrapped_plugin": "teb_local_planner::TebLocalPlannerROS",
+    "FollowPath.footprint_model.vertices": "[[-0.338525, -0.42737300000024486], [-0.338525, 0.42742700000024486], [0.338475, 0.42742700000024486], [0.338475, -0.42737300000024486]]",
+    "FollowPath.min_obstacle_dist": 0.05,
+    "FollowPath.max_vel_x": 0.3175,
+    "FollowPath.max_vel_x_backwards": 0.3175,
+    "FollowPath.max_vel_y": 0.3175,
+    "FollowPath.max_vel_theta": 0.6657580205493815,
+    "FollowPath.acc_lim_x": 0.5,
+    "FollowPath.acc_lim_y": 0.5,
+    "FollowPath.acc_lim_theta": 0.8,
+    "FollowPath.dt_ref": 0.1,
+    "FollowPath.dt_hysteresis": 0.02,
+    "FollowPath.no_inner_iterations": 5,
+    "FollowPath.no_outer_iterations": 4,
+    "FollowPath.enable_homotopy_class_planning": false,
+    "FollowPath.enable_multithreading": false,
+    "FollowPath.max_global_plan_lookahead_dist": 3.0,
+    "FollowPath.free_goal_vel": false,
+    "FollowPath.feasibility_check_no_poses": 5,
+    "FollowPath.feasibility_check_lookahead_distance": -1.0,
+    "FollowPath.min_resolution_collision_check_angular": 3.141592653589793,
+    "FollowPath.include_costmap_obstacles": true
+  },
+  "scope": "Same loaded native controller binary and provided YAML, configure only. Not a retroactive per-goal runtime query; no simulation, activation, command computation or navigation goal.",
+  "original_yaml_sha256": "9ba7b7f4e2834c40cffb6798ba7406cbec3ac5a8dfc0633398378c1ab8e24cca",
+  "original_run_binary_maps": [
+    {
+      "path": "/home/donglee/workspace/cleany/controller-optimization-20261013/teb/sol61_20261013/install/teb_local_planner/lib/libteb_local_planner.so",
+      "sha256": "9f1fd53a38b9bb287e93adaea3dc080ec1acc6ff4cbc88bfc02ee96fbf122061"
+    }
+  ],
+  "binary_hashes": {
+    "/home/donglee/workspace/cleany/controller-optimization-20261013/teb/sol61_20261013/install/teb_local_planner/lib/libteb_local_planner.so": "9f1fd53a38b9bb287e93adaea3dc080ec1acc6ff4cbc88bfc02ee96fbf122061"
+  },
+  "original_runtime_query_failure": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged."
+}

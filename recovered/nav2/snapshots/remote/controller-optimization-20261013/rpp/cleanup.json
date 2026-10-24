@@ -1,0 +1,31 @@
+{
+  "checked_partitions": {
+    "cleany_comparison_dcf1045c63b54fa09447cbe77408d5ea": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/01_short_ttc_232/2_chair_gap/session.json",
+    "cleany_comparison_bee3dc3f70ec4a48a36bccb79e82d812": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/04_curvature_terminal10/2_chair_gap/session.json",
+    "cleany_comparison_ba88325e66c549ef80092c09faca3541": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/07_aux_zero_refresh/2_chair_gap/session.json",
+    "cleany_comparison_a130ae2df6264464993fbe3f3648c208": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/01_curvature/2_chair_gap/session.json",
+    "cleany_comparison_bba4512b8e154ed7b5c886620ed36427": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/06_curvature_lookahead18/2_chair_gap/session.json",
+    "cleany_comparison_b6a68d0103e84392ba0963dda19e75dc": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/final_conservative/2_chair_gap/session.json",
+    "cleany_comparison_ddc240fc5be54bf790cfe474f065de86": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/final_conservative/3_far_heading/session.json",
+    "cleany_comparison_4f431dabc97a491c99033332339adffc": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/final_conservative/1_turn_arrival/session.json",
+    "cleany_comparison_0866ec1a1ffb47808f9acabdf15a75be": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/final_conservative/4_distant/session.json",
+    "cleany_comparison_a38b28982ef14a3bb50cfa9a4c12f703": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/final_conservative/0_straight/session.json",
+    "cleany_comparison_6aef035a849246f9afc7be7597b971b0": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/03_curvature_lookahead12/2_chair_gap/session.json",
+    "cleany_comparison_bf0616c32b2a4973bb7541e6c280dc25": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/02_curvature_lookahead/2_chair_gap/session.json",
+    "cleany_comparison_48a0190c96bf4528890a474caf95114f": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620/05_native_lookahead20/2_chair_gap/session.json",
+    "cleany_comparison_56e78ebc5a324a2996e6e6056fc224e8": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/01_short_ttc/2_chair_gap/session.json",
+    "cleany_comparison_a8c278c8263d4ba1b890ddeed9c40942": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/final_relaxed/2_chair_gap/session.json",
+    "cleany_comparison_8b9b1071354b4770a161ab603eb624fb": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/final_relaxed/3_far_heading/session.json",
+    "cleany_comparison_54bea1efa36241febfed05eb78667548": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/final_relaxed/1_turn_arrival/session.json",
+    "cleany_comparison_f618c8a592fd47bc8f3255934e120887": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/final_relaxed/4_distant/session.json",
+    "cleany_comparison_baccfc8809974a86a2420fc7c1449c5a": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/final_relaxed/0_straight/session.json",
+    "cleany_comparison_6356b3f3a53e4f0492655bf7f803f25b": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/04_relaxed_slew_distant/4_distant/session.json",
+    "cleany_comparison_f4d8cead9c1b4425a4d1d10df97483e6": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/02_relaxed_distant/4_distant/session.json",
+    "cleany_comparison_9ea0d3e280a04662bf53b2118d1f8671": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/03_relaxed_slew_chair/2_chair_gap/session.json",
+    "cleany_comparison_66ada34896ce4980a5d1782d242b6367": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013/01_relaxed_chair/2_chair_gap/session.json",
+    "cleany_comparison_11b63f618d344db4a96ca46f22066b5c": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/v2_01_short_ttc/2_chair_gap/session.json"
+  },
+  "residual_processes": [],
+  "all_new_experiment_processes_exited": true,
+  "legacy_frictions_child_incident": "SIGINT to owned legacy launch77608 also terminated child friction Gazebo77630; recorded separately and acknowledged. No further non-experiment process termination."
+}

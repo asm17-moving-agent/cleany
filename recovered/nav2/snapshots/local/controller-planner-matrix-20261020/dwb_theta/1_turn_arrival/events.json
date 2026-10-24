@@ -1,0 +1,139 @@
+[
+  {
+    "phase": "runtime_verified",
+    "sim_s": 5.096,
+    "states": {
+      "map_server": "active",
+      "amcl": "active",
+      "controller_server": "active",
+      "planner_server": "active",
+      "behavior_server": "active",
+      "bt_navigator": "active",
+      "collision_monitor": "active",
+      "local_costmap/local_costmap": "active",
+      "global_costmap/global_costmap": "active"
+    },
+    "parameters": {
+      "controller_server": {
+        "odom_topic": "odom"
+      },
+      "bt_navigator": {
+        "odom_topic": "odom"
+      },
+      "wheel_odometry": {
+        "wheel_radius_m": 0.0635,
+        "wheelbase_m": 0.35,
+        "wheel_separation_m": 0.6038
+      },
+      "simulated_odometry_error": {
+        "input_topic": "wheel/odom_raw",
+        "output_topic": "wheel/odom",
+        "forward_scale": 1.0,
+        "lateral_scale": 1.0,
+        "rotation_scale": 1.0,
+        "forward_noise_stddev_per_sqrt_m": 0.0,
+        "lateral_noise_stddev_per_sqrt_m": 0.0,
+        "rotation_noise_stddev_per_sqrt_rad": 0.0,
+        "yaw_bias_walk_stddev_per_sqrt_m": 0.0,
+        "max_abs_yaw_bias_rad_per_m": 0.0,
+        "yaw_drift_rad_per_forward_m": 0.0,
+        "slip_events_per_second": 0.0,
+        "slip_duration_min_sec": 0.0,
+        "slip_duration_max_sec": 0.0,
+        "slip_gain_min": 1.0,
+        "slip_gain_max": 1.0,
+        "random_seed": 42
+      },
+      "local_costmap": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "global_costmap": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "collision_monitor": {
+        "cmd_vel_in_topic": "pan_ready/cmd_vel",
+        "cmd_vel_out_topic": "safety_2d/cmd_vel",
+        "observation_sources": [
+          "scan",
+          "depth"
+        ],
+        "source_timeout": 0.6
+      }
+    },
+    "cmd_vel_publishers": [
+      "mppi_wheel_limit"
+    ],
+    "cloud_frame": "head_camera_depth_frame",
+    "cloud_size": [
+      15200,
+      1
+    ],
+    "finite_sampled_points": 1900,
+    "truth": [
+      -1.8650000000000295,
+      -4.704999999833625,
+      1.570800000000001
+    ]
+  },
+  {
+    "phase": "navigation_stage_start",
+    "sim_s": 8.274000000000001,
+    "index": 0,
+    "name": "final_goal",
+    "goal": [
+      -1.865,
+      -2.8,
+      0
+    ],
+    "truth": [
+      -1.8650000000000295,
+      -4.704999999833625,
+      1.570800000000001
+    ]
+  },
+  {
+    "phase": "comparison_navigation",
+    "sim_s": 8.274000000000001,
+    "goal": [
+      -1.865,
+      -2.8,
+      0
+    ]
+  },
+  {
+    "phase": "navigation_stage_end",
+    "sim_s": 29.453000000000003,
+    "name": "final_goal",
+    "pose": [
+      -1.865,
+      -2.8,
+      0
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/dwb_theta/1_turn_arrival/behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 8.274000000000001,
+    "sim_end": 29.453000000000003,
+    "truth": [
+      -1.880794606001416,
+      -2.988798390359998,
+      0.15642441031061785
+    ]
+  }
+]

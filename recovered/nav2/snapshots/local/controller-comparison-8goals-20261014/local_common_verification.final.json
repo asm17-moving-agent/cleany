@@ -1,0 +1,13 @@
+{
+  "verified_at_wall_epoch_s": 1791908124.3127494,
+  "manifest_file_count": 204,
+  "hash_failures": [],
+  "READY": {
+    "status": "READY",
+    "lock_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac",
+    "goal_count": 8,
+    "planner_preflight_count": 8,
+    "remote_transfer_verified": true,
+    "consumer_requirements": "CONSUMER_REQUIREMENTS.md"
+  }
+}

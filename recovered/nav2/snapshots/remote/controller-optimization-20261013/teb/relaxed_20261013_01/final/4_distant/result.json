@@ -1,0 +1,235 @@
+{
+  "candidate": "teb",
+  "goal_index": 4,
+  "goal_name": "distant",
+  "goal_map": [
+    9.405,
+    -3.73,
+    0.0
+  ],
+  "completed": true,
+  "domain": 227,
+  "partition": "cleany_comparison_abe2440d7d434dc3b4a636ee4ee64a33",
+  "host": "142spp-endeavour",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "experiment_stage": "relaxed",
+  "hard_timeout_sim_s": 1200,
+  "hard_timeout_wall_s": 1800,
+  "controller_frequency_hz": 10.0,
+  "verified_controller": {
+    "FollowPath.plugin": "cleany_benchmark::TimedController",
+    "FollowPath.wrapped_plugin": "teb_local_planner::TebLocalPlannerROS"
+  },
+  "verified_planner": {
+    "GridBased.plugin": "cleany_navigation::StraightFirstPlanner"
+  },
+  "verified_teb_parameters": {
+    "FollowPath.min_obstacle_dist": 0.05,
+    "FollowPath.max_number_classes": 5,
+    "FollowPath.no_inner_iterations": 5,
+    "FollowPath.no_outer_iterations": 4,
+    "FollowPath.dt_ref": 0.1,
+    "FollowPath.dt_hysteresis": 0.02,
+    "FollowPath.max_vel_x": 0.3175,
+    "FollowPath.max_vel_y": 0.3175,
+    "FollowPath.max_vel_theta": 0.6657580205493815,
+    "FollowPath.enable_homotopy_class_planning": false,
+    "FollowPath.feasibility_check_no_poses": 5,
+    "FollowPath.feasibility_check_lookahead_distance": -1.0,
+    "FollowPath.min_resolution_collision_check_angular": 3.141592653589793,
+    "FollowPath.include_costmap_obstacles": true,
+    "FollowPath.weight_kinematics_nh": 0.0,
+    "FollowPath.weight_kinematics_forward_drive": 0.0
+  },
+  "requested_teb_overrides": {},
+  "rpp_limit_note": null,
+  "action_status": 4,
+  "position_error_m": 0.06713731226703105,
+  "yaw_error_deg": 5.516472618884879,
+  "final_truth": [
+    9.388895746842158,
+    -3.6648227667918545,
+    0.09628061029565547
+  ],
+  "navigation_sim_s": 59.934,
+  "navigation_wall_s": 61.00033259100019,
+  "achieved_rtf": 0.9825192331630416,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 0.8269010686457396,
+    "linear_jerk_p95_m_s3": 1.6219210283702359,
+    "angular_jerk_rms_rad_s3": 1.145899933461992,
+    "angular_jerk_p95_rad_s3": 2.3685692623910053,
+    "stationary_s": 0.25,
+    "motion_start_count": 1,
+    "yaw_reversals": 40,
+    "lateral_reversals": 32,
+    "speed_mean_m_s": 0.21517123915225322,
+    "speed_max_m_s": 0.31255728645962244
+  },
+  "navigation_sim_start_s": 8.248000000000001,
+  "navigation_sim_end_s": 68.182,
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 7.7174023610921125,
+    "/cmd_vel": 4.990000000000002
+  },
+  "command_sim_interval_s": {
+    "/nav2/cmd_vel": {
+      "mean": 0.09839800995024878,
+      "p95": 0.10000000000000142,
+      "p99": 0.10000000000000853
+    },
+    "/cmd_vel": {
+      "mean": 0.049994991652754596,
+      "p95": 0.060000000000002274,
+      "p99": 0.06199999999999761
+    }
+  },
+  "sensor_freshness": {
+    "/scan": {
+      "count": 331,
+      "sim_period_mean_s": 0.181,
+      "sim_period_p95_s": 0.18200000000000216,
+      "received_age_p95_s": 0.02400000000000091,
+      "received_age_max_s": 0.030000000000001137
+    },
+    "/camera/head/depth/points": {
+      "count": 847,
+      "sim_period_mean_s": 0.07083687943262412,
+      "sim_period_p95_s": 0.1319999999999979,
+      "received_age_p95_s": 0.018000000000004235,
+      "received_age_max_s": 0.020000000000003126
+    },
+    "/ground_truth/odom": {
+      "count": 2998,
+      "sim_period_mean_s": 0.02,
+      "sim_period_p95_s": 0.020000000000003126,
+      "received_age_p95_s": -0.001999999999995339,
+      "received_age_max_s": 0.0020000000000095497
+    }
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 1033
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 76.2402258239963,
+  "controller_deadline_warning_count": 0
+}

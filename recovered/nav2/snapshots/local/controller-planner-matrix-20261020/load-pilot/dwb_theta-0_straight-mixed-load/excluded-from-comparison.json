@@ -1,0 +1,4 @@
+{
+  "reason": "Known exposure to4sim CPU overbooking withdeadline warnings. Declared exclusion before rerun, regardless of outcome. Fresh run after campaign with max2sims replaces performance row; original preserved",
+  "original_status": 6
+}

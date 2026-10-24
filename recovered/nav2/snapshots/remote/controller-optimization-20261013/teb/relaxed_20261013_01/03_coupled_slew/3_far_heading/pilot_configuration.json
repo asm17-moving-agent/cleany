@@ -1,0 +1,7 @@
+{
+  "wheel_cap_rad_s": 4.99,
+  "wheel_acceleration_rad_s2": 8.0,
+  "emission_sim_hz": 20.0,
+  "gazebo_body_acceleration_limits": "removed",
+  "selected": true
+}

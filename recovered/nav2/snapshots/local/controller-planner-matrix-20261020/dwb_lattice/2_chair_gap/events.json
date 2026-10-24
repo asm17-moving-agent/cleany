@@ -1,0 +1,237 @@
+[
+  {
+    "phase": "runtime_verified",
+    "sim_s": 5.11,
+    "states": {
+      "map_server": "active",
+      "amcl": "active",
+      "controller_server": "active",
+      "planner_server": "active",
+      "behavior_server": "active",
+      "bt_navigator": "active",
+      "collision_monitor": "active",
+      "local_costmap/local_costmap": "active",
+      "global_costmap/global_costmap": "active"
+    },
+    "parameters": {
+      "controller_server": {
+        "odom_topic": "odom"
+      },
+      "bt_navigator": {
+        "odom_topic": "odom"
+      },
+      "wheel_odometry": {
+        "wheel_radius_m": 0.0635,
+        "wheelbase_m": 0.35,
+        "wheel_separation_m": 0.6038
+      },
+      "simulated_odometry_error": {
+        "input_topic": "wheel/odom_raw",
+        "output_topic": "wheel/odom",
+        "forward_scale": 1.0,
+        "lateral_scale": 1.0,
+        "rotation_scale": 1.0,
+        "forward_noise_stddev_per_sqrt_m": 0.0,
+        "lateral_noise_stddev_per_sqrt_m": 0.0,
+        "rotation_noise_stddev_per_sqrt_rad": 0.0,
+        "yaw_bias_walk_stddev_per_sqrt_m": 0.0,
+        "max_abs_yaw_bias_rad_per_m": 0.0,
+        "yaw_drift_rad_per_forward_m": 0.0,
+        "slip_events_per_second": 0.0,
+        "slip_duration_min_sec": 0.0,
+        "slip_duration_max_sec": 0.0,
+        "slip_gain_min": 1.0,
+        "slip_gain_max": 1.0,
+        "random_seed": 42
+      },
+      "local_costmap": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "global_costmap": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "collision_monitor": {
+        "cmd_vel_in_topic": "pan_ready/cmd_vel",
+        "cmd_vel_out_topic": "safety_2d/cmd_vel",
+        "observation_sources": [
+          "scan",
+          "depth"
+        ],
+        "source_timeout": 0.6
+      }
+    },
+    "cmd_vel_publishers": [
+      "mppi_wheel_limit"
+    ],
+    "cloud_frame": "head_camera_depth_frame",
+    "cloud_size": [
+      15200,
+      1
+    ],
+    "finite_sampled_points": 1900,
+    "truth": [
+      -1.8650000000000295,
+      -4.704999999833625,
+      1.570800000000001
+    ]
+  },
+  {
+    "phase": "navigation_stage_start",
+    "sim_s": 8.349,
+    "index": 0,
+    "name": "final_goal",
+    "goal": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "truth": [
+      -1.8650000000000295,
+      -4.704999999833625,
+      1.570800000000001
+    ]
+  },
+  {
+    "phase": "comparison_navigation",
+    "sim_s": 8.349,
+    "goal": [
+      0.575,
+      -1.625,
+      1.570796
+    ]
+  },
+  {
+    "phase": "stagnation_30s",
+    "sim_s": 60.422000000000004,
+    "truth": [
+      0.30168289559743194,
+      -1.550445304022684,
+      0.5769078198503328
+    ],
+    "last_diagnostics": [
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 60.413000000000004,
+        "stamp_s": 60.41,
+        "sim_s": 60.41,
+        "target": -2.0756028118774363,
+        "pan": -2.0756028118774363,
+        "reason": "WALL_TIMEOUT",
+        "requested": [
+          0.0,
+          0.0,
+          0.0048
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 60.324
+      },
+      {
+        "topic": "/body_guard_3d/state",
+        "received_sim_s": 60.416000000000004,
+        "mode": "navigation_serial_3d_guard",
+        "sim_s": 60.413,
+        "observation_scope": "observed_voxels_only; unknown space is not certified free",
+        "decision": "PASS_OBSERVED_SPACE",
+        "stop_voxels": 0,
+        "slow_voxels": 0,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "measured": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "nearby_voxels": 0,
+        "total_voxels": 14035,
+        "source_age_s": 0.13999999999999346,
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "processing_ms": 1.6065099625848234
+      },
+      {
+        "topic": "/wheel_limit/state",
+        "received_sim_s": 60.419000000000004,
+        "sim_s": 60.419000000000004,
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": 1.0,
+        "reason": "PASS",
+        "source_age_s": 0.0
+      },
+      {
+        "topic": "/head_pan/state",
+        "received_sim_s": 60.419000000000004,
+        "stamp_s": 60.419,
+        "sim_s": 60.419,
+        "target": -2.0756028118774363,
+        "pan": -2.0756028118774363,
+        "reason": "WALL_TIMEOUT",
+        "requested": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "output": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "depth_stamp": 60.324
+      }
+    ]
+  },
+  {
+    "phase": "navigation_stage_end",
+    "sim_s": 98.997,
+    "name": "final_goal",
+    "pose": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/dwb_lattice/2_chair_gap/behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 8.349,
+    "sim_end": 98.997,
+    "truth": [
+      0.37680962045942484,
+      -1.6561212024729197,
+      1.4149979894048248
+    ]
+  }
+]

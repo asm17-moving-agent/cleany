@@ -1,0 +1,25 @@
+# Simulation evaluation only. Braking values are assumptions, not hardware calibration.
+voxel_guard:
+  ros__parameters:
+    use_sim_time: true
+    command_topic: /safety_2d/cmd_vel
+    output_topic: /cmd_vel
+    odom_topic: /wheel/odom
+    voxel_topic: /obstacle_memory/voxels
+    status_topic: /obstacle_memory/voxel_status
+    margin: 0.02
+    reaction_s: 0.25
+    linear_deceleration: 0.4
+    angular_deceleration: 0.6
+    step_s: 0.05
+    slowdown_lookahead_s: 0.5
+    slowdown_ratio: 0.35
+    max_speed: 0.15
+    max_yaw_rate: 0.3
+    update_period_s: 0.05
+    command_timeout_s: 0.5
+    source_timeout_s: 0.8
+    wall_source_timeout_s: 5.0
+    processing_budget_s: 0.15
+    localization_jump_m: 0.25
+    localization_jump_rad: 0.3

@@ -1,0 +1,31 @@
+received_sim_s,steady_wall_s,stage,state,reason
+8.464,34435.282529078,/cmd_vel,zero,received command transition
+8.464,34435.287892171,/pan_ready/cmd_vel,zero,received command transition
+8.464,34435.294220633,/legacy_guard/cmd_vel,zero,received command transition
+8.464,,/wheel_limit/state,input_command_timeout,input_command_timeout
+8.464,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+8.464,,/body_guard_3d/state,STOP_UNAVAILABLE,Command timeout
+8.618,34435.464991478,/nav2/cmd_vel,nonzero,received command transition
+8.638,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+8.658000000000001,34435.504479219,/cmd_vel,nonzero,received command transition
+8.658000000000001,,/wheel_limit/state,coupled_wheel_limit,coupled_wheel_limit
+8.678,34435.537923965,/pan_ready/cmd_vel,nonzero,received command transition
+8.678,,/head_pan/state,PASS,PASS
+9.316,34436.188327122,/safety_2d/cmd_vel,nonzero,received command transition
+9.338000000000001,34436.206284929,/legacy_guard/cmd_vel,nonzero,received command transition
+9.338000000000001,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+28.428,34455.94422366,/legacy_guard/cmd_vel,zero,received command transition
+28.428,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+28.508000000000003,34456.024752844,/legacy_guard/cmd_vel,nonzero,received command transition
+28.508000000000003,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+35.432,34463.144750293,/legacy_guard/cmd_vel,zero,received command transition
+35.432,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+35.492000000000004,34463.203682013,/legacy_guard/cmd_vel,nonzero,received command transition
+35.492000000000004,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+35.752,34463.471710055,/nav2/cmd_vel,zero,received command transition
+35.772000000000006,34463.487641298,/pan_ready/cmd_vel,zero,received command transition
+35.792,34463.508132535,/safety_2d/cmd_vel,zero,received command transition
+35.832,34463.547630196,/legacy_guard/cmd_vel,zero,received command transition
+36.116,34463.843340585,/cmd_vel,zero,received command transition
+36.256,,/wheel_limit/state,input_command_timeout,input_command_timeout
+36.256,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT

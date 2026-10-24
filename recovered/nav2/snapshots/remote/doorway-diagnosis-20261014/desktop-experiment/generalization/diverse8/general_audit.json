@@ -1,0 +1,135 @@
+{
+  "runs": [
+    {
+      "run": "0_straight",
+      "checks": {
+        "no_manual_approach": true,
+        "one_original_goal": true,
+        "common_BT": true,
+        "no_stage_checker": true,
+        "common_parameters": true,
+        "constraint_audit": true
+      },
+      "passed": true,
+      "libraries": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      }
+    },
+    {
+      "run": "1_turn_arrival",
+      "checks": {
+        "no_manual_approach": true,
+        "one_original_goal": true,
+        "common_BT": true,
+        "no_stage_checker": true,
+        "common_parameters": true,
+        "constraint_audit": true
+      },
+      "passed": true,
+      "libraries": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      }
+    },
+    {
+      "run": "2_chair_gap",
+      "checks": {
+        "no_manual_approach": true,
+        "one_original_goal": true,
+        "common_BT": true,
+        "no_stage_checker": true,
+        "common_parameters": true,
+        "constraint_audit": true
+      },
+      "passed": true,
+      "libraries": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      }
+    },
+    {
+      "run": "3_far_heading",
+      "checks": {
+        "no_manual_approach": true,
+        "one_original_goal": true,
+        "common_BT": true,
+        "no_stage_checker": true,
+        "common_parameters": true,
+        "constraint_audit": true
+      },
+      "passed": true,
+      "libraries": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      }
+    },
+    {
+      "run": "4_distant",
+      "checks": {
+        "no_manual_approach": true,
+        "one_original_goal": true,
+        "common_BT": true,
+        "no_stage_checker": true,
+        "common_parameters": true,
+        "constraint_audit": true
+      },
+      "passed": true,
+      "libraries": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      }
+    },
+    {
+      "run": "5_lateral",
+      "checks": {
+        "no_manual_approach": true,
+        "one_original_goal": true,
+        "common_BT": true,
+        "no_stage_checker": true,
+        "common_parameters": true,
+        "constraint_audit": true
+      },
+      "passed": true,
+      "libraries": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      }
+    },
+    {
+      "run": "6_narrow_seat",
+      "checks": {
+        "no_manual_approach": true,
+        "one_original_goal": true,
+        "common_BT": true,
+        "no_stage_checker": true,
+        "common_parameters": true,
+        "constraint_audit": true
+      },
+      "passed": true,
+      "libraries": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      }
+    },
+    {
+      "run": "7_other_room",
+      "checks": {
+        "no_manual_approach": true,
+        "one_original_goal": true,
+        "common_BT": true,
+        "no_stage_checker": true,
+        "common_parameters": true,
+        "constraint_audit": true
+      },
+      "passed": true,
+      "libraries": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      }
+    }
+  ],
+  "all_eight_present": true,
+  "common_libraries": true,
+  "passed": true
+}

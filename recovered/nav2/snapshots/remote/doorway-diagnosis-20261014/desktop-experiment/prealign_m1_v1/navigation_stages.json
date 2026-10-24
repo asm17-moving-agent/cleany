@@ -1,0 +1,56 @@
+[
+  {
+    "name": "prealign_outside_M1",
+    "pose": [
+      -17.125,
+      0.0,
+      3.141592653589793
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/prealign_m1_v1/stage_behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 11.288,
+    "sim_end": 110.129,
+    "truth": [
+      -17.08013760082231,
+      0.022132087612322087,
+      3.1112219357593185
+    ]
+  },
+  {
+    "name": "clear_M1_doorway",
+    "pose": [
+      -17.125,
+      2.0,
+      3.141592653589793
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/prealign_m1_v1/stage_behavior.xml",
+    "index": 1,
+    "status": 4,
+    "sim_start": 110.129,
+    "sim_end": 125.97600000000001,
+    "truth": [
+      -17.074122147374627,
+      1.9919210245014995,
+      3.136534138611708
+    ]
+  },
+  {
+    "name": "final_goal",
+    "pose": [
+      -16.775,
+      1.775,
+      1.570796
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/prealign_m1_v1/behavior.xml",
+    "index": 2,
+    "status": 4,
+    "sim_start": 125.97600000000001,
+    "sim_end": 138.05700000000002,
+    "truth": [
+      -16.70932857209392,
+      1.5087023495441023,
+      1.7039539746741004
+    ]
+  }
+]

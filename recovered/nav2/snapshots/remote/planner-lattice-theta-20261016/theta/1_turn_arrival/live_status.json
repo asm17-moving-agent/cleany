@@ -1,0 +1,109 @@
+{
+  "sim_s": 19.682000000000002,
+  "navigation_sim_s": 9.760000000000002,
+  "truth": [
+    -1.851964297167371,
+    -3.068302396783119,
+    0.009054220879660069
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 19.665000000000003,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 19.661,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        -0.00786140973766107,
+        0.11792114606491602,
+        -0.016484398695032647
+      ],
+      "nearby_voxels": 182,
+      "total_voxels": 6771,
+      "source_age_s": 0.19000000000000128,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 8.016427000256954
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 19.665000000000003,
+      "stamp_s": 19.665,
+      "sim_s": 19.665,
+      "target": 1.6620010178003757,
+      "pan": 1.6620010178003757,
+      "reason": "WALL_TIMEOUT",
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 19.471
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 19.673000000000002,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 19.673,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.0,
+        0.09433691685193282,
+        0.0
+      ],
+      "nearby_voxels": 89,
+      "total_voxels": 6771,
+      "source_age_s": 0.20199999999999818,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 4.129496999667026
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 19.678,
+      "stamp_s": 19.678,
+      "sim_s": 19.678,
+      "target": 1.6620010178003757,
+      "pan": 1.6620010178003757,
+      "reason": "WAIT_FRESH_DEPTH",
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 19.669
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "backup_command_matches": [],
+  "backup_completed_log_count": 0,
+  "backup_collision_rejected_log_count": 0,
+  "route_timeout_log_count": 0,
+  "recovery_log_lines": []
+}

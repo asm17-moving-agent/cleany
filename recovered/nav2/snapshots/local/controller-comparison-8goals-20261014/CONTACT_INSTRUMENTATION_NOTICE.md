@@ -1,0 +1,1 @@
+공통 world는 이미 robot collider별 benchmark_contact 센서31개를 포함합니다. 소비자 계측기는 기존 센서를 재사용하거나 추가 전 제거하여 중복 센서 이름을 피해야 합니다. ContactSystem plugin은 필요하면1개 추가한다. world geometry와 common lock은 변경하지 않았습니다. DWB 첫 기동은 중복센서로 로드 실패하여 action을 전송하지 않았고 로그를 보존했습니다.

@@ -1,0 +1,26 @@
+{
+  "source": "results.json",
+  "body_polygon_m": [
+    [
+      -0.238525,
+      -0.327373
+    ],
+    [
+      -0.238525,
+      0.327427
+    ],
+    [
+      0.238475,
+      0.327427
+    ],
+    [
+      0.238475,
+      -0.327373
+    ]
+  ],
+  "path_poses": 406,
+  "rendered_poses": 2490,
+  "interpolation_translation_m": 0.01,
+  "interpolation_angle_deg": 1,
+  "note": "sampled sweep visualization, not continuous collision proof"
+}

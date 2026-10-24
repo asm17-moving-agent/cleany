@@ -1,0 +1,4 @@
+{
+  "clean_upstream_plus_relaxed_patch_matches_built_source": true,
+  "source_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/reproduction_source_check/src/nav2_mppi_controller"
+}

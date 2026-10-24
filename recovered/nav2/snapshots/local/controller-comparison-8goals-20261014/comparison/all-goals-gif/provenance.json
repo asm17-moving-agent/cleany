@@ -1,0 +1,79 @@
+{
+  "kind": "original GT replay, not screen footage",
+  "layout": "MPPI left / TEB right, 8 goals top to bottom",
+  "speedup": 2,
+  "time_basis": "simulation",
+  "frame_ms": 200,
+  "sim_step_s": 0.4,
+  "frames": 983,
+  "gif_duration_s": 196.6,
+  "max_sim_duration_s": 392.63100000000003,
+  "finished_runs_hold_last_pose": true,
+  "failed_runs_stationary_segments_preserved": true,
+  "sources": {
+    "MPPI_0": {
+      "duration_sim_s": 5.991,
+      "status": 4
+    },
+    "TEB_0": {
+      "duration_sim_s": 3.394,
+      "status": 4
+    },
+    "MPPI_1": {
+      "duration_sim_s": 21.363,
+      "status": 4
+    },
+    "TEB_1": {
+      "duration_sim_s": 9.642999999999999,
+      "status": 4
+    },
+    "MPPI_2": {
+      "duration_sim_s": 25.128,
+      "status": 4
+    },
+    "TEB_2": {
+      "duration_sim_s": 24.817000000000004,
+      "status": 4
+    },
+    "MPPI_3": {
+      "duration_sim_s": 43.156000000000006,
+      "status": 4
+    },
+    "TEB_3": {
+      "duration_sim_s": 25.016000000000005,
+      "status": 4
+    },
+    "MPPI_4": {
+      "duration_sim_s": 76.953,
+      "status": 4
+    },
+    "TEB_4": {
+      "duration_sim_s": 71.17000000000002,
+      "status": 4
+    },
+    "MPPI_5": {
+      "duration_sim_s": 6.202999999999999,
+      "status": 4
+    },
+    "TEB_5": {
+      "duration_sim_s": 1.83,
+      "status": 4
+    },
+    "MPPI_6": {
+      "duration_sim_s": 7.855999999999998,
+      "status": 4
+    },
+    "TEB_6": {
+      "duration_sim_s": 5.546000000000001,
+      "status": 4
+    },
+    "MPPI_7": {
+      "duration_sim_s": 392.63100000000003,
+      "status": 5
+    },
+    "TEB_7": {
+      "duration_sim_s": 358.175,
+      "status": 6
+    }
+  }
+}

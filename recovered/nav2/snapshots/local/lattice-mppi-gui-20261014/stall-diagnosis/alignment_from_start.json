@@ -1,0 +1,25 @@
+{
+  "phase": "alignment_from_start",
+  "values": {
+    "PathAlignCritic.offset_from_furthest": 0
+  },
+  "wall_s": 40.08516078699904,
+  "sim_s": 4.059999999999945,
+  "start": {
+    "wall": 36924.495676096,
+    "phase": "alignment_from_start",
+    "x": -17.10258637482901,
+    "y": 0.6736509384279324,
+    "yaw": 2.3607377290243585,
+    "sim_s": 543.94
+  },
+  "end": {
+    "wall": 36936.67088478,
+    "phase": "alignment_from_start",
+    "x": -17.102777618002882,
+    "y": 0.6741024135991932,
+    "yaw": 2.3605012690457996,
+    "sim_s": 548.0
+  },
+  "displacement_m": 0.0004903098834594176
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "suite": "optimizer_unit_tests",
+    "tests": "15",
+    "failures": "0",
+    "disabled": "0",
+    "errors": "0",
+    "time": "0.105",
+    "timestamp": "2026-10-13T04:20:37",
+    "name": "AllTests",
+    "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/validation/optimizer_unit_tests.gtest.xml"
+  },
+  {
+    "suite": "optimizer_smoke_test",
+    "tests": "3",
+    "failures": "0",
+    "disabled": "0",
+    "errors": "0",
+    "time": "0.028",
+    "timestamp": "2026-10-13T04:20:37",
+    "name": "AllTests",
+    "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/validation/optimizer_smoke_test.gtest.xml"
+  },
+  {
+    "suite": "critics_tests",
+    "tests": "23",
+    "failures": "1",
+    "disabled": "0",
+    "errors": "0",
+    "time": "0.132",
+    "timestamp": "2026-10-13T04:19:43",
+    "name": "AllTests",
+    "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/validation/critics_tests.gtest.xml"
+  }
+]

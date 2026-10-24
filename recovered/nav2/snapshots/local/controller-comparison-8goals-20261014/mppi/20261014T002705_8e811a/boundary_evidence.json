@@ -1,0 +1,614 @@
+{
+  "frozen_runner_sha256_verified": {
+    "run_facility.py": true,
+    "relaxed_safety_probe.py": true,
+    "wheel_limit_node.py": true,
+    "execute.sh": true,
+    "final_overrides.yaml": true,
+    "mppi-source.patch": true
+  },
+  "common_snapshot_sha256_verified_count": 118,
+  "common_source_unchanged_sha256_verified_count": 118,
+  "goals": [
+    {
+      "goal_index": 0,
+      "goal_name": "straight",
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "last_sampled_tf_gt": {
+        "sim_s": 16.543,
+        "navigation_end_sim_s": 16.567,
+        "age_before_navigation_end_s": 0.02400000000000091,
+        "gt_xy": [
+          -1.849649940459599,
+          -3.978058735469664
+        ],
+        "tf_xy": [
+          -1.8729442510754364,
+          -4.013814165098226
+        ],
+        "gt_goal_error_m": 0.27348984870408966,
+        "tf_goal_error_m": 0.3089163312135889,
+        "tf_gt_separation_m": 0.04267406302416184,
+        "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+      },
+      "log_diagnostics": {
+        "Failed to transform from base_link to ": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to lookup current robot pose": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to get result for compute_path_to_pose in node halt": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Lattice plan rejected:": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "failed to generate a path": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Goal was canceled": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Optimizer reset": {
+          "count": 3,
+          "first": "[controller_server-17] [INFO] [1791907570.779825771] [controller_server]: Optimizer reset",
+          "last": "[controller_server-17] [INFO] [1791907605.280183740] [controller_server]: Optimizer reset"
+        },
+        "Control loop missed its desired rate": {
+          "count": 0,
+          "first": null,
+          "last": null
+        }
+      },
+      "bag_message_count": 48652,
+      "bag_databases": [
+        {
+          "name": "bag_0.db3",
+          "bytes": 26042368,
+          "quick_check": "ok",
+          "messages": 48652
+        }
+      ]
+    },
+    {
+      "goal_index": 1,
+      "goal_name": "turn_arrival",
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "last_sampled_tf_gt": {
+        "sim_s": 31.465000000000003,
+        "navigation_end_sim_s": 31.506,
+        "age_before_navigation_end_s": 0.04099999999999682,
+        "gt_xy": [
+          -1.7799380649965473,
+          -2.867535009155886
+        ],
+        "tf_xy": [
+          -1.8039918211469428,
+          -2.884592922911054
+        ],
+        "gt_goal_error_m": 0.10861174083964055,
+        "tf_goal_error_m": 0.10429746158752928,
+        "tf_gt_separation_m": 0.02948822827199753,
+        "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+      },
+      "log_diagnostics": {
+        "Failed to transform from base_link to ": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to lookup current robot pose": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to get result for compute_path_to_pose in node halt": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Lattice plan rejected:": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "failed to generate a path": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Goal was canceled": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Optimizer reset": {
+          "count": 3,
+          "first": "[controller_server-17] [INFO] [1791907634.737241284] [controller_server]: Optimizer reset",
+          "last": "[controller_server-17] [INFO] [1791907668.451627261] [controller_server]: Optimizer reset"
+        },
+        "Control loop missed its desired rate": {
+          "count": 0,
+          "first": null,
+          "last": null
+        }
+      },
+      "bag_message_count": 143976,
+      "bag_databases": [
+        {
+          "name": "bag_0.db3",
+          "bytes": 74010624,
+          "quick_check": "ok",
+          "messages": 143976
+        }
+      ]
+    },
+    {
+      "goal_index": 2,
+      "goal_name": "chair_gap",
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "last_sampled_tf_gt": {
+        "sim_s": 34.959,
+        "navigation_end_sim_s": 35.005,
+        "age_before_navigation_end_s": 0.045999999999999375,
+        "gt_xy": [
+          0.2854716441527503,
+          -1.5923316515244885
+        ],
+        "tf_xy": [
+          0.2802916176622472,
+          -1.643907730486343
+        ],
+        "gt_goal_error_m": 0.2913655604764041,
+        "tf_goal_error_m": 0.29531429510316504,
+        "tf_gt_separation_m": 0.05183555339264508,
+        "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+      },
+      "log_diagnostics": {
+        "Failed to transform from base_link to ": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to lookup current robot pose": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to get result for compute_path_to_pose in node halt": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Lattice plan rejected:": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "failed to generate a path": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Goal was canceled": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Optimizer reset": {
+          "count": 3,
+          "first": "[controller_server-17] [INFO] [1791907774.790047028] [controller_server]: Optimizer reset",
+          "last": "[controller_server-17] [INFO] [1791907817.351987444] [controller_server]: Optimizer reset"
+        },
+        "Control loop missed its desired rate": {
+          "count": 0,
+          "first": null,
+          "last": null
+        }
+      },
+      "bag_message_count": 169821,
+      "bag_databases": [
+        {
+          "name": "bag_0.db3",
+          "bytes": 87269376,
+          "quick_check": "ok",
+          "messages": 169821
+        }
+      ]
+    },
+    {
+      "goal_index": 3,
+      "goal_name": "far_heading",
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "last_sampled_tf_gt": {
+        "sim_s": 53.012,
+        "navigation_end_sim_s": 53.041000000000004,
+        "age_before_navigation_end_s": 0.029000000000003467,
+        "gt_xy": [
+          -1.8926542933705888,
+          -0.35766054910352724
+        ],
+        "tf_xy": [
+          -1.8795849295908118,
+          -0.3766043012375633
+        ],
+        "gt_goal_error_m": 0.06394918971141751,
+        "tf_goal_error_m": 0.07798037662940772,
+        "tf_gt_separation_m": 0.02301464782532944,
+        "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+      },
+      "log_diagnostics": {
+        "Failed to transform from base_link to ": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to lookup current robot pose": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to get result for compute_path_to_pose in node halt": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Lattice plan rejected:": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "failed to generate a path": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Goal was canceled": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Optimizer reset": {
+          "count": 3,
+          "first": "[controller_server-17] [INFO] [1791907941.225462345] [controller_server]: Optimizer reset",
+          "last": "[controller_server-17] [INFO] [1791907983.603307251] [controller_server]: Optimizer reset"
+        },
+        "Control loop missed its desired rate": {
+          "count": 0,
+          "first": null,
+          "last": null
+        }
+      },
+      "bag_message_count": 283932,
+      "bag_databases": [
+        {
+          "name": "bag_0.db3",
+          "bytes": 142864384,
+          "quick_check": "ok",
+          "messages": 283932
+        }
+      ]
+    },
+    {
+      "goal_index": 4,
+      "goal_name": "distant",
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "last_sampled_tf_gt": {
+        "sim_s": 86.979,
+        "navigation_end_sim_s": 87.025,
+        "age_before_navigation_end_s": 0.04600000000000648,
+        "gt_xy": [
+          -5.397761766504165,
+          4.721822435704748
+        ],
+        "tf_xy": [
+          -5.445312985751075,
+          4.781042166785009
+        ],
+        "gt_goal_error_m": 0.13790366712860241,
+        "tf_goal_error_m": 0.07991575576421904,
+        "tf_gt_separation_m": 0.07594797562204085,
+        "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+      },
+      "log_diagnostics": {
+        "Failed to transform from base_link to ": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to lookup current robot pose": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to get result for compute_path_to_pose in node halt": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Lattice plan rejected:": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "failed to generate a path": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Goal was canceled": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Optimizer reset": {
+          "count": 3,
+          "first": "[controller_server-17] [INFO] [1791908195.629768610] [controller_server]: Optimizer reset",
+          "last": "[controller_server-17] [INFO] [1791908237.938896880] [controller_server]: Optimizer reset"
+        },
+        "Control loop missed its desired rate": {
+          "count": 0,
+          "first": null,
+          "last": null
+        }
+      },
+      "bag_message_count": 486936,
+      "bag_databases": [
+        {
+          "name": "bag_0.db3",
+          "bytes": 245153792,
+          "quick_check": "ok",
+          "messages": 486936
+        }
+      ]
+    },
+    {
+      "goal_index": 5,
+      "goal_name": "lateral",
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "last_sampled_tf_gt": {
+        "sim_s": 16.268,
+        "navigation_end_sim_s": 16.279,
+        "age_before_navigation_end_s": 0.010999999999999233,
+        "gt_xy": [
+          -1.5391450412609144,
+          -4.676266438606291
+        ],
+        "tf_xy": [
+          -1.602043396294513,
+          -4.705599339758669
+        ],
+        "gt_goal_error_m": 0.2756467326095388,
+        "tf_goal_error_m": 0.33704392917524356,
+        "tf_gt_separation_m": 0.06940188870591193,
+        "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+      },
+      "log_diagnostics": {
+        "Failed to transform from base_link to ": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to lookup current robot pose": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to get result for compute_path_to_pose in node halt": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Lattice plan rejected:": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "failed to generate a path": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Goal was canceled": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Optimizer reset": {
+          "count": 3,
+          "first": "[controller_server-17] [INFO] [1791908592.754606799] [controller_server]: Optimizer reset",
+          "last": "[controller_server-17] [INFO] [1791908634.505828173] [controller_server]: Optimizer reset"
+        },
+        "Control loop missed its desired rate": {
+          "count": 0,
+          "first": null,
+          "last": null
+        }
+      },
+      "bag_message_count": 52658,
+      "bag_databases": [
+        {
+          "name": "bag_0.db3",
+          "bytes": 28725248,
+          "quick_check": "ok",
+          "messages": 52658
+        }
+      ]
+    },
+    {
+      "goal_index": 6,
+      "goal_name": "narrow_seat",
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "last_sampled_tf_gt": {
+        "sim_s": 17.876,
+        "navigation_end_sim_s": 17.895,
+        "age_before_navigation_end_s": 0.01899999999999835,
+        "gt_xy": [
+          -2.7919245651121725,
+          -4.4719293489737355
+        ],
+        "tf_xy": [
+          -2.8444059628758476,
+          -4.525230106773016
+        ],
+        "gt_goal_error_m": 0.3330895888847932,
+        "tf_goal_error_m": 0.28505451635793955,
+        "tf_gt_separation_m": 0.07480152333479999,
+        "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+      },
+      "log_diagnostics": {
+        "Failed to transform from base_link to ": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to lookup current robot pose": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Failed to get result for compute_path_to_pose in node halt": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Lattice plan rejected:": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "failed to generate a path": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Goal was canceled": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Optimizer reset": {
+          "count": 3,
+          "first": "[controller_server-17] [INFO] [1791908674.199140113] [controller_server]: Optimizer reset",
+          "last": "[controller_server-17] [INFO] [1791908716.353439946] [controller_server]: Optimizer reset"
+        },
+        "Control loop missed its desired rate": {
+          "count": 0,
+          "first": null,
+          "last": null
+        }
+      },
+      "bag_message_count": 65443,
+      "bag_databases": [
+        {
+          "name": "bag_0.db3",
+          "bytes": 34066432,
+          "quick_check": "ok",
+          "messages": 65443
+        }
+      ]
+    },
+    {
+      "goal_index": 7,
+      "goal_name": "other_room",
+      "action_status": 5,
+      "timeout": true,
+      "error": null,
+      "last_sampled_tf_gt": {
+        "sim_s": 142.841,
+        "navigation_end_sim_s": 402.569,
+        "age_before_navigation_end_s": 259.728,
+        "gt_xy": [
+          -5.318864612836385,
+          -5.1932423461728145
+        ],
+        "tf_xy": [
+          -5.384421610143054,
+          -5.220019409414055
+        ],
+        "gt_goal_error_m": 13.408931329677932,
+        "tf_goal_error_m": 13.366958240136587,
+        "tf_gt_separation_m": 0.0708147654920359,
+        "interpretation": "Last sampled TF/GT observation; not an atomic localization cause proof."
+      },
+      "log_diagnostics": {
+        "Failed to transform from base_link to ": {
+          "count": 133,
+          "first": "[bt_navigator-20] [ERROR] [1791908938.034733522] [transformPoseInTargetFrame]: Failed to transform from base_link to ",
+          "last": "[bt_navigator-20] [ERROR] [1791909187.472210693] [transformPoseInTargetFrame]: Failed to transform from base_link to "
+        },
+        "Failed to lookup current robot pose": {
+          "count": 133,
+          "first": "[bt_navigator-20] [WARN] [1791908938.034790137] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to lookup current robot pose for bt_0_1_0_0_0_0__TruncatePathLocal",
+          "last": "[bt_navigator-20] [WARN] [1791909187.472268194] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to lookup current robot pose for bt_0_1_0_0_0_0__TruncatePathLocal"
+        },
+        "Failed to get result for compute_path_to_pose in node halt": {
+          "count": 2,
+          "first": "[bt_navigator-20] [ERROR] [1791908937.178201105] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to get result for compute_path_to_pose in node halt!",
+          "last": "[bt_navigator-20] [ERROR] [1791909000.196463562] [bt_navigator_navigate_to_pose_rclcpp_node]: Failed to get result for compute_path_to_pose in node halt!"
+        },
+        "Lattice plan rejected:": {
+          "count": 3,
+          "first": "[planner_server-18] [WARN] [1791908889.168163156] [planner_server]: Lattice plan rejected: no_valid_lattice_path, attempts=3 elapsed=69.002 budget=80.000",
+          "last": "[planner_server-18] [WARN] [1791909061.238470366] [planner_server]: Lattice plan rejected: no_valid_lattice_path, attempts=3 elapsed=69.570 budget=80.000"
+        },
+        "failed to generate a path": {
+          "count": 0,
+          "first": null,
+          "last": null
+        },
+        "Goal was canceled": {
+          "count": 13,
+          "first": "[controller_server-17] [INFO] [1791908820.166002375] [controller_server]: Goal was canceled. Stopping the robot.",
+          "last": "[controller_server-17] [INFO] [1791910609.774242383] [controller_server]: Goal was canceled. Stopping the robot."
+        },
+        "Optimizer reset": {
+          "count": 9,
+          "first": "[controller_server-17] [INFO] [1791908765.242202149] [controller_server]: Optimizer reset",
+          "last": "[controller_server-17] [INFO] [1791909187.472979866] [controller_server]: Optimizer reset"
+        },
+        "Control loop missed its desired rate": {
+          "count": 1,
+          "first": "[controller_server-17] [WARN] [1791909678.479227897] [controller_server]: Control loop missed its desired rate of 20.0000Hz",
+          "last": "[controller_server-17] [WARN] [1791909678.479227897] [controller_server]: Control loop missed its desired rate of 20.0000Hz"
+        }
+      },
+      "bag_message_count": 2396340,
+      "bag_databases": [
+        {
+          "name": "bag_0.db3",
+          "bytes": 1204248576,
+          "quick_check": "ok",
+          "messages": 2396340
+        }
+      ]
+    }
+  ]
+}

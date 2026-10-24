@@ -1,0 +1,29 @@
+profile: gazebo_only_relaxed
+safety_bypass:
+  final_authority: wheel_limit
+  input: /nav2/cmd_vel
+  output: /cmd_vel
+  legacy_guard_output: /legacy_guard/cmd_vel
+  bypassed_motion_vetoes:
+  - pan_motion_gate
+  - collision_monitor
+  - voxel_guard freshness/obstacle/speed box
+  background_sensor_costmaps_retained: true
+  native_rpp_collision_detection: true
+command_wheel_cap_rad_s: 4.8
+wheel_acceleration_rad_s2: 8.0
+physical_wheel_limit_rad_s: 5.0
+effective_costmap_footprint:
+- - -0.238525
+  - -0.32737300000024483
+- - -0.238525
+  - 0.32742700000024483
+- - 0.238475
+  - 0.32742700000024483
+- - 0.238475
+  - -0.32737300000024483
+effective_footprint_padding: 0.0
+hard_sim_timeout_s: 1200
+hard_wall_watchdog_s: 1800
+controller_frequency_hz: 20.0
+command_frequency_hz: 20.0

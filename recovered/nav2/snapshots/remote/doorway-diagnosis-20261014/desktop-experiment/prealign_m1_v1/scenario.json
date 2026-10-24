@@ -1,0 +1,516 @@
+{
+  "guard_3d": true,
+  "world": "cleany_study_cafe",
+  "fixtures": {
+    "tall": {
+      "size": [
+        0.4,
+        0.4,
+        1.4
+      ],
+      "z": 0.7
+    },
+    "elevated": {
+      "size": [
+        0.4,
+        0.4,
+        0.5
+      ],
+      "z": 0.85
+    },
+    "low": {
+      "size": [
+        0.4,
+        0.4,
+        0.15
+      ],
+      "z": 0.075
+    }
+  },
+  "evaluation": {
+    "fixtures": {
+      "tall": {
+        "size": [
+          0.4,
+          0.4,
+          1.4
+        ],
+        "z": 0.7
+      },
+      "elevated": {
+        "size": [
+          0.4,
+          0.4,
+          0.5
+        ],
+        "z": 0.85
+      },
+      "low": {
+        "size": [
+          0.4,
+          0.4,
+          0.15
+        ],
+        "z": 0.075
+      }
+    },
+    "sensor_cases": [
+      {
+        "fixture": "tall",
+        "center": [
+          1.4,
+          0.0
+        ]
+      },
+      {
+        "fixture": "elevated",
+        "center": [
+          1.4,
+          0.0
+        ]
+      },
+      {
+        "fixture": "low",
+        "center": [
+          1.0,
+          0.0
+        ]
+      }
+    ],
+    "sensor_durations_s": {
+      "before": 2.0,
+      "present": 3.0,
+      "removed": 4.0
+    },
+    "monitor": {
+      "raw_vx": 0.15,
+      "fixture_initial_x": 1.3,
+      "fixture_final_x": 1.0,
+      "fixture_speed_mps": 0.08,
+      "fixture_update_s": 0.2,
+      "approach_timeout_s": 14.0,
+      "hold_s": 3.0,
+      "clear_s": 2.0
+    },
+    "avoid": {
+      "goal": [
+        4.0,
+        0.0,
+        0.0
+      ],
+      "fixture_x": 3.15,
+      "fixture_initial_y": 1.0,
+      "fixture_final_y": 0.45,
+      "fixture_speed_mps": 0.2,
+      "fixture_start_s": 2.0,
+      "fixture_update_s": 0.2,
+      "timeout_wall_s": 360.0,
+      "max_recoveries": 3
+    },
+    "thresholds": {
+      "min_clearance_m": 0.03,
+      "stopped_speed_mps": 0.02,
+      "min_lateral_avoidance_m": 0.25,
+      "max_final_goal_error_m": 0.3,
+      "slowdown_ratio_tolerance": 0.02
+    }
+  },
+  "obstacle_memory": true,
+  "robot_half_size": [
+    0.2585,
+    0.34740000000024485
+  ],
+  "robot_center": [
+    -2.4999999999997247e-05,
+    2.6999999999999247e-05
+  ],
+  "expected_slowdown_ratio": 0.35,
+  "spawn_pose": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "robot_model": "cad_frame",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.0,
+      "planning_padding": 0.0,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.238525,
+          -0.327373
+        ],
+        [
+          -0.238525,
+          0.327427
+        ],
+        [
+          0.238475,
+          0.327427
+        ],
+        [
+          0.238475,
+          -0.327373
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.0,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "initial_pose": [
+    -1.865,
+    -4.705,
+    1.5708
+  ],
+  "map_source": "/home/ehdrms/workspace/cleany/cleany-data/runs/lattice-mppi-gui-20261014/common_snapshot/goals/7_other_room/map.yaml",
+  "map_sha256": "cd1b12894edd04392ff590928178b562087c1968c1082e23f10e8df953ea954a",
+  "lidar_height_m": 0.3,
+  "lidar_noise": "measured",
+  "wheel_stress_level": 0,
+  "depth_recording": "Every eighth point of adapted cloud, at most ~6.7 Hz; Nav2 receives the entire adapted cloud",
+  "footprint_change": {
+    "physical_body": [
+      [
+        -0.238525,
+        -0.32737300000024483
+      ],
+      [
+        -0.238525,
+        0.32742700000024483
+      ],
+      [
+        0.238475,
+        0.32742700000024483
+      ],
+      [
+        0.238475,
+        -0.32737300000024483
+      ]
+    ],
+    "extra_margin_m": 0.0,
+    "padding_m": 0.0,
+    "requested_by_user": true
+  },
+  "actual_spawn_world": [
+    -1.865,
+    -4.705,
+    0.38,
+    0.0,
+    0.0,
+    1.5708
+  ],
+  "fixture_source": "/home/ehdrms/workspace/cleany/cleany-data/runs/lattice-mppi-gui-20261014/common_snapshot/fixture",
+  "canonical_world_sha256": "690d2862cc8c142162f12a8c91c59ff6e906077d6eb269eacd62eda7ca07c989",
+  "removed_chair": "facility_chair_M14",
+  "preserved_model_count": 329,
+  "preserved_chair_models": [
+    "facility_chair_A11",
+    "facility_chair_A12",
+    "facility_chair_A13",
+    "facility_chair_A14",
+    "facility_chair_A21",
+    "facility_chair_A22",
+    "facility_chair_A23",
+    "facility_chair_A24",
+    "facility_chair_A31",
+    "facility_chair_A32",
+    "facility_chair_A33",
+    "facility_chair_A34",
+    "facility_chair_A41",
+    "facility_chair_A42",
+    "facility_chair_A43",
+    "facility_chair_A44",
+    "facility_chair_M11",
+    "facility_chair_M12",
+    "facility_chair_M13",
+    "facility_chair_M15",
+    "facility_chair_M16",
+    "facility_chair_M21",
+    "facility_chair_M22",
+    "facility_chair_M23",
+    "facility_chair_M24",
+    "facility_chair_M25",
+    "facility_chair_M26",
+    "facility_chair_M31",
+    "facility_chair_M32",
+    "facility_chair_M33",
+    "facility_chair_M34",
+    "facility_chair_M35",
+    "facility_chair_M36",
+    "office_chair_01",
+    "office_chair_02",
+    "office_chair_03",
+    "office_chair_04",
+    "office_chair_05",
+    "office_chair_06",
+    "office_chair_07",
+    "office_chair_08",
+    "office_chair_09",
+    "office_chair_10",
+    "office_chair_11",
+    "office_chair_12",
+    "office_chair_13",
+    "office_chair_14",
+    "office_chair_15",
+    "office_chair_16",
+    "office_chair_17",
+    "office_chair_18",
+    "office_chair_19",
+    "office_chair_20",
+    "office_chair_21",
+    "office_chair_22",
+    "office_chair_23",
+    "office_chair_24",
+    "office_chair_25",
+    "office_chair_26",
+    "office_chair_27",
+    "office_chair_28",
+    "office_chair_29",
+    "office_chair_30",
+    "office_chair_31",
+    "office_chair_32",
+    "office_chair_33",
+    "office_chair_34",
+    "office_chair_35",
+    "office_chair_36",
+    "office_chair_37",
+    "office_chair_38",
+    "office_chair_39",
+    "office_chair_40",
+    "office_chair_41",
+    "office_chair_42",
+    "office_chair_43",
+    "office_chair_44",
+    "office_chair_45",
+    "office_chair_46",
+    "office_chair_47",
+    "office_chair_48"
+  ],
+  "physical_models_unchanged_before_contact_sensors": true,
+  "mesh_assets": [],
+  "goal_record": {
+    "index": 7,
+    "id": "other_room",
+    "pose_map_world": [
+      -16.775,
+      1.775,
+      1.570796
+    ],
+    "seat": "seat-m1-04",
+    "remove_chair": "facility_chair_M14",
+    "world": "goals/7_other_room/world.canonical.sdf",
+    "map": "goals/7_other_room/map.yaml",
+    "world_sha256": "690d2862cc8c142162f12a8c91c59ff6e906077d6eb269eacd62eda7ca07c989",
+    "map_sha256": "cd1b12894edd04392ff590928178b562087c1968c1082e23f10e8df953ea954a",
+    "model_count": 329,
+    "chair_count": 81,
+    "start_occupied_cells": 0,
+    "proposed_goal_occupied_cells": 0,
+    "coordinate_change": null,
+    "goal_name": "other_room",
+    "name": "other_room",
+    "pose": [
+      -16.775,
+      1.775,
+      1.570796
+    ],
+    "map_yaml": "goals/7_other_room/map.yaml",
+    "world_template": "goals/7_other_room/world.canonical.sdf",
+    "removed_chair": "facility_chair_M14",
+    "preflight": {
+      "index": 7,
+      "id": "other_room",
+      "action_status": 4,
+      "pose_count": 833,
+      "wall_s": 5.90556925400233,
+      "path_length_m": 23.119735494008733,
+      "total_path_yaw_change_rad": 2.748897571891068,
+      "start": [
+        [
+          -1.865,
+          -4.705,
+          1.5708
+        ]
+      ],
+      "end": [
+        [
+          -16.775,
+          1.775,
+          1.570796
+        ]
+      ],
+      "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+      "live": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0,
+        "planner": {
+          "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+          "GridBased.holonomic_direct_path": true,
+          "GridBased.require_exact_goal": true,
+          "GridBased.lattice_collision_padding": 0.05
+        }
+      }
+    },
+    "planner_path": "goals/7_other_room/planner_path.json",
+    "actual_route_description": {
+      "body_heading_total_change_rad": 2.748897571891068,
+      "path_length_m": 23.119735494008733,
+      "narrow_or_multiple_turn_label": "Measured route, see saved poses"
+    }
+  },
+  "runtime_map_sha256": "0a6a5d845db8021af4a200a3c7ccfeccb2399e4cd7aeb513870aa12b65058fd3",
+  "runtime_map_change": "2.5cm to5cm conservative2x2 occupied union to match unmodified upstream5cm primitives",
+  "locked_map_sha256": "cd1b12894edd04392ff590928178b562087c1968c1082e23f10e8df953ea954a",
+  "locked_goals_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac",
+  "initial_pose_covariance": [
+    0.0625,
+    0.0625,
+    0.06853891945200942
+  ],
+  "stage": "relaxed_gazebo_only",
+  "bypass": [
+    "pan alignment/freshness",
+    "CollisionMonitor stop/slowdown",
+    "serial voxel/freshness"
+  ],
+  "actual_command_chain": [
+    "/nav2/cmd_vel",
+    "coupled wheel projection",
+    "/cmd_vel"
+  ],
+  "shadow_final_topic": "/shadow/cmd_vel",
+  "contacts_topics": [
+    "/evaluation/contacts/base_link",
+    "/evaluation/contacts/front_left_wheel_link",
+    "/evaluation/contacts/front_right_wheel_link",
+    "/evaluation/contacts/rear_left_wheel_link",
+    "/evaluation/contacts/rear_right_wheel_link",
+    "/evaluation/contacts/head_pan_link"
+  ],
+  "contact_geometry_unchanged_sha256": "dda72a99ff400cf5cec50ef9a4c4e81bb1fabc2fc2891f38376c12397fa2a618",
+  "contact_note": "Fortress Contact system covers every collision on all six robot links; floor and self contacts are classified separately. Contact publication may be per physics step despite sensor update_rate=50.",
+  "soft_sim_time_s": 240,
+  "hard_sim_timeout_s": 1200,
+  "wall_watchdog_s": 1800,
+  "candidate": "mppi",
+  "requested_rtf": 2.0,
+  "comparison_limits": {
+    "wheel_rad_s": 5.0,
+    "xy_tolerance": 0.3,
+    "yaw_tolerance": 0.17453292519943295
+  },
+  "mppi_acceleration_note": "Nav2 1.1.20 does not read ax_max/ay_max/az_max; no native acceleration limit is claimed.",
+  "rpp_limit_note": null,
+  "approach_stages": [
+    {
+      "name": "prealign_outside_M1",
+      "pose": [
+        -17.125,
+        0.0,
+        3.141592653589793
+      ]
+    },
+    {
+      "name": "clear_M1_doorway",
+      "pose": [
+        -17.125,
+        2.0,
+        3.141592653589793
+      ]
+    }
+  ],
+  "test_command_hold": null
+}

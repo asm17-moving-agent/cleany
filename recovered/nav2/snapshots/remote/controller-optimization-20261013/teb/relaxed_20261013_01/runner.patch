@@ -1,0 +1,37 @@
+--- conservative/runner.py
++++ relaxed/conservative_runner_snapshot.py
+@@ -151,7 +151,7 @@
+  started=time.monotonic()
+  (out/'runner_snapshot.py').write_text(Path(__file__).read_text())
+  try:
+-  scenario=setup(out,candidate,rtf);result['model_metadata']=scenario['model_metadata']
++  scenario=setup(out,candidate,rtf);result['model_metadata']=scenario['model_metadata'];result['experiment_stage']='relaxed';result['hard_timeout_sim_s']=1200;result['hard_timeout_wall_s']=1800;result['controller_frequency_hz']=float(os.environ.get('TEB_RELAXED_FREQUENCY','10'))
+   proc=subprocess.Popen(['ros2','launch',str(out/'run.launch.py')],stdout=(out/'launch.log').open('w'),stderr=subprocess.STDOUT,start_new_session=True)
+   (out/'session.json').write_text(json.dumps({'launch_pid':proc.pid,'supervisor_pid':os.getpid(),'partition':partition,'domain':domain}))
+   rclpy.init();node=Probe(out,scenario);node.initialize();node.wait(2)
+@@ -178,19 +178,21 @@
+       binary_maps.append({'path':str(binary),'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()})
+   (out/'controller_binary_maps.json').write_text(json.dumps(binary_maps,indent=2))
+   result['rpp_limit_note']=scenario.get('rpp_limit_note')
+-  bag=subprocess.Popen(['ros2','bag','record','-o',str(out/'bag'),'/clock','/ground_truth/odom','/odom','/wheel/odom','/joint_states','/nav2/cmd_vel','/cmd_vel','/safety_2d/cmd_vel','/pan_ready/cmd_vel','/scan','/collision_monitor_state','/tf','/tf_static','/head_pan/state','/body_guard_3d/state','/evaluation/depth_points','/amcl_pose','/plan','/local_costmap/costmap','/global_costmap/costmap'],stdout=(out/'bag.log').open('w'),stderr=subprocess.STDOUT,start_new_session=True)
++  bag=subprocess.Popen(['ros2','bag','record','-o',str(out/'bag'),'/clock','/ground_truth/odom','/odom','/wheel/odom','/joint_states','/nav2/cmd_vel','/cmd_vel','/safety_2d/cmd_vel','/pan_ready/cmd_vel','/scan','/collision_monitor_state','/tf','/tf_static','/head_pan/state','/body_guard_3d/state','/evaluation/depth_points','/amcl_pose','/plan','/local_costmap/costmap','/global_costmap/costmap','/wheel_limiter/state','/gazebo_cmd_vel','/ignored/cmd_vel',*scenario.get('contact_topics',[])],stdout=(out/'bag.log').open('w'),stderr=subprocess.STDOUT,start_new_session=True)
+   node.wait(1);goal=GOALS[goal_index][1];req=NavigateToPose.Goal();req.pose.header.frame_id='map';req.pose.header.stamp=node.get_clock().now().to_msg();req.pose.pose.position.x=goal[0];req.pose.pose.position.y=goal[1];req.pose.pose.orientation.z=math.sin(goal[2]/2);req.pose.pose.orientation.w=math.cos(goal[2]/2)
+   if not node.nav.wait_for_server(timeout_sec=20):raise TimeoutError('No navigate_to_pose action server')
+   handle=node.future(node.nav.send_goal_async(req));node.active_goal=handle
+   if not handle.accepted:raise RuntimeError('Goal rejected')
+-  future=handle.get_result_async();sim_start=node.now();wall_start=time.monotonic();node.event('comparison_navigation',goal=goal);last_resource=0
++  future=handle.get_result_async();sim_start=node.now();wall_start=time.monotonic();node.event('comparison_navigation',goal=goal);last_resource=0;soft_marked=False
+   while not future.done():
+    node.tick()
++   if not soft_marked and node.now()-sim_start>=240:
++    result['soft_240s_exceeded']=True;node.event('comparison_navigation',soft_240s_exceeded=True,goal=goal);soft_marked=True
+    if time.monotonic()-last_resource>=1:
+     resource_samples.append({'wall_s':time.monotonic()-wall_start,'sim_s':node.now(),'processes':resources(proc.pid)});last_resource=time.monotonic()
+    if proc.poll() is not None:raise RuntimeError('Launch exited')
+-   if node.now()-sim_start>240 or time.monotonic()-wall_start>360:
+-    node.future(handle.cancel_goal_async());node.future(future,timeout=10);result['timeout']=True;break
++   if node.now()-sim_start>float(os.environ.get('TEB_PILOT_SIM_LIMIT','1200')) or time.monotonic()-wall_start>1800:
++    node.future(handle.cancel_goal_async());node.future(future,timeout=10);result['timeout']=True;result['pilot_segment_limit_sim_s']=float(os.environ['TEB_PILOT_SIM_LIMIT']) if 'TEB_PILOT_SIM_LIMIT' in os.environ else None;break
+   action=future.result();node.active_goal=None;sim_end=node.now();wall_end=time.monotonic();node.wait(2)
+   truth=node.truth();err=math.dist(truth[:2],goal[:2]);yawerr=abs(math.atan2(math.sin(truth[2]-goal[2]),math.cos(truth[2]-goal[2])))
+   result.update(completed=True,action_status=action.status,position_error_m=err,yaw_error_deg=math.degrees(yawerr),final_truth=truth,navigation_sim_s=sim_end-sim_start,navigation_wall_s=wall_end-wall_start,achieved_rtf=(sim_end-sim_start)/(wall_end-wall_start),smoothness=summarize_velocity(node.vel,sim_start,sim_end),navigation_sim_start_s=sim_start,navigation_sim_end_s=sim_end)

@@ -1,0 +1,130 @@
+{
+  "150916": {
+    "ppid": 150695,
+    "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/cleany_navigation/obstacle_memory --ros-args -r __node:=obstacle_memory --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_33u55gxz "
+  },
+  "150925": {
+    "ppid": 150695,
+    "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/cleany_navigation/voxel_guard --ros-args -r __node:=voxel_guard --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_do7n8_ic "
+  },
+  "150678": {
+    "ppid": 150644,
+    "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/run_dwb.py --candidate dwb --domain 231 --rtf 1 --output /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/pilot_sampling --goal-index 2 "
+  },
+  "150695": {
+    "ppid": 150678,
+    "cmd": "/usr/bin/python3 /opt/ros/humble/bin/ros2 launch /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/pilot_sampling/2_chair_gap/run.launch.py "
+  },
+  "150973": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_collision_monitor/collision_monitor --ros-args -r __node:=collision_monitor --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_6pys9ntk "
+  },
+  "150976": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_lifecycle_manager/lifecycle_manager --ros-args -r __node:=lifecycle_manager_safety --params-file /tmp/launch_params_jbfowz_b "
+  },
+  "150727": {
+    "ppid": 150695,
+    "cmd": "ign gazebo -r -s --render-engine-server ogre2 /tmp/cleany-friction-frames-0dhivzef/world.sdf               "
+  },
+  "150729": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge --ros-args -r __node:=gazebo_core_bridge --params-file /tmp/launch_params_w1b9rmyf -r /clock:=/gazebo/raw_clock -r /joint_states:=/gazebo/raw_joint_states "
+  },
+  "150731": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge --ros-args -r __node:=gazebo_lidar_bridge --params-file /tmp/launch_params_5v118oct "
+  },
+  "150733": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge --ros-args -r __node:=gazebo_head_depth_bridge --params-file /tmp/launch_params_ug9yh7oa "
+  },
+  "151374": {
+    "ppid": 150678,
+    "cmd": "/usr/bin/python3 /opt/ros/humble/bin/ros2 bag record -o /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/pilot_sampling/2_chair_gap/bag /clock /ground_truth/odom /odom /joint_states /nav2/cmd_vel /cmd_vel /scan /collision_monitor_state /body_guard_3d/state /safety_2d/cmd_vel /gazebo_cmd_vel /wheel/odom /amcl_pose /tf /tf_static "
+  },
+  "150735": {
+    "ppid": 150695,
+    "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_feedback_sampler --ros-args -r __node:=gazebo_feedback_sampler --params-file /tmp/launch_params_sdua3no1 "
+  },
+  "150737": {
+    "ppid": 150695,
+    "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_command_guard --ros-args -r __node:=gazebo_command_guard --params-file /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/base.yaml --params-file /tmp/launch_params_rup8o6lq "
+  },
+  "150739": {
+    "ppid": 150695,
+    "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_odom_tf_publisher --ros-args -r __node:=gazebo_odom_tf_publisher --params-file /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/base.yaml --params-file /tmp/launch_params_z66zzakx "
+  },
+  "150741": {
+    "ppid": 150695,
+    "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/simulated_encoder_node --ros-args -r __node:=simulated_encoder --params-file /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/share/cleany_gazebo_sim/config/simulated_encoder.yaml --params-file /tmp/launch_params_7aetuln0 "
+  },
+  "150743": {
+    "ppid": 150695,
+    "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_base_odometry/lib/cleany_base_odometry/wheel_odometry_node --ros-args -r __node:=wheel_odometry --params-file /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/pilot_sampling/2_chair_gap/config/wheel_odometry.yaml --params-file /tmp/launch_params_m71v3bob "
+  },
+  "150745": {
+    "ppid": 150695,
+    "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/simulated_odometry_error_node --ros-args -r __node:=simulated_odometry_error --params-file /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/pilot_sampling/2_chair_gap/config/odometry_error_ideal.yaml --params-file /tmp/launch_params_4fady8qh "
+  },
+  "150747": {
+    "ppid": 150695,
+    "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_sensor_tf_publisher --ros-args -r __node:=gazebo_sensor_tf_publisher --params-file /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/pilot_sampling/2_chair_gap/config/sensor_tf.yaml --params-file /tmp/launch_params_zj397hjn "
+  },
+  "150749": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/ros_gz_bridge/parameter_bridge /model/cleany_mecanum/head_pan/cmd_pos@std_msgs/msg/Float64]gz.msgs.Double --ros-args -r __node:=head_pan_bridge -r /model/cleany_mecanum/head_pan/cmd_pos:=/head_pan/command "
+  },
+  "150878": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_planner/planner_server --ros-args -r __node:=planner_server --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_8y397it2 -r cmd_vel:=nav2/cmd_vel "
+  },
+  "150751": {
+    "ppid": 150695,
+    "cmd": "/usr/bin/python3 /home/ehdrms/workspace/cleany/cleany-data/builds/feat-runtime-integration/install/cleany_gazebo_sim/lib/cleany_gazebo_sim/gazebo_pan_tf_publisher --ros-args --params-file /tmp/launch_params_c5tbsj5r --params-file /tmp/launch_params_gmi8w37r "
+  },
+  "150880": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_behaviors/behavior_server --ros-args -r __node:=behavior_server --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_akbjm5yr -r cmd_vel:=nav2/cmd_vel "
+  },
+  "150753": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/tf2_ros/static_transform_publisher --frame-id head_camera_depth_frame --child-frame-id head_camera_depth_optical_frame --roll -1.5707963267948966 --pitch 0 --yaw -1.5707963267948966 --ros-args -r __node:=depth_optical_tf --params-file /tmp/launch_params_sl_ac9a_ "
+  },
+  "150882": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_bt_navigator/bt_navigator --ros-args -r __node:=bt_navigator --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_03t53luq -r cmd_vel:=nav2/cmd_vel "
+  },
+  "150755": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_map_server/map_server --ros-args -r __node:=map_server --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_v_qu6vw5 --params-file /tmp/launch_params_0qtyl4ed -r cmd_vel:=nav2/cmd_vel "
+  },
+  "150884": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_lifecycle_manager/lifecycle_manager --ros-args -r __node:=lifecycle_manager_localization --params-file /tmp/launch_params_t36p470b -r cmd_vel:=nav2/cmd_vel "
+  },
+  "150757": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_amcl/amcl --ros-args -r __node:=amcl --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_r77qjesm -r cmd_vel:=nav2/cmd_vel "
+  },
+  "150886": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_lifecycle_manager/lifecycle_manager --ros-args -r __node:=lifecycle_manager_navigation --params-file /tmp/launch_params_ome9a09i -r cmd_vel:=nav2/cmd_vel "
+  },
+  "150759": {
+    "ppid": 150695,
+    "cmd": "/opt/ros/humble/lib/nav2_controller/controller_server --ros-args -r __node:=controller_server --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_xmqy94vc -r cmd_vel:=nav2/cmd_vel "
+  },
+  "150888": {
+    "ppid": 150695,
+    "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/cleany_navigation/nav2_bt_trace --ros-args -r __node:=nav2_bt_trace --params-file /tmp/launch_params_n1fgaqk3 "
+  },
+  "150892": {
+    "ppid": 150695,
+    "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/cleany_navigation/depth_clearance --ros-args -r __node:=depth_clearance --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_gd5bln8q "
+  },
+  "150911": {
+    "ppid": 150695,
+    "cmd": "python3 /home/ehdrms/workspace/cleany/cleany-data/builds/controller-opt-dwb/install-navigation/cleany_navigation/lib/cleany_navigation/pan_motion_gate --ros-args -r __node:=pan_motion_gate --params-file /tmp/cleany-navigation-7axcim_1/parameters.yaml --params-file /tmp/launch_params_ce4otnpc "
+  }
+}

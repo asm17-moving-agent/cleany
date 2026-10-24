@@ -1,0 +1,26 @@
+{
+  "dwb_launch": {
+    "host_pid": 310115,
+    "script": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-facility-gui-20261013-053222/dwb/launch.sh"
+  },
+  "dwb_gui": {
+    "host_pid": 310116,
+    "script": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-facility-gui-20261013-053222/dwb/gui.sh"
+  },
+  "dwb_operator": {
+    "host_pid": 310117,
+    "script": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-facility-gui-20261013-053222/dwb/operate.sh"
+  },
+  "teb_launch": {
+    "host_pid": 310118,
+    "script": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-facility-gui-20261013-053222/teb/launch.sh"
+  },
+  "teb_gui": {
+    "host_pid": 310121,
+    "script": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-facility-gui-20261013-053222/teb/gui.sh"
+  },
+  "teb_operator": {
+    "host_pid": 310122,
+    "script": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-facility-gui-20261013-053222/teb/operate.sh"
+  }
+}

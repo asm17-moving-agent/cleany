@@ -1,0 +1,26 @@
+voxel_guard:
+  ros__parameters:
+    angular_deceleration: 0.6
+    command_timeout_s: 0.5
+    command_topic: safety_2d/cmd_vel
+    linear_deceleration: 0.4
+    localization_jump_m: 0.25
+    localization_jump_rad: 0.3
+    margin: 0.02
+    max_speed: 0.18027756377319945
+    max_yaw_rate: 0.14
+    odom_topic: odom
+    output_directory: /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/final5_v1/2_chair_gap/voxel_guard
+    output_topic: cmd_vel
+    processing_budget_s: 0.15
+    profile: /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/final5_v1/2_chair_gap/config/cad_frame.yaml
+    reaction_s: 0.25
+    slowdown_lookahead_s: 0.5
+    slowdown_ratio: 0.35
+    source_timeout_s: 0.8
+    status_topic: obstacle_memory/voxel_status
+    step_s: 0.05
+    update_period_s: 0.05
+    use_sim_time: false
+    voxel_topic: obstacle_memory/voxels
+    wall_source_timeout_s: 5.0

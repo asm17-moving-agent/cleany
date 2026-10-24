@@ -1,0 +1,109 @@
+{
+  "sim_s": 11.989,
+  "navigation_sim_s": 3.6980000000000004,
+  "truth": [
+    -1.8012314175007542,
+    -3.9610469883492683,
+    1.5836830017015346
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 11.951,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 11.951,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 3912,
+      "source_age_s": 0.2680000000000007,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 1.1866149998240871
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 11.951,
+      "stamp_s": 11.951,
+      "sim_s": 11.951,
+      "target": -0.07714436188614289,
+      "pan": -0.07714436188614289,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 11.881
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 11.969000000000001,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 11.969,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 3912,
+      "source_age_s": 0.2859999999999996,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 0.8732090009289095
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 11.979000000000001,
+      "stamp_s": 11.979,
+      "sim_s": 11.979,
+      "target": -0.07714436188614289,
+      "pan": -0.07714436188614289,
+      "reason": "WALL_TIMEOUT",
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 11.881
+    }
+  ]
+}

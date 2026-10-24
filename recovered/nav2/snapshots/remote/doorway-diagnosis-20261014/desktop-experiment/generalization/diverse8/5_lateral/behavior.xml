@@ -1,0 +1,27 @@
+<root main_tree_to_execute="MainTree">
+ <BehaviorTree ID="MainTree">
+  <RecoveryNode number_of_retries="4" name="NavigateWithBoundedRecovery">
+   <Sequence name="PlanThenFollow">
+    <ComputePathToPose goal="{goal}" path="{initial_path}" planner_id="GridBased"/>
+    <SetBlackboard output_key="path" value="{initial_path}"/>
+    <PipelineSequence name="ReplanAndFollow">
+     <RateController hz="0.2">
+      <ForceSuccess>
+       <Sequence name="CommitSuccessfulReplanOnly">
+        <ComputePathToPose goal="{goal}" path="{replanned_path}" planner_id="GridBased"/>
+        <SetBlackboard output_key="path" value="{replanned_path}"/>
+       </Sequence>
+      </ForceSuccess>
+     </RateController>
+     <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="goal_checker"/>
+    </PipelineSequence>
+   </Sequence>
+   <Sequence name="RetreatThenReplan">
+    <ForceSuccess>
+     <BackUp backup_dist="0.35" backup_speed="0.10" time_allowance="8.0"/>
+    </ForceSuccess>
+    <Wait wait_duration="0.5"/>
+   </Sequence>
+  </RecoveryNode>
+ </BehaviorTree>
+</root>

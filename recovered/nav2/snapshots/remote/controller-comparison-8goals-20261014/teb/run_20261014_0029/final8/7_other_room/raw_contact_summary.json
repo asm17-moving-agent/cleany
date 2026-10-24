@@ -1,0 +1,27 @@
+{
+  "source": "full rosbag2 Contacts topics; navigation window by source sim stamp",
+  "counts_by_topic": {
+    "/benchmark/contacts/c25": 358076,
+    "/benchmark/contacts/c27": 358072,
+    "/benchmark/contacts/c28": 358072,
+    "/benchmark/contacts/c26": 358076
+  },
+  "ground_pair_samples": 1432296,
+  "self_pair_samples": 0,
+  "unnamed_pair_samples": 0,
+  "nonfloor_pair_samples": 0,
+  "nonfloor_pair_episodes": 0,
+  "max_nonfloor_depth_m": null,
+  "recorded_contact_sim_window_s": [
+    8.342,
+    366.516
+  ],
+  "navigation_sim_window_s": [
+    8.341000000000001,
+    366.516
+  ],
+  "full_navigation_window_observed": true,
+  "partial_recorded_nonfloor_pair_episodes": 0,
+  "actual_contact_count": 0,
+  "null_reason": null
+}

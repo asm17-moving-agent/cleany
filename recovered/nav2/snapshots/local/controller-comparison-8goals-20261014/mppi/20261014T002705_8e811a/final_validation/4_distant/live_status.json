@@ -1,0 +1,96 @@
+{
+  "sim_s": 85.607,
+  "navigation_sim_s": 75.535,
+  "truth": [
+    -5.397766308715724,
+    4.721827170518916,
+    -1.8215979949033798
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 85.593,
+      "sim_s": 85.593,
+      "requested": [
+        0.0,
+        0.0,
+        0.13707372546195984
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.13707372546195984
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 85.59700000000001,
+      "stamp_s": 85.597,
+      "sim_s": 85.597,
+      "target": 0.21719332094160407,
+      "pan": 0.2171933209416048,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        0.13707372546195984
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.13707372546195984
+      ],
+      "depth_stamp": 85.537
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 85.59700000000001,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 85.597,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.13772788643836975
+      ],
+      "measured": [
+        -1.1279865930177805e-13,
+        1.1279865930177805e-13,
+        0.13187518955990754
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 31056,
+      "source_age_s": 0.3459999999999894,
+      "output": [
+        0.0,
+        0.0,
+        0.13772788643836975
+      ],
+      "processing_ms": 12.893186998553574
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 85.60300000000001,
+      "sim_s": 85.60300000000001,
+      "requested": [
+        0.0,
+        0.0,
+        0.13772061467170715
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.13772061467170715
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    }
+  ]
+}

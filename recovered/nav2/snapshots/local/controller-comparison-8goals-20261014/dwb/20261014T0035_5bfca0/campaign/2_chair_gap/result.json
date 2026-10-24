@@ -1,0 +1,410 @@
+{
+  "candidate": "dwb",
+  "goal_index": 2,
+  "goal_name": "chair_gap",
+  "goal_map": [
+    0.575,
+    -1.625,
+    1.570796
+  ],
+  "completed": true,
+  "domain": 225,
+  "partition": "cleany_comparison_a38fed2bbb104c19ad4a6d6714855188",
+  "host": "a16-fedora",
+  "discovery_ports": {
+    "msg": "22551",
+    "srv": "22552"
+  },
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "initial_pose_snapshot": {
+    "sim_s": 7.1080000000000005,
+    "GT": [
+      -1.8650000000000295,
+      -4.704999999833625,
+      1.570800000000001
+    ],
+    "map": {
+      "sim_s": 7.0920000000000005,
+      "source": "map_base_tf",
+      "pose": [
+        -1.843178932794239,
+        -4.75468536861123,
+        1.5703242749601996
+      ]
+    },
+    "odom": {
+      "sim_s": 7.1080000000000005,
+      "source": "/odom",
+      "stamp_s": 7.107,
+      "pose": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "wheel_odom": {
+      "sim_s": 7.1080000000000005,
+      "source": "/wheel/odom",
+      "stamp_s": 7.107,
+      "pose": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "amcl": {
+      "sim_s": 4.183,
+      "source": "amcl",
+      "stamp_s": 4.163,
+      "pose": [
+        -1.843178932794239,
+        -4.75468536861123,
+        1.5703242749601996
+      ]
+    }
+  },
+  "common_goal": {
+    "index": 2,
+    "id": "chair_gap",
+    "pose_map_world": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "seat": "seat-29",
+    "remove_chair": "office_chair_29",
+    "world": "goals/2_chair_gap/world.canonical.sdf",
+    "map": "goals/2_chair_gap/map.yaml",
+    "world_sha256": "49cd9ce6dd7bfd5b083310d60e4f0edba40943e73c6cd330d09b43d5bc90d439",
+    "map_sha256": "2ab09f28d029f03b6ed2506a1e63761c1e5e22cb7df58f04f2c5c45678b4f28c",
+    "model_count": 329,
+    "chair_count": 81,
+    "start_occupied_cells": 0,
+    "proposed_goal_occupied_cells": 0,
+    "coordinate_change": null,
+    "goal_name": "chair_gap",
+    "name": "chair_gap",
+    "pose": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "map_yaml": "goals/2_chair_gap/map.yaml",
+    "world_template": "goals/2_chair_gap/world.canonical.sdf",
+    "removed_chair": "office_chair_29",
+    "preflight": {
+      "index": 2,
+      "id": "chair_gap",
+      "action_status": 4,
+      "pose_count": 213,
+      "wall_s": 0.06654496899864171,
+      "path_length_m": 5.391268427874507,
+      "total_path_yaw_change_rad": 3.999999999892978e-06,
+      "start": [
+        [
+          -1.865,
+          -4.705,
+          1.5708
+        ]
+      ],
+      "end": [
+        [
+          0.575,
+          -1.625,
+          1.570796
+        ]
+      ],
+      "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+      "live": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0,
+        "planner": {
+          "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+          "GridBased.holonomic_direct_path": true,
+          "GridBased.require_exact_goal": true,
+          "GridBased.lattice_collision_padding": 0.05
+        }
+      }
+    },
+    "planner_path": "goals/2_chair_gap/planner_path.json",
+    "actual_route_description": {
+      "body_heading_total_change_rad": 3.999999999892978e-06,
+      "path_length_m": 5.391268427874507,
+      "narrow_or_multiple_turn_label": "Measured route, see saved poses"
+    }
+  },
+  "arrival_tolerance": {
+    "xy_m": 0.3,
+    "yaw_rad": 0.17453292519943295,
+    "actually_loaded": true
+  },
+  "navigation_started": true,
+  "navigation_sim_start_s": 8.111,
+  "navigation_wall_start_monotonic_s": 20401.229286925,
+  "soft_240_sim_s_crossed_at": 248.114,
+  "timeout": true,
+  "action_pose_snapshot": {
+    "sim_s": 445.97,
+    "GT": [
+      -1.26517548793674,
+      -1.3430720269134966,
+      1.5699730118655824
+    ],
+    "map": {
+      "sim_s": 445.951,
+      "source": "map_base_tf",
+      "pose": [
+        -1.269643843741004,
+        -1.376032775150855,
+        1.565985698361294
+      ]
+    },
+    "odom": {
+      "sim_s": 445.97,
+      "source": "/odom",
+      "stamp_s": 445.969,
+      "pose": [
+        3.3619289947444337,
+        -0.599829059575541,
+        -0.0008974766025526572
+      ]
+    },
+    "wheel_odom": {
+      "sim_s": 445.97,
+      "source": "/wheel/odom",
+      "stamp_s": 445.969,
+      "pose": [
+        3.3619289947444337,
+        -0.599829059575541,
+        -0.0008974766025526572
+      ]
+    },
+    "amcl": {
+      "sim_s": 23.724,
+      "source": "amcl",
+      "stamp_s": 23.711,
+      "pose": [
+        -1.2730786321655438,
+        -1.376217627522308,
+        1.5659856983612936
+      ]
+    }
+  },
+  "navigation_sim_end_s": 445.97,
+  "settled_pose_snapshot": {
+    "sim_s": 447.971,
+    "GT": [
+      -1.26517548793674,
+      -1.3430720269134966,
+      1.5699730118655824
+    ],
+    "map": {
+      "sim_s": 447.951,
+      "source": "map_base_tf",
+      "pose": [
+        -1.269643843741004,
+        -1.376032775150855,
+        1.565985698361294
+      ]
+    },
+    "odom": {
+      "sim_s": 447.96700000000004,
+      "source": "/odom",
+      "stamp_s": 447.966,
+      "pose": [
+        3.3619289947444337,
+        -0.599829059575541,
+        -0.0008974766025526572
+      ]
+    },
+    "wheel_odom": {
+      "sim_s": 447.96700000000004,
+      "source": "/wheel/odom",
+      "stamp_s": 447.966,
+      "pose": [
+        3.3619289947444337,
+        -0.599829059575541,
+        -0.0008974766025526572
+      ]
+    },
+    "amcl": {
+      "sim_s": 23.724,
+      "source": "amcl",
+      "stamp_s": 23.711,
+      "pose": [
+        -1.2730786321655438,
+        -1.376217627522308,
+        1.5659856983612936
+      ]
+    }
+  },
+  "action_status": 5,
+  "position_error_m": 1.861646907555749,
+  "yaw_error_deg": 0.04715374669148086,
+  "final_truth": [
+    -1.26517548793674,
+    -1.3430720269134966,
+    1.5699730118655824
+  ],
+  "navigation_sim_s": 437.85900000000004,
+  "navigation_wall_s": 1800.1028124820004,
+  "achieved_rtf": 0.24324110654339542,
+  "smoothness": {
+    "available": true,
+    "linear_acceleration_rms_m_s2": 0.0198342680074981,
+    "linear_acceleration_p95_m_s2": 0.0,
+    "angular_acceleration_rms_rad_s2": 0.0007276371454663445,
+    "angular_acceleration_p95_rad_s2": 0.0,
+    "motion_stop_count": 1,
+    "linear_jerk_rms_m_s3": 0.11793116638563446,
+    "linear_jerk_p95_m_s3": 0.0,
+    "angular_jerk_rms_rad_s3": 0.008975090276454831,
+    "angular_jerk_p95_rad_s3": 0.0,
+    "stationary_s": 422.35,
+    "motion_start_count": 1,
+    "yaw_reversals": 0,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.00830044410349879,
+    "speed_max_m_s": 0.31686500034697246
+  },
+  "controller_command_sim_interval_s": {
+    "mean": 0.012209264062020693,
+    "p95": 0.018000000000029104,
+    "count": 35859
+  },
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 4.990000000000001,
+    "/cmd_vel": 4.99
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 8331
+  },
+  "minimum_true_footprint_clearance_m": null,
+  "clearance_unavailable_reason": "Continuous geometric clearance not instrumented; physics contact telemetry is separate",
+  "clearance_note": "Physics contact sensors instrument every robot collider; zero reported events is not continuous collision-free proof. ROS bridge depths arrays empty.",
+  "owned_launch_stopped": true,
+  "owned_bag_stopped": true,
+  "elapsed_wall_s": 1847.7380540409977,
+  "no_valid_trajectory_warning_count": 34613,
+  "controller_deadline_warning_count": 0
+}

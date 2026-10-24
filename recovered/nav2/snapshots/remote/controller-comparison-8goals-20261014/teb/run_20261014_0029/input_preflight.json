@@ -1,0 +1,74 @@
+[
+  {
+    "index": 0,
+    "id": "straight",
+    "models": 330,
+    "mesh_texture_reference_count": 496,
+    "texture_relocations": 97,
+    "source_hashes_match": true,
+    "all_assets_present": true
+  },
+  {
+    "index": 1,
+    "id": "turn_arrival",
+    "models": 330,
+    "mesh_texture_reference_count": 496,
+    "texture_relocations": 97,
+    "source_hashes_match": true,
+    "all_assets_present": true
+  },
+  {
+    "index": 2,
+    "id": "chair_gap",
+    "models": 329,
+    "mesh_texture_reference_count": 488,
+    "texture_relocations": 95,
+    "source_hashes_match": true,
+    "all_assets_present": true
+  },
+  {
+    "index": 3,
+    "id": "far_heading",
+    "models": 330,
+    "mesh_texture_reference_count": 496,
+    "texture_relocations": 97,
+    "source_hashes_match": true,
+    "all_assets_present": true
+  },
+  {
+    "index": 4,
+    "id": "distant",
+    "models": 329,
+    "mesh_texture_reference_count": 488,
+    "texture_relocations": 95,
+    "source_hashes_match": true,
+    "all_assets_present": true
+  },
+  {
+    "index": 5,
+    "id": "lateral",
+    "models": 330,
+    "mesh_texture_reference_count": 496,
+    "texture_relocations": 97,
+    "source_hashes_match": true,
+    "all_assets_present": true
+  },
+  {
+    "index": 6,
+    "id": "narrow_seat",
+    "models": 329,
+    "mesh_texture_reference_count": 488,
+    "texture_relocations": 95,
+    "source_hashes_match": true,
+    "all_assets_present": true
+  },
+  {
+    "index": 7,
+    "id": "other_room",
+    "models": 329,
+    "mesh_texture_reference_count": 494,
+    "texture_relocations": 97,
+    "source_hashes_match": true,
+    "all_assets_present": true
+  }
+]

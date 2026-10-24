@@ -1,0 +1,12 @@
+{
+  "canonical_world_equal_excluding_contact_instrumentation": true,
+  "reference": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/final61_20261013_v1/0_straight",
+  "comparison": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot02_chair_gap/2_chair_gap",
+  "contact_instrumentation_only": [
+    "ContactSystem observation plugin",
+    "31 contact sensors"
+  ],
+  "metadata_identical": true,
+  "map_identical": true,
+  "common_assets_verification": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/common_fixture_verification.json"
+}

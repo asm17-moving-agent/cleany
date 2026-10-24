@@ -1,0 +1,21 @@
+{
+  "body_fixture_contact_observed": true,
+  "saved_positive_events": 100,
+  "first_stamp_s": 0.002,
+  "last_stamp_s": 0.2,
+  "example_pair": [
+    "cleany_mecanum::base_link::base_link_fixed_joint_lump__mjcf_geom_27_0_collision_collision",
+    "sensor_validation_fixture::body::forced_overlap"
+  ],
+  "raw_bag_topic_counts": {
+    "/benchmark/contacts/c0": 1509,
+    "/clock": 166,
+    "/ground_truth/odom": 150
+  },
+  "bag_sqlite_integrity": "ok",
+  "wheel_ground_samples": 0,
+  "wheel_ground_note": "Overlap fixture supports body above its normal floor position; this diagnostic validates body contact, not wheel-floor contact",
+  "excluded_from_navigation_comparison": true,
+  "depth_m": null,
+  "depth_reason": "ROS Contacts depths arrays empty"
+}

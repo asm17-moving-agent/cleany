@@ -1,0 +1,30 @@
+{
+  "remaining_owned_partition_processes": [],
+  "raw_bags": [
+    {
+      "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/final61_20261013_v1/4_distant/bag/bag_0.db3",
+      "sqlite_integrity": "ok",
+      "message_count": 76014
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/final61_20261013_v1/0_straight/bag/bag_0.db3",
+      "sqlite_integrity": "ok",
+      "message_count": 11701
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/final61_20261013_v1/3_far_heading/bag/bag_0.db3",
+      "sqlite_integrity": "ok",
+      "message_count": 31876
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/final61_20261013_v1/1_turn_arrival/bag/bag_0.db3",
+      "sqlite_integrity": "ok",
+      "message_count": 28002
+    },
+    {
+      "path": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/final61_20261013_v1/2_chair_gap/bag/bag_0.db3",
+      "sqlite_integrity": "ok",
+      "message_count": 34850
+    }
+  ]
+}

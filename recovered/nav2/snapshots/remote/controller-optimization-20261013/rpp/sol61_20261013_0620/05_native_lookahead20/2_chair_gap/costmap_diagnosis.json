@@ -1,0 +1,367 @@
+[
+  {
+    "target_sim_s": 51.160000000000004,
+    "clock_sim_s": 51.18,
+    "costmap_stamp_sim_s": 50.88,
+    "frame": "odom",
+    "tf_pose_xyyaw": [
+      3.300943514214971,
+      -2.2844615716247167,
+      -1.5231584394214974
+    ],
+    "padded_footprint": [
+      [
+        -0.338525,
+        -0.42737300000024486
+      ],
+      [
+        -0.338525,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        -0.42737300000024486
+      ]
+    ],
+    "perimeter_max_occupancy": 99,
+    "lethal_perimeter_cells": [],
+    "goal_yaw_in_costmap_frame": 0.07856166890466927,
+    "sampled_rotation_to_goal_perimeter_costs": [
+      {
+        "fraction_of_goal_rotation": 0.0,
+        "yaw_rad": -1.5231584394214974,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 0.1,
+        "yaw_rad": -1.3629864285888806,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 4
+      },
+      {
+        "fraction_of_goal_rotation": 0.2,
+        "yaw_rad": -1.202814417756264,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 5
+      },
+      {
+        "fraction_of_goal_rotation": 0.30000000000000004,
+        "yaw_rad": -1.0426424069236473,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 4
+      },
+      {
+        "fraction_of_goal_rotation": 0.4,
+        "yaw_rad": -0.8824703960910307,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 3
+      },
+      {
+        "fraction_of_goal_rotation": 0.5,
+        "yaw_rad": -0.722298385258414,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 5
+      },
+      {
+        "fraction_of_goal_rotation": 0.6000000000000001,
+        "yaw_rad": -0.5621263744257973,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 3
+      },
+      {
+        "fraction_of_goal_rotation": 0.7000000000000001,
+        "yaw_rad": -0.4019543635931806,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 0.8,
+        "yaw_rad": -0.24178235276056403,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 0.9,
+        "yaw_rad": -0.08161034192794725,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 1.0,
+        "yaw_rad": 0.07856166890466931,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      }
+    ],
+    "note": "Nearest published grid/TF at target; occupancy100 represents lethal254. Asynchronous snapshot does not substitute exact native check."
+  },
+  {
+    "target_sim_s": 51.928000000000004,
+    "clock_sim_s": 51.948,
+    "costmap_stamp_sim_s": 51.456,
+    "frame": "odom",
+    "tf_pose_xyyaw": [
+      3.300943514214971,
+      -2.2844615716247163,
+      -1.4981021534050398
+    ],
+    "padded_footprint": [
+      [
+        -0.338525,
+        -0.42737300000024486
+      ],
+      [
+        -0.338525,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        -0.42737300000024486
+      ]
+    ],
+    "perimeter_max_occupancy": 100,
+    "lethal_perimeter_cells": [
+      [
+        49,
+        39,
+        3.7750000365078464,
+        -2.2749999709427273
+      ],
+      [
+        49,
+        37,
+        3.7750000365078464,
+        -2.3749999724328434
+      ],
+      [
+        49,
+        36,
+        3.7750000365078464,
+        -2.4249999731779015
+      ],
+      [
+        49,
+        35,
+        3.7750000365078464,
+        -2.4749999739229596
+      ],
+      [
+        49,
+        34,
+        3.7750000365078464,
+        -2.5249999746680176
+      ]
+    ],
+    "goal_yaw_in_costmap_frame": 0.07856166890466927,
+    "sampled_rotation_to_goal_perimeter_costs": [
+      {
+        "fraction_of_goal_rotation": 0.0,
+        "yaw_rad": -1.4981021534050398,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 5
+      },
+      {
+        "fraction_of_goal_rotation": 0.1,
+        "yaw_rad": -1.3404357711740689,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 4
+      },
+      {
+        "fraction_of_goal_rotation": 0.2,
+        "yaw_rad": -1.182769388943098,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 5
+      },
+      {
+        "fraction_of_goal_rotation": 0.30000000000000004,
+        "yaw_rad": -1.025103006712127,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 4
+      },
+      {
+        "fraction_of_goal_rotation": 0.4,
+        "yaw_rad": -0.8674366244811561,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 3
+      },
+      {
+        "fraction_of_goal_rotation": 0.5,
+        "yaw_rad": -0.7097702422501853,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 5
+      },
+      {
+        "fraction_of_goal_rotation": 0.6000000000000001,
+        "yaw_rad": -0.5521038600192142,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 2
+      },
+      {
+        "fraction_of_goal_rotation": 0.7000000000000001,
+        "yaw_rad": -0.39443747778824334,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 0.8,
+        "yaw_rad": -0.23677109555727238,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 0.9,
+        "yaw_rad": -0.07910471332630165,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 1.0,
+        "yaw_rad": 0.07856166890466931,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      }
+    ],
+    "note": "Nearest published grid/TF at target; occupancy100 represents lethal254. Asynchronous snapshot does not substitute exact native check."
+  },
+  {
+    "target_sim_s": 52.846000000000004,
+    "clock_sim_s": 52.848,
+    "costmap_stamp_sim_s": 52.632,
+    "frame": "odom",
+    "tf_pose_xyyaw": [
+      3.300943514214971,
+      -2.2844615716247163,
+      -1.4981021534050398
+    ],
+    "padded_footprint": [
+      [
+        -0.338525,
+        -0.42737300000024486
+      ],
+      [
+        -0.338525,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        -0.42737300000024486
+      ]
+    ],
+    "perimeter_max_occupancy": 100,
+    "lethal_perimeter_cells": [
+      [
+        49,
+        39,
+        3.7750000365078464,
+        -2.2749999709427273
+      ],
+      [
+        49,
+        37,
+        3.7750000365078464,
+        -2.3749999724328434
+      ],
+      [
+        49,
+        36,
+        3.7750000365078464,
+        -2.4249999731779015
+      ],
+      [
+        49,
+        35,
+        3.7750000365078464,
+        -2.4749999739229596
+      ],
+      [
+        49,
+        34,
+        3.7750000365078464,
+        -2.5249999746680176
+      ]
+    ],
+    "goal_yaw_in_costmap_frame": 0.07856166890466927,
+    "sampled_rotation_to_goal_perimeter_costs": [
+      {
+        "fraction_of_goal_rotation": 0.0,
+        "yaw_rad": -1.4981021534050398,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 5
+      },
+      {
+        "fraction_of_goal_rotation": 0.1,
+        "yaw_rad": -1.3404357711740689,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 4
+      },
+      {
+        "fraction_of_goal_rotation": 0.2,
+        "yaw_rad": -1.182769388943098,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 5
+      },
+      {
+        "fraction_of_goal_rotation": 0.30000000000000004,
+        "yaw_rad": -1.025103006712127,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 4
+      },
+      {
+        "fraction_of_goal_rotation": 0.4,
+        "yaw_rad": -0.8674366244811561,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 3
+      },
+      {
+        "fraction_of_goal_rotation": 0.5,
+        "yaw_rad": -0.7097702422501853,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 5
+      },
+      {
+        "fraction_of_goal_rotation": 0.6000000000000001,
+        "yaw_rad": -0.5521038600192142,
+        "perimeter_max_occupancy": 100,
+        "lethal_perimeter_count": 2
+      },
+      {
+        "fraction_of_goal_rotation": 0.7000000000000001,
+        "yaw_rad": -0.39443747778824334,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 0.8,
+        "yaw_rad": -0.23677109555727238,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 0.9,
+        "yaw_rad": -0.07910471332630165,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      },
+      {
+        "fraction_of_goal_rotation": 1.0,
+        "yaw_rad": 0.07856166890466931,
+        "perimeter_max_occupancy": 99,
+        "lethal_perimeter_count": 0
+      }
+    ],
+    "note": "Nearest published grid/TF at target; occupancy100 represents lethal254. Asynchronous snapshot does not substitute exact native check."
+  }
+]

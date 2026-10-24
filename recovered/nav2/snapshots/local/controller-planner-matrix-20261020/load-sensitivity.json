@@ -1,0 +1,48 @@
+[
+  {
+    "combination": "dwb_lattice",
+    "goal": "turn_arrival",
+    "excluded_mixed_load": {
+      "action_status": 4,
+      "navigation_sim_s": 74.515,
+      "navigation_wall_s": 724.800332908053,
+      "achieved_rtf": 0.1028076238610846,
+      "position_error_m": 0.21679064665556685,
+      "yaw_error_deg": 9.331734771154462,
+      "controller_deadline_warning_count": 188
+    },
+    "fresh_final": {
+      "action_status": 6,
+      "navigation_sim_s": 125.99100000000001,
+      "navigation_wall_s": 683.201321147033,
+      "achieved_rtf": 0.18441269959559292,
+      "position_error_m": 0.2357750692486925,
+      "yaw_error_deg": 54.81001246001931,
+      "controller_deadline_warning_count": 5
+    },
+    "note": "Diagnostic before/after load change; not repeated success-rate evidence or isolated causal proof"
+  },
+  {
+    "combination": "dwb_theta",
+    "goal": "straight",
+    "excluded_mixed_load": {
+      "action_status": 6,
+      "navigation_sim_s": 134.258,
+      "navigation_wall_s": 1050.301209673984,
+      "achieved_rtf": 0.1278280923256996,
+      "position_error_m": 0.2245554665167056,
+      "yaw_error_deg": 52.91190147661266,
+      "controller_deadline_warning_count": 284
+    },
+    "fresh_final": {
+      "action_status": 4,
+      "navigation_sim_s": 24.806000000000004,
+      "navigation_wall_s": 82.2007322810241,
+      "achieved_rtf": 0.30177346736029537,
+      "position_error_m": 0.22261022025948626,
+      "yaw_error_deg": 8.701428893669727,
+      "controller_deadline_warning_count": 0
+    },
+    "note": "Diagnostic before/after load change; not repeated success-rate evidence or isolated causal proof"
+  }
+]

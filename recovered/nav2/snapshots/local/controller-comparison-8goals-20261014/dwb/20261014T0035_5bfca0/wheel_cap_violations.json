@@ -1,0 +1,1969 @@
+[
+  {
+    "goal": "straight",
+    "sample_value_count_over_5": 0,
+    "max_abs_rad_s": 4.212333645831753,
+    "first_violations": [],
+    "all_violations": []
+  },
+  {
+    "goal": "turn_arrival",
+    "sample_value_count_over_5": 7,
+    "max_abs_rad_s": 5.015522324630671,
+    "first_violations": [
+      {
+        "receive_sim_s": 18.836000000000002,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.000187628471747
+      },
+      {
+        "receive_sim_s": 18.836000000000002,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.000187628533722
+      },
+      {
+        "receive_sim_s": 19.002000000000002,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.015522324616049
+      },
+      {
+        "receive_sim_s": 19.002000000000002,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.015522324630671
+      },
+      {
+        "receive_sim_s": 19.283,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.0049044344646605
+      },
+      {
+        "receive_sim_s": 19.321,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.010057850216515
+      },
+      {
+        "receive_sim_s": 20.146,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.002539185322773
+      }
+    ],
+    "all_violations": [
+      {
+        "receive_sim_s": 18.836000000000002,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.000187628471747
+      },
+      {
+        "receive_sim_s": 18.836000000000002,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.000187628533722
+      },
+      {
+        "receive_sim_s": 19.002000000000002,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.015522324616049
+      },
+      {
+        "receive_sim_s": 19.002000000000002,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.015522324630671
+      },
+      {
+        "receive_sim_s": 19.283,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.0049044344646605
+      },
+      {
+        "receive_sim_s": 19.321,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.010057850216515
+      },
+      {
+        "receive_sim_s": 20.146,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.002539185322773
+      }
+    ]
+  },
+  {
+    "goal": "chair_gap",
+    "sample_value_count_over_5": 0,
+    "max_abs_rad_s": 4.990000000118912,
+    "first_violations": [],
+    "all_violations": []
+  },
+  {
+    "goal": "far_heading",
+    "sample_value_count_over_5": 3,
+    "max_abs_rad_s": 5.006475590412114,
+    "first_violations": [
+      {
+        "receive_sim_s": 26.771,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.000406418524515
+      },
+      {
+        "receive_sim_s": 27.197000000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.0064755903975735
+      },
+      {
+        "receive_sim_s": 27.197000000000003,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.006475590412114
+      }
+    ],
+    "all_violations": [
+      {
+        "receive_sim_s": 26.771,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.000406418524515
+      },
+      {
+        "receive_sim_s": 27.197000000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.0064755903975735
+      },
+      {
+        "receive_sim_s": 27.197000000000003,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.006475590412114
+      }
+    ]
+  },
+  {
+    "goal": "distant",
+    "sample_value_count_over_5": 351,
+    "max_abs_rad_s": 5.1284976327385,
+    "first_violations": [
+      {
+        "receive_sim_s": 11.915000000000001,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.007639732594038
+      },
+      {
+        "receive_sim_s": 11.915000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.007639732594204
+      },
+      {
+        "receive_sim_s": 11.974,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.006475590412566
+      },
+      {
+        "receive_sim_s": 11.974,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006475590412711
+      },
+      {
+        "receive_sim_s": 13.326,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.058534250050491
+      },
+      {
+        "receive_sim_s": 13.375,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.026569193498484
+      },
+      {
+        "receive_sim_s": 13.4,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.02673078325727
+      },
+      {
+        "receive_sim_s": 13.437000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.026900746432148
+      },
+      {
+        "receive_sim_s": 13.457,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006734556793481
+      },
+      {
+        "receive_sim_s": 13.533000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006654460590094
+      }
+    ],
+    "all_violations": [
+      {
+        "receive_sim_s": 11.915000000000001,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.007639732594038
+      },
+      {
+        "receive_sim_s": 11.915000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.007639732594204
+      },
+      {
+        "receive_sim_s": 11.974,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.006475590412566
+      },
+      {
+        "receive_sim_s": 11.974,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006475590412711
+      },
+      {
+        "receive_sim_s": 13.326,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.058534250050491
+      },
+      {
+        "receive_sim_s": 13.375,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.026569193498484
+      },
+      {
+        "receive_sim_s": 13.4,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.02673078325727
+      },
+      {
+        "receive_sim_s": 13.437000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.026900746432148
+      },
+      {
+        "receive_sim_s": 13.457,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006734556793481
+      },
+      {
+        "receive_sim_s": 13.533000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006654460590094
+      },
+      {
+        "receive_sim_s": 13.559000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.005794781899725
+      },
+      {
+        "receive_sim_s": 13.582,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.0353636530467005
+      },
+      {
+        "receive_sim_s": 13.626000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.029547306735368
+      },
+      {
+        "receive_sim_s": 13.685,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.008302183352299
+      },
+      {
+        "receive_sim_s": 13.723,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.022633598909662
+      },
+      {
+        "receive_sim_s": 13.747000000000002,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.018552594802682
+      },
+      {
+        "receive_sim_s": 13.769,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.0192756094165025
+      },
+      {
+        "receive_sim_s": 13.789000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.001669651438188
+      },
+      {
+        "receive_sim_s": 13.808000000000002,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.0014707198871236
+      },
+      {
+        "receive_sim_s": 13.831000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.030335300129637
+      },
+      {
+        "receive_sim_s": 13.946000000000002,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.0034666565565376
+      },
+      {
+        "receive_sim_s": 13.966000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.007108011697266
+      },
+      {
+        "receive_sim_s": 14.086,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.007770062938873
+      },
+      {
+        "receive_sim_s": 14.111,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.002096840641999
+      },
+      {
+        "receive_sim_s": 14.152000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.031350709321375
+      },
+      {
+        "receive_sim_s": 14.584000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006331423157381
+      },
+      {
+        "receive_sim_s": 14.652000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.000383733789299
+      },
+      {
+        "receive_sim_s": 14.674000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.004906370390395
+      },
+      {
+        "receive_sim_s": 14.737,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.008314865388206
+      },
+      {
+        "receive_sim_s": 14.850000000000001,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.000319970878687
+      },
+      {
+        "receive_sim_s": 15.195,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.015770509277338
+      },
+      {
+        "receive_sim_s": 15.215000000000002,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.015916535077836
+      },
+      {
+        "receive_sim_s": 15.236,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.013332318175606
+      },
+      {
+        "receive_sim_s": 15.325000000000001,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.003516941528412
+      },
+      {
+        "receive_sim_s": 15.348,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.003558681663415
+      },
+      {
+        "receive_sim_s": 15.395000000000001,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.028800939123254
+      },
+      {
+        "receive_sim_s": 15.438,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.000003902692205
+      },
+      {
+        "receive_sim_s": 15.461,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0007672570780155
+      },
+      {
+        "receive_sim_s": 15.530000000000001,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.009358175131491
+      },
+      {
+        "receive_sim_s": 15.556000000000001,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.018377808564837
+      },
+      {
+        "receive_sim_s": 15.63,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.039430727340463
+      },
+      {
+        "receive_sim_s": 15.678,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.011604882295286
+      },
+      {
+        "receive_sim_s": 15.707,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.053881758134888
+      },
+      {
+        "receive_sim_s": 15.821000000000002,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.005570966928248
+      },
+      {
+        "receive_sim_s": 15.845,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.039144952270215
+      },
+      {
+        "receive_sim_s": 15.866000000000001,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0175729068889
+      },
+      {
+        "receive_sim_s": 15.887,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.020315732978993
+      },
+      {
+        "receive_sim_s": 15.909,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.030204802455312
+      },
+      {
+        "receive_sim_s": 15.929,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0017346176268385
+      },
+      {
+        "receive_sim_s": 16.047,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0401875298753405
+      },
+      {
+        "receive_sim_s": 16.073,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.034075347464286
+      },
+      {
+        "receive_sim_s": 16.127000000000002,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0339266854217
+      },
+      {
+        "receive_sim_s": 16.152,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.005739989542355
+      },
+      {
+        "receive_sim_s": 16.174,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.00582244002042
+      },
+      {
+        "receive_sim_s": 16.199,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.028131701649369
+      },
+      {
+        "receive_sim_s": 16.243000000000002,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.044556165278081
+      },
+      {
+        "receive_sim_s": 16.267,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0246887637802224
+      },
+      {
+        "receive_sim_s": 16.325,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.051997130256269
+      },
+      {
+        "receive_sim_s": 16.346,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.026459680804281
+      },
+      {
+        "receive_sim_s": 16.369,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.011810060052903
+      },
+      {
+        "receive_sim_s": 16.464000000000002,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.013840779677681
+      },
+      {
+        "receive_sim_s": 16.527,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.006306084339613
+      },
+      {
+        "receive_sim_s": 16.569000000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.005809469199501
+      },
+      {
+        "receive_sim_s": 16.685000000000002,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.012468677396962
+      },
+      {
+        "receive_sim_s": 16.751,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.005273515328489
+      },
+      {
+        "receive_sim_s": 16.86,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.005391440560371
+      },
+      {
+        "receive_sim_s": 17.02,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.003212929985742
+      },
+      {
+        "receive_sim_s": 17.116,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0237468154805205
+      },
+      {
+        "receive_sim_s": 18.087,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.004349078526647
+      },
+      {
+        "receive_sim_s": 18.598000000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.004842331889326
+      },
+      {
+        "receive_sim_s": 18.749000000000002,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.009554859330388
+      },
+      {
+        "receive_sim_s": 18.776,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.001779227310937
+      },
+      {
+        "receive_sim_s": 18.87,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.012881356748842
+      },
+      {
+        "receive_sim_s": 18.917,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.000602783738522
+      },
+      {
+        "receive_sim_s": 19.037000000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.018724507430003
+      },
+      {
+        "receive_sim_s": 19.061,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.008517905410239
+      },
+      {
+        "receive_sim_s": 19.153000000000002,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.000197083320193
+      },
+      {
+        "receive_sim_s": 20.308,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.00618317595021
+      },
+      {
+        "receive_sim_s": 20.404,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.006455693063529
+      },
+      {
+        "receive_sim_s": 20.740000000000002,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.005420333442273
+      },
+      {
+        "receive_sim_s": 21.316000000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.0050204722876055
+      },
+      {
+        "receive_sim_s": 21.359,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.0049163668573176
+      },
+      {
+        "receive_sim_s": 319.67,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.008869248853052
+      },
+      {
+        "receive_sim_s": 319.75600000000003,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": 5.037103096137048
+      },
+      {
+        "receive_sim_s": 322.24100000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.039426771498696
+      },
+      {
+        "receive_sim_s": 322.24100000000004,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.039426771515517
+      },
+      {
+        "receive_sim_s": 322.293,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.022951180947469
+      },
+      {
+        "receive_sim_s": 322.293,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.022951180964354
+      },
+      {
+        "receive_sim_s": 322.384,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.022671412744573
+      },
+      {
+        "receive_sim_s": 322.384,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.0226714127607455
+      },
+      {
+        "receive_sim_s": 322.571,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.011910654486246
+      },
+      {
+        "receive_sim_s": 322.61100000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0022573169628215
+      },
+      {
+        "receive_sim_s": 322.689,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.023339907993362
+      },
+      {
+        "receive_sim_s": 322.694,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.010880943711436
+      },
+      {
+        "receive_sim_s": 322.755,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.035469431663567
+      },
+      {
+        "receive_sim_s": 322.79,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.024897024900442
+      },
+      {
+        "receive_sim_s": 322.824,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.040937534381201
+      },
+      {
+        "receive_sim_s": 322.856,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.030790011892307
+      },
+      {
+        "receive_sim_s": 322.891,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0379716533569905
+      },
+      {
+        "receive_sim_s": 322.923,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.028432055101288
+      },
+      {
+        "receive_sim_s": 322.954,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.030990615259408
+      },
+      {
+        "receive_sim_s": 322.997,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.076908121400615
+      },
+      {
+        "receive_sim_s": 323.03000000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.022147338118788
+      },
+      {
+        "receive_sim_s": 323.218,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0394767640505505
+      },
+      {
+        "receive_sim_s": 323.25800000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.023341545938611
+      },
+      {
+        "receive_sim_s": 323.314,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0409436818761835
+      },
+      {
+        "receive_sim_s": 323.353,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.037971653357015
+      },
+      {
+        "receive_sim_s": 323.362,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.011768457599757
+      },
+      {
+        "receive_sim_s": 323.38800000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0031213793422795
+      },
+      {
+        "receive_sim_s": 323.41900000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.037971653357031
+      },
+      {
+        "receive_sim_s": 323.451,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.037971653357057
+      },
+      {
+        "receive_sim_s": 323.485,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.006600533555466
+      },
+      {
+        "receive_sim_s": 323.54200000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0610386791665505
+      },
+      {
+        "receive_sim_s": 323.642,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.010228285099576
+      },
+      {
+        "receive_sim_s": 323.656,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.001427914216687
+      },
+      {
+        "receive_sim_s": 323.749,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.00664201065014
+      },
+      {
+        "receive_sim_s": 323.843,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.007066785148364
+      },
+      {
+        "receive_sim_s": 323.93600000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0664951039818815
+      },
+      {
+        "receive_sim_s": 323.992,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.033042181281209
+      },
+      {
+        "receive_sim_s": 323.994,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.003001236409481
+      },
+      {
+        "receive_sim_s": 323.99800000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.058366110622819
+      },
+      {
+        "receive_sim_s": 324.033,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.1284976327385
+      },
+      {
+        "receive_sim_s": 324.04,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.023354325670336
+      },
+      {
+        "receive_sim_s": 324.07300000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.007263897764215
+      },
+      {
+        "receive_sim_s": 324.107,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.039337167576948
+      },
+      {
+        "receive_sim_s": 324.14700000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.037971653357073
+      },
+      {
+        "receive_sim_s": 324.202,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.031128577629399
+      },
+      {
+        "receive_sim_s": 324.336,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.009031016028434
+      },
+      {
+        "receive_sim_s": 324.47400000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.025148210111538
+      },
+      {
+        "receive_sim_s": 324.52000000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.071001222638126
+      },
+      {
+        "receive_sim_s": 324.55100000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.015821549753701
+      },
+      {
+        "receive_sim_s": 324.586,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.009213257671087
+      },
+      {
+        "receive_sim_s": 324.759,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.021116294057593
+      },
+      {
+        "receive_sim_s": 324.88100000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.014492365060446
+      },
+      {
+        "receive_sim_s": 324.918,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.054898676296027
+      },
+      {
+        "receive_sim_s": 324.918,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.053522619952051
+      },
+      {
+        "receive_sim_s": 324.921,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.004896769939785
+      },
+      {
+        "receive_sim_s": 325.012,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0024729388939395
+      },
+      {
+        "receive_sim_s": 325.089,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.014656787071676
+      },
+      {
+        "receive_sim_s": 325.12100000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0107007406915685
+      },
+      {
+        "receive_sim_s": 325.15200000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.015015058542168
+      },
+      {
+        "receive_sim_s": 325.18800000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0392009261888235
+      },
+      {
+        "receive_sim_s": 325.223,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.007222855978599
+      },
+      {
+        "receive_sim_s": 325.42400000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.040726888960151
+      },
+      {
+        "receive_sim_s": 325.505,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.010476529871941
+      },
+      {
+        "receive_sim_s": 325.569,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.012921811329823
+      },
+      {
+        "receive_sim_s": 326.161,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.019572185054249
+      },
+      {
+        "receive_sim_s": 326.52500000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.003826171162674
+      },
+      {
+        "receive_sim_s": 326.94100000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.007916243936464
+      },
+      {
+        "receive_sim_s": 327.27500000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.007011682138654
+      },
+      {
+        "receive_sim_s": 327.338,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.006694450425469
+      },
+      {
+        "receive_sim_s": 327.80400000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.012546094229963
+      },
+      {
+        "receive_sim_s": 327.85900000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.02190462270274
+      },
+      {
+        "receive_sim_s": 327.898,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.037325371442351
+      },
+      {
+        "receive_sim_s": 327.956,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.013635092027199
+      },
+      {
+        "receive_sim_s": 327.988,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.001141305329142
+      },
+      {
+        "receive_sim_s": 328.021,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.001269066798143
+      },
+      {
+        "receive_sim_s": 328.06100000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.024572178345225
+      },
+      {
+        "receive_sim_s": 328.09900000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.021920947332738
+      },
+      {
+        "receive_sim_s": 328.142,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.053727758053749
+      },
+      {
+        "receive_sim_s": 328.171,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.009993462091929
+      },
+      {
+        "receive_sim_s": 328.20000000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.0142246919199
+      },
+      {
+        "receive_sim_s": 328.233,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.000573716697141
+      },
+      {
+        "receive_sim_s": 328.27200000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.036509588248592
+      },
+      {
+        "receive_sim_s": 328.312,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.036251173330336
+      },
+      {
+        "receive_sim_s": 328.35,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.006528031754809
+      },
+      {
+        "receive_sim_s": 328.524,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.012159942133004
+      },
+      {
+        "receive_sim_s": 328.588,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.024612339049697
+      },
+      {
+        "receive_sim_s": 328.62100000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.022465325074595
+      },
+      {
+        "receive_sim_s": 328.773,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.011392700295804
+      },
+      {
+        "receive_sim_s": 329.12600000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.034465549674277
+      },
+      {
+        "receive_sim_s": 329.232,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.012785943715699
+      },
+      {
+        "receive_sim_s": 329.435,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.034015763623858
+      },
+      {
+        "receive_sim_s": 329.47200000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.019255111155094
+      },
+      {
+        "receive_sim_s": 329.507,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.016711779587774
+      },
+      {
+        "receive_sim_s": 329.607,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.011707732038605
+      },
+      {
+        "receive_sim_s": 329.666,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.0076927689595685
+      },
+      {
+        "receive_sim_s": 329.976,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.028300598490843
+      },
+      {
+        "receive_sim_s": 330.01300000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.027469955442553
+      },
+      {
+        "receive_sim_s": 330.045,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.002092302027763
+      },
+      {
+        "receive_sim_s": 330.076,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.012631148215976
+      },
+      {
+        "receive_sim_s": 330.11400000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.029918046534421
+      },
+      {
+        "receive_sim_s": 330.146,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.016058065790697
+      },
+      {
+        "receive_sim_s": 330.214,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.009300402853625
+      },
+      {
+        "receive_sim_s": 330.338,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.005652055675583
+      },
+      {
+        "receive_sim_s": 330.375,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.028158414282544
+      },
+      {
+        "receive_sim_s": 330.40500000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.018025084472828
+      },
+      {
+        "receive_sim_s": 330.437,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.019272888603334
+      },
+      {
+        "receive_sim_s": 330.466,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.0060216197353595
+      },
+      {
+        "receive_sim_s": 332.75100000000003,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.021374021381053
+      },
+      {
+        "receive_sim_s": 332.827,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.02576731435309
+      },
+      {
+        "receive_sim_s": 333.035,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.027297071404927
+      },
+      {
+        "receive_sim_s": 333.06100000000004,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.054799691706868
+      },
+      {
+        "receive_sim_s": 333.118,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.007014445461609
+      },
+      {
+        "receive_sim_s": 333.238,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.000433288246214
+      },
+      {
+        "receive_sim_s": 333.464,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.009761315072554
+      },
+      {
+        "receive_sim_s": 333.531,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.018132398533352
+      },
+      {
+        "receive_sim_s": 333.594,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.029250938275054
+      },
+      {
+        "receive_sim_s": 333.654,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.015013111512212
+      },
+      {
+        "receive_sim_s": 333.764,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.036935427505652
+      },
+      {
+        "receive_sim_s": 333.766,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": 5.02191495506563
+      },
+      {
+        "receive_sim_s": 334.72700000000003,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.007687858156081
+      },
+      {
+        "receive_sim_s": 334.764,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.071281502858412
+      },
+      {
+        "receive_sim_s": 334.834,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.104216150106501
+      },
+      {
+        "receive_sim_s": 334.868,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.031021123237318
+      },
+      {
+        "receive_sim_s": 334.868,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.031021123252975
+      },
+      {
+        "receive_sim_s": 334.958,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.014992994325224
+      },
+      {
+        "receive_sim_s": 334.958,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.014992994340859
+      },
+      {
+        "receive_sim_s": 335.069,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.028714916723154
+      },
+      {
+        "receive_sim_s": 335.069,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.02871491673862
+      },
+      {
+        "receive_sim_s": 335.10200000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.001096396477689
+      },
+      {
+        "receive_sim_s": 335.10200000000003,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.00109639649299
+      },
+      {
+        "receive_sim_s": 335.46200000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.010385655858154
+      },
+      {
+        "receive_sim_s": 335.46200000000005,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.0103856558731605
+      },
+      {
+        "receive_sim_s": 335.526,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.029193253160128
+      },
+      {
+        "receive_sim_s": 335.526,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.029193253175925
+      },
+      {
+        "receive_sim_s": 335.589,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.015577882689327
+      },
+      {
+        "receive_sim_s": 335.589,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.015577882704615
+      },
+      {
+        "receive_sim_s": 335.62300000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.022951180947832
+      },
+      {
+        "receive_sim_s": 335.62300000000005,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.022951180963931
+      },
+      {
+        "receive_sim_s": 335.73600000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.022951180947917
+      },
+      {
+        "receive_sim_s": 335.73600000000005,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.022951180963969
+      },
+      {
+        "receive_sim_s": 335.98900000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.028093299423354
+      },
+      {
+        "receive_sim_s": 335.98900000000003,
+        "joint": "rear_left_wheel_joint",
+        "rad_s": -5.028093299438933
+      },
+      {
+        "receive_sim_s": 336.031,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.028882925429386
+      },
+      {
+        "receive_sim_s": 336.074,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.017989920872752
+      },
+      {
+        "receive_sim_s": 336.122,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.012751904781863
+      },
+      {
+        "receive_sim_s": 336.168,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.069341204940068
+      },
+      {
+        "receive_sim_s": 336.20500000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.0379716533574035
+      },
+      {
+        "receive_sim_s": 336.319,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.005292023193424
+      },
+      {
+        "receive_sim_s": 336.348,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.0100889673118845
+      },
+      {
+        "receive_sim_s": 336.39000000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.116077498247009
+      },
+      {
+        "receive_sim_s": 336.39700000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.010934191168287
+      },
+      {
+        "receive_sim_s": 336.42100000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.015451325453221
+      },
+      {
+        "receive_sim_s": 336.666,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.077379017902929
+      },
+      {
+        "receive_sim_s": 336.666,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.062358545461937
+      },
+      {
+        "receive_sim_s": 336.709,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.057190879968767
+      },
+      {
+        "receive_sim_s": 336.815,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.047642739889169
+      },
+      {
+        "receive_sim_s": 337.00800000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.018817453108738
+      },
+      {
+        "receive_sim_s": 337.136,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.0991520101115295
+      },
+      {
+        "receive_sim_s": 337.14000000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.024049647906786
+      },
+      {
+        "receive_sim_s": 337.197,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.02900821193859
+      },
+      {
+        "receive_sim_s": 337.244,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.063541442857515
+      },
+      {
+        "receive_sim_s": 337.28400000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.011660014314008
+      },
+      {
+        "receive_sim_s": 337.446,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.000599096314331
+      },
+      {
+        "receive_sim_s": 338.08700000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.00502047228887
+      },
+      {
+        "receive_sim_s": 339.45500000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.010103230517912
+      },
+      {
+        "receive_sim_s": 339.49100000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": -5.0072825983183025
+      },
+      {
+        "receive_sim_s": 339.721,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.050317887874421
+      },
+      {
+        "receive_sim_s": 339.754,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.000584912552548
+      },
+      {
+        "receive_sim_s": 339.96200000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.018357484766306
+      },
+      {
+        "receive_sim_s": 339.992,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.015987837113258
+      },
+      {
+        "receive_sim_s": 340.024,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.005318132215729
+      },
+      {
+        "receive_sim_s": 340.18600000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.0335850667876505
+      },
+      {
+        "receive_sim_s": 340.22200000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.008403507251207
+      },
+      {
+        "receive_sim_s": 340.399,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.002517686980405
+      },
+      {
+        "receive_sim_s": 340.44,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.056008200648172
+      },
+      {
+        "receive_sim_s": 340.493,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.013970361514615
+      },
+      {
+        "receive_sim_s": 340.548,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.035942748211614
+      },
+      {
+        "receive_sim_s": 340.68100000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.007904599861441
+      },
+      {
+        "receive_sim_s": 340.827,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.037971653359736
+      },
+      {
+        "receive_sim_s": 341.12800000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.01787639241548
+      },
+      {
+        "receive_sim_s": 341.216,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.037971653359694
+      },
+      {
+        "receive_sim_s": 341.29600000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.009985378984524
+      },
+      {
+        "receive_sim_s": 341.55,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.002898968735404
+      },
+      {
+        "receive_sim_s": 341.59000000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.019622741571608
+      },
+      {
+        "receive_sim_s": 341.78400000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.013341253526959
+      },
+      {
+        "receive_sim_s": 342.457,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.004236947390282
+      },
+      {
+        "receive_sim_s": 342.492,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.018222703826907
+      },
+      {
+        "receive_sim_s": 342.853,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.003026947714271
+      },
+      {
+        "receive_sim_s": 342.969,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.000330123962553
+      },
+      {
+        "receive_sim_s": 343.19,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.010017499852335
+      },
+      {
+        "receive_sim_s": 343.329,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.007698242760757
+      },
+      {
+        "receive_sim_s": 343.389,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.011192677001589
+      },
+      {
+        "receive_sim_s": 343.445,
+        "joint": "front_right_wheel_joint",
+        "rad_s": 5.003724860278494
+      },
+      {
+        "receive_sim_s": 347.923,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.0776694264492095
+      },
+      {
+        "receive_sim_s": 347.928,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.049011429327923
+      },
+      {
+        "receive_sim_s": 347.964,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.022871408455101
+      },
+      {
+        "receive_sim_s": 348.009,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.059715400731718
+      },
+      {
+        "receive_sim_s": 348.088,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.035838814321793
+      },
+      {
+        "receive_sim_s": 348.10900000000004,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.017017711588245
+      },
+      {
+        "receive_sim_s": 348.15000000000003,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.01952447194329
+      },
+      {
+        "receive_sim_s": 348.182,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.02045646674022
+      },
+      {
+        "receive_sim_s": 348.231,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.066800280994057
+      },
+      {
+        "receive_sim_s": 348.26800000000003,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.06689981101251
+      },
+      {
+        "receive_sim_s": 348.389,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.005020472304285
+      },
+      {
+        "receive_sim_s": 348.47900000000004,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.035501499013668
+      },
+      {
+        "receive_sim_s": 348.51800000000003,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006650639848109
+      },
+      {
+        "receive_sim_s": 348.55600000000004,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.023289540715497
+      },
+      {
+        "receive_sim_s": 348.617,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.021591743980052
+      },
+      {
+        "receive_sim_s": 348.65500000000003,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.000129235030334
+      },
+      {
+        "receive_sim_s": 348.692,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.00252254152674
+      },
+      {
+        "receive_sim_s": 348.81,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.023945959397323
+      },
+      {
+        "receive_sim_s": 348.81,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.023945959413226
+      },
+      {
+        "receive_sim_s": 348.812,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.008925486972674
+      },
+      {
+        "receive_sim_s": 348.812,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.0089254869880895
+      },
+      {
+        "receive_sim_s": 349.09200000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.008642964713884
+      },
+      {
+        "receive_sim_s": 349.09200000000004,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.008642964729669
+      },
+      {
+        "receive_sim_s": 349.146,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.006475590396559
+      },
+      {
+        "receive_sim_s": 349.146,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006475590412804
+      },
+      {
+        "receive_sim_s": 349.214,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.006475590396559
+      },
+      {
+        "receive_sim_s": 349.214,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.006475590412773
+      },
+      {
+        "receive_sim_s": 349.338,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.022159250072536
+      },
+      {
+        "receive_sim_s": 349.338,
+        "joint": "rear_right_wheel_joint",
+        "rad_s": -5.02215925008808
+      },
+      {
+        "receive_sim_s": 349.379,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.063318183040515
+      },
+      {
+        "receive_sim_s": 349.54200000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.016398115390382
+      },
+      {
+        "receive_sim_s": 349.588,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.024657264785113
+      },
+      {
+        "receive_sim_s": 349.641,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.035137780736786
+      },
+      {
+        "receive_sim_s": 349.677,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.049265554831095
+      },
+      {
+        "receive_sim_s": 349.77700000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.018694291853946
+      },
+      {
+        "receive_sim_s": 349.817,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.037490304344411
+      },
+      {
+        "receive_sim_s": 349.872,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.049704024344394
+      },
+      {
+        "receive_sim_s": 349.94100000000003,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.007995585869093
+      },
+      {
+        "receive_sim_s": 349.97400000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.037971653357087
+      },
+      {
+        "receive_sim_s": 350.069,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.003872054356613
+      },
+      {
+        "receive_sim_s": 350.211,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.062088325942894
+      },
+      {
+        "receive_sim_s": 350.26500000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.037971653356995
+      },
+      {
+        "receive_sim_s": 350.30800000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0533170681339925
+      },
+      {
+        "receive_sim_s": 350.32500000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.03424665006787
+      },
+      {
+        "receive_sim_s": 350.408,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.00545014376337
+      },
+      {
+        "receive_sim_s": 350.44,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.061610477771464
+      },
+      {
+        "receive_sim_s": 350.44300000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.016549060448638
+      },
+      {
+        "receive_sim_s": 350.54900000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.047978603133392
+      },
+      {
+        "receive_sim_s": 350.795,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.032116148144012
+      },
+      {
+        "receive_sim_s": 350.89000000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.017115507595283
+      },
+      {
+        "receive_sim_s": 351.20000000000005,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.006569040049714
+      },
+      {
+        "receive_sim_s": 351.23400000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.012456880350879
+      },
+      {
+        "receive_sim_s": 351.363,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.005190554515878
+      },
+      {
+        "receive_sim_s": 351.783,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0109267031001234
+      },
+      {
+        "receive_sim_s": 352.148,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.006548838202511
+      },
+      {
+        "receive_sim_s": 352.28900000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.017194546894986
+      },
+      {
+        "receive_sim_s": 352.939,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.006467944755986
+      },
+      {
+        "receive_sim_s": 353.09700000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.0149833490717715
+      },
+      {
+        "receive_sim_s": 353.19300000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.003329297433251
+      },
+      {
+        "receive_sim_s": 353.31800000000004,
+        "joint": "front_right_wheel_joint",
+        "rad_s": -5.017821981466719
+      },
+      {
+        "receive_sim_s": 353.617,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.00278493147043
+      },
+      {
+        "receive_sim_s": 353.66900000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.005153694753827
+      },
+      {
+        "receive_sim_s": 353.731,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.013087345702328
+      },
+      {
+        "receive_sim_s": 353.771,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.018002418793751
+      },
+      {
+        "receive_sim_s": 353.838,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.010132675781189
+      },
+      {
+        "receive_sim_s": 353.97,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.015515381917782
+      },
+      {
+        "receive_sim_s": 354.132,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.033333092769
+      },
+      {
+        "receive_sim_s": 354.269,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.030849772344752
+      },
+      {
+        "receive_sim_s": 354.31,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.0611207214772955
+      },
+      {
+        "receive_sim_s": 354.35200000000003,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.041053088332458
+      },
+      {
+        "receive_sim_s": 354.454,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.014672312899619
+      },
+      {
+        "receive_sim_s": 354.497,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.00508450524503
+      },
+      {
+        "receive_sim_s": 354.53400000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.037740994691329
+      },
+      {
+        "receive_sim_s": 354.572,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.051222800064326
+      },
+      {
+        "receive_sim_s": 354.68800000000005,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.000659447503568
+      },
+      {
+        "receive_sim_s": 354.83500000000004,
+        "joint": "front_left_wheel_joint",
+        "rad_s": 5.011300255578763
+      }
+    ]
+  },
+  {
+    "goal": "lateral",
+    "sample_value_count_over_5": 0,
+    "max_abs_rad_s": 3.0980134469171148,
+    "first_violations": [],
+    "all_violations": []
+  },
+  {
+    "goal": "narrow_seat",
+    "sample_value_count_over_5": 0,
+    "max_abs_rad_s": 4.990253185782083,
+    "first_violations": [],
+    "all_violations": []
+  },
+  {
+    "goal": "other_room",
+    "sample_value_count_over_5": 0,
+    "max_abs_rad_s": 3.0610460209294086,
+    "first_violations": [],
+    "all_violations": []
+  }
+]

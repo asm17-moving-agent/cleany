@@ -1,0 +1,25 @@
+{
+  "phase": "restored_rotation_penalty",
+  "values": {
+    "TwirlingCritic.cost_weight": 10.0
+  },
+  "wall_s": 10.048226466002234,
+  "sim_s": 3.259999999999991,
+  "start": {
+    "wall": 36033.036068013,
+    "phase": "restored_rotation_penalty",
+    "x": -17.164226041625483,
+    "y": 0.6670748855651017,
+    "yaw": 2.2848921451689463,
+    "sim_s": 265.36
+  },
+  "end": {
+    "wall": 36042.915504648,
+    "phase": "restored_rotation_penalty",
+    "x": -17.158478179132906,
+    "y": 0.6742831870120046,
+    "yaw": 2.2867895809288097,
+    "sim_s": 268.62
+  },
+  "displacement_m": 0.009219410663539665
+}

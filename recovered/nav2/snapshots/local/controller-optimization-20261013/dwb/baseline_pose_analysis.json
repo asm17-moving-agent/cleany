@@ -1,0 +1,52 @@
+[
+  {
+    "goal": "straight",
+    "estimated_xy_error_m": 0.14042986801970977,
+    "GT_xy_error_m": 0.12724906181481355,
+    "GT_minus_estimated": [
+      0.019064946331501798,
+      0.04624160719883956
+    ],
+    "GT_estimate_delta_m": 0.050017581058611926
+  },
+  {
+    "goal": "turn_arrival",
+    "estimated_xy_error_m": 0.12229512052637279,
+    "GT_xy_error_m": 0.09167968262761683,
+    "GT_minus_estimated": [
+      0.024277467420634302,
+      0.03938531119968933
+    ],
+    "GT_estimate_delta_m": 0.04626659877985774
+  },
+  {
+    "goal": "chair_gap",
+    "estimated_xy_error_m": 0.14093040318865235,
+    "GT_xy_error_m": 0.1722518329313908,
+    "GT_minus_estimated": [
+      0.017537325004711946,
+      0.03321428405906879
+    ],
+    "GT_estimate_delta_m": 0.03755990460421067
+  },
+  {
+    "goal": "far_heading",
+    "estimated_xy_error_m": 0.11775565415911077,
+    "GT_xy_error_m": 0.09540825608396099,
+    "GT_minus_estimated": [
+      0.031956522310720104,
+      0.040554100954833576
+    ],
+    "GT_estimate_delta_m": 0.05163191282966752
+  },
+  {
+    "goal": "distant",
+    "estimated_xy_error_m": 0.14602579632072096,
+    "GT_xy_error_m": 0.12477495575789055,
+    "GT_minus_estimated": [
+      0.03941017688213577,
+      0.06140640828371913
+    ],
+    "GT_estimate_delta_m": 0.07296512194321365
+  }
+]

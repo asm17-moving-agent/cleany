@@ -1,0 +1,7 @@
+{
+    "file_format_version" : "1.0.1",
+    "ICD": {
+        "library_path": "libnvidia-vksc-core.so.1",
+        "api_version" : "1.0.12"
+    }
+}

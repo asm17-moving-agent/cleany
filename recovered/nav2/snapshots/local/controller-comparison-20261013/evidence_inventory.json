@@ -1,0 +1,130 @@
+[
+  {
+    "path": "dwb/0_straight/result.json",
+    "sha256": "551665271485899a4bd1eb80f4f5b954b7ec8ccddf47a3a0e94b596a6700435d"
+  },
+  {
+    "path": "dwb/1_turn_arrival/result.json",
+    "sha256": "c88a0fc6651c458f22e70026e0d795e821fa540655708ae313f64fc7a8fa0868"
+  },
+  {
+    "path": "dwb/2_chair_gap/result.json",
+    "sha256": "773940870383d64d4fafa0e0fdacf5de0e8fa4c277d24fc596304fe51acfe37f"
+  },
+  {
+    "path": "profile_mppi/0_straight/result.json",
+    "sha256": "196a0d429cf5127135f9c26a2140e224952c45341f38ad8ef6c6bda31da1aec8"
+  },
+  {
+    "path": "profile_rpp/0_straight/result.json",
+    "sha256": "83435c2672519e7be9833d96b7a2c1719fb48fc326e6ef2bfb3285f259b74ed1"
+  },
+  {
+    "path": "official_dwb/4_distant/result.json",
+    "sha256": "955dc08754efc9a6dd46386c78c20c7e74176ba4bb8e15efb7a63081a5f524f0"
+  },
+  {
+    "path": "official_dwb/0_straight/result.json",
+    "sha256": "43e7f644df8b16a7a9c077bad7afb34a8740b208345c8283d3d4663cba104274"
+  },
+  {
+    "path": "official_dwb/3_far_heading/result.json",
+    "sha256": "2e50c01359f9c6015a5feb66dd37cd032965d5d100560bf99dfc3ba20c89f55b"
+  },
+  {
+    "path": "official_dwb/1_turn_arrival/result.json",
+    "sha256": "cbc6024c136c2e8e1ce8fdffe0e04380be21fb848aabcac6fd655c189200f672"
+  },
+  {
+    "path": "official_dwb/2_chair_gap/result.json",
+    "sha256": "f38cbdd2fad0bbc556a08337391fa10d50feb71c01f7bbea432cb5aed656138c"
+  },
+  {
+    "path": "mppi_pilot/0_straight/result.json",
+    "sha256": "51d9c71614b1e754fc472d8c5c173291ee6da17cfa88f05b2feac3a0dd8305e0"
+  },
+  {
+    "path": "mppi_pilot_retry/0_straight/result.json",
+    "sha256": "ec5b40dce80f3303b69936e95a5a5b6a548ab1c194a36f512f60c925c1a1c470"
+  },
+  {
+    "path": "profile_teb/0_straight/result.json",
+    "sha256": "aacbd1d2ea589e7ca89e60054c01925a3b2b4f3f08bc2176d9ef9d73b4cf59a8"
+  },
+  {
+    "path": "profile_dwb/0_straight/result.json",
+    "sha256": "fd04348298fde5fe16b1068fb8f5c080d653d3c41460a8fea9218548d61737cb"
+  },
+  {
+    "path": "official_mppi/4_distant/result.json",
+    "sha256": "76b4020faa45c8bc0cb989fa39123462e152185dd6300e48d8c8d6eb2cb9dac0"
+  },
+  {
+    "path": "official_mppi/0_straight/result.json",
+    "sha256": "db53079acc83dfb17279bbb030a5d8245e17853039c57692f98956d8ffbe39f2"
+  },
+  {
+    "path": "official_mppi/3_far_heading/result.json",
+    "sha256": "62538b73f02305ae9157f4fc5876848ec40918bb2883225f18a85df4bd927629"
+  },
+  {
+    "path": "official_mppi/1_turn_arrival/result.json",
+    "sha256": "8ad40450bcb71136979e2fc53e41457490a0c473c68dd0864840559a434f262c"
+  },
+  {
+    "path": "official_mppi/2_chair_gap/result.json",
+    "sha256": "965627dd9aeea2e6a640acb1f8dd5b5cacd941de942a385060ffa333b84992ae"
+  },
+  {
+    "path": "dwb_pilot/0_straight/result.json",
+    "sha256": "dbe2a41c50b332a0316a3228e887eef5af2fd9db91e6c62e646304a5aeae89f0"
+  },
+  {
+    "path": "mppi/0_straight/result.json",
+    "sha256": "8fd479a00cee897186d438c746f65beb55e5cc75307bd8707b0cd7200b326e57"
+  },
+  {
+    "path": "mppi/1_turn_arrival/result.json",
+    "sha256": "3393ba7db8f3cc9e73a5e7b79b620fc96abb5ba5761092c09201103a8b62c75f"
+  },
+  {
+    "path": "remote/official_rpp/4_distant/result.json",
+    "sha256": "b7da6f678478cc3d55ea714a2e77aff82721be9b6ac90fc53ba807d69b28f7f1"
+  },
+  {
+    "path": "remote/official_rpp/0_straight/result.json",
+    "sha256": "cad5d6d88d552b68caf316fda4ebd7207d1649d6d4a4e9bf2b062f6a8655ff63"
+  },
+  {
+    "path": "remote/official_rpp/3_far_heading/result.json",
+    "sha256": "e68691c70b404fa79de0cd23b6ccd84f7cb42bce439ec5ad8f8fb3eda71760f6"
+  },
+  {
+    "path": "remote/official_rpp/1_turn_arrival/result.json",
+    "sha256": "19dd82f338aa97bba36300c98b92229520560e3d1d1e728dacb87ed34031c6a7"
+  },
+  {
+    "path": "remote/official_rpp/2_chair_gap/result.json",
+    "sha256": "8b23181cf45f6cf259f32cd415173fd27164c9ecb7f0177ae4213f26905705a1"
+  },
+  {
+    "path": "remote/official_teb/4_distant/result.json",
+    "sha256": "a9896eac25a39e28866d2d32384428480a37d7558c1f4c46b2f102575a9c56d5"
+  },
+  {
+    "path": "remote/official_teb/0_straight/result.json",
+    "sha256": "1dc1a0d226ac890ad84ecfd41951572354222782cbbc81815eb1d0876524d0dd"
+  },
+  {
+    "path": "remote/official_teb/3_far_heading/result.json",
+    "sha256": "bf912c9ad394b7f564e4b690ce149b42ee2c579466b89a905ba72f91ca3747a4"
+  },
+  {
+    "path": "remote/official_teb/1_turn_arrival/result.json",
+    "sha256": "e2e6688dc1d3c9ff0ceabecdd2b3acbdf93fc3d8433c3dc6c958d1680ed3a820"
+  },
+  {
+    "path": "remote/official_teb/2_chair_gap/result.json",
+    "sha256": "116ef817eb0b128bb0dc59251ec282f923930244f4925add1c5c25f82ccef5bf"
+  }
+]

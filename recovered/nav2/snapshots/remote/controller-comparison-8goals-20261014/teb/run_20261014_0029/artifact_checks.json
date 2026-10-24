@@ -1,0 +1,811 @@
+{
+  "all_verified": false,
+  "checks": [
+    {
+      "check": "eight unique goal rows",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight at most one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight exactly one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight goal tolerance actually loaded",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight actual command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight actual joint wheel <=5",
+      "verified": true,
+      "details": 4.9900000000145255
+    },
+    {
+      "check": "straight scene complete and chair removal correct",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight contacts attributable",
+      "verified": true,
+      "details": "Full rosbag2 physics-contact stream; non-floor/non-self pair episodes, 0.25sim s gap; floor positive control retained."
+    },
+    {
+      "check": "straight stationary definition aligned",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight full bag metadata saved",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight hard bounds unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen materialize.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen scene_check.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight canonical collisions unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight no parent-host path leaked",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight original per-goal TEB runtime parameter query available",
+      "verified": false,
+      "details": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query."
+    },
+    {
+      "check": "straight same binary/profile configuration replay preserves feasibility",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival at most one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival exactly one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival goal tolerance actually loaded",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival actual command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival actual joint wheel <=5",
+      "verified": true,
+      "details": 4.990000000095583
+    },
+    {
+      "check": "turn_arrival scene complete and chair removal correct",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival contacts attributable",
+      "verified": true,
+      "details": "Full rosbag2 physics-contact stream; non-floor/non-self pair episodes, 0.25sim s gap; floor positive control retained."
+    },
+    {
+      "check": "turn_arrival stationary definition aligned",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival full bag metadata saved",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival hard bounds unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen materialize.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen scene_check.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival canonical collisions unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival no parent-host path leaked",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival original per-goal TEB runtime parameter query available",
+      "verified": false,
+      "details": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query."
+    },
+    {
+      "check": "turn_arrival same binary/profile configuration replay preserves feasibility",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap at most one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap exactly one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap goal tolerance actually loaded",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap actual command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap actual joint wheel <=5",
+      "verified": true,
+      "details": 4.9900000016009916
+    },
+    {
+      "check": "chair_gap scene complete and chair removal correct",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap contacts attributable",
+      "verified": true,
+      "details": "Full rosbag2 physics-contact stream; non-floor/non-self pair episodes, 0.25sim s gap; floor positive control retained."
+    },
+    {
+      "check": "chair_gap stationary definition aligned",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap full bag metadata saved",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap hard bounds unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen materialize.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen scene_check.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap canonical collisions unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap no parent-host path leaked",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap original per-goal TEB runtime parameter query available",
+      "verified": false,
+      "details": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query."
+    },
+    {
+      "check": "chair_gap same binary/profile configuration replay preserves feasibility",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading at most one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading exactly one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading goal tolerance actually loaded",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading actual command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading actual joint wheel <=5",
+      "verified": true,
+      "details": 4.990000000244647
+    },
+    {
+      "check": "far_heading scene complete and chair removal correct",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading contacts attributable",
+      "verified": true,
+      "details": "Full rosbag2 physics-contact stream; non-floor/non-self pair episodes, 0.25sim s gap; floor positive control retained."
+    },
+    {
+      "check": "far_heading stationary definition aligned",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading full bag metadata saved",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading hard bounds unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen materialize.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen scene_check.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading canonical collisions unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading no parent-host path leaked",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading original per-goal TEB runtime parameter query available",
+      "verified": false,
+      "details": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query."
+    },
+    {
+      "check": "far_heading same binary/profile configuration replay preserves feasibility",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant at most one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant exactly one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant goal tolerance actually loaded",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant actual command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant actual joint wheel <=5",
+      "verified": true,
+      "details": 4.99000000042961
+    },
+    {
+      "check": "distant scene complete and chair removal correct",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant contacts attributable",
+      "verified": false,
+      "details": "Incomplete navigation contact coverage: recorder stopped after live SQLite read lock; no navigation retry"
+    },
+    {
+      "check": "distant stationary definition aligned",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant full bag metadata saved",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant hard bounds unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen materialize.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen scene_check.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant canonical collisions unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant no parent-host path leaked",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant original per-goal TEB runtime parameter query available",
+      "verified": false,
+      "details": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query."
+    },
+    {
+      "check": "distant same binary/profile configuration replay preserves feasibility",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral at most one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral exactly one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral goal tolerance actually loaded",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral actual command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral actual joint wheel <=5",
+      "verified": true,
+      "details": 4.9899999999195845
+    },
+    {
+      "check": "lateral scene complete and chair removal correct",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral contacts attributable",
+      "verified": true,
+      "details": "Full rosbag2 physics-contact stream; non-floor/non-self pair episodes, 0.25sim s gap; floor positive control retained."
+    },
+    {
+      "check": "lateral stationary definition aligned",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral full bag metadata saved",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral hard bounds unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral frozen materialize.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral frozen scene_check.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral canonical collisions unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral no parent-host path leaked",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "lateral original per-goal TEB runtime parameter query available",
+      "verified": false,
+      "details": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query."
+    },
+    {
+      "check": "lateral same binary/profile configuration replay preserves feasibility",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat at most one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat exactly one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat goal tolerance actually loaded",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat actual command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat actual joint wheel <=5",
+      "verified": true,
+      "details": 4.990000000146383
+    },
+    {
+      "check": "narrow_seat scene complete and chair removal correct",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat contacts attributable",
+      "verified": true,
+      "details": "Full rosbag2 physics-contact stream; non-floor/non-self pair episodes, 0.25sim s gap; floor positive control retained."
+    },
+    {
+      "check": "narrow_seat stationary definition aligned",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat full bag metadata saved",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat hard bounds unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat frozen materialize.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat frozen scene_check.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat canonical collisions unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat no parent-host path leaked",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "narrow_seat original per-goal TEB runtime parameter query available",
+      "verified": false,
+      "details": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query."
+    },
+    {
+      "check": "narrow_seat same binary/profile configuration replay preserves feasibility",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room at most one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room exactly one goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room goal tolerance actually loaded",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room actual command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room actual joint wheel <=5",
+      "verified": true,
+      "details": 4.990000000090343
+    },
+    {
+      "check": "other_room scene complete and chair removal correct",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room contacts attributable",
+      "verified": true,
+      "details": "Full rosbag2 physics-contact stream; non-floor/non-self pair episodes, 0.25sim s gap; floor positive control retained."
+    },
+    {
+      "check": "other_room stationary definition aligned",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room full bag metadata saved",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room hard bounds unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room frozen materialize.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room frozen scene_check.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room canonical collisions unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room no parent-host path leaked",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "other_room original per-goal TEB runtime parameter query available",
+      "verified": false,
+      "details": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query."
+    },
+    {
+      "check": "other_room same binary/profile configuration replay preserves feasibility",
+      "verified": true,
+      "details": null
+    }
+  ],
+  "note": "Input, implementation and measurement audit only. Navigation failures remain in results; no composite pass/fail score."
+}

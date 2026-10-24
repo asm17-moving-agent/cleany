@@ -1,0 +1,95 @@
+{
+  "updated_epoch_s": 1791913868.2226586,
+  "completed": [
+    {
+      "goal_index": 0,
+      "goal_name": "straight",
+      "completed": true,
+      "action_status": 4,
+      "timeout": null,
+      "position_error_m": 0.2639833350431299,
+      "yaw_error_deg": 1.636129351841647e-05,
+      "navigation_sim_s": 5.506,
+      "navigation_wall_s": 24.49978942999951
+    },
+    {
+      "goal_index": 1,
+      "goal_name": "turn_arrival",
+      "completed": true,
+      "action_status": 4,
+      "timeout": null,
+      "position_error_m": 0.27351380184338653,
+      "yaw_error_deg": 3.716888379754645,
+      "navigation_sim_s": 12.566,
+      "navigation_wall_s": 53.199991822999436
+    },
+    {
+      "goal_index": 2,
+      "goal_name": "chair_gap",
+      "completed": true,
+      "action_status": 5,
+      "timeout": true,
+      "position_error_m": 1.861646907555749,
+      "yaw_error_deg": 0.04715374669148086,
+      "navigation_sim_s": 437.85900000000004,
+      "navigation_wall_s": 1800.1028124820004
+    },
+    {
+      "goal_index": 3,
+      "goal_name": "far_heading",
+      "completed": true,
+      "action_status": 4,
+      "timeout": null,
+      "position_error_m": 0.21963183632214944,
+      "yaw_error_deg": 2.7396142617014414,
+      "navigation_sim_s": 22.511,
+      "navigation_wall_s": 102.5004101409977
+    },
+    {
+      "goal_index": 4,
+      "goal_name": "distant",
+      "completed": true,
+      "action_status": 5,
+      "timeout": true,
+      "position_error_m": 6.104619494998387,
+      "yaw_error_deg": 118.09930450111314,
+      "navigation_sim_s": 538.3960000000001,
+      "navigation_wall_s": 1800.101174591
+    },
+    {
+      "goal_index": 5,
+      "goal_name": "lateral",
+      "completed": true,
+      "action_status": 4,
+      "timeout": null,
+      "position_error_m": 0.2919498825428219,
+      "yaw_error_deg": 1.1291107791379598e-06,
+      "navigation_sim_s": 3.3970000000000002,
+      "navigation_wall_s": 10.000590306000959
+    },
+    {
+      "goal_index": 6,
+      "goal_name": "narrow_seat",
+      "completed": true,
+      "action_status": 4,
+      "timeout": null,
+      "position_error_m": 0.3290126541232471,
+      "yaw_error_deg": 0.00018937773132177507,
+      "navigation_sim_s": 5.744999999999999,
+      "navigation_wall_s": 16.800799050000933
+    },
+    {
+      "goal_index": 7,
+      "goal_name": "other_room",
+      "completed": true,
+      "action_status": 6,
+      "timeout": null,
+      "position_error_m": 15.806557984707307,
+      "yaw_error_deg": 0.0002200088552287807,
+      "navigation_sim_s": 112.009,
+      "navigation_wall_s": 324.20122371899924
+    }
+  ],
+  "active": [],
+  "task_complete": true
+}

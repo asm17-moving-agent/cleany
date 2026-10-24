@@ -1,0 +1,23 @@
+name, driver_version, utilization.gpu [%], memory.used [MiB]
+NVIDIA GeForce RTX 5070, 610.57.04, 0 %, 659 MiB
+6.18.0
+ros-humble-nav2-mppi-controller	1.1.20-1jammy.20260908.012051
+ros-humble-nav2-smac-planner	1.1.20-1jammy.20260908.005553
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           48 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  12
+On-line CPU(s) list:                     0-11
+Vendor ID:                               AuthenticAMD
+Model name:                              AMD Ryzen 5 9600X 6-Core Processor
+CPU family:                              26
+Model:                                   68
+Thread(s) per core:                      2
+Core(s) per socket:                      6
+Socket(s):                               1
+Stepping:                                0
+Frequency boost:                         enabled
+CPU max MHz:                             5486.4409
+CPU min MHz:                             627.9670
+BogoMIPS:                                7799.98

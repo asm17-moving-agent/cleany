@@ -1,0 +1,46 @@
+[
+  {
+    "route": "0_straight",
+    "variant": "refined",
+    "exit": 0,
+    "ok": true,
+    "iterations": 142,
+    "search_ms": 0.705171,
+    "max_cross_track_m": 0.047440736803619675,
+    "length_m": 1.0207106933284291,
+    "pose_count": 29
+  },
+  {
+    "route": "1_turn_arrival",
+    "variant": "refined",
+    "exit": 0,
+    "ok": true,
+    "iterations": 2347,
+    "search_ms": 9.022862,
+    "max_cross_track_m": 0.09099573416949742,
+    "length_m": 1.9888404686817054,
+    "pose_count": 82
+  },
+  {
+    "route": "3_far_heading",
+    "variant": "refined",
+    "exit": 0,
+    "ok": true,
+    "iterations": 9728,
+    "search_ms": 32.182998,
+    "max_cross_track_m": 0.09601652948934818,
+    "length_m": 4.43884050518955,
+    "pose_count": 194
+  },
+  {
+    "route": "5_lateral",
+    "variant": "refined",
+    "exit": 0,
+    "ok": true,
+    "iterations": 58,
+    "search_ms": 0.387075,
+    "max_cross_track_m": 0.046017900016562356,
+    "length_m": 0.6707106881130227,
+    "pose_count": 15
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "method": "static collision primitive LiDAR-plane rasterization, not SLAM",
+  "height_m": 0.26,
+  "primitive_count": 603,
+  "resolution_m": 0.05
+}

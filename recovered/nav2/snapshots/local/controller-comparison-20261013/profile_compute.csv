@@ -1,0 +1,5 @@
+candidate,host,case,action_status,calls,exceptions,median_ms,p95_ms,p99_ms,all_calls_p95_ms,calls_over_50ms,note
+dwb,a16-fedora,supplemental straight-route profile,4,283,0,15.168515,27.1395746,28.119376459999998,27.1395746,0,same ARM64 host; wall time includes scheduling; each algorithm follows its own trajectory; not a standardized frozen-input microbenchmark
+mppi,a16-fedora,supplemental straight-route profile,4,459,0,5.86005,10.7498415,13.148080580000007,10.7498415,0,same ARM64 host; wall time includes scheduling; each algorithm follows its own trajectory; not a standardized frozen-input microbenchmark
+teb,a16-fedora,supplemental straight-route profile,6,1261,213,24.522944000000003,51.224101,58.564966239999976,50.540796,69,same ARM64 host; wall time includes scheduling; each algorithm follows its own trajectory; not a standardized frozen-input microbenchmark
+rpp,a16-fedora,supplemental straight-route profile,4,318,0,0.1014855,0.2894787999999995,1.000459619999997,0.2894787999999995,0,same ARM64 host; wall time includes scheduling; each algorithm follows its own trajectory; not a standardized frozen-input microbenchmark

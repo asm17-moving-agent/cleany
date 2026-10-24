@@ -1,0 +1,194 @@
+{
+  "robot_model": "cleany_mecanum",
+  "sensors": [
+    {
+      "topic": "/benchmark/contacts/c0",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_27_0_collision_collision",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c1",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_28_0_collision_collision_1",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c2",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_29_0_collision_collision_2",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c3",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_30_0_collision_collision_3",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c4",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_31_0_collision_collision_4",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c5",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_32_0_collision_collision_5",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c6",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_33_0_collision_collision_6",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c7",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_34_0_collision_collision_7",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c8",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_35_0_collision_collision_8",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c9",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_36_0_collision_collision_9",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c10",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_37_0_collision_collision_10",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c11",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_38_0_collision_collision_11",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c12",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_39_0_collision_collision_12",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c13",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_40_0_collision_collision_13",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c14",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_41_0_collision_collision_14",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c15",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_42_0_collision_collision_15",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c16",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_43_0_collision_collision_16",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c17",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_44_0_collision_collision_17",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c18",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_45_0_collision_collision_18",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c19",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_47_0_collision_collision_19",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c20",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_50_0_collision_collision_20",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c21",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_51_0_collision_collision_21",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c22",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_82_0_collision_collision_22",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c23",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_83_0_collision_collision_23",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c24",
+      "link": "base_link",
+      "collision": "base_link_fixed_joint_lump__mjcf_geom_114_0_collision_collision_24",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c25",
+      "link": "front_left_wheel_link",
+      "collision": "mecanum_contact",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c26",
+      "link": "front_right_wheel_link",
+      "collision": "mecanum_contact",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c27",
+      "link": "rear_left_wheel_link",
+      "collision": "mecanum_contact",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c28",
+      "link": "rear_right_wheel_link",
+      "collision": "mecanum_contact",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c29",
+      "link": "head_pan_link",
+      "collision": "head_pan_link_fixed_joint_lump__mjcf_geom_117_0_collision_collision",
+      "nominal_update_rate_hz": 20
+    },
+    {
+      "topic": "/benchmark/contacts/c30",
+      "link": "head_pan_link",
+      "collision": "head_pan_link_fixed_joint_lump__mjcf_geom_120_0_collision_collision_1",
+      "nominal_update_rate_hz": 20
+    }
+  ],
+  "scope": "physics-engine contact reports for every robot collider; no collision shape/physics altered",
+  "ground_model": "ground_plane",
+  "sampling_note": "Sensor update_rate setting20Hz; observed persistent contact streams500Hz at physics timestep; floor-wheel JSON thinned20Hz only, raw bag unthrottled; DDS loss possible; no physical proof"
+}

@@ -1,0 +1,171 @@
+[
+  {
+    "name": "prealign_outside_M1",
+    "pose": [
+      -17.125,
+      0.025,
+      3.141592653589793
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/stage_behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 11.370000000000001,
+    "sim_end": 116.16300000000001,
+    "truth": [
+      -17.097710040412256,
+      0.03979787218694353,
+      -3.1412903084335824
+    ]
+  },
+  {
+    "name": "M1_portal_1",
+    "pose": [
+      -17.125,
+      0.325,
+      3.141592653589793
+    ],
+    "hold_path": true,
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/stage_hold_path.xml",
+    "index": 1,
+    "status": 4,
+    "sim_start": 116.16300000000001,
+    "sim_end": 119.29100000000001,
+    "truth": [
+      -17.1038534412872,
+      0.33210295106302423,
+      3.1381595472183905
+    ]
+  },
+  {
+    "name": "M1_portal_2",
+    "pose": [
+      -17.125,
+      0.625,
+      3.141592653589793
+    ],
+    "hold_path": true,
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/stage_hold_path.xml",
+    "index": 2,
+    "status": 4,
+    "sim_start": 119.29100000000001,
+    "sim_end": 125.20800000000001,
+    "truth": [
+      -17.09966575032697,
+      0.6438565876676154,
+      3.1328481455281163
+    ]
+  },
+  {
+    "name": "M1_portal_3",
+    "pose": [
+      -17.125,
+      0.925,
+      3.141592653589793
+    ],
+    "hold_path": true,
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/stage_hold_path.xml",
+    "index": 3,
+    "status": 4,
+    "sim_start": 125.20800000000001,
+    "sim_end": 128.225,
+    "truth": [
+      -17.102193855707732,
+      0.9354853337213892,
+      3.136806619031197
+    ]
+  },
+  {
+    "name": "M1_portal_4",
+    "pose": [
+      -17.125,
+      1.225,
+      3.141592653589793
+    ],
+    "hold_path": true,
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/stage_hold_path.xml",
+    "index": 4,
+    "status": 4,
+    "sim_start": 128.225,
+    "sim_end": 131.44500000000002,
+    "truth": [
+      -17.104098707445033,
+      1.2441237998531558,
+      3.1387907570651055
+    ]
+  },
+  {
+    "name": "M1_portal_5",
+    "pose": [
+      -17.125,
+      1.525,
+      3.141592653589793
+    ],
+    "hold_path": true,
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/stage_hold_path.xml",
+    "index": 5,
+    "status": 4,
+    "sim_start": 131.44500000000002,
+    "sim_end": 134.608,
+    "truth": [
+      -17.102440835811347,
+      1.5475323407979558,
+      3.136640647096969
+    ]
+  },
+  {
+    "name": "M1_portal_6",
+    "pose": [
+      -17.125,
+      1.825,
+      3.141592653589793
+    ],
+    "hold_path": true,
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/stage_hold_path.xml",
+    "index": 6,
+    "status": 4,
+    "sim_start": 134.608,
+    "sim_end": 137.805,
+    "truth": [
+      -17.092645541889095,
+      1.8467563978717294,
+      3.1316066434911805
+    ]
+  },
+  {
+    "name": "clear_M1_doorway",
+    "pose": [
+      -17.125,
+      2.025,
+      3.141592653589793
+    ],
+    "hold_path": true,
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/stage_hold_path.xml",
+    "index": 7,
+    "status": 4,
+    "sim_start": 137.805,
+    "sim_end": 141.901,
+    "truth": [
+      -17.08844975084871,
+      2.0431547556860385,
+      3.1335362030507943
+    ]
+  },
+  {
+    "name": "final_goal",
+    "pose": [
+      -16.775,
+      1.775,
+      1.570796
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/portal_hold_m1/behavior.xml",
+    "index": 8,
+    "status": 4,
+    "sim_start": 141.901,
+    "sim_end": 150.32600000000002,
+    "truth": [
+      -16.73770215671177,
+      1.809546262675382,
+      1.7173549463888618
+    ]
+  }
+]

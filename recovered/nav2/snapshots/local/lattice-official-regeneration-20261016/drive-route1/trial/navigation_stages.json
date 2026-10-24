@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      -1.865,
+      -3.705,
+      1.5708
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/lattice-official-regeneration-20261016/drive-route1/trial/behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 8.228,
+    "sim_end": 12.616000000000001,
+    "truth": [
+      -1.8872026007808422,
+      -3.960028703554425,
+      1.5722375883169055
+    ]
+  }
+]

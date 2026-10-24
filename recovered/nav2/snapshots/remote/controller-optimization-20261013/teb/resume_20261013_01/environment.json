@@ -1,0 +1,51 @@
+{
+  "host": "142spp-endeavour",
+  "platform": "Linux-7.1.9-arch1-2-x86_64-with-glibc2.35",
+  "client_date": "2026-10-13",
+  "client_timezone": "Asia/Seoul",
+  "cpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           48 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  12\nOn-line CPU(s) list:                     0-11\nVendor ID:                               AuthenticAMD\nModel name:                              AMD Ryzen 5 9600X 6-Core Processor\nCPU family:                              26\nModel:                                   68\nThread(s) per core:                      2\nCore(s) per socket:                      6\nSocket(s):                               1\nStepping:                                0\nFrequency boost:                         enabled\nCPU max MHz:                             5486.4409\nCPU min MHz:                             627.9670\nBogoMIPS:                                7799.98\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good amd_lbr_v2 nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpuid_fault cpb cat_l3 cdp_l3 hw_pstate ssbd mba perfmon_v2 ibrs ibpb stibp ibrs_enhanced vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk avx_vnni avx512_bf16 clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif x2avic v_spec_ctrl vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid bus_lock_detect movdiri movdir64b overflow_recov succor smca fsrm avx512_vp2intersect flush_l1d amd_lbr_pmc_freeze\nVirtualization:                          AMD-V\nL1d cache:                               288 KiB (6 instances)\nL1i cache:                               192 KiB (6 instances)\nL2 cache:                                6 MiB (6 instances)\nL3 cache:                                32 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-11\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Mitigation; IBPB on VMEXIT only\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; STIBP always-on; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB on VMEXIT",
+  "container": "cleany-ros-humble-cdi",
+  "source_head": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "source_status": "",
+  "teb_head": "630a22e88dc9fd45be726a762edbb5b776bef231",
+  "packages": "libignition-gazebo6:amd64\t6.18.0-1~jammy\nros-humble-nav2-controller\t1.1.20-1jammy.20260908.005456\nros-humble-nav2-regulated-pure-pursuit-controller\t1.1.20-1jammy.20260915.232155",
+  "permission_context": {
+    "sandbox_mode": "danger-full-access",
+    "approval_policy": "never"
+  },
+  "ros_domain_id": 227,
+  "localhost": true,
+  "rtf_target": 1,
+  "physics_step_s": 0.002,
+  "source_overlay": "/home/donglee/workspace/cleany/controller-comparison-20261013/cleany-data/builds/source/install",
+  "teb_overlay": "/home/donglee/workspace/cleany/controller-optimization-20261013/teb/sol61_20261013/install",
+  "initial_baseline_build_overlap_wall_s_approx": 21.2,
+  "simultaneous_other_owners": "Observed an existing /tmp/cleany-friction-frames-* Gazebo process; never signaled it. Variable host load is included in wall timing.",
+  "patches": {
+    "diagnostics.patch": "5a42dc1cc22e3d5431d744d523823fbbee2c51e0db1fe366771bc333e02dc0bf",
+    "runner.patch": "c9ec4d67eea225adc7b42edb3ba18777b84ebf70c150741377194393bc12c6bf",
+    "compatibility.patch": "8eed3985ba5eee2ed7d5502daefe6ae9699a30813788a38ec837118776df203b"
+  },
+  "runner_sha256": "4b6d672ba4ee0e3731d55d5af75cbc6ff4e6ff7e9619b334d006e25d681c7227",
+  "timing_source_sha256": "59858ed20e39c51c1ab31959f797dc9e47b47ee30264a1dde06593bc38179e03",
+  "compile_flags": {
+    "original": {
+      "flags": [
+        "CXX_FLAGS = -O3 -DNDEBUG -fPIC"
+      ],
+      "cache_build_type": [
+        "CMAKE_BUILD_TYPE:STRING="
+      ],
+      "source_forces_release": true
+    },
+    "dedicated": {
+      "flags": [
+        "CXX_FLAGS = -O3 -DNDEBUG -fPIC"
+      ],
+      "cache_build_type": [
+        "CMAKE_BUILD_TYPE:STRING=Release"
+      ],
+      "source_forces_release": true
+    }
+  }
+}

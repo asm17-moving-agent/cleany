@@ -1,0 +1,20 @@
+{
+  "client_date": "2026-10-13",
+  "model_requested": "6.1 Sol / high",
+  "permissions_confirmed": "danger-full-access / approval never",
+  "phase": "complete",
+  "conservative_directory": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/sol61_20261013_0620",
+  "relaxed_directory": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/relaxed_sol61_20261013",
+  "domain": 228,
+  "pending": [],
+  "conservative_final_completed": true,
+  "conservative_arrivals": 3,
+  "conservative_trials": 5,
+  "relaxed_representative_chair_arrived": true,
+  "relaxed_representative_distant_arrived": true,
+  "relaxed_final_completed": true,
+  "relaxed_arrivals": 5,
+  "relaxed_trials": 5,
+  "cleanup_verified": true,
+  "report": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp/REPORT.md"
+}

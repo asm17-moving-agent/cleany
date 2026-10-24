@@ -1,0 +1,57 @@
+[
+  {
+    "seat": "seat-a3-01",
+    "start_footprint_collision": false,
+    "goal_footprint_collision": false,
+    "raw_map_point_connected_to_home_8way": true,
+    "planner_log": [
+      "[planner_server-2] [WARN] [1792155104.340023559] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155104.340066199] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-20.07, 0.68)"
+    ],
+    "meaning": "Point connectivity ignores footprint/orientation. Endpoint checks use existing native checker, 72-bin footprint cache. No alternative goal or obstacle removal performed."
+  },
+  {
+    "seat": "seat-a3-02",
+    "start_footprint_collision": false,
+    "goal_footprint_collision": false,
+    "raw_map_point_connected_to_home_8way": true,
+    "planner_log": [
+      "[planner_server-2] [WARN] [1792155108.741734656] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155108.741791565] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-20.07, 0.68)"
+    ],
+    "meaning": "Point connectivity ignores footprint/orientation. Endpoint checks use existing native checker, 72-bin footprint cache. No alternative goal or obstacle removal performed."
+  },
+  {
+    "seat": "seat-a3-03",
+    "start_footprint_collision": false,
+    "goal_footprint_collision": false,
+    "raw_map_point_connected_to_home_8way": true,
+    "planner_log": [
+      "[planner_server-2] [WARN] [1792155113.027706639] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155113.027762868] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-23.07, 1.77)"
+    ],
+    "meaning": "Point connectivity ignores footprint/orientation. Endpoint checks use existing native checker, 72-bin footprint cache. No alternative goal or obstacle removal performed."
+  },
+  {
+    "seat": "seat-a3-04",
+    "start_footprint_collision": false,
+    "goal_footprint_collision": false,
+    "raw_map_point_connected_to_home_8way": true,
+    "planner_log": [
+      "[planner_server-2] [WARN] [1792155117.349026156] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155117.349088496] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-23.07, 1.77)"
+    ],
+    "meaning": "Point connectivity ignores footprint/orientation. Endpoint checks use existing native checker, 72-bin footprint cache. No alternative goal or obstacle removal performed."
+  },
+  {
+    "seat": "seat-a4-03",
+    "start_footprint_collision": false,
+    "goal_footprint_collision": false,
+    "raw_map_point_connected_to_home_8way": true,
+    "planner_log": [
+      "[planner_server-2] [WARN] [1792155124.010925966] [planner_server]: GridBased: failed to create plan, no valid path found.",
+      "[planner_server-2] [WARN] [1792155124.010987495] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-19.98, 0.57)"
+    ],
+    "meaning": "Point connectivity ignores footprint/orientation. Endpoint checks use existing native checker, 72-bin footprint cache. No alternative goal or obstacle removal performed."
+  }
+]

@@ -1,0 +1,86 @@
+/controller_server:
+  ros__parameters:
+    FollowPath:
+      CommandBearing:
+        class: cleany_navigation::CommandBearingCritic
+        free_goal_distance: 0.1
+        near_goal_distance: 0.3
+        scale: 2.0
+        switch_angle: 0.04
+        switch_cost: 0.5
+      GoalDist:
+        class: cleany_navigation::PreciseGoalDistCritic
+        near_goal_distance: 0.3
+        scale: 24.0
+      ObstacleFootprint:
+        class: cleany_navigation::SweptFootprintCritic
+        scale: 0.05
+      PathDist:
+        scale: 32.0
+      PathOrientation:
+        class: cleany_navigation::PathOrientationCritic
+        scale: 8.0
+      PathProgress:
+        class: cleany_navigation::PathProgressCritic
+        scale: 1.0
+      RotateToGoal:
+        lookahead_time: 1.0
+        scale: 32.0
+        slowing_factor: 5.0
+      Twirling:
+        scale: 1.0
+      acc_lim_theta: 0.6
+      acc_lim_x: 0.4
+      acc_lim_y: 0.4
+      benchmark_timing_file: /home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/dwb_lattice/4_distant/compute_timing.csv
+      continuity_samples: true
+      continuity_timeout_s: 0.5
+      critics:
+      - ObstacleFootprint
+      - CommandBearing
+      - PathOrientation
+      - PathProgress
+      - PathDist
+      - GoalDist
+      - RotateToGoal
+      - Twirling
+      debug_trajectory_details: false
+      decel_lim_theta: -0.6
+      decel_lim_x: -0.4
+      decel_lim_y: -0.4
+      discretize_by_time: true
+      fine_translation_scale: 0.25
+      forward_prune_distance: 2.0
+      goal_directed_radius: 4.5
+      include_last_point: true
+      limit_vel_cmd_in_traj: true
+      max_speed_xy: 0.449012806054
+      max_vel_theta: 0.665758020549
+      max_vel_x: 0.3175
+      max_vel_y: 0.3175
+      max_wheel_speed_rad_s: 4.99
+      mecanum_wheel_radius_m: 0.0635
+      mecanum_wheel_separation_m: 0.6038
+      mecanum_wheelbase_m: 0.35
+      min_speed_theta: 0.0
+      min_speed_xy: 0.0
+      min_vel_x: -0.3175
+      min_vel_y: -0.3175
+      plugin: cleany_benchmark::TimedController
+      prefer_target_translation_direction: true
+      preserve_translation_direction: true
+      prune_distance: 1.5
+      prune_plan: true
+      shorten_transformed_plan: true
+      sim_time: 2.0
+      time_granularity: 0.05
+      timing_trace_file: /home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/dwb_lattice/4_distant/controller_command_dt.json
+      trajectory_generator_name: cleany_navigation::HolonomicGenerator
+      trans_stopped_velocity: 0.01
+      transform_tolerance: 0.3
+      use_elapsed_command_time: true
+      vtheta_samples: 7
+      vx_samples: 5
+      vy_samples: 5
+      wrapped_plugin: cleany_navigation::GoalDirectedController
+      xy_goal_tolerance: 0.3

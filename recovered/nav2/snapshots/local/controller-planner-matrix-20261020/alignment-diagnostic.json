@@ -1,0 +1,16 @@
+{
+  "source_folder": "/home/ehdrms/workspace/cleany-data/runs/controller-planner-matrix-20261020/dwb_lattice/2_chair_gap",
+  "nav_sim_window_s": [
+    25,
+    60
+  ],
+  "generator_iterations": 3637,
+  "median_command_dt_s": 0.009,
+  "median_generator_measured_yaw_velocity_rad_s": 0.0,
+  "median_emitted_yaw_command_rad_s": 0.005399999999999999,
+  "gt_yaw_start_rad": 0.453016563898154,
+  "gt_yaw_end_rad": 0.6259613474005872,
+  "goal_yaw_rad": 1.570796,
+  "max_gt_goal_xy_distance_m": 0.2833095246167501,
+  "interpretation": "During alignment, controller generator input often reports zero yaw velocity and emits tiny yaw commands while GT yaw slowly changes. Low actualRTF and elapsed-time acceleration budget may interact with feedback/critics. This observation does not isolate the cause; no in-campaign tuning."
+}

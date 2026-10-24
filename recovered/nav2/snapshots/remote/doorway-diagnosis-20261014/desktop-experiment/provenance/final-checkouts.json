@@ -1,0 +1,18 @@
+[
+  {
+    "path": "/home/donglee/workspace/cleany/cleany",
+    "initial_head": "c9995007ad97ce5a570c0288551024dff9d2ccbc",
+    "final_head": "57db456a261dec6e73fdb0c657b3e8bb9d9dcc3a",
+    "initial_status": " M README.md\n M docs/cleany-docs\n M ros2_ws/src/cleany_gazebo_sim/README.md\n M ros2_ws/src/cleany_gazebo_sim/cleany_gazebo_sim/launch_helpers/study_cafe.py\n M ros2_ws/src/cleany_gazebo_sim/cleany_gazebo_sim/world/generator.py\n M ros2_ws/src/cleany_gazebo_sim/launch/gazebo_fortress.launch.py\n M ros2_ws/src/cleany_gazebo_sim/test/test_study_cafe_world.py\n",
+    "final_status": "",
+    "edited_by_this_task": false
+  },
+  {
+    "path": "/home/donglee/workspace/cleany/controller-comparison-20261013/source",
+    "initial_head": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+    "final_head": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+    "initial_status": "",
+    "final_status": "",
+    "edited_by_this_task": false
+  }
+]

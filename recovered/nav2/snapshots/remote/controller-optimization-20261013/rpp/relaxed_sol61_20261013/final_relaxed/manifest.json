@@ -1,0 +1,63 @@
+{
+  "goals": [
+    [
+      "straight",
+      [
+        2.0,
+        0.0,
+        0.0
+      ]
+    ],
+    [
+      "turn_arrival",
+      [
+        4.0,
+        0.0,
+        1.5707963267948966
+      ]
+    ],
+    [
+      "chair_gap",
+      [
+        3.12,
+        -2.465,
+        0.0
+      ]
+    ],
+    [
+      "far_heading",
+      [
+        6.0,
+        0.0,
+        -1.5707963267948966
+      ]
+    ],
+    [
+      "distant",
+      [
+        9.405,
+        -3.73,
+        0.0
+      ]
+    ]
+  ],
+  "limits": {
+    "wheel_rad_s": 5.0,
+    "command_wheel_cap_rad_s": 4.8,
+    "wheel_acceleration_rad_s2": 8.0,
+    "xy_tolerance": 0.15,
+    "yaw_tolerance": 0.17453292519943295
+  },
+  "wheel_geometry": {
+    "radius_m": 0.0635,
+    "wheelbase_m": 0.35,
+    "separation_m": 0.6038
+  },
+  "sim_timeout_s": 1200.0,
+  "filter": "GT20Hz sim time, centered5point smoothing, acceleration/jerk, .25s edge trim",
+  "no_pass_fail_thresholds": true,
+  "profile": "gazebo_only_relaxed",
+  "wall_watchdog_s": 1800,
+  "soft_schedule_sim_s": 240,
+  "pure_straight_physical_max_m_s": 0.3175
+}

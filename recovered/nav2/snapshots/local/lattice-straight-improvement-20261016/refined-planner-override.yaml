@@ -1,0 +1,8 @@
+lattice_filepath: /home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json
+lookup_table_size: 0.05
+rotation_penalty: 0.5
+reverse_penalty: 1.0
+non_straight_penalty: 2.0
+change_penalty: 0.0
+retrospective_penalty: 0.0
+tolerance: 0.0

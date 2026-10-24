@@ -1,0 +1,408 @@
+{
+  "candidate": "dwb",
+  "goal_index": 5,
+  "goal_name": "lateral",
+  "goal_map": [
+    -1.265,
+    -4.705,
+    1.5708
+  ],
+  "completed": true,
+  "domain": 225,
+  "partition": "cleany_comparison_dec6a799ee90425a81d33e7ad6d31a7f",
+  "host": "a16-fedora",
+  "discovery_ports": {
+    "msg": "22551",
+    "srv": "22552"
+  },
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "initial_pose_snapshot": {
+    "sim_s": 7.148000000000001,
+    "GT": [
+      -1.8650000000000295,
+      -4.704999999833625,
+      1.570800000000001
+    ],
+    "map": {
+      "sim_s": 7.126,
+      "source": "map_base_tf",
+      "pose": [
+        -1.86243098264037,
+        -4.740618964960378,
+        1.5653281614993972
+      ]
+    },
+    "odom": {
+      "sim_s": 7.143000000000001,
+      "source": "/odom",
+      "stamp_s": 7.142,
+      "pose": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "wheel_odom": {
+      "sim_s": 7.143000000000001,
+      "source": "/wheel/odom",
+      "stamp_s": 7.142,
+      "pose": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "amcl": {
+      "sim_s": 4.202,
+      "source": "amcl",
+      "stamp_s": 4.163,
+      "pose": [
+        -1.862430982640371,
+        -4.740618964960376,
+        1.565328161499397
+      ]
+    }
+  },
+  "common_goal": {
+    "index": 5,
+    "id": "lateral",
+    "pose_map_world": [
+      -1.265,
+      -4.705,
+      1.5708
+    ],
+    "seat": null,
+    "remove_chair": null,
+    "world": "goals/5_lateral/world.canonical.sdf",
+    "map": "goals/5_lateral/map.yaml",
+    "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+    "map_sha256": "cf9ed0f2454c42271ab8bf79f7a7b1a27dbdfa434c1738aef6199b67c2730245",
+    "model_count": 330,
+    "chair_count": 82,
+    "start_occupied_cells": 0,
+    "proposed_goal_occupied_cells": 0,
+    "coordinate_change": null,
+    "goal_name": "lateral",
+    "name": "lateral",
+    "pose": [
+      -1.265,
+      -4.705,
+      1.5708
+    ],
+    "map_yaml": "goals/5_lateral/map.yaml",
+    "world_template": "goals/5_lateral/world.canonical.sdf",
+    "removed_chair": null,
+    "preflight": {
+      "index": 5,
+      "id": "lateral",
+      "action_status": 4,
+      "pose_count": 51,
+      "wall_s": 0.005916870999499224,
+      "path_length_m": 0.6000000000000001,
+      "total_path_yaw_change_rad": 0.0,
+      "start": [
+        [
+          -1.865,
+          -4.705,
+          1.5707999999999998
+        ]
+      ],
+      "end": [
+        [
+          -1.265,
+          -4.705,
+          1.5707999999999998
+        ]
+      ],
+      "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+      "live": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0,
+        "planner": {
+          "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+          "GridBased.holonomic_direct_path": true,
+          "GridBased.require_exact_goal": true,
+          "GridBased.lattice_collision_padding": 0.05
+        }
+      }
+    },
+    "planner_path": "goals/5_lateral/planner_path.json",
+    "actual_route_description": {
+      "body_heading_total_change_rad": 0.0,
+      "path_length_m": 0.6000000000000001,
+      "narrow_or_multiple_turn_label": "Measured route, see saved poses"
+    }
+  },
+  "arrival_tolerance": {
+    "xy_m": 0.3,
+    "yaw_rad": 0.17453292519943295,
+    "actually_loaded": true
+  },
+  "navigation_started": true,
+  "navigation_sim_start_s": 8.155000000000001,
+  "navigation_wall_start_monotonic_s": 24241.327082875,
+  "action_pose_snapshot": {
+    "sim_s": 11.552000000000001,
+    "GT": [
+      -1.5565412474123694,
+      -4.689558660226294,
+      1.5707999802932993
+    ],
+    "map": {
+      "sim_s": 11.552000000000001,
+      "source": "map_base_tf",
+      "pose": [
+        -1.565556516411005,
+        -4.727971127060501,
+        1.5701006498153616
+      ]
+    },
+    "odom": {
+      "sim_s": 11.548,
+      "source": "/odom",
+      "stamp_s": 11.547,
+      "pose": [
+        0.015408363085820678,
+        -0.3084817181059204,
+        0.0
+      ]
+    },
+    "wheel_odom": {
+      "sim_s": 11.548,
+      "source": "/wheel/odom",
+      "stamp_s": 11.547,
+      "pose": [
+        0.015408363085820678,
+        -0.3084817181059204,
+        0.0
+      ]
+    },
+    "amcl": {
+      "sim_s": 11.057,
+      "source": "amcl",
+      "stamp_s": 11.041,
+      "pose": [
+        -1.5863740931351098,
+        -4.728774231559828,
+        1.5701006498153616
+      ]
+    }
+  },
+  "navigation_sim_end_s": 11.552000000000001,
+  "settled_pose_snapshot": {
+    "sim_s": 13.553,
+    "GT": [
+      -1.5565412474123694,
+      -4.689558660226294,
+      1.5707999802932993
+    ],
+    "map": {
+      "sim_s": 13.520000000000001,
+      "source": "map_base_tf",
+      "pose": [
+        -1.565556516411005,
+        -4.727971127060501,
+        1.5701006498153616
+      ]
+    },
+    "odom": {
+      "sim_s": 13.546000000000001,
+      "source": "/odom",
+      "stamp_s": 13.545,
+      "pose": [
+        0.015408363085820678,
+        -0.3084817181059204,
+        0.0
+      ]
+    },
+    "wheel_odom": {
+      "sim_s": 13.546000000000001,
+      "source": "/wheel/odom",
+      "stamp_s": 13.545,
+      "pose": [
+        0.015408363085820678,
+        -0.3084817181059204,
+        0.0
+      ]
+    },
+    "amcl": {
+      "sim_s": 11.057,
+      "source": "amcl",
+      "stamp_s": 11.041,
+      "pose": [
+        -1.5863740931351098,
+        -4.728774231559828,
+        1.5701006498153616
+      ]
+    }
+  },
+  "action_status": 4,
+  "position_error_m": 0.2919498825428219,
+  "yaw_error_deg": 1.1291107791379598e-06,
+  "final_truth": [
+    -1.5565412474123694,
+    -4.689558660226294,
+    1.5707999802932993
+  ],
+  "navigation_sim_s": 3.3970000000000002,
+  "navigation_wall_s": 10.000590306000959,
+  "achieved_rtf": 0.3396799484888002,
+  "smoothness": {
+    "available": true,
+    "linear_acceleration_rms_m_s2": 0.18567122546389445,
+    "linear_acceleration_p95_m_s2": 0.5555195365538675,
+    "angular_acceleration_rms_rad_s2": 5.406865206927492e-06,
+    "angular_acceleration_p95_rad_s2": 2.037764213251066e-05,
+    "motion_stop_count": 1,
+    "linear_jerk_rms_m_s3": 1.0003739297022083,
+    "linear_jerk_p95_m_s3": 2.369303136976265,
+    "angular_jerk_rms_rad_s3": 7.66343218040188e-05,
+    "angular_jerk_p95_rad_s3": 0.00020489275956917405,
+    "stationary_s": 0.55,
+    "motion_start_count": 1,
+    "yaw_reversals": 0,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.09061164157562904,
+    "speed_max_m_s": 0.1841225776692982
+  },
+  "controller_command_sim_interval_s": {
+    "mean": 0.01706470588235294,
+    "p95": 0.02400000000000091,
+    "count": 170
+  },
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 3.0980134469171143,
+    "/cmd_vel": 3.0980134469171143
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 64
+  },
+  "minimum_true_footprint_clearance_m": null,
+  "clearance_unavailable_reason": "Continuous geometric clearance not instrumented; physics contact telemetry is separate",
+  "clearance_note": "Physics contact sensors instrument every robot collider; zero reported events is not continuous collision-free proof. ROS bridge depths arrays empty.",
+  "owned_launch_stopped": true,
+  "owned_bag_stopped": true,
+  "elapsed_wall_s": 46.001786103002814,
+  "no_valid_trajectory_warning_count": 0,
+  "controller_deadline_warning_count": 0
+}

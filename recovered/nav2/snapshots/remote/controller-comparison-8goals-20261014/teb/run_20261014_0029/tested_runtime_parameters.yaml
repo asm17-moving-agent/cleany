@@ -1,0 +1,472 @@
+amcl:
+  ros__parameters:
+    use_sim_time: true
+    alpha1: 0.1
+    alpha2: 0.1
+    alpha3: 0.1
+    alpha4: 0.1
+    alpha5: 0.1
+    base_frame_id: base_link
+    global_frame_id: map
+    odom_frame_id: odom
+    scan_topic: scan
+    robot_model_type: nav2_amcl::OmniMotionModel
+    laser_model_type: likelihood_field
+    laser_min_range: 0.15
+    laser_max_range: 12.0
+    laser_likelihood_max_dist: 2.0
+    max_beams: 120
+    min_particles: 500
+    max_particles: 2000
+    pf_err: 0.05
+    pf_z: 0.99
+    update_min_d: 0.05
+    update_min_a: 0.05
+    resample_interval: 1
+    transform_tolerance: 0.5
+    tf_broadcast: true
+    do_beamskip: false
+    z_hit: 0.5
+    z_short: 0.05
+    z_max: 0.05
+    z_rand: 0.5
+    sigma_hit: 0.2
+    lambda_short: 0.1
+    set_initial_pose: true
+    always_reset_initial_pose: true
+    initial_pose:
+      x: -1.865
+      y: -4.705
+      z: 0.0
+      yaw: 1.5708
+map_server:
+  ros__parameters:
+    use_sim_time: true
+    frame_id: map
+    topic_name: map
+controller_server:
+  ros__parameters:
+    use_sim_time: true
+    odom_topic: odom
+    controller_frequency: 10.0
+    costmap_update_timeout: 1.0
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.001
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: -1.0
+    goal_checker_plugins:
+    - goal_checker
+    controller_plugins:
+    - FollowPath
+    progress_checker:
+      plugin: nav2_controller::PoseProgressChecker
+      required_movement_radius: 0.01
+      movement_time_allowance: 1200.0
+      required_movement_angle: 0.01
+    goal_checker:
+      plugin: nav2_controller::SimpleGoalChecker
+      stateful: true
+      xy_goal_tolerance: 0.3
+      yaw_goal_tolerance: 0.17453292519943295
+    FollowPath:
+      time_steps: 80
+      PathAlignCritic:
+        cost_weight: 3.0
+        threshold_to_consider: 1.0
+      PathFollowCritic:
+        cost_weight: 15.0
+        offset_from_furthest: 20
+        threshold_to_consider: 1.0
+      GoalCritic:
+        cost_weight: 15.0
+        threshold_to_consider: 1.0
+      plugin: cleany_benchmark::TimedController
+      max_vel_x: 0.3175
+      max_vel_x_backwards: 0.3175
+      max_vel_y: 0.3175
+      max_vel_theta: 0.6657580205493815
+      acc_lim_x: 0.5
+      acc_lim_y: 0.5
+      acc_lim_theta: 0.8
+      min_turning_radius: 0.0
+      cmd_angle_instead_rotvel: false
+      free_goal_vel: false
+      weight_kinematics_nh: 0.0
+      weight_kinematics_forward_drive: 0.0
+      global_plan_overwrite_orientation: false
+      penalty_epsilon: 0.01
+      dt_ref: 0.1
+      dt_hysteresis: 0.02
+      max_global_plan_lookahead_dist: 3.0
+      include_costmap_obstacles: true
+      costmap_converter_plugin: ''
+      enable_homotopy_class_planning: false
+      enable_multithreading: false
+      footprint_model:
+        type: polygon
+        vertices: '[[-0.338525, -0.42737300000024486], [-0.338525, 0.42742700000024486],
+          [0.338475, 0.42742700000024486], [0.338475, -0.42737300000024486]]'
+      min_obstacle_dist: 0.05
+      inflation_dist: 0.2
+      odom_topic: odom
+      wrapped_plugin: teb_local_planner::TebLocalPlannerROS
+      benchmark_timing_file: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/2_chair_gap/compute_timing.csv
+      ObstacleFootprint.failure_snapshot_directory: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/2_chair_gap/runtime/controller_failures
+      no_inner_iterations: 5
+      no_outer_iterations: 4
+      xy_goal_tolerance: 0.3
+      yaw_goal_tolerance: 0.17453292519943295
+    progress_checker_plugin: progress_checker
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: true
+      update_frequency: 10.0
+      publish_frequency: 2.0
+      global_frame: odom
+      robot_base_frame: base_link
+      transform_tolerance: 0.3
+      rolling_window: true
+      width: 4
+      height: 4
+      resolution: 0.05
+      footprint: '[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484],
+        [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]'
+      footprint_padding: 0.02
+      plugins:
+      - obstacle_layer
+      - memory_layer
+      - depth_layer
+      - inflation_layer
+      obstacle_layer:
+        plugin: nav2_costmap_2d::ObstacleLayer
+        enabled: true
+        min_obstacle_height: -0.33
+        observation_sources: scan
+        scan:
+          topic: /scan
+          data_type: LaserScan
+          marking: true
+          clearing: true
+          min_obstacle_height: -0.33
+          inf_is_valid: true
+          obstacle_min_range: 0.15
+          obstacle_max_range: 8.0
+          raytrace_min_range: 0.15
+          raytrace_max_range: 10.0
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        inflation_radius: 0.8
+        cost_scaling_factor: 6.0
+      always_send_full_costmap: true
+      depth_layer:
+        plugin: nav2_costmap_2d::VoxelLayer
+        enabled: true
+        origin_z: -0.38
+        z_resolution: 0.15
+        z_voxels: 16
+        mark_threshold: 0
+        unknown_threshold: 15
+        min_obstacle_height: -0.33
+        max_obstacle_height: 1.62
+        publish_voxel_map: true
+        observation_sources: depth depth_clear
+        depth:
+          topic: /camera/head/depth/obstacle_points
+          sensor_frame: head_camera_depth_frame
+          data_type: PointCloud2
+          marking: true
+          clearing: false
+          min_obstacle_height: -0.33
+          max_obstacle_height: 1.62
+          obstacle_min_range: 0.15
+          obstacle_max_range: 4.0
+          raytrace_min_range: 0.15
+          raytrace_max_range: 5.0
+        depth_clear:
+          topic: /camera/head/depth/points
+          sensor_frame: head_camera_depth_frame
+          data_type: PointCloud2
+          marking: false
+          clearing: true
+          min_obstacle_height: -10.0
+          max_obstacle_height: 10.0
+          obstacle_max_range: 4.0
+          raytrace_max_range: 5.0
+      use_maximum: true
+      memory_layer:
+        plugin: nav2_costmap_2d::StaticLayer
+        map_topic: /obstacle_memory/grid
+        map_subscribe_transient_local: true
+        subscribe_to_updates: false
+        use_maximum: true
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: true
+      update_frequency: 2.0
+      publish_frequency: 1.0
+      global_frame: map
+      robot_base_frame: base_link
+      transform_tolerance: 0.3
+      resolution: 0.025
+      track_unknown_space: true
+      footprint: '[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484],
+        [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]'
+      footprint_padding: 0.02
+      plugins:
+      - static_layer
+      - memory_layer
+      - obstacle_layer
+      - inflation_layer
+      static_layer:
+        plugin: nav2_costmap_2d::StaticLayer
+        map_subscribe_transient_local: true
+      obstacle_layer:
+        plugin: nav2_costmap_2d::ObstacleLayer
+        enabled: true
+        min_obstacle_height: -0.33
+        observation_sources: scan
+        scan:
+          topic: /scan
+          data_type: LaserScan
+          marking: true
+          clearing: true
+          min_obstacle_height: -0.33
+          inf_is_valid: true
+          obstacle_min_range: 0.15
+          obstacle_max_range: 8.0
+          raytrace_min_range: 0.15
+          raytrace_max_range: 10.0
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        inflation_radius: 0.8
+        cost_scaling_factor: 6.0
+      always_send_full_costmap: true
+      use_maximum: true
+      memory_layer:
+        plugin: nav2_costmap_2d::StaticLayer
+        map_topic: /obstacle_memory/grid
+        map_subscribe_transient_local: true
+        subscribe_to_updates: false
+        use_maximum: true
+planner_server:
+  ros__parameters:
+    GridBased:
+      plugin: cleany_navigation::StraightFirstPlanner
+      tolerance: 0.05
+      holonomic_direct_path: true
+      require_exact_goal: true
+      allow_unknown: false
+      smooth_path: false
+      allow_reverse_expansion: true
+      max_planning_time: 80.0
+      cache_obstacle_heuristic: false
+      lattice_filepath: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/common/omni_lattice_2p5cm.json
+      analytic_expansion_max_length: 0.0
+      cost_penalty: 5.0
+      lattice_collision_padding: 0.05
+      body_heading_grid_bins: 32
+    use_sim_time: true
+    planner_plugins:
+    - GridBased
+    expected_planner_frequency: 1.0
+behavior_server:
+  ros__parameters:
+    use_sim_time: true
+    cycle_frequency: 10.0
+    behavior_plugins:
+    - spin
+    - backup
+    - drive_on_heading
+    - wait
+    spin:
+      plugin: nav2_behaviors/Spin
+    backup:
+      plugin: nav2_behaviors/BackUp
+    drive_on_heading:
+      plugin: nav2_behaviors/DriveOnHeading
+    wait:
+      plugin: nav2_behaviors/Wait
+    global_frame: odom
+    robot_base_frame: base_link
+    transform_tolerance: 0.3
+    simulate_ahead_time: 2.0
+    max_rotational_vel: 0.5
+    min_rotational_vel: 0.1
+    rotational_acc_lim: 1.0
+    costmap_topic: local_costmap/costmap_raw
+    footprint_topic: local_costmap/published_footprint
+bt_navigator:
+  ros__parameters:
+    use_sim_time: true
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: odom
+    bt_loop_duration: 100
+    default_server_timeout: 1000
+    wait_for_service_timeout: 2000
+    plugin_lib_names:
+    - nav2_compute_path_to_pose_action_bt_node
+    - nav2_compute_path_through_poses_action_bt_node
+    - nav2_follow_path_action_bt_node
+    - nav2_spin_action_bt_node
+    - nav2_wait_action_bt_node
+    - nav2_back_up_action_bt_node
+    - nav2_drive_on_heading_bt_node
+    - nav2_clear_costmap_service_bt_node
+    - nav2_is_stuck_condition_bt_node
+    - nav2_goal_reached_condition_bt_node
+    - nav2_goal_updated_condition_bt_node
+    - nav2_globally_updated_goal_condition_bt_node
+    - nav2_is_path_valid_condition_bt_node
+    - nav2_initial_pose_received_condition_bt_node
+    - nav2_reinitialize_global_localization_service_bt_node
+    - nav2_rate_controller_bt_node
+    - nav2_distance_controller_bt_node
+    - nav2_speed_controller_bt_node
+    - nav2_truncate_path_action_bt_node
+    - nav2_truncate_path_local_action_bt_node
+    - nav2_recovery_node_bt_node
+    - nav2_pipeline_sequence_bt_node
+    - nav2_round_robin_node_bt_node
+    - nav2_navigate_through_poses_action_bt_node
+    - nav2_navigate_to_pose_action_bt_node
+    - nav2_remove_passed_goals_action_bt_node
+    - nav2_controller_selector_bt_node
+    - nav2_planner_selector_bt_node
+    - nav2_goal_checker_selector_bt_node
+    - cleany_yield_wait_bt_node
+    default_nav_to_pose_bt_xml: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/2_chair_gap/relaxed_bt.xml
+collision_monitor:
+  ros__parameters:
+    use_sim_time: true
+    base_frame_id: base_link
+    odom_frame_id: odom
+    cmd_vel_in_topic: pan_ready/cmd_vel
+    cmd_vel_out_topic: safety_2d/cmd_vel
+    state_topic: /collision_monitor_state
+    transform_tolerance: 0.3
+    source_timeout: 0.6
+    base_shift_correction: true
+    stop_pub_timeout: 2.0
+    polygons:
+    - StopZone
+    - SlowZone
+    StopZone:
+      type: polygon
+      points:
+      - -0.318525
+      - -0.40737300000024484
+      - -0.318525
+      - 0.40742700000024484
+      - 0.318475
+      - 0.40742700000024484
+      - 0.318475
+      - -0.40737300000024484
+      action_type: stop
+      visualize: true
+      polygon_pub_topic: /safety/stop_zone
+      max_points: 2
+    SlowZone:
+      type: polygon
+      points:
+      - -0.438525
+      - -0.5273730000002448
+      - -0.438525
+      - 0.5274270000002448
+      - 0.438475
+      - 0.5274270000002448
+      - 0.438475
+      - -0.5273730000002448
+      action_type: slowdown
+      slowdown_ratio: 0.35
+      visualize: true
+      polygon_pub_topic: /safety/slow_zone
+      max_points: 2
+    observation_sources:
+    - scan
+    - depth
+    scan:
+      type: scan
+      topic: /scan
+    depth:
+      type: pointcloud
+      topic: camera/head/depth/points
+      min_height: -0.33
+      max_height: 1.62
+depth_clearance:
+  ros__parameters:
+    use_sim_time: true
+    marking_min_z: -0.33
+    marking_max_z: 1.62
+    pixel_stride: 4
+    positive_infinity_is_free: true
+    clearing_distance: 5.0
+    marking_max_range: 4.0
+    sensor_far_clip: 10.0
+    camera_frame: head_camera_depth_frame
+    optical_frame: head_camera_depth_optical_frame
+    allow_simulation_limits: true
+    self_filter_profile: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/2_chair_gap/config/cad_frame.yaml
+pan_motion_gate:
+  ros__parameters:
+    angle_tolerance: 0.04
+    settle_s: 0.2
+    source_timeout_s: 0.5
+    command_timeout_s: 0.5
+    allow_reverse: true
+    allow_lateral: true
+    allow_mixed_motion: true
+    translation_angle_deg: 0.0
+    command_topic: nav2/cmd_vel
+    output_topic: pan_ready/cmd_vel
+    observation_only: false
+    odom_topic: odom
+    depth_topic: camera/head/depth/points
+    depth_frame: head_camera_depth_frame
+    use_sim_time: true
+voxel_guard:
+  ros__parameters:
+    angular_deceleration: 0.6
+    command_timeout_s: 0.5
+    command_topic: safety_2d/cmd_vel
+    linear_deceleration: 0.4
+    localization_jump_m: 0.25
+    localization_jump_rad: 0.3
+    margin: 0.02
+    max_speed: 0.18027756377319945
+    max_yaw_rate: 0.14
+    odom_topic: odom
+    output_directory: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/2_chair_gap/runtime/voxel_guard
+    output_topic: cmd_vel
+    processing_budget_s: 0.15
+    profile: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/2_chair_gap/config/cad_frame.yaml
+    reaction_s: 0.25
+    slowdown_lookahead_s: 0.5
+    slowdown_ratio: 0.35
+    source_timeout_s: 0.8
+    status_topic: obstacle_memory/voxel_status
+    step_s: 0.05
+    update_period_s: 0.05
+    use_sim_time: true
+    voxel_topic: obstacle_memory/local_voxels
+    wall_source_timeout_s: 5.0
+    allow_simulation_limits: true
+obstacle_memory:
+  ros__parameters:
+    mark_all_depth_points: true
+    output_directory: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/2_chair_gap/runtime/obstacle_memory
+    publish_3d: true
+    restore_path: ''
+    update_period: 0.2
+    use_sim_time: true
+    z_resolution: 0.05
+    floor_z: -0.38
+    depth_topic: camera/head/depth/points
+bt_navigator_navigate_to_pose_rclcpp_node:
+  ros__parameters:
+    use_sim_time: true
+bt_navigator_navigate_through_poses_rclcpp_node:
+  ros__parameters:
+    use_sim_time: true

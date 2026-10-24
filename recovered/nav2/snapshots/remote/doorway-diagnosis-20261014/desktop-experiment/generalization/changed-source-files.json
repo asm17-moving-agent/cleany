@@ -1,0 +1,12 @@
+[
+  "CMakeLists.txt",
+  "README.md",
+  "include/nav2_mppi_controller/controller.hpp",
+  "include/nav2_mppi_controller/optimizer.hpp",
+  "include/nav2_mppi_controller/path_progress.hpp",
+  "include/nav2_mppi_controller/path_seed.hpp",
+  "src/controller.cpp",
+  "src/critic_manager.cpp",
+  "src/optimizer.cpp",
+  "src/replay_snapshot.cpp"
+]

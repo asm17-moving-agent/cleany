@@ -1,0 +1,22 @@
+[
+  {
+    "route": 1,
+    "identical_inputs_except_primitive": true,
+    "identical_quantized_endpoints": true
+  },
+  {
+    "route": 2,
+    "identical_inputs_except_primitive": true,
+    "identical_quantized_endpoints": true
+  },
+  {
+    "route": 4,
+    "identical_inputs_except_primitive": true,
+    "identical_quantized_endpoints": true
+  },
+  {
+    "route": 6,
+    "identical_inputs_except_primitive": true,
+    "identical_quantized_endpoints": true
+  }
+]

@@ -1,0 +1,14 @@
+<root main_tree_to_execute="MainTree">
+ <BehaviorTree ID="MainTree">
+  <RecoveryNode number_of_retries="4" name="ShortPortalSegment">
+   <Sequence name="PlanAndTrackCheckedSegment">
+    <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+    <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="stage_goal_checker"/>
+   </Sequence>
+   <Sequence name="RetreatAndReplanOnFailure">
+    <BackUp backup_dist="0.35" backup_speed="0.10" time_allowance="8.0"/>
+    <Wait wait_duration="0.5"/>
+   </Sequence>
+  </RecoveryNode>
+ </BehaviorTree>
+</root>

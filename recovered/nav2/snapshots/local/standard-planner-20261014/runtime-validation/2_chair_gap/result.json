@@ -1,0 +1,23 @@
+{
+  "stage": "relaxed_gazebo_only",
+  "candidate": "mppi",
+  "goal_index": 2,
+  "goal_name": "chair_gap",
+  "goal_map": [
+    0.575,
+    -1.625,
+    1.570796
+  ],
+  "completed": false,
+  "navigation_goal_sent": false,
+  "domain": 231,
+  "partition": "cleany_comparison_a000ac10572a48ba8b4af524ec59d844",
+  "host": "a16-fedora",
+  "ign_discovery_ports": {
+    "message": 23155,
+    "service": 23156
+  },
+  "error": "AttributeError: module 'PIL.Image' has no attribute 'Resampling'",
+  "elapsed_wall_s": 1.2674738630012143,
+  "controller_deadline_warning_count": 0
+}

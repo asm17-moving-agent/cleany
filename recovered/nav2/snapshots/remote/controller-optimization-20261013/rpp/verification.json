@@ -1,0 +1,85 @@
+{
+  "completed": true,
+  "final_trials": [
+    {
+      "phase": "conservative",
+      "goal_index": 0,
+      "arrived": true,
+      "actual_wheel_max_rad_s": 3.3770375329049793,
+      "stopped": true
+    },
+    {
+      "phase": "conservative",
+      "goal_index": 1,
+      "arrived": true,
+      "actual_wheel_max_rad_s": 3.21354736735738,
+      "stopped": true
+    },
+    {
+      "phase": "conservative",
+      "goal_index": 2,
+      "arrived": false,
+      "actual_wheel_max_rad_s": 3.404921188297326,
+      "stopped": true
+    },
+    {
+      "phase": "conservative",
+      "goal_index": 3,
+      "arrived": true,
+      "actual_wheel_max_rad_s": 3.000291196491913,
+      "stopped": true
+    },
+    {
+      "phase": "conservative",
+      "goal_index": 4,
+      "arrived": false,
+      "actual_wheel_max_rad_s": 3.412519315531184,
+      "stopped": true
+    },
+    {
+      "phase": "relaxed",
+      "goal_index": 0,
+      "arrived": true,
+      "actual_wheel_max_rad_s": 4.799999999959589,
+      "stopped": true
+    },
+    {
+      "phase": "relaxed",
+      "goal_index": 1,
+      "arrived": true,
+      "actual_wheel_max_rad_s": 4.88979527537628,
+      "stopped": true
+    },
+    {
+      "phase": "relaxed",
+      "goal_index": 2,
+      "arrived": true,
+      "actual_wheel_max_rad_s": 4.898853542209851,
+      "stopped": true
+    },
+    {
+      "phase": "relaxed",
+      "goal_index": 3,
+      "arrived": true,
+      "actual_wheel_max_rad_s": 4.828973132947466,
+      "stopped": true
+    },
+    {
+      "phase": "relaxed",
+      "goal_index": 4,
+      "arrived": true,
+      "actual_wheel_max_rad_s": 4.885661567807828,
+      "stopped": true
+    }
+  ],
+  "frozen_relaxed_source_sha256": {
+    "runner.py": "d86840d51e4707a44d9cd7f6e2a71c8286f88a52b7b45b27806ec38597fa1b37",
+    "common.py": "e431001572bde9fe21498cd690cb42a3e2edfbb1756e2243c12066d057a1fa4b",
+    "probe.py": "a55616147a4df83d660e66145cc8214f73ca6895c9e87a4955a33416ae94113b",
+    "wheel_limit.py": "e74923bf1260e61bc3b8f1d04ef61217bc7f0b32863e51ac79bfddf18ff15c02"
+  },
+  "relaxed_parameters_identical_across_five": true,
+  "cleanup_verified": true,
+  "limits": "Recorded samples only; one run per goal; no statistical guarantee.",
+  "cleanup_incident": "SIGINT to owned legacy launch77608 also terminated child friction Gazebo77630; recorded separately and acknowledged. No further non-experiment process termination."
+}

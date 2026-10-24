@@ -1,0 +1,27 @@
+{
+  "owned_trial_processes_remaining": [],
+  "sha256": {
+    "REPORT.md": "f1a9aefd4ac4743a4746980c4c684f56b468046736150d079bfb074131fc28e0",
+    "comparison.json": "41d80f5a51a2c644d6a433ebc18501a54d677834cae435e20c4e6fb88a6e67cf",
+    "comparison.csv": "13dca9cbef4e28c41e26155d7db2a251dc415af649fb640f2d14d44467fa7d95",
+    "refined-planner-override.yaml": "a198c912ae099bf017ebe7ae3e5d3ad9692c22141a60c877bf4fed8d0c517a66",
+    "grid5cm.json": "5fb9c026d9f77d7e978370afa715089f61d03d6eb59cf35380d1fbed3df1c70b",
+    "media/before-after-gt-footprints.png": "d9c4c9e88415167343f1377457922046c53ff7007e70268102393ea397bd8ee9",
+    "media/before-after-planned-footprints.png": "a15fd7cef2f405b24e1d96efc0d915b16ad8965ee29166ee90910ff5f89db6ca",
+    "media/before-after-2rows-4cols-2x.gif": "c07a5d9fe2481c53990fa7d07b83417ff6191a19512d9fa5a55bb99098a986d9"
+  },
+  "trial_results": {
+    "baseline/3_far_heading": 4,
+    "baseline/5_lateral": 4,
+    "baseline/1_turn_arrival": 4,
+    "baseline/0_straight": 4,
+    "improved/3_far_heading": 4,
+    "improved/5_lateral": 4,
+    "improved/1_turn_arrival": 4,
+    "improved/0_straight": 4,
+    "refined/3_far_heading": 4,
+    "refined/5_lateral": 4,
+    "refined/1_turn_arrival": 4,
+    "refined/0_straight": 4
+  }
+}

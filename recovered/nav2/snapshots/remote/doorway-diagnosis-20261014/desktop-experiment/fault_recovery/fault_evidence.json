@@ -1,0 +1,19 @@
+{
+  "injection": "Independent Gazebo only: zero emitted commands in absolute sim interval[12,28)",
+  "observed_hold_interval_sim_s": [
+    12.001000000000001,
+    27.974
+  ],
+  "held_command_count": 618,
+  "held_outputs_all_zero": true,
+  "navigation_start_sim_s": 11.312000000000001,
+  "first_failed_compute_sim_s": 23.499,
+  "plans_published_during_hold": 5,
+  "steady_hold_max_gt_linear_m_s": 0.0,
+  "route_timeout_log_count": 23,
+  "backup_completed_log_count": 1,
+  "action_status": 4,
+  "gt_xy_m": 0.24901565215043708,
+  "gt_yaw_deg": 0.7831682186761337,
+  "scope": "Diagnostic fault-injection run, excluded from normal navigation performance comparisons"
+}

@@ -1,0 +1,8 @@
+{
+  "scope": "2D discrete rectangular footprint orientations0/90 union, lower bound only; does not certify transitions",
+  "start_label": 8,
+  "goal_label": 12,
+  "start_center_free_label": 2,
+  "goal_center_free_label": 2,
+  "goal_center_obstacle_distance_m": 0.7071067811865476
+}

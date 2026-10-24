@@ -1,0 +1,6 @@
+FollowPath:
+  vx_samples: 5
+  vy_samples: 5
+  vtheta_samples: 7
+  goal_directed_radius: 4.5
+  prefer_target_translation_direction: true

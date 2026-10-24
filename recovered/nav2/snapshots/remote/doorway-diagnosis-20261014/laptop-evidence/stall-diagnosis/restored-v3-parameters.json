@@ -1,0 +1,75 @@
+{
+  "FollowPath.CostCritic.cost_weight": {
+    "type": 3,
+    "double": 3.81,
+    "bool": false,
+    "integer": 0
+  },
+  "FollowPath.TwirlingCritic.cost_weight": {
+    "type": 3,
+    "double": 10.0,
+    "bool": false,
+    "integer": 0
+  },
+  "FollowPath.vx_std": {
+    "type": 3,
+    "double": 0.035,
+    "bool": false,
+    "integer": 0
+  },
+  "FollowPath.vy_std": {
+    "type": 3,
+    "double": 0.025,
+    "bool": false,
+    "integer": 0
+  },
+  "FollowPath.wz_std": {
+    "type": 3,
+    "double": 0.07,
+    "bool": false,
+    "integer": 0
+  },
+  "FollowPath.PathAlignCritic.use_path_orientations": {
+    "type": 1,
+    "double": 0.0,
+    "bool": true,
+    "integer": 0
+  },
+  "FollowPath.visualize": {
+    "type": 1,
+    "double": 0.0,
+    "bool": false,
+    "integer": 0
+  },
+  "progress_checker.movement_time_allowance": {
+    "type": 3,
+    "double": 1500.0,
+    "bool": false,
+    "integer": 0
+  },
+  "failure_tolerance": {
+    "type": 3,
+    "double": -1.0,
+    "bool": false,
+    "integer": 0
+  },
+  "FollowPath.PathAlignCritic.offset_from_furthest": {
+    "type": 2,
+    "double": 0.0,
+    "bool": false,
+    "integer": 2
+  },
+  "FollowPath.temperature": {
+    "type": 3,
+    "double": 0.3,
+    "bool": false,
+    "integer": 0
+  },
+  "FollowPath.PathFollowCritic.cost_weight": {
+    "type": 3,
+    "double": 15.0,
+    "bool": false,
+    "integer": 0
+  },
+  "local.depth_layer.enabled": true
+}

@@ -1,0 +1,38 @@
+{
+  "conservative": {
+    "final_goal_count": 5,
+    "indices_once": true,
+    "actual_controller_behavior_parameters_identical": true,
+    "parameter_comparison_ignored_field": "FollowPath.benchmark_timing_file (per-run output path only)",
+    "behavior_parameter_sha256": "ed54851b77dff66b59ae45e6e81b1626301faff7ad2d1a2db46af9e28aa4c6ea",
+    "loaded_library_hashes_identical": true,
+    "all_bags_nonempty": true,
+    "bag_message_counts": [
+      7516,
+      24624,
+      22835,
+      30702,
+      38146
+    ],
+    "max_command_wheel_rad_s": 4.021926248337575,
+    "max_joint_wheel_rad_s": 4.021926248135384
+  },
+  "relaxed_gazebo_only": {
+    "final_goal_count": 5,
+    "indices_once": true,
+    "actual_controller_behavior_parameters_identical": true,
+    "parameter_comparison_ignored_field": "FollowPath.benchmark_timing_file (per-run output path only)",
+    "behavior_parameter_sha256": "ca14e34cce6386889801384ccd983083e8bb3064c03fd6afe189856fa2c383bf",
+    "loaded_library_hashes_identical": true,
+    "all_bags_nonempty": true,
+    "bag_message_counts": [
+      36252,
+      94347,
+      86872,
+      119322,
+      171376
+    ],
+    "max_command_wheel_rad_s": 3.961309566524789,
+    "max_joint_wheel_rad_s": 3.9613095664524693
+  }
+}

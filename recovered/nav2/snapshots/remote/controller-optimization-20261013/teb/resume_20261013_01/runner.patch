@@ -1,0 +1,66 @@
+--- a/run_comparison.py
++++ b/runner.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ """Isolated descriptive controller experiments; no acceptance/pass score."""
+-import argparse, csv, hashlib, json, math, os, signal, subprocess, sys, time, uuid
++import argparse, csv, hashlib, json, math, os, shlex, signal, subprocess, sys, time, uuid
+ from pathlib import Path
+ import numpy as np
+ import yaml
+@@ -57,6 +57,10 @@
+    'footprint_model':{'type':'polygon','vertices':str(padded)},
+    'min_obstacle_dist':0.,'inflation_dist':.2,'odom_topic':'odom'
+   }
++  overrides=json.loads(os.environ.get('CLEANY_TEB_OVERRIDES','{}'))
++  forbidden={'footprint_model','feasibility_check_no_poses','feasibility_check_lookahead_distance','include_costmap_obstacles','min_resolution_collision_check_angular'}
++  if forbidden & overrides.keys():raise ValueError('Safety/footprint overrides prohibited')
++  ctrl['FollowPath'].update(overrides)
+  elif candidate=='rpp':
+   ctrl['FollowPath']={
+    'plugin':'nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController',
+@@ -94,7 +98,7 @@
+   super().__init__(out,scenario);self.vel=[];self.joints=[];self.commands=[];self.scan_stamps=[]
+   self.create_subscription(Odometry,'/ground_truth/odom',self.velocity,qos_profile_sensor_data)
+   self.create_subscription(JointState,'/joint_states',self.joint,qos_profile_sensor_data)
+-  for topic in ['/nav2/cmd_vel','/cmd_vel']:
++  for topic in ['/nav2/cmd_vel','/cmd_vel','/safety_2d/cmd_vel','/pan_ready/cmd_vel']:
+    self.create_subscription(Twist,topic,lambda m,t=topic:self.cmd(m,t),qos_profile_sensor_data)
+   for topic in ['/head_pan/state','/body_guard_3d/state']:
+    self.create_subscription(String,topic,lambda m,t=topic:self.diagnostic(m,t),qos_profile_sensor_data)
+@@ -145,6 +149,7 @@
+  partition='cleany_comparison_'+uuid.uuid4().hex;os.environ.update(IGN_PARTITION=partition,GZ_PARTITION=partition)
+  result={'candidate':candidate,'goal_index':goal_index,'goal_name':GOALS[goal_index][0],'goal_map':GOALS[goal_index][1],'completed':False,'domain':domain,'partition':partition,'host':os.uname().nodename};proc=node=bag=None;resource_samples=[]
+  started=time.monotonic()
++ (out/'runner_snapshot.py').write_text(Path(__file__).read_text())
+  try:
+   scenario=setup(out,candidate,rtf);result['model_metadata']=scenario['model_metadata']
+   proc=subprocess.Popen(['ros2','launch',str(out/'run.launch.py')],stdout=(out/'launch.log').open('w'),stderr=subprocess.STDOUT,start_new_session=True)
+@@ -154,8 +159,26 @@
+   keys=['plugin','wrapped_plugin'] if 'wrapped_plugin' in f else ['plugin']
+   result['verified_controller']=node.parameters('/controller_server',['FollowPath.'+k for k in keys])
+   result['verified_planner']=node.parameters('/planner_server',['GridBased.plugin'])
++  if candidate=='teb':
++   names=['min_obstacle_dist','max_number_classes','no_inner_iterations','no_outer_iterations','dt_ref','dt_hysteresis','max_vel_x','max_vel_y','max_vel_theta','enable_homotopy_class_planning','feasibility_check_no_poses','feasibility_check_lookahead_distance','min_resolution_collision_check_angular','include_costmap_obstacles','weight_kinematics_nh','weight_kinematics_forward_drive']
++   result['verified_teb_parameters']=node.parameters('/controller_server',['FollowPath.'+name for name in names])
++   result['requested_teb_overrides']=json.loads(os.environ.get('CLEANY_TEB_OVERRIDES','{}'))
++  binary_maps=[]
++  for process in resources(proc.pid):
++   if '/controller_server ' not in process['cmd']:continue
++   for argument in shlex.split(process['cmd']):
++    if argument.endswith('/parameters.yaml') and Path(argument).exists():
++     effective=Path(argument);(out/'effective_parameters.yaml').write_text(effective.read_text())
++     for extra in ['wait_before_detour.xml','bt_manifest.json']:
++      if (effective.parent/extra).exists():(out/extra).write_text((effective.parent/extra).read_text())
++   for line in Path('/proc',str(process['pid']),'maps').read_text().splitlines():
++    if 'libteb_local_planner.so' in line:
++     binary=Path(line.split()[-1])
++     if str(binary) not in [v['path'] for v in binary_maps]:
++      binary_maps.append({'path':str(binary),'sha256':hashlib.sha256(binary.read_bytes()).hexdigest()})
++  (out/'controller_binary_maps.json').write_text(json.dumps(binary_maps,indent=2))
+   result['rpp_limit_note']=scenario.get('rpp_limit_note')
+-  bag=subprocess.Popen(['ros2','bag','record','-o',str(out/'bag'),'/clock','/ground_truth/odom','/odom','/wheel/odom','/joint_states','/nav2/cmd_vel','/cmd_vel','/scan','/collision_monitor_state','/tf','/tf_static','/head_pan/state','/body_guard_3d/state','/evaluation/depth_points','/amcl_pose','/plan','/local_costmap/costmap','/global_costmap/costmap'],stdout=(out/'bag.log').open('w'),stderr=subprocess.STDOUT,start_new_session=True)
++  bag=subprocess.Popen(['ros2','bag','record','-o',str(out/'bag'),'/clock','/ground_truth/odom','/odom','/wheel/odom','/joint_states','/nav2/cmd_vel','/cmd_vel','/safety_2d/cmd_vel','/pan_ready/cmd_vel','/scan','/collision_monitor_state','/tf','/tf_static','/head_pan/state','/body_guard_3d/state','/evaluation/depth_points','/amcl_pose','/plan','/local_costmap/costmap','/global_costmap/costmap'],stdout=(out/'bag.log').open('w'),stderr=subprocess.STDOUT,start_new_session=True)
+   node.wait(1);goal=GOALS[goal_index][1];req=NavigateToPose.Goal();req.pose.header.frame_id='map';req.pose.header.stamp=node.get_clock().now().to_msg();req.pose.pose.position.x=goal[0];req.pose.pose.position.y=goal[1];req.pose.pose.orientation.z=math.sin(goal[2]/2);req.pose.pose.orientation.w=math.cos(goal[2]/2)
+   if not node.nav.wait_for_server(timeout_sec=20):raise TimeoutError('No navigate_to_pose action server')
+   handle=node.future(node.nav.send_goal_async(req));node.active_goal=handle

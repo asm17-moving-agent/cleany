@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="23" failures="1" disabled="0" errors="0" time="0.132" timestamp="2026-10-13T04:19:43" name="AllTests">
+  <testsuite name="UtilsTests" tests="9" failures="0" disabled="0" errors="0" time="0.016" timestamp="2026-10-13T04:19:43">
+    <testcase name="MarkerPopulationUtils" status="run" result="completed" time="0" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+    <testcase name="ConversionTests" status="run" result="completed" time="0" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+    <testcase name="WithTolTests" status="run" result="completed" time="0" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+    <testcase name="AnglesTests" status="run" result="completed" time="0" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+    <testcase name="FurthestAndClosestReachedPoint" status="run" result="completed" time="0" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+    <testcase name="findPathCosts" status="run" result="completed" time="0.016" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+    <testcase name="SmootherTest" status="run" result="completed" time="0" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+    <testcase name="FindPathInversionTest" status="run" result="completed" time="0" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+    <testcase name="RemovePosesAfterPathInversionTest" status="run" result="completed" time="0" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.UtilsTests" />
+  </testsuite>
+  <testsuite name="CriticTests" tests="14" failures="1" disabled="0" errors="0" time="0.116" timestamp="2026-10-13T04:19:43">
+    <testcase name="ConstraintsCritic" status="run" result="completed" time="0.012" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="ObstacleCriticMisalignedParams" status="run" result="completed" time="0.01" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="ObstacleCriticAlignedParams" status="run" result="completed" time="0.01" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="CostCriticMisAlignedParams" status="run" result="completed" time="0.01" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="CostCriticAlignedParams" status="run" result="completed" time="0.009" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="GoalAngleCritic" status="run" result="completed" time="0.007" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="GoalCritic" status="run" result="completed" time="0.007" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="PathAngleCritic" status="run" result="completed" time="0.006" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="PreferForwardCritic" status="run" result="completed" time="0.005" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="TwirlingCritic" status="run" result="completed" time="0.006" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="PathFollowCritic" status="run" result="completed" time="0.006" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="PathAlignCritic" status="run" result="completed" time="0.01" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests">
+      <failure message="/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/mppi_ws/src/nav2_mppi_controller/test/critics_tests.cpp:596&#x0A;The difference between xt::sum(costs, immediate)() and 6600.0 is 0.015625, which exceeds 1e-2, where&#x0A;xt::sum(costs, immediate)() evaluates to 6599.984375,&#x0A;6600.0 evaluates to 6600, and&#x0A;1e-2 evaluates to 0.01." type=""><![CDATA[/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/mppi_ws/src/nav2_mppi_controller/test/critics_tests.cpp:596
+The difference between xt::sum(costs, immediate)() and 6600.0 is 0.015625, which exceeds 1e-2, where
+xt::sum(costs, immediate)() evaluates to 6599.984375,
+6600.0 evaluates to 6600, and
+1e-2 evaluates to 0.01.]]></failure>
+    </testcase>
+    <testcase name="PathAlignLegacyCritic" status="run" result="completed" time="0.008" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+    <testcase name="VelocityDeadbandCritic" status="run" result="completed" time="0.01" timestamp="2026-10-13T04:19:43" classname="nav2_mppi_controller.CriticTests" />
+  </testsuite>
+</testsuites>

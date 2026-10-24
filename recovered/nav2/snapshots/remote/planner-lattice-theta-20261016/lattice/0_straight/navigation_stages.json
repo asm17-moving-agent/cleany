@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      -1.865,
+      -3.705,
+      1.5708
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/planner-lattice-theta-20261016/lattice/0_straight/behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 10.316,
+    "sim_end": 14.747000000000002,
+    "truth": [
+      -1.8294945174955073,
+      -3.953707632282564,
+      1.578812279519712
+    ]
+  }
+]

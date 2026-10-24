@@ -1,0 +1,23 @@
+{
+  "action_status": 4,
+  "last_gt_xy": [
+    0.5083449988739989,
+    -1.613858509541008
+  ],
+  "gt_yaw": 1.5707999998850966,
+  "goal_world": [
+    0.575,
+    -1.625,
+    1.570796
+  ],
+  "gt_xy_error_m": 0.0675797453735586,
+  "gt_yaw_error_deg": 0.00022917653456517334,
+  "wall_s": 82.71197660500002,
+  "sim_s": 20.091,
+  "amcl_pose": [
+    0.37971146610761175,
+    -1.6303593109581174,
+    1.5947726592559492
+  ],
+  "note": "Laptop facility world seat-29 chair removed; one visual comparison run"
+}

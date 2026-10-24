@@ -1,0 +1,22 @@
+Traceback (most recent call last):
+  File "/home/ehdrms/workspace/cleany/cleany-data/runs/smac2d-mppi-gazebo-20261014/run_facility_gui.py", line 372, in run
+    node.tick()
+  File "/home/ehdrms/workspace/cleany/cleany-data/runs/smac2d-mppi-gazebo-20261014/relaxed_safety_probe.py", line 132, in tick
+    rclpy.spin_once(self, timeout_sec=0.005)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 208, in spin_once
+    executor.spin_once(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 797, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 780, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 600, in _wait_for_ready_callbacks
+    with ExitStack() as context_stack:
+  File "/usr/lib/python3.10/contextlib.py", line 576, in __exit__
+    raise exc_details[1]
+  File "/usr/lib/python3.10/contextlib.py", line 561, in __exit__
+    if cb(*exc_details):
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/qos_event.py", line 121, in __exit__
+    def __exit__(self, t, v, tb):
+KeyboardInterrupt

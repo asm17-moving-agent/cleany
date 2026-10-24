@@ -1,0 +1,1803 @@
+{
+  "cost_scope": "critic deltas before MPPI control regularization",
+  "rows": [
+    {
+      "sim_s": 11.384,
+      "nearest_gt": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "gt_time_offset_s": -0.7769999999999992,
+      "failed": 0,
+      "furthest": 10,
+      "yaw_change_range_deg": [
+        -7.571594233523414,
+        74.86669397805092
+      ],
+      "best_candidate": 6,
+      "best_yaw_change_deg": 74.86669397805092,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.127875,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 4.49995565,
+        "PathFollowCritic": 14.8643036,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 3.26667595,
+        "critic_total": 22.75881
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 13.387,
+      "nearest_gt": [
+        -2.1096675271046923,
+        -4.6067363503588865,
+        2.985740119013556
+      ],
+      "gt_time_offset_s": 2.216000000000001,
+      "failed": 0,
+      "furthest": 12,
+      "yaw_change_range_deg": [
+        27.612760769883995,
+        68.7110406033518
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 68.7110406033518,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.298687488,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 1.37183702,
+        "PathFollowCritic": 12.5793219,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 2.99808407,
+        "critic_total": 17.2479305
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 15.39,
+      "nearest_gt": [
+        -2.1096675271046923,
+        -4.6067363503588865,
+        2.985740119013556
+      ],
+      "gt_time_offset_s": 0.21300000000000097,
+      "failed": 0,
+      "furthest": 14,
+      "yaw_change_range_deg": [
+        10.689187715545494,
+        38.76890158271399
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 17.877115142800214,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.285750002,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.304830462,
+        "PathFollowCritic": 11.3299637,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 2.66179371,
+        "critic_total": 14.5823383
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 17.394,
+      "nearest_gt": [
+        -2.1096675271046923,
+        -4.6067363503588865,
+        2.985740119013556
+      ],
+      "gt_time_offset_s": -1.7909999999999968,
+      "failed": 0,
+      "furthest": 16,
+      "yaw_change_range_deg": [
+        -19.53965188002865,
+        9.467451474338608
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -17.06302519479962,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.303375006,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.28943646,
+        "PathFollowCritic": 9.61395645,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.57368851,
+        "critic_total": 11.7804565
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 19.396,
+      "nearest_gt": [
+        -2.8683714587822458,
+        -4.788600303493664,
+        -3.108586866018507
+      ],
+      "gt_time_offset_s": 1.2040000000000006,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -15.233837953279428,
+        -5.808408922509108
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -12.464749545188216,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.398249984,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.0889437795,
+        "PathFollowCritic": 8.40678596,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.722038269,
+        "critic_total": 9.6160183
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 21.408,
+      "nearest_gt": [
+        -2.8683714587822458,
+        -4.788600303493664,
+        -3.108586866018507
+      ],
+      "gt_time_offset_s": -0.8079999999999998,
+      "failed": 0,
+      "furthest": 20,
+      "yaw_change_range_deg": [
+        -5.846727193931856,
+        5.353246666394813
+      ],
+      "best_candidate": 186,
+      "best_yaw_change_deg": -0.008076413080162239,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.38775,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.206237108,
+        "PathFollowCritic": 6.88708544,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.520003319,
+        "critic_total": 8.00107574
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 23.408,
+      "nearest_gt": [
+        -3.9923563632357393,
+        -4.767659541364596,
+        -3.1314690634582805
+      ],
+      "gt_time_offset_s": 2.196999999999999,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -5.639274646175457,
+        6.201377182919738
+      ],
+      "best_candidate": 913,
+      "best_yaw_change_deg": -0.00808443448929621,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.407437503,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 1.12574697,
+        "PathFollowCritic": 8.11529922,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.476389885,
+        "critic_total": 10.1248732
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 25.408,
+      "nearest_gt": [
+        -3.9923563632357393,
+        -4.767659541364596,
+        -3.1314690634582805
+      ],
+      "gt_time_offset_s": 0.19699999999999918,
+      "failed": 0,
+      "furthest": 17,
+      "yaw_change_range_deg": [
+        0.2910258906275749,
+        26.813722938823506
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 26.813722938823506,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.422437489,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.247872174,
+        "PathFollowCritic": 9.09847069,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.16996956,
+        "critic_total": 10.9387503
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 27.421,
+      "nearest_gt": [
+        -3.9923563632357393,
+        -4.767659541364596,
+        -3.1314690634582805
+      ],
+      "gt_time_offset_s": -1.815999999999999,
+      "failed": 0,
+      "furthest": 15,
+      "yaw_change_range_deg": [
+        12.798264267029293,
+        40.73181831953332
+      ],
+      "best_candidate": 6,
+      "best_yaw_change_deg": 38.333466263486066,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.615187466,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.27167356,
+        "PathFollowCritic": 9.94329262,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.69318771,
+        "critic_total": 12.5233412
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 29.428,
+      "nearest_gt": [
+        -4.876690613433526,
+        -4.903966139481321,
+        -2.6874828796063004
+      ],
+      "gt_time_offset_s": 1.1720000000000006,
+      "failed": 0,
+      "furthest": 15,
+      "yaw_change_range_deg": [
+        -2.051763010279068,
+        39.8370083584813
+      ],
+      "best_candidate": 544,
+      "best_yaw_change_deg": 35.40851901117439,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 1.02112496,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.991272807,
+        "PathFollowCritic": 10.817873,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.58382034,
+        "critic_total": 14.4140911
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 31.442,
+      "nearest_gt": [
+        -4.876690613433526,
+        -4.903966139481321,
+        -2.6874828796063004
+      ],
+      "gt_time_offset_s": -0.8419999999999987,
+      "failed": 0,
+      "furthest": 15,
+      "yaw_change_range_deg": [
+        13.058412889119463,
+        57.820754384702106
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 57.818786847633625,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.889312506,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.308620572,
+        "PathFollowCritic": 10.7219172,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 2.60965061,
+        "critic_total": 14.529501
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 33.451,
+      "nearest_gt": [
+        -5.318532278400379,
+        -5.487194273527955,
+        -1.8035217294679435
+      ],
+      "gt_time_offset_s": 2.1570000000000036,
+      "failed": 0,
+      "furthest": 15,
+      "yaw_change_range_deg": [
+        12.800517137079746,
+        38.443260446893596
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 21.56554871064654,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 1.11731243,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.392579198,
+        "PathFollowCritic": 10.390564,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 2.50629044,
+        "critic_total": 14.4067459
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 35.467,
+      "nearest_gt": [
+        -5.318532278400379,
+        -5.487194273527955,
+        -1.8035217294679435
+      ],
+      "gt_time_offset_s": 0.14100000000000534,
+      "failed": 0,
+      "furthest": 17,
+      "yaw_change_range_deg": [
+        -22.671326888485876,
+        14.10345009222361
+      ],
+      "best_candidate": 158,
+      "best_yaw_change_deg": -15.02327710948445,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 1.10249996,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 1.86835194,
+        "PathFollowCritic": 8.26150894,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.96382618,
+        "critic_total": 12.196187
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 37.476,
+      "nearest_gt": [
+        -5.318532278400379,
+        -5.487194273527955,
+        -1.8035217294679435
+      ],
+      "gt_time_offset_s": -1.867999999999995,
+      "failed": 0,
+      "furthest": 15,
+      "yaw_change_range_deg": [
+        -39.81535742931888,
+        -19.53826073850207
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -39.81534367833181,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.969937503,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.294683039,
+        "PathFollowCritic": 10.1215334,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.89155579,
+        "critic_total": 13.27771
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 39.479,
+      "nearest_gt": [
+        -5.666597461630922,
+        -6.188657610330726,
+        -2.5178644043369394
+      ],
+      "gt_time_offset_s": 1.3250000000000028,
+      "failed": 0,
+      "furthest": 15,
+      "yaw_change_range_deg": [
+        -39.5777678744964,
+        -10.071630885641701
+      ],
+      "best_candidate": 252,
+      "best_yaw_change_deg": -31.114938306309014,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.496687502,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.726516724,
+        "PathFollowCritic": 10.8463516,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.37078381,
+        "critic_total": 13.44034
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 41.484,
+      "nearest_gt": [
+        -5.666597461630922,
+        -6.188657610330726,
+        -2.5178644043369394
+      ],
+      "gt_time_offset_s": -0.6799999999999997,
+      "failed": 0,
+      "furthest": 16,
+      "yaw_change_range_deg": [
+        -32.09579965269612,
+        -7.413783952348508
+      ],
+      "best_candidate": 617,
+      "best_yaw_change_deg": -29.891793161883875,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.193312496,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.683315039,
+        "PathFollowCritic": 9.40657139,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.40641117,
+        "critic_total": 11.6896105
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 43.497,
+      "nearest_gt": [
+        -6.54722771732113,
+        -6.433042311497259,
+        3.1263459667479783
+      ],
+      "gt_time_offset_s": 2.5060000000000002,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -15.99074098374803,
+        -5.0303499984130955
+      ],
+      "best_candidate": 232,
+      "best_yaw_change_deg": -12.496949200316774,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0466874987,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.73779577,
+        "PathFollowCritic": 8.63281059,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.75436306,
+        "critic_total": 10.1716566
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 45.504,
+      "nearest_gt": [
+        -6.54722771732113,
+        -6.433042311497259,
+        3.1263459667479783
+      ],
+      "gt_time_offset_s": 0.49900000000000233,
+      "failed": 0,
+      "furthest": 20,
+      "yaw_change_range_deg": [
+        -5.577433019515806,
+        4.7338305884458105
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -0.767934759856041,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.0994603038,
+        "PathFollowCritic": 7.06180191,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.0335073471,
+        "critic_total": 7.19476938
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 47.521,
+      "nearest_gt": [
+        -6.54722771732113,
+        -6.433042311497259,
+        3.1263459667479783
+      ],
+      "gt_time_offset_s": -1.5180000000000007,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -4.480652570891191,
+        5.001275255099185
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.11487631905034437,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.171469033,
+        "PathFollowCritic": 7.15184355,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00501251221,
+        "critic_total": 7.32832527
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 49.534,
+      "nearest_gt": [
+        -7.693991933016987,
+        -6.440289530752125,
+        -3.1385783230036837
+      ],
+      "gt_time_offset_s": 1.466000000000001,
+      "failed": 0,
+      "furthest": 20,
+      "yaw_change_range_deg": [
+        -4.965928342801966,
+        5.586160312651238
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.0944492277383419,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.129018798,
+        "PathFollowCritic": 7.09877062,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00412130356,
+        "critic_total": 7.23191071
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 51.547,
+      "nearest_gt": [
+        -7.693991933016987,
+        -6.440289530752125,
+        -3.1385783230036837
+      ],
+      "gt_time_offset_s": -0.546999999999997,
+      "failed": 0,
+      "furthest": 20,
+      "yaw_change_range_deg": [
+        -5.340724673782239,
+        4.900829451076999
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.07680327356389728,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.0125611722,
+        "PathFollowCritic": 6.95321178,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00664806366,
+        "critic_total": 6.97242117
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 53.557,
+      "nearest_gt": [
+        -8.838368379736451,
+        -6.426297419274523,
+        -3.1358624994541566
+      ],
+      "gt_time_offset_s": 2.4480000000000004,
+      "failed": 0,
+      "furthest": 20,
+      "yaw_change_range_deg": [
+        -5.608808188377169,
+        5.330703068987598
+      ],
+      "best_candidate": 264,
+      "best_yaw_change_deg": -0.4308419165843631,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.257087976,
+        "PathFollowCritic": 6.72092485,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.48740387,
+        "critic_total": 7.46541691
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 55.572,
+      "nearest_gt": [
+        -8.838368379736451,
+        -6.426297419274523,
+        -3.1358624994541566
+      ],
+      "gt_time_offset_s": 0.43299999999999983,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -14.68336474090292,
+        0.037352837537968246
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -7.742894920576218,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.369622976,
+        "PathFollowCritic": 8.38347054,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.341101646,
+        "critic_total": 9.09419537
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 57.582,
+      "nearest_gt": [
+        -8.838368379736451,
+        -6.426297419274523,
+        -3.1358624994541566
+      ],
+      "gt_time_offset_s": -1.5769999999999982,
+      "failed": 0,
+      "furthest": 17,
+      "yaw_change_range_deg": [
+        -26.709343779537733,
+        0.02685796960456273
+      ],
+      "best_candidate": 662,
+      "best_yaw_change_deg": -20.34414707679199,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.00768749975,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.46979019,
+        "PathFollowCritic": 8.89548206,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.13031483,
+        "critic_total": 10.5032749
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 59.583,
+      "nearest_gt": [
+        -9.830500678540243,
+        -6.283834019708005,
+        2.6833112024363204
+      ],
+      "gt_time_offset_s": 1.6240000000000023,
+      "failed": 0,
+      "furthest": 17,
+      "yaw_change_range_deg": [
+        -15.398090972973229,
+        -3.2673370903993324
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -10.920768661970452,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.201187491,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.320375681,
+        "PathFollowCritic": 8.57497501,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.599304199,
+        "critic_total": 9.69584274
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 61.604,
+      "nearest_gt": [
+        -9.830500678540243,
+        -6.283834019708005,
+        2.6833112024363204
+      ],
+      "gt_time_offset_s": -0.39699999999999847,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -5.349681092739939,
+        4.259524093522813
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -0.08530940499041681,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.103500001,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.177355289,
+        "PathFollowCritic": 7.65860939,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00372219086,
+        "critic_total": 7.94318676
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 63.604,
+      "nearest_gt": [
+        -9.830500678540243,
+        -6.283834019708005,
+        2.6833112024363204
+      ],
+      "gt_time_offset_s": -2.3969999999999985,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -5.759806459734199,
+        4.855362958202194
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.0721605965499628,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.00168749993,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.169352621,
+        "PathFollowCritic": 7.04144335,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00314855576,
+        "critic_total": 7.21563196
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 65.612,
+      "nearest_gt": [
+        -10.80029388175592,
+        -5.781674233878286,
+        2.6755244141214893
+      ],
+      "gt_time_offset_s": 0.5890000000000128,
+      "failed": 0,
+      "furthest": 16,
+      "yaw_change_range_deg": [
+        -5.615300487745354,
+        5.350994942259957
+      ],
+      "best_candidate": 326,
+      "best_yaw_change_deg": 0.2881244323530329,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.301608384,
+        "PathFollowCritic": 8.63681984,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.508717537,
+        "critic_total": 9.44714546
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 67.616,
+      "nearest_gt": [
+        -10.80029388175592,
+        -5.781674233878286,
+        2.6755244141214893
+      ],
+      "gt_time_offset_s": -1.414999999999992,
+      "failed": 0,
+      "furthest": 17,
+      "yaw_change_range_deg": [
+        -14.044102092479937,
+        0.06783361928112236
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -7.95219491344725,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.354290485,
+        "PathFollowCritic": 7.8837924,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.352898598,
+        "critic_total": 8.59098148
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 69.618,
+      "nearest_gt": [
+        -11.593532751817978,
+        -5.276492163121458,
+        2.3710379665698107
+      ],
+      "gt_time_offset_s": 1.585000000000008,
+      "failed": 0,
+      "furthest": 20,
+      "yaw_change_range_deg": [
+        -20.157499371421927,
+        -10.72044892310141
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -18.38918385360579,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.911925673,
+        "PathFollowCritic": 11.0403185,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.805475235,
+        "critic_total": 12.757719
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 71.633,
+      "nearest_gt": [
+        -11.593532751817978,
+        -5.276492163121458,
+        2.3710379665698107
+      ],
+      "gt_time_offset_s": -0.4299999999999926,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -5.668749886988166,
+        4.251666206545718
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -0.2852767175196682,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.21840483,
+        "PathFollowCritic": 7.71639919,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.0124473572,
+        "critic_total": 7.94725132
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 73.636,
+      "nearest_gt": [
+        -11.593532751817978,
+        -5.276492163121458,
+        2.3710379665698107
+      ],
+      "gt_time_offset_s": -2.4329999999999927,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -6.8181793128157935,
+        9.25877463036556
+      ],
+      "best_candidate": 844,
+      "best_yaw_change_deg": -1.725665398983292,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 1.26392746,
+        "PathFollowCritic": 8.33936119,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.539204597,
+        "critic_total": 10.1424932
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 75.643,
+      "nearest_gt": [
+        -12.44722327988359,
+        -4.522070866993051,
+        2.3603031196526687
+      ],
+      "gt_time_offset_s": 0.7610000000000099,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -4.5838050275375695,
+        5.165671858016446
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -0.0735442896251974,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.425696582,
+        "PathFollowCritic": 7.68846893,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00320911407,
+        "critic_total": 8.11737442
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 77.648,
+      "nearest_gt": [
+        -12.44722327988359,
+        -4.522070866993051,
+        2.3603031196526687
+      ],
+      "gt_time_offset_s": -1.2439999999999856,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -6.8519228027233305,
+        4.962948675788388
+      ],
+      "best_candidate": 167,
+      "best_yaw_change_deg": -2.5562016994226733,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.777147412,
+        "PathFollowCritic": 8.18013191,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.470762253,
+        "critic_total": 9.42804146
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 79.656,
+      "nearest_gt": [
+        -13.223734788938726,
+        -3.7827350981451904,
+        2.3577498246103774
+      ],
+      "gt_time_offset_s": 1.9440000000000026,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -5.09269720303117,
+        6.14162181018371
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.2808004274494285,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.209819332,
+        "PathFollowCritic": 7.73207808,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.0122523308,
+        "critic_total": 7.95414972
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 81.661,
+      "nearest_gt": [
+        -13.223734788938726,
+        -3.7827350981451904,
+        2.3577498246103774
+      ],
+      "gt_time_offset_s": -0.06099999999999284,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -5.296076880300885,
+        6.371405960963136
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.025514727349646247,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.15363048,
+        "PathFollowCritic": 7.39254522,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00111341476,
+        "critic_total": 7.54728889
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 83.674,
+      "nearest_gt": [
+        -13.223734788938726,
+        -3.7827350981451904,
+        2.3577498246103774
+      ],
+      "gt_time_offset_s": -2.073999999999998,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -5.261407777075315,
+        5.9334327824774435
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.05968180495512242,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.265198082,
+        "PathFollowCritic": 7.579813,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00260400772,
+        "critic_total": 7.84761524
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 85.674,
+      "nearest_gt": [
+        -14.002475730524218,
+        -2.974043375224784,
+        2.296733447272473
+      ],
+      "gt_time_offset_s": 0.929000000000002,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -17.40236855899478,
+        3.5757822730975906
+      ],
+      "best_candidate": 921,
+      "best_yaw_change_deg": -1.4838032978825102,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 2.25246382,
+        "PathFollowCritic": 8.02456474,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.467636108,
+        "critic_total": 10.7446651
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 87.685,
+      "nearest_gt": [
+        -14.002475730524218,
+        -2.974043375224784,
+        2.296733447272473
+      ],
+      "gt_time_offset_s": -1.0819999999999936,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -2.0148295205513596,
+        20.104068994377915
+      ],
+      "best_candidate": 903,
+      "best_yaw_change_deg": 3.932735323238771,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 1.50391793,
+        "PathFollowCritic": 8.25221825,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.631098747,
+        "critic_total": 10.3872347
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 89.688,
+      "nearest_gt": [
+        -14.737311184346101,
+        -2.2087070052176063,
+        2.357447736385157
+      ],
+      "gt_time_offset_s": 2.1129999999999995,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -5.491624682877397,
+        5.919562161806685
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -0.8311202017283986,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.200049311,
+        "PathFollowCritic": 7.96783924,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.106328011,
+        "critic_total": 8.27421665
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 91.713,
+      "nearest_gt": [
+        -14.737311184346101,
+        -2.2087070052176063,
+        2.357447736385157
+      ],
+      "gt_time_offset_s": 0.08800000000000807,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -5.499877796141581,
+        4.291451135332449
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.04466830537041224,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.182790175,
+        "PathFollowCritic": 7.29607058,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.0019493103,
+        "critic_total": 7.48081017
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 93.734,
+      "nearest_gt": [
+        -14.737311184346101,
+        -2.2087070052176063,
+        2.357447736385157
+      ],
+      "gt_time_offset_s": -1.9329999999999927,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -5.034724703066258,
+        5.39710515321759
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.01510053187379085,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.155463859,
+        "PathFollowCritic": 7.52888298,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00249052048,
+        "critic_total": 7.6868372
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 95.742,
+      "nearest_gt": [
+        -15.424183506174288,
+        -1.392810960662526,
+        2.3501615009618835
+      ],
+      "gt_time_offset_s": 1.0630000000000024,
+      "failed": 0,
+      "furthest": 17,
+      "yaw_change_range_deg": [
+        -4.504077491978887,
+        6.699700349741222
+      ],
+      "best_candidate": 749,
+      "best_yaw_change_deg": 0.27058670990608724,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.361412942,
+        "PathFollowCritic": 8.55238628,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.527607918,
+        "critic_total": 9.4414072
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 97.743,
+      "nearest_gt": [
+        -15.424183506174288,
+        -1.392810960662526,
+        2.3501615009618835
+      ],
+      "gt_time_offset_s": -0.9379999999999882,
+      "failed": 0,
+      "furthest": 19,
+      "yaw_change_range_deg": [
+        -5.628978651892739,
+        6.430895137507531
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 0.008966846789575498,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.441173196,
+        "PathFollowCritic": 7.62922335,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00039100647,
+        "critic_total": 8.07078743
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 99.751,
+      "nearest_gt": [
+        -16.263596738742734,
+        -0.6276433318040185,
+        2.352783642481121
+      ],
+      "gt_time_offset_s": 2.253,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -6.841679463261979,
+        5.771910938001476
+      ],
+      "best_candidate": 416,
+      "best_yaw_change_deg": -2.641557112924029,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 1.24858809,
+        "PathFollowCritic": 7.67897177,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.543019295,
+        "critic_total": 9.47057915
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 101.752,
+      "nearest_gt": [
+        -16.263596738742734,
+        -0.6276433318040185,
+        2.352783642481121
+      ],
+      "gt_time_offset_s": 0.25200000000000955,
+      "failed": 0,
+      "furthest": 18,
+      "yaw_change_range_deg": [
+        -16.750955481089356,
+        15.353088518616694
+      ],
+      "best_candidate": 320,
+      "best_yaw_change_deg": 3.333994427327057,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 1.96742141,
+        "PathFollowCritic": 3.67366409,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.438370705,
+        "critic_total": 6.07945633
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 103.761,
+      "nearest_gt": [
+        -16.263596738742734,
+        -0.6276433318040185,
+        2.352783642481121
+      ],
+      "gt_time_offset_s": -1.7569999999999908,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -3.3990585978096424,
+        39.44680353081235
+      ],
+      "best_candidate": 172,
+      "best_yaw_change_deg": 2.2223476146795265,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 4.30792904,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.462638855,
+        "critic_total": 4.77056789
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 105.777,
+      "nearest_gt": [
+        -16.956422440120313,
+        -0.0769804654348797,
+        2.5148146714091566
+      ],
+      "gt_time_offset_s": 1.2280000000000086,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -7.042899777193409,
+        36.838179745473546
+      ],
+      "best_candidate": 377,
+      "best_yaw_change_deg": 5.529183556038488,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 1.75665092,
+        "GoalAngleCritic": 1.86255622,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.548815489,
+        "critic_total": 4.16802263
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 107.783,
+      "nearest_gt": [
+        -16.956422440120313,
+        -0.0769804654348797,
+        2.5148146714091566
+      ],
+      "gt_time_offset_s": -0.7779999999999916,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        4.199233463614585,
+        30.767446279055708
+      ],
+      "best_candidate": 197,
+      "best_yaw_change_deg": 24.39110955789923,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.655776203,
+        "GoalAngleCritic": 0.590990245,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.23699415,
+        "critic_total": 2.4837606
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 109.904,
+      "nearest_gt": [
+        -17.010746742290987,
+        0.18153651455899253,
+        2.7656645563654894
+      ],
+      "gt_time_offset_s": 2.102000000000004,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -42.888235336952455,
+        6.583429451417533
+      ],
+      "best_candidate": 716,
+      "best_yaw_change_deg": 1.8341118137693384,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.0872717872,
+        "GoalAngleCritic": 0.0168036446,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.0,
+        "critic_total": 0.104075432
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 111.906,
+      "nearest_gt": [
+        -17.010746742290987,
+        0.18153651455899253,
+        2.7656645563654894
+      ],
+      "gt_time_offset_s": 0.09999999999999432,
+      "failed": 0,
+      "furthest": 17,
+      "yaw_change_range_deg": [
+        -24.383744987583736,
+        -5.945505690770218
+      ],
+      "best_candidate": 347,
+      "best_yaw_change_deg": -20.334904465415626,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.902062476,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.866965711,
+        "PathFollowCritic": 10.4807587,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 1.274786,
+        "critic_total": 13.5245733
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 113.915,
+      "nearest_gt": [
+        -17.010746742290987,
+        0.18153651455899253,
+        2.7656645563654894
+      ],
+      "gt_time_offset_s": -1.909000000000006,
+      "failed": 0,
+      "furthest": 14,
+      "yaw_change_range_deg": [
+        -11.540115297434683,
+        15.769364530245904
+      ],
+      "best_candidate": 752,
+      "best_yaw_change_deg": 8.217948667055627,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 1.64118743,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 1.13386059,
+        "PathFollowCritic": 13.6737909,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.558944702,
+        "critic_total": 17.0077839
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 115.926,
+      "nearest_gt": [
+        -17.112461567490595,
+        0.776923555310874,
+        3.1374708154614974
+      ],
+      "gt_time_offset_s": 1.2750000000000057,
+      "failed": 0,
+      "furthest": 20,
+      "yaw_change_range_deg": [
+        1.8193088761743441,
+        12.69681578686564
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": 8.006982054550138,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 1.76718748,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.319700599,
+        "PathFollowCritic": 6.84904385,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.349370956,
+        "critic_total": 9.28530312
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 117.94,
+      "nearest_gt": [
+        -17.112461567490595,
+        0.776923555310874,
+        3.1374708154614974
+      ],
+      "gt_time_offset_s": -0.7389999999999901,
+      "failed": 0,
+      "furthest": 28,
+      "yaw_change_range_deg": [
+        -26.31088830232314,
+        6.914648904331321
+      ],
+      "best_candidate": 381,
+      "best_yaw_change_deg": -2.8882298249685134,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 1.50524998,
+        "GoalCritic": 0.0,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 2.26199055,
+        "PathFollowCritic": 5.27456284,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.554483414,
+        "critic_total": 9.59628677
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 119.962,
+      "nearest_gt": [
+        -17.07440655010835,
+        1.6600900978248694,
+        3.111019495542873
+      ],
+      "gt_time_offset_s": 2.2420000000000044,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -24.459302421717908,
+        7.875059095179049
+      ],
+      "best_candidate": 578,
+      "best_yaw_change_deg": 3.1158585085226473,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 5.28834677,
+        "GoalAngleCritic": 0.0,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.471392632,
+        "critic_total": 5.7597394
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 121.965,
+      "nearest_gt": [
+        -17.07440655010835,
+        1.6600900978248694,
+        3.111019495542873
+      ],
+      "gt_time_offset_s": 0.23900000000000432,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -2.917259304616605,
+        7.561684985752409
+      ],
+      "best_candidate": 230,
+      "best_yaw_change_deg": 2.023419361111753,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 1.85775304,
+        "GoalAngleCritic": 0.0369044542,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.458750844,
+        "critic_total": 2.35340834
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 123.974,
+      "nearest_gt": [
+        -17.07440655010835,
+        1.6600900978248694,
+        3.111019495542873
+      ],
+      "gt_time_offset_s": -1.769999999999996,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -5.322500605192496,
+        6.448927036052783
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -0.016215851517787497,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.42965126,
+        "GoalAngleCritic": 3.75807285e-05,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.00235587358,
+        "critic_total": 0.432044715
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 126.064,
+      "nearest_gt": [
+        -16.95566065567625,
+        1.9672705084832605,
+        2.8645560910271093
+      ],
+      "gt_time_offset_s": 1.3440000000000083,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -60.350655201384434,
+        7.045970258017524
+      ],
+      "best_candidate": 7,
+      "best_yaw_change_deg": -60.350655201384434,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 3.45560193,
+        "GoalAngleCritic": 3.3119719,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 2.63329458,
+        "critic_total": 9.40086842
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 128.075,
+      "nearest_gt": [
+        -16.95566065567625,
+        1.9672705084832605,
+        2.8645560910271093
+      ],
+      "gt_time_offset_s": -0.6669999999999874,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -65.06508220167558,
+        -34.01436601842555
+      ],
+      "best_candidate": 606,
+      "best_yaw_change_deg": -61.679548675409336,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 1.14200473,
+        "GoalAngleCritic": 1.51172137,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.0,
+        "critic_total": 2.6537261
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 130.083,
+      "nearest_gt": [
+        -16.75506114180367,
+        1.8224094344724553,
+        1.7799880336600988
+      ],
+      "gt_time_offset_s": 2.521000000000015,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -46.76999855856723,
+        -35.98509911997055
+      ],
+      "best_candidate": 580,
+      "best_yaw_change_deg": -41.26143391438097,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.323481739,
+        "GoalAngleCritic": 0.568649769,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.0,
+        "critic_total": 0.892131507
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 132.092,
+      "nearest_gt": [
+        -16.75506114180367,
+        1.8224094344724553,
+        1.7799880336600988
+      ],
+      "gt_time_offset_s": 0.5120000000000005,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -12.034390998718127,
+        0.14518011413059143
+      ],
+      "best_candidate": 229,
+      "best_yaw_change_deg": -10.855624999323371,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 0.333147913,
+        "GoalAngleCritic": 0.40831843,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.0,
+        "critic_total": 0.741466343
+      },
+      "collision_penalized_count": 0
+    },
+    {
+      "sim_s": 136.769,
+      "nearest_gt": [
+        -16.70932857209392,
+        1.5087023495441023,
+        1.7039539746741004
+      ],
+      "gt_time_offset_s": 0.8389999999999986,
+      "failed": 0,
+      "furthest": 0,
+      "yaw_change_range_deg": [
+        -37.12937947149616,
+        5.621187743681888
+      ],
+      "best_candidate": 681,
+      "best_yaw_change_deg": -1.105129589615259,
+      "best_costs": {
+        "ConstraintCritic": 0.0,
+        "CostCritic": 0.0,
+        "GoalCritic": 4.68140697,
+        "GoalAngleCritic": 0.52609396,
+        "PathAlignCritic": 0.0,
+        "PathFollowCritic": 0.0,
+        "PathAngleCritic": 0.0,
+        "TwirlingCritic": 0.500421524,
+        "critic_total": 5.70792246
+      },
+      "collision_penalized_count": 0
+    }
+  ]
+}

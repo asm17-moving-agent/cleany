@@ -1,0 +1,23 @@
+{
+  "all_48_plans_found": true,
+  "shared_start_goal_map_footprint_verified": true,
+  "curve_removal_only_changes_primitive_file": true,
+  "shared_endpoint_yaw_verified": true,
+  "no_simulator_or_controller_launched": true,
+  "media_sha256": {
+    "02-turn_arrival-static-footprints.png": "a71ce778061bd4c6781572b44ba8910a29bd37d3d264bcfb4bae7915a17c8cc9",
+    "current-vs-no-curves-static-footprints-2rows-4cols.png": "7ceb89e01de9b53f6f56d0666f494b004cb715205e2f53d931151b8ced02195c",
+    "recorded-static-xy-3rows-4cols.png": "d11f52886ecfaf5d9ce28ba6a8004f94dc6486b473c1b6fc06beb059b1a5e999",
+    "04-far_heading-static-footprints.png": "2623617a57f98261fbef595bff702704e154895ca5873fcd2e89cee8d8f9f905",
+    "01-straight-static-xy.png": "96ae993820f3bbbc6992d521b592d560c02824a6b6177f743a62a414899f61a3",
+    "06-lateral-static-footprints.png": "086fea017fc5612a7f13af2803f0917f3ea66742b60fe65f626f632a9f68ee8f",
+    "home-static-footprints-3rows-4cols.png": "b63b214f32ebb3224a5d9ab2cea2463b7bcbab5a6c08378113f8db0a15356e4a",
+    "current-vs-no-curves-static-xy-2rows-4cols.png": "a6c2ab42fa68c6aa0710d587cee83e99d09962814d94c0ee2104071f77a0b1d8",
+    "04-far_heading-static-xy.png": "a60b1bda2fc7de804e573de2b11dc96c5c0c50db7b7f7e8b8831318b2e3ce8ea",
+    "01-straight-static-footprints.png": "5dd1f3c78deb45168e4079ab1a9ca4ad62acb74765fc68983a4fe5b0d37e2933",
+    "02-turn_arrival-static-xy.png": "303365f7181027557ef29e8f15d3d801aa32cb73caa9cdb34ea7042d57027384",
+    "recorded-static-footprints-3rows-4cols.png": "fffa7c717f1822a08f8b4e87fb8002ba7659c66a96622f1d1c1d63ee311363ff",
+    "06-lateral-static-xy.png": "bc5015a1b12af57b1fc024c6da8d870e6f0a1530b9aa8ba34e38e753ee94bde8",
+    "home-static-xy-3rows-4cols.png": "a4fe64c90d975616a1bd25f01eae04d7255f45203a4ea92bbb3e3a60d09902d2"
+  }
+}

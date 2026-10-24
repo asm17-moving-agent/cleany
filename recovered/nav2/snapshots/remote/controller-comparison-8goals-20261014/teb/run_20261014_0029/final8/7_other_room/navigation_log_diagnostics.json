@@ -1,0 +1,10 @@
+{
+  "scope": "Log from accepted NavigateToPose start through process cleanup; raw log retained; event counts do not prove root cause",
+  "lattice_search_failed_attempt_count": 30,
+  "body_heading_grid_route_count": 32,
+  "planner_action_aborting_handle_count": 10,
+  "follow_path_client_cancel_count": 28,
+  "controller_received_path_count": 28,
+  "control_deadline_warning_count": 4,
+  "stale_tf_message_drop_count": 2
+}

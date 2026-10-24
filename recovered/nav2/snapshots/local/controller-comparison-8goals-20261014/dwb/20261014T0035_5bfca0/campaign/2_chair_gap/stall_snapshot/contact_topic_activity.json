@@ -1,0 +1,26 @@
+{
+  "wall_epoch_s": 1791908276.7867599,
+  "note": "Read-only sqlite committed records during active run; counts include pre-navigation bag window",
+  "nonempty_contact_topics": [
+    {
+      "topic": "/benchmark/contacts/c28",
+      "count": 94563,
+      "robot_link": "rear_right_wheel_link"
+    },
+    {
+      "topic": "/benchmark/contacts/c26",
+      "count": 94562,
+      "robot_link": "front_right_wheel_link"
+    },
+    {
+      "topic": "/benchmark/contacts/c27",
+      "count": 94562,
+      "robot_link": "rear_left_wheel_link"
+    },
+    {
+      "topic": "/benchmark/contacts/c25",
+      "count": 94561,
+      "robot_link": "front_left_wheel_link"
+    }
+  ]
+}

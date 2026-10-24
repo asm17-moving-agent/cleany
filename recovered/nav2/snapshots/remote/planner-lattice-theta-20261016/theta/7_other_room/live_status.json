@@ -1,0 +1,98 @@
+{
+  "sim_s": 38.95,
+  "navigation_sim_s": 30.576,
+  "truth": [
+    -5.487084997318666,
+    -6.027285962142593,
+    0.002272969847606911
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 38.943000000000005,
+      "stamp_s": 38.941,
+      "sim_s": 38.941,
+      "target": -2.331226111751644,
+      "pan": -2.264899519761792,
+      "reason": "WALL_TIMEOUT",
+      "requested": [
+        -0.14995338022708893,
+        -0.15763495862483978,
+        -0.020783506333827972
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 38.809
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 38.945,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 38.943,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "STOP_OBSTACLE",
+      "stop_voxels": 3,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        -0.14150537527821988,
+        -0.17295101422894796,
+        -0.032968797390034874
+      ],
+      "nearby_voxels": 1099,
+      "total_voxels": 18143,
+      "source_age_s": 0.20899999999999608,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 17.54700200035586
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 38.948,
+      "sim_s": 38.945,
+      "requested": [
+        -0.15122874081134796,
+        -0.15920400619506836,
+        -0.014819158241152763
+      ],
+      "output": [
+        -0.15122873911014512,
+        -0.15920400440415014,
+        -0.014819158074449041
+      ],
+      "scale": 0.9999999887507968,
+      "reason": "COUPLED_WHEEL_CAP",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 38.948,
+      "stamp_s": 38.948,
+      "sim_s": 38.948,
+      "target": -2.330509340828736,
+      "pan": -2.2718995197617904,
+      "reason": "WALL_TIMEOUT",
+      "requested": [
+        -0.15122874081134796,
+        -0.15920400619506836,
+        -0.014819158241152763
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 38.809
+    }
+  ]
+}

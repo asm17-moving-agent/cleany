@@ -1,0 +1,168 @@
+{
+  "source": "https://github.com/ros-navigation/navigation2/tree/1.1.20/nav2_smac_planner/lattice_primitives",
+  "generator_modified": false,
+  "summaries": {
+    "stock": {
+      "count": 144,
+      "categories": {
+        "curve": 64,
+        "in_place_rotation": 32,
+        "translation": 48
+      },
+      "metadata": {
+        "motion_model": "omni",
+        "turning_radius": 0.5,
+        "grid_resolution": 0.05,
+        "stopping_threshold": 5,
+        "num_of_headings": 16,
+        "heading_angles": [
+          0.0,
+          0.4636476090008061,
+          0.7853981633974483,
+          1.1071487177940904,
+          1.5707963267948966,
+          2.0344439357957027,
+          2.356194490192345,
+          2.677945044588987,
+          3.141592653589793,
+          3.6052402625905993,
+          3.9269908169872414,
+          4.2487413713838835,
+          4.71238898038469,
+          5.176036589385496,
+          5.497787143782138,
+          5.81953769817878
+        ],
+        "number_of_trajectories": 144
+      },
+      "curve_total_length_cm": [
+        25.129,
+        64.852
+      ],
+      "curve_radius_cm": [
+        50.312,
+        68.895
+      ],
+      "translation_endpoint_distance_cm": [
+        15.0,
+        21.213,
+        22.361
+      ]
+    },
+    "tuned": {
+      "count": 272,
+      "categories": {
+        "curve": 64,
+        "in_place_rotation": 32,
+        "translation": 176
+      },
+      "metadata": {
+        "motion_model": "omni",
+        "turning_radius": 0.5,
+        "grid_resolution": 0.05,
+        "stopping_threshold": 5,
+        "num_of_headings": 16,
+        "heading_angles": [
+          0.0,
+          0.4636476090008061,
+          0.7853981633974483,
+          1.1071487177940904,
+          1.5707963267948966,
+          2.0344439357957027,
+          2.356194490192345,
+          2.677945044588987,
+          3.141592653589793,
+          3.6052402625905993,
+          3.9269908169872414,
+          4.2487413713838835,
+          4.71238898038469,
+          5.176036589385496,
+          5.497787143782138,
+          5.81953769817878
+        ],
+        "number_of_trajectories": 272
+      },
+      "curve_total_length_cm": [
+        25.129,
+        64.852
+      ],
+      "curve_radius_cm": [
+        50.312,
+        68.895
+      ],
+      "translation_endpoint_distance_cm": [
+        5.0,
+        7.071,
+        15.0,
+        21.213,
+        22.361
+      ]
+    },
+    "new": {
+      "count": 144,
+      "categories": {
+        "curve": 64,
+        "in_place_rotation": 32,
+        "translation": 48
+      },
+      "metadata": {
+        "motion_model": "omni",
+        "turning_radius": 0.1,
+        "grid_resolution": 0.05,
+        "stopping_threshold": 5,
+        "num_of_headings": 16,
+        "heading_angles": [
+          0.0,
+          0.4636476090008061,
+          0.7853981633974483,
+          1.1071487177940904,
+          1.5707963267948966,
+          2.0344439357957027,
+          2.356194490192345,
+          2.677945044588987,
+          3.141592653589793,
+          3.6052402625905993,
+          3.9269908169872414,
+          4.2487413713838835,
+          4.71238898038469,
+          5.176036589385496,
+          5.497787143782138,
+          5.81953769817878
+        ],
+        "number_of_trajectories": 144
+      },
+      "curve_total_length_cm": [
+        7.194000000000001,
+        42.697
+      ],
+      "curve_radius_cm": [
+        11.18,
+        36.181000000000004
+      ],
+      "translation_endpoint_distance_cm": [
+        5.0,
+        7.071,
+        11.18
+      ]
+    }
+  },
+  "sha256": {
+    "stock": "814733962e71376dada74193b7aa911b91f0c71b2b867f83994a6eefc0d0ee4b",
+    "tuned": "5fb9c026d9f77d7e978370afa715089f61d03d6eb59cf35380d1fbed3df1c70b",
+    "new": "01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e"
+  },
+  "generator_source_sha256": {
+    "README.md": "f0bc574aab82d6331f9123ae9588b89c74bcef136cbf95d1aa60fdb7f4f546c0",
+    "trajectory_generator.py": "542e8fd6585e1ec5682d323d03455f82978a7b8ca3eb8d8b71373237686e355c",
+    "helper.py": "5638272e7ac6e1e8b0d76717d52f9d502b9561c0d05610652b52ce286263fed2",
+    "lattice_generator.py": "49b4d7fd0044b6e479192c78306e5cf2621cb3821170d7fc0666538144cf8154",
+    "requirements.txt": "5d5cdd94c21d07fab2ae5c0b7889fe2a3916210ec5d6bf23630da0d884ce27d5",
+    "constants.py": "9f618c72d2428df571271eefc193a1525377e6df85e9579b4e9a8e5e8521edb8",
+    "generate_motion_primitives.py": "8e35806b5fc556385900316af933477b69dbedda14c0e50296bf9a2e98200da7",
+    "config.json": "fde5032d343d8a57dd8a09a4ff36d2129079361ef65aa335328304742276ef7c",
+    "trajectory.py": "d8afa98e6e5e4bf9a3dfc0e8f5208b399fd79b7d1439b9d566390c485a6878e3"
+  },
+  "scope": "Static primitive regeneration and visualization only; no planner-default changes, no collision/kinematic-speed or Gazebo validation",
+  "radius_rationale": "Omni chassis supports lateral/in-place motions; 0.1 m is an exploratory positive radius at twice 0.05 m grid, not a physical minimum inferred from chassis dimensions.",
+  "official_r50_reproduces_installed_primitives": true
+}

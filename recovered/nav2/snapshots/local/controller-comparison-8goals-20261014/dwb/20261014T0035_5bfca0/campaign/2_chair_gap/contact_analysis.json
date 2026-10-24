@@ -1,0 +1,325 @@
+{
+  "available": true,
+  "unavailable_reason": null,
+  "configured_sensor_update_rate_hz": 20,
+  "physics_update_rate_hz": 1000,
+  "floor_json_max_log_rate_hz": 20,
+  "raw_bag_retains_unthrottled_contacts": false,
+  "penetration_depth_m": null,
+  "penetration_depth_unavailable_reason": "ROS bridge Contact depths arrays were empty",
+  "configured_sensor_count": 31,
+  "topic_message_counts": {
+    "/benchmark/contacts/c0": 0,
+    "/benchmark/contacts/c1": 0,
+    "/benchmark/contacts/c2": 0,
+    "/benchmark/contacts/c3": 0,
+    "/benchmark/contacts/c4": 0,
+    "/benchmark/contacts/c5": 0,
+    "/benchmark/contacts/c6": 0,
+    "/benchmark/contacts/c7": 0,
+    "/benchmark/contacts/c8": 0,
+    "/benchmark/contacts/c9": 0,
+    "/benchmark/contacts/c10": 0,
+    "/benchmark/contacts/c11": 0,
+    "/benchmark/contacts/c12": 0,
+    "/benchmark/contacts/c13": 0,
+    "/benchmark/contacts/c14": 0,
+    "/benchmark/contacts/c15": 0,
+    "/benchmark/contacts/c16": 0,
+    "/benchmark/contacts/c17": 0,
+    "/benchmark/contacts/c18": 0,
+    "/benchmark/contacts/c19": 0,
+    "/benchmark/contacts/c20": 0,
+    "/benchmark/contacts/c21": 0,
+    "/benchmark/contacts/c22": 0,
+    "/benchmark/contacts/c23": 0,
+    "/benchmark/contacts/c24": 0,
+    "/benchmark/contacts/c25": 446711,
+    "/benchmark/contacts/c26": 446371,
+    "/benchmark/contacts/c27": 446422,
+    "/benchmark/contacts/c28": 446353,
+    "/benchmark/contacts/c29": 0,
+    "/benchmark/contacts/c30": 0
+  },
+  "navigation_sample_counts": {
+    "wheel_ground": 34669
+  },
+  "environment_contact_samples": 0,
+  "body_ground_contact_samples": 0,
+  "environment_contact_episodes": 0,
+  "pairs": [
+    {
+      "category": "wheel_ground",
+      "collision_pair": [
+        "cleany_mecanum::front_left_wheel_link::mecanum_contact",
+        "ground_plane::link::collision"
+      ],
+      "first_sim_s": 8.127,
+      "last_sim_s": 445.944,
+      "sample_count": 8668,
+      "episode_count": 1,
+      "max_depth_m": null
+    },
+    {
+      "category": "wheel_ground",
+      "collision_pair": [
+        "cleany_mecanum::rear_left_wheel_link::mecanum_contact",
+        "ground_plane::link::collision"
+      ],
+      "first_sim_s": 8.127,
+      "last_sim_s": 445.946,
+      "sample_count": 8667,
+      "episode_count": 1,
+      "max_depth_m": null
+    },
+    {
+      "category": "wheel_ground",
+      "collision_pair": [
+        "cleany_mecanum::front_right_wheel_link::mecanum_contact",
+        "ground_plane::link::collision"
+      ],
+      "first_sim_s": 8.127,
+      "last_sim_s": 445.946,
+      "sample_count": 8667,
+      "episode_count": 1,
+      "max_depth_m": null
+    },
+    {
+      "category": "wheel_ground",
+      "collision_pair": [
+        "cleany_mecanum::rear_right_wheel_link::mecanum_contact",
+        "ground_plane::link::collision"
+      ],
+      "first_sim_s": 8.127,
+      "last_sim_s": 445.946,
+      "sample_count": 8667,
+      "episode_count": 1,
+      "max_depth_m": null
+    }
+  ],
+  "events": [],
+  "limitations": "Physics step is1ms (1000Hz configured); actual received contacts have DDS timing/loss; floor-only JSON is subsampled to 20Hz, raw bag is unthrottled, and environment/body contacts are unthrottled. DDS loss or missed transients remain possible. No physical proof. Zero events means zero reported events, not an absolute continuous collision-free certificate.",
+  "raw_bag_contact_received_rates": {
+    "/benchmark/contacts/c30": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c3": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c28": {
+      "navigation_raw_message_count": 94426,
+      "first_header_sim_s": 8.111,
+      "last_header_sim_s": 102.536,
+      "received_rate_hz_sim": 1000.0,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c12": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c14": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c19": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c10": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c11": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c22": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c15": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c13": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c18": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c26": {
+      "navigation_raw_message_count": 94426,
+      "first_header_sim_s": 8.111,
+      "last_header_sim_s": 102.536,
+      "received_rate_hz_sim": 1000.0,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c9": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c7": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c17": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c16": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c1": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c4": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c6": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c0": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c21": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c23": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c27": {
+      "navigation_raw_message_count": 94426,
+      "first_header_sim_s": 8.111,
+      "last_header_sim_s": 102.536,
+      "received_rate_hz_sim": 1000.0,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c5": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c20": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c8": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c24": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c2": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c29": {
+      "navigation_raw_message_count": 0,
+      "first_header_sim_s": null,
+      "last_header_sim_s": null,
+      "received_rate_hz_sim": null,
+      "invalid_cdr_header_count": 0
+    },
+    "/benchmark/contacts/c25": {
+      "navigation_raw_message_count": 94426,
+      "first_header_sim_s": 8.111,
+      "last_header_sim_s": 102.536,
+      "received_rate_hz_sim": 1000.0,
+      "invalid_cdr_header_count": 0
+    }
+  },
+  "raw_bag_recorder_database_lock_failure": true,
+  "raw_bag_full_navigation_window": false,
+  "raw_bag_missing_tail_reason": "Recorder database locked during live read diagnostics; raw tail absent. Probe JSON records persisted independently.",
+  "direct_probe_contact_coverage": "Contacts JSON covers saved navigation window; environment/body unthrottled, wheel-ground20Hz subsample; DDS loss remains possible"
+}

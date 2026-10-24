@@ -1,0 +1,32 @@
+{
+  "selected_parameter_patch": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/final_patch.yaml",
+  "selection_basis": "Reduced sample cost; stable feasible target bearing; lower XY acceleration improved the straight representative jerk and stopped time. Chair localization margin remains a structural limitation. No composite score.",
+  "controller_only_changes": [
+    "rollout component caps including measured overshoot",
+    "optional feasible target-ray acceleration projection",
+    "samples 5x5x7",
+    "goal-directed candidate radius 4.5m",
+    "XY acceleration/deceleration 0.2m/s2"
+  ],
+  "unchanged": [
+    "15cm/10deg SimpleGoalChecker",
+    "2.0s prediction horizon and 0.05s time granularity",
+    "all footprint/path critics",
+    "camera alignment/freshness gating",
+    "collision monitor and voxel guard",
+    "planner/map/world/model/sensors/AMCL parameters"
+  ],
+  "final_verification": "Common five goals, each once, independent reset to GT [0,0,0]; no navigation outcome retries",
+  "pilot_paths": [
+    "resume61_sampling_01",
+    "resume61_goal_direction_02",
+    "resume61_straight_03b",
+    "resume61_target_ray_04",
+    "resume61_target_ray_05",
+    "resume61_smooth_06"
+  ],
+  "incomplete_or_infrastructure_only": [
+    "pilot_sampling",
+    "resume61_straight_03"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "host": "142spp-endeavour",
+  "platform": "Linux-7.1.9-arch1-2-x86_64-with-glibc2.35",
+  "client_date": "2026-10-14",
+  "client_timezone": "Asia/Seoul",
+  "cpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           48 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  12\nOn-line CPU(s) list:                     0-11\nVendor ID:                               AuthenticAMD\nModel name:                              AMD Ryzen 5 9600X 6-Core Processor\nCPU family:                              26\nModel:                                   68\nThread(s) per core:                      2\nCore(s) per socket:                      6\nSocket(s):                               1\nStepping:                                0\nFrequency boost:                         enabled\nCPU max MHz:                             5486.4409\nCPU min MHz:                             627.9670\nBogoMIPS:                                7799.98\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good amd_lbr_v2 nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpuid_fault cpb cat_l3 cdp_l3 hw_pstate ssbd mba perfmon_v2 ibrs ibpb stibp ibrs_enhanced vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk avx_vnni avx512_bf16 clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif x2avic v_spec_ctrl vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid bus_lock_detect movdiri movdir64b overflow_recov succor smca fsrm avx512_vp2intersect flush_l1d amd_lbr_pmc_freeze\nVirtualization:                          AMD-V\nL1d cache:                               288 KiB (6 instances)\nL1i cache:                               192 KiB (6 instances)\nL2 cache:                                6 MiB (6 instances)\nL3 cache:                                32 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-11\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Mitigation; IBPB on VMEXIT only\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; STIBP always-on; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB on VMEXIT",
+  "container": "cleany-ros-humble-cdi",
+  "gpu": "NVIDIA GeForce RTX 5070, 610.57.04",
+  "source_head": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "source_status": "",
+  "teb_head": "630a22e88dc9fd45be726a762edbb5b776bef231",
+  "prior_environment_reference": "/home/donglee/workspace/cleany/controller-optimization-20261013/teb/relaxed_20261013_01/environment.json",
+  "packages": "libignition-gazebo6:amd64\t6.18.0-1~jammy\nros-humble-nav2-controller\t1.1.20-1jammy.20260908.005456",
+  "permission_context": {
+    "sandbox_mode": "danger-full-access",
+    "approval_policy": "never"
+  },
+  "domain": 227,
+  "localhost": true,
+  "rtf_target": 1,
+  "physics_step": "Canonical world; record per goal",
+  "cross_host_compute_ranking_valid": false,
+  "environment_repair": {
+    "cause": "Running kernel7.1.9-arch1-2, installed modules7.2.9-arch1-1; overlay filesystem absent and modprobe could not find matching module. Existing Podman containers were preserved.",
+    "repair": "Extracted matching, signed overlay.ko.zst from cached linux7.1.9.arch1-2 package; verified vermagic, loaded with insmod; removed fresh overlay-false failure cache created by this attempt. No kernel upgrade, container recreation or image modification.",
+    "kernel": "7.1.9-arch1-2",
+    "module_sha256": "1288b9d407c6ca75fe05a5f7e1212964fab8347e9b032a2c6b5fb2d1f3691144",
+    "package": "/var/cache/pacman/pkg/linux-7.1.9.arch1-2-x86_64.pkg.tar.zst",
+    "success": "podman ps lists original stopped cleany-ros-humble and cleany-ros-humble-cdi containers",
+    "gpu_repair": {
+      "cause": "NVIDIA loaded kernel driver610.57.04 versus installed libraries615.78.08; absent CDI specification",
+      "repair": "Cached nvidia-utils610.57.04 extracted inside experiment, private driver-root ld.so.cache generated; CDI spec created in /etc/cdi/nvidia-teb.yaml. Native system libraries/driver modules unchanged. Existing container restored.",
+      "verified_device": "RTX5070,610.57.04 inside cleany-ros-humble-cdi",
+      "private_driver_root": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/environment-repair/nvidia-610.57.04"
+    }
+  },
+  "scripts_sha256": {
+    "conservative_runner_snapshot.py": "156bbf538c2b923802184cff07c2abebbff83b5afe177571352f3cb740aac464",
+    "validate_artifacts.py": "18c4b6d9fa517b4ccf2164fefc6ec6ecee5d2c4c3f5fb86c9ed86ef61ccac035",
+    "analyze.py": "acd11fa9ee204e786cbf235018b55c9fab07a26bd26e0375af3caec2d2a85951",
+    "runner.py": "323d3221e42e59b6bb3ba1b32b35d9e9a9af6ce1319471383c52b3786fa8df16",
+    "parameters_preflight.py": "77c4161b8d22cc84d1ff276b941f4177caaa41634fdb561196771357c3b88396",
+    "materialize.py": "1035ef2c99cf0ea2320673f25522317da0c037934d2b0e9f74ea3f15742e49cf",
+    "parameter_replay.py": "38c2a0b72bc0c7f72902f07cad6f2ab6880ed091bfe1fc15039ac47e748f1856",
+    "relaxed_probe.py": "a779bd10915972443a51a0feb533ac0a36244621178ccfda337fec49c06b83db",
+    "build_scene.py": "8eb1c6c1416efc1caff48d5ead6fd24c4173190e16f56d6b5ab811db46ac0a46",
+    "wait_ready.py": "ffecaa466bb4d3662e1efc9d22fa3b58453ec31000c30fd16cf96f1607555603",
+    "provenance.py": "8765c03818a74558145da4a64b778eb483aa7db6b9eb26b0d37e10ce0d6894ea",
+    "progress.py": "1bdfe9a4a36ad9c72f7b7d876a29d352f862397372509d530cd34fa47843a3ad",
+    "write_report.py": "277b5abc436b55a4263d7bfd94129b3c63f6746b2cf736912439a40f8c3f78a4",
+    "wheel_limiter.py": "d5dd459140833a8c0748e6425e6e4391ffd85ef419b8ca32dbe4570c0f844d32",
+    "read_contacts.py": "65f17c0745a5be03c1e0efe653d001329329ee6d9002d888be9d7a3311d33bf9",
+    "test_wheel_limiter.py": "9b292cbfc0b56a18d12fd3f3460838cbac07be4165f7efbb2318d4551ea48610",
+    "check_owned.py": "16ba89ddee56f73a83bc58d27c4f1f8cdf4862c90c14aa22f5460c9844f963d1",
+    "prepare_smoke.py": "1e83f5e7bbfbf39ca38a6fb50ee9a702552a581c4a2e4692eb0161ef5e5b823e",
+    "navigation_diagnostics.py": "edb4b5f86374528a53b04ca28ca2185e9873ef2f7cb3ab79de39f211830bd506",
+    "scene_check.py": "369f888bf34869117db4d7455cca6e7e1d2bba2484055308057eca5476eb0bf3",
+    "plot_trajectories.py": "411570874835abc384ed2667d9704a07c0e6063199ec6b703e48d4c1f2202633",
+    "continue_recording.py": "5e8aae27aa228c5a958989af19ac51db229734f449f959df7206c1c4a0fedebe",
+    "original_analysis_snapshot.py": "cb2d6495392c80477e204774977f402479f4cc7fb5b2023cdb9bd53e903f6635"
+  },
+  "wheel_limiter_prior_hash_match": true
+}

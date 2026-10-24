@@ -1,0 +1,97 @@
+{
+  "source": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+  "source_sha256": "814733962e71376dada74193b7aa911b91f0c71b2b867f83994a6eefc0d0ee4b",
+  "variants": {
+    "length_only": {
+      "count": 144,
+      "corrected": [
+        {
+          "id": 5,
+          "old_length": 0.45,
+          "actual_length": 0.15
+        },
+        {
+          "id": 15,
+          "old_length": 0.67082,
+          "actual_length": 0.223606797749979
+        },
+        {
+          "id": 23,
+          "old_length": 0.6364,
+          "actual_length": 0.21213203435596426
+        },
+        {
+          "id": 31,
+          "old_length": 0.67082,
+          "actual_length": 0.223606797749979
+        },
+        {
+          "id": 41,
+          "old_length": 0.45,
+          "actual_length": 0.15
+        },
+        {
+          "id": 51,
+          "old_length": 0.67082,
+          "actual_length": 0.223606797749979
+        },
+        {
+          "id": 59,
+          "old_length": 0.6364,
+          "actual_length": 0.21213203435596426
+        },
+        {
+          "id": 69,
+          "old_length": 0.67082,
+          "actual_length": 0.223606797749979
+        },
+        {
+          "id": 80,
+          "old_length": 0.45,
+          "actual_length": 0.15
+        },
+        {
+          "id": 83,
+          "old_length": 0.67082,
+          "actual_length": 0.223606797749979
+        },
+        {
+          "id": 94,
+          "old_length": 0.6364,
+          "actual_length": 0.21213203435596426
+        },
+        {
+          "id": 103,
+          "old_length": 0.67082,
+          "actual_length": 0.223606797749979
+        },
+        {
+          "id": 113,
+          "old_length": 0.45,
+          "actual_length": 0.15
+        },
+        {
+          "id": 123,
+          "old_length": 0.67082,
+          "actual_length": 0.223606797749979
+        },
+        {
+          "id": 131,
+          "old_length": 0.6364,
+          "actual_length": 0.21213203435596426
+        },
+        {
+          "id": 139,
+          "old_length": 0.67082,
+          "actual_length": 0.223606797749979
+        }
+      ],
+      "sha256": "42b3b1a61c5f97c141c7e82527ddac69fc99ba3e5f82b67c9f85a8c204bfddec"
+    },
+    "grid5cm": {
+      "count": 272,
+      "corrected": [],
+      "sha256": "5fb9c026d9f77d7e978370afa715089f61d03d6eb59cf35380d1fbed3df1c70b"
+    }
+  }
+}

@@ -1,0 +1,114 @@
+[
+  {
+    "goal": "straight",
+    "independent_probe_time_bounds": {
+      "velocity.csv": [
+        0.02,
+        15.64
+      ],
+      "commands.csv": [
+        0.0,
+        15.648000000000001
+      ]
+    },
+    "navigation_window_covered": true
+  },
+  {
+    "goal": "turn_arrival",
+    "independent_probe_time_bounds": {
+      "velocity.csv": [
+        0.02,
+        22.7
+      ],
+      "commands.csv": [
+        0.0,
+        22.704
+      ]
+    },
+    "navigation_window_covered": true
+  },
+  {
+    "goal": "chair_gap",
+    "independent_probe_time_bounds": {
+      "velocity.csv": [
+        0.02,
+        447.96
+      ],
+      "commands.csv": [
+        0.0,
+        447.96700000000004
+      ]
+    },
+    "navigation_window_covered": true
+  },
+  {
+    "goal": "far_heading",
+    "independent_probe_time_bounds": {
+      "velocity.csv": [
+        0.02,
+        32.6
+      ],
+      "commands.csv": [
+        0.0,
+        32.599000000000004
+      ]
+    },
+    "navigation_window_covered": true
+  },
+  {
+    "goal": "distant",
+    "independent_probe_time_bounds": {
+      "velocity.csv": [
+        0.02,
+        548.48
+      ],
+      "commands.csv": [
+        0.0,
+        548.49
+      ]
+    },
+    "navigation_window_covered": true
+  },
+  {
+    "goal": "lateral",
+    "independent_probe_time_bounds": {
+      "velocity.csv": [
+        0.02,
+        13.54
+      ],
+      "commands.csv": [
+        0.0,
+        13.541
+      ]
+    },
+    "navigation_window_covered": true
+  },
+  {
+    "goal": "narrow_seat",
+    "independent_probe_time_bounds": {
+      "velocity.csv": [
+        0.02,
+        15.86
+      ],
+      "commands.csv": [
+        0.0,
+        15.859000000000002
+      ]
+    },
+    "navigation_window_covered": true
+  },
+  {
+    "goal": "other_room",
+    "independent_probe_time_bounds": {
+      "velocity.csv": [
+        0.02,
+        122.14
+      ],
+      "commands.csv": [
+        0.0,
+        122.147
+      ]
+    },
+    "navigation_window_covered": true
+  }
+]

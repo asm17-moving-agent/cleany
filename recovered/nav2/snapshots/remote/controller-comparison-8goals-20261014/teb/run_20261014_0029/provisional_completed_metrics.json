@@ -1,0 +1,62 @@
+{
+  "provisional": true,
+  "completed_goal_count": 7,
+  "rows": [
+    {
+      "goal": "straight",
+      "command_wheel_max": 4.990000000000001,
+      "joint_wheel_max": 4.9900000000145255,
+      "joint_over_5_count": 0,
+      "compute_p95_ms": 4.41341435,
+      "compute_exceptions": 0
+    },
+    {
+      "goal": "turn_arrival",
+      "command_wheel_max": 4.990000000000002,
+      "joint_wheel_max": 4.990000000095583,
+      "joint_over_5_count": 0,
+      "compute_p95_ms": 11.734102599999998,
+      "compute_exceptions": 0
+    },
+    {
+      "goal": "chair_gap",
+      "command_wheel_max": 4.990000000000001,
+      "joint_wheel_max": 4.9900000016009916,
+      "joint_over_5_count": 0,
+      "compute_p95_ms": 12.634507,
+      "compute_exceptions": 0
+    },
+    {
+      "goal": "far_heading",
+      "command_wheel_max": 4.990000000000002,
+      "joint_wheel_max": 4.990000000244647,
+      "joint_over_5_count": 0,
+      "compute_p95_ms": 23.34687235,
+      "compute_exceptions": 0
+    },
+    {
+      "goal": "distant",
+      "command_wheel_max": 4.990000000000002,
+      "joint_wheel_max": 4.99000000042961,
+      "joint_over_5_count": 0,
+      "compute_p95_ms": 16.05033215,
+      "compute_exceptions": 0
+    },
+    {
+      "goal": "lateral",
+      "command_wheel_max": 4.990000000000001,
+      "joint_wheel_max": 4.9899999999195845,
+      "joint_over_5_count": 0,
+      "compute_p95_ms": 3.4935128000000004,
+      "compute_exceptions": 0
+    },
+    {
+      "goal": "narrow_seat",
+      "command_wheel_max": 4.990000000000001,
+      "joint_wheel_max": 4.990000000146383,
+      "joint_over_5_count": 0,
+      "compute_p95_ms": 6.656448999999999,
+      "compute_exceptions": 0
+    }
+  ]
+}

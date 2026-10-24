@@ -1,0 +1,25 @@
+{
+  "phase": "stronger_path_follow",
+  "values": {
+    "PathFollowCritic.cost_weight": 100.0
+  },
+  "wall_s": 40.0652447609973,
+  "sim_s": 12.120000000000005,
+  "start": {
+    "wall": 36845.755534883,
+    "phase": "stronger_path_follow",
+    "x": -17.10879726895536,
+    "y": 0.6660936234544583,
+    "yaw": 2.3519436274969694,
+    "sim_s": 519.68
+  },
+  "end": {
+    "wall": 36885.752279794,
+    "phase": "stronger_path_follow",
+    "x": -17.105449170533333,
+    "y": 0.6523563923776118,
+    "yaw": 2.3707612735030983,
+    "sim_s": 531.8
+  },
+  "displacement_m": 0.014139352202355572
+}

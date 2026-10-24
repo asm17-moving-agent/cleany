@@ -1,0 +1,18 @@
+{
+  "original": {
+    "first_batch_unique_seed_traces": 8,
+    "first_batch_noncollision_seed_count": 128,
+    "samples": 12000
+  },
+  "diverse": {
+    "first_batch_unique_seed_traces": 72,
+    "first_batch_noncollision_seed_count": 128,
+    "samples": 12000
+  },
+  "limitations": [
+    "Saved map/pose plus reconstructed cropped path; zero speed and fixed pose",
+    "Gaussian batches differ across processes",
+    "Both methods have noncolliding seeds in this stopped replay; does not reproduce all-live-candidate failure",
+    "getOptimizedTrajectory runs after sequence shift and is not the pre-emission validation result"
+  ]
+}

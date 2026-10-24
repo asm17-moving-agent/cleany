@@ -1,0 +1,26 @@
+from pathlib import Path
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import Node
+def generate_launch_description():
+    p = Path(__file__).resolve().parent
+    share = Path(get_package_share_directory('cleany_gazebo_sim'))
+    return LaunchDescription([
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(str(share/'launch/gazebo_fortress.launch.py')),
+            launch_arguments={'world':str(p/'world.sdf'), 'headless':'true', 'use_sim_time':'true',
+                              'sensor_profile':'lidar_depth_nav', 'sensor_config':str(p/'config/sensor_tf.yaml'),
+                              'odometry_source':'wheel', 'wheel_odometry_config':str(p/'config/wheel_odometry.yaml'),
+                              'odometry_error_config':str(p/'config/odometry_error_ideal.yaml')}.items()),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(str(share/'launch/amcl_nav2_safety.launch.py')),
+            launch_arguments={'map':str(p/'map.yaml'), 'params_file':str(p/'config/nav2_amcl.yaml'),
+                              'safety_params_file':str(p/'config/nav2_safety.yaml'),
+                              'axis_params_file':str(p/'config/nav2_axis_motion.yaml'),
+                              **({'body_profile':str(p/'config/cad_frame.yaml')} if (p/'config/cad_frame.yaml').exists() else {}),
+                              'memory_enabled':str((p/'config/obstacle_memory.yaml').exists()).lower(),
+                              'voxel_enabled':str((p/'config/voxel_guard.yaml').exists()).lower(),
+                              'safety_mode':'serial',
+                              **({'memory_params_file':str(p/'config/obstacle_memory.yaml')} if (p/'config/obstacle_memory.yaml').exists() else {}),
+                              **({'voxel_params_file':str(p/'config/voxel_guard.yaml')} if (p/'config/voxel_guard.yaml').exists() else {})}.items()),
+    ])

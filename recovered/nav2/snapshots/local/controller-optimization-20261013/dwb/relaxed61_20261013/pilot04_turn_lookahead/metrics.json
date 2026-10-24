@@ -1,0 +1,479 @@
+[
+  {
+    "candidate": "dwb",
+    "goal_index": 1,
+    "goal_name": "turn_arrival",
+    "goal_map": [
+      4.0,
+      0.0,
+      1.5707963267948966
+    ],
+    "completed": false,
+    "domain": 225,
+    "partition": "cleany_comparison_cffa232712e34e81884d703d71c17b2b",
+    "host": "a16-fedora",
+    "discovery_ports": {
+      "msg": "22551",
+      "srv": "22552"
+    },
+    "model_metadata": {
+      "simulation_excluded_link_roots": [
+        "left_shoulder_yaw_link",
+        "right_shoulder_yaw_link"
+      ],
+      "source_commit": "71f8d6c",
+      "collision_bounds": [
+        [
+          -0.238525,
+          -0.32737300000024483,
+          -0.3799970000000734
+        ],
+        [
+          0.238475,
+          0.32742700000024483,
+          0.8120390619878888
+        ]
+      ],
+      "navigation_margins": {
+        "stop": 0.08,
+        "planning_padding": 0.02,
+        "slowdown": 0.2
+      },
+      "depth_camera_tf": {
+        "translation": [
+          0.13575291981941817,
+          -0.001999999999964942,
+          0.7907902750404355
+        ],
+        "rotation_rpy": [
+          0.0,
+          0.3490658503988659,
+          4.136462142204289e-13
+        ],
+        "pan_pivot": [
+          0.103,
+          2.1302780032352088e-14,
+          0.673
+        ]
+      },
+      "wheelbase": 0.35,
+      "wheel_separation": 0.6038,
+      "wheel_radius": 0.0635,
+      "park_joints": {
+        "head_pan_joint": 0.0,
+        "head_tilt_joint": 0.3490658503988659
+      },
+      "simulation_park_limits": {},
+      "navigation_geometry": {
+        "physical": [
+          [
+            -0.238525,
+            -0.32737300000024483
+          ],
+          [
+            -0.238525,
+            0.32742700000024483
+          ],
+          [
+            0.238475,
+            0.32742700000024483
+          ],
+          [
+            0.238475,
+            -0.32737300000024483
+          ]
+        ],
+        "stop": [
+          [
+            -0.318525,
+            -0.40737300000024484
+          ],
+          [
+            -0.318525,
+            0.40742700000024484
+          ],
+          [
+            0.318475,
+            0.40742700000024484
+          ],
+          [
+            0.318475,
+            -0.40737300000024484
+          ]
+        ],
+        "slow": [
+          [
+            -0.438525,
+            -0.5273730000002448
+          ],
+          [
+            -0.438525,
+            0.5274270000002448
+          ],
+          [
+            0.438475,
+            0.5274270000002448
+          ],
+          [
+            0.438475,
+            -0.5273730000002448
+          ]
+        ],
+        "planning_padding": 0.02,
+        "center": [
+          -2.4999999999997247e-05,
+          2.6999999999999247e-05
+        ],
+        "half_size": [
+          0.2385,
+          0.32740000000024483
+        ]
+      }
+    },
+    "initial_pose_snapshot": {
+      "sim_s": 7.44,
+      "GT": [
+        7.310925200817734e-10,
+        5.993112581348025e-14,
+        6.661338147750939e-16
+      ],
+      "map": {
+        "sim_s": 7.402,
+        "source": "map_base_tf",
+        "pose": [
+          -0.005273828456760065,
+          -0.029231670279805357,
+          0.013343851414137292
+        ]
+      },
+      "odom": {
+        "sim_s": 7.422000000000001,
+        "source": "/odom",
+        "stamp_s": 7.422,
+        "pose": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "wheel_odom": {
+        "sim_s": 7.44,
+        "source": "/wheel/odom",
+        "stamp_s": 7.44,
+        "pose": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "amcl": {
+        "sim_s": 4.2,
+        "source": "amcl",
+        "stamp_s": 4.164,
+        "pose": [
+          -0.005273828456760064,
+          -0.029231670279805357,
+          0.013343851414137303
+        ]
+      }
+    },
+    "navigation_started": true,
+    "navigation_sim_start_s": 8.458,
+    "navigation_wall_start_monotonic_s": 10770.883278117,
+    "error": "RuntimeError: Unable to convert call argument to Python object (compile in debug mode for details)",
+    "cleanup_error": "failed to create timer: the given context is not valid, either rcl_init() was not called or rcl_shutdown() was called., at ./src/rcl/guard_condition.c:67",
+    "owned_launch_stopped": true,
+    "owned_bag_stopped": true,
+    "elapsed_wall_s": 144.02860577299907,
+    "no_valid_trajectory_warning_count": 0,
+    "controller_deadline_warning_count": 0,
+    "run_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot04_turn_lookahead/1_turn_arrival",
+    "compute_ms": {
+      "median": 4.9076245,
+      "p95": 11.086221999999998,
+      "p99": 12.848420190000002,
+      "max": 18.445601,
+      "count": 2594,
+      "exception_count": 0,
+      "over_50ms": 0
+    },
+    "measured_wheel_max_rad_s": 4.99390828450756,
+    "command_stages": {
+      "/nav2/cmd_vel": {
+        "abs_max_vx_vy_wz": [
+          0.316865,
+          0.023852286026214326,
+          0.0
+        ],
+        "max_predicted_wheel_rad_s": 4.99,
+        "count": 2593,
+        "last_nonzero_sim_s": 23.366000000000003,
+        "first_zero_after_last_nonzero_sim_s": 23.426000000000002,
+        "wheel_hard_cap_observed": true
+      },
+      "/pan_ready/cmd_vel": {
+        "abs_max_vx_vy_wz": [
+          0.316865,
+          0.01364310843190557,
+          0.0
+        ],
+        "max_predicted_wheel_rad_s": 4.99,
+        "count": 2597,
+        "last_nonzero_sim_s": 23.366000000000003,
+        "first_zero_after_last_nonzero_sim_s": 23.426000000000002,
+        "wheel_hard_cap_observed": true
+      },
+      "/safety_2d/cmd_vel": {
+        "abs_max_vx_vy_wz": [
+          0.316865,
+          0.01364310843190557,
+          0.0
+        ],
+        "max_predicted_wheel_rad_s": 4.99,
+        "count": 373,
+        "last_nonzero_sim_s": 23.386000000000003,
+        "first_zero_after_last_nonzero_sim_s": 23.446,
+        "wheel_hard_cap_observed": true
+      },
+      "/shadow/cmd_vel": {
+        "abs_max_vx_vy_wz": [
+          0.18027756377319948,
+          0.00893812171661248,
+          0.0
+        ],
+        "max_predicted_wheel_rad_s": 2.9762830568097094,
+        "count": 2597,
+        "last_nonzero_sim_s": 23.426000000000002,
+        "first_zero_after_last_nonzero_sim_s": 23.486,
+        "wheel_hard_cap_observed": true
+      },
+      "/cmd_vel": {
+        "abs_max_vx_vy_wz": [
+          0.316865,
+          0.023852286026214326,
+          0.0
+        ],
+        "max_predicted_wheel_rad_s": 4.99,
+        "count": 2597,
+        "last_nonzero_sim_s": 23.386000000000003,
+        "first_zero_after_last_nonzero_sim_s": 23.446,
+        "wheel_hard_cap_observed": true
+      },
+      "/gazebo_cmd_vel": {
+        "abs_max_vx_vy_wz": [
+          0.316865,
+          0.023852286026214326,
+          0.0
+        ],
+        "max_predicted_wheel_rad_s": 4.99,
+        "count": 2597,
+        "last_nonzero_sim_s": 23.386000000000003,
+        "first_zero_after_last_nonzero_sim_s": 23.446,
+        "wheel_hard_cap_observed": true
+      }
+    },
+    "command_sim_intervals_s": {
+      "/nav2/cmd_vel": {
+        "median": 0.04000000000000625,
+        "p95": 0.060000000000002274,
+        "p99": 0.06199999999999761,
+        "max": 0.08000000000000185,
+        "count": 2589
+      },
+      "/pan_ready/cmd_vel": {
+        "median": 0.04000000000000625,
+        "p95": 0.060000000000002274,
+        "p99": 0.06199999999999761,
+        "max": 0.0800000000000054,
+        "count": 2595
+      },
+      "/safety_2d/cmd_vel": {
+        "median": 0.040000000000000924,
+        "p95": 0.07400000000000073,
+        "p99": 0.08000000000000007,
+        "max": 0.08200000000000074,
+        "count": 371
+      },
+      "/shadow/cmd_vel": {
+        "median": 0.04000000000000625,
+        "p95": 0.060000000000002274,
+        "p99": 0.06199999999999761,
+        "max": 0.09999999999999432,
+        "count": 2593
+      },
+      "/cmd_vel": {
+        "median": 0.04000000000000625,
+        "p95": 0.060000000000002274,
+        "p99": 0.06199999999999761,
+        "max": 0.0799999999999983,
+        "count": 2588
+      },
+      "/gazebo_cmd_vel": {
+        "median": 0.04000000000000625,
+        "p95": 0.060000000000002274,
+        "p99": 0.06199999999999761,
+        "max": 0.0799999999999983,
+        "count": 2589
+      }
+    },
+    "guard_decision_counts": {
+      "Command timeout": 2216,
+      "PASS_OBSERVED_SPACE": 382
+    },
+    "pan_reason_counts": {
+      "WALL_TIMEOUT": 5,
+      "WAIT_FRESH_DEPTH": 6,
+      "PASS": 2580,
+      "TURNING_PAN": 6
+    },
+    "controller_process_resources": [
+      {
+        "pid": 222773,
+        "cpu_percent_one_core": 19.361194968750173,
+        "RSS_max_MiB": 50.5703125
+      }
+    ],
+    "trajectory_count_per_cycle": {
+      "median": 250.0,
+      "p95": 256.0,
+      "p99": 256.0,
+      "max": 256.0,
+      "count": 2594
+    },
+    "smoothness_recomputed": {
+      "sample_period_sim_s": 0.05,
+      "centered_smoothing_points": 5,
+      "trim_each_end_s": 0.25,
+      "velocity_frame": "GT message twist frame",
+      "linear_acceleration_rms": 0.031191077245042918,
+      "linear_acceleration_p95": 0.005867101651259162,
+      "angular_acceleration_rms": 6.443024013299052e-06,
+      "angular_acceleration_p95": 5.50778489132145e-11,
+      "linear_jerk_rms": 0.08924969076803002,
+      "linear_jerk_p95": 0.022974941512014627,
+      "angular_jerk_rms": 9.513978187814633e-05,
+      "angular_jerk_p95": 9.094069941566537e-08,
+      "stationary_sim_s": 105.0,
+      "motion_start_count": 1,
+      "motion_stop_count": 1,
+      "mean_linear_speed_m_s": 0.03252040532045503,
+      "longitudinal_reversal_count": 0,
+      "lateral_reversal_count": 0,
+      "yaw_reversal_count": 0
+    },
+    "file_sha256": {
+      "map.pgm": "e15fe550c6c6587d910ac76a801b019e49f612265bebce65ffa433e7bc71b00e",
+      "world.sdf": "fe6033b955203f091eecc23ddd3d523c4f7d701ce3c3e89f92b42f7ef834b3ca",
+      "world.model.json": "f8b69dd23acbd1070daf05663559a6126fa9943ec2b7dbc812042b3ee7d19822"
+    },
+    "independent_vx_vy_wz_box_applied": false,
+    "collision_measurement": {
+      "available": true,
+      "unavailable_reason": null,
+      "configured_sensor_update_rate_hz": 20,
+      "physics_update_rate_hz": 500,
+      "floor_json_max_log_rate_hz": 20,
+      "raw_bag_retains_unthrottled_contacts": true,
+      "penetration_depth_m": null,
+      "penetration_depth_unavailable_reason": "ROS bridge Contact depths arrays were empty",
+      "configured_sensor_count": 31,
+      "topic_message_counts": {
+        "/benchmark/contacts/c0": 0,
+        "/benchmark/contacts/c1": 0,
+        "/benchmark/contacts/c2": 0,
+        "/benchmark/contacts/c3": 0,
+        "/benchmark/contacts/c4": 0,
+        "/benchmark/contacts/c5": 0,
+        "/benchmark/contacts/c6": 0,
+        "/benchmark/contacts/c7": 0,
+        "/benchmark/contacts/c8": 0,
+        "/benchmark/contacts/c9": 0,
+        "/benchmark/contacts/c10": 0,
+        "/benchmark/contacts/c11": 0,
+        "/benchmark/contacts/c12": 0,
+        "/benchmark/contacts/c13": 0,
+        "/benchmark/contacts/c14": 0,
+        "/benchmark/contacts/c15": 0,
+        "/benchmark/contacts/c16": 0,
+        "/benchmark/contacts/c17": 0,
+        "/benchmark/contacts/c18": 0,
+        "/benchmark/contacts/c19": 0,
+        "/benchmark/contacts/c20": 0,
+        "/benchmark/contacts/c21": 0,
+        "/benchmark/contacts/c22": 0,
+        "/benchmark/contacts/c23": 0,
+        "/benchmark/contacts/c24": 0,
+        "/benchmark/contacts/c25": 63700,
+        "/benchmark/contacts/c26": 63643,
+        "/benchmark/contacts/c27": 63657,
+        "/benchmark/contacts/c28": 63641,
+        "/benchmark/contacts/c29": 0,
+        "/benchmark/contacts/c30": 0
+      },
+      "navigation_sample_counts": {
+        "wheel_ground": 9245
+      },
+      "environment_contact_samples": 0,
+      "body_ground_contact_samples": 0,
+      "environment_contact_episodes": 0,
+      "pairs": [
+        {
+          "category": "wheel_ground",
+          "collision_pair": [
+            "cleany_mecanum::front_left_wheel_link::mecanum_contact",
+            "ground_plane::link::collision"
+          ],
+          "first_sim_s": 8.484,
+          "last_sim_s": 128.054,
+          "sample_count": 2312,
+          "episode_count": 1,
+          "max_depth_m": null
+        },
+        {
+          "category": "wheel_ground",
+          "collision_pair": [
+            "cleany_mecanum::rear_left_wheel_link::mecanum_contact",
+            "ground_plane::link::collision"
+          ],
+          "first_sim_s": 8.484,
+          "last_sim_s": 128.054,
+          "sample_count": 2311,
+          "episode_count": 1,
+          "max_depth_m": null
+        },
+        {
+          "category": "wheel_ground",
+          "collision_pair": [
+            "cleany_mecanum::rear_right_wheel_link::mecanum_contact",
+            "ground_plane::link::collision"
+          ],
+          "first_sim_s": 8.492,
+          "last_sim_s": 128.054,
+          "sample_count": 2311,
+          "episode_count": 1,
+          "max_depth_m": null
+        },
+        {
+          "category": "wheel_ground",
+          "collision_pair": [
+            "cleany_mecanum::front_right_wheel_link::mecanum_contact",
+            "ground_plane::link::collision"
+          ],
+          "first_sim_s": 8.492,
+          "last_sim_s": 128.054,
+          "sample_count": 2311,
+          "episode_count": 1,
+          "max_depth_m": null
+        }
+      ],
+      "events": [],
+      "limitations": "Fortress publishes persistent physics contacts at approximately 500Hz despite the 20Hz sensor setting; floor-only JSON is subsampled to 20Hz, raw bag is unthrottled, and environment/body contacts are unthrottled. DDS loss or missed transients remain possible. No physical proof. Zero events means zero reported events, not an absolute continuous collision-free certificate."
+    },
+    "relay_reason_counts": {
+      "STALE_NAV2_5S": 4,
+      "DIRECT_WHEEL_ENVELOPE": 2593
+    },
+    "relay_additional_scale_count": 0,
+    "controller_failure_events": []
+  }
+]

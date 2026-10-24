@@ -1,0 +1,69 @@
+{
+  "goals": [
+    [
+      "straight",
+      [
+        2.0,
+        0.0,
+        0.0
+      ]
+    ],
+    [
+      "turn_arrival",
+      [
+        4.0,
+        0.0,
+        1.5707963267948966
+      ]
+    ],
+    [
+      "chair_gap",
+      [
+        3.12,
+        -2.465,
+        0.0
+      ]
+    ],
+    [
+      "far_heading",
+      [
+        6.0,
+        0.0,
+        -1.5707963267948966
+      ]
+    ],
+    [
+      "distant",
+      [
+        9.405,
+        -3.73,
+        0.0
+      ]
+    ]
+  ],
+  "limits": {
+    "nominal_straight_limit_m_s": 0.3175,
+    "acc_xy": 0.4,
+    "acc_yaw": 0.6,
+    "wheel_rad_s": 5.0,
+    "xy_tolerance": 0.15,
+    "yaw_tolerance": 0.17453292519943295
+  },
+  "protocol": "Gazebo-only relaxed wheel envelope; no independent vx/vy/yaw box",
+  "wheel_geometry": {
+    "radius_m": 0.0635,
+    "wheelbase_m": 0.35,
+    "separation_m": 0.6038
+  },
+  "nominal_max_wheel_rad_s": 5.0,
+  "command_wheel_cap_rad_s": 4.99,
+  "command_margin_note": "0.2 percent numeric/feedback margin; hard observed cap remains 5rad/s",
+  "soft_sim_timeout_s": 240,
+  "hard_sim_timeout_s": 1200,
+  "hard_wall_timeout_s": 1800,
+  "safety_bypass": "pan/freshness, Collision Monitor, voxel guard remain running on shadow output; direct wheel-cap relay drives Gazebo",
+  "controller_internal_collision_checks": "all retained",
+  "contact_instrumentation": "physics contacts, one sensor per robot collision, 20Hz nominal",
+  "filter": "GT20Hz sim time, centered5point smoothing, two gradients, .25s both-end trim",
+  "no_combined_score": true
+}

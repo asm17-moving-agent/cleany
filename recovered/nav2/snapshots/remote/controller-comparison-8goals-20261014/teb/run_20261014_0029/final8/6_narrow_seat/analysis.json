@@ -1,0 +1,547 @@
+{
+  "candidate": "teb",
+  "goal_index": 6,
+  "goal_name": "narrow_seat",
+  "goal_map": [
+    -3.125,
+    -4.475,
+    1.570796
+  ],
+  "completed": true,
+  "domain": 227,
+  "partition": "cleany_comparison_38fc4fa60588490ab11dfd311a5a3eca",
+  "host": "142spp-endeavour",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "experiment_stage": "relaxed",
+  "world_fixture": "18F full facility canonical per-goal world",
+  "map_frame": "world aligned",
+  "hard_timeout_sim_s": 1200,
+  "hard_timeout_wall_s": 1800,
+  "controller_frequency_hz": 10.0,
+  "verified_controller": {
+    "FollowPath.plugin": "cleany_benchmark::TimedController",
+    "FollowPath.wrapped_plugin": "teb_local_planner::TebLocalPlannerROS"
+  },
+  "verified_goal_checker": {
+    "goal_checker.xy_goal_tolerance": 0.3,
+    "goal_checker.yaw_goal_tolerance": 0.17453292519943295,
+    "goal_checker.stateful": true
+  },
+  "verified_planner": {
+    "GridBased.plugin": "cleany_navigation::StraightFirstPlanner"
+  },
+  "verified_teb_parameters": {},
+  "requested_teb_overrides": {},
+  "rpp_limit_note": null,
+  "navigation_sim_start_s": 8.279,
+  "goal_issued": true,
+  "xy_goal_tolerance_m": 0.3,
+  "yaw_goal_tolerance_deg": 10.0,
+  "action_status": 4,
+  "position_error_m": 0.10973891316489881,
+  "yaw_error_deg": 8.392262509985315,
+  "final_truth": [
+    -3.015849336235621,
+    -4.4863473196134,
+    1.7172686124909273
+  ],
+  "navigation_sim_s": 5.546000000000001,
+  "navigation_wall_s": 13.600430149999738,
+  "achieved_rtf": 0.40778122006678647,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 0.8530133680683054,
+    "linear_jerk_p95_m_s3": 1.5941619439458257,
+    "angular_jerk_rms_rad_s3": 1.1472623429698223,
+    "angular_jerk_p95_rad_s3": 2.1199336879362747,
+    "stationary_s": 0.15000000000000002,
+    "motion_start_count": 1,
+    "motion_stop_count": 0,
+    "stationary_definition": "hypot(vx,vy)<.01 AND abs(wz)<.02 rad/s",
+    "yaw_reversals": 3,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.20859672843379326,
+    "speed_max_m_s": 0.28423327526284914,
+    "forward_reversals": 2
+  },
+  "navigation_sim_end_s": 13.825000000000001,
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 7.2891767029503995,
+    "/cmd_vel": 4.990000000000001
+  },
+  "command_sim_interval_s": {
+    "/nav2/cmd_vel": {
+      "mean": 0.040676923076923076,
+      "p95": 0.04499999999999993,
+      "p99": 0.045999999999999375
+    },
+    "/cmd_vel": {
+      "mean": 0.04996363636363637,
+      "p95": 0.05599999999999916,
+      "p99": 0.057000000000000384
+    }
+  },
+  "sensor_freshness": {
+    "/scan": {
+      "count": 31,
+      "sim_period_mean_s": 0.181,
+      "sim_period_p95_s": 0.18100000000000094,
+      "received_age_p95_s": 0.022999999999999687,
+      "received_age_max_s": 0.025000000000000355
+    },
+    "/camera/head/depth/points": {
+      "count": 76,
+      "sim_period_mean_s": 0.07302666666666667,
+      "sim_period_p95_s": 0.13199999999999967,
+      "received_age_p95_s": 0.0070000000000014495,
+      "received_age_max_s": 0.008000000000000895
+    },
+    "/ground_truth/odom": {
+      "count": 278,
+      "sim_period_mean_s": 0.020000000000000004,
+      "sim_period_p95_s": 0.02000000000000135,
+      "received_age_p95_s": 1.7763568394002505e-15,
+      "received_age_max_s": 0.0010000000000012221
+    }
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 142
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 43.32133091700234,
+  "controller_deadline_warning_count": 0,
+  "arrived": true,
+  "measurement_completed": true,
+  "artifact_group": "final8",
+  "run_directory": "controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/6_narrow_seat",
+  "terminal_status": "arrived",
+  "measurement_label": "one-pass final validation",
+  "error_meaning": "GT arrival error",
+  "controller_compute": {
+    "scope": "inner plugin compute steady wall milliseconds; scheduling included",
+    "all_ms": {
+      "count": 131,
+      "median": 4.729709,
+      "mean": 4.530978694656489,
+      "p95": 6.656448999999999,
+      "p99": 7.0562705999999995,
+      "max": 7.144137
+    },
+    "success_ms": {
+      "count": 131,
+      "median": 4.729709,
+      "mean": 4.530978694656489,
+      "p95": 6.656448999999999,
+      "p99": 7.0562705999999995,
+      "max": 7.144137
+    },
+    "exception_ms": {
+      "count": 0
+    },
+    "wall_deadline_ms": 100.0,
+    "wall_deadline_exceeded": 0,
+    "exception_count": 0,
+    "reference_over_50ms_count": 0
+  },
+  "controller_resources": {
+    "cpu_observed_seconds": 1.3199999999999998,
+    "observed_wall_seconds": 13.102519991000008,
+    "one_core_cpu_percent": 10.074397909002961,
+    "rss_mb": {
+      "count": 14,
+      "mean": 59.278738839285715,
+      "p95": 59.859375,
+      "p99": 59.859375,
+      "max": 59.859375
+    },
+    "host": "142spp-endeavour",
+    "cross_host_ranking_valid": false
+  },
+  "actual_wheel_feedback_rad_s": {
+    "count": 2696,
+    "mean": 3.0783880597050377,
+    "p95": 4.989999999921977,
+    "p99": 4.990000000009348,
+    "max": 4.990000000146383,
+    "over_5_plus_1e8_count": 0,
+    "last_wheel_velocity": {
+      "front_left_wheel_joint": -2.246772866703117e-18,
+      "front_right_wheel_joint": -8.155742871469589e-19,
+      "rear_left_wheel_joint": -3.3084414198094434e-18,
+      "rear_right_wheel_joint": -8.496471651951432e-19
+    }
+  },
+  "actual_contact_count": 0,
+  "actual_contact_note": "Full rosbag2 physics-contact stream; non-floor/non-self pair episodes, 0.25sim s gap; floor positive control retained.",
+  "teb_profile_matches_configuration_replay": true,
+  "teb_configuration_replay_reference": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/parameter_replay/evidence.json",
+  "teb_runtime_parameter_query_note": "Batch GetParameters contained undeclared xy_goal_tolerance/yaw_goal_tolerance; ROS service returned an empty batch. Original raw result remains unchanged. Replay verifies identical provided algorithm parameters and binary only; it is not an original-run runtime query.",
+  "navigation_log_diagnostics": {
+    "scope": "Log from accepted NavigateToPose start through process cleanup; raw log retained; event counts do not prove root cause",
+    "lattice_search_failed_attempt_count": 0,
+    "body_heading_grid_route_count": 0,
+    "planner_action_aborting_handle_count": 0,
+    "follow_path_client_cancel_count": 0,
+    "controller_received_path_count": 1,
+    "control_deadline_warning_count": 0,
+    "stale_tf_message_drop_count": 0
+  },
+  "actual_control_period_sim_s": {
+    "count": 130,
+    "median": 0.041999999999999815,
+    "mean": 0.040676923076923076,
+    "p95": 0.04499999999999993,
+    "p99": 0.045999999999999375,
+    "max": 0.04600000000000115
+  },
+  "actual_control_period_wall_s": {
+    "count": 130,
+    "median": 0.10000040849809011,
+    "mean": 0.10000039170769853,
+    "p95": 0.10002004145080719,
+    "p99": 0.10005966128119326,
+    "max": 0.10033709999697749
+  },
+  "command_stage_audit": {
+    "/cmd_vel": {
+      "count": 111,
+      "max_abs_xyz": [
+        0.14458701473282182,
+        0.2842309657367713,
+        0.15725900597931178
+      ],
+      "sim_interval_s": {
+        "count": 110,
+        "median": 0.051000000000000156,
+        "mean": 0.04996363636363637,
+        "p95": 0.05599999999999916,
+        "p99": 0.057000000000000384,
+        "max": 0.057000000000000384
+      },
+      "last_command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_received_sim_s": 15.801,
+      "legacy_box_exceed_count": 104
+    },
+    "/gazebo_cmd_vel": {
+      "count": 111,
+      "max_abs_xyz": [
+        0.14458701473282182,
+        0.2842309657367713,
+        0.15725900597931178
+      ],
+      "sim_interval_s": {
+        "count": 110,
+        "median": 0.051000000000000156,
+        "mean": 0.04996363636363637,
+        "p95": 0.05599999999999916,
+        "p99": 0.057000000000000384,
+        "max": 0.057000000000000384
+      },
+      "last_command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_received_sim_s": 15.801,
+      "legacy_box_exceed_count": 104
+    },
+    "/ignored/cmd_vel": {
+      "count": 272,
+      "max_abs_xyz": [
+        0.12127967606504439,
+        0.18011118448430102,
+        0.14
+      ],
+      "sim_interval_s": {
+        "count": 271,
+        "median": 0.018000000000000682,
+        "mean": 0.020402214022140222,
+        "p95": 0.027000000000001023,
+        "p99": 0.02800000000000047,
+        "max": 0.03200000000000003
+      },
+      "last_command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_received_sim_s": 15.813,
+      "legacy_box_exceed_count": 103
+    },
+    "/nav2/cmd_vel": {
+      "count": 132,
+      "max_abs_xyz": [
+        0.18890380546471428,
+        0.3175,
+        0.22324600491195293
+      ],
+      "sim_interval_s": {
+        "count": 130,
+        "median": 0.041999999999999815,
+        "mean": 0.040676923076923076,
+        "p95": 0.04499999999999993,
+        "p99": 0.045999999999999375,
+        "max": 0.04600000000000115
+      },
+      "last_command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_received_sim_s": 13.657,
+      "legacy_box_exceed_count": 125
+    },
+    "/pan_ready/cmd_vel": {
+      "count": 272,
+      "max_abs_xyz": [
+        0.18890380546471428,
+        0.3175,
+        0.2015274326016923
+      ],
+      "sim_interval_s": {
+        "count": 271,
+        "median": 0.019000000000000128,
+        "mean": 0.0203690036900369,
+        "p95": 0.026999999999999247,
+        "p99": 0.027000000000001023,
+        "max": 0.02800000000000047
+      },
+      "last_command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_received_sim_s": 15.82,
+      "legacy_box_exceed_count": 104
+    },
+    "/safety_2d/cmd_vel": {
+      "count": 200,
+      "max_abs_xyz": [
+        0.18890380546471428,
+        0.3175,
+        0.2015274326016923
+      ],
+      "sim_interval_s": {
+        "count": 198,
+        "median": 0.018499999999999517,
+        "mean": 0.02035858585858586,
+        "p95": 0.03130000000000037,
+        "p99": 0.03599999999999964,
+        "max": 0.036000000000001364
+      },
+      "last_command": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "last_received_sim_s": 15.659,
+      "legacy_box_exceed_count": 104
+    }
+  },
+  "pan_requested_bearing_step_rad": {
+    "count": 259,
+    "median": 0.0,
+    "mean": 0.01624057034207868,
+    "p95": 0.0824676065549467,
+    "p99": 0.1374654557355137,
+    "max": 0.14892229496638446
+  },
+  "feasibility_rejection_reasons": {},
+  "feasibility_failed_vertices": 0,
+  "feasibility_failed_interpolated": 0,
+  "infeasible_reset_count": 0,
+  "stationary_definition": "hypot(vx,vy)<.01 AND abs(wz)<.02 rad/s",
+  "final_gt_tolerance_observed": true,
+  "final_nav2_map_xy": [
+    -3.0348222425947258,
+    -4.556999460615514
+  ],
+  "contact_audit": {
+    "source": "full rosbag2 Contacts topics; navigation window by source sim stamp",
+    "counts_by_topic": {
+      "/benchmark/contacts/c25": 5547,
+      "/benchmark/contacts/c28": 5547,
+      "/benchmark/contacts/c26": 5547,
+      "/benchmark/contacts/c27": 5547
+    },
+    "ground_pair_samples": 22188,
+    "self_pair_samples": 0,
+    "unnamed_pair_samples": 0,
+    "nonfloor_pair_samples": 0,
+    "nonfloor_pair_episodes": 0,
+    "max_nonfloor_depth_m": null,
+    "recorded_contact_sim_window_s": [
+      8.279,
+      13.825
+    ],
+    "navigation_sim_window_s": [
+      8.279,
+      13.825000000000001
+    ],
+    "full_navigation_window_observed": true,
+    "partial_recorded_nonfloor_pair_episodes": 0,
+    "actual_contact_count": 0,
+    "null_reason": null
+  },
+  "full_contact_navigation_window_observed": true,
+  "recorded_contact_sim_window_s": [
+    8.279,
+    13.825
+  ],
+  "wheel_envelope_audit": {
+    "samples": 111,
+    "scaled_count": 91,
+    "scale": {
+      "count": 111,
+      "median": 0.8229183214449175,
+      "mean": 0.8449141597396274,
+      "p95": 1.0,
+      "p99": 1.0,
+      "max": 1.0
+    },
+    "max_requested_rad_s": 7.2891767029503995,
+    "max_output_rad_s": 4.990000000000001,
+    "watchdog_count": 2
+  },
+  "counterfactual_body_guard_decision_duration_sim_s": {
+    "STOP_UNAVAILABLE": 1.5470000000000006,
+    "PASS_OBSERVED_SPACE": 3.9819999999999993
+  },
+  "counterfactual_body_guard_stop_reason_duration_sim_s": {
+    "STOP_UNAVAILABLE / Command timeout": 1.5150000000000006,
+    "STOP_UNAVAILABLE / Local voxel window does not cover the braking sweep": 0.03200000000000003
+  },
+  "counterfactual_intentional_safety_wait_sim_s": 0.0,
+  "counterfactual_safety_unavailable_wait_sim_s": 1.5470000000000006,
+  "counterfactual_safety_processing_overrun_wait_sim_s": 0.0,
+  "counterfactual_total_safety_stop_sim_s": 1.5470000000000006,
+  "counterfactual_pan_gate_reason_duration_sim_s": {
+    "WALL_TIMEOUT": 0.08999999999999986,
+    "TURNING_PAN": 2.523999999999999,
+    "WAIT_FRESH_DEPTH": 0.6440000000000001,
+    "PASS": 2.2620000000000005
+  },
+  "stop_count": 0
+}

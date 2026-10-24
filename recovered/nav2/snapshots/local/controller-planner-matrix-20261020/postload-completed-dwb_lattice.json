@@ -1,0 +1,8 @@
+{
+  "planner": "lattice",
+  "rerun_goal": 1,
+  "original_preserved": "/home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/load-pilot/dwb_lattice-1_turn_arrival-mixed-load",
+  "new_status": 6,
+  "finished": 1792503949.826062,
+  "returncode": 0
+}

@@ -1,0 +1,235 @@
+{
+  "lattice": {
+    "requests": 82,
+    "generated": 77,
+    "failed_seats": [
+      "seat-a3-01",
+      "seat-a3-02",
+      "seat-a3-03",
+      "seat-a3-04",
+      "seat-a4-03"
+    ],
+    "emitted_pose_footprint_clear": 77,
+    "emitted_pose_footprint_interference": 0,
+    "by_zone": {
+      "D-hub": {
+        "total": 48,
+        "generated": 48
+      },
+      "A1": {
+        "total": 4,
+        "generated": 4
+      },
+      "A2": {
+        "total": 4,
+        "generated": 4
+      },
+      "A3": {
+        "total": 4,
+        "generated": 0
+      },
+      "A4": {
+        "total": 4,
+        "generated": 3
+      },
+      "M1": {
+        "total": 6,
+        "generated": 6
+      },
+      "M2": {
+        "total": 6,
+        "generated": 6
+      },
+      "M3": {
+        "total": 6,
+        "generated": 6
+      }
+    }
+  },
+  "navfn": {
+    "requests": 82,
+    "generated": 82,
+    "failed_seats": [],
+    "emitted_pose_footprint_clear": 60,
+    "emitted_pose_footprint_interference": 22,
+    "by_zone": {
+      "D-hub": {
+        "total": 48,
+        "generated": 48
+      },
+      "A1": {
+        "total": 4,
+        "generated": 4
+      },
+      "A2": {
+        "total": 4,
+        "generated": 4
+      },
+      "A3": {
+        "total": 4,
+        "generated": 4
+      },
+      "A4": {
+        "total": 4,
+        "generated": 4
+      },
+      "M1": {
+        "total": 6,
+        "generated": 6
+      },
+      "M2": {
+        "total": 6,
+        "generated": 6
+      },
+      "M3": {
+        "total": 6,
+        "generated": 6
+      }
+    }
+  },
+  "smac2d": {
+    "requests": 82,
+    "generated": 82,
+    "failed_seats": [],
+    "emitted_pose_footprint_clear": 62,
+    "emitted_pose_footprint_interference": 20,
+    "by_zone": {
+      "D-hub": {
+        "total": 48,
+        "generated": 48
+      },
+      "A1": {
+        "total": 4,
+        "generated": 4
+      },
+      "A2": {
+        "total": 4,
+        "generated": 4
+      },
+      "A3": {
+        "total": 4,
+        "generated": 4
+      },
+      "A4": {
+        "total": 4,
+        "generated": 4
+      },
+      "M1": {
+        "total": 6,
+        "generated": 6
+      },
+      "M2": {
+        "total": 6,
+        "generated": 6
+      },
+      "M3": {
+        "total": 6,
+        "generated": 6
+      }
+    }
+  },
+  "hybrid": {
+    "requests": 82,
+    "generated": 61,
+    "failed_seats": [
+      "seat-a1-01",
+      "seat-a1-02",
+      "seat-a3-01",
+      "seat-a3-02",
+      "seat-a3-03",
+      "seat-a3-04",
+      "seat-a4-01",
+      "seat-a4-02",
+      "seat-a4-03",
+      "seat-m1-01",
+      "seat-m1-02",
+      "seat-m1-03",
+      "seat-m1-04",
+      "seat-m1-05",
+      "seat-m1-06",
+      "seat-m2-01",
+      "seat-m2-02",
+      "seat-m2-03",
+      "seat-m3-01",
+      "seat-m3-02",
+      "seat-m3-03"
+    ],
+    "emitted_pose_footprint_clear": 61,
+    "emitted_pose_footprint_interference": 0,
+    "by_zone": {
+      "D-hub": {
+        "total": 48,
+        "generated": 48
+      },
+      "A1": {
+        "total": 4,
+        "generated": 2
+      },
+      "A2": {
+        "total": 4,
+        "generated": 4
+      },
+      "A3": {
+        "total": 4,
+        "generated": 0
+      },
+      "A4": {
+        "total": 4,
+        "generated": 1
+      },
+      "M1": {
+        "total": 6,
+        "generated": 0
+      },
+      "M2": {
+        "total": 6,
+        "generated": 3
+      },
+      "M3": {
+        "total": 6,
+        "generated": 3
+      }
+    }
+  },
+  "theta": {
+    "requests": 82,
+    "generated": 82,
+    "failed_seats": [],
+    "emitted_pose_footprint_clear": 60,
+    "emitted_pose_footprint_interference": 22,
+    "by_zone": {
+      "D-hub": {
+        "total": 48,
+        "generated": 48
+      },
+      "A1": {
+        "total": 4,
+        "generated": 4
+      },
+      "A2": {
+        "total": 4,
+        "generated": 4
+      },
+      "A3": {
+        "total": 4,
+        "generated": 4
+      },
+      "A4": {
+        "total": 4,
+        "generated": 4
+      },
+      "M1": {
+        "total": 6,
+        "generated": 6
+      },
+      "M2": {
+        "total": 6,
+        "generated": 6
+      },
+      "M3": {
+        "total": 6,
+        "generated": 6
+      }
+    }
+  }
+}

@@ -1,0 +1,83 @@
+[
+  {
+    "file": "eight-routes.gif",
+    "frames": 240,
+    "size": [
+      1360,
+      850
+    ],
+    "bytes": 10314526
+  },
+  {
+    "file": "diverse8/0_straight/drive.gif",
+    "frames": 85,
+    "size": [
+      1100,
+      500
+    ],
+    "bytes": 1102782
+  },
+  {
+    "file": "diverse8/1_turn_arrival/drive.gif",
+    "frames": 150,
+    "size": [
+      1100,
+      500
+    ],
+    "bytes": 2293473
+  },
+  {
+    "file": "diverse8/2_chair_gap/drive.gif",
+    "frames": 150,
+    "size": [
+      1100,
+      500
+    ],
+    "bytes": 2499780
+  },
+  {
+    "file": "diverse8/3_far_heading/drive.gif",
+    "frames": 150,
+    "size": [
+      1100,
+      500
+    ],
+    "bytes": 2201847
+  },
+  {
+    "file": "diverse8/4_distant/drive.gif",
+    "frames": 150,
+    "size": [
+      1100,
+      500
+    ],
+    "bytes": 2437552
+  },
+  {
+    "file": "diverse8/5_lateral/drive.gif",
+    "frames": 51,
+    "size": [
+      1100,
+      500
+    ],
+    "bytes": 601758
+  },
+  {
+    "file": "diverse8/6_narrow_seat/drive.gif",
+    "frames": 150,
+    "size": [
+      1100,
+      500
+    ],
+    "bytes": 2038128
+  },
+  {
+    "file": "diverse8/7_other_room/drive.gif",
+    "frames": 150,
+    "size": [
+      1100,
+      500
+    ],
+    "bytes": 2582098
+  }
+]

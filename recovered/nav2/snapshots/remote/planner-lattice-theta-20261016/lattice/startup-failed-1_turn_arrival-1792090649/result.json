@@ -1,0 +1,141 @@
+{
+  "stage": "relaxed_gazebo_only",
+  "candidate": "mppi",
+  "goal_index": 1,
+  "goal_name": "turn_arrival",
+  "goal_map": [
+    -1.865,
+    -2.8,
+    0
+  ],
+  "completed": false,
+  "navigation_goal_sent": false,
+  "domain": 181,
+  "partition": "cleany_comparison_912ebdd98a2a432386bf49e4e7ea53b0",
+  "host": "142spp-endeavour",
+  "ign_discovery_ports": {
+    "message": 24153,
+    "service": 24154
+  },
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.0,
+      "planning_padding": 0.0,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.238525,
+          -0.327373
+        ],
+        [
+          -0.238525,
+          0.327427
+        ],
+        [
+          0.238475,
+          0.327427
+        ],
+        [
+          0.238475,
+          -0.327373
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.0,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "verified_controller": {
+    "FollowPath.plugin": "cleany_benchmark::TimedController",
+    "FollowPath.wrapped_plugin": "nav2_mppi_controller::MPPIController"
+  },
+  "error": "CalledProcessError: Command '['ros2', 'param', 'dump', '/controller_server', '--no-daemon', '--spin-time', '3', '--output-dir', '/home/donglee/workspace/cleany/planner-lattice-theta-20261016/lattice/1_turn_arrival']' returned non-zero exit status 2.",
+  "elapsed_wall_s": 176.88358266000068,
+  "controller_deadline_warning_count": 0
+}

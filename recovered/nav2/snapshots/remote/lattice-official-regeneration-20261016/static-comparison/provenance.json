@@ -1,0 +1,25 @@
+{
+  "scope": "Native Nav2 1.1.20 AStarAlgorithm<NodeLattice> + GridCollisionChecker on frozen global costmaps. No simulator/controller/localization started.",
+  "comparison": "Identical recorded planner starts/goals, 5cm map, footprint/padding0, planner parameters, native binary and host; only primitive JSON changes. Minimum-turning-radius heuristic follows each primitive metadata. No path smoothing.",
+  "native_probe_sha256": "7897dbf1da5d815a8b4c40dd525123df12cad187974951b747743457e3c554fe",
+  "footprint": [
+    [
+      -0.238525,
+      -0.327373
+    ],
+    [
+      -0.238525,
+      0.327427
+    ],
+    [
+      0.238475,
+      0.327427
+    ],
+    [
+      0.238475,
+      -0.327373
+    ]
+  ],
+  "collision_threshold": "Native checker possible-inscribed-cost derived from shared footprint and inflation scale 6; 72 orientation bins.",
+  "timing": "Single cold-process search per combination; exploratory only, not repeatable timing benchmark."
+}

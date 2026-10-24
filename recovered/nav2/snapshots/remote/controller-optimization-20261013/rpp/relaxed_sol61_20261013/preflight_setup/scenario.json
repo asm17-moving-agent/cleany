@@ -1,0 +1,320 @@
+{
+  "guard_3d": true,
+  "world": "cleany_study_cafe",
+  "fixtures": {
+    "tall": {
+      "size": [
+        0.4,
+        0.4,
+        1.4
+      ],
+      "z": 0.7
+    },
+    "elevated": {
+      "size": [
+        0.4,
+        0.4,
+        0.5
+      ],
+      "z": 0.85
+    },
+    "low": {
+      "size": [
+        0.4,
+        0.4,
+        0.15
+      ],
+      "z": 0.075
+    }
+  },
+  "evaluation": {
+    "fixtures": {
+      "tall": {
+        "size": [
+          0.4,
+          0.4,
+          1.4
+        ],
+        "z": 0.7
+      },
+      "elevated": {
+        "size": [
+          0.4,
+          0.4,
+          0.5
+        ],
+        "z": 0.85
+      },
+      "low": {
+        "size": [
+          0.4,
+          0.4,
+          0.15
+        ],
+        "z": 0.075
+      }
+    },
+    "sensor_cases": [
+      {
+        "fixture": "tall",
+        "center": [
+          1.4,
+          0.0
+        ]
+      },
+      {
+        "fixture": "elevated",
+        "center": [
+          1.4,
+          0.0
+        ]
+      },
+      {
+        "fixture": "low",
+        "center": [
+          1.0,
+          0.0
+        ]
+      }
+    ],
+    "sensor_durations_s": {
+      "before": 2.0,
+      "present": 3.0,
+      "removed": 4.0
+    },
+    "monitor": {
+      "raw_vx": 0.15,
+      "fixture_initial_x": 1.3,
+      "fixture_final_x": 1.0,
+      "fixture_speed_mps": 0.08,
+      "fixture_update_s": 0.2,
+      "approach_timeout_s": 14.0,
+      "hold_s": 3.0,
+      "clear_s": 2.0
+    },
+    "avoid": {
+      "goal": [
+        4.0,
+        0.0,
+        0.0
+      ],
+      "fixture_x": 3.15,
+      "fixture_initial_y": 1.0,
+      "fixture_final_y": 0.45,
+      "fixture_speed_mps": 0.2,
+      "fixture_start_s": 2.0,
+      "fixture_update_s": 0.2,
+      "timeout_wall_s": 360.0,
+      "max_recoveries": 3
+    },
+    "thresholds": {
+      "min_clearance_m": 0.03,
+      "stopped_speed_mps": 0.02,
+      "min_lateral_avoidance_m": 0.25,
+      "max_final_goal_error_m": 0.3,
+      "slowdown_ratio_tolerance": 0.02
+    }
+  },
+  "obstacle_memory": true,
+  "robot_half_size": [
+    0.2585,
+    0.34740000000024485
+  ],
+  "robot_center": [
+    -2.4999999999997247e-05,
+    2.6999999999999247e-05
+  ],
+  "expected_slowdown_ratio": 0.35,
+  "spawn_pose": [
+    -1.865,
+    -4.705,
+    0.38,
+    0.0,
+    0.0,
+    1.5708
+  ],
+  "robot_model": "cad_frame",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "initial_pose": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "map_source": "/home/donglee/workspace/cleany/controller-optimization-20261013/rpp-source/ros2_ws/src/cleany_gazebo_sim/test/fixtures/navigation_goals/map.yaml",
+  "map_sha256": "e15fe550c6c6587d910ac76a801b019e49f612265bebce65ffa433e7bc71b00e",
+  "lidar_height_m": 0.3,
+  "lidar_noise": "measured",
+  "wheel_stress_level": 0,
+  "depth_recording": "Every eighth point of adapted cloud, at most ~6.7 Hz; Nav2 receives the entire adapted cloud",
+  "candidate": "rpp",
+  "requested_rtf": 1.0,
+  "comparison_limits": {
+    "wheel_rad_s": 5.0,
+    "command_wheel_cap_rad_s": 4.9,
+    "xy_tolerance": 0.15,
+    "yaw_tolerance": 0.17453292519943295
+  },
+  "rpp_limit_note": "Native Humble RPP, no native linear acceleration limit. Final proportional wheel limiter preserves curvature and uses a 4.90rad/s command margin under the physical 5rad/s cap. No per-axis box, controller yaw clipping or velocity smoother.",
+  "profile": "gazebo_only_relaxed",
+  "rpp_tune_name": "relaxed",
+  "rpp_tune": {},
+  "effective_costmap_footprint": [
+    [
+      -0.238525,
+      -0.32737300000024483
+    ],
+    [
+      -0.238525,
+      0.32742700000024483
+    ],
+    [
+      0.238475,
+      0.32742700000024483
+    ],
+    [
+      0.238475,
+      -0.32737300000024483
+    ]
+  ],
+  "effective_footprint_padding": 0.0,
+  "safety_bypass": {
+    "final_authority": "wheel_limit",
+    "input": "/nav2/cmd_vel",
+    "output": "/cmd_vel",
+    "legacy_guard_output": "/legacy_guard/cmd_vel",
+    "bypassed_motion_vetoes": [
+      "pan_motion_gate",
+      "collision_monitor",
+      "voxel_guard freshness/obstacle/speed box"
+    ],
+    "background_sensor_costmaps_retained": true,
+    "native_rpp_collision_detection": true
+  },
+  "contact_instrumentation": {
+    "sensor_count": 31,
+    "frequency_hz": 50,
+    "topic": "/evaluation/physics_contacts",
+    "pre_instrumentation_world_sha256": "1e8f5026c14d99c71f96998a9eca13701531cb4de3d111a183f54f9326068eaa"
+  },
+  "command_wheel_cap_rad_s": 4.9,
+  "physical_wheel_limit_rad_s": 5.0,
+  "removed_axis_speed_box": true,
+  "hard_sim_timeout_s": 1200,
+  "hard_wall_watchdog_s": 1800,
+  "soft_schedule_sim_s": 240,
+  "controller_frequency_hz": 20.0,
+  "command_frequency_hz": 20.0
+}

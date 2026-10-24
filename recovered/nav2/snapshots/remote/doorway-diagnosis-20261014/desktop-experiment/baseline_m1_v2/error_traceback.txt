@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/laptop-runtime/run_facility_gui.py", line 323, in run
+    if mismatches:raise RuntimeError('Controller parameter mismatch: '+str(mismatches))
+RuntimeError: Controller parameter mismatch: {'ObstacleFootprint.failure_snapshot_directory': ['/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/baseline_m1_v2/runtime/controller_failures', None]}

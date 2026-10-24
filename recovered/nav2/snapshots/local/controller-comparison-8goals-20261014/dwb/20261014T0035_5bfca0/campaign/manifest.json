@@ -1,0 +1,101 @@
+{
+  "goals": [
+    [
+      "straight",
+      [
+        -1.865,
+        -3.705,
+        1.5708
+      ]
+    ],
+    [
+      "turn_arrival",
+      [
+        -1.865,
+        -2.8,
+        0
+      ]
+    ],
+    [
+      "chair_gap",
+      [
+        0.575,
+        -1.625,
+        1.570796
+      ]
+    ],
+    [
+      "far_heading",
+      [
+        -1.865,
+        -0.3,
+        -1.570796
+      ]
+    ],
+    [
+      "distant",
+      [
+        -5.525,
+        4.775,
+        -1.570796
+      ]
+    ],
+    [
+      "lateral",
+      [
+        -1.265,
+        -4.705,
+        1.5708
+      ]
+    ],
+    [
+      "narrow_seat",
+      [
+        -3.125,
+        -4.475,
+        1.570796
+      ]
+    ],
+    [
+      "other_room",
+      [
+        -16.775,
+        1.775,
+        1.570796
+      ]
+    ]
+  ],
+  "limits": {
+    "nominal_straight_limit_m_s": 0.3175,
+    "acc_xy": 0.4,
+    "acc_yaw": 0.6,
+    "wheel_rad_s": 5.0,
+    "xy_tolerance": 0.3,
+    "yaw_tolerance": 0.17453292519943295
+  },
+  "protocol": "Gazebo-only relaxed wheel envelope; no independent vx/vy/yaw box",
+  "wheel_geometry": {
+    "radius_m": 0.0635,
+    "wheelbase_m": 0.35,
+    "separation_m": 0.6038
+  },
+  "nominal_max_wheel_rad_s": 5.0,
+  "command_wheel_cap_rad_s": 4.99,
+  "home_world_map": [
+    -1.865,
+    -4.705,
+    1.5708
+  ],
+  "common_lock_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac",
+  "physics_step_s": 0.001,
+  "stop_definition": "|v_xy|<.01 AND |wz|<.02rad/s",
+  "command_margin_note": "0.2 percent numeric/feedback margin; hard observed cap remains 5rad/s",
+  "soft_sim_timeout_s": 240,
+  "hard_sim_timeout_s": 1200,
+  "hard_wall_timeout_s": 1800,
+  "safety_bypass": "pan/freshness, Collision Monitor, voxel guard remain running on shadow output; direct wheel-cap relay drives Gazebo",
+  "controller_internal_collision_checks": "all retained",
+  "contact_instrumentation": "physics contacts, one sensor per robot collision; sensor setting20Hz, newcommon step.001s; measure actual stream; floor JSON20Hz only, raw bag unthrottled",
+  "filter": "GT20Hz sim time, centered5point smoothing, two gradients, .25s both-end trim",
+  "no_combined_score": true
+}

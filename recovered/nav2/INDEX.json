@@ -1,0 +1,23 @@
+{
+  "worktree": "/home/ehdrms/workspace/cleany/nav2-tuning-recovered",
+  "branch": "codex/nav2-tuning-recovered-20261024",
+  "base": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "latest_benchmark": "mppi-lattice-official144-20261020",
+  "latest_controller_variant": "candidate_diverse",
+  "latest_lattice_primitive_sha256": "01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e",
+  "source_snapshots": {
+    "mppi_variants": [
+      "src",
+      "candidate",
+      "candidate_v2",
+      "candidate_general",
+      "candidate_diverse",
+      "provenance/mppi-original"
+    ],
+    "teb": "snapshots/remote/controller-optimization-20261013/teb/sol61_20261013/teb_local_planner",
+    "rpp": "snapshots/remote/controller-optimization-20261013/rpp-source/ros2_ws/src/cleany_navigation",
+    "dwb_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b"
+  },
+  "data_root": "/home/ehdrms/workspace/cleany-data/runs",
+  "scope": "Recovery of source, configurations, generators and analysis tools. Historical bag data and media remain in original data directories; no simulation or physical driving performed by this recovery."
+}

@@ -1,0 +1,173 @@
+{
+  "candidate": "mppi",
+  "goal_index": 0,
+  "goal_name": "straight",
+  "goal_map": [
+    2.0,
+    0.0,
+    0.0
+  ],
+  "completed": true,
+  "domain": 212,
+  "partition": "cleany_comparison_fb65b6d8b7be4a60919c3067c080b227",
+  "host": "a16-fedora",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "navigation_started": true,
+  "action_status": 4,
+  "position_error_m": 0.13422120745552799,
+  "yaw_error_deg": 0.9856796957020023,
+  "final_truth": [
+    1.8736150040543786,
+    0.045190323418240225,
+    -0.01720335606005574
+  ],
+  "navigation_sim_s": 22.088,
+  "navigation_wall_s": 23.70063875300002,
+  "achieved_rtf": 0.9319580046003658,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 3.4457826636012996,
+    "linear_jerk_p95_m_s3": 6.8989789326744715,
+    "angular_jerk_rms_rad_s3": 0.6127893154444606,
+    "angular_jerk_p95_rad_s3": 1.2389530522487735,
+    "stationary_s": 6.800000000000001,
+    "motion_start_count": 31,
+    "yaw_reversals": 3,
+    "lateral_reversals": 4,
+    "speed_mean_m_s": 0.08502184615526064,
+    "speed_max_m_s": 0.15241223006759486
+  },
+  "controller_command_sim_interval_s": {
+    "mean": 0.04658690744920994,
+    "p95": 0.060000000000002274,
+    "count": 443
+  },
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 3.0920468479482914,
+    "/cmd_vel": 2.973870692132261
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 409
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 39.58226825700058,
+  "controller_deadline_warning_count": 0
+}

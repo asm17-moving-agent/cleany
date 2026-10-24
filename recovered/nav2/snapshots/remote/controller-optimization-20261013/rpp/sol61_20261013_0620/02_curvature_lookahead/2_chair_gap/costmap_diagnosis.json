@@ -1,0 +1,148 @@
+[
+  {
+    "target_sim_s": 44.862,
+    "clock_sim_s": 44.862,
+    "costmap_stamp_sim_s": 44.602,
+    "frame": "odom",
+    "tf_pose_xyyaw": [
+      3.243712370645474,
+      -1.2785901849203547,
+      -1.4970471518885609
+    ],
+    "padded_footprint": [
+      [
+        -0.338525,
+        -0.42737300000024486
+      ],
+      [
+        -0.338525,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        -0.42737300000024486
+      ]
+    ],
+    "perimeter_max_occupancy": 99,
+    "lethal_perimeter_cells": [],
+    "note": "Nearest published grid/TF at target; occupancy100 represents lethal254. Asynchronous snapshot does not substitute exact native check."
+  },
+  {
+    "target_sim_s": 61.75600000000001,
+    "clock_sim_s": 61.762,
+    "costmap_stamp_sim_s": 61.35,
+    "frame": "odom",
+    "tf_pose_xyyaw": [
+      3.320483394670794,
+      -2.272283190533231,
+      -1.3923382513776832
+    ],
+    "padded_footprint": [
+      [
+        -0.338525,
+        -0.42737300000024486
+      ],
+      [
+        -0.338525,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        -0.42737300000024486
+      ]
+    ],
+    "perimeter_max_occupancy": 100,
+    "lethal_perimeter_cells": [
+      [
+        50,
+        36,
+        3.8250000372529045,
+        -2.4249999731779015
+      ],
+      [
+        50,
+        35,
+        3.8250000372529045,
+        -2.4749999739229596
+      ],
+      [
+        50,
+        34,
+        3.8250000372529045,
+        -2.5249999746680176
+      ],
+      [
+        50,
+        34,
+        3.8250000372529045,
+        -2.5249999746680176
+      ]
+    ],
+    "note": "Nearest published grid/TF at target; occupancy100 represents lethal254. Asynchronous snapshot does not substitute exact native check."
+  },
+  {
+    "target_sim_s": 62.216,
+    "clock_sim_s": 62.216,
+    "costmap_stamp_sim_s": 61.922,
+    "frame": "odom",
+    "tf_pose_xyyaw": [
+      3.320483394670794,
+      -2.272283190533231,
+      -1.3923382513776832
+    ],
+    "padded_footprint": [
+      [
+        -0.338525,
+        -0.42737300000024486
+      ],
+      [
+        -0.338525,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        0.42742700000024486
+      ],
+      [
+        0.338475,
+        -0.42737300000024486
+      ]
+    ],
+    "perimeter_max_occupancy": 100,
+    "lethal_perimeter_cells": [
+      [
+        50,
+        36,
+        3.8250000372529045,
+        -2.4249999731779015
+      ],
+      [
+        50,
+        35,
+        3.8250000372529045,
+        -2.4749999739229596
+      ],
+      [
+        50,
+        34,
+        3.8250000372529045,
+        -2.5249999746680176
+      ],
+      [
+        50,
+        34,
+        3.8250000372529045,
+        -2.5249999746680176
+      ]
+    ],
+    "note": "Nearest published grid/TF at target; occupancy100 represents lethal254. Asynchronous snapshot does not substitute exact native check."
+  }
+]

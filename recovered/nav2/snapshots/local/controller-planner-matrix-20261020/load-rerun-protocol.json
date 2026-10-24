@@ -1,0 +1,23 @@
+{
+  "declared_at_utc": "2026-10-20T12:49:05.297229+00:00",
+  "reason": "4sim CPU overload with control-loop deadline warnings; exclude all exposure samples regardless outcome",
+  "excluded_manually_interrupted": [
+    "dwb_lattice/7_other_room",
+    "dwb_theta/7_other_room"
+  ],
+  "excluded_completed_mixed_load": [
+    {
+      "combination": "dwb_lattice",
+      "goal_index": 1,
+      "original_nav2_status": 4
+    },
+    {
+      "combination": "dwb_theta",
+      "goal_index": 0,
+      "original_nav2_status": 6
+    }
+  ],
+  "rerun_rule": "After each campaign, move exposure record intact to load-pilot; rerun from initial state once with max2sims and use fresh row even if worse; do not select best result",
+  "final_replicates_per_route": 1,
+  "not_a_tuning_change": true
+}

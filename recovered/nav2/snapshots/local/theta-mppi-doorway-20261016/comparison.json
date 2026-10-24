@@ -1,0 +1,636 @@
+{
+  "rows": [
+    {
+      "variant": "baseline",
+      "nav2_status": 6,
+      "completed": true,
+      "goal": [
+        -16.775,
+        1.775,
+        1.570796
+      ],
+      "final_gt": [
+        -5.527423134016664,
+        -6.078000918704903,
+        0.026399460815373907
+      ],
+      "final_gt_xy_error_m": 13.717784397831288,
+      "final_gt_yaw_error_deg": 88.48740358988974,
+      "navigation_sim_s": 26.078,
+      "navigation_wall_s": 107.00050334099978,
+      "actual_rtf": 0.24371847968688568,
+      "wheel_command_max_rad_s": 5.0,
+      "joint_max_rad_s": 5.043997812333066,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 104,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 1.1945842866401382,
+        "linear_jerk_p95_m_s3": 2.5576999717822164,
+        "angular_jerk_rms_rad_s3": 0.9283682199170404,
+        "angular_jerk_p95_rad_s3": 1.620373610598774,
+        "stationary_s": 1.55,
+        "motion_start_count": 1,
+        "yaw_reversals": 6,
+        "lateral_reversals": 3,
+        "speed_mean_m_s": 0.1685782997082373,
+        "speed_max_m_s": 0.24721498859465654
+      },
+      "compute_timing": {
+        "compute_us": {
+          "median": 4846.031,
+          "p95": 10453.688999999998,
+          "p99": 11927.018039999999,
+          "max": 14982.545
+        }
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.012755303404045387,
+          "p95": 0.02200000000000024,
+          "p99": 0.02400000000000091
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.012197380729653881,
+          "p95": 0.02099999999999902,
+          "p99": 0.023000000000001464
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.015199305555555556,
+          "p95": 0.021999999999998465,
+          "p99": 0.025000000000000355
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.012790147783251231,
+          "p95": 0.02200000000000024,
+          "p99": 0.02470999999999929
+        }
+      },
+      "no_free_rollout_errors": 5,
+      "progress_errors": 0,
+      "verified_planner": {
+        "GridBased.allow_unknown": false,
+        "GridBased.plugin": "nav2_theta_star_planner/ThetaStarPlanner"
+      },
+      "verified_controller": {
+        "FollowPath.plugin": "cleany_benchmark::TimedController",
+        "FollowPath.wrapped_plugin": "nav2_mppi_controller::MPPIController"
+      },
+      "loaded_mppi_libraries_sha256": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      },
+      "scene": {
+        "canonical_world_sha256": "690d2862cc8c142162f12a8c91c59ff6e906077d6eb269eacd62eda7ca07c989",
+        "removed_chair": "facility_chair_M14",
+        "preserved_model_count": 329,
+        "preserved_chair_models": [
+          "facility_chair_A11",
+          "facility_chair_A12",
+          "facility_chair_A13",
+          "facility_chair_A14",
+          "facility_chair_A21",
+          "facility_chair_A22",
+          "facility_chair_A23",
+          "facility_chair_A24",
+          "facility_chair_A31",
+          "facility_chair_A32",
+          "facility_chair_A33",
+          "facility_chair_A34",
+          "facility_chair_A41",
+          "facility_chair_A42",
+          "facility_chair_A43",
+          "facility_chair_A44",
+          "facility_chair_M11",
+          "facility_chair_M12",
+          "facility_chair_M13",
+          "facility_chair_M15",
+          "facility_chair_M16",
+          "facility_chair_M21",
+          "facility_chair_M22",
+          "facility_chair_M23",
+          "facility_chair_M24",
+          "facility_chair_M25",
+          "facility_chair_M26",
+          "facility_chair_M31",
+          "facility_chair_M32",
+          "facility_chair_M33",
+          "facility_chair_M34",
+          "facility_chair_M35",
+          "facility_chair_M36",
+          "office_chair_01",
+          "office_chair_02",
+          "office_chair_03",
+          "office_chair_04",
+          "office_chair_05",
+          "office_chair_06",
+          "office_chair_07",
+          "office_chair_08",
+          "office_chair_09",
+          "office_chair_10",
+          "office_chair_11",
+          "office_chair_12",
+          "office_chair_13",
+          "office_chair_14",
+          "office_chair_15",
+          "office_chair_16",
+          "office_chair_17",
+          "office_chair_18",
+          "office_chair_19",
+          "office_chair_20",
+          "office_chair_21",
+          "office_chair_22",
+          "office_chair_23",
+          "office_chair_24",
+          "office_chair_25",
+          "office_chair_26",
+          "office_chair_27",
+          "office_chair_28",
+          "office_chair_29",
+          "office_chair_30",
+          "office_chair_31",
+          "office_chair_32",
+          "office_chair_33",
+          "office_chair_34",
+          "office_chair_35",
+          "office_chair_36",
+          "office_chair_37",
+          "office_chair_38",
+          "office_chair_39",
+          "office_chair_40",
+          "office_chair_41",
+          "office_chair_42",
+          "office_chair_43",
+          "office_chair_44",
+          "office_chair_45",
+          "office_chair_46",
+          "office_chair_47",
+          "office_chair_48"
+        ],
+        "physical_models_unchanged_before_contact_sensors": true,
+        "actual_spawn_world": [
+          -1.865,
+          -4.705,
+          0.38,
+          0.0,
+          0.0,
+          1.5708
+        ]
+      },
+      "goal_tolerances": {
+        "failure_tolerance": 0.5,
+        "progress_checker.movement_time_allowance": 20.0,
+        "controller_frequency": 20.0,
+        "goal_checker.xy_goal_tolerance": 0.3,
+        "goal_checker.yaw_goal_tolerance": 0.17453292519943295
+      }
+    },
+    {
+      "variant": "xy_only",
+      "nav2_status": 6,
+      "completed": true,
+      "goal": [
+        -16.775,
+        1.775,
+        1.570796
+      ],
+      "final_gt": [
+        -5.507508184792069,
+        -5.956463827509654,
+        0.14287354746113862
+      ],
+      "final_gt_xy_error_m": 13.6649882810732,
+      "final_gt_yaw_error_deg": 81.81393000244636,
+      "navigation_sim_s": 32.022,
+      "navigation_wall_s": 117.70057001500027,
+      "actual_rtf": 0.2720632533548391,
+      "wheel_command_max_rad_s": 5.000000000000001,
+      "joint_max_rad_s": 5.285886898481145,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 128,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 1.6944346773910222,
+        "linear_jerk_p95_m_s3": 4.032837355970551,
+        "angular_jerk_rms_rad_s3": 2.457852449187076,
+        "angular_jerk_p95_rad_s3": 6.09804184635912,
+        "stationary_s": 3.0,
+        "motion_start_count": 6,
+        "yaw_reversals": 6,
+        "lateral_reversals": 3,
+        "speed_mean_m_s": 0.13473043712387622,
+        "speed_max_m_s": 0.23169023609790282
+      },
+      "compute_timing": {
+        "compute_us": {
+          "median": 3822.943,
+          "p95": 8470.914099999998,
+          "p99": 10186.273179999991,
+          "max": 22581.253
+        }
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.014985875706214688,
+          "p95": 0.023000000000002706,
+          "p99": 0.036000000000000545
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.013602634934126646,
+          "p95": 0.02200000000000557,
+          "p99": 0.02499999999999858
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.013166295884315905,
+          "p95": 0.022000000000002018,
+          "p99": 0.025999999999996356
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.01500094029149036,
+          "p95": 0.02300000000000324,
+          "p99": 0.036000000000001364
+        }
+      },
+      "no_free_rollout_errors": 4,
+      "progress_errors": 0,
+      "verified_planner": {
+        "GridBased.allow_unknown": false,
+        "GridBased.plugin": "nav2_theta_star_planner/ThetaStarPlanner"
+      },
+      "verified_controller": {
+        "FollowPath.plugin": "cleany_benchmark::TimedController",
+        "FollowPath.wrapped_plugin": "nav2_mppi_controller::MPPIController"
+      },
+      "loaded_mppi_libraries_sha256": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      },
+      "scene": {
+        "canonical_world_sha256": "690d2862cc8c142162f12a8c91c59ff6e906077d6eb269eacd62eda7ca07c989",
+        "removed_chair": "facility_chair_M14",
+        "preserved_model_count": 329,
+        "preserved_chair_models": [
+          "facility_chair_A11",
+          "facility_chair_A12",
+          "facility_chair_A13",
+          "facility_chair_A14",
+          "facility_chair_A21",
+          "facility_chair_A22",
+          "facility_chair_A23",
+          "facility_chair_A24",
+          "facility_chair_A31",
+          "facility_chair_A32",
+          "facility_chair_A33",
+          "facility_chair_A34",
+          "facility_chair_A41",
+          "facility_chair_A42",
+          "facility_chair_A43",
+          "facility_chair_A44",
+          "facility_chair_M11",
+          "facility_chair_M12",
+          "facility_chair_M13",
+          "facility_chair_M15",
+          "facility_chair_M16",
+          "facility_chair_M21",
+          "facility_chair_M22",
+          "facility_chair_M23",
+          "facility_chair_M24",
+          "facility_chair_M25",
+          "facility_chair_M26",
+          "facility_chair_M31",
+          "facility_chair_M32",
+          "facility_chair_M33",
+          "facility_chair_M34",
+          "facility_chair_M35",
+          "facility_chair_M36",
+          "office_chair_01",
+          "office_chair_02",
+          "office_chair_03",
+          "office_chair_04",
+          "office_chair_05",
+          "office_chair_06",
+          "office_chair_07",
+          "office_chair_08",
+          "office_chair_09",
+          "office_chair_10",
+          "office_chair_11",
+          "office_chair_12",
+          "office_chair_13",
+          "office_chair_14",
+          "office_chair_15",
+          "office_chair_16",
+          "office_chair_17",
+          "office_chair_18",
+          "office_chair_19",
+          "office_chair_20",
+          "office_chair_21",
+          "office_chair_22",
+          "office_chair_23",
+          "office_chair_24",
+          "office_chair_25",
+          "office_chair_26",
+          "office_chair_27",
+          "office_chair_28",
+          "office_chair_29",
+          "office_chair_30",
+          "office_chair_31",
+          "office_chair_32",
+          "office_chair_33",
+          "office_chair_34",
+          "office_chair_35",
+          "office_chair_36",
+          "office_chair_37",
+          "office_chair_38",
+          "office_chair_39",
+          "office_chair_40",
+          "office_chair_41",
+          "office_chair_42",
+          "office_chair_43",
+          "office_chair_44",
+          "office_chair_45",
+          "office_chair_46",
+          "office_chair_47",
+          "office_chair_48"
+        ],
+        "physical_models_unchanged_before_contact_sensors": true,
+        "actual_spawn_world": [
+          -1.865,
+          -4.705,
+          0.38,
+          0.0,
+          0.0,
+          1.5708
+        ]
+      },
+      "goal_tolerances": {
+        "failure_tolerance": 0.5,
+        "progress_checker.movement_time_allowance": 20.0,
+        "controller_frequency": 20.0,
+        "goal_checker.xy_goal_tolerance": 0.3,
+        "goal_checker.yaw_goal_tolerance": 0.17453292519943295
+      }
+    },
+    {
+      "variant": "clearance",
+      "nav2_status": 4,
+      "completed": true,
+      "goal": [
+        -16.775,
+        1.775,
+        1.570796
+      ],
+      "final_gt": [
+        -16.746543123001587,
+        1.7927524712253478,
+        1.4080083639691545
+      ],
+      "final_gt_xy_error_m": 0.0335401860923512,
+      "final_gt_yaw_error_deg": 9.327044501479223,
+      "navigation_sim_s": 102.346,
+      "navigation_wall_s": 253.50285857299968,
+      "actual_rtf": 0.40372720282571506,
+      "wheel_command_max_rad_s": 5.0,
+      "joint_max_rad_s": 4.999999804055019,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 408,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 0.9182580447267008,
+        "linear_jerk_p95_m_s3": 1.1430586545308539,
+        "angular_jerk_rms_rad_s3": 0.6327370285976003,
+        "angular_jerk_p95_rad_s3": 0.8170808221046951,
+        "stationary_s": 0.35000000000000003,
+        "motion_start_count": 2,
+        "yaw_reversals": 13,
+        "lateral_reversals": 14,
+        "speed_mean_m_s": 0.1972776556959847,
+        "speed_max_m_s": 0.24840265188160823
+      },
+      "compute_timing": {
+        "compute_us": {
+          "median": 3252.151,
+          "p95": 9978.908700000007,
+          "p99": 15517.45053999998,
+          "max": 20161.844
+        }
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.02026644148619114,
+          "p95": 0.027000000000001023,
+          "p99": 0.027999999999998693
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.02020252664824319,
+          "p95": 0.027000000000001023,
+          "p99": 0.027999999999998693
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.026036940686784603,
+          "p95": 0.03300000000000125,
+          "p99": 0.19300000000000062
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.02028196981731533,
+          "p95": 0.027000000000001023,
+          "p99": 0.027999999999998693
+        }
+      },
+      "no_free_rollout_errors": 0,
+      "progress_errors": 0,
+      "verified_planner": {
+        "GridBased.allow_unknown": false,
+        "GridBased.plugin": "nav2_theta_star_planner/ThetaStarPlanner",
+        "GridBased.w_traversal_cost": 5.0
+      },
+      "verified_controller": {
+        "FollowPath.plugin": "cleany_benchmark::TimedController",
+        "FollowPath.wrapped_plugin": "nav2_mppi_controller::MPPIController"
+      },
+      "loaded_mppi_libraries_sha256": {
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_critics.so": "153d2b9b05b2de8e58ddda99fd9b2244a6a68f210df97591a1e7d688cb734e6c",
+        "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/install/nav2_mppi_controller/lib/libmppi_controller.so": "1e4c04e317d9d16c12aaaf2b28dda6fd65a38113aabf626656512fdc8cf5d207"
+      },
+      "scene": {
+        "canonical_world_sha256": "690d2862cc8c142162f12a8c91c59ff6e906077d6eb269eacd62eda7ca07c989",
+        "removed_chair": "facility_chair_M14",
+        "preserved_model_count": 329,
+        "preserved_chair_models": [
+          "facility_chair_A11",
+          "facility_chair_A12",
+          "facility_chair_A13",
+          "facility_chair_A14",
+          "facility_chair_A21",
+          "facility_chair_A22",
+          "facility_chair_A23",
+          "facility_chair_A24",
+          "facility_chair_A31",
+          "facility_chair_A32",
+          "facility_chair_A33",
+          "facility_chair_A34",
+          "facility_chair_A41",
+          "facility_chair_A42",
+          "facility_chair_A43",
+          "facility_chair_A44",
+          "facility_chair_M11",
+          "facility_chair_M12",
+          "facility_chair_M13",
+          "facility_chair_M15",
+          "facility_chair_M16",
+          "facility_chair_M21",
+          "facility_chair_M22",
+          "facility_chair_M23",
+          "facility_chair_M24",
+          "facility_chair_M25",
+          "facility_chair_M26",
+          "facility_chair_M31",
+          "facility_chair_M32",
+          "facility_chair_M33",
+          "facility_chair_M34",
+          "facility_chair_M35",
+          "facility_chair_M36",
+          "office_chair_01",
+          "office_chair_02",
+          "office_chair_03",
+          "office_chair_04",
+          "office_chair_05",
+          "office_chair_06",
+          "office_chair_07",
+          "office_chair_08",
+          "office_chair_09",
+          "office_chair_10",
+          "office_chair_11",
+          "office_chair_12",
+          "office_chair_13",
+          "office_chair_14",
+          "office_chair_15",
+          "office_chair_16",
+          "office_chair_17",
+          "office_chair_18",
+          "office_chair_19",
+          "office_chair_20",
+          "office_chair_21",
+          "office_chair_22",
+          "office_chair_23",
+          "office_chair_24",
+          "office_chair_25",
+          "office_chair_26",
+          "office_chair_27",
+          "office_chair_28",
+          "office_chair_29",
+          "office_chair_30",
+          "office_chair_31",
+          "office_chair_32",
+          "office_chair_33",
+          "office_chair_34",
+          "office_chair_35",
+          "office_chair_36",
+          "office_chair_37",
+          "office_chair_38",
+          "office_chair_39",
+          "office_chair_40",
+          "office_chair_41",
+          "office_chair_42",
+          "office_chair_43",
+          "office_chair_44",
+          "office_chair_45",
+          "office_chair_46",
+          "office_chair_47",
+          "office_chair_48"
+        ],
+        "physical_models_unchanged_before_contact_sensors": true,
+        "actual_spawn_world": [
+          -1.865,
+          -4.705,
+          0.38,
+          0.0,
+          0.0,
+          1.5708
+        ]
+      },
+      "goal_tolerances": {
+        "failure_tolerance": 0.5,
+        "progress_checker.movement_time_allowance": 20.0,
+        "controller_frequency": 20.0,
+        "goal_checker.xy_goal_tolerance": 0.3,
+        "goal_checker.yaw_goal_tolerance": 0.17453292519943295
+      }
+    }
+  ],
+  "checks": {
+    "baseline": {
+      "map_unchanged": true,
+      "bt_unchanged": true,
+      "world_source_unchanged": true,
+      "mppi_binary_unchanged": true,
+      "wheel_command_cap_maintained": true,
+      "arrival_tolerances_maintained": true,
+      "footprint_unchanged": true
+    },
+    "xy_only": {
+      "map_unchanged": true,
+      "bt_unchanged": true,
+      "world_source_unchanged": true,
+      "mppi_binary_unchanged": true,
+      "wheel_command_cap_maintained": true,
+      "arrival_tolerances_maintained": true,
+      "footprint_unchanged": true
+    },
+    "clearance": {
+      "map_unchanged": true,
+      "bt_unchanged": true,
+      "world_source_unchanged": true,
+      "mppi_binary_unchanged": true,
+      "wheel_command_cap_maintained": true,
+      "arrival_tolerances_maintained": true,
+      "footprint_unchanged": true
+    }
+  },
+  "parameter_differences": {
+    "xy_only": {
+      "controller_server.ros__parameters.FollowPath.PathAlignCritic.use_path_orientations": [
+        true,
+        false
+      ]
+    },
+    "clearance": {
+      "planner_server.ros__parameters.GridBased.w_traversal_cost": [
+        null,
+        5.0
+      ],
+      "controller_server.ros__parameters.FollowPath.PathAlignCritic.use_path_orientations": [
+        true,
+        false
+      ]
+    }
+  },
+  "parameter_default_notes": {
+    "planner_server.ros__parameters.GridBased.w_traversal_cost": "Absent in baseline/xy_only YAML; runtime audited default is 2.0 in xy-runtime-planner.json. Final explicit runtime value 5.0 is verified in result.json."
+  },
+  "interpretation": "Descriptive single trials. Baseline and yaw-only failed far before the final room; timing/jerk are not ranked against a successful longer run. Static native sweeps provide separate fixed-map geometry evidence.",
+  "validation_boundary": "Source default profile is stock MPPI. Gazebo experiments use the preserved candidate_diverse optimized MPPI build; identical across all three runs. Source configuration/unit/build evidence is distinct from this runtime proof."
+}

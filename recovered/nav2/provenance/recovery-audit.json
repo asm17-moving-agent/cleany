@@ -1,0 +1,13 @@
+{
+  "remote_verified_files": 12137,
+  "remote_mismatches": [],
+  "restored_oct16_after_hashes_verified": 7,
+  "dwb_source_commit": "44c083abe2ebeb0077879e4419660b15fe4dd91b",
+  "base_commit": "b3ca816ba420452ee7960837bc16ec74148e07b0",
+  "active_mppi_source": "recovered/nav2/snapshots/remote/doorway-diagnosis-20261014/desktop-experiment/candidate_diverse/src/nav2_mppi_controller",
+  "notes": [
+    "Recovered exact navigation source patch is Theta* production profile; final lattice10cm benchmark profile is separately preserved. Neither simulation bypasses nor benchmark settings were made global robot defaults.",
+    "launch/axis files recovered from recorded Oct14 runtime; exact deleted Oct24 filesystem state cannot be guaranteed.",
+    "Experimental runner absolute paths preserved in snapshots; relocation/build required before re-execution."
+  ]
+}

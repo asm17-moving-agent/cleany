@@ -1,0 +1,86 @@
+{
+  "footprint": [
+    [
+      -0.238525,
+      -0.32737300000024483
+    ],
+    [
+      -0.238525,
+      0.32742700000024483
+    ],
+    [
+      0.238475,
+      0.32742700000024483
+    ],
+    [
+      0.238475,
+      -0.32737300000024483
+    ]
+  ],
+  "footprint_padding": 0.0,
+  "scope": "current Gazebo experiment only",
+  "nodes": {
+    "/local_costmap/local_costmap": {
+      "set_results": [
+        {
+          "successful": true,
+          "reason": ""
+        },
+        {
+          "successful": true,
+          "reason": ""
+        }
+      ],
+      "verified_footprint": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "verified_padding": 0.0
+    },
+    "/global_costmap/global_costmap": {
+      "set_results": [
+        {
+          "successful": true,
+          "reason": ""
+        },
+        {
+          "successful": true,
+          "reason": ""
+        }
+      ],
+      "verified_footprint": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "verified_padding": 0.0
+    }
+  }
+}

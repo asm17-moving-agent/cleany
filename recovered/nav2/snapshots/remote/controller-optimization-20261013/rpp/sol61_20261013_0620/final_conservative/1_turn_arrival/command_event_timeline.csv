@@ -1,0 +1,29 @@
+received_sim_s,steady_wall_s,stage,state,reason
+8.192,33700.660640972,/cmd_vel,zero,received command transition
+8.192,,/body_guard_3d/state,STOP_UNAVAILABLE,Command timeout
+8.212,33700.671466545,/pan_ready/cmd_vel,zero,received command transition
+8.212,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+8.372,33700.833147235,/nav2/cmd_vel,nonzero,received command transition
+8.412,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+8.452,33700.920825548,/pan_ready/cmd_vel,nonzero,received command transition
+8.452,33700.921029486,/safety_2d/cmd_vel,nonzero,received command transition
+8.452,,/head_pan/state,PASS,PASS
+8.492,33700.967324922,/cmd_vel,nonzero,received command transition
+8.492,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+8.836,33701.311101404,/cmd_vel,zero,received command transition
+8.836,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+8.876000000000001,33701.368684267,/cmd_vel,nonzero,received command transition
+8.876000000000001,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+24.816000000000003,33717.711291293,/cmd_vel,zero,received command transition
+24.816000000000003,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+24.854000000000003,33717.769672237,/cmd_vel,nonzero,received command transition
+24.854000000000003,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+32.036,33725.110892467,/cmd_vel,zero,received command transition
+32.036,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+32.076,33725.16859268,/cmd_vel,nonzero,received command transition
+32.076,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+48.720000000000006,33742.233229389,/nav2/cmd_vel,zero,received command transition
+48.760000000000005,33742.270675917,/pan_ready/cmd_vel,zero,received command transition
+48.760000000000005,33742.280926058,/safety_2d/cmd_vel,zero,received command transition
+48.800000000000004,33742.313677465,/cmd_vel,zero,received command transition
+49.24,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT

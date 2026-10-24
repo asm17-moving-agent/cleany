@@ -1,0 +1,68 @@
+{
+  "indices_each_once": true,
+  "navigation_goals_sent": 8,
+  "actual_controller_parameters_identical_except_timing_output_path": true,
+  "loaded_library_hashes_identical": true,
+  "xy30cm_yaw10deg_verified_all": true,
+  "matching_global_resolution_025_verified_all": true,
+  "shared_planner_80s_32headings_verified_all": true,
+  "actual_all_scene_models_and_meshes_verified": true,
+  "wheel_limit_observations": {
+    "straight": {
+      "raw_command_max": 2.8072782690226155,
+      "final_command_max": 2.8072782690226155,
+      "joint_max": 2.8072782688457063,
+      "raw_exceedance_samples": 0,
+      "final_exceedance_samples": 0
+    },
+    "turn_arrival": {
+      "raw_command_max": 3.711425850426001,
+      "final_command_max": 3.711425850426001,
+      "joint_max": 3.7114258504398645,
+      "raw_exceedance_samples": 0,
+      "final_exceedance_samples": 0
+    },
+    "chair_gap": {
+      "raw_command_max": 3.9213124591065207,
+      "final_command_max": 3.9213124591065207,
+      "joint_max": 3.9213124591181305,
+      "raw_exceedance_samples": 0,
+      "final_exceedance_samples": 0
+    },
+    "far_heading": {
+      "raw_command_max": 3.714465494167727,
+      "final_command_max": 3.714465494167727,
+      "joint_max": 3.7144654940671606,
+      "raw_exceedance_samples": 0,
+      "final_exceedance_samples": 0
+    },
+    "distant": {
+      "raw_command_max": 4.110878949970242,
+      "final_command_max": 4.110878949970242,
+      "joint_max": 4.1108789499796865,
+      "raw_exceedance_samples": 0,
+      "final_exceedance_samples": 0
+    },
+    "lateral": {
+      "raw_command_max": 1.2319000733488306,
+      "final_command_max": 1.2319000733488306,
+      "joint_max": 1.231900073247871,
+      "raw_exceedance_samples": 0,
+      "final_exceedance_samples": 0
+    },
+    "narrow_seat": {
+      "raw_command_max": 3.3710160125897626,
+      "final_command_max": 3.3710160125897626,
+      "joint_max": 3.371016012539547,
+      "raw_exceedance_samples": 0,
+      "final_exceedance_samples": 0
+    },
+    "other_room": {
+      "raw_command_max": 3.663611742474256,
+      "final_command_max": 3.663611742474256,
+      "joint_max": 3.6636117423366468,
+      "raw_exceedance_samples": 0,
+      "final_exceedance_samples": 0
+    }
+  }
+}

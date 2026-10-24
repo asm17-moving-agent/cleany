@@ -1,0 +1,18 @@
+{
+  "snapshot": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/regression8/7_other_room/snapshots/00118.005.json",
+  "description": "Dense transit x=-17.125\u00b1.02, yaw=pi\u00b12deg, y=.005..2.045. Static snapshot test; not a guarantee against localization changes.",
+  "maps": {
+    "local": {
+      "samples": 1845,
+      "collisions": 0,
+      "max_cost": 253.0,
+      "first_invalid_poses": []
+    },
+    "global": {
+      "samples": 1845,
+      "collisions": 0,
+      "max_cost": 253.0,
+      "first_invalid_poses": []
+    }
+  }
+}

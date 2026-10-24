@@ -1,0 +1,10 @@
+[
+  {
+    "pid": 77608,
+    "cmd": "/usr/bin/python3 /opt/ros/humble/bin/ros2 launch /home/donglee/workspace/cleany/controller-optimization-20261013/rpp/01_short_ttc/2_chair_gap/run.launch.py "
+  },
+  {
+    "pid": 77630,
+    "cmd": "ign gazebo -r -s --render-engine-server ogre2 /tmp/cleany-friction-frames-lqhfw7r6/world.sdf               "
+  }
+]

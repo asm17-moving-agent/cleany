@@ -1,0 +1,25 @@
+{
+  "phase": "restored_path_follow",
+  "values": {
+    "PathFollowCritic.cost_weight": 15.0
+  },
+  "wall_s": 5.015100781005458,
+  "sim_s": 1.5199999999999818,
+  "start": {
+    "wall": 36885.822344644,
+    "phase": "restored_path_follow",
+    "x": -17.105145997287778,
+    "y": 0.6525803492994302,
+    "yaw": 2.3708076187047378,
+    "sim_s": 531.82
+  },
+  "end": {
+    "wall": 36890.771972922,
+    "phase": "restored_path_follow",
+    "x": -17.107976368369275,
+    "y": 0.6820077100518147,
+    "yaw": 2.3454603429684546,
+    "sim_s": 533.34
+  },
+  "displacement_m": 0.02956316223461145
+}

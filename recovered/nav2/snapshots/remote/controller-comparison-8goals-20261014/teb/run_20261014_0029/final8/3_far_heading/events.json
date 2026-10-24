@@ -1,0 +1,204 @@
+[
+  {
+    "phase": "runtime_verified",
+    "sim_s": 5.082000000000001,
+    "states": {
+      "map_server": "active",
+      "amcl": "active",
+      "controller_server": "active",
+      "planner_server": "active",
+      "behavior_server": "active",
+      "bt_navigator": "active",
+      "collision_monitor": "active",
+      "local_costmap/local_costmap": "active",
+      "global_costmap/global_costmap": "active"
+    },
+    "parameters": {
+      "controller_server": {
+        "odom_topic": "odom"
+      },
+      "bt_navigator": {
+        "odom_topic": "odom"
+      },
+      "wheel_odometry": {
+        "wheel_radius_m": 0.0635,
+        "wheelbase_m": 0.35,
+        "wheel_separation_m": 0.6038,
+        "velocity_window_s": 0.125,
+        "yaw_scale": 1.047
+      },
+      "simulated_odometry_error": {
+        "input_topic": "wheel/odom_raw",
+        "output_topic": "wheel/odom",
+        "forward_scale": 1.0,
+        "lateral_scale": 1.0,
+        "rotation_scale": 1.0,
+        "forward_noise_stddev_per_sqrt_m": 0.0,
+        "lateral_noise_stddev_per_sqrt_m": 0.0,
+        "rotation_noise_stddev_per_sqrt_rad": 0.0,
+        "yaw_bias_walk_stddev_per_sqrt_m": 0.0,
+        "max_abs_yaw_bias_rad_per_m": 0.0,
+        "yaw_drift_rad_per_forward_m": 0.0,
+        "slip_events_per_second": 0.0,
+        "slip_duration_min_sec": 0.0,
+        "slip_duration_max_sec": 0.0,
+        "slip_gain_min": 1.0,
+        "slip_gain_max": 1.0,
+        "random_seed": 42
+      },
+      "local_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33,
+        "plugins": [
+          "obstacle_layer",
+          "memory_layer",
+          "depth_layer",
+          "inflation_layer"
+        ],
+        "depth_layer.depth.topic": "/camera/head/depth/obstacle_points",
+        "depth_layer.enabled": true
+      },
+      "global_costmap": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "obstacle_layer.min_obstacle_height": -0.33,
+        "obstacle_layer.scan.min_obstacle_height": -0.33
+      },
+      "collision_monitor": {
+        "cmd_vel_in_topic": "pan_ready/cmd_vel",
+        "cmd_vel_out_topic": "safety_2d/cmd_vel",
+        "observation_sources": [
+          "scan",
+          "depth"
+        ],
+        "source_timeout": 0.6
+      }
+    },
+    "cmd_vel_publishers": [
+      "wheel_envelope_limiter"
+    ],
+    "cloud_frame": "head_camera_depth_frame",
+    "cloud_size": [
+      15200,
+      1
+    ],
+    "finite_sampled_points": 1900,
+    "truth": [
+      -1.8650000000000295,
+      -4.704999999833625,
+      1.570800000000001
+    ]
+  },
+  {
+    "phase": "actual_scene_verified",
+    "sim_s": 5.082000000000001,
+    "actual_scene_model_count": 330,
+    "expected_canonical_model_count": 330,
+    "missing_models": [],
+    "removed_chair": null,
+    "removed_chair_absent": true,
+    "all_other_canonical_models_present": true,
+    "expected_unique_visual_meshes": 37,
+    "actual_unique_scene_meshes": 37,
+    "missing_visual_meshes": [],
+    "server_mesh_load_error_lines": [],
+    "mesh_files": [
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/159f986cdd7b68e1-lower_front_cross_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/35f2fb4854b63c9b-left_inner_lower_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/3646936db777b61f-tophead6.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/3a62bc31fe912a47-fl_upright.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/3fe7ad7de56a0276-pg42_motor_bracket.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/48d0001e591991a5-upper_left_side_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/4a4bfc67a1c7c9c0-lower_left_side_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/54bda4db70209c44-tophead5.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/61cb6694021ce07a-lower_rear_cross_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/76d15786059d507e-fr_upright.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/7d289e3942aadd1a-rear_inner_lower_cross_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/864f9bac149bc598-rr_upright.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/866c172149e274ff-topbase2.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/96411a29c365b42b-right_inner_lower_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/9f37427859e037ad-pg42_4266_1270ne___1_61.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/a427b70481f89f5f-tophead4.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/aac4485d448eca41-Base_Motor.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/af5e3ab26967aa1a-035armbase_step__\u00ea\u00e4\u00e8\u00eb4.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/bb8afb0303c0125f-Base.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/bdccfcceae3aca1f-upper_right_side_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/bee7ae0af47d25b7-tophead1.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/c6211fd1908f5ac8-part_1__2.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/c64dc6f5a8b7c8da-upper_rear_cross_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/d62c961e89194051-lower_right_side_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/ed0fc0962b0f8ba4-rl_upright.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/ed86aee75cc10ce5-front_inner_lower_cross_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/faed717344f14f18-upper_front_cross_rail.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/assets/fb26572fbd883d6b-topbase1.stl",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/fuel-assets/officechairgrey/OfficeChairGrey.obj",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/roly_meshes/roly-8c2147fce3639f9a-frame.dae",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/roly_meshes/roly-8c2147fce3639f9a-lumbar.dae",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/roly_meshes/roly-8c2147fce3639f9a-mesh.dae",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/roly_meshes/roly-8c2147fce3639f9a-metal.dae",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/roly_meshes/roly-8c2147fce3639f9a-seat.dae",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/roly_meshes/roly-8c2147fce3639f9a-tire.dae",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/world.ceiling.dae",
+      "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/3_far_heading/fixture/world.floor.dae"
+    ],
+    "scope": "Actual scene service + local URI/hash checks + server load diagnostics; no GUI was opened."
+  },
+  {
+    "phase": "shared_input_runtime_verified",
+    "sim_s": 5.2170000000000005,
+    "planner": {
+      "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+      "GridBased.tolerance": 0.05,
+      "GridBased.holonomic_direct_path": true,
+      "GridBased.require_exact_goal": true,
+      "GridBased.allow_unknown": false,
+      "GridBased.smooth_path": false,
+      "GridBased.allow_reverse_expansion": true,
+      "GridBased.max_planning_time": 80.0,
+      "GridBased.cache_obstacle_heuristic": false,
+      "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/common/omni_lattice_2p5cm.json",
+      "GridBased.analytic_expansion_max_length": 0.0,
+      "GridBased.cost_penalty": 5.0,
+      "GridBased.lattice_collision_padding": 0.05,
+      "GridBased.body_heading_grid_bins": 32
+    },
+    "global_resolution": {
+      "resolution": 0.025
+    }
+  },
+  {
+    "phase": "relaxed_runtime_verified",
+    "sim_s": 5.2170000000000005,
+    "cmd_vel_publishers": [
+      "wheel_envelope_limiter"
+    ],
+    "progress_checker": {
+      "failure_tolerance": -1.0,
+      "controller_frequency": 10.0,
+      "progress_checker.movement_time_allowance": 1200.0
+    },
+    "downstream_limits": {
+      "max_linear_x": 0.4,
+      "max_linear_y": 0.4,
+      "max_angular_z": 1.0,
+      "cmd_vel_timeout_sec": 2.0
+    },
+    "wheel_limiter_parameters": {
+      "wheel_cap_rad_s": 4.99,
+      "wheel_acceleration_rad_s2": 8.0
+    }
+  },
+  {
+    "phase": "comparison_navigation",
+    "sim_s": 8.226,
+    "goal": [
+      -1.865,
+      -0.3,
+      -1.570796
+    ]
+  }
+]

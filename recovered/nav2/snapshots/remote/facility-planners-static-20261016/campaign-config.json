@@ -1,0 +1,61 @@
+{
+  "planners": {
+    "navfn": {
+      "allow_unknown": false,
+      "tolerance": 0.0,
+      "plugin": "nav2_navfn_planner/NavfnPlanner",
+      "use_astar": false,
+      "use_final_approach_orientation": false
+    },
+    "smac2d": {
+      "allow_unknown": false,
+      "cost_travel_multiplier": 2.0,
+      "max_iterations": -1,
+      "max_on_approach_iterations": 1000,
+      "max_planning_time": 80.0,
+      "plugin": "nav2_smac_planner/SmacPlanner2D",
+      "tolerance": 0.0,
+      "use_final_approach_orientation": false,
+      "smoother": {
+        "max_iterations": 0
+      }
+    },
+    "hybrid": {
+      "allow_unknown": false,
+      "tolerance": 0.0,
+      "plugin": "nav2_smac_planner/SmacPlannerHybrid",
+      "max_planning_time": 80.0,
+      "max_iterations": -1,
+      "max_on_approach_iterations": 1000,
+      "motion_model_for_search": "REEDS_SHEPP",
+      "minimum_turning_radius": 0.1,
+      "angle_quantization_bins": 72,
+      "lookup_table_size": 20.0,
+      "analytic_expansion_ratio": 3.5,
+      "analytic_expansion_max_length": 3.0,
+      "cache_obstacle_heuristic": false,
+      "smooth_path": false
+    },
+    "theta": {
+      "plugin": "nav2_theta_star_planner/ThetaStarPlanner",
+      "allow_unknown": false,
+      "w_traversal_cost": 5.0,
+      "how_many_corners": 8
+    }
+  },
+  "sources": "/home/ehdrms/workspace/cleany-data/runs/facility-all-seats-lattice-static-20261016",
+  "domain_ids": {
+    "navfn": 190,
+    "smac2d": 191,
+    "hybrid": 192,
+    "theta": 193
+  },
+  "scope": "82 goals each, existing canonical maps and fixed targets reused byte-for-byte; no Gazebo/controller started",
+  "rationale": {
+    "hybrid": "Reeds-Shepp preserves forward/reverse; radius0.1m matches new Lattice metadata. 72 heading bins and analytic expansions are native Hybrid settings, not Lattice primitives.",
+    "theta": "w_traversal_cost5 preserved from successful recent Theta experiment.",
+    "navfn": "Dijkstra mode, exact-goal tolerance0.",
+    "smac2d": "Cost multiplier2. On installed Nav2 1.1.20 Smac2D has no smooth_path flag; smoother.max_iterations=0 disables native smoother. Initial unsupported flag was caught before sending any planning goal, then corrected.",
+    "goal_handling": "Native positional/heading discretization differs. Theta has no tolerance parameter; exact requested endpoint is evaluated separately. No common fake timeout or physical feasibility guarantee."
+  }
+}

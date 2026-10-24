@@ -1,0 +1,96 @@
+{
+  "sim_s": 32.286,
+  "navigation_sim_s": 24.018,
+  "truth": [
+    -1.8520529147498543,
+    -3.92723394746385,
+    1.4120753572715024
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 32.27,
+      "sim_s": 32.27,
+      "requested": [
+        0.0,
+        0.0,
+        0.06335725117726342
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.06335725117726342
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 32.28,
+      "stamp_s": 32.274,
+      "sim_s": 32.274,
+      "target": 1.5707963267948966,
+      "pan": 1.5707963267948988,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        0.06335725117726342
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.06335725117726342
+      ],
+      "depth_stamp": 32.209
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 32.28,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 32.274,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.07373759478010126
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.06593759478007202
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 9308,
+      "source_age_s": 0.23700000000000188,
+      "output": [
+        0.0,
+        0.0,
+        0.07373759478010126
+      ],
+      "processing_ms": 7.360299001447856
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 32.28,
+      "sim_s": 32.28,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    }
+  ]
+}

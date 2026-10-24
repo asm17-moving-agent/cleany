@@ -1,0 +1,563 @@
+[
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.782000000000002,
+    "sim_s": 14.782,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/wheel_limit/state",
+    "received_sim_s": 14.802000000000001,
+    "sim_s": 14.802000000000001,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "CONTROLLER_COMMAND_TIMEOUT"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 14.822000000000001,
+    "sim_s": 14.822,
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "STOP_UNAVAILABLE"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.942,
+    "sim_s": 14.942,
+    "requested": [
+      0.0033027022145688534,
+      -0.001076142187230289,
+      -0.00086310098413378
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/wheel_limit/state",
+    "received_sim_s": 14.942,
+    "sim_s": 14.942,
+    "requested": [
+      0.0033027022145688534,
+      -0.001076142187230289,
+      -0.00086310098413378
+    ],
+    "output": [
+      0.0033027022145688534,
+      -0.001076142187230289,
+      -0.00086310098413378
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 15.040000000000001,
+    "sim_s": 15.04,
+    "requested": [
+      0.010207470506429672,
+      -0.0004325119953136891,
+      0.004230986814945936
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 15.076,
+    "sim_s": 15.076,
+    "requested": [
+      0.013089941814541817,
+      0.00022763008018955588,
+      0.004980762954801321
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 15.116000000000001,
+    "sim_s": 15.116,
+    "requested": [
+      0.016944924369454384,
+      9.002286242321134e-05,
+      0.006043632514774799
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 15.172,
+    "sim_s": 15.172,
+    "requested": [
+      0.019489502534270287,
+      0.0007006719242781401,
+      0.003557126969099045
+    ],
+    "output": [
+      0.019489502534270287,
+      0.0007006719242781401,
+      0.003557126969099045
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 15.192,
+    "sim_s": 15.192,
+    "requested": [
+      0.019489502534270287,
+      0.0007006719242781401,
+      0.003557126969099045
+    ],
+    "output": [
+      0.019489502534270287,
+      0.0007006719242781401,
+      0.003557126969099045
+    ],
+    "reason": "PASS_OBSERVED_SPACE"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 30.426000000000002,
+    "sim_s": 30.426,
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "STOP_UNAVAILABLE"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 30.478,
+    "sim_s": 30.458,
+    "requested": [
+      0.22205118834972382,
+      -0.00124166754540056,
+      0.0014695010613650084
+    ],
+    "output": [
+      0.1802747453516147,
+      -0.0010080617096536642,
+      0.0014695010613650084
+    ],
+    "reason": "PASS_OBSERVED_SPACE"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 43.63,
+    "sim_s": 43.63,
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "STOP_UNAVAILABLE"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 43.690000000000005,
+    "sim_s": 43.67,
+    "requested": [
+      0.15990877151489258,
+      -0.05796225741505623,
+      -0.058594975620508194
+    ],
+    "output": [
+      0.15990877151489258,
+      -0.05796225741505623,
+      -0.058594975620508194
+    ],
+    "reason": "PASS_OBSERVED_SPACE"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 48.32,
+    "sim_s": 48.32,
+    "requested": [
+      0.11397707462310791,
+      -0.07279349863529205,
+      0.024187259376049042
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 48.42,
+    "sim_s": 48.42,
+    "requested": [
+      0.11072465777397156,
+      -0.07588422298431396,
+      0.029214967042207718
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 48.46,
+    "sim_s": 48.46,
+    "requested": [
+      0.10276197642087936,
+      -0.08292078971862793,
+      0.04282894730567932
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 48.67,
+    "sim_s": 48.67,
+    "requested": [
+      0.08871720731258392,
+      -0.09022848308086395,
+      0.05618981271982193
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 48.708000000000006,
+    "sim_s": 48.708,
+    "requested": [
+      0.07840856909751892,
+      -0.09460132569074631,
+      0.0493936650454998
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 48.802,
+    "sim_s": 48.802,
+    "requested": [
+      0.07509884983301163,
+      -0.09590460360050201,
+      0.04938812181353569
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 48.902,
+    "sim_s": 48.902,
+    "requested": [
+      0.06614917516708374,
+      -0.1009860560297966,
+      0.0504295751452446
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 48.986000000000004,
+    "sim_s": 48.986,
+    "requested": [
+      0.06306794285774231,
+      -0.1032775416970253,
+      0.048876095563173294
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 49.042,
+    "sim_s": 49.042,
+    "requested": [
+      0.05888058990240097,
+      -0.10615866631269455,
+      0.04915592074394226
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 49.14,
+    "sim_s": 49.14,
+    "requested": [
+      0.05195951089262962,
+      -0.11313264071941376,
+      0.047103844583034515
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 49.18,
+    "sim_s": 49.18,
+    "requested": [
+      0.05142296478152275,
+      -0.11666222661733627,
+      0.047688551247119904
+    ],
+    "output": [
+      0.05142296478152275,
+      -0.11666222661733627,
+      0.047688551247119904
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 51.044000000000004,
+    "sim_s": 51.044,
+    "requested": [
+      0.019368447363376617,
+      -0.13479673862457275,
+      0.027236174792051315
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 51.144000000000005,
+    "sim_s": 51.144,
+    "requested": [
+      0.01276214886456728,
+      -0.13826152682304382,
+      0.03171611949801445
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 51.24,
+    "sim_s": 51.24,
+    "requested": [
+      0.01515947375446558,
+      -0.14273741841316223,
+      0.03240229934453964
+    ],
+    "output": [
+      0.01515947375446558,
+      -0.14273741841316223,
+      0.03240229934453964
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 66.04,
+    "sim_s": 66.04,
+    "requested": [
+      0.14713560044765472,
+      -0.08955778181552887,
+      0.006358282174915075
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 66.196,
+    "sim_s": 66.196,
+    "requested": [
+      0.1621624082326889,
+      -0.0751483365893364,
+      0.016853008419275284
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 66.25800000000001,
+    "sim_s": 66.236,
+    "requested": [
+      0.164635568857193,
+      -0.07055667042732239,
+      0.020962219685316086
+    ],
+    "output": [
+      0.164635568857193,
+      -0.07055667042732239,
+      0.020962219685316086
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 66.26400000000001,
+    "sim_s": 66.264,
+    "requested": [
+      0.16658364236354828,
+      -0.06675253808498383,
+      0.022679246962070465
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 66.302,
+    "sim_s": 66.302,
+    "requested": [
+      0.16824562847614288,
+      -0.06530215591192245,
+      0.02319253794848919
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 66.50200000000001,
+    "sim_s": 66.502,
+    "requested": [
+      0.16969026625156403,
+      -0.06260264664888382,
+      0.029140625149011612
+    ],
+    "output": [
+      0.16969026625156403,
+      -0.06260264664888382,
+      0.029140625149011612
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 79.364,
+    "sim_s": 79.364,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/wheel_limit/state",
+    "received_sim_s": 79.4,
+    "sim_s": 79.4,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "CONTROLLER_COMMAND_TIMEOUT"
+  }
+]

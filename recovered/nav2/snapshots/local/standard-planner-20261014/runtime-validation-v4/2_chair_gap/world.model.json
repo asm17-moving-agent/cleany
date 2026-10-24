@@ -1,0 +1,49 @@
+{
+  "simulation_excluded_link_roots": [
+    "left_shoulder_yaw_link",
+    "right_shoulder_yaw_link"
+  ],
+  "source_commit": "71f8d6c",
+  "collision_bounds": [
+    [
+      -0.238525,
+      -0.32737300000024483,
+      -0.3799970000000734
+    ],
+    [
+      0.238475,
+      0.32742700000024483,
+      0.8120390619878888
+    ]
+  ],
+  "navigation_margins": {
+    "stop": 0.08,
+    "planning_padding": 0.02,
+    "slowdown": 0.2
+  },
+  "depth_camera_tf": {
+    "translation": [
+      0.13575291981941817,
+      -0.001999999999964942,
+      0.7907902750404355
+    ],
+    "rotation_rpy": [
+      0.0,
+      0.3490658503988659,
+      4.136462142204289e-13
+    ],
+    "pan_pivot": [
+      0.103,
+      2.1302780032352088e-14,
+      0.673
+    ]
+  },
+  "wheelbase": 0.35,
+  "wheel_separation": 0.6038,
+  "wheel_radius": 0.0635,
+  "park_joints": {
+    "head_pan_joint": 0.0,
+    "head_tilt_joint": 0.3490658503988659
+  },
+  "simulation_park_limits": {}
+}

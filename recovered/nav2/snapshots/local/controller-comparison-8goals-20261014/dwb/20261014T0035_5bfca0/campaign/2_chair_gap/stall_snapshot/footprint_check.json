@@ -1,0 +1,48 @@
+{
+  "snapshot_is_asynchronous": true,
+  "local_costmap_stamp_sim_s": 43.626,
+  "odom_stamp_sim_s": 43.812,
+  "padded_full_footprint": [
+    [
+      -0.338525,
+      -0.427373
+    ],
+    [
+      -0.338525,
+      0.427427
+    ],
+    [
+      0.338475,
+      0.427427
+    ],
+    [
+      0.338475,
+      -0.427373
+    ]
+  ],
+  "lethal_or_unknown_cells_intersecting_padded_footprint": [
+    {
+      "cell": [
+        47,
+        30
+      ],
+      "center_odom": [
+        3.7250000350177306,
+        -1.0249999776482563
+      ],
+      "occupancy": 100
+    },
+    {
+      "cell": [
+        47,
+        31
+      ],
+      "center_odom": [
+        3.7250000350177306,
+        -0.9749999769031983
+      ],
+      "occupancy": 100
+    }
+  ],
+  "interpretation": "Read-only sampled local footprint overlap; supports a collision-admissibility explanation but is not an atomic recording of a DWB scoring cycle and does not isolate which layer or critic caused every rejection."
+}

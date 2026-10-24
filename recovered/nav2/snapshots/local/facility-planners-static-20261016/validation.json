@@ -1,0 +1,113 @@
+{
+  "checks": {
+    "lattice": {
+      "same82goals_start_maps_chair_removal": true,
+      "identical_native_costmap_bytes_to_lattice": true,
+      "costmap_parameters": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "resolution": 0.05,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0
+      },
+      "planner_parameters": {
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-official-regeneration-20261016/omni-r10cm/output.json",
+        "GridBased.tolerance": 0.0,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.smooth_path": false,
+        "GridBased.allow_reverse_expansion": true
+      }
+    },
+    "navfn": {
+      "same82goals_start_maps_chair_removal": true,
+      "identical_native_costmap_bytes_to_lattice": true,
+      "costmap_parameters": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "resolution": 0.05,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0
+      },
+      "planner_parameters": {
+        "GridBased.allow_unknown": false,
+        "GridBased.tolerance": 0.0,
+        "GridBased.plugin": "nav2_navfn_planner/NavfnPlanner",
+        "GridBased.use_astar": false,
+        "GridBased.use_final_approach_orientation": false
+      }
+    },
+    "smac2d": {
+      "same82goals_start_maps_chair_removal": true,
+      "identical_native_costmap_bytes_to_lattice": true,
+      "costmap_parameters": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "resolution": 0.05,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0
+      },
+      "planner_parameters": {
+        "GridBased.allow_unknown": false,
+        "GridBased.tolerance": 0.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlanner2D",
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_on_approach_iterations": 1000,
+        "GridBased.cost_travel_multiplier": 2.0,
+        "GridBased.use_final_approach_orientation": false,
+        "GridBased.smoother.max_iterations": 0
+      }
+    },
+    "hybrid": {
+      "same82goals_start_maps_chair_removal": true,
+      "identical_native_costmap_bytes_to_lattice": true,
+      "costmap_parameters": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "resolution": 0.05,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0
+      },
+      "planner_parameters": {
+        "GridBased.allow_unknown": false,
+        "GridBased.tolerance": 0.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerHybrid",
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_on_approach_iterations": 1000,
+        "GridBased.motion_model_for_search": "REEDS_SHEPP",
+        "GridBased.minimum_turning_radius": 0.1,
+        "GridBased.angle_quantization_bins": 72,
+        "GridBased.lookup_table_size": 20.0,
+        "GridBased.analytic_expansion_ratio": 3.5,
+        "GridBased.analytic_expansion_max_length": 3.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.smooth_path": false
+      }
+    },
+    "theta": {
+      "same82goals_start_maps_chair_removal": true,
+      "identical_native_costmap_bytes_to_lattice": true,
+      "costmap_parameters": {
+        "footprint": "[[-0.238525, -0.327373], [-0.238525, 0.327427], [0.238475, 0.327427], [0.238475, -0.327373]]",
+        "footprint_padding": 0.0,
+        "resolution": 0.05,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0
+      },
+      "planner_parameters": {
+        "GridBased.plugin": "nav2_theta_star_planner/ThetaStarPlanner",
+        "GridBased.allow_unknown": false,
+        "GridBased.w_traversal_cost": 5.0,
+        "GridBased.how_many_corners": 8
+      }
+    }
+  },
+  "scope": "Native emitted-pose polygon checks using 72-bin cache; no interpolated swept-volume guarantee. Intermediate yaw of 2D paths is not an orientation-aware plan, so interference is a diagnostic, not proof every controller must fail. No driving. Timing collected with concurrent planners; do not rank CPU speed against earlier isolated Lattice run.",
+  "native_checker_sha256": "a055b0f94028482566c73e45c457b5582c7586060826615aa147f13811c611cb"
+}

@@ -1,0 +1,17 @@
+{
+  "candidate": "mppi",
+  "goal_index": 2,
+  "goal_name": "chair_gap",
+  "goal_map": [
+    3.12,
+    -2.465,
+    0.0
+  ],
+  "completed": false,
+  "domain": 226,
+  "partition": "cleany_comparison_5fe0d68ae5af417da7f58b1feb109cb0",
+  "host": "a16-fedora",
+  "error": "AssertionError: ",
+  "elapsed_wall_s": 1.0383571610000217,
+  "controller_deadline_warning_count": 0
+}

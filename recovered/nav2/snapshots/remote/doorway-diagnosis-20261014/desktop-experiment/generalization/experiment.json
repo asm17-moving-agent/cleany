@@ -1,0 +1,24 @@
+{
+  "objective": "No manual intermediate goals; common controller and BT for all eight locked routes",
+  "started_wall": 1791976093.376999,
+  "control": "candidate_v2 + prealign.yaml + recovery_keep_path.xml; no approach config",
+  "candidate": "candidate_general + segment.yaml + recovery_keep_path.xml; no approach config",
+  "changes": [
+    "PathAlign continuous SE2 segment distance, independent of trajectory arc-length correspondence and initial furthest gate",
+    "Preserve existing 128 coherent path proposals, remaining Gaussian proposals, all other critics, wheel projection and native output validation"
+  ],
+  "limits": "300 sim seconds / 1800 wall seconds; 12 sim seconds route-progress timeout; 4 bounded recoveries",
+  "replay_caveat": "Fixed pose and measured zero velocity; each process has its own random batch. Replay is diagnostic, not a closed-loop paired experiment.",
+  "final_candidate": "candidate_diverse + common.yaml + recovery_replan.xml; no approach config",
+  "initial_campaign_result": "7/8",
+  "final_campaign_result": "8/8",
+  "final_campaign": "diverse8",
+  "adopted_changes": [
+    "Distinct short SE2 path connectors in original 128 seed rows",
+    "Failed BackUp allows bounded Wait/replan"
+  ],
+  "rejected_changes": [
+    "continuous segment-distance critic",
+    "PathAlign weight 48 / PathFollow offset 6"
+  ]
+}

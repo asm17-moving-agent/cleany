@@ -1,0 +1,76 @@
+{
+  "total": 82,
+  "paths_generated": 61,
+  "failed_seats": [
+    "seat-a1-01",
+    "seat-a1-02",
+    "seat-a3-01",
+    "seat-a3-02",
+    "seat-a3-03",
+    "seat-a3-04",
+    "seat-a4-01",
+    "seat-a4-02",
+    "seat-a4-03",
+    "seat-m1-01",
+    "seat-m1-02",
+    "seat-m1-03",
+    "seat-m1-04",
+    "seat-m1-05",
+    "seat-m1-06",
+    "seat-m2-01",
+    "seat-m2-02",
+    "seat-m2-03",
+    "seat-m3-01",
+    "seat-m3-02",
+    "seat-m3-03"
+  ],
+  "by_zone": {
+    "D-hub": {
+      "total": 48,
+      "generated": 48
+    },
+    "A1": {
+      "total": 4,
+      "generated": 2
+    },
+    "A2": {
+      "total": 4,
+      "generated": 4
+    },
+    "A3": {
+      "total": 4,
+      "generated": 0
+    },
+    "A4": {
+      "total": 4,
+      "generated": 1
+    },
+    "M1": {
+      "total": 6,
+      "generated": 0
+    },
+    "M2": {
+      "total": 6,
+      "generated": 3
+    },
+    "M3": {
+      "total": 6,
+      "generated": 3
+    }
+  },
+  "scope": "Static native Nav2 planner actions with static collision-slice map + native inflation + polygon checker; not actual driving or full3D swept collision proof",
+  "duplicate_goal_groups": [
+    [
+      "seat-a3-01",
+      "seat-a3-02"
+    ],
+    [
+      "seat-a1-03",
+      "seat-a1-04"
+    ],
+    [
+      "seat-a3-03",
+      "seat-a3-04"
+    ]
+  ]
+}

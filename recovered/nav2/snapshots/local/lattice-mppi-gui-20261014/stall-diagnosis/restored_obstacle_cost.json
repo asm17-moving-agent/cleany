@@ -1,0 +1,25 @@
+{
+  "phase": "restored_obstacle_cost",
+  "values": {
+    "CostCritic.cost_weight": 3.81
+  },
+  "wall_s": 15.016172717005247,
+  "sim_s": 4.780000000000001,
+  "start": {
+    "wall": 35956.2128524,
+    "phase": "restored_obstacle_cost",
+    "x": -17.1566717640808,
+    "y": 0.6982008010116785,
+    "yaw": 2.2142748143192827,
+    "sim_s": 241.4
+  },
+  "end": {
+    "wall": 35971.164839671,
+    "phase": "restored_obstacle_cost",
+    "x": -17.145272014934203,
+    "y": 0.6903900728350878,
+    "yaw": 2.215791404563531,
+    "sim_s": 246.18
+  },
+  "displacement_m": 0.013818891245463578
+}

@@ -1,0 +1,26 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="bt_0__PlanThenNavigate">
+      <RecoveryNode number_of_retries="3" name="bt_0_0__InitialPlanWithPatience">
+        <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" name="bt_0_0_0__ComputePathToPose" />
+        <YieldWait wait_duration="0.2" name="bt_0_0_1__YieldWait" />
+      </RecoveryNode>
+      <RecoveryNode number_of_retries="3" name="bt_0_1__NavigateWithPatience">
+        <ReactiveSequence name="bt_0_1_0__CheckBeforeFollowing">
+          <ReactiveFallback name="bt_0_1_0_0__PathClearOrReplan">
+            <ReactiveSequence name="bt_0_1_0_0_0__UpcomingPathClear">
+              <TruncatePathLocal input_path="{path}" output_path="{upcoming_path}" distance_forward="1.5" distance_backward="0.0" name="bt_0_1_0_0_0_0__TruncatePathLocal" />
+              <IsPathValid path="{upcoming_path}" name="bt_0_1_0_0_0_1__IsPathValid" />
+            </ReactiveSequence>
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" name="bt_0_1_0_0_1__ComputePathToPose" />
+          </ReactiveFallback>
+          <FollowPath path="{path}" controller_id="FollowPath" name="bt_0_1_0_1__FollowPath" />
+        </ReactiveSequence>
+        <Sequence name="bt_0_1_1__ControllerFailurePatience">
+          <YieldWait wait_duration="0.2" name="bt_0_1_1_0__YieldWait" />
+          <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" name="bt_0_1_1_1__ComputePathToPose" />
+        </Sequence>
+      </RecoveryNode>
+    </Sequence>
+  </BehaviorTree>
+</root>

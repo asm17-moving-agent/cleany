@@ -1,0 +1,156 @@
+[
+  {
+    "pilot_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot01_straight",
+    "results": [
+      {
+        "goal_name": "straight",
+        "completed": false,
+        "navigation_started": null,
+        "action_status": null,
+        "error": "InvalidTopicNameException: Invalid topic name: topic name token must not start with a number:\n  '/benchmark/contacts/0'\n                       ^",
+        "navigation_sim_s": null,
+        "navigation_wall_s": null,
+        "position_error_m": null,
+        "yaw_error_deg": null,
+        "elapsed_wall_s": 0.9564886489988567,
+        "run_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot01_straight/0_straight"
+      }
+    ],
+    "metrics_available": false,
+    "include_in_final5_comparison": false
+  },
+  {
+    "pilot_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot01b_straight",
+    "results": [
+      {
+        "goal_name": "straight",
+        "completed": false,
+        "navigation_started": true,
+        "action_status": null,
+        "error": "KeyboardInterrupt: ",
+        "navigation_sim_s": null,
+        "navigation_wall_s": null,
+        "position_error_m": null,
+        "yaw_error_deg": null,
+        "elapsed_wall_s": 108.7680671399994,
+        "run_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot01b_straight/0_straight"
+      }
+    ],
+    "metrics_available": false,
+    "include_in_final5_comparison": false
+  },
+  {
+    "pilot_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot01c_straight",
+    "results": [
+      {
+        "goal_name": "straight",
+        "completed": true,
+        "navigation_started": true,
+        "action_status": 4,
+        "error": null,
+        "navigation_sim_s": 9.654,
+        "navigation_wall_s": 10.29957159100013,
+        "position_error_m": 0.13163200080014034,
+        "yaw_error_deg": 6.054193955485793e-05,
+        "elapsed_wall_s": 26.823033800001213,
+        "run_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot01c_straight/0_straight"
+      }
+    ],
+    "metrics_available": true,
+    "include_in_final5_comparison": false
+  },
+  {
+    "pilot_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot02_chair_gap",
+    "results": [
+      {
+        "goal_name": "chair_gap",
+        "completed": true,
+        "navigation_started": true,
+        "action_status": 4,
+        "error": null,
+        "navigation_sim_s": 20.799999999999997,
+        "navigation_wall_s": 22.000960916999247,
+        "position_error_m": 0.16615334877233143,
+        "yaw_error_deg": 0.022009458876960295,
+        "elapsed_wall_s": 38.23569041200062,
+        "run_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot02_chair_gap/2_chair_gap"
+      }
+    ],
+    "metrics_available": true,
+    "include_in_final5_comparison": false
+  },
+  {
+    "pilot_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot03_turn_arrival",
+    "results": [
+      {
+        "goal_name": "turn_arrival",
+        "completed": false,
+        "navigation_started": true,
+        "action_status": null,
+        "error": "KeyboardInterrupt: ",
+        "navigation_sim_s": null,
+        "navigation_wall_s": null,
+        "position_error_m": null,
+        "yaw_error_deg": null,
+        "elapsed_wall_s": 108.45420404300057,
+        "run_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot03_turn_arrival/1_turn_arrival",
+        "manual_stop_diagnosis": {
+          "reason": "Representative terminal yaw plateau: raw controller output persistently zero near approximately10deg GT yaw error. Full2s RotateToGoal scoring with newly widened yaw sampling can prefer zero instead of short correction. Test shorter critic lookahead while keeping full collision rollout.",
+          "terminated_by": "SIGINT to owned supervisor",
+          "excluded_from_completed_outcomes": true,
+          "supervisor_pid": 219177
+        },
+        "navigation_duration_unavailable_reason": "Manual SIGINT censored observation; no final action/settled result; raw compute/command/GT trace retained"
+      }
+    ],
+    "metrics_available": true,
+    "include_in_final5_comparison": false
+  },
+  {
+    "pilot_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot04_turn_lookahead",
+    "results": [
+      {
+        "goal_name": "turn_arrival",
+        "completed": false,
+        "navigation_started": true,
+        "action_status": null,
+        "error": "RuntimeError: Unable to convert call argument to Python object (compile in debug mode for details)",
+        "navigation_sim_s": null,
+        "navigation_wall_s": null,
+        "position_error_m": null,
+        "yaw_error_deg": null,
+        "elapsed_wall_s": 144.02860577299907,
+        "run_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot04_turn_lookahead/1_turn_arrival",
+        "manual_stop_diagnosis": {
+          "reason": "0.5s RotateToGoal score remained dominated by full2s PathOrientation penalty: estimateXY12.3cm, yaw error90.32deg, controller command zero. Next test1s lookahead to retain enough goal-yaw incentive without full2s terminal overshoot.",
+          "excluded_from_completed_outcomes": true,
+          "terminated_by": "SIGINT to owned supervisor",
+          "evidence": "live bag /tf and /nav2/cmd_vel; raw bag preserved"
+        },
+        "navigation_duration_unavailable_reason": "Manual SIGINT censored observation; no final action/settled result; raw compute/command/GT trace retained"
+      }
+    ],
+    "metrics_available": true,
+    "include_in_final5_comparison": false
+  },
+  {
+    "pilot_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot05_turn_lookahead1",
+    "results": [
+      {
+        "goal_name": "turn_arrival",
+        "completed": true,
+        "navigation_started": true,
+        "action_status": 4,
+        "error": null,
+        "navigation_sim_s": 19.566000000000003,
+        "navigation_wall_s": 21.000627071000054,
+        "position_error_m": 0.12044141128271282,
+        "yaw_error_deg": 4.519882099028532,
+        "elapsed_wall_s": 37.35351514600006,
+        "run_directory": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/dwb/relaxed61_20261013/pilot05_turn_lookahead1/1_turn_arrival"
+      }
+    ],
+    "metrics_available": true,
+    "include_in_final5_comparison": false
+  }
+]

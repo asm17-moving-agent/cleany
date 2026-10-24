@@ -1,0 +1,97 @@
+{
+  "available": true,
+  "unavailable_reason": null,
+  "nominal_observation_hz": 20,
+  "configured_sensor_count": 31,
+  "topic_message_counts": {
+    "/benchmark/contacts/c0": 0,
+    "/benchmark/contacts/c1": 0,
+    "/benchmark/contacts/c2": 0,
+    "/benchmark/contacts/c3": 0,
+    "/benchmark/contacts/c4": 0,
+    "/benchmark/contacts/c5": 0,
+    "/benchmark/contacts/c6": 0,
+    "/benchmark/contacts/c7": 0,
+    "/benchmark/contacts/c8": 0,
+    "/benchmark/contacts/c9": 0,
+    "/benchmark/contacts/c10": 0,
+    "/benchmark/contacts/c11": 0,
+    "/benchmark/contacts/c12": 0,
+    "/benchmark/contacts/c13": 0,
+    "/benchmark/contacts/c14": 0,
+    "/benchmark/contacts/c15": 0,
+    "/benchmark/contacts/c16": 0,
+    "/benchmark/contacts/c17": 0,
+    "/benchmark/contacts/c18": 0,
+    "/benchmark/contacts/c19": 0,
+    "/benchmark/contacts/c20": 0,
+    "/benchmark/contacts/c21": 0,
+    "/benchmark/contacts/c22": 0,
+    "/benchmark/contacts/c23": 0,
+    "/benchmark/contacts/c24": 0,
+    "/benchmark/contacts/c25": 9853,
+    "/benchmark/contacts/c26": 9844,
+    "/benchmark/contacts/c27": 9848,
+    "/benchmark/contacts/c28": 9846,
+    "/benchmark/contacts/c29": 0,
+    "/benchmark/contacts/c30": 0
+  },
+  "navigation_sample_counts": {
+    "wheel_ground": 19034
+  },
+  "environment_contact_samples": 0,
+  "body_ground_contact_samples": 0,
+  "environment_contact_episodes": 0,
+  "pairs": [
+    {
+      "category": "wheel_ground",
+      "collision_pair": [
+        "cleany_mecanum::front_left_wheel_link::mecanum_contact",
+        "ground_plane::link::collision"
+      ],
+      "first_sim_s": 8.23,
+      "last_sim_s": 17.876,
+      "sample_count": 4763,
+      "episode_count": 1,
+      "max_depth_m": null
+    },
+    {
+      "category": "wheel_ground",
+      "collision_pair": [
+        "cleany_mecanum::front_right_wheel_link::mecanum_contact",
+        "ground_plane::link::collision"
+      ],
+      "first_sim_s": 8.23,
+      "last_sim_s": 17.876,
+      "sample_count": 4756,
+      "episode_count": 1,
+      "max_depth_m": null
+    },
+    {
+      "category": "wheel_ground",
+      "collision_pair": [
+        "cleany_mecanum::rear_left_wheel_link::mecanum_contact",
+        "ground_plane::link::collision"
+      ],
+      "first_sim_s": 8.23,
+      "last_sim_s": 17.876,
+      "sample_count": 4758,
+      "episode_count": 1,
+      "max_depth_m": null
+    },
+    {
+      "category": "wheel_ground",
+      "collision_pair": [
+        "cleany_mecanum::rear_right_wheel_link::mecanum_contact",
+        "ground_plane::link::collision"
+      ],
+      "first_sim_s": 8.23,
+      "last_sim_s": 17.876,
+      "sample_count": 4757,
+      "episode_count": 1,
+      "max_depth_m": null
+    }
+  ],
+  "events": [],
+  "limitations": "Physics contact telemetry at 20Hz; short transients may be missed. No physical proof. Zero events means zero reported events, not an absolute continuous collision-free certificate."
+}

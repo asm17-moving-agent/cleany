@@ -1,0 +1,37 @@
+# Reproducible simulation stimuli and diagnostic thresholds, not product limits.
+fixtures:
+  tall: {size: [0.4, 0.4, 1.4], z: 0.7}
+  elevated: {size: [0.4, 0.4, 0.5], z: 0.85}
+  low: {size: [0.4, 0.4, 0.15], z: 0.075}
+sensor_cases:
+  - {fixture: tall, center: [1.4, 0.0]}
+  - {fixture: elevated, center: [1.4, 0.0]}
+  - {fixture: low, center: [1.0, 0.0]}
+sensor_durations_s: {before: 2.0, present: 3.0, removed: 4.0}
+monitor:
+  raw_vx: 0.15
+  fixture_initial_x: 1.3
+  fixture_final_x: 1.0
+  fixture_speed_mps: 0.08
+  fixture_update_s: 0.2
+  approach_timeout_s: 14.0
+  hold_s: 3.0
+  clear_s: 2.0
+avoid:
+  goal: [4.0, 0.0, 0.0]
+  # Cross aisle; the box intrudes into the straight base footprint while
+  # leaving room for the configured stop envelope beside the desk ends.
+  fixture_x: 3.15
+  fixture_initial_y: 1.0
+  fixture_final_y: 0.45
+  fixture_speed_mps: 0.2
+  fixture_start_s: 2.0
+  fixture_update_s: 0.2
+  timeout_wall_s: 360.0
+  max_recoveries: 3
+thresholds:
+  min_clearance_m: 0.03
+  stopped_speed_mps: 0.02
+  min_lateral_avoidance_m: 0.25
+  max_final_goal_error_m: 0.3
+  slowdown_ratio_tolerance: 0.02

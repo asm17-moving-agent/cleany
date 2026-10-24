@@ -1,0 +1,9 @@
+{
+  "phase": "campaign_running",
+  "last_finished_goal_index": 2,
+  "last_finished_goal_name": "chair_gap",
+  "last_action_status": 4,
+  "last_error": null,
+  "campaign_started": true,
+  "output": "/home/ehdrms/workspace/cleany/cleany-data/runs/standard-planner-20261014"
+}

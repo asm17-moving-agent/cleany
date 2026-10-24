@@ -1,0 +1,6 @@
+{
+  "source_path": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+  "source_sha256": "814733962e71376dada74193b7aa911b91f0c71b2b867f83994a6eefc0d0ee4b",
+  "change": "grid_resolution .05 to .025 only; metric primitive poses and physical turning radius .5 unchanged; metadata supports finer costmap cells",
+  "source_geometry_unchanged": true
+}

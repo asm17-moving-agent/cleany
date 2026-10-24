@@ -1,0 +1,8 @@
+{
+  "wheel_cap_rad_s": 5.0,
+  "emission": "on each controller callback, no slew",
+  "gazebo_body_acceleration_min": -2.0,
+  "gazebo_body_acceleration_max": 2.0,
+  "selected": false,
+  "reason": "actual joints exceeded physical5rad/s despite bounded output commands"
+}

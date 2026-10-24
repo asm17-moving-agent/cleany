@@ -1,0 +1,5 @@
+path_seed_count: 128
+path_seed_max_speed: 0.25
+validate_output: true
+PathAlignCritic:
+  cost_weight: 12.0

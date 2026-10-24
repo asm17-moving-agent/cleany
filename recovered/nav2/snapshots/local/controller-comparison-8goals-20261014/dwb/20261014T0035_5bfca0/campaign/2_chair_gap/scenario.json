@@ -1,0 +1,384 @@
+{
+  "guard_3d": true,
+  "world": "18F full facility",
+  "fixtures": {
+    "tall": {
+      "size": [
+        0.4,
+        0.4,
+        1.4
+      ],
+      "z": 0.7
+    },
+    "elevated": {
+      "size": [
+        0.4,
+        0.4,
+        0.5
+      ],
+      "z": 0.85
+    },
+    "low": {
+      "size": [
+        0.4,
+        0.4,
+        0.15
+      ],
+      "z": 0.075
+    }
+  },
+  "evaluation": {
+    "fixtures": {
+      "tall": {
+        "size": [
+          0.4,
+          0.4,
+          1.4
+        ],
+        "z": 0.7
+      },
+      "elevated": {
+        "size": [
+          0.4,
+          0.4,
+          0.5
+        ],
+        "z": 0.85
+      },
+      "low": {
+        "size": [
+          0.4,
+          0.4,
+          0.15
+        ],
+        "z": 0.075
+      }
+    },
+    "sensor_cases": [
+      {
+        "fixture": "tall",
+        "center": [
+          1.4,
+          0.0
+        ]
+      },
+      {
+        "fixture": "elevated",
+        "center": [
+          1.4,
+          0.0
+        ]
+      },
+      {
+        "fixture": "low",
+        "center": [
+          1.0,
+          0.0
+        ]
+      }
+    ],
+    "sensor_durations_s": {
+      "before": 2.0,
+      "present": 3.0,
+      "removed": 4.0
+    },
+    "monitor": {
+      "raw_vx": 0.15,
+      "fixture_initial_x": 1.3,
+      "fixture_final_x": 1.0,
+      "fixture_speed_mps": 0.08,
+      "fixture_update_s": 0.2,
+      "approach_timeout_s": 14.0,
+      "hold_s": 3.0,
+      "clear_s": 2.0
+    },
+    "avoid": {
+      "goal": [
+        4.0,
+        0.0,
+        0.0
+      ],
+      "fixture_x": 3.15,
+      "fixture_initial_y": 1.0,
+      "fixture_final_y": 0.45,
+      "fixture_speed_mps": 0.2,
+      "fixture_start_s": 2.0,
+      "fixture_update_s": 0.2,
+      "timeout_wall_s": 360.0,
+      "max_recoveries": 3
+    },
+    "thresholds": {
+      "min_clearance_m": 0.03,
+      "stopped_speed_mps": 0.02,
+      "min_lateral_avoidance_m": 0.25,
+      "max_final_goal_error_m": 0.3,
+      "slowdown_ratio_tolerance": 0.02
+    }
+  },
+  "obstacle_memory": true,
+  "robot_half_size": [
+    0.2585,
+    0.34740000000024485
+  ],
+  "robot_center": [
+    -2.4999999999997247e-05,
+    2.6999999999999247e-05
+  ],
+  "expected_slowdown_ratio": 0.35,
+  "spawn_pose": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "robot_model": "cad_frame",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "initial_pose": [
+    -1.865,
+    -4.705,
+    1.5708
+  ],
+  "map_source": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/common/goals/2_chair_gap/map.yaml",
+  "map_sha256": "2ab09f28d029f03b6ed2506a1e63761c1e5e22cb7df58f04f2c5c45678b4f28c",
+  "lidar_height_m": 0.3,
+  "lidar_noise": "measured",
+  "wheel_stress_level": 0,
+  "depth_recording": "Every eighth point of adapted cloud, at most ~6.7 Hz; Nav2 receives the entire adapted cloud",
+  "initial_pose_covariance": [
+    0.0625,
+    0.0625,
+    0.06853891945200942
+  ],
+  "common_goal": {
+    "index": 2,
+    "id": "chair_gap",
+    "pose_map_world": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "seat": "seat-29",
+    "remove_chair": "office_chair_29",
+    "world": "goals/2_chair_gap/world.canonical.sdf",
+    "map": "goals/2_chair_gap/map.yaml",
+    "world_sha256": "49cd9ce6dd7bfd5b083310d60e4f0edba40943e73c6cd330d09b43d5bc90d439",
+    "map_sha256": "2ab09f28d029f03b6ed2506a1e63761c1e5e22cb7df58f04f2c5c45678b4f28c",
+    "model_count": 329,
+    "chair_count": 81,
+    "start_occupied_cells": 0,
+    "proposed_goal_occupied_cells": 0,
+    "coordinate_change": null,
+    "goal_name": "chair_gap",
+    "name": "chair_gap",
+    "pose": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "map_yaml": "goals/2_chair_gap/map.yaml",
+    "world_template": "goals/2_chair_gap/world.canonical.sdf",
+    "removed_chair": "office_chair_29",
+    "preflight": {
+      "index": 2,
+      "id": "chair_gap",
+      "action_status": 4,
+      "pose_count": 213,
+      "wall_s": 0.06654496899864171,
+      "path_length_m": 5.391268427874507,
+      "total_path_yaw_change_rad": 3.999999999892978e-06,
+      "start": [
+        [
+          -1.865,
+          -4.705,
+          1.5708
+        ]
+      ],
+      "end": [
+        [
+          0.575,
+          -1.625,
+          1.570796
+        ]
+      ],
+      "preflight_layers": "static LiDAR-plane map+same inflation+full footprint; dynamic depth/memory not asserted",
+      "live": {
+        "footprint": "[[-0.318525, -0.40737300000024484], [-0.318525, 0.40742700000024484], [0.318475, 0.40742700000024484], [0.318475, -0.40737300000024484]]",
+        "footprint_padding": 0.02,
+        "inflation_layer.inflation_radius": 0.8,
+        "inflation_layer.cost_scaling_factor": 6.0,
+        "planner": {
+          "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+          "GridBased.holonomic_direct_path": true,
+          "GridBased.require_exact_goal": true,
+          "GridBased.lattice_collision_padding": 0.05
+        }
+      }
+    },
+    "planner_path": "goals/2_chair_gap/planner_path.json",
+    "actual_route_description": {
+      "body_heading_total_change_rad": 3.999999999892978e-06,
+      "path_length_m": 5.391268427874507,
+      "narrow_or_multiple_turn_label": "Measured route, see saved poses"
+    }
+  },
+  "common_lock_sha256": "296c9abae047f5ba4f27ced4e2d80bd159565d5b370460fee1ce4d29e58022ac",
+  "safety_bypass": "all standalone serial guards are observed on shadow/cmd_vel; direct wheel-envelope relay controls cmd_vel",
+  "contact_topics": [
+    "/benchmark/contacts/c0",
+    "/benchmark/contacts/c1",
+    "/benchmark/contacts/c2",
+    "/benchmark/contacts/c3",
+    "/benchmark/contacts/c4",
+    "/benchmark/contacts/c5",
+    "/benchmark/contacts/c6",
+    "/benchmark/contacts/c7",
+    "/benchmark/contacts/c8",
+    "/benchmark/contacts/c9",
+    "/benchmark/contacts/c10",
+    "/benchmark/contacts/c11",
+    "/benchmark/contacts/c12",
+    "/benchmark/contacts/c13",
+    "/benchmark/contacts/c14",
+    "/benchmark/contacts/c15",
+    "/benchmark/contacts/c16",
+    "/benchmark/contacts/c17",
+    "/benchmark/contacts/c18",
+    "/benchmark/contacts/c19",
+    "/benchmark/contacts/c20",
+    "/benchmark/contacts/c21",
+    "/benchmark/contacts/c22",
+    "/benchmark/contacts/c23",
+    "/benchmark/contacts/c24",
+    "/benchmark/contacts/c25",
+    "/benchmark/contacts/c26",
+    "/benchmark/contacts/c27",
+    "/benchmark/contacts/c28",
+    "/benchmark/contacts/c29",
+    "/benchmark/contacts/c30"
+  ],
+  "candidate": "dwb",
+  "requested_rtf": 1.0,
+  "comparison_limits": {
+    "nominal_straight_limit_m_s": 0.3175,
+    "acc_xy": 0.4,
+    "acc_yaw": 0.6,
+    "wheel_rad_s": 5.0,
+    "xy_tolerance": 0.3,
+    "yaw_tolerance": 0.17453292519943295
+  }
+}

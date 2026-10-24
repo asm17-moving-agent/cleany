@@ -1,0 +1,52 @@
+{
+  "world": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/common/world.full.template.sdf",
+  "world_sha256": "e0aa99a99f138be1398c8607a204461f84f9ffecb5b718ad0c5748ead8702045",
+  "targets": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/common/fixture/targets.yaml",
+  "targets_sha256": "68b8089896f9bd0e065b2c57091a7ab036be7978d00e1447bf1b98fc8fb6a22a",
+  "seat_counts": {
+    "D-hub": 48,
+    "A1": 4,
+    "A2": 4,
+    "A3": 4,
+    "A4": 4,
+    "M1": 6,
+    "M2": 6,
+    "M3": 6
+  },
+  "map": "Same canonical triangle/primitive collision slice at z=0.30m, raster0.025m then conservative2x2 downsample to0.05m; no simulator started. D-hub maps omit exactly the destination chair, other objects retained; room maps retain every chair. Collision-slice maps are not full3D geometry.",
+  "goal_source": "Existing fixed approximate desk-front approach poses; no automatic goal relocation. Duplicate approach poses are preserved and reported.",
+  "duplicate_goal_groups": [
+    [
+      "seat-a1-03",
+      "seat-a1-04"
+    ],
+    [
+      "seat-a2-01",
+      "seat-a2-03"
+    ],
+    [
+      "seat-a2-02",
+      "seat-a2-04"
+    ],
+    [
+      "seat-a3-01",
+      "seat-a3-02"
+    ],
+    [
+      "seat-a3-03",
+      "seat-a3-04"
+    ]
+  ],
+  "full_map_matches_prior_canonical_2p5cm": true,
+  "distinct_geometric_goal_count": 77,
+  "selected_zones": [
+    "D-hub",
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "M1",
+    "M2",
+    "M3"
+  ]
+}

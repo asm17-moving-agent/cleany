@@ -1,0 +1,8 @@
+{
+  "planner": "theta",
+  "rerun_goal": 0,
+  "original_preserved": "/home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020/load-pilot/dwb_theta-0_straight-mixed-load",
+  "new_status": 4,
+  "finished": 1792504084.0279577,
+  "returncode": 0
+}

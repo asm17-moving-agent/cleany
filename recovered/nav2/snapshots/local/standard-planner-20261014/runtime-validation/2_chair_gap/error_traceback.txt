@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/ehdrms/workspace/cleany/cleany-data/runs/standard-planner-20261014/run_facility.py", line 292, in run
+    scenario=setup(out,candidate,rtf,goal_index);result['model_metadata']=scenario['model_metadata']
+  File "/home/ehdrms/workspace/cleany/cleany-data/runs/standard-planner-20261014/run_facility.py", line 144, in setup
+    image=Image.open(out/'map.pgm');image.resize((image.width//2,image.height//2),Image.Resampling.NEAREST).save(out/'map.pgm')
+  File "/usr/lib/python3/dist-packages/PIL/Image.py", line 65, in __getattr__
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+AttributeError: module 'PIL.Image' has no attribute 'Resampling'

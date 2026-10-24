@@ -1,0 +1,178 @@
+[
+  {
+    "route": "0_straight",
+    "variant": "grid_small_lookup",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1025,
+    "search_ms": 14.828919,
+    "max_cross_track_m": 0.12842160128058294,
+    "length_m": 1.004497344689772,
+    "pose_count": 17
+  },
+  {
+    "route": "0_straight",
+    "variant": "grid_small_low_rot",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1075,
+    "search_ms": 18.638254,
+    "max_cross_track_m": 0.07852365294580924,
+    "length_m": 0.9815764102473781,
+    "pose_count": 19
+  },
+  {
+    "route": "0_straight",
+    "variant": "grid_cheap_heuristic",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1064,
+    "search_ms": 15.56481,
+    "max_cross_track_m": 0.047440736803619675,
+    "length_m": 1.0207106933284291,
+    "pose_count": 23
+  },
+  {
+    "route": "0_straight",
+    "variant": "original_small_lookup",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1027,
+    "search_ms": 11.563406,
+    "max_cross_track_m": 0.07852365294580924,
+    "length_m": 0.9844632129796194,
+    "pose_count": 20
+  },
+  {
+    "route": "1_turn_arrival",
+    "variant": "grid_small_lookup",
+    "exit": 0,
+    "ok": true,
+    "iterations": 3672,
+    "search_ms": 47.740772,
+    "max_cross_track_m": 0.04998357229028732,
+    "length_m": 2.0000000298023224,
+    "pose_count": 42
+  },
+  {
+    "route": "1_turn_arrival",
+    "variant": "grid_small_low_rot",
+    "exit": 0,
+    "ok": true,
+    "iterations": 6640,
+    "search_ms": 84.594241,
+    "max_cross_track_m": 0.09099573416949742,
+    "length_m": 2.0051739063080487,
+    "pose_count": 50
+  },
+  {
+    "route": "1_turn_arrival",
+    "variant": "grid_cheap_heuristic",
+    "exit": 0,
+    "ok": true,
+    "iterations": 3753,
+    "search_ms": 48.094643,
+    "max_cross_track_m": 0.04998357229028732,
+    "length_m": 2.817587439769124,
+    "pose_count": 51
+  },
+  {
+    "route": "1_turn_arrival",
+    "variant": "original_small_lookup",
+    "exit": 0,
+    "ok": true,
+    "iterations": 2440,
+    "search_ms": 25.08657,
+    "max_cross_track_m": 0.1644004034602256,
+    "length_m": 2.004389312648784,
+    "pose_count": 40
+  },
+  {
+    "route": "3_far_heading",
+    "variant": "grid_small_lookup",
+    "exit": 0,
+    "ok": true,
+    "iterations": 17536,
+    "search_ms": 200.139679,
+    "max_cross_track_m": 0.11378558883854739,
+    "length_m": 4.450303801928207,
+    "pose_count": 91
+  },
+  {
+    "route": "3_far_heading",
+    "variant": "grid_small_low_rot",
+    "exit": 0,
+    "ok": true,
+    "iterations": 25846,
+    "search_ms": 296.316299,
+    "max_cross_track_m": 0.09202169305207138,
+    "length_m": 4.508882461799043,
+    "pose_count": 100
+  },
+  {
+    "route": "3_far_heading",
+    "variant": "grid_cheap_heuristic",
+    "exit": 0,
+    "ok": true,
+    "iterations": 17845,
+    "search_ms": 198.036157,
+    "max_cross_track_m": 0.10397056151805159,
+    "length_m": 4.802191276159133,
+    "pose_count": 96
+  },
+  {
+    "route": "3_far_heading",
+    "variant": "original_small_lookup",
+    "exit": 0,
+    "ok": true,
+    "iterations": 15987,
+    "search_ms": 128.583371,
+    "max_cross_track_m": 0.09202169305207138,
+    "length_m": 4.418129826762282,
+    "pose_count": 93
+  },
+  {
+    "route": "5_lateral",
+    "variant": "grid_small_lookup",
+    "exit": 0,
+    "ok": true,
+    "iterations": 499,
+    "search_ms": 8.095006,
+    "max_cross_track_m": 0.034513425012421765,
+    "length_m": 0.6707106881130227,
+    "pose_count": 21
+  },
+  {
+    "route": "5_lateral",
+    "variant": "grid_small_low_rot",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1035,
+    "search_ms": 38.582453,
+    "max_cross_track_m": 0.05244979936554728,
+    "length_m": 0.7163331473154364,
+    "pose_count": 27
+  },
+  {
+    "route": "5_lateral",
+    "variant": "grid_cheap_heuristic",
+    "exit": 0,
+    "ok": true,
+    "iterations": 498,
+    "search_ms": 7.79574,
+    "max_cross_track_m": 0.034513425012421765,
+    "length_m": 0.6707106881130227,
+    "pose_count": 21
+  },
+  {
+    "route": "5_lateral",
+    "variant": "original_small_lookup",
+    "exit": 0,
+    "ok": true,
+    "iterations": 1109,
+    "search_ms": 13.343916,
+    "max_cross_track_m": 0.34198584503795243,
+    "length_m": 1.0389501696585195,
+    "pose_count": 20
+  }
+]

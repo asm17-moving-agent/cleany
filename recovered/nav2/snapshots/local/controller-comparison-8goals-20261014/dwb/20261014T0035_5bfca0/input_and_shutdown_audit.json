@@ -1,0 +1,98 @@
+[
+  {
+    "goal": "straight",
+    "world_equal_to_locked_after_ContactSystem_exclusion": true,
+    "map_sha256_matches": true,
+    "lock_sha256_matches": true,
+    "actual_model_count": 330,
+    "expected_chair_count": 82,
+    "scene_models_loaded": true,
+    "loaded_controller_and_planner_parameters_verified": true,
+    "own_launch_stopped": true,
+    "own_bag_stopped": true
+  },
+  {
+    "goal": "turn_arrival",
+    "world_equal_to_locked_after_ContactSystem_exclusion": true,
+    "map_sha256_matches": true,
+    "lock_sha256_matches": true,
+    "actual_model_count": 330,
+    "expected_chair_count": 82,
+    "scene_models_loaded": true,
+    "loaded_controller_and_planner_parameters_verified": true,
+    "own_launch_stopped": true,
+    "own_bag_stopped": true
+  },
+  {
+    "goal": "chair_gap",
+    "world_equal_to_locked_after_ContactSystem_exclusion": true,
+    "map_sha256_matches": true,
+    "lock_sha256_matches": true,
+    "actual_model_count": 329,
+    "expected_chair_count": 81,
+    "scene_models_loaded": true,
+    "loaded_controller_and_planner_parameters_verified": true,
+    "own_launch_stopped": true,
+    "own_bag_stopped": true
+  },
+  {
+    "goal": "far_heading",
+    "world_equal_to_locked_after_ContactSystem_exclusion": true,
+    "map_sha256_matches": true,
+    "lock_sha256_matches": true,
+    "actual_model_count": 330,
+    "expected_chair_count": 82,
+    "scene_models_loaded": true,
+    "loaded_controller_and_planner_parameters_verified": true,
+    "own_launch_stopped": true,
+    "own_bag_stopped": true
+  },
+  {
+    "goal": "distant",
+    "world_equal_to_locked_after_ContactSystem_exclusion": true,
+    "map_sha256_matches": true,
+    "lock_sha256_matches": true,
+    "actual_model_count": 329,
+    "expected_chair_count": 81,
+    "scene_models_loaded": true,
+    "loaded_controller_and_planner_parameters_verified": true,
+    "own_launch_stopped": true,
+    "own_bag_stopped": true
+  },
+  {
+    "goal": "lateral",
+    "world_equal_to_locked_after_ContactSystem_exclusion": true,
+    "map_sha256_matches": true,
+    "lock_sha256_matches": true,
+    "actual_model_count": 330,
+    "expected_chair_count": 82,
+    "scene_models_loaded": true,
+    "loaded_controller_and_planner_parameters_verified": true,
+    "own_launch_stopped": true,
+    "own_bag_stopped": true
+  },
+  {
+    "goal": "narrow_seat",
+    "world_equal_to_locked_after_ContactSystem_exclusion": true,
+    "map_sha256_matches": true,
+    "lock_sha256_matches": true,
+    "actual_model_count": 329,
+    "expected_chair_count": 81,
+    "scene_models_loaded": true,
+    "loaded_controller_and_planner_parameters_verified": true,
+    "own_launch_stopped": true,
+    "own_bag_stopped": true
+  },
+  {
+    "goal": "other_room",
+    "world_equal_to_locked_after_ContactSystem_exclusion": true,
+    "map_sha256_matches": true,
+    "lock_sha256_matches": true,
+    "actual_model_count": 329,
+    "expected_chair_count": 81,
+    "scene_models_loaded": true,
+    "loaded_controller_and_planner_parameters_verified": true,
+    "own_launch_stopped": true,
+    "own_bag_stopped": true
+  }
+]

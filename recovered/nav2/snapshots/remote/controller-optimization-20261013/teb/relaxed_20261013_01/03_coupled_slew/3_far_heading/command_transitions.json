@@ -1,0 +1,2002 @@
+[
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 34876.782751112,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": null,
+      "decision": null,
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 0.0,
+    "receive_steady_wall_s": 34876.784608376,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": null,
+      "decision": null,
+      "reason": null
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 0.05,
+    "receive_steady_wall_s": 34879.289810186,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": null,
+      "decision": null,
+      "reason": null
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 0.05,
+    "receive_steady_wall_s": 34879.289843606,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": null,
+      "decision": null,
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 0.62,
+    "receive_steady_wall_s": 34879.878973522,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 0.62,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Missing voxel map, status or wheel odometry"
+    }
+  },
+  {
+    "topic": "/nav2/cmd_vel",
+    "sim_s": 8.508000000000001,
+    "receive_steady_wall_s": 34888.097378862,
+    "moving": true,
+    "command": [
+      0.08060966827558856,
+      0.001784078836865106,
+      0.005404910891488108
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.488000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 8.514000000000001,
+    "receive_steady_wall_s": 34888.125517174,
+    "moving": true,
+    "command": [
+      0.08060966827558856,
+      0.001784078836865106,
+      0.005404910891488108
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.488000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 8.514000000000001,
+    "receive_steady_wall_s": 34888.125874211,
+    "moving": true,
+    "command": [
+      0.08060966827558856,
+      0.001784078836865106,
+      0.005404910891488108
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.488000000000001,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 8.532,
+    "receive_steady_wall_s": 34888.134404809,
+    "moving": true,
+    "command": [
+      0.08060966827558856,
+      0.001784078836865106,
+      0.005404910891488108
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.532,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 8.552000000000001,
+    "receive_steady_wall_s": 34888.149354293,
+    "moving": true,
+    "command": [
+      0.02120464514248705,
+      0.0004693079558721134,
+      0.0014217800411849154
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.532,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 8.552000000000001,
+    "receive_steady_wall_s": 34888.149403542,
+    "moving": true,
+    "command": [
+      0.02120464514248705,
+      0.0004693079558721134,
+      0.0014217800411849154
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 8.532,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.112,
+    "receive_steady_wall_s": 34888.725366397,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.072000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 9.112,
+    "receive_steady_wall_s": 34888.725589835,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.072000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 9.132000000000001,
+    "receive_steady_wall_s": 34888.732407158,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.132000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.358,
+    "receive_steady_wall_s": 34888.975339974,
+    "moving": true,
+    "command": [
+      0.3175,
+      -0.00718528343586387,
+      -0.0009562707611898779
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.318000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 9.358,
+    "receive_steady_wall_s": 34888.975741691,
+    "moving": true,
+    "command": [
+      0.3175,
+      -0.00718528343586387,
+      -0.0009562707611898779
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.318000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 9.378,
+    "receive_steady_wall_s": 34888.991058871,
+    "moving": true,
+    "command": [
+      0.1802314165839324,
+      -0.004078783660481293,
+      -0.0009562707611898779
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.378,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.498000000000001,
+    "receive_steady_wall_s": 34889.125429045,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.478,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 9.498000000000001,
+    "receive_steady_wall_s": 34889.125858572,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.478,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 9.518,
+    "receive_steady_wall_s": 34889.13314893,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.518,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.658000000000001,
+    "receive_steady_wall_s": 34889.275402018,
+    "moving": true,
+    "command": [
+      0.3175,
+      0.01290556591237081,
+      0.04003251640278168
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.618,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 9.658000000000001,
+    "receive_steady_wall_s": 34889.275667706,
+    "moving": true,
+    "command": [
+      0.3175,
+      0.01290556591237081,
+      0.04003251640278168
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.618,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 9.678,
+    "receive_steady_wall_s": 34889.289159272,
+    "moving": true,
+    "command": [
+      0.18012881938897743,
+      0.007321777484541686,
+      0.04003251640278168
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.678,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.698,
+    "receive_steady_wall_s": 34889.325445955,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.678,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 9.698,
+    "receive_steady_wall_s": 34889.325681023,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.678,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 9.718,
+    "receive_steady_wall_s": 34889.333009611,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.718,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 9.858,
+    "receive_steady_wall_s": 34889.487594284,
+    "moving": true,
+    "command": [
+      0.18013044755027152,
+      -0.007281611452067298,
+      -0.009561242770550846
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.858,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 9.858,
+    "receive_steady_wall_s": 34889.475357368,
+    "moving": true,
+    "command": [
+      0.3175,
+      -0.012834652150554113,
+      -0.009561242770550846
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.858,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 9.858,
+    "receive_steady_wall_s": 34889.475779564,
+    "moving": true,
+    "command": [
+      0.3175,
+      -0.012834652150554113,
+      -0.009561242770550846
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 9.858,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 10.088000000000001,
+    "receive_steady_wall_s": 34889.725361334,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 10.048,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 10.088000000000001,
+    "receive_steady_wall_s": 34889.725604462,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 10.048,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 10.108,
+    "receive_steady_wall_s": 34889.733388086,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 10.108,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 11.568000000000001,
+    "receive_steady_wall_s": 34891.225390082,
+    "moving": true,
+    "command": [
+      0.2576925268514147,
+      0.12310113187223266,
+      0.10085009842533382
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 11.528,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 11.588000000000001,
+    "receive_steady_wall_s": 34891.235576816,
+    "moving": true,
+    "command": [
+      0.2576925268514147,
+      0.12310113187223266,
+      0.10085009842533382
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 11.588000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 11.648000000000001,
+    "receive_steady_wall_s": 34891.289601649,
+    "moving": true,
+    "command": [
+      0.1626697082170846,
+      0.07770821081821762,
+      0.10085009842533382
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 11.648000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 11.768,
+    "receive_steady_wall_s": 34891.425339,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 11.748000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 11.788,
+    "receive_steady_wall_s": 34891.435674842,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 11.788,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 11.828000000000001,
+    "receive_steady_wall_s": 34891.482163949,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 11.828000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 13.138000000000002,
+    "receive_steady_wall_s": 34892.82539375,
+    "moving": true,
+    "command": [
+      0.21318827193116593,
+      -0.13221339973937624,
+      -0.15222860632003377
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 13.098,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 13.138000000000002,
+    "receive_steady_wall_s": 34892.825712387,
+    "moving": true,
+    "command": [
+      0.21318827193116593,
+      -0.13221339973937624,
+      -0.15222860632003377
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 13.098,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 13.158000000000001,
+    "receive_steady_wall_s": 34892.846530351,
+    "moving": true,
+    "command": [
+      0.15320658316924404,
+      -0.09501443508017873,
+      -0.14
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 13.158000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 13.238000000000001,
+    "receive_steady_wall_s": 34892.925800809,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 13.218,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 13.238000000000001,
+    "receive_steady_wall_s": 34892.925753849,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 13.218,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 13.258000000000001,
+    "receive_steady_wall_s": 34892.933647383,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 13.258000000000001,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 16.966,
+    "receive_steady_wall_s": 34896.72531431,
+    "moving": true,
+    "command": [
+      0.2162016855319554,
+      -0.17117783605685996,
+      0.025108659310964135
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 16.926000000000002,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 16.986,
+    "receive_steady_wall_s": 34896.735569703,
+    "moving": true,
+    "command": [
+      0.2162016855319554,
+      -0.17117783605685996,
+      0.025108659310964135
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 16.986,
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout"
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 17.038,
+    "receive_steady_wall_s": 34896.802316165,
+    "moving": true,
+    "command": [
+      0.141340090678405,
+      -0.11190611586066349,
+      0.025108659310964135
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.038,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 17.458000000000002,
+    "receive_steady_wall_s": 34897.225349009,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.438000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 17.458000000000002,
+    "receive_steady_wall_s": 34897.225640216,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.438000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 17.478,
+    "receive_steady_wall_s": 34897.234122054,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.478,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 17.558,
+    "receive_steady_wall_s": 34897.325365368,
+    "moving": true,
+    "command": [
+      0.22912382598877995,
+      -0.1653526766631417,
+      -0.15472660849345693
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.518,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 17.558,
+    "receive_steady_wall_s": 34897.325628696,
+    "moving": true,
+    "command": [
+      0.22912382598877995,
+      -0.1653526766631417,
+      -0.15472660849345693
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.518,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 17.598000000000003,
+    "receive_steady_wall_s": 34897.350544464,
+    "moving": true,
+    "command": [
+      0.14618531531113496,
+      -0.10549812125049453,
+      -0.14
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.598000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 17.754,
+    "receive_steady_wall_s": 34897.525476867,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.738,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 17.754,
+    "receive_steady_wall_s": 34897.525672215,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.738,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 17.772000000000002,
+    "receive_steady_wall_s": 34897.533713807,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.772000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 17.852,
+    "receive_steady_wall_s": 34897.625325718,
+    "moving": true,
+    "command": [
+      0.19922997489076022,
+      -0.16868198528089892,
+      -0.22382103262308606
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.812,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 17.852,
+    "receive_steady_wall_s": 34897.625533566,
+    "moving": true,
+    "command": [
+      0.19922997489076022,
+      -0.16868198528089892,
+      -0.22382103262308606
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.812,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 17.872,
+    "receive_steady_wall_s": 34897.644666463,
+    "moving": true,
+    "command": [
+      0.13758641501481367,
+      -0.11649025025027393,
+      -0.14
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.872,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 17.952,
+    "receive_steady_wall_s": 34897.725307348,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.932000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 17.952,
+    "receive_steady_wall_s": 34897.725495746,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.932000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 17.972,
+    "receive_steady_wall_s": 34897.733696166,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 17.972,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 19.39,
+    "receive_steady_wall_s": 34899.175284408,
+    "moving": true,
+    "command": [
+      0.22054088328169535,
+      0.18213160029942654,
+      0.05090422187948156
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 19.39,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 19.41,
+    "receive_steady_wall_s": 34899.195609135,
+    "moving": true,
+    "command": [
+      0.22054088328169535,
+      0.18213160029942654,
+      0.05090422187948156
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 19.39,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 19.450000000000003,
+    "receive_steady_wall_s": 34899.242672464,
+    "moving": true,
+    "command": [
+      0.13900392396527975,
+      0.11479507446861438,
+      0.05090422187948156
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 19.450000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 19.812,
+    "receive_steady_wall_s": 34899.625390305,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 19.792,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 19.812,
+    "receive_steady_wall_s": 34899.625791512,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 19.792,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 19.832,
+    "receive_steady_wall_s": 34899.632388806,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 19.832,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 21.284000000000002,
+    "receive_steady_wall_s": 34901.12561937,
+    "moving": true,
+    "command": [
+      0.21616401380492511,
+      -0.18887475743254342,
+      -0.07418739354405102
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 21.244,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 21.284000000000002,
+    "receive_steady_wall_s": 34901.12558623,
+    "moving": true,
+    "command": [
+      0.21616401380492511,
+      -0.18887475743254342,
+      -0.07418739354405102
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 21.244,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 21.304000000000002,
+    "receive_steady_wall_s": 34901.14089028,
+    "moving": true,
+    "command": [
+      0.1357563048185323,
+      -0.11861798220344899,
+      -0.07418739354405102
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 21.304000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 22.07,
+    "receive_steady_wall_s": 34901.92531448,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 22.05,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 22.07,
+    "receive_steady_wall_s": 34901.925561788,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 22.05,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 22.09,
+    "receive_steady_wall_s": 34901.932243051,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 22.09,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 23.608,
+    "receive_steady_wall_s": 34903.487819482,
+    "moving": true,
+    "command": [
+      0.1303332562074533,
+      0.12455216708818168,
+      -0.12855161064833687
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 23.608,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 23.608,
+    "receive_steady_wall_s": 34903.475344759,
+    "moving": true,
+    "command": [
+      0.193789092665961,
+      0.18519334321839487,
+      -0.12855161064833687
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 23.608,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 23.608,
+    "receive_steady_wall_s": 34903.475837705,
+    "moving": true,
+    "command": [
+      0.193789092665961,
+      0.18519334321839487,
+      -0.12855161064833687
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 23.608,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 25.402,
+    "receive_steady_wall_s": 34905.325447627,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 25.362000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 25.402,
+    "receive_steady_wall_s": 34905.325960553,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 25.362000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 25.422,
+    "receive_steady_wall_s": 34905.332002811,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 25.422,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 26.874000000000002,
+    "receive_steady_wall_s": 34906.825306884,
+    "moving": true,
+    "command": [
+      0.1938234012571022,
+      -0.17566271574574538,
+      0.11234494084123894
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 26.834000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 26.874000000000002,
+    "receive_steady_wall_s": 34906.825533102,
+    "moving": true,
+    "command": [
+      0.1938234012571022,
+      -0.17566271574574538,
+      0.11234494084123894
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 26.834000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 26.894000000000002,
+    "receive_steady_wall_s": 34906.837577589,
+    "moving": true,
+    "command": [
+      0.13357980445216147,
+      -0.12106376767027492,
+      0.11234494084123894
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 26.894000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 28.848000000000003,
+    "receive_steady_wall_s": 34908.825268271,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 28.828000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 28.868000000000002,
+    "receive_steady_wall_s": 34908.835479283,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 28.868000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 28.908,
+    "receive_steady_wall_s": 34908.881990224,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 28.908,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 30.334000000000003,
+    "receive_steady_wall_s": 34910.325324843,
+    "moving": true,
+    "command": [
+      0.20139666612606272,
+      0.1801523360379971,
+      -0.04505641106231661
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.294,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 30.354000000000003,
+    "receive_steady_wall_s": 34910.335639645,
+    "moving": true,
+    "command": [
+      0.20139666612606272,
+      0.1801523360379971,
+      -0.04505641106231661
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.354000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 30.414,
+    "receive_steady_wall_s": 34910.398585665,
+    "moving": true,
+    "command": [
+      0.1343651005229381,
+      0.12019159605172375,
+      -0.04505641106231661
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.414,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 30.826,
+    "receive_steady_wall_s": 34910.825295092,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.806,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 30.826,
+    "receive_steady_wall_s": 34910.825646329,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.806,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 30.846000000000004,
+    "receive_steady_wall_s": 34910.833598941,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.846000000000004,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 30.926000000000002,
+    "receive_steady_wall_s": 34910.925452562,
+    "moving": true,
+    "command": [
+      0.20644195130011592,
+      0.1540542470344462,
+      0.19971111038310457
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.886000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 30.926000000000002,
+    "receive_steady_wall_s": 34910.925418612,
+    "moving": true,
+    "command": [
+      0.20644195130011592,
+      0.1540542470344462,
+      0.19971111038310457
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.886000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 30.946,
+    "receive_steady_wall_s": 34910.943442137,
+    "moving": true,
+    "command": [
+      0.14448272743990626,
+      0.10781809436048176,
+      0.14
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.946,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 31.008000000000003,
+    "receive_steady_wall_s": 34911.025969189,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.988000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 31.008000000000003,
+    "receive_steady_wall_s": 34911.025933829,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 30.988000000000003,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 31.028000000000002,
+    "receive_steady_wall_s": 34911.033369735,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 31.028000000000002,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 33.464,
+    "receive_steady_wall_s": 34913.525273021,
+    "moving": true,
+    "command": [
+      0.3175,
+      0.0009536013309518071,
+      0.0037597793835802856
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 33.444,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 33.464,
+    "receive_steady_wall_s": 34913.525494169,
+    "moving": true,
+    "command": [
+      0.3175,
+      0.0009536013309518071,
+      0.0037597793835802856
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 33.444,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 33.504000000000005,
+    "receive_steady_wall_s": 34913.556578112,
+    "moving": true,
+    "command": [
+      0.18027675065256096,
+      0.0005414555885415723,
+      0.0037597793835802856
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 33.504000000000005,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 35.926,
+    "receive_steady_wall_s": 34916.02527752,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 35.906,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 35.946000000000005,
+    "receive_steady_wall_s": 34916.03570254,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 35.906,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 35.986000000000004,
+    "receive_steady_wall_s": 34916.087240336,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 35.986000000000004,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 38.230000000000004,
+    "receive_steady_wall_s": 34918.425234725,
+    "moving": true,
+    "command": [
+      0.17710885105460641,
+      0.12786327488229943,
+      -0.3493217188137473
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.194,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 38.230000000000004,
+    "receive_steady_wall_s": 34918.425626852,
+    "moving": true,
+    "command": [
+      0.17710885105460641,
+      0.12786327488229943,
+      -0.3493217188137473
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.194,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 38.25,
+    "receive_steady_wall_s": 34918.438998186,
+    "moving": true,
+    "command": [
+      0.14616634015362814,
+      0.10552440952734048,
+      -0.14
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.25,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 38.43,
+    "receive_steady_wall_s": 34918.625287629,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.410000000000004,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 38.43,
+    "receive_steady_wall_s": 34918.625548026,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.410000000000004,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 38.45,
+    "receive_steady_wall_s": 34918.631783473,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.45,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 38.63,
+    "receive_steady_wall_s": 34918.825238212,
+    "moving": true,
+    "command": [
+      0.1769037405068538,
+      0.08821556762950325,
+      -0.3322606035243764
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.59,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 38.63,
+    "receive_steady_wall_s": 34918.825461001,
+    "moving": true,
+    "command": [
+      0.1769037405068538,
+      0.08821556762950325,
+      -0.3322606035243764
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.59,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 38.650000000000006,
+    "receive_steady_wall_s": 34918.837658245,
+    "moving": true,
+    "command": [
+      0.16133126335495493,
+      0.08045013029382969,
+      -0.14
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.650000000000006,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 38.730000000000004,
+    "receive_steady_wall_s": 34918.925269879,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.690000000000005,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 38.730000000000004,
+    "receive_steady_wall_s": 34918.925487767,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.690000000000005,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 38.742000000000004,
+    "receive_steady_wall_s": 34918.932026221,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 38.742000000000004,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 39.374,
+    "receive_steady_wall_s": 34919.587330832,
+    "moving": true,
+    "command": [
+      0.1029165939232892,
+      0.02114478760804775,
+      -0.14
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 39.374,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 39.374,
+    "receive_steady_wall_s": 34919.575301726,
+    "moving": true,
+    "command": [
+      0.1029165939232892,
+      0.02114478760804775,
+      -0.47509457592162563
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 39.374,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 39.374,
+    "receive_steady_wall_s": 34919.575535744,
+    "moving": true,
+    "command": [
+      0.1029165939232892,
+      0.02114478760804775,
+      -0.47509457592162563
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 39.374,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/pan_ready/cmd_vel",
+    "sim_s": 39.414,
+    "receive_steady_wall_s": 34919.625424333,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 39.374,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/safety_2d/cmd_vel",
+    "sim_s": 39.414,
+    "receive_steady_wall_s": 34919.625683081,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 39.374,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/ignored/cmd_vel",
+    "sim_s": 39.434000000000005,
+    "receive_steady_wall_s": 34919.634040079,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 39.434000000000005,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/nav2/cmd_vel",
+    "sim_s": 40.674,
+    "receive_steady_wall_s": 34920.893089739,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 40.654,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/cmd_vel",
+    "sim_s": 41.262,
+    "receive_steady_wall_s": 34921.489686031,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 41.242000000000004,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  },
+  {
+    "topic": "/gazebo_cmd_vel",
+    "sim_s": 41.262,
+    "receive_steady_wall_s": 34921.489968368,
+    "moving": false,
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nearest_prior_body_guard": {
+      "received_sim_s": 41.242000000000004,
+      "decision": "PASS_OBSERVED_SPACE",
+      "reason": null
+    }
+  }
+]

@@ -1,0 +1,98 @@
+{
+  "sim_s": 23.953000000000003,
+  "navigation_sim_s": 12.622000000000002,
+  "truth": [
+    -3.1110341223936557,
+    -4.4043622042447454,
+    2.0729697732248673
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 23.917,
+      "stamp_s": 23.917,
+      "sim_s": 23.917,
+      "target": 0.12173475091196363,
+      "pan": 0.12173475091196363,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        -0.2212682068347931
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.2212682068347931
+      ],
+      "depth_stamp": 23.892
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 23.935000000000002,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 23.935,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        -0.2212682068347931
+      ],
+      "measured": [
+        0.003144563895064986,
+        -0.003144563895064986,
+        -0.21759406277446958
+      ],
+      "nearby_voxels": 59,
+      "total_voxels": 12223,
+      "source_age_s": 0.2240000000000002,
+      "output": [
+        0.0,
+        0.0,
+        -0.14
+      ],
+      "processing_ms": 8.956804999797896
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 23.935000000000002,
+      "sim_s": 23.935000000000002,
+      "requested": [
+        0.0,
+        0.0,
+        -0.21281564235687256
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.21281564235687256
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 23.943,
+      "stamp_s": 23.935,
+      "sim_s": 23.935,
+      "target": 0.12173475091196363,
+      "pan": 0.12173475091196363,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        -0.21281564235687256
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.21281564235687256
+      ],
+      "depth_stamp": 23.892
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "stage": "relaxed",
+  "goals": [
+    [
+      "straight",
+      [
+        2.0,
+        0.0,
+        0.0
+      ]
+    ],
+    [
+      "turn_arrival",
+      [
+        4.0,
+        0.0,
+        1.5707963267948966
+      ]
+    ],
+    [
+      "chair_gap",
+      [
+        3.12,
+        -2.465,
+        0.0
+      ]
+    ],
+    [
+      "far_heading",
+      [
+        6.0,
+        0.0,
+        -1.5707963267948966
+      ]
+    ],
+    [
+      "distant",
+      [
+        9.405,
+        -3.73,
+        0.0
+      ]
+    ]
+  ],
+  "wheel_geometry": {
+    "radius": 0.0635,
+    "wheelbase": 0.35,
+    "separation": 0.6038
+  },
+  "wheel_cap_rad_s": 5.0,
+  "hard_timeout_sim_s": 1200,
+  "hard_timeout_wall_s": 1800,
+  "soft_timeout_sim_s": 240,
+  "overrides": {}
+}

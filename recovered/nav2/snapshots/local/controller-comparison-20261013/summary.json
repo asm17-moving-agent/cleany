@@ -1,0 +1,66 @@
+[
+  {
+    "candidate": "dwb",
+    "recorded": 5,
+    "completed": 5,
+    "arrived_action_status_4": 5,
+    "hosts": [
+      "a16-fedora"
+    ],
+    "arrival_position_error_cm_median": 12.477495575789055,
+    "arrival_yaw_error_deg_median": 1.0050349360140458,
+    "sim_s_median": 51.30200000000001,
+    "controller_cpu_one_core_pct_median": 39.67124074277978,
+    "controller_rss_p95_mb_median": 48.66015625,
+    "linear_jerk_rms_m_s3_median": 0.957450460222038,
+    "angular_jerk_rms_rad_s3_median": 0.2739683681530266
+  },
+  {
+    "candidate": "mppi",
+    "recorded": 5,
+    "completed": 5,
+    "arrived_action_status_4": 1,
+    "hosts": [
+      "a16-fedora"
+    ],
+    "arrival_position_error_cm_median": 13.422120745552798,
+    "arrival_yaw_error_deg_median": 0.9856796957020023,
+    "sim_s_median": 148.486,
+    "controller_cpu_one_core_pct_median": 26.377944792043102,
+    "controller_rss_p95_mb_median": 53.4609375,
+    "linear_jerk_rms_m_s3_median": 1.9976864288558493,
+    "angular_jerk_rms_rad_s3_median": 1.0137183520939221
+  },
+  {
+    "candidate": "rpp",
+    "recorded": 5,
+    "completed": 5,
+    "arrived_action_status_4": 3,
+    "hosts": [
+      "142spp-endeavour"
+    ],
+    "arrival_position_error_cm_median": 12.972732836982773,
+    "arrival_yaw_error_deg_median": 7.300803751776971,
+    "sim_s_median": 55.93000000000001,
+    "controller_cpu_one_core_pct_median": 6.393262799211784,
+    "controller_rss_p95_mb_median": 47.7265625,
+    "linear_jerk_rms_m_s3_median": 0.5368958072239574,
+    "angular_jerk_rms_rad_s3_median": 0.4766278158087563
+  },
+  {
+    "candidate": "teb",
+    "recorded": 5,
+    "completed": 5,
+    "arrived_action_status_4": 1,
+    "hosts": [
+      "142spp-endeavour"
+    ],
+    "arrival_position_error_cm_median": 14.363252664739454,
+    "arrival_yaw_error_deg_median": 5.436888464044088,
+    "sim_s_median": 125.04400000000001,
+    "controller_cpu_one_core_pct_median": 103.51808623143158,
+    "controller_rss_p95_mb_median": 64.8296875,
+    "linear_jerk_rms_m_s3_median": 2.8827216325044698,
+    "angular_jerk_rms_rad_s3_median": 2.1086171438588375
+  }
+]

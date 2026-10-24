@@ -1,0 +1,84 @@
+{
+  "sim_s": 129.50300000000001,
+  "navigation_sim_s": 118.26100000000001,
+  "truth": [
+    -17.108305415129525,
+    0.8299436373525012,
+    3.135393858178399
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 129.478,
+      "stamp_s": 129.478,
+      "sim_s": 129.478,
+      "target": -1.4377673161006896,
+      "pan": -0.3989010995272205,
+      "reason": "TURNING_PAN",
+      "requested": [
+        0.0007526130648329854,
+        -0.005624098237603903,
+        0.0007387927616946399
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 129.426
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 129.495,
+      "sim_s": 129.495,
+      "requested": [
+        -0.00016462642815895379,
+        -0.003907844424247742,
+        0.0035080877132713795
+      ],
+      "output": [
+        -0.00016462642815895379,
+        -0.003907844424247742,
+        0.0035080877132713795
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 129.50300000000001,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 129.503,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "STOP_UNAVAILABLE",
+      "reason": "Command timeout",
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 0.3515660064294934
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 129.50300000000001,
+      "stamp_s": 129.503,
+      "sim_s": 129.503,
+      "target": -1.612898602740756,
+      "pan": -0.42390109952722377,
+      "reason": "TURNING_PAN",
+      "requested": [
+        -0.00016462642815895379,
+        -0.003907844424247742,
+        0.0035080877132713795
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 129.493
+    }
+  ]
+}

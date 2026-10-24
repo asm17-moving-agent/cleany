@@ -1,0 +1,8 @@
+phase,changed_parameters,wall_s,sim_s,displacement_m,doorway_passed
+lower_obstacle_cost,"{""CostCritic.cost_weight"": 0.5}",35.001137391001976,10.740000000000009,0.06732047988639117,False
+lower_rotation_penalty,"{""TwirlingCritic.cost_weight"": 0.0}",35.041039686999284,10.859999999999985,0.021874181172625892,False
+wider_sampling,"{""vx_std"": 0.12, ""vy_std"": 0.12, ""wz_std"": 0.3}",50.04691986200487,16.039999999999964,0.06981110212114856,False
+depth_disabled,"{""local.depth_layer.enabled"": false}",35.01652717200341,10.339999999999975,0.017521110766304648,False
+without_path_orientation,"{""PathAlignCritic.use_path_orientations"": false}",45.02789537799981,14.360000000000014,0.006853973655051387,False
+lower_temperature,"{""temperature"": 0.03}",35.04775635700207,10.620000000000005,0.13603554276269045,False
+stronger_path_follow,"{""PathFollowCritic.cost_weight"": 100.0}",40.0652447609973,12.120000000000005,0.014139352202355572,False

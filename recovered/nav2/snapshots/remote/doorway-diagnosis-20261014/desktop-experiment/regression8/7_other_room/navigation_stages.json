@@ -1,0 +1,38 @@
+[
+  {
+    "name": "prealign_outside_M1",
+    "pose": [
+      -17.125,
+      0.0,
+      3.141592653589793
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/regression8/7_other_room/stage_behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 11.443000000000001,
+    "sim_end": 112.31,
+    "truth": [
+      -17.08704317719853,
+      -0.00836320669066448,
+      3.140247126626541
+    ]
+  },
+  {
+    "name": "clear_M1_doorway",
+    "pose": [
+      -17.125,
+      2.0,
+      3.141592653589793
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/regression8/7_other_room/stage_behavior.xml",
+    "index": 1,
+    "status": 6,
+    "sim_start": 112.31,
+    "sim_end": 119.41300000000001,
+    "truth": [
+      -17.170599592724354,
+      0.7715681924688849,
+      2.6729058976529267
+    ]
+  }
+]

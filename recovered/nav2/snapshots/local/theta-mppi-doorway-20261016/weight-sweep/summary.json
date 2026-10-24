@@ -1,0 +1,122 @@
+[
+  {
+    "snapshot": "00005.601.json",
+    "weight": 2.0,
+    "length_m": 19.825070072166795,
+    "footprint_lethal": {
+      "0": 6,
+      "90": 27
+    },
+    "path_pose_count": 147
+  },
+  {
+    "snapshot": "00005.601.json",
+    "weight": 5.0,
+    "length_m": 20.281090497332,
+    "footprint_lethal": {
+      "0": 0,
+      "90": 16
+    },
+    "path_pose_count": 254
+  },
+  {
+    "snapshot": "00005.601.json",
+    "weight": 10.0,
+    "length_m": 20.391359648827198,
+    "footprint_lethal": {
+      "0": 0,
+      "90": 16
+    },
+    "path_pose_count": 215
+  },
+  {
+    "snapshot": "00005.601.json",
+    "weight": 20.0,
+    "length_m": 20.557806160140633,
+    "footprint_lethal": {
+      "0": 0,
+      "90": 16
+    },
+    "path_pose_count": 172
+  },
+  {
+    "snapshot": "00030.800.json",
+    "weight": 2.0,
+    "length_m": 16.298225327936684,
+    "footprint_lethal": {
+      "0": 8,
+      "90": 29
+    },
+    "path_pose_count": 123
+  },
+  {
+    "snapshot": "00030.800.json",
+    "weight": 5.0,
+    "length_m": 16.73155210496209,
+    "footprint_lethal": {
+      "0": 0,
+      "90": 16
+    },
+    "path_pose_count": 179
+  },
+  {
+    "snapshot": "00030.800.json",
+    "weight": 10.0,
+    "length_m": 16.82464436619011,
+    "footprint_lethal": {
+      "0": 0,
+      "90": 16
+    },
+    "path_pose_count": 156
+  },
+  {
+    "snapshot": "00030.800.json",
+    "weight": 20.0,
+    "length_m": 16.98917488843326,
+    "footprint_lethal": {
+      "0": 0,
+      "90": 16
+    },
+    "path_pose_count": 132
+  },
+  {
+    "snapshot": "00041.002.json",
+    "weight": 2.0,
+    "length_m": 15.406233586330282,
+    "footprint_lethal": {
+      "0": 5,
+      "90": 25
+    },
+    "path_pose_count": 109
+  },
+  {
+    "snapshot": "00041.002.json",
+    "weight": 5.0,
+    "length_m": 15.76448173653823,
+    "footprint_lethal": {
+      "0": 1,
+      "90": 16
+    },
+    "path_pose_count": 104
+  },
+  {
+    "snapshot": "00041.002.json",
+    "weight": 10.0,
+    "length_m": 15.802658161451458,
+    "footprint_lethal": {
+      "0": 1,
+      "90": 16
+    },
+    "path_pose_count": 185
+  },
+  {
+    "snapshot": "00041.002.json",
+    "weight": 20.0,
+    "length_m": 15.828119424909534,
+    "footprint_lethal": {
+      "0": 1,
+      "90": 16
+    },
+    "path_pose_count": 95
+  }
+]

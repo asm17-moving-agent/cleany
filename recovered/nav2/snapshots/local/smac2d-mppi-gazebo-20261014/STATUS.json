@@ -1,0 +1,9 @@
+{
+  "phase": "campaign_navigation_completed",
+  "last_finished_goal_index": 7,
+  "last_finished_goal_name": "other_room",
+  "last_action_status": null,
+  "last_error": "RuntimeError: Unable to convert call argument to Python object (compile in debug mode for details)",
+  "campaign_started": true,
+  "output": "/home/ehdrms/workspace/cleany/cleany-data/runs/smac2d-mppi-gazebo-20261014"
+}

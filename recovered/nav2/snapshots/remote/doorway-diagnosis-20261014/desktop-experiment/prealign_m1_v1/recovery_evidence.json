@@ -1,0 +1,33 @@
+{
+  "backup_command_matches": [
+    {
+      "command_start_sim_s": 132.858,
+      "command_end_sim_s": 136.371,
+      "command_duration_s": 3.5130000000000052,
+      "gt_start": {
+        "sim": 132.857,
+        "pose": [
+          -16.75506031758976,
+          1.8224089779394301,
+          1.7573474332356356
+        ]
+      },
+      "gt_end": {
+        "sim": 136.452,
+        "pose": [
+          -16.690351714881782,
+          1.472983613814972,
+          1.7539060021936315
+        ]
+      },
+      "gt_translation_m": 0.3553664142233043
+    }
+  ],
+  "backup_completed_log_count": 1,
+  "backup_collision_rejected_log_count": 0,
+  "route_timeout_log_count": 0,
+  "recovery_log_lines": [
+    "[behavior_server-19] [INFO] [1791927290.912572501] [behavior_server]: Running backup",
+    "[behavior_server-19] [INFO] [1791927299.112798652] [behavior_server]: backup completed successfully"
+  ]
+}

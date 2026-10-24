@@ -1,0 +1,20 @@
+[
+  {
+    "name": "final_goal",
+    "pose": [
+      0.575,
+      -1.625,
+      1.570796
+    ],
+    "behavior_tree": "/home/donglee/workspace/cleany/planner-lattice-theta-20261016/theta/2_chair_gap/behavior.xml",
+    "index": 0,
+    "status": 4,
+    "sim_start": 10.067,
+    "sim_end": 39.058,
+    "truth": [
+      0.605839627050164,
+      -1.5730809968401118,
+      1.468242009652555
+    ]
+  }
+]

@@ -1,0 +1,96 @@
+{
+  "sim_s": 37.134,
+  "navigation_sim_s": 28.965,
+  "truth": [
+    -1.870603910952083,
+    -0.3125002110321426,
+    -1.2114877876110508
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 37.125,
+      "sim_s": 37.121,
+      "requested": [
+        0.0,
+        0.0,
+        -0.18121255934238434
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.18121255934238434
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 37.125,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 37.125,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        -5.6399329650889025e-14,
+        0.0,
+        -0.19781278434009777
+      ],
+      "nearby_voxels": 0,
+      "total_voxels": 15135,
+      "source_age_s": 0.22999999999999687,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 3.574714999558637
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 37.13,
+      "stamp_s": 37.13,
+      "sim_s": 37.13,
+      "target": 2.85591313662291,
+      "pan": 1.7949423096758477,
+      "reason": "TURNING_PAN",
+      "requested": [
+        0.0,
+        0.0,
+        -0.18121255934238434
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 37.093
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 37.134,
+      "sim_s": 37.134,
+      "requested": [
+        0.0,
+        0.0,
+        -0.16140665113925934
+      ],
+      "output": [
+        0.0,
+        0.0,
+        -0.16140665113925934
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    }
+  ]
+}

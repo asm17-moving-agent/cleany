@@ -1,0 +1,30 @@
+--- a/teb_local_planner/src/optimal_planner.cpp
++++ b/teb_local_planner/src/optimal_planner.cpp
+@@ -1270,6 +1270,7 @@
+   {
+     teb().Pose(i).toPoseMsg(pose2d);
+     if (!isPoseValid(pose2d, costmap_model, footprint_spec)){
++      RCLCPP_WARN(rclcpp::get_logger("teb_feasibility"), "TEB_FEASIBILITY sample=vertex index=%d lookahead=%d poses=%d x=%.6f y=%.6f yaw=%.6f", i, look_ahead_idx, teb().sizePoses(), pose2d.x, pose2d.y, pose2d.theta);
+       if (visualization_)
+       {
+         visualization_->publishInfeasibleRobotPose(teb().Pose(i), *cfg_->robot_model);
+@@ -1297,6 +1298,7 @@
+           intermediate_pose.toPoseMsg(pose2d);
+ 
+           if (!isPoseValid(pose2d, costmap_model, footprint_spec)){
++            RCLCPP_WARN(rclcpp::get_logger("teb_feasibility"), "TEB_FEASIBILITY sample=interpolated index=%d step=%d x=%.6f y=%.6f yaw=%.6f", i, step, pose2d.x, pose2d.y, pose2d.theta);
+             if (visualization_)
+             {
+               visualization_->publishInfeasibleRobotPose(intermediate_pose, *cfg_->robot_model);
+@@ -1317,7 +1319,11 @@
+     if ( costmap_model->scorePose(pose2d, dwb_critics::getOrientedFootprint(pose2d, footprint_spec)) < 0 ) {
+       return false;
+     }
++  } catch (const std::exception & e) {
++    RCLCPP_WARN(rclcpp::get_logger("teb_feasibility"), "TEB_POSE_REJECT x=%.6f y=%.6f yaw=%.6f reason=%s", pose2d.x, pose2d.y, pose2d.theta, e.what());
++    return false;
+   } catch (...) {
++    RCLCPP_WARN(rclcpp::get_logger("teb_feasibility"), "TEB_POSE_REJECT reason=nonstandard_exception");
+     return false;
+   }
+   return true;

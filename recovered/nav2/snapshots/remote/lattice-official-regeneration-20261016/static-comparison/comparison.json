@@ -1,0 +1,282 @@
+[
+  {
+    "route_index": 1,
+    "route": "straight",
+    "variant": "previous272",
+    "exit": 0,
+    "ok": true,
+    "search_ms": 1.503571,
+    "iterations": 142,
+    "input_map_sha256": "95066b063282f1206b012ab06cf293ea4ad9909b3fbbe556d0d284dee484fc93",
+    "primitive_sha256": "5fb9c026d9f77d7e978370afa715089f61d03d6eb59cf35380d1fbed3df1c70b",
+    "start_requested": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "goal_requested": [
+      -1.865,
+      -3.705,
+      1.5708
+    ],
+    "max_cross_track_cm": 4.744073680361968,
+    "length_m": 1.0207106933284291,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 1,
+    "route": "straight",
+    "variant": "official144_r10",
+    "exit": 0,
+    "ok": true,
+    "search_ms": 1.260494,
+    "iterations": 415,
+    "input_map_sha256": "95066b063282f1206b012ab06cf293ea4ad9909b3fbbe556d0d284dee484fc93",
+    "primitive_sha256": "01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e",
+    "start_requested": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "goal_requested": [
+      -1.865,
+      -3.705,
+      1.5708
+    ],
+    "max_cross_track_cm": 4.244697503481761,
+    "length_m": 1.011803413952035,
+    "yaw_variation_deg": 53.13015642131827,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -3.7249998319894075,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 2,
+    "route": "turn_arrival",
+    "variant": "previous272",
+    "exit": 0,
+    "ok": true,
+    "search_ms": 9.840039,
+    "iterations": 2347,
+    "input_map_sha256": "ecb6dfe7f41e4dc147eb08621e62937c85b2aa14634ea5d6cb820246ef2f7855",
+    "primitive_sha256": "5fb9c026d9f77d7e978370afa715089f61d03d6eb59cf35380d1fbed3df1c70b",
+    "start_requested": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "goal_requested": [
+      -1.865,
+      -2.8,
+      0
+    ],
+    "max_cross_track_cm": 9.099573416949742,
+    "length_m": 1.9888404686817054,
+    "yaw_variation_deg": 89.99999749552202,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -2.8249998185783625,
+      8.742277657347586e-08
+    ]
+  },
+  {
+    "route_index": 2,
+    "route": "turn_arrival",
+    "variant": "official144_r10",
+    "exit": 0,
+    "ok": true,
+    "search_ms": 6.148225,
+    "iterations": 2459,
+    "input_map_sha256": "ecb6dfe7f41e4dc147eb08621e62937c85b2aa14634ea5d6cb820246ef2f7855",
+    "primitive_sha256": "01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e",
+    "start_requested": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "goal_requested": [
+      -1.865,
+      -2.8,
+      0
+    ],
+    "max_cross_track_cm": 4.742031217283668,
+    "length_m": 1.961803428108138,
+    "yaw_variation_deg": 90.00002481627871,
+    "goal_yaw_error_deg": 5.008956130975331e-06,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -2.8249998185783625,
+      8.742277657347586e-08
+    ]
+  },
+  {
+    "route_index": 4,
+    "route": "far_heading",
+    "variant": "previous272",
+    "exit": 0,
+    "ok": true,
+    "search_ms": 39.182547,
+    "iterations": 9728,
+    "input_map_sha256": "8c684ed5961bb8dfb125f8810772f9d08cee749e1ad8e6b6adf6b924090585f2",
+    "primitive_sha256": "5fb9c026d9f77d7e978370afa715089f61d03d6eb59cf35380d1fbed3df1c70b",
+    "start_requested": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "goal_requested": [
+      -1.865,
+      -0.3,
+      -1.570796
+    ],
+    "max_cross_track_cm": 9.601652948934818,
+    "length_m": 4.43884050518955,
+    "yaw_variation_deg": 180.00000182123281,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -0.3249997813254595,
+      4.71238899230957
+    ]
+  },
+  {
+    "route_index": 4,
+    "route": "far_heading",
+    "variant": "official144_r10",
+    "exit": 0,
+    "ok": true,
+    "search_ms": 32.516209,
+    "iterations": 13926,
+    "input_map_sha256": "8c684ed5961bb8dfb125f8810772f9d08cee749e1ad8e6b6adf6b924090585f2",
+    "primitive_sha256": "01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e",
+    "start_requested": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "goal_requested": [
+      -1.865,
+      -0.3,
+      -1.570796
+    ],
+    "max_cross_track_cm": 4.829233731712778,
+    "length_m": 4.411803464615984,
+    "yaw_variation_deg": 180.0000291419895,
+    "goal_yaw_error_deg": 1.804072304223607e-05,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.724999846890569,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.8749996703118086,
+      -0.3249997813254595,
+      4.71238899230957
+    ]
+  },
+  {
+    "route_index": 6,
+    "route": "lateral",
+    "variant": "previous272",
+    "exit": 0,
+    "ok": true,
+    "search_ms": 0.482654,
+    "iterations": 58,
+    "input_map_sha256": "a84b1293cdfb9c4709e8115aeeed276bd98aad2da835097b28f1d8b580bac03e",
+    "primitive_sha256": "5fb9c026d9f77d7e978370afa715089f61d03d6eb59cf35380d1fbed3df1c70b",
+    "start_requested": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "goal_requested": [
+      -1.265,
+      -4.705,
+      1.5708
+    ],
+    "max_cross_track_cm": 4.601790001656235,
+    "length_m": 0.6707106881130227,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.2749996613711119,
+      -4.724999846890569,
+      1.5707963705062866
+    ]
+  },
+  {
+    "route_index": 6,
+    "route": "lateral",
+    "variant": "official144_r10",
+    "exit": 0,
+    "ok": true,
+    "search_ms": 0.357826,
+    "iterations": 57,
+    "input_map_sha256": "a84b1293cdfb9c4709e8115aeeed276bd98aad2da835097b28f1d8b580bac03e",
+    "primitive_sha256": "01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e",
+    "start_requested": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "goal_requested": [
+      -1.265,
+      -4.705,
+      1.5708
+    ],
+    "max_cross_track_cm": 4.985272501794256,
+    "length_m": 0.7000000104308128,
+    "yaw_variation_deg": 0.0,
+    "goal_yaw_error_deg": 0.00020795467154439027,
+    "start_pose": [
+      -1.9249996710568666,
+      -4.774999847635627,
+      1.5707963705062866
+    ],
+    "end_pose": [
+      -1.2749996613711119,
+      -4.724999846890569,
+      1.5707963705062866
+    ]
+  }
+]

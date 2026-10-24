@@ -1,0 +1,109 @@
+{
+  "sim_s": 217.14700000000002,
+  "navigation_sim_s": 208.88800000000003,
+  "truth": [
+    -5.240225942572924,
+    4.807050995458139,
+    -1.8777980084996768
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 217.131,
+      "stamp_s": 217.131,
+      "sim_s": 217.131,
+      "target": 2.356194490192345,
+      "pan": 2.356194490192345,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 217.074
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 217.139,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 217.135,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nearby_voxels": 19,
+      "total_voxels": 15359,
+      "source_age_s": 0.29699999999999704,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 2.3511209874413908
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 217.139,
+      "stamp_s": 217.139,
+      "sim_s": 217.139,
+      "target": 2.356194490192345,
+      "pan": 2.356194490192345,
+      "reason": "PASS",
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 217.074
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 217.14700000000002,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 217.147,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "nearby_voxels": 19,
+      "total_voxels": 15359,
+      "source_age_s": 0.3089999999999975,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 1.3960239593870938
+    }
+  ]
+}

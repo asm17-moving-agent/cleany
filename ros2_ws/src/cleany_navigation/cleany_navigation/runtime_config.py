@@ -93,7 +93,7 @@ def adapt_nav2_parameters(document: dict, distro: str) -> dict:
             return {key: convert(item) for key, item in value.items()}
         if isinstance(value, list):
             return [convert(item) for item in value]
-        if isinstance(value, str) and value.startswith(('nav2_navfn_planner::', 'nav2_smac_planner::', 'nav2_behaviors::')):
+        if isinstance(value, str) and value.startswith(('nav2_navfn_planner::', 'nav2_smac_planner::', 'nav2_theta_star_planner::', 'nav2_behaviors::')):
             return value.replace('::', '/', 1)
         return value
     result = convert(result)

@@ -1,0 +1,244 @@
+--- a/include/nav2_mppi_controller/optimizer.hpp
++++ b/include/nav2_mppi_controller/optimizer.hpp
+@@ -244,6 +244,9 @@
+   NoiseGenerator noise_generator_;
+ 
+   models::OptimizerSettings settings_;
++  float goal_rotate_enter_radius_{0.0f};
++  float goal_rotate_exit_radius_{0.0f};
++  bool goal_rotation_active_{false};
+ 
+   models::State state_;
+   models::ControlSequence control_sequence_;
+--- a/src/optimizer.cpp
++++ b/src/optimizer.cpp
+@@ -80,6 +80,13 @@
+   getParam(s.sampling_std.vy, "vy_std", 0.2);
+   getParam(s.sampling_std.wz, "wz_std", 0.4);
+   getParam(s.retry_attempt_limit, "retry_attempt_limit", 1);
++  getParam(goal_rotate_enter_radius_, "goal_rotate_enter_radius", 0.0f);
++  getParam(goal_rotate_exit_radius_, "goal_rotate_exit_radius", 0.0f);
++  if (goal_rotate_enter_radius_ < 0.0f ||
++    goal_rotate_exit_radius_ < goal_rotate_enter_radius_)
++  {
++    throw std::runtime_error("Goal rotation radii must be nonnegative and ordered");
++  }
+ 
+   getParam(motion_model_name, "motion_model", std::string("DiffDrive"));
+ 
+@@ -115,6 +122,8 @@
+ 
+ void Optimizer::reset()
+ {
++  // Keep the arrival domain through an internal fallback retry; prepare()
++  // recomputes it from the current path and pose on the next control cycle.
+   state_.reset(settings_.batch_size, settings_.time_steps);
+   control_sequence_.reset(settings_.time_steps);
+   control_history_[0] = {0.0, 0.0, 0.0};
+@@ -143,6 +152,15 @@
+   } while (fallback(critics_data_.fail_flag));
+ 
+   utils::savitskyGolayFilter(control_sequence_, control_history_, settings_);
++  // The Savitzky-Golay filter has negative coefficients and can overshoot.
++  applyControlSequenceConstraints();
++  // The filter carries prior translations. Clear those values before emission;
++  // this is the same zero-translation domain scored by all active critics.
++  if (goal_rotation_active_) {
++    control_sequence_.vx.fill(0.0f);
++    control_sequence_.vy.fill(0.0f);
++    for (auto & control : control_history_) {control.vx = control.vy = 0.0f;}
++  }
+   auto control = getControlFromSequenceAsTwist(plan.header.stamp);
+ 
+   if (settings_.shift_control_sequence) {
+@@ -188,6 +206,25 @@
+   state_.pose = robot_pose;
+   state_.speed = robot_speed;
+   path_ = utils::toTensor(plan);
++  geometry_msgs::msg::Pose tolerance;
++  geometry_msgs::msg::Twist velocity_tolerance;
++  const bool valid_tolerance = goal_checker &&
++    goal_checker->getTolerances(tolerance, velocity_tolerance);
++  const bool bounded = valid_tolerance && goal_rotate_enter_radius_ > 0.0f &&
++    goal_rotate_exit_radius_ <= tolerance.position.x;
++  const float radius = goal_rotation_active_ ?
++    goal_rotate_exit_radius_ : goal_rotate_enter_radius_;
++  const bool next_rotation = bounded &&
++    utils::withinPositionGoalTolerance(radius, state_.pose.pose, path_);
++  if (next_rotation != goal_rotation_active_) {
++    RCLCPP_INFO(logger_, "MPPI goal rotation phase: %s", next_rotation ? "enter" : "exit");
++  }
++  goal_rotation_active_ = next_rotation;
++  if (goal_rotation_active_) {
++    control_sequence_.vx.fill(0.0f);
++    control_sequence_.vy.fill(0.0f);
++    for (auto & control : control_history_) {control.vx = control.vy = 0.0f;}
++  }
+   costs_.fill(0);
+ 
+   critics_data_.fail_flag = false;
+@@ -222,6 +259,12 @@
+ {
+   noise_generator_.setNoisedControls(state_, control_sequence_);
+   noise_generator_.generateNextNoises();
++  // Constrain the sampled controls before rollout/collision scoring, rather than
++  // deleting XY from a trajectory that was evaluated as translating.
++  if (goal_rotation_active_) {
++    state_.cvx.fill(0.0f);
++    state_.cvy.fill(0.0f);
++  }
+   updateStateVelocities(state_);
+   integrateStateVelocities(generated_trajectories_, state_);
+ }
+--- a/test/optimizer_unit_tests.cpp
++++ b/test/optimizer_unit_tests.cpp
+@@ -40,6 +40,96 @@
+   OptimizerTester()
+   : Optimizer() {}
+ 
++  void prepareArrival(double x, nav2_core::GoalChecker * checker, double exit_radius = 0.13)
++  {
++    goal_rotate_enter_radius_ = 0.10f;
++    goal_rotate_exit_radius_ = exit_radius;
++    settings_.batch_size = 8;
++    settings_.time_steps = 12;
++    costs_ = xt::ones<float>({8});
++    if (!motion_model_) {setMotionModel("Omni");}
++    control_sequence_.vx = xt::ones<float>({12});
++    control_sequence_.vy = xt::ones<float>({12});
++    control_sequence_.wz = xt::zeros<float>({12});
++    nav_msgs::msg::Path path;
++    path.poses.resize(2);
++    path.poses.back().pose.orientation.w = 1.0;
++    geometry_msgs::msg::PoseStamped pose;
++    pose.pose.position.x = x;
++    pose.pose.orientation.w = 1.0;
++    prepare(pose, geometry_msgs::msg::Twist(), path, checker);
++  }
++  bool rotating() const {return goal_rotation_active_;}
++  void verifyArrivalRetry()
++  {
++    reset();
++    EXPECT_TRUE(goal_rotation_active_);
++  }
++  void verifyArrivalHistoryZero()
++  {
++    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.vx))(), 0.0f);
++    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.vy))(), 0.0f);
++    for (const auto & control : control_history_) {
++      EXPECT_EQ(control.vx, 0.0f);
++      EXPECT_EQ(control.vy, 0.0f);
++    }
++  }
++
++  void verifyFilteredBounds()
++  {
++    settings_.time_steps = 80;
++    settings_.constraints.vx_min = -0.15f;
++    settings_.constraints.vx_max = 0.15f;
++    settings_.constraints.vy = 0.10f;
++    settings_.constraints.wz = 0.14f;
++    if (!motion_model_) {setMotionModel("Omni");}
++    control_sequence_.vx = 0.15f * xt::ones<float>({80});
++    control_sequence_.vy = 0.10f * xt::ones<float>({80});
++    control_sequence_.wz = 0.14f * xt::ones<float>({80});
++    // The negative filter taps multiply opposing, but still bounded, values.
++    control_sequence_.vx(4) = -0.15f;
++    control_sequence_.vy(4) = -0.10f;
++    control_sequence_.wz(4) = -0.14f;
++    for (auto & control : control_history_) {control = {0.15f, 0.10f, 0.14f};}
++    control_history_[0] = {-0.15f, -0.10f, -0.14f};
++    utils::savitskyGolayFilter(control_sequence_, control_history_, settings_);
++    EXPECT_GT(control_sequence_.vx(0), 0.15f);
++    EXPECT_GT(control_sequence_.vy(0), 0.10f);
++    EXPECT_GT(control_sequence_.wz(0), 0.14f);
++    applyControlSequenceConstraints();
++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.vx))(), 0.15f);
++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.vy))(), 0.10f);
++    EXPECT_LE(xt::amax(xt::abs(control_sequence_.wz))(), 0.14f);
++  }
++
++  void verifyArrivalRollout()
++  {
++    state_.reset(settings_.batch_size, settings_.time_steps);
++    generated_trajectories_.reset(settings_.batch_size, settings_.time_steps);
++    settings_.model_dt = 0.05f;
++    settings_.sampling_std.vx = settings_.sampling_std.vy = 0.1f;
++    settings_.sampling_std.wz = 0.2f;
++    state_.pose.pose.orientation.w = 1.0;
++    state_.speed.linear.x = 0.03;
++    state_.speed.linear.y = -0.02;
++    noise_generator_.reset(settings_, true);
++    generateNoisedTrajectories();
++    EXPECT_EQ(xt::sum(xt::abs(state_.cvx))(), 0.0f);
++    EXPECT_EQ(xt::sum(xt::abs(state_.cvy))(), 0.0f);
++    EXPECT_GT(xt::sum(xt::abs(state_.cwz))(), 0.0f);
++    for (size_t batch = 0; batch < settings_.batch_size; ++batch) {
++      EXPECT_NEAR(state_.vx(batch, 0), 0.03, 1e-6);
++      EXPECT_NEAR(state_.vy(batch, 0), -0.02, 1e-6);
++      // Scoring includes the measured initial translation, not an idealized stop.
++      EXPECT_NEAR(generated_trajectories_.x(batch, 0), state_.pose.pose.position.x + 0.03 * 0.05, 1e-6);
++      EXPECT_NEAR(generated_trajectories_.y(batch, 0), -0.02 * 0.05, 1e-6);
++      for (size_t t = 1; t < settings_.time_steps; ++t) {
++        EXPECT_EQ(state_.vx(batch, t), 0.0f);
++        EXPECT_EQ(state_.vy(batch, t), 0.0f);
++      }
++    }
++  }
++
+   void testSetDiffModel()
+   {
+     EXPECT_EQ(motion_model_.get(), nullptr);
+@@ -634,3 +724,52 @@
+     EXPECT_NEAR(traj.y(1, i), y, 1e-6);
+   }
+ }
++
++class ArrivalGoalChecker : public nav2_core::GoalChecker
++{
++public:
++  void initialize(const rclcpp_lifecycle::LifecycleNode::WeakPtr &,
++    const std::string &, const std::shared_ptr<nav2_costmap_2d::Costmap2DROS>) override {}
++  void reset() override {}
++  bool isGoalReached(const geometry_msgs::msg::Pose &, const geometry_msgs::msg::Pose &,
++    const geometry_msgs::msg::Twist &) override {return false;}
++  bool getTolerances(geometry_msgs::msg::Pose & pose, geometry_msgs::msg::Twist &) override
++  {pose.position.x = pose.position.y = 0.15; return true;}
++};
++
++TEST(OptimizerTests, ArrivalHysteresisAndToleranceBoundary)
++{
++  ArrivalGoalChecker checker;
++  OptimizerTester optimizer;
++  optimizer.prepareArrival(0.11, &checker);
++  EXPECT_FALSE(optimizer.rotating());
++  optimizer.prepareArrival(0.09, &checker);
++  EXPECT_TRUE(optimizer.rotating());
++  optimizer.verifyArrivalHistoryZero();
++  optimizer.prepareArrival(0.12, &checker);
++  EXPECT_TRUE(optimizer.rotating());
++  optimizer.prepareArrival(0.14, &checker);
++  EXPECT_FALSE(optimizer.rotating());
++  optimizer.prepareArrival(0.12, &checker);
++  EXPECT_FALSE(optimizer.rotating());
++  optimizer.prepareArrival(0.09, &checker, 0.16);
++  EXPECT_FALSE(optimizer.rotating());
++  optimizer.prepareArrival(0.09, nullptr);
++  EXPECT_FALSE(optimizer.rotating());
++}
++
++TEST(OptimizerTests, FilterOvershootIsBounded)
++{
++  OptimizerTester optimizer;
++  optimizer.verifyFilteredBounds();
++}
++
++TEST(OptimizerTests, ArrivalRolloutPreservesMeasuredVelocityAndAngularExploration)
++{
++  ArrivalGoalChecker checker;
++  OptimizerTester optimizer;
++  optimizer.prepareArrival(0.09, &checker);
++  ASSERT_TRUE(optimizer.rotating());
++  optimizer.verifyArrivalRollout();
++  optimizer.verifyArrivalRetry();
++}

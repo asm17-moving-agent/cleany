@@ -1,0 +1,173 @@
+{
+  "candidate": "dwb",
+  "goal_index": 3,
+  "goal_name": "far_heading",
+  "goal_map": [
+    6.0,
+    0.0,
+    -1.5707963267948966
+  ],
+  "completed": true,
+  "domain": 211,
+  "partition": "cleany_comparison_fca2dd0f6d854945a8185c9520c0a43b",
+  "host": "a16-fedora",
+  "model_metadata": {
+    "simulation_excluded_link_roots": [
+      "left_shoulder_yaw_link",
+      "right_shoulder_yaw_link"
+    ],
+    "source_commit": "71f8d6c",
+    "collision_bounds": [
+      [
+        -0.238525,
+        -0.32737300000024483,
+        -0.3799970000000734
+      ],
+      [
+        0.238475,
+        0.32742700000024483,
+        0.8120390619878888
+      ]
+    ],
+    "navigation_margins": {
+      "stop": 0.08,
+      "planning_padding": 0.02,
+      "slowdown": 0.2
+    },
+    "depth_camera_tf": {
+      "translation": [
+        0.13575291981941817,
+        -0.001999999999964942,
+        0.7907902750404355
+      ],
+      "rotation_rpy": [
+        0.0,
+        0.3490658503988659,
+        4.136462142204289e-13
+      ],
+      "pan_pivot": [
+        0.103,
+        2.1302780032352088e-14,
+        0.673
+      ]
+    },
+    "wheelbase": 0.35,
+    "wheel_separation": 0.6038,
+    "wheel_radius": 0.0635,
+    "park_joints": {
+      "head_pan_joint": 0.0,
+      "head_tilt_joint": 0.3490658503988659
+    },
+    "simulation_park_limits": {},
+    "navigation_geometry": {
+      "physical": [
+        [
+          -0.238525,
+          -0.32737300000024483
+        ],
+        [
+          -0.238525,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          0.32742700000024483
+        ],
+        [
+          0.238475,
+          -0.32737300000024483
+        ]
+      ],
+      "stop": [
+        [
+          -0.318525,
+          -0.40737300000024484
+        ],
+        [
+          -0.318525,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          0.40742700000024484
+        ],
+        [
+          0.318475,
+          -0.40737300000024484
+        ]
+      ],
+      "slow": [
+        [
+          -0.438525,
+          -0.5273730000002448
+        ],
+        [
+          -0.438525,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          0.5274270000002448
+        ],
+        [
+          0.438475,
+          -0.5273730000002448
+        ]
+      ],
+      "planning_padding": 0.02,
+      "center": [
+        -2.4999999999997247e-05,
+        2.6999999999999247e-05
+      ],
+      "half_size": [
+        0.2385,
+        0.32740000000024483
+      ]
+    }
+  },
+  "navigation_started": true,
+  "action_status": 4,
+  "position_error_m": 0.09540825608396099,
+  "yaw_error_deg": 8.27423529247107,
+  "final_truth": [
+    5.914206844906738,
+    0.04174050632330955,
+    -1.4263836778565604
+  ],
+  "navigation_sim_s": 57.934000000000005,
+  "navigation_wall_s": 61.899870878,
+  "achieved_rtf": 0.9359308699396736,
+  "smoothness": {
+    "available": true,
+    "linear_jerk_rms_m_s3": 0.5443621414455934,
+    "linear_jerk_p95_m_s3": 0.8092967137848733,
+    "angular_jerk_rms_rad_s3": 0.5141709289309236,
+    "angular_jerk_p95_rad_s3": 0.9978917354658724,
+    "stationary_s": 14.600000000000001,
+    "motion_start_count": 13,
+    "yaw_reversals": 2,
+    "lateral_reversals": 0,
+    "speed_mean_m_s": 0.10216487782390439,
+    "speed_max_m_s": 0.15426828983590765
+  },
+  "controller_command_sim_interval_s": {
+    "mean": 0.046895522388059704,
+    "p95": 0.060000000000002274,
+    "count": 1206
+  },
+  "max_command_wheel_rad_s": {
+    "/nav2/cmd_vel": 2.9297250398113777,
+    "/cmd_vel": 2.9297250398113777
+  },
+  "final_actual_velocity": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "safety_action_sample_counts": {
+    "0": 1009
+  },
+  "clearance_note": "Existing probe clearance only concerns injected fixture; no fixture injected. Static-world contact/clearance must be evaluated separately; do not infer collision-free from absence of log errors.",
+  "elapsed_wall_s": 78.10112510099952,
+  "controller_deadline_warning_count": 0
+}

@@ -1,0 +1,98 @@
+received_sim_s,steady_wall_s,stage,state,reason
+8.148,33582.422732187,/cmd_vel,zero,received command transition
+8.148,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+8.168000000000001,33582.426268242,/pan_ready/cmd_vel,zero,received command transition
+8.168000000000001,33582.426515619,/safety_2d/cmd_vel,zero,received command transition
+8.168000000000001,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+8.328000000000001,33582.585827155,/nav2/cmd_vel,nonzero,received command transition
+8.368,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+8.508000000000001,33582.776356946,/pan_ready/cmd_vel,nonzero,received command transition
+8.508000000000001,33582.776663912,/safety_2d/cmd_vel,nonzero,received command transition
+8.508000000000001,,/head_pan/state,PASS,PASS
+8.548,33582.829333543,/cmd_vel,nonzero,received command transition
+12.022,33586.371995087,/cmd_vel,zero,received command transition
+12.022,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+12.082,33586.430109179,/cmd_vel,nonzero,received command transition
+12.082,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+15.016000000000002,33589.52242821,/cmd_vel,zero,received command transition
+15.016000000000002,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+15.076,33589.57994986,/cmd_vel,nonzero,received command transition
+15.076,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+22.110000000000003,33597.078173625,/pan_ready/cmd_vel,zero,received command transition
+22.110000000000003,33597.078504891,/safety_2d/cmd_vel,zero,received command transition
+22.110000000000003,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+22.124000000000002,33597.189501972,/cmd_vel,zero,received command transition
+22.368000000000002,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+22.408,33597.476247944,/pan_ready/cmd_vel,nonzero,received command transition
+22.408,33597.4765289,/safety_2d/cmd_vel,nonzero,received command transition
+22.408,,/head_pan/state,PASS,PASS
+22.416,33597.528800767,/cmd_vel,nonzero,received command transition
+33.026,33608.472815918,/cmd_vel,zero,received command transition
+33.026,,/body_guard_3d/state,STOP_UNAVAILABLE,Local voxel window does not cover the braking sweep
+33.086,33608.52941388,/cmd_vel,nonzero,received command transition
+33.086,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+39.74,33615.385922313,/nav2/cmd_vel,zero,received command transition
+39.74,33615.385441659004,controller,exception,native compute rejection; correlate launch.log
+39.78,33615.425977995,/pan_ready/cmd_vel,zero,received command transition
+39.78,33615.435439135,controller,exception,native compute rejection; correlate launch.log
+39.800000000000004,33615.446399286,/safety_2d/cmd_vel,zero,received command transition
+39.82,33615.476483885,/cmd_vel,zero,received command transition
+39.84,33615.485731448,/nav2/cmd_vel,nonzero,received command transition
+39.88,33615.526016037,/pan_ready/cmd_vel,nonzero,received command transition
+39.900000000000006,33615.54630338,/safety_2d/cmd_vel,nonzero,received command transition
+39.940000000000005,33615.586128775,/cmd_vel,nonzero,received command transition
+43.926,33619.685722357,/nav2/cmd_vel,zero,received command transition
+43.926,33619.685423901,controller,exception,native compute rejection; correlate launch.log
+43.966,33619.726074086,/pan_ready/cmd_vel,zero,received command transition
+43.966,33619.735434047005,controller,exception,native compute rejection; correlate launch.log
+43.986000000000004,33619.746312439,/safety_2d/cmd_vel,zero,received command transition
+44.006,33619.777401645,/cmd_vel,zero,received command transition
+44.026,33619.785833919,/nav2/cmd_vel,nonzero,received command transition
+44.066,33619.825909561,/pan_ready/cmd_vel,nonzero,received command transition
+44.086000000000006,33619.846323912,/safety_2d/cmd_vel,nonzero,received command transition
+44.126000000000005,33619.884135563,/cmd_vel,nonzero,received command transition
+46.468,33622.285885309,/nav2/cmd_vel,zero,received command transition
+46.468,33622.285431695,controller,exception,native compute rejection; correlate launch.log
+46.508,33622.325898072,/pan_ready/cmd_vel,zero,received command transition
+46.508,33622.326324327,/safety_2d/cmd_vel,zero,received command transition
+46.508,33622.335442641,controller,exception,native compute rejection; correlate launch.log
+46.536,33622.375323646,/cmd_vel,zero,received command transition
+46.556000000000004,33622.385427868,controller,exception,native compute rejection; correlate launch.log
+46.596000000000004,33622.435441344,controller,exception,native compute rejection; correlate launch.log
+46.656000000000006,33622.485428211,controller,exception,native compute rejection; correlate launch.log
+46.696000000000005,33622.535440537,controller,exception,native compute rejection; correlate launch.log
+46.756,33622.585425524005,controller,exception,native compute rejection; correlate launch.log
+47.282000000000004,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+48.612,33624.485271003,controller,exception,native compute rejection; correlate launch.log
+48.652,33624.535333049,controller,exception,native compute rejection; correlate launch.log
+48.652,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+48.708000000000006,33624.585329145004,controller,exception,native compute rejection; correlate launch.log
+48.746,33624.635335042,controller,exception,native compute rejection; correlate launch.log
+48.746,,/head_pan/state,PASS,PASS
+48.806000000000004,33624.685382398005,controller,exception,native compute rejection; correlate launch.log
+48.846000000000004,33624.735332305005,controller,exception,native compute rejection; correlate launch.log
+48.906000000000006,33624.785332152,controller,exception,native compute rejection; correlate launch.log
+48.946000000000005,33624.835359358,controller,exception,native compute rejection; correlate launch.log
+49.458000000000006,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+50.160000000000004,33626.085082066005,controller,exception,native compute rejection; correlate launch.log
+50.196000000000005,33626.135152122,controller,exception,native compute rejection; correlate launch.log
+50.196000000000005,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+50.236000000000004,,/head_pan/state,PASS,PASS
+50.256,33626.185138709,controller,exception,native compute rejection; correlate launch.log
+50.29600000000001,33626.235141595,controller,exception,native compute rejection; correlate launch.log
+50.356,33626.285140782005,controller,exception,native compute rejection; correlate launch.log
+50.396,33626.335155978,controller,exception,native compute rejection; correlate launch.log
+50.456,33626.385142425,controller,exception,native compute rejection; correlate launch.log
+50.496,33626.435145631,controller,exception,native compute rejection; correlate launch.log
+51.02,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+51.716,33627.685051339,controller,exception,native compute rejection; correlate launch.log
+51.756,33627.735115124,controller,exception,native compute rejection; correlate launch.log
+51.756,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+51.816,33627.785110821,controller,exception,native compute rejection; correlate launch.log
+51.856,33627.835129437,controller,exception,native compute rejection; correlate launch.log
+51.856,,/head_pan/state,PASS,PASS
+51.916000000000004,33627.885132104006,controller,exception,native compute rejection; correlate launch.log
+51.954,33627.935115651,controller,exception,native compute rejection; correlate launch.log
+52.014,33627.985109178,controller,exception,native compute rejection; correlate launch.log
+52.054,33628.035121494,controller,exception,native compute rejection; correlate launch.log
+52.582,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT

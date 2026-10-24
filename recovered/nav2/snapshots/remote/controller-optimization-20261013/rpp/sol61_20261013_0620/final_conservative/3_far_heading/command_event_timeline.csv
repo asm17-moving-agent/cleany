@@ -1,0 +1,17 @@
+received_sim_s,steady_wall_s,stage,state,reason
+8.288,34024.738685145,/cmd_vel,zero,received command transition
+8.288,,/body_guard_3d/state,STOP_UNAVAILABLE,Command timeout
+8.308,34024.759221649,/pan_ready/cmd_vel,zero,received command transition
+8.308,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT
+8.468,34024.917006711,/nav2/cmd_vel,nonzero,received command transition
+8.508000000000001,,/head_pan/state,WAIT_FRESH_DEPTH,WAIT_FRESH_DEPTH
+8.63,34025.109319062,/pan_ready/cmd_vel,nonzero,received command transition
+8.63,34025.109516729,/safety_2d/cmd_vel,nonzero,received command transition
+8.63,,/head_pan/state,PASS,PASS
+8.67,34025.144613292,/cmd_vel,nonzero,received command transition
+8.67,,/body_guard_3d/state,PASS_OBSERVED_SPACE,
+60.556000000000004,34078.467332641,/nav2/cmd_vel,zero,received command transition
+60.596000000000004,34078.508862324,/pan_ready/cmd_vel,zero,received command transition
+60.596000000000004,34078.509107851,/safety_2d/cmd_vel,zero,received command transition
+60.636,34078.540703587,/cmd_vel,zero,received command transition
+61.084,,/head_pan/state,WALL_TIMEOUT,WALL_TIMEOUT

@@ -1,0 +1,18 @@
+{
+  "navfn": {
+    "running": false,
+    "exit": 0
+  },
+  "smac2d": {
+    "running": false,
+    "exit": 1
+  },
+  "hybrid": {
+    "running": false,
+    "exit": 0
+  },
+  "theta": {
+    "running": false,
+    "exit": 0
+  }
+}

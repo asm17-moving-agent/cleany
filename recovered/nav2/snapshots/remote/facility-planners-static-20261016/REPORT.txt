@@ -1,0 +1,18 @@
+18F facility 82석 정적 planner 비교
+
+HOME/기존접근목표/costmap원본/5cm해상도/footprint/padding0/inflation조건을 고정. D-hub는 목적지 의자만 제거, 다른 방은 모든 의자 유지. 네 플래너328회 native ComputePathToPose 실행. 이전 Lattice82회 결과와 함께 비교. 82좌석ID는 기존 목표중복 때문에77개 고유 기하학적 목표이다.
+
+lattice: 생성77/82, 생성된 경로의 출력pose-footprint 간섭 0개 경로. 구역별 {"D-hub": {"total": 48, "generated": 48}, "A1": {"total": 4, "generated": 4}, "A2": {"total": 4, "generated": 4}, "A3": {"total": 4, "generated": 0}, "A4": {"total": 4, "generated": 3}, "M1": {"total": 6, "generated": 6}, "M2": {"total": 6, "generated": 6}, "M3": {"total": 6, "generated": 6}}
+navfn: 생성82/82, 생성된 경로의 출력pose-footprint 간섭 22개 경로. 구역별 {"D-hub": {"total": 48, "generated": 48}, "A1": {"total": 4, "generated": 4}, "A2": {"total": 4, "generated": 4}, "A3": {"total": 4, "generated": 4}, "A4": {"total": 4, "generated": 4}, "M1": {"total": 6, "generated": 6}, "M2": {"total": 6, "generated": 6}, "M3": {"total": 6, "generated": 6}}
+smac2d: 생성82/82, 생성된 경로의 출력pose-footprint 간섭 20개 경로. 구역별 {"D-hub": {"total": 48, "generated": 48}, "A1": {"total": 4, "generated": 4}, "A2": {"total": 4, "generated": 4}, "A3": {"total": 4, "generated": 4}, "A4": {"total": 4, "generated": 4}, "M1": {"total": 6, "generated": 6}, "M2": {"total": 6, "generated": 6}, "M3": {"total": 6, "generated": 6}}
+hybrid: 생성61/82, 생성된 경로의 출력pose-footprint 간섭 0개 경로. 구역별 {"D-hub": {"total": 48, "generated": 48}, "A1": {"total": 4, "generated": 2}, "A2": {"total": 4, "generated": 4}, "A3": {"total": 4, "generated": 0}, "A4": {"total": 4, "generated": 1}, "M1": {"total": 6, "generated": 0}, "M2": {"total": 6, "generated": 3}, "M3": {"total": 6, "generated": 3}}
+theta: 생성82/82, 생성된 경로의 출력pose-footprint 간섭 22개 경로. 구역별 {"D-hub": {"total": 48, "generated": 48}, "A1": {"total": 4, "generated": 4}, "A2": {"total": 4, "generated": 4}, "A3": {"total": 4, "generated": 4}, "A4": {"total": 4, "generated": 4}, "M1": {"total": 6, "generated": 6}, "M2": {"total": 6, "generated": 6}, "M3": {"total": 6, "generated": 6}}
+
+해석: NavFn/Smac2D/Theta는82개 모두 XY경로를 생성했지만, 출력pose의 yaw를 그대로 적용한 native polygon검사에서22/20/22개 경로에 간섭표본이 나타났다. A3의4개좌석 경로 모두 포함된다. 2D알고리즘은 중간yaw를 차체 통과자세로 보장하지 않으므로 이 숫자는 진단이며 MPPI로 다른자세를 선택해도 반드시 실패한다는 의미는 아니다.
+Lattice77개/Hybrid61개의 생성된 경로에서는 같은 native체커의 출력pose표본 간섭이 검출되지 않았다. 이는연속sweptvolume나 전체3D무충돌의 보증이 아니다.
+Hybrid는Reeds-Shepp,72방향,반경0.1m; Lattice는Omni16방향/144primitive반경0.1m. Hybrid는전후진곡선 기반으로Lattice의횡이동/제자리회전을그대로대체하지않는다. 미생성21개는고정된이번설정의결과이지모든튜닝에서불가능하다는뜻이아니다.
+Theta는이전개선설정w_traversal_cost5. NavFn은Dijkstra. Smac2D는cost_travel_multiplier2, native smoother.max_iterations0. Lattice/Hybrid/Smac2D smoothing없음, Hybrid만native analytic확장사용. 모든플래너의개별파라미터는campaign-config.json/verified-runtime.json보존.
+검증: 플래너별82개 start/goal/mapSHA/제거의자일치 및 실제 native costmap바이트가이전Lattice것과같음을확인했다. 2D/SE2플래너별충돌모델과goal양자화차이는남는다.
+Smac2D의초기unsupported smooth_path 플래그는첫goal전runtime파라미터검증에서검출하여smoother.max_iterations0으로교체했다. 초기실패로그preflight-attempt-1보존. 최종Smac2D82회완료.
+새네플래너는분리된ROS domain에서동시실행했다. 기록된planning시간은부하가다른이전Lattice와직접CPU성능순위화하지않는다. 합격기준/통합점수없음.
+Gazebo/MPPI/물리로봇주행없음, 기본설정/브랜치소스변경없음. 이번프로세스종료확인.

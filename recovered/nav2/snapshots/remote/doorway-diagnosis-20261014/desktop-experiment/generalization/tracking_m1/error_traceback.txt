@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/laptop-runtime/run_facility_gui.py", line 312, in run
+    subprocess.run(['ros2','param','dump','/controller_server','--no-daemon','--spin-time','3','--output-dir',str(out)],check=True)
+  File "/usr/lib/python3.10/subprocess.py", line 526, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['ros2', 'param', 'dump', '/controller_server', '--no-daemon', '--spin-time', '3', '--output-dir', '/home/donglee/workspace/cleany/doorway-diagnosis-20261014/desktop-experiment/generalization/tracking_m1']' returned non-zero exit status 1.

@@ -1,0 +1,9 @@
+obstacle_memory:
+  ros__parameters:
+    mark_all_depth_points: true
+    output_directory: /home/ehdrms/workspace/cleany/cleany-data/runs/controller-facility-gui-20261013-053218/dwb/obstacle_memory
+    publish_3d: true
+    restore_path: ''
+    update_period: 0.2
+    use_sim_time: true
+    z_resolution: 0.05

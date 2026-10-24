@@ -1,0 +1,135 @@
+controller_server:
+  ros__parameters:
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.001
+    min_theta_velocity_threshold: 0.001
+    goal_checker:
+      plugin: nav2_controller::SimpleGoalChecker
+      stateful: true
+      xy_goal_tolerance: 0.15
+      yaw_goal_tolerance: 0.17453292519943295
+    progress_checker:
+      plugin: nav2_controller::PoseProgressChecker
+      required_movement_radius: 0.15
+      required_movement_angle: 0.25
+      movement_time_allowance: 20.0
+    FollowPath:
+      ConstraintCritic:
+        cost_power: 1
+        cost_weight: 4.0
+        enabled: true
+      CostCritic:
+        collision_cost: 1000000.0
+        consider_footprint: true
+        cost_power: 1
+        cost_weight: 3.81
+        critical_cost: 300.0
+        enabled: true
+        inflation_layer_name: ''
+        near_goal_distance: 1.0
+      GoalAngleCritic:
+        cost_power: 1
+        cost_weight: 3.0
+        enabled: true
+        threshold_to_consider: 0.5
+      GoalCritic:
+        cost_power: 1
+        cost_weight: 15.0
+        enabled: true
+        threshold_to_consider: 1.0
+      PathAlignCritic:
+        cost_power: 1
+        cost_weight: 3.0
+        enabled: true
+        max_path_occupancy_ratio: 0.05
+        offset_from_furthest: 2
+        threshold_to_consider: 1.0
+        trajectory_point_step: 4
+        use_path_orientations: true
+      PathAngleCritic:
+        cost_power: 1
+        cost_weight: 2.0
+        enabled: false
+        forward_preference: true
+        max_angle_to_furthest: 1.0
+        offset_from_furthest: 4
+        threshold_to_consider: 0.5
+      PathFollowCritic:
+        cost_power: 1
+        cost_weight: 15.0
+        enabled: true
+        offset_from_furthest: 20
+        threshold_to_consider: 1.0
+      TrajectoryVisualizer:
+        time_step: 3
+        trajectory_step: 5
+      TwirlingCritic:
+        cost_power: 1
+        cost_weight: 10.0
+        enabled: true
+      batch_size: 1000
+      critics:
+      - ConstraintCritic
+      - CostCritic
+      - GoalCritic
+      - GoalAngleCritic
+      - PathAlignCritic
+      - PathFollowCritic
+      - PathAngleCritic
+      - TwirlingCritic
+      enforce_path_inversion: false
+      gamma: 0.0003
+      iteration_count: 1
+      max_robot_pose_search_dist: 2.0
+      model_dt: 0.05
+      motion_model: Omni
+      plugin: cleany_benchmark::TimedController
+      prune_distance: 1.5
+      regenerate_noises: true
+      reset_period: 1.0
+      retry_attempt_limit: 1
+      temperature: 0.3
+      time_steps: 80
+      transform_tolerance: 0.3
+      visualize: false
+      vx_max: 0.3175
+      vx_min: -0.3175
+      vx_std: 0.035
+      vy_max: 0.3175
+      vy_std: 0.025
+      wz_max: 0.6657580205493815
+      wz_std: 0.07
+      goal_rotate_enter_radius: 0.1
+      goal_rotate_exit_radius: 0.13
+      wheel_max_rad_s: 5.0
+      wheel_radius_m: 0.0635
+      wheelbase_m: 0.35
+      wheel_separation_m: 0.6038
+      wrapped_plugin: nav2_mppi_controller::MPPIController
+      benchmark_timing_file: /home/ehdrms/workspace/cleany/cleany-data/runs/controller-optimization-20261013/mppi/sol_resume_20261013/relaxed/final_validation/3_far_heading/compute_timing.csv
+planner_server:
+  ros__parameters:
+    GridBased:
+      plugin: cleany_navigation::StraightFirstPlanner
+      tolerance: 0.05
+      holonomic_direct_path: true
+      require_exact_goal: true
+      allow_unknown: false
+      smooth_path: false
+      allow_reverse_expansion: true
+      max_planning_time: 2.0
+      cache_obstacle_heuristic: false
+      lattice_filepath: ''
+      analytic_expansion_max_length: 0.0
+      cost_penalty: 5.0
+      lattice_collision_padding: 0.05
+bt_navigator:
+  ros__parameters:
+    plugin_lib_names:
+    - cleany_yield_wait_bt_node
+pan_motion_gate:
+  ros__parameters:
+    allow_reverse: true
+    allow_lateral: true
+    allow_mixed_motion: true
+    translation_angle_deg: 0.0

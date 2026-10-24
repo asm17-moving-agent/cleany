@@ -1,0 +1,5 @@
+{
+  "usable_navigation_measurement": false,
+  "cause": "Custom relaxed launch omitted original head-pan TF publisher, pan command bridge and optical transform; depth processing could not initialize. No goal was issued.",
+  "action": "Restore the identical three adapters before the next unique run."
+}

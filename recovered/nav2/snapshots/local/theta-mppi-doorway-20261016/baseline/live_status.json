@@ -1,0 +1,107 @@
+{
+  "sim_s": 32.591,
+  "navigation_sim_s": 24.224,
+  "truth": [
+    -5.461769740050989,
+    -6.028713861333786,
+    0.020705103679490695
+  ],
+  "last_diagnostics": [
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 32.572,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 32.572,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        -0.06289127790134419,
+        -0.13836081138298428,
+        0.052750075824217355
+      ],
+      "nearby_voxels": 644,
+      "total_voxels": 17857,
+      "source_age_s": 0.3539999999999992,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 5.971026999759488
+    },
+    {
+      "topic": "/wheel_limit/state",
+      "received_sim_s": 32.582,
+      "sim_s": 32.582,
+      "requested": [
+        -0.03318675607442856,
+        -0.1746615767478943,
+        -0.022403769195079803
+      ],
+      "output": [
+        -0.03318675607442856,
+        -0.1746615767478943,
+        -0.022403769195079803
+      ],
+      "scale": 1.0,
+      "reason": "PASS",
+      "source_age_s": 0.0
+    },
+    {
+      "topic": "/head_pan/state",
+      "received_sim_s": 32.582,
+      "stamp_s": 32.582,
+      "sim_s": 32.582,
+      "target": -1.7585641113451265,
+      "pan": -2.0609732788656774,
+      "reason": "TURNING_PAN",
+      "requested": [
+        -0.03318675607442856,
+        -0.1746615767478943,
+        -0.022403769195079803
+      ],
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "depth_stamp": 32.539
+    },
+    {
+      "topic": "/body_guard_3d/state",
+      "received_sim_s": 32.587,
+      "mode": "navigation_serial_3d_guard",
+      "sim_s": 32.587,
+      "observation_scope": "observed_voxels_only; unknown space is not certified free",
+      "decision": "PASS_OBSERVED_SPACE",
+      "stop_voxels": 0,
+      "slow_voxels": 0,
+      "requested": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "measured": [
+        -0.06289127790128837,
+        -0.13626443545281341,
+        0.06593759478011069
+      ],
+      "nearby_voxels": 610,
+      "total_voxels": 17857,
+      "source_age_s": 0.3689999999999998,
+      "output": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "processing_ms": 7.347990000198479
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "GridBased.plugin": "cleany_navigation::StraightFirstPlanner",
+  "GridBased.max_planning_time": 80.0,
+  "GridBased.body_heading_grid_bins": 32,
+  "GridBased.lattice_filepath": "/home/ehdrms/workspace/cleany/cleany-data/runs/controller-comparison-8goals-20261014/common/omni_lattice_2p5cm.json"
+}

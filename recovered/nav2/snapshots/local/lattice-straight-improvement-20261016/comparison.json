@@ -1,0 +1,1961 @@
+{
+  "records": [
+    {
+      "variant": "original",
+      "route_index": 1,
+      "route": "straight",
+      "nav2_status": 4,
+      "sim_s": 4.431000000000001,
+      "actual_rtf": 0.24479663087918602,
+      "gt_xy_error_cm": 25.12292292777175,
+      "gt_yaw_error_deg": 0.4590698007586011,
+      "initial_plan": {
+        "length_m": 1.085707560794493,
+        "max_cross_track_m": 0.18226838032526646
+      },
+      "actual_gt": {
+        "length_m": 0.7550843506508852,
+        "max_cross_track_m": 0.035561963242531025
+      },
+      "plan_message_count": 5,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 1.3191458617333744,
+        "linear_jerk_p95_m_s3": 3.6055573456357615,
+        "angular_jerk_rms_rad_s3": 1.5487942938192878,
+        "angular_jerk_p95_rad_s3": 4.132810603732848,
+        "stationary_s": 0.35000000000000003,
+        "motion_start_count": 1,
+        "yaw_reversals": 1,
+        "lateral_reversals": 0,
+        "speed_mean_m_s": 0.1697070454350943,
+        "speed_max_m_s": 0.2096218417191478
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.012209726443769001,
+          "p95": 0.016000000000000014,
+          "p99": 0.01699999999999946
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.012229916897506923,
+          "p95": 0.016000000000000014,
+          "p99": 0.017000000000001236
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.01218429003021148,
+          "p95": 0.01699999999999946,
+          "p99": 0.021000000000000796
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.012350453172205442,
+          "p95": 0.016000000000000014,
+          "p99": 0.017000000000001236
+        }
+      },
+      "max_wheel_command_rad_s": 4.903932023588128,
+      "max_joint_rad_s": 4.410980587755087,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 16,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 4934.339,
+            "p95": 6691.986999999999,
+            "p99": 7499.382499999996,
+            "max": 9963.518
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -3.7249998319894075,
+        1.5707963705062866
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.06324519277565538,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 6.341684725801387,
+      "initial_plan_yaw_total_variation_deg": 143.13009062390475
+    },
+    {
+      "variant": "original",
+      "route_index": 2,
+      "route": "turn_arrival",
+      "nav2_status": 4,
+      "sim_s": 17.214000000000002,
+      "actual_rtf": 0.228606304414417,
+      "gt_xy_error_cm": 0.5693156321280926,
+      "gt_yaw_error_deg": 8.439733553266368,
+      "initial_plan": {
+        "length_m": 2.138171726911584,
+        "max_cross_track_m": 0.14995071687086195
+      },
+      "actual_gt": {
+        "length_m": 2.02659858387285,
+        "max_cross_track_m": 0.13789107999398764
+      },
+      "plan_message_count": 15,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 1.2324593123487573,
+        "linear_jerk_p95_m_s3": 1.9867766812018148,
+        "angular_jerk_rms_rad_s3": 1.4063299309800583,
+        "angular_jerk_p95_rad_s3": 2.8818873839519985,
+        "stationary_s": 0.45,
+        "motion_start_count": 1,
+        "yaw_reversals": 3,
+        "lateral_reversals": 3,
+        "speed_mean_m_s": 0.11748130899370439,
+        "speed_max_m_s": 0.2408611604427222
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.01139850136239782,
+          "p95": 0.01700000000000177,
+          "p99": 0.02400000000000091
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.011437873754152825,
+          "p95": 0.01699999999999946,
+          "p99": 0.023999999999997357
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.011569014084507043,
+          "p95": 0.018000000000000682,
+          "p99": 0.02499999999999858
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.01142205582028591,
+          "p95": 0.01700000000000159,
+          "p99": 0.02400000000000091
+        }
+      },
+      "max_wheel_command_rad_s": 4.626116307345989,
+      "max_joint_rad_s": 4.724476768185519,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 68,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 4339.975,
+            "p95": 6147.817,
+            "p99": 10833.076799999988,
+            "max": 33790.253
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -2.8249998185783625,
+        8.742277657347586e-08
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.0921951149423445,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 117.55362619329533,
+      "initial_plan_yaw_total_variation_deg": 143.1300856149486
+    },
+    {
+      "variant": "original",
+      "route_index": 4,
+      "route": "far_heading",
+      "nav2_status": 4,
+      "sim_s": 31.225000000000005,
+      "actual_rtf": 0.24167786661220117,
+      "gt_xy_error_cm": 0.9081531408754575,
+      "gt_yaw_error_deg": 7.904078624129059,
+      "initial_plan": {
+        "length_m": 4.593784146753239,
+        "max_cross_track_m": 0.1545354794148089
+      },
+      "actual_gt": {
+        "length_m": 4.492701354282797,
+        "max_cross_track_m": 0.18266706387499723
+      },
+      "plan_message_count": 25,
+      "initial_plan_elapsed_s": 0.015000000000000568,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 0.7937010804097165,
+        "linear_jerk_p95_m_s3": 1.5900137721100964,
+        "angular_jerk_rms_rad_s3": 1.7691806528504614,
+        "angular_jerk_p95_rad_s3": 4.38785686855287,
+        "stationary_s": 0.4,
+        "motion_start_count": 1,
+        "yaw_reversals": 6,
+        "lateral_reversals": 7,
+        "speed_mean_m_s": 0.1439874891941205,
+        "speed_max_m_s": 0.24701417080877752
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.012082089552238807,
+          "p95": 0.01600000000000179,
+          "p99": 0.017000000000001236
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.012091824874079815,
+          "p95": 0.01600000000000179,
+          "p99": 0.017000000000001236
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.012187129885511253,
+          "p95": 0.016999999999995907,
+          "p99": 0.02099999999999902
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.012102866117000392,
+          "p95": 0.01600000000000179,
+          "p99": 0.017000000000001236
+        }
+      },
+      "max_wheel_command_rad_s": 4.927319137998453,
+      "max_joint_rad_s": 5.134745584825821,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 124,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3903.421,
+            "p95": 5224.839999999999,
+            "p99": 6400.733559999999,
+            "max": 11828.001
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -0.3249997813254595,
+        4.71238899230957
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.06324519277565538,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 219.6943576008726,
+      "initial_plan_yaw_total_variation_deg": 286.260219041221
+    },
+    {
+      "variant": "original",
+      "route_index": 6,
+      "route": "lateral",
+      "nav2_status": 4,
+      "sim_s": 2.4369999999999994,
+      "actual_rtf": 0.24369305677054434,
+      "gt_xy_error_cm": 26.087453802232325,
+      "gt_yaw_error_deg": 0.20866370250584781,
+      "initial_plan": {
+        "length_m": 0.8236068100226767,
+        "max_cross_track_m": 0.13805370004968706
+      },
+      "actual_gt": {
+        "length_m": 0.35523470036822513,
+        "max_cross_track_m": 0.05769213162909163
+      },
+      "plan_message_count": 3,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 2.254638094590114,
+        "linear_jerk_p95_m_s3": 4.760167472618177,
+        "angular_jerk_rms_rad_s3": 0.8600552621827557,
+        "angular_jerk_p95_rad_s3": 2.0548921737489803,
+        "stationary_s": 0.4,
+        "motion_start_count": 1,
+        "yaw_reversals": 0,
+        "lateral_reversals": 0,
+        "speed_mean_m_s": 0.14484577003212157,
+        "speed_max_m_s": 0.21371107659684574
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.011999999999999992,
+          "p95": 0.01699999999999946,
+          "p99": 0.018000000000000682
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.012160804020100502,
+          "p95": 0.016000000000000014,
+          "p99": 0.018000000000000682
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.012660377358490554,
+          "p95": 0.018000000000000682,
+          "p99": 0.020480000000000227
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.012311377245508978,
+          "p95": 0.017000000000000702,
+          "p99": 0.020720000000001015
+        }
+      },
+      "max_wheel_command_rad_s": 4.251011764830139,
+      "max_joint_rad_s": 4.152914332144578,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 8,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 4310.041499999999,
+            "p95": 5465.3495,
+            "p99": 7091.2698999999975,
+            "max": 13538.751
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.2749996613711119,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.0921951149423445,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 1.3052233627752874,
+      "initial_plan_yaw_total_variation_deg": 53.13012910056159
+    },
+    {
+      "variant": "baseline",
+      "route_index": 1,
+      "route": "straight",
+      "nav2_status": 4,
+      "sim_s": 4.4350000000000005,
+      "actual_rtf": 0.42236783625064983,
+      "gt_xy_error_cm": 26.904860783703295,
+      "gt_yaw_error_deg": 0.806137518957602,
+      "initial_plan": {
+        "length_m": 1.2543893014729126,
+        "max_cross_track_m": 0.23306923560870427
+      },
+      "actual_gt": {
+        "length_m": 0.751737252051375,
+        "max_cross_track_m": 0.0714687000063581
+      },
+      "plan_message_count": 3,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 2.034355468162962,
+        "linear_jerk_p95_m_s3": 4.367331535305143,
+        "angular_jerk_rms_rad_s3": 0.5534987666102896,
+        "angular_jerk_p95_rad_s3": 1.1139996387102704,
+        "stationary_s": 0.7000000000000001,
+        "motion_start_count": 1,
+        "yaw_reversals": 2,
+        "lateral_reversals": 1,
+        "speed_mean_m_s": 0.16895625808737555,
+        "speed_max_m_s": 0.22710185610570513
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.02104022988505747,
+          "p95": 0.027000000000001023,
+          "p99": 0.02800000000000047
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.02111904761904762,
+          "p95": 0.027999999999998693,
+          "p99": 0.02800000000000047
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.02117460317460318,
+          "p95": 0.02800000000000047,
+          "p99": 0.03200000000000003
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.024422222222222227,
+          "p95": 0.027999999999998783,
+          "p99": 0.04883999999999998
+        }
+      },
+      "max_wheel_command_rad_s": 4.877751683549383,
+      "max_joint_rad_s": 4.387893627072644,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 16,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3497.08,
+            "p95": 4410.506399999998,
+            "p99": 5622.006699999981,
+            "max": 9910.085
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -3.7249998319894075,
+        1.5707963705062866
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.0921951149423445,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 4.797908014447534,
+      "initial_plan_yaw_total_variation_deg": 106.26021721998815
+    },
+    {
+      "variant": "baseline",
+      "route_index": 2,
+      "route": "turn_arrival",
+      "nav2_status": 4,
+      "sim_s": 15.393000000000002,
+      "actual_rtf": 0.41828135436376873,
+      "gt_xy_error_cm": 6.743590370268121,
+      "gt_yaw_error_deg": 8.090149425464897,
+      "initial_plan": {
+        "length_m": 2.0207227502751266,
+        "max_cross_track_m": 0.12412899833751555
+      },
+      "actual_gt": {
+        "length_m": 1.9751999121915764,
+        "max_cross_track_m": 0.1456047658780909
+      },
+      "plan_message_count": 8,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 1.0882334923805148,
+        "linear_jerk_p95_m_s3": 1.5235077737202085,
+        "angular_jerk_rms_rad_s3": 1.638435150523314,
+        "angular_jerk_p95_rad_s3": 4.211596076906791,
+        "stationary_s": 0.7000000000000001,
+        "motion_start_count": 1,
+        "yaw_reversals": 4,
+        "lateral_reversals": 4,
+        "speed_mean_m_s": 0.12828417581684406,
+        "speed_max_m_s": 0.2310483227265479
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.020905714285714288,
+          "p95": 0.027999999999998693,
+          "p99": 0.02800000000000047
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.020906122448979592,
+          "p95": 0.027000000000001023,
+          "p99": 0.02800000000000047
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.02097916666666667,
+          "p95": 0.027999999999998693,
+          "p99": 0.03500000000000014
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.021770212765957447,
+          "p95": 0.027999999999998693,
+          "p99": 0.028000000000002245
+        }
+      },
+      "max_wheel_command_rad_s": 4.693104400925749,
+      "max_joint_rad_s": 4.71064333457314,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 60,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3605.228,
+            "p95": 4430.758,
+            "p99": 6401.975,
+            "max": 9886.405
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9749996718019247,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -2.8249998185783625,
+        8.742277657347586e-08
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.13038368950458532,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 131.51718021450208,
+      "initial_plan_yaw_total_variation_deg": 196.2601873947535
+    },
+    {
+      "variant": "baseline",
+      "route_index": 4,
+      "route": "far_heading",
+      "nav2_status": 4,
+      "sim_s": 28.963000000000005,
+      "actual_rtf": 0.3800890713139106,
+      "gt_xy_error_cm": 1.5686035360983244,
+      "gt_yaw_error_deg": 5.811603831335047,
+      "initial_plan": {
+        "length_m": 4.670431542980944,
+        "max_cross_track_m": 0.30000000447034836
+      },
+      "actual_gt": {
+        "length_m": 4.468967900620168,
+        "max_cross_track_m": 0.17315511998007319
+      },
+      "plan_message_count": 15,
+      "initial_plan_elapsed_s": 0.0129999999999999,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 0.679209945993457,
+        "linear_jerk_p95_m_s3": 1.2313304212547278,
+        "angular_jerk_rms_rad_s3": 1.4005828761959844,
+        "angular_jerk_p95_rad_s3": 2.953430291371071,
+        "stationary_s": 0.65,
+        "motion_start_count": 1,
+        "yaw_reversals": 3,
+        "lateral_reversals": 7,
+        "speed_mean_m_s": 0.15437095601079304,
+        "speed_max_m_s": 0.24714101776114988
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.018986568166554738,
+          "p95": 0.025000000000000355,
+          "p99": 0.0259999999999998
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.01900459317585302,
+          "p95": 0.02500000000000213,
+          "p99": 0.0259999999999998
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.01911985815602837,
+          "p95": 0.0259999999999998,
+          "p99": 0.03200000000000326
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.019376840696117805,
+          "p95": 0.025000000000000355,
+          "p99": 0.0259999999999998
+        }
+      },
+      "max_wheel_command_rad_s": 4.73679519161934,
+      "max_joint_rad_s": 4.736795191481981,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 116,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3819.96,
+            "p95": 4920.897499999999,
+            "p99": 6265.414869999966,
+            "max": 9623.358
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -0.3249997813254595,
+        4.71238899230957
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.02236039553866228,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 226.53463649697454,
+      "initial_plan_yaw_total_variation_deg": 233.13008994065942
+    },
+    {
+      "variant": "baseline",
+      "route_index": 6,
+      "route": "lateral",
+      "nav2_status": 4,
+      "sim_s": 2.5589999999999993,
+      "actual_rtf": 0.41271663681933485,
+      "gt_xy_error_cm": 28.012573869847753,
+      "gt_yaw_error_deg": 1.6764294040026548,
+      "initial_plan": {
+        "length_m": 0.8236068100226767,
+        "max_cross_track_m": 0.13805370004968706
+      },
+      "actual_gt": {
+        "length_m": 0.3401258376366322,
+        "max_cross_track_m": 0.06366575530800873
+      },
+      "plan_message_count": 3,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 1.9166854931610413,
+        "linear_jerk_p95_m_s3": 4.864651076300575,
+        "angular_jerk_rms_rad_s3": 0.5196573263108697,
+        "angular_jerk_p95_rad_s3": 1.0079067493619611,
+        "stationary_s": 0.25,
+        "motion_start_count": 1,
+        "yaw_reversals": 0,
+        "lateral_reversals": 0,
+        "speed_mean_m_s": 0.1333797010599738,
+        "speed_max_m_s": 0.19017155517654885
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.020726415094339614,
+          "p95": 0.027000000000001023,
+          "p99": 0.02800000000000047
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.020577235772357715,
+          "p95": 0.026999999999999247,
+          "p99": 0.028000000000000077
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.020902439024390228,
+          "p95": 0.027999999999998693,
+          "p99": 0.032200000000000284
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.021394495412844026,
+          "p95": 0.02800000000000047,
+          "p99": 0.04620000000000063
+        }
+      },
+      "max_wheel_command_rad_s": 3.723164117471205,
+      "max_joint_rad_s": 3.476364785106359,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 8,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3737.366,
+            "p95": 4268.5423,
+            "p99": 7466.700119999994,
+            "max": 9939.294
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.2749996613711119,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.0921951149423445,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json",
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 2.0315031877067473,
+      "initial_plan_yaw_total_variation_deg": 53.13012910056159
+    },
+    {
+      "variant": "improved",
+      "route_index": 1,
+      "route": "straight",
+      "nav2_status": 4,
+      "sim_s": 3.9590000000000014,
+      "actual_rtf": 0.3919874317015449,
+      "gt_xy_error_cm": 26.02267950498928,
+      "gt_yaw_error_deg": 0.7265713230231092,
+      "initial_plan": {
+        "length_m": 1.0500000156462193,
+        "max_cross_track_m": 0.0
+      },
+      "actual_gt": {
+        "length_m": 0.7419569717127724,
+        "max_cross_track_m": 0.025569232362224813
+      },
+      "plan_message_count": 3,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 1.9636883428061933,
+        "linear_jerk_p95_m_s3": 5.817258278970588,
+        "angular_jerk_rms_rad_s3": 0.1397215126010443,
+        "angular_jerk_p95_rad_s3": 0.23850163749570358,
+        "stationary_s": 0.6000000000000001,
+        "motion_start_count": 1,
+        "yaw_reversals": 0,
+        "lateral_reversals": 0,
+        "speed_mean_m_s": 0.18799810333328065,
+        "speed_max_m_s": 0.2445545231078421
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.019305389221556887,
+          "p95": 0.025000000000000355,
+          "p99": 0.0259999999999998
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.019599009900990106,
+          "p95": 0.0259999999999998,
+          "p99": 0.026999999999999247
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.01957608695652174,
+          "p95": 0.027000000000001023,
+          "p99": 0.03317000000000114
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.022803468208092488,
+          "p95": 0.0259999999999998,
+          "p99": 0.05028000000000055
+        }
+      },
+      "max_wheel_command_rad_s": 4.468406678230216,
+      "max_joint_rad_s": 4.211924408855334,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 16,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3863.4849999999997,
+            "p95": 4883.95535,
+            "p99": 6131.415410000037,
+            "max": 9461.889
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.8749996703118086,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -3.7249998319894075,
+        1.5707963705062866
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.07071048082602557,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.change_penalty": 0.0,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json",
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.retrospective_penalty": 0.0,
+        "GridBased.reverse_penalty": 1.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 0.780553138310085,
+      "initial_plan_yaw_total_variation_deg": 0.0
+    },
+    {
+      "variant": "improved",
+      "route_index": 2,
+      "route": "turn_arrival",
+      "nav2_status": 4,
+      "sim_s": 14.27,
+      "actual_rtf": 0.3888268879423679,
+      "gt_xy_error_cm": 1.2391789570672365,
+      "gt_yaw_error_deg": 6.025210525101345,
+      "initial_plan": {
+        "length_m": 1.9181297895093794,
+        "max_cross_track_m": 0.08146619255422453
+      },
+      "actual_gt": {
+        "length_m": 1.9276268028702805,
+        "max_cross_track_m": 0.08784829873257027
+      },
+      "plan_message_count": 8,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 0.7827153362759786,
+        "linear_jerk_p95_m_s3": 1.4836742660619917,
+        "angular_jerk_rms_rad_s3": 1.90952122903119,
+        "angular_jerk_p95_rad_s3": 5.1870533138528,
+        "stationary_s": 0.6000000000000001,
+        "motion_start_count": 1,
+        "yaw_reversals": 2,
+        "lateral_reversals": 5,
+        "speed_mean_m_s": 0.13476484406564565,
+        "speed_max_m_s": 0.22382159989946518
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.01937195994277539,
+          "p95": 0.0259999999999998,
+          "p99": 0.026000000000001577
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.01944141689373297,
+          "p95": 0.02500000000000213,
+          "p99": 0.0259999999999998
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.019584033613445382,
+          "p95": 0.0259999999999998,
+          "p99": 0.032999999999999245
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.020235795454545458,
+          "p95": 0.0259999999999998,
+          "p99": 0.026969999999999397
+        }
+      },
+      "max_wheel_command_rad_s": 4.984286803664184,
+      "max_joint_rad_s": 4.944751848295387,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 56,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3777.29,
+            "p95": 4556.791499999999,
+            "p99": 5455.223069999983,
+            "max": 9472.689
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8249996695667505,
+        -2.8749998193234205,
+        2.0344436168670654
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.0921951149423445,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.change_penalty": 0.0,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json",
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.retrospective_penalty": 0.0,
+        "GridBased.reverse_penalty": 1.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 156.69751133011934,
+      "initial_plan_yaw_total_variation_deg": 79.69515949989653
+    },
+    {
+      "variant": "improved",
+      "route_index": 4,
+      "route": "far_heading",
+      "nav2_status": 4,
+      "sim_s": 28.5,
+      "actual_rtf": 0.39309896199193733,
+      "gt_xy_error_cm": 3.9763471291194357,
+      "gt_yaw_error_deg": 5.881768024276599,
+      "initial_plan": {
+        "length_m": 4.400000065565109,
+        "max_cross_track_m": 0.0
+      },
+      "actual_gt": {
+        "length_m": 4.409555240895675,
+        "max_cross_track_m": 0.053535864099796736
+      },
+      "plan_message_count": 14,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 0.46107922773179716,
+        "linear_jerk_p95_m_s3": 0.36512299014364524,
+        "angular_jerk_rms_rad_s3": 0.6835046410055667,
+        "angular_jerk_p95_rad_s3": 1.0559597125293638,
+        "stationary_s": 0.7000000000000001,
+        "motion_start_count": 1,
+        "yaw_reversals": 0,
+        "lateral_reversals": 3,
+        "speed_mean_m_s": 0.15472600143349116,
+        "speed_max_m_s": 0.24709307938055847
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.019630127298444128,
+          "p95": 0.0259999999999998,
+          "p99": 0.026999999999999247
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.019668737060041408,
+          "p95": 0.025000000000004262,
+          "p99": 0.026000000000003354
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.019719384184744577,
+          "p95": 0.0259999999999998,
+          "p99": 0.032999999999999474
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.020038028169014083,
+          "p95": 0.0259999999999998,
+          "p99": 0.027000000000001023
+        }
+      },
+      "max_wheel_command_rad_s": 4.518638023488796,
+      "max_joint_rad_s": 4.258354119624748,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 112,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3599.1425,
+            "p95": 4567.333500000001,
+            "p99": 5560.48979999999,
+            "max": 9161.981
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -0.3249997813254595,
+        2.0344436168670654
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.02236039553866228,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.change_penalty": 0.0,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json",
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.retrospective_penalty": 0.0,
+        "GridBased.reverse_penalty": 1.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 178.23621718308897,
+      "initial_plan_yaw_total_variation_deg": 26.565030399334944
+    },
+    {
+      "variant": "improved",
+      "route_index": 6,
+      "route": "lateral",
+      "nav2_status": 4,
+      "sim_s": 2.3149999999999995,
+      "actual_rtf": 0.4451387011793677,
+      "gt_xy_error_cm": 26.598735891235936,
+      "gt_yaw_error_deg": 0.76396132955688,
+      "initial_plan": {
+        "length_m": 0.6207106873679646,
+        "max_cross_track_m": 0.04567501460016773
+      },
+      "actual_gt": {
+        "length_m": 0.3347027357644361,
+        "max_cross_track_m": 0.010147198370926572
+      },
+      "plan_message_count": 2,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 2.5428646838860582,
+        "linear_jerk_p95_m_s3": 5.879228160091261,
+        "angular_jerk_rms_rad_s3": 0.16597041361155512,
+        "angular_jerk_p95_rad_s3": 0.3618775576796954,
+        "stationary_s": 0.65,
+        "motion_start_count": 1,
+        "yaw_reversals": 0,
+        "lateral_reversals": 0,
+        "speed_mean_m_s": 0.14572231090308416,
+        "speed_max_m_s": 0.22919137405191642
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.021647887323943675,
+          "p95": 0.028999999999999915,
+          "p99": 0.02930000000000099
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.022291262135922325,
+          "p95": 0.028999999999999915,
+          "p99": 0.030000000000001102
+        },
+        "/safety_2d/cmd_vel": null,
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.02971052631578946,
+          "p95": 0.04624999999999968,
+          "p99": 0.1719999999999997
+        }
+      },
+      "max_wheel_command_rad_s": 4.394747284776348,
+      "max_joint_rad_s": 3.994990737763729,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 8,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3641.5969999999998,
+            "p95": 4272.041550000001,
+            "p99": 6423.077620000034,
+            "max": 10233.49
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.8749996703118086,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.2749996613711119,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.07071048082602557,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.change_penalty": 0.0,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json",
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.retrospective_penalty": 0.0,
+        "GridBased.reverse_penalty": 1.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.05
+      },
+      "gt_yaw_total_variation_deg": 0.7639614507756683,
+      "initial_plan_yaw_total_variation_deg": 0.0
+    },
+    {
+      "variant": "refined",
+      "route_index": 1,
+      "route": "straight",
+      "nav2_status": 4,
+      "sim_s": 4.079000000000001,
+      "actual_rtf": 0.4120199217634076,
+      "gt_xy_error_cm": 26.3868323897912,
+      "gt_yaw_error_deg": 0.7381416249577948,
+      "initial_plan": {
+        "length_m": 1.0207106933284291,
+        "max_cross_track_m": 0.047440736803619675
+      },
+      "actual_gt": {
+        "length_m": 0.7479608473553038,
+        "max_cross_track_m": 0.06379940542597615
+      },
+      "plan_message_count": 3,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 1.8752050709271064,
+        "linear_jerk_p95_m_s3": 5.649222201205435,
+        "angular_jerk_rms_rad_s3": 0.11536480935549816,
+        "angular_jerk_p95_rad_s3": 0.20683226197206028,
+        "stationary_s": 0.7000000000000001,
+        "motion_start_count": 1,
+        "yaw_reversals": 0,
+        "lateral_reversals": 0,
+        "speed_mean_m_s": 0.18247845656241757,
+        "speed_max_m_s": 0.23804439074996725
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.02025308641975309,
+          "p95": 0.027000000000001023,
+          "p99": 0.02800000000000047
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.020568527918781724,
+          "p95": 0.02800000000000047,
+          "p99": 0.028999999999999915
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.02070857142857143,
+          "p95": 0.02800000000000047,
+          "p99": 0.02952000000000007
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.023917159763313607,
+          "p95": 0.02800000000000047,
+          "p99": 0.05264000000000101
+        }
+      },
+      "max_wheel_command_rad_s": 4.588956746754538,
+      "max_joint_rad_s": 4.463246846433791,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 16,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3616.227,
+            "p95": 4597.8751,
+            "p99": 6419.004619999992,
+            "max": 9892.662
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -3.7249998319894075,
+        1.5707963705062866
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.06324519277565538,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.change_penalty": 0.0,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json",
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.retrospective_penalty": 0.0,
+        "GridBased.reverse_penalty": 1.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.0
+      },
+      "gt_yaw_total_variation_deg": 0.9963018364071241,
+      "initial_plan_yaw_total_variation_deg": 0.0
+    },
+    {
+      "variant": "refined",
+      "route_index": 2,
+      "route": "turn_arrival",
+      "nav2_status": 4,
+      "sim_s": 12.540000000000001,
+      "actual_rtf": 0.42221750194429286,
+      "gt_xy_error_cm": 3.226060464422711,
+      "gt_yaw_error_deg": 7.231566871514244,
+      "initial_plan": {
+        "length_m": 1.9000000283122063,
+        "max_cross_track_m": 0.0
+      },
+      "actual_gt": {
+        "length_m": 1.8858372919544113,
+        "max_cross_track_m": 0.021963326201575407
+      },
+      "plan_message_count": 7,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 0.7006062793402128,
+        "linear_jerk_p95_m_s3": 0.7004356848695105,
+        "angular_jerk_rms_rad_s3": 1.4910847864752317,
+        "angular_jerk_p95_rad_s3": 3.0903780716422635,
+        "stationary_s": 0.65,
+        "motion_start_count": 1,
+        "yaw_reversals": 0,
+        "lateral_reversals": 1,
+        "speed_mean_m_s": 0.15029910653934556,
+        "speed_max_m_s": 0.2468298889498224
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.021131294964028782,
+          "p95": 0.027999999999998693,
+          "p99": 0.028000000000002245
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.021138513513513518,
+          "p95": 0.027999999999998693,
+          "p99": 0.028999999999999915
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.02130890052356021,
+          "p95": 0.027999999999998693,
+          "p99": 0.03527999999999996
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.022229537366548046,
+          "p95": 0.027999999999998693,
+          "p99": 0.03251000000000101
+        }
+      },
+      "max_wheel_command_rad_s": 4.658119875201442,
+      "max_joint_rad_s": 4.287807901360626,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 48,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3640.356,
+            "p95": 4361.821,
+            "p99": 5959.443779999928,
+            "max": 8495.649
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.8749996703118086,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -2.8249998185783625,
+        8.742277657347586e-08
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.02236039553866228,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.change_penalty": 0.0,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json",
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.retrospective_penalty": 0.0,
+        "GridBased.reverse_penalty": 1.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.0
+      },
+      "gt_yaw_total_variation_deg": 84.73961080665876,
+      "initial_plan_yaw_total_variation_deg": 89.99999749552204
+    },
+    {
+      "variant": "refined",
+      "route_index": 4,
+      "route": "far_heading",
+      "nav2_status": 4,
+      "sim_s": 32.207,
+      "actual_rtf": 0.35353550752738033,
+      "gt_xy_error_cm": 0.9595790236043921,
+      "gt_yaw_error_deg": 6.693040521099536,
+      "initial_plan": {
+        "length_m": 4.770710749207783,
+        "max_cross_track_m": 0.043817459554835
+      },
+      "actual_gt": {
+        "length_m": 4.443263743793659,
+        "max_cross_track_m": 0.05845357833872411
+      },
+      "plan_message_count": 18,
+      "initial_plan_elapsed_s": 0.004000000000001336,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 0.4446522447328233,
+        "linear_jerk_p95_m_s3": 1.012217599480915,
+        "angular_jerk_rms_rad_s3": 1.9235366708199655,
+        "angular_jerk_p95_rad_s3": 5.516891964536774,
+        "stationary_s": 0.6000000000000001,
+        "motion_start_count": 1,
+        "yaw_reversals": 4,
+        "lateral_reversals": 8,
+        "speed_mean_m_s": 0.13799826664059062,
+        "speed_max_m_s": 0.24687098143279457
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.01765061590145577,
+          "p95": 0.0259999999999998,
+          "p99": 0.027999999999998693
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.017690659340659342,
+          "p95": 0.026000000000003354,
+          "p99": 0.027999999999998693
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.01872529411764706,
+          "p95": 0.027000000000001023,
+          "p99": 0.03501000000000366
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.017959217877094976,
+          "p95": 0.0259999999999998,
+          "p99": 0.027999999999998693
+        }
+      },
+      "max_wheel_command_rad_s": 4.941073278695579,
+      "max_joint_rad_s": 5.1670713677564875,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 128,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3673.016,
+            "p95": 6014.955999999999,
+            "p99": 9157.378199999997,
+            "max": 13782.406
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.8749996703118086,
+        -0.3249997813254595,
+        4.71238899230957
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.0921951149423445,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.change_penalty": 0.0,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json",
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.retrospective_penalty": 0.0,
+        "GridBased.reverse_penalty": 1.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.0
+      },
+      "gt_yaw_total_variation_deg": 318.7586499753786,
+      "initial_plan_yaw_total_variation_deg": 179.99999817876716
+    },
+    {
+      "variant": "refined",
+      "route_index": 6,
+      "route": "lateral",
+      "nav2_status": 4,
+      "sim_s": 2.311,
+      "actual_rtf": 0.39841328741330306,
+      "gt_xy_error_cm": 25.39474845860297,
+      "gt_yaw_error_deg": 0.5619788644310999,
+      "initial_plan": {
+        "length_m": 0.6707106881130227,
+        "max_cross_track_m": 0.046017900016562356
+      },
+      "actual_gt": {
+        "length_m": 0.3469268963781866,
+        "max_cross_track_m": 0.015755796540541923
+      },
+      "plan_message_count": 3,
+      "initial_plan_elapsed_s": 0.0,
+      "smoothness": {
+        "available": true,
+        "linear_jerk_rms_m_s3": 2.555917396767385,
+        "linear_jerk_p95_m_s3": 5.713107603261945,
+        "angular_jerk_rms_rad_s3": 0.17178614505993842,
+        "angular_jerk_p95_rad_s3": 0.34707900090323596,
+        "stationary_s": 0.6000000000000001,
+        "motion_start_count": 1,
+        "yaw_reversals": 0,
+        "lateral_reversals": 0,
+        "speed_mean_m_s": 0.15077019229774102,
+        "speed_max_m_s": 0.23099696337148798
+      },
+      "command_sim_interval_s": {
+        "/nav2/cmd_vel": {
+          "mean": 0.019475609756097554,
+          "p95": 0.0259999999999998,
+          "p99": 0.02719000000000058
+        },
+        "/pan_ready/cmd_vel": {
+          "mean": 0.019922413793103447,
+          "p95": 0.0259999999999998,
+          "p99": 0.027849999999999035
+        },
+        "/safety_2d/cmd_vel": {
+          "mean": 0.021148148148148138,
+          "p95": 0.027699999999998857,
+          "p99": 0.028739999999999596
+        },
+        "/shadow/cmd_vel": null,
+        "/cmd_vel": {
+          "mean": 0.02647126436781608,
+          "p95": 0.027699999999999395,
+          "p99": 0.12143999999999995
+        }
+      },
+      "max_wheel_command_rad_s": 4.0942279516887945,
+      "max_joint_rad_s": 3.9147301242878676,
+      "contacts": {
+        "non_floor_non_self_records": 0,
+        "pairs": [],
+        "sampled_floor_records": 8,
+        "self_records": 0,
+        "unknown_pair_records": 0,
+        "all_collision_links_instrumented": true,
+        "caveat": "Sensor messages are not an independent geometric penetration proof; absence is reported as no observed contact, not guaranteed collision-free."
+      },
+      "compute": {
+        "compute_timing_columns": [
+          "sequence",
+          "sim_time_ns",
+          "wall_start_ns",
+          "compute_us",
+          "success"
+        ],
+        "compute_timing": {
+          "compute_us": {
+            "median": 3897.347,
+            "p95": 4645.8571,
+            "p99": 6145.883679999964,
+            "max": 10084.775
+          }
+        },
+        "compute_scope": "TimedController inner compute steady wall microseconds; includes enabled telemetry/output validation, excludes simulator and planner; failed calls retained."
+      },
+      "initial_plan_start_pose": [
+        -1.9249996710568666,
+        -4.774999847635627,
+        1.5707963705062866
+      ],
+      "initial_plan_end_pose": [
+        -1.2749996613711119,
+        -4.724999846890569,
+        1.5707963705062866
+      ],
+      "initial_truth_world": [
+        -1.8650000000000295,
+        -4.704999999833625,
+        1.570800000000001
+      ],
+      "initial_plan_start_distance_from_initial_gt_m": 0.0921951149423445,
+      "verified_planner_parameters": {
+        "GridBased.allow_reverse_expansion": true,
+        "GridBased.allow_unknown": false,
+        "GridBased.analytic_expansion_max_length": 0.0,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.change_penalty": 0.0,
+        "GridBased.cost_penalty": 2.0,
+        "GridBased.lattice_filepath": "/home/donglee/workspace/cleany/lattice-straight-improvement-20261016/grid5cm.json",
+        "GridBased.lookup_table_size": 0.05,
+        "GridBased.max_iterations": -1,
+        "GridBased.max_planning_time": 80.0,
+        "GridBased.non_straight_penalty": 2.0,
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.retrospective_penalty": 0.0,
+        "GridBased.reverse_penalty": 1.0,
+        "GridBased.rotation_penalty": 0.5,
+        "GridBased.smooth_path": false,
+        "GridBased.tolerance": 0.0
+      },
+      "gt_yaw_total_variation_deg": 0.6485709015232041,
+      "initial_plan_yaw_total_variation_deg": 0.0
+    }
+  ],
+  "checks": [
+    {
+      "route": "straight",
+      "controller_parameters_equal": true,
+      "loaded_mppi_binary_equal": true,
+      "world_source_equal": true,
+      "map_equal": true,
+      "behavior_tree_equal": true,
+      "goal_equal": true,
+      "goal_tolerances_maintained": true,
+      "wheel_command_limit_maintained": true,
+      "refined_initial_plan_goal_yaw_exact": true
+    },
+    {
+      "route": "turn_arrival",
+      "controller_parameters_equal": true,
+      "loaded_mppi_binary_equal": true,
+      "world_source_equal": true,
+      "map_equal": true,
+      "behavior_tree_equal": true,
+      "goal_equal": true,
+      "goal_tolerances_maintained": true,
+      "wheel_command_limit_maintained": true,
+      "refined_initial_plan_goal_yaw_exact": true
+    },
+    {
+      "route": "far_heading",
+      "controller_parameters_equal": true,
+      "loaded_mppi_binary_equal": true,
+      "world_source_equal": true,
+      "map_equal": true,
+      "behavior_tree_equal": true,
+      "goal_equal": true,
+      "goal_tolerances_maintained": true,
+      "wheel_command_limit_maintained": true,
+      "refined_initial_plan_goal_yaw_exact": true
+    },
+    {
+      "route": "lateral",
+      "controller_parameters_equal": true,
+      "loaded_mppi_binary_equal": true,
+      "world_source_equal": true,
+      "map_equal": true,
+      "behavior_tree_equal": true,
+      "goal_equal": true,
+      "goal_tolerances_maintained": true,
+      "wheel_command_limit_maintained": true,
+      "refined_initial_plan_goal_yaw_exact": true
+    }
+  ],
+  "notes": [
+    "Original experiment and fresh baseline are separate.",
+    "Only planner parameters/primitive file changed; MPPI binary, parameters, footprint and goal tolerance held.",
+    "Sequential runs, requested RTF 2; actual RTF/control periods reported, stochastic single trials.",
+    "First-plan cross-track is measured against that plan own endpoints; GT cross-track against actual initial GT and requested goal.",
+    "No observed contacts is not proof of zero geometric interference."
+  ]
+}

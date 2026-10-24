@@ -1,0 +1,411 @@
+{
+  "all_verified": true,
+  "checks": [
+    {
+      "check": "exactly five unique goal measurements",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight one navigation goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight complete terminal evidence",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight joint wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight contact stream attributable",
+      "verified": true,
+      "details": 19440
+    },
+    {
+      "check": "straight final stopped",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight hard watchdog unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight no pilot segment limit",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight collision geometry unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight coupled limiter owns acceleration",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight internal feasibility enabled",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "straight complete rosbag",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival one navigation goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival complete terminal evidence",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival joint wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival contact stream attributable",
+      "verified": true,
+      "details": 45808
+    },
+    {
+      "check": "turn_arrival final stopped",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival hard watchdog unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival no pilot segment limit",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival collision geometry unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival coupled limiter owns acceleration",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival internal feasibility enabled",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "turn_arrival complete rosbag",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap one navigation goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap complete terminal evidence",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap joint wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap contact stream attributable",
+      "verified": true,
+      "details": 44484
+    },
+    {
+      "check": "chair_gap final stopped",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap hard watchdog unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap no pilot segment limit",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap collision geometry unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap coupled limiter owns acceleration",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap internal feasibility enabled",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "chair_gap complete rosbag",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading one navigation goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading complete terminal evidence",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading joint wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading contact stream attributable",
+      "verified": true,
+      "details": 66883
+    },
+    {
+      "check": "far_heading final stopped",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading hard watchdog unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading no pilot segment limit",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading collision geometry unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading coupled limiter owns acceleration",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading internal feasibility enabled",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "far_heading complete rosbag",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant one navigation goal issued",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant complete terminal evidence",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant command wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant joint wheel <=5",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant contact stream attributable",
+      "verified": true,
+      "details": 119670
+    },
+    {
+      "check": "distant final stopped",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant hard watchdog unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant no pilot segment limit",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen runner.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen wheel_limiter.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen conservative_runner_snapshot.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant frozen relaxed_probe.py",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant collision geometry unchanged",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant coupled limiter owns acceleration",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant internal feasibility enabled",
+      "verified": true,
+      "details": null
+    },
+    {
+      "check": "distant complete rosbag",
+      "verified": true,
+      "details": null
+    }
+  ],
+  "note": "These are evidence and implementation checks. Navigation outcomes remain descriptive; no navigation acceptance score is assigned."
+}

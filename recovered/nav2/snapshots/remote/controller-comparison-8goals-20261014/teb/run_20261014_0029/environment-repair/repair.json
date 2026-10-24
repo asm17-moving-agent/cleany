@@ -1,0 +1,14 @@
+{
+  "cause": "Running kernel7.1.9-arch1-2, installed modules7.2.9-arch1-1; overlay filesystem absent and modprobe could not find matching module. Existing Podman containers were preserved.",
+  "repair": "Extracted matching, signed overlay.ko.zst from cached linux7.1.9.arch1-2 package; verified vermagic, loaded with insmod; removed fresh overlay-false failure cache created by this attempt. No kernel upgrade, container recreation or image modification.",
+  "kernel": "7.1.9-arch1-2",
+  "module_sha256": "1288b9d407c6ca75fe05a5f7e1212964fab8347e9b032a2c6b5fb2d1f3691144",
+  "package": "/var/cache/pacman/pkg/linux-7.1.9.arch1-2-x86_64.pkg.tar.zst",
+  "success": "podman ps lists original stopped cleany-ros-humble and cleany-ros-humble-cdi containers",
+  "gpu_repair": {
+    "cause": "NVIDIA loaded kernel driver610.57.04 versus installed libraries615.78.08; absent CDI specification",
+    "repair": "Cached nvidia-utils610.57.04 extracted inside experiment, private driver-root ld.so.cache generated; CDI spec created in /etc/cdi/nvidia-teb.yaml. Native system libraries/driver modules unchanged. Existing container restored.",
+    "verified_device": "RTX5070,610.57.04 inside cleany-ros-humble-cdi",
+    "private_driver_root": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/environment-repair/nvidia-610.57.04"
+  }
+}

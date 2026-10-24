@@ -1,0 +1,129 @@
+{
+  "version": "proposed-v1",
+  "status": "preflight required; do not run campaign before goals.locked.json",
+  "controllers": [
+    "DWB",
+    "MPPI",
+    "TEB"
+  ],
+  "world": "18F full facility; world.template.sdf with matching CAD robot",
+  "home_world_map": [
+    -1.865,
+    -4.705,
+    1.5708
+  ],
+  "map_frame": "world aligned; NOT original old map origin [0,0,0]",
+  "goals": [
+    {
+      "index": 0,
+      "id": "straight",
+      "pose_map_world": [
+        -1.865,
+        -3.705,
+        1.5708
+      ],
+      "seat": null,
+      "remove_chair": null
+    },
+    {
+      "index": 1,
+      "id": "turn_arrival",
+      "pose_map_world": [
+        -1.865,
+        -2.8,
+        0
+      ],
+      "seat": null,
+      "remove_chair": null
+    },
+    {
+      "index": 2,
+      "id": "chair_gap",
+      "pose_map_world": [
+        0.575,
+        -1.625,
+        1.570796
+      ],
+      "seat": "seat-29",
+      "remove_chair": "office_chair_29"
+    },
+    {
+      "index": 3,
+      "id": "far_heading",
+      "pose_map_world": [
+        -1.865,
+        -0.3,
+        -1.570796
+      ],
+      "seat": null,
+      "remove_chair": null
+    },
+    {
+      "index": 4,
+      "id": "distant",
+      "pose_map_world": [
+        -5.525,
+        4.775,
+        -1.570796
+      ],
+      "seat": "seat-01",
+      "remove_chair": "office_chair_01"
+    },
+    {
+      "index": 5,
+      "id": "lateral",
+      "pose_map_world": [
+        -1.265,
+        -4.705,
+        1.5708
+      ],
+      "seat": null,
+      "remove_chair": null
+    },
+    {
+      "index": 6,
+      "id": "narrow_seat",
+      "pose_map_world": [
+        -3.125,
+        -4.475,
+        1.570796
+      ],
+      "seat": "seat-43",
+      "remove_chair": "office_chair_43"
+    },
+    {
+      "index": 7,
+      "id": "other_room",
+      "pose_map_world": [
+        -16.775,
+        1.775,
+        1.570796
+      ],
+      "seat": "seat-m1-04",
+      "remove_chair": "facility_chair_M14"
+    }
+  ],
+  "repetitions_per_goal": 1,
+  "xy_goal_tolerance_m": 0.3,
+  "yaw_goal_tolerance_deg": 10,
+  "wheel_limit_rad_s": 5,
+  "relaxed_simulation_profile": "retain prior external safety bypasses; physical footprint/internal collision remain; no additional safety reduction",
+  "deadline_sim_s": 1200,
+  "deadline_wall_s": 1800,
+  "rtf_target": 1,
+  "mode": "headless; do not reopen GUI",
+  "preflight_owner": "DWB session on local; validate footprint free poses and shared planner reachability, fix common goal coordinates ONLY if needed, publish goals.locked.json plus reason/proof before 3 campaigns",
+  "new_goal_policy": "same corrected goals across all controllers; retain 8 intent categories; label actual route characteristics from observation rather than assuming narrow or multi-turn",
+  "metrics": [
+    "Nav2 status",
+    "GT XY/yaw errors diagnostic",
+    "sim and wall durations",
+    "compute median/p95/p99",
+    "actual control period and RTF",
+    "GT jerk RMS/p95",
+    "stops/reversals with common definition",
+    "contact/collision",
+    "wheel command and joint maxima"
+  ],
+  "cross_host_compute": "no absolute ranking across local ARM and remote x86"
+}

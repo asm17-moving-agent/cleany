@@ -1,0 +1,13 @@
+{
+  "failures": [
+    {
+      "planner": "lattice",
+      "error": "RuntimeError(\"lattice/1 startup failed: CalledProcessError: Command '['ros2', 'param', 'dump', '/controller_server', '--no-daemon', '--spin-time', '3', '--output-dir', '/home/donglee/workspace/cleany/planner-lattice-theta-20261016/lattice/1_turn_arrival']' returned non-zero exit status 2.; exit 2\")"
+    },
+    {
+      "planner": "theta",
+      "error": "RuntimeError('Refuse to overwrite /home/donglee/workspace/cleany/planner-lattice-theta-20261016/theta/7_other_room')"
+    }
+  ],
+  "finished_wall": 1792091591.3431537
+}

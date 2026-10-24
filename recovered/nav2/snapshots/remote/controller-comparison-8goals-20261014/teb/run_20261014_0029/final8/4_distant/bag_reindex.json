@@ -1,0 +1,11 @@
+{
+  "offline_only": true,
+  "original_db_sha256": "fbbd4a862818d42bd22d0c699018a900f01b0928e42f65ca56f7731637c2c6b2",
+  "after_reindex_db_sha256": "fbbd4a862818d42bd22d0c699018a900f01b0928e42f65ca56f7731637c2c6b2",
+  "db_bytes_unchanged": true,
+  "integrity_check": "ok",
+  "reindex_returncode": 0,
+  "stdout": "\nclosing.\n\nclosing.\n",
+  "stderr": "[INFO] [1791915060.486488568] [rosbag2_cpp]: Beginning reindexing bag in directory: /home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/4_distant/bag\n[INFO] [1791915060.488212196] [rosbag2_storage]: Opened database '/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/final8/4_distant/bag/bag_0.db3' for READ_ONLY.\n[INFO] [1791915060.579289519] [rosbag2_cpp]: Reindexing complete.\n",
+  "reason": "Metadata missing after recorder SQLite-lock termination; metadata recovery does not restore lost messages."
+}

@@ -1,0 +1,30 @@
+{
+  "seat": "seat-m1-01",
+  "zone": "M1",
+  "goal": [
+    -16.775,
+    5.075,
+    -1.570796
+  ],
+  "map": "/home/donglee/workspace/cleany/facility-all-seats-lattice-static-20261016/maps/all-chairs-present/map.yaml",
+  "map_sha256": "eb50c8df1db767065e5126285d3402a371180fc3c9a3fd33f179537d8cb3f43d",
+  "removed_chair": null,
+  "removed_only_target_chair": true,
+  "changed_2p5cm_cells": 0,
+  "start": [
+    -1.865,
+    -4.705,
+    1.5708
+  ],
+  "action_status": 4,
+  "path_generated": true,
+  "pose_count": 481,
+  "path_length_m": 24.26829678299341,
+  "planned_yaw_variation_deg": 540.0000355174367,
+  "planning_s": 1.208616898,
+  "wall_s": 1.2178040029975818,
+  "goal_xy_error_m": 3.1792466329051637e-07,
+  "goal_yaw_error_deg": 1.804072304223607e-05,
+  "error": null,
+  "planner_diagnostics": []
+}

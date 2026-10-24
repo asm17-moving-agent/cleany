@@ -1,0 +1,35 @@
+{
+  "status": "complete with recorded measurement limitations",
+  "locked_goals": 8,
+  "accepted_navigate_to_pose_count": 8,
+  "nav2_arrived": 7,
+  "nav2_aborted": 1,
+  "gt_tolerance_observed_among_arrivals": 7,
+  "contact_counts": [
+    0,
+    0,
+    0,
+    0,
+    null,
+    0,
+    0,
+    0
+  ],
+  "wheel_joint_max_rad_s": 4.9900000016009916,
+  "compute_exceptions": 0,
+  "unverified_audit_items": [
+    "straight original per-goal TEB runtime parameter query available",
+    "turn_arrival original per-goal TEB runtime parameter query available",
+    "chair_gap original per-goal TEB runtime parameter query available",
+    "far_heading original per-goal TEB runtime parameter query available",
+    "distant contacts attributable",
+    "distant original per-goal TEB runtime parameter query available",
+    "lateral original per-goal TEB runtime parameter query available",
+    "narrow_seat original per-goal TEB runtime parameter query available",
+    "other_room original per-goal TEB runtime parameter query available"
+  ],
+  "owned_processes": [],
+  "report": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/REPORT.md",
+  "results_json": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/results.json",
+  "results_csv": "/home/donglee/workspace/cleany/controller-comparison-8goals-20261014/teb/run_20261014_0029/results.csv"
+}

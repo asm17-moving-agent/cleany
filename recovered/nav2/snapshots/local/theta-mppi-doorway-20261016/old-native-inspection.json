@@ -1,0 +1,140 @@
+[
+  {
+    "snapshot": "00030.800.json",
+    "gt": [
+      -5.367031031506087,
+      -5.226017803900578,
+      -0.007980623200613003
+    ],
+    "robot_map": [
+      -5.390922119856974,
+      -5.294542458214815,
+      0.0014497215834852072
+    ],
+    "path_yaws_deg": [
+      0.0
+    ],
+    "orientations": {
+      "0": {
+        "local": {
+          "poses": 28,
+          "lethal": 2,
+          "off_map": 0,
+          "max_cost": 254.0
+        },
+        "global": {
+          "poses": 28,
+          "lethal": 2,
+          "off_map": 0,
+          "max_cost": 254.0
+        }
+      },
+      "90": {
+        "local": {
+          "poses": 28,
+          "lethal": 2,
+          "off_map": 0,
+          "max_cost": 254.0
+        },
+        "global": {
+          "poses": 28,
+          "lethal": 2,
+          "off_map": 0,
+          "max_cost": 254.0
+        }
+      }
+    }
+  },
+  {
+    "snapshot": "00036.000.json",
+    "gt": [
+      -5.375176296377626,
+      -5.812967106978746,
+      0.000954155826822692
+    ],
+    "robot_map": [
+      -5.399093057280861,
+      -5.874381108360425,
+      0.005774395043297651
+    ],
+    "path_yaws_deg": [
+      0.0
+    ],
+    "orientations": {
+      "0": {
+        "local": {
+          "poses": 24,
+          "lethal": 2,
+          "off_map": 0,
+          "max_cost": 254.0
+        },
+        "global": {
+          "poses": 24,
+          "lethal": 2,
+          "off_map": 0,
+          "max_cost": 254.0
+        }
+      },
+      "90": {
+        "local": {
+          "poses": 24,
+          "lethal": 2,
+          "off_map": 0,
+          "max_cost": 254.0
+        },
+        "global": {
+          "poses": 24,
+          "lethal": 2,
+          "off_map": 0,
+          "max_cost": 254.0
+        }
+      }
+    }
+  },
+  {
+    "snapshot": "00041.002.json",
+    "gt": [
+      -5.522977666572982,
+      -6.058981187917169,
+      -4.083332402072248e-05
+    ],
+    "robot_map": [
+      -5.565917921046771,
+      -6.1030136394796495,
+      0.004946078912744611
+    ],
+    "path_yaws_deg": [
+      0.0
+    ],
+    "orientations": {
+      "0": {
+        "local": {
+          "poses": 24,
+          "lethal": 0,
+          "off_map": 0,
+          "max_cost": 253.0
+        },
+        "global": {
+          "poses": 24,
+          "lethal": 0,
+          "off_map": 0,
+          "max_cost": 253.0
+        }
+      },
+      "90": {
+        "local": {
+          "poses": 24,
+          "lethal": 0,
+          "off_map": 0,
+          "max_cost": 253.0
+        },
+        "global": {
+          "poses": 24,
+          "lethal": 0,
+          "off_map": 0,
+          "max_cost": 253.0
+        }
+      }
+    }
+  }
+]

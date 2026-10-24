@@ -1,0 +1,229 @@
+{
+  "verified_epoch_s": 1791913598.5185947,
+  "goal_count": 8,
+  "goal_indices_once": true,
+  "common_controller_and_planner_profile_identical": true,
+  "common_input_hash_changes": [],
+  "remaining_exact_owned_partition_processes": [],
+  "checks": [
+    {
+      "goal": "straight",
+      "navigation_started_once": true,
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "GT_xy_error_m": 0.2639833350431299,
+      "GT_yaw_error_deg": 1.636129351841647e-05,
+      "measured_joint_max_rad_s": 4.212333645831753,
+      "wheel_joint_hard_cap_observed": true,
+      "common_controller_and_planner_parameters_match": true,
+      "initial_world_pose_matches": true,
+      "bags": [
+        {
+          "file": "campaign/0_straight/bag/bag_0.db3",
+          "quick_check": "ok",
+          "message_count": 51260,
+          "topic_count": 49,
+          "clock_sim_bounds": [
+            7.277,
+            15.673
+          ],
+          "navigation_window_covered": true,
+          "coverage_gap_reason": null
+        }
+      ]
+    },
+    {
+      "goal": "turn_arrival",
+      "navigation_started_once": true,
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "GT_xy_error_m": 0.27351380184338653,
+      "GT_yaw_error_deg": 3.716888379754645,
+      "measured_joint_max_rad_s": 5.015522324630671,
+      "wheel_joint_hard_cap_observed": false,
+      "common_controller_and_planner_parameters_match": true,
+      "initial_world_pose_matches": true,
+      "bags": [
+        {
+          "file": "campaign/1_turn_arrival/bag/bag_0.db3",
+          "quick_check": "ok",
+          "message_count": 91926,
+          "topic_count": 49,
+          "clock_sim_bounds": [
+            7.623,
+            22.751
+          ],
+          "navigation_window_covered": true,
+          "coverage_gap_reason": null
+        }
+      ]
+    },
+    {
+      "goal": "chair_gap",
+      "navigation_started_once": true,
+      "action_status": 5,
+      "timeout": true,
+      "error": null,
+      "GT_xy_error_m": 1.861646907555749,
+      "GT_yaw_error_deg": 0.04715374669148086,
+      "measured_joint_max_rad_s": 4.990000000118912,
+      "wheel_joint_hard_cap_observed": true,
+      "common_controller_and_planner_parameters_match": true,
+      "initial_world_pose_matches": true,
+      "bags": [
+        {
+          "file": "campaign/2_chair_gap/bag/bag_0.db3",
+          "quick_check": "ok",
+          "message_count": 575000,
+          "topic_count": 49,
+          "clock_sim_bounds": [
+            7.955,
+            102.533
+          ],
+          "navigation_window_covered": false,
+          "coverage_gap_reason": "Recorder SqliteException database is locked; raw bag only covers a prefix. Metadata reindex cannot restore lost messages."
+        }
+      ]
+    },
+    {
+      "goal": "far_heading",
+      "navigation_started_once": true,
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "GT_xy_error_m": 0.21963183632214944,
+      "GT_yaw_error_deg": 2.7396142617014414,
+      "measured_joint_max_rad_s": 5.006475590412114,
+      "wheel_joint_hard_cap_observed": false,
+      "common_controller_and_planner_parameters_match": true,
+      "initial_world_pose_matches": true,
+      "bags": [
+        {
+          "file": "campaign/3_far_heading/bag/bag_0.db3",
+          "quick_check": "ok",
+          "message_count": 157862,
+          "topic_count": 49,
+          "clock_sim_bounds": [
+            7.469,
+            32.669
+          ],
+          "navigation_window_covered": true,
+          "coverage_gap_reason": null
+        }
+      ]
+    },
+    {
+      "goal": "distant",
+      "navigation_started_once": true,
+      "action_status": 5,
+      "timeout": true,
+      "error": null,
+      "GT_xy_error_m": 6.104619494998387,
+      "GT_yaw_error_deg": 118.09930450111314,
+      "measured_joint_max_rad_s": 5.1284976327385,
+      "wheel_joint_hard_cap_observed": false,
+      "common_controller_and_planner_parameters_match": true,
+      "initial_world_pose_matches": true,
+      "bags": [
+        {
+          "file": "campaign/4_distant/bag/bag_0.db3",
+          "quick_check": "ok",
+          "message_count": 2068023,
+          "topic_count": 49,
+          "clock_sim_bounds": [
+            7.465,
+            367.62
+          ],
+          "navigation_window_covered": false,
+          "coverage_gap_reason": "Recorder SqliteException database is locked; raw bag only covers a prefix. Metadata reindex cannot restore lost messages."
+        }
+      ]
+    },
+    {
+      "goal": "lateral",
+      "navigation_started_once": true,
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "GT_xy_error_m": 0.2919498825428219,
+      "GT_yaw_error_deg": 1.1291107791379598e-06,
+      "measured_joint_max_rad_s": 3.0980134469171148,
+      "wheel_joint_hard_cap_observed": true,
+      "common_controller_and_planner_parameters_match": true,
+      "initial_world_pose_matches": true,
+      "bags": [
+        {
+          "file": "campaign/5_lateral/bag/bag_0.db3",
+          "quick_check": "ok",
+          "message_count": 32191,
+          "topic_count": 49,
+          "clock_sim_bounds": [
+            7.677,
+            13.57
+          ],
+          "navigation_window_covered": true,
+          "coverage_gap_reason": null
+        }
+      ]
+    },
+    {
+      "goal": "narrow_seat",
+      "navigation_started_once": true,
+      "action_status": 4,
+      "timeout": false,
+      "error": null,
+      "GT_xy_error_m": 0.3290126541232471,
+      "GT_yaw_error_deg": 0.00018937773132177507,
+      "measured_joint_max_rad_s": 4.990253185782083,
+      "wheel_joint_hard_cap_observed": true,
+      "common_controller_and_planner_parameters_match": true,
+      "initial_world_pose_matches": true,
+      "bags": [
+        {
+          "file": "campaign/6_narrow_seat/bag/bag_0.db3",
+          "quick_check": "ok",
+          "message_count": 42822,
+          "topic_count": 49,
+          "clock_sim_bounds": [
+            7.986,
+            15.901
+          ],
+          "navigation_window_covered": true,
+          "coverage_gap_reason": null
+        }
+      ]
+    },
+    {
+      "goal": "other_room",
+      "navigation_started_once": true,
+      "action_status": 6,
+      "timeout": false,
+      "error": null,
+      "GT_xy_error_m": 15.806557984707307,
+      "GT_yaw_error_deg": 0.0002200088552287807,
+      "measured_joint_max_rad_s": 3.0610460209294086,
+      "wheel_joint_hard_cap_observed": true,
+      "common_controller_and_planner_parameters_match": true,
+      "initial_world_pose_matches": true,
+      "bags": [
+        {
+          "file": "campaign/7_other_room/bag/bag_0.db3",
+          "quick_check": "ok",
+          "message_count": 612441,
+          "topic_count": 49,
+          "clock_sim_bounds": [
+            7.656,
+            122.35
+          ],
+          "navigation_window_covered": true,
+          "coverage_gap_reason": null
+        }
+      ]
+    }
+  ],
+  "all_raw_bags_cover_navigation_window": false,
+  "all_measured_wheel_joint_values_le_5": false,
+  "success_claim": "Action statuses and GT errors are separate; no combined score or cross-host ranking"
+}

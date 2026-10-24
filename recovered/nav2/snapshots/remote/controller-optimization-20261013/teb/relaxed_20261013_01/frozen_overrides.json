@@ -1,0 +1,18 @@
+{
+  "stage": "relaxed",
+  "teb_overrides": {},
+  "controller_frequency_hz": 10,
+  "native_settings_source": "runner.py setup f.update",
+  "wheel_cap_rad_s": 4.99,
+  "physical_wheel_cap_rad_s": 5.0,
+  "wheel_acceleration_rad_s2": 8.0,
+  "wheel_output_frequency_hz": 20,
+  "internal_feasibility_retained": true,
+  "note": "Frozen after corrected rotating-arrival and chair-gap pilots; no tuning during final campaign",
+  "scripts_sha256": {
+    "runner.py": "474d0220f62b2920d81952856d4258c8d94f4880b4e7abb314b98252fc9a58e3",
+    "wheel_limiter.py": "d5dd459140833a8c0748e6425e6e4391ffd85ef419b8ca32dbe4570c0f844d32",
+    "conservative_runner_snapshot.py": "1acc237c7a40d857044b1d8066cde20be1dae7247b7a328cd5ce0b59b554a6bd",
+    "relaxed_probe.py": "796c10ffedfb692f31ec85d5e9ff987132ff31608c75242571f2ccbcc454d765"
+  }
+}

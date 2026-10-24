@@ -1,0 +1,6 @@
+{
+  "reason": "Unsmooth wheel prototype diagnostic only: previous chair trial actual feedback exceeded5rad/s; stop for acceleration smoothing.",
+  "cancel_return_code": 0,
+  "goals_canceling": 1,
+  "wall_monotonic_s": 34355.733240959
+}

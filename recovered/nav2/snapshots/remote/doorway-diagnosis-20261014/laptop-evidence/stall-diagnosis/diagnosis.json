@@ -1,0 +1,229 @@
+{
+  "observed_condition": "MPPI produces small valid commands near doorway; upstream stop guards are shadow only. Wheel limiter passes commands unchanged.",
+  "geometry_evidence": {
+    "checker": "Installed Nav2 FootprintCollisionChecker<Costmap2D*> native library",
+    "current_cost": 253.0,
+    "sparse_collisions": 0,
+    "sparse_count": 29,
+    "sweep_collisions": 0,
+    "sweep_count": 244,
+    "rotate_in_place_collisions": 8,
+    "rotate_in_place_count": 31,
+    "translate_with_current_yaw_collisions": 35,
+    "translate_with_current_yaw_count": 244,
+    "dense_collision_poses": []
+  },
+  "snapshot_sim_s": 463.333,
+  "localization_error_m": 0.022625925022418104,
+  "localization_yaw_error_deg": -0.17231279536385016,
+  "main_hypothesis": "MPPI local optimization fails to find the coordinated translation plus rotation needed to join the lattice path at the doorway. Static native checks prove simple alternatives collide, but do not identify a single responsible critic.",
+  "root_critic": null,
+  "root_critic_null_reason": "Seven isolated parameter/layer changes did not resolve stall. No per-critic candidate-score telemetry was collected.",
+  "confirmed_persistence_cause": {
+    "progress_time_allowance_sim_s": 1500,
+    "failure_tolerance": -1,
+    "periodic_replanning": false,
+    "bt_replanning_trigger": [
+      "upcoming discrete path invalid",
+      "controller failure"
+    ]
+  },
+  "tests": [
+    {
+      "phase": "lower_obstacle_cost",
+      "values": {
+        "CostCritic.cost_weight": 0.5
+      },
+      "wall_s": 35.001137391001976,
+      "sim_s": 10.740000000000009,
+      "start": {
+        "wall": 35921.18167673,
+        "phase": "lower_obstacle_cost",
+        "x": -17.154523224958318,
+        "y": 0.631053045979169,
+        "yaw": 2.2207160286534173,
+        "sim_s": 230.64
+      },
+      "end": {
+        "wall": 35956.145612292,
+        "phase": "lower_obstacle_cost",
+        "x": -17.156792689815177,
+        "y": 0.6983352616189462,
+        "yaw": 2.214176697247043,
+        "sim_s": 241.38
+      },
+      "displacement_m": 0.06732047988639117
+    },
+    {
+      "phase": "lower_rotation_penalty",
+      "values": {
+        "TwirlingCritic.cost_weight": 0.0
+      },
+      "wall_s": 35.041039686999284,
+      "sim_s": 10.859999999999985,
+      "start": {
+        "wall": 35997.977697136,
+        "phase": "lower_rotation_penalty",
+        "x": -17.162959392126766,
+        "y": 0.6451910701736742,
+        "yaw": 2.2868161609020845,
+        "sim_s": 254.48
+      },
+      "end": {
+        "wall": 36032.964836361,
+        "phase": "lower_rotation_penalty",
+        "x": -17.164192579893292,
+        "y": 0.6670304623333784,
+        "yaw": 2.2849297889500355,
+        "sim_s": 265.34
+      },
+      "displacement_m": 0.021874181172625892
+    },
+    {
+      "phase": "wider_sampling",
+      "values": {
+        "vx_std": 0.12,
+        "vy_std": 0.12,
+        "wz_std": 0.3
+      },
+      "wall_s": 50.04691986200487,
+      "sim_s": 16.039999999999964,
+      "start": {
+        "wall": 36052.706188431,
+        "phase": "wider_sampling",
+        "x": -17.15656588286933,
+        "y": 0.6805924830726576,
+        "yaw": 2.280771044721728,
+        "sim_s": 271.72
+      },
+      "end": {
+        "wall": 36102.696973855,
+        "phase": "wider_sampling",
+        "x": -17.146665183734015,
+        "y": 0.6114870119723069,
+        "yaw": 2.453891122727142,
+        "sim_s": 287.76
+      },
+      "displacement_m": 0.06981110212114856
+    },
+    {
+      "phase": "depth_disabled",
+      "wall_s": 35.01652717200341,
+      "sim_s": 10.339999999999975,
+      "start": {
+        "wall": 36140.900395579,
+        "phase": "depth_disabled",
+        "x": -17.162432341806962,
+        "y": 0.666905576343136,
+        "yaw": 2.284565614855193,
+        "sim_s": 299.94
+      },
+      "end": {
+        "wall": 36175.845418806,
+        "phase": "depth_disabled",
+        "x": -17.16248544584369,
+        "y": 0.649384546052471,
+        "yaw": 2.2902366552189277,
+        "sim_s": 310.28
+      },
+      "displacement_m": 0.017521110766304648
+    },
+    {
+      "phase": "without_path_orientation",
+      "values": {
+        "PathAlignCritic.use_path_orientations": false
+      },
+      "wall_s": 45.02789537799981,
+      "sim_s": 14.360000000000014,
+      "start": {
+        "wall": 36537.296725292,
+        "phase": "without_path_orientation",
+        "x": -17.15962603065146,
+        "y": 0.6858364768633709,
+        "yaw": 2.4652088098534763,
+        "sim_s": 425.18
+      },
+      "end": {
+        "wall": 36582.273962392,
+        "phase": "without_path_orientation",
+        "x": -17.166366304433133,
+        "y": 0.6845932294172754,
+        "yaw": 2.366009753519668,
+        "sim_s": 439.54
+      },
+      "displacement_m": 0.006853973655051387
+    },
+    {
+      "phase": "lower_temperature",
+      "values": {
+        "temperature": 0.03
+      },
+      "wall_s": 35.04775635700207,
+      "sim_s": 10.620000000000005,
+      "start": {
+        "wall": 36797.618255571,
+        "phase": "lower_temperature",
+        "x": -17.11186401661142,
+        "y": 0.6754671405841045,
+        "yaw": 2.3502820443197114,
+        "sim_s": 505.22
+      },
+      "end": {
+        "wall": 36832.520961321,
+        "phase": "lower_temperature",
+        "x": -17.104334386405213,
+        "y": 0.5396401419288388,
+        "yaw": 2.410839445845189,
+        "sim_s": 515.84
+      },
+      "displacement_m": 0.13603554276269045
+    },
+    {
+      "phase": "stronger_path_follow",
+      "values": {
+        "PathFollowCritic.cost_weight": 100.0
+      },
+      "wall_s": 40.0652447609973,
+      "sim_s": 12.120000000000005,
+      "start": {
+        "wall": 36845.755534883,
+        "phase": "stronger_path_follow",
+        "x": -17.10879726895536,
+        "y": 0.6660936234544583,
+        "yaw": 2.3519436274969694,
+        "sim_s": 519.68
+      },
+      "end": {
+        "wall": 36885.752279794,
+        "phase": "stronger_path_follow",
+        "x": -17.105449170533333,
+        "y": 0.6523563923776118,
+        "yaw": 2.3707612735030983,
+        "sim_s": 531.8
+      },
+      "displacement_m": 0.014139352202355572
+    }
+  ],
+  "diagnostic_failure": {
+    "parameter": "FollowPath.PathAlignCritic.offset_from_furthest",
+    "value": 0,
+    "result": "controller_server SIGSEGV exit -11; managed navigation and experiment shutdown",
+    "original_stall_cause": false,
+    "suspected_code_boundary": "PathAlign path_segments_count can be zero; code allocates an empty distance vector and lacks a zero-length guard. Stack trace not collected.",
+    "interpretation": "Do not use this stage as baseline navigation failure or compare final whole-run metrics."
+  },
+  "restoration": {
+    "output": "cleany-data/runs/lattice-mppi-gui-20261014/runtime-v3-restored",
+    "domain": 230,
+    "planner": "SmacPlannerLattice",
+    "controller": "MPPI",
+    "config": "Original pre-diagnosis settings; no persistent code/config edits",
+    "navigation_restarted_from": "HOME",
+    "amcl_helper": "amcl-continuous-restored"
+  },
+  "corrections": [
+    "Initial 14/32 custom-boundary collision count is superseded.",
+    "Custom Bresenham swept-path count 5/244 was not reproduced by installed Nav2 checker; native result is 0/244.",
+    "No actual Gazebo contact claim is inferred from costmap checks."
+  ]
+}

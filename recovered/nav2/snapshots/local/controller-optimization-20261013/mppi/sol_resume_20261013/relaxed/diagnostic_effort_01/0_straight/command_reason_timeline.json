@@ -1,0 +1,189 @@
+[
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 14.048,
+    "sim_s": 14.048,
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "STOP_UNAVAILABLE"
+  },
+  {
+    "topic": "/wheel_limit/state",
+    "received_sim_s": 14.068000000000001,
+    "sim_s": 14.068000000000001,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "CONTROLLER_COMMAND_TIMEOUT"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.088000000000001,
+    "sim_s": 14.088,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/wheel_limit/state",
+    "received_sim_s": 14.198,
+    "sim_s": 14.198,
+    "requested": [
+      0.0032190850470215082,
+      -0.001118913758546114,
+      -0.0011770501732826233
+    ],
+    "output": [
+      0.0032190850470215082,
+      -0.001118913758546114,
+      -0.0011770501732826233
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.238000000000001,
+    "sim_s": 14.238,
+    "requested": [
+      0.0032190850470215082,
+      -0.001118913758546114,
+      -0.0011770501732826233
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.326,
+    "sim_s": 14.326,
+    "requested": [
+      0.010211527347564697,
+      -0.0005567723419517279,
+      0.003089918289333582
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.362,
+    "sim_s": 14.362,
+    "requested": [
+      0.013095589354634285,
+      2.046787994913757e-05,
+      0.0035655086394399405
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "TURNING_PAN"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.422,
+    "sim_s": 14.422,
+    "requested": [
+      0.01703554578125477,
+      -0.00022058869944885373,
+      0.0041238535195589066
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WAIT_FRESH_DEPTH"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 14.520000000000001,
+    "sim_s": 14.52,
+    "requested": [
+      0.023891707882285118,
+      0.0010460669873282313,
+      0.0025925554800778627
+    ],
+    "output": [
+      0.023891707882285118,
+      0.0010460669873282313,
+      0.0025925554800778627
+    ],
+    "reason": "PASS"
+  },
+  {
+    "topic": "/body_guard_3d/state",
+    "received_sim_s": 14.576,
+    "sim_s": 14.576,
+    "requested": [
+      0.02697661519050598,
+      0.001983579248189926,
+      -0.0006956088473089039
+    ],
+    "output": [
+      0.02697661519050598,
+      0.001983579248189926,
+      -0.0006956088473089039
+    ],
+    "reason": "PASS_OBSERVED_SPACE"
+  },
+  {
+    "topic": "/head_pan/state",
+    "received_sim_s": 25.542,
+    "sim_s": 25.542,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "WALL_TIMEOUT"
+  },
+  {
+    "topic": "/wheel_limit/state",
+    "received_sim_s": 25.556,
+    "sim_s": 25.556,
+    "requested": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reason": "CONTROLLER_COMMAND_TIMEOUT"
+  }
+]

@@ -1,0 +1,53 @@
+{
+  "captured_wall_epoch_s": 1791908019.3347712,
+  "topics": {
+    "/global_costmap/costmap": {
+      "stamp_sim_s": 43.446,
+      "frame": "map",
+      "resolution": 0.02500000037252903,
+      "size": [
+        1440,
+        840
+      ],
+      "origin": [
+        -24.0,
+        -15.0
+      ],
+      "lethal_cells": 172239,
+      "unknown_cells": 0
+    },
+    "/odom": {
+      "stamp_sim_s": 43.812,
+      "frame": "odom",
+      "pose": [
+        3.3619289947444337,
+        -0.599829059575541,
+        -0.0008974766025526572
+      ]
+    },
+    "/ground_truth/odom": {
+      "stamp_sim_s": 43.8,
+      "frame": "odom",
+      "pose": [
+        -1.26517548793674,
+        -1.3430720269134966,
+        1.5699730118655824
+      ]
+    },
+    "/local_costmap/costmap": {
+      "stamp_sim_s": 43.626,
+      "frame": "odom",
+      "resolution": 0.05000000074505806,
+      "size": [
+        80,
+        80
+      ],
+      "origin": [
+        1.3499999996274725,
+        -2.550000000372527
+      ],
+      "lethal_cells": 1622,
+      "unknown_cells": 0
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "method": "Synthetic straight XY reference holding initial yaw, then rotate at goal; sampled at <=1cm and <=2deg, checked by installed native GridCollisionChecker using full polygon checking. This is not a planner-generated path or continuous collision guarantee.",
+  "rows": [
+    {
+      "route": "straight",
+      "route_index": 1,
+      "all_samples_valid": true,
+      "collision_indices": [],
+      "sample_count": 104
+    },
+    {
+      "route": "turn_arrival",
+      "route_index": 2,
+      "all_samples_valid": true,
+      "collision_indices": [],
+      "sample_count": 243
+    },
+    {
+      "route": "far_heading",
+      "route_index": 4,
+      "all_samples_valid": true,
+      "collision_indices": [],
+      "sample_count": 533
+    },
+    {
+      "route": "lateral",
+      "route_index": 6,
+      "all_samples_valid": true,
+      "collision_indices": [],
+      "sample_count": 69
+    }
+  ]
+}

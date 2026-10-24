@@ -1,0 +1,9 @@
+{
+  "phase": "campaign_navigation_completed",
+  "last_finished_goal_index": 7,
+  "last_finished_goal_name": "other_room",
+  "last_action_status": 5,
+  "last_error": null,
+  "campaign_started": true,
+  "output": "/home/ehdrms/workspace/cleany/cleany-data/runs/lattice-mppi-gui-20261014"
+}

@@ -1,0 +1,27 @@
+{
+  "source": "full rosbag2 Contacts topics; navigation window by source sim stamp",
+  "counts_by_topic": {
+    "/benchmark/contacts/c25": 29398,
+    "/benchmark/contacts/c28": 29398,
+    "/benchmark/contacts/c27": 29398,
+    "/benchmark/contacts/c26": 29398
+  },
+  "ground_pair_samples": 117592,
+  "self_pair_samples": 0,
+  "unnamed_pair_samples": 0,
+  "nonfloor_pair_samples": 0,
+  "nonfloor_pair_episodes": null,
+  "max_nonfloor_depth_m": null,
+  "recorded_contact_sim_window_s": [
+    8.371,
+    37.768
+  ],
+  "navigation_sim_window_s": [
+    8.371,
+    79.54100000000001
+  ],
+  "full_navigation_window_observed": false,
+  "partial_recorded_nonfloor_pair_episodes": 0,
+  "actual_contact_count": null,
+  "null_reason": "Incomplete navigation contact coverage: recorder stopped after live SQLite read lock; no navigation retry"
+}

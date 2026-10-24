@@ -1,0 +1,17 @@
+{
+  "source": "full rosbag2 Contacts topics; navigation window by source sim stamp",
+  "counts_by_topic": {
+    "/evaluation/contacts/front_right_wheel_link": 16011,
+    "/evaluation/contacts/rear_right_wheel_link": 16010,
+    "/evaluation/contacts/rear_left_wheel_link": 16009,
+    "/evaluation/contacts/front_left_wheel_link": 16009
+  },
+  "ground_pair_samples": 64039,
+  "self_pair_samples": 0,
+  "unnamed_pair_samples": 0,
+  "nonfloor_pair_samples": 0,
+  "nonfloor_pair_episodes": 0,
+  "max_nonfloor_depth_m": null,
+  "actual_contact_count": 0,
+  "null_reason": null
+}

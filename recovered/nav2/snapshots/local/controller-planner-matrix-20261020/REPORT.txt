@@ -1,0 +1,91 @@
+DWB / MPPI × Lattice / Theta*: 공통 8경로 비교
+
+관측 Nav2 도착: DWB + Lattice 3/8 / DWB + Theta* 3/8 / MPPI + Lattice 8/8 / MPPI + Theta* 7/8. 현재 보존된 튜닝 프로파일과 해당 시뮬레이션에서 얻은 결과이며 일반적인 컨트롤러 우열이나 반복 성공률은 아니다.
+
+신규 DWB 16주행(2026-10-20)과 보존된 MPPI 16주행(2026-10-16)을 비교했다. 각 조합·경로당 최종 비교 표본1개이며 반복 성공률을 측정한 실험은 아니다. 수동 경유점을 추가하지 않았다. Nav2 status와 GT 오차를 별도 기록하고 합격 기준/통합점수는 만들지 않았다.
+
+조건: 공통 HOME→8개 목표, 잠금된 18F full 월드와 잠금 파일에서 지정한 목적지 의자만 제거, 동일 지도·복구 BT(재시도4회)·SimpleProgressChecker(0.10m/20sim초)·failure_tolerance0.5sim초·30cm/10°·20Hz 설정. AMCL로 위치 추정하고 Gazebo GT는 계측에만 사용. footprint47.7×65.48cm, padding0. 휠 최종 출력 한도5rad/s, DWB 후보 한도4.99rad/s. 물리 joint 응답 최대는 별도 기록한다.
+
+Lattice는 기존 MPPI 비교에 쓰인 stock144 primitives, 5cm해상도, 반경 설정50cm를 보존했다. 이후 공식 Generator로 만든 반경10cm primitive 비교가 아니다. Theta*도 기존 비교의 기본 설정을 사용했다. DWB는 보존된 튜닝 소스44c083abe2ebeb0077879e4419660b15fe4dd91b 및 당시 프로파일을 복원·빌드했다. 휠제한/overshoot/target 관련 회귀 검사5개 통과. FollowPath.stateful은 런타임에서 선언되지 않는 비활성 설정임을 기록하고 나머지 프로파일은 실제 서비스 readback으로 확인했다.
+
+동일한 원격 CPU 호스트지만 MPPI와 DWB의 실행 날짜·동시 실행 수·서버 부하가 다르다. 신규 주행 중 기존 Isaac GPU 학습은 그대로 실행 중이었다. 연산시간·RTF는 관측값으로 제시하며 컨트롤러 고유 연산성능 순위로 해석하지 않는다. 요청 RTF2와 측정 실제RTF를 구분한다.
+
+신규 주행은 처음2개, 한때4개를 병렬 실행했다. CPU 포화/제어주기 미달을 관측한 뒤 추가로 시작한 다른 방2주행을 수동 중단하고2개로 줄였다. 그 구간에 걸린 DWB+Lattice 2번과 DWB+Theta* 1번도 결과와 무관하게 부하 영향 표본으로 분리한다고 재실행 전에 선언하고, campaign 종료 후 max2sim 상태에서 처음부터 재실행했다. load-pilot의4개 기록은 보존하되 성능 표에서 제외했다. 최종 비교32행 중DWB16행은 모두 단독~2개 병렬 실행 조건이다. 반복 성공률 표본을 늘린 것으로 해석하지 않는다.
+
+안전 우회: Gazebo 한정으로 외부 pan 정렬/CollisionMonitor/3D guard는 shadow 출력. 실제 출력은 Nav2→결합 휠 제한→Gazebo. 컨트롤러 내부/코스트맵 충돌 검사는 유지했다. 물리 로봇 실행 및 git push 없음.
+
+조합별 전체 관측 (도착=Nav2 SUCCEEDED, GT범위는 도착 여부와 독립)
+조합 | Nav2 도착 | 최종GT위치30cm내 | 최종GT30cm/10° 모두 범위 | 근접 각도미정렬 체류합(sim s, 실패포함) | 비바닥/비자체 접촉 기록 | wheel command / joint 최대(rad/s)
+DWB + Lattice | 3/8 | 7/8 | 3/8 | 457.94 | 0 | 4.990 / 5.211
+DWB + Theta* | 3/8 | 6/8 | 3/8 | 462.23 | 7 | 4.990 / 5.502
+MPPI + Lattice | 8/8 | 8/8 | 8/8 | 40.23 | 0 | 5.000 / 5.402
+MPPI + Theta* | 7/8 | 7/8 | 7/8 | 19.90 | 0 | 5.000 / 5.075
+
+접촉 세부: DWB+Theta* 의자 사이에서 front_right_wheel_link의 mecanum_contact와 demo_desk_36의 desk_envelope_collision 사이 접촉 센서 기록7개가 관측됐다. 동일 collision-envelope 쌍의 메시지 기록 수이며 독립 충돌7회를 의미하지 않는다. 다른 조합은 관측된 비바닥/비자체 접촉 기록0개였다.
+
+경로별 예외: 8번 다른 방은 DWB+Theta*가188.79sim초에 도착했으며 MPPI+Theta*는ABORTED였다. 따라서 모든 경로에서 한 컨트롤러가 우세하다고 해석하지 않는다. DWB는 목표 근처 각도미정렬 시간이 길었고, 모든 실패가 경로 탐색 실패였던 것은 아니다.
+
+부하 재실행의 결과 변화: DWB+Lattice 2번은 기존 부하 기록SUCCEEDED→새 기록ABORTED, DWB+Theta* 1번은ABORTED→SUCCEEDED였다. 사전 선언대로 새 기록을 채택했고 이전 기록도 보존했다. 부하뿐 아니라 AMCL/초기경로 변동이 함께 있을 수 있어 부하의 인과 효과나 반복 성공률로 주장하지 않는다. 수치 전후 비교는 load-sensitivity.json에 있다.
+
+4개 조합이 모두 도착한 동일 경로만의 비교
+대상: straight
+아래 값은 경로별 값의 산술평균이다. jerk는 경로별 RMS를 평균하며, 전체 샘플을 합쳐 계산한 RMS가 아니다. compute p95는 경로별 p95의 평균이며 pooled p95가 아니다.
+조합 | sim초 | GT cm / ° | 선형jerk RMS / p95(m/s³) | 각jerk RMS(rad/s³) | 정지초 | compute median/p95/p99(ms) | 실제RTF
+DWB + Lattice | 4.27 | 25.23 / 6.36 | 1.39 / 3.02 | 1.24 | 0.80 | 4.27/5.19/5.45 | 0.344
+DWB + Theta* | 24.81 | 22.26 / 8.70 | 0.32 / 0.78 | 1.37 | 8.70 | 4.33/5.43/6.10 | 0.302
+MPPI + Lattice | 4.43 | 25.12 / 0.46 | 1.32 / 3.61 | 1.55 | 0.35 | 4.93/6.69/7.50 | 0.245
+MPPI + Theta* | 7.23 | 10.21 / 8.53 | 0.70 / 1.22 | 1.85 | 0.35 | 3.98/5.03/8.81 | 0.254
+
+경로별 원자료 요약
+경로 | 조합 | Nav2 status | GT cm / ° | sim초 | jerk RMS 선형/각 | 정지초 | 반전 yaw/횡 | compute median/p95/p99(ms) | 실제RTF
+1.straight | DWB + Lattice | 4 | 25.23/6.36 | 4.27 | 1.39/1.24 | 0.80 | 1/0 | 4.27/5.19/5.45 | 0.344
+1.straight | DWB + Theta* | 4 | 22.26/8.70 | 24.81 | 0.32/1.37 | 8.70 | 1/0 | 4.33/5.43/6.10 | 0.302
+1.straight | MPPI + Lattice | 4 | 25.12/0.46 | 4.43 | 1.32/1.55 | 0.35 | 1/0 | 4.93/6.69/7.50 | 0.245
+1.straight | MPPI + Theta* | 4 | 10.21/8.53 | 7.23 | 0.70/1.85 | 0.35 | 1/0 | 3.98/5.03/8.81 | 0.254
+2.turn_arrival | DWB + Lattice | 6 | 23.58/54.81 | 125.99 | 0.49/0.62 | 94.45 | 9/12 | 5.70/8.13/10.68 | 0.184
+2.turn_arrival | DWB + Theta* | 4 | 18.95/8.96 | 21.18 | 0.54/1.09 | 9.05 | 6/0 | 4.79/6.42/8.38 | 0.182
+2.turn_arrival | MPPI + Lattice | 4 | 0.57/8.44 | 17.21 | 1.23/1.41 | 0.45 | 3/3 | 4.34/6.15/10.83 | 0.229
+2.turn_arrival | MPPI + Theta* | 4 | 26.70/0.52 | 9.97 | 0.63/0.98 | 0.25 | 0/0 | 4.73/6.92/9.90 | 0.197
+3.chair_gap | DWB + Lattice | 4 | 20.06/8.93 | 90.65 | 0.49/0.68 | 58.50 | 3/3 | 5.52/8.88/16.15 | 0.187
+3.chair_gap | DWB + Theta* | 6 | 212.11/82.01 | 19.22 | 1.00/1.51 | 5.05 | 6/0 | 5.07/7.51/9.13 | 0.190
+3.chair_gap | MPPI + Lattice | 4 | 5.56/7.52 | 28.55 | 0.63/1.05 | 0.50 | 1/3 | 4.08/5.12/8.73 | 0.255
+3.chair_gap | MPPI + Theta* | 4 | 6.04/5.88 | 28.99 | 0.88/1.34 | 0.30 | 5/1 | 4.36/12.55/17.57 | 0.233
+4.far_heading | DWB + Lattice | 6 | 27.73/81.79 | 185.67 | 0.49/0.62 | 145.95 | 14/4 | 5.44/7.60/11.13 | 0.182
+4.far_heading | DWB + Theta* | 6 | 22.57/47.50 | 170.59 | 0.37/0.48 | 141.55 | 10/0 | 5.29/7.60/12.38 | 0.181
+4.far_heading | MPPI + Lattice | 4 | 0.91/7.90 | 31.23 | 0.79/1.77 | 0.40 | 6/7 | 3.90/5.22/6.40 | 0.242
+4.far_heading | MPPI + Theta* | 4 | 2.55/7.61 | 25.52 | 0.35/0.89 | 0.40 | 0/0 | 4.00/5.00/5.86 | 0.251
+5.distant | DWB + Lattice | 6 | 28.66/17.59 | 209.10 | 0.56/0.71 | 137.90 | 25/30 | 5.48/8.73/17.81 | 0.184
+5.distant | DWB + Theta* | 6 | 284.05/99.88 | 45.54 | 0.97/0.88 | 6.30 | 21/0 | 5.57/9.64/21.25 | 0.177
+5.distant | MPPI + Lattice | 4 | 7.73/5.95 | 60.73 | 0.73/1.59 | 0.45 | 6/26 | 7.48/20.81/35.40 | 0.113
+5.distant | MPPI + Theta* | 4 | 7.62/8.73 | 60.79 | 0.65/0.85 | 0.50 | 8/3 | 4.16/5.88/8.79 | 0.262
+6.lateral | DWB + Lattice | 4 | 24.89/5.27 | 2.73 | 2.39/1.95 | 0.45 | 0/0 | 4.92/23.38/56.80 | 0.191
+6.lateral | DWB + Theta* | 6 | 18.81/25.71 | 150.48 | 0.50/0.60 | 115.65 | 10/15 | 5.55/8.50/16.29 | 0.184
+6.lateral | MPPI + Lattice | 4 | 26.09/0.21 | 2.44 | 2.25/0.86 | 0.40 | 0/0 | 4.31/5.47/7.09 | 0.244
+6.lateral | MPPI + Theta* | 4 | 25.91/0.64 | 5.49 | 0.75/0.18 | 0.10 | 0/0 | 8.32/14.14/19.31 | 0.102
+7.narrow_seat | DWB + Lattice | 6 | 21.20/30.74 | 136.45 | 0.53/0.73 | 96.10 | 11/17 | 5.41/8.50/18.22 | 0.168
+7.narrow_seat | DWB + Theta* | 6 | 21.99/70.67 | 129.12 | 0.50/0.51 | 99.05 | 3/2 | 5.75/8.81/15.89 | 0.168
+7.narrow_seat | MPPI + Lattice | 4 | 5.78/8.38 | 14.10 | 0.44/2.31 | 0.40 | 1/0 | 5.01/7.85/10.27 | 0.210
+7.narrow_seat | MPPI + Theta* | 4 | 10.28/7.51 | 12.00 | 0.39/1.12 | 0.05 | 1/0 | 11.39/31.88/52.37 | 0.077
+8.other_room | DWB + Lattice | 6 | 1355.94/143.56 | 31.41 | 1.03/1.18 | 9.65 | 6/0 | 4.81/7.71/9.89 | 0.173
+8.other_room | DWB + Theta* | 4 | 19.28/8.77 | 188.79 | 0.69/0.70 | 87.50 | 45/38 | 5.33/8.21/12.44 | 0.185
+8.other_room | MPPI + Lattice | 4 | 3.27/7.59 | 102.13 | 0.74/1.31 | 1.40 | 11/31 | 7.57/27.49/60.39 | 0.153
+8.other_room | MPPI + Theta* | 6 | 1371.06/90.00 | 30.87 | 1.76/0.75 | 0.45 | 6/9 | 13.08/38.96/61.04 | 0.083
+
+상태:4=SUCCEEDED,5=CANCELED,6=ABORTED. 시간 제한 취소 여부는 CSV timeout 열에 별도 표시. 조기 종료 및 정체 때문에 낮은 시간/jerk가 나온 경우를 개선으로 해석하지 않는다. 경로별 정지 시간·반전·남은 거리·status를 함께 본다.
+
+호환성 관찰: 이 DWB는 기존 튜닝된 GoalDirectedController/PathOrientationCritic 프로파일이다. PathOrientationCritic는 가장 가까운 path pose의 yaw를 비용으로 사용한다. 보존된 Theta* 직선 경로의 중간 pose yaw는0이며 마지막 pose만 목표yaw1.5708이다. 따라서 이 프로파일과 Theta*의 방향 표현이 불필요한 회전을 유도할 가능성이 있다. 실제로 첫 주행에서 GTyaw1.57→약0.3 뒤 재정렬이 관측됐다. 코드/경로 표현에 근거한 유력한 호환성 설명이며 critic을 바꾼 인과 재실험으로 확정한 결과는 아니다.
+
+근접 각도미정렬 체류는 GT목표거리30cm이내이면서 방향오차10°밖인 샘플 구간의 sim시간 합이다. 기록된 GT의 인접 샘플 시각 차이를 왼쪽 샘플 상태로 분류한 근사치이며 실패 주행도 포함한다. 새로운 합격 기준이 아니라 기존 도착 허용 오차를 이용한 진단값이다.
+
+정지 기준은 GT 선속도0.01m/s 및 |각속도|0.02rad/s 미만이다. 아주 느린 비영 회전도 포함되며 완전한 무동작 시간과 같지 않다. yaw 반전은0.02rad/s, GT vy 반전은0.01m/s deadband를 적용했다.
+
+정렬 계측 예: DWB+Lattice 의자 사이의 navigation25~60sim초는 GT 목표 거리최대0.283m인 구간이다. generator 입력 측정각속도 median0, command dt median0.009초, 방출각속도 median0.0054rad/s였고 GTyaw는0.453→0.626rad로 매우 느리게 변했다. alignment-diagnostic.json에 근거를 남겼다. 낮은RTF·elapsed-time 가속 예산·속도피드백/critic의 상호작용 가능성이 있으나, 이 실험에서 원인을 분리하거나 튜닝한 것은 아니다.
+
+측정: GT twist, sim-time 20Hz resampling, centered five-sample mean, numerical acceleration/jerk gradient, 0.25s endpoint trim; linear magnitude RMS/p95 m/s^3, angular abs RMS/p95 rad/s^3
+compute: TimedController inner compute steady wall time incl enabled telemetry and collision validation, failed calls retained; excludes planner and simulator
+제어주기: Positive differences between observed /nav2/cmd_vel messages during navigation; wall and simulation times separate; requested 20Hz uses wall time; not controller-only scheduler timing
+접촉: Observed non-floor/non-self sensor records; 0 is not independent geometric collision proof
+
+GIF: media/controller-planner-4rows-8cols-2x.gif. 위부터 DWB+Lattice / DWB+Theta* / MPPI+Lattice / MPPI+Theta*. 열은 straight,turn_arrival,chair_gap,far_heading,distant,lateral,narrow_seat,other_room. 보라색 점선은 실제 초기 global plan, 색 실선은 실제 GT 이동 흔적이며, 실제 차체 크기와 방향을 표시했다. 실제 Gazebo GT를 지도 위에서 재생한 것으로 GUI 녹화는 아니다. 0.4sim초당200ms로 2배속이며 완료 후 최종 자세 유지, 실패/정지 구간 보존. 개별 경로 GIF8개도 media/에 있다.
+
+comparison.csv/JSON:32개 주행 전체. summary.csv:공통 도착 경로의 동등 가중 평균. condition-audit.json:공통 입력 및 실제 runtime 설정 확인. 원격 원자료·rosbag는 /home/donglee/workspace/cleany/cleany-data/runs/controller-planner-matrix-20261020. 신규 source/build/probe 및 startup-failed 진단도 보존. 기존 MPPI 데이터는 수정하지 않고 필요한 원자료를 baseline-snapshot에 복사하고 해시 manifest를 보존했다.

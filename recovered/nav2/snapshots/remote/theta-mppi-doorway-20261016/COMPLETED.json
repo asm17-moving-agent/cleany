@@ -1,0 +1,21 @@
+{
+  "status": "completed",
+  "selected": "Theta* + MPPI",
+  "scenario": "other_room",
+  "nav2_status": 4,
+  "gt_xy_error_m": 0.0335401860923512,
+  "gt_yaw_error_deg": 9.327044501479223,
+  "sim_s": 102.346,
+  "observed_nonfloor_nonself_contacts": 0,
+  "wheel_command_max_rad_s": 5.0,
+  "joint_max_rad_s": 4.999999804055019,
+  "regression_scope": "Other-room only; three distinct settings, one trial each. Other seven routes not rerun.",
+  "physical_robot_used": false,
+  "git_push": false,
+  "gif": {
+    "frames": 257,
+    "playback_ms": 51400,
+    "speedup": 2,
+    "kind": "GT/plan replay"
+  }
+}

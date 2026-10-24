@@ -1,0 +1,7 @@
+# Common arrival override for subsequent controller comparisons.
+# Apply after controller-specific parameters. Historical runs retain 15 cm.
+controller_server:
+  ros__parameters:
+    goal_checker:
+      xy_goal_tolerance: 0.30
+      yaw_goal_tolerance: 0.17453292519943295
