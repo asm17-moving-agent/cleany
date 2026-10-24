@@ -1,0 +1,14 @@
+{
+  "configuration_tests_passed": 29,
+  "build_packages": [
+    "cleany_description",
+    "nav2_mppi_controller",
+    "cleany_navigation"
+  ],
+  "build_passed": true,
+  "installed_primitive_sha256": "01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e",
+  "installed_navigation_and_gazebo_launch_assembly_passed": true,
+  "explicit_primitive_override_preserved": true,
+  "goal_and_safety_parameters_unchanged": true,
+  "gazebo_driving_rerun": false
+}

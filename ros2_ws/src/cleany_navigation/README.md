@@ -1,24 +1,23 @@
 # cleany_navigation
 
-## 기본 주행: Theta* + MPPI
+## 기본 주행: Smac Lattice + MPPI
 
-기본 Omni 프로필은 Nav2 `nav2_theta_star_planner::ThetaStarPlanner`와
-`nav2_mppi_controller::MPPIController`를 사용한다. MPPI는 `Omni` motion model로
-전후·횡이동을 허용하며, Theta*의 중간 pose yaw를 차체 자세 제약으로 사용하지 않도록
-`PathAlignCritic.use_path_orientations=false`로 설정한다. 실제 직사각형 footprint는
-MPPI `CostCritic.consider_footprint=true`로 검사한다. Theta*의 XY 경로 자체가
-방향을 포함한 직사각형 차체의 통과 가능성을 보장하지는 않는다.
-`GridBased.w_traversal_cost=5.0`으로 코너의 높은 costmap 비용을 더 강하게 반영한다.
-footprint를 줄이거나 장애물 셀을 지우는 설정은 아니다.
+기본 AMCL 및 Omni 프로필은 Nav2 `nav2_smac_planner::SmacPlannerLattice`와
+`nav2_mppi_controller::MPPIController`를 사용한다. Humble에서는 planner 이름을
+`nav2_smac_planner/SmacPlannerLattice`로 변환한다. MPPI는 `Omni` motion model로
+전후·횡이동을 허용하며 `CostCritic.consider_footprint=true`로 차체를 검사한다.
 
-Humble에서는 Theta* plugin 이름을 `nav2_theta_star_planner/ThetaStarPlanner`로
-변환한다. `nav2_theta_star_planner` runtime dependency가 필요하다.
-Omni 속도 상한(병진 0.15 m/s, 회전 0.3 rad/s), 기존 도착 checker와 안전 체인은 유지한다.
+launch는 `config/lattice/omni-r10cm.json`을 설치된 package share에서 찾아 사용한다.
+이 파일은 공식 Nav2 1.1.20 Generator로 만든 Omni/격자5cm/최소 곡선 반경 설정10cm/
+16headings/144primitives 원본이다. 반경10cm는 생성 설정이며 차체의 물리 최소반경
+측정값은 아니다. `GridBased.lattice_filepath`를 명시하면 그 경로를 우선한다.
+일반 AMCL launch와 안전 launch 모두 같은 기본 primitive를 사용한다.
+Theta* 전용 `w_traversal_cost`는 기본 설정에서 제거했다.
+
+Omni 속도 상한(병진0.15m/s, 회전0.3rad/s), 도착 checker와 안전 체인은 유지한다.
 5rad/s 휠 명령, 30cm/10도 도착 및 안전 shadow routing은 별도 Gazebo 비교 프로필이며
-공유 실물 프로필에 자동 적용하지 않는다. 문 통과 실험의 최적화 MPPI 빌드와 stock MPPI의
-결과를 동일시하지 않는다.
-
-명시적으로 선택하는 Axis 프로필은 기존 축 전용 DWB와 Lattice 정책을 유지한다.
+공유 로봇 설정에 자동 적용하지 않는다. 명시적인 `axis_motion:=true`는 기존 축 전용
+DWB/StraightFirstPlanner 프로필을 선택하는 별도 실험 옵션이다.
 아래 StraightFirstPlanner/Omni DWB 설명은 이전 실험의 재현 기록이다.
 
 

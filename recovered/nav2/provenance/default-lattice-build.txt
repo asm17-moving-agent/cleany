@@ -1,0 +1,33 @@
+source "/opt/ros/humble/setup.bash" && \
+cd "/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws" && \
+colcon --log-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-recovered/log-navigation" build --symlink-install \
+	--build-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-recovered/build-navigation" \
+	--install-base "/home/ehdrms/workspace/cleany-data/builds/nav2-tuning-recovered/install-navigation" \
+	--packages-up-to cleany_navigation
+[0.146s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'nav2_mppi_controller' is in: /opt/ros/humble
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding nav2_mppi_controller
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> cleany_description
+Starting >>> nav2_mppi_controller
+--- stderr: cleany_description
+gmake[1]: warning: -j3 forced in submake: resetting jobserver mode.
+---
+Finished <<< cleany_description [0.06s]
+--- stderr: nav2_mppi_controller
+gmake[1]: warning: -j3 forced in submake: resetting jobserver mode.
+---
+Finished <<< nav2_mppi_controller [0.26s]
+Starting >>> cleany_navigation
+--- stderr: cleany_navigation
+gmake[1]: warning: -j3 forced in submake: resetting jobserver mode.
+---
+Finished <<< cleany_navigation [0.26s]
+
+Summary: 3 packages finished [0.65s]
+  3 packages had stderr output: cleany_description cleany_navigation nav2_mppi_controller

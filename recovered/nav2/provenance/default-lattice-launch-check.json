@@ -1,0 +1,44 @@
+{
+  "launch_assembly_passed": true,
+  "primitive_sha256": "01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e",
+  "profiles": [
+    {
+      "profile": "navigation",
+      "planner": {
+        "plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "allow_unknown": false,
+        "tolerance": 0.05,
+        "smooth_path": false,
+        "allow_reverse_expansion": true,
+        "max_planning_time": 80.0,
+        "cache_obstacle_heuristic": false,
+        "lattice_filepath": "/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/config/lattice/omni-r10cm.json",
+        "analytic_expansion_max_length": 0.0,
+        "cost_penalty": 2.0
+      },
+      "controller": "nav2_mppi_controller::MPPIController",
+      "motion_model": "Omni",
+      "nodes_constructed": 8
+    },
+    {
+      "profile": "gazebo",
+      "planner": {
+        "plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "allow_unknown": false,
+        "tolerance": 0.05,
+        "smooth_path": false,
+        "allow_reverse_expansion": true,
+        "max_planning_time": 80.0,
+        "cache_obstacle_heuristic": false,
+        "lattice_filepath": "/home/ehdrms/workspace/cleany/nav2-tuning-recovered/ros2_ws/src/cleany_navigation/config/lattice/omni-r10cm.json",
+        "analytic_expansion_max_length": 0.0,
+        "cost_penalty": 2.0
+      },
+      "controller": "nav2_mppi_controller::MPPIController",
+      "motion_model": "Omni",
+      "nodes_constructed": 8
+    }
+  ],
+  "ros_nodes_started": false,
+  "gazebo_started": false
+}

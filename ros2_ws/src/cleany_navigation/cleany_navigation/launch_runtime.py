@@ -16,7 +16,7 @@ import yaml
 import xacro
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
-    load_parameters, merge_parameters, merge_localization_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice)
+    load_parameters, merge_parameters, merge_localization_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice, resolve_default_lattice)
 from cleany_navigation.bt_trace import describe_tree
 from cleany_navigation.urdf_geometry import forward_kinematics, apply_simulation_geometry
 
@@ -136,6 +136,7 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
                 lattice = directory/'longitudinal_lattice.json'
                 lattice.write_text(json.dumps(primitives))
             planner['lattice_filepath'] = str(lattice)
+    resolve_default_lattice(parameters, share/'config/lattice/omni-r10cm.json')
     # Lifecycle children and costmaps read the same clock settings from YAML.
     for name in ('bt_navigator_navigate_to_pose_rclcpp_node', 'bt_navigator_navigate_through_poses_rclcpp_node'):
         parameters.setdefault(name, {'ros__parameters': {}})

@@ -81,7 +81,7 @@ def test_humble_preserves_three_point_stop_boundary_and_bt_registration():
     # Jazzy triggers at points >= min_points, Humble at points > max_points.
     assert 'min_points' not in zone
     assert zone['max_points'] == before['collision_monitor']['ros__parameters']['StopZone']['min_points'] - 1 == 2
-    assert result['planner_server']['ros__parameters']['GridBased']['plugin'] == 'nav2_theta_star_planner/ThetaStarPlanner'
+    assert result['planner_server']['ros__parameters']['GridBased']['plugin'] == 'nav2_smac_planner/SmacPlannerLattice'
     assert result['controller_server']['ros__parameters']['progress_checker_plugin'] == 'progress_checker'
     assert {'nav2_follow_path_action_bt_node', 'nav2_truncate_path_local_action_bt_node',
             'cleany_yield_wait_bt_node'} <= set(result['bt_navigator']['ros__parameters']['plugin_lib_names'])
@@ -247,14 +247,14 @@ def test_shared_map_replaces_depth_voxel_build_but_preserves_lidar_and_static_ma
     assert 'depth_layer' in disabled['local_costmap']['local_costmap']['ros__parameters']['plugins']
 
 
-def test_default_omni_theta_mppi_survives_humble_layering():
+def test_default_omni_lattice_mppi_survives_humble_layering():
     """The selected motion layer must not restore DWB or an unsupported plugin name."""
     doc = parameters()
     merge_parameters(doc, load_parameters(PACKAGE/'config/nav2_omni_motion.yaml'))
     adapted = adapt_nav2_parameters(doc, 'humble')
     assert adapted['planner_server']['ros__parameters']['GridBased']['plugin'] == (
-        'nav2_theta_star_planner/ThetaStarPlanner')
-    assert adapted['planner_server']['ros__parameters']['GridBased']['w_traversal_cost'] == 5.0
+        'nav2_smac_planner/SmacPlannerLattice')
+    assert 'w_traversal_cost' not in adapted['planner_server']['ros__parameters']['GridBased']
     follow = adapted['controller_server']['ros__parameters']['FollowPath']
     assert follow['plugin'] == 'nav2_mppi_controller::MPPIController'
     assert follow['motion_model'] == 'Omni'
@@ -263,3 +263,49 @@ def test_default_omni_theta_mppi_survives_humble_layering():
     assert follow['PathAlignCritic']['offset_from_furthest'] == 2
     assert follow['CostCritic']['consider_footprint'] is True
     assert follow['PathAngleCritic']['enabled'] is False
+
+
+@pytest.mark.parametrize('omni_layer', [False, True])
+def test_default_lattice_file_matches_costmap_and_supports_omni(omni_layer):
+    """Both launch modes resolve the actual regenerated primitive without stock fallback."""
+    import hashlib
+    import json
+    from cleany_navigation.runtime_config import resolve_default_lattice
+    doc = parameters()
+    if omni_layer:
+        merge_parameters(doc, load_parameters(PACKAGE/'config/nav2_omni_motion.yaml'))
+    primitive = PACKAGE/'config/lattice/omni-r10cm.json'
+    resolve_default_lattice(doc, primitive)
+    adapted = adapt_nav2_parameters(doc, 'humble')
+    planner = adapted['planner_server']['ros__parameters']['GridBased']
+    assert planner['lattice_filepath'] == str(primitive.resolve())
+    assert planner['plugin'] == 'nav2_smac_planner/SmacPlannerLattice'
+    assert 'w_traversal_cost' not in planner
+    metadata = json.loads(primitive.read_text())['lattice_metadata']
+    assert metadata['turning_radius'] == 0.1
+    assert metadata['motion_model'] == 'omni'
+    assert metadata['num_of_headings'] == 16
+    assert metadata['number_of_trajectories'] == 144
+    assert hashlib.sha256(primitive.read_bytes()).hexdigest() == (
+        '01165b98a42f01c0676f9ee6e691a9ed27b72dc7413c18a3a92b830ca3f2756e')
+    for name in ('local_costmap', 'global_costmap'):
+        assert doc[name][name]['ros__parameters']['resolution'] == metadata['grid_resolution']
+    assert adapted['controller_server']['ros__parameters']['FollowPath']['motion_model'] == 'Omni'
+
+
+def test_lattice_resolution_preserves_custom_file_and_other_planners(tmp_path):
+    from cleany_navigation.runtime_config import resolve_default_lattice
+    doc = parameters()
+    planner = doc['planner_server']['ros__parameters']['GridBased']
+    planner['lattice_filepath'] = '/custom/robot-primitive.json'
+    before = deepcopy(doc)
+    resolve_default_lattice(doc, tmp_path/'absent.json')
+    assert doc == before
+    planner['plugin'] = 'nav2_theta_star_planner/ThetaStarPlanner'
+    planner.pop('lattice_filepath')
+    before = deepcopy(doc)
+    resolve_default_lattice(doc, tmp_path/'absent.json')
+    assert doc == before
+    planner['plugin'] = 'nav2_smac_planner/SmacPlannerLattice'
+    with pytest.raises(ValueError, match='Packaged Lattice primitive not found'):
+        resolve_default_lattice(doc, tmp_path/'absent.json')
