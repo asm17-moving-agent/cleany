@@ -470,3 +470,19 @@ def test_record_failure_preserves_physical_failure_and_stop_decision(
     assert (result.status, result.error_code) == (status, error)
     assert result.stop_confirmed == stop_confirmed
     assert core.inhibited == (not stop_confirmed)
+
+
+def test_isaac_profile_retains_verified_placement_contract(tmp_path):
+    store = ExecutionStore(str(tmp_path/'isaac.sqlite3'))
+    backend, now = FakeBackend(store), [0.]
+    core = ExecutionCore(backend,store,TREE,Runner,clock=lambda: now[0],execution_profile='isaac')
+    backend.store = core.store
+    try:
+        assert core.accept(Goal('mission','task','isaac-test','collect_trash','snapshot',1,'trash_right'))[0]
+        result = finish(core,now)
+        assert result.execution_profile == 'isaac'
+        assert result.placement_state == Placement.CONFIRMED
+        assert result.stop_confirmed and result.arm_recovered
+    finally:
+        core.tree.halt()
+        store.close()

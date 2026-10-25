@@ -87,3 +87,12 @@ it prevents the observed crash without suppressing that warning.
 The runtime regression exercises `/check_state_validity` in the default MuJoCo
 logging mode (`backend_log_level:=warn`) and requires clean SIGINT termination
 without SIGTERM escalation. It also checks that ROS warnings remain on screen.
+
+### 전체 head camera 모델
+
+`move_group.launch.py include_head_camera:=true`는 실제 head pan/tilt 링크와
+카메라 형상을 로봇 모델에 포함한다. 두 head 관절의 직접 parent/child 관계만
+기존 인접 링크 제외 정책에 추가한다. `top_base_link`와 `head_tilt_link`처럼
+인접하지 않은 쌍과 팔 대 mast 충돌 검사는 유지한다. 기본값은 `false`다.
+Isaac cleanup fixture는 head tilt 0.15rad와 그에 맞는 카메라 광학 설정을
+사용하고, 실제 joint state로 시작 자세의 충돌 유효성을 별도로 확인한다.

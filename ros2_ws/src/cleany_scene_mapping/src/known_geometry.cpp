@@ -70,6 +70,21 @@ struct ExclusionVolume
     return true;
   }
 };
+
+std::vector<ExclusionVolume> boundedVolumes(const std::vector<const bodies::Body*>& bodies)
+{
+  std::vector<ExclusionVolume> bounded;
+  for (const auto* body : bodies)
+  {
+    if (!body)
+      continue;
+    ExclusionVolume item(body);
+    if (item.sphere.center.allFinite() && std::isfinite(item.sphere.radius) &&
+        item.sphere.radius > 0.0)
+      bounded.push_back(std::move(item));
+  }
+  return bounded;
+}
 }  // namespace
 
 bool placeKnownBodies(KnownBodies& bodies, const Eigen::Isometry3d& map_from_cloud,
@@ -91,20 +106,33 @@ bool placeKnownBodies(KnownBodies& bodies, const Eigen::Isometry3d& map_from_clo
   return true;
 }
 
+std::vector<bool> knownGeometryContainment(
+    const std::vector<Eigen::Vector3d>& points,
+    const std::vector<const bodies::Body*>& bodies)
+{
+  const auto bounded = boundedVolumes(bodies);
+  std::vector<bool> result(points.size(), false);
+  for (std::size_t index = 0; index < points.size(); ++index)
+  {
+    const auto& point = points[index];
+    if (!point.allFinite())
+      continue;
+    for (const auto& candidate : bounded)
+      if ((point-candidate.sphere.center).squaredNorm() <=
+              candidate.sphere.radius*candidate.sphere.radius && candidate.contains(point))
+      {
+        result[index] = true;
+        break;
+      }
+  }
+  return result;
+}
+
 ClearResult clearContainedOccupancy(octomap::OcTree& tree,
                                    const std::vector<const bodies::Body*>& bodies,
                                    std::size_t maximum_examined)
 {
-  std::vector<ExclusionVolume> bounded;
-  for (const auto* body : bodies)
-  {
-    if (!body)
-      continue;
-    ExclusionVolume item(body);
-    if (item.sphere.center.allFinite() && std::isfinite(item.sphere.radius) &&
-        item.sphere.radius > 0.0)
-      bounded.push_back(std::move(item));
-  }
+  const auto bounded = boundedVolumes(bodies);
   ClearResult result;
   if (bounded.empty())
     return result;

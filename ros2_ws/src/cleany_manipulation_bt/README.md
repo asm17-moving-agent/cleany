@@ -132,6 +132,7 @@ MoveIt 2.5.9의 종료 시 controller plugin unload 문제를 피하기 위해
 | `/sim/manipulation/execution_events` | Reliable/Transient Local 기록 이벤트 |
 | `/sim/manipulation/bt_transitions` | 실제 UID, 노드 ID, 이전/현재 상태 JSON |
 | `/perception/get_scene_snapshot` | 읽기 전용 `GetSceneSnapshot`; TTL/촬영 시각 유지 |
+| `/trajectory_execution_event` | MoveIt TEM `std_msgs/String` 정지 이벤트; `bt_moveit_stop_topic`으로 변경 가능 |
 
 Action 이름을 remap하면 내부 취소 client도 같은 이름의 `/_action/cancel_goal`을
 사용한다. 서버 종료는 진행 중인 tick의 기록 쓰기를 기다린 뒤 DB를 닫으며,

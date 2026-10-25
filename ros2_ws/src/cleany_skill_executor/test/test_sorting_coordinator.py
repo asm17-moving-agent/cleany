@@ -8,6 +8,8 @@ import pytest
 from rclpy.serialization import deserialize_message
 from rclpy.time import Time
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Header
+from cleany_perception.point_cloud_message import colored_point_cloud_message
 
 from cleany_interfaces.action import InspectScene
 from cleany_interfaces.msg import GraspCandidate
@@ -711,8 +713,8 @@ def test_carry_execution_error_is_never_retried(monkeypatch):
     assert len(calls) == 1
 
 
-@pytest.mark.parametrize('valid', [True, False])
-def test_fixed_release_cache_always_rechecks_current_scene(valid):
+@pytest.mark.parametrize('valid,opening_valid', [(True, True), (False, True), (True, False)])
+def test_fixed_release_cache_always_rechecks_current_scene(valid, opening_valid):
     arm, point, offset = 'right', np.zeros(3), np.zeros(3)
     wrist = {'right_wrist_pitch_joint': .3, 'right_wrist_roll_joint': -.4}
     solution = SimpleNamespace(names=list(wrist), positions=tuple(wrist.values()))
@@ -726,14 +728,49 @@ def test_fixed_release_cache_always_rechecks_current_scene(valid):
     node = SimpleNamespace(
         _fixed_release_cache={(arm, tuple(point), tuple(offset), tuple(sorted(wrist.items()))): solution},
         _feedback_state=lambda: None, _tcp_pose=lambda *_: pose,
+        _release_opening_is_valid=lambda *_: opening_valid,
         _pose_position=NearestPregraspCoordinator._pose_position,
         get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None),
         get_parameter=lambda key: SimpleNamespace(value=16 if key.endswith('attempts') else 80),
         _transport_adapter=SimpleNamespace(set_current_state=lambda _: events.append('state'),
             state_is_valid=lambda *_: events.append('collision') or valid, solve_held_region_ik=solve))
     result = SortingCoordinator._fixed_release_ik(node, arm, point, offset, wrist)
-    assert result is (solution if valid else None)
-    assert events == (['state', 'collision'] if valid else ['state', 'collision', 'solve'])
+    assert result is (solution if valid and opening_valid else None)
+    assert events == (['state', 'collision'] if valid and opening_valid else ['state', 'collision', 'solve'])
+
+
+def test_new_release_ik_with_colliding_opening_is_not_cached():
+    node = SimpleNamespace(_fixed_release_cache={}, _feedback_state=lambda: None,
+        _transport_adapter=SimpleNamespace(set_current_state=lambda _: None,
+            solve_held_region_ik=lambda *a, **k: object()),
+        _release_opening_is_valid=lambda *_: False,
+        get_parameter=lambda _: SimpleNamespace(value=16),
+        get_logger=lambda: SimpleNamespace(debug=lambda _: None))
+    assert SortingCoordinator._fixed_release_ik(node, 'right', np.zeros(3), np.zeros(3), {}) is None
+    assert not node._fixed_release_cache
+
+
+@pytest.mark.parametrize('valid', [True, False])
+def test_release_rechecks_opening_before_sending_gripper_command(valid):
+    events = []
+    joints = JointState(name=['right_wrist_roll_joint'], position=[.3])
+    node = SimpleNamespace(
+        _feedback_state=lambda: joints, _arm_joint_state=lambda _: joints,
+        _transport_adapter=SimpleNamespace(set_current_state=lambda _: events.append('fresh state')),
+        _release_opening_is_valid=lambda *_: events.append('sweep') or valid,
+        _command_gripper=lambda *args: events.append(args),
+        get_parameter=lambda _: SimpleNamespace(value=.65),
+        get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=123)))
+    held = SimpleNamespace(selected=SimpleNamespace(selected_arm='right'))
+    if valid:
+        SortingCoordinator.open_at_destination(node, held)
+        assert events == ['fresh state', 'sweep', ('right', .65, 'open')]
+        assert node._release_stamp_ns == 123
+    else:
+        with pytest.raises(RuntimeError, match='release opening intersects'):
+            SortingCoordinator.open_at_destination(node, held)
+        assert events == ['fresh state', 'sweep']
+        assert not hasattr(node, '_release_stamp_ns')
 
 
 def test_direct_release_ik_failure_prevents_motion():
@@ -854,7 +891,11 @@ def test_release_uses_fixed_point_and_wrist_feedback_regardless_of_opening_fit(s
         _fixed_release_hold_tolerance=np.deg2rad(.5),
         _arm_joint_state=lambda _: JointState(name=[wrist_name], position=[wrist_position]),
         _bins={'bin': SimpleNamespace(center_xy=(-.075, -.105), outside_size=(.18, .17, .12), wall=.008, top_z=.34)},
-        _open_gripper=lambda _: events.append('open'),
+        _command_gripper=lambda *args: events.append('open'),
+        _feedback_state=lambda: None,
+        _transport_adapter=SimpleNamespace(set_current_state=lambda _: None),
+        _release_opening_is_valid=lambda *_: True,
+        get_parameter=lambda _: SimpleNamespace(value=1.2),
         _hold=lambda _: events.append('settle'),
         _execution_scene=SimpleNamespace(restore=lambda: events.append('detach')),
         get_clock=lambda: SimpleNamespace(now=lambda: Time(seconds=10)),
@@ -888,7 +929,8 @@ def test_release_rejects_nonfinite_center_before_opening_or_disarming(axis, valu
 
 def recovery_node():
     node = object.__new__(SortingCoordinator)
-    values = dict(sorting_reobserve_after_lift=True, sorting_held_association_tolerance_m=.03)
+    values = dict(sorting_reobserve_after_lift=True, sorting_held_association_tolerance_m=.03,
+        sorting_reobserve_restore_pose=False)
     node.get_parameter = lambda name: SimpleNamespace(value=values[name])
     pose = Pose()
     pose.orientation.w = 1.
@@ -897,8 +939,12 @@ def recovery_node():
     node._held_object = SimpleNamespace(offset_in_tcp=np.zeros(3), selected=SimpleNamespace(
         selected_arm='left', selected_candidate=SimpleNamespace(header=SimpleNamespace(frame_id='base_link'))))
     node._record_pipeline_message = lambda *_: None
-    return node, values, SimpleNamespace(objects=SimpleNamespace(
-        header=SimpleNamespace(frame_id='base_link'), objects=[SimpleNamespace(obb_pose=pose)]))
+    header = Header(frame_id='base_link', stamp=Time(seconds=1).to_msg())
+    points = np.array([[x, y, z] for x in [-.01, .01] for y in [-.01, .01] for z in [.49, .51]])
+    cloud = colored_point_cloud_message(SimpleNamespace(points=points, colors=np.zeros_like(points)),
+        header.stamp, header.frame_id)
+    return node, values, SimpleNamespace(target_cloud=cloud, objects=SimpleNamespace(
+        header=header, objects=[SimpleNamespace(obb_pose=pose)]))
 
 
 def test_head_redetection_associates_geometry_when_gemini_label_changes():
@@ -910,10 +956,50 @@ def test_head_redetection_associates_geometry_when_gemini_label_changes():
         snapshot_id='fresh', detections=[SimpleNamespace(
             object_id=1, label='white disposable cup', confidence=.8,
             distance_m=.5, distance_valid=True)]))
-    node._inspect_selected = lambda snapshot_id, candidate: inspected
+    node._inspect_selected = lambda snapshot_id, candidate, **kwargs: inspected
     observed = node._verify_head_redetection(
         SimpleNamespace(label='paper cup'), minimum_center_z_m=.46)
     assert observed is inspected
+
+
+def test_lift_uses_observed_surface_center_without_extending_to_desk():
+    node, values, inspected = recovery_node()
+    # The camera sees a lifted surface around z=.5; its desk-supported OBB
+    # extends down to the table and would report the wrong center at z=.4.
+    inspected.objects.objects[0].obb_pose = Pose()
+    inspected.objects.objects[0].obb_pose.position.z = .4
+    assert node._observed_lift_center(inspected) == pytest.approx([0., 0., .5])
+    values['lift_min_center_z_m'] = .38
+    node.get_logger = lambda: SimpleNamespace(debug=lambda _: None)
+    node._detect_objects = lambda: SimpleNamespace(detections=SimpleNamespace(
+        snapshot_id='fresh', detections=[SimpleNamespace(object_id=1, label='cup',
+            confidence=.8, distance_m=.5, distance_valid=True)]))
+    inspected.objects.objects[0].label = 'cup'
+    node._inspect_selected = lambda *_, **kwargs: inspected
+    assert node._verify_head_redetection(SimpleNamespace(label='cup'), minimum_center_z_m=.46) is inspected
+    assert inspected.objects.objects[0].obb_pose.position.z == .4
+    with pytest.raises(RuntimeError, match='not retained after lift'):
+        node._verify_head_redetection(SimpleNamespace(label='cup'), minimum_center_z_m=.51)
+    node._geometry_association_lift = True
+    assert node._verify_lift_height(SimpleNamespace(label='cup'), minimum_center_z_m=.46) is inspected
+    node._tcp_pose('left').position.x = .2
+    with pytest.raises(LiftRedetectionError):
+        node._verify_head_redetection(SimpleNamespace(label='cup'), minimum_center_z_m=.46)
+
+
+@pytest.mark.parametrize('mismatch', ['frame', 'stamp', 'empty'])
+def test_lift_cloud_requires_same_capture_and_finite_observations(mismatch):
+    node, _, inspected = recovery_node()
+    if mismatch == 'frame':
+        inspected.target_cloud.header.frame_id = 'another_camera'
+    elif mismatch == 'stamp':
+        inspected.target_cloud.header.stamp = Time(seconds=2).to_msg()
+    else:
+        inspected.target_cloud.width = 0
+        inspected.target_cloud.row_step = 0
+        inspected.target_cloud.data = []
+    with pytest.raises(RuntimeError):
+        node._observed_lift_center(inspected)
 
 
 def test_missing_detection_gets_one_move_then_same_height_verification(monkeypatch):
@@ -928,6 +1014,34 @@ def test_missing_detection_gets_one_move_then_same_height_verification(monkeypat
     node._reobserve_held_object = lambda minimum: events.append(('move', minimum))
     assert node._verify_lift_height(object(), minimum_center_z_m=.46) is inspected
     assert events == [('verify', .46), ('move', .46), ('verify', .46)]
+
+
+@pytest.mark.parametrize('verified', [False, True])
+def test_reobservation_returns_to_measured_pose_only_after_visual_confirmation(monkeypatch, verified):
+    node, values, inspected = recovery_node()
+    values.update(sorting_reobserve_restore_pose=True, lift_min_center_z_m=.38)
+    events = []
+    original = JointState(name=['left_wrist_roll_joint'], position=[.4])
+    node._wait_arm_stationary = lambda _: None
+    node._arm_joint_state = lambda _: original
+    node._reobserve_held_object = lambda _: events.append('view_move')
+    node._move_to = lambda arm, joints, label: events.append(('return', joints))
+    node._verify_feedback = lambda joints: events.append('feedback')
+    node._hold = lambda _: None
+    node._confirm_held_contact = lambda _: events.append('contact')
+    def verify(_self, attempt, *, minimum_center_z_m):
+        events.append('verify')
+        if len(events) == 1 or not verified:
+            raise LiftRedetectionError('missing')
+        return inspected
+    monkeypatch.setattr(NearestPregraspCoordinator, '_verify_lift_height', verify)
+    if verified:
+        assert node._verify_lift_height(object(), minimum_center_z_m=.46) is inspected
+        assert events == ['verify', 'view_move', 'verify', ('return', original), 'feedback', 'contact']
+    else:
+        with pytest.raises(LiftRedetectionError):
+            node._verify_lift_height(object(), minimum_center_z_m=.46)
+        assert events == ['verify', 'view_move', 'verify']
 
 
 @pytest.mark.parametrize('failure', [RuntimeError('object fell'), ValueError('invalid height')])
@@ -972,6 +1086,7 @@ def test_reobservation_checks_scene_ik_execution_and_contact(valid_ik, contact_a
     values.update(sorting_reobserve_geometry_padding_m=.01, lift_min_center_z_m=.38,
                   sorting_reobserve_margin_px=24., sorting_reobserve_max_translation_m=.4,
                   sorting_reobserve_max_lowering_m=0., sorting_reobserve_height_clearance_m=.02,
+                  sorting_reobserve_max_raising_m=0., sorting_reobserve_fixed_wrist_pitch=False,
                   require_sensor_scene=True, attachment_scene_timeout_sec=5.)
     node._held_object.selected.selected_candidate.target_object = SimpleNamespace(
         obb_size=SimpleNamespace(x=.04, y=.04, z=.04))

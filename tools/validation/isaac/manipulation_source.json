@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/asm17-moving-agent/cleany",
+  "branch": "feat/jetson-manipulation-integration",
+  "commit": "575e95bbba3574cdf33d08c986515e70edc857a9",
+  "strategy": "Reference the existing BT execution-profile boundary and commissioned snapshot/object/category checks. Reuse the current sensor-driven sorting/MoveIt operations through Isaac adapters. Preserve navigation tuning and do not import hardware bus drivers.",
+  "excluded_success_modes": ["temporary return-to-pick", "ASSUMED placement", "hold-only"]
+}

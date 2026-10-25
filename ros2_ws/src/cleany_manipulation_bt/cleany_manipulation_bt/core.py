@@ -41,7 +41,11 @@ class FaultShutdown:
 class ExecutionCore:
     def __init__(self, backend: Backend, store: BTExecutionStore, tree_xml: str,
                  runner_factory: Callable, *, timeout_sec: float = 180.0,
-                 stop_timeout_sec: float = 15.0, clock: Callable = time.monotonic) -> None:
+                 stop_timeout_sec: float = 15.0, clock: Callable = time.monotonic,
+                 execution_profile: str = 'mujoco') -> None:
+        if execution_profile not in ('mujoco', 'isaac'):
+            raise ValueError('Unknown simulation execution profile')
+        self.execution_profile = execution_profile
         self.backend, self.store, self.tree_xml = backend, BTExecutionJournal(store), tree_xml
         self.runner_factory, self.clock = runner_factory, clock
         self.timeout_sec, self.stop_timeout_sec = timeout_sec, stop_timeout_sec
@@ -84,7 +88,7 @@ class ExecutionCore:
             if self.store.get(goal.execution_id) is not None:
                 return False, 'Duplicate execution_id'
             now = time.time_ns()
-            record = Record(goal, execution_profile='mujoco', accepted_at_ns=now,
+            record = Record(goal, execution_profile=self.execution_profile, accepted_at_ns=now,
                             updated_at_ns=now, message='Accepted; awaiting BT validation')
             # Construct before acceptance, so malformed XML cannot leave an
             # accepted goal without an executable tree. No nodes are ticked here.
@@ -352,7 +356,7 @@ class ExecutionCore:
             if ((self.motion_started or self.cancel_requested or self._timeout_cancel_requested)
                     and not record.stop_confirmed):
                 status, error = Status.FATAL, Error.STOP_UNCONFIRMED
-        result = Result(record.goal.execution_id, 'mujoco', status, error,
+        result = Result(record.goal.execution_id, record.execution_profile, status, error,
                         self.failed_stage, record.last_completed_stage, record.object_state,
                         record.placement_state, record.selected_arm, record.stop_confirmed,
                         record.arm_recovered, False,

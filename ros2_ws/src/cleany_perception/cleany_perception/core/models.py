@@ -242,6 +242,8 @@ class PipelineConfig:
     maximum_detections: int = 10
     minimum_depth_m: float = 0.1
     maximum_depth_m: float = 3.0
+    maximum_mask_depth_jump_m: float = 0.0
+    minimum_mask_component_fraction: float = 0.7
     support_margin_pixels: int = 40
     support_sample_stride: int = 4
     plane_ransac_iterations: int = 200
@@ -260,6 +262,9 @@ class PipelineConfig:
             raise ValueError('Maximum detections must be positive')
         if not 0.0 < self.minimum_depth_m < self.maximum_depth_m:
             raise ValueError('Depth range is invalid')
+        if (not math.isfinite(self.maximum_mask_depth_jump_m) or self.maximum_mask_depth_jump_m < 0
+                or not .5 < self.minimum_mask_component_fraction <= 1):
+            raise ValueError('Invalid depth mask component thresholds')
         if self.support_margin_pixels < 0 or self.support_sample_stride <= 0:
             raise ValueError('Support sampling parameters are invalid')
         if self.plane_ransac_iterations <= 0:

@@ -41,3 +41,10 @@
 | 서비스 제공 | `/sorting/verify_placement` | `cleany_interfaces/srv/VerifyPlacement` | Service 기본값 |
 
 시뮬레이션 전용 결과 판정이다. 물체 정답 pose를 조작 코드에 반환하지 않는다. 실물에는 독립 센서 기반 제공자가 필요하다.
+
+놓기 이후의 표본을 최소 `minimum_samples`개 사용하되, 높은 발행 주기에서도
+`settled_duration_sec` 전체를 포함하도록 이전 표본까지 확장한다. 부족한 시간 폭을
+허용하지 않으며 해당 구간 전체에서 수거함 내부 포함과 이동량 기준을 검사한다.
+Marker의 중심과 크기는 결과 평가용 실제 형상의 base_link AABB다. Isaac 어댑터는
+기존 tabletop collision vertex와 컵 바닥 원기둥의 극값에서 이를 계산하며,
+회전한 전체 외접 직육면체로 대신하지 않는다.

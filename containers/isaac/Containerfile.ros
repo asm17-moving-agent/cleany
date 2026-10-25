@@ -1,0 +1,8 @@
+# Existing local Humble/MoveIt image; override for another equivalent base.
+ARG BASE_IMAGE=localhost/cleany-main-isaac-ros:humble
+FROM ${BASE_IMAGE}
+USER root
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    ros-humble-navigation2 ros-humble-nav2-bringup ros-humble-py-trees \
+    python3-pytest python3-websockets python3-zmq python3-pil \
+    nlohmann-json3-dev && rm -rf /var/lib/apt/lists/*

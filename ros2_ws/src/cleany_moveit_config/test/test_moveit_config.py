@@ -380,3 +380,19 @@ def test_depth_octomap_and_rviz_share_sensor_cloud_contract() -> None:
         dependency.text for dependency in manifest.findall('exec_depend')
     }
 
+
+
+def test_full_head_only_adds_direct_joint_adjacencies():
+    from cleany_moveit_config.simulation_collision import include_head_adjacency
+    urdf = '''<robot><joint name="head_pan_joint"><parent link="top_base_link"/>
+        <child link="head_pan_link"/></joint><joint name="head_tilt_joint">
+        <parent link="head_pan_link"/><child link="head_tilt_link"/></joint></robot>'''
+    original = (CONFIG_ROOT/'cleany.srdf').read_text()
+    updated = include_head_adjacency(urdf,original)
+    assert updated == include_head_adjacency(urdf,updated)
+    old = {frozenset((p.get('link1'),p.get('link2'))) for p in ET.fromstring(original).findall('disable_collisions')}
+    new = {frozenset((p.get('link1'),p.get('link2'))) for p in ET.fromstring(updated).findall('disable_collisions')}
+    assert new-old == {frozenset(('top_base_link','head_pan_link')),frozenset(('head_pan_link','head_tilt_link'))}
+    assert frozenset(('top_base_link','head_tilt_link')) not in new
+    with pytest.raises(ValueError,match='Missing full-head'):
+        include_head_adjacency('<robot/>',original)

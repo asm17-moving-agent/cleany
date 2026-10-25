@@ -308,3 +308,39 @@ def test_detect_only_returns_empty_without_downstream_work(synthetic_scene):
     assert pipeline.detect(synthetic_scene['snapshot'], 'nothing') == ()
     assert segmenter.calls == 0
     assert transformer.calls == []
+
+
+def test_depth_island_filter_keeps_box_and_exported_mask_consistent(synthetic_scene):
+    from dataclasses import replace
+    scene = synthetic_scene
+    depth = scene['snapshot'].depth_m.copy()
+    depth[100:105, 155:165] = .5  # A nearby robot surface inside the 2D mask.
+    snapshot = replace(scene['snapshot'], depth_m=depth)
+    pipeline = InspectionPipeline(_Detector([scene['detection']]), _Segmenter(scene['mask']),
+        _Transformer(scene['transform']), 'base_link', PipelineConfig(maximum_mask_depth_jump_m=.02))
+    result = pipeline.inspect_selected(snapshot, [scene['detection']], scene['detection'], scene['transform'])
+    assert result.objects[0].box.size == pytest.approx(scene['expected_size'], abs=.003)
+    assert not result.masks[0].mask[100:105, 155:165].any()
+    assert result.masks[0].mask.sum() == scene['mask'].sum()-50
+
+
+def test_free_space_selection_uses_observed_depth_without_inventing_support(synthetic_scene):
+    from dataclasses import replace
+    scene = synthetic_scene
+    depth = scene['snapshot'].depth_m.copy()
+    depth[~scene['mask']] = np.nan
+    snapshot = replace(scene['snapshot'], depth_m=depth)
+    pipeline = _pipeline(scene)
+    arguments = (snapshot, [scene['detection']], scene['detection'], scene['transform'])
+    with pytest.raises(InspectionFailure) as error:
+        pipeline.inspect_selected(*arguments)
+    assert error.value.kind == FailureKind.PLANE
+    result = pipeline.inspect_selected(*arguments, free_space=True)
+    assert result.plane is None
+    assert result.objects[0].box.center == pytest.approx([0., 0., .2], abs=1e-6)
+    assert result.objects[0].box.size[2] == pipeline._config.minimum_obb_extent_m
+    assert np.array_equal(result.masks[0].mask, scene['mask'])
+    depth[scene['mask']] = 0.
+    with pytest.raises(InspectionFailure) as error:
+        pipeline.inspect_selected(*arguments, free_space=True)
+    assert error.value.kind == FailureKind.DEPTH

@@ -306,3 +306,51 @@ def test_send_and_result_response_loss_never_resend(monkeypatch):
     assert port.safe_to_drive()[0]
     assert len(transport.sent) == 1
     assert set(transport.queries) == set(transport.cancelled) == {cmd.execution_id}
+
+
+@pytest.mark.parametrize('changes', [dict(execution_profile='mock'), dict(placement_state='ASSUMED'),
+    dict(stop_confirmed=False), dict(arm_recovered=False)])
+def test_isaac_rejects_mock_or_incomplete_physical_success(changes):
+    physical = outcome('physical', execution_profile='isaac')
+    with pytest.raises(ValueError):
+        map_outcome(replace(physical, **changes), 'physical', 4, execution_profile='isaac')
+
+
+def test_isaac_initial_readiness_expires_and_pending_execution_blocks_navigation():
+    journal, clock = MissionJournal(), Clock()
+    transport = Transport(journal)
+    safe = [False]
+    port = ManipulationPort(transport, journal, clock, execution_profile='isaac',
+                            drive_readiness=lambda: (safe[0], 'measured'))
+    assert not port.ready()[0]
+    safe[0] = True
+    assert port.ready()[0]
+    cmd = command()
+    port.start(cmd)
+    assert not port.safe_to_drive()[0]
+    transport.complete(outcome(cmd.execution_id, execution_profile='isaac'))
+    assert port.poll(cmd.execution_id).ok
+    assert port.safe_to_drive()[0]
+    safe[0] = False
+    assert not port.safe_to_drive()[0]
+
+
+def test_isaac_never_uses_initial_mock_safe():
+    journal = MissionJournal()
+    with pytest.raises(ValueError):
+        ManipulationPort(Transport(journal),journal,Clock(), execution_profile='isaac',
+                         initial_mock_safe=True,drive_readiness=lambda: (True,''))
+
+
+def test_physical_stop_and_permission_to_drive_remain_separate():
+    journal = MissionJournal()
+    transport = Transport(journal)
+    port = ManipulationPort(transport,journal,Clock(),execution_profile='isaac',
+                            drive_readiness=lambda: (True,''))
+    cmd = command()
+    port.start(cmd)
+    transport.complete(outcome(cmd.execution_id,execution_profile='isaac',status='FAILED',
+        error_code='MOTION_FAILED',arm_recovered=False,object_state='NOT_TOUCHED',
+        placement_state='NOT_CHECKED'),ros_status=6)
+    assert port.poll(cmd.execution_id).status == ResultStatus.FAILED
+    assert port.stopped() and not port.safe_to_drive()[0]

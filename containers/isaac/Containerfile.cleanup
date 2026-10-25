@@ -1,0 +1,11 @@
+FROM localhost/cleany-mission-isaac-ros:humble
+USER root
+RUN python3 -m pip install --no-cache-dir 'torch==2.8.0' 'torchvision==0.23.0' --index-url https://download.pytorch.org/whl/cpu
+RUN python3 -m pip install --no-cache-dir 'numpy<2' 'ultralytics==8.4.14' 'transformers==4.57.1' 'accelerate==1.11.0' 'ftfy' 'regex' && python3 -m pip install --no-cache-dir git+https://github.com/ultralytics/CLIP.git
+RUN python3 -m pip install --no-cache-dir 'pillow==11.3.0'
+RUN python3 -m pip install --no-cache-dir 'setuptools==80.9.0' 'scipy==1.15.3' && python3 -m pip install --no-cache-dir --force-reinstall --no-deps git+https://github.com/ultralytics/CLIP.git@7ffa84b3bfa40c42ecc1c77147a855e69cb2dd40
+ENV YOLO_AUTOINSTALL=false
+RUN python3 -m pip install --no-cache-dir 'packaging==24.2' 'wheel==0.45.1' && python3 -m pip uninstall -y UNKNOWN && python3 -m pip install --no-cache-dir --no-build-isolation --no-deps git+https://github.com/ultralytics/CLIP.git@7ffa84b3bfa40c42ecc1c77147a855e69cb2dd40 && python3 -c 'import clip'
+# Humble colcon's symlink installer still uses setup.py develop --uninstall.
+RUN python3 -m pip install --no-cache-dir 'setuptools==59.6.0' && python3 -c 'import clip; from transformers import AutoProcessor'
+RUN python3 -m pip install --no-cache-dir 'jinja2==3.1.6'

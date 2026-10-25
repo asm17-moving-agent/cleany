@@ -1,6 +1,7 @@
 """Simulation-only outcome oracle, deliberately separate from perception."""
 from collections import defaultdict, deque
 from pathlib import Path
+import math
 import time
 from uuid import uuid4
 
@@ -169,16 +170,20 @@ class PlacementVerifier(Node):
             response.message = 'Invalid verification request'
             return response
         required = int(self.get_parameter('minimum_samples').value)
-        samples = list(self._samples[body])[-required:]
-        if len(samples) < required or samples[0][0] <= request.after_stamp_ns:
+        samples = [sample for sample in self._samples[body]
+                   if sample[0] > request.after_stamp_ns]
+        if len(samples) < required:
             return response
+        duration_ns = math.ceil(self.get_parameter('settled_duration_sec').value * 1e9)
+        start = len(samples)-required
+        while start > 0 and samples[-1][0]-samples[start][0] < duration_ns:
+            start -= 1
+        samples = samples[start:]
         now = self.get_clock().now().nanoseconds
         age = (now - samples[-1][0]) / 1e9
         if not 0 <= age <= self.get_parameter('maximum_age_sec').value:
             return response
-        if (samples[-1][0] - samples[0][0]) / 1e9 < (
-            self.get_parameter('settled_duration_sec').value
-        ):
+        if samples[-1][0] - samples[0][0] < duration_ns:
             return response
         points = np.asarray([point for _, point, _ in samples])
         sizes = np.asarray([size for _, _, size in samples])

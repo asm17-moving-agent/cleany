@@ -47,7 +47,8 @@ def _wrist_camera_transforms(context):
     if LaunchConfiguration('sorting_use_wrist_camera').perform(context) != 'true':
         return []
     if (LaunchConfiguration('sorting_mode').perform(context) != 'true'
-            or LaunchConfiguration('start_simulator').perform(context) != 'true'):
+            or (LaunchConfiguration('start_simulator').perform(context) != 'true'
+                and LaunchConfiguration('external_simulator').perform(context) != 'isaac')):
         raise RuntimeError('Nominal wrist mounts are for simulation sorting only')
     path = Path(LaunchConfiguration('sorting_wrist_cameras_config').perform(context))
     config = yaml.safe_load(path.read_text())
@@ -80,14 +81,18 @@ def _preflight(context):
     def value(key):
         return LaunchConfiguration(key).perform(context)
 
-    if value('start_simulator') == 'false' and value('plan_only') != 'true':
+    isaac = value('external_simulator') == 'isaac'
+    if isaac and (value('start_simulator') != 'false' or value('use_sim_time') != 'true'
+                  or value('manipulation_bt') != 'true' or not value('stowed_positions_json')):
+        raise RuntimeError('Isaac requires an external clock/controller adapter, BT and explicit stowed posture')
+    if value('start_simulator') == 'false' and value('plan_only') != 'true' and not isaac:
         raise RuntimeError('External robot mode is currently plan-only')
     if value('start_simulator') == 'false' and value('sensor_scene') != 'true':
         raise RuntimeError('External robot mode requires sensor_scene=true')
     if value('start_simulator') == 'true' and value('use_sim_time') != 'true':
         raise RuntimeError('MuJoCo requires use_sim_time=true')
     if value('sorting_mode') == 'true':
-        if value('start_simulator') != 'true' or value('plan_only') != 'false':
+        if (value('start_simulator') != 'true' and not isaac) or value('plan_only') != 'false':
             raise RuntimeError('Sorting requires simulation with execution')
         if not Path(value('sorting_bins_config')).is_file():
             raise RuntimeError('Sorting requires collection bin configuration')
@@ -307,6 +312,8 @@ def generate_launch_description() -> LaunchDescription:
             'use_sim_time': use_sim_time,
             'use_rviz': use_rviz,
             'enable_gripper_execution': sorting_mode,
+            'include_head_camera': PythonExpression([
+                "'true' if '", LaunchConfiguration('external_simulator'), "' == 'isaac' else 'false'"]),
             'simulation_bins_config': PythonExpression([
                 "'", LaunchConfiguration('sorting_bins_config'), "' if '",
                 sorting_mode, "' == 'true' else ''",
@@ -445,6 +452,8 @@ def generate_launch_description() -> LaunchDescription:
                     PythonExpression(["'", sorting_mode, "' == 'true' and '",
                                       LaunchConfiguration('topdown_only'), "' != 'true'"]), value_type=bool
                 ),
+                'geometric.approach_tilt_options': ParameterValue(
+                    LaunchConfiguration('grasp_approach_tilt_options'), value_type=list[float]),
                 'geometric.include_reverse_closing_axis': ParameterValue(
                     sorting_mode, value_type=bool
                 ),
@@ -514,6 +523,7 @@ def generate_launch_description() -> LaunchDescription:
                     "'", sorting_mode, "' == 'true' and '",
                     LaunchConfiguration('sorting_use_wrist_camera'), "' != 'true'",
                 ]), value_type=bool),
+                'visibility_sensor_link': LaunchConfiguration('visibility_sensor_link'),
                 'service_artifact_directory': LaunchConfiguration('sorting_artifact_directory'),
                 'maximum_candidates': 24,
                 'grasp_approach_offset_m': grasp_approach_offset,
@@ -553,7 +563,8 @@ def generate_launch_description() -> LaunchDescription:
         ros_arguments=_application_log_arguments(
             'nearest_pregrasp_coordinator', 'sim.manipulation_mujoco_server'),
         executable=PythonExpression([
-            "'manipulation_mujoco_server' if '", LaunchConfiguration('manipulation_bt'),
+            "'manipulation_isaac_server' if '", LaunchConfiguration('external_simulator'),
+            "' == 'isaac' else 'manipulation_mujoco_server' if '", LaunchConfiguration('manipulation_bt'),
             "' == 'true' else ('sorting_coordinator' if '", sorting_mode,
             "' == 'true' else 'nearest_pregrasp_coordinator')",
         ]),
@@ -563,11 +574,13 @@ def generate_launch_description() -> LaunchDescription:
             {
                 'use_sim_time': clock_parameter,
                 'database_path': ParameterValue(LaunchConfiguration('bt_database_path'), value_type=str),
+                'stowed_positions_json': ParameterValue(LaunchConfiguration('stowed_positions_json'), value_type=str),
                 'monitor_port': ParameterValue(LaunchConfiguration('bt_monitor_port'), value_type=int),
                 'sorting_bins_config': LaunchConfiguration('sorting_bins_config'),
                 'sorting_artifact_directory': LaunchConfiguration('sorting_artifact_directory'),
                 'sorting_test_only_label': LaunchConfiguration('sorting_test_only_label'),
                 'sorting_use_wrist_camera': ParameterValue(LaunchConfiguration('sorting_use_wrist_camera'), value_type=bool),
+                'sorting_lift_observation_source': LaunchConfiguration('sorting_lift_observation_source'),
                 'sorting_geometry_association_lift': ParameterValue(PythonExpression([
                     "'", perception_detector_type, "' == 'yoloe_gemini'",
                 ]), value_type=bool),
@@ -598,6 +611,8 @@ def generate_launch_description() -> LaunchDescription:
                 'use_joint_corridor_grasp': ParameterValue(sorting_mode, value_type=bool),
                 'use_seeded_cartesian_grasp': ParameterValue(sorting_mode, value_type=bool),
                 'cartesian_local_refinement_iterations': 40,
+                'cartesian_orientation_weight_m': ParameterValue(
+                    LaunchConfiguration('cartesian_orientation_weight_m'), value_type=float),
                 'execute_grasp_and_lift': ParameterValue(PythonExpression([
                     "'", plan_only, "' != 'true'",
                 ]), value_type=bool),
@@ -702,6 +717,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('sorting_release_edge_margin_m', default_value='0.005'),
             DeclareLaunchArgument('coordinator_parameters', default_value=str(
                 skill_share / 'config/nearest_pregrasp.yaml')),
+            DeclareLaunchArgument('external_simulator', default_value='', choices=['', 'isaac']),
+            DeclareLaunchArgument('stowed_positions_json', default_value=''),
             DeclareLaunchArgument('manipulation_bt', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument('bt_database_path', default_value=str(
                 Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state')
@@ -743,7 +760,11 @@ def generate_launch_description() -> LaunchDescription:
                 "' == 'true' else (10.0 if '", sorting_mode, "' == 'true' else 5.0)"]),
                 description='Wall-time budget for fresh post-attachment depth; returns immediately when ready.'),
             DeclareLaunchArgument('sorting_use_wrist_camera', default_value=sorting_mode, choices=['true','false']),
+            DeclareLaunchArgument('sorting_lift_observation_source', default_value='auto',
+                                  choices=['auto', 'head_rgbd']),
             DeclareLaunchArgument('sorting_head_reference_refresh_age_sec', default_value='0.0'),
+            DeclareLaunchArgument('visibility_sensor_link', default_value=''),
+            DeclareLaunchArgument('grasp_approach_tilt_options', default_value='[0.0, 8.0, 16.0, 24.0]'),
             DeclareLaunchArgument('sorting_approach_acceleration_scaling', default_value='1.0'),
             DeclareLaunchArgument('sorting_return_gripper_position_rad', default_value='-0.30'),
             DeclareLaunchArgument('sorting_wrist_cameras_config',
@@ -775,6 +796,7 @@ def generate_launch_description() -> LaunchDescription:
                 description='Verify bin placement after retreat; simulation sorting defaults to operator observation.'),
             DeclareLaunchArgument('grasp_maximum_top_contact_depth_m', default_value='0.0'),
             DeclareLaunchArgument('gripper_open_position_rad', default_value='1.2'),
+            DeclareLaunchArgument('cartesian_orientation_weight_m', default_value='0.0'),
             DeclareLaunchArgument('prefer_upward_closing_axis', default_value='false'),
             DeclareLaunchArgument('direct_vertical_lift', default_value='false'),
             DeclareLaunchArgument('direct_vertical_lift_extra_m', default_value='0.0'),

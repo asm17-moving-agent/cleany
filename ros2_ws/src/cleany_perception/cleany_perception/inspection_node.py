@@ -166,6 +166,7 @@ class InspectionNode(Node):
         detector: DetectorPort | None = None,
         segmenter: SegmenterPort | None = None,
         transformer: TransformPort | None = None,
+        wrist_detector: DetectorPort | None = None,
         **kwargs,
     ) -> None:
         super().__init__('perception_inspector', **kwargs)
@@ -198,7 +199,8 @@ class InspectionNode(Node):
                                (segmenter_type, segmenter)):
             if supplied is None and kind in ('yoloe', 'yoloe_gemini'):
                 self._resolve_local_model('yoloe' if kind == 'yoloe_gemini' else kind)
-        wrist_yoloe = None
+        yoloe = None
+        wrist_yoloe = wrist_detector
         wrist_check_yoloe = None
         wrist_mouse_check_yoloe = None
         wrist_right_yoloe = None
@@ -481,7 +483,7 @@ class InspectionNode(Node):
         self._busy = False
         self._wrist_service = None
         if bool(self.get_parameter('enable_wrist_observation').value):
-            if detector_type != 'yoloe_gemini' or segmenter_type != 'yoloe_seg' or wrist_yoloe is None:
+            if segmenter_type != 'yoloe_seg' or wrist_yoloe is None:
                 raise ValueError('Wrist observation requires the local YOLOE-seg detector')
             from cleany_perception.wrist_service import WristService
             from dataclasses import asdict
@@ -605,6 +607,8 @@ class InspectionNode(Node):
         self.declare_parameter('maximum_depth_m', 3.0)
         self.declare_parameter('nearest_object_central_bbox_fraction', 0.5)
         self.declare_parameter('nearest_object_minimum_depth_pixels', 20)
+        self.declare_parameter('maximum_mask_depth_jump_m', 0.0)
+        self.declare_parameter('minimum_mask_component_fraction', 0.7)
         self.declare_parameter('support_margin_pixels', 40)
         self.declare_parameter('support_sample_stride', 4)
         self.declare_parameter('plane_ransac_iterations', 200)
@@ -649,6 +653,8 @@ class InspectionNode(Node):
             ),
             minimum_depth_m=float(self.get_parameter('minimum_depth_m').value),
             maximum_depth_m=float(self.get_parameter('maximum_depth_m').value),
+            maximum_mask_depth_jump_m=float(self.get_parameter('maximum_mask_depth_jump_m').value),
+            minimum_mask_component_fraction=float(self.get_parameter('minimum_mask_component_fraction').value),
             support_margin_pixels=int(
                 self.get_parameter('support_margin_pixels').value
             ),
@@ -895,6 +901,7 @@ class InspectionNode(Node):
             cached.detections,
             selected,
             cached.capture_transform,
+            free_space=goal_handle.request.free_space,
             progress=lambda stage, detections, objects, message: (
                 self._feedback(
                     goal_handle,

@@ -130,6 +130,12 @@ TEST(KnownGeometry, MeshFacePaddingMatchesPrimitiveAcrossScalePoseAndLocalOffset
       auto primitive = box({0.12, 0.04, 0.04}, pose * local_offset, yaw);
       primitive->setScale(scale);
       primitive->setPadding(0.015);
+      std::vector<Eigen::Vector3d> points;
+      for (int x = -15; x <= 15; ++x)
+        for (int y = -10; y <= 10; ++y)
+          points.emplace_back(0.505+x*0.007, 0.005+y*0.007, 0.005);
+      EXPECT_EQ(cleany_scene_mapping::knownGeometryContainment(points, {placed_mesh.get()}),
+                cleany_scene_mapping::knownGeometryContainment(points, {primitive.get()}));
       octomap::OcTree mesh_tree(0.01), primitive_tree(0.01);
       for (int x = -10; x <= 10; ++x)
         for (int y = -8; y <= 8; ++y)
@@ -151,6 +157,18 @@ TEST(KnownGeometry, MeshFacePaddingMatchesPrimitiveAcrossScalePoseAndLocalOffset
       // An occupied cell beyond the configured padding is preserved.
       EXPECT_TRUE(mesh_tree.isNodeOccupied(mesh_tree.search(0.505, 0.085, 0.005)));
     }
+}
+
+TEST(KnownGeometry, PointContainmentRejectsNonfiniteAndEmptyGeometry)
+{
+  auto body = box({0.1, 0.1, 0.1});
+  const std::vector<Eigen::Vector3d> points = {
+    Eigen::Vector3d::Zero(), {0.06, 0.0, 0.0},
+    {std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0}};
+  EXPECT_EQ(cleany_scene_mapping::knownGeometryContainment(points, {nullptr, body.get()}),
+            (std::vector<bool>{true, false, false}));
+  EXPECT_EQ(cleany_scene_mapping::knownGeometryContainment(points, {}),
+            (std::vector<bool>{false, false, false}));
 }
 
 TEST(KnownGeometry, MissingOrNonfiniteTransformsLeaveAllBodiesUnchanged)

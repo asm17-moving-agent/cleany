@@ -304,11 +304,12 @@ Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config
 | 경계 | 연결 위치와 현재 상태 |
 |---|---|
 | Gazebo `ros_gz_bridge` | [Bridge 표](../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md#ros_gz_bridge). ROS/Gazebo sensor와 명령 변환 |
+| MPPI 진단 | `cleany_navigation/mppi_replay_snapshot`; 일반 Mission에서 미실행. [계약](../ros2_ws/src/cleany_navigation/docs/interfaces.md#nav2-controller와-planner) |
 | Nav2 / AMCL / Collision Monitor | [Navigation launch](../ros2_ws/src/cleany_navigation/launch/navigation.launch.py)와 [설정](../ros2_ws/src/cleany_navigation/config)이 조합을 선택. Mission이 호출하는 action/lifecycle 서비스는 Mission 노드 표에 포함 |
 | MoveIt `move_group` | `/compute_ik`, `/compute_fk`, `/check_state_validity`, `/get_planning_scene`, `/apply_planning_scene`, `/move_action`, `/execute_trajectory`를 이용. 자체 호출 노드 표와 [Planning 계약](../ros2_ws/src/cleany_moveit_config/docs/planning.md)에서 연결 확인 |
 | ros2_control | Arm/gripper의 FollowJointTrajectory와 joint_state_broadcaster. [Controller 설정](../ros2_ws/src/cleany_moveit_config/config/mock_ros2_controllers.yaml)과 [MuJoCo backend launch](../ros2_ws/src/cleany_mujoco_sim/launch/study_cafe_backend.launch.py)이 선택 |
 | `robot_state_publisher` | `joint_states` 구독, `/tf`, `/tf_static` 발행. URDF와 [모델 계약](../ros2_ws/src/cleany_description/docs/model.md)이 frame 의미를 관리 |
-| `InspectScene` | `perception_inspector`가 `perception/inspect_scene`을 제공. [Perception API](../ros2_ws/src/cleany_perception/docs/runtime.md#ros-api) |
+| `InspectScene` | 선택 복원의 `free_space=false`는 책상, true는 공중 관측 표면 bounds. `perception_inspector`가 `perception/inspect_scene`을 제공. [Perception API](../ros2_ws/src/cleany_perception/docs/runtime.md#ros-api) |
 | `ExecuteManipulationSkill` | Runtime의 action client와 [타입](../ros2_ws/src/cleany_interfaces/action/ExecuteManipulationSkill.action)은 존재. 기본 mock는 process 내부 구현이며 `action_mock`은 선택형 Python Mock 서버에 연결 |
 
 위 표는 외부 패키지의 연결 경계다. 외부 패키지의 전체 API 목록은 해당 패키지 문서와 실행 graph를 기준으로 확인한다. RViz, rqt, controller spawner와 검증용 probe 노드는 실행 보조 도구이며 자체 제품 endpoint 목록에 포함하지 않는다.
@@ -343,3 +344,53 @@ ros2 action info /grasp/select_reachable
 ```
 
 실행 graph는 해당 실행의 증거다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않는다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신한다.
+
+## Isaac 통합 검증 도구
+
+`tools/validation/isaac/scene.py`는 Isaac Python으로 실행하는 검증용 adapter다.
+기존 패키지의 simulator node와 동시에 실행하지 않는다.
+
+| 노드 / 종류 | 이름과 타입 | 역할 |
+|---|---|---|
+| cleany_isaac_adapter / 구독 | `/cmd_vel`, geometry_msgs/Twist, R10 | body X/Y m/s, yaw rad/s. 유효 명령 만료 0.5초, 비유한 입력 정지 |
+| adapter / 구독 | `/isaac/test/block_base`, std_msgs/Bool, R10 | 격리 시뮬레이션의 주행 실패 주입 |
+| adapter / 발행 | `/clock`, rosgraph_msgs/Clock, R10 | Isaac 물리 시각, 단일 소유자 |
+| adapter / 발행 | `/wheel/odom`, nav_msgs/Odometry, R10 | PhysX pose로 측정한 이상적 odometry. wheel encoder 추정 아님 |
+| adapter / TF | `odom → base_link`, TF 기본 QoS | 실제 physics pose. `map → odom`은 AMCL 소유 |
+| adapter / static TF | `base_link → isaac_lidar`, TF 기본 QoS | 합성 시험 LiDAR의 명시적 설치 위치 |
+| adapter / 발행 | `/scan`, sensor_msgs/LaserScan, R10 | PhysX raycast, robot 자체 제외, 361 beam, 0.15–12m |
+| 내장 ros2_control | `/joint_states`, 4개 `*_controller/follow_joint_trajectory` | 기존 MuJoCo controller YAML 재사용. 컨트롤러가 관절 state/action을 소유 |
+| robot_state_publisher / TF | URDF link chain | 기존 모델의 관절/고정 link. base/map TF 중복 발행 없음 |
+
+설정, 실행 범위와 한계는 [실행 가이드](RUNNING.md#isaac-sim-통합-검증)를 따른다.
+
+`cloned_scene.py`는 같은 adapter 계약을 환경별 `/env_N/cleany_isaac_adapter`에
+적용한다. `/cleany_clones_clock`이 공통 `/clock`을 발행하며 나머지 센서,
+명령과 TF topic은 `/env_N` 아래로 격리한다. `cloned_mission.launch.py`는
+기존 Mission launch에 namespace와 명시 remap만 적용한다. Frame ID,
+message/action 타입과 collision monitor를 거치는 최종 명령 경로는 유지한다.
+컨트롤러와 Mission/Nav2 parameter는 환경별 namespace로 감싸고, DB와 출력도
+분리한다. 이 노드들은 검증 스크립트이며 ROS 패키지에 새 실행 파일을 설치하지 않는다.
+
+`bringup_clones.py`의 `/cleany_clone_bringup`은 각 환경의
+`/env_N/lifecycle_manager_{localization,navigation,safety}/manage_nodes`
+(`nav2_msgs/ManageLifecycleNodes`) client와 `/env_N/mission/status` subscriber다.
+기존 STARTUP을 한 번씩 요청하고 전체 ready를 확인한 뒤 종료한다. Mission을
+직접 할당하거나 주행 복구/취소 동작을 수행하지 않는다.
+
+### Isaac 센서 기반 정리 추가 경로
+
+- `cleany_manipulation_bt/manipulation_isaac_server`: 기존 ExecuteManipulationSkill,
+  조회 및 취소 계약을 `isaac` 프로필로 제공한다.
+- `/trajectory_execution_event` (`std_msgs/msg/String`): BT 정지 평가가 MoveIt TEM에
+  `stop`을 전달한다. `bt_moveit_stop_topic`으로 설정하며 Action 종료와 관절 정지는 별도로 확인한다.
+- `/sim/manipulation/ready_to_drive` (`std_srvs/srv/Trigger`): 측정된 팔 주행 자세와
+  정지, 물체 상태 및 Action 종료를 확인한다.
+- Mission `action_isaac`: `/perception/inspect_scene`의 실제 snapshot을 사용하고
+  위 준비 상태 서비스를 통해 이동을 제한한다.
+- Isaac RTX 어댑터는 `/camera/color/image_raw`,
+  `/camera/aligned_depth_to_color/image_raw` 및 각 CameraInfo를 같은 촬영 시각과
+  optical frame으로 발행한다. `/sorting_cameras/set_parameters`는 head 카메라의
+  실제 발행 주기를 변경하며 미구성 wrist 카메라 요청을 거절한다.
+- `/simulation/sorting_ground_truth`는 독립 안착 평가기 전용이다. perception,
+  planner 또는 actuator 목표 입력으로 사용하지 않는다.

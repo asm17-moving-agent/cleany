@@ -138,6 +138,57 @@ def test_old_endpoint_outside_wrist_bound_is_rejected_before_services(runtime):
     assert not runtime.ik_requests and not runtime.states
 
 
+def test_orientation_refinement_corrects_redundant_joint_drift(runtime, monkeypatch):
+    from cleany_skill_executor import seeded_cartesian as module
+
+    class CoupledChain:
+        def __init__(self, *args):
+            pass
+
+        def pose(self, joints):
+            x = joints['left_test']
+            angle = 1600*x*(.05-x) + joints['left_roll']
+            c, s = math.cos(angle), math.sin(angle)
+            return np.array([x, 0., 0.]), np.array([[c, -s, 0.], [s, c, 0.], [0., 0., 1.]])
+
+    def fk(query):
+        joints = dict(zip(query.robot_state.joint_state.name, query.robot_state.joint_state.position))
+        x = joints['left_test']
+        angle = 1600*x*(.05-x) + joints['left_roll']
+        pose = PoseStamped()
+        pose.pose.position.x = x
+        pose.pose.orientation.z, pose.pose.orientation.w = math.sin(angle/2), math.cos(angle/2)
+        result = GetPositionFK.Response(pose_stamped=[pose])
+        result.error_code.val = 1
+        return result
+
+    monkeypatch.setattr(module, 'UrdfChain', CoupledChain)
+    runtime.request.start_state.joint_state.name.append('left_roll')
+    runtime.request.start_state.joint_state.position.append(0.)
+    runtime.request.goal_constraints[0].joint_constraints.append(JointConstraint(joint_name='left_roll', position=0.))
+    runtime.planner.limits['left_roll'] = JointMotionLimit(-2., 2., 1., 1.)
+    runtime.planner.compute_fk = fk
+    runtime.planner.set_robot_description('synthetic coupled model')
+    for weight in (0., .002):
+        runtime.states.clear()
+        runtime.planner.config = SeededCartesianConfig(
+            ik_step_m=.005, local_refinement_iterations=40, orientation_weight_m=weight)
+        trajectory, poses = runtime.planner.plan(runtime.request, runtime.start, runtime.target)
+        assert len(runtime.states) == len(trajectory.joint_trajectory.points)
+        assert all(state.attached_collision_objects[0].object.id == 'observed_target' for state in runtime.states)
+        if weight == 0:
+            with pytest.raises(ValueError, match='corridor'):
+                validate_corridor_samples(poses, runtime.start, runtime.target, .001, math.radians(5), .01)
+        else:
+            validate_corridor_samples(poses, runtime.start, runtime.target, .001, math.radians(5), .01)
+
+
+@pytest.mark.parametrize('weight', [-1., math.nan, math.inf])
+def test_invalid_orientation_weight_rejected(weight):
+    with pytest.raises(ValueError):
+        SeededCartesianConfig(orientation_weight_m=weight)
+
+
 def test_collision_between_ik_knots_rejects_the_plan(runtime):
     calls = []
     def collision(query):

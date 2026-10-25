@@ -101,6 +101,16 @@ SUCCESS는 독립 방출/안착, 팔 복귀와 최종 정지 근거가 모두 �
 
 ### 정지 근거
 
+중단 요청 시 Action cancel과 함께 MoveIt의 `trajectory_execution_event`에 `stop`을
+발행한다. `bt_moveit_stop_topic` 기본값은 `/trajectory_execution_event`이며 Reliable,
+Volatile이다. 미종료 Action이나 늦은 수락이 남아 있으면 정지 평가 기한 안에서
+0.2초 간격으로 반복한다. 이 경로는 같은 MoveIt 실행기를 독점 사용하는 단일 작업용이다.
+정상 완료 후 `cancel=false` 정지 평가는 이벤트를 발행하지 않는다.
+[MoveIt 2.5.10의 MoveGroupInterface::stop](https://github.com/moveit/moveit2/blob/2.5.10/moveit_ros/planning_interface/move_group_interface/src/move_group_interface.cpp#L929)과
+같은 TEM 정지 경로를 사용한다. 해당 버전 ExecuteTrajectory의 실행 callback은
+동기 대기하며 Action 취소 callback은 실행 중단을 직접 호출하지 않는다.
+이벤트 발행이나 cancel 응답 자체를 정지 성공으로 간주하지 않는다.
+
 정지는 모든 ROS Action의 terminal 결과와 정지 확인 시작 이후의 새 관절 샘플을 요구한다.
 양팔과 양쪽 그리퍼의 각 관절에 sensor stamp와 단조 시계 수신 시각을 따로 기록한다.
 부분 메시지는 포함된 관절만 갱신하며, 속도 누락·비정상 값·중복 이름·반복 또는 역행 stamp는
@@ -159,3 +169,13 @@ BT snapshot 조회 실패는 해당 실행의 모니터 갱신만 중단하고 �
 context 초기화가 실패하면 해당 실행을 수락한 뒤 위 오류 종료 경로로 최종 결과를 반환한다.
 이 처리는 서버 프로세스가 살아 있는 동안의 실행 예외에 적용한다. 프로세스 종료 후의
 처리는 [README의 재시작 복구 계약](../README.md#기록과-모니터)을 따른다.
+
+## Isaac 실행 프로필
+
+`manipulation_isaac_server`는 동일한 C++ 트리와 sensor/MoveIt 동작을 사용하고
+기록과 결과를 `execution_profile=isaac`으로 구별한다. `ASSUMED` 안착을 지원하지 않는다.
+`manipulation/ready_to_drive`는 명시적으로 설정한 주행 자세에 있는 새 관절 피드백,
+정지 구간, 비어 있는 물체 상태, 종료된 Action과 비차단 BT를 함께 검사하는 읽기 전용
+Trigger 서비스다. 서비스 호출은 팔을 움직이거나 오류를 초기화하지 않는다.
+
+정지 확인 timeout 로그는 Action 종료 여부, 아직 응답하지 않은 수락/결과 수, 연속 정지 샘플 수, 유효하지 않은 관절 피드백과 속도 초과 관절을 구분한다. 이 진단은 정지 기준을 바꾸지 않으며, 별도 관측에서 로봇이 정지해 보인다는 이유로 `STOP_UNCONFIRMED`를 성공으로 변경하지 않는다.

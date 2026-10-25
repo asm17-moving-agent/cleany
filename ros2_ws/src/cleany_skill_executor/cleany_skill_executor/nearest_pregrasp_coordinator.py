@@ -198,10 +198,12 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         self.declare_parameter('cartesian_validation_joint_step_rad', .005)
         self.declare_parameter('cartesian_maximum_points', 2000)
         self.declare_parameter('cartesian_local_refinement_iterations', 0)
+        self.declare_parameter('cartesian_orientation_weight_m', 0.0)
         self.declare_parameter('cartesian_joint_acceleration_rad_s2', 1.0)
         self.declare_parameter('cartesian_joint_limits_file', str(
             Path(get_package_share_directory('cleany_moveit_config')) / 'config' / 'joint_limits.yaml'))
         self.declare_parameter('attachment_scene_timeout_sec', 5.0)
+        self.declare_parameter('attachment_uncertainty_padding_m', 0.0)
         self._direct_vertical_lift = self.declare_parameter('direct_vertical_lift', False).value
         self.declare_parameter('direct_vertical_lift_extra_m', 0.0)
         self.declare_parameter('corridor_orientation_tolerance_deg', 5.0)
@@ -227,6 +229,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
                     validation_step_m=float(self.get_parameter('cartesian_validation_step_m').value),
                     validation_joint_step_rad=float(self.get_parameter('cartesian_validation_joint_step_rad').value),
                     local_refinement_iterations=int(self.get_parameter('cartesian_local_refinement_iterations').value),
+                    orientation_weight_m=float(self.get_parameter('cartesian_orientation_weight_m').value),
                     maximum_points=int(self.get_parameter('cartesian_maximum_points').value)))
             self.create_subscription(String, '/robot_description',
                 lambda message: self._seeded_cartesian.set_robot_description(message.data),
@@ -336,6 +339,8 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         self._execution_scene = TargetSceneTransaction(
             self,
             geometry_lookup=self._geometry_cache.get if use_mesh else None,
+            attachment_uncertainty_padding_m=float(
+                self.get_parameter('attachment_uncertainty_padding_m').value),
             support_patch_margin_m=float(self.get_parameter('support_patch_margin_m').value),
             timeout_sec=float(self.get_parameter('planning_scene_timeout_sec').value),
             spin_once=lambda duration: self._spin_once(timeout_sec=duration),
@@ -853,11 +858,14 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         self,
         snapshot_id: str,
         attempt: ObjectAttempt,
+        *,
+        free_space: bool = False,
     ):
         goal = InspectScene.Goal()
         goal.snapshot_id = snapshot_id
         goal.tracking_session_id = getattr(self, '_tracking_session_id', '')
         goal.selected_object_id = attempt.object_id
+        goal.free_space = free_space
         handle = self._future(
             self._inspection.send_goal_async(goal),
             10.0,

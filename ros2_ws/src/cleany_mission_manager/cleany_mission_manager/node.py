@@ -27,6 +27,8 @@ from cleany_mission_manager.core.result import FailureCode, ModuleResult
 from cleany_mission_manager.core.runtime import MissionRuntime
 from cleany_mission_manager.core.runtime_models import RuntimePolicy, RuntimeRequest, SceneObject
 from cleany_mission_manager.mocks.desk import MockDesk
+from cleany_mission_manager.core.sensor_desk import SensorDesk
+from cleany_mission_manager.adapters.sensor_desk import InspectionTransport, DriveReadiness
 
 
 class MissionRuntimeNode(Node):
@@ -91,6 +93,8 @@ class MissionRuntimeNode(Node):
                 "map_server", "amcl", "planner_server", "controller_server",
                 "bt_navigator", "collision_monitor",
             ],
+            "perception_action": "/perception/inspect_scene",
+            "manipulation_drive_readiness": "/sim/manipulation/ready_to_drive",
             "manipulation_backend": "mock", "manipulation_action": "mock/manipulation/execute_skill",
             "manipulation_query": "mock/manipulation/get_execution",
             "manipulation_initial_mock_safe": False,
@@ -116,18 +120,29 @@ class MissionRuntimeNode(Node):
                 "manipulation_mock_snapshot_ids": snapshots,
                 "manipulation_destination": value("manipulation_destination"),
             }, fixture)
-        self.desk = MockDesk(
-            time.monotonic, polls=value("mock_operation_polls"),
-            destination_id=value("manipulation_destination"), snapshot_ids=snapshots,
-            objects=(SceneObject("trash-1", wire_object_id=1), SceneObject("trash-2", wire_object_id=2))
-                    if manipulation_backend == "action_mock" else None,
-        )
-        self.manipulation = (ManipulationPort(
-            ROSManipulationTransport(self, value("manipulation_action"), value("manipulation_query")),
-            self.journal, time.monotonic,
-            initial_mock_safe=value("manipulation_initial_mock_safe"),
-            on_success=self.desk.manipulation_succeeded,
-        ) if manipulation_backend == "action_mock" else self.desk.executor)
+        physical = manipulation_backend == "action_isaac"
+        if physical:
+            self.desk = SensorDesk(InspectionTransport(self, value("perception_action")),
+                time.monotonic, lambda: self.get_clock().now().nanoseconds,
+                destination=value("manipulation_destination"))
+            self.manipulation = ManipulationPort(
+                ROSManipulationTransport(self, value("manipulation_action"), value("manipulation_query")),
+                self.journal, time.monotonic, execution_profile="isaac",
+                drive_readiness=DriveReadiness(self, value("manipulation_drive_readiness")),
+                on_success=self.desk.manipulation_succeeded)
+        else:
+            self.desk = MockDesk(
+                time.monotonic, polls=value("mock_operation_polls"),
+                destination_id=value("manipulation_destination"), snapshot_ids=snapshots,
+                objects=(SceneObject("trash-1", wire_object_id=1), SceneObject("trash-2", wire_object_id=2))
+                        if manipulation_backend == "action_mock" else None,
+            )
+            self.manipulation = (ManipulationPort(
+                ROSManipulationTransport(self, value("manipulation_action"), value("manipulation_query")),
+                self.journal, time.monotonic,
+                initial_mock_safe=value("manipulation_initial_mock_safe"),
+                on_success=self.desk.manipulation_succeeded,
+            ) if manipulation_backend == "action_mock" else self.desk.executor)
         backend = value("navigation_backend")
         if backend not in ("nav2", "mock"):
             raise ValueError("navigation_backend must be nav2 or mock")
@@ -138,6 +153,7 @@ class MissionRuntimeNode(Node):
             executor=self.manipulation, clock=time.monotonic,
             supported_targets=set(self.targets.seats), journal=self.journal,
             on_accept=self.desk.begin, navigation_mode="sim" if backend == "nav2" else "mock",
+            cleaning_mode="isaac" if physical else "mock",
             policy=RuntimePolicy(manipulation_destinations=(value("manipulation_destination"),),
                                  **{name: value(name) for name in (
                 "post_mission", "navigation_timeout", "cleaning_timeout", "operation_timeout",

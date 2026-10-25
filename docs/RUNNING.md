@@ -28,6 +28,223 @@ flowchart TB
 
 `mission_sim.launch.py`는 주행과 Mission 구성을 함께 띄웁니다. Sensor와 Nav2가 이미 준비돼 있다면 `mission_runtime.launch.py`만 붙입니다. 아래에서 실행 목적에 맞는 절차를 선택합니다.
 
+## Isaac Sim 통합 검증
+
+현재 실행기는 실제 Mission Manager, AMCL/Nav2, LiDAR 충돌 감시기와 Isaac의
+원본 Cleany 모델 및 ros2_control을 연결한다. 인식·계획·조작은 기존 mock이며,
+물리적 책상 정리 성공을 검증하는 실행기는 아니다. 베이스는 PhysX root 속도를
+지정하는 이상적 구동으로, 바퀴 slip과 메카넘 roller 동역학은 포함하지 않는다. 이 단계의 고정 바퀴 모델에는
+바닥 마찰을 0으로 설정하며 장애물 충돌은 유지한다.
+RGB-D, depth 안전 경로와 전체 조작 BT는 후속 단계다.
+[구조 분석과 단계별 계획](ISAAC_INTEGRATION.md)을 함께 확인한다.
+
+호스트 Python, Podman NVIDIA CDI, 설치된 `localhost/cleany-isaac-visual:6.1.0`과
+`localhost/cleany-main-isaac-ros:humble` 이미지가 필요하다. 후자는 기존 Isaac
+연구 작업 공간에서 만든 Humble/MoveIt 환경이다. 이 절은 해당 이미지가 있는
+데스크탑의 재현 절차이며 새로운 호스트의 전체 설치 절차를 대신하지 않는다.
+
+```bash
+podman build -t localhost/cleany-mission-isaac-ros:humble \
+  -f containers/isaac/Containerfile.ros containers/isaac
+python tools/validation/isaac/build.py --build-root /absolute/data/builds/isaac-mission
+python tools/validation/isaac/run.py \
+  --build-root /absolute/data/builds/isaac-mission \
+  --output /absolute/data/runs/isaac-success-001 --scenario success
+```
+
+`--output`은 존재하지 않는 새 경로여야 한다. 실행마다 scene/map/targets,
+코드 snapshot, image ID와 build identity, controller·Mission 로그, 상태 전이,
+물리 base 관측과 DB를 보존한다. 빌드 소스가 달라지면 실행을 거부하므로 먼저
+`build.py`를 다시 실행한다. 기본 domain은 174이고 다른 ROS 실행과 공유하지 않는다.
+호스트 loopback UDP만 사용하는 Fast DDS 설정을 양쪽 컨테이너에 적용한다.
+다른 domain은 `--domain`으로 지정하되 기존 연구 domain 73은 사용하지 않는다.
+
+시작 시 GPU 2048 MiB, host 10000 MiB 이상의 여유를 요구한다.
+실행 중 GPU 1024 MiB 또는 host 4096 MiB 미만이면 이번 시도만 종료한다.
+기본 제한 시간은 660초다. 다른 학습·시뮬레이터 컨테이너는 종료하지 않는다.
+캐시는 build 아래의 전용 `isaac-cache-<domain>`에 보존한다.
+
+기본 `--publication-profile split --physics-sync fabric`은 물리 500Hz와 기존
+controller_manager 100Hz를 유지하고, `/clock` 100Hz, `/wheel/odom`과
+`odom → base_link` TF 50Hz, LiDAR/자세 기록 10Hz를 정수 physics tick에 맞춘다.
+Odometry 속도는 발행 사이 전체 구간의 실제 PhysX 변위에서 계산한다.
+Headless 실행은 Fabric을 켜서 physics 결과의 매 step USD 쓰기를 끈다.
+센서/odometry/관절/기록은 live PhysX 상태를 읽으며, 화면은 별도 기록 재생
+renderer를 사용한다. Live USD pose를 읽는 새 센서나 화면을 추가하면 이 모드의
+상태 갱신 계약을 다시 검증해야 한다.
+
+비교용 `--publication-profile legacy --physics-sync usd`는 clock/odom/TF를
+500Hz로 발행하고 기존 USD 동기화를 사용한다. `split + usd`로 ROS 발행 분리만의
+효과를 측정할 수 있다. `--profile`은 구간/프로세스 계측을 켜며,
+`--native-profile`은 첫 실제 이동에서 3초간 Carbonite CPU trace를 기록한다.
+Native trace와 겹치는 창은 주행 성능 집계에서 제외한다.
+
+독립 미션을 병렬 실행할 때는 `run.py` 프로세스마다 서로 다른 `--domain`,
+`--output`, `--cache-root`를 지정한다. 예를 들어 domain 175와 176은 각각의
+Isaac, ROS, 검증기 컨테이너와 DDS 통신을 분리한다. 동일 ROS build는 읽기 전용
+mount와 공유 build lock으로 재사용할 수 있지만, 쓰기 가능한 Isaac cache와
+Mission DB는 공유하지 않는다. 이는 전체 Facility 월드와 ROS 스택을 각각
+실행하는 방식이며 Isaac Lab의 단일 프로세스 환경 복제와는 다르다.
+각 프로세스의 기존 메모리 검사와 종료 처리는 자기 domain에만 적용된다.
+병렬 실행 재현과 관측 기준은 [테스트](TESTING.md)를 따른다.
+
+### Isaac Lab 단일 프로세스 환경 복제
+
+`run_cloned.py`는 Isaac Lab의 `isaaclab.cloner.usd_replicate`로 전체 Facility와
+로봇을 복제한다. 하나의 PhysX scene과 500Hz step, 공통 `/clock`을 공유하고,
+각 환경은 기존 Mission/Nav2/ros2_control을 `/env_0`, `/env_1` namespace에서
+실행한다. 기본 물리는 CPU이며 `--physics-device cuda:0`으로 GPU 물리를 선택한다.
+환경 생성은 USD 복제 방식이며 RL training 실행기는 아니다.
+원본 월드 생성은 단독 실행과 같은 `scene_assets.py`를 사용한다.
+
+Isaac Sim 6.1에는 Isaac Lab `v3.0.0-EA`를 별도 checkout으로 사용한다.
+검증한 commit은 `ae37b028ea415c91ea2bc32609efcd759ed2b974`다.
+기존 Isaac Lab 설치를 변경하지 않는다. [공식 버전 호환 안내](https://github.com/isaac-sim/IsaacLab)를
+확인하고, 이 실행 경로의 추가 import 의존성은 Isaac Python용 별도 디렉터리에 준비한다.
+
+```bash
+git clone --depth 1 --branch v3.0.0-EA https://github.com/isaac-sim/IsaacLab.git \
+  /absolute/data/builds/isaaclab-3.0.0-ea
+mkdir -p /absolute/data/builds/isaaclab-3.0.0-ea-deps
+podman run --rm --entrypoint bash \
+  -v /absolute/data/builds/isaaclab-3.0.0-ea-deps:/labdeps:rw \
+  localhost/cleany-isaac-visual:6.1.0 -c \
+  '/isaac-sim/python.sh -m pip install --target /labdeps lazy_loader==0.4 packaging==26.3'
+python tools/validation/isaac/run_cloned.py \
+  --build-root /absolute/data/builds/isaac-mission \
+  --cache-root /absolute/data/builds/isaac-cache-177 \
+  --isaaclab-root /absolute/data/builds/isaaclab-3.0.0-ea \
+  --isaaclab-deps /absolute/data/builds/isaaclab-3.0.0-ea-deps \
+  --facility-map /absolute/fixture/facility_integration.yaml \
+  --domain 177 --targets seat-12 seat-03 \
+  --output /absolute/data/runs/isaac-cloned-001 --timeout 1800
+```
+
+현재 chair 입력은 호스트의
+`~/.ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1/meshes/OfficeChairGrey.obj`를
+사용한다. 원본 Lab checkout과 추가 의존성은 읽기 전용 mount한다.
+환경별 출력/DB는 `env_N/`, 공유 물리와 시스템 profile은 루트 `evaluations/`에
+남긴다. 검증한 좌석 조합과 결과는 [실행 근거](EVIDENCE.md)에 기록한다.
+
+환경 원점은 100m 간격이고 센서와 odometry는 각 환경의 로컬 좌표를 사용한다.
+TF와 센서, Mission endpoint는 namespace별로 격리한다. Humble의 실제 remap
+동작에 맞춰 절대 endpoint를 명시적으로 remap하며 `/clock`은 공유한다.
+각 환경의 controller parameter와 Nav2 parameter는 namespace 아래에 둔다.
+원본 Navigation 설정은 `navigation-unscoped.yaml`로 보존한다.
+복제 실행은 기존 lifecycle manager의 autostart를 끄고 모든 manager service가
+발견된 뒤 2초간 discovery를 안정화한다. `bringup_clones.py`가 각 환경의
+localization/navigation/safety manager에 기존 STARTUP 서비스를 한 번씩
+요청한다. 모든 실제 Mission Runtime이 ready가 된 뒤에만 검증기를 시작해
+미션을 할당한다. 재시도, lifecycle reset이나 안전 경로 우회는 수행하지 않는다.
+이 순서는 다중 환경 시작 시 lifecycle 응답이 유실돼 일부만 주행하는 경우를
+검출하고, 모든 환경이 준비된 상태에서 비교하도록 한다. 결과는 루트
+`evaluations/bringup.json`에 보존한다. 단독 `run.py`의 시작 방식은 유지한다.
+검증기는 clock/odom/TF/scan/joint state의 실제 수신과 발행자 discovery를
+확인하고 2초간 response endpoint discovery를 기다린 뒤 publisher 수를
+검사하고 미션을 보낸다. 준비 메시지가 먼저 도착했다는 이유만으로 아직
+발견되지 않은 센서 publisher를 누락으로 판정하지 않는다. 단일 publisher
+조건은 그대로 적용한다.
+다중 ROS 프로세스의 수신 포트 할당을 위해 `containers/isaac/fastdds.xml`은
+Fast DDS `mutation_tries=256`을 사용한다. 기본 100회에서는 8환경의 일부
+참가자가 unicast 수신 포트를 확보하지 못했다. discovery 방식, loopback UDP와
+ROS endpoint는 유지하며, 초기 peer 탐색 범위만 늘리는 설정은 사용하지 않는다.
+환경별 종료는 해당 베이스 명령을 0으로 만들며, 물리 시각과 process 종료는
+공유한다. 독립적인 시각, pause/reset 또는 simulator 장애 격리는 제공하지 않는다.
+
+`--physics-device cuda:0`은 GPU PhysX dynamics와 GPU broadphase를 켠다.
+설치된 Isaac 6.1 ros2_control backend가 host tensor buffer를 사용하므로
+CPU readback을 유지한다. 물리 계산 장치와 tensor 저장 장치는 다른 설정이며,
+`physics-backend.json`의 `manager_device`/`tensor_device`가 `cpu`여도
+GPU dynamics는 활성일 수 있다. `runtime_statistics`와 종료 시
+`physics-statistics-final.json`의 실제 GPU solver/articulation heap도 함께
+확인한다. GPU resident tensor 모드는 이 backend에서 device mismatch가
+발생해 사용하지 않는다. 기존 제어기를 다른 구현으로 대체하지 않았다.
+
+같은 코드와 입력으로 환경 수를 늘려 비교할 때는 다음 실행기를 사용한다.
+CPU/GPU 4환경과 CPU/GPU 8환경을 순차 실행하므로 비교군끼리 자원을 경합하지
+않는다. 8환경은 네 좌석을 두 번 배치한 서로 독립된 환경이다.
+
+```bash
+python tools/validation/isaac/scale_campaign.py \
+  --build-root /absolute/data/builds/isaac-mission \
+  --cache-root /absolute/data/builds/isaac-cache-177 \
+  --isaaclab-root /absolute/data/builds/isaaclab-3.0.0-ea \
+  --isaaclab-deps /absolute/data/builds/isaaclab-3.0.0-ea-deps \
+  --facility-map /absolute/fixture/facility_integration.yaml \
+  --counts 4 8 --targets seat-12 seat-03 seat-27 seat-46 \
+  --domain 177 --timeout 2400 --output /absolute/data/runs/isaac-scale-001
+```
+
+`campaign.json`에 모든 명령과 실패를 포함한 환경별 결과를 남긴다. 각 실행은
+새 출력과 Mission DB를 사용하며 전체 캠페인 동안 소스 hash가 달라지면
+다음 실행을 거부한다. GPU flag만으로 가속을 주장하지 않고 실제 주행 RTF와
+완료 시간, CPU/GPU 메모리를 비교한다.
+
+### Facility 18F의 기존 월드
+
+기존 `materialize_facility_world` 생성기, `facility_18f/facility_layout.yaml`,
+ROLY 의자와 `full_facility_targets.yaml`을 그대로 사용한다. 전체 층의 정적
+충돌 형상을 옮기며, 로봇은 동일 URDF/ros2_control adapter로 구동한다.
+외부 fixture의 `facility_integration.yaml/.pgm`과 Fuel OfficeChairGrey OBJ가
+필요하다. 지도 YAML의 image는 같은 디렉터리의 `facility_integration.pgm`이어야 한다.
+입력은 읽기만 하며 실행 디렉터리에 복사하고 hash를 기록한다.
+
+```bash
+python tools/validation/isaac/run.py \
+  --build-root /absolute/data/builds/isaac-mission \
+  --world facility18 --target-id seat-12 \
+  --facility-map /absolute/fixture/facility_integration.yaml \
+  --chair-mesh /absolute/fixture/fuel-assets/officechairgrey/OfficeChairGrey.obj \
+  --output /absolute/data/runs/isaac-facility18-001 \
+  --timeout 2400 --record-motion
+```
+
+대기 위치는 기존 목표의 `(-1.865, -4.705, 1.5708)`이다.
+사용자 지정 브랜치 `codex/nav2-tuning-recovered-20261024`의 `69b25020`에 있는
+MPPIController와 Smac Lattice를 함께 사용한다. 같은 브랜치의 복구된 benchmark
+FollowPath 튜닝도 적용하되 패키지의 도착/안전 기준은 유지한다.
+후속 Facility 속도 프로파일은 병진 0.25m/s, 회전 0.5rad/s를 사용한다.
+`--require-no-recovery`를 추가하면 왕복 Action feedback의 복구 횟수와
+로그의 경로 생성 실패/복구 행동/costmap 초기화가 모두 0이어야 통과한다.
+적용 범위는 [통합 계획](ISAAC_INTEGRATION.md#facility-18f와-지정-주행-브랜치)에 기록한다.
+전용 `omni-r10cm.json` primitive를 기존 경로 해석 함수로 연결한다. 변환 전 지도와
+벽 위치, 선택한 목표/대기 위치의 footprint를 검사한다. 이는 전체 좌석 접근성이나
+물리 조작 성공 판정이 아니며, 실제 주행과 Mission 결과는 실행 후 별도로 판정한다.
+시설 시작 자세는 기존 `cad_frame.yaml`의 park 설정을 사용하되 두 손목 pitch를
+원본 URDF 하한으로 제한한다. 관절 한계를 넓히거나 팔을 제외하지 않는다.
+원본 FK/mesh bounds로 접힌 전체 몸체가 기존 stop footprint 안에 드는지 검사하고,
+주행 중 joint state가 park에서 0.12rad 이상 벗어난 상태가 0.5초 지속되면 실패한다.
+이는 시뮬레이션 초기 자세이며, 팔을 접는 전환 동작과 self-collision 검증은 포함하지 않는다.
+바닥/의자의 질감은 단색으로 표시하고 형상은 보존한다.
+유리의 광학적 LiDAR 투과는 모델링하지 않는다.
+
+### 성공 주행의 다각도 GIF
+
+실행 시 `--record-motion`을 추가하면 PhysX의 실제 link world pose를 10Hz로
+기록한다. 성공 후 아래 명령으로 전방 사선, 측면, 상단의 관찰 카메라를 렌더링한다.
+호스트의 `ffmpeg`, `fc-match`와 DejaVu Sans 글꼴이 필요하다.
+
+```bash
+python tools/validation/isaac/run.py --build-root /absolute/data/builds/isaac-mission \
+  --output /absolute/data/runs/isaac-video-001 --scenario success --record-motion
+python tools/validation/isaac/render.py --build-root /absolute/data/builds/isaac-mission \
+  --run /absolute/data/runs/isaac-video-001
+```
+
+`media/rendered/three-views-compact.gif`는 세 시점을 나란히 보여주며,
+`three-views.gif`는 압축 전 버전이다. `front.gif`,
+`side.gif`, `top.gif`는 개별 시점이다. 접근/복귀 구간을 0.5 simulation 초마다
+표본화해 10fps, 명목 5배속으로 재생한다. mock 작업 대기 구간은 제외한다.
+긴 Facility 주행에는 `render.py --sample-period 2`로 20배속을 선택할 수 있다.
+기존 Isaac shader cache를 재사용할 때는 실행/렌더링의 `--cache-root`를 지정한다.
+영상은 실제 주행 중 기록한 link pose를 Isaac RTX에서 재생한 것으로,
+렌더링 중 새 물리나 ROS 제어를 실행하지 않는다. 로봇 센서 영상은 아니다.
+Facility 관찰 영상에서만 천장을 숨긴다. 주행 검증의 천장 충돌 형상은 유지하며,
+영상에서 숨긴 prim 경로는 `render.json`에 기록한다.
+자세 원본과 scene, 원본 frame, 렌더링 명령/소스 hash를 함께 보존한다.
+`render.json`은 기록된 위치와 렌더링 위치의 일치 검사도 포함한다.
+다른 구도로 다시 만들 때는 `--name`에 새 이름을 지정해 기존 결과를 보존한다.
+
 ## Gazebo
 
 1. 의존성과 실행 환경을 확인합니다.
@@ -336,3 +553,53 @@ Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 
 ## 실물 IMU
 
 MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
+
+### Isaac 센서 기반 책상 정리 개발 실행
+
+물리 정리 경로는 기존 Nav2 mock 시험과 별도 빌드 및 결과 디렉터리를 사용한다.
+실행 완료는 프로세스 종료 코드뿐 아니라 `evaluations/mission.json`의 결과와
+독립 안착, 정지, 복귀 근거를 함께 확인한다. 단위 검사 통과만으로 물리 수거를
+검증했다고 해석하지 않는다.
+
+```bash
+podman build -f containers/isaac/Containerfile.cleanup \
+  -t localhost/cleany-cleanup-isaac-ros:humble .
+podman build -f containers/isaac/Containerfile.cleanup-gpu \
+  -t localhost/cleany-cleanup-isaac-gpu-ros:humble .
+podman run --rm --entrypoint python3 \
+  -v "$PWD/tools/validation/isaac:/integration:ro" \
+  -v /absolute/path/to/cleanup-models:/models:rw \
+  localhost/cleany-cleanup-isaac-gpu-ros:humble \
+  /integration/download_models.py --output /models
+python3 tools/validation/isaac/build.py --cleanup \
+  --ros-image localhost/cleany-cleanup-isaac-gpu-ros:humble \
+  --build-root /absolute/path/to/cleanup-build
+python3 tools/validation/isaac/run.py --cleanup --world facility18 \
+  --target-id seat-12 --cleanup-object cup --scenario success --domain 178 --timeout 4200 \
+  --ros-image localhost/cleany-cleanup-isaac-gpu-ros:humble \
+  --build-root /absolute/path/to/cleanup-build \
+  --model-directory /absolute/path/to/cleanup-models \
+  --facility-map /absolute/path/to/facility_integration.yaml \
+  --output /absolute/path/to/new-cleanup-attempt
+```
+
+모델 디렉터리는 `yoloe/yoloe-26l-seg.pt`, `yoloe/mobileclip2_b.ts`,
+`qwen3vl-4b/`의 Qwen/Qwen3-VL-4B-Instruct snapshot을 포함한다.
+GPU 실행은 bitsandbytes NF4 이중 양자화와 BF16 연산을 사용한다.
+컨테이너에서 `download_models.py --output /models`를 실행하면 공식 YOLOE asset의
+SHA-256과 고정된 Hugging Face revision을 사용해 다운로드한다.
+모델 hash는 `validate_models.py`로 기록한다. 원본 좌석 목표, 작업 접근 목표,
+물리 fixture는 `config/room.json`에 남는다. `--cleanup-object cup|tissue`는
+기존 MuJoCo 설정의 종이컵 또는 구겨진 휴지 형상과 크기, 질량을 가져온다. 로컬 VLM 분류 결과와 번호가 표시된 입력 이미지는
+`evaluations/semantics/`에 보존한다. 전체 설정과 현재 제한은
+[Isaac 통합 문서](ISAAC_INTEGRATION.md#센서-기반-책상-정리-통합)를 따른다.
+
+정리 실행은 `containers/isaac/fastdds-rgbd.xml`의 4MiB UDP 송수신 버퍼를
+사용한다. 이는 960×720 RGB-D의 큰 depth 메시지 누락을 줄이기 위한 설정이며,
+기존 주행 전용 transport와 커널 sysctl은 변경하지 않는다. 센서 검증 시에는
+RGB 수신률뿐 아니라 같은 timestamp의 depth 수신을 함께 확인한다.
+
+
+Isaac cleanup의 실험 설정은 `--cleanup-profile slender-cup-95mm`로 선택한다. 이는 높이95mm 컵, CPU PGS128/8의1,000Hz 물리 계산,0.52m 접근, 기존 ROS 집기,90도 roll 재관측, 확인 성공 후 원래 arm pose 복귀 및 base_link 기준z0.60m trash 투입과0.65rad 투입용 gripper 개방 설정을 함께 사용한다. 기본 `canonical`은 기존68.4mm 컵과 기본 설정을 유지한다. 이 프로필은 수거 성공을 의미하지 않으며 실행 결과는 `docs/EVIDENCE.md`와 출력의 `evaluations/mission.json`으로 확인한다. 사용 명령은 기존 `run.py --cleanup --cleanup-object cup ...`에 해당 옵션을 추가한다. `config/room.json`에는 실제 payload와 물리/launch 설정, `config/coordinator.yaml`에는 BT/조작 설정이 남는다.
+
+실험 컵 프로필의 가까운 작업 접근점은 기존 좌석 목표와 다르다. 현재 `e2e-70`의 주행은 복구가 발생해 실패했으며, 프로필의 가까운 경로 정렬/목표 각도 threshold 변경은 후속 런타임 검증 전이다. 실제 정리 E2E 성공 설정으로 취급하지 않는다.

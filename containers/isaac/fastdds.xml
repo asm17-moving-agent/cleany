@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <transport_descriptors>
+    <transport_descriptor>
+      <transport_id>cleany_loopback_udp</transport_id>
+      <type>UDPv4</type>
+      <interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>
+    </transport_descriptor>
+  </transport_descriptors>
+  <participant profile_name="cleany_simulation" is_default_profile="true">
+    <rtps>
+      <!-- Eight isolated ROS stacks exceed the default 100 port allocation attempts. -->
+      <builtin><mutation_tries>256</mutation_tries></builtin>
+      <useBuiltinTransports>false</useBuiltinTransports>
+      <userTransports><transport_id>cleany_loopback_udp</transport_id></userTransports>
+    </rtps>
+  </participant>
+</profiles>

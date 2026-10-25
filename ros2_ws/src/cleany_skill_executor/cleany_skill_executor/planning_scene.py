@@ -73,11 +73,17 @@ class TargetSceneTransaction:
         spin_once: Callable[[float], None] | None = None,
         support_patch_margin_m: float = 0.0,
         geometry_lookup: Callable[[Any], Any] | None = None,
+        attachment_uncertainty_padding_m: float = 0.0,
     ) -> None:
         if not math.isfinite(timeout_sec) or timeout_sec <= 0:
             raise ValueError('Planning scene timeout must be positive and finite')
         if not math.isfinite(support_patch_margin_m) or not 0 <= support_patch_margin_m <= .3:
             raise ValueError('Support patch margin must be in [0, .3] metres')
+        if (not math.isfinite(attachment_uncertainty_padding_m)
+                or not 0 <= attachment_uncertainty_padding_m <= .05):
+            raise ValueError('Attachment uncertainty padding must be in [0, .05] metres')
+        self._attachment_padding = attachment_uncertainty_padding_m
+        self._attachment_envelope = None
         self._support_margin = support_patch_margin_m
         self._support_id = ''
         self._support_acm = None
@@ -136,6 +142,13 @@ class TargetSceneTransaction:
         primitive.dimensions = [size.x, size.y, size.z]
         collision_object.primitives = [primitive]
         collision_object.primitive_poses = [deepcopy(candidate.target_object.obb_pose)]
+        self._attachment_envelope = None
+        if self._attachment_padding:
+            if not all(math.isfinite(v) and v > 0 for v in primitive.dimensions):
+                raise ValueError('Attachment envelope requires finite positive observed OBB dimensions')
+            envelope = deepcopy(primitive)
+            envelope.dimensions = [v+2*self._attachment_padding for v in primitive.dimensions]
+            self._attachment_envelope = (envelope, deepcopy(candidate.target_object.obb_pose))
         if self._geometry_lookup is not None:
             deadline = time.monotonic()+self._timeout
             geometry = self._geometry_lookup(candidate)
@@ -179,6 +192,14 @@ class TargetSceneTransaction:
             f'{arm}_moving_jaw_link',
         ]
         attached.object = deepcopy(self._collision_object)
+        if self._attachment_envelope is not None:
+            # Preserve the observed mesh and add an enclosing uncertainty box.
+            # The planner and self-mask see the SAME additional collision shape.
+            # This is a configured perception/contact uncertainty assumption,
+            # not a new observation or a simulation attachment.
+            primitive, pose = self._attachment_envelope
+            attached.object.primitives.append(deepcopy(primitive))
+            attached.object.primitive_poses.append(deepcopy(pose))
         attached.object.operation = CollisionObject.ADD
         scene = PlanningScene()
         scene.is_diff = True
@@ -307,6 +328,7 @@ class TargetSceneTransaction:
         self._object_id = ''
         self._saved_acm = None
         self._collision_object = None
+        self._attachment_envelope = None
         self._attached = False
         self._support_id = ''
         self._support_acm = None

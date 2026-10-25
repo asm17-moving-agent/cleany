@@ -176,8 +176,39 @@ def inspection_runtime(scene, *args):
         rclpy.shutdown()
 
 
+def test_injected_local_detector_can_supply_existing_wrist_service(synthetic_scene):
+    rclpy.init(args=[])
+    node = None
+    try:
+        wrist = _Detector(synthetic_scene['detection'])
+        detector = _Detector(synthetic_scene['detection'])
+        segmenter = _Segmenter(synthetic_scene['mask'])
+        prepared = []
+        for name, adapter in [('head', detector), ('segmenter', segmenter), ('wrist', wrist)]:
+            adapter.prepare = lambda name=name: prepared.append(name)
+        node = InspectionNode(
+            detector=detector,
+            segmenter=segmenter,
+            transformer=_Transformer(synthetic_scene['transform']),
+            wrist_detector=wrist,
+            parameter_overrides=[Parameter('detector_type', value='yoloe_local'),
+                Parameter('segmenter_type', value='yoloe_seg'),
+                Parameter('preload_models', value=True),
+                Parameter('enable_wrist_observation', value=True)],
+        )
+        assert node._wrist_service.detector is wrist
+        assert node._wrist_service.right_detector is wrist
+        assert len(node._wrist_service.subscriptions) == 4
+        assert prepared == ['head', 'segmenter', 'wrist']
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
+
+
+@pytest.mark.parametrize('free_space', [False, True])
 def test_inspection_actions_detect_all_then_inspect_only_selection(
-    synthetic_scene,
+    synthetic_scene, free_space,
 ):
     events = []
     segmenter = _Segmenter(synthetic_scene['mask'])
@@ -340,6 +371,7 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         selection_goal = InspectScene.Goal()
         selection_goal.snapshot_id = result.detections.snapshot_id
         selection_goal.selected_object_id = 2
+        selection_goal.free_space = free_space
         selection_future = action_client.send_goal_async(
             selection_goal,
             feedback_callback=lambda message: selection_feedback.append(
@@ -365,6 +397,8 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert len(selection_result.objects.objects) == 1
         assert selection_result.objects.objects[0].object_id == 2
         assert selection_result.objects.objects[0].label == 'box'
+        assert selection_result.objects.objects[0].obb_pose.position.z == pytest.approx(
+            .2 if free_space else .1, abs=.003)
         assert _wait_until(lambda: bool(objects))
         assert objects[0].objects[0].object_id == 2
         assert [item.stage for item in selection_feedback] == [

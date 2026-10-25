@@ -1,7 +1,7 @@
 from pathlib import Path
 import yaml
 
-from cleany_moveit_config.simulation_collision import ignore_simulation_mast
+from cleany_moveit_config.simulation_collision import ignore_simulation_mast, include_head_adjacency
 from cleany_moveit_config.controller_plugin import controller_plugin_environment
 
 from ament_index_python.packages import get_package_share_directory
@@ -14,13 +14,13 @@ from launch_ros.parameter_descriptions import ParameterValue
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def _moveit_config(controller_config='config/moveit_controllers.yaml'):
+def _moveit_config(controller_config='config/moveit_controllers.yaml', include_head_camera='false'):
     description_xacro = (
         Path(get_package_share_directory('cleany_description'))
         / 'urdf'
         / 'cleany.urdf.xacro'
     )
-    return (
+    config = (
         MoveItConfigsBuilder(
             'cleany', package_name='cleany_moveit_config'
         )
@@ -28,7 +28,7 @@ def _moveit_config(controller_config='config/moveit_controllers.yaml'):
             file_path=str(description_xacro),
             # Arm-only backend publishes no wheel states; match its fixed wheels.
             mappings={
-                'include_head_camera': 'false',
+                'include_head_camera': include_head_camera,
                 'include_wheel_joints': 'false',
             },
         )
@@ -46,6 +46,11 @@ def _moveit_config(controller_config='config/moveit_controllers.yaml'):
         .planning_scene_monitor()
         .to_moveit_configs()
     )
+    if include_head_camera == 'true':
+        config.robot_description_semantic['robot_description_semantic'] = include_head_adjacency(
+            config.robot_description['robot_description'],
+            config.robot_description_semantic['robot_description_semantic'])
+    return config
 
 
 def _launch_setup(context):
@@ -60,9 +65,11 @@ def _launch_setup(context):
     goal_duration_margin = LaunchConfiguration(
         'allowed_goal_duration_margin'
     )
-    moveit_config = (_moveit_config('config/sorting_moveit_controllers.yaml')
-                    if LaunchConfiguration('enable_gripper_execution', default='false').perform(context) == 'true'
-                    else _moveit_config())
+    controller_config = ('config/sorting_moveit_controllers.yaml'
+        if LaunchConfiguration('enable_gripper_execution', default='false').perform(context) == 'true'
+        else 'config/moveit_controllers.yaml')
+    moveit_config = _moveit_config(controller_config,
+        LaunchConfiguration('include_head_camera', default='false').perform(context))
     simulation_bins = LaunchConfiguration('simulation_bins_config').perform(context)
     if simulation_bins:
         fixture = yaml.safe_load(Path(simulation_bins).read_text(encoding='utf-8'))
@@ -169,6 +176,7 @@ def generate_launch_description() -> LaunchDescription:
                                  description='Keep the Humble controller plugin mapped through node teardown.'),
             DeclareLaunchArgument('use_rviz', default_value='false'),
             DeclareLaunchArgument('use_sim_time', default_value='false'),
+            DeclareLaunchArgument('include_head_camera', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument('simulation_bins_config', default_value=''),
             DeclareLaunchArgument('enable_gripper_execution', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument(

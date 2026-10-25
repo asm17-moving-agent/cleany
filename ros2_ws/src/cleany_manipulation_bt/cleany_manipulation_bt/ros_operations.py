@@ -7,6 +7,7 @@ import math
 import time
 from typing import Any
 from action_msgs.msg import GoalStatus
+from std_msgs.msg import String
 
 from cleany_interfaces.srv import GetSceneSnapshot, ObserveWristTarget, RegisterPlacementTarget, VerifyPlacement
 from controller_manager_msgs.srv import ListControllers
@@ -52,6 +53,7 @@ class TrackedClient:
                 self.node.handles.append((handle, terminal))
                 if context.abort.is_set():
                     handle.cancel_goal_async()
+                    self.node._moveit_stop.publish(String(data='stop'))
         future.add_done_callback(accepted)
         return future
 
@@ -76,6 +78,9 @@ class MujocoOperations(SortingCoordinator):
         self.declare_parameter('bt_operation_timeout_sec', 180.0)
         self.declare_parameter('bt_verification_timeout_sec', 10.0)
         self.declare_parameter('bt_stop_timeout_sec', 10.0)
+        stop_topic = self.declare_parameter(
+            'bt_moveit_stop_topic', '/trajectory_execution_event').value
+        self._moveit_stop = self.create_publisher(String, stop_topic, 10)
         self.declare_parameter('bt_stop_feedback_max_age_sec', 0.5)
         self.declare_parameter('bt_stationary_duration_sec', 0.25)
         self.declare_parameter('bt_supported_trash_labels', list(TRASH_LABELS))
@@ -473,12 +478,15 @@ class MujocoOperations(SortingCoordinator):
             destination_id=context.goal.destination_id, after_stamp_ns=after_ns,
             verification_id=context.verification_id)
         deadline = time.monotonic() + float(self.get_parameter('bt_verification_timeout_sec').value)
+        last_message = 'No verification response'
         while time.monotonic() < deadline:
             response = self._future(self._verification.call_async(request), 2., 'independent placement verification')
             if response.success:
                 return Observation(message=response.message, placement_state=Placement.CONFIRMED)
+            last_message = response.message
             self._spin_once(timeout_sec=0.1)
-        return Observation(False, Error.VERIFICATION_TIMEOUT, 'Awaiting settled post-release evidence timed out',
+        return Observation(False, Error.VERIFICATION_TIMEOUT,
+                           f'Awaiting settled post-release evidence timed out: {last_message}',
                            placement_state=Placement.UNKNOWN)
 
     def confirm_release(self, context: ExecutionContext) -> Observation:
@@ -550,6 +558,7 @@ class MujocoOperations(SortingCoordinator):
             required_samples=int(self.get_parameter('arm_stationary_samples').value),
             minimum_duration_sec=float(self.get_parameter('bt_stationary_duration_sec').value))
         canceled: set[int] = set()
+        next_moveit_stop = started_at
         while time.monotonic() < deadline:
             # Assessment bypasses the abort guard, but still has its own deadline.
             rclpy.spin_once(self, timeout_sec=0.02)
@@ -561,10 +570,29 @@ class MujocoOperations(SortingCoordinator):
             wall = time.monotonic()
             if wall >= deadline:
                 break
+            if cancel and not self.quiescent() and wall >= next_moveit_stop:
+                # MoveGroupInterface::stop uses this independent TEM event.
+                # Humble ExecuteTrajectory can block its Action cancel callback
+                # while waiting for execution. Repeat for goals accepted late;
+                # publication itself is never evidence that motion stopped.
+                self._moveit_stop.publish(String(data='stop'))
+                next_moveit_stop = wall + 0.2
             if window.observe(self._joint_feedback, now=wall,
                               clock_ns=self.get_clock().now().nanoseconds, terminal=self.quiescent()):
                 context.stop_confirmed = True
                 return True
+        invalid = self._joint_feedback.invalid_reasons(
+            time.monotonic(), self.get_clock().now().nanoseconds,
+            float(self.get_parameter('bt_stop_feedback_max_age_sec').value),
+            after_ns=window.barrier_ns, after_wall=started_at)
+        moving = {name: sample.velocity for name, sample in self._joint_feedback.samples.items()
+                  if not math.isfinite(sample.velocity)
+                  or abs(sample.velocity) > window.maximum_velocity}
+        self.get_logger().warning(
+            f'Stop assessment timed out: terminal_actions={self.quiescent()} '
+            f'pending_acceptances={sum(not f.done() for f in self.submissions)} '
+            f'pending_results={sum(not f.done() for _, f in self.handles)} '
+            f'stationary_samples={window.samples} invalid_feedback={invalid} moving_joints={moving}')
         return False
 
     def stop(self, context: ExecutionContext) -> Observation:

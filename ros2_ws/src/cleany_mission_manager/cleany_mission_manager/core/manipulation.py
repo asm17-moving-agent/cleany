@@ -38,8 +38,8 @@ def diagnostic_details(value: Any) -> dict:
 
 
 def validate_backend(backend: str, journal: MissionJournal) -> None:
-    if backend not in ("mock", "action_mock"):
-        raise ValueError("manipulation_backend must be mock or action_mock")
+    if backend not in ("mock", "action_mock", "action_isaac"):
+        raise ValueError("manipulation_backend must be mock, action_mock or action_isaac")
     if backend == "mock" and journal.value(ManipulationPort.KEY):
         raise ValueError("persisted manipulation execution requires action_mock recovery; "
                          "switching to a local mock cannot bypass the saved arm state")
@@ -59,12 +59,12 @@ def goal_fields(command: TaskProposal) -> dict:
 
 
 def map_outcome(outcome: ManipulationOutcome, execution_id: str,
-                ros_status: int | None = None) -> ModuleResult:
+                ros_status: int | None = None, *, execution_profile: str = "mock") -> ModuleResult:
     """ROS SUCCEEDED also contains BLOCKED; physical payload is authoritative."""
     status = {"SUCCESS": ResultStatus.OK, "BLOCKED": ResultStatus.BLOCKED,
               "FAILED": ResultStatus.FAILED, "CANCELED": ResultStatus.CANCELLED,
               "FATAL": ResultStatus.FATAL}.get(outcome.status)
-    valid = (outcome.execution_id == execution_id and outcome.execution_profile == "mock"
+    valid = (outcome.execution_id == execution_id and outcome.execution_profile == execution_profile
              and status is not None
              and outcome.object_state in ("NOT_TOUCHED", "HELD", "LEFT_GRIPPER", "UNKNOWN")
              and outcome.placement_state in ("NOT_CHECKED", "CONFIRMED", "NOT_CONFIRMED", "UNKNOWN"))
@@ -101,7 +101,14 @@ class ManipulationPort:
     KEY = "manipulation_boundary"
 
     def __init__(self, transport: ManipulationTransport, journal: MissionJournal, clock: Callable[[], float],
-                 *, initial_mock_safe: bool = False, on_success: Callable[[dict], None] | None = None) -> None:
+                 *, initial_mock_safe: bool = False, on_success: Callable[[dict], None] | None = None,
+                 execution_profile: str = "mock",
+                 drive_readiness: Callable[[], tuple[bool, str]] | None = None) -> None:
+        if execution_profile not in ("mock", "isaac"):
+            raise ValueError("unsupported manipulation execution profile")
+        if execution_profile != "mock" and (initial_mock_safe or drive_readiness is None):
+            raise ValueError("physical simulation requires live drive readiness, never mock startup evidence")
+        self.execution_profile, self.drive_readiness = execution_profile, drive_readiness
         self.transport, self.journal, self.clock = transport, journal, clock
         self.on_success = on_success
         saved = json.loads(journal.value(self.KEY, "{}"))
@@ -111,7 +118,8 @@ class ManipulationPort:
         self.human_review = saved.get("human_review", False)
         self.details = diagnostic_details(saved.get("details"))
         self.initial_mock_safe = initial_mock_safe and not saved
-        self.result = map_outcome(self.outcome, self.goal["execution_id"]) if self.outcome else None
+        self.result = map_outcome(self.outcome, self.goal["execution_id"],
+                                  execution_profile=self.execution_profile) if self.outcome else None
         self.send_future = self.result_future = self.lookup_future = self.cancel_future = None
         self.cancel_requested = bool(self.goal and self.outcome is None)  # restart: stop, no resume
         self.last_query = self.last_cancel = float("-inf")
@@ -153,7 +161,8 @@ class ManipulationPort:
     def _complete(self, outcome: ManipulationOutcome, ros_status=None, human_review=False,
                   details=None) -> None:
         assert self.goal is not None
-        result = map_outcome(outcome, self.goal["execution_id"], ros_status)
+        result = map_outcome(outcome, self.goal["execution_id"], ros_status,
+                             execution_profile=self.execution_profile)
         self.details.update(diagnostic_details(details))
         self.outcome, self.human_review = outcome, human_review
         self._save()  # Durable physical evidence before releasing any gate.
@@ -241,9 +250,16 @@ class ManipulationPort:
             self.maintain()
 
     def stopped(self) -> bool:
+        if self.drive_readiness is not None:
+            return (bool(self.outcome.stop_confirmed) if self.outcome is not None else
+                    self.goal is None and self.drive_readiness()[0])
         return self.initial_mock_safe or bool(self.outcome and self.outcome.stop_confirmed)
 
     def safe_to_drive(self) -> tuple[bool, str]:
+        if self.drive_readiness is not None:
+            if self.human_review or (self.goal and (self.outcome is None or not self.outcome.safe_to_drive)):
+                return False, "MANIPULATION_STATE_UNSAFE_OR_UNKNOWN"
+            return self.drive_readiness()
         if self.initial_mock_safe:
             return True, ""
         if self.outcome and self.outcome.safe_to_drive and not self.human_review:

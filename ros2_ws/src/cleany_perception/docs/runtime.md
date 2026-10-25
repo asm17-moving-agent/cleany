@@ -304,6 +304,8 @@ ros2 run cleany_perception depth_scene_node --ros-args \
 
 ## 고정 베이스 책상 물체 추적
 
+`InspectScene.Goal.free_space`는 기본 false이며 선택 물체 복원(phase2)에만 적용한다. true이면 선택 mask의 유효 깊이로 관측 표면 bounds를 복원하고 지지 평면을 요구하거나 책상까지 형상을 늘리지 않는다. 숨은 물체 형상을 추정하는 옵션이 아니다. mask·유효 깊이·최소 point 수·capture TF 검사는 유지하며, 공중 물체의 높이/연관 판정은 호출자가 수행한다. 일반 책상 관측과 grasp 계획은 기본 false를 사용한다. Action Goal 필드 추가 시 같은 ROS graph의 인터페이스와 모든 클라이언트를 함께 재빌드해야 한다.
+
 `InspectScene.Goal.tracking_session_id`를 지정하면 새 관찰 성공 시 `core/tracking.py`가
 같은 종류·촬영 TF의 `base_link` 대표 위치로 물체를 연결한다. 거리 계산에 사용한 3D
 위치를 함께 보존하며 `position_valid`, `track_id`, `tracking_state`를 반환한다.
@@ -332,3 +334,12 @@ Gemini structured response에 `sorting_category`(trash/lost_item/review),
 
 - [Technical Overview](../../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
 - [Safety and Risk](../../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
+## Isaac local classifier adapter
+
+`InspectionNode`는 외부 분류 제공자를 사용할 때 `wrist_detector`를 명시적으로
+주입할 수 있다. `enable_wrist_observation=true`와 `segmenter_type=yoloe_seg`가
+필요하며, 기존 WristService의 시간 동기화, 대상 연결 및 영상 검사를 유지한다.
+Isaac의 로컬 분류 어댑터는 head 분류에 Qwen을 사용하고 손목에는 동일한 공식
+YOLOE-seg 모델을 사용한다. 손목 RGB는 깊이 측정으로 취급하지 않는다.
+
+선택 물체의 2D mask에 전경/배경 깊이 조각이 섞이는 경우 `maximum_mask_depth_jump_m`를 양수로 지정할 수 있다. 인접 8방향 깊이 차이가 한계 이내인 연결 성분 중 유효 mask 픽셀의 `minimum_mask_component_fraction` 이상을 차지하는 성분만 복원한다. 기본값은 각각 0(비활성), 0.7이며 Isaac cleanup은 0.02m를 사용한다. 우세 성분이 없으면 DEPTH 오류로 종료한다. OBB와 target cloud는 같은 정제 mask를 사용하고 제외 픽셀은 장애물 context에 남긴다. 물체 종류별 크기나 simulator 위치는 사용하지 않는다.

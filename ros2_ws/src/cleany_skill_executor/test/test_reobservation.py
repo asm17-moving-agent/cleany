@@ -83,3 +83,59 @@ def test_attempt36_calibration_needs_more_distance_but_keeps_required_lift():
 def test_lowering_limits_fail_closed(kwargs):
     with pytest.raises(ValueError):
         centers(**kwargs)
+
+
+def test_near_horizontal_head_camera_can_use_lower_rows_with_unchanged_bounds():
+    # Recorded sensor calibration and perceived-target lift endpoint, camera-43.
+    camera = CameraProjection(480., 480., 480., 360.,
+        (.042403510968, -.001998822383, .824576045267),
+        (0.000041754343, -.149476519765, .988765274621,
+         -.999999999128, -.000006241293, .000041285244,
+         0., -.988765275482, -.149476519896))
+    center = np.array((.416850679033, -.133839392864, .456596010029))
+    radius = .064860674273
+    result = reobservation_centers(camera, 960, 720, center, radius,
+        minimum_z_m=.434812147323, margin_px=24., maximum_translation_m=.2)
+    assert result
+    rotation = np.array(camera.rotation_base_from_optical).reshape(3, 3)
+    for point in result:
+        assert point[2] == pytest.approx(center[2])
+        assert np.linalg.norm(point-center) <= .2
+        assert sphere_in_view(point, radius, camera, 960, 720, 24.)
+        # Verify full surface projection independently of the half-space helper.
+        rays = np.random.default_rng(43).normal(size=(5000, 3))
+        samples = point + radius*rays/np.linalg.norm(rays, axis=1)[:, None]
+        optical = (samples-camera.translation_base)@rotation
+        pixels = optical[:, :2]/optical[:, 2:]*480. + (480., 360.)
+        assert np.all(pixels >= 24.)
+        assert np.all(pixels <= (935., 695.))
+    distances = [np.linalg.norm(point-center) for point in result]
+    assert distances == sorted(distances)
+
+
+def test_raised_views_keep_full_sphere_and_total_translation_limits():
+    camera = CameraProjection(480., 480., 480., 360.,
+        (.042403510968, -.001998822383, .824576045267),
+        (.000041754343, -.149476519765, .988765274621,
+         -.999999999128, -.000006241293, .000041285244,
+         0., -.988765275482, -.149476519896))
+    origin = np.array((.41583, -.13374, .45598))
+    candidates = reobservation_centers(camera, 960, 720, origin, .0647,
+        minimum_z_m=.43481, margin_px=24., maximum_translation_m=.20,
+        maximum_lowering_m=.1, maximum_raising_m=.1)
+    assert any(c[2] > origin[2]+.09 for c in candidates)
+    for point in candidates:
+        assert .43481+.02-1e-9 <= point[2] <= origin[2]+.1+1e-9
+        assert np.linalg.norm(point-origin) <= .20
+        assert sphere_in_view(point, .0647, camera, 960, 720, 24.)
+        rays = np.random.default_rng(11).normal(size=(5000, 3))
+        surface = point + .0647*rays/np.linalg.norm(rays, axis=1)[:, None]
+        optical = (surface-camera.translation_base) @ np.array(camera.rotation_base_from_optical).reshape(3, 3)
+        pixels = optical[:, :2]/optical[:, 2:]*480 + (480, 360)
+        assert np.all(pixels >= 24.) and np.all(pixels <= (935., 695.))
+
+
+@pytest.mark.parametrize('raising', [-.1, float('nan'), float('inf')])
+def test_invalid_raising_limit_fails_closed(raising):
+    with pytest.raises(ValueError, match='invalid reobservation'):
+        centers(maximum_raising_m=raising)

@@ -13,15 +13,18 @@ model/clip 셀을 갱신한 뒤, MoveIt이 제외 대상으로 전달한 collisi
 
 가려져 현재 depth ray가 도달하지 않는 내부 잔상을 다루는 목적이다.
 표준 updater와 같은 `padding_scale` / `padding_offset` 설정을 사용한다.
-점군 self-mask는 upstream 판정을 유지한다. 내부 점유 정리에서는 mesh의
-convex face를 법선 방향으로 `padding_offset`만큼 확장하고, 확장한 local
+점군 self-mask의 외부 판정에는 내부 점유 정리와 같은 face-normal 포함 검사를
+추가한다. mesh의 convex face를 법선 방향으로 `padding_offset`만큼 확장하고, 확장한 local
 bounding box로도 제한한다. `padding_scale`은 hull vertex 평균을 중심으로 적용한다.
 primitive의 내부 판정은 기존과 같다. upstream의 mesh vertex 방사 방향 padding은
 긴 형상의 옆면에 설정값보다 작은 여유를 주므로, 컵과 겹치는 1cm 셀의 일부
-모서리를 놓쳐 잔상이 남을 수 있었다. 정리는 점유 갱신 **후** 수행해 같은
+모서리를 놓쳐 잔상이 남을 수 있었다. 촬영된 점이 이 제외 영역 안이면 model
+endpoint로 처리한다. 해당 점의 voxel이 영역 경계를 걸쳐도 실제 self return을
+장애물로 재등록하지 않는다. 영역 밖의 점과 range clip 판정은 유지한다.
+정리는 점유 갱신 **후** 수행해 같은
 프레임의 depth endpoint가 해당 셀을 다시 점유 상태로 만들지 않게 한다.
 한 convex body 안에 셀의 8개 모서리가 모두 포함되어야 한다. 일부만 겹치는
-셀, 여러 형상 사이의 틈, 바깥 장애물, 아직 관측하지 않은 셀은 비우지 않는다.
+셀, 여러 형상 사이의 틈, 바깥 장애물, 아직 관측하지 않은 셀은 이 내부 정리로 비우지 않는다.
 TF는 점군 촬영 시점의 cache를 사용한다. 하나라도 누락되거나 비정상이거나,
 cache 조회 중 형상이 추가·제거됐으면 **그 프레임 전체를 거부**한다.
 그 경우 self-mask/raycast/내부 정리/점유 갱신/filtered-cloud 발행을 모두

@@ -296,6 +296,11 @@ def test_nominal_wrist_frames_only_start_in_simulation_sorting(runtime):
     context.launch_configurations['sorting_wrist_cameras_config'] = str(
         Path(__file__).parents[2] / 'cleany_mujoco_sim/config/sorting_wrist_cameras.yaml')
     assert len(module._wrist_camera_transforms(context)) == 2
+    context.launch_configurations.update(start_simulator='false', external_simulator='isaac')
+    assert len(module._wrist_camera_transforms(context)) == 2
+    context.launch_configurations['external_simulator'] = 'none'
+    with pytest.raises(RuntimeError, match='simulation sorting'):
+        module._wrist_camera_transforms(context)
 
 
 @pytest.mark.parametrize('argument,custom', [

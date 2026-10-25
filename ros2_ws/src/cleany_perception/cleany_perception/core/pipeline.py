@@ -5,6 +5,7 @@ from collections.abc import Callable, Sequence
 
 import numpy as np
 
+from cleany_perception.core.depth_mask import dominant_depth_mask
 from cleany_perception.core.geometry import (
     deproject_masked_depth,
     fit_plane_ransac,
@@ -20,6 +21,7 @@ from cleany_perception.core.models import (
     InspectionOutput,
     InspectionStage,
     ObjectMask,
+    OrientedBox3D,
     PipelineConfig,
     RgbdSnapshot,
     RigidTransform,
@@ -185,10 +187,14 @@ class InspectionPipeline:
         capture_transform: RigidTransform,
         progress: ProgressCallback | None = None,
         cancelled: CancelCallback | None = None,
+        *,
+        free_space: bool = False,
     ) -> InspectionOutput:
         """Reconstruct one selected detection using its original capture transform.
 
         All detection boxes are excluded when choosing support-plane pixels.
+        free_space instead encloses measured mask points without a support plane
+        or inferred hidden surfaces, for airborne-object verification.
         The output uses the same frame conventions as inspect().
 
         Raises:
@@ -219,12 +225,22 @@ class InspectionPipeline:
             0,
             'Reconstructing selected 3D object',
         )
-        plane, camera_boxes = self._reconstruct(
-            snapshot,
-            all_detections,
-            masks,
-            exclude_detection_boxes=True,
-        )
+        if free_space:
+            points = deproject_masked_depth(snapshot.depth_m, snapshot.intrinsics,
+                masks[0].mask, self._config.minimum_depth_m, self._config.maximum_depth_m)
+            if len(points) < self._config.minimum_object_points:
+                raise InspectionFailure(FailureKind.DEPTH, 'Not enough valid observed mask points')
+            lower, upper = points.min(axis=0), points.max(axis=0)
+            plane = None
+            camera_boxes = (OrientedBox3D((lower+upper)/2., np.eye(3),
+                np.maximum(upper-lower, self._config.minimum_obb_extent_m)),)
+        else:
+            plane, camera_boxes = self._reconstruct(
+                snapshot,
+                all_detections,
+                masks,
+                exclude_detection_boxes=True,
+            )
         self._raise_if_cancelled(is_cancelled)
 
         report(
@@ -233,18 +249,12 @@ class InspectionPipeline:
             1,
             f'Transforming selected object to {self._target_frame}',
         )
-        normal_in_target = transform_plane_normal(
-            plane,
-            capture_transform,
-        )
-        cosine_limit = math.cos(
-            math.radians(self._config.maximum_plane_tilt_degrees)
-        )
-        if float(normal_in_target @ np.array((0.0, 0.0, 1.0))) < cosine_limit:
-            raise InspectionFailure(
-                FailureKind.PLANE,
-                'Support plane exceeds the configured base-frame tilt',
-            )
+        if plane is not None:
+            normal_in_target = transform_plane_normal(plane, capture_transform)
+            cosine_limit = math.cos(math.radians(self._config.maximum_plane_tilt_degrees))
+            if float(normal_in_target @ np.array((0.0, 0.0, 1.0))) < cosine_limit:
+                raise InspectionFailure(FailureKind.PLANE,
+                    'Support plane exceeds the configured base-frame tilt')
         inspected = InspectedObject(
             label=selected_detection.label,
             confidence=selected_detection.confidence,
@@ -338,6 +348,17 @@ class InspectionPipeline:
                     FailureKind.MASK,
                     'Segmenter returned an empty mask',
                 )
+        if self._config.maximum_mask_depth_jump_m:
+            try:
+                masks = tuple(ObjectMask(item.detection, dominant_depth_mask(
+                    snapshot.depth_m, item.mask,
+                    minimum_depth_m=self._config.minimum_depth_m,
+                    maximum_depth_m=self._config.maximum_depth_m,
+                    maximum_jump_m=self._config.maximum_mask_depth_jump_m,
+                    minimum_fraction=self._config.minimum_mask_component_fraction), item.score)
+                    for item in masks)
+            except ValueError as error:
+                raise InspectionFailure(FailureKind.DEPTH, str(error)) from error
         return masks
 
     def _reconstruct(

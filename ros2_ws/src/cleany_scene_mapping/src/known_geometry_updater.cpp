@@ -249,6 +249,33 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     for (const auto& item : bodies_)
       snapshot.push_back(item.second->cloneAt(item.second->getPose()));
   }
+  std::vector<const bodies::Body*> placed;
+  for (const auto& body : snapshot)
+    placed.push_back(body.get());
+  // Upstream mesh padding is radial. A return inside the configured face-normal
+  // padding can still be OUTSIDE, even though its boundary voxel cannot be
+  // cleared by the stricter all-eight-corners volume test. Classify the measured
+  // return consistently; do not expand padding or clear unobserved boundary cells.
+  std::vector<Eigen::Vector3d> boundary_points;
+  std::vector<std::size_t> boundary_indices;
+  for (std::size_t index = 0; index < mask.size(); ++index)
+  {
+    if (mask[index] != Mask::OUTSIDE)
+      continue;
+    std::array<float, 3> raw;
+    std::memcpy(raw.data(), cloud.data.data()+index*cloud.point_step, sizeof(raw));
+    const Eigen::Vector3d point(raw[0], raw[1], raw[2]);
+    if (point.allFinite() && point.squaredNorm() > 0.0 &&
+        point.squaredNorm() <= maximum_range_*maximum_range_)
+    {
+      boundary_points.push_back(map_from_cloud*point);
+      boundary_indices.push_back(index);
+    }
+  }
+  const auto contained = knownGeometryContainment(boundary_points, placed);
+  for (std::size_t index = 0; index < contained.size(); ++index)
+    if (contained[index])
+      mask[boundary_indices[index]] = Mask::INSIDE;
   const auto mask_done = std::chrono::steady_clock::now();
   stage = "raycasting";
   // No geometry lock during tree access. Scene updates can own the tree lock
@@ -302,9 +329,6 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     occupied.erase(key);
   for (const auto& key : occupied)
     free.erase(key);
-  std::vector<const bodies::Body*> placed;
-  for (const auto& body : snapshot)
-    placed.push_back(body.get());
   ClearResult result;
   {
     auto tree_lock = tree_->writing();
@@ -315,9 +339,8 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     const float clear_log_odds = tree_->getClampingThresMinLog() - tree_->getClampingThresMaxLog();
     for (const auto& key : model)
       tree_->updateNode(key, clear_log_odds);
-    // Clear after integration: upstream mesh self-masking uses radial vertex
-    // padding and can classify returns inside our face-offset volume as outside.
-    // Such endpoints must not immediately recreate a fully contained voxel.
+    // Remove historical occupancy only when the complete leaf belongs to a
+    // known volume. Fresh returns use the same padding in point classification.
     result = clearContainedOccupancy(*tree_, placed, static_cast<std::size_t>(maximum_examined_));
   }
   const auto tree_done = std::chrono::steady_clock::now();

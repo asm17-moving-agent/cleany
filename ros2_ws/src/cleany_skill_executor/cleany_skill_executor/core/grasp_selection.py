@@ -461,8 +461,15 @@ class GraspSelector:
                         check_canceled()
                         continue
                     check_canceled()
+                    visibility_state = pregrasp
+                    if self._config.open_gripper_position_rad is not None:
+                        # Reinspection happens after opening the selected jaw.
+                        # Do not certify visibility using its current closed pose.
+                        positions = dict(zip(pregrasp.names, pregrasp.positions, strict=True))
+                        positions[f'{arm}_gripper_joint'] = self._config.open_gripper_position_rad
+                        visibility_state = JointSolution(tuple(positions), tuple(positions.values()))
                     if (self._config.require_pregrasp_visibility
-                            and not self._port.pregrasp_is_visible(arm, pregrasp)):
+                            and not self._port.pregrasp_is_visible(arm, visibility_state)):
                         feedback(index, arm, EvaluationStage.STATE_VALIDITY,
                                  'pregrasp occludes the camera-to-target envelope')
                         check_canceled()

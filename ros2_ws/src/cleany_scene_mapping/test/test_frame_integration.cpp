@@ -188,6 +188,34 @@ TEST_F(FrameIntegration, MeshFacePaddingClearsStaleAndNewReturnsWithoutErasingOu
   }
 }
 
+TEST_F(FrameIntegration, MasksFacePaddedReturnEvenWhenItsVoxelStraddlesTheBoundary)
+{
+  node->set_parameter(rclcpp::Parameter("depth_cloud.padding_offset", 0.015));
+  ASSERT_TRUE(updater->setParams("depth_cloud"));
+  const shapes::Box shape(0.4, 0.04, 0.04);
+  shapes::ShapeConstPtr mesh(shapes::createMeshFromShape(shape));
+  const auto handle = updater->excludeShape(mesh);
+  updater->setTransformCacheCallback([this, handle](const auto&, const auto&, Cache& cache) {
+    cache[handle] = boxPose();
+    cache[handle].translation().y() = 0.002;
+    return true;
+  });
+  auto tree = monitor->getOcTreePtr();
+  // The face-padded mesh ends at y=0.037. A measured self return at 0.036
+  // belongs to the boundary voxel [0.03, 0.04], which volume clearing preserves.
+  tree->updateNode(0.505, 0.035, 0.005, true);
+  tree->updateNode(0.605, 0.035, 0.005, true);
+  const auto message = cloud({{0.505F, 0.036F, 0.005F}, {0.505F, 0.046F, 0.005F}});
+  for (unsigned int frame = 0; frame < 3; ++frame)
+  {
+    ASSERT_TRUE(updater->processCloud(message));
+    EXPECT_FALSE(tree->isNodeOccupied(tree->search(0.505, 0.035, 0.005)));
+    EXPECT_TRUE(tree->isNodeOccupied(tree->search(0.505, 0.045, 0.005)));
+    // Without an actual self return, partial overlap still cannot erase a cell.
+    EXPECT_TRUE(tree->isNodeOccupied(tree->search(0.605, 0.035, 0.005)));
+  }
+}
+
 TEST_F(FrameIntegration, RaysStartAtCameraAndRangeUsesCloudCoordinates)
 {
   geometry_msgs::msg::TransformStamped transform;

@@ -211,6 +211,25 @@ def test_visibility_default_does_not_change_generic_selection():
     assert not any(c[0] == 'visible' for c in port.calls)
 
 
+def test_pregrasp_visibility_uses_open_jaw_without_changing_arm_trajectory():
+    port = FakePort()
+    original = port.pregrasp_is_visible
+
+    def visible(arm, solution):
+        original(arm, solution)
+        positions = dict(zip(solution.names, solution.positions, strict=True))
+        assert positions[f'{arm}_gripper_joint'] == 1.2
+        return arm == 'right'
+
+    port.pregrasp_is_visible = visible
+    selected = GraspSelector(port, GraspSelectionConfig(
+        require_pregrasp_visibility=True, open_gripper_position_rad=1.2,
+    )).select([candidate(0, y=.2)])
+    assert selected.arm == 'right'
+    assert 'right_gripper_joint' not in selected.pregrasp.names
+    assert not any(c[0].startswith('plan') and c[1] == 'left' for c in port.calls)
+
+
 def test_candidate_preserves_normalized_pose_and_rejects_mismatched_approach():
     value = Candidate(
         (0.5, 0.2, 0.8),

@@ -49,6 +49,9 @@ def feedback_node(monkeypatch):
     node._joint_positions, node._joint_velocities = {}, {}
     node._joint_feedback = JointFeedback(REQUIRED_JOINT_NAMES)
     node.submissions, node.handles = [], []
+    node._stop_events = []
+    node._moveit_stop = NS(publish=node._stop_events.append)
+    node.get_logger = lambda: NS(warning=lambda _: None)
     node.get_parameter = lambda name: NS(value=values[name])
     node.get_clock = lambda: NS(now=lambda: NS(nanoseconds=int(wall[0] * 10**9)))
     context = ExecutionContext(Goal('m', 't', 'e', 'collect_trash', 's', 1, 'trash_right'))
@@ -263,6 +266,62 @@ def test_cancel_is_sent_once_and_stop_waits_for_terminal_action_and_feedback(fee
     assert node._assess_stationary(context, cancel=True)
     assert len(canceled) == 1
     assert wall[0] >= 10.25 + values['bt_stationary_duration_sec'] - 1e-9
+
+
+@pytest.mark.parametrize('late_acceptance', [False, True])
+def test_stop_event_interrupts_execution_that_ignores_action_cancel(
+        feedback_node, monkeypatch, late_acceptance):
+    import cleany_manipulation_bt.ros_operations as module
+    from action_msgs.msg import GoalStatus
+
+    node, context, wall, publish, values = feedback_node
+    accepted, terminal = Future(), Future()
+    canceled, stopped_at = [], []
+    handle = NS(accepted=True, cancel_goal_async=lambda: canceled.append(wall[0]))
+    node.submissions.append(accepted)
+    if not late_acceptance:
+        accepted.set_result(handle)
+        node.handles.append((handle, terminal))
+
+    def event(message):
+        node._stop_events.append(message)
+        if accepted.done() and not terminal.done():
+            terminal.set_result(NS(status=GoalStatus.STATUS_ABORTED))
+            stopped_at.append(wall[0])
+
+    node._moveit_stop = NS(publish=event)
+    steps = [0]
+
+    def spin(*_, **__):
+        wall[0] += .05
+        steps[0] += 1
+        if late_acceptance and steps[0] == 3:
+            accepted.set_result(handle)
+            node.handles.append((handle, terminal))
+        moving = not stopped_at or wall[0] < stopped_at[0] + .1
+        publish(velocities=[.1 if moving else 0.] * len(REQUIRED_JOINT_NAMES))
+
+    monkeypatch.setattr(module.rclpy, 'spin_once', spin)
+    assert node._assess_stationary(context, cancel=True)
+    assert len(canceled) == 1
+    assert all(message.data == 'stop' for message in node._stop_events)
+    assert len(node._stop_events) >= (2 if late_acceptance else 1)
+    assert wall[0] >= stopped_at[0] + .1 + values['bt_stationary_duration_sec'] - 1e-9
+
+
+def test_stationary_assessment_without_cancel_never_sends_stop_event(feedback_node, monkeypatch):
+    import cleany_manipulation_bt.ros_operations as module
+
+    node, context, wall, publish, _ = feedback_node
+    node.quiescent = lambda: False
+
+    def spin(*_, **__):
+        wall[0] += .05
+        publish()
+
+    monkeypatch.setattr(module.rclpy, 'spin_once', spin)
+    assert not node._assess_stationary(context, cancel=False)
+    assert node._stop_events == []
 
 
 def test_feedback_ready_at_stop_deadline_cannot_confirm_or_keep_previous_confirmation(feedback_node, monkeypatch):

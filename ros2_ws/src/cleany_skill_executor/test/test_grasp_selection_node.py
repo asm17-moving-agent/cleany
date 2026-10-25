@@ -47,7 +47,7 @@ def test_visibility_uses_camera_tf_and_rejects_stale_dynamic_transforms(stamp, a
     transform = TransformStamped()
     transform.header.stamp.sec = stamp
     transform.transform.translation.z = 1.
-    parameters = dict(planning_frame='base_link', visibility_camera_frame='rgb_optical',
+    parameters = dict(planning_frame='base_link', visibility_camera_frame='rgb_optical', visibility_sensor_link='',
                       visibility_camera_max_age_sec=.5, visibility_padding_m=.003, visibility_cone_sides=16)
     calls = []
     def lookup(*args, **kwargs):
@@ -67,6 +67,39 @@ def test_visibility_uses_camera_tf_and_rejects_stale_dynamic_transforms(stamp, a
         assert result.sensor_pose.pose.position.z == 1.
         assert result.sensor_pose.header.frame_id == 'base_link'
         assert calls[0][:2] == ('base_link', 'rgb_optical')
+
+
+@pytest.mark.parametrize('mount_stamp', [0, 10])
+def test_visibility_preserves_optical_origin_in_rigid_sensor_housing(mount_stamp):
+    world = TransformStamped()
+    world.transform.translation.z = 1.
+    mount = TransformStamped()
+    mount.header.stamp.sec = mount_stamp
+    mount.transform.translation.x = .025
+    mount.transform.translation.z = .03
+    mount.transform.rotation.w = 1.
+    parameters = dict(planning_frame='base_link', visibility_camera_frame='rgb_optical',
+        visibility_sensor_link='head_tilt_link', visibility_camera_max_age_sec=.5,
+        visibility_padding_m=.003, visibility_cone_sides=16)
+    calls = []
+    def lookup(target, source, *args, **kwargs):
+        calls.append((target, source))
+        return world if target == 'base_link' else mount
+    node = SimpleNamespace(_visibility_tf=SimpleNamespace(lookup_transform=lookup),
+        get_parameter=lambda name: SimpleNamespace(value=parameters[name]),
+        get_clock=lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=10_000_000_000)),
+        get_logger=lambda: SimpleNamespace(debug=lambda _: None))
+    if mount_stamp:
+        with pytest.raises(InfrastructureError, match='rigidly attached'):
+            GraspSelectionNode._visibility_constraint(node, _candidate())
+    else:
+        result = GraspSelectionNode._visibility_constraint(node, _candidate())
+        assert result.sensor_pose.header.frame_id == 'head_tilt_link'
+        assert result.sensor_pose.pose.position.x == .025
+        assert result.sensor_pose.pose.position.z == .03
+        assert result.target_pose.header.frame_id == 'base_link'
+        assert result.target_radius > .07
+        assert calls == [('base_link','rgb_optical'), ('head_tilt_link','rgb_optical')]
 
 
 class _GoalHandle:

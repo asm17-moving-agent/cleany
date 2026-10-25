@@ -25,6 +25,12 @@ using GetTransform = std::function<bool(unsigned int, Eigen::Isometry3d&)>;
 bool placeKnownBodies(KnownBodies& bodies, const Eigen::Isometry3d& map_from_cloud,
                       const GetTransform& cloud_from_body);
 
+/// Classify measured points using the same face-normal padding as volume clearing.
+/// Points and body poses share one frame. Nonfinite points are never inside.
+std::vector<bool> knownGeometryContainment(
+    const std::vector<Eigen::Vector3d>& points,
+    const std::vector<const bodies::Body*>& bodies);
+
 /// Caller owns the tree write lock. Does not create cells or clear partial overlap.
 /// All eight corners must belong to ONE convex body, not a union across bodies.
 /// Mesh padding is applied along convex face normals, bounded by its padded box;

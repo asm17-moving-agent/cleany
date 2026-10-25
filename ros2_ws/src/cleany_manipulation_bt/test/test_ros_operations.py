@@ -370,6 +370,28 @@ def test_completed_acceptance_is_not_quiescent_until_its_terminal_handle_is_trac
     assert MujocoOperations.quiescent(node)
 
 
+@pytest.mark.parametrize('aborted', [False, True])
+def test_late_accepted_action_receives_tem_stop_when_context_was_aborted(aborted):
+    from concurrent.futures import Future
+    from cleany_manipulation_bt.ros_operations import TrackedClient
+
+    context = ExecutionContext(Goal('m', 't', 'e', 'collect_trash', 's', 1, 'trash_right'))
+    response, terminal = Future(), Future()
+    stopped, canceled = [], []
+    node = NS(_guard=lambda: None, execution_context=context, submissions=[], handles=[],
+              _moveit_stop=NS(publish=lambda message: stopped.append(message.data)))
+    client = TrackedClient(node, NS(send_goal_async=lambda _: response))
+    assert client.send_goal_async(object()) is response
+    if aborted:
+        context.abort.set()
+    handle = NS(accepted=True, get_result_async=lambda: terminal,
+                cancel_goal_async=lambda: canceled.append(True))
+    response.set_result(handle)
+    assert node.handles == [(handle, terminal)]
+    assert stopped == (['stop'] if aborted else [])
+    assert canceled == ([True] if aborted else [])
+
+
 @pytest.mark.parametrize('problem', ['moving', 'paused', 'disconnected', 'unsettled_action', 'none'])
 def test_stop_requires_terminal_actions_and_new_stationary_samples(monkeypatch, problem):
     import cleany_manipulation_bt.ros_operations as module
@@ -381,9 +403,12 @@ def test_stop_requires_terminal_actions_and_new_stationary_samples(monkeypatch, 
               'bt_stop_feedback_max_age_sec': .5, 'bt_stationary_duration_sec': .1}
     feedback = JointFeedback(REQUIRED_JOINT_NAMES)
     feedback.update(REQUIRED_JOINT_NAMES, [0.] * len(REQUIRED_JOINT_NAMES), 100, 10.)
+    warnings = []
     node = NS(get_parameter=lambda name: NS(value=values[name]),
               get_clock=lambda: NS(now=lambda: NS(nanoseconds=100)),
+              get_logger=lambda: NS(warning=warnings.append),
               _joint_feedback=feedback,
+              _moveit_stop=NS(publish=lambda _: None),
               submissions=[], handles=[], quiescent=lambda: problem != 'unsettled_action')
     stamp = [100]
     def spin(*_, **__):
@@ -399,6 +424,9 @@ def test_stop_requires_terminal_actions_and_new_stationary_samples(monkeypatch, 
     context = ExecutionContext(Goal('m', 't', 'e', 'collect_trash', 's', 1, 'trash_right'))
     confirmed = MujocoOperations._assess_stationary(node, context, cancel=True)
     assert confirmed == (problem == 'none')
+    assert bool(warnings) == (problem != 'none')
+    if problem == 'unsettled_action':
+        assert 'terminal_actions=False' in warnings[0]
 
 
 

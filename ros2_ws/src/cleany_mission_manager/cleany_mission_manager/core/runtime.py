@@ -26,11 +26,16 @@ class MissionRuntime:
                  supported_targets: set[str], policy: RuntimePolicy | None = None,
                  journal: MissionJournal | None = None,
                  on_accept: Callable[[], None] | None = None,
-                 navigation_mode: str = "mock") -> None:
+                 navigation_mode: str = "mock", cleaning_mode: str = "mock") -> None:
         if navigation_mode not in ("sim", "mock"):
             raise ValueError("this runtime supports simulation or explicit mocks only")
-        self.execution_profile = {"navigation": navigation_mode, "perception": "mock",
-                                  "planning": "mock", "execution": "mock"}
+        if cleaning_mode not in ("mock", "isaac"):
+            raise ValueError("cleaning mode must be mock or isaac")
+        self.cleaning_mode = cleaning_mode
+        self.execution_profile = {"navigation": navigation_mode,
+                                  "perception": "sensor" if cleaning_mode == "isaac" else "mock",
+                                  "planning": "policy" if cleaning_mode == "isaac" else "mock",
+                                  "execution": cleaning_mode}
         self.navigator = navigator
         self.desk_ports = (perception, planner, executor)
         self.executor = executor
@@ -278,7 +283,7 @@ class MissionRuntime:
                 self.cleaning = CleaningTree(
                     perception=self.desk_ports[0], planner=self.desk_ports[1],
                     executor=self.desk_ports[2], clock=self.clock, policy=self.policy,
-                    mission_id=self.request.mission_id, observer=self.observe,
+                    mission_id=self.request.mission_id, observer=self.observe, mode=self.cleaning_mode,
                 )
                 self._enter(RuntimeState.WORKING)
         elif self.state == RuntimeState.WORKING:
@@ -366,6 +371,7 @@ class MissionRuntime:
             after_observation=context.after if context else "",
             navigation_result=self.navigation_result, return_result=self.return_result,
             actions=list(context.records) if context else [],
+            cleaning_mode=self.cleaning_mode,
             execution_profile=self.journal.profile(self.request.mission_id),
         )
         self.journal.finish(report)

@@ -28,17 +28,17 @@ from .monitor import LiveMonitor
 from .ros_operations import MujocoOperations
 
 
-def default_database_path() -> str:
+def default_database_path(profile: str = 'mujoco') -> str:
     state = Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state')
-    return str(state / 'cleany/manipulation_mujoco/executions.sqlite3')
+    return str(state / f'cleany/manipulation_{profile}/executions.sqlite3')
 
 
 class MujocoManipulationNode(ManipulationNode):
-    def __init__(self, *, backend=None, operations=None, **kwargs) -> None:
+    def __init__(self, *, backend=None, operations=None, execution_profile='mujoco', **kwargs) -> None:
         kwargs.setdefault('namespace', '/sim')
-        Node.__init__(self, 'manipulation_mujoco_server', **kwargs)
+        Node.__init__(self, f'manipulation_{execution_profile}_server', **kwargs)
         share = Path(get_package_share_directory('cleany_manipulation_bt'))
-        self.declare_parameter('database_path', default_database_path())
+        self.declare_parameter('database_path', default_database_path(execution_profile))
         self.declare_parameter('tree_xml', str(share / 'trees/collect_trash_mujoco.xml'))
         self.declare_parameter('monitor_port', 1667)
         self.declare_parameter('bt_operation_timeout_sec', 180.0)
@@ -54,7 +54,8 @@ class MujocoManipulationNode(ManipulationNode):
         self.store = BTExecutionStore(self.get_parameter('database_path').value)
         self.core = ExecutionCore(self.backend, self.store, self.get_parameter('tree_xml').value, Runner,
                                   timeout_sec=float(self.get_parameter('bt_operation_timeout_sec').value),
-                                  stop_timeout_sec=float(self.get_parameter('bt_stop_timeout_sec').value) + 2.)
+                                  stop_timeout_sec=float(self.get_parameter('bt_stop_timeout_sec').value) + 2.,
+                                  execution_profile=execution_profile)
         self._handle = self._result_future = None
         self._closing = False
         self._futures = {}
@@ -84,7 +85,7 @@ class MujocoManipulationNode(ManipulationNode):
         self._timer = self.create_timer(0.05, self._tick, callback_group=group,
                                        clock=Clock(clock_type=ClockType.STEADY_TIME))
         self._publish_events()
-        self.get_logger().info(f'MuJoCo BT ready; database={self.store.path}; monitor=127.0.0.1:{port}; '
+        self.get_logger().info(f'{execution_profile} BT ready; database={self.store.path}; monitor=127.0.0.1:{port}; '
                                f'inhibited={self.core.inhibited}')
 
     def _tick(self) -> None:

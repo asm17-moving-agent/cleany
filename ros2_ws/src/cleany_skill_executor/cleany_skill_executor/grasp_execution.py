@@ -102,6 +102,9 @@ class GraspExecutionNode(Node):
         attempts = (1, 2) if getattr(self, '_controller_retry_enabled', True) else (1,)
         for execution_attempt in attempts:
             goal = self._execution_goal(arm, joint_state, label)
+            trace = getattr(self, '_record_pipeline_message', None)
+            if trace is not None:
+                trace('joint_motion_request', goal)
             self.get_logger().info(
                 f'MoveIt plan-and-execute: {label} attempt={execution_attempt}/{len(attempts)}'
             )
@@ -113,6 +116,8 @@ class GraspExecutionNode(Node):
             if not handle.accepted:
                 raise RuntimeError(f'{label} MoveGroup goal was rejected')
             wrapped = self._future(handle.get_result_async(), 60.0, f'{label} execution result')
+            if trace is not None:
+                trace('joint_motion_result', wrapped.result)
             code = wrapped.result.error_code.val
             if (
                 wrapped.status == GoalStatus.STATUS_SUCCEEDED

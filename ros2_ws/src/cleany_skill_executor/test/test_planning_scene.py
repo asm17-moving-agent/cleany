@@ -110,6 +110,40 @@ def test_matching_observed_mesh_replaces_only_target_primitive():
     assert scenes[-1].robot_state.attached_collision_objects[0].object.meshes == [geometry.mesh]
 
 
+def test_attachment_uncertainty_preserves_observed_mesh_and_only_expands_carried_geometry():
+    geometry, candidate = geometry_pair()
+    candidate.target_object.obb_size.x = .08
+    candidate.target_object.obb_size.y = .04
+    candidate.target_object.obb_size.z = .02
+    candidate.target_object.obb_pose.position.x = .45
+    candidate.target_object.obb_pose.position.z = .35
+    transaction = TargetSceneTransaction(object(), apply_client=object(), get_client=object(),
+        geometry_lookup=lambda _: geometry, attachment_uncertainty_padding_m=.01)
+    transaction._call = lambda *args: SimpleNamespace(
+        scene=SimpleNamespace(allowed_collision_matrix=AllowedCollisionMatrix()))
+    scenes = []
+    transaction._apply = lambda scene: scenes.append(deepcopy(scene)) or SimpleNamespace(success=True)
+    transaction.begin(candidate, 'target')
+    assert scenes[0].world.collision_objects[0].primitives == []
+    transaction.attach_to('right')
+    attached = scenes[-1].robot_state.attached_collision_objects[0]
+    assert attached.object.meshes == [geometry.mesh]
+    assert attached.object.mesh_poses == [geometry.mesh_pose]
+    assert attached.object.primitives[0].dimensions == pytest.approx([.10, .06, .04])
+    assert attached.object.primitive_poses == [candidate.target_object.obb_pose]
+    assert attached.touch_links == ['right_gripper_frame', 'right_moving_jaw_link']
+    assert not scenes[-1].allowed_collision_matrix.entry_names
+    assert transaction._collision_object.primitives == []
+    transaction.restore()
+    assert not transaction.active
+
+
+@pytest.mark.parametrize('padding', [-.001, .051, float('nan'), float('inf')])
+def test_invalid_attachment_uncertainty_rejected(padding):
+    with pytest.raises(ValueError, match='Attachment uncertainty'):
+        TargetSceneTransaction(object(), attachment_uncertainty_padding_m=padding)
+
+
 def test_missing_required_geometry_does_not_fall_back_to_box():
     transaction = TargetSceneTransaction(object(), apply_client=object(), get_client=object(),
         timeout_sec=.001, geometry_lookup=lambda _: None, spin_once=lambda _: None)

@@ -64,12 +64,14 @@ class SeededCartesianConfig:
     ik_timeout_sec: float = .2
     maximum_points: int = 2000
     local_refinement_iterations: int = 0
+    orientation_weight_m: float = 0.0
 
     def __post_init__(self):
         if (not all(math.isfinite(v) and v > 0 for v in (
                 self.ik_step_m, self.validation_step_m, self.validation_joint_step_rad, self.ik_timeout_sec)) or
                 self.validation_step_m > self.ik_step_m or self.maximum_points < 2
-                or not 0 <= self.local_refinement_iterations <= 100):
+                or not 0 <= self.local_refinement_iterations <= 100
+                or not math.isfinite(self.orientation_weight_m) or self.orientation_weight_m < 0):
             raise ValueError('invalid seeded Cartesian sampling configuration')
 
 
@@ -170,13 +172,18 @@ class SeededCartesianPlanner:
             seed = tuple(a+fraction*(b-a) for a, b in zip(first, last, strict=True))
             if chain is not None:
                 target_p = np.array(start.position) + fraction*(np.array(target.position)-start.position)
+                target_q = interpolate_orientation(start.orientation, target.orientation, fraction)
+                target_r = np.column_stack([quaternion_axis(target_q, axis)
+                    for axis in ((1.,0.,0.),(0.,1.,0.),(0.,0.,1.))])
                 def residual(values):
                     positions = dict(current)
                     positions.update(zip(names, values, strict=True))
-                    p, _ = chain.pose(positions)
+                    p, r = chain.pose(positions)
                     # Keep redundant joints near the endpoint interpolation;
                     # position dominates this weak regularization.
-                    return np.concatenate((p-target_p, 1e-4*(np.asarray(values)-seed)))
+                    return np.concatenate((p-target_p,
+                        self.config.orientation_weight_m*(r-target_r).reshape(-1),
+                        1e-4*(np.asarray(values)-seed)))
                 values = refine_pose(residual, seed,
                     [bounds[n] for n in names],
                     self.config.local_refinement_iterations)

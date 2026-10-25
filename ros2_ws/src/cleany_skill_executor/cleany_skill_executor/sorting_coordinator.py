@@ -29,8 +29,9 @@ from shape_msgs.msg import SolidPrimitive
 from std_msgs.msg import String
 
 from cleany_mujoco_sim.sorting_scene import load_bins, load_shelf_boxes
+from cleany_grasping.grasp_node import point_cloud_from_message
 from cleany_skill_executor.core.rgbd_projection import CameraProjection, rotation_matrix_from_quaternion
-from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES
+from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES, JointSolution
 from cleany_skill_executor.core.nearest_object import ObjectAttempt
 from cleany_skill_executor.core.sorting import (
     Category, execute_sort, load_sorting_policy,
@@ -127,6 +128,10 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self.declare_parameter('sorting_exit_on_finish', True)
         self.declare_parameter('sorting_test_only_label', '')
         self._wrist_enabled = self.declare_parameter('sorting_use_wrist_camera', False).value
+        self._lift_observation_source = self.declare_parameter(
+            'sorting_lift_observation_source', 'auto').value
+        if self._lift_observation_source not in ('auto', 'head_rgbd'):
+            raise ValueError('sorting_lift_observation_source must be auto or head_rgbd')
         self.declare_parameter('sorting_wrist_check_attempts', 1)
         self.declare_parameter('sorting_wrist_contact_confirmation_sec', 0.3)
         self.declare_parameter('sorting_gripper_feedback_max_age_sec', 0.5)
@@ -134,6 +139,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
             'sorting_adaptive_head_rate', False).value
         self.declare_parameter('sorting_approach_acceleration_scaling', 1.0)
         self.declare_parameter('sorting_return_gripper_position_rad', -0.30)
+        self.declare_parameter('sorting_release_gripper_position_rad',
+                               float(self.get_parameter('gripper_open_position_rad').value))
+        self.declare_parameter('sorting_release_gripper_sweep_step_rad', .05)
         self.declare_parameter('sorting_carry_wrist_tolerances_deg', [2., 5., 10., 20., 30.])
         self.declare_parameter('sorting_carry_cartesian_rotation_limit_deg', 30.)
         self._carry_wrist_reference = {}
@@ -159,7 +167,12 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self.declare_parameter('sorting_reobserve_geometry_padding_m', 0.01)
         self.declare_parameter('sorting_reobserve_max_translation_m', 0.20)
         self.declare_parameter('sorting_reobserve_max_lowering_m', 0.10)
+        self.declare_parameter('sorting_reobserve_max_raising_m', 0.0)
         self.declare_parameter('sorting_reobserve_height_clearance_m', 0.02)
+        self.declare_parameter('sorting_reobserve_fixed_wrist_pitch', False)
+        self.declare_parameter('sorting_reobserve_wrist_pitch_rad', 0.0)
+        self.declare_parameter('sorting_reobserve_wrist_roll_offset_rad', 0.0)
+        self.declare_parameter('sorting_reobserve_restore_pose', False)
         self.declare_parameter('sorting_held_association_tolerance_m', 0.03)
         self.declare_parameter('sorting_payload_velocity_scaling', 0.01)
         self.declare_parameter('sorting_payload_acceleration_scaling', 0.01)
@@ -655,7 +668,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
             self.get_parameter('sorting_carry_wrist_tolerances_deg').value[0])
 
     def _verify_lift_height(self, attempt, *, minimum_center_z_m=None):
-        if getattr(self, '_wrist_enabled', False):
+        head_override = getattr(self, '_lift_observation_source', 'auto') == 'head_rgbd'
+        wrist_enabled = getattr(self, '_wrist_enabled', False)
+        if wrist_enabled and not head_override:
             held = self._held_object
             if held is None:
                 raise RuntimeError('Missing held geometry for wrist check')
@@ -668,16 +683,27 @@ class SortingCoordinator(NearestPregraspCoordinator):
                     f'predicted_center_z={predicted[2]:.4f}m '
                     f'required_center_z={minimum_center_z_m:.4f}m')
             return self._verify_wrist_or_contact(held)
+        if wrist_enabled and head_override:
+            if self._held_object is None:
+                raise RuntimeError('Missing held geometry for head RGB-D check')
+            self._confirm_held_contact(self._held_object)
+            self._switch_camera('head')
         verify = (self._verify_head_redetection if getattr(self, '_geometry_association_lift', False)
                   else super()._verify_lift_height)
+        restore_joints = None
         try:
             inspected = verify(
                 attempt, minimum_center_z_m=minimum_center_z_m)
         except LiftRedetectionError:
             if not self.get_parameter('sorting_reobserve_after_lift').value:
                 raise
+            if self.get_parameter('sorting_reobserve_restore_pose').value:
+                arm = self._held_object.selected.selected_arm
+                self._wait_arm_stationary(arm)
+                restore_joints = deepcopy(self._arm_joint_state(arm))
             self._reobserve_held_object(minimum_center_z_m)
-            # Exactly one physical recovery move; no recursive motion/retries.
+            # One view proposal; no recursive motion/retries. Optional return
+            # motion occurs only after successful visual/geometry verification.
             inspected = verify(
                 attempt, minimum_center_z_m=minimum_center_z_m)
         held = self._held_object
@@ -690,14 +716,48 @@ class SortingCoordinator(NearestPregraspCoordinator):
             raise RuntimeError('Held-object observation frame differs from attachment')
         tcp = self._tcp_pose(held.selected.selected_arm)
         predicted = np.array(self._pose_position(tcp)) + rotation(tcp) @ held.offset_in_tcp
-        observed = inspected.objects.objects[0].obb_pose.position
+        if getattr(self, '_geometry_association_lift', False):
+            observed_center = self._observed_lift_center(inspected)
+        else:
+            observed = inspected.objects.objects[0].obb_pose.position
+            observed_center = np.array((observed.x, observed.y, observed.z))
         tolerance = float(self.get_parameter('sorting_held_association_tolerance_m').value)
         if not math.isfinite(tolerance) or tolerance <= 0.:
             raise ValueError('Held-object association tolerance must be finite and positive')
-        error = np.linalg.norm(predicted - np.array((observed.x, observed.y, observed.z)))
+        error = np.linalg.norm(predicted - observed_center)
         if not math.isfinite(error) or error > tolerance:
             raise RuntimeError(f'Observed lifted object does not match held geometry: {error:.4f}m')
+        if wrist_enabled and head_override:
+            self._confirm_held_contact(held)
+        if restore_joints is not None:
+            arm = held.selected.selected_arm
+            self._move_to(arm, restore_joints, 'return from held-object camera reobservation')
+            self._verify_feedback(restore_joints)
+            self._hold('lift_hold_sec')
+            self._confirm_held_contact(held)
+            tcp = self._tcp_pose(arm)
+            restored_center = np.array(self._pose_position(tcp)) + rotation(tcp) @ held.offset_in_tcp
+            minimum = max(float(self.get_parameter('lift_min_center_z_m').value),
+                minimum_center_z_m if minimum_center_z_m is not None else -math.inf)
+            if not np.isfinite(restored_center).all() or restored_center[2] < minimum:
+                raise RuntimeError('Return from reobservation violates required lift clearance')
         return inspected
+
+    def _observed_lift_center(self, inspected) -> np.ndarray:
+        """Use measured mask points for an airborne object, without table extrusion.
+
+        The desk OBB deliberately extends to its support plane. Its center is
+        therefore not a measured lift center. Reuse the selected RGB-D cloud and
+        its capture frame/stamp; do not change the original perception result.
+        """
+        cloud, header = inspected.target_cloud, inspected.objects.header
+        if (cloud.header.frame_id != header.frame_id or cloud.header.stamp != header.stamp
+                or header.frame_id != self._held_object.selected.selected_candidate.header.frame_id):
+            raise RuntimeError('Lift point cloud frame/stamp differs from selected observation')
+        points = point_cloud_from_message(cloud).points
+        if len(points) < 3:
+            raise RuntimeError('Lift observation has too few finite mask points')
+        return (points.min(axis=0)+points.max(axis=0))/2.
 
     def _verify_head_redetection(self, attempt, *, minimum_center_z_m=None):
         """Associate a new YOLOE mask by measured 3D position, not Gemini wording."""
@@ -721,21 +781,20 @@ class SortingCoordinator(NearestPregraspCoordinator):
             candidate = ObjectAttempt(
                 object_id=int(item.object_id), label=item.label,
                 confidence=float(item.confidence), distance_m=float(item.distance_m))
-            inspected = self._inspect_selected(detected.detections.snapshot_id, candidate)
+            inspected = self._inspect_selected(detected.detections.snapshot_id, candidate, free_space=True)
             if inspected is None:
                 continue
-            center = inspected.objects.objects[0].obb_pose.position
-            position = np.array((center.x, center.y, center.z))
+            position = self._observed_lift_center(inspected)
             error = float(np.linalg.norm(predicted - position))
             if math.isfinite(error) and error <= tolerance:
-                matches.append((inspected, error))
+                matches.append((inspected, error, position))
         if not matches:
             raise LiftRedetectionError(
                 f'Head RGB-D could not associate lifted {attempt.label} with the gripper')
         if len(matches) != 1:
             raise RuntimeError('Head RGB-D found multiple objects at the held-object position')
-        inspected, error = matches[0]
-        center_z = float(inspected.objects.objects[0].obb_pose.position.z)
+        inspected, error, position = matches[0]
+        center_z = float(position[2])
         self.get_logger().debug(
             f'Head RGB-D lift verification: source={attempt.label} '
             f'observed={inspected.objects.objects[0].label} '
@@ -771,6 +830,38 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self.get_logger().debug(
             f'Held-center fixed-point IK did not converge: error_m={np.linalg.norm(predicted-center):.5f}')
         return None
+
+    def _reobservation_joints(self, held: HeldObject, center: np.ndarray) -> JointState | None:
+        """Optionally expose the held object with a configured observation pitch.
+
+        This is only a pose proposal. Existing carry-roll limits, scene collision
+        checks, trajectory checks and post-motion visual verification still apply.
+        """
+        if not self.get_parameter('sorting_reobserve_fixed_wrist_pitch').value:
+            return self._held_center_joints(held, center, 0.005)
+        pitch = float(self.get_parameter('sorting_reobserve_wrist_pitch_rad').value)
+        if not math.isfinite(pitch):
+            raise ValueError('Reobservation wrist pitch must be finite')
+        arm = held.selected.selected_arm
+        self._transport_adapter.set_current_state(self._feedback_state())
+        bounds = {name: (value-self._carry_wrist_tolerance,
+                         value+self._carry_wrist_tolerance)
+                  for name, value in self._carry_wrist_reference.items()}
+        roll_offset = float(self.get_parameter('sorting_reobserve_wrist_roll_offset_rad').value)
+        if (not math.isfinite(roll_offset)
+                or abs(roll_offset) > self._carry_wrist_tolerance):
+            raise ValueError('Reobservation roll offset exceeds the configured carry bound')
+        fixed = {f'{arm}_wrist_pitch_joint': pitch}
+        if roll_offset:
+            name = f'{arm}_wrist_roll_joint'
+            fixed[name] = self._carry_wrist_reference[name] + roll_offset
+        solution = self._transport_adapter.solve_held_region_ik(
+            arm, center-.001, center+.001, held.offset_in_tcp,
+            fixed_joints=fixed, joint_bounds=bounds,
+            attempts=16, iterations=80)
+        if solution is None:
+            return None
+        return JointState(name=list(solution.names), position=list(solution.positions))
 
     def _require_held_contact(self, held: HeldObject) -> None:
         if not self._gripper_contact_stalled(
@@ -870,6 +961,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
             margin_px=float(self.get_parameter('sorting_reobserve_margin_px').value),
             maximum_translation_m=float(self.get_parameter('sorting_reobserve_max_translation_m').value),
             maximum_lowering_m=float(self.get_parameter('sorting_reobserve_max_lowering_m').value),
+            maximum_raising_m=float(self.get_parameter('sorting_reobserve_max_raising_m').value),
             height_clearance_m=float(self.get_parameter('sorting_reobserve_height_clearance_m').value))
         self.get_logger().debug(
             f'Held reobservation: predicted_center={center.tolist()} radius={radius:.4f}m '
@@ -877,7 +969,7 @@ class SortingCoordinator(NearestPregraspCoordinator):
         if bool(self.get_parameter('require_sensor_scene').value):
             self._wait_for_sensor_scene(float(self.get_parameter('attachment_scene_timeout_sec').value))
         for candidate in centers:
-            joints = self._held_center_joints(held, candidate, 0.005)
+            joints = self._reobservation_joints(held, candidate)
             if joints is None:
                 self.get_logger().debug(f'Reobservation IK rejected: {candidate.tolist()}')
                 continue
@@ -907,7 +999,8 @@ class SortingCoordinator(NearestPregraspCoordinator):
             values = dict(zip(solution.names, solution.positions, strict=True))
             if (np.max(np.abs(center-point)) <= .001
                     and all(values.get(name) == value for name, value in wrist.items())
-                    and self._transport_adapter.state_is_valid(arm, solution)):
+                    and self._transport_adapter.state_is_valid(arm, solution)
+                    and self._release_opening_is_valid(arm, solution)):
                 self.get_logger().debug('Reusing fixed release IK after fresh FK/collision checks')
                 return solution
             self._fixed_release_cache.pop(key)
@@ -915,6 +1008,9 @@ class SortingCoordinator(NearestPregraspCoordinator):
             arm, point-.0005, point+.0005, offset, fixed_joints=wrist,
             attempts=int(self.get_parameter('sorting_release_ik_attempts').value),
             iterations=int(self.get_parameter('sorting_release_ik_iterations').value))
+        if solution is not None and not self._release_opening_is_valid(arm, solution):
+            self.get_logger().debug('Fixed release rejected: gripper opening sweep is invalid')
+            return None
         if solution is not None:
             if len(self._fixed_release_cache) >= 64:
                 self._fixed_release_cache.pop(next(iter(self._fixed_release_cache)))
@@ -971,8 +1067,23 @@ class SortingCoordinator(NearestPregraspCoordinator):
         self.finish_release(held)
 
     def open_at_destination(self, held: HeldObject) -> None:
-        self._open_gripper(held.selected.selected_arm)
+        arm = held.selected.selected_arm
+        self._transport_adapter.set_current_state(self._feedback_state())
+        joints = self._arm_joint_state(arm)
+        solution = JointSolution(tuple(joints.name), tuple(joints.position))
+        if not self._release_opening_is_valid(arm, solution):
+            raise RuntimeError('Gripper release opening intersects the current planning scene')
+        self._command_gripper(arm,
+            float(self.get_parameter('sorting_release_gripper_position_rad').value), 'open')
         self._release_stamp_ns = self.get_clock().now().nanoseconds
+
+    def _release_opening_is_valid(self, arm: str, solution: JointSolution) -> bool:
+        """Reuse full-robot gripper sweep checks before transport and release."""
+        opening = float(self.get_parameter('sorting_release_gripper_position_rad').value)
+        current = self._joint_positions.get(f'{arm}_gripper_joint', math.nan)
+        step = float(self.get_parameter('sorting_release_gripper_sweep_step_rad').value)
+        return self._transport_adapter.gripper_sweep_is_valid(
+            arm, solution, opening, current, step)
 
     def finish_release(self, held: HeldObject) -> None:
         arm = held.selected.selected_arm

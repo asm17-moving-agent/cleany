@@ -30,3 +30,17 @@
 | 서비스 호출 | `mock/manipulation/get_execution` | `cleany_interfaces/srv/GetManipulationExecution` | Service 기본값; `manipulation_query` |
 
 Nav2 adapter의 endpoint와 TF 구독은 `navigation_backend=nav2`에서 생성한다. 조작 endpoint는 `manipulation_backend=action_mock`일 때만 생성하며 기본 `mock`는 process 내부 실행이다. 기본 lifecycle 목록은 `map_server`, `amcl`, `planner_server`, `controller_server`, `bt_navigator`, `collision_monitor`다. [Mission 계약](../../cleany_interfaces/docs/mission.md)을 따른다.
+
+### Isaac 센서 기반 조작 경계
+
+`manipulation_backend=action_isaac`은 `perception_action`의 InspectScene Action에서
+새 RGB-D snapshot을 받아 숫자 object ID와 tracking session/epoch/track ID를 보존한다.
+명시적인 trash 분류, 유효 깊이, 정상 추적이 없는 대상은 검토 대상으로 남긴다.
+실행 이후에는 실제 재관측을 요청하며 메모리에서 물체를 삭제하지 않는다.
+
+`manipulation_drive_readiness`의 Trigger 서비스를 주기적으로 조회한다. 팔 준비 상태가
+만료되거나 실행 결과가 불명확하면 주행하지 않는다. `initial_mock_safe`는 이 모드에서
+사용하지 않는다. Action 결과의 `execution_profile=isaac`, 실제 놓기 확인,
+팔 복귀와 정지가 모두 필요하며 `mock` 및 `ASSUMED` 결과는 거부한다.
+보고서에는 `cleaning_mode=isaac`, perception=`sensor`, planning=`policy`,
+execution=`isaac`을 기록한다. 인식 오류를 빈 책상이나 성공으로 바꾸지 않는다.

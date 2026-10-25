@@ -174,3 +174,108 @@ def test_motor_fallback_still_requires_kinematic_lift_clearance():
         _verify_wrist_or_contact=lambda _: pytest.fail('No fallback below required lift height'))
     with pytest.raises(RuntimeError, match='lift clearance'):
         SortingCoordinator._verify_lift_height(node, object(), minimum_center_z_m=.4)
+
+
+@pytest.mark.parametrize('failure', [None, 'missing', 'association'])
+def test_head_lift_override_keeps_wrist_approach_and_requires_depth_association(monkeypatch, failure):
+    from geometry_msgs.msg import Pose
+    from cleany_skill_executor.nearest_pregrasp_coordinator import LiftRedetectionError
+
+    calls = []
+    pose = Pose()
+    pose.position.z = .4
+    pose.orientation.w = 1.
+    observed = Pose()
+    observed.position.z = .5 if failure == 'association' else .4
+    inspected = SimpleNamespace(objects=SimpleNamespace(
+        header=SimpleNamespace(frame_id='base_link'),
+        objects=[SimpleNamespace(obb_pose=observed)]))
+
+    def verify(self, attempt, *, minimum_center_z_m):
+        calls.append('depth')
+        assert minimum_center_z_m == .36
+        if failure == 'missing':
+            raise LiftRedetectionError('No fresh depth target')
+        return inspected
+
+    monkeypatch.setattr(NearestPregraspCoordinator, '_verify_lift_height', verify)
+    node = object.__new__(SortingCoordinator)
+    node._wrist_enabled = True
+    node._lift_observation_source = 'head_rgbd'
+    node._geometry_association_lift = False
+    node._held_object = SimpleNamespace(offset_in_tcp=np.zeros(3), selected=SimpleNamespace(
+        selected_arm='right', selected_candidate=SimpleNamespace(header=SimpleNamespace(frame_id='base_link'))))
+    node._confirm_held_contact = lambda _: calls.append('contact')
+    node._switch_camera = lambda camera: calls.append(camera)
+    node._tcp_pose = lambda _: pose
+    node._record_pipeline_message = lambda *_: None
+    node.get_parameter = lambda name: SimpleNamespace(value=(
+        False if name == 'sorting_reobserve_after_lift' else .05))
+    node._verify_wrist_or_contact = lambda _: pytest.fail('Head mode cannot use wrist or motor-only evidence')
+    if failure:
+        with pytest.raises(RuntimeError):
+            node._verify_lift_height(object(), minimum_center_z_m=.36)
+        assert calls == ['contact', 'head', 'depth']
+    else:
+        assert node._verify_lift_height(object(), minimum_center_z_m=.36) is inspected
+        assert calls == ['contact', 'head', 'depth', 'contact']
+    assert node._wrist_enabled  # Approach/handoff selection remains unchanged.
+
+@pytest.mark.parametrize('offset', [0., -.02])
+@pytest.mark.parametrize('enabled,reachable', [(False, True), (True, True), (True, False)])
+def test_reobservation_pitch_preserves_carry_limits_and_rejects_failed_ik(enabled, reachable, offset):
+    node = object.__new__(SortingCoordinator)
+    node.get_parameter = lambda name: SimpleNamespace(value={
+        'sorting_reobserve_fixed_wrist_pitch': enabled,
+        'sorting_reobserve_wrist_pitch_rad': -.9,
+        'sorting_reobserve_wrist_roll_offset_rad': offset}[name])
+    node._carry_wrist_reference = {'right_wrist_roll_joint': 1.7}
+    node._carry_wrist_tolerance = .035
+    held = SimpleNamespace(selected=SimpleNamespace(selected_arm='right'), offset_in_tcp=np.array([.01, .02, .03]))
+    center = np.array([.5, -.1, .45])
+    node._feedback_state = lambda: 'fresh feedback'
+    node._held_center_joints = lambda *args: 'original IK'
+    calls = []
+    def solve(arm, low, high, held_offset, **kwargs):
+        calls.append(kwargs)
+        assert arm == 'right'
+        np.testing.assert_allclose(low, center-.001)
+        np.testing.assert_allclose(high, center+.001)
+        np.testing.assert_array_equal(held_offset, held.offset_in_tcp)
+        expected = {'right_wrist_pitch_joint': -.9}
+        if offset:
+            expected['right_wrist_roll_joint'] = 1.7+offset
+        assert kwargs['fixed_joints'] == expected
+        assert kwargs['joint_bounds']['right_wrist_roll_joint'] == pytest.approx((1.665, 1.735))
+        return SimpleNamespace(names=['right_wrist_pitch_joint'], positions=[-.9]) if reachable else None
+    node._transport_adapter = SimpleNamespace(set_current_state=lambda state: calls.append(state), solve_held_region_ik=solve)
+    result = node._reobservation_joints(held, center)
+    if not enabled:
+        assert result == 'original IK' and not calls
+    else:
+        assert calls[0] == 'fresh feedback'
+        assert (result is not None) == reachable
+        if result is not None:
+            assert list(result.position) == [-.9]
+
+@pytest.mark.parametrize('pitch', [float('nan'), float('inf')])
+def test_nonfinite_reobservation_pitch_is_rejected(pitch):
+    node = object.__new__(SortingCoordinator)
+    node.get_parameter = lambda name: SimpleNamespace(value=(True if name.endswith('fixed_wrist_pitch') else pitch))
+    with pytest.raises(ValueError, match='finite'):
+        node._reobservation_joints(None, np.zeros(3))
+
+@pytest.mark.parametrize('offset', [-.5, .5, float('nan')])
+def test_reobservation_roll_never_expands_carry_bound(offset):
+    node = object.__new__(SortingCoordinator)
+    node.get_parameter = lambda name: SimpleNamespace(value={
+        'sorting_reobserve_fixed_wrist_pitch': True,
+        'sorting_reobserve_wrist_pitch_rad': -.9,
+        'sorting_reobserve_wrist_roll_offset_rad': offset}[name])
+    node._carry_wrist_reference = {'right_wrist_roll_joint': 1.7}
+    node._carry_wrist_tolerance = .035
+    node._feedback_state = lambda: 'feedback'
+    node._transport_adapter = SimpleNamespace(set_current_state=lambda _: None)
+    held = SimpleNamespace(selected=SimpleNamespace(selected_arm='right'))
+    with pytest.raises(ValueError, match='carry bound'):
+        node._reobservation_joints(held, np.array([.5, -.1, .45]))

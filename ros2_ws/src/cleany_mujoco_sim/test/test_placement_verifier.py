@@ -73,6 +73,37 @@ def test_stale_pre_release_or_moving_samples_are_not_verified():
     assert not verifier(drift=0.001).success
 
 
+@pytest.mark.parametrize('period_ns', [50_000_000, 99_999_999, 100_000_000, 200_000_000])
+def test_settling_window_is_duration_based_at_different_observation_rates(period_ns):
+    node, _ = registration_fixture()
+    node._bodies['cup'] = 'cup_a'
+    bin_ = node._bins['trash_right']
+    position = (*bin_.center_xy, bin_.bottom_z+bin_.wall+.022)
+    now = 3_000_000_000
+    node.get_clock = lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=now))
+    node._samples['cup_a'] = [(now-(12-i)*period_ns, position, (.04, .04, .04))
+                             for i in range(13)]
+    request = VerifyPlacement.Request(label='cup', destination_id='trash_right', after_stamp_ns=1)
+    assert PlacementVerifier._verify(node, request, VerifyPlacement.Response()).success
+    # Fresh samples alone cannot replace the full post-release settling time.
+    request.after_stamp_ns = now-300_000_000
+    assert not PlacementVerifier._verify(node, request, VerifyPlacement.Response()).success
+
+
+def test_motion_earlier_in_high_rate_settling_window_is_not_discarded():
+    node, _ = registration_fixture()
+    node._bodies['cup'] = 'cup_a'
+    bin_ = node._bins['trash_right']
+    position = (*bin_.center_xy, bin_.bottom_z+bin_.wall+.022)
+    now = 3_000_000_000
+    node.get_clock = lambda: SimpleNamespace(now=lambda: SimpleNamespace(nanoseconds=now))
+    node._samples['cup_a'] = [(now-(8-i)*50_000_000,
+        (position[0]+(.01 if i == 0 else 0.), *position[1:]), (.04, .04, .04))
+        for i in range(9)]
+    request = VerifyPlacement.Request(label='cup', destination_id='trash_right', after_stamp_ns=1)
+    assert not PlacementVerifier._verify(node, request, VerifyPlacement.Response()).success
+
+
 def registration_fixture():
     from cleany_interfaces.msg import DetectedObject3D
     from cleany_interfaces.srv import RegisterPlacementTarget

@@ -9,6 +9,10 @@ string tracking_session_id
 # snapshot ID returned by phase 1 and one of its object IDs.
 string snapshot_id
 uint32 selected_object_id
+# Phase 2 only: reconstruct observed mask bounds without requiring a table plane.
+# Default false preserves tabletop/support-plane reconstruction. True does not
+# infer hidden surfaces and is intended for airborne-object verification.
+bool free_space false
 ---
 uint8 ERROR_NONE=0
 uint8 ERROR_RGBD_TIMEOUT=1

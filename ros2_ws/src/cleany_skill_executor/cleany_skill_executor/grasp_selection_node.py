@@ -135,6 +135,7 @@ class GraspSelectionNode(Node):
             'gripper_sweep_step_rad': .05,
             'selection_gripper_open_position_rad': 1.4,
             'visibility_camera_frame': 'head_camera_rgb_optical_frame',
+            'visibility_sensor_link': '',
             'visibility_camera_max_age_sec': 0.5,
             'visibility_padding_m': 0.003,
             'visibility_cone_sides': 16,
@@ -391,6 +392,23 @@ class GraspSelectionNode(Node):
         message.sensor_pose.header.frame_id = frame
         message.sensor_pose.pose.position.x, message.sensor_pose.pose.position.y, message.sensor_pose.pose.position.z = cone.camera
         message.sensor_pose.pose.orientation.w = 1.
+        sensor_link = str(self.get_parameter('visibility_sensor_link').value)
+        if sensor_link:
+            # MoveIt exempts the sensor's own collision body from its visibility
+            # cone. Preserve the optical origin in that rigid housing frame;
+            # expressing it in base_link misclassifies the housing as occlusion.
+            try:
+                mount = self._visibility_tf.lookup_transform(
+                    sensor_link, camera_frame, Time(), timeout=Duration(seconds=1.0))
+            except Exception as error:
+                raise InfrastructureError(f'visibility sensor housing TF unavailable: {error}') from error
+            if mount.header.stamp.sec or mount.header.stamp.nanosec:
+                raise InfrastructureError('visibility sensor housing must be rigidly attached to the optical frame')
+            message.sensor_pose.header.frame_id = sensor_link
+            message.sensor_pose.pose.position.x = mount.transform.translation.x
+            message.sensor_pose.pose.position.y = mount.transform.translation.y
+            message.sensor_pose.pose.position.z = mount.transform.translation.z
+            message.sensor_pose.pose.orientation = mount.transform.rotation
         message.weight = 1.
         self.get_logger().debug(f'Pregrasp visibility envelope radius={cone.radius_m:.4f}m camera={camera_frame}')
         return message
