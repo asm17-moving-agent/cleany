@@ -95,6 +95,7 @@ flowchart TB
 | Mission deadline, port, 정책 | [runtime.yaml](../ros2_ws/src/cleany_mission_manager/config/runtime.yaml) |
 | Supervisor Fault, Capability, deadline, 신뢰 publisher | [system_supervisor.yaml](../ros2_ws/src/cleany_system_supervisor/config/system_supervisor.yaml) |
 | 좌석 ID→map pose | [study_cafe_targets.yaml](../ros2_ws/src/cleany_mission_manager/config/study_cafe_targets.yaml) |
+| ToF, 근접 제동과 책상 접근 | [ToF 계약](../ros2_ws/src/cleany_tof/docs/interfaces.md) |
 | Navigation | [config](../ros2_ws/src/cleany_navigation/config) |
 | Grasp predictor | [anygrasp.yaml](../ros2_ws/src/cleany_grasping/config/anygrasp.yaml) |
 | 후보 선택 | [grasp_selection.yaml](../ros2_ws/src/cleany_skill_executor/config/grasp_selection.yaml) |

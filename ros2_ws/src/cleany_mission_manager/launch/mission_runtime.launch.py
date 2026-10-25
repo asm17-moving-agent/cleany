@@ -19,6 +19,8 @@ def generate_launch_description():
         DeclareLaunchArgument("runtime_config", default_value=str(share / "config/runtime.yaml")),
         DeclareLaunchArgument("manipulation_mock_fixture", default_value=""),
         DeclareLaunchArgument("targets_file", default_value=str(share / "config/study_cafe_targets.yaml")),
+        DeclareLaunchArgument("desk_approach_enabled", default_value="false"),
+        DeclareLaunchArgument("desk_distance_m", default_value="0.75"),
         DeclareLaunchArgument("navigation_backend", default_value="nav2", choices=["nav2", "mock"]),
         DeclareLaunchArgument("post_mission", default_value="return_home",
                               choices=["return_home", "wait_for_next"]),
@@ -35,6 +37,8 @@ def generate_launch_description():
                  "navigation_backend": arg("navigation_backend"), "post_mission": arg("post_mission"),
                  "manipulation_mock_fixture": arg("manipulation_mock_fixture"),
                  "supervision_mode": arg("supervision_mode"),
+                 "desk_approach_enabled": ParameterValue(arg("desk_approach_enabled"), value_type=bool),
+                 "desk_distance_m": ParameterValue(arg("desk_distance_m"), value_type=float),
              }]),
         Node(package="cleany_control_bridge", executable="control_bridge", output="screen",
              condition=IfCondition(arg("enable_bridge")), parameters=[{

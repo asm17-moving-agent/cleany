@@ -158,3 +158,20 @@ def test_unsupervised_runtime_is_visible_in_the_snapshot():
 def test_permission_timeout_must_be_bounded(timeout):
     with pytest.raises(ValueError):
         RuntimePolicy(permission_timeout=timeout)
+
+
+def test_revocation_during_tof_approach_cancels_before_desk_work():
+    from cleany_mission_manager.core.staged_navigation import StagedNavigator
+    runtime, lease, nav, clock = make(nav_polls=0)
+    approach = DeferredPort(lambda _: ModuleResult.success(), polls=100)
+    runtime.navigator = StagedNavigator(nav, approach)
+    runtime.offer(request())
+    for _ in range(5):
+        runtime.tick()
+        clock.now += .1
+    assert approach.commands == ['seat-12']
+    assert not runtime.desk_ports[0].commands
+    lease.status = (Authorization.DENIED, 'ToF protection unavailable')
+    drive(runtime, clock)
+    assert runtime.last_report.failure_code == 'PERMISSION_REVOKED'
+    assert approach.stopped() and not runtime.desk_ports[0].commands

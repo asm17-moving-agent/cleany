@@ -23,6 +23,8 @@ from cleany_interfaces.msg import (MissionResult, MissionStatus, DebugBTNode,
 from cleany_interfaces.srv import CancelMission, GetRuntimeSnapshot, OfferMission
 from cleany_mission_manager.adapters.config import load_targets, validate_manipulation_fixture
 from cleany_mission_manager.adapters.nav2 import Nav2Navigator
+from cleany_mission_manager.adapters.desk_approach import DeskApproachPort
+from cleany_mission_manager.core.staged_navigation import StagedNavigator
 from cleany_mission_manager.adapters.manipulation import ROSManipulationTransport
 from cleany_mission_manager.adapters.supervision import RosSupervision
 from cleany_mission_manager.core.manipulation import ManipulationPort, validate_backend
@@ -97,6 +99,7 @@ class MissionRuntimeNode(Node):
             "odom_topic": "odom", "input_timeout": 1.5,
             "stopped_linear_speed": 0.03, "stopped_angular_speed": 0.05,
             "navigation_settle_timeout": 3.0,
+            "desk_approach_enabled": False, "desk_distance_m": 0.75,
             "arrival_position_tolerance": 0.08, "arrival_yaw_tolerance": 0.15,
             "arrival_pose_timeout": 0.5,
             "lifecycle_timeout": 3.0,
@@ -158,6 +161,15 @@ class MissionRuntimeNode(Node):
         self.navigator = (Nav2Navigator(self, self.targets, self.journal,
                                         check_lifecycle=self.supervision is None) if backend == "nav2"
                           else DeferredPort(lambda _: ModuleResult.success(), polls=10))
+        if value("desk_approach_enabled"):
+            if backend != "nav2":
+                raise ValueError("desk approach requires Nav2 staging")
+            distance = float(value("desk_distance_m"))
+            if not isfinite(distance) or distance <= 0:
+                raise ValueError("desk_distance_m must be finite and positive")
+            navigation = self.navigator
+            self.navigator = StagedNavigator(navigation, DeskApproachPort(
+                self, self.journal, navigation._base_stopped, distance, self.supervision))
         self.runtime = MissionRuntime(
             navigator=self.navigator, perception=self.desk.perception, planner=self.desk.planner,
             executor=self.manipulation, clock=time.monotonic,
@@ -258,7 +270,7 @@ class MissionRuntimeNode(Node):
         return StopMission.Result(stopped=False, detail="stop not confirmed before the Runtime stop deadline")
 
     def _tick(self):
-        if isinstance(self.navigator, Nav2Navigator):
+        if isinstance(self.navigator, (Nav2Navigator, StagedNavigator)):
             self.navigator.maintain()
         self.runtime.tick()
         waiting, self.stop_waiters = self.stop_waiters, []
@@ -315,7 +327,7 @@ class MissionRuntimeNode(Node):
             data["manipulation_details"] = dict(self.manipulation.details)
         data["modules"]["navigation"].update({
             "topics": ["/" + self.get_parameter("odom_topic").value.lstrip("/"), "/tf", "/cmd_vel"],
-            "actions": ["navigate_to_pose"] if isinstance(self.navigator, Nav2Navigator) else [],
+            "actions": ["navigate_to_pose"] if isinstance(self.navigator, (Nav2Navigator, StagedNavigator)) else [],
         })
         data["modules"]["execution"].update({
             "topics": [], "actions": [self.get_parameter("manipulation_action").value]
@@ -325,7 +337,7 @@ class MissionRuntimeNode(Node):
         pose = self.targets.home if target == "home" else self.targets.seats.get(target)
         data["navigation"].update({"goal_pose": asdict(pose) if pose else None,
                                    "frame": self.targets.frame_id})
-        nav = self.navigator
+        nav = self.navigator.navigation if isinstance(self.navigator, StagedNavigator) else self.navigator
         if isinstance(nav, Nav2Navigator):
             now = time.monotonic()
             data["navigation"].update({"lifecycle": nav.active_nodes,

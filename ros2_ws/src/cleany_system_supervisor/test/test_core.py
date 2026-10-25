@@ -332,3 +332,18 @@ def test_operation_lock_is_independent_of_recovery_job_state(system):
     system.tick()
     assert system.state == O.FAULT_LOCKED
     assert job.state == R.RUNNING  # Fresh independent safety permits component recovery while locked.
+
+
+def test_tof_requirement_revokes_motion_without_turning_obstacles_into_faults():
+    from cleany_system_supervisor.config import with_tof
+    config = with_tof(profile())
+    system = SystemSupervisor(config, clock=Clock(), recovery_port=Recovery(), stop_port=Stop())
+    ready(system)
+    lease = permission(system)
+    assert lease.granted
+    # Obstacle limiting leaves health AVAILABLE. Only protection availability is reported.
+    advance(system, bad=('tof_proximity',))
+    advance(system, bad=('tof_proximity',))
+    assert system.capabilities.states['BASE_MOTION'] == A.UNAVAILABLE
+    assert not system.permissions.leases[lease.lease_id].granted
+    assert system.stop_port.requests

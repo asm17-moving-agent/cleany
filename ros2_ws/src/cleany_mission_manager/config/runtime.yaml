@@ -1,6 +1,8 @@
 mission_runtime:
   ros__parameters:
     navigation_backend: nav2
+    desk_approach_enabled: false
+    desk_distance_m: 0.75
     post_mission: return_home
     tick_hz: 10.0
     navigation_timeout: 180.0

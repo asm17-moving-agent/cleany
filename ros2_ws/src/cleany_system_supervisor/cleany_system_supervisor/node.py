@@ -21,7 +21,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, qos_profi
 from rclpy.task import Future
 from sensor_msgs.msg import Image, LaserScan
 
-from .config import load
+from .config import load, with_tof
 from .models import Availability, OperatingState, RecoveryState
 from .recovery import UnsupportedRecovery
 from .ros_transport import MissionStopPort, RecoveryPort
@@ -41,6 +41,8 @@ class SupervisorNode(Node):
         self.declare_parameter('config_file', get_package_share_directory('cleany_system_supervisor') +
                                '/config/system_supervisor.yaml')
         config = config or load(self.get_parameter('config_file').value)
+        if self.declare_parameter('tof_required', False).value:
+            config = with_tof(config)
         self.settings, self.lock = config['ros'], RLock()
         self.action_group = ReentrantCallbackGroup()
         state_file = config.get('persistence', {}).get('state_file', '')

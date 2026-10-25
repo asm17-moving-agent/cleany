@@ -16,7 +16,7 @@ import yaml
 import xacro
 
 from cleany_navigation.runtime_config import (adapt_behavior_tree, adapt_nav2_parameters, configure_safety,
-    load_parameters, merge_parameters, merge_localization_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice)
+    configure_tof_route, load_parameters, merge_parameters, merge_localization_parameters, set_sim_time, validate_robot_parameters, longitudinal_lattice)
 from cleany_navigation.bt_trace import describe_tree
 from cleany_navigation.urdf_geometry import forward_kinematics, apply_simulation_geometry
 
@@ -139,6 +139,9 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
     # Lifecycle children and costmaps read the same clock settings from YAML.
     for name in ('bt_navigator_navigate_to_pose_rclcpp_node', 'bt_navigator_navigate_through_poses_rclcpp_node'):
         parameters.setdefault(name, {'ros__parameters': {}})
+    tof_enabled = safety and flag('tof_enabled')
+    if tof_enabled:
+        parameters = configure_tof_route(parameters)
     set_sim_time(parameters, sim_time)
     parameters = adapt_nav2_parameters(parameters, os.environ.get('ROS_DISTRO', ''))
     if safety:
@@ -165,7 +168,13 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
                                 ('depth_coverage', coverage_enabled)]:
         if enabled:
             result.append(Node(package='cleany_navigation', executable=executable, name=executable,
-                output='screen', parameters=[str(merged), {'use_sim_time': sim_time}]))
+                output='screen', parameters=[str(merged), {'use_sim_time': sim_time}],
+                remappings=[('nav2/cmd_vel', 'motion/cmd_vel')] if tof_enabled else []))
+    if tof_enabled:
+        tof_file = argument('tof_params_file')
+        for executable in ('tof_driver', 'proximity_guard', 'desk_approach'):
+            result.append(Node(package='cleany_tof', executable=executable, name=executable,
+                output='screen', parameters=[tof_file, {'use_sim_time': sim_time}]))
     result.extend([
         Node(package='nav2_collision_monitor', executable='collision_monitor', name='collision_monitor',
              output='screen', parameters=[str(merged), {'use_sim_time': sim_time}]),
@@ -186,6 +195,9 @@ def navigation_launch_description(*, safety: bool = True) -> LaunchDescription:
         DeclareLaunchArgument('localization_params_file', default_value='',
                              description='Optional AMCL-only calibration overlay; does not change safety/motion.')]
     if safety:
+        arguments.append(DeclareLaunchArgument('tof_enabled', default_value='false'))
+        arguments.append(DeclareLaunchArgument('tof_params_file', default_value=str(
+            Path(get_package_share_directory('cleany_tof'))/'config/tof.yaml')))
         for name, filename in [('safety_params_file', 'nav2_safety.yaml'), ('axis_params_file', 'nav2_axis_motion.yaml'),
             ('pan_params_file', 'pan_motion_gate.yaml'), ('voxel_params_file', 'voxel_guard.yaml'),
             ('memory_params_file', 'obstacle_memory.yaml'), ('omni_params_file', 'nav2_omni_motion.yaml')]:

@@ -41,3 +41,8 @@ Graph 조회로 `trusted_publishers`의 topic publisher를 1초마다 검사한�
 | 서비스 호출 | `system/request_fault_reset` | `cleany_interfaces/srv/RequestFaultReset` | Service 기본값; reset 인자가 있을 때만 |
 
 인자 없이 실행하면 활성 Fault를 나열하고, `<FAULT_CODE> --operator <name>`은 reset을 요청한다. 하드웨어를 해제하지 않는다.
+
+`tof_required=true`이면 `tof_proximity`를 component source와 `BASE_MOTION` 필수 근거에
+추가하고 `/proximity_guard`의 health 발행을 허용한다. source가 오래되거나 가용하지 않으면
+기존 lease 회수와 Mission stop 경로를 사용한다. 일반 장애물 정지는 health 불가용으로
+보고하지 않는다. ToF가 실제로 없는 구성에는 이 옵션을 적용하지 않는다.

@@ -59,7 +59,7 @@ ROS 자동 인터페이스는 [별도 표](#ros가-자동-생성하는-인터페
 | `/cleany/internal/mujoco/left_wrist_camera/camera_info` | `sensor_msgs/msg/CameraInfo` | — | [`left_wrist_camera_contract_adapter`][ros-left-wrist-camera-contract-adapter], [`nearest_pregrasp_coordinator`][ros-nearest-pregrasp-coordinator], [`sorting_coordinator`][ros-sorting-coordinator] | — |
 | `/cleany/internal/mujoco/left_wrist_camera/image_raw` | `sensor_msgs/msg/Image` | — | [`left_wrist_camera_contract_adapter`][ros-left-wrist-camera-contract-adapter] | — |
 | `/clock` | `rosgraph_msgs/msg/Clock` | [`gazebo_feedback_sampler`][ros-gazebo-feedback-sampler], [`ros_gz_bridge`][ros-ros-gz-bridge] | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | Bridge 직접 발행은 override 구성; profile은 sampler 경유 |
-| `/cmd_vel` | `geometry_msgs/msg/Twist` | [`ground_truth_route_follower`][ros-ground-truth-route-follower], [`reactive_guard`][ros-reactive-guard], [`voxel_guard`][ros-voxel-guard] | [`cleany_base_driver`][ros-cleany-base-driver], [`cleany_dev_monitor`][ros-cleany-dev-monitor], [`gazebo_command_guard`][ros-gazebo-command-guard], [`mujoco_sim`][ros-mujoco-sim] | — |
+| `/cmd_vel` | `geometry_msgs/msg/Twist` | [`proximity_guard`][ros-tof], [`ground_truth_route_follower`][ros-ground-truth-route-follower], [`reactive_guard`][ros-reactive-guard], [`voxel_guard`][ros-voxel-guard] | [`cleany_base_driver`][ros-cleany-base-driver], [`cleany_dev_monitor`][ros-cleany-dev-monitor], [`gazebo_command_guard`][ros-gazebo-command-guard], [`mujoco_sim`][ros-mujoco-sim] | — |
 | `/collision_monitor_state` | `discovery 타입` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | 실행 graph에서 타입 확인 |
 | `/constraint_list` | `visualization_msgs/msg/MarkerArray` | — | [`cleany_dev_monitor`][ros-cleany-dev-monitor] | — |
 | `/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` | [`cleany_base_driver`][ros-cleany-base-driver], [`cleany_imu`][ros-cleany-imu], [`system_supervisor`][ros-system-supervisor] | [`system_supervisor`][ros-system-supervisor] | — |
@@ -370,3 +370,19 @@ ros2 action info /grasp/select_reachable
 ```
 
 실행 graph는 해당 실행의 증거다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않는다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신한다.
+
+## ToF 활성 구성
+
+[ToF reference][ros-tof]는 `tof_driver`, `proximity_guard`, `desk_approach` 실행 파일과
+조건부 Mission Action client를 관리한다. `tof_enabled=false`인 구성에는 생성하지 않는다.
+
+| Endpoint | 타입 | 발행 또는 제공 | 구독 또는 호출 |
+|---|---|---|---|
+| `/tof/frame` | `cleany_interfaces/msg/TofFrame` | tof_driver | proximity_guard, desk_approach |
+| `/motion/cmd_vel` | `geometry_msgs/msg/Twist` | desk_approach | 기존 navigation 안전 계층 |
+| `/proximity/input` | `geometry_msgs/msg/Twist` | 기존 최종 안전 계층 | proximity_guard |
+| `/proximity/status` | `std_msgs/msg/String` | proximity_guard | 관측 도구 |
+| `/system/component_health` | `cleany_interfaces/msg/ComponentHealth` | proximity_guard (추가 source) | system_supervisor |
+| `/desk/approach` | `cleany_interfaces/action/DeskApproach` | desk_approach | mission_runtime |
+
+[ros-tof]: ../ros2_ws/src/cleany_tof/docs/interfaces.md

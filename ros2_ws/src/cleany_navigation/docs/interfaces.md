@@ -130,3 +130,12 @@ Update 주기는 `update_period_s` 기본 0.05초다. 이름 외에도 body prof
 | 서비스 호출 | `lifecycle_manager_localization/manage_nodes` | `nav2_msgs/srv/ManageLifecycleNodes` | Service 기본값; `lifecycle_managers` |
 
 System Supervisor의 복구 요청을 받아 해당 lifecycle manager에 RESET, STARTUP 순서로 위임한다. 모든 Action을 통틀어 한 번에 하나의 goal만 수락하고, cancel은 단계 사이에서만 적용한다. 성공은 manager가 성공을 응답했다는 뜻이며 실제 복구는 Supervisor가 이후 fresh lifecycle과 localization health로 검증한다. `lifecycle_manager_safety`의 collision_monitor와 Nav2 BT recovery는 다루지 않는다. 실제 Nav2 stack에서 RESET 뒤 AMCL 초기 pose와 지도 상태는 검증하지 않았다.
+
+## ToF를 활성화한 명령 경로
+
+`navigation.launch.py tof_enabled:=true`는 `nav2/cmd_vel`과 기존 안전 계층 사이에
+`motion/cmd_vel`을 선택하는 `desk_approach`를 둔다. 기존 최종 안전 출력은
+`proximity/input`으로 옮기고 `proximity_guard`가 유일한 `cmd_vel` 발행자가 된다.
+`depth_coverage`의 고정 구독도 선택된 명령으로 remap한다. 별도 Nav2 노드나 recovery는
+기존과 같은 경로를 사용한다. ToF endpoint와 계약은
+[ToF reference](../../cleany_tof/docs/interfaces.md)를 따른다.

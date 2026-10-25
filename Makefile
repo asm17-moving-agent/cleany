@@ -590,3 +590,14 @@ test-logger-cli:
 .PHONY: test-ci-tools
 test-ci-tools:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/tools/ci -v
+
+.PHONY: test-tof-core build-tof test-tof
+
+test-tof-core:
+	$(BASE_EXEC) bash -c 'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_tof:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_navigation" python3 -m pytest -q "$(ROS2_WS)/src/cleany_tof/test/test_core.py" "$(ROS2_WS)/src/cleany_tof/test/test_transport.py" "$(ROS2_WS)/src/cleany_mission_manager/tests/test_staged_navigation.py" "$(ROS2_WS)/src/cleany_navigation/test/test_runtime_config.py"'
+
+build-tof:
+	$(BASE_EXEC) bash -c 'source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_tof cleany_mission_manager cleany_system_supervisor cleany_base_driver'
+
+test-tof: build-tof
+	$(BASE_EXEC) bash -c 'source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && PYTHONPATH="$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_navigation:$${PYTHONPATH:-}" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_interfaces cleany_tof cleany_mission_manager cleany_system_supervisor cleany_safety_adapter --return-code-on-test-failure && colcon test-result --test-result-base "$(BUILD_BASE)" --verbose'

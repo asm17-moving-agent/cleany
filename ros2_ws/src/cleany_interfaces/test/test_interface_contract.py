@@ -228,3 +228,12 @@ def test_tracking_and_individual_verification_contract():
     assert RegisterPlacementTarget.Request().execution_id == ''
     assert RegisterPlacementTarget.Response().verification_id == ''
     assert VerifyPlacement.Request().verification_id == ''
+
+
+def test_tof_and_approach_start_without_success_or_authority():
+    from cleany_interfaces.msg import TofFrame
+    from cleany_interfaces.action import DeskApproach
+    assert len(TofFrame().distance_m) == len(TofFrame().valid) == 64
+    assert not any(TofFrame().valid)
+    assert not DeskApproach.Result().success
+    assert DeskApproach.Goal().lease_id == ''

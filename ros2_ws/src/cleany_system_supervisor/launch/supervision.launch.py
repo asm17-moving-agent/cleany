@@ -20,6 +20,7 @@ def generate_launch_description():
     sim_time = {"use_sim_time": ParameterValue(arg("use_sim_time"), value_type=bool)}
     return LaunchDescription([
         DeclareLaunchArgument("use_sim_time", default_value="false"),
+        DeclareLaunchArgument("tof_required", default_value="false"),
         DeclareLaunchArgument("supervisor_config", default_value=config),
         # Empty: this robot exposes no such hardware evidence, so operation stays locked.
         DeclareLaunchArgument("estop_released_topic", default_value=""),
@@ -29,7 +30,8 @@ def generate_launch_description():
         DeclareLaunchArgument("arm_health", default_value="false", choices=["true", "false"]),
         Node(package="cleany_system_supervisor", executable="system_supervisor", output="screen",
              respawn=True, respawn_delay=2.0,
-             parameters=[{"config_file": arg("supervisor_config"), **sim_time}]),
+             parameters=[{"config_file": arg("supervisor_config"),
+                          "tof_required": ParameterValue(arg("tof_required"), value_type=bool), **sim_time}]),
         Node(package="cleany_safety_adapter", executable="safety_adapter", output="screen",
              parameters=[{"estop_released_topic": arg("estop_released_topic"),
                           "protection_ready_topic": arg("protection_ready_topic"),

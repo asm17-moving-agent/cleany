@@ -26,6 +26,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/StopMission.action"
   "action/RecoverComponent.action"
   "action/RequestRecovery.action"
+  "msg/TofFrame.msg"
+  "action/DeskApproach.action"
   "msg/DetectedObject2D.msg"
   "msg/DetectedObject2DArray.msg"
   "msg/DetectedObject3D.msg"

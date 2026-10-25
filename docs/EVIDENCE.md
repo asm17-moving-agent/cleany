@@ -238,3 +238,34 @@ E-stop 회로, MCU 통신 차단 시 모터 정지, 실제 Nav2 lifecycle 복구
 `d5852af`의 [환경 확인 실패](https://github.com/asm17-moving-agent/cleany/actions/runs/39428868069)는 런타임 `ROS_HOME`이 이미지의 rosdep metadata 위치와 달라 발생했습니다. `45df20f`는 의존성 확인 명령에 이미지 생성 시의 `ROS_HOME`을 지정하며, 재설치 없이 실제 manifest의 의존성 충족 여부를 검사합니다.
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
+
+## 2026-10-26 ToF와 System Supervisor 통합
+
+기반은 `main`의 `eb2c56a1`과 `feat/system-supervisor`의 `e0d5001e`를 합친
+`cbe09bed8cc139e86d85f91201458f4a61693df9`다. 검증 당시 ToF 구현은 이 commit 위의 미커밋 변경이었다.
+원본과 설정 SHA256은 `CLEANY_DATA_ROOT/runs/tof-integration/source-manifest.sha256`에
+보존한다. KB는 Supervisor 브랜치의 gitlink를 사용하며 내부 내용을 수정하지 않았다.
+
+Ubuntu 22.04 arm64 Distrobox, ROS 2 Humble, Python 3.10에서 `make build-tof`,
+`make test-tof-core`, `make test-tof`, `make build-navigation`, `make test-navigation`을
+실행했다. 마지막 ToF 패키지 재검사를 반영한 colcon 결과는 207 tests, 오류/실패 0,
+선택 시나리오 skip 15다. ToF 자체 34 tests에는 합성 ROS와 pseudo-terminal이 포함된다.
+Navigation colcon 결과는 194 tests, 오류/실패/skip 0이다. 중복된 core 검사는 합산하지 않는다.
+
+선택 Mission ROS 검사는 별도로 13 passed, WebSocket 의존성 누락 skip 1이었다.
+이후 WebSocket 검사도 단독 통과했다. 최초 추가 실행은 Ubuntu의 websockets 9.1에서
+handshake reset으로 실패했으며 Python 3.10 호환 버전인 10.4를 별도 `testdeps` 경로에
+설치해 통과했다. 제품 Bridge 코드는 수정하지 않았다. 재현 시 이 경로를 PYTHONPATH에
+앞세운다. Gazebo 물리 시나리오는 실행하지 않았다.
+
+원본 결과는 `CLEANY_DATA_ROOT/builds/feat-tof-integration/build/*/pytest.xml`,
+`build-navigation/cleany_navigation/test_results/`, `log/`와 `log-navigation/`에 있다.
+별도 검사 요약은 `CLEANY_DATA_ROOT/runs/tof-integration/validation.json`에 있다.
+
+공급 펌웨어의 `evidence/range-15hz-2min.jsonl`에서 초기 10Hz 28 frames를 제외한
+15Hz 1,817 frames를 오프라인 파싱했다. 평균 유효 zone 33.7347, 기본 보호 coverage를
+만족한 frame은 0이었다. 마지막 통계 수신 중 추가 frame도 포함하므로 공급 보고서의
+120초 집계 1,816과 범위가 다르다. 원본 경로와 결과는 같은 runs 폴더의
+`firmware-replay.json`에 남겼다. 이는 신규 장치 통신이나 실물 정지 검증이 아니다.
+실물 commissioning과 한계는 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)과
+[ToF 계약](../ros2_ws/src/cleany_tof/docs/interfaces.md)을 따른다.

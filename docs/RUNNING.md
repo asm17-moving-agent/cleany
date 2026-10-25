@@ -362,3 +362,28 @@ Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 
 ## 실물 IMU
 
 MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
+
+## ToF 근접 보호와 책상 접근
+
+[ToF 계약](../ros2_ws/src/cleany_tof/docs/interfaces.md)의 명령 경로와 보정 항목을 먼저
+확인한다. 기본 프로파일은 주행을 차단한다. 이 절차는 물리 시험 통과를 의미하지 않는다.
+
+1. `make build-tof`를 실행한다. 공통 navigation은 Ubuntu/Humble 환경에서
+   `make build-navigation`으로 빌드한다. 호스트에서는 `distrobox enter --name ros2-humble
+   --no-tty --clean-path -- make build-navigation`을 사용할 수 있다.
+2. navigation overlay와 `make print-install-base`의 overlay를 순서대로 source한다.
+   기존 로봇 센서, localization, base와 독립 safety evidence를 구성한다.
+3. 공통 `cleany_navigation navigation.launch.py`에 기존 map/robot profile 인자와 함께
+   `tof_enabled:=true tof_params_file:=/absolute/path/to/commissioned-tof.yaml`을 전달한다.
+4. `cleany_system_supervisor supervision.launch.py`는 `tof_required:=true`로 실행한다.
+   실제 estop/protection evidence 인자는 기존 절차를 따른다. ToF 가용성만으로 하드웨어
+   estop 해제나 arm 가용성을 만들어내지 않는다.
+5. Mission launch에 `desk_approach_enabled:=true desk_distance_m:=0.75`를 전달한다.
+   목표는 base 원점 기준 거리이며 현장 좌석과 guard envelope에 맞게 조정한다.
+   Mission, 두 ToF 제어 노드와 기존 안전 경로가 동일한 canonical odom을 보도록 remap한다.
+6. 좌석 pose는 책상 전면을 바라보는 staging pose로 설정한다. Mission이 Nav2 도착과
+   정지를 확인한 뒤 접근을 요청하며, home 복귀에는 접근을 수행하지 않는다.
+
+`tof_driver`의 serial port는 기본적으로 공급 펌웨어 보드의 by-id 경로다. 다른 보드는
+해당 노드의 `port`를 별도 설정한다. 재연결 시 64 zone, 15Hz로 재설정한다. 별도
+teleop도 `nav2/cmd_vel` 입력을 사용하며 ToF 활성 상태에서 `cmd_vel`에 직접 발행하지 않는다.

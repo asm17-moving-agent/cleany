@@ -35,3 +35,13 @@
 | 서비스 호출 | `mock/manipulation/get_execution` | `cleany_interfaces/srv/GetManipulationExecution` | Service 기본값; `manipulation_query` |
 
 Nav2 adapter의 endpoint와 TF 구독은 `navigation_backend=nav2`에서 생성한다. 조작 endpoint는 `manipulation_backend=action_mock`일 때만 생성하며 기본 `mock`는 process 내부 실행이다. 기본 lifecycle 목록은 `map_server`, `amcl`, `planner_server`, `controller_server`, `bt_navigator`, `collision_monitor`다. `supervision_mode` 기본값은 `required`이며 `supervision_capabilities`(기본 `[NAVIGATION]`) 하나의 lease를 미션마다 요청한다. `disabled`는 mock과 simulation 단독 실행용이고 Runtime snapshot의 `supervision`에 기록된다. [Mission 계약](../../cleany_interfaces/docs/mission.md)을 따른다.
+
+## 책상 정밀 접근을 사용하는 navigation port
+
+`desk_approach_enabled=true`이면 좌석 이동의 Nav2 성공, 요청 pose 검증과 정지 확인 뒤
+`desk/approach` (`cleany_interfaces/action/DeskApproach`, Action 기본 QoS)를 호출한다.
+목표 `desk_distance_m`는 base 원점에서 평면까지의 거리다. 기존 Supervisor lease의
+식별자를 전달하며 접근 중 lease 상실과 `mission/stop`도 같은 navigation port의 취소로
+연결한다. home에는 호출하지 않는다. 후속 책상 작업은 접근 성공과 신선한 정지 확인
+이후에만 시작한다. journal의 `desk_goal_uuid`는 재시작 시 정확한 goal의 취소에 사용하며,
+취소 수락만으로 정지가 확인된 것으로 처리하지 않는다.

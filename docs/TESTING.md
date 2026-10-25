@@ -181,3 +181,15 @@ CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. �
 내부 파일 링크, anchor, 코드, 설정, launch 경로, Make target의 존재와 native dry-run을 확인합니다. 문서 검증만을 위해 실제 로봇을 움직이거나 새 calibration을 수행하지 않습니다.
 
 KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검사 통과와 내용 승인은 별도로 기록합니다.
+
+## ToF와 Supervisor 통합
+
+`make test-tof-core`는 거리 투영, 평면 fit, 제동 envelope, timeout과 navigation 경로의
+순수 검사를 실행한다. `make test-tof`는 interface, ToF, Mission, safety adapter와
+Supervisor를 빌드하고 패키지 검사를 실행한다. ToF ROS 검사는 독립 DDS domain의 합성
+frame/odom/lease와 pseudo-terminal을 사용하며 실제 센서나 모터를 열지 않는다.
+
+기존 navigation C++/Python 회귀 검사는 Humble 환경에서 `make test-navigation`으로
+실행한다. Mission의 선택 ROS 시나리오는 `CLEANY_RUN_ROS_TESTS=1`과 독립
+`ROS_DOMAIN_ID`에서 별도 실행한다. colcon의 선택 시나리오 skip은 성공으로 해석하지 않는다.
+실물 검증 항목은 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)을 따른다.

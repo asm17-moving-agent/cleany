@@ -159,3 +159,24 @@ make handeye-validate-mujoco \
 부분 쓰기는 journal로 복구하며 이미 저장한 표본은 재수집으로 덮어쓰지 않습니다. 재현에는 manifest가 기록한 동일 버전, profile, camera 계약이 필요합니다. Container Git이 host worktree 형식을 지원하지 않으면 provenance 수집 문제를 먼저 해결합니다.
 
 과거 실행 결과는 [근거 색인](EVIDENCE.md), 수학, 저장 계약은 [reference](../ros2_ws/src/cleany_handeye_calibration/docs/frames-and-data.md)에서 확인합니다.
+
+## ToF 근접 보호 commissioning
+
+[ToF 설정](../ros2_ws/src/cleany_tof/config/tof.yaml)은 실측하지 않은 후보값이다.
+모터를 분리하거나 바퀴를 띄운 상태에서 다음 항목을 확인한 뒤 별도 로봇 프로파일을 만든다.
+
+- 각 native zone에 작은 표적을 움직여 flip, 장착 roll/pitch/yaw, 위치와 유효 FOV를 측정한다.
+- 알려진 거리와 기울기의 넓은 평판으로 radial range, 거리 오차, sigma, fit residual,
+  접근 거리와 yaw 오차를 확인한다. 선택 행이 책상 앞면을 실제로 관측해야 한다.
+- 빈 공간, 검정 표면, 유리, 금속, 햇빛, 책상 다리와 얇은 물체에서 zone 유효율과 사각을
+  기록한다. 보호 필수 zone과 `min_valid`는 장애물을 놓치지 않는 실측 근거로 정한다.
+- USB 부하, read 지연, 끊김과 재연결에서 acquisition 추정, 실제 정지 지연과 watchdog을
+  측정한다. first-frame 시간 offset의 불확실성도 reaction budget에 포함한다.
+- 감독자와 독립 e-stop이 있는 통제 공간에서 payload, 바닥, 배터리 조건별 전후진,
+  횡이동, 회전의 최악 제동 거리와 감속도 하한을 측정한다. `deceleration`,
+  `reaction_s`, footprint와 margin을 이에 맞추며 software 정지와 실제 정지를 구분한다.
+- 저속 접근, 비스듬한 평판, 전면 가림, Nav2 동시 goal, cancel, Mission/Supervisor/가드
+  재시작, lease 회수와 완료 후 정지 유지가 실제 구동에서 성립하는지 확인한다.
+
+위 근거와 설정 hash를 보존한 뒤에만 `calibrated=true`를 적용한다. 평면의 좌우 중심은
+ToF만으로 관측되지 않으므로 staging 위치와 팔 도달성은 별도 검증한다.

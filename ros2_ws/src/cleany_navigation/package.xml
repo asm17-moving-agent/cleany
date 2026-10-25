@@ -19,6 +19,7 @@
   <exec_depend>cleany_interfaces</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
 
+  <exec_depend>cleany_tof</exec_depend>
   <exec_depend>cleany_description</exec_depend>
   <depend>dwb_msgs</depend>
   <depend>dwb_core</depend>

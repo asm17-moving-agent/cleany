@@ -73,3 +73,16 @@ def validate(config: dict) -> dict:
 def load(path: str | Path) -> dict:
     with open(path, encoding='utf-8') as stream:
         return validate(yaml.safe_load(stream))
+
+
+def with_tof(config: dict) -> dict:
+    """Require the independently enforced ToF guard for base availability."""
+    from copy import deepcopy
+    result = deepcopy(config)
+    result['sources']['tof_proximity'] = dict(
+        stale_s=.3, raise_s=.1, clear_s=.5, fault_code='TOF_PROTECTION_UNAVAILABLE',
+        severity='ERROR', latched=False, locks_operation=False, recovery='')
+    result['capabilities']['BASE_MOTION']['sources'].append('tof_proximity')
+    result['ros']['component_sources'].append('tof_proximity')
+    result['ros']['trusted_publishers']['system/component_health'].append('/proximity_guard')
+    return validate(result)
