@@ -7,6 +7,11 @@ mission_runtime:
     cleaning_timeout: 180.0
     operation_timeout: 30.0
     cancel_timeout: 5.0
+    # The System Supervisor owns system faults, capabilities and Nav2 lifecycle
+    # availability; disabled is for standalone mock and simulation runs only.
+    supervision_mode: required
+    supervision_capabilities: [NAVIGATION]
+    permission_timeout: 3.0
     max_actions: 30
     max_skill_retries: 2
     mock_operation_polls: 2

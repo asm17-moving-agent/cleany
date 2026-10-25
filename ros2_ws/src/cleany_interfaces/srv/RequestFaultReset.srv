@@ -1,0 +1,7 @@
+string epoch
+string fault_code
+# Required, recorded in the audit event. Not authenticated by the Supervisor.
+string operator_id
+---
+bool reset
+string reason

@@ -90,6 +90,8 @@ def _start(context):
         "bridge_journal_path", "enable_bridge",
     )}
     runtime_arguments["manipulation_mock_fixture"] = fixture_path
+    supervised = arg("supervision") == "true"
+    runtime_arguments["supervision_mode"] = "required" if supervised else "disabled"
     nodes = [
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
             sim / "launch/gazebo_study_cafe_fortress.launch.py"
@@ -101,6 +103,14 @@ def _start(context):
     ]
     if mock_node is not None:
         nodes.insert(0, mock_node)
+    if supervised:
+        # Simulation exposes no E-stop or protection hardware: without explicit evidence
+        # topics the Supervisor stays FAULT_LOCKED and the Runtime admits no mission.
+        nodes.append(IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
+            Path(get_package_share_directory("cleany_system_supervisor")) / "launch/supervision.launch.py")),
+            launch_arguments={"use_sim_time": "true", "odom_topic": "odom",
+                              "estop_released_topic": arg("estop_released_topic"),
+                              "protection_ready_topic": arg("protection_ready_topic")}.items()))
     if backend == "action_mock":
         nodes.extend([
             Node(package="nav2_collision_monitor", executable="collision_monitor", name="collision_monitor",
@@ -147,6 +157,10 @@ def generate_launch_description():
         DeclareLaunchArgument("record_on_start", default_value="true", choices=["true", "false"]),
         DeclareLaunchArgument("logger_config", default_value=str(logger / "config/logger.yaml")),
         DeclareLaunchArgument("enable_telemetry", default_value="true", choices=["true", "false"]),
+        DeclareLaunchArgument("supervision", default_value="false", choices=["true", "false"],
+                              description="Run the System Supervisor stack; false runs the Runtime unsupervised."),
+        DeclareLaunchArgument("estop_released_topic", default_value=""),
+        DeclareLaunchArgument("protection_ready_topic", default_value=""),
         DeclareLaunchArgument("pose_url", default_value="", description="Empty uses gateway host's pose endpoint."),
         # Isolate Gazebo transport from other simulations on the same host.
         DeclareLaunchArgument("sim_partition", default_value="cleany-mission"),

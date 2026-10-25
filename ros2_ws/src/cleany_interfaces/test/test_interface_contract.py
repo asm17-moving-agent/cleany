@@ -11,6 +11,29 @@ from cleany_interfaces.msg import (
 from cleany_interfaces.srv import CancelManipulation, GetManipulationExecution, ObserveWristTarget, PlanGrasp, VerifyPlacement
 
 
+def test_supervision_wire_contracts_default_to_no_authority():
+    from cleany_interfaces.msg import ComponentHealth, SafetyStatus, SystemState
+    from cleany_interfaces.srv import CheckPermission, RequestFaultReset
+    from cleany_interfaces.action import StopMission, RecoverComponent, RequestRecovery
+    assert ComponentHealth().status == ComponentHealth.UNKNOWN
+    assert not SafetyStatus().protection_ready
+    assert not SafetyStatus().physical_release_confirmed
+    assert SystemState().permissions == []
+    assert not CheckPermission.Response().granted
+    assert CheckPermission.Response().valid_for_s == 0.
+    assert not RequestFaultReset.Response().reset
+    assert not StopMission.Result().stopped
+    assert not RecoverComponent.Result().success
+    assert not RequestRecovery.Result().restored
+    assert RequestFaultReset.Request().operator_id == ''
+
+
+def test_supervisor_event_is_structured():
+    from cleany_interfaces.msg import SystemEvent
+    event = SystemEvent()
+    assert event.sequence == 0 and event.kind == event.code == event.detail == ''
+
+
 def test_wrist_observation_distinguishes_missing_target_from_service_failure():
     response = ObserveWristTarget.Response()
     assert not response.success and response.status == response.ERROR

@@ -16,12 +16,16 @@ flowchart TB
         Safety["직렬 안전 경로"]
         Base["활성 base backend"]
         Manip["Manipulation transport"]
+        Sup["System Supervisor<br/>가용성 / 허가 / 복구 조정"]
+        Evidence["Safety adapter<br/>독립 안전 증거"]
     end
     Peer["Python Mock 조작 서버 / 별도 실행 서버"]
     Gateway <-->|"요청 / 상태 / 결과"| Bridge
     Bridge <--> Mission
     Mission --> Nav --> Safety --> Base
     Mission --> Manip --> Peer
+    Sup <-->|"lease / 정지 요청과 확인"| Mission
+    Evidence --> Sup
     subgraph Grasp["별도 Scene / Grasp 경로"]
         RGBD["RGB-D snapshot"] --> Scene["Scene / OBB"]
         Scene --> Candidates["Grasp 후보 생성"]
@@ -29,7 +33,7 @@ flowchart TB
     end
 ```
 
-실선은 현재 연결 경로입니다. Mission은 lifecycle과 최종 결과를, Backend는 대기열과 배차를 관리합니다.
+실선은 현재 연결 경로입니다. Mission은 lifecycle과 최종 결과를, Backend는 대기열과 배차를 관리합니다. 감독 모드(`supervision_mode=required`)에서는 System Supervisor가 시스템 Fault와 Capability를 판단하고, Mission은 Supervisor lease가 있을 때만 움직이며 정지 완료는 Mission이 확인합니다. Safety adapter는 증거를 보고할 뿐 독립 안전 계층이 아닙니다.
 
 `grasp/select_reachable`은 plan-only 후보 선택입니다. Trajectory 실행과 수거 완료는 별도 단계이며, 외부 조작 실행 서버와 MuJoCo 접근 데모도 서로 다른 실행 경로입니다.
 
@@ -63,6 +67,8 @@ flowchart TB
 | 경계 | 문서와 원본 |
 |---|---|
 | Mission 수락, 중복, 취소, 복구, Gateway | [Mission](../ros2_ws/src/cleany_interfaces/docs/mission.md) |
+| 시스템 가용성, 실행 허가, 복구 조정, 운영자 reset | [System Supervisor](../ros2_ws/src/cleany_system_supervisor/docs/supervision.md) |
+| 독립 안전 증거 보고 | [Safety adapter](../ros2_ws/src/cleany_safety_adapter/docs/interfaces.md) |
 | Gazebo와 Mock 조작 profile, fixture | [Mock 연결](../ros2_ws/src/cleany_mission_manager/docs/manipulation_mock_integration.md) |
 | Scene, Grasp snapshot/frame/후보 | [Scene와 Grasp](../ros2_ws/src/cleany_interfaces/docs/scene-and-grasp.md) |
 | Manipulation ID, timeout, 중복, 결과 | [Manipulation](../ros2_ws/src/cleany_interfaces/docs/manipulation.md) |
@@ -87,6 +93,7 @@ flowchart TB
 | 영역 | 설정 원본 |
 |---|---|
 | Mission deadline, port, 정책 | [runtime.yaml](../ros2_ws/src/cleany_mission_manager/config/runtime.yaml) |
+| Supervisor Fault, Capability, deadline, 신뢰 publisher | [system_supervisor.yaml](../ros2_ws/src/cleany_system_supervisor/config/system_supervisor.yaml) |
 | 좌석 ID→map pose | [study_cafe_targets.yaml](../ros2_ws/src/cleany_mission_manager/config/study_cafe_targets.yaml) |
 | Navigation | [config](../ros2_ws/src/cleany_navigation/config) |
 | Grasp predictor | [anygrasp.yaml](../ros2_ws/src/cleany_grasping/config/anygrasp.yaml) |

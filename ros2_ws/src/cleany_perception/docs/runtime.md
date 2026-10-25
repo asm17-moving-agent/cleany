@@ -170,6 +170,20 @@ ros2 topic echo /perception/debug_image_latched --once --field encoding \
   --qos-reliability reliable --qos-durability transient_local
 ```
 
+### System Supervisor readiness
+
+`perception_inspector`는 `health_topic`(기본 `system/component_health`, 빈 값이면 끔)에
+`health_period_seconds`(0.2초)마다 `source=perception` ComponentHealth를 발행한다.
+
+| 상태 | 조건 |
+|---|---|
+| UNKNOWN | 지연 로딩 모델이 아직 로드되지 않음(`preload_models:=true`일 때만 readiness 보고), 또는 RGB-D 동기 snapshot 미수신 |
+| UNAVAILABLE | 최신 동기 RGB-D snapshot이 `health_maximum_rgbd_age_seconds`(1.0초)보다 오래됨 |
+| AVAILABLE | 모델 준비 + fresh 동기 RGB-D |
+
+camera frame 수신만으로 준비를 선언하지 않는다. Gemini 등 원격 classifier 접근 가능성은
+여기서 확인하지 않으며 요청별 `ERROR_DETECTOR_API`로 보고된다.
+
 ## 실패 처리
 
 1차 결과의 `snapshot_id`는 후속 선택 단계가 같은 RGB-D와 촬영 시점 TF를 사용하기 위한

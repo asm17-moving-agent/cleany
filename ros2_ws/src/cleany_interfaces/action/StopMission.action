@@ -1,0 +1,10 @@
+string epoch
+string mission_id
+string lease_id
+string reason
+---
+# Goal acceptance and cancel acknowledgement never constitute stop proof.
+bool stopped
+string detail
+---
+string state

@@ -26,12 +26,15 @@ def generate_launch_description():
         DeclareLaunchArgument("bridge_journal_path", default_value="~/.local/state/cleany/control-bridge.db"),
         DeclareLaunchArgument("gateway_url", default_value="ws://127.0.0.1:8080/api/robots/cleany-01/gateway/ws"),
         DeclareLaunchArgument("enable_bridge", default_value="true"),
+        # required: needs the System Supervisor (cleany_system_supervisor supervision.launch.py).
+        DeclareLaunchArgument("supervision_mode", default_value="required", choices=["required", "disabled"]),
         Node(package="cleany_mission_manager", executable="mission_runtime", output="screen",
              parameters=[arg("runtime_config"), {
                  "use_sim_time": ParameterValue(arg("use_sim_time"), value_type=bool),
                  "targets_file": arg("targets_file"), "journal_path": arg("journal_path"),
                  "navigation_backend": arg("navigation_backend"), "post_mission": arg("post_mission"),
                  "manipulation_mock_fixture": arg("manipulation_mock_fixture"),
+                 "supervision_mode": arg("supervision_mode"),
              }]),
         Node(package="cleany_control_bridge", executable="control_bridge", output="screen",
              condition=IfCondition(arg("enable_bridge")), parameters=[{

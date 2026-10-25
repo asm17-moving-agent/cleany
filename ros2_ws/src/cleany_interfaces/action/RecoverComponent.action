@@ -1,0 +1,10 @@
+# Implemented by the component owner, never by a generic restart shell command.
+# Owner must reject conflicting recovery, including across Supervisor restarts.
+string job_id
+string fault_code
+string source
+---
+bool success
+string detail
+---
+string detail

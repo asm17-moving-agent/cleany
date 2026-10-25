@@ -10,6 +10,7 @@
   <depend>ament_index_python</depend>
   <depend>cleany_interfaces</depend>
   <depend>control_msgs</depend>
+  <depend>controller_manager_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>rcl_interfaces</depend>
   <depend>launch</depend>
