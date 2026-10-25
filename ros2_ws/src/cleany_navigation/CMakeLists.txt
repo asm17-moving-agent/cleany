@@ -39,7 +39,7 @@ target_link_libraries(axis_generator nlohmann_json::nlohmann_json)
 target_compile_features(axis_generator PUBLIC cxx_std_17)
 target_include_directories(axis_generator PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(axis_generator geometry_msgs dwb_msgs dwb_core dwb_plugins dwb_critics nav2_core nav2_costmap_2d nav2_util nav_2d_msgs nav_2d_utils pluginlib rclcpp)
-add_library(straight_first_planner SHARED src/straight_first_planner.cpp src/fixed_heading_search.cpp src/body_heading_search.cpp)
+add_library(straight_first_planner SHARED src/straight_first_planner.cpp src/fixed_heading_search.cpp src/body_heading_search.cpp src/smac_lattice_planner.cpp)
 target_compile_features(straight_first_planner PUBLIC cxx_std_17)
 target_link_libraries(straight_first_planner axis_generator nlohmann_json::nlohmann_json)
 target_include_directories(straight_first_planner PUBLIC include)
@@ -73,6 +73,13 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
+
+# The tuned MPPI implementation is part of this ROS package.
+add_subdirectory(mppi)
+pluginlib_export_plugin_description_file(nav2_core mppi/controller_plugins.xml)
+pluginlib_export_plugin_description_file(cleany_navigation mppi/critics.xml)
+ament_export_libraries(cleany_mppi_controller cleany_mppi_critics)
+ament_export_dependencies(xtensor xsimd rclcpp_lifecycle nav2_common visualization_msgs tf2 tf2_eigen tf2_geometry_msgs tf2_ros)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -119,6 +126,14 @@ if(BUILD_TESTING)
   target_compile_definitions(test_straight_first_planner PRIVATE
     CLEANY_TEST_LATTICE="${nav2_smac_planner_DIR}/../sample_primitives/5cm_resolution/0.5m_turning_radius/omni/output.json")
   ament_target_dependencies(test_straight_first_planner nav2_core nav2_costmap_2d nav_msgs rclcpp)
+  add_navigation_gtest(test_smac_terminal test/test_smac_terminal.cpp)
+  target_link_libraries(test_smac_terminal straight_first_planner)
+  target_compile_definitions(test_smac_terminal PRIVATE
+    CLEANY_TEST_LATTICE="${CMAKE_CURRENT_SOURCE_DIR}/config/lattice/omni-r10cm.json")
+  if(nav2_smac_planner_VERSION VERSION_EQUAL "1.1.20")
+    target_compile_definitions(test_smac_terminal PRIVATE CLEANY_TEST_LEGACY_SMAC=1)
+  endif()
+  ament_target_dependencies(test_smac_terminal nav2_core nav2_costmap_2d nav_msgs rclcpp)
   find_library(NAVIGATION_RECOVERY_LIBRARY nav2_recovery_node_bt_node REQUIRED)
   add_navigation_gtest(test_initial_plan_retry test/test_initial_plan_retry.cpp)
   target_compile_definitions(test_initial_plan_retry PRIVATE

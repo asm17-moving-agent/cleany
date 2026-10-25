@@ -70,7 +70,7 @@ controller_server:
       xy_goal_tolerance: 0.12
       yaw_goal_tolerance: 0.15
     FollowPath:
-      plugin: nav2_mppi_controller::MPPIController
+      plugin: cleany_navigation::MPPIController
       time_steps: 56
       model_dt: 0.05
       batch_size: 1000
@@ -80,7 +80,7 @@ controller_server:
       wz_std: 0.20
       vx_max: 0.25
       vx_min: -0.15
-      vy_max: 0.0
+      vy_max: 0.15
       wz_max: 0.50
       ax_max: 0.50
       ax_min: -0.50
@@ -91,7 +91,7 @@ controller_server:
       transform_tolerance: 0.3
       temperature: 0.3
       gamma: 0.015
-      motion_model: DiffDrive
+      motion_model: Omni
       visualize: false
       regenerate_noises: true
       critics:
@@ -239,10 +239,17 @@ planner_server:
     costmap_update_timeout: 1.0
     planner_plugins: [GridBased]
     GridBased:
-      plugin: nav2_navfn_planner::NavfnPlanner
-      tolerance: 0.25
-      use_astar: true
+      plugin: nav2_smac_planner::SmacPlannerLattice
       allow_unknown: false
+      tolerance: 0.05
+      smooth_path: false
+      allow_reverse_expansion: true
+      max_planning_time: 80.0
+      cache_obstacle_heuristic: false
+      # Launch resolves the bundled official Omni 5cm-grid / 10cm-radius file.
+      lattice_filepath: ""
+      analytic_expansion_max_length: 0.0
+      cost_penalty: 2.0
 
 behavior_server:
   ros__parameters:

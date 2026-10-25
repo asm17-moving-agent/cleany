@@ -6,6 +6,7 @@
   <description>Cleany mapping, localization, and navigation integration.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer>
   <license>Apache-2.0</license>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
@@ -27,6 +28,7 @@
   <depend>nav_2d_msgs</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
   <depend>rclcpp_action</depend>
   <depend>nav2_behavior_tree</depend>
   <depend>nav2_msgs</depend>
@@ -37,10 +39,17 @@
   <depend>nav_msgs</depend>
   <depend>nav2_core</depend>
   <depend>nav2_costmap_2d</depend>
+  <depend>nav2_common</depend>
+  <depend>visualization_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_eigen</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>xtensor</depend>
+  <depend>xsimd</depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>std_srvs</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
+  <depend>tf2_ros</depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>xacro</exec_depend>
@@ -51,8 +60,8 @@
   <exec_depend>nav2_collision_monitor</exec_depend>
   <exec_depend>nav2_lifecycle_manager</exec_depend>
   <exec_depend>nav2_map_server</exec_depend>
-  <exec_depend>nav2_mppi_controller</exec_depend>
   <exec_depend>nav2_navfn_planner</exec_depend>
+  <exec_depend>nav2_theta_star_planner</exec_depend>
   <depend>nav2_smac_planner</depend>
   <depend>nlohmann-json-dev</depend>
   <exec_depend>nav2_planner</exec_depend>

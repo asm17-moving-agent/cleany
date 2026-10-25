@@ -2,6 +2,29 @@
 
 응용 인터페이스와 adapter에서 생성하는 endpoint를 노드별로 정리한다. 이름과 QoS 표기, ROS 자동 인터페이스는 [전체 색인](../../../../docs/ROS_INTERFACES.md)을 따른다. 이름 설정이 없는 항목은 ROS remap으로 변경한다.
 
+## Nav2 controller와 planner
+
+기본 설정은 `cleany_navigation::MPPIController`와 Smac Lattice를 사용한다.
+Omni 설정의 `cleany_navigation::SmacLatticePlanner`는 native Smac을 상속하며,
+시작/목표가 같은 XY 격자와 방향 bin일 때만 정확한 목표까지의 짧은 연결을
+기존 전체 footprint/swept 충돌 검사로 확인한다. 이는 Nav2 1.1.20의 동일
+탐색 노드에서 parent가 없어 역추적 실패하는 경우를 보완한다. 그 밖의 탐색과
+primitive는 native Smac을 그대로 사용한다. 목표 오차나 안전 영역을 완화하지 않는다.
+튜닝 소스는
+`codex/nav2-tuning-recovered-20261024`의 `69b25020`에서 가져왔다.
+MPPI controller/critic은 이 패키지의 `mppi/`와 `include/cleany_navigation/mppi/`에서
+빌드한다. 원본 라이선스는 [LICENSE](../mppi/LICENSE.md)에 있다.
+
+기존 Nav2 action과 속도 인터페이스는 유지한다. `visualize=true`일 때
+`/trajectories`(MarkerArray, R1)와 `transformed_global_plan`(Path, R1)을 발행한다.
+`mppi_replay_snapshot`은 저장된 map/pose 자료로 optimizer를 실행하는 독립
+진단 CLI다. 일반 Mission launch에서는 실행하지 않는다.
+
+기본 lattice는 `config/lattice/omni-r10cm.json`이다. `resolve_default_lattice`가
+설치 경로를 해석하며 명시한 `GridBased.lattice_filepath`는 유지한다.
+5cm 격자와 10cm 곡선 반경은 primitive 생성 설정이며 실물 회전 반경 검증값이 아니다.
+축 전용 DWB/StraightFirstPlanner는 `axis_motion=true`의 별도 프로파일이다.
+
 ## depth_clearance
 
 실행 파일: `depth_clearance`. 원본: [depth_clearance_node.py](../cleany_navigation/depth_clearance_node.py).

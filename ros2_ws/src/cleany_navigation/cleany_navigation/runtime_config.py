@@ -93,7 +93,7 @@ def adapt_nav2_parameters(document: dict, distro: str) -> dict:
             return {key: convert(item) for key, item in value.items()}
         if isinstance(value, list):
             return [convert(item) for item in value]
-        if isinstance(value, str) and value.startswith(('nav2_navfn_planner::', 'nav2_smac_planner::', 'nav2_behaviors::')):
+        if isinstance(value, str) and value.startswith(('nav2_navfn_planner::', 'nav2_smac_planner::', 'nav2_theta_star_planner::', 'nav2_behaviors::')):
             return value.replace('::', '/', 1)
         return value
     result = convert(result)
@@ -290,3 +290,17 @@ def longitudinal_lattice(source: dict) -> dict:
             raise ValueError(f'Missing longitudinal/rotation primitives for heading {heading}')
     result['lattice_metadata']['number_of_trajectories'] = len(result['primitives'])
     return result
+
+
+def resolve_default_lattice(document: dict, primitive: Path) -> None:
+    """Resolve the packaged primitive for native Lattice, preserving explicit overrides."""
+    planner = document.get('planner_server', {}).get('ros__parameters', {}).get('GridBased', {})
+    if planner.get('plugin') not in (
+            'nav2_smac_planner::SmacPlannerLattice', 'nav2_smac_planner/SmacPlannerLattice',
+            'cleany_navigation::SmacLatticePlanner'):
+        return
+    if planner.get('lattice_filepath'):
+        return
+    if not primitive.is_file():
+        raise ValueError(f'Packaged Lattice primitive not found: {primitive}')
+    planner['lattice_filepath'] = str(primitive.resolve())
