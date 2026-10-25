@@ -1,4 +1,4 @@
-"""Shadow-only whole-body coverage observer. It cannot publish velocity or pan."""
+"""Publish whole-body diagnostics and optional ToF-scoped depth evidence."""
 from __future__ import annotations
 import json
 import time
@@ -16,8 +16,9 @@ from sensor_msgs.msg import CameraInfo, Image
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformListener, TransformException
 from cleany_navigation.body_geometry import load_body_boxes
+from cleany_tof.proximity import TofRegion, load_settings, model_id
 from cleany_navigation.depth_clearance import decode_depth_image, rectified_intrinsics
-from cleany_navigation.depth_coverage import DepthView, SweptDepthCoverage
+from cleany_navigation.depth_coverage import DepthView, SweptDepthCoverage, create_tof_coverage
 from cleany_navigation.voxel_guard import GuardConfig
 from cleany_navigation.voxel_guard_node import pose_matrix, twist_vector
 
@@ -33,7 +34,9 @@ class DepthCoverageNode(Node):
         odom (nav_msgs/msg/Odometry): Measured motion.
 
     Publishers:
-        head_pan/coverage (std_msgs/msg/String): JSON coverage decision and evidence.
+        head_pan/coverage (std_msgs/msg/String): Whole-body diagnostic evidence.
+        tof/depth_coverage (std_msgs/msg/String): Optional motion/model-bound
+            finite-depth evidence consumed by the ToF guard; reliable depth 1.
 
     TF:
         Reads sensor and base transforms in fixed_frame, default odom.
@@ -42,12 +45,12 @@ class DepthCoverageNode(Node):
         Depth, calibration and odometry use sensor_data.
 
     Notes:
-        Requires a body profile. This observer reports coverage; it does not
-        publish a gated velocity command.
+        Requires a body profile. It publishes no velocity or pan command. The
+        ToF guard owns actuation and rejects stale or mismatched evidence.
     """
-    def __init__(self):
-        super().__init__('depth_coverage')
-        defaults = dict(profile='', allow_simulation_limits=False, fixed_frame='odom', base_frame='base_link',
+    def __init__(self, **kwargs):
+        super().__init__('depth_coverage', **kwargs)
+        defaults = dict(tof_coverage_enabled=False, tof_params_file='', profile='', allow_simulation_limits=False, fixed_frame='odom', base_frame='base_link',
                         optical_frame='head_camera_depth_optical_frame', input_topic='camera/head/depth/image_raw',
                         camera_info_topic='camera/head/depth/camera_info', source_timeout_s=.5,
                         update_period_s=.2, processing_budget_s=.15, cell_size=.1, max_cells=20000, pose_jump_m=.25, pose_jump_rad=.3,
@@ -57,10 +60,20 @@ class DepthCoverageNode(Node):
         self.p = {key: self.get_parameter(key).value for key in defaults}
         boxes = load_body_boxes(Path(get_package_share_directory('cleany_description')), Path(self.p['profile']),
                                allow_simulation_limits=self.p['allow_simulation_limits'])
-        self.coverage = SweptDepthCoverage(boxes, GuardConfig(**{k: self.p[k] for k in vars(GuardConfig())}),
-                                          cell_size=self.p['cell_size'], timeout=self.p['source_timeout_s'],
-                                          max_cells=self.p['max_cells'], pose_jump_m=self.p['pose_jump_m'],
-                                          pose_jump_rad=self.p['pose_jump_rad'])
+        config = GuardConfig(**{k: self.p[k] for k in vars(GuardConfig())})
+        self.tof_settings = (load_settings(self.p['tof_params_file']) if self.p['tof_coverage_enabled'] else None)
+        self.coverage = SweptDepthCoverage(boxes, config,
+            cell_size=self.p['cell_size'], timeout=self.p['source_timeout_s'],
+            max_cells=self.p['max_cells'], pose_jump_m=self.p['pose_jump_m'],
+            pose_jump_rad=self.p['pose_jump_rad'])
+        self.tof_coverage = self.tof_region = None
+        if self.tof_settings is not None:
+            s = self.tof_settings
+            self.tof_coverage = create_tof_coverage(boxes, config, s,
+                cell_size=self.p['cell_size'], timeout=self.p['source_timeout_s'], max_cells=self.p['max_cells'],
+                pose_jump_m=self.p['pose_jump_m'], pose_jump_rad=self.p['pose_jump_rad'])
+            self.tof_region = TofRegion(s)
+        self.tof_state = self.create_publisher(String, 'tof/depth_coverage', 1)
         self.buffer = Buffer(); self.listener = TransformListener(self.buffer, self)
         self.camera = self.pending = self.odom = None
         self.command = np.zeros(3)
@@ -94,14 +107,19 @@ class DepthCoverageNode(Node):
         started = time.monotonic()
         now = self.get_clock().now().nanoseconds/1e9
         report = dict(covered=False, reason='UNAVAILABLE')
+        tof_report = dict(covered=False, reason='UNAVAILABLE', source_age_s=0.)
         try:
             if self.clock_stamp is not None and now < self.clock_stamp:
                 self.coverage.clear(); self.pending = None
+                if self.tof_coverage is not None:
+                    self.tof_coverage.clear()
             if self.clock_stamp != now:
                 self.clock_stamp, self.clock_wall = now, started
             if any(started-t > self.p['source_timeout_s'] for t in
                    (self.command_wall, self.depth_wall, self.odom_wall, self.clock_wall)):
                 self.coverage.clear()
+                if self.tof_coverage is not None:
+                    self.tof_coverage.clear()
                 raise ValueError('WALL_OR_CLOCK_TIMEOUT')
             if self.odom is None or self.odom.child_frame_id != self.p['base_frame']:
                 raise ValueError('INVALID_ODOMETRY')
@@ -123,20 +141,34 @@ class DepthCoverageNode(Node):
                     if intrinsics is None:
                         raise ValueError('INVALID_PROJECTION')
                     pose = self.buffer.lookup_transform(self.p['fixed_frame'], msg.header.frame_id, when)
-                    self.coverage.observe(DepthView(when.nanoseconds/1e9,
+                    view = DepthView(when.nanoseconds/1e9,
                         decode_depth_image(msg.data, msg.width, msg.height, msg.step, msg.encoding, msg.is_bigendian),
-                        intrinsics, pose_matrix(pose.transform)))
+                        intrinsics, pose_matrix(pose.transform))
+                    self.coverage.observe(view)
+                    if self.tof_coverage is not None:
+                        self.tof_coverage.observe(view)
             base = self.buffer.lookup_transform(self.p['fixed_frame'], self.p['base_frame'], Time())
             if not 0 <= now-Time.from_msg(base.header.stamp).nanoseconds/1e9 <= self.p['source_timeout_s']:
                 raise ValueError('STALE_BASE_TRANSFORM')
-            report = self.coverage.evaluate(now, pose_matrix(base.transform), self.command, twist_vector(self.odom.twist.twist))
+            measured = twist_vector(self.odom.twist.twist)
+            base_pose = pose_matrix(base.transform)
+            report = self.coverage.evaluate(now, base_pose, self.command, measured)
+            if self.tof_coverage is not None:
+                tof_report = self.tof_coverage.evaluate(now, base_pose, self.command, measured,
+                                                       region=self.tof_region.intersects)
+                tof_report.update(requested=self.command.tolist(), measured=measured.tolist())
         except (ValueError, TransformException) as error:
             report['reason'] = str(error)
+            tof_report.update(covered=False, reason=str(error))
         elapsed = time.monotonic()-started
         if elapsed > self.p['processing_budget_s']:
             report.update(covered=False, reason='PROCESSING_OVERRUN')
+            tof_report.update(covered=False, reason='PROCESSING_OVERRUN')
         report.update(stamp_s=now, sim_s=now, mode='shadow', motion_authority=False, processing_ms=elapsed*1000)
         self.state.publish(String(data=json.dumps(report)))
+        if self.tof_settings is not None:
+            tof_report.update(contract='tof_sweep_v1', model_id=model_id(self.tof_settings), stamp_s=now)
+            self.tof_state.publish(String(data=json.dumps(tof_report)))
 
 
 def main(args=None):

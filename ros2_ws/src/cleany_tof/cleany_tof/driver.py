@@ -30,6 +30,11 @@ class TofDriver(Node):
 
     def close(self):
         if self.port:
+            # Invalidate a still-fresh cached frame before waiting for timeout.
+            msg = TofFrame()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.header.frame_id = 'tof_link'
+            self.pub.publish(msg)
             self.port.close()
         self.port = None
         self.state = 'closed'
@@ -60,6 +65,9 @@ class TofDriver(Node):
                 elif self.state == 'starting':
                     if record.get('type') == 'info' and record.get('state') == 'running':
                         self.state, self.last_frame = 'running', now
+                elif record.get('type') != 'frame' and (record.get('state', 'running') != 'running'
+                        or record.get('status', 0) != 0):
+                    raise ValueError('firmware unavailable: '+str(record.get('event', record.get('state'))))
                 elif record.get('type') == 'frame':
                     acquisition = self.stream.frame(record, now)
                     msg = TofFrame()
@@ -68,6 +76,7 @@ class TofDriver(Node):
                         raise ValueError('ROS clock predates acquisition')
                     msg.header.stamp = Time(nanoseconds=stamp).to_msg()
                     msg.header.frame_id = 'tof_link'
+                    msg.sensor_ready = True
                     msg.sequence, msg.device_time_us = record['seq'], record['time_us']
                     msg.distance_m = [float(x)/1000 for x in record['distance_mm']]
                     msg.sigma_m = [float(x)/1000 for x in record['sigma_mm']]

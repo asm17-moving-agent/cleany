@@ -2,8 +2,14 @@ from dataclasses import replace
 import math
 import numpy as np
 import pytest
-from cleany_tof.core import (Settings, project, coverage, limit_velocity, estimate_plane,
+from cleany_tof.core import (Settings, project, estimate_plane,
                              ApproachController, Plane)
+from cleany_tof.proximity import limit_velocity
+from cleany_tof.observation import Observation, ZoneState, classify_zones
+
+
+def observed(points, good):
+    return Observation(points, np.where(good, ZoneState.RANGE, ZoneState.UNRELIABLE))
 
 
 def scene(distance=1., yaw=0., settings=None):
@@ -29,7 +35,8 @@ def test_quality_never_becomes_free_space():
     d = [1.]*64
     d[0] = math.nan
     _, good = project(d, [.001]*64, [5]*64, [1]*64, [True]*64, Settings())
-    assert not good[0] and not coverage(good, Settings())
+    assert not good[0]
+    assert classify_zones(d, [.001]*64, [5]*64, [1]*64, [True]*64)[0] == ZoneState.UNRELIABLE
     with pytest.raises(ValueError):
         project([1.], [], [], [], [], Settings())
 
@@ -38,23 +45,23 @@ def test_guard_braking_direction_measured_speed_and_unknown():
     s = Settings(calibrated=True)
     good = np.ones(64, dtype=bool)
     points = np.tile([.80, 0., 0.], (64, 1))
-    output, reason = limit_velocity((.25, 0., 0.), (0., 0., 0.), points, good, .1, s)
+    output, reason = limit_velocity((.25, 0., 0.), (0., 0., 0.), observed(points, good), .1, s)
     assert 0 < output[0] < .25 and reason == 'LIMITED'
-    assert limit_velocity((.25, 0., 0.), (.5, 0., 0.), points, good, .1, s)[0] == (0., 0., 0.)
-    assert limit_velocity((-.1, 0., 0.), (0., 0., 0.), points, good, .1, s)[0][0] == -.1
-    assert limit_velocity((0., 0., .3), (0., 0., 0.), points-.05, good, .1, s)[0][2] < .3
+    assert limit_velocity((.25, 0., 0.), (.5, 0., 0.), observed(points, good), .1, s)[0] == (0., 0., 0.)
+    assert limit_velocity((-.1, 0., 0.), (0., 0., 0.), observed(points, good), .1, s)[0][0] == -.1
+    assert limit_velocity((0., 0., .3), (0., 0., 0.), observed(points-.05, good), .1, s)[0][2] < .3
     for age in (-.01, .21, math.nan):
-        assert limit_velocity((.1, 0., 0.), (0., 0., 0.), points, good, age, s)[0] == (0., 0., 0.)
-    assert limit_velocity((.1, 0., 0.), (0., 0., 0.), points, good, .1, replace(s, calibrated=False))[0] == (0., 0., 0.)
+        assert limit_velocity((.1, 0., 0.), (0., 0., 0.), observed(points, good), age, s)[0] == (0., 0., 0.)
+    assert limit_velocity((.1, 0., 0.), (0., 0., 0.), observed(points, good), .1, replace(s, calibrated=False))[0] == (0., 0., 0.)
     points[0] = (.55, 0., 0.)
-    assert limit_velocity((.1, 0., 0.), (0., 0., 0.), points, good, .1, s)[0] == (0., 0., 0.)
+    assert limit_velocity((.1, 0., 0.), (0., 0., 0.), observed(points, good), .1, s)[0] == (0., 0., 0.)
 
 
 def test_no_acceleration_or_curvature_change():
     s = Settings(calibrated=True)
     points, good = scene(.85)
     cmd = (.2, .1, .15)
-    result, _ = limit_velocity(cmd, (0., 0., 0.), points, good, .1, s)
+    result, _ = limit_velocity(cmd, (0., 0., 0.), observed(points, good), .1, s)
     assert all(0 <= a/b <= 1 for a, b in zip(result, cmd))
     assert result[0]/cmd[0] == pytest.approx(result[2]/cmd[2])
 
@@ -91,7 +98,7 @@ def test_approach_alignment_timeout_overshoot_and_stationary_success():
 
 
 @pytest.mark.parametrize('kwargs', [dict(deceleration=0), dict(margin=-1.), dict(sensor_yaw=math.nan),
-    dict(required_zones=()), dict(required_zones=(64,)), dict(min_valid=0), dict(source_timeout_s=math.inf)])
+    dict(approach_rows=()), dict(approach_rows=(8,)), dict(no_return_max_speed=.3), dict(source_timeout_s=math.inf)])
 def test_invalid_safety_configuration_rejected(kwargs):
     with pytest.raises(ValueError):
         Settings(**kwargs)

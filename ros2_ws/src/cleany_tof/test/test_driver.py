@@ -2,6 +2,7 @@
 import json
 import os
 import time
+import pytest
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
@@ -10,7 +11,8 @@ from cleany_interfaces.msg import TofFrame
 from cleany_tof.driver import TofDriver
 
 
-def test_serial_session_handshake_fragmentation_and_replay():
+@pytest.mark.parametrize('failure', ['replay', 'read_error', 'recovering'])
+def test_serial_session_handshake_fragmentation_and_replay(failure):
     master, slave = os.openpty()
     os.set_blocking(master, False)
     rclpy.init(domain_id=194)
@@ -54,9 +56,16 @@ def test_serial_session_handshake_fragmentation_and_replay():
         assert messages[0].distance_m[0] == 1.
         age = observer.get_clock().now().nanoseconds*1e-9-(messages[0].header.stamp.sec+messages[0].header.stamp.nanosec*1e-9)
         assert .09 < age < .25
-        os.write(master, raw)  # Same sequence/device timestamp must force a fresh session.
+        if failure == 'replay':
+            fault = raw
+        elif failure == 'read_error':
+            fault = b'{"type":"event","event":"read_failed","status":255,"state":"running"}\n'
+        else:
+            fault = b'{"type":"event","event":"read_recovery","status":0,"state":"recovering"}\n'
+        os.write(master, fault)
         until(lambda: driver.port is None)
-        assert len(messages) == 1
+        until(lambda: any(not m.sensor_ready for m in messages))
+        assert len([m for m in messages if m.sensor_ready]) == 1
     finally:
         executor.shutdown()
         driver.destroy_node()

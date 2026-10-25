@@ -1,4 +1,5 @@
 """Final ToF safety limit after the existing Nav2 safety chain."""
+import json
 import math
 import time
 import rclpy
@@ -6,8 +7,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from cleany_interfaces.msg import ComponentHealth
-from .core import limit_velocity, coverage
-from .ros_support import Inputs, SupervisorView, settings, steady_timer, twist, velocity
+from .proximity import limit_velocity
+from .ros_support import Inputs, DepthProof, SupervisorView, settings, steady_timer, twist, velocity
 
 
 class ProximityGuard(Node):
@@ -21,6 +22,7 @@ class ProximityGuard(Node):
         super().__init__('proximity_guard', **kwargs)
         self.s = settings(self)
         self.inputs = Inputs(self, self.s)
+        self.depth_proof = DepthProof(self, self.s)
         self.supervision = SupervisorView(self)
         self.health = self.create_publisher(ComponentHealth, 'system/component_health', 10)
         self.command, self.command_at = (0., 0., 0.), -math.inf
@@ -42,15 +44,15 @@ class ProximityGuard(Node):
         output, reason = (0., 0., 0.), 'COMMAND_STALE'
         healthy, detail = False, 'TOF_UNAVAILABLE'
         try:
-            points, good, age, measured = self.inputs.snapshot()
-            healthy = self.s.calibrated and coverage(good, self.s) and self.graph_ok
-            detail = 'ToF quality, calibration, odometry and command graph verified' if healthy else 'ToF calibration, coverage or graph unavailable'
+            observation, age, measured = self.inputs.snapshot()
+            healthy = self.s.calibrated and observation.available and self.graph_ok
+            detail = json.dumps(dict(available=healthy, zones=observation.counts()))
             if not self.graph_ok:
                 reason = 'COMMAND_GRAPH_CONFLICT'
             elif not self.supervision.operable():
                 reason = 'SUPERVISOR_UNAVAILABLE'
             elif time.monotonic()-self.command_at <= self.s.command_timeout_s:
-                output, reason = limit_velocity(self.command, measured, points, good, age, self.s)
+                output, reason = limit_velocity(self.command, measured, observation, age, self.s, self.depth_proof.snapshot())
         except ValueError as exc:
             reason = detail = str(exc)
         self.pub.publish(twist(output))

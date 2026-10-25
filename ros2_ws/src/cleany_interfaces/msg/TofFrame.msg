@@ -1,6 +1,9 @@
 # Native firmware zone order. Invalid zones are never free-space evidence.
 # Stamp conservatively estimates acquisition time in the ROS clock domain.
 std_msgs/Header header
+
+# False invalidates cached ranges after a firmware/transport/session error.
+bool sensor_ready
 uint32 sequence
 uint64 device_time_us
 float32[64] distance_m

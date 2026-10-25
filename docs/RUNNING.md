@@ -387,3 +387,11 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 `tof_driver`의 serial port는 기본적으로 공급 펌웨어 보드의 by-id 경로다. 다른 보드는
 해당 노드의 `port`를 별도 설정한다. 재연결 시 64 zone, 15Hz로 재설정한다. 별도
 teleop도 `nav2/cmd_vel` 입력을 사용하며 ToF 활성 상태에서 `cmd_vel`에 직접 발행하지 않는다.
+
+ToF 미검출 coverage 정책에서는 `tof_enabled=true`가 기존 depth coverage observer도
+활성화한다. observer는 `tof_params_file`의 공통 `/**` 프로파일로 `tof/depth_coverage`를
+생성한다. 이전 프로파일의 `min_valid`와 `required_zones`는 제거하고 새 계약과 장착
+검증에 맞게 이관한다. `TofFrame.sensor_ready`가 추가되었으므로 관련 패키지와 외부 ROS
+publisher를 함께 재빌드한다. firmware 자체의 JSONL 형식은 바뀌지 않았다. 정상 미검출은
+센서 fault가 아니며, `NO_RETURN_UNCOVERED`는 해당 이동의 보조 관측이 없어 정지한 상태다.
+RGB-D가 없거나 ToF 보호 영역을 보지 못하면 미검출 방향으로 주행하지 않는다.

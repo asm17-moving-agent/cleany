@@ -594,7 +594,7 @@ test-ci-tools:
 .PHONY: test-tof-core build-tof test-tof
 
 test-tof-core:
-	$(BASE_EXEC) bash -c 'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_tof:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_navigation" python3 -m pytest -q "$(ROS2_WS)/src/cleany_tof/test/test_core.py" "$(ROS2_WS)/src/cleany_tof/test/test_transport.py" "$(ROS2_WS)/src/cleany_mission_manager/tests/test_staged_navigation.py" "$(ROS2_WS)/src/cleany_navigation/test/test_runtime_config.py"'
+	$(BASE_EXEC) bash -c 'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$(ROS2_WS)/src/cleany_tof:$(ROS2_WS)/src/cleany_mission_manager:$(ROS2_WS)/src/cleany_navigation" python3 -m pytest -q "$(ROS2_WS)/src/cleany_tof/test/test_core.py" "$(ROS2_WS)/src/cleany_tof/test/test_transport.py" "$(ROS2_WS)/src/cleany_tof/test/test_observation_policy.py" "$(ROS2_WS)/src/cleany_mission_manager/tests/test_staged_navigation.py" "$(ROS2_WS)/src/cleany_navigation/test/test_runtime_config.py"'
 
 build-tof:
 	$(BASE_EXEC) bash -c 'source "$(ROS_SETUP)" && cd "$(ROS2_WS)" && colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_tof cleany_mission_manager cleany_system_supervisor cleany_base_driver'

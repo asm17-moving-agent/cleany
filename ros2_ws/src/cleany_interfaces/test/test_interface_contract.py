@@ -235,5 +235,6 @@ def test_tof_and_approach_start_without_success_or_authority():
     from cleany_interfaces.action import DeskApproach
     assert len(TofFrame().distance_m) == len(TofFrame().valid) == 64
     assert not any(TofFrame().valid)
+    assert not TofFrame().sensor_ready
     assert not DeskApproach.Result().success
     assert DeskApproach.Goal().lease_id == ''

@@ -378,6 +378,7 @@ ros2 action info /grasp/select_reachable
 
 | Endpoint | 타입 | 발행 또는 제공 | 구독 또는 호출 |
 |---|---|---|---|
+| `/tof/depth_coverage` | `std_msgs/msg/String` | depth_coverage | proximity_guard |
 | `/tof/frame` | `cleany_interfaces/msg/TofFrame` | tof_driver | proximity_guard, desk_approach |
 | `/motion/cmd_vel` | `geometry_msgs/msg/Twist` | desk_approach | 기존 navigation 안전 계층 |
 | `/proximity/input` | `geometry_msgs/msg/Twist` | 기존 최종 안전 계층 | proximity_guard |

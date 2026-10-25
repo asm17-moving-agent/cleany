@@ -1,5 +1,6 @@
 """Synthetic ROS graph only: no serial device, Nav2 controller or motors."""
 import time
+import json
 from itertools import count
 import numpy as np
 import pytest
@@ -11,6 +12,8 @@ from rclpy.parameter import Parameter
 from rclpy.qos import QoSProfile, DurabilityPolicy, qos_profile_action_status_default
 from action_msgs.msg import GoalStatus, GoalStatusArray
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
+from cleany_tof.proximity import model_id
 from nav_msgs.msg import Odometry
 from cleany_interfaces.action import DeskApproach
 from cleany_interfaces.msg import TofFrame, SystemState, SystemHeartbeat, MissionPermission, ComponentHealth
@@ -45,6 +48,15 @@ class World(Node):
         self.client = ActionClient(self, DeskApproach, 'desk/approach')
         self.timer = self.create_timer(.03, self.publish)
         self.nav_speed = .0
+        self.frame_mode = 'range'
+        self.sensor_ready = True
+        self.publish_proof = False
+        self.proof_covered = True
+        self.proof_age = .01
+        self.proof_model = model_id(Settings(calibrated=True))
+        self.reasons = []
+        self.coverage = self.create_publisher(String, 'tof/depth_coverage', 1)
+        self.create_subscription(String, 'proximity/status', lambda msg: self.reasons.append(msg.data), 1)
 
     def forward(self, msg):
         self.selected.append(msg)
@@ -58,10 +70,21 @@ class World(Node):
         if self.sensor:
             self.seq += 1
             points, _ = project([1.]*64, [.001]*64, [5]*64, [1]*64, [True]*64, Settings())
-            msg = TofFrame(sequence=self.seq, distance_m=[float(v) for v in self.distance/points[:, 0]],
+            msg = TofFrame(sensor_ready=True, sequence=self.seq, distance_m=[float(v) for v in self.distance/points[:, 0]],
                            sigma_m=[.001]*64, target_status=[5]*64, target_count=[1]*64, valid=[True]*64)
+            msg.sensor_ready = self.sensor_ready
+            if self.frame_mode in ('no_return', 'bad'):
+                msg.target_count = [0 if self.frame_mode == 'no_return' else 1]*64
+                msg.target_status = [255 if self.frame_mode == 'no_return' else 4]*64
+                msg.valid = [False]*64
+                msg.distance_m = [.338]*64
             msg.header.stamp, msg.header.frame_id = stamp, 'tof_link'
             self.frame.publish(msg)
+        if self.publish_proof:
+            self.coverage.publish(String(data=json.dumps(dict(contract='tof_sweep_v1',
+                model_id=self.proof_model, covered=self.proof_covered, reason='COVERED',
+                stamp_s=self.get_clock().now().nanoseconds*1e-9, source_age_s=self.proof_age,
+                requested=[self.nav_speed, 0., 0.], measured=[0., 0., 0.]))))
         if self.authority:
             hb = SystemHeartbeat(epoch='test-epoch')
             hb.header.stamp = stamp
@@ -252,3 +275,46 @@ def test_restarted_client_cancels_exact_journaled_goal_before_readiness(graph, t
         assert journal.value('desk_goal_uuid') == ''
     finally:
         journal.close()
+
+
+def test_no_return_requires_live_matching_depth_coverage_without_faulting_sensor(graph):
+    world, until = graph
+    world.frame_mode, world.nav_speed = 'no_return', .2
+    until(lambda: world.reasons and world.reasons[-1] == 'NO_RETURN_UNCOVERED')
+    assert stopped(world.outputs[-1]) and world.health[-1].status == ComponentHealth.AVAILABLE
+    rejected = world.goal()
+    until(rejected.done)
+    assert not rejected.result().accepted  # No measured desk plane.
+    world.publish_proof = True
+    until(lambda: world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
+    assert 0 < world.outputs[-1].linear.x <= .080001
+    world.proof_covered = False
+    until(lambda: world.reasons[-1] == 'NO_RETURN_UNCOVERED')
+    assert stopped(world.outputs[-1])
+    world.proof_covered = True
+    until(lambda: world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
+    world.publish_proof = False
+    until(lambda: world.reasons[-1] == 'NO_RETURN_UNCOVERED')
+    assert stopped(world.outputs[-1]) and world.health[-1].status == ComponentHealth.AVAILABLE
+
+
+def test_stale_wrong_model_and_unreliable_frames_cannot_borrow_depth_proof(graph):
+    world, until = graph
+    world.frame_mode, world.nav_speed, world.publish_proof = 'no_return', .1, True
+    until(lambda: world.reasons and world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
+    world.proof_age = 1.
+    until(lambda: world.reasons[-1] == 'NO_RETURN_UNCOVERED')
+    world.proof_age, world.proof_model = .01, 'wrong-profile'
+    baseline = world.seq
+    until(lambda: world.seq > baseline+3)
+    assert world.reasons[-1] == 'NO_RETURN_UNCOVERED'
+    world.proof_model = model_id(Settings(calibrated=True))
+    until(lambda: world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
+    world.frame_mode = 'bad'
+    until(lambda: world.health[-1].status == ComponentHealth.UNAVAILABLE)
+    assert stopped(world.outputs[-1])
+    world.frame_mode = 'no_return'
+    until(lambda: world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
+    world.sensor_ready = False
+    until(lambda: world.health[-1].status == ComponentHealth.UNAVAILABLE)
+    assert stopped(world.outputs[-1])

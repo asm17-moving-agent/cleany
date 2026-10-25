@@ -1,4 +1,4 @@
-"""Conservative depth-image coverage diagnostics, with no motion authority.
+"""Finite-depth evidence for body sweeps and optional ToF no-return protection.
 
 Cubes are certified only when their entire projected rectangle has finite,
 farther depth. FOV alone, sparse rays, +inf and persisted occupancy never count
@@ -7,6 +7,7 @@ as free. This is a rectified pixel model, not a physical sensor guarantee.
 from __future__ import annotations
 from dataclasses import dataclass
 from itertools import product
+from typing import Callable
 import numpy as np
 from cleany_navigation.body_geometry import BodyBox
 from cleany_navigation.voxel_guard import GuardConfig, VoxelGuard
@@ -71,10 +72,12 @@ class SweptDepthCoverage:
     """Bounded, transient observation history; reused guard braking geometry."""
     def __init__(self, boxes: list[BodyBox], config: GuardConfig, *, cell_size: float = .1,
                  timeout: float = .5, max_cells: int = 20000, max_views: int = 8,
-                 pose_jump_m: float = .25, pose_jump_rad: float = .3):
+                 pose_jump_m: float = .25, pose_jump_rad: float = .3,
+                 extra_boxes: list[BodyBox] | None = None):
         if not np.isfinite([cell_size, timeout, pose_jump_m, pose_jump_rad]).all() or min(cell_size, timeout, max_cells, max_views, pose_jump_m, pose_jump_rad) <= 0:
             raise ValueError('Invalid coverage bounds')
-        self.guard = VoxelGuard(boxes, config)
+        self.body_boxes = boxes
+        self.guard = VoxelGuard(boxes+list(extra_boxes or []), config)
         self.cell_size, self.timeout = cell_size, timeout
         self.max_cells, self.max_views = max_cells, max_views
         self.views: list[DepthView] = []
@@ -95,7 +98,8 @@ class SweptDepthCoverage:
         self.views = self.views[-self.max_views:]
 
     def evaluate(self, now: float, fixed_from_base: np.ndarray,
-                 requested: np.ndarray, measured: np.ndarray) -> dict:
+                 requested: np.ndarray, measured: np.ndarray,
+                 region: Callable[[np.ndarray, float], np.ndarray] | None = None) -> dict:
         if now < self.last_time:
             self.clear()
         self.last_time = now
@@ -141,10 +145,15 @@ class SweptDepthCoverage:
         # Only cells wholly inside the current physical body are exempt. Partial
         # cells, safety margin and the entering leading surfaces require depth.
         inside = np.zeros(len(cells), dtype=bool)
-        for b in self.guard.boxes:
+        for b in self.body_boxes:
             local = (cells-b.center)@b.rotation
             inside |= (np.abs(local)+np.abs(b.rotation).T@np.full(3, size/2) <= b.half_size).all(axis=1)
         cells = cells[required & ~inside]
+        if region is not None:
+            cells = cells[region(cells, size)]
+            if not len(cells):
+                return dict(covered=True, reason='NO_TOF_SWEEP', required_cells=0,
+                            covered_cells=0, source_age_s=age)
         covered = np.zeros(len(cells), dtype=bool)
         resolved = np.zeros(len(cells), dtype=bool)
         for view in reversed(self.views):
@@ -158,3 +167,22 @@ class SweptDepthCoverage:
                     reason='COVERED' if covered.all() and len(cells) else 'UNOBSERVED_SWEEP',
                     required_cells=len(cells), covered_cells=int(covered.sum()),
                     source_age_s=age, views=len(self.views))
+
+
+def create_tof_coverage(boxes, config, settings, *, timeout=.5, **kwargs):
+    """Keep original inside-body exemptions and enlarge only the required sweep."""
+    from dataclasses import replace
+    s = settings
+    low = np.min([b.corners().min(axis=0) for b in boxes], axis=0)
+    high = np.max([b.corners().max(axis=0) for b in boxes], axis=0)
+    envelope = BodyBox('tof_envelope', np.array([0., 0., (low[2]+high[2])/2]),
+                       np.eye(3), np.array([s.half_length, s.half_width, (high[2]-low[2])/2]))
+    radius = max(VoxelGuard(boxes, config).radius, np.linalg.norm(envelope.half_size))
+    # Twice the separate braking times bounds (speed + radius*yaw)/a.
+    conservative = replace(config, reaction_s=max(config.reaction_s, s.reaction_s+s.source_timeout_s),
+        linear_deceleration=min(config.linear_deceleration, s.deceleration/2),
+        angular_deceleration=min(config.angular_deceleration, s.deceleration/(2*radius)),
+        margin=max(config.margin, s.margin+3*s.max_sigma_m),
+        max_speed=s.max_speed, max_yaw_rate=s.max_yaw_rate)
+    return SweptDepthCoverage(boxes, conservative, extra_boxes=[envelope],
+        timeout=min(timeout, s.source_timeout_s/2), **kwargs)

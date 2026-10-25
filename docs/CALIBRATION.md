@@ -168,8 +168,9 @@ make handeye-validate-mujoco \
 - 각 native zone에 작은 표적을 움직여 flip, 장착 roll/pitch/yaw, 위치와 유효 FOV를 측정한다.
 - 알려진 거리와 기울기의 넓은 평판으로 radial range, 거리 오차, sigma, fit residual,
   접근 거리와 yaw 오차를 확인한다. 선택 행이 책상 앞면을 실제로 관측해야 한다.
+  약 3.5m 미검출 관찰은 검출 보장 거리나 자유 공간 하한으로 사용하지 않는다.
 - 빈 공간, 검정 표면, 유리, 금속, 햇빛, 책상 다리와 얇은 물체에서 zone 유효율과 사각을
-  기록한다. 보호 필수 zone과 `min_valid`는 장애물을 놓치지 않는 실측 근거로 정한다.
+  기록한다. NO_RETURN과 불신뢰 분류, 방향별 위험 영역과 RGB-D의 실제 보호 중첩을 검증한다.
 - USB 부하, read 지연, 끊김과 재연결에서 acquisition 추정, 실제 정지 지연과 watchdog을
   측정한다. first-frame 시간 offset의 불확실성도 reaction budget에 포함한다.
 - 감독자와 독립 e-stop이 있는 통제 공간에서 payload, 바닥, 배터리 조건별 전후진,
@@ -180,3 +181,10 @@ make handeye-validate-mujoco \
 
 위 근거와 설정 hash를 보존한 뒤에만 `calibrated=true`를 적용한다. 평면의 좌우 중심은
 ToF만으로 관측되지 않으므로 staging 위치와 팔 도달성은 별도 검증한다.
+
+미검출 보조 보호를 사용할 때는 같은 ToF 프로파일로 `tof/depth_coverage`를 생성한다.
+ToF 방향의 제동 영역이 RGB-D의 유한 pixel로 관측되는지, 가림/검정/반사 표면, 카메라
+회전과 무효 pixel, 지연/끊김에서 근거가 철회되는지 확인한다. 2D scan이 정상인 것만으로
+책상 전면 높이의 보호를 대체하지 않는다. 후보 제한 속도 0.08m/s, 0.10rad/s와 0.2초
+근거 수명은 실물 제동/부하 시험 후 확정한다. `min_valid`/`required_zones`는 더 이상
+사용하지 않으며 기존 프로파일은 새 의미 분류와 근거 계약에 맞게 이관한다.

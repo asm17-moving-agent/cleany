@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import math
 import numpy as np
+from .observation import Observation, ZoneState, classify_zones
 
 
 @dataclass(frozen=True)
@@ -29,8 +30,8 @@ class Settings:
     max_yaw_rate: float = 0.3
     max_sigma_m: float = 0.03
     max_range_m: float = 4.0
-    min_valid: int = 32
-    required_zones: tuple[int, ...] = tuple(range(64))
+    no_return_max_speed: float = 0.08
+    no_return_max_yaw_rate: float = 0.10
     approach_rows: tuple[int, ...] = (2, 3, 4, 5)
     fit_residual_m: float = 0.025
     min_plane_span_m: float = 0.15
@@ -55,16 +56,16 @@ class Settings:
                     'fit_residual_m', 'min_plane_span_m', 'max_plane_yaw_rad',
                     'approach_speed', 'approach_yaw_rate', 'distance_tolerance_m',
                     'yaw_tolerance_rad', 'settle_s', 'approach_timeout_s', 'progress_timeout_s',
-                    'stopped_speed', 'stopped_yaw_rate')
+                    'stopped_speed', 'stopped_yaw_rate', 'no_return_max_speed', 'no_return_max_yaw_rate')
         if any(getattr(self, n) <= 0 for n in positive):
             raise ValueError('limits must be positive')
         if not 0 < self.horizontal_fov < math.pi or not 0 < self.vertical_fov < math.pi:
             raise ValueError('FOV must be below pi')
-        if (not 1 <= self.min_valid <= 64 or not self.required_zones
-                or any(type(i) is not int or not 0 <= i < 64 for i in self.required_zones)
-                or len(set(self.required_zones)) != len(self.required_zones)
-                or not self.approach_rows or any(type(i) is not int or not 0 <= i < 8 for i in self.approach_rows)):
-            raise ValueError('invalid zone coverage')
+        if (not self.approach_rows or len(set(self.approach_rows)) != len(self.approach_rows)
+                or any(type(i) is not int or not 0 <= i < 8 for i in self.approach_rows)):
+            raise ValueError('invalid approach rows')
+        if self.no_return_max_speed > self.max_speed or self.no_return_max_yaw_rate > self.max_yaw_rate:
+            raise ValueError('no-return limits exceed guard limits')
         if self.approach_speed > self.max_speed or self.approach_yaw_rate > self.max_yaw_rate:
             raise ValueError('approach limits exceed guard limits')
 
@@ -73,11 +74,10 @@ def project(distance, sigma, status, count, valid, settings: Settings):
     """Return base-frame zone centres and a quality mask; ranges are radial metres."""
     arrays = [np.asarray(x) for x in (distance, sigma, status, count, valid)]
     if any(a.shape != (64,) for a in arrays):
-        raise ValueError('expected six 64-zone arrays')
+        raise ValueError('expected five 64-zone arrays')
     d, s, st, n, v = arrays
-    good = (v.astype(bool) & np.isin(st, (5, 9)) & (n > 0) & np.isfinite(d)
-            & (d > 0) & (d <= settings.max_range_m) & np.isfinite(s)
-            & (s >= 0) & (s <= settings.max_sigma_m))
+    good = classify_zones(d, s, st, n, v, max_range_m=settings.max_range_m,
+                          max_sigma_m=settings.max_sigma_m) == ZoneState.RANGE
     row, col = np.indices((8, 8))
     if settings.flip_rows:
         row = 7-row
@@ -88,54 +88,26 @@ def project(distance, sigma, status, count, valid, settings: Settings):
     z = np.tan((3.5-row.ravel()) / 8 * settings.vertical_fov)
     rays = np.stack((np.ones(64), y, z), axis=1)
     rays /= np.linalg.norm(rays, axis=1)[:, None]
-    cy, sy = math.cos(settings.sensor_yaw), math.sin(settings.sensor_yaw)
-    cp, sp = math.cos(settings.sensor_pitch), math.sin(settings.sensor_pitch)
-    cr, sr = math.cos(settings.sensor_roll), math.sin(settings.sensor_roll)
-    rotation = (np.array([[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]])
-                @ np.array([[cp, 0, sp], [0, 1, 0], [-sp, 0, cp]])
-                @ np.array([[1, 0, 0], [0, cr, -sr], [0, sr, cr]]))
+    rotation = sensor_rotation(settings)
     points = (rays * np.where(good, d, 0)[:, None]) @ rotation.T
     points += (settings.sensor_x, settings.sensor_y, settings.sensor_z)
     return points, good
 
 
-def coverage(good, settings: Settings) -> bool:
-    return bool(np.count_nonzero(good) >= settings.min_valid and np.all(good[list(settings.required_zones)]))
+def sensor_rotation(settings: Settings):
+    cy, sy = math.cos(settings.sensor_yaw), math.sin(settings.sensor_yaw)
+    cp, sp = math.cos(settings.sensor_pitch), math.sin(settings.sensor_pitch)
+    cr, sr = math.cos(settings.sensor_roll), math.sin(settings.sensor_roll)
+    return (np.array([[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]])
+                @ np.array([[cp, 0, sp], [0, 1, 0], [-sp, 0, cp]])
+                @ np.array([[1, 0, 0], [0, cr, -sr], [0, sr, cr]]))
 
 
-def limit_velocity(command, measured, points, good, age_s: float, settings: Settings):
-    """Uniformly scale planar velocity against a conservative stopping envelope.
-
-    Every good return contributes, including a lone obstacle outside the plane.
-    A circumscribed radius bounds rotational speed. Existing LiDAR/depth guards
-    retain responsibility for the ToF blind area; no ToF ray certifies that area.
-    """
-    zero = (0.0, 0.0, 0.0)
-    if (not settings.calibrated or not coverage(good, settings) or not math.isfinite(age_s)
-            or not 0 <= age_s <= settings.source_timeout_s
-            or not all(math.isfinite(x) for x in (*command, *measured))):
-        return zero, 'TOF_UNAVAILABLE'
-    vx, vy, wz = command
-    mx, my, mw = measured
-    radius = math.hypot(settings.half_length, settings.half_width)
-    scale = min(1., settings.max_speed/max(math.hypot(vx, vy), 1e-9),
-                settings.max_yaw_rate/max(abs(wz), 1e-9))
-    for x, y, _ in points[good]:
-        clearance = math.hypot(max(abs(x)-settings.half_length, 0),
-                               max(abs(y)-settings.half_width, 0)) - settings.margin - 3*settings.max_sigma_m
-        if clearance <= 0:
-            return zero, 'PROXIMITY_STOP'
-        # Overbound corner/lateral closing, rather than projecting only on the
-        # ray centre (which can underestimate a rectangular body's corner).
-        closing = (math.hypot(vx, vy) if vx*x > 0 or vy*y > 0 else 0.) + abs(wz)*radius
-        actual = (math.hypot(mx, my) if mx*x > 0 or my*y > 0 else 0.) + abs(mw)*radius
-        latency = settings.reaction_s + age_s
-        safe = math.sqrt((settings.deceleration*latency)**2 + 2*settings.deceleration*clearance) - settings.deceleration*latency
-        if actual > safe:
-            return zero, 'BRAKING_ENVELOPE'
-        if closing > 0:
-            scale = min(scale, safe/closing)
-    return tuple(float(x*scale) for x in command), 'LIMITED' if scale < .999 else 'CLEAR'
+def observe(distance, sigma, status, count, valid, settings: Settings) -> Observation:
+    states = classify_zones(distance, sigma, status, count, valid,
+                            max_range_m=settings.max_range_m, max_sigma_m=settings.max_sigma_m)
+    points, _ = project(distance, sigma, status, count, valid, settings)
+    return Observation(points, states)
 
 
 @dataclass(frozen=True)
@@ -170,6 +142,13 @@ def estimate_plane(points, good, settings: Settings) -> Plane:
     if residual > settings.fit_residual_m or abs(yaw) > settings.max_plane_yaw_rad or distance <= 0:
         raise ValueError('ambiguous or misaligned desk plane')
     return Plane(float(distance), yaw, residual)
+
+
+def desk_plane(observation: Observation, settings: Settings) -> Plane:
+    indices = [r*8+c for r in settings.approach_rows for c in range(8)]
+    if np.isin(observation.states[indices], (ZoneState.UNRELIABLE, ZoneState.NOT_UPDATED)).any():
+        raise ValueError('unreliable desk zone')
+    return estimate_plane(observation.points, observation.ranges, settings)
 
 
 class ApproachController:

@@ -9,7 +9,7 @@ from rclpy.task import Future
 from action_msgs.msg import GoalStatus, GoalStatusArray
 from geometry_msgs.msg import Twist
 from cleany_interfaces.action import DeskApproach
-from .core import ApproachController, coverage, estimate_plane
+from .core import ApproachController, desk_plane
 from .ros_support import Inputs, SupervisorView, settings, steady_timer, twist, velocity
 
 
@@ -60,10 +60,10 @@ class DeskApproachNode(Node):
             return GoalResponse.REJECT
         try:
             ApproachController(request.distance_m, time.monotonic(), self.s)
-            points, good, _, measured = self.inputs.snapshot()
-            if not coverage(good, self.s) or math.hypot(*measured[:2]) > self.s.stopped_speed or abs(measured[2]) > self.s.stopped_yaw_rate:
+            observation, _, measured = self.inputs.snapshot()
+            if not observation.available or math.hypot(*measured[:2]) > self.s.stopped_speed or abs(measured[2]) > self.s.stopped_yaw_rate:
                 return GoalResponse.REJECT
-            estimate_plane(points, good, self.s)
+            desk_plane(observation, self.s)
         except ValueError:
             return GoalResponse.REJECT
         self.reserved = True
@@ -116,10 +116,10 @@ class DeskApproachNode(Node):
             self.finish('COMMAND_OWNERSHIP_CONFLICT')
             return
         try:
-            points, good, _, measured = self.inputs.snapshot()
-            if not coverage(good, self.s):
+            observation, _, measured = self.inputs.snapshot()
+            if not observation.available:
                 raise ValueError('TOF_COVERAGE_INVALID')
-            self.plane = estimate_plane(points, good, self.s)
+            self.plane = desk_plane(observation, self.s)
             command, state = self.controller.step(self.plane, measured, time.monotonic())
         except ValueError as exc:
             self.finish(str(exc))

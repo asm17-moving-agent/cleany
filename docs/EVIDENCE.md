@@ -269,3 +269,51 @@ handshake reset으로 실패했으며 Python 3.10 호환 버전인 10.4를 별�
 `firmware-replay.json`에 남겼다. 이는 신규 장치 통신이나 실물 정지 검증이 아니다.
 실물 commissioning과 한계는 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)과
 [ToF 계약](../ros2_ws/src/cleany_tof/docs/interfaces.md)을 따른다.
+
+## 2026-10-26 ToF 미검출과 방향별 관측 근거
+
+아래 결과는 `905f3d7b673f755a7a7bdbe87b731392558e322e` 위의 작업 트리에서 커밋 전에 검증한 기록이다.
+센서는 단독 측정만 완료했고 로봇에 미장착이라는 사용자 정정을 반영했다. 원본 firmware와
+실제 센서/모터 설정은 변경하지 않았다. 정책 계약은
+[ToF reference](../ros2_ws/src/cleany_tof/docs/interfaces.md)를 따른다.
+
+`range-15hz-2min.jsonl`(SHA256
+`ec02366ab656431fed101f7bcc50ca5e9b67b045fc144a1ea4f5f8aaacdcb361`)에서
+세션 이전 10Hz 28 frames를 제외한 15Hz 1,817 frames, 116,288 Zone samples를 분류했다.
+정상 미검출(count=0/status=255)은 53,109, 품질 조건을 통과한 RANGE는 60,868,
+UNRELIABLE은 2,311, NOT_UPDATED는 0 samples였다. 1,817 frames 모두 수신된 관측으로
+유지되지만 주행 가능 판정은 아니다. 기존 전체 Zone 조건을 만족한 frame은 0이었다.
+이 파일의 firmware-valid 거리 최댓값은 3.22m여서 약 3.5m 미검출의 별도 사용자 관찰을
+검출 보장 거리나 자유 공간 하한으로 일반화하지 않았다.
+
+원본의 시작 wrap status, 혼합 품질, 최장 valid 거리 frame 3개를
+[test fixture](../ros2_ws/src/cleany_tof/test/data/standalone_frames.json)에 측정 필드 그대로
+보존했다. 단독 측정에는 RGB-D의 동시 관측이나 실제 장착 coverage가 없다.
+재생 도구는 `tools/validation/tof/replay.py`, 결과는
+`CLEANY_DATA_ROOT/runs/tof-coverage/standalone-audit.json`이다. offline 도구의 도착 시각은
+검사 재현을 위한 device clock이며 신규 USB 지연 측정으로 해석하지 않는다.
+
+Ubuntu 22.04 arm64 Distrobox, ROS 2 Humble, Python 3.10의 기존 개발환경과 build cache에서
+다음 검사를 실행했다. 중복 검사는 합산하지 않는다.
+
+| 명령과 범위 | 결과 |
+|---|---|
+| `make test-tof-core` | 77 passed |
+| `make build-tof`, `make test-tof`와 최종 ToF package 재검사 | 9 packages build; colcon 231 tests, errors/failures 0, 선택 Mission/Gazebo skip 15 |
+| ToF package 자체 | 58 tests, errors/failures/skips 0 |
+| Humble의 `make test-navigation` | 6 packages build; colcon 199 tests, errors/failures/skips 0 |
+| `git diff --check` | 통과 |
+
+기존 finite-depth 기하와 실제 depth coverage 발행 노드→ToF 소비자 연결을 합성 RGB-D,
+TF와 odometry로 검사했다. 무효 pixel, stale/잘못된 model/명령 근거의 철회, 정상 미검출의
+조건부 속도 제한, 품질 불량 정지, firmware event status=255의 sensor_ready 철회와
+기존 lease/Action 취소 경계를 검사했다. 초기 연결 검사에서 test TF가 평가 시각보다
+미래였던 fixture를 실제 관측 시각과 일치시켰다. observer 설정이 없는 launch 프로파일도
+별도로 검사하여 구성 누락 경로를 수정했다. 검사 조건을 완화해 통과시키지 않았다.
+
+원본 XML과 로그는 `CLEANY_DATA_ROOT/builds/feat-tof-integration/{build,build-navigation,log,log-navigation}`에,
+이번 변경의 소스 SHA256과 요약은 `CLEANY_DATA_ROOT/runs/tof-coverage/`에 있다.
+합성 근거와 임시 sensor/body geometry는 실물 중첩을 입증하지 않는다. 실제 Nav2 전환을
+포함한 full-stack 주행, Gazebo 주행 시나리오, 장착 후 제동과 접근 정확도 검사는 수행하지
+않았다. `calibrated=false`를 유지하며 장착 후 항목은
+[CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)에서 확인한다.

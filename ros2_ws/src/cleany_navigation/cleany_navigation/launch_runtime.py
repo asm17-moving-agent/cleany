@@ -87,9 +87,9 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
             voxel_enabled=voxel, safety_mode=safety_mode, output_directory=argument('output_directory'))
         projection = parameters['depth_clearance']['ros__parameters']
         guard = parameters['voxel_guard']['ros__parameters']
-        coverage_enabled = parameters.get('depth_coverage', {}).get('ros__parameters', {}).get('enabled', False)
+        coverage_enabled = flag('tof_enabled') or parameters.get('depth_coverage', {}).get('ros__parameters', {}).get('enabled', False)
         if coverage_enabled:
-            coverage = parameters['depth_coverage']['ros__parameters']
+            coverage = parameters.setdefault('depth_coverage', {}).setdefault('ros__parameters', {})
             for key in ('profile', 'allow_simulation_limits', 'margin', 'reaction_s',
                         'linear_deceleration', 'angular_deceleration', 'step_s', 'max_speed', 'max_yaw_rate'):
                 if key in guard:
@@ -142,6 +142,9 @@ def _launch(context: LaunchContext, *, safety: bool) -> list:
     tof_enabled = safety and flag('tof_enabled')
     if tof_enabled:
         parameters = configure_tof_route(parameters)
+        coverage_enabled = True
+        parameters['depth_coverage']['ros__parameters'].update(
+            tof_coverage_enabled=True, tof_params_file=argument('tof_params_file'), update_period_s=.05)
     set_sim_time(parameters, sim_time)
     parameters = adapt_nav2_parameters(parameters, os.environ.get('ROS_DISTRO', ''))
     if safety:

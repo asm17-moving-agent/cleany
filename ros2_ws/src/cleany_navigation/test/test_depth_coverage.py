@@ -83,3 +83,35 @@ def test_pose_jump_invalidates_transient_free_space():
     assert coverage.evaluate(1., np.eye(4), v, v)['covered']
     assert coverage.evaluate(1.1, planar_pose(.3, 0., 0.), v, v)['reason'] == 'POSE_JUMP'
     assert not coverage.views
+
+
+def test_tof_region_reuses_finite_depth_and_matches_conservative_braking_model():
+    from cleany_tof.core import Settings
+    from cleany_tof.proximity import TofRegion
+    from cleany_navigation.depth_coverage import create_tof_coverage
+    s = Settings(calibrated=True, sensor_z=1.8, sensor_pitch=-math.pi/2,
+                 half_length=.1, half_width=.1)
+    body = BodyBox('body', np.array([0., 0., 2.]), np.eye(3), np.full(3, .1))
+    c = create_tof_coverage([body], GuardConfig(), s, cell_size=.05)
+    v = np.array([.03, 0., 0.])
+    region = TofRegion(s)
+    c.observe(view(stamp=1.))
+    assert c.evaluate(1.01, np.eye(4), v, v, region=region.intersects)['covered']
+    assert c.guard.config.reaction_s >= s.reaction_s+s.source_timeout_s
+    assert c.guard.config.linear_deceleration <= s.deceleration/2
+    assert c.guard.config.margin >= s.margin+3*s.max_sigma_m
+    # A new occluder or invalid pixels revoke the independent evidence.
+    c.observe(view(np.zeros((80, 100)), stamp=1.02))
+    assert not c.evaluate(1.03, np.eye(4), v, v, region=region.intersects)['covered']
+    assert not c.evaluate(1.3, np.eye(4), v, v, region=region.intersects)['covered']
+
+
+def test_expanded_tof_envelope_is_not_treated_as_physical_inside_body():
+    from cleany_tof.core import Settings
+    from cleany_navigation.depth_coverage import create_tof_coverage
+    body = BodyBox('body', np.array([0., 0., 2.]), np.eye(3), np.full(3, .1))
+    c = create_tof_coverage([body], GuardConfig(), Settings(), cell_size=.1)
+    assert c.body_boxes == [body] and len(c.guard.boxes) == 2
+    c.observe(view(np.zeros((80, 100))))
+    assert not c.evaluate(1.01, np.eye(4), np.zeros(3), np.zeros(3),
+                          region=lambda centers, size: np.ones(len(centers), dtype=bool))['covered']
