@@ -110,6 +110,8 @@ def test_committed_assets_meet_component_geometry_bounds(filename):
         normal = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
         if not surface:
             assert np.all(np.einsum('ij,ij->i', normal, triangles.mean(axis=1) - candidate.vertices.mean(axis=0)) > 0)
+            unit = normal / np.linalg.norm(normal, axis=1, keepdims=True)
+            assert (candidate.vertices @ unit.T - np.einsum('ij,ij->i', unit, triangles[:, 0])).max() <= 1e-9
         # Enclosures contain complete source triangles; the surface branch
         # instead certifies both complete surfaces by adaptive subdivision.
 

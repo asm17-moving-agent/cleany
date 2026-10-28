@@ -61,6 +61,7 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 help:
 	@echo "Cleany native ROS 2 commands"
 	@echo "  make test-description-models  Test URDF/MuJoCo parity and optimized collision assets"
+	@echo "  make test-moveit-collision    Test solid collision plugin and installed MoveIt services"
 	@echo "  make deps          Install workspace dependencies with rosdep"
 	@echo "  make deps-gazebo   Install Gazebo Fortress dependencies with rosdep"
 	@echo "  make check-gazebo-env  Verify Ubuntu 22.04 / Humble / Fortress environment"
@@ -564,3 +565,13 @@ test-description-models:
 	python3 -m pytest -q -p no:cacheprovider \
 		$(ROS2_WS)/src/cleany_description/test/test_model_parity.py \
 		$(ROS2_WS)/src/cleany_description/test/test_collision_meshes.py $(COLLISION_TEST_ARGS)
+
+.PHONY: test-moveit-collision
+test-moveit-collision: test-description-models
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	cd "$(ROS2_WS)" && \
+	ROS_LOCALHOST_ONLY=1 colcon --log-base "$(LOG_BASE)" test \
+		--build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--packages-select cleany_moveit_collision cleany_moveit_config \
+		--return-code-on-test-failure --ctest-args \
+		-R 'test_solid_collision|moveit_config_contract|simulation_collision_contract|study_cafe_collision_scene_contract|solid_collision_runtime'

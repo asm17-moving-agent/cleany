@@ -213,11 +213,17 @@ for the CAD launcher, wheel odometry geometry, and simulation limitations.
 `partition_components`에서 원본 메시 좌표계의 미터 단위로 지정한다.
 밀리미터 CAD의 단위 변환은 `mesh_scales`가 관리한다.
 
+`enclosure_variants`는 각 조각의 축 선택과 불필요한 지지 평면 제거 방식을
+기록한다. STL의 float32 좌표로 반올림한 뒤 볼록 면을 다시 구성하고 원본
+포함 및 팽창 상한을 검사한다. 최종 STL의 각 면도 같은 볼록 경계를 이루는지
+검사해, 정점의 볼록 외피만 맞고 실제 삼각형은 안으로 접히는 경우를 막는다.
+
 팽창 상한 1mm는 **분할 조각의 볼록 외피**를 기준으로 한다. 오목한 CAD
 표면과의 거리 상한이 아니며, 조각 내부의 작은 빈 공간은 메워질 수 있다.
-MoveIt의 메시 접촉 판정은 내부 면 변경의 영향을 받으므로 외접 포함 조건만으로
-검증을 끝내지 않는다. 실제 MoveIt 적용 검증에는 원본 CAD와의 자세, 근접 장애물,
-계획 경로 비교도 필요하다.
+MoveIt은 `cleany/SolidFCL`로 닫힌 볼록 조각을 내부가 채워진 형상으로 읽는다.
+삼각형 표면을 가로지르지 않고 조각 안에 완전히 들어간 작은 장애물도 검출한다.
+외접 포함 조건뿐 아니라 실제 서비스의 내부 장애물 검출과 원본 CAD 대조를
+검사한다. Gazebo와 MuJoCo의 물리 엔진에 이 MoveIt 플러그인을 적용하는 것은 아니다.
 
 `make test-description-models`는 원본 모델의 MuJoCo 동등성, 기본 계획 모델의
 공통 정보 보존과 최적화 자산을 검사한다. `test_collision_meshes.py`는 모든 출력 메시의 실제 STL 좌표에서 포함과 팽창

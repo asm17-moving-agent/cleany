@@ -113,5 +113,112 @@
     "Moving_Jaw_part1.ply.convex.stl",
     "Moving_Jaw_part2.ply.convex.stl",
     "Moving_Jaw_part3.ply.convex.stl"
-  ]
+  ],
+  "enclosure_variants": {
+    "Upper_Arm_5cm.stl": [
+      "current",
+      "current",
+      "xyz_pruned"
+    ],
+    "Lower_Arm_5cm.stl": [
+      "current",
+      "current",
+      "xyz_pruned",
+      "current",
+      "xyz_pruned"
+    ],
+    "Base.stl": [
+      "principal_axes_pruned",
+      "current",
+      "xyz_pruned",
+      "current"
+    ],
+    "Base_Motor.stl": [
+      "xyz_pruned"
+    ],
+    "Rotation_Pitch_Motor.stl": [
+      "xyz_pruned"
+    ],
+    "Upper_Arm_Motor.stl": [
+      "xyz_pruned"
+    ],
+    "Wrist_Pitch_Roll_Motor.stl": [
+      "xyz_pruned"
+    ],
+    "Fixed_Jaw_Motor.stl": [
+      "xyz_pruned"
+    ],
+    "Rotation_Pitch.stl": [
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "current"
+    ],
+    "Lower_Arm_Motor.stl": [
+      "xyz_pruned",
+      "current",
+      "current",
+      "current",
+      "principal_axes_pruned"
+    ],
+    "Wrist_Pitch_Roll.stl": [
+      "xyz_pruned",
+      "xyz_pruned",
+      "current",
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "current",
+      "current",
+      "current",
+      "current",
+      "current",
+      "xyz_pruned",
+      "current",
+      "current"
+    ],
+    "cad_frame/topbase1.stl": [
+      "current",
+      "principal_axes_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "xyz_pruned"
+    ],
+    "topbase2.stl": [
+      "xyz_pruned",
+      "principal_axes_pruned",
+      "xyz_pruned",
+      "xyz_pruned",
+      "principal_axes",
+      "xyz_pruned",
+      "principal_axes_pruned",
+      "xyz_pruned"
+    ],
+    "tophead1.stl": [
+      "current"
+    ],
+    "tophead4.stl": [
+      "xyz_pruned",
+      "principal_axes_pruned",
+      "principal_axes_pruned",
+      "principal_axes_pruned",
+      "xyz_pruned",
+      "principal_axes_pruned",
+      "xyz_pruned"
+    ],
+    "tophead5.stl": [
+      "current",
+      "xyz_pruned",
+      "xyz_pruned"
+    ],
+    "tophead6.stl": [
+      "xyz_pruned"
+    ]
+  }
 }
