@@ -36,13 +36,11 @@ TCP의 기구학적 정의와 기존 닫힘 방향의 비대칭 보정은 유지
 
 들어올리기 후 `lift_height_correction_enabled=true`이면 목표 높이와 실측 관절 FK 높이를 비교한다. 부족분이 `lift_height_tolerance_m` 이하면 추가 상승을 생략하고, 초과하면 전체 부족분을 `lift_height_correction_step_m` 단위로 올림해 한 번만 추가 상승한다. 허용오차가 0.010m이면 0.527mm와 10mm 부족은 보정하지 않는다. 허용오차를 생략하면 0m이며 음수나 비유한 값은 거부한다. 기본 단위는 0.005m이며, 0.011m 부족하면 0.015m를 추가한다. 물리 경로는 실측 TCP에서 시작하고, 유지 중인 모터 명령의 지지량은 별도로 보존한다. 보정 후 남은 높이 오차는 기록만 하며 재보정이나 높이 합격 판정 없이 보유 확인과 복귀 흐름을 계속한다. 기존 `lift_height_correction_max_attempts`, `lift_height_correction_min_progress_m`, `lift_height_correction_max_total_m` 값은 사용하지 않는다. 모터 fault, 최신 피드백, 접촉, 취소, 명령 경로와 XY 및 방향의 도착 검사는 계속 적용한다. 추가 상승을 생략해도 기존 검사를 수행하며 보정 결과에 적용한 `tolerance_m`을 기록한다.
 
-## 4. 놓기 후 후퇴 및 동기 복귀 충돌 검사
+## 놓기 후 후퇴 및 동기 복귀 충돌 검사
 
-- **물체 놓기 후 안전 후퇴**:
-  - 측정된 관절 FK 위치에서 후퇴 경로를 계획하되, 첫 모터 명령은 팔이 유지 중이던 기존 목표값을 이어받아 불필요한 흔들림을 방지합니다.
-- **동기 복귀 충돌 검사 (Synchronized Return)**:
-  - 팔 복귀(Return Home)와 그리퍼 닫기가 동시에 일어나는 복귀 경로는 전송 직전에 전체 로봇 상태 및 옥토맵을 대상으로 충돌 검사를 수행합니다.
-  - 충돌 가능성이 감지되면 `hardware_collision_validation_failed` 이벤트와 함께 상세 접촉 링크를 남기고 전송을 차단합니다.
+- 측정된 관절 FK 위치에서 후퇴 경로를 계획하며 첫 명령은 유지 중인 목표값을 이어받는다.
+
+팔 복귀와 그리퍼 닫기의 동기 경로는 충돌 검사가 활성화된 경우 실행 직전 전체 로봇 상태로 검사한다. 거부하면 `hardware_collision_validation_failed`에 `trajectory_stage=synchronized_return`, 표본 번호, 관절값, 접촉한 링크·장애물과 지도 고정 여부를 남긴다. `hold_bridge`는 측정 위치에서 유지 명령까지의 검사 구간이고 `command_path`는 실제 명령 경로다. 검사가 활성화된 상태에서 통과하지 못한 경로는 전송하지 않는다. Jetson의 고정 중간 자세 복귀는 `bt_arm_return_collision_check_enabled=false`로 계획 단계와 동기 실행 단계의 충돌 검사를 생략하며, 충돌 지도 갱신을 기다리지 않는다. 이 경우에도 최종 명령의 관절 범위, 속도와 가속도 제한, 피드백 및 도착 확인은 유지한다. 생략 여부는 `collision_checks_enabled`와 `hardware_collision_validation_skipped`에 기록한다.
 
 ## 5. GPU 자원 조율 및 우선순위 (GPU Work Lock)
 
@@ -59,7 +57,7 @@ MoveIt FK와 위치 및 회전 행렬을 대조합니다. 불일치와 비유한
 이 기능을 켜고, 별도 프로파일을 사용하는 실행기의 기본값은 `false`입니다.
 
 물체 원위치 복귀는 기록 궤적의 역재생과 높이 탐색을 사용합니다. 빈 팔의
-home 복귀는 직선 관절 경로를 먼저 검사하고 막히면 RRT를 사용하며 충돌 검사를 유지합니다.
+home 복귀는 Jetson에서 두 개의 고정 중간 자세를 거칩니다. 중간 자세 파일이 없는 경로는 직선 관절 경로를 먼저 검사하고 막히면 RRT를 사용하며 충돌 검사를 유지합니다.
 두 경로는 별개이며 FK 전환은 명령 궤적이나 속도 제한을 변경하지 않습니다.
 
 `execution_timing_enabled=true`는 `execution_timing` JSON 로그를 추가합니다.

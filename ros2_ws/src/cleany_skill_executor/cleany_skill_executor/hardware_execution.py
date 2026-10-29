@@ -4,7 +4,7 @@ Never starts hardware, enables torque, clears faults, or changes driver limits.
 """
 from copy import deepcopy
 from collections import deque
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import json
 import math
 from pathlib import Path
@@ -145,6 +145,7 @@ class HardwareExecution:
                             'hardware_pickup_height_search_tolerance_m': 0.,
                             'hardware_path_simplification_tolerance_rad': .002,
                             'hardware_start_delay_sec': .8,
+                            'hardware_return_start_delay_sec': .8,
                             'hardware_guard_max_age_sec': .25, 'hardware_start_tolerance_rad': .005,
                             'hardware_start_blend_max_rad': .03,
                             'hardware_path_refresh_attempts': 1,
@@ -1247,11 +1248,18 @@ class HardwareExecution:
     def execute_pregrasp_parallel(
             self, arm, arm_trajectory, gripper_trajectory, minimum_gripper_opening,
             gripper_opening_direction, *, gripper_goal_required=False,
-            stage_prefix='synchronized_pregrasp'):
-        with self.frozen_sensor_scene():
+            stage_prefix='synchronized_pregrasp', scene_barrier=None, check_collisions=True):
+        if type(check_collisions) is not bool:
+            raise ValueError('check_collisions must be boolean')
+        scene = (self.frozen_sensor_scene(
+            **({'barrier': scene_barrier} if scene_barrier is not None else {}))
+            if check_collisions else nullcontext())
+        with scene:
             resumes = []
             options = ({'gripper_goal_required': True, 'stage_prefix': stage_prefix}
                        if gripper_goal_required else {})
+            if not check_collisions:
+                options['check_collisions'] = False
             limit = self.positive_integer('hardware_communication_resume_limit')
             for attempt in range(limit+1):
                 try:
@@ -1282,20 +1290,26 @@ class HardwareExecution:
                     resumes.append({'generation': error.count, 'remaining_waypoints': len(points)})
                     self.node.get_logger().warning('Communication recovered: rebuilding synchronized pregrasp from fresh encoders')
 
-    def execute_arm_gripper(self, arm, arm_trajectory, gripper_trajectory):
-        """Return an empty arm while closing its jaw on the same timeline."""
+    def execute_arm_gripper(self, arm, arm_trajectory, gripper_trajectory, *, scene_barrier=None,
+                            check_collisions=True):
+        """Return an empty arm and close its jaw; joint limits always apply."""
         if not gripper_trajectory.points:
             raise ValueError('Missing synchronized gripper goal')
         target = float(gripper_trajectory.points[-1].positions[0])
         return self.execute_pregrasp_parallel(arm, arm_trajectory, gripper_trajectory,
-            target, 1, gripper_goal_required=True, stage_prefix='synchronized_return')
+            target, 1, gripper_goal_required=True, stage_prefix='synchronized_return',
+            check_collisions=check_collisions,
+            **({'scene_barrier': scene_barrier} if scene_barrier is not None else {}))
 
     @timed_operation('synchronized_execution', node_attribute='node')
     def _execute_pregrasp_parallel(
             self, arm, arm_trajectory, gripper_trajectory, minimum_gripper_opening,
             gripper_opening_direction, *, _refresh_attempt=0,
-            gripper_goal_required=False, stage_prefix='synchronized_pregrasp'):
-        """Start arm pregrasp and gripper opening on one synchronized timeline."""
+            gripper_goal_required=False, stage_prefix='synchronized_pregrasp',
+            check_collisions=True):
+        """Start arm and gripper on one timeline with explicit collision policy."""
+        if type(check_collisions) is not bool:
+            raise ValueError('check_collisions must be boolean')
         preparation_began = time.monotonic()
         self.last_execution_metrics = {}
         limits = self.verify(arm)
@@ -1363,9 +1377,21 @@ class HardwareExecution:
                 position_range_exemptions=range_exemptions)
             hold_bridge_samples = len(bridge)-1
             collision_samples = [*bridge[:-1], *samples]
-        HardwareExecution.validate_collision_samples(
-            self, arm, combined_names, collision_samples, baseline, measured,
-            hold_bridge_samples=hold_bridge_samples, trajectory_stage=stage_prefix)
+        path_preparation_sec = time.monotonic()-path_preparation_began
+        collision_began = time.monotonic()
+        if check_collisions:
+            HardwareExecution.validate_collision_samples(
+                self, arm, combined_names, collision_samples, baseline, measured,
+                hold_bridge_samples=hold_bridge_samples, trajectory_stage=stage_prefix)
+        else:
+            self.node.get_logger().info(json.dumps({
+                'stage': 'hardware_collision_validation_skipped',
+                'trajectory_stage': stage_prefix, 'arm': arm,
+                'controller': 'arm_gripper', 'command_samples': len(samples),
+                'hold_bridge_samples': hold_bridge_samples,
+            }))
+        collision_sec = time.monotonic()-collision_began
+        drift_began = time.monotonic()
         latest = self.monitor()
         drift = path_validation_drift(
             baseline, latest, combined_names,
@@ -1377,6 +1403,7 @@ class HardwareExecution:
                 return self._execute_pregrasp_parallel(arm, arm_trajectory, gripper_trajectory,
                     minimum_gripper_opening, gripper_opening_direction,
                     _refresh_attempt=_refresh_attempt+1,
+                    **({'check_collisions': False} if not check_collisions else {}),
                     **({'gripper_goal_required': True, 'stage_prefix': stage_prefix}
                        if gripper_goal_required else {}))
             details = ', '.join(f'{name}={delta:.6f}rad' for name, delta in sorted(drift.items()))
@@ -1387,7 +1414,7 @@ class HardwareExecution:
             'gripper': JointTrajectory(joint_names=[gripper_name]),
         }
         header_ns = self.node.get_clock().now().nanoseconds
-        delay_ns = round(self.value('hardware_start_delay_sec')*1e9)
+        delay_ns = round(self.value('hardware_return_start_delay_sec' if stage_prefix == 'synchronized_return' else 'hardware_start_delay_sec')*1e9)
         start_ns = header_ns+delay_ns
         for controller, command in commands.items():
             # A common *current* epoch plus an explicit hold segment preserves
@@ -1408,6 +1435,7 @@ class HardwareExecution:
                 commands[controller].points.append(point)
         self.node.get_logger().info(json.dumps({
             'stage': stage_prefix + '_trajectory_prepared',
+            'collision_checks_enabled': check_collisions,
             'preparation_wall_sec': time.monotonic() - preparation_began,
             'model_verification_wall_sec': getattr(self, '_last_model_verification_sec', None),
             'model_cache_hit': getattr(self, '_last_model_cache_hit', False),
@@ -1541,6 +1569,7 @@ class HardwareExecution:
                 arm, nominal_target, limits, actual)
             metrics = {
                 'stage': stage_prefix + '_tracking',
+                'collision_checks_enabled': check_collisions,
                 'controllers': tracking,
                 'motion_monitor': motion_report,
                 'duration_sec': duration,

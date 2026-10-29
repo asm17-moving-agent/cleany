@@ -604,3 +604,8 @@ cuRobo의 CUDA 한계 tensor, 반환 해의 범위와 독립 FK 오차도 확인
 입력은 운영 control profile로 새로 생성한 쓰기 가능 모델이어야 하며,
 검증 도구 자체는 모터와 ROS 서비스에 명령을 보내지 않습니다.
 실물 이동이나 실시간 장애물 장면의 검증을 대신하지 않습니다.
+
+
+## 고정 중간 자세 복귀
+
+고정 중간 자세 복귀의 충돌 설정은 `test_fixed_arm_return.py`, 동기 실행의 충돌 생략과 관절 제한은 `test_hardware_collection.py`에서 검사한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "fixed_arm_return or arm_return_motion or hardware_collection or execution_optimization"'`로 관련 검사를 선택할 수 있다. 가짜 모터 전송을 사용하므로 실물 복귀 성공을 의미하지 않는다.

@@ -58,13 +58,17 @@ class JetsonOperations(CollectionPipeline):
             'bt_arm_return_optimization_budget_sec': .5,
             'bt_arm_return_planner_id': 'RRTConnectReturnkConfigDefault',
             'bt_arm_return_planning_trajectory_scaling': 1.0,
+            'bt_arm_return_waypoints_file': '',
+            'bt_arm_return_collision_check_enabled': True,
             'bt_denylist': ['battery', 'knife', 'broken glass'],
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
         for name, value in defaults.items():
             actual = self.get_parameter(name).value
-            if isinstance(value, (float, int)) and (
+            if isinstance(value, bool) and type(actual) is not bool:
+                raise ValueError(f'{name} must be boolean')
+            if type(value) in (float, int) and (
                     not math.isfinite(actual) or actual <= 0):
                 raise ValueError(f'{name} must be finite and positive')
         if self.value('bt_minimum_confidence') > 1:
@@ -75,6 +79,9 @@ class JetsonOperations(CollectionPipeline):
             raise ValueError('bt_arm_return_planner_id must not be empty')
         if self.value('bt_arm_return_planning_trajectory_scaling') > 1:
             raise ValueError('bt_arm_return_planning_trajectory_scaling must be at most one')
+        from .arm_return_motion import load_return_waypoints
+        waypoints_file = self.value('bt_arm_return_waypoints_file')
+        self.return_waypoints = load_return_waypoints(waypoints_file) if waypoints_file else None
         self._snapshot = self.create_client(GetSceneSnapshot, '/perception/get_scene_snapshot')
         self._inspection = self.track(ActionClient(self, InspectScene, '/perception/inspect_scene'))
         self._selection = self.track(ActionClient(self, SelectReachableGrasp, '/grasp/select_reachable'))

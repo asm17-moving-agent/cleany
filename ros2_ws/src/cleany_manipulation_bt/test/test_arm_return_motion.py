@@ -9,7 +9,8 @@ from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES,
 from cleany_skill_executor.core.joint_path import executable_joint_path
 
 
-def test_logged_return_start_uses_one_smooth_connection_and_closes_on_that_path():
+@pytest.mark.parametrize('capture', [False, True])
+def test_logged_return_start_uses_one_smooth_connection_and_closes_on_that_path(capture):
     names = ARM_JOINT_NAMES['right']
     start = (1.7629816532140783, .29004267130991535, .1918647662343087,
              1.5006386753174614, .47045580821563315)
@@ -17,13 +18,20 @@ def test_logged_return_start_uses_one_smooth_connection_and_closes_on_that_path(
             -1.7778837331594581, 1.7410681942502026)
     state = JointState(name=[*names, 'right_gripper_joint'], position=[*start, 1.74532919957])
     dispatched = []
+    barriers = []
+    def dispatch(*args, **kwargs):
+        dispatched.append(args)
+        assert kwargs == ({'scene_barrier': 'settled'} if capture else {})
     ops = NS(check_execution=lambda: None, event=lambda *args, **kwargs: None,
         motion=NS(set_current_state=lambda _: None, set_gripper_position=lambda *_: None,
                   _validated_cubic_path=lambda arm, path: path,
                   plan=lambda *_: pytest.fail('A valid direct connection must bypass RRT')),
         real=NS(monitor=lambda: state,
-                execute_arm_gripper=lambda *args: dispatched.append(args)))
+                execute_arm_gripper=dispatch))
+    if capture:
+        ops.real.capture_scene_barrier = lambda arm: barriers.append(arm) or 'settled'
     move_arm_return(ops, 'right', home, -.374532977628)
+    assert barriers == (['right'] if capture else [])
     arm, trajectory, jaw = dispatched[0]
     assert arm == 'right' and len(trajectory.points) == 2
     assert tuple(trajectory.points[0].positions) == start

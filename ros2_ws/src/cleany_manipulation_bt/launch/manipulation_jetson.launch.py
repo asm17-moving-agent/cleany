@@ -30,6 +30,7 @@ def create_server(context):
             str(Path(value('hardware_monitor_config')).expanduser().resolve()),
             {'collection_config': config, 'database_path': value('database_path'),
              'arm_return_pose_file': str(root / 'configs/robot/arm_return_home.json'),
+             'bt_arm_return_waypoints_file': str(root / 'configs/robot/arm_return_waypoints.json'),
              'gripper_contact_rule_file': str(root / 'configs/robot/gripper_contact_decision.yaml'),
              'monitor_port': int(value('monitor_port'))}],
         arguments=['--ros-args', '--log-level', value('log_level')])]

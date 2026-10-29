@@ -446,6 +446,10 @@ export CLEANY_HARDWARE_MONITOR_CONFIG=/absolute/path/to/local-motion-monitor.yam
 
 상세한 파라미터 및 하드웨어 연동 계약은 [실물 경로와 설정 계약 문서](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md)와 [하드웨어 인터페이스 문서](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 참고하세요.
 
+## 고정 중간 자세 복귀
+
+Jetson의 빈 팔 복귀는 `configs/robot/arm_return_waypoints.json`의 두 중간 자세를 거친다. `manipulation_jetson.yaml`의 `bt_arm_return_collision_check_enabled=false`는 이 경로와 그리퍼 닫기의 충돌 검사를 생략한다. 관절 범위와 속도 제한은 실행기에 유지된다. 설정 변경은 실행 중인 작업이 없는 상태에서 `tools/collection-runtime action-restart`로 Action 서버에 반영한다. 상세 범위는 [고정 중간 자세 복귀 계약](../ros2_ws/src/cleany_manipulation_bt/docs/execution_contract.md#jetson-고정-중간-자세-복귀)을 따른다.
+
 ## 충돌 최적화 모델 갱신
 
 기본 URDF는 평면화한 충돌 메시를 사용하고, cuRobo는 패키지의

@@ -1,7 +1,9 @@
-"""Collision-checked joint connections and synchronized empty-arm return."""
+"""Joint connections and synchronized empty-arm return with explicit collision policy."""
 from collections import deque
 from collections.abc import Callable, Iterator
+import json
 import math
+from pathlib import Path
 import time
 
 import numpy as np
@@ -11,6 +13,26 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution, PlannedPath
 from cleany_skill_executor.core.joint_path import executable_joint_path
 from cleany_skill_executor.trajectory_io import path_to_message
+
+
+def load_return_waypoints(path: str) -> dict[str, tuple[tuple[float, ...], ...]]:
+    """Read two fixed poses per arm in ARM_JOINT_NAMES order, in radians."""
+    raw = json.loads(Path(path).expanduser().read_text())
+    if (not isinstance(raw, dict) or raw.get('frame') != 'base_link'
+            or not isinstance(raw.get('arms'), dict)
+            or set(raw['arms']) != set(ARM_JOINT_NAMES)
+            or raw.get('joint_names') != {arm: list(names) for arm, names in ARM_JOINT_NAMES.items()}):
+        raise ValueError('Return waypoints require both arms and explicit base_link joint order')
+    result = {}
+    for arm, names in ARM_JOINT_NAMES.items():
+        poses = raw['arms'][arm]
+        if (not isinstance(poses, list) or len(poses) != 2
+                or any(not isinstance(q, list) or len(q) != len(names)
+                       or any(type(v) not in (int, float) or not math.isfinite(v) for v in q)
+                       for q in poses)):
+            raise ValueError(f'{arm}: return requires two finite five-joint poses')
+        result[arm] = tuple(tuple(float(v) for v in q) for q in poses)
+    return result
 
 
 def _return_candidates(path: PlannedPath) -> Iterator[tuple[tuple[float, ...], ...]]:
@@ -127,19 +149,36 @@ def move_arm_return(operations, arm: str, home: tuple[float, ...], gripper_close
             timings[name + '_wall_sec'] = elapsed
             operations.event('arm_return_planning_phase', arm=arm, phase=name, wall_sec=elapsed)
 
+    fixed = getattr(operations, 'return_waypoints', None)
+    check_collisions = (operations.value('bt_arm_return_collision_check_enabled')
+                        if fixed is not None else True)
+    if type(check_collisions) is not bool:
+        raise ValueError('bt_arm_return_collision_check_enabled must be boolean')
+    capture_barrier = getattr(operations.real, 'capture_scene_barrier', None)
+    scene_barrier = (capture_barrier(arm)
+                     if check_collisions and capture_barrier is not None else None)
     state = operations.real.monitor()
     names = ARM_JOINT_NAMES[arm]
     positions = dict(zip(state.name, state.position, strict=True))
     start = tuple(float(positions[name]) for name in names)
     gripper_name = f'{arm}_gripper_joint'
     operations.motion.set_current_state(state)
-    # Plan conservatively with the currently open jaw. Physical dispatch below
-    # rechecks the actual combined arm and closing-jaw cubic with full state.
+    # When enabled, collision checks use the open jaw for planning and the
+    # combined arm and closing-jaw cubic at physical dispatch.
     operations.motion.set_gripper_position(arm, positions[gripper_name])
     validate = lambda path: operations.motion._validated_cubic_path(arm, path)
-    direct = PlannedPath(names, (start, home))
-    path = measured_phase('direct_validation', lambda: validate(direct))
-    route, input_points = 'direct', 2
+    if fixed is not None:
+        proposed = PlannedPath(names, (start, *fixed[arm], home))
+        # Hardware dispatch always checks the retimed command's joint limits.
+        path = (measured_phase('fixed_validation', lambda: validate(proposed))
+                if check_collisions else proposed)
+        if path is None:
+            raise RuntimeError('Fixed arm return failed joint-limit or collision validation; RRT is disabled')
+        route, input_points = 'fixed_waypoints', len(proposed.points)
+    else:
+        direct = PlannedPath(names, (start, home))
+        path = measured_phase('direct_validation', lambda: validate(direct))
+        route, input_points = 'direct', 2
     if path is None:
         planner_id = operations.value('bt_arm_return_planner_id')
         planning_scaling = operations.value('bt_arm_return_planning_trajectory_scaling')
@@ -170,10 +209,13 @@ def move_arm_return(operations, arm: str, home: tuple[float, ...], gripper_close
     operations.check_execution()
     operations.event(planned_event, arm=arm, route=route,
                      input_waypoints=input_points, return_waypoints=len(path.points),
-                     gripper_goal_rad=gripper_closed,
+                     fixed_waypoints_joint_rad=list(fixed[arm]) if fixed is not None else [],
+                     gripper_goal_rad=gripper_closed, collision_checks_enabled=check_collisions,
                      optimization=optimization,
                      planning_wall_sec=time.monotonic() - started, **timings)
     jaw = JointTrajectory(joint_names=[gripper_name], points=[
         JointTrajectoryPoint(positions=[positions[gripper_name]]),
         JointTrajectoryPoint(positions=[gripper_closed])])
-    return operations.real.execute_arm_gripper(arm, path_to_message(path), jaw)
+    return operations.real.execute_arm_gripper(arm, path_to_message(path), jaw,
+        **({'check_collisions': False} if not check_collisions else {}),
+        **({'scene_barrier': scene_barrier} if scene_barrier is not None else {}))
