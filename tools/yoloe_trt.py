@@ -24,8 +24,8 @@ from cleany_perception.model_contract import (  # noqa: E402
 )
 from cleany_perception.model_runtime import load_model_profile  # noqa: E402
 
-DEFAULT_LOCK = REPO / 'configs/models/yoloe-26s-seg-real34.lock.json'
-DEFAULT_PROFILE = REPO / 'ros2_ws/src/cleany_perception/config/yoloe_real34.yaml'
+DEFAULT_LOCK = REPO / 'configs/models/yoloe-26s-seg-real32.lock.json'
+DEFAULT_PROFILE = REPO / 'ros2_ws/src/cleany_perception/config/yoloe_real32.yaml'
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -81,14 +81,21 @@ def load_inputs(lock_path: Path, profile: Path) -> dict[str, Any]:
     require_hash(profile, lock['profile']['sha256'])
     parameters = load_model_profile(profile)
     classes = parameters['yoloe_classes']
-    if (classes != lock['classes'] or len(classes) != 34
-            or len({name.casefold() for name in classes}) != 34
+    if (not classes or classes != lock['classes']
             or any(not isinstance(name, str) or not name.strip() or name != name.strip()
-                   for name in classes)):
-        raise ValueError('Profile must contain the locked, ordered 34 classes')
+                   for name in classes)
+            or len({name.casefold() for name in classes}) != len(classes)):
+        raise ValueError('Profile must contain the locked, ordered unique classes')
     if parameters['yoloe_image_size'] != lock['export']['imgsz']:
         raise ValueError('Profile input size differs from lock')
     return lock
+
+
+def artifact_stem(lock: dict[str, Any]) -> str:
+    """Identify artifacts by checkpoint scale and prompt profile."""
+    checkpoint = Path(lock['source']['checkpoint_filename']).stem
+    profile = Path(lock['profile']['filename']).stem.removeprefix('yoloe_')
+    return f'{checkpoint}-{profile}'
 
 
 def inspect_onnx(path: Path, image_size: int, class_count: int) -> tuple[dict, dict]:
@@ -147,7 +154,7 @@ def export_version(
                 (version / 'mobileclip2_b.ts').unlink()
             if ordered_names(model.names) != lock['classes']:
                 raise ValueError('Prepared class IDs differ from lock')
-            prepared = version / 'yoloe-26s-seg-real34.pt'
+            prepared = version / f'{artifact_stem(lock)}.pt'
             model.save(str(prepared))
             # Export the saved artifact, not a separately re-prompted model.
             model = YOLOE(str(prepared), task='segment')

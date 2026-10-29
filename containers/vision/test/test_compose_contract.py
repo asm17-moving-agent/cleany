@@ -67,7 +67,8 @@ def test_runtime_forces_one_anygrasp_predictor_process() -> None:
 def test_perception_defaults_to_yoloe_seg_and_gemini() -> None:
     script = RUN_PERCEPTION.read_text(encoding='utf-8')
     assert 'detector_type:=yoloe_gemini segmenter_type:=yoloe_seg' in script
-    assert '/models/yoloe/yoloe-26s-seg.pt' in script
+    assert '/models/yoloe/yoloe-26m-seg.pt' in script
+    assert '/models/yoloe/real32/m/active/yoloe-26m-seg-real32.engine' in script
     assert 'YOLOE_TEXT_ENCODER_DIRECTORY:-/models/yoloe' in script
     assert 'PERCEPTION_DETECTOR_BACKEND' not in script
     assert 'SAM2' not in script

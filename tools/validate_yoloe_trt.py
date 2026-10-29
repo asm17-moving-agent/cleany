@@ -15,7 +15,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from yoloe_trt import DEFAULT_PROFILE, capture_log, check_environment, write_json
+from yoloe_trt import DEFAULT_PROFILE, artifact_stem, capture_log, check_environment, write_json
 from cleany_perception.adapters.yoloe_detector import YoloeDetector
 from cleany_perception.adapters.gemini_detector import parse_gemini_classifications
 from cleany_perception.adapters.yoloe_reference_tracker import YoloeReferenceTracker
@@ -150,7 +150,8 @@ def activate(version: Path, validation: dict, previous_active: Path | None) -> N
     manifest_path = version / 'manifest.json'
     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
     validation_path = version / 'validation.json'
-    require_hash(version / 'yoloe-26s-seg-real34.engine', validation['candidate_sha256'])
+    filename = validation.get('candidate_filename', 'yoloe-26s-seg-real34.engine')
+    require_hash(version / filename, validation['candidate_sha256'])
     if not validation['passed']:
         raise ValueError('Failed comparison cannot activate an engine')
     active = version.parent / 'active'
@@ -179,13 +180,14 @@ def validate(version: Path, dataset_roots: list[Path], output: Path,
         with capture_log(output / 'validation.log'):
             parameters = load_model_profile(profile)
             classes = parameters['yoloe_classes']
-            engine = version / 'yoloe-26s-seg-real34.engine'
-            manifest = read_model_manifest(engine, classes, 640, allow_unvalidated=True)
             lock = json.loads((version / 'input.lock.json').read_text(encoding='utf-8'))
+            engine = version / f'{artifact_stem(lock)}.engine'
+            manifest = read_model_manifest(engine, classes, 640, allow_unvalidated=True)
             require_hash(profile, lock['profile']['sha256'])
             result['environment'] = check_environment(lock)
-            result.update(candidate_sha256=sha256(engine), lock_sha256=manifest['lock_sha256'])
-            reference = version / 'yoloe-26s-seg-real34.pt'
+            result.update(candidate_sha256=sha256(engine), candidate_filename=engine.name,
+                          lock_sha256=manifest['lock_sha256'])
+            reference = engine.with_suffix('.pt')
             active = version.parent / 'active'
             previous_active = active.resolve() if active.is_symlink() else None
             paths = {'reference': reference, 'candidate': engine}

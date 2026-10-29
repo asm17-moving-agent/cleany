@@ -18,6 +18,10 @@ def main() -> None:
     parser.add_argument('--image', default='cleany-yoloe-export:jp6.2')
     parser.add_argument('--vision-image', default='cleany-vision:jp6.2')
     parser.add_argument('--model-dir', type=Path, default=Path.home() / 'models/yoloe')
+    parser.add_argument('--model-size', choices=('n', 's', 'm'), default='s')
+    parser.add_argument('--lock', type=Path)
+    parser.add_argument('--profile', type=Path)
+    parser.add_argument('--versions', type=Path)
     parser.add_argument('--version', type=Path)
     parser.add_argument('--dataset-root', type=Path, action='append')
     parser.add_argument('--activate', action='store_true')
@@ -36,12 +40,16 @@ def main() -> None:
                '-e', 'MPLCONFIGDIR=/tmp/matplotlib', '-e', f'CLEANY_YOLOE_IMAGE_ID={image_id}',
                '-v', f'{REPO}:{REPO}:ro', '-v', f'{model_dir}:{model_dir}',
                '--entrypoint', 'python3']
-    versions = model_dir / 'real34'
+    versions = (args.versions or model_dir / 'real32' / args.model_size).expanduser().resolve()
+    lock = (args.lock or REPO / f'configs/models/yoloe-26{args.model_size}-seg-real32.lock.json').resolve()
+    inputs = json.loads(lock.read_text())
+    profile = (args.profile or REPO / 'ros2_ws/src/cleany_perception/config'
+               / inputs['profile']['filename']).resolve()
     if args.command == 'export':
         command += [args.image, str(REPO / 'tools/yoloe_trt.py'),
-                    '--checkpoint', str(model_dir / 'yoloe-26s-seg.pt'),
+                    '--checkpoint', str(model_dir / inputs['source']['checkpoint_filename']),
                     '--text-encoder', str(model_dir / 'mobileclip2_b.ts'),
-                    '--versions', str(versions)]
+                    '--versions', str(versions), '--lock', str(lock), '--profile', str(profile)]
     else:
         if args.version:
             version = args.version.expanduser().resolve()
@@ -53,7 +61,7 @@ def main() -> None:
                 raise ValueError('No completed segmentation export; run make yoloe-trt-export')
             version = sorted(candidates)[-1]
         if version.parent != versions:
-            raise ValueError('Version must be inside the selected model directory/real34')
+            raise ValueError('Version must be inside the selected versions directory')
         stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
         output = version / ('validation-' + stamp)
         telemetry = version / ('telemetry-' + stamp)
@@ -61,7 +69,7 @@ def main() -> None:
         for root in roots:
             command += ['-v', f'{root.resolve()}:{root.resolve()}:ro']
         command += [args.image, str(REPO / 'tools/validate_yoloe_trt.py'),
-                    '--version', str(version), '--output', str(output)]
+                    '--version', str(version), '--output', str(output), '--profile', str(profile)]
         for root in roots:
             command += ['--dataset-root', str(root.resolve())]
         if args.activate:

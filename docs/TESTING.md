@@ -460,6 +460,36 @@ Jetson 실물 관련 패키지를 수정한 경우 관련 네이티브 패키지
 make test-jetson-controller JETSON_CONTROLLER_TEST_ARGS='-k "readonly_controllers_cannot_activate_or_execute or shared_bus_readonly_has_no_writes"'
 ```
 
+## s와 m의 저장 영상 TensorRT 비교
+
+`tools/validation/compare_yoloe_models.py`는 같은 32종 프로파일의 s와 m
+엔진에 저장 RGB를 재생합니다. 입력 디렉터리의 `local/`, `jetson/` 아래에
+영상을 둡니다. 기본 비교는 긴 변을 640픽셀로 맞추며, `local/` 영상은 원본
+크기도 별도로 비교합니다. 모델 입력은 모두 640, FP16, confidence 0.25입니다.
+
+```bash
+python3 tools/validation/compare_yoloe_models.py \
+  --input-root /evidence/input --annotations /evidence/annotations.json \
+  --s-engine /models/real32/s/active/yoloe-26s-seg-real32.engine \
+  --m-engine /models/real32/m/active/yoloe-26m-seg-real32.engine \
+  --profile ros2_ws/src/cleany_perception/config/yoloe_real32.yaml \
+  --output /evidence/comparison
+```
+
+출력 디렉터리는 실행 전에 없어야 합니다. `report.html`과 표시 영상을
+육안으로 검토하고, 원본 검출 및 입력과 모델 hash는 `results.json`에서
+확인합니다. 기본 최대 후보 10개와 진단용 40개를 분리하고, 중복 박스로
+검토 대상 회수율이 늘지 않도록 일대일로 대응합니다. 이 비교는 Gemini,
+RGB-D 복원과 로봇 실행을 사용하지 않습니다.
+
+`annotations.json`은 영상 파일의 확장자를 뺀 이름을 key로 사용합니다.
+각 항목은 `reference_width`, `reference_height`, `targets`를 가지며,
+각 target에는 허용 `labels`, 기준 영상의 `bbox: [xmin, ymin, xmax, ymax]`,
+`scope: main`을 기록합니다. 불완전한 수동 박스는 검토 표본이며, 전체
+정답 mAP나 마스크 정확도로 해석하지 않습니다. 요약 지연은 영상별 반복
+중앙값의 분포이며 순수 GPU 실행 시간이나 영상 스트림 처리율과 다릅니다.
+
+
 ## 승인 대상 재확인
 
 `cleany_interfaces`, `cleany_perception`, `cleany_dev_monitor`를 빌드한 뒤

@@ -4,8 +4,13 @@
 
 `yoloe_gemini`는 Gemini가 판단한 짧은 영어 종류명을 `label`로 반환한다.
 색상, 브랜드와 상태 설명은 이름에 붙이지 않는다. YOLOE와 다른 종류나
-YOLOE 34종 밖의 이름도 허용하며, `detector_label`에는 원본 YOLOE 클래스를
+설정된 YOLOE 범주 밖의 이름도 허용하며, `detector_label`에는 원본 YOLOE 클래스를
 보존한다. bbox, instance mask와 confidence는 YOLOE 결과다.
+
+실물 기본 실행은 [32종 프로파일](../config/yoloe_real32.yaml)을 사용한다.
+`phone`, `pen`은 대표 검출명이며 충전 어댑터는 `charger`에 포함한다.
+이 목록은 검출 프롬프트이며 Gemini의 종류명 별칭이나 수거 정책을 변경하지 않는다.
+TensorRT 엔진의 클래스 순서와 입력 크기가 프로파일과 다르면 준비를 거절한다.
 
 `semantic_label_aliases` ROS parameter는 `source=type` 문자열 배열이다.
 대소문자와 연속 공백을 정규화한 뒤 명시한 별칭만 적용한다. 기본값은

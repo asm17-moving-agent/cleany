@@ -9,18 +9,38 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / 'tools'))
 sys.path.insert(0, str(REPO / 'ros2_ws/src/cleany_perception'))
 
-from yoloe_trt import DEFAULT_LOCK, DEFAULT_PROFILE, export_version, load_inputs
+from yoloe_trt import DEFAULT_LOCK, DEFAULT_PROFILE, artifact_stem, export_version, load_inputs
 from validate_yoloe_trt import acceptance, bbox_iou, mask_iou, matching, activate, replay_head_labels
 from cleany_perception.model_contract import check_segmentation_shapes
 
 
-def test_locked_profile_uses_the_exact_34_class_order():
+def test_locked_profile_uses_the_exact_32_class_order():
     lock = load_inputs(DEFAULT_LOCK, DEFAULT_PROFILE)
-    assert len(lock['classes']) == 34
-    assert lock['classes'][:4] == ['cup', 'bottle', 'beverage can', 'drink carton']
-    assert lock['classes'][-4:] == ['wallet', 'keys', 'eyeglasses', 'personal bag']
+    assert len(lock['classes']) == 32
+    assert lock['classes'][:4] == ['cup', 'bottle', 'can', 'lid']
+    assert lock['classes'][-8:] == ['charger', 'tape', 'card', 'scissors', 'remote', 'lighter', 'cigarette', 'keyboard']
+    assert 'phone' in lock['classes'] and 'pen' in lock['classes']
     assert lock['export']['quantize'] == 16
     assert lock['export']['nms'] is False
+
+
+def test_legacy_profile_and_medium_checkpoint_keep_distinct_artifact_names():
+    legacy = json.loads((REPO / 'configs/models/yoloe-26s-seg-real34.lock.json').read_text())
+    medium = load_inputs(REPO / 'configs/models/yoloe-26m-seg-real32.lock.json', DEFAULT_PROFILE)
+    assert len(legacy['classes']) == 34
+    assert artifact_stem(legacy) == 'yoloe-26s-seg-real34'
+    assert artifact_stem(medium) == 'yoloe-26m-seg-real32'
+    assert medium['classes'] == load_inputs(DEFAULT_LOCK, DEFAULT_PROFILE)['classes']
+
+
+def test_nano_lock_uses_the_same_runtime_contract_as_small_and_medium():
+    nano = load_inputs(REPO / 'configs/models/yoloe-26n-seg-real32.lock.json', DEFAULT_PROFILE)
+    small = load_inputs(DEFAULT_LOCK, DEFAULT_PROFILE)
+    assert artifact_stem(nano) == 'yoloe-26n-seg-real32'
+    for key in ('classes', 'profile', 'export', 'runtime', 'packages'):
+        assert nano[key] == small[key]
+    assert nano['source']['checkpoint_filename'] == 'yoloe-26n-seg.pt'
+    assert len(nano['source']['checkpoint_sha256']) == 64
 
 
 def test_failed_export_records_manifest_and_never_overwrites_inputs(tmp_path):
@@ -79,7 +99,7 @@ def test_saved_head_replay_normalizes_cup_and_preserves_mask():
     result = replay_head_labels(adapter, [('one', np.zeros((20, 30, 3), np.uint8),
                                           {'camera': 'head', 'sample_id': 'saved-head'})])
     assert result['passed']
-    assert result['outcomes'][0]['label'] == 'cup (paper cup)'
+    assert result['outcomes'][0]['label'] == 'cup'
     assert result['outcomes'][0]['geometry_preserved']
 
 

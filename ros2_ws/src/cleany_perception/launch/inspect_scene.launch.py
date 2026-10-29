@@ -25,6 +25,7 @@ def _inspection_node(context):
                 **{name: LaunchConfiguration(name) for name in (
                     'yoloe_model_path', 'yoloe_text_encoder_directory',
                     'detector_type', 'segmenter_type', 'gemini_model', 'yoloe_device',
+                    'yoloe_engine_execution',
                 ) if LaunchConfiguration(name).perform(context).strip()},
                 **({'yoloe_classes': ParameterValue(
                     LaunchConfiguration('yoloe_classes'), value_type=list[str])}
@@ -56,7 +57,7 @@ def generate_launch_description() -> LaunchDescription:
                 default_value='',
             ),
             DeclareLaunchArgument('yoloe_config_file', default_value=PathJoinSubstitution([
-                FindPackageShare('cleany_perception'), 'config', 'yoloe_real34.yaml'])),
+                FindPackageShare('cleany_perception'), 'config', 'yoloe_real32.yaml'])),
             DeclareLaunchArgument('yoloe_model_path', default_value=''),
             DeclareLaunchArgument(
                 'yoloe_classes',
@@ -69,6 +70,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument(
                 'minimum_detection_confidence', default_value=''
             ),
+            DeclareLaunchArgument('yoloe_engine_execution', default_value='async',
+                                  choices=['async', 'ultralytics']),
             DeclareLaunchArgument('target_frame', default_value='base_link'),
             DeclareLaunchArgument('rgbd_qos_reliability', default_value='best_effort',
                                   choices=['best_effort', 'reliable']),
