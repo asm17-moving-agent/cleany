@@ -12,6 +12,14 @@ from cleany_perception.adapters.yoloe_gemini import YoloeGeminiDetector
 from cleany_perception.core.models import FailureKind, InspectionFailure
 
 
+class _Boxes:
+    def __init__(self, data):
+        self.data = np.asarray(data, dtype=np.float32).reshape(-1, 6)
+
+    def __len__(self):
+        return len(self.data)
+
+
 class _Model:
     def to(self, device):
         self.device = device
@@ -27,13 +35,7 @@ class _Model:
 
     def predict(self, image, **kwargs):
         self.calls.append((image.copy(), kwargs))
-        boxes = [
-            SimpleNamespace(
-                xyxy=np.array([[2.0, 3.0, 12.0, 15.0]]),
-                cls=np.array([1.0]),
-                conf=np.array([0.82]),
-            )
-        ]
+        boxes = _Boxes([[2.0, 3.0, 12.0, 15.0, 0.82, 1.0]])
         return [SimpleNamespace(boxes=boxes, names=self.names)]
 
 
@@ -132,6 +134,39 @@ def test_yoloe_detector_reports_missing_assets(tmp_path):
         detector.detect(np.zeros((10, 10, 3), dtype=np.uint8), 'cup')
 
     assert raised.value.kind == FailureKind.DETECTOR_API
+
+
+def test_box_results_cross_to_cpu_once_and_masks_remain_owned(tmp_path):
+    checkpoint, encoder = _model_files(tmp_path)
+    model = _Model()
+    transfers = []
+    data = np.array([[2, 3, 12, 15, .8, 1], [1, 2, 8, 10, .9, 0]], dtype=np.float32)
+    class Tensor:
+        def detach(self):
+            return self
+
+        def cpu(self):
+            transfers.append(True)
+            return data
+    class TwoBoxes:
+        data = Tensor()
+
+        def __len__(self):
+            return 2
+    boxes = TwoBoxes()
+    masks = np.ones((2, 20, 30), np.uint8)
+    model.predict = lambda *args, **kwargs: [SimpleNamespace(
+        boxes=boxes, names=model.names, masks=SimpleNamespace(data=masks))]
+    detector = YoloeDetector(str(checkpoint), ['cup', 'wallet'], device='cpu',
+        text_encoder_directory=str(encoder), require_masks=True, model_factory=lambda _: model)
+    result = detector.detect(np.zeros((20, 30, 3), np.uint8), '')
+    assert transfers == [True]
+    assert [item.label for item in result] == ['wallet', 'cup']
+    masks[:] = 0
+    data[:] = 0
+    assert result[0].segmentation_mask.all()
+    assert not result[0].segmentation_mask.flags.writeable
+    assert result[0].bbox.x_max == 12
 
 
 def test_yoloe_detector_applies_class_confidence_thresholds(tmp_path):

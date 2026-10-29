@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import os
+import logging
 import threading
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from contextlib import nullcontext
 
 import numpy as np
+
+from cleany_perception.adapters.yoloe_tensorrt import (
+    CudaSynchronizationError, TensorRTAsyncRunner,
+)
 
 from cleany_perception.model_contract import (
     check_segmentation_shapes, ordered_names, read_model_manifest,
@@ -27,12 +32,20 @@ ModelFactory = Callable[..., Any]
 
 _TEXT_ENCODER_FILENAME = 'mobileclip2_b.ts'
 _MODEL_SETUP_LOCK = threading.Lock()
+_LOGGER = logging.getLogger(__name__)
+
+
+@dataclass
+class _EngineExecution:
+    runner: TensorRTAsyncRunner | None = None
+    fatal_error: str = ''
 
 
 class YoloeModelPool:
     """One inspector's validated backends, with serialized setup/inference."""
     def __init__(self) -> None:
         self.models: dict[tuple, Any] = {}
+        self.executions: dict[tuple, _EngineExecution] = {}
         self.lock = threading.RLock()
 
 
@@ -63,6 +76,7 @@ class YoloeDetector:
         class_confidence_thresholds: Sequence[float] = (),
         allow_unvalidated_engine: bool = False,
         model_pool: YoloeModelPool | None = None,
+        engine_execution: str = 'async',
     ) -> None:
         normalized_classes = tuple(item.strip() for item in classes)
         if not model_path:
@@ -83,6 +97,8 @@ class YoloeDetector:
             raise ValueError('YOLOE IoU threshold must be in [0, 1]')
         if maximum_detections <= 0:
             raise ValueError('YOLOE maximum detections must be positive')
+        if engine_execution not in ('async', 'ultralytics'):
+            raise ValueError('YOLOE engine execution must be async or ultralytics')
         if (class_confidence_thresholds
                 and len(class_confidence_thresholds) != len(normalized_classes)):
             raise ValueError(
@@ -114,8 +130,33 @@ class YoloeDetector:
         self._is_engine = Path(self._model_path).suffix == '.engine'
         self._allow_unvalidated_engine = allow_unvalidated_engine
         self._model_pool = model_pool
+        self._inference_lock = model_pool.lock if model_pool is not None else threading.RLock()
+        self._engine_execution = engine_execution
+        self._execution = _EngineExecution()
+
+    @property
+    def execution_mode(self) -> str:
+        """Report the active path, including permanent fallback or CUDA failure."""
+        if self._execution.fatal_error:
+            return 'failed'
+        return 'async' if self._execution.runner is not None else 'ultralytics'
 
     def _predict(self, model: Any, image: np.ndarray) -> Any:
+        if self._execution.fatal_error:
+            raise InspectionFailure(FailureKind.DETECTOR_API, self._execution.fatal_error)
+        if self._execution.runner is not None:
+            try:
+                return self._execution.runner.predict(image,
+                    confidence=self._confidence_threshold, iou=self._iou_threshold,
+                    maximum_detections=self._maximum_detections)
+            except CudaSynchronizationError as error:
+                self._execution.runner = None
+                self._execution.fatal_error = str(error)
+                raise InspectionFailure(FailureKind.DETECTOR_API, str(error)) from error
+            except Exception as error:
+                self._execution.runner = None
+                _LOGGER.warning('YOLOE async execution disabled; using validated engine via '
+                                'Ultralytics: %s', error)
         options = dict(
             device=self._device, imgsz=self._image_size,
             conf=self._confidence_threshold, iou=self._iou_threshold,
@@ -123,18 +164,23 @@ class YoloeDetector:
         )
         if self._require_masks:
             options['retina_masks'] = True
-        with self._model_pool.lock if self._model_pool is not None else nullcontext():
-            return model.predict(np.ascontiguousarray(image[..., ::-1]), **options)
+        return model.predict(np.ascontiguousarray(image[..., ::-1]), **options)
 
     def prepare(self) -> None:
         """Load checkpoint and text prompts before accepting requests."""
-        self._get_model()
+        with self._inference_lock:
+            self._get_model()
 
     def detect(
         self,
         rgb: RgbArray,
         query: str,
     ) -> Sequence[Detection2D]:
+        # TensorRT outputs are borrowed until all boxes and masks own CPU data.
+        with self._inference_lock:
+            return self._detect_locked(rgb, query)
+
+    def _detect_locked(self, rgb: RgbArray, query: str) -> Sequence[Detection2D]:
         del query
         image = np.asarray(rgb)
         if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
@@ -175,10 +221,13 @@ class YoloeDetector:
             if ordered_names(names) != list(self._classes):
                 raise ValueError('YOLOE result class order differs from profile')
             detections = []
-            for index, box in enumerate(boxes):
-                coordinates = _numpy(box.xyxy).reshape(-1, 4)[0]
-                class_id = int(_numpy(box.cls).reshape(-1)[0])
-                confidence = float(_numpy(box.conf).reshape(-1)[0])
+            box_data = _numpy(boxes.data)
+            if box_data.ndim != 2 or box_data.shape != (len(boxes), 6):
+                raise ValueError('YOLOE boxes must contain xyxy, confidence and class')
+            for index, box in enumerate(box_data):
+                coordinates = box[:4]
+                class_id = int(box[5])
+                confidence = float(box[4])
                 if isinstance(names, dict):
                     label = names[class_id]
                 else:
@@ -230,11 +279,13 @@ class YoloeDetector:
         # Per-call thresholds/NMS are wrapper settings, not backend identity.
         key = (self._model_path, self._classes, self._device, self._image_size,
                self._require_masks, self._text_encoder_directory,
-               self._allow_unvalidated_engine, self._model_factory)
+               self._allow_unvalidated_engine, self._model_factory, self._engine_execution)
         with self._model_pool.lock:
             if key not in self._model_pool.models:
                 self._model_pool.models[key] = self._load_model()
+                self._model_pool.executions[key] = self._execution
             self._model = self._model_pool.models[key]
+            self._execution = self._model_pool.executions[key]
             return self._model
 
     def _load_model(self) -> Any:
@@ -331,6 +382,12 @@ class YoloeDetector:
             check_segmentation_shapes(inputs, shapes, self._image_size, len(self._classes))
             if inputs != manifest['inputs'] or shapes != manifest['outputs']:
                 raise ValueError('TensorRT bindings differ from manifest')
+            if self._engine_execution == 'async':
+                try:
+                    self._execution.runner = TensorRTAsyncRunner(model)
+                except Exception as error:
+                    _LOGGER.warning('YOLOE async setup unavailable; using validated engine via '
+                                    'Ultralytics: %s', error)
             self._model = model
             return model
         except Exception as error:

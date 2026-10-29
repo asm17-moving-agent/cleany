@@ -5,7 +5,9 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from cleany_perception.adapters.yoloe_detector import YoloeDetector
+from cleany_perception.adapters.yoloe_detector import YoloeDetector, YoloeModelPool
+from cleany_perception.adapters.yoloe_tensorrt import CudaSynchronizationError
+from test_yoloe_detector import _Boxes
 from cleany_perception.adapters.gemini_detector import parse_gemini_classifications
 from cleany_perception.core.models import BoundingBox2D, Detection2D, InspectionFailure
 from cleany_perception.model_contract import SCHEMA, sha256
@@ -44,8 +46,7 @@ class EngineModel:
 
     def predict(self, image, **options):
         self.calls.append(options)
-        boxes = [] if self.empty else [SimpleNamespace(xyxy=np.array([[-3., 2., 150., 75.]]),
-                                                       cls=np.array([0]), conf=np.array([0.8]))]
+        boxes = _Boxes([] if self.empty else [[-3., 2., 150., 75., 0.8, 0]])
         return [SimpleNamespace(boxes=boxes, names=self.names,
                                 masks=SimpleNamespace(data=np.ones((len(boxes), *image.shape[:2]))))]
 
@@ -126,6 +127,90 @@ def test_engine_empty_scene_and_original_mask_coordinates(tmp_path):
         detector.detect(np.zeros((720, 1280, 3), dtype=np.uint8), '')
 
 
+def test_async_runner_is_shared_and_receives_per_call_settings(monkeypatch, tmp_path):
+    import cleany_perception.adapters.yoloe_detector as module
+    calls = []
+    class Runner:
+        def __init__(self, model):
+            self.model = model
+
+        def predict(self, image, **options):
+            calls.append(options)
+            return self.model.predict(image)
+
+    monkeypatch.setattr(module, 'TensorRTAsyncRunner', Runner)
+    pool = YoloeModelPool()
+    models = []
+    def factory(*args, **kwargs):
+        model = EngineModel()
+        models.append(model)
+        return model
+    options = dict(model_path=str(engine_files(tmp_path)), classes=['cup'],
+                   require_masks=True, model_factory=factory, model_pool=pool)
+    first = YoloeDetector(**options)
+    second = YoloeDetector(**options, confidence_threshold=0.4, maximum_detections=4)
+    image = np.zeros((80, 160, 3), np.uint8)
+    first.detect(image, '')
+    second.detect(image, '')
+    assert len(models) == 1
+    assert first._execution is second._execution
+    assert first.execution_mode == second.execution_mode == 'async'
+    assert calls == [dict(confidence=.25, iou=.5, maximum_detections=10),
+                     dict(confidence=.4, iou=.5, maximum_detections=4)]
+    legacy = YoloeDetector(**options, engine_execution='ultralytics')
+    legacy.prepare()
+    assert len(models) == 2  # A legacy context must not alias the async pool entry.
+    assert legacy.execution_mode == 'ultralytics'
+
+
+@pytest.mark.parametrize('fatal', [False, True])
+def test_async_failure_is_sticky_and_only_drained_failures_retry(monkeypatch, tmp_path, fatal):
+    import cleany_perception.adapters.yoloe_detector as module
+    attempts = []
+    class Runner:
+        def __init__(self, model):
+            pass
+
+        def predict(self, image, **options):
+            attempts.append(True)
+            if fatal:
+                raise CudaSynchronizationError('stream failed')
+            raise RuntimeError('enqueue refused after draining stream')
+
+    monkeypatch.setattr(module, 'TensorRTAsyncRunner', Runner)
+    model = EngineModel()
+    detector = YoloeDetector(str(engine_files(tmp_path)), ['cup'], require_masks=True,
+                             model_factory=lambda *args, **kwargs: model)
+    detector.prepare()
+    image = np.zeros((80, 160, 3), np.uint8)
+    if fatal:
+        for _ in range(2):
+            with pytest.raises(InspectionFailure, match='stream failed'):
+                detector.detect(image, '')
+        assert len(model.calls) == 1  # Only startup validation used the original path.
+        assert detector.execution_mode == 'failed'
+    else:
+        assert detector.detect(image, '')
+        assert detector.detect(image, '')
+        assert len(model.calls) == 3
+        assert detector.execution_mode == 'ultralytics'
+    assert attempts == [True]
+
+
+def test_async_setup_failure_keeps_validated_engine(monkeypatch, tmp_path, caplog):
+    import cleany_perception.adapters.yoloe_detector as module
+    def unavailable(model):
+        raise RuntimeError('unsupported backend')
+    monkeypatch.setattr(module, 'TensorRTAsyncRunner', unavailable)
+    model = EngineModel()
+    detector = YoloeDetector(str(engine_files(tmp_path)), ['cup'], require_masks=True,
+                             model_factory=lambda *args, **kwargs: model)
+    detector.prepare()
+    assert detector.detect(np.zeros((80, 160, 3), np.uint8), '')
+    assert detector.execution_mode == 'ultralytics'
+    assert 'unsupported backend' in caplog.text
+
+
 def test_prepared_pt_keeps_export_embeddings_without_encoder(tmp_path):
     engine = engine_files(tmp_path)
     checkpoint = engine.with_suffix('.pt')
@@ -162,7 +247,7 @@ def test_real_profile_head_reference_and_wrists_share_one_loaded_model(monkeypat
     from rclpy.parameter import Parameter
     import cleany_perception.inspection_node as module
     from cleany_perception.model_runtime import load_model_profile
-    profile = load_model_profile(Path(__file__).resolve().parents[1] / 'config/yoloe_real34.yaml')
+    profile = load_model_profile(Path(__file__).resolve().parents[1] / 'config/yoloe_real32.yaml')
     instances = []
 
     class Adapter:
