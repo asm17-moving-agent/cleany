@@ -11,6 +11,12 @@ Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회
 
 ## Jetson 관측 인터페이스 갱신
 
+승인 전용 `/perception/revalidate_target`을 사용하려면 native와 perception
+컨테이너의 `cleany_interfaces`, `cleany_perception`, native `cleany_dev_monitor`를
+갱신합니다. 진행 중인 작업이 없을 때 인식기와 Monitor를 재시작하고 새 제안을
+받습니다. 승인 재확인에는 Gemini를 호출하지 않으며 서비스가 없을 때 전체 분류로
+대체하지 않습니다. 재확인 기록은 Monitor 제어 디렉터리의 `revalidations/`에 남습니다.
+
 `DetectedObject2D/3D.detector_label`, 관측 서비스의 원본 클래스 필드와
 `DetectedObject2D`의 분류 사유 필드 제거는
 native와 GPU 컨테이너에서 같은 버전을 사용해야 합니다. 실행 중인 로봇 작업을

@@ -213,6 +213,15 @@ def test_read_only_scene_snapshot_contract():
     assert response.message == ''
 
 
+def test_target_revalidation_is_explicitly_bound_to_the_approved_source():
+    from cleany_interfaces.srv import RevalidateTarget
+    request, response = RevalidateTarget.Request(), RevalidateTarget.Response()
+    assert request.source_snapshot_id == request.tracking_session_id == request.track_id == ''
+    assert request.source_object_id == request.after_stamp_ns == 0
+    assert not response.success and response.source_snapshot_id == ''
+    assert isinstance(response.detections, DetectedObject2DArray)
+
+
 def test_tracking_and_individual_verification_contract():
     from cleany_interfaces.srv import RegisterPlacementTarget
 

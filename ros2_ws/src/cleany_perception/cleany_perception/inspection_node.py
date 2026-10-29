@@ -97,6 +97,7 @@ from cleany_perception.snapshot_cache import (
     DetectionSnapshotCache,
 )
 from cleany_interfaces.srv import GetSceneSnapshot
+from cleany_perception.target_revalidation_service import TargetRevalidationService
 
 
 _FAILURE_CODES = {
@@ -152,6 +153,8 @@ class InspectionNode(Node):
             Detection overlays. All publisher names are configurable defaults.
 
     Services:
+        /perception/revalidate_target (cleany_interfaces/srv/RevalidateTarget):
+            Fresh local target observation with the cached approval semantics.
         /perception/observe_wrist_target (cleany_interfaces/srv/ObserveWristTarget):
             Optional WristService endpoint when enable_wrist_observation is true.
 
@@ -248,6 +251,7 @@ class InspectionNode(Node):
                         model_path=model_path,
                         classes=tuple(self.get_parameter('yoloe_classes').value),
                         device=str(self.get_parameter('yoloe_device').value),
+                        engine_execution=str(self.get_parameter('yoloe_engine_execution').value),
                         image_size=int(self.get_parameter('yoloe_image_size').value),
                         confidence_threshold=float(self.get_parameter(
                             'minimum_detection_confidence').value),
@@ -529,6 +533,7 @@ class InspectionNode(Node):
                     'wrist_failure_image_directory').value),
                 config=wrist_config)
         self._observations = ObservationRuntime(self, reference_detector)
+        self._target_revalidation = TargetRevalidationService(self, reference_detector)
         cleanup_period = float(self.get_parameter('snapshot_cleanup_period_seconds').value)
         if not math.isfinite(cleanup_period) or cleanup_period < 0:
             raise ValueError('Snapshot cleanup period must be finite and nonnegative')
@@ -657,6 +662,7 @@ class InspectionNode(Node):
             ['cup', 'wallet', 'crumpled tissue', 'lego brick'],
         )
         self.declare_parameter('yoloe_device', 'cuda')
+        self.declare_parameter('yoloe_engine_execution', 'async')
         self.declare_parameter('yoloe_image_size', 640)
         self.declare_parameter('yoloe_iou_threshold', 0.5)
         self.declare_parameter(

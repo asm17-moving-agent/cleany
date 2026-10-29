@@ -38,6 +38,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/ValidatePick.action"
   "srv/PlanGrasp.srv"
   "srv/ObserveObjectReference.srv"
+  "srv/RevalidateTarget.srv"
   "srv/ObserveWristTarget.srv"
   "srv/OfferMission.srv"
   "srv/CancelMission.srv"

@@ -1,6 +1,7 @@
 """Isolated ROS transport test with synthetic perception and Action results."""
 
 import json
+from copy import deepcopy
 import os
 import threading
 import time
@@ -21,7 +22,7 @@ def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, mo
     from rclpy.qos import DurabilityPolicy, QoSProfile
     from cleany_interfaces.action import InspectScene, ExecuteManipulationSkill
     from cleany_interfaces.msg import DetectedObject2D, DetectedObject2DArray, ManipulationExecutionRecord
-    from cleany_interfaces.srv import GetSceneSnapshot, GetManipulationExecution
+    from cleany_interfaces.srv import GetSceneSnapshot, GetManipulationExecution, RevalidateTarget
     from sensor_msgs.msg import Image
     from std_srvs.srv import Trigger
     from cleany_dev_monitor.proposal_ros import ProposalROS
@@ -48,7 +49,7 @@ def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, mo
         message.tracking_session_id = handle.request.tracking_session_id
         message.tracking_epoch = 'fixture-epoch'
         message.representative_frame = 'base_link'
-        item = DetectedObject2D(object_id=1, label='cup', confidence=.95,
+        item = DetectedObject2D(object_id=1, label='cup', detector_label='cup', confidence=.95,
             sorting_category='trash',  distance_valid=True, distance_m=.4,
             track_id='fixture-track', tracking_state='TRACKED', position_valid=True,
             x_min=10., y_min=10., x_max=70., y_max=90., median_depth_m=.4,
@@ -78,6 +79,23 @@ def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, mo
 
     action = ActionServer(server, InspectScene, '/perception/inspect_scene', execute_callback=inspect)
     server.create_service(GetSceneSnapshot, '/perception/get_scene_snapshot', lookup)
+    observations = []
+
+    def reobserve(request, response):
+        observations.append(request)
+        source = snapshots[request.source_snapshot_id]
+        message = deepcopy(source)
+        message.header.stamp = server.get_clock().now().to_msg()
+        message.snapshot_id = f'reobservation-{len(observations)}'
+        message.detections = [message.detections[0]]
+        message.detections[0].representative_position.x = position[0]
+        response.success = True
+        response.source_snapshot_id = request.source_snapshot_id
+        response.source_object_id = request.source_object_id
+        response.detections = message
+        return response
+
+    server.create_service(RevalidateTarget, '/perception/revalidate_target', reobserve)
     goals, records = [], {}
 
     def execute(handle):
@@ -123,7 +141,8 @@ def test_approval_accepts_neighbor_loss_but_rejects_target_movement(tmp_path, mo
         position[0] += .05
         with pytest.raises(ValueError, match='변경'):
             adapter.revalidate(value, lambda: False)
-        assert len(calls) == 3 and all(request.selected_object_id == 0 for request in calls)
+        assert len(calls) == 1 and len(observations) == 2
+        assert all(request.source_snapshot_id == value['snapshot_id'] for request in observations)
         assert len({request.tracking_session_id for request in calls}) == 1
         position[0] = .4
         (tmp_path / 'enabled').touch()

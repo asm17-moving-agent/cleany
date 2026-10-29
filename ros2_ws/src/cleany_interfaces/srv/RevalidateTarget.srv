@@ -1,0 +1,26 @@
+# Reobserve one cached, tracked approval using local instance detection only.
+# Does not classify, update tracking history, pin a reference, or command motion.
+string source_snapshot_id
+uint32 source_object_id
+string tracking_session_id
+string track_id
+# Require a capture newer than both this timestamp and the source snapshot.
+int64 after_stamp_ns
+---
+uint8 ERROR_NONE=0
+uint8 ERROR_RGBD_TIMEOUT=1
+uint8 ERROR_MASK=4
+uint8 ERROR_DEPTH=5
+uint8 ERROR_TF=7
+uint8 ERROR_REFERENCE=9
+uint8 ERROR_BUSY=10
+uint8 ERROR_INTERNAL=255
+bool success
+uint8 error_code
+string message
+string source_snapshot_id
+uint32 source_object_id
+# One fresh observation; snapshot_id is diagnostic and is not cached for grasp.
+# Keeps the source object/track IDs, semantic label and sorting category.
+# Confidence, bbox, depth, footprint and position come from the fresh capture.
+DetectedObject2DArray detections

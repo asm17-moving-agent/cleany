@@ -459,3 +459,25 @@ Jetson 실물 관련 패키지를 수정한 경우 관련 네이티브 패키지
 # READ 전용 모드에서 모터 쓰기 차단 및 명령 거절 검사
 make test-jetson-controller JETSON_CONTROLLER_TEST_ARGS='-k "readonly_controllers_cannot_activate_or_execute or shared_bus_readonly_has_no_writes"'
 ```
+
+## 승인 대상 재확인
+
+`cleany_interfaces`, `cleany_perception`, `cleany_dev_monitor`를 빌드한 뒤
+별도 ROS domain에서 다음 합성 검사를 실행합니다.
+
+```bash
+CLEANY_RUN_ROS_TESTS=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=231 make test-perception \
+  PERCEPTION_TEST_PATHS='ros2_ws/src/cleany_perception/test/test_target_revalidation.py ros2_ws/src/cleany_perception/test/test_target_revalidation_service.py ros2_ws/src/cleany_dev_monitor/tests/test_proposals.py ros2_ws/src/cleany_dev_monitor/tests/test_ros_proposals.py'
+```
+
+승인 시 전체 장면 분류를 호출하지 않는지, 최신 기하와 원본 의미 분류를
+분리하는지, 이동, 소실, 중복 후보, 잘못된 참조, 오래된 영상과 깊이 실패를
+거절하는지 검사합니다. 제한된 재관측과 실패 기록, 원본 승인 대상의 단일 실행도
+검사합니다. 합성 검사는 실물 동일성 인식률이나 파지 성공률 측정이 아닙니다.
+
+실행 중인 작업이 없는 실물 환경에서 `CLEANY_MANIPULATION_COLLECTION_CONFIG`와
+native overlay를 설정한 뒤 `python3 tools/validation/verify_approved_target.py
+--output /absolute/new-directory --count 5`로 새 제안 하나와 반복 재확인을 측정할 수
+있습니다. 최초 제안은 실제 Gemini를 호출합니다. 검사는 제어 작업 잠금을 유지하며
+조작 Goal을 보내지 않습니다. 각 재확인 시간, 결과와 관측 값은 `verification.json`,
+제안 이미지는 출력의 `operator/proposals/`에 남습니다.

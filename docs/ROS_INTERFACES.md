@@ -284,7 +284,7 @@ Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config
 
 | 노드 이름 | 실행 파일 | 구현과 API 안내 |
 |---|---|---|
-| `perception_inspector` | `inspection_node` | [Perception](../ros2_ws/src/cleany_perception/docs/runtime.md#ros-api) |
+| `perception_inspector` | `inspection_node` | [Perception](../ros2_ws/src/cleany_perception/docs/runtime.md#ros-api), [승인 대상 재확인](../ros2_ws/src/cleany_perception/docs/interfaces.md) |
 | `depth_scene_node` | `depth_scene_node` | [Depth 점군](../ros2_ws/src/cleany_perception/docs/runtime.md#전체-depth-환경-포인트클라우드) |
 | `scene_cloud_receipt` | `scene_cloud_receipt_node` | [점군 수신 확인](../ros2_ws/src/cleany_perception/docs/runtime.md#필터링-점군-수신-확인) |
 | `nearest_pregrasp_coordinator` | `nearest_pregrasp_coordinator` | [조작 경로](../ros2_ws/src/cleany_skill_executor/docs/manipulation.md#가까운-객체-자동-pre-grasp) |

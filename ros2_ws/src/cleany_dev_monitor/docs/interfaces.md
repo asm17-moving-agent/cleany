@@ -72,43 +72,58 @@ HTTP `PUT /api/recording/settings`는 정지 상태에서 설정하거나 활성
 `POST /api/recording/session`은 정지 후 새 세션을 시작하고, 이미 녹화 중이면 같은
 세션을 반환한다. Monitor 종료는 logger 서비스 호출 없이 자체 HTTP와 구독만 닫는다.
 
-## 승인 기반 작업 제안 (Task Proposals)
+## 승인 기반 작업 제안
 
-웹 대시보드의 인증된 운영자 세션에서 호출되는 작업 제안 및 승인 관련 ROS 2 인터페이스입니다.
-`cleany_dev_monitor_operator_<pid>_<id>` 어댑터 노드가 클라이언트로 동작하며, 제안 및 재관찰 단계는 순수 인식(`InspectScene`)만 수행하고 로봇 모터는 구동하지 않습니다.
+인증된 제어 경로의 `cleany_dev_monitor_operator_<pid>_<id>` adapter가 요청별 작업을
+수행한다. 제안은 InspectScene, 승인 재확인은 RevalidateTarget을 사용하며 팔 동작을 요청하지 않는다.
+승인 작업은 기존 `manipulation_test_client`로 정확한 Goal을 한 번 전달한다.
+재관찰은 승인한 대상의 동일성, 분류, 위치, bbox, 깊이와 크기 조건을 검증한다.
+주변 검출 목록의 일치는 승인 조건이 아니며, `scene_context`와 `scene_object_count`는
+제안 당시 관측 기록으로 유지한다. 경로와 충돌 검사는 승인 이후 실행기가 수행한다.
 
-### 1. ROS 2 인터페이스 목록
+| 종류 / 방향 | 기본 이름 | 타입과 조건 |
+|---|---|---|
+| Action Client | `/perception/inspect_scene` | `cleany_interfaces/action/InspectScene`, 같은 `tracking_session_id`로 새 작업 제안과 분류 |
+| 서비스 Client | `/perception/revalidate_target` | `cleany_interfaces/srv/RevalidateTarget`, 승인 대상의 최신 기하와 원본 분류 반환 |
+| 서비스 Client | `/perception/get_scene_snapshot` | `cleany_interfaces/srv/GetSceneSnapshot`, 승인 관측의 잔존 여부 확인 |
+| 토픽 구독 | `/perception/debug_image_latched` | `sensor_msgs/msg/Image`, reliable/transient_local/depth 1; `proposal_debug_image_topic` |
+| 서비스 Client | `/manipulation/control_state` | `std_srvs/srv/Trigger`, 실행 전후 현재 소유권과 차단 조회 |
+| Action Client, 기존 CLI | `/manipulation/execute_skill` | `cleany_interfaces/action/ExecuteManipulationSkill`, 승인된 snapshot/object/skill/destination; execution ID는 승인 작업 UUID |
 
-| 종류 / 방향 | 기본 토픽 및 서비스 이름 | ROS 타입 | 설명 |
-|---|---|---|---|
-| **Action Client** | `/perception/inspect_scene` | `cleany_interfaces/action/InspectScene` | 동일한 `tracking_session_id`로 초기 제안 생성 및 승인 시 동일성 재관찰 수행 |
-| **Service Client** | `/perception/get_scene_snapshot` | `cleany_interfaces/srv/GetSceneSnapshot` | 캐시된 스냅샷 유효성 확인 |
-| **토픽 구독** | `/perception/debug_image_latched` | `sensor_msgs/msg/Image` (Reliable, Transient Local 1) | 추천 대상 물체가 오버레이된 제안 확인용 디버그 이미지 |
-| **Service Client** | `/manipulation/control_state` | `std_srvs/srv/Trigger` | 실행 전후 하드웨어 제어권 및 비상 정지 상태 조회 |
-| **Action Client** | `/manipulation/execute_skill` | `cleany_interfaces/action/ExecuteManipulationSkill` | 승인된 물체에 대해 단 1회 조작 액션 실행 (Execution ID = 승인 작업 UUID) |
-
-### 2. HTTP 제어 API
-
-- `POST /api/control/jobs`:
-  - `action="propose"`: 새 장면에서 최적의 대상 물체 제안 요청
-  - `action="approve", args={"proposal_id": "<UUID>"}`: 추천된 제안 승인 및 1회 실행
-  - `action="skip", args={"proposal_id": "<UUID>"}`: 현재 추천된 대상을 제외하고 새 제안 요청
-- `GET /api/control/status`: 현재 활성 제안(`proposal`) 및 작업 진행 단계(`phase`) 조회
-- `GET /api/control/proposals/{id}/image`: 촬영 시점과 일치하는 실시간 관측 JPEG 이미지 반환
+`POST /api/control/jobs`의 `action=propose`는 빈 `args`로 제안한다. `approve`, `skip`은
+`args={"proposal_id":"UUID"}`만 허용한다. 대상과 동작은 서버의 불변 제안에서 읽는다.
+동일 request UUID 재전송은 이전 작업을 반환하고, 다른 UUID로 같은 제안을 재사용하면
+거절한다. 별도 shell 인자나 임의 Goal은 받지 않는다. `GET /api/control/status`는
+현재 `proposal`과 진행 작업의 `phase`를 반환한다. `GET /api/control/proposals/{id}/image`는
+현재 인증 세션에 촬영 시각과 일치하는 JPEG만 반환하며 캐시하지 않는다.
 
 제안의 `target`은 종류명, 처리 분류, 검출 신뢰도와 위치를 포함합니다.
 Gemini 분류 사유는 생성, 저장하거나 표시하지 않습니다. 제안의 `reason`은
 대상 선정 규칙이나 실행 불가 상태를 설명하는 로컬 메시지입니다.
 
-### 3. 주요 파라미터 및 승인 유효성 기준
+승인 시 원본 snapshot, object ID, track ID와 session을 재확인 서비스에 전달합니다.
+서비스는 Gemini를 호출하지 않고 승인한 종류명과 처리 분류를 해당 1회 작업에 유지합니다.
+최신 신뢰도, 깊이, 크기와 목적지 정책은 다시 검사합니다. 위치, 박스, 좌표계,
+설정, 원본 캐시 및 유효 기간 검사는 유지하며 실행 명령은 원래 승인한 snapshot/object를 사용합니다.
+원본 분류의 정확성을 새로 검증하는 경로는 아니며 다음 제안은 다시 분류합니다.
 
-| 파라미터 | 기본값 | 설명 |
+마스크 대응 또는 RGB-D 수신 실패만 제한된 횟수로 새 영상을 요청합니다.
+이동, 낮은 박스 겹침, 깊이, 정책 또는 설정 실패에는 재시도하지 않습니다.
+`control_directory/revalidations/<proposal_id>.json`에 승인 대상, 각 응답의
+촬영 시각, 위치, 박스, 신뢰도, 크기, 실패 원인과 종료 시각을 저장합니다.
+오류 메시지는 이동 거리(mm), 박스 겹침 또는 후보 식별 실패를 구분합니다.
+
+| 파라미터 | 기본값 | 의미 |
 |---|---|---|
-| `proposal_max_age_sec` | 90.0초 | 촬영 후 승인 재확인 완료까지의 최대 허용 시간 |
-| `proposal_position_tolerance_m` | 0.015m (1.5cm) | 승인 대상 물체의 최대 허용 위치 변동량 |
-| `proposal_minimum_bbox_iou` | 0.7 | 승인 대상 물체 바운딩 박스의 최소 겹침 비율 (IoU) |
-| `proposal_inspection_timeout_sec` | 180.0초 | 인식 노드 응답 대기 제한 시간 |
-| `proposal_execution_timeout_sec` | 1200.0초 | 조작 액션 실행 대기 제한 시간 |
+| `proposal_max_age_sec` | 90.0 | 촬영 후 승인 재확인 완료까지의 유효 시간; 인식 cache TTL도 별도 적용 |
+| `proposal_position_tolerance_m` | 0.015 | 같은 좌표계에서 승인 대상의 최대 위치 차이 |
+| `proposal_minimum_bbox_iou` | 0.7 | 승인 대상 bbox의 최소 겹침 비율 |
+| `proposal_inspection_timeout_sec` | 180.0 | 관측 응답 대기 상한 |
+| `proposal_execution_timeout_sec` | 1200.0 | 기존 CLI가 Action 결과를 기다리는 상한 |
+| `proposal_reobservation_attempts` | 2 | 새 영상 재확인 최대 시도 수, 1~3의 정수 |
 
-- **제안 상태 전이**: `READY` (승인 대기) → `CONSUMED` (승인 완료 또는 만료)
-- **작업 진행 단계**: `PROPOSING` → `REVALIDATING` (동일성 재검증) → `EXECUTING` (동작 수행) → `PROPOSING_NEXT` (다음 작업 대기)
+제안 상태는 `READY`, `NO_TARGET`, 조회 시 파생되는 `EXPIRED`, `CONSUMED`다. 실제
+실행 결과와 독립적이며 `NO_TARGET`은 전체 작업 완료가 아니다. 진행 단계는
+`PROPOSING`, `REVALIDATING`, `EXECUTING`, `PROPOSING_NEXT`다. 승인 작업 실패 후에도
+소비된 제안은 재사용하지 않는다. `propose`, 별도 인식, 준비, 직접 실행, 복귀, 복구,
+종료 요청은 기존 제안을 무효화한다. 모니터 재시작은 승인 대기 시간을 연장하지 않는다.

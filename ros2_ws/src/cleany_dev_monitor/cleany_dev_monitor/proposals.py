@@ -16,6 +16,7 @@ DEFAULTS = {
     'proposal_debug_image_topic': '/perception/debug_image_latched',
     'proposal_inspection_timeout_sec': 180.0,
     'proposal_execution_timeout_sec': 1200.0,
+    'proposal_reobservation_attempts': 2,
 }
 
 
@@ -29,6 +30,9 @@ def policy_settings(config: dict) -> dict:
             raise ValueError(f'Invalid proposal setting: {key}')
     if values['proposal_minimum_bbox_iou'] > 1:
         raise ValueError('Proposal bbox IoU must not exceed one')
+    attempts = values['proposal_reobservation_attempts']
+    if isinstance(attempts, bool) or not isinstance(attempts, int) or not 1 <= attempts <= 3:
+        raise ValueError('Proposal reobservation attempts must be an integer from one to three')
     return values
 
 
@@ -127,12 +131,23 @@ def validate_fresh_target(proposal: dict, scene, config: dict, policy: dict, now
     old = target['bbox']
     intersection = max(0., min(box[2], old[2])-max(box[0], old[0])) * max(0., min(box[3], old[3])-max(box[1], old[1]))
     union = (box[2]-box[0])*(box[3]-box[1]) + (old[2]-old[0])*(old[3]-old[1]) - intersection
-    if (not item.position_valid or not all(math.isfinite(v) for v in (*position, *box))
-            or scene.representative_frame != proposal['representative_frame']
-            or math.dist(position, target['position']) > policy['proposal_position_tolerance_m']
-            or union <= 0 or intersection / union < policy['proposal_minimum_bbox_iou']
-            or item.sorting_category != target['category'] or item.label != target['label']):
-        raise ValueError('물체 위치·분류 또는 관측 장면이 변경되었습니다. 다시 제안받으세요.')
+    if not item.position_valid or not all(math.isfinite(v) for v in (*position, *box)):
+        raise ValueError('승인 물체의 최신 위치 또는 탐지 박스가 유효하지 않습니다.')
+    if scene.representative_frame != proposal['representative_frame']:
+        raise ValueError('물체 위치의 좌표계가 변경되었습니다. 다시 제안받으세요.')
+    displacement = math.dist(position, target['position'])
+    tolerance = policy['proposal_position_tolerance_m']
+    if displacement > tolerance:
+        raise ValueError(f'승인 물체의 위치가 {displacement*1000:.1f}mm 변경되었습니다 '
+                         f'(허용 {tolerance*1000:.1f}mm). 다시 제안받으세요.')
+    if box[2] <= box[0] or box[3] <= box[1] or union <= 0:
+        raise ValueError('승인 물체의 최신 탐지 박스가 유효하지 않습니다.')
+    iou = intersection / union
+    if iou < policy['proposal_minimum_bbox_iou']:
+        raise ValueError(f'승인 물체의 박스 겹침이 {iou:.3f}로 낮아졌습니다 '
+                         f"(최소 {policy['proposal_minimum_bbox_iou']:.3f}). 다시 제안받으세요.")
+    if item.sorting_category != target['category'] or item.label != target['label']:
+        raise ValueError('재확인 응답이 승인한 이름 또는 분류를 유지하지 않았습니다. 다시 제안받으세요.')
     # Apply the same depth, classification, size and destination policy again.
     from cleany_skill_executor.core.automatic_goal import select_automatic_target
     from types import SimpleNamespace

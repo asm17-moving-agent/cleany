@@ -20,8 +20,9 @@ Gemini 분류 응답은 객체별 `id`, `label`, `sorting_category`만 요청한
 
 고정 베이스 추적과 head reference 재관측은 원본 검출 클래스와 공간 정보를
 사용한다. 최종 종류명 교정만으로 새 track ID를 만들지 않는다. `detector_label`이
-없는 비-YOLOE 입력은 `label`을 사용한다. 승인 대상의 최종 종류나 처리 분류가
-달라지면 기존 승인 검사가 거절한다. 제외 목록, 목적지와 종류별 파지 보정의
+없는 비-YOLOE 입력은 `label`을 사용한다. Monitor 승인 재확인은
+[승인 대상 재확인 서비스](interfaces.md)로 원본 이름과 분류를 유지하고
+새 YOLOE 및 깊이 관측을 검사한다. 제외 목록, 목적지와 종류별 파지 보정의
 설정 키는 정규화된 최종 종류명이다.
 
 필드와 호환성은 [관측 계약](../../cleany_interfaces/docs/observation-contracts.md)을 따른다.

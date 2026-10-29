@@ -16,13 +16,50 @@ from operator_fixture import environment
 
 
 def scene():
-    item = NS(object_id=7, track_id='track-a', tracking_state='TRACKED', label='cup',
+    item = NS(object_id=7, track_id='track-a', tracking_state='TRACKED', label='cup', detector_label='cup',
         sorting_category='trash',  confidence=.9,
         distance_valid=True, distance_m=.4, position_valid=True,
         representative_position=NS(x=.4, y=0., z=.2), x_min=10., y_min=10., x_max=70., y_max=90.,
         median_depth_m=.4, estimated_width_m=.05, estimated_height_m=.07)
     return NS(snapshot_id='new-scene', tracking_session_id='session', tracking_epoch='epoch',
               representative_frame='base_link', detections=[item])
+
+
+@pytest.mark.parametrize('case', ['success', 'retry', 'missing', 'moved', 'wrong_source', 'stale', 'cancelled'])
+def test_approval_observes_only_bound_target_and_records_failure_without_reclassifying(tmp_path, case):
+    pytest.importorskip('rclpy')
+    from cleany_dev_monitor.proposal_ros import ProposalROS
+    adapter = ProposalROS.__new__(ProposalROS)
+    adapter.store, adapter.policy = ProposalStore(tmp_path), DEFAULTS
+    adapter.lookup = None
+    adapter.config = lambda: {'label_destinations': {'*': 'return_to_pick'}}
+    approved = proposal()
+    cached = scene()
+    cached.snapshot_id = approved['snapshot_id']
+    adapter.call = lambda *_: NS(found=True, detections=cached)
+    adapter.inspect_scene = lambda *_args, **_kwargs: pytest.fail('Approval must not invoke full-scene/Gemini inspection')
+    attempts = []
+    def observe(value, cancelled, requested_ns):
+        attempts.append(requested_ns)
+        observed = deepcopy(cached)
+        stamp = time.time_ns() if case != 'stale' else requested_ns
+        observed.header = NS(stamp=NS(sec=stamp // 1_000_000_000, nanosec=stamp % 1_000_000_000))
+        if case == 'moved': observed.detections[0].representative_position.x += .05
+        ok = not (case == 'missing' or case == 'retry' and len(attempts) == 1)
+        return NS(success=ok, error_code=0 if ok else 4, ERROR_MASK=4, ERROR_RGBD_TIMEOUT=1,
+            message='target missing' if not ok else 'ok', detections=observed,
+            source_snapshot_id='different' if case == 'wrong_source' else approved['snapshot_id'],
+            source_object_id=approved['target']['object_id'])
+    adapter._observe_target = observe
+    if case in ('success', 'retry'):
+        adapter.revalidate(approved, lambda: False)
+    else:
+        with pytest.raises((ValueError, InterruptedError)):
+            adapter.revalidate(approved, lambda: case == 'cancelled')
+    audit = json.loads((tmp_path / 'revalidations' / f"{approved['id']}.json").read_text())
+    assert audit['success'] == (case in ('success', 'retry'))
+    assert len(attempts) == (0 if case == 'cancelled' else 2 if case in ('retry', 'missing') else 1)
+    if case == 'moved': assert '50.0mm' in audit['message']
 
 
 def proposal():

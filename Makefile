@@ -232,7 +232,7 @@ PERCEPTION_PYTEST_ARGS ?=
 test-perception:
 	source "$(ROS_SETUP)" && \
 	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
-	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
+	PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_manipulation_bt:$(ROS2_WS)/src/cleany_dev_monitor:$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider $(PERCEPTION_TEST_PATHS) $(PERCEPTION_PYTEST_ARGS)
 
 build-gazebo: check-gazebo-env

@@ -62,7 +62,7 @@ export function TaskProposal({
               </strong>
               {target && (
                 <p>
-                  거리 {Number(target.distance_m).toFixed(2)} m · 분류 신뢰도{" "}
+                  거리 {Number(target.distance_m).toFixed(2)} m · 검출 신뢰도{" "}
                   {Math.round(target.confidence * 100)}%
                 </p>
               )}
@@ -130,8 +130,8 @@ export function TaskProposal({
           </div>
           {ready && (
             <p className="task-proposal-hint">
-              승인 후 대상을 다시 관찰합니다. 위치·분류가 달라지거나 시간이
-              지나면 실행을 중단하고 새 제안을 요청합니다.
+              승인한 이름과 분류를 유지하고, 최신 영상에서 같은 물체인지 확인합니다.
+              물체가 이동했거나 확인되지 않거나 승인 시간이 지나면 실행을 중단합니다.
             </p>
           )}
         </>

@@ -1,5 +1,11 @@
 # cleany_interfaces
 
+`RevalidateTarget.srv`는 승인 원본 snapshot/object/session/track을 참조하여
+최신 영상에서 대상 하나를 재확인합니다. 원본 의미 분류를 유지하고 현재 신뢰도,
+위치, bbox, 깊이와 크기를 반환합니다. Gemini 재분류와 로봇 동작은 수행하지 않습니다.
+필드의 촬영 시각, 오류 및 캐시 계약은 [서비스 명세](../../cleany_perception/docs/interfaces.md)를 따릅니다.
+새 서비스 추가이며 기존 message/action/service 필드는 변경하지 않습니다.
+
 `ObservedObjectGeometry`는 `/grasp/collision_geometry`의 선택적 관측 형상
 인터페이스다. header의 capture stamp/frame, snapshot_id, object_id로 기존
 GraspCandidate와 연관하고, mesh_pose는 header frame 기준이며 Mesh vertices는
