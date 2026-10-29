@@ -412,6 +412,10 @@ class GeminiDetector:
                 temperature=0.0,
                 response_mime_type='application/json',
                 response_schema=schema,
+                thinking_config=(
+                    types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL)
+                    if self._model == 'gemini-3.5-flash-lite' else None
+                ),
             ),
         )
         response_text = getattr(response, 'text', None)
