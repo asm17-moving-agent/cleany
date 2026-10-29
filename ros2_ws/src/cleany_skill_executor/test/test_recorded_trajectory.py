@@ -232,3 +232,20 @@ def test_nearly_coincident_warp_samples_do_not_invent_acceleration(duration_ns,d
     validate_recorded_trajectory(result,limits,velocity=.8,acceleration=1.2,step=.01)
     assert result.points[-1].time_ns < end_ns*3
     assert result.points[-1].positions == pytest.approx(source.sample_at(end_ns).positions, abs=1e-12)
+
+
+@pytest.mark.parametrize('arm,sign,bounds', [
+    ('left', 1., (-2.16, 0.)),
+    ('right', -1., (0., 2.0033789089786476)),
+])
+def test_front_shoulder_replay_rejects_forbidden_interior_with_legal_endpoints(arm, sign, bounds):
+    name = f'{arm}_shoulder_yaw_joint'
+    # Endpoints are legal; nonzero endpoint velocities cross the zero boundary.
+    path = RecordedTrajectory((name,), (
+        CommandPoint(0, (-sign*.001,), (sign*.1,)),
+        CommandPoint(10**9, (-sign*.001,), (-sign*.1,)),
+    ))
+    limits = {name: PhysicalJointLimit(*bounds, 1., 2., 2048., -1., 0., 0., 4095.)}
+    with pytest.raises(JointRangeValidationError) as rejected:
+        validate_recorded_trajectory(path, limits, velocity=1., acceleration=2., step=.5)
+    assert rejected.value.joint_name == name

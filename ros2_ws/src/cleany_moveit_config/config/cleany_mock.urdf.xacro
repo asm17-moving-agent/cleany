@@ -9,7 +9,7 @@
 
   <xacro:cleany_robot_geometry/>
   <xacro:if value="$(arg include_head_camera)">
-    <xacro:cleany_head_camera mount_x_offset_m="-0.10"/>
+    <xacro:cleany_head_camera/>
   </xacro:if>
 
   <xacro:macro name="cleany_mock_joint" params="joint_name initial_value:=0.0">

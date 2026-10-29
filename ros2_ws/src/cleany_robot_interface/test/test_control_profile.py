@@ -65,16 +65,15 @@ def test_physical_profile_selects_optimized_arm_collision_meshes(prepared):
     from collections import Counter
 
     settings = json.loads((ROOT / 'configs/robot/arm_collision_meshes.json').read_text())
-    expected = Counter({
-        f'package://cleany_description/meshes/collision/{name}': 2
-        for name in settings['source_meshes']
-    })
+    expected = {f'package://cleany_description/meshes/collision/{name}'
+                for name in settings['source_meshes']}
     for path in (prepared.state.model, prepared.model):
         root = ET.parse(path).getroot()
         actual = Counter(mesh.get('filename')
                          for mesh in root.findall('./link/collision/geometry/mesh')
                          if '/meshes/collision/' in mesh.get('filename'))
-        assert actual == expected
+        assert set(actual) == expected
+        assert sum(actual.values()) == 28  # 22 arm and six mast/head instances.
         assert not any('/meshes/collision/' in mesh.get('filename')
                        for mesh in root.findall('./link/visual/geometry/mesh'))
         for side in ('left', 'right'):
@@ -276,3 +275,24 @@ def test_operational_gripper_temperature_matches_contact_gate(filename):
         if name.endswith('_gripper_joint'):
             assert values.get('temperature_limit_c', profile['temperature_limit_c']) == (
                 contact['criteria']['temperature_limit_c'])
+
+
+@pytest.mark.parametrize('profile,arms', [
+    ('feetech_control.yaml', ('left', 'right')),
+    ('feetech_operational_left_arm.yaml', ('left',)),
+    ('feetech_operational_right_arm.yaml', ('right',)),
+])
+def test_front_shoulder_bounds_reach_planning_model_and_motor_driver(
+        tmp_path, state_profile_file, profile, arms):
+    prepared = prepare_control_profile(
+        state_profile_file, ROOT, tmp_path/'front',
+        Path(__file__).parent/'data'/profile)
+    model = ET.parse(prepared.model).getroot()
+    for arm in arms:
+        name = f'{arm}_shoulder_yaw_joint'
+        expected = (-2.16, 0.) if arm == 'left' else (0., 2.0033789089786476)
+        limit = model.find(f"joint[@name='{name}']/limit")
+        assert tuple(float(limit.get(k)) for k in ('lower', 'upper')) == expected
+        joint = model.find(f"ros2_control/joint[@name='{name}']")
+        assert tuple(float(joint.find(f"param[@name='{k}']").text)
+                     for k in ('lower', 'upper')) == expected

@@ -467,3 +467,14 @@ tools/motion-container exec -- python3 tools/validation/verify_deployed_collisio
 컨테이너 준비 hash에 반영되므로 기존 캐시를 수동 삭제할 필요는 없다.
 인증한 메시의 hash, collision 배치나 scale이 다르면 구를 자동 재사용하지 않고
 초기화를 거부한다. `generated` 모델 선택은 비교 검사 용도로 명시한다.
+
+
+
+## 실물 어깨 전방 범위 설정
+
+Jetson의 `~/.config/cleany/feetech_control.yaml`과 단일 팔 운영 프로파일은
+1번 어깨 yaw를 `[-2.16, 0.0]`, 7번을 `[0.0, 2.0033789089786476]` rad로
+제한합니다. `joint_position_bounds`를 바꾸면 실물 런타임을 재시작해야
+IK, MoveIt과 모터 드라이버가 동일한 새 URDF를 읽습니다. 별도 control
+profile을 지정할 때도 이 값을 유지합니다.
+[전방 범위와 실행 검사](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md#실물-어깨-yaw의-전방-범위)를 따릅니다.

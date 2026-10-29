@@ -33,6 +33,20 @@ flowchart TB
 | Backend 상태 | 팔, gripper 전체 /joint_states 발행 필수 |
 
 Position-only IK는 목표 orientation을 제약하지 않는다. SRDF는 직접 parent/child만 충돌 검사에서 제외하며, 비인접, 좌우 cross-arm 검사는 유지한다.
+
+기본 `joint_limits.yaml`의 위치 제한은 canonical URDF와 일치한다. 실물의
+관측 범위를 기본 시뮬레이션 모델에 덮어쓰지 않는다. 실물 launch는 생성된
+`robot_description_file`의 관절 범위를 사용하고, 별도 `joint_limits_file`을
+지정하지 않으면 같은 URDF에서 계획용 위치 제한도 가져온다. 실제 제어
+프로파일이 생성하는 제한 파일은 속도와 가속도를 지정하며 위치 제한은
+보정된 URDF에 둔다.
+
+Mock은 canonical 모델과 같은 마스트, 헤드와 충돌 형상에
+`mock_components/GenericSystem`만 추가한다. `move_group.launch.py`는 팔 전용이고,
+`physical_move_group.launch.py`와 `mock_planning.launch.py`는
+`include_head_camera`를 지원한다. 각 launch의 RViz는 해당 MoveIt 서버와 같은
+모델, 계획 제한과 `use_sim_time`을 사용한다.
+
 ## 시간 배정
 
 양팔의 팔 이동, 파지, 사전 조준, 그리퍼 개방과 복귀 그룹은

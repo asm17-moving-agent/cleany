@@ -39,9 +39,9 @@ calibrated_joint_position_bounds:
   - right_elbow_pitch_joint
   - right_wrist_pitch_joint
 joint_position_bounds:
-  left_shoulder_yaw_joint: [-2.16, 1.9987769666149904]
+  left_shoulder_yaw_joint: [-2.16, 0.0]
   left_wrist_roll_joint: [-1.5247769031583274, 2.9513790358919736]
   left_gripper_joint: [-0.374532977628, 1.74532919957]
-  right_shoulder_yaw_joint: [-2.16, 2.0033789089786476]
+  right_shoulder_yaw_joint: [0.0, 2.0033789089786476]
   right_wrist_roll_joint: [-1.6137477888556946, 2.8992236891038616]
   right_gripper_joint: [-0.374532977628, 1.74532919957]

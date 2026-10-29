@@ -553,3 +553,18 @@ tools/validation/verify_deployed_collision_models.py`로 검사합니다. 기본
 60/61개 구, GPU 전체 형상의 정점 수와 캐시 재사용을 확인합니다. 실제 CUDA
 배치 IK의 해는 독립 URDF FK와 전체 형상 검사로 검증합니다. ROS 조작 Action과
 모터 제어는 시작하지 않습니다. 설치 갱신 순서는 [충돌 최적화 모델 갱신](RUNNING.md#충돌-최적화-모델-갱신)을 따릅니다.
+
+
+## 실물 어깨 전방 범위 검증
+
+Jetson에서 `make test-jetson-packages JETSON_PYTEST_ARGS='-k "test_control_profile or test_front_shoulder_bounds or test_recorded_trajectory"'`로
+프로파일 생성, 금지 IK/경로, 충돌 검사 없는 복귀 명령과 cubic 내부 극값의
+범위 검사를 실행합니다. 이 테스트는 모터에 연결하지 않습니다.
+
+`tools/validation/verify_front_shoulder_limits.py --urdf /path/to/robot_control.urdf --output /path/to/result.json`은
+설치된 실행기의 URDF와 드라이버 한계, 양팔 각 8개 목표의 CPU 보정 IK를
+검사합니다. 실제 motion 컨테이너에서 `--gpu`를 추가하면 같은 목표로
+cuRobo의 CUDA 한계 tensor, 반환 해의 범위와 독립 FK 오차도 확인합니다.
+입력은 운영 control profile로 새로 생성한 쓰기 가능 모델이어야 하며,
+검증 도구 자체는 모터와 ROS 서비스에 명령을 보내지 않습니다.
+실물 이동이나 실시간 장애물 장면의 검증을 대신하지 않습니다.
