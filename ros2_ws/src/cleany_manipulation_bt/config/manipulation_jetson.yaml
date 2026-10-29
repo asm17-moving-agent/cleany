@@ -7,10 +7,15 @@
     hardware_reuse_scene_barrier: true
     hardware_parallel_model_queries: true
     hardware_sparse_cubic_commands: true
+    hardware_share_return_preparation: true
     hardware_pickup_height_search_tolerance_m: 0.005
     execution_defer_pregrasp_validation: true
     # Small lift corrections still obey the full velocity/acceleration retimer.
     hardware_height_correction_min_duration_sec: 0.3
+    # Small release retreats retain the same velocity/acceleration and arrival gates.
+    hardware_release_retreat_min_duration_sec: 0.25
+    hardware_release_retreat_position_tolerance_m: 0.005
+    hardware_release_retreat_orientation_tolerance_deg: 2.0
     # Both arm and gripper goals must be accepted before the common start.
     hardware_return_start_delay_sec: 0.3
     hardware_start_delay_sec: 0.3

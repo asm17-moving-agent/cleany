@@ -4,6 +4,7 @@ The XML owns order. No automatic target selection, collection loop, controller
 activation, fault reset or simulated evidence is used by this adapter.
 """
 from copy import deepcopy
+from contextlib import nullcontext
 import math
 import threading
 import time
@@ -640,10 +641,14 @@ class JetsonOperations(CollectionPipeline):
         return Observation(object_state=ObjectState.LEFT_GRIPPER)
 
     def return_arm(self, context):
-        if temporary_return_mode(self.config) and context.release_confirmed:
-            self.pickup_release_retreat(context.selected.selected_arm, self.pregrasp_pose)
-        self.move_arm_return(context.selected.selected_arm, self.arm_config.home,
-                             self.arm_config.closed, planned_event='return_planned')
+        arm = context.selected.selected_arm
+        retreat = temporary_return_mode(self.config) and context.release_confirmed
+        prepare = getattr(self.real, 'return_preparation', None)
+        with prepare(arm) if retreat and prepare is not None else nullcontext():
+            if retreat:
+                self.pickup_release_retreat(arm, self.pregrasp_pose)
+            self.move_arm_return(arm, self.arm_config.home,
+                                 self.arm_config.closed, planned_event='return_planned')
         context.arm_recovered = True
         return Observation(arm_recovered=True)
 

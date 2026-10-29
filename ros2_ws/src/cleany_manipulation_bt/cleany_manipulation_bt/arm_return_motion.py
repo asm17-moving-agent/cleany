@@ -139,6 +139,9 @@ def move_arm_return(operations, arm: str, home: tuple[float, ...], gripper_close
                     *, planned_event: str = 'manual_return_planned'):
     started = time.monotonic()
     timings, optimization = {}, {}
+    prepare = getattr(operations.real, 'prepare_return_phase', None)
+    if prepare is not None:
+        prepare(arm)
 
     def measured_phase(name: str, action: Callable[[], PlannedPath | None]) -> PlannedPath | None:
         began = time.monotonic()

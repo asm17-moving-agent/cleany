@@ -364,9 +364,17 @@ class CollectionPipeline(PregraspPipeline):
                                      self.pickup_destination_pose(arm).position.z,
                                      actual.position[2])
             target = self.cartesian_pose(retreat)
-            if (math.dist(actual.position, target.position) < 1e-9
-                    and orientation_error_rad(actual.orientation, target.orientation) < 1e-9):
-                self.event('retreat_after_release_already_reached', arm=arm)
+            distance = math.dist(actual.position, target.position)
+            angle = orientation_error_rad(actual.orientation, target.orientation)
+            # A small lateral residual may be complete, but never skip an
+            # upward retreat while measured TCP is below the requested height.
+            if (distance <= self.real.value('hardware_release_retreat_position_tolerance_m')
+                    and angle <= math.radians(self.real.value(
+                        'hardware_release_retreat_orientation_tolerance_deg'))
+                    and actual.position[2] >= target.position[2]-1e-9):
+                self.event('retreat_after_release_already_reached', arm=arm,
+                           position_error_m=distance, orientation_error_rad=angle,
+                           measured_z_m=actual.position[2], required_z_m=target.position[2])
                 return
         check_collisions = self.config.get('retreat_after_release_collision_check_enabled', True)
         if not check_collisions:
@@ -843,6 +851,9 @@ class CollectionPipeline(PregraspPipeline):
         if stage == 'lift_height_correction':
             execution_options['minimum_duration_sec'] = self.real.value(
                 'hardware_height_correction_min_duration_sec')
+        elif stage == 'retreat_after_release':
+            execution_options['minimum_duration_sec'] = self.real.value(
+                'hardware_release_retreat_min_duration_sec')
         if defer_shortfall:
             execution_options['defer_height_shortfall'] = True
         def validate_final_command(samples, actual):
@@ -866,7 +877,11 @@ class CollectionPipeline(PregraspPipeline):
         self.execute_trajectory(
             arm, trajectory, 'arm', check_orientation=check_orientation,
             check_collisions=check_collisions, **execution_options)
-        actual = self.cartesian_pose(self.pose(arm))
+        reuse = (getattr(self.real, 'reuse_release_retreat_endpoint', None)
+                 if stage == 'retreat_after_release' else None)
+        actual = reuse(arm, goal) if reuse is not None else None
+        if actual is None:
+            actual = self.cartesian_pose(self.pose(arm))
         try:
             if defer_shortfall:
                 validate_height_correctable_endpoint(actual, goal,

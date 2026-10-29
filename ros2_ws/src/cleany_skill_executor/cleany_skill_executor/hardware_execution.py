@@ -5,6 +5,7 @@ Never starts hardware, enables torque, clears faults, or changes driver limits.
 from copy import deepcopy
 from collections import deque
 from contextlib import contextmanager, nullcontext
+from dataclasses import dataclass
 import json
 import math
 from pathlib import Path
@@ -46,6 +47,28 @@ from .core.recorded_trajectory import (
 )
 from .core.motion_monitor import MotionMonitor, MotionMonitorConfig
 from .core.gripper_contact import ContactState, LiveContactHistory, load_contact_criteria
+
+
+@dataclass(frozen=True)
+class ReturnEndpoint:
+    target: CartesianPose
+    measured: CartesianPose
+    positions: tuple[tuple[str, float], ...]
+    models: tuple[str, str]
+    submissions: int
+    generation: int
+    checked_at: float
+
+
+@dataclass
+class ReturnPreparation:
+    arm: str
+    phase: str = 'retreat'
+    endpoint: ReturnEndpoint | None = None
+    endpoint_reused: bool = False
+    batch: ReadOnlyBatch | None = None
+    submissions: int = 0
+    generation: int = 0
 
 
 def path_validation_drift(baseline, latest, commanded, commanded_tolerance, other_tolerance):
@@ -174,6 +197,9 @@ class HardwareExecution:
                             'hardware_uncommanded_tolerance_rad': .03,
                             'hardware_settle_time_sec': .5,
                             'hardware_height_correction_min_duration_sec': 1.,
+                            'hardware_release_retreat_min_duration_sec': 1.,
+                            'hardware_release_retreat_position_tolerance_m': 1e-9,
+                            'hardware_release_retreat_orientation_tolerance_deg': 1e-9,
                             'hardware_gripper_contact_timeout_sec': 3.,
                             'hardware_endpoint_settle_duration_sec': .3,
                             'hardware_endpoint_settle_timeout_sec': 2.,
@@ -683,7 +709,37 @@ class HardwareExecution:
                 raise RuntimeError(message)
             self.node.get_logger().warning(message+'; grasp trial will attempt gripper close')
         self.arm_holds[arm] = ArmHold(target, command)
+        preparation = getattr(self, '_return_preparation', None)
+        if (preparation is not None and preparation.arm == arm and preparation.phase == 'retreat'
+                and within and check_orientation and not allow_endpoint_error
+                and not height_deferred and endpoint_pose is not None):
+            preparation.endpoint = ReturnEndpoint(endpoint_pose,
+                CartesianPose(tuple(metrics['actual_tcp_position_m']),
+                              tuple(metrics['actual_tcp_orientation_xyzw'])),
+                tuple(sorted(zip(actual.name, map(float, actual.position), strict=True))),
+                self._verified_models, self.motion_submissions,
+                self.communication_recovery_count, time.monotonic())
+            # These are new reads for the next command. They may overlap only
+            # the remaining endpoint checks and return planning, never motion.
+            HardwareExecution.prepare_return_phase(self, arm)
         return actual, summary
+
+    @contextmanager
+    def return_preparation(self, arm):
+        """Share bounded preparation only inside one release-retreat/home operation."""
+        if not getattr(self, 'share_return_preparation', False):
+            yield
+            return
+        if arm not in ARM_JOINT_NAMES or getattr(self, '_return_preparation', None) is not None:
+            raise RuntimeError('Return preparation requires one exclusive arm operation')
+        preparation = ReturnPreparation(arm)
+        self._return_preparation = preparation
+        try:
+            yield
+        finally:
+            if preparation.batch is not None:
+                preparation.batch.close()
+            self._return_preparation = None
 
     def _model_requests(self):
         return ((self.hardware, ListHardwareComponents.Request()),
@@ -692,6 +748,65 @@ class HardwareExecution:
                 (self.moveit_parameters, GetParameters.Request(
                     names=['robot_description', 'allow_trajectory_execution'])))
 
+    def prepare_return_phase(self, arm):
+        """Start the next fresh query batch once, without delaying for discovery."""
+        preparation = getattr(self, '_return_preparation', None)
+        if preparation is None or preparation.arm != arm or preparation.phase != 'retreat':
+            return
+        preparation.phase = 'home'
+        self.monitor()
+        calls = HardwareExecution._model_requests(self)
+        if not all(client.service_is_ready() for client, _ in calls):
+            self.node.event('return_model_prefetch', outcome='services_not_ready', arm=arm)
+            return
+        preparation.submissions = self.motion_submissions
+        preparation.generation = self.communication_recovery_count
+        preparation.batch = ReadOnlyBatch(self.node, calls, availability_timeout=0.)
+        self.node.event('return_model_prefetch', outcome='started', arm=arm)
+
+    def reuse_release_retreat_endpoint(self, arm, target):
+        """Reuse FK only when the entire measured robot still matches the receipt."""
+        preparation = getattr(self, '_return_preparation', None)
+        if preparation is None or preparation.arm != arm or preparation.endpoint is None:
+            return None
+        receipt = preparation.endpoint
+        state = self.monitor()
+        current = tuple(sorted(zip(state.name, map(float, state.position), strict=True)))
+        valid = (not preparation.endpoint_reused and receipt.target == target
+                 and current == receipt.positions and receipt.models == self._verified_models
+                 and receipt.submissions == self.motion_submissions
+                 and receipt.generation == self.communication_recovery_count
+                 and time.monotonic()-receipt.checked_at <= self.value('hardware_guard_max_age_sec'))
+        self.node.event('return_endpoint_handoff', arm=arm, reused=valid)
+        if not valid:
+            return None
+        preparation.endpoint_reused = True
+        return receipt.measured
+
+    def _return_model_responses(self, arm):
+        preparation = getattr(self, '_return_preparation', None)
+        self._last_return_model_prefetch_used = False
+        if preparation is None or preparation.batch is None:
+            return None
+        batch, preparation.batch = preparation.batch, None
+        valid = (preparation.arm == arm and preparation.submissions == self.motion_submissions
+                 and preparation.generation == self.communication_recovery_count
+                 and time.monotonic()-batch.started <= self.value('hardware_guard_max_age_sec'))
+        if not valid:
+            batch.close()
+            self.node.event('return_model_prefetch', arm=arm, outcome='discarded')
+            return None
+        responses = batch.result()
+        age = time.monotonic()-batch.started
+        if (age > self.value('hardware_guard_max_age_sec')
+                or preparation.submissions != self.motion_submissions
+                or preparation.generation != self.communication_recovery_count):
+            self.node.event('return_model_prefetch', arm=arm, outcome='invalidated_during_wait')
+            return None
+        self._last_return_model_prefetch_used = True
+        self.node.event('return_model_prefetch', arm=arm, outcome='consumed', age_sec=age)
+        return responses
+
     @timed_operation('model_verification', node_attribute='node')
     def verify(self, arm):
         began = time.monotonic()
@@ -699,7 +814,7 @@ class HardwareExecution:
             raise RuntimeError('Physical execution forbids simulation time')
         self.monitor()
         query_began = time.monotonic()
-        responses = None
+        responses = HardwareExecution._return_model_responses(self, arm)
         if responses is None and getattr(self, 'parallel_model_queries', False):
             responses = call_readonly_services(self.node, HardwareExecution._model_requests(self))
         hardware = (responses[0] if responses is not None else
@@ -724,6 +839,10 @@ class HardwareExecution:
         if len(planner) != 2 or planner[1].bool_value:
             raise RuntimeError('MoveIt must be configured for planning only')
         signature = (description, planner[0].string_value)
+        preparation = getattr(self, '_return_preparation', None)
+        if (preparation is not None and preparation.endpoint is not None
+                and preparation.endpoint.models != signature):
+            raise RuntimeError('Robot model changed after release retreat; fresh retreat verification required')
         self._last_model_cache_hit = signature == getattr(self, '_verified_models', None)
         if not self._last_model_cache_hit:
             models = [ET.fromstring(xml) for xml in signature]
@@ -884,6 +1003,7 @@ class HardwareExecution:
         allow_endpoint_error=False,
         command_path_validator=None,
         recorded_trajectory=None,
+        recorded_window: tuple[int, int] | None = None,
         defer_height_shortfall: bool = False,
         minimum_duration_sec=1.,
         start_from_measured: bool = False,
@@ -892,6 +1012,8 @@ class HardwareExecution:
         if type(defer_height_shortfall) is not bool:
             raise ValueError('defer_height_shortfall must be boolean')
         height_options = {'defer_height_shortfall': True} if defer_height_shortfall else {}
+        if recorded_window is not None:
+            height_options['recorded_window'] = recorded_window
         if minimum_duration_sec != 1.:
             height_options['minimum_duration_sec'] = minimum_duration_sec
         if type(start_from_measured) is not bool:
@@ -946,6 +1068,7 @@ class HardwareExecution:
     def execute_recorded_trajectory(self, arm: str, recorded: RecordedTrajectory, *,
                                    check_collisions: bool = True,
                                    defer_height_shortfall: bool = False,
+                                   recorded_window: tuple[int, int] | None = None,
                                    endpoint_pose: CartesianPose | None = None,
                                    check_arrival: bool = True):
         if type(check_arrival) is not bool:
@@ -958,6 +1081,8 @@ class HardwareExecution:
         if type(defer_height_shortfall) is not bool:
             raise ValueError('defer_height_shortfall must be boolean')
         options = {'defer_height_shortfall': True} if defer_height_shortfall else {}
+        if recorded_window is not None:
+            options['recorded_window'] = recorded_window
         if not check_arrival:
             options.update(terminal_check=False, allow_endpoint_error=True)
         if endpoint_pose is not None:
@@ -973,13 +1098,8 @@ class HardwareExecution:
         """Execute one bounded return window, optionally omitting arrival acceptance."""
         if type(check_arrival) is not bool:
             raise ValueError('check_arrival must be boolean')
-        recorded = stopped_recorded_window(path, start_ns, end_ns, self.verify(arm),
-            velocity=self.value('hardware_velocity_rad_s'),
-            acceleration=self.value('hardware_acceleration_rad_s2'))
-        self.node.event('return_replay_timing', source_duration_sec=(end_ns-start_ns)/1e9,
-                        command_duration_sec=recorded.points[-1].time_ns/1e9,
-                        command_points=len(recorded.points))
-        return self.execute_recorded_trajectory(arm, recorded, check_collisions=check_collisions,
+        return self.execute_recorded_trajectory(arm, path, check_collisions=check_collisions,
+            recorded_window=(start_ns, end_ns),
             endpoint_pose=endpoint_pose, **({'check_arrival': False} if not check_arrival else {}))
 
     def _execute_with_recovery(self, arm, trajectory, controller, **options):
@@ -1065,6 +1185,7 @@ class HardwareExecution:
         allow_endpoint_error=False,
         command_path_validator=None,
         recorded_trajectory=None,
+        recorded_window: tuple[int, int] | None = None,
         _refresh_attempt=0,
         defer_height_shortfall: bool = False,
         minimum_duration_sec=1.,
@@ -1091,6 +1212,21 @@ class HardwareExecution:
         if type(check_collisions) is not bool:
             raise ValueError('check_collisions must be boolean')
         limits = self.verify(arm)
+        if recorded_window is not None:
+            if controller != 'arm' or recorded_trajectory is None:
+                raise ValueError('A recorded window requires an arm command history')
+            start_ns, end_ns = recorded_window
+            recorded_trajectory = stopped_recorded_window(
+                recorded_trajectory, start_ns, end_ns, limits,
+                velocity=self.value('hardware_velocity_rad_s'),
+                acceleration=self.value('hardware_acceleration_rad_s2'))
+            trajectory = JointTrajectory(joint_names=list(recorded_trajectory.joint_names), points=[
+                JointTrajectoryPoint(positions=list(point.positions))
+                for point in recorded_trajectory.points])
+            held_command = recorded_trajectory.points[0].positions
+            self.node.event('return_replay_timing', source_duration_sec=(end_ns-start_ns)/1e9,
+                            command_duration_sec=recorded_trajectory.points[-1].time_ns/1e9,
+                            command_points=len(recorded_trajectory.points))
         requested_held_command = held_command
         expected = ARM_JOINT_NAMES[arm] if controller == 'arm' else (f'{arm}_gripper_joint',)
         if controller not in ('arm', 'gripper') or tuple(trajectory.joint_names) != expected:

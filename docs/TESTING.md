@@ -646,6 +646,25 @@ cuRobo의 CUDA 한계 tensor, 반환 해의 범위와 독립 FK 오차도 확인
 실물 이동이나 실시간 장애물 장면의 검증을 대신하지 않습니다.
 
 
+## 후보별 빠른 경로 우선 선택과 기록 복귀 준비
+
+ROS 2 Humble 환경에서 다음 검사는 모터 명령 없이 fake planner와 제어 포트를
+사용한다. 새 정책의 후보 순서, RRT 보류와 대체 계획, 요청 내부 IK 재사용,
+최신 장면 재검사, 취소 시 복구, 팔별 워밍업 순서와 기록 구간의 단일 모델
+검증을 확인한다.
+
+```bash
+make test-jetson-packages \
+  JETSON_PYTEST_ARGS='-k "fast_candidate or vlm_warmup or return_window"'
+```
+
+배포 후 `tools/validation/verify_selection_return_install.py --deployment PATH`로
+native 설치본을 확인하고 motion container에서는 같은 명령에 `--container`를
+추가한다. manifest에 기록된 실행 소스 hash와 설치된 hybrid 설정을 대조하며
+ROS 노드나 모터를 시작하지 않는다. 이 검사는 실제 한 사이클 소요시간을
+측정하지 않는다.
+
+
 ## 모델 조회 병렬화와 sparse cubic 명령
 
 모터 대체 포트로 후보 동작을 검증하려면 Jetson에서 다음을 실행한다. 조밀한
@@ -676,6 +695,26 @@ python3 tools/validation/benchmark_query_commands.py \
 `benchmark.json`, `jtc-build.log`와 각 sampler 입력을 출력 위치에 보존한다.
 설치 확인은 `verify_query_command_install.py --deployment PATH`를 사용하며
 motion container에는 `--container`를 추가한다.
+
+
+## 놓은 뒤 후퇴와 본 복귀의 준비 공유
+
+Jetson의 ROS 2 환경에서 모터 대체 포트로 다음을 실행한다.
+
+```bash
+make test-jetson-packages \
+  JETSON_PYTEST_ARGS='-k "return_preparation or readonly_services or release_retreat_efficiency"'
+```
+
+검사는 순차 후퇴/본 복귀, 도착 실패 후 명령 차단, 엄격한 도착 확인에서만
+FK 재사용, 전체 관절 변화, 목표 변화, 모델 변화, 통신 복구, 추가 명령,
+응답 수신 중 만료와 미사용 요청 정리를 확인한다. 실제 Cartesian 실행
+어댑터를 모터 대체 포트와 연결해 중복 측정 FK 호출의 생략도 확인한다.
+실물 이동시간이나 전체 사이클 단축은 이 검사로 측정하지 않는다.
+
+`verify_return_handoff_install.py --deployment PATH`로 native 설치 모듈과
+Jetson 설정을 확인한다. motion container에는 `--container`를 추가한다.
+이 명령은 설치 모듈 hash를 비교하며 ROS 노드나 모터를 시작하지 않는다.
 
 
 ## 역재생 후퇴의 손목 방향
