@@ -24,7 +24,7 @@ from cleany_skill_executor.manipulation.models import Error, ObjectState, Placem
 from cleany_skill_executor.validate_pick_node import ValidatePickNode
 from rclpy.action import ActionClient
 
-from .action_tracking import TrackedClient, quiescent
+from .action_tracking import MotionClientPool, TrackedClient, quiescent
 from .backend import ExecutionContext, Observation, OperationError
 from .joint_feedback import JointFeedback, StationaryWindow
 
@@ -38,6 +38,8 @@ class JetsonOperations(CollectionPipeline):
         self.deadline = math.inf
         self._stopping = False
         self.submissions, self.handles, self.tracked_clients = [], [], []
+        self._motion_client_pool = MotionClientPool(
+            self, lambda action_type, name: ActionClient(self, action_type, name))
         try:
             self._initialize(config, **kwargs)
         except Exception:
@@ -100,7 +102,14 @@ class JetsonOperations(CollectionPipeline):
         return tracked
 
     def create_motion_client(self, action_type, name):
-        return self.track(ActionClient(self, action_type, name))
+        pool = getattr(self, '_motion_client_pool', None)
+        if pool is None:
+            pool = self._motion_client_pool = MotionClientPool(
+                self, lambda kind, endpoint: ActionClient(self, kind, endpoint))
+        client = pool.acquire(action_type, name)
+        self.tracked_clients[:] = [tracked for tracked in self.tracked_clients if not tracked.destroyed]
+        self.tracked_clients.append(client)
+        return client
 
     def on_state(self, message):
         super().on_state(message)
@@ -715,6 +724,9 @@ class JetsonOperations(CollectionPipeline):
             stop_confirmed=confirmed)
 
     def destroy_node(self):
+        pool = getattr(self, '_motion_client_pool', None)
+        if pool is not None:
+            pool.close()
         if hasattr(self, 'scene_monitor'):
             self.scene_monitor.close()
         for client in self.tracked_clients:

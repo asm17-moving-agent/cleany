@@ -107,6 +107,7 @@ class PregraspPipeline(Node):
         self.mode = mode
         defaults = {'pipeline_timeout_sec': 360., 'maximum_joint_age_sec': .5,
                     'execution_use_verified_local_fk': False, 'execution_timing_enabled': False,
+                    'execution_defer_pregrasp_validation': False,
                     'maximum_target_translation_m': .01, 'wrist_checks': 3,
                     'planning_scene_timeout_sec': 5.,
                     'planning_timeout_sec': 4., 'planning_response_margin_sec': 1.,
@@ -115,6 +116,9 @@ class PregraspPipeline(Node):
         for name, value in defaults.items():
             self.declare_parameter(name, value)
         self._execution_timing_enabled = self.get_parameter('execution_timing_enabled').value
+        self._defer_pregrasp_validation = self.get_parameter('execution_defer_pregrasp_validation').value
+        if type(self._defer_pregrasp_validation) is not bool:
+            raise ValueError('execution_defer_pregrasp_validation must be boolean')
         for name in ('planning_timeout_sec', 'planning_response_margin_sec'):
             value = self.get_parameter(name).value
             if not math.isfinite(value) or value <= 0:
@@ -362,10 +366,12 @@ class PregraspPipeline(Node):
 
     def execute_pregrasp(self, selected):
         arm = selected.selected_arm
-        self.verify_simulator(arm)
+        real = getattr(self, 'real', None)
+        defer = real is not None and getattr(self, '_defer_pregrasp_validation', False)
+        if not defer:
+            self.verify_simulator(arm)
         measured = self.measured()
         planned = dict(zip(selected.planning_start_state.name, selected.planning_start_state.position))
-        real = getattr(self, 'real', None)
         start_options = ({} if real is None else {
             'commanded': (*ARM_JOINT_NAMES[arm], f'{arm}_gripper_joint'),
             'commanded_tolerance': real.value('hardware_start_blend_max_rad')})
@@ -378,14 +384,17 @@ class PregraspPipeline(Node):
         self.scene.begin(selected.selected_candidate, f'pregrasp_execution_{time.monotonic_ns()}')
         primary_error = None
         try:
-            # Hardware dispatch obtains a new frame immediately before checking
-            # the exact synchronized command. Preliminary checks only need a
-            # currently fresh map; waiting for another new frame here serializes
-            # two camera cycles without replacing the authoritative final check.
-            if real is not None:
-                self.scene_monitor.wait()
-            else:
-                self.scene_monitor.wait(after_stamp_ns=self.get_clock().now().nanoseconds)
+            capture_barrier = getattr(real, 'capture_scene_barrier', None)
+            scene_barrier = capture_barrier(arm) if capture_barrier is not None else None
+            # Final dispatch requires a frame captured after the settled pose.
+            # An unchanged pose can reuse the barrier captured before preparation;
+            # A deferred path has no preliminary scene-dependent work. Its
+            # mandatory scene wait remains in the final hardware dispatch.
+            if not defer:
+                if real is not None:
+                    self.scene_monitor.wait()
+                else:
+                    self.scene_monitor.wait(after_stamp_ns=self.get_clock().now().nanoseconds)
             self.motion.set_current_state(measured)
             current = JointSolution(ARM_JOINT_NAMES[arm], tuple(planned[n] for n in ARM_JOINT_NAMES[arm]))
             minimum_opening = float(selected.gripper_joint_position)
@@ -395,13 +404,13 @@ class PregraspPipeline(Node):
                 margin = float(self.config['pregrasp_opening_margin_m'])
                 commanded_opening = self.arm_config.opening(
                     min(self.arm_config.width, required_width + margin))
-            if not self.motion.gripper_sweep_is_valid(
+            if not defer and not self.motion.gripper_sweep_is_valid(
                     arm, current, planned[f'{arm}_gripper_joint'], commanded_opening, .05):
                 raise RuntimeError('Opening the gripper intersects the current scene')
             self.motion.set_gripper_position(arm, commanded_opening)
             path = PlannedPath(tuple(trajectory.joint_names), tuple(tuple(p.positions) for p in trajectory.points))
-            checked = self.motion._validated_cubic_path(arm, path)
-            if checked is None:
+            checked = None if defer else self.motion._validated_cubic_path(arm, path)
+            if not defer and checked is None:
                 raise RuntimeError('Pregrasp path is no longer collision-free')
             # Recheck the original start after potentially slow scene validation.
             state = self.measured()
@@ -411,7 +420,9 @@ class PregraspPipeline(Node):
             last = JointTrajectoryPoint(positions=[commanded_opening], velocities=[0.])
             last.time_from_start.sec = 5
             jaw.points = [first, last]
-            arm_command = path_to_message(checked)
+            # Hardware validates the final combined, retimed command before any
+            # goal submission. Its geometry includes measured-start/hold changes.
+            arm_command = trajectory if defer else path_to_message(checked)
             if getattr(self, 'real', None) is not None:
                 # Continuous depth is the default collection policy. The
                 # updater masks measured robot/attached geometry each frame.
@@ -421,7 +432,8 @@ class PregraspPipeline(Node):
                 try:
                     state = self.real.execute_pregrasp_parallel(
                         arm, arm_command, jaw, minimum_opening,
-                        1 if self.arm_config.opened > self.arm_config.closed else -1)
+                        1 if self.arm_config.opened > self.arm_config.closed else -1,
+                        **({'scene_barrier': scene_barrier} if scene_barrier is not None else {}))
                 except BaseException as motion_error:
                     try:
                         self.release_grasp_scene_freeze()

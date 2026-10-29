@@ -99,6 +99,9 @@ class CubicJointPath:
         even if the bounded local iterations have not fully converged.
         """
         initial_duration = self.minimum_duration(velocity_limits, acceleration_limits)
+        if len(self.positions) == 2:
+            # One segment already spans [0, 1]; no time allocation can change it.
+            return self
         v = np.asarray(velocity_limits, dtype=float)
         a = np.asarray(acceleration_limits, dtype=float)
 

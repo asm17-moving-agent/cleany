@@ -1658,7 +1658,7 @@ class CollectionPipeline(PregraspPipeline):
     def close_until_contact(self, selected, report=None):
         arm = selected.selected_arm
         after = self.get_clock().now().nanoseconds
-        target = self.real.closed_contact_position(arm, self.real.verify(arm))
+        target = self.real.closed_contact_position(arm)
         self.jaw(arm, target, 'close_for_contact', contact_close=True,
                  check_collisions=self.config.get('grasp_collision_check_enabled', True))
         decision = self.real.wait_for_contact(arm, after)

@@ -460,6 +460,46 @@ Jetson 실물 관련 패키지를 수정한 경우 관련 네이티브 패키지
 make test-jetson-controller JETSON_CONTROLLER_TEST_ARGS='-k "readonly_controllers_cannot_activate_or_execute or shared_bus_readonly_has_no_writes"'
 ```
 
+## Pregrasp와 그리퍼의 대기 및 명령 간소화
+
+`test_collision_preparation`은 상태 메시지의 메타데이터와 독립성, 전체 표본의
+clearance 검사, 준비 중 취소와 마지막 RPC 전 확인을 검증합니다.
+`test_action_tracking`은 제어 연결 재사용 시 실행 소유권, 지연 수락 취소,
+미확정 명령이 남은 연결의 재사용 거부와 종료 시 한 번만 해제됨을 확인합니다.
+`test_execution_optimization`은 예비 센서 대기 통합 후 최종 검사와 정리를 확인합니다.
+
+`benchmark_execution_preparation.py --baseline /path/to/source-before --output /path/to/result.json`은
+Jetson에서 보존한 변경 전 소스와 현재 소스의 준비 시간을 비교합니다.
+전체 관절 상태와 표본을 동일하게 유지하고 충돌 RPC를 기록용 응답으로
+대체합니다. 제어 연결 비교는 별도 `ROS_DOMAIN_ID`와 `ROS_LOCALHOST_ONLY=1`에서
+`/cleany_validation_motion_pool/` 아래의 즉시 성공 시험 서버를 사용합니다.
+실제 제어기와 모터는 사용하지 않으며 서버 재생성 후 같은 연결도 확인합니다.
+반복 사용과 첫 연결 시간을 구분하고, 이 결과를 물리 동작 전체 시간으로
+보고하지 않습니다.
+
+배포 후 `verify_execution_preparation_install.py --deployment /path/to/deployment.json`으로
+설치된 네 실행 모듈의 hash와 연결 재사용을 확인합니다. Motion container에서는
+`--container`를 추가해 설치된 두 skill executor 모듈을 확인합니다.
+이 설치 검사는 ROS 노드나 모터 명령을 실행하지 않습니다.
+
+모터 연결 없이 `make test-jetson-packages`의 `JETSON_PYTEST_ARGS`에
+`-k "test_pregrasp_gripper_efficiency or test_execution_optimization or test_hardware_collection or test_joint_path or test_recorded_trajectory or test_front_shoulder_bounds or test_state_validity_batch or test_sensor_scene"`를 전달합니다.
+정확한 전체 관절 수집 이력, stale 및 복구 거부, 최종 캘리브레이션 검사,
+그리퍼 곡선과 검사 표본 보존, 64개 배치의 경계 실패 인덱스를 확인합니다.
+
+계산 시간 비교는 ROS 환경을 source한 Jetson에서
+`python3 tools/validation/benchmark_pregrasp_gripper.py --baseline-joint-path /path/to/before/joint_path.py --output /path/to/benchmark.json`으로 실행합니다.
+기록된 닫기와 열기 끝점에 같은 속도 및 가속도 한계를 적용하고 변경 전후를
+번갈아 측정합니다. 준비 계산, 메시지 직렬화와 예정 궤적 시간을 구분하며
+이 결과로 실제 모터 이동 시간이나 전체 실행 단축량을 확정하지 않습니다.
+
+배포 후 `verify_pregrasp_gripper_install.py --deployment /path/to/deployment.json`으로
+native 설치 파일과 설정을 확인합니다. Motion container에서는 같은 도구에
+`--container`를 추가합니다. 실물 확인에서는 새 실행 ID의 단계 시간과
+`controller_points`, `command_samples`, `gripper_contact_wait`, 시작 수락 시각을
+함께 기록합니다.
+
+
 ## s와 m의 저장 영상 TensorRT 비교
 
 `tools/validation/compare_yoloe_models.py`는 같은 32종 프로파일의 s와 m

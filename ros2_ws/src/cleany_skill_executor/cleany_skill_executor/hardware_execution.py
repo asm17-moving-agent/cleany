@@ -18,8 +18,10 @@ from control_msgs.action import FollowJointTrajectory
 from control_msgs.msg import DynamicJointState, JointTolerance
 from controller_manager_msgs.srv import ListControllers, ListHardwareComponents
 from moveit_msgs.srv import GetStateValidity
+from moveit_msgs.msg import RobotState
 from rcl_interfaces.srv import GetParameters
 from rclpy.action import ActionClient
+from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 from std_srvs.srv import SetBool, Trigger
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -103,6 +105,22 @@ class HardwareExecution:
         self.complete_feedback_stamp_ns: int | None = None
         self._active_recovery_generation: int | None = None
         node.declare_parameter('hardware_reuse_settle_history', True)
+        node.declare_parameter('hardware_reuse_scene_barrier', False)
+        for name in ('parallel_model_queries', 'sparse_cubic_commands', 'share_return_preparation'):
+            parameter = 'hardware_'+name
+            node.declare_parameter(parameter, False)
+            enabled = node.get_parameter(parameter).value
+            if type(enabled) is not bool:
+                raise ValueError(parameter+' must be boolean')
+            setattr(self, name, enabled)
+        node.declare_parameter('hardware_state_preparation_monitor_period_sec', .01)
+        self._state_preparation_monitor_period_sec = self.value(
+            'hardware_state_preparation_monitor_period_sec')
+        if self._state_preparation_monitor_period_sec > .01:
+            raise ValueError('State preparation monitoring period must be at most 0.01 seconds')
+        self.reuse_scene_barrier = node.get_parameter('hardware_reuse_scene_barrier').value
+        if type(self.reuse_scene_barrier) is not bool:
+            raise ValueError('hardware_reuse_scene_barrier must be boolean')
         reuse_history = node.get_parameter('hardware_reuse_settle_history').value
         if type(reuse_history) is not bool:
             raise ValueError('hardware_reuse_settle_history must be boolean')
@@ -199,6 +217,18 @@ class HardwareExecution:
         factory = getattr(self.node, 'create_motion_client', None)
         return (factory(FollowJointTrajectory, name) if factory is not None
                 else ActionClient(self.node, FollowJointTrajectory, name))
+
+    def motion_clients(self, arm, controllers):
+        """Release earlier leases if acquiring a later controller fails."""
+        clients = {}
+        try:
+            for controller in controllers:
+                clients[controller] = HardwareExecution.motion_client(self, arm, controller)
+        except BaseException:
+            for client in clients.values():
+                client.destroy()
+            raise
+        return clients
 
     def value(self, name):
         result = float(self.node.get_parameter(name).value)
@@ -366,10 +396,31 @@ class HardwareExecution:
             'final_tcp_orientation_error_deg': math.degrees(orientation_error),
         }
 
-    def wait_for_fresh_sensor_scene(self, stage):
+    def capture_scene_barrier(self, arm):
+        """Allow cloud reception during planning while the settled pose stays identical."""
+        if not getattr(self, 'reuse_scene_barrier', False):
+            return None
+        state = self.wait_for_settle((*ARM_JOINT_NAMES[arm], f'{arm}_gripper_joint'))
+        stamp_ns = self.node.get_clock().now().nanoseconds
+        positions = dict(zip(state.name, state.position, strict=True))
+        return dict(stamp_ns=stamp_ns,
+                    positions=positions,
+                    submissions=self.motion_submissions,
+                    generation=self.communication_recovery_count)
+
+    def wait_for_fresh_sensor_scene(self, stage, *, barrier=None):
         """Wait for a cloud captured after the settled robot pose."""
         began = time.monotonic()
         after_stamp_ns = self.node.get_clock().now().nanoseconds
+        reused = False
+        if barrier is not None:
+            state = self.monitor()
+            if (0 < barrier['stamp_ns'] <= after_stamp_ns
+                    and barrier['positions'] == dict(zip(state.name, state.position, strict=True))
+                    and barrier['submissions'] == self.motion_submissions
+                    and barrier['generation'] == self.communication_recovery_count):
+                after_stamp_ns = barrier['stamp_ns']
+                reused = True
 
         def canceled():
             self.monitor()
@@ -384,6 +435,9 @@ class HardwareExecution:
             'stage': 'hardware_sensor_scene_refreshed',
             'for_stage': stage,
             'after_stamp_ns': after_stamp_ns,
+            'planning_barrier_reused': reused,
+            'planning_barrier_age_sec': (
+                (self.node.get_clock().now().nanoseconds-after_stamp_ns)/1e9 if reused else None),
             'wall_sec': time.monotonic() - began,
         }))
 
@@ -424,13 +478,14 @@ class HardwareExecution:
                 raise
 
     @contextmanager
-    def frozen_sensor_scene(self):
+    def frozen_sensor_scene(self, *, barrier=None):
         """Require a fresh map; freeze only when the configured policy requests it."""
         config = getattr(self.node, 'config', {})
         continuous = config.get('continuous_scene_updates',
             self.node.get_parameter('continuous_sensor_scene_updates').value)
         if continuous:
-            self.wait_for_fresh_sensor_scene('continuous_pre_motion_octomap')
+            self.wait_for_fresh_sensor_scene('continuous_pre_motion_octomap',
+                                            **({'barrier': barrier} if barrier is not None else {}))
             yield
             return
         self.begin_sensor_scene_freeze()
@@ -475,6 +530,42 @@ class HardwareExecution:
                 if response.first_invalid_index != -1:
                     return
 
+    @timed_operation('collision_state_preparation', node_attribute='node')
+    def _prepare_collision_states(self, arm, expected, samples, baseline, measured,
+                                  *, hold_bridge_samples=0):
+        """Build identical full states with bounded checks before any RPC or goal.
+
+        Only unsent message construction uses the reduced monitor cadence.
+        Collision RPCs and physical execution retain their own monitoring.
+        """
+        names = list(measured.name)
+        slots = [names.index(name) for name in expected]
+        positions = [baseline[name] for name in names]
+        guard = getattr(self, '_approach_clearance_guard', None)
+        use_guard = guard is not None and tuple(expected) == ARM_JOINT_NAMES[arm]
+        period = getattr(self, '_state_preparation_monitor_period_sec', .01)
+        last_check = -math.inf
+        states = []
+        for index, sample in enumerate(samples):
+            if index % 64 == 0 or time.monotonic()-last_check >= period:
+                self.monitor()
+                last_check = time.monotonic()
+            if len(sample.positions) != len(slots):
+                raise ValueError('Collision sample has incorrect joint count')
+            values = list(positions)
+            for slot, value in zip(slots, sample.positions, strict=True):
+                values[slot] = value
+            if use_guard:
+                phase = 'hold_bridge' if index < hold_bridge_samples else 'command_path'
+                guard({**baseline, **dict(zip(expected, sample.positions))}, index, phase)
+            state = JointState(header=deepcopy(measured.header), name=list(names),
+                               position=values, velocity=list(measured.velocity),
+                               effort=list(measured.effort))
+            states.append(RobotState(joint_state=state, is_diff=True))
+        self.monitor()
+        return states
+
+    @timed_operation('collision_validation', node_attribute='node')
     def validate_collision_samples(
         self,
         arm,
@@ -487,19 +578,9 @@ class HardwareExecution:
         trajectory_stage='hardware',
     ):
         """Validate the held-command entry and path against the current scene."""
-        states = []
-        for index, sample in enumerate(samples):
-            self.monitor()
-            state = deepcopy(measured)
-            q = {**baseline, **dict(zip(expected, sample.positions))}
-            state.position = [q[name] for name in state.name]
-            phase = 'hold_bridge' if index < hold_bridge_samples else 'command_path'
-            guard = getattr(self, '_approach_clearance_guard', None)
-            if guard is not None and tuple(expected) == ARM_JOINT_NAMES[arm]:
-                guard(q, index, phase)
-            states.append(GetStateValidity.Request().robot_state)
-            states[-1].joint_state = state
-            states[-1].is_diff = True
+        states = HardwareExecution._prepare_collision_states(
+            self, arm, expected, samples, baseline, measured,
+            hold_bridge_samples=hold_bridge_samples)
         for index, response in HardwareExecution._collision_responses(self, states):
             if response.valid:
                 continue
@@ -743,13 +824,19 @@ class HardwareExecution:
             return self.contact_histories[arm].evaluate(
                 now_ns=self.node.get_clock().now().nanoseconds, after_ns=after_ns)
 
-    def closed_contact_position(self, arm, limits):
+    def closed_contact_position(self, arm, limits=None):
+        """Propose the calibrated close goal; dispatch rechecks it against fresh limits."""
+        if limits is None:
+            limits = getattr(self, '_physical_limits', {}).get(arm)
+            if limits is None:
+                limits = self.verify(arm)
         limit = limits[f'{arm}_gripper_joint']
         goal = self.contact_criteria[arm].closed_goal_raw
         value = limit.offset + limit.direction * (goal-limit.zero) * math.tau/4096
         limit.check(value)
         return value
 
+    @timed_operation('gripper_contact_wait', node_attribute='node')
     def wait_for_contact(self, arm, after_ns):
         deadline = time.monotonic()+self.value('hardware_gripper_contact_timeout_sec')
         while True:
@@ -1135,7 +1222,12 @@ class HardwareExecution:
         # first point. Start now, with the held command at t=0, to avoid that
         # otherwise hidden reset even when the first point itself is correct.
         start_ns = 0
-        for index, sample in enumerate(samples):
+        # JTC's two endpoint Hermite cubic reproduces this one-segment jaw path.
+        # Keep all samples above for physical bounds and collision validation.
+        compact_gripper = (controller == 'gripper' and recorded_trajectory is None
+                           and len(positions) == 2)
+        command_samples = [samples[0], samples[-1]] if compact_gripper else samples
+        for index, sample in enumerate(command_samples):
             point = JointTrajectoryPoint(positions=list(sample.positions),
                 velocities=[v/duration for v in sample.derivatives])
             ns = round(sample.progress*duration*1e9)
@@ -1146,6 +1238,8 @@ class HardwareExecution:
             command.points.append(point)
         self.node.get_logger().info(json.dumps({
             'stage': 'hardware_trajectory_prepared',
+            'controller_points': len(command.points),
+            'two_point_gripper_command': compact_gripper,
             'preparation_wall_sec': time.monotonic() - preparation_began,
             'path_preparation_wall_sec': path_preparation_sec,
             'command_corridor_wall_sec': corridor_sec,
@@ -1472,10 +1566,9 @@ class HardwareExecution:
             abs(commanded_gripper_opening - minimum_gripper_opening)
             + self.value('hardware_arrival_tolerance_rad'))
 
-        clients = {
-            controller: HardwareExecution.motion_client(self, arm, controller)
-            for controller in ('arm', 'gripper')
-        }
+        clients_began = time.monotonic()
+        clients = HardwareExecution.motion_clients(self, arm, ('arm', 'gripper'))
+        client_acquisition_sec = time.monotonic()-clients_began
         handles = {}
         result_futures = {}
         tracking = {
@@ -1520,6 +1613,7 @@ class HardwareExecution:
             # Dispatch both before waiting for either controller to finish.
             self.motion_submissions = getattr(self, 'motion_submissions', 0) + 1
             HardwareExecution._reset_stability_history(self)
+            dispatch_began = time.monotonic()
             goal_futures = {
                 controller: client.send_goal_async(FollowJointTrajectory.Goal(
                     trajectory=commands[controller],
@@ -1533,6 +1627,19 @@ class HardwareExecution:
                 if handle is None or not handle.accepted:
                     raise RuntimeError(f'{controller} synchronized goal rejected')
                 handles[controller] = handle
+                self.node.get_logger().info(json.dumps({
+                    'stage': 'synchronized_goal_accepted',
+                    'for_stage': stage_prefix,
+                    'controller': controller,
+                    'transport_reused': getattr(clients[controller], 'transport_reused', False),
+                    'client_acquisition_wall_sec': client_acquisition_sec,
+                    'dispatch_to_observed_accept_sec': time.monotonic()-dispatch_began,
+                    'header_to_observed_accept_sec': (
+                        self.node.get_clock().now().nanoseconds-header_ns)/1e9,
+                    'scheduled_start_delay_sec': delay_ns/1e9,
+                }))
+            if self.node.get_clock().now().nanoseconds >= start_ns:
+                raise RuntimeError('Both synchronized goals must be accepted before their start time')
             result_futures = {name: handle.get_result_async() for name, handle in handles.items()}
             deadline = time.monotonic() + duration + 10.
             completed = {}

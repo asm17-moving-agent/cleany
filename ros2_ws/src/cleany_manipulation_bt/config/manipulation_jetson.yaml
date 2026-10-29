@@ -4,11 +4,15 @@
     execution_use_verified_local_fk: true
     execution_timing_enabled: true
     hardware_reuse_settle_history: true
+    hardware_reuse_scene_barrier: true
     hardware_pickup_height_search_tolerance_m: 0.005
+    execution_defer_pregrasp_validation: true
     # Small lift corrections still obey the full velocity/acceleration retimer.
     hardware_height_correction_min_duration_sec: 0.3
     # Both arm and gripper goals must be accepted before the common start.
     hardware_return_start_delay_sec: 0.3
+    hardware_start_delay_sec: 0.3
+    hardware_state_validity_batch_size: 64
     require_sensor_scene: true
     planning_scene_timeout_sec: 5.0
     planning_timeout_sec: 4.0
