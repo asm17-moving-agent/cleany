@@ -58,3 +58,31 @@ class JointStabilityHistory:
                         or max(values)-min(values) > span_limit):
                     return False
             return True
+
+    def unchanged_since(self, positions: Mapping[str, float], *, now_ns: int,
+                        duration_sec: float, maximum_age_sec: float) -> int | None:
+        """Return the start of an exact, fresh full-robot acquisition window.
+
+        This is a sensor capture barrier, so every joint must match exactly.
+        A velocity-tolerant settling window cannot authorize an older scene.
+        """
+        with self._lock:
+            if (not self._samples or not positions
+                    or not all(math.isfinite(value) and value > 0
+                               for value in (duration_sec, maximum_age_sec))
+                    or any(not math.isfinite(q) for q in positions.values())):
+                return None
+            latest, latest_positions = self._samples[-1]
+            if (not 0 <= now_ns-latest <= maximum_age_sec*1e9
+                    or latest_positions != positions):
+                return None
+            earliest = latest
+            count = 0
+            for stamp, sample_positions in reversed(self._samples):
+                if sample_positions != positions or earliest-stamp > maximum_age_sec*1e9:
+                    break
+                earliest = stamp
+                count += 1
+            if count < 2 or latest-earliest < duration_sec*1e9:
+                return None
+            return earliest

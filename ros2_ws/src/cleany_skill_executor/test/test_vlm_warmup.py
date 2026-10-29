@@ -86,3 +86,40 @@ def test_optional_warmup_failure_does_not_poison_selection_or_spin_retries():
         GraspSelectionNode._try_vlm_warmup(node)
     assert calls == [['left'], ['right']]
     assert not node._goal_active
+
+
+@pytest.mark.parametrize('preferred,allowed,expected', [
+    ('', ['right', 'left'], 'right'),
+    ('left', ['right', 'left'], 'left'),
+    ('right', ['left', 'right'], 'right'),
+    ('left', ['right'], 'right'),
+    ('invalid', ['right', 'left'], 'right'),
+])
+def test_vlm_warmup_prioritizes_known_arm_within_configured_subset(preferred, allowed, expected):
+    node, calls = node_fixture()
+    original = node.get_parameter
+    node.get_parameter = lambda key: (SimpleNamespace(value=allowed)
+        if key == 'curobo_ik_vlm_warmup_arms' else original(key))
+    GraspSelectionNode._remember_warmup_arm(node, preferred)
+    request(node, True)
+    GraspSelectionNode._try_vlm_warmup(node)
+    assert calls == [([expected], False, True)]
+    GraspSelectionNode._remember_warmup_arm(node, expected)
+    GraspSelectionNode._try_vlm_warmup(node)
+    assert sum(arms == [expected] for arms, *_ in calls) == 1
+
+
+def test_vlm_warmup_rejected_goal_does_not_change_preference():
+    from rclpy.action import GoalResponse
+    node, _ = node_fixture()
+    node._goal_lock = threading.Lock()
+    node._validate_candidates = lambda *_: None
+    node.get_parameter = lambda _: SimpleNamespace(value='base_link')
+    node._vlm_warmup_preferred_arm = 'right'
+    goal = SimpleNamespace(required_arm='left', candidates=[])
+    node._goal_active = True
+    assert GraspSelectionNode._on_goal(node, goal) == GoalResponse.REJECT
+    assert node._vlm_warmup_preferred_arm == 'right'
+    node._goal_active = False
+    assert GraspSelectionNode._on_goal(node, goal) == GoalResponse.ACCEPT
+    assert node._vlm_warmup_preferred_arm == 'left'

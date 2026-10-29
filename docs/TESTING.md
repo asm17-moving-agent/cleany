@@ -717,6 +717,28 @@ Jetson 설정을 확인한다. motion container에는 `--container`를 추가한
 이 명령은 설치 모듈 hash를 비교하며 ROS 노드나 모터를 시작하지 않는다.
 
 
+### 시작 GPU 예열과 전체 관절 정지 이력
+
+Jetson에서 다음 검사로 예열 완료 전 준비 상태 차단, 중단 후 재시도,
+14개 관절 이력, 머리 이동과 누락, 피드백 재발행과 통신 복구를 확인한다.
+
+```bash
+CLEANY_TEST_PIPELINE_RUNTIME=1 make test-jetson-packages \
+  JETSON_PYTEST_ARGS='-k "full_scene_history or runtime_readiness or physical_grasp_selection_node or preparation_optimization"'
+```
+
+`tools/validation/benchmark_ik_startup_warmup.py`는 motion container에서 저장된
+선택 통계와 runtime URDF로 `--mode interrupted`와 `--mode completed`를 각각
+새 프로세스에서 비교한다. `--statistics PATH --runtime PATH`를 지정하며
+GPU 준비 시간과 동일 8개 후보의 첫 요청 시간을 분리한다. 모터 명령은 없다.
+
+`tools/validation/benchmark_scene_history_live.py --before BEFORE_PY --after AFTER_PY
+--output RESULT_JSON`은 정지한 실물의 같은 전체 피드백을 두 실행기에 입력하고
+현재 깊이 장면의 대기 시간을 동시에 비교한다. 실제 센서의 최신성 조건을
+유지하며 모터 명령 없이 실행한다. 이 결과는 이동 중인 전체 작업 시간의
+실측을 대신하지 않는다.
+
+
 ## 역재생 후퇴의 손목 방향
 
 역재생 후퇴의 손목 유지와 검사 목표 일치는 `test_height_correction_runtime.py`에서 양팔의 합성 FK와 가짜 실행 포트로 검사한다. 접근 전과 잡은 뒤 손목 각도가 약 27도 다른 경우를 통과시키고, 위치 목표의 변경 없이 이동 전후 위치 오류와 새 목표 방향에 대한 21도 도착 오류를 계속 거부하는지 확인한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "height_correction_runtime or arrival_approach"'`로 관련 검사를 실행한다.

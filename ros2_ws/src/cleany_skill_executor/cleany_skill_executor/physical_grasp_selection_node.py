@@ -97,7 +97,7 @@ class GraspSelectionNode(Node):
             'curobo_ik_warmup_include_aim': True,
             'curobo_ik_warmup_timeout_sec': 180.0,
             'curobo_ik_vlm_warmup_enabled': False,
-            'curobo_ik_vlm_warmup_arms': ['left', 'right'],
+            'curobo_ik_vlm_warmup_arms': ['right', 'left'],
             'curobo_ik_vlm_warmup_window_sec': 30.0,
             'state_validity_batch_size': 32,
             'curobo_ik_cpu_fallback': False,
@@ -433,6 +433,7 @@ class GraspSelectionNode(Node):
         self._vlm_warmup_until = 0.
         self._vlm_warmup_completed: set[str] = set()
         self._vlm_warmup_failed: set[str] = set()
+        self._vlm_warmup_preferred_arm = ''
         self._vlm_warmup_description = ''
         self._vlm_warmup_service = self.create_service(SetBool, '/grasp/vlm_warmup',
             self._vlm_warmup_request, callback_group=callback_group)
@@ -496,6 +497,13 @@ class GraspSelectionNode(Node):
             return (not self._goal_active and time.monotonic() < self._vlm_warmup_until
                     and (lease is None or not lease.foreground_pending()))
 
+    def _remember_warmup_arm(self, arm: str) -> None:
+        """Prioritize a known requested/selected arm in the next idle window."""
+        lock = getattr(self, '_vlm_warmup_lock', None)
+        if arm in ('left', 'right') and lock is not None:
+            with lock:
+                self._vlm_warmup_preferred_arm = arm
+
     def _try_vlm_warmup(self):
         if (not self._vlm_warmup_enabled or not self._description_ready
                 or not self._vlm_warmup_active()
@@ -514,6 +522,9 @@ class GraspSelectionNode(Node):
                 if not arms or any(value not in ('left', 'right') for value in arms):
                     raise ValueError('VLM warmup arms must be left/right')
                 with self._vlm_warmup_lock:
+                    preferred = getattr(self, '_vlm_warmup_preferred_arm', '')
+                    if preferred in arms:
+                        arms = [preferred, *(value for value in arms if value != preferred)]
                     arm = next((value for value in arms if value not in
                         self._vlm_warmup_completed | self._vlm_warmup_failed), None)
                     deadline = self._vlm_warmup_until
@@ -569,6 +580,7 @@ class GraspSelectionNode(Node):
                 self._adapter.set_current_state(state)
                 self._adapter.set_deadline(time.monotonic() + timeout)
                 self._adapter.set_progress_callback(lambda message: self.get_logger().info('warmup: ' + message))
+                began = time.monotonic()
                 self._adapter.warmup(self.get_parameter('curobo_ik_warmup_arms').value,
                     include_aim=self.get_parameter('curobo_ik_warmup_include_aim').value,
                     continue_work=lambda: not self._goal_active and
@@ -576,6 +588,10 @@ class GraspSelectionNode(Node):
                 self._warmup_description = self._adapter._description
                 self._warmup_ready = True
                 self.get_logger().info('Primary GPU IK warmup complete; results discarded')
+                self.get_logger().info(json.dumps({'event': 'startup_ik_warmup',
+                    'arms': list(self.get_parameter('curobo_ik_warmup_arms').value),
+                    'include_aim': self.get_parameter('curobo_ik_warmup_include_aim').value,
+                    'wall_sec': time.monotonic() - began, 'outcome': 'ready'}))
         except InterruptedError as error:
             if lease is not None and lease.foreground_pending():
                 self.get_logger().info('IK warmup yielded to foreground GPU work')
@@ -684,6 +700,7 @@ class GraspSelectionNode(Node):
             if self._goal_active:
                 return GoalResponse.REJECT
             self._goal_active = True
+        GraspSelectionNode._remember_warmup_arm(self, request.required_arm)
         return GoalResponse.ACCEPT
 
     def _on_cancel(self, _goal_handle) -> CancelResponse:
@@ -1016,6 +1033,7 @@ class GraspSelectionNode(Node):
                     result.success = True
                     result.error_code = result.ERROR_NONE
                     self._sensor_scene.check()
+                    GraspSelectionNode._remember_warmup_arm(self, selection.arm)
                     result.message = 'Selected reachable grasp (plan-only)'
                     if selection.pregrasp is None:
                         result.message = 'Selected direct grasp (plan-only); pregrasp selection skipped'

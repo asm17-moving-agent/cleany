@@ -478,6 +478,15 @@ tools/motion-container exec -- python3 tools/validation/verify_deployed_collisio
 
 
 
+## 시작 GPU 예열
+
+Jetson hybrid는 시작 시 양팔 grasp TCP의 GPU IK 예열을 완료합니다.
+`/grasp/warmup_status`가 성공해야 collection 시작 준비가 완료되며, 최초 CUDA
+준비 비용은 작업 시간과 별도로 시작 단계에 발생합니다. `startup_ik_warmup`
+로그에서 완료 팔과 시간을 확인합니다. VLM 대기 중 예열은 기본적으로 끕니다.
+예열 전에 Action을 직접 호출하면 첫 요청에서 초기화 비용이 남을 수 있습니다.
+
+
 ## 실물 어깨 전방 범위 설정
 
 Jetson의 `~/.config/cleany/feetech_control.yaml`과 단일 팔 운영 프로파일은

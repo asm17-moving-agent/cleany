@@ -40,9 +40,15 @@ def test_single_participant_waits_for_servers_and_live_feedback(tmp_path, monkey
         controller.create_service(ListControllers, '/controller_manager/list_controllers', controllers)
         def unused(request, response):
             pytest.fail('Readiness must not call motion, camera control or stop services')
+        warmup_ready = [False]
+        def warmup(request, response):
+            response.success = warmup_ready[0]
+            response.message = 'IK warmup ready' if response.success else 'IK warmup pending'
+            return response
         for name in REQUIRED_SERVICES:
             if name != '/controller_manager/list_controllers':
-                inspector.create_service(Trigger, name, unused)
+                inspector.create_service(Trigger, name,
+                    warmup if name == '/grasp/warmup_status' else unused)
         for name in REQUIRED_ACTIONS:
             action_clients.append(ActionClient(inspector, FollowJointTrajectory, name))
         publishers = {name: inspector.create_publisher(kind, name, 1) for name, kind in FEEDBACK.items()}
@@ -67,6 +73,9 @@ def test_single_participant_waits_for_servers_and_live_feedback(tmp_path, monkey
         for name in REQUIRED_ACTIONS:
             action_servers.append(ActionServer(inspector, FollowJointTrajectory, name,
                 execute_callback=lambda goal: pytest.fail('No actuator goal is allowed')))
+        wait_for(lambda p: 'Primary GPU IK warmup' in p and not any('(server)' in item for item in p))
+        assert probe.feedback_after is None
+        warmup_ready[0] = True
         wait_for(lambda p: set(p) == set(FEEDBACK))
         original = readiness.get_action_server_names_and_types_by_node
         failures = []

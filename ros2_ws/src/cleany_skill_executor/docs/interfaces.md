@@ -59,7 +59,7 @@ depth 100으로 구독한다. `monitor_port`의 localhost ZeroMQ REP socket은 �
 
 | 종류 | 기본 이름 | ROS 타입 | 설명 |
 |---|---|---|---|
-| 서비스 제공 | `/grasp/warmup_status` | `std_srvs/srv/Trigger` | cuRobo IK 엔진 예열 상태 확인 |
+| 서비스 제공 | `/grasp/warmup_status` | `std_srvs/srv/Trigger` | 설정된 양팔과 TCP의 실제 배치 IK 완료 상태. collection 시작 준비 검사가 성공 응답을 기다림. 예열 비활성화 시 준비 상태 반환 |
 | 서비스 제공 | `/grasp/vlm_warmup` | `std_srvs/srv/SetBool` | VLM 감지 시 제한 시간 내 백그라운드 예열 트리거 |
 
 충돌 형상 파라미터는 다음과 같다. 형상 생성과 검증의 범위는 [조작 구현 계약](manipulation.md#충돌-근사-형상)을 따른다.

@@ -42,11 +42,16 @@ TCP의 기구학적 정의와 기존 닫힘 방향의 비대칭 보정은 유지
 
 팔 복귀와 그리퍼 닫기의 동기 경로는 충돌 검사가 활성화된 경우 실행 직전 전체 로봇 상태로 검사한다. 거부하면 `hardware_collision_validation_failed`에 `trajectory_stage=synchronized_return`, 표본 번호, 관절값, 접촉한 링크·장애물과 지도 고정 여부를 남긴다. `hold_bridge`는 측정 위치에서 유지 명령까지의 검사 구간이고 `command_path`는 실제 명령 경로다. 검사가 활성화된 상태에서 통과하지 못한 경로는 전송하지 않는다. Jetson의 고정 중간 자세 복귀는 `bt_arm_return_collision_check_enabled=false`로 계획 단계와 동기 실행 단계의 충돌 검사를 생략하며, 충돌 지도 갱신을 기다리지 않는다. 이 경우에도 최종 명령의 관절 범위, 속도와 가속도 제한, 피드백 및 도착 확인은 유지한다. 생략 여부는 `collision_checks_enabled`와 `hardware_collision_validation_skipped`에 기록한다.
 
-## 5. GPU 자원 조율 및 우선순위 (GPU Work Lock)
+## GPU 준비 작업과 실제 요청 우선순위
 
-AnyGrasp(비전)와 cuRobo(모션) 간의 GPU 충돌을 방지하기 위해 파일 락(`gpu-work.lock`)을 운용합니다.
-- **실제 요청 최우선**: 사용자의 파지 요청(Foreground Demand)이 백그라운드 모델 예열보다 항상 우선합니다.
-- **양보 메커니즘**: 진행 중인 cuRobo 예열 작업은 실제 요청이 감지되면 다음 CUDA 단계 경계에서 즉시 GPU를 양보합니다.
+`gpu_lock_path`가 설정되면 AnyGrasp worker와 같은 호스트 lock 및 `.demand` 파일을
+사용한다. cuRobo 예열은 GPU가 사용 중이거나 실제 요청이 대기하면 시작하지 않는다.
+진행 중인 예열은 단계 사이에서 양보하고 초기화한 solver buffer를 보존한다.
+실제 선택 요청은 foreground lease를 유지하며 취소와 action deadline을 확인한다.
+이미 시작한 CUDA 호출 자체를 중단하지는 않는다. 기본 container 프로필은
+`/workspace/cleany/configs/robot/gpu-work.lock`을 사용한다. native 실행은 같은 호스트
+inode를 가리키는 경로로 덮어쓴다. 빈 경로는 GPU 조정을 끈다.
+
 
 ## 기록 역재생 운반의 완료 기준
 
@@ -121,7 +126,15 @@ Feetech 드라이버는 매 제어 주기의 최종 명령에도 같은 한계�
 
 센서 barrier를 재사용해도 관측 시각, 수신 시각, OctoMap 존재와 최대 나이
 검사를 모두 통과해야 합니다. 기존 freeze 모드에서는 재사용하지 않습니다.
-
+전체 관절의 실제 수집 이력이 정지 확인 기간 동안 정확히 같으면 그 구간의
+시작 시각을 barrier로 사용합니다. 다른 팔과 머리도 포함하며, 수집 간격이
+너무 길거나 최근 값이 오래되면 재사용하지 않습니다. 명령 전송과 통신 복구는
+이력을 초기화합니다. 따라서 계획 중에 이미 도착한 최신 관측을 활용할 수
+있지만 움직이기 전 관측이나 오래된 지도는 실행을 허용하지 않습니다.
+이력은 같은 `DynamicJointState` 프레임의 14개 위치를 사용합니다. Feetech의
+원자적 전체 수집 계약에 따라 position만 제공하는 머리 2축도 팔의 공통
+`feedback_stamp_ns`에 속합니다. 머리 행이 누락되거나 잘못되면 이력을
+비우며 `/joint_states`의 다른 시각 값으로 보충하지 않습니다.
 
 물리 pregrasp에서 예비 검사를 최종 검사로 통합한 경우 하드웨어와 모델 조회도
 최종 전송 검사에서 한 번 수행합니다. 그리퍼 닫힘 목표를 계산할 때는 직전의
@@ -241,3 +254,28 @@ RRT를 보류한 시도는 `rrt_deferred`로 기록하며 RRT 실행 시간으�
 수행합니다. 충돌 정책, 측정 시작점 연결과 전송 직전 drift 검사는 유지합니다.
 작은 drift로 실행 준비를 다시 시작하면 최신 모델을 다시 확인하지만 이미
 잘라낸 구간에 원본 구간 시각을 중복 적용하지 않습니다.
+
+
+## 시작 GPU 예열
+
+CUDA graph 준비 비용은 시작 시 예열에서 지불합니다. Jetson hybrid 프로파일은
+양팔 grasp TCP의 실제 배치 IK와 CUDA 동기화까지 완료한 뒤 실행 준비 완료를
+표시합니다. aim TCP와 fallback seed 솔버는 미리 만들지 않습니다. 시작 준비
+시간과 실제 요청 시간을 구분하며, 예열 전에 직접 제출한 요청은 초기 비용을
+부담할 수 있습니다.
+
+
+선택적으로 VLM 대기 중 예열을 켜면 GPU 준비 순서는 `curobo_ik_vlm_warmup_arms`를 따르며 기본 순서는
+오른팔, 왼팔입니다. 수락한 요청의 명시된 팔 또는 마지막으로 선택한 팔이
+있으면 다음 유휴 구간에서 그 팔을 먼저 준비합니다. 준비 완료 팔은 반복하지
+않고, 설정에 없는 팔은 추가하지 않습니다. SetBool 워밍업 요청에는 다음 팔
+정보가 없으므로 첫 선택의 팔을 예측하지는 않습니다. 실제 선택의 팔이나
+후보 순서를 변경하지 않으며 실제 작업이 들어오면 준비를 양보합니다.
+
+| 설정 | 일반 기본값 / Jetson 설정 | 동작과 검증 조건 |
+|---|---|---|
+| `fast_candidate_paths_first` | `false` / hybrid에서 `true` | 후보 전체의 빠른 경로를 먼저 시도하고 모두 실패할 때 경로 실패 후보의 RRT를 허용 |
+| `curobo_ik_warmup_enabled` | `false` / `true` | 시작 시 양팔 배치 IK 예열. `/grasp/warmup_status` 성공 전에는 collection 준비 완료를 표시하지 않음 |
+| `curobo_ik_warmup_include_aim` | `true` / `false` | Jetson은 실제 grasp-first 선택에 사용하는 grasp TCP만 예열 |
+| `curobo_ik_vlm_warmup_enabled` | `false` / `false` | 시작 예열과 VLM 예열의 중복을 방지. 선택적으로 VLM 예열만 사용하는 구성을 지원 |
+| `curobo_ik_vlm_warmup_arms` | `[right, left]` / 동일 | 최근 알려진 요청 또는 선택 팔을 설정된 팔 목록 안에서 우선 준비 |

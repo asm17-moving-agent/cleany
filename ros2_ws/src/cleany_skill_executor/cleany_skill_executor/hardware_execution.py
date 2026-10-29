@@ -431,6 +431,13 @@ class HardwareExecution:
         state = self.wait_for_settle((*ARM_JOINT_NAMES[arm], f'{arm}_gripper_joint'))
         stamp_ns = self.node.get_clock().now().nanoseconds
         positions = dict(zip(state.name, state.position, strict=True))
+        history = getattr(self, '_stability_history', None)
+        if history is not None:
+            unchanged = history.unchanged_since(positions, now_ns=stamp_ns,
+                duration_sec=self.value('hardware_endpoint_settle_duration_sec'),
+                maximum_age_sec=self.value('hardware_guard_max_age_sec'))
+            if unchanged is not None:
+                stamp_ns = unchanged
         return dict(stamp_ns=stamp_ns,
                     positions=positions,
                     submissions=self.motion_submissions,
@@ -944,8 +951,17 @@ class HardwareExecution:
                     getattr(self, 'communication_recovery_count', 0), max(recovery_counts))
                 stability = getattr(self, '_stability_history', None)
                 if stability is not None:
-                    positions = {name: dict(zip(rows[name].interface_names,
-                        rows[name].values)).get('position', math.nan) for name in required}
+                    # Feetech commits all 14 positions atomically after a complete
+                    # acquisition. Head rows share the arm acquisition stamp but
+                    # export only position; never substitute a /joint_states value.
+                    positions = {}
+                    for name in required | {'head_pan_joint', 'head_tilt_joint'}:
+                        row = rows.get(name)
+                        valid = (row is not None
+                            and len(row.interface_names) == len(row.values)
+                            and len(set(row.interface_names)) == len(row.interface_names))
+                        positions[name] = (dict(zip(row.interface_names, row.values)).get(
+                            'position', math.nan) if valid else math.nan)
                     stability.observe(self.complete_feedback_stamp_ns, positions,
                                       max(recovery_counts))
             else:

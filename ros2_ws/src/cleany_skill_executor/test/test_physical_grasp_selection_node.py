@@ -45,6 +45,31 @@ def test_startup_warmup_runs_once_and_never_overlaps_an_active_request():
     assert GraspSelectionNode._warmup_status(node, Trigger.Request(), Trigger.Response()).success
 
 
+def test_interrupted_startup_capture_is_pending_until_both_arms_finish():
+    calls = []
+    parameters = {'curobo_ik_warmup_timeout_sec': 180.,
+        'curobo_ik_warmup_arms': ['right', 'left'], 'curobo_ik_warmup_include_aim': False}
+    node = SimpleNamespace(_warmup_ready=False, _warmup_error='', _description_ready=True,
+        _description_error='', _goal_active=False, _adapter_lock=threading.RLock(),
+        _current_joint_state=lambda: 'fresh',
+        get_parameter=lambda key: SimpleNamespace(value=parameters[key]),
+        get_logger=lambda: SimpleNamespace(info=lambda _: None, error=lambda _: None, warning=lambda _: None))
+    def warmup(arms, **kwargs):
+        calls.append(arms)
+        assert not kwargs['include_aim']
+        if len(calls) == 1:
+            node._goal_active = True
+            raise InterruptedError('Interrupted after solver allocation')
+    node._adapter = SimpleNamespace(_description='runtime', warmup=warmup,
+        set_current_state=lambda _: None, set_deadline=lambda _: None,
+        set_progress_callback=lambda _: None)
+    GraspSelectionNode._try_warmup(node)
+    assert not node._warmup_ready and not node._warmup_error
+    node._goal_active = False
+    GraspSelectionNode._try_warmup(node)
+    assert node._warmup_ready and calls == [['right', 'left'], ['right', 'left']]
+
+
 def test_cancel_while_waiting_for_gpu_lock_finishes_action_and_releases_goal_ownership():
     from cleany_interfaces.action import SelectReachableGrasp
     lock = threading.Lock()

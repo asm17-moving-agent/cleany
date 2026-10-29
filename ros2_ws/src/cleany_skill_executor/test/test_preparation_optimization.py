@@ -69,9 +69,10 @@ def test_real_feedback_adapter_uses_acquisition_stamp_and_resets_on_recovery():
     fake = NS(_stability_history=JointStabilityHistory(), contact_lock=threading.Lock(),
               contact_histories={}, fault='')
     def message(stamp, generation=0):
-        return NS(joint_names=names, interface_values=[NS(
+        return NS(joint_names=names + ['head_pan_joint', 'head_tilt_joint'], interface_values=[NS(
             interface_names=['position','feedback_stamp_ns','communication_recovery_count'],
-            values=[.1,float(stamp),float(generation)]) for _ in names])
+            values=[.1,float(stamp),float(generation)]) for _ in names] + [NS(
+                interface_names=['position'], values=[.2]) for _ in range(2)])
     for i in range(1,8):HardwareExecution.on_contact_feedback(fake,message(i*100_000_000))
     options = dict(now_ns=700_000_000,duration_sec=.5,maximum_age_sec=.25,velocity_rad_s=.02)
     assert fake._stability_history.stable(names, dict.fromkeys(names,.1),**options)

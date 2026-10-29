@@ -18,13 +18,13 @@ grasp_selection_server:
     curobo_ik_seeded_local_ik: true
     approach_joint_shortcut_enabled: true
     curobo_ik_defer_candidate_retries: true
-    curobo_ik_warmup_enabled: false
-    # Start only during an actual VLM request; never gate runtime readiness.
-    curobo_ik_vlm_warmup_enabled: true
-    curobo_ik_vlm_warmup_arms: [left, right]
+    # Finish both grasp TCP CUDA captures before collection readiness.
+    curobo_ik_warmup_enabled: true
+    curobo_ik_vlm_warmup_enabled: false
+    curobo_ik_vlm_warmup_arms: [right, left]
     curobo_ik_vlm_warmup_window_sec: 30.0
     curobo_ik_warmup_arms: [right, left]
-    curobo_ik_warmup_include_aim: true
+    curobo_ik_warmup_include_aim: false
     curobo_ik_warmup_timeout_sec: 180.0
     curobo_ik_group_gripper_openings: true
     curobo_ik_iterations: 50

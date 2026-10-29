@@ -25,6 +25,8 @@ def probe(monkeypatch):
         parameter_future=future(parameter), controllers_future=future(controllers),
         parameter_client=NS(service_is_ready=lambda: False),
         controllers_client=NS(service_is_ready=lambda: False),
+        warmup_client=NS(service_is_ready=lambda: False), warmup_future=None,
+        warmup_ready=True, warmup_poll_after=0.,
         guard='ready', received={name: 9. for name in module.FEEDBACK}, feedback_after=None,
         graph_ready_at=None)
     return node, clock, nodes, services, servers, parameter, controllers
@@ -184,3 +186,34 @@ def test_configuration_query_timeout_is_bounded_after_graph_ready(probe):
     assert 'MoveIt execution mode' in module.ReadinessProbe.pending(node)
     clock[0] += 10.
     with pytest.raises(RuntimeError, match='query timed out'): module.ReadinessProbe.pending(node)
+
+
+def test_warmup_waits_beyond_configuration_timeout_then_requires_new_feedback(probe):
+    node, clock, *_ = probe
+    node.warmup_ready = False
+    result = NS(success=False, message='IK warmup pending')
+    polls = []
+    node.warmup_client = NS(service_is_ready=lambda: True,
+        call_async=lambda request: polls.append(request) or NS(done=lambda: True, result=lambda: result))
+    assert 'Primary GPU IK warmup' in module.ReadinessProbe.pending(node)
+    clock[0] += 20.
+    assert 'Primary GPU IK warmup' in module.ReadinessProbe.pending(node)
+    assert node.feedback_after is None
+    # Repeated readiness checks do not flood the selector with requests.
+    module.ReadinessProbe.pending(node)
+    assert len(polls) == 2
+    result.success = True
+    clock[0] += 1.
+    assert set(module.ReadinessProbe.pending(node)) == set(module.FEEDBACK)
+    clock[0] += .1
+    node.received = {name: clock[0] for name in module.FEEDBACK}
+    assert module.ReadinessProbe.pending(node) == []
+
+
+def test_failed_gpu_warmup_never_reports_collection_ready(probe):
+    node, *_ = probe
+    node.warmup_ready = False
+    node.warmup_future = NS(done=lambda: True,
+        result=lambda: NS(success=False, message='IK warmup failed: GPU unavailable'))
+    with pytest.raises(RuntimeError, match='GPU unavailable'):
+        module.ReadinessProbe.pending(node)
