@@ -587,8 +587,9 @@ class CollectionPipeline(PregraspPipeline):
             origin = fk(tuple(positions[name] for name in ARM_JOINT_NAMES[arm]))
             command_origin = fk(path.points[0].positions)
             predicted = estimate_measured_path_pose(origin, command_origin, fk(path.points[-1].positions))
-            endpoint = goal if index == len(reversed_paths)-1 else predicted
             if index == len(reversed_paths)-1:
+                # Roll is held at grasp; the saved pregrasp rotation is no longer the goal.
+                goal = CartesianPose(goal.position, predicted.orientation)
                 if defer_shortfall:
                     validate_height_correctable_endpoint(predicted, goal,
                         self.real.value('hardware_tcp_position_tolerance_m'),
@@ -596,15 +597,18 @@ class CollectionPipeline(PregraspPipeline):
                 else:
                     validate_position_endpoint(predicted, goal,
                                                self.real.value('hardware_tcp_position_tolerance_m'))
+            endpoint = goal if index == len(reversed_paths)-1 else predicted
             self.event('retreat_measured_start', arm=arm, start_source='measured', segment=index,
                        measured_joint_rad=[positions[name] for name in ARM_JOINT_NAMES[arm]],
                        measured_tcp_position_m=origin.position,
                        predicted_endpoint_position_m=predicted.position,
-                       physical_target_position_m=endpoint.position)
+                       physical_target_position_m=endpoint.position,
+                       physical_target_orientation_xyzw=endpoint.orientation,
+                       orientation_target_source='measured_start_fixed_roll_replay')
             actual = self.real.execute_recorded_trajectory(
                 arm, path, check_collisions=check_collisions, endpoint_pose=endpoint, **endpoint_options)
         try:
-            actual_pose, goal = self.cartesian_pose(self.pose(arm)), self.cartesian_pose(target)
+            actual_pose = self.cartesian_pose(self.pose(arm))
             if defer_shortfall:
                 validate_height_correctable_endpoint(actual_pose, goal,
                     self.real.value('hardware_tcp_position_tolerance_m'),

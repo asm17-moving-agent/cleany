@@ -1,5 +1,6 @@
 """Retreat/lift correction through synthetic motion ports; never opens motors."""
 from copy import deepcopy
+import math
 from types import SimpleNamespace as NS
 
 import pytest
@@ -205,6 +206,65 @@ def test_retreat_defers_logged_shortfall_for_subsequent_lift(reverse, sag):
     if reverse:
         assert options == [dict(check_collisions=False, defer_height_shortfall=True,
                                 endpoint_pose=node.cartesian_pose(pose(target)))]
+
+
+@pytest.mark.parametrize('arm', ['left', 'right'])
+@pytest.mark.parametrize('fault', [None, 'position_before', 'position_after', 'orientation_after'])
+def test_reverse_retreat_uses_held_roll_target_and_preserves_endpoint_guards(arm, fault):
+    from cleany_skill_executor.core.cartesian import orientation_error_rad
+
+    node, actual, _, events = plant(arm, goal=.54, sag=0.)
+    node.config['retreat_reverse_approach_enabled'] = True
+    # Logged pregrasp and grasp wrist feedback from execution 8bc94506.
+    pregrasp_roll, held_roll = -1.2471263805510262, -.7700583555185919
+    target = pose(.54)
+    target.orientation.z = math.sin(pregrasp_roll/2)
+    target.orientation.w = math.cos(pregrasp_roll/2)
+    original = deepcopy(target)
+    state = node.real.monitor()
+    state.position = [.46, .04 if fault == 'position_before' else .003823, 0., 0., held_roll]
+
+    def fk(_, solution):
+        q = solution.positions
+        return NS(position=(.3+q[1], 0., q[0]),
+                  orientation_xyzw=(0., 0., math.sin(q[4]/2), math.cos(q[4]/2)))
+
+    node.motion.forward_kinematics = fk
+    node._approach_command_arm = arm
+    node._approach_command_paths = (RecordedTrajectory(ARM_JOINT_NAMES[arm], (
+        CommandPoint(0, (.54, 0., 0., 0., pregrasp_roll), (0.,)*5),
+        CommandPoint(10**9, (.46, 0., 0., 0., held_roll), (0.,)*5))),)
+    sent = []
+
+    def replay(selected_arm, path, **options):
+        assert selected_arm == arm
+        sent.append(options)
+        assert all(point.positions[4] == held_roll for point in path.points)
+        actual.position = deepcopy(target.position)
+        actual.position.x += .04 if fault == 'position_after' else .003823
+        angle = held_roll + (math.radians(21.) if fault == 'orientation_after' else 0.)
+        actual.orientation.z = math.sin(angle/2)
+        actual.orientation.w = math.cos(angle/2)
+        return state
+
+    node.real.execute_recorded_trajectory = replay
+    if fault:
+        error = ValueError if fault == 'position_before' else RuntimeError
+        with pytest.raises(error, match='Cartesian endpoint mismatch'):
+            node.retreat_to_pregrasp(arm, target, {}, check_collisions=False)
+    else:
+        node.retreat_to_pregrasp(arm, target, {}, check_collisions=False)
+        assert events[-1][0] == 'retreat_reverse_approach_completed'
+    assert target == original
+    assert len(sent) == (0 if fault == 'position_before' else 1)
+    if sent:
+        endpoint = sent[0]['endpoint_pose']
+        assert endpoint.position == node.cartesian_pose(target).position
+        assert math.degrees(orientation_error_rad(
+            endpoint.orientation, node.cartesian_pose(target).orientation)) == pytest.approx(27.333984375)
+        assert endpoint.orientation == pytest.approx((0., 0., math.sin(held_roll/2), math.cos(held_roll/2)))
+        assert sent[0]['defer_height_shortfall'] is True
+        assert sent[0]['check_collisions'] is False
 
 
 def test_remaining_large_shortfall_does_not_retry_or_block_return():

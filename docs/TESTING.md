@@ -606,6 +606,10 @@ cuRobo의 CUDA 한계 tensor, 반환 해의 범위와 독립 FK 오차도 확인
 실물 이동이나 실시간 장애물 장면의 검증을 대신하지 않습니다.
 
 
+## 역재생 후퇴의 손목 방향
+
+역재생 후퇴의 손목 유지와 검사 목표 일치는 `test_height_correction_runtime.py`에서 양팔의 합성 FK와 가짜 실행 포트로 검사한다. 접근 전과 잡은 뒤 손목 각도가 약 27도 다른 경우를 통과시키고, 위치 목표의 변경 없이 이동 전후 위치 오류와 새 목표 방향에 대한 21도 도착 오류를 계속 거부하는지 확인한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "height_correction_runtime or arrival_approach"'`로 관련 검사를 실행한다.
+
 ## 기록 역재생 운반
 
 기록 역재생 운반의 단일 명령 완료와 도착 검사 생략은 `test_reverse_pickup_return.py`와 `test_arrival_approach.py`에서 검사한다. 과거 높이 오류 0.0169204755m, 낮은 도착 및 큰 관절 오차에서도 추가 이동이나 위치 재검사 없이 놓기로 진행하는지 확인한다. 컨트롤러 실패와 취소가 후속 놓기를 차단하는지도 가짜 모터 전송으로 확인한다.

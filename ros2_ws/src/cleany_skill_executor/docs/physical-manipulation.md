@@ -53,6 +53,10 @@ AnyGrasp(비전)와 cuRobo(모션) 간의 GPU 충돌을 방지하기 위해 파�
 `pick_return_release`에서 `return_to_pick_reverse_enabled=true`인 운반은 현재 측정 자세를 기준으로 목표 높이에 해당하는 기록 경로 구간을 한 번만 역재생한다. 이동 완료 뒤 추가 하강 보정, 관절 및 TCP의 도착 허용오차 판정과 놓기 직전 위치 재검사를 생략하고 다음 놓기 단계로 진행한다. 컨트롤러의 정상 완료 응답을 기다리며 취소, 통신 실패와 모터 fault는 계속 실패로 처리한다. 명령의 관절 범위와 속도 및 가속도 제한도 적용한다. 기존 `return_to_pick_height_correction_max_attempts`, `return_to_pick_height_correction_max_step_m`과 도착 판정용 `return_to_pick_height_tolerance_m`은 이 역재생 경로에서 사용하지 않는다. `hardware_pickup_height_search_tolerance_m`은 이동 전 경로의 절단 시점을 찾는 수치 오차이며 도착 합격 기준이 아니다.
 
 
+## 역재생 후퇴의 손목 방향
+
+들어올리기 시작 시 `retreat_reverse_approach_enabled=true`이면 기록한 접근 명령을 역재생하되 손목 roll은 잡은 뒤 측정값으로 고정한다. 복귀 목표 위치는 저장한 pregrasp 위치를 유지하며, 목표 방향은 현재 측정 자세에 고정 roll 경로의 회전을 적용해 계산한다. 접근 전 손목 방향으로 되돌리는 검사는 하지 않는다. 계산한 목표 방향은 이동 전에 고정하여 컨트롤러 실행과 이동 후 확인에 동일하게 사용한다. 높이 보정이 활성화된 경우에도 XY, 위쪽 초과와 이 목표 방향에 대한 허용오차 검사는 유지한다. `retreat_measured_start`에는 검사 목표 위치와 방향 및 방향의 출처를 기록한다.
+
 ## 6. 실행 FK와 시간 계측
 
 실행기는 `execution_use_verified_local_fk=true`일 때 현재 URDF의 로컬 FK를
