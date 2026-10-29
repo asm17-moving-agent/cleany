@@ -659,7 +659,7 @@ class CollectionPipeline(PregraspPipeline):
     def correct_height_endpoint(self, arm: str, target: Pose, phase: str,
                                 report: dict | None = None, *,
                                 check_collisions: bool = True) -> None:
-        """Correct measured lift shortfall once, without a final height gate."""
+        """Correct lift shortfall beyond tolerance once, without a final height gate."""
         policy = HeightCorrectionPolicy.from_config(self.config)
         if not policy.enabled:
             return
@@ -669,7 +669,8 @@ class CollectionPipeline(PregraspPipeline):
         position_tolerance = self.real.value('hardware_tcp_position_tolerance_m')
         orientation_tolerance = math.radians(self.real.value('hardware_tcp_orientation_tolerance_deg'))
         history = []
-        summary = {'target_z_m': goal.position[2], 'history': history, 'status': 'checking'}
+        summary = {'target_z_m': goal.position[2], 'tolerance_m': policy.tolerance_m,
+                   'history': history, 'status': 'checking'}
         if report is not None:
             report.setdefault('height_corrections', {})[phase] = summary
         try:

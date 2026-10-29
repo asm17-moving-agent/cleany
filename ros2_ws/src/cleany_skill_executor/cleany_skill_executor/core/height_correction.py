@@ -19,6 +19,7 @@ def validate_height_correctable_endpoint(
 class HeightCorrectionPolicy:
     enabled: bool = False
     step_m: float = .005
+    tolerance_m: float = 0.
 
     def __post_init__(self) -> None:
         if type(self.enabled) is not bool:
@@ -26,12 +27,16 @@ class HeightCorrectionPolicy:
         if (type(self.step_m) not in (int, float) or not math.isfinite(self.step_m)
                 or self.step_m <= 0):
             raise ValueError('invalid lift_height_correction_step_m')
+        if (type(self.tolerance_m) not in (int, float) or not math.isfinite(self.tolerance_m)
+                or self.tolerance_m < 0):
+            raise ValueError('invalid lift_height_tolerance_m')
 
     @classmethod
     def from_config(cls, config: dict) -> 'HeightCorrectionPolicy':
-        return cls(**{name: config['lift_height_correction_'+name]
-                      for name in cls.__dataclass_fields__
-                      if 'lift_height_correction_'+name in config})
+        fields = {'enabled': 'lift_height_correction_enabled',
+                  'step_m': 'lift_height_correction_step_m',
+                  'tolerance_m': 'lift_height_tolerance_m'}
+        return cls(**{name: config[key] for name, key in fields.items() if key in config})
 
 
 def height_correction_enabled(config: dict) -> bool:
@@ -54,14 +59,14 @@ class HeightCorrection:
         self.attempts = 0
 
     def next_command(self, actual_z: float) -> float | None:
-        """Round the first measured shortfall up; never issue a second command."""
+        """Correct shortfall beyond tolerance once, rounded to the command grid."""
         if self.attempts:
             return None
         if not math.isfinite(actual_z):
             raise HeightCorrectionError('Measured height is nonfinite')
         error = self.goal_z - actual_z
         # The caller checks XY, orientation and upward overshoot independently.
-        if error <= 1e-9:
+        if error <= self.policy.tolerance_m + 1e-9:
             return None
         if not self.policy.enabled:
             raise HeightCorrectionError('Height correction is disabled')

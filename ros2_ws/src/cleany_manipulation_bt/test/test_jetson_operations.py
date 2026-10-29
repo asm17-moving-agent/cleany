@@ -49,7 +49,7 @@ def test_prepare_preserves_approved_object_instead_of_selecting_closest(operatio
 @pytest.mark.parametrize('enabled,stalled,sag', [
     (True, False, .0185967956680563), (True, True, .0185967956680563),
     (False, False, .0185967956680563), (False, False, .0101),
-    (False, False, .008), (True, False, .008),
+    (False, False, .008), (True, False, .008), (True, False, .0005266009432072227),
     (False, False, .010), (True, False, .010), (True, False, -.020),
 ])
 def test_lift_corrects_static_sag_against_original_height_before_confirm_held(
@@ -86,9 +86,9 @@ def test_lift_corrects_static_sag_against_original_height_before_confirm_held(
     if enabled:
         summary = node.report['height_corrections']['lift']
         assert summary['target_z_m'] == pytest.approx(original_z+.05)
-        assert 'tolerance_m' not in summary
+        assert summary['tolerance_m'] == .010
     assert node.report['lift_height_from_fk_m'] == pytest.approx(actual.position.z-original_z)
-    assert commands == ['lift'] + ['lift_height_correction']*(1 if enabled and sag > 0 else 0)
+    assert commands == ['lift'] + ['lift_height_correction']*(1 if enabled and sag > .010 else 0)
     if stalled:
         assert node.report['lift_height_from_fk_m'] < .040
 

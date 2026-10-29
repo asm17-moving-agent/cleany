@@ -75,13 +75,13 @@ def test_loaded_endpoint_converges_with_original_goal_and_existing_motion_checks
     assert summary['status'] == 'applied'
     assert summary['target_z_m'] == target.position.z
     assert summary['attempt'] == 1
-    assert 'tolerance_m' not in summary
+    assert summary['tolerance_m'] == .010
     assert events[-1][0] == 'height_correction_completed'
 
 
 @pytest.mark.parametrize('arm', ['left', 'right'])
 @pytest.mark.parametrize('shortfall,step', [
-    (.001, .005), (.008, .010), (.010, .010), (.011, .015),
+    (.010001, .015), (.011, .015),
     (.0351138972905688, .040), (.043382882998641126, .045), (.075, .075)])
 def test_full_rounded_shortfall_is_sent_and_then_measured_again(arm, shortfall, step):
     node, actual, commands, events = plant(arm, goal=.5, sag=shortfall)
@@ -95,6 +95,37 @@ def test_full_rounded_shortfall_is_sent_and_then_measured_again(arm, shortfall, 
     assert correction_events[0]['correction_step_m'] == pytest.approx(step)
     assert report['height_corrections']['lift']['attempt'] == 1
     assert abs(actual.position.z-.5) <= .010
+
+
+@pytest.mark.parametrize('arm', ['left', 'right'])
+@pytest.mark.parametrize('shortfall', [.0005266009432072227, .001, .008, .010])
+def test_lift_within_height_tolerance_finishes_without_correction_motion(arm, shortfall):
+    node, actual, commands, events = plant(arm, goal=.5, sag=shortfall)
+    report = {}
+    node.correct_height_endpoint(arm, pose(.5), 'lift', report)
+    assert commands == []
+    assert actual.position.z == pytest.approx(.5-shortfall)
+    summary = report['height_corrections']['lift']
+    assert summary['status'] == 'not_needed'
+    assert summary['attempt'] == 0
+    assert summary['error_m'] == pytest.approx(shortfall)
+    assert summary['tolerance_m'] == .010
+    assert events[-1][0] == 'height_correction_completed'
+    assert all(stage != 'height_correction_command' for stage, _ in events)
+
+
+@pytest.mark.parametrize('bad', ['xy', 'orientation', 'overshoot'])
+def test_height_deadband_does_not_bypass_endpoint_guards(bad):
+    node, actual, commands, _ = plant(goal=.5, sag=.0005266009432072227)
+    if bad == 'xy':
+        actual.position.x += .031
+    elif bad == 'orientation':
+        actual.orientation.w, actual.orientation.x = 0., 1.
+    else:
+        actual.position.z = .531
+    with pytest.raises(ValueError):
+        node.correct_height_endpoint('right', pose(.5), 'lift')
+    assert commands == []
 
 
 @pytest.mark.parametrize('sag', [.0319983857472429, .043382882998641126, .075])
@@ -291,6 +322,8 @@ def test_collection_validation_checks_correction_configuration_before_startup():
         {'lift_height_correction_enabled': 'true'})
     issues = configuration_issues({'lift_height_tolerance_m': .05, 'lift_height_m': .05})
     assert not any('lift_height_tolerance_m' in issue for issue in issues)
+    assert 'invalid lift_height_tolerance_m' in configuration_issues(
+        {'lift_height_tolerance_m': -.001})
 
 
 @pytest.mark.parametrize('sag', [0., -.020])

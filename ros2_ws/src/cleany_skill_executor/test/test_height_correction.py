@@ -89,6 +89,35 @@ def test_reached_goal_requires_no_additional_command(actual):
     assert HeightCorrection(.5, .52, policy()).next_command(actual) is None
 
 
+def test_logged_sub_mm_shortfall_uses_configured_tolerance_without_motion():
+    settings = HeightCorrectionPolicy.from_config({
+        'lift_height_correction_enabled': True, 'lift_height_tolerance_m': .010})
+    controller = HeightCorrection(.5832270729104434, .6104284636537286, settings)
+    assert controller.next_command(.5827004719672362) is None
+    assert controller.attempts == 0
+    assert controller.command_z == .6104284636537286
+
+
+@pytest.mark.parametrize('shortfall,expected_step', [
+    (.009999, None), (.010, None), (.010001, .015), (.011, .015),
+])
+def test_tolerance_boundary_skips_or_corrects_the_complete_shortfall(shortfall, expected_step):
+    controller = HeightCorrection(.5, .52, policy(tolerance_m=.010))
+    command = controller.next_command(.5-shortfall)
+    if expected_step is None:
+        assert command is None
+        assert controller.attempts == 0
+    else:
+        assert command == pytest.approx(.52+expected_step)
+        assert controller.attempts == 1
+
+
+@pytest.mark.parametrize('value', [True, '0.01', -.001, float('nan'), float('inf')])
+def test_invalid_height_tolerance_is_rejected(value):
+    with pytest.raises(ValueError, match='lift_height_tolerance_m'):
+        HeightCorrectionPolicy.from_config({'lift_height_tolerance_m': value})
+
+
 @pytest.mark.parametrize('actual', [.48, .479, .4805, .49, .5, .52])
 def test_remaining_error_never_causes_a_second_command_or_height_failure(actual):
     controller = HeightCorrection(.5, .5, policy())
