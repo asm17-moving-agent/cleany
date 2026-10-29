@@ -85,7 +85,7 @@ def test_installed_detector_catches_contained_obstacles(tmp_path: Path, detector
         for row in fixture['probes']:
             state = RobotState()
             state.joint_state.name = fixture['joint_names']
-            state.joint_state.position = row['positions']
+            state.joint_state.position = fixture['poses'][row['pose_index']]
             query = GetStateValidity.Request(robot_state=state)
             assert call(validity, query).valid, row['source_index']
             obstacle = CollisionObject(id='contained_probe', operation=CollisionObject.ADD)
