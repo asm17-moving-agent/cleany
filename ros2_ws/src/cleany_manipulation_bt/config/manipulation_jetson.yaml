@@ -1,5 +1,8 @@
 /**:
   ros__parameters:
+    # The retimer also reserves 20% of the physical controller limits.
+    hardware_velocity_rad_s: 2.0
+    hardware_acceleration_rad_s2: 8.0
     use_sim_time: false
     execution_use_verified_local_fk: true
     execution_timing_enabled: true

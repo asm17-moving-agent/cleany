@@ -31,6 +31,8 @@ def test_collection_endpoint_limits_share_one_profile():
     assert '--params-file "${CLEANY_HARDWARE_MONITOR_CONFIG}"' in execute
     assert '-p hardware_tcp_position_tolerance_m:=' not in execute
     assert '-p hardware_tcp_orientation_tolerance_deg:=' not in execute
+    assert '-p hardware_velocity_rad_s:=' not in execute
+    assert '-p hardware_acceleration_rad_s2:=' not in execute
 
 
 SCRIPT = (Path(__file__).resolve().parents[2] / 'tools').joinpath('collection-runtime')

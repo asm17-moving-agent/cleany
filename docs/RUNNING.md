@@ -495,3 +495,25 @@ Jetson의 `~/.config/cleany/feetech_control.yaml`과 단일 팔 운영 프로파
 IK, MoveIt과 모터 드라이버가 동일한 새 URDF를 읽습니다. 별도 control
 profile을 지정할 때도 이 값을 유지합니다.
 [전방 범위와 실행 검사](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md#실물-어깨-yaw의-전방-범위)를 따릅니다.
+
+
+## 실물 속도와 가속도 설정
+
+Jetson의 양팔과 그리퍼 12개 관절은 로컬 `feetech_control.yaml`의
+`max_velocity: 2.0` rad/s, `max_acceleration: 8.0` rad/s²를 사용합니다.
+실행기 상한 `hardware_velocity_rad_s: 2.0`,
+`hardware_acceleration_rad_s2: 8.0`은 `manipulation_jetson.yaml`과 로컬
+`hardware_motion_monitor.yaml`의 `pregrasp_pipeline.ros__parameters`에
+설정합니다. 단발 `collection-execute`도 로컬 monitor 설정을 읽으며
+명령행에서 더 낮은 고정값으로 덮어쓰지 않습니다. 궤적 생성은 기존 20%
+여유율을 유지하여 최대 1.6 rad/s, 6.4 rad/s²를 사용하고, 계산한 시간에
+추가 5% 여유를 둡니다. 이는 명령 궤적 상한이며 실측 속도를 보장하지 않습니다.
+
+모터 RAM `speed_raw`는 1304이며 `acceleration_raw: 254`는 기존 모터
+응답 설정입니다. 가속도 8 rad/s²를 raw 레지스터 값 8로 쓰지 않습니다.
+켜진 모터를 재연결할 때는 드라이버가 RAM과 프로파일의 일치를 검사하므로,
+프로파일만 수정한 뒤 재시작하면 이전 RAM 값과 불일치할 수 있습니다.
+`tools/validation/update_held_motor_speed.py`는 명령 소유자와 제어기가
+종료된 상태에서 12개 모터의 정지와 토크 유지를 확인하고 속도 RAM만
+변경하여 읽어 검증합니다. 목표 위치, 토크와 EEPROM은 쓰지 않습니다.
+재부팅 후에는 저장된 로컬 프로파일을 드라이버가 다시 적용합니다.
