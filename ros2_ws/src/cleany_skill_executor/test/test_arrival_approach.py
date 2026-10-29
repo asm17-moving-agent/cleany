@@ -39,6 +39,7 @@ def command_pipeline(monkeypatch):
         'hardware_tcp_position_tolerance_m': .03,
         'hardware_tcp_orientation_tolerance_deg': 20.,
         'hardware_height_correction_min_duration_sec': .3,
+        'hardware_release_retreat_min_duration_sec': .25,
     }
     limits = {name: PhysicalJointLimit(-2., 2.0033789089786476 if name == names[0] else 2.,
         1., 2., 2048., 1., 0., 0., 4095.) for name in state.name}
@@ -672,3 +673,48 @@ def test_a_submitted_alternative_pregrasp_failure_cannot_select_again(reselectio
     with pytest.raises(JointRangeValidationError):
         node.approach_with_candidate_reselection(selected, {}, object_id='payload', prepare_pregrasp=moving_pregrasp)
     assert sum(isinstance(entry, tuple) and entry[0] == 'select' for entry in trace) == 1
+
+
+@pytest.mark.parametrize('arrival_error', [.016920475542072766, .25, -.02])
+@pytest.mark.parametrize('controller_failure', [False, True])
+def test_return_can_finish_without_goal_or_encoder_or_tcp_arrival_acceptance(
+        command_pipeline, arrival_error, controller_failure):
+    from cleany_skill_executor.core.recorded_trajectory import CommandPoint, RecordedTrajectory
+
+    node, _, state, _, _, sent, _ = command_pipeline
+    names = ARM_JOINT_NAMES['right']
+    start, end = (1., .60, 0., 0., 0.), (1., .50, 0., 0., 0.)
+    state.position = [*start, .2]
+    node.real.arm_holds['right'] = ArmHold(start, start)
+    stopped, tolerances = [], []
+    node.real.fail_stop = lambda: stopped.append(True)
+    node.real.verify_arm_endpoint = lambda *a, **kw: pytest.fail('Unchecked return verified its endpoint')
+    node.real.last_execution_metrics = {'endpoint_within_tolerance': True}
+    action = node.run_action
+    def run(client, goal, timeout, **options):
+        result = action(client, goal, timeout, **options)
+        tolerances.extend((item.name, item.position, item.velocity, item.acceleration)
+                          for item in goal.goal_tolerance)
+        state.position[1] += arrival_error
+        if controller_failure:
+            return NS(error_code=-1, SUCCESSFUL=0, error_string='injected controller fault')
+        return result
+    node.run_action = run
+    path = RecordedTrajectory(names, (CommandPoint(0, start, (0.,)*5),
+                                      CommandPoint(2*10**9, end, (0.,)*5)))
+    def execute():
+        return node.real.execute_return_segment('right', path, 0, 2*10**9,
+            check_collisions=False, check_arrival=False)
+    if controller_failure:
+        with pytest.raises(RuntimeError, match='injected controller fault'):
+            execute()
+        assert stopped
+    else:
+        execute()
+        assert not stopped
+        assert node.real.last_execution_metrics['endpoint_accuracy_checks_enabled'] is False
+        assert node.real.last_execution_metrics['joint_arrival_within_tolerance'] is None
+        assert 'endpoint_within_tolerance' not in node.real.last_execution_metrics
+        assert node.real.arm_holds['right'] == ArmHold(end, end)
+    assert len(sent) == 1
+    assert tolerances == [(name, -1., -1., -1.) for name in names]

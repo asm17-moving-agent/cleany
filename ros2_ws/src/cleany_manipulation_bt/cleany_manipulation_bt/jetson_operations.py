@@ -567,7 +567,7 @@ class JetsonOperations(CollectionPipeline):
     def carry(self, context):
         if temporary_return_mode(self.config):
             self.report.update(self.return_to_pickup(context.selected.selected_arm, self.pregrasp_pose))
-            return Observation(message='Payload reached the configured pickup release position')
+            return Observation(message='Pickup return motion completed')
         else:
             self.move_joint_pose(context.selected.selected_arm, self.arm_config.bins[context.goal.destination_id], 'transport')
         return Observation()

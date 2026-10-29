@@ -11,7 +11,7 @@ from cleany_skill_executor.core.hardware_execution import (
     ArmHold, CommandPathValidationError, ExecutionCanceled, PhysicalJointLimit,
 )
 from cleany_skill_executor.core.recorded_trajectory import (
-    CommandPoint, RecordedTrajectory, validate_recorded_trajectory,
+    CommandPoint, RecordedTrajectory, stopped_recorded_window, validate_recorded_trajectory,
 )
 from cleany_skill_executor.hardware_execution import HardwareExecution
 from cleany_manipulation_bt.backend import OperationError
@@ -41,6 +41,8 @@ def replay(raised_temporary):
     node.motion = NS(set_current_state=lambda _: None, forward_kinematics=lambda _, q: fk(q.positions))
     values = {'hardware_tcp_position_tolerance_m': .03,
               'hardware_tcp_orientation_tolerance_deg': 20.,
+              'hardware_release_retreat_position_tolerance_m': .005,
+              'hardware_release_retreat_orientation_tolerance_deg': 2.,
               'hardware_velocity_rad_s': .8, 'hardware_acceleration_rad_s2': 1.2,
               'hardware_path_step_rad': .01,
               'hardware_pickup_height_search_tolerance_m': 1e-8}
@@ -73,9 +75,12 @@ def replay(raised_temporary):
             recording.trajectories.append(recorded)
         return joints
     node.linear = linear
-    def execute(chosen, recorded, *, check_collisions, endpoint_pose):
+    def execute(chosen, recorded, *, check_collisions, endpoint_pose, check_arrival, recorded_window=None):
+        if recorded_window is not None:
+            recorded = stopped_recorded_window(recorded, *recorded_window, limits,
+                                                velocity=.8, acceleration=1.2)
         assert chosen == arm
-        assert endpoint_pose == node.cartesian_pose(node.pickup_return_pose)
+        assert endpoint_pose is None and check_arrival is False
         assert recorded.points[0].positions == pytest.approx(node.real.arm_holds[arm].command)
         assert recorded.points[0].velocities == pytest.approx((0.,)*5)
         assert recorded.points[-1].velocities == pytest.approx((0.,)*5)
@@ -196,7 +201,7 @@ def test_reverse_start_fk_uses_the_same_settled_joint_snapshot(replay):
         return joints
     node.real.wait_for_settle = settle
     node.carry(context)
-    assert len(calls) == 2
+    assert len(calls) == 1
     assert node.report['return_measured_start_joint_rad'] == tuple(snapshot.position)
     assert node.report['return_measured_start_position_m'] == pytest.approx(
         (measured.position.x, measured.position.y, measured.position.z))
@@ -204,7 +209,7 @@ def test_reverse_start_fk_uses_the_same_settled_joint_snapshot(replay):
 
 
 @pytest.mark.parametrize('failure', ['missing', 'wrong_arm', 'stale_hold', 'canceled', 'contact',
-                                    'far_goal', 'wrong_height', 'execution_fault'])
+                                    'execution_fault'])
 def test_reverse_return_failure_keeps_payload_and_never_falls_back_or_releases(replay, failure):
     node, context, _, commands, replays = replay
     arm = context.selected.selected_arm
@@ -220,25 +225,15 @@ def test_reverse_return_failure_keeps_payload_and_never_falls_back_or_releases(r
     elif failure in ('canceled', 'contact'):
         error = ExecutionCanceled('canceled') if failure == 'canceled' else RuntimeError('contact lost')
         node.real.monitor = lambda: (_ for _ in ()).throw(error)
-    elif failure == 'far_goal':
-        node.pickup_return_pose.position.x += .1
     elif failure == 'execution_fault':
         node.real.execute_return_segment = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError('motor fault'))
-    else:
-        execute = node.real.execute_return_segment
-        def sag_after_return(*args, **kwargs):
-            execute(*args, **kwargs)
-            result = node.pose(arm)
-            result.position.z -= .02
-            node.pose = lambda _: result
-        node.real.execute_return_segment = sag_after_return
     with pytest.raises((RuntimeError, ValueError, OperationError)):
         node.carry(context)
         node.check_placement(context)
         node.open(context)
     assert node.carrying is not None and not node.releasing
     assert 'release' not in commands and 'return_to_pickup' not in commands
-    assert len(replays) == (1 if failure == 'wrong_height' else 0)
+    assert not replays
 
 
 def test_interrupted_departure_discards_history(replay):
@@ -260,38 +255,27 @@ def test_interrupted_departure_discards_history(replay):
     assert not replays
 
 
-def test_return_rechecks_changing_sag_and_continues_only_on_saved_path(replay):
+@pytest.mark.parametrize('height_error', [-.02, .016920475542072766, .04])
+@pytest.mark.parametrize('old_attempts', [0, 2, 4])
+def test_return_completes_once_and_opens_without_post_motion_pose_checks(replay, height_error, old_attempts):
     node, context, _, commands, replays = replay
+    node.config['return_to_pick_height_correction_max_attempts'] = old_attempts
     node.grasp(context)
     node.confirm_grasp(context)
     node.lift(context)
-    node._test_return_sag_m = .0062  # 17mm ascent residual becomes 6.2mm on descent.
+    node._test_return_sag_m = .017-height_error
+    execute = node.real.execute_return_segment
+    def move(*args, **kwargs):
+        execute(*args, **kwargs)
+        # Any later pose or settling query would reintroduce arrival acceptance.
+        node.pose = lambda _: pytest.fail('Return queried its post-motion pose')
+        node.real.wait_for_settle = lambda _: pytest.fail('Return settled again after completion')
+    node.real.execute_return_segment = move
     node.carry(context)
     node.check_placement(context)
-    history = node.report['return_height_corrections']
-    assert len(replays) == len(history) == 2
-    assert history[0]['height_error_m'] == pytest.approx(.0108, abs=1e-7)
-    assert history[1]['height_error_m'] == pytest.approx(.0058, abs=1e-7)
-    assert replays[1][0].points[0].positions == replays[0][0].points[-1].positions
-    assert all(checked is False for _,checked in replays)
-    assert 'return_to_pickup' not in commands and 'release' not in commands
-
-
-@pytest.mark.parametrize('attempts', [0, 2])
-def test_return_continuation_budget_stops_without_release(replay, attempts):
-    node, context, _, commands, replays = replay
-    node.config['return_to_pick_height_correction_max_attempts'] = attempts
-    node.grasp(context)
-    node.confirm_grasp(context)
-    node.lift(context)
-    execute = node.real.execute_return_segment
-    def stalled(*args, **kwargs):
-        execute(*args, **kwargs)
-        measured = node.pose(context.selected.selected_arm)
-        measured.position.z = node.pickup_return_pose.position.z+.015
-        node.pose = lambda _: measured
-    node.real.execute_return_segment = stalled
-    with pytest.raises(ValueError, match='raised pickup release height: target='):
-        node.carry(context)
-    assert len(replays) == attempts+1
-    assert 'release' not in commands and node.carrying is not None
+    node.open(context)
+    assert len(replays) == 1
+    assert 'release' in commands
+    assert node.report['return_arrival_checks_enabled'] is False
+    assert node.report['return_height_correction_enabled'] is False
+    assert 'return_height_corrections' not in node.report

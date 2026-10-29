@@ -839,13 +839,20 @@ class HardwareExecution:
     def execute_recorded_trajectory(self, arm: str, recorded: RecordedTrajectory, *,
                                    check_collisions: bool = True,
                                    defer_height_shortfall: bool = False,
-                                   endpoint_pose: CartesianPose | None = None):
+                                   endpoint_pose: CartesianPose | None = None,
+                                   check_arrival: bool = True):
+        if type(check_arrival) is not bool:
+            raise ValueError('check_arrival must be boolean')
+        if not check_arrival and (endpoint_pose is not None or defer_height_shortfall):
+            raise ValueError('Unchecked arrival cannot request endpoint verification')
         recorded.validate()
         trajectory = JointTrajectory(joint_names=list(recorded.joint_names), points=[
             JointTrajectoryPoint(positions=list(point.positions)) for point in recorded.points])
         if type(defer_height_shortfall) is not bool:
             raise ValueError('defer_height_shortfall must be boolean')
         options = {'defer_height_shortfall': True} if defer_height_shortfall else {}
+        if not check_arrival:
+            options.update(terminal_check=False, allow_endpoint_error=True)
         if endpoint_pose is not None:
             options['endpoint_pose'] = endpoint_pose
         return self.execute(arm, trajectory, 'arm', recorded_trajectory=recorded,
@@ -854,7 +861,11 @@ class HardwareExecution:
 
     def execute_return_segment(self, arm: str, path: RecordedTrajectory, start_ns: int, end_ns: int, *,
                                check_collisions: bool = True,
-                               endpoint_pose: CartesianPose):
+                               endpoint_pose: CartesianPose | None = None,
+                               check_arrival: bool = True):
+        """Execute one bounded return window, optionally omitting arrival acceptance."""
+        if type(check_arrival) is not bool:
+            raise ValueError('check_arrival must be boolean')
         recorded = stopped_recorded_window(path, start_ns, end_ns, self.verify(arm),
             velocity=self.value('hardware_velocity_rad_s'),
             acceleration=self.value('hardware_acceleration_rad_s2'))
@@ -862,7 +873,7 @@ class HardwareExecution:
                         command_duration_sec=recorded.points[-1].time_ns/1e9,
                         command_points=len(recorded.points))
         return self.execute_recorded_trajectory(arm, recorded, check_collisions=check_collisions,
-                                                endpoint_pose=endpoint_pose)
+            endpoint_pose=endpoint_pose, **({'check_arrival': False} if not check_arrival else {}))
 
     def _execute_with_recovery(self, arm, trajectory, controller, **options):
         working = trajectory
@@ -969,7 +980,7 @@ class HardwareExecution:
         if type(allow_endpoint_error) is not bool:
             raise ValueError('allow_endpoint_error must be boolean')
         if allow_endpoint_error and controller != 'arm':
-            raise ValueError('Relaxed arrival is only allowed for a grasp arm trajectory')
+            raise ValueError('Relaxed arrival is only allowed for an arm trajectory')
         if type(check_collisions) is not bool:
             raise ValueError('check_collisions must be boolean')
         limits = self.verify(arm)
@@ -1169,16 +1180,19 @@ class HardwareExecution:
         self._active_recovery_generation = getattr(self, 'communication_recovery_count', 0)
         action_terminal = False
         submitted = False
+        skip_arrival = controller == 'arm' and not terminal_check and allow_endpoint_error
         try:
-            # Relax goal accuracy only on the explicit direct-grasp arm action.
-            # Trajectory validity, path limits, cancellation and faults still apply.
+            # Explicit trial policies may omit endpoint accuracy. Trajectory
+            # validity, path limits, cancellation and faults still apply.
             action_options = {'monitor': True}
             if motion_monitor is not None:
                 action_options['feedback_callback'] = lambda message: (
                     HardwareExecution._motion_feedback(motion_monitor, message))
             goal = FollowJointTrajectory.Goal(trajectory=command)
             if allow_endpoint_error:
-                goal.goal_tolerance = [JointTolerance(name=name, position=-1.) for name in expected]
+                accuracy = {'velocity': -1., 'acceleration': -1.} if skip_arrival else {}
+                goal.goal_tolerance = [
+                    JointTolerance(name=name, position=-1., **accuracy) for name in expected]
             elif contact_close:
                 # Intentional object contact prevents endpoint arrival. Only this
                 # calibrated closing command delegates success to the raw gate.
@@ -1200,16 +1214,16 @@ class HardwareExecution:
             if any(name not in q or not math.isfinite(q[name]) for name in expected):
                 raise RuntimeError('Physical arrival requires complete finite encoder feedback')
             arrival_errors = [abs(q[name]-target) for name, target in zip(expected, samples[-1].positions)]
-            joint_arrival = all(error <= self.value('hardware_arrival_tolerance_rad')
-                                for error in arrival_errors)
-            if not contact_close and not joint_arrival:
+            joint_arrival = (None if skip_arrival else all(
+                error <= self.value('hardware_arrival_tolerance_rad') for error in arrival_errors))
+            if not skip_arrival and not contact_close and not joint_arrival:
                 if not allow_endpoint_error:
                     raise RuntimeError('Physical arrival not confirmed by encoders')
                 self.node.get_logger().warning(
-                    f'Grasp trial: encoder arrival error {max(arrival_errors):.6f}rad; '
-                    'proceeding to gripper close')
-            if controller == 'arm' and terminal_check:
+                    f'Endpoint accuracy checks disabled: encoder error {max(arrival_errors):.6f}rad')
+            if controller == 'arm' and (terminal_check or allow_endpoint_error):
                 self.arm_holds[arm] = ArmHold(nominal_target, tuple(samples[-1].positions))
+            if controller == 'arm' and terminal_check:
                 endpoint_options = {'allow_endpoint_error': True} if allow_endpoint_error else {}
                 if defer_height_shortfall:
                     endpoint_options['defer_height_shortfall'] = True
@@ -1219,6 +1233,8 @@ class HardwareExecution:
                     arm, nominal_target, limits, actual,
                     check_orientation=check_orientation, **endpoint_options)
                 self.last_execution_metrics = metrics
+            elif skip_arrival:
+                self.last_execution_metrics = {}
             self.last_execution_metrics['joint_arrival_error_rad'] = arrival_errors
             self.last_execution_metrics['joint_arrival_within_tolerance'] = joint_arrival
             self.last_execution_metrics['endpoint_accuracy_checks_enabled'] = not allow_endpoint_error

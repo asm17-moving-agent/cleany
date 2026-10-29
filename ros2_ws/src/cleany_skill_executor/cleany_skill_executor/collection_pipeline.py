@@ -312,21 +312,18 @@ class CollectionPipeline(PregraspPipeline):
         measured_joints = tuple(positions[name] for name in ARM_JOINT_NAMES[arm])
         actual = fk(measured_joints)
         commanded = fk(tuple(hold.command))
-        position_tolerance = self.real.value('hardware_tcp_position_tolerance_m')
-        orientation_tolerance = math.radians(self.real.value('hardware_tcp_orientation_tolerance_deg'))
         # The next movement starts at measured FK. The saved motor commands
         # supply relative displacement while retaining loaded-arm support.
-        # Height correction deliberately makes their absolute TCP differ from
-        # the physical goal; that difference is not an arrival failure here.
+        # Retain the loaded-arm command offset when selecting the destination.
         residual = tuple(c-a for c, a in zip(commanded.position, actual.position, strict=True))
         reverse = reversed_command_history(paths)
         stop_ns = self.pickup_return_height_time(reverse,
             lambda q: actual.position[2]+fk(q).position[2]-commanded.position[2],
             goal.position[2])
         endpoint = fk(reverse.sample_at(stop_ns).positions)
-        predicted = estimate_measured_path_pose(actual, commanded, endpoint)
-        validate_pose_endpoint(predicted, goal, position_tolerance, orientation_tolerance)
         details = dict(return_route='reversed_departure',
+                       return_arrival_checks_enabled=False,
+                       return_height_correction_enabled=False,
                        return_start_source='measured',
                        return_measured_start_joint_rad=measured_joints,
                        return_measured_start_position_m=actual.position,
@@ -337,44 +334,9 @@ class CollectionPipeline(PregraspPipeline):
                        return_tracking_residual_m=residual,
                        return_command_endpoint_m=endpoint.position)
         self.event('return_to_pickup_replay', arm=arm, **details)
-        cursor = 0
-        corrections = []
-        details['return_height_corrections'] = corrections
-        for attempt in range(policy.correction_max_attempts+1):
-            self.real.execute_return_segment(arm, reverse, cursor, stop_ns,
-                                             check_collisions=policy.check_collisions,
-                                             endpoint_pose=goal)
-            cursor = stop_ns
-            state = self.real.wait_for_settle(ARM_JOINT_NAMES[arm])
-            actual = self.cartesian_pose(self.pose(arm))
-            validate_pose_endpoint(actual, goal, position_tolerance, orientation_tolerance)
-            error = actual.position[2]-goal.position[2]
-            sample = dict(attempt=attempt, target_z_m=goal.position[2],
-                          actual_z_m=actual.position[2], height_error_m=error)
-            corrections.append(sample)
-            self.event('pickup_return_height_checked', arm=arm, **sample)
-            if abs(error) <= policy.height_tolerance_m+1e-9:
-                break
-            # A high arrival may continue down the saved path in small bounded
-            # steps. Low arrivals, unrelated pose errors and faults stop here.
-            if error < 0 or attempt == policy.correction_max_attempts:
-                raise ValueError('Measured TCP did not reach the raised pickup release height: '
-                                 f'target={goal.position[2]:.6f}m actual={actual.position[2]:.6f}m '
-                                 f'error={error:.6f}m tolerance={policy.height_tolerance_m:.6f}m')
-            self.motion.set_current_state(state)
-            command = reverse.sample_at(cursor).positions
-            hold = self.real.arm_holds.get(arm)
-            if hold is None or any(abs(a-b) > 1e-9 for a,b in zip(command,hold.command,strict=True)):
-                raise CommandPathValidationError('Return height correction lost its held command')
-            command_pose = fk(command)
-            step = min(error, policy.correction_max_step_m)
-            stop_ns = descending_height_time(reverse, lambda q: fk(q).position[2], command_pose.position[2]-step,
-                start_ns=cursor, step_rad=self.real.value('hardware_path_step_rad'))
-            endpoint = fk(reverse.sample_at(stop_ns).positions)
-            predicted = estimate_measured_path_pose(actual, command_pose, endpoint)
-            validate_pose_endpoint(predicted, goal, position_tolerance, orientation_tolerance)
-            self.event('pickup_return_height_correction', arm=arm, attempt=attempt+1,
-                       step_m=step, actual_z_m=actual.position[2], target_z_m=goal.position[2])
+        self.real.execute_return_segment(arm, reverse, 0, stop_ns,
+                                         check_collisions=policy.check_collisions,
+                                         check_arrival=False)
         return details
 
     @timed_operation('pickup_height_search')
@@ -412,8 +374,10 @@ class CollectionPipeline(PregraspPipeline):
         self.linear(arm, retreat, 'retreat_after_release', check_collisions=check_collisions)
 
     def check_pickup_arrival(self, arm: str) -> None:
-        """Confirm the configured release destination using fresh measured state."""
+        """Verify arrival for routes that require measured destination acceptance."""
         policy = PickupReturnPolicy.from_config(self.config)
+        if policy.reverse_enabled:
+            return
         if policy.height_offset_m > 0:
             target = self.cartesian_pose(self.pickup_destination_pose(arm))
             self.real.monitor()

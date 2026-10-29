@@ -446,6 +446,10 @@ export CLEANY_HARDWARE_MONITOR_CONFIG=/absolute/path/to/local-motion-monitor.yam
 
 상세한 파라미터 및 하드웨어 연동 계약은 [실물 경로와 설정 계약 문서](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md)와 [하드웨어 인터페이스 문서](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 참고하세요.
 
+## 기록 역재생 운반
+
+Jetson의 원위치 복귀 모드에서 기록을 역재생하는 운반은 목표 이동을 한 번 실행한다. 이동 완료 후 추가 높이 보정과 도착 허용오차 검사를 생략하고 놓기로 진행한다. 소스를 변경한 뒤에는 native 관련 패키지와 `make motion-container-prepare motion-container-check`를 함께 갱신해야 로봇 준비에서 소스 불일치로 차단되지 않는다. 상세 범위는 [운반 완료 기준](../ros2_ws/src/cleany_manipulation_bt/docs/execution_contract.md#jetson-원위치-운반의-완료-기준)을 따른다.
+
 ## 고정 중간 자세 복귀
 
 Jetson의 빈 팔 복귀는 `configs/robot/arm_return_waypoints.json`의 두 중간 자세를 거친다. `manipulation_jetson.yaml`의 `bt_arm_return_collision_check_enabled=false`는 이 경로와 그리퍼 닫기의 충돌 검사를 생략한다. 관절 범위와 속도 제한은 실행기에 유지된다. 설정 변경은 실행 중인 작업이 없는 상태에서 `tools/collection-runtime action-restart`로 Action 서버에 반영한다. 상세 범위는 [고정 중간 자세 복귀 계약](../ros2_ws/src/cleany_manipulation_bt/docs/execution_contract.md#jetson-고정-중간-자세-복귀)을 따른다.

@@ -606,6 +606,10 @@ cuRobo의 CUDA 한계 tensor, 반환 해의 범위와 독립 FK 오차도 확인
 실물 이동이나 실시간 장애물 장면의 검증을 대신하지 않습니다.
 
 
+## 기록 역재생 운반
+
+기록 역재생 운반의 단일 명령 완료와 도착 검사 생략은 `test_reverse_pickup_return.py`와 `test_arrival_approach.py`에서 검사한다. 과거 높이 오류 0.0169204755m, 낮은 도착 및 큰 관절 오차에서도 추가 이동이나 위치 재검사 없이 놓기로 진행하는지 확인한다. 컨트롤러 실패와 취소가 후속 놓기를 차단하는지도 가짜 모터 전송으로 확인한다.
+
 ## 고정 중간 자세 복귀
 
 고정 중간 자세 복귀의 충돌 설정은 `test_fixed_arm_return.py`, 동기 실행의 충돌 생략과 관절 제한은 `test_hardware_collection.py`에서 검사한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "fixed_arm_return or arm_return_motion or hardware_collection or execution_optimization"'`로 관련 검사를 선택할 수 있다. 가짜 모터 전송을 사용하므로 실물 복귀 성공을 의미하지 않는다.

@@ -48,6 +48,11 @@ AnyGrasp(비전)와 cuRobo(모션) 간의 GPU 충돌을 방지하기 위해 파�
 - **실제 요청 최우선**: 사용자의 파지 요청(Foreground Demand)이 백그라운드 모델 예열보다 항상 우선합니다.
 - **양보 메커니즘**: 진행 중인 cuRobo 예열 작업은 실제 요청이 감지되면 다음 CUDA 단계 경계에서 즉시 GPU를 양보합니다.
 
+## 기록 역재생 운반의 완료 기준
+
+`pick_return_release`에서 `return_to_pick_reverse_enabled=true`인 운반은 현재 측정 자세를 기준으로 목표 높이에 해당하는 기록 경로 구간을 한 번만 역재생한다. 이동 완료 뒤 추가 하강 보정, 관절 및 TCP의 도착 허용오차 판정과 놓기 직전 위치 재검사를 생략하고 다음 놓기 단계로 진행한다. 컨트롤러의 정상 완료 응답을 기다리며 취소, 통신 실패와 모터 fault는 계속 실패로 처리한다. 명령의 관절 범위와 속도 및 가속도 제한도 적용한다. 기존 `return_to_pick_height_correction_max_attempts`, `return_to_pick_height_correction_max_step_m`과 도착 판정용 `return_to_pick_height_tolerance_m`은 이 역재생 경로에서 사용하지 않는다. `hardware_pickup_height_search_tolerance_m`은 이동 전 경로의 절단 시점을 찾는 수치 오차이며 도착 합격 기준이 아니다.
+
+
 ## 6. 실행 FK와 시간 계측
 
 실행기는 `execution_use_verified_local_fk=true`일 때 현재 URDF의 로컬 FK를
