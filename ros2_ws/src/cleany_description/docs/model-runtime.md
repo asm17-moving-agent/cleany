@@ -88,8 +88,10 @@ The simulated wrist cameras and optical sites/bodies use the v8 geometry
 registration's lens centre and CV axes. The camera renderer reverses optical
 Y/Z to use its -Z viewing convention. Sorting's nominal wrist transform config
 matches this pose; the measured Jetson calibration profile remains independent.
-Regression checks compare visual and collision poses, dimensions and colors
-across backends; motor translation comparisons allow `2e-6` m for CAD rounding.
+Regression checks compare the original URDF collision model with MJCF, including
+poses, dimensions and colors. The planning model separately preserves visuals,
+inertia and joints; both original and optimized motor collision placements are
+checked against MJCF. Motor translation comparisons allow `2e-6` m for CAD rounding.
 Existing CAD files are reused without regenerating assets or changing joint
 kinematics. This coverage does not by itself prove collision-free execution.
 
@@ -183,3 +185,48 @@ Its navigation profile freezes the arms and head at configured park angles, reta
 four driven wheel joints, and attaches Gazebo sensors and mecanum contact approximations.
 It does not modify this package's movable joint contract. See that package's README
 for the CAD launcher, wheel odometry geometry, and simulation limitations.
+
+## 선택적 충돌 메시 평면화
+
+`optimized_arm_collision_meshes`는 기존 이름을 유지하며 팔, 모터, 머리와 마스트의
+경량 충돌 메시를 선택한다. 기본값은 `true`이고 `head_collision_meshes`도
+`true`다. 공통 URDF 기본값이므로 Gazebo CAD 변환에도 최적화 충돌 형상이
+전달된다. MuJoCo의 물리 접촉 계산은 `mjcf/cleany.xml`의 기존 형상을 유지한다.
+시뮬레이션에서도 MoveIt 경로 계획에는 공통 URDF의 최적화 충돌 형상을 사용한다.
+원본 URDF와 MJCF의 충돌 형상 대조 검사는 `optimized_arm_collision_meshes:=false`와
+`head_collision_meshes:=false`를 모두 명시한다. 기본 계획 모델은 원본 모델과
+시각 형상, 관성, 관절이 같은지 별도로 검사한다.
+시각 모델, 관성, 관절과 원본 CAD 파일은 바뀌지 않는다.
+
+| 대상 | `true`일 때의 형상 |
+|---|---|
+| 양팔의 상완, 하완, 연결부와 모터 11종 | `meshes/collision/`의 평면 메시, 좌우 합계 22개 인스턴스 |
+| 머리와 마스트 CAD 6종 | `head_collision_meshes=true`이고 해당 링크가 포함될 때 경량 메시 적용 |
+| 집게의 기존 볼록 메시 5종 | 이미 12–24개 삼각형으로 구성되어 원본 유지 |
+| box, cylinder, sphere primitive | 기존 해석적 형상 유지 |
+
+외접 메시의 각 조각은 담당하는 원본 표면 조각을 포함한다. 하완 포크, 어깨와 손목 연결부,
+하완 모터, 마스트와 머리 브래킷은 먼저 평면으로 나누고 떨어진 표면 조각을
+분리한다. 이후 각 조각을 지지 평면으로 감싸 불필요한 둥근 모서리와 작은
+구멍을 단순화한다.
+분할 축과 위치는 `configs/robot/arm_collision_meshes.json`의
+`partition_components`에서 원본 메시 좌표계의 미터 단위로 지정한다.
+밀리미터 CAD의 단위 변환은 `mesh_scales`가 관리한다.
+
+`enclosure_variants`는 각 조각의 축 선택과 불필요한 지지 평면 제거 방식을
+기록한다. STL의 float32 좌표로 반올림한 뒤 볼록 면을 다시 구성하고 원본
+포함 및 팽창 상한을 검사한다. 최종 STL의 각 면도 같은 볼록 경계를 이루는지
+검사해, 정점의 볼록 외피만 맞고 실제 삼각형은 안으로 접히는 경우를 막는다.
+
+팽창 상한 1mm는 **분할 조각의 볼록 외피**를 기준으로 한다. 오목한 CAD
+표면과의 거리 상한이 아니며, 조각 내부의 작은 빈 공간은 메워질 수 있다.
+MoveIt은 `cleany/SolidFCL`로 닫힌 볼록 조각을 내부가 채워진 형상으로 읽는다.
+삼각형 표면을 가로지르지 않고 조각 안에 완전히 들어간 작은 장애물도 검출한다.
+외접 포함 조건뿐 아니라 실제 서비스의 내부 장애물 검출과 원본 CAD 대조를
+검사한다. Gazebo와 MuJoCo의 물리 엔진에 이 MoveIt 플러그인을 적용하는 것은 아니다.
+
+`make test-description-models`는 원본 모델의 MuJoCo 동등성, 기본 계획 모델의
+공통 정보 보존과 최적화 자산을 검사한다. `test_collision_meshes.py`는 모든 출력 메시의 실제 STL 좌표에서 포함과 팽창
+상한, 폐곡면, 분할된 포크의 틈, 단위와 Xacro 적용 범위를 검사한다.
+재생성은 `python3 tools/optimize_arm_collision_meshes.py --write`를 명시적으로
+실행하며, `--write`가 없으면 생성 결과와 저장된 자산의 일치를 확인한다.

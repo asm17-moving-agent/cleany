@@ -179,3 +179,30 @@ CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. �
 내부 파일 링크, anchor, 코드, 설정, launch 경로, Make target의 존재와 native dry-run을 확인합니다. 문서 검증만을 위해 실제 로봇을 움직이거나 새 calibration을 수행하지 않습니다.
 
 KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검사 통과와 내용 승인은 별도로 기록합니다.
+
+## MoveIt 충돌 형상과 MuJoCo 동등성 검사
+
+`make test-description-models`는 ROS 2와 MuJoCo, NumPy, SciPy 환경에서
+원본 URDF와 MJCF의 동등성 및 최적화 충돌 자산을 검사합니다.
+원본 대조에는 `optimized_arm_collision_meshes:=false head_collision_meshes:=false`를
+명시하고, 기본 최적화 모델에는 시각 형상, 관성, 관절 보존과 모터 충돌 메시
+배치를 검사합니다. MuJoCo 물리 접촉 형상은 기존 MJCF를 유지하며,
+시뮬레이션의 MoveIt 경로 계획은 최적화 URDF를 사용합니다.
+`COLLISION_TEST_ARGS`로 `-k`와 `--junitxml` 등을 전달할 수 있습니다.
+
+## 충돌 메시와 내부 장애물 검사
+
+```bash
+make build COLCON_BUILD_ARGS="--packages-up-to cleany_moveit_config"
+make test-moveit-collision
+```
+
+첫 명령은 description, 충돌 플러그인과 기존 scene mapping 의존성을 함께
+빌드합니다. Jetson의 MoveIt 2.5.9 전용 환경을 사용하는 경우 해당 overlay를
+먼저 source합니다. 검사 시 불러오는 설치 경로는 `INSTALL_BASE`를 따릅니다.
+
+`test-moveit-collision`은 형상 검사, SolidFCL 단위 검사, 계획 설정 및 실제
+MoveIt 서비스 검사를 실행합니다. 서비스 검사는 기본 detector가 내부 장애물
+36개를 검출하는지, 같은 입력을 표면 FCL이 놓치는지와 존재하지 않는 detector를
+선택했을 때 프로세스가 종료하는지 확인합니다. 가상 장애물만 사용하고
+trajectory execution은 끄며 모터 드라이버를 실행하지 않습니다.

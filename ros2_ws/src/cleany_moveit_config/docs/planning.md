@@ -4,6 +4,12 @@ MoveIt은 팔별 5관절을 계획하며 gripper, base는 planning group에서 �
 
 ## Group과 controller
 
+기본 MoveIt 및 Mock launch는 `collision_detector:=cleany/SolidFCL`을 사용한다.
+최적화 메시의 닫힌 볼록 조각을 내부가 채워진 형상으로 읽고, RViz에도 같은
+detector를 전달한다. `cleany/RequireCollisionDetector`가 요청한 detector의 로드를
+확인하며, 실패하면 다른 검사기로 계속 계획하지 않고 프로세스를 종료한다.
+원본 CAD의 표면 검사 대조에는 `collision_detector:=FCL`을 명시한다.
+
 ```mermaid
 flowchart TB
     Backend["활성 backend 하나"] -->|"팔 / gripper joint_states"| State["RobotState"]
