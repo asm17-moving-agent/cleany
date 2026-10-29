@@ -57,6 +57,38 @@ AnyGrasp(비전)와 cuRobo(모션) 간의 GPU 충돌을 방지하기 위해 파�
 - **실제 요청 최우선**: 사용자의 파지 요청(Foreground Demand)이 백그라운드 모델 예열보다 항상 우선합니다.
 - **양보 메커니즘**: 진행 중인 cuRobo 예열 작업은 실제 요청이 감지되면 다음 CUDA 단계 경계에서 즉시 GPU를 양보합니다.
 
+## 6. 실행 FK와 시간 계측
+
+실행기는 `execution_use_verified_local_fk=true`일 때 현재 URDF의 로컬 FK를
+사용합니다. 최초 사용과 관절 상태, 그리퍼 설정 또는 URDF 변경 뒤에는
+MoveIt FK와 위치 및 회전 행렬을 대조합니다. 불일치와 비유한 참조 값은
+실패 처리하며, 충돌 검사 결과는 캐시하지 않습니다. Jetson Action 프로파일은
+이 기능을 켜고, 별도 프로파일을 사용하는 실행기의 기본값은 `false`입니다.
+
+물체 원위치 복귀는 기록 궤적의 역재생과 높이 탐색을 사용합니다. 빈 팔의
+home 복귀는 직선 관절 경로를 먼저 검사하고 막히면 RRT를 사용하며 충돌 검사를 유지합니다.
+두 경로는 별개이며 FK 전환은 명령 궤적이나 속도 제한을 변경하지 않습니다.
+
+`execution_timing_enabled=true`는 `execution_timing` JSON 로그를 추가합니다.
+Jetson 프로파일에서 기본 활성화하며 다른 실행기의 기본값은 `false`입니다.
+
+| 필드 | 의미 |
+|---|---|
+| `execution_id`, `bt_node` | 현재 작업과 BT 단계. BT 밖 호출은 빈 문자열 |
+| `span_id`, `parent_span_id` | 호출과 부모 호출의 식별자. 최상위 부모는 `null` |
+| `phase` | 서비스, Cartesian 계획, 높이 탐색, 모델 검증, 충돌 검사, 안정화, 도착 확인, 궤적 실행 |
+| `started_wall_ns` | 로그와 연결하는 Unix 벽시계 시작 시각, ns |
+| `wall_sec` | 단조 시계로 측정한 자식 호출 포함 경과시간, 초 |
+| `outcome` | 정상 반환 `returned` 또는 예외 `raised`. 반환 자체가 작업 성공을 뜻하지 않음 |
+| `service` | `service_call`일 때 서비스명. 시간에는 준비 및 응답 대기 포함 |
+
+부모 span에 자식 시간을 다시 더하지 않습니다. `duration_sec`는 명령 궤적의
+시간이며 순수 연산 시간이나 실측 모터 이동 시간으로 해석하지 않습니다.
+동기 궤적의 `scheduled_start_delay_sec`는 팔과 그리퍼의 예약 시작 여유입니다.
+계측 로깅 실패는 제어 결과와 취소 예외를 바꾸지 않습니다.
+
+
+
 ## 실물 어깨 yaw의 전방 범위
 
 Jetson 운영 control profile의 `joint_position_bounds`는 다음 범위를 사용합니다.

@@ -555,6 +555,42 @@ tools/validation/verify_deployed_collision_models.py`로 검사합니다. 기본
 모터 제어는 시작하지 않습니다. 설치 갱신 순서는 [충돌 최적화 모델 갱신](RUNNING.md#충돌-최적화-모델-갱신)을 따릅니다.
 
 
+### 실행 FK와 시간 분석
+
+1. FK 대조 실패, 설정 전달, 중첩 타이머와 취소 동작을 검사합니다.
+
+   ```bash
+   make test-jetson-packages JETSON_PYTEST_ARGS='-k "physical_moveit_adapter or execution_fk_configuration or execution_timing or recorded_trajectory or hardware_collection"'
+   make test-jetson-tools JETSON_PYTEST_ARGS='-k execution_bottlenecks'
+   ```
+
+2. 실제 FK 서비스 비교는 별도 localhost domain에서 모터 드라이버 없이
+   `physical_move_group.launch.py allow_trajectory_execution:=false`와 검토할
+   `robot_description_file`을 사용합니다. 같은 ROS 환경의 별도 터미널에서 실행합니다.
+
+   ```bash
+   export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=226
+   python3 tools/validation/benchmark_execution_fk.py \
+     --urdf /absolute/path/to/runtime.urdf --output /absolute/path/to/fk-benchmark.json
+   ```
+
+   양팔 100개 고정 입력을 각 방식으로 5회 비교합니다. MoveIt 서비스와 로컬
+   계산의 수치 오차, 서비스 호출 수와 시간을 기록하며 실제 움직임을 보내지 않습니다.
+
+3. 기존 collision E2E 수집본의 `summary.json`, `executions.json`, runtime 로그를
+   재분석합니다. 부모 타이머와 tracking에 반복 기록된 명령 시간을 중복 합산하지 않습니다.
+
+   ```bash
+   python3 tools/validation/analyze_execution_bottlenecks.py \
+     --source output/collision-e2e-audit-20261024 --output output/execution-bottleneck-20261025
+   ```
+
+   전체 단계 시간에서 명시 타이머와 명령 궤적 시간을 뺀 값은 미분리 시간입니다.
+   이를 전부 CPU 시간이나 제거 가능한 지연으로 해석하지 않습니다. 실물 E2E
+   단축률은 같은 대상, 시작 자세와 설정으로 별도 반복 측정합니다.
+
+
+
 ## 실물 어깨 전방 범위 검증
 
 Jetson에서 `make test-jetson-packages JETSON_PYTEST_ARGS='-k "test_control_profile or test_front_shoulder_bounds or test_recorded_trajectory"'`로

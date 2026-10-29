@@ -26,6 +26,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from .core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution
 from .state_validity_batch import StateValidityBatch
+from .execution_timing import timed_operation
 from .core.cartesian import CartesianPose, orientation_error_rad
 from .core.height_correction import validate_height_correctable_endpoint
 from .core.hardware_execution import (
@@ -141,6 +142,7 @@ class HardwareExecution:
         )
         for name, value in {'hardware_velocity_rad_s': .8, 'hardware_acceleration_rad_s2': 1.2,
                             'hardware_path_step_rad': .01,
+                            'hardware_pickup_height_search_tolerance_m': 0.,
                             'hardware_path_simplification_tolerance_rad': .002,
                             'hardware_start_delay_sec': .8,
                             'hardware_guard_max_age_sec': .25, 'hardware_start_tolerance_rad': .005,
@@ -280,6 +282,7 @@ class HardwareExecution:
             raise CommunicationRecovered(self.communication_recovery_count)
         return state
 
+    @timed_operation('settle_wait', node_attribute='node')
     def wait_for_settle(self, names, *, duration_sec=None):
         """Return a fresh state after the commanded joints remain nearly still."""
         duration = (self.value('hardware_endpoint_settle_duration_sec')
@@ -524,6 +527,7 @@ class HardwareExecution:
                 phase=phase, sample_index=index, contacts=tuple(contacts),
                 octomap_arm_contact=octomap_arm_contact)
 
+    @timed_operation('endpoint_verification', node_attribute='node')
     def verify_arm_endpoint(self, arm, target, limits, actual=None, *, check_orientation=True,
                             allow_endpoint_error=False, defer_height_shortfall: bool = False,
                             endpoint_pose: CartesianPose | None = None):
@@ -597,6 +601,7 @@ class HardwareExecution:
         self.arm_holds[arm] = ArmHold(target, command)
         return actual, summary
 
+    @timed_operation('model_verification', node_attribute='node')
     def verify(self, arm):
         began = time.monotonic()
         if self.node.get_parameter('use_sim_time').value:
@@ -926,6 +931,7 @@ class HardwareExecution:
             return (joint,)
         return ()
 
+    @timed_operation('trajectory_execution', node_attribute='node')
     def _execute(
         self,
         arm,
@@ -974,6 +980,7 @@ class HardwareExecution:
         # Capture the execution baseline after that settling period, not immediately
         # after the preceding action result arrives.
         measured = HardwareExecution._wait_before_execution(self, expected)
+        path_preparation_began = time.monotonic()
         baseline = dict(zip(measured.name, measured.position))
         positions = [tuple(p.positions) for p in trajectory.points]
         if len(positions) < 2 or any(len(p) != len(expected) for p in positions):
@@ -1058,12 +1065,16 @@ class HardwareExecution:
                 hold_bridge_samples = len(bridge)
         # Validate the exact samples that will be sent, after hold continuation
         # and retiming. A planner's unmodified knots cannot authorize this command.
+        path_preparation_sec = time.monotonic()-path_preparation_began
+        corridor_began = time.monotonic()
         if command_path_validator is not None:
             command_path_validator(samples, measured)
+        corridor_sec = time.monotonic()-corridor_began
         # Full-robot collisions are checked with measured gripper, other arm,
         # attached objects, and the pre-motion sensor map. The normal hardware
         # profile keeps updates enabled; only the explicit legacy freeze mode
         # pauses the sensor map for the enclosing operation.
+        collision_began = time.monotonic()
         if check_collisions:
             HardwareExecution.validate_collision_samples(
                 self,
@@ -1082,6 +1093,8 @@ class HardwareExecution:
                 'command_samples': len(samples),
                 'hold_bridge_samples': hold_bridge_samples,
             }))
+        collision_sec = time.monotonic()-collision_began
+        drift_began = time.monotonic()
         latest = self.monitor()
         drift = path_validation_drift(
             baseline, latest, expected,
@@ -1103,6 +1116,8 @@ class HardwareExecution:
                     endpoint_pose=endpoint_pose)
             details = ', '.join(f'{name}={delta:.6f}rad' for name, delta in sorted(drift.items()))
             raise RuntimeError('Robot moved during path validation: '+details)
+        drift_sec = time.monotonic()-drift_began
+        serialization_began = time.monotonic()
         command = JointTrajectory(joint_names=list(expected))
         # Humble JTC interpolates from *measured* state before a future-stamped
         # first point. Start now, with the held command at t=0, to avoid that
@@ -1120,6 +1135,11 @@ class HardwareExecution:
         self.node.get_logger().info(json.dumps({
             'stage': 'hardware_trajectory_prepared',
             'preparation_wall_sec': time.monotonic() - preparation_began,
+            'path_preparation_wall_sec': path_preparation_sec,
+            'command_corridor_wall_sec': corridor_sec,
+            'collision_validation_wall_sec': collision_sec,
+            'post_validation_drift_wall_sec': drift_sec,
+            'command_serialization_wall_sec': time.monotonic()-serialization_began,
             'model_verification_wall_sec': getattr(self, '_last_model_verification_sec', None),
             'model_cache_hit': getattr(self, '_last_model_cache_hit', False),
             'start_settle_wall_sec': getattr(self, '_last_start_settle_sec', None),
@@ -1270,6 +1290,7 @@ class HardwareExecution:
         return self.execute_pregrasp_parallel(arm, arm_trajectory, gripper_trajectory,
             target, 1, gripper_goal_required=True, stage_prefix='synchronized_return')
 
+    @timed_operation('synchronized_execution', node_attribute='node')
     def _execute_pregrasp_parallel(
             self, arm, arm_trajectory, gripper_trajectory, minimum_gripper_opening,
             gripper_opening_direction, *, _refresh_attempt=0,
@@ -1286,6 +1307,7 @@ class HardwareExecution:
                 or len(gripper_trajectory.points) != 2):
             raise RuntimeError('Wrong synchronized pregrasp trajectory mapping')
         measured = HardwareExecution._wait_before_execution(self, (*arm_names, gripper_name))
+        path_preparation_began = time.monotonic()
         baseline = dict(zip(measured.name, measured.position))
         combined_names = (*arm_names, gripper_name)
         gripper_start = float(gripper_trajectory.points[0].positions[0])
@@ -1395,6 +1417,7 @@ class HardwareExecution:
             'duration_sec': duration,
             'start_stamp_ns': start_ns,
             'header_stamp_ns': header_ns,
+            'scheduled_start_delay_sec': delay_ns / 1e9,
             'held_command_continuation': hold is not None,
             'nominal_endpoint_rad': nominal_target,
             'command_endpoint_rad': samples[-1].positions[:-1],

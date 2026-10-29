@@ -2,6 +2,7 @@
 from dataclasses import dataclass, field
 from collections.abc import Callable, Sequence
 from bisect import bisect_right
+from functools import cached_property
 import math
 
 from .hardware_execution import CommandPathValidationError, JointRangeValidationError, PhysicalJointLimit
@@ -19,6 +20,21 @@ class CommandPoint:
 class RecordedTrajectory:
     joint_names: tuple[str, ...]
     points: tuple[CommandPoint, ...]
+
+    @cached_property
+    def _times(self) -> tuple[int, ...]:
+        return tuple(point.time_ns for point in self.points)
+
+    @cached_property
+    def _segments(self) -> tuple:
+        segments = []
+        for first, last in zip(self.points, self.points[1:]):
+            dt = (last.time_ns-first.time_ns)/1e9
+            coefficients = tuple((2*q0-2*q1+dt*(v0+v1), 3*q1-3*q0-dt*(2*v0+v1), dt*v0, q0)
+                                 for q0, q1, v0, v1 in zip(first.positions, last.positions,
+                                                         first.velocities, last.velocities, strict=True))
+            segments.append((dt, coefficients))
+        return tuple(segments)
 
     def validate(self) -> None:
         width = len(self.joint_names)
@@ -64,16 +80,13 @@ class RecordedTrajectory:
     def sample_at(self, time_ns: int) -> CommandPoint:
         if not 0 <= time_ns <= self.points[-1].time_ns:
             raise CommandPathValidationError('Sample time is outside the recorded trajectory')
-        index = bisect_right([p.time_ns for p in self.points], time_ns)-1
+        index = bisect_right(self._times, time_ns)-1
         first = self.points[index]
         if time_ns == first.time_ns:
             return first
         last = self.points[index+1]
-        dt = (last.time_ns-first.time_ns)/1e9
+        dt, coefficients = self._segments[index]
         u = (time_ns-first.time_ns)/(last.time_ns-first.time_ns)
-        coefficients = [(2*q0-2*q1+dt*(v0+v1), 3*q1-3*q0-dt*(2*v0+v1), dt*v0, q0)
-                        for q0, q1, v0, v1 in zip(first.positions, last.positions,
-                                                 first.velocities, last.velocities, strict=True)]
         return CommandPoint(time_ns, tuple(((a*u+b)*u+c)*u+d for a,b,c,d in coefficients),
                             tuple((3*a*u*u+2*b*u+c)/dt for a,b,c,_ in coefficients))
 
@@ -123,11 +136,28 @@ def recorded_window(path: RecordedTrajectory, start_ns: int, end_ns: int) -> Rec
         CommandPoint(p.time_ns-start_ns, p.positions, p.velocities) for p in points))
 
 
+def _cubic_slope_bound(a: float, b: float, c: float) -> float:
+    """Bound absolute dq/du on [0, 1] using the quadratic's endpoints and vertex."""
+    bound = max(abs(c), abs(3*a+2*b+c))
+    if a:
+        vertex = -b/(3*a)
+        if 0 < vertex < 1:
+            bound = max(bound, abs((3*a*vertex+2*b)*vertex+c))
+    return math.nextafter(bound, math.inf)
+
+
 def descending_height_time(path: RecordedTrajectory, height: Callable[[tuple[float, ...]], float],
                            target_z: float, *, start_ns: int = 0, step_rad: float = .01,
-                           maximum_points: int = 2000) -> int:
-    """Find the first downward crossing on the original time-indexed cubics."""
+                           maximum_points: int = 2000, height_tolerance_m: float = 0.) -> int:
+    """Find a point above the first downward crossing on the saved cubics.
+
+    A positive tolerance may finish bisection once its upper-height endpoint
+    is within that many meters of the target. Zero retains nanosecond search.
+    Analytical cubic slopes bound joint steps without a loose coefficient sum.
+    This is a joint sampling bound, not a continuous Cartesian collision proof.
+    """
     if (not math.isfinite(target_z) or not math.isfinite(step_rad) or step_rad <= 0
+            or not math.isfinite(height_tolerance_m) or height_tolerance_m < 0
             or type(maximum_points) is not int or maximum_points < 2):
         raise CommandPathValidationError('Invalid reverse return height search')
     remaining = recorded_window(path, start_ns, path.points[-1].time_ns)
@@ -136,15 +166,13 @@ def descending_height_time(path: RecordedTrajectory, height: Callable[[tuple[flo
         if not math.isfinite(value):
             raise CommandPathValidationError('Reverse return FK height is not finite')
         return value
-    if z(remaining.points[0]) <= target_z:
+    previous_z = z(remaining.points[0])
+    if previous_z <= target_z:
         raise CommandPathValidationError('Reverse return must start above the release height')
     examined = 1
-    for first, last in zip(remaining.points, remaining.points[1:]):
-        dt = (last.time_ns-first.time_ns)/1e9
-        coefficients = [(2*q0-2*q1+dt*(v0+v1), 3*q1-3*q0-dt*(2*v0+v1), dt*v0)
-                        for q0,q1,v0,v1 in zip(first.positions,last.positions,
-                                              first.velocities,last.velocities,strict=True)]
-        bound = max(3*abs(a)+2*abs(b)+abs(c) for a,b,c in coefficients)
+    for index, (first, last) in enumerate(zip(remaining.points, remaining.points[1:])):
+        _, coefficients = remaining._segments[index]
+        bound = max(_cubic_slope_bound(a, b, c) for a, b, c, _ in coefficients)
         count = max(2, math.ceil(bound/step_rad))
         examined += count
         if examined > maximum_points:
@@ -152,18 +180,25 @@ def descending_height_time(path: RecordedTrajectory, height: Callable[[tuple[flo
         previous = first.time_ns
         for i in range(1,count+1):
             current = first.time_ns+round((last.time_ns-first.time_ns)*i/count)
-            if z(remaining.sample_at(current)) <= target_z:
+            current_z = z(remaining.sample_at(current))
+            if current_z <= target_z:
                 low, high = previous, current
+                low_z = previous_z
                 for _ in range(24):
-                    if high-low <= 1:
+                    if high-low <= 1 or (low > 0 and 0 < low_z-target_z <= height_tolerance_m):
                         break
                     middle = (low+high)//2
-                    if z(remaining.sample_at(middle)) > target_z:
+                    middle_z = z(remaining.sample_at(middle))
+                    if middle_z > target_z:
                         low = middle
+                        low_z = middle_z
                     else:
                         high = middle
+                if low == 0:
+                    raise CommandPathValidationError('Reverse height search has no positive travel')
                 return start_ns+low
             previous = current
+            previous_z = current_z
     raise CommandPathValidationError('Recorded return path does not reach the release height')
 
 

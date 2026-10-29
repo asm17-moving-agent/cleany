@@ -151,6 +151,18 @@ def test_local_fk_checks_remote_first_and_invalidates_on_state_opening_changes(m
     assert len(calls) == 3
 
 
+@pytest.mark.parametrize('value', [float('nan'), float('inf')])
+def test_local_fk_rejects_nonfinite_remote_reference(value):
+    from cleany_skill_executor.core.physical_grasp_selection import InfrastructureError
+    adapter = MoveItGraspAdapter(object(), MoveItAdapterConfig(use_verified_local_fk=True),
+        ik_client=object(), validity_client=object(), plan_client=object())
+    adapter._local_fk = {'right': object()}
+    adapter._remote_forward_kinematics = lambda *_: PoseValue((value, 0., 0.), (0., 0., 0., 1.))
+    with pytest.raises(InfrastructureError, match='not finite'):
+        adapter.forward_kinematics('right', JointSolution(ARM_JOINT_NAMES['right'], (0.,)*5))
+    assert not adapter._verified_fk_arms
+
+
 @pytest.mark.parametrize('arm', ['left', 'right'])
 def test_current_tcp_direction_uses_local_measured_state_without_remote_calls(arm):
     import math

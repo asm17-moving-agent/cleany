@@ -42,7 +42,8 @@ def replay(raised_temporary):
     values = {'hardware_tcp_position_tolerance_m': .03,
               'hardware_tcp_orientation_tolerance_deg': 20.,
               'hardware_velocity_rad_s': .8, 'hardware_acceleration_rad_s2': 1.2,
-              'hardware_path_step_rad': .01}
+              'hardware_path_step_rad': .01,
+              'hardware_pickup_height_search_tolerance_m': 1e-8}
     limits = {name: PhysicalJointLimit(-3., 3., 2., 4., 2048., 1., 0., 0., 4095.) for name in names}
     node.real.value = values.__getitem__
     node.real.verify = lambda _: limits

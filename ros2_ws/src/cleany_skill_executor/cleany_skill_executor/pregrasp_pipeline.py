@@ -31,6 +31,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from cleany_skill_executor.core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution, PlannedPath, REQUIRED_JOINT_NAMES
 from cleany_skill_executor.core.cartesian import CartesianPose, execution_wall_timeout
 from cleany_skill_executor.physical_moveit_adapter import MoveItAdapterConfig, MoveItGraspAdapter
+from cleany_skill_executor.execution_timing import timed_operation
 from cleany_skill_executor.planning_scene import TargetSceneTransaction
 from cleany_skill_executor.sensor_scene import SensorSceneMonitor
 from cleany_skill_executor.trajectory_io import path_to_message
@@ -105,6 +106,7 @@ class PregraspPipeline(Node):
         super().__init__('pregrasp_pipeline', **kwargs)
         self.mode = mode
         defaults = {'pipeline_timeout_sec': 360., 'maximum_joint_age_sec': .5,
+                    'execution_use_verified_local_fk': False, 'execution_timing_enabled': False,
                     'maximum_target_translation_m': .01, 'wrist_checks': 3,
                     'planning_scene_timeout_sec': 5.,
                     'planning_timeout_sec': 4., 'planning_response_margin_sec': 1.,
@@ -112,6 +114,7 @@ class PregraspPipeline(Node):
                     'execution_timeout_minimum_sec': 60., 'wrist_camera_control_timeout_sec': 5.}
         for name, value in defaults.items():
             self.declare_parameter(name, value)
+        self._execution_timing_enabled = self.get_parameter('execution_timing_enabled').value
         for name in ('planning_timeout_sec', 'planning_response_margin_sec'):
             value = self.get_parameter(name).value
             if not math.isfinite(value) or value <= 0:
@@ -136,6 +139,7 @@ class PregraspPipeline(Node):
             self.controllers = self.create_client(ListControllers, '/controller_manager/list_controllers')
             self.motion = MoveItGraspAdapter(self, MoveItAdapterConfig(
                 validate_motion_paths=True,
+                use_verified_local_fk=self.get_parameter('execution_use_verified_local_fk').value,
                 planning_timeout_sec=float(self.get_parameter('planning_timeout_sec').value),
                 planning_response_margin_sec=float(
                     self.get_parameter('planning_response_margin_sec').value)),
@@ -229,6 +233,7 @@ class PregraspPipeline(Node):
             completed.wait(max(0., min(.01, deadline-time.monotonic())))
         return future.result()
 
+    @timed_operation('service_call')
     def call(self, client, request, timeout=30., *, monitor=False):
         if not client.wait_for_service(timeout_sec=5.):
             raise RuntimeError(f'Service unavailable: {client.srv_name}')
@@ -242,6 +247,7 @@ class PregraspPipeline(Node):
             raise RuntimeError(detail or f'Service call failed: {client.srv_name}')
         return response
 
+    @timed_operation('action_wait')
     def run_action(self, client, goal, timeout, *, monitor=False, allow_aborted=False,
                    feedback_callback=None):
         if not client.wait_for_server(timeout_sec=10.):

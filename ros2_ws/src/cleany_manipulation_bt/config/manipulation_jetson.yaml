@@ -1,7 +1,10 @@
 /**:
   ros__parameters:
     use_sim_time: false
+    execution_use_verified_local_fk: true
+    execution_timing_enabled: true
     hardware_reuse_settle_history: true
+    hardware_pickup_height_search_tolerance_m: 0.005
     # Small lift corrections still obey the full velocity/acceleration retimer.
     hardware_height_correction_min_duration_sec: 0.3
     require_sensor_scene: true

@@ -44,6 +44,7 @@ from .core.hardware_execution import (
     CollisionValidationError, CommandPathValidationError, JointRangeValidationError,
 )
 from .core.joint_path import executable_joint_path
+from .execution_timing import timed_operation
 from .core.height_correction import (
     HeightCorrection, HeightCorrectionPolicy, height_correction_enabled,
     validate_height_correctable_endpoint,
@@ -288,6 +289,7 @@ class CollectionPipeline(PregraspPipeline):
                    trajectories=len(recording.trajectories),
                    command_points=sum(len(path.points) for path in recording.trajectories))
 
+    @timed_operation('reverse_pickup')
     def reverse_to_pickup(self, arm: str, target: Pose, policy: PickupReturnPolicy) -> dict:
         paths = getattr(self, '_pickup_departure_paths', None)
         if not paths or getattr(self, '_pickup_departure_arm', None) != arm:
@@ -318,9 +320,9 @@ class CollectionPipeline(PregraspPipeline):
         # the physical goal; that difference is not an arrival failure here.
         residual = tuple(c-a for c, a in zip(commanded.position, actual.position, strict=True))
         reverse = reversed_command_history(paths)
-        stop_ns = descending_height_time(reverse,
+        stop_ns = self.pickup_return_height_time(reverse,
             lambda q: actual.position[2]+fk(q).position[2]-commanded.position[2],
-            goal.position[2], step_rad=self.real.value('hardware_path_step_rad'))
+            goal.position[2])
         endpoint = fk(reverse.sample_at(stop_ns).positions)
         predicted = estimate_measured_path_pose(actual, commanded, endpoint)
         validate_pose_endpoint(predicted, goal, position_tolerance, orientation_tolerance)
@@ -374,6 +376,14 @@ class CollectionPipeline(PregraspPipeline):
             self.event('pickup_return_height_correction', arm=arm, attempt=attempt+1,
                        step_m=step, actual_z_m=actual.position[2], target_z_m=goal.position[2])
         return details
+
+    @timed_operation('pickup_height_search')
+    def pickup_return_height_time(self, path, height, target_z: float, *, start_ns: int = 0) -> int:
+        """Locate the commanded release height; search tolerance is numerical only."""
+        tolerance = self.real.value('hardware_pickup_height_search_tolerance_m')
+        return descending_height_time(path, height, target_z, start_ns=start_ns,
+                                      step_rad=self.real.value('hardware_path_step_rad'),
+                                      height_tolerance_m=tolerance)
 
     def pickup_destination_pose(self, arm: str) -> Pose:
         target = getattr(self, 'pickup_return_pose', None)
@@ -717,6 +727,7 @@ class CollectionPipeline(PregraspPipeline):
             self.event('height_correction_failed', arm=arm, phase=phase, **summary)
             raise
 
+    @timed_operation('cartesian_planning')
     def _cartesian_trajectory(self, arm: str, measured: JointState,
                               waypoints: tuple[CartesianPose, ...], stage: str,
                               wrist_roll_target: float | None,
