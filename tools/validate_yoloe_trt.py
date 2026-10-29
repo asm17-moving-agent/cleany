@@ -150,7 +150,7 @@ def activate(version: Path, validation: dict, previous_active: Path | None) -> N
     manifest_path = version / 'manifest.json'
     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
     validation_path = version / 'validation.json'
-    filename = validation.get('candidate_filename', 'yoloe-26s-seg-real34.engine')
+    filename = validation['candidate_filename']
     require_hash(version / filename, validation['candidate_sha256'])
     if not validation['passed']:
         raise ValueError('Failed comparison cannot activate an engine')

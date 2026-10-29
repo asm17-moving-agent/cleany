@@ -18,7 +18,7 @@ def main() -> None:
     parser.add_argument('--image', default='cleany-yoloe-export:jp6.2')
     parser.add_argument('--vision-image', default='cleany-vision:jp6.2')
     parser.add_argument('--model-dir', type=Path, default=Path.home() / 'models/yoloe')
-    parser.add_argument('--model-size', choices=('n', 's', 'm'), default='s')
+    parser.add_argument('--model-size', choices=('s', 'm'), default='s')
     parser.add_argument('--lock', type=Path)
     parser.add_argument('--profile', type=Path)
     parser.add_argument('--versions', type=Path)

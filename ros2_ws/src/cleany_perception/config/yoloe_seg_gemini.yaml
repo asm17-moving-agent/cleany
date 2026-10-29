@@ -25,4 +25,3 @@ perception_inspector:
     gemini_api_key_environment: GEMINI_API_KEY
     gemini_jpeg_quality: 95
     detector_timeout_seconds: 30.0
-    vlm_ik_warmup_enabled: true

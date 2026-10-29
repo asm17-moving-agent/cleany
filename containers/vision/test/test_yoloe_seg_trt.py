@@ -24,23 +24,13 @@ def test_locked_profile_uses_the_exact_32_class_order():
     assert lock['export']['nms'] is False
 
 
-def test_legacy_profile_and_medium_checkpoint_keep_distinct_artifact_names():
-    legacy = json.loads((REPO / 'configs/models/yoloe-26s-seg-real34.lock.json').read_text())
-    medium = load_inputs(REPO / 'configs/models/yoloe-26m-seg-real32.lock.json', DEFAULT_PROFILE)
-    assert len(legacy['classes']) == 34
-    assert artifact_stem(legacy) == 'yoloe-26s-seg-real34'
-    assert artifact_stem(medium) == 'yoloe-26m-seg-real32'
-    assert medium['classes'] == load_inputs(DEFAULT_LOCK, DEFAULT_PROFILE)['classes']
-
-
-def test_nano_lock_uses_the_same_runtime_contract_as_small_and_medium():
-    nano = load_inputs(REPO / 'configs/models/yoloe-26n-seg-real32.lock.json', DEFAULT_PROFILE)
+def test_small_and_medium_share_runtime_contract_with_distinct_artifacts():
     small = load_inputs(DEFAULT_LOCK, DEFAULT_PROFILE)
-    assert artifact_stem(nano) == 'yoloe-26n-seg-real32'
+    medium = load_inputs(REPO / 'configs/models/yoloe-26m-seg-real32.lock.json', DEFAULT_PROFILE)
+    assert artifact_stem(small) == 'yoloe-26s-seg-real32'
+    assert artifact_stem(medium) == 'yoloe-26m-seg-real32'
     for key in ('classes', 'profile', 'export', 'runtime', 'packages'):
-        assert nano[key] == small[key]
-    assert nano['source']['checkpoint_filename'] == 'yoloe-26n-seg.pt'
-    assert len(nano['source']['checkpoint_sha256']) == 64
+        assert medium[key] == small[key]
 
 
 def test_failed_export_records_manifest_and_never_overwrites_inputs(tmp_path):
@@ -60,9 +50,9 @@ def test_failed_export_records_manifest_and_never_overwrites_inputs(tmp_path):
 
 def test_segmentation_contract_requires_prototypes_and_coefficients():
     inputs = {'images': [1, 3, 640, 640]}
-    check_segmentation_shapes(inputs, {'output0': [1, 300, 38], 'output1': [1, 32, 160, 160]}, 640, 34)
+    check_segmentation_shapes(inputs, {'output0': [1, 300, 38], 'output1': [1, 32, 160, 160]}, 640, 32)
     with pytest.raises(ValueError, match='coefficients'):
-        check_segmentation_shapes(inputs, {'output0': [1, 300, 6], 'output1': [1, 32, 160, 160]}, 640, 34)
+        check_segmentation_shapes(inputs, {'output0': [1, 300, 6], 'output1': [1, 32, 160, 160]}, 640, 32)
 
 
 def row(label='cup', box=(0., 0., 20., 20.), confidence=.8):
@@ -119,16 +109,23 @@ def test_saved_head_replay_keeps_ambiguous_targets_rejected():
     assert rejected['same_association']
 
 
-def test_activation_refuses_failed_comparison_and_keeps_previous_symlink(tmp_path):
+def test_activation_requires_success_and_an_explicit_candidate(tmp_path):
     old = tmp_path / 'old'
     old.mkdir()
     new = tmp_path / 'new'
     new.mkdir()
     (new / 'manifest.json').write_text('{}')
-    engine = new / 'yoloe-26s-seg-real34.engine'
+    engine = new / 'yoloe-26m-seg-real32.engine'
     engine.write_bytes(b'engine')
     from cleany_perception.model_contract import sha256
     (tmp_path / 'active').symlink_to('old')
+    validation = {'passed': False, 'candidate_filename': engine.name,
+                  'candidate_sha256': sha256(engine)}
     with pytest.raises(ValueError, match='Failed comparison'):
-        activate(new, {'passed': False, 'candidate_sha256': sha256(engine)}, old)
+        activate(new, validation, old)
     assert (tmp_path / 'active').readlink() == Path('old')
+    with pytest.raises(KeyError, match='candidate_filename'):
+        activate(new, {'passed': True, 'candidate_sha256': sha256(engine)}, old)
+    assert (tmp_path / 'active').readlink() == Path('old')
+    activate(new, {**validation, 'passed': True}, old)
+    assert (tmp_path / 'active').readlink() == Path('new')

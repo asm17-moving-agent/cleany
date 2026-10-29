@@ -40,7 +40,7 @@ class _Model:
 
 
 def _model_files(tmp_path: Path) -> tuple[Path, Path]:
-    checkpoint = tmp_path / 'yoloe-26n-seg.pt'
+    checkpoint = tmp_path / 'yoloe-26s-seg.pt'
     checkpoint.write_bytes(b'checkpoint')
     encoder_directory = tmp_path / 'encoder'
     encoder_directory.mkdir()

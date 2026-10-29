@@ -184,6 +184,18 @@ RGB-D, 가짜 모델, 저장된 설정이며 실제 Gemini API, TensorRT/AnyGras
 검증 소스 `changes.patch`, 환경, 실행 명령, 로그와 JUnit 원본은
 `/home/cleany/cleany-data/reports/pr-b-perception-20261029T222340Z/`에 보관한다.
 
+### YOLOE 설정 정리 검증 (2026-10-30)
+
+`0830839`에 이 절과 함께 반영한 정리 패치를 적용했다. 이전 34종 설정,
+미사용 nano lock과 선택 옵션, 사용되지 않는 IK 예열 설정을 제거했다.
+같은 Jetson Humble 환경의 새 빌드 경로에서 `make build-perception-candidates`로
+3개 패키지를 빌드하고, 설치된 설정 6개의 hash와 삭제한 설정의 부재를 확인했다.
+`make test-perception-candidates`는 492개 통과, RealSense 실물 검사 1개 skip이다.
+검사 수가 하나 줄어든 것은 nano 전용 검사를 제거했기 때문이다.
+입력은 합성 데이터와 가짜 모델이며 실제 GPU 추론과 실물 장치는 실행하지 않았다.
+실패는 없었다. 소스 패치, 환경, 로그, JUnit과 설치 확인 원본은
+`/home/cleany/cleany-data/reports/pr-b-yoloe-cleanup-20261029T230830Z/`에 보관한다.
+
 ## Mission Mock 조작 통합
 
 | 코드와 환경 | 입력과 결과 범위 | 원본 (`cleany-data/runs/` 아래) |

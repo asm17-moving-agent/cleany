@@ -22,7 +22,6 @@
 - **클래스 정의 (고정 32종)**:
   - 실물 환경에서는 `yoloe_real32.yaml`의 순서를 사용합니다. `phone`, `pen`을 대표명으로 사용하고 충전 어댑터는 `charger`에 포함합니다.
   - 물체 후보를 찾는 이름과 Gemini의 최종 종류명 및 처리 분류를 구분합니다. 대표명을 지정해도 통합한 세부 종류의 검출을 보장하지 않습니다.
-  - `yoloe_real34.yaml`과 기존 real34 엔진은 이전 모델로 복귀할 때 사용합니다.
 
 ## 2. 실물 32종 TensorRT FP16 빌드 및 검증
 
@@ -67,10 +66,6 @@ YOLOE_MODEL_PATH=/models/yoloe/real32/s/<버전>/yoloe-26s-seg-real32.pt make pe
 
 # 또는 원본 PT + 로컬 인코더로 현재 32종 프롬프트 직접 구성
 YOLOE_MODEL_PATH=/models/yoloe/yoloe-26s-seg.pt make perception-run
-
-# 이전 34종 엔진으로 복귀할 때는 프로파일도 함께 지정
-YOLOE_CONFIG_FILE=/workspace/cleany/ros2_ws/src/cleany_perception/config/yoloe_real34.yaml \
-YOLOE_MODEL_PATH=/models/yoloe/real34/active/yoloe-26s-seg-real34.engine make perception-run
 ```
 
 > [!TIP]
