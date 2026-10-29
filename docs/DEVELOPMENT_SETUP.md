@@ -224,7 +224,7 @@ pnpm build
 
 ## Jetson 실물 제어 패키지
 
-실물 상태 조회, Feetech 제어기와 캘리브레이션 패키지는 다음 명령으로 빌드합니다.
+실물 상태 조회, Feetech 제어기와 MoveIt 연동 패키지는 다음 명령으로 빌드합니다.
 ROS 의존성은 위 rosdep 절차로 준비합니다. 빌드에는 로봇 장치가 필요하지 않습니다.
 
 ```bash
@@ -238,8 +238,6 @@ source "$(make -s print-install-base)/setup.bash"
 호스트 Python 도구와 `tools/ros2/cleany-install-env`도 같은 경로 규칙을 사용합니다.
 `INSTALL_BASE`를 바꿔 직접 실행할 때는 `CLEANY_INSTALL_BASE`에도 같은 값을 지정합니다.
 
-LeRobot 기반 SO-101 보정과 원격 조작 도구는 별도 LeRobot 환경을 사용하는 선택 도구입니다.
-기본 ROS 설치나 하드웨어 없는 검증에는 LeRobot을 설치하지 않아도 됩니다.
 실물 실행은 [제어 실행 절차](RUNNING.md#jetson-실물-실행-경로)를 따릅니다.
 
 Jetson에서 시스템 MoveIt과 버전을 맞춘 사용자 설치본을 사용하는 경우에는

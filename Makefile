@@ -224,18 +224,18 @@ build:
 	cd "$(ROS2_WS)" && \
 	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS)
 
-# Isolated native hardware, calibration and host-tool validation.
-JETSON_CONTROL_SOURCE_PATH := $(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_handeye_calibration:$(ROS2_WS)/src/cleany_moveit_config
-JETSON_CONTROL_TEST_PATHS ?= $(ROS2_WS)/src/cleany_robot_interface/test $(ROS2_WS)/src/cleany_handeye_calibration/test $(ROS2_WS)/src/cleany_moveit_config/test/test_physical_control_config.py tests/tools
+# Isolated native hardware and host-tool validation.
+JETSON_CONTROL_SOURCE_PATH := $(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_moveit_config
+JETSON_CONTROL_TEST_PATHS ?= $(ROS2_WS)/src/cleany_robot_interface/test $(ROS2_WS)/src/cleany_moveit_config/test/test_physical_control_config.py tests/tools
 JETSON_CONTROL_PYTEST_ARGS ?=
 .PHONY: build-jetson-control test-jetson-control test-jetson-control-native test-jetson-controller
 build-jetson-control:
-	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_robot_interface cleany_handeye_calibration --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_robot_interface --parallel-workers 2 $(COLCON_BUILD_ARGS)"
 
 test-jetson-control:
 	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
 	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 \
-	PYTHONPATH="$(REPO_ROOT)tools:$(JETSON_CONTROL_SOURCE_PATH):$(ROS2_WS)/src/cleany_handeye_calibration/test:$${PYTHONPATH:-}" \
+	PYTHONPATH="$(REPO_ROOT)tools:$(JETSON_CONTROL_SOURCE_PATH):$${PYTHONPATH:-}" \
 	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib $(JETSON_CONTROL_TEST_PATHS) $(JETSON_CONTROL_PYTEST_ARGS)
 
 test-jetson-control-native:

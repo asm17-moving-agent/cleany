@@ -13,6 +13,7 @@ import cleany_robot_interface.arm_torque as module
 ROOT = Path(__file__).resolve().parents[4]
 PROFILE = yaml.safe_load((ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_left_arm.yaml').read_text())
 RIGHT_PROFILE = yaml.safe_load((ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_right_arm.yaml').read_text())
+ARM_CASES = [('left', PROFILE, 1), ('right', RIGHT_PROFILE, 7)]
 
 
 class Bus:
@@ -36,16 +37,19 @@ class Bus:
         self.values[motor][address] = value
 
 
-def test_right_preloads_only_ids_7_to_11_and_repeat_is_noop():
-    bus = Bus('right')
-    module.enable(bus, RIGHT_PROFILE, side='right')
+@pytest.mark.parametrize('side,profile,first_id', ARM_CASES)
+def test_preload_all_goals_before_on_and_repeat_is_noop(side, profile, first_id):
+    bus = Bus(side)
+    ids = set(range(first_id, first_id + 5))
+    module.enable(bus, profile, side=side)
     first_on = next(i for i, e in enumerate(bus.events) if e[0] == 'write' and e[2] == 40)
-    assert {e[1] for e in bus.events[:first_on] if e[0] == 'write' and e[2] == 42} == set(range(7, 12))
-    assert {e[1] for e in bus.events} == set(range(7, 12))
-    assert all(r[40] == 1 and r[42] == r[56] and r[48] == 800 for r in bus.values.values())
+    assert {e[1] for e in bus.events[:first_on] if e[0] == 'write' and e[2] == 42} == ids
+    assert {e[1] for e in bus.events} == ids
+    assert all(r[40] == 1 and r[42] == r[56] for r in bus.values.values())
+    assert all(r[48] == 800 and r[46] == 800 and r[41] == 254 for r in bus.values.values())
     assert all(e[2] >= 40 for e in bus.events if e[0] == 'write')
     bus.events.clear()
-    module.enable(bus, RIGHT_PROFILE, side='right')
+    module.enable(bus, profile, side=side)
     assert not any(e[0] == 'write' for e in bus.events)
 
 
@@ -57,24 +61,26 @@ def test_right_uses_right_joint_overrides():
     assert bus.values[9][48] == 800
 
 
-@pytest.mark.parametrize('register,value', [(33, 1), (65, 1), (63, 80), (56, 4096), (3, 123)])
-def test_right_late_preflight_failure_never_writes(register, value):
-    bus = Bus('right')
-    bus.values[11][register] = value
+@pytest.mark.parametrize('side,profile,first_id', ARM_CASES)
+@pytest.mark.parametrize('register,value', [(33, 1), (65, 1), (63, 80), (56, 4096), (3, 123), (16, 500)])
+def test_late_preflight_failure_never_writes(side, profile, first_id, register, value):
+    bus = Bus(side)
+    bus.values[first_id + 4][register] = value
     with pytest.raises(RuntimeError):
-        module.enable(bus, RIGHT_PROFILE, side='right')
+        module.enable(bus, profile, side=side)
     assert not any(e[0] == 'write' for e in bus.events)
 
 
-def test_right_off_continues_after_partial_failure():
-    bus = Bus('right')
+@pytest.mark.parametrize('side,first_id', [('left', 1), ('right', 7)])
+def test_off_continues_after_failures_and_only_touches_torque(side, first_id):
+    bus = Bus(side)
     for row in bus.values.values():
         row[40] = 1
-    bus.fail_write, bus.fail_read = (8, 40), (9, 40)
-    assert len(module.disable(bus, side='right')) == 2
-    assert [e[1] for e in bus.events if e[0] == 'write'] == list(range(7, 12))
+    bus.fail_write, bus.fail_read = (first_id + 1, 40), (first_id + 2, 40)
+    assert len(module.disable(bus, side=side)) == 2
+    assert [e[1] for e in bus.events if e[0] == 'write'] == list(range(first_id, first_id + 5))
     assert all(e[2] == 40 for e in bus.events)
-    assert bus.values[11][40] == 0
+    assert bus.values[first_id + 4][40] == 0
 
 
 @pytest.mark.parametrize('operation', ['on', 'off'])
@@ -95,19 +101,24 @@ def test_right_main_dispatch_and_profile(monkeypatch, capsys, operation):
         assert enabled.call_args.kwargs == {'side': 'right'}
 
 
-def test_right_partial_on_preserves_hold_and_reports_correct_ids(monkeypatch, capsys):
-    bus = Bus('right')
-    bus.fail_write = (9, 40)
+@pytest.mark.parametrize('side,first_id', [('left', 1), ('right', 7)])
+def test_partial_on_preserves_hold_and_reports_correct_ids(monkeypatch, capsys, side, first_id):
+    bus = Bus(side)
+    bus.fail_write = (first_id + 2, 40)
     @contextmanager
     def fake_connect(*args):
         yield bus
     monkeypatch.setattr(module, 'connect', fake_connect)
-    monkeypatch.setattr('sys.argv', ['right-arm-torque-on', '--control-config', str(ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_right_arm.yaml')])
-    assert module.main('on', ROOT, side='right') == 1
-    assert [bus.values[m][40] for m in range(7, 12)] == [1, 1, 0, 0, 0]
+    monkeypatch.setattr('sys.argv', [side + '-arm-torque-on', '--control-config',
+        str(ROOT / f'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_{side}_arm.yaml')])
+    assert module.main('on', ROOT, side=side) == 1
+    assert [bus.values[m][40] for m in range(first_id, first_id + 5)] == [1, 1, 0, 0, 0]
     assert not any(e[0] == 'write' and e[2:] == (40, 0) for e in bus.events)
     output = capsys.readouterr().out
-    assert 'ID 7: torque=1' in output and 'ID 11:' in output and 'ID 1:' not in output
+    assert 'ON incomplete' in output and f'ID {first_id}: torque=1' in output
+    assert f'ID {first_id + 4}:' in output
+    if side == 'right':
+        assert 'ID 1:' not in output
 
 
 def test_invalid_arm_rejected_before_access():
@@ -115,28 +126,6 @@ def test_invalid_arm_rejected_before_access():
     with pytest.raises(ValueError, match='Select'):
         module.enable(bus, PROFILE, side='invalid')
     assert bus.events == []
-
-def test_preload_all_goals_before_on_and_repeat_is_noop():
-    bus = Bus()
-    module.enable(bus, PROFILE)
-    first_on = next(i for i, e in enumerate(bus.events) if e[0] == 'write' and e[2] == 40)
-    assert {e[1] for e in bus.events[:first_on] if e[0] == 'write' and e[2] == 42} == set(module.IDS)
-    assert {e[1] for e in bus.events} == set(module.IDS)
-    assert all(r[40] == 1 and r[42] == r[56] for r in bus.values.values())
-    assert all(r[48] == 800 and r[46] == 800 and r[41] == 254 for r in bus.values.values())
-    assert all(e[2] >= 40 for e in bus.events if e[0] == 'write')
-    bus.events.clear()
-    module.enable(bus, PROFILE)
-    assert not any(e[0] == 'write' for e in bus.events)
-
-
-@pytest.mark.parametrize('register,value', [(33, 1), (65, 1), (63, 80), (56, 4096), (3, 123), (16, 500)])
-def test_late_preflight_failure_never_writes(register, value):
-    bus = Bus()
-    bus.values[5][register] = value
-    with pytest.raises(RuntimeError):
-        module.enable(bus, PROFILE)
-    assert not any(e[0] == 'write' for e in bus.events)
 
 
 def test_distant_enabled_goal_rejected():
@@ -168,32 +157,6 @@ def test_goal_verification_or_drift_prevents_activation(drift):
     with pytest.raises(RuntimeError):
         module.enable(bus, PROFILE)
     assert all(r[40] == 0 for r in bus.values.values())
-
-
-def test_partial_on_reports_state_without_automatic_off(monkeypatch, capsys):
-    bus = Bus()
-    bus.fail_write = (3, 40)
-    @contextmanager
-    def fake_connect(*args):
-        yield bus
-    monkeypatch.setattr(module, 'connect', fake_connect)
-    monkeypatch.setattr('sys.argv', ['left-arm-torque-on', '--control-config', str(ROOT / 'ros2_ws/src/cleany_robot_interface/test/data/feetech_operational_left_arm.yaml')])
-    assert module.main('on', ROOT) == 1
-    assert [bus.values[m][40] for m in module.IDS] == [1, 1, 0, 0, 0]
-    assert not any(e[0] == 'write' and e[2:] == (40, 0) for e in bus.events)
-    output = capsys.readouterr().out
-    assert 'ON incomplete' in output and 'ID 1: torque=1' in output
-
-
-def test_off_continues_after_failures_and_only_touches_torque():
-    bus = Bus()
-    for row in bus.values.values():
-        row[40] = 1
-    bus.fail_write, bus.fail_read = (2, 40), (3, 40)
-    assert len(module.disable(bus)) == 2
-    assert [e[1] for e in bus.events if e[0] == 'write'] == list(module.IDS)
-    assert all(e[2] == 40 for e in bus.events)
-    assert bus.values[5][40] == 0
 
 
 def test_off_readback_mismatch_is_failure():

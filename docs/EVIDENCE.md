@@ -10,6 +10,16 @@
 `CLEANY_DATA_ROOT/reports/evidence/` 아래 원래 상대 경로로 보관합니다.
 새 실행 산출물은 Git에서 제외하고 commit, 환경, 입력, 실패와 원본 위치를 남깁니다.
 
+## Jetson 제어 기반 분리 검증
+
+`3dea85d`에 미커밋 정리 패치를 적용한 소스를 Ubuntu 22.04 ARM64,
+ROS 2 Humble과 MoveIt 2.5.9에서 별도 빌드 경로로 검사했다.
+`make build-jetson-control`은 6개 패키지 빌드, `make test-jetson-control`은
+163개 검사를 통과했다. 실패와 skip은 없었다. 입력은 저장소의 고정 보정,
+합성 상태와 가상 시리얼이며 실물 장치를 열지 않았다.
+환경, 입력 소스를 식별하는 `changes.patch`, 로그와 JUnit 원본은
+`/home/cleany/cleany-data/reports/pr-a-trim-20261029T185419Z/`에 보관한다.
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의

@@ -78,9 +78,9 @@ make test-jetson-control-native
 make test-jetson-controller
 ```
 
-`test-jetson-control`은 상태 매핑, 제어 프로파일, 카메라와 캘리브레이션,
-MoveIt의 실물 관절 한계 및 호스트 도구를 검사합니다. 선택 LeRobot 환경이 없으면
-해당 도구 검사만 제외됩니다. 범위는 `JETSON_CONTROL_TEST_PATHS`, pytest 옵션은
+`test-jetson-control`은 상태 매핑, 제어 프로파일, 카메라,
+MoveIt의 실물 관절 한계 및 호스트 도구를 검사합니다.
+범위는 `JETSON_CONTROL_TEST_PATHS`, pytest 옵션은
 `JETSON_CONTROL_PYTEST_ARGS`로 지정합니다.
 
 `test-jetson-controller`는 PTY 가상 시리얼과 실제 C++ 드라이버, ROS 컨트롤러를 연결합니다.

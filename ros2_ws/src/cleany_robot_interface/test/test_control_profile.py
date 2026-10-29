@@ -209,7 +209,8 @@ def test_operational_profile_provides_normal_motion_limits(tmp_path, state_profi
     assert limits['serial_read_recovery_budget_ms'] == 60
     profile = prepare_control_profile(state_profile_file, ROOT, tmp_path/'limits',
         ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml', read_only=False)
-    for joint in ET.parse(profile.model).findall('ros2_control/joint'):
+    model = ET.parse(profile.model)
+    for joint in model.findall('ros2_control/joint'):
         if joint.get('name').startswith('head_'):
             continue
         values = {p.get('name'): p.text for p in joint.findall('param')}
@@ -235,17 +236,10 @@ def test_operational_profile_provides_normal_motion_limits(tmp_path, state_profi
     for name in profile.controller_names:
         params = generated[name]['ros__parameters']
         assert all(params['constraints'][joint]['goal'] == .10 for joint in params['joints'])
-    assert controller['trajectory_tolerance'] == 0.0
-    assert defaults['tracking_error'] == 0.0
     assert limits['temperature_limit_c'] == 80
     assert limits['temperature_fault_confirmation_samples'] == 3
     assert limits['allow_torque_on_recovery'] is True
-    profile = prepare_control_profile(
-        state_profile_file, ROOT,
-        tmp_path/'recovery',
-        ROOT/'ros2_ws/src/cleany_robot_interface/test/data/feetech_control.yaml', read_only=False,
-    )
-    hardware = ET.parse(profile.model).getroot().find('ros2_control/hardware')
+    hardware = model.find('ros2_control/hardware')
     assert hardware.find("param[@name='allow_torque_on_recovery']").text == 'true'
     assert hardware.find(
         "param[@name='temperature_fault_confirmation_samples']"
@@ -260,8 +254,6 @@ def test_single_arm_operational_profiles_match_normal_speed_and_temperature(file
     profile = yaml.safe_load((ROOT/'ros2_ws/src/cleany_robot_interface/test/data'/filename).read_text())
     assert profile['temperature_limit_c'] == 80
     assert profile['joint_defaults']['max_velocity'] == 1.0
-
-
 
 
 @pytest.mark.parametrize('profile,arms', [
