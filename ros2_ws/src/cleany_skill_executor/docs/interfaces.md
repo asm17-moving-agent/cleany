@@ -66,9 +66,10 @@ depth 100으로 구독한다. `monitor_port`의 localhost ZeroMQ REP socket은 �
 
 | 파라미터 | 기본값 | 의미 |
 |---|---|---|
-| `curobo_spheres_per_link` | 64 | 메시 하나당 분할 셀 수 목표; 분리된 컴포넌트마다 최소 하나를 유지 |
-| `curobo_sphere_budget_per_link` | 16 | 같은 강체 링크 내 병합 후 구의 상한, 0이면 병합 생략 |
-| `curobo_sphere_surface_radius_m` | 0.0005 | 각 셀을 감싸는 구에 추가하는 바깥 여유, m |
+| `curobo_sphere_model` | `joint_simplified` | 어깨 yaw는 한 구, 어깨 상완 연결부는 두 구, 팔꿈치 위아래는 각각 두 구, 헤드 pan, tilt, 카메라는 각각 한 구, 손목 카메라 마운트는 한쪽당 두 구를 두는 118개 배열. 각 구는 소유 링크를 따르며 메시, 배치, scale 일치가 필요. `generated`는 자동 생성 방식 |
+| `curobo_spheres_per_link` | 64 | 자동 생성 모델의 메시당 분할 셀 수 목표; 인증 배열의 최종 개수에는 적용하지 않음 |
+| `curobo_sphere_budget_per_link` | 16 | 자동 생성 모델의 같은 강체 링크 내 병합 상한, 0이면 병합 생략 |
+| `curobo_sphere_surface_radius_m` | 0.0005 | 바깥 여유, m; `joint_simplified`는 인증 값 0.0005와 일치해야 함 |
 | `curobo_collision_hull_max_expansion_m` | 0.001 | GPU 로봇 외피의 입력 메시 볼록 외피 대비 추가 팽창 상한, m; 0이면 정점 단순화 생략 |
 
 ## 실물 준비, 검증 및 모니터링 노드

@@ -297,10 +297,12 @@ class CuRoboGraspAdapter(MoveItGraspAdapter):
             ],
         )
 
-    def plan(self, arm, goal, start):
+    def plan(self, arm, goal, start, *, corridor=None):
         began = self._monotonic()
         with self._scene_operation():
             path = self._plan_gpu(arm, goal, start)
+            if path is not None and corridor is not None:
+                path = self._validated_cubic_path(arm, path, corridor=corridor)
         self.last_timings = dict(getattr(self._engine, "timings", {}))
         self.last_timings["total_sec"] = self._monotonic() - began
         return path

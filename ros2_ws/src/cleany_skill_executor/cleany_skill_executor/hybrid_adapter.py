@@ -430,7 +430,8 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         # Build from the actual runtime URDF, including measured head/TCP frames.
         if self._robot_model is None:
             with self._progress.stage('GPU_GEOMETRY',
-                    f'mesh_fit_spheres={config.spheres_per_link} link_sphere_budget={config.sphere_budget_per_link}'):
+                    f'sphere_model={config.sphere_model} mesh_fit_spheres={config.spheres_per_link} '
+                    f'link_sphere_budget={config.sphere_budget_per_link}'):
                 self._robot_model = _CandidateRobotModel(description, semantic, config,
                     exclude_opposite_arm_cost=self._hybrid_config.exclude_opposite_arm_cost)
         model = self._robot_model.with_config(config)

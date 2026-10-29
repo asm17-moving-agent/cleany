@@ -68,7 +68,7 @@ class Runtime:
     def fingerprint(self) -> str:
         """Invalidate preparation when installed code, model or interface inputs change."""
         digest = hashlib.sha256()
-        extensions = {'.py', '.yaml', '.xml', '.xacro', '.srdf', '.urdf', '.msg', '.srv', '.action', '.cfg'}
+        extensions = {'.py', '.yaml', '.json', '.xml', '.xacro', '.srdf', '.urdf', '.msg', '.srv', '.action', '.cfg'}
         for package in PACKAGES:
             directory = self.root / 'ros2_ws/src' / package
             for path in sorted(directory.rglob('*')):

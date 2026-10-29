@@ -69,3 +69,5 @@ def test_geometry_sharing_keeps_solver_tuning_separate():
         model.with_config(replace(model.config, sphere_budget_per_link=0))
     with pytest.raises(ValueError, match='identical hull'):
         model.with_config(replace(model.config, collision_hull_max_expansion_m=0))
+    with pytest.raises(ValueError, match='identical sphere models'):
+        model.with_config(replace(model.config, sphere_model='generated'))

@@ -445,3 +445,25 @@ export CLEANY_HARDWARE_MONITOR_CONFIG=/absolute/path/to/local-motion-monitor.yam
 > 이미 실행 중인 런타임의 예측기 방식과 다른 방식으로 실행을 요청하면 안전을 위해 시작 요청이 거절됩니다. 방식을 변경할 때는 런타임을 재시작해야 합니다.
 
 상세한 파라미터 및 하드웨어 연동 계약은 [실물 경로와 설정 계약 문서](../ros2_ws/src/cleany_skill_executor/docs/physical-manipulation.md)와 [하드웨어 인터페이스 문서](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 참고하세요.
+
+## 충돌 최적화 모델 갱신
+
+기본 URDF는 평면화한 충돌 메시를 사용하고, cuRobo는 패키지의
+`collision_spheres_joint_simplified.json`을 공통 RobotModel에서 읽는다.
+머리 포함 프로필은 전체 118개 구와 고정 마스트 박스 5개이며,
+hybrid 한쪽 팔의 제안 비용은 반대팔을 제외한 왼팔 60개, 오른팔 61개 구를 사용한다.
+최종 MoveIt 검사와 GPU 전체 형상 검사는 반대팔, 베이스와 primitive를 유지한다.
+
+진행 중인 조작 요청이 없는 상태에서 네이티브 설치와 모션 컨테이너를 함께 갱신한다.
+
+```bash
+make build COLCON_BUILD_ARGS='--packages-select cleany_description cleany_moveit_config cleany_skill_executor'
+make motion-container-prepare motion-container-check
+tools/motion-container exec -- python3 tools/validation/verify_deployed_collision_models.py
+```
+
+기존 selector, MoveIt과 robot_state_publisher가 실행 중이면 종료 후 새 overlay와
+같은 URDF로 다시 시작한다. 구 배열, 메시 내용과 코드 변경은 전체 모델 캐시와
+컨테이너 준비 hash에 반영되므로 기존 캐시를 수동 삭제할 필요는 없다.
+인증한 메시의 hash, collision 배치나 scale이 다르면 구를 자동 재사용하지 않고
+초기화를 거부한다. `generated` 모델 선택은 비교 검사 용도로 명시한다.

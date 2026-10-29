@@ -746,7 +746,8 @@ test-collision-geometry:
 		$(ROS2_WS)/src/cleany_skill_executor/test/test_collision_geometry.py \
 		$(ROS2_WS)/src/cleany_skill_executor/test/test_sphere_reduction.py \
 		$(ROS2_WS)/src/cleany_skill_executor/test/test_geometry_cache.py \
-		$(ROS2_WS)/src/cleany_skill_executor/test/test_robot_geometry_cache.py
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_robot_geometry_cache.py \
+		$(ROS2_WS)/src/cleany_skill_executor/test/test_collision_sphere_model.py
 
 .PHONY: test-description-models
 test-description-models:

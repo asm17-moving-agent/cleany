@@ -7,6 +7,7 @@ grasp_selection_server:
     curobo_joint_tolerance_rad: 0.002
     curobo_spheres_per_link: 64
     curobo_sphere_budget_per_link: 16
+    curobo_sphere_model: joint_simplified
     curobo_sphere_surface_radius_m: 0.0005
     curobo_collision_hull_max_expansion_m: 0.001
     curobo_geometry_cache_directory: ''  # Optional content-addressed mesh fitting cache.

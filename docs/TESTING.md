@@ -542,3 +542,14 @@ python3 tools/validation/benchmark_manipulation_geometry.py \
 배치를 검사합니다. MuJoCo 물리 접촉 형상은 기존 MJCF를 유지하며,
 시뮬레이션의 MoveIt 경로 계획은 최적화 URDF를 사용합니다.
 `COLLISION_TEST_ARGS`로 `-k`와 `--junitxml` 등을 전달할 수 있습니다.
+
+
+
+## 설치된 충돌 최적화 모델 확인
+
+운영 설치본의 적용 여부는 `tools/motion-container exec -- python3
+tools/validation/verify_deployed_collision_models.py`로 검사합니다. 기본 URDF가
+최적화 메시를 선택하는지, 설치된 STL의 hash, 전체 118개와 좌우 팔 제안 비용의
+60/61개 구, GPU 전체 형상의 정점 수와 캐시 재사용을 확인합니다. 실제 CUDA
+배치 IK의 해는 독립 URDF FK와 전체 형상 검사로 검증합니다. ROS 조작 Action과
+모터 제어는 시작하지 않습니다. 설치 갱신 순서는 [충돌 최적화 모델 갱신](RUNNING.md#충돌-최적화-모델-갱신)을 따릅니다.

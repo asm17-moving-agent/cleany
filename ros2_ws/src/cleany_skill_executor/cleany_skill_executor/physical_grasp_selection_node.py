@@ -106,6 +106,7 @@ class GraspSelectionNode(Node):
             'curobo_joint_tolerance_rad': 0.002,
             'curobo_spheres_per_link': 64,
             'curobo_sphere_budget_per_link': 16,
+            'curobo_sphere_model': 'joint_simplified',
             'curobo_sphere_surface_radius_m': 0.0005,
             'curobo_geometry_cache_directory': '',
             'curobo_interpolation_dt': 0.05,

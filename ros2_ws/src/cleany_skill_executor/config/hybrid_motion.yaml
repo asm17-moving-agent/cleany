@@ -33,6 +33,7 @@ grasp_selection_server:
     # Approximate GPU proposal cost only; full MoveIt state/path checks remain.
     curobo_spheres_per_link: 64
     curobo_sphere_budget_per_link: 16
+    curobo_sphere_model: joint_simplified
     curobo_sphere_surface_radius_m: 0.0005
     curobo_collision_hull_max_expansion_m: 0.001
     curobo_ik_cpu_fallback: false

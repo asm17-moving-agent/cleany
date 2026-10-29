@@ -82,11 +82,14 @@ class CuRoboEngine:
         key = (arm, tip)
         if key not in self._ik:
             robot = self.model.robot_config(self._urdf, arm, state, tip)
+            checker = self._mast_checker(robot, world, shared=True)
+            if checker is None:
+                checker = self.resources.world_checker
             solver = IKSolver(
                 IKSolverConfig.load_from_robot_config(
                     robot,
                     (WorldConfig.from_dict(world).get_collision_check_world()
-                     if self.resources.world_checker is None else None),
+                     if checker is None else None),
                     tensor_args=self.tensor,
                     num_seeds=self.config.num_seeds,
                     position_threshold=self.config.ik_position_threshold_m,
@@ -102,7 +105,7 @@ class CuRoboEngine:
                     self_collision_opt=False,
                     collision_checker_type=CollisionCheckerType.MESH,
                     collision_cache={"obb": 128, "mesh": 128},
-                    world_coll_checker=self.resources.world_checker,
+                    world_coll_checker=checker,
                     use_cuda_graph=self.config.use_cuda_graph,
                 )
             )
@@ -135,6 +138,26 @@ class CuRoboEngine:
             )
             self.resources.world_key = repr(world)
         return self._ik[key]
+
+    def _mast_checker(self, robot, world, *, shared=False):
+        if not getattr(self.model, 'mast_obstacles', None):
+            return None
+        from curobo.geom.sdf.world import WorldCollisionConfig
+        from curobo.geom.sdf.world_mesh import WorldMeshCollision
+        from curobo.geom.types import WorldConfig
+        from .curobo_mast_checker import MastWorldCollision
+
+        environment = self.resources.world_checker if shared else None
+        if environment is None:
+            environment = WorldMeshCollision(WorldCollisionConfig(
+                tensor_args=self.tensor,
+                world_model=WorldConfig.from_dict(world).get_collision_check_world(),
+                cache={'obb': 128, 'mesh': 128}))
+            if shared:
+                self.resources.world_checker = environment
+                self.resources.world_key = repr(world)
+        return MastWorldCollision(environment, self.model.mast_obstacles,
+                                  robot['kinematics'], self.tensor)
 
     def _update_ik_locked_joints(self, solver, arm, tip, state, locks, previous):
         from .curobo_locked_joints import LockedJointUpdater
@@ -325,10 +348,12 @@ class CuRoboEngine:
         }
         if arm not in self._motion:
             robot = self.model.robot_config(self._urdf, arm, state, f"{arm}_grasp_tcp")
+            checker = self._mast_checker(robot, world)
             motion = MotionGen(
                 MotionGenConfig.load_from_robot_config(
                     deepcopy(robot),
-                    world_model,
+                    world_model if checker is None else None,
+                    world_coll_checker=checker,
                     tensor_args=self.tensor,
                     collision_checker_type=CollisionCheckerType.MESH,
                     self_collision_check=False, self_collision_opt=False,

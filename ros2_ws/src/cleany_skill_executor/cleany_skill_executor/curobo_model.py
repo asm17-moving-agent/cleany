@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from copy import copy
+from functools import cached_property
 import hashlib
 import importlib.metadata
 import math
@@ -29,6 +30,7 @@ class CuRoboConfig:
     joint_tolerance_rad: float = 0.002
     spheres_per_link: int = 64  # Historical name: cell count per mesh instance.
     sphere_budget_per_link: int = 16  # Merge within each rigid link; 0 keeps original fits.
+    sphere_model: str = 'joint_simplified'
     sphere_surface_radius_m: float = 0.0005  # Outward padding on every enclosing ball.
     collision_hull_max_expansion_m: float = 0.001
     interpolation_dt: float = 0.05
@@ -42,6 +44,8 @@ class CuRoboConfig:
     geometry_cache_directory: str = ''
 
     def __post_init__(self) -> None:
+        if self.sphere_model not in ('joint_simplified', 'generated'):
+            raise ValueError('Unknown collision sphere model')
         if (not math.isfinite(self.collision_hull_max_expansion_m)
                 or self.collision_hull_max_expansion_m < 0):
             raise ValueError('GPU hull expansion must be finite and nonnegative')
@@ -70,6 +74,12 @@ class CuRoboConfig:
 
 
 class RobotModel:
+    @cached_property
+    def mast_obstacles(self) -> dict:
+        from .curobo_mast import mast_cuboids
+
+        return mast_cuboids(self.xml, self.config.sphere_surface_radius_m)
+
     def with_config(self, config: CuRoboConfig) -> RobotModel:
         """Share derived geometry while keeping each engine's tuning separate."""
         if (config.spheres_per_link, config.sphere_surface_radius_m, config.sphere_budget_per_link) != (
@@ -78,6 +88,8 @@ class RobotModel:
             raise ValueError('Shared robot geometry requires identical sphere fitting settings')
         if config.collision_hull_max_expansion_m != self.config.collision_hull_max_expansion_m:
             raise ValueError('Shared robot geometry requires identical hull settings')
+        if config.sphere_model != self.config.sphere_model:
+            raise ValueError('Shared robot geometry requires identical sphere models')
         model = copy(self)
         model.config = config
         return model
@@ -176,13 +188,14 @@ class RobotModel:
                     path = Path(uri)
                 scale = tuple(float(v) for v in mesh.get("scale", "1 1 1").split())
                 key = (str(path), scale)
-                if name == 'base_link':
+                if name in ('base_link', 'top_base_link'):
                     geometry = trimesh.load_mesh(path, process=True)
                     geometry.apply_scale(scale)
-                    vertices = enclosing_polytope(geometry.vertices, config.collision_hull_max_expansion_m)
+                    source = geometry.convex_hull.vertices if name == 'top_base_link' else geometry.vertices
+                    vertices = enclosing_polytope(source, config.collision_hull_max_expansion_m)
                     self.bodies.append(convex_body(name, vertices @ rotation.T + xyz))
-                    # As for the base box above, preserve the full base in final
-                    # validation without coarse base spheres in IK optimization.
+                    # Full validation keeps both bodies. The fixed mast is
+                    # represented by cuboids in every proposal checker.
                     continue
                 if key not in fitted_meshes:
                     from cleany_skill_executor.geometry_cache import fitted_geometry
@@ -223,6 +236,9 @@ class RobotModel:
                 self.ignore[a].append(b)
         self.config = config
         self._reduce_collision_spheres()
+        from .collision_sphere_model import apply_sphere_model
+
+        apply_sphere_model(self)
         save_model(cache_path, self)
 
     def _reduce_collision_spheres(self) -> None:
@@ -273,7 +289,7 @@ class RobotModel:
             f"{arm}_gripper_frame",
         ):
             raise ValueError("unsupported cuRobo arm or tip")
-        return {
+        robot = {
             "kinematics": {
                 "urdf_path": path,
                 "base_link": "base_link",
@@ -305,6 +321,7 @@ class RobotModel:
                 },
             }
         }
+        return robot
 
     def validate_state(self, state: dict[str, float]) -> None:
         if set(state) != set(self.limits):

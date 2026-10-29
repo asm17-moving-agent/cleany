@@ -143,9 +143,12 @@ class CuRoboBatchEngine(CuRoboEngine):
             self._batch_motions = {}
         key = (arm, batch_size, tuple(sorted(state.items())), repr(world))
         if key not in self._batch_motions:
+            robot = self.model.robot_config(self._urdf, arm, state, f'{arm}_grasp_tcp')
+            checker = self._mast_checker(robot, world)
             self._batch_motions[key] = MotionGen(MotionGenConfig.load_from_robot_config(
-                deepcopy(self.model.robot_config(self._urdf, arm, state, f'{arm}_grasp_tcp')),
-                WorldConfig.from_dict(world).get_collision_check_world(),
+                deepcopy(robot),
+                WorldConfig.from_dict(world).get_collision_check_world() if checker is None else None,
+                world_coll_checker=checker,
                 tensor_args=self.tensor, collision_checker_type=CollisionCheckerType.MESH,
                 self_collision_check=False, self_collision_opt=False,
                 collision_cache={'obb': 128, 'mesh': 128},

@@ -38,6 +38,19 @@ def test_native_prefix_preserves_custom_python_and_needs_no_docker(tmp_path):
     assert selector_prefix('moveit', 'auto', tmp_path, python) == ''
 
 
+def test_packaged_sphere_asset_invalidates_prepared_workspace(tmp_path):
+    asset = tmp_path/'ros2_ws/src/cleany_skill_executor/cleany_skill_executor/data/spheres.json'
+    asset.parent.mkdir(parents=True)
+    asset.write_text('{"radius":0.01}')
+    entrypoint = tmp_path/'containers/motion/runtime-entrypoint'
+    entrypoint.parent.mkdir(parents=True)
+    entrypoint.write_text('runtime')
+    settings = Runtime(tmp_path)
+    before = settings.fingerprint()
+    asset.write_text('{"radius":0.02}')
+    assert settings.fingerprint() != before
+
+
 @pytest.mark.parametrize('launch_file', ['physical_grasp_selection', 'pregrasp_runtime',
     'pregrasp_hardware_support',
     'study_cafe_sorting', 'validate_pick', 'pregrasp_real_readonly'])

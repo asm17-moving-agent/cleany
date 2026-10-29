@@ -21,12 +21,17 @@ def model_cache_path(urdf: str, srdf: str, config) -> Path | None:
     digest = hashlib.sha256()
     inputs = [urdf, srdf, json.dumps([
         config.spheres_per_link, config.sphere_surface_radius_m, config.sphere_budget_per_link,
-        config.collision_hull_max_expansion_m])]
+        config.collision_hull_max_expansion_m, config.sphere_model])]
+    if config.sphere_model != 'generated':
+        from .collision_sphere_model import asset_sha256
+
+        inputs.append(asset_sha256())
     for package in ('numpy', 'scipy', 'trimesh', 'nvidia_curobo'):
         inputs.append(package + '=' + importlib.metadata.version(package))
     source = Path(__file__).parent
     for relative in ('curobo_model.py', 'curobo_collision.py', 'geometry_cache.py',
-                     'core/sphere_reduction.py', 'core/collision_geometry.py', 'robot_geometry_cache.py'):
+                     'core/sphere_reduction.py', 'core/collision_geometry.py', 'robot_geometry_cache.py',
+                     'collision_sphere_model.py'):
         inputs.append(hashlib.sha256((source / relative).read_bytes()).hexdigest())
     for uri in sorted({mesh.get('filename') for mesh in ET.fromstring(urdf).findall('.//collision/geometry/mesh')}):
         if uri.startswith('package://'):
