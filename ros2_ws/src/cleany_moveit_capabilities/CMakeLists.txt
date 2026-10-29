@@ -21,6 +21,16 @@ ament_target_dependencies(cleany_moveit_capabilities cleany_interfaces builtin_i
   moveit_ros_move_group moveit_ros_planning_interface pluginlib rclcpp)
 pluginlib_export_plugin_description_file(moveit_ros_move_group capabilities.xml)
 install(TARGETS cleany_moveit_capabilities LIBRARY DESTINATION lib)
+add_library(cleany_robust_time_parameterization SHARED src/robust_time_parameterization.cpp
+  src/totg/time_optimal_trajectory_generation.cpp)
+target_compile_features(cleany_robust_time_parameterization PUBLIC cxx_std_17)
+target_include_directories(cleany_robust_time_parameterization PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(cleany_robust_time_parameterization moveit_core pluginlib rclcpp)
+pluginlib_export_plugin_description_file(moveit_core planning_adapters.xml)
+install(TARGETS cleany_robust_time_parameterization LIBRARY DESTINATION lib)
+install(FILES src/totg/LICENSE src/totg/README.md DESTINATION share/${PROJECT_NAME}/totg)
 add_library(cleany_solid_collision SHARED src/solid_collision_env.cpp src/solid_collision_plugin.cpp)
 target_compile_features(cleany_solid_collision PUBLIC cxx_std_17)
 target_include_directories(cleany_solid_collision PUBLIC
@@ -48,5 +58,8 @@ if(BUILD_TESTING)
   target_link_libraries(test_solid_collision cleany_solid_collision ${OCTOMAP_LIBRARIES})
   target_include_directories(test_solid_collision PRIVATE ${OCTOMAP_INCLUDE_DIRS})
   ament_target_dependencies(test_solid_collision urdf srdfdom)
+  ament_add_gtest(test_robust_time_parameterization test/test_robust_time_parameterization.cpp)
+  target_link_libraries(test_robust_time_parameterization cleany_robust_time_parameterization)
+  ament_target_dependencies(test_robust_time_parameterization urdf srdfdom)
 endif()
 ament_package()

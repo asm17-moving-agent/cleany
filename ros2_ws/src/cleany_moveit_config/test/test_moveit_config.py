@@ -285,7 +285,7 @@ def test_return_profile_keeps_collision_resolution_and_avoids_duplicate_simplifi
     assert 'interpolate' not in fast
     for side in SIDES:
         assert ompl[f'{side}_grasp_arm']['longest_valid_segment_fraction'] == .001
-    assert 'default_planner_request_adapters/AddTimeOptimalParameterization' in ompl['request_adapters']
+    assert 'cleany/RobustTimeParameterization' in ompl['request_adapters']
 
 
 def test_moveit_controllers_claim_disjoint_side_joints() -> None:

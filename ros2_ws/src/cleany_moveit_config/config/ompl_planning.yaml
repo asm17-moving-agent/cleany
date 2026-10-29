@@ -1,6 +1,6 @@
 planning_plugin: ompl_interface/OMPLPlanner
 request_adapters: >-
-  default_planner_request_adapters/AddTimeOptimalParameterization
+  cleany/RobustTimeParameterization
   default_planner_request_adapters/ResolveConstraintFrames
   default_planner_request_adapters/FixWorkspaceBounds
   default_planner_request_adapters/FixStartStateBounds
@@ -9,6 +9,10 @@ request_adapters: >-
 start_state_max_bounds_error: 0.1
 # Joint-space rounding bound; this is not a Cartesian clearance guarantee.
 path_tolerance: 0.0001
+retiming_collinear_tolerance: 1.0e-12
+# Planning defaults match MoveIt's fallback limits, not hardware authorization.
+retiming_default_velocity_limit: 1.0
+retiming_default_acceleration_limit: 1.0
 
 planner_configs:
   RRTConnectkConfigDefault:

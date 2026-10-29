@@ -5,6 +5,7 @@
   <description>MoveGroup capabilities for bounded, complete-scene batch validation.</description>
   <maintainer email="sw292ljh@gmail.com">이정현</maintainer>
   <license>Apache-2.0</license>
+  <license>BSD-2-Clause</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>cleany_interfaces</depend>
   <depend>builtin_interfaces</depend>
