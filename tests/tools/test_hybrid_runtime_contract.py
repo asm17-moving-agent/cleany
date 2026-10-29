@@ -29,15 +29,15 @@ def test_physical_runtime_defaults_to_hybrid_and_preserves_thirty_two_candidates
     assert params['curobo_ik_progressive_pregrasp'] is True
     assert params['curobo_ik_group_gripper_openings'] is True
     assert params['curobo_ik_defer_candidate_retries'] is True
-    assert params['curobo_ik_warmup_enabled'] is False
-    assert params['curobo_ik_vlm_warmup_enabled'] is True
-    assert params['curobo_ik_vlm_warmup_arms'] == ['left', 'right']
+    assert params['curobo_ik_warmup_enabled'] is True
+    assert params['curobo_ik_vlm_warmup_enabled'] is False
+    assert params['curobo_ik_vlm_warmup_arms'] == ['right', 'left']
     assert params['curobo_ik_vlm_warmup_window_sec'] == 30.0
     assert params['curobo_ik_warmup_arms'] == ['right', 'left']
-    assert params['curobo_ik_warmup_include_aim'] is True
+    assert params['curobo_ik_warmup_include_aim'] is False
     assert params['stop_after_first_feasible'] is True
-    assert params['curobo_spheres_per_link']==8
-    assert params['curobo_sphere_budget_per_link']==8
+    assert params['curobo_spheres_per_link']==64
+    assert params['curobo_sphere_budget_per_link']==16
     assert params['curobo_ik_cpu_fallback'] is False
     assert params['curobo_planning_retries']==1
 

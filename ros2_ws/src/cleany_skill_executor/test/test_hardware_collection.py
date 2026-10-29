@@ -74,10 +74,22 @@ def test_return_height_corrections_have_finite_bounded_settings(key, value):
         {**config(), 'return_to_pick_height_correction_'+key: value}))
 
 
-@pytest.mark.parametrize('value', ['false', 0, None])
-def test_pregrasp_motion_policy_requires_a_boolean(value):
-    assert 'pregrasp_motion_enabled must be boolean' in configuration_issues(
-        {**config(), 'pregrasp_motion_enabled': value})
+@pytest.mark.parametrize('key,value', [
+    (key, value)
+    for key, invalid_string in (
+        ('pregrasp_motion_enabled', 'false'),
+        ('direct_grasp_shortcut_enabled', 'true'),
+        ('direct_grasp_pose_checks_enabled', 'false'),
+        ('approach_collision_check_enabled', 'false'),
+        ('grasp_collision_check_enabled', 'false'),
+        ('gripper_opening_collision_check_enabled', 'false'),
+        ('lift_collision_check_enabled', 'false'),
+        ('retreat_after_release_collision_check_enabled', 'false'),
+    )
+    for value in (invalid_string, 0, None)
+])
+def test_motion_and_collision_policies_require_booleans(key, value):
+    assert key+' must be boolean' in configuration_issues({**config(), key: value})
 
 
 @pytest.mark.parametrize('key', ['visual_servo_enabled', 'wrist_observation_enabled'])
@@ -184,18 +196,6 @@ def test_direct_grasp_uses_checked_joint_connection_before_rrt(arm, clear):
     assert report['direct_grasp_route'] == ('joint_direct' if clear else 'rrt')
 
 
-@pytest.mark.parametrize('value', [0, None, 'true'])
-def test_direct_grasp_shortcut_policy_requires_boolean(value):
-    assert 'direct_grasp_shortcut_enabled must be boolean' in configuration_issues(
-        {**config(), 'direct_grasp_shortcut_enabled': value})
-
-
-@pytest.mark.parametrize('value', [0, None, 'false'])
-def test_direct_grasp_pose_policy_requires_boolean(value):
-    assert 'direct_grasp_pose_checks_enabled must be boolean' in configuration_issues(
-        {**config(), 'direct_grasp_pose_checks_enabled': value})
-
-
 @pytest.mark.parametrize('positions', [(0.,)*4, (0., 0., 0., 0., float('nan'))])
 def test_direct_grasp_rejects_invalid_targets_before_planning(positions):
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
@@ -252,32 +252,6 @@ def test_joint_pose_initializes_execution_adapter_before_planning_and_dispatch(a
               call=plan, event=lambda stage: calls.append(stage), execute_trajectory=execute)
     CollectionPipeline.move_joint_pose(node, arm, (.2,)*5, 'direct_grasp')
     assert calls == ['initialize', 'plan', 'direct_grasp', 'execute']
-
-
-@pytest.mark.parametrize('value', ['false', 0, None])
-def test_approach_collision_policy_requires_a_boolean(value):
-    issues = configuration_issues({**config(), 'approach_collision_check_enabled': value})
-    assert 'approach_collision_check_enabled must be boolean' in issues
-
-
-@pytest.mark.parametrize('key', ['grasp_collision_check_enabled',
-                                 'gripper_opening_collision_check_enabled'])
-@pytest.mark.parametrize('value', ['false', 0, None])
-def test_gripper_collision_policies_require_booleans(key, value):
-    issues = configuration_issues({**config(), key: value})
-    assert key+' must be boolean' in issues
-
-
-@pytest.mark.parametrize('value', ['false', 0, None])
-def test_lift_collision_policy_requires_a_boolean(value):
-    issues = configuration_issues({**config(), 'lift_collision_check_enabled': value})
-    assert 'lift_collision_check_enabled must be boolean' in issues
-
-
-@pytest.mark.parametrize('value', ['false', 0, None])
-def test_release_retreat_collision_policy_requires_a_boolean(value):
-    issues = configuration_issues({**config(), 'retreat_after_release_collision_check_enabled': value})
-    assert 'retreat_after_release_collision_check_enabled must be boolean' in issues
 
 
 def test_repository_disables_only_release_retreat_collision_policy_by_explicit_setting():
@@ -1305,75 +1279,57 @@ def test_visual_approach_closes_without_more_motion_inside_capture_corridor():
     assert events[-1][1]['final_motion_skipped'] is True
 
 
-def test_visual_approach_discards_one_centroid_jump_after_confirmation():
+def visual_observation(stamp, x=0.):
+    return NS(header=NS(stamp=NS(sec=stamp, nanosec=0), frame_id='base_link'),
+              observed_center=NS(x=x, y=0., z=0.),
+              observed_extent=NS(x=.05, y=.04, z=.06),
+              mask_pixels=1000, valid_depth_points=990, valid_depth_fraction=.99)
+
+
+def visual_approach_case(captures, *, target_y=-.04, capture_depth=.005):
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
     from geometry_msgs.msg import Pose
     from sensor_msgs.msg import JointState
 
-    def observation(stamp, x=0.):
-        return NS(
-            header=NS(stamp=NS(sec=stamp, nanosec=0), frame_id='base_link'),
-            observed_center=NS(x=x, y=0., z=0.),
-            observed_extent=NS(x=.05, y=.04, z=.06),
-            mask_pixels=1000, valid_depth_points=990,
-            valid_depth_fraction=.99,
-        )
-
-    current = Pose()
-    current.orientation.w = 1.
-    target = Pose()
-    target.position.y = -.04
-    target.orientation.w = 1.
-    moves = []
-    captures = iter([
-        observation(2, .04),
-        observation(3),
-        observation(4),
-        observation(5),
-    ])
+    current, target = Pose(), Pose()
+    current.orientation.w = target.orientation.w = 1.
+    target.position.y = target_y
     measured = JointState(name=['left_wrist_roll_joint'], position=[0.])
+    captures, moves = iter(captures), []
 
     def linear(_arm, waypoint, stage, wrist_roll_target=None, **_kwargs):
         current.position = deepcopy(waypoint.position)
-        moves.append((stage, current.position.y))
         measured.position[0] = wrist_roll_target
+        moves.append((stage, current.position.y))
         state = JointState()
         state.header.stamp.sec = len(moves)
         return state
 
-    settings = {
-        **config(), 'visual_servo_enabled': True,
-        'visual_approach_step_m': .005,
-        'visual_approach_segment_m': .02,
-        'visual_approach_max_steps': 5,
-        'visual_servo_maximum_correction_m': .03,
-        'visual_servo_hard_correction_limit_m': .06,
-        'visual_observation_confirmation_frames': 3,
-        'visual_observation_consistency_m': .005,
-        'visual_observation_increment_limit_m': .01,
-        'visual_grasp_capture_depth_m': .005,
-        'visual_grasp_capture_lateral_tolerance_m': .005,
-        'cartesian_tolerance_m': .001,
-    }
-    node = NS(
-        config=settings,
-        cartesian_pose=CollectionPipeline.cartesian_pose,
-        pose_message=CollectionPipeline.pose_message,
-        pose=lambda _arm: deepcopy(current),
-        linear=linear,
-        observe=lambda _reference, _after: next(captures),
-        real=NS(monitor=lambda: deepcopy(measured)),
-        event=lambda *_args, **_kwargs: None,
-    )
-    selected = NS(
-        selected_arm='left', reference_id='reference', fk_grasp_pose=target,
-        grasp_joint_state=JointState(
-            name=['left_wrist_roll_joint'], position=[0.]),
-    )
-    report = {}
+    node = NS(config={
+        **config(), 'visual_servo_enabled': True, 'visual_approach_step_m': .005,
+        'visual_approach_segment_m': .02, 'visual_approach_max_steps': 5,
+        'visual_servo_maximum_correction_m': .03, 'visual_servo_hard_correction_limit_m': .06,
+        'visual_observation_confirmation_frames': 3, 'visual_observation_consistency_m': .005,
+        'visual_observation_increment_limit_m': .01, 'visual_grasp_capture_depth_m': capture_depth,
+        'visual_grasp_capture_lateral_tolerance_m': .005, 'cartesian_tolerance_m': .001,
+    }, cartesian_pose=CollectionPipeline.cartesian_pose,
+        pose_message=CollectionPipeline.pose_message, pose=lambda _arm: deepcopy(current),
+        linear=linear, observe=lambda _reference, _after: next(captures),
+        real=NS(monitor=lambda: deepcopy(measured)), event=lambda *_args, **_kwargs: None)
+    selected = NS(selected_arm='left', reference_id='reference', fk_grasp_pose=target,
+                  grasp_joint_state=JointState(name=['left_wrist_roll_joint'], position=[0.]))
+    return node, selected, moves
 
+
+def test_visual_approach_discards_one_centroid_jump_after_confirmation():
+    from cleany_skill_executor.collection_pipeline import CollectionPipeline
+
+    node, selected, moves = visual_approach_case([
+        visual_observation(2, .04), visual_observation(3),
+        visual_observation(4), visual_observation(5)])
+    report = {}
     CollectionPipeline.visual_approach(
-        node, selected, observation(1), observation(1), report)
+        node, selected, visual_observation(1), visual_observation(1), report)
 
     assert [stage for stage, _ in moves] == [
         'visual_approach_step', 'visual_approach_step']
@@ -1388,72 +1344,12 @@ def test_visual_approach_discards_one_centroid_jump_after_confirmation():
 
 def test_confirmed_centroid_jump_near_jaws_finishes_from_last_stable_target():
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
-    from geometry_msgs.msg import Pose
-    from sensor_msgs.msg import JointState
 
-    def observation(stamp, x=0.):
-        return NS(
-            header=NS(stamp=NS(sec=stamp, nanosec=0), frame_id='base_link'),
-            observed_center=NS(x=x, y=0., z=0.),
-            observed_extent=NS(x=.05, y=.04, z=.06),
-            mask_pixels=1000, valid_depth_points=990,
-            valid_depth_fraction=.99,
-        )
-
-    current = Pose()
-    current.orientation.w = 1.
-    target = Pose()
-    target.position.y = -.04
-    target.orientation.w = 1.
-    moves = []
-    captures = iter([
-        observation(2, .04),
-        observation(3, .04),
-        observation(4, .04),
-    ])
-    measured = JointState(name=['left_wrist_roll_joint'], position=[0.])
-
-    def linear(_arm, waypoint, stage, wrist_roll_target=None, **_kwargs):
-        current.position = deepcopy(waypoint.position)
-        moves.append((stage, current.position.y))
-        measured.position[0] = wrist_roll_target
-        state = JointState()
-        state.header.stamp.sec = len(moves)
-        return state
-
-    settings = {
-        **config(), 'visual_servo_enabled': True,
-        'visual_approach_step_m': .005,
-        'visual_approach_segment_m': .02,
-        'visual_approach_max_steps': 5,
-        'visual_servo_maximum_correction_m': .03,
-        'visual_servo_hard_correction_limit_m': .06,
-        'visual_observation_confirmation_frames': 3,
-        'visual_observation_consistency_m': .005,
-        'visual_observation_increment_limit_m': .01,
-        'visual_grasp_capture_depth_m': .025,
-        'visual_grasp_capture_lateral_tolerance_m': .005,
-        'cartesian_tolerance_m': .001,
-    }
-    node = NS(
-        config=settings,
-        cartesian_pose=CollectionPipeline.cartesian_pose,
-        pose_message=CollectionPipeline.pose_message,
-        pose=lambda _arm: deepcopy(current),
-        linear=linear,
-        observe=lambda _reference, _after: next(captures),
-        real=NS(monitor=lambda: deepcopy(measured)),
-        event=lambda *_args, **_kwargs: None,
-    )
-    selected = NS(
-        selected_arm='left', reference_id='reference', fk_grasp_pose=target,
-        grasp_joint_state=JointState(
-            name=['left_wrist_roll_joint'], position=[0.]),
-    )
+    node, selected, moves = visual_approach_case(
+        [visual_observation(stamp, .04) for stamp in (2, 3, 4)], capture_depth=.025)
     report = {}
-
     CollectionPipeline.visual_approach(
-        node, selected, observation(1), observation(1), report)
+        node, selected, visual_observation(1), visual_observation(1), report)
 
     assert [stage for stage, _ in moves] == ['visual_approach_step']
     assert [position for _, position in moves] == pytest.approx([-.02])
@@ -1465,129 +1361,30 @@ def test_confirmed_centroid_jump_near_jaws_finishes_from_last_stable_target():
 
 def test_confirmed_centroid_jump_far_from_jaws_still_stops():
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
-    from geometry_msgs.msg import Pose
-    from sensor_msgs.msg import JointState
 
-    def observation(stamp, x):
-        return NS(
-            header=NS(stamp=NS(sec=stamp, nanosec=0), frame_id='base_link'),
-            observed_center=NS(x=x, y=0., z=0.),
-            observed_extent=NS(x=.05, y=.04, z=.06),
-            mask_pixels=1000, valid_depth_points=990,
-            valid_depth_fraction=.99,
-        )
-
-    current = Pose()
-    current.orientation.w = 1.
-    target = Pose()
-    target.position.y = -.08
-    target.orientation.w = 1.
-    outliers = iter([observation(2, .04), observation(3, .04)])
-    settings = {
-        **config(), 'visual_servo_enabled': True,
-        'visual_approach_step_m': .005,
-        'visual_approach_segment_m': .02,
-        'visual_approach_max_steps': 5,
-        'visual_servo_maximum_correction_m': .03,
-        'visual_servo_hard_correction_limit_m': .06,
-        'visual_observation_confirmation_frames': 3,
-        'visual_observation_consistency_m': .005,
-        'visual_observation_increment_limit_m': .01,
-        'visual_grasp_capture_depth_m': .045,
-        'visual_grasp_capture_lateral_tolerance_m': .005,
-        'cartesian_tolerance_m': .001,
-    }
-    node = NS(
-        config=settings,
-        cartesian_pose=CollectionPipeline.cartesian_pose,
-        pose=lambda _arm: deepcopy(current),
-        observe=lambda _reference, _after: next(outliers),
-        real=NS(monitor=lambda: pytest.fail('motion must not start')),
-        event=lambda *_args, **_kwargs: None,
-    )
-    selected = NS(
-        selected_arm='left', reference_id='reference', fk_grasp_pose=target,
-        grasp_joint_state=JointState(
-            name=['left_wrist_roll_joint'], position=[0.]),
-    )
-
+    node, selected, _ = visual_approach_case(
+        [visual_observation(2, .04), visual_observation(3, .04)],
+        target_y=-.08, capture_depth=.045)
+    node.real.monitor = lambda: pytest.fail('motion must not start')
     with pytest.raises(RuntimeError, match='outside the visual correction'):
         CollectionPipeline.visual_approach(
-            node, selected, observation(1, 0.), observation(1, .04), {})
+            node, selected, visual_observation(1), visual_observation(1, .04), {})
 
 
 def test_wrist_confirmation_bridges_head_occlusion_to_last_safe_3d_target():
     from cleany_skill_executor.collection_pipeline import CollectionPipeline
-    from geometry_msgs.msg import Pose
-    from sensor_msgs.msg import JointState
 
-    def observation(stamp, x):
-        return NS(
-            header=NS(stamp=NS(sec=stamp, nanosec=0), frame_id='base_link'),
-            observed_center=NS(x=x, y=0., z=0.),
-            observed_extent=NS(x=.05, y=.04, z=.06),
-            mask_pixels=1000, valid_depth_points=990,
-            valid_depth_fraction=.99,
-        )
-
-    current = Pose()
-    current.orientation.w = 1.
-    target = Pose()
-    target.position.y = -.04
-    target.orientation.w = 1.
-    captures = iter([
-        observation(2, .04), observation(3, .04),
-        observation(4, 0.), observation(5, 0.),
-    ])
-    measured = JointState(name=['left_wrist_roll_joint'], position=[0.])
-    moves = []
+    node, selected, moves = visual_approach_case([
+        visual_observation(2, .04), visual_observation(3, .04),
+        visual_observation(4), visual_observation(5)])
+    node.config.update(visual_wrist_occlusion_fallback_enabled=True,
+                       visual_wrist_occlusion_max_steps=1)
     wrist_checks = []
-
-    def linear(_arm, waypoint, stage, wrist_roll_target=None, **_kwargs):
-        current.position = deepcopy(waypoint.position)
-        measured.position[0] = wrist_roll_target
-        moves.append((stage, current.position.y))
-        state = JointState()
-        state.header.stamp.sec = len(moves)
-        return state
-
-    settings = {
-        **config(), 'visual_servo_enabled': True,
-        'visual_approach_step_m': .005,
-        'visual_approach_segment_m': .02,
-        'visual_approach_max_steps': 5,
-        'visual_servo_maximum_correction_m': .03,
-        'visual_servo_hard_correction_limit_m': .06,
-        'visual_observation_confirmation_frames': 3,
-        'visual_observation_consistency_m': .005,
-        'visual_observation_increment_limit_m': .01,
-        'visual_grasp_capture_depth_m': .005,
-        'visual_grasp_capture_lateral_tolerance_m': .005,
-        'visual_wrist_occlusion_fallback_enabled': True,
-        'visual_wrist_occlusion_max_steps': 1,
-        'cartesian_tolerance_m': .001,
-    }
-    node = NS(
-        config=settings,
-        cartesian_pose=CollectionPipeline.cartesian_pose,
-        pose_message=CollectionPipeline.pose_message,
-        pose=lambda _arm: deepcopy(current),
-        linear=linear,
-        observe=lambda _reference, _after: next(captures),
-        real=NS(monitor=lambda: deepcopy(measured)),
-        confirm_wrist_target=lambda report, step: (
-            wrist_checks.append(step) or {'stamp_ns': 5_000_000_000}),
-        event=lambda *_args, **_kwargs: None,
-    )
-    selected = NS(
-        selected_arm='left', reference_id='reference', fk_grasp_pose=target,
-        grasp_joint_state=JointState(
-            name=['left_wrist_roll_joint'], position=[0.]),
-    )
+    node.confirm_wrist_target = lambda report, step: (
+        wrist_checks.append(step) or {'stamp_ns': 5_000_000_000})
     report = {}
-
     CollectionPipeline.visual_approach(
-        node, selected, observation(1, 0.), observation(1, .04), report)
+        node, selected, visual_observation(1), visual_observation(1, .04), report)
 
     assert wrist_checks == [0]
     assert [position for _, position in moves] == pytest.approx([-.02, -.04])
