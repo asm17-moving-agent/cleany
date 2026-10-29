@@ -208,7 +208,7 @@ for the CAD launcher, wheel odometry geometry, and simulation limitations.
 외접 메시의 각 조각은 담당하는 원본 표면 조각을 포함한다. 하완 포크, 어깨와 손목 연결부,
 하완 모터, 마스트와 머리 브래킷은 먼저 평면으로 나누고 떨어진 표면 조각을
 분리한다. 이후 각 조각을 지지 평면으로 감싸 불필요한 둥근 모서리와 작은
-구멍을 단순화한다. 하완의 기존 8,000면 QEM 예외는 사용하지 않는다.
+구멍을 단순화한다.
 분할 축과 위치는 `configs/robot/arm_collision_meshes.json`의
 `partition_components`에서 원본 메시 좌표계의 미터 단위로 지정한다.
 밀리미터 CAD의 단위 변환은 `mesh_scales`가 관리한다.
