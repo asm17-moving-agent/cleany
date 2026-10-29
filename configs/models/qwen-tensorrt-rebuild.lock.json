@@ -1,0 +1,123 @@
+{
+  "format_version": 1,
+  "recorded_on": "2026-10-29",
+  "environment": {
+    "architecture": "aarch64",
+    "gpu_architecture": "sm_87",
+    "os": "Ubuntu 22.04",
+    "python": "3.10.12",
+    "jetpack": "6.2.1+b38",
+    "l4t": "36.4.7",
+    "cuda": "12.6.68",
+    "tensorrt": "10.3.0.30"
+  },
+  "suite_root": "/home/cleany/cleany-data/reports/qwen-five-trt-20261028",
+  "record_root": "/home/cleany/cleany-data/reports/qwen-model-retention-20261029",
+  "python": "/home/cleany/models/qwen/.venv-edge/bin/python",
+  "sdk": "TensorRT-Edge-LLM v0.10.0 source snapshot with Orin and measurement patches; source snapshot is authoritative",
+  "builder_args": [
+    "--int4-gemm-plugin-version",
+    "1",
+    "--max-input-len",
+    "2048",
+    "--max-kv-cache-capacity",
+    "4096",
+    "--max-batch-size",
+    "1",
+    "--max-image-tokens",
+    "512",
+    "--max-image-tokens-per-image",
+    "512"
+  ],
+  "models": [
+    {
+      "name": "qwen3-vl-2b",
+      "availability": "retained",
+      "repository": "cyankiwi/Qwen3-VL-2B-Instruct-AWQ-4bit",
+      "revision": "185a892e36df22e886683eb9c3f215086a8818ca",
+      "source_url": "https://huggingface.co/cyankiwi/Qwen3-VL-2B-Instruct-AWQ-4bit/tree/185a892e36df22e886683eb9c3f215086a8818ca",
+      "quantization": "compressed-tensors AWQ symmetric INT4 group 32; repack to AWQ",
+      "checkpoint_directory": "runtime-checkpoint",
+      "source_weights": [
+        {
+          "filename": "model.safetensors",
+          "bytes": 2229344344,
+          "sha256": "d93e72c830fddcfc872bbeb37b60c99815b6e3add8af4bf6dd6b75a41724e646"
+        }
+      ]
+    },
+    {
+      "name": "qwen3-vl-4b",
+      "availability": "rebuild_required",
+      "repository": "cyankiwi/Qwen3-VL-4B-Instruct-AWQ-4bit",
+      "revision": "cb916a2964d9fadfc7f623f47525da9c69ea2cd3",
+      "source_url": "https://huggingface.co/cyankiwi/Qwen3-VL-4B-Instruct-AWQ-4bit/tree/cb916a2964d9fadfc7f623f47525da9c69ea2cd3",
+      "quantization": "compressed-tensors AWQ symmetric INT4 group 32; repack to AWQ",
+      "checkpoint_directory": "runtime-checkpoint",
+      "source_weights": [
+        {
+          "filename": "model.safetensors",
+          "bytes": 4430808624,
+          "sha256": "687c0db27220e0d956a5a6c67af574c9359d7fcd1df4868426cac84650ff0831"
+        }
+      ]
+    },
+    {
+      "name": "qwen3.5-0.8b",
+      "availability": "rebuild_required",
+      "repository": "Zerul/Qwen3.5-0.8B-W4A16-AutoRound-AWQ",
+      "revision": "805343842af7b9c4410905524644fc5a19bd6fb9",
+      "source_url": "https://huggingface.co/Zerul/Qwen3.5-0.8B-W4A16-AutoRound-AWQ/tree/805343842af7b9c4410905524644fc5a19bd6fb9",
+      "quantization": "AutoRound AWQ symmetric INT4 group 128",
+      "checkpoint_directory": "download",
+      "source_weights": [
+        {
+          "filename": "model.safetensors",
+          "bytes": 970237104,
+          "sha256": "8554eb8eae4e4e3769634f3a4b199aaaef9a5a469896f6191a03c0bb80a95da7"
+        }
+      ]
+    },
+    {
+      "name": "qwen3.5-2b",
+      "availability": "rebuild_required",
+      "repository": "cyankiwi/Qwen3.5-2B-AWQ-4bit",
+      "revision": "1dce6b2185f80493552999bc739e923db9f73240",
+      "source_url": "https://huggingface.co/cyankiwi/Qwen3.5-2B-AWQ-4bit/tree/1dce6b2185f80493552999bc739e923db9f73240",
+      "quantization": "compressed-tensors AWQ symmetric INT4 group 32; repack to AWQ",
+      "checkpoint_directory": "runtime-checkpoint",
+      "source_weights": [
+        {
+          "filename": "model-00001-of-00001.safetensors",
+          "bytes": 2501307856,
+          "sha256": "b499f113e72c62a70fae030a97f7bb87db0cf02d65379b628270e3bfa73b2ea5"
+        }
+      ]
+    },
+    {
+      "name": "qwen3.5-4b",
+      "availability": "rebuild_required",
+      "repository": "cyankiwi/Qwen3.5-4B-AWQ-4bit",
+      "revision": "d3e78b50c727b1f34802f440ca84b25781625352",
+      "source_url": "https://huggingface.co/cyankiwi/Qwen3.5-4B-AWQ-4bit/tree/d3e78b50c727b1f34802f440ca84b25781625352",
+      "quantization": "compressed-tensors AWQ symmetric INT4 group 32; repack to AWQ",
+      "checkpoint_directory": "runtime-checkpoint",
+      "source_weights": [
+        {
+          "filename": "model-00001-of-00001.safetensors",
+          "bytes": 4040461440,
+          "sha256": "902477edf53bc6768bd1f212dd1866856fd5a0627def06887780c95900ffb013"
+        }
+      ]
+    }
+  ],
+  "sdk_snapshot": {
+    "archive": "sdk-source.tar.gz",
+    "sha256": "5d7a02799845393185c710acfcd996d4583f5bfd2f1f7d96eb4bf96af9edfc99",
+    "bytes": 65405279
+  },
+  "conversion_tools": {
+    "repack_compressed_awq.py": "600859766313ab92d04a2b917306a9b59481aa5e8aa8379b95230c3cd96ba5e3",
+    "run_qwen_direct_conversion.py": "39d38f09e36bae99ec5ccfe12d95f6111f7b11bc6f741e3cc690713d67347dcb"
+  }
+}

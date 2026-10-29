@@ -739,6 +739,51 @@ GPU 준비 시간과 동일 8개 후보의 첫 요청 시간을 분리한다. �
 실측을 대신하지 않는다.
 
 
+## 삭제한 Qwen 모델 재생성
+
+Jetson에는 `qwen3-vl-2b`의 엔진과 외부 가중치만 보존한다.
+`qwen3-vl-4b`, `qwen3.5-0.8b`, `qwen3.5-2b`, `qwen3.5-4b`는 재생성이 필요하다.
+[재생성 lock](../configs/models/qwen-tensorrt-rebuild.lock.json)에 원본 저장소,
+고정 revision, 가중치 크기와 SHA-256, 양자화 방식과 빌드 인자를 기록했다.
+원본은 고정 revision에서 다시 내려받으며 엔진은 Jetson에서 다시 빌드한다.
+
+공통 SDK와 Python 환경은 유지한다. 재생성 기록은 Jetson의
+`/home/cleany/cleany-data/reports/qwen-model-retention-20261029/`와 로컬
+`../cleany-data/reports/qwen-model-retention-20261029/`에 있다.
+여기에는 실행 당시 변환 스크립트와 재포장 스크립트, `sources.json`,
+원본 설정, 변환과 검증 기록, Python 패키지 목록, SDK 패치와 CMake 설정을 둔다.
+로컬 `sdk-source.tar.gz`는 패치가 적용된 SDK 소스와 그 Python 의존성의
+스냅샷이며, 삭제한 모델 가중치나 엔진의 백업은 아니다.
+
+1. 기존 기록과 다른 새 출력 경로와 실제 존재하는 사진을 지정한다.
+   기존 `conversion.json`의 `validated`는 과거 검증 결과다. 원래 폴더를
+   그대로 쓰면 변환기가 완료된 작업으로 판단해 재생성을 건너뛴다.
+
+   ```bash
+   QWEN_RECORD=/home/cleany/cleany-data/reports/qwen-model-retention-20261029
+   QWEN_REBUILD_ROOT=/home/cleany/cleany-data/reports/qwen-rebuild-new
+   QWEN_IMAGE=/absolute/path/to/image.png
+   ```
+
+2. 네 모델을 순서대로 재생성한다. 한 모델만 필요하면 명령 끝에
+   `qwen3.5-2b`처럼 모델 이름을 추가한다. 이 실행 파일은 보존한
+   `qwen3-vl-2b`를 변경하지 않고 기존 출력 디렉터리를 거부한다.
+
+   ```bash
+   bash "$QWEN_RECORD/rebuild.sh" "$QWEN_REBUILD_ROOT" "$QWEN_IMAGE"
+   ```
+
+   변환기는 원본 가중치의 크기와 SHA-256을 확인하고 필요한 경우 AWQ로
+   재포장한다. 프로필은 배치 1, 입력 2048토큰, KV cache 4096토큰,
+   이미지 512토큰이다. 한 모델의 원본과 재포장 가중치를 동시에 둘 공간이
+   필요하며, 모델별 사전 공간 검사에 실패하면 다음 모델로 넘어가지 않는다.
+
+3. 각 모델의 새 `conversion.json`이 `validated`이고
+   `smoke-verification.json`의 `passed`가 참인지 확인한다.
+   새 `engines/`와 `checkpoint` 경로로 사진 추론을 확인한 뒤 사용한다.
+   과거 벤치마크 이미지는 삭제했으므로 이전 성능 비교를 반복하려면
+   별도로 입력 이미지를 준비해야 한다.
+
 ## 역재생 후퇴의 손목 방향
 
 역재생 후퇴의 손목 유지와 검사 목표 일치는 `test_height_correction_runtime.py`에서 양팔의 합성 FK와 가짜 실행 포트로 검사한다. 접근 전과 잡은 뒤 손목 각도가 약 27도 다른 경우를 통과시키고, 위치 목표의 변경 없이 이동 전후 위치 오류와 새 목표 방향에 대한 21도 도착 오류를 계속 거부하는지 확인한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "height_correction_runtime or arrival_approach"'`로 관련 검사를 실행한다.

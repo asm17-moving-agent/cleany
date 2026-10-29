@@ -487,6 +487,44 @@ Jetson hybrid는 시작 시 양팔 grasp TCP의 GPU IK 예열을 완료합니다
 예열 전에 Action을 직접 호출하면 첫 요청에서 초기화 비용이 남을 수 있습니다.
 
 
+## 저장 사진으로 Qwen TensorRT 실행
+
+Jetson의 Qwen 비교 산출물은 ROS와 독립된 Edge-LLM 실행기로 구동한다.
+엔진은 외부 가중치를 사용하므로 `engines/`와 `conversion.json`의
+`checkpoint` 디렉터리, 공통 실행기와 플러그인이 함께 필요하다.
+현재 Jetson에 보존한 모델은 **Qwen3-VL-2B**다. 나머지 네 모델은
+[재생성 절차](TESTING.md#삭제한-qwen-모델-재생성)를 거쳐야 실행할 수 있다.
+입력 형식은 보존된 `smoke-input.json`에서 확인한다. 기존 벤치마크 이미지는
+삭제했으므로 새 입력 JSON에 Jetson에서 읽을 수 있는 사진의 절대 경로를 지정한다.
+
+1. 보존한 산출물과 준비한 사진 입력을 지정한다.
+
+   ```bash
+   QWEN_RUN=/home/cleany/cleany-data/reports/qwen-five-trt-20261028
+   QWEN_MODEL=qwen3-vl-2b
+   QWEN_INPUT=/absolute/path/to/input.json
+   QWEN_CHECKPOINT=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["checkpoint"])' \
+     "$QWEN_RUN/$QWEN_MODEL/conversion.json")
+   ```
+
+2. 준비한 사진 입력으로 실행한다.
+
+   ```bash
+   EDGELLM_PLUGIN_PATH="$QWEN_RUN/sdk/build/libNvInfer_edgellm_plugin.so" \
+   LD_LIBRARY_PATH="$QWEN_RUN/sdk/build:/usr/lib/aarch64-linux-gnu" \
+     "$QWEN_RUN/sdk/build/examples/llm/llm_inference" \
+     --engineDir "$QWEN_RUN/$QWEN_MODEL/engines" \
+     --multimodalEngineDir "$QWEN_RUN/$QWEN_MODEL/engines" \
+     --checkpointDir "$QWEN_CHECKPOINT" \
+     --inputFile "$QWEN_INPUT" \
+     --outputFile /tmp/qwen-image-response.json --warmup 0
+   ```
+
+이 산출물의 프로필은 배치 1, 입력 최대 2048토큰, KV cache 최대 4096토큰,
+이미지 최대 512토큰이다. 엔진과 플러그인은 이번 Jetson의 TensorRT 10.3,
+CUDA 12.6 및 Orin용으로 빌드했다. 삭제한 모델의 복구는
+[재생성 절차](TESTING.md#삭제한-qwen-모델-재생성)를 따른다.
+
 ## 실물 어깨 전방 범위 설정
 
 Jetson의 `~/.config/cleany/feetech_control.yaml`과 단일 팔 운영 프로파일은
