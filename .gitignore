@@ -22,10 +22,23 @@ ros2_ws/build-scenario-runtime*/
 ros2_ws/install-scenario-runtime*/
 ros2_ws/log-scenario-runtime*/
 
+# Generated documentation
+/docs/guide/index.html
+
 # Local artifacts
 *.log
 *.tmp
+.DS_Store
 /artifacts/
+/output/
+/reports/
+/test-results/
+/playwright-report/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+junit*.xml
 /.memory/
 /.vscode/
 calibration_data/
@@ -36,3 +49,47 @@ ros2_ws/slam_results/
 ros2_ws/build-*/
 ros2_ws/install-*/
 ros2_ws/log-*/
+
+# Jetson deployment state and generated experiment outputs.
+.env
+.env.*
+!*.env.example
+/perception-results/
+/benchmark-results/
+/captures/
+/data/
+/datasets/
+/models/
+/runtime/
+/docs/benchmark_assets/
+/docs/MUJOCO_PERFORMANCE_*.json
+/docs/MUJOCO_PERFORMANCE_*.md
+/docs/SORTING_PERFORMANCE_*.md
+/docs/SORTING_PIPELINE_TRIALS_*.md
+*.bag
+*.db3
+*.mcap
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.engine
+*.plan
+/core
+core.[0-9]*
+*.core
+containers/vision/.env
+containers/vision/state/
+containers/vision/license/
+containers/vision/models/
+**/licenseCfg.json
+**/*.lic
+**/*.public_key
+**/*.signature
+
+# Local robot operating limits are supplied explicitly, never shared defaults.
+/configs/robot/collection_hardware.json
+/configs/robot/feetech*.yaml
+/configs/robot/hardware_motion_monitor.yaml
+*.sqlite
+*.sqlite3

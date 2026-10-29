@@ -4,6 +4,37 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 과거 생성 보고서 보관
+
+날짜별 MuJoCo 성능, 수거 시험 보고서와 SCRUM-486 검증 JSON은
+`CLEANY_DATA_ROOT/reports/evidence/` 아래 원래 상대 경로로 보관합니다.
+새 실행 산출물은 Git에서 제외하고 commit, 환경, 입력, 실패와 원본 위치를 남깁니다.
+
+## Jetson 제어 기반 분리 검증
+
+`3dea85d`에 미커밋 정리 패치를 적용한 소스를 Ubuntu 22.04 ARM64,
+ROS 2 Humble과 MoveIt 2.5.9에서 별도 빌드 경로로 검사했다.
+`make build-jetson-control`은 6개 패키지 빌드, `make test-jetson-control`은
+163개 검사를 통과했다. 실패와 skip은 없었다. 입력은 저장소의 고정 보정,
+합성 상태와 가상 시리얼이며 실물 장치를 열지 않았다.
+환경, 입력 소스를 식별하는 `changes.patch`, 로그와 JUnit 원본은
+`/home/cleany/cleany-data/reports/pr-a-trim-20261029T185419Z/`에 보관한다.
+
+### PR 65 미사용 설정 정리 검증 (2026-10-30)
+
+갱신된 PR 64를 병합한 `197de90`에 이 절과 함께 반영한 정리 패치를 적용했다.
+TCP와 중복 손목 보정 3개, 기본 Xacro가 사용하지 않는 미리보기 인자와
+matplotlib 의존성을 제거했다. 기존 미리보기와 새 미리보기의 URDF hash는 같다.
+Jetson Ubuntu 22.04 ARM64, Humble과 MoveIt 2.5.9의 새 경로에 6개 패키지를
+빌드했고 삭제한 설정의 부재와 설치된 설정, launch 5개의 소스 일치를 확인했다.
+
+`make test-jetson-control` 163개, `make test-jetson-controller` 21개와 C++ 드라이버
+11개가 통과했다. 기존 제어 검사는 모두 유지했으며 실패와 skip은 없다.
+가상 시리얼과 합성 입력만 사용했고 실물 모터와 전체 workspace 검사는 실행하지 않았다.
+기존 Xacro 경고와 C++ 테스트의 write 반환값 경고는 유지된다.
+소스 패치, 환경, 로그, JUnit과 설치 및 URDF 비교 근거는
+`/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr65/`에 보관한다.
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의
@@ -133,7 +164,7 @@ head/양손목 카메라 촬영을 통과했다. Xvfb는 기존 `pr58-test-clean
 | `reports/documentation-reorganization-20261013/before/` | 이번 문서 개편 전 Markdown 사본 |
 | `reports/documentation-reorganization-20261013/manifest.json` | 사본 source commit, dirty 상태, 각 파일 SHA-256 |
 
-Logger 분리와 CLI의 초기 검증은 [SCRUM-486 결과](../reports/SCRUM-486/validation.json)를 따른다.
+Logger 분리와 CLI의 초기 검증은 `CLEANY_DATA_ROOT/reports/evidence/reports/SCRUM-486/validation.json`를 따른다.
 `a401f6f`의 Ubuntu 22.04 ARM64/Humble 검증에서는 합성 ROS와 웹 fixture로
 Logger 55개, Monitor 80개, Mock 통합 225개(Gazebo 1개 제외), 웹 13개와 CLI 19건을 확인했다.
 초기 rosdep 선언과 launch 기본값 누락 오류는 수정 후 재검증했다. 원본은

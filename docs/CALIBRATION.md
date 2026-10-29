@@ -159,3 +159,12 @@ make handeye-validate-mujoco \
 부분 쓰기는 journal로 복구하며 이미 저장한 표본은 재수집으로 덮어쓰지 않습니다. 재현에는 manifest가 기록한 동일 버전, profile, camera 계약이 필요합니다. Container Git이 host worktree 형식을 지원하지 않으면 provenance 수집 문제를 먼저 해결합니다.
 
 과거 실행 결과는 [근거 색인](EVIDENCE.md), 수학, 저장 계약은 [reference](../ros2_ws/src/cleany_handeye_calibration/docs/frames-and-data.md)에서 확인합니다.
+
+## 실물 상태 프로파일
+
+`cleany_robot_interface`의 상태 프로파일은 기존 엔코더 보정과 카메라 외부 보정을
+읽어 실물 모델을 생성합니다.
+기록된 보정의 적용 범위와 정확도는 원본 metadata를 따릅니다.
+
+손목 외부 보정은 `cleany_description/config/calibration/jetson_20261009/`에서
+관리합니다. 실물 모델에는 `calibration_profile:=jetson_20261009`로 적용합니다.

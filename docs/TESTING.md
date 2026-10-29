@@ -67,6 +67,41 @@ CI는 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`로 runtime 의존성이 설치한 외�
 
 `make test`는 package test가 실패해도 `colcon test-result --verbose`로 실패 상세를 출력하고 실패 상태를 반환합니다.
 
+## Jetson 실물 변경 검증
+
+제어 패키지는 운영 install과 분리된 빌드 경로에서 검사합니다.
+
+```bash
+make build-jetson-control
+make test-jetson-control
+make test-jetson-control-native
+make test-jetson-controller
+```
+
+`test-jetson-control`은 상태 매핑, 제어 프로파일, 카메라,
+MoveIt의 실물 관절 한계 및 호스트 도구를 검사합니다.
+범위는 `JETSON_CONTROL_TEST_PATHS`, pytest 옵션은
+`JETSON_CONTROL_PYTEST_ARGS`로 지정합니다.
+
+`test-jetson-controller`는 PTY 가상 시리얼과 실제 C++ 드라이버, ROS 컨트롤러를 연결합니다.
+실물 USB 포트를 열지 않으며 읽기 전용, 쓰기 제한, 정지와 통신 장애를 검증합니다.
+`JETSON_CONTROLLER_TEST_ARGS`로 검사 범위를 지정할 수 있습니다.
+이 검사는 실물 보정 정확도나 수거 성공의 근거가 아닙니다.
+
+## 배포한 소스와 설정 확인
+
+배포 receipt의 `files` 항목에 있는 `path`와 `after_sha256`을 현재 Python import
+경로와 ament share에 대조합니다. Python 소스, config, launch, URDF와 mesh가 검사 대상입니다.
+
+```bash
+python3 tools/validation/verify_installed_sources.py \
+  --deployment /absolute/path/to/deployment.json --packages cleany_robot_interface
+```
+
+검사하지 않은 항목은 `skipped`로 표시하며, 요청한 패키지 기록이 없거나 파일이
+누락되거나 hash가 다르면 실패합니다. 복사 설치는 `--resolved-root`로 설치 루트를
+제한할 수 있습니다. Native symlink 설치에서는 생략합니다. ROS 노드나 모터를 시작하지 않습니다.
+
 ## CI 실행과 재사용
 
 CI는 모든 PR에서 전체 workspace 검사, ESP32 motor core, 합성 Navigation runtime과 Gazebo sensor runtime을 실행합니다. 베이스의 pytest는 colcon에 직접 등록하며 전체 workspace 검사에서 한 번 실행합니다. Navigation과 Gazebo runtime은 같은 실행에서 이미 빌드한 workspace를 사용합니다.

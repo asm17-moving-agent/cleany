@@ -107,7 +107,7 @@ rosdep update
 
 의존성은 공식 rosdep 규칙을 사용합니다. MuJoCo Python 패키지는 `python3-mujoco-pip` 키로 설치합니다.
 
-새 인식 경로의 `google-genai`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
+새 인식 경로의 `google-genai`와 물리 버스용 `feetech-servo-sdk`는 로컬 rosdep DB에 공식 키가 없어 [전용 규칙](../ros2_ws/rosdep/cleany.yaml)을 사용합니다. 저장소 루트에서 등록한 뒤 DB를 갱신합니다. MuJoCo는 이 규칙에 포함하지 않습니다.
 
 ```bash
 printf 'yaml file://%s/ros2_ws/rosdep/cleany.yaml\n' "$PWD" | sudo tee /etc/ros/rosdep/sources.list.d/10-cleany.list
@@ -221,3 +221,33 @@ pnpm build
 ## 기존 Mission Mock VM 환경
 
 이미 구성된 Ubuntu VM의 로컬 의존성과 통합 install은 Bash에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.bash`, zsh에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh`로 적용한다. 셸에 맞는 파일을 사용한다. 이 파일은 새 환경의 설치 절차를 대신하지 않으며 Mission, 서버와 interfaces는 같은 worktree install에서 읽는다.
+
+## Jetson 실물 제어 패키지
+
+실물 상태 조회, Feetech 제어기와 MoveIt 연동 패키지는 다음 명령으로 빌드합니다.
+ROS 의존성은 위 rosdep 절차로 준비합니다. 빌드에는 로봇 장치가 필요하지 않습니다.
+
+```bash
+make build-jetson-control
+source "$(make -s print-install-base)/setup.bash"
+```
+
+`CLEANY_DATA_ROOT`의 기본값은 저장소 옆 `cleany-data`이고,
+`CLEANY_BUILD_ROOT`는 그 아래 `builds/<checkout>`입니다. `BUILD_BASE`,
+`INSTALL_BASE`, `LOG_BASE`는 빌드 루트 아래의 `build`, `install`, `log`입니다.
+호스트 Python 도구와 `tools/ros2/cleany-install-env`도 같은 경로 규칙을 사용합니다.
+`INSTALL_BASE`를 바꿔 직접 실행할 때는 `CLEANY_INSTALL_BASE`에도 같은 값을 지정합니다.
+
+실물 실행은 [제어 실행 절차](RUNNING.md#jetson-실물-실행-경로)를 따릅니다.
+
+Jetson에서 시스템 MoveIt과 버전을 맞춘 사용자 설치본을 사용하는 경우에는
+빌드 전에 해당 dependency overlay를 source합니다. 예를 들어 기존 MoveIt 2.5.9
+설치 환경은 아래 perception/Pilz overlay를 사용합니다. 없는 환경에서는 먼저 위
+rosdep 절차로 배포판 의존성을 준비합니다.
+
+```bash
+source /opt/ros/humble/setup.bash
+source "$HOME/.local/share/cleany/moveit-scene-runtime/local_setup.bash"
+export LD_LIBRARY_PATH="$HOME/.local/share/cleany/moveit-perception/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH):${LD_LIBRARY_PATH:-}"
+make build-jetson-control
+```

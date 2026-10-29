@@ -10,7 +10,8 @@ SORTING_ARGS ?=
 # Keep data and generated outputs outside the source worktree.
 CLEANY_DATA_ROOT ?= $(abspath $(REPO_ROOT)/../cleany-data)
 CLEANY_BUILD_ROOT ?= $(CLEANY_DATA_ROOT)/builds/$(notdir $(patsubst %/,%,$(REPO_ROOT)))
-export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT
+CLEANY_INSTALL_BASE ?= $(INSTALL_BASE)
+export CLEANY_DATA_ROOT CLEANY_BUILD_ROOT CLEANY_INSTALL_BASE
 BUILD_BASE ?= $(CLEANY_BUILD_ROOT)/build
 INSTALL_BASE ?= $(CLEANY_BUILD_ROOT)/install
 LOG_BASE ?= $(CLEANY_BUILD_ROOT)/log
@@ -222,6 +223,31 @@ build:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
 	colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" $(COLCON_BUILD_ARGS)
+
+# Isolated native hardware and host-tool validation.
+JETSON_CONTROL_SOURCE_PATH := $(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_moveit_config
+JETSON_CONTROL_TEST_PATHS ?= $(ROS2_WS)/src/cleany_robot_interface/test $(ROS2_WS)/src/cleany_moveit_config/test/test_physical_control_config.py tests/tools
+JETSON_CONTROL_PYTEST_ARGS ?=
+.PHONY: build-jetson-control test-jetson-control test-jetson-control-native test-jetson-controller
+build-jetson-control:
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_robot_interface --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-jetson-control:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=223 \
+	PYTHONPATH="$(REPO_ROOT)tools:$(JETSON_CONTROL_SOURCE_PATH):$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib $(JETSON_CONTROL_TEST_PATHS) $(JETSON_CONTROL_PYTEST_ARGS)
+
+test-jetson-control-native:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && \
+	ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=224 \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--return-code-on-test-failure --packages-select cleany_feetech_hardware cleany_moveit_collision cleany_description cleany_moveit_config
+
+test-jetson-controller:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 \
+	python3 -m pytest -q -p no:cacheprovider $(ROS2_WS)/src/cleany_robot_interface/runtime_test/test_controller_emulator.py $(JETSON_CONTROLLER_TEST_ARGS)
 
 build-gazebo: check-gazebo-env
 	source "$(ROS_SETUP)" && \

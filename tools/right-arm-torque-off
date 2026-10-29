@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""Release right IDs 7-11; physically support the arm before invoking."""
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'ros2_ws/src/cleany_robot_interface'))
+from cleany_robot_interface.arm_torque import main
+
+if __name__ == '__main__':
+    raise SystemExit(main('off', ROOT, side='right'))

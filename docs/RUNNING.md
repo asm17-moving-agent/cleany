@@ -336,3 +336,36 @@ Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 
 ## 실물 IMU
 
 MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
+
+## Jetson 실물 실행 경로
+
+`cleany_robot_interface`는 로봇 상태 조회와 Feetech 컨트롤러 실행을 제공합니다.
+로봇별 시리얼 포트, 엔코더 보정과 운영 한계는 실행 전에 확인한 외부 프로파일로 지정합니다.
+패키지의 `test/data` 파일은 합성 검사 입력이며 운영 기본값으로 사용하지 않습니다.
+관절 미리보기 `arm_preview.launch.py`는 모델 경로, 상태 설정, RViz, 헤드 포함 여부와
+마스트 간격을 받습니다. 기본 모델은 명목 형상이며, 저장된 보정을 적용한 실물
+모델은 아래 상태 프로파일 실행 절차를 따릅니다.
+
+1. [개발환경](DEVELOPMENT_SETUP.md#jetson-실물-제어-패키지)에 따라 빌드하고 같은 install을 적용합니다.
+
+   ```bash
+   source /opt/ros/humble/setup.bash
+   source "$(make -s print-install-base)/setup.bash"
+   ```
+
+2. 실물 상태와 제어기는 동일 시리얼 포트를 단독 점유합니다. 다른 상태 조회기를 종료한 뒤 읽기 전용으로 시작합니다.
+
+   ```bash
+   ros2 launch cleany_robot_interface real_control.launch.py \
+     repository_root:="$PWD" \
+     profile_file:=/absolute/path/to/state-profile.json \
+     control_file:=/absolute/path/to/control-limits.yaml \
+     read_only:=true with_moveit:=false
+   ```
+
+3. MoveIt 연결이 필요하면 `with_moveit:=true`를 사용합니다. 읽기 전용에서는 궤적 실행도 차단합니다.
+   제어를 허용하는 별도 실행은 확인한 운영 한계와 프로파일을 사용해 `read_only:=false`로 시작합니다.
+   외부 실행기가 궤적을 소유하는 경우에는 `allow_trajectory_execution:=false`로 MoveIt 실행 권한을 분리합니다.
+
+상태 가드는 결측되거나 오래된 관절 상태를 차단합니다. 정지 요청은 `/real_control/stop`
+서비스를 사용합니다. 토픽, 상태와 카메라 제어는 [패키지 인터페이스](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 따릅니다.
