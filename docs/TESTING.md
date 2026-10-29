@@ -511,3 +511,23 @@ native overlay를 설정한 뒤 `python3 tools/validation/verify_approved_target
 있습니다. 최초 제안은 실제 Gemini를 호출합니다. 검사는 제어 작업 잠금을 유지하며
 조작 Goal을 보내지 않습니다. 각 재확인 시간, 결과와 관측 값은 `verification.json`,
 제안 이미지는 출력의 `operator/proposals/`에 남습니다.
+
+
+## 조작 CPU 기하 성능 비교
+
+변경 전 소스의 상대 경로를 유지한 사본과 materialized URDF를 준비한 뒤 실행한다.
+소스 사본에는 perception의 `core/geometry.py`, grasping의 `core/selector.py`와
+skill executor의 `core/urdf_fk.py`가 필요하다.
+
+```bash
+python3 tools/validation/benchmark_manipulation_geometry.py \
+  --baseline-root /absolute/source-before \
+  --urdf /absolute/runtime.urdf \
+  --output /absolute/benchmark.json
+```
+
+검사는 고정 seed의 640×480과 1280×720 깊이 영상, outlier 유무가 다른 지지 평면,
+12개와 1,000개 파지 후보 및 URDF의 관절 한계 안에서 생성한 각 팔 2,000개 상태를
+사용한다. 전후 입력을 교차 실행해 중앙값과 개별 시간을 저장한다. 점군, 평면과
+후보 순서의 동일성, FK 수치 오차도 검사한다. 모터와 모델 추론을 호출하지 않으며
+이 수치는 전체 수거 시간이나 실물 파지 성공률을 뜻하지 않는다.

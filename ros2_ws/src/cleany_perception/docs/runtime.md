@@ -117,7 +117,13 @@ coordinator의 capture-age와 populated OctoMap 수신-age 검사도 필요하�
   └─► 로봇 기준계(base_link) 3D 지향 경계 상자(OBB) 및 파지 영역 생성
 ```
 
-## 모델 준비 및 Gemini 설정
+깊이 stride는 원본 영상의 (0, 0)을 기준으로 행과 열에 동일하게 적용한다.
+샘플링된 픽셀에서 mask, 유효 깊이와 깊이 범위를 검사하고 원본 픽셀 좌표로
+투영한다. 지지 평면 RANSAC의 반복 설정은 최대 횟수다. 모든 지지점이 같은
+후보 평면의 inlier이면 추가 샘플을 생략하고 기존 SVD 보정과 최소 inlier 검사를
+수행한다. 일부 outlier가 남으면 설정한 최대 반복을 수행한다.
+
+## 모델 준비
 
 - **사전 준비**: 상세 의존성 및 모델 다운로드 안내는 [개발환경 가이드](../../../../docs/DEVELOPMENT_SETUP.md)를 참고하세요.
 - **가중치 파일 위치**: YOLOE 체크포인트와 `mobileclip2_b.ts` 텍스트 인코더는 `CLEANY_MODEL_DIR` 또는 `~/models` 아래에 준비합니다.
