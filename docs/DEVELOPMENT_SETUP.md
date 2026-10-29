@@ -215,6 +215,17 @@ source "$(make -s print-install-base)/setup.bash"
 
 웹 빌드는 Node.js 22 이상과 pnpm 11을 사용합니다.
 
+Jetson에 사용자 전용 toolchain이 이미 설치돼 있다면 SSH 세션에서도 실행 파일
+경로를 지정합니다. 아래 경로의 설치본이 없는 환경에서는 먼저 위 버전의
+Node.js와 pnpm을 설치합니다.
+
+```bash
+cleany_monitor_toolchain="$HOME/.local/share/cleany/dev-monitor/toolchain"
+export PATH="$cleany_monitor_toolchain/node/bin:$cleany_monitor_toolchain/pnpm/node_modules/.bin:$PATH"
+node --version
+pnpm --version
+```
+
 ```bash
 cd ros2_ws/src/cleany_dev_monitor/web
 pnpm install --frozen-lockfile

@@ -321,7 +321,7 @@ ROS_DOMAIN_ID=187 python3 ros2_ws/src/cleany_dev_monitor/runtime_test/smoke.py -
 cat ros2_ws/src/cleany_dev_monitor/web/package.json
 ```
 
-Frontend 검사는 `ros2_ws/src/cleany_dev_monitor/web`에서 `pnpm exec tsc --noEmit`과 `pnpm exec playwright test`를 실행한다. 실제 Monitor가 필요한 검사는 `MONITOR_URL`을 지정하고 해당 ROS 입력도 준비한다. 기본 fixture 검사는 로컬 Vite를 시작한다.
+Frontend 검사는 `ros2_ws/src/cleany_dev_monitor/web`에서 `pnpm exec tsc --noEmit`과 `pnpm exec playwright test`를 실행한다. SSH에서 실행 파일을 찾지 못하면 [Monitor 웹 환경](DEVELOPMENT_SETUP.md#monitor-웹)의 toolchain 경로를 먼저 적용한다. 실제 Monitor가 필요한 검사는 `MONITOR_URL`을 지정하고 해당 ROS 입력도 준비한다. 기본 fixture 검사는 로컬 Vite를 시작한다.
 
 UI 변경은 실제 served app에서 새로고침, 재연결, 기록 재생까지 확인합니다. Playwright browser가 없으면 configured browser를 설치한 뒤 다시 실행합니다.
 
@@ -814,3 +814,6 @@ python3 tools/validation/audit_joint_spheres.py \
 
 형상 도구 검사는 [형상 검사 환경](DEVELOPMENT_SETUP.md#형상-검사)의 Python 환경과
 ROS overlay를 함께 사용한다.
+
+MoveIt 시간 배정의 무작위 경로 회귀 검사는 최적화하지 않은 Jetson 빌드에서도
+완료하도록 CTest 제한 시간을 180초로 지정한다. 경로와 검증 조건은 동일하다.

@@ -58,7 +58,9 @@ if(BUILD_TESTING)
   target_link_libraries(test_solid_collision cleany_solid_collision ${OCTOMAP_LIBRARIES})
   target_include_directories(test_solid_collision PRIVATE ${OCTOMAP_INCLUDE_DIRS})
   ament_target_dependencies(test_solid_collision urdf srdfdom)
-  ament_add_gtest(test_robust_time_parameterization test/test_robust_time_parameterization.cpp)
+  # The randomized near-return corpus takes over a minute on an unoptimized Jetson build.
+  ament_add_gtest(test_robust_time_parameterization test/test_robust_time_parameterization.cpp
+    TIMEOUT 180)
   target_link_libraries(test_robust_time_parameterization cleany_robust_time_parameterization)
   ament_target_dependencies(test_robust_time_parameterization urdf srdfdom)
 endif()
