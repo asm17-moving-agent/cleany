@@ -323,6 +323,7 @@ def generate_launch_description() -> LaunchDescription:
             ]),
             'enable_depth_octomap': sensor_scene,
             'depth_octomap_plugin': LaunchConfiguration('depth_octomap_plugin'),
+            'known_geometry_clear_max_leaves': LaunchConfiguration('known_geometry_clear_max_leaves'),
             'allowed_execution_duration_scaling': '2.0',
             'allowed_goal_duration_margin': '1.0',
         }.items(),
@@ -830,6 +831,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('gripper_motion_sec', default_value=PythonExpression([
                 "'2.0' if '", sorting_mode, "' == 'true' else '3.0'"])),
             DeclareLaunchArgument('sorting_contact_diagnostics', default_value='false'),
+            DeclareLaunchArgument('known_geometry_clear_max_leaves', default_value='200000',
+                description='Per-cloud leaf inspection budget for known geometry clearing.'),
             DeclareLaunchArgument(
                 'depth_octomap_plugin',
                 default_value=PythonExpression([

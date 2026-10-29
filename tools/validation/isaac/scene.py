@@ -61,8 +61,9 @@ def main() -> None:
     timeline = omni.timeline.get_timeline_interface()
     rclpy.init()
     node = rclpy.create_node("cleany_isaac_adapter")
+    physical_cleanup = bool(CONFIG.get('cleanup')) and CONFIG.get('cleanup_backend', 'physical') == 'physical'
     camera_control = None
-    if CONFIG.get("cleanup"):
+    if physical_cleanup:
         from cleanup_camera_control import create_camera_control
         camera_control = create_camera_control(rclpy)
     clock_pub = node.create_publisher(Clock, "/clock", 10)
@@ -166,7 +167,7 @@ def main() -> None:
     pose[0, 3:] = [0., 0., math.sin(CONFIG.get("spawn_yaw", 0.)/2), math.cos(CONFIG.get("spawn_yaw", 0.)/2)]
     view.set_root_transforms(pose, np.array([0], dtype=np.int32))
     camera = evidence = grasp_audit = None
-    if CONFIG.get("cleanup"):
+    if physical_cleanup:
         from cleanup_camera import CleanupCamera
         camera = CleanupCamera(stage, node, OUTPUT)
         from cleanup_assets import PlacementEvidence
@@ -190,15 +191,22 @@ def main() -> None:
         motion = (media / "motion.jsonl").open("w", buffering=1)
     readiness = {
         "controllers": names, "actuation": "ideal root velocity", "lidar": "PhysX raycast",
-        "physical_cleanup_enabled": bool(CONFIG.get("cleanup")),
+        'cleanup_fixture_enabled': bool(CONFIG.get('cleanup')),
+        'cleanup_backend': CONFIG.get('cleanup_backend', 'physical') if CONFIG.get('cleanup') else 'mock',
+        'physical_cleanup_enabled': physical_cleanup,
         "physical_cleanup_verified": False,
-        "camera": "RTX RGB-D" if camera else "not yet connected"}
+        "camera": "RTX RGB-D" if camera else "disabled; perception mocked"}
     ready = False
     if camera:
         import faulthandler
         faulthandler.dump_traceback_later(60., repeat=True)
         print("ISAAC_WAITING_FOR_FIRST_SENSOR_FRAME", flush=True)
     count = 0
+    base_hold = None
+    hold_parameters = CONFIG.get('cleanup', {}).get('base_hold')
+    if hold_parameters:
+        from base_hold import StationaryBaseHold
+        base_hold = StationaryBaseHold(**hold_parameters)
     last_publish = -1.
     clock_count = 0
     publication_counts = {"clock": 0, "odometry": 0, "scan": 0}
@@ -225,6 +233,8 @@ def main() -> None:
             if native:
                 native.tick(requested)
             vx, vy, wz = np.clip(requested, [-.25, -.25, -.5], [.25, .25, .5])
+            if base_hold:
+                vx, vy, wz = base_hold.command(x, y, yaw, (float(vx), float(vy), float(wz)))
             velocity[[0, 1, 3, 4, 5]] = [math.cos(yaw)*vx-math.sin(yaw)*vy,
                                         math.sin(yaw)*vx+math.cos(yaw)*vy, 0., 0., wz]
             view.set_root_velocities(velocity.reshape(1, 6), np.array([0], dtype=np.int32))
@@ -304,7 +314,8 @@ def main() -> None:
                 scan_pub.publish(scan)
                 publication_counts["scan"] += 1
                 log.write(json.dumps({"time": stamp_s, "pose": pose.tolist(), "velocity": velocity.tolist(),
-                                      "requested": requested.tolist(), "blocked": command["blocked"]})+"\n")
+                                      "requested": requested.tolist(), "actuated_body_velocity": [float(vx), float(vy), float(wz)],
+                                      "blocked": command["blocked"]})+"\n")
                 if profiler:
                     profiler.mark("scan_publish_base_recording")
             if (not ready and all(publication_counts.values())
@@ -328,6 +339,8 @@ def main() -> None:
         "counts": publication_counts}, indent=2)+"\n")
     if profiler:
         profiler.close()
+    if base_hold:
+        (OUTPUT/'evaluations/base-hold.json').write_text(json.dumps(base_hold.report(), indent=2))
     if native:
         native.close()
     if motion:

@@ -2,25 +2,53 @@
   "scope": "Experimental physical cup fixture; success must be established by Mission evidence",
   "object_name": "cup",
   "cup_height_m": 0.095,
-  "approach_standoff_m": 0.52,
+  "approach_standoff_m": 0.55,
   "physics_hz": 1000,
+  "base_hold": {"translation_gain_s": 5.0, "yaw_gain_s": 5.0},
+  "depth_cloud_parameters": {"known_geometry_clear_max_leaves": 2000000},
   "physics": {
     "solver": "PGS",
     "position_iterations": 128,
     "velocity_iterations": 8
   },
   "navigation_parameters": {
+    "global_costmap": {
+      "global_costmap": {
+        "ros__parameters": {"footprint_padding": 0.04}
+      }
+    },
+    "local_costmap": {
+      "local_costmap": {
+        "ros__parameters": {"footprint_padding": 0.04}
+      }
+    },
+    "planner_server": {
+      "ros__parameters": {
+        "GridBased": {
+          "validate_swept_path": true,
+          "swept_repair_timeout": 2.0
+        }
+      }
+    },
     "controller_server": {
       "ros__parameters": {
+        "goal_checker": {"xy_goal_tolerance": 0.008},
         "FollowPath": {
+          "goal_rotate_enter_radius": 0.006,
+          "goal_rotate_exit_radius": 0.008,
+          "path_pose_yaw_weight": 0.5,
+          "validated_stop_fallback": true,
+          "visualize": true,
+          "TrajectoryVisualizer": {"trajectory_step": 1000, "time_step": 80},
           "PathAlignCritic": {"threshold_to_consider": 0.10},
           "PathFollowCritic": {"threshold_to_consider": 0.10},
-          "GoalAngleCritic": {"threshold_to_consider": 1.50}
+          "GoalAngleCritic": {"threshold_to_consider": 0.50}
         }
       }
     }
   },
   "launch_parameters": {
+    "velocity_scaling": "0.04",
     "grasp_approach_tilt_options": "[64.0]",
     "grasp_approach_offset_m": "0.036",
     "fixed_jaw_clearance_m": "0.008",

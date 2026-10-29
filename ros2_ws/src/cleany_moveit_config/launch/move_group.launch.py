@@ -93,6 +93,8 @@ def _launch_setup(context):
                 'depth_cloud.sensor_plugin': LaunchConfiguration(
                     'depth_octomap_plugin'
                 ),
+                'depth_cloud.known_geometry_clear_max_leaves': ParameterValue(
+                    LaunchConfiguration('known_geometry_clear_max_leaves'), value_type=int),
             },
         ]
 
@@ -179,6 +181,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('include_head_camera', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument('simulation_bins_config', default_value=''),
             DeclareLaunchArgument('enable_gripper_execution', default_value='false', choices=['true', 'false']),
+            DeclareLaunchArgument('known_geometry_clear_max_leaves', default_value='200000',
+                description='Per-cloud leaf inspection budget for known geometry clearing.'),
             DeclareLaunchArgument(
                 'enable_depth_octomap', default_value='false'
             ),

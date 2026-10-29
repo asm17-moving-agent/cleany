@@ -21,6 +21,7 @@ def start(context):
     scenario = LaunchConfiguration("scenario").perform(context)
     targets = load_targets(str(output / "config/targets.yaml"))
     scene = json.loads((output / "config/room.json").read_text())
+    physical = bool(scene.get('cleanup')) and scene.get('cleanup_backend', 'physical') == 'physical'
     if targets.map_id != scene["map_id"]:
         raise ValueError("Isaac world map and Mission targets must match")
     config = source / "cleany_navigation/config"
@@ -40,7 +41,7 @@ def start(context):
     if scene["world"] == "facility18":
         merge_parameters(parameters, yaml.safe_load(
             (Path(__file__).parent / "profiles/facility18.yaml").read_text()))
-    if scene.get('cleanup', {}).get('navigation_parameters'):
+    if physical and scene.get('cleanup', {}).get('navigation_parameters'):
         merge_parameters(parameters, scene['cleanup']['navigation_parameters'])
     resolve_default_lattice(parameters, config / "lattice/omni-r10cm.json")
     # Navigation retains its validated LiDAR safety profile. Cleanup RGB-D
@@ -49,6 +50,16 @@ def start(context):
     local = parameters["local_costmap"]["local_costmap"]["ros__parameters"]
     local["plugins"].remove("depth_layer")
     del local["depth_layer"]
+    if physical:
+        # The low LiDAR can miss a table's overhang. Keep the controller's
+        # footprint checks consistent with the planner's existing facility map.
+        local['plugins'].insert(0, 'static_layer')
+        local['static_layer'] = dict(parameters['global_costmap']['global_costmap'][
+            'ros__parameters']['static_layer'])
+        # Avoid re-rasterizing the same 5cm static grid into a rotated odom
+        # grid at tight desk goals. The rolling window still follows the robot.
+        local['global_frame'] = parameters['global_costmap']['global_costmap'][
+            'ros__parameters']['global_frame']
     for name in ("controller_server", "bt_navigator"):
         parameters[name]["ros__parameters"]["odom_topic"] = "/wheel/odom"
     parameters["amcl"]["ros__parameters"].update(set_initial_pose=True,
@@ -73,7 +84,6 @@ def start(context):
         # Exercise a single failed pick and terminal reobservation, without
         # submitting a retry against an incompatible external snapshot.
         runtime["max_skill_retries"] = 0
-    physical = bool(scene.get("cleanup"))
     if physical:
         if scenario != "success":
             raise ValueError("Mock fault scenarios cannot be used as physical manipulation evidence")
@@ -131,6 +141,8 @@ def start(context):
         if scene['cleanup'].get('launch_parameters'):
             parameters.update(scene['cleanup']['launch_parameters'])
             parameters['coordinator_parameters'] = str(output/'config/coordinator.yaml')
+        parameters['known_geometry_clear_max_leaves'] = str(scene['cleanup'].get(
+            'depth_cloud_parameters', {}).get('known_geometry_clear_max_leaves', 200000))
         nodes.extend([
             IncludeLaunchDescription(PythonLaunchDescriptionSource(str(launch)), launch_arguments=parameters.items()),
             ExecuteProcess(cmd=["python3", str(Path(__file__).parent / "local_perception.py")], output="screen"),

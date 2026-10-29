@@ -56,7 +56,8 @@ def main() -> None:
         if resources["gpu_free_mib"] < 2500 or resources["host_available_mib"] < 10000:
             raise RuntimeError(f"Insufficient rendering headroom: {resources}")
         with (output / f"logs/render-{args.name}.log").open("w") as log:
-            process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
+            process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
+                                       start_new_session=True)
             try:
                 while process.poll() is None:
                     resources = memory()

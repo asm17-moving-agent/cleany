@@ -1297,6 +1297,110 @@ BT 정지 평가에 같은 TEM 이벤트를 연결했다. 미종료/늦은 Actio
 
 마지막 변경은 실험 프로필에만 PathAlign/PathFollow threshold를1.0→0.10m, GoalAngle threshold를0.5→1.50m로 지정한 것이다. 기존 코드에서 두 path critic은 threshold 안에서 비활성화되고 GoalAngle은 threshold 안에서만 활성화된다. 가까운 책상 접근에서 회전이 늦어지는 현상에 대한 설정 가설이며, 수정 후 물리 주행은 아직 실행하지 않았다. 속도, footprint, 안전 영역, 충돌 검사 및 기존 Facility 기본 프로필은 바꾸지 않는다. 이 override의 적용 경로는 prepare_cleanup→room.cleanup.navigation_parameters→mission.launch.py다.
 
+`e2e-71`은 위 threshold 변경을 실제 Mission에서 시험했지만 책상 앞에서 경로 진행이 멈춰 복구가 발생했다. 미션 취소를 수락한 뒤 실패 실행을 종료했으며, 수거는 시작하지 않았다. `evaluations/navigation-stream.jsonl.gz`에 글로벌 경로, AMCL/odom, 양쪽 속도 명령과 코스트맵을 보존했다. `pruning-analysis.json`은 복구 전32개 표본에서 XY 최근접 경로점이 회전 후 구간을 선택하는 반면 방향을 포함한 비교는 아직 수행할 회전 구간을 보존함을 보여 준다. 이것만으로 모든 주행 실패의 원인이 해결됐다고 보지는 않는다.
+
+저장 경로의 상대 배치를 사용하는 `PreserveLatticeTurnBeforeNearbyFinalApproach`는 기존 실제 PathHandler에서 회전 후5번 점을 골라 실패했다(`pruning-before.log`). 선택적 `path_pose_yaw_weight`를 추가해 XY 거리와 최단 각도 차이를 함께 비교한다. 기본0은 기존 선택을 유지하며 실험 프로필에만0.5m/rad를 적용한다. 회전 전 구간 보존, 회전 후 진행 및 ±π 경계의 회귀 검사를 포함한 Navigation CTest23개 묶음과 fixture3개 검사가 `pruning-after.log`에서 통과했다. 13개 패키지를 재빌드했고 `e2e-72`에서 전체 Mission을 다시 검증한다. validator 종료 중 ROS context가 이미 종료된 경우에는 publisher를 호출하지 않아 원래 실패 기록을 RCLError로 덮지 않는다.
+
+`e2e-72`도 주행 중 글로벌 플래너의 `Starting point in lethal space`로 실패해 수거 전에 취소했다. `navigation-stream.jsonl.gz`의 실제 transformed path와 로컬 raw costmap을 추가로 기록했다. `nav-costmap-comparison.{json,png}`의 실패 직전 샘플에서 글로벌 지도 footprint 경계는 inscribed cost253을 포함하지만 로컬 경계의 최대 cost는0이었다. 두 지도 표본은 같은 시각이 아니며 이 비교 자체를 정확한 실패 순간의 충돌 재생으로 취급하지 않는다. 실행 설정의 로컬 플러그인은 obstacle/inflation뿐이어서 글로벌 시설 지도와 다른 장애물 영역을 사용했다.
+
+cleanup launch에 기존 글로벌 설정과 같은 Nav2 StaticLayer를 로컬 obstacle/inflation 앞에 연결했다. 시설 지도나 footprint를 줄이지 않고 글로벌/로컬 판단에 같은 알려진 장애물을 사용한다. room/Facility18 mock launch 보존과 physical launch의 StaticLayer 연결 검사를 포함해 `static-map-tests.log`의8개 검사가 통과했다(기존 선택적 환경 검사1개 skip). 후속 전체 실행은 `e2e-73`이다.
+
+`e2e-73`은 StaticLayer를 기동했으나 책상 앞에서 진행 제한 시간을 초과해 실패했고 수거 전에 취소했다. 저장된 실제 raw map/pose/path를 기존 MPPI로 재생한 `evaluations/replay/variants.json`은4/8/12초 horizon 및 가중치 변경을 비교한다. 모두 정체했고 baseline의128개 경로 seed 전부 충돌 비용을 받았다. 실제 실행이나 성능 비교가 아닌 고정 자세/초기 속도0의 오프라인 진단이다.
+
+같은 transformed path를 마지막 목표의 정확한 대응으로 map 좌표계에 돌린 `replay-global-samepath/path-check.log`에서도 중간 자세[-1.78856,2.36942,1.09231]의 native footprint cost가254였다. `smac-replay/summary.json`은 native planner의 홈/근접 위치 및 회전/비용/추가 padding 변형10개가 경로 점 검사를 통과해도 전체 연속 footprint 검사는 통과하지 못했음을 기록한다. [Nav2 1.1.20 NodeLattice](https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_smac_planner/src/node_lattice.cpp)의 거리 기준 중간점 검사와 [Smac Lattice](https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_smac_planner/src/smac_planner_lattice.cpp)의72방향 근사가 있으며, 이 실행에서 둘 중 하나만의 영향으로 분리하지는 않는다.
+
+선택적 `validate_swept_path`로 기존 연속 footprint 검사를 적용하고, 거부된 native 경로는 이미 구현된 `checkedBodyHeadingGridPath`로 제한 시간 내 보정한다. `smac-replay/certified-{home,close}.{csv,log}`는 각각160/22개 자세, 잘못된 경로점0개, 전체 연속 충돌 검사 true를 기록한다. `replay-certified/critics.csv`의 첫 표본은128개 seed 중112개가 충돌 비용0이었다. 일반 미션에서는 기존 Nav2 action과 MPPI를 사용하고 계획 보정 횟수는 Nav2 복구 횟수와 별도로 기록한다.
+
+MPPI의 경로 arc 인덱스도 끝 범위를 넘어갈 수 있었다. 길이3의 arc에서0.20m 요청이 인덱스3을 반환해 `path-index-before.log`에서 회귀 검사가 실패했다. 마지막 유효 점에 제한하고 검색 시작 인덱스를 보존하도록 수정했다. 계획된 회전의 SE(2) 진행 평가, 잘못된 회전/정지 거부, ±π 경계와 책상 코너 연속 경로 보정을 포함한 `continuous-navigation-tests.log`의 CTest24개 묶음과 Python8개 검사가 통과했다(선택적 환경1개 skip). 13개 패키지를 다시 빌드했다. 첫 전체 header 재빌드는 colcon의 Make 병렬 작업이12GiB 제한을 넘어서 종료됐으며 `continuous-build-oom.log`에 보존했다. `MAKEFLAGS=-j2 -l2`를 명시한 재빌드는 통과했다.
+
+physical cleanup의 local costmap은 같은 시설 map 좌표계와 정렬된5cm rolling grid를 사용해 odom 변환 시 재샘플링 차이도 제거한다. 새 전체 물리 실행은 `e2e-74`이며 이전 실패를 성공으로 재분류하지 않는다.
+
+`e2e-74`는 기존 정체 위치보다 앞에서 여유를 확보해 회전했지만, 마지막 접근 중 native 격자 시작점이 lethal로 판정되어 실패했다. 첫 주행 실패 시 자동으로 Mission 취소와 validator 종료를 요청한 근거는 `evaluations/fail-fast.json`, `recovery-abort.json`이다. 수거는 시작하지 않았다. 실패 직전 실제 자세[-1.793305,2.409410,0.393898]를 raw map과 함께 재생한 `replay-global/before.log`에서도 같은 오류와 빈 경로를 재현했다.
+
+연속 자세를 native 중심/각도 bin에 맞춘 결과가 충돌할 때에는 native 검색 전 기존 연속 footprint 검색을 사용하도록 보완했다. 실제 시작/목표가 무효이면 보정도 거부한다. 같은 저장 입력의 `replay-global/after.log`는9개 자세, 잘못된 경로점0개, 전체 연속 충돌 검사 true를 기록했다. 추가 코너/격자 시작점 회귀 검사를 포함한 `test_smac_terminal`이 통과했다. 다음 전체 실행은 `e2e-75`다.
+
+`e2e-75`는 실제 Mission의 outbound navigation_result=OK와 복구0회로 작업 접근을 완료했다. 이어 MoveToPregrasp의 결합 팔/그리퍼 궤적에서 right_gripper_controller의 PATH_TOLERANCE_VIOLATED로 실패했다. object_state=NOT_TOUCHED, stop_confirmed=true, arm_recovered=false이며 복귀와 컵 투입은 실행하지 않았다. `gripper-tracking-analysis.json`은 계획 최대 개방 속도0.24973rad/s, 실제 구간 최대0.24583rad/s, 최대 jaw 위치1.09949rad(개방 목표1.2rad), moving jaw 접촉력0N과 구동력 상한0.2Nm를 기록한다. 컨트롤러 tracking error는0.1035rad였다. 실험 damping/friction에서 추종 여유가 부족한 결합 개방 궤적이며, 실험 프로필의 기존 `velocity_scaling`만0.08→0.04로 낮춘다. 관절 tolerance, 파지 구동력, Nav2 속도는 유지한다. 후속 전체 실행은 `e2e-76`이다.
+
+`e2e-76`도 주행 복구0회로 도착했지만 파지 후보가 없어 NOT_TOUCHED/TARGET_UNAVAILABLE로 종료했다. 새 개방 속도는 아직 실행되지 않았다. `approach-observation-comparison.json`의 실제 RGB-D 관측은75/76에서 컵 중심x0.57556/0.58992m, 신뢰도0.849/0.843와 정상적인95mm 높이를 기록한다. 주행의3cm 허용 오차 안에서도 작업 도달성이 달라졌으므로 실험 프로필의 XY 허용 오차를8mm로 줄인다. 물체나 접근 목표는 옮기지 않는다. native 경로의 실제 시작/정확한 요청 목표 연결도 기존 연속 검사에 포함한다. 다음 전체 실행은 `e2e-77`이다.
+
 Handoff 검증은 DDS197/198의 별도 컨테이너에서 패키지별로 실행했다. BT326, Mission91(15skip), Perception178, Skill Executor693, MoveIt22, MuJoCo211, Isaac tools30(1skip)로 합계1551개 검사가 통과했다. 기존 Mission 구성 검사4개의 GoalDirectedController 기대값은 요청된MPPIController로 갱신한 뒤 재실행했다. Navigation23개와 Scene Mapping4개 CTest 묶음도 모두 통과했다. 원본은 `handoff-*.log`와 `handoff-test-summary.json`이다. 초기 일괄 수집의 Python import/compiled module 설정 오류와 소스 mount가 없던 첫 CTest 호출은 결과로 채택하지 않았으며, 올바른 설치 환경과 패키지별 실행으로 확인했다.
 
 이전 주행 작업의93개 Nav2 파일이 물리 정리 시작 시 저장한 before.patch/before-untracked.json과 일치함을 확인했다. 해당 기반 및 MPPI 구성 검사 기대값은 별도 commit `77c2f53e`로 보존한다. 물리 정리 변경과 실행 도구는 후속 commit으로 분리한다. 원본 모델과 실행 데이터는 Git 밖에 유지한다.
+
+
+`e2e-77`은 작업 접근 오차7.84mm, 주행 복구0회로 도착했고 낮춘 빈손 이동 속도로 MoveToPregrasp도 통과했다. 이후 fresh grasp의 gripper closure가 컵 주변 OctoMap과 충돌해 APPROACHING/MOTION_FAILED, NOT_TOUCHED, stop_confirmed=true로 종료했다. `collision-rejections.json`에는 moving jaw의 컵 근처 접촉점[0.56446,-0.12998,0.40245]와 깊이0.05mm가 기록돼 있다. 투입/팔 복귀/홈 복귀 성공은 아니다.
+
+동일 실행에서 팔 이동 중 베이스 yaw가0.00274→-0.01384rad로 바뀌었으며, 기존 known geometry clear의200,000 leaf 예산 소진도 반복됐다. 둘의 영향은 아직 분리하지 않았다. 실험 프로필에만 기존 ideal root velocity 구동의 정지 제동을 추가해 마지막 정지 자세에 대한 제한된 속도 보정으로 팔 반작용 누적을 억제한다. 비영 주행 명령은 그대로 전달하며 pose reset/고정 joint/물체 부착은 없다. 기존 `depth_cloud.known_geometry_clear_max_leaves`를2,000,000으로 전달하고 알려진 형상 내부만 지우는 판정은 유지한다. 베이스 제동의 전달/포화/각도 경계/누적 외란 회귀 검사3개는 통과했다. `component-78`은 책상0.1m 앞에서 시작하는 부분 실행으로, 전체 outbound 주행 근거와 구분한다. 정상 전체 Mission 성공은 여전히 별도 새 실행이 필요하다.
+
+
+`component-78`은 scoped GroupAction 안에 shared launch를 넣은 뒤 지연 action의 use_image_view 설정이 사라져 기동 단계에서 종료했다. `component-79`는 unscoped 수정 후 기동하고 실제 MoveIt 예산2,000,000을 확인했지만 depth_scene_node가 YAML override의 aligned depth/stride4 대신 기본 depth 토픽/stride2를 사용해 cloud_age/map_receipt_age=infinity로 ValidateGoal에서 차단됐다. 컵은 미접촉이며 둘 다 정상 동작 근거가 아니다. 전역 SetParameter 사용을 제거하고 기존 두 launch 사이에 기본값200,000의 단일 `known_geometry_clear_max_leaves` 인자를 전달하도록 바꿨다. `component-80`에서 실제 카메라 토픽과 지도 수신을 함께 재확인한다.
+
+
+`component-80`은 올바른 aligned depth/stride4 및 실제 MoveIt clear 예산2,000,000을 확인했다(`live-depth-settings.txt`). 실제 지도는 약210,147 leaf를 검사했고 cloud 입력 나이는0.16초, 출력0.20초였다. 사전 파지, 재관측, 접근과 gripper close가 진행됐고 초기 접촉은11개 표본으로 확인했다. 리프트 시작 시 strict stationary-contact guard가 GRASP_LOST를 보고해 stop_confirmed=true, arm_recovered=false, MissionFAILED/GRASP_FAIL로 종료했다. 투입/왕복 성공은 아니다.
+
+`lift-contact-analysis.json`은 실제 PhysX 기록에서57.349→57.549초의 jaw 각도가0.40239→0.38551rad로 추가 닫히고 한 표본에서 접촉력이0이 됐다가 양쪽4.26/4.97N으로 돌아온 것을 보여 준다. 컵은 책상 위에 남았다. 이는 완전한 파지 이탈 성공/실패 판정을 대신하지 않는다. `/save_map`으로 native 잠금 경로를 통해 저장한 pregrasp/approach-map.bt와 scene_ring991도 보존한다. 사용자가 파지 성공보다 E2E 흐름 검증을 우선하고 파지 실패를 허용했으므로 추가 파지 튜닝은 중단하며 실제 실패 기록을 보존한다.
+
+
+사용자는 추가로 "잡기에 실패해도 돼, 그냥 e to e 검증만"이라고 범위를 조정했다. 파지 안정성 튜닝을 중단하고 같은 물리 fixture/작업 접근점을 사용하는 명시적 `--cleanup-backend mock` 검증 모드를 추가했다. 실제 Mission FSM/BT와 Nav2 왕복은 그대로이며 인식/작업 계획/정리 Action은 기존 mock fixture다. 이 결과를 물리 수거 성공으로 분류하지 않는다. 준비/launch 모드 구분 및 기본 physical 경로를 포함한14개 검사(선택 환경1skip)가 `mock-cleanup-mode-tests.log`에서 통과했다. `e2e-81`은 대기 위치부터 시작해 작업 접근과 홈 복귀 모두 Nav2 복구0회를 요구하는 전체 실행이다.
+
+
+`e2e-81`의 mock 정리 전체 실행은 작업 접근 중 `MPPI: no collision-free emitted rollout`과 local costmap clear가 발생해 복구 없는 조건을 위반했다. watcher가 실제 Mission 취소를 수락한 뒤 실패 실행을 종료했고 정리 Action은 미실행이다. 원본은 `fail-fast.json`, `recovery-abort.json`, `navigation-stream.jsonl.gz`와 `logs/mission.log`다. 정리 mock 모드도 접근 실패를 성공으로 처리하지 않는다.
+
+`evaluations/replay/seed-comparison.json`은 실패 직전 저장 map/pose/path 및 측정 속도에서 실제 C++ pathSeed를 재생하고 native footprintCostAtPose로 검사한 읽기 전용 비교다. 기존12mm/25mrad 구간 전환에서는128개 중78개 seed가 최소1개 잘못된 자세를 포함했고,0.1mm/0.1mrad에서는34개였다. 표본 간 연속 충돌 검사나 optimizer warm start 재생까지의 근거는 아니다. waypoint를 먼저 통과하도록 바꾸고, 모든 이동 출력이 거부돼도 동일한 연속 출력 검사(측정 초기 속도 포함)를 통과하는 정지 sequence만 선택적으로 허용한다. 실험 프로필에만 `validated_stop_fallback=true`를 지정하며 진행 제한12초는 유지한다. 정지 횟수는 navigation.json에 별도 집계한다. 잘못된 발자국과 초기 운동량을 정지로 덮지 못하는 회귀 검사 및 waypoint 단축 방지 검사를 포함한 optimizer 검사와 fixture11개가 `validated-output-tests.log`에서 통과했다. 새 전체 실행은 `e2e-82`다.
+
+
+`e2e-82`는 동일한 접근 구간에서 모든 이동/정지 출력이 충돌 검사에서 거부돼 실패했고, `e2e-83`은 planner padding만0.02→0.04m로 늘린 뒤 global refinement가 실패했다. 둘 모두 Nav2 복구 요청 후 취소해 실패로 보존했으며 작업 Action은 미실행이다. `e2e-81/evaluations/clearance/variants.json`의 저장 global 지도 오프라인 비교는 원래 목표[-1.72,2.62,0]를 유지한 채0.04m padding에서도159점/무효0점/전체 연속 검사 true인 경로가 있음을 보여 준다. 지도 시각과 실제 제어가 다른 오프라인 근거다.
+
+출력 검사 구현에서 sequence shifting을 반영하지 않는 불일치를 추가로 확인했다. 실제 `getControlFromSequenceAsTwist`는 shift 시1번 제어를 방출하지만 `sequenceCollisionFree`는0번부터 미래 이동을 검사했다. 버리는0번의 감속 후1번 전진이면 검사만 통과할 수 있었다. 실제 방출 index를 사용하도록 맞추고, 벽 앞에서0번 후진이 있을 때만 안전한 경로의 회귀 검사를 추가했다. 계획/제어 지도 padding은 모두0.04m로 맞춘다. 실제 robot geometry, 목표와 footprint 기준을 줄이지 않는다. 후속 전체 실행은 `e2e-84`다.
+
+
+사용자가 선택 질문에 "정리 단계는 명시적 mock으로 두고, 실제 Mission·주행·왕복 전체 흐름 검증"을 확정했다. 이후 물리 파지 튜닝과 추가 physical 실행을 하지 않는다. 검증 도구에 준비하던 파지 실패 허용 옵션도 제거해 성공 판정을 넓히지 않았으며 실제 Mission SUCCESS/왕복 OK/최종 IDLE와 주행 복구0회를 요구한다. `e2e-84`는 확정한 mock 범위로 수행한다. 기동 시 adapter-ready도 cleanup_fixture_enabled와 실제 cleanup_backend를 구분한다.
+
+
+`e2e-84`는 회전 코너를 지나 마지막 접근까지 진행했으나 optimizer 전체 후보 실패 후 local clear가 발생해 실패로 종료했다. `evaluations/goal-check/{local_raw,global_raw}/boundary.log`의 실제 저장 지도 native footprint 비교에서 요청 목표x=-1.720m는cost253이지만x=-1.719m는cost254였다(y=2.620m,yaw0). 4cm padding과52cm standoff에서 요청 목표가 장애물 격자 경계에 놓였음을 보여 준다. 저장된 지도 시각과 실제 실패 시각 차이가 있어 유일 원인으로 단정하지 않는다.
+
+실험 접근 거리를 기존 canonical과 같은55cm로 되돌려 목표를[-1.75,2.62,0]으로3cm 물렸다. cup/desk world pose는 그대로이며 도착 허용 오차8mm와 확대된 global/local padding4cm를 유지한다. 물리 파지 도달성은 이번 mock E2E의 검증 범위가 아니다. fixture와 launch14개 검사가 `approach-margin-tests.log`에서 통과했다. `e2e-85`는 최종 mock 범위의 새 전체 실행이다.
+
+
+`e2e-85`는 새 접근점까지 navigation_result=OK/복구0으로 도착하고 mock 정리2건을 수행했다. 컵 world pose 차이는2.22e-16m로 부동소수점 수준이며 `approach-adjustment.json`에 남겼다. 그러나 복귀 초반 Path progress timeout으로 실패해 전체 성공으로 채택하지 않았다. watcher 취소 후 Mission이 종료한 결과와 정상 성공을 구분한다.
+
+`return-replay/variants.json`은 실제 정체 pose/path/local map, 초기 속도0의 고정 입력에서 GoalAngle threshold1.5/0.5/0.3m를 비교한다. 1.5m의 steady body vy=-0.0182m/s,0.5/0.3m는-0.0794m/s였으며 검사한 optimized 경로 충돌점은 모두0이다. 실제 폐루프 성공이나 성능 비교를 대신하지 않는다. truncated local path의 마지막 방향을 먼 위치에서 요구하지 않도록 기존0.5m로 복원했다. `return-angle-tests.log`의11개 검사(선택 환경1skip)를 통과했고 `e2e-86`에서 전체 왕복을 재시험한다.
+
+
+`e2e-86`는 Facility18 seat-12 전체 Mission을SUCCESS로 완료했다. 실제 상태는IDLE→NAVIGATE_TO_TARGET→WORKING→POST_MISSION→RETURN_HOME→IDLE/ready=true였고 outbound/return 모두OK다. 두 Nav2 action의 recovery0, planner failure0, behavior0, costmap clear0, 연속 경로 보정 실패0이다. planning refinement113회와 native 검사로 통과한 정지 출력1주기를 별도로 기록했다(정지로 진행 제한을 초기화하지 않음). 전체415.71wall초, 최종 실제 odom 기준home 오차0.05923m(<0.08m), 팔 사전 제어 최대오차0.001581rad, 전체 park 최대오차0.002890rad다.
+
+인식/계획/정리 Action은 사용자 확정에 따른mock이며 물리 수거 검증은false다. completed_tasks는mock trash-1/trash-2다. `evaluations/journal-audit.json`은 public Mission 결과와 missions.db의 결과 일치, executions.db의 모든 실행FINISHED/남은 실행0, base timestamp 단조성과 최종 상태를 독립 대조해passed=true다. 원본은run/mission/navigation/arm.json과두SQLite journal이다. 이 성공을 실제 컵 투입이나 물리 파지 성공으로 분류하지 않는다.
+
+첫 offline GIF 시도(`provenance/render-rendered.json`)는 기본 Isaac Franka 예제가 자산 서버를 확인하면서network=none에서 지연돼 중단했다. 실제 주행은 다시 실행하거나 바꾸지 않았다. renderer만 설치된base Kit experience에서 사용하지 않는robot.policy.examples 의존을 제외한 임시 experience를 만들어 동일 RTX 렌더링을 재실행한다(`rendered-offline`). 원래 실패 로그와 provenance는 보존한다.
+
+후속 렌더링은 저장 stage의 이전 프로세스 전용 Render graph와 physics joint를 복제본에서 제거하고, 별도 USD camera와 RGB annotator, asyncRendering 및 고정 render clock을 사용했다. 기록된 PhysX link pose를 매 프레임 적용하며 새 물리는 계산하지 않는다. `e2e-86/provenance/render-rendered-views.json`의 최종 렌더링이81.59초에 통과했다. `media/rendered-views/render.json`은315프레임,5배속, 기록 대비 최대 link 위치 차이0m를 기록한다. 정면/측면/상단 GIF와 합성 preview.gif, 축소본 및 ffmpeg 명령을 보존했다. 측면은 시작/종료 위치에서 원래 가구에 일부 가려진다. 화면에는 cleanup mock 범위를 표시한다. 중간 렌더러 실패들은 주행 실패와 구분해 원본 로그를 유지한다.
+
+`e2e-87`의 seat-28 시도는 렌더러와 동시에 기동한 환경에서 센서 준비가180초 기동 제한을 넘어 Mission을 시작하지 못했다. 동시 부하의 단독 영향으로 확정하지 않으며 정상 주행 시험 수에 포함하지 않는다. 이후 시도는 순차 실행했다. `e2e-88`은 기존 지도 중심 여유만 검사한 접근점[-0.625,-1.32,π/2]가 원본office_chair_28과 겹쳐 outbound에서 실패했다. 정리 Action은 미실행이며 실패 원본을 보존한다.
+
+fixture 준비에 원본 SDF 의자 collision bounds와 회전된 전체 footprint/padding의 SAT 겹침 검사를 추가했다. 가구 형상이나 배치는 바꾸지 않았고 실제 Mission/인식/계획에 정답 관측을 공급하지 않는다. `chair-approach-preflight.json`의 최초 준비 검사는82개 의자를 확인해 seat-12[-1.75,2.62,0]를 유지하고 seat-28의 의자와 겹친 후보만 제외해[-1.75,-0.55,0]를 선택했다. 저장 지도에는 의자가 없어도 전체 footprint 겹침을 거부하는 회귀 검사를 포함해 `chair-approach-tests.log`의17개 검사가 통과했다(선택 환경1skip). ROS 코드는 이전 성공과 같은 빌드를 사용한다. 새 전체 Mission은`e2e-89`이며 같은 원본 경로 아래 source patch와 untracked source snapshot을 보존한다.
+
+`e2e-89`는 새 seat-28 접근점에 복구0회로 도착해 mock 정리2건을 완료했으나, 홈 직전 회전에서 Path progress timeout으로 실패했다. `evaluations/progress-replay.json`의 실제 navigation feedback을 최초 복귀 경로에 투영하면151→163sim초 동안 yaw 오차2.1978→0.3058rad로 줄어도 진행 좌표는4.9525→4.9605m에 머문다. 최초 경로의 회전 분기와 현재 재계획된 마지막 회전이 달라진 경우를 기존 고정 기준 경로가 반영하지 못했다. 최종 실제 Mission 취소/실패와 성공을 구분한다.
+
+진행 감시 기준을 실제 controller에 전달된 최신 경로로 갱신하며 재계획 자체에는 시간이나 진행량을 주지 않는다. 기존 PathProgressGate.replan으로 arc 기준만 다시 잡고 누적 진행량/12초 제한은 유지한다. 재계획으로 arc 원점이 변해도 정지 시간을 연장하지 못하는 검사와, 갱신된 회전 경로에서 실제 진행만 인정하는 검사를 추가했다. 별도로 float0.008이 double 목표 허용 오차0.008보다 커져 마지막 회전 모드가 꺼지는 정밀도 불일치를 확인해 반경 파라미터도 double로 유지한다. 같은 값의 경계와 실제 초과값 거부를 검사한다.13개 패키지를 다시 빌드했으며 원본은 `progress-rebase-build.log`와 build manifest다. 이후 같은 최종 빌드로 seat-28/seat-12를 각각 새 실행한다.
+
+`progress-rebase-tests.log`의 Navigation24개 검사 묶음은 모두 통과했다. `e2e-90`은 변경된 빌드의 첫 seat-28 실행으로, outbound 책상 옆 회전에서 optimizer 전체 후보 거부와 연속 계획 실패 후 복구 요청이 발생해 실패로 보존한다. 홈 직전 진행 판정 수정의 성공 근거는 아니다. 후속 seat-12 실행은 실패한 선행 시험 때문에 시작하지 않았다.
+
+정리 mock 검증에는 팔의 물리 도달 거리 제약이 없으므로 mock 전용 접근 거리를0.75m로 분리했다. 이는 padded footprint의 회전 반경 약0.681m보다 넓은 여유이며 physical0.55m 설정은 유지한다. 의자 후보 검사에도 mock 전용0.10m 추가 여유를 둬 의자 앞의 새 근접 후보를 제외한다. 가구 배치와 Nav2의4cm padding,8mm 도착 오차,12초 진행 제한은 유지한다. `mock-approach-margin-tests.log`의17개 검사(선택 환경1skip)가 통과했다. 중간 추가 의자 여유 전 준비 결과는 `mock-margin-preflight-seat-{12,28}`이며 이 중간 설정의 실제 실행은 `e2e-91/config/room.json`으로 구분한다. seat-28의 당시 목표는[-1.95,-0.55,0]이며 후속 seat-12[-1.95,2.62,0]는 선행 시험 실패로 실행하지 않았다.
+
+`e2e-91`도 outbound의 optimizer 실패 후 재시도와 최종 경로 정체로 실패했다.0.75m mock 접근 설정은 최종 채택하지 않았고 후속 seat-12는 시작하지 않았다. 이는 물리 파지용 책상 옆 근접 접근의 안정성이 아직 해결되지 않았다는 근거다.
+
+최종 mock 모드는 Facility18의 기존 좌석 navigation target을 그대로 사용한다. 사용자 확정 범위는 실제 Mission·주행·왕복과 명시적 mock 정리이므로 물리 파지 접근점으로 목표를 바꾸는 동작을 분리했다. room.json의 cleanup.physical_approach_target은 미실행 물리 접근 후보이며 navigation_target_source는 'existing seat target'이다. 임시 mock 거리/의자 추가 여유 파라미터는 제거했다. 실제 사용 목표는 seat-28[-0.625,-1.625,1.570796], seat-12[-0.625,1.575,1.570796]이며 물리 파지용 근접 목표 성공을 주장하지 않는다. 앞 단락의0.75m 준비 자료와 실행은 역사적 실패 근거로만 남는다. 기존 목표 보존, physical/mock 분리와 의자 검사 회귀를 포함한 `mock-existing-target-tests.log`의17개 검사가 통과했다(선택 환경1skip). 새 순차 전체 시험은`e2e-92`와`e2e-93`이다.
+
+`e2e-92`는 기존 좌석 목표를 유지했지만 physical Nav2 override와 local StaticLayer가 여전히 mock에 적용된 상태였으며, outbound optimizer 오류와 local clear 후 실패했다. 최종 구성에서는 해당 override와 StaticLayer를 physical backend에만 적용한다. mock의 Nav2 YAML 전체가 cleanup 없는 기존 Facility18 주행 구성과 같은지 launch 구성 검사에서 대조한다. 같은 recovered branch MPPI/lattice,3cm 목표 허용 오차, 기존 footprint 및 LiDAR safety를 재사용하며 모델/가구를 바꾸지 않는다. physical 설정과 분리한 새 전체 실행은`e2e-93`과`e2e-94`다.
+
+전체 Nav2 YAML 동일성 검사를 포함해 `mock-existing-navigation-tests.log`의17개 검사가 통과했다(선택 환경1skip). `e2e-93`의 mock 기동 중 사용하지 않는 RGB-D 첫 capture에서 렌더링 지연도 관찰했다. 후속 mock 실행은 RGB-D camera/control/grasp audit를 만들지 않으며 실제 PhysX, LiDAR와 odometry는 유지한다. adapter-ready는 카메라 비활성화와 perception mock을 명시한다. physical camera 경로는 유지하며 주행 영상은 기록된 자세를 별도로 렌더링한다. 두 실행의 성능 비교 근거로 사용하지 않는다.
+
+`e2e-93`은 기존 seat-28 목표와 기존 Facility18 Nav2 구성으로 실제 Mission SUCCESS를 완료했다. 왕복의 Nav2 recovery0회, planner failure0, behavior0와 costmap clear0이며 최종IDLE/ready=true, 실제 odom 홈 오차0.05310m다. 전체379.63wall초에는 RGB-D 초기 렌더링 지연이 포함된다. mock 정리2건과 물리 수거 미검증을 구분하며 SQLite journal 대조는 `evaluations/journal-audit.json`으로 보존한다. 이어 seat-12의`e2e-94`를 같은 ROS 빌드와 주행 설정에서 실행한다.
+
+`e2e-94`는 기존 seat-12 목표에서 같은 실제 Mission 흐름을 SUCCESS로 완료했다. 전체293.72wall초, 홈 odom 오차0.05444m이며 두 Nav2 goal의 recovery0회, planner failure0, behavior0, costmap clear0이다. 검증된 정지 대체 출력과 연속 경로 보정도0회다. 최종IDLE/ready=true이고 상태는IDLE→NAVIGATE_TO_TARGET→WORKING→POST_MISSION→RETURN_HOME→IDLE였다. 실제 팔은 주행 자세를 유지했으며 mock Action의 arm_recovered=true를 물리 정리 후 팔 복귀 근거로 해석하지 않는다. `evaluations/journal-audit.json`은 Mission 결과와 SQLite report 일치, 모든 실행FINISHED/잔여0을 확인했다. adapter-ready는 실제 PhysX/LiDAR와 RGB-D 비활성화를 명시한다.93/94의 주행 설정은 같으며 RGB-D 기동 차이가 있으므로 wall 시간으로 성능 우열을 비교하지 않는다.
+
+`mission-flow-final-audit.json`과 재현용 `final_scope_audit.py`는93/94의 실제 Mission/왕복/최종 ready, 각2개 navigation goal의 recovery0, 원본 로그의 optimizer failure/patience exceeded/path progress timeout0, controller/planner/costmap/collision monitor 설정 동일성, 빌드 source digest 일치를 확인했다. `mission-flow-journal-audit.json`은 두SQLite 기록을 독립 대조했다. 두 좌석의 정상 mock 정리 E2E2/2를 검증한 것이며, 실패한 물리 파지용 근접 접근이나 실제 컵 투입/팔 복귀를 성공으로 재분류하지 않는다.
+
+최종 영상은 성공한`e2e-94/media/rendered-final/`에 정면/측면/상단 GIF와 preview.gif로 남겼다. `provenance/render-rendered-final.json`은passed, `render.json`은234프레임,5배속과 기록된 link 위치 대비 최대 차이0m를 기록한다. 새 물리 계산 없이 같은 PhysX 주행 기록을 RTX로 재생했으며 cleanup mocked를 영상에 표시했다. 축소본은front-small.gif/side-small.gif/top-small.gif이고 정확한 인코딩 명령과 hash는compression.json에 있다. 일부 측면 시야의 가구 가림을 유지한다. 최종 원본 루트는 `/home/donglee/workspace/cleany/cleany-data/runs/isaac-cleanup-integration-20261025`이며 ROS WIP는 base commit `d3f55473` 위의 실행별 source patch/hash로 식별한다.
+
+2026-10-29 Handoff 검토에서 no-recovery 집계의 누락을 보완했다. Humble의 실제 `Planning algorithm ... failed to generate a valid path`, optimizer/controller 실패와 path progress timeout도 거부하며 정상 경로 보정/검증된 정지 출력은 별도로 유지한다. 새 집계기로 저장 원본93/94는 통과하고89/90/91/92는 거부됨을 재확인했다. 이는 실행 후의 판정 도구 보완이며 시뮬레이션을 새로 실행한 결과가 아니다. Isaac 도구/공통 launch/MoveIt Python82개 검사(선택 환경1skip)와 Navigation CTest24개 묶음이 통과했다. ROS source digest는13개 패키지의 기존 성공 빌드와 일치한다. 최초 CTest 호출은 읽기 전용 ament 출력 경로 때문에 테스트 본체를 시작하지 못했으며, 로그/결과 경로만 임시 쓰기 mount로 분리해 재실행했다. 원본은 위 데이터 루트의`handoff-review-20261029-diqgpwtq/`에 보존했다. 실제 수거 및 물리 파지용 근접 접근의 미완료 판정은 유지한다.

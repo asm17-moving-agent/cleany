@@ -31,7 +31,8 @@ def main() -> None:
     build.mkdir(parents=True, exist_ok=True)
     image = subprocess.check_output(["podman", "image", "inspect", "--format", "{{.Id}}", args.ros_image], text=True).strip()
     command = ["podman", "run", "--rm", "--cpus", "4", "--memory", "12g", "--memory-swap", "12g",
-               "-e", "CMAKE_BUILD_PARALLEL_LEVEL=2", "--entrypoint", "bash", "-v", f"{SOURCE}:/main:ro",
+               "-e", "CMAKE_BUILD_PARALLEL_LEVEL=2", "-e", "MAKEFLAGS=-j2 -l2",
+               "--entrypoint", "bash", "-v", f"{SOURCE}:/main:ro",
                "-v", f"{build}:/build:rw", image, "-c",
                "make -C /main build CLEANY_BUILD_ROOT=/build COLCON_BUILD_ARGS='--packages-up-to "
                "cleany_navigation cleany_mission_manager cleany_control_bridge cleany_skill_executor "

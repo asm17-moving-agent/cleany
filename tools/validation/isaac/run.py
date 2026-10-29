@@ -52,14 +52,21 @@ def main() -> None:
     parser.add_argument("--chair-mesh", type=Path, default=Path.home()/".ignition/fuel/fuel.gazebosim.org/openrobotics/models/officechairgrey/1/meshes/OfficeChairGrey.obj")
     parser.add_argument("--facility-map", type=Path, help="Existing facility_integration YAML; image must be next to it")
     parser.add_argument("--cleanup", action="store_true", help="Sensor-driven physical desk collection")
+    parser.add_argument('--cleanup-backend', choices=['physical', 'mock'], default='physical',
+                        help='Explicit Mission cleanup test double; physical remains the default')
     parser.add_argument("--cleanup-object", choices=['cup','tissue'], default='cup')
     parser.add_argument("--cleanup-profile", choices=['canonical','slender-cup-95mm'], default='canonical')
     parser.add_argument("--model-directory", type=Path)
     args = parser.parse_args()
     if args.cleanup_profile != 'canonical' and (not args.cleanup or args.cleanup_object != 'cup'):
         parser.error("The slender cup profile requires --cleanup --cleanup-object cup")
-    if args.cleanup and (args.world != "facility18" or args.scenario != "success" or not args.model_directory):
-        parser.error("Cleanup requires Facility 18, success scenario and a downloaded model directory")
+    physical = args.cleanup and args.cleanup_backend == 'physical'
+    if args.cleanup_backend == 'mock' and not args.cleanup:
+        parser.error('--cleanup-backend requires --cleanup')
+    if args.cleanup and args.world != 'facility18':
+        parser.error('Cleanup fixture requires Facility 18')
+    if physical and (args.scenario != 'success' or not args.model_directory):
+        parser.error('Physical cleanup requires success scenario and a downloaded model directory')
     if args.target_id and not __import__("re").fullmatch(r"[A-Za-z0-9_-]+", args.target_id):
         parser.error("Invalid target ID")
     if args.world == "facility18" and not args.facility_map:
@@ -89,6 +96,7 @@ def main() -> None:
               "target_id": args.target_id, "record_motion": args.record_motion, "profile": args.profile,
               "cleanup": args.cleanup, "cleanup_object": args.cleanup_object,
               "cleanup_profile": args.cleanup_profile,
+              'cleanup_backend': args.cleanup_backend if args.cleanup else 'mock',
               "native_profile": args.native_profile,
               "publication_profile": args.publication_profile,
               "physics_sync": args.physics_sync,
@@ -109,7 +117,7 @@ def main() -> None:
                     ignore=shutil.ignore_patterns("__pycache__"))
     report["git_status"] = subprocess.check_output(["git", "-C", str(SOURCE), "status", "--porcelain"], text=True)
     mounts = ["-v", f"{SOURCE}:/main:ro", "-v", f"{output}:/output:rw", "-v", f"{snapshot}:/integration:ro"]
-    if args.cleanup:
+    if physical:
         mounts += ["-v", f"{args.model_directory.resolve()}:/models:rw"]
         for asset in ('yoloe/yoloe-26l-seg.pt', 'yoloe/mobileclip2_b.ts', 'qwen3vl-4b/config.json'):
             if not (args.model_directory/asset).is_file():
@@ -160,7 +168,8 @@ def main() -> None:
                 (" --target-id "+args.target_id if args.target_id else "")+
                 " --publication-profile "+args.publication_profile+
                 " --physics-sync "+args.physics_sync+(" --cleanup --cleanup-object "+args.cleanup_object+
-                " --cleanup-profile "+args.cleanup_profile if args.cleanup else "")], "prepare")
+                " --cleanup-profile "+args.cleanup_profile+" --cleanup-backend "+args.cleanup_backend
+                if args.cleanup else "")], "prepare")
             if prepare.wait(timeout=90):
                 raise RuntimeError("Model export failed; see logs/prepare.log")
             isaac = start(prefix+["--name", names[0], "--user", "0", "--device", "nvidia.com/gpu=all",
@@ -192,7 +201,7 @@ def main() -> None:
             if arm.returncode:
                 raise RuntimeError("Arm control validation failed; see evaluations/arm.json")
             print("Isaac adapter and arm control ready; starting real Mission/Nav2", flush=True)
-            inference_gpu = ["--device", "nvidia.com/gpu=all", "--security-opt", "label=disable"] if args.cleanup else []
+            inference_gpu = ["--device", "nvidia.com/gpu=all", "--security-opt", "label=disable"] if physical else []
             ros = start(prefix+["--name", names[1]]+inference_gpu+env+mounts+["-v", f"{build}:/build:ro", report["ros_image"],
                 "-c", ros_setup+f"ros2 launch /integration/mission.launch.py scenario:={args.scenario}"], "mission")
             validator = start(prefix+["--name", names[2]]+env+mounts+["-v", f"{build}:/build:ro", report["ros_image"],
@@ -205,18 +214,12 @@ def main() -> None:
                 time.sleep(2.)
             if validator.returncode:
                 raise RuntimeError("Mission validation failed; see evaluations/mission.json and logs")
-            import re
+            from navigation_log import FAILURE_COUNTS, summarize_navigation_log
             log_text = (output / "logs/mission.log").read_text()
-            navigation = {
-                "planner_failures": len(re.findall(r"failed to create plan", log_text)),
-                "recovery_behaviors": len(re.findall(r"Running (?:spin|backup|wait|drive_on_heading)", log_text)),
-                "costmap_clears": len(re.findall(r"Received request to clear", log_text)),
-                "required_no_recovery": args.require_no_recovery,
-            }
+            navigation = summarize_navigation_log(log_text, require_no_recovery=args.require_no_recovery)
             write(output / "evaluations/navigation.json", navigation)
-            if args.require_no_recovery and any(navigation[key] for key in
-                    ("planner_failures", "recovery_behaviors", "costmap_clears")):
-                raise RuntimeError(f"Navigation required recovery: {navigation}")
+            if args.require_no_recovery and any(navigation[key] for key in FAILURE_COUNTS):
+                raise RuntimeError(f"Navigation violated no-recovery checks: {navigation}")
             report["status"] = "passed"
         except BaseException as error:
             report.update(status="failed", error=repr(error))

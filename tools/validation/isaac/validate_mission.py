@@ -29,6 +29,7 @@ from ros_scope import scoped_ros_args
 
 def validate(output: Path, scenario: str, require_no_recovery: bool = False) -> dict:
     scene = json.loads((output / "config/room.json").read_text())
+    physical = bool(scene.get('cleanup')) and scene.get('cleanup_backend', 'physical') == 'physical'
     rclpy.init(args=scoped_ros_args())
     node = Node("isaac_mission_validation")
     qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
@@ -64,7 +65,7 @@ def validate(output: Path, scenario: str, require_no_recovery: bool = False) -> 
         values = dict(zip(message.name, message.position))
         if not park:
             return
-        if scene.get("cleanup") and seen["status"] is not None and seen["status"].state not in (
+        if physical and seen["status"] is not None and seen["status"].state not in (
                 "NAVIGATE_TO_TARGET", "RETURN_HOME", "IDLE"):
             parking["violation_since"] = None
             return
@@ -114,7 +115,7 @@ def validate(output: Path, scenario: str, require_no_recovery: bool = False) -> 
                         "base": "Isaac PhysX with ideal root velocity actuator", "lidar": "PhysX raycast",
                         "perception": "mock", "planning": "mock", "manipulation": "mock Action",
                         "physical_cleanup": False, "depth_safety": False}}
-    physical = bool(scene.get("cleanup"))
+    report['cleanup_backend'] = 'physical' if physical else 'mock'
     if physical:
         report["scope"].update(perception="RTX RGB-D + YOLOE + local VLM", planning="policy + MoveIt",
                                manipulation="sensor-driven BT Action")
@@ -234,7 +235,7 @@ def validate(output: Path, scenario: str, require_no_recovery: bool = False) -> 
             report["database_integrity"][filename] = integrity
             assert integrity == "ok", report["database_integrity"]
         if require_no_recovery:
-            assert len(recoveries) >= 2, "Expected feedback for outbound and home navigation"
+            assert len(recoveries) >= 2, 'Expected feedback for outbound and home navigation'
             assert not any(recoveries.values()), recoveries
         rates = publication_config(scene.get('publication_profile', 'legacy'), scene['physics_hz'])
         expected = {'clock': rates['clock_hz'], 'odometry': rates['odometry_hz'],
@@ -255,9 +256,10 @@ def validate(output: Path, scenario: str, require_no_recovery: bool = False) -> 
         report['publication_timing'] = {name: value.result() for name, value in timing.items()}
         report["final_status"] = message_to_ordereddict(seen["status"]) if seen["status"] else None
         (output / "evaluations/mission.json").write_text(json.dumps(report, indent=2))
-        block.publish(Bool(data=False))
+        if rclpy.ok(context=node.context):
+            block.publish(Bool(data=False))
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
     return report
 
 

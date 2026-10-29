@@ -84,8 +84,10 @@ def test_exported_targets_load_and_clear_the_navigation_footprint(tmp_path, monk
                 assert grid[row, column] == 254, (target, dx, dy)
 
 
-@pytest.mark.parametrize("world", ["room", "facility18"])
-def test_launch_keeps_tuned_mppi_and_complete_safety_profile(tmp_path, monkeypatch, world):
+@pytest.mark.parametrize("world, physical, backend", [("room", False, "physical"),
+    ("facility18", False, "physical"), ("facility18", True, "physical"),
+    ("facility18", True, "mock")])
+def test_launch_keeps_tuned_mppi_and_complete_safety_profile(tmp_path, monkeypatch, world, physical, backend):
     pytest.importorskip("launch")
     from launch import LaunchContext
     monkeypatch.setenv("ROS_DISTRO", "humble")
@@ -97,13 +99,22 @@ def test_launch_keeps_tuned_mppi_and_complete_safety_profile(tmp_path, monkeypat
     scene_file = tmp_path / "config/room.json"
     scene = json.loads(scene_file.read_text())
     scene["world"] = world
+    scene["cleanup_backend"] = backend
+    if physical:
+        scene['cleanup'] = {'payload': {'name': 'cup'},
+            'navigation_parameters': {'controller_server': {'ros__parameters': {
+                'goal_checker': {'xy_goal_tolerance': .008}}}},
+            'depth_cloud_parameters': {'known_geometry_clear_max_leaves': 2000000}}
+        scene['park_joints'] = {f'{arm}_gripper_joint': 0.0 for arm in ('left', 'right')}
     scene_file.write_text(json.dumps(scene))
     spec = importlib.util.spec_from_file_location("isaac_launch", ROOT / "tools/validation/isaac/mission.launch.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     context = LaunchContext()
     context.launch_configurations.update(output=str(tmp_path), source=str(ROOT), scenario="success")
-    module.start(context)  # Construct launch actions; do not start ROS processes.
+    actions = module.start(context)  # Construct actions without starting ROS.
+    from launch.actions import IncludeLaunchDescription
+    assert any(isinstance(a, IncludeLaunchDescription) for a in actions) == (physical and backend == 'physical')
     parameters = yaml.safe_load((tmp_path / "config/navigation.yaml").read_text())
     control = parameters["controller_server"]["ros__parameters"]
     assert control["FollowPath"]["plugin"] == "cleany_navigation::MPPIController"
@@ -115,13 +126,25 @@ def test_launch_keeps_tuned_mppi_and_complete_safety_profile(tmp_path, monkeypat
     assert control["FollowPath"]["path_progress_timeout"] == 12.
     assert control["FollowPath"]["vx_max"] == (.25 if world == "facility18" else .15)
     assert control["FollowPath"]["wz_max"] == (.5 if world == "facility18" else .3)
-    assert control["goal_checker"]["xy_goal_tolerance"] == .03
+    assert control["goal_checker"]["xy_goal_tolerance"] == (.008 if physical and backend == 'physical' else .03)
     planner = parameters["planner_server"]["ros__parameters"]["GridBased"]
     assert planner["plugin"] == "cleany_navigation::SmacLatticePlanner"
     assert Path(planner["lattice_filepath"]).name == "omni-r10cm.json"
     local = parameters["local_costmap"]["local_costmap"]["ros__parameters"]
     assert local["inflation_layer"]["inflation_radius"] == .8
     assert "depth_layer" not in local["plugins"]
+    assert ('static_layer' in local['plugins']) == (physical and backend == 'physical')
+    if physical and backend == 'physical':
+        assert local['plugins'][0] == 'static_layer'
+        assert local['static_layer'] == parameters['global_costmap']['global_costmap'][
+            'ros__parameters']['static_layer']
+        assert local['global_frame'] == 'map'
     monitor = parameters["collision_monitor"]["ros__parameters"]
     assert monitor["observation_sources"] == ["scan"]
     assert monitor["SlowZone"]["slowdown_ratio"] == .35
+    if physical and backend == 'mock':
+        scene.pop('cleanup')
+        scene_file.write_text(json.dumps(scene))
+        module.start(context)
+        baseline = yaml.safe_load((tmp_path / 'config/navigation.yaml').read_text())
+        assert parameters == baseline

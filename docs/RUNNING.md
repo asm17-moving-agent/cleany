@@ -600,6 +600,60 @@ SHA-256과 고정된 Hugging Face revision을 사용해 다운로드한다.
 RGB 수신률뿐 아니라 같은 timestamp의 depth 수신을 함께 확인한다.
 
 
-Isaac cleanup의 실험 설정은 `--cleanup-profile slender-cup-95mm`로 선택한다. 이는 높이95mm 컵, CPU PGS128/8의1,000Hz 물리 계산,0.52m 접근, 기존 ROS 집기,90도 roll 재관측, 확인 성공 후 원래 arm pose 복귀 및 base_link 기준z0.60m trash 투입과0.65rad 투입용 gripper 개방 설정을 함께 사용한다. 기본 `canonical`은 기존68.4mm 컵과 기본 설정을 유지한다. 이 프로필은 수거 성공을 의미하지 않으며 실행 결과는 `docs/EVIDENCE.md`와 출력의 `evaluations/mission.json`으로 확인한다. 사용 명령은 기존 `run.py --cleanup --cleanup-object cup ...`에 해당 옵션을 추가한다. `config/room.json`에는 실제 payload와 물리/launch 설정, `config/coordinator.yaml`에는 BT/조작 설정이 남는다.
+Isaac cleanup의 실험 설정은 `--cleanup-profile slender-cup-95mm`로 선택한다. 이는 높이95mm 컵, CPU PGS128/8의1,000Hz 물리 계산,0.55m 접근, 기존 ROS 집기,90도 roll 재관측, 확인 성공 후 원래 arm pose 복귀 및 base_link 기준z0.60m trash 투입과0.65rad 투입용 gripper 개방 설정을 함께 사용한다. 기본 `canonical`은 기존68.4mm 컵과 기본 설정을 유지한다. 이 프로필은 수거 성공을 의미하지 않으며 실행 결과는 `docs/EVIDENCE.md`와 출력의 `evaluations/mission.json`으로 확인한다. 사용 명령은 기존 `run.py --cleanup --cleanup-object cup ...`에 해당 옵션을 추가한다. `config/room.json`에는 실제 payload와 물리/launch 설정, `config/coordinator.yaml`에는 BT/조작 설정이 남는다.
 
-실험 컵 프로필의 가까운 작업 접근점은 기존 좌석 목표와 다르다. 현재 `e2e-70`의 주행은 복구가 발생해 실패했으며, 프로필의 가까운 경로 정렬/목표 각도 threshold 변경은 후속 런타임 검증 전이다. 실제 정리 E2E 성공 설정으로 취급하지 않는다.
+실험 컵 프로필의 가까운 작업 접근점은 기존 좌석 목표와 다르다. `e2e-70/71`의 주행은 복구가 발생해 실패했다. 가까운 경로 정렬/목표 각도 threshold 변경만으로는 충분하지 않았다. 프로필은 `path_pose_yaw_weight=0.5m/rad`로 회전 전후에 겹치는 경로의 방향도 비교하고, 진단용 `transformed_global_plan`을 발행한다. 실제 정리 E2E 성공 여부는 개별 Mission 결과로 판정한다.
+
+물리 cleanup launch는 기존 글로벌 StaticLayer 설정을 로컬 코스트맵에도 적용한다.
+낮은 LiDAR 관측에 없는 책상 영역도 동일한 시설 지도와 footprint로 검사하며,
+LiDAR obstacle layer와 기존 inflation/collision monitor를 함께 유지한다.
+이 실행의 rolling local costmap도 `map` 좌표계에서 같은5cm 격자를 사용해
+회전된 odom 격자에 정적 지도를 다시 샘플링할 때 생기는 경계 차이를 피한다.
+실험 프로필의 `GridBased.validate_swept_path=true`는 기존 연속 footprint 검사와
+기존 body-heading 검색으로 native lattice의 샘플 사이 충돌을 보정한다.
+실험 구동력0.2Nm에서 빈 손의 팔/그리퍼 결합 이동은 `velocity_scaling=0.04`를
+사용한다. 기존 tracking tolerance나 파지 구동력은 바꾸지 않고, 그리퍼의 계획 속도가
+이 실험 물리 모델의 실제 개방 속도를 넘지 않도록 제한한다. 실물 보정값은 아니다.
+작업 접근의 XY 허용 오차는8mm이며, 최종 회전 진입/이탈 반경은6/8mm다.
+연속 경로 검사 옵션은 격자 중심에서 정확한 요청 목표까지의 연결도 검사한다.
+
+
+### Facility 18 Mission 흐름 검증과 정리 mock
+
+`--cleanup-backend mock`은 사용자 요청에 따라 실제 Mission FSM/BT와 Nav2 왕복을 실행하고, 인식·계획·정리 Action에는 기존 mock fixture를 사용한다. Isaac의 Facility18 시설, 로봇과 주행용 LiDAR/odometry는 유지하며 팔은 주행 자세를 유지한다. mock 인식에 사용하지 않는 RGB-D 실시간 렌더링은 끄고, 주행 GIF는 기록된 자세에서 별도로 렌더링한다. 기본 backend는 `physical`이다. mock 모드에는 모델 다운로드가 필요하지 않으며 실제 컵 투입·파지·작업 후 팔 복귀의 물리 검증을 뜻하지 않는다. report와 GIF에도 이 범위를 표시한다.
+
+현재 `slender-cup-95mm` 프로필의 physical 접근 거리는0.55m다. mock 흐름 검증은 기존 좌석 navigation target을 그대로 유지한다. mock seat-12 목표는[-0.625,1.575,1.570796]이며 물리 파지용 근접 접근과 팔 도달성은 검증하지 않는다. physical 모드는 global/local footprint_padding0.04m, XY 도착 허용 오차8mm와 GoalAngleCritic 범위0.5m를 사용한다. mock 모드는 기존 Facility18 Nav2 설정 전체를 유지하며 XY 허용 오차3cm와 기존 safety padding을 사용한다. physical navigation override와 local StaticLayer를 mock에 적용하지 않는다. 준비 도구가 새로운 접근 목표와 기존 Nav2 설정을 `config/room.json` 및 `config/navigation.yaml`에 기록한다.
+
+접근점 생성은 저장 지도에서 중심 여유를 확인한 뒤, 원본 SDF의 의자 collision bounds와 회전된 전체 robot footprint 및 같은 padding의 겹침도 검사한다. 의자와 겹치는 후보는 제외하고 `cleanup.approach_chair_check`에 근거를 남긴다. 시설 가구는 옮기지 않는다. 이는 시험 fixture의 사전 배치 검사이며 실제 인식이나 Nav2에 정답 pose를 공급하는 기능은 아니다. mock seat-28 목표는 기존[-0.625,-1.625,1.570796]이다. 선택한 physical 접근점은 `cleanup.physical_approach_target`에 별도로 기록하며, mock에서는 그 지점으로 navigation target을 덮어쓰지 않는다. `cleanup.navigation_target_source`가 두 모드를 구분한다.
+
+출력 검증은 실제 방출되는 shifted sequence와 측정 초기 속도를 사용한다. 모든 이동 후보가 거부됐을 때는 같은 검사로 확인한 정지 sequence만 선택적으로 허용한다(`validated_stop_fallback=true`). 이 선택적 정지 설정은 physical 프로필에 적용하며 mock은 기존 주행 설정을 사용한다. 정지는 기존12초 경로 진행 제한을 초기화하지 않는다. `evaluations/navigation.json`의 validated_standstill_cycles와 continuous_footprint_refinements는 Nav2 복구 횟수와 별도 지표다. physical local StaticLayer도 기존 시설 지도를 사용한다.
+
+진행 감시는 controller가 현재 실행하는 경로의 위치와 yaw 진행량을 사용한다. 재계획으로 arc 기준을 바꿀 때도 누적 진행량과 마지막 실제 진행 시각을 보존하므로 경로 교체만으로 정지 시간을 연장하지 않는다. 마지막 회전의 진입/이탈 반경은 goal checker와 같은 double 정밀도로 비교한다. 허용 오차보다 큰 이탈 반경은 회전 모드를 활성화하지 않는다.
+
+```bash
+python3 tools/validation/isaac/run.py \
+  --cleanup --cleanup-backend mock --cleanup-object cup \
+  --cleanup-profile slender-cup-95mm --world facility18 --target-id seat-12 \
+  --scenario success --domain 178 --timeout 1800 --require-no-recovery --record-motion \
+  --ros-image localhost/cleany-cleanup-isaac-gpu-ros:humble \
+  --build-root /home/donglee/workspace/cleany/cleany-data/builds/isaac-cleanup-20261025 \
+  --facility-map /home/donglee/workspace/cleany/cleany-data/fixtures/refactor-local-materials/facility_integration.yaml \
+  --cache-root /home/donglee/workspace/cleany/cleany-data/builds/isaac-mission-e2e/isaac-cache-177 \
+  --output /home/donglee/workspace/cleany/cleany-data/runs/facility18-mission-flow-new
+```
+
+출력은 아직 존재하지 않는 디렉터리를 사용한다. 같은 작업 브랜치와 ROS 빌드의 source digest가 일치해야 한다. 성공은 실제 Mission SUCCESS, outbound/return OK, 최종 IDLE/ready, 두 Nav2 goal의 복구0회와 로그의 planner failure/behavior/costmap clear0회를 모두 요구한다. 판정은 `evaluations/mission.json`, `navigation.json`, 원본 로그와 SQLite journal에 남는다. GIF는 성공한 실행의 기록된 PhysX 자세를 재생하며 새로운 주행을 합성하지 않는다.
+
+`--require-no-recovery`는 controller failure와 path progress timeout도 거부한다. 계획 실패 집계는 `failed to create plan`과 Humble의 `Planning algorithm ... failed to generate a valid path`를 모두 포함한다. 각 수치는 로그 문구의 출현 횟수이며, 정상적인 연속 경로 보정이나 검증된 정지 출력은 별도 진단으로 유지한다.
+
+기록한 성공 실행은 다음 명령으로 세 시점 GIF를 생성한다. `--run`에는 위 실행 출력 경로를, `--name`에는 아직 없는 media 하위 디렉터리 이름을 사용한다. 렌더러와 주행은 같은 GPU에서 순차 실행한다. 렌더링 중 physics는 꺼져 있고 카메라만 기록된 로봇을 따라간다. `render.json`의 source hash와 최대 link pose 차이를 확인한다. 주행 환경의 가구 때문에 일부 시점이 가려질 수 있다.
+
+```bash
+python3 tools/validation/isaac/render.py \
+  --run /home/donglee/workspace/cleany/cleany-data/runs/facility18-mission-flow-new \
+  --build-root /home/donglee/workspace/cleany/cleany-data/builds/isaac-cleanup-20261025 \
+  --cache-root /home/donglee/workspace/cleany/cleany-data/builds/isaac-mission-e2e/isaac-cache-177 \
+  --name rendered-views
+```
+
+프로필의 `base_hold` gain5/s는 기존 ideal root velocity 구동에 정지 제동을 표현한다. 요청 속도0일 때만 마지막 정지 자세에 대한 bounded velocity 보정을 사용하며 pose reset이나 물체 부착은 없다. base.jsonl은 requested/actuated_body_velocity를 구분하고 종료 시 base-hold.json에 최대 오차를 남긴다. physical 모드에서는 shared launch의 known_geometry_clear_max_leaves 인자로 MoveIt에만 leaf 검사 예산을 전달한다. 기본200,000과 별개로 이 프로필은2,000,000을 사용한다. 전역 SetParameter는 사용하지 않는다.

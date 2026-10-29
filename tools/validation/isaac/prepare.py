@@ -94,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("--publication-profile", choices=["legacy", "split"], default="split")
     parser.add_argument("--physics-sync", choices=["usd", "fabric"], default="fabric")
     parser.add_argument("--cleanup", action="store_true")
+    parser.add_argument('--cleanup-backend', choices=['physical', 'mock'], default='physical')
     parser.add_argument("--cleanup-object", choices=['cup','tissue'], default='cup')
     parser.add_argument("--cleanup-profile", choices=['canonical','slender-cup-95mm'], default='canonical')
     args = parser.parse_args()
@@ -102,4 +103,4 @@ if __name__ == "__main__":
     if args.cleanup:
         from prepare_cleanup import prepare_cleanup
         prepare_cleanup(args.output, args.source, object_name=args.cleanup_object,
-                        profile=args.cleanup_profile)
+                        profile=args.cleanup_profile, backend=args.cleanup_backend)
