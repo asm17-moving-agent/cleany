@@ -14,7 +14,10 @@ import time
 from xml.etree import ElementTree as ET
 from typing import Callable, Sequence
 
-from cleany_skill_executor.core.alignment import axis_errors_degrees
+import numpy as np
+
+from cleany_skill_executor.core.alignment import axis_errors_degrees, tcp_axes
+from cleany_skill_executor.core.pose_refinement import refine_pose
 from cleany_skill_executor.core.ik_diagnostics import (
     AlignmentLimits, alignment_errors, summarize_alignments,
 )
@@ -43,6 +46,7 @@ class HybridConfig:
     progressive_pregrasp: bool = False
     group_gripper_openings: bool = False
     defer_candidate_ik_retries: bool = False
+    seeded_local_ik: bool = False
 
     def __post_init__(self) -> None:
         if any(type(v) is not int or v < 1 for v in (
@@ -51,7 +55,8 @@ class HybridConfig:
         if any(type(v) is not bool for v in (
                 self.exclude_opposite_arm_cost, self.retry_failed_candidates,
                 self.cpu_ik_fallback, self.adaptive_batch_size, self.progressive_pregrasp,
-                self.group_gripper_openings, self.defer_candidate_ik_retries)):
+                self.group_gripper_openings, self.defer_candidate_ik_retries,
+                self.seeded_local_ik)):
             raise ValueError('Hybrid switches must be boolean')
         if any(type(v) is not int or not 0 <= v <= 2 for v in (
                 self.pregrasp_retry_passes, self.planning_retries)):
@@ -350,6 +355,7 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             'progressive_pregrasp': self._hybrid_config.progressive_pregrasp,
             'group_gripper_openings': self._hybrid_config.group_gripper_openings,
             'ik_diagnostics': [],
+            'seeded_local_ik_calls': [], 'approach_calls': [],
             'start_joint_state': {
                 'names': list(self._current_state.name) if self._current_state is not None else [],
                 'positions_rad': list(self._current_state.position) if self._current_state is not None else [],
@@ -486,6 +492,7 @@ class HybridGraspAdapter(MoveItGraspAdapter):
                                     if result is not None else None),
                 outcome='no_ik_solution' if result is None else 'pose_rejected',
                 failure_phase=('GPU_FK_ALIGNMENT' if diagnostic['backend'].startswith('gpu')
+                               else 'SEEDED_LOCAL_IK' if diagnostic['backend'] == 'local_seed'
                                else 'CPU_IK_FALLBACK'))
         if result is None or not self._feasible_alignment(result):
             return None
@@ -704,6 +711,23 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         if seed is None and key in self._pregrasp_cache:
             self._check_active()
             return self._pregrasp_cache[key]
+        if (seed is not None and self._hybrid_config.seeded_local_ik
+                and self._config.use_verified_local_fk and self._config.pose_refinement_iterations):
+            began = self._monotonic()
+            diagnostic = self._ik_diagnostic(
+                arm, target, self._gripper_positions.get(arm), 'local_seed')
+            with self._progress.stage('SEEDED_LOCAL_IK', f'arm={arm}'):
+                proposal = self._refine_seed(arm, target, seed)
+                diagnostic.update(summarize_alignments([proposal], self._alignment_limits()),
+                                  evaluation_scope='seeded_local')
+                result = self._accept_alignment(arm, target, proposal, diagnostic)
+            diagnostic['wall_sec'] = self._monotonic()-began
+            self._record_ik_diagnostic(diagnostic)
+            self.last_ik_statistics['seeded_local_ik_calls'].append({
+                'arm': arm, 'accepted': result is not None,
+                'wall_sec': diagnostic['wall_sec']})
+            if result is not None:
+                return result
         result = self._batch(arm, [target], [seed], self._gpu_config.num_seeds)[0]
         if result is None and self._primary_only:
             self._deferred_ik = True
@@ -712,6 +736,31 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             self.last_ik_statistics['grasp_retry_calls'] += int(seed is not None)
             result = self._batch(arm, [target], [seed], self._hybrid_config.fallback_seeds)[0]
         return result if result is not None else self._cpu_fallback(arm, target, seed)
+
+    def _refine_seed(self, arm: str, target: PoseValue, seed: JointSolution) -> PoseAlignment:
+        """Propose one bounded local correction; the caller still checks MoveIt."""
+        self._check_active()
+        if seed.names != ARM_JOINT_NAMES[arm]:
+            raise InfrastructureError('Seeded IK joint ownership mismatch')
+        self._verify_local_fk(arm, seed)
+        state = self._merged_state(seed).joint_state
+        positions = dict(zip(state.name, state.position, strict=True))
+        approach, closing = tcp_axes(target.orientation_xyzw)
+        bounds = [self._joint_limits[name][:2] for name in seed.names]
+
+        def residual(values):
+            self._check_active()
+            positions.update(zip(seed.names, values, strict=True))
+            p, rotation = self._local_fk[arm].pose(positions)
+            # Use the same position/axis objective as MoveIt's local refinement.
+            return np.concatenate((p-np.asarray(target.position),
+                                   .14*(-rotation[:, 1]-approach),
+                                   .08*(rotation[:, 0]-closing)))
+
+        values = refine_pose(residual, seed.positions, bounds,
+                             self._config.pose_refinement_iterations)
+        solution = JointSolution(seed.names, values)
+        return self._alignment(solution, target, self.forward_kinematics(arm, solution))
 
     def _solve_progressive_pregrasp(self, request: PregraspRequest):
         """Prime compatible primary targets; retry only the requested candidate."""
@@ -774,12 +823,18 @@ class HybridGraspAdapter(MoveItGraspAdapter):
         return value
 
     def plan(self, arm: str, goal: JointSolution,
-             start: JointSolution | None) -> PlannedPath | None:
-        for attempt in range(self._hybrid_config.planning_retries+1):
+             start: JointSolution | None, *,
+             corridor: tuple[PoseValue, PoseValue] | None = None) -> PlannedPath | None:
+        attempts = 1 if getattr(self, '_fast_path_only', False) else self._hybrid_config.planning_retries+1
+        for attempt in range(attempts):
             self._check_active()
             began = self._monotonic()
             with self._progress.stage('MOVEIT_PLAN', f'arm={arm} attempt={attempt}'):
-                result = super().plan(arm, goal, start)
+                result = super().plan(arm, goal, start,
+                                      **({'try_joint_shortcut': False}
+                                         if attempt and start is None
+                                         and self._config.pregrasp_joint_shortcut_enabled else {}),
+                                      **({'corridor': corridor} if corridor is not None else {}))
             self.last_ik_statistics['planning_calls'].append({
                 'arm': arm, 'attempt': attempt, 'accepted': result is not None,
                 'route': getattr(self, 'last_plan_route', 'rrt'),
@@ -787,6 +842,14 @@ class HybridGraspAdapter(MoveItGraspAdapter):
             if result is not None:
                 return result
         return None
+
+    def plan_approach(self, arm, goal, start, start_pose, target_pose):
+        began = self._monotonic()
+        result = super().plan_approach(arm, goal, start, start_pose, target_pose)
+        self.last_ik_statistics['approach_calls'].append({
+            'arm': arm, 'accepted': result is not None,
+            'route': self.last_plan_route, 'wall_sec': self._monotonic()-began})
+        return result
 
     def solve_position_ik(self, arm, position, seed):
         raise InfrastructureError('Hybrid candidate IK requires an aligned TCP target')

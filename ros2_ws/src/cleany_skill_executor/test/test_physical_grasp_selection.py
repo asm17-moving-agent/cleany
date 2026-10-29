@@ -111,6 +111,7 @@ class DirectPort(FakePort):
 def test_direct_grasp_selection_survives_unused_pregrasp_plan_failure(arm):
     value = candidate(0, y=.2)
     legacy = DirectPort()
+    legacy.trajectory_alignment = lambda *_: TrajectoryAlignment(0., 0., 1)
     assert GraspSelector(legacy).select([value], required_arm=arm) is None
     assert any(call[0] == 'pregrasp_ik' for call in legacy.calls)
     direct = DirectPort()
@@ -350,7 +351,7 @@ def test_lazy_scene_port_does_not_report_unstarted_candidate_batches():
     assert not updates
 
 
-def test_second_plan_uses_pregrasp_as_explicit_start():
+def test_approach_plan_uses_pregrasp_as_explicit_start():
     port = FakePort()
     selected = GraspSelector(port).select([candidate(0, y=0.2)])
     grasp_plan = next(call for call in port.calls if call[0] == 'plan_grasp')
@@ -368,8 +369,14 @@ def test_target_contact_is_disallowed_for_pregrasp_and_allowed_for_grasp():
         ('contacts', None),
         ('contacts', 'left'),
         ('contacts', None),
-        ('contacts', 'left'),
     ]
+    for call in port.calls:
+        if call[0] == 'contacts':
+            current_contacts = call[1]
+        elif call[0] == 'plan_current':
+            assert current_contacts is None
+        elif call[0] == 'plan_grasp':
+            assert current_contacts == 'left'
 
 
 def test_all_pairs_failed_returns_none_and_cancel_stops_immediately():
@@ -524,8 +531,8 @@ def test_grasp_first_registers_final_targets_and_seeds_pregrasp_from_grasp():
     assert pregrasp_call[2].position == pytest.approx((.42, .2, .8))
     assert pregrasp_call[3] == selected.grasp
     plans = [c for c in port.calls if c[0].startswith('plan_')]
-    assert plans == [('plan_current', 'left', selected.pregrasp, None),
-                     ('plan_grasp', 'left', selected.grasp, selected.pregrasp)]
+    assert plans == [('plan_grasp', 'left', selected.grasp, selected.pregrasp),
+                     ('plan_current', 'left', selected.pregrasp, None)]
 
 
 @pytest.mark.parametrize('preparation_offset', [.08, .06, .04])
@@ -628,6 +635,60 @@ def test_shorter_pregrasp_fallback_preserves_cancellation_between_attempts():
             cancel_requested=lambda: any(c[0] == 'seeded_pregrasp' for c in port.calls))
     assert len([c for c in port.calls if c[0] == 'seeded_pregrasp']) == 1
     assert not any(c[0].startswith('plan_') for c in port.calls)
+
+
+@pytest.mark.parametrize('valid', [False, True])
+def test_approach_planner_hook_owns_validation_and_preserves_selected_endpoints(valid):
+    port = GraspFirstPort()
+    port.plan = lambda arm, goal, start: PlannedPath(goal.names, (goal.positions,))
+    port.trajectory_alignment = lambda *_: TrajectoryAlignment(0., 0., 1)
+    observed = []
+
+    def plan_approach(arm, goal, start, start_pose, target_pose):
+        observed.append((start_pose, target_pose))
+        return PlannedPath(goal.names, (start.positions, goal.positions)) if valid else None
+
+    port.plan_approach = plan_approach
+    port.validate_approach_path = lambda *_: pytest.fail('Validated hook must not repeat corridor validation')
+    config = GraspSelectionConfig(grasp_ik_first=True, require_approach_corridor=True)
+    result = GraspSelector(port, config).select([candidate(0, y=.2)], required_arm='left')
+    assert (result is not None) is valid
+    assert observed[0][0].position == pytest.approx((.42, .2, .8))
+    assert observed[0][1].position == pytest.approx((.5, .2, .8))
+
+
+@pytest.mark.parametrize('approach_ok,alignment_ok', [(False, True), (True, False), (True, True)])
+def test_scene_wrapper_checks_approach_before_spending_current_path_plan(approach_ok, alignment_ok):
+    from types import SimpleNamespace
+    from cleany_skill_executor.planning_scene import SceneAwarePort
+
+    port = GraspFirstPort()
+    phases, contacts = [], [None]
+    port.set_gripper_position = lambda *_: None
+    def approach(arm, goal, start, start_pose, target_pose):
+        assert contacts[0] == arm
+        phases.append('approach')
+        return PlannedPath(goal.names, (start.positions, goal.positions)) if approach_ok else None
+    def alignment(*args):
+        phases.append('alignment')
+        return TrajectoryAlignment(0., 0., 1) if alignment_ok else None
+    def current_path(arm, goal, start):
+        assert start is None and contacts[0] is None
+        phases.append('current_path')
+        return PlannedPath(goal.names, ((0.,), goal.positions))
+    port.plan_approach, port.plan, port.trajectory_alignment = approach, current_path, alignment
+    port.validate_approach_path = lambda *_: pytest.fail('Validated approach was checked twice')
+    def set_contacts(arm):
+        contacts[0] = arm
+        port.set_target_contacts(arm)
+    scene = SimpleNamespace(disallow_target_contacts=lambda: set_contacts(None),
+                            allow_contacts_for=set_contacts)
+    result = GraspSelector(SceneAwarePort(port, scene), GraspSelectionConfig(
+        grasp_ik_first=True, require_approach_corridor=True)).select(
+            [candidate(0, y=.2)], required_arm='left')
+    assert (result is not None) is (approach_ok and alignment_ok)
+    assert phases == (['approach'] + (['alignment'] if approach_ok else [])
+                      + (['current_path'] if approach_ok and alignment_ok else []))
 
 
 @pytest.mark.parametrize('offset', [-.01, .08, .09, float('nan'), float('inf')])

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, replace
 from copy import deepcopy
 import json
@@ -15,10 +15,10 @@ from typing import Any, Callable
 import numpy as np
 
 from action_msgs.msg import GoalStatus
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped
 from moveit_msgs.action import MoveGroup
 from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes, RobotState
-from moveit_msgs.srv import GetPositionFK, GetPositionIK, GetStateValidity
+from moveit_msgs.srv import GetCartesianPath, GetPositionFK, GetPositionIK, GetStateValidity
 from rclpy.action import ActionClient
 from sensor_msgs.msg import JointState
 
@@ -86,10 +86,23 @@ class MoveItAdapterConfig:
     pregrasp_position_tolerance_m: float | None = None
     state_validity_batch_size: int = 32
     pregrasp_joint_shortcut_enabled: bool = False
+    cartesian_approach_first: bool = False
+    cartesian_approach_step_m: float = 0.005
+    approach_joint_shortcut_enabled: bool = False
 
     def __post_init__(self):
         if type(self.use_verified_local_fk) is not bool:
             raise ValueError('Verified local FK switch must be boolean')
+        if type(self.cartesian_approach_first) is not bool:
+            raise ValueError('Cartesian approach switch must be boolean')
+        if self.cartesian_approach_first and not self.validate_motion_paths:
+            raise ValueError('Cartesian approaches require full path validation')
+        if type(self.approach_joint_shortcut_enabled) is not bool:
+            raise ValueError('Approach joint shortcut switch must be boolean')
+        if self.approach_joint_shortcut_enabled and not self.validate_motion_paths:
+            raise ValueError('Approach joint shortcuts require full path validation')
+        if not math.isfinite(self.cartesian_approach_step_m) or self.cartesian_approach_step_m <= 0:
+            raise ValueError('Cartesian approach step must be positive')
         if type(self.pregrasp_joint_shortcut_enabled) is not bool:
             raise ValueError('Pregrasp joint shortcut switch must be boolean')
         if self.pregrasp_joint_shortcut_enabled and not self.validate_motion_paths:
@@ -128,6 +141,7 @@ class MoveItGraspAdapter:
         fk_client: Any | None = None,
         validity_client: Any | None = None,
         plan_client: Any | None = None,
+        cartesian_client: Any | None = None,
         monotonic: Callable[[], float] = time.monotonic,
         spin_once: Callable[[float], None] | None = None,
     ) -> None:
@@ -141,6 +155,7 @@ class MoveItGraspAdapter:
             GetStateValidity, '/check_state_validity'
         )
         self._plan_client = plan_client or ActionClient(node, MoveGroup, '/move_action')
+        self._cartesian_client = cartesian_client
         self._monotonic = monotonic
         self._spin_once = spin_once or self._default_spin
         self._current_state: JointState | None = None
@@ -798,15 +813,29 @@ class MoveItGraspAdapter:
         if not lower <= min(opening, closing) <= max(opening, closing) <= upper:
             raise ValueError('Gripper sweep exceeds URDF limits')
         samples = max(1, math.ceil(abs(opening-closing)/step))
+        states = []
         for position in np.linspace(opening, closing, samples+1):
-            request = GetStateValidity.Request()
-            request.group_name = ''
-            request.robot_state = self._merged_state(solution)
-            state = request.robot_state.joint_state
+            robot_state = self._merged_state(solution)
+            state = robot_state.joint_state
             state.position[state.name.index(f'{arm}_gripper_joint')] = float(position)
-            if not self._call(self._validity_client, request,
-                              self._config.state_validity_timeout_sec).valid:
-                return False
+            states.append(robot_state)
+        batch = getattr(self, '_batch_validity', None)
+        size = batch.batch_size if batch is not None else 1
+        for offset in range(0, len(states), size):
+            self._check_active()
+            chunk = states[offset:offset+size]
+            response = (batch.check(chunk, lambda client, request: self._call(
+                client, request, self._config.state_validity_timeout_sec*len(chunk)))
+                if batch is not None else None)
+            if response is not None:
+                if response.first_invalid_index != -1:
+                    return False
+                continue
+            for state in chunk:
+                request = GetStateValidity.Request(robot_state=state, group_name='')
+                if not self._call(self._validity_client, request,
+                                  self._config.state_validity_timeout_sec).valid:
+                    return False
         return True
 
     def set_visibility_constraint(self, constraint):
@@ -824,6 +853,18 @@ class MoveItGraspAdapter:
             raise InfrastructureError('MoveIt did not evaluate visibility constraint')
         return bool(response.valid and response.constraint_result[0].result)
 
+    @contextmanager
+    def planning_pass(self, *, fast_only: bool):
+        """Scope an RRT-free candidate attempt; restore it on every exit."""
+        if type(fast_only) is not bool:
+            raise ValueError('Fast planning mode must be boolean')
+        previous = getattr(self, '_fast_path_only', False)
+        self._fast_path_only = fast_only
+        try:
+            yield
+        finally:
+            self._fast_path_only = previous
+
     def plan(
         self,
         arm: str,
@@ -832,16 +873,21 @@ class MoveItGraspAdapter:
         *,
         planner_id: str | None = None,
         trajectory_scaling: float | None = None,
+        corridor: tuple[PoseValue, PoseValue] | None = None,
+        try_joint_shortcut: bool = True,
     ) -> PlannedPath | None:
         if trajectory_scaling is not None and (
                 not math.isfinite(trajectory_scaling) or not 0 < trajectory_scaling <= 1):
             raise ValueError('Planning trajectory scaling must be in (0, 1]')
         self.last_plan_route = 'rrt'
-        if start is None and self._config.pregrasp_joint_shortcut_enabled:
+        if start is None and self._config.pregrasp_joint_shortcut_enabled and try_joint_shortcut:
             direct = self._direct_joint_path(arm, goal)
             if direct is not None:
                 self.last_plan_route = 'direct_joint'
                 return direct
+        if getattr(self, '_fast_path_only', False):
+            self.last_plan_route = 'rrt_deferred'
+            return None
         wait_timeout = self._config.planning_timeout_sec + self._config.planning_response_margin_sec
         if not self._plan_client.wait_for_server(timeout_sec=wait_timeout):
             raise InfrastructureError('MoveGroup action unavailable')
@@ -897,6 +943,8 @@ class MoveItGraspAdapter:
             tuple(getattr(trajectory, 'joint_names', goal.names)),
             tuple(tuple(float(value) for value in point.positions) for point in trajectory.points),
         )
+        if corridor is not None:
+            return self._validated_cubic_path(arm, path, corridor=corridor)
         return self._validated_cubic_path(arm, path) if self._config.validate_motion_paths else path
 
     def _direct_joint_path(self, arm: str, goal: JointSolution) -> PlannedPath | None:
@@ -928,7 +976,93 @@ class MoveItGraspAdapter:
         return MoveItGraspAdapter._timed_cubic_path(self, path).samples(
             self._config.validation_step_rad, 2, self._config.maximum_validation_states)
 
-    def _validated_cubic_path(self, arm, path, *, deadline_monotonic: float | None = None):
+    def plan_approach(self, arm, goal, start, start_pose, target_pose):
+        """Try validated joint/Cartesian approaches before the RRT fallback.
+
+        The Cartesian proposal is retimed and its wrist roll and exact joint
+        endpoints are restored before checking the final cubic. No validity
+        result is cached across scene changes or subsequent execution.
+        """
+        self._check_active()
+        if self._config.approach_joint_shortcut_enabled:
+            if start.names != ARM_JOINT_NAMES[arm] or goal.names != ARM_JOINT_NAMES[arm]:
+                raise InfrastructureError('Direct approach joint mapping mismatch')
+            try:
+                result = self._validated_cubic_path(
+                    arm, PlannedPath(start.names, (start.positions, goal.positions)),
+                    corridor=(start_pose, target_pose))
+            except ValueError:
+                result = None
+            if result is not None:
+                self.last_plan_route = 'direct_approach'
+                return result
+        if self._config.cartesian_approach_first:
+            progress = getattr(self, '_progress', None)
+            context = (progress.stage('CARTESIAN_APPROACH', f'arm={arm}')
+                       if progress is not None else nullcontext())
+            with context:
+                result = self._cartesian_approach(arm, goal, start, start_pose, target_pose)
+            if result is not None:
+                self.last_plan_route = 'cartesian_approach'
+                return result
+        # The RRT fallback validates one final cubic for both contracts. Do not
+        # retime and collision-check that same result again in the caller.
+        if getattr(self, '_fast_path_only', False):
+            self.last_plan_route = 'rrt_deferred'
+            return None
+        return self.plan(arm, goal, start, corridor=(start_pose, target_pose))
+
+    def _cartesian_approach(self, arm, goal, start, start_pose, target_pose):
+        self._check_active()
+        names = ARM_JOINT_NAMES[arm]
+        if start.names != names or goal.names != names:
+            raise InfrastructureError('Cartesian approach joint mapping mismatch')
+        if self._cartesian_client is None:
+            self._cartesian_client = self._node.create_client(GetCartesianPath, '/compute_cartesian_path')
+        request = GetCartesianPath.Request()
+        request.header.frame_id = self._config.base_frame
+        request.group_name, request.link_name = f'{arm}_grasp_arm', f'{arm}_grasp_tcp'
+        request.start_state = self._merged_state(start)
+        target = Pose()
+        target.position.x, target.position.y, target.position.z = target_pose.position
+        (target.orientation.x, target.orientation.y, target.orientation.z,
+         target.orientation.w) = target_pose.orientation_xyzw
+        request.waypoints = [target]
+        request.max_step = self._config.cartesian_approach_step_m
+        request.jump_threshold, request.revolute_jump_threshold = 2., .15
+        request.avoid_collisions = True
+        response = self._call(self._cartesian_client, request,
+                              self._config.planning_timeout_sec+self._config.planning_response_margin_sec)
+        if not math.isfinite(response.fraction) or not 0 <= response.fraction <= 1:
+            raise InfrastructureError('Invalid Cartesian approach fraction')
+        if response.error_code.val not in (
+                MoveItErrorCodes.SUCCESS, MoveItErrorCodes.PLANNING_FAILED,
+                MoveItErrorCodes.NO_IK_SOLUTION, MoveItErrorCodes.START_STATE_IN_COLLISION,
+                MoveItErrorCodes.GOAL_IN_COLLISION):
+            raise InfrastructureError('Cartesian approach service failed: '+str(response.error_code.val))
+        if response.error_code.val != MoveItErrorCodes.SUCCESS or response.fraction < 1.-1e-6:
+            return None
+        trajectory = response.solution.joint_trajectory
+        if tuple(trajectory.joint_names) != names or len(trajectory.points) < 2:
+            raise InfrastructureError('Malformed Cartesian approach response')
+        points = [tuple(p.positions) for p in trajectory.points]
+        if any(len(p) != len(names) or not all(math.isfinite(q) for q in p) for p in points):
+            raise InfrastructureError('Nonfinite Cartesian approach response')
+        # Position-only KDL may choose an arbitrary wrist roll. Check the path
+        # after preserving the selected roll transition, not the raw proposal.
+        points = [(*p[:-1], start.positions[-1]+(goal.positions[-1]-start.positions[-1])*
+                   index/(len(points)-1)) for index, p in enumerate(points)]
+        points[0], points[-1] = start.positions, goal.positions
+        try:
+            return self._validated_cubic_path(arm, PlannedPath(names, tuple(points)),
+                                              corridor=(start_pose, target_pose))
+        except ValueError:
+            # Invalid spline geometry or sample budget rejects this proposal;
+            # cancellation and infrastructure failures still propagate.
+            return None
+
+    def _validated_cubic_path(self, arm, path, *, deadline_monotonic: float | None = None,
+                              corridor=None):
         # Optional return refinement may yield to its budget; an incomplete
         # validation never authorizes a candidate. Normal planning has no deadline.
         def expired():
@@ -946,27 +1080,11 @@ class MoveItGraspAdapter:
                 lower, upper, _ = self._joint_limits[name]
                 if not lower <= value <= upper:
                     return None
-        batch = getattr(self, '_batch_validity', None)
-        size = batch.batch_size if batch is not None else self._config.state_validity_batch_size
-        for start in range(0, len(samples), size):
-            if expired():
-                return None
-            chunk = samples[start:start+size]
-            response = None
-            if batch is not None:
-                self._check_active()
-                states = [self._merged_state(JointSolution(path.joint_names, s.positions)) for s in chunk]
-                response = batch.check(states, lambda client, request: self._call(client, request,
-                    self._config.state_validity_timeout_sec * len(states)))
-            if response is not None:
-                if response.first_invalid_index != -1:
-                    return None
-            else:
-                for sample in chunk:
-                    if expired():
-                        return None
-                    if not self.state_is_valid(arm, JointSolution(path.joint_names, sample.positions)):
-                        return None
+        if corridor is not None and not MoveItGraspAdapter._corridor_samples_valid(
+                self, arm, path.joint_names, samples, *corridor):
+            return None
+        if not MoveItGraspAdapter._collision_samples_valid(self, arm, path.joint_names, samples, expired):
+            return None
         duration = cubic.minimum_duration(
             [self._joint_limits[name][2]*self._config.velocity_scaling for name in path.joint_names],
             [self._config.joint_acceleration_limit*self._config.acceleration_scaling]*len(path.joint_names))
@@ -977,12 +1095,40 @@ class MoveItGraspAdapter:
                            tuple(item.progress*duration for item in knots),
                            tuple(tuple(v/duration for v in item.derivatives) for item in knots))
 
-    def validate_approach_path(self, arm, path, start, target):
-        samples = []
-        for sample in self._path_samples(path):
-            solution = JointSolution(path.joint_names, sample.positions)
-            if not self.state_is_valid(arm, solution):
+    def _collision_samples_valid(self, arm, names, samples, expired=lambda: False):
+        batch = getattr(self, '_batch_validity', None)
+        size = batch.batch_size if batch is not None else self._config.state_validity_batch_size
+        for start in range(0, len(samples), size):
+            if expired():
                 return False
+            chunk = samples[start:start+size]
+            response = None
+            if batch is not None:
+                self._check_active()
+                states = [self._merged_state(JointSolution(names, s.positions)) for s in chunk]
+                response = batch.check(states, lambda client, request: self._call(client, request,
+                    self._config.state_validity_timeout_sec * len(states)))
+            if response is not None:
+                if response.first_invalid_index != -1:
+                    return False
+            else:
+                for sample in chunk:
+                    if expired():
+                        return False
+                    if not self.state_is_valid(arm, JointSolution(names, sample.positions)):
+                        return False
+        return True
+
+    def validate_approach_path(self, arm, path, start, target):
+        samples = self._path_samples(path)
+        return (MoveItGraspAdapter._collision_samples_valid(self, arm, path.joint_names, samples)
+                and MoveItGraspAdapter._corridor_samples_valid(
+                    self, arm, path.joint_names, samples, start, target))
+
+    def _corridor_samples_valid(self, arm, names, command_samples, start, target):
+        samples = []
+        for sample in command_samples:
+            solution = JointSolution(names, sample.positions)
             pose = self.forward_kinematics(arm, solution)
             approach, closing = axis_errors_degrees(target.orientation_xyzw, pose.orientation_xyzw)
             if (approach > self._config.approach_tolerance_degrees

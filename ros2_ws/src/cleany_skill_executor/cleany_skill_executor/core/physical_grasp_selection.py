@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from contextlib import nullcontext
 from enum import Enum
 import math
 import time
@@ -166,6 +167,8 @@ class GraspSelectionConfig:
     require_approach_corridor: bool = False
     require_pregrasp_visibility: bool = False
     stop_after_first_feasible: bool = False
+    deduplicate_candidates: bool = False
+    fast_candidate_paths_first: bool = False
     pregrasp_motion_enabled: bool = True
     direct_grasp_shortcut_enabled: bool = False
     grasp_ik_first: bool = False
@@ -213,9 +216,12 @@ class GraspSelectionConfig:
             raise ValueError('asymmetric gripper enable must be boolean')
         if type(self.stop_after_first_feasible) is not bool:
             raise ValueError('First feasible selection switch must be boolean')
-        for name in ('pregrasp_motion_enabled', 'direct_grasp_shortcut_enabled', 'grasp_ik_first'):
+        for name in ('pregrasp_motion_enabled', 'direct_grasp_shortcut_enabled',
+                     'grasp_ik_first', 'deduplicate_candidates', 'fast_candidate_paths_first'):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(name+' must be boolean')
+        if self.fast_candidate_paths_first and not (self.grasp_ik_first and self.stop_after_first_feasible):
+            raise ValueError('Fast candidate paths require grasp-first, first-feasible selection')
         if self.fixed_jaw_closing_axis_sign not in (-1.0, 1.0):
             raise ValueError('fixed jaw closing-axis sign must be -1 or 1')
         if (not math.isfinite(self.fixed_jaw_tcp_offset_m)
@@ -524,6 +530,20 @@ class GraspSelector:
                 raise InterruptedError('grasp selection canceled')
 
         attempts = self._evaluation_order(ranked, required_arm, check_canceled)
+        if self._config.deduplicate_candidates:
+            unique, seen = [], set()
+            for candidate, arm in attempts:
+                check_canceled()
+                # Only exact geometry/opening duplicates share an attempt.
+                # Keep the first candidate's ranking, identity and arm order.
+                key = (arm, replace(candidate, score=0., source_index=0))
+                if key in seen:
+                    feedback(candidate.source_index, arm, EvaluationStage.OPENING,
+                             'duplicate candidate geometry skipped')
+                    continue
+                seen.add(key)
+                unique.append((candidate, arm))
+            attempts = unique
         if not self._config.pregrasp_motion_enabled:
             return self._select_direct(attempts, check_canceled, feedback)
 
@@ -552,21 +572,34 @@ class GraspSelector:
         best_selection: Selection | None = None
         best_wrist_key: tuple[float, float, int] | None = None
         feasible_candidates: set[int] = set()
+        fast_first = self._config.fast_candidate_paths_first
+        planning_pass = getattr(self._port, 'planning_pass', None)
+        if fast_first and planning_pass is None:
+            raise InfrastructureError('Fast candidate paths require a scoped planning port')
+        deferred_paths: list[tuple[Candidate, str]] = []
+        ik_pairs: dict[tuple[int, str], tuple[PoseAlignment, PoseAlignment, PoseValue]] = {}
+
+        def planning_scope(fast_only: bool):
+            return planning_pass(fast_only=fast_only) if fast_first else nullcontext()
 
         def evaluation_passes():
             begin = getattr(self._port, 'begin_candidate_pass', None)
             deferred = begin(False) if begin is not None else False
-            yield from attempts
+            yield from ((candidate, arm, fast_first) for candidate, arm in attempts)
             check_canceled()
-            if not grasp_first and deferred and begin(True):
+            if fast_first and deferred_paths:
+                feedback(deferred_paths[0][0].source_index, required_arm,
+                         EvaluationStage.PLAN_GRASP, 'fast paths exhausted; trying deferred RRT')
+                yield from ((candidate, arm, False) for candidate, arm in deferred_paths)
+            elif not grasp_first and deferred and begin(True):
                 # The ROS feedback candidate_index is uint32; identify the
                 # first retried candidate instead of using a negative sentinel.
                 feedback(attempts[0][0].source_index if attempts else 0, required_arm,
                          EvaluationStage.GRASP_IK if grasp_first else EvaluationStage.PREGRASP_IK,
                          'primary candidates exhausted; retrying deferred IK')
-                yield from attempts
+                yield from ((candidate, arm, False) for candidate, arm in attempts)
 
-        for candidate, arm in evaluation_passes():
+        for candidate, arm, fast_only in evaluation_passes():
             if id(candidate) in feasible_candidates:
                 continue
             index = candidate.source_index
@@ -599,8 +632,16 @@ class GraspSelector:
             set_gripper = getattr(self._port, 'set_gripper_position', None)
             if set_gripper is not None:
                 set_gripper(arm, gripper_position)
-            pair = self._ik_pair(
-                candidate, arm, pregrasp_target, grasp_target, check_canceled, feedback, latencies)
+            pair_key = (id(candidate), arm)
+            pair = ik_pairs.get(pair_key)
+            if pair is None:
+                pair = self._ik_pair(
+                    candidate, arm, pregrasp_target, grasp_target, check_canceled, feedback, latencies)
+                if pair is not None and fast_first:
+                    ik_pairs[pair_key] = pair
+            else:
+                feedback(index, arm, EvaluationStage.POSE_ALIGNMENT,
+                         'reusing endpoint IK; rechecking current scene')
             if pair is None:
                 continue
             pregrasp, grasp, pregrasp_target = pair
@@ -626,29 +667,34 @@ class GraspSelector:
                 continue
             latencies.append(('state_validity', self._monotonic() - started))
             check_canceled()
-            self._port.set_target_contacts(None)
-            started = self._monotonic()
-            feedback(index, arm, EvaluationStage.PLAN_PREGRASP, 'planning')
-            pregrasp_path = self._port.plan(arm, pregrasp.solution, None)
-            latencies.append(('plan_pregrasp', self._monotonic() - started))
-            check_canceled()
-            if not pregrasp_path:
-                continue
-            self._port.set_target_contacts(arm)
+            # Reject an unusable short approach before planning the long entry.
+            # Target contacts remain allowed only for this grasp connection.
             started = self._monotonic()
             feedback(index, arm, EvaluationStage.PLAN_GRASP, 'planning')
-            grasp_path = self._port.plan(arm, grasp.solution, pregrasp.solution)
+            approach_planner = (getattr(self._port, 'plan_approach', None)
+                                if self._config.require_approach_corridor else None)
+            # This optional port returns a path already checked for the same
+            # collision and corridor contract, including its fallback route.
+            with planning_scope(fast_only):
+                grasp_path = (approach_planner(arm, grasp.solution, pregrasp.solution,
+                                              pregrasp_target, grasp_target)
+                              if approach_planner is not None else
+                              self._port.plan(arm, grasp.solution, pregrasp.solution))
             latencies.append(('plan_grasp', self._monotonic() - started))
             check_canceled()
             if not grasp_path:
+                if fast_only:
+                    deferred_paths.append((candidate, arm))
                 continue
-            if self._config.require_approach_corridor:
+            if self._config.require_approach_corridor and approach_planner is None:
                 if not isinstance(grasp_path, PlannedPath):
                     raise InfrastructureError('Approach validation requires a trajectory')
                 if not self._port.validate_approach_path(
                         arm, grasp_path, pregrasp_target, grasp_target):
                     feedback(index, arm, EvaluationStage.TRAJECTORY_ALIGNMENT,
                              'RRT approach leaves the permitted corridor')
+                    if fast_only:
+                        deferred_paths.append((candidate, arm))
                     continue
             trajectory = TrajectoryAlignment(0.0, 0.0, 0)
             feedback(index, arm, EvaluationStage.TRAJECTORY_ALIGNMENT, 'checking FK samples')
@@ -663,7 +709,20 @@ class GraspSelector:
                 latencies.append(('trajectory_alignment', self._monotonic() - started))
                 check_canceled()
                 if trajectory is None or not trajectory.within(self._config):
+                    if fast_only:
+                        deferred_paths.append((candidate, arm))
                     continue
+            self._port.set_target_contacts(None)
+            started = self._monotonic()
+            feedback(index, arm, EvaluationStage.PLAN_PREGRASP, 'planning')
+            with planning_scope(fast_only):
+                pregrasp_path = self._port.plan(arm, pregrasp.solution, None)
+            latencies.append(('plan_pregrasp', self._monotonic() - started))
+            check_canceled()
+            if not pregrasp_path:
+                if fast_only:
+                    deferred_paths.append((candidate, arm))
+                continue
             selection = Selection(
                 index, arm, candidate, pregrasp.solution, grasp.solution,
                 gripper_position, pregrasp, grasp, trajectory,

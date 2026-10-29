@@ -13,6 +13,7 @@ grasp_selection_server:
     approach_tolerance_degrees: 30.0
     closing_tolerance_degrees: 30.0
     stop_after_first_feasible: true
+    deduplicate_candidates: true
     # Reorder only equivalent 180-degree pairs using local measured-state FK.
     # Prefer the fixed jaw toward base_link +Y when estimated roll travel ties.
     prefer_near_wrist_grasp_direction: true
@@ -25,6 +26,10 @@ grasp_selection_server:
     validate_motion_paths: true
     # Validate a direct joint cubic first; keep RRT for obstructed connections.
     pregrasp_joint_shortcut_enabled: true
+    cartesian_approach_first: true
+    # Check the final joint cubic and corridor before asking Cartesian IK/RRT.
+    approach_joint_shortcut_enabled: true
+    cartesian_approach_step_m: 0.005
     # Do not reject physical candidates solely for head-camera self-occlusion.
     require_pregrasp_visibility: false
     use_verified_local_fk: true

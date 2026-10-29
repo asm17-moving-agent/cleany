@@ -336,10 +336,12 @@ class CuRoboBatchAdapter(CuRoboGraspAdapter):
     def _score_batch(self, arm, targets, solutions, state, preferred_rolls=None):
         # One FK batch derives exact roll angles, then a second scores all
         # bounded variants. Keep candidate ownership through both expansions.
-        originals = [q for group in solutions for q in group]
-        original_poses = iter(self._compute(
-            self._engine.fk, arm, f'{arm}_grasp_tcp', originals, state)
-            if self._config.align_wrist_roll and originals else [])
+        originals = list(dict.fromkeys(q for group in solutions for q in group))
+        # FK depends on the joints and this operation's frozen full state,
+        # not on the target that owns a proposal. Never retain poses across calls.
+        poses_by_solution = dict(zip(originals, self._compute(
+            self._engine.fk, arm, f'{arm}_grasp_tcp', originals, state), strict=True)) \
+            if self._config.align_wrist_roll and originals else {}
         if preferred_rolls is None:
             preferred_rolls = [state.get(ARM_JOINT_NAMES[arm][-1])] * len(targets)
         variants, owners = [], []
@@ -351,15 +353,18 @@ class CuRoboBatchAdapter(CuRoboGraspAdapter):
                               if self._config.align_wrist_roll else list(self._wrist_variants(q)))
                 if self._config.align_wrist_roll:
                     candidates += self._aligned_wrist_variants(
-                        q, targets[index], next(original_poses), preferred_roll)
+                        q, targets[index], poses_by_solution[q], preferred_roll)
                 for variant in candidates:
                     unique[tuple(round(v, 7) for v in variant.positions)] = variant
             variants.extend(unique.values())
             owners.extend([index] * len(unique))
-        poses = self._compute(self._engine.fk, arm, f'{arm}_grasp_tcp', variants, state)
+        missing = list(dict.fromkeys(q for q in variants if q not in poses_by_solution))
+        if missing:
+            poses_by_solution.update(zip(missing, self._compute(
+                self._engine.fk, arm, f'{arm}_grasp_tcp', missing, state), strict=True))
         output = [[] for _ in targets]
-        for i, q, pose in zip(owners, variants, poses, strict=True):
-            output[i].append(self._alignment(q, targets[i], pose))
+        for i, q in zip(owners, variants, strict=True):
+            output[i].append(self._alignment(q, targets[i], poses_by_solution[q]))
         return output
 
     def _score(self, arm, target, solutions, state):

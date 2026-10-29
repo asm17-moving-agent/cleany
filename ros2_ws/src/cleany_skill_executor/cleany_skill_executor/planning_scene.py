@@ -413,6 +413,15 @@ class SceneAwarePort:
     def plan(self, arm, goal, start):
         return self._adapter.plan(arm, goal, start)
 
+    @property
+    def planning_pass(self):
+        return getattr(self._adapter, 'planning_pass', None)
+
+    @property
+    def plan_approach(self):
+        """Expose the optional validated approach planner through this port."""
+        return getattr(self._adapter, 'plan_approach', None)
+
     def plan_direct_grasp(self, arm, goal):
         return self._adapter.plan_direct_grasp(arm, goal)
 

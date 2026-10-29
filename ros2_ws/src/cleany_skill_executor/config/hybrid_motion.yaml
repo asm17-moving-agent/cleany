@@ -14,6 +14,9 @@ grasp_selection_server:
     # Reuse one captured batch shape for pregrasp and single-target grasp IK.
     curobo_ik_adaptive_batch_size: false
     curobo_ik_progressive_pregrasp: true
+    # Refine an existing grasp seed locally; failed checks retain GPU search.
+    curobo_ik_seeded_local_ik: true
+    approach_joint_shortcut_enabled: true
     curobo_ik_defer_candidate_retries: true
     curobo_ik_warmup_enabled: false
     # Start only during an actual VLM request; never gate runtime readiness.
@@ -30,6 +33,8 @@ grasp_selection_server:
     curobo_ik_retry_failed_candidates: true
     curobo_ik_pregrasp_retry_passes: 0
     stop_after_first_feasible: true
+    fast_candidate_paths_first: true
+    deduplicate_candidates: true
     # Approximate GPU proposal cost only; full MoveIt state/path checks remain.
     curobo_spheres_per_link: 64
     curobo_sphere_budget_per_link: 16
