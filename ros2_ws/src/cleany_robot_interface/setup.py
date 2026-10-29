@@ -10,7 +10,7 @@ setup(
         ('share/cleany_robot_interface/launch', glob('launch/*.launch.py')),
         ('share/cleany_robot_interface/config', glob('config/*')),
     ],
-    install_requires=['setuptools', 'feetech-servo-sdk==1.0.0', 'pyserial==3.5', 'PyYAML', 'matplotlib'],
+    install_requires=['setuptools', 'feetech-servo-sdk==1.0.0', 'pyserial==3.5', 'PyYAML'],
     entry_points={'console_scripts': [
         'arm_state_reader = cleany_robot_interface.reader:main',
         'robot_state_reader = cleany_robot_interface.robot_state_reader:main',

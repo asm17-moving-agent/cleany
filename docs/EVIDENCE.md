@@ -20,6 +20,21 @@ ROS 2 Humble과 MoveIt 2.5.9에서 별도 빌드 경로로 검사했다.
 환경, 입력 소스를 식별하는 `changes.patch`, 로그와 JUnit 원본은
 `/home/cleany/cleany-data/reports/pr-a-trim-20261029T185419Z/`에 보관한다.
 
+### PR 65 미사용 설정 정리 검증 (2026-10-30)
+
+갱신된 PR 64를 병합한 `197de90`에 이 절과 함께 반영한 정리 패치를 적용했다.
+TCP와 중복 손목 보정 3개, 기본 Xacro가 사용하지 않는 미리보기 인자와
+matplotlib 의존성을 제거했다. 기존 미리보기와 새 미리보기의 URDF hash는 같다.
+Jetson Ubuntu 22.04 ARM64, Humble과 MoveIt 2.5.9의 새 경로에 6개 패키지를
+빌드했고 삭제한 설정의 부재와 설치된 설정, launch 5개의 소스 일치를 확인했다.
+
+`make test-jetson-control` 163개, `make test-jetson-controller` 21개와 C++ 드라이버
+11개가 통과했다. 기존 제어 검사는 모두 유지했으며 실패와 skip은 없다.
+가상 시리얼과 합성 입력만 사용했고 실물 모터와 전체 workspace 검사는 실행하지 않았다.
+기존 Xacro 경고와 C++ 테스트의 write 반환값 경고는 유지된다.
+소스 패치, 환경, 로그, JUnit과 설치 및 URDF 비교 근거는
+`/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr65/`에 보관한다.
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의

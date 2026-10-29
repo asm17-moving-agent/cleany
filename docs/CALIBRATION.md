@@ -165,3 +165,6 @@ make handeye-validate-mujoco \
 `cleany_robot_interface`의 상태 프로파일은 기존 엔코더 보정과 카메라 외부 보정을
 읽어 실물 모델을 생성합니다.
 기록된 보정의 적용 범위와 정확도는 원본 metadata를 따릅니다.
+
+손목 외부 보정은 `cleany_description/config/calibration/jetson_20261009/`에서
+관리합니다. 실물 모델에는 `calibration_profile:=jetson_20261009`로 적용합니다.
