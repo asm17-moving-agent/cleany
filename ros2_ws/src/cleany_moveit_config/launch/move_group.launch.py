@@ -117,6 +117,8 @@ def _launch_setup(context):
                     allow_trajectory_execution, value_type=bool
                 ),
                 'publish_robot_description_semantic': True,
+                'capabilities': 'cleany/StateValidityBatch',
+                'collision_detector': LaunchConfiguration('collision_detector'),
                 'trajectory_execution.allowed_execution_duration_scaling': (
                     ParameterValue(
                         execution_duration_scaling, value_type=float
@@ -147,6 +149,7 @@ def _launch_setup(context):
             moveit_config.joint_limits,
             moveit_config.planning_pipelines,
             {
+                'collision_detector': LaunchConfiguration('collision_detector'),
                 'use_sim_time': ParameterValue(
                     use_sim_time, value_type=bool
                 )
@@ -168,6 +171,7 @@ def generate_launch_description() -> LaunchDescription:
                                  choices=['true', 'false'],
                                  description='Keep the Humble controller plugin mapped through node teardown.'),
             DeclareLaunchArgument('use_rviz', default_value='false'),
+            DeclareLaunchArgument('collision_detector', default_value='cleany/SolidFCL'),
             DeclareLaunchArgument('use_sim_time', default_value='false'),
             DeclareLaunchArgument('simulation_bins_config', default_value=''),
             DeclareLaunchArgument('enable_gripper_execution', default_value='false', choices=['true', 'false']),

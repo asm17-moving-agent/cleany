@@ -3,6 +3,24 @@
 MoveGroup 내부에서 전체 장면에 대한 복수 로봇 관절 상태의 충돌 및 유효성을 일괄 검사하는 배치 플러그인(`cleany/StateValidityBatch`)입니다.
 `cleany_moveit_config`의 실물 및 Mock 런타임에 기본 로드되며, IPC(프로세스 간 통신) 오버헤드를 획기적으로 줄여 파지 후보 필터링 속도를 높입니다.
 
+`cleany/SolidFCL` 충돌 플러그인은 최적화 메시의 닫힌 볼록 조각을 FCL Convex로
+읽습니다. 삼각형 표면을 가로지르지 않고 조각 내부에 완전히 포함된 장애물도
+검출하며, 조각 사이의 틈과 링크별 좌표계는 유지합니다. 오목하거나 열린 조각은
+초기화를 거부합니다. world, ACM, attached object와 거리 쿼리는 기존 FCL 처리를
+사용합니다. 부착 메시와 world 메시 자체를 볼록 형상으로 바꾸지는 않습니다.
+
+자기 충돌 검사는 매 요청의 자세로 링크별 바깥 경계 상자를 다시 만들고,
+서로 떨어져 있거나 현재 ACM에서 항상 허용한 링크 쌍을 먼저 제외합니다.
+남은 부품 쌍은 기존 FCL callback으로 검사하므로 조건부 허용과 attached
+touch link도 적용됩니다. 이전 자세의 충돌 결과는 재사용하지 않습니다.
+거리 요청은 기존 FCL 탐색을 사용하며, 비어 있는 world의 일반 충돌 요청은
+로봇 검색 구조를 만들지 않습니다.
+
+실물, Mock와 시뮬레이션의 MoveIt launch가 이 detector를 선택합니다. 배치
+capability 초기화 시 요청한 detector와 실제 detector가 다르면 node를 종료합니다.
+원본 CAD를 비교할 때는 `collision_detector:=FCL`을 명시해야 합니다.
+
+
 ## 1. 인터페이스 규격
 
 - **서비스 명칭**: `/check_state_validity_batch`

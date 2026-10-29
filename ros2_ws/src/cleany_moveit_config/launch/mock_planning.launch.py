@@ -90,6 +90,7 @@ def generate_launch_description() -> LaunchDescription:
                 'allow_trajectory_execution': True,
                 'publish_robot_description_semantic': True,
                 'capabilities': 'cleany/StateValidityBatch',
+                'collision_detector': LaunchConfiguration('collision_detector'),
                 'use_sim_time': ParameterValue(use_sim_time, value_type=bool),
             },
         ],
@@ -112,12 +113,14 @@ def generate_launch_description() -> LaunchDescription:
             moveit_config.joint_limits,
             moveit_config.planning_pipelines,
             common_parameters,
+            {'collision_detector': LaunchConfiguration('collision_detector')},
         ],
     )
 
     return LaunchDescription(
         [
             DeclareLaunchArgument('use_rviz', default_value='true'),
+            DeclareLaunchArgument('collision_detector', default_value='cleany/SolidFCL'),
             DeclareLaunchArgument('use_sim_time', default_value='false'),
             DeclareLaunchArgument('include_head_camera', default_value='false', choices=['true', 'false']),
             DeclareLaunchArgument('head_tilt_initial', default_value='0.405'),

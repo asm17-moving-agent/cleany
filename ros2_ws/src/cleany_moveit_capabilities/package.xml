@@ -10,6 +10,8 @@
   <depend>builtin_interfaces</depend>
   <depend>moveit_msgs</depend>
   <depend>moveit_core</depend>
+  <depend>geometric_shapes</depend>
+  <depend>libfcl-dev</depend>
   <depend>moveit_ros_move_group</depend>
   <depend>moveit_ros_planning_interface</depend>
   <depend>pluginlib</depend>

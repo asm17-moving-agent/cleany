@@ -18,7 +18,7 @@ _domains = itertools.count(os.getpid())
 
 
 @contextlib.contextmanager
-def moveit_runtime(tmp_path, *, head=False, octomap=False, robot_model_file=None):
+def moveit_runtime(tmp_path, *, head=False, octomap=False, robot_model_file=None, collision_detector='cleany/SolidFCL'):
     domain = str(120 + next(_domains) % 60)
     previous_localhost = os.environ.get('ROS_LOCALHOST_ONLY')
     os.environ['ROS_LOCALHOST_ONLY'] = '1'
@@ -42,6 +42,7 @@ def moveit_runtime(tmp_path, *, head=False, octomap=False, robot_model_file=None
         process = subprocess.Popen([
             'ros2', 'launch', 'cleany_moveit_config', 'physical_move_group.launch.py',
             'use_rviz:=false', 'allow_trajectory_execution:=false',
+            f'collision_detector:={collision_detector}',
             f'include_head_camera:={str(head).lower()}',
             f'enable_depth_octomap:={str(octomap).lower()}',
             *([f'robot_description_file:={robot_model_file}'] if robot_model_file else []),

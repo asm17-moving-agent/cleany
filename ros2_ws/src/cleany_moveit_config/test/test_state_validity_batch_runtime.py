@@ -1,5 +1,6 @@
 """Compare the extension with native MoveIt: no motor or camera processes."""
 import json
+import math
 import os
 import time
 from copy import deepcopy
@@ -15,6 +16,40 @@ from test_head_collision_runtime import state
 
 pytestmark = pytest.mark.skipif(os.environ.get('CLEANY_TEST_BATCH_VALIDITY') != '1',
     reason='Enable with make test-manipulation-speed')
+
+
+def timed_path_samples(current, trajectory):
+    """Check timing and sample the position/velocity/acceleration quintics."""
+    times = [p.time_from_start.sec + p.time_from_start.nanosec/1e9 for p in trajectory.points]
+    assert times[0] == 0. and all(b > a for a, b in zip(times, times[1:]))
+    assert all(math.isfinite(v) for p in trajectory.points
+               for values in (p.positions, p.velocities, p.accelerations) for v in values)
+    samples = []
+    def add(positions):
+        sample = deepcopy(current)
+        merged = {**dict(zip(sample.joint_state.name, sample.joint_state.position)),
+                  **dict(zip(trajectory.joint_names, positions))}
+        sample.joint_state.position = [merged[name] for name in sample.joint_state.name]
+        samples.append(sample)
+    add(trajectory.points[0].positions)
+    for i, (first, last) in enumerate(zip(trajectory.points, trajectory.points[1:])):
+        dt = times[i+1]-times[i]
+        assert len(first.velocities) == len(first.accelerations) == len(trajectory.joint_names)
+        assert len(last.velocities) == len(last.accelerations) == len(trajectory.joint_names)
+        coefficients = []
+        for q0, v0, a0, q1, v1, a1 in zip(first.positions, first.velocities, first.accelerations,
+                                         last.positions, last.velocities, last.accelerations):
+            c0, c1, c2 = q0, v0*dt, a0*dt*dt/2
+            dq, dv, da = q1-c0-c1-c2, v1*dt-c1-2*c2, a1*dt*dt-2*c2
+            coefficients.append((c0, c1, c2, 10*dq-4*dv+da/2, -15*dq+7*dv-da, 6*dq-3*dv+da/2))
+        # Bernstein coefficients bound the quartic derivative on [0, 1].
+        bound = max(abs(sum((k+1)*c[k+1]*math.comb(i, k)/math.comb(4, k)
+                            for k in range(i+1))) for c in coefficients for i in range(5))
+        count = max(2, math.ceil(bound/.01))
+        for step in range(1, count+1):
+            u = step/count
+            add([sum(value*u**power for power, value in enumerate(c)) for c in coefficients])
+    return samples
 
 
 @pytest.mark.parametrize('side', ['left', 'right'])
@@ -51,13 +86,9 @@ def test_return_planner_loads_fast_profile_and_rejects_a_blocked_scene(tmp_path,
         assert trajectory.points
         duration = trajectory.points[-1].time_from_start
         assert duration.sec + duration.nanosec/1e9 > 0
-        samples = []
-        for point in trajectory.points:
-            sample = deepcopy(current)
-            positions = {**dict(zip(sample.joint_state.name, sample.joint_state.position)),
-                         **dict(zip(trajectory.joint_names, point.positions))}
-            sample.joint_state.position = [positions[name] for name in sample.joint_state.name]
-            samples.append(sample)
+        assert all(abs(value-target[name]) <= .00011
+                   for name, value in zip(trajectory.joint_names, trajectory.points[-1].positions))
+        samples = timed_path_samples(current, trajectory)
         batch = node.create_client(CheckStateValidityBatch, '/check_state_validity_batch')
         for start in range(0, len(samples), 32):
             checked = call(node, process, batch,
@@ -65,7 +96,13 @@ def test_return_planner_loads_fast_profile_and_rejects_a_blocked_scene(tmp_path,
             assert checked.success and checked.first_invalid_index == -1
         (tmp_path/f'{side}-return-planning.json').write_text(json.dumps({
             'wall_sec': elapsed, 'planner_sec': result.planning_time,
-            'waypoints': len(samples), 'settings': settings}, indent=2))
+            'waypoints': len(trajectory.points), 'checked_samples': len(samples),
+            'duration_sec': duration.sec + duration.nanosec/1e9, 'settings': settings}, indent=2))
+        invalid = deepcopy(request)
+        invalid.motion_plan_request.max_velocity_scaling_factor = -1.
+        rejected = call(node, process, planner, invalid).motion_plan_response
+        assert rejected.error_code.val == rejected.error_code.INVALID_MOTION_PLAN
+        assert not rejected.trajectory.joint_trajectory.points
         obstacle = CollisionObject(id='blocked_return', operation=CollisionObject.ADD)
         obstacle.header.frame_id = 'base_link'
         obstacle.primitives = [SolidPrimitive(type=SolidPrimitive.BOX, dimensions=[4., 4., 4.])]

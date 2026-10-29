@@ -100,6 +100,18 @@ public:
   void initialize() override
   {
     auto node = context_->moveit_cpp_->getNode();
+    std::string requested;
+    if (node->get_parameter("collision_detector", requested) && !requested.empty())
+    {
+      planning_scene_monitor::LockedPlanningSceneRO scene(context_->planning_scene_monitor_);
+      if (scene->getCollisionDetectorName() != requested)
+      {
+        RCLCPP_FATAL(node->get_logger(), "Requested collision detector %s did not load (active: %s)",
+                     requested.c_str(), scene->getCollisionDetectorName().c_str());
+        rclcpp::shutdown();
+        throw std::runtime_error("Collision detector mismatch; refusing planning services");
+      }
+    }
     service_ = node->create_service<BatchValidity>("check_state_validity_batch",
         [this, node](const std::shared_ptr<BatchValidity::Request> request,
                      const std::shared_ptr<BatchValidity::Response> response) {

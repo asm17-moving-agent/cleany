@@ -64,6 +64,7 @@ def _launch_nodes(context):
         'allow_trajectory_execution': ParameterValue(LaunchConfiguration('allow_trajectory_execution'), value_type=bool),
         'publish_robot_description_semantic': True,
         'capabilities': 'cleany/StateValidityBatch',
+        'collision_detector': value('collision_detector'),
         'trajectory_execution.allowed_execution_duration_scaling': ParameterValue(
             LaunchConfiguration('allowed_execution_duration_scaling'), value_type=float),
         'trajectory_execution.allowed_goal_duration_margin': ParameterValue(
@@ -78,7 +79,7 @@ def _launch_nodes(context):
         arguments=['-d', str(Path(config.package_path) / 'config/moveit.rviz')],
         parameters=[config.robot_description, config.robot_description_semantic,
                     config.robot_description_kinematics, config.joint_limits,
-                    config.planning_pipelines, {'use_sim_time': ParameterValue(
+                    config.planning_pipelines, {'collision_detector': value('collision_detector'), 'use_sim_time': ParameterValue(
                         LaunchConfiguration('use_sim_time'), value_type=bool)}])
     return [move_group, rviz]
 
@@ -86,6 +87,7 @@ def _launch_nodes(context):
 def generate_launch_description() -> LaunchDescription:
     defaults = {
         'use_rviz': 'false', 'use_sim_time': 'false',
+        'collision_detector': 'cleany/SolidFCL',
         'robot_description_file': '', 'controllers_file': '', 'joint_limits_file': '',
         'include_head_camera': 'false', 'enable_depth_octomap': 'false',
         'depth_octomap_plugin': 'cleany_scene_mapping/KnownGeometryOctomapUpdater',

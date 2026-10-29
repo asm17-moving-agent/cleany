@@ -181,8 +181,9 @@ def _call_service(
 
 def _robot_state(positions: dict[str, float]) -> RobotState:
     state = RobotState()
-    state.joint_state.name = list(ALL_JOINTS)
-    state.joint_state.position = [positions.get(name, 0.0) for name in ALL_JOINTS]
+    state.joint_state.name = [*ALL_JOINTS, *(name for name in (
+        'head_pan_joint', 'head_tilt_joint') if name in positions)]
+    state.joint_state.position = [positions.get(name, 0.0) for name in state.joint_state.name]
     return state
 
 
@@ -480,7 +481,8 @@ def _stop_process(process: subprocess.Popen[bytes]) -> None:
     process.wait(timeout=5.0)
 
 
-def test_per_arm_position_ik_plan_and_execute() -> None:
+@pytest.mark.parametrize('include_head', [False, True])
+def test_per_arm_position_ik_plan_and_execute(include_head: bool) -> None:
     domain_id = 60 + os.getpid() % 120
     os.environ['ROS_DOMAIN_ID'] = str(domain_id)
 
@@ -496,6 +498,7 @@ def test_per_arm_position_ik_plan_and_execute() -> None:
                 'cleany_moveit_config',
                 'mock_planning.launch.py',
                 'use_rviz:=false',
+                f'include_head_camera:={str(include_head).lower()}',
             ],
             stdout=log_stream,
             stderr=subprocess.STDOUT,
@@ -553,8 +556,9 @@ def test_per_arm_position_ik_plan_and_execute() -> None:
                     log_path=log_path,
                 )
 
+            head_positions = {'head_pan_joint': 0.023, 'head_tilt_joint': 0.405} if include_head else {}
             _wait_for(
-                lambda: set(ALL_JOINTS) <= set(latest_joint_positions),
+                lambda: set(ALL_JOINTS) | set(head_positions) <= set(latest_joint_positions),
                 timeout_sec=30.0,
                 node=node,
                 process=process,
@@ -562,7 +566,9 @@ def test_per_arm_position_ik_plan_and_execute() -> None:
                 description='all modeled /joint_states',
             )
 
-            home_state = _robot_state({})
+            for name, value in head_positions.items():
+                assert latest_joint_positions[name] == pytest.approx(value)
+            home_state = _robot_state(head_positions)
             _assert_state_valid(
                 validity_client,
                 home_state,
@@ -595,7 +601,7 @@ def test_per_arm_position_ik_plan_and_execute() -> None:
                     log_path=log_path,
                 )
                 seed = _robot_state(
-                    {f'{side}_wrist_roll_joint': wrist_roll_seed}
+                    {**head_positions, f'{side}_wrist_roll_joint': wrist_roll_seed}
                 )
                 identity_solution = _solve_position_ik(
                     ik_client,
@@ -704,6 +710,9 @@ def test_per_arm_position_ik_plan_and_execute() -> None:
                     + (target_position.z - feedback_position.z) ** 2
                 )
                 assert feedback_error < 1e-3
+        except Exception:
+            print(_log_tail(log_path))
+            raise
         finally:
             node.destroy_node()
             rclpy.shutdown()
