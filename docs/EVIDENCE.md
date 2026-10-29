@@ -17,3 +17,12 @@ fixture와 asset은 별도로 전달받고 hash를 확인합니다.
 `certificates.npz`는 asset의 `coverage_certificate_sha256`으로 확인하며,
 입력 URDF, 변경 전후 구, 실행 환경과 결과는 같은 디렉터리의
 `current.urdf`, `head-repair.json`, `validation.json`에서 확인합니다.
+
+브랜치 정리 전에 사용한 일회성 성능 비교와 배포 확인 도구는
+`CLEANY_DATA_ROOT/reports/branch-cleanup-20261030T025733/retired-files.tar.gz`에
+원래 경로로 보존합니다. `retired-files.json`은 파일별 hash와 정리 사유,
+`source-before.tar.gz`는 정리 전 브랜치 변경 파일의 사본입니다.
+
+과거 고정 입력을 재생하거나 폐기된 실행 구성을 검사하던 GPU 실험은 같은
+디렉터리의 `retired-gpu-experiments.tar.gz`와 파일별 사유를 담은
+`retired-gpu-experiments.json`에 보관합니다.

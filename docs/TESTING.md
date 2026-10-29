@@ -460,45 +460,41 @@ Jetson 실물 관련 패키지를 수정한 경우 관련 네이티브 패키지
 make test-jetson-controller JETSON_CONTROLLER_TEST_ARGS='-k "readonly_controllers_cannot_activate_or_execute or shared_bus_readonly_has_no_writes"'
 ```
 
-## Pregrasp와 그리퍼의 대기 및 명령 간소화
+## 조작 실행 회귀 검사
 
-`test_collision_preparation`은 상태 메시지의 메타데이터와 독립성, 전체 표본의
-clearance 검사, 준비 중 취소와 마지막 RPC 전 확인을 검증합니다.
-`test_action_tracking`은 제어 연결 재사용 시 실행 소유권, 지연 수락 취소,
-미확정 명령이 남은 연결의 재사용 거부와 종료 시 한 번만 해제됨을 확인합니다.
-`test_execution_optimization`은 예비 센서 대기 통합 후 최종 검사와 정리를 확인합니다.
+`make test-jetson-packages`는 조작 경로의 CPU/합성 ROS 회귀를 실행한다.
+특정 변경을 확인할 때는 `JETSON_PYTEST_ARGS='-k "필터"'`로 아래 묶음을 선택한다.
+테스트는 가짜 제어 포트를 사용하며 실물 파지 성공률이나 이동 시간을 측정하지 않는다.
 
-`benchmark_execution_preparation.py --baseline /path/to/source-before --output /path/to/result.json`은
-Jetson에서 보존한 변경 전 소스와 현재 소스의 준비 시간을 비교합니다.
-전체 관절 상태와 표본을 동일하게 유지하고 충돌 RPC를 기록용 응답으로
-대체합니다. 제어 연결 비교는 별도 `ROS_DOMAIN_ID`와 `ROS_LOCALHOST_ONLY=1`에서
-`/cleany_validation_motion_pool/` 아래의 즉시 성공 시험 서버를 사용합니다.
-실제 제어기와 모터는 사용하지 않으며 서버 재생성 후 같은 연결도 확인합니다.
-반복 사용과 첫 연결 시간을 구분하고, 이 결과를 물리 동작 전체 시간으로
-보고하지 않습니다.
+| 변경 범위 | pytest 필터 | 확인하는 계약 |
+|---|---|---|
+| 경로와 그리퍼 준비 | `execution_optimization or pregrasp_gripper_efficiency or collision_preparation` | 충돌 표본, 취소, 제어 연결과 센서 대기 재사용 |
+| 후보 선택과 예열 | `fast_candidate or vlm_warmup or return_window` | 후보 순서, RRT 대체 경로, 요청 내부 IK 재사용 |
+| 병렬 조회와 명령 표본 | `readonly_services or sparse_commands` | 동일 cubic 경로, 단일 응답 기한, 실패 시 pending 정리 |
+| 후퇴와 복귀 | `return_preparation or release_retreat_efficiency or height_correction_runtime` | 측정 상태 재검사, 손목 방향, 요청 사이 준비 공유 |
+| 기록과 고정 자세 복귀 | `reverse_pickup_return or fixed_arm_return or arm_return_motion` | 재생 완료/취소, 설정별 충돌 검사와 관절 한계 |
+| 시작 준비 상태 | `full_scene_history or runtime_readiness or preparation_optimization` | 예열 실패/재시도, 14개 관절의 신선하고 연속된 정지 이력 |
 
-배포 후 `verify_execution_preparation_install.py --deployment /path/to/deployment.json`으로
-설치된 네 실행 모듈의 hash와 연결 재사용을 확인합니다. Motion container에서는
-`--container`를 추가해 설치된 두 skill executor 모듈을 확인합니다.
-이 설치 검사는 ROS 노드나 모터 명령을 실행하지 않습니다.
+ROS 노드의 시작 준비까지 검사할 때는 `CLEANY_TEST_PIPELINE_RUNTIME=1`을 지정한다.
+과거 버전과의 성능 비교 스크립트와 당시 보고서는 [실행 원본 위치](EVIDENCE.md)에서 찾는다.
 
-모터 연결 없이 `make test-jetson-packages`의 `JETSON_PYTEST_ARGS`에
-`-k "test_pregrasp_gripper_efficiency or test_execution_optimization or test_hardware_collection or test_joint_path or test_recorded_trajectory or test_front_shoulder_bounds or test_state_validity_batch or test_sensor_scene"`를 전달합니다.
-정확한 전체 관절 수집 이력, stale 및 복구 거부, 최종 캘리브레이션 검사,
-그리퍼 곡선과 검사 표본 보존, 64개 배치의 경계 실패 인덱스를 확인합니다.
+## 배포한 소스와 설정 확인
 
-계산 시간 비교는 ROS 환경을 source한 Jetson에서
-`python3 tools/validation/benchmark_pregrasp_gripper.py --baseline-joint-path /path/to/before/joint_path.py --output /path/to/benchmark.json`으로 실행합니다.
-기록된 닫기와 열기 끝점에 같은 속도 및 가속도 한계를 적용하고 변경 전후를
-번갈아 측정합니다. 준비 계산, 메시지 직렬화와 예정 궤적 시간을 구분하며
-이 결과로 실제 모터 이동 시간이나 전체 실행 단축량을 확정하지 않습니다.
+개별 최적화마다 확인 스크립트를 만들지 않고, 배포 receipt의 `files` 항목에 있는
+`path`와 `after_sha256`을 현재 Python import 경로와 ament share의 파일에 대조한다.
+Python 패키지, config, launch, URDF와 mesh가 검사 대상이며 다른 항목은 출력의
+`skipped`에 명시한다. 설정값과 기능 동작은 위 회귀 검사로 확인한다.
 
-배포 후 `verify_pregrasp_gripper_install.py --deployment /path/to/deployment.json`으로
-native 설치 파일과 설정을 확인합니다. Motion container에서는 같은 도구에
-`--container`를 추가합니다. 실물 확인에서는 새 실행 ID의 단계 시간과
-`controller_points`, `command_samples`, `gripper_contact_wait`, 시작 수락 시각을
-함께 기록합니다.
+```bash
+python3 tools/validation/verify_installed_sources.py \
+  --deployment /path/to/deployment.json \
+  --packages cleany_skill_executor cleany_manipulation_bt
+```
 
+복사 설치를 사용하는 motion container에서는 설치된 패키지만 선택하고
+`--resolved-root /opt/cleany-motion/workspace/install`을 추가한다. Native symlink
+설치에서는 원본 소스 경로로 연결되므로 `--resolved-root`를 생략한다.
+원하는 패키지의 기록이 없거나 파일이 누락/불일치하면 실패한다. ROS 노드나 모터를 시작하지 않는다.
 
 ## s와 m의 저장 영상 TensorRT 비교
 
@@ -552,27 +548,6 @@ native overlay를 설정한 뒤 `python3 tools/validation/verify_approved_target
 조작 Goal을 보내지 않습니다. 각 재확인 시간, 결과와 관측 값은 `verification.json`,
 제안 이미지는 출력의 `operator/proposals/`에 남습니다.
 
-
-## 조작 CPU 기하 성능 비교
-
-변경 전 소스의 상대 경로를 유지한 사본과 materialized URDF를 준비한 뒤 실행한다.
-소스 사본에는 perception의 `core/geometry.py`, grasping의 `core/selector.py`와
-skill executor의 `core/urdf_fk.py`가 필요하다.
-
-```bash
-python3 tools/validation/benchmark_manipulation_geometry.py \
-  --baseline-root /absolute/source-before \
-  --urdf /absolute/runtime.urdf \
-  --output /absolute/benchmark.json
-```
-
-검사는 고정 seed의 640×480과 1280×720 깊이 영상, outlier 유무가 다른 지지 평면,
-12개와 1,000개 파지 후보 및 URDF의 관절 한계 안에서 생성한 각 팔 2,000개 상태를
-사용한다. 전후 입력을 교차 실행해 중앙값과 개별 시간을 저장한다. 점군, 평면과
-후보 순서의 동일성, FK 수치 오차도 검사한다. 모터와 모델 추론을 호출하지 않으며
-이 수치는 전체 수거 시간이나 실물 파지 성공률을 뜻하지 않는다.
-
-
 ## MoveIt 최적화 형상과 MuJoCo 동등성 검사
 
 `make test-description-models`는 ROS 2와 MuJoCo, NumPy, SciPy 환경에서
@@ -622,7 +597,7 @@ tools/validation/verify_deployed_collision_models.py`로 검사합니다. 기본
 
    ```bash
    python3 tools/validation/analyze_execution_bottlenecks.py \
-     --source output/collision-e2e-audit-20261024 --output output/execution-bottleneck-20261025
+     --source /path/to/captured-run --output /path/to/analysis
    ```
 
    전체 단계 시간에서 명시 타이머와 명령 궤적 시간을 뺀 값은 미분리 시간입니다.
@@ -645,156 +620,13 @@ cuRobo의 CUDA 한계 tensor, 반환 해의 범위와 독립 FK 오차도 확인
 검증 도구 자체는 모터와 ROS 서비스에 명령을 보내지 않습니다.
 실물 이동이나 실시간 장애물 장면의 검증을 대신하지 않습니다.
 
+## Qwen 재생성 결과 검증
 
-## 후보별 빠른 경로 우선 선택과 기록 복귀 준비
-
-ROS 2 Humble 환경에서 다음 검사는 모터 명령 없이 fake planner와 제어 포트를
-사용한다. 새 정책의 후보 순서, RRT 보류와 대체 계획, 요청 내부 IK 재사용,
-최신 장면 재검사, 취소 시 복구, 팔별 워밍업 순서와 기록 구간의 단일 모델
-검증을 확인한다.
-
-```bash
-make test-jetson-packages \
-  JETSON_PYTEST_ARGS='-k "fast_candidate or vlm_warmup or return_window"'
-```
-
-배포 후 `tools/validation/verify_selection_return_install.py --deployment PATH`로
-native 설치본을 확인하고 motion container에서는 같은 명령에 `--container`를
-추가한다. manifest에 기록된 실행 소스 hash와 설치된 hybrid 설정을 대조하며
-ROS 노드나 모터를 시작하지 않는다. 이 검사는 실제 한 사이클 소요시간을
-측정하지 않는다.
-
-
-## 모델 조회 병렬화와 sparse cubic 명령
-
-모터 대체 포트로 후보 동작을 검증하려면 Jetson에서 다음을 실행한다. 조밀한
-검사 표본 보존, 같은 곡선의 재현, 중간 자세, 동기 시작, 기록 재생, 충돌 거부,
-지연 수락, 조회 실패와 취소 후 pending request 정리를 검사한다.
-
-```bash
-make test-jetson-packages \
-  JETSON_PYTEST_ARGS='-k "readonly_services or sparse_commands or physical_pregrasp_dispatches"'
-```
-
-ROS 2 Humble과 native overlay를 source한 뒤 다음 명령으로 메시지 준비 및
-격리된 서비스 통신 시간을 비교한다. 입력은 보존된 관절 경로 JSON이며
-제어기 sampler probe를 시스템의 `joint_trajectory_controller` 라이브러리와
-연결해 빌드한다. 검사점 전체와 cubic 경계 양옆을 포함한 시각에서 비교한다.
-
-```bash
-ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=226 \
-python3 tools/validation/benchmark_query_commands.py \
-  --inputs output/further-execution-audit-20261029/command-inputs.json \
-  --output output/query-command-transport-check
-```
-
-서비스 시험은 `/cleany_query_probe/` 아래 전용 노드만 사용한다. 세 조회는
-같은 배타 callback group, 한 조회는 다른 서버를 사용하며 지연 0ms와 3ms의
-합성 작업을 비교한다. 실제 하드웨어/MoveIt 서비스 시간이나 전체 사이클
-절감량은 아니다. 제어기 Action이나 모터 명령을 보내지 않는다.
-`benchmark.json`, `jtc-build.log`와 각 sampler 입력을 출력 위치에 보존한다.
-설치 확인은 `verify_query_command_install.py --deployment PATH`를 사용하며
-motion container에는 `--container`를 추가한다.
-
-
-## 놓은 뒤 후퇴와 본 복귀의 준비 공유
-
-Jetson의 ROS 2 환경에서 모터 대체 포트로 다음을 실행한다.
-
-```bash
-make test-jetson-packages \
-  JETSON_PYTEST_ARGS='-k "return_preparation or readonly_services or release_retreat_efficiency"'
-```
-
-검사는 순차 후퇴/본 복귀, 도착 실패 후 명령 차단, 엄격한 도착 확인에서만
-FK 재사용, 전체 관절 변화, 목표 변화, 모델 변화, 통신 복구, 추가 명령,
-응답 수신 중 만료와 미사용 요청 정리를 확인한다. 실제 Cartesian 실행
-어댑터를 모터 대체 포트와 연결해 중복 측정 FK 호출의 생략도 확인한다.
-실물 이동시간이나 전체 사이클 단축은 이 검사로 측정하지 않는다.
-
-`verify_return_handoff_install.py --deployment PATH`로 native 설치 모듈과
-Jetson 설정을 확인한다. motion container에는 `--container`를 추가한다.
-이 명령은 설치 모듈 hash를 비교하며 ROS 노드나 모터를 시작하지 않는다.
-
-
-### 시작 GPU 예열과 전체 관절 정지 이력
-
-Jetson에서 다음 검사로 예열 완료 전 준비 상태 차단, 중단 후 재시도,
-14개 관절 이력, 머리 이동과 누락, 피드백 재발행과 통신 복구를 확인한다.
-
-```bash
-CLEANY_TEST_PIPELINE_RUNTIME=1 make test-jetson-packages \
-  JETSON_PYTEST_ARGS='-k "full_scene_history or runtime_readiness or physical_grasp_selection_node or preparation_optimization"'
-```
-
-`tools/validation/benchmark_ik_startup_warmup.py`는 motion container에서 저장된
-선택 통계와 runtime URDF로 `--mode interrupted`와 `--mode completed`를 각각
-새 프로세스에서 비교한다. `--statistics PATH --runtime PATH`를 지정하며
-GPU 준비 시간과 동일 8개 후보의 첫 요청 시간을 분리한다. 모터 명령은 없다.
-
-`tools/validation/benchmark_scene_history_live.py --before BEFORE_PY --after AFTER_PY
---output RESULT_JSON`은 정지한 실물의 같은 전체 피드백을 두 실행기에 입력하고
-현재 깊이 장면의 대기 시간을 동시에 비교한다. 실제 센서의 최신성 조건을
-유지하며 모터 명령 없이 실행한다. 이 결과는 이동 중인 전체 작업 시간의
-실측을 대신하지 않는다.
-
-
-## 삭제한 Qwen 모델 재생성
-
-Jetson에는 `qwen3-vl-2b`의 엔진과 외부 가중치만 보존한다.
-`qwen3-vl-4b`, `qwen3.5-0.8b`, `qwen3.5-2b`, `qwen3.5-4b`는 재생성이 필요하다.
-[재생성 lock](../configs/models/qwen-tensorrt-rebuild.lock.json)에 원본 저장소,
-고정 revision, 가중치 크기와 SHA-256, 양자화 방식과 빌드 인자를 기록했다.
-원본은 고정 revision에서 다시 내려받으며 엔진은 Jetson에서 다시 빌드한다.
-
-공통 SDK와 Python 환경은 유지한다. 재생성 기록은 Jetson의
-`/home/cleany/cleany-data/reports/qwen-model-retention-20261029/`와 로컬
-`../cleany-data/reports/qwen-model-retention-20261029/`에 있다.
-여기에는 실행 당시 변환 스크립트와 재포장 스크립트, `sources.json`,
-원본 설정, 변환과 검증 기록, Python 패키지 목록, SDK 패치와 CMake 설정을 둔다.
-로컬 `sdk-source.tar.gz`는 패치가 적용된 SDK 소스와 그 Python 의존성의
-스냅샷이며, 삭제한 모델 가중치나 엔진의 백업은 아니다.
-
-1. 기존 기록과 다른 새 출력 경로와 실제 존재하는 사진을 지정한다.
-   기존 `conversion.json`의 `validated`는 과거 검증 결과다. 원래 폴더를
-   그대로 쓰면 변환기가 완료된 작업으로 판단해 재생성을 건너뛴다.
-
-   ```bash
-   QWEN_RECORD=/home/cleany/cleany-data/reports/qwen-model-retention-20261029
-   QWEN_REBUILD_ROOT=/home/cleany/cleany-data/reports/qwen-rebuild-new
-   QWEN_IMAGE=/absolute/path/to/image.png
-   ```
-
-2. 네 모델을 순서대로 재생성한다. 한 모델만 필요하면 명령 끝에
-   `qwen3.5-2b`처럼 모델 이름을 추가한다. 이 실행 파일은 보존한
-   `qwen3-vl-2b`를 변경하지 않고 기존 출력 디렉터리를 거부한다.
-
-   ```bash
-   bash "$QWEN_RECORD/rebuild.sh" "$QWEN_REBUILD_ROOT" "$QWEN_IMAGE"
-   ```
-
-   변환기는 원본 가중치의 크기와 SHA-256을 확인하고 필요한 경우 AWQ로
-   재포장한다. 프로필은 배치 1, 입력 2048토큰, KV cache 4096토큰,
-   이미지 512토큰이다. 한 모델의 원본과 재포장 가중치를 동시에 둘 공간이
-   필요하며, 모델별 사전 공간 검사에 실패하면 다음 모델로 넘어가지 않는다.
-
-3. 각 모델의 새 `conversion.json`이 `validated`이고
-   `smoke-verification.json`의 `passed`가 참인지 확인한다.
-   새 `engines/`와 `checkpoint` 경로로 사진 추론을 확인한 뒤 사용한다.
-   과거 벤치마크 이미지는 삭제했으므로 이전 성능 비교를 반복하려면
-   별도로 입력 이미지를 준비해야 한다.
-
-## 역재생 후퇴의 손목 방향
-
-역재생 후퇴의 손목 유지와 검사 목표 일치는 `test_height_correction_runtime.py`에서 양팔의 합성 FK와 가짜 실행 포트로 검사한다. 접근 전과 잡은 뒤 손목 각도가 약 27도 다른 경우를 통과시키고, 위치 목표의 변경 없이 이동 전후 위치 오류와 새 목표 방향에 대한 21도 도착 오류를 계속 거부하는지 확인한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "height_correction_runtime or arrival_approach"'`로 관련 검사를 실행한다.
-
-## 기록 역재생 운반
-
-기록 역재생 운반의 단일 명령 완료와 도착 검사 생략은 `test_reverse_pickup_return.py`와 `test_arrival_approach.py`에서 검사한다. 과거 높이 오류 0.0169204755m, 낮은 도착 및 큰 관절 오차에서도 추가 이동이나 위치 재검사 없이 놓기로 진행하는지 확인한다. 컨트롤러 실패와 취소가 후속 놓기를 차단하는지도 가짜 모터 전송으로 확인한다.
-
-## 고정 중간 자세 복귀
-
-고정 중간 자세 복귀의 충돌 설정은 `test_fixed_arm_return.py`, 동기 실행의 충돌 생략과 관절 제한은 `test_hardware_collection.py`에서 검사한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "fixed_arm_return or arm_return_motion or hardware_collection or execution_optimization"'`로 관련 검사를 선택할 수 있다. 가짜 모터 전송을 사용하므로 실물 복귀 성공을 의미하지 않는다.
+삭제한 모델의 재생성은 [실행 가이드](RUNNING.md)와
+[재생성 lock](../configs/models/qwen-tensorrt-rebuild.lock.json)을 따른다.
+새 출력의 `conversion.json`이 `validated`이고 `smoke-verification.json`의
+`passed`가 참인지 확인한 뒤 해당 경로에서 사진 추론을 검증한다.
+과거 `validated` 결과나 기존 출력 폴더를 새 실행의 근거로 사용하지 않는다.
 
 ## 충돌 구의 독립 부품 포함 검사
 
