@@ -59,7 +59,8 @@ def test_reduced_arm_geometry_preserves_collision_detection_and_planning(tmp_pat
         assert {source_resource(collision) for _, collision in collision_resources} == PROBE_MESHES
         report = {'random_valid': [], 'surface_contacts': [], 'surface_contact_details': [],
                   'planning_success': False}
-        with moveit_runtime(directory, head=True, robot_model_file=model) as (node, process):
+        with moveit_runtime(directory, head=True, robot_model_file=model,
+                            collision_detector='cleany/SolidFCL' if mode == 'true' else 'FCL') as (node, process):
             validity = node.create_client(GetStateValidity, '/check_state_validity')
             fk = node.create_client(GetPositionFK, '/compute_fk')
             apply = node.create_client(ApplyPlanningScene, '/apply_planning_scene')

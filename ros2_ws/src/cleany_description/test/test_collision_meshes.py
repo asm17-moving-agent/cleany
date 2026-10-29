@@ -110,6 +110,8 @@ def test_committed_assets_meet_component_geometry_bounds(filename):
         normal = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
         if not surface:
             assert np.all(np.einsum('ij,ij->i', normal, triangles.mean(axis=1) - candidate.vertices.mean(axis=0)) > 0)
+            unit = normal / np.linalg.norm(normal, axis=1, keepdims=True)
+            assert (candidate.vertices @ unit.T - np.einsum('ij,ij->i', unit, triangles[:, 0])).max() <= 1e-9
         # Enclosures contain complete source triangles; the surface branch
         # instead certifies both complete surfaces by adaptive subdivision.
 
@@ -143,6 +145,18 @@ def test_mesh_toggle_changes_only_selected_collision_resources(entrypoint, head_
                      if mesh.get('filename') not in expected]
         assert set(remaining) == set(SETTINGS['already_planar_meshes'])
     assert ET.tostring(original) == ET.tostring(reduced)
+
+
+@pytest.mark.parametrize('entrypoint', ['cleany.urdf.xacro', 'cleany_control.urdf.xacro'])
+def test_default_model_uses_the_optimized_collision_resources(entrypoint):
+    command = ['xacro', str(PACKAGE / 'urdf' / entrypoint), 'include_head_camera:=true']
+    default = ET.fromstring(subprocess.check_output(command))
+    explicit = ET.fromstring(subprocess.check_output(command + [
+        'optimized_arm_collision_meshes:=true', 'head_collision_meshes:=true']))
+    def resources(root):
+        return [m.attrib for m in root.findall('./link/collision/geometry/mesh')]
+    assert resources(default) == resources(explicit)
+    assert any('/meshes/collision/' in m['filename'] for m in resources(default))
 
 
 def test_partition_retains_lower_arm_fork_and_complete_source_surface():

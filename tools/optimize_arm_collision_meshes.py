@@ -22,7 +22,7 @@ from collision_surface_geometry import directed_bound
 import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
-from scipy.spatial import ConvexHull, HalfspaceIntersection
+from scipy.spatial import ConvexHull, HalfspaceIntersection, QhullError
 
 
 STL_DTYPE = np.dtype([('normal', '<f4', (3,)), ('vertices', '<f4', (3, 3)), ('attribute', '<u2')])
@@ -223,6 +223,89 @@ def stl_bytes(mesh: Mesh) -> bytes:
     return b'Cleany enclosing collision mesh; original CAD preserved'.ljust(80, b' ') + struct.pack('<I', len(records)) + records.tobytes()
 
 
+def searched_enclosure(mesh: Mesh, settings: dict, variant: str, scale: float) -> tuple[Mesh, dict]:
+    """Replay a reviewed seed orientation and optional supporting-plane pruning.
+
+    Keep the source partition unchanged. Certify native STL-unit float32
+    coordinates, including containment of complete source triangles. Selected
+    variants are config data so a sphere-incompatible patch can keep its legacy
+    enclosure without changing the sphere model.
+    """
+    if variant not in ('xyz', 'xyz_pruned', 'principal_axes', 'principal_axes_pruned'):
+        raise ValueError('Unknown enclosure search variant: ' + variant)
+    source = ConvexHull(mesh.vertices)
+    center = mesh.vertices.mean(0)
+    basis = np.eye(3)
+    if variant.startswith('principal_axes'):
+        centered = mesh.vertices-center
+        basis = np.linalg.eigh(centered.T @ centered)[1].T
+    normals = np.vstack((basis, -basis))
+    planes = np.column_stack((normals, -(mesh.vertices @ normals.T).max(0)-settings['enclosure_margin_m']))
+    selected = set()
+    limit = settings['max_hull_expansion_m']
+    for _ in range(settings['max_iterations']):
+        vertices = HalfspaceIntersection(planes, center).intersections
+        bounds, limiting = radial_bounds(vertices, source, center)
+        if bounds.max() <= limit*.99:
+            break
+        for index in np.argsort(-bounds):
+            face = int(limiting[index])
+            if face not in selected:
+                selected.add(face)
+                plane = source.equations[face].copy()
+                plane[3] = -(mesh.vertices @ plane[:3]).max()-settings['enclosure_margin_m']
+                planes = np.vstack((planes, plane))
+                break
+        else:
+            raise ValueError('No unused enclosure supporting plane')
+    else:
+        raise ValueError('Enclosure search iteration limit exceeded')
+
+    def evaluate(halfspaces: np.ndarray, bound_limit: float) -> tuple[Mesh, dict]:
+        with np.errstate(divide='raise', invalid='raise'):
+            points = HalfspaceIntersection(halfspaces, center).intersections
+        if not np.isfinite(points).all():
+            raise ValueError('Nonfinite enclosure intersection')
+        points = (points/scale).astype(np.float32).astype(float)*scale
+        hull = ConvexHull(points)
+        violation = maximum_plane_violation(mesh.vertices, hull.equations)
+        bound = float(radial_bounds(points, source, center)[0].max())
+        if violation > 0 or bound > bound_limit:
+            raise ValueError('Serialized enclosure violates source geometry bounds')
+        faces = hull.simplices.copy()
+        triangles = points[faces]
+        normals = np.cross(triangles[:, 1]-triangles[:, 0], triangles[:, 2]-triangles[:, 0])
+        reverse = np.einsum('ij,ij->i', normals, hull.equations[:, :3]) < 0
+        faces[reverse] = faces[reverse][:, [0, 2, 1]]
+        used, inverse = np.unique(faces, return_inverse=True)
+        result = Mesh(points[used], inverse.reshape(-1, 3))
+        return result, {'source_vertices': len(mesh.vertices), 'source_triangles': len(mesh.faces),
+            'vertices': len(result.vertices), 'triangles': len(result.faces),
+            'maximum_source_plane_violation_m': violation,
+            'max_expansion_from_component_hull_m': bound,
+            'source_convex_hull_volume_m3': float(source.volume), 'output_volume_m3': float(hull.volume),
+            'enclosure_variant': variant}
+
+    best, report = evaluate(planes, limit)
+    if not variant.endswith('_pruned'):
+        return best, report
+    best, report = evaluate(planes, limit*.99)
+    while True:
+        changed = False
+        for index in reversed(range(len(planes))):
+            if len(planes) <= 4:
+                break
+            trial = np.delete(planes, index, axis=0)
+            try:
+                candidate, check = evaluate(trial, limit*.99)
+            except (ValueError, QhullError, FloatingPointError):
+                continue
+            if len(candidate.faces) <= len(best.faces):
+                best, report, planes, changed = candidate, check, trial, True
+        if not changed:
+            return best, report
+
+
 def surface_decimation(source: Mesh, settings: dict, image: str) -> tuple[Mesh, dict]:
     worker = Path(__file__).with_name('decimate_collision_surface.py').resolve()
     request = {'vertices': source.vertices.tolist(), 'faces': source.faces.tolist(),
@@ -253,14 +336,43 @@ def surface_decimation(source: Mesh, settings: dict, image: str) -> tuple[Mesh, 
 def optimize(source: Mesh, settings: dict, filename: str = '') -> tuple[Mesh, list[dict]]:
     vertices, faces, reports = [], [], []
     offset = 0
-    for index, part in source_pieces(source, settings, filename):
+    pieces = source_pieces(source, settings, filename)
+    variants = settings.get('enclosure_variants', {}).get(filename, ['current']*len(pieces))
+    if len(variants) != len(pieces):
+        raise ValueError('Enclosure variants do not match the source partitions')
+    for piece_index, (index, part) in enumerate(pieces):
         surface = settings.get('surface_components', {}).get(filename, {}).get(str(index))
         if surface:
             result, report = surface_decimation(part, surface, settings['surface_simplifier_image'])
+        elif variants[piece_index] != 'current':
+            result, report = searched_enclosure(part, settings, variants[piece_index],
+                                                settings.get('mesh_scales', {}).get(filename, 1.))
         else:
             result, report = enclosing_hull(part,
                 max_expansion=settings['max_hull_expansion_m'], margin=settings['enclosure_margin_m'],
                 max_iterations=settings['max_iterations'], planes_per_iteration=settings['planes_per_iteration'])
+        if not surface:
+            # Native-unit STL rounding can change nearly coplanar triangles,
+            # especially for millimetre CAD. Retriangulate the actual stored
+            # vertices so each exported component is a convex solid, not just
+            # a point cloud whose convex hull meets the enclosure certificate.
+            scale = settings.get('mesh_scales', {}).get(filename, 1.)
+            rounded = (result.vertices/scale).astype(np.float32).astype(float)*scale
+            hull = ConvexHull(rounded)
+            hull_faces = hull.simplices.copy()
+            triangles = rounded[hull_faces]
+            normals = np.cross(triangles[:, 1]-triangles[:, 0], triangles[:, 2]-triangles[:, 0])
+            reverse = np.einsum('ij,ij->i', normals, hull.equations[:, :3]) < 0
+            hull_faces[reverse] = hull_faces[reverse][:, [0, 2, 1]]
+            used, inverse = np.unique(hull_faces, return_inverse=True)
+            result = Mesh(rounded[used], inverse.reshape(-1, 3))
+            violation = maximum_plane_violation(part.vertices, hull.equations)
+            bound = float(radial_bounds(result.vertices, ConvexHull(part.vertices), part.vertices.mean(0))[0].max())
+            if violation > 0 or bound > settings['max_hull_expansion_m']:
+                raise ValueError('Native STL rounding violates enclosure bounds')
+            report.update(vertices=len(result.vertices), triangles=len(result.faces),
+                          maximum_source_plane_violation_m=violation,
+                          max_expansion_from_component_hull_m=bound, output_volume_m3=float(hull.volume))
         vertices.append(result.vertices)
         faces.append(result.faces + offset)
         offset += len(result.vertices)

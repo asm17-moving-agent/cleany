@@ -1,9 +1,9 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:include filename="wrist_mount_v8.xacro" />
   <!-- Physical collection can use the validated head CAD collision surfaces. -->
-  <xacro:arg name="head_collision_meshes" default="false"/>
+  <xacro:arg name="head_collision_meshes" default="true"/>
   <!-- Separate enclosing arm collision assets; visual CAD and inertia stay exact. -->
-  <xacro:arg name="optimized_arm_collision_meshes" default="false"/>
+  <xacro:arg name="optimized_arm_collision_meshes" default="true"/>
   <xacro:property name="arm_collision_directory" value="${'collision/' if '$(arg optimized_arm_collision_meshes)'.lower() in ('true', '1') else ''}"/>
   <xacro:macro name="cleany_link_properties" params="link_name">
     <xacro:if value="${link_name == 'base_link'}">

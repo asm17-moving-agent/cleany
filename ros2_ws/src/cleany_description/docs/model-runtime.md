@@ -88,8 +88,10 @@ The simulated wrist cameras and optical sites/bodies use the v8 geometry
 registration's lens centre and CV axes. The camera renderer reverses optical
 Y/Z to use its -Z viewing convention. Sorting's nominal wrist transform config
 matches this pose; the measured Jetson calibration profile remains independent.
-Regression checks compare visual and collision poses, dimensions and colors
-across backends; motor translation comparisons allow `2e-6` m for CAD rounding.
+Regression checks compare the original URDF collision model with MJCF, including
+poses, dimensions and colors. The planning model separately preserves visuals,
+inertia and joints; both original and optimized motor collision placements are
+checked against MJCF. Motor translation comparisons allow `2e-6` m for CAD rounding.
 Existing CAD files are reused without regenerating assets or changing joint
 kinematics. This coverage does not by itself prove collision-free execution.
 
@@ -187,8 +189,13 @@ for the CAD launcher, wheel odometry geometry, and simulation limitations.
 ## 선택적 충돌 메시 평면화
 
 `optimized_arm_collision_meshes`는 기존 이름을 유지하며 팔, 모터, 머리와 마스트의
-경량 충돌 메시를 선택한다. 기본값은 `false`이고, 실물 수거 프로필
-`configs/robot/camera_preview.json`은 `true`를 사용한다. 시각 모델, 관성,
+경량 충돌 메시를 선택한다. 기본값은 `true`이고 `head_collision_meshes`도
+`true`다. MuJoCo의 물리 접촉 계산은 `mjcf/cleany.xml`의 기존 형상을 유지한다.
+시뮬레이션에서도 MoveIt 경로 계획에는 공통 URDF의 최적화 충돌 형상을 사용한다.
+원본 URDF와 MJCF의 충돌 형상 대조 검사는 `optimized_arm_collision_meshes:=false`와
+`head_collision_meshes:=false`를 모두 명시한다. 기본 계획 모델은 원본 모델과
+시각 형상, 관성, 관절이 같은지 별도로 검사한다.
+실물 수거 프로필 `configs/robot/camera_preview.json`도 최적화 형상을 사용한다. 시각 모델, 관성,
 관절과 원본 CAD 파일은 바뀌지 않는다.
 
 | 대상 | `true`일 때의 형상 |
@@ -212,7 +219,8 @@ MoveIt의 메시 접촉 판정은 내부 면 변경의 영향을 받으므로 �
 검증을 끝내지 않는다. 원본 CAD와의 자세, 근접 장애물, 계획 경로 비교는
 `make test-arm-collision-runtime`으로 실행한다.
 
-`test_collision_meshes.py`는 모든 출력 메시의 실제 STL 좌표에서 포함과 팽창
+`make test-description-models`는 원본 모델의 MuJoCo 동등성, 기본 계획 모델의
+공통 정보 보존과 최적화 자산을 검사한다. `test_collision_meshes.py`는 모든 출력 메시의 실제 STL 좌표에서 포함과 팽창
 상한, 폐곡면, 분할된 포크의 틈, 단위와 Xacro 적용 범위를 검사한다.
 재생성은 `python3 tools/optimize_arm_collision_meshes.py --write`를 명시적으로
 실행하며, `--write`가 없으면 생성 결과와 저장된 자산의 일치를 확인한다.

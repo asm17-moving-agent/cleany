@@ -63,8 +63,9 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	test-manipulation test-manipulation-bt sim-mujoco-manipulation
 
 help:
-	@echo "Cleany native ROS 2 commands"
 	@echo "  make test-collision-geometry  Test ROS-independent conservative geometry (GEOMETRY_PYTHON override)"
+	@echo "Cleany native ROS 2 commands"
+	@echo "  make test-description-models  Test URDF/MuJoCo parity and optimized collision assets"
 	@echo "  make deps          Install workspace dependencies with rosdep"
 	@echo "  make deps-gazebo   Install Gazebo Fortress dependencies with rosdep"
 	@echo "  make check-gazebo-env  Verify Ubuntu 22.04 / Humble / Fortress environment"
@@ -746,6 +747,15 @@ test-collision-geometry:
 		$(ROS2_WS)/src/cleany_skill_executor/test/test_sphere_reduction.py \
 		$(ROS2_WS)/src/cleany_skill_executor/test/test_geometry_cache.py \
 		$(ROS2_WS)/src/cleany_skill_executor/test/test_robot_geometry_cache.py
+
+.PHONY: test-description-models
+test-description-models:
+	source "$(ROS_SETUP)" && \
+	if test -f "$(INSTALL_BASE)/setup.bash"; then source "$(INSTALL_BASE)/setup.bash"; fi && \
+	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \
+	python3 -m pytest -q -p no:cacheprovider \
+		$(ROS2_WS)/src/cleany_description/test/test_model_parity.py \
+		$(ROS2_WS)/src/cleany_description/test/test_collision_meshes.py $(COLLISION_TEST_ARGS)
 
 .PHONY: test-arm-collision-runtime test-curobo-geometry
 test-arm-collision-runtime:

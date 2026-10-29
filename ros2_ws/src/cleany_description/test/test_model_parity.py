@@ -29,17 +29,23 @@ URDF_ENTRYPOINTS = (
     "cleany.urdf.xacro",
     "cleany_control.urdf.xacro",
 )
+# MuJoCo contact geometry retains the original meshes and primitive head shapes.
+MJCF_COLLISION_ARGS = (
+    "optimized_arm_collision_meshes:=false",
+    "head_collision_meshes:=false",
+)
 
 
-def test_arm_only_planning_retains_fixed_mast_without_unreported_head_joints():
-    full = _expand_urdf('cleany.urdf.xacro')
+@pytest.mark.parametrize('head_meshes', ('false', 'true'))
+def test_arm_only_planning_retains_fixed_mast_without_unreported_head_joints(head_meshes: str):
+    full = _expand_urdf('cleany.urdf.xacro', f'head_collision_meshes:={head_meshes}')
     arm_only = _expand_urdf('cleany.urdf.xacro', 'include_head_camera:=false',
-                            'include_wheel_joints:=false')
+                            'include_wheel_joints:=false', f'head_collision_meshes:={head_meshes}')
     for tag, name in (('link', 'top_base_link'), ('joint', 'top_base_joint')):
         actual = arm_only.findall(f"./{tag}[@name='{name}']")
         assert len(actual) == 1
         assert ET.tostring(actual[0]).strip() == ET.tostring(full.find(f"./{tag}[@name='{name}']")).strip()
-    assert arm_only.find("./link[@name='top_base_link']/collision/geometry/box") is not None
+    assert arm_only.findall("./link[@name='top_base_link']/collision/geometry/*")
     assert arm_only.find("./joint[@name='top_base_joint']").get('type') == 'fixed'
     assert arm_only.find("./joint[@name='head_pan_joint']") is None
     assert arm_only.find("./joint[@name='head_tilt_joint']") is None
@@ -88,6 +94,19 @@ def _physical_model_xml(root: ET.Element) -> tuple[bytes, ...]:
         for node in root
         if node.tag in {"material", "link", "joint"}
     )
+
+
+@pytest.mark.parametrize("entrypoint", URDF_ENTRYPOINTS)
+def test_planning_collisions_preserve_visuals_inertia_and_joints(entrypoint: str) -> None:
+    original = _expand_urdf(entrypoint, *MJCF_COLLISION_ARGS)
+    planning = _expand_urdf(entrypoint)
+    for root in (original, planning):
+        for link in root.findall("link"):
+            for collision in link.findall("collision"):
+                link.remove(collision)
+        for element in root.iter():
+            element.text = element.tail = None
+    assert _physical_model_xml(planning) == _physical_model_xml(original)
 
 
 def test_description_entrypoints_share_canonical_geometry() -> None:
@@ -158,8 +177,8 @@ def test_full_description_wheel_contract() -> None:
 
 
 def test_urdf_geometry_and_mass_match_mjcf() -> None:
-    """Compile both backends independently, including mesh recentering/scaling."""
-    root = _expand_urdf("cleany.urdf.xacro")
+    """Compare the original collision model, including mesh recentering/scaling."""
+    root = _expand_urdf("cleany.urdf.xacro", *MJCF_COLLISION_ARGS)
     for mesh in root.findall(".//mesh"):
         filename = mesh.get("filename")
         assert filename.startswith("package://cleany_description/")
@@ -227,9 +246,12 @@ def test_urdf_geometry_and_mass_match_mjcf() -> None:
 
 @pytest.mark.parametrize("entrypoint", URDF_ENTRYPOINTS)
 @pytest.mark.parametrize("side", ("left", "right"))
-def test_arm_motor_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
-    """Motor poses and collision coverage must follow the migrated CAD model."""
-    urdf = _expand_urdf(entrypoint)
+@pytest.mark.parametrize("optimized_meshes", ("false", "true"))
+def test_arm_motor_geometry_matches_mjcf(
+    entrypoint: str, side: str, optimized_meshes: str,
+) -> None:
+    """Original and optimized motor collision meshes retain the MJCF CAD poses."""
+    urdf = _expand_urdf(entrypoint, f"optimized_arm_collision_meshes:={optimized_meshes}")
     mjcf = ET.parse(_source_root() / "mjcf" / "cleany.xml").getroot()
     mesh_files = {
         mesh.attrib["name"]: mesh.attrib["file"]
@@ -261,7 +283,8 @@ def test_arm_motor_geometry_matches_mjcf(entrypoint: str, side: str) -> None:
         link = urdf.find(f"./link[@name='{side}_{link_suffix}']")
         assert link is not None
         for kind in ("visual", "collision"):
-            element = _mesh_element(link, kind, f"package://cleany_description/meshes/{mesh_file}")
+            directory = "collision/" if kind == "collision" and optimized_meshes == "true" else ""
+            element = _mesh_element(link, kind, f"package://cleany_description/meshes/{directory}{mesh_file}")
 
             mesh = element.find("geometry/mesh")
             assert mesh is not None
@@ -1116,7 +1139,7 @@ def test_measured_mast_heights_exclude_upper_pan_tilt_fittings() -> None:
     assert pillar_top - bottom == pytest.approx(.303, abs=1e-6)
     # The upper motor seat remains above the 303 mm mount + pillar datum.
     assert triangles[:, :, 2].max() - pillar_top == pytest.approx(.0593997, abs=1e-6)
-    root = _expand_urdf('cleany.urdf.xacro')
+    root = _expand_urdf('cleany.urdf.xacro', *MJCF_COLLISION_ARGS)
     joints = {joint.get('name'): joint for joint in root.findall('joint')}
     pan = _urdf_fk(joints, ('top_base_joint', 'head_pan_joint'), {'head_pan_joint': 0.})
     assert pan[2, 3] == pytest.approx(.7005)
@@ -1130,7 +1153,7 @@ def test_measured_mast_heights_exclude_upper_pan_tilt_fittings() -> None:
 
 @pytest.mark.parametrize('entrypoint', URDF_ENTRYPOINTS)
 def test_lower_mount_depth_and_offset_from_plate_front(entrypoint: str) -> None:
-    root = _expand_urdf(entrypoint)
+    root = _expand_urdf(entrypoint, *MJCF_COLLISION_ARGS)
     joints = {joint.get('name'): joint for joint in root.findall('joint')}
     mast_pose = _urdf_fk(joints, ('top_base_joint',), {})
 

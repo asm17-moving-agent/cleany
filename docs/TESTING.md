@@ -531,3 +531,14 @@ python3 tools/validation/benchmark_manipulation_geometry.py \
 사용한다. 전후 입력을 교차 실행해 중앙값과 개별 시간을 저장한다. 점군, 평면과
 후보 순서의 동일성, FK 수치 오차도 검사한다. 모터와 모델 추론을 호출하지 않으며
 이 수치는 전체 수거 시간이나 실물 파지 성공률을 뜻하지 않는다.
+
+
+## MoveIt 최적화 형상과 MuJoCo 동등성 검사
+
+`make test-description-models`는 ROS 2와 MuJoCo, NumPy, SciPy 환경에서
+원본 URDF와 MJCF의 동등성 및 최적화 충돌 자산을 검사합니다.
+원본 대조에는 `optimized_arm_collision_meshes:=false head_collision_meshes:=false`를
+명시하고, 기본 최적화 모델에는 시각 형상, 관성, 관절 보존과 모터 충돌 메시
+배치를 검사합니다. MuJoCo 물리 접촉 형상은 기존 MJCF를 유지하며,
+시뮬레이션의 MoveIt 경로 계획은 최적화 URDF를 사용합니다.
+`COLLISION_TEST_ARGS`로 `-k`와 `--junitxml` 등을 전달할 수 있습니다.
