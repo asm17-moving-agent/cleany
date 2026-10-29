@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <array>
 #include <chrono>
+#include <cmath>
 #include <thread>
 
 #include "gtest/gtest.h"
@@ -203,6 +205,77 @@ TEST(PathHandlerTests, TestTransforms)
   // Put it all together
   auto final_path = handler.transformPath(robot_pose);
   EXPECT_EQ(final_path.poses.size(), path_out.poses.size());
+}
+
+TEST(PathHandlerTests, PreserveLatticeTurnBeforeNearbyFinalApproach)
+{
+  PathHandlerWrapper handler;
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("lattice_turn_test");
+  node->declare_parameter("dummy.path_pose_yaw_weight", 0.5);
+  auto costmap = std::make_shared<nav2_costmap_2d::Costmap2DROS>(
+    "turn_costmap", "", "turn_costmap");
+  costmap->set_parameter(rclcpp::Parameter("global_frame", "map"));
+  rclcpp_lifecycle::State state;
+  costmap->on_configure(state);
+  ParametersHandler parameters(node);
+  handler.initialize(node, "dummy", costmap, costmap->getTfBuffer(), &parameters);
+
+  // A lattice connector backs away to turn, then passes near its start again.
+  // These relative poses reproduce the pre-recovery Facility 18 path overlap.
+  nav_msgs::msg::Path path;
+  path.header.frame_id = "map";
+  const std::vector<std::array<double, 3>> points{
+    {1.275, 2.475, M_PI_2}, {1.225, 2.425, M_PI_2},
+    {1.175, 2.375, M_PI_4}, {1.275, 2.425, 0.0},
+    {1.275, 2.475, 0.0}, {1.275, 2.525, 0.0}, {1.275, 2.625, 0.0}};
+  for (const auto & point : points) {
+    geometry_msgs::msg::PoseStamped pose;
+    pose.header.frame_id = "map";
+    pose.pose.position.x = point[0];
+    pose.pose.position.y = point[1];
+    pose.pose.orientation.z = std::sin(point[2] / 2.0);
+    pose.pose.orientation.w = std::cos(point[2] / 2.0);
+    path.poses.push_back(pose);
+  }
+  geometry_msgs::msg::PoseStamped robot = path.poses.front();
+  robot.pose.position.x = 1.277;
+  robot.pose.position.y = 2.5001;
+  robot.pose.orientation.z = std::sin(1.42 / 2.0);
+  robot.pose.orientation.w = std::cos(1.42 / 2.0);
+  handler.setPath(path);
+  PathHandlerWrapper xy_handler;
+  auto xy_node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("xy_pruning_test");
+  ParametersHandler xy_parameters(xy_node);
+  xy_handler.initialize(xy_node, "dummy", costmap, costmap->getTfBuffer(), &xy_parameters);
+  xy_handler.setPath(path);
+  auto [xy_plan, xy_closest] =
+    xy_handler.getGlobalPlanConsideringBoundsInCostmapFrameWrapper(robot);
+  EXPECT_EQ(xy_closest - xy_handler.getInvertedPath().poses.begin(), 5);
+
+  auto [before_turn, before_closest] =
+    handler.getGlobalPlanConsideringBoundsInCostmapFrameWrapper(robot);
+  EXPECT_EQ(before_closest - handler.getInvertedPath().poses.begin(), 0);
+  ASSERT_FALSE(before_turn.poses.empty());
+  EXPECT_NEAR(before_turn.poses.front().pose.orientation.z, std::sin(M_PI_4), 1e-8);
+
+  // After completing the turn, the overlapping final segment becomes current.
+  robot = path.poses[5];
+  auto [after_turn, after_closest] =
+    handler.getGlobalPlanConsideringBoundsInCostmapFrameWrapper(robot);
+  EXPECT_EQ(after_closest - handler.getInvertedPath().poses.begin(), 5);
+
+  path.poses.resize(2);
+  path.poses[0].pose.orientation.z = std::sin((M_PI - .02) / 2.0);
+  path.poses[0].pose.orientation.w = std::cos((M_PI - .02) / 2.0);
+  path.poses[1].pose.orientation.z = 0.0;
+  path.poses[1].pose.orientation.w = 1.0;
+  robot = path.poses[1];
+  robot.pose.orientation.z = std::sin((-M_PI + .02) / 2.0);
+  robot.pose.orientation.w = std::cos((-M_PI + .02) / 2.0);
+  handler.setPath(path);
+  auto [wrapped_plan, wrapped_closest] =
+    handler.getGlobalPlanConsideringBoundsInCostmapFrameWrapper(robot);
+  EXPECT_EQ(wrapped_closest - handler.getInvertedPath().poses.begin(), 0);
 }
 
 TEST(PathHandlerTests, TestInversionToleranceChecks)

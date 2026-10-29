@@ -124,6 +124,7 @@ protected:
   nav_msgs::msg::Path progress_path_;
   cleany_navigation::mppi::PathProgressGate progress_gate_;
   double path_progress_timeout_{0.0}, path_progress_distance_{0.08};
+  double path_pose_yaw_weight_{0.0};
   bool visualize_;
 
   double reset_period_;

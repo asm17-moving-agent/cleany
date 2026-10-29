@@ -673,10 +673,13 @@ inline unsigned int removePosesAfterFirstInversion(nav_msgs::msg::Path & path)
  */
 inline size_t findClosestPathPt(const std::vector<float> & vec, float dist, size_t init = 0)
 {
+  if (vec.empty()) {return 0;}
+  init = std::min(init, vec.size() - 1);
   auto iter = std::lower_bound(vec.begin() + init, vec.end(), dist);
   if (iter == vec.begin() + init) {
-    return 0;
+    return init;
   }
+  if (iter == vec.end()) {return vec.size() - 1;}
   if (dist - *(iter - 1) < *iter - dist) {
     return iter - 1 - vec.begin();
   }

@@ -244,10 +244,11 @@ protected:
   NoiseGenerator noise_generator_;
 
   models::OptimizerSettings settings_;
-  float goal_rotate_enter_radius_{0.0f};
-  float goal_rotate_exit_radius_{0.0f};
+  double goal_rotate_enter_radius_{0.0};
+  double goal_rotate_exit_radius_{0.0};
   bool goal_rotation_active_{false};
   bool validate_output_{false};
+  bool validated_stop_fallback_{false};
   bool sequenceCollisionFree(const models::ControlSequence & sequence) const;
   void validateOutput();
   int path_seed_count_{0};

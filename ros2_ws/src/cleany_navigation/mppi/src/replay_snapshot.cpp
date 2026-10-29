@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <cstdlib>
 #include "cleany_navigation/mppi/optimizer.hpp"
 #include "nav2_costmap_2d/footprint_collision_checker.hpp"
 class Goal final:public nav2_core::GoalChecker {
@@ -21,8 +22,13 @@ int main(int argc,char**argv){
  geometry_msgs::msg::PoseStamped pose;pose.header.frame_id="odom";pose.pose.position.x=x;pose.pose.position.y=y;pose.pose.orientation.z=sin(yaw/2);pose.pose.orientation.w=cos(yaw/2);
  nav_msgs::msg::Path path;path.header.frame_id="odom";
  while(in>>x>>y>>yaw){auto p=pose;p.pose.position.x=x;p.pose.position.y=y;p.pose.orientation.z=sin(yaw/2);p.pose.orientation.w=cos(yaw/2);path.poses.push_back(p);}
- cleany_navigation::mppi::ParametersHandler params(parent);cleany_navigation::mppi::Optimizer optimizer;optimizer.initialize(parent,"FollowPath",cm,&params);Goal goal;geometry_msgs::msg::Twist speed;
  nav2_costmap_2d::FootprintCollisionChecker<nav2_costmap_2d::Costmap2D*> checker(map);
+ for(size_t i=0;i<path.poses.size();++i){
+  const auto &p=path.poses[i].pose;
+  std::cout<<"PATH_CHECK,"<<i<<','<<p.position.x<<','<<p.position.y<<','<<tf2::getYaw(p.orientation)<<','<<checker.footprintCostAtPose(p.position.x,p.position.y,tf2::getYaw(p.orientation),cm->getRobotFootprint())<<'\n';
+ }
+ if(std::getenv("MPPI_REPLAY_PATH_ONLY")){cm->on_cleanup(rclcpp_lifecycle::State());rclcpp::shutdown();return 0;}
+ cleany_navigation::mppi::ParametersHandler params(parent);cleany_navigation::mppi::Optimizer optimizer;optimizer.initialize(parent,"FollowPath",cm,&params);Goal goal;geometry_msgs::msg::Twist speed;
  std::cout<<"n,vx,vy,wz,optimized_lethal\n";
  for(int n=0;n<240;n++){
   pose.header.stamp=rclcpp::Time(static_cast<int64_t>(n)*100000000LL);path.header.stamp=pose.header.stamp;

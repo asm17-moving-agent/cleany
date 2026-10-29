@@ -35,6 +35,10 @@ void PathHandler::initialize(
 
   auto getParam = parameters_handler_->getParamGetter(name_);
   getParam(max_robot_pose_search_dist_, "max_robot_pose_search_dist", getMaxCostmapDist());
+  getParam(path_pose_yaw_weight_, "path_pose_yaw_weight", 0.0, ParameterType::Static);
+  if (path_pose_yaw_weight_ < 0.0) {
+    throw std::runtime_error("path_pose_yaw_weight must be nonnegative (metres per radian)");
+  }
   getParam(prune_distance_, "prune_distance", 1.5);
   getParam(transform_tolerance_, "transform_tolerance", 0.1);
   getParam(enforce_path_inversion_, "enforce_path_inversion", false);
@@ -59,11 +63,16 @@ PathHandler::getGlobalPlanConsideringBoundsInCostmapFrame(
     global_plan_up_to_inversion_.poses.begin(), global_plan_up_to_inversion_.poses.end(),
     max_robot_pose_search_dist_);
 
-  // Find closest point to the robot
+  // Lattice paths can revisit XY after a required turn or reverse connector.
+  // Preserve that connector until its orientation is reached, instead of
+  // pruning straight onto a nearby final segment with a different heading.
   auto closest_point = nav2_util::geometry_utils::min_by(
     begin, closest_pose_upper_bound,
-    [&global_pose](const geometry_msgs::msg::PoseStamped & ps) {
-      return euclidean_distance(global_pose, ps);
+    [this, &global_pose](const geometry_msgs::msg::PoseStamped & ps) {
+      const double distance = euclidean_distance(global_pose, ps);
+      if (path_pose_yaw_weight_ == 0.0) {return distance;}
+      return distance + path_pose_yaw_weight_ * std::abs(angles::shortest_angular_distance(
+        tf2::getYaw(global_pose.pose.orientation), tf2::getYaw(ps.pose.orientation)));
     });
 
   nav_msgs::msg::Path transformed_plan;

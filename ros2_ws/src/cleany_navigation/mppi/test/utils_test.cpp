@@ -34,6 +34,15 @@ RosLockGuard g_rclcpp;
 using namespace cleany_navigation::mppi::utils;  // NOLINT
 using namespace cleany_navigation::mppi;  // NOLINT
 
+TEST(UtilsRegression, ClosestPathPointPreservesOffsetAndClampsTheEnd)
+{
+  const std::vector<float> arc{0.f,.05f,.10f};
+  EXPECT_EQ(findClosestPathPt(arc,.05f,1),1u);
+  EXPECT_EQ(findClosestPathPt(arc,.055f,1),1u);
+  EXPECT_EQ(findClosestPathPt(arc,.20f),2u);
+  EXPECT_EQ(findClosestPathPt(arc,.20f,2),2u);
+}
+
 class TestGoalChecker : public nav2_core::GoalChecker
 {
 public:

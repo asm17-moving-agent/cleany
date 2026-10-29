@@ -20,6 +20,43 @@ MPPI controller/critic은 이 패키지의 `mppi/`와 `include/cleany_navigation
 `mppi_replay_snapshot`은 저장된 map/pose 자료로 optimizer를 실행하는 독립
 진단 CLI다. 일반 Mission launch에서는 실행하지 않는다.
 
+`FollowPath.path_pose_yaw_weight`는 가까운 경로 시작점을 고를 때
+XY 거리에 최단 각도 차이×가중치를 더한다(단위 m/rad, 시작 시 설정).
+기본값0은 기존 XY 선택을 유지한다. 방향을 가진 lattice 경로가 회전 후
+같은 XY 부근을 다시 지날 때, 양수 설정으로 아직 수행하지 않은 회전 구간을
+잘라내는 것을 방지한다. 경로 후보와 출력의 footprint 충돌 검사는 그대로 적용된다.
+같은 가중치는 현재 제어에 전달된 경로의 진행 좌표에도 적용한다. 재계획 시 좌표 기준만
+갱신하고 누적 진행량과 제한 시각은 보존한다. 계획된 제자리 회전은 진행으로 평가하지만
+경로 교체 자체나 멈춤, 반대 방향 회전은 기존 진행 제한 시간을 갱신하지 않는다.
+
+`FollowPath.validated_stop_fallback=true`는 출력 검증에서 모든 이동 후보가
+거부됐을 때 정지 sequence도 동일한 전체 footprint 검사로 확인한다(기본 false).
+측정한 초기 속도에 의한 이동도 검사하며 무효이면 기존 오류를 반환한다.
+sequence shifting 시 실제로 방출하는1번 제어부터 검사해, 방출하지 않는
+0번 제어의 감속을 안전 여유로 계산하지 않는다.
+유한한 양수 `path_progress_timeout`이 있어야 기동할 수 있다. 정지 출력은
+진행 시간 제한을 초기화하지 않으며 각 횟수를 로그로 남긴다. 코스트맵을
+지우거나 Nav2 복구를 호출하지 않는다. 경로 seed는 XY/각도 waypoint를
+각각0.1mm/0.1mrad 이내로 지난 뒤 다음 구간으로 넘어가 코너 단축을 방지한다.
+
+`GridBased.validate_swept_path=true`는 native lattice 경로 전체를 기존
+`sweptPathCollisionFree`로 재검사한다(기본 false). 중간 자세가 충돌하면
+기존 `checkedBodyHeadingGridPath`로 연속 footprint를 만족하는 경로를 보정한다.
+검색은 `swept_repair_timeout`(기본2초)과 전체 `max_planning_time` 안에서만 수행한다.
+`body_heading_grid_bins`(기본32), `body_heading_grid_heuristic_weight`(기본8)와
+기존 `cost_penalty`를 사용한다. 보정에도 실패하면 빈 경로를 반환한다.
+시작/목표를 native 격자 중심과 방향 bin에 맞췄을 때 충돌하면 native 검색을
+호출하기 전에 같은 연속 자세 검색으로 연결한다. 실제 시작/목표의 footprint 검사도 유지한다.
+이 옵션은 native 경로와 실제 시작/정확한 요청 목표 사이의 연결도 연속 검사한다.
+출력은 격자 중심에서 끝나지 않으며 호출자가 지정한 도착 오차를 유지할 수 있다.
+이는 계획 단계의 경로 보정이며 Nav2 복구 동작과 구별해 로그로 남긴다.
+
+`smac_replay_snapshot SNAPSHOT OUTPUT.csv --ros-args --params-file NAVIGATION.yaml`은
+`map.txt`(가로/세로/해상도/원점), `map.bin`(raw cost byte), `poses.txt`(x/y/yaw)의
+첫 자세와 마지막 목표로 같은 플래너를 오프라인 실행한다. 경로의 각 footprint cost와
+전체 연속 충돌 검사 결과를 남기며 제어 명령을 발행하지 않는다. MPPI 재생도 같은 입력을
+사용하며 `MPPI_REPLAY_PATH_ONLY=1`일 때 경로 자세의 충돌 검사만 수행한다.
+
 기본 lattice는 `config/lattice/omni-r10cm.json`이다. `resolve_default_lattice`가
 설치 경로를 해석하며 명시한 `GridBased.lattice_filepath`는 유지한다.
 5cm 격자와 10cm 곡선 반경은 primitive 생성 설정이며 실물 회전 반경 검증값이 아니다.

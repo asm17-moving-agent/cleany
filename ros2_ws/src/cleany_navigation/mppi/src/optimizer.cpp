@@ -85,6 +85,7 @@ void Optimizer::getParams()
   getParam(s.sampling_std.wz, "wz_std", 0.4);
   getParam(s.retry_attempt_limit, "retry_attempt_limit", 1);
   getParam(validate_output_, "validate_output", false);
+  getParam(validated_stop_fallback_, "validated_stop_fallback", false);
   getParam(path_seed_count_, "path_seed_count", 0);
   getParam(path_seed_max_speed_, "path_seed_max_speed", 0.25f);
   if (path_seed_count_ < 0 || path_seed_max_speed_ <= 0.0f) {throw std::runtime_error("Invalid path seed settings");}
@@ -95,8 +96,8 @@ void Optimizer::getParams()
   if (wheel_max_rad_s_ < 0.0f || wheel_radius_m_ <= 0.0f ||
     wheelbase_m_ <= 0.0f || wheel_separation_m_ <= 0.0f)
   {throw std::runtime_error("Invalid wheel projection geometry or limit");}
-  getParam(goal_rotate_enter_radius_, "goal_rotate_enter_radius", 0.0f);
-  getParam(goal_rotate_exit_radius_, "goal_rotate_exit_radius", 0.0f);
+  getParam(goal_rotate_enter_radius_, "goal_rotate_enter_radius", 0.0);
+  getParam(goal_rotate_exit_radius_, "goal_rotate_exit_radius", 0.0);
   if (goal_rotate_enter_radius_ < 0.0f ||
     goal_rotate_exit_radius_ < goal_rotate_enter_radius_)
   {
@@ -193,10 +194,14 @@ bool Optimizer::sequenceCollisionFree(const models::ControlSequence & sequence) 
   double x=state_.pose.pose.position.x,y=state_.pose.pose.position.y;
   double yaw=tf2::getYaw(state_.pose.pose.orientation);
   const double dt=settings_.model_dt;
+  const size_t offset = settings_.shift_control_sequence ? 1 : 0;
   for (size_t t=0;t<sequence.vx.size();++t) {
-    const double vx=t==0?state_.speed.linear.x:sequence.vx(t-1);
-    const double vy=t==0?state_.speed.linear.y:sequence.vy(t-1);
-    const double wz=t==0?state_.speed.angular.z:sequence.wz(t-1);
+    // Match getControlFromSequenceAsTwist: when shifting is enabled, sample 0
+    // is skipped at emission. It cannot provide an imaginary braking step.
+    const size_t command = t == 0 ? 0 : std::min(t-1+offset, sequence.vx.size()-1);
+    const double vx=t==0?state_.speed.linear.x:sequence.vx(command);
+    const double vy=t==0?state_.speed.linear.y:sequence.vy(command);
+    const double wz=t==0?state_.speed.angular.z:sequence.wz(command);
     const double dx=dt*(std::cos(yaw)*vx-std::sin(yaw)*vy);
     const double dy=dt*(std::sin(yaw)*vx+std::cos(yaw)*vy),da=dt*wz;
     const int steps=std::max({1,static_cast<int>(std::ceil(std::hypot(dx,dy)/.01)),
@@ -227,6 +232,19 @@ void Optimizer::validateOutput()
     if (sequenceCollisionFree(control_sequence_)) {
       RCLCPP_WARN_THROTTLE(logger_,*parent_.lock()->get_clock(),2000,
         "MPPI mean rollout rejected; using scored collision-free candidate %zu",row);
+      return;
+    }
+  }
+  if (validated_stop_fallback_) {
+    models::ControlSequence stopped;
+    stopped.reset(settings_.time_steps);
+    // Use the same checker, including the measured first-step velocity. This
+    // allows a fresh planner update after stochastic proposals all fail, while
+    // the controller's unchanged progress deadline still rejects a real stall.
+    if (sequenceCollisionFree(stopped)) {
+      control_sequence_ = std::move(stopped);
+      for (auto & control : control_history_) {control = {0.0f, 0.0f, 0.0f};}
+      RCLCPP_WARN(logger_, "MPPI validated standstill: sampled rollouts rejected");
       return;
     }
   }
@@ -275,7 +293,7 @@ void Optimizer::prepare(
     goal_checker->getTolerances(tolerance, velocity_tolerance);
   const bool bounded = valid_tolerance && goal_rotate_enter_radius_ > 0.0f &&
     goal_rotate_exit_radius_ <= tolerance.position.x;
-  const float radius = goal_rotation_active_ ?
+  const double radius = goal_rotation_active_ ?
     goal_rotate_exit_radius_ : goal_rotate_enter_radius_;
   const bool next_rotation = bounded &&
     utils::withinPositionGoalTolerance(radius, state_.pose.pose, path_);

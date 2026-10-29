@@ -4,14 +4,20 @@
 #include <limits>
 #include <vector>
 namespace cleany_navigation::mppi {
-struct ProgressPoint {double x,y;};
-inline double projectProgress(const std::vector<ProgressPoint>& path,double x,double y) {
+struct ProgressPoint {double x,y,yaw=0.;};
+inline double projectProgress(const std::vector<ProgressPoint>& path,double x,double y,
+  double yaw=0.,double yaw_weight=0.) {
+  const auto wrap=[](double a){return std::atan2(std::sin(a),std::cos(a));};
   double best=std::numeric_limits<double>::infinity(),s=0,result=0;
   for(size_t i=1;i<path.size();++i){
-    const double dx=path[i].x-path[i-1].x,dy=path[i].y-path[i-1].y,length=std::hypot(dx,dy);
+    const double dx=path[i].x-path[i-1].x,dy=path[i].y-path[i-1].y;
+    const double da=wrap(path[i].yaw-path[i-1].yaw),dyaw=wrap(yaw-path[i-1].yaw);
+    const double length=std::hypot(dx,dy,yaw_weight*da);
     if(length<1e-8)continue;
-    const double t=std::clamp(((x-path[i-1].x)*dx+(y-path[i-1].y)*dy)/(length*length),0.,1.);
-    const double dist=std::hypot(x-path[i-1].x-t*dx,y-path[i-1].y-t*dy);
+    const double t=std::clamp(((x-path[i-1].x)*dx+(y-path[i-1].y)*dy+
+      yaw_weight*yaw_weight*dyaw*da)/(length*length),0.,1.);
+    const double dist=std::hypot(x-path[i-1].x-t*dx,y-path[i-1].y-t*dy,
+      yaw_weight*wrap(dyaw-t*da));
     if(dist<best){best=dist;result=s+t*length;}s+=length;
   }
   return result;

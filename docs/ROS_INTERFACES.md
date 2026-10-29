@@ -305,6 +305,7 @@ Single/multi pose 실행 전 설정 파일만 읽는 `single_pose_handeye_config
 |---|---|
 | Gazebo `ros_gz_bridge` | [Bridge 표](../ros2_ws/src/cleany_gazebo_sim/docs/interfaces.md#ros_gz_bridge). ROS/Gazebo sensor와 명령 변환 |
 | MPPI 진단 | `cleany_navigation/mppi_replay_snapshot`; 일반 Mission에서 미실행. [계약](../ros2_ws/src/cleany_navigation/docs/interfaces.md#nav2-controller와-planner) |
+| Smac 진단 | `cleany_navigation/smac_replay_snapshot`; 저장된 raw map과 자세로만 실행하며 제어 명령 없음. [계약](../ros2_ws/src/cleany_navigation/docs/interfaces.md#nav2-controller와-planner) |
 | Nav2 / AMCL / Collision Monitor | [Navigation launch](../ros2_ws/src/cleany_navigation/launch/navigation.launch.py)와 [설정](../ros2_ws/src/cleany_navigation/config)이 조합을 선택. Mission이 호출하는 action/lifecycle 서비스는 Mission 노드 표에 포함 |
 | MoveIt `move_group` | `/compute_ik`, `/compute_fk`, `/check_state_validity`, `/get_planning_scene`, `/apply_planning_scene`, `/move_action`, `/execute_trajectory`를 이용. 자체 호출 노드 표와 [Planning 계약](../ros2_ws/src/cleany_moveit_config/docs/planning.md)에서 연결 확인 |
 | ros2_control | Arm/gripper의 FollowJointTrajectory와 joint_state_broadcaster. [Controller 설정](../ros2_ws/src/cleany_moveit_config/config/mock_ros2_controllers.yaml)과 [MuJoCo backend launch](../ros2_ws/src/cleany_mujoco_sim/launch/study_cafe_backend.launch.py)이 선택 |

@@ -61,3 +61,72 @@ TEST(SmacTerminal, SameCellRegressionExactGoalAndCollisionRejection) {
   }
   map->cleanup();tf.reset();map.reset();parent.reset();rclcpp::shutdown();
 }
+
+TEST(SmacTerminal, RefinesCornerRouteWithContinuousFootprintChecks) {
+  rclcpp::init(0,nullptr);
+  auto parent=std::make_shared<rclcpp_lifecycle::LifecycleNode>("smac_corner_test");
+  parent->declare_parameter("GridBased.lattice_filepath",std::string(CLEANY_TEST_LATTICE));
+  parent->declare_parameter("GridBased.analytic_expansion_max_length",0.0);
+  parent->declare_parameter("GridBased.smooth_path",false);
+  parent->declare_parameter("GridBased.lookup_table_size",3.0);
+  parent->declare_parameter("GridBased.validate_swept_path",true);
+  auto options=rclcpp::NodeOptions().parameter_overrides({
+    rclcpp::Parameter("global_frame","map"),rclcpp::Parameter("plugins",std::vector<std::string>{}),
+    rclcpp::Parameter("width",10),rclcpp::Parameter("height",10),
+    rclcpp::Parameter("resolution",.05),rclcpp::Parameter("origin_x",-5.),rclcpp::Parameter("origin_y",-5.),
+    rclcpp::Parameter("footprint","[[-0.48,-0.40],[0.48,-0.40],[0.48,0.40],[-0.48,0.40]]"),
+    rclcpp::Parameter("footprint_padding",.02)});
+  auto map=std::make_shared<nav2_costmap_2d::Costmap2DROS>(options);
+  map->configure();auto live=map->getCostmap();
+  for(unsigned int x=0;x<live->getSizeInCellsX();++x) {
+    for(unsigned int y=0;y<live->getSizeInCellsY();++y) {
+      double wx,wy;live->mapToWorld(x,y,wx,wy);
+      live->setCost(x,y,wx>=-1.2 && wx<0. && wy>=2.4 && wy<3.17 ? 254 : 0);
+    }
+  }
+  geometry_msgs::msg::PoseStamped start,goal;
+  start.header.frame_id=goal.header.frame_id="map";
+  start.pose.position.x=-1.775;start.pose.position.y=2.475;
+  start.pose.orientation.z=std::sin(M_PI/4);start.pose.orientation.w=std::cos(M_PI/4);
+  goal.pose.position.x=-1.72;goal.pose.position.y=2.62;goal.pose.orientation.w=1.;
+  auto tf=std::make_shared<tf2_ros::Buffer>(parent->get_clock());
+  {
+    cleany_navigation::SmacLatticePlanner planner;
+    planner.configure(parent,"GridBased",tf,map);
+#if CLEANY_NAV2_CANCEL_CHECKER
+    auto path=planner.createPlan(start,goal,[]{return false;});
+#else
+    auto path=planner.createPlan(start,goal);
+#endif
+    ASSERT_FALSE(path.poses.empty());
+    EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(path,*live,map->getRobotFootprint()));
+    EXPECT_NEAR(path.poses.back().pose.position.x,goal.pose.position.x,1e-12);
+    EXPECT_NEAR(path.poses.back().pose.position.y,goal.pose.position.y,1e-12);
+    start.pose.position.x=-1.793305331;
+    start.pose.position.y=2.409410083;
+    start.pose.orientation.z=std::sin(.393898042/2.);
+    start.pose.orientation.w=std::cos(.393898042/2.);
+#if CLEANY_NAV2_CANCEL_CHECKER
+    path=planner.createPlan(start,goal,[]{return false;});
+#else
+    path=planner.createPlan(start,goal);
+#endif
+    ASSERT_FALSE(path.poses.empty());
+    EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(path,*live,map->getRobotFootprint()));
+    start.pose.position.x=-3.;start.pose.position.y=0.;
+    start.pose.orientation=geometry_msgs::msg::Quaternion();start.pose.orientation.w=1.;
+    goal.pose.position.x=-2.04;goal.pose.position.y=.02;
+#if CLEANY_NAV2_CANCEL_CHECKER
+    path=planner.createPlan(start,goal,[]{return false;});
+#else
+    path=planner.createPlan(start,goal);
+#endif
+    ASSERT_FALSE(path.poses.empty());
+    EXPECT_NEAR(path.poses.front().pose.position.x,start.pose.position.x,1e-12);
+    EXPECT_NEAR(path.poses.back().pose.position.x,goal.pose.position.x,1e-12);
+    EXPECT_NEAR(path.poses.back().pose.position.y,goal.pose.position.y,1e-12);
+    EXPECT_TRUE(cleany_navigation::sweptPathCollisionFree(path,*live,map->getRobotFootprint()));
+    planner.cleanup();
+  }
+  map->cleanup();tf.reset();map.reset();parent.reset();rclcpp::shutdown();
+}

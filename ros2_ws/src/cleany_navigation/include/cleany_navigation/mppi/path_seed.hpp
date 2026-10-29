@@ -16,8 +16,10 @@ inline std::vector<SeedControl> pathSeed(
   std::vector<SeedControl> result; result.reserve(steps);
   size_t target = path.empty() ? 0 : std::min(start_index,path.size()-1);
   for (size_t t=0; t<steps; ++t) {
-    while (target+1<path.size() && std::hypot(path[target].x-current.x,path[target].y-current.y)<0.012f &&
-      std::abs(wrapSeedAngle(path[target].yaw-current.yaw))<0.025f) {++target;}
+    // Reach the coupled waypoint before changing segments. A centimetre-scale
+    // shortcut can leave the planner's certified footprint corridor at a turn.
+    while (target+1<path.size() && std::hypot(path[target].x-current.x,path[target].y-current.y)<0.0001f &&
+      std::abs(wrapSeedAngle(path[target].yaw-current.yaw))<0.0001f) {++target;}
     if (path.empty()) {result.push_back({0,0,0}); continue;}
     const float dx=path[target].x-current.x, dy=path[target].y-current.y;
     const float da=wrapSeedAngle(path[target].yaw-current.yaw);

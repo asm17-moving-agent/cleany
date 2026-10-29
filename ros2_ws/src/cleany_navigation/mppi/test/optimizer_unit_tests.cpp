@@ -19,6 +19,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "cleany_navigation/mppi/optimizer.hpp"
 #include "cleany_navigation/mppi/wheel_projection.hpp"
+#include "cleany_navigation/mppi/path_seed.hpp"
 
 // Tests main optimizer functions
 
@@ -41,9 +42,53 @@ public:
   OptimizerTester()
   : Optimizer() {}
 
-  void prepareArrival(double x, nav2_core::GoalChecker * checker, double exit_radius = 0.13)
+  void verifyValidatedStandstill(
+    const std::shared_ptr<rclcpp_lifecycle::LifecycleNode> & node,
+    const std::shared_ptr<nav2_costmap_2d::Costmap2DROS> & map_ros)
   {
-    goal_rotate_enter_radius_ = 0.10f;
+    parent_ = node; costmap_ros_ = map_ros; costmap_ = map_ros->getCostmap();
+    costmap_->resizeMap(100, 100, .05, 0., 0.);
+    costmap_->resetMap(0, 0, 100, 100);
+    for (unsigned y = 0; y < 100; ++y) {costmap_->setCost(26, y, 254);}
+    settings_.time_steps = 40; settings_.model_dt = .05f;
+    settings_.shift_control_sequence = false;
+    settings_.constraints.vx_min = -.5f; settings_.constraints.vx_max = .5f;
+    settings_.constraints.vy = .5f; settings_.constraints.wz = .5f;
+    setMotionModel("Omni");
+    state_.reset(1, 40); state_.pose.pose.position.x = 1.;
+    state_.pose.pose.position.y = 1.; state_.pose.pose.orientation.w = 1.;
+    state_.cvx.fill(.25f); state_.cvy.fill(0.f); state_.cwz.fill(0.f);
+    costs_ = xt::ones<float>({1});
+    control_sequence_.reset(40); control_sequence_.vx.fill(.25f);
+    validated_stop_fallback_ = false;
+    EXPECT_THROW(validateOutput(), std::runtime_error);
+    validated_stop_fallback_ = true;
+    EXPECT_NO_THROW(validateOutput());
+    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.vx))(), 0.f);
+    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.vy))(), 0.f);
+    EXPECT_EQ(xt::sum(xt::abs(control_sequence_.wz))(), 0.f);
+    // The discarded sample must not supply braking which is never emitted.
+    models::ControlSequence braking;
+    braking.reset(40); braking.vx(0) = -.5f; braking.vx(1) = .5f;
+    state_.pose.pose.position.x = 1.18;
+    EXPECT_TRUE(sequenceCollisionFree(braking));
+    settings_.shift_control_sequence = true;
+    EXPECT_FALSE(sequenceCollisionFree(braking));
+    settings_.shift_control_sequence = false;
+    state_.pose.pose.position.x = 1.;
+    // Stopping cannot erase measured momentum into the wall.
+    state_.speed.linear.x = 8.; control_sequence_.vx.fill(.25f);
+    EXPECT_THROW(validateOutput(), std::runtime_error);
+    state_.speed.linear.x = 0.;
+    // An already colliding footprint must still fail closed.
+    std::fill(costmap_->getCharMap(), costmap_->getCharMap()+10000, 254);
+    EXPECT_THROW(validateOutput(), std::runtime_error);
+  }
+
+  void prepareArrival(double x, nav2_core::GoalChecker * checker, double exit_radius = 0.13,
+    double enter_radius = 0.10)
+  {
+    goal_rotate_enter_radius_ = enter_radius;
     goal_rotate_exit_radius_ = exit_radius;
     settings_.batch_size = 8;
     settings_.time_steps = 12;
@@ -729,14 +774,30 @@ TEST(OptimizerTests, integrateStateVelocitiesTests)
 class ArrivalGoalChecker : public nav2_core::GoalChecker
 {
 public:
+  double position_tolerance = 0.15;
   void initialize(const rclcpp_lifecycle::LifecycleNode::WeakPtr &,
     const std::string &, const std::shared_ptr<nav2_costmap_2d::Costmap2DROS>) override {}
   void reset() override {}
   bool isGoalReached(const geometry_msgs::msg::Pose &, const geometry_msgs::msg::Pose &,
     const geometry_msgs::msg::Twist &) override {return false;}
   bool getTolerances(geometry_msgs::msg::Pose & pose, geometry_msgs::msg::Twist &) override
-  {pose.position.x = pose.position.y = 0.15; return true;}
+  {pose.position.x = pose.position.y = position_tolerance; return true;}
 };
+
+TEST(OptimizerTests, ArrivalRadiusEqualToDoubleToleranceRemainsEnabled)
+{
+  ArrivalGoalChecker checker;
+  checker.position_tolerance = .008;
+  OptimizerTester optimizer;
+  optimizer.prepareArrival(.005, &checker, .008, .006);
+  EXPECT_TRUE(optimizer.rotating());
+  optimizer.prepareArrival(.007, &checker, .008, .006);
+  EXPECT_TRUE(optimizer.rotating());
+  optimizer.prepareArrival(.009, &checker, .008, .006);
+  EXPECT_FALSE(optimizer.rotating());
+  optimizer.prepareArrival(.005, &checker, .0080001, .006);
+  EXPECT_FALSE(optimizer.rotating());
+}
 
 TEST(OptimizerTests, ArrivalHysteresisAndToleranceBoundary)
 {
@@ -800,4 +861,29 @@ TEST(OptimizerTests, CoupledWheelProjectionPreservesRatiosInAllOctants)
   x = 0.02f; y = -0.01f; w = 0.04f;
   cleany_navigation::mppi::projectWheelTwist(x, y, w, radius, lever, 5.0f);
   EXPECT_EQ(x, 0.02f); EXPECT_EQ(y, -0.01f); EXPECT_EQ(w, 0.04f);
+}
+
+TEST(OptimizerTests, PathSeedsReachTranslationAndRotationWaypointsBeforeAdvancing)
+{
+  const auto translating = pathSeed({0.f, 0.f, 0.f},
+    {{.01f, 0.f, 0.f}, {.01f, .05f, 0.f}}, 2, .05f, .25f, .35f, .0635f, .4769f, 4.f);
+  ASSERT_EQ(translating.size(), 2u);
+  EXPECT_GT(translating[0].x, 0.f);
+  EXPECT_FLOAT_EQ(translating[0].y, 0.f);
+  EXPECT_GT(translating[1].y, 0.f);
+  const auto rotating = pathSeed({0.f, 0.f, 0.f},
+    {{0.f, 0.f, .02f}, {.05f, 0.f, .02f}}, 2, .05f, .25f, .35f, .0635f, .4769f, 4.f);
+  EXPECT_FLOAT_EQ(rotating[0].x, 0.f);
+  EXPECT_FLOAT_EQ(rotating[0].y, 0.f);
+  EXPECT_GT(rotating[0].yaw, 0.f);
+}
+
+TEST(OptimizerTests, StandstillRequiresCollisionFreeMeasuredMomentumAndFootprint)
+{
+  auto node = std::make_shared<rclcpp_lifecycle::LifecycleNode>("stop_output_test");
+  auto map = std::make_shared<nav2_costmap_2d::Costmap2DROS>("stop_costmap");
+  map->on_configure(rclcpp_lifecycle::State());
+  OptimizerTester optimizer;
+  optimizer.verifyValidatedStandstill(node, map);
+  map->on_cleanup(rclcpp_lifecycle::State());
 }

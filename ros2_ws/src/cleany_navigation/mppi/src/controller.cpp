@@ -43,6 +43,13 @@ void MPPIController::configure(
   getParam(reset_period_, "reset_period", 1.0);
   getParam(path_progress_timeout_, "path_progress_timeout", 0.0);
   getParam(path_progress_distance_, "path_progress_distance", 0.08);
+  getParam(path_pose_yaw_weight_, "path_pose_yaw_weight", 0.0, ParameterType::Static);
+  bool validated_stop_fallback = false;
+  getParam(validated_stop_fallback, "validated_stop_fallback", false, ParameterType::Static);
+  if (validated_stop_fallback &&
+    (!std::isfinite(path_progress_timeout_) || path_progress_timeout_ <= 0.0)) {
+    throw std::runtime_error("validated_stop_fallback requires a path progress deadline");
+  }
 
   // Configure composed objects
   optimizer_.initialize(parent_, name_, costmap_ros_, parameters_handler_.get());
@@ -102,7 +109,9 @@ geometry_msgs::msg::TwistStamped MPPIController::computeVelocityCommands(
     if (robot_pose.header.frame_id == progress_path_.header.frame_id) {pose=robot_pose;}
     else {tf_buffer_->transform(robot_pose,pose,progress_path_.header.frame_id,tf2::durationFromSec(0.1));}
     std::vector<cleany_navigation::mppi::ProgressPoint> points;
-    for (const auto & p : progress_path_.poses) {points.push_back({p.pose.position.x,p.pose.position.y});}
+    for (const auto & p : progress_path_.poses) {
+      points.push_back({p.pose.position.x,p.pose.position.y,tf2::getYaw(p.pose.orientation)});
+    }
     const auto & goal=progress_path_.poses.back().pose;
     geometry_msgs::msg::Pose tolerance;geometry_msgs::msg::Twist velocity_tolerance;
     const bool valid=goal_checker && goal_checker->getTolerances(tolerance,velocity_tolerance);
@@ -110,7 +119,8 @@ geometry_msgs::msg::TwistStamped MPPIController::computeVelocityCommands(
       pose.pose.position.y-goal.position.y)<=tolerance.position.x;
     const double yaw_error=std::abs(angles::shortest_angular_distance(
       tf2::getYaw(pose.pose.orientation),tf2::getYaw(goal.orientation)));
-    const double progress=cleany_navigation::mppi::projectProgress(points,pose.pose.position.x,pose.pose.position.y);
+    const double progress=cleany_navigation::mppi::projectProgress(points,
+      pose.pose.position.x,pose.pose.position.y,tf2::getYaw(pose.pose.orientation),path_pose_yaw_weight_);
     if (!progress_gate_.observe(clock_->now().seconds(),progress,yaw_error,terminal,
       path_progress_timeout_,path_progress_distance_)) {
       RCLCPP_WARN(logger_, "Path progress timeout: %.2fs without %.3fm route advance",path_progress_timeout_,path_progress_distance_);
@@ -153,8 +163,10 @@ void MPPIController::setPlan(const nav_msgs::msg::Path & path)
     new_goal=std::hypot(a.position.x-b.position.x,a.position.y-b.position.y)>0.01 ||
       std::abs(angles::shortest_angular_distance(tf2::getYaw(a.orientation),tf2::getYaw(b.orientation)))>0.01;
   }
-  if (new_goal) {progress_gate_.reset(); progress_path_=path;}
-  // Keep a stable reference arc coordinate across periodic replanning.
+  if (new_goal) {progress_gate_.reset();}
+  else {progress_gate_.replan();}
+  // Rebase onto the executed plan without granting time or route credit.
+  progress_path_=path;
   path_handler_.setPath(path);
 }
 
