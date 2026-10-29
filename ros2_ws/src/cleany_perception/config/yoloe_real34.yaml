@@ -1,0 +1,55 @@
+# Physical tabletop profile; IDs follow this order. Simulation keeps its own profile.
+# cup includes paper/plastic cups and mugs; crumpled paper includes tissue;
+# personal bag includes backpacks, handbags and totes.
+perception_inspector:
+  ros__parameters:
+    detector_type: yoloe_gemini
+    segmenter_type: yoloe_seg
+    preload_models: true
+    yoloe_model_path: yoloe/yoloe-26s-seg.pt
+    yoloe_text_encoder_directory: yoloe
+    yoloe_classes:
+    - cup
+    - bottle
+    - beverage can
+    - drink carton
+    - cup lid
+    - drinking straw
+    - crumpled paper
+    - sheet of paper
+    - receipt
+    - snack bag
+    - plastic bag
+    - paper bag
+    - disposable food container
+    - disposable utensil
+    - cardboard box
+    - plastic box
+    - book
+    - notebook
+    - pen
+    - pencil
+    - eraser
+    - pencil case
+    - cell phone
+    - tablet
+    - laptop
+    - computer mouse
+    - earbuds
+    - earbud case
+    - charging cable
+    - power bank
+    - wallet
+    - keys
+    - eyeglasses
+    - personal bag
+    yoloe_device: auto
+    yoloe_image_size: 640
+    yoloe_iou_threshold: 0.5
+    minimum_detection_confidence: 0.25
+    maximum_detections: 10
+    default_query: Detect visible movable objects on the tabletop.
+    gemini_model: gemini-3.5-flash-lite
+    gemini_api_key_environment: GEMINI_API_KEY
+    gemini_jpeg_quality: 95
+    detector_timeout_seconds: 30.0

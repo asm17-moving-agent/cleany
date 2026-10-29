@@ -25,9 +25,11 @@ from rclpy.qos import (
 )
 from rclpy.time import Time
 from sensor_msgs.msg import CameraInfo, Image
+from std_srvs.srv import Trigger
 
 from cleany_perception.core.models import ObjectMask
 from cleany_perception.inspection_node import InspectionNode
+from cleany_perception.rgbd_snapshot import RgbdSnapshotBuffer
 
 
 _LATE_DEBUG_SUBSCRIBER_QOS = QoSProfile(
@@ -130,7 +132,7 @@ def _sensor_messages(scene, stamp_ns):
     return color, color_info, depth, depth_info
 
 
-def _make_node(scene, events=None, segmenter=None, detector=None):
+def _make_node(scene, events=None, segmenter=None, detector=None, *, rgbd_reliability='best_effort'):
     overrides = [
         Parameter('snapshot_timeout_seconds', value=1.0),
         Parameter('plane_distance_threshold_m', value=0.001),
@@ -138,6 +140,7 @@ def _make_node(scene, events=None, segmenter=None, detector=None):
         Parameter('plane_minimum_inlier_ratio', value=0.9),
         Parameter('debug_republish_count', value=5),
         Parameter('debug_republish_period_seconds', value=0.05),
+        Parameter('rgbd_qos_reliability', value=rgbd_reliability),
     ]
     return InspectionNode(
         detector=detector or _Detector(scene['detection'], events),
@@ -148,14 +151,14 @@ def _make_node(scene, events=None, segmenter=None, detector=None):
 
 
 @contextmanager
-def inspection_runtime(scene, *args):
+def inspection_runtime(scene, *args, **kwargs):
     rclpy.init(args=[])
     node = client_node = executor = spin_thread = action_client = None
     try:
-        node = _make_node(scene, *args)
+        node = _make_node(scene, *args, **kwargs)
         client_node = rclpy.create_node('inspection_test_client')
         action_client = ActionClient(client_node, InspectScene, '/perception/inspect_scene')
-        executor = MultiThreadedExecutor(num_threads=4)
+        executor = MultiThreadedExecutor(num_threads=3)
         executor.add_node(node)
         executor.add_node(client_node)
         spin_thread = threading.Thread(target=executor.spin, daemon=True)
@@ -181,6 +184,8 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
 ):
     events = []
     segmenter = _Segmenter(synthetic_scene['mask'])
+    synthetic_scene = dict(synthetic_scene, detection=replace(
+        synthetic_scene['detection'], detector_label='power bank'))
     can_detection = replace(
         synthetic_scene['detection'],
         label='can',
@@ -275,6 +280,7 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert [
             item.label for item in result.detections.detections
         ] == ['can', 'box']
+        assert result.detections.detections[1].detector_label == 'power bank'
         assert [
             item.object_id for item in result.detections.detections
         ] == [1, 2]
@@ -285,6 +291,8 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
             result.detections.detections[1].distance_m
         )
         assert result.detections.detections[1].x_min == 135.0
+        footprint = result.detections.detections[1]
+        assert min(footprint.estimated_width_m, footprint.estimated_height_m) > 0.
         assert _wait_until(lambda: bool(detection_arrays))
         assert not objects
         assert (
@@ -365,6 +373,7 @@ def test_inspection_actions_detect_all_then_inspect_only_selection(
         assert len(selection_result.objects.objects) == 1
         assert selection_result.objects.objects[0].object_id == 2
         assert selection_result.objects.objects[0].label == 'box'
+        assert selection_result.objects.objects[0].detector_label == 'power bank'
         assert _wait_until(lambda: bool(objects))
         assert objects[0].objects[0].object_id == 2
         assert [item.stage for item in selection_feedback] == [
@@ -460,3 +469,75 @@ def test_snapshot_lookup_preserves_capture_time_and_does_not_extend_ttl(syntheti
     response = InspectionNode._get_scene_snapshot(node, GetSceneSnapshot.Request(snapshot_id='approved'),
                                                 GetSceneSnapshot.Response())
     assert not response.found and response.detections.detections == []
+@pytest.mark.parametrize('missing_info', [False, True])
+@pytest.mark.parametrize('reliability', ['best_effort', 'reliable'])
+def test_rgbd_preflight_checks_servers_new_input_without_inference(synthetic_scene, missing_info, reliability):
+    events = []
+    with inspection_runtime(synthetic_scene, events, rgbd_reliability=reliability) as (node, client_node, _):
+        service = client_node.create_client(Trigger, '/perception/check_rgbd')
+        assert service.wait_for_service(timeout_sec=2)
+        messages = _sensor_messages(synthetic_scene, node.get_clock().now().nanoseconds)
+        # A cached complete bundle must not satisfy this readiness request.
+        callbacks = (node._snapshot_buffer.add_color, node._snapshot_buffer.add_color_info,
+                     node._snapshot_buffer.add_depth, node._snapshot_buffer.add_depth_info)
+        for callback, message in zip(callbacks, messages):
+            callback(message)
+        qos = (QoSProfile(depth=5, reliability=ReliabilityPolicy.RELIABLE)
+               if reliability == 'reliable' else qos_profile_sensor_data)
+        publishers = [client_node.create_publisher(message_type, topic, qos)
+                      for message_type, topic in (
+                          (Image, '/camera/color/image_raw'),
+                          (CameraInfo, '/camera/color/camera_info'),
+                          (Image, '/camera/depth/image_raw'),
+                          (CameraInfo, '/camera/depth/camera_info'))]
+        assert _wait_until(lambda: all(publisher.get_subscription_count() == 1
+                                      for publisher in publishers))
+        future = service.call_async(Trigger.Request())
+        def publish():
+            messages = _sensor_messages(synthetic_scene, node.get_clock().now().nanoseconds)
+            for index, (publisher, message) in enumerate(zip(publishers, messages)):
+                if not (missing_info and index == 1):
+                    publisher.publish(message)
+        timer = client_node.create_timer(0.25, publish)
+        try:
+            assert _wait_until(future.done)
+            response = future.result()
+            assert response.success == (not missing_info)
+            assert not events  # No detector or TF call, and no detection cache refresh.
+            if missing_info:
+                assert 'Timed out' in response.message
+            else:
+                assert 'Fresh exact-timestamp' in response.message
+        finally:
+            client_node.destroy_timer(timer)
+            client_node.destroy_client(service)
+
+
+def test_slow_rgb_callback_does_not_starve_other_rgbd_streams(synthetic_scene, monkeypatch):
+    original = RgbdSnapshotBuffer.add_color
+    def slow_color(buffer, message):
+        time.sleep(0.1)
+        original(buffer, message)
+    monkeypatch.setattr(RgbdSnapshotBuffer, 'add_color', slow_color)
+    with inspection_runtime(synthetic_scene) as (node, client_node, _):
+        service = client_node.create_client(Trigger, '/perception/check_rgbd')
+        assert service.wait_for_service(timeout_sec=2)
+        publishers = [client_node.create_publisher(message_type, topic, qos_profile_sensor_data)
+                      for message_type, topic in (
+                          (Image, '/camera/color/image_raw'),
+                          (CameraInfo, '/camera/color/camera_info'),
+                          (Image, '/camera/depth/image_raw'),
+                          (CameraInfo, '/camera/depth/camera_info'))]
+        assert _wait_until(lambda: all(publisher.get_subscription_count() == 1
+                                      for publisher in publishers))
+        messages = _sensor_messages(synthetic_scene, node.get_clock().now().nanoseconds)
+        future = service.call_async(Trigger.Request())
+        deadline = time.monotonic() + 3
+        while not future.done() and time.monotonic() < deadline:
+            stamp = node.get_clock().now().to_msg()
+            for publisher, message in zip(publishers, messages):
+                message.header.stamp = stamp
+                publisher.publish(message)
+            time.sleep(0.025)
+        assert future.done()
+        assert future.result().success, future.result().message

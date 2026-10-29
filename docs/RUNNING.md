@@ -9,6 +9,19 @@ source "$(make -s print-install-base)/setup.bash"
 
 Navigation 전용 빌드는 `print-navigation-install-base`로 overlay를 조회합니다. 빌드 때 바꾼 Make 변수는 경로 조회 때도 동일하게 전달합니다.
 
+
+## 인식과 파지 후보 실행
+
+[인식 모델 설정](../configs/models/README.md)에서 모델 경로와 프로파일을 확인하고
+[비전 컨테이너 실행 절차](../containers/vision/README.md)를 따릅니다.
+`make perception-run`은 YOLOE 인스턴스 검출과 Gemini 분류를,
+`make anygrasp-run`은 선택 객체 점군의 파지 후보 생성을 실행합니다.
+후보 생성 성공은 로봇 도달성이나 실제 파지 성공을 의미하지 않습니다.
+
+`perception/check_rgbd`는 새 RGB-D 입력의 시각과 기하 유효성을 확인합니다.
+[인식 인터페이스](../ros2_ws/src/cleany_perception/docs/interfaces.md)와
+[파지 요청 좌표계 계약](../ros2_ws/src/cleany_interfaces/docs/scene-and-grasp.md)을 따릅니다.
+
 ## 실행 선택과 준비 순서
 
 ```mermaid

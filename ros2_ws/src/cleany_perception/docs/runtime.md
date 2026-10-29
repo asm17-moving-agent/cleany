@@ -332,3 +332,17 @@ Gemini structured response에 `sorting_category`(trash/lost_item/review),
 
 - [Technical Overview](../../../../docs/cleany-docs/20_TECHNICAL/00%20-%20Technical%20Overview.md)
 - [Safety and Risk](../../../../docs/cleany-docs/20_TECHNICAL/08%20-%20Safety%20and%20Risk.md)
+
+## 모델 재사용과 입력 처리
+
+TensorRT 엔진은 프로파일의 클래스 순서와 해시를 검사한 뒤 로드합니다.
+같은 모델 경로의 어댑터는 모델 풀을 공유하고 추론 호출을 직렬화합니다.
+Gemini 요청은 JPEG를 사용하며 종류명 별칭을 정규화합니다. 분류 사유는 기존
+수거 소비자와의 호환성을 위해 계속 요청하고 전달합니다.
+
+Gemini 응답을 기다리는 동안 깊이 기하를 계산하고, 동일 snapshot의 선택 복원에서
+지지면과 크기 계산을 재사용합니다. 캐시는 snapshot TTL과 함께 정리됩니다.
+`rgbd_qos_reliability`는 `best_effort` 또는 `reliable`이며 각 입력 콜백은
+별도 그룹을 사용합니다. 모델, 스레드 및 QoS 설정은 실행 환경에서 검증해야 합니다.
+
+새 서비스와 검출 필드는 [인식 인터페이스](interfaces.md)를 따릅니다.

@@ -56,6 +56,36 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	micro-ros-agent-build test-micro-ros-setup imu-calibration-build \
 	imu-calibration-upload imu-calibration-capture test-imu-calibration test-odometry-evaluation test-imu-runtime
 
+# Perception and candidate generation without motors or licensed model inference.
+PERCEPTION_TEST_PATHS ?= $(ROS2_WS)/src/cleany_interfaces/test $(ROS2_WS)/src/cleany_perception/test $(ROS2_WS)/src/cleany_grasping/test containers/vision/test tests/tools/test_dds_transport.py tests/tools/test_yoloe_model_comparison.py
+PERCEPTION_PYTEST_ARGS ?=
+PERCEPTION_TEST_DOMAIN_ID ?= 225
+.PHONY: build-perception-candidates test-perception-candidates
+build-perception-candidates:
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_perception cleany_grasping --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-perception-candidates:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(PERCEPTION_TEST_DOMAIN_ID) \
+	PYTHONPATH="$(REPO_ROOT)tools:$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_grasping:$(ROS2_WS)/src/cleany_perception/test:$${PYTHONPATH:-}" \
+	python3 -m pytest -q -p no:cacheprovider --import-mode=importlib $(PERCEPTION_TEST_PATHS) $(PERCEPTION_PYTEST_ARGS)
+
+VISION_COMMANDS := init host-setup build feature-id
+.PHONY: $(addprefix vision-,$(VISION_COMMANDS)) vision-license-check
+$(addprefix vision-,$(VISION_COMMANDS)):
+	"$(REPO_ROOT)tools/vision-container" $(patsubst vision-%,%,$@)
+vision-license-check:
+	"$(REPO_ROOT)tools/vision-container" check-license
+
+VISION_SERVICE_COMMANDS := hybrid-config hybrid-up hybrid-down hybrid-run anygrasp-up anygrasp-run perception-up perception-run
+.PHONY: $(VISION_SERVICE_COMMANDS)
+$(VISION_SERVICE_COMMANDS):
+	"$(REPO_ROOT)tools/vision-container" $@
+
+.PHONY: yoloe-trt-build yoloe-trt-export yoloe-trt-validate
+yoloe-trt-build yoloe-trt-export yoloe-trt-validate:
+	python3 "$(REPO_ROOT)tools/yoloe_trt_container.py" $(patsubst yoloe-trt-%,%,$@) $(YOLOE_TRT_ARGS)
+
 .PHONY: build-manipulation build-manipulation-bt test-manipulation-core \
 	test-manipulation test-manipulation-bt sim-mujoco-manipulation
 

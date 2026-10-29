@@ -3,6 +3,26 @@ grasp_server:
     service_name: grasp/plan
     planning_frame: base_link
     predictor_type: geometric  # geometric works without model files.
+    anygrasp_worker_enabled: true
+    gpu_lock_path: /workspace/cleany/configs/robot/gpu-work.lock
+    anygrasp_prepare_service: /grasp/prepare_window
+    anygrasp_prepare_hold_sec: 180.0
+    anygrasp_task_status_topic: /manipulation/execute_skill/_action/status
+    anygrasp_task_hold_sec: 600.0
+    anygrasp_minimum_available_memory_mb: 0.0  # Opt in after sizing the full runtime peak.
+    anygrasp_worker_idle_timeout_sec: 120.0  # Keep model through nearby re-observation.
+    anygrasp_worker_request_timeout_sec: 120.0
+    anygrasp_preload: false  # run-anygrasp prepares its persistent worker once.
+    cuda_gc_interval_calls: 16  # Set 1 to collect on every eligible CUDA cache release.
+    anygrasp_approach_direction: [0.0, 0.0, 0.0]  # XYZ in the input cloud frame; zero disables.
+    anygrasp_approach_threshold_degrees: 180.0
+    anygrasp_region_steering_mode: workspace  # target_voxels is an opt-in experiment.
+    anygrasp_target_region_voxel_m: 0.01
+    anygrasp_adaptive_point_policy: target_geometry  # Use 4,000 points for dense, thick targets; otherwise keep 8,000.
+    anygrasp_adaptive_low_maximum_points: 4000
+    anygrasp_adaptive_minimum_object_points: 400
+    anygrasp_adaptive_minimum_object_extent_m: 0.015
+    anygrasp_adaptive_maximum_context_ratio: 40.0
     debug_image_topic: grasp/debug_image
     checkpoint_path: ''  # Jetson-local licensed SDK checkpoint; configure at deployment.
     license_path: ''     # Jetson-local AnyGrasp SDK license file.

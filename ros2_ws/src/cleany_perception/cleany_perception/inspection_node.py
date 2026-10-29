@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import threading
+import math
 import os
+import json
+import time
 from pathlib import Path
 from collections.abc import Sequence
 
@@ -36,14 +39,16 @@ from rclpy.qos import (
 )
 from rclpy.time import Time
 from sensor_msgs.msg import CameraInfo, Image
+from std_srvs.srv import Trigger
 
 from cleany_perception.adapters.gemini_detector import GeminiClassifier, GeminiDetector
+from cleany_perception.object_labels import DEFAULT_OBJECT_LABEL_ALIASES
 from cleany_perception.adapters.simulation_color import (
     SimulationColorDetector,
     SimulationColorSegmenter,
 )
 from cleany_perception.adapters.tf2_transform import Tf2TransformAdapter
-from cleany_perception.adapters.yoloe_detector import YoloeDetector, YoloeMaskSegmenter
+from cleany_perception.adapters.yoloe_detector import YoloeDetector, YoloeMaskSegmenter, YoloeModelPool
 from cleany_perception.adapters.yoloe_gemini import YoloeGeminiDetector
 from cleany_perception.model_runtime import (
     resolve_device, resolve_model_assets,
@@ -68,6 +73,8 @@ from cleany_perception.core.object_ranking import (
     rank_detections_by_distance,
 )
 from cleany_perception.core.pipeline import InspectionPipeline
+from cleany_perception.core.reconstruction_cache import ReconstructionCache
+from cleany_perception.inference_lock import SerializedInference
 from cleany_perception.core.ports import (
     DetectorPort,
     SegmenterPort,
@@ -122,6 +129,8 @@ _LATCHED_DEBUG_IMAGE_QOS = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
     durability=DurabilityPolicy.TRANSIENT_LOCAL,
 )
+
+
 
 
 class InspectionNode(Node):
@@ -207,6 +216,7 @@ class InspectionNode(Node):
             if detector_type == 'gemini':
                 detector = GeminiDetector(
                     model=str(self.get_parameter('gemini_model').value),
+                    jpeg_quality=self.get_parameter('gemini_jpeg_quality').value,
                     api_key_environment=str(
                         self.get_parameter('gemini_api_key_environment').value
                     ),
@@ -228,13 +238,16 @@ class InspectionNode(Node):
                     ),
                 )
             elif detector_type in ('yoloe', 'yoloe_gemini'):
+                model_pool = YoloeModelPool()
                 def make_yoloe(
                     model_path: str, *, class_thresholds: tuple[float, ...] | None = None,
                 ) -> YoloeDetector:
                     return YoloeDetector(
+                        model_pool=model_pool,
                         model_path=model_path,
                         classes=tuple(self.get_parameter('yoloe_classes').value),
                         device=str(self.get_parameter('yoloe_device').value),
+                        engine_execution=str(self.get_parameter('yoloe_engine_execution').value),
                         image_size=int(self.get_parameter('yoloe_image_size').value),
                         confidence_threshold=float(self.get_parameter(
                             'minimum_detection_confidence').value),
@@ -245,7 +258,7 @@ class InspectionNode(Node):
                         require_masks=segmenter_type == 'yoloe_seg',
                         class_confidence_thresholds=(
                             class_thresholds if class_thresholds is not None else
-                            tuple(self.get_parameter(
+                            tuple(self.get_parameter_or(
                                 'yoloe_class_confidence_thresholds').value or ())),
                     )
 
@@ -303,7 +316,7 @@ class InspectionNode(Node):
                     wrist_right_check_yoloe = wrist_check_yoloe
                     right_check_path = resolved_model_path(
                         'wrist_right_check_yoloe_model_path')
-                    right_check_thresholds = tuple(self.get_parameter(
+                    right_check_thresholds = tuple(self.get_parameter_or(
                         'wrist_right_check_yoloe_class_confidence_thresholds'
                     ).value or ())
                     if right_check_path is not None and right_check_thresholds:
@@ -326,11 +339,13 @@ class InspectionNode(Node):
                 if detector_type == 'yoloe_gemini':
                     detector = YoloeGeminiDetector(yoloe, GeminiClassifier(
                         model=str(self.get_parameter('gemini_model').value),
+                        label_aliases=self.get_parameter('semantic_label_aliases').value,
+                        jpeg_quality=self.get_parameter('gemini_jpeg_quality').value,
                         api_key_environment=str(self.get_parameter(
                             'gemini_api_key_environment').value),
                         timeout_seconds=float(self.get_parameter(
                             'detector_timeout_seconds').value),
-                    ))
+                    ), timing=self._log_inspection_timing)
                 else:
                     detector = yoloe
             else:
@@ -352,7 +367,12 @@ class InspectionNode(Node):
                 raise ValueError(
                     f'Unsupported segmenter_type: {segmenter_type}'
                 )
-        if bool(self.get_parameter('preload_models').value):
+        engine_selected = any(
+            Path(str(self.get_parameter(name).value)).suffix == '.engine'
+            for name in ('yoloe_model_path', 'wrist_yoloe_model_path',
+                         'wrist_right_yoloe_model_path', 'wrist_check_yoloe_model_path',
+                         'wrist_mouse_check_yoloe_model_path', 'wrist_right_check_yoloe_model_path'))
+        if bool(self.get_parameter('preload_models').value) or engine_selected:
             self.get_logger().info('Loading perception models')
             adapters = (('detector', detector), ('segmenter', segmenter))
             if wrist_yoloe is not None and wrist_yoloe is not yoloe:
@@ -403,6 +423,9 @@ class InspectionNode(Node):
                 ),
             )
         self._transformer = transformer
+        self._inference_lock = threading.RLock()
+        detector = SerializedInference(detector, self._inference_lock)
+        segmenter = SerializedInference(segmenter, self._inference_lock)
         self._pipeline = InspectionPipeline(
             detector=detector,
             segmenter=segmenter,
@@ -444,7 +467,6 @@ class InspectionNode(Node):
         )
 
         self._snapshot_buffer = RgbdSnapshotBuffer()
-        self._sensor_callback_group = MutuallyExclusiveCallbackGroup()
         self._action_callback_group = ReentrantCallbackGroup()
         self._create_sensor_subscriptions()
         self._objects_publisher = self.create_publisher(
@@ -491,17 +513,27 @@ class InspectionNode(Node):
                 for name, default in asdict(WristObservationConfig()).items()
             })
             self._wrist_service = WristService(
-                self, wrist_yoloe,
-                check_detector=wrist_check_yoloe,
-                mouse_check_detector=wrist_mouse_check_yoloe,
-                right_detector=wrist_right_yoloe,
-                right_check_detector=wrist_right_check_yoloe,
+                self, SerializedInference(wrist_yoloe, self._inference_lock),
+                check_detector=SerializedInference(wrist_check_yoloe, self._inference_lock) if wrist_check_yoloe is not None else None,
+                mouse_check_detector=SerializedInference(wrist_mouse_check_yoloe, self._inference_lock) if wrist_mouse_check_yoloe is not None else None,
+                right_detector=SerializedInference(wrist_right_yoloe, self._inference_lock) if wrist_right_yoloe is not None else None,
+                right_check_detector=SerializedInference(wrist_right_check_yoloe, self._inference_lock) if wrist_right_check_yoloe is not None else None,
                 failure_image_directory=str(self.get_parameter(
                     'wrist_failure_image_directory').value),
                 config=wrist_config)
+        cleanup_period = float(self.get_parameter('snapshot_cleanup_period_seconds').value)
+        if not math.isfinite(cleanup_period) or cleanup_period < 0:
+            raise ValueError('Snapshot cleanup period must be finite and nonnegative')
+        self._snapshot_cleanup_timer = (
+            self.create_timer(cleanup_period, self._cleanup_expired_snapshots,
+                              callback_group=self._action_callback_group)
+            if cleanup_period > 0 else None)
         self._snapshot_service = self.create_service(
-            GetSceneSnapshot, 'perception/get_scene_snapshot',
-            self._get_scene_snapshot, callback_group=self._action_callback_group)
+            GetSceneSnapshot, 'perception/get_scene_snapshot', self._get_scene_snapshot,
+            callback_group=self._action_callback_group)
+        self._rgbd_check_service = self.create_service(
+            Trigger, 'perception/check_rgbd', self._check_rgbd,
+            callback_group=self._action_callback_group)
         self._action_server = ActionServer(
             self,
             InspectScene,
@@ -511,6 +543,9 @@ class InspectionNode(Node):
             goal_callback=self._goal_callback,
             cancel_callback=self._cancel_callback,
         )
+
+    def _cleanup_expired_snapshots(self) -> None:
+        self._snapshot_cache.expire()
 
     def _get_scene_snapshot(self, request, response):
         cached = self._snapshot_cache.get(request.snapshot_id)
@@ -524,11 +559,38 @@ class InspectionNode(Node):
             response.message = 'Cached snapshot; capture time and TTL unchanged'
         return response
 
+    def _check_rgbd(self, _request: Trigger.Request,
+                    response: Trigger.Response) -> Trigger.Response:
+        """Check this server's fresh input without inference or a cached detection."""
+        try:
+            messages = self._snapshot_buffer.wait_for_new(
+                self._snapshot_buffer.sequence, self._snapshot_timeout_seconds)
+            snapshot = snapshot_from_messages(
+                messages, depth_16u_scale_m=self._depth_16u_scale_m)
+            age_seconds = (self.get_clock().now().nanoseconds - snapshot.stamp_ns) / 1e9
+            if not 0 <= age_seconds <= self._snapshot_timeout_seconds:
+                raise ValueError(f'RGB-D capture is stale or future-dated: age={age_seconds:.3f}s')
+            response.success = True
+            response.message = (
+                f'Fresh exact-timestamp RGB-D input: stamp_ns={snapshot.stamp_ns}, '
+                f'frame={snapshot.source_frame}, age={age_seconds:.3f}s')
+        except (InspectionFailure, ValueError) as error:
+            response.success = False
+            response.message = str(error)
+        return response
+
     def destroy_node(self) -> None:
+        if self._snapshot_cleanup_timer is not None:
+            self.destroy_timer(self._snapshot_cleanup_timer)
         if self._wrist_service is not None:
             self._wrist_service.close(wait=True)
         self._action_server.destroy()
         super().destroy_node()
+
+
+    def _log_inspection_timing(self, stage: str, seconds: float) -> None:
+        self.get_logger().info(json.dumps({'event': 'inspection_phase_timing',
+            'stage': stage, 'wall_sec': seconds}))
 
     def _declare_parameters(self) -> None:
         self.declare_parameter('enable_wrist_observation', False)
@@ -551,6 +613,7 @@ class InspectionNode(Node):
         self.declare_parameter('color_info_topic', 'camera/color/camera_info')
         self.declare_parameter('depth_image_topic', 'camera/depth/image_raw')
         self.declare_parameter('depth_info_topic', 'camera/depth/camera_info')
+        self.declare_parameter('rgbd_qos_reliability', 'best_effort')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter(
             'default_query',
@@ -575,6 +638,7 @@ class InspectionNode(Node):
             ['cup', 'wallet', 'crumpled tissue', 'lego brick'],
         )
         self.declare_parameter('yoloe_device', 'cuda')
+        self.declare_parameter('yoloe_engine_execution', 'async')
         self.declare_parameter('yoloe_image_size', 640)
         self.declare_parameter('yoloe_iou_threshold', 0.5)
         self.declare_parameter(
@@ -591,11 +655,14 @@ class InspectionNode(Node):
                                [f'{alias}={label}' for alias, label in TrackingConfig().label_aliases])
         self.declare_parameter('snapshot_cache_max_entries', 2)
         self.declare_parameter('snapshot_cache_ttl_seconds', 120.0)
+        self.declare_parameter('snapshot_cleanup_period_seconds', 5.0)
         self.declare_parameter(
             'gemini_model',
             'gemini-robotics-er-2-preview',
         )
         self.declare_parameter('gemini_api_key_environment', 'GEMINI_API_KEY')
+        self.declare_parameter('gemini_jpeg_quality', 95)
+        self.declare_parameter('semantic_label_aliases', list(DEFAULT_OBJECT_LABEL_ALIASES))
         self.declare_parameter('detector_timeout_seconds', 30.0)
         self.declare_parameter('tf_timeout_seconds', 0.5)
         self.declare_parameter('tf_cache_seconds', 60.0)
@@ -682,34 +749,24 @@ class InspectionNode(Node):
         )
 
     def _create_sensor_subscriptions(self) -> None:
-        arguments = {
-            'qos_profile': qos_profile_sensor_data,
-            'callback_group': self._sensor_callback_group,
-        }
-        self.create_subscription(
-            Image,
-            str(self.get_parameter('color_image_topic').value),
-            self._snapshot_buffer.add_color,
-            **arguments,
-        )
-        self.create_subscription(
-            CameraInfo,
-            str(self.get_parameter('color_info_topic').value),
-            self._snapshot_buffer.add_color_info,
-            **arguments,
-        )
-        self.create_subscription(
-            Image,
-            str(self.get_parameter('depth_image_topic').value),
-            self._snapshot_buffer.add_depth,
-            **arguments,
-        )
-        self.create_subscription(
-            CameraInfo,
-            str(self.get_parameter('depth_info_topic').value),
-            self._snapshot_buffer.add_depth_info,
-            **arguments,
-        )
+        reliability = str(self.get_parameter('rgbd_qos_reliability').value)
+        if reliability not in ('best_effort', 'reliable'):
+            raise ValueError('rgbd_qos_reliability must be best_effort or reliable')
+        qos = QoSProfile(history=HistoryPolicy.KEEP_LAST, depth=5,
+            reliability=(ReliabilityPolicy.RELIABLE if reliability == 'reliable'
+                         else ReliabilityPolicy.BEST_EFFORT))
+        # A slow, continuously ready Image callback must not starve CameraInfo
+        # or the other camera stream. Buffer updates have their own lock.
+        for message_type, topic_parameter, callback in (
+            (Image, 'color_image_topic', self._snapshot_buffer.add_color),
+            (CameraInfo, 'color_info_topic', self._snapshot_buffer.add_color_info),
+            (Image, 'depth_image_topic', self._snapshot_buffer.add_depth),
+            (CameraInfo, 'depth_info_topic', self._snapshot_buffer.add_depth_info),
+        ):
+            self.create_subscription(
+                message_type, str(self.get_parameter(topic_parameter).value),
+                callback, qos,
+                callback_group=MutuallyExclusiveCallbackGroup())
 
     def _goal_callback(self, _goal_request) -> GoalResponse:
         with self._busy_lock:
@@ -759,6 +816,8 @@ class InspectionNode(Node):
             )
             capture_transform = self._lookup_capture_transform(snapshot)
             query = goal_handle.request.query.strip() or self._default_query
+            geometry_cache = ReconstructionCache()
+            inspection_began = time.monotonic()
             detections = self._pipeline.detect(
                 snapshot,
                 query,
@@ -772,7 +831,17 @@ class InspectionNode(Node):
                     )
                 ),
                 cancelled=lambda: goal_handle.is_cancel_requested,
+                capture_transform=capture_transform,
+                geometry_cache=geometry_cache,
             )
+            footprint_began = time.monotonic()
+            detections = self._pipeline.estimate_detection_footprints(
+                snapshot, detections, capture_transform,
+                cancelled=lambda: goal_handle.is_cancel_requested,
+                geometry_cache=geometry_cache,
+            )
+            self._log_inspection_timing('footprints_after_classification', time.monotonic() - footprint_began)
+            self._log_inspection_timing('detection_and_geometry', time.monotonic() - inspection_began)
             ranked_detections = rank_detections_by_distance(
                 snapshot,
                 detections,
@@ -802,6 +871,7 @@ class InspectionNode(Node):
             tracking = self._tracker.update(
                 session_id, snapshot_id, [d.label for d in detections],
                 [item.position for item in ranked_detections],
+                detector_labels=[d.detector_label for d in detections],
             )
             self._snapshot_cache.put(
                 snapshot_id,
@@ -813,6 +883,7 @@ class InspectionNode(Node):
                     color_frame=messages.color.header.frame_id,
                     tracking=tracking,
                     representative_frame=self._target_frame,
+                    geometry_cache=geometry_cache,
                 ),
             )
             detections_message = self._detections_message(
@@ -905,7 +976,12 @@ class InspectionNode(Node):
                 )
             ),
             cancelled=lambda: goal_handle.is_cancel_requested,
+            geometry_cache=cached.geometry_cache,
         )
+        if cached.geometry_cache is not None:
+            self.get_logger().info(json.dumps({'event': 'inspection_geometry_cache',
+                'snapshot_id': snapshot_id, 'object_id': selected_id,
+                'hits': cached.geometry_cache.hits, 'misses': cached.geometry_cache.misses}))
         detections_message = self._detections_message(
             cached.detections,
             cached.snapshot.stamp_ns,
@@ -1109,6 +1185,7 @@ class InspectionNode(Node):
             detected = DetectedObject2D()
             detected.object_id = object_id
             detected.label = detection.label
+            detected.detector_label = detection.detector_label
             detected.confidence = detection.confidence
             detected.sorting_category = detection.sorting_category
             detected.sorting_reason = detection.sorting_reason
@@ -1121,6 +1198,9 @@ class InspectionNode(Node):
                 if tracked.position is not None:
                     (detected.representative_position.x, detected.representative_position.y,
                      detected.representative_position.z) = tracked.position
+            detected.median_depth_m = detection.median_depth_m
+            detected.estimated_width_m = detection.estimated_width_m
+            detected.estimated_height_m = detection.estimated_height_m
             detected.x_min = detection.bbox.x_min
             detected.y_min = detection.bbox.y_min
             detected.x_max = detection.bbox.x_max
@@ -1145,6 +1225,7 @@ class InspectionNode(Node):
             detected = DetectedObject3D()
             detected.object_id = object_id
             detected.label = inspected.label
+            detected.detector_label = inspected.detector_label
             detected.confidence = inspected.confidence
             detected.obb_pose.position.x = float(inspected.box.center[0])
             detected.obb_pose.position.y = float(inspected.box.center[1])

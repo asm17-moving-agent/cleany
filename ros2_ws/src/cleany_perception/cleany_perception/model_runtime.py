@@ -43,8 +43,12 @@ def resolve_model_assets(
         return str(path)
 
     if kind == 'yoloe':
+        model_path = asset('yoloe_model_path')
+        if (Path(model_path).suffix == '.engine'
+                or (Path(model_path).parent / 'manifest.json').is_file()):
+            return {'yoloe_model_path': model_path}
         result = {
-            'yoloe_model_path': asset('yoloe_model_path'),
+            'yoloe_model_path': model_path,
             'yoloe_text_encoder_directory': asset(
                 'yoloe_text_encoder_directory', directory=True
             ),

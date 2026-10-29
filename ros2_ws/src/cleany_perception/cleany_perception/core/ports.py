@@ -4,6 +4,7 @@ from typing import Protocol, Sequence
 
 from cleany_perception.core.models import (
     Detection2D,
+    MaskArray,
     ObjectMask,
     RgbArray,
     RigidTransform,
@@ -26,6 +27,12 @@ class SegmenterPort(Protocol):
         detections: Sequence[Detection2D],
     ) -> Sequence[ObjectMask]:
         """Return one mask for every detection, preserving input order."""
+
+
+class ReferenceTrackerPort(Protocol):
+    def track(self, reference_rgb: RgbArray, detection: Detection2D,
+              current_rgb: RgbArray) -> MaskArray:
+        """Track one original identity; no new semantic or mask-IoU confidence."""
 
 
 class TransformPort(Protocol):

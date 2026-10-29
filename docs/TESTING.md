@@ -2,6 +2,22 @@
 
 명령은 저장소 루트의 Humble/Fortress 환경에서 실행합니다. 변경 범위를 확인한 뒤 가장 작은 관련 검사부터 선택합니다. Make target의 실제 동작은 [Makefile](../Makefile)을 기준으로 확인합니다.
 
+
+## 인식과 파지 후보 검증
+
+```bash
+make build-perception-candidates
+make test-perception-candidates
+```
+
+인터페이스 직렬화, RGB-D 검사, 모델 어댑터, 파지 후보와 GPU 작업 잠금,
+비전 컨테이너 설정 및 모델 도구를 검사합니다. 모델 호출은 가짜 추론기로
+검증하며 실제 Gemini API나 AnyGrasp SDK 성능을 측정하지 않습니다.
+RealSense 실물 검사는 명시적으로 활성화할 때만 실행합니다.
+검사 경로와 옵션은 `PERCEPTION_TEST_PATHS`, `PERCEPTION_PYTEST_ARGS`,
+ROS domain은 `PERCEPTION_TEST_DOMAIN_ID`로 바꿀 수 있습니다.
+운영 노드와 분리한 빌드 경로와 domain을 사용합니다.
+
 ## 테스트와 도구 위치
 
 테스트는 검사 대상을 소유한 위치에 둡니다. 루트 `tests/`에는 저장소 도구의 자동 검사와 패키지를 연결하는 통합 검사만 둡니다. 실행, 관찰과 보고 코드는 검증 도구로 분리합니다.

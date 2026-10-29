@@ -112,6 +112,15 @@ def test_equal_distance_prefers_confidence_then_detector_order():
     ]
 
 
+def test_ranking_preserves_physical_footprint_instead_of_overwriting_with_bbox():
+    snapshot, near, _, transform, config = _scene()
+    measured = replace(near, estimated_width_m=.040, estimated_height_m=.160)
+    ranked = rank_detections_by_distance(snapshot, (measured,), transform, config)
+    assert ranked[0].detection.estimated_width_m == pytest.approx(.040)
+    assert ranked[0].detection.estimated_height_m == pytest.approx(.160)
+    assert ranked[0].detection.median_depth_m == pytest.approx(.7)
+
+
 @pytest.mark.parametrize(
     ('field', 'value'),
     [

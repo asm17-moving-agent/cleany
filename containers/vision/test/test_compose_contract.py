@@ -15,18 +15,16 @@ DOCKERFILE = VISION_DIR / 'Dockerfile'
 IDENTITY_EXAMPLE = VISION_DIR / 'jetson-identity.env.example'
 HOST_CYCLONEDDS = VISION_DIR / 'cyclonedds' / 'host.xml'
 CONTAINER_CYCLONEDDS = VISION_DIR / 'cyclonedds' / 'container.xml'
-
-
-def test_perception_entrypoint_uses_current_profile_and_explicit_clock():
-    script = (VISION_DIR / 'scripts/run-perception').read_text()
-    assert 'learned_rgbd.launch.py' in script
-    assert 'inspect_scene.launch.py' not in script
-    assert 'use_sim_time:="${perception_sim_time}"' in script
-    assert 'enable_wrist_observation:="${perception_wrist}"' in script
-    assert 'device:=cuda' in script
-    wrapper = (VISION_DIR.parents[1] / 'tools/vision-container').read_text()
-    assert '-e CLEANY_PERCEPTION_USE_SIM_TIME' in wrapper
-    assert '-e CLEANY_PERCEPTION_USE_WRIST_CAMERA' in wrapper
+RUN_ANYGRASP = VISION_DIR / 'scripts' / 'run-anygrasp'
+RUN_PERCEPTION = VISION_DIR / 'scripts' / 'run-perception'
+ANYGRASP_CONFIG = (
+    VISION_DIR.parents[1]
+    / 'ros2_ws'
+    / 'src'
+    / 'cleany_grasping'
+    / 'config'
+    / 'anygrasp.yaml'
+)
 
 
 def test_dockerfile_uses_pinned_jetson_l4t_base() -> None:
@@ -44,6 +42,9 @@ def test_host_cyclonedds_uses_the_fixed_bridge_gateway() -> None:
     assert '<NetworkInterface address="172.30.0.1"' in configuration
     assert '<AllowMulticast>false</AllowMulticast>' in configuration
     assert '<ParticipantIndex>auto</ParticipantIndex>' in configuration
+    assert '<Peer Address="172.30.0.1" />' in configuration
+    assert '<Peer Address="172.30.0.10" />' in configuration
+    assert '<Peer Address="172.30.0.11" />' in configuration
     assert 'autodetermine=' not in configuration
 
 
@@ -52,6 +53,30 @@ def test_container_cyclonedds_uses_well_known_unicast_ports() -> None:
 
     assert '<AllowMulticast>false</AllowMulticast>' in configuration
     assert '<ParticipantIndex>auto</ParticipantIndex>' in configuration
+
+
+def test_runtime_forces_one_anygrasp_predictor_process() -> None:
+    script = RUN_ANYGRASP.read_text(encoding='utf-8')
+    assert ANYGRASP_CONFIG.is_file()
+
+    assert 'flock -n 9' in script
+    assert '-p predictor_type:=anygrasp' in script
+    assert '--params-file /workspace/cleany/ros2_ws/src/cleany_grasping/config/anygrasp.yaml' in script
+
+
+def test_perception_defaults_to_yoloe_seg_and_gemini() -> None:
+    script = RUN_PERCEPTION.read_text(encoding='utf-8')
+    assert 'detector_type:=yoloe_gemini segmenter_type:=yoloe_seg' in script
+    assert '/models/yoloe/yoloe-26m-seg.pt' in script
+    assert '/models/yoloe/real32/m/active/yoloe-26m-seg-real32.engine' in script
+    assert 'YOLOE_TEXT_ENCODER_DIRECTORY:-/models/yoloe' in script
+    assert 'PERCEPTION_DETECTOR_BACKEND' not in script
+    assert 'SAM2' not in script
+    assert 'run-vlm' not in script
+
+
+def test_anygrasp_defaults_to_optimized_with_environment_override() -> None:
+    assert '${CLEANY_PIPELINE_PROFILE:-optimized}' in RUN_ANYGRASP.read_text()
 
 
 def _docker_compose_available() -> bool:
@@ -73,7 +98,7 @@ def _render_compose(identity_file: Path) -> subprocess.CompletedProcess[str]:
         if line and not line.startswith('#')
     }
     environment = os.environ.copy()
-    for key in identity_keys | {'CLEANY_JETSON_IDENTITY_FILE'}:
+    for key in identity_keys | {'CLEANY_JETSON_IDENTITY_FILE', 'GEMINI_API_KEY'}:
         environment.pop(key, None)
     environment['CLEANY_JETSON_IDENTITY_FILE'] = str(identity_file)
     return subprocess.run(
@@ -111,16 +136,23 @@ def test_compose_separates_anygrasp_assets_and_reserves_gpu_addresses(
 
     assert result.returncode == 0, result.stderr
     configuration = json.loads(result.stdout)
-    assert set(configuration['services']) == {'anygrasp', 'perception'}
+    assert set(configuration['services']) == {
+        'anygrasp',
+        'perception',
+    }
     anygrasp = configuration['services']['anygrasp']
     perception = configuration['services']['perception']
     network_name = next(iter(anygrasp['networks']))
     anygrasp_network = anygrasp['networks'][network_name]
     perception_network = perception['networks'][network_name]
     assert anygrasp_network['ipv4_address'] == '172.30.0.10'
-    assert anygrasp_network['mac_address'] == '02:00:00:00:00:01'
+    assert anygrasp_network['mac_address'] == '02:42:ac:1e:00:0a'
     assert perception_network['ipv4_address'] == '172.30.0.11'
     assert anygrasp.get('network_mode') != 'host'
+    for service in (anygrasp, perception):
+        assert service['environment']['CYCLONEDDS_URI'] == (
+            'file:///workspace/cleany/containers/vision/cyclonedds/container.xml'
+        )
 
     anygrasp_volumes = {
         volume['target']: volume for volume in anygrasp['volumes']
@@ -133,12 +165,16 @@ def test_compose_separates_anygrasp_assets_and_reserves_gpu_addresses(
     assert '/opt/anygrasp/license' not in perception_volumes
     assert '/models/anygrasp' not in perception_volumes
     assert perception_volumes['/models/yoloe']['read_only'] is True
+    assert '/models/sam2' not in perception_volumes
     assert 'ANYGRASP_EXPECTED_FEATURE_ID' not in perception['environment']
+    assert 'GEMINI_API_KEY' in perception['environment']
+    assert perception['environment']['OPENBLAS_NUM_THREADS'] == '1'
+    assert 'OPENBLAS_NUM_THREADS' not in anygrasp['environment']
+    assert not any(key.startswith(('SAM2_', 'VLM_')) for key in perception['environment'])
 
     network = configuration['networks'][network_name]['ipam']['config'][0]
     assert network['aux_addresses'] == {
         'motion': '172.30.0.13',
-        'vlm': '172.30.0.12',
     }
 
 
@@ -150,7 +186,9 @@ def test_compose_has_no_identity_defaults_and_rejects_missing_value(
     tmp_path: Path,
 ) -> None:
     assert '${' in COMPOSE_FILE.read_text(encoding='utf-8')
-    assert ':-' not in COMPOSE_FILE.read_text(encoding='utf-8')
+    for key in ('ANYGRASP_MAC_ADDRESS', 'ANYGRASP_EXPECTED_FEATURE_ID',
+                'ROS_DOMAIN_ID', 'YOLOE_MODEL_HOST_DIR', 'HYBRID_SUBNET'):
+        assert '${' + key + ':?' in COMPOSE_FILE.read_text(encoding='utf-8')
     identity_file = tmp_path / 'identity.env'
     identity_file.write_text(
         '\n'.join(

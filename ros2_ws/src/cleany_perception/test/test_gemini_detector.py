@@ -1,8 +1,10 @@
+import io
 import json
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from PIL import Image, JpegImagePlugin
 
 from cleany_perception.adapters.gemini_detector import (
     GeminiClassifier,
@@ -15,12 +17,22 @@ from cleany_perception.core.models import (
 )
 
 
+def _jpeg_pixels(payload, size):
+    with Image.open(io.BytesIO(payload)) as image:
+        assert image.format == 'JPEG'
+        assert image.size == size
+        assert image.mode == 'RGB'
+        assert JpegImagePlugin.get_sampling(image) == 0
+        image.load()
+        return np.asarray(image)
+
+
 def test_gemini_sorting_semantics_survive_parser_and_missing_is_not_guessed():
     item = dict(label='cup', confidence=.9, box_2d=[100,100,200,200],
-                sorting_category='lost_item', sorting_reason='Reusable ceramic cup')
+                sorting_reason='Visible test evidence', sorting_category='lost_item')
     result = parse_gemini_detections(json.dumps([item]), 640, 480)[0]
     assert result.sorting_category == 'lost_item'
-    assert result.sorting_reason == item['sorting_reason']
+
     item.pop('sorting_category')
     assert parse_gemini_detections(json.dumps([item]), 640, 480)[0].sorting_category == ''
     item['sorting_category'] = 'recycle'
@@ -35,14 +47,19 @@ def test_gemini_classifies_yoloe_instances_without_changing_geometry():
     requests = []
     classifier = GeminiClassifier('test-model', response_provider=lambda image, prompt, schema: (
         requests.append((image, prompt, schema)) or json.dumps({'objects': [{
-            'id': 1, 'label': 'used paper cup', 'sorting_category': 'trash',
-            'sorting_reason': 'Disposable paper cup',
+            'id': 1, 'label': 'used paper cup', 'sorting_reason': 'Visible test evidence', 'sorting_category': 'trash',
         }]})))
     classified = classifier.classify(np.zeros((20, 30, 3), np.uint8), (detection,))
     assert len(requests) == 1
-    assert requests[0][0].startswith(b'\x89PNG')
+    pixels = _jpeg_pixels(requests[0][0], (30, 20))
+    # The originally black input must still contain the annotated box.
+    assert pixels[10, 2, :2].min() > 200
     assert requests[0][2]['required'] == ['objects']
-    assert classified[0].label == 'used paper cup'
+    item_schema = requests[0][2]['properties']['objects']['items']
+    assert set(item_schema['properties']) == {'id', 'label', 'sorting_category', 'sorting_reason'}
+    assert set(item_schema['required']) == {'id', 'label', 'sorting_category', 'sorting_reason'}
+    assert classified[0].label == 'cup'
+    assert classified[0].detector_label == 'cup'
     assert classified[0].sorting_category == 'trash'
     assert classified[0].confidence == .82
     assert classified[0].bbox is detection.bbox
@@ -59,18 +76,44 @@ def test_gemini_classification_retries_one_incomplete_mapping():
     def provider(_image, prompt, _schema):
         prompts.append(prompt)
         objects = [{'id': 1, 'label': 'paper cup',
-                    'sorting_category': 'trash', 'sorting_reason': 'disposable'}]
+                    'sorting_reason': 'Visible test evidence', 'sorting_category': 'trash'}]
         if len(prompts) == 2:
             objects.append({'id': 2, 'label': 'computer mouse',
-                            'sorting_category': 'lost_item',
-                            'sorting_reason': 'reusable'})
+                            'sorting_reason': 'Visible test evidence', 'sorting_category': 'lost_item'})
         return json.dumps({'objects': objects})
 
     classifier = GeminiClassifier('test-model', response_provider=provider)
     result = classifier.classify(np.zeros((20, 30, 3), np.uint8), detections)
     assert len(prompts) == 2 and 'exactly 2 entries' in prompts[1]
-    assert [item.label for item in result] == ['paper cup', 'computer mouse']
+    assert [item.label for item in result] == ['cup', 'computer mouse']
     assert result[0].bbox is detections[0].bbox
+
+
+@pytest.mark.parametrize('semantic,expected', [
+    ('Remote Control', 'remote control'), ('remote', 'remote control'),
+    ('unknown', 'unknown object'),
+])
+def test_semantic_type_can_correct_detector_without_replacing_mask(semantic, expected):
+    mask = np.ones((20, 30), dtype=bool)
+    detection = Detection2D('power bank', .82, BoundingBox2D(2, 3, 12, 15),
+                            segmentation_mask=mask)
+    payload = json.dumps({'objects': [dict(id=1, label=semantic,
+        sorting_reason='Visible test evidence', sorting_category='lost_item')]})
+    result, = parse_gemini_classifications(payload, (detection,))
+    assert result.label == expected
+    assert result.detector_label == 'power bank'
+    assert result.bbox is detection.bbox and result.segmentation_mask is mask
+    assert result.confidence == detection.confidence
+    assert result.sorting_category == ('review' if expected == 'unknown object' else 'lost_item')
+
+
+def test_classification_custom_aliases_do_not_change_detector_identity():
+    detection = Detection2D('bottle', .8, BoundingBox2D(1, 1, 9, 9))
+    classifier = GeminiClassifier('test-model', label_aliases=['controller=remote control'],
+        response_provider=lambda *_: json.dumps({'objects': [dict(id=1, label='controller',
+            sorting_reason='Visible test evidence', sorting_category='lost_item')]}))
+    result, = classifier.classify(np.zeros((20, 30, 3), np.uint8), (detection,))
+    assert result.label == 'remote control' and result.detector_label == 'bottle'
 
 
 def test_gemini_classification_stops_after_two_incomplete_mappings():
@@ -86,8 +129,10 @@ def test_gemini_classification_stops_after_two_incomplete_mappings():
 
 @pytest.mark.parametrize('objects', [
     [],
-    [{'id': 2, 'label': 'cup', 'sorting_category': 'trash', 'sorting_reason': 'paper'}],
-    [{'id': 1, 'label': 'cup', 'sorting_category': 'trash', 'sorting_reason': ''}],
+    [{'id': 2, 'label': 'cup', 'sorting_reason': 'Visible test evidence', 'sorting_category': 'trash'}],
+    [{'id': 1, 'label': 'cup'}],
+    [{'id': 1, 'label': 'cup', 'sorting_reason': 'Visible test evidence', 'sorting_category': ''}],
+    [{'id': 1, 'label': 'cup', 'sorting_reason': 'Visible test evidence', 'sorting_category': 'recycle'}],
 ])
 def test_gemini_classification_rejects_unmatched_or_incomplete_ids(objects):
     detection = Detection2D('cup', .82, BoundingBox2D(2, 3, 12, 15))
@@ -107,7 +152,8 @@ def test_flash_lite_prepare_initializes_client_without_inference(monkeypatch):
     assert calls == [30.0]
 
 
-def test_gemini_retries_only_transient_503(monkeypatch):
+@pytest.mark.parametrize('error_code', [503, 504])
+def test_gemini_retries_transient_service_and_deadline_failures(monkeypatch, error_code):
     monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'unit-test-placeholder')
     delays = []
     monkeypatch.setattr('cleany_perception.adapters.gemini_detector.time.sleep', delays.append)
@@ -120,7 +166,7 @@ def test_gemini_retries_only_transient_503(monkeypatch):
         calls.append(None)
         if len(calls) < 3:
             error = RuntimeError('model busy')
-            error.code = 503
+            error.code = error_code
             raise error
         return '{}'
 
@@ -140,6 +186,25 @@ def test_gemini_retries_only_transient_503(monkeypatch):
     with pytest.raises(RuntimeError, match='unavailable'):
         detector._request(b'png', 'classify')
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize('error_code, expected_calls', [(503, 3), (504, 3), (401, 1), (403, 1)])
+def test_gemini_api_retry_is_bounded_and_preserves_authentication_failures(
+        monkeypatch, error_code, expected_calls):
+    monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'unit-test-placeholder')
+    monkeypatch.setattr('cleany_perception.adapters.gemini_detector.time.sleep', lambda _: None)
+    detector = GeminiDetector('test-model', api_key_environment='CLEANY_TEST_GEMINI_KEY',
+                              client_factory=lambda *_: object())
+    calls = []
+    def unavailable(*args):
+        calls.append(None)
+        error = RuntimeError('API failed')
+        error.code = error_code
+        raise error
+    detector._request_generate_content = unavailable
+    with pytest.raises(RuntimeError, match='API failed'):
+        detector._request(b'png', 'classify')
+    assert len(calls) == expected_calls
 
 
 def test_gemini_prepare_fails_without_key_before_advertising_ready(monkeypatch):
@@ -178,9 +243,35 @@ def test_gemini_detector_encodes_image_and_parses_normalized_bbox():
     assert detections[0].bbox.y_min == pytest.approx(10.0)
     assert detections[0].bbox.x_max == pytest.approx(160.0)
     assert detections[0].bbox.y_max == pytest.approx(60.0)
-    assert requests[0][0].startswith(b'\x89PNG')
+    _jpeg_pixels(requests[0][0], (200, 100))
     assert 'find a can' in requests[0][1]
     assert requests[0][2]['required'] == ['objects']
+
+
+def test_gemini_generate_content_sends_jpeg_with_matching_mime(monkeypatch):
+    monkeypatch.setenv('CLEANY_TEST_GEMINI_KEY', 'test-key')
+    calls = []
+    client = SimpleNamespace(models=SimpleNamespace(generate_content=lambda **kwargs: (
+        calls.append(kwargs) or SimpleNamespace(text='{"objects": []}'))))
+    detector = GeminiDetector('test-model', api_key_environment='CLEANY_TEST_GEMINI_KEY',
+                              client_factory=lambda *_: client)
+    detector._types = SimpleNamespace(
+        Part=SimpleNamespace(from_bytes=lambda **kwargs: SimpleNamespace(**kwargs)),
+        GenerateContentConfig=lambda **kwargs: SimpleNamespace(**kwargs))
+    rgb = np.full((48, 64, 3), (230, 30, 10), dtype=np.uint8)
+
+    assert detector.detect(rgb, 'classify') == ()
+
+    part = calls[0]['contents'][1]
+    assert part.mime_type == 'image/jpeg'
+    pixels = _jpeg_pixels(part.data, (64, 48))
+    np.testing.assert_allclose(pixels.astype(float), rgb, atol=3)
+
+
+@pytest.mark.parametrize('quality', [0, 101, 95.5, True])
+def test_gemini_rejects_invalid_jpeg_quality(quality):
+    with pytest.raises(ValueError, match='JPEG quality'):
+        GeminiDetector('test-model', jpeg_quality=quality)
 
 
 def test_gemini_parser_accepts_robotics_interaction_bbox_array():
@@ -216,9 +307,11 @@ def test_robotics_detector_uses_interactions_and_deletes_upload(monkeypatch):
     class FakeFiles:
         def upload(self, **kwargs):
             calls['upload'] = kwargs
+            calls['image_bytes'] = kwargs['file'].getvalue()
+            calls['filename'] = kwargs['file'].name
             return SimpleNamespace(
-                uri='https://example.invalid/file.png',
-                mime_type='image/png',
+                uri='https://example.invalid/file.jpg',
+                mime_type=kwargs['config']['mime_type'],
                 name='files/cleany-test',
             )
 
@@ -259,11 +352,14 @@ def test_robotics_detector_uses_interactions_and_deletes_upload(monkeypatch):
     )
 
     assert len(detections) == 1
-    assert calls['upload']['config']['mime_type'] == 'image/png'
+    assert calls['upload']['config']['mime_type'] == 'image/jpeg'
+    assert calls['filename'].endswith('.jpg')
+    _jpeg_pixels(calls['image_bytes'], (200, 100))
     assert calls['interaction']['model'] == (
         'gemini-robotics-er-2-preview'
     )
     assert calls['interaction']['input'][0]['type'] == 'image'
+    assert calls['interaction']['input'][0]['mime_type'] == 'image/jpeg'
     assert calls['interaction']['response_format']['schema']['type'] == (
         'array'
     )
@@ -324,3 +420,10 @@ def test_gemini_detector_reports_missing_api_key(monkeypatch):
         detector.detect(np.zeros((10, 10, 3), dtype=np.uint8), 'find')
 
     assert raised.value.kind == FailureKind.DETECTOR_API
+
+@pytest.mark.parametrize('reason', [None, '', '   '])
+def test_classification_keeps_required_evidence_for_existing_collection(reason):
+    item = dict(id=1, label='cup', sorting_category='trash', sorting_reason=reason)
+    detection = Detection2D('cup', .8, BoundingBox2D(1, 1, 9, 9))
+    with pytest.raises(InspectionFailure):
+        parse_gemini_classifications(json.dumps({'objects': [item]}), (detection,))

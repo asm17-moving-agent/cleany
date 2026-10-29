@@ -7,6 +7,8 @@ string arm
 string source_snapshot_id
 uint32 source_object_id
 string label
+# Original detector class used for wrist matching; empty uses label.
+string detector_label
 float32 source_confidence
 string reference_id
 # Expected pose from head RGB-D or held-object kinematics, not a measurement.

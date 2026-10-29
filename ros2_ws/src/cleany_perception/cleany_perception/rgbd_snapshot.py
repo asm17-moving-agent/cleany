@@ -50,6 +50,8 @@ class RgbdSnapshotBuffer:
         self._pending: dict[int, dict[str, Any]] = {}
         self._latest: SynchronizedRgbdMessages | None = None
         self._sequence = 0
+        self._received = {kind: 0 for kind in self._KINDS}
+        self._last_received_stamp = {kind: 0 for kind in self._KINDS}
 
     @property
     def sequence(self) -> int:
@@ -99,7 +101,10 @@ class RgbdSnapshotBuffer:
                     raise InspectionFailure(
                         FailureKind.RGBD_TIMEOUT,
                         'Timed out waiting for an exact-timestamp '
-                        'RGB-D snapshot',
+                        'RGB-D snapshot; '
+                        f'received={self._received}, '
+                        f'last_stamp_ns={self._last_received_stamp}, '
+                        f'completed={self._sequence}, pending={len(self._pending)}',
                     )
                 self._condition.wait(timeout=min(remaining, 0.05))
             if self._latest is None:
@@ -111,6 +116,8 @@ class RgbdSnapshotBuffer:
     def _add(self, kind: str, message: Any) -> None:
         stamp_ns = stamp_nanoseconds(message)
         with self._condition:
+            self._received[kind] += 1
+            self._last_received_stamp[kind] = stamp_ns
             if self._latest is not None and stamp_ns <= self._latest.stamp_ns:
                 return
             bundle = self._pending.setdefault(stamp_ns, {})
