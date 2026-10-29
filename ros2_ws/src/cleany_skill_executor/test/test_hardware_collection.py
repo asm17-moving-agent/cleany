@@ -2100,8 +2100,9 @@ def test_endpoint_transport_keeps_held_setpoint_and_validates_measured_bridge(mo
 @pytest.mark.parametrize('check_collisions', [True, False])
 @pytest.mark.parametrize('entry_bend', [False, True])
 @pytest.mark.parametrize('closing,stuck', [(False, False), (True, False), (True, True), (True, 'late')])
+@pytest.mark.parametrize('sparse', [False, True])
 def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results(
-        monkeypatch, collision, arm_side, closing, stuck, entry_bend, check_collisions):
+        monkeypatch, collision, arm_side, closing, stuck, entry_bend, check_collisions, sparse):
     import cleany_skill_executor.hardware_execution as module
     from action_msgs.msg import GoalStatus
     from sensor_msgs.msg import JointState
@@ -2149,6 +2150,13 @@ def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results
 
     monkeypatch.setattr(module, 'ActionClient', Client)
     monkeypatch.setattr(module.time, 'sleep', lambda _: None)
+    prepared_paths = []
+    prepare = module.prepare_bounded_path
+    def capture_path(*args, **options):
+        path = prepare(*args, **options)
+        prepared_paths.append(path)
+        return path
+    monkeypatch.setattr(module, 'prepare_bounded_path', capture_path)
     values = {'hardware_velocity_rad_s': .8, 'hardware_acceleration_rad_s2': 1.2,
               'hardware_path_step_rad': .01,
               'hardware_path_simplification_tolerance_rad': .002,
@@ -2174,7 +2182,8 @@ def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results
                   position=solution.positions[:3], orientation_xyzw=(0., 0., 0., 1.))))
     fake = NS(node=node, verify=lambda _: limits, monitor=lambda: deepcopy(state),
               value=values.__getitem__, validity=object(), fail_stop=lambda: stopped.append(True),
-              uncommanded=None, last_execution_metrics={}, arm_holds={}, sensor_scene_frozen=False)
+              uncommanded=None, last_execution_metrics={}, arm_holds={}, sensor_scene_frozen=False,
+              sparse_cubic_commands=sparse)
     if collision == 'bridge':
         command = (.02, 0., 0., 0., 0.)
         fake.arm_holds[arm_side] = ArmHold(command, command)
@@ -2271,7 +2280,20 @@ def test_physical_pregrasp_dispatches_arm_and_gripper_before_waiting_for_results
     # retiming. No check against only the original planner knots can authorize it.
     combined = [tuple(a.positions+g.positions) for a, g in zip(
         arm_goal.points[1:], gripper_goal.points[1:], strict=True)]
-    assert [q[:6] for q in checked] == (combined if check_collisions else [])
+    assert [q[:6] for q in checked] == ([sample.positions for sample in prepared_paths[0].samples] if check_collisions else [])
+    if sparse:
+        from cleany_skill_executor.core.recorded_trajectory import CommandPoint, RecordedTrajectory
+        assert len(combined) < len(prepared_paths[0].samples)
+        encoded = RecordedTrajectory(tuple(names[:6]), tuple(CommandPoint(
+            a.time_from_start.sec*10**9+a.time_from_start.nanosec,
+            tuple(a.positions+g.positions), tuple(a.velocities+g.velocities))
+            for a, g in zip(arm_goal.points, gripper_goal.points, strict=True)))
+        for sample in prepared_paths[0].samples:
+            ns = (300_000_000 if closing else 800_000_000)+round(
+                sample.progress*prepared_paths[0].duration*1e9)
+            assert encoded.sample_at(ns).positions == pytest.approx(sample.positions, abs=1e-8)
+    else:
+        assert [q[:6] for q in checked] == (combined if check_collisions else [])
     if entry_bend:
         end = arm_goal.points[-1].time_from_start
         assert end.sec+end.nanosec/1e9-.8 < 8.

@@ -646,6 +646,38 @@ cuRobo의 CUDA 한계 tensor, 반환 해의 범위와 독립 FK 오차도 확인
 실물 이동이나 실시간 장애물 장면의 검증을 대신하지 않습니다.
 
 
+## 모델 조회 병렬화와 sparse cubic 명령
+
+모터 대체 포트로 후보 동작을 검증하려면 Jetson에서 다음을 실행한다. 조밀한
+검사 표본 보존, 같은 곡선의 재현, 중간 자세, 동기 시작, 기록 재생, 충돌 거부,
+지연 수락, 조회 실패와 취소 후 pending request 정리를 검사한다.
+
+```bash
+make test-jetson-packages \
+  JETSON_PYTEST_ARGS='-k "readonly_services or sparse_commands or physical_pregrasp_dispatches"'
+```
+
+ROS 2 Humble과 native overlay를 source한 뒤 다음 명령으로 메시지 준비 및
+격리된 서비스 통신 시간을 비교한다. 입력은 보존된 관절 경로 JSON이며
+제어기 sampler probe를 시스템의 `joint_trajectory_controller` 라이브러리와
+연결해 빌드한다. 검사점 전체와 cubic 경계 양옆을 포함한 시각에서 비교한다.
+
+```bash
+ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=226 \
+python3 tools/validation/benchmark_query_commands.py \
+  --inputs output/further-execution-audit-20261029/command-inputs.json \
+  --output output/query-command-transport-check
+```
+
+서비스 시험은 `/cleany_query_probe/` 아래 전용 노드만 사용한다. 세 조회는
+같은 배타 callback group, 한 조회는 다른 서버를 사용하며 지연 0ms와 3ms의
+합성 작업을 비교한다. 실제 하드웨어/MoveIt 서비스 시간이나 전체 사이클
+절감량은 아니다. 제어기 Action이나 모터 명령을 보내지 않는다.
+`benchmark.json`, `jtc-build.log`와 각 sampler 입력을 출력 위치에 보존한다.
+설치 확인은 `verify_query_command_install.py --deployment PATH`를 사용하며
+motion container에는 `--container`를 추가한다.
+
+
 ## 역재생 후퇴의 손목 방향
 
 역재생 후퇴의 손목 유지와 검사 목표 일치는 `test_height_correction_runtime.py`에서 양팔의 합성 FK와 가짜 실행 포트로 검사한다. 접근 전과 잡은 뒤 손목 각도가 약 27도 다른 경우를 통과시키고, 위치 목표의 변경 없이 이동 전후 위치 오류와 새 목표 방향에 대한 21도 도착 오류를 계속 거부하는지 확인한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "height_correction_runtime or arrival_approach"'`로 관련 검사를 실행한다.

@@ -5,6 +5,8 @@
     execution_timing_enabled: true
     hardware_reuse_settle_history: true
     hardware_reuse_scene_barrier: true
+    hardware_parallel_model_queries: true
+    hardware_sparse_cubic_commands: true
     hardware_pickup_height_search_tolerance_m: 0.005
     execution_defer_pregrasp_validation: true
     # Small lift corrections still obey the full velocity/acceleration retimer.

@@ -29,12 +29,14 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from .core.physical_grasp_selection import ARM_JOINT_NAMES, JointSolution
 from .state_validity_batch import StateValidityBatch
 from .execution_timing import timed_operation
+from .readonly_services import ReadOnlyBatch, call_readonly_services
+from .trajectory_io import command_samples_to_message
 from .core.cartesian import CartesianPose, orientation_error_rad
 from .core.height_correction import validate_height_correctable_endpoint
 from .core.hardware_execution import (
     ArmHold, CollisionValidationError, CommandPathValidationError, JointRangeValidationError,
     CommunicationRecovered, ExecutionCanceled, bounded_path, bridge_joint_path,
-    continue_joint_path, physical_limits, remaining_joint_path,
+    continue_joint_path, physical_limits, prepare_bounded_path, remaining_joint_path,
 )
 from .core.joint_path import executable_joint_path
 from .core.joint_stability import JointStabilityHistory
@@ -683,24 +685,42 @@ class HardwareExecution:
         self.arm_holds[arm] = ArmHold(target, command)
         return actual, summary
 
+    def _model_requests(self):
+        return ((self.hardware, ListHardwareComponents.Request()),
+                (self.controllers, ListControllers.Request()),
+                (self.parameters, GetParameters.Request(names=['robot_description'])),
+                (self.moveit_parameters, GetParameters.Request(
+                    names=['robot_description', 'allow_trajectory_execution'])))
+
     @timed_operation('model_verification', node_attribute='node')
     def verify(self, arm):
         began = time.monotonic()
         if self.node.get_parameter('use_sim_time').value:
             raise RuntimeError('Physical execution forbids simulation time')
         self.monitor()
-        hardware = self.node.call(self.hardware, ListHardwareComponents.Request())
+        query_began = time.monotonic()
+        responses = None
+        if responses is None and getattr(self, 'parallel_model_queries', False):
+            responses = call_readonly_services(self.node, HardwareExecution._model_requests(self))
+        hardware = (responses[0] if responses is not None else
+                    self.node.call(self.hardware, ListHardwareComponents.Request()))
         if (len(hardware.component) != 1
                 or hardware.component[0].class_type != 'cleany_feetech_hardware/FeetechSystem'
                 or hardware.component[0].state.label != 'active'):
             raise RuntimeError('Expected one active Feetech hardware component')
-        controllers = self.node.call(self.controllers, ListControllers.Request())
+        controllers = (responses[1] if responses is not None else
+                       self.node.call(self.controllers, ListControllers.Request()))
         active = {c.name for c in controllers.controller if c.state == 'active'}
         if not {f'{arm}_arm_controller', f'{arm}_gripper_controller'} <= active:
             raise RuntimeError('Selected physical controllers are not active')
-        description = self.node.call(self.parameters, GetParameters.Request(names=['robot_description'])).values[0].string_value
-        planner = self.node.call(self.moveit_parameters,
-            GetParameters.Request(names=['robot_description', 'allow_trajectory_execution'])).values
+        physical = (responses[2] if responses is not None else self.node.call(
+            self.parameters, GetParameters.Request(names=['robot_description']))).values
+        if len(physical) != 1:
+            raise RuntimeError('Physical robot description response is incomplete')
+        description = physical[0].string_value
+        planner = (responses[3] if responses is not None else self.node.call(self.moveit_parameters,
+            GetParameters.Request(names=['robot_description', 'allow_trajectory_execution']))).values
+        self._last_model_queries_sec = time.monotonic()-query_began
         if len(planner) != 2 or planner[1].bool_value:
             raise RuntimeError('MoveIt must be configured for planning only')
         signature = (description, planner[0].string_value)
@@ -1115,7 +1135,7 @@ class HardwareExecution:
         if recorded_trajectory is None:
             range_exemptions = HardwareExecution.opening_position_range_exemptions(
                 self, arm, expected, positions, limits, contact_close=contact_close)
-            samples, duration = bounded_path(expected, positions, limits,
+            prepared = prepare_bounded_path(expected, positions, limits,
                 velocity=self.value('hardware_velocity_rad_s'),
                 acceleration=self.value('hardware_acceleration_rad_s2'),
                 step=self.value('hardware_path_step_rad'),
@@ -1123,6 +1143,7 @@ class HardwareExecution:
                     'hardware_path_simplification_tolerance_rad'),
                 position_range_exemptions=range_exemptions,
                 minimum_duration_sec=minimum_duration_sec)
+            samples, duration = prepared.samples, prepared.duration
             if range_exemptions:
                 self.node.event('gripper_opening_position_range_check_disabled', arm=arm,
                                 joints=list(range_exemptions), raw_encoder_check_enabled=True)
@@ -1226,7 +1247,9 @@ class HardwareExecution:
         # Keep all samples above for physical bounds and collision validation.
         compact_gripper = (controller == 'gripper' and recorded_trajectory is None
                            and len(positions) == 2)
-        command_samples = [samples[0], samples[-1]] if compact_gripper else samples
+        compact_cubic = getattr(self, 'sparse_cubic_commands', False) and recorded_trajectory is None
+        command_samples = (prepared.command_knots if compact_cubic else
+                           [samples[0], samples[-1]] if compact_gripper else samples)
         for index, sample in enumerate(command_samples):
             point = JointTrajectoryPoint(positions=list(sample.positions),
                 velocities=[v/duration for v in sample.derivatives])
@@ -1240,6 +1263,7 @@ class HardwareExecution:
             'stage': 'hardware_trajectory_prepared',
             'controller_points': len(command.points),
             'two_point_gripper_command': compact_gripper,
+            'sparse_cubic_command': compact_cubic,
             'preparation_wall_sec': time.monotonic() - preparation_began,
             'path_preparation_wall_sec': path_preparation_sec,
             'command_corridor_wall_sec': corridor_sec,
@@ -1247,6 +1271,8 @@ class HardwareExecution:
             'post_validation_drift_wall_sec': drift_sec,
             'command_serialization_wall_sec': time.monotonic()-serialization_began,
             'model_verification_wall_sec': getattr(self, '_last_model_verification_sec', None),
+            'model_queries_wall_sec': getattr(self, '_last_model_queries_sec', None),
+            'parallel_model_queries': getattr(self, 'parallel_model_queries', False),
             'model_cache_hit': getattr(self, '_last_model_cache_hit', False),
             'start_settle_wall_sec': getattr(self, '_last_start_settle_sec', None),
             'minimum_duration_sec': minimum_duration_sec if recorded_trajectory is None else None,
@@ -1464,13 +1490,14 @@ class HardwareExecution:
         range_exemptions = HardwareExecution.opening_position_range_exemptions(
             self, arm, combined_names, combined_positions, limits,
             opening_direction=gripper_opening_direction)
-        samples, duration = bounded_path(
+        prepared = prepare_bounded_path(
             combined_names, combined_positions, limits,
             velocity=self.value('hardware_velocity_rad_s'),
             acceleration=self.value('hardware_acceleration_rad_s2'),
             step=self.value('hardware_path_step_rad'),
             simplification_tolerance=simplification_tolerance,
             position_range_exemptions=range_exemptions)
+        samples, duration = prepared.samples, prepared.duration
         if range_exemptions:
             self.node.event('gripper_opening_position_range_check_disabled', arm=arm,
                             joints=list(range_exemptions), raw_encoder_check_enabled=True)
@@ -1519,35 +1546,36 @@ class HardwareExecution:
             details = ', '.join(f'{name}={delta:.6f}rad' for name, delta in sorted(drift.items()))
             raise RuntimeError('Robot moved during synchronized path validation: ' + details)
 
-        commands = {
-            'arm': JointTrajectory(joint_names=list(arm_names)),
-            'gripper': JointTrajectory(joint_names=[gripper_name]),
-        }
+        drift_sec = time.monotonic()-drift_began
+        serialization_began = time.monotonic()
         header_ns = self.node.get_clock().now().nanoseconds
-        delay_ns = round(self.value('hardware_return_start_delay_sec' if stage_prefix == 'synchronized_return' else 'hardware_start_delay_sec')*1e9)
+        delay_parameter = ('hardware_return_start_delay_sec'
+                           if stage_prefix == 'synchronized_return' else 'hardware_start_delay_sec')
+        delay_ns = round(self.value(delay_parameter)*1e9)
         start_ns = header_ns+delay_ns
-        for controller, command in commands.items():
-            # A common *current* epoch plus an explicit hold segment preserves
-            # synchronized motion without JTC's future-header measured reset.
-            command.header.stamp.sec, command.header.stamp.nanosec = divmod(header_ns, 10**9)
-            initial = (samples[0].positions[:-1] if controller == 'arm'
-                       else samples[0].positions[-1:])
-            command.points.append(JointTrajectoryPoint(
-                positions=list(initial), velocities=[0.]*len(initial)))
-        for sample in samples:
-            ns = delay_ns+round(sample.progress * duration * 1e9)
-            for controller, indices in (('arm', range(len(arm_names))),
-                                        ('gripper', (len(arm_names),))):
-                point = JointTrajectoryPoint(
-                    positions=[sample.positions[i] for i in indices],
-                    velocities=[sample.derivatives[i] / duration for i in indices])
-                point.time_from_start.sec, point.time_from_start.nanosec = divmod(ns, 10**9)
-                commands[controller].points.append(point)
+        compact_cubic = getattr(self, 'sparse_cubic_commands', False)
+        command_samples = prepared.command_knots if compact_cubic else samples
+        # Retain the common current epoch and explicit hold; both controllers
+        # reconstruct exactly the same retimed curve used for dense validation.
+        commands = {
+            'arm': command_samples_to_message(arm_names, command_samples, duration,
+                indices=range(len(arm_names)), header_ns=header_ns, delay_ns=delay_ns),
+            'gripper': command_samples_to_message((gripper_name,), command_samples, duration,
+                indices=(len(arm_names),), header_ns=header_ns, delay_ns=delay_ns),
+        }
         self.node.get_logger().info(json.dumps({
             'stage': stage_prefix + '_trajectory_prepared',
+            'controller_points': {key: len(value.points) for key, value in commands.items()},
+            'sparse_cubic_command': compact_cubic,
             'collision_checks_enabled': check_collisions,
             'preparation_wall_sec': time.monotonic() - preparation_began,
+            'path_preparation_wall_sec': path_preparation_sec,
+            'collision_validation_wall_sec': collision_sec,
+            'post_validation_drift_wall_sec': drift_sec,
+            'command_serialization_wall_sec': time.monotonic()-serialization_began,
             'model_verification_wall_sec': getattr(self, '_last_model_verification_sec', None),
+            'model_queries_wall_sec': getattr(self, '_last_model_queries_sec', None),
+            'parallel_model_queries': getattr(self, 'parallel_model_queries', False),
             'model_cache_hit': getattr(self, '_last_model_cache_hit', False),
             'start_settle_wall_sec': getattr(self, '_last_start_settle_sec', None),
             'input_waypoints': len(arm_trajectory.points),

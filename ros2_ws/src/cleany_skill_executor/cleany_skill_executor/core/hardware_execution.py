@@ -55,7 +55,7 @@ class JointRangeValidationError(ValueError):
 import xml.etree.ElementTree as ET
 
 from .physical_grasp_selection import ARM_JOINT_NAMES
-from .joint_path import executable_joint_path
+from .joint_path import JointPathSample, executable_joint_path
 
 
 @dataclass(frozen=True)
@@ -211,7 +211,16 @@ def physical_limits(description: str, arm: str) -> dict[str, PhysicalJointLimit]
     return result
 
 
-def bounded_path(names, positions, limits, *, velocity: float, acceleration: float,
+@dataclass(frozen=True)
+class BoundedJointPath:
+    """One validated cubic represented by dense checks and exact command knots."""
+
+    samples: list[JointPathSample]
+    duration: float
+    command_knots: tuple[JointPathSample, ...]
+
+
+def prepare_bounded_path(names, positions, limits, *, velocity: float, acceleration: float,
                  step: float = .01, maximum_points: int = 10000,
                  simplification_tolerance: float = .002,
                  position_range_exemptions: Sequence[str] = (),
@@ -243,4 +252,18 @@ def bounded_path(names, positions, limits, *, velocity: float, acceleration: flo
                 raise error.at(name, index) from error
     duration = max(minimum_duration_sec,
                    path.minimum_duration(velocity_limits, acceleration_limits)*1.05)
-    return samples, duration
+    knots = (path.sample(0, 0.), *(path.sample(i, 1.) for i in range(len(path.positions)-1)))
+    return BoundedJointPath(samples, duration, knots)
+
+
+def bounded_path(names, positions, limits, *, velocity: float, acceleration: float,
+                 step: float = .01, maximum_points: int = 10000,
+                 simplification_tolerance: float = .002,
+                 position_range_exemptions: Sequence[str] = (),
+                 minimum_duration_sec: float = 1.):
+    prepared = prepare_bounded_path(names, positions, limits, velocity=velocity,
+        acceleration=acceleration, step=step, maximum_points=maximum_points,
+        simplification_tolerance=simplification_tolerance,
+        position_range_exemptions=position_range_exemptions,
+        minimum_duration_sec=minimum_duration_sec)
+    return prepared.samples, prepared.duration

@@ -165,6 +165,32 @@ Jetson BT 실행기는 제어기별 Action 연결을 유지하되 실행마다 �
 대기 시간이 무조건 사라지는 것은 아닙니다.
 
 
+## 독립 모델 조회와 cubic 명령 전송
+
+`hardware_parallel_model_queries`와 `hardware_sparse_cubic_commands`의 일반
+기본값은 `false`이며 Jetson의 `manipulation_jetson.yaml`에서 `true`로 설정한다.
+첫 옵션은 하드웨어 구성, 활성 제어기, 제어기 모델과 MoveIt 모델의 읽기 요청을
+모두 보낸 뒤 응답을 기다린다. 응답 대기는 전체 30초 한도를 공유하며 실행
+소유자의 취소, BT deadline과 물체 보유 중 감시를 따른다. 요청 실패 시 남은
+로컬 future와 pending request를 정리하고 수집한 응답을 폐기한다. 네 응답의
+검증 조건과 매 실행의 최신 조회는 유지하며 지난 응답을 대신 사용하지 않는다.
+
+두 번째 옵션은 한 번 준비한 최종 retimed cubic의 경계 위치, 속도와 시각만
+새 궤적 명령에 사용한다. 충돌 검사에는 기존 조밀한 표본과 측정 시작점의
+hold bridge를 사용한다. 속도, 가속도, 관절 범위와 접근 통로의 검사 조건,
+중간 자세, 궤적 시간과 팔/그리퍼의 공통 시작 시각은 유지한다. acceleration
+필드는 비워 JTC가 같은 cubic을 보간하도록 한다. 나노초 반올림 후 시각이
+중복되는 동기 명령은 전송 전에 거부한다. 기존 기록 궤적 재생에는 새 점
+간소화를 적용하지 않고 저장된 위치, 속도와 시각을 그대로 보낸다.
+
+`command_samples`는 기존 검사 표본 수이고 `controller_points`는 전송 점
+수다. 단독 명령의 후자는 정수, 동기 명령의 후자는 arm과 gripper별 객체다.
+`sparse_cubic_command`와 `parallel_model_queries`로 적용 여부를 확인한다.
+`model_queries_wall_sec`는 모델 확인 내부의 조회 구간이며 전체
+`model_verification_wall_sec`에 포함된다. `parallel_service_calls` span도
+같은 포함 시간이다. 서로 겹치는 span이나 팔/그리퍼의 시간을 더하지 않는다.
+
+
 ## 후보별 빠른 경로 우선 선택
 
 Hybrid의 `fast_candidate_paths_first`가 켜져 있으면 후보 순서대로 직접 관절
