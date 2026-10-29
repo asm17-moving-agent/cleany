@@ -67,6 +67,10 @@ class Detection2D:
     sorting_category: str = ''
     sorting_reason: str = ''
     segmentation_mask: MaskArray | None = field(default=None, compare=False, repr=False)
+    median_depth_m: float = 0.0
+    estimated_width_m: float = 0.0
+    estimated_height_m: float = 0.0
+    detector_label: str = ''
 
     def __post_init__(self) -> None:
         if self.sorting_category not in ('', 'trash', 'lost_item', 'review'):
@@ -225,6 +229,7 @@ class InspectedObject:
     label: str
     confidence: float
     box: OrientedBox3D
+    detector_label: str = ''
 
 
 @dataclass(frozen=True)

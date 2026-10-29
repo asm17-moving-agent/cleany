@@ -2,6 +2,19 @@
 
 새 Ubuntu native ROS 개발환경을 아래 순서로 구성합니다. VM 이미지는 별도로 배포하지 않습니다.
 
+
+## 인식과 파지 후보 패키지
+
+`make build-perception-candidates`는 `cleany_interfaces`, `cleany_perception`,
+`cleany_grasping`을 현재 checkout의 외부 빌드 경로에 설치합니다. GPU 모델과
+실물 장치 없이 빌드할 수 있습니다. YOLOE와 AnyGrasp 추론용 환경은
+[비전 컨테이너](../containers/vision/README.md), 모델 변환과 검증은
+[모델 설정](../configs/models/README.md)을 따릅니다.
+
+`DetectedObject2D/3D`와 `PlanGrasp`의 필드가 추가되어 ROS 직렬화 형식이 바뀝니다.
+배포할 때는 이 인터페이스를 사용하는 native 노드와 비전 컨테이너를 모두
+같은 소스로 재빌드하고 함께 재시작합니다. 이전 rosbag은 기록 당시의 인터페이스로 읽습니다.
+
 ## 기준 환경
 
 | 항목 | 기준 |

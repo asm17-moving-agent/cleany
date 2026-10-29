@@ -12,7 +12,6 @@ identity_keys=(
   ANYGRASP_IPV4_ADDRESS
   ANYGRASP_EXPECTED_FEATURE_ID
   PERCEPTION_IPV4_ADDRESS
-  VLM_IPV4_ADDRESS
   MOTION_IPV4_ADDRESS
   HYBRID_SUBNET
   HYBRID_GATEWAY
@@ -47,14 +46,16 @@ Commands:
   host-setup       Enable Docker bridge networking on the Jetson kernel
   hybrid-config    Validate and render the hybrid Compose configuration
   build            Build the shared JetPack 6.2 GPU image
+  build-perception-workspace  Build perception/interfaces without starting sensors
+  build-anygrasp-workspace    Build AnyGrasp/interfaces without initializing the detector
   anygrasp-up      Start only the fail-closed AnyGrasp service
   anygrasp-run     Run the AnyGrasp grasp/plan service
   anygrasp-shell   Open a shell in the AnyGrasp container
   perception-up    Start only the perception service
   perception-run   Run the perception/inspect_scene action server
   perception-shell Open a shell in the perception container
-  hybrid-up        Start AnyGrasp and perception
-  hybrid-run       Run both ROS servers (perception remains foreground)
+  hybrid-up         Start AnyGrasp/perception
+  hybrid-run        Run all services (perception remains foreground)
   hybrid-down      Stop the hybrid stack and legacy project orphans
   feature-id       Print and verify the pinned AnyGrasp feature ID
   check-license    Validate license and initialize the AnyGrasp detector
@@ -170,11 +171,34 @@ start_perception() {
   "${compose[@]}" up -d perception
 }
 
-run_perception() {
-  local environment_arguments=(-e CLEANY_PERCEPTION_USE_SIM_TIME -e CLEANY_PERCEPTION_USE_WRIST_CAMERA)
-  if [[ -n "${GEMINI_API_KEY:-}" ]]; then
-    environment_arguments+=(-e GEMINI_API_KEY)
+
+run_anygrasp() {
+  local detached="${1:-false}"
+  local arguments=()
+  if [[ "${detached}" == true ]]; then
+    arguments+=(-d)
   fi
+  if [[ -n "${CLEANY_PIPELINE_PROFILE:-}" ]]; then
+    arguments+=(-e CLEANY_PIPELINE_PROFILE)
+  fi
+  if [[ -n "${CLEANY_PERCEPTION_USE_SIM_TIME:-}" ]]; then
+    arguments+=(-e CLEANY_PERCEPTION_USE_SIM_TIME)
+  fi
+  "${compose[@]}" exec "${arguments[@]}" anygrasp \
+    /workspace/cleany/containers/vision/scripts/run-anygrasp
+}
+
+run_perception() {
+  local environment_arguments=()
+  local key
+  for key in GEMINI_API_KEY GEMINI_MODEL \
+    CLEANY_PERCEPTION_USE_SIM_TIME CLEANY_WRIST_OBSERVATION CLEANY_RGBD_QOS_RELIABILITY \
+    YOLOE_MODEL_PATH YOLOE_TEXT_ENCODER_DIRECTORY YOLOE_CONFIG_FILE \
+    MINIMUM_DETECTION_CONFIDENCE CLEANY_TARGET_FRAME; do
+    if [[ -n "${!key:-}" ]]; then
+      environment_arguments+=(-e "${key}")
+    fi
+  done
   "${compose[@]}" exec "${environment_arguments[@]}" perception \
     /workspace/cleany/containers/vision/scripts/run-perception
 }
@@ -226,31 +250,42 @@ EOF
       hybrid-config|config) "${compose[@]}" config ;;
       build) "${compose[@]}" build anygrasp ;;
       anygrasp-up) start_anygrasp ;;
-      anygrasp-run)
-        "${compose[@]}" exec anygrasp \
-          /workspace/cleany/containers/vision/scripts/run-anygrasp
-        ;;
+      anygrasp-run) run_anygrasp ;;
       anygrasp-shell|shell) "${compose[@]}" exec anygrasp bash ;;
       perception-up) start_perception ;;
       perception-run) run_perception ;;
       perception-shell) "${compose[@]}" exec perception bash ;;
       hybrid-up|up)
         guard_unique_anygrasp_mac
-        "${compose[@]}" up -d anygrasp perception
+        hybrid_services=(anygrasp perception)
+        "${compose[@]}" up -d "${hybrid_services[@]}"
         if ! assert_anygrasp_docker_identity || ! wait_for_anygrasp_preflight; then
           "${compose[@]}" stop anygrasp >/dev/null || true
           exit 1
         fi
         ;;
       hybrid-run|run)
-        "${compose[@]}" exec -d anygrasp \
-          /workspace/cleany/containers/vision/scripts/run-anygrasp
+        run_anygrasp true
         run_perception
         ;;
       hybrid-down|down) "${compose[@]}" down --remove-orphans ;;
       build-workspace)
         "${compose[@]}" exec anygrasp \
           /workspace/cleany/containers/vision/scripts/build-workspace
+        ;;
+      build-perception-workspace)
+        if [[ -n "$("${compose[@]}" ps --status running -q perception)" ]]; then
+          # Reuse the live workspace without claiming its static IP again.
+          "${compose[@]}" exec -T perception \
+            /workspace/cleany/containers/vision/scripts/build-workspace
+        else
+          "${compose[@]}" run --rm --no-deps \
+            --entrypoint /workspace/cleany/containers/vision/scripts/build-workspace perception
+        fi
+        ;;
+      build-anygrasp-workspace)
+        "${compose[@]}" run --rm --no-deps \
+          --entrypoint /workspace/cleany/containers/vision/scripts/build-workspace anygrasp
         ;;
       feature-id)
         "${compose[@]}" exec anygrasp \

@@ -205,3 +205,51 @@ Target/context cloud의 촬영 timestamp는 같고 0이 아니어야 한다. 미
 최신 TF를 사용해 과거 cloud를 계획하지 않도록 요청을 거부한다.
 XYZRGB cloud는 지원되는 field datatype, offset, point/row step 및 전체 data
 길이를 검사한다. 정상적인 organized cloud의 행 padding과 packed RGB는 유지한다.
+
+## AnyGrasp 워커 생명주기 및 자원 관리
+
+AnyGrasp 딥러닝 추론기는 GPU 메모리 효율을 위해 상태 기반 Lease 메커니즘과 독립 Worker 프로세스를 사용합니다.
+
+### 1. 워커 유지 및 메모리 반환 (Lease 정책)
+- **VLM 준비 창 (`/grasp/prepare_window`)**:
+  - 호출자가 준비 창을 열면 AnyGrasp 모델을 사전 로드합니다. 이 서비스 자체는 IK 계산이나 모터 명령을 실행하지 않습니다.
+  - 호출 성공 시 기본 **180초 유한 유지 Lease**가 생성되며, `false` 호출 시 즉시 해제됩니다.
+- **액션 실행 유지 (`anygrasp_task_status_topic`)**:
+  - 조작 액션이 활성화되면 기본 **600초 작업 유지 Lease**가 갱신됩니다.
+  - 액션 종료 통지 시 1회 해제되며, 두 Lease가 모두 만료된 후 기본 **120초 유휴(Idle)** 시간이 지나면 워커 프로세스가 종료되어 GPU 메모리를 반환합니다.
+- **메모리 보호 임계치**: `anygrasp_minimum_available_memory_mb` 설정 시, 시스템 가용 메모리(`MemAvailable`)가 부족하면 작업 Lease보다 메모리 즉시 반환을 우선시합니다.
+
+### 2. GPU 파일 락 기반 자원 조율 (`gpu_lock_path`)
+같은 경로를 사용하는 프로세스 간 GPU 작업을 파일 잠금으로 조정합니다:
+- **잠금 파일**: `configs/robot/gpu-work.lock` 및 `.demand`
+- **동작 원칙**:
+  - 실제 사용자 파지 요청(Foreground Demand)이 항상 최우선권을 가집니다.
+  - 대기 중인 실제 요청이 있으면 비차단 준비 요청은 GPU 사용을 보류합니다.
+  - 이미 실행 중인 CUDA 커널 연산은 안전하게 완료될 때까지 대기합니다.
+
+### 3. 후보 조건 및 적응형 점군 샘플링 (Adaptive Sampling)
+
+| 설정 파라미터 | 기본값 | 설명 |
+|---|---|---|
+| `anygrasp_approach_direction` | `[0, 0, 0]` | 파지 접근 방향 제한 벡터 (영벡터 시 무제한) |
+| `anygrasp_approach_threshold_degrees` | 180 | 허용 접근 각도 오차 (도 단위) |
+| `anygrasp_region_steering_mode` | `workspace` | SDK 관심 영역 지정 (`target_voxels` 지정 시 대상 복셀 주변으로 제한) |
+| `anygrasp_target_region_voxel_m` | 0.01 | 대상 복셀 크기 (1cm) |
+| `anygrasp_adaptive_point_policy` | `fixed` | 점군 샘플링 정책 (`target_geometry` 사용 시 대상 형상에 따라 4,000/8,000점 동적 적용) |
+| `anygrasp_adaptive_low_maximum_points` | 4000 | 경량 타깃용 샘플링 포인트 상한 |
+| `anygrasp_adaptive_minimum_object_points` | 400 | 경량 상한 적용을 위한 최소 포인트 수 하한 |
+| `anygrasp_adaptive_minimum_object_extent_m` | 0.015 | 대상 PCA 3축 최소 크기 하한 (15mm) |
+| `anygrasp_adaptive_maximum_context_ratio` | 40 | 컨텍스트 대비 타깃 포인트 비율 상한 |
+
+- **동적 샘플링 동작**:
+  - Jetson 실물 설정(`config/anygrasp.yaml`)은 `target_geometry`를 적용하여 형태가 뚜렷하고 충분한 점군이 확보된 일반 물체는 4,000점만 샘플링하여 추론 시간을 단축합니다.
+  - 작거나 얇거나 점군이 성긴 물체는 8,000점을 유지합니다. 후보가 거절되면 전체 해상도로 재시도하며 실제 생성률은 입력과 모델에 따라 달라집니다.
+- **CUDA 캐시 및 가비지 컬렉션 (GC)**:
+  - `cuda_gc_interval_calls`: 추론 N회(기본 16회)마다 명시적 Python 전체 GC를 실행합니다.
+  - 미사용 CUDA 캐시가 `cuda_cache_release_threshold_mb`(기본 512MB)를 초과하면 주기적으로 PyTorch 캐시를 시스템에 반환합니다.
+
+## CPU 연산 스레드 제어 (`CLEANY_GRASP_BLAS_THREADS`)
+
+`grasp_server`는 프로세스 기동 시 `OPENBLAS_NUM_THREADS=1`을 설정하여 기하 연산으로 인한 CPU 코어 독점을 방지합니다.
+- **환경 변수 오버라이드**: `CLEANY_GRASP_BLAS_THREADS=2`와 같이 지정하면 상위 `OPENBLAS_NUM_THREADS`보다 우선하여 적용됩니다.
+- ROS 2 콜백 실행기나 PyTorch 내부 스레드는 이 제한의 영향을 받지 않습니다.

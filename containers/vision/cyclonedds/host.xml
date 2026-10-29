@@ -6,11 +6,20 @@
         <NetworkInterface address="172.30.0.1" multicast="false" />
       </Interfaces>
       <AllowMulticast>false</AllowMulticast>
-      <MaxMessageSize>65500B</MaxMessageSize>
+      <!-- Keep UDP payloads within the 1500-byte IPv4 bridge MTU. -->
+      <MaxMessageSize>1456B</MaxMessageSize>
     </General>
+    <Internal>
+      <!-- RGB-D bursts need headroom; raise the host net.core.rmem_max as documented. -->
+      <SocketReceiveBufferSize min="default" max="8MiB" />
+    </Internal>
     <Discovery>
       <ParticipantIndex>auto</ParticipantIndex>
+      <!-- Native simulation + MoveIt + model services exceed the default index pool. -->
+      <MaxAutoParticipantIndex>64</MaxAutoParticipantIndex>
       <Peers>
+        <!-- Discover other native participants bound to the bridge gateway. -->
+        <Peer Address="172.30.0.1" />
         <Peer Address="172.30.0.10" />
         <Peer Address="172.30.0.11" />
       </Peers>

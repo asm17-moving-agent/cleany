@@ -29,7 +29,7 @@ InspectScene은 detector → segmenter → 3D reconstruction → TF를 한 번 �
 
 ## 후보 생성
 
-PlanGrasp는 snapshot/object ID, target/context cloud, OBB를 직접 받아 숨은 cache에 의존하지 않는다. Cloud는 같은 nonzero capture stamp, frame을 가져야 하며, TF는 capture 시각을 사용한다. Latest TF로 대체하지 않는다.
+PlanGrasp는 snapshot/object ID, target/context cloud, OBB를 직접 받아 숨은 cache에 의존하지 않는다. Cloud는 같은 nonzero capture stamp, frame을 가져야 한다. OBB는 `target_object_header`에 명시한 frame을 사용하고 capture stamp는 cloud와 같아야 한다. OBB와 cloud의 frame은 달라도 되며 각각 capture 시각의 TF를 사용한다. Latest TF로 대체하지 않는다.
 
 PointCloud2는 XYZ float32와 packed RGB float32/uint32를 지원한다. Step, payload를 검사하고 padded row를 처리한다. Provider, approach 설정은 cleany_grasping/config가 관리한다.
 

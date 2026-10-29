@@ -4,6 +4,17 @@
 
 표는 현재 소스와 launch의 기본 이름을 기록한다. 실행별 namespace, node name, parameter와 remap에 따라 실제 graph는 달라진다. 조건부 endpoint, 외부 server, 미구현 타입을 구분하며 모든 노드가 동시에 실행되는 것으로 해석하지 않는다.
 
+
+## 인식과 파지 후보 준비
+
+| 실행 파일 | 변경 인터페이스 |
+|---|---|
+| `inspection_node` | [새 RGB-D 입력 검사와 검출 결과 필드](../ros2_ws/src/cleany_perception/docs/interfaces.md) |
+| `grasp_server` | [후보 요청의 OBB 좌표계와 AnyGrasp 준비 서비스](../ros2_ws/src/cleany_grasping/docs/interfaces.md) |
+
+실행 파일 이름은 유지됩니다. `grasp_server` 진입점은 NumPy import 전에
+CPU 연산 스레드 설정을 적용하는 `cleany_grasping.runtime`을 거칩니다.
+
 ## 표 읽기
 
 | 표기 | 뜻 |

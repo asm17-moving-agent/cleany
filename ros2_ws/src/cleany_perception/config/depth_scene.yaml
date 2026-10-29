@@ -9,3 +9,5 @@ depth_scene_node:
     publish_rate_hz: 2.0
     maximum_depth_age_sec: 1.0
     depth_16u_scale_m: 0.001
+    # Full depth image. Independent of the pick-target workspace ROI.
+    workspace_roi_pixels: [-1.0, -1.0, -1.0, -1.0]

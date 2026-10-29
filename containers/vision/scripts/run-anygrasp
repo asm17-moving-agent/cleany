@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-/workspace/cleany/containers/vision/scripts/check-anygrasp-license
+exec 9>/run/cleany/run-anygrasp.lock
+if ! flock -n 9; then
+  echo 'AnyGrasp grasp_server is already running in this container.' >&2
+  exit 1
+fi
+
+/workspace/cleany/containers/vision/scripts/check-anygrasp-license --files-only
 /workspace/cleany/containers/vision/scripts/build-workspace
 
 set +u
@@ -9,7 +15,14 @@ source /workspace/cleany/ros2_ws/install-anygrasp/setup.bash
 set -u
 
 license_path="${ANYGRASP_LICENSE_DIR}/${ANYGRASP_LICENSE_FILE}"
+optimization_profile="${CLEANY_PIPELINE_PROFILE:-optimized}"
 exec ros2 run cleany_grasping grasp_server --ros-args \
   --params-file /workspace/cleany/ros2_ws/src/cleany_grasping/config/anygrasp.yaml \
+  -p use_sim_time:="${CLEANY_PERCEPTION_USE_SIM_TIME:-false}" \
+  -p predictor_type:=anygrasp \
+  -p anygrasp_preload:=true \
+  -p anygrasp_worker_enabled:="${CLEANY_ANYGRASP_WORKER_ENABLED:-true}" \
+  -p anygrasp_worker_idle_timeout_sec:="${CLEANY_ANYGRASP_IDLE_TIMEOUT_SEC:-120.0}" \
+  -p optimization_profile:="${optimization_profile}" \
   -p checkpoint_path:="${ANYGRASP_CHECKPOINT_PATH}" \
   -p license_path:="${license_path}"

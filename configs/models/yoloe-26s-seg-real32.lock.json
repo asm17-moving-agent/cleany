@@ -1,0 +1,77 @@
+{
+  "schema": "cleany.yoloe_seg_export_lock/v1",
+  "profile": {
+    "filename": "yoloe_real32.yaml",
+    "sha256": "e52fa59603a95d5137d326b8067b5908bcaa08a63d9e1469aacca7e06ae3be93"
+  },
+  "source": {
+    "checkpoint_filename": "yoloe-26s-seg.pt",
+    "checkpoint_sha256": "48f24206bc8680d60cbbfa296b0140da849669b9515058b72f5a945142df0654",
+    "text_encoder_filename": "mobileclip2_b.ts",
+    "text_encoder_sha256": "35d7f213e4d75f38514e4656ad3cb91158bd33e3805d8ac349f23b186f66982f"
+  },
+  "classes": [
+    "cup",
+    "bottle",
+    "can",
+    "lid",
+    "straw",
+    "paper",
+    "bag",
+    "food container",
+    "utensil",
+    "box",
+    "book",
+    "pen",
+    "eraser",
+    "case",
+    "phone",
+    "tablet",
+    "laptop",
+    "computer mouse",
+    "earbuds",
+    "cable",
+    "power bank",
+    "wallet",
+    "keys",
+    "eyeglasses",
+    "charger",
+    "tape",
+    "card",
+    "scissors",
+    "remote",
+    "lighter",
+    "cigarette",
+    "keyboard"
+  ],
+  "packages": {
+    "ultralytics": "8.4.104",
+    "torch": "2.8.0",
+    "torchvision": "0.23.0",
+    "numpy": "1.26.4",
+    "onnx": "1.19.1",
+    "ml_dtypes": "0.5.3",
+    "protobuf": "6.32.1"
+  },
+  "runtime": {
+    "python": "3.10",
+    "tensorrt": "10.3.0",
+    "cuda": "12.6",
+    "compute_capability": [
+      8,
+      7
+    ]
+  },
+  "export": {
+    "format": "engine",
+    "quantize": 16,
+    "imgsz": 640,
+    "batch": 1,
+    "dynamic": false,
+    "device": 0,
+    "workspace": 4,
+    "opset": 20,
+    "simplify": false,
+    "nms": false
+  }
+}

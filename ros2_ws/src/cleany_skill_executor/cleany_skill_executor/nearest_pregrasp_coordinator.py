@@ -889,6 +889,7 @@ class NearestPregraspCoordinator(GraspExecutionNode):
         request.target_cloud = inspected.target_cloud
         request.context_cloud = inspected.context_cloud
         request.target_object = inspected.objects.objects[0]
+        request.target_object_header = inspected.objects.header
         response = self._future(
             self._grasp.call_async(request),
             float(self.get_parameter('grasp_timeout_sec').value),

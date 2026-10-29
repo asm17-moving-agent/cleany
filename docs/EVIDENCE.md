@@ -165,6 +165,37 @@ Logger 55개, Monitor 80개, Mock 통합 225개(Gazebo 1개 제외), 웹 13개�
 
 재현할 때는 기록된 commit의 별도 checkout과 해당 환경, 입력을 사용합니다. 다른 브랜치의 자료는 해당 버전의 근거로 취급하며, 제품 결정은 KB 검토, Decision 절차를 따릅니다.
 
+## 인식과 파지 후보 B 분리 검증
+
+A `e780be1`을 기준으로 통합 소스 `94c0fcd`에서 인식과 파지 후보 변경을 분리했다.
+Ubuntu 22.04 ARM64, ROS 2 Humble, Python 3.10, pytest 8.4.2 환경에서
+`make build-perception-candidates`로 3개 패키지, 기존 소비자 확인을 위한
+`make build COLCON_BUILD_ARGS='--packages-up-to cleany_skill_executor --parallel-workers 2'`로
+의존성을 포함한 10개 패키지를 별도 경로에 빌드했다. 소비자 빌드는 기존
+MoveIt 2.5.9 dependency overlay를 사용했으며 통합 브랜치의 install을 사용하지 않았다.
+
+`make test-perception-candidates`는 493개 통과, 명시 활성화하지 않은 RealSense
+실물 검사 1개 skip이다. 기존 수거 소비자 검사 267개도 통과했다. 입력은 합성
+RGB-D, 가짜 모델, 저장된 설정이며 실제 Gemini API, TensorRT/AnyGrasp GPU 추론,
+카메라, 모터와 전체 수거 시나리오는 실행하지 않았다. launch 두 개의 인자 검사도 통과했다.
+초기 분리 검사에서 누락된 의존성, 후속 기능 테스트와 float32 비교를 수정했고,
+소비자 노드 생성 검사의 설치 누락은 위 빌드로 해결했다. 최종 검사 실패는 없다.
+
+검증 소스 `changes.patch`, 환경, 실행 명령, 로그와 JUnit 원본은
+`/home/cleany/cleany-data/reports/pr-b-perception-20261029T222340Z/`에 보관한다.
+
+### YOLOE 설정 정리 검증 (2026-10-30)
+
+`0830839`에 이 절과 함께 반영한 정리 패치를 적용했다. 이전 34종 설정,
+미사용 nano lock과 선택 옵션, 사용되지 않는 IK 예열 설정을 제거했다.
+같은 Jetson Humble 환경의 새 빌드 경로에서 `make build-perception-candidates`로
+3개 패키지를 빌드하고, 설치된 설정 6개의 hash와 삭제한 설정의 부재를 확인했다.
+`make test-perception-candidates`는 492개 통과, RealSense 실물 검사 1개 skip이다.
+검사 수가 하나 줄어든 것은 nano 전용 검사를 제거했기 때문이다.
+입력은 합성 데이터와 가짜 모델이며 실제 GPU 추론과 실물 장치는 실행하지 않았다.
+실패는 없었다. 소스 패치, 환경, 로그, JUnit과 설치 확인 원본은
+`/home/cleany/cleany-data/reports/pr-b-yoloe-cleanup-20261029T230830Z/`에 보관한다.
+
 ## Mission Mock 조작 통합
 
 | 코드와 환경 | 입력과 결과 범위 | 원본 (`cleany-data/runs/` 아래) |

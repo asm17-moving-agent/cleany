@@ -404,7 +404,10 @@ class GeometricGraspPredictor:
                 + math.sin(tilt) * tilt_direction
             )
             approach /= np.linalg.norm(approach)
-        if self._config.reject_robot_opposite_approach:
+        # A support-normal approach has no requested sideways direction. A
+        # slight support-plane slope must not turn it into a reverse approach.
+        if (self._config.reject_robot_opposite_approach
+                and self._config.approach_tilt_degrees > 0.0):
             robot_to_target = center[:2] - np.asarray(
                 self._config.robot_reference_position[:2],
                 dtype=float,
