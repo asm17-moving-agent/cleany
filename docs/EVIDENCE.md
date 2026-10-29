@@ -11,3 +11,9 @@
 새 실행 원본은 `CLEANY_DATA_ROOT/runs/` 또는 `CLEANY_DATA_ROOT/reports/`에 두고
 commit, 환경, 입력, 실패와 원본 위치를 함께 남깁니다. Clone에 포함되지 않은
 fixture와 asset은 별도로 전달받고 hash를 확인합니다.
+
+현재 충돌 구의 certificate와 개별 부품 포함 검사 원본은
+`CLEANY_DATA_ROOT/reports/commit-validation-fixes-20261030/`에 보관합니다.
+`certificates.npz`는 asset의 `coverage_certificate_sha256`으로 확인하며,
+입력 URDF, 변경 전후 구, 실행 환경과 결과는 같은 디렉터리의
+`current.urdf`, `head-repair.json`, `validation.json`에서 확인합니다.

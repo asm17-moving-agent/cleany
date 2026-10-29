@@ -60,6 +60,32 @@ def primitive_union_coverage(link: ET.Element, selector: dict, spheres: list[dic
     return checks
 
 
+def mesh_region_coverage(link: ET.Element, selectors: list[dict],
+                         spheres: list[dict], padding: float) -> list[dict]:
+    """Check each named housing against its own balls and current mesh vertices.
+
+    A whole-link certificate may assign a housing to a neighbouring region's
+    ball. It therefore cannot prove the independent rigid-cover contract.
+    """
+    from fit_joint_spheres import collision_components, selected_components
+    from prune_sphere_fit import certify_cell
+
+    parts = (selected_components(link, selectors) if selectors
+             else list(collision_components(link)))
+    centers = np.array([sphere['center'] for sphere in spheres])
+    radii = np.array([sphere['radius'] for sphere in spheres])
+    checks = []
+    for part in parts:
+        proof = certify_cell(part, centers, radii, padding)
+        if proof is None:
+            raise ValueError('Rigid mesh region is not covered: ' + link.get('name'))
+        residual = np.linalg.norm(proof[0]-centers[proof[1], None], axis=2)-radii[proof[1], None]
+        checks.append({'tetrahedra': len(proof[0]), 'minimum_margin_m': float(-residual.max())})
+    if not checks:
+        raise ValueError('Rigid mesh region has no geometry: ' + link.get('name'))
+    return checks
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--asset', type=Path, required=True)
@@ -97,6 +123,18 @@ def main():
         results[name] = {'tetrahedra':len(tetra),'enclosure_residual_m':float(residual)}
     bounds, housing_checks, primitive_checks, primitive_witnesses = {}, {}, {}, {}
     root = ET.fromstring(xml)
+    mesh_groups, rigid_mesh_checks = {}, {}
+    for cover in data['rigid_covers']:
+        if 'primitive_selector' not in cover:
+            mesh_groups.setdefault((cover['link'], cover['region']), []).append(cover)
+    for (name, region), covers in mesh_groups.items():
+        assert all(c['sphere_count'] == len(covers) for c in covers)
+        assert {c['part_index'] for c in covers} == set(range(len(covers)))
+        selectors = covers[0]['selectors']
+        assert all(c['selectors'] == selectors for c in covers)
+        balls = [data['links'][name]['spheres'][c['sphere_index']] for c in covers]
+        rigid_mesh_checks[f'{name}/{region}'] = mesh_region_coverage(
+            root.find(f"link[@name='{name}']"), selectors, balls, data['padding_m'])
     primitive_groups = {}
     for cover in data['rigid_covers']:
         if 'primitive_selector' in cover:
@@ -153,6 +191,7 @@ def main():
         'spheres':sum(len(e['spheres']) for e in data['links'].values()),'links':results,
         'verified_minimum_ball_bounds':bounds,
         'continuous_primitive_coverage':primitive_checks,
+        'rigid_mesh_coverage':rigid_mesh_checks,
         'partitioned_housing_coverage':housing_checks},indent=2)+'\n')
     print('Certified',len(results),'links;',sum(r['tetrahedra'] for r in results.values()),'tetrahedra')
 

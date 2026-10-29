@@ -2,7 +2,7 @@
   "schema": 2,
   "model": "joint_simplified",
   "padding_m": 0.0005,
-  "coverage_certificate_sha256": "3c7cb3e06b6335ce38f94190b2689ecd68d1ed73a1419a3151b338fd0be64143",
+  "coverage_certificate_sha256": "0ab369de28bdfe52e186ad828c633c7ea6ed93d20b93145382a6cc106af3f455",
   "source_spheres_sha256": "64902fff8195498776b83bfce0eb98a772cdf46ddaec1a58d811d25469dc7246",
   "source_geometry_sha256": "eac1751a3f25cf2b315e0b14b91a322d66e7beff2d302dec08cd5b0f891611b8",
   "links": {
@@ -28,7 +28,7 @@
             0.0024046531608416166,
             0.012595594311070418
           ],
-          "radius": 0.04076610317023059
+          "radius": 0.040767004176074734
         },
         {
           "center": [

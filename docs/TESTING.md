@@ -795,3 +795,22 @@ Jetson에는 `qwen3-vl-2b`의 엔진과 외부 가중치만 보존한다.
 ## 고정 중간 자세 복귀
 
 고정 중간 자세 복귀의 충돌 설정은 `test_fixed_arm_return.py`, 동기 실행의 충돌 생략과 관절 제한은 `test_hardware_collection.py`에서 검사한다. `make test-jetson-packages JETSON_PYTEST_ARGS='-k "fixed_arm_return or arm_return_motion or hardware_collection or execution_optimization"'`로 관련 검사를 선택할 수 있다. 가짜 모터 전송을 사용하므로 실물 복귀 성공을 의미하지 않는다.
+
+## 충돌 구의 독립 부품 포함 검사
+
+`audit_joint_spheres.py`는 저장된 전체 링크의 tetrahedron 증명뿐 아니라 현재
+충돌 메시의 각 `rigid_covers` 영역을 해당 영역에 지정된 구만으로 검사한다.
+인접 영역의 구가 전체 링크를 덮더라도 개별 영역의 padding 부족은 실패한다.
+구나 메시를 변경한 경우 asset과 certificate를 함께 갱신하고 다음을 실행한다.
+
+```bash
+make test-jetson-tools JETSON_PYTEST_ARGS='-k "sphere_certificate or joint_sphere_partition or primitive_sphere_cover"'
+make test-jetson-packages JETSON_PYTEST_ARGS='-k "test_collision_sphere_model or test_curobo_mast"'
+python3 tools/validation/audit_joint_spheres.py \
+  --asset ros2_ws/src/cleany_skill_executor/cleany_skill_executor/data/collision_spheres_joint_simplified.json \
+  --certificate /path/to/certificates.npz --urdf /path/to/current.urdf \
+  --output /path/to/coverage.json
+```
+
+형상 도구 검사는 [형상 검사 환경](DEVELOPMENT_SETUP.md#형상-검사)의 Python 환경과
+ROS overlay를 함께 사용한다.

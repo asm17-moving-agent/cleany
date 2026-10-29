@@ -193,6 +193,24 @@ Ubuntu 22.04 Distrobox `ros2-humble` 안에 위 의존성을 준비합니다. �
 
 모터 펌웨어와 micro-ROS 준비는 [ESP32](../esp32/README.md) 가이드를 따릅니다. 고정 버전은 [micro_ros.lock.json](../esp32/micro_ros.lock.json)이 관리하며, firmware와 ROS/Agent의 shell 환경은 분리합니다. 장치 없는 빌드 이후 upload, serial 연결, 모터 구동은 각각 별도로 확인합니다.
 
+### 형상 검사
+
+형상 도구와 충돌 구의 CPU 검사는 NumPy, SciPy, trimesh를 사용한다. ROS의
+system Python과 Jetson CUDA 패키지를 유지하려면 system site packages를 읽는
+검증 전용 가상환경을 사용한다. 아래 두 버전은
+`containers/motion/requirements.txt`의 버전에 맞춘다.
+
+```bash
+python3 -m venv --system-site-packages "$HOME/.local/share/cleany/geometry-test-venv"
+source "$HOME/.local/share/cleany/geometry-test-venv/bin/activate"
+python -m pip install --no-deps trimesh==4.5.3 scipy==1.13.1
+source /opt/ros/humble/setup.bash
+source "$(make -s print-install-base)/setup.bash"
+```
+
+별도 빌드 경로를 사용한다면 해당 overlay를 source하고 Make 검사에도 같은
+`INSTALL_BASE`를 전달한다.
+
 ### Monitor 웹
 
 웹 빌드는 Node.js 22 이상과 pnpm 11을 사용합니다.
