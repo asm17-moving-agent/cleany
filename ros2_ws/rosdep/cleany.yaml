@@ -1,3 +1,8 @@
+feetech-servo-sdk:
+  ubuntu:
+    pip:
+      packages:
+        - feetech-servo-sdk==1.0.0
 google-genai:
   ubuntu:
     pip:

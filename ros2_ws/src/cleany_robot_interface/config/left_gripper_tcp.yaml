@@ -1,0 +1,29 @@
+status: cad_estimate_not_contact_calibrated
+parent_frame: left_gripper_frame
+child_frame: left_fingertip_tcp
+xyz: 0.0068143742950240284 -0.10484647176084015 -5.1855841205947433e-05
+rpy: 0 0 0
+xyz_m:
+- 0.006814374295024028
+- -0.10484647176084015
+- -5.185584120594743e-05
+closed_gripper_joint_rad: -0.374532977628
+definition: Midpoint of each CAD jaw distal-end bounding-box center at nominal closed
+  angle; distal vertices within 1 micrometre of minimum gripper-frame Y. Fixed closed-gripper
+  reference, not opening-dependent contact center.
+jaw_end_centers_m:
+  Fixed_Jaw:
+  - 0.009849299681842694
+  - -0.10637500136886066
+  - -1.4509559989365353e-06
+  Moving_Jaw:
+  - 0.003779448908205363
+  - -0.10331794215281964
+  - -0.00010226072641295834
+source_meshes:
+- file: ros2_ws/src/cleany_description/meshes/Fixed_Jaw.stl
+  sha256: 5528867073033eaa4c27a8087180954f3f0635bd69d517d5cace92f01dd266b2
+- file: ros2_ws/src/cleany_description/meshes/Moving_Jaw.stl
+  sha256: 6d9c923024c75e6f0a8d8300317c4d8a17dd49880260cbc60b7fe5e0c6dadfa8
+limitation: Actual closure angle, jaw geometry and contact point require physical
+  verification; base pose inherits arm model errors.

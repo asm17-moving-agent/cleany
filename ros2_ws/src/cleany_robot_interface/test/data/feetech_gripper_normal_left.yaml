@@ -1,0 +1,21 @@
+# SYNTHETIC TEST INPUT ONLY. No commissioning or deployment claim.
+# Left-gripper-only profile for normal-speed grasp validation.
+status: normal_speed_grasp_validation
+command_joints:
+  - left_gripper_joint
+update_rate: 50
+serial_timeout_ms: 20
+max_state_age_s: 0.1
+temperature_limit_c: 60
+temperature_fault_confirmation_samples: 3
+joint_defaults:
+  max_velocity: 0.15
+  max_acceleration: 0.5
+  tracking_error: 0.08
+  speed_raw: 80
+  acceleration_raw: 5
+  torque_limit_raw: 100
+controller:
+  trajectory_tolerance: 0.06
+  goal_tolerance: 0.015
+  goal_time: 3.0

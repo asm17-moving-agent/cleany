@@ -1,0 +1,20 @@
+# SYNTHETIC TEST INPUT ONLY. No commissioning or deployment claim.
+# First supported-arm commissioning trial. Only ID 5 has a command interface.
+status: first_motion_trial_not_validated
+command_joints: [left_wrist_roll_joint]
+update_rate: 50
+serial_timeout_ms: 20
+max_state_age_s: 0.1
+temperature_limit_c: 60
+temperature_fault_confirmation_samples: 3
+joint_defaults:
+  max_velocity: 0.04
+  max_acceleration: 0.15
+  tracking_error: 0.04
+  speed_raw: 1               # Minimum nonzero register value; firmware units will be observed.
+  acceleration_raw: 5
+  torque_limit_raw: 250
+controller:
+  trajectory_tolerance: 0.03
+  goal_tolerance: 0.0046
+  goal_time: 3.0

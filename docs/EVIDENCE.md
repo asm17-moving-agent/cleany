@@ -4,6 +4,12 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## 과거 생성 보고서 보관
+
+날짜별 MuJoCo 성능, 수거 시험 보고서와 SCRUM-486 검증 JSON은
+`CLEANY_DATA_ROOT/reports/evidence/` 아래 원래 상대 경로로 보관합니다.
+새 실행 산출물은 Git에서 제외하고 commit, 환경, 입력, 실패와 원본 위치를 남깁니다.
+
 ## Jetson 실물 마운트와 카메라 보정
 
 2026-10-21에 `jetson-orin:/home/cleany/cleany`의
@@ -133,7 +139,7 @@ head/양손목 카메라 촬영을 통과했다. Xvfb는 기존 `pr58-test-clean
 | `reports/documentation-reorganization-20261013/before/` | 이번 문서 개편 전 Markdown 사본 |
 | `reports/documentation-reorganization-20261013/manifest.json` | 사본 source commit, dirty 상태, 각 파일 SHA-256 |
 
-Logger 분리와 CLI의 초기 검증은 [SCRUM-486 결과](../reports/SCRUM-486/validation.json)를 따른다.
+Logger 분리와 CLI의 초기 검증은 `CLEANY_DATA_ROOT/reports/evidence/reports/SCRUM-486/validation.json`를 따른다.
 `a401f6f`의 Ubuntu 22.04 ARM64/Humble 검증에서는 합성 ROS와 웹 fixture로
 Logger 55개, Monitor 80개, Mock 통합 225개(Gazebo 1개 제외), 웹 13개와 CLI 19건을 확인했다.
 초기 rosdep 선언과 launch 기본값 누락 오류는 수정 후 재검증했다. 원본은

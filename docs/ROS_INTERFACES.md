@@ -343,3 +343,12 @@ ros2 action info /grasp/select_reachable
 ```
 
 실행 graph는 해당 실행의 증거다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않는다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신한다.
+
+## Jetson 실물 상태와 제어
+
+| 실행 파일 | 역할과 인터페이스 |
+|---|---|
+| `arm_state_reader`, `robot_state_reader` | [실측 관절 상태 조회](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `control_state_guard` | [관절 상태 검증과 컨트롤러 정지](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `wrist_rgb_camera`, `rgbd_frame_bridge` | [손목 영상과 헤드 RGB-D 좌표계](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+| `motor_telemetry_recorder` | [모터 상태 수동 기록](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
