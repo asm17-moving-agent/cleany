@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from itertools import product
 import math
 
-from cleany_skill_executor.core.grasp_selection import quaternion_axis
+from cleany_skill_executor.core.alignment import quaternion_axis
 
 
 @dataclass(frozen=True, slots=True)

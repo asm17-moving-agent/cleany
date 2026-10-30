@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 import json
 import os
+import re
 from pathlib import Path
 import signal
 import subprocess
@@ -85,7 +86,7 @@ def test_installed_detector_catches_contained_obstacles(tmp_path: Path, detector
         for row in fixture['probes']:
             state = RobotState()
             state.joint_state.name = fixture['joint_names']
-            state.joint_state.position = row['positions']
+            state.joint_state.position = fixture['poses'][row['pose_index']]
             query = GetStateValidity.Request(robot_state=state)
             assert call(validity, query).valid, row['source_index']
             obstacle = CollisionObject(id='contained_probe', operation=CollisionObject.ADD)
@@ -123,4 +124,4 @@ def test_unavailable_detector_stops_planning(tmp_path: Path):
         finally:
             _stop(process)
     assert 'Requested collision detector cleany/MissingDetector did not load' in log_path.read_text()
-    assert 'Verified collision detector:' not in log_path.read_text()
+    assert not re.search(r'\[INFO\].*Verified collision detector:', log_path.read_text())

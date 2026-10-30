@@ -117,7 +117,7 @@ def _launch_setup(context):
                     allow_trajectory_execution, value_type=bool
                 ),
                 'publish_robot_description_semantic': True,
-                'capabilities': 'cleany/RequireCollisionDetector',
+                'capabilities': 'cleany/RequireCollisionDetector cleany/StateValidityBatch',
                 'collision_detector': LaunchConfiguration('collision_detector'),
                 'trajectory_execution.allowed_execution_duration_scaling': (
                     ParameterValue(

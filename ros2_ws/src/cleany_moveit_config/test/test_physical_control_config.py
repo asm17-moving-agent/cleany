@@ -102,7 +102,8 @@ def test_optional_rviz_uses_the_moveit_model_and_selected_clock(
     assert rviz.condition.evaluate(context)
     combined = _node_parameters(rviz, context)
     server = _node_parameters(nodes['move_group'], context)
-    assert server['capabilities'] == 'cleany/RequireCollisionDetector'
+    assert set(server['capabilities'].split()) == {
+        'cleany/RequireCollisionDetector', 'cleany/StateValidityBatch'}
     assert server['collision_detector'] == 'cleany/SolidFCL'
     assert all(server[key] == value for key, value in combined.items())
     assert 'robot_description' in combined

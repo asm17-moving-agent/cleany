@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""Explicit preparation and inspection of the shared Jetson motion runtime."""
+from motion_container import cli
+
+if __name__ == '__main__':
+    raise SystemExit(cli())

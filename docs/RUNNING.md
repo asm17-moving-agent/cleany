@@ -355,6 +355,9 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 `cleany_robot_interface`는 로봇 상태 조회와 Feetech 컨트롤러 실행을 제공합니다.
 로봇별 시리얼 포트, 엔코더 보정과 운영 한계는 실행 전에 확인한 외부 프로파일로 지정합니다.
 패키지의 `test/data` 파일은 합성 검사 입력이며 운영 기본값으로 사용하지 않습니다.
+관절 미리보기 `arm_preview.launch.py`는 모델 경로, 상태 설정, RViz, 헤드 포함 여부와
+마스트 간격을 받습니다. 기본 모델은 명목 형상이며, 저장된 보정을 적용한 실물
+모델은 아래 상태 프로파일 실행 절차를 따릅니다.
 
 1. [개발환경](DEVELOPMENT_SETUP.md#jetson-실물-제어-패키지)에 따라 빌드하고 같은 install을 적용합니다.
 
@@ -379,3 +382,33 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 
 상태 가드는 결측되거나 오래된 관절 상태를 차단합니다. 정지 요청은 `/real_control/stop`
 서비스를 사용합니다. 토픽, 상태와 카메라 제어는 [패키지 인터페이스](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md)를 따릅니다.
+
+
+## 실물 파지 계획과 준비 자세
+
+1. [환경 설정](DEVELOPMENT_SETUP.md#실물-모션-기반)의 MoveIt overlay를 준비하고 빌드한다.
+
+   ```bash
+   make build-motion-foundation
+   source tools/scene-mapping-env
+   source "$(make -s print-install-base)/setup.bash"
+   ```
+
+2. 실물 상태 조회, MoveGroup과 인식을 실행한 환경에서 계획 전용 선택기를 시작한다.
+   인식의 `inspect_scene.launch.py`에는 `enable_reference_observation:=true`를 지정한다.
+
+   ```bash
+   ros2 launch cleany_skill_executor physical_grasp_selection.launch.py \
+     repository_root:="$PWD" motion_backend:=moveit
+   ros2 launch cleany_skill_executor validate_pick.launch.py --show-args
+   ```
+
+3. 기존 실물 controller에 센서와 계획 서비스를 연결하는 설정은
+   `pregrasp_hardware_support.launch.py --show-args`로 확인한다. 이 launch는
+   RGB-D 카메라와 장면 처리도 시작하며 기본 후보 생성은 `geometric`이다.
+   같은 카메라를 별도로 중복 실행하지 않는다. 모터 실행은 요청하지 않는다.
+   `hardware_pregrasp`는 별도로 실행하는 물리 동작 도구이며 준비 자세 도달과 재관찰까지만 수행한다.
+   전체 수거와 복귀는 이 경로의 기능이 아니다.
+
+[계획과 실행 조건](../ros2_ws/src/cleany_skill_executor/docs/physical-pregrasp.md),
+[선택적 GPU 환경](../containers/motion/README.md)을 함께 확인한다.

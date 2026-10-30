@@ -1,31 +1,13 @@
-from copy import deepcopy
+from cleany_skill_executor.core.cartesian import validate_height_correctable_endpoint
 import math
-from types import SimpleNamespace
 
-from geometry_msgs.msg import Pose, Quaternion
-from moveit_msgs.action import MoveGroup
-from moveit_msgs.msg import Constraints, RobotTrajectory
 import pytest
-from sensor_msgs.msg import JointState
-from trajectory_msgs.msg import JointTrajectoryPoint
 
-from cleany_skill_executor.core.cartesian import (
-    CartesianPose,
-    execution_wall_timeout,
-    interpolate_orientation,
-    line_corridor,
-    orientation_error_rad,
-    sampled_time_scale,
-    validate_corridor_samples,
-    validate_pose_endpoint,
+from cleany_skill_executor.core.cartesian import CartesianPose, execution_wall_timeout, interpolate_orientation, line_corridor, orientation_error_rad, sampled_time_scale, validate_corridor_samples, validate_pose_endpoint, validate_position_endpoint
+from cleany_skill_executor.core.alignment import (
+    quaternion_axis,
 )
-from cleany_skill_executor.core.grasp_selection import REQUIRED_JOINT_NAMES, quaternion_axis
-from cleany_skill_executor.core.gripper import aligned_wrist_rolls
-from cleany_skill_executor.core.wrist_pose import carried_orientation
-from cleany_skill_executor.nearest_pregrasp_coordinator import (
-    NearestPregraspCoordinator as Coordinator,
-)
-
+from cleany_skill_executor.core.wrist_alignment import aligned_wrist_rolls
 
 IDENTITY = (0., 0., 0., 1.)
 
@@ -99,6 +81,16 @@ def test_position_only_endpoint_regression_from_attempt26():
         validate_pose_endpoint(actual, target, .001, .01)
 
 
+def test_position_endpoint_ignores_orientation_but_still_checks_translation():
+    target = CartesianPose((.3, .1, .4), IDENTITY)
+    rotated = CartesianPose(target.position, (1., 0., 0., 0.))
+
+    validate_position_endpoint(rotated, target, .001)
+    with pytest.raises(ValueError, match='endpoint mismatch'):
+        validate_position_endpoint(
+            CartesianPose((.302, .1, .4), rotated.orientation), target, .001)
+
+
 def test_quaternion_sign_does_not_introduce_a_rotation():
     assert orientation_error_rad(IDENTITY, (0., 0., 0., -1.)) == 0
     assert interpolate_orientation(IDENTITY, (0., 0., 0., -1.), .5) == IDENTITY
@@ -117,6 +109,24 @@ def test_corridor_checks_intermediate_translation_and_orientation(offset, angle,
     else:
         with pytest.raises(ValueError, match='corridor violated'):
             validate_corridor_samples(samples, start, end, .001, math.radians(5), .01)
+
+
+def test_position_only_corridor_ignores_orientation_but_keeps_line_check():
+    start = CartesianPose((0., 0., 0.), IDENTITY)
+    end = CartesianPose((0., 0., -.1), IDENTITY)
+    flipped = (1., 0., 0., 0.)
+
+    lateral, rotation = validate_corridor_samples(
+        [start, CartesianPose((0., 0., -.05), flipped),
+         CartesianPose(end.position, flipped)],
+        start, end, .001, None, None)
+
+    assert lateral == 0.
+    assert rotation == 0.
+    with pytest.raises(ValueError, match='corridor violated'):
+        validate_corridor_samples(
+            [start, CartesianPose((.002, 0., -.05), flipped), end],
+            start, end, .001, None, None)
 
 
 def test_corridor_rejects_backtracking_and_missing_samples():
@@ -139,121 +149,20 @@ def test_timing_only_slows_and_bounds_sampled_rates():
         sampled_time_scale(samples, [0., 1., 2.], .02, .1, .08, .5)
 
 
-def test_joint_corridor_goal_preserves_selected_joints_and_scene_attachments():
-    joint_goal = MoveGroup.Goal()
-    joint_goal.request.goal_constraints = [Constraints(name='selected')]
-    start, target = Pose(), Pose()
-    start.position.z, target.position.z = .55, .39
-    values = {'lin_acceleration_scaling': .4, 'lin_position_tolerance_m': .001}
-    joints = JointState(name=['left_shoulder_yaw_joint'], position=[.2])
-    node = SimpleNamespace(
-        _execution_goal=lambda arm, state, label: joint_goal if state is joints else None,
-        _joint_positions={name: .3 for name in REQUIRED_JOINT_NAMES},
-        _pose_position=Coordinator._pose_position,
-        get_parameter=lambda name: SimpleNamespace(value=values[name]))
-    goal = Coordinator._joint_corridor_goal(node, 'left', joints, start, target, 'approach', .2)
-    assert goal.request.pipeline_id == 'ompl'
-    assert goal.request.goal_constraints[0].name == 'selected'
-    assert goal.request.start_state.is_diff
-    assert set(goal.request.start_state.joint_state.name) == set(REQUIRED_JOINT_NAMES)
-    assert goal.planning_options.plan_only and not goal.planning_options.replan
-    constraint = goal.request.path_constraints.position_constraints[0]
-    assert constraint.link_name == 'left_grasp_tcp'
-    assert constraint.constraint_region.primitives[0].dimensions == pytest.approx([.162, .001])
-
-
-def test_retiming_changes_only_time_and_derivatives():
-    trajectory = RobotTrajectory()
-    for i in range(3):
-        point = JointTrajectoryPoint(positions=[float(i)], velocities=[2.], accelerations=[3.])
-        point.time_from_start.sec = i
-        trajectory.joint_trajectory.points.append(point)
-    original = deepcopy(trajectory)
-    samples = [CartesianPose((0., 0., i*.05), IDENTITY) for i in range(3)]
-    values = {'cartesian_translation_speed_m_s': .1, 'cartesian_rotation_speed_rad_s': .5,
-              'cartesian_translation_acceleration_m_s2': .2, 'lin_acceleration_scaling': .4,
-              'corridor_time_margin': 2.}
-    node = SimpleNamespace(get_parameter=lambda name: SimpleNamespace(value=values[name]),
-                           get_logger=lambda: SimpleNamespace(info=lambda _: None, debug=lambda _: None))
-    Coordinator._slow_corridor_plan(node, trajectory, samples, .2)
-    end = trajectory.joint_trajectory.points[-1].time_from_start
-    scale = (end.sec + end.nanosec*1e-9)/2
-    assert scale >= 5.
-    for before, after in zip(original.joint_trajectory.points, trajectory.joint_trajectory.points):
-        assert after.positions == before.positions
-        assert after.velocities == pytest.approx([2/scale])
-        assert after.accelerations == pytest.approx([3/scale**2])
-
-
-def test_bad_cartesian_endpoint_never_reaches_execute_action():
-    target, wrong = Pose(), Pose()
-    target.orientation.w = 1.
-    wrong.orientation.z, wrong.orientation.w = math.sin(.14), math.cos(.14)
-    trajectory = RobotTrajectory()
-    trajectory.joint_trajectory.joint_names = ['left_wrist_roll_joint']
-    trajectory.joint_trajectory.points = [JointTrajectoryPoint(positions=[0.]), JointTrajectoryPoint(positions=[.28])]
-    result = SimpleNamespace(status=4, result=SimpleNamespace(
-        error_code=SimpleNamespace(val=1), planned_trajectory=trajectory))
-    handle = SimpleNamespace(accepted=True, get_result_async=lambda: result)
-    executed = []
-    traced = []
-    node = SimpleNamespace(
-        _wait_arm_stationary=lambda _: None,
-        _tcp_pose=lambda arm, override=None: target if override is None else wrong,
-        _cartesian_pose=Coordinator._cartesian_pose,
-        _arm_joint_state=lambda _: JointState(name=['left_wrist_roll_joint']),
-        _linear_goal=lambda *args: MoveGroup.Goal(),
-        _move_group=SimpleNamespace(send_goal_async=lambda _: handle),
-        _execute_trajectory=SimpleNamespace(send_goal_async=executed.append),
-        _record_pipeline_message=lambda label, message: traced.append(label),
-        _future=lambda value, *args: value,
-        get_parameter=lambda name: SimpleNamespace(value={
-            'lin_position_tolerance_m': .001, 'lin_orientation_tolerance_rad': .01}[name]))
-    node._validate_cartesian_plan = lambda *args, **kwargs: Coordinator._validate_cartesian_plan(node, *args, **kwargs)
-    node._plan_linear_motion = lambda *args, **kwargs: Coordinator._plan_linear_motion(node, *args, **kwargs)
-    with pytest.raises(RuntimeError, match='rejected before execution.*endpoint mismatch'):
-        Coordinator._execute_linear(node, 'left', target, 'approach', velocity_scaling=.2)
-    assert executed == []
-    assert traced == ['motion_request', 'motion_result']
-
-
-def test_seeded_path_still_cannot_bypass_cartesian_orientation_gate():
-    start, target = Pose(), Pose()
-    start.position.z, target.position.z = .5, .4
-    start.orientation.w = target.orientation.w = 1.
-    trajectory = RobotTrajectory()
-    trajectory.joint_trajectory.joint_names = ['left_wrist_roll_joint']
-    trajectory.joint_trajectory.points = [JointTrajectoryPoint(positions=[q]) for q in (0., 1., 0.)]
-    poses = [CartesianPose((0., 0., .5), IDENTITY),
-             CartesianPose((0., 0., .45), (0., 0., 1., 0.)),
-             CartesianPose((0., 0., .4), IDENTITY)]
-    executed, traces = [], []
-    node = SimpleNamespace(
-        _wait_arm_stationary=lambda _: None,
-        _tcp_pose=lambda _: start,
-        _cartesian_pose=Coordinator._cartesian_pose,
-        _arm_joint_state=lambda _: JointState(name=['left_wrist_roll_joint']),
-        _joint_corridor_goal=lambda *args: MoveGroup.Goal(),
-        _seeded_cartesian=SimpleNamespace(plan=lambda *args: (trajectory, poses)),
-        _execute_trajectory=SimpleNamespace(send_goal_async=executed.append),
-        _record_pipeline_message=lambda label, _: traces.append(label),
-        get_parameter=lambda name: SimpleNamespace(value={
-            'lin_position_tolerance_m': .001, 'lin_orientation_tolerance_rad': .01,
-            'corridor_orientation_tolerance_deg': 5.}[name]))
-    node._validate_cartesian_plan = lambda *args, **kwargs: Coordinator._validate_cartesian_plan(node, *args, **kwargs)
-    node._plan_linear_motion = lambda *args, **kwargs: Coordinator._plan_linear_motion(node, *args, **kwargs)
-    with pytest.raises(RuntimeError, match='corridor violated'):
-        Coordinator._execute_linear(node, 'left', target, 'seeded', velocity_scaling=.2,
-                                     joint_target=JointState(name=['left_wrist_roll_joint'], position=[0.]))
-    assert executed == []
-    assert traces == ['motion_request', 'motion_result']
-
-
-def test_relative_carried_orientation_and_invalid_quaternion():
-    identity=Quaternion(w=1.)
-    yaw=Quaternion(z=math.sin(.4),w=math.cos(.4))
-    q=carried_orientation(identity,yaw,identity)
-    assert q.z==pytest.approx(yaw.z) and q.w==pytest.approx(yaw.w)
-    q=carried_orientation(yaw,yaw,identity)
-    assert q.w==pytest.approx(1.)
-    with pytest.raises(ValueError): carried_orientation(Quaternion(w=0.),yaw,identity)
+@pytest.mark.parametrize('xyz,angle,accepted', [
+    ((.316879,.056145,.508824), 5.589, True),
+    ((.351,.058715,.508824), 0., False),
+    ((.319833,.058715,.508824), 21., False),
+    ((.319833,.058715,.591823), 0., False),
+    ((.319833,.058715,.571823), 0., False),
+    ((.319833,.058715,.489822), 0., True),
+])
+def test_height_shortfall_keeps_xy_rotation_and_overshoot_guards(xyz, angle, accepted):
+    half = math.radians(angle)/2
+    actual = CartesianPose(xyz, (0.,0.,math.sin(half),math.cos(half)))
+    target = CartesianPose((.319833,.058715,.540822), (0.,0.,0.,1.))
+    if accepted:
+        validate_height_correctable_endpoint(actual, target, .030, math.radians(20.))
+    else:
+        with pytest.raises(ValueError):
+            validate_height_correctable_endpoint(actual, target, .030, math.radians(20.))

@@ -1,0 +1,6 @@
+<library path="cleany_robust_time_parameterization">
+  <class name="cleany/RobustTimeParameterization" type="cleany::RobustTimeParameterization"
+         base_class_type="planning_request_adapter::PlanningRequestAdapter">
+    <description>TOTG with scale-aware numerical resolution and bounded quintic timing; no fallback solver.</description>
+  </class>
+</library>

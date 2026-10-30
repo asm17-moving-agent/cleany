@@ -739,3 +739,172 @@ def test_loaded_arm_action_boundary_preserves_wire_goal_without_future_header(tm
         assert runtime.arms.registers[2][40] == 1
     finally:
         runtime.close()
+
+
+def test_executor_cancels_and_reconnects_remaining_path_after_read_recovery(tmp_path):
+    from types import SimpleNamespace as NS
+    from cleany_skill_executor.hardware_execution import HardwareExecution
+    from cleany_skill_executor.pregrasp_pipeline import PregraspPipeline
+    from cleany_skill_executor.core.hardware_execution import physical_limits
+    from cleany_skill_executor.core.grasp_selection import ARM_JOINT_NAMES
+    from trajectory_msgs.msg import JointTrajectory
+
+    runtime = Runtime(tmp_path, False, shared_bus=True, serial_timeout_ms=20,
+                      max_state_age_s=.1, serial_read_retries=1,
+                      servo_type=ProcessServos)
+    stop_spin = threading.Event()
+    spinner = None
+    injector = None
+    try:
+        node = runtime.node
+        execution = HardwareExecution(node)
+        def measured():
+            from cleany_skill_executor.pregrasp_pipeline import check_joint_snapshot
+            state = runtime.states[-1]
+            check_joint_snapshot(state, node.get_clock().now().nanoseconds)
+            return state
+        node.measured = measured
+        # Scene receipts and collision-service replies are synthetic. ROS Actions,
+        # PTY packets, C++ driver recovery and DynamicJointState are real code.
+        node.call = lambda *_, **__: NS(valid=True, contacts=[])
+        node.scene_monitor = NS(wait=lambda **_: None)
+        execution.verify = lambda arm: physical_limits(runtime.profile.model.read_text(), arm)
+        # DDS client destruction can monopolize Python's GIL and starve this
+        # same-process PTY responder. Reuse real clients until runtime shutdown.
+        def create_motion_client(action_type, name):
+            controller = name.strip('/').split('/')[0]
+            client = runtime.clients[controller]
+            return NS(wait_for_server=client.wait_for_server,
+                      send_goal_async=client.send_goal_async, destroy=lambda: None)
+        node.create_motion_client = create_motion_client
+
+        def wait(future, timeout, *, monitor=False, **_):
+            deadline = time.monotonic()+timeout
+            while not future.done():
+                if time.monotonic() >= deadline:
+                    raise RuntimeError('test ROS operation timed out')
+                if monitor or getattr(node, 'carrying', None) is not None:
+                    execution.monitor()
+                time.sleep(.005)
+            return future.result()
+
+        node.wait = wait
+        submitted = []
+        injected = threading.Event()
+
+        def interrupt_moving_arm():
+            deadline = time.monotonic()+3.
+            while not stop_spin.is_set() and time.monotonic() < deadline:
+                measured = dict(zip(runtime.states[-1].name, runtime.states[-1].position))
+                if abs(measured[names[0]]-start[0]) >= .006:
+                    runtime.arms.drop_read_count = 1
+                    injected.set()
+                    return
+                time.sleep(.005)
+
+        def action(client, goal, timeout, **options):
+            nonlocal injector
+            submitted.append(goal)
+            if len(submitted) == 1:
+                injector = threading.Timer(.2, interrupt_moving_arm)
+                injector.start()
+            return PregraspPipeline.run_action(node, client, goal, timeout, **options)
+        node.run_action = action
+        node.real = execution
+        node.carrying = object()  # Match Jetson's monitoring during carry/cancel.
+
+        def spin():
+            while not stop_spin.is_set():
+                runtime.executor.spin_once(timeout_sec=.005)
+        spinner = threading.Thread(target=spin, daemon=True)
+        spinner.start()
+        time.sleep(.1)
+        names = ARM_JOINT_NAMES['left']
+        q = dict(zip(runtime.states[-1].name, runtime.states[-1].position))
+        start = [q[name] for name in names]
+        target = [start[0]+.05, *start[1:]]
+        trajectory = JointTrajectory(joint_names=list(names), points=[
+            JointTrajectoryPoint(positions=start), JointTrajectoryPoint(positions=target)])
+        actual = execution.execute('left', trajectory, 'arm', terminal_check=False)
+        result = dict(zip(actual.name, actual.position))
+        assert result[names[0]] == pytest.approx(target[0], abs=.01)
+        assert injected.is_set()
+        assert len(submitted) == 2
+        assert execution.last_execution_metrics['communication_resumes'][0]['generation'] == 1
+        resumed_start = list(submitted[1].trajectory.points[0].positions)
+        assert abs(resumed_start[0]-start[0]) >= .003
+        assert resumed_start[-1] == pytest.approx(start[-1], abs=.003)
+        assert all(runtime.arms.registers[motor][40] == 1 for motor in range(1, 13))
+        assert 'LATCHED hardware fault' not in (tmp_path/'manager.log').read_text()
+    finally:
+        if injector is not None:
+            injector.cancel()
+            injector.join(1)
+        stop_spin.set()
+        if spinner is not None:
+            spinner.join(2)
+        runtime.close()
+
+
+@pytest.mark.parametrize('side,motor,closed', [('left',6,1358), ('right',12,1372)])
+def test_contact_close_keeps_final_goal_and_raw_evidence_distinguishes_empty(tmp_path, side, motor, closed):
+    from control_msgs.msg import DynamicJointState, JointTolerance
+    from cleany_skill_executor.core.gripper_contact import (
+        ContactState, LiveContactHistory, load_contact_criteria,
+    )
+    runtime = Runtime(tmp_path, False)
+    try:
+        history = LiveContactHistory(load_contact_criteria(
+            ROOT/'configs/robot/gripper_contact_decision.yaml')[side])
+        joint = f'{side}_gripper_joint'
+        def feedback(message):
+            row = message.interface_values[message.joint_names.index(joint)]
+            history.observe(dict(zip(row.interface_names, row.values)))
+        subscription = runtime.node.create_subscription(DynamicJointState,
+            '/joint_state_broadcaster/dynamic_joint_states', feedback, 10)
+        mem = runtime.arms.registers[motor]
+        assert int.from_bytes(mem[48:50], 'little') == 200
+        runtime.arms.load_offsets[motor] = -340
+        mem[60:62] = (0x400 | 200).to_bytes(2, 'little')
+        mem[69:71] = (0x8000 | 18).to_bytes(2, 'little')
+        element = ET.parse(runtime.profile.model).find(f"ros2_control/joint[@name='{joint}']")
+        p = {v.get('name'):float(v.text) for v in element.findall('param')}
+        target = p['offset_rad']+p['direction']*(closed-p['zero_tick'])*math.tau/4096
+        goal = FollowJointTrajectory.Goal()
+        goal.trajectory.joint_names = [joint]
+        start = runtime.states[-1].position[runtime.states[-1].name.index(joint)]
+        goal.trajectory.points = [JointTrajectoryPoint(positions=[start]),
+                                  JointTrajectoryPoint(positions=[target])]
+        goal.trajectory.points[-1].time_from_start.sec = 2
+        goal.goal_tolerance = [JointTolerance(name=joint, position=-1.)]
+        handle = runtime.wait(runtime.clients[f'{side}_gripper_controller'].send_goal_async(goal))
+        assert handle.accepted
+        result = runtime.wait(handle.get_result_async())
+        assert result.status == 4 and result.result.error_code == 0
+        deadline = time.monotonic()+3
+        while time.monotonic() < deadline:
+            runtime.spin(.05)
+            decision = history.evaluate(now_ns=runtime.node.get_clock().now().nanoseconds)
+            if decision.state == ContactState.CONTACT:
+                break
+        assert decision.state == ContactState.CONTACT, decision
+        assert int.from_bytes(mem[42:44], 'little') == closed
+        assert int.from_bytes(mem[56:58], 'little') == closed+340
+        # Preserve the command while the encoder and electrical feedback become empty.
+        runtime.arms.load_offsets[motor] = -6
+        mem[56:58] = (closed+6).to_bytes(2, 'little')
+        mem[69:71] = (1).to_bytes(2, 'little')
+        mem[60:62] = (36).to_bytes(2, 'little')
+        runtime.spin(.6)
+        decision = history.evaluate(now_ns=runtime.node.get_clock().now().nanoseconds)
+        assert decision.state == ContactState.EMPTY, decision
+        assert int.from_bytes(mem[42:44], 'little') == closed
+        # A high current is confirmed and latches the driver fault, without dropping torque.
+        mem[69:71] = (250).to_bytes(2, 'little')
+        runtime.spin(.4)
+        assert 'current protection bound' in (tmp_path/'manager.log').read_text()
+        assert mem[40] == 1
+        assert history.evaluate(now_ns=runtime.node.get_clock().now().nanoseconds).state == ContactState.UNKNOWN
+        runtime.node.destroy_subscription(subscription)
+    finally:
+        runtime.close()

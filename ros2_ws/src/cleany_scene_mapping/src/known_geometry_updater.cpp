@@ -47,13 +47,6 @@ octomap::point3d octoPoint(const Eigen::Vector3d& value)
 KnownGeometryOctomapUpdater::KnownGeometryOctomapUpdater()
   : OccupancyMapUpdater("KnownGeometryOctomapUpdater")
 {
-  shape_mask_.setTransformCallback([this](unsigned int handle, Eigen::Isometry3d& pose) {
-    const auto found = transform_cache_.find(handle);
-    if (found == transform_cache_.end())
-      return false;
-    pose = found->second;
-    return true;
-  });
 }
 
 KnownGeometryOctomapUpdater::~KnownGeometryOctomapUpdater()
@@ -64,8 +57,6 @@ KnownGeometryOctomapUpdater::~KnownGeometryOctomapUpdater()
 bool KnownGeometryOctomapUpdater::initialize(const rclcpp::Node::SharedPtr& node)
 {
   node_ = node;
-  if (node_)
-    logger_ = node_->get_logger().get_child("scene_mapping");
   return bool(node_);
 }
 
@@ -106,7 +97,7 @@ void KnownGeometryOctomapUpdater::start()
         if (active_)
           processCloud(*cloud);
       }, options);
-  RCLCPP_INFO(logger_, "Generation-consistent depth updater listening to %s (mask_workers=%ld)",
+  RCLCPP_INFO(node_->get_logger(), "Generation-consistent depth updater listening to %s (mask_workers=%ld)",
               cloud_topic_.c_str(), static_cast<long>(mask_workers_));
 }
 
@@ -124,26 +115,22 @@ occupancy_map_monitor::ShapeHandle KnownGeometryOctomapUpdater::excludeShape(
 {
   if (!shape)
     return 0;
-  std::unique_ptr<bodies::Body> body(bodies::createBodyFromShape(shape.get()));
-  if (!body)
+  // Expensive hull construction is independent of registered handles. Build it
+  // before taking the lock, then share it between masking and voxel clearing.
+  const auto prepared = PartitionedShapeMask::prepareShape(shape, scale_, padding_);
+  if (!prepared.body)
     return 0;
-  body->setScale(scale_);
-  body->setPadding(padding_);
   std::lock_guard<std::mutex> lock(geometry_mutex_);
-  const auto handle = shape_mask_.addShape(shape, scale_, padding_);
+  const auto handle = shape_mask_.addShape(prepared);
   if (handle)
-  {
-    bodies_[handle] = std::move(body);
     ++generation_;
-  }
   return handle;
 }
 
 void KnownGeometryOctomapUpdater::forgetShape(occupancy_map_monitor::ShapeHandle handle)
 {
   std::lock_guard<std::mutex> lock(geometry_mutex_);
-  shape_mask_.removeShape(handle);
-  if (bodies_.erase(handle))
+  if (shape_mask_.removeShape(handle))
     ++generation_;
 }
 
@@ -151,12 +138,13 @@ bool KnownGeometryOctomapUpdater::processCloud(const sensor_msgs::msg::PointClou
 {
   const auto entered = std::chrono::steady_clock::now();
   const auto capture_ns = std::int64_t(cloud.header.stamp.sec) * 1000000000 + cloud.header.stamp.nanosec;
-  RCLCPP_DEBUG_THROTTLE(logger_, diagnostic_clock_, 1000,
+  RCLCPP_INFO_THROTTLE(node_->get_logger(), diagnostic_clock_, 1000,
       "Depth callback entered: capture_ns=%ld node_now_ns=%ld points=%zu",
       static_cast<long>(capture_ns), static_cast<long>(node_->now().nanoseconds()),
       std::size_t(cloud.width) * cloud.height);
   // Serialize cache mutation through publication, including direct callers.
   std::lock_guard<std::mutex> lock(frame_mutex_);
+  const auto locked = std::chrono::steady_clock::now();
   const char* stage = "frame_lock";
   bool integrated = false;
   try
@@ -165,15 +153,16 @@ bool KnownGeometryOctomapUpdater::processCloud(const sensor_msgs::msg::PointClou
   }
   catch (const std::exception& error)
   {
-    RCLCPP_ERROR_THROTTLE(logger_, diagnostic_clock_, 5000,
+    RCLCPP_ERROR_THROTTLE(node_->get_logger(), diagnostic_clock_, 5000,
                           "Depth frame processing failed at %s: %s", stage, error.what());
   }
   const double elapsed_ms = std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now()-entered).count();
-  RCLCPP_DEBUG_THROTTLE(logger_, diagnostic_clock_, 1000,
+  RCLCPP_INFO_THROTTLE(node_->get_logger(), diagnostic_clock_, 1000,
       "Depth callback finished: integrated=%d stage=%s capture_ns=%ld node_now_ns=%ld "
-      "last_update_ns=%ld wall_ms=%.2f", integrated, stage, static_cast<long>(capture_ns),
-      static_cast<long>(node_->now().nanoseconds()), static_cast<long>(last_update_ns_), elapsed_ms);
+      "last_update_ns=%ld wall_ms=%.2f frame_wait_ms=%.2f", integrated, stage, static_cast<long>(capture_ns),
+      static_cast<long>(node_->now().nanoseconds()), static_cast<long>(last_update_ns_), elapsed_ms,
+      std::chrono::duration<double, std::milli>(locked-entered).count());
   return integrated;
 }
 
@@ -191,10 +180,16 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   if (monitor_->getMapFrame().empty())
     return false;
   const auto begin = std::chrono::steady_clock::now();
+  const auto elapsed = [](const auto& first, const auto& last) {
+    return std::chrono::duration<double, std::milli>(last - first).count();
+  };
+  double geometry_wait_ms = 0.0;
   std::uint64_t generation;
   stage = "geometry_snapshot";
   {
+    const auto waiting = std::chrono::steady_clock::now();
     std::lock_guard<std::mutex> lock(geometry_mutex_);
+    geometry_wait_ms += elapsed(waiting, std::chrono::steady_clock::now());
     generation = generation_;
   }
   // PSM holds its own shape-handles lock while calling exclude/forget. Calling
@@ -202,7 +197,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
   stage = "transform_cache";
   if (!updateTransformCache(cloud.header.frame_id, cloud.header.stamp))
   {
-    RCLCPP_WARN_THROTTLE(logger_, diagnostic_clock_, 2000,
+    RCLCPP_WARN_THROTTLE(node_->get_logger(), diagnostic_clock_, 2000,
         "Depth transform cache unavailable: capture_ns=%ld node_now_ns=%ld wall_ms=%.2f",
         static_cast<long>(std::int64_t(cloud.header.stamp.sec)*1000000000+cloud.header.stamp.nanosec),
         static_cast<long>(node_->now().nanoseconds()),
@@ -220,49 +215,67 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
         monitor_->getMapFrame(), cloud.header.frame_id, cloud.header.stamp));
   }
   const auto transforms_done = std::chrono::steady_clock::now();
-  std::vector<int> mask;
-  std::vector<bodies::BodyPtr> snapshot;
+  PartitionedShapeMask::Snapshot shapes;
   stage = "geometry_cache_consistency";
+  const auto waiting = std::chrono::steady_clock::now();
+  std::unique_lock<std::mutex> geometry_lock(geometry_mutex_);
+  geometry_wait_ms += elapsed(waiting, std::chrono::steady_clock::now());
+  if (generation != generation_)
   {
-    std::lock_guard<std::mutex> lock(geometry_mutex_);
-    const bool complete = generation == generation_ && placeKnownBodies(
-        bodies_, map_from_cloud, [this](unsigned int handle, Eigen::Isometry3d& pose) {
-          const auto found = transform_cache_.find(handle);
-          if (found == transform_cache_.end())
-            return false;
-          pose = found->second;
-          return true;
-        });
-    if (!complete)
-    {
-      RCLCPP_WARN_THROTTLE(logger_, *node_->get_clock(), 5000,
-                           "Rejecting depth frame before integration: shape generation/cache mismatch "
-                           "(generation=%lu current=%lu known=%zu cached=%zu)",
-                           static_cast<unsigned long>(generation), static_cast<unsigned long>(generation_),
-                           bodies_.size(), transform_cache_.size());
-      return false;
-    }
-    // Cloud and cached shapes are optical-frame coordinates, so sensor origin
-    // is zero here. The map-frame camera translation is used for rays below.
-    stage = "shape_mask";
-    shape_mask_.maskContainment(cloud, Eigen::Vector3d::Zero(), 0.0, maximum_range_, mask);
-    for (const auto& item : bodies_)
-      snapshot.push_back(item.second->cloneAt(item.second->getPose()));
+    RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 5000,
+                         "Rejecting depth frame before integration: shape generation changed "
+                         "(generation=%lu current=%lu)",
+                         static_cast<unsigned long>(generation), static_cast<unsigned long>(generation_));
+    return false;
   }
+  shapes = shape_mask_.snapshot();
+  stage = "shape_snapshot";
+  // Each body is placed once using this frame's cache. Workers share these
+  // immutable bodies and never call the PSM transform provider.
+  const auto frame = PartitionedShapeMask::prepareFrame(shapes,
+      [this](unsigned int handle, Eigen::Isometry3d& pose) {
+        const auto found = transform_cache_.find(handle);
+        if (found == transform_cache_.end()) return false;
+        pose = found->second;
+        return true;
+      });
+  std::vector<ExclusionVolume> snapshot;
+  snapshot.reserve(frame.exclusions.size());
+  for (const auto& exclusion : frame.exclusions)
+    snapshot.push_back(exclusion.transformed(map_from_cloud));
+  const auto snapshot_done = std::chrono::steady_clock::now();
+  stage = "shape_mask";
+  std::vector<int> mask;
+  shape_mask_.maskContainment(frame, cloud, 0.0, maximum_range_, mask);
   const auto mask_done = std::chrono::steady_clock::now();
+  // PSM periodically removes/re-registers even unchanged world shapes. Keep
+  // that bookkeeping from invalidating every slow mask at the same cadence.
+  // No TF/provider or Octree access is allowed under this lock: PSM may hold
+  // its shape-handles/tree locks while waiting to register geometry here.
+  geometry_lock.unlock();
   stage = "raycasting";
   // No geometry lock during tree access. Scene updates can own the tree lock
   // while changing excluded shapes. Clones preserve this capture's geometry.
   octomap::KeySet occupied, model, clipped, free;
-  octomap::KeyRay ray;
   const auto origin = octoPoint(map_from_cloud.translation());
   sensor_msgs::msg::PointCloud2 filtered;
   filtered.header = cloud.header;
   sensor_msgs::PointCloud2Modifier modifier(filtered);
   modifier.setPointCloud2FieldsByString(1, "xyz");
   std::vector<Eigen::Vector3f> outside;
+  // Key conversion/raycasting needs only immutable resolution/depth constants,
+  // not the shared occupancy nodes. Release the map read lock before that work.
+  double resolution;
+  const auto reading = std::chrono::steady_clock::now();
   {
     auto tree_lock = tree_->reading();
+    resolution = tree_->getResolution();
+  }
+  const auto tree_read_done = std::chrono::steady_clock::now();
+  if (!ray_geometry_ || ray_geometry_->getResolution() != resolution)
+    ray_geometry_ = std::make_unique<octomap::OcTree>(resolution);
+  const auto& rays_tree = *ray_geometry_;
+  {
     for (std::uint64_t row = 0; row < cloud.height; row += subsample_)
       for (std::uint64_t col = 0; col < cloud.width; col += subsample_)
       {
@@ -278,7 +291,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
         if (kind == Mask::CLIP)
           point = point.normalized() * maximum_range_;
         octomap::OcTreeKey key;
-        if (!tree_->coordToKeyChecked(octoPoint(map_from_cloud * point), key))
+        if (!rays_tree.coordToKeyChecked(octoPoint(map_from_cloud * point), key))
           continue;
         if (kind == Mask::INSIDE)
           model.insert(key);
@@ -290,10 +303,7 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
           outside.emplace_back(raw[0], raw[1], raw[2]);
         }
       }
-    for (const auto* endpoints : {&occupied, &model, &clipped})
-      for (const auto& key : *endpoints)
-        if (tree_->computeRayKeys(origin, tree_->keyToCoord(key), ray))
-          free.insert(ray.begin(), ray.end());
+    raycast_.compute(rays_tree, origin, {&occupied, &model, &clipped}, free);
     free.insert(clipped.begin(), clipped.end());
   }
   const auto rays_done = std::chrono::steady_clock::now();
@@ -302,12 +312,12 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     occupied.erase(key);
   for (const auto& key : occupied)
     free.erase(key);
-  std::vector<const bodies::Body*> placed;
-  for (const auto& body : snapshot)
-    placed.push_back(body.get());
   ClearResult result;
+  const auto writing = std::chrono::steady_clock::now();
+  double tree_wait_ms;
   {
     auto tree_lock = tree_->writing();
+    tree_wait_ms = elapsed(writing, std::chrono::steady_clock::now());
     for (const auto& key : free)
       tree_->updateNode(key, false);
     for (const auto& key : occupied)
@@ -315,10 +325,9 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     const float clear_log_odds = tree_->getClampingThresMinLog() - tree_->getClampingThresMaxLog();
     for (const auto& key : model)
       tree_->updateNode(key, clear_log_odds);
-    // Clear after integration: upstream mesh self-masking uses radial vertex
-    // padding and can classify returns inside our face-offset volume as outside.
-    // Such endpoints must not immediately recreate a fully contained voxel.
-    result = clearContainedOccupancy(*tree_, placed, static_cast<std::size_t>(maximum_examined_));
+    // Point masking and stale-voxel clearing share the same face-offset volume.
+    // Clear after integration so a contained endpoint cannot recreate a ghost.
+    result = clearContainedVolumes(*tree_, snapshot, static_cast<std::size_t>(maximum_examined_));
   }
   const auto tree_done = std::chrono::steady_clock::now();
   last_update_ns_ = now;
@@ -337,22 +346,24 @@ bool KnownGeometryOctomapUpdater::processFrame(const sensor_msgs::msg::PointClou
     }
     publisher_->publish(filtered);
   }
-  const auto elapsed = [](const auto& first, const auto& last) {
-    return std::chrono::duration<double, std::milli>(last - first).count();
-  };
   const double elapsed_ms = elapsed(begin, std::chrono::steady_clock::now());
   const auto capture_ns = std::int64_t(cloud.header.stamp.sec) * 1000000000 + cloud.header.stamp.nanosec;
-  RCLCPP_DEBUG_THROTTLE(logger_, diagnostic_clock_, 2000,
+  RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
                        "Consistent depth frame: cleared=%zu examined=%zu occupied=%zu elapsed_ms=%.2f "
                        "transforms_ms=%.2f mask_ms=%.2f rays_ms=%.2f tree_ms=%.2f "
-                       "receipt_ms=%.2f input_age_sec=%.3f output_age_sec=%.3f",
+                       "receipt_ms=%.2f snapshot_ms=%.2f geometry_wait_ms=%.2f "
+                       "tree_read_ms=%.2f tree_wait_ms=%.2f tree_work_ms=%.2f "
+                       "input_age_sec=%.3f output_age_sec=%.3f",
                        result.cleared, result.examined, occupied.size(), elapsed_ms,
-                       elapsed(begin, transforms_done), elapsed(transforms_done, mask_done),
+                       elapsed(begin, transforms_done), elapsed(snapshot_done, mask_done),
                        elapsed(mask_done, rays_done), elapsed(rays_done, tree_done),
                        elapsed(tree_done, std::chrono::steady_clock::now()),
+                       elapsed(transforms_done, snapshot_done), geometry_wait_ms,
+                       elapsed(reading, tree_read_done), tree_wait_ms,
+                       elapsed(writing, tree_done) - tree_wait_ms,
                        (now - capture_ns) * 1e-9, (node_->now().nanoseconds() - capture_ns) * 1e-9);
   if (result.budget_exhausted)
-    RCLCPP_WARN_THROTTLE(logger_, *node_->get_clock(), 5000,
+    RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 5000,
                          "Known-volume exclusion scan budget exhausted at %zu leaves", result.examined);
   stage = "integrated";
   return true;

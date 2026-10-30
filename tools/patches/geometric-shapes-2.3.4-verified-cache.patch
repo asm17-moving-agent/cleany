@@ -1,0 +1,74 @@
+--- a/src/bodies.cpp
++++ b/src/bodies.cpp
+@@ -31,6 +31,7 @@
+ #include "geometric_shapes/bodies.h"
+ #include "geometric_shapes/body_operations.h"
+ #include "geometric_shapes/check_isometry.h"
++#include "cleany_verified_mesh_cache.hpp"
+ 
+ #include <console_bridge/console.h>
+ 
+@@ -826,6 +827,8 @@
+ {
+   mesh_data_ = std::allocate_shared<MeshData>(Eigen::aligned_allocator<MeshData>());
+   const shapes::Mesh* mesh = static_cast<const shapes::Mesh*>(shape);
++  const cleany_scene_mapping::VerifiedMeshCache cache(*mesh, qh_version);
++  if (cache.load(*mesh_data_)) return;
+ 
+   double maxX = -std::numeric_limits<double>::infinity(), maxY = -std::numeric_limits<double>::infinity(),
+          maxZ = -std::numeric_limits<double>::infinity();
+@@ -1000,6 +1003,7 @@
+   qh_freeqhull(qh, !qh_ALL);
+   int curlong, totlong;
+   qh_memfreeshort(qh, &curlong, &totlong);
++  cache.store(*mesh_data_);
+ }
+ 
+ std::vector<double> bodies::ConvexMesh::getDimensions() const
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -44,6 +44,7 @@
+ find_package(eigen_stl_containers REQUIRED)
+ find_package(geometry_msgs REQUIRED)
+ find_package(QHULL REQUIRED)
++find_package(OpenSSL REQUIRED)
+ find_package(random_numbers REQUIRED)
+ find_package(rclcpp REQUIRED)
+ find_package(resource_retriever REQUIRED)
+@@ -82,6 +83,10 @@
+ )
+ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${${PROJECT_NAME}_VERSION} WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+ target_compile_options(${PROJECT_NAME} PRIVATE ${PROJECT_COMPILE_OPTIONS})
++if(NOT CLEANY_GEOMETRY_CACHE_BUILD_ID)
++  message(FATAL_ERROR "Missing geometry cache source fingerprint")
++endif()
++target_compile_definitions(${PROJECT_NAME} PRIVATE CLEANY_GEOMETRY_CACHE_BUILD_ID="${CLEANY_GEOMETRY_CACHE_BUILD_ID}")
+ target_include_directories(${PROJECT_NAME}
+     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+@@ -91,6 +96,7 @@
+     assimp::assimp
+     fcl
+     ${QHULL_LIBRARIES}
++    OpenSSL::Crypto
+   PUBLIC
+     ${geometry_msgs_TARGETS}
+     ${shape_msgs_TARGETS}
+--- a/package.xml
++++ b/package.xml
+@@ -37,6 +37,7 @@
+   <build_depend>eigen</build_depend>
+   <build_depend>libfcl-dev</build_depend>
+   <build_depend>libqhull</build_depend>
++  <build_depend>openssl</build_depend>
+   <build_depend>pkg-config</build_depend>
+   <build_depend>libboost-dev</build_depend>
+   <build_depend>libboost-filesystem-dev</build_depend>
+@@ -48,6 +49,7 @@
+   <exec_depend>rosidl_default_runtime</exec_depend>
+   <exec_depend>libfcl</exec_depend>
+   <exec_depend>libqhull</exec_depend>
++  <exec_depend>openssl</exec_depend>
+ 
+   <test_depend>ament_cmake_gtest</test_depend>
+   <test_depend>ament_lint_auto</test_depend>

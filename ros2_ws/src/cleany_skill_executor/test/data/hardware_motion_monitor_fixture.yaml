@@ -1,0 +1,25 @@
+# SYNTHETIC TEST INPUT ONLY. No deployment defaults.
+# Initial supervised operating limits; tune from measured tracking/response.
+# These are not calibrated force limits or a hardware emergency stop.
+pregrasp_pipeline:
+  ros__parameters:
+    # Supervised static-table trial: allow measured depth-processing jitter.
+    sensor_scene_maximum_age_sec: 3.0
+    hardware_motion_monitor_enabled: true
+    hardware_motion_abort_on_deviation: false
+    # Allow passive motion, including further gripper closure while holding an object.
+    hardware_uncommanded_motion_check_enabled: false
+    hardware_gripper_opening_position_range_check_enabled: false
+    hardware_start_blend_max_rad: 0.03
+    hardware_path_refresh_attempts: 1
+    hardware_communication_resume_limit: 1
+    hardware_arrival_tolerance_rad: 0.10
+    hardware_tcp_position_tolerance_m: 0.030
+    hardware_tcp_orientation_tolerance_deg: 20.0
+    hardware_motion_max_error_rad: 0.07
+    hardware_motion_error_duration_sec: 0.5
+    hardware_motion_response_window_sec: 1.0
+    # Treat encoder error within the accepted arrival band as near-target hold.
+    hardware_motion_response_error_rad: 0.10
+    hardware_motion_minimum_motion_rad: 0.005
+    hardware_motion_feedback_timeout_sec: 1.0

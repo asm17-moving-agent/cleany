@@ -3,6 +3,8 @@ project(cleany_interfaces)
 
 find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(moveit_msgs REQUIRED)
+find_package(trajectory_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
@@ -43,7 +45,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/CancelManipulation.srv"
   "srv/GetSceneSnapshot.srv"
   "srv/RegisterPlacementTarget.srv"
-  DEPENDENCIES geometry_msgs sensor_msgs shape_msgs std_msgs
+  "action/ValidatePick.action"
+  "srv/ObserveObjectReference.srv"
+  "srv/CheckStateValidityBatch.srv"
+  "msg/WristTrackingStatus.msg"
+  DEPENDENCIES moveit_msgs trajectory_msgs geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 
 if(BUILD_TESTING)

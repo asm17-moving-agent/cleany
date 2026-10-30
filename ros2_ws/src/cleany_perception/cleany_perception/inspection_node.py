@@ -74,7 +74,7 @@ from cleany_perception.core.object_ranking import (
 )
 from cleany_perception.core.pipeline import InspectionPipeline
 from cleany_perception.core.reconstruction_cache import ReconstructionCache
-from cleany_perception.inference_lock import SerializedInference
+from cleany_perception.vlm_warmup import VlmWarmupClient
 from cleany_perception.core.ports import (
     DetectorPort,
     SegmenterPort,
@@ -131,6 +131,7 @@ _LATCHED_DEBUG_IMAGE_QOS = QoSProfile(
 )
 
 
+from cleany_perception.observation_runtime import (ObservationRuntime, SerializedInference, declare_observation_parameters)
 
 
 class InspectionNode(Node):
@@ -345,7 +346,7 @@ class InspectionNode(Node):
                             'gemini_api_key_environment').value),
                         timeout_seconds=float(self.get_parameter(
                             'detector_timeout_seconds').value),
-                    ), timing=self._log_inspection_timing)
+                    ), vlm_active=self._vlm_active, timing=self._log_inspection_timing)
                 else:
                     detector = yoloe
             else:
@@ -424,6 +425,7 @@ class InspectionNode(Node):
             )
         self._transformer = transformer
         self._inference_lock = threading.RLock()
+        reference_detector = SerializedInference(getattr(detector, '_yoloe', detector), self._inference_lock)
         detector = SerializedInference(detector, self._inference_lock)
         segmenter = SerializedInference(segmenter, self._inference_lock)
         self._pipeline = InspectionPipeline(
@@ -468,6 +470,12 @@ class InspectionNode(Node):
 
         self._snapshot_buffer = RgbdSnapshotBuffer()
         self._action_callback_group = ReentrantCallbackGroup()
+        self._vlm_warmup = (VlmWarmupClient(self,
+            str(self.get_parameter('vlm_ik_warmup_service').value), self._action_callback_group,
+            prepare_service=str(self.get_parameter('vlm_anygrasp_prepare_service').value))
+            if self.get_parameter('vlm_ik_warmup_enabled').value else None)
+        self.get_logger().info('VLM IK warmup notifications: ' +
+            ('enabled' if self._vlm_warmup is not None else 'disabled'))
         self._create_sensor_subscriptions()
         self._objects_publisher = self.create_publisher(
             DetectedObject3DArray,
@@ -521,6 +529,7 @@ class InspectionNode(Node):
                 failure_image_directory=str(self.get_parameter(
                     'wrist_failure_image_directory').value),
                 config=wrist_config)
+        self._observations = ObservationRuntime(self, reference_detector)
         cleanup_period = float(self.get_parameter('snapshot_cleanup_period_seconds').value)
         if not math.isfinite(cleanup_period) or cleanup_period < 0:
             raise ValueError('Snapshot cleanup period must be finite and nonnegative')
@@ -546,6 +555,7 @@ class InspectionNode(Node):
 
     def _cleanup_expired_snapshots(self) -> None:
         self._snapshot_cache.expire()
+        self._observations.expire_reference()
 
     def _get_scene_snapshot(self, request, response):
         cached = self._snapshot_cache.get(request.snapshot_id)
@@ -580,21 +590,31 @@ class InspectionNode(Node):
         return response
 
     def destroy_node(self) -> None:
+        self._vlm_active(False)
         if self._snapshot_cleanup_timer is not None:
             self.destroy_timer(self._snapshot_cleanup_timer)
         if self._wrist_service is not None:
             self._wrist_service.close(wait=True)
+        self._observations.close()
         self._action_server.destroy()
         super().destroy_node()
 
+    def _vlm_active(self, active: bool) -> None:
+        client = getattr(self, '_vlm_warmup', None)
+        if client is not None:
+            client.set_active(active)
 
     def _log_inspection_timing(self, stage: str, seconds: float) -> None:
         self.get_logger().info(json.dumps({'event': 'inspection_phase_timing',
             'stage': stage, 'wall_sec': seconds}))
 
     def _declare_parameters(self) -> None:
+        declare_observation_parameters(self)
         self.declare_parameter('enable_wrist_observation', False)
         self.declare_parameter('preload_models', False)
+        self.declare_parameter('vlm_ik_warmup_enabled', False)
+        self.declare_parameter('vlm_ik_warmup_service', '/grasp/vlm_warmup')
+        self.declare_parameter('vlm_anygrasp_prepare_service', '/grasp/prepare_window')
         self.declare_parameter(
             'model_directory',
             os.environ.get('CLEANY_MODEL_DIR', str(Path.home() / 'models')),

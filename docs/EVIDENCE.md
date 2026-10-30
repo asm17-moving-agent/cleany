@@ -10,6 +10,48 @@
 `CLEANY_DATA_ROOT/reports/evidence/` 아래 원래 상대 경로로 보관합니다.
 새 실행 산출물은 Git에서 제외하고 commit, 환경, 입력, 실패와 원본 위치를 남깁니다.
 
+## 실물 파지 계획과 실행 C 분리 검증 (2026-10-30)
+
+`94c0fcd`의 실물 계획과 실행 기반을 `bfe0f89`에 미커밋 패치로 분리했다.
+기준은 PR 66 `504b0c6`과 최신 PR 65 `db4ebed`의 병합이다.
+Jetson Ubuntu 22.04 ARM64, ROS 2 Humble, MoveIt 2.5.9와 격리된 빌드 경로를 사용했다.
+호스트 기하 검사는 별도 venv의 trimesh 4.5.3, SciPy 1.13.1로 실행했다.
+
+13개 패키지 빌드, Python 2725개, C++ 83개, 기존 MoveIt 회귀 36개,
+추가 MoveIt 런타임 7개와 가상 시리얼 controller 24개가 통과했다.
+모션 컨테이너의 5개 패키지 준비와 입력 hash 확인, 실제 CUDA 검사 9개도 통과했다.
+입력은 저장소 모델, 합성 장면과 가짜 추론 및 시리얼이다.
+실물 카메라 검사 1개는 장치 실행 조건을 지정하지 않아 제외했다.
+실제 모터, Gemini API와 전체 수거 흐름 및 전체 workspace는 검증하지 않았다.
+
+최초 실행의 누락 의존성과 테스트 import 경로를 보완하고 후속 수거 흐름용 검사를 제외했다.
+설정 변경 전의 테스트 기대값을 갱신했으며, ROS 로그 설정과 디버그 backtrace에 영향을
+받던 경고 검사를 수정했다. 재시작으로 중단된 실행은 결과에 포함하지 않고 다시 실행했다.
+중복 core 검사 18개 사례와 MoveIt 가짜 서비스 구현을 통합했고 기존 충돌 회귀 검사는 유지했다.
+
+소스 패치, 입력 hash, 실행 명령, 초기 실패와 최종 JUnit, 병합 및 보존 비교는
+`/home/cleany/cleany-data/reports/pr-c-motion-20261029T235707Z/`에 보관한다.
+원본 작업 트리와 output 197개 파일, 기존 PR 66 작업 트리는 보존했다.
+
+### C 미사용 구현 정리 검증 (2026-10-31)
+
+동일한 `bfe0f89` 기준의 C 미커밋 소스에서 호출되지 않는 복귀 준비 캐시,
+높이 보정과 역방향 경로 검색, 실험용 GPU 배치 경로 계획을 제거했다.
+하이브리드 IK의 이전 비교용 재시도 옵션과 미사용 보조 함수, import도 정리했다.
+삭제한 기능의 전용 검사를 제거하고 Cartesian 끝점 검사와 비동기 읽기 정리 검사는
+기존 검사 파일로 옮겼다. 현행 파지 방향, 궤적 범위와 속도 검사는 유지했다.
+
+같은 Jetson의 격리된 빌드와 테스트 venv에서 13개 패키지 재빌드,
+Python 2,603개와 실제 CUDA 11개가 통과했다. RealSense 장치 검사 1개는 제외했다.
+CUDA 검사는 FK/IK, 경로, mast 충돌과 양팔의 grasp/aim 예열 버퍼 재사용을 확인한다.
+입력은 저장소 모델과 합성 상태이며 실물 모터와 Gemini API는 실행하지 않았다.
+C++ 구현과 ROS 메시지 정의는 이번 정리에서 바뀌지 않았고 해당 검사는 위 분리 검증을 따른다.
+
+최초 집중 검사에서는 제거한 기능의 전용 테스트 누락과 수정한 fixture의 속도 값 때문에
+4개가 실패했다. 전용 검사와 fixture를 정리한 후 집중 검사와 전체 검사를 다시 통과했다.
+정리 전후 소스 패치, 테스트 명령과 JUnit, 원본과 output 보존 비교는
+`/home/cleany/cleany-data/reports/pr-c-cleanup-20261031/`에 보관한다.
+
 ## Jetson 제어 기반 분리 검증
 
 `3dea85d`에 미커밋 정리 패치를 적용한 소스를 Ubuntu 22.04 ARM64,
@@ -19,6 +61,21 @@ ROS 2 Humble과 MoveIt 2.5.9에서 별도 빌드 경로로 검사했다.
 합성 상태와 가상 시리얼이며 실물 장치를 열지 않았다.
 환경, 입력 소스를 식별하는 `changes.patch`, 로그와 JUnit 원본은
 `/home/cleany/cleany-data/reports/pr-a-trim-20261029T185419Z/`에 보관한다.
+
+### PR 65 미사용 설정 정리 검증 (2026-10-30)
+
+갱신된 PR 64를 병합한 `197de90`에 이 절과 함께 반영한 정리 패치를 적용했다.
+TCP와 중복 손목 보정 3개, 기본 Xacro가 사용하지 않는 미리보기 인자와
+matplotlib 의존성을 제거했다. 기존 미리보기와 새 미리보기의 URDF hash는 같다.
+Jetson Ubuntu 22.04 ARM64, Humble과 MoveIt 2.5.9의 새 경로에 6개 패키지를
+빌드했고 삭제한 설정의 부재와 설치된 설정, launch 5개의 소스 일치를 확인했다.
+
+`make test-jetson-control` 163개, `make test-jetson-controller` 21개와 C++ 드라이버
+11개가 통과했다. 기존 제어 검사는 모두 유지했으며 실패와 skip은 없다.
+가상 시리얼과 합성 입력만 사용했고 실물 모터와 전체 workspace 검사는 실행하지 않았다.
+기존 Xacro 경고와 C++ 테스트의 write 반환값 경고는 유지된다.
+소스 패치, 환경, 로그, JUnit과 설치 및 URDF 비교 근거는
+`/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr65/`에 보관한다.
 
 ## Jetson 실물 마운트와 카메라 보정
 
@@ -335,3 +392,18 @@ MoveIt 서비스가 내부 장애물 36개를 모두 검출했다. 양팔 계획
 근거다. 실패 로그는 `pr-build.log`, `pr-package-tests.log`와
 `pr-service-env-failure.log/.xml`에 남겼다. 로컬 사본은
 `/Users/hyeon/workspace/cleany/output/pr64-update-20261029/`에 있다.
+
+### PR 64 미사용 경로 정리 검증 (2026-10-30)
+
+`a84daa7`에 이 절과 함께 반영한 정리 패치를 Jetson Ubuntu 22.04 ARM64,
+Humble과 MoveIt 2.5.9의 별도 경로에서 검사했다. 미사용 표면 단순화와 전용
+검사 3개를 제거했다. 내부 장애물 36건의 자세를 공통 3개로 묶고 원본 입력과
+기대 결과가 모두 같음을 확인했다. STL 17종의 hash, 삼각형 3,966개와 조각별
+형상 검증 수치는 유지했다. 설치된 메시와 manifest 18개도 소스와 일치한다.
+
+4개 패키지 빌드, 형상 82개, 충돌과 계획 설정 및 Mock 검사 30개가 통과했다.
+`make test-moveit-collision`과 기존 Mock 계획, 종료 CTest를 실행했으며 실패와
+skip은 없다. NumPy/SciPy 경고 2개는 유지된다. 가상 장애물과 Mock 하드웨어를
+사용했고 실물 모터, 전체 workspace 및 Gazebo 동적 검사는 실행하지 않았다.
+소스 패치, 환경, 로그, JUnit과 자산 보존 근거는
+`/home/cleany/cleany-data/reports/pr64-65-cleanup-20261029T233007Z/pr64/`에 보관한다.

@@ -363,3 +363,15 @@ ros2 action info /grasp/select_reachable
 | `control_state_guard` | [관절 상태 검증과 컨트롤러 정지](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
 | `wrist_rgb_camera`, `rgbd_frame_bridge` | [손목 영상과 헤드 RGB-D 좌표계](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
 | `motor_telemetry_recorder` | [모터 상태 수동 기록](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
+
+
+## 실물 계획과 준비 자세 실행
+
+| 실행 파일 | 패키지 | 계약 |
+|---|---|---|
+| `physical_grasp_selection_server` | `cleany_skill_executor` | [선택기](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#physical_grasp_selection_server) |
+| `validate_pick_server` | `cleany_skill_executor` | [Plan-only 검증](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#validate_pick_server) |
+| `pregrasp_pipeline`, `hardware_pregrasp`, `pregrasp_sim_ready` | `cleany_skill_executor` | [준비 자세 도구](../ros2_ws/src/cleany_skill_executor/docs/interfaces.md#준비-자세-실행-도구) |
+
+인식 노드의 추가 관찰 서비스, 상태 토픽은 [인식 인터페이스](../ros2_ws/src/cleany_perception/docs/interfaces.md#기준-물체-재관찰과-예열-알림),
+MoveGroup 배치 서비스는 [계획 capability](../ros2_ws/src/cleany_moveit_capabilities/README.md)를 따른다.

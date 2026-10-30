@@ -3,7 +3,7 @@
     octomap_frame: base_link
     octomap_resolution: 0.01
     depth_cloud:
-      sensor_plugin: occupancy_map_monitor/PointCloudOctomapUpdater
+      sensor_plugin: cleany_scene_mapping/KnownGeometryOctomapUpdater
       point_cloud_topic: /perception/scene_cloud
       max_range: 2.0
       point_subsample: 1
@@ -12,4 +12,6 @@
       padding_offset: 0.015
       padding_scale: 1.0
       max_update_rate: 2.0
+      mask_workers: 4
+      known_geometry_clear_max_leaves: 200000
       filtered_cloud_topic: /perception/scene_cloud_filtered

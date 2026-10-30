@@ -1,6 +1,6 @@
 planning_plugin: ompl_interface/OMPLPlanner
 request_adapters: >-
-  default_planner_request_adapters/AddTimeOptimalParameterization
+  cleany/RobustTimeParameterization
   default_planner_request_adapters/ResolveConstraintFrames
   default_planner_request_adapters/FixWorkspaceBounds
   default_planner_request_adapters/FixStartStateBounds
@@ -9,11 +9,23 @@ request_adapters: >-
 start_state_max_bounds_error: 0.1
 # Joint-space rounding bound; this is not a Cartesian clearance guarantee.
 path_tolerance: 0.0001
+retiming_collinear_tolerance: 1.0e-12
+# Planning defaults match MoveIt's fallback limits, not hardware authorization.
+retiming_default_velocity_limit: 1.0
+retiming_default_acceleration_limit: 1.0
 
 planner_configs:
   RRTConnectkConfigDefault:
     type: geometric::RRTConnect
     range: 0.0
+  # The return executor already shortens and validates its executable cubic.
+  # Skip OMPL's additional simplification pass; keep collision interpolation
+  # and the request adapters, including time parameterization, unchanged.
+  RRTConnectReturnkConfigDefault:
+    type: geometric::RRTConnect
+    range: 0.0
+    # MoveIt 2.5.9 parses this planner option with lexical_cast<bool>.
+    simplify_solutions: 0
 
 left_arm:
   planner_configs:
@@ -26,10 +38,12 @@ left_grasp_arm:
   longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
+    - RRTConnectReturnkConfigDefault
 right_grasp_arm:
   longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
+    - RRTConnectReturnkConfigDefault
 left_pregrasp_aim_arm:
   planner_configs:
     - RRTConnectkConfigDefault
