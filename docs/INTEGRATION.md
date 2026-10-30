@@ -62,6 +62,7 @@ flowchart TB
 
 | 경계 | 문서와 원본 |
 |---|---|
+| 실물 수거, 팔 복귀와 복구 | [실행 계약](../ros2_ws/src/cleany_skill_executor/docs/physical-collection.md), [BT 인터페이스](../ros2_ws/src/cleany_manipulation_bt/docs/interfaces.md) |
 | Mission 수락, 중복, 취소, 복구, Gateway | [Mission](../ros2_ws/src/cleany_interfaces/docs/mission.md) |
 | Gazebo와 Mock 조작 profile, fixture | [Mock 연결](../ros2_ws/src/cleany_mission_manager/docs/manipulation_mock_integration.md) |
 | Scene, Grasp snapshot/frame/후보 | [Scene와 Grasp](../ros2_ws/src/cleany_interfaces/docs/scene-and-grasp.md) |

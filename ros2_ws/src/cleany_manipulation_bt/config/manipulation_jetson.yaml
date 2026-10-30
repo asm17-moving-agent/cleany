@@ -1,0 +1,50 @@
+/**:
+  ros__parameters:
+    # The retimer also reserves 20% of the physical controller limits.
+    hardware_velocity_rad_s: 2.0
+    hardware_acceleration_rad_s2: 8.0
+    use_sim_time: false
+    execution_use_verified_local_fk: true
+    execution_timing_enabled: true
+    hardware_reuse_settle_history: true
+    hardware_reuse_scene_barrier: true
+    hardware_parallel_model_queries: true
+    hardware_sparse_cubic_commands: true
+    hardware_share_return_preparation: true
+    hardware_pickup_height_search_tolerance_m: 0.005
+    execution_defer_pregrasp_validation: true
+    # Small lift corrections still obey the full velocity/acceleration retimer.
+    hardware_height_correction_min_duration_sec: 0.3
+    # Small release retreats retain the same velocity/acceleration and arrival gates.
+    hardware_release_retreat_min_duration_sec: 0.25
+    hardware_release_retreat_position_tolerance_m: 0.005
+    hardware_release_retreat_orientation_tolerance_deg: 2.0
+    # Both arm and gripper goals must be accepted before the common start.
+    hardware_return_start_delay_sec: 0.3
+    hardware_start_delay_sec: 0.3
+    hardware_state_validity_batch_size: 64
+    require_sensor_scene: true
+    planning_scene_timeout_sec: 5.0
+    planning_timeout_sec: 4.0
+    # MoveGroup includes trajectory processing and scene locking after search.
+    # The 2026-10-20 return succeeded after 6.21s, beyond the old 5s wait.
+    planning_response_margin_sec: 20.0
+    bt_operation_timeout_sec: 180.0
+    wrist_camera_control_timeout_sec: 5.0
+    bt_selection_timeout_sec: 600.0
+    bt_verification_timeout_sec: 10.0
+    bt_stop_timeout_sec: 10.0
+    # Applies only to the fixed intermediate-pose return.
+    bt_arm_return_collision_check_enabled: false
+    bt_arm_return_shortcut_attempts: 8
+    bt_arm_return_optimization_budget_sec: 0.5
+    bt_arm_return_planner_id: RRTConnectReturnkConfigDefault
+    # Plan-only timing: executor discards these times and applies hardware caps.
+    bt_arm_return_planning_trajectory_scaling: 1.0
+    bt_stop_feedback_max_age_sec: 0.5
+    bt_stationary_duration_sec: 0.25
+    bt_stationary_samples: 5
+    bt_stationary_velocity_rad_s: 0.02
+    bt_minimum_confidence: 0.25
+    bt_maximum_smaller_extent_m: 0.11
+    bt_denylist: [battery, knife, broken glass]

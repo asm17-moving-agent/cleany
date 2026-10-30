@@ -25,9 +25,9 @@ Python worker 하나가 개별 동작을 수행하므로 ROS 응답/모델 추�
 
 움직이기 전에 지정 snapshot, 대상 깊이, 모델 분류, 정책과 목적지를 검사한다.
 기본 지원 쓰레기는 `cup`, `crumpled tissue`다. `paper cup`, `disposable paper cup`은
-같은 컵 종류 alias로 연결하되 원래 인식 label과 분류를 보존한다. 쓰레기 분류·사유와
+같은 컵 종류 alias로 연결하되 원래 인식 label과 분류를 보존한다. 쓰레기 분류와
 목적지 정책을 검증한다. `collect_lost_item`은 `mouse`, `computer mouse`, `wireless mouse`,
-`lego brick`을 지원하며 모델의 `lost_item` 분류와 사유, 정책의 `lost_items_left` 목적지가
+`lego brick`을 지원하며 모델의 `lost_item` 분류, 정책의 `lost_items_left` 목적지가
 일치해야 한다. 두 skill은 기존 `collect_trash_mujoco.xml`의 집기·이동·놓기·확인 절차를 공유한다.
 종류와 목적지는 정책 및 `bt_supported_trash_labels`, `bt_supported_lost_item_labels` 설정에서 읽는다.
 같은 종류 여러 개는 유효한 session/epoch/track이 있을 때 허용한다.
@@ -159,3 +159,27 @@ BT snapshot 조회 실패는 해당 실행의 모니터 갱신만 중단하고 �
 context 초기화가 실패하면 해당 실행을 수락한 뒤 위 오류 종료 경로로 최종 결과를 반환한다.
 이 처리는 서버 프로세스가 살아 있는 동안의 실행 예외에 적용한다. 프로세스 종료 후의
 처리는 [README의 재시작 복구 계약](../README.md#기록과-모니터)을 따른다.
+
+## Jetson 고정 중간 자세 복귀
+
+`bt_arm_return_waypoints_file`에 두 팔의 중간 자세 두 개가 지정되면 현재 자세,
+중간 자세 1, 중간 자세 2, home 순서로 빈 팔과 그리퍼 닫기를 함께 실행한다.
+수동 복귀와 BT의 빈 팔 복귀가 이 경로를 공유하며 RRT로 대체하지 않는다.
+
+| 파라미터 | 코드 기본값 | Jetson 설정 | 적용 범위 |
+|---|---|---|---|
+| `bt_arm_return_collision_check_enabled` | `true` | `false` | 고정 중간 자세 복귀의 계획 및 실행 충돌 검사 |
+
+`false`이면 self, world와 OctoMap 충돌 검사를 생략하고 최신 충돌 지도를
+기다리지 않는다. 실행기는 결합된 팔과 그리퍼 명령의 관절 범위, 속도와 가속도를
+검사하고 정지, 취소, 피드백 및 도착 확인을 유지한다. 중간 자세 파일을 지정하지
+않은 복귀와 파지 준비의 충돌 검사에는 이 파라미터가 적용되지 않는다.
+
+## Jetson 원위치 운반의 완료 기준
+
+`pick_return_release`의 기록 역재생 경로에서는 `CarryObject`가 목표 높이까지의
+이동 명령을 한 번 실행하고 정상 완료 응답을 받으면 다음 단계로 진행한다.
+도착 높이, 관절값과 TCP 자세의 허용오차로 성공 여부를 재판정하거나 추가 하강을
+보정하지 않는다. `CheckPlacementTarget`도 이 경로의 위치를 다시 검사하지 않는다.
+이동 완료는 측정 위치의 도착 검증을 의미하지 않으며, 놓기 결과는 기존 임시
+모드의 `ASSUMED` 규칙을 따른다. 모터 fault와 취소 등 실행 실패는 후속 놓기를 차단한다.

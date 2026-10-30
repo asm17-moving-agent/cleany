@@ -292,3 +292,12 @@ DB(`/tmp/cleany-bt-physical-clean.sqlite3`)에는 checkpoint 39개와 실제 BT 
 회귀 검사도 통과했다. native BT 실패 경로, 원자적 취소, stale/잘못된 대상 차단, false 평가 응답의
 확인 대기, 늦은 응답 격리, stop 근거 누락과 기록 실패, 재시작 자동 재개 금지를 포함한다.
 이 기록은 첫 컵 한 개의 연동 검증이며 다른 대상의 수거 성공률 측정은 아니다.
+
+## Jetson 실물 실행
+
+`manipulation_jetson_server`는 실물 수거와 팔 복귀를 실행하고 별도의 SQLite 기록을 유지한다.
+로봇별 수거 JSON과 모션 감시 YAML을 명시적으로 입력한다. 기존 MuJoCo 서버와
+같은 namespace에서 동시에 실행하지 않는다.
+
+실행은 [실물 수거 안내](../cleany_skill_executor/docs/physical-collection.md),
+통신과 복구 요청은 [실물 BT 인터페이스](docs/interfaces.md)를 따른다.

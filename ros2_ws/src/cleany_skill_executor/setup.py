@@ -33,6 +33,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'collection_pipeline = cleany_skill_executor.collection_pipeline:main',
+            'manipulation_evidence = cleany_skill_executor.manipulation_evidence_node:main',
             'hardware_pregrasp = cleany_skill_executor.hardware_pregrasp:main',
             'pregrasp_pipeline = cleany_skill_executor.pregrasp_pipeline:main',
             'pregrasp_sim_ready = cleany_skill_executor.pregrasp_sim_ready:main',

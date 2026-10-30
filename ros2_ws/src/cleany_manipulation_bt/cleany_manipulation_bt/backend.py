@@ -46,6 +46,7 @@ class ExecutionContext:
     arm_recovered: bool = False
     stop_confirmed: bool = False
     gripper_engaged: bool = False
+    progress: str = ''
 
 
 class Backend(Protocol):

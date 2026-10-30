@@ -291,3 +291,17 @@ GPU 검사는 `cleany_skill_executor/runtime_test/`에 두며 고정 CUDA 환경
 `MOTION_GPU_PYTEST_ARGS`로 pytest 옵션을 전달하며 컨테이너 결과 파일은
 쓰기 가능한 `/opt/cleany-motion/cache/` 아래에 둔다. 나머지 GPU 런타임 검사는
 별도로 시작한 MoveIt과 GenericSystem mock controller가 필요하다.
+
+## 실물 수거 실행과 복귀 검사
+
+`make build-collection-execution`은 BT와 실물 실행 의존 패키지를 빌드한다.
+`make test-collection-execution`은 수거, 복귀, 복구와 직접 연결된 모션 및 안전 검사를 실행한다.
+`make test-collection-regression`은 인식, 파지 후보 생성과 저장소 도구를 포함한
+기존 모션 회귀 검사까지 함께 실행한다. 수거 코드를 수정할 때는 전자를 먼저 실행하고,
+여러 패키지를 함께 변경하거나 병합을 준비할 때는 후자로 범위를 넓힌다.
+`CLEANY_BUILD_ROOT`로 운영 install과 분리하고 `MOTION_TEST_PYTHON`,
+`COLLECTION_TEST_PATHS`, `MOTION_PYTEST_ARGS`로 Python, 검사 범위와 pytest 인자를 지정한다.
+
+검사는 합성 센서, 가상 모션 포트, 임시 SQLite와 독립 ROS domain을 사용한다.
+실물 시리얼 포트를 열거나 모터를 움직이지 않으며, 종료, 취소, 늦은 응답,
+복구 차단과 기존 MuJoCo BT 계약을 함께 확인한다.

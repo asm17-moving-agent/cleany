@@ -438,3 +438,12 @@ class SceneAwarePort:
 
     def pregrasp_is_visible(self, arm, solution):
         return self._adapter.pregrasp_is_visible(arm, solution)
+
+
+def collision_pair_is_allowed(matrix: Any, first: str, second: str) -> bool:
+    """Confirm an explicit symmetric permission, without interpreting contacts."""
+    try:
+        i, j = matrix.entry_names.index(first), matrix.entry_names.index(second)
+        return bool(matrix.entry_values[i].enabled[j] and matrix.entry_values[j].enabled[i])
+    except (ValueError, IndexError):
+        return False

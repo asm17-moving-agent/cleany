@@ -95,6 +95,32 @@ def finish(core, now):
     pytest.fail('BT did not terminate')
 
 
+@pytest.mark.parametrize('allow,expected', [(False, Status.FAILED), (True, Status.SUCCESS)])
+def test_assumed_placement_only_succeeds_in_explicit_temporary_jetson_mode(tmp_path, allow, expected):
+    store = ExecutionStore(str(tmp_path / 'temporary.sqlite3'))
+    backend = FakeBackend(store, failures={
+        'ConfirmRelease': Observation(object_state=ObjectState.LEFT_GRIPPER),
+        'VerifyPlacedObject': Observation(placement_state=Placement.ASSUMED, stop_confirmed=True)})
+    now = [0.]
+    core = ExecutionCore(backend, store, TREE, Runner, clock=lambda: now[0],
+                         execution_profile='jetson', allow_assumed_placement=allow)
+    backend.store = core.store
+    try:
+        goal = Goal('m', 't', 'temporary', 'collect_trash', 'real', 1, 'return_to_pick')
+        assert core.accept(goal)[0]
+        result = finish(core, now)
+        assert result.status == expected
+        assert result.placement_state == Placement.ASSUMED
+        if allow:
+            assert 'placement assumed' in result.message
+            assert store.get(goal.execution_id).result == result
+        else:
+            assert result.error_code == Error.PLACEMENT_NOT_CONFIRMED
+    finally:
+        core.tree.halt()
+        store.close()
+
+
 def test_lost_item_uses_the_same_tree_and_durable_contract(tmp_path):
     store = ExecutionStore(str(tmp_path / 'lost.sqlite3'))
     backend = FakeBackend(store)
@@ -122,6 +148,27 @@ def test_real_tree_owns_order_and_durable_success(execution):
     assert store.get('execution-1').result == result
     assert store._db.execute("SELECT COUNT(*) FROM bt_transitions WHERE status='RUNNING'").fetchone()[0] > 0
     assert not core.accept(core.record.goal)[0]
+
+
+@pytest.mark.parametrize('held_node, waits', [('SelectArmAndPath', True), ('MoveToPregrasp', False)])
+def test_selection_budget_does_not_extend_motion_deadlines(execution, held_node, waits):
+    core, backend, _, now = execution
+    core.operation_timeouts = {'SelectArmAndPath': 10.0}
+    backend.hold.add(held_node)
+    for _ in range(30):
+        core.tick()
+        if held_node in backend.started:
+            break
+        now[0] += .05
+    assert held_node in backend.started
+    now[0] += 3.0  # Longer than the ordinary 2-second test operation budget.
+    core.tick()
+    if waits:
+        assert core.failure is None and core.record.result is None
+        now[0] += 7.0
+        core.tick()
+    assert core.failure is not None and core.failure.error == Error.TIMEOUT
+    assert core.failed_substage == held_node
 
 
 @pytest.mark.parametrize('node', NORMAL[:-1])

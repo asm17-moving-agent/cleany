@@ -1,0 +1,34 @@
+# Physical evidence provider; controller completion alone is NOT grasp evidence.
+# Provider must use fresh observations of this exact object/arm. Missing sensor
+# evidence returns success=false; never synthesize contact from goal arrival.
+# success=true means evidence acquisition succeeded, including a fresh negative
+# contact observation. The caller independently checks the stage-specific flags.
+uint8 GRASP=1
+uint8 LIFT=2
+uint8 RELEASE=3
+uint8 PLACEMENT=4
+uint8 stage
+string arm
+string reference_id
+# Exact reference returned by wrist HANDOFF; distinct from the head reference.
+string wrist_reference_id
+string source_snapshot_id
+uint32 source_object_id
+int64 after_stamp_ns
+# Required for destination release and placement; empty for grasp/lift.
+string destination_id
+---
+bool success
+string message
+std_msgs/Header header
+string arm
+string reference_id
+# Exact reference returned by wrist HANDOFF; distinct from the head reference.
+string wrist_reference_id
+string source_snapshot_id
+uint32 source_object_id
+bool contact_confirmed
+bool object_tracked
+bool release_confirmed
+string destination_id
+bool placement_confirmed
