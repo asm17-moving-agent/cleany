@@ -211,3 +211,22 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 `d5852af`의 [환경 확인 실패](https://github.com/asm17-moving-agent/cleany/actions/runs/39428868069)는 런타임 `ROS_HOME`이 이미지의 rosdep metadata 위치와 달라 발생했습니다. `45df20f`는 의존성 확인 명령에 이미지 생성 시의 `ROS_HOME`을 지정하며, 재설치 없이 실제 manifest의 의존성 충족 여부를 검사합니다.
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
+
+## 2026-10-31 Jetson 얼굴 디스플레이
+
+로컬 `707538d` 기반 미커밋 `cleany_display`를 `/home/cleany/cleany-display`에 독립 빌드했다. 환경은 Ubuntu 22.04.5 ARM64, ROS 2 Humble, L4T 36.4.7, Chromium과 X11 자동 로그인 세션, 3840×2160 60Hz TV다. 기존 `/home/cleany/cleany`의 HEAD `94c0fcd`와 tracked diff hash는 최초 배포 전후 동일했다. 최종 얼굴 렌더링은 1280×720, 60fps다.
+
+| 검증 | 입력과 결과 |
+|---|---|
+| 최초 배포 | 상태 로직 pytest 10개, domain 173의 ROS→HTTP 시나리오 11개 통과. 로봇 제어기 미실행 |
+| 최종 빌드와 브라우저 | 독립 workspace 두 패키지 빌드, 7개 표정의 60fps, Zzz의 동작 주기, 4개 viewport와 배율 2, 720p 상한, 15fps 설정 변경, 모션 감소 설정 해제 후 재개, HTTP 단절 복구 통과 |
+| 프레임 간격 회귀 | 60.01Hz 합성 입력에서 30fps 설정의 누적 오차로 생기던 3회 간격 갱신을 재현하고 수정. 1,200회 입력에서 2회 간격 유지 |
+| 화면 비교 | 동일 시각의 7개 표정에서 배경 캐시와 Zzz 처리 변경 전후 픽셀 채널 차이가 최대 1/255 |
+| TV 최종 측정 | 표정별 6초, 총 42초. 실제 캔버스 59.995–59.999fps, p95 최대 17.5ms, 최대 간격 22.5ms, 25ms 초과 0회, 페이지 오류 0개 |
+| CPU 비교 | 같은 TV와 60fps의 표정별 관측에서 브라우저 전체 평균 1.23→0.75코어, 약 39% 감소. 단일 코어를 1로 합산한 CPU 시간이므로 GPU 사용률과 구분 |
+
+초기 Chromium Snap 권한 오류는 독립 브라우저 설치로, 안내 막대, 번역과 키링 팝업은 전용 프로필 설정으로 해소했다. 표정별 측정 도구에서 응답 가로채기를 해제할 때 진행 중 콜백과 충돌한 한 차례 실패는 콜백 완료를 기다리도록 수정했으며 최종 실행과 실제 상태 화면 복구가 통과했다. 첫 최종 측정 사본은 `60fps-final-initial.json`으로 보존했다.
+
+최신 원본은 Jetson `/home/cleany/cleany-display/evidence/`의 `60fps-before.json`, `60fps-final.json`, `60fps-final-tegrastats.log`와 표정별 PNG다. 소스 hash, 픽셀 비교, 요약과 사본은 로컬 `output/cleany-display-jetson/60fps-review/`에 있다. 생성 자료와 GIF는 Git에서 제외한다. 16인치 실물, 재부팅과 다른 GPU 작업을 병행한 장시간 운용은 아직 검증하지 않았다.
+
+PR 준비본은 `origin/main`의 `eb2c56a1`에 디스플레이 변경만 적용했다. 같은 Jetson의 별도 `pr-validation/`에서 main의 `cleany_interfaces`와 두 패키지 빌드, pytest와 colcon의 상태 검사 10개, domain 173의 ROS→HTTP 시나리오 11개를 통과했다. macOS Chrome에서 브라우저 검사도 통과했다. 웹 의존성은 pnpm lockfile을 사용하며 lockfile 형식이 다른 `npm ci` 시도는 실패했다. 원본 빌드와 검사 로그는 Jetson `/home/cleany/cleany-display/pr-validation/evidence/`, 소스 hash와 브라우저 결과는 PR 준비 worktree의 `output/cleany-display-jetson/`에 보존한다. GitHub CI와 전체 workspace 검사는 이 준비 단계에서 실행하지 않았다.

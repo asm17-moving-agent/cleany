@@ -101,3 +101,7 @@ flowchart TB
 | 재연결, 재시작 | Cached motion과 미션을 자동 재개하지 않음 |
 
 외부 Backend의 schema, 인증, media 정책은 별도 control-plane 저장소가 관리합니다.
+
+## 로컬 얼굴 디스플레이
+
+로봇의 미션과 수거 실행 상태를 표시하는 전용 앱은 제어 경로와 독립적으로 구독한다. [디스플레이 인터페이스](../ros2_ws/src/cleany_display/docs/interfaces.md)에 상태 매핑, QoS, 연결 단절과 배터리 데이터 만료 규칙이 있다.
