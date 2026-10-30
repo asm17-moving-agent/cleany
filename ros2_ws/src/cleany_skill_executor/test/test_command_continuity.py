@@ -131,3 +131,15 @@ def test_next_measured_cartesian_path_carries_bias_and_checks_nominal_endpoint(
         assert checked == []
     assert fake.last_execution_metrics['collision_checks_enabled'] is check_collisions
     assert fake.arm_holds['left'].nominal == target
+
+
+from cleany_skill_executor.core.collection import configuration_issues
+
+def test_segment_config_rejects_invalid_observation_distance():
+    for value in (0., -.1, float('nan'), True, .001):
+        issues = configuration_issues({
+            'visual_servo_enabled': True, 'visual_approach_segment_m': value,
+            'cartesian_step_m': .005,
+            'arms': {'left': {}},
+        })
+        assert any('visual_approach_segment_m' in issue for issue in issues)

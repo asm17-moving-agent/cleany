@@ -49,6 +49,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/ObserveObjectReference.srv"
   "srv/CheckStateValidityBatch.srv"
   "msg/WristTrackingStatus.msg"
+  "action/ReturnArm.action"
+  "msg/ManipulationOutcome.msg"
+  "srv/CheckManipulation.srv"
+  "srv/ConfirmManipulationRecovery.srv"
   DEPENDENCIES moveit_msgs trajectory_msgs geometry_msgs sensor_msgs shape_msgs std_msgs
 )
 

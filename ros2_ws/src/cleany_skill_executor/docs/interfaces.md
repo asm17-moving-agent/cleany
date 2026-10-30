@@ -86,3 +86,25 @@ Action 결과는 계획 근거이며 실물 수거 성공을 뜻하지 않는다
 사용하고 `/{arm}_{arm|gripper}_controller/follow_joint_trajectory` Action으로 준비 자세를
 실행한다. `/joint_states`와 `/robot_description`을 읽으며 controller를 자동 활성화하지 않는다.
 `pregrasp_sim_ready`는 시뮬레이션 시작 상태를 확인하는 명시 실행 도구다.
+
+## collection_pipeline
+
+`collection_pipeline`은 기존 인식, 경로 계획과 제어 런타임에 연결하는 명시 실행 도구다.
+`--execute`가 없으면 ROS 노드를 만들지 않고 로컬 설정만 검사한다. 실행 시에는
+[준비 자세 도구](#준비-자세-실행-도구)의 입력에 `manipulation/check_evidence`
+(`cleany_interfaces/srv/CheckManipulation`) client를 추가한다.
+[실물 수거 계약](physical-collection.md)을 따른다.
+
+## manipulation_evidence
+
+실행 파일 `manipulation_evidence`는 모터와 손목 관측에서 읽기 전용 근거를 제공한다.
+
+| 종류 | 기본 경로 | 타입 | 의미 |
+|---|---|---|---|
+| Subscription | `/joint_state_broadcaster/dynamic_joint_states` | `control_msgs/msg/DynamicJointState` | 원시 모터 피드백 |
+| Subscription | `/perception/wrist_tracking_status` | `cleany_interfaces/msg/WristTrackingStatus` | 대상 식별과 관측 시각 |
+| Subscription | `/real_control/status` | `std_msgs/msg/String` | 실물 guard 상태 JSON |
+| Subscription | `/perception/manipulation_outcome` | `cleany_interfaces/msg/ManipulationOutcome` | 독립된 놓기와 이탈 확인 |
+| Service server | `/manipulation/check_evidence` | `cleany_interfaces/srv/CheckManipulation` | arm, reference, snapshot, object, destination과 after stamp에 해당하는 근거 |
+
+근거의 나이와 모터와 카메라의 시간 차이를 검사하고 실패한 guard를 ready 메시지만으로 해제하지 않는다.

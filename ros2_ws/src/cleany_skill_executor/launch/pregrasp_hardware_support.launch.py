@@ -35,6 +35,14 @@ def setup(context):
     if backend == 'curobo_ik_moveit':
         selector_parameters.append(str(skill / 'config/hybrid_motion.yaml'))
     selector_parameters.append(str(skill / 'config/pregrasp_motion.yaml'))
+    collection_file = value('collection_config_file')
+    if collection_file:
+        collection = json.loads(Path(collection_file).expanduser().resolve().read_text())
+        policy = {name: collection.get(name, default) for name, default in (
+            ('pregrasp_motion_enabled', True), ('direct_grasp_shortcut_enabled', False))}
+        if any(type(setting) is not bool for setting in policy.values()):
+            raise ValueError('Collection selection policy values must be boolean')
+        selector_parameters.append(policy)
     predictor = value('grasp_predictor')
     if predictor not in ('geometric', 'anygrasp'):
         raise ValueError('Unknown grasp predictor')
@@ -129,6 +137,7 @@ def generate_launch_description():
         DeclareLaunchArgument('repository_root'),
         *motion_launch_arguments(),
         DeclareLaunchArgument('profile_file'),
+        DeclareLaunchArgument('collection_config_file', default_value=''),
         DeclareLaunchArgument('workspace_config_file', default_value=''),
         DeclareLaunchArgument('scene_config_file', default_value=''),
         DeclareLaunchArgument('output_root', default_value='~/.local/share/cleany/pregrasp_hardware'),

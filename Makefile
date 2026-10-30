@@ -678,3 +678,42 @@ scene-mapping-setup:
 	"$(REPO_ROOT)tools/setup-scene-mapping"
 moveit-octomap-lock-setup:
 	"$(REPO_ROOT)tools/setup-moveit-octomap-lock"
+
+# Physical collection, return and recovery; runtime tests use fake motion ports.
+COLLECTION_CORE_TESTS := approach_path approach_replanning automatic_goal cartesian \
+	command_progress height_correction manipulation_evidence recorded_trajectory
+COLLECTION_EXECUTION_TESTS := arrival_approach command_continuity fixed_jaw_pipeline \
+	hardware_collection hardware_execution height_correction_runtime held_object_collision_policy \
+	manipulation_client_preflight manipulation_evidence_node measured_fk_reuse return_preparation \
+	runtime_readiness runtime_readiness_ros sparse_commands release_retreat_efficiency \
+	pregrasp_safety readonly_services
+COLLECTION_TEST_PATHS ?= $(addprefix $(ROS2_WS)/src/cleany_skill_executor/test/test_,$(addsuffix .py,$(COLLECTION_CORE_TESTS) $(COLLECTION_EXECUTION_TESTS))) \
+	$(ROS2_WS)/src/cleany_manipulation_bt/test tests/tools/test_collection_runtime.py
+COLLECTION_SOURCE_PATH := $(ROS2_WS)/src/cleany_manipulation_bt/test
+.PHONY: build-collection-execution test-collection-execution test-collection-regression
+build-collection-execution:
+	source "$(ROS_SETUP)" && source "$(REPO_ROOT)tools/scene-mapping-env" && \
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_manipulation_bt cleany_moveit_capabilities --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-collection-execution:
+	PYTHONPATH="$(COLLECTION_SOURCE_PATH):$${PYTHONPATH:-}" $(MAKE) test-motion-foundation \
+		MOTION_TEST_PATHS="$(COLLECTION_TEST_PATHS)" MOTION_PYTEST_ARGS="$(MOTION_PYTEST_ARGS)"
+
+test-collection-regression:
+	$(MAKE) test-collection-execution \
+		COLLECTION_TEST_PATHS="$(MOTION_TEST_PATHS) $(ROS2_WS)/src/cleany_manipulation_bt/test"
+
+COLLECTION_COMMANDS := start recover-control recover-planning plan execute run status logs stop
+.PHONY: $(addprefix collection-,$(COLLECTION_COMMANDS)) manipulation-start manipulation-run manipulation-restart manipulation-recover arm-return
+$(addprefix collection-,$(COLLECTION_COMMANDS)):
+	"$(REPO_ROOT)tools/collection-runtime" $(patsubst collection-%,%,$@)
+manipulation-start:
+	"$(REPO_ROOT)tools/collection-runtime" action-start
+manipulation-run:
+	"$(REPO_ROOT)tools/collection-runtime" action-run
+manipulation-restart:
+	"$(REPO_ROOT)tools/collection-runtime" action-restart
+manipulation-recover:
+	"$(REPO_ROOT)tools/collection-runtime" action-recover
+arm-return:
+	"$(REPO_ROOT)tools/collection-runtime" arm-return

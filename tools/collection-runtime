@@ -1,0 +1,901 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+state_dir="${CLEANY_COLLECTION_STATE_DIR:-/tmp/cleany-collection-runtime-${UID}}"
+pids_file="${state_dir}/pids"
+pipeline_pid_file="${state_dir}/pipeline.pid"
+run_dir_file="${state_dir}/run_dir"
+query="${COLLECTION_QUERY:-Detect visible movable objects on the tabletop.}"
+domain_id="${CLEANY_COLLECTION_ROS_DOMAIN_ID:-0}"
+start_timeout="${CLEANY_COLLECTION_START_TIMEOUT_SEC:-300}"
+daemon_stop_timeout="${CLEANY_COLLECTION_DAEMON_STOP_TIMEOUT_SEC:-5}"
+execution_stop_timeout="${CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC:-25}"
+gui="${CLEANY_COLLECTION_GUI:-false}"
+motion_backend="${CLEANY_COLLECTION_MOTION_BACKEND:-curobo_ik_moveit}"
+grasp_predictor="${CLEANY_COLLECTION_GRASP_PREDICTOR:-geometric}"
+planning_mode_file="${state_dir}/planning-mode"
+arm_port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14033435-if00
+
+usage() {
+  cat <<'EOF'
+Usage: tools/collection-runtime COMMAND
+
+Commands:
+  start    Start vision, real control, D435, MoveIt/RViz and bbox viewer; wait for readiness
+  recover-control
+           Restart latched real control in-place while preserving torque/current hold
+  recover-planning
+           Restart D435 and grasp planning support without restarting arm control
+  action-start
+           Attach the idle manipulation Action server to the started physical runtime
+  action-restart
+           Restart only the manipulation server after control recovery; preserve hardware and journal
+  action-recover [RECOVERY_ARGS...]
+           Confirm historical inhibition after checking the running physical runtime
+  action-run
+           Start runtime and Action server, detect/select one target and return/release at pickup
+  arm-return [--arm both|left|right]
+           Recover software stops, open grippers, then return arms and close grippers together
+  plan     Run one independent plan-only inspection (no trajectory command)
+  execute  Plan once and run physical pick/return/release in the started runtime
+  run      Start/check the runtime, then plan once and execute pick/return/release
+  status   Show managed processes, containers and the latest result directory
+  logs     Follow logs from the current runtime
+  stop     Stop the managed runtime, stop vision containers, and release IDs 1-14 torque
+
+Environment:
+  COLLECTION_QUERY                     Detection query (default: visible movable tabletop objects)
+  CLEANY_COLLECTION_ROS_DOMAIN_ID       ROS domain (default: 0)
+  CLEANY_COLLECTION_START_TIMEOUT_SEC   Start/preflight timeout (default: 300)
+  CLEANY_COLLECTION_DAEMON_STOP_TIMEOUT_SEC
+                                         ROS daemon stop timeout (default: 5)
+  CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC
+                                         Wait for manipulation/pipeline shutdown before dependencies (default: 25)
+  CLEANY_COLLECTION_GUI                 true enables RViz and bbox viewer (default: false)
+  CLEANY_COLLECTION_MOTION_BACKEND      curobo_ik_moveit (default) or moveit
+  CLEANY_COLLECTION_GRASP_PREDICTOR     geometric (default) or anygrasp
+  CLEANY_MANIPULATION_COLLECTION_CONFIG  Required local collection profile
+  CLEANY_FEETECH_CONTROL_CONFIG          Required local hardware/controller limits
+  CLEANY_HARDWARE_MONITOR_CONFIG         Required local motion-monitor ROS parameters
+EOF
+}
+
+validate_planning_mode() {
+  case "${motion_backend}" in
+    moveit) motion_runtime=native ;;
+    curobo_ik_moveit) motion_runtime=container ;;
+    *) echo "CLEANY_COLLECTION_MOTION_BACKEND must be moveit or curobo_ik_moveit." >&2; return 2 ;;
+  esac
+  case "${grasp_predictor}" in
+    geometric|anygrasp) ;;
+    *) echo "CLEANY_COLLECTION_GRASP_PREDICTOR must be geometric or anygrasp." >&2; return 2 ;;
+  esac
+}
+
+require_matching_planning_mode() {
+  if [[ ! -f "${planning_mode_file}" ]]; then
+    echo "Running planning mode is unknown; use make collection-stop, then restart." >&2
+    return 1
+  fi
+  local active_mode
+  active_mode="$(<"${planning_mode_file}")"
+  if [[ "${active_mode}" != "${motion_backend} ${grasp_predictor}" ]]; then
+    echo "Running planning mode: ${active_mode}; requested: ${motion_backend} ${grasp_predictor}." >&2
+    echo "Use make collection-stop, then restart with the requested planning options." >&2
+    return 1
+  fi
+}
+
+prepare_motion_runtime() {
+  if [[ "${motion_runtime}" == container ]]; then
+    "${repo_root}/tools/motion-container" check || return
+    export CLEANY_MOTION_OWNER="${state_dir}"
+    "${repo_root}/tools/motion-container" stop --owner "${state_dir}"
+  fi
+}
+
+start_vision() {
+  local log="$1"
+  "${repo_root}/tools/vision-container" hybrid-down || return
+  if [[ "${grasp_predictor}" == anygrasp ]]; then
+    "${repo_root}/tools/vision-container" hybrid-up || return
+    start_group vision "${log}" make -C "${repo_root}" hybrid-run
+  else
+    "${repo_root}/tools/vision-container" perception-up || return
+    start_group vision "${log}" make -C "${repo_root}" perception-run
+  fi
+}
+
+source_ros() {
+  # ROS Humble's generated setup files probe optional variables that may be
+  # unset. Keep strict mode for this tool, but not while sourcing those files.
+  set +u
+  # shellcheck disable=SC1091
+  source /opt/ros/humble/setup.bash
+  # shellcheck disable=SC1091
+  source "${repo_root}/tools/ros2/cleany-install-env"
+    source "${CLEANY_INSTALL_BASE}/setup.bash"
+  # shellcheck disable=SC1091
+  source "${repo_root}/tools/scene-mapping-env"
+  export ROS_DOMAIN_ID="${domain_id}"
+  # shellcheck disable=SC1091
+  source "${repo_root}/tools/vision-ros-env"
+  set -u
+  export ROS2CLI_DISABLE_DAEMON=1
+}
+
+configure_gui_environment() {
+  export DISPLAY="${DISPLAY:-:0}"
+  local default_xauthority="/run/user/$(id -u)/gdm/Xauthority"
+  if [[ -z "${XAUTHORITY:-}" && -r "${default_xauthority}" ]]; then
+    export XAUTHORITY="${default_xauthority}"
+  fi
+}
+
+alive() {
+  local pid="${1:-}"
+  [[ "${pid}" =~ ^[0-9]+$ ]] && kill -0 "${pid}" 2>/dev/null
+}
+
+managed_processes_alive() {
+  [[ -f "${pids_file}" ]] || return 1
+  local name pid
+  while read -r name pid; do
+    if alive "${pid}"; then
+      return 0
+    fi
+  done < "${pids_file}"
+  return 1
+}
+
+require_runtime() {
+  if ! managed_processes_alive; then
+    echo "Collection runtime is not running. Run: make collection-start" >&2
+    return 1
+  fi
+}
+
+current_run_dir() {
+  [[ -f "${run_dir_file}" ]] || {
+    echo "No collection run directory is recorded." >&2
+    return 1
+  }
+  local run_dir
+  run_dir="$(<"${run_dir_file}")"
+  [[ -d "${run_dir}" ]] || {
+    echo "Recorded run directory is missing: ${run_dir}" >&2
+    return 1
+  }
+  printf '%s\n' "${run_dir}"
+}
+
+start_group() {
+  local name="$1"
+  local log="$2"
+  shift 2
+  setsid "$@" >>"${log}" 2>&1 < /dev/null &
+  local pid=$!
+  printf '%s %s\n' "${name}" "${pid}" >> "${pids_file}"
+  sleep 0.5
+  if ! alive "${pid}"; then
+    echo "${name} exited during startup. Log: ${log}" >&2
+    tail -n 80 "${log}" >&2 || true
+    return 1
+  fi
+  echo "started ${name} (PID ${pid}, log ${log})"
+}
+
+start_real_control() {
+  local log="$1"
+  start_group real_control "${log}" \
+    ros2 launch cleany_robot_interface real_control.launch.py \
+      repository_root:="${repo_root}" \
+      profile_file:="${repo_root}/configs/robot/camera_preview.json" \
+      control_file:="${CLEANY_FEETECH_CONTROL_CONFIG}" \
+      output_root:="${HOME}/.local/share/cleany/real_control" \
+      read_only:=false with_moveit:=true allow_trajectory_execution:=false \
+      enable_depth_octomap:=true use_rviz:="${gui}"
+}
+
+start_hardware_support() {
+  local log="$1"
+  local run_dir="$2"
+  validate_planning_mode || return
+  # Keep the automatic-arm launch default; ROS launch rejects empty CLI values.
+  start_group hardware_support "${log}" \
+    ros2 launch cleany_skill_executor pregrasp_hardware_support.launch.py \
+      repository_root:="${repo_root}" \
+      profile_file:="${repo_root}/configs/robot/camera_preview.json" \
+      collection_config_file:="${CLEANY_MANIPULATION_COLLECTION_CONFIG}" \
+      output_root:="${HOME}/.local/share/cleany/pregrasp_hardware" \
+      evidence_output_directory:="${run_dir}/evidence" \
+      motion_backend:="${motion_backend}" \
+      motion_runtime:="${motion_runtime}" grasp_predictor:="${grasp_predictor}" \
+      scene_pixel_stride:=4 maximum_candidates:=32 \
+      selection_timeout_sec:=480.0 pipeline_timeout_sec:=600.0
+}
+
+require_lines() {
+  local values="$1"
+  shift
+  local item
+  for item in "$@"; do
+    grep -Fqx -- "${item}" <<<"${values}" || return 1
+  done
+}
+
+require_gui_node() {
+  [[ "${gui}" != true ]] || grep -Fqx /moveit_rviz
+}
+
+check_managed_health() {
+  local name pid
+  while read -r name pid; do
+    if ! alive "${pid}"; then
+      echo "Managed process exited: ${name} (PID ${pid})" >&2
+      return 1
+    fi
+  done < "${pids_file}"
+}
+
+wait_for_graph() {
+  check_managed_health || return 1
+  local readiness_pid result
+  local options=(--timeout "${start_timeout}")
+  [[ "${gui}" != true ]] || options+=(--gui)
+  # One participant discovers the existing requirements and waits for feedback
+  # concurrently. The parent continues monitoring all managed processes.
+  python3 "${repo_root}/ros2_ws/src/cleany_skill_executor/cleany_skill_executor/runtime_readiness.py" \
+    "${options[@]}" &
+  readiness_pid=$!
+  while alive "${readiness_pid}"; do
+    if ! check_managed_health; then
+      kill -TERM "${readiness_pid}" 2>/dev/null || true
+      wait "${readiness_pid}" 2>/dev/null || true
+      return 1
+    fi
+    sleep .2
+  done
+  if wait "${readiness_pid}"; then result=0; else result=$?; fi
+  (( result == 0 )) || return "${result}"
+  check_managed_health || return 1
+}
+
+check_dds_transport() {
+  # Fail before starting any hardware when Linux would clamp RGB-D DDS buffers.
+  python3 "${repo_root}/tools/dds_transport.py" check
+}
+
+start_runtime() {
+  validate_planning_mode || return
+  if [[ "${gui}" != true && "${gui}" != false ]]; then
+    echo "CLEANY_COLLECTION_GUI must be true or false." >&2
+    return 2
+  fi
+  check_dds_transport || return
+  mkdir -p "${state_dir}"
+  if managed_processes_alive; then
+    require_matching_planning_mode || return
+    echo "Collection runtime is already running; repeating the full readiness check."
+    source_ros
+    wait_for_graph || return
+    echo "COLLECTION RUNTIME READY"
+    echo "Next: make collection-execute"
+    return 0
+  fi
+  # The native CPU selector does not require a prepared cuRobo workspace.
+  prepare_motion_runtime || return
+  if fuser -s "${arm_port}"; then
+    echo "A motor serial port is in use. Stop preview/control tools first." >&2
+    fuser -v "${arm_port}" >&2 || true
+    return 1
+  fi
+  if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+    echo "Load GEMINI_API_KEY into the environment before starting collection." >&2
+    return 1
+  fi
+  "${repo_root}/tools/feetech-torque" check-off
+  source_ros
+
+  local timestamp run_dir log_dir
+  timestamp="$(date +%Y%m%d-%H%M%S)"
+  run_dir="${repo_root}/runtime/collection-operator/${timestamp}"
+  log_dir="${run_dir}/logs"
+  mkdir -p "${log_dir}" "${run_dir}/evidence"
+  printf '%s\n' "${run_dir}" > "${run_dir_file}"
+  printf '%s %s\n' "${motion_backend}" "${grasp_predictor}" > "${planning_mode_file}"
+  : > "${pids_file}"
+  rm -f "${pipeline_pid_file}" "${state_dir}/last_plan"
+
+  export CLEANY_REFERENCE_OBSERVATION=true
+  export CLEANY_WRIST_OBSERVATION=true
+  export CLEANY_PERCEPTION_USE_SIM_TIME=false
+  export CLEANY_PIPELINE_PROFILE=optimized
+  if [[ "${gui}" == true ]]; then
+    configure_gui_environment
+  fi
+
+  echo "Planning mode: ${grasp_predictor} candidates + ${motion_backend} (${motion_runtime})"
+  start_vision "${log_dir}/vision.log" || return
+  start_group left_wrist_camera "${log_dir}/left-wrist-camera.log" \
+    ros2 run cleany_robot_interface wrist_rgb_camera --ros-args \
+      -r __node:=left_wrist_rgb_camera \
+      -p repository_root:="${repo_root}" \
+      -p start_enabled:=false \
+      -p config_file:="${repo_root}/configs/robot/left_wrist_rgb.json"
+  start_group right_wrist_camera "${log_dir}/right-wrist-camera.log" \
+    ros2 run cleany_robot_interface wrist_rgb_camera --ros-args \
+      -r __node:=right_wrist_rgb_camera \
+      -p repository_root:="${repo_root}" \
+      -p start_enabled:=false \
+      -p config_file:="${repo_root}/configs/robot/right_wrist_rgb.json"
+  start_real_control "${log_dir}/real-control.log"
+  start_group manipulation_evidence "${log_dir}/manipulation-evidence.log" \
+    ros2 launch cleany_skill_executor manipulation_evidence.launch.py \
+      contact_rule_file:="${repo_root}/configs/robot/gripper_contact_decision.yaml"
+  start_group motor_telemetry "${log_dir}/motor-telemetry.jsonl" \
+    ros2 run cleany_robot_interface motor_telemetry_recorder
+  start_hardware_support "${log_dir}/hardware-support.log" "${run_dir}"
+  if [[ "${gui}" == true ]]; then
+    start_group bbox_view "${log_dir}/bbox-view.log" \
+      ros2 run rqt_image_view rqt_image_view \
+        --ros-args -r image:=/perception/debug_image_latched
+  fi
+
+  echo "Waiting for services, actions, 14-joint feedback, depth and OctoMap input..."
+  if ! wait_for_graph; then
+    echo "Startup preflight failed. Runtime is left running for inspection." >&2
+    echo "Logs: ${log_dir}" >&2
+    echo "Stop explicitly with: make collection-stop" >&2
+    return 1
+  fi
+  echo "COLLECTION RUNTIME READY"
+  echo "Torque: ON for the arm controllers"
+  echo "MoveIt execution: OFF (plan-only)"
+  if [[ "${gui}" == true ]]; then
+    echo "RViz and bbox viewer: running"
+  else
+    echo "RViz and bbox viewer: disabled (headless)"
+  fi
+  echo "Logs/results: ${run_dir}"
+  echo "Next: make collection-execute"
+}
+
+recover_control() {
+  require_runtime || return
+  local old_pid=''
+  while read -r name pid; do
+    if [[ "${name}" == real_control ]]; then
+      old_pid="${pid}"
+      break
+    fi
+  done < "${pids_file}"
+  [[ -n "${old_pid}" ]] || {
+    echo "Managed real_control PID is missing." >&2
+    return 1
+  }
+  echo "Restarting latched real_control (PID ${old_pid}); motor torque is preserved"
+  if alive "${old_pid}"; then
+    kill -INT -- "-${old_pid}" 2>/dev/null || true
+  fi
+  local deadline=$((SECONDS + 20))
+  while alive "${old_pid}" && (( SECONDS < deadline )); do
+    sleep .25
+  done
+  if alive "${old_pid}"; then
+    echo "real_control did not exit cleanly; torque-preserving recovery aborted." >&2
+    return 1
+  fi
+  deadline=$((SECONDS + 10))
+  while fuser -s "${arm_port}" && (( SECONDS < deadline )); do
+    sleep .25
+  done
+  if fuser -s "${arm_port}"; then
+    echo "Motor serial port remains in use; recovery aborted without changing torque." >&2
+    fuser -v "${arm_port}" >&2 || true
+    return 1
+  fi
+
+  local replacement="${pids_file}.recover.$$"
+  awk '$1 != "real_control"' "${pids_file}" > "${replacement}" || return
+  mv "${replacement}" "${pids_file}" || return
+  rm -f "${state_dir}/last_plan"
+  source_ros || return
+  if [[ "${gui}" == true ]]; then
+    configure_gui_environment
+  fi
+  local run_dir
+  run_dir="$(current_run_dir)" || return
+  start_real_control "${run_dir}/logs/real-control-recovery.log" || return
+  echo "Waiting for torque-on hold adoption and controller readiness..."
+  wait_for_graph || return
+  echo "REAL CONTROL RECOVERED; TORQUE REMAINED ON"
+}
+
+recover_planning() {
+  require_runtime
+  validate_planning_mode || return
+  require_matching_planning_mode || return
+  if [[ "${motion_runtime}" == container ]]; then
+    "${repo_root}/tools/motion-container" check
+  fi
+  export CLEANY_MOTION_OWNER="${state_dir}"
+  local old_pid=''
+  while read -r name pid; do
+    if [[ "${name}" == hardware_support ]]; then
+      old_pid="${pid}"
+      break
+    fi
+  done < "${pids_file}"
+  [[ -n "${old_pid}" ]] || {
+    echo "Managed hardware_support PID is missing." >&2
+    return 1
+  }
+  echo "Restarting D435 and grasp planning support (PID ${old_pid}); arm control remains running"
+  if alive "${old_pid}"; then
+    kill -INT -- "-${old_pid}" 2>/dev/null || true
+  fi
+  local deadline=$((SECONDS + 30))
+  while alive "${old_pid}" && (( SECONDS < deadline )); do
+    sleep .25
+  done
+  if alive "${old_pid}"; then
+    echo "hardware_support did not exit cleanly; recovery aborted." >&2
+    return 1
+  fi
+  if [[ "${motion_runtime}" == container ]]; then
+    "${repo_root}/tools/motion-container" stop --owner "${state_dir}"
+  fi
+
+  local replacement="${pids_file}.recover-planning.$$"
+  awk '$1 != "hardware_support"' "${pids_file}" > "${replacement}"
+  mv "${replacement}" "${pids_file}"
+  rm -f "${state_dir}/last_plan"
+  source_ros
+  local run_dir
+  run_dir="$(current_run_dir)"
+  start_hardware_support \
+    "${run_dir}/logs/hardware-support-recovery.log" "${run_dir}"
+  echo "Waiting for refreshed D435, OctoMap and planning services..."
+  wait_for_graph
+  echo "PLANNING SUPPORT RECOVERED; ARM CONTROL REMAINED RUNNING"
+}
+
+run_foreground() {
+  setsid "$@" &
+  local child=$!
+  printf '%s\n' "${child}" > "${pipeline_pid_file}"
+  trap 'kill -INT -- -"${child}" 2>/dev/null || true' INT TERM
+  local result=0
+  wait "${child}" || result=$?
+  trap - INT TERM
+  rm -f "${pipeline_pid_file}"
+  return "${result}"
+}
+
+plan_once() {
+  require_runtime
+  check_managed_health
+  source_ros
+  # Remove obsolete preview gates from older runtime versions.
+  rm -f "${state_dir}/last_plan"
+  local run_dir timestamp output
+  run_dir="$(current_run_dir)"
+  timestamp="$(date +%Y%m%d-%H%M%S)"
+  output="${run_dir}/plan-${timestamp}.json"
+  echo "PLAN ONLY — no trajectory command will be sent"
+  if ! run_foreground ros2 run cleany_skill_executor pregrasp_pipeline \
+      --query "${query}" --output "${output}" --ros-args \
+      -p use_sim_time:=false -p require_sensor_scene:=true \
+      -p sensor_scene_startup_timeout_sec:=60.0 -p pipeline_timeout_sec:=600.0; then
+    echo "Plan failed. Result: ${output}" >&2
+    [[ -f "${output}" ]] && python3 -m json.tool "${output}" || true
+    return 1
+  fi
+  python3 - "${output}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+report = json.loads(path.read_text())
+print(json.dumps(report, ensure_ascii=False, indent=2))
+if not report.get("success") or report.get("mode") != "plan_only":
+    raise SystemExit("Plan-only result is not successful")
+if report.get("arm") not in ("left", "right"):
+    raise SystemExit("Plan did not select an available arm")
+PY
+  echo "PLAN INSPECTION COMPLETE: ${output}"
+  echo "Physical execution makes one fresh plan in its own request: make collection-execute"
+}
+
+execute_once() {
+  require_runtime
+  check_managed_health
+  source_ros
+  # Discard the obsolete preview gate. This explicit command performs one fresh
+  # validation/selection request and executes that result in the same process.
+  rm -f "${state_dir}/last_plan"
+  local run_dir timestamp output
+  run_dir="$(current_run_dir)"
+  timestamp="$(date +%Y%m%d-%H%M%S)"
+  output="${run_dir}/execute-${timestamp}.json"
+  echo "PHYSICAL EXECUTION — select either arm, pick/lift/return/release at pickup (placement assumed)"
+  if ! run_foreground ros2 run cleany_skill_executor collection_pipeline \
+      --config "${CLEANY_MANIPULATION_COLLECTION_CONFIG}" \
+      --query "${query}" --output "${output}" --execute --ros-args \
+      --params-file "${CLEANY_HARDWARE_MONITOR_CONFIG}" \
+      -p gripper_contact_rule_file:="${repo_root}/configs/robot/gripper_contact_decision.yaml" \
+      -p use_sim_time:=false -p require_sensor_scene:=true \
+      -p sensor_scene_startup_timeout_sec:=60.0 -p pipeline_timeout_sec:=600.0 \
+      -p planning_scene_timeout_sec:=5.0 \
+      -p hardware_path_step_rad:=0.01 \
+      -p hardware_path_simplification_tolerance_rad:=0.002 \
+      -p hardware_start_delay_sec:=0.8 \
+      -p hardware_endpoint_settle_duration_sec:=0.3 \
+      -p hardware_endpoint_settle_timeout_sec:=2.0 \
+      -p hardware_endpoint_settle_velocity_rad_s:=0.02 \
+      -p hardware_endpoint_correction_limit:=3 \
+      -p hardware_endpoint_correction_gain:=0.7 \
+      -p hardware_endpoint_correction_max_step_rad:=0.02 \
+      -p hardware_endpoint_correction_max_total_rad:=0.06; then
+    echo "Execution failed. Result: ${output}" >&2
+    [[ -f "${output}" ]] && python3 -m json.tool "${output}" || true
+    return 1
+  fi
+  python3 -m json.tool "${output}"
+  echo "EXECUTION FINISHED: ${output}"
+}
+
+start_action_server() {
+  require_runtime || return
+  check_managed_health || return
+  if [[ -f "${pipeline_pid_file}" ]] && alive "$(<"${pipeline_pid_file}")"; then
+    echo "The legacy collection pipeline is still running; wait for it to finish." >&2
+    return 1
+  fi
+  local name pid
+  while read -r name pid; do
+    if [[ "${name}" == manipulation_action ]] && alive "${pid}"; then
+      echo "Manipulation Action server is already running (PID ${pid})."
+      return 0
+    fi
+  done < "${pids_file}"
+  source_ros || return
+  local services run_dir
+  services="$(timeout 10 ros2 service list)" || return
+  if ! require_lines "${services}" /perception/get_scene_snapshot; then
+    echo "The perception snapshot service is missing. Rebuild and restart the perception runtime." >&2
+    return 1
+  fi
+  run_dir="$(current_run_dir)" || return
+  start_group manipulation_action "${run_dir}/logs/manipulation-action.log" \
+    ros2 launch cleany_manipulation_bt manipulation_jetson.launch.py \
+      repository_root:="${repo_root}" \
+      shutdown_timeout_sec:="${execution_stop_timeout}" \
+      collection_config:="${CLEANY_MANIPULATION_COLLECTION_CONFIG}" \
+      hardware_monitor_config:="${CLEANY_HARDWARE_MONITOR_CONFIG}" || return
+  local deadline=$((SECONDS + 30)) info=''
+  while (( SECONDS < deadline )); do
+    check_managed_health || return 1
+    info="$(timeout 5 ros2 action info /manipulation/execute_skill 2>/dev/null)" || info=''
+    if grep -Fqx 'Action servers: 1' <<<"${info}"; then
+      break
+    fi
+    sleep .25
+  done
+  if ! grep -Fqx 'Action servers: 1' <<<"${info}"; then
+    echo "The manipulation Action endpoint did not become uniquely available." >&2
+    return 1
+  fi
+  echo "Manipulation Action server started; waiting for approved object Goals."
+  echo "Log: ${run_dir}/logs/manipulation-action.log"
+}
+
+run_once() {
+  start_runtime
+  execute_once
+}
+
+action_request_progress() {
+  python3 "${repo_root}/tools/manipulation-request-progress" \
+    --file "${CLEANY_MANIPULATION_PROGRESS_FILE}" --execution-id "${action_execution_id}" \
+    --owner-pid "$$" "$@" || true
+}
+
+finish_action_request() {
+  local result="$1"
+  if (( result == 0 )); then
+    action_request_progress --phase COMMAND_FINISHED --state FINISHED --message 'Execution command returned successfully'
+  else
+    action_request_progress --phase COMMAND_FAILED --state FAILED --message "Execution command exited with code ${result}; inspect the Action record"
+  fi
+}
+
+action_run_once() {
+  local began=$SECONDS preparation_sec result=0
+  action_execution_id="$(python3 -c 'import uuid; print(uuid.uuid4())')"
+  export CLEANY_MANIPULATION_PROGRESS_FILE="${CLEANY_MANIPULATION_PROGRESS_FILE:-${XDG_STATE_HOME:-${HOME}/.local/state}/cleany/manipulation/request.json}"
+  trap 'finish_action_request "$?"' EXIT
+  action_request_progress --phase RUNTIME_PREPARING --message 'Preparing runtime, sensors and planning services'
+  start_runtime
+  action_request_progress --phase SERVER_PREPARING --message 'Preparing manipulation Action server'
+  start_action_server
+  source_ros
+  preparation_sec=$((SECONDS - began))
+  printf '{"event":"collection_command_prepared","wall_sec":%d,"clock_resolution_sec":1}\n' "${preparation_sec}"
+  run_foreground ros2 run cleany_skill_executor manipulation_test_client \
+    --execution-id "${action_execution_id}" \
+    --namespace / --auto-select --mission-id operator-single-object --task-id pick-return-release \
+    --inspection-query "${query}" --timeout 1200 \
+    --collection-config "${CLEANY_MANIPULATION_COLLECTION_CONFIG}" \
+    --ros-args --params-file "${repo_root}/ros2_ws/src/cleany_manipulation_bt/config/manipulation_jetson.yaml" || result=$?
+  printf '{"event":"collection_command_timing","preparation_wall_sec":%d,"command_wall_sec":%d,"exit_code":%d,"clock_resolution_sec":1}\n' \
+    "${preparation_sec}" "$((SECONDS - began))" "${result}"
+  return "${result}"
+}
+
+confirm_action_recovery() {
+  # A stopped stack has no DDS bridge. Fail before initializing a ROS participant.
+  require_runtime
+  check_managed_health
+  source_ros
+  ros2 run cleany_manipulation_bt manipulation_recovery "$@"
+}
+
+stop_action_server() {
+  require_runtime || return
+  if [[ -f "${pipeline_pid_file}" ]] && alive "$(<"${pipeline_pid_file}")"; then
+    echo "An execution client is still running; finish or cancel it before restarting the Action server." >&2
+    return 1
+  fi
+  if [[ ! "${execution_stop_timeout}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC must be a positive integer." >&2
+    return 2
+  fi
+  local name pid old_pid=''
+  while read -r name pid; do
+    [[ "${name}" != manipulation_action ]] || old_pid="${pid}"
+  done < "${pids_file}"
+  if [[ -n "${old_pid}" ]] && alive "${old_pid}"; then
+    echo "Stopping manipulation Action server (PID ${old_pid}); waiting for its execution owner"
+    kill -INT -- "-${old_pid}" || return
+    local deadline=$((SECONDS + execution_stop_timeout))
+    while alive "${old_pid}" && (( SECONDS < deadline )); do
+      sleep .25
+    done
+    if alive "${old_pid}"; then
+      echo "Action server shutdown timed out; PID records retained. No replacement was started." >&2
+      return 1
+    fi
+  fi
+  local replacement="${pids_file}.action-restart.$$"
+  awk '$1 != "manipulation_action"' "${pids_file}" > "${replacement}" || return
+  mv "${replacement}" "${pids_file}" || return
+}
+
+restart_action_server() {
+  stop_action_server || return
+  check_managed_health || return
+  start_action_server
+}
+
+arm_return_control_status() {
+  local name pid control_pid=''
+  while read -r name pid; do
+    [[ "${name}" != real_control ]] || control_pid="${pid}"
+  done < "${pids_file}"
+  # Read the stdout of this managed launch, not historical run directories.
+  run_foreground python3 -m cleany_manipulation_bt.arm_return_client --check-control \
+    --control-log "/proc/${control_pid}/fd/1" "$@"
+}
+
+recover_arm_return_control() {
+  # Drain the previous owner before restoring controllers. A stuck owner keeps
+  # its PID and blocks replacement, just as for explicit action-restart.
+  stop_action_server || return
+  recover_control || return
+  start_action_server
+}
+
+return_arms() {
+  require_runtime || return
+  check_managed_health || return
+  if [[ -f "${pipeline_pid_file}" ]] && alive "$(<"${pipeline_pid_file}")"; then
+    echo "An execution client is still running; finish or cancel it before arm return." >&2
+    return 1
+  fi
+  source_ros || return
+  local status=0 recovered=false
+  arm_return_control_status "$@" || status=$?
+  case "${status}" in
+    0) start_action_server || return ;;
+    20) recover_arm_return_control || return; recovered=true ;;
+    *) return "${status}" ;;
+  esac
+  status=0
+  run_foreground ros2 run cleany_manipulation_bt arm_return "$@" || status=$?
+  # This code is returned only for a latched executor error BEFORE any motion.
+  # Never repeat a failed opening, return trajectory, final stop or cancellation.
+  if [[ "${status}" -eq 21 && "${recovered}" == false ]]; then
+    status=0
+    arm_return_control_status "$@" || status=$?
+    case "${status}" in
+      0) restart_action_server || return ;;
+      20) recover_arm_return_control || return ;;
+      *) return "${status}" ;;
+    esac
+    run_foreground ros2 run cleany_manipulation_bt arm_return "$@"
+  else
+    return "${status}"
+  fi
+}
+
+status_runtime() {
+  echo "State directory: ${state_dir}"
+  if [[ -f "${run_dir_file}" ]]; then
+    echo "Run directory: $(<"${run_dir_file}")"
+  else
+    echo "Run directory: none"
+  fi
+  if [[ -f "${pids_file}" ]]; then
+    local name pid state
+    while read -r name pid; do
+      state=stopped
+      alive "${pid}" && state=running
+      printf '%-18s PID %-8s %s\n' "${name}" "${pid}" "${state}"
+    done < "${pids_file}"
+  else
+    echo "Managed processes: none"
+  fi
+  if [[ -f "${pipeline_pid_file}" ]]; then
+    echo "Pipeline PID: $(<"${pipeline_pid_file}")"
+  fi
+  "${repo_root}/tools/vision-container" hybrid-config >/dev/null 2>&1 || true
+  docker ps --format '{{.Names}} {{.Status}}' | grep -F 'cleany-vision-' || true
+  "${repo_root}/tools/motion-container" status --owner "${state_dir}" || true
+}
+
+follow_logs() {
+  local run_dir
+  run_dir="$(current_run_dir)"
+  tail -n 80 -F "${run_dir}"/logs/*.log
+}
+
+signal_pipeline() {
+  local stop_signal="${1:-INT}"
+  [[ -f "${pipeline_pid_file}" ]] || return 0
+  local pid
+  pid="$(<"${pipeline_pid_file}")"
+  if alive "${pid}"; then
+    kill "-${stop_signal}" -- "-${pid}" 2>/dev/null || true
+  fi
+}
+
+execution_owners_alive() {
+  if [[ -f "${pipeline_pid_file}" ]] && alive "$(<"${pipeline_pid_file}")"; then
+    return 0
+  fi
+  local name pid
+  if [[ -f "${pids_file}" ]]; then
+    while read -r name pid; do
+      if [[ "${name}" == manipulation_action ]] && alive "${pid}"; then
+        return 0
+      fi
+    done < "${pids_file}"
+  fi
+  return 1
+}
+
+wait_for_execution_shutdown() {
+  local deadline=$((SECONDS + execution_stop_timeout))
+  while execution_owners_alive; do
+    (( SECONDS < deadline )) || return 1
+    sleep 0.1
+  done
+}
+
+stop_runtime() {
+  if [[ ! "${execution_stop_timeout}" =~ ^[0-9]+$ ]] || (( execution_stop_timeout < 1 )); then
+    echo "CLEANY_COLLECTION_EXECUTION_STOP_TIMEOUT_SEC must be a positive integer." >&2
+    return 1
+  fi
+  mkdir -p "${state_dir}"
+  signal_pipeline
+  local target name pid
+  if [[ -f "${pids_file}" ]]; then
+    while read -r name pid; do
+      if [[ "${name}" == manipulation_action ]] && alive "${pid}"; then
+        echo "stopping ${name} (PID ${pid})"
+        kill -INT -- "-${pid}" 2>/dev/null || true
+      fi
+    done < "${pids_file}"
+  fi
+  # Keep controllers, guard and observations alive while execution owners drain.
+  if ! wait_for_execution_shutdown; then
+    echo "Execution shutdown timed out; independent runtime shutdown follows. Physical stop is unconfirmed." >&2
+  fi
+  local stop_order=(bbox_view hardware_support manipulation_evidence left_wrist_camera right_wrist_camera real_control motor_telemetry vision)
+  for target in "${stop_order[@]}"; do
+    [[ -f "${pids_file}" ]] || break
+    while read -r name pid; do
+      if [[ "${name}" == "${target}" ]] && alive "${pid}"; then
+        echo "stopping ${name} (PID ${pid})"
+        kill -INT -- "-${pid}" 2>/dev/null || true
+      fi
+    done < "${pids_file}"
+  done
+  for _ in {1..20}; do
+    managed_processes_alive || break
+    sleep 0.5
+  done
+  if managed_processes_alive || execution_owners_alive; then
+    signal_pipeline TERM
+    if [[ -f "${pids_file}" ]]; then
+      while read -r name pid; do
+        if alive "${pid}"; then
+          echo "terminating ${name} (PID ${pid})"
+          kill -TERM -- "-${pid}" 2>/dev/null || true
+        fi
+      done < "${pids_file}"
+    fi
+    sleep 2
+  fi
+  "${repo_root}/tools/vision-container" hybrid-down || true
+  "${repo_root}/tools/motion-container" stop --owner "${state_dir}" || true
+  source_ros
+  local daemon_stop_status=0
+  timeout --signal=TERM --kill-after=1s "${daemon_stop_timeout}s" \
+    ros2 daemon stop >/dev/null 2>&1 \
+    || daemon_stop_status=$?
+  if [[ "${daemon_stop_status}" -eq 124 || "${daemon_stop_status}" -eq 137 ]]; then
+    echo "ROS 2 daemon stop timed out after ${daemon_stop_timeout}s; continuing shutdown." >&2
+  elif [[ "${daemon_stop_status}" -ne 0 ]]; then
+    echo "ROS 2 daemon stop failed (status ${daemon_stop_status}); continuing shutdown." >&2
+  fi
+
+  if fuser -s "${arm_port}"; then
+    echo "Cannot release torque: a serial port is still in use." >&2
+    fuser -v "${arm_port}" >&2 || true
+    return 1
+  fi
+  "${repo_root}/tools/feetech-torque" off
+  if managed_processes_alive || execution_owners_alive; then
+    echo "Torque off verified, but execution/runtime processes remain; PID records retained." >&2
+    return 1
+  fi
+  : > "${pids_file}"
+  rm -f "${pipeline_pid_file}" "${state_dir}/last_plan"
+  echo "COLLECTION RUNTIME STOPPED; TORQUE OFF VERIFIED FOR IDS 1-14"
+}
+
+command="${1:-}"
+case "${command}" in
+  start|recover-control|recover-planning|action-start|action-restart|arm-return|action-run|execute|run)
+    for profile_variable in CLEANY_MANIPULATION_COLLECTION_CONFIG CLEANY_FEETECH_CONTROL_CONFIG CLEANY_HARDWARE_MONITOR_CONFIG; do
+      if [[ -z "${!profile_variable:-}" || ! -f "${!profile_variable}" ]]; then
+        echo "Set ${profile_variable} to an explicit local hardware profile." >&2
+        exit 2
+      fi
+    done
+    ;;
+esac
+case "${command}" in
+  start) start_runtime ;;
+  recover-control) recover_control ;;
+  recover-planning) recover_planning ;;
+  action-start) start_action_server ;;
+  action-recover) shift; confirm_action_recovery "$@" ;;
+  action-restart) restart_action_server ;;
+  arm-return) shift; return_arms "$@" ;;
+  action-run) action_run_once ;;
+  plan) plan_once ;;
+  execute) execute_once ;;
+  run) run_once ;;
+  status) status_runtime ;;
+  logs) follow_logs ;;
+  stop) stop_runtime ;;
+  help|-h|--help|'') usage; [[ -n "${command}" ]] ;;
+  *) usage; exit 2 ;;
+esac

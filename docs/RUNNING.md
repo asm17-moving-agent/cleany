@@ -412,3 +412,9 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 
 [계획과 실행 조건](../ros2_ws/src/cleany_skill_executor/docs/physical-pregrasp.md),
 [선택적 GPU 환경](../containers/motion/README.md)을 함께 확인한다.
+
+## 실물 수거와 팔 복귀
+
+실물 준비 자세 실행 이후 수거, 복귀와 복구 명령은
+[실물 수거 안내](../ros2_ws/src/cleany_skill_executor/docs/physical-collection.md)를 따른다.
+실물 프로필을 명시적으로 입력하며 `make collection-plan`과 실제 실행 명령을 구분한다.
