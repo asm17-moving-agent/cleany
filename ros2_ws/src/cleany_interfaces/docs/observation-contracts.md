@@ -236,3 +236,17 @@ label로 fallback하지 않는다. 빈 ID의 label-only 경로는 종류당 물�
 검출 신뢰도이며 Gemini 분류 확률이 아닙니다. 기존 `sorting_reason`은 유지합니다.
 깊이와 지지면 크기의 단위 및 미측정 값은 [인식 계약](../../cleany_perception/docs/interfaces.md)을 따릅니다.
 필드 추가로 CDR 형식이 바뀌므로 생산자와 소비자를 함께 재빌드해야 합니다.
+
+
+## 실물 준비 자세 계약
+
+`ObserveObjectReference`는 PIN에서 snapshot/object를 고정하고 OBSERVE에서 새 관측을
+검사하며 CLEAR로 해제한다. 응답의 원본 종류명, 검출 클래스는 참조 TTL 동안 보존된다.
+`WristTrackingStatus`는 관찰 상태이며 파지 성공 판정을 대신하지 않는다.
+`ValidatePick` Action은 인식과 후보 선택을 연결하고 모터를 움직이지 않는다.
+`SelectReachableGrasp`의 실물 구현은 선택 팔, 계획 시작 상태와 시간 궤적을 반환한다.
+`required_arm`이 비어 있으면 양팔을 검사한다. 기존 구현은 확장 궤적 필드를 비워둘 수 있다.
+
+`CheckStateValidityBatch`는 한 장면에서 요청의 순서를 유지해 첫 무효 상태까지 검사한다.
+입력 오류와 계산 실패는 `success=false`로 반환한다. 관련 메시지가 확장되므로
+생산자, 소비자를 같은 소스로 재빌드한다. `sorting_reason`과 `PlanGrasp.target_object_header`는 유지한다.

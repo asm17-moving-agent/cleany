@@ -226,3 +226,12 @@ def test_perception_fields_and_explicit_grasp_header_roundtrip():
     request = PlanGrasp.Request(target_object_header=Header(
         frame_id='base_link', stamp=Time(sec=12)))
     assert deserialize_message(serialize_message(request), PlanGrasp.Request) == request
+
+
+def test_batch_validity_has_an_explicit_computation_failure_and_checked_prefix():
+    from cleany_interfaces.srv import CheckStateValidityBatch
+    from moveit_msgs.msg import RobotState
+    request = CheckStateValidityBatch.Request(robot_states=[RobotState(is_diff=True)])
+    response = CheckStateValidityBatch.Response()
+    assert request.robot_states[0].is_diff
+    assert not response.success and not response.valid

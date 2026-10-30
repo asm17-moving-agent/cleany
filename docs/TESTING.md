@@ -257,3 +257,37 @@ MoveIt 서비스 검사를 실행합니다. 서비스 검사는 기본 detector�
 36개를 검출하는지, 같은 입력을 표면 FCL이 놓치는지와 존재하지 않는 detector를
 선택했을 때 프로세스가 종료하는지 확인합니다. 가상 장애물만 사용하고
 trajectory execution은 끄며 모터 드라이버를 실행하지 않습니다.
+
+
+## 실물 계획과 실행 기반 검증
+
+운영 install과 다른 `CLEANY_BUILD_ROOT`를 지정한다. 모든 결과는 그 경로나 외부 보고서 디렉터리에 보관한다.
+
+```bash
+export CLEANY_BUILD_ROOT="$CLEANY_DATA_ROOT/builds/motion-review"
+make build-motion-foundation
+make test-motion-foundation MOTION_TEST_PYTHON="$CLEANY_BUILD_ROOT/test-env/bin/python3"
+make test-motion-native
+make test-motion-runtime
+make test-jetson-controller
+```
+
+| 명령 | 범위 |
+|---|---|
+| `test-motion-foundation` | Python 계획, 실행 core, 인식, 파지, 제어 호환성과 도구 검사. 합성 입력과 가짜 서비스 사용 |
+| `test-motion-native` | C++ 장면 필터, 배치 검사, 시간 배정, SolidFCL과 드라이버 |
+| `test-motion-runtime` | 별도 ROS domain의 MoveIt, 합성 장면, 머리 충돌, 배치, OctoMap 조회. 장치 드라이버를 시작하지 않음 |
+| `test-motion-gpu` | 모션 컨테이너의 CUDA FK/IK, 경로, mast 충돌과 양팔 예열 버퍼 재사용. 장치와 외부 ROS 서버 불필요 |
+| `test-jetson-controller` | PTY 가상 시리얼 controller. 실제 모터를 구동하지 않음 |
+
+테스트 Python은 [개발환경 안내](DEVELOPMENT_SETUP.md#실물-모션-기반)에 따라 준비한다.
+`MOTION_TEST_PYTHON`, `MOTION_TEST_PATHS`, `MOTION_PYTEST_ARGS`, `MOTION_TEST_DOMAIN_ID`로
+실행 환경, 범위와 결과 파일을 지정한다.
+GPU 검사는 `cleany_skill_executor/runtime_test/`에 두며 고정 CUDA 환경에서
+`CLEANY_RUN_CUROBO=1` 등 각 파일의 실행 조건을 명시해야 한다. 일반 검사 통과는 GPU 성능,
+실물 동작이나 전체 수거 시나리오의 검증을 뜻하지 않는다.
+
+컨테이너 준비 후 `make test-motion-gpu`로 독립 실행 가능한 GPU 검사를 실행한다.
+`MOTION_GPU_PYTEST_ARGS`로 pytest 옵션을 전달하며 컨테이너 결과 파일은
+쓰기 가능한 `/opt/cleany-motion/cache/` 아래에 둔다. 나머지 GPU 런타임 검사는
+별도로 시작한 MoveIt과 GenericSystem mock controller가 필요하다.

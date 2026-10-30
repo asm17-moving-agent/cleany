@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""ROS launch prefix; one selector and one container per invocation."""
+from motion_container import launch_selector
+
+if __name__ == '__main__':
+    raise SystemExit(launch_selector())

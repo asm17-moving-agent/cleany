@@ -264,3 +264,31 @@ source "$HOME/.local/share/cleany/moveit-scene-runtime/local_setup.bash"
 export LD_LIBRARY_PATH="$HOME/.local/share/cleany/moveit-perception/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH):${LD_LIBRARY_PATH:-}"
 make build-jetson-control
 ```
+
+
+## 실물 모션 기반
+
+Jetson의 센서 장면과 동시 OctoMap 조회는 MoveIt 2.5.9에 맞춘 로컬 overlay를 사용한다.
+시스템 패키지를 교체하지 않고 `$HOME/.local/share/cleany` 아래에 설치한다.
+
+```bash
+make scene-mapping-setup
+make moveit-octomap-lock-setup
+source tools/scene-mapping-env
+make build-motion-foundation
+```
+
+설치 도구는 버전과 패치 입력 영수증을 확인한다. 이미 준비된 환경에서는 다시 설치할 필요가 없다.
+`CLEANY_SCENE_RUNTIME_PREFIX`, `CLEANY_MOVEIT_PATCH_PREFIX`로 overlay 위치를 바꿀 수 있다.
+GPU IK는 별도의 [모션 컨테이너](../containers/motion/README.md)를 사용하며 기본 MoveIt 경로는 CUDA를 요구하지 않는다.
+
+모션 기하 회귀 검사는 `trimesh`가 필요하다. `python3-trimesh`는 rosdep 키가 없으므로
+시스템 Python을 바꾸지 않는 테스트 환경에 설치한다. Jetson에 NumPy 1.26이 설치된
+경우 Ubuntu 22.04의 SciPy 1.8 대신 호환되는 SciPy 1.13.1을 이 환경에서 사용한다.
+`CLEANY_BUILD_ROOT`는 [검증 안내](TESTING.md#실물-계획과-실행-기반-검증)처럼 운영 경로와 분리해 지정한다.
+
+```bash
+python3 -m venv --system-site-packages "$CLEANY_BUILD_ROOT/test-env"
+"$CLEANY_BUILD_ROOT/test-env/bin/python3" -m pip install --no-deps trimesh==4.5.3 scipy==1.13.1
+make test-motion-foundation MOTION_TEST_PYTHON="$CLEANY_BUILD_ROOT/test-env/bin/python3"
+```

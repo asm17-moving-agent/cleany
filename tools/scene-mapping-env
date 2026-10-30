@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Source after ROS, before launching the sensor-scene runtime.
+# Generic builds may use the system packages when no local overlay is installed.
+cleany_scene_runtime="${CLEANY_SCENE_RUNTIME_PREFIX:-${HOME}/.local/share/cleany/moveit-scene-runtime}"
+cleany_moveit_patch="${CLEANY_MOVEIT_PATCH_PREFIX:-${HOME}/.local/share/cleany/moveit-octomap-lock}"
+if [[ "${1:-}" == --optional && \
+      ! -f "${cleany_scene_runtime}/local_setup.bash" && \
+      ! -f "${cleany_scene_runtime}/scene-runtime.receipt" && \
+      ! -f "${cleany_moveit_patch}/local_setup.bash" && \
+      ! -f "${cleany_moveit_patch}/octomap-read-lock.receipt" ]]; then
+    unset cleany_scene_runtime cleany_moveit_patch
+    return 0 2>/dev/null || exit 0
+fi
+if [[ ! -f "${cleany_scene_runtime}/local_setup.bash" || \
+      ! -f "${cleany_scene_runtime}/scene-runtime.receipt" ]]; then
+    echo 'Matching scene runtime is missing. Run make scene-mapping-setup.' >&2
+    return 1 2>/dev/null || exit 1
+fi
+if [[ ! -f "${cleany_moveit_patch}/octomap-read-lock.receipt" || \
+      ! -f "${cleany_moveit_patch}/local_setup.bash" ]]; then
+    echo 'MoveIt Octomap lock patch is missing. Run make moveit-octomap-lock-setup.' >&2
+    return 1 2>/dev/null || exit 1
+fi
+cleany_scene_prefix="${CLEANY_SCENE_DEPENDENCY_PREFIX:-${HOME}/.local/share/cleany/moveit-perception}"
+cleany_scene_arch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+export LD_LIBRARY_PATH="${cleany_scene_prefix}/usr/lib/${cleany_scene_arch}:${LD_LIBRARY_PATH:-}"
+# Prefer the source overlay matching the system planner over unpacked apt libs.
+if ! source "${cleany_scene_runtime}/local_setup.bash"; then
+    return 1 2>/dev/null || exit 1
+fi
+# The 2.5.9 map query service needs the Octree read lock while serializing.
+if ! source "${cleany_moveit_patch}/local_setup.bash"; then
+    return 1 2>/dev/null || exit 1
+fi
+# An explicitly empty override disables caching. The original verified hull
+# construction remains the fallback for cache misses or read/write failures.
+export CLEANY_MOVEIT_GEOMETRY_CACHE_DIR="${CLEANY_MOVEIT_GEOMETRY_CACHE_DIR-${XDG_CACHE_HOME:-${HOME}/.cache}/cleany/moveit-geometry}"
+unset cleany_scene_prefix cleany_scene_arch cleany_scene_runtime cleany_moveit_patch

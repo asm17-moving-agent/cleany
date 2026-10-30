@@ -1,0 +1,22 @@
+# Real RGB-D geometric candidate search from the successful 2026-10-13 trial.
+grasp_server:
+  ros__parameters:
+    predictor_type: geometric
+    anygrasp_preload: false
+    use_sim_time: false
+    publish_collision_geometry: true
+    geometric.approach_tilt_degrees: 16.0
+    geometric.search_approach_tilts: true
+    geometric.approach_tilt_options: [0.0, 8.0, 16.0, 24.0]
+    geometric.include_reverse_closing_axis: true
+    geometric.approach_reference_positions:
+      [0.116200343, 0.196231727, 0.447797, 0.116200838, -0.196177072, 0.447797]
+    geometric.reject_robot_opposite_approach: true
+    geometric.robot_reference_position: [0.0, 0.0, 0.0]
+    geometric.yaw_offsets_degrees: [-80.0, -60.0, -40.0, -20.0, 0.0, 20.0, 40.0, 60.0, 80.0]
+    geometric.maximum_candidates: 96
+    geometric.collision_clearance_m: 0.008
+    geometric.search_longitudinal_contacts: true
+    geometric.longitudinal_contact_height_offset_m: 0.0
+    geometric.defer_support_plane_collision: false
+    nms_rotation_threshold_degrees: 5.0

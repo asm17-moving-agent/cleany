@@ -631,3 +631,50 @@ test-moveit-collision: test-description-models
 		--packages-select cleany_moveit_collision cleany_moveit_config \
 		--return-code-on-test-failure --ctest-args \
 		-R 'test_solid_collision|moveit_config_contract|simulation_collision_contract|study_cafe_collision_scene_contract|solid_collision_runtime'
+
+# Physical planning and execution foundation, isolated from the collection BT.
+MOTION_TEST_DOMAIN_ID ?= 225
+MOTION_SOURCE_PATH := $(REPO_ROOT)tools:$(ROS2_WS)/src/cleany_skill_executor:$(ROS2_WS)/src/cleany_perception:$(ROS2_WS)/src/cleany_grasping:$(ROS2_WS)/src/cleany_robot_interface:$(ROS2_WS)/src/cleany_moveit_config
+MOTION_TEST_SUPPORT := $(ROS2_WS)/src/cleany_perception/test:$(ROS2_WS)/src/cleany_skill_executor/test:$(ROS2_WS)/src/cleany_skill_executor/runtime_test:$(ROS2_WS)/src/cleany_moveit_config/runtime_test
+MOTION_TEST_PATHS ?= $(ROS2_WS)/src/cleany_skill_executor/test $(ROS2_WS)/src/cleany_perception/test $(ROS2_WS)/src/cleany_grasping/test $(ROS2_WS)/src/cleany_interfaces/test $(ROS2_WS)/src/cleany_robot_interface/test tests/tools
+MOTION_TEST_PYTHON ?= python3
+MOTION_PYTEST_ARGS ?=
+.PHONY: build-motion-foundation test-motion-foundation test-motion-native test-motion-runtime
+build-motion-foundation:
+	source "$(ROS_SETUP)" && source "$(REPO_ROOT)tools/scene-mapping-env" && \
+	$(MAKE) build COLCON_BUILD_ARGS="--packages-up-to cleany_skill_executor cleany_moveit_capabilities --parallel-workers 2 $(COLCON_BUILD_ARGS)"
+
+test-motion-foundation:
+	source "$(ROS_SETUP)" && source "$(INSTALL_BASE)/setup.bash" && \
+	PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(MOTION_TEST_DOMAIN_ID) \
+	PYTHONPATH="$(MOTION_SOURCE_PATH):$(MOTION_TEST_SUPPORT):$${PYTHONPATH:-}" \
+	"$(MOTION_TEST_PYTHON)" -m pytest -q -p no:cacheprovider --import-mode=importlib $(MOTION_TEST_PATHS) $(MOTION_PYTEST_ARGS)
+
+test-motion-native:
+	source "$(ROS_SETUP)" && source "$(REPO_ROOT)tools/scene-mapping-env" && source "$(INSTALL_BASE)/setup.bash" && \
+	cd "$(ROS2_WS)" && ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=$(MOTION_TEST_DOMAIN_ID) \
+	colcon --log-base "$(LOG_BASE)" test --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" \
+		--return-code-on-test-failure --packages-select cleany_scene_mapping cleany_moveit_capabilities cleany_moveit_collision cleany_feetech_hardware
+
+test-motion-runtime:
+	CLEANY_TEST_BATCH_VALIDITY=1 CLEANY_TEST_OCTOMAP_RUNTIME=1 CLEANY_TEST_ARM_MESH_RUNTIME=1 $(MAKE) test-motion-foundation MOTION_TEST_PATHS="$(ROS2_WS)/src/cleany_moveit_config/runtime_test" MOTION_PYTEST_ARGS="$(MOTION_PYTEST_ARGS)"
+
+MOTION_GPU_PYTEST_ARGS ?=
+.PHONY: test-motion-gpu
+test-motion-gpu:
+	"$(REPO_ROOT)tools/motion-container" exec -- env CLEANY_RUN_CUROBO=1 \
+		PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+		python3 -m pytest -q -p no:cacheprovider \
+		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_curobo_gpu.py \
+		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_curobo_mast_gpu.py \
+		/workspace/cleany/ros2_ws/src/cleany_skill_executor/runtime_test/test_ik_warmup_gpu.py \
+		-k 'gpu_fk_and_position_ik_match_authoritative_urdf or gpu_generates_finite_joint_path or gpu_convex_acceptance_handles_containment_base_and_contact_pairs or mast or warmup' \
+		$(MOTION_GPU_PYTEST_ARGS)
+
+.PHONY: motion-container-image motion-container-prepare motion-container-check scene-mapping-setup moveit-octomap-lock-setup
+motion-container-image motion-container-prepare motion-container-check:
+	"$(REPO_ROOT)tools/motion-container" $(patsubst motion-container-%,%,$@)
+scene-mapping-setup:
+	"$(REPO_ROOT)tools/setup-scene-mapping"
+moveit-octomap-lock-setup:
+	"$(REPO_ROOT)tools/setup-moveit-octomap-lock"

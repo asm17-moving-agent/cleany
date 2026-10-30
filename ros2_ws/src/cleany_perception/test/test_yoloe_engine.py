@@ -199,6 +199,9 @@ def test_async_failure_is_sticky_and_only_drained_failures_retry(monkeypatch, tm
 
 def test_async_setup_failure_keeps_validated_engine(monkeypatch, tmp_path, caplog):
     import cleany_perception.adapters.yoloe_detector as module
+    # Capture the warning independently of ROS launch logging configuration.
+    monkeypatch.setattr(module._LOGGER, 'propagate', True)
+    caplog.set_level('WARNING', logger=module._LOGGER.name)
     def unavailable(model):
         raise RuntimeError('unsupported backend')
     monkeypatch.setattr(module, 'TensorRTAsyncRunner', unavailable)

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import math
 from typing import Sequence
 
+
 Vector3 = tuple[float, float, float]
 Quaternion = tuple[float, float, float, float]
 
@@ -101,18 +102,41 @@ def validate_pose_endpoint(actual: CartesianPose, target: CartesianPose,
                          f'orientation={math.degrees(angle):.3f}deg')
 
 
+def validate_position_endpoint(actual: CartesianPose, target: CartesianPose,
+                               position_tolerance_m: float) -> None:
+    """Validate Cartesian translation without making orientation a stop condition."""
+    if not math.isfinite(position_tolerance_m) or position_tolerance_m <= 0:
+        raise ValueError('Cartesian position tolerance must be finite and positive')
+    distance = math.dist(actual.position, target.position)
+    if distance > position_tolerance_m:
+        raise ValueError(f'Cartesian endpoint mismatch: position={distance:.6f}m')
+
+
 def validate_corridor_samples(samples: Sequence[CartesianPose], start: CartesianPose,
                               target: CartesianPose, radius_m: float,
-                              orientation_tolerance_rad: float,
-                              endpoint_orientation_tolerance_rad: float) -> tuple[float, float]:
+                              orientation_tolerance_rad: float | None,
+                              endpoint_orientation_tolerance_rad: float | None) -> tuple[float, float]:
     """Validate returned FK samples, not a continuous-collision certificate."""
     line_corridor(start.position, target.position, radius_m)
-    if not math.isfinite(orientation_tolerance_rad) or orientation_tolerance_rad <= 0:
-        raise ValueError('corridor orientation tolerance must be finite and positive')
+    orientation_enabled = orientation_tolerance_rad is not None
+    if orientation_enabled != (endpoint_orientation_tolerance_rad is not None):
+        raise ValueError('Cartesian orientation tolerances must both be enabled or disabled')
+    if orientation_enabled and (
+            not math.isfinite(orientation_tolerance_rad)
+            or orientation_tolerance_rad <= 0
+            or not math.isfinite(endpoint_orientation_tolerance_rad)
+            or endpoint_orientation_tolerance_rad <= 0):
+        raise ValueError('corridor orientation tolerances must be finite and positive')
     if len(samples) < 2:
         raise ValueError('Cartesian plan requires at least two FK samples')
-    validate_pose_endpoint(samples[0], start, radius_m, endpoint_orientation_tolerance_rad)
-    validate_pose_endpoint(samples[-1], target, radius_m, endpoint_orientation_tolerance_rad)
+    if orientation_enabled:
+        validate_pose_endpoint(
+            samples[0], start, radius_m, endpoint_orientation_tolerance_rad)
+        validate_pose_endpoint(
+            samples[-1], target, radius_m, endpoint_orientation_tolerance_rad)
+    else:
+        validate_position_endpoint(samples[0], start, radius_m)
+        validate_position_endpoint(samples[-1], target, radius_m)
     length = math.dist(start.position, target.position)
     direction = tuple((b-a)/length for a, b in zip(start.position, target.position, strict=True))
     maximum_lateral = maximum_angle = 0.
@@ -121,11 +145,14 @@ def validate_corridor_samples(samples: Sequence[CartesianPose], start: Cartesian
         offset = tuple(b-a for a, b in zip(start.position, sample.position, strict=True))
         progress = sum(a*b for a, b in zip(offset, direction, strict=True))
         lateral = math.sqrt(sum((x-progress*d)**2 for x, d in zip(offset, direction, strict=True)))
-        expected = interpolate_orientation(start.orientation, target.orientation, progress/length)
-        angle = orientation_error_rad(sample.orientation, expected)
+        angle = 0.
+        if orientation_enabled:
+            expected = interpolate_orientation(
+                start.orientation, target.orientation, progress/length)
+            angle = orientation_error_rad(sample.orientation, expected)
         if (progress < -radius_m or progress > length+radius_m or
                 progress < previous-radius_m or lateral > radius_m or
-                angle > orientation_tolerance_rad):
+                (orientation_enabled and angle > orientation_tolerance_rad)):
             raise ValueError(f'Cartesian corridor violated: progress={progress:.6f}m '
                              f'lateral={lateral:.6f}m orientation={math.degrees(angle):.3f}deg')
         previous = max(previous, progress)
@@ -160,3 +187,13 @@ def sampled_time_scale(samples: Sequence[CartesianPose], times: Sequence[float],
     factor = max(factor, math.sqrt(math.sqrt(sum(x*x for x in previous_velocity)) /
                                    (previous_dt/2*translation_acceleration)))
     return factor * margin
+
+
+def validate_height_correctable_endpoint(
+    actual: CartesianPose, target: CartesianPose, position_tolerance_m: float,
+    orientation_tolerance_rad: float,
+) -> None:
+    """Defer downward Z error, retaining XY, overshoot and rotation checks."""
+    guarded = CartesianPose(
+        (*actual.position[:2], max(actual.position[2], target.position[2])), actual.orientation)
+    validate_pose_endpoint(guarded, target, position_tolerance_m, orientation_tolerance_rad)

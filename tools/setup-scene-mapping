@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Match the installed planner; never replace the system MoveIt stack.
+scene_dep_prefix="${CLEANY_SCENE_DEPENDENCY_PREFIX:-${HOME}/.local/share/cleany/moveit-perception}"
+scene_runtime_prefix="${CLEANY_SCENE_RUNTIME_PREFIX:-${HOME}/.local/share/cleany/moveit-scene-runtime}"
+scene_work="${CLEANY_SCENE_RUNTIME_WORK:-${HOME}/.cache/cleany/moveit-scene-runtime}"
+scene_version="$(dpkg-query -W -f='${Version}' ros-humble-moveit-core)"
+scene_tag="${scene_version%%-*}"
+[[ "${scene_tag}" == 2.5.9 ]] || { echo 'This Jetson overlay supports installed MoveIt 2.5.9.' >&2; exit 1; }
+if [[ -f "${scene_runtime_prefix}/scene-runtime.receipt" ]] && \
+   [[ "$(cat "${scene_runtime_prefix}/scene-runtime.receipt")" == "${scene_tag}" ]]; then
+  echo "Matching scene runtime already installed: ${scene_runtime_prefix}"
+  exit 0
+fi
+mkdir -p "${scene_work}" "${scene_dep_prefix}"
+scene_download="$(mktemp -d -t cleany-scene-deps-XXXXXX)"
+trap 'rm -rf "${scene_download}"' EXIT
+(
+  cd "${scene_download}"
+  apt-get download freeglut3 freeglut3-dev
+  for package in ./*.deb; do dpkg-deb -x "${package}" "${scene_dep_prefix}"; done
+)
+scene_archive="${scene_work}/moveit2-${scene_tag}.tar.gz"
+scene_cached="${CLEANY_MOVEIT_PATCH_WORK:-${HOME}/.cache/cleany/moveit-octomap-lock}/moveit2-${scene_tag}.tar.gz"
+if [[ ! -f "${scene_archive}" ]]; then
+  if [[ -f "${scene_cached}" ]]; then cp "${scene_cached}" "${scene_archive}";
+  else curl --fail --location --retry 2 "https://codeload.github.com/moveit/moveit2/tar.gz/refs/tags/${scene_tag}" -o "${scene_archive}"; fi
+fi
+echo "18a2f4b8c00aa6a64c13effe93355f8d284b883fe67a7fa3704132dbb650d620  ${scene_archive}" | sha256sum --check
+tar -xzf "${scene_archive}" -C "${scene_work}" \
+  "moveit2-${scene_tag}/moveit_ros/perception" \
+  "moveit2-${scene_tag}/moveit_planners/pilz_industrial_motion_planner"
+set +u
+source /opt/ros/humble/setup.bash
+set -u
+scene_arch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+export LD_LIBRARY_PATH="${scene_dep_prefix}/usr/lib/${scene_arch}:${LD_LIBRARY_PATH:-}"
+export MAKEFLAGS="-j${CLEANY_BUILD_JOBS:-2}"
+colcon --log-base "${scene_work}/log" build \
+  --base-paths "${scene_work}/moveit2-${scene_tag}/moveit_ros/perception" \
+    "${scene_work}/moveit2-${scene_tag}/moveit_planners/pilz_industrial_motion_planner" \
+  --build-base "${scene_work}/build" --install-base "${scene_runtime_prefix}" \
+  --packages-select moveit_ros_perception pilz_industrial_motion_planner \
+  --allow-overriding moveit_ros_perception pilz_industrial_motion_planner \
+  --executor sequential --cmake-args -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DGLUT_INCLUDE_DIR="${scene_dep_prefix}/usr/include" \
+    -DGLUT_glut_LIBRARY="${scene_dep_prefix}/usr/lib/${scene_arch}/libglut.so"
+echo "${scene_tag}" > "${scene_runtime_prefix}/scene-runtime.receipt"
+echo "Matching scene runtime installed: ${scene_runtime_prefix}"

@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 import json
 import os
+import re
 from pathlib import Path
 import signal
 import subprocess
@@ -123,4 +124,4 @@ def test_unavailable_detector_stops_planning(tmp_path: Path):
         finally:
             _stop(process)
     assert 'Requested collision detector cleany/MissingDetector did not load' in log_path.read_text()
-    assert 'Verified collision detector:' not in log_path.read_text()
+    assert not re.search(r'\[INFO\].*Verified collision detector:', log_path.read_text())

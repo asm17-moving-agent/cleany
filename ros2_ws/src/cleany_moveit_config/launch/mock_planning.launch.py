@@ -9,13 +9,16 @@ from launch_ros.parameter_descriptions import ParameterValue
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def _mock_moveit_config():
+def _mock_moveit_config(include_head_camera='false', head_tilt_initial='0.405'):
     return (
         MoveItConfigsBuilder(
             'cleany', package_name='cleany_moveit_config'
         )
-        .robot_description(file_path='config/cleany_mock.urdf.xacro')
-        .robot_description_semantic(file_path='config/cleany.srdf')
+        .robot_description(file_path='config/cleany_mock.urdf.xacro',
+                           mappings={'include_head_camera': include_head_camera,
+                                     'head_tilt_initial': head_tilt_initial})
+        .robot_description_semantic(file_path='config/cleany.srdf.xacro',
+                                    mappings={'include_head_camera': include_head_camera})
         .robot_description_kinematics(file_path='config/kinematics.yaml')
         .joint_limits(file_path='config/joint_limits.yaml')
         .trajectory_execution(
@@ -49,7 +52,8 @@ def _controller_spawner(controller_name: str) -> Node:
 def generate_launch_description() -> LaunchDescription:
     use_rviz = LaunchConfiguration('use_rviz')
     use_sim_time = LaunchConfiguration('use_sim_time')
-    moveit_config = _mock_moveit_config()
+    moveit_config = _mock_moveit_config(LaunchConfiguration('include_head_camera'),
+                                      LaunchConfiguration('head_tilt_initial'))
     common_parameters = {
         'use_sim_time': ParameterValue(use_sim_time, value_type=bool)
     }
@@ -85,7 +89,7 @@ def generate_launch_description() -> LaunchDescription:
             {
                 'allow_trajectory_execution': True,
                 'publish_robot_description_semantic': True,
-                'capabilities': 'cleany/RequireCollisionDetector',
+                'capabilities': 'cleany/RequireCollisionDetector cleany/StateValidityBatch',
                 'collision_detector': LaunchConfiguration('collision_detector'),
                 'use_sim_time': ParameterValue(use_sim_time, value_type=bool),
             },
@@ -118,6 +122,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('use_rviz', default_value='true'),
             DeclareLaunchArgument('collision_detector', default_value='cleany/SolidFCL'),
             DeclareLaunchArgument('use_sim_time', default_value='false'),
+            DeclareLaunchArgument('include_head_camera', default_value='false', choices=['true', 'false']),
+            DeclareLaunchArgument('head_tilt_initial', default_value='0.405'),
             robot_state_publisher,
             ros2_control_node,
             _controller_spawner('joint_state_broadcaster'),
