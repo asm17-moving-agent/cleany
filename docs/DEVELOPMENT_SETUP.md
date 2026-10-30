@@ -220,3 +220,7 @@ pnpm build
 ## 기존 Mission Mock VM 환경
 
 이미 구성된 Ubuntu VM의 로컬 의존성과 통합 install은 Bash에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.bash`, zsh에서 `source /home/ubuntu/Documents/cleany-data/envs/mission-mock-ros/activate.zsh`로 적용한다. 셸에 맞는 파일을 사용한다. 이 파일은 새 환경의 설치 절차를 대신하지 않으며 Mission, 서버와 interfaces는 같은 worktree install에서 읽는다.
+
+## Jetson 얼굴 디스플레이 환경
+
+독립 디스플레이에는 ROS 2 Humble, colcon, `cleany_interfaces`의 rosdep 의존성, Python venv, Chromium, GNOME 그래픽 세션과 `gnome-session-inhibit`, curl, Noto CJK 글꼴이 필요하다. 부팅 후 전체 화면 표시에는 그래픽 자동 로그인이 필요하며 설치기는 로그인 설정을 바꾸지 않는다. `install-browser.sh`는 전용 폴더에 Playwright 1.64.1과 ARM64 브라우저를 설치하며 시스템 Python 패키지를 변경하지 않는다. 설치와 실행은 [디스플레이 운영](../ros2_ws/src/cleany_display/README.md)을 따른다.

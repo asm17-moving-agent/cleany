@@ -1,0 +1,47 @@
+{
+  "host": "127.0.0.1",
+  "port": 8770,
+  "poll_ms": 250,
+  "disconnect_grace_seconds": 3.0,
+  "completion_seconds": 6.0,
+  "failure_seconds": 10.0,
+  "odometry_timeout_seconds": 1.5,
+  "battery_timeout_seconds": 15.0,
+  "linear_threshold_m_s": 0.02,
+  "angular_threshold_rad_s": 0.05,
+  "override_max_seconds": 60.0,
+  "topics": {
+    "mission": "/mission/status",
+    "result": "/mission/result",
+    "manipulation": "/manipulation/execution_events",
+    "odometry": "/wheel/odom",
+    "battery": "/battery_state",
+    "display": "/cleany/display/state"
+  },
+  "mission_modes": {
+    "IDLE": "idle",
+    "NAVIGATE_TO_TARGET": "moving",
+    "RETURN_HOME": "moving",
+    "WORKING": "checking",
+    "POST_MISSION": "complete",
+    "CANCELLING": "idle",
+    "ERROR": "help"
+  },
+  "working_stage_modes": {
+    "ExecuteOne": "collecting"
+  },
+  "checking_substages": [
+    "ValidateRequest",
+    "EnsureReady",
+    "CaptureScene",
+    "SelectArmAndPath",
+    "ValidatePlan"
+  ],
+  "help_message": "상태를 확인해 주세요",
+  "connection_message": "연결을 확인해 주세요",
+  "rendering": {
+    "max_canvas_width": 1280,
+    "max_pixel_ratio": 2,
+    "max_fps": 60
+  }
+}
