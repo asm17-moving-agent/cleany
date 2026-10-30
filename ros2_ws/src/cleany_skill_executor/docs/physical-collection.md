@@ -21,6 +21,15 @@ MoveIt은 경로만 계산하고 실제 명령은 하드웨어 실행기가 보�
 저장소의 `supervised_collection_fixture.json`은 가짜 동작 포트를 위한 테스트 입력이다.
 프로필 검사 통과나 `commissioning_verified` 값만으로 실물 검증을 대신하지 않는다.
 
+실측 TCP의 FK는 `execution_reuse_measured_fk` ROS 파라미터로 재사용하며 기본값은 `true`다.
+요청 좌표계에서 TCP까지의 URDF 관절 위치가 정확히 같을 때 마지막 성공 결과 하나만 재사용한다.
+관절 위치, 모델, 좌표계, 요청 링크나 통신 복구 횟수가 바뀌면 다시 계산한다.
+해당 TCP 위치에 영향을 주지 않는 그리퍼 관절과 다른 팔의 변경은 재사용을 막지 않는다.
+URDF 의존관계를 해석할 수 없거나 관절 정보가 불완전하면 기존 FK 서비스를 호출한다.
+재사용할 때도 최신 피드백, 취소와 모터 fault 검사를 먼저 수행하며 충돌과 도착 판정은 저장하지 않는다.
+실행 시간 기록을 켜면 `pickup_pose_captured`, `pickup_departure_recorded`, `return_planned`에
+누적 재사용 횟수 `measured_fk_cache_hits`와 성공한 서비스 호출 횟수 `measured_fk_service_calls`를 남긴다.
+
 ## 복귀와 복구
 
 | 동작 | 적용 조건 |

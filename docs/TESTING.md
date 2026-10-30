@@ -302,6 +302,10 @@ GPU 검사는 `cleany_skill_executor/runtime_test/`에 두며 고정 CUDA 환경
 `CLEANY_BUILD_ROOT`로 운영 install과 분리하고 `MOTION_TEST_PYTHON`,
 `COLLECTION_TEST_PATHS`, `MOTION_PYTEST_ARGS`로 Python, 검사 범위와 pytest 인자를 지정한다.
 
+실측 FK 재사용 검사는 `cleany_skill_executor/test/test_measured_fk_reuse.py`에 모은다.
+실제 `CollectionPipeline.pose`에 합성 관절 상태와 가짜 FK 응답을 넣어 재사용, 무효화,
+실시간 감시 실패와 서비스 오류 처리를 검증하며 `test-collection-execution`에 포함한다.
+
 검사는 합성 센서, 가상 모션 포트, 임시 SQLite와 독립 ROS domain을 사용한다.
 실물 시리얼 포트를 열거나 모터를 움직이지 않으며, 종료, 취소, 늦은 응답,
 복구 차단과 기존 MuJoCo BT 계약을 함께 확인한다.

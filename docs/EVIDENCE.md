@@ -62,6 +62,25 @@ RealSense 검사 1개는 장치 실행 조건 미지정으로 제외했다. 테�
 최종 JUnit과 원본 및 output 보존 비교는
 `/home/cleany/cleany-data/reports/pr-d-test-trim-20261031/`에 보관한다.
 
+### D 실측 FK 재사용 검증 (2026-10-31)
+
+PR 68의 `926ef20`에 실측 FK 재사용 변경만 추가했다. Jetson Ubuntu 22.04 ARM64,
+ROS 2 Humble에서 별도 작업 트리와 build/install/log 경로를 사용했다.
+입력은 합성 관절 상태, 가짜 FK 응답과 기존 수거 실행 fixture다.
+새 검사는 파일 하나의 8개 사례로 모았으며 동일 상태의 재사용, 관절과 모델 및 통신 복구에
+따른 무효화, 링크 의존관계, 최신 상태 감시와 실패 응답 처리를 확인했다.
+
+집중 검사 8개와 `make test-collection-execution` 1,951개가 통과했다.
+집중 검사는 후자에 포함되므로 합산하지 않는다. 기존 D 의존 패키지 설치를 underlay로
+사용해 `make build`로 `cleany_skill_executor` 한 패키지만 새로 빌드했고,
+설치 환경의 두 변경 모듈이
+검증 소스와 같은 hash임을 확인했다. 설치 확인의 첫 경로 검사는 `--symlink-install`의
+build 경로를 허용하지 않아 실패했으며, 격리된 build 경로까지 확인하도록 고쳐 통과했다.
+코드 검사와 빌드는 첫 실행에 통과했다. 실물 동작, 전체 workspace와 성능 재측정은 하지 않았다.
+
+기준 commit, 소스 패치와 hash, 실행 환경과 명령, JUnit, 설치 확인과 기존 작업 트리 보존
+결과는 `/home/cleany/cleany-data/reports/pr68-fk-reuse-20261031/`에 보관한다.
+
 ## 실물 파지 계획과 실행 C 분리 검증 (2026-10-30)
 
 `94c0fcd`의 실물 계획과 실행 기반을 `bfe0f89`에 미커밋 패치로 분리했다.

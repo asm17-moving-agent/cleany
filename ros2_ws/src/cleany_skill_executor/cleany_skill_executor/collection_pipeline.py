@@ -45,6 +45,7 @@ from .core.hardware_execution import (
     CollisionValidationError, CommandPathValidationError, JointRangeValidationError,
 )
 from .core.joint_path import executable_joint_path
+from .core.measured_fk_cache import MeasuredFkCache
 from .execution_timing import timed_operation
 from .core.height_correction import (
     HeightCorrection, HeightCorrectionPolicy, height_correction_enabled,
@@ -113,6 +114,8 @@ class CollectionPipeline(PregraspPipeline):
         if not self.scene_monitor.required:
             raise ValueError('Physical collection requires require_sensor_scene:=true')
         self.config = config
+        self._reuse_measured_fk = self.declare_parameter('execution_reuse_measured_fk', True).value
+        self._measured_fk_cache = MeasuredFkCache()
         self.evidence = self.create_client(CheckManipulation, '/manipulation/check_evidence')
         self.cartesian = self.create_client(GetCartesianPath, '/compute_cartesian_path')
         self.joint_plan = self.create_client(GetMotionPlan, '/plan_kinematic_path')
@@ -224,6 +227,10 @@ class CollectionPipeline(PregraspPipeline):
 
     def event(self, stage: str, **fields):
         item = {'stage': stage, 'stamp_ns': self.get_clock().now().nanoseconds, **fields}
+        if (getattr(self, '_execution_timing_enabled', False) and stage in
+                ('pickup_pose_captured', 'pickup_departure_recorded', 'return_planned')):
+            item.update(measured_fk_cache_hits=getattr(self, '_measured_fk_cache_hits', 0),
+                        measured_fk_service_calls=getattr(self, '_measured_fk_cache_misses', 0))
         self.events.append(item)
         self.get_logger().info(json.dumps(item))
 
@@ -467,15 +474,33 @@ class CollectionPipeline(PregraspPipeline):
                    operation_mode=self.config.get('operation_mode', 'full_collection'))
 
     def pose(self, arm: str, link: str | None = None):
+        """Resolve measured FK, reusing geometry only after fresh hardware checks."""
         state = self.real.monitor()
+        frame, link = 'base_link', link or f'{arm}_grasp_tcp'
+        description = self.description
+        cache = self._measured_fk_cache
+        recovery = self.real.communication_recovery_count
+        key = (cache.key(description, frame, link, state.name, state.position, recovery)
+               if self._reuse_measured_fk else None)
+        cached = cache.get(key)
+        if (cached is not None and description == self.description
+                and recovery == self.real.communication_recovery_count):
+            self._measured_fk_cache_hits = getattr(self, '_measured_fk_cache_hits', 0) + 1
+            return self.pose_message(cached)
         request = GetPositionFK.Request()
-        request.header.frame_id = 'base_link'
-        request.fk_link_names = [link or f'{arm}_grasp_tcp']
+        request.header.frame_id = frame
+        request.fk_link_names = [link]
         request.robot_state.joint_state = state
         request.robot_state.is_diff = True
         response = self.call(self.fk, request)
         if response.error_code.val != 1 or len(response.pose_stamped) != 1:
             raise RuntimeError('Measured-state FK failed')
+        self._measured_fk_cache_misses = getattr(self, '_measured_fk_cache_misses', 0) + 1
+        if (key is not None and description == self.description
+                and recovery == self.real.communication_recovery_count
+                and response.fk_link_names == [link]
+                and response.pose_stamped[0].header.frame_id == frame):
+            cache.put(key, self.cartesian_pose(response.pose_stamped[0].pose))
         return response.pose_stamped[0].pose
 
     @staticmethod

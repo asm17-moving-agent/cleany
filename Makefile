@@ -684,7 +684,7 @@ COLLECTION_CORE_TESTS := approach_path approach_replanning automatic_goal cartes
 	command_progress height_correction manipulation_evidence recorded_trajectory
 COLLECTION_EXECUTION_TESTS := arrival_approach command_continuity fixed_jaw_pipeline \
 	hardware_collection hardware_execution height_correction_runtime held_object_collision_policy \
-	manipulation_client_preflight manipulation_evidence_node return_preparation \
+	manipulation_client_preflight manipulation_evidence_node measured_fk_reuse return_preparation \
 	runtime_readiness runtime_readiness_ros sparse_commands release_retreat_efficiency \
 	pregrasp_safety readonly_services
 COLLECTION_TEST_PATHS ?= $(addprefix $(ROS2_WS)/src/cleany_skill_executor/test/test_,$(addsuffix .py,$(COLLECTION_CORE_TESTS) $(COLLECTION_EXECUTION_TESTS))) \
