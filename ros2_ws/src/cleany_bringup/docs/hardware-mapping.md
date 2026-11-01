@@ -19,3 +19,7 @@ Runtime은 영속 센서/base/조종 launch와 매핑 관리자를 별도 프로
 키는 state_root/web-token(0600), 지도는 maps/, 녹화는 recordings/에 두며 저장소 소스나
 `.runtime` 빌드 경로를 사용하지 않는다. 시작 명령은 [RUNNING](../../../../docs/RUNNING.md),
 설치와 외부 드라이버는 [개발환경](../../../../docs/DEVELOPMENT_SETUP.md)을 따른다.
+
+조종 사건은 state_root의 `teleop-events.jsonl`과 회전 백업에 저장한다. 매핑 작업 오류는
+`maps/errors/<operation_id>.json`에서 확인하며, 진단 파일 저장에 실패하면
+`mapping.log`의 traceback을 확인한다. [진단 계약](../../cleany_teleop/docs/interfaces.md)을 따른다.

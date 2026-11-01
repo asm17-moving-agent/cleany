@@ -404,9 +404,13 @@ export function mountRemote({ getSpeed, onSpeedDisabled, onMaxSpeed }) {
         document.getElementById("lastStop").textContent =
           "최근 정지 사유 · " + status.last_stop_reason;
       const fault = document.getElementById("lastFault");
-      fault.hidden = !status.last_fault_reason;
-      if (status.last_fault_reason)
-        fault.textContent = "최근 통신·제어 정지 · " + status.last_fault_reason;
+      const permissionError = status.last_permission_error?.reason;
+      fault.hidden = !status.last_fault_reason && !permissionError;
+      if (!fault.hidden)
+        fault.textContent = [
+          status.last_fault_reason && ("최근 통신·제어 정지 · " + status.last_fault_reason),
+          permissionError && ("권한 요청 · " + permissionError),
+        ].filter(Boolean).join(" / ");
       showHeld();
       if (
         input.suspended &&

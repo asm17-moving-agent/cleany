@@ -243,3 +243,20 @@ Logger는 구독별 callback group과 단일 executor로 retired handle이 제�
 실행 의존성은 manifest에 유지하고, 일반 설치/장치 없는 CI에서는 두 외부 source-build 의존성만
 명시적으로 제외한다. CI의 조종 UI 빌드는 별도 Node 24 단계로 추가했다. 이 로컬 검사는 GitHub
 Actions 실행이나 실물 드라이버 설치를 대신하지 않는다.
+
+## 매핑과 조종 진단 검증 (2026-11-02)
+
+후속 진단 변경의 commit과 파일 hash는
+`artifacts/debug-diagnostics-02/source-manifest.json`에 기록한다. 환경은 로컬 Ubuntu 22.04
+ROS 2 Humble container이며 synthetic MCU와 합성 room scan을 사용했다.
+
+20개 패키지 빌드, Python core 61개와 조이스틱 17개, 관련 ROS 검사 428개가 통과했다.
+RPC 거절, 동기 및 비동기 예외, 빈 응답, 동일 실패 반복 조회, 시작과 정리의 동시 실패,
+진단 파일 저장 실패, 이벤트 큐 포화와 파일 회전은 core 검사로 확인했다.
+원본 로그는 같은 artifact 디렉터리의 `build.log`, `core.log`, `packages.log`에서 확인한다.
+
+설치 launch의 두 매핑 세션에서 지도와 pbstream, Logger bag 저장과 STOP 후 종료를 확인했다.
+관리자 종료 후 ROS 상태 캐시가 unavailable로 전환됐고 조종 사건 JSON Lines가 남았다.
+결과와 세션 경로는 `verification.json`, 종료 후 owned PID 확인은
+`ownership-verification.json`에 보존한다. 실물 USB, 실제 주행과 화면 렌더링은 검증 범위에
+포함하지 않았다. HTTP 자산 제공과 UI TypeScript 빌드는 확인했다.

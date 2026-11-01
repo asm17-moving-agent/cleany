@@ -117,3 +117,7 @@ Update 주기는 `update_period_s` 기본 0.05초다. 이름 외에도 body prof
 | 토픽 발행 | `navigation/bt_trace` | `std_msgs/msg/String` | R/T1; 입력 이벤트 처리 시, `output_topic` |
 
 시작할 때 `manifest_file`과 `xml_file`을 검증한다.
+
+`mapping/status`의 `error_code`, `error_file`은 마지막 작업 실패의 단계 코드와
+진단 JSON 경로다. 오류가 없으면 빈 문자열이며 새 작업 접수 시 초기화된다.
+`output`은 시작 준비 단계부터 제공되고, `generation`은 성공한 시작 횟수만 나타낸다.

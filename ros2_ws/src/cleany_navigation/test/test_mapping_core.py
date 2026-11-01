@@ -178,3 +178,89 @@ def test_late_periodic_save_cannot_write_into_a_new_generation(tmp_path, monkeyp
     future.set_result(Obj(status=Obj(code=0)))
     assert (old / "latest.pbstream").read_bytes() == b"old generation"
     assert not (new / "latest.pbstream").exists()
+
+
+def test_start_failure_exposes_artifacts_and_persists_full_traceback(tmp_path):
+    import json
+
+    class FailedBackend(Backend):
+        def start(self, output):
+            output.mkdir()
+            (output / "cartographer.log").write_text("startup details")
+            raise RuntimeError("missing scan-time TF")
+
+    controller = SessionController(FailedBackend(), tmp_path)
+    controller.request_reset("failed-start")
+    controller.perform_reset()
+    status = controller.snapshot()
+    assert status["phase"] == "failed" and status["generation"] == 0
+    assert (Path(status["output"]) / "cartographer.log").exists()
+    diagnostic = json.loads(Path(status["error_file"]).read_text())
+    assert diagnostic["error_code"] == "MAPPING_STARTING_FAILED"
+    assert (
+        diagnostic["request_id"] == "failed-start"
+        and diagnostic["output"] == status["output"]
+    )
+    assert (
+        "missing scan-time TF" in diagnostic["traceback"]
+        and "in start" in diagnostic["traceback"]
+    )
+    controller.request_reset("retry")
+    assert controller.snapshot()["error_code"] is None
+
+
+def test_diagnostic_storage_failure_keeps_original_error(tmp_path, monkeypatch):
+    import cleany_navigation.mapping_session as module
+
+    def unavailable(*_):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(module, "atomic_json", unavailable)
+    controller = SessionController(Backend(), tmp_path)
+    controller.request_reset("failure")
+    try:
+        raise RuntimeError("original RPC failure")
+    except RuntimeError as error:
+        controller.fail(error)
+    status = controller.snapshot()
+    assert status["phase"] == "failed" and status["error_file"] is None
+    assert (
+        "original RPC failure" in status["message"] and "disk full" in status["message"]
+    )
+
+
+def test_failed_start_preserves_original_and_cleanup_exceptions(tmp_path, monkeypatch):
+    import json
+    import sys
+    from cleany_navigation.mapping_backend import MappingBackend
+
+    monkeypatch.setitem(
+        sys.modules, "std_srvs.srv", Obj(Trigger=Obj(Request=lambda: None))
+    )
+    profile = tmp_path / "profile.yaml"
+    profile.write_text("{}")
+
+    class FailedBackend(MappingBackend):
+        def stop(self):
+            raise RuntimeError("logger flush failed")
+
+    backend = FailedBackend(
+        Obj(
+            get_node_names_and_namespaces=lambda: [("cleany_logger", "/")],
+            get_clock=lambda: Obj(now=lambda: Obj(nanoseconds=1)),
+        ),
+        {},
+        profile,
+        tmp_path,
+    )
+    output = tmp_path / "session"
+    with pytest.raises(RuntimeError) as captured:
+        backend.start(output)
+    formatted = "".join(
+        __import__("traceback").format_exception(
+            type(captured.value), captured.value, captured.value.__traceback__
+        )
+    )
+    assert "existing Logger" in formatted and "logger flush failed" in formatted
+    assert "startup failed" in str(captured.value)
+    assert json.loads((output / "session.json").read_text())["profile"] == {}

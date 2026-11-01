@@ -119,6 +119,8 @@ def nodes(context):
                     str(profile["phone_port"]),
                     "--max-speed",
                     str(profile["teleop"]["max_wheel_speed"]),
+                    "--event-log",
+                    str(Path(profile["token_file"]).parent / "teleop-events.jsonl"),
                     "--token-file",
                     profile["token_file"],
                 ],

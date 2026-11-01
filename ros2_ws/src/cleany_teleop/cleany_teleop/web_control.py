@@ -21,7 +21,7 @@ class Control:
     STOP, ENABLE, VELOCITY = 0, 1, 2
     MAX_WEB_VELOCITY = 10.0
 
-    def __init__(self, publish, now=time.monotonic):
+    def __init__(self, publish, now=time.monotonic, event_sink=None):
         self.publish, self.now = publish, now
         self.clock = FeedbackClock()
         self.state = None
@@ -41,11 +41,19 @@ class Control:
         self.stop_started_at = None
         self.stop_ack_ms = None
         self.events = deque(maxlen=24)
+        self.event_sink = event_sink
+        self.event_sink_error = None
         self.last_stop_reason = None
         self.last_fault_reason = None
 
     def event(self, kind, **details):
-        self.events.append(dict(at=round(self.now(), 3), kind=kind, **details))
+        event = dict(at=round(self.now(), 3), kind=kind, **details)
+        self.events.append(event)
+        if self.event_sink is not None:
+            try:
+                self.event_sink(dict(event))
+            except Exception as error:
+                self.event_sink_error = str(error)
 
     def packet(self, mode, targets=(0.0,) * 4):
         sequence = self.clock.next_sequence(
@@ -170,7 +178,7 @@ class Control:
         self.message = "이동 준비 중"
         self.stop_confirmed = False
         self.publish(self.pending)
-        self.event("press", sequence=sequence)
+        self.event("press", client=client, sequence=sequence)
 
     def stopped(self):
         return (
@@ -198,6 +206,7 @@ class Control:
         self.event(
             "stop",
             reason=reason,
+            client=self.owner,
             source=source,
             phase=self.phase,
             feedback_age_ms=round((self.now() - self.clock.received_at) * 1000, 1),
@@ -313,4 +322,5 @@ class Control:
             "last_stop_reason": self.last_stop_reason,
             "last_fault_reason": self.last_fault_reason,
             "events": list(self.events),
+            "event_sink_error": self.event_sink_error,
         }

@@ -365,3 +365,9 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 ros2 launch cleany_teleop teleop.launch.py \
   base_config:="$(ros2 pkg prefix --share cleany_base_driver)/config/base_hardware.yaml"
 ```
+
+문제가 발생하면 조종 상태 API의 `last_permission_error`, `event_log`와 매핑 상태 API의
+`status_age_ms`, `error_code`, `error_file`을 먼저 확인한다. 기본 실행의 조종 사건은
+`~/.local/state/cleany/hardware/teleop-events.jsonl`, 매핑 오류 JSON은
+`~/.local/state/cleany/hardware/maps/errors/`에 남는다. `state_root`를 바꿨다면 해당 경로를
+따른다. 오류 JSON을 쓰지 못한 경우 `state_root/mapping.log`에서 traceback을 확인한다.

@@ -152,7 +152,14 @@ class MappingNode(Node):
         if self.backend.save_error and snapshot["phase"] == "running":
             snapshot["message"] += " · 주기 저장 확인 필요: " + self.backend.save_error
         snapshot["stop_confirmed"] = snapshot["stop_confirmed"] is True
-        for name in ("operation_id", "request_id", "output", "previous_output"):
+        for name in (
+            "operation_id",
+            "request_id",
+            "output",
+            "previous_output",
+            "error_code",
+            "error_file",
+        ):
             snapshot[name] = snapshot[name] or ""
         self.status.publish(MappingStatus(**snapshot))
 

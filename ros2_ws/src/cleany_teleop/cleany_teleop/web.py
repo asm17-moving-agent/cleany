@@ -63,6 +63,14 @@ def main():
         type=Path,
         help="keep the same private access key across server restarts",
     )
+    parser.add_argument(
+        "--event-log",
+        type=Path,
+        default=Path("~/.local/state/cleany/teleop/events.jsonl"),
+    )
+    parser.add_argument("--event-log-max-bytes", type=int, default=2_000_000)
+    parser.add_argument("--event-log-backups", type=int, default=3)
+    parser.add_argument("--mapping-status-timeout", type=float, default=1.0)
     cli = sys.argv[1:]
     if "--ros-args" in cli:
         from rclpy.utilities import remove_ros_args
@@ -71,6 +79,13 @@ def main():
     args = parser.parse_args(cli)
     if not math.isfinite(args.max_speed) or not 0.5 <= args.max_speed <= 10:
         parser.error("max-speed must be finite and in [0.5, 10] rad/s")
+    if args.event_log_max_bytes <= 0 or args.event_log_backups < 1:
+        parser.error("event log bounds must be positive")
+    if (
+        not math.isfinite(args.mapping_status_timeout)
+        or args.mapping_status_timeout <= 0
+    ):
+        parser.error("mapping-status-timeout must be finite and positive")
     token = secrets.token_urlsafe(32)
     if args.token_file:
         args.token_file = args.token_file.expanduser().resolve()
@@ -97,6 +112,13 @@ def main():
             "조종 UI 빌드가 필요합니다: cd tools/esp32_motion/ui && npm ci && npm run build"
         )
     html = (ui_root / "index.html").read_bytes()
+    from cleany_teleop.event_journal import EventJournal
+
+    journal = EventJournal(
+        args.event_log,
+        max_bytes=args.event_log_max_bytes,
+        backups=args.event_log_backups,
+    )
     node = None
     synthetic_profile = False
     mapping = None
@@ -130,7 +152,13 @@ def main():
         signal.signal(signal.SIGINT, lambda *_: interrupted.set())
         signal.signal(signal.SIGTERM, lambda *_: interrupted.set())
         node = rclpy.create_node("phone_remote")
-        control, tick_status, mapping = bind(node, profile, lock)
+        control, tick_status, mapping = bind(
+            node,
+            profile,
+            lock,
+            event_sink=journal.emit,
+            mapping_status_timeout_s=args.mapping_status_timeout,
+        )
     else:
         started = time.monotonic()
         mock = SimpleNamespace(
@@ -165,7 +193,7 @@ def main():
             if newer(command.sequence, mock.last_command_sequence):
                 mock.last_command_sequence = command.sequence
 
-        control = Control(publish)
+        control = Control(publish, event_sink=journal.emit)
         control.subscriber_count = 1
 
     control.MAX_WEB_VELOCITY = args.max_speed
@@ -233,6 +261,7 @@ def main():
                 with lock:
                     status = control.status()
                 status["mock"] = args.mock or synthetic_profile
+                status["event_log"] = journal.status()
                 self.respond(200, status)
             else:
                 self.respond(404, {"error": "not found"})
@@ -332,6 +361,9 @@ def main():
                 control.tick()
         server.shutdown()
         server.server_close()
+        journal.close()
+        if journal.status()["error"]:
+            print(f"Teleop journal shutdown: {journal.status()}", file=sys.stderr)
         if node is not None:
             node.destroy_node()
             rclpy.shutdown()

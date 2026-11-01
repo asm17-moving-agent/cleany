@@ -5,10 +5,14 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
+import logging
+import traceback
 import threading
 import uuid
 from typing import Protocol
 from zoneinfo import ZoneInfo
+
+from .mapping_storage import atomic_json
 
 
 class Backend(Protocol):
@@ -33,6 +37,8 @@ class SessionState:
     output: str | None = None
     previous_output: str | None = None
     stop_confirmed: bool | None = None
+    error_code: str | None = None
+    error_file: str | None = None
 
 
 class SessionController:
@@ -82,6 +88,7 @@ class SessionController:
             self.state.message = "초기화 요청을 받았습니다."
             self.state.operation_id, self.state.request_id = operation_id, request_id
             self.state.stop_confirmed = None
+            self.state.error_code = self.state.error_file = None
             self.pending.set()
             return {"operation_id": operation_id, "duplicate": False}
 
@@ -92,10 +99,10 @@ class SessionController:
         while not self.closed.is_set():
             if not self.pending.wait(0.2):
                 if self.snapshot()["phase"] == "running" and not self.backend.active():
-                    self.update(
-                        phase="failed",
-                        message="SLAM 프로세스가 종료됐습니다. 기록을 확인하고 다시 초기화하세요.",
-                    )
+                    reason = getattr(
+                        self.backend, "inactive_reason", lambda: "Mapping child exited"
+                    )()
+                    self.fail(RuntimeError(reason))
                 continue
             self.pending.clear()
             if self.closed.is_set():
@@ -125,7 +132,7 @@ class SessionController:
                 previous_output=previous or self.snapshot()["previous_output"],
             )
         except Exception as error:
-            self.update(phase="failed", message=str(error))
+            self.fail(error)
 
     def perform_reset(self) -> None:
         """One operation at a time; exposed separately for deterministic lifecycle tests."""
@@ -163,7 +170,11 @@ class SessionController:
                 return
             stamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y%m%dT%H%M%S")
             output = self.output_root / f"hardware-slam-{stamp}-{uuid.uuid4().hex[:8]}"
-            self.update(phase="starting", message="새 지도와 odom 원점을 준비합니다.")
+            self.update(
+                phase="starting",
+                output=str(output),
+                message="새 지도와 odom 원점을 준비합니다.",
+            )
             self.backend.start(output)
             current = self.snapshot()
             self.update(
@@ -173,7 +184,46 @@ class SessionController:
                 generation=current["generation"] + 1,
             )
         except Exception as error:
-            self.update(phase="failed", message=str(error))
+            self.fail(error)
+
+    def fail(self, error: Exception) -> None:
+        snapshot = self.snapshot()
+        code = "MAPPING_" + snapshot["phase"].upper() + "_FAILED"
+        diagnostic = dict(snapshot)
+        diagnostic.update(
+            error_code=code,
+            exception_type=type(error).__name__,
+            exception_message=str(error),
+            traceback="".join(
+                traceback.format_exception(type(error), error, error.__traceback__)
+            ),
+            utc=datetime.now(ZoneInfo("UTC")).isoformat(),
+        )
+        target = (
+            self.output_root
+            / "errors"
+            / ((snapshot["operation_id"] or uuid.uuid4().hex) + ".json")
+        )
+        diagnostic["error_file"] = str(target)
+        error_file = None
+        message = str(error)
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            atomic_json(target, diagnostic)
+            error_file = str(target)
+        except Exception as storage_error:
+            message += f" · 진단 파일 저장 실패: {storage_error}"
+        logging.getLogger(__name__).error(
+            "Mapping failure code=%s operation=%s output=%s error_file=%s",
+            code,
+            snapshot["operation_id"],
+            snapshot["output"],
+            error_file,
+            exc_info=(type(error), error, error.__traceback__),
+        )
+        self.update(
+            phase="failed", message=message, error_code=code, error_file=error_file
+        )
 
     def close(self) -> None:
         self.closed.set()

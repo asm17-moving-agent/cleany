@@ -15,14 +15,16 @@ from cleany_interfaces.srv import MappingControl
 from geometry_msgs.msg import Twist
 from std_srvs.srv import SetBool
 
+from .mapping_status import MappingStatusCache
+
 from .driver_transport import DriverControl, DriverTransport, Geometry
 
 
 class MappingBridge:
-    def __init__(self, node):
+    def __init__(self, node, timeout_s=1.0):
         self.node = node
         self.lock = threading.RLock()
-        self.latest = None
+        self.cache = MappingStatusCache(timeout_s)
         self.client = node.create_client(MappingControl, "mapping/control")
         node.create_subscription(
             MappingStatus,
@@ -37,18 +39,16 @@ class MappingBridge:
 
     def observe(self, message):
         with self.lock:
-            self.latest = {
-                field: getattr(message, field)
-                for field in message.get_fields_and_field_types()
-            }
+            self.cache.observe(
+                {
+                    field: getattr(message, field)
+                    for field in message.get_fields_and_field_types()
+                }
+            )
 
     def status(self):
         with self.lock:
-            return (
-                dict(self.latest)
-                if self.latest
-                else {"phase": "unavailable", "message": "매핑 관리자를 기다립니다."}
-            )
+            return self.cache.status()
 
     def request_reset(self, request_id):
         if not isinstance(request_id, str) or not 1 <= len(request_id) <= 80:
@@ -70,7 +70,7 @@ class MappingBridge:
         return {"operation_id": response.operation_id}
 
 
-def bind(node, profile, lock):
+def bind(node, profile, lock, *, event_sink=None, mapping_status_timeout_s=1.0):
     """Create no WheelCommand publisher: only the base driver owns that topic."""
     geo = profile["geometry"]
     geometry = Geometry(
@@ -91,7 +91,9 @@ def bind(node, profile, lock):
         message.linear.x, message.linear.y, message.angular.z = axes
         velocity.publish(message)
 
-    control = DriverControl(DriverTransport(request, send, geometry))
+    control = DriverControl(
+        DriverTransport(request, send, geometry), event_sink=event_sink
+    )
 
     def feedback(message):
         with lock:
@@ -143,4 +145,4 @@ def bind(node, profile, lock):
                 )
             )
 
-    return control, tick_status, MappingBridge(node)
+    return control, tick_status, MappingBridge(node, mapping_status_timeout_s)

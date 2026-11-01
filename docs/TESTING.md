@@ -184,6 +184,8 @@ KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검�
 
 `make test-hardware-mapping-core`는 입력 lease, ordered permission의 MCU 확인, 스캔 필터,
 설정 검증, map origin yaw와 원자적 저장, 초기화 직렬화와 저장 실패를 검사한다.
+매핑 heartbeat 만료와 재수신, RPC 실패 원인 보존, 시작 실패의 로그 경로와 traceback,
+이벤트 파일 회전과 재시작 보존, 큐 포화와 디스크 장애도 검사한다.
 `make test-base BASE_TEST_ROS_DOMAIN_ID=174`는 기존 base 회귀와 새 구동 허가 계약을 검사한다.
 ROS graph 검사는 같은 domain에서 동시에 실행하지 않는다.
 
@@ -196,7 +198,8 @@ make test-hardware-mapping-runtime MAPPING_TEST_OUTPUT=/absolute/path/to/new-art
 
 이 검사는 domain 173에서 synthetic MCU와 합성 LiDAR를 사용한다. 저장소 밖 `/tmp`에서
 설치된 launch를 시작하고 단일 휠 publisher, 휴대폰 명령/해제, 지도 초기화와 중복 요청,
-두 세션의 map/pbstream 및 Logger bag, 최종 저장 후 종료를 확인한다. 실물 USB는 열지 않는다.
+두 세션의 map/pbstream 및 Logger bag, 최종 저장 후 종료를 확인한다. 관리자 종료 후 ROS
+상태 만료와 조종 이벤트 파일 저장도 확인한다. 실물 USB는 열지 않는다.
 물리 정지 거리, 현재 장착 TF의 정확도와 실제 바닥에서의 지도 품질은 별도 실물 검사다.
 
 `make test-hardware-mapping`은 관련 ROS 패키지를 domain 174에서 순서대로 검사한다.

@@ -33,3 +33,18 @@ Map YAML과 이미지는 임시 파일과 원자적 교체로 갱신한다.
 Cartographer는 map->odom, base relay는 odom->base_link, 단일 장착 TF는 base_link->sensor를
 소유한다. AMCL이나 별도 SLAM, Gazebo canonical odom과 동시에 실행하지 않는다.
 일반 Cartographer launch는 유지하고 실물 경로는 `cartographer_hardware_2d.lua`를 선택한다.
+
+## 실패 진단
+
+매핑 관리자는 시작 전에 `MappingStatus.output`을 설정하므로 준비 중 실패해도
+Cartographer와 Logger 로그의 세션 디렉터리를 찾을 수 있다. `generation`은 정상 시작이
+완료됐을 때만 증가한다.
+
+작업 실패 시 `error_code`는 실패 단계에 따른 `MAPPING_<PHASE>_FAILED`를 나타낸다.
+`error_file`은 output_root의 `errors/<operation_id>.json`을 가리킨다. 파일에는 UTC,
+요청과 작업 식별자, 세션 경로, 실패 당시 상태, 예외 타입과 전체 traceback이 포함된다.
+시작과 정리 작업이 모두 실패하면 두 예외를 함께 보존한다. 관리자의 표준 오류에도
+traceback을 출력하므로 진단 파일 저장 실패는 runtime의 `mapping.log`에서 확인한다.
+새 요청을 접수하면 현재 오류 필드는 초기화되며 기존 진단 파일은 유지된다.
+실행 중 자식이 종료되면 상태 메시지에서 Cartographer와 Logger를 구분하고 종료 코드와
+로그 경로를 제공한다.

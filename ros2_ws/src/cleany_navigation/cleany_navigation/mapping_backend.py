@@ -86,6 +86,19 @@ class MappingBackend:
             and self.logger_process.poll() is None
         )
 
+    def inactive_reason(self):
+        failures = []
+        for name, process in (
+            ("cartographer", self.process),
+            ("logger", self.logger_process),
+        ):
+            if process is None or process.poll() is not None:
+                code = None if process is None else process.returncode
+                failures.append(
+                    f"{name} exited (code={code}, log={self.output}/{name}.log)"
+                )
+        return "; ".join(failures) or "Mapping readiness lost"
+
     def rpc(self, client, request, timeout=4.0):
         if not client.wait_for_service(timeout_sec=timeout):
             raise RuntimeError(f"Service unavailable: {client.srv_name}")
@@ -432,7 +445,7 @@ class MappingBackend:
             )
             while time.monotonic() < deadline:
                 if not self.active() or self.logger_process.poll() is not None:
-                    raise RuntimeError("Mapping child exited during startup")
+                    raise RuntimeError(self.inactive_reason())
                 with self.lock:
                     from rclpy.time import Time
 
@@ -458,7 +471,12 @@ class MappingBackend:
             raise RuntimeError(
                 "SLAM readiness timed out: fresh scan-time TF, odom and new map required"
             )
-        except Exception:
-            # Startup without a map can be cleaned safely; save failures remain recoverable.
-            self.stop()
+        except Exception as startup_error:
+            # Retain both tracebacks if cleanup itself fails.
+            try:
+                self.stop()
+            except Exception as cleanup_error:
+                raise RuntimeError(
+                    f"Mapping startup failed: {startup_error}; cleanup failed: {cleanup_error}"
+                ) from cleanup_error
             raise

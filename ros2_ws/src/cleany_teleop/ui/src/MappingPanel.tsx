@@ -3,7 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-type MappingState = { phase: string; message: string; request_id?: string; generation?: number };
+type MappingState = {
+  phase: string;
+  message: string;
+  request_id?: string;
+  generation?: number;
+  error_code?: string;
+  error_file?: string;
+};
 const busy = new Set(["queued", "stopping", "waiting_usb", "starting"]);
 
 export function MappingPanel({ held }: { held: boolean }) {
@@ -47,6 +54,13 @@ export function MappingPanel({ held }: { held: boolean }) {
   return <Card className="gap-0 py-0"><CardContent className="space-y-3 p-4">
     <div className="flex items-center justify-between"><span className="text-sm font-medium">지도</span><Badge variant="outline">{state.phase === "running" ? "매핑 중" : state.phase === "failed" ? "확인 필요" : busy.has(state.phase) ? "준비 중" : "대기"}</Badge></div>
     <p className="text-xs text-muted-foreground" aria-live="polite">{state.message}</p>
+    {state.error_code && (
+      <details className="text-xs text-muted-foreground">
+        <summary>오류 기록</summary>
+        <p>{state.error_code}</p>
+        <code className="break-all">{state.error_file || "파일 저장 실패: 서버 로그 확인"}</code>
+      </details>
+    )}
     <Button type="button" variant="outline" className="w-full" disabled={held || sending || busy.has(state.phase) || state.phase === "unavailable"} onClick={reset}>지도 초기화</Button>
     {error && <p role="alert" className="text-xs">{error}</p>}
   </CardContent></Card>;

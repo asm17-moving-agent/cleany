@@ -57,6 +57,9 @@ def main():
     )
     rclpy.init()
     node = rclpy.create_node("hardware_mapping_probe")
+    from cleany_teleop.ros_transport import MappingBridge
+
+    mapping_bridge = MappingBridge(node)
     publisher = node.create_publisher(LaserScan, "scan_raw", qos_profile_sensor_data)
 
     def scan():
@@ -230,6 +233,8 @@ def main():
         wait(lambda: get("/api/mapping/status")["phase"] in ("running", "failed"))
         first = get("/api/mapping/status")
         assert first["phase"] == "running", first
+        assert first["connected"] and first["status_age_ms"] <= 1000
+        assert first["error_code"] == "" and first["error_file"] == ""
         results["first"] = first
         record_command_sample("record-first")
         time.sleep(5)
@@ -263,6 +268,30 @@ def main():
             results["shutdown"]["mapping_saved"]
             and results["shutdown"]["stop_confirmed"]
         ), results["shutdown"]
+        wait(lambda: not mapping_bridge.status()["connected"], timeout=5)
+        expired = mapping_bridge.status()
+        assert expired["phase"] == "unavailable" and expired["last_phase"]
+        assert expired["status_age_ms"] > 1000
+        results["expired_mapping_status"] = expired
+        event_log = results["released"]["event_log"]
+        assert Path(event_log["path"]) == state / "teleop-events.jsonl"
+        assert event_log["error"] is None and event_log["dropped"] == 0
+        events = [
+            json.loads(line)
+            for line in Path(event_log["path"]).read_text().splitlines()
+        ]
+        assert {"press", "moving", "stop", "permission_at_stop"} <= {
+            event["kind"] for event in events
+        }
+        assert all(
+            event["utc"] and event["run_id"] and event["event_id"] > 0
+            for event in events
+        )
+        results["event_journal"] = dict(
+            path=event_log["path"],
+            records=len(events),
+            kinds=sorted({event["kind"] for event in events}),
+        )
         import rosbag2_py
 
         for session in (first, second):

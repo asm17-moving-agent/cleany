@@ -54,3 +54,52 @@ def test_stop_supersedes_late_enable_reply():
     futures[1].set_result(SimpleNamespace(accepted=True, boot_id=1, command_sequence=2))
     state.last_command_sequence = 2
     assert transport.acknowledged(stop, state)
+
+
+@pytest.mark.parametrize(
+    "kind", ["rejected", "future_exception", "request_exception", "empty"]
+)
+def test_permission_failures_keep_reason_and_are_reported_once(kind):
+    from cleany_teleop.driver_transport import DriverControl
+
+    future = Future()
+    expected = "stale permission sequence"
+    if kind == "rejected":
+        future.set_result(SimpleNamespace(accepted=False, reason=expected))
+    elif kind == "empty":
+        future.set_result(None)
+        expected = "Base permission service returned no response"
+    else:
+        future.set_exception(ConnectionError(expected))
+
+    def request(*args):
+        if not args[-1]:
+            return Future()
+        if kind == "request_exception":
+            raise ConnectionError(expected)
+        return future
+
+    transport = DriverTransport(request, lambda _: None, Geometry(0.1, 0.2, 0.3))
+    control = DriverControl(transport)
+    control.pending = Command(Control.ENABLE, 1)
+    control.state = SimpleNamespace(boot_id=1, last_command_sequence=1)
+    transport.publish(control.pending)
+    for _ in range(50):
+        assert not control.ack()
+    failures = [
+        event for event in control.events if event["kind"] == "permission_failure"
+    ]
+    assert len(failures) == 1 and failures[0]["reason"] == expected
+    control.state = None
+    control.tick()
+    assert transport.last_permission_error["reason"] == expected
+    previous = dict(transport.last_permission_error)
+    transport.publish(Command(Control.STOP, 2))
+    assert transport.last_permission_error == previous
+    assert previous["client"] == transport.client and previous["request_sequence"] == 1
+    if "exception" in kind:
+        assert previous["exception_type"] == "ConnectionError"
+        assert (
+            "ConnectionError" in previous["traceback"]
+            and expected in previous["traceback"]
+        )

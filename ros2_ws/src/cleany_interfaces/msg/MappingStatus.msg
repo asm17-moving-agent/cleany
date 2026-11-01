@@ -6,3 +6,5 @@ uint64 generation
 string output
 string previous_output
 bool stop_confirmed
+string error_code
+string error_file
