@@ -240,3 +240,8 @@ LiDAR 드라이버 upstream은 [Slamtec/sllidar_ros2](https://github.com/Slamtec
 센서 by-id, baud, 장착 TF와 scan mode는 `cleany_bringup/config/mapping_*.yaml`에서 관리한다.
 장치가 없는 단위/모의 검사는 실물 드라이버 설치 없이 실행할 수 있지만 실물 launch에는 두 외부
 드라이버가 모두 설치돼 있어야 한다. 이 통합은 MCU 펌웨어를 빌드하거나 업로드하지 않는다.
+
+Humble의 공식 rosdep 규칙에는 위 두 드라이버가 없으므로 `make deps`와 장치 없는 CI는
+`sllidar_ros2`, `micro_ros_agent`만 명시적으로 제외한다. package.xml의 실행 의존성은 유지하고
+실물 실행 전 두 드라이버의 package prefix를 확인한다. CI는 호스트 Node 24에서 조종 UI와
+입력 검사를 먼저 빌드한 뒤 ROS 컨테이너의 workspace에 설치한다.

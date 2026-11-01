@@ -238,3 +238,8 @@ Logger는 구독별 callback group과 단일 executor로 retired handle이 제�
 
 브라우저 연결 호스트가 없어 실제 화면 렌더링은 이번 실행에서 확인하지 못했다.
 실물 장착 TF, 물리 정지 거리, 바닥 주행과 지도 품질은 이 합성 검사의 범위가 아니다.
+
+의존성 점검에서는 Humble rosdep에 `sllidar_ros2`, `micro_ros_agent` 규칙이 없는 것을 확인했다.
+실행 의존성은 manifest에 유지하고, 일반 설치/장치 없는 CI에서는 두 외부 source-build 의존성만
+명시적으로 제외한다. CI의 조종 UI 빌드는 별도 Node 24 단계로 추가했다. 이 로컬 검사는 GitHub
+Actions 실행이나 실물 드라이버 설치를 대신하지 않는다.

@@ -170,7 +170,7 @@ micro-ros-agent-build:
 deps:
 	source "$(ROS_SETUP)" && \
 	cd "$(ROS2_WS)" && \
-	rosdep install --from-paths src --ignore-src -r -y
+	rosdep install --from-paths src --ignore-src --skip-keys "sllidar_ros2 micro_ros_agent" -r -y
 
 deps-gazebo:
 	source "$(ROS_SETUP)" && \
