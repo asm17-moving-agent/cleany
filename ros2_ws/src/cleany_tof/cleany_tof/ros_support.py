@@ -8,7 +8,6 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from cleany_interfaces.msg import TofFrame
 from .core import Settings, observe
-from .proximity import model_id
 
 
 def settings(node):
@@ -18,9 +17,6 @@ def settings(node):
         node.declare_parameter(f.name, list(default) if isinstance(default, tuple) else default)
         value = node.get_parameter(f.name).value
         values[f.name] = tuple(value) if isinstance(default, tuple) else value
-    # Old per-zone validity thresholds cannot silently change the new contract.
-    if node.declare_parameter('min_valid', -1).value != -1 or node.declare_parameter('required_zones', [-1]).value != [-1]:
-        raise ValueError('remove obsolete min_valid/required_zones parameters')
     return Settings(**values)
 
 
@@ -135,40 +131,3 @@ class SupervisorView:
                    and math.isfinite(p.valid_for_s) and p.valid_for_s > elapsed
                    and ('NAVIGATION' in p.capabilities or 'MOBILE_MANIPULATION' in p.capabilities)
                    for p in self.state.permissions)
-
-
-class DepthProof:
-    """Consume live RGB-D coverage evidence without accepting retained/stale truth."""
-    def __init__(self, node, config):
-        from std_msgs.msg import String
-        self.node, self.s = node, config
-        self.proof = None
-        self.received = -math.inf
-        node.create_subscription(String, 'tof/depth_coverage', self.on_report, 1)
-
-    def on_report(self, msg):
-        import json
-        self.proof = None
-        if len(msg.data) > 16384:
-            return
-        try:
-            report = json.loads(msg.data)
-            if not isinstance(report, dict) or report.get('model_id') != model_id(self.s):
-                return
-            stamp, age = report['stamp_s'], report['source_age_s']
-            if any(type(v) not in (int, float) or not math.isfinite(v) for v in (stamp, age)) or age < 0:
-                return
-            self.proof, self.received = report, time.monotonic()
-        except (KeyError, TypeError, ValueError):
-            return
-
-    def snapshot(self):
-        if self.proof is None or self.node.count_publishers('tof/depth_coverage') != 1:
-            return None
-        now = self.node.get_clock().now().nanoseconds*1e-9
-        report = self.proof
-        ages = (now-report['stamp_s'], now-report['stamp_s']+report['source_age_s'],
-                time.monotonic()-self.received)
-        if any(not 0 <= a <= self.s.source_timeout_s for a in ages):
-            return None
-        return report

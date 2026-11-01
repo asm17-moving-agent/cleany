@@ -13,7 +13,6 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, qos_profile_action_status_de
 from action_msgs.msg import GoalStatus, GoalStatusArray
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
-from cleany_tof.proximity import model_id
 from nav_msgs.msg import Odometry
 from cleany_interfaces.action import DeskApproach
 from cleany_interfaces.msg import TofFrame, SystemState, SystemHeartbeat, MissionPermission, ComponentHealth
@@ -46,16 +45,11 @@ class World(Node):
         self.create_subscription(Twist, 'cmd_vel', self.outputs.append, 1)
         self.create_subscription(ComponentHealth, 'system/component_health', self.health.append, 10)
         self.client = ActionClient(self, DeskApproach, 'desk/approach')
-        self.timer = self.create_timer(.03, self.publish)
+        self.timer = self.create_timer(1/15, self.publish)
         self.nav_speed = .0
         self.frame_mode = 'range'
         self.sensor_ready = True
-        self.publish_proof = False
-        self.proof_covered = True
-        self.proof_age = .01
-        self.proof_model = model_id(Settings(calibrated=True))
         self.reasons = []
-        self.coverage = self.create_publisher(String, 'tof/depth_coverage', 1)
         self.create_subscription(String, 'proximity/status', lambda msg: self.reasons.append(msg.data), 1)
 
     def forward(self, msg):
@@ -78,13 +72,13 @@ class World(Node):
                 msg.target_status = [255 if self.frame_mode == 'no_return' else 4]*64
                 msg.valid = [False]*64
                 msg.distance_m = [.338]*64
+            elif self.frame_mode == 'partial':
+                for row in (2, 3, 4, 5):
+                    for col in (0, 1, 7):
+                        i = row*8+col
+                        msg.target_status[i], msg.valid[i] = 4, False
             msg.header.stamp, msg.header.frame_id = stamp, 'tof_link'
             self.frame.publish(msg)
-        if self.publish_proof:
-            self.coverage.publish(String(data=json.dumps(dict(contract='tof_sweep_v1',
-                model_id=self.proof_model, covered=self.proof_covered, reason='COVERED',
-                stamp_s=self.get_clock().now().nanoseconds*1e-9, source_age_s=self.proof_age,
-                requested=[self.nav_speed, 0., 0.], measured=[0., 0., 0.]))))
         if self.authority:
             hb = SystemHeartbeat(epoch='test-epoch')
             hb.header.stamp = stamp
@@ -277,44 +271,61 @@ def test_restarted_client_cancels_exact_journaled_goal_before_readiness(graph, t
         journal.close()
 
 
-def test_no_return_requires_live_matching_depth_coverage_without_faulting_sensor(graph):
+def test_no_return_allows_navigation_without_depth_proof_but_not_desk_action(graph):
     world, until = graph
     world.frame_mode, world.nav_speed = 'no_return', .2
-    until(lambda: world.reasons and world.reasons[-1] == 'NO_RETURN_UNCOVERED')
-    assert stopped(world.outputs[-1]) and world.health[-1].status == ComponentHealth.AVAILABLE
+    until(lambda: world.outputs and world.outputs[-1].linear.x > .19
+          and world.reasons[-1] == 'CLEAR'
+          and world.health[-1].status == ComponentHealth.AVAILABLE
+          and json.loads(world.health[-1].detail)['zones']['no_return'] == 64)
+    assert world.reasons[-1] == 'CLEAR' and world.health[-1].status == ComponentHealth.AVAILABLE
     rejected = world.goal()
     until(rejected.done)
-    assert not rejected.result().accepted  # No measured desk plane.
-    world.publish_proof = True
-    until(lambda: world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
-    assert 0 < world.outputs[-1].linear.x <= .080001
-    world.proof_covered = False
-    until(lambda: world.reasons[-1] == 'NO_RETURN_UNCOVERED')
-    assert stopped(world.outputs[-1])
-    world.proof_covered = True
-    until(lambda: world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
-    world.publish_proof = False
-    until(lambda: world.reasons[-1] == 'NO_RETURN_UNCOVERED')
-    assert stopped(world.outputs[-1]) and world.health[-1].status == ComponentHealth.AVAILABLE
+    assert not rejected.result().accepted
+    assert world.count_subscribers('tof/depth_coverage') == 0
 
 
-def test_stale_wrong_model_and_unreliable_frames_cannot_borrow_depth_proof(graph):
+def test_measurement_failure_and_sensor_fault_stop_separately_from_no_return(graph):
     world, until = graph
-    world.frame_mode, world.nav_speed, world.publish_proof = 'no_return', .1, True
-    until(lambda: world.reasons and world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
-    world.proof_age = 1.
-    until(lambda: world.reasons[-1] == 'NO_RETURN_UNCOVERED')
-    world.proof_age, world.proof_model = .01, 'wrong-profile'
-    baseline = world.seq
-    until(lambda: world.seq > baseline+3)
-    assert world.reasons[-1] == 'NO_RETURN_UNCOVERED'
-    world.proof_model = model_id(Settings(calibrated=True))
-    until(lambda: world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
+    world.frame_mode, world.nav_speed = 'no_return', .1
+    until(lambda: world.outputs and world.outputs[-1].linear.x > .09)
     world.frame_mode = 'bad'
     until(lambda: world.health[-1].status == ComponentHealth.UNAVAILABLE)
     assert stopped(world.outputs[-1])
     world.frame_mode = 'no_return'
-    until(lambda: world.reasons[-1] == 'NO_RETURN_DEPTH_COVERED')
+    until(lambda: world.outputs[-1].linear.x > .09)
     world.sensor_ready = False
     until(lambda: world.health[-1].status == ComponentHealth.UNAVAILABLE)
     assert stopped(world.outputs[-1])
+
+
+def test_desk_action_aborts_when_measured_plane_disappears(graph):
+    world, until = graph
+    until(lambda: world.client.server_is_ready() and world.seq > 8)
+    future = world.goal()
+    until(future.done)
+    handle = future.result()
+    assert handle.accepted
+    result = handle.get_result_async()
+    until(lambda: any(msg.linear.x > 0 for msg in world.selected))
+    world.frame_mode = 'no_return'
+    until(result.done)
+    assert result.result().status == GoalStatus.STATUS_ABORTED
+    assert not result.result().result.success
+    until(lambda: stopped(world.outputs[-1]))
+
+
+def test_desk_action_accepts_partial_quality_with_enough_measured_plane_support(graph):
+    world, until = graph
+    world.frame_mode = 'partial'
+    until(lambda: world.client.server_is_ready() and world.seq > 8)
+    future = world.goal()
+    until(future.done)
+    handle = future.result()
+    assert handle.accepted
+    until(lambda: world.selected and world.selected[-1].linear.x > 0)
+    result = handle.get_result_async()
+    handle.cancel_goal_async()
+    until(result.done)
+    assert result.result().status == GoalStatus.STATUS_CANCELED
+    until(lambda: stopped(world.outputs[-1]))

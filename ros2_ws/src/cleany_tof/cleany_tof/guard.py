@@ -7,8 +7,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from cleany_interfaces.msg import ComponentHealth
-from .proximity import limit_velocity
-from .ros_support import Inputs, DepthProof, SupervisorView, settings, steady_timer, twist, velocity
+from .proximity import ProximityDetector, limit_velocity
+from .ros_support import Inputs, SupervisorView, settings, steady_timer, twist, velocity
 
 
 class ProximityGuard(Node):
@@ -22,7 +22,8 @@ class ProximityGuard(Node):
         super().__init__('proximity_guard', **kwargs)
         self.s = settings(self)
         self.inputs = Inputs(self, self.s)
-        self.depth_proof = DepthProof(self, self.s)
+        self.detector = ProximityDetector(self.s)
+        self.frame_at = -math.inf
         self.supervision = SupervisorView(self)
         self.health = self.create_publisher(ComponentHealth, 'system/component_health', 10)
         self.command, self.command_at = (0., 0., 0.), -math.inf
@@ -45,15 +46,23 @@ class ProximityGuard(Node):
         healthy, detail = False, 'TOF_UNAVAILABLE'
         try:
             observation, age, measured = self.inputs.snapshot()
+            if self.frame_at != self.inputs.frame_at:
+                self.detector.update(observation, self.inputs.frame_at)
+                self.frame_at = self.inputs.frame_at
             healthy = self.s.calibrated and observation.available and self.graph_ok
-            detail = json.dumps(dict(available=healthy, zones=observation.counts()))
+            detection = self.detector.result
+            detail = json.dumps(dict(available=healthy, zones=observation.counts(),
+                obstacle_zones=len(detection.points), pending_zones=detection.pending_zones,
+                emergency=detection.emergency, held=detection.held))
             if not self.graph_ok:
                 reason = 'COMMAND_GRAPH_CONFLICT'
             elif not self.supervision.operable():
                 reason = 'SUPERVISOR_UNAVAILABLE'
             elif time.monotonic()-self.command_at <= self.s.command_timeout_s:
-                output, reason = limit_velocity(self.command, measured, observation, age, self.s, self.depth_proof.snapshot())
+                output, reason = limit_velocity(self.command, measured, detection, age, self.s)
         except ValueError as exc:
+            self.detector.reset()
+            self.frame_at = -math.inf
             reason = detail = str(exc)
         self.pub.publish(twist(output))
         self.status.publish(String(data=reason))

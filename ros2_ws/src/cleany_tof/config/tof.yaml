@@ -1,5 +1,5 @@
 # Commissioning candidates only. Movement stays inhibited until measured values
-# and complementary RGB-D protection are validated on the mounted robot.
+# are validated on the mounted robot. Existing independent safety stays enabled.
 /**:
   ros__parameters:
     calibrated: false
@@ -23,10 +23,21 @@
     command_timeout_s: 0.20
     max_speed: 0.25
     max_yaw_rate: 0.3
-    # NO_RETURN stays unknown; fresh matching RGB-D sweep evidence is mandatory.
-    no_return_max_speed: 0.08
-    no_return_max_yaw_rate: 0.10
+    # Native zone indices; start broad and exclude floor/self returns after mounting.
+    guard_rows: [0, 1, 2, 3, 4, 5, 6, 7]
+    guard_columns: [0, 1, 2, 3, 4, 5, 6, 7]
+    # Clearance from the footprint after margin + 3 * max_sigma_m, not raw range.
+    obstacle_clearance_m: 0.75
+    emergency_clearance_m: 0.03
+    cluster_distance_m: 0.20
+    min_cluster_zones: 2
+    confirm_s: 0.12
+    release_s: 0.20
+    hysteresis_m: 0.05
     approach_rows: [2, 3, 4, 5]
+    approach_columns: [0, 1, 2, 3, 4, 5, 6, 7]
+    min_plane_columns: 4
+    min_plane_rows: 2
     max_sigma_m: 0.03
     max_range_m: 4.0
     fit_residual_m: 0.025

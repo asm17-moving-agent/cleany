@@ -103,7 +103,8 @@ Update 주기는 `update_period` 기본 0.5초이며, 출력별 실제 발행은
 | 토픽 구독 | `/tf` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 | 토픽 구독 | `/tf_static` | `tf2_msgs/msg/TFMessage` | TF 기본 QoS |
 
-Update 주기는 `update_period_s` 기본 0.05초다. 이름 외에도 body profile과 안전 설정이 필요하다.
+충돌 검사와 속도 출력 주기는 `update_period_s` 기본 0.10초(10Hz)다. 기존 Collision Monitor와
+ToF의 주기는 별도로 유지한다. 이름 외에도 body profile과 안전 설정이 필요하다.
 
 ## nav2_bt_trace
 
@@ -140,8 +141,5 @@ System Supervisor의 복구 요청을 받아 해당 lifecycle manager에 RESET, 
 기존과 같은 경로를 사용한다. ToF endpoint와 계약은
 [ToF reference](../../cleany_tof/docs/interfaces.md)를 따른다.
 
-ToF 활성 시 `depth_coverage`는 기존 `head_pan/coverage` 진단과 별도로
-`tof/depth_coverage` (`std_msgs/msg/String`, R1)를 발행한다. ToF 설정 식별자, 평가한
-명령/실제 속도와 관측 시각을 포함하며, ToF frustum과 교차하는 제동 영역만 유한 depth로
-검증한다. 자체 주행 명령은 발행하지 않는다. `tof_coverage_enabled`, `tof_params_file`은
-공통 navigation launch가 설정한다. 소비 조건은 [ToF 계약](../../cleany_tof/docs/interfaces.md)을 따른다.
+기존 `depth_coverage`와 `head_pan/coverage`는 원래 observer 설정에 따른다. ToF는
+RGB-D coverage 근거를 요청하지 않으며 observer를 강제로 활성화하지 않는다.

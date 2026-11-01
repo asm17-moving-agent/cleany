@@ -118,7 +118,7 @@ class DeskApproachNode(Node):
         try:
             observation, _, measured = self.inputs.snapshot()
             if not observation.available:
-                raise ValueError('TOF_COVERAGE_INVALID')
+                raise ValueError('TOF_MEASUREMENT_UNAVAILABLE')
             self.plane = desk_plane(observation, self.s)
             command, state = self.controller.step(self.plane, measured, time.monotonic())
         except ValueError as exc:

@@ -1,5 +1,4 @@
 """Launch assembly only; robot geometry is synthetic and no processes start."""
-from pathlib import Path
 from xml.dom.minidom import parseString
 import pytest
 import yaml
@@ -9,8 +8,8 @@ from launch.utilities import perform_substitutions
 import cleany_navigation.launch_runtime as module
 
 
-@pytest.mark.parametrize('enabled', [True, False])
-def test_tof_launch_creates_depth_evidence_without_preexisting_observer_config(tmp_path, monkeypatch, enabled):
+@pytest.mark.parametrize('enabled,observer', [(True, False), (False, False), (True, True), (False, True)])
+def test_tof_launch_preserves_independent_depth_observer(tmp_path, monkeypatch, enabled, observer):
     body = tmp_path/'body.yaml'
     body.write_text('park_joints: {head_pan_joint: 0.0}\n')
     robot = tmp_path/'robot.yaml'
@@ -36,16 +35,23 @@ def test_tof_launch_creates_depth_evidence_without_preexisting_observer_config(t
     for action in description.entities:
         if isinstance(action, DeclareLaunchArgument) and action.default_value is not None:
             context.launch_configurations[action.name] = perform_substitutions(context, action.default_value)
+    if observer:
+        p = yaml.safe_load(robot.read_text())
+        p['depth_coverage'] = {'ros__parameters': {'enabled': True, 'update_period_s': .2}}
+        robot.write_text(yaml.safe_dump(p))
     context.launch_configurations.update(map=str(map_file), robot_params_file=str(robot),
                                          tof_enabled=str(enabled).lower())
     actions = module._launch(context, safety=True)
     nodes = [a for a in actions if isinstance(a, dict)]
     coverage = [n for n in nodes if n['executable'] == 'depth_coverage']
-    assert len(coverage) == int(enabled)
+    assert len(coverage) == int(observer)
     parameters = yaml.safe_load((merged/'parameters.yaml').read_text())
-    if enabled:
+    if observer:
         p = parameters['depth_coverage']['ros__parameters']
-        assert p['tof_coverage_enabled'] is True and p['profile'] == str(body)
-        assert Path(p['tof_params_file']).name == 'tof.yaml'
-        assert p['update_period_s'] == .05
+        assert 'tof_coverage_enabled' not in p and p['profile'] == str(body)
+        assert p['update_period_s'] == .2
+    if enabled:
         assert parameters['voxel_guard']['ros__parameters']['output_topic'] == 'proximity/input'
+        assert {'tof_driver', 'proximity_guard', 'desk_approach'} <= {n['executable'] for n in nodes}
+    else:
+        assert not any(n['package'] == 'cleany_tof' for n in nodes)

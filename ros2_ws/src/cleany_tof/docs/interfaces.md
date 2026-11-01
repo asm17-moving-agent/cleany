@@ -1,135 +1,137 @@
-# ToF와 정밀 접근
+# ToF 근접 감지와 책상 접근
 
-## 명령과 책임
+ToF는 유효한 거리 return으로 근거리 장애물을 보완 감지하고 책상 전면까지의 거리와
+방향을 측정한다. 정상 `NO_RETURN`은 장애물 미검출이며 주행 차단 사유가 아니다.
+모든 Zone의 유효성이나 RGB-D free-space 증명을 요구하지 않는다. 미검출이 실제 빈
+공간을 보장하지는 않으며 ToF와 다른 센서가 같은 장애물을 모두 놓칠 수 있다.
 
-`tof_enabled:=true`인 공통 navigation launch의 경로는 다음과 같다.
+## 명령 경로와 책임
 
 ```text
-Nav2 → nav2/cmd_vel → desk_approach 명령 선택 → motion/cmd_vel
+Nav2 / 공식 teleop → nav2/cmd_vel → desk_approach 명령 선택 → motion/cmd_vel
   → 기존 pan gate → Collision Monitor → 기존 voxel/reactive guard
   → proximity/input → proximity_guard → cmd_vel → base driver → MCU watchdog
 
-RGB-D 원본 + CameraInfo + TF + odom + 선택 명령
-  → 기존 depth_coverage의 ToF 영역 평가 → tof/depth_coverage → proximity_guard
+USB JSONL → tof_driver → tof/frame → 공통 Observation → guard와 approach
+Mission → Nav2 staging와 정지 확인 → desk/approach → 후속 작업
 ```
 
-기존 안전 단계를 우회하거나 polygon을 줄이지 않는다. LiDAR와 Nav2는 경로와 관측한
-장애물을, 기존 3D 안전 경로는 로봇의 보호 형상을 담당한다. 2D LiDAR가 정상이라는 사실만으로
-ToF 높이의 책상 전면이나 돌출물까지 보호된다고 간주하지 않는다. ToF 미검출을 costmap의
-자유 공간, clearing ray 또는 무한 거리로 발행하지 않는다.
+기존 LiDAR, RGB-D와 Nav2 Collision Monitor의 보호, 최종 속도 경계와 모터 watchdog을
+유지한다. ToF 미검출을 costmap clearing ray로 발행하지 않는다. 기존 head-pan
+`depth_coverage` observer는 원래 설정과 책임을 유지하며 ToF에 의존하지 않는다.
+ToF 전용 `tof/depth_coverage`, 모델 hash와 sweep proof 경로는 제거했다.
 
-`tof_driver`는 통신과 센서 세션, `proximity_guard`는 순간 제한, `desk_approach`는 명령
-선택과 접근을 소유한다. Supervisor는 시스템 가용성, Fault, lease와 Mission 중단을 소유한다.
-일반 장애물이나 정상 미검출 자체는 System Fault가 아니다. `tof_required=true`이면 가드의
-`tof_proximity` 가용성을 `BASE_MOTION`의 필수 근거로 사용한다. 가용성과 특정 이동의
-관측 가능성은 별개이며, 관측이 불충분한 이동은 로컬에서 정지한다.
+드라이버는 통신과 센서 세션을, guard는 순간 속도 제한을, approach는 명령 선택과
+접근 Action을 소유한다. Supervisor는 가용성, Fault, lease와 Mission stop을 관리한다.
+정상 미검출과 실제 장애물에 따른 정지는 System Fault가 아니다. `tof_required=true`는
+`tof_proximity`를 기존 `BASE_MOTION`의 필수 가용성 근거에 추가한다. 센서 복구만으로
+Mission을 자동 재개하지 않는다.
 
-## Zone과 프레임의 의미
+## 측정과 장애 구분
 
-[ST UM3183 Rev 7](https://www.st.com/resource/en/user_manual/um3183-a-guide-for-using-the-artificial-intelligence-enabler-vl53l7ch-and-vl53l8ch-multizone-timeofflight-tof-sensors-stmicroelectronics.pdf)의
-6.5 target status와 6.6 driver 오류는 다른 필드와 의미다. 제공 firmware의 `valid`는 target이
-있고 status 5/9인 경우에만 true이며 이 wire 계약은 유지한다.
-
-| 분류 | 조건 | 처리 |
+| 상태 | 조건 | 근접 감지와 평면 처리 |
 |---|---|---|
-| `RANGE` | count > 0, status 5/9, valid=true, 양수 유한 거리와 sigma 한계 충족 | 장애물 검사와 평면 fit에 사용 |
-| `NO_RETURN` | count=0, target_status=255, valid=false | 정상 수신된 미검출; 거리와 sigma 슬롯은 사용하지 않음. 빈 공간의 증거가 아님 |
-| `UNRELIABLE` | 품질 불량, 허용하지 않은/알 수 없는 status, 범위 밖 거리나 불일치 | 위험 방향이면 정지. RGB-D 근거로 이 분류를 우회하지 않음 |
-| `NOT_UPDATED` | target_status=0 | 미갱신; 위험 방향이면 정지 |
-| 센서 세션 불가용 | sensor_ready=false, 통신/JSON/순서/지연 오류, firmware fault, 오래된 입력 | 모든 방향에서 fail-safe 정지 |
+| `RANGE` | count>0, status5/9, firmware valid=true, 유한 양수 거리와 허용 sigma | ROI 안의 실제 거리점으로 사용 |
+| `NO_RETURN` | count=0, target_status255, valid=false | 정상 미검출. 잔여 거리/sigma 슬롯은 사용하지 않음 |
+| `UNRELIABLE` | 불량 품질, 허용하지 않은 상태, 범위 위반 또는 불일치 | 해당 Zone 제외. 다른 Zone까지 무효화하지 않음 |
+| `NOT_UPDATED` | target_status0 | 해당 Zone 제외 |
+| 세션/입력 불가용 | sensor_ready=false, 통신/형식 오류, stale frame/odom, 전부 불신뢰/미갱신 | zero와 가용성 철회 |
 
-미검출의 잔여 거리 슬롯에는 실제 로그에서도 338mm 같은 값이 있다. 이를 가까운 물체나
-먼 거리 어느 쪽으로도 사용하지 않는다. 반대로 driver event의 `status=255`는 zone의
-`target_status=255`와 다르며 세션 불가용으로 처리한다. 3.5m 부근의 미검출 관찰은 모든
-표면과 조명에서 그 거리까지 자유 공간을 보장하지 않는다. `max_range_m`도 검출 보장이 아니다.
+전체 Zone이 NO_RETURN이어도 정상 관측이다. 전부 품질 불량인 frame은 미검출과 구별해
+사용 불가능으로 처리한다. 개별 불량 Zone은 무시하므로 해당 방향의 검출 능력은 줄어든다.
+`ComponentHealth`는 입력과 guard의 가용성이지 공간 전체의 안전 증명이 아니다.
 
-fresh `sensor_ready=true` frame에 RANGE 또는 NO_RETURN이 있으면 수신된 관측으로 유지한다.
-모든 Zone이 불신뢰/미갱신이면 관측 불가용이다. 일부 불신뢰 Zone은 개수로 평균내어 지우지 않고
-방향별 판단에 남긴다. `ComponentHealth`는 가드와 입력의 가용성을 보고하며 주행 허용을 의미하지 않는다.
+firmware의 valid(status5/9) 의미는 바꾸지 않는다. Zone target_status255와 firmware
+오류 event status255는 별개다. 후자는 sensor_ready를 즉시 false로 발행하고 세션을
+닫는다. 통신 순서, backlog, acquisition 추정과 재연결 검사를 유지한다. 연결 시
+`stop` 확인 후 `cnh off`, `config 64 15 400000`, `start`를 사용한다. 부분 read를 누적하며
+재부팅 기본 10Hz frame은 주행 입력으로 수락하지 않는다. read 완료에서 read 시간과
+한 주기를 빼 stamp를 추정하므로 첫 frame부터 존재한 일정 USB 지연은 실측이 필요하다.
 
-## 방향별 Coverage
+## ROI 장애물 필터와 속도 제한
 
-전역 `min_valid`와 `required_zones`는 제거했다. 예전 프로파일에 이 키가 남으면 설정 오류로
-거부하며, 값만 줄여 통과시키는 방식은 지원하지 않는다.
+`guard_rows`와 `guard_columns`는 native 8×8 인덱스의 감시 ROI다. 기본은 전체 Zone이며
+장착 후 바닥, 로봇 몸체와 필요한 보호 높이를 보고 조정한다. flip과 extrinsic은 거리
+투영에 적용한다. 센서 +x는 전방, +y는 영상 왼쪽, +z는 위쪽이다. 별도 TF를 발행하지 않는다.
 
-명령과 실제 odometry 각각에서 접근하는 축 방향과 Zone의 네 모서리 ray를 비교한다.
-회전은 모든 Zone을 관련 영역으로 본다. 센서가 footprint 밖에 있을 때는 그 leading face도
-보수적으로 포함한다. 반대 방향 Zone을 무시해도 그 곳을 자유 공간으로 선언하는 것은 아니며,
-측후방 보호는 기존 안전 계층의 책임이다. 모든 유효 거리 return은 관련 Zone 분류와 별개로
-근접 정지와 제동 검사에 계속 사용한다.
+거리 임계값은 raw sensor range가 아니라 직사각형 footprint까지의 평면 거리에서
+`margin + 3*max_sigma_m`를 뺀 clearance다. 높이는 ROI로 선택하며 3D 몸체 충돌 모델을
+새로 만들지 않는다. 다음 값은 미장착 상태의 조정 가능한 초기 후보다.
 
-| 위험 방향의 관측 | 결과 |
-|---|---|
-| 신뢰할 수 있는 거리만 있음 | 기존 거리·속도 기반 제한 |
-| 불신뢰/미갱신 Zone이 있음 | `UNRELIABLE_COVERAGE`, 정지 |
-| 정상 미검출이 있고 독립 coverage 근거가 없음 | `NO_RETURN_UNCOVERED`, 정지 |
-| 정상 미검출이며 일치하는 fresh RGB-D 근거가 있음 | `NO_RETURN_DEPTH_COVERED`, 제한 속도로 진행 가능 |
+| 설정 | 기본 후보 | 의미 |
+|---|---|---|
+| `obstacle_clearance_m` | 0.75m | 일반 장애물 검출 범위 |
+| `min_cluster_zones` / `cluster_distance_m` | 2 / 0.20m | 상하좌우 인접하고 실제 점 간 거리도 가까운 cluster |
+| `confirm_s` | 0.12s | 같은 Zone의 공간 support 지속 시간, 15Hz에서 보통 3 frames |
+| `emergency_clearance_m` | 0.03m | 유효한 단일 Zone도 첫 frame부터 정지 |
+| `hysteresis_m` / `release_s` | 0.05m / 0.20s | 검출 해제 거리와 시간 여유 |
+| `max_speed` / `max_yaw_rate` | 0.25m/s / 0.3rad/s | 최종 명령 상한 |
 
-`depth_coverage`는 기존 finite depth 투영과 body sweep 로직을 재사용한다. ToF frustum과
-교차하는 제동 영역의 cube 전체를 투영하며, 그 사각형의 모든 pixel에 유한하고 더 먼 depth가
-있어야 한다. 희박한 point cloud, +inf, 시야각만의 겹침, 오래된 occupancy, guard의 PASS
-문자열은 근거가 아니다. 현재 몸체 내부의 실제 형상만 제외하고, 보수적으로 확대한 ToF
-footprint를 몸체 내부로 간주해 누락 영역을 없애지 않는다.
+guard의 30Hz timer가 같은 frame을 여러 번 확인한 것으로 세지 않는다. 수신한 새
+frame마다 monotonic 시각으로 갱신하며 긴 입력 공백, 시간 역행 또는 불가용 입력이면
+필터 이력을 폐기한다. 서로 떨어진 cluster나 반복 flash가 같은 Zone에서 지속된 것으로
+누적되지 않는다. 확인된 Zone은 해제 거리 이내의 유효 return이 남으면 유지된다.
 
-별도 `tof_sweep_v1` 근거는 같은 ToF 설정의 SHA256 `model_id`, 평가한 requested/measured
-벡터, source age, 발행 시각과 covered/reason을 갖는다. 기존 `head_pan/coverage` 전체 몸체
-진단과 구분한다. 가드는 ROS 시각과 monotonic 수신 나이를 모두 확인하고, 모델이 다르거나
-현재 명령/실제 속도가 평가한 제동 궤적의 같은 방향 비례 축소로 포함되지 않으면 거부한다.
-이 근거는 `source_timeout_s` 안에서만 유효하고 publisher도 하나여야 한다. 근거 생성 시
-별도의 보수적인 감속도, 추가 지연과 frustum 이동 여유를 적용한다. 다른 방향이나 더 빠른
-속도로 바뀌면 새 근거를 기다리며, 유한 depth가 사라지면 이전 근거도 철회된다.
+일부 확인된 Zone이 미검출되면 남은 실제 거리점을 계속 사용한다. 확인된 거리점이 모두
+미검출되거나 해제 거리 바깥으로 사라지면 최대 release_s 동안
+`OBSTACLE_HOLD`로 정지한다. 이동한 base frame에서 이전 점을 재사용하지 않는다.
+비상 정지는 emergency_clearance+hysteresis 안의 return이 사라진 후 release_s 뒤 해제한다.
+미검출만 있는 초기/정상 frame은 이 정지 이력을 새로 만들지 않는다.
 
-미검출 보조 보호의 후보 상한은 0.08m/s와 0.10rad/s다. x/y/yaw를 같은 비율로 줄인다.
-일반 제동은 margin과 최대 sigma의 3배를 빼고 다음 조건을 검사하며 실제 속도가 이미
-허용 제동 범위를 초과하면 0을 출력한다.
+확정된 거리점에 명령과 실제 odom의 접근 속도를 검사한다. x/y 중 접근하는 성분이
+있으면 병진 norm을, 회전에는 footprint 외접반경을 사용한다. 허용 속도는 다음 식으로
+구하고 x/y/yaw 전체를 같은 비율로 줄인다. 이미 실제 속도가 envelope를 넘으면 zero다.
 
 ```text
-clearance >= closing_speed × (reaction_s + sample_age) + closing_speed² / (2 × deceleration)
+clearance >= closing_speed * (reaction_s + confirm_s + sample_age)
+             + closing_speed^2 / (2 * deceleration)
 ```
 
-RGB-D 근거는 정적 환경, 설정된 parked body와 기존 비례 제동 모델의 관측 증거다.
-미장착 센서의 실제 중첩, 미세 물체, 움직이는 장애물, slip 또는 독립 축 제동의 보장은 아니다.
-센서 오류나 품질 불량을 이 근거로 통과시키지 않는다.
+`PROXIMITY_STOP`, `BRAKING_ENVELOPE`, `OBSTACLE_HOLD`는 장애물 대응이다. `LIMITED`는
+감속, `CLEAR`는 검출에 의한 추가 제한 없음이다. 센서/odom/명령 지연, 미보정,
+Supervisor 상실과 명령 graph 충돌은 별도의 정지 사유다. 매우 가까운 return과 해제
+hold는 이동 방향에 관계없이 정지한다. 그 외에는 멀어지는 방향을 허용한다.
 
-## ROS endpoint
+일반 검출의 지연, ROI 밖 물체, 기준보다 작은 cluster와 불량 return은 놓칠 수 있다.
+제동 식에 confirm_s를 포함해도 그 지연과 센서 관측 한계의 물리 안전성을 보장하지 않는다.
 
-| 노드 | 방향과 기본 이름 | 타입 | QoS와 조건 |
-|---|---|---|---|
-| `tof_driver` | 발행 `tof/frame` | `cleany_interfaces/msg/TofFrame` | R1; 64 native Zone, 거리/sigma m, 약 15Hz; fault 시 sensor_ready=false |
-| 두 ToF 제어 노드 | 구독 `tof/frame`, `odom` | `TofFrame`, `nav_msgs/msg/Odometry` | R1 / Sensor; frame_id=tof_link, canonical odom |
-| `depth_coverage` | 발행 `tof/depth_coverage` | `std_msgs/msg/String` | R1; ToF 활성일 때 기본 20Hz, bounded JSON 근거 |
-| `proximity_guard` | 구독 `tof/depth_coverage` | 같은 타입 | R1; 지연/모델/속도 불일치 거부 |
-| `proximity_guard` | 구독 `proximity/input`, 발행 `cmd_vel` | `geometry_msgs/msg/Twist` | R1; 출력 30Hz steady timer |
-| `proximity_guard` | 발행 `proximity/status` | `std_msgs/msg/String` | R1; 로컬 정지/제한 사유 |
-| `proximity_guard` | 발행 `system/component_health` | `cleany_interfaces/msg/ComponentHealth` | R10; source=tof_proximity, detail JSON에 분류별 개수 |
-| `desk_approach` | 구독 `nav2/cmd_vel`, 발행 `motion/cmd_vel` | `geometry_msgs/msg/Twist` | R1; 명령 선택, 출력 30Hz |
-| `desk_approach` | 구독 `navigate_to_pose/_action/status` | `action_msgs/msg/GoalStatusArray` | Action status; 활성 Nav2와 동시 소유 거부 |
-| 두 제어 노드 | 구독 `system/heartbeat`, `system/state` | `SystemHeartbeat`, `SystemState` | R1 / R/T1; epoch, stamp, 수신 시각 검사 |
-| `desk_approach` | 제공 `desk/approach` | `cleany_interfaces/action/DeskApproach` | Action 기본값; feedback/cancel/result |
-| Mission | 호출 `desk/approach`, 해당 cancel service | `DeskApproach`, `action_msgs/srv/CancelGoal` | 좌석 staging 이후; 재시작 시 journal goal 취소 |
+## 책상 접근
 
-`tof.yaml`의 공통 `/**` 설정을 보조 coverage와 두 ToF 제어 노드에 동일하게 적용한다.
-개별 노드의 기하/제동 override가 공통 파일과 달라지면 보조 근거를 수락하지 않는다.
-`tof_link` +x는 센서 전방, +y는 영상 왼쪽, +z는 위쪽으로 투영하며 실제 flip/extrinsic은
-장착 후 확인해야 한다. 별도 TF를 발행하지 않는다.
+Nav2 staging와 실제 정지 확인 후 `DeskApproach`를 요청한다. `approach_rows`(기본2–5)와
+`approach_columns`(기본0–7)의 RANGE만 사용한다. 미검출/불량 Zone은 보간하지 않는다.
+각 `min_plane_rows=2`개 이상의 실제 sample이 있는 `min_plane_columns=4`개 이상의
+columns와 `min_plane_span_m=0.15m` 폭을 요구한다. column median으로
+`x=distance+slope*y`를 fit하고 전체 선택 sample의 residual와 yaw 한계를 검사한다.
+일부 불량 Zone만으로 실패하지 않지만 실제 support가 적거나 전면이 모호하면 시작을
+거부하거나 진행 중 zero를 내고 abort한다. 미검출만으로 책상이나 도착을 추정하지 않는다.
 
-## USB와 Desk Approach
+정렬 후 최대0.04m/s, 0.08rad/s로 접근한다. 목표는 base_link 원점에서 평면 y=0 교점까지의
+거리이며 범퍼 gap이 아니다. 좌우 중심은 staging pose에 의존한다. 목표 오차 내 실제
+odom 정지가 settle_s=0.6초 유지되어야 성공한다. Mission도 정지 feedback을 확인한다.
+취소, timeout, overshoot, no progress, Nav2 동시 goal, 센서/평면 소실과 lease 회수는
+성공이 아니다. 서버는 기존 Mission lease의 epoch/version/lifetime만 검증하며 신규
+권한을 발급하거나 연장하지 않는다. 재시작 journal의 해당 Action goal만 취소한다.
 
-USB는 `stop` 확인 후 `cnh off`, `config 64 15 400000`, `start`로 새 세션을 만든다.
-재부팅 기본값 10Hz는 수락하지 않는다. 부분 read, 배열/valid 계약, sequence/device timestamp,
-backlog와 지연을 검사한다. firmware event 오류와 비정상 state는 즉시 ROS sensor_ready를
-철회하며 포트를 닫는다. exposure 시각은 동기화되어 있지 않으므로 read 완료에서 read 시간과
-한 주기를 빼 acquisition을 추정한다. 첫 frame부터 일정한 USB 지연은 별도 실측해야 한다.
+## ROS endpoint와 배포
 
-Desk Approach는 NO_RETURN을 평면점으로 채우지 않는다. 선택 행에 불신뢰/미갱신이 있으면
-거부하고, 미검출을 제외한 실제 거리로 6개 이상 column(각 2개 이상 행), 폭과 residual 조건을
-만족해야 한다. 보조 RGB-D coverage가 있어도 책상 평면 자체가 없으면 시작/성공할 수 없다.
+| 노드 | 기본 endpoint | 타입과 조건 |
+|---|---|---|
+| tof_driver | 발행 `tof/frame` | TofFrame, R1, sensor_ready, 64 native Zone, tof_link, 거리/sigma m, 15Hz |
+| guard / approach | 구독 `tof/frame`, `odom` | TofFrame R1 / Odometry Sensor, ROS와 monotonic freshness |
+| proximity_guard | 구독 `proximity/input`, 발행 `cmd_vel` | Twist R1, 출력30Hz steady timer |
+| proximity_guard | 발행 `proximity/status` | String R1, 제한/정지 사유 |
+| proximity_guard | 발행 `system/component_health` | ComponentHealth R10, source=tof_proximity, 분류 개수와 pending/obstacle/emergency/held |
+| desk_approach | 구독 `nav2/cmd_vel`, 발행 `motion/cmd_vel` | Twist R1, 단일 명령 선택 |
+| desk_approach | 구독 `navigate_to_pose/_action/status` | GoalStatusArray, Action status QoS |
+| guard / approach | 구독 `system/heartbeat`, `system/state` | 기존 메시지, R1 / R/T1, 시각과 epoch 검사 |
+| desk_approach | 제공 `desk/approach` | DeskApproach Action, 기존 lease 식별자, feedback/result/cancel |
 
-Nav2 도착과 정지 이후 저속 거리/yaw 보정을 수행한다. 목표는 base_link 원점에서 평면의
-y=0 교점까지의 거리이며 범퍼 gap이 아니다. 목표 위치의 fresh odometry 정지가 settle 동안
-유지되어야 성공하고 Mission도 정지 피드백을 따로 확인한다. lease 식별자와 lifetime을 검증하며
-권한 발급/연장, 자동 재개는 하지 않는다. 좌우 중심은 여전히 staging pose에 의존한다.
+두 제어 노드에 동일한 ToF YAML을 적용하고 Mission과 기존 안전 경로의 canonical odom도
+일치시킨다. navigation의 tof_enabled, Supervisor의 tof_required, Mission의
+desk_approach_enabled는 별도 옵션이다. 기본은 opt-in과 calibrated=false다.
+예전 min_valid/required_zones, no_return_max_*와 ToF coverage proof 설정은 제거한다.
+TofFrame의 sensor_ready 계약은 유지되므로 외부 publisher도 정상 frame에 true를 설정한다.
 
-센서는 현재 단독 측정만 완료했고 로봇에는 미장착이다. `calibrated=false`와 독립 하드웨어
-안전 근거 요구를 유지한다. 장착, 보호 높이와 RGB-D 중첩, 제동·지연, 표면 특성, 실제 접근
-정확도를 검증하기 전 이 후보 설정으로 주행 가능하다고 해석하지 않는다.
+아직 센서는 로봇에 미장착이다. FOV/extrinsic/ROI, 표면/조명별 검출, 실제 지연과 제동,
+필터 오탐/미탐, 접근 정확도와 독립 정지를 장착 후 측정해야 한다. 기존 독립 안전 장치를
+활성 상태로 유지하고 후보 설정을 물리 안전 검증 결과로 해석하지 않는다.

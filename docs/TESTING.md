@@ -194,10 +194,12 @@ frame/odom/lease와 pseudo-terminal을 사용하며 실제 센서나 모터를 �
 `ROS_DOMAIN_ID`에서 별도 실행한다. colcon의 선택 시나리오 skip은 성공으로 해석하지 않는다.
 실물 검증 항목은 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)을 따른다.
 
-ToF 분류 회귀에는 단독 보드 로그의 3개 frame과 합성 입력을 사용한다. 정상 미검출,
-불신뢰/미갱신, 위험 방향, 실제 속도, 잘못되거나 오래된 RGB-D 근거와 firmware fault
-철회를 구분한다. Navigation 검사는 재사용한 finite-pixel 기하와 실제 coverage 발행
-노드→ToF 근거 소비자의 ROS 연결을 검사한다. 이는 장착된 로봇의 full-stack 주행이 아니다.
+ToF 분류 회귀에는 단독 보드 로그의 3개 frame과 합성 입력을 사용한다. 정상 미검출의
+주행 허용, 부분 품질 불량 제외, 전부 불량 정지, 인접/물리 cluster, 15Hz 지속 확인,
+flash/고립 noise, 비상 단일 검출, 해제 hysteresis와 필터 reset을 검사한다. ROS 검사는
+센서 fault와 stale 정지, 일부 불량 Zone의 책상 접근, 평면 소실과 기존 lease/cancel 경계를
+검사한다. Navigation은 ToF 활성 여부와 독립 head-pan observer 설정 조합을 검사한다.
+합성 graph는 기존 안전 chain을 identity로 대체하며 실제 Nav2/모터 주행이 아니다.
 
 원본 측정 로그를 ROS 개발환경에서 오프라인 감사하려면 다음을 사용한다. 장치를 열지 않는다.
 

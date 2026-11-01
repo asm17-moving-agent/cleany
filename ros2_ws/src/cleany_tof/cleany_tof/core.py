@@ -1,4 +1,4 @@
-"""Conservative ToF geometry and controllers, independent of ROS and serial IO."""
+"""ToF geometry and desk control, independent of ROS and serial IO."""
 from dataclasses import dataclass
 import math
 import numpy as np
@@ -30,9 +30,19 @@ class Settings:
     max_yaw_rate: float = 0.3
     max_sigma_m: float = 0.03
     max_range_m: float = 4.0
-    no_return_max_speed: float = 0.08
-    no_return_max_yaw_rate: float = 0.10
+    guard_rows: tuple[int, ...] = tuple(range(8))
+    guard_columns: tuple[int, ...] = tuple(range(8))
+    obstacle_clearance_m: float = 0.75
+    emergency_clearance_m: float = 0.03
+    cluster_distance_m: float = 0.20
+    min_cluster_zones: int = 2
+    confirm_s: float = 0.12
+    release_s: float = 0.20
+    hysteresis_m: float = 0.05
     approach_rows: tuple[int, ...] = (2, 3, 4, 5)
+    approach_columns: tuple[int, ...] = tuple(range(8))
+    min_plane_columns: int = 4
+    min_plane_rows: int = 2
     fit_residual_m: float = 0.025
     min_plane_span_m: float = 0.15
     max_plane_yaw_rad: float = 0.35
@@ -56,16 +66,22 @@ class Settings:
                     'fit_residual_m', 'min_plane_span_m', 'max_plane_yaw_rad',
                     'approach_speed', 'approach_yaw_rate', 'distance_tolerance_m',
                     'yaw_tolerance_rad', 'settle_s', 'approach_timeout_s', 'progress_timeout_s',
-                    'stopped_speed', 'stopped_yaw_rate', 'no_return_max_speed', 'no_return_max_yaw_rate')
+                    'stopped_speed', 'stopped_yaw_rate', 'obstacle_clearance_m',
+                    'emergency_clearance_m', 'cluster_distance_m', 'release_s', 'hysteresis_m')
         if any(getattr(self, n) <= 0 for n in positive):
             raise ValueError('limits must be positive')
         if not 0 < self.horizontal_fov < math.pi or not 0 < self.vertical_fov < math.pi:
             raise ValueError('FOV must be below pi')
-        if (not self.approach_rows or len(set(self.approach_rows)) != len(self.approach_rows)
-                or any(type(i) is not int or not 0 <= i < 8 for i in self.approach_rows)):
-            raise ValueError('invalid approach rows')
-        if self.no_return_max_speed > self.max_speed or self.no_return_max_yaw_rate > self.max_yaw_rate:
-            raise ValueError('no-return limits exceed guard limits')
+        for name in ('guard_rows', 'guard_columns', 'approach_rows', 'approach_columns'):
+            roi = getattr(self, name)
+            if not roi or len(set(roi)) != len(roi) or any(type(i) is not int or not 0 <= i < 8 for i in roi):
+                raise ValueError(f'invalid {name}')
+        if (type(self.min_cluster_zones) is not int or not 1 <= self.min_cluster_zones <= len(self.guard_rows)*len(self.guard_columns)
+                or type(self.min_plane_columns) is not int or not 2 <= self.min_plane_columns <= len(self.approach_columns)
+                or type(self.min_plane_rows) is not int or not 1 <= self.min_plane_rows <= len(self.approach_rows)):
+            raise ValueError('invalid spatial support')
+        if self.confirm_s < 0 or self.emergency_clearance_m >= self.obstacle_clearance_m:
+            raise ValueError('invalid detection thresholds')
         if self.approach_speed > self.max_speed or self.approach_yaw_rate > self.max_yaw_rate:
             raise ValueError('approach limits exceed guard limits')
 
@@ -118,17 +134,17 @@ class Plane:
 
 
 def estimate_plane(points, good, settings: Settings) -> Plane:
-    """Fit x = distance + slope*y using row medians in at least six columns.
+    """Fit x = distance + slope*y from distributed, valid ROI column medians.
 
     This estimates the front plane normal. A flat unmarked desk has no observable
     lateral centre; staging localization must supply lateral placement.
     """
     centres = []
-    for col in range(8):
+    for col in settings.approach_columns:
         indices = [row*8+col for row in settings.approach_rows if good[row*8+col]]
-        if len(indices) >= 2:
+        if len(indices) >= settings.min_plane_rows:
             centres.append(np.median(points[indices, :2], axis=0))
-    if len(centres) < 6:
+    if len(centres) < settings.min_plane_columns:
         raise ValueError('insufficient plane columns')
     p = np.asarray(centres)
     if np.ptp(p[:, 1]) < settings.min_plane_span_m:
@@ -136,7 +152,7 @@ def estimate_plane(points, good, settings: Settings) -> Plane:
     matrix = np.column_stack((np.ones(len(p)), p[:, 1]))
     distance, slope = np.linalg.lstsq(matrix, p[:, 0], rcond=None)[0]
     # Check all selected samples too: a foreground object must not disappear in medians.
-    selected = [row*8+col for row in settings.approach_rows for col in range(8) if good[row*8+col]]
+    selected = [row*8+col for row in settings.approach_rows for col in settings.approach_columns if good[row*8+col]]
     residual = float(np.max(np.abs(points[selected, 0] - distance - slope*points[selected, 1])))
     yaw = math.atan(-slope)
     if residual > settings.fit_residual_m or abs(yaw) > settings.max_plane_yaw_rad or distance <= 0:
@@ -145,9 +161,6 @@ def estimate_plane(points, good, settings: Settings) -> Plane:
 
 
 def desk_plane(observation: Observation, settings: Settings) -> Plane:
-    indices = [r*8+c for r in settings.approach_rows for c in range(8)]
-    if np.isin(observation.states[indices], (ZoneState.UNRELIABLE, ZoneState.NOT_UPDATED)).any():
-        raise ValueError('unreliable desk zone')
     return estimate_plane(observation.points, observation.ranges, settings)
 
 

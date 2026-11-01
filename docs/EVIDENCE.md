@@ -317,3 +317,93 @@ TF와 odometry로 검사했다. 무효 pixel, stale/잘못된 model/명령 근�
 포함한 full-stack 주행, Gazebo 주행 시나리오, 장착 후 제동과 접근 정확도 검사는 수행하지
 않았다. `calibrated=false`를 유지하며 장착 후 항목은
 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)에서 확인한다.
+
+## 2026-10-26 ToF ROI 감지와 책상 접근 단순화
+
+기준 commit은 `162f3788a74c3674d4e1bb1f93df0f3efad8666b`이며 아래는 그 위 작업 트리의
+검증이다. 사용자 지시에 따라 정상 NO_RETURN을 장애물 미검출로 처리하고, ToF 전용
+RGB-D sweep proof와 전체 Zone coverage 요구를 제거했다. 위 절의 proof 정책은 이전
+실행 기록이며 현재 계약은 [ToF reference](../ros2_ws/src/cleany_tof/docs/interfaces.md)다.
+기존 head-pan observer, Nav2/Collision Monitor, Mission/Supervisor와 모터 watchdog은
+유지했다. 센서와 firmware를 새로 구동하거나 모터 명령을 보내지 않았다.
+
+Ubuntu 22.04 arm64 `ros2-humble` Distrobox, ROS 2 Humble, Python 3.10과 기존 build cache에서
+다음 명령을 실행했다. 순수 검사와 package 검사는 일부 중복되므로 합산하지 않는다.
+
+| 명령/범위 | 결과 |
+|---|---|
+| `make test-tof-core` | 91 passed |
+| `make test-tof` | 9 packages build, colcon 247 tests, errors/failures 0, 기존 opt-in Mission skip 15 |
+| ToF package 자체 | 74 tests, errors/failures/skips 0 |
+| Humble에서 `make test-navigation` | 6 packages build, colcon 198 tests, errors/failures/skips 0 |
+| `git diff --check` | 통과 |
+
+navigation의 colcon 198 집계에는 CTest 실행 단위 9개도 포함된다. 개별 pytest/gtest
+189 cases와 별도의 독립 검사 수로 합산하지 않는다.
+
+합성 입력으로 15Hz 인접/물리 cluster와 시간 확인, flash/고립/비인접 noise, 중복 frame,
+입력 공백 reset, ROI 제외, 단일 비상 return, 거리/해제 hysteresis를 검사했다. ROS 검사에서는
+실제 ToF 노드에 합성 frame/odom/lease를 넣어 정상 미검출의 proof 없는 주행 허용,
+전부 불량/센서 장애/stale 정지, 일부 불량 Zone의 접근 수락, 평면 소실 abort, 기존
+cancel/lease/정지 확인 경계를 검사했다. 드라이버 검사는 pseudo-terminal이며 실제 USB가
+아니다. graph의 기존 안전 chain은 identity 대역이다. navigation launch 검사는 ToF on/off와
+기존 observer on/off의 네 조합을 조립하며 실제 프로세스를 구동하지 않는다. 제거된 proof
+전용 검사와 별개로 원래 finite-depth observer 회귀는 유지했다.
+
+첫 순수 검사에서 ROI 제외 검사와 확인 검사에 같은 timestamp를 재사용한 fixture가
+실패했다. 필터의 동일 frame 중복 방지를 유지하고 별도 시나리오 사이 fixture를 reset했다.
+재검사 결과는 위 표와 같다. 선택 skip은 성공으로 처리하지 않았다.
+
+기존 `range-15hz-2min.jsonl`을 offline audit로 다시 분류했다. 원본 SHA256은
+`ec02366ab656431fed101f7bcc50ca5e9b67b045fc144a1ea4f5f8aaacdcb361`이며 10Hz 28 frames를
+제외한 1817 frames에서 RANGE 60868, NO_RETURN 53109, UNRELIABLE 2311 samples였다.
+이 재생은 새 USB latency 측정이나 로봇의 주행 허용률 검사가 아니다.
+
+원본 XML은 `CLEANY_DATA_ROOT/builds/feat-tof-integration/{build,build-navigation}`에,
+이번 audit와 작업 트리 manifest는 `CLEANY_DATA_ROOT/runs/tof-simplification/`에 보존한다.
+센서는 아직 미장착이며 `calibrated=false`다. full-stack Nav2/ToF 또는 Gazebo 주행,
+실물 검출/제동/접근 정확도 검사는 하지 않았다. 장착 후 ROI와 거리/시간 후보값 튜닝,
+오탐/미탐, 실제 지연과 정지는 [CALIBRATION](CALIBRATION.md#tof-근접-보호-commissioning)의
+별도 검증 대상이다. ToF와 다른 센서가 같은 장애물을 모두 미검출할 수 있다.
+
+## 2026-11-02 voxel guard 10Hz 평가 설정
+
+기준은 `162f3788a74c3674d4e1bb1f93df0f3efad8666b` 위의 미커밋 작업 트리다.
+기존 ToF 단순화 변경을 보존하고, 여러 감지 경로를 함께 사용하는 구성에서 voxel
+충돌 검사와 속도 출력의 기본 주기를 0.05초에서 0.10초로 바꿨다. 공통 navigation,
+Gazebo YAML과 node fallback에 같은 값을 적용했다. 지도 갱신, Collision Monitor,
+ToF 주기, timeout과 제동 궤적의 `step_s`는 그대로다. 개별 robot profile의 명시적
+주기 override는 계속 우선한다.
+
+Ubuntu 22.04 arm64 `ros2-humble` Distrobox와 기존 build cache에서 다음을 확인했다.
+
+| 검사 | 결과 |
+|---|---|
+| Humble `make test-navigation` | 6 packages build, colcon 198 reported tests, errors/failures/skips 0 |
+| Gazebo package와 의존성 build | `colcon build --packages-up-to cleany_gazebo_sim`, 8 packages 성공 |
+| 실제 ToF selector/guard의 합성 10Hz 명령 입력 | 정상 구간 49개 출력 sample의 사유 CLEAR, 입력 중단 시 COMMAND_STALE와 zero 확인 |
+| `git diff --check` | 통과 |
+
+Gazebo package만 먼저 build한 시도는 해당 install tree의 cleany_base_odometry 누락으로
+실패했다. packages-up-to로 의존성을 함께 build해 해결했다. navigation의 198 집계는
+CTest 실행 단위 9개를 포함하므로 독립 case 수와 합산하지 않는다.
+
+합성 연결은 별도 DDS domain에서 15Hz frame/odom과 10Hz identity 중계로 실행했다.
+상류 명령의 관측 간격 평균은 0.1000초, 최대는 0.1049초였다. 실제 voxel 계산이나
+Collision Monitor, Nav2 구동은 이 중계에 포함하지 않았다. 임시 script와 result.json은
+`CLEANY_DATA_ROOT/runs/voxel-rate-10hz/`, build와 XML은 기존
+`CLEANY_DATA_ROOT/builds/feat-tof-integration/{build-navigation,log-navigation}`에 있다.
+실제 CPU 절감, 부하 중 worst-case 지연과 물리 정지 거리는 측정하지 않았다.
+
+## 2026-11-02 ToF PR 검증의 상태 전환 동기화
+
+`162f3788a74c3674d4e1bb1f93df0f3efad8666b` 위의 PR 준비 작업 트리에서 순수 검사
+91개를 재실행해 통과했다. 첫 `make test-tof`는 정상 미검출 전환 검사에서 이전 속도
+출력과 새 OBSTACLE_HOLD 사유를 비교해 실패했다. release_s 동안의 정상 정지 동작은
+유지하고, 테스트가 CLEAR와 정상 출력, AVAILABLE 및 실제 64개 NO_RETURN 수신을 함께
+기다리도록 수정했다. 기존 출력 임계값과 센서 상태 조건은 유지했다. 실제 하드웨어는
+사용하지 않았다. 재검사 XML은 기존 `build/cleany_tof/pytest.xml`에 있다.
+
+수정 후 make test-tof 재실행은 colcon 247 tests, errors/failures 0, 기존 선택 skip 15였으며
+ToF package 74 tests는 errors/failures/skips 0이었다. navigation 198 reported tests와
+합성 10Hz 연결 검사는 같은 소스의 앞선 실행 결과다.

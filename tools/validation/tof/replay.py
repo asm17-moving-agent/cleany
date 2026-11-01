@@ -43,7 +43,7 @@ def audit(path: Path) -> dict:
                 zone_states=dict(states),
                 target_status=dict(statuses), available_observations=available,
                 old_all_zone_coverage_frames=old_coverage,
-                note='NO_RETURN is unknown; no independent RGB-D coverage was recorded')
+                note='NO_RETURN is non-detection, not guaranteed clearance; mounted ROI and driving were not evaluated')
 
 
 def main():

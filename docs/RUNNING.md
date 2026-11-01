@@ -388,10 +388,13 @@ MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_ba
 해당 노드의 `port`를 별도 설정한다. 재연결 시 64 zone, 15Hz로 재설정한다. 별도
 teleop도 `nav2/cmd_vel` 입력을 사용하며 ToF 활성 상태에서 `cmd_vel`에 직접 발행하지 않는다.
 
-ToF 미검출 coverage 정책에서는 `tof_enabled=true`가 기존 depth coverage observer도
-활성화한다. observer는 `tof_params_file`의 공통 `/**` 프로파일로 `tof/depth_coverage`를
-생성한다. 이전 프로파일의 `min_valid`와 `required_zones`는 제거하고 새 계약과 장착
-검증에 맞게 이관한다. `TofFrame.sensor_ready`가 추가되었으므로 관련 패키지와 외부 ROS
-publisher를 함께 재빌드한다. firmware 자체의 JSONL 형식은 바뀌지 않았다. 정상 미검출은
-센서 fault가 아니며, `NO_RETURN_UNCOVERED`는 해당 이동의 보조 관측이 없어 정지한 상태다.
-RGB-D가 없거나 ToF 보호 영역을 보지 못하면 미검출 방향으로 주행하지 않는다.
+정상 NO_RETURN은 장애물 미검출로 처리하며 RGB-D proof 없이 주행 입력을 허용한다.
+ToF 전용 coverage observer 설정과 no_return_max_*, min_valid/required_zones는 제거한다.
+기존 head-pan depth coverage는 기존 설정에 따른다. 감시 ROI, 인접 검출 수, 확인/해제
+시간과 비상 거리는 ToF YAML의 조정 가능한 후보다. sensor_ready=false나 오래된 frame은
+계속 정지하며, 정상 미검출을 센서 fault로 보고하지 않는다. 미검출이 빈 공간을 보장하지
+않으므로 기존 독립 안전 계층을 활성 상태로 유지한다.
+
+voxel guard의 충돌 검사와 속도 출력 기본은 `update_period_s: 0.10`(10Hz)다.
+이 값은 voxel 지도 갱신 주기와 별개이며 명시적 robot profile override가 있으면 그 값을
+사용한다. 주기를 조정할 때 상류 출력과 ToF의 command_timeout_s를 함께 확인한다.

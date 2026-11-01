@@ -4,12 +4,13 @@ import numpy as np
 import pytest
 from cleany_tof.core import (Settings, project, estimate_plane,
                              ApproachController, Plane)
-from cleany_tof.proximity import limit_velocity
+from cleany_tof.proximity import ProximityDetector, limit_velocity
 from cleany_tof.observation import Observation, ZoneState, classify_zones
 
 
 def observed(points, good):
-    return Observation(points, np.where(good, ZoneState.RANGE, ZoneState.UNRELIABLE))
+    return ProximityDetector(Settings(calibrated=True, confirm_s=0.)).update(
+        Observation(points, np.where(good, ZoneState.RANGE, ZoneState.UNRELIABLE)), 0.)
 
 
 def scene(distance=1., yaw=0., settings=None):
@@ -98,7 +99,7 @@ def test_approach_alignment_timeout_overshoot_and_stationary_success():
 
 
 @pytest.mark.parametrize('kwargs', [dict(deceleration=0), dict(margin=-1.), dict(sensor_yaw=math.nan),
-    dict(approach_rows=()), dict(approach_rows=(8,)), dict(no_return_max_speed=.3), dict(source_timeout_s=math.inf)])
+    dict(approach_rows=()), dict(approach_rows=(8,)), dict(guard_columns=(8,)), dict(source_timeout_s=math.inf)])
 def test_invalid_safety_configuration_rejected(kwargs):
     with pytest.raises(ValueError):
         Settings(**kwargs)
