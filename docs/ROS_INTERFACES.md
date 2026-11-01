@@ -343,3 +343,14 @@ ros2 action info /grasp/select_reachable
 ```
 
 실행 graph는 해당 실행의 증거다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않는다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신한다.
+
+## 실물 매핑과 휴대폰 조종
+
+| 패키지 | 실행 파일 | 인터페이스 |
+|---|---|---|
+| cleany_teleop | phone_remote | [조종과 웹 계약](../ros2_ws/src/cleany_teleop/docs/interfaces.md) |
+| cleany_teleop | commission_wheels | 같은 문서의 독립 시험 CLI |
+| cleany_navigation | mapping_scan_filter, mapping_session | [매핑 계약](../ros2_ws/src/cleany_navigation/docs/mapping.md) |
+| cleany_bringup | hardware_runtime | [프로세스 수명](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md) |
+
+Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패키지 reference에 설명한다.

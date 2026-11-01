@@ -179,3 +179,32 @@ CTest wrapper와 pytest 집계가 겹치면 중복 합산하지 않습니다. �
 내부 파일 링크, anchor, 코드, 설정, launch 경로, Make target의 존재와 native dry-run을 확인합니다. 문서 검증만을 위해 실제 로봇을 움직이거나 새 calibration을 수행하지 않습니다.
 
 KB를 변경한 경우에는 KB의 `kb-quality-checks`도 실행합니다. 검사 통과와 내용 승인은 별도로 기록합니다.
+
+## 실물 매핑 패키지 경계
+
+`make test-hardware-mapping-core`는 입력 lease, ordered permission의 MCU 확인, 스캔 필터,
+설정 검증, map origin yaw와 원자적 저장, 초기화 직렬화와 저장 실패를 검사한다.
+`make test-base BASE_TEST_ROS_DOMAIN_ID=174`는 기존 base 회귀와 새 구동 허가 계약을 검사한다.
+ROS graph 검사는 같은 domain에서 동시에 실행하지 않는다.
+
+설치된 패키지의 모의 통합은 다음 명령으로 실행한다. 새 출력 디렉터리를 지정한다.
+
+```bash
+make build-hardware-mapping
+make test-hardware-mapping-runtime MAPPING_TEST_OUTPUT=/absolute/path/to/new-artifact-dir
+```
+
+이 검사는 domain 173에서 synthetic MCU와 합성 LiDAR를 사용한다. 저장소 밖 `/tmp`에서
+설치된 launch를 시작하고 단일 휠 publisher, 휴대폰 명령/해제, 지도 초기화와 중복 요청,
+두 세션의 map/pbstream 및 Logger bag, 최종 저장 후 종료를 확인한다. 실물 USB는 열지 않는다.
+물리 정지 거리, 현재 장착 TF의 정확도와 실제 바닥에서의 지도 품질은 별도 실물 검사다.
+
+`make test-hardware-mapping`은 관련 ROS 패키지를 domain 174에서 순서대로 검사한다.
+Base graph fixture는 BASE_TEST_ROS_DOMAIN_ID도 따르므로 두 domain 변수를 함께 설정한다.
+위 통합 결과의 bag은 domain 175에서 실제 ROS 재생으로 확인할 수 있다.
+
+```bash
+make test-hardware-mapping-replay \
+  MAPPING_BAG=/absolute/path/to/recordings/bags/session-id \
+  MAPPING_TEST_OUTPUT=/absolute/path/to/replay-verification.json
+```

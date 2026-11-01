@@ -211,3 +211,30 @@ Monitor는 99개, 웹 fixture는 33개가 통과했으며 변경한 UI fixture 6
 `d5852af`의 [환경 확인 실패](https://github.com/asm17-moving-agent/cleany/actions/runs/39428868069)는 런타임 `ROS_HOME`이 이미지의 rosdep metadata 위치와 달라 발생했습니다. `45df20f`는 의존성 확인 명령에 이미지 생성 시의 `ROS_HOME`을 지정하며, 재설치 없이 실제 manifest의 의존성 충족 여부를 검사합니다.
 
 원본은 데이터 루트의 `builds/ci-optimization-evidence/`에 보존합니다. `timing-comparison.json`, `baseline-39417986298.json`, `cold-*.json`, `cold-*.log`, `warm-*.json`, `warm-*.log`, `coverage-audit.json`, `base-*-collection.txt`, `shutdown-before.log`, `shutdown-after.log`에서 환경, 실패와 검사 범위를 확인합니다. `cold-artifacts/`, `warm-artifacts/`와 CI artifact는 test XML, apt/pip 버전과 compiler cache 통계를 보존합니다. Simulator와 합성 backend 검사이며 실물 로봇 검증을 뜻하지 않습니다.
+
+## 실물 매핑 패키지 통합
+
+기준은 원격 main `eb2c56a190ad9fbb52cb104ff55282e955a56fcb`, 통합 작업은
+`feat/hardware-mapping-integration`이다. 변경 소스 hash는 로컬
+`artifacts/mapping-probe-11/source-manifest.json`에 보존한다. 환경은 Ubuntu 22.04
+Distrobox, ROS 2 Humble, Linux arm64이며 실물 USB는 열지 않았다.
+
+| 검사 | 입력과 확인한 경계 | 원본 |
+|---|---|---|
+| 설치 빌드 | lockfile UI와 관련 패키지 20개 빌드 | `artifacts/mapping-probe-11/build.log` |
+| 패키지 회귀 | 관련 ROS 검사, ordered permission과 odom reset, 기존 navigation/Logger 회귀 | 같은 디렉터리 `packages.log` |
+| 순수 core와 JS | 세션 직렬화, 저장 실패, origin yaw, PID 재사용과 지연 저장 세대 분리, 누름/해제/복구 | `core.log` |
+| 설치 launch | `/tmp`에서 실행, synthetic MCU와 합성 room scan, 단일 휠 publisher와 STOP 확인 | `verification.json`, `runtime.log` |
+| 세션 저장 | 초기화 2회, 서로 다른 generation과 output, 두 지도/pbstream, Logger flush와 정상 종료 | `runtime/maps/`, `runtime/recordings/` |
+| CDR 재생 | domain 175에서 원본 bag 재생, raw/filtered scan, 휠 상태/명령, joint state, odom, TF와 map 수신 | `replay-verification.json`, `replay-verification.log` |
+| 종료 소유권 | 기록된 PID와 시작 시각을 대조해 남은 owned child 없음 확인 | `ownership-verification.json` |
+| HTTP UI | 설치 자산, token/Origin 거절, 경로 이탈 차단과 CSP | `artifacts/integrated-ui/http-verification.json` |
+
+초기 재현은 `mapping-probe-01`부터 `-10`에 보존했다. 같은 ROS domain을 사용한 검사 간섭,
+Logger의 동적 구독 제거 중 InvalidHandle, 종료 래퍼의 신호 전달, symlink 설치 자산의
+경로 검사, 수신이 없거나 관측용 주기가 적용된 bag 토픽 누락을 구분해 수정했다.
+Logger는 구독별 callback group과 단일 executor로 retired handle이 제어 서비스를 막지 않게 하며,
+매핑용 원본은 명시적으로 수신마다 기록한다. ROS 패키지 검사는 domain 174에서 순서대로 실행한다.
+
+브라우저 연결 호스트가 없어 실제 화면 렌더링은 이번 실행에서 확인하지 못했다.
+실물 장착 TF, 물리 정지 거리, 바닥 주행과 지도 품질은 이 합성 검사의 범위가 아니다.

@@ -101,3 +101,9 @@ flowchart TB
 | 재연결, 재시작 | Cached motion과 미션을 자동 재개하지 않음 |
 
 외부 Backend의 schema, 인증, media 정책은 별도 control-plane 저장소가 관리합니다.
+
+## 실물 매핑과 휴대폰 조종
+
+- [휴대폰 조종 계약](../ros2_ws/src/cleany_teleop/docs/interfaces.md)
+- [매핑 세션과 저장](../ros2_ws/src/cleany_navigation/docs/mapping.md)
+- [실물 구성과 보정 프로필](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)

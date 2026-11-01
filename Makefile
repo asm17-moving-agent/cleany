@@ -59,6 +59,8 @@ BASE_EXEC ?= $(shell . /etc/os-release; \
 	test-manipulation test-manipulation-bt sim-mujoco-manipulation
 
 help:
+	@echo "  make build-hardware-mapping / run-hardware-mapping  Build or run installed real mapping"
+	@echo "  make test-hardware-mapping-core / test-hardware-mapping  Check mapping core and ROS boundaries"
 	@echo "Cleany native ROS 2 commands"
 	@echo "  make deps          Install workspace dependencies with rosdep"
 	@echo "  make deps-gazebo   Install Gazebo Fortress dependencies with rosdep"
@@ -554,3 +556,34 @@ test-logger-cli:
 .PHONY: test-ci-tools
 test-ci-tools:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/tools/ci -v
+
+.PHONY: build-teleop-ui build-hardware-mapping test-hardware-mapping-core
+build-teleop-ui:
+	npm ci --prefix ros2_ws/src/cleany_teleop/ui
+	npm run build --prefix ros2_ws/src/cleany_teleop/ui
+
+build-hardware-mapping: build-teleop-ui
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && cd "$(ROS2_WS)" && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 colcon --log-base "$(LOG_BASE)" build --symlink-install --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-up-to cleany_bringup'
+
+test-hardware-mapping-core:
+	$(BASE_EXEC) bash -lc 'cd "$(REPO_ROOT)" && PYTHONPATH=ros2_ws/src/cleany_teleop:ros2_ws/src/cleany_navigation:ros2_ws/src/cleany_bringup PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q ros2_ws/src/cleany_teleop/test ros2_ws/src/cleany_navigation/test/test_mapping_core.py ros2_ws/src/cleany_bringup/test/test_hardware_profile.py'
+	node --test ros2_ws/src/cleany_teleop/ui/test_hold_input.cjs
+
+.PHONY: test-hardware-mapping-runtime
+test-hardware-mapping-runtime:
+	@test -n "$(MAPPING_TEST_OUTPUT)" || (echo 'Set MAPPING_TEST_OUTPUT to a new artifact directory'; exit 2)
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=173 && python3 "$(REPO_ROOT)ros2_ws/src/cleany_bringup/runtime_test/hardware_mapping_probe.py" --output "$(MAPPING_TEST_OUTPUT)"'
+
+.PHONY: test-hardware-mapping
+test-hardware-mapping:
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && cd "$(ROS2_WS)" && export ROS_DOMAIN_ID=174 BASE_TEST_ROS_DOMAIN_ID=174 CLEANY_RUN_ROS_TESTS=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 && colcon --log-base "$(LOG_BASE)" test --executor sequential --build-base "$(BUILD_BASE)" --install-base "$(INSTALL_BASE)" --packages-select cleany_base_interfaces cleany_interfaces cleany_base_driver cleany_base_odometry cleany_navigation cleany_teleop cleany_logger cleany_bringup && colcon test-result --test-result-base "$(BUILD_BASE)" --verbose'
+
+.PHONY: test-hardware-mapping-replay
+test-hardware-mapping-replay:
+	@test -n "$(MAPPING_BAG)" -a -n "$(MAPPING_TEST_OUTPUT)" || (echo 'Set MAPPING_BAG and MAPPING_TEST_OUTPUT'; exit 2)
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && export ROS_DOMAIN_ID=175 && python3 "$(REPO_ROOT)ros2_ws/src/cleany_bringup/runtime_test/mapping_replay_probe.py" --bag "$(MAPPING_BAG)" --output "$(MAPPING_TEST_OUTPUT)"'
+
+.PHONY: run-hardware-mapping
+HARDWARE_MAPPING_ARGS ?=
+run-hardware-mapping:
+	$(BASE_EXEC) bash -lc 'source /opt/ros/humble/setup.bash && source "$(INSTALL_BASE)/setup.bash" && ros2 launch cleany_bringup hardware_mapping.launch.py $(HARDWARE_MAPPING_ARGS)'

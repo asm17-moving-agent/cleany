@@ -2,7 +2,10 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler, EmitEvent
+from launch.event_handlers import OnProcessExit
+from launch.events import Shutdown
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -41,5 +44,9 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
     )
     return LaunchDescription(
-        [configuration_arg, use_sim_time_arg, cartographer, occupancy]
+        [configuration_arg, use_sim_time_arg,
+         DeclareLaunchArgument('shutdown_on_exit', default_value='false', choices=['true','false']),
+         cartographer, occupancy,
+         RegisterEventHandler(OnProcessExit(target_action=cartographer,on_exit=[EmitEvent(event=Shutdown(reason='Cartographer exited'))]),condition=IfCondition(LaunchConfiguration('shutdown_on_exit'))),
+         RegisterEventHandler(OnProcessExit(target_action=occupancy,on_exit=[EmitEvent(event=Shutdown(reason='Occupancy grid exited'))]),condition=IfCondition(LaunchConfiguration('shutdown_on_exit')))]
     )

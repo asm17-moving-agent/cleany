@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>cleany_bringup</name><version>0.1.0</version>
-  <description>Simulation composition for the Cleany mission runtime.</description>
+  <description>Cleany simulation and hardware composition.</description>
   <maintainer email="team@example.com">Cleany Team</maintainer><license>MIT</license>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>launch</exec_depend><exec_depend>launch_ros</exec_depend>
@@ -16,4 +16,8 @@
   <exec_depend>cleany_telemetry</exec_depend>
   <exec_depend>cleany_logger</exec_depend>
   <export><build_type>ament_python</build_type></export>
+  <exec_depend>cleany_base_driver</exec_depend><exec_depend>cleany_base_odometry</exec_depend>
+  <exec_depend>cleany_teleop</exec_depend><exec_depend>rclpy</exec_depend><exec_depend>cleany_interfaces</exec_depend>
+  <exec_depend>sllidar_ros2</exec_depend><exec_depend>micro_ros_agent</exec_depend><exec_depend>tf2_ros</exec_depend>
+  <test_depend>python3-pytest</test_depend>
 </package>

@@ -1,0 +1,9 @@
+# Host-only ordered permission RPC. Never transported to MCU firmware.
+string client_id
+uint64 request_sequence
+bool enabled
+---
+bool accepted
+uint32 command_sequence
+uint32 boot_id
+string reason

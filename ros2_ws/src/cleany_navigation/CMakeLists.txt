@@ -68,6 +68,7 @@ pluginlib_export_plugin_description_file(dwb_core plugins.xml)
 install(TARGETS axis_generator EXPORT axis_generatorTargets LIBRARY DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
 install(PROGRAMS
+  scripts/mapping_scan_filter scripts/mapping_session
   scripts/pan_motion_gate scripts/depth_clearance scripts/depth_coverage
   scripts/obstacle_memory scripts/voxel_guard scripts/reactive_guard scripts/nav2_bt_trace
   DESTINATION lib/${PROJECT_NAME}

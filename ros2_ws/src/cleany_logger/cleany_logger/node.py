@@ -1,8 +1,12 @@
 """Independent headless recording node; no web or Monitor imports."""
 import rclpy
+import signal
+import threading
+from rclpy.exceptions import InvalidHandle
+from rclpy.signals import SignalHandlerOptions
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.clock import Clock, ClockType
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import SingleThreadedExecutor
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from rclpy.task import Future
 from cleany_interfaces.msg import RecordingStatus
@@ -87,17 +91,27 @@ class LoggerNode(ObservationNode):
 
 
 def main(args=None):
-    rclpy.init(args=args)
+    # Keep ROS alive until the writer has flushed, including on launch shutdown.
+    rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
+    closed = threading.Event()
+    signal.signal(signal.SIGINT, lambda *_: closed.set())
+    signal.signal(signal.SIGTERM, lambda *_: closed.set())
     node = None
-    executor = MultiThreadedExecutor(num_threads=2)
+    executor = SingleThreadedExecutor()
     try:
         node = LoggerNode()
         executor.add_node(node)
-        executor.spin()
-    except KeyboardInterrupt:
-        pass
+        while not closed.is_set() and rclpy.ok():
+            try:
+                executor.spin_once(timeout_sec=0.1)
+            except InvalidHandle:
+                # Humble can queue a callback before discovery replaces its subscription.
+                node.get_logger().debug(
+                    "Discarded a callback for a retired subscription"
+                )
     finally:
+        executor.shutdown(timeout_sec=5.0)
         if node:
             node.destroy_node()
-        executor.shutdown()
-        if rclpy.ok(): rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()

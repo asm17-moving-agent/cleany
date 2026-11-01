@@ -336,3 +336,32 @@ Launch는 `Ctrl-C`로 종료한 뒤 센서와 명령의 발행 중단과 해당 
 ## 실물 IMU
 
 MCU 부팅 보정과 gyro 수신 실행은 [IMU 안내](../ros2_ws/src/cleany_base_driver/docs/imu.md)를 따른다.
+
+## 실물 휠 odometry와 2D LiDAR 매핑
+
+1. [개발환경](DEVELOPMENT_SETUP.md#실물-매핑-의존성)의 외부 Agent와 LiDAR 드라이버를 준비하고 `make build-hardware-mapping`을 실행한다.
+2. 저장소 루트에서 `make run-hardware-mapping`으로 실행할 수 있다. 기존 base, Nav2, 조종기와 중복 실행하지 않는다.
+   별도 터미널에서 직접 launch하려면 빌드한 overlay를 먼저 source한다.
+3. 현재 센서 장착과 일치하는 [프로필](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)을 선택한다.
+
+   ```bash
+   ros2 launch cleany_bringup hardware_mapping.launch.py \
+     profile:="$(ros2 pkg prefix --share cleany_bringup)/config/mapping_legacy.yaml"
+   ```
+
+4. 로그의 조종 주소와 state_root/web-token 키로 접속한다. 주소의 127.0.0.1만 노트북 LAN 주소로 바꾼다.
+   연결 후 지도 초기화를 누르고 running 상태를 확인한 뒤 휴대폰으로 조종한다. 초기화 접수는 완료를 뜻하지 않는다.
+5. Ctrl+C로 종료하면 입력을 막고 STOP, 지도/pbstream 저장과 Logger flush를 확인한 뒤 장치를 종료한다.
+   지도는 기본 `~/.local/state/cleany/hardware/maps/`, 녹화는 `recordings/`에 보존한다.
+
+`state_root`, `host`, `phone_port`, `mock`은 launch 인자다. 모의 모드는 별도 ROS domain에서 사용하며
+실물 장치 대신 main의 mock MCU를 실행한다. 모의 LiDAR 입력은 런타임 검사 도구가 제공한다.
+새 SLAM은 IMU를 사용하지 않으며 raw scan 원본, 전방 180도와 0.30m 마스킹을 유지한다.
+기존 Dev Monitor는 별도로 실행해 지도와 센서를 관측할 수 있다.
+
+휴대폰만 독립 실행할 때는 같은 geometry의 base driver가 먼저 실행돼 있어야 한다.
+
+```bash
+ros2 launch cleany_teleop teleop.launch.py \
+  base_config:="$(ros2 pkg prefix --share cleany_base_driver)/config/base_hardware.yaml"
+```
