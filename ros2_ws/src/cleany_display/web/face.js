@@ -26,7 +26,7 @@
     help: { name: '도움 요청', emotion: 'sad', message: '앞에 있는 물건을 옮겨 주세요' }
   };
 
-  const base = { w: 103, h: 126, hR: 126, curve: 0, gap: 114, y: 0, tilt: 0, tiltR: 0, mouthW: 37, smile: 16, open: 0, mouthX: 0, mouthY: 88, cheeks: 0, gazeX: 0, gazeY: 0, lookX: 0, lookY: 0, bounce: 2, cx: 400, cy: 207, scale: 1, roll: 0, squash: 0, eyeLY: 0, eyeRY: 0, r: 143, g: 244, b: 205 };
+  const base = { w: 103, h: 126, hR: 126, curve: 0, gap: 114, y: 0, tilt: 0, tiltR: 0, mouthW: 37, smile: 16, open: 0, mouthX: 0, mouthY: 88, cheeks: 0, gazeX: 0, gazeY: 0, lookX: 0, lookY: 0, bounce: 2, cx: 400, cy: 207, scale: 1, roll: 0, squash: 0, eyeLY: 0, eyeRY: 0, sweat: 0, travel: 0, party: 0, r: 143, g: 244, b: 205 };
   const motionPeriods = { moving: 1.35, checking: 3.2, collecting: 3.2, charging: 4.6, help: 3.6 };
   const idleRoutine = { interval: 10, actions: [{ name: 'smile', duration: 2.6 }, { name: 'peek', duration: 3.2 }, { name: 'nod', duration: 2.4 }] };
   const eyeTracks = {
@@ -51,8 +51,13 @@
   let nextFrameAt = 0;
   let nextBlink = 2.4;
   let blinkAt = -100;
+  let checkingBlinkCycle = -1;
   let nextGaze = 2.5;
   let celebrationAt = -100;
+  let sweatStartedAt = 0;
+  let travelStartedAt = 0;
+  let dreamStartedAt = 0;
+  let travelDirection = 'forward';
   let gaze = { x: 0, y: 0 };
   let gazeTarget = { x: 0, y: 0 };
   let target = { ...base };
@@ -63,18 +68,45 @@
   let frame = 0;
   let helpTextTop = 450;
   let dreamAnimations = [];
+  const layerTransitions = new WeakMap();
 
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
   const canAnimate = () => !reducedMotion.matches;
   const rgb = hex => [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16));
 
   function syncDreams() {
-    dreamAnimations = mode === 'charging' && canAnimate() ? dreams.getAnimations({subtree: true}) : [];
+    dreamAnimations = !dreams.hidden && canAnimate()
+      ? [...dreams.querySelectorAll('span')].flatMap(span => span.getAnimations()) : [];
     for (const animation of dreamAnimations) {
-      animation.currentTime = (clock - modeStartedAt) * 1000;
+      animation.currentTime = (clock - dreamStartedAt) * 1000;
       if (rendering.max_fps >= 60 && visible && !document.hidden) animation.play();
       else animation.pause();
     }
+  }
+
+  function fadeLayer(element, visible, onDone) {
+    const previous = layerTransitions.get(element);
+    if (previous?.visible === visible && !onDone && !previous.onDone) return;
+    const from = element.hidden ? 0 : Number(getComputedStyle(element).opacity);
+    previous?.animation?.cancel();
+    const transition = { visible, animation: null, onDone };
+    layerTransitions.set(element, transition);
+    element.hidden = false;
+    element.setAttribute('aria-hidden', String(!visible));
+    const finish = () => {
+      if (layerTransitions.get(element) !== transition) return;
+      element.style.opacity = visible ? '1' : '0';
+      element.hidden = !visible;
+      transition.animation?.cancel();
+      transition.animation = null;
+      transition.onDone = null;
+      if (element === dreams) syncDreams();
+      onDone?.();
+    };
+    if (!canAnimate() || Math.abs(from - Number(visible)) < .001) { finish(); return; }
+    transition.animation = element.animate([{opacity: from}, {opacity: Number(visible)}],
+      {duration: onDone ? 120 : 240, easing: 'ease-in-out', fill: 'both'});
+    transition.animation.finished.then(finish, () => {});
   }
 
   function easedRamp(phase, start, end) {
@@ -210,12 +242,16 @@
     [target.r, target.g, target.b] = rgb(config.eyeColor);
     if (mode !== 'idle') { target.cy = 184; target.scale = .94; }
     if (mode === 'moving') {
+      target.travel = 1;
+      travelDirection = direction;
       target.gazeX = direction === 'left' ? -31 : direction === 'right' ? 31 : 0;
       target.gazeY = direction === 'forward' ? -10 : 0;
       target.smile = 11;
     }
+    if (mode === 'collecting') target.sweat = 1;
+    if (mode === 'complete') target.party = 1;
     if (mode === 'help') {
-      target.cx = 400; target.cy = 180; target.scale = .58;
+      target.cx = 400; target.cy = 168; target.scale = .82;
       target.bounce = 0;
       target.r = 255; target.g = 210; target.b = 154;
     }
@@ -229,6 +265,7 @@
 
   let liveData = {};
   let uiSignature;
+  let captionSignature;
   function updateUI() {
     const signature = JSON.stringify([mode, direction, liveData.connected === true,
       liveData.message, liveData.collected_count, liveData.battery_percent]);
@@ -238,20 +275,37 @@
     root.dataset.mode = mode;
     root.dataset.connected = String(liveData.connected === true);
     canvas.setAttribute('aria-label', `Cleany ${modes[mode].name}`);
-    message.textContent = liveData.message || modes[mode].message;
-    result.hidden = mode !== 'complete' || !Number.isInteger(liveData.collected_count);
-    result.textContent = Number.isInteger(liveData.collected_count) ? `수거 ${liveData.collected_count}개` : '';
-    symbol.textContent = mode === 'complete' ? '✓' : '';
-    symbol.hidden = mode !== 'complete';
-    if (mode === 'moving' && !liveData.message) message.textContent = ({left: '왼쪽으로 지나갈게요', forward: '지나갈게요', right: '오른쪽으로 지나갈게요'})[direction];
-    if (mode === 'charging') message.textContent = Number.isFinite(liveData.battery_percent) ? `충전 중 · ${liveData.battery_percent}%` : '충전 중';
-    help.querySelector('.cd-help-request').textContent = liveData.message || '상태를 확인해 주세요';
-    help.hidden = mode !== 'help';
+    let text = liveData.message || modes[mode].message;
+    if (mode === 'moving' && !liveData.message) text = ({left: '왼쪽으로 지나갈게요', forward: '지나갈게요', right: '오른쪽으로 지나갈게요'})[direction];
+    if (mode === 'charging') text = Number.isFinite(liveData.battery_percent) ? `충전 중 · ${liveData.battery_percent}%` : '충전 중';
+    const count = mode === 'complete' && Number.isInteger(liveData.collected_count) ? liveData.collected_count : null;
+    const complete = mode === 'complete';
+    const showCaption = mode !== 'help' && mode !== 'idle';
+    if (mode === 'help') {
+      help.querySelector('.cd-help-request').textContent = liveData.message || '상태를 확인해 주세요';
+      help.hidden = false;
+    } else if (!showCaption) fadeLayer(help, false);
+    const nextCaption = JSON.stringify([text, count, complete, showCaption]);
+    if (nextCaption !== captionSignature) {
+      captionSignature = nextCaption;
+      const applyCaption = () => {
+        if (captionSignature !== nextCaption) return;
+        message.textContent = text;
+        result.hidden = count === null;
+        result.textContent = count === null ? '' : `수거 ${count}개`;
+        symbol.textContent = complete ? '✓' : '';
+        symbol.hidden = !complete;
+        fadeLayer(caption, showCaption);
+      };
+      if (!showCaption) fadeLayer(caption, false);
+      else if (!help.hidden) fadeLayer(help, false, applyCaption);
+      else if (caption.hidden) applyCaption();
+      else fadeLayer(caption, false, applyCaption);
+    }
     measureHelpLayout();
     if (mode !== 'help') delete help.dataset.ready;
-    dreams.hidden = mode !== 'charging';
+    fadeLayer(dreams, mode === 'charging');
     syncDreams();
-    caption.hidden = mode === 'help' || mode === 'idle';
   }
 
   function setMode(next) {
@@ -259,10 +313,13 @@
     mode = next;
     modeStartedAt = clock;
     idleSince = clock;
-    blinkAt = -100;
+    checkingBlinkCycle = -1;
     nextBlink = clock + 2.6 + Math.random() * 2.4;
     gazeTarget = { x: 0, y: 0 };
-    celebrationAt = mode === 'complete' ? clock : -100;
+    if (mode === 'complete') celebrationAt = clock;
+    if (mode === 'collecting' && current.sweat < .01) sweatStartedAt = clock;
+    if (mode === 'moving' && current.travel < .01) travelStartedAt = clock;
+    if (mode === 'charging' && dreams.hidden) dreamStartedAt = clock;
     retarget();
     updateUI();
   }
@@ -272,7 +329,8 @@
     pen.translate(x, y);
     pen.rotate(tilt);
     h = Math.max(4, h * blink);
-    bend *= blink;
+    // Flatten the smile before opening tall eyes, avoiding a lobed silhouette.
+    bend *= blink * (1 - easedRamp(h, 34, 60));
     const r = Math.min(w * .34, h * .48);
     const span = w / 2 - r;
     pen.beginPath();
@@ -297,7 +355,7 @@
   }
 
   function paintSweat(p, moving) {
-    const phase = ((clock - modeStartedAt) / motionPeriods.collecting) % 1;
+    const phase = ((clock - sweatStartedAt) / motionPeriods.collecting) % 1;
     const drops = [[.21, .41, 1, 11], [.4, .32, -1, 8]];
     drops.forEach(([start, duration, side, size], index) => {
       if (!moving && index > 0) return;
@@ -310,7 +368,7 @@
       pen.translate(x, y); pen.rotate(side * .14);
       const growth = .6 + .4 * easedRamp(t, 0, .18);
       pen.scale(growth, growth);
-      pen.globalAlpha = opacity * .9;
+      pen.globalAlpha = opacity * .9 * clamp(p.sweat, 0, 1);
       pen.fillStyle = '#9cdef3'; pen.shadowColor = '#9cdef3'; pen.shadowBlur = config.glow * .45;
       pen.beginPath(); pen.moveTo(0, -size * 1.8);
       pen.bezierCurveTo(size * .35, -size * .8, size, -size * .2, size, size * .45);
@@ -323,15 +381,15 @@
     });
   }
 
-  function paintTravel(tint, moving) {
+  function paintTravel(tint, moving, amount) {
     pen.save(); pen.fillStyle = tint; pen.shadowColor = tint; pen.shadowBlur = config.glow * .5;
     for (let i = 0; i < 4; i++) {
-      const t = moving ? ((clock - modeStartedAt) * .7 + i / 4) % 1 : (i + .5) / 4;
+      const t = moving ? ((clock - travelStartedAt) * .7 + i / 4) % 1 : (i + .5) / 4;
       const glow = Math.sin(t * Math.PI);
-      const side = direction === 'left' ? -1 : 1;
-      const x = direction === 'forward' ? 400 + (i - 1.5) * 16 * (1 - t * .4) : 400 + side * (t - .5) * 100;
-      const y = direction === 'forward' ? 418 - 16 * t : 411 - 4 * glow;
-      pen.globalAlpha = .18 + .65 * glow;
+      const side = travelDirection === 'left' ? -1 : 1;
+      const x = travelDirection === 'forward' ? 400 + (i - 1.5) * 16 * (1 - t * .4) : 400 + side * (t - .5) * 100;
+      const y = travelDirection === 'forward' ? 418 - 16 * t : 411 - 4 * glow;
+      pen.globalAlpha = .83 * glow * clamp(amount, 0, 1);
       pen.beginPath(); pen.arc(x, y, 2.4 + 1.6 * glow, 0, Math.PI * 2); pen.fill();
     }
     pen.restore();
@@ -363,7 +421,7 @@
 
   function paint() {
     if (rendering.max_fps < 60) {
-      for (const animation of dreamAnimations) animation.currentTime = (clock - modeStartedAt) * 1000;
+      for (const animation of dreamAnimations) animation.currentTime = (clock - dreamStartedAt) * 1000;
     }
     const p = current;
     const color = [p.r, p.g, p.b].map(n => Math.round(clamp(n, 0, 255)));
@@ -371,11 +429,9 @@
     pen.setTransform(canvas.width / 800, 0, 0, canvas.height / 450, 0, 0);
     paintBackground(p, color);
     const moving = canAnimate();
-    const wave = moving ? Math.sin(clock * (mode === 'complete' ? 5 : 1.7)) : 0;
-    const checkingAge = ((clock - modeStartedAt) % motionPeriods.checking) - motionPeriods.checking * .92;
-    const blink = !moving || mode === 'charging' || mode === 'collecting' || idleMoment() ? 1 : blinkAmount(mode === 'checking' ? checkingAge : clock - blinkAt);
+    const blink = moving ? blinkAmount(clock - blinkAt) : 1;
     pen.save();
-    pen.translate(p.cx + gaze.x + p.gazeX, p.cy + p.y + gaze.y + p.gazeY + wave * p.bounce);
+    pen.translate(p.cx + gaze.x + p.gazeX, p.cy + p.y + gaze.y + p.gazeY);
     pen.rotate(p.roll);
     const scale = p.scale * config.eyeSize / 100;
     pen.scale(scale * (1 + p.squash), scale * (1 - p.squash * .6));
@@ -390,17 +446,17 @@
     pen.shadowBlur = config.glow * .4 * canvas.width / 800;
     const mouthY = p.mouthY;
     pen.beginPath();
-    if (p.open > 1) {
-      const half = Math.max(6, p.mouthW * .52);
-      pen.moveTo(p.mouthX - half, mouthY);
-      pen.bezierCurveTo(p.mouthX - half * .5, mouthY + p.smile * .2 - 4, p.mouthX + half * .5, mouthY + p.smile * .2 - 4, p.mouthX + half, mouthY);
-      pen.bezierCurveTo(p.mouthX + half, mouthY + p.open * 1.3, p.mouthX - half, mouthY + p.open * 1.3, p.mouthX - half, mouthY);
-      pen.fill();
-    } else {
-      pen.moveTo(p.mouthX - p.mouthW * .5, mouthY);
-      pen.quadraticCurveTo(p.mouthX, mouthY + p.smile, p.mouthX + p.mouthW * .5, mouthY);
-      pen.stroke();
-    }
+    // A single outlined contour keeps the closed/open lip continuous.
+    const opening = Math.max(0, p.open);
+    const aperture = easedRamp(opening, 0, 12);
+    const curve = p.smile * (1 - aperture);
+    const half = p.mouthW * .5;
+    pen.moveTo(p.mouthX - half, mouthY);
+    pen.quadraticCurveTo(p.mouthX, mouthY + curve - 3 * aperture, p.mouthX + half, mouthY);
+    pen.quadraticCurveTo(p.mouthX, mouthY + curve + opening * 1.65, p.mouthX - half, mouthY);
+    pen.closePath();
+    pen.fill();
+    pen.stroke();
     if (p.cheeks > .01) {
       pen.save(); pen.globalAlpha = p.cheeks * .8; pen.lineWidth = 5;
       for (const side of [-1, 1]) for (let i = 0; i < 3; i++) {
@@ -409,14 +465,15 @@
       }
       pen.restore();
     }
-    if (mode === 'collecting') paintSweat(p, moving);
+    if (p.sweat > .001) paintSweat(p, moving);
     pen.restore();
-    if (mode === 'moving') paintTravel(tint, moving);
+    if (p.travel > .001) paintTravel(tint, moving, p.travel);
     if (mode === 'help') {
       // Reveal the request only after the transitioning face clears the text area.
       const faceBottom = p.cy + p.y + gaze.y + p.gazeY + scale * (p.mouthY + Math.max(p.open * 1.3, p.smile, 0) + 9);
-      const ready = faceBottom < helpTextTop - 18;
+      const ready = caption.hidden && faceBottom < helpTextTop - 18;
       if (help.dataset.ready !== String(ready)) help.dataset.ready = String(ready);
+      fadeLayer(help, ready);
     }
     const partyAge = clock - celebrationAt;
     if (moving && partyAge >= 0 && partyAge < 1.5) {
@@ -425,7 +482,7 @@
         const a = i * Math.PI / 4;
         const radius = 183 + t * 40;
         const size = (5 + i % 3) * Math.sin(t * Math.PI);
-        pen.save(); pen.globalAlpha = Math.sin(t * Math.PI) * .8;
+        pen.save(); pen.globalAlpha = Math.sin(t * Math.PI) * .8 * clamp(p.party, 0, 1);
         pen.strokeStyle = tint; pen.lineWidth = 2.5; pen.lineCap = 'round';
         pen.translate(400 + Math.cos(a) * radius, 180 + Math.sin(a) * radius * .55 - t * 15); pen.rotate(a + t);
         pen.beginPath(); pen.moveTo(-size, 0); pen.lineTo(size, 0); pen.moveTo(0, -size); pen.lineTo(0, size); pen.stroke(); pen.restore();
@@ -474,7 +531,17 @@
     if (canAnimate()) {
       clock += dt;
 
-      if (clock >= nextBlink) { blinkAt = clock; nextBlink = clock + 2.6 + Math.random() * 2.4; }
+      const age = clock - modeStartedAt;
+      const cycle = Math.floor(age / motionPeriods.checking);
+      if (clock - blinkAt >= .21) {
+        if (mode === 'checking' && age % motionPeriods.checking >= motionPeriods.checking * .92 && cycle !== checkingBlinkCycle) {
+          blinkAt = clock;
+          checkingBlinkCycle = cycle;
+        } else if (!['checking', 'collecting', 'charging'].includes(mode) && !idleMoment() && clock >= nextBlink) {
+          blinkAt = clock;
+          nextBlink = clock + 2.6 + Math.random() * 2.4;
+        }
+      }
       if (idleMoment()) {
         gazeTarget = { x: 0, y: 0 };
         nextGaze = clock + 2;
@@ -483,6 +550,8 @@
         nextGaze = clock + 2 + Math.random() * 3;
       }
       const desired = actionPose();
+      // Include bobbing in the smoothed pose so switching its frequency cannot jump.
+      desired.y += Math.sin(clock * (mode === 'complete' ? 5 : 1.7)) * desired.bounce;
       const steps = Math.max(1, Math.ceil(dt * 180));
       for (let sub = 0; sub < steps; sub++) {
         const h = dt / steps;
@@ -499,6 +568,10 @@
   }
 
   reducedMotion.addEventListener('change', () => {
+    for (const element of [caption, help, dreams]) {
+      const transition = layerTransitions.get(element);
+      if (transition?.animation) transition.animation.finish();
+    }
     lastTime = 0;
     blinkAt = -100;
     idleSince = clock;

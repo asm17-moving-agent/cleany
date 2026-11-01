@@ -34,7 +34,7 @@ async function measurePaints(page, duration = 1200) {
   return page.evaluate(duration => new Promise(resolve => {
     const context = document.querySelector('canvas').getContext('2d');
     const original = context.setTransform;
-    const dreams = document.querySelector('.cd-dreams').getAnimations({subtree: true});
+    const dreams = [...document.querySelectorAll('.cd-dreams span')].flatMap(span => span.getAnimations());
     const dreamStart = dreams[0]?.currentTime;
     let count = 0;
     const start = performance.now();
@@ -111,6 +111,8 @@ async function main() {
     await page.waitForFunction(() => document.querySelector('canvas').width === 1280);
 
     await page.waitForFunction(() => document.querySelector('#cleany-display').dataset.mode === 'idle');
+    await page.waitForFunction(() => ['.cd-caption', '.cd-help', '.cd-dreams']
+      .every(selector => document.querySelector(selector).hidden));
     const mutations = await page.evaluate(() => new Promise(resolve => {
       let count = 0;
       const observer = new MutationObserver(records => { count += records.length; });

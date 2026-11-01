@@ -196,6 +196,8 @@ ROS_DOMAIN_ID=173 python3 tools/validation/verify_cleany_display_ros.py \
 
 브라우저 검사는 [Dev Monitor 웹 의존성](DEVELOPMENT_SETUP.md#monitor-웹)과 로컬 Chrome을 설치한 구현 레포에서 `node tools/validation/verify_cleany_display_web.cjs`로 실행한다. 7개 표정의 60fps와 Zzz 주기, 화면 비율과 720p 상한, 설정 변경, 60.01Hz 입력에서 균등한 30fps 간격, 동일 상태의 DOM 변경 부재, 모션 감소 설정과 HTTP 복구를 검사한다. 결과는 Git에서 제외한 `output/cleany-display-jetson/`에 기록한다.
 
+전환 검사는 같은 환경에서 `node tools/validation/verify_cleany_display_transitions.cjs`로 실행한다. HTTP 상태를 바꾸면서 60Hz 프레임을 제어해 깜빡임의 연속성, 눈과 입의 중간 모양, 얼굴 위치, 땀방울과 Zzz의 사라짐을 확인한다. 안내 교체 중 추가 상태 수신, 도움 요청과 일반 안내의 겹침, 모션 감소 설정도 검사한다. 결과와 중간 프레임은 `output/cleany-display-jetson/transitions/`에 기록하며, 실제 장치의 프레임 성능 측정과 구분한다.
+
 실물 성능 측정은 Jetson에서 다음 순서로 실행한다.
 
 1. `systemctl --user set-environment CLEANY_DISPLAY_DEBUG_PORT=9223`과 `systemctl --user restart cleany-display-kiosk`로 전용 브라우저의 로컬 디버깅 포트를 연다.

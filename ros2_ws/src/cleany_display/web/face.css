@@ -26,7 +26,6 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 #cleany-display .cd-symbol { font-size: max(19px, 4.4cqw); line-height: .9; color: var(--cd-mint); }
 #cleany-display .cd-result { font-size: max(11px, 2.2cqw); color: #a1c6b1; padding-left: 2cqw; border-left: 1px solid #426653; }
 #cleany-display .cd-help { position: absolute; width: 92%; left: 4%; bottom: 8%; color: var(--cd-amber); text-align: center; pointer-events: none; opacity: 0; }
-#cleany-display .cd-help[data-ready="true"] { opacity: 1; }
 #cleany-display .cd-help-heading { font-size: max(12px, 2.2cqw); line-height: 1.4; color: #c9a77d; margin-bottom: 1.2cqw; }
 #cleany-display .cd-help-request { font-size: max(16px, 3.8cqw); line-height: 1.35; font-weight: 500; letter-spacing: -.035em; word-break: keep-all; }
 @media (prefers-reduced-motion: reduce) {
