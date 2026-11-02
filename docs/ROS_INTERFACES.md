@@ -343,3 +343,7 @@ ros2 action info /grasp/select_reachable
 ```
 
 실행 graph는 해당 실행의 증거다. 조건부 노드를 실행하지 않은 결과를 전체 소스의 인터페이스 목록으로 대체하지 않는다. 코드를 변경할 때 해당 노드 표와 이 색인을 함께 갱신한다.
+
+## 로컬 얼굴 디스플레이
+
+`cleany_display` 패키지의 `cleany_display` 실행 파일은 같은 이름의 노드로 미션 상태, 미션 결과, 수거 실행 기록, 오도메트리, 배터리와 화면 지정 입력을 구독한다. 로봇 명령을 발행하지 않는다. 토픽 타입, QoS와 로컬 HTTP 규약은 [디스플레이 인터페이스](../ros2_ws/src/cleany_display/docs/interfaces.md)를 따른다.
