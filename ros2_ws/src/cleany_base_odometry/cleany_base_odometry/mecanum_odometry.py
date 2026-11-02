@@ -7,11 +7,12 @@ from math import atan2, cos, isfinite, sin
 
 @dataclass(frozen=True)
 class MecanumGeometry:
-    """Physical dimensions used by four-wheel Mecanum kinematics."""
+    """Wheel dimensions in metres and the lateral kinematic sign."""
 
     wheel_radius_m: float
     wheelbase_m: float
     wheel_separation_m: float
+    lateral_sign: int = 1
 
     def __post_init__(self) -> None:
         values = (
@@ -21,6 +22,10 @@ class MecanumGeometry:
         )
         if not all(isfinite(value) and value > 0.0 for value in values):
             raise ValueError('Mecanum geometry values must be positive and finite')
+        if (isinstance(self.lateral_sign, bool)
+                or not isinstance(self.lateral_sign, int)
+                or self.lateral_sign not in (-1, 1)):
+            raise ValueError('lateral_sign must be an integer equal to -1 or +1')
 
     @property
     def center_to_wheel_sum_m(self) -> float:
@@ -177,7 +182,8 @@ class MecanumOdometry:
         radius_scale = self._geometry.wheel_radius_m / 4.0
         return (
             radius_scale * (front_left + front_right + rear_left + rear_right),
-            radius_scale * (-front_left + front_right + rear_left - rear_right),
+            radius_scale * (-front_left + front_right + rear_left - rear_right)
+            * self._geometry.lateral_sign,
             radius_scale
             * (-front_left + front_right - rear_left + rear_right)
             / self._geometry.center_to_wheel_sum_m * self._yaw_scale,

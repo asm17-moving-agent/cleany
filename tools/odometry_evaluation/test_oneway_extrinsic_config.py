@@ -13,7 +13,7 @@ from lidar_scan_matcher import LidarScanMatcher, ScanMatchResult
 import run_oneway_eval as runner
 
 
-CONFIG = Path(__file__).resolve().parents[2] / "ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261015.json"
+CONFIG = Path(__file__).resolve().parents[2] / "ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261031.json"
 
 
 def test_current_mount_dry_run_reports_wheel_input_and_extrinsic(capsys):
@@ -29,7 +29,17 @@ def test_current_mount_dry_run_reports_wheel_input_and_extrinsic(capsys):
     assert status == 0
     assert "/wheel/odom" in output
     assert "'lidar_min_range_m': 0.45" in output
-    assert "79.77007003626845" in output
+    assert "179.87886398585295" in output
+
+
+def test_current_mount_forward_motion_uses_negative_laser_x():
+    """CAD-front driving must not inherit the reversed display-model axes."""
+    extrinsic = PlanarExtrinsic.from_json(CONFIG)
+    dx, dy, yaw = extrinsic.base_to_lidar(.5, 0, 0)
+    assert dx == pytest.approx(-.5, abs=.001)
+    assert abs(dy) < .002
+    assert yaw == 0
+    assert extrinsic.lever_arm_x_m == pytest.approx(.141531308, abs=1e-8)
 
 
 @pytest.mark.parametrize("value", ["nan", "inf", "-0.1", "10"])

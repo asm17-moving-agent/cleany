@@ -2,6 +2,8 @@ from pathlib import Path
 import importlib.util
 import pytest
 import yaml
+from unittest.mock import patch
+from launch import LaunchContext
 
 from cleany_base_driver.core import Geometry, Limits, wheel_speeds
 
@@ -23,12 +25,12 @@ def test_profile_mock_is_explicit_and_synthetic_never_real():
 
 def test_confirmed_real_geometry_and_initial_lifted_wheel_limits():
     profile, required = module.load_profile(CONFIG / 'base_hardware.yaml', False)
-    # Physical measured wheel separation is 0.610 m (center-to-center),
-    # but effective kinematic wheel separation is calibrated to 0.590 m for floor driving.
+    # The effective width is a rotation fit, not a physical width measurement.
     assert profile['geometry'] == {
         'wheel_radius_m': 0.0635,
         'wheelbase_m': 0.350,
-        'wheel_separation_m': 0.590,
+        'wheel_separation_m': 0.135,
+        'lateral_sign': -1,
     }
     assert profile['limits'] == {
         'linear_x_mps': 0.5,
@@ -37,7 +39,7 @@ def test_confirmed_real_geometry_and_initial_lifted_wheel_limits():
         'wheel_rad_s': 10.0,
         'command_timeout_s': 0.3,
     }
-    assert required == (0.0635, 0.350, 0.590, 0.5, 0.5, 1.0, 10.0, 0.3)
+    assert required == (0.0635, 0.350, 0.135, 0.5, 0.5, 1.0, 10.0, 0.3)
 
 
 @pytest.mark.parametrize('field', [
@@ -68,8 +70,8 @@ def test_hardware_profile_rejects_limit_above_mcu_ceiling(tmp_path):
 
 @pytest.fixture
 def hardware_motion():
-    _, required = module.load_profile(CONFIG / 'base_hardware.yaml', False)
-    return Geometry(*required[:3]), Limits(*required[3:])
+    profile, required = module.load_profile(CONFIG / 'base_hardware.yaml', False)
+    return Geometry(*required[:3], lateral_sign=profile['geometry']['lateral_sign']), Limits(*required[3:])
 
 
 def test_wheel_ceiling_is_independent_of_axis_limits(hardware_motion):
@@ -83,8 +85,8 @@ def test_wheel_ceiling_is_independent_of_axis_limits(hardware_motion):
 @pytest.mark.parametrize('x,y,signs', [
     (0.5, 0., (1., 1., 1., 1.)),
     (-0.5, 0., (-1., -1., -1., -1.)),
-    (0., 0.5, (-1., 1., 1., -1.)),
-    (0., -0.5, (1., -1., -1., 1.)),
+    (0., 0.5, (1., -1., -1., 1.)),
+    (0., -0.5, (-1., 1., 1., -1.)),
 ])
 @pytest.mark.parametrize('multiplier', [1., 10.])
 def test_initial_translation_is_bounded_by_axis_limit(hardware_motion, x, y, signs, multiplier):
@@ -113,10 +115,35 @@ def test_initial_yaw_ceiling(hardware_motion, fraction):
 def test_initial_combined_motion_clamps_axes_and_preserves_wheel_ratios(hardware_motion):
     geometry, limits = hardware_motion
     rotation = (geometry.wheelbase + geometry.separation) * limits.angular_z / 2
-    x, y = limits.linear_x, limits.linear_y
+    x, y = limits.linear_x, limits.linear_y * geometry.lateral_sign
     raw = (x - y - rotation, x + y + rotation, x + y - rotation, x - y + rotation)
     scale = limits.wheel_rad_s / max(map(abs, raw))
     result = wheel_speeds(50., 50., 50., geometry, limits)
     assert result == pytest.approx(tuple(value * scale for value in raw))
     assert max(map(abs, result)) == pytest.approx(limits.wheel_rad_s)
     assert max(map(abs, result)) * geometry.wheel_radius == pytest.approx(0.635)
+
+
+@pytest.mark.parametrize('value', [0, 2, True, -1.0, 'reverse'])
+def test_profile_rejects_invalid_lateral_sign(tmp_path, value):
+    profile = yaml.safe_load((CONFIG / 'base_hardware.yaml').read_text())
+    profile['geometry']['lateral_sign'] = value
+    config = tmp_path / 'invalid_sign.yaml'
+    config.write_text(yaml.safe_dump(profile))
+    with pytest.raises(ValueError, match='[Ll]ateral'):
+        module.load_profile(config, False)
+
+
+@pytest.mark.parametrize('name,mock,expected', [
+    ('base_hardware.yaml', 'false', -1),
+    ('base_synthetic.yaml', 'true', 1),
+])
+def test_launch_shares_lateral_sign_with_command_and_odometry(name, mock, expected):
+    context = LaunchContext()
+    context.launch_configurations.update(
+        config=str(CONFIG / name), mock=mock, relay_odom='false',
+    )
+    with patch.object(module, 'Node', side_effect=lambda **kwargs: kwargs):
+        nodes = module._nodes(context)
+    assert nodes[0]['parameters'][0]['geometry.lateral_sign'] == expected
+    assert nodes[1]['parameters'][0]['lateral_sign'] == expected

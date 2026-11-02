@@ -38,12 +38,20 @@ Mecanum 변환 후 wheel limit을 넘으면 네 바퀴를 같은 비율로 축�
 | 항목 | 기준 |
 |---|---|
 | 설정 원본 | [base_hardware.yaml](../config/base_hardware.yaml), [base_synthetic.yaml](../config/base_synthetic.yaml) |
-| 실물 geometry | radius 0.0635 m / wheelbase 0.350 m / separation 0.610 m |
+| 실물 기구학 설정 | radius 0.0635 m / wheelbase 0.350 m / 유효 separation 0.135 m |
 | MCU timestamp | MCU monotonic; ROS epoch 아님 |
 | JointState stamp | ROS 수신 시각 |
 | Driver deadline, cmd_vel timeout | 해당 설정값 사용 |
+| 측방 부호 | `geometry.lateral_sign`: 정수 +1 또는 −1, 생략 시 +1; 현재 실물 profile은 −1 |
 
 실물 초기 속도 제한은 바퀴를 띄운 시험용이며 바닥 주행 승인값이 아니다. Mock geometry는 합성값이므로 실물 보정값으로 사용하지 않는다. Feedback 단절 중 이동량은 관측할 수 없다.
+
+`lateral_sign`은 차체의 +Y 좌측 규약과 설치된 휠의 측방 응답을 맞춘다.
+Driver는 역기구학의 Y 입력에 이 부호를 곱하고, wheel odometry는 같은 부호를
+휠에서 복원한 Y 변위와 속도에 곱한다. `base_driver.launch.py`는 한 profile의 값을
+두 노드에 함께 전달한다. X와 yaw의 기구학 항은 이 부호로 바꾸지 않는다.
+독립적으로 기동할 때도 driver의 `geometry.lateral_sign`과 odometry의
+`lateral_sign`을 같게 설정해야 한다. 값은 노드 초기화 시 적용된다.
 
 ## Wheel odometry
 

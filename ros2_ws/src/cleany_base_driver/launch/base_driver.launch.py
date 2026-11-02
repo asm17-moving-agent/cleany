@@ -23,7 +23,8 @@ def load_profile(config, mock):
                 lim.get('wheel_rad_s'), lim.get('command_timeout_s'))
     if any(v is None for v in required):
         raise RuntimeError('real geometry and velocity limits must be explicitly reviewed')
-    Geometry(required[0], required[1], required[2])
+    Geometry(required[0], required[1], required[2],
+             lateral_sign=geo.get('lateral_sign', 1))
     Limits(*required[3:])
     protocol = data.get('protocol', {})
     if protocol.get('counts_per_revolution') != 3172 or protocol.get('watchdog_ms') != 250:
@@ -38,6 +39,7 @@ def _nodes(context):
     data, required = load_profile(config, mock)
     params = {'mock': mock, 'geometry.wheel_radius_m': required[0],
               'geometry.wheelbase_m': required[1], 'geometry.wheel_separation_m': required[2],
+              'geometry.lateral_sign': data['geometry'].get('lateral_sign', 1),
               'limits.linear_x_mps': required[3], 'limits.linear_y_mps': required[4],
               'limits.angular_z_rad_s': required[5], 'limits.wheel_rad_s': required[6],
               'limits.command_timeout_s': required[7],
@@ -48,7 +50,8 @@ def _nodes(context):
                   name='wheel_odometry', parameters=[{
                       'input_topic': 'joint_states', 'output_topic': 'wheel/odom',
                       'wheel_radius_m': required[0], 'wheelbase_m': required[1],
-                      'wheel_separation_m': required[2]}], output='screen')]
+                      'wheel_separation_m': required[2],
+                      'lateral_sign': data['geometry'].get('lateral_sign', 1)}], output='screen')]
     if mock:
         nodes.append(Node(package='cleany_base_driver', executable='mock_mcu_node',
                           name='mock_base_mcu', output='screen'))

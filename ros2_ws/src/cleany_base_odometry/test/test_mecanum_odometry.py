@@ -1,3 +1,4 @@
+from dataclasses import replace
 from math import isclose, pi, sqrt
 import pytest
 from unittest import TestCase
@@ -79,6 +80,60 @@ class MecanumOdometryTest(TestCase):
         self.assertIsNotNone(estimate)
         assert estimate is not None
         self.assertTrue(isclose(estimate.x_m, GEOMETRY.wheel_radius_m))
+
+
+@pytest.mark.parametrize('sign', [1, -1])
+@pytest.mark.parametrize('direction', [1, -1])
+@pytest.mark.parametrize('window', [0.0, 0.125])
+def test_lateral_sign_applies_to_pose_and_windowed_velocity(sign, direction, window):
+    geometry = replace(GEOMETRY, lateral_sign=sign)
+    odometry = MecanumOdometry(geometry, velocity_window_s=window)
+    pattern = (-sign, sign, sign, -sign)
+    assert GEOMETRY.lateral_sign == 1
+    assert odometry.update(ZERO, 1.) is None
+    warmup = odometry.update(
+        WheelPositions(*(direction * .5 * value for value in pattern)), 1.0625)
+    if window:
+        assert warmup is None
+    else:
+        assert warmup is not None
+        assert warmup.y_m == pytest.approx(direction * .5 * geometry.wheel_radius_m)
+    estimate = odometry.update(
+        WheelPositions(*(direction * 2 * value for value in pattern)), 1.125)
+    assert estimate is not None
+    assert estimate.y_m == pytest.approx(direction * 2 * geometry.wheel_radius_m)
+    expected_velocity = direction * geometry.wheel_radius_m * (
+        2 / .125 if window else 1.5 / .0625)
+    assert estimate.linear_y_mps == pytest.approx(expected_velocity)
+    assert (estimate.x_m, estimate.yaw_rad,
+            estimate.linear_x_mps, estimate.angular_z_rps) == pytest.approx((0.,) * 4)
+
+
+@pytest.mark.parametrize('positions', [
+    WheelPositions(1., 1., 1., 1.),
+    WheelPositions(-1., 1., -1., 1.),
+])
+@pytest.mark.parametrize('window', [0.0, 0.125])
+def test_negative_lateral_sign_preserves_forward_and_yaw(positions, window):
+    positive = MecanumOdometry(GEOMETRY, velocity_window_s=window, yaw_scale=1.2)
+    negative = MecanumOdometry(
+        replace(GEOMETRY, lateral_sign=-1), velocity_window_s=window, yaw_scale=1.2)
+    assert positive.update(ZERO, 1.) is None
+    assert negative.update(ZERO, 1.) is None
+    for fraction in (.5, 1.):
+        sample = WheelPositions(*(fraction * value for value in positions.as_tuple()))
+        expected = positive.update(sample, 1. + fraction * .125)
+        actual = negative.update(sample, 1. + fraction * .125)
+        assert actual == expected
+    assert actual is not None
+
+
+@pytest.mark.parametrize('sign', [
+    True, False, 0, -2, 2, 1.0, -1.0, '1', None, float('nan'), float('inf'),
+])
+def test_invalid_lateral_sign_is_rejected(sign):
+    with pytest.raises(ValueError, match='lateral_sign'):
+        replace(GEOMETRY, lateral_sign=sign)
 
 
 def test_count_window_reduces_lateral_encoder_alias_without_losing_pose():

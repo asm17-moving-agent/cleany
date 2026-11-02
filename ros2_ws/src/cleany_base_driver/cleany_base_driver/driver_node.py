@@ -52,11 +52,15 @@ class BaseDriver(Node):
         for key, default in (('geometry.wheel_radius_m', 0.), ('geometry.wheelbase_m', 0.),
                              ('geometry.wheel_separation_m', 0.)):
             self.declare_parameter(key, default)
+        self.declare_parameter('geometry.lateral_sign', 1)
         for key in ('linear_x_mps', 'linear_y_mps', 'angular_z_rad_s', 'wheel_rad_s', 'command_timeout_s'):
             self.declare_parameter('limits.' + key, 0.)
         self.declare_parameter('counts_per_revolution', 3172)
-        self.geometry = Geometry(*(float(self.get_parameter('geometry.' + p).value)
-                                   for p in ('wheel_radius_m', 'wheelbase_m', 'wheel_separation_m')))
+        self.geometry = Geometry(
+            *(float(self.get_parameter('geometry.' + p).value)
+              for p in ('wheel_radius_m', 'wheelbase_m', 'wheel_separation_m')),
+            lateral_sign=self.get_parameter('geometry.lateral_sign').value,
+        )
         self.limits = Limits(*(float(self.get_parameter('limits.' + p).value)
                                for p in ('linear_x_mps', 'linear_y_mps', 'angular_z_rad_s',
                                          'wheel_rad_s', 'command_timeout_s')))

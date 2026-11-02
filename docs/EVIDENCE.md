@@ -20,6 +20,96 @@
 | `reports/documentation-reorganization-20261013/before/` | 이번 문서 개편 전 Markdown 사본 |
 | `reports/documentation-reorganization-20261013/manifest.json` | 사본 source commit, dirty 상태, 각 파일 SHA-256 |
 
+## 2026-10-31 LiDAR 재보정
+
+`6e5a6bd` 기반 미커밋 작업트리를 Ubuntu 22.04 ROS 2 Humble Distrobox에서
+검증했다. ESP32-S3 Native USB와 RPLIDAR A1M8을 사용했다.
+
+기존 79.77° 보정으로 수행한 0.5 m 전후 왕복은 전진 ICP가 거부되어
+1회 뒤 중단했다. 원본은
+`runs/odometry-check-20261031-YBYYj9/RESULT.md`와 같은 경로의 `measurement/`에 있다.
+
+사용자가 지정한 `../cleany_cad/cad/Cleany.FCStd`의 현행 단면과 새 정지 스캔
+185개를 정합했다. CAD 해시는
+`a8fa5a1717459cf9eb401459f2aabab1880201d82e06aea8e869a66811f6568c`다.
+구동 비활성 상태의 WheelState 1,076개, 네 기둥의 단면 정합, 제외 기둥 검증과
+기존 주행 스캔 재검증을 보존했다. 표면 잔차 0.88~1.82 mm는 절대 정확도가 아니다.
+
+현재 보정은 yaw 179.878864°, x 141.531308 mm, y 1.145536 mm다.
+기존 실물 평가의 전진 규약을 유지하며, 반대 방향인 CAD 표시용 `DriveBase`
+등록과 구분한다. 보정 원본과 후속 재측정은
+`runs/lidar-cad-recalibration-20261031-3oUYnz/`에 있다.
+`calibration_verification.json`은 입력 해시와 저장 스캔 재검증,
+`remeasurements/`는 새 실물 주행 원본을 관리한다.
+
+적용 후 전용 검사 11개와 평가 도구 검사 269개가 통과했고,
+세 ROS 패키지의 증분 빌드가 완료됐다. 빌드에서 `tests_require` 경고가 있었다.
+최종 실물 배치 상태는 해당 `batch_summary.json`을 따른다.
+
+재측정은 전후진 0.20/0.35/0.50 m/s에서 각각 왕복 한 번씩 유효했다.
+6개 편도의 odom−LiDAR 위치 차이는 4.83~13.97 mm였다.
+첫 횡이동 0.20 m/s에서 ICP 거부가 발생해 전체 배치는 중단됐다.
+원본 `batch_20261031_034338_569940/`와 `sway-seed-diagnosis.json`은
+측방 방향 불일치의 추가 진단 근거를 포함한다. 종료 후 실제 WheelState에서
+구동 비활성, fault 0, 목표 속도와 PWM 0을 재확인했다.
+
+## 2026-10-31 측방 방향 보정
+
+같은 `6e5a6bd` 기반 작업트리와 Humble 환경에서, 사용자가 RL 휠 장착각을
+정렬한 후에도 +Y 명령에 실제 오른쪽 이동을 확인했다.
+`geometry.lateral_sign: -1`을 명령 역기구학과 wheel odometry에 함께
+적용했다. 기본값 +1은 기존 합성 profile을 유지한다.
+
+Core/profile 검사 124개, ROS graph를 포함한 패키지 검사 182개가 통과했다.
+실물 실행 중 평가 도구 검사는 공용 실행 잠금 때문에 12개가 진행되지
+않았고, 주행 종료 후 재실행한 269개는 모두 통과했다.
+
+저속 횡이동 probe는 양방향 ICP가 유효했고, 이후 세 속도의 전후진과
+횡이동 6회 왕복도 유효했다. 편도 위치 차이는 전후 4.86~13.80mm,
+좌우 22.61~45.70mm였다. 첫 ±90° 회전의 ICP 거부로 전체 배치는 중단됐다.
+±10° 진단에서도 wheel odometry와 LiDAR의 각도 차이가 확인되어
+회전 계수는 자동 적용하지 않았다.
+
+원본, 입력 해시, 시험 로그와 결과표는
+`runs/odometry-lateral-sign-20261031-m17huy/RESULT.md`에 연결했다.
+`full/`과 `rotation_probe/`의 실패도 보존했다. 마지막 WheelState에서
+구동 비활성, fault 0, 목표 속도와 PWM 0을 확인했다.
+
+## 2026-10-31 회전 기반 유효폭
+
+사용자가 좌우 휠 간 폭 변경을 확인한 후, 같은 `6e5a6bd` 기반 dirty
+작업트리와 Humble 환경에서 회전 기반 유효폭을 보정했다. Wheelbase 350 mm와
+반경 63.5 mm를 고정하고 양방향 20°, 45°, 90°의 유효한 LiDAR 편도
+21개를 함께 피팅했다.
+
+추정값 136.949 mm를 요청한 5 mm 단위로 반올림해
+`base_hardware.yaml`의 `wheel_separation_m: 0.135`로 적용했다.
+기구학 유효값이며 실제 장착 폭 측정값은 아니다. 속도별 추정 차이가 남는다.
+최종 설정에서 `make test-base`는 182 passed였다.
+
+독립적인 ±90° 확인의 첫 편도는 odom +89.491°, LiDAR +90.979°로
+각도 차이 −1.488°였다. 복귀는 inlier 39.47%가 기준 40%에 미달해
+중단했으므로 최종 설정의 전체 속도 검증은 완료하지 않았다.
+종료 후 실제 WheelState의 구동 비활성, fault 0, 목표 속도와 PWM 0을 확인했다.
+
+수집 조건, 중간 후보, 거부 표본과 해시는
+`runs/wheel-width-calibration-20261031-eae72y/RESULT.md`에 연결했다.
+`all-angle-fit.json`과 `fit_final_width.py`가 최종 산식을 재현하며,
+`confirmation/`은 fitting에 사용하지 않은 확인 원본이다.
+
+## 2026-11-02 오도메트리 변경 분리 검증
+
+`6e5a6bd` 기반 Git tree `fe84c5ae37981eea945851739a64def13d4a3830`의
+LiDAR 보정, 측방 부호와 유효폭 변경을 별도 소스와 빌드 경로에서 검사했다.
+환경은 Ubuntu 22.04 amd64 ROS 2 Humble Distrobox이며 입력은 합성 데이터와
+mock MCU다.
+
+Core/profile 검사 124개, `make test-base`의 pytest 162개와 관련 colcon 검사,
+`make test-odometry-evaluation` 269개가 통과했다. 검사 묶음은 중복을 포함한다.
+실패는 없었고 빌드에 `tests_require` 경고가 있었다.
+소스, patch, tree ID와 실행 로그는 데이터 루트의
+`runs/odometry-publish-20261102-YGXFQ3/`에 보존했다.
+
 ## 재현, 보존
 
 문서 개편 전 사본의 source commit은 `fbe5854`입니다. Commit, dirty 상태, SHA-256은 보관 manifest, 과거 경로 대응은 `relocation-manifest.json`에서 확인합니다. 원본의 절대 경로와 hash는 보존하고, fixture의 현재 위치와 profile-manifest의 과거 provenance를 구분합니다.

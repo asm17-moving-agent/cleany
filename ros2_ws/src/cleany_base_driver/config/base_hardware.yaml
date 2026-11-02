@@ -1,13 +1,14 @@
-# User-supplied geometry: 127 mm wheel diameter; 350 mm front/rear and 610 mm
-# left/right wheel-center distances (center-to-center).
+# User-supplied geometry: 127 mm wheel diameter and 350 mm front/rear spacing.
 # Initial lifted-wheel test profile, not a validated floor-driving limit.
 mode: hardware
 geometry:
   # 127 mm diameter -> 63.5 mm radius.
   wheel_radius_m: 0.0635
   wheelbase_m: 0.350
-  # Ground-run effective separation; measured wheel-center distance is 0.610 m.
-  wheel_separation_m: 0.590
+  # 2026-10-31 turn fit: 136.95 mm effective width, rounded to the nearest 5 mm.
+  wheel_separation_m: 0.135
+  # Confirmed on 2026-10-31: the standard +Y wheel pattern moves right.
+  lateral_sign: -1
 limits:
   # Input-axis ceilings; proportional wheel scaling still limits the targets.
   linear_x_mps: 0.5

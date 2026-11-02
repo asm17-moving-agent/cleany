@@ -19,14 +19,21 @@ def finite_twist_axes(*axes: float) -> bool:
 
 @dataclass(frozen=True)
 class Geometry:
+    """Wheel dimensions in metres and the lateral kinematic sign."""
+
     wheel_radius: float
     wheelbase: float
     separation: float
+    lateral_sign: int = 1
 
     def __post_init__(self) -> None:
         if not all(isfinite(x) and x > 0 for x in
                    (self.wheel_radius, self.wheelbase, self.separation)):
             raise ValueError('geometry dimensions must be positive and finite')
+        if (isinstance(self.lateral_sign, bool)
+                or not isinstance(self.lateral_sign, int)
+                or self.lateral_sign not in (-1, 1)):
+            raise ValueError('lateral_sign must be an integer equal to -1 or +1')
 
 
 @dataclass(frozen=True)
@@ -57,7 +64,7 @@ def wheel_speeds(x: float, y: float, yaw: float, geometry: Geometry,
         x: Forward velocity in metres per second.
         y: Leftward velocity in metres per second.
         yaw: Counterclockwise yaw rate in radians per second.
-        geometry: Wheel radius, wheelbase and separation in metres.
+        geometry: Wheel dimensions in metres and the lateral kinematic sign.
 
     Returns:
         Wheel targets in radians per second, ordered FL, FR, RL, RR.
@@ -67,6 +74,7 @@ def wheel_speeds(x: float, y: float, yaw: float, geometry: Geometry,
         return (0.,) * 4
     x = max(-limits.linear_x, min(limits.linear_x, x))
     y = max(-limits.linear_y, min(limits.linear_y, y))
+    y *= geometry.lateral_sign
     yaw = max(-limits.angular_z, min(limits.angular_z, yaw))
     rot = (geometry.wheelbase + geometry.separation) * yaw / 2
     raw = ((x-y-rot)/geometry.wheel_radius, (x+y+rot)/geometry.wheel_radius,

@@ -28,6 +28,46 @@ def test_mecanum_lateral_and_yaw_signs():
     assert wheel_speeds(0, 0, 1, g, l) == pytest.approx((-4, 4, -4, 4))
 
 
+def test_default_lateral_sign_matches_explicit_positive_sign():
+    default = Geometry(.1, .4, .4)
+    positive = Geometry(.1, .4, .4, lateral_sign=1)
+    limits = Limits(1, 1, 1, 10, .2)
+    assert default.lateral_sign == 1
+    assert wheel_speeds(.4, .3, .5, default, limits) == wheel_speeds(
+        .4, .3, .5, positive, limits)
+
+
+@pytest.mark.parametrize('lateral, wheel_speed', [
+    (.1, 1), (-.1, -1), (100, 2), (-100, -2),
+])
+def test_negative_lateral_sign_reverses_clipped_lateral_command(lateral, wheel_speed):
+    geometry = Geometry(.1, .4, .4, lateral_sign=-1)
+    limits = Limits(1, .2, 1, 10, .2)
+    assert wheel_speeds(0, lateral, 0, geometry, limits) == pytest.approx(
+        (wheel_speed, -wheel_speed, -wheel_speed, wheel_speed))
+
+
+@pytest.mark.parametrize('twist', [
+    (1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1), (.4, .3, .5),
+])
+@pytest.mark.parametrize('wheel_limit', [2, 10])
+def test_negative_lateral_sign_changes_only_lateral_term(twist, wheel_limit):
+    positive = Geometry(.1, .4, .4, lateral_sign=1)
+    negative = Geometry(.1, .4, .4, lateral_sign=-1)
+    limits = Limits(1, .2, 1, wheel_limit, .2)
+    x, y, yaw = twist
+    assert wheel_speeds(x, y, yaw, negative, limits) == pytest.approx(
+        wheel_speeds(x, -y, yaw, positive, limits))
+
+
+@pytest.mark.parametrize('sign', [
+    True, False, 0, -2, 2, 1.0, -1.0, '1', None, math.nan, math.inf,
+])
+def test_invalid_lateral_sign_is_rejected(sign):
+    with pytest.raises(ValueError, match='lateral_sign'):
+        Geometry(.1, .4, .4, lateral_sign=sign)
+
+
 def test_modular_sequences_and_encoder_rollover_reboot():
     assert newer(0, 0xffffffff)
     assert not newer(0x80000000, 0)

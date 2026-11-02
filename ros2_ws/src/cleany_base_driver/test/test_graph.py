@@ -2,6 +2,7 @@
 import os
 import threading
 import time
+import pytest
 
 os.environ['ROS_DOMAIN_ID'] = os.environ.get('BASE_TEST_ROS_DOMAIN_ID', '173')
 
@@ -37,11 +38,13 @@ def _call(client, request):
     return response
 
 
-def test_mocked_graph_end_to_end():
+@pytest.mark.parametrize('lateral_sign', [1, -1])
+def test_mocked_graph_end_to_end(lateral_sign):
     rclpy.init(args=['--ros-args', '-p', 'wheel_radius_m:=0.05', '-p', 'wheelbase_m:=0.30',
-                     '-p', 'wheel_separation_m:=0.30'])
+                     '-p', 'wheel_separation_m:=0.30', '-p', f'lateral_sign:={lateral_sign}'])
     params = {'geometry.wheel_radius_m': .05, 'geometry.wheelbase_m': .30,
               'geometry.wheel_separation_m': .30, 'limits.linear_x_mps': .4,
+              'geometry.lateral_sign': lateral_sign,
               'limits.linear_y_mps': .4, 'limits.angular_z_rad_s': .5,
               'limits.wheel_rad_s': 10., 'limits.command_timeout_s': .4}
     driver = BaseDriver(parameter_overrides=[Parameter(k, value=v) for k, v in params.items()])
@@ -49,6 +52,7 @@ def test_mocked_graph_end_to_end():
     assert float(odom.get_parameter('wheel_radius_m').value) == .05
     assert float(odom.get_parameter('wheelbase_m').value) == .30
     assert float(odom.get_parameter('wheel_separation_m').value) == .30
+    assert odom.get_parameter('lateral_sign').value == driver.geometry.lateral_sign
     monitor = rclpy.create_node('graph_monitor')
     received, transforms, wheel_odom, joints, diagnostics = [], [], [], [], []
     monitor.create_subscription(Odometry, 'odom', received.append, 10)
@@ -93,6 +97,9 @@ def test_mocked_graph_end_to_end():
             time.sleep(.02)
         _wait(lambda: received[-1].pose.pose.position.y > .02)
         assert .02 < received[-1].pose.pose.position.y < .05
+        assert tuple(value > 0 for value in mock.target) == tuple(
+            sign > 0 for sign in (-lateral_sign, lateral_sign, lateral_sign, -lateral_sign)
+        )
         turning = Twist()
         turning.angular.z = .2
         end = time.monotonic() + .32

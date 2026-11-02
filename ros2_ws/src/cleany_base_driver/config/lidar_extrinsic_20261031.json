@@ -1,0 +1,34 @@
+{
+  "yaw_deg": 179.87886398585295,
+  "lever_arm_x_m": 0.14153130806844844,
+  "lever_arm_y_m": 0.0011455361672152871,
+  "sensor_frame": "laser",
+  "base_frame": "base_link",
+  "scope": "physical planar wheel-odometry evaluation; z, roll and pitch not calibrated",
+  "physical_direction_anchor": {
+    "front": "CAD -Y maps to physical base +X",
+    "left": "CAD +X maps to physical base +Y",
+    "note": "Preserves the prior physical evaluation axes, not the opposite CAD DriveBase visualization axes."
+  },
+  "measurement": {
+    "date": "2026-10-31",
+    "stationary_scan_count": 185,
+    "source": "/home/changsu/Workspace/cleany-data/runs/lidar-cad-recalibration-20261031-3oUYnz/calibration_verification.json",
+    "cad_source": "/home/changsu/Workspace/cleany_cad/cad/Cleany.FCStd",
+    "cad_source_sha256": "a8fa5a1717459cf9eb401459f2aabab1880201d82e06aea8e869a66811f6568c",
+    "surface_rmse_mm": [
+      0.87751040117228,
+      1.2575590995340862,
+      1.8189481139477286,
+      1.6447736443418908
+    ],
+    "held_out_profile_rmse_mm": [
+      2.1274616577830745,
+      2.087491019804531,
+      3.4326972893962786,
+      1.5303413551438048
+    ],
+    "ambiguity_resolution": "Closest fitted LiDAR origin to the current CAD front-mounted origin, without wheel-odometry fitting.",
+    "note": "Residuals and temporal repeatability are not absolute accuracy. Recalibrate after remounting."
+  }
+}

@@ -49,6 +49,7 @@ class WheelOdometryNode(Node):
         self.declare_parameter('wheel_radius_m', 0.0635)
         self.declare_parameter('wheelbase_m', 0.30)
         self.declare_parameter('wheel_separation_m', 0.51)
+        self.declare_parameter('lateral_sign', 1)
         self.declare_parameter(
             'front_left_joint', 'front_left_wheel_joint'
         )
@@ -64,6 +65,7 @@ class WheelOdometryNode(Node):
             wheel_separation_m=float(
                 self.get_parameter('wheel_separation_m').value
             ),
+            lateral_sign=self.get_parameter('lateral_sign').value,
         )
         self._odometry = MecanumOdometry(
             geometry,

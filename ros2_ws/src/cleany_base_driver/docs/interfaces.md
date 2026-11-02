@@ -17,6 +17,10 @@
 
 이름은 ROS remap으로 변경한다. 구동 허가와 정지 규칙은 [Base 계약](command-and-odometry.md)을 따른다.
 
+`geometry.lateral_sign`은 정수 +1 또는 −1이며 기본값은 +1이다.
+역기구학의 측방 부호를 정하고, 실물 profile은 −1을 사용한다.
+Wheel odometry의 `lateral_sign`과 같은 값이어야 한다.
+
 ## mock_base_mcu
 
 실행 파일: `mock_mcu_node`. 원본: [mock_node.py](../cleany_base_driver/mock_node.py).

@@ -205,8 +205,13 @@ Enter physical Yaw error relative to tape mark in deg (CCW + / CW -):
 
 주행 도구들은 `/tmp/cleany_odom_eval.lock`으로 중복 실행을 막습니다.
 실제 이동 전 다른 `/cmd_vel` publisher가 있는지도 검사합니다.
-기존 평가의 기본 LiDAR → base 변환은 yaw `-7.85°`, x lever arm `0.029 m`입니다.
-변경된 장착 상태의 편도 평가는 아래처럼 새 보정 파일을 명시적으로 선택합니다.
+보정 파일을 생략한 평가기의 기본 LiDAR → base 변환은 yaw `-7.85°`,
+x lever arm `0.029 m`입니다. 현재 휠 평가 config는
+[`lidar_extrinsic_20261031.json`](../../ros2_ws/src/cleany_base_driver/config/lidar_extrinsic_20261031.json)을
+선택하며 yaw `179.878864°`, x `0.141531308 m`, y `0.001145536 m`를 적용합니다.
+CAD −Y를 실물 전진 +X로 사용하는 보정이며, 반대 방향인 CAD 표시용
+`DriveBase` 등록과 구분합니다. 보정 과정은 [캘리브레이션](../../docs/CALIBRATION.md#lidar-평면-익스트린식)을
+따릅니다. 변경된 장착 상태의 편도 평가는 새 보정 파일을 명시적으로 선택합니다.
 `run_eval.sh`와 `run_multi_speed_eval.py`에는 이 선택 옵션이 없으므로,
 아래 재측정에는 config 기반 전용 launcher를 사용합니다.
 측정 결과는 Git 제외 경로인 `artifacts/odometry_evaluation/`에 저장됩니다.
@@ -275,7 +280,7 @@ MCU에는 micro-ROS **모터 제어 펌웨어**가 실행되어야 합니다.
 넘어가지 않습니다. 거리의 정지 목표는 wheel odom 기준이고 실제 변위는
 LiDAR ICP로 별도 추정합니다.
 
-`lidar_min_range_m: 0.45`는 이번 장착의 프로파일 반사점(관측 거리 약 0.23~0.39 m)을
+`lidar_min_range_m: 0.45`는 현재 장착의 프로파일 반사점(관측 거리 약 0.24~0.42 m)을
 평가용 ICP에서 제외하는 거리 필터입니다. `/scan` 자체나 장애물 회피 입력을
 변경하지 않습니다. 필터 후에도 서로 다른 방향의 고정 구조물이 충분히 보여야 합니다.
 이는 보정용 프로파일 정합과 달리 외부 환경 스캔을 비교하는 주행 평가입니다.
