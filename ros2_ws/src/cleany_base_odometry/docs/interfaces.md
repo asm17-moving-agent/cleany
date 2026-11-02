@@ -12,3 +12,9 @@
 | 토픽 발행 | `wheel/odom` | `nav_msgs/msg/Odometry` | R10; 유효 관측 구간 준비 후 입력 수신 시, `output_topic` |
 
 TF는 발행하지 않는다. 의미는 [Base odometry 계약](../../cleany_base_driver/docs/command-and-odometry.md)을 따른다.
+
+## 원점 초기화
+
+`wheel_odometry/reset`은 private `~/reset`, `std_srvs/srv/Trigger` 서비스다.
+pose와 encoder baseline을 초기화하고 다음 fresh encoder 표본을 기다린다. 이 서비스는
+모터를 정지시키지 않으므로 매핑 관리자가 STOP을 확인하고 기존 SLAM을 종료한 뒤 호출한다.

@@ -8,6 +8,7 @@ import time
 from collections import deque
 
 import rclpy
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.serialization import serialize_message
 from rclpy.action import (
     get_action_client_names_and_types_by_node,
@@ -331,6 +332,8 @@ class ObservationNode(Node):
                             name,
                             lambda msg, topic=name: self.receive(topic, msg),
                             qos,
+                            # A queued retired handle must not strand the service callback group.
+                            callback_group=MutuallyExclusiveCallbackGroup() if self.recording_enabled else None,
                         )
                         self.subs[name] = (sub, signature)
                         self.errors.pop(name, None)

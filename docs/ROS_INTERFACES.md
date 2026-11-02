@@ -380,6 +380,17 @@ ros2 action info /grasp/select_reachable
 | `wrist_rgb_camera`, `rgbd_frame_bridge` | [손목 영상과 헤드 RGB-D 좌표계](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
 | `motor_telemetry_recorder` | [모터 상태 수동 기록](../ros2_ws/src/cleany_robot_interface/docs/interfaces.md) |
 
+## 실물 매핑과 휴대폰 조종
+
+| 패키지 | 실행 파일 | 인터페이스 |
+|---|---|---|
+| cleany_teleop | phone_remote | [조종과 웹 계약](../ros2_ws/src/cleany_teleop/docs/interfaces.md) |
+| cleany_teleop | commission_wheels | 같은 문서의 독립 시험 CLI |
+| cleany_navigation | mapping_scan_filter, mapping_session | [매핑 계약](../ros2_ws/src/cleany_navigation/docs/mapping.md) |
+| cleany_bringup | hardware_runtime | [프로세스 수명](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md) |
+
+Base driver의 `base/set_enabled`와 wheel odometry의 `~/reset`은 해당 패키지 reference에 설명한다.
+
 ## ToF 활성 구성
 
 [ToF reference][ros-tof]는 `tof_driver`, `proximity_guard`, `desk_approach` 실행 파일과

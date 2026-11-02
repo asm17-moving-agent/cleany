@@ -119,6 +119,12 @@ ToF의 주기는 별도로 유지한다. 이름 외에도 body profile과 안전
 
 시작할 때 `manifest_file`과 `xml_file`을 검증한다.
 
+## 매핑 세션 상태
+
+`mapping/status`의 `error_code`, `error_file`은 마지막 작업 실패의 단계 코드와
+진단 JSON 경로다. 오류가 없으면 빈 문자열이며 새 작업 접수 시 초기화된다.
+`output`은 시작 준비 단계부터 제공되고, `generation`은 성공한 시작 횟수만 나타낸다.
+
 ## nav2_lifecycle_recovery
 
 실행 파일: `nav2_lifecycle_recovery`. 원본: [lifecycle_recovery_node.py](../cleany_navigation/lifecycle_recovery_node.py).

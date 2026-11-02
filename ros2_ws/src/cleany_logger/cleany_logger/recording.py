@@ -33,6 +33,11 @@ TYPES.update(camera_info={'sensor_msgs/msg/CameraInfo'}, clock={'rosgraph_msgs/m
 # Native visualization inputs accompany the corresponding processed records.
 # Keep this allowlist separate from heavy, independently selected sensor streams.
 CONTEXT = {
+    'wheel_state_topic': ('motion', 'cleany_base_interfaces/msg/WheelState'),
+    'wheel_command_topic': ('motion', 'cleany_base_interfaces/msg/WheelCommand'),
+    'joint_state_topic': ('motion', 'sensor_msgs/msg/JointState'),
+    'canonical_odometry_topic': ('motion', 'nav_msgs/msg/Odometry'),
+    'raw_scan_topic': ('slam', 'sensor_msgs/msg/LaserScan'),
     'map_topic': ('costmaps', 'nav_msgs/msg/OccupancyGrid'),
     'local_costmap_topic': ('costmaps', 'nav_msgs/msg/OccupancyGrid'),
     'global_costmap_topic': ('costmaps', 'nav_msgs/msg/OccupancyGrid'),
@@ -199,6 +204,7 @@ def _version_three_rate_profiles(resource_interval_s=1.):
 # At 0.2 m/s, 2 Hz poses resolve roughly 10 cm; 10 Hz resolves 2 cm.
 # Slow geometry and maps do not gain useful detail from control-loop frequencies.
 SEMANTIC_RATES = {
+    'canonical_odometry_topic': (2., 5., 10.), 'raw_scan_topic': (2.,5.,10.),
     **{f'slam_{key}_topic': (1., 2., 2.) for key in ('submaps', 'trajectory', 'constraints', 'matched_points')},
     'runtime_debug_topic': (.5, 1., 2.),
     'odometry_topic': (2., 5., 10.), 'ground_truth_topic': (2., 5., 10.),

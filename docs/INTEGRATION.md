@@ -110,6 +110,12 @@ flowchart TB
 
 외부 Backend의 schema, 인증, media 정책은 별도 control-plane 저장소가 관리합니다.
 
+## 실물 매핑과 휴대폰 조종
+
+- [휴대폰 조종 계약](../ros2_ws/src/cleany_teleop/docs/interfaces.md)
+- [매핑 세션과 저장](../ros2_ws/src/cleany_navigation/docs/mapping.md)
+- [실물 구성과 보정 프로필](../ros2_ws/src/cleany_bringup/docs/hardware-mapping.md)
+
 ## 로컬 얼굴 디스플레이
 
 로봇의 미션과 수거 실행 상태를 표시하는 전용 앱은 제어 경로와 독립적으로 구독한다. [디스플레이 인터페이스](../ros2_ws/src/cleany_display/docs/interfaces.md)에 상태 매핑, QoS, 연결 단절과 배터리 데이터 만료 규칙이 있다.
