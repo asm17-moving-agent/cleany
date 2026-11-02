@@ -18,6 +18,9 @@ from std_srvs.srv import SetBool
 
 from .core import EncoderAdapter, Geometry, Limits, finite_twist_axes, newer, wheel_speeds
 
+# Intentional disables leave the base in a safe, available state; any other reason is a fault.
+SAFE_DISABLE_REASONS = frozenset({'stopped by request', 'cmd_vel timeout', 'non-finite cmd_vel', 'driver shutdown'})
+
 
 class BaseDriver(Node):
     """Translate chassis commands into the MCU wheel permission protocol.
@@ -77,7 +80,9 @@ class BaseDriver(Node):
         self.command_sequence = None
         self.pending_enable = None
         self.diagnostic_error = ''
+        self.fault_reason = ''
         self._stop_sent = False
+        self._stop_sequence = self._stop_sent_at = None
         self.create_timer(.02, self.tick, clock=Clock(clock_type=ClockType.STEADY_TIME))
         self.create_timer(.1, self.publish_diagnostics, clock=Clock(clock_type=ClockType.STEADY_TIME))
 
@@ -105,9 +110,16 @@ class BaseDriver(Node):
         self.last_cmd_receipt = None
         self.latest_twist = None
         self.diagnostic_error = reason
+        if reason not in SAFE_DISABLE_REASONS and not self.fault_reason:
+            self.fault_reason = reason  # Kept until the next acknowledged ENABLE.
         if send_stop and not self._stop_sent:
-            self._send(WheelCommand.STOP)
-            self._stop_sent = True
+            self._stop_sequence = self._send(WheelCommand.STOP).sequence
+            self._stop_sent, self._stop_sent_at = True, time.monotonic()
+
+    def _stop_in_flight(self, msg: WheelState, now: float) -> bool:
+        """Feedback sent before the MCU processed our STOP still says enabled; bounded in time."""
+        return (self._stop_sequence is not None and newer(self._stop_sequence, msg.last_command_sequence)
+                and now - self._stop_sent_at <= .25)
 
     def on_enable(self, request, response):
         if not request.data:
@@ -186,10 +198,10 @@ class BaseDriver(Node):
             seq, _ = self.pending_enable
             if msg.last_command_sequence == seq and msg.enabled:
                 self.pending_enable = None
-                self.diagnostic_error = ''
+                self.diagnostic_error = self.fault_reason = ''
         if self.enabled and not msg.enabled and self.pending_enable is None:
             self._disable('MCU unexpectedly disabled')
-        elif not self.enabled and msg.enabled:
+        elif not self.enabled and msg.enabled and not self._stop_in_flight(msg, now):
             self._disable('MCU enabled without host permission')
         if msg.fault_bits:
             if self.pending_enable is None:
@@ -235,7 +247,11 @@ class BaseDriver(Node):
         status.name, status.hardware_id = 'base_driver', 'micro_ros_base'
         status.level = DiagnosticStatus.ERROR if age > .25 or self.diagnostic_error else DiagnosticStatus.OK
         status.message = self.diagnostic_error or ('stale wheel feedback' if age > .25 else 'feedback current')
-        status.values = [KeyValue(key='enabled', value=str(self.enabled)), KeyValue(key='feedback_age_s', value=str(age))]
+        # `fault` excludes intentional safe disables (STOP request, cmd_vel timeout), which
+        # remain visible in the message/level but are not base unavailability.
+        status.values = [KeyValue(key='enabled', value=str(self.enabled)), KeyValue(key='feedback_age_s', value=str(age)),
+                         KeyValue(key='feedback_received', value=str(self.last_state_receipt is not None)),
+                         KeyValue(key='fault', value=self.fault_reason)]
         arr = DiagnosticArray()
         arr.header.stamp, arr.status = self.get_clock().now().to_msg(), [status]
         self.diags.publish(arr)

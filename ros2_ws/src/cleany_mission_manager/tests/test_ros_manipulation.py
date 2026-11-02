@@ -42,6 +42,7 @@ def manipulation_runtime(tmp_path, request):
         Parameter("tick_hz", value=50.0),
         Parameter("cancel_timeout", value=15.0),
         Parameter("operation_timeout", value=120.0),
+        Parameter("supervision_mode", value="disabled"),
     ]
     executor = SingleThreadedExecutor()
     harness = SimpleNamespace(runtime=None, server=None)

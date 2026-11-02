@@ -70,6 +70,7 @@ install(DIRECTORY include/ DESTINATION include)
 install(PROGRAMS
   scripts/pan_motion_gate scripts/depth_clearance scripts/depth_coverage
   scripts/obstacle_memory scripts/voxel_guard scripts/reactive_guard scripts/nav2_bt_trace
+  scripts/nav2_lifecycle_recovery
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
