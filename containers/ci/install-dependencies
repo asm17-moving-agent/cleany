@@ -2,7 +2,7 @@
 set -eo pipefail
 
 retry_dependency() {
-  python3 /opt/cleany-ci/retry-command.py -- "$@"
+  python3 /opt/cleany-ci/retry-command.py --attempts 2 -- "$@"
 }
 
 source /opt/cleany-ci/repository-snapshots.env
@@ -20,7 +20,8 @@ EOF
 cat > /etc/apt/sources.list.d/ros-snapshot.list <<EOF
 deb [check-valid-until=no signed-by=/usr/share/keyrings/ros-snapshots.gpg] http://snapshots.ros.org/humble/${ROS_SNAPSHOT}/ubuntu jammy main
 EOF
-printf 'Acquire::Retries "5";\n' > /etc/apt/apt.conf.d/80cleany-retries
+printf 'Acquire::Retries "1";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' > /etc/apt/apt.conf.d/80cleany-retries
+install -m 755 /opt/cleany-ci/apt-get /usr/local/bin/apt-get
 retry_dependency apt-get -o APT::Update::Error-Mode=any update
 # rosdep leaves installed packages untouched, including older ROS base packages.
 mapfile -t ros_packages < <(dpkg-query -W -f='${binary:Package}\n' 'ros-humble-*')

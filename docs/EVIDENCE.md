@@ -4,6 +4,24 @@
 
 과거 pass 수, RTF, 결과는 기록 당시 버전의 근거입니다. 현재 버전의 검증 결과는 새 실행으로 확보합니다.
 
+## PR #73 snapshot 다운로드 지연
+
+`25b8eca28ad7f493087d68464385414203715a32`의
+[CI 41379752233](https://github.com/asm17-moving-agent/cleany/actions/runs/41379752233)은
+Ubuntu snapshot의 반복된 HTTP 502와 503으로 이미지 생성에서 33분 이상 경과해 중단했다.
+코드 빌드와 테스트는 시작하지 않았다. 의존성 명령 재시도뿐 아니라 APT의 파일별 재시도가 누적됐다.
+원본은 데이터 루트의 `reports/ci-dependency-pinning-20261102/pr73-ci-41379752233.log`다.
+
+서명이 검증된 snapshot index의 SHA256과 크기를 유지하면서 동일 pool 파일을 archive 미러에서
+먼저 받는 다운로드 도구를 추가했다. SHA256 또는 크기가 다르면 cache에 넣지 않으며 snapshot으로
+돌아간다. 미러 index를 읽거나 버전을 변경하지 않는다. 설치 명령 다운로드 5분과 이미지 생성
+15분 상한을 추가하고 APT 자체 재시도 1회, 명령 실행 최대 2회로 줄였다.
+다운로드 도구와 기존 CI 도구의 자동 검사 24건이 통과했다. 고정 amd64 컨테이너에서
+이전 실패 패키지 `libxrandr-dev`, `mesa-vulkan-drivers`, `python3-pip-whl`,
+`python3-setuptools-whl`을 미러 다운로드와 SHA256 검증으로 재설치했다.
+이후 버전 검사에서 Python 36개와 공통 ROS 311개가 계속 일치했다.
+설치 로그는 같은 데이터 루트의 `pr73-combined/pr73-mirror-install.log`다.
+
 ## PR #73 통합 빌드의 병렬 제한과 MPPI 계약 검사
 
 2026-11-02에 PR head `25b8eca28ad7f493087d68464385414203715a32`와 아래 수정 내용을

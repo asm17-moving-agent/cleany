@@ -73,7 +73,7 @@ jobs:
             echo 'hit=true' >> "${GITHUB_OUTPUT}"
           else
             echo 'hit=false' >> "${GITHUB_OUTPUT}"
-            docker build --pull --platform linux/amd64 \
+            timeout --signal=TERM --kill-after=30s 15m docker build --pull --platform linux/amd64 \
               --build-arg "DEPENDENCY_KEY=${DEPENDENCY_KEY}" \
               --build-arg "SOURCE_URL=https://github.com/${GITHUB_REPOSITORY}" \
               --tag "${IMAGE}" --file "${RUNNER_TEMP}/ci-context/containers/ci/Dockerfile" \
